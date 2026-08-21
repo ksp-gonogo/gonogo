@@ -73,17 +73,52 @@ namespace Sitrep.Contract
         public string KernelVersion { get; }
 
         private readonly Func<string, object?> _query;
+        private readonly Func<string, object?> _vanilla;
 
-        public ProviderContext(string kernelVersion, Func<string, object?> query)
+        public ProviderContext(
+            string kernelVersion,
+            Func<string, object?> query,
+            Func<string, object?> vanilla)
         {
             KernelVersion = kernelVersion;
             _query = query;
+            _vanilla = vanilla;
         }
 
         /// <summary>Resolve another (already-active) capability's single active instance.</summary>
         public T Query<T>(string capability)
         {
             return (T)_query(capability)!;
+        }
+
+        /// <summary>
+        /// The capability's VANILLA instance, whether or not the vanilla won the
+        /// election, and including the election this factory is being run for.
+        ///
+        /// <para><b>Why <see cref="Query{T}"/> cannot serve this.</b> Query
+        /// answers with whatever is ACTIVE, so a provider that has just won
+        /// <c>propagation</c> asking for <c>propagation</c> gets either nothing
+        /// (its own capability's instances are not published until its factory
+        /// returns) or, after resolution, itself. There was no way at all to
+        /// reach the implementation it displaced.</para>
+        ///
+        /// <para><b>Why a provider would want one.</b> Displacing an
+        /// implementation is not the same as having no further use for it. The
+        /// transfer-window search is a patched-conic tool BY DESIGN, because that
+        /// is what mission design is; a provider that models n-body still needs
+        /// conic answers to drive it, and the alternative to reaching the vanilla
+        /// is every such provider carrying its own second copy of two-body
+        /// motion. Two copies of the two-body maths is exactly what the seam was
+        /// drawn to prevent.</para>
+        ///
+        /// <para>One instance per capability per resolution, shared: two
+        /// providers asking, and the fallback path itself, all get the same
+        /// object. Throws when the capability declares no vanilla, and when a
+        /// vanilla factory asks for its own vanilla, which cannot terminate.</para>
+        /// </summary>
+        public T Vanilla<T>(string capability)
+        {
+            return (T)_vanilla(capability)!;
         }
     }
 
@@ -163,6 +198,19 @@ namespace Sitrep.Contract
             new Dictionary<string, List<object?>>();
 
         /// <summary>
+        /// Vanilla instances built during the current resolution, one per
+        /// capability. Shared between <see cref="ProviderContext.Vanilla{T}"/> and
+        /// the fallback path so that a stock install has ONE vanilla per
+        /// capability rather than one on the wire and a second one some provider
+        /// is quietly consulting.
+        /// </summary>
+        private readonly Dictionary<string, object?> _vanillaInstances =
+            new Dictionary<string, object?>();
+
+        /// <summary>Capabilities whose vanilla factory is part-way through running, so re-entry can be named rather than hanging.</summary>
+        private readonly HashSet<string> _vanillaInFlight = new HashSet<string>();
+
+        /// <summary>
         /// Capability registration order: tracked explicitly (rather than
         /// relying on <see cref="Dictionary{TKey,TValue}"/> enumeration
         /// order) so selection/ordering stays deterministic regardless of
@@ -201,7 +249,16 @@ namespace Sitrep.Contract
         public ResolveResult Resolve(ResolveOptions opts)
         {
             var notices = new List<ResolutionNotice>();
-            var ctx = new ProviderContext(opts.KernelVersion, capability => Query<object?>(capability));
+            // A resolution builds its own provider instances, so it builds its own
+            // vanilla instances too: a re-resolve that handed out objects from the
+            // previous one would leave a displaced provider talking to a vanilla
+            // nothing else is using any more.
+            _vanillaInstances.Clear();
+            ProviderContext ctx = null!;
+            ctx = new ProviderContext(
+                opts.KernelVersion,
+                capability => Query<object?>(capability),
+                capability => VanillaInstance(capability, ctx));
 
             // Phase 1: selection, decide the winning provider(s) per
             // capability. No factory has run yet, so this can safely iterate
@@ -449,7 +506,7 @@ namespace Sitrep.Contract
         /// failed falls through to vanilla exactly as if the provider had
         /// never registered.</para>
         /// </summary>
-        private static List<object?> ActivateSelection(
+        private List<object?> ActivateSelection(
             CapabilitySelection selection,
             ProviderContext ctx,
             List<ResolutionNotice> notices)
@@ -487,7 +544,7 @@ namespace Sitrep.Contract
             return instances;
         }
 
-        private static List<object?> ActivateVanilla(
+        private List<object?> ActivateVanilla(
             CapabilityDescriptor descriptor,
             ProviderContext ctx,
             List<ResolutionNotice> notices,
@@ -503,7 +560,53 @@ namespace Sitrep.Contract
                 Kind = "vanilla-fallback",
                 Detail = $"{reason} for capability \"{descriptor.Id}\"; activated vanilla fallback.",
             });
-            return new List<object?> { descriptor.Vanilla(ctx) };
+            return new List<object?> { VanillaInstance(descriptor.Id, ctx) };
+        }
+
+        /// <summary>
+        /// Build (or hand back) this resolution's vanilla instance for
+        /// <paramref name="capability"/>, independent of who won its election.
+        /// See <see cref="ProviderContext.Vanilla{T}"/> for why a provider asks
+        /// for one.
+        ///
+        /// <para>The re-entry guard is not defensive padding. A vanilla factory
+        /// that asks for its own capability's vanilla is asking to be built out of
+        /// itself, and left unguarded that recurses until the stack goes, at KSP
+        /// startup, inside a factory, where the resulting trace names none of
+        /// this.</para>
+        /// </summary>
+        private object? VanillaInstance(string capability, ProviderContext ctx)
+        {
+            AssertKnownCapability(capability);
+            if (_vanillaInstances.TryGetValue(capability, out var existing))
+            {
+                return existing;
+            }
+
+            var descriptor = _capabilities[capability];
+            if (descriptor.Vanilla == null)
+            {
+                throw new InvalidOperationException(
+                    $"Capability \"{capability}\" declares no vanilla, so there is no " +
+                    "always-present implementation to fall back on.");
+            }
+            if (!_vanillaInFlight.Add(capability))
+            {
+                throw new InvalidOperationException(
+                    $"The vanilla factory for capability \"{capability}\" asked for its own " +
+                    "vanilla, which cannot terminate.");
+            }
+
+            try
+            {
+                var instance = descriptor.Vanilla(ctx);
+                _vanillaInstances[capability] = instance;
+                return instance;
+            }
+            finally
+            {
+                _vanillaInFlight.Remove(capability);
+            }
         }
 
         private void AssertKnownCapability(string capability)

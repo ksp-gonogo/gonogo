@@ -51,5 +51,25 @@ export interface ProviderRegistration<T = unknown> {
 export interface ProviderContext {
   /** Resolve another (already-active) capability's single active instance. */
   query<T>(capability: CapabilityId): T;
+  /**
+   * The capability's VANILLA instance, whether or not the vanilla won the
+   * election, and including the election this factory is being run for.
+   *
+   * `query` cannot serve this: it answers with whatever is ACTIVE, so a provider
+   * that has just won a capability asking for that capability gets either
+   * nothing (its own capability's instances are not published until its factory
+   * returns) or, later, itself. There was no way at all to reach the
+   * implementation it displaced.
+   *
+   * Displacing an implementation is not the same as having no further use for
+   * it: a provider that models one physics still needs the vanilla's answers for
+   * the jobs the vanilla is the right tool for, and the alternative is every such
+   * provider carrying its own second copy of what the vanilla already does.
+   *
+   * One instance per capability per resolution, shared between every caller and
+   * the fallback path. Throws when the capability declares no vanilla, and when a
+   * vanilla factory asks for its own vanilla, which cannot terminate.
+   */
+  vanilla<T>(capability: CapabilityId): T;
   kernelVersion: string;
 }

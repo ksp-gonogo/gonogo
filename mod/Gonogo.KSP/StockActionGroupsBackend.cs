@@ -32,6 +32,8 @@ namespace Gonogo.KSP
     /// </summary>
     public sealed class StockActionGroupsBackend : IActionGroupsBackend
     {
+        public string ProviderId => "stock";
+
         /// <summary>
         /// Stock's ten customs, indexed 0-based here and reported 1-based as
         /// <see cref="ActionGroupState.Index"/>: the same 1-based number

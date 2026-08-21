@@ -49,13 +49,18 @@ public enum TargetKind
 
 /// <summary>
 /// Next closest approach between the active vessel and its current target,
-/// computed MOD-side by the elected <c>ITargetApproachSolver</c> (stock
-/// two-body Kepler by default, an n-body backend when elected over
-/// it). Replaces the SDK's former client-side <c>o.closestTgtApprUT</c>
-/// two-body solve: the authority moves into the mod so an n-body physics mod
-/// can supply the true encounter instead of a Kepler approximation that is
-/// simply wrong under n-body. Null on <see cref="VesselTarget"/> when there is
-/// no target, no shared reference frame, or no encounter within the horizon.
+/// computed MOD-side by the elected <see cref="IPropagationProvider"/> (stock
+/// two-body Kepler by default, an n-body provider when elected over it).
+/// Replaces the SDK's former client-side <c>o.closestTgtApprUT</c> two-body
+/// solve: the authority moves into the mod so an n-body physics mod can supply
+/// the true encounter instead of a Kepler approximation that is simply wrong
+/// under n-body.
+///
+/// <para>It comes from the propagation provider rather than a solver of its own
+/// so that the encounter and the trajectory it is an encounter ON are always the
+/// same physics. Null on <see cref="VesselTarget"/> when there is no target, no
+/// frame the provider can reach both objects in, or no encounter inside the
+/// window it was asked about.</para>
 /// </summary>
 [SitrepContract]
 #if NETSTANDARD2_0

@@ -45,7 +45,7 @@ namespace Sitrep.Contract
     /// <c>CommsCoreUplink.CaptureOnMain</c> uses. Never call a backend from a
     /// channel-source closure.</para>
     /// </summary>
-    public interface IActionGroupsBackend
+    public interface IActionGroupsBackend : ISitrepProvider
     {
         /// <summary>
         /// Every CUSTOM action group this backend knows, each named and

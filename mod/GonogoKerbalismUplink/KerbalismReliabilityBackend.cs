@@ -18,7 +18,7 @@ namespace Gonogo.KerbalismUplink
 
         public KerbalismReliabilityBackend(KerbalismReflection k) => _k = k;
 
-        public string BackendId => "kerbalism";
+        public string ProviderId => "kerbalism";
 
         public bool IsModeled => Modeled();
 

@@ -127,24 +127,28 @@ namespace Gonogo.KSP
         }
 
         /// <summary>
-        /// The elected closest-approach solver resolver (see
-        /// <see cref="ITargetApproachSolver"/>). Same
-        /// late-bound install shape as <see cref="_actionGroupsBackend"/>:
-        /// stamped onto <c>vessel.target</c>'s <c>closestApproach</c> on the
-        /// main-thread sample, the mod-side replacement for the former
-        /// SDK-side two-body solve.
+        /// The elected <see cref="IPropagationProvider"/> resolver. Same
+        /// late-bound install shape as <see cref="_actionGroupsBackend"/>: read on
+        /// the main-thread sample to stamp <c>vessel.target</c>'s
+        /// <c>closestApproach</c>.
+        ///
+        /// <para>The approach comes from the PROPAGATION provider rather than a
+        /// solver of its own because an encounter is a consequence of a
+        /// trajectory. Two elections could put an integrated trajectory and a
+        /// two-body encounter on the wire for the same vessel at the same instant,
+        /// and nothing on the wire would say which was which.</para>
         /// </summary>
-        private Func<ITargetApproachSolver?>? _approachSolver;
+        private Func<IPropagationProvider?>? _propagation;
 
         /// <summary>
-        /// Installs the elected closest-approach solver resolver. Called by
+        /// Installs the elected propagation-provider resolver. Called by
         /// <see cref="GonogoAddon"/> once the capability Kernel has resolved,
-        /// see <see cref="_approachSolver"/> / <see cref="_actionGroupsBackend"/>
+        /// see <see cref="_propagation"/> / <see cref="_actionGroupsBackend"/>
         /// for why this can't be a constructor argument.
         /// </summary>
-        public void SetApproachSolverSource(Func<ITargetApproachSolver?> resolver)
+        public void SetPropagationSource(Func<IPropagationProvider?> resolver)
         {
-            _approachSolver = resolver;
+            _propagation = resolver;
         }
 
         public KspHost(ReferenceIdRegistry<ManeuverNode> maneuverNodeIdRegistry)
@@ -225,12 +229,12 @@ namespace Gonogo.KSP
                     var activeVessel = FlightGlobals.ActiveVessel;
                     if (activeVessel != null)
                     {
-                        // Closest approach comes from the elected solver (stock
-                        // Kepler by default; an n-body backend when elected), sampled on
-                        // this main thread at the current UT. Null when there's
-                        // no target / no encounter -- stamped onto vessel.target
-                        // below, replacing the old SDK-side two-body solve.
-                        var closestApproach = _approachSolver != null ? _approachSolver.Invoke()?.Solve(ut) : null;
+                        // Closest approach comes from the elected propagation
+                        // provider (stock Kepler by default; an n-body provider when
+                        // elected), sampled on this main thread at the current UT.
+                        // Null when there's no target / no encounter -- stamped onto
+                        // vessel.target below.
+                        var closestApproach = SolveClosestApproach(ut);
                         values["vessel"] = BuildVesselEntry(activeVessel, _actionGroupsBackend?.Invoke(), _maneuverPlanSource?.Invoke(), closestApproach, _thrustObserver, ut);
 
                         // Science + parts/power/robotics capture-adds (this
@@ -2294,6 +2298,151 @@ namespace Gonogo.KSP
 
             return armed ? "armed" : "none";
         }
+
+        /// <summary>
+        /// The next closest approach between the active vessel and its current
+        /// target, asked of the ELECTED propagation provider. Everything KSP is
+        /// read here and turned into contract shapes; the provider sees two named
+        /// targets, a frame and a window, and never a KSP type.
+        ///
+        /// <para>Null whenever there is nothing honest to say: no provider yet, no
+        /// target, no orbit on either side, or no encounter inside the window. The
+        /// old solver additionally refused any target that did not share a
+        /// reference body, because it was calling KSP's two-body helper directly.
+        /// That gate is gone: a provider holding the body table reaches a common
+        /// frame across the hierarchy itself, and one that cannot simply declines.</para>
+        /// </summary>
+        private ClosestApproach? SolveClosestApproach(double ut)
+        {
+            var provider = _propagation != null ? _propagation.Invoke() : null;
+            if (provider == null)
+            {
+                return null;
+            }
+
+            var fetch = FlightGlobals.fetch;
+            var active = FlightGlobals.ActiveVessel;
+            var target = fetch != null ? fetch.VesselTarget : null;
+            if (active == null || target == null)
+            {
+                return null;
+            }
+
+            var selfOrbit = active.orbit;
+            if (selfOrbit == null || selfOrbit.referenceBody == null)
+            {
+                return null;
+            }
+
+            var parentIndex = BodyIndexOf(selfOrbit.referenceBody);
+            var subject = PropagationTarget.Vessel(
+                active.id.ToString(), parentIndex, ElementsOf(selfOrbit));
+            PropagationTarget? other = AsPropagationTarget(target);
+            if (other == null)
+            {
+                return null;
+            }
+
+            // The active vessel's own parent, so the common case needs no body
+            // table at all and the cross-body case is the provider's walk to make.
+            var frame = PropagationFrame.CentredOn(parentIndex);
+            var window = ApproachWindow(provider, subject, other.Value);
+            if (window == null)
+            {
+                return null;
+            }
+
+            return provider.SolveClosestApproach(subject, other.Value, frame, ut, ut + window.Value);
+        }
+
+        /// <summary>
+        /// The KSP target as something a provider can resolve. A body is NAMED and
+        /// a vessel is DESCRIBED, which is the asymmetry
+        /// <see cref="PropagationTarget"/> draws: no provider has a registry to
+        /// look a vessel id up in, but every provider knows where the bodies are.
+        /// </summary>
+        private static PropagationTarget? AsPropagationTarget(ITargetable target)
+        {
+            if (target is CelestialBody body)
+            {
+                var index = BodyIndexOf(body);
+                return index >= 0 ? PropagationTarget.Body(index) : (PropagationTarget?)null;
+            }
+
+            var orbit = target.GetOrbit();
+            if (orbit == null || orbit.referenceBody == null)
+            {
+                return null;
+            }
+
+            // A docking port is targeted as its owning vessel: a port's own offset
+            // from its craft is metres against an approach measured in kilometres,
+            // and the vessel is the thing that has a trajectory.
+            var owner = target.GetVessel();
+            var id = owner != null ? owner.id.ToString() : target.GetName();
+            return PropagationTarget.Vessel(id, BodyIndexOf(orbit.referenceBody), ElementsOf(orbit));
+        }
+
+        /// <summary>
+        /// The search window, derived from how fast the two objects actually move
+        /// rather than fixed.
+        ///
+        /// <para>Three pulls, and all three are real. It has to reach past ONE
+        /// cycle of the faster object, or a rendezvous three orbits out reads as no
+        /// encounter at all. It should reach a cycle of the slower object, so a
+        /// transfer is inside it. And it must stay short enough that the provider
+        /// can still resolve the faster object's turns across it, which is what the
+        /// upper bound is for: a window nothing can be resolved in is worse than a
+        /// shorter one, because it answers.</para>
+        ///
+        /// <para>Null when neither object repeats. There is nothing to derive a
+        /// window from then, and a made-up one would put a made-up horizon behind
+        /// an answer of "no encounter".</para>
+        /// </summary>
+        private static double? ApproachWindow(
+            IPropagationProvider provider, PropagationTarget subject, PropagationTarget other)
+        {
+            const int MinimumCyclesAhead = 16;
+            const int MaximumCyclesAhead = 125;
+
+            var subjectCycle = provider.CharacteristicCycleSeconds(subject);
+            var otherCycle = provider.CharacteristicCycleSeconds(other);
+            if (subjectCycle == null && otherCycle == null)
+            {
+                return null;
+            }
+
+            var fastest = subjectCycle == null
+                ? otherCycle!.Value
+                : otherCycle == null ? subjectCycle.Value : Math.Min(subjectCycle.Value, otherCycle.Value);
+            var slowest = subjectCycle == null
+                ? otherCycle!.Value
+                : otherCycle == null ? subjectCycle.Value : Math.Max(subjectCycle.Value, otherCycle.Value);
+            if (!(fastest > 0.0))
+            {
+                return null;
+            }
+
+            return Math.Min(Math.Max(slowest, fastest * MinimumCyclesAhead), fastest * MaximumCyclesAhead);
+        }
+
+        /// <summary>Index into <c>FlightGlobals.Bodies</c>, the index space every propagation frame and body target is keyed on. -1 when the list is not up yet.</summary>
+        private static int BodyIndexOf(CelestialBody body)
+        {
+            var bodies = FlightGlobals.Bodies;
+            return bodies == null || body == null ? -1 : bodies.IndexOf(body);
+        }
+
+        private static OrbitElements ElementsOf(Orbit orbit) =>
+            OrbitElements.FromKspDegrees(
+                sma: orbit.semiMajorAxis,
+                ecc: orbit.eccentricity,
+                incDegrees: orbit.inclination,
+                lanDegrees: orbit.LAN,
+                argPeDegrees: orbit.argumentOfPeriapsis,
+                meanAnomalyAtEpochRadians: orbit.meanAnomalyAtEpoch,
+                epoch: orbit.epoch,
+                mu: orbit.referenceBody.gravParameter);
 
         /// <summary>
         /// Current docking/rendezvous/tracking target (G-8) - null when

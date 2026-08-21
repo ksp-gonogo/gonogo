@@ -50,9 +50,8 @@ namespace Sitrep.Contract
     /// vessels appear/disappear/move) yield 0..N live per call, so the contract is
     /// "enumerate live", not "register individual centres once".
     /// </summary>
-    public interface ICommandCentreSource
+    public interface ICommandCentreSource : ISitrepProvider
     {
-        string SourceId { get; }
         IEnumerable<ICommandCentre> Enumerate();
     }
 }

@@ -270,7 +270,7 @@ function DistanceToTargetComponent({
   const tarName = target?.name;
   const tarKind = target?.kind;
   const tarType = targetKindLabel(tarKind);
-  // Closest approach is now MOD-side (the elected ITargetApproachSolver),
+  // Closest approach is now MOD-side (the elected IPropagationProvider),
   // carried on `vessel.target.closestApproach`: replaces the former SDK-side
   // two-body solve (o.closestTgtApprUT / vessel.state.closestApproachUt).
   // `t.universalTime` stays dropped: the "current time" IS the SDK view-UT the

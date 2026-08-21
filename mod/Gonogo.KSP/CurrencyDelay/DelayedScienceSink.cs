@@ -115,6 +115,8 @@ namespace Gonogo.KSP.CurrencyDelay
     /// </summary>
     public sealed class DelayedScienceSinkBackend : Sitrep.Contract.IDelayedScienceSink
     {
+        public string ProviderId => "gonogo-currency-delay";
+
         public void RecordDelayedScienceIncrement(
             string vesselId, double amount, double ut, string originDescription)
         {

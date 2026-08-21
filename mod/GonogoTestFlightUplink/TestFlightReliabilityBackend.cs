@@ -15,7 +15,7 @@ namespace GonogoTestFlightUplink
 
         public TestFlightReliabilityBackend(TestFlightReflection tf) => _tf = tf;
 
-        public string BackendId => "testflight";
+        public string ProviderId => "testflight";
 
         // TestFlight always MODELS reliability when its assembly is present.
         public bool IsModeled => _tf.IsAvailable;

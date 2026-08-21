@@ -44,7 +44,7 @@ namespace GonogoKerbalismUplink.Tests
         {
             IScienceBackend backend = new KerbalismScienceBackend();
 
-            Assert.Equal(KerbalismScienceMap.ProviderId, backend.BackendId);
+            Assert.Equal(KerbalismScienceMap.ProviderId, backend.ProviderId);
         }
 
         /// <summary>

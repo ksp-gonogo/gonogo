@@ -400,8 +400,10 @@ interface CsScan {
 
 /**
  * Capability seams are DERIVED from the mod source rather than listed, so a new
- * election joins the rule the day it is written. `ITargetApproachSolver`
- * survived precisely because nobody remembered to add it to anything.
+ * election joins the rule the day it is written. The seam that motivated this
+ * survived precisely because nobody remembered to add it to anything, and it has
+ * since been merged into `IPropagationProvider`: closest approach is a
+ * consequence of a trajectory, not a capability beside one.
  */
 function scanCsharp(): CsScan {
   const files = gitFiles("mod").filter((f) => f.endsWith(".cs"));
@@ -573,7 +575,7 @@ describe("published doc reachability", () => {
       for (const seam of [
         "IPropagationProvider",
         "IActionGroupsBackend",
-        "ITargetApproachSolver",
+        "ICommsBackend",
       ]) {
         expect(
           CS_SCAN.electedCapabilities,

@@ -32,7 +32,7 @@ namespace Gonogo.KerbalismUplink
 
         public KerbalismIsruBackend(KerbalismReflection k) => _k = k;
 
-        public string BackendId => KerbalismIsruMap.ProviderId;
+        public string ProviderId => KerbalismIsruMap.ProviderId;
 
         public IReadOnlyList<IsruDrillEntry> Drills()
         {

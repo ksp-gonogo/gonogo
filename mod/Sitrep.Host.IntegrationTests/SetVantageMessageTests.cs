@@ -159,7 +159,7 @@ namespace Sitrep.Host.IntegrationTests
 
             public StaticSource(string id, CommandCentreKind kind) => _centre = new Centre(id, kind);
 
-            public string SourceId => "static-test";
+            public string ProviderId => "static-test";
 
             public IEnumerable<ICommandCentre> Enumerate()
             {

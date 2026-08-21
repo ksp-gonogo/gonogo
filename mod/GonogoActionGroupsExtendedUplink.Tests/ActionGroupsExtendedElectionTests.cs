@@ -45,8 +45,8 @@ namespace Gonogo.ActionGroupsExtendedUplink.Tests
 
         private sealed class FakeActionGroupsBackend : IActionGroupsBackend
         {
-            public FakeActionGroupsBackend(string id) => Id = id;
-            public string Id { get; }
+            public FakeActionGroupsBackend(string id) => ProviderId = id;
+            public string ProviderId { get; }
             public IList<ActionGroupState>? Groups() => new List<ActionGroupState>();
             public bool SetGroup(int index, bool state) => true;
         }
@@ -129,7 +129,7 @@ namespace Gonogo.ActionGroupsExtendedUplink.Tests
 
             Assert.NotNull(elected);
             Assert.IsType<FakeActionGroupsBackend>(elected);
-            Assert.Equal("stock", ((FakeActionGroupsBackend)elected!).Id);
+            Assert.Equal("stock", ((FakeActionGroupsBackend)elected!).ProviderId);
         }
 
         [Fact]

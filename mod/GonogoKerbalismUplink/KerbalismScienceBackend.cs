@@ -42,7 +42,7 @@ namespace Gonogo.KerbalismUplink
         /// </summary>
         private ScienceRaw _latest = new ScienceRaw();
 
-        public string BackendId => KerbalismScienceMap.ProviderId;
+        public string ProviderId => KerbalismScienceMap.ProviderId;
 
         /// <summary>Hand the tick's main-thread capture over. Called from the Courier thread.</summary>
         public void Stash(ScienceRaw raw) => _latest = raw;

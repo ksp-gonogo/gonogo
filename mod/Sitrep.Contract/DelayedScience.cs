@@ -36,7 +36,7 @@ namespace Sitrep.Contract;
 /// earlier signature took a stock <c>ProtoVessel</c> alongside the id and
 /// documented the light-time as coming from it, which was never true.</para>
 /// </summary>
-public interface IDelayedScienceSink
+public interface IDelayedScienceSink : ISitrepProvider
 {
     /// <summary>
     /// Records one science increment earned by a vessel: its identity, the raw

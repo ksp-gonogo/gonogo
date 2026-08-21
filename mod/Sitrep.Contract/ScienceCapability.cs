@@ -60,11 +60,8 @@ namespace Sitrep.Contract;
 /// what makes "this vessel has no science lab" silence rather than a false
 /// empty list.</para>
 /// </summary>
-public interface IScienceBackend
+public interface IScienceBackend : ISitrepProvider
 {
-    /// <summary>A short id for the elected backend, e.g. "stock", or a modelling mod's own id.</summary>
-    string BackendId { get; }
-
     /// <summary>One entry per stored science result on the active vessel (<c>science.experiments</c>).</summary>
     object? Experiments(KspSnapshot? snapshot);
 

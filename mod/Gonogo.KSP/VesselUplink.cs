@@ -6,7 +6,6 @@ using Sitrep.Host.Maneuver;
 using Sitrep.Propagation;
 using Sitrep.Host.ActionGroups;
 using Sitrep.Host.Propagation;
-using Sitrep.Host.Targeting;
 
 namespace Gonogo.KSP
 {
@@ -281,7 +280,6 @@ namespace Gonogo.KSP
         public void DeclareCapabilities(Kernel kernel)
         {
             ActionGroupsElection.RegisterCapability(kernel, _ => new StockActionGroupsBackend());
-            TargetApproachElection.RegisterCapability(kernel, _ => new StockKeplerApproachSolver());
             PropagationElection.RegisterCapability(kernel, SilenceTracking.KspSystemTable.Current);
             // The SAME registry KspVesselActuator resolves update/remove's
             // nodeId against, so a burn's id round-trips into a command whether

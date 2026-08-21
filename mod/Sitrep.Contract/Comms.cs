@@ -339,11 +339,8 @@ public class CommsLink
 /// read live KSP/mod state and MUST be called only where such reads are safe
 /// (the capture-on-main seam): the interface itself is pure.</para>
 /// </summary>
-public interface ICommsBackend
+public interface ICommsBackend : ISitrepProvider
 {
-    /// <summary>A short id for the elected backend, e.g. <c>"commnet"</c> or <c>"realantennas"</c>.</summary>
-    string BackendId { get; }
-
     CommsConnectivity Connectivity();
     CommsSignalStrength SignalStrength();
     CommsControlState ControlState();

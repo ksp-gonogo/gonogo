@@ -229,7 +229,7 @@ describe("DistanceToTarget: genuinely runs off the stream (M3 vessel-gap batch)"
       // so |relPos| = 2000 and the radial rate is −5 (closing). Closest
       // approach at UT 1125 → 125 s from the pinned view-UT (1000) →
       // T−2min 5s: now carried inside vessel.target.closestApproach (the
-      // MOD-side ITargetApproachSolver output) rather than a separate
+      // MOD-side IPropagationProvider output) rather than a separate
       // o.closestTgtApprUT key.
       fixture.emit("vessel.target", {
         name: "Rendezvous Target",

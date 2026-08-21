@@ -42,7 +42,7 @@ namespace Gonogo.KSP
         private static readonly FieldInfo? ResFlowField = typeof(ModuleResourceHarvester).GetField(
             "_resFlow", BindingFlags.NonPublic | BindingFlags.Instance);
 
-        public string BackendId => "stock";
+        public string ProviderId => "stock";
 
         public IReadOnlyList<IsruDrillEntry> Drills()
         {

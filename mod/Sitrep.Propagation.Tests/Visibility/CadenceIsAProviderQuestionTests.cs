@@ -69,6 +69,13 @@ namespace Sitrep.Propagation.Tests.Visibility
 
             public bool CanPropagate(PropagationTarget target, PropagationFrame frame, double fromUt, double toUt) =>
                 true;
+
+            public ClosestApproach? SolveClosestApproach(
+                PropagationTarget subject,
+                PropagationTarget other,
+                PropagationFrame frame,
+                double fromUt,
+                double toUt) => null;
         }
 
         [Fact]

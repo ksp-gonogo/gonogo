@@ -25,6 +25,9 @@ namespace Gonogo.ActionGroupsExtendedUplink
 
         public AgxActionGroupsBackend(IAgxApi agx) => _agx = agx;
 
+        /// <summary>The id this uplink registers the provider under, so a resolution notice and the backend itself name one identity.</summary>
+        public string ProviderId => ActionGroupsExtendedUplink.ProviderId;
+
         public IList<ActionGroupState>? Groups()
         {
             var assigned = _agx.AssignedGroups();

@@ -39,7 +39,7 @@ namespace Gonogo.KerbalismUplink
         /// <summary>
         /// The provider id this backend registers with the Kernel, and therefore the
         /// key its extension namespaces live under. Matches
-        /// <c>KerbalismScienceBackend.BackendId</c>; the client's
+        /// <c>KerbalismScienceBackend.ProviderId</c>; the client's
         /// <c>registerProviderExtensionShape</c> calls name the same string.
         /// </summary>
         public const string ProviderId = "kerbalism";

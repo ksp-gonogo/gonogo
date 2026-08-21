@@ -23,21 +23,25 @@ namespace Sitrep.Contract
     /// conic only as the payload this particular implementation needs.</para>
     ///
     /// <para><b>Everything a caller used to compute for itself is here.</b> The
-    /// three members beyond <c>Solve</c> are not conveniences. Each replaces
-    /// arithmetic that was being done outside any provider, and so escaped every
-    /// attempt to swap one: an orbital period from sma/mu, a propagability
-    /// predicate from ecc/sma/mu, and a batch of solves run one at a time in the
-    /// visibility sweep's inner loop.</para>
+    /// members beyond <c>Solve</c> are not conveniences. Each replaces arithmetic
+    /// that was being done outside any provider, and so escaped every attempt to
+    /// swap one: an orbital period from sma/mu, a propagability predicate from
+    /// ecc/sma/mu, a batch of solves run one at a time in the visibility sweep's
+    /// inner loop, and a closest approach that used to be a capability of its
+    /// own.</para>
+    ///
+    /// <para><b>Closest approach is on this interface, and it has to be.</b> It
+    /// was a sibling capability with its own election for a while, which modelled
+    /// the two as unrelated. They are not: an encounter is a CONSEQUENCE of a
+    /// trajectory. Whoever can propagate can answer where two craft are closest,
+    /// and whoever cannot answers in conics precisely because their propagation
+    /// is conic. Two elections could disagree, and the failure had no symptom: an
+    /// integrated trajectory and a two-body encounter for the same vessel at the
+    /// same instant, both on the wire, with nothing to tell them apart. One
+    /// election cannot produce that pair.</para>
     /// </summary>
-    public interface IPropagationProvider
+    public interface IPropagationProvider : ISitrepProvider
     {
-        /// <summary>
-        /// Stable id of this provider, for diagnostics and for the wire. Nothing
-        /// outside the election may branch on which provider is active, so a
-        /// provider says what it is rather than being interrogated.
-        /// </summary>
-        string ProviderId { get; }
-
         /// <summary>
         /// Solve for the state vector of <paramref name="target"/> at
         /// <paramref name="ut"/> (UT seconds), expressed in
@@ -117,6 +121,56 @@ namespace Sitrep.Contract
         /// it.</para>
         /// </summary>
         bool CanPropagate(PropagationTarget target, PropagationFrame frame, double fromUt, double toUt);
+
+        /// <summary>
+        /// The NEXT closest approach between <paramref name="subject"/> and
+        /// <paramref name="other"/>: the first instant at or after
+        /// <paramref name="fromUt"/> at which their separation stops shrinking
+        /// and starts growing, and how far apart they are then. Null when there
+        /// is no such instant before <paramref name="toUt"/>, and null when this
+        /// provider declines either target or the frame. A null is the
+        /// documented "nothing to say", never a sentinel zero-distance record.
+        ///
+        /// <para>The FIRST such instant, deliberately, not the smallest
+        /// separation in the window. An operator flying a rendezvous is asking
+        /// what happens next; a deeper approach three orbits later is a different
+        /// question and would read as a wrong answer to this one.</para>
+        ///
+        /// <para><b>Both objects are named, not described.</b> That is the whole
+        /// difference from the interface this replaces, whose only argument was a
+        /// UT: a solver handed a bare instant has to reach for its own source of
+        /// truth about who is involved, and the stock one reached for KSP's
+        /// two-body helper because that was the nearest source to hand. Named
+        /// targets, a frame and a bounded window are the same vocabulary the rest
+        /// of this interface speaks, and they are enough for an integrator to
+        /// answer from its own trajectories.</para>
+        ///
+        /// <para><b>Symmetric.</b> Swapping the two arguments must not change the
+        /// answer. The names distinguish the caller's point of view (the craft
+        /// being reported on, and what it is approaching), nothing else.</para>
+        ///
+        /// <para><b>The window is a real bound, not a hint.</b> An encounter
+        /// after <paramref name="toUt"/> is not an answer, because a provider
+        /// that integrates has a horizon past which it would be inventing one:
+        /// the same reason
+        /// <see cref="CanPropagate(PropagationTarget, PropagationFrame, double, double)"/>
+        /// takes a window. A caller wanting "the next approach" derives one from
+        /// <see cref="CharacteristicCycleSeconds"/> of both objects: long enough
+        /// to reach past several cycles of the faster one, since an approach is
+        /// rarely on the first pass, and short enough that a provider can still
+        /// resolve that faster motion across it.</para>
+        ///
+        /// <para>Deterministic, on the same terms as <c>Solve</c>: same inputs,
+        /// same answer, no wall-clock and no random dependence. A provider that
+        /// searches numerically must therefore derive its sampling from the
+        /// arguments rather than from anything ambient.</para>
+        /// </summary>
+        ClosestApproach? SolveClosestApproach(
+            PropagationTarget subject,
+            PropagationTarget other,
+            PropagationFrame frame,
+            double fromUt,
+            double toUt);
     }
 
     /// <summary>Frame-free overloads for callers working in the target's own parent frame.</summary>

@@ -136,7 +136,7 @@ namespace Gonogo.KSP.Tests.CommandCentres
 
             public StaticSource(IReadOnlyList<ICommandCentre> centres) => _centres = centres;
 
-            public string SourceId => "static-test";
+            public string ProviderId => "static-test";
 
             public IEnumerable<ICommandCentre> Enumerate() => _centres;
         }

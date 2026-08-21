@@ -27,7 +27,7 @@ namespace Gonogo.KSP.CommandCentres
         {
         }
 
-        public string SourceId => "stock-home";
+        public string ProviderId => "stock-home";
 
         public IEnumerable<ICommandCentre> Enumerate()
         {

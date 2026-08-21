@@ -25,7 +25,7 @@ namespace Gonogo.KSP.CommandCentres
         {
         }
 
-        public string SourceId => "crewed-vessel";
+        public string ProviderId => "crewed-vessel";
 
         public IEnumerable<ICommandCentre> Enumerate()
         {

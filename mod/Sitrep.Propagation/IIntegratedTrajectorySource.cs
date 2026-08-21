@@ -5,11 +5,10 @@ namespace Sitrep.Propagation
     /// closed-form, so a consumer can tell what SHAPE of answer it is getting.
     ///
     /// <para>A marker interface rather than a property on
-    /// <see cref="IPropagationProvider"/> because this assembly deliberately has
-    /// no project references, and the enumeration a client sees
-    /// (<c>Sitrep.Contract.TrajectoryKind</c>) lives in the contract. Keeping
-    /// this assembly dependency-free is worth more than folding one more member
-    /// onto the interface.</para>
+    /// <see cref="Sitrep.Contract.IPropagationProvider"/> because it is answered
+    /// by a TYPE rather than by a value: an implementation states the shape of its
+    /// trajectories by being one of these, and a provider that forgot to say
+    /// cannot claim to be analytic by omission.</para>
     ///
     /// <para>Read by a TYPE check at the election site, never by comparing a
     /// provider id. Whether trajectories are integrated is a fact about the

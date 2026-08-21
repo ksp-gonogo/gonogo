@@ -184,11 +184,8 @@ public class IsruConverterEntry
 /// registrar calls them from its main-thread capture and never from a channel
 /// mapper (which runs on the Courier thread).</para>
 /// </summary>
-public interface IIsruBackend
+public interface IIsruBackend : ISitrepProvider
 {
-    /// <summary>A short id for the elected backend, e.g. "stock".</summary>
-    string BackendId { get; }
-
     /// <summary>Every drill on the active vessel. Empty, never null, when there are none.</summary>
     IReadOnlyList<IsruDrillEntry> Drills();
 

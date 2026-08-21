@@ -25,7 +25,7 @@ namespace Gonogo.KerbalismUplink
         /// <summary>
         /// The provider id this backend registers with the Kernel, and therefore the
         /// key its extension namespace lives under. Matches
-        /// <c>KerbalismReliabilityBackend.BackendId</c> and the
+        /// <c>KerbalismReliabilityBackend.ProviderId</c> and the
         /// <c>ReliabilitySummary.Source</c> tag; the client's
         /// <c>registerProviderExtensionShape</c> call names the same string.
         /// </summary>

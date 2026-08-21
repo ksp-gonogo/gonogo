@@ -45,11 +45,7 @@ namespace Sitrep.Propagation.Tests
         [Fact]
         public void EveryPublicMemberOfTheVanillaIsOneTheSeamDeclares()
         {
-            var seam = new HashSet<string>(
-                typeof(IPropagationProvider)
-                    .GetMembers(BindingFlags.Public | BindingFlags.Instance)
-                    .Select(Signature),
-                StringComparer.Ordinal);
+            var seam = new HashSet<string>(SeamMembers().Select(Signature), StringComparer.Ordinal);
 
             // Property accessors arrive as get_X methods behind the property itself, and a
             // constructor is not a way into the solver.
@@ -94,10 +90,7 @@ namespace Sitrep.Propagation.Tests
             // The paired half of the ratchet above, so that "no door beside the seam" can
             // never be satisfied by narrowing the seam itself until nothing goes through
             // it. These four are what the codebase actually asks a provider.
-            var seam = typeof(IPropagationProvider)
-                .GetMembers(BindingFlags.Public | BindingFlags.Instance)
-                .Select(m => m.Name)
-                .ToList();
+            var seam = SeamMembers().Select(m => m.Name).ToList();
 
             foreach (var expected in new[]
             {
@@ -106,10 +99,29 @@ namespace Sitrep.Propagation.Tests
                 nameof(IPropagationProvider.SolveMany),
                 nameof(IPropagationProvider.CharacteristicCycleSeconds),
                 nameof(IPropagationProvider.CanPropagate),
+                nameof(IPropagationProvider.SolveClosestApproach),
             })
             {
                 Assert.Contains(expected, seam);
             }
+        }
+
+        /// <summary>
+        /// The seam INCLUDING what it inherits. An interface's own
+        /// <c>GetMembers</c> stops at itself, so once <c>ProviderId</c> moved onto
+        /// <see cref="ISitrepProvider"/> the checks above stopped seeing a member
+        /// every provider still has to write: the surface check would have called
+        /// the vanilla's <c>ProviderId</c> a door beside the seam, and the
+        /// completeness check would have missed it going away entirely. One of
+        /// those fails loudly and the other does not, which is the one that
+        /// mattered.
+        /// </summary>
+        private static IEnumerable<MemberInfo> SeamMembers()
+        {
+            var interfaces = new List<Type> { typeof(IPropagationProvider) };
+            interfaces.AddRange(typeof(IPropagationProvider).GetInterfaces());
+            return interfaces.SelectMany(
+                t => t.GetMembers(BindingFlags.Public | BindingFlags.Instance));
         }
 
         /// <summary>Name plus parameter types, so an OVERLOAD cannot pass for the member it shares a name with.</summary>

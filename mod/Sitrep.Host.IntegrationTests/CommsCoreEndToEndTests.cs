@@ -67,7 +67,7 @@ namespace Sitrep.Host.IntegrationTests
             // Kernel.Query the comms.delay source uses each tick.
             var elected = CommsElection.Elected(engine.Kernel);
             Assert.NotNull(elected);
-            Assert.Equal("commnet", elected!.BackendId);
+            Assert.Equal("commnet", elected!.ProviderId);
 
             engine.Start();
             try

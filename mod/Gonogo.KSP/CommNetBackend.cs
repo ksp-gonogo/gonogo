@@ -25,7 +25,7 @@ namespace Gonogo.KSP
     {
         public const string Id = "commnet";
 
-        public string BackendId => Id;
+        public string ProviderId => Id;
 
         /// <summary>
         /// The active vessel's stock CommNet connection, or null when there is

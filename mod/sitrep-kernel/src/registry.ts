@@ -84,6 +84,15 @@ export class Kernel {
   private readonly capabilities = new Map<CapabilityId, CapabilityDescriptor>();
   private readonly providers = new Map<CapabilityId, ProviderRegistration[]>();
   private readonly activeInstances = new Map<CapabilityId, unknown[]>();
+  /**
+   * Vanilla instances built during the current resolution, one per capability.
+   * Shared between `ctx.vanilla()` and the fallback path so a capability has ONE
+   * vanilla rather than one on the wire and a second some provider is quietly
+   * consulting.
+   */
+  private readonly vanillaInstances = new Map<CapabilityId, unknown>();
+  /** Capabilities whose vanilla factory is part-way through running, so re-entry can be named rather than hanging. */
+  private readonly vanillaInFlight = new Set<CapabilityId>();
 
   registerCapability<T>(descriptor: CapabilityDescriptor<T>): void {
     this.capabilities.set(descriptor.id, descriptor as CapabilityDescriptor);
@@ -107,9 +116,16 @@ export class Kernel {
 
   resolve(opts: ResolveOptions): { notices: ResolutionNotice[] } {
     const notices: ResolutionNotice[] = [];
+    // A resolution builds its own provider instances, so it builds its own
+    // vanilla instances too: a re-resolve handing out objects from the previous
+    // one would leave a displaced provider talking to a vanilla nothing else is
+    // using any more.
+    this.vanillaInstances.clear();
     const ctx: ProviderContext = {
       kernelVersion: opts.kernelVersion,
       query: <T>(capability: CapabilityId) => this.query<T>(capability),
+      vanilla: <T>(capability: CapabilityId) =>
+        this.vanillaInstance(capability, ctx) as T,
     };
 
     // Phase 1: selection, decide the winning provider(s) per capability.
@@ -410,7 +426,48 @@ export class Kernel {
       kind: "vanilla-fallback",
       detail: `${reason} for capability "${descriptor.id}"; activated vanilla fallback.`,
     });
-    return [descriptor.vanilla(ctx)];
+    return [this.vanillaInstance(descriptor.id, ctx)];
+  }
+
+  /**
+   * Build (or hand back) this resolution's vanilla instance for `capability`,
+   * independent of who won its election. See `ProviderContext.vanilla` for why a
+   * provider asks for one.
+   *
+   * The re-entry guard is not defensive padding: a vanilla factory asking for its
+   * own capability's vanilla is asking to be built out of itself, and unguarded
+   * that recurses until the stack goes, inside a factory, where the resulting
+   * trace names none of this.
+   */
+  private vanillaInstance(
+    capability: CapabilityId,
+    ctx: ProviderContext,
+  ): unknown {
+    this.assertKnownCapability(capability);
+    if (this.vanillaInstances.has(capability)) {
+      return this.vanillaInstances.get(capability);
+    }
+
+    const descriptor = this.capabilities.get(capability)!;
+    if (!descriptor.vanilla) {
+      throw new Error(
+        `Capability "${capability}" declares no vanilla, so there is no always-present implementation to fall back on.`,
+      );
+    }
+    if (this.vanillaInFlight.has(capability)) {
+      throw new Error(
+        `The vanilla factory for capability "${capability}" asked for its own vanilla, which cannot terminate.`,
+      );
+    }
+
+    this.vanillaInFlight.add(capability);
+    try {
+      const instance = descriptor.vanilla(ctx);
+      this.vanillaInstances.set(capability, instance);
+      return instance;
+    } finally {
+      this.vanillaInFlight.delete(capability);
+    }
   }
 
   private assertKnownCapability(capability: CapabilityId): void {

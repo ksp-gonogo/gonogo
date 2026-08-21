@@ -3,7 +3,7 @@ using System.IO;
 using Sitrep.Host;
 using Sitrep.Host.Maneuver;
 using Sitrep.Host.ActionGroups;
-using Sitrep.Host.Targeting;
+using Sitrep.Host.Propagation;
 using UnityEngine;
 using Sitrep.Contract;
 
@@ -187,12 +187,13 @@ namespace Gonogo.KSP
                 _host.SetManeuverPlanSource(
                     () => ManeuverPlanElection.Elected(engine.Kernel));
 
-                // Same late-bound install for the closest-approach solver
-                // (stock Kepler vanilla, or an n-body provider when elected) -- KspHost
+                // Same late-bound install for the propagation provider (the
+                // Kepler vanilla, or an n-body provider when elected) -- KspHost
                 // samples it on the main thread and stamps vessel.target's
-                // closestApproach.
-                _host.SetApproachSolverSource(
-                    () => TargetApproachElection.Elected(engine.Kernel));
+                // closestApproach. One election answers both the trajectory and the
+                // encounter on it, which is what stops the two disagreeing.
+                _host.SetPropagationSource(
+                    () => PropagationElection.Elected(engine.Kernel));
 
                 _engine.Start();
 

@@ -22,11 +22,10 @@ namespace Sitrep.Host.Propagation
     /// </list>
     ///
     /// <para><b>This file names no mod, and that is a rule rather than an
-    /// accident.</b> The comms, action-groups and target-approach elections each
-    /// grew a mod-named public triple (<c>XProviderId</c>, <c>XPriority</c>,
+    /// accident.</b> The comms and action-groups elections each grew a mod-named
+    /// public triple (<c>XProviderId</c>, <c>XPriority</c>,
     /// <c>RegisterXProvider</c>), which puts a specific third-party mod's name in
-    /// core's API surface. Two of those three were never called by anything but
-    /// tests. A provider announces what it is through
+    /// core's API surface, and neither was called by anything but tests. A provider announces what it is through
     /// <see cref="IPropagationProvider.ProviderId"/>, and callers ask the elected
     /// provider rather than asking which provider is elected, so nothing outside
     /// the election ever branches on identity. The check that keeps this true is
@@ -34,10 +33,10 @@ namespace Sitrep.Host.Propagation
     /// with no allowlist entry at all.</para>
     ///
     /// <para>Lives in <c>Sitrep.Host</c> rather than beside
-    /// <see cref="IPropagationProvider"/> because <c>Sitrep.Propagation</c> is
-    /// deliberately BCL-only and does not reference <c>Sitrep.Contract</c>, where
-    /// <see cref="Kernel"/> lives. Same reason <c>TargetApproachElection</c> sits
-    /// here rather than next to its own interface.</para>
+    /// <see cref="IPropagationProvider"/> because an election is core's side of a
+    /// seam rather than an implementor's: the interface has to be somewhere an
+    /// Uplink can build against, and registering the capability and resolving the
+    /// winner do not.</para>
     /// </summary>
     public static class PropagationElection
     {

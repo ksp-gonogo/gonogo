@@ -23,8 +23,8 @@ namespace Sitrep.Host.Tests
         /// <summary>A provider standing in for whichever science-modelling mod is installed.</summary>
         private sealed class FakeBackend : IScienceBackend
         {
-            public FakeBackend(string id) => BackendId = id;
-            public string BackendId { get; }
+            public FakeBackend(string id) => ProviderId = id;
+            public string ProviderId { get; }
             public object? Experiments(KspSnapshot? snapshot) => new List<object?>();
             public object? Instruments(KspSnapshot? snapshot) => null;
             public object? Sensors(KspSnapshot? snapshot) => null;
@@ -92,7 +92,7 @@ namespace Sitrep.Host.Tests
             var elected = ScienceElection.Elected(ResolvedKernel(providerPresent: false));
 
             Assert.NotNull(elected);
-            Assert.Equal("stock", elected!.BackendId);
+            Assert.Equal("stock", elected!.ProviderId);
             Assert.IsType<StockScienceBackend>(elected);
         }
 
@@ -102,7 +102,7 @@ namespace Sitrep.Host.Tests
             var elected = ScienceElection.Elected(ResolvedKernel(providerPresent: true));
 
             Assert.NotNull(elected);
-            Assert.Equal("fake-science-mod", elected!.BackendId);
+            Assert.Equal("fake-science-mod", elected!.ProviderId);
         }
 
         /// <summary>
@@ -130,7 +130,7 @@ namespace Sitrep.Host.Tests
 
             var elected = ScienceElection.Elected(engine.Kernel);
             Assert.NotNull(elected);
-            Assert.Equal("fake-science-mod", elected!.BackendId);
+            Assert.Equal("fake-science-mod", elected!.ProviderId);
         }
 
         /// <summary>

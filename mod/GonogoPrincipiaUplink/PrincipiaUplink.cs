@@ -104,16 +104,22 @@ namespace GonogoPrincipiaUplink
         /// <summary>
         /// Attaches the flight-plan observer and sources its channel.
         ///
-        /// <para>The propagation PROVIDER is still not registered here, and the
-        /// reason is a boundary rather than a choice: <c>IPropagationProvider</c>
-        /// is in <c>Sitrep.Propagation</c>, a private unpublished assembly an
-        /// Uplink may not build against. The isolation gate is right to refuse it,
-        /// and the sibling capabilities do not have this problem because
-        /// <c>IReliabilityBackend</c> and <c>IActionGroupsBackend</c> both live in
-        /// <c>Sitrep.Contract</c>. So the propagation capability is currently
-        /// advertised as an extension point no third party can extend, which wants
-        /// the interface moved onto the boundary rather than something done quietly
-        /// from here.</para>
+        /// <para>The propagation PROVIDER is not registered here yet, but the
+        /// boundary that used to make it impossible is gone:
+        /// <c>IPropagationProvider</c> lives in <c>Sitrep.Contract</c> now,
+        /// alongside <c>IReliabilityBackend</c> and <c>IActionGroupsBackend</c>, so
+        /// an Uplink can build against it. Registering one from here is a piece of
+        /// work rather than a boundary violation.</para>
+        ///
+        /// <para>Two things such a provider should know. Closest approach is part
+        /// of that interface rather than a capability beside it, so winning
+        /// propagation means answering the encounter too, which is what stops an
+        /// integrated trajectory and a two-body encounter reaching the wire for the
+        /// same vessel at the same instant. And the conic answers the
+        /// transfer-window search needs are reachable through
+        /// <c>ProviderContext.Vanilla</c>: the displaced two-body provider is a
+        /// tool, not a rival, and no provider should be carrying a second copy of
+        /// Lambert to get at it.</para>
         /// </summary>
         public void Register(IUplinkHost host)
         {

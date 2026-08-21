@@ -643,11 +643,11 @@ namespace Sitrep.Host.IntegrationTests
 
             public FakeCommsBackend(string id, double? hopDistanceMeters)
             {
-                BackendId = id;
+                ProviderId = id;
                 _hopDistanceMeters = hopDistanceMeters;
             }
 
-            public string BackendId { get; }
+            public string ProviderId { get; }
 
             public CommsConnectivity Connectivity() => new CommsConnectivity
             {

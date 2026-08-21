@@ -982,7 +982,7 @@ namespace Sitrep.Host
                 orbit = MapOrbit(rawOrbit, vesselId, snapshot!);
             }
 
-            // Mod-side closest approach (the elected ITargetApproachSolver's
+            // Mod-side closest approach (the elected IPropagationProvider's
             // result, stamped by KspHost.BuildTarget). Absent group -> null,
             // never a sentinel zero record.
             ClosestApproach? closestApproach = null;

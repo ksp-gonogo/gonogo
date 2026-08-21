@@ -25,15 +25,8 @@ namespace Sitrep.Contract
     /// main-thread capture. Never call a provider from a channel-source
     /// closure.</para>
     /// </summary>
-    public interface IManeuverPlanSource
+    public interface IManeuverPlanSource : ISitrepProvider
     {
-        /// <summary>
-        /// Stable id of this provider, for diagnostics and for the wire.
-        /// Nothing outside the election may branch on which provider is active,
-        /// so a provider says what it is rather than being interrogated.
-        /// </summary>
-        string ProviderId { get; }
-
         /// <summary>
         /// The burns planned for the craft being captured, ordered by
         /// execution, earliest <see cref="ManeuverNode.Ut"/> first.

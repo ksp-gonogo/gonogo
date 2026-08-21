@@ -204,6 +204,7 @@ describe("Kernel", () => {
     expect(capturedCtx).toBeDefined();
     expect(capturedCtx?.kernelVersion).toBe("1.2.3");
     expect(typeof capturedCtx?.query).toBe("function");
+    expect(typeof capturedCtx?.vanilla).toBe("function");
   });
 
   it("lets a factory's ProviderContext.query resolve an already-active capability", () => {
@@ -230,6 +231,118 @@ describe("Kernel", () => {
     kernel.resolve({ kernelVersion: "1.0.0" });
 
     expect(seenBase).toEqual({ name: "base" });
+  });
+
+  /**
+   * A winning provider can still reach the vanilla it displaced. `query` cannot
+   * serve this: it answers with whatever is ACTIVE, so a winner asking for its
+   * own capability gets nothing during activation and itself afterwards. Without
+   * a third answer the only way to use the displaced implementation was to ship a
+   * second copy of it inside the provider.
+   */
+  it("lets a winning provider reach the vanilla it displaced", () => {
+    const kernel = new Kernel();
+    let built = 0;
+    const vanilla = { name: "vanilla" };
+    kernel.registerCapability<Comms>({
+      id: "comms",
+      exclusive: true,
+      vanilla: () => {
+        built += 1;
+        return vanilla;
+      },
+    });
+
+    let reached: Comms | undefined;
+    kernel.registerProvider<Comms>({
+      capability: "comms",
+      id: "real-provider",
+      factory: (ctx) => {
+        reached = ctx.vanilla<Comms>("comms");
+        return { name: "real" };
+      },
+    });
+
+    kernel.resolve({ kernelVersion: "1.0.0" });
+
+    expect(reached).toBe(vanilla);
+    expect(built).toBe(1);
+    expect(kernel.query<Comms>("comms")).toEqual({ name: "real" });
+  });
+
+  it("hands every caller and the fallback path the same vanilla instance", () => {
+    const kernel = new Kernel();
+    let built = 0;
+    kernel.registerCapability<Comms>({
+      id: "comms",
+      exclusive: true,
+      vanilla: () => {
+        built += 1;
+        return { name: "vanilla" };
+      },
+    });
+    kernel.registerCapability<Comms>({ id: "observer", exclusive: true });
+
+    const reached: Comms[] = [];
+    kernel.registerProvider<Comms>({
+      capability: "observer",
+      id: "observer-provider",
+      deps: ["comms"],
+      factory: (ctx) => {
+        reached.push(ctx.vanilla<Comms>("comms"));
+        reached.push(ctx.vanilla<Comms>("comms"));
+        return { name: "observer" };
+      },
+    });
+
+    kernel.resolve({ kernelVersion: "1.0.0" });
+
+    expect(built).toBe(1);
+    expect(reached[0]).toBe(reached[1]);
+    expect(kernel.query<Comms>("comms")).toBe(reached[0]);
+  });
+
+  it("names a capability that declares no vanilla rather than answering undefined", () => {
+    const kernel = new Kernel();
+    kernel.registerCapability<Comms>({ id: "comms", exclusive: true });
+    let thrown: unknown;
+    kernel.registerProvider<Comms>({
+      capability: "comms",
+      id: "real-provider",
+      factory: (ctx) => {
+        try {
+          return ctx.vanilla<Comms>("comms");
+        } catch (error) {
+          thrown = error;
+          throw error;
+        }
+      },
+    });
+
+    kernel.resolve({ kernelVersion: "1.0.0" });
+
+    expect(String(thrown)).toContain("declares no vanilla");
+  });
+
+  it("names a vanilla that asks for its own vanilla rather than hanging", () => {
+    const kernel = new Kernel();
+    let thrown: unknown;
+    kernel.registerCapability<Comms>({
+      id: "comms",
+      exclusive: true,
+      vanilla: (ctx) => {
+        try {
+          return ctx.vanilla<Comms>("comms");
+        } catch (error) {
+          thrown = error;
+          return { name: "vanilla" };
+        }
+      },
+    });
+
+    kernel.resolve({ kernelVersion: "1.0.0" });
+
+    expect(String(thrown)).toContain("cannot terminate");
   });
 
   it("throws for an unknown capability passed to registerProvider", () => {

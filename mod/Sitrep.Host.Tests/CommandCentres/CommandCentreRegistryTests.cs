@@ -39,8 +39,8 @@ namespace Sitrep.Host.Tests.CommandCentres
 
         private sealed class MutableSource : ICommandCentreSource
         {
-            public MutableSource(string id) => SourceId = id;
-            public string SourceId { get; }
+            public MutableSource(string id) => ProviderId = id;
+            public string ProviderId { get; }
             public ICommandCentre[] Centres { get; set; } = System.Array.Empty<ICommandCentre>();
             public System.Collections.Generic.IEnumerable<ICommandCentre> Enumerate() => Centres;
         }

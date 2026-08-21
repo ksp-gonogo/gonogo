@@ -122,11 +122,8 @@ public class ReliabilityPartEntry
 /// Registered as a Kernel provider by each modelling uplink; the core registrar
 /// resolves the elected one and publishes its readouts on reliability.*.
 /// </summary>
-public interface IReliabilityBackend
+public interface IReliabilityBackend : ISitrepProvider
 {
-    /// <summary>A short id for the elected backend, e.g. "kerbalism" or "testflight".</summary>
-    string BackendId { get; }
-
     /// <summary>False when this backend does not model reliability (Kerbalism with Features.Reliability off).</summary>
     bool IsModeled { get; }
 

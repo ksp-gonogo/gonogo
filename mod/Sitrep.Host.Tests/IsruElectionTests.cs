@@ -29,8 +29,8 @@ namespace Sitrep.Host.Tests
         /// <summary>Stands in for the KSP-side stock reader, which this assembly cannot construct.</summary>
         private sealed class FakeBackend : IIsruBackend
         {
-            public FakeBackend(string id) => BackendId = id;
-            public string BackendId { get; }
+            public FakeBackend(string id) => ProviderId = id;
+            public string ProviderId { get; }
             public IReadOnlyList<IsruDrillEntry> Drills() => new List<IsruDrillEntry>();
             public IReadOnlyList<IsruConverterEntry> Converters() => new List<IsruConverterEntry>();
         }
@@ -86,7 +86,7 @@ namespace Sitrep.Host.Tests
             var elected = IsruElection.Elected(ResolvedKernel(providerPresent: false));
 
             Assert.NotNull(elected);
-            Assert.Equal("stock", elected!.BackendId);
+            Assert.Equal("stock", elected!.ProviderId);
         }
 
         [Fact]
@@ -95,7 +95,7 @@ namespace Sitrep.Host.Tests
             var elected = IsruElection.Elected(ResolvedKernel(providerPresent: true));
 
             Assert.NotNull(elected);
-            Assert.Equal("fake-isru-mod", elected!.BackendId);
+            Assert.Equal("fake-isru-mod", elected!.ProviderId);
         }
 
         /// <summary>
@@ -121,7 +121,7 @@ namespace Sitrep.Host.Tests
 
             var elected = IsruElection.Elected(engine.Kernel);
             Assert.NotNull(elected);
-            Assert.Equal("fake-isru-mod", elected!.BackendId);
+            Assert.Equal("fake-isru-mod", elected!.ProviderId);
         }
 
         /// <summary>

@@ -23,11 +23,11 @@ namespace Sitrep.Host.Tests
 
             public FakeBackend(string id, ICommsOcclusionModel? occlusion = null)
             {
-                BackendId = id;
+                ProviderId = id;
                 _occlusion = occlusion ?? CommsOcclusionModels.Unknown;
             }
 
-            public string BackendId { get; }
+            public string ProviderId { get; }
             public CommsConnectivity Connectivity() => new CommsConnectivity();
             public CommsSignalStrength SignalStrength() => new CommsSignalStrength();
             public CommsControlState ControlState() => new CommsControlState();
@@ -114,7 +114,7 @@ namespace Sitrep.Host.Tests
             Assert.True(engine.AvailabilityOf("realantennas").IsAvailable);
             var elected = CommsElection.Elected(engine.Kernel);
             Assert.NotNull(elected);
-            Assert.Equal("realantennas", elected!.BackendId);
+            Assert.Equal("realantennas", elected!.ProviderId);
         }
 
         [Fact]
@@ -125,7 +125,7 @@ namespace Sitrep.Host.Tests
             var elected = CommsElection.Elected(kernel);
 
             Assert.NotNull(elected);
-            Assert.Equal("commnet", elected!.BackendId);
+            Assert.Equal("commnet", elected!.ProviderId);
         }
 
         [Fact]
@@ -136,7 +136,7 @@ namespace Sitrep.Host.Tests
             var elected = CommsElection.Elected(kernel);
 
             Assert.NotNull(elected);
-            Assert.Equal("realantennas", elected!.BackendId);
+            Assert.Equal("realantennas", elected!.ProviderId);
         }
 
         [Fact]

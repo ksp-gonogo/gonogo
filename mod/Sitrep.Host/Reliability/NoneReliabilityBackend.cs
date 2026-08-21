@@ -12,7 +12,7 @@ namespace Sitrep.Host.Reliability
     /// </summary>
     public sealed class NoneReliabilityBackend : IReliabilityBackend
     {
-        public string BackendId => "none";
+        public string ProviderId => "none";
 
         public bool IsModeled => false;
 

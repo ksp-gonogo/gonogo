@@ -156,11 +156,11 @@ namespace Sitrep.Host.Tests
 
             public StubBackend(string id, Func<ICommsOcclusionModel> occlusion)
             {
-                BackendId = id;
+                ProviderId = id;
                 _occlusion = occlusion;
             }
 
-            public string BackendId { get; }
+            public string ProviderId { get; }
             public CommsConnectivity Connectivity() => new CommsConnectivity();
             public CommsSignalStrength SignalStrength() => new CommsSignalStrength();
             public CommsControlState ControlState() => new CommsControlState();

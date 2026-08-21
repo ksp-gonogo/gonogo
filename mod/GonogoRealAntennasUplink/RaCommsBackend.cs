@@ -27,7 +27,7 @@ namespace Gonogo.RealAntennasUplink
 
         public RaCommsBackend(RaReflection ra) => _ra = ra;
 
-        public string BackendId => Id;
+        public string ProviderId => Id;
 
         private static CommNetVessel? Connection() => FlightGlobals.ActiveVessel?.connection;
 

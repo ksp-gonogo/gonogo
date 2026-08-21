@@ -40,11 +40,11 @@ namespace Sitrep.Host.Tests.CommandCentres
 
         public FakeCommandCentreSource(string sourceId, params ICommandCentre[] centres)
         {
-            SourceId = sourceId;
+            ProviderId = sourceId;
             _centres = centres;
         }
 
-        public string SourceId { get; }
+        public string ProviderId { get; }
         public IEnumerable<ICommandCentre> Enumerate() => _centres;
     }
 }

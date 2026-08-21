@@ -243,6 +243,183 @@ namespace Sitrep.Propagation
                 orbit.Sma * (1.0 + orbit.Ecc));
         }
 
+        /// <summary>
+        /// The next approach, found by walking the separation's rate of change
+        /// until it turns from shrinking to growing and then bisecting for the
+        /// turn.
+        ///
+        /// <para>The quantity scanned is <c>dr.dv</c>, not the separation itself.
+        /// They have the same zero, and the dot product's SIGN says which side of
+        /// the minimum a sample is on, so a bracket is one sign change rather than
+        /// three samples that happen to dip. Scanning the separation directly
+        /// means recognising a minimum from its shape, which a coarse step reads
+        /// wrong in both directions: it invents one on a flat stretch and steps
+        /// over a sharp one.</para>
+        ///
+        /// <para>The scan is LAZY, stopping at the first turn rather than
+        /// sampling the window. What it costs is therefore set by how soon the
+        /// approach happens, not by how long a window the caller was willing to
+        /// accept, which is what lets a caller ask about a week without paying for
+        /// a week on every capture tick.</para>
+        ///
+        /// <para>Step size comes from the FASTER of the two objects, because that
+        /// is what sets how quickly the separation can turn. Deriving it from the
+        /// arguments rather than fixing it is what keeps this deterministic while
+        /// still resolving a low orbit and a moon transfer with the same
+        /// code.</para>
+        /// </summary>
+        public ClosestApproach? SolveClosestApproach(
+            PropagationTarget subject,
+            PropagationTarget other,
+            PropagationFrame frame,
+            double fromUt,
+            double toUt)
+        {
+            if (!(toUt > fromUt))
+            {
+                return null;
+            }
+            if (!CanPropagate(subject, frame, fromUt, toUt) || !CanPropagate(other, frame, fromUt, toUt))
+            {
+                return null;
+            }
+
+            var step = ScanStep(subject, other, toUt - fromUt);
+            var previousUt = fromUt;
+            var previousRate = SeparationRate(subject, other, frame, fromUt);
+
+            for (var i = 1; i <= MaxScanSteps; i++)
+            {
+                var ut = fromUt + i * step;
+                if (ut > toUt)
+                {
+                    ut = toUt;
+                }
+
+                var rate = SeparationRate(subject, other, frame, ut);
+                if (previousRate < 0.0 && rate >= 0.0)
+                {
+                    var turn = BisectSeparationTurn(subject, other, frame, previousUt, ut);
+                    var separation = SeparationAt(subject, other, frame, turn);
+                    if (double.IsNaN(separation) || double.IsInfinity(separation))
+                    {
+                        return null;
+                    }
+                    return new ClosestApproach { Time = turn, Distance = separation };
+                }
+
+                if (ut >= toUt)
+                {
+                    break;
+                }
+                previousUt = ut;
+                previousRate = rate;
+            }
+
+            return null;
+        }
+
+        /// <summary>
+        /// How many steps the scan above may take before giving up. It exists so
+        /// that "these two never approach" costs a bounded amount rather than the
+        /// whole window at full resolution, and <see cref="ScanStep"/> widens the
+        /// step to fit rather than letting the cap truncate the window: a scan
+        /// that stopped early would report "no approach" having looked at part of
+        /// what it was asked about.
+        /// </summary>
+        private const int MaxScanSteps = 4000;
+
+        /// <summary>Steps per cycle of the faster object, fine enough that a turn cannot hide between two samples.</summary>
+        private const int ScanStepsPerCycle = 32;
+
+        private double ScanStep(PropagationTarget subject, PropagationTarget other, double span)
+        {
+            var subjectCycle = CharacteristicCycleSeconds(subject);
+            var otherCycle = CharacteristicCycleSeconds(other);
+
+            double step;
+            if (subjectCycle.HasValue && otherCycle.HasValue)
+            {
+                step = Math.Min(subjectCycle.Value, otherCycle.Value) / ScanStepsPerCycle;
+            }
+            else if (subjectCycle.HasValue)
+            {
+                step = subjectCycle.Value / ScanStepsPerCycle;
+            }
+            else if (otherCycle.HasValue)
+            {
+                step = otherCycle.Value / ScanStepsPerCycle;
+            }
+            else
+            {
+                // Neither repeats, so there is no natural timescale to take one
+                // from and the window itself is the only thing left to divide.
+                step = span / ScanStepsPerCycle;
+            }
+
+            if (!(step > 0.0))
+            {
+                step = span / ScanStepsPerCycle;
+            }
+            return Math.Max(step, span / MaxScanSteps);
+        }
+
+        /// <summary>
+        /// <c>d(|dr|^2)/dt / 2</c>, i.e. <c>dr.dv</c>: negative while the two are
+        /// closing, positive once they are opening. Zero at the turn, which is the
+        /// root the bisection below is looking for.
+        /// </summary>
+        private double SeparationRate(
+            PropagationTarget subject, PropagationTarget other, PropagationFrame frame, double ut)
+        {
+            var a = Solve(subject, frame, ut);
+            var b = Solve(other, frame, ut);
+            var dp = a.Position - b.Position;
+            var dv = a.Velocity - b.Velocity;
+            return dp.X * dv.X + dp.Y * dv.Y + dp.Z * dv.Z;
+        }
+
+        private double SeparationAt(
+            PropagationTarget subject, PropagationTarget other, PropagationFrame frame, double ut)
+        {
+            var a = Solve(subject, frame, ut);
+            var b = Solve(other, frame, ut);
+            return (a.Position - b.Position).Magnitude();
+        }
+
+        /// <summary>
+        /// Bisection rather than Newton: the bracket is already known to hold a
+        /// sign change, so every iteration halves it and none can wander off, and
+        /// the fixed iteration count keeps the answer a pure function of the
+        /// bracket. Sixty halvings take any bracket this scan can produce below
+        /// the precision a double can express in UT seconds.
+        /// </summary>
+        private double BisectSeparationTurn(
+            PropagationTarget subject,
+            PropagationTarget other,
+            PropagationFrame frame,
+            double closingUt,
+            double openingUt)
+        {
+            for (var i = 0; i < 60; i++)
+            {
+                var midUt = 0.5 * (closingUt + openingUt);
+                if (midUt <= closingUt || midUt >= openingUt)
+                {
+                    break;
+                }
+                if (SeparationRate(subject, other, frame, midUt) < 0.0)
+                {
+                    closingUt = midUt;
+                }
+                else
+                {
+                    openingUt = midUt;
+                }
+            }
+            return 0.5 * (closingUt + openingUt);
+        }
+
         private OrbitElements? OrbitOfBody(int bodyIndex)
         {
             var bodies = _bodies == null ? null : _bodies();

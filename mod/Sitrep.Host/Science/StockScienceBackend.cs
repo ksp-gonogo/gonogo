@@ -35,7 +35,7 @@ namespace Sitrep.Host.Science
             _actuator = actuator;
         }
 
-        public string BackendId => "stock";
+        public string ProviderId => "stock";
 
         public object? Experiments(KspSnapshot? snapshot) => ScienceViewProvider.BuildExperiments(snapshot);
 
