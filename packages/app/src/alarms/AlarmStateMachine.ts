@@ -4,8 +4,11 @@ import {
   getContractsActive,
   getValue,
 } from "@ksp-gonogo/sitrep-client";
+import type { CareerContract } from "@ksp-gonogo/sitrep-sdk";
+import { KspParameterState } from "@ksp-gonogo/sitrep-sdk";
 import type {
   Alarm,
+  ContractParameterTargetState,
   ContractParameterTrigger,
   EventTrigger,
   ThresholdOp,
@@ -26,6 +29,21 @@ interface ThresholdSample {
   ut: number;
   value: number;
 }
+
+/**
+ * A contract-parameter trigger's persisted target word → KSP's own ordinal.
+ *
+ * The trigger stores a word because it lives in the operator's saved alarms and
+ * is our vocabulary, not KSP's wire; this is the one place it has to meet the
+ * wire, and it meets it as a number.
+ */
+const TARGET_STATE_ORDINAL: Record<
+  ContractParameterTargetState,
+  KspParameterState
+> = {
+  Complete: KspParameterState.Complete,
+  Failed: KspParameterState.Failed,
+};
 
 const THRESHOLD_SAMPLE_COUNT = 16;
 const MIN_SAMPLES_FOR_SLOPE = 4;
@@ -61,6 +79,21 @@ export class AlarmStateMachine {
     private readonly getAlarms: () => readonly Alarm[],
     private readonly getObservedUT: () => number | null,
     private readonly getRevealedEvents: RevealedEventsReader = () => [],
+    /**
+     * The active contract list the contract-parameter trigger matches against.
+     * Injected like the three readers above it, and defaulted to the live
+     * stream read so no caller changes.
+     *
+     * It was a bare module-level `getContractsActive()` call inside the matcher,
+     * which is the one read this class made without a seam: a test could only
+     * reach it by standing up a whole `TelemetryProvider` and keeping a
+     * subscription open, so the trigger's own matching rule had no unit-level
+     * coverage at all. It is the trigger whose failure mode is an alarm that
+     * never fires, so that is the wrong one to leave unreachable.
+     */
+    private readonly getContracts: () =>
+      | readonly CareerContract[]
+      | undefined = getContractsActive,
   ) {}
 
   /**
@@ -247,7 +280,7 @@ export class AlarmStateMachine {
   }
 
   private evalContractParameter(t: ContractParameterTrigger): boolean {
-    const active = getContractsActive();
+    const active = this.getContracts();
     if (!Array.isArray(active)) return false;
     for (const c of active) {
       if (!c || typeof c !== "object") continue;
@@ -260,7 +293,17 @@ export class AlarmStateMachine {
       for (const p of c.parameters) {
         if (!p || typeof p !== "object") continue;
         if (p.title !== t.parameterTitle) continue;
-        return p.state === t.targetState;
+        // Ordinal on both sides. `p.state` is KSP's `ParameterState` NAME, and
+        // comparing it to the trigger's persisted word meant an alarm the
+        // operator armed on "Complete" silently never fired if KSP ever renamed
+        // the member: no throw, no warning, just an alarm that does not go off,
+        // which is the worst thing an alarm can do. `targetState` stays a word
+        // because it lives in the operator's saved alarms and is OUR vocabulary,
+        // so it is mapped to an ordinal here rather than migrated on disk.
+        const target = TARGET_STATE_ORDINAL[t.targetState];
+        const observed = p.stateOrdinal;
+        if (typeof observed !== "number") return false;
+        return observed === target;
       }
       return false;
     }

@@ -279,17 +279,40 @@ describe("parseContracts", () => {
     expect(parsed?.[1]?.id).toBe("690587659210");
   });
 
-  it("collapses unknown parameter states to Incomplete", () => {
+  /**
+   * The pessimistic-arm defect. An unrecognised parameter state used to collapse
+   * onto `Incomplete`, which is a CLAIM: it says the objective is outstanding.
+   * Rename `ParameterState.Complete` in a future KSP and every finished
+   * objective on every contract reads as still to do, with a hollow circle
+   * beside it and an offer to set an alarm for something already done.
+   *
+   * Unknown is its own arm, and the state comes off the ORDINAL. A row whose
+   * ordinal is one KSP declares is that state whatever the name says.
+   */
+  it("reports an unrecognised parameter state as Unknown, not as Incomplete", () => {
     const parsed = parseContracts([
       {
         id: 1,
         title: "Test",
         parameters: [
-          { title: "Bad state", state: "Whatever", optional: false },
+          // A mod appending to ParameterState: an ordinal outside KSP's three.
+          { title: "Modded state", state: "Waived", stateOrdinal: 7 },
+          // No ordinal at all: also unknown, and for the same reason - nothing
+          // here can say whether it is done.
+          { title: "No ordinal", state: "Complete" },
+          // A renamed member. The ordinal is what it is.
+          { title: "Renamed", state: "Achieved", stateOrdinal: 1 },
         ],
       },
     ]);
-    expect(parsed?.[0]?.parameters[0]?.state).toBe("Incomplete");
+    expect(parsed?.[0]?.parameters.map((p) => p.state)).toEqual([
+      "Unknown",
+      "Unknown",
+      "Complete",
+    ]);
+    // The game's own word survives as a label, so an operator sees what KSP
+    // called it rather than only that we could not place it.
+    expect(parsed?.[0]?.parameters[0]?.stateLabel).toBe("Waived");
   });
 });
 

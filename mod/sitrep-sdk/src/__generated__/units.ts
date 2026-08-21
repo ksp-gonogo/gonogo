@@ -159,6 +159,7 @@ export const GENERATED_TYPE_UNITS: Readonly<Record<string, UnitsByField>> = {
   },
   "CareerContractParameter": {
     state: "text",
+    stateOrdinal: "enum",
     title: "text",
   },
   "CareerEconomy": {

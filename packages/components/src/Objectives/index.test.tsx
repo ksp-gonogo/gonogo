@@ -22,8 +22,18 @@ const contract = (over: Record<string, unknown> = {}) => ({
   repCompletion: 0,
   deadlineUt: 0,
   parameters: [
-    { title: "Reach the Mun", state: "Complete", optional: false },
-    { title: "Plant a flag", state: "Incomplete", optional: false },
+    {
+      title: "Reach the Mun",
+      state: "Complete",
+      stateOrdinal: 1,
+      optional: false,
+    },
+    {
+      title: "Plant a flag",
+      state: "Incomplete",
+      stateOrdinal: 0,
+      optional: false,
+    },
   ],
   ...over,
 });

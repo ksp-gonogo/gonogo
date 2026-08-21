@@ -174,8 +174,30 @@ public class CareerContractParameter
     [SitrepUnit(Units.Text)]
     public string? Title { get; set; }
 
+    /// <summary>
+    /// <c>Contracts.ParameterState</c>'s enum NAME
+    /// (<c>Incomplete</c>/<c>Complete</c>/<c>Failed</c>): a display label.
+    /// <see cref="StateOrdinal"/> is the field to branch on.
+    /// </summary>
     [SitrepUnit(Units.Text)]
     public string? State { get; set; }
+
+    /// <summary>
+    /// <see cref="State"/>'s KSP ORDINAL, typed to
+    /// <see cref="KspParameterState"/>.
+    ///
+    /// <para>Whether an objective reads as DONE was decided by comparing
+    /// <see cref="State"/> against <c>"Complete"</c>, and an unrecognised
+    /// spelling collapsed onto <c>Incomplete</c>. That is the pessimistic arm:
+    /// a completed objective showing as outstanding, and a contract-parameter
+    /// ALARM set on "Complete" that simply never fires. An alarm that never
+    /// fires is the failure mode this whole exercise is about.</para>
+    ///
+    /// <para><c>null</c> when the capture carried no state, which is a third
+    /// answer and must not be read as either arm.</para>
+    /// </summary>
+    [SitrepUnit(Units.Enumeration)]
+    public KspParameterState? StateOrdinal { get; set; }
 }
 
 /// <summary>

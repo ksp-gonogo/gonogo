@@ -262,6 +262,7 @@ namespace Sitrep.Host
                 {
                     ["title"] = GetString(parameter, "title"),
                     ["state"] = GetString(parameter, "state"),
+                    ["stateOrdinal"] = GetInt(parameter, "stateOrdinal"),
                 });
             }
 

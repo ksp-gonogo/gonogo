@@ -18,16 +18,19 @@
         {
           "title": "Have at least 3 crew docking ports",
           "state": "Incomplete",
+          "stateOrdinal": 0,
           "optional": false
         },
         {
           "title": "Have at least 15 crew capacity",
           "state": "Complete",
+          "stateOrdinal": 1,
           "optional": false
         },
         {
           "title": "Have a science lab",
           "state": "Incomplete",
+          "stateOrdinal": 0,
           "optional": true
         }
       ]
@@ -46,6 +49,7 @@
         {
           "title": "Reach Mun SOI",
           "state": "Complete",
+          "stateOrdinal": 1,
           "optional": false
         }
       ]
@@ -64,6 +68,7 @@
         {
           "title": "Crew report from upper atmosphere",
           "state": "Incomplete",
+          "stateOrdinal": 0,
           "optional": false,
           "parameterType": "ReachAltitudeEnvelope",
           "minAltitude": 18000,
@@ -109,15 +114,18 @@
                 "parameters": [
                   {
                     "title": "Have at least 3 crew docking ports",
-                    "state": "Incomplete"
+                    "state": "Incomplete",
+                    "stateOrdinal": 0
                   },
                   {
                     "title": "Have at least 15 crew capacity",
-                    "state": "Complete"
+                    "state": "Complete",
+                    "stateOrdinal": 1
                   },
                   {
                     "title": "Have a science lab",
-                    "state": "Incomplete"
+                    "state": "Incomplete",
+                    "stateOrdinal": 0
                   }
                 ],
                 "agent": "Kerbin Space Program",
@@ -134,7 +142,8 @@
                 "parameters": [
                   {
                     "title": "Reach Mun SOI",
-                    "state": "Complete"
+                    "state": "Complete",
+                    "stateOrdinal": 1
                   }
                 ],
                 "agent": "Periapsis Rocket Parts",
@@ -151,7 +160,8 @@
                 "parameters": [
                   {
                     "title": "Crew report from upper atmosphere",
-                    "state": "Incomplete"
+                    "state": "Incomplete",
+                    "stateOrdinal": 0
                   }
                 ],
                 "agent": "Research & Development Dept.",

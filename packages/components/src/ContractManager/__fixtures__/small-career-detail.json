@@ -17,11 +17,13 @@
       "parameters": [
         {
           "title": "Rescue Buzz Kerman",
-          "state": "Incomplete"
+          "state": "Incomplete",
+          "stateOrdinal": 0
         },
         {
           "title": "Return to Kerbin",
-          "state": "Incomplete"
+          "state": "Incomplete",
+          "stateOrdinal": 0
         }
       ]
     },
@@ -38,11 +40,13 @@
       "parameters": [
         {
           "title": "Land near the Mun's north pole",
-          "state": "Complete"
+          "state": "Complete",
+          "stateOrdinal": 1
         },
         {
           "title": "Plant a flag",
-          "state": "Incomplete"
+          "state": "Incomplete",
+          "stateOrdinal": 0
         }
       ]
     }
@@ -84,11 +88,13 @@
                 "parameters": [
                   {
                     "title": "Rescue Buzz Kerman",
-                    "state": "Incomplete"
+                    "state": "Incomplete",
+                    "stateOrdinal": 0
                   },
                   {
                     "title": "Return to Kerbin",
-                    "state": "Incomplete"
+                    "state": "Incomplete",
+                    "stateOrdinal": 0
                   }
                 ],
                 "agent": "Kerbin Space Agency Rescue Division",
@@ -105,11 +111,13 @@
                 "parameters": [
                   {
                     "title": "Land near the Mun's north pole",
-                    "state": "Complete"
+                    "state": "Complete",
+                    "stateOrdinal": 1
                   },
                   {
                     "title": "Plant a flag",
-                    "state": "Incomplete"
+                    "state": "Incomplete",
+                    "stateOrdinal": 0
                   }
                 ],
                 "agent": "Global Exploration Society",

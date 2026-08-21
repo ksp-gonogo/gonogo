@@ -18,21 +18,25 @@
         {
           "title": "Reach Mun orbit",
           "state": "Complete",
+          "stateOrdinal": 1,
           "optional": false
         },
         {
           "title": "Land on the Mun",
           "state": "Complete",
+          "stateOrdinal": 1,
           "optional": false
         },
         {
           "title": "Return to Kerbin and recover",
           "state": "Complete",
+          "stateOrdinal": 1,
           "optional": false
         },
         {
           "title": "Collect surface samples",
           "state": "Complete",
+          "stateOrdinal": 1,
           "optional": true
         }
       ]
@@ -75,19 +79,23 @@
                 "parameters": [
                   {
                     "title": "Reach Mun orbit",
-                    "state": "Complete"
+                    "state": "Complete",
+                    "stateOrdinal": 1
                   },
                   {
                     "title": "Land on the Mun",
-                    "state": "Complete"
+                    "state": "Complete",
+                    "stateOrdinal": 1
                   },
                   {
                     "title": "Return to Kerbin and recover",
-                    "state": "Complete"
+                    "state": "Complete",
+                    "stateOrdinal": 1
                   },
                   {
                     "title": "Collect surface samples",
-                    "state": "Complete"
+                    "state": "Complete",
+                    "stateOrdinal": 1
                   }
                 ],
                 "agent": "Kerbin Space Program",

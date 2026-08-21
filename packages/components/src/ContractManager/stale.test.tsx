@@ -54,7 +54,9 @@ function emitBoard(fixture: ReturnType<typeof setupStreamFixture>): void {
             state: "Active",
             // 1 Kerbin day (6h) past the pinned view UT of 100.
             deadlineUt: 21_700,
-            parameters: [{ title: "Reach orbit", state: "Incomplete" }],
+            parameters: [
+              { title: "Reach orbit", state: "Incomplete", stateOrdinal: 0 },
+            ],
           },
         ],
         offered: [

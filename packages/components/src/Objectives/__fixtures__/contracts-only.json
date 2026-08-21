@@ -18,6 +18,7 @@
         {
           "title": "Test LV-909: Flying over Kerbin",
           "state": "Incomplete",
+          "stateOrdinal": 0,
           "optional": false
         }
       ]
@@ -36,11 +37,13 @@
         {
           "title": "Recover the stranded Kerbal",
           "state": "Incomplete",
+          "stateOrdinal": 0,
           "optional": false
         },
         {
           "title": "Bring them home",
           "state": "Incomplete",
+          "stateOrdinal": 0,
           "optional": false
         }
       ]
@@ -66,7 +69,8 @@
                 "parameters": [
                   {
                     "title": "Test LV-909: Flying over Kerbin",
-                    "state": "Incomplete"
+                    "state": "Incomplete",
+                    "stateOrdinal": 0
                   }
                 ],
                 "agent": "C7 Aerospace",
@@ -83,11 +87,13 @@
                 "parameters": [
                   {
                     "title": "Recover the stranded Kerbal",
-                    "state": "Incomplete"
+                    "state": "Incomplete",
+                    "stateOrdinal": 0
                   },
                   {
                     "title": "Bring them home",
-                    "state": "Incomplete"
+                    "state": "Incomplete",
+                    "stateOrdinal": 0
                   }
                 ],
                 "agent": "Rescue Inc",

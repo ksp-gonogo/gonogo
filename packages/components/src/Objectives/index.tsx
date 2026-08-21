@@ -23,6 +23,7 @@ import styled from "styled-components";
 import {
   type ContractEntry,
   type ContractParameterAlarmTrigger,
+  type ContractParameterState,
   contractIdToSafeNumber,
   parseContracts,
 } from "../ContractManager";
@@ -139,9 +140,23 @@ function stillTrue<T, A>(
   return undefined;
 }
 
-function contractParamState(raw: string): ObjectiveState {
-  if (raw === "Complete") return "reached";
-  if (raw === "Failed") return "failed";
+/**
+ * A contract objective's state as this list models it.
+ *
+ * Takes the parsed {@link ContractParameterState} rather than KSP's raw name,
+ * which it used to compare against `"Complete"` and `"Failed"` directly. A
+ * renamed member made every objective read `"pending"`, so a completed one sat
+ * in the list as outstanding work and a failed one stopped reading as failed.
+ *
+ * `"Unknown"` reads `"pending"` here and that is deliberate rather than a
+ * fallthrough: this list has three states and none of them means "we cannot
+ * tell", so the honest place to put an unidentifiable objective is among the
+ * ones not yet resolved. It is NOT treated as reached or failed, which are the
+ * two claims we have no basis for.
+ */
+function contractParamState(state: ContractParameterState): ObjectiveState {
+  if (state === "Complete") return "reached";
+  if (state === "Failed") return "failed";
   return "pending";
 }
 

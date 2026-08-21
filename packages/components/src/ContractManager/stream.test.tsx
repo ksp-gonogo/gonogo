@@ -66,8 +66,16 @@ describe("ContractManager: genuinely runs off the stream (M3b career-detail batc
               reputationCompletion: 8,
               dateDeadline: 2500000,
               parameters: [
-                { title: "Rescue Buzz Kerman", state: "Incomplete" },
-                { title: "Return to Kerbin", state: "Incomplete" },
+                {
+                  title: "Rescue Buzz Kerman",
+                  state: "Incomplete",
+                  stateOrdinal: 0,
+                },
+                {
+                  title: "Return to Kerbin",
+                  state: "Incomplete",
+                  stateOrdinal: 0,
+                },
               ],
             },
           ],

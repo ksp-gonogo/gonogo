@@ -125,6 +125,7 @@
     },
     "CareerContractParameter": {
       "state": "text",
+      "stateOrdinal": "enum",
       "title": "text"
     },
     "CareerEconomy": {

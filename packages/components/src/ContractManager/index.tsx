@@ -13,7 +13,7 @@ import {
   useViewUt,
   type VesselState,
 } from "@ksp-gonogo/sitrep-client";
-import { value } from "@ksp-gonogo/sitrep-sdk";
+import { KspParameterState, value } from "@ksp-gonogo/sitrep-sdk";
 import {
   BellIcon,
   CommandButton,
@@ -49,11 +49,28 @@ export interface ContractParameterAlarmTrigger {
 
 type ContractManagerConfig = Record<string, never>;
 
-export type ContractParameterState = "Incomplete" | "Complete" | "Failed";
+/**
+ * An objective's state, as this widget models it.
+ *
+ * The first three are KSP's `Contracts.ParameterState`. `"Unknown"` is OURS and
+ * is the point: a state this build does not recognise used to collapse onto
+ * `"Incomplete"`, so a completed objective read as outstanding and a mod's
+ * appended state read as work still to do. An unrecognised state is not the
+ * pessimistic arm, it is a third answer, and the widget says so on screen.
+ */
+export type ContractParameterState =
+  | "Incomplete"
+  | "Complete"
+  | "Failed"
+  | "Unknown";
 
 export interface ContractParameter {
   title: string;
   state: ContractParameterState;
+  /** KSP's own word for the state, shown when {@link state} is `"Unknown"` so
+   *  the operator reads the game's vocabulary rather than a bare question mark.
+   *  Empty when the producer sent no name. */
+  stateLabel: string;
   optional: boolean;
   /**
    * Subclass of `ContractParameter` in stock KSP. Present when the fork's
@@ -94,11 +111,19 @@ export interface ContractEntry {
   parameters: ContractParameter[];
 }
 
-const KNOWN_PARAM_STATES = new Set<ContractParameterState>([
-  "Incomplete",
-  "Complete",
-  "Failed",
-]);
+/**
+ * KSP's `ParameterState` ordinal → the state this widget models.
+ *
+ * Keyed on the ORDINAL, not the name. `state` still arrives beside it and is
+ * still the label shown for an unrecognised value, but nothing here compares it:
+ * `ParameterState` is KSP's enum and its spelling is KSP's to change.
+ */
+const PARAM_STATE_BY_ORDINAL: ReadonlyMap<number, ContractParameterState> =
+  new Map([
+    [KspParameterState.Incomplete, "Incomplete"],
+    [KspParameterState.Complete, "Complete"],
+    [KspParameterState.Failed, "Failed"],
+  ]);
 
 /**
  * The value of a FACT: something that stays true until an event changes it, and no
@@ -117,8 +142,14 @@ function stillTrue<T, A>(
   return undefined;
 }
 
-function isKnownParamState(value: string): value is ContractParameterState {
-  return KNOWN_PARAM_STATES.has(value as ContractParameterState);
+/**
+ * What an objective's state actually is. An ordinal outside KSP's own members,
+ * or no ordinal at all, is `"Unknown"`: we cannot say the objective is done and
+ * we equally cannot say it is outstanding.
+ */
+function paramState(ordinal: unknown): ContractParameterState {
+  if (typeof ordinal !== "number") return "Unknown";
+  return PARAM_STATE_BY_ORDINAL.get(ordinal) ?? "Unknown";
 }
 
 /**
@@ -135,7 +166,8 @@ function isKnownParamState(value: string): value is ContractParameterState {
  * report.md); those extra fields simply stay undefined on a new-wire
  * parameter, degrading the AltitudeProgress bar/optional-badge gracefully
  * rather than breaking. Drops malformed entries; tolerates unknown
- * parameter states by collapsing to "Incomplete".
+ * parameter states by reporting them as "Unknown", never by collapsing them
+ * onto an arm we cannot justify.
  */
 export function parseContracts(raw: unknown): ContractEntry[] | null {
   if (raw === null || raw === undefined) return null;
@@ -192,10 +224,10 @@ function parseParameters(raw: unknown): ContractParameter[] {
   for (const entry of raw) {
     if (!entry || typeof entry !== "object" || Array.isArray(entry)) continue;
     const e = entry as Record<string, unknown>;
-    const stateRaw = typeof e.state === "string" ? e.state : "Incomplete";
     out.push({
       title: typeof e.title === "string" ? e.title : "(unnamed)",
-      state: isKnownParamState(stateRaw) ? stateRaw : "Incomplete",
+      state: paramState(e.stateOrdinal),
+      stateLabel: typeof e.state === "string" ? e.state : "",
       optional: e.optional === true,
       parameterType:
         typeof e.parameterType === "string" ? e.parameterType : undefined,
@@ -368,12 +400,24 @@ function ContractManagerComponent({
               <Parameters>
                 {c.parameters.map((p) => (
                   <Parameter key={`${c.id}-${p.title}`} $state={p.state}>
-                    <ParameterMark $state={p.state}>
+                    <ParameterMark
+                      $state={p.state}
+                      // Only on the Unknown arm: the ✓/✕/○ marks already say
+                      // what they are, and the "?" is the one that needs to
+                      // report the game's own word for a state we cannot place.
+                      title={
+                        p.state === "Unknown"
+                          ? `Unrecognised objective state${p.stateLabel ? `: ${p.stateLabel}` : ""}`
+                          : undefined
+                      }
+                    >
                       {p.state === "Complete"
                         ? "✓"
                         : p.state === "Failed"
                           ? "✕"
-                          : "○"}
+                          : p.state === "Unknown"
+                            ? "?"
+                            : "○"}
                     </ParameterMark>
                     <ParameterTitle>
                       {p.title}

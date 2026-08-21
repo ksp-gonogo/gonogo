@@ -59,8 +59,12 @@ function emitObjectives(fixture: ReturnType<typeof setupStreamFixture>): void {
             title: "Explore the Mun",
             agency: "World-Firsts",
             parameters: [
-              { title: "Reach the Mun", state: "Complete" },
-              { title: "Return home safely", state: "Incomplete" },
+              { title: "Reach the Mun", state: "Complete", stateOrdinal: 1 },
+              {
+                title: "Return home safely",
+                state: "Incomplete",
+                stateOrdinal: 0,
+              },
             ],
           },
         ],

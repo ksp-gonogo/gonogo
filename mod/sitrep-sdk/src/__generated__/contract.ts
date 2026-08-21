@@ -91,6 +91,7 @@ export interface CareerContractParameter
 {
 	title?: string;
 	state?: string;
+	stateOrdinal?: KspParameterState;
 }
 export interface CareerStrategies
 {

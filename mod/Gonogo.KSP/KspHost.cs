@@ -3467,6 +3467,9 @@ namespace Gonogo.KSP
                 {
                     ["title"] = parameter.Title,
                     ["state"] = parameter.State.ToString(),
+                    // The ordinal is what the client branches on; the name is
+                    // its display label. See Sitrep.Contract/KspEnums.cs.
+                    ["stateOrdinal"] = (int)parameter.State,
                 });
             }
 

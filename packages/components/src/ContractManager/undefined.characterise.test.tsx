@@ -61,6 +61,7 @@ const ALTITUDE_CONTRACT = {
     {
       title: "Altitude band",
       state: "Incomplete",
+      stateOrdinal: 0,
       optional: false,
       parameterType: "ReachAltitudeEnvelope",
       minAltitude: 5000,
