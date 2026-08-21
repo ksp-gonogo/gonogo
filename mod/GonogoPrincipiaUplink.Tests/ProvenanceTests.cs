@@ -132,6 +132,109 @@ namespace GonogoPrincipiaUplink.Tests
         }
     }
 
+    /// <summary>
+    /// The property half of the same rule. Reading a property invokes its getter,
+    /// so it is a call and belongs on the same footing as an explicit one.
+    ///
+    /// <para>Note what the doubles above could not have caught: <c>FakeFrameSelector</c>
+    /// declares <c>frame_type</c> and <c>target_frame_selected</c> as FIELDS, while
+    /// the producer is free to carry either as a property. A fixture that only ever
+    /// presents the safe shape cannot fail on the dangerous one, so the double here
+    /// exists to present a property specifically.</para>
+    /// </summary>
+    public class ReflectedMembersPropertyRuleTests
+    {
+        [Fact]
+        public void RefusesToReadAPropertyWhoseGetterHasNotBeenRead()
+        {
+            var target = new FakePropertyBearer();
+
+            var ex = Assert.Throws<InvalidOperationException>(
+                () => new ReflectedMembers().Value(target, "AbortingProperty"));
+
+            Assert.Contains("decompiled body", ex.Message);
+            Assert.False(target.AbortingMemberWasCalled);
+        }
+
+        /// <summary>
+        /// The refusal has to precede the read rather than catch it. Log.Fatal
+        /// aborts the process instead of throwing, so a getter that reaches it never
+        /// returns to a catch block at all.
+        /// </summary>
+        [Fact]
+        public void TheGetterDoesNotRunAtAll()
+        {
+            var target = new FakePropertyBearer();
+
+            Assert.Throws<InvalidOperationException>(
+                () => new ReflectedMembers().ReadDouble(target, "AbortingProperty"));
+            Assert.False(target.AbortingMemberWasCalled);
+        }
+
+        [Fact]
+        public void AFieldReadNeverConsultsTheAllowlist()
+        {
+            Assert.Equal(7.0, new ReflectedMembers().ReadDouble(new FakePropertyBearer(), "plain_field_"));
+        }
+
+        [Fact]
+        public void AnAllowlistedPropertyStillReads()
+        {
+            Assert.Equal(3, new ReflectedMembers().ReadCount(new FakePropertyBearer(), "items_"));
+        }
+
+        /// <summary>
+        /// Shrink-only. A name leaves when its getter has been read; an addition
+        /// means a property read shipped without one, so the exact contents are
+        /// asserted rather than the count.
+        /// </summary>
+        [Fact]
+        public void TheUnauditedListOnlyShrinks()
+        {
+            Assert.Equal(
+                new[]
+                {
+                    "bodyName",
+                    "display_patched_conics",
+                    "error",
+                    "final_time",
+                    "frame_type",
+                    "frames_that_hide_unpinned_celestials",
+                    "frames_that_hide_unpinned_markers",
+                    "history_length",
+                    "id",
+                    "initial_time",
+                    "message",
+                    "predicted_vessel",
+                    "selected_celestial",
+                    "target_frame_selected",
+                    "value",
+                },
+                ReflectedMembers.UnauditedProperties);
+        }
+    }
+
+    public class FakePropertyBearer
+    {
+#pragma warning disable CS0414, IDE0044, IDE1006
+        private double plain_field_ = 7.0;
+        private HashSet<string> items_ = new HashSet<string> { "a", "b", "c" };
+#pragma warning restore CS0414, CS0169, IDE0044, IDE1006
+
+        public bool AbortingMemberWasCalled { get; private set; }
+
+        /// <summary>Stands in for a getter that reaches Log.Fatal. The flag records
+        /// that it ran at all, which is the thing the guard has to prevent.</summary>
+        public double AbortingProperty
+        {
+            get
+            {
+                AbortingMemberWasCalled = true;
+                throw new InvalidOperationException("Log.Fatal: Unexpected frame_type");
+            }
+        }
+    }
+
     public class ProvenanceBuilderTests
     {
         [Fact]

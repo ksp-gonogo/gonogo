@@ -47,6 +47,60 @@ namespace GonogoPrincipiaUplink
         /// </summary>
         public static readonly string[] InvocableMembers = { "Δv", "ok" };
 
+        /// <summary>
+        /// Every PROPERTY this assembly is allowed to read, each one having had its
+        /// decompiled getter read.
+        ///
+        /// <para>A property read is a CALL. <see cref="Value"/> resolves a name to
+        /// whichever member carries it, so <c>ReadDouble(editor, "time_base")</c> is
+        /// a getter invocation that looks exactly like a field read at the call
+        /// site, and <c>time_base</c> is the member this class's own summary names
+        /// as fatal. The <see cref="InvocableMembers"/> allowlist guarded
+        /// <see cref="Invoke"/> and left that path open, which is the same
+        /// enforce-rather-than-document argument applied to only one of the two
+        /// ways a call can happen.</para>
+        ///
+        /// <para><c>Count</c> is here because <see cref="ReadCount"/> reads it off a
+        /// BCL collection we are already holding, not off a producer type.</para>
+        /// </summary>
+        public static readonly string[] ReadableProperties = { "Count" };
+
+        /// <summary>
+        /// Properties read in production BEFORE this guard existed, whose getters
+        /// have NOT been read.
+        ///
+        /// <para>Shrink-only. Each name moves to <see cref="ReadableProperties"/>
+        /// once its decompiled getter has been read, or out of the codebase if the
+        /// value can come from a plain field instead. Nothing is ever added here:
+        /// a new property read goes through the audit.</para>
+        ///
+        /// <para>They are listed separately rather than folded into the audited list
+        /// because a list that claims an audit it did not do is the failure this
+        /// whole class exists to prevent. <c>frame_type</c>,
+        /// <c>target_frame_selected</c> and <c>selected_celestial</c> are the
+        /// pressing ones: they read off <c>ReferenceFrameSelector</c>, the type whose
+        /// <c>FrameParameters</c>, <c>Name</c>, <c>NavballName</c> and
+        /// <c>Abbreviation</c> all reach <c>Log.Fatal</c>.</para>
+        /// </summary>
+        public static readonly string[] UnauditedProperties =
+        {
+            "bodyName",
+            "display_patched_conics",
+            "error",
+            "final_time",
+            "frame_type",
+            "frames_that_hide_unpinned_celestials",
+            "frames_that_hide_unpinned_markers",
+            "history_length",
+            "id",
+            "initial_time",
+            "message",
+            "predicted_vessel",
+            "selected_celestial",
+            "target_frame_selected",
+            "value",
+        };
+
         private const BindingFlags AnyInstance =
             BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic;
 
@@ -58,10 +112,26 @@ namespace GonogoPrincipiaUplink
         /// <para>Tolerant per-read on purpose: a version of the integrator that
         /// renamed one member should cost that one value, not the whole
         /// observation. A getter that throws is the integrator's business.</para>
+        ///
+        /// <para>Tolerant is not the same as permissive. A field read cannot run
+        /// producer code and is always allowed; a PROPERTY read runs a getter and so
+        /// goes through <see cref="ReadableProperties"/> on the same terms as
+        /// <see cref="Invoke"/>. The catch below does not cover the case that
+        /// matters: <c>Log.Fatal</c> aborts the process rather than throwing, so
+        /// there is nothing to catch and the guard has to come first.</para>
         /// </summary>
         public object? Value(object target, string name)
         {
             var member = Member(target.GetType(), name);
+            if (member is PropertyInfo && !IsReadableProperty(name))
+            {
+                throw new InvalidOperationException(
+                    "Refusing to read property '" + name + "' on a third-party object. Reading a " +
+                    "property invokes its getter, which is a call: permitted only once the " +
+                    "decompiled body has been read, because getters here reach Log.Fatal, which " +
+                    "aborts the process rather than throwing. Read the getter, then add the name " +
+                    "to ReflectedMembers.ReadableProperties with what you found.");
+            }
             try
             {
                 return member switch
@@ -76,6 +146,10 @@ namespace GonogoPrincipiaUplink
                 return null;
             }
         }
+
+        private static bool IsReadableProperty(string name) =>
+            Array.IndexOf(ReadableProperties, name) >= 0
+            || Array.IndexOf(UnauditedProperties, name) >= 0;
 
         /// <summary>
         /// Calls a parameterless method from <see cref="InvocableMembers"/> and
