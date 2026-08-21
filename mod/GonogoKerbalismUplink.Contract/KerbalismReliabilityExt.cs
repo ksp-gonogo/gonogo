@@ -1,5 +1,5 @@
 using Sitrep.Contract;
-#if NETSTANDARD2_0
+#if SITREP_CODEGEN
 using Reinforced.Typings.Attributes;
 #endif
 
@@ -44,7 +44,7 @@ namespace GonogoKerbalismUplink;
 /// there is no per-part list to roll up).</para>
 /// </summary>
 [SitrepContract]
-#if NETSTANDARD2_0
+#if SITREP_CODEGEN
 [TsInterface]
 #endif
 public class KerbalismReliabilityExt

@@ -1,4 +1,4 @@
-#if NETSTANDARD2_0
+#if SITREP_CODEGEN
 using Reinforced.Typings.Attributes;
 #endif
 
@@ -29,7 +29,7 @@ namespace Sitrep.Contract;
 /// <see cref="Unknown"/> is the graceful fallback for a raw value this contract
 /// doesn't recognize (same convention as <see cref="SasMode"/>/<see cref="VesselType"/>).
 /// </summary>
-#if NETSTANDARD2_0
+#if SITREP_CODEGEN
 [TsEnum]
 #endif
 [SitrepContract]
@@ -51,7 +51,7 @@ public enum PhysicsMode
 /// UT+delay, not as a ground-side fact.
 /// </summary>
 [SitrepContract]
-#if NETSTANDARD2_0
+#if SITREP_CODEGEN
 [TsInterface]
 #endif
 [SitrepTopic("vessel.physics.mode")]

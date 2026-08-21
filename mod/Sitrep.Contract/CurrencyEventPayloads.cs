@@ -1,4 +1,4 @@
-#if NETSTANDARD2_0
+#if SITREP_CODEGEN
 using Reinforced.Typings.Attributes;
 #endif
 
@@ -53,7 +53,7 @@ public static class CurrencyEventTopics
 /// one.</para>
 /// </summary>
 [SitrepContract]
-#if NETSTANDARD2_0
+#if SITREP_CODEGEN
 [TsInterface]
 #endif
 public class ScienceCreditEvent
@@ -119,7 +119,7 @@ public class ScienceCreditEvent
 /// An unattributable death raises no event rather than being blamed on a guess.</para>
 /// </summary>
 [SitrepContract]
-#if NETSTANDARD2_0
+#if SITREP_CODEGEN
 [TsInterface]
 #endif
 public class ReputationLossEvent

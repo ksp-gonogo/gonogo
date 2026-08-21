@@ -1,5 +1,5 @@
 using Sitrep.Contract;
-#if NETSTANDARD2_0
+#if SITREP_CODEGEN
 using Reinforced.Typings.Attributes;
 #endif
 
@@ -54,7 +54,7 @@ namespace GonogoKerbalismUplink;
 /// site.</para>
 /// </summary>
 [SitrepContract]
-#if NETSTANDARD2_0
+#if SITREP_CODEGEN
 [TsInterface]
 #endif
 public class KerbalismIsruDrillExtension
@@ -121,7 +121,7 @@ public class KerbalismIsruDrillExtension
 /// reports.</para>
 /// </summary>
 [SitrepContract]
-#if NETSTANDARD2_0
+#if SITREP_CODEGEN
 [TsInterface]
 #endif
 public class KerbalismIsruConverterExtension

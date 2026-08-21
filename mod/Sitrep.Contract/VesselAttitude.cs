@@ -1,4 +1,4 @@
-#if NETSTANDARD2_0
+#if SITREP_CODEGEN
 using Reinforced.Typings.Attributes;
 #endif
 
@@ -24,7 +24,7 @@ namespace Sitrep.Contract;
 /// orientation, not trajectory), hence streamed raw.
 /// </summary>
 [SitrepContract]
-#if NETSTANDARD2_0
+#if SITREP_CODEGEN
 [TsInterface]
 #endif
 [SitrepTopic("vessel.attitude")]

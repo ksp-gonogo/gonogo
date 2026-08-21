@@ -1,4 +1,4 @@
-#if NETSTANDARD2_0
+#if SITREP_CODEGEN
 using Reinforced.Typings.Attributes;
 #endif
 using System.Collections.Generic;
@@ -32,7 +32,7 @@ namespace Sitrep.Contract;
 /// an impulse. Absence says "not modelled", which is the true statement.</para>
 /// </summary>
 [SitrepContract]
-#if NETSTANDARD2_0
+#if SITREP_CODEGEN
 [TsInterface]
 #endif
 public class ManeuverNode
@@ -194,7 +194,7 @@ public class ManeuverNode
 /// <see cref="ManeuverNode.Patches"/>.</para>
 /// </summary>
 [SitrepContract]
-#if NETSTANDARD2_0
+#if SITREP_CODEGEN
 [TsInterface]
 #endif
 [SitrepTopic("vessel.maneuver")]

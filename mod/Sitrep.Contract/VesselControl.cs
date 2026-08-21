@@ -1,4 +1,4 @@
-#if NETSTANDARD2_0
+#if SITREP_CODEGEN
 using Reinforced.Typings.Attributes;
 #endif
 
@@ -12,7 +12,7 @@ namespace Sitrep.Contract;
 /// is the graceful fallback for a raw value this contract doesn't recognize
 /// yet, same convention as <see cref="VesselType"/>/<see cref="TransitionType"/>.
 /// </summary>
-#if NETSTANDARD2_0
+#if SITREP_CODEGEN
 [TsEnum]
 #endif
 [SitrepContract]
@@ -49,7 +49,7 @@ public enum SasMode
 /// for a string match and gain nothing.</para>
 /// </summary>
 [SitrepContract]
-#if NETSTANDARD2_0
+#if SITREP_CODEGEN
 [TsInterface]
 #endif
 public class ActionGroupState
@@ -97,7 +97,7 @@ public class ActionGroupState
 /// reader beware.</para>
 /// </summary>
 [SitrepContract]
-#if NETSTANDARD2_0
+#if SITREP_CODEGEN
 [TsInterface]
 #endif
 [SitrepTopic("vessel.control")]

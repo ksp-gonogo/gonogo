@@ -1,5 +1,5 @@
 using System.Collections.Generic;
-#if NETSTANDARD2_0
+#if SITREP_CODEGEN
 using Reinforced.Typings.Attributes;
 #endif
 
@@ -21,7 +21,7 @@ namespace Sitrep.Contract;
 /// seven.</para>
 /// </summary>
 [SitrepContract]
-#if NETSTANDARD2_0
+#if SITREP_CODEGEN
 [TsInterface]
 #endif
 public class PendingUplink
@@ -108,7 +108,7 @@ public class PendingUplink
 
 /// <summary>Wire wrapper for <c>system.uplink.pending</c>: the whole queue, resampled every emission.</summary>
 [SitrepContract]
-#if NETSTANDARD2_0
+#if SITREP_CODEGEN
 [TsInterface]
 #endif
 public class PendingUplinkQueue

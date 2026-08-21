@@ -1,4 +1,4 @@
-#if NETSTANDARD2_0
+#if SITREP_CODEGEN
 using Reinforced.Typings.Attributes;
 #endif
 
@@ -16,7 +16,7 @@ namespace Sitrep.Contract;
 /// fully handed back to the player/SAS with no residual override.
 /// </summary>
 [SitrepContract]
-#if NETSTANDARD2_0
+#if SITREP_CODEGEN
 [TsInterface]
 #endif
 public class SetFlyByWireArgs
@@ -41,7 +41,7 @@ public class SetFlyByWireArgs
 /// past full is a routine quirk, not an error).
 /// </summary>
 [SitrepContract]
-#if NETSTANDARD2_0
+#if SITREP_CODEGEN
 [TsInterface]
 #endif
 public class SetControlAxesArgs

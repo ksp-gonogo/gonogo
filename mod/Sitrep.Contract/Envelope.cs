@@ -1,16 +1,16 @@
-#if NETSTANDARD2_0
+#if SITREP_CODEGEN
 using Reinforced.Typings.Attributes;
 #endif
 
 namespace Sitrep.Contract;
 
 [SitrepContract]
-#if NETSTANDARD2_0
+#if SITREP_CODEGEN
 [TsInterface]
 #endif
 public class StreamData<T>
 {
-#if NETSTANDARD2_0
+#if SITREP_CODEGEN
     [TsProperty(Type = "\"stream-data\"")]
 #endif
     public string Type { get; set; } = "stream-data";
@@ -20,12 +20,12 @@ public class StreamData<T>
 }
 
 [SitrepContract]
-#if NETSTANDARD2_0
+#if SITREP_CODEGEN
 [TsInterface]
 #endif
 public class EventMsg
 {
-#if NETSTANDARD2_0
+#if SITREP_CODEGEN
     [TsProperty(Type = "\"event\"")]
 #endif
     [SitrepUnit(Units.Id)]
@@ -38,12 +38,12 @@ public class EventMsg
 }
 
 [SitrepContract]
-#if NETSTANDARD2_0
+#if SITREP_CODEGEN
 [TsInterface]
 #endif
 public class CommandRequest<TArgs>
 {
-#if NETSTANDARD2_0
+#if SITREP_CODEGEN
     [TsProperty(Type = "\"command-request\"")]
 #endif
     public string Type { get; set; } = "command-request";
@@ -82,12 +82,12 @@ public class CommandRequest<TArgs>
 }
 
 [SitrepContract]
-#if NETSTANDARD2_0
+#if SITREP_CODEGEN
 [TsInterface]
 #endif
 public class CommandResponse<TResult>
 {
-#if NETSTANDARD2_0
+#if SITREP_CODEGEN
     [TsProperty(Type = "\"command-response\"")]
 #endif
     public string Type { get; set; } = "command-response";
@@ -97,12 +97,12 @@ public class CommandResponse<TResult>
 }
 
 [SitrepContract]
-#if NETSTANDARD2_0
+#if SITREP_CODEGEN
 [TsInterface]
 #endif
 public class ErrorMsg
 {
-#if NETSTANDARD2_0
+#if SITREP_CODEGEN
     [TsProperty(Type = "\"error\"")]
 #endif
     [SitrepUnit(Units.Id)]
@@ -118,12 +118,12 @@ public class ErrorMsg
 }
 
 [SitrepContract]
-#if NETSTANDARD2_0
+#if SITREP_CODEGEN
 [TsInterface]
 #endif
 public class Subscribe
 {
-#if NETSTANDARD2_0
+#if SITREP_CODEGEN
     [TsProperty(Type = "\"subscribe\"")]
 #endif
     [SitrepUnit(Units.Id)]
@@ -133,12 +133,12 @@ public class Subscribe
 }
 
 [SitrepContract]
-#if NETSTANDARD2_0
+#if SITREP_CODEGEN
 [TsInterface]
 #endif
 public class Unsubscribe
 {
-#if NETSTANDARD2_0
+#if SITREP_CODEGEN
     [TsProperty(Type = "\"unsubscribe\"")]
 #endif
     [SitrepUnit(Units.Id)]
@@ -154,12 +154,12 @@ public class Unsubscribe
 /// selectable; any other id must name a currently-active command centre.
 /// </summary>
 [SitrepContract]
-#if NETSTANDARD2_0
+#if SITREP_CODEGEN
 [TsInterface]
 #endif
 public class SetVantage
 {
-#if NETSTANDARD2_0
+#if SITREP_CODEGEN
     [TsProperty(Type = "\"set-vantage\"")]
 #endif
     [SitrepUnit(Units.Id)]

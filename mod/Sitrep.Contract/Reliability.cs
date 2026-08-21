@@ -1,5 +1,5 @@
 using System.Collections.Generic;
-#if NETSTANDARD2_0
+#if SITREP_CODEGEN
 using Reinforced.Typings.Attributes;
 #endif
 
@@ -32,7 +32,7 @@ namespace Sitrep.Contract;
 
 /// <summary>Vessel-level reliability summary. Source-agnostic: the elected backend fills it.</summary>
 [SitrepContract]
-#if NETSTANDARD2_0
+#if SITREP_CODEGEN
 [TsInterface]
 #endif
 [SitrepTopic("reliability.summary")]
@@ -72,7 +72,7 @@ public class ReliabilitySummary
 /// whichever fields are non-null.
 /// </summary>
 [SitrepContract]
-#if NETSTANDARD2_0
+#if SITREP_CODEGEN
 [TsInterface]
 #endif
 [SitrepTopic("reliability.parts", isArray: true)]

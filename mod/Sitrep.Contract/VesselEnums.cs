@@ -1,4 +1,4 @@
-#if NETSTANDARD2_0
+#if SITREP_CODEGEN
 using Reinforced.Typings.Attributes;
 #endif
 
@@ -15,7 +15,7 @@ namespace Sitrep.Contract;
 /// value this contract doesn't yet recognize, rather than the mapper
 /// throwing on a future KSP version adding a situation.
 /// </summary>
-#if NETSTANDARD2_0
+#if SITREP_CODEGEN
 [TsEnum]
 #endif
 [SitrepContract]
@@ -40,7 +40,7 @@ public enum Situation
 /// mirrors KSP's own <c>Unknown</c> member and is the fallback for a value
 /// this contract doesn't recognize yet.
 /// </summary>
-#if NETSTANDARD2_0
+#if SITREP_CODEGEN
 [TsEnum]
 #endif
 [SitrepContract]
@@ -68,7 +68,7 @@ public enum VesselType
 /// <c>orbit.patchEndTransition.ToString()</c> value <c>KspHost</c> captures.
 /// <see cref="Unknown"/> is the graceful fallback.
 /// </summary>
-#if NETSTANDARD2_0
+#if SITREP_CODEGEN
 [TsEnum]
 #endif
 [SitrepContract]
@@ -89,7 +89,7 @@ public enum TransitionType
 /// different enough to be wrong, and the distinction previously lived only in
 /// <c>ManeuverNode</c>'s prose.
 /// </summary>
-#if NETSTANDARD2_0
+#if SITREP_CODEGEN
 [TsEnum]
 #endif
 [SitrepContract]

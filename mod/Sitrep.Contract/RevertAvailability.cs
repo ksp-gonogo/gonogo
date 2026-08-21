@@ -1,4 +1,4 @@
-#if NETSTANDARD2_0
+#if SITREP_CODEGEN
 using Reinforced.Typings.Attributes;
 #endif
 
@@ -39,7 +39,7 @@ namespace Sitrep.Contract;
 /// </summary>
 [SitrepContract]
 [SitrepTopic("ksp.revertAvailability")]
-#if NETSTANDARD2_0
+#if SITREP_CODEGEN
 [TsInterface]
 #endif
 public class RevertAvailability

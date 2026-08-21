@@ -1,5 +1,5 @@
 using System.Collections.Generic;
-#if NETSTANDARD2_0
+#if SITREP_CODEGEN
 using Reinforced.Typings.Attributes;
 #endif
 
@@ -21,7 +21,7 @@ namespace Sitrep.Contract;
 /// allowlist for exactly that reason).</para>
 /// </summary>
 [SitrepContract]
-#if NETSTANDARD2_0
+#if SITREP_CODEGEN
 [TsInterface]
 #endif
 [SitrepTopic("recovery.lastSummary")]
@@ -77,7 +77,7 @@ public class RecoveryReport
 /// One science subject recovered: an entry of <see cref="RecoveryReport.ScienceBreakdown"/>.
 /// </summary>
 [SitrepContract]
-#if NETSTANDARD2_0
+#if SITREP_CODEGEN
 [TsInterface]
 #endif
 public class RecoveryScienceEntry
@@ -100,7 +100,7 @@ public class RecoveryScienceEntry
 /// Identically-named parts are grouped, hence <see cref="Count"/>.
 /// </summary>
 [SitrepContract]
-#if NETSTANDARD2_0
+#if SITREP_CODEGEN
 [TsInterface]
 #endif
 public class RecoveryPartEntry
@@ -130,7 +130,7 @@ public class RecoveryPartEntry
 /// One recovered-resource group: an entry of <see cref="RecoveryReport.ResourceBreakdown"/>.
 /// </summary>
 [SitrepContract]
-#if NETSTANDARD2_0
+#if SITREP_CODEGEN
 [TsInterface]
 #endif
 public class RecoveryResourceEntry
@@ -152,7 +152,7 @@ public class RecoveryResourceEntry
 /// One crew member aboard at recovery: an entry of <see cref="RecoveryReport.CrewBreakdown"/>.
 /// </summary>
 [SitrepContract]
-#if NETSTANDARD2_0
+#if SITREP_CODEGEN
 [TsInterface]
 #endif
 public class RecoveryCrewEntry

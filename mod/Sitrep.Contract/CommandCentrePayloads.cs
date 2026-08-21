@@ -1,4 +1,4 @@
-#if NETSTANDARD2_0
+#if SITREP_CODEGEN
 using Reinforced.Typings.Attributes;
 #endif
 
@@ -18,7 +18,7 @@ namespace Sitrep.Contract;
 /// </summary>
 [SitrepContract]
 [SitrepTopic("commandCentre.roster", isArray: true)]
-#if NETSTANDARD2_0
+#if SITREP_CODEGEN
 [TsInterface]
 #endif
 public class CommandCentreEntry

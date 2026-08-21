@@ -1,4 +1,4 @@
-#if NETSTANDARD2_0
+#if SITREP_CODEGEN
 using Reinforced.Typings.Attributes;
 #endif
 
@@ -19,7 +19,7 @@ namespace Sitrep.Contract;
 /// older consumer doesn't recognise: the same <c>Unknown</c>-style
 /// read-fallback convention every other enum in this contract uses.</para>
 /// </summary>
-#if NETSTANDARD2_0
+#if SITREP_CODEGEN
 [TsEnum]
 #endif
 [SitrepContract]
@@ -261,7 +261,7 @@ public enum CommandErrorCode
 /// created node id).</para>
 /// </summary>
 [SitrepContract]
-#if NETSTANDARD2_0
+#if SITREP_CODEGEN
 // AutoExportMethods=false: the static Ok/Fail factories are C#-side ergonomics,
 // not wire shape: without this rtcli emits them as bogus interface members.
 [TsInterface(AutoExportMethods = false)]
@@ -348,7 +348,7 @@ public class CommandResult
 /// <see cref="CommandResult.Success"/> is false.
 /// </summary>
 [SitrepContract]
-#if NETSTANDARD2_0
+#if SITREP_CODEGEN
 // AutoExportMethods=false: the static Ok/Fail factories are C#-side ergonomics,
 // not wire shape: without this rtcli emits them as bogus interface members.
 [TsInterface(AutoExportMethods = false)]

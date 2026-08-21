@@ -1,4 +1,4 @@
-#if NETSTANDARD2_0
+#if SITREP_CODEGEN
 using Reinforced.Typings.Attributes;
 #endif
 
@@ -16,7 +16,7 @@ namespace Sitrep.Contract;
 /// NOT appear here: see <see cref="VesselIdentity.LaunchUt"/>'s doc comment.
 /// </summary>
 [SitrepContract]
-#if NETSTANDARD2_0
+#if SITREP_CODEGEN
 [TsInterface]
 #endif
 [SitrepTopic("vessel.flight")]

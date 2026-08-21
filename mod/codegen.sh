@@ -1,7 +1,14 @@
 #!/usr/bin/env bash
 set -euo pipefail
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
-PROJ="$ROOT/mod/Sitrep.Contract"
+# Every contract assembly rtcli reads is a *.Contract.Codegen TWIN: the same
+# sources recompiled with SITREP_CODEGEN defined, which is the only build in
+# which the [TsInterface]/[TsEnum] attributes and the RtConfig classes exist.
+# The SHIPPED contract assemblies carry no Reinforced.Typings reference at all
+# now, so they cannot be codegen's input, and must not be: a shipped assembly
+# holding those attributes breaks every consumer that reflects over one of its
+# types, Enum.ToString() included. See mod/CodegenTwin.props.
+PROJ="$ROOT/mod/Sitrep.Contract.Codegen"
 OUT="$ROOT/mod/sitrep-sdk/src/__generated__/contract.ts"
 TOPIC_MAP_OUT="$ROOT/mod/sitrep-sdk/src/__generated__/topic-map.ts"
 UNIT_MAP_OUT="$ROOT/mod/sitrep-sdk/src/__generated__/units.ts"
@@ -13,36 +20,21 @@ RT_VER="1.6.7"
 RT_PKG="$HOME/.nuget/packages/reinforced.typings/$RT_VER"
 RTCLI="$RT_PKG/tools/net5.0/rtcli.dll"
 
-# Reinforced.Typings.dll has to sit beside each contract assembly for the
-# duration of its rtcli run, because rtcli resolves the [TsInterface] attributes
-# out of it. It must NOT survive the run.
+# No Reinforced.Typings.dll is staged or cleaned up here any more, because none
+# is copied anywhere. Each twin declares RT as an ordinary dependency, so the
+# DLL is already beside the assembly rtcli loads, and it lives in a bin nothing
+# ships from.
 #
-# It is referenced PrivateAssets="all" with no runtime asset precisely so it is
-# never deployed: a net472 assembly carrying RT attributes makes Kopernicus fail
-# to resolve them at KSP startup. But a copy left in a contract's bin flows to
-# every dependent's output, and on 2026-08-20 that is exactly what happened, 29
-# copies deep. It made ControlChannelDescriptor's property scan resolve an
-# assembly that is correctly absent everywhere else, which aborted every delayed
-# command dispatch, and it hid the bug for a month by making 13 tests pass while
-# asserting nothing wherever a copy happened to be.
-#
-# So every copy is tracked and removed on exit, including on failure: a crashed
-# rtcli must not be the thing that leaves one behind.
-RT_COPIES=()
-rt_stage() {
-    cp "$RT_PKG/tools/net5.0/Reinforced.Typings.dll" "$1/"
-    RT_COPIES+=("$1/Reinforced.Typings.dll")
-}
-rt_cleanup() {
-    for copy in ${RT_COPIES+"${RT_COPIES[@]}"}; do
-        rm -f "$copy"
-    done
-}
-trap rt_cleanup EXIT
+# The staging it replaces existed because a copy left in a contract's bin flowed
+# to every dependent's output: on 2026-08-20 that happened 29 copies deep, made
+# ControlChannelDescriptor's property scan resolve an assembly that is correctly
+# absent everywhere else, aborted every delayed command dispatch, and hid the
+# bug for a month by making 13 tests pass while asserting nothing. Tracking and
+# deleting the copies fixed the leak downstream; separating the codegen build
+# from the shipped one removes the reason to make a copy at all.
 
-dotnet build "$PROJ/Sitrep.Contract.csproj" -v minimal
+dotnet build "$PROJ/Sitrep.Contract.Codegen.csproj" -v minimal
 BIN="$PROJ/bin/Debug/netstandard2.0"
-rt_stage "$BIN"
 
 mkdir -p "$(dirname "$OUT")"
 
@@ -81,17 +73,16 @@ echo "codegen -> $CHANNEL_MAP_OUT"
 # wire-published raw). To migrate the next Uplink: add its own
 # <X>RtConfig.Configure (mirroring MechJebRtConfig.cs) to its own
 # <X>.Contract.csproj, then add one block below following the same shape.
-mechjeb_proj="$ROOT/mod/GonogoMechJebUplink.Contract"
+mechjeb_proj="$ROOT/mod/GonogoMechJebUplink.Contract.Codegen"
 mechjeb_out_dir="$ROOT/mod/GonogoMechJebUplink/client/src/__generated__"
 mechjeb_bin="$mechjeb_proj/bin/Debug/netstandard2.0"
 
-dotnet build "$mechjeb_proj/GonogoMechJebUplink.Contract.csproj" -v minimal
-rt_stage "$mechjeb_bin"
-# Sitrep.Contract.dll: not copied by the build (Private="false", provided by
-# core at runtime), but rtcli loads GonogoMechJebUplink.Contract.dll's
-# metadata and has to resolve every type it references (SitrepContractAttribute,
-# SitrepUnitAttribute, Units, ...), so it must sit alongside it here.
-cp "$BIN/Sitrep.Contract.dll" "$mechjeb_bin/"
+dotnet build "$mechjeb_proj/GonogoMechJebUplink.Contract.Codegen.csproj" -v minimal
+# rtcli loads this assembly's metadata and has to resolve every type it
+# references (SitrepContractAttribute, SitrepUnitAttribute, Units, ...), so
+# Sitrep.Contract.dll must sit alongside it. The twin references the core twin
+# normally, so the build puts it there; the shipped slice keeps its
+# Private="false" reference, core providing it at runtime.
 mkdir -p "$mechjeb_out_dir"
 
 # No SITREP_MECHJEB_TOPICMAP_OUT: MechJeb has no [SitrepTopic]-tagged type
@@ -112,13 +103,11 @@ echo "codegen -> $mechjeb_out_dir/units.json"
 # Avionics: the second relocation. Unlike MechJeb, AvionicsStatus DOES carry
 # [SitrepTopic("avionics.status")], so SITREP_AVIONICS_TOPICMAP_OUT is set
 # here, mirroring the core invocation above.
-avionics_proj="$ROOT/mod/GonogoAvionicsUplink.Contract"
+avionics_proj="$ROOT/mod/GonogoAvionicsUplink.Contract.Codegen"
 avionics_out_dir="$ROOT/mod/GonogoAvionicsUplink/client/src/__generated__"
 avionics_bin="$avionics_proj/bin/Debug/netstandard2.0"
 
-dotnet build "$avionics_proj/GonogoAvionicsUplink.Contract.csproj" -v minimal
-rt_stage "$avionics_bin"
-cp "$BIN/Sitrep.Contract.dll" "$avionics_bin/"
+dotnet build "$avionics_proj/GonogoAvionicsUplink.Contract.Codegen.csproj" -v minimal
 mkdir -p "$avionics_out_dir"
 
 DOTNET_ROLL_FORWARD=LatestMajor \
@@ -139,13 +128,11 @@ echo "codegen -> $avionics_out_dir/units.json"
 # SITREP_KERBCAST_TOPICMAP_OUT is set here too. Unlike either predecessor
 # alone, this leg also carries two inbound-only command-arg types
 # (KerbcastSetFieldOfViewArgs/KerbcastSetPanArgs), same shape as MechJeb's.
-kerbcast_proj="$ROOT/mod/GonogoKerbcastUplink.Contract"
+kerbcast_proj="$ROOT/mod/GonogoKerbcastUplink.Contract.Codegen"
 kerbcast_out_dir="$ROOT/mod/GonogoKerbcastUplink/client/src/__generated__"
 kerbcast_bin="$kerbcast_proj/bin/Debug/netstandard2.0"
 
-dotnet build "$kerbcast_proj/GonogoKerbcastUplink.Contract.csproj" -v minimal
-rt_stage "$kerbcast_bin"
-cp "$BIN/Sitrep.Contract.dll" "$kerbcast_bin/"
+dotnet build "$kerbcast_proj/GonogoKerbcastUplink.Contract.Codegen.csproj" -v minimal
 mkdir -p "$kerbcast_out_dir"
 
 DOTNET_ROLL_FORWARD=LatestMajor \
@@ -169,13 +156,11 @@ echo "codegen -> $kerbcast_out_dir/units.json"
 # matters twice over: EmitUnitMap writes the field->unit map AND the
 # field->nested-type SHAPE map from the same pass, and this Uplink's client
 # has to register both (see ScansatRtConfig.Configure's doc comment).
-scansat_proj="$ROOT/mod/GonogoScansatUplink.Contract"
+scansat_proj="$ROOT/mod/GonogoScansatUplink.Contract.Codegen"
 scansat_out_dir="$ROOT/mod/GonogoScansatUplink/client/src/__generated__"
 scansat_bin="$scansat_proj/bin/Debug/netstandard2.0"
 
-dotnet build "$scansat_proj/GonogoScansatUplink.Contract.csproj" -v minimal
-rt_stage "$scansat_bin"
-cp "$BIN/Sitrep.Contract.dll" "$scansat_bin/"
+dotnet build "$scansat_proj/GonogoScansatUplink.Contract.Codegen.csproj" -v minimal
 mkdir -p "$scansat_out_dir"
 
 DOTNET_ROLL_FORWARD=LatestMajor \
@@ -202,13 +187,11 @@ echo "codegen -> $scansat_out_dir/units.json"
 # Vec3 on a NESTED type (KerbalismStarInfo.direction) that no earlier slice had.
 # The client has to register both halves: see KerbalismRtConfig.Configure's doc
 # comment.
-kerbalism_proj="$ROOT/mod/GonogoKerbalismUplink.Contract"
+kerbalism_proj="$ROOT/mod/GonogoKerbalismUplink.Contract.Codegen"
 kerbalism_out_dir="$ROOT/mod/GonogoKerbalismUplink/client/src/__generated__"
 kerbalism_bin="$kerbalism_proj/bin/Debug/netstandard2.0"
 
-dotnet build "$kerbalism_proj/GonogoKerbalismUplink.Contract.csproj" -v minimal
-rt_stage "$kerbalism_bin"
-cp "$BIN/Sitrep.Contract.dll" "$kerbalism_bin/"
+dotnet build "$kerbalism_proj/GonogoKerbalismUplink.Contract.Codegen.csproj" -v minimal
 mkdir -p "$kerbalism_out_dir"
 
 DOTNET_ROLL_FORWARD=LatestMajor \
@@ -235,13 +218,11 @@ echo "codegen -> $kerbalism_out_dir/units.json"
 # declared quantity in the whole slice survives to a Value<> (KosComputeStatus's
 # lastGoodAt, Units.Seconds): see KosRtConfig.Configure's doc comment for that
 # accounting in full, and this Uplink's client topics.ts for the runtime half.
-kos_proj="$ROOT/mod/GonogoKosUplink.Contract"
+kos_proj="$ROOT/mod/GonogoKosUplink.Contract.Codegen"
 kos_out_dir="$ROOT/mod/GonogoKosUplink/client/src/__generated__"
 kos_bin="$kos_proj/bin/Debug/netstandard2.0"
 
-dotnet build "$kos_proj/GonogoKosUplink.Contract.csproj" -v minimal
-rt_stage "$kos_bin"
-cp "$BIN/Sitrep.Contract.dll" "$kos_bin/"
+dotnet build "$kos_proj/GonogoKosUplink.Contract.Codegen.csproj" -v minimal
 mkdir -p "$kos_out_dir"
 
 DOTNET_ROLL_FORWARD=LatestMajor \
@@ -270,13 +251,11 @@ echo "codegen -> $kos_out_dir/units.json"
 # slice carries a Value<>, and its client can prove the runtime hydration by
 # decoding a frame rather than by inspecting a registry. See
 # RealAntennasRtConfig.Configure's doc comment.
-realantennas_proj="$ROOT/mod/GonogoRealAntennasUplink.Contract"
+realantennas_proj="$ROOT/mod/GonogoRealAntennasUplink.Contract.Codegen"
 realantennas_out_dir="$ROOT/mod/GonogoRealAntennasUplink/client/src/__generated__"
 realantennas_bin="$realantennas_proj/bin/Debug/netstandard2.0"
 
-dotnet build "$realantennas_proj/GonogoRealAntennasUplink.Contract.csproj" -v minimal
-rt_stage "$realantennas_bin"
-cp "$BIN/Sitrep.Contract.dll" "$realantennas_bin/"
+dotnet build "$realantennas_proj/GonogoRealAntennasUplink.Contract.Codegen.csproj" -v minimal
 mkdir -p "$realantennas_out_dir"
 
 DOTNET_ROLL_FORWARD=LatestMajor \
@@ -300,13 +279,12 @@ echo "codegen -> $realantennas_out_dir/units.json"
 # in PrincipiaRtConfig: a nested payload left out of that set generates with
 # bare numbers where its parent generates Value<> types, in the same file, with
 # nothing failing.
-principia_proj="$ROOT/mod/GonogoPrincipiaUplink.Contract"
+principia_proj="$ROOT/mod/GonogoPrincipiaUplink.Contract.Codegen"
 principia_out_dir="$ROOT/mod/GonogoPrincipiaUplink/client/src/__generated__"
 principia_bin="$principia_proj/bin/Debug/netstandard2.0"
 
-dotnet build "$principia_proj/GonogoPrincipiaUplink.Contract.csproj" -v minimal
+dotnet build "$principia_proj/GonogoPrincipiaUplink.Contract.Codegen.csproj" -v minimal
 cp "$RT_PKG/tools/net5.0/Reinforced.Typings.dll" "$principia_bin/"
-cp "$BIN/Sitrep.Contract.dll" "$principia_bin/"
 mkdir -p "$principia_out_dir"
 
 DOTNET_ROLL_FORWARD=LatestMajor \

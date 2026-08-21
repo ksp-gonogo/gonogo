@@ -12,26 +12,32 @@
          assembly. -->
     <PackageLicenseExpression>MIT</PackageLicenseExpression>
   </PropertyGroup>
-  <!-- Reinforced.Typings is a compile-time-only codegen dependency: rtcli
-       reads the [TsInterface]/[TsEnum] attributes baked into this
-       assembly's metadata to generate the TS SDK (see ../codegen.sh). It
-       must NOT flow to anything that references Sitrep.Contract (directly
-       or transitively) as a runtime dependency: PrivateAssets="all" stops
-       NuGet from propagating it to referencing projects (e.g. Sitrep.Core,
-       which must stay BCL-only). IncludeAssets keeps every asset (compile
-       included) available to THIS project, so the attributes still compile
-       and rtcli's codegen still works unchanged.
+  <!-- NO Reinforced.Typings reference here, in ANY target framework, and
+       nothing may add one back.
 
-       Scoped to netstandard2.0 only (Condition below): that's the only TFM
-       rtcli codegen runs against. The net472 build is what gets deployed to
-       KSP/Kopernicus, and Kopernicus reflects over every loaded assembly's
-       metadata at startup: if net472's Contract.dll carried RT attributes,
-       Kopernicus would try to resolve Reinforced.Typings.dll (never
-       deployed) and fail to load, breaking Squad/Sun. See RT usages in
-       Envelope.cs/Meta.cs/RtConfig.cs, all guarded by #if NETSTANDARD2_0. -->
-  <ItemGroup>
-    <PackageReference Include="Reinforced.Typings" Version="1.6.7" Condition="'$(TargetFramework)' == 'netstandard2.0'" PrivateAssets="all" IncludeAssets="compile;build;native;contentfiles;analyzers;buildtransitive" />
-  </ItemGroup>
+       Codegen needs the [TsInterface]/[TsEnum] attributes in an assembly's
+       metadata, but a shipped assembly that carries them also carries a hard
+       metadata reference to Reinforced.Typings.dll, which is deliberately
+       never deployed beside it. Every consumer then breaks the moment it asks
+       a contract type for its attributes, and Enum.ToString() asks: enum
+       formatting looks for [Flags]. That turned situation.ToString() in a
+       net10.0 test into a FileNotFoundException, and took xunit's rendering of
+       the failure down with it, so the assertion's own message threw. It also
+       threatened the net472 KSP build, where Kopernicus reflects over every
+       loaded assembly at startup.
+
+       PrivateAssets="all" did NOT prevent this. It governs what NuGet
+       propagates to REFERENCING projects; it says nothing about what the
+       compiler bakes into THIS assembly's metadata. The reference was private
+       and the breakage was total, which is why the fix had to move the
+       attributes out of the shipped assembly rather than tune asset flow.
+
+       The RT attributes and RtConfig now live behind #if SITREP_CODEGEN and
+       are compiled only by ../Sitrep.Contract.Codegen, which recompiles these
+       same sources purely as rtcli's input. Every Uplink contract slice has a
+       matching .Codegen twin, all sharing ../CodegenTwin.props.
+
+       Guarded by Sitrep.Core.Tests/ContractEnumRenderingTests. -->
   <!-- Sitrep.Core's ChannelEmitter constructs EmissionDecision/EmissionCounters
        via their internal factory methods/constructors (EmissionDecision.Emit/
        Skip, EmissionCounters' 2-arg ctor): deliberately internal so nothing

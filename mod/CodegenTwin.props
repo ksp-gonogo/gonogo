@@ -1,0 +1,57 @@
+<Project>
+  <!-- Shared shape for every *.Codegen project: the codegen-only twin of a
+       contract assembly.
+
+       Reinforced.Typings drives codegen by reading [TsInterface]/[TsEnum] out
+       of an assembly's metadata, so those attributes must be compiled into
+       something. For a long time that something was the SHIPPED contract
+       assemblies, which meant each of them carried a hard metadata reference
+       to Reinforced.Typings.dll while being deliberately deployed without it.
+       Anything that then asked a contract type for its attributes threw
+       FileNotFoundException, and Enum.ToString() asks, because enum formatting
+       looks for [Flags]. A plain mode.ToString() in a net10.0 test threw, and
+       so did xunit's rendering of the resulting failure, so the error reported
+       itself as its own cause. Nine contract projects had the same leak.
+
+       PrivateAssets="all" did not prevent it and could not: it governs what
+       NuGet propagates to referencing projects, not what the compiler bakes
+       into the assembly being built.
+
+       A twin recompiles the SAME sources with SITREP_CODEGEN defined, which is
+       the only configuration in which the RT attributes and the RtConfig
+       classes exist at all. rtcli reads the twin (see codegen.sh); nothing
+       references a twin and nothing ships one.
+
+       Each twin sets CodegenTwinSource to the contract project's directory and
+       AssemblyName to the SHIPPED assembly's name. Keeping the assembly name
+       identical matters: rtcli sees the same assembly identity, type names and
+       member order it always did, so the generated SDK stays byte-identical.
+
+       Attributes cannot be moved to a partial declaration instead: C# enums
+       cannot be partial, and the enums are exactly the broken case. -->
+  <PropertyGroup>
+    <TargetFramework>netstandard2.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <LangVersion>latest</LangVersion>
+    <IsPackable>false</IsPackable>
+    <DefineConstants>$(DefineConstants);SITREP_CODEGEN</DefineConstants>
+    <EnableDefaultCompileItems>false</EnableDefaultCompileItems>
+    <!-- A netstandard2.0 library does not copy its package assemblies to
+         output by default, which would leave Reinforced.Typings.dll absent
+         beside the very assembly rtcli loads for its attributes. rtcli carries
+         its own copy in the NuGet tools folder, but relying on that is how the
+         previous arrangement ended up hand-copying a DLL into a bin directory
+         (and leaving it there: on 2026-08-20 a stray copy flowed 29 projects
+         deep and hid a dispatch bug for a month). Copy it properly instead. -->
+    <CopyLocalLockFileAssemblies>true</CopyLocalLockFileAssemblies>
+  </PropertyGroup>
+  <ItemGroup>
+    <Compile Include="$(CodegenTwinSource)\**\*.cs"
+             Exclude="$(CodegenTwinSource)\bin\**\*.cs;$(CodegenTwinSource)\obj\**\*.cs" />
+  </ItemGroup>
+  <ItemGroup>
+    <!-- A plain reference on purpose: a twin is codegen-only, so
+         Reinforced.Typings.dll landing in its output is exactly what we want. -->
+    <PackageReference Include="Reinforced.Typings" Version="1.6.7" />
+  </ItemGroup>
+</Project>

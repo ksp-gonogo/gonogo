@@ -1,4 +1,4 @@
-#if NETSTANDARD2_0
+#if SITREP_CODEGEN
 using Reinforced.Typings.Attributes;
 #endif
 
@@ -16,7 +16,7 @@ namespace Sitrep.Contract;
 /// <see cref="CommandResult.ErrorCode"/> <see cref="CommandErrorCode.NotFound"/>.
 /// </summary>
 [SitrepContract]
-#if NETSTANDARD2_0
+#if SITREP_CODEGEN
 [TsInterface]
 #endif
 public class ExperimentActionArgs

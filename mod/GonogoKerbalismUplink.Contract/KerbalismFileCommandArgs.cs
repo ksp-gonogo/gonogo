@@ -1,5 +1,5 @@
 using Sitrep.Contract;
-#if NETSTANDARD2_0
+#if SITREP_CODEGEN
 using Reinforced.Typings.Attributes;
 #endif
 
@@ -56,7 +56,7 @@ namespace GonogoKerbalismUplink;
 /// undo.
 /// </summary>
 [SitrepContract]
-#if NETSTANDARD2_0
+#if SITREP_CODEGEN
 [TsInterface]
 #endif
 public class KerbalismSubjectFlagArgs
@@ -77,7 +77,7 @@ public class KerbalismSubjectFlagArgs
 /// which is what makes retrying a dropped acknowledgement safe.
 /// </summary>
 [SitrepContract]
-#if NETSTANDARD2_0
+#if SITREP_CODEGEN
 [TsInterface]
 #endif
 public class KerbalismSubjectActionArgs

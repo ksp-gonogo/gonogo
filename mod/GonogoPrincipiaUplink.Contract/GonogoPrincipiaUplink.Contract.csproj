@@ -32,7 +32,6 @@
        discipline as Sitrep.Contract.csproj, because a Kopernicus-loaded net48
        assembly must never try to resolve Reinforced.Typings.dll. -->
   <ItemGroup>
-    <PackageReference Include="Reinforced.Typings" Version="1.6.7" Condition="'$(TargetFramework)' == 'netstandard2.0'" PrivateAssets="all" IncludeAssets="compile;build;native;contentfiles;analyzers;buildtransitive" />
   </ItemGroup>
 
   <!-- Sitrep.Contract only, Private="false": the attributes and Units are

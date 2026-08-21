@@ -1,4 +1,4 @@
-#if NETSTANDARD2_0
+#if SITREP_CODEGEN
 using Reinforced.Typings.Attributes;
 #endif
 using Sitrep.Contract;
@@ -32,7 +32,7 @@ namespace GonogoAvionicsUplink;
 /// </summary>
 [SitrepContract]
 [SitrepTopic("avionics.status")]
-#if NETSTANDARD2_0
+#if SITREP_CODEGEN
 [TsInterface]
 #endif
 public sealed class AvionicsStatus

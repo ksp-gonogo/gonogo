@@ -1,4 +1,4 @@
-#if NETSTANDARD2_0
+#if SITREP_CODEGEN
 using Reinforced.Typings.Attributes;
 #endif
 using System.Collections.Generic;
@@ -28,7 +28,7 @@ namespace Sitrep.Contract;
 /// stock <c>CommNet.VesselControlState</c>'s partial/full distinction
 /// without leaking a KSP enum onto the wire.
 /// </summary>
-#if NETSTANDARD2_0
+#if SITREP_CODEGEN
 [TsEnum]
 #endif
 [SitrepContract]
@@ -45,7 +45,7 @@ public enum CommsControlSource
 /// whether the active vessel has a control link home right now.
 /// </summary>
 [SitrepContract]
-#if NETSTANDARD2_0
+#if SITREP_CODEGEN
 [TsInterface]
 #endif
 [SitrepTopic("comms.connectivity")]
@@ -66,7 +66,7 @@ public class CommsConnectivity
 /// a link-budget-derived value (comms-uplink-design.md §1).
 /// </summary>
 [SitrepContract]
-#if NETSTANDARD2_0
+#if SITREP_CODEGEN
 [TsInterface]
 #endif
 [SitrepTopic("comms.signalStrength")]
@@ -78,7 +78,7 @@ public class CommsSignalStrength
 }
 
 /// <summary>Control-state kind for <see cref="CommsControlState"/>.</summary>
-#if NETSTANDARD2_0
+#if SITREP_CODEGEN
 [TsEnum]
 #endif
 [SitrepContract]
@@ -95,7 +95,7 @@ public enum CommsControlStateKind
 /// never an empty-string sentinel.
 /// </summary>
 [SitrepContract]
-#if NETSTANDARD2_0
+#if SITREP_CODEGEN
 [TsInterface]
 #endif
 [SitrepTopic("comms.controlState")]
@@ -109,7 +109,7 @@ public class CommsControlState
 }
 
 /// <summary>Kind of a node participating in a <see cref="CommsHop"/>.</summary>
-#if NETSTANDARD2_0
+#if SITREP_CODEGEN
 [TsEnum]
 #endif
 [SitrepContract]
@@ -142,7 +142,7 @@ public enum CommsHopKind
 /// station is involved but never which end.</para>
 /// </summary>
 [SitrepContract]
-#if NETSTANDARD2_0
+#if SITREP_CODEGEN
 [TsInterface]
 #endif
 public class CommsHop
@@ -169,7 +169,7 @@ public class CommsHop
 /// home (a real, control-loss state, not absence-of-data).
 /// </summary>
 [SitrepContract]
-#if NETSTANDARD2_0
+#if SITREP_CODEGEN
 [TsInterface]
 #endif
 [SitrepTopic("comms.path")]
@@ -181,7 +181,7 @@ public class CommsPath
 
 /// <summary>One node in the <see cref="CommsNetwork"/> relay graph.</summary>
 [SitrepContract]
-#if NETSTANDARD2_0
+#if SITREP_CODEGEN
 [TsInterface]
 #endif
 public class CommsNetworkNode
@@ -194,7 +194,7 @@ public class CommsNetworkNode
 
 /// <summary>One edge in the <see cref="CommsNetwork"/> relay graph.</summary>
 [SitrepContract]
-#if NETSTANDARD2_0
+#if SITREP_CODEGEN
 [TsInterface]
 #endif
 public class CommsNetworkEdge
@@ -214,7 +214,7 @@ public class CommsNetworkEdge
 /// RealAntennas it enumerates the relay graph.
 /// </summary>
 [SitrepContract]
-#if NETSTANDARD2_0
+#if SITREP_CODEGEN
 [TsInterface]
 #endif
 [SitrepTopic("comms.network")]
@@ -226,7 +226,7 @@ public class CommsNetwork
 }
 
 /// <summary>Where a <see cref="CommsDelay"/> value came from.</summary>
-#if NETSTANDARD2_0
+#if SITREP_CODEGEN
 [TsEnum]
 #endif
 [SitrepContract]
@@ -261,7 +261,7 @@ public enum CommsDelaySource
 /// channel and is therefore never itself delay-gated.
 /// </summary>
 [SitrepContract]
-#if NETSTANDARD2_0
+#if SITREP_CODEGEN
 [TsInterface]
 #endif
 [SitrepTopic("comms.delay")]
@@ -295,7 +295,7 @@ public class CommsDelay
 /// outage.</para>
 /// </summary>
 [SitrepContract]
-#if NETSTANDARD2_0
+#if SITREP_CODEGEN
 [TsInterface]
 #endif
 [SitrepTopic("comms.link")]

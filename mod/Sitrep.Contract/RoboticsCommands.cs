@@ -1,4 +1,4 @@
-#if NETSTANDARD2_0
+#if SITREP_CODEGEN
 using Reinforced.Typings.Attributes;
 #endif
 
@@ -15,7 +15,7 @@ namespace Sitrep.Contract;
 /// <see cref="CommandResult.ErrorCode"/> <see cref="CommandErrorCode.ModeUnavailable"/>.
 /// </summary>
 [SitrepContract]
-#if NETSTANDARD2_0
+#if SITREP_CODEGEN
 [TsInterface]
 #endif
 public class ServoSetTargetArgs
@@ -38,7 +38,7 @@ public class ServoSetTargetArgs
 /// <see cref="PartId"/> (the read side's <c>flightID.ToString()</c>).
 /// </summary>
 [SitrepContract]
-#if NETSTANDARD2_0
+#if SITREP_CODEGEN
 [TsInterface]
 #endif
 public class ServoSetEnabledArgs
@@ -60,7 +60,7 @@ public class ServoSetEnabledArgs
 /// <see cref="CommandErrorCode.Range"/>.
 /// </summary>
 [SitrepContract]
-#if NETSTANDARD2_0
+#if SITREP_CODEGEN
 [TsInterface]
 #endif
 public class RotorSetValueArgs
@@ -82,7 +82,7 @@ public class RotorSetValueArgs
 /// on.
 /// </summary>
 [SitrepContract]
-#if NETSTANDARD2_0
+#if SITREP_CODEGEN
 [TsInterface]
 #endif
 public class RotorReverseArgs

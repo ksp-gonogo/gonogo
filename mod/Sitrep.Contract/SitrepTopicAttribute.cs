@@ -23,8 +23,8 @@ namespace Sitrep.Contract
     /// <see cref="SitrepContractAttribute"/>, and unlike the compile-time-only
     /// <c>[TsInterface]</c>) so anything reflecting over it (codegen or a
     /// future runtime map) never has to resolve an external assembly. It is
-    /// therefore compiled into BOTH target frameworks (not guarded by
-    /// <c>#if NETSTANDARD2_0</c>).</para>
+    /// therefore compiled into every build of the contract, not just the
+    /// codegen one (not guarded by <c>#if SITREP_CODEGEN</c>).</para>
     ///
     /// <para><see cref="IsArray"/> marks the payloads that are a BARE JSON
     /// array of the tagged element type rather than a single object, the
