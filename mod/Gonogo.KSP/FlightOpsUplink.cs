@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using Gonogo.KSP.Gates;
 using Sitrep.Contract;
 using Sitrep.Host;
 
@@ -58,6 +59,10 @@ namespace Gonogo.KSP
                 Command(FlightOpsCommandProvider.RevertToEditorCommand, delayed: false),
                 Command(FlightOpsCommandProvider.ToTrackingStationCommand, delayed: false),
                 Command(FlightOpsCommandProvider.SwitchVesselCommand, delayed: false),
+                // recover and launch carry declared gates (see GateDeclarations):
+                // ClearToSaveStatus for the first, the scene rule and the two
+                // ship-free PreFlightTests for the second. Both are answerable
+                // with no arguments, so the control can be dark with a reason.
                 Command(FlightOpsCommandProvider.RecoverCommand, delayed: false),
                 Command(FlightOpsCommandProvider.LaunchCommand, delayed: false),
             },
@@ -79,6 +84,7 @@ namespace Gonogo.KSP
 
         private static CommandDeclaration Command(string command, bool delayed) => new CommandDeclaration
         {
+            Requires = GateDeclarations.For(command),
             Command = command,
             Delayed = delayed,
         };

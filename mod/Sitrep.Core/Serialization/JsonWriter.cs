@@ -400,6 +400,18 @@ namespace Sitrep.Core.Serialization
                 AppendLimitBreach(sb, result.Breach);
             }
 
+            // Same rule as breach: only when the refusal actually quotes the
+            // game. An empty detail key on every ack would put the shape on the
+            // wire for nothing, and an empty STRING reads as a sentence that
+            // came back blank rather than as a refusal that quoted nothing.
+            if (!string.IsNullOrEmpty(result.Detail))
+            {
+                sb.Append(',');
+                AppendString(sb, "detail");
+                sb.Append(':');
+                AppendString(sb, result.Detail!);
+            }
+
             var type = result.GetType();
             if (type.IsGenericType && type.GetGenericTypeDefinition() == typeof(Sitrep.Contract.CommandResult<>))
             {
@@ -428,8 +440,8 @@ namespace Sitrep.Core.Serialization
         /// <c>errorCode</c>. See the <c>case</c> in <see cref="AppendValue"/>.
         /// </summary>
         /// <summary>
-        /// A gate verdict as <c>{ outcome, breach, detail }</c>, the enum as an
-        /// integer ordinal like every sibling here.
+        /// A gate verdict as <c>{ outcome, errorCode, breach, detail }</c>, both
+        /// enums as integer ordinals like every sibling here.
         /// </summary>
         ///
         /// <remarks>
@@ -444,6 +456,14 @@ namespace Sitrep.Core.Serialization
             AppendString(sb, "outcome");
             sb.Append(':');
             AppendInteger(sb, (long)verdict.Outcome);
+
+            // Unconditional, unlike CommandResult.Detail: this key is not
+            // optional in the generated type, and the evaluator's chosen arm is
+            // the machine-readable half of the whole verdict.
+            sb.Append(',');
+            AppendString(sb, "errorCode");
+            sb.Append(':');
+            AppendInteger(sb, (long)verdict.ErrorCode);
 
             sb.Append(',');
             AppendString(sb, "breach");

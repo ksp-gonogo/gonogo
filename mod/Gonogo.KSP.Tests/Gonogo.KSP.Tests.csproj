@@ -100,14 +100,15 @@
     <KspManagedAvailable Condition="Exists('$(AssemblyCSharpDll)')">true</KspManagedAvailable>
   </PropertyGroup>
 
-  <!-- The SDK auto-globs CurrencyDelay/**, SilenceTracking/**, Comms/** and
-       CommandCentres/**; drop them all unless Assembly-CSharp.dll is present,
-       then re-add them (and the KSP-touching sources) below. -->
+  <!-- The SDK auto-globs CurrencyDelay/**, SilenceTracking/**, Comms/**,
+       CommandCentres/** and Career/**; drop them all unless Assembly-CSharp.dll
+       is present, then re-add them (and the KSP-touching sources) below. -->
   <ItemGroup>
     <Compile Remove="CurrencyDelay\**\*.cs" />
     <Compile Remove="SilenceTracking\**\*.cs" />
     <Compile Remove="Comms\**\*.cs" />
     <Compile Remove="CommandCentres\**\*.cs" />
+    <Compile Remove="Career\**\*.cs" />
   </ItemGroup>
 
   <!-- KscLightTimeTests.cs, VesselScienceAggregatorTests.cs, and
@@ -189,6 +190,33 @@
     <Compile Include="..\Gonogo.KSP\CommandCentres\CommandCentreDelayUplink.cs" />
     <Compile Include="CommandCentres\**\*.cs" />
     <Compile Include="Comms\**\*.cs" />
+    <!-- The career refusal RULES, carved out of KspCareerActuator so a headless
+         test can enter them at all: the actuator's own bodies reach Funding /
+         ScenarioUpgradeableFacilities / ContractSystem, every one a MonoBehaviour
+         whose Instance is null outside a live scene, so not one line of them
+         runs headlessly. Same discipline as PlanOwner.cs and CommNetOcclusion.cs
+         above. CareerRefusals.cs takes numbers and needs no KSP types at all;
+         it sits under this gate only to keep the career pair together. -->
+    <Compile Include="..\Gonogo.KSP\Career\CareerRefusals.cs" />
+    <!-- CareerAffordability.cs genuinely needs the reference DLL: it runs
+         stock's own CurrencyModifierQuery, a plain class that loads and prices
+         a spend headlessly (its RunQuery half fires a GameEvent, whose static
+         ctor wants UnityEngine.UI and does not, so a test builds the query
+         directly). -->
+    <Compile Include="..\Gonogo.KSP\Career\CareerAffordability.cs" />
+    <!-- The command-gate declarations and their evaluators, paired at build time
+         rather than only by ChannelEngine.ValidateGateDeclarations inside a
+         running KSP. GateDeclarations is a table of plain contract objects, and
+         the evaluators are only CONSTRUCTED here, never evaluated: their live
+         reads (GameVariables, ContractSystem, PreFlightTests) need a scene, and
+         .NET resolves a type per method body, so they load without one. The
+         Uplinks that consume the table are NOT here: their discovery
+         constructors build the real actuators, which do need a scene. -->
+    <Compile Include="..\Gonogo.KSP\Gates\CareerGates.cs" />
+    <Compile Include="..\Gonogo.KSP\Gates\GateDeclarations.cs" />
+    <Compile Include="..\Gonogo.KSP\Gates\KspGateEvaluators.cs" />
+    <Compile Include="..\Gonogo.KSP\GameWords.cs" />
+    <Compile Include="Career\**\*.cs" />
     <!-- The maneuver WRITE-path ownership guard: KspVesselActuator + stock's own
          plan backend, so the refusal can be exercised against a real election.
          Gated because both touch KSP types. -->

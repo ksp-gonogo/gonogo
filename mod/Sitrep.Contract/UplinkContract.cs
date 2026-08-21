@@ -350,6 +350,20 @@ namespace Sitrep.Contract
         public GateOutcome Outcome { get; set; } = GateOutcome.Pass;
 
         /// <summary>
+        /// WHICH refusal, for a <see cref="GateOutcome.Fail"/>: the same typed
+        /// arm an actuator refusal carries, so one client sentence serves a
+        /// declared gate and a handler that got far enough to look.
+        ///
+        /// <para>Named by the EVALUATOR, because only the evaluator knows which
+        /// authority it asked: a full pad and an un-upgraded Tracking Station
+        /// are both a gate saying no, and they are not the same refusal.
+        /// <see cref="CommandErrorCode.ModeUnavailable"/> is the default for an
+        /// evaluator that says nothing, which is the old behaviour.</para>
+        /// </summary>
+        [SitrepUnit(Units.Enumeration)]
+        public CommandErrorCode ErrorCode { get; set; } = CommandErrorCode.ModeUnavailable;
+
+        /// <summary>
         /// Set only for a numeric <see cref="GateOutcome.Fail"/>. Null is the
         /// shape a client keys on: an Abstain or an Unknown has nothing to
         /// compare, so it must not arrive carrying zeroes that render as a real
@@ -368,10 +382,16 @@ namespace Sitrep.Contract
         public static GateVerdict Pass() => new GateVerdict { Outcome = GateOutcome.Pass };
 
         public static GateVerdict Fail(LimitBreach breach) =>
-            new GateVerdict { Outcome = GateOutcome.Fail, Breach = breach };
+            Fail(CommandErrorCode.LimitReached, breach);
+
+        public static GateVerdict Fail(CommandErrorCode errorCode, LimitBreach breach) =>
+            new GateVerdict { Outcome = GateOutcome.Fail, ErrorCode = errorCode, Breach = breach };
 
         public static GateVerdict Fail(string detail) =>
-            new GateVerdict { Outcome = GateOutcome.Fail, Detail = detail };
+            Fail(CommandErrorCode.ModeUnavailable, detail);
+
+        public static GateVerdict Fail(CommandErrorCode errorCode, string detail) =>
+            new GateVerdict { Outcome = GateOutcome.Fail, ErrorCode = errorCode, Detail = detail ?? "" };
 
         public static GateVerdict Unknown(string detail) =>
             new GateVerdict { Outcome = GateOutcome.Unknown, Detail = detail };

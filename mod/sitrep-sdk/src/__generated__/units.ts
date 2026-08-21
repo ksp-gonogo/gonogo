@@ -230,6 +230,7 @@ export const GENERATED_TYPE_UNITS: Readonly<Record<string, UnitsByField>> = {
     quantity: "id",
   },
   "CommandResult": {
+    detail: "text",
     errorCode: "enum",
     success: "flag",
   },
@@ -466,6 +467,7 @@ export const GENERATED_TYPE_UNITS: Readonly<Record<string, UnitsByField>> = {
   },
   "GateVerdict": {
     detail: "text",
+    errorCode: "enum",
     outcome: "enum",
   },
   "HireApplicantArgs": {

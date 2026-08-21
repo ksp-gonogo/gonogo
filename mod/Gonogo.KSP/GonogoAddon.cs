@@ -195,6 +195,20 @@ namespace Gonogo.KSP
                 _host.SetPropagationSource(
                     () => PropagationElection.Elected(engine.Kernel));
 
+                // The command gates' evaluators, each wrapping one authority KSP
+                // publishes (game mode, loaded scene, the GameVariables facility
+                // surface, ClearToSaveStatus, the PreFlightTests set). Registered
+                // HERE rather than inside an Uplink because none of them belongs
+                // to a domain: career and flight-ops both declare requirements
+                // that these answer, and a kind may only be claimed once. Before
+                // Start(), which is where ValidateGateDeclarations checks that
+                // every declared kind has one: a gate nobody can evaluate is a
+                // gate that silently does not exist.
+                foreach (var evaluator in Gates.KspGateEvaluators.All())
+                {
+                    _engine.AddGateEvaluator(evaluator);
+                }
+
                 _engine.Start();
 
                 // Session file path is established ONCE here, at startup,

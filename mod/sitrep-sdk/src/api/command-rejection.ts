@@ -40,6 +40,8 @@ export type CommandRejection =
       label?: string;
       /** The limit and the actual behind the reason, when the mod sent one. */
       breach?: LimitBreach;
+      /** The refusal in the GAME's own words, when the game had any to give. */
+      detail?: string;
     }
   | { kind: "lost"; message: string }
   | { kind: "failed"; code: string; message: string };
@@ -63,6 +65,7 @@ export function classifyCommandRejection(err: unknown): CommandRejection {
     args?: unknown;
     label?: unknown;
     breach?: unknown;
+    detail?: unknown;
   };
   const message =
     typeof carrier.message === "string" && carrier.message.length > 0
@@ -87,6 +90,10 @@ export function classifyCommandRejection(err: unknown): CommandRejection {
       breach:
         typeof carrier.breach === "object" && carrier.breach !== null
           ? (carrier.breach as LimitBreach)
+          : undefined,
+      detail:
+        typeof carrier.detail === "string" && carrier.detail.length > 0
+          ? carrier.detail
           : undefined,
     };
   }

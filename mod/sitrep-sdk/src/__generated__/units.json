@@ -196,6 +196,7 @@
       "quantity": "id"
     },
     "CommandResult": {
+      "detail": "text",
       "errorCode": "enum",
       "success": "flag"
     },
@@ -432,6 +433,7 @@
     },
     "GateVerdict": {
       "detail": "text",
+      "errorCode": "enum",
       "outcome": "enum"
     },
     "HireApplicantArgs": {
