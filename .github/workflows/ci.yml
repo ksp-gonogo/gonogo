@@ -228,17 +228,39 @@ jobs:
         if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/staging'
         run: |
           set -euo pipefail
-          managed="${{ github.workspace }}/ksp-managed/KSP_Data/Managed/Assembly-CSharp.dll"
-          kos="${{ github.workspace }}/ksp-managed/GameData/kOS/Plugins/kOS.dll"
+          # THE RULE: every DLL a suite's availability gate conditions on has to
+          # be named here. A gate that goes false does not fail, it removes the
+          # sources from the compile, so the suite runs zero tests and the job
+          # stays green. Asserting a SUBSET of what the gates read is therefore a
+          # check that cannot express the failure it exists to catch: it passes
+          # on exactly the checkout that silently tests nothing.
+          #
+          # This list asserted only Assembly-CSharp.dll and kOS.dll and so had
+          # that hole twice over. GonogoKosUplink.Tests' KosSafeAvailable reads
+          # BOTH kOS.dll and kOS.Safe.dll, so a checkout carrying only kOS.dll
+          # dropped the whole headless terminal harness and passed here.
+          # Gonogo.KSP.Tests additionally resolves UnityEngine.CoreModule.dll for
+          # ConfigNode's Vector3/Quaternion overload sets, and the robotics servo
+          # capture needs UnityEngine.PhysicsModule.dll at TYPE LOAD, because
+          # BaseServo declares ConfigurableJoint fields.
+          required=(
+            "KSP_Data/Managed/Assembly-CSharp.dll"
+            "KSP_Data/Managed/UnityEngine.CoreModule.dll"
+            "KSP_Data/Managed/UnityEngine.PhysicsModule.dll"
+            "GameData/kOS/Plugins/kOS.dll"
+            "GameData/kOS/Plugins/kOS.Safe.dll"
+          )
           missing=""
-          [ -f "$managed" ] || missing="$missing $managed"
-          [ -f "$kos" ] || missing="$missing $kos"
+          for rel in "${required[@]}"; do
+            path="${{ github.workspace }}/ksp-managed/$rel"
+            [ -f "$path" ] || missing="$missing $rel"
+          done
           if [ -n "$missing" ]; then
             echo "::error::KSP reference assemblies absent on ${{ github.ref }}:$missing"
-            echo "::error::The KSP-linked suites (kOS headless harness, Gonogo.KSP ConfigNode ledger) would be DROPPED at build time and this job would pass without them. Check the ksp-gonogo/ksp-managed checkout and the KSP_MANAGED_TOKEN secret."
+            echo "::error::The KSP-linked suites (kOS headless harness, Gonogo.KSP ConfigNode ledger, robotics servo capture) would be DROPPED at build time and this job would pass without them. Check the ksp-gonogo/ksp-managed checkout and the KSP_MANAGED_TOKEN secret."
             exit 1
           fi
-          echo "KSP reference assemblies present: the KSP-linked suites will run."
+          echo "KSP reference assemblies present (${#required[@]} checked): the KSP-linked suites will run."
 
       - name: dotnet test (KSP-independent Sitrep projects)
         working-directory: mod
@@ -297,42 +319,42 @@ jobs:
           # Gonogo.sln and not this array, and the result is not a warning, it is
           # a suite that silently never runs.
           #
-          # Four projects drifted in over four weeks that way, in neither this
-          # array nor `nonblocking`, so 35 tests were gated by nothing:
+          # Four projects drifted in over four weeks that way, absent from this
+          # array, so 35 tests were gated by nothing:
           # GonogoAvionicsUplink.Tests and GonogoTestFlightUplink.Tests (both
           # 2026-07-22), GonogoMechJebUplink.Tests (2026-08-08) and
           # GonogoPrincipiaUplink.Tests (2026-08-20, found the same day it
           # landed). All four cost 343ms together, so the omission bought
           # nothing either. Added 2026-08-20.
-          # The real-WebSocket integration suites are CPU-fragile on the shared
-          # CI runner: the in-process test server's pump competes with client
-          # work on the thread pool, so on a slow/loaded runner instance a
-          # ReceiveAsync never resumes and the op hangs, a DIFFERENT ~5-7 of the
-          # heaviest tests each run, never on a fast box. Exhaustively confirmed
-          # via a podman --cpus=2 repro: it is NOT fixable by bigger timeouts
-          # (still hung 4-5/81 at 120s: genuine starvation, not slowness) nor by
-          # in-job retries (same slow runner instance). The suites pass 81/81 on
-          # a fast runner. So:
-          #   - Sitrep.Skeleton.Tests: retried, still BLOCKING (it recovers).
-          #   - Sitrep.Host.IntegrationTests: retried, NON-BLOCKING signal, a
-          #     slow-runner hang must not gate the deploy of an already-green app
-          #     whose engine is separately validated live in KSP. Real failures
-          #     still surface as warnings in the log.
-          # TODO (tracked): make the WS harness robust under constrained CPU (run
-          # the server pump on a dedicated, non-thread-pool thread) and restore
-          # Sitrep.Host.IntegrationTests to a hard gate.
+          # EVERY project in that list is a hard gate. There is no exemption
+          # mechanism here on purpose, and the history is why.
+          #
+          # Sitrep.Host.IntegrationTests was exempt from 2026-07-12: the
+          # real-WebSocket suites hung on a slow runner because the in-process
+          # server's pump was starved on the thread pool, so a ReceiveAsync never
+          # resumed, a different 5-7 of the heaviest tests each run. That was
+          # real, and it was FIXED on 2026-07-17 (3d83fee7), which moved the
+          # client's receive pump onto a dedicated thread. The exemption outlived
+          # its cause by over a month.
+          #
+          # What it cost in the meantime: the contract-reflection tests were
+          # moved out into Sitrep.Contract.Tests purely so the fix for a
+          # month-long dispatch bug would not be proven behind the exemption that
+          # hid it; and a live flake in FleetDelayTests (an ordering assertion
+          # that a legal LossyLatest coalesce could break, 2 of 3 runs red on
+          # Linux) sat unseen because red only ever printed as a warning. Both
+          # are the same failure mode: an exempted suite reports its failures to
+          # nobody. Re-verified 2026-08-21 at podman --cpus=2, 10 of 10 full-suite
+          # runs green, 153 passed / 1 skipped.
+          #
+          # If a suite ever genuinely needs to stop gating, give it its own named
+          # condition and its own reason right here, rather than a name in a list
+          # that outlives whoever knew why it was there.
+          #
           # Retry EVERY project: a pathologically slow/loaded runner instance can
           # time out even the normally-deterministic suites (Kos, Host.Tests) on
           # their WS/async paths. A genuine regression fails all 4 attempts and is
           # still caught; only intermittent-pass flakes are absorbed.
-          # Sitrep.Contract.Tests is deliberately absent from `nonblocking`. It
-          # references Sitrep.Contract and nothing else, touches no WebSocket
-          # harness, and so none of the starvation reasoning above applies to it.
-          # It exists because the contract-reflection tests it holds previously
-          # lived in Sitrep.Host.IntegrationTests, which is non-blocking, so the
-          # fix for a month-long dispatch bug was proven only behind the very
-          # exemption that hid the bug.
-          nonblocking=" Sitrep.Host.IntegrationTests "
           for p in "${projects[@]}"; do
             echo "::group::dotnet test $p"
             # Only GonogoKosUplink.Tests reads the kOS reference DLLs (its
@@ -350,11 +372,7 @@ jobs:
             done
             echo "::endgroup::"
             if [ "$ok" != 1 ]; then
-              if [[ "$nonblocking" == *" $p "* ]]; then
-                echo "::warning::$p failed after $attempts attempt(s): NON-BLOCKING (CPU-fragile WS harness on this runner; see mod-job note). Not failing the job."
-              else
-                echo "::error::$p failed after $attempts attempt(s)"; exit 1
-              fi
+              echo "::error::$p failed after $attempts attempt(s)"; exit 1
             fi
           done
 
