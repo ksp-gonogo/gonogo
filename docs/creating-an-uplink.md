@@ -219,6 +219,72 @@ const reading = useTelemetry("my-uplink.reading");
 const reset = useCommand("my-uplink.reset");
 ```
 
+### Sharing a derivation with other Uplinks
+
+A **Processor** is a declared pure function of Topics, evaluated once per Sitrep frame however many
+widgets read it. Your client registers one through its handle, and reads it back with `useProcessor`:
+
+```ts
+// client/src/processor.ts
+export interface HabSummary { occupied: number }
+
+export const HAB_SUMMARY = MY_UPLINK.registerProcessor({
+  id: "hab-summary",                        // registers as "my-uplink:hab-summary"
+  deps: ["my-uplink.habitat"] as const,
+  compute: ([habitat]): HabSummary => ({ occupied: habitat?.crew ?? 0 }),
+});
+```
+
+That handle is how a consumer gets the RESULT TYPE, because `useProcessor` reads it off the handle's
+brand. Which decides who can consume it:
+
+- **Your own widgets**: import the handle, nothing else needed
+- **Anything in the app** (a first-party widget, the shared SDK derivations): already works
+- **Another Uplink**: not by importing your handle. Your client is not a published package, so nobody
+  outside it can install or typecheck against it, and there is nothing to import. That is the isolation
+  rule doing its job, not a gap: an Uplink that reached into another one would break, with no compile-time
+  signal at all, the moment a user uninstalled the mod behind it
+
+There is no registry trick that gets round this. A `declare module` augmentation is scoped to a
+TypeScript **program**, and another Uplink's program can never include your declaration file, so keying a
+registry by processor id moves the problem without solving it. Topics have exactly the same limit: an
+Uplink cannot type another Uplink's Topic either.
+
+**So if you want your derivation consumable by an Uplink you have never met, the contract has to live in
+the SDK.** `defineProcessorContract` is that split: the id and the result type published from
+`@ksp-gonogo/sitrep-sdk`, where every Uplink already compiles against them, and the implementation
+registered by whichever client owns the mod it derives from.
+
+```ts
+// in @ksp-gonogo/sitrep-sdk, beside the result type it names
+export interface HabSummary { occupied: number }
+export const HAB_SUMMARY = defineProcessorContract<HabSummary>("my-uplink:hab-summary");
+
+// in YOUR client: import the type you must satisfy, register the derivation
+MY_UPLINK.registerProcessor({ id: "hab-summary", deps, compute });
+
+// in ANY other Uplink: imports the SDK, and neither your package nor your types
+const hab = useProcessor(HAB_SUMMARY);   // HabSummary | undefined
+```
+
+The id must be owner-stamped (`<owner>:<id>`), matching what `registerProcessor` stamps; an unstamped one
+throws, because a handle that silently answers `undefined` forever is indistinguishable from the mod not
+being installed. And that is what absence looks like: no implementation registered means `undefined`,
+which every consumer already handles because it is also what `useProcessor` answers before the first
+frame. Nothing crashes when the mod is missing.
+
+Getting a contract into the SDK is a conversation, not a code change you make alone: open an issue. In the
+meantime, the mechanism that already composes across Uplinks with no coordination at all is a
+**contribution**, where the HOST declares the slot and its entry type and any number of Uplinks feed it.
+
+**One more thing your `compute` owes.** The evaluator only wakes a processor's consumers when the result
+actually changed, and it decides that by comparing the result structurally. So return **data**: numbers,
+strings, arrays, plain objects, and `Value`s (or your own wrapper in the same style, a data object over a
+methods-only prototype). A `Map`, a `Date`, a class that keeps its state behind a getter, or a function in
+the payload cannot be compared, so every consumer is woken on every frame. That is not silent: it counts
+against the `Processor uncomparable results/sec` budget, whose threshold is zero, and logs a warning
+naming your processor and the shape.
+
 ### Wire the side-effect entry point
 
 `client/src/index.ts` is the entry the app loads. Registration happens as a side effect of import, so keep

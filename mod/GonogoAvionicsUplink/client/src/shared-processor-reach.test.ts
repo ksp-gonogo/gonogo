@@ -25,12 +25,19 @@ import { describe, expect, it } from "vitest";
  * gets `unknown` at best.
  *
  * This is the arrangement that makes it work, and it only works for a processor
- * declared in the SDK. An Uplink CANNOT consume a processor another Uplink
- * declared: those live in `mod/Gonogo*Uplink/client`, none of which is a
- * published package, so neither the handle nor its result type is reachable.
- * Nothing in the registry closes that gap either, because `getProcessor(id)`
- * hands back an `AnyProcessorDefinition` whose result is `unknown`, and there is
- * no way to recover a typed handle from an id alone.
+ * whose CONTRACT is declared in the SDK. An Uplink still cannot consume a
+ * processor another Uplink declared: those live in `mod/Gonogo*Uplink/client`,
+ * none of which is a published package, so neither the handle nor its result
+ * type is reachable, and no registry keyed by id can close that gap because a
+ * declaration merge is scoped to a TypeScript program and Uplink B's program can
+ * never include Uplink A's declaration file. `TopicPayloadMap` has the same
+ * limit, and one Uplink cannot type another's Topic either.
+ *
+ * What DID close is the separable half: `defineProcessorContract` publishes the
+ * id and the result type from the SDK for an implementation that registers
+ * elsewhere, so the type lives where every Uplink compiles against it while the
+ * derivation lives with the mod it derives from. The second describe block
+ * below runs that end to end from inside an Uplink, over the real evaluator.
  */
 describe("an Uplink can reach the SDK's shared Processors", () => {
   it("imports both handles, their result types, and useProcessor", () => {

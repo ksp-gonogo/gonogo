@@ -155,6 +155,75 @@ export function defineProcessor<const Deps extends readonly Dep[], R>(def: {
   return { id: stampedId };
 }
 
+/**
+ * Declare the CONTRACT of a Processor without declaring the processor: its
+ * owner-stamped id and its result type, published from here, for an
+ * implementation that registers somewhere else.
+ *
+ * ## The problem it solves, and the one it does not
+ *
+ * An Uplink consumes a Processor by handle, because `useProcessor` reads `R`
+ * off the handle's phantom brand. Handing it a bare `{ id }` gets `unknown`,
+ * and `getProcessor(id)` is no better: an `AnyProcessorDefinition`'s result is
+ * `unknown` by construction, so there is no route from an id back to a type.
+ *
+ * That is fine for a processor the SDK declares (`CELESTIAL_FACTS` and
+ * `DELTA_V_BUDGET` both ship their handle and their result type from the root
+ * barrel, and an Uplink test proves an Uplink can consume them). It is NOT fine
+ * for one an Uplink declares, and no registry keyed by id can fix that: a
+ * declaration merge is scoped to a TypeScript PROGRAM, and Uplink B's program
+ * can never include Uplink A's declaration file, because A is unpublished and B
+ * cannot depend on it. `TopicPayloadMap` has exactly the same limit for exactly
+ * the same reason, and one Uplink cannot type another's Topic either.
+ *
+ * So the only place a declaration can sit that two Uplinks both compile against
+ * is this package, and this is the shape that makes that a route rather than a
+ * dead end: the CONTRACT here, the IMPLEMENTATION in whichever Uplink owns the
+ * mod it derives from.
+ *
+ * ```ts
+ * // in the SDK, next to the result type it names
+ * export interface HabSummary { ... }
+ * export const HAB_SUMMARY = defineProcessorContract<HabSummary>("<owner>:hab-summary");
+ *
+ * // in the owning Uplink, which imports the type it must satisfy
+ * OWNER.registerProcessor({ id: "hab-summary", deps, compute });
+ *
+ * // in any OTHER Uplink, which imports neither that Uplink nor its types
+ * const hab = useProcessor(HAB_SUMMARY);   // HabSummary | undefined
+ * ```
+ *
+ * ## Absence is a value, not a crash
+ *
+ * A contract whose implementation never registers (the mod is not installed,
+ * the Uplink did not load) evaluates to nothing and `useProcessor` answers
+ * `undefined`, which every consumer already has to handle because that is also
+ * what it answers before the first frame. That is deliberately the same
+ * graceful-degradation shape a domain-gated widget already has, and it is why
+ * this does not need a presence check bolted on.
+ *
+ * ## What it cannot check
+ *
+ * That the registered `compute` returns what the contract promises. The two
+ * sides are in different packages and the brand is type-only, so the guarantee
+ * comes from the implementing Uplink importing `R` from here and annotating its
+ * `compute` with it. Declaring the type twice, once each side, is the failure
+ * this exists to prevent, so do not.
+ */
+export function defineProcessorContract<R>(id: string): ProcessorHandle<R> {
+  // A contract names an id `registerProcessor` will STAMP, so it has to be
+  // written owner-first. Checked here because the alternative is a handle that
+  // silently answers `undefined` forever, which is indistinguishable from the
+  // mod not being installed: the one case this is supposed to make legible.
+  if (id.split(":").length !== 2 || id.startsWith(":") || id.endsWith(":")) {
+    throw new Error(
+      `Processor contract id "${id}" must be owner-stamped as "<owner>:<id>", ` +
+        `matching what registerProcessor stamps for the Uplink that implements it.`,
+    );
+  }
+  return { id };
+}
+
 export function getProcessor(id: string): AnyProcessorDefinition | undefined {
   return processors.get(id);
 }

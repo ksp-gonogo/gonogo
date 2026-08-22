@@ -180,6 +180,16 @@ export {
   deriveDeltaVBudget,
   normaliseStage,
 } from "./spine/delta-v-budget";
+// The CONTRACT half of the Processor primitive, and the only route by which a
+// Processor one Uplink implements can be consumed, typed, by another. Published
+// alongside the handle type it returns; `defineProcessor` itself stays
+// spine-only, because declaring a processor needs the evaluator and declaring
+// its contract does not. See `defineProcessorContract`'s own doc for why a
+// declaration-merged registry keyed by id cannot do this job.
+export {
+  defineProcessorContract,
+  type ProcessorHandle,
+} from "./spine/processors";
 export * from "./timeline";
 export {
   getAllKnownTopicIds,
