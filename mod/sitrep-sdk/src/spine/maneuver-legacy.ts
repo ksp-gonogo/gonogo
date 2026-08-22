@@ -46,7 +46,13 @@ export interface ManeuverNodeWirePayload {
    * `ManeuverFrame` ordinal. Absent only on a recording that predates the field.
    */
   frame?: number | null;
-  patches: OrbitPatchWirePayload[];
+  /**
+   * The node's post-burn patch chain. Always an array on the live wire
+   * (`VesselManeuver.cs`'s R2 discipline), optional here for the same reason
+   * `frame` above is: a stored recording can predate the field, and replaying
+   * one reads this shape through the same mapper the live stream does.
+   */
+  patches?: OrbitPatchWirePayload[];
 }
 
 /** The `vessel.maneuver` channel payload (mirrors `VesselManeuver.cs`). */
@@ -102,11 +108,14 @@ export interface LegacyManeuverNode {
 export function mapManeuverNode(
   wire: ManeuverNodeWirePayload,
 ): LegacyManeuverNode {
-  // `?? []` because this mapper must not throw. The contract says `patches` is
-  // ALWAYS an array, so an absent one is a malformed payload rather than a
-  // legitimate state, and the temptation is to let it fail loudly. It cannot: a
-  // throwing mapper takes the WHOLE uplink down, not one widget, so a producer
-  // that omits one field would kill the stream instead of degrading one row.
+  // `?? []` because this mapper must not throw. The live contract says
+  // `patches` is ALWAYS an array, and the temptation is to let a missing one
+  // fail loudly. It cannot, for two reasons: a throwing mapper takes the WHOLE
+  // uplink down rather than one widget, so a producer that omits one field
+  // would kill the stream instead of degrading one row; and the live wire is
+  // not the only caller, since a replayed recording predating the field
+  // reaches here too, which makes absence a real state rather than only a
+  // malformed payload. The declared type says so too.
   //
   // Absence and empty are already the same thing downstream, since every field
   // read off `first` below falls back when there is no patch, so tolerating it
