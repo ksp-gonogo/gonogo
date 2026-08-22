@@ -718,6 +718,6 @@ namespace GonogoPrincipiaUplink
         }
 
         private static string Key(string command, string requestId) =>
-            command + " " + requestId;
+            command + "\0" + requestId;
     }
 }
