@@ -100,11 +100,18 @@ export const TrajectoryDerivationLike = {
 export type TrajectoryDerivationLike =
   (typeof TrajectoryDerivationLike)[keyof typeof TrajectoryDerivationLike];
 
-/** Why a producer that CAN integrate published no arc. Mirrors `TrajectoryRefusal` by value. */
+/**
+ * What became of a producer's arc. Mirrors `TrajectoryRefusal` by value.
+ *
+ * `NotAttempted` at zero and `NotRefused` beside a drawn arc are two values
+ * where there used to be one, and the split matters: an install whose integrated
+ * path never runs and one where it runs cleanly used to send the same number.
+ */
 export const TrajectoryRefusalLike = {
-  Unspecified: 0,
+  NotAttempted: 0,
   BeyondBudget: 1,
   NoForceModel: 2,
+  NotRefused: 3,
 } as const;
 export type TrajectoryRefusalLike =
   (typeof TrajectoryRefusalLike)[keyof typeof TrajectoryRefusalLike];
@@ -553,8 +560,9 @@ function withheldFor(
     case TrajectoryRefusalLike.NoForceModel:
       return "no-force-model";
     default:
-      // `Unspecified`, or absent entirely: nothing was refused, which is every
-      // sample from a provider that does not integrate.
+      // `NotAttempted`, `NotRefused`, or absent entirely. None of the three is a
+      // refusal: the first is every sample from a provider that does not
+      // integrate, the second accompanies an arc that was drawn.
       return null;
   }
 }

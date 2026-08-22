@@ -1196,9 +1196,10 @@ export interface TrajectoryForceModel
 	vacuum: boolean;
 }
 export enum TrajectoryRefusal {
-	Unspecified = 0,
+	NotAttempted = 0,
 	BeyondBudget = 1,
-	NoForceModel = 2
+	NoForceModel = 2,
+	NotRefused = 3
 }
 export enum GateOutcome {
 	Pass = 0,

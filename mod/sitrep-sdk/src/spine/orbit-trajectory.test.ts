@@ -382,13 +382,29 @@ describe("orbitTrajectory: the two refusals only an integrating provider has", (
     });
   });
 
-  it("treats an unstated refusal as nothing refused", () => {
+  it("treats an unattempted arc as nothing refused", () => {
     expect(
       orbitTrajectory({
-        orbit: lko({ horizon: ANALYTIC, arcRefusal: Refusal.Unspecified }),
+        orbit: lko({ horizon: ANALYTIC, arcRefusal: Refusal.NotAttempted }),
         viewUt: 0,
       }),
     ).toEqual({ shape: "conic" });
+  });
+
+  it("treats a drawn arc's own value as nothing refused", () => {
+    expect(
+      orbitTrajectory({
+        orbit: lko({ horizon: ANALYTIC, arcRefusal: Refusal.NotRefused }),
+        viewUt: 0,
+      }),
+    ).toEqual({ shape: "conic" });
+  });
+
+  it("keeps an unattempted arc distinguishable from a drawn one", () => {
+    // The two were one value, so a client could not tell an install where the
+    // integrated path never runs from one where it runs cleanly.
+    expect(Refusal.NotAttempted).not.toBe(Refusal.NotRefused);
+    expect(Refusal.NotAttempted).toBe(0);
   });
 });
 
