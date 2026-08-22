@@ -56,6 +56,7 @@ export type {
   KosTerminalOpenArgs,
   KosTerminalResizeArgs,
 } from "./__generated__/contract";
+export * from "./KosScriptTrigger";
 export * from "./KosTerminal";
 // Non-widget infra (defineUplinkClient/registerUplinkHandle side effects,
 // KosCpuDiscovery, the shared CpuRegistryService/Context/[KOSDATA] parser/
