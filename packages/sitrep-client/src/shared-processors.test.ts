@@ -5,6 +5,10 @@ import {
   type DeltaVBudget,
   value,
 } from "@ksp-gonogo/sitrep-sdk";
+import {
+  createFakeWallClock,
+  type FakeWallClock,
+} from "@ksp-gonogo/sitrep-sdk/testing";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import {
   activateProcessor,
@@ -33,10 +37,19 @@ import { ViewClock } from "./view-clock";
  * nothing while every assertion below went on passing against `undefined`.
  */
 
-function makeStore(): TimelineStore {
-  return new TimelineStore(
-    new ViewClock({ delaySeconds: () => 0, warpRate: () => 1 }),
-  );
+/** A store whose view time only moves when `wall.advanceBy` says so. */
+function makeStore(): { store: TimelineStore; wall: FakeWallClock } {
+  const wall = createFakeWallClock();
+  return {
+    store: new TimelineStore(
+      new ViewClock({
+        nowWall: wall.now,
+        delaySeconds: () => 0,
+        warpRate: () => 1,
+      }),
+    ),
+    wall,
+  };
 }
 
 function point<T>(validAt: number, payload: T): TimelinePoint<T> {
@@ -149,10 +162,11 @@ const DV_SUMMARY = {
 };
 
 let store: TimelineStore;
+let wall: FakeWallClock;
 
 beforeEach(() => {
   clearProcessorRuntime();
-  store = makeStore();
+  ({ store, wall } = makeStore());
   setActiveTimelineStore(store);
 });
 
@@ -265,6 +279,55 @@ describe("CELESTIAL_FACTS", () => {
     expect(kerbol?.mass).toBeNull();
 
     off();
+  });
+
+  it("goes quiet while the stream is still: 10 frames, 4 consumers, 4 wakes", () => {
+    // The measurement that matters against PROCESSOR_NOTIFY_BUDGET, and it came
+    // out an order of magnitude better than expected. `trueAnomaly` is solved
+    // for the frame's VIEW time, and the view time is keyframed to the stream
+    // rather than free-running, so with no new sample it does not move and the
+    // catalogue is byte-identical frame to frame. Each consumer is woken once,
+    // when the first value lands, and then not again.
+    const off = [1, 2, 3, 4].map(() => activateProcessor(CELESTIAL_FACTS.id));
+    const listeners = [vi.fn(), vi.fn(), vi.fn(), vi.fn()];
+    const unsubs = listeners.map((cb) =>
+      subscribeProcessor(CELESTIAL_FACTS.id, cb),
+    );
+
+    store.ingest("system.bodies", point(0, SYSTEM));
+    for (let i = 0; i < 10; i++) {
+      store.beginFrame();
+      wall.advanceBy(1);
+    }
+
+    expect(listeners.reduce((n, cb) => n + cb.mock.calls.length, 0)).toBe(4);
+
+    for (const unsub of unsubs) unsub();
+    for (const deactivate of off) deactivate();
+  });
+
+  it("wakes all 4 again when the view time actually advances", () => {
+    // The other arm, so the case above cannot pass by the processor being
+    // wedged. A later sample moves the confirmed edge, the Kepler solve answers
+    // for a new instant, and every consumer is told exactly once more.
+    const off = [1, 2, 3, 4].map(() => activateProcessor(CELESTIAL_FACTS.id));
+    const listeners = [vi.fn(), vi.fn(), vi.fn(), vi.fn()];
+    const unsubs = listeners.map((cb) =>
+      subscribeProcessor(CELESTIAL_FACTS.id, cb),
+    );
+
+    store.ingest("system.bodies", point(0, SYSTEM));
+    store.beginFrame();
+    expect(listeners.reduce((n, cb) => n + cb.mock.calls.length, 0)).toBe(4);
+
+    // A full Kerbin day later: the bodies have measurably moved along.
+    store.ingest("system.bodies", point(21_600, SYSTEM));
+    store.beginFrame();
+
+    expect(listeners.reduce((n, cb) => n + cb.mock.calls.length, 0)).toBe(8);
+
+    for (const unsub of unsubs) unsub();
+    for (const deactivate of off) deactivate();
   });
 
   it("carries both index lookups for the 3 bodies, keyed both ways", () => {
