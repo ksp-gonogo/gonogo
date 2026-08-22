@@ -1,0 +1,68 @@
+{
+  "_meta": {
+    "notes": "A motion scene, because the thing being shown IS a change: the screen the CPU is drawing, arriving in the chunks kOS actually sends. A still of the finished screen says nothing about the terminal being live."
+  },
+  "_scene": {
+    "widget": "kos-terminal",
+    "caption": "A script running: kOS redraws the screen in chunks and the terminal repaints as they land",
+    "config": { "cpuName": "lander", "lineMode": true },
+    "modes": ["default"],
+    "steps": [
+      {
+        "emit": {
+          "topic": "kos.terminal.7",
+          "payload": {
+            "coreId": 7,
+            "chunk": "\u001b[2J\u001b[HkOS Operating System\r\nkOS v1.4.0.0\r\n\r\nProceed.\r\nkOS> ",
+            "fullRepaint": true
+          }
+        },
+        "frames": 4
+      },
+      {
+        "emit": {
+          "topic": "kos.terminal.7",
+          "payload": { "coreId": 7, "chunk": "run descent.\r\n" }
+        },
+        "frames": 3
+      },
+      {
+        "emit": {
+          "topic": "kos.terminal.7",
+          "payload": {
+            "coreId": 7,
+            "chunk": "Compiling descent.ks...\r\nAltitude  4218 m\r\n"
+          }
+        },
+        "frames": 3
+      },
+      {
+        "emit": {
+          "topic": "kos.terminal.7",
+          "payload": {
+            "coreId": 7,
+            "chunk": "Altitude  2104 m\r\nAltitude   901 m\r\nTouchdown.\r\nkOS> "
+          }
+        },
+        "frames": 5
+      }
+    ],
+    "motion": { "fps": 6 }
+  },
+  "_stream": {
+    "pinnedUt": 1000000,
+    "emits": [
+      {
+        "topic": "kos.processors",
+        "payload": [
+          {
+            "coreId": 7,
+            "tag": "lander",
+            "hasBooted": true,
+            "processorMode": "READY"
+          }
+        ]
+      }
+    ]
+  }
+}

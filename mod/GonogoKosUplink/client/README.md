@@ -46,6 +46,10 @@ mid-sentence does not eat what you were typing.
 Read-only mode forwards nothing at all: a passive downlink view of what the CPU is
 doing, for a station screen that should not be able to fly the craft.
 
+![A script running: kOS redraws the screen in chunks and the terminal repaints as they land](docs/assets/boot-then-run--default.gif)
+
+*A script running: kOS redraws the screen in chunks and the terminal repaints as they land*
+
 ![Attached to the 'lander' CPU with line-mode composition on: what the operator types is held in the bar under the screen until Enter sends it as one command](docs/assets/lander-cpu-attached--default.png)
 
 *Attached to the 'lander' CPU with line-mode composition on: what the operator types is held in the bar under the screen until Enter sends it as one command*
