@@ -105,13 +105,6 @@ export interface ServoInfo {
 }
 
 /**
- * A wire field as a number.
- *
- * Takes a `Value` as well as a bare number: a declared quantity arrives
- * wrapped from the decode, and a `typeof === "number"` test answers "no
- * reading" for every one of them, which is silent and total.
- */
-/**
  * The value a VERDICT may be drawn from: current, or modelled forward to the frame.
  * A stale reading gives nothing, because a judgement cannot be dated: the operator
  * reads a band or a pill as the situation NOW.
@@ -139,6 +132,13 @@ function stillTrue<T, A>(
   return undefined;
 }
 
+/**
+ * A wire field as a number.
+ *
+ * Takes a `Value` as well as a bare number: a declared quantity arrives
+ * wrapped from the decode, and a `typeof === "number"` test answers "no
+ * reading" for every one of them, which is silent and total.
+ */
 function num(v: unknown, fallback = 0): number {
   return magnitudeOr(v as Quantityish, fallback);
 }

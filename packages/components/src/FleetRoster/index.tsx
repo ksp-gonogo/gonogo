@@ -97,19 +97,6 @@ const CRAFT_VESSEL_TYPES: ReadonlySet<VesselType> = new Set([
 ]);
 
 /**
- * `VesselType.Unknown` is deliberately NOT filtered out. It means the
- * producer itself couldn't classify the vessel this tick (a raw KSP
- * `VesselType` string the mapper doesn't recognize, see
- * `VesselViewProvider.ParseVesselType`'s own fallback), not "this is
- * confirmed to not be a craft" the way `Debris`/`SpaceObject`/etc. are. An
- * unclassified vessel silently disappearing from the roster would be the
- * same class of bug this widget already fixed once for its empty state: a
- * real "we don't know" fact reported as nothing at all. It renders through
- * the roster's existing null-safe row handling (body/crew fall back to the
- * usual null placeholder, comms shows the "unknown" tier) rather than
- * getting a fabricated craft identity.
- */
-/**
  * The value of a FACT: something that stays true until an event changes it, and no
  * event can reach us down a link that is not delivering. `whenConfirmedNothing` is
  * what an `absent` tombstone means here, which is a different answer from `pending`
@@ -126,6 +113,19 @@ function stillTrue<T, A>(
   return undefined;
 }
 
+/**
+ * `VesselType.Unknown` is deliberately NOT filtered out. It means the
+ * producer itself couldn't classify the vessel this tick (a raw KSP
+ * `VesselType` string the mapper doesn't recognize, see
+ * `VesselViewProvider.ParseVesselType`'s own fallback), not "this is
+ * confirmed to not be a craft" the way `Debris`/`SpaceObject`/etc. are. An
+ * unclassified vessel silently disappearing from the roster would be the
+ * same class of bug this widget already fixed once for its empty state: a
+ * real "we don't know" fact reported as nothing at all. It renders through
+ * the roster's existing null-safe row handling (body/crew fall back to the
+ * usual null placeholder, comms shows the "unknown" tier) rather than
+ * getting a fabricated craft identity.
+ */
 function isRosterCraft(vesselType: VesselType): boolean {
   return (
     vesselType === VesselType.Unknown || CRAFT_VESSEL_TYPES.has(vesselType)

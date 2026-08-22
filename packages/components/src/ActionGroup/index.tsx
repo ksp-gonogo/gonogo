@@ -103,18 +103,6 @@ declare module "@ksp-gonogo/core" {
 // ---------------------------------------------------------------------------
 
 /**
- * Resolves one group's live value off the canonical payloads.
- *
- * A CUSTOM group carries an `index` and is found in `control.actionGroups` by
- * that index: never by array position (position stopped implying identity when
- * the wire shape became a named list) and never by name (two AGX groups may
- * share a display name).
- *
- * A STOCK singleton has no `index` and reads its own typed field. `Stage` is
- * the odd one out: it isn't a control input at all, so it comes off
- * `vessel.structure.currentStage` and is the only NUMERIC readout here.
- */
-/**
  * The value a VERDICT may be drawn from: current, or modelled forward to the frame.
  * A stale reading gives nothing, because a judgement cannot be dated: the operator
  * reads a band or a pill as the situation NOW.
@@ -147,6 +135,18 @@ function stillTrue<T, A>(
   return undefined;
 }
 
+/**
+ * Resolves one group's live value off the canonical payloads.
+ *
+ * A CUSTOM group carries an `index` and is found in `control.actionGroups` by
+ * that index: never by array position (position stopped implying identity when
+ * the wire shape became a named list) and never by name (two AGX groups may
+ * share a display name).
+ *
+ * A STOCK singleton has no `index` and reads its own typed field. `Stage` is
+ * the odd one out: it isn't a control input at all, so it comes off
+ * `vessel.structure.currentStage` and is the only NUMERIC readout here.
+ */
 function resolveGroupValue(
   group: ActionGroup | undefined,
   payload: VesselControl | VesselStructure | undefined,

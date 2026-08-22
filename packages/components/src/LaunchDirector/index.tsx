@@ -161,23 +161,6 @@ const VESSEL_TYPE_LABELS: readonly string[] = [
 ];
 
 /**
- * Parse `kc.launchSites`. Returns null when the key is absent (older fork
- * without the handler) so the picker can collapse rather than render empty.
- * Making History adds non-stock sites; without it only stock sites appear.
- *
- * Two wire shapes land here:
- * - Legacy GonogoTelemetry: `{ name, displayName, facility, body, ready,
- *   unlocked }`.
- * - New SDK `spaceCenter.launchSites` (mapped onto this key via map-topic.ts):
- *   the mod's `LaunchSiteEntry`: `editorFacility` in place of `facility`,
- *   `bodyIndex` in place of the body name, and `isStock` instead of a
- *   `ready`/`unlocked` pair. The mod enumerates `PSystemSetup.LaunchSites`
- *   (the sites actually available to launch from), so a new-shape entry is
- *   treated as selectable (`unlocked: true`): the alternative (no `unlocked`
- *   field → every site non-selectable → the picker vanishes) would silently
- *   drop the feature.
- */
-/**
  * The value a VERDICT may be drawn from: current, or modelled forward to the frame.
  * A stale reading gives nothing, because a judgement cannot be dated: the operator
  * reads a band or a pill as the situation NOW.
@@ -210,6 +193,23 @@ function stillTrue<T, A>(
   return undefined;
 }
 
+/**
+ * Parse `kc.launchSites`. Returns null when the key is absent (older fork
+ * without the handler) so the picker can collapse rather than render empty.
+ * Making History adds non-stock sites; without it only stock sites appear.
+ *
+ * Two wire shapes land here:
+ * - Legacy GonogoTelemetry: `{ name, displayName, facility, body, ready,
+ *   unlocked }`.
+ * - New SDK `spaceCenter.launchSites` (mapped onto this key via map-topic.ts):
+ *   the mod's `LaunchSiteEntry`: `editorFacility` in place of `facility`,
+ *   `bodyIndex` in place of the body name, and `isStock` instead of a
+ *   `ready`/`unlocked` pair. The mod enumerates `PSystemSetup.LaunchSites`
+ *   (the sites actually available to launch from), so a new-shape entry is
+ *   treated as selectable (`unlocked: true`): the alternative (no `unlocked`
+ *   field → every site non-selectable → the picker vanishes) would silently
+ *   drop the feature.
+ */
 export function parseLaunchSites(raw: unknown): LaunchSiteEntry[] | null {
   if (raw === null || raw === undefined) return null;
   if (!Array.isArray(raw)) return null;

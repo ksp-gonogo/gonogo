@@ -87,22 +87,6 @@ declare module "@ksp-gonogo/core" {
 }
 
 /**
- * The command-string id for the node at legacy array position `index`: the
- * real stream guid when the id-carrying read has delivered a node at that
- * position, else the plain positional index as a string.
- *
- * The fallback is only correct while the stream has not answered yet.
- * `KspVesselActuator.RemoveManeuverNode` resolves a node exclusively through
- * `ReferenceIdRegistry.TryResolve`, an exact string match against a GUID, so a
- * positional index never resolves and comes back NotFound. See map-command.ts's
- * `o.updateManeuverNode`/`o.removeManeuverNode` doc comment for the
- * accepted-risk note on it when reads and commands are carried unevenly.
- *
- * Module scope so both the operator-driven edit/delete path and the
- * auto-removal timeout resolve identically. They did not, and the auto-removal
- * was the one that was wrong.
- */
-/**
  * A measurement this widget can present with its age attached, and whether it needs
  * that label. The reckoned value needs none: it IS the current one.
  */
@@ -136,6 +120,22 @@ function stillTrue<T, A>(
   return undefined;
 }
 
+/**
+ * The command-string id for the node at legacy array position `index`: the
+ * real stream guid when the id-carrying read has delivered a node at that
+ * position, else the plain positional index as a string.
+ *
+ * The fallback is only correct while the stream has not answered yet.
+ * `KspVesselActuator.RemoveManeuverNode` resolves a node exclusively through
+ * `ReferenceIdRegistry.TryResolve`, an exact string match against a GUID, so a
+ * positional index never resolves and comes back NotFound. See map-command.ts's
+ * `o.updateManeuverNode`/`o.removeManeuverNode` doc comment for the
+ * accepted-risk note on it when reads and commands are carried unevenly.
+ *
+ * Module scope so both the operator-driven edit/delete path and the
+ * auto-removal timeout resolve identically. They did not, and the auto-removal
+ * was the one that was wrong.
+ */
 function nodeIdAtPosition(
   streamNodes: readonly { id?: string }[] | undefined,
   index: number,

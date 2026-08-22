@@ -31,13 +31,6 @@ import { useMemo } from "react";
 import { useScanAnomalies } from "../FogReveal/useScanLayers";
 
 /**
- * Resolve a body NAME to its `system.bodies` index, the inverse of
- * `vanillaPoiProvider.ts`'s `useBodyNameByIndex`. Needed only here: an
- * anomaly's body is a name (`useScanAnomalies(bodyName)`), but
- * `SetTargetArgs.Position` (`tar.setTargetPosition[bodyIndex,lat,lon]`)
- * wants the stable index.
- */
-/**
  * The value of a FACT: something that stays true until an event changes it, and no
  * event can reach us down a link that is not delivering. `whenConfirmedNothing` is
  * what an `absent` tombstone means here, which is a different answer from `pending`
@@ -54,6 +47,13 @@ function stillTrue<T, A>(
   return undefined;
 }
 
+/**
+ * Resolve a body NAME to its `system.bodies` index, the inverse of
+ * `vanillaPoiProvider.ts`'s `useBodyNameByIndex`. Needed only here: an
+ * anomaly's body is a name (`useScanAnomalies(bodyName)`), but
+ * `SetTargetArgs.Position` (`tar.setTargetPosition[bodyIndex,lat,lon]`)
+ * wants the stable index.
+ */
 function useBodyIndexByName(): Map<string, number> {
   // The solar system is the least volatile fact on the wire.
   const systemBodies = stillTrue(useTelemetry("system.bodies"), undefined);

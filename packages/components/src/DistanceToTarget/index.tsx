@@ -137,23 +137,6 @@ const APPROACH_EXIT_M = 5_500;
 type ViewMode = "tracking" | "approach" | "docking-hud";
 
 /**
- * The last REAL observation behind a reading, whatever its currency, or nothing
- * where there has not been one.
- *
- * Used only to derive the scalars the widget already computed client-side
- * (distance, closing rate, dock angles) so that arithmetic stays in one place
- * rather than being duplicated per arm. It deliberately does NOT decide how the
- * result is presented: every caller branches on `targetReading.state` for that,
- * and the non-observed branches are the ones that render the age. Passing this
- * result straight to a readout without checking the state would reintroduce
- * exactly the bug the union prevents, which is why it is a local helper and not
- * exported.
- *
- * It never returns a MODELLED value: a reckoning is pulled explicitly through
- * `reckon()` in the branch that renders it, so a propagated number can never
- * arrive at a readout by accident.
- */
-/**
  * The value a VERDICT may be drawn from: current, or modelled forward to the frame.
  * A stale reading gives nothing, because a judgement cannot be dated: the operator
  * reads a band or a pill as the situation NOW.
@@ -186,6 +169,23 @@ function stillTrue<T, A>(
   return undefined;
 }
 
+/**
+ * The last REAL observation behind a reading, whatever its currency, or nothing
+ * where there has not been one.
+ *
+ * Used only to derive the scalars the widget already computed client-side
+ * (distance, closing rate, dock angles) so that arithmetic stays in one place
+ * rather than being duplicated per arm. It deliberately does NOT decide how the
+ * result is presented: every caller branches on `targetReading.state` for that,
+ * and the non-observed branches are the ones that render the age. Passing this
+ * result straight to a readout without checking the state would reintroduce
+ * exactly the bug the union prevents, which is why it is a local helper and not
+ * exported.
+ *
+ * It never returns a MODELLED value: a reckoning is pulled explicitly through
+ * `reckon()` in the branch that renders it, so a propagated number can never
+ * arrive at a readout by accident.
+ */
 function observedPayload<T>(reading: Reading<T>): T | undefined {
   switch (reading.state) {
     case "observed":

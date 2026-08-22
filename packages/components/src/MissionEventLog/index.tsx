@@ -59,17 +59,6 @@ const KIND_LABEL: Record<MissionEventKind, string> = {
 };
 
 /**
- * Game-time stamp for an event: Mission Elapsed Time from `launchUt` when
- * known, else the raw UT. The event already rode the delayed stream, so this
- * happened-at time is delay-honest by construction (no as-observed needed).
- *
- * The two are different quantities and take different components. An MET is a
- * CLOCK, which is what `<Countdown clock>` renders, sign and all. A bare UT is
- * an INSTANT, which is `<MissionDate>`: it is an offset from the game's epoch
- * rather than a length of time, and reading it as a duration would produce a
- * true statement about the wrong quantity.
- */
-/**
  * The value of a FACT: something that stays true until an event changes it, and no
  * event can reach us down a link that is not delivering. `whenConfirmedNothing` is
  * what an `absent` tombstone means here, which is a different answer from `pending`
@@ -86,6 +75,17 @@ function stillTrue<T, A>(
   return undefined;
 }
 
+/**
+ * Game-time stamp for an event: Mission Elapsed Time from `launchUt` when
+ * known, else the raw UT. The event already rode the delayed stream, so this
+ * happened-at time is delay-honest by construction (no as-observed needed).
+ *
+ * The two are different quantities and take different components. An MET is a
+ * CLOCK, which is what `<Countdown clock>` renders, sign and all. A bare UT is
+ * an INSTANT, which is `<MissionDate>`: it is an offset from the game's epoch
+ * rather than a length of time, and reading it as a duration would produce a
+ * true statement about the wrong quantity.
+ */
 function Stamp({ ut, launchUt }: { ut: number; launchUt: number | undefined }) {
   if (typeof launchUt === "number" && Number.isFinite(launchUt)) {
     // The sign is decided HERE rather than by `clock`, because a log's zero

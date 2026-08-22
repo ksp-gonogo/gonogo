@@ -129,12 +129,6 @@ const RESOURCE_NAME_STYLE = {
   color: "var(--color-text-primary)",
 } as const;
 
-/**
- * Enough decimal places to show a rate as nonzero: `base` for an ordinary
- * magnitude, widened to two significant digits below it. Life-support rates
- * genuinely sit at 0.0002 units/s, and a fixed precision flattens that to
- * "0.000", which reads as a dead process rather than a slow one.
- */
 /** Whether a reading went stale, as opposed to never having arrived. */
 function notCurrent<T>(reading: Reading<T>): boolean {
   return reading.state === "stale";
@@ -157,6 +151,12 @@ function stillTrue<T, A>(
   return undefined;
 }
 
+/**
+ * Enough decimal places to show a rate as nonzero: `base` for an ordinary
+ * magnitude, widened to two significant digits below it. Life-support rates
+ * genuinely sit at 0.0002 units/s, and a fixed precision flattens that to
+ * "0.000", which reads as a dead process rather than a slow one.
+ */
 function rateDecimals(rate: Quantityish, base: number): number {
   const magnitude = magnitudeOf(rate);
   if (magnitude === null || magnitude === 0) return base;

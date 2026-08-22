@@ -31,15 +31,6 @@ const MOD_ROOT = join(
 const FIXTURE = join(MOD_ROOT, "golden-fixtures", "isru-extensions.json");
 
 /**
- * A frame the SERVER actually produced, read off disk.
- *
- * `IsruExtensionWireTests` (this Uplink's own dotnet tests) asserts that the real
- * `KerbalismIsruMap` serialised through the real `EnvelopeCodec` equals these vectors
- * byte for byte. So these are not hand-authored approximations of wire frames, they
- * ARE the wire frames, and the two halves of the proof cannot drift without one of
- * them going red.
- */
-/**
  * The value a VERDICT may be drawn from: current, or modelled forward to the frame.
  * A stale reading gives nothing, because a judgement cannot be dated: the operator
  * reads a band or a pill as the situation NOW.
@@ -50,6 +41,15 @@ function judgeable<T>(reading: Reading<T>): T | undefined {
   return undefined;
 }
 
+/**
+ * A frame the SERVER actually produced, read off disk.
+ *
+ * `IsruExtensionWireTests` (this Uplink's own dotnet tests) asserts that the real
+ * `KerbalismIsruMap` serialised through the real `EnvelopeCodec` equals these vectors
+ * byte for byte. So these are not hand-authored approximations of wire frames, they
+ * ARE the wire frames, and the two halves of the proof cannot drift without one of
+ * them going red.
+ */
 function serverFrame<T>(name: string): { topic: string; payload: T } {
   const vectors = JSON.parse(readFileSync(FIXTURE, "utf8")) as {
     name: string;

@@ -29,21 +29,6 @@ import { useId, useState } from "react";
 import { SCANSAT } from "../uplink";
 
 /**
- * Parses `scansat.science` (`GonogoScansatUplink.ScanScienceEntry[]`, built by
- * `mod/GonogoScansatUplink/ScanScience.cs`). Field names already match the
- * ui-kit row's `ScienceInstrument` shape 1:1 (the mod-side builder
- * deliberately names them to match), so this is a straight
- * nullable-wire -> plain-boolean normalisation, same pattern as
- * Experiments's own `parseInstruments`: `bool?` -> `=== true`, missing
- * `partTitle`/`expId` -> a safe fallback, entries with no `partId` skipped.
- *
- * `deployed` and `inoperable` are always `false` on the wire and
- * `rerunnable` is always `true` (SCANsat map experiments have no deploy or
- * inoperable lifecycle, and SCANsat hard-codes `IsRerunnable()`, see
- * `ScanScience.cs`'s own doc comment), so a SCANsat row's
- * DEPLOYED/INOPERABLE/ONE-SHOT badges never show; only DATA does.
- */
-/**
  * The value of a FACT: something that stays true until an event changes it, and no
  * event can reach us down a link that is not delivering. `whenConfirmedNothing` is
  * what an `absent` tombstone means here, which is a different answer from `pending`
@@ -60,6 +45,21 @@ function stillTrue<T, A>(
   return undefined;
 }
 
+/**
+ * Parses `scansat.science` (`GonogoScansatUplink.ScanScienceEntry[]`, built by
+ * `mod/GonogoScansatUplink/ScanScience.cs`). Field names already match the
+ * ui-kit row's `ScienceInstrument` shape 1:1 (the mod-side builder
+ * deliberately names them to match), so this is a straight
+ * nullable-wire -> plain-boolean normalisation, same pattern as
+ * Experiments's own `parseInstruments`: `bool?` -> `=== true`, missing
+ * `partTitle`/`expId` -> a safe fallback, entries with no `partId` skipped.
+ *
+ * `deployed` and `inoperable` are always `false` on the wire and
+ * `rerunnable` is always `true` (SCANsat map experiments have no deploy or
+ * inoperable lifecycle, and SCANsat hard-codes `IsRerunnable()`, see
+ * `ScanScience.cs`'s own doc comment), so a SCANsat row's
+ * DEPLOYED/INOPERABLE/ONE-SHOT badges never show; only DATA does.
+ */
 export function parseScanScience(raw: unknown): ScienceInstrument[] | null {
   if (raw === null || raw === undefined) return null;
   if (!Array.isArray(raw)) return null;

@@ -67,16 +67,6 @@ export interface CameraFeedConfig extends Record<string, unknown> {
 }
 
 /**
- * Facecam kind separation (facecam-stage6 consumption design, "requirements
- * gonogo-side" §5): kerbal face cameras get their own crew surfaces
- * (CrewStatus's `crew-status.avatar` augment, and eventually a dedicated
- * facecam-wall widget): they should not also appear in this general
- * part-camera picker/stepper/auto-latch. `camera.kind` defaults to `Part`
- * when the sidecar omits it (older payloads), so this only ever EXCLUDES a
- * camera the SDK positively reports as a kerbal face; nothing is lost when
- * `kind` is absent.
- */
-/**
  * The value a VERDICT may be drawn from: current, or modelled forward to the frame.
  * A stale reading gives nothing, because a judgement cannot be dated: the operator
  * reads a band or a pill as the situation NOW.
@@ -87,6 +77,16 @@ function judgeable<T>(reading: Reading<T>): T | undefined {
   return undefined;
 }
 
+/**
+ * Facecam kind separation (facecam-stage6 consumption design, "requirements
+ * gonogo-side" §5): kerbal face cameras get their own crew surfaces
+ * (CrewStatus's `crew-status.avatar` augment, and eventually a dedicated
+ * facecam-wall widget): they should not also appear in this general
+ * part-camera picker/stepper/auto-latch. `camera.kind` defaults to `Part`
+ * when the sidecar omits it (older payloads), so this only ever EXCLUDES a
+ * camera the SDK positively reports as a kerbal face; nothing is lost when
+ * `kind` is absent.
+ */
 export function isPartCamera(camera: CameraState): boolean {
   return camera.kind !== CameraKind.Kerbal;
 }

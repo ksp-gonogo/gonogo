@@ -29,16 +29,6 @@ const FIXTURE = join(
 );
 
 /**
- * The frame the SERVER actually produced, read off disk.
- *
- * `ReliabilityExtensionWireTests` (this Uplink's own dotnet tests) asserts that
- * the real `KerbalismReliabilityMap` serialised through the real `EnvelopeCodec`
- * equals this file byte for byte. So this is not a hand-authored approximation of
- * a wire frame, it is the wire frame, and the two halves of the proof cannot drift
- * without one of them going red. Same shared-JSON discipline as
- * `mod/golden-fixtures/README.md`, in the C#-to-TS direction.
- */
-/**
  * The value a VERDICT may be drawn from: current, or modelled forward to the frame.
  * A stale reading gives nothing, because a judgement cannot be dated: the operator
  * reads a band or a pill as the situation NOW.
@@ -49,6 +39,16 @@ function judgeable<T>(reading: Reading<T>): T | undefined {
   return undefined;
 }
 
+/**
+ * The frame the SERVER actually produced, read off disk.
+ *
+ * `ReliabilityExtensionWireTests` (this Uplink's own dotnet tests) asserts that
+ * the real `KerbalismReliabilityMap` serialised through the real `EnvelopeCodec`
+ * equals this file byte for byte. So this is not a hand-authored approximation of
+ * a wire frame, it is the wire frame, and the two halves of the proof cannot drift
+ * without one of them going red. Same shared-JSON discipline as
+ * `mod/golden-fixtures/README.md`, in the C#-to-TS direction.
+ */
 function serverFrame(): { topic: string; payload: ReliabilitySummary } {
   // The frame is held as a JSON STRING inside the fixture, the shape every other
   // file in mod/golden-fixtures/ uses: the C# side asserts byte equality against

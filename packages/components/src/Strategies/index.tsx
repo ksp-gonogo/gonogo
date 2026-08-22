@@ -57,16 +57,6 @@ export interface Strategy {
 }
 
 /**
- * Accepts BOTH the legacy `strategies.all` shape (`departmentName`) and
- * the new wire shape (`career.status.strategies.all`,
- * CareerViewProvider.BuildStrategyList: `department`): same field-rename
- * normalization ContractManager's `parseContracts` applies. Every other
- * field name matches the new wire 1:1 (decompile-confirmed,
- * career-capture-extend-report.md), including `effectiveCostReputation`
- * staying absent on the new wire: the fallback below to
- * `initialCostReputation` already covers that, unchanged.
- */
-/**
  * The value a VERDICT may be drawn from: current, or modelled forward to the frame.
  * A stale reading gives nothing, because a judgement cannot be dated: the operator
  * reads a band or a pill as the situation NOW.
@@ -99,6 +89,16 @@ function stillTrue<T, A>(
   return undefined;
 }
 
+/**
+ * Accepts BOTH the legacy `strategies.all` shape (`departmentName`) and
+ * the new wire shape (`career.status.strategies.all`,
+ * CareerViewProvider.BuildStrategyList: `department`): same field-rename
+ * normalization ContractManager's `parseContracts` applies. Every other
+ * field name matches the new wire 1:1 (decompile-confirmed,
+ * career-capture-extend-report.md), including `effectiveCostReputation`
+ * staying absent on the new wire: the fallback below to
+ * `initialCostReputation` already covers that, unchanged.
+ */
 export function parseStrategies(raw: unknown): Strategy[] | null {
   if (raw === null || raw === undefined) return null;
   if (!Array.isArray(raw)) return null;

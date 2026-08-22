@@ -149,25 +149,6 @@ interface FacilityLevel {
 export type FacilityLevels = Partial<Record<FacilityKey, FacilityLevel>>;
 
 /**
- * Defensive parser for facility-level payloads. Accepts BOTH the legacy
- * `kc.facilityLevels` shape (keyed by short code: launchPad/vab/sph/...:
- * `{ level, max, upgradeFunds, currentLevelText, nextLevelText }`) and the
- * `career.status.facilities` wire shape, keyed by the
- * full `SpaceCenterFacility` enum name: `{ currentTier, maxTier,
- * upgradeCost }`, career-capture-extend-report.md). The new wire's
- * `currentTier`/`maxTier` are the SAME 0-based tier-index convention this
- * widget already assumes for `level`/`max` (decompile-confirmed: a fully
- * upgraded facility reports `currentTier === maxTier`, both actual-tier-
- * minus-one: see the "Lvl N of M" comment in the render below), so they
- * map straight across with no reinterpretation. `upgradeCost` maps to
- * `upgradeFunds` 1:1; `null` (at max, or scene-gated) becomes `0`, the
- * existing "unknown or at max" sentinel. `currentLevelText`/`nextLevelText`
- * have no new-wire equivalent; always `""` for an enum-keyed entry,
- * degrading exactly like an older legacy DLL that never emitted them.
- * Drops anything that doesn't read as one of the two known shapes,
- * sandbox saves emit zeroed entries, which is fine.
- */
-/**
  * The value a VERDICT may be drawn from: current, or modelled forward to the frame.
  * A stale reading gives nothing, because a judgement cannot be dated: the operator
  * reads a band or a pill as the situation NOW.
@@ -200,6 +181,25 @@ function stillTrue<T, A>(
   return undefined;
 }
 
+/**
+ * Defensive parser for facility-level payloads. Accepts BOTH the legacy
+ * `kc.facilityLevels` shape (keyed by short code: launchPad/vab/sph/...:
+ * `{ level, max, upgradeFunds, currentLevelText, nextLevelText }`) and the
+ * `career.status.facilities` wire shape, keyed by the
+ * full `SpaceCenterFacility` enum name: `{ currentTier, maxTier,
+ * upgradeCost }`, career-capture-extend-report.md). The new wire's
+ * `currentTier`/`maxTier` are the SAME 0-based tier-index convention this
+ * widget already assumes for `level`/`max` (decompile-confirmed: a fully
+ * upgraded facility reports `currentTier === maxTier`, both actual-tier-
+ * minus-one: see the "Lvl N of M" comment in the render below), so they
+ * map straight across with no reinterpretation. `upgradeCost` maps to
+ * `upgradeFunds` 1:1; `null` (at max, or scene-gated) becomes `0`, the
+ * existing "unknown or at max" sentinel. `currentLevelText`/`nextLevelText`
+ * have no new-wire equivalent; always `""` for an enum-keyed entry,
+ * degrading exactly like an older legacy DLL that never emitted them.
+ * Drops anything that doesn't read as one of the two known shapes,
+ * sandbox saves emit zeroed entries, which is fine.
+ */
 export function parseFacilityLevels(raw: unknown): FacilityLevels {
   if (!raw || typeof raw !== "object" || Array.isArray(raw)) return {};
   const out: FacilityLevels = {};
