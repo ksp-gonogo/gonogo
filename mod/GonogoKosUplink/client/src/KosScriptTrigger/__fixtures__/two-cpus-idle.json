@@ -1,0 +1,33 @@
+{
+  "_meta": {
+    "notes": "Two booted CPUs and no pinned tagname, which is the state the CPU picker exists for: with one CPU the widget targets it silently and the picker is not drawn at all."
+  },
+  "_scene": {
+    "widget": "kos-script-trigger",
+    "caption": "Two CPUs in range and none pinned, so the widget asks which one to run on rather than guessing",
+    "config": { "scriptPath": "0:/descent.ks" },
+    "modes": ["default", "min"]
+  },
+  "_stream": {
+    "pinnedUt": 1000000,
+    "emits": [
+      {
+        "topic": "kos.processors",
+        "payload": [
+          {
+            "coreId": 7,
+            "tag": "lander",
+            "hasBooted": true,
+            "processorMode": "READY"
+          },
+          {
+            "coreId": 8,
+            "tag": "relay",
+            "hasBooted": true,
+            "processorMode": "READY"
+          }
+        ]
+      }
+    ]
+  }
+}

@@ -26,3 +26,17 @@ mid-sentence does not eat what you were typing.
 
 Read-only mode forwards nothing at all: a passive downlink view of what the CPU is
 doing, for a station screen that should not be able to fly the craft.
+
+## widget:kos-script-trigger
+
+The terminal is for working at a CPU; this is for the script you run the same way
+every time. Pin the path in the widget's config and it becomes a button.
+
+Arguments are typed on the way through: `100` arrives as a number and `true` as a
+boolean, anything else as a string, so a script taking a burn duration gets one
+rather than the characters that spell it.
+
+The result is correlated back to the dispatch, so what you see is the outcome of the
+run you started and not the last thing the CPU happened to print. Under light-time
+delay it stays in `running` for the whole round trip rather than faking an answer,
+and it distinguishes a fault in your script from a failure to reach the CPU at all.

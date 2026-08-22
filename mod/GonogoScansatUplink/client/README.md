@@ -21,7 +21,7 @@ SCANsat shows one line saying so rather than a row of empty gauges.
 | --- | --- |
 | Uplink id | `scansat` |
 | Version | `0.0.1` |
-| Built against | contract 12.22, api 1.0.0, ui-kit 0.2.0 |
+| Built against | contract 12.24, api 1.0.0, ui-kit 0.2.0 |
 
 ## Widgets
 
@@ -102,9 +102,13 @@ tells you there is something on this body to find.
 
 ## What other mods can extend in this Uplink
 
+Slots these widgets declare:
+
 | Slot | Kind | In |
 | --- | --- | --- |
 | `scanning.sections` | section | Scanning |
+
+On top of those, every widget above carries the framework's universal segments (`badges`, `filters`, `meters`), so another mod can add a badge, a filter or a meter to any of them without this Uplink declaring anything. They are not listed per widget: they are the floor every widget stands on, not this Uplink's own extension surface.
 
 ## What this page cannot tell you
 

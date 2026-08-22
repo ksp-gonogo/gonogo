@@ -156,17 +156,47 @@ Your `defineUplinkClient({ version })` must equal your `package.json` version. T
 tool refuses to write a manifest where they disagree, because the app compares
 what it reads in the manifest against what your loaded bundle declares.
 
-### `--check`
+### Gating it: two halves, and only one needs a browser
 
-Put `gonogo-uplink docs --check` in CI. It regenerates into a temporary directory
-and fails on any difference in `README.md`, in `gonogo-uplink.json`, or in WHICH
-assets exist. That makes the page a build artifact under a gate rather than a
-document under a convention, which is the only version of this that survives a
-busy week.
+Keeping the page current is two different questions, and it is worth knowing
+which is which because they cost very different amounts.
 
-It compares asset NAMES and not their bytes. Rasterisation is per-engine and
-per-OS, so byte-comparing a PNG would fail on every machine but the one that
-generated it, and a gate that cries wolf is a gate someone turns off.
+**Does the prose still match the registrations?** That is a registry read, and
+your test suite has already loaded your client with a host installed. So it runs
+as a test, with no browser:
+
+```ts
+// client/src/uplink-page.test.ts
+import { expectUplinkPageCurrent } from "@ksp-gonogo/ui-kit/page-check";
+import "./index";  // your client, so its registrations happen
+
+it("the generated page still describes this Uplink", () => {
+  expectUplinkPageCurrent();
+});
+```
+
+Add a widget without regenerating and that fails. It is the same
+`readInventory` and the same `buildReadme` the generator uses, not a second
+implementation, so it cannot start describing a different Uplink from the one the
+pictures are of.
+
+**Are the committed images current?** That one has to render, so it needs
+Chromium: `gonogo-uplink docs --check`, wherever your CI has Playwright.
+
+```
+pnpm exec gonogo-uplink docs --check
+```
+
+Run both if you can. Run the first if you can only run one: it is the half that
+catches a widget quietly missing from the page, and a page listing three of your
+four widgets reads exactly like an Uplink with three widgets.
+
+Two things neither half compares. **Asset bytes**: rasterisation is per-engine
+and per-OS, so a byte comparison would fail on every machine but the one that
+generated it, and a gate that cries wolf is a gate someone turns off. Only WHICH
+assets exist is checked. **`integrity`**: it is a fact about a release artifact,
+absent from a working copy, so the test ignores it outright and `docs` leaves it
+empty until you pass `--bundle`.
 
 ## Your own browser-side glue
 

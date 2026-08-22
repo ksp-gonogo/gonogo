@@ -37,6 +37,10 @@
     "./render": {
       "types": "./dist/render.d.ts",
       "import": "./dist/render.js"
+    },
+    "./page-check": {
+      "types": "./dist/page-check.d.ts",
+      "import": "./dist/page-check.js"
     }
   },
   "bin": {

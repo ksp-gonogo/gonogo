@@ -88,14 +88,6 @@ export default defineConfig([
       "react-dom",
       "react/jsx-runtime",
       "styled-components",
-      // Optional peers of `./render`, both heavy and both node-only. Bundling
-      // Playwright would be absurd; bundling esbuild would ship a second copy of
-      // a binary-backed package.
-      "esbuild",
-      "playwright",
-      // The generated entry resolves this specifier from the AUTHOR's tree, so it
-      // must survive as an import rather than being inlined here.
-      "@ksp-gonogo/ui-kit/render-probe",
     ],
     dts: {
       // `true`, not `["@ksp-gonogo/theme"]`. Naming the package only inlines its
@@ -133,7 +125,11 @@ export default defineConfig([
     // The NODE half: esbuild, Playwright, the filesystem, the GIF encoder and
     // the markdown generator. `clean` is off, this appends to the dist the
     // config above just wrote.
-    entry: ["src/render.ts"],
+    // `page-check` is here rather than beside it because it must NOT pull
+    // Playwright: it is the half of the gate an author with no browser can run,
+    // and a static import of the driver would make it cost exactly what it
+    // exists to avoid. `render-probe.exports.test.ts` holds it to that.
+    entry: ["src/render.ts", "src/page-check.ts"],
     platform: "node",
     clean: false,
     // Same argument as the theme and lucide-react: small, pure JS and
@@ -151,7 +147,8 @@ export default defineConfig([
       "playwright",
       // The generated browser entry resolves this from the AUTHOR's tree, so it
       // has to survive as an import string rather than being inlined here.
-      "@ksp-gonogo/ui-kit/render-probe",
+      "@ksp-gonogo/ui-kit",
+      "@ksp-gonogo/ui-kit/*",
     ],
     dts: { resolve: true },
   },

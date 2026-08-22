@@ -105,24 +105,45 @@ function ledeSentence(lede: string): string | undefined {
   return paragraph.replace(/\s+/g, " ").trim();
 }
 
+/**
+ * The sha256 of the file the author DISTRIBUTES, and only when they name it.
+ *
+ * It used to fall back to hashing `dist/index.js`, which was wrong twice over.
+ * That file is a `tsc` output, not the bundle anyone ships (the shipped one is
+ * an esbuild bundle built elsewhere), so the hash described a file no consumer
+ * ever fetches. And because it is a gitignored build artifact, `--check`
+ * compared a committed hash against whatever the last local build happened to
+ * produce: within hours of landing, a sibling branch adding a widget changed
+ * `dist/index.js` and the gate reported the page stale over a number that is not
+ * the page's business. A gate that cries wolf is a gate someone turns off.
+ *
+ * So: no `--bundle`, no integrity, and a loud warning saying what that costs.
+ */
 function bundleIntegrity(
   pkg: UplinkPackage,
   bundle: string | undefined,
 ): { integrity: string; warning?: string } {
-  const candidate = bundle
-    ? resolve(pkg.dir, bundle)
-    : join(pkg.dir, "dist", "index.js");
-  try {
-    statSync(candidate);
-  } catch {
+  if (!bundle) {
     return {
       integrity: "",
       warning:
-        `no bundle at ${candidate}, so gonogo-uplink.json carries an EMPTY ` +
-        "integrity and the app will quarantine this Uplink with an integrity " +
-        "mismatch. Regenerate with --bundle <path to the file you distribute> " +
-        "once it is built.",
+        "no --bundle given, so gonogo-uplink.json carries an EMPTY integrity " +
+        "and the app will quarantine this Uplink with an integrity mismatch. " +
+        "That is correct for a working copy: regenerate with " +
+        "`--bundle <the file you distribute>` when you cut a release. It is " +
+        "deliberately NOT defaulted to dist/, which holds a compiler output " +
+        "rather than the bundle a consumer fetches.",
     };
+  }
+  const candidate = resolve(pkg.dir, bundle);
+  try {
+    statSync(candidate);
+  } catch {
+    throw new Error(
+      `gonogo-uplink: --bundle ${bundle} does not exist (looked at ` +
+        `${candidate}). Naming a bundle and getting no hash would be worse ` +
+        "than naming none.",
+    );
   }
   const bytes = readFileSync(candidate);
   return {
@@ -368,13 +389,31 @@ export function buildReadme(
       host: w.name,
     })),
   ]);
-  if (slots.length > 0) {
+  // Printed even when the table is empty, and that is the point. Every widget
+  // gets the framework segments whether it asks for them or not, so a page that
+  // showed nothing here would let a reader conclude that a widget declaring no
+  // bespoke slot cannot be extended at all. They are named as UNIVERSAL rather
+  // than listed per widget, because listing them would count generic surface as
+  // this Uplink's own design.
+  if (inventory.widgets.length > 0) {
+    out.push("## What other mods can extend in this Uplink", "");
+    if (slots.length > 0) {
+      out.push(
+        "Slots these widgets declare:",
+        "",
+        "| Slot | Kind | In |",
+        "| --- | --- | --- |",
+        ...slots.map((s) => `| \`${s.slot}\` | ${s.kind} | ${s.host} |`),
+        "",
+      );
+    }
     out.push(
-      "## What other mods can extend in this Uplink",
-      "",
-      "| Slot | Kind | In |",
-      "| --- | --- | --- |",
-      ...slots.map((s) => `| \`${s.slot}\` | ${s.kind} | ${s.host} |`),
+      `${slots.length > 0 ? "On top of those, every" : "Every"} widget above ` +
+        "carries the framework's universal segments (`badges`, `filters`, " +
+        "`meters`), so another mod can add a badge, a filter or a meter to any " +
+        "of them without this Uplink declaring anything. They are not listed " +
+        "per widget: they are the floor every widget stands on, not this " +
+        "Uplink's own extension surface.",
       "",
     );
   }

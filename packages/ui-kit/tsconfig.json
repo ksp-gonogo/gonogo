@@ -14,7 +14,8 @@
     // consults `paths`, so the bundler still leaves the specifier alone.
     "paths": {
       "@ksp-gonogo/ui-kit": ["./src/index.ts"],
-      "@ksp-gonogo/ui-kit/testing": ["./src/testing.ts"]
+      "@ksp-gonogo/ui-kit/testing": ["./src/testing.ts"],
+      "@ksp-gonogo/ui-kit/render-probe": ["./src/render-probe.tsx"]
     }
   },
   "include": ["src"],

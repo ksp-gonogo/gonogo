@@ -20,9 +20,37 @@ range the widget says so; it never becomes a hard startup requirement for the ap
 | --- | --- |
 | Uplink id | `kos` |
 | Version | `0.0.1` |
-| Built against | contract 12.22, api 1.0.0, ui-kit 0.2.0 |
+| Built against | contract 12.24, api 1.0.0, ui-kit 0.2.0 |
 
 ## Widgets
+
+### kOS Script Trigger
+
+Run a kerboscript on a kOS CPU: pick the CPU, path, and args, dispatch over the Uplink, and see the correlated result or error inline.
+
+- Widget id: `kos-script-trigger`
+- Needs: `kos.processors`
+- Default size: 10 x 9 grid units
+
+The terminal is for working at a CPU; this is for the script you run the same way
+every time. Pin the path in the widget's config and it becomes a button.
+
+Arguments are typed on the way through: `100` arrives as a number and `true` as a
+boolean, anything else as a string, so a script taking a burn duration gets one
+rather than the characters that spell it.
+
+The result is correlated back to the dispatch, so what you see is the outcome of the
+run you started and not the last thing the CPU happened to print. Under light-time
+delay it stays in `running` for the whole round trip rather than faking an answer,
+and it distinguishes a fault in your script from a failure to reach the CPU at all.
+
+![Two CPUs in range and none pinned, so the widget asks which one to run on rather than guessing](docs/assets/two-cpus-idle--default.png)
+
+*Two CPUs in range and none pinned, so the widget asks which one to run on rather than guessing*
+
+![Two CPUs in range and none pinned, so the widget asks which one to run on rather than guessing](docs/assets/two-cpus-idle--min.png)
+
+*Two CPUs in range and none pinned, so the widget asks which one to run on rather than guessing*
 
 ### kOS Terminal
 
@@ -53,6 +81,10 @@ doing, for a station screen that should not be able to fly the craft.
 ![Attached to the 'lander' CPU with line-mode composition on: what the operator types is held in the bar under the screen until Enter sends it as one command](docs/assets/lander-cpu-attached--default.png)
 
 *Attached to the 'lander' CPU with line-mode composition on: what the operator types is held in the bar under the screen until Enter sends it as one command*
+
+## What other mods can extend in this Uplink
+
+Every widget above carries the framework's universal segments (`badges`, `filters`, `meters`), so another mod can add a badge, a filter or a meter to any of them without this Uplink declaring anything. They are not listed per widget: they are the floor every widget stands on, not this Uplink's own extension surface.
 
 ## What this page cannot tell you
 

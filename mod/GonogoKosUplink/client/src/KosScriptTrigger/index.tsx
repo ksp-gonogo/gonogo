@@ -341,7 +341,12 @@ registerComponent<KosScriptTriggerConfig>({
   openConfigOnAdd: false,
   component: KosScriptTriggerComponent,
   configComponent: KosScriptTriggerConfigComponent,
-  dataRequirements: [],
+  // The CPU discovery channel this widget picks its target from. Same
+  // under-declaration the terminal beside it carried: the app carries
+  // `kos.processors` by default so nothing broke, while the declaration a
+  // stream-status badge and a render harness both derive from said the widget
+  // needed no data at all, and it rendered its no-CPU notice forever.
+  dataRequirements: ["kos.processors"],
   defaultConfig: {},
   owner: KOS,
 });
