@@ -88,6 +88,8 @@ function mount(
   config: { pair?: string },
   pinnedUt: number,
   vesselSma = 9_000_000,
+  /** Omit the horizon, the way a producer that never stated a shape would. */
+  statesNoShape = false,
 ) {
   const fixture: StreamFixture = setupStreamFixture({
     carriedChannels: ["vessel.orbit", "vessel.identity", "system.bodies"],
@@ -117,6 +119,11 @@ function mount(
       meanAnomalyAtEpoch: 0,
       epoch: 0,
       mu: KERBIN_MU,
+      // What the stock closed-form solver really publishes: an unbounded horizon
+      // on an analytic answer. The seam samples that into points when a read
+      // frame is asked for, so the craft's curve is live here rather than only
+      // where something integrates.
+      horizon: statesNoShape ? undefined : { kind: 1, trajectoryKind: 1 },
     });
   });
   return { fixture, view };
@@ -152,6 +159,12 @@ describe("LibrationPoints: the pair reaches the frame", () => {
       "Drawn in Kerbin-Mun rotating-pulsating",
     );
     expect(view.container.textContent).toContain("lengths are not lengths");
+    // And the craft's own curve arrived IN this frame rather than in metres: 5
+    // is `RotatingPulsating`, carried from the answer onto the drawing, so the
+    // assertion is against the picture and not against a value a test set.
+    const path = svg.querySelector('[data-libration-path="arc"]');
+    expect(path).not.toBeNull();
+    expect(path?.getAttribute("data-trajectory-frame")).toBe("5");
     await act(async () => {});
   });
 
@@ -256,6 +269,19 @@ describe("LibrationPoints: the markers hold still", () => {
     // Whitespace-tolerant: the one unit renderer sets its own space between the
     // number and the symbol, and it is not an ASCII one.
     expect(view.container.textContent).toMatch(/7\.2\s*Mm/);
+    await act(async () => {});
+  });
+});
+
+describe("LibrationPoints: the craft's path", () => {
+  it("still places the five points when the path itself is withheld, and says why", async () => {
+    // A producer that stated no shape. The five points are a property of the
+    // PAIR and are unaffected, so covering them would overstate the refusal.
+    const { view } = mount({ pair: "Mun" }, 0, 9_000_000, true);
+    const svg = await svgOf(view);
+    expect(svg.querySelectorAll("[data-libration-point]")).toHaveLength(5);
+    expect(svg.querySelector('[data-libration-path="arc"]')).toBeNull();
+    expect(view.container.textContent).toMatch(/shape|state/i);
     await act(async () => {});
   });
 });

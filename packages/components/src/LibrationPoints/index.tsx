@@ -15,11 +15,13 @@ import {
   librationPairLabel,
   librationPairsOf,
   type OrbitElements,
+  type OrbitTrajectory,
   type SystemInstant,
   solve,
   systemInstantAt,
   TRAJECTORY_SCALE_CONVENTIONS,
   TrajectoryFrameKindLike,
+  useOrbitTrajectory,
   useProcessor,
   useViewUt,
   type Vector3,
@@ -46,6 +48,7 @@ import type { CSSProperties } from "react";
 import { useMemo, useState } from "react";
 import { quantiseUt } from "../MapView/predictionThrottle";
 import { TrajectoryFrameCaption } from "../shared/trajectoryFrame";
+import { TrajectoryWithheldNote } from "../shared/trajectoryWithheld";
 import { LibrationDiagram } from "./LibrationDiagram";
 
 /**
@@ -292,6 +295,25 @@ function LibrationPointsComponent({
   );
 
   const drawn = answer.refusal === LIBRATION_REFUSALS.NotRefused;
+
+  // The craft's own path, asked for IN THIS FRAME. The seam samples a conic
+  // answer rather than handing back the instruction to draw an ellipse, because
+  // an ellipse is a shape in the orbit's own plane and a rosette in this one, so
+  // the curve is live on an ordinary install rather than only where something
+  // integrates.
+  const readFrame = useMemo(
+    () =>
+      facts !== undefined && drawn
+        ? { readFrame: { choice: answer.frameChoice, facts } }
+        : undefined,
+    [facts, drawn, answer.frameChoice],
+  );
+  const trajectory: OrbitTrajectory | null = useOrbitTrajectory(
+    orbit,
+    readFrame,
+  );
+  const trajectoryWithheld =
+    trajectory !== null && trajectory.shape === "withheld" ? trajectory : null;
   const secondaryBody =
     answer.pair === null
       ? null
@@ -349,6 +371,12 @@ function LibrationPointsComponent({
           unitLength: answer.frame?.unitLength,
         }}
       />
+      {/* Beside the frame caption rather than over the picture: the five points
+          are still where they are and only the craft's own curve is missing, so
+          covering the diagram would overstate what was refused. */}
+      {drawn && trajectoryWithheld && (
+        <TrajectoryWithheldNote withheld={trajectoryWithheld} compact />
+      )}
       {!drawn ? (
         <div style={REFUSAL} role="status" aria-live="polite">
           <Text tone="muted" size="sm">
@@ -366,6 +394,7 @@ function LibrationPointsComponent({
               vesselName={
                 typeof identity?.name === "string" ? identity.name : null
               }
+              trajectory={trajectory}
             />
           </FramedDisplay>
           <Stack gap="xs" as="ul" style={READOUTS}>

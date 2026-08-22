@@ -2,7 +2,9 @@ import type {
   LagrangePointName,
   LibrationAnswer,
   LibrationOffset,
+  OrbitTrajectory,
 } from "@ksp-gonogo/sitrep-client";
+import { TrajectoryFrameKindLike } from "@ksp-gonogo/sitrep-client";
 
 /**
  * The pair's own frame, drawn.
@@ -90,6 +92,12 @@ export interface LibrationDiagramProps {
   secondaryRadius: number | null;
   /** The craft's name, for the marker's label. */
   vesselName: string | null;
+  /**
+   * The craft's path. Drawn only when it arrived in THIS frame: an arc still in
+   * metres would be an orbit's width off the picture, and drawing it anyway is
+   * how a diagram in ratios starts telling a reader distances.
+   */
+  trajectory: OrbitTrajectory | null;
 }
 
 export function LibrationDiagram({
@@ -98,6 +106,7 @@ export function LibrationDiagram({
   primaryRadius,
   secondaryRadius,
   vesselName,
+  trajectory,
 }: Readonly<LibrationDiagramProps>) {
   const frame = answer.frame;
   if (frame === null) return null;
@@ -113,6 +122,22 @@ export function LibrationDiagram({
   const vessel =
     offset === null ? null : plot(offset.vesselFrame[0], offset.vesselFrame[1]);
   const nearestPlot = nearest === null ? null : plot(...pointXy(nearest.frame));
+  const path =
+    trajectory !== null &&
+    trajectory.shape === "arc" &&
+    trajectory.frame.kind === TrajectoryFrameKindLike.RotatingPulsating &&
+    trajectory.points.length > 1
+      ? trajectory
+      : null;
+  const pathPoints =
+    path === null
+      ? null
+      : path.points
+          .map((p) => {
+            const at = plot(p.x, p.y);
+            return `${at.x},${at.y}`;
+          })
+          .join(" ");
 
   return (
     <svg
@@ -157,6 +182,21 @@ export function LibrationDiagram({
         <line x1={-5} y1={0} x2={5} y2={0} />
         <line x1={0} y1={-5} x2={0} y2={5} />
       </g>
+
+      {pathPoints !== null && (
+        <polyline
+          points={pathPoints}
+          fill="none"
+          stroke="var(--color-status-info-fg)"
+          strokeWidth={1.2}
+          opacity={0.8}
+          data-libration-path="arc"
+          // The frame the POINTS are in, carried from the answer rather than
+          // assumed by the drawing, so a curve that arrived in another frame
+          // cannot be plotted here as if it had not.
+          data-trajectory-frame={path?.frame.kind}
+        />
+      )}
 
       {nearestPlot !== null && vessel !== null && (
         <line
