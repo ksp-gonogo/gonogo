@@ -3,9 +3,12 @@ using System.Collections;
 using System.Collections.Generic;
 using System.Globalization;
 using System.Reflection;
+// The payload shapes live in this Uplink's own contract slice, which declares
+// them in `GonogoKerbalismUplink` rather than `Sitrep.Contract`, same as
+// KerbalismRawTypes.cs.
+using GonogoKerbalismUplink;
 using Sitrep.Contract;
 using UnityEngine;
-using Sitrep.Contract;
 
 namespace Gonogo.KerbalismUplink
 {
