@@ -400,6 +400,7 @@
       "deadlineBasis": "enum",
       "deadlineUt": "ut",
       "predictedReacquisitionUt": "ut",
+      "predictionGraceSeconds": "s",
       "silenceSinceUt": "ut",
       "state": "enum",
       "vesselId": "id"
@@ -416,6 +417,7 @@
       "deadlineBasis": "enum",
       "deadlineUt": "ut",
       "predictedReacquisitionUt": "ut",
+      "predictionGraceSeconds": "s",
       "silenceSinceUt": "ut",
       "state": "enum"
     },

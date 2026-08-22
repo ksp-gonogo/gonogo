@@ -27,10 +27,11 @@ namespace Gonogo.KSP
             double? silenceSinceUt,
             double? deadlineUt,
             string? deadlineBasis,
-            double? predictedReacquisitionUt)
+            double? predictedReacquisitionUt,
+            double? predictionGraceSeconds)
         {
             var entry = FleetVesselSilenceBuilder.Build(
-                state, silenceSinceUt, deadlineUt, deadlineBasis, predictedReacquisitionUt);
+                state, silenceSinceUt, deadlineUt, deadlineBasis, predictedReacquisitionUt, predictionGraceSeconds);
             entry["vesselId"] = vesselId;
             return entry;
         }

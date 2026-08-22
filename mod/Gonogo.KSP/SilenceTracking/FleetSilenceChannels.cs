@@ -145,6 +145,7 @@ namespace Gonogo.KSP.SilenceTracking
                     DeadlineUt = state.DeadlineUt,
                     DeadlineBasis = state.DeadlineBasis,
                     PredictedReacquisitionUt = state.PredictedReacquisitionUt,
+                    PredictionGraceSec = state.PredictionGraceSec,
                 });
             }
 
@@ -165,6 +166,7 @@ namespace Gonogo.KSP.SilenceTracking
                     DeadlineUt = state.DeadlineUt,
                     DeadlineBasis = state.DeadlineBasis,
                     PredictedReacquisitionUt = state.PredictedReacquisitionUt,
+                    PredictionGraceSec = state.PredictionGraceSec,
                 });
             }
 
@@ -190,7 +192,7 @@ namespace Gonogo.KSP.SilenceTracking
             foreach (var v in cap.Vessels)
             {
                 _silenceSource.Publisher(v.VesselId + ChannelEngine.SilenceStateSuffix).Publish(
-                    FleetVesselSilenceBuilder.Build(v.State.ToString(), v.SilenceSinceUt, v.DeadlineUt, v.DeadlineBasis, v.PredictedReacquisitionUt),
+                    FleetVesselSilenceBuilder.Build(v.State.ToString(), v.SilenceSinceUt, v.DeadlineUt, v.DeadlineBasis, v.PredictedReacquisitionUt, v.PredictionGraceSec),
                     cap.Ut);
             }
 
@@ -200,7 +202,7 @@ namespace Gonogo.KSP.SilenceTracking
                 foreach (var v in cap.Roster)
                 {
                     entries.Add(FleetSilenceRosterBuilder.BuildEntry(
-                        v.VesselId, v.State.ToString(), v.SilenceSinceUt, v.DeadlineUt, v.DeadlineBasis, v.PredictedReacquisitionUt));
+                        v.VesselId, v.State.ToString(), v.SilenceSinceUt, v.DeadlineUt, v.DeadlineBasis, v.PredictedReacquisitionUt, v.PredictionGraceSec));
                 }
                 SilenceRosterBudget.Record(entries.Count, cap.Ut);
                 _rosterPublisher.Publish(FleetSilenceRosterBuilder.Build(entries), cap.Ut);
@@ -281,6 +283,7 @@ namespace Gonogo.KSP.SilenceTracking
             public double? DeadlineUt { get; set; }
             public string? DeadlineBasis { get; set; }
             public double? PredictedReacquisitionUt { get; set; }
+            public double? PredictionGraceSec { get; set; }
         }
     }
 }

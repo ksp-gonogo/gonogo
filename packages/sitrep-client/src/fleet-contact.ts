@@ -41,6 +41,17 @@ export interface FleetVesselSilence {
    * place that distinction should have to be made.
    */
   predictedReacquisitionUt?: number | null;
+  /**
+   * The error budget the deadline was armed with, seconds: how long past the
+   * predicted return the craft may stay quiet before its silence is something
+   * other than a late reappearance.
+   *
+   * ONE-SIDED, and not a symmetric uncertainty: an allowance AFTER the
+   * predicted moment, so render "allowing 5 min of slack" and never
+   * "+/- 5 min". Null wherever the prediction is, since a budget beside a
+   * withheld prediction is an error bar around nothing.
+   */
+  predictionGraceSeconds?: number | null;
 }
 
 /**
@@ -57,6 +68,7 @@ interface FleetSilenceWireEntry {
   deadlineUt?: { magnitude: number } | number | null;
   deadlineBasis?: string | null;
   predictedReacquisitionUt?: { magnitude: number } | number | null;
+  predictionGraceSeconds?: { magnitude: number } | number | null;
 }
 
 /** The `fleet.silence` payload: every tracked vessel's reckoning in one message. */
@@ -97,6 +109,7 @@ export function silenceByVessel(
       deadlineBasis: (entry.deadlineBasis ??
         null) as SilenceDeadlineBasis | null,
       predictedReacquisitionUt: magnitude(entry.predictedReacquisitionUt),
+      predictionGraceSeconds: magnitude(entry.predictionGraceSeconds),
     });
   }
   return byVessel;

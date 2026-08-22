@@ -17,9 +17,9 @@ namespace Gonogo.KSP.Tests.SilenceTracking
         public void AnEntryCarriesEverythingThePerVesselTopicCarries()
         {
             var perVessel = FleetVesselSilenceBuilder.Build(
-                "Silent", 1000.0, 2000.0, "predicted-reacquisition", 1600.0);
+                "Silent", 1000.0, 2000.0, "predicted-reacquisition", 1600.0, 322.0);
             var entry = FleetSilenceRosterBuilder.BuildEntry(
-                "v-1", "Silent", 1000.0, 2000.0, "predicted-reacquisition", 1600.0);
+                "v-1", "Silent", 1000.0, 2000.0, "predicted-reacquisition", 1600.0, 322.0);
 
             foreach (var pair in perVessel)
             {
@@ -32,7 +32,7 @@ namespace Gonogo.KSP.Tests.SilenceTracking
         public void AnEntryAddsTheVesselIdThePerVesselTopicGetsFromItsTopicString()
         {
             var entry = FleetSilenceRosterBuilder.BuildEntry(
-                "v-1", "Nominal", null, null, null, null);
+                "v-1", "Nominal", null, null, null, null, null);
 
             Assert.Equal("v-1", entry["vesselId"]);
         }
@@ -47,7 +47,7 @@ namespace Gonogo.KSP.Tests.SilenceTracking
         public void WithheldValuesArriveAsNullsRatherThanAsAbsentKeys()
         {
             var entry = FleetSilenceRosterBuilder.BuildEntry(
-                "v-1", "Silent", 1000.0, 2000.0, "no-occultation", null);
+                "v-1", "Silent", 1000.0, 2000.0, "no-occultation", null, null);
 
             Assert.True(entry.ContainsKey("predictedReacquisitionUt"));
             Assert.Null(entry["predictedReacquisitionUt"]);
@@ -58,8 +58,8 @@ namespace Gonogo.KSP.Tests.SilenceTracking
         {
             var roster = FleetSilenceRosterBuilder.Build(new List<Dictionary<string, object?>>
             {
-                FleetSilenceRosterBuilder.BuildEntry("v-1", "Silent", 1000.0, 2000.0, "orbital-period", null),
-                FleetSilenceRosterBuilder.BuildEntry("v-2", "Nominal", null, null, null, null),
+                FleetSilenceRosterBuilder.BuildEntry("v-1", "Silent", 1000.0, 2000.0, "orbital-period", null, null),
+                FleetSilenceRosterBuilder.BuildEntry("v-2", "Nominal", null, null, null, null, null),
             });
 
             var vessels = Assert.IsAssignableFrom<IReadOnlyList<Dictionary<string, object?>>>(roster["vessels"]);

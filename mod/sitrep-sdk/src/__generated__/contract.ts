@@ -418,6 +418,7 @@ export interface FleetVesselSilence
 	deadlineUt?: Value<"ut">;
 	deadlineBasis?: string;
 	predictedReacquisitionUt?: Value<"ut">;
+	predictionGraceSeconds?: Value<"s">;
 }
 export interface FleetSilenceEntry
 {
@@ -427,6 +428,7 @@ export interface FleetSilenceEntry
 	deadlineUt?: Value<"ut">;
 	deadlineBasis?: string;
 	predictedReacquisitionUt?: Value<"ut">;
+	predictionGraceSeconds?: Value<"s">;
 }
 export interface FleetSilence
 {

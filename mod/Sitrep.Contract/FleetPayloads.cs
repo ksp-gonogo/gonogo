@@ -132,6 +132,25 @@ public class FleetVesselSilence
     /// </summary>
     [SitrepUnit(Units.UniversalTime)]
     public double? PredictedReacquisitionUt { get; set; }
+
+    /// <summary>
+    /// The error budget the deadline was armed with, seconds: how long past the
+    /// predicted return this craft may stay quiet before its silence is
+    /// something other than a late reappearance.
+    ///
+    /// <para>It is the only thing on the wire that says how much confidence to
+    /// place in <see cref="PredictedReacquisitionUt"/> beside it. Without it, "back in 15 min" and
+    /// "back in 15 min, and we would not call it late for another 5" render
+    /// identically.</para>
+    ///
+    /// <para>ONE-SIDED, and not a symmetric uncertainty: it is an allowance
+    /// after the predicted moment, so render "allowing 5 min of slack" and
+    /// never "+/- 5 min". Null wherever the prediction is null, since a budget
+    /// quoted next to a withheld prediction is an error bar around
+    /// nothing.</para>
+    /// </summary>
+    [SitrepUnit(Units.Seconds)]
+    public double? PredictionGraceSeconds { get; set; }
 }
 
 /// <summary>
@@ -168,6 +187,25 @@ public class FleetSilenceEntry
     /// <summary>UT the radio path is predicted to re-open. Null is a prediction WITHHELD, never an emergence of "now".</summary>
     [SitrepUnit(Units.UniversalTime)]
     public double? PredictedReacquisitionUt { get; set; }
+
+    /// <summary>
+    /// The error budget the deadline was armed with, seconds: how long past the
+    /// predicted return this craft may stay quiet before its silence is
+    /// something other than a late reappearance.
+    ///
+    /// <para>It is the only thing on the wire that says how much confidence to
+    /// place in <see cref="PredictedReacquisitionUt"/> beside it. Without it, "back in 15 min" and
+    /// "back in 15 min, and we would not call it late for another 5" render
+    /// identically.</para>
+    ///
+    /// <para>ONE-SIDED, and not a symmetric uncertainty: it is an allowance
+    /// after the predicted moment, so render "allowing 5 min of slack" and
+    /// never "+/- 5 min". Null wherever the prediction is null, since a budget
+    /// quoted next to a withheld prediction is an error bar around
+    /// nothing.</para>
+    /// </summary>
+    [SitrepUnit(Units.Seconds)]
+    public double? PredictionGraceSeconds { get; set; }
 }
 
 /// <summary>

@@ -20,7 +20,8 @@ namespace Gonogo.KSP
             double? silenceSinceUt,
             double? deadlineUt,
             string? deadlineBasis,
-            double? predictedReacquisitionUt) =>
+            double? predictedReacquisitionUt,
+            double? predictionGraceSeconds) =>
             new Dictionary<string, object?>
             {
                 ["state"] = state,
@@ -28,6 +29,7 @@ namespace Gonogo.KSP
                 ["deadlineUt"] = deadlineUt,
                 ["deadlineBasis"] = deadlineBasis,
                 ["predictedReacquisitionUt"] = predictedReacquisitionUt,
+                ["predictionGraceSeconds"] = predictionGraceSeconds,
             };
     }
 }
