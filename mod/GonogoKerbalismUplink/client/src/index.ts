@@ -106,13 +106,16 @@ import "./ShipSystems";
 import "./ShipSystems/badge";
 // CrewStatus's per-kerbal survival: a Processor (CrewSurvival/processor.ts),
 // the `crew-status.meters` contribution that carries it into the BASE widget's
-// (packages/components/src/CrewStatus) own slot, and the panel badge off
-// the same Processor. Per-kerbal survival is a Kerbalism concept and never
-// belonged in the base widget itself, see that widget's own doc comment on
-// the slot. Side-effect imports so all three register when the app pulls the
-// package entry in.
+// (packages/components/src/CrewStatus) own slot, the panel badge, and the
+// per-row severity (rowTone.ts, also a contribution: this reports how alarming
+// a kerbal's situation is and the base widget paints its own Card, see that
+// slot's own doc comment). All four off the same Processor. Per-kerbal
+// survival is a Kerbalism concept and never belonged in the base widget
+// itself, see that widget's own doc comment on the slot. Side-effect imports
+// so all four register when the app pulls the package entry in.
 import "./CrewSurvival";
 import "./CrewSurvival/badge";
+import "./CrewSurvival/rowTone";
 // The whole-widget `crew-status.summary` slot: a vessel radiation-environment
 // reading off `kerbalism.spaceweather`, distinct from the per-kerbal survival
 // above (a storm affects the whole crew together, not one kerbal at a time).

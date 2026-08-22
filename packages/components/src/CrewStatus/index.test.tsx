@@ -1,4 +1,10 @@
-import { clearAugments, registerAugment } from "@ksp-gonogo/core";
+import {
+  ContributionsProvider,
+  clearAugments,
+  clearContributions,
+  registerAugment,
+  registerContribution,
+} from "@ksp-gonogo/core";
 import { act, render, screen, waitFor, within } from "@ksp-gonogo/test-utils";
 import { ContributionsPanelStore, WidgetMetaContext } from "@ksp-gonogo/ui-kit";
 import type { ReactNode } from "react";
@@ -97,7 +103,34 @@ afterEach(() => {
   // Slot augments are registered globally, clear so an avatar/badges augment
   // bound in one test can't leak into the "empty slot" assertions of the next.
   clearAugments();
+  // Same reasoning for contributions (crew-status.row-tone): a tone
+  // registered in one test must not leak into the next.
+  clearContributions();
 });
+
+/** `WidgetMetaContext` + `ContributionsProvider` mounted explicitly (mirrors
+ *  ShipMap's own `contributions.test.tsx`): `renderCrew` alone has no
+ *  contribution store at all, `useContributions` silently returns empty,
+ *  same as a bare widget with no dashboard around it. Only the row-tone
+ *  tests need this; every other describe block above renders through the
+ *  plain `renderCrew`. */
+const CREW_STATUS_META = {
+  componentId: "crew-status",
+  contributionSlots: ["crew-status.row-tone"] as const,
+};
+
+function renderCrewWithContributions(fixture: ReturnType<typeof newFixture>) {
+  const { unmount } = render(
+    <fixture.Provider>
+      <WidgetMetaContext.Provider value={CREW_STATUS_META}>
+        <ContributionsProvider>
+          <CrewStatusComponent config={{}} id="crew" />
+        </ContributionsProvider>
+      </WidgetMetaContext.Provider>
+    </fixture.Provider>,
+  );
+  renderedTrees.push(unmount);
+}
 
 describe("CrewStatusComponent", () => {
   it("shows the waiting placeholder until crew telemetry arrives", () => {
@@ -584,5 +617,74 @@ describe("CrewStatusComponent, summary slot", () => {
     );
     // One instance total, not one per crew row.
     expect(screen.getAllByTestId("crew-summary")).toHaveLength(1);
+  });
+});
+
+/**
+ * The `crew-status.row-tone` slot: a CONTRIBUTION (pure data, host renders
+ * its own `Card` chrome), not an AugmentSlot, see that slot's own doc
+ * comment in `index.tsx`. Proves the self-contribution unify end to end,
+ * same shape as ShipMap's `contributions.test.tsx`: a test-registered
+ * contribution reaches the right kerbal's row, and every other row stays
+ * untinted.
+ */
+describe("CrewStatusComponent, row tone contribution", () => {
+  it("renders every row with Card's default (untinted) border when nothing contributes a tone", async () => {
+    const fixture = newFixture();
+    renderCrewWithContributions(fixture);
+    act(() => {
+      fixture.emit("vessel.crew", {
+        count: 2,
+        capacity: 2,
+        crew: [{ name: "Jebediah Kerman" }, { name: "Bill Kerman" }],
+      });
+    });
+    await waitFor(() =>
+      expect(screen.getByText("Jebediah Kerman")).toBeInTheDocument(),
+    );
+    // Each row is still a real roster `<li>`, Card's `as="li"` preserves list
+    // semantics (unchanged from the bare `<li>` this replaced).
+    expect(screen.getByText("Bill Kerman").closest("li")).not.toBeNull();
+    // No contribution registered at all: Card's alert-tone accent rule
+    // (jsdom can't validate an unresolved `var()` inside the `border-left`
+    // shorthand, `toHaveStyle` can't see it, so this asserts on the
+    // styled-components injected stylesheet text directly, the same
+    // workaround Card's own test suite uses) must not appear anywhere.
+    const styleText = Array.from(document.querySelectorAll("style"))
+      .map((s) => s.textContent)
+      .join("\n");
+    expect(styleText).not.toContain(
+      "border-left:2px solid var(--color-status-nogo-bg);",
+    );
+  });
+
+  it("colours only the kerbal a bound contribution names critical", async () => {
+    registerContribution<"crew-status.row-tone">({
+      id: "test-crew-row-tone",
+      contributes: "crew-status.row-tone",
+      compute: () => [{ crewName: "Bill Kerman", severity: "critical" }],
+    });
+
+    const fixture = newFixture();
+    renderCrewWithContributions(fixture);
+    act(() => {
+      fixture.emit("vessel.crew", {
+        count: 2,
+        capacity: 2,
+        crew: [{ name: "Jebediah Kerman" }, { name: "Bill Kerman" }],
+      });
+    });
+    await waitFor(() =>
+      expect(screen.getByText("Bill Kerman")).toBeInTheDocument(),
+    );
+    // Proves the contribution actually reached the widget: Card's alert-tone
+    // border rule shows up in the injected stylesheet (same technique
+    // Card.test.tsx uses for the same jsdom var()-in-shorthand gap).
+    const styleText = Array.from(document.querySelectorAll("style"))
+      .map((s) => s.textContent)
+      .join("\n");
+    expect(styleText).toContain(
+      "border-left:2px solid var(--color-status-nogo-bg);",
+    );
   });
 });

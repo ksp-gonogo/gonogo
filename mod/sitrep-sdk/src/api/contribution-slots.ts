@@ -146,6 +146,21 @@ export interface SystemEntity {
   zHint?: number;
 }
 
+// `crew-status.row-tone` (packages/components/src/CrewStatus): how alarming
+// one kerbal's situation is. A contributor names the SEVERITY and nothing
+// else; CrewStatus owns the palette and decides what its roster-row `Card`
+// looks like, so this Uplink-facing type deliberately cannot say "alert" or
+// name a colour. Same three words as `SystemEntitySeverity` above, on purpose:
+// one severity vocabulary across every slot an Uplink can fill.
+
+/** Mirrors `CrewRowToneEntry` (CrewStatus/index.tsx). Omit a kerbal entirely
+ *  for "nothing to report" rather than contributing an `info` entry. */
+export interface CrewRowToneEntry {
+  /** The crew member this entry is about; matched to a roster row by name. */
+  crewName: string;
+  severity: SystemEntitySeverity;
+}
+
 declare module "./types" {
   interface ContributionRegistry {
     "ship-map.part-meters": {
@@ -159,6 +174,10 @@ declare module "./types" {
     "system-view.entities": {
       entry: SystemEntity;
       topics: "system.vessels" | "system.bodies" | "comms.network";
+    };
+    "crew-status.row-tone": {
+      entry: CrewRowToneEntry;
+      topics: "vessel.crew";
     };
   }
 }
