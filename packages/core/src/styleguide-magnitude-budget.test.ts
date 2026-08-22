@@ -113,6 +113,13 @@ const MAGNITUDE_BUDGET: Record<string, number> = {
   "mod/sitrep-sdk/src/spine/processorEvaluator.ts": 1,
   "mod/sitrep-sdk/src/spine/delay-authority.ts": 1,
   "packages/sitrep-client/src/fleet-position.ts": 1,
+  // The one decode of a `fleet.` payload's quantities. Whether a quantity
+  // arrives wrapped depends on the TOPIC, not the type: `wrapTopicPayload` keys
+  // on the exact topic string, so `fleet.silence` delivers a Value where its
+  // per-guid sibling delivers a bare number for the same field. A reader of
+  // both has to accept either. Not arithmetic: the number is handed to the
+  // caller and never computed with here.
+  "packages/sitrep-client/src/wire-magnitude.ts": 1,
   // `canPropagate` accepts a horizon UT either wrapped (as the wire delivers it)
   // or already unwrapped, so one read normalises the two. Not arithmetic: the
   // number is compared against a window and never computed with.

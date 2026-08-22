@@ -1,5 +1,6 @@
 import { useMemo } from "react";
 import { useStream } from "./use-stream";
+import { wireMagnitude } from "./wire-magnitude";
 
 /**
  * One resource aboard a fleet vessel, as `fleet.<guid>.resources` delivers it.
@@ -29,13 +30,6 @@ type WireAmount = {
   active?: boolean;
 };
 
-function magnitude(
-  v: { magnitude: number } | number | null | undefined,
-): number | null {
-  const n = typeof v === "object" && v !== null ? v.magnitude : v;
-  return n == null || !Number.isFinite(n) ? null : n;
-}
-
 /**
  * The wire map as a sorted list, which is what a renderer wants. Sorted by name
  * so a re-emission cannot reorder the rows under the operator's eyes; the wire
@@ -50,8 +44,8 @@ export function fleetVesselResourceList(
 ): readonly FleetVesselResource[] {
   const rows: FleetVesselResource[] = [];
   for (const [name, amount] of Object.entries(payload?.resources ?? {})) {
-    const current = magnitude(amount?.current);
-    const max = magnitude(amount?.max);
+    const current = wireMagnitude(amount?.current);
+    const max = wireMagnitude(amount?.max);
     if (current == null || max == null) continue;
     rows.push({ name, current, max, active: amount?.active !== false });
   }

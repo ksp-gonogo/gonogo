@@ -1,5 +1,6 @@
 import { useEffect } from "react";
 import { useStream } from "./use-stream";
+import { wireMagnitude } from "./wire-magnitude";
 
 /**
  * One vessel's CORE contact facts, read off `fleet.<guid>.contact`.
@@ -76,13 +77,6 @@ export interface FleetSilenceRoster {
   vessels?: readonly FleetSilenceWireEntry[] | null;
 }
 
-function magnitude(
-  v: { magnitude: number } | number | null | undefined,
-): number | null {
-  const n = typeof v === "object" && v !== null ? v.magnitude : v;
-  return n == null || !Number.isFinite(n) ? null : n;
-}
-
 /**
  * The fleet-wide roster reshaped into the per-vessel form every consumer
  * already speaks, keyed by vessel id.
@@ -104,12 +98,12 @@ export function silenceByVessel(
     if (!entry?.vesselId) continue;
     byVessel.set(entry.vesselId, {
       state: entry.state as FleetVesselSilence["state"],
-      silenceSinceUt: magnitude(entry.silenceSinceUt),
-      deadlineUt: magnitude(entry.deadlineUt),
+      silenceSinceUt: wireMagnitude(entry.silenceSinceUt),
+      deadlineUt: wireMagnitude(entry.deadlineUt),
       deadlineBasis: (entry.deadlineBasis ??
         null) as SilenceDeadlineBasis | null,
-      predictedReacquisitionUt: magnitude(entry.predictedReacquisitionUt),
-      predictionGraceSeconds: magnitude(entry.predictionGraceSeconds),
+      predictedReacquisitionUt: wireMagnitude(entry.predictedReacquisitionUt),
+      predictionGraceSeconds: wireMagnitude(entry.predictionGraceSeconds),
     });
   }
   return byVessel;
