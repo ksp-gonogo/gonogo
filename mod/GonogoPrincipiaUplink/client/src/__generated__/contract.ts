@@ -174,7 +174,8 @@ export enum PrincipiaWriteRefusal {
 	IntegratorBoundsExceeded = 15,
 	FinalTimeInPast = 16,
 	NoTemplateBurn = 17,
-	PluginShapeChanged = 18
+	PluginShapeChanged = 18,
+	IgnitionInPast = 19
 }
 export interface PrincipiaPlanWriteReceipt
 {
