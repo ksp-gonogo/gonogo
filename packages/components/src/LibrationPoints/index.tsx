@@ -4,8 +4,6 @@ import {
   buildElements,
   CELESTIAL_FACTS,
   type CelestialFacts,
-  LIBRATION_DRIFTING_UNITS,
-  LIBRATION_ON_STATION_UNITS,
   LIBRATION_REFUSALS,
   type LibrationAnswer,
   type LibrationOffset,
@@ -527,8 +525,4 @@ registerComponent<LibrationPointsConfig>({
 });
 
 export { LibrationDiagram } from "./LibrationDiagram";
-export {
-  LIBRATION_DRIFTING_UNITS,
-  LIBRATION_ON_STATION_UNITS,
-  LibrationPointsComponent,
-};
+export { LibrationPointsComponent };
