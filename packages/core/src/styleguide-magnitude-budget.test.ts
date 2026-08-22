@@ -72,6 +72,11 @@ const MAGNITUDE_BUDGET: Record<string, number> = {
   "packages/components/src/FuelStatus/index.tsx": 1,
   "packages/components/src/LandingStatus/index.tsx": 39,
   "packages/components/src/LaunchDirector/index.tsx": 1,
+  // 1: the view instant, unwrapped to bucket it and to hand it to the frame
+  // arithmetic. Every function that solves a body's position takes a bare UT,
+  // because a Kepler solve is trigonometry on a number and not an operation the
+  // algebra has a term for.
+  "packages/components/src/LibrationPoints/index.tsx": 1,
   "packages/components/src/ManeuverPlanner/index.tsx": 5,
   "packages/components/src/ManeuverPlanner/LocalManeuverTriggerService.ts": 10,
   "packages/components/src/MapView/index.tsx": 15,
