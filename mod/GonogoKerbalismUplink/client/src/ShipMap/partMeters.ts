@@ -3,9 +3,8 @@ import type { KerbalismProfile } from "../__generated__/contract";
 import { mag, resourceFacts } from "../ecosystem";
 import { KERBALISM } from "../uplink";
 
-// ---------------------------------------------------------------------------
-// The Kerbalism half of the `ship-map.part-meters` self-contribution (spec
-// §13.4, the framework's flagship demonstration): supply-tank resources this
+// The Kerbalism half of the `ship-map.part-meters` self-contribution:
+// supply-tank resources this
 // vessel carries, on the SAME slot the built-in `core` contribution feeds
 // its five classic drainable propellants into
 // (`packages/components/src/ShipMap/partMetersContribution.ts`). ShipMap
@@ -50,12 +49,10 @@ const DEFAULT_LOW_THRESHOLD = 0.15;
 const CRITICAL_FRACTION_OF_LOW = 0.33;
 
 /**
- * Status signal for a resource meter, SEPARATE from its fill colour (the
- * design doc, `local_docs/design/2026-08-08-resource-colour-system.md`,
- * gonogo main repo: the fill is the resource's IDENTITY, derived by the
- * renderer via `resourceColor(resource)`, never carried on this entry).
- * Used to return a `MeterTone` that doubled as the fill colour ("warn" /
- * "neutral"); now returns only the level, a border tint or badge draws it.
+ * Status signal for a resource meter, SEPARATE from its fill colour: the fill is
+ * the resource's IDENTITY, derived by the renderer via
+ * `resourceColor(resource)` and never carried on this entry. This returns only
+ * the level, which a border tint or a badge draws.
  */
 function partMeterStatus(
   amount: number,

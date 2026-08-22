@@ -112,7 +112,7 @@ export interface ShipMapPart {
 /**
  * One resource meter for a single part, aggregated from the
  * `ship-map.part-meters` contribution slot (the framework's self-
- * contribution flagship, spec §13.4). Both the built-in `core` contribution
+ * contribution flagship). Both the built-in `core` contribution
  * (the five classic drainable propellants, `ShipMap/partMetersContribution.ts`)
  * and a Kerbalism-style Uplink contribution (its supply tanks) emit this SAME
  * shape onto the SAME slot, so `ShipDiagramSvg`'s per-part fill bars and
@@ -121,13 +121,10 @@ export interface ShipMapPart {
  * left in ShipMap itself: which resource earns a meter on which part is
  * entirely the contributor's call.
  *
- * Identity vs status (design doc: local_docs/design/2026-08-08-resource-
- * colour-system.md, gonogo main repo): the meter's FILL colour is the
- * resource's IDENTITY (`resourceColor(resource)`, derived by the renderer
- * from `resource`, not carried on the wire), and is entirely independent of
- * `status`. This retires the previous `tone`-as-identity field, which
- * conflated "what resource is this" with "how full is it" into one
- * five-value enum; a contributor no longer picks a colour at all, only a
+ * Identity is separate from status: the meter's FILL colour is the resource's
+ * IDENTITY (`resourceColor(resource)`, derived by the renderer from
+ * `resource`, not carried on the wire), and is entirely independent of
+ * `status`. A contributor therefore never picks a colour at all, only a
  * name and a status.
  */
 export interface ShipMapPartMeterEntry {

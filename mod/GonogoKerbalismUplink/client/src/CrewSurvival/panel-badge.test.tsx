@@ -29,7 +29,7 @@ import "./badge";
  * The `render-widget` probe harness cannot stand in for this: it
  * deliberately never mounts `PanelBadgesProvider` (see
  * `probe-entry.tsx`'s own comment), so no widget's panel badge, this one
- * included, ever appears in a `local_docs/renders/**` PNG.
+ * included, ever appears in a rendered PNG.
  */
 
 const CARRIED = ["vessel.crew", "kerbalism.crew", "kerbalism.available"];

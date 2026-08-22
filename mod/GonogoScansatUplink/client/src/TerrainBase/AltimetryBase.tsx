@@ -1,8 +1,6 @@
 // SCANsat altimetry base-layer provider for MapView.
 //
-// Fills MapView's `map-view.base` STACKABLE slot (T8c,
-// docs/superpowers/plans/2026-07-18-mapview-overlay-host-foundation.md;
-// restacked per local_docs/spec-mapview-stackable-layers.md, 2026-07-20)
+// Fills MapView's `map-view.base` STACKABLE slot
 // with a standalone colourised elevation surface: SCANsat's own
 // "Altimetry" map mode. Headless: renders no JSX, hands MapView a canvas
 // via `ctx.onLayer` whenever this layer's own per-instance `show` setting

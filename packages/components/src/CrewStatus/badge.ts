@@ -2,11 +2,10 @@ import { CORE_UPLINK_CLIENT } from "@ksp-gonogo/core";
 import type { VesselCrew } from "@ksp-gonogo/sitrep-sdk";
 import type { BadgeEntry } from "@ksp-gonogo/ui-kit";
 
-// ---------------------------------------------------------------------------
 // CrewStatus's own self-contribution to its automatic `crew-status.badges`
-// panel-badge slot (contribution-slots-spec §13.2, the same "framework's
-// flagship" self-contribution pattern `ShipMap/partMetersContribution.ts`
-// uses): an INFO-tone crew-count readout ("3/4 aboard" / "4 aboard"), the
+// panel-badge slot, on the same self-contribution pattern
+// `ShipMap/partMetersContribution.ts` uses: an INFO-tone crew-count readout
+// ("3/4 aboard" / "4 aboard"), the
 // headcount promoted out of the body's plain-text `ReadoutCaption` line and
 // into the header badge row alongside it.
 //

@@ -31,21 +31,18 @@ import { BREAKING_GROUND } from "../uplink";
  * Reads `deployed.bases` + `deployed.available`; degrades to a muted empty
  * state without Breaking Ground or when no base is deployed.
  *
- * `deployed.bases` is migrated, `map-topic.ts` routes it onto the new
- * `deployed.bases` stream topic (`mod/Sitrep.Host/ScienceViewProvider.cs`'s
- * `BuildDeployed`, itself fed by `Gonogo.KSP.KspHost.BuildDeployedScience`'s
- * GLOBAL `FlightGlobals.Vessels` walk: a Breaking Ground cluster is its own
- * vessel, never the active one). `parseBases` below now accepts BOTH wire
- * shapes; see its own doc comment for the field-by-field mapping.
- * `deployed.available` is migrated too, the earlier "no new-wire
- * equivalent" read was stale: `game.dlc.breakingGround` is its
- * own independent capability boolean, not derived from `deployed.bases`'s
- * emptiness (see `map-topic.ts`'s `LEGACY_KEY_HOMES`).
+ * `deployed.bases` comes off `ScienceViewProvider.BuildDeployed`, itself fed by
+ * `Gonogo.KSP.KspHost.BuildDeployedScience`'s GLOBAL `FlightGlobals.Vessels`
+ * walk, because a Breaking Ground cluster is its own vessel and never the active
+ * one. `parseBases` below accepts both wire shapes; see its own doc comment for
+ * the field-by-field mapping.
  *
- * Real-recording validation is deferred to the user's next Space Center
- * capture with a deployed Breaking Ground cluster in physics range, this
- * migration validates against a hand-authored real-shape SYNTHETIC fixture
- * (`.superpowers/sdd/m3-deployedscience-report.md`).
+ * `deployed.available` reads `game.dlc.breakingGround`, an independent
+ * capability boolean rather than something derived from `deployed.bases` being
+ * empty.
+ *
+ * The fixtures behind this are hand-authored to the real wire shape rather than
+ * captured, because a capture needs a deployed cluster in physics range.
  */
 
 type DeployedScienceConfig = Record<string, never>;
@@ -75,13 +72,6 @@ export interface DeployedBase {
 }
 
 /**
- * A wire field as a number.
- *
- * Takes a `Value` as well as a bare number: a declared quantity arrives
- * wrapped from the decode, and a `typeof === "number"` test answers "no
- * reading" for every one of them, which is silent and total.
- */
-/**
  * The value of a FACT: something that stays true until an event changes it, and no
  * event can reach us down a link that is not delivering. `whenConfirmedNothing` is
  * what an `absent` tombstone means here, which is a different answer from `pending`
@@ -98,6 +88,13 @@ function stillTrue<T, A>(
   return undefined;
 }
 
+/**
+ * A wire field as a number.
+ *
+ * Takes a `Value` as well as a bare number: a declared quantity arrives
+ * wrapped from the decode, and a `typeof === "number"` test answers "no
+ * reading" for every one of them, which is silent and total.
+ */
 function num(v: unknown, fallback = 0): number {
   return magnitudeOr(v as Quantityish, fallback);
 }
@@ -470,8 +467,6 @@ function DeployedScienceComponent(
   );
 }
 
-// ── Augment slots ─────────────────────────────────────────────────────────────
-
 /**
  * Props passed to every `deployed-science.experiment` augment. The slot renders
  * once PER experiment card, so its props MUST carry that card's experiment
@@ -487,7 +482,7 @@ export interface DeployedExperimentContext {
 }
 
 // Declaration-merge this widget's slot ids → their props types into the sdk's
-// `SlotRegistry` (Uplink architecture §4.6). Kept co-located here, not in a
+// `SlotRegistry`. Kept co-located here, not in a
 // shared central registry file, so parallel per-widget slot work never
 // collides. `.sections` is a typed-contract per-card slot, carrying the
 // experiment.
@@ -502,8 +497,6 @@ declare module "@ksp-gonogo/sitrep-sdk" {
     "deployed-science.experiment": DeployedExperimentContext;
   }
 }
-
-// ── Registration ──────────────────────────────────────────────────────────────
 
 registerComponent<DeployedScienceConfig>({
   id: "deployed-science",

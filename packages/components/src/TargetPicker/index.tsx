@@ -137,11 +137,6 @@ const targetPickerActions = [
 type TargetPickerActions = typeof targetPickerActions;
 
 /**
- * Stable per-entry id: used both as the pending-spinner disambiguator and
- * the row's React key. Baked from the SAME stable id `tar.setTarget*` takes,
- * so it never collides across kinds.
- */
-/**
  * The value of a FACT: something that stays true until an event changes it, and no
  * event can reach us down a link that is not delivering. `whenConfirmedNothing` is
  * what an `absent` tombstone means here, which is a different answer from `pending`
@@ -158,6 +153,11 @@ function stillTrue<T, A>(
   return undefined;
 }
 
+/**
+ * Stable per-entry id: used both as the pending-spinner disambiguator and
+ * the row's React key. Baked from the SAME stable id `tar.setTarget*` takes,
+ * so it never collides across kinds.
+ */
 function entryId(entry: TargetListEntry): string {
   switch (entry.kind) {
     case TargetKind.Body:
@@ -270,13 +270,12 @@ function TargetPickerComponent({
     tarRelPos && tarRelVelVec
       ? radialSpeed(tarRelPos, tarRelVelVec)
       : undefined;
-  // Delayed vessel commands (command-surface-delay-audit #18-20): setting or
-  // clearing the KSP target is dispatched to the craft, subject to signal
-  // delay, so this rides `useCommand` instead of the legacy
-  // `useExecuteAction` string path. Both `tar.setTargetBody/Vessel/Part`
-  // resolve to the SAME `vessel.target.set` command (map-command.ts), keyed
-  // by the `TargetKind` ordinal already on the entry (the same enum
-  // `target.available` entries carry `entry.kind` as).
+  /**
+   * Setting or clearing the target is dispatched to the craft and so is subject
+   * to signal delay, which is why both ride `useCommand`. A body, a vessel and
+   * a part all set through the one `vessel.target.set` command, keyed by the
+   * `TargetKind` ordinal each entry already carries as `entry.kind`.
+   */
   const setTargetCmd = useCommand("vessel.target.set");
   const clearTargetCmd = useCommand("vessel.target.clear");
   usePanelDelay(setTargetCmd);

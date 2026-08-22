@@ -8,20 +8,19 @@ import { setupStreamFixture } from "../test/setupStreamFixture";
 import { CurrentOrbitComponent } from "./index";
 
 /**
- * Producer↔consumer disagreement **O1**
- * (`docs/superpowers/specs/2026-07-24-producer-consumer-disagreements.md`).
+ * A producer-consumer disagreement about a hyperbolic orbit.
  *
  * On a hyperbolic orbit (`ecc >= 1`) the mod's derived `vessel.state.timeToPe`
- * degrades to `null` (the elliptical kepler solver can't propagate an open
- * trajectory: `vessel-state.ts`), and the legacy Telemachus path emitted a
- * `0` sentinel. The neighbouring `t-Ap`/period/Ap rows all carry an explicit
+ * degrades to `null`, because the elliptical kepler solver in `vessel-state.ts`
+ * cannot propagate an open trajectory, and the retired legacy path emitted a
+ * `0` sentinel instead. The neighbouring `t-Ap`/period/Ap rows all carry an explicit
  * `hyperbolic ? NULL_DISPLAY` guard so the operator doesn't read a hyperbolic flyby as
  * an imminent event; the `t-Pe` row lacked it and its `=== undefined` check
  * missed `null`.
  *
- * FIXED (2026-07-24): `t-Pe` now carries the same guard + handles `null`. This
- * regression test pins the guarantee: a hyperbolic orbit renders the `t-Pe`
- * value as an em-dash, never a `0s`/duration countdown.
+ * `t-Pe` now carries the same guard and handles `null`, and this test pins the
+ * guarantee: a hyperbolic orbit renders the `t-Pe` value as the null-display
+ * placeholder, never a `0s` countdown.
  */
 const VESSEL_STATE_INPUTS = [
   "vessel.orbit",

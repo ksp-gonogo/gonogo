@@ -37,11 +37,10 @@ import {
 
 type SpaceCenterStatusConfig = Record<string, never>;
 
-// Augment slots (Uplink architecture §4 / augment-slot-map: space-center-status).
-// `.sections` appends extra facility-level rows to the body (e.g. a KSC-expansion
-// Uplink's custom facilities / ground-based life-support depot). A plain marker
-// with no slot props. Co-located `SlotRegistry` declaration-merge so parallel slot
-// work doesn't collide on a shared central file.
+// `space-center-status.sections` appends extra facility-level rows to the body,
+// for a KSC-expansion Uplink's custom facilities or a ground-based life-support
+// depot. A plain marker carrying no slot props. The `SlotRegistry` merge is
+// co-located per widget so parallel slot work never collides on one shared file.
 declare module "@ksp-gonogo/core" {
   interface SlotRegistry {
     "space-center-status.sections": Record<string, never>;
@@ -76,7 +75,7 @@ type FacilityKey =
  * CareerViewProvider.cs's `BuildFacilities`) is keyed by the full
  * `SpaceCenterFacility` enum name, not this widget's short codes, maps
  * each enum name onto its `FacilityKey`. Names match the real wire
- * (decompile-confirmed, career-capture-extend-report.md; also the exact 9
+ * (decompile-confirmed; also the exact 9
  * keys observed in a real `career.status` capture).
  */
 const ENUM_FACILITY_TO_KEY: Readonly<Record<string, FacilityKey>> = {
@@ -150,25 +149,6 @@ interface FacilityLevel {
 export type FacilityLevels = Partial<Record<FacilityKey, FacilityLevel>>;
 
 /**
- * Defensive parser for facility-level payloads. Accepts BOTH the legacy
- * `kc.facilityLevels` shape (keyed by short code: launchPad/vab/sph/...:
- * `{ level, max, upgradeFunds, currentLevelText, nextLevelText }`) and the
- * `career.status.facilities` wire shape, keyed by the
- * full `SpaceCenterFacility` enum name: `{ currentTier, maxTier,
- * upgradeCost }`, career-capture-extend-report.md). The new wire's
- * `currentTier`/`maxTier` are the SAME 0-based tier-index convention this
- * widget already assumes for `level`/`max` (decompile-confirmed: a fully
- * upgraded facility reports `currentTier === maxTier`, both actual-tier-
- * minus-one: see the "Lvl N of M" comment in the render below), so they
- * map straight across with no reinterpretation. `upgradeCost` maps to
- * `upgradeFunds` 1:1; `null` (at max, or scene-gated) becomes `0`, the
- * existing "unknown or at max" sentinel. `currentLevelText`/`nextLevelText`
- * have no new-wire equivalent; always `""` for an enum-keyed entry,
- * degrading exactly like an older legacy DLL that never emitted them.
- * Drops anything that doesn't read as one of the two known shapes,
- * sandbox saves emit zeroed entries, which is fine.
- */
-/**
  * The value a VERDICT may be drawn from: current, or modelled forward to the frame.
  * A stale reading gives nothing, because a judgement cannot be dated: the operator
  * reads a band or a pill as the situation NOW.
@@ -201,6 +181,25 @@ function stillTrue<T, A>(
   return undefined;
 }
 
+/**
+ * Defensive parser for facility-level payloads. Accepts BOTH the legacy
+ * `kc.facilityLevels` shape (keyed by short code: launchPad/vab/sph/...:
+ * `{ level, max, upgradeFunds, currentLevelText, nextLevelText }`) and the
+ * `career.status.facilities` wire shape, keyed by the
+ * full `SpaceCenterFacility` enum name: `{ currentTier, maxTier,
+ * upgradeCost }`). The new wire's
+ * `currentTier`/`maxTier` are the SAME 0-based tier-index convention this
+ * widget already assumes for `level`/`max` (decompile-confirmed: a fully
+ * upgraded facility reports `currentTier === maxTier`, both actual-tier-
+ * minus-one: see the "Lvl N of M" comment in the render below), so they
+ * map straight across with no reinterpretation. `upgradeCost` maps to
+ * `upgradeFunds` 1:1; `null` (at max, or scene-gated) becomes `0`, the
+ * existing "unknown or at max" sentinel. `currentLevelText`/`nextLevelText`
+ * have no new-wire equivalent; always `""` for an enum-keyed entry,
+ * degrading exactly like an older legacy DLL that never emitted them.
+ * Drops anything that doesn't read as one of the two known shapes,
+ * sandbox saves emit zeroed entries, which is fine.
+ */
 export function parseFacilityLevels(raw: unknown): FacilityLevels {
   if (!raw || typeof raw !== "object" || Array.isArray(raw)) return {};
   const out: FacilityLevels = {};
@@ -262,7 +261,7 @@ function SpaceCenterStatusComponent({
   // through map-topic.ts):
   //  - kc.facilityLevels -> career.status.facilities; parseFacilityLevels
   //    accepts the enum-keyed currentTier/maxTier/upgradeCost shape
-  //    (career-capture-extend-report.md) alongside the legacy short-code shape.
+  //    alongside the legacy short-code shape.
   //  - career.funds -> career.status.economy.funds (both off the one
   //    career.status Topic read).
   //  - kc.scene / kc.launchSite -> spaceCenter.scene.{scene,launchSite}
@@ -680,8 +679,6 @@ function formatTinyFunds(value: number): string {
   return value.toFixed(0);
 }
 
-// ── Styles ────────────────────────────────────────────────────────────────────
-
 const Body = styled.div`
   display: flex;
   flex-direction: column;
@@ -958,8 +955,6 @@ const TinyPad = styled.span<{ $occupied: boolean }>`
   color: ${(p) =>
     p.$occupied ? "var(--color-accent-fg)" : "var(--color-text-faint)"};
 `;
-
-// ── Registration ──────────────────────────────────────────────────────────────
 
 registerComponent<SpaceCenterStatusConfig>({
   id: "space-center-status",

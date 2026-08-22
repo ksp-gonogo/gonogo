@@ -757,8 +757,6 @@ function readApplicants(raw: unknown): Applicant[] {
   return out;
 }
 
-// ── Styles ────────────────────────────────────────────────────────────────────
-
 const Body = styled.div`
   display: flex;
   flex-direction: column;
@@ -855,8 +853,6 @@ const Empty = styled.div`
   color: var(--color-text-faint);
   padding: var(--space-6) 0;
 `;
-
-// ── Registration ──────────────────────────────────────────────────────────────
 
 registerComponent<AstronautComplexConfig>({
   id: "astronaut-complex",

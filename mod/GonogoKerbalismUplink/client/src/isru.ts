@@ -18,7 +18,8 @@
 // boundary: core stays open and opaque, the provider supplies the type at its own
 // edge.
 //
-// ── One thing to know about the converter list under Kerbalism ──────────────
+// One thing to know about the converter list under Kerbalism.
+//
 // Kerbalism does not distinguish an ISRU process from a life-support one: a scrubber,
 // a water recycler and a Molten Regolith Electrolysis plant are the same
 // `ProcessController` module running different chemistry. So `isru.converters` carries

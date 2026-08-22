@@ -2,13 +2,13 @@
 // packages/components/src/MapView/useCoverageGate.ts's hook, ported here so
 // widgets that live outside MapView's `map-view.base` slot tree (currently
 // only Minimap.tsx) can compute the same per-tile reveal composite without
-// importing @ksp-gonogo/components, that package's scan-canvas internals
-// are slated for deletion once every consumer has its own copy (T9,
-// docs/superpowers/plans/2026-07-18-mapview-overlay-host-foundation.md).
-// Kept behaviourally identical to the original; a future task could hoist a
-// single shared implementation into @ksp-gonogo/data without changing
-// behaviour, the same way TerrainBase/paintTile.ts's tileToPixelRect is a
-// deliberate byte-for-byte copy of FogReveal/scanDecode.ts's.
+// importing @ksp-gonogo/components, whose scan-canvas internals go once every
+// consumer has its own copy.
+//
+// Kept behaviourally identical to the original. A single shared implementation
+// could be hoisted into @ksp-gonogo/data without changing behaviour, the same
+// way TerrainBase/paintTile.ts's tileToPixelRect is a deliberate byte-for-byte
+// copy of FogReveal/scanDecode.ts's.
 import {
   type BodyMask,
   type FogRevealSourceDefinition,

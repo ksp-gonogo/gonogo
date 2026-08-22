@@ -105,13 +105,6 @@ export interface ServoInfo {
 }
 
 /**
- * A wire field as a number.
- *
- * Takes a `Value` as well as a bare number: a declared quantity arrives
- * wrapped from the decode, and a `typeof === "number"` test answers "no
- * reading" for every one of them, which is silent and total.
- */
-/**
  * The value a VERDICT may be drawn from: current, or modelled forward to the frame.
  * A stale reading gives nothing, because a judgement cannot be dated: the operator
  * reads a band or a pill as the situation NOW.
@@ -139,6 +132,13 @@ function stillTrue<T, A>(
   return undefined;
 }
 
+/**
+ * A wire field as a number.
+ *
+ * Takes a `Value` as well as a bare number: a declared quantity arrives
+ * wrapped from the decode, and a `typeof === "number"` test answers "no
+ * reading" for every one of them, which is silent and total.
+ */
 function num(v: unknown, fallback = 0): number {
   return magnitudeOr(v as Quantityish, fallback);
 }
@@ -234,12 +234,10 @@ function RoboticsConsoleComponent({
     undefined,
   )?.available;
 
-  // Delayed vessel commands (Breaking Ground robotics-audit-migration): the
-  // servo motor/lock/target are actuated on the craft, subject to the same
-  // signal delay as any other flight-control command, so this widget
-  // dispatches over `useCommand` (not the legacy `useExecuteAction` string
-  // path) to pick up per-command in-flight state for free, same shape as
-  // MechJeb.
+  // The servo motor, lock and target are actuated on the craft and so are
+  // subject to the same signal delay as any other flight-control command. Each
+  // dispatches over `useCommand`, which carries per-command in-flight state,
+  // the same shape MechJeb uses.
   const targetCmd = useCommand("robotics.servo.setTarget");
   const motorCmd = useCommand("robotics.servo.setMotor");
   const lockCmd = useCommand("robotics.servo.setLock");

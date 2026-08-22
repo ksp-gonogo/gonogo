@@ -77,32 +77,8 @@ declare module "@ksp-gonogo/core" {
   }
 }
 
-// The facade-sealed-client copy of this merge lives in
-// `mod/sitrep-sdk/src/api/slots.ts`, not a second `declare module
-// "@ksp-gonogo/sitrep-sdk"` block here: see MapView/index.tsx's identical
-// comment / that module's header for why
-// (docs/superpowers/plans/2026-07-19-facade-sealing.md §2.3).
+// The facade-sealed-client copy of this merge lives in `mod/sitrep-sdk/src/api/slots.ts` rather than as a second `declare module "@ksp-gonogo/sitrep-sdk"` block here; MapView's identical comment and that module's header both say why.
 
-/**
- * Parses `sci.instruments`. Two wire shapes land here:
- *
- * - Legacy: `{ partId: number, partTitle, expId,
- *   deployed, hasData, rerunnable, inoperable }`.
- * - New SDK `science.instruments` (mapped onto this same widget-facing key
- *   via `map-topic.ts`):
- *   `mod/Sitrep.Host/ScienceViewProvider.cs`'s `InstrumentEntry`: `{
- *   partId: string (part.flightID.ToString()), partName, experimentId,
- *   title, deployed, inoperable, rerunnable, resettable, dataIsCollectable
- *   }`. `partName`/`experimentId`/`dataIsCollectable` are the new wire's
- *   renames of `partTitle`/`expId`/`hasData`
- *   (`Gonogo.KSP.KspHost.BuildScienceInstruments`'s doc comment confirms
- *   `dataIsCollectable` is the "instrument currently holds collectable
- *   data" flag `hasData` always meant); `title` (the experiment's own
- *   title, distinct from the part's) has no legacy analogue this widget
- *   reads. `partId` normalizes to a string either way, every consumer
- *   below only ever interpolates it into a key or an action-command
- *   string, never does numeric comparison on it.
- */
 /** Confirmed-none tombstones for the three science reads: present, and empty. */
 const EMPTY_INSTRUMENTS = { instruments: [] as unknown[] };
 const EMPTY_EXPERIMENTS = { experiments: [] as unknown[] };
@@ -124,6 +100,19 @@ function stillTrue<T, A>(
   return undefined;
 }
 
+/**
+ * Two wire shapes for the instrument list land here, so every field reads
+ * through a fallback pair. `ScienceViewProvider`'s `InstrumentEntry` names them
+ * `partName`, `experimentId` and `dataIsCollectable`; the older shape called the
+ * same three `partTitle`, `expId` and `hasData`, and `dataIsCollectable` carries
+ * the "instrument currently holds collectable data" meaning `hasData` always
+ * had.
+ *
+ * `partId` arrives as a number in one shape and a string in the other and
+ * normalises to a string, which is safe because every consumer below only ever
+ * interpolates it into a key or a command string and never compares it
+ * numerically.
+ */
 export function parseInstruments(raw: unknown): Instrument[] | null {
   if (raw === null || raw === undefined) return null;
   if (!Array.isArray(raw)) return null;
@@ -167,12 +156,7 @@ export function parseInstruments(raw: unknown): Instrument[] | null {
   return out;
 }
 
-/**
- * Sums `dataAmount` across every entry of `sci.experiments`/
- * `science.experiments`: the same vessel-wide aggregate the old
- * `sci.dataAmount` legacy key carried, derived instead of read as a
- * separate pre-aggregated field (no such field exists on the new wire).
- */
+// Sums `dataAmount` across every entry of `science.experiments`, deriving the vessel-wide aggregate rather than reading it, because the wire carries no pre-aggregated field.
 export function sumExperimentDataAmount(raw: unknown): number {
   if (!Array.isArray(raw)) return 0;
   let total = 0;
@@ -201,15 +185,14 @@ export interface LabStatus {
 }
 
 /**
- * Parses `science.lab` (`mod/Sitrep.Host/ScienceViewProvider.cs`'s
- * `BuildLab`): a NEW capability, no legacy
- * analogue existed for Mobile Processing Lab status, so this is a straight
- * whole-topic raw-array read (same `parts.power`/`parts.robotics`
- * "key == topic" precedent in `map-topic.ts`), not a migration of an
- * existing `sci.*` field. Each entry is a lab part on the active vessel; an
- * idle-but-operational lab (crewed, no data loaded) is a normal, valid
- * state: `dataStored`/`processingData`/`scienceRate` all sitting at zero
- * doesn't mean "no lab", it means "lab with nothing to process yet".
+ * Parses `science.lab`, built by `ScienceViewProvider.BuildLab`, as a
+ * whole-topic raw-array read on the same "key is the topic" footing as
+ * `parts.power` and `parts.robotics`.
+ *
+ * Each entry is a lab part on the active vessel, and an idle-but-operational lab
+ * (crewed, nothing loaded) is a normal state: `dataStored`, `processingData` and
+ * `scienceRate` all at zero means a lab with nothing to process yet, not the
+ * absence of a lab.
  */
 export function parseLab(raw: unknown): LabStatus[] | null {
   if (raw === null || raw === undefined) return null;
@@ -237,12 +220,7 @@ function ExperimentsComponent({
   w,
   h,
 }: Readonly<ComponentProps<ExperimentsConfig>>) {
-  // The instrument list reads the canonical `science.instruments` Topic
-  // (old `sci.instruments`); parseInstruments accepts both wire shapes.
-  // Deploy/transmit are commands dispatched to the craft (command-surface-
-  // delay-audit #35/#36), subject to signal delay, so they ride `useCommand`
-  // against the real `science.experiment.deploy`/`.transmit` commands
-  // instead of the legacy `useExecuteAction` string path.
+  // Deploy and transmit are dispatched to the craft and so are subject to signal delay, which is why both ride `useCommand`.
   /**
    * These three feed parsers typed `(raw: unknown)`, so the migration produced no
    * type error here at all: a `Reading` object went into `parseInstruments`, failed
@@ -271,12 +249,14 @@ function ExperimentsComponent({
   usePanelDelay(transmitCmd);
   const totalDataMits = sumExperimentDataAmount(experimentsRaw);
 
-  // science.lab is a NEW capability (no legacy sci.instruments equivalent,
-  // the Mobile Processing Lab is a different part from the crew-report/goo/
-  // barometer instruments science.instruments tracks), read independently of
-  // the instrument list above.
-  // Declared with the other reads so it sits above every early return: a
-  // hook after a conditional return is a hooks-order bug waiting to happen.
+  /**
+   * `science.lab` is read independently of the instrument list above, because
+   * the Mobile Processing Lab is a different part from the crew-report, goo and
+   * barometer instruments `science.instruments` tracks.
+   *
+   * Declared with the other reads so it sits above every early return: a hook
+   * after a conditional return is a hooks-order bug waiting to happen.
+   */
   const filter = useRowFilter({ placeholder: "Filter instruments…" });
   const labRaw = stillTrue(useTelemetry("science.lab"), undefined);
   const labs = parseLab(labRaw);
@@ -402,9 +382,7 @@ function LabSection({ labs }: { labs: LabStatus[] | null }) {
     <>
       <Stack gap="sm">
         {labs.map((lab, i) => (
-          // No stable id on a science.lab entry (unlike sci.instruments'
-          // partId): the list is never reordered within a render, so index
-          // just disambiguates two labs that happen to share a partName.
+          // A `science.lab` entry carries no stable id, unlike an instrument's `partId`. The list is never reordered within a render, so the index only has to disambiguate two labs that happen to share a `partName`.
           // biome-ignore lint/suspicious/noArrayIndexKey: no stable id on science.lab entries
           <Stack gap="xs" key={`${lab.partName}-${i}`}>
             <Cluster gap="md">
@@ -471,8 +449,6 @@ function summarise(instruments: Instrument[]): {
   }
   return { total: instruments.length, hasData, deployed, inoperable };
 }
-
-// ── Registration ──────────────────────────────────────────────────────────────
 
 registerComponent<ExperimentsConfig>({
   id: "experiments",

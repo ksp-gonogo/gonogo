@@ -13,7 +13,7 @@ import { topologyToVesselPartsWire } from "../test/topologyToVesselPartsWire";
 import { ShipMapComponent } from "./index";
 
 /**
- * Proves the self-contribution unify end to end (spec §13.4): ShipMap's
+ * Proves the self-contribution unify end to end: ShipMap's
  * compact fill bars come from the aggregated `ship-map.part-meters` slot,
  * not from a hardcoded resource allowlist inside `ShipDiagramSvg`. The
  * built-in `core` contribution is exercised here (it lives in this
@@ -124,10 +124,7 @@ describe("ShipMap: self-contribution unify (spec §13.4)", () => {
 
   it("paints each resource's identity colour (resourceColor), not a shared MeterTone CSS var", async () => {
     const { container } = await renderShipMap();
-    // Design doc (local_docs/design/2026-08-08-resource-colour-system.md):
-    // the fill is the resource's own identity colour now, derived straight
-    // from `resourceColor`, not a five-value MeterTone CSS var shared across
-    // unrelated resources.
+    // The fill is the resource's own identity colour, derived straight from `resourceColor`, not a five-value MeterTone CSS var shared across unrelated resources.
     const fills = Array.from(container.querySelectorAll("rect")).map((r) =>
       r.getAttribute("fill"),
     );

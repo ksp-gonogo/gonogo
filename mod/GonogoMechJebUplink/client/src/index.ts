@@ -1,12 +1,12 @@
 // MechJeb Uplink client for gonogo.
 //
 // Co-located with the GonogoMechJebUplink C# mod (mod/GonogoMechJebUplink):
-// one directory holds the mod and the client TS it ships (Uplink architecture
-// §1). Importing this package's entry point side-effects the widget
+// one directory holds the mod and the client TS it ships.
+// Importing this package's entry point side-effects the widget
 // registration into @ksp-gonogo/core's global component registry:
 //
 //   - `uplink.ts` -> defineUplinkClient({ id: "mechjeb", ... }) declares this
-//     client's identity (Uplink Client Contract design §3.1); the MechJeb
+//     client's identity; the MechJeb
 //     widget registration below stamps the returned MECHJEB handle as
 //     `owner`, so the widget picker's mod search tags derive "mechjeb"
 //     automatically.

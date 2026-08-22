@@ -1,13 +1,11 @@
 /**
- * `useKerbcastStream`'s optional delayed-playout wiring (M2 design §5,
- * "media delay (kerbcast)"), post cross-browser kerbcast video-delay
- * (2026-07-16). `useDelayedPlayout` now returns a discriminated
+ * `useKerbcastStream`'s optional delayed-playout wiring.
+ * `useDelayedPlayout` returns a discriminated
  * `DelayedPlayoutResult` (`"raw" | "connecting" | "delayed" |
- * "unavailable"`) instead of `MediaStream | null`, and tries TWO backends
+ * "unavailable"`) rather than `MediaStream | null`, and tries TWO backends
  * in order (Chrome's main-thread Breakout Box, then a worker-hosted one)
- * before ever reporting `"unavailable"`. Per decision 5 of the design
- * (`docs/superpowers/specs/2026-07-16-kerbcast-video-delay-cross-browser-design.md`),
- * there is NO live-passthrough fallback anymore when delay was requested:
+ * before ever reporting `"unavailable"`. There is NO live-passthrough fallback
+ * when delay was requested:
  * a browser that can build neither backend reports `"unavailable"`, full
  * stop: never the raw stream.
  *

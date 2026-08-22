@@ -39,11 +39,8 @@ import {
 // which itself imports `ShipDiagramSvg`/`ShipDiagram`).
 export type { ShipMapPartMetaEntry, ShipMapPartMeterEntry };
 
-// ---------------------------------------------------------------------------
-// Augment slots (Uplink architecture). ShipMap is a HOST that exposes
-// two slots; no first-party augment fills them here, so each
-// renders nothing until an Uplink registers an augment into it.
-// ---------------------------------------------------------------------------
+// ShipMap is a HOST that exposes two augment slots. No first-party augment
+// fills either, so each renders nothing until an Uplink registers into it.
 
 /**
  * Props for `ship-map.overlay`: an OVERLAY slot, rendered in a
@@ -74,17 +71,17 @@ export interface ShipMapOverlayContext {
   padding: number;
 }
 
-// Co-located declaration-merge of this widget's slot ids → their props (spec
-// §4.6). Kept next to the widget (not in a central registry file) so parallel
+// Co-located declaration-merge of this widget's slot ids onto their props types.
+// Kept next to the widget (not in a central registry file) so parallel
 // slot work on other widgets never collides on this seam.
 declare module "@ksp-gonogo/core" {
   interface SlotRegistry {
     "ship-map.overlay": ShipMapOverlayContext;
   }
 
-  // The framework's first widget-authored `ContributionRegistry` slots
-  // (contribution-slots-spec §13.4): every OTHER first-party contribution to
-  // date rides the automatic `${componentId}.badges` slot, which is a
+  // The first widget-authored `ContributionRegistry` slots: every other
+  // first-party contribution to date rides the automatic
+  // `${componentId}.badges` slot, which is a
   // runtime string, never a declared member of this registry (see
   // `useWidgetBadges`'s own doc comment). These two are genuinely typed,
   // declared slots: `ship-map.part-meters` (per-part resource meters) and
@@ -185,7 +182,7 @@ function ShipMapComponent(_props: Readonly<ComponentProps<ShipMapConfig>>) {
   );
   const liveByFlightId = usePartsLive(flightIds);
 
-  // The unified self-contribution path (spec §13.4): every per-part meter and
+  // The unified self-contribution path: every per-part meter and
   // meta row, built-in and Kerbalism alike, arrives through these two typed
   // slots. Grouped by partId here, once, so `ShipDiagramSvg` (the compact
   // in-body fill bars) and `ShipDiagram` (the hover tooltip) both read the
@@ -449,8 +446,6 @@ function renderBody(
   );
 }
 
-// ── Styles ────────────────────────────────────────────────────────────────────
-
 // Structural inline styles (CSS-var tokens): a bespoke map column, no reusable
 // ui-kit primitive fits, so the layout stays local. The one kit piece it reuses
 // (Box) takes only this map's column layout inline. The DiagramWrap `::before`
@@ -532,8 +527,6 @@ const TINT_LAYER: CSSProperties = {
   zIndex: 0,
 };
 
-// ── Registration ──────────────────────────────────────────────────────────────
-
 registerComponent<ShipMapConfig>({
   id: "ship-map",
   name: "Ship Map",
@@ -546,7 +539,7 @@ registerComponent<ShipMapConfig>({
   // Exposes an overlay slot, drawn over the part diagram and passed the
   // diagram's base-frame projection. No first-party augment fills it yet.
   augmentSlots: ["ship-map.overlay"],
-  // The self-contribution slots (spec §13.4): per-part resource meters and
+  // The self-contribution slots: per-part resource meters and
   // per-part status/meta rows. The built-in `core` contribution
   // (./partMetersContribution.ts) always fills the first; a Kerbalism-style
   // Uplink may fill both.

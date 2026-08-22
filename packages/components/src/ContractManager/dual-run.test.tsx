@@ -27,7 +27,7 @@ import { ContractManagerComponent } from "./index";
  * deadline text is realistic. `small-career-detail.json` is used (not the other
  * ContractManager fixtures) because `career.status.contracts` entries never
  * carry `optional`/`parameterType` on their parameters
- * (career-capture-extend-report.md), and every other fixture sets at least one,
+ * and every other fixture sets at least one,
  * which the wire can't reproduce.
  */
 afterEach(() => {

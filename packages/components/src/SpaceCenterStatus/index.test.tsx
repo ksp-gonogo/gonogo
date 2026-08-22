@@ -242,7 +242,7 @@ describe("SpaceCenterStatusComponent", () => {
     expect((upgradeButtons[0] as HTMLButtonElement).disabled).toBe(true);
   });
 
-  // Augment slot (Uplink architecture §4): the widget exposes
+  // Augment slot: the widget exposes
   // `space-center-status.sections` (body, appended to the facility list). With
   // no augment registered the slot renders nothing and the widget is
   // unchanged; once an augment binds it its component appears in the widget's
@@ -331,8 +331,7 @@ describe("parseFacilityLevels", () => {
       unknownFacility: { level: 1, max: 3 },
       launchPad: { level: 0, max: 3 },
     });
-    // currentLevelText / nextLevelText default to empty strings when the
-    // older Telemachus DLL doesn't emit them (pre-2026-05-13).
+    // currentLevelText / nextLevelText default to empty strings when the producer does not emit them.
     expect(parsed).toEqual({
       vab: {
         level: 1,

@@ -34,8 +34,7 @@ export interface KosScriptListingResult {
 const IDLE: KosScriptListingResult = { paths: [], loading: false, hint: null };
 
 /**
- * Live drive listing for the `/`-script picker (kos-terminal-script-picker,
- * hub-wizard-kos Phase 1 increment (b)): dispatches the resurrected
+ * Live drive listing for the `/`-script picker: dispatches the resurrected
  * `KOS_FILES_SCRIPT` ("list" op) via the surviving `KosDataSource.
  * executeScript` RPC for each of `LISTED_VOLUMES`, merges the FILE (not
  * directory) entries, and filters to `*.ks`/`*.ksm`: the only RUNPATH-able

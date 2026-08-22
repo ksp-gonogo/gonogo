@@ -1,12 +1,12 @@
 // SCANsat Uplink client for gonogo.
 //
 // Co-located with the GonogoScansatUplink C# mod (mod/GonogoScansatUplink):
-// one directory holds the mod and the client TS it ships (Uplink architecture
-// §1). Importing this package's entry point side-effects the widget
+// one directory holds the mod and the client TS it ships.
+// Importing this package's entry point side-effects the widget
 // registration into @ksp-gonogo/core's global component registry:
 //
 //   - `uplink.ts` → defineUplinkClient({ id: "scansat", ... }) declares this
-//     client's identity (Uplink Client Contract design §3.1); every
+//     client's identity; every
 //     registration below stamps the returned SCANSAT handle as `owner`, so
 //     the widget picker's mod search tags derive "scansat" automatically.
 //
@@ -14,14 +14,13 @@
 //     is placeable from the dashboard widget picker.
 //   - `ScansatScienceAugment` → registerAugment({ id: "scansat-science", ... })
 //     so it fills @ksp-gonogo/components's Experiments widget's
-//     `experiments.actions` slot (design brief:
-//     local_docs/telemetry-mod/scansat-sci-brief-augment.md).
+//     `experiments.actions` slot.
 //   - `AnomalyOverlay/index.ts` → registerMapPoiProvider({ id:
 //     "scansat:anomalies", requires: "scansat", ... }) so discovered
 //     anomalies render through @ksp-gonogo/components's MapView's shared
-//     `MapPoiLayer`, gaining the uniform "Set as Target" action (MapView
-//     overlay-host foundation plan T-POI-8, replacing the old
-//     `map-view.overlay` augment + its bespoke bearing/distance panel).
+//     `MapPoiLayer`, gaining the uniform "Set as Target" action in place of
+//     a bespoke bearing/distance panel behind its own `map-view.overlay`
+//     augment.
 //   - `FootprintOverlay` → registerAugment({ id: "scansat-footprint-overlay",
 //     ... }) so it fills the same `map-view.overlay` slot with scanning-
 //     vessel ground-track footprints (MapView overlay-host foundation plan
@@ -47,15 +46,14 @@
 // (alongside the other component-registration imports in app/src/main.tsx).
 //
 // The scan schema/decode/sync logic (`schema.ts`, `FogReveal/*`) is this
-// Uplink's own canonical copy (T7). `packages/core`/`packages/data` still
-// carry a duplicate for `packages/components`'s MapView, which hasn't
-// migrated off it yet: see T9 in
-// docs/superpowers/plans/2026-07-18-mapview-overlay-host-foundation.md for
-// the deletion of that duplicate once MapView's augment migration lands.
-// The Minimap here (`Scanning/Minimap.tsx`) has its own mod-local coverage
-// gate (`FogReveal/useScanCoverageGate.ts`) and paints through T8c's
-// `TerrainBase/paintTile.ts`, same as BiomeBase: it no longer borrows
-// MapView's canvas hooks via @ksp-gonogo/components at all (T9-Minimap).
+// Uplink's own canonical copy. `packages/core` and `packages/data` still carry
+// a duplicate for `packages/components`'s MapView, which has not migrated off
+// it yet; that duplicate goes when MapView's augment migration lands.
+//
+// The Minimap here (`Scanning/Minimap.tsx`) has its own mod-local coverage gate
+// (`FogReveal/useScanCoverageGate.ts`) and paints through
+// `TerrainBase/paintTile.ts`, the same as BiomeBase, so it borrows no MapView
+// canvas hook from @ksp-gonogo/components at all.
 
 export type { ScanningConfig, ScanningScope } from "./Scanning";
 export { ScanningComponent } from "./Scanning";

@@ -119,15 +119,17 @@ export function sasModeOrdinal(mode: SasMode): number {
 export { SAS_MODES };
 
 interface NavballConfig {
-  /** When true, read the CoM-referenced attitude frame (n.heading/pitch/roll). Default false reads the root-part-referenced frame (n.heading2/pitch2/roll2); see the component body's ternary comment for which raw key backs which frame. */
+  /** When true, read the CoM-referenced attitude frame (`heading`/`pitch`/`roll`). Default false reads the root-part-referenced frame (`headingRootFrame`/`pitchRootFrame`/`rollRootFrame`); the component body's ternary reads "backwards" relative to these names on purpose, see its comment. */
   useCoMFrame?: boolean;
   /** When true, render the control surface; otherwise show display-only. */
   controlMode?: boolean;
 }
 
-// Action surface: kept verbose so each axis / mode is independently
-// mappable to a hardware input. The order matches the visible button rows
-// for cognitive consistency.
+/**
+ * Action surface, kept verbose so each axis and each mode is independently
+ * mappable to a hardware input. The order matches the visible button rows, so
+ * an operator reading the mapping list sees the same sequence as the panel.
+ */
 const navballActions = [
   // Mode + arm
   { id: "take-control", label: "Toggle control mode", accepts: ["button"] },
@@ -268,24 +270,23 @@ function NavballComponent({
   const useCoM = config?.useCoMFrame === true;
   const controlMode = config?.controlMode === true;
 
-  // VERIFIED (KspHost.BuildAttitude / VesselAttitude.cs class doc): the
-  // UNSUFFIXED `heading`/`pitch`/`roll` are the CoM-referenced frame, and the
-  // `*RootFrame` trio is the genuinely distinct ROOT-PART-referenced one. That
-  // is the OPPOSITE of what the field names suggest at a glance, so the ternary
-  // below is deliberately "backwards" relative to them, so the toggle's OWN
-  // semantics (useCoMFrame
-  // true = CoM, default false = root part, both documented on
-  // NavballConfig/the config-form copy below) read correctly against the
-  // real frames.
-  // Attitude reads as a `Reading`, because a dial is a claim about NOW.
-  //
-  // `AttitudeIndicator` drew `pitch ?? 0` / `roll ?? 0` / `heading ?? 0`
-  // unconditionally, so with nothing on the wire it painted a specific,
-  // plausible, wrong orientation: level, facing north. Its `ready` flag gated
-  // the numeric captions and `aria-hidden` but never the drawing. Of everything
-  // the absence-gate audit turned up this was the worst operationally, because
-  // an attitude is the reading an operator acts on most directly, and a wrong
-  // one is a wrong input to a control decision rather than a cosmetic defect.
+  /**
+   * The unsuffixed `heading`/`pitch`/`roll` are the CoM-referenced frame and the
+   * `*RootFrame` trio is the root-part-referenced one, confirmed against
+   * `KspHost.BuildAttitude` and `VesselAttitude`'s class doc. That is the
+   * opposite of what the field names suggest at a glance, so the ternary below
+   * is deliberately "backwards" relative to them: `useCoMFrame` true means CoM,
+   * its default false means root part, and both readings then agree with what
+   * `NavballConfig` and the config-form copy promise.
+   *
+   * Attitude reads as a `Reading` because a dial is a claim about NOW, and an
+   * attitude cannot be forward-modelled. Drawing `pitch ?? 0` / `roll ?? 0` /
+   * `heading ?? 0` unconditionally, as this once did, paints a specific,
+   * plausible, wrong orientation when nothing is on the wire: level, facing
+   * north. An attitude is the reading an operator acts on most directly, so a
+   * wrong one is a wrong input to a control decision rather than a cosmetic
+   * defect.
+   */
   const attitudeReading = useTelemetry("vessel.attitude");
   const attitude = lastObserved(attitudeReading);
   const attitudeObserved = attitudeReading.state === "observed";
@@ -314,32 +315,26 @@ function NavballComponent({
   const throttle = magnitudeOr(control?.throttle, 0);
   const isControllable = vesselState?.isControllable !== false;
 
-  // Connectivity indicator (mirroring the WarpControl pilot):
-  // `n.heading` is representative of the widget's mapped attitude/control
-  // read set regardless of the CoM-frame toggle (both n.heading and
-  // n.heading2 are mapped on the wire now, off the same
-  // vessel.attitude topic): so it stays a stable status source across
-  // config changes rather than switching with `useCoM`.
-
-  // Throttle is the one continuous axis with a real bidirectional channel
-  // today (`vessel.control.throttle`), so it rides the delayed
-  // control-stream spine instead of the legacy path: local state holds the
-  // operator's commanded intent, `useControlStream` coalesces + dispatches
-  // it on the channel's write half and rolls the in-transit +
-  // confirmed-readback buffer `<ControlDelayStream>` draws. The state
-  // tracks the live readback until the operator first touches a throttle
-  // control (`throttleTouchedRef`), so simply opening the control surface
-  // never silently commands the engine back to a stale default (the write
-  // half dispatches unconditionally on its first tick, same as the SAS/RCS
-  // bridges above). Conscious, benign consequence: on open, before the
-  // operator has touched anything, that first tick re-commands the
-  // just-seeded value straight back at the engine, i.e. the live readback
-  // it was already at, never a stale 0 or default; a no-op in effect.
-  //
-  // Reset `throttleTouchedRef` on a vessel switch so a freshly-switched
-  // craft re-seeds from ITS live throttle instead of carrying over the
-  // previous vessel's commanded value: see the `vesselId`-keyed effect
-  // below.
+  /**
+   * Throttle is the one continuous axis with a real bidirectional channel
+   * (`vessel.control.throttle`), so it rides the delayed control-stream spine:
+   * local state holds the operator's commanded intent, `useControlStream`
+   * coalesces and dispatches it on the channel's write half, and rolls the
+   * in-transit plus confirmed-readback buffer `<ControlDelayStream>` draws.
+   *
+   * The state tracks the live readback until the operator first touches a
+   * throttle control (`throttleTouchedRef`), so simply opening the control
+   * surface never silently commands the engine back to a stale default, the
+   * write half dispatching unconditionally on its first tick notwithstanding.
+   * The benign consequence is that on open, before the operator has touched
+   * anything, that first tick re-commands the just-seeded value straight back
+   * at the engine: the live readback it was already at, never a stale 0, so a
+   * no-op in effect.
+   *
+   * The `vesselId`-keyed effect below resets `throttleTouchedRef` on a vessel
+   * switch, so a freshly-switched craft re-seeds from its own live throttle
+   * rather than carrying over the previous vessel's commanded value.
+   */
   const [throttleCmd, setThrottleCmdState] = useState(throttle);
   const throttleTouchedRef = useRef(false);
   useEffect(() => {
@@ -349,12 +344,15 @@ function NavballComponent({
     throttleTouchedRef.current = true;
     setThrottleCmdState(next);
   };
-  // Vessel switch: re-arm the seed latch so the newly-active vessel's live
-  // throttle wins over the previous vessel's stale commanded value. Keyed
-  // off `vessel.identity.vesselId`, the same stable per-vessel id
-  // `TargetPicker`/`LaunchDirector` dispatch against.
-  // An id, not a quantity: it does not decay, and a stale one is still which
-  // vessel this is. Used only to scope per-vessel UI memory.
+  /**
+   * Vessel switch: re-arm the seed latch so the newly-active vessel's live
+   * throttle wins over the previous vessel's stale commanded value. Keyed off
+   * `vessel.identity.vesselId`, the same stable per-vessel id `TargetPicker`
+   * and `LaunchDirector` dispatch against.
+   *
+   * An id, not a quantity, so it does not decay and a stale one is still which
+   * vessel this is. Used only to scope per-vessel UI memory.
+   */
   const activeVesselId = lastObserved(
     useTelemetry("vessel.identity"),
   )?.vesselId;
@@ -381,16 +379,19 @@ function NavballComponent({
     },
   );
 
-  // Fly-by-wire attitude + translation axes: continuous per-frame control (KSP
-  // re-zeroes a raw axis every physics frame), so each rides `useControlStream`
-  // exactly as the throttle does, NOT a discrete one-shot `useCommand`. The
-  // stream self-consumes its delay UX via `<ControlDelayStream>` (no
-  // `<CommandDelay>` needed). Axes rest at 0 (neutral) and are commanded from
-  // the analog input handlers below; values are -1..1, so `range: "signed"`.
-  // The confirmed-readback (echo) track is the vessel's applied ctrlState axis
-  // (`vessel.control.{pitch,yaw,roll,translationX/Y/Z}`, published by
-  // KspHost.BuildControl). LIVE-TEST-REQUIRED: confirm the echo populates and
-  // the delayed axis lands through the Courier at the selected vantage.
+  /**
+   * Fly-by-wire attitude and translation axes are continuous per-frame control,
+   * because KSP re-zeroes a raw axis every physics frame, so each rides
+   * `useControlStream` exactly as the throttle does rather than a discrete
+   * one-shot `useCommand`. The stream self-consumes its delay UX via
+   * `<ControlDelayStream>`, so no `<CommandDelay>` is needed.
+   *
+   * Axes rest at 0 (neutral) and are commanded from the analog input handlers
+   * below; values are -1..1, hence `range: "signed"`. The confirmed-readback
+   * (echo) track is the vessel's applied ctrlState axis
+   * (`vessel.control.{pitch,yaw,roll,translationX/Y/Z}`, published by
+   * `KspHost.BuildControl`).
+   */
   const [pitchCmd, setPitchCmd] = useState(0);
   const [yawCmd, setYawCmd] = useState(0);
   const [rollCmd, setRollCmd] = useState(0);
@@ -441,10 +442,11 @@ function NavballComponent({
     translateZStream,
   ];
 
-  // Delayed vessel commands (command-surface-delay-audit #9,#11): SAS/RCS
-  // toggle, SAS mode, and FBW arm/disarm are all discrete, absolute-set
-  // vessel commands (the same toggle-invert shape ActionGroup migrated),
-  // so they ride `useCommand` instead of the legacy string-action path.
+  /**
+   * SAS/RCS toggle, SAS mode and FBW arm/disarm are all discrete, absolute-set
+   * vessel commands, the same toggle-invert shape `ActionGroup` uses, so they
+   * ride `useCommand` and are subject to signal delay.
+   */
   const sasCmd = useCommand("vessel.control.setSas");
   const rcsCmd = useCommand("vessel.control.setRcs");
   const sasModeCmd = useCommand("vessel.control.setSasMode");
@@ -494,14 +496,16 @@ function NavballComponent({
     );
   };
 
-  // Ext-1 reference wiring: the SAS-mode grid is the reference control for the
-  // `useCommandFailures` + `data-failed` pattern. When a mode command goes
-  // overdue/lost, the button that issued it echoes the failure ON ITSELF (amber
-  // `data-failed` tint) and clicking it DISMISSES via the same shared dismiss
-  // the Panel-top queue uses, so clearing on either surface clears both. The
-  // queue stays the primary failure surface; this is the secondary in-context
-  // echo. Failed commands are matched back to their mode by the label
-  // `setSasMode` stamps above.
+  /**
+   * The SAS-mode grid is this repo's reference control for the
+   * `useCommandFailures` plus `data-failed` pattern. When a mode command goes
+   * overdue or lost, the button that issued it echoes the failure on itself as
+   * an amber `data-failed` tint, and clicking it dismisses through the same
+   * shared dismiss the Panel-top queue uses, so clearing on either surface
+   * clears both. The queue stays the primary failure surface and this is the
+   * secondary in-context echo. Failed commands are matched back to their mode
+   * by the label `setSasMode` stamps above.
+   */
   const sasFailures = useCommandFailures(sasModeCmd);
   const failedSasModes = new Map<SasMode, string>();
   for (const f of sasFailures.failed) {
@@ -509,10 +513,12 @@ function NavballComponent({
     if (mode) failedSasModes.set(mode, f.id);
   }
 
-  // FBW arm/disarm with auto-disarm on unmount. State mirrors the latest
-  // arm command rather than a telemetry read: there is no readback for FBW.
-  // `setFlyByWire` is absolute-set (state travels in the arg itself), no
-  // invert needed, unlike SAS/RCS.
+  /**
+   * FBW arm/disarm, with auto-disarm on unmount. The state mirrors the latest
+   * arm command rather than a telemetry read, because there is no readback for
+   * FBW. `setFlyByWire` is absolute-set, the state travelling in the arg
+   * itself, so unlike SAS/RCS it needs no invert.
+   */
   const [fbwArmed, setFbwArmed] = useState(false);
   const fbwArmedRef = useRef(false);
   useEffect(() => {
@@ -520,9 +526,7 @@ function NavballComponent({
   }, [fbwArmed]);
   useEffect(() => {
     return () => {
-      // Component unmounting: release control regardless of state. Don't
-      // wait for the render-cycle setFbwArmed(false), the effect cleanup
-      // is the last reliable place to fire.
+      // Release control on unmount regardless of state: the effect cleanup is the last reliable place to fire, so this cannot wait on a render-cycle setFbwArmed(false).
       if (fbwArmedRef.current) {
         void fbwCmd.send({ enabled: false }, { label: "Disarm FBW" });
       }
@@ -538,15 +542,18 @@ function NavballComponent({
     setFbwArmed(false);
   };
 
-  // FBW-under-delay warning. `comms.delay.oneWaySeconds` is gonogo's own
-  // SignalDelay authority (a TrueNow channel, never itself delayed), a plain
-  // number of one-way light-time seconds, 0 when the delay feature is
-  // disabled, so the warning naturally stays hidden with no extra "is it
-  // enabled" check.
-  // The delay drives whether the control-delay strip is drawn at all. Last
-  // observed on every arm that has one: nothing models light-time client-side,
-  // and a craft whose delay reading has gone quiet has not stopped being far
-  // away, so suppressing the strip would hide the delay rather than report it.
+  /**
+   * The FBW-under-delay warning, and whether the control-delay strip is drawn
+   * at all. `comms.delay.oneWaySeconds` is gonogo's own SignalDelay authority,
+   * a TrueNow channel that is never itself delayed, carrying a plain count of
+   * one-way light-time seconds and 0 when the delay feature is off, so the
+   * warning stays hidden with no separate "is it enabled" check.
+   *
+   * Read as last-observed on every arm that has one. Nothing models light-time
+   * client-side, and a craft whose delay reading has gone quiet has not stopped
+   * being far away, so suppressing the strip would hide the delay rather than
+   * report it.
+   */
   const delaySeconds = magnitudeOf(
     lastObserved(useTelemetry("comms.delay"))?.oneWaySeconds,
   );
@@ -554,10 +561,11 @@ function NavballComponent({
     delaySeconds !== null && delaySeconds > FBW_DELAY_WARN_SECONDS;
   const showFbwDelayWarning = fbwArmed && delayHigh;
 
-  // Action wiring: every action surface maps to a command dispatch, with
-  // analog values clamped to [-1, 1] and throttle to
-  // [0, 1]. Button payloads only fire on the press edge (value=true) so
-  // a hardware press+release doesn't trigger twice.
+  /**
+   * Every action surface maps to a command dispatch, with analog values clamped
+   * to [-1, 1] and throttle to [0, 1]. Button payloads only fire on the press
+   * edge (`value=true`), so a hardware press-and-release does not trigger twice.
+   */
   useActionInput<NavballActions>({
     "take-control": (payload) => {
       if (!isButtonPress(payload)) return;
@@ -581,10 +589,7 @@ function NavballComponent({
     },
     "toggle-precision": (payload) => {
       if (!isButtonPress(payload)) return;
-      // No dedicated command for this: toggling FBW pitch trim doesn't
-      // help, and precision control is readable but only settable via the
-      // SAS path. Treated as a no-op with a console hint, and surfaced as an
-      // action anyway so a future command can be wired to it.
+      // Deliberately a no-op: precision control is readable but has no set command of its own (it moves only via the SAS path), and the action is declared anyway so a mapping survives the day a command arrives.
     },
     "kill-rotation": (payload) => {
       if (!isButtonPress(payload)) return;
@@ -652,13 +657,17 @@ function NavballComponent({
     },
   });
 
-  // Measure the dial's available box and pick a square size that fits both
-  // axes. The previous version capped at 220 px and read width only, that
-  // left the dial stuck small on tall/wide widgets, and on small widgets it
-  // never shrank enough to leave room for the throttle column. Cap at 600
-  // because the indicator's tick text becomes blurry beyond that on
-  // standard-DPI screens; below 80 the dial is illegible and we'd be better
-  // dropping to numeric readout, which the rows-based gate above handles.
+  /**
+   * Measure the dial's available box and pick a square size that fits both
+   * axes. Reading only the width leaves the dial stuck small on a tall widget
+   * and too big to leave room for the throttle column on a small one, so both
+   * dimensions bind.
+   *
+   * The 600 ceiling is where the indicator's tick text starts to look blurry on
+   * a standard-DPI screen. Below 80 the dial is illegible and the numeric
+   * readout is the better rendering, which the rows-based gate above already
+   * switches to.
+   */
   const [dialSize, setDialSize] = useState(180);
   const dialRef = useRef<HTMLDivElement>(null);
   const showThrottleColumnRef = useRef(false);
@@ -873,9 +882,9 @@ interface ControlSurfaceProps {
   onToggleSas: () => void;
   onToggleRcs: () => void;
   onSetSasMode: (mode: SasMode) => void;
-  /** Ext-1: SAS modes whose issued command is currently failed (overdue/lost), mapped to that command's id so the button can dismiss it. */
+  /** SAS modes whose issued command is currently failed (overdue or lost), mapped to that command's id so the button can dismiss it. */
   failedSasModes: Map<SasMode, string>;
-  /** Ext-1: clear a failed SAS-mode command (the shared dismiss the Panel-top queue also uses). */
+  /** Clear a failed SAS-mode command, through the shared dismiss the Panel-top queue also uses. */
   onDismissSasFailure: (id: string) => void;
   showFbwDelayWarning: boolean;
   delaySeconds: number | null;

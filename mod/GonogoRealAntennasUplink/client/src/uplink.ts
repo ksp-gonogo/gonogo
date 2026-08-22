@@ -1,4 +1,4 @@
-// RealAntennas uplink client identity (Uplink Client Contract design §3.1). The
+// RealAntennas uplink client identity. The
 // contribution this package registers stamps this handle as `owner`, and its
 // `registerContribution` resolves `ContributionEntry` against the SDK's own
 // contribution registry (where `comm-signal.hop-rates` is declared), which is
@@ -7,7 +7,7 @@
 // handle.
 import { defineUplinkClient } from "@ksp-gonogo/sitrep-sdk";
 
-// TODO(version): Phase 2 build-injects this from gonogo-uplink.json (spec §5).
+// This declaration is the source of the client's version, not the manifest: `gonogo-uplink.json` is generated FROM it, so it cannot supply the number that goes into it. Keep it equal to `package.json`'s.
 const UPLINK_VERSION = "0.0.0-dev";
 
 // "RealAntennas" is the human label; the "realantennas" id is the load-bearing

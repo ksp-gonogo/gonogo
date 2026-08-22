@@ -135,7 +135,7 @@ import "./SpaceWeather/badge";
 // one faint blob per active storm. SystemView itself stays in
 // @ksp-gonogo/components and has no idea Kerbalism exists.
 import "./SystemViewCme/contribution";
-// ShipMap's self-contribution (spec §13.4): supply-tank part-meters and
+// ShipMap's self-contribution: supply-tank part-meters and
 // fitted-process part-meta, on the SAME two slots the built-in `core`
 // contribution feeds (`packages/components/src/ShipMap/
 // partMetersContribution.ts`). ShipMap itself stays in @ksp-gonogo/components;

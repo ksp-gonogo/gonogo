@@ -112,6 +112,22 @@ type SpaceWeatherRead =
   | { readable: false; absence: WeatherAbsence };
 
 /**
+ * The value a VERDICT may be drawn from: current, or modelled forward to the frame.
+ * A stale reading gives nothing, because a judgement cannot be dated: the operator
+ * reads a band or a pill as the situation NOW.
+ */
+function judgeable<T>(reading: Reading<T>): T | undefined {
+  if (reading.state === "observed") return reading.value;
+  if (reading.state === "reckonable") return reading.reckoned.value;
+  return undefined;
+}
+
+/** Whether a reading went stale, as opposed to never having arrived. */
+function notCurrent<T>(reading: Reading<T>): boolean {
+  return reading.state === "stale";
+}
+
+/**
  * Every field on this record is a judgement, so the record is judged as one.
  *
  * The dose rate picks a tone band, the storm bools pick a headline, the three
@@ -131,22 +147,6 @@ type SpaceWeatherRead =
  * absent record coerced to a confident "Sheltered, no storm activity, 0.000
  * rad/h" board built from nothing at all.
  */
-/**
- * The value a VERDICT may be drawn from: current, or modelled forward to the frame.
- * A stale reading gives nothing, because a judgement cannot be dated: the operator
- * reads a band or a pill as the situation NOW.
- */
-function judgeable<T>(reading: Reading<T>): T | undefined {
-  if (reading.state === "observed") return reading.value;
-  if (reading.state === "reckonable") return reading.reckoned.value;
-  return undefined;
-}
-
-/** Whether a reading went stale, as opposed to never having arrived. */
-function notCurrent<T>(reading: Reading<T>): boolean {
-  return reading.state === "stale";
-}
-
 function useSpaceWeather(): SpaceWeatherRead {
   const weatherReading = useTelemetry("kerbalism.spaceweather");
   // Positional, so also a judgement: this only places the "you are here" dot on
@@ -171,12 +171,13 @@ function useSpaceWeather(): SpaceWeatherRead {
     : t.stormIncoming
       ? "incoming"
       : "none";
-  // FUTURE: storm-ETA countdown. The mod emits storm PRESENCE only
-  // (stormIncoming/stormInProgress bools, KerbalismCapture.cs): no onset/clear
-  // clock: so the timeline renders the phase WITHOUT a numeric countdown. A
-  // real countdown needs a mod-side storm-onset clock (Kerbalism tracks storm
-  // timing internally / reflectable) surfaced on the Topic; the UI was designed
-  // for it, the data isn't wired. Tracked in local_docs/feature_log/.
+  /**
+   * The timeline renders the storm phase without a numeric countdown, because
+   * the mod emits storm PRESENCE only: `stormIncoming` and `stormInProgress`
+   * are bools and there is no onset or clear clock behind them. A countdown
+   * would need a mod-side storm-onset clock on the Topic, which Kerbalism
+   * tracks internally but does not currently surface.
+   */
   // Reported per second, read per hour: a scale change the registry knows,
   // rather than a bare 3600 sitting next to a comment saying which end it is.
   const radiationRadPerHour = value(

@@ -103,7 +103,7 @@ export function useDelayedPlaybackStatus(
 
 /**
  * gonogo's stream source for the shared `CameraFeed`, injected via its
- * `useStream` seam (kerbcam SDK §3.4). It composes three already-tested
+ * `useStream` seam. It composes three already-tested
  * pieces without moving any of them into the SDK:
  *
  *   1. the SDK/data-source glue `useKerbcastStream`: the raw live `MediaStream`

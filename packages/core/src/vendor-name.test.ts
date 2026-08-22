@@ -176,8 +176,8 @@ describe("vendor name", () => {
    * test name rather than buried in a diff of two hundred numbers. Update both
    * when a slice lands; they can only fall.
    */
-  it("stands at zero published, and 361 elsewhere", () => {
+  it("stands at zero published, and 343 elsewhere", () => {
     expect(SEEDED_SDK_TOTAL).toBe(0);
-    expect(SEEDED_APP_TOTAL).toBeLessThanOrEqual(361);
+    expect(SEEDED_APP_TOTAL).toBeLessThanOrEqual(343);
   });
 });

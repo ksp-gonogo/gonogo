@@ -33,12 +33,6 @@ interface DriveEntries {
 }
 
 /**
- * Joins Kerbalism's drive rows against one Aboard subject. Aboard groups by
- * SUBJECT; the drive itself is per FILE/SAMPLE, so a subject with both still
- * shows as two `science.experiments` entries sharing the same `subjectId`,
- * distinguished by `kind`.
- */
-/**
  * The value of a FACT: something that stays true until an event changes it, and no
  * event can reach us down a link that is not delivering. `whenConfirmedNothing` is
  * what an `absent` tombstone means here, which is a different answer from `pending`
@@ -55,6 +49,12 @@ function stillTrue<T, A>(
   return undefined;
 }
 
+/**
+ * Joins Kerbalism's drive rows against one Aboard subject. Aboard groups by
+ * SUBJECT; the drive itself is per FILE/SAMPLE, so a subject with both still
+ * shows as two `science.experiments` entries sharing the same `subjectId`,
+ * distinguished by `kind`.
+ */
 function findDriveEntries(
   experiments: ExperimentEntry[] | undefined,
   subjectId: string,

@@ -87,11 +87,10 @@ interface KosTerminalConfig {
    */
   lineMode?: boolean;
   /**
-   * Script paths offered by the `/`-script picker (kos-terminal-script-picker,
-   * hub-wizard-kos Phase 1, increment (a)). A placeholder data source for
-   * now: increment (b) replaces this with a live drive listing dispatched
-   * over the kos Uplink's `executeScript` RPC, so this field is not exposed
-   * in the config UI below and is expected to go away once that lands.
+   * Script paths offered by the `/`-script picker. A placeholder data source:
+   * a live drive listing dispatched over the kos Uplink's `executeScript` RPC
+   * supersedes it, which is why this field is not exposed in the config UI
+   * below and is expected to go away.
    */
   scriptPaths?: string[];
 }
@@ -327,15 +326,14 @@ function recallNewer(
 // ── Script composer (`/`-trigger) ────────────────────────────────────────────
 
 /**
- * The `/`-triggered script-run composer's state machine (kos-terminal-
- * script-picker, hub-wizard-kos Phase 1). Idle (`null`, held outside this
- * union) until `/` is typed at the very start of an empty line-mode
+ * The `/`-triggered script-run composer's state machine. Idle (`null`, held
+ * outside this union) until `/` is typed at the very start of an empty line-mode
  * composition: see the `term.onData` callsite for the trigger. "picking"
  * filters `scriptPaths` against `query` and tracks the arrow/mouse-
  * highlighted option; confirming one (Enter or click) moves to "args",
  * where further typed characters compose optional whitespace-separated
  * trailing arguments appended to the eventual RUNPATH call. `copyLocal`
- * (increment (b), Ctrl+L to toggle, or the composer's own affordance)
+ * (Ctrl+L to toggle, or the composer's own affordance)
  * routes the eventual send through a COPYPATH-then-RUNPATH pair against a
  * local (`1:`) copy instead of running the script where it lives, for
  * scripts run REPEATEDLY, so the archive round-trip is only paid once. A
@@ -392,7 +390,7 @@ function scriptBasename(path: string): string {
  * composer does no quoting or type inference, matching the goal spec's
  * `RUNPATH("<path>"[, arg1, arg2])` shape.
  *
- * `copyLocal` (increment (b)'s "copy local & run" toggle) prefixes a
+ * `copyLocal` (the "copy local & run" toggle) prefixes a
  * `COPYPATH("<path>", "<local>").` statement ahead of the RUNPATH, targeting
  * the script's basename on the CPU's local (`1:`) drive, both statements
  * on ONE line, still a single `kos.keystroke` round trip under light-time
@@ -427,7 +425,7 @@ type ScriptComposerAction =
  * before any per-character fallthrough, exactly like the ordinary line-mode
  * handling this composer intercepts ahead of (see the `term.onData`
  * callsite). `scriptPaths` is read fresh on every call rather than carried
- * in `state`, so a live-updating list (increment (b)'s drive listing)
+ * in `state`, so a live-updating list (the drive listing)
  * is picked up mid-compose without needing to reset the picker.
  */
 function handleScriptComposerInput(
@@ -518,10 +516,7 @@ function handleScriptComposerInput(
     );
     return { kind: "send", chars, label };
   }
-  // Ctrl+L: toggle "copy local & run" (increment (b)); otherwise inert in
-  // this phase (it's not forwarded to the CPU either way; see the C0
-  // control-char filter below), so repurposing it here doesn't shadow any
-  // existing behavior.
+  // Ctrl+L toggles "copy local & run". It is otherwise inert here, never forwarded to the CPU (see the C0 control-char filter below), so repurposing it shadows no existing behaviour.
   if (data === "\x0c") {
     return { kind: "update", next: { ...state, copyLocal: !state.copyLocal } };
   }
@@ -579,7 +574,7 @@ function KosTerminalLive({
     [processors, cpuName, pickedCoreId],
   );
   // The resolved CPU's tagname: `executeScript` (the `/`-picker's live
-  // drive-listing RPC, increment (b)) dispatches by TAGNAME, not coreId, so
+  // drive-listing RPC) dispatches by TAGNAME, not coreId, so
   // this is looked up here (where `processors` already lives) rather than
   // re-subscribing to kos.processors a second time inside the screen.
   const cpuTag = processors.find((p) => p.coreId === coreId)?.tag;
@@ -699,7 +694,7 @@ function KosTerminalScreen({
   const scriptComposerRef = useRef<ScriptComposerState | null>(null);
   const [scriptComposer, setScriptComposer] =
     useState<ScriptComposerState | null>(null);
-  // Live drive listing (increment (b)): only dispatched once the composer
+  // Live drive listing: only dispatched once the composer
   // is actually open AND no static `scriptPaths` config already supplies a
   // list, so every test/usage that configures a static list (increment
   // (a)'s fixtures) never touches the real executeScript RPC. A config
@@ -713,7 +708,7 @@ function KosTerminalScreen({
   const effectiveScriptPaths =
     scriptPaths.length > 0 ? scriptPaths : liveListing.paths;
   const scriptListHint = scriptPaths.length > 0 ? null : liveListing.hint;
-  // scriptPaths can change at runtime (increment (b)'s live drive listing),
+  // scriptPaths can change at runtime (the live drive listing),
   // read via ref for the same mount-only-closure reason as `lineModeRef`.
   const scriptPathsRef = useRef<string[]>(effectiveScriptPaths);
   scriptPathsRef.current = effectiveScriptPaths;
@@ -1143,7 +1138,7 @@ function KosTerminalScreen({
     // line-mode toggle never tears down and wipes the terminal.
   }, [readOnly]);
 
-  // Threshold split (spec §4): char-mode always gets the badge; line-mode
+  // Threshold split: char-mode always gets the badge; line-mode
   // gets the badge ONLY when the delay is too short for a strip to be worth
   // it (<=1s one-way), otherwise the full in-transit strip. The two are
   // mutually exclusive: never both. A read-only viewer in line mode with a
@@ -1463,7 +1458,7 @@ const CompositionBarWrap = styled.div`
   flex: 0 0 auto;
 `;
 
-// The "copy local & run" toggle (increment (b)), shown only while the
+// The "copy local & run" toggle, shown only while the
 // `/`-composer is in "args" phase, a compact row under the bar rather than
 // crowding it, matching the composition bar's own font sizing.
 const ScriptComposerOptions = styled.div`

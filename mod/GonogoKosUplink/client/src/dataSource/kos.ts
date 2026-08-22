@@ -106,8 +106,6 @@ export class KosDataSource {
     this.uplinkExecutor.dispose();
   }
 
-  // --- Public widget API ---
-
   /**
    * Run a script on the named CPU and resolve with its parsed [KOSDATA]
    * object, dispatched over the `kos.run` Uplink (see `kosUplinkExecutor.ts`),

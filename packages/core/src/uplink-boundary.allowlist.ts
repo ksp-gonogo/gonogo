@@ -1437,16 +1437,13 @@ export const ALLOWLIST: Record<ModToken, ModAllowlist> = {
       // project; it stays permanent rather than debt because moving a dev-only
       // dump into a shipped Uplink would be the wrong direction.
       "mod/GonogoDevTools/GonogoDevKerbalismDump.cs",
-      // Sibling Uplink clients citing a shared design doc by filename
-      // (local_docs/kerbalism-RO-design-DECISIONS.md), or noting that a
-      // Kerbalism-shaped filler for one of their own slots is a later phase, or
-      // recording that they share this Uplink's "no runtime-loader entry, plain
-      // static import" bootstrap path. Zero code or type coupling.
+      // Sibling Uplink clients noting that a Kerbalism-shaped filler for one of
+      // their own slots is expected later, or recording that they share this
+      // Uplink's "no runtime-loader entry, plain static import" bootstrap path.
+      // Zero code or type coupling.
       "mod/GonogoBreakingGroundUplink/client/src/DeployedScience/index.tsx",
       "mod/GonogoKerbcastUplink/client/src/CameraFeed/CameraFeed.tsx",
-      "mod/GonogoKerbcastUplink/client/src/KerbcastEventProducer.ts",
       "mod/GonogoMechJebUplink/client/src/index.ts",
-      "mod/GonogoMechJebUplink/client/src/MechJeb/index.tsx",
 
       // -- TEST-only --
       // UplinkContractOwnershipTests.cs / WirePayloadCoverageTests.cs: the

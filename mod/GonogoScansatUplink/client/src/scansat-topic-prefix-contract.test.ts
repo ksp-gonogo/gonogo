@@ -3,22 +3,19 @@ import { resolve } from "node:path";
 import { describe, expect, it } from "vitest";
 
 /**
- * Cross-boundary contract test for the SCANsat unified fix
- * (`local_docs/scansat-unified-fix-plan.md`, Task 4). The dynamic
- * per-(body,type) namespaces must be described by the SAME canonical prefix
- * strings on both sides of the wire, or a future namespace silently desyncs
- * (the mod publishes under one string while the client carries/resolves
- * another: exactly the class of break this whole fix addresses).
+ * Cross-boundary contract test for SCANsat's dynamic per-(body, type)
+ * namespaces. Both sides of the wire must describe them with the SAME canonical
+ * prefix strings, or a future namespace desyncs silently: the mod publishing
+ * under one string while the client carries and resolves another.
  *
- * This locks the MOD side to the canonical list now, and documents the
- * client-side cross-check to enable the moment the client fix exports its
- * shared prefix list (unified plan Tasks 1+2 introduce
+ * This locks the MOD side to the canonical list, and documents the client-side
+ * cross-check to enable once the client exports its own shared prefix list as
  * `DYNAMIC_CARRIED_TOPIC_PREFIXES` in `@ksp-gonogo/sitrep-client`'s
- * `default-carried-topics.ts`).
+ * `default-carried-topics.ts`.
  */
 
-// The single source of truth for the plan. These are the dynamic-namespace
-// whole-topic prefixes (trailing `.`) the whole pipeline must agree on.
+// The single source of truth. These are the dynamic-namespace whole-topic
+// prefixes (trailing `.`) the whole pipeline must agree on.
 const CANONICAL_DYNAMIC_PREFIXES = [
   "scansat.coverage.",
   "scansat.mask.",

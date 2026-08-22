@@ -1,15 +1,15 @@
 // kOS Uplink client for gonogo.
 //
 // Co-located with the GonogoKosUplink C# mod (mod/GonogoKosUplink): one directory holds
-// the mod and the client TS it ships (Uplink architecture §1). Importing this
+// the mod and the client TS it ships. Importing this
 // package's entry point side-effects the widget registration into
 // @ksp-gonogo/core's global registry:
 //
 //   - KosTerminal → registerComponent(...) so it's placeable from the
 //     dashboard widget picker. The other kOS widgets (KosProcessors,
 //     KosFiles, KosScriptRunner, KosWidget, KosWrapperTester) were removed
-//     as janky/failing legacy: the terminal is the valuable surface
-//     (hub-wizard-kos plan, Phase 1, 2026-07-19). Their shared UI-authoring
+//     as janky/failing legacy: the terminal is the valuable surface.
+//     Their shared UI-authoring
 //     infra (KosScriptFrame, KosCpuPicker, the kos-cpu-registry chrome
 //     provider, useKosScriptPayload, useKosScriptStatus) went with them:
 //     KosTerminal doesn't use that pattern, it reads kos.processors and
@@ -32,7 +32,7 @@
 
 // defineUplinkClient(KOS): every widget/augment this package registers
 // stamps the returned handle as `owner`, so the widget picker's mod search
-// tags derive "kos" automatically (Uplink Client Contract design §3.1/§3.3).
+// tags derive "kos" automatically.
 // (Also re-run by `./runtime`, below, idempotent, see that module's doc.)
 import "./uplink";
 

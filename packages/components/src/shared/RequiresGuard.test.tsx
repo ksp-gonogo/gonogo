@@ -31,9 +31,7 @@ function makeSitrepFixture(status: DataSourceStatus): DataSource {
   };
 }
 
-// Default every test to a CONNECTED host, Task 4's tests exercise the
-// uplink-health/game-context branches and don't care about host status;
-// the two host-down-specific tests below override this explicitly.
+// Default every test to a CONNECTED host: most exercise the uplink-health and game-context branches and do not care about host status, and the two host-down-specific tests below override this explicitly.
 beforeEach(() => registerDataSource(makeSitrepFixture("connected")));
 
 // Unmount each rendered tree BEFORE clearRegistry(): clearing the DataSource

@@ -439,11 +439,11 @@ describe("LaunchDirectorComponent", () => {
     expect(recoverBtn).toBeDisabled();
   });
 
-  // 2026-05-17 23:12 BST: tapping "Tracking Station" mid-flight took the
-  // operator to the TS scene but reverted the flight because KSP can't
-  // save in that scene. Telemachus has no equivalent of the in-game
-  // warning dialog, so the gonogo button now requires an arm-then-confirm
-  // step so a casual mis-tap doesn't lose progress.
+  // Tapping "Tracking Station" mid-flight takes the operator to the TS scene
+  // but reverts the flight, because KSP cannot save in that scene, and nothing
+  // on the wire reproduces the in-game warning dialog. The button therefore
+  // requires an arm-then-confirm step, so a casual mis-tap does not lose
+  // progress.
   it("requires a confirm step before firing ksp.toTrackingStation", async () => {
     const user = userEvent.setup();
     renderWidget();
@@ -582,9 +582,9 @@ describe("LaunchDirectorComponent", () => {
   // forever: the reverted vessel shares the crashed vessel's name, and
   // crash.hasRecent is session-sticky. Reverting rewinds universal time
   // below the snapshot's capture ut, so a future-dated snapshot is provably
-  // from an undone timeline and must not gate recovery. (Telemachus now
-  // clears it server-side on the same rule; this is the client mirror for
-  // older deployed builds.)
+  // from an undone timeline and must not gate recovery. The mod clears it
+  // server-side on the same rule; this is the client mirror, for a deployed
+  // build that predates that.
   it("does not block recovery when the crash snapshot post-dates current UT (reverted flight)", async () => {
     // universalTime reads off `useViewUt()`, pin the view clock at the same
     // 113270 the crash-staleness math below needs (replaces the outer

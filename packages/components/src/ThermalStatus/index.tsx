@@ -48,12 +48,6 @@ const isSentinelK = (k: number | undefined): boolean =>
 type Band = "unknown" | "nominal" | "warm" | "hot" | "critical";
 
 /**
- * `unknown` exists because this used to answer "nominal" for a ratio that had
- * not arrived. A green NOMINAL pill is a positive claim that nothing is
- * overheating, and an absent ratio is not evidence of that: it read identically
- * to a part measured at 40% of its maximum.
- */
-/**
  * The value a VERDICT may be drawn from: current, or modelled forward to the frame.
  * A stale reading gives nothing, because a judgement cannot be dated: the operator
  * reads a band or a pill as the situation NOW.
@@ -69,6 +63,12 @@ function notCurrent<T>(reading: Reading<T>): boolean {
   return reading.state === "stale";
 }
 
+/**
+ * `unknown` exists because this used to answer "nominal" for a ratio that had
+ * not arrived. A green NOMINAL pill is a positive claim that nothing is
+ * overheating, and an absent ratio is not evidence of that: it read identically
+ * to a part measured at 40% of its maximum.
+ */
 function bandFromRatio(ratio: number | undefined): Band {
   if (ratio === undefined || !Number.isFinite(ratio)) return "unknown";
   if (ratio >= 0.97) return "critical";

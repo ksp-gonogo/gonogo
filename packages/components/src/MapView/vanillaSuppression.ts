@@ -1,7 +1,7 @@
 // Pure decision for whether MapView's stock body texture should be
-// suppressed (local_docs/spec-mapview-stackable-layers.md). Extracted so it
-// is directly unit-testable without DOM/canvas; see this module's own test
-// file for the regression this guards against.
+// suppressed. Extracted so it is directly unit-testable without DOM or
+// canvas; see this module's own test file for the regression this guards
+// against.
 //
 // A `map-view.base` augment's mere REGISTRATION is not the same as its
 // Domain being LIVE: the client bundle that registers an augment (e.g. an

@@ -6,7 +6,8 @@ import { KERBALISM } from "../uplink";
 // Kerbalism's own axis on ResourceOps' filter slot: one pre-filled SEARCH TERM
 // per PROCESS running on the vessel, labelled with Kerbalism's own process title.
 //
-// ── Why this is the honest answer, and what it deliberately is not ──────────
+// Why this is the honest answer, and what it deliberately is not.
+//
 // Kerbalism does not distinguish an ISRU process from a life-support one: a
 // scrubber, a water recycler and a Molten Regolith Electrolysis plant are the
 // same `ProcessController` running different chemistry (see `../isru.ts`'s

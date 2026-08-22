@@ -12,8 +12,8 @@ import styled from "styled-components";
 export interface RequiresGuardProps {
   requires?: readonly ComponentRequirement[];
   /**
-   * The widget's declared REQUIRED `channels` (Uplink architecture spec
-   * §3.2). When any of these resolves to a non-healthy owning Uplink (via
+   * The widget's declared REQUIRED `channels`. When any of these resolves to a
+   * non-healthy owning Uplink (via
    * `useUplinkHealthFor`), the gate blocks with that Uplink's
    * `health.detail`: this check runs BEFORE the `requires` game-context
    * check, since there's no point reporting "needs flight scene" when the

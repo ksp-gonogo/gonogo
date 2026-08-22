@@ -3,9 +3,8 @@
  *
  * Catches structural drift (rendered text, element order, attribute changes)
  * across every fixture × mode combination registered for the widget. The
- * matching PNG renders live in `local_docs/renders/space-weather-widget/` and
- * cover the visual layer DOM snapshots can't (styled-components CSS, the flux
- * chart / belt rings SVG paint, fonts).
+ * matching PNG renders cover the visual layer DOM snapshots can't
+ * (styled-components CSS, the flux chart / belt rings SVG paint, fonts).
  *
  * SpaceWeather reads flat `sw.*` keys off the `"data"` source (see its
  * `useSpaceWeather` hook), so these render through the shared MockDataSource

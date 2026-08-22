@@ -89,8 +89,8 @@ export interface ShipDiagramSvgProps {
   throttle?: number;
   /**
    * Per-part resource meters, keyed by `ShipMapPart.flightId` (stringified),
-   * aggregated from the `ship-map.part-meters` contribution slot (spec
-   * §13.4). Drives the fuel-fill bars on tanks/boosters: there is no
+   * aggregated from the `ship-map.part-meters` contribution slot.
+   * Drives the fuel-fill bars on tanks and boosters: there is no
    * hardcoded resource allowlist here any more, an empty/omitted map simply
    * renders no bars, same as a part with no contributed meters. Defaults to
    * empty so the SSR (`render.ts`) and snapshot-test call sites, which
@@ -1028,8 +1028,7 @@ function renderPartShape(
 
 /**
  * `ShipMapPartMeterEntry.status` -> a border/tint colour, deliberately NOT
- * a fill hue (design doc: local_docs/design/2026-08-08-resource-colour-
- * system.md, gonogo main repo). The fill itself is the resource's IDENTITY
+ * a fill hue. The fill itself is the resource's IDENTITY
  * colour (`resourceColor(m.resource)` below); this is the SEPARATE status
  * signal, painted as a stroke around the bar's track rather than blended
  * into the fill, so "what resource is this" and "how is it doing" stay two

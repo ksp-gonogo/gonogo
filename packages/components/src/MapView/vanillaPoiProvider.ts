@@ -21,14 +21,6 @@ import { useMemo } from "react";
  */
 
 /**
- * Resolve a body INDEX (`system.bodies`' stable index, never array
- * position) to its NAME. Reproduces the `bodyIndex -> name` lookup
- * `SystemView`'s `nameByIndex` builds (`SystemView/index.tsx`) rather than
- * importing `@ksp-gonogo/sitrep-client`'s same-named `resolveBodyName`:
- * that helper is module-private and shaped for a derived-channel
- * `DerivedGet` reader, not a plain React-hook call site like this one.
- */
-/**
  * The value of a FACT: something that stays true until an event changes it, and no
  * event can reach us down a link that is not delivering. `whenConfirmedNothing` is
  * what an `absent` tombstone means here, which is a different answer from `pending`
@@ -45,6 +37,14 @@ function stillTrue<T, A>(
   return undefined;
 }
 
+/**
+ * Resolve a body INDEX (`system.bodies`' stable index, never array
+ * position) to its NAME. Reproduces the `bodyIndex -> name` lookup
+ * `SystemView`'s `nameByIndex` builds (`SystemView/index.tsx`) rather than
+ * importing `@ksp-gonogo/sitrep-client`'s same-named `resolveBodyName`:
+ * that helper is module-private and shaped for a derived-channel
+ * `DerivedGet` reader, not a plain React-hook call site like this one.
+ */
 function useBodyNameByIndex(): Map<number, string> {
   // A body catalogue: declared unmodellable because it changes when the GAME
   // changes, never continuously, so a stale one is simply the catalogue.

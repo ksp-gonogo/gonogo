@@ -5,7 +5,7 @@ import { quantiseUt } from "./predictionThrottle";
 
 describe("MapView prediction throttle", () => {
   it("quantiseUt buckets the time so 4 Hz ticks collapse to 1 Hz invalidations", () => {
-    // Arbitrary float UT values 250 ms apart, Telemachus rate.
+    // Arbitrary float UT values 250 ms apart, the producer's sample rate.
     const ticks = [
       1000.123,
       1000.373,
@@ -29,7 +29,7 @@ describe("MapView prediction throttle", () => {
     if (!budget) return;
     budget.reset();
 
-    // Simulate the MapView re-rendering at Telemachus rate (4 Hz) for
+    // Simulate the MapView re-rendering at the producer's 4 Hz rate for
     // 5 wall-clock seconds. With the quantise(ut, 1) throttle in place,
     // the *quantised* ut only changes once per second; useMemo's
     // identity check sees the same value and skips the recompute. We

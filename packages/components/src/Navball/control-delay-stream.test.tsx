@@ -8,8 +8,8 @@ import {
 import { NavballComponent } from "./index";
 
 /**
- * Proof for the throttle axis's delayed control-stream viz (Task 4 of the
- * delay-stream design): the ONLY continuous axis wired onto
+ * Proof for the throttle axis's delayed control-stream strip. The ONLY
+ * continuous axis wired onto
  * `useControlStream` today is throttle, `vessel.control.throttle` being the
  * only channel `getControlChannel` resolves (`VesselControl` has no pitch/
  * yaw/roll READ fields or `[SitrepControlChannel]` declarations yet, see

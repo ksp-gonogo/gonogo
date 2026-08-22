@@ -91,7 +91,7 @@ describe("the realantennas.available presence gate", () => {
   });
 });
 
-// ── The relocated unit registry, proved by DECODE ────────────────────────────────
+// The relocated unit registry, proved by DECODE.
 //
 // The slice before this one had nothing for a Value to be (identifiers and state
 // names only) and had to assert the registry instead. This one is the opposite:

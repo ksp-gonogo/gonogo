@@ -2,8 +2,8 @@ import type { BadgeEntry } from "@ksp-gonogo/ui-kit";
 import type { KerbalismSpaceWeather } from "../__generated__/contract";
 import { KERBALISM } from "../uplink";
 
-// ---------------------------------------------------------------------------
-// The Space Weather panel badge (contribution-slots-spec.md §3.3, panelBadges).
+// The Space Weather panel badge.
+//
 // A pure contribution to the SpaceWeather widget's auto-wired
 // `space-weather.badges` slot, fed straight off the `kerbalism.spaceweather`
 // Topic (no Processor: unlike Ship Systems, nothing else shares this

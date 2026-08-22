@@ -39,12 +39,10 @@ const META = {
 
 /**
  * Integration coverage for the Fleet/Comms augment after its comms drawing
- * moved onto the contribution model
- * (`local_docs/design/specs/2026-07-15-system-view-fleet-comms-design.md`
- * described a `system-view.overlay` fill that drew its own straight-line
- * comms path and command-traffic pulse). That fill is gone, superseded by
- * the CommNet relay graph, the selected-path highlight and the graph-routed
- * traffic pulses `SystemView`'s own `SystemEntitiesLayer` draws.
+ * moved onto the contribution model. The `system-view.overlay` fill that used
+ * to draw its own straight-line comms path and command-traffic pulse is gone,
+ * superseded by the CommNet relay graph, the selected-path highlight and the
+ * graph-routed traffic pulses `SystemView`'s own `SystemEntitiesLayer` draws.
  *
  * This file proves what is left: the augment registers `.actions` and
  * nothing else, the two toggles gate that model's connection-line and pulse

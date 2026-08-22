@@ -864,10 +864,11 @@ describe("ManeuverPlannerComponent", () => {
   it("sends vessel.maneuver.add args with the [radialOut, normal, prograde] vector convention", async () => {
     const user = userEvent.setup();
     // KSP's ManeuverNode.DeltaV is a Vector3d(radialOut, normal, prograde),
-    // confirmed by kOS's Node.cs. Telemachus passed its `[ut,x,y,z]` args
-    // straight to OnGizmoUpdated(Vector3d(x,y,z), ut) in that order. Mixing
-    // this up turns a pure-prograde Hohmann burn into a pure-radial one,
-    // vessel ends up pointing straight up instead of along velocity.
+    // confirmed by kOS's Node.cs, and the actuator passes its `[ut,x,y,z]`
+    // args straight to OnGizmoUpdated(Vector3d(x,y,z), ut) in that order.
+    // Mixing this up turns a pure-prograde Hohmann burn into a pure-radial
+    // one, and the vessel ends up pointing straight up instead of along
+    // velocity.
     // Dispatch (delayed-command-ux migration) is unconditional via
     // `useCommand` against the real stream, captured off `utFixture`'s
     // command handler.

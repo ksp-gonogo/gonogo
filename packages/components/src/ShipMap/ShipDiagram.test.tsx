@@ -109,7 +109,7 @@ describe("ShipDiagram", () => {
   it("renders fuel-fill bars only inside tanks and boosters, from contributed part-meters", () => {
     // The compact fill bars no longer read `part.resources` directly: they
     // render whatever `ship-map.part-meters` contributed for this part
-    // (spec §13.4's self-contribution unify), keyed by stringified
+    // (self-contribution unify), keyed by stringified
     // flightId. Mirrors the shape the built-in `core` contribution and a
     // Kerbalism contribution both emit.
     const partMeters = new Map([
@@ -164,7 +164,7 @@ describe("ShipDiagram", () => {
 
   it("renders contributed part-meters and part-meta as real Meters in the hover tooltip", () => {
     // The compact SVG bars and the tooltip render the SAME aggregated
-    // entries through two different renderers (spec §13.4's doc comment on
+    // entries through two different renderers (doc comment on
     // ShipDiagram.tsx); this is the tooltip half, which has no PNG-render
     // equivalent (a static probe capture never hovers), so it is only
     // exercised here.

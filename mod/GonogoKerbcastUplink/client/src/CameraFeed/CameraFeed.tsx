@@ -67,16 +67,6 @@ export interface CameraFeedConfig extends Record<string, unknown> {
 }
 
 /**
- * Facecam kind separation (facecam-stage6 consumption design, "requirements
- * gonogo-side" §5): kerbal face cameras get their own crew surfaces
- * (CrewStatus's `crew-status.avatar` augment, and eventually a dedicated
- * facecam-wall widget): they should not also appear in this general
- * part-camera picker/stepper/auto-latch. `camera.kind` defaults to `Part`
- * when the sidecar omits it (older payloads), so this only ever EXCLUDES a
- * camera the SDK positively reports as a kerbal face; nothing is lost when
- * `kind` is absent.
- */
-/**
  * The value a VERDICT may be drawn from: current, or modelled forward to the frame.
  * A stale reading gives nothing, because a judgement cannot be dated: the operator
  * reads a band or a pill as the situation NOW.
@@ -87,12 +77,21 @@ function judgeable<T>(reading: Reading<T>): T | undefined {
   return undefined;
 }
 
+/**
+ * Facecam kind separation: kerbal face cameras get their own crew surfaces,
+ * CrewStatus's `crew-status.avatar` augment and eventually a dedicated
+ * facecam-wall widget, so they should not also appear in this general
+ * part-camera picker, stepper and auto-latch. `camera.kind` defaults to `Part`
+ * when the sidecar omits it (older payloads), so this only ever EXCLUDES a
+ * camera the SDK positively reports as a kerbal face; nothing is lost when
+ * `kind` is absent.
+ */
 export function isPartCamera(camera: CameraState): boolean {
   return camera.kind !== CameraKind.Kerbal;
 }
 
 // ---------------------------------------------------------------------------
-// Augment slots (Uplink architecture spec §4). CameraFeed is PRIMARILY an
+// Augment slots. CameraFeed is PRIMARILY an
 // augment itself (it fills `distance-to-target.camera`) and secondarily a HOST
 // widget that exposes two slots. No first-party augment fills either here, the
 // package move + Kerbalism/RA fillers are a later phase, so each renders
@@ -100,7 +99,7 @@ export function isPartCamera(camera: CameraState): boolean {
 // ---------------------------------------------------------------------------
 
 /**
- * Props for `camera-feed.overlay`: an OVERLAY slot (spec §4.8), rendered in a
+ * Props for `camera-feed.overlay`: an OVERLAY slot, rendered in a
  * layer absolutely positioned OVER the video element. Data-over-video augments
  * (a telemetry HUD painted on the feed at key moments) draw here in the feed's
  * pixel space, so the slot passes the rendered video-container dimensions and
@@ -121,8 +120,8 @@ export interface CameraOverlayContext {
   height: number;
 }
 
-// Co-located declaration-merge of this widget's slot ids → their props (spec
-// §4.6). Kept next to the widget (not a central registry file) so parallel slot
+// Co-located declaration-merge of this widget's slot ids onto their props types.
+// Kept next to the widget (not a central registry file) so parallel slot
 // work on other widgets never collides on this seam. Targets the sitrep-sdk
 // facade, not @ksp-gonogo/core directly: CameraFeed OWNS these slots (it's the
 // one file that both renders <AugmentSlot> for them AND is sealed onto the
@@ -373,7 +372,7 @@ export function CameraFeed({
 
   if (!client || !subscriptions) return null;
 
-  // Slot props (spec §4.4). Both carry the displayed camera's flightID; the
+  // Slot props. Both carry the displayed camera's flightID; the
   // overlay additionally carries the measured video-container size so an
   // overlay augment can draw in the feed's pixel space.
   const overlayContext: CameraOverlayContext = {
@@ -421,7 +420,7 @@ export function CameraFeed({
     setpointInitial !== undefined;
 
   // Inject gonogo's delayed-playout stream source through the SDK's `useStream`
-  // seam (kerbcam §3.4). `useDelayedKerbcastStream` is a stable module-scope
+  // seam. `useDelayedKerbcastStream` is a stable module-scope
   // hook, satisfying the seam's rules-of-hooks contract. Its signature matches
   // the SDK's `CameraStreamHook` type, so the prop is passed plainly.
   //
@@ -448,14 +447,13 @@ export function CameraFeed({
           showDebugInfo={showDebugInfo}
           enableFullscreen
           enablePictureInPicture
-          // TODO(main): needs kerbcast 1.9.0 lockfile bump. Once the
-          // @ksp-gonogo/kerbcast-react pin moves from 1.8.1 to 1.9.0, pass
-          // `disableManualControls={controlMode === "staged"}` here so the SDK's
-          // built-in live pan/zoom controls are truly disabled above the delay
-          // threshold (the honest gate the #35 design calls for). The prop does
-          // NOT exist on 1.8.1's CameraFeedProps, so adding it now fails
-          // typecheck; until the bump lands, the CameraSetpointSurface below is
-          // the delayed control path and the SDK's live controls stay reachable.
+          // `disableManualControls={controlMode === "staged"}` belongs here, so
+          // the SDK's built-in live pan and zoom are genuinely disabled above
+          // the delay threshold. The prop does not exist on the pinned
+          // @ksp-gonogo/kerbcast-react 1.8.1's `CameraFeedProps`, so passing it
+          // fails typecheck; it needs a 1.9.0 lockfile bump first. Until then
+          // the CameraSetpointSurface below is the delayed control path and the
+          // SDK's live controls stay reachable.
         />
         {unavailableReason && (
           <div role="status" aria-live="polite" style={FEED_UNAVAILABLE_STYLE}>
@@ -544,10 +542,9 @@ function describeSignalQuality(
 ): QualityBadgeInfo | null {
   if (connected === undefined && signalStrength === undefined) return null;
   // NO SIGNAL when the link is down OR the strength has decayed to
-  // effectively zero (0%): a 0% link carries nothing, so it reads as no
-  // signal rather than a "0%" quality badge (comms-delay-model-consistency
-  // spec, Phase 3). The tiny epsilon is a float-noise guard, not a "weak
-  // link" threshold: a real 1% link still shows its percentage.
+  // effectively zero: a 0% link carries nothing, so it reads as no signal
+  // rather than a "0%" quality badge. The tiny epsilon is a float-noise guard,
+  // not a "weak link" threshold: a real 1% link still shows its percentage.
   const strength = signalStrength?.magnitude;
   const zeroSignal =
     strength !== undefined && Number.isFinite(strength) && strength <= 1e-6;

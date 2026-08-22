@@ -85,9 +85,7 @@ interface Contribution {
   nominalFlow?: number;
 }
 
-// ---------------------------------------------------------------------------
-// Augment slots (PowerSystems is THE worked
-// example: see augment-slot-map.md "Power / resources").
+// PowerSystems is this repo's worked example of the augment-slot pattern.
 //
 // `power-systems.sections`: a Table/section slot in the body, below the
 // net-rate/producer-consumer readout. The canonical first filler is
@@ -100,7 +98,6 @@ interface Contribution {
 // renders against the resource the operator is actually looking at,
 // slot-parameterised augments; the parent's context passed down. No augment
 // ships here yet: the slot renders nothing until one registers.
-// ---------------------------------------------------------------------------
 
 /**
  * What this widget is currently looking at, published for every augment bound

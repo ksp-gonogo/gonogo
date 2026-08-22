@@ -37,8 +37,8 @@ const STOCK_GROUPS_ALL_OFF = Array.from({ length: 10 }, (_, i) => ({
 /**
  * The toggle -> absolute command bridge, proven for a representative stock
  * singleton (SAS) and Abort: `ActionGroupComponent` firing a toggle dispatches
- * the new `vessel.control.set*` COMMAND directly via `useCommand`
- * (delayed-command-ux robotics-audit migration), unconditionally, no
+ * the `vessel.control.set*` COMMAND directly via `useCommand`,
+ * unconditionally, with no
  * carried-channels gate and no legacy `DataSource.execute()` fallback: every
  * vessel command widget on this pattern (MechJeb, RoboticsConsole,
  * RotorTachometer) dispatches the same way.

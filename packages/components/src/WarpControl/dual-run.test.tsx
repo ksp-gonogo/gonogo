@@ -18,11 +18,11 @@ import rails from "./__fixtures__/rails-warp-1000x.json";
 import { WarpControlComponent } from "./index";
 
 /**
- * WarpControl's stream render golden. This began life as a
- * fork↔stream byte-identical dual-run; with WarpControl de-Telemachus'd,
- * the widget no longer has a legacy read path to compare against, so the
- * legacy leg is gone (the id='data' MockDataSource legacy comparison was
- * dropped).
+ * WarpControl's stream render golden. This began life as a byte-identical
+ * dual-run against the retired legacy read path; the widget no longer has one,
+ * so there is nothing to compare against and the `id='data'` MockDataSource leg
+ * is gone.
+ *
  * What remains proves the widget renders the full warp state correctly off
  * the real stream pipeline (`TelemetryProvider` + `TelemetryClient`/
  * `TimelineStore`).
@@ -95,11 +95,11 @@ describe("WarpControl: stream render golden (delay=0)", () => {
 });
 
 /**
- * The plan's literal "off the recording's wire" golden (`m3-migration-plan
- * .md` §4-behavior: "stream: TelemetryProvider fed the reference-wire-
- * fixture.json frames"). Gitignored/local-only, skip-if-absent: mirrors
- * `reference-wire-fixture.test.ts`'s own discipline; CI never has this file
- * checked out, so this is a local/branch gate, not a CI one.
+ * The render golden taken off a real recording's wire, with
+ * `TelemetryProvider` fed the captured frames directly. The recording is
+ * local-only and gitignored, so this skips when absent, mirroring
+ * `reference-wire-fixture.test.ts`'s discipline: CI never has the file, which
+ * makes this a local gate rather than a CI one.
  */
 const currentDir = path.dirname(fileURLToPath(import.meta.url));
 const realFixturePath = path.join(
@@ -123,8 +123,8 @@ describe.skipIf(!realFixtureExists)(
       // reference-wire-fixture.test.ts's own assertion), each of which
       // resets validAt back near 0 in its own epoch and drops every
       // PRIOR-epoch point from the store's timelines (TimelineStore's
-      // cross-topic sweep, `m3-migration-plan.md`'s "client ghost"
-      // avoidance): so replaying the WHOLE recording and then pinning
+      // cross-topic sweep, which is what stops a client ghost):
+      // so replaying the WHOLE recording and then pinning
       // viewUt at 0 would resolve against whatever epoch-3 frame happens to
       // sit at validAt<=0, not the true first frame of the session (a real
       // trap the first draft of this test fell into: RED with a mismatched
@@ -189,8 +189,7 @@ describe.skipIf(!realFixtureExists)(
       const client = new TelemetryClient(transport);
 
       // Pinned to UT 0 (the FIRST time.warp frame's own validAt, asserted
-      // above) via `clock.scrubTo`: the plan's "FixedViewClock" pattern
-      // (`m3-migration-plan.md` §4-test). Belt-and-suspenders alongside the
+      // above) via `clock.scrubTo`, a fixed view clock. Belt-and-suspenders alongside the
       // trim above (not load-bearing on its own; see that comment for why
       // trimming, not just pinning, is what actually fixes the epoch trap):
       // pinning ALONE, against the untrimmed full recording, advances the

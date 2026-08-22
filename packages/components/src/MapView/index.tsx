@@ -263,13 +263,14 @@ declare module "@ksp-gonogo/core" {
   }
 }
 
-// The facade-sealed-client copy of this merge (needed so
-// `SlotProps<"map-view.*">` resolves precisely for a client that doesn't
-// import `@ksp-gonogo/components`) lives in `mod/sitrep-sdk/src/api/
-// slots.ts`, not a second `declare module "@ksp-gonogo/sitrep-sdk"` block
-// here: see that module's header comment for why a same-file block can't
-// reach a FOREIGN sealed client's compiled program
-// (docs/superpowers/plans/2026-07-19-facade-sealing.md §2.3).
+/**
+ * The facade-sealed-client copy of this merge, needed so `SlotProps<"map-view.*">`
+ * resolves precisely for a client that does not import `@ksp-gonogo/components`,
+ * lives in `mod/sitrep-sdk/src/api/slots.ts` rather than as a second
+ * `declare module "@ksp-gonogo/sitrep-sdk"` block here. That module's header
+ * says why a same-file block cannot reach a foreign sealed client's compiled
+ * program.
+ */
 
 const mapViewActions = [
   {

@@ -8,18 +8,18 @@ import { ExperimentsComponent } from "./index";
 /**
  * Experiments's stream test-adapter proof: genuinely running off the real
  * `TelemetryProvider`/`TelemetryClient`/`TimelineStore` pipeline via
- * `StubTransport` for `science.lab` (a NEW capability, no legacy
- * Telemachus/GonogoTelemetry analogue), `science.instruments`
- * (`sci.instruments`'s new wire home, `map-topic.ts`) AND `science.experiments`
- * (the derived vessel-wide data total). All three reads are canonical one-arg
- * Topics now: no legacy `DataSource` is registered anywhere in this file. The
- * `science.instruments` payload below uses the NEW `InstrumentEntry` field
- * names (`partId` as a string, `partName`, `experimentId`, `dataIsCollectable`)
- * to prove `parseInstruments`'s shape fix reads the new wire correctly, not
- * just the legacy shape. Uses the exact idle-lab payload captured in
- * `local_docs/telemetry-mod/recordings/reference-lab-2026-07-08.json` (an
- * OPERATIONAL, 2-scientist, but IDLE Mobile Processing Lab, no data
- * loaded, `scienceRate` 0): a valid steady state, not a placeholder.
+ * `StubTransport` for `science.lab`, `science.instruments` and
+ * `science.experiments` (the derived vessel-wide data total). All three are
+ * canonical one-arg Topics, and no legacy `DataSource` is registered anywhere
+ * in this file.
+ *
+ * The `science.instruments` payload below uses the `InstrumentEntry` field
+ * names (`partId` as a string, `partName`, `experimentId`,
+ * `dataIsCollectable`), so it proves `parseInstruments` reads the current wire
+ * and not only the older shape. The lab payload is a recorded one: an
+ * OPERATIONAL, two-scientist, but IDLE Mobile Processing Lab with no data
+ * loaded and `scienceRate` 0, which is a valid steady state rather than a
+ * placeholder.
  */
 // Rendered trees, tracked so afterEach can unmount them BEFORE clearing the
 // action-handler registry: clearActionHandlers() firing on a still-mounted

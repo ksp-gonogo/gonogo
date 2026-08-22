@@ -123,15 +123,6 @@ const DISPLAY_SCAN_TYPES: SCANType[] = [
 ];
 
 /**
- * Resolve the active vessel's current body NAME. `vessel.identity` only
- * carries the stable `system.bodies` INDEX (`parentBodyIndex`), the same
- * index/name split `AnomalyOverlay/index.tsx`'s `useBodyIndexByName` and
- * `packages/components/src/MapView/vanillaPoiProvider.ts`'s
- * `useBodyNameByIndex` resolve elsewhere; this is the single-body variant of
- * that lookup (the widget only ever needs the active vessel's own body, not
- * a full index->name table).
- */
-/**
  * The value a VERDICT may be drawn from: current, or modelled forward to the frame.
  * A stale reading gives nothing, because a judgement cannot be dated: the operator
  * reads a band or a pill as the situation NOW.
@@ -159,6 +150,15 @@ function stillTrue<T, A>(
   return undefined;
 }
 
+/**
+ * Resolve the active vessel's current body NAME. `vessel.identity` only
+ * carries the stable `system.bodies` INDEX (`parentBodyIndex`), the same
+ * index/name split `AnomalyOverlay/index.tsx`'s `useBodyIndexByName` and
+ * `packages/components/src/MapView/vanillaPoiProvider.ts`'s
+ * `useBodyNameByIndex` resolve elsewhere; this is the single-body variant of
+ * that lookup (the widget only ever needs the active vessel's own body, not
+ * a full index->name table).
+ */
 function useActiveVesselBodyName(): string | undefined {
   // Both facts: a vessel's parent body and the body catalogue change by event.
   const identity = stillTrue(useTelemetry("vessel.identity"), undefined);
@@ -398,8 +398,6 @@ function CoverageRow({
     </Grid>
   );
 }
-
-// ── Registration ────────────────────────────────────────────────────────────
 
 registerComponent<ScanningConfig>({
   id: "scanning",

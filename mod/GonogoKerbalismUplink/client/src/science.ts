@@ -16,7 +16,8 @@
 // boundary: core stays open and opaque, the provider supplies the type at its own
 // edge.
 //
-// ── Read this before using a shared field on a Kerbalism-sourced science frame ──
+// Read this before using a shared field on a Kerbalism-sourced science frame.
+//
 // Kerbalism leaves several core fields NULL because its model does not fit their
 // declared unit or meaning, and the entry's `valueModel` tag is what says so:
 // `dataAmount`/`dataStored`/`dataStorage`/`dataMits` (mits, Kerbalism has megabytes,
@@ -76,7 +77,8 @@ export const SCIENCE_INSTRUMENTS_TOPIC = "science.instruments";
 export const SCIENCE_LAB_TOPIC = "science.lab";
 export const SCIENCE_EXPERIMENT_BREAKDOWN_TOPIC = "science.experimentBreakdown";
 
-// ── The three units this Uplink brings with it ──────────────────────────────
+// The three units this Uplink brings with it.
+//
 // Kerbalism measures science data in megabytes, not stock's mits, and none of the
 // three symbols below is in the first-party catalog. `registerUnit` is the declared
 // extension point for exactly this: a symbol with no dimension can be carried but

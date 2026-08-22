@@ -52,24 +52,6 @@ export interface TechNode {
 }
 
 /**
- * Defensive parser for tech-node array payloads. Accepts BOTH the legacy
- * GonogoTelemetry `tech.nodes` shape (an explicit `state: "Available" |
- * "Researchable" | "Unavailable"` string) and the career-detail wire
- * shape (`career.status.tech.nodes`, CareerViewProvider.BuildTechNodes:
- * `unlocked: boolean`, no `state` at all: the server deliberately doesn't
- * compute the 3-state "Researchable" distinction, career-capture-extend-
- * report.md). When `state` is absent, derive it from `unlocked`
- * (`true` -> "Available", `false` -> "Unavailable"): `computeResearchable`
- * below already promotes some "Unavailable" nodes to researchable-now purely
- * from `state`/`parents`/`scienceCost`, exactly the client-side derivation
- * the extend session's doc comment anticipated. `description`/`parts` stay
- * empty on the new wire (no equivalent field), both already default
- * gracefully. Drops malformed entries; tolerates missing optional fields
- * (description, parts) so an older provider degrades gracefully, the
- * operator still sees title + scienceCost + state + parents even without
- * the 2026-05-13 fork additions.
- */
-/**
  * The value a VERDICT may be drawn from: current, or modelled forward to the frame.
  * A stale reading gives nothing, because a judgement cannot be dated: the operator
  * reads a band or a pill as the situation NOW.
@@ -102,6 +84,24 @@ function stillTrue<T, A>(
   return undefined;
 }
 
+/**
+ * Defensive parser for tech-node array payloads. Accepts BOTH the legacy
+ * GonogoTelemetry `tech.nodes` shape (an explicit `state: "Available" |
+ * "Researchable" | "Unavailable"` string) and the career-detail wire
+ * shape (`career.status.tech.nodes`, CareerViewProvider.BuildTechNodes:
+ * `unlocked: boolean`, no `state` at all: the server deliberately doesn't
+ * compute the 3-state "Researchable" distinction). When `state` is absent,
+ * derive it from `unlocked`
+ * (`true` -> "Available", `false` -> "Unavailable"): `computeResearchable`
+ * below already promotes some "Unavailable" nodes to researchable-now purely
+ * from `state`/`parents`/`scienceCost`, exactly the client-side derivation
+ * the extend session's doc comment anticipated. `description`/`parts` stay
+ * empty on the new wire (no equivalent field), both already default
+ * gracefully. Drops malformed entries; tolerates missing optional fields
+ * (description, parts) so an older provider degrades gracefully, the
+ * operator still sees title + scienceCost + state + parents even without
+ * the 2026-05-13 fork additions.
+ */
 export function parseTechNodes(raw: unknown): TechNode[] | null {
   if (raw === null || raw === undefined) return null;
   if (!Array.isArray(raw)) return null;
@@ -334,7 +334,7 @@ function TechTreeComponent({ w, h }: Readonly<ComponentProps<TechTreeConfig>>) {
   // Science reads canonically off `career.status.economy.science`; the tech
   // nodes off `career.status.tech.nodes`: the wire carries
   // id/title/scienceCost/unlocked/parents per node
-  // (career-capture-extend-report.md); parseTechNodes derives the
+  // and parseTechNodes derives the
   // Available/Unavailable state from `unlocked` client-side (no
   // server-computed Researchable 3rd state: this widget's own
   // computeResearchable already does that derivation). The scene reads off
