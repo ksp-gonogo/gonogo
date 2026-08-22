@@ -114,7 +114,11 @@
           "argPe": 0,
           "meanAnomalyAtEpoch": 0,
           "epoch": 0,
-          "mu": 3531600000000.0
+          "mu": 3531600000000.0,
+          "horizon": {
+            "kind": 1,
+            "trajectoryKind": 1
+          }
         },
         "meta": {
           "quality": 1

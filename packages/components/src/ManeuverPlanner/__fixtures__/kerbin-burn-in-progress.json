@@ -266,7 +266,11 @@
             "magnitude": 43274.2794794121,
             "unit": "ut"
           },
-          "patches": []
+          "patches": [],
+          "horizon": {
+            "kind": 1,
+            "trajectoryKind": 1
+          }
         }
       },
       {
