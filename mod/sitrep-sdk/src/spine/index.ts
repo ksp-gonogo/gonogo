@@ -60,6 +60,7 @@ export * from "./dv-legacy-scalars";
 export * from "./dv-stage-resources";
 export * from "./heartbeat-tracker";
 export * from "./kepler";
+export * from "./lagrange";
 export * from "./lifecycle";
 export * from "./maneuver-legacy";
 export * from "./map-command";

@@ -701,3 +701,30 @@ export function resolveReadFrame(
   // draws something rather than recursing.
   return controlFrame.kind === "follow-control-frame" ? null : controlFrame;
 }
+
+/**
+ * The inverse of {@link toFrame} for a position: a point given in a frame's own
+ * coordinates, put back into root-centred inertial metres.
+ *
+ * A frame's fixed points are the reason this exists. A libration point is
+ * stated as a constant in its pair's rotating-pulsating frame, and every
+ * question about it that is not "where is it in this frame" needs it back in
+ * metres: how far a craft is from it, how far it is from either body, and where
+ * to draw it on a diagram that is not in this frame.
+ *
+ * Position only. The velocity inverse would need the same angular-velocity and
+ * dilatation-rate terms in reverse and nothing asks for it, and an untravelled
+ * branch of a coordinate transform is the kind of code that is wrong for a year
+ * without anyone finding out.
+ */
+export function fromFrame(
+  instant: FrameInstant,
+  positionInFrame: Vector3,
+): Vector3 {
+  const [ex, ey, ez] = instant.basis;
+  const scaled = scale(positionInFrame, instant.unitLength);
+  return add(
+    instant.origin,
+    add(add(scale(ex, scaled[0]), scale(ey, scaled[1])), scale(ez, scaled[2])),
+  );
+}
