@@ -1,3 +1,4 @@
+import { Staleness } from "@ksp-gonogo/sitrep-sdk";
 import {
   act,
   render,
@@ -18,7 +19,11 @@ afterEach(() => {
 
 const VIEW_UT = 10_000;
 
-const CARRIED = ["principia.plan"];
+// `comms.delay` is carried because it is what `useCommand` reads its one-way
+// delay off, and the editable-until deadline is derived from that one-way. A
+// fixture that left it out would report every vantage as instant, which is the
+// state the deadline exists to distinguish from.
+const CARRIED = ["principia.plan", "comms.delay"];
 
 function mount() {
   const stream = setupStreamFixture({
@@ -330,6 +335,153 @@ describe("BurnEditor", () => {
         name: "Confirm applying the edited burn",
       }),
     ).toBeInTheDocument();
+    await act(async () => {});
+  });
+
+  /**
+   * A plan whose keyframes stopped arriving is still SHOWN, and is no longer
+   * EDITABLE. Both halves are asserted here because either alone passes for the
+   * wrong reason: a widget that blanked on a stale reading would satisfy the
+   * disabled assertion, and the one that shipped satisfied the visible one by
+   * collapsing every non-pending arm into a live plan.
+   *
+   * The burn index and the burn count both come off this reading, so a write
+   * bounded against one from an hour ago is bounded against a plan that may no
+   * longer have that many burns.
+   */
+  it("shows a stale plan and refuses to edit it, naming what is out of contact", async () => {
+    const stream = mount();
+
+    act(() => {
+      // Server-stamped, not merely old. Staleness is inferred from missed
+      // keyframes rather than from the sample's own age, so a fixture that only
+      // backdated `validAt` would still deliver a LIVE reading and this test
+      // would pass against the collapsing version.
+      stream.emit("principia.plan", plan(), {
+        validAt: VIEW_UT - 3_600,
+        staleness: Staleness.LastBeforeBlackout,
+      });
+    });
+    await screen.findByText(/^PLAN \d+ OF \d+$/);
+
+    expect(screen.getByRole("button", { name: "Burn 1" })).toBeInTheDocument();
+    await userEvent.click(screen.getByRole("button", { name: "Burn 1" }));
+
+    // The refusal is asserted BEFORE the badge, so a run against the collapsing
+    // version names the defect (an editable stale plan) rather than a missing
+    // label.
+    expect(screen.getByLabelText("NORMAL")).toBeDisabled();
+    expect(screen.getByLabelText("DAY")).toBeDisabled();
+    expect(
+      screen.getByRole("button", { name: "Apply the edited burn" }),
+    ).toBeDisabled();
+    expect(screen.getByText("OUT OF CONTACT")).toBeInTheDocument();
+    await act(async () => {});
+  });
+
+  /**
+   * The complement, and what stops the assertion above passing for a widget that
+   * simply never enables anything: a plan observed at the view instant is
+   * editable.
+   */
+  it("edits a plan observed at the view instant", async () => {
+    const stream = mount();
+    await emitPlan(stream);
+
+    await userEvent.click(screen.getByRole("button", { name: "Burn 1" }));
+
+    expect(screen.queryByText("OUT OF CONTACT")).not.toBeInTheDocument();
+    expect(screen.getByLabelText("NORMAL")).toBeEnabled();
+    await act(async () => {});
+  });
+
+  /**
+   * The failure this pair exists for: the ignition countdown reads a full hour
+   * and the burn is already unreachable.
+   *
+   * A press leaves at the operator's VIEW instant, which trails reality by one
+   * one-way delay, and the command then spends a second one-way delay in
+   * flight. So an edit lands two one-way delays after the instant shown on
+   * screen, and at a thirty-light-minute vantage every control stays enabled
+   * for the last sixty minutes of a countdown during which nothing sent can
+   * arrive.
+   */
+  it("shuts the edit window two one-way delays before ignition", async () => {
+    const stream = mount();
+    act(() => {
+      // Thirty light-minutes one way. The fixture burn ignites an hour after the
+      // pinned view instant, so the window has shut exactly now.
+      stream.emit("comms.delay", { oneWaySeconds: 1_800 });
+    });
+    await emitPlan(stream);
+
+    await userEvent.click(screen.getByRole("button", { name: "Burn 1" }));
+
+    expect(screen.getByText("EDIT WINDOW SHUT")).toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: "Apply the edited burn" }),
+    ).toBeDisabled();
+    expect(
+      screen.getByRole("button", {
+        name: "Add a burn copied from this one",
+      }),
+    ).toBeDisabled();
+    await act(async () => {});
+  });
+
+  /**
+   * Two one-way delays and no more. A burn two hours out at the same vantage is
+   * editable for another hour, and the countdown says an hour rather than the
+   * two the ignition clock shows.
+   */
+  it("counts the edit window down to two one-way delays before ignition", async () => {
+    const stream = mount();
+    act(() => {
+      stream.emit("comms.delay", { oneWaySeconds: 1_800 });
+    });
+    await emitPlan(stream, {
+      burns: [burn({ ignitionUt: VIEW_UT + 7_200, cutoffUt: VIEW_UT + 7_260 })],
+    });
+
+    await userEvent.click(screen.getByRole("button", { name: "Burn 1" }));
+
+    expect(screen.queryByText("EDIT WINDOW SHUT")).not.toBeInTheDocument();
+    expect(screen.getByText(/EDIT WINDOW/)).toHaveTextContent("T−1h");
+    expect(
+      screen.getByRole("button", { name: "Apply the edited burn" }),
+    ).toBeEnabled();
+    await act(async () => {});
+  });
+
+  /**
+   * The row has to carry the verdict too. An operator picks a burn off the list
+   * before any of the form exists, and a list that offers a burn nothing can
+   * reach is what sends them into a form to compose an edit that cannot land.
+   */
+  it("marks a burn on the list whose edit window has shut", async () => {
+    const stream = mount();
+    act(() => {
+      stream.emit("comms.delay", { oneWaySeconds: 1_800 });
+    });
+    await emitPlan(stream);
+
+    expect(screen.getByText("TOO LATE TO EDIT")).toBeInTheDocument();
+    await act(async () => {});
+  });
+
+  /**
+   * At a vantage with no delay the deadline IS ignition, and the existing
+   * ignition countdown already says so. A second countdown reading the same
+   * number would be furniture.
+   */
+  it("says nothing about an edit window when the vantage has no delay", async () => {
+    const stream = mount();
+    await emitPlan(stream);
+
+    await userEvent.click(screen.getByRole("button", { name: "Burn 1" }));
+
+    expect(screen.queryByText(/EDIT WINDOW/)).not.toBeInTheDocument();
+    expect(screen.queryByText("TOO LATE TO EDIT")).not.toBeInTheDocument();
     await act(async () => {});
   });
 

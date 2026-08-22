@@ -1,4 +1,4 @@
-import type { Reading } from "@ksp-gonogo/sitrep-sdk";
+import type { Reading, StaleGrade } from "@ksp-gonogo/sitrep-sdk";
 import {
   registerAugment,
   useCommand,
@@ -63,7 +63,16 @@ import "../topics";
  */
 type PlanView =
   | { kind: "none"; reason: string }
-  | { kind: "plan"; plan: PrincipiaPlan };
+  | {
+      kind: "plan";
+      plan: PrincipiaPlan;
+      /**
+       * Why this plan cannot be edited, or null when it can. A sentence rather
+       * than a flag, because the operator's next move is different for each of
+       * the three ways contact is lost.
+       */
+      outOfContact: string | null;
+    };
 
 /**
  * A plan the console has never been told about and a vessel with no plan are
@@ -73,6 +82,10 @@ type PlanView =
  * act on it. What is refused is EDITING one: the burn index and the burn count
  * both come off a reading, and a write bounded against a reading from an hour
  * ago is the exact mistake the producer's own protocol is built to prevent.
+ *
+ * `reading.value` on the stale arms and never `reckoned`: a modelled plan is a
+ * guess at a burn LIST, and an index written back has to be one the producer
+ * actually reported holding a burn.
  */
 function planView(reading: Reading<PrincipiaPlan>): PlanView {
   switch (reading.state) {
@@ -84,9 +97,90 @@ function planView(reading: Reading<PrincipiaPlan>): PlanView {
         reason:
           "No plan reading. Principia is not running, or the console has no vessel.",
       };
-    default:
-      return { kind: "plan", plan: reading.value };
+    case "observed":
+      return { kind: "plan", plan: reading.value, outOfContact: null };
+    case "stale":
+    case "reckonable":
+      return {
+        kind: "plan",
+        plan: reading.value,
+        outOfContact: outOfContactReason(reading.grade),
+      };
   }
+}
+
+/**
+ * What a stale reading has lost contact WITH, as something to go and check.
+ *
+ * The three grades ask for three different next moves: one channel's keyframes
+ * drying up is a producer that stopped publishing, a down transport is the whole
+ * link, and a last-before-blackout sample is the craft itself behind something.
+ * An operator told only that the plan is old checks the wrong one.
+ */
+function outOfContactReason(grade: StaleGrade): string {
+  switch (grade) {
+    case "held-stale":
+      return "This plan's updates stopped arriving. The burns below are the last set that did, and the burn count they are numbered against may have moved since.";
+    case "disconnected":
+      return "The stream is down. The burns below are the last set that reached us, and the burn count they are numbered against may have moved since.";
+    case "last-before-blackout":
+      return "This craft is out of contact. The burns below are the last set that got out before the blackout, and the burn count they are numbered against may have moved since.";
+  }
+}
+
+/**
+ * When an edit to a burn stops being able to reach it.
+ *
+ * <para><b>The deadline is not ignition.</b> A press leaves at the operator's
+ * VIEW instant, and the view instant trails reality by one one-way light time
+ * because that is how long the reading on screen took to arrive. The command
+ * then spends a second one-way light time in flight. So an edit composed against
+ * the instant on screen lands two one-way delays later, and the last view
+ * instant it can leave from is `ignition - 2 * oneWay`.</para>
+ *
+ * <para>At a thirty-light-minute vantage that is a full HOUR before the ignition
+ * countdown reaches zero, and for that hour every control reads as live, APPLY
+ * is accepted, and the write arrives after the burn has flown. The operator
+ * believes they acted.</para>
+ *
+ * <para>Measured against the DRAFT's ignition rather than the burn's, because
+ * the draft's is the instant that gets written: an operator who pushes the burn
+ * further out reopens the window, and one who drags it into the past shuts it.
+ * That is the same comparison the mod makes on arrival
+ * (<c>PrincipiaBurnRules.RejectRequestedIgnition</c>), so the prediction here
+ * and the refusal there cannot disagree about what they are testing.</para>
+ */
+interface EditWindow {
+  /** One-way light time to this vessel, in seconds. */
+  oneWaySeconds: number;
+  /** The last view instant an edit can leave from. */
+  deadlineUt: number;
+  /** How long the window has left. Negative once it has shut. */
+  remainingSeconds: number;
+  /** True once an edit sent now would arrive after the requested ignition. */
+  shut: boolean;
+}
+
+/**
+ * Null at a vantage with no delay, where the deadline IS ignition and the
+ * ignition countdown already on the row says so. A second countdown reading the
+ * same number would be furniture, and a widget that showed one would train the
+ * operator to ignore it at the vantages where the two differ by an hour.
+ */
+function editWindow(
+  ignitionUt: number | null,
+  viewUt: number | null,
+  oneWaySeconds: number,
+): EditWindow | null {
+  if (ignitionUt === null || viewUt === null || oneWaySeconds <= 0) return null;
+  const deadlineUt = ignitionUt - 2 * oneWaySeconds;
+  const remainingSeconds = deadlineUt - viewUt;
+  return {
+    oneWaySeconds,
+    deadlineUt,
+    remainingSeconds,
+    shut: remainingSeconds <= 0,
+  };
 }
 
 /** What the operator has changed but not yet sent. */
@@ -234,18 +328,33 @@ export function BurnEditor() {
     );
   }
 
-  const { plan } = view;
+  const { plan, outOfContact } = view;
   const surface = plan.writeSurface;
   const armed = surface?.armed === true;
   const available = surface?.available === true;
   const burns = plan.burns ?? [];
   const vesselId = plan.vesselId ?? undefined;
 
+  // The four handles carry the same vantage, so one of them answers for all
+  // four. Taken off the replace handle because APPLY is the write the deadline
+  // is about.
+  const oneWaySeconds = replaceCmd.effectiveDelaySeconds;
+  const draftWindow = editWindow(
+    draft?.ignitionUt ?? null,
+    viewUt,
+    oneWaySeconds,
+  );
+
   const selected =
     draft === null
       ? undefined
       : burns.find((burn) => magnitudeOf(burn.index) === draft.burnIndex);
-  const frozen = !armed || selected?.frameEditable !== true;
+  const frozen =
+    !armed || selected?.frameEditable !== true || outOfContact !== null;
+  // The ignition field stays live inside a shut window: pushing the burn further
+  // out is how the operator REOPENS one, and freezing the field would leave the
+  // deadline as a dead end rather than something to act on.
+  const tooLate = draftWindow?.shut === true;
 
   return (
     <Section data-burn-editor="">
@@ -271,7 +380,19 @@ export function BurnEditor() {
           ) : (
             <Badge severity="caution">NOT ARMED</Badge>
           )}
+          {outOfContact !== null && (
+            <Badge severity="warning">OUT OF CONTACT</Badge>
+          )}
         </Cluster>
+
+        {/* Beside the badge rather than instead of it: the badge is what catches
+            the eye and the sentence is what says which of the three things to go
+            and check. */}
+        {outOfContact !== null && (
+          <Text tone="faint" size="sm">
+            {outOfContact}
+          </Text>
+        )}
 
         {/* Arming is a real write of Principia's own burn back into the plan, so
             it confirms rather than firing on the first press. */}
@@ -337,6 +458,12 @@ export function BurnEditor() {
                   ) : (
                     <Unit value={burn.deltaV} decimals={1} />
                   )}
+                  {/* On the row as well as in the form. An operator picks a burn
+                      off this list before any form exists, and a list that
+                      offers one nothing sent can still reach is what sends them
+                      into a form to compose an edit that cannot land. */}
+                  {editWindow(ignition, viewUt, oneWaySeconds)?.shut ===
+                    true && <Badge severity="warning">TOO LATE TO EDIT</Badge>}
                   {burn.executing === true && (
                     <Badge severity="critical">BURNING</Badge>
                   )}
@@ -399,6 +526,35 @@ export function BurnEditor() {
                 decimals={2}
               />
             </Stack>
+
+            {/* Above the fields, not below the buttons. The deadline is what
+                decides whether composing an edit at all is worth doing, so it is
+                read before anything is typed. */}
+            {draftWindow !== null && (
+              <Stack gap="xs" data-edit-window="">
+                <Cluster gap="sm" wrap justify="start">
+                  {draftWindow.shut ? (
+                    <Badge severity="warning">EDIT WINDOW SHUT</Badge>
+                  ) : (
+                    <Badge severity="caution">
+                      EDIT WINDOW{" "}
+                      <Countdown value={draftWindow.remainingSeconds} clock />
+                    </Badge>
+                  )}
+                </Cluster>
+                <Text tone="faint" size="sm">
+                  {draftWindow.shut
+                    ? "An edit sent now reaches Principia after this burn has ignited, so the burn flies as it stands. Move the ignition later, or edit a later burn."
+                    : "Past this the edit arrives after ignition and the burn flies as it stands."}{" "}
+                  The window shuts at{" "}
+                  <MissionDate value={value("ut", draftWindow.deadlineUt)} />,{" "}
+                  <Countdown value={2 * draftWindow.oneWaySeconds} /> before the
+                  ignition above: one light time because the plan on screen is
+                  that old, and a second because the edit has the same distance
+                  to travel back.
+                </Text>
+              </Stack>
+            )}
 
             <Stack gap="xs">
               <SectionTitle>IGNITION</SectionTitle>
@@ -499,7 +655,7 @@ export function BurnEditor() {
                 confirmLabel="CONFIRM APPLY"
                 confirmTone="nogo"
                 pendingLabel="Applying..."
-                disabled={frozen}
+                disabled={frozen || tooLate}
                 aria-label="Apply the edited burn"
                 confirmAriaLabel="Confirm applying the edited burn"
               />
@@ -520,7 +676,10 @@ export function BurnEditor() {
                 confirmLabel="CONFIRM ADD"
                 confirmTone="nogo"
                 pendingLabel="Adding..."
-                disabled={frozen}
+                // The same deadline: an inserted burn is written at the draft's
+                // ignition too, so one composed for an instant the write cannot
+                // beat is a burn added to the plan already in the past.
+                disabled={frozen || tooLate}
                 aria-label="Add a burn copied from this one"
                 confirmAriaLabel="Confirm adding a burn copied from this one"
               />
@@ -537,7 +696,13 @@ export function BurnEditor() {
                 confirmLabel="CONFIRM REMOVE"
                 confirmTone="nogo"
                 pendingLabel="Removing..."
-                disabled={!armed}
+                // Out of contact freezes this too: the index is the whole of the
+                // request, and an index off an hour-old burn list can name a
+                // different burn by the time it arrives. NOT frozen by the edit
+                // deadline, though, because dropping a burn that has already
+                // flown is how a plan gets tidied and is the one write with
+                // nothing to beat.
+                disabled={!armed || outOfContact !== null}
                 aria-label="Remove this burn from the plan"
                 confirmAriaLabel="Confirm removing this burn from the plan"
               />
