@@ -42,6 +42,8 @@
 // TS2305s in a downstream package. The whole of each module belongs here.
 // ---------------------------------------------------------------------------
 
+export * from "./body-derivations";
+export * from "./celestial-facts";
 export * from "./client";
 export * from "./client-reading";
 export * from "./client-timeline";
@@ -53,6 +55,7 @@ export * from "./contributed-channels";
 export * from "./contributions";
 export * from "./dashboard-item";
 export * from "./delay-authority";
+export * from "./delta-v-budget";
 export * from "./dv-legacy-scalars";
 export * from "./dv-stage-resources";
 export * from "./heartbeat-tracker";

@@ -1,3 +1,4 @@
+import { value } from "@ksp-gonogo/sitrep-sdk";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import {
   activateProcessor,
@@ -134,6 +135,83 @@ describe("processorEvaluator", () => {
     for (let i = 0; i < 10; i++) store.beginFrame();
 
     expect(cb).toHaveBeenCalledTimes(1);
+
+    unsubscribe();
+    deactivate();
+  });
+
+  it("does not notify when an equal result carries wire Values (10 frames, 1 notification)", () => {
+    const store = makeStore();
+    setActiveTimelineStore(store);
+
+    const handle = defineProcessor({
+      id: "allocating-values",
+      owner: "core",
+      deps: [] as const,
+      compute: () => ({
+        totalVac: value("m/s", 4502),
+        stages: [{ stage: 0, burnTime: value("s", 180) }],
+      }),
+    });
+
+    const cb = vi.fn();
+    const deactivate = activateProcessor(handle.id);
+    const unsubscribe = subscribeProcessor(handle.id, cb);
+
+    for (let i = 0; i < 10; i++) store.beginFrame();
+
+    expect(cb).toHaveBeenCalledTimes(1);
+
+    unsubscribe();
+    deactivate();
+  });
+
+  it("still notifies when only the MAGNITUDE inside a carried Value moves", () => {
+    const store = makeStore();
+    setActiveTimelineStore(store);
+
+    let magnitude = 4502;
+    const handle = defineProcessor({
+      id: "moving-value",
+      owner: "core",
+      deps: [] as const,
+      compute: () => ({ totalVac: value("m/s", magnitude++) }),
+    });
+
+    const cb = vi.fn();
+    const deactivate = activateProcessor(handle.id);
+    const unsubscribe = subscribeProcessor(handle.id, cb);
+
+    for (let i = 0; i < 5; i++) store.beginFrame();
+
+    expect(cb).toHaveBeenCalledTimes(5);
+
+    unsubscribe();
+    deactivate();
+  });
+
+  it("still notifies when only the UNIT of a carried Value changes", () => {
+    const store = makeStore();
+    setActiveTimelineStore(store);
+
+    let flip = false;
+    const handle = defineProcessor({
+      id: "unit-swap-value",
+      owner: "core",
+      deps: [] as const,
+      compute: () => {
+        flip = !flip;
+        return { reading: flip ? value("m/s", 1) : value("m", 1) };
+      },
+    });
+
+    const cb = vi.fn();
+    const deactivate = activateProcessor(handle.id);
+    const unsubscribe = subscribeProcessor(handle.id, cb);
+
+    for (let i = 0; i < 4; i++) store.beginFrame();
+
+    expect(cb).toHaveBeenCalledTimes(4);
 
     unsubscribe();
     deactivate();

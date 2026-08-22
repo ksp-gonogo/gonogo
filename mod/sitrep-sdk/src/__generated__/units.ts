@@ -29,6 +29,7 @@ export type KnownSitrepUnit =
   | "kN"
   | "kPa"
   | "kW"
+  | "kg"
   | "kg/m³"
   | "km"
   | "m"
@@ -135,12 +136,15 @@ export const GENERATED_TYPE_UNITS: Readonly<Record<string, UnitsByField>> = {
     description: "text",
     gravParameter: "m³/s²",
     hasOcean: "flag",
+    hillSphere: "m",
     index: "id",
+    mass: "kg",
     name: "text",
     parentIndex: "id",
     radius: "m",
     rotationPeriod: "s",
     sphereOfInfluence: "m",
+    surfaceGravity: "g",
     tidallyLocked: "flag",
   },
   "CareerContract": {

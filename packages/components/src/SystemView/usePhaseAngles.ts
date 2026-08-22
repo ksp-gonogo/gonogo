@@ -1,7 +1,10 @@
 import { useTelemetry } from "@ksp-gonogo/core";
-import { canPropagate, useViewUt } from "@ksp-gonogo/sitrep-client";
+import {
+  canPropagate,
+  deriveTrueAnomalyDeg,
+  useViewUt,
+} from "@ksp-gonogo/sitrep-client";
 import { useMemo } from "react";
-import { deriveTrueAnomalyDeg } from "./bodyDerivations";
 import type { CelestialBody } from "./useCelestialBodies";
 
 /**

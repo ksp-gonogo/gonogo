@@ -1,8 +1,4 @@
-import type {
-  ComponentProps,
-  ConfigComponentProps,
-  StageInfo,
-} from "@ksp-gonogo/core";
+import type { ComponentProps, ConfigComponentProps } from "@ksp-gonogo/core";
 import {
   AugmentSlot,
   clampSafe,
@@ -11,8 +7,11 @@ import {
   useTelemetry,
 } from "@ksp-gonogo/core";
 import {
+  DELTA_V_BUDGET,
+  type DeltaVStage,
   type Reading,
   type ResourceAmountMap,
+  useProcessor,
   useStream,
 } from "@ksp-gonogo/sitrep-client";
 import { value } from "@ksp-gonogo/sitrep-sdk";
@@ -46,6 +45,9 @@ import {
 // ── Config ────────────────────────────────────────────────────────────────────
 
 type DeltaVMode = "vac" | "actual" | "asl";
+
+/** Stable empty stack: `useProcessor` answers undefined before the first frame. */
+const NO_STAGES: DeltaVStage[] = [];
 
 interface FuelStatusConfig {
   /**
@@ -133,11 +135,6 @@ function judgeable<T>(reading: Reading<T>): T | undefined {
   return undefined;
 }
 
-/** Whether a reading went stale, as opposed to never having arrived. */
-function notCurrent<T>(reading: Reading<T>): boolean {
-  return reading.state === "stale";
-}
-
 /**
  * The value of a FACT: something that stays true until an event changes it, and no
  * event can reach us down a link that is not delivering. `whenConfirmedNothing` is
@@ -184,7 +181,7 @@ function useResourceReading(def: ResourceDef): { value: number; max: number } {
     : { value: stage, max: stageMax };
 }
 
-function pickDeltaV(s: StageInfo, mode: DeltaVMode): number {
+function pickDeltaV(s: DeltaVStage, mode: DeltaVMode): number {
   switch (mode) {
     case "vac":
       return s.deltaVVac;
@@ -195,7 +192,7 @@ function pickDeltaV(s: StageInfo, mode: DeltaVMode): number {
   }
 }
 
-function pickTWR(s: StageInfo, mode: DeltaVMode): number {
+function pickTWR(s: DeltaVStage, mode: DeltaVMode): number {
   switch (mode) {
     case "vac":
       return s.TWRVac;
@@ -216,59 +213,6 @@ function pickTWR(s: StageInfo, mode: DeltaVMode): number {
 function fmtFixed(value: unknown, digits: number): string {
   if (typeof value !== "number" || !Number.isFinite(value)) return NULL_DISPLAY;
   return value.toFixed(digits);
-}
-
-/**
- * `dv.stages` can now arrive off either transport under the identical key
- * (map-topic.ts's whole-topic identity read): the
- * legacy `DataSource` still ships the historical `StageInfo`
- * camelCase names (`deltaVVac`/`TWRVac`/`thrustASL`/...), while the new mod
- * streams a `StageDeltaVEntry` (mod/sitrep-sdk contract.ts:491) through the
- * same `dv.stages` topic: `dvVac`/`dvAsl`/`dvActual`/`twrVac`/`twrAsl`/
- * `twrActual`/`thrustAsl`, and it never carries `stageMass`/`isp*` at all.
- * Normalize every entry to the `StageInfo` shape the renderer already reads
- * so `pickDeltaV`/`pickTWR` don't need to know which wire produced the row.
- * Mirrors Experiments's `parseInstruments` shape-reconciliation pattern.
- */
-export function parseStages(raw: unknown): StageInfo[] {
-  if (!Array.isArray(raw)) return [];
-  const out: StageInfo[] = [];
-  for (const entry of raw) {
-    if (!entry || typeof entry !== "object") continue;
-    const e = entry as Record<string, unknown>;
-    // Takes a `Value` as well as a bare number: the mod's `dv.stages` rows
-    // declare their units and arrive wrapped, the legacy rows do not, and
-    // this function exists precisely to reconcile the two.
-    const num = (...keys: string[]): number => {
-      for (const k of keys) {
-        const v = magnitudeOf(e[k] as Quantityish);
-        if (v !== null) return v;
-      }
-      return Number.NaN;
-    };
-    out.push({
-      stage: num("stage"),
-      stageMass: num("stageMass"),
-      dryMass: num("dryMass"),
-      fuelMass: num("fuelMass"),
-      startMass: num("startMass"),
-      endMass: num("endMass"),
-      burnTime: num("burnTime"),
-      deltaVVac: num("deltaVVac", "dvVac"),
-      deltaVASL: num("deltaVASL", "dvAsl"),
-      deltaVActual: num("deltaVActual", "dvActual"),
-      TWRVac: num("TWRVac", "twrVac"),
-      TWRASL: num("TWRASL", "twrAsl"),
-      TWRActual: num("TWRActual", "twrActual"),
-      ispVac: num("ispVac"),
-      ispASL: num("ispASL"),
-      ispActual: num("ispActual"),
-      thrustVac: num("thrustVac"),
-      thrustASL: num("thrustASL", "thrustAsl"),
-      thrustActual: num("thrustActual"),
-    });
-  }
-  return out;
 }
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
@@ -387,7 +331,7 @@ function StageStackSection({
   maxStageDv,
   compactStageMeta,
 }: {
-  stages: StageInfo[];
+  stages: DeltaVStage[];
   mode: DeltaVMode;
   currentStage: number | undefined;
   maxStageDv: number;
@@ -520,19 +464,38 @@ function FuelStatusComponent({
     undefined,
   )?.currentStage;
   /**
-   * The delta-v budget is a measurement of remaining propellant expressed as
-   * capability, so it goes the way the propellant does: withheld rather than held.
-   * A stale budget is the number an operator commits a burn against.
+   * The one ΔV derivation, shared. Every total below is the game's own figure off
+   * `dv.summary`, never a client-side sum of the stage rows: the two are built
+   * from different stage lists and disagree in flight (see `DELTA_V_BUDGET`).
+   *
+   * A dated budget is CARRIED and captioned rather than blanked. It only falls by
+   * burning and only rises by staging or docking, all events the operator caused,
+   * so the last figure is still the figure. This used to withhold it, and the
+   * caption that would have said so was computed and never rendered.
    */
-  const summaryReading = useTelemetry("dv.summary");
-  const summary = judgeable(summaryReading);
-  const budgetNotCurrent = notCurrent(summaryReading);
-  const stageCount = summary?.stageCount;
+  const budget = useProcessor(DELTA_V_BUDGET);
+  const budgetNotCurrent = budget?.budget.state === "stale";
+  /**
+   * The stock ΔV sim has answered about this craft, whatever it answered.
+   *
+   * Gates the totals row, which used to be gated on a total being `!== undefined`
+   * and so hung on a wire detail: a craft with no engines reports every total as
+   * `null`, and `null !== undefined` happened to be true, so the row rendered a
+   * labelled pair of em-dashes. That is the right thing to show, and saying so
+   * out loud keeps it from turning back into a void the day a total starts
+   * arriving absent instead of null.
+   */
+  const budgetReported =
+    budget !== undefined && budget.budget.state !== "pending";
+  const stageCount = budget?.stageCount ?? undefined;
   // Magnitudes: these feed `fmtFixed` and the per-stage bar scaling.
-  const totalDVVac = magnitudeOf(summary?.totalDvVac) ?? undefined;
-  const totalDVASL = magnitudeOf(summary?.totalDvAsl) ?? undefined;
-  const totalDVActual = magnitudeOf(summary?.totalDvActual) ?? undefined;
-  const totalBurnTime = summary?.totalBurnTime;
+  const totalDVVac = magnitudeOf(budget?.totalVac) ?? undefined;
+  const totalDVASL = magnitudeOf(budget?.totalAsl) ?? undefined;
+  const totalDVActual = magnitudeOf(budget?.totalActual) ?? undefined;
+  // `null` when the sim reported no figure, which `Unit` renders as the em-dash:
+  // NOT collapsed to `undefined`, which would take the bare-string branch below
+  // and bypass the one unit renderer.
+  const totalBurnTime = budget?.totalBurnTime;
 
   // Hooks unrolled explicitly: Rules of Hooks forbids hook calls inside any
   // loop or `.map` callback (even ones that happen to iterate a constant
@@ -550,14 +513,10 @@ function FuelStatusComponent({
     { def: RESOURCES[4], ...ec },
   ];
 
-  // `dv.stages` is the whole-vessel stage array. One subscription, all the
-  // per-stage data the legacy source (or the mod's StageDeltaVEntry[] topic, same
-  // key) knows about: length matches the real stage count, no hardcoded
-  // cap, no hook-per-stage. Entries arrive high → low (stage 3 first,
-  // stage 0 last) matching the stack-top-down render order. `parseStages`
-  // reconciles either wire's field names into the `StageInfo` shape below.
-  const stagesRaw = judgeable(useTelemetry("dv.stages"));
-  const stages = parseStages(stagesRaw);
+  // Entries arrive high → low (stage 3 first, stage 0 last), matching the
+  // stack-top-down render order, with either wire's field names already
+  // reconciled by the processor.
+  const stages = budget?.stages ?? NO_STAGES;
   // Filter to finite values before Math.max: a single NaN/undefined entry
   // would propagate NaN through every BarFill width and render a row of
   // invisible bars.
@@ -633,8 +592,14 @@ function FuelStatusComponent({
       {showSubtitle && currentStage !== undefined && (
         <ReadoutCaption>
           Stage {currentStage}
-          {stageCount !== undefined &&
+          {stageCount !== null &&
+            stageCount !== undefined &&
             ` / ${stageCount.minus(1).max(0).magnitude}`}
+          {/* A budget only falls by burning and rises by staging or docking, so
+              a dated one is still the budget and gets said out loud rather than
+              blanked. This caption existed as a variable and was never rendered,
+              because the number it would have qualified was withheld instead. */}
+          {budgetNotCurrent && " · ΔV at last contact"}
         </ReadoutCaption>
       )}
       {showHeroDv && (
@@ -645,7 +610,10 @@ function FuelStatusComponent({
           <span style={{ whiteSpace: "nowrap" }}>
             <Unit value={value("m/s", totalDv)} decimals={0} />
           </span>
-          <ReadoutCaption>ΔV {DELTA_V_MODE_SHORT[mode]}</ReadoutCaption>
+          <ReadoutCaption>
+            ΔV {DELTA_V_MODE_SHORT[mode]}
+            {budgetNotCurrent && " · at last contact"}
+          </ReadoutCaption>
         </BigReadout>
       )}
 
@@ -657,7 +625,7 @@ function FuelStatusComponent({
         <BigReadout>{NULL_DISPLAY}</BigReadout>
       )}
 
-      {showTotals && (totalDv !== undefined || totalBurnTime !== undefined) && (
+      {showTotals && budgetReported && (
         <Box
           surface="panel"
           bordered

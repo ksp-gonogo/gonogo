@@ -1042,6 +1042,9 @@ export interface BodyEntry
 	radius?: Value<"m">;
 	orbit?: OrbitEntry;
 	gravParameter?: Value<"m³/s²">;
+	mass?: Value<"kg">;
+	surfaceGravity?: Value<"g">;
+	hillSphere?: Value<"m">;
 	sphereOfInfluence?: Value<"m">;
 	rotationPeriod?: Value<"s">;
 	tidallyLocked?: boolean;

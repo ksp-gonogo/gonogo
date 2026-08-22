@@ -143,6 +143,14 @@ namespace Sitrep.Contract
         /// </summary>
         public const string Tonnes = "t";
 
+        /// <summary>
+        /// Kilograms, the unit KSP reports a BODY's mass in
+        /// (<c>CelestialBody.Mass</c>), as distinct from a VESSEL's, which it
+        /// reports in tonnes. Both are mass and the unit system converts
+        /// between them; the attribute states which one the wire carries.
+        /// </summary>
+        public const string Kilograms = "kg";
+
         // --- Force ---
         /// <summary>Kilonewtons, KSP's own thrust unit (<c>DeltaVStageInfo.thrustVac</c>).</summary>
         public const string Kilonewtons = "kN";

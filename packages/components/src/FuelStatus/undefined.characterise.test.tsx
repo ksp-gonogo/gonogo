@@ -1,10 +1,11 @@
 import { DashboardItemContext } from "@ksp-gonogo/core";
+import { normaliseStage } from "@ksp-gonogo/sitrep-client";
 import { act, render, screen, waitFor } from "@ksp-gonogo/test-utils";
 import { NULL_DISPLAY } from "@ksp-gonogo/ui-kit";
 import { visibleText } from "@ksp-gonogo/ui-kit/testing";
 import { describe, expect, it } from "vitest";
 import { setupStreamFixture } from "../test/setupStreamFixture";
-import { FuelStatusComponent, parseStages } from "./index";
+import { FuelStatusComponent } from "./index";
 
 /**
  * What `undefined` MEANS at each of this widget's telemetry reads, as the code
@@ -29,10 +30,9 @@ import { FuelStatusComponent, parseStages } from "./index";
  *   partial pair renders the box with an em dash in the missing half
  * - `!showHeroDv && !showTotals && totalDv === undefined` (index.tsx:608)
  *   renders an em dash, but ONLY at sizes too small for the totals box
- * - `parseStages`'s `if (!Array.isArray(raw)) return []` (index.tsx:191) turns
- *   a cold `dv.stages` into the same empty stack an empty array gives, and
- *   `num()`'s `Number.NaN` fallback (index.tsx:204) is what every per-stage
- *   placeholder below comes from
+ * - `DELTA_V_BUDGET`'s stage loop turns a cold `dv.stages` into the same empty
+ *   stack an empty array gives, and `normaliseStage`'s `Number.NaN` fallback is
+ *   what every per-stage placeholder below comes from
  */
 
 const CARRIED = [
@@ -208,8 +208,8 @@ describe("FuelStatus: what undefined means today", () => {
 
     act(() => {
       fixture.emit("dv.stages", [
-        { stage: 2, deltaVActual: 2000, TWRActual: 1.4, burnTime: 60 },
-        { stage: 1, deltaVActual: 1500, TWRActual: 1.2, burnTime: 40 },
+        { stage: 2, dvActual: 2000, twrActual: 1.4, burnTime: 60 },
+        { stage: 1, dvActual: 1500, twrActual: 1.2, burnTime: 40 },
       ]);
     });
 
@@ -241,16 +241,16 @@ describe("FuelStatus: what undefined means today", () => {
   });
 
   it("shows a confident '0s' burn and an em-dash TWR for a stage row whose fields never arrived", async () => {
-    // `parseStages`'s `num()` returns NaN for a field no wire name matched, and
-    // the two consumers then disagree about what that NaN means: TWR renders
-    // the honest placeholder, while burn time renders "0s", a claim that the
-    // stage has a known zero burn. Both come from the same absence.
+    // `normaliseStage` returns NaN for a field the wire did not carry, and the
+    // two consumers then disagree about what that NaN means: TWR renders the
+    // honest placeholder, while burn time renders "0s", a claim that the stage
+    // has a known zero burn. Both come from the same absence.
     const fixture = makeFixture();
     const { container } = renderFuel(fixture);
 
     act(() => {
       fixture.emit("vessel.structure", { currentStage: 1 });
-      fixture.emit("dv.stages", [{ stage: 1, deltaVActual: 1900 }]);
+      fixture.emit("dv.stages", [{ stage: 1, dvActual: 1900 }]);
     });
 
     await waitFor(() => expect(visibleText(container)).toContain("1900 m/s"));
@@ -260,13 +260,20 @@ describe("FuelStatus: what undefined means today", () => {
     expect(screen.getByText(/0s/)).toBeInTheDocument();
   });
 
-  it("parseStages turns a cold dv.stages into the same empty stack an empty array gives", () => {
-    // The absence gate at the top of `parseStages`. `undefined` (nothing has
-    // arrived) and `null` (a confirmed tombstone) both take the
-    // not-an-array branch, so neither is distinguishable from `[]`, a vessel
-    // with genuinely no stages.
-    expect(parseStages(undefined)).toEqual([]);
-    expect(parseStages(null)).toEqual([]);
-    expect(parseStages([])).toEqual([]);
+  it("gives no stage row for undefined or null, the same as an empty array", () => {
+    // The absence gate. `undefined` (nothing has arrived) and `null` (a
+    // confirmed tombstone) both fail `normaliseStage`'s object check, so neither
+    // is distinguishable from `[]`, a vessel with genuinely no stages.
+    expect(normaliseStage(undefined)).toBeNull();
+    expect(normaliseStage(null)).toBeNull();
+  });
+
+  it("spells a field the wire did not carry NaN, never 0", () => {
+    // 0 m/s is a spent stage and NaN is a stage the sim had no figure for. The
+    // per-stage placeholders above are `Number.isFinite` checks reading this.
+    const row = normaliseStage({ stage: 0, dryMass: 3 });
+    expect(row?.dryMass).toBe(3);
+    expect(row?.deltaVVac).toBeNaN();
+    expect(row?.TWRActual).toBeNaN();
   });
 });

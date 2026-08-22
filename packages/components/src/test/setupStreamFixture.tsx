@@ -1,8 +1,15 @@
 import {
+  PROCESSOR_EVAL_BUDGET,
+  PROCESSOR_NOTIFY_BUDGET,
+} from "@ksp-gonogo/core";
+import {
+  clearProcessorRuntime,
   createFakeWallClock,
   type FakeWallClock,
   PRODUCTION_DERIVED_CHANNELS,
   StubTransport,
+  setProcessorEvaluationRecorder,
+  setProcessorNotificationRecorder,
   TelemetryClient,
   TelemetryProvider,
   TimelineStore,
@@ -71,6 +78,20 @@ export interface StreamFixture {
 }
 
 export function setupStreamFixture(opts: StreamFixtureOptions): StreamFixture {
+  // The Processor runtime is module-global and OUTLIVES a fixture: a fresh
+  // store's frame generation restarts at 0, so a later fixture's first
+  // `beginFrame()` can collide with an earlier one's `lastFrameGeneration` and
+  // `evaluate` serves the PREVIOUS test's answer. That is not hypothetical: with
+  // the shared `CELESTIAL_FACTS` behind `useCelestialBodies`, three cases in a
+  // row asserted against the body list of the case before, and the ones whose
+  // shape happened to match went on passing.
+  clearProcessorRuntime();
+  // Which also resets the evaluation/notification recorders to no-ops, and a
+  // recorder that is never called reports zero while zero reads as healthy. Put
+  // the real budgets back, so the per-test PerfBudget gate can still see a
+  // widget that woke a processor's whole consumer set on every frame.
+  setProcessorEvaluationRecorder(() => PROCESSOR_EVAL_BUDGET.record());
+  setProcessorNotificationRecorder(() => PROCESSOR_NOTIFY_BUDGET.record());
   const wall = createFakeWallClock();
   const transport = new StubTransport();
   const client = new TelemetryClient(transport);

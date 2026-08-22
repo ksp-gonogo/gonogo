@@ -1,3 +1,5 @@
+import { isValue } from "../unit-system/value";
+import type { Value } from "../value";
 import {
   type AnyProcessorDefinition,
   type Dep,
@@ -266,11 +268,23 @@ function isReadingDep(dep: Dep): dep is ReadingDep {
 const EQUALITY_NODE_BUDGET = 2048;
 
 /**
+ * The two own properties of a `Value`, compared. `Object.is` on the magnitude
+ * for the same NaN reason the walk below gives; `===` on the unit because a
+ * changed unit is a changed answer even at an identical magnitude.
+ */
+function valuesEqual(a: object, b: object): boolean {
+  return (
+    Object.is((a as Value).magnitude, (b as Value).magnitude) &&
+    (a as Value).unit === (b as Value).unit
+  );
+}
+
+/**
  * Structural equality over the shapes a `compute` actually returns: plain
- * objects, arrays, and primitives, recursively. Anything else (a `Date`, a
- * `Map`, a class instance, a thunk) is compared by identity, so a processor
- * returning one keeps today's notify-every-frame behaviour instead of being
- * silently declared equal on a comparison this does not understand.
+ * objects, arrays, primitives, and `Value`s, recursively. Anything else (a
+ * `Date`, a `Map`, a class instance, a thunk) is compared by identity, so a
+ * processor returning one keeps today's notify-every-frame behaviour instead of
+ * being silently declared equal on a comparison this does not understand.
  *
  * The comparison is on the RESULT rather than on the inputs, which is where
  * this parts company with `sampleReading`'s input-identity gate one layer over.
@@ -279,6 +293,16 @@ const EQUALITY_NODE_BUDGET = 2048;
  * compare and would freeze forever, and a processor that clamps or buckets a
  * moving upstream has a moving input and a still answer. Comparing the result
  * needs no declaration of which inputs a `compute` really reads.
+ *
+ * A `Value` is named explicitly because it is `Object.create(prototype)` over a
+ * SHARED prototype rather than `Object.prototype` (unit-system/value.ts: a
+ * plain data object whose methods live off the instance so they never
+ * serialise). The plain-object arm rejects exactly that shape, so until this
+ * was handled a result carrying so much as one wire quantity compared unequal
+ * every frame and woke every consumer, which is the failure the notification
+ * budget was added to catch and could not see. Not a corner case: units on the
+ * wire are the house style, and `SHIP_SYSTEMS` already returns a `Value<"ut">`
+ * inside its provenance.
  */
 function resultsEqual(previous: unknown, next: unknown): boolean {
   let budget = EQUALITY_NODE_BUDGET;
@@ -309,10 +333,11 @@ function resultsEqual(previous: unknown, next: unknown): boolean {
       return true;
     }
 
-    // Plain objects only. A class instance can carry meaning in a prototype
-    // getter that own-key enumeration never sees.
+    // Plain objects and `Value`s only. Any other prototype can carry meaning in
+    // a getter that own-key enumeration never sees.
     const aProto = Object.getPrototypeOf(a);
     if (aProto !== Object.getPrototypeOf(b)) return false;
+    if (isValue(a) && isValue(b)) return valuesEqual(a, b);
     if (aProto !== Object.prototype && aProto !== null) return false;
 
     const aKeys = Object.keys(a);

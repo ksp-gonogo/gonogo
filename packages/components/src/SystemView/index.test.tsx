@@ -72,6 +72,10 @@ function kerbinSystem() {
         parentIndex: null,
         radius: 600_000,
         gravParameter: KERBIN_MU,
+        // On the wire since the contract stopped asking the client to
+        // reconstruct what the game already holds.
+        mass: 5.2915158e22,
+        surfaceGravity: 1,
         sphereOfInfluence: 84_159_286,
         rotationPeriod: 21_549.425,
         hasOcean: true,

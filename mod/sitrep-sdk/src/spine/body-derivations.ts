@@ -1,25 +1,14 @@
-import { solveAnomalies } from "@ksp-gonogo/sitrep-client";
+import { solveAnomalies } from "./kepler";
 
 /**
- * Pure client-side derivations for the celestial-body almanac values that the
- * `system.bodies` stream deliberately does NOT put on the wire (see the
- * contract's `BodyEntry` doc). Everything here is reconstructed from the two
- * primitives the stream DOES carry, the standard gravitational parameter
- * `μ = G·M` and the body's radius, plus its Keplerian orbit. Keeping these
- * off the wire is the whole point of the "gravParameter is the one primitive"
- * design; this module is where the client pays for that.
+ * The two celestial-body almanac values the GAME has no answer for, so the
+ * client has to derive them. Everything else this module used to compute is now
+ * a wire field: see `celestial-facts.ts` for the split and the reasoning.
  *
  * All inputs are nullable (the stream drops any value the live game hasn't
  * populated); every helper returns `null` rather than a NaN when it can't
- * compute a finite result, so a consumer can treat "unknown" as a single
- * state.
+ * compute a finite result, so a consumer can treat "unknown" as a single state.
  */
-
-/** Newtonian gravitational constant, m³·kg⁻¹·s⁻² (CODATA: the value KSP uses). */
-export const GRAVITATIONAL_CONSTANT = 6.6743e-11;
-
-/** Standard gravity g₀, m/s²: the reference KSP's surface-gravity "g" unit divides by. */
-export const STANDARD_GRAVITY = 9.80665;
 
 function finite(x: number): number | null {
   return Number.isFinite(x) ? x : null;
@@ -27,32 +16,6 @@ function finite(x: number): number | null {
 
 function isPos(x: number | null | undefined): x is number {
   return typeof x === "number" && Number.isFinite(x) && x > 0;
-}
-
-/** Mass, kg, from μ: `M = μ / G`. */
-export function deriveMass(
-  gravParameter: number | null | undefined,
-): number | null {
-  if (!isPos(gravParameter)) return null;
-  return finite(gravParameter / GRAVITATIONAL_CONSTANT);
-}
-
-/** Surface gravity, m/s², from μ and radius: `g = μ / r²`. */
-export function deriveSurfaceGravity(
-  gravParameter: number | null | undefined,
-  radius: number | null | undefined,
-): number | null {
-  if (!isPos(gravParameter) || !isPos(radius)) return null;
-  return finite(gravParameter / (radius * radius));
-}
-
-/** Surface gravity expressed in g (KSP's `GeeASL`): `μ / r² / g₀`. */
-export function deriveSurfaceGravityG(
-  gravParameter: number | null | undefined,
-  radius: number | null | undefined,
-): number | null {
-  const g = deriveSurfaceGravity(gravParameter, radius);
-  return g === null ? null : finite(g / STANDARD_GRAVITY);
 }
 
 /** Escape velocity from the surface, m/s: `v = √(2μ / r)`. */
@@ -67,6 +30,11 @@ export function deriveEscapeVelocity(
 /**
  * Orbital period, seconds, from the semi-major axis and the PARENT body's μ:
  * `T = 2π · √(a³ / μ_parent)`. `null` for a missing/non-positive input.
+ *
+ * Deliberately not taken off the wire, unlike mass / surface gravity / hill
+ * sphere: KSP's own `Orbit.period` is `2π/meanMotion` over
+ * `meanMotion = √(μ/|a|³)` (decompiled), so this IS the game's expression
+ * rather than a reconstruction of it.
  */
 export function derivePeriod(
   semiMajorAxis: number | null | undefined,
@@ -76,29 +44,6 @@ export function derivePeriod(
   return finite(
     2 * Math.PI * Math.sqrt(semiMajorAxis ** 3 / parentGravParameter),
   );
-}
-
-/**
- * Hill-sphere radius, metres, derivable from the orbit and the two masses: `r ≈ a·(1 − e)·∛(m / 3M)`. `null` when any
- * input is missing.
- */
-export function deriveHillSphere(
-  semiMajorAxis: number | null | undefined,
-  eccentricity: number | null | undefined,
-  mass: number | null | undefined,
-  parentMass: number | null | undefined,
-): number | null {
-  if (
-    !isPos(semiMajorAxis) ||
-    !isPos(mass) ||
-    !isPos(parentMass) ||
-    typeof eccentricity !== "number" ||
-    !Number.isFinite(eccentricity)
-  ) {
-    return null;
-  }
-  const e = Math.min(Math.max(eccentricity, 0), 0.999);
-  return finite(semiMajorAxis * (1 - e) * Math.cbrt(mass / (3 * parentMass)));
 }
 
 /**

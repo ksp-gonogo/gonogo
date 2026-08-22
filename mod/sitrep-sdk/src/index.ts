@@ -148,6 +148,38 @@ export * from "./ksp-enum-names";
 // requirement only ever applied to code inside this repo.
 export { PerfBudget } from "./perf/PerfBudget";
 export * from "./reading";
+// ---------------------------------------------------------------------------
+// SHARED PROCESSORS: the handles, their result types, and the pure derivations
+// behind them.
+//
+// Published from the ROOT barrel rather than only from `./spine`, because the
+// root barrel is the whole of what an Uplink may import (docs/uplink-isolation.md)
+// and a Processor nobody outside this repo can name is not shared, whatever
+// `registerProcessor`'s owner stamp says. The machinery stays where it was:
+// `defineProcessor`, the evaluator and `TimelineStore` are still spine-only, and
+// `useProcessor` reaches the evaluator through the host shim above.
+//
+// A handle here is a DECLARATION, not a subscription. Importing the SDK registers
+// the definition; nothing evaluates until a `useProcessor` or a contribution dep
+// activates it.
+// ---------------------------------------------------------------------------
+export {
+  type BodyAtmosphere,
+  bodyAtIndex,
+  bodyNamed,
+  CELESTIAL_FACTS,
+  type CelestialBody,
+  type CelestialFacts,
+  deriveCelestialFacts,
+} from "./spine/celestial-facts";
+export {
+  type BudgetProvenance,
+  DELTA_V_BUDGET,
+  type DeltaVBudget,
+  type DeltaVStage,
+  deriveDeltaVBudget,
+  normaliseStage,
+} from "./spine/delta-v-budget";
 export * from "./timeline";
 export {
   getAllKnownTopicIds,

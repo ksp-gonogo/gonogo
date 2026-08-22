@@ -1,7 +1,9 @@
 import type { ComponentProps } from "@ksp-gonogo/core";
 import { getBody, registerComponent, useTelemetry } from "@ksp-gonogo/core";
 import {
+  DELTA_V_BUDGET,
   type Reading,
+  useProcessor,
   useStream,
   type VesselState,
 } from "@ksp-gonogo/sitrep-client";
@@ -100,25 +102,26 @@ function Dv({ v }: { v: Quantityish<"m/s"> }) {
 }
 
 /**
- * The five fields of a `dv.stages` entry the rocket-equation solve needs.
+ * The four fields of a normalised stage row the rocket-equation solve needs.
  *
- * Structural rather than the contract type, and it takes either shape, so the
- * tests below can hand it plain numbers: the solve is arithmetic on a mass
- * ratio, and what it wants is magnitudes.
+ * Structural rather than `DeltaVStage` itself so the tests below can hand it a
+ * four-field literal: the solve is arithmetic on a mass ratio, and what it wants
+ * is magnitudes. `NaN` for a field the wire did not carry, which every guard
+ * below already rejects.
  */
 interface StageLike {
-  stage?: number;
-  dvActual?: Quantityish<"m/s">;
-  dvVac?: Quantityish<"m/s">;
-  startMass?: Quantityish<"t">;
-  endMass?: Quantityish<"t">;
+  deltaVActual: number;
+  deltaVVac: number;
+  startMass: number;
+  endMass: number;
 }
 
 /**
  * Active-engine burn parameters for the rocket-equation suicide-burn solve: the
  * effective exhaust velocity `ve` (= Isp·g0) and the burnout mass.
  *
- * PREFER the ACTIVE stage (`dv.stages` matched by `vessel.structure.currentStage`)
+ * PREFER the ACTIVE stage (the `DELTA_V_BUDGET` row matched to
+ * `vessel.structure.currentStage`)
  * because those are the engine(s) actually flying the landing burn: its ΔV +
  * mass ratio fix that engine's ve (atmosphere-adjusted, from the "actual" ΔV),
  * and its end mass is the burn's floor. `dv.summary.totalDvActual` is the
@@ -131,25 +134,23 @@ interface StageLike {
  * constant-decel guess. Returns `{}` when nothing usable is on the wire.
  */
 export function deriveActiveBurnParams(
-  stages: readonly StageLike[] | undefined,
-  currentStage: number | undefined,
+  active: StageLike | null | undefined,
   propulsion:
     | { totalMass?: Quantityish<"t">; dryMass?: Quantityish<"t"> }
     | undefined,
-  summary:
-    | { totalDvActual?: Quantityish<"m/s">; totalDvVac?: Quantityish<"m/s"> }
-    | undefined,
+  totalDvActual: number | undefined,
+  totalDvVac: number | undefined,
 ): { exhaustVelocity?: number; burnoutMass?: number } {
-  const active = stages?.find((s) => s.stage === currentStage);
   if (active) {
-    const dv = magnitudeOf(active.dvActual) ?? magnitudeOf(active.dvVac);
-    const startMass = magnitudeOf(active.startMass);
-    const endMass = magnitudeOf(active.endMass);
+    const dv = Number.isFinite(active.deltaVActual)
+      ? active.deltaVActual
+      : active.deltaVVac;
+    const { startMass, endMass } = active;
     if (
-      dv != null &&
+      Number.isFinite(dv) &&
       dv > 0 &&
-      startMass != null &&
-      endMass != null &&
+      Number.isFinite(startMass) &&
+      Number.isFinite(endMass) &&
       startMass > endMass &&
       endMass > 0
     ) {
@@ -159,12 +160,12 @@ export function deriveActiveBurnParams(
       };
     }
   }
-  const dv =
-    magnitudeOf(summary?.totalDvActual) ?? magnitudeOf(summary?.totalDvVac);
+  const dv = totalDvActual ?? totalDvVac;
   const totalMass = magnitudeOf(propulsion?.totalMass);
   const dryMass = magnitudeOf(propulsion?.dryMass);
   if (
     dv != null &&
+    Number.isFinite(dv) &&
     dv > 0 &&
     totalMass != null &&
     dryMass != null &&
@@ -405,12 +406,11 @@ function LandingStatusComponent({
   const propulsion = describe(propulsionReading);
   const orbit = describe(orbitReading);
   const landing = describe(landingReading);
-  const summaryReading = useTelemetry("dv.summary");
-  const dvStagesReading = useTelemetry("dv.stages");
+  // The one shared ΔV derivation. It already carries a dated budget rather than
+  // blanking one, which is the arm policy `describe` gives every other read here.
+  const budget = useProcessor(DELTA_V_BUDGET);
   const structureReading = useTelemetry("vessel.structure");
   const commsDelayReading = useTelemetry("comms.delay");
-  const summary = describe(summaryReading);
-  const dvStages = describe(dvStagesReading);
   const structure = describe(structureReading);
   const commsDelay = describe(commsDelayReading);
 
@@ -442,10 +442,10 @@ function LandingStatusComponent({
 
   // ve + burnout mass of the ACTIVE engine(s), see `deriveActiveBurnParams`.
   const { exhaustVelocity, burnoutMass } = deriveActiveBurnParams(
-    dvStages,
-    structure?.currentStage,
+    budget?.activeStage,
     propulsion,
-    summary,
+    budget?.totalActual?.magnitude,
+    budget?.totalVac?.magnitude,
   );
 
   // Burn datum: the vessel's LOWEST point above terrain. Falls back to the CoM
@@ -497,7 +497,7 @@ function LandingStatusComponent({
     solution.bestSpeedAtImpact != null &&
     solution.bestSpeedAtImpact > 0.5;
 
-  const availableDv = summary?.totalDvActual ?? summary?.totalDvVac;
+  const availableDv = budget?.totalActual ?? budget?.totalVac ?? undefined;
   const requiredDv = solution.burnDeltaV;
   const affordable =
     requiredDv != null && availableDv != null

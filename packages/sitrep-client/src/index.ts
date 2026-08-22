@@ -41,6 +41,26 @@ export {
   decideAutoDispatch,
   useAutoCommand,
 } from "./auto-command";
+// The two almanac values behind CELESTIAL_FACTS the GAME cannot answer: escape
+// velocity (no such member on CelestialBody) and a true anomaly solved for a
+// delayed view time (Orbit.trueAnomaly is the live one).
+export {
+  deriveEscapeVelocity,
+  derivePeriod,
+  deriveTrueAnomalyDeg,
+} from "./body-derivations";
+// The two shared Processors and their result types. Also on the SDK's ROOT
+// barrel, which is what an Uplink imports; here so app-side call sites read the
+// same as every other spine name.
+export {
+  type BodyAtmosphere,
+  bodyAtIndex,
+  bodyNamed,
+  CELESTIAL_FACTS,
+  type CelestialBody,
+  type CelestialFacts,
+  deriveCelestialFacts,
+} from "./celestial-facts";
 export { LOSS_MARGIN, TelemetryClient } from "./client";
 export type { Clock } from "./clock";
 export { RealTimeClock } from "./clock";
@@ -127,6 +147,14 @@ export {
   DelayAuthority,
   type DelaySubscribable,
 } from "./delay-authority";
+export {
+  type BudgetProvenance,
+  DELTA_V_BUDGET,
+  type DeltaVBudget,
+  type DeltaVStage,
+  deriveDeltaVBudget,
+  normaliseStage,
+} from "./delta-v-budget";
 export type { DvLegacyScalars } from "./dv-legacy-scalars";
 export {
   deriveDvLegacyScalars,
