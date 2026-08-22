@@ -124,7 +124,16 @@ export type SystemEntityShape =
   | { kind: "point"; radiusPx?: number }
   | { kind: "orbit-path" }
   | { kind: "connection-line"; to: SystemEntityPosition }
-  | { kind: "blob"; radiusMetres: number };
+  | { kind: "blob"; radiusMetres: number }
+  | {
+      kind: "travelling-pulse";
+      to: SystemEntityPosition;
+      segmentLengthMetres: number;
+      /** UT the leading edge reaches `to`. */
+      arriveUt: number;
+      /** UT the trailing edge fully clears `to`. */
+      clearUt: number;
+    };
 
 /** Mirrors `SystemEntity`. */
 export interface SystemEntity {

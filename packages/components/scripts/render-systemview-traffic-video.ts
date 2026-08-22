@@ -10,10 +10,46 @@
  * - `traffic`: warpRate=1 (real time), so a `system.uplink.pending` entry's
  *   real one-way-delay leg animates smoothly over several real seconds.
  *   Also fires a mid-capture click to select a SEPARATE vessel, showing the
- *   coloured CommNet path decoration appear alongside the pulsing traffic.
+ *   coloured CommNet path decoration appear alongside the pulsing traffic,
+ *   then a SECOND click on the same ring to toggle the selection back off
+ *   before the recording continues: round 2 left the selection standing for
+ *   the rest of the clip, so v-other's ring stayed accent-green (the
+ *   "selected" semantic) for most of the video with nothing left selected
+ *   to explain it. The deselect is a second `clickRingTop`, not
+ *   `page.keyboard.press("Escape")` (index.tsx's OTHER deselect path,
+ *   equally valid interactively): headless Chromium was observed to update
+ *   the DOM correctly on the Escape path (`aria-pressed` flips, the
+ *   `stroke` attribute reads back faint) but never actually repaint the
+ *   ring, so the recorded video kept showing it accent-green regardless,
+ *   for the whole rest of the clip; a synthetic mouse click reliably
+ *   forces the repaint the way the original select click already had to.
+ *   Also withholds `vessel.orbit`
+ *   for this capture specifically (`sceneEmits()` still carries it for
+ *   `orbits`, below, which needs it): a real `vessel.orbit` makes
+ *   SystemDiagram draw the ACTIVE vessel's own dedicated ring AND its live
+ *   predicted-trajectory patch, both ALSO solid accent-green
+ *   (`VesselOrbitPath`/`PredictedPatchArc` in `SystemDiagram.tsx`) and both
+ *   unrelated to selection, a separate always-on "this is my ship" signal
+ *   that happens to share the same colour token. That's legitimate
+ *   everywhere else in the app, but this capture's whole point is faint
+ *   contributed orbits + dim-white traffic pulses, so a permanent second
+ *   green ring for the entire clip (present from frame one, not just after
+ *   the click) reads as unexplained noise here. `deriveTraffic`'s routing
+ *   still keys off `identity.vesselId` alone, so v-active stays the real
+ *   traffic destination with no orbit on the wire; `index.tsx`'s
+ *   contributed-ring suppression (round-4 fix) now keys off BOTH
+ *   `identity.vesselId` AND `vessel.orbit`, so withholding the latter no
+ *   longer leaves v-active markerless, it falls through to the same faint
+ *   `orbit-path` ring `system-view-vessel-orbits` already draws for
+ *   v-relay/v-other (`system.vessels`' own per-vessel `orbit` field, never
+ *   filtered by this capture): every hop endpoint (home, v-relay, v-active)
+ *   renders with a real marker, and the only accent-green on screen for the
+ *   whole clip is the deliberate mid-capture selection of v-other.
  * - `orbits`: warpRate elevated (~400x), so vessels visibly sweep along
  *   their faint orbits over a short capture; traffic wouldn't read as
- *   anything but a flicker at this speed, so this capture skips it.
+ *   anything but a flicker at this speed, so this capture skips it. This is
+ *   the one capture that DOES want the active vessel's own dedicated ring
+ *   and marker tracking live, so it keeps the full `sceneEmits()`.
  *
  * Output: `local_docs/inbox/systemview-traffic/*.mp4` (+ a couple of PNG
  * stills), also copied to `local_docs/inbox/systemview-contributions/`.
@@ -33,10 +69,14 @@ const execFileAsync = promisify(execFile);
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 const PROBE_DIR = resolve(HERE, "probe");
-const REPO_ROOT = resolve(HERE, "../../..");
+// Absolute main-repo paths (not derived from this file's own location via
+// `HERE`): a worktree-isolated run's `HERE` resolves to the WORKTREE's own
+// copy of this script, so a relative `../../..` would land the artifact in
+// a directory that gets torn down with the worktree, same trap
+// `render-systemview-cme-video.ts`'s own `OUT_DIRS` doc comment calls out.
 const OUT_DIRS = [
-  resolve(REPO_ROOT, "local_docs/inbox/systemview-traffic"),
-  resolve(REPO_ROOT, "local_docs/inbox/systemview-contributions"),
+  "/Users/jon.pepler/personal/gonogo/local_docs/inbox/systemview-traffic",
+  "/Users/jon.pepler/personal/gonogo/local_docs/inbox/systemview-contributions",
 ];
 
 const KERBOL_MU = 1.1723328e18;
@@ -60,6 +100,14 @@ function kerbolSystem() {
         radius: 600_000,
         gravParameter: KERBIN_MU,
         sphereOfInfluence: 84_159_286,
+        // `computeCommsNetworkEntities`'s `homeBodyName` resolves "home" off
+        // this flag, not a fixed body index: without it, EVERY edge
+        // touching the home node (both `home<->v-relay` and `home<->v-other`
+        // in this scene) fails to resolve a position and is silently
+        // omitted, leaving only the relay<->active hop drawn. This was the
+        // actual cause of round 1's "route reads as a single disconnected
+        // stub" defect, not just the collinear `argPe` geometry below.
+        isHome: true,
         orbit: {
           sma: 13_599_840_256,
           ecc: 0,
@@ -94,13 +142,25 @@ function kerbolSystem() {
   };
 }
 
-function orbit(sma: number, meanAnomalyAtEpoch = 0) {
+/**
+ * `argPe` defaults to 0 for the active vessel's own orbit (its real,
+ * live-computed position stays at a clean reference angle), but
+ * `vesselOrbitsContribution`'s `connection-line`/traffic-pulse endpoints
+ * always join a vessel at trueAnomaly=0 (see `vesselOrbitsContribution.ts`'s
+ * own module doc), a point whose ANGLE is `lan + argPe`, not `meanAnomaly`:
+ * every vessel sharing `argPe=0` would put that join point on the SAME ray
+ * from Kerbin's centre regardless of `meanAnomalyAtEpoch`, collapsing a
+ * multi-hop route into one overlapping line. Giving v-relay/v-other distinct
+ * `argPe` values spreads their join points around the diagram so the route
+ * reads as a real bent path.
+ */
+function orbit(sma: number, meanAnomalyAtEpoch = 0, argPe = 0) {
   return {
     sma,
     ecc: 0,
     inc: 0,
     lan: 0,
-    argPe: 0,
+    argPe,
     meanAnomalyAtEpoch,
     epoch: 0,
   };
@@ -164,7 +224,7 @@ function sceneEmits(): Array<{ topic: string; value: unknown }> {
             crewCount: 0,
             crewCapacity: 0,
             commsControlSource: 2,
-            orbit: orbit(6_000_000, 1.4),
+            orbit: orbit(6_000_000, 1.4, 70),
           },
           {
             vesselId: "v-other",
@@ -175,7 +235,7 @@ function sceneEmits(): Array<{ topic: string; value: unknown }> {
             crewCount: 2,
             crewCapacity: 2,
             commsControlSource: 2,
-            orbit: orbit(8_000_000, 3.7),
+            orbit: orbit(8_000_000, 3.7, -60),
           },
         ],
       },
@@ -197,6 +257,23 @@ function sceneEmits(): Array<{ topic: string; value: unknown }> {
       },
     },
   ];
+}
+
+/**
+ * The `traffic` capture's own scene: everything `sceneEmits()` carries
+ * EXCEPT `vessel.orbit`, so SystemDiagram never draws the active vessel's
+ * own dedicated ring/live-trajectory patch (both solid accent-green,
+ * unrelated to selection, see this file's own doc comment). `v-active`
+ * still carries a full orbit on its ROSTER entry (`system.vessels`, above),
+ * so the traffic route's own endpoint still resolves a real position for
+ * the connection-line to join, AND (round-4 fix) picks up the same faint
+ * `orbit-path` ring/dot `system-view-vessel-orbits` draws for every other
+ * roster vessel, since the active-vessel suppression in `index.tsx` no
+ * longer fires without a real `vessel.orbit` sample. v-active just doesn't
+ * get its own EXTRA dedicated bright ring on top of that.
+ */
+function sceneEmitsForTraffic(): Array<{ topic: string; value: unknown }> {
+  return sceneEmits().filter((e) => e.topic !== "vessel.orbit");
 }
 
 function pendingEntry(id: string, dispatchedAt: number, oneWaySeconds: number) {
@@ -265,16 +342,43 @@ async function evalUtNow(page: Page): Promise<number> {
  * Selects a vessel's `orbit-path` ring the way an operator actually can: a
  * plain `page.click()` targets the shape's BOUNDING-BOX CENTRE, which for a
  * hollow, `fill:none` ellipse is empty space, not the stroked path itself
- * (the same reason a real mouse click there would miss too). Clicks the top
- * of the ring's bounding box instead, safely inside the entity's own wide
- * invisible `data-hit-target` stroke (`SystemEntitiesLayer`'s `strokeWidth:
- * 14` hit ring).
+ * (the same reason a real mouse click there would miss too).
+ *
+ * Reads the ring's own `data-ring` ellipse geometry (`cx`/`cy`/`ry`, in the
+ * `<g>`'s LOCAL, pre-rotation coordinate space) directly off the DOM and
+ * maps its topmost point to screen coordinates via `getScreenCTM()`, rather
+ * than reading the `<g>`'s `getBoundingClientRect()`/Playwright
+ * `boundingBox()` and clicking a fixed pixel offset from its edge: that
+ * approach is fragile because bbox measurement was observed to sometimes
+ * include the wide invisible `data-hit-target` stroke and sometimes not
+ * (Chromium version/rotation-dependent), so a fixed offset that happened to
+ * land inside the 14px hit-target stroke for one ring radius silently
+ * missed it for another. `getScreenCTM` sidesteps the ambiguity entirely: it
+ * gives the EXACT screen point for a known SVG-space coordinate, independent
+ * of how any particular browser reports bounding boxes for stroked,
+ * possibly-rotated shapes.
  */
 async function clickRingTop(page: Page, entityId: string): Promise<void> {
-  const locator = page.locator(`[data-entity-id="${entityId}"]`);
-  const box = await locator.boundingBox();
-  if (!box) throw new Error(`Capture: no bounding box for ${entityId}`);
-  await page.mouse.click(box.x + box.width / 2, box.y + 5);
+  const point = await page.evaluate((id) => {
+    const ring = document.querySelector(
+      `[data-entity-id="${id}"] [data-ring="true"]`,
+    ) as SVGGraphicsElement | null;
+    if (!ring) return null;
+    const cx = Number(ring.getAttribute("cx"));
+    const cy = Number(ring.getAttribute("cy"));
+    const ry = Number(ring.getAttribute("ry"));
+    const ctm = ring.getScreenCTM();
+    if (!ctm) return null;
+    // The topmost point of the (pre-rotation-local) ellipse, transformed by
+    // its own element's CTM: this already folds in the enclosing `<g>`'s
+    // `rotate(...)`, the SVG's viewBox scale, and the page's own layout
+    // offset, so the result is a ready-to-click viewport coordinate.
+    const svgPoint = new DOMPoint(cx, cy - ry);
+    const screenPoint = svgPoint.matrixTransform(ctm);
+    return { x: screenPoint.x, y: screenPoint.y };
+  }, entityId);
+  if (!point) throw new Error(`Capture: could not locate ring for ${entityId}`);
+  await page.mouse.click(point.x, point.y);
 }
 
 async function convertToMp4(webmPath: string, mp4Path: string): Promise<void> {
@@ -324,7 +428,7 @@ async function captureTraffic(probeHtmlOut: string): Promise<void> {
       pxW: 900,
       pxH: 900,
       carriedChannels: CARRIED_CHANNELS,
-      streamEmits: sceneEmits(),
+      streamEmits: sceneEmitsForTraffic(),
       warpRate: 1,
     });
 
@@ -357,6 +461,16 @@ async function captureTraffic(probeHtmlOut: string): Promise<void> {
     await page.screenshot({
       path: join(OUT_DIRS[0], "systemview-traffic-with-selection.png"),
     });
+
+    // Deselect: this still-image is the ONLY place this capture wants
+    // selection-green on screen. Leaving it standing (round 2's bug) kept
+    // v-other's ring accent-green for the rest of the recording with
+    // nothing left selected to justify it. A second click toggles the SAME
+    // ring back off (`handleEntityActivate`'s toggle: `prev === id ? null
+    // : id`); this file's own doc comment explains why it's a click and
+    // not `page.keyboard.press("Escape")`.
+    await clickRingTop(page, "vessel-orbit:v-other");
+    await page.waitForTimeout(300);
 
     // Refresh the pending queue partway through so traffic keeps animating
     // (rather than fading out) for the remainder of the recording.

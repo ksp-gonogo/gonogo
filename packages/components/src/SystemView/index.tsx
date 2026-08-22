@@ -416,12 +416,16 @@ function SystemViewComponent({
   // (built further down). SystemView owns the one piece of dynamic state a
   // contribution can't: which entity, if any, is selected.
   const rawEntities = useContributions("system-view.entities");
-  // Suppress the active/framed vessel's own entry: `SystemDiagram` already
-  // draws its dedicated bright ring below, so a contributed faint one (e.g.
-  // the built-in vessel-orbits contribution, which has no notion of "active"
-  // and draws every roster vessel) would sit duplicated on top of it. Host
-  // state, not contribution data: matched by `vesselId`, not by parsing a
-  // contribution-private `id` string.
+  // Suppress the active/framed vessel's own entry, but only while
+  // `SystemDiagram` actually has a dedicated bright ring to draw in its
+  // place: that ring comes from `vessel.orbit` (`vesselOrbit` below), a
+  // separate topic from `vessel.identity`. Gating on identity alone used to
+  // strand a hop endpoint with no marker at all whenever a caller carried
+  // identity (needed so command traffic, further down, knows which vessel
+  // it's routing to) without also carrying orbit: neither the dedicated ring
+  // nor the contributed faint one rendered. Host state, not contribution
+  // data: matched by `vesselId`, not by parsing a contribution-private `id`
+  // string.
   //
   // `showCommlinks` off drops every `connection-line` entity (the CommNet
   // relay graph, `vesselOrbitsContribution.ts`'s `comms-edge:*` entries, and
@@ -430,13 +434,13 @@ function SystemViewComponent({
   // new home.
   const entities = useMemo(() => {
     const withoutActiveVessel =
-      identity?.vesselId != null
+      identity?.vesselId != null && orbit != null
         ? rawEntities.filter((e) => e.vesselId !== identity.vesselId)
         : rawEntities;
     return showCommlinks
       ? withoutActiveVessel
       : withoutActiveVessel.filter((e) => e.shape.kind !== "connection-line");
-  }, [rawEntities, identity?.vesselId, showCommlinks]);
+  }, [rawEntities, identity?.vesselId, orbit, showCommlinks]);
   // `selectedVesselId` is keyed by the ACTIVATED ENTITY's own `id` (e.g.
   // `vessel-orbit:<vesselId>`), not the bare vesselId: that's what the
   // click/keyboard handler on `SystemEntitiesLayer` reports, and it's also
@@ -517,25 +521,25 @@ function SystemViewComponent({
         : NO_TRAFFIC,
     [pendingQueue, commsNetwork, identity?.vesselId, utNow, showCommandTraffic],
   );
-  const trafficEdgeIds = useMemo(() => new Set(traffic.edgeIds), [traffic]);
   // The id-keyed decoration hook: brightens the selected vessel's own
   // orbit/point entity (faint -> bright, no colour override needed, the
-  // `bright` emphasis token already reads prominent), colours the derived
-  // CommNet path's edges by the selected vessel's control state, and (lowest
-  // priority, so an explicit selection never gets overridden by ambient
-  // traffic) brightens whichever edges are currently carrying command
-  // traffic. Never touches the contribution's data, purely a style override
-  // keyed by id.
+  // `bright` emphasis token already reads prominent) and colours the derived
+  // CommNet path's edges by the selected vessel's control state. Command
+  // traffic deliberately does NOT decorate the edge itself: the moving
+  // gradient pulse (`SystemEntitiesLayer`'s `pulses` prop, below) is the
+  // sole traffic indicator, riding a plain grey/white CommNet line, so an
+  // ambient "this route carries traffic" wash never sits underneath and
+  // dilutes the travelling glow into an always-bright line. Never touches
+  // the contribution's data, purely a style override keyed by id.
   const decorate = useCallback(
     (id: string): SystemEntityStyle | undefined => {
       if (id === selectedVesselId) return { emphasis: "bright" };
       if (commsPathEdgeIds.has(id)) {
         return { emphasis: "bright", colour: commsPathColour };
       }
-      if (trafficEdgeIds.has(id)) return { emphasis: "bright" };
       return undefined;
     },
-    [selectedVesselId, commsPathEdgeIds, commsPathColour, trafficEdgeIds],
+    [selectedVesselId, commsPathEdgeIds, commsPathColour],
   );
 
   // Stable body-index → NAME map (from `system.bodies`' stable `index`, never
@@ -971,6 +975,13 @@ function SystemViewComponent({
                 selectedId={selectedVesselId}
                 onEntityActivate={handleEntityActivate}
                 pulses={traffic.pulses}
+                // Real-time bookkeeping clock, same one command traffic
+                // above already rides: a CME's `arriveUt`/`clearUt` are
+                // real-UT facts the mod stamps the instant a storm rolls,
+                // not delayed craft telemetry, so this drives its single,
+                // non-looping travelling-pulse pass (see
+                // `SystemEntitiesLayer.tsx`'s own `nowUt` doc comment).
+                nowUt={utNow}
               />
             )}
             {/* Overlay slot: layered over the body diagram, passed the diagram's

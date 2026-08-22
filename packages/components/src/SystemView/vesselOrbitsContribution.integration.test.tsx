@@ -171,4 +171,65 @@ describe("SystemView: active vessel excluded from its own faint orbit contributi
       container.querySelector('[data-entity-id="vessel-orbit:v-active"]'),
     ).toBeNull();
   });
+
+  it("does NOT suppress the active vessel's faint contributed entry when vessel.orbit is absent (identity alone doesn't imply a dedicated ring)", async () => {
+    // Round-4 regression: a caller can legitimately carry `vessel.identity`
+    // (command traffic needs it to know which vessel it's routing to)
+    // without `vessel.orbit` (e.g. the traffic capture fixture, which
+    // withholds it to avoid SystemDiagram's own accent-green predicted-
+    // trajectory patch). With no orbit, `SystemDiagram` never draws a
+    // dedicated ring for that vessel, so suppressing the contributed faint
+    // one too left the hop endpoint with NO marker at all.
+    const fixture: StreamFixture = setupStreamFixture({
+      carriedChannels: ["vessel.identity", "system.bodies", "system.vessels"],
+      pinnedUt: 100,
+    });
+
+    const { container } = render(
+      <fixture.Provider>
+        <WidgetMetaContext.Provider value={META}>
+          <ContributionsProvider>
+            <SystemViewComponent config={{ frame: "Kerbin" }} id="sv" />
+          </ContributionsProvider>
+        </WidgetMetaContext.Provider>
+      </fixture.Provider>,
+    );
+
+    act(() => {
+      fixture.emit("system.bodies", kerbinSystem());
+      fixture.emit("vessel.identity", {
+        vesselId: "v-active",
+        name: "Tester",
+        vesselType: 0,
+        situation: 3,
+        parentBodyIndex: 0,
+      });
+      fixture.emit("system.vessels", {
+        vessels: [
+          {
+            vesselId: "v-active",
+            name: "Tester",
+            vesselType: 0,
+            situation: 3,
+            bodyIndex: 0,
+            orbit: {
+              sma: 700_000,
+              ecc: 0,
+              inc: 0,
+              lan: 0,
+              argPe: 0,
+              meanAnomalyAtEpoch: 0,
+              epoch: 100,
+            },
+          },
+        ],
+      });
+    });
+
+    await waitFor(() =>
+      expect(
+        container.querySelector('[data-entity-id="vessel-orbit:v-active"]'),
+      ).not.toBeNull(),
+    );
+  });
 });

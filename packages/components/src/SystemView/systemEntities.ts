@@ -112,7 +112,49 @@ export type SystemEntityShape =
   /** A line from this entity's own `position` to `to`. */
   | { kind: "connection-line"; to: SystemEntityPosition }
   /** A physically-scaled disc: `radiusMetres` is projected by `plotScale` like any other distance, so it grows/shrinks correctly on zoom (e.g. an expanding CME front). */
-  | { kind: "blob"; radiusMetres: number };
+  | { kind: "blob"; radiusMetres: number }
+  /**
+   * A moving segment from this entity's own `position` (the apex, e.g. a
+   * star) travelling outward toward `to` (a bearing + distance, e.g. the
+   * body a CME threatens): use this instead of `blob`/a fixed wedge for
+   * anything that reads as ONE thing in transit along a bearing (a CME
+   * front) rather than an omnidirectional or static field.
+   * `segmentLengthMetres` is the physical length of the moving segment
+   * itself (NOT the full apex->tip distance), projected by `plotScale` like
+   * `blob`'s radius so it scales on zoom, and clamped to the apex->tip
+   * distance if it would overshoot.
+   *
+   * A SINGLE pass, never a loop: `SystemEntitiesLayer` positions the
+   * segment each render from real UT (its own `nowUt` prop) against
+   * `arriveUt`/`clearUt` below, so the wave departs the apex once and
+   * finishes once, matching one real event (e.g. one CME) rather than
+   * decoratively repeating. `arriveUt`/`clearUt` are absolute UT timestamps
+   * a contribution derives from its own Topic data (e.g. Kerbalism's own
+   * storm-arrival UT and post-arrival duration): ordinary arithmetic on
+   * values already on the wire, not a wall-clock read, so this still holds
+   * the contribution-slots-spec rule that `compute()` is a pure function of
+   * Topics/Processors only. `SystemEntitiesLayer` derives the DEPARTURE time
+   * itself (`arriveUt` minus however long the apex->tip crossing takes at
+   * the same constant rate `clearUt - arriveUt` implies for crossing
+   * `segmentLengthMetres`), so the leading edge emerges from the apex,
+   * travels the bearing, reaches `to` exactly at `arriveUt`, and keeps
+   * sliding until its trailing edge clears `to` at `clearUt`; the portion of
+   * the segment that has passed beyond `to` fades out over a short distance
+   * rather than staying full-strength, so the render doesn't overstate a
+   * "how far has it gone past the target" the underlying data doesn't
+   * actually carry.
+   */
+  | {
+      kind: "travelling-pulse";
+      to: SystemEntityPosition;
+      segmentLengthMetres: number;
+      /** UT the leading edge reaches `to` (the real event this entity
+       *  represents "arriving" or "beginning" at the target). */
+      arriveUt: number;
+      /** UT the trailing edge fully clears `to`: the real event "ending" at
+       *  the target (`arriveUt` plus however long it stays active there). */
+      clearUt: number;
+    };
 
 export interface SystemEntity {
   /** Stable, globally-unique id: the decoration hook and the future info panel key off this. */
@@ -251,18 +293,21 @@ export function projectOrbitRing(
 
 /**
  * Default stacking, back to front: orbit rings read as background structure,
- * blobs (physical ambient effects, e.g. a CME front) sit above them but
- * below the network layer, connection lines sit above blobs so a link is
- * always readable against whatever it crosses, and point markers are always
- * on top so they stay clickable. A contributed entity's `zHint` overrides
- * this outright when a contribution needs a different stacking (e.g. an
- * entity that must clear a specific other entity).
+ * blobs and travelling pulses (physical ambient effects, e.g. a CME) sit
+ * above them but below the network layer, connection lines sit above them so
+ * a link is always readable against whatever it crosses, and point markers
+ * are always on top so they stay clickable. A contributed entity's `zHint`
+ * overrides this outright when a contribution needs a different stacking
+ * (e.g. an entity that must clear a specific other entity).
  */
 export const SYSTEM_ENTITY_DEFAULT_LAYER: Readonly<
   Record<SystemEntityShape["kind"], number>
 > = {
   "orbit-path": 0,
   blob: 1,
+  // Same tier as `blob`: another physical ambient effect, just a
+  // directional one rather than an omnidirectional field.
+  "travelling-pulse": 1,
   "connection-line": 2,
   point: 3,
 };
@@ -275,7 +320,10 @@ function effectiveLayer(entity: SystemEntity): number {
 
 const SEVERITY_COLOUR: Readonly<Record<SystemEntitySeverity, string>> = {
   info: "var(--color-status-info-fg)",
-  warn: "var(--color-status-warning-fg-muted)",
+  // A distinctly energetic yellow: the muted warning gold read as an
+  // ordinary de-emphasised line at faint emphasis, and the accent green is
+  // reserved for selection, so neither could carry "caution" here.
+  warn: "var(--color-tag-yellow-fg)",
   critical: "var(--color-status-nogo-fg)",
 };
 
@@ -329,6 +377,13 @@ export type ResolvedSystemEntity =
       rx: number;
       ry: number;
       rotationDeg: number;
+      /** The entity's own `position` (its declared anomaly), projected: a
+       *  small marker distinguishing WHERE on the ring this entity's data
+       *  actually points (e.g. a `connection-line`'s join point) from the
+       *  ring itself, which only shows the orbit's SHAPE. Omitted on the
+       *  rare projection failure the ring itself didn't already hit. */
+      dotX?: number;
+      dotY?: number;
     })
   | (ResolvedBase & {
       kind: "connection-line";
@@ -342,6 +397,20 @@ export type ResolvedSystemEntity =
       x: number;
       y: number;
       radiusPx: number;
+    })
+  | (ResolvedBase & {
+      kind: "travelling-pulse";
+      /** Apex (the entity's own `position`, projected). */
+      x1: number;
+      y1: number;
+      /** Tip (`shape.to`, projected): where the pulse travels TOWARD. */
+      x2: number;
+      y2: number;
+      segmentLengthPx: number;
+      /** Carried straight through from `shape.arriveUt`/`clearUt`: see
+       *  `SystemEntityShape`'s `travelling-pulse` doc comment. */
+      arriveUt: number;
+      clearUt: number;
     });
 
 const DEFAULT_POINT_RADIUS_PX = 4;
@@ -405,12 +474,14 @@ export function resolveSystemEntities(
       }
       const ring = projectOrbitRing(entity.position, ctx);
       if (!ring) continue;
+      const dot = projectEntityPosition(entity.position, ctx);
       layered.push({
         z,
         resolved: {
           kind: "orbit-path",
           id: entity.id,
           ...ring,
+          ...(dot ? { dotX: dot.x, dotY: dot.y } : {}),
           colour,
           opacity,
           meta: entity.meta,
@@ -435,8 +506,7 @@ export function resolveSystemEntities(
           meta: entity.meta,
         },
       });
-    } else {
-      // "blob"
+    } else if (entity.shape.kind === "blob") {
       const p = projectEntityPosition(entity.position, ctx);
       if (!p) continue;
       const radiusPx = entity.shape.radiusMetres * ctx.plotScale;
@@ -449,6 +519,34 @@ export function resolveSystemEntities(
           x: p.x,
           y: p.y,
           radiusPx,
+          colour,
+          opacity,
+          meta: entity.meta,
+        },
+      });
+    } else {
+      // "travelling-pulse"
+      const from = projectEntityPosition(entity.position, ctx);
+      const to = projectEntityPosition(entity.shape.to, ctx);
+      if (!from || !to) continue;
+      // A coincident apex/tip has no bearing to travel along: skip rather
+      // than resolve a zero-length line the renderer would have to notice
+      // and discard itself.
+      if (from.x === to.x && from.y === to.y) continue;
+      const segmentLengthPx = entity.shape.segmentLengthMetres * ctx.plotScale;
+      if (!(segmentLengthPx > 0)) continue;
+      layered.push({
+        z,
+        resolved: {
+          kind: "travelling-pulse",
+          id: entity.id,
+          x1: from.x,
+          y1: from.y,
+          x2: to.x,
+          y2: to.y,
+          segmentLengthPx,
+          arriveUt: entity.shape.arriveUt,
+          clearUt: entity.shape.clearUt,
           colour,
           opacity,
           meta: entity.meta,

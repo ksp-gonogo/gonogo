@@ -170,7 +170,7 @@ describe("SystemView command traffic: system.uplink.pending as edge pulses", () 
     expect(container.querySelector("[data-pulse-edge-id]")).toBeNull();
   });
 
-  it("renders a pulse on the active vessel's route and brightens it, for an in-flight entry", async () => {
+  it("renders a gradient pulse on the active vessel's route, riding a plain (not brightened) CommNet line", async () => {
     // A huge oneWaySeconds means the round trip (2 * oneWaySeconds) safely
     // covers any utNow the fake wall clock produces at dispatchedAt: 0, so
     // this proves the WIRING (pending -> route -> pulse) without pinning
@@ -193,18 +193,32 @@ describe("SystemView command traffic: system.uplink.pending as edge pulses", () 
         '[data-pulse-edge-id="comms-edge:home:v-active"]',
       );
       expect(el).not.toBeNull();
-      return el as SVGCircleElement;
+      return el as SVGLineElement;
     });
-    expect(pulse.getAttribute("fill")).toBe("var(--color-accent-fg)");
+    // A gradient sweep, not a solid-fill marker: the bright colour lives on
+    // the linked gradient's peak stop, not the line's own attributes.
+    const gradientId = pulse
+      .getAttribute("stroke")
+      ?.match(/url\(#([^)]+)\)/)?.[1];
+    expect(gradientId).toBeDefined();
+    const peakStop = container.querySelector(
+      `#${gradientId} stop:nth-child(2)`,
+    );
+    expect(peakStop?.getAttribute("stop-color")).toBe(
+      "var(--color-text-primary)",
+    );
 
-    // The traversed edge brightens while traffic is in flight on it.
+    // The traversed edge itself stays the same plain grey/white every other
+    // CommNet line renders in: the gradient pulse is the ONLY traffic
+    // indicator, deliberately never a whole-edge brighten (that would dilute
+    // the travelling glow into a permanently-bright line).
     const edge = container.querySelector(
       '[data-entity-id="comms-edge:home:v-active"]',
     );
-    expect(edge?.getAttribute("stroke")).toBe("var(--color-accent-fg)");
+    expect(edge?.getAttribute("stroke")).toBe("var(--color-text-faint)");
   });
 
-  it("clears the pulse and re-fades the route once the pending entry ages out", async () => {
+  it("clears the pulse once the pending entry ages out; the route stays the same plain grey/white throughout", async () => {
     const { container, fixture } = mountScene([
       {
         id: "cmd-1",
