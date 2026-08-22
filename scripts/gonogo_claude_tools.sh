@@ -672,6 +672,54 @@ build_gonogo() {
     cp "$dll" "$install_dir/"
     deployed+=("$(basename "$dll")")
   done
+  # Prove the bytes that landed hold this build's code, the same way every
+  # Uplink deploy does. Core had no such check, and core is where the seams the
+  # Uplinks register into live: a stale Gonogo.dll answers every capability
+  # question with the previous build's wiring, and the only symptom is a feature
+  # that reports nothing wrong. Each claim carries the control that proves the
+  # reader could have seen it, because a scan that reads nothing at all reports
+  # the same clean run as one that read everything.
+  #
+  #   IIntegratedTrajectorySource  the propagation seam an n-body Uplink
+  #                                registers against, and the marker whose
+  #                                absence kept the integrated horizon shut
+  #   PropagationCapability        the capability id an Uplink and the election
+  #                                have to agree on across a boundary neither
+  #                                compiles across
+  #   NotAttempted                 the refusal enum's zero value; its old
+  #                                spelling reads as "nothing was refused"
+  #   ElectedIntegrates            the election's own type check, in the
+  #                                assembly the KSP layer calls it from
+  #   Reinforced.Typings           the codegen dependency, which once flowed 29
+  #                                copies deep and hid a dispatch bug for a month
+  echo "=== verifying deployed bytes ==="
+  local contract_rc=0
+  local host_rc=0
+  local ksp_rc=0
+  python3 "$ROOT/scripts/verify_deployed_symbols.py" \
+    "$install_dir/Sitrep.Contract.dll" \
+    --control mscorlib \
+    --require IIntegratedTrajectorySource \
+    --require PropagationCapability \
+    --require NotAttempted \
+    --require NotRefused \
+    --absent Reinforced.Typings || contract_rc=$?
+  python3 "$ROOT/scripts/verify_deployed_symbols.py" \
+    "$install_dir/Sitrep.Host.dll" \
+    --control mscorlib \
+    --require ElectedIntegrates \
+    --absent Reinforced.Typings || host_rc=$?
+  python3 "$ROOT/scripts/verify_deployed_symbols.py" \
+    "$install_dir/Gonogo.dll" \
+    --control mscorlib \
+    --require ElectedIntegrates \
+    --require KspPerturbers \
+    --absent Reinforced.Typings || ksp_rc=$?
+  if [ "$contract_rc" -ne 0 ] || [ "$host_rc" -ne 0 ] || [ "$ksp_rc" -ne 0 ]; then
+    echo "deployed DLLs failed verification (contract=$contract_rc host=$host_rc ksp=$ksp_rc)"
+    return 5
+  fi
+
   echo "=== deployed to $install_dir ==="
   printf '  %s\n' "${deployed[@]}"
   ls -la "$install_dir"
@@ -1047,6 +1095,11 @@ build_gonogoprincipiauplink() {
   #
   #   PrincipiaGravityModelSource  the n-body gravity registration, whose absence
   #                                is why the live rig still reported Analytic
+  #   PrincipiaPropagationProvider the marker-carrying provider that opens the
+  #                                integrated horizon; with it absent the horizon
+  #                                is Unbounded on every frame of every install
+  #   principia-propagation        its provider id, a UTF-8 string literal, so the
+  #                                registration is proved and not just the type
   #   PrincipiaLayoutProbe         the burn-editor struct-layout round-trip probe
   #   principia.plan.arm           a UTF-16LE-only string literal, so the second
   #                                encoding leg is exercised on every deploy and
@@ -1069,6 +1122,8 @@ build_gonogoprincipiauplink() {
     "$install_dir/GonogoPrincipiaUplink.dll" \
     --control mscorlib \
     --require PrincipiaGravityModelSource \
+    --require PrincipiaPropagationProvider \
+    --require principia-propagation \
     --require PrincipiaLayoutProbe \
     --require principia.plan.arm \
     --absent Reinforced.Typings \
