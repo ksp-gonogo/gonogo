@@ -346,6 +346,13 @@ export {
   type MeterTone,
 } from "./Meter";
 export { MissionDate, type MissionDateProps } from "./MissionDate";
+export {
+  MissionDateField,
+  type MissionDateFieldProps,
+  type MissionDateParts,
+  partsOfUt,
+  utOfParts,
+} from "./MissionDateField";
 export { ModalProvider, useModal } from "./Modal";
 export {
   ModalChromeContext,

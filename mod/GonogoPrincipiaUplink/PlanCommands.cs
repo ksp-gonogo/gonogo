@@ -1,0 +1,723 @@
+using System;
+using System.Collections.Generic;
+using Sitrep.Contract;
+
+namespace GonogoPrincipiaUplink
+{
+    /// <summary>
+    /// The flight-plan write commands: one frame each, no yield inside it, and a
+    /// re-read of the plan on the way out.
+    ///
+    /// <para><b>Every handler has the same five-step shape and the order is
+    /// load-bearing.</b> Prove the vessel; prove the plan; materialise it; take the
+    /// write gate, which is where the version, the arm and the optimiser are
+    /// checked; write; re-read. Nothing between the first and last step may yield,
+    /// await or hop threads, because every one of those steps is a statement about
+    /// the plugin's state at the instant it was made and the only thing keeping the
+    /// statements true is that nothing else ran in between.</para>
+    ///
+    /// <para><b>Why a request id and not a fresh id per attempt.</b> A plan write
+    /// re-integrates the plan synchronously on the game's own thread, so repeating
+    /// one is expensive as well as wrong. A retry that reuses its id gets the
+    /// previous receipt back, marked as a replay, and the plugin is not touched
+    /// again. That is what makes a retry safe to send, which is what makes the
+    /// timeout on the other side of the wire safe to have.</para>
+    ///
+    /// <para>The whole class is game-free: it reads its session out of the settings
+    /// source, which is the same seam the settings channel uses, so every decision
+    /// here is drivable against a fake plugin with nothing hand-set.</para>
+    /// </summary>
+    public sealed class PlanCommands
+    {
+        /// <summary>How many receipts to remember for replay. Small deliberately: a
+        /// console has one operator and a handful of live intents, and a cache that
+        /// remembers forever would answer a reused id from an hour ago.</summary>
+        internal const int ReceiptMemory = 16;
+
+        public const string ArmCommand = "principia.plan.arm";
+        public const string ReplaceBurnCommand = "principia.plan.burn.replace";
+        public const string InsertBurnCommand = "principia.plan.burn.insert";
+        public const string RemoveBurnCommand = "principia.plan.burn.remove";
+        public const string HorizonCommand = "principia.plan.horizon";
+        public const string IntegratorCommand = "principia.plan.integrator";
+        public const string CreateCommand = "principia.plan.create";
+        public const string DeleteCommand = "principia.plan.delete";
+        public const string DuplicateCommand = "principia.plan.duplicate";
+
+        private static readonly PrincipiaBurnStruct Fields = new PrincipiaBurnStruct();
+
+        private readonly Func<ISettingsSource?> _source;
+        private readonly PlanReader _reader = new PlanReader();
+        private readonly Dictionary<string, Dictionary<string, object?>> _receipts =
+            new Dictionary<string, Dictionary<string, object?>>();
+        private readonly List<string> _receiptOrder = new List<string>();
+
+        public PlanCommands(Func<ISettingsSource?> source)
+        {
+            _source = source;
+        }
+
+        /// <summary>
+        /// The thread every write must run on, captured where the host promises to
+        /// call us on it.
+        ///
+        /// <para><b>Why this is checked rather than assumed.</b> Principia's own
+        /// comment on the members a plan write touches is "these members are only
+        /// accessed by the main thread", and a write destroys trajectory segments a
+        /// live renderer may be walking. The host does put command handlers on the
+        /// main thread, but only when it was built to: the flag defaults to off for
+        /// headless callers, and a host built the other way would run every one of
+        /// these off-thread with nothing anywhere saying so. An assumption that
+        /// cannot express its own violation is the shape of defect this repo keeps
+        /// finding, so it is a comparison instead.</para>
+        /// </summary>
+        internal int? MainThreadId { get; private set; }
+
+        /// <summary>Records the thread the host registered us on. Called from
+        /// <c>Register</c>, which the host documents as main-thread.</summary>
+        internal void BindToCallingThread()
+        {
+            MainThreadId = System.Threading.Thread.CurrentThread.ManagedThreadId;
+        }
+
+        /// <summary>Why this write must not run here, or null.</summary>
+        private PrincipiaWriteResult? WrongThread()
+        {
+            var main = MainThreadId;
+            if (main == null
+                || main.Value == System.Threading.Thread.CurrentThread.ManagedThreadId)
+            {
+                return null;
+            }
+            return PrincipiaWriteResult.Refused(
+                PrincipiaWriteRefusal.SurfaceUnavailable,
+                "A flight-plan write arrived off the game's main thread, so it was refused. "
+                + "Principia's plan members are main-thread only and a write destroys trajectory "
+                + "segments a renderer may be reading. The host must be built with commands "
+                + "executing on the main thread for this surface to be usable.");
+        }
+
+        /// <summary>
+        /// Runs the struct round-trip probes and, if the burn probe passes, arms the
+        /// surface.
+        ///
+        /// <para>The arm and the probe are the same action on purpose. A probe is a
+        /// write, so it cannot be gated on the arm it is the precondition of; and an
+        /// arm that did not probe would be a permission granted without the one piece
+        /// of evidence that cannot be got by reading.</para>
+        /// </summary>
+        public CommandResult<Dictionary<string, object?>> Arm(PrincipiaPlanArmArgs? args)
+        {
+            var vesselId = args?.VesselId;
+            var requestId = args?.RequestId;
+            if (Replay(ArmCommand, requestId, out var replayed))
+            {
+                return Ok(replayed!, replay: true);
+            }
+
+            var offThread = WrongThread();
+            if (offThread.HasValue)
+            {
+                return Refusal(ArmCommand, requestId, offThread.Value, null);
+            }
+
+            var session = Session();
+            if (session == null)
+            {
+                return Refusal(
+                    ArmCommand, requestId, NoSession(), null);
+            }
+
+            using var frame = Frame(session);
+            if (frame == null)
+            {
+                return Refusal(ArmCommand, requestId, NoPlugin(), null);
+            }
+
+            if (!frame.TryVessel(vesselId, out var vessel))
+            {
+                return Refusal(ArmCommand, requestId, UnknownVessel(vesselId), null);
+            }
+            if (!vessel.TryFlightPlan(out var plan))
+            {
+                return Refusal(ArmCommand, requestId, NoPlan(), null);
+            }
+
+            var now = frame.CurrentTime();
+            var materialised = plan.Materialise();
+            var probeRefusal = PrincipiaLayoutProbe.Run(materialised, session.Writes);
+            if (probeRefusal.HasValue)
+            {
+                return Refusal(
+                    ArmCommand,
+                    requestId,
+                    probeRefusal.Value,
+                    _reader.ReadInFrame(session, frame, vessel.Guid, now));
+            }
+
+            // Armed on the strength of the struct probe that matters for the edits an
+            // operator is about to make. The step-parameter probe standing alone is
+            // not enough to arm, because the burn edits are what an arm is FOR, but a
+            // failed burn probe does not withhold the step-parameter remedy either:
+            // both verdicts travel and each write consults the one it needs.
+            if (!session.Writes.BurnLayoutVerified && !session.Writes.IntegratorLayoutVerified)
+            {
+                return Refusal(
+                    ArmCommand,
+                    requestId,
+                    PrincipiaWriteResult.Refused(
+                        PrincipiaWriteRefusal.LayoutUnverified,
+                        session.Writes.LayoutFailure
+                        ?? "Neither of Principia's structs survived a round trip, so nothing here "
+                        + "can be written safely."),
+                    _reader.ReadInFrame(session, frame, vessel.Guid, now));
+            }
+
+            session.Writes.Arm(vessel.Guid);
+            return Settle(
+                ArmCommand,
+                requestId,
+                PrincipiaWriteResult.Written(),
+                _reader.ReadInFrame(session, frame, vessel.Guid, now));
+        }
+
+        /// <summary>Tunes one existing burn: time, the Dv triple, the attitude
+        /// mode, the propulsion profile, in any combination.</summary>
+        public CommandResult<Dictionary<string, object?>> ReplaceBurn(PrincipiaBurnEditArgs? args) =>
+            EditBurn(ReplaceBurnCommand, args, insert: false);
+
+        /// <summary>
+        /// Adds a burn by COPYING one that is already in the plan and changing the
+        /// stated fields.
+        ///
+        /// <para>There is no way to add a burn from nothing here, and that is the
+        /// version-fragility rule rather than a missing feature: the burn struct is
+        /// generated from a schema that gained a field and lost one in this release,
+        /// so a composed burn is a bet on a layout while a copied one is not. A plan
+        /// with no burns is therefore refused rather than served, and the refusal says
+        /// why.</para>
+        /// </summary>
+        public CommandResult<Dictionary<string, object?>> InsertBurn(PrincipiaBurnEditArgs? args) =>
+            EditBurn(InsertBurnCommand, args, insert: true);
+
+        private CommandResult<Dictionary<string, object?>> EditBurn(
+            string command, PrincipiaBurnEditArgs? args, bool insert)
+        {
+            if (args == null)
+            {
+                return Refusal(command, null, NoArgs(), null);
+            }
+            if (Replay(command, args.RequestId, out var replayed))
+            {
+                return Ok(replayed!, replay: true);
+            }
+
+            return InPlan(
+                command,
+                args.VesselId,
+                args.RequestId,
+                (session, gate, now) =>
+                {
+                    if (!session.Writes.BurnLayoutVerified)
+                    {
+                        return LayoutUnverified(session, "burn");
+                    }
+
+                    var count = gate.ManoeuvreCount();
+                    if (count <= 0)
+                    {
+                        return PrincipiaWriteResult.Refused(
+                            PrincipiaWriteRefusal.NoTemplateBurn,
+                            "This plan has no burns, so there is none to copy and this Uplink never "
+                            + "assembles one from constants. Add the first burn in Principia's own "
+                            + "planner; every burn after it can be added from here.");
+                    }
+
+                    // Insert copies a template and puts the new burn at the requested
+                    // index; past the end, the last burn is the template. Replace
+                    // edits the burn named. Both go through the same round trip, and
+                    // neither composes a burn.
+                    var templateIndex = insert
+                        ? Math.Min(Math.Max(args.BurnIndex, 0), count - 1)
+                        : args.BurnIndex;
+                    var manoeuvre = gate.Manoeuvre(templateIndex);
+                    if (manoeuvre == null)
+                    {
+                        return PrincipiaWriteResult.Refused(
+                            PrincipiaWriteRefusal.BurnIndexOutOfRange,
+                            "Burn " + (templateIndex + 1) + " is not in this plan, which holds "
+                            + count + ".");
+                    }
+
+                    var burn = Fields.Get(manoeuvre, PrincipiaBurnStruct.ManoeuvreBurnField);
+                    if (burn == null)
+                    {
+                        return PrincipiaWriteResult.Refused(
+                            PrincipiaWriteRefusal.PluginShapeChanged,
+                            "Principia's manoeuvre carried no burn where this Uplink expects one.");
+                    }
+
+                    if (!insert)
+                    {
+                        var executing = PrincipiaBurnRules.RejectExecuting(
+                            Fields.GetDouble(burn, PrincipiaBurnStruct.InitialTimeField),
+                            Fields.GetDouble(manoeuvre, PrincipiaBurnStruct.ManoeuvreFinalTimeField),
+                            now);
+                        if (executing.HasValue)
+                        {
+                            return executing.Value;
+                        }
+                    }
+
+                    var applied = PrincipiaBurnRules.Apply(
+                        burn,
+                        args,
+                        Fields.GetDouble(manoeuvre, PrincipiaBurnStruct.ManoeuvreInitialMassField));
+                    if (applied.HasValue)
+                    {
+                        return applied.Value;
+                    }
+
+                    return insert
+                        ? gate.Insert(args.BurnIndex, burn)
+                        : gate.Replace(args.BurnIndex, burn);
+                });
+        }
+
+        /// <summary>Drops one burn from the plan.</summary>
+        public CommandResult<Dictionary<string, object?>> RemoveBurn(PrincipiaBurnRemoveArgs? args)
+        {
+            if (args == null)
+            {
+                return Refusal(RemoveBurnCommand, null, NoArgs(), null);
+            }
+            if (Replay(RemoveBurnCommand, args.RequestId, out var replayed))
+            {
+                return Ok(replayed!, replay: true);
+            }
+
+            return InPlan(
+                RemoveBurnCommand,
+                args.VesselId,
+                args.RequestId,
+                (session, gate, now) =>
+                {
+                    var manoeuvre = gate.Manoeuvre(args.BurnIndex);
+                    if (manoeuvre != null)
+                    {
+                        var burn = Fields.Get(manoeuvre, PrincipiaBurnStruct.ManoeuvreBurnField);
+                        var executing = PrincipiaBurnRules.RejectExecuting(
+                            burn == null
+                                ? null
+                                : Fields.GetDouble(burn, PrincipiaBurnStruct.InitialTimeField),
+                            Fields.GetDouble(manoeuvre, PrincipiaBurnStruct.ManoeuvreFinalTimeField),
+                            now);
+                        if (executing.HasValue)
+                        {
+                            return executing.Value;
+                        }
+                    }
+                    return gate.Remove(args.BurnIndex);
+                });
+        }
+
+        /// <summary>Moves where the plan is asked to end.</summary>
+        public CommandResult<Dictionary<string, object?>> SetHorizon(PrincipiaPlanHorizonArgs? args)
+        {
+            if (args == null)
+            {
+                return Refusal(HorizonCommand, null, NoArgs(), null);
+            }
+            if (Replay(HorizonCommand, args.RequestId, out var replayed))
+            {
+                return Ok(replayed!, replay: true);
+            }
+
+            return InPlan(
+                HorizonCommand,
+                args.VesselId,
+                args.RequestId,
+                (session, gate, now) => gate.SetDesiredFinalTime(args.DesiredFinalTimeUt));
+        }
+
+        /// <summary>
+        /// Raises the step budget or loosens the tolerances, by reading the
+        /// producer's own struct back and changing three of its five fields.
+        /// </summary>
+        public CommandResult<Dictionary<string, object?>> SetIntegrator(
+            PrincipiaPlanIntegratorArgs? args)
+        {
+            if (args == null)
+            {
+                return Refusal(IntegratorCommand, null, NoArgs(), null);
+            }
+            if (Replay(IntegratorCommand, args.RequestId, out var replayed))
+            {
+                return Ok(replayed!, replay: true);
+            }
+
+            return InPlan(
+                IntegratorCommand,
+                args.VesselId,
+                args.RequestId,
+                (session, gate, now) =>
+                {
+                    if (!session.Writes.IntegratorLayoutVerified)
+                    {
+                        return LayoutUnverified(session, "step parameter");
+                    }
+                    var parameters = gate.AdaptiveStepParameters();
+                    if (parameters == null)
+                    {
+                        return PrincipiaWriteResult.Refused(
+                            PrincipiaWriteRefusal.PluginShapeChanged,
+                            "Principia's step parameters could not be read, so there is nothing to "
+                            + "change and hand back.");
+                    }
+                    var applied = PrincipiaIntegratorRules.Apply(parameters, args);
+                    if (applied.HasValue)
+                    {
+                        return applied.Value;
+                    }
+                    return gate.SetAdaptiveStepParameters(parameters);
+                });
+        }
+
+        /// <summary>Creates a plan on a vessel that has none.</summary>
+        public CommandResult<Dictionary<string, object?>> CreatePlan(PrincipiaPlanSlotArgs? args)
+        {
+            if (args == null)
+            {
+                return Refusal(CreateCommand, null, NoArgs(), null);
+            }
+            if (Replay(CreateCommand, args.RequestId, out var replayed))
+            {
+                return Ok(replayed!, replay: true);
+            }
+
+            var offThread = WrongThread();
+            if (offThread.HasValue)
+            {
+                return Refusal(CreateCommand, args.RequestId, offThread.Value, null);
+            }
+
+            var session = Session();
+            if (session == null)
+            {
+                return Refusal(CreateCommand, args.RequestId, NoSession(), null);
+            }
+            using var frame = Frame(session);
+            if (frame == null)
+            {
+                return Refusal(CreateCommand, args.RequestId, NoPlugin(), null);
+            }
+            if (!frame.TryVessel(args.VesselId, out var vessel))
+            {
+                return Refusal(CreateCommand, args.RequestId, UnknownVessel(args.VesselId), null);
+            }
+
+            var now = frame.CurrentTime();
+            if (!vessel.TryPlanCreation(out var gate, out var refusal, out var detail))
+            {
+                return Refusal(
+                    CreateCommand,
+                    args.RequestId,
+                    PrincipiaWriteResult.Refused(refusal, detail),
+                    _reader.ReadInFrame(session, frame, vessel.Guid, now));
+            }
+
+            // An hour, which is what Principia's own planner asks for when the
+            // operator gives it nothing. Stated rather than left to a null: a plan
+            // that ends before it starts is an assertion failure inside the plugin.
+            var finalTime = args.FinalTimeUt ?? now + 3600.0;
+            var result = gate.Create(finalTime, args.MassTons ?? 0.0);
+            return Settle(
+                CreateCommand,
+                args.RequestId,
+                result,
+                _reader.ReadInFrame(session, frame, vessel.Guid, now));
+        }
+
+        /// <summary>Deletes the selected plan.</summary>
+        public CommandResult<Dictionary<string, object?>> DeletePlan(PrincipiaPlanSlotArgs? args)
+        {
+            if (args == null)
+            {
+                return Refusal(DeleteCommand, null, NoArgs(), null);
+            }
+            if (Replay(DeleteCommand, args.RequestId, out var replayed))
+            {
+                return Ok(replayed!, replay: true);
+            }
+            return InPlan(
+                DeleteCommand, args.VesselId, args.RequestId, (session, gate, now) => gate.Delete());
+        }
+
+        /// <summary>Copies the selected plan into a new slot.</summary>
+        public CommandResult<Dictionary<string, object?>> DuplicatePlan(PrincipiaPlanSlotArgs? args)
+        {
+            if (args == null)
+            {
+                return Refusal(DuplicateCommand, null, NoArgs(), null);
+            }
+            if (Replay(DuplicateCommand, args.RequestId, out var replayed))
+            {
+                return Ok(replayed!, replay: true);
+            }
+            return InPlan(
+                DuplicateCommand,
+                args.VesselId,
+                args.RequestId,
+                (session, gate, now) => gate.Duplicate());
+        }
+
+        /// <summary>
+        /// The five steps every plan write shares, so no handler can leave one out.
+        /// </summary>
+        private CommandResult<Dictionary<string, object?>> InPlan(
+            string command,
+            string? vesselId,
+            string? requestId,
+            Func<PrincipiaSession, PrincipiaPlanWriteGate, double, PrincipiaWriteResult> write)
+        {
+            var offThread = WrongThread();
+            if (offThread.HasValue)
+            {
+                return Refusal(command, requestId, offThread.Value, null);
+            }
+
+            var session = Session();
+            if (session == null)
+            {
+                return Refusal(command, requestId, NoSession(), null);
+            }
+
+            using var frame = Frame(session);
+            if (frame == null)
+            {
+                return Refusal(command, requestId, NoPlugin(), null);
+            }
+
+            if (!frame.TryVessel(vesselId, out var vessel))
+            {
+                return Refusal(command, requestId, UnknownVessel(vesselId), null);
+            }
+
+            var now = frame.CurrentTime();
+            if (!vessel.TryFlightPlan(out var plan))
+            {
+                return Refusal(
+                    command,
+                    requestId,
+                    NoPlan(),
+                    _reader.ReadInFrame(session, frame, vessel.Guid, now));
+            }
+
+            var materialised = plan.Materialise();
+            if (!materialised.TryWrite(out var gate, out var refusal, out var detail))
+            {
+                return Refusal(
+                    command,
+                    requestId,
+                    PrincipiaWriteResult.Refused(refusal, detail),
+                    _reader.ReadInFrame(session, frame, vessel.Guid, now));
+            }
+
+            var result = write(session, gate, now);
+
+            // The re-read happens whatever the outcome, including a refusal that got
+            // this far, because "what does the plan look like now" is the question a
+            // receipt exists to answer and a refusal is not a reason to withhold it.
+            return Settle(
+                command, requestId, result, _reader.ReadInFrame(session, frame, vessel.Guid, now));
+        }
+
+        private static PrincipiaWriteResult LayoutUnverified(PrincipiaSession session, string what) =>
+            PrincipiaWriteResult.Refused(
+                PrincipiaWriteRefusal.LayoutUnverified,
+                "Principia's " + what + " struct has not survived a round trip in this session, so "
+                + "nothing will be written through it. " + (session.Writes.LayoutFailure ?? "")
+                + " Arm the write surface on a plan that has at least one burn.");
+
+        private static PrincipiaWriteResult NoArgs() =>
+            PrincipiaWriteResult.Refused(
+                PrincipiaWriteRefusal.SurfaceUnavailable,
+                "The command carried no arguments, so there is nothing to write and no vessel to "
+                + "write it to.");
+
+        private static PrincipiaWriteResult NoSession() =>
+            PrincipiaWriteResult.Refused(
+                PrincipiaWriteRefusal.SurfaceUnavailable,
+                "No Principia session is bound, so the plan cannot be read, let alone changed.");
+
+        private static PrincipiaWriteResult NoPlugin() =>
+            PrincipiaWriteResult.Refused(
+                PrincipiaWriteRefusal.SurfaceUnavailable,
+                "Principia's plugin is not running right now (main menu, or mid-reset).");
+
+        private static PrincipiaWriteResult NoPlan() =>
+            PrincipiaWriteResult.Refused(
+                PrincipiaWriteRefusal.NoFlightPlan,
+                "The vessel has no flight plan. Create one first.");
+
+        private static PrincipiaWriteResult UnknownVessel(string? vesselId) =>
+            PrincipiaWriteResult.Refused(
+                PrincipiaWriteRefusal.VesselUnknown,
+                string.IsNullOrEmpty(vesselId)
+                    ? "No vessel was named, and a plan write is per-vessel."
+                    : "Principia no longer knows vessel " + vesselId
+                        + ". It may have been recovered, destroyed, or merged since the console "
+                        + "last read it.");
+
+        private ISettingsSource? Source() => _source();
+
+        private PrincipiaSession? Session() => Source()?.Session;
+
+        private static PrincipiaFrame? Frame(PrincipiaSession session) =>
+            session.TryBeginFrame(out var frame) ? frame : null;
+
+        /// <summary>
+        /// Records the receipt and turns it into a command result.
+        ///
+        /// <para>A refused or rejected write is a command FAILURE with a typed code,
+        /// and it still carries the whole receipt: the code is what a client branches
+        /// on and the receipt is what it shows. Neither is worth sending without the
+        /// other.</para>
+        /// </summary>
+        private CommandResult<Dictionary<string, object?>> Settle(
+            string command,
+            string? requestId,
+            PrincipiaWriteResult result,
+            PlanObservation? plan)
+        {
+            var receipt = PlanBuilder.BuildReceipt(requestId, result, plan);
+            Remember(command, requestId, receipt);
+            if (result.Outcome == PrincipiaWriteOutcome.Written)
+            {
+                return Ok(receipt, replay: false);
+            }
+            return new CommandResult<Dictionary<string, object?>>
+            {
+                Success = false,
+                ErrorCode = Code(result),
+                Detail = result.Detail ?? result.StatusMessage,
+                Payload = receipt,
+            };
+        }
+
+        private CommandResult<Dictionary<string, object?>> Refusal(
+            string command,
+            string? requestId,
+            PrincipiaWriteResult result,
+            PlanObservation? plan) =>
+            Settle(command, requestId, result, plan);
+
+        private static CommandResult<Dictionary<string, object?>> Ok(
+            Dictionary<string, object?> receipt, bool replay)
+        {
+            if (replay)
+            {
+                receipt = new Dictionary<string, object?>(receipt) { ["replayed"] = true };
+            }
+            // A replayed receipt reports the outcome AND the code it reported the
+            // first time, including a failure, because the honest answer to "what
+            // happened to request 7" does not change on being asked twice. Both are
+            // recovered from the receipt rather than re-derived from anything live:
+            // the world may have moved on, and this answer is about the past.
+            var outcome = receipt.TryGetValue("outcome", out var value) && value is int code
+                ? (PrincipiaWriteOutcome)code
+                : PrincipiaWriteOutcome.Refused;
+            if (outcome == PrincipiaWriteOutcome.Written)
+            {
+                return CommandResult<Dictionary<string, object?>>.Ok(receipt);
+            }
+            var refusal =
+                receipt.TryGetValue("refusal", out var refusalValue) && refusalValue is int refusalCode
+                    ? (PrincipiaWriteRefusal)refusalCode
+                    : PrincipiaWriteRefusal.SurfaceUnavailable;
+            return new CommandResult<Dictionary<string, object?>>
+            {
+                Success = false,
+                ErrorCode = Code(outcome, refusal),
+                Detail = receipt.TryGetValue("refusalDetail", out var detail) ? detail as string : null,
+                Payload = receipt,
+            };
+        }
+
+        /// <summary>
+        /// Maps a write outcome onto the typed command code a client branches on.
+        ///
+        /// <para>The refusal enum on the receipt is the precise answer and this is
+        /// the coarse one, and both travel: a client that only knows the shared
+        /// vocabulary still gets a code it can act on, and one that knows this
+        /// Uplink's gets the guard by name. There is deliberately no
+        /// <c>LimitBreach</c> on the plan-slot refusal: that type is shaped around a
+        /// named FACILITY and a plan slot is not one, so the numbers ride in the
+        /// sentence instead.</para>
+        /// </summary>
+        private static CommandErrorCode Code(PrincipiaWriteResult result) =>
+            Code(result.Outcome, result.Refusal);
+
+        private static CommandErrorCode Code(
+            PrincipiaWriteOutcome outcome, PrincipiaWriteRefusal refusal) =>
+            outcome == PrincipiaWriteOutcome.Rejected
+                ? CommandErrorCode.WrongState
+                : refusal switch
+                {
+                    PrincipiaWriteRefusal.SurfaceUnavailable => CommandErrorCode.ModeUnavailable,
+                    PrincipiaWriteRefusal.NotArmed => CommandErrorCode.NotClearToProceed,
+                    PrincipiaWriteRefusal.LayoutUnverified => CommandErrorCode.ModeUnavailable,
+                    PrincipiaWriteRefusal.VesselUnknown => CommandErrorCode.NoVessel,
+                    PrincipiaWriteRefusal.NoFlightPlan => CommandErrorCode.WrongState,
+                    PrincipiaWriteRefusal.PlanAlreadyExists => CommandErrorCode.WrongState,
+                    PrincipiaWriteRefusal.PlanSlotsFull => CommandErrorCode.LimitReached,
+                    PrincipiaWriteRefusal.BurnIndexOutOfRange => CommandErrorCode.NotFound,
+                    PrincipiaWriteRefusal.BurnExecuting => CommandErrorCode.NotClearToProceed,
+                    PrincipiaWriteRefusal.BurnFrameUnsupported => CommandErrorCode.CapabilityMismatch,
+                    PrincipiaWriteRefusal.OptimisationRunning => CommandErrorCode.NotClearToProceed,
+                    PrincipiaWriteRefusal.ValueNotFinite => CommandErrorCode.Range,
+                    PrincipiaWriteRefusal.ThrustNotPositive => CommandErrorCode.Range,
+                    PrincipiaWriteRefusal.IntegratorKindUnexpected =>
+                        CommandErrorCode.CapabilityMismatch,
+                    PrincipiaWriteRefusal.IntegratorBoundsExceeded => CommandErrorCode.Range,
+                    PrincipiaWriteRefusal.FinalTimeInPast => CommandErrorCode.Range,
+                    PrincipiaWriteRefusal.NoTemplateBurn => CommandErrorCode.WrongState,
+                    PrincipiaWriteRefusal.PluginShapeChanged => CommandErrorCode.CapabilityMismatch,
+                    _ => CommandErrorCode.Unknown,
+                };
+
+        private bool Replay(
+            string command, string? requestId, out Dictionary<string, object?>? receipt)
+        {
+            receipt = null;
+            if (string.IsNullOrEmpty(requestId))
+            {
+                return false;
+            }
+            return _receipts.TryGetValue(Key(command, requestId!), out receipt);
+        }
+
+        private void Remember(
+            string command, string? requestId, Dictionary<string, object?> receipt)
+        {
+            if (string.IsNullOrEmpty(requestId))
+            {
+                return;
+            }
+            var key = Key(command, requestId!);
+            if (!_receipts.ContainsKey(key))
+            {
+                _receiptOrder.Add(key);
+            }
+            _receipts[key] = receipt;
+            while (_receiptOrder.Count > ReceiptMemory)
+            {
+                _receipts.Remove(_receiptOrder[0]);
+                _receiptOrder.RemoveAt(0);
+            }
+        }
+
+        private static string Key(string command, string requestId) =>
+            command + " " + requestId;
+    }
+}

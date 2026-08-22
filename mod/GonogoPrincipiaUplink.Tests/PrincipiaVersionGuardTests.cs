@@ -127,13 +127,13 @@ namespace GonogoPrincipiaUplink.Tests
     public class PrincipiaUplinkTests
     {
         [Fact]
-        public void DeclaresItsTwoChannelsAndNoAvailabilityTopic()
+        public void DeclaresItsThreeChannelsAndNoAvailabilityTopic()
         {
             var manifest = new PrincipiaUplink().Manifest;
 
             Assert.Equal("principia", manifest.Id);
             Assert.Equal(
-                new[] { "principia.flightPlan", "principia.settings" },
+                new[] { "principia.flightPlan", "principia.settings", "principia.plan" },
                 manifest.Channels.Select(c => c.Topic).ToArray());
 
             // Presence still rides `system.uplinks` rather than a dedicated

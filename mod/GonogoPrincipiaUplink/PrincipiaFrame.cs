@@ -214,6 +214,31 @@ namespace GonogoPrincipiaUplink
             plan = new PrincipiaFlightPlanGate(_session, _generation, _guid);
             return true;
         }
+
+        /// <summary>
+        /// Hands back the gate that can CREATE a plan, or the refusal that stopped
+        /// it.
+        ///
+        /// <para>On the vessel rather than on the plan, because its precondition is
+        /// the negation of a plan existing. It is the only write on this surface
+        /// that is legal when <see cref="TryFlightPlan"/> answers false.</para>
+        /// </summary>
+        public bool TryPlanCreation(
+            out PrincipiaPlanCreateGate gate,
+            out PrincipiaWriteRefusal refusal,
+            out string detail)
+        {
+            gate = default;
+            PrincipiaGateCheck.Enter(_session, _generation, "creating a plan");
+            if (!_session!.Writes.TryPermit(_guid, out refusal, out detail))
+            {
+                return false;
+            }
+            gate = new PrincipiaPlanCreateGate(_session, _generation, _guid);
+            refusal = PrincipiaWriteRefusal.NotRefused;
+            detail = string.Empty;
+            return true;
+        }
     }
 
     /// <summary>
@@ -251,6 +276,28 @@ namespace GonogoPrincipiaUplink
         {
             var handle = PrincipiaGateCheck.Enter(_session, _generation, "a plan's desired final time");
             return _session!.Plugin.FlightPlanGetDesiredFinalTime(handle, _guid);
+        }
+
+        /// <summary>
+        /// Forces the plan open and hands back the gate that says so.
+        ///
+        /// <para>Materialising IS reading a plan field: a plan carried in from a save
+        /// is a serialised message until one of these calls opens it. The reason it
+        /// gets a type of its own is that two things on this surface need the plan
+        /// OPEN rather than merely present, and both of them fail by throwing a C++
+        /// exception across the native boundary rather than by answering wrongly.
+        /// The producer's own window is safe from that by an accident of ordering,
+        /// which is not a thing to inherit.</para>
+        ///
+        /// <para>Costs a frame spike the first time a plan is touched after a load,
+        /// and is idempotent after that.</para>
+        /// </summary>
+        public PrincipiaMaterialisedPlanGate Materialise()
+        {
+            var handle = PrincipiaGateCheck.Enter(_session, _generation, "materialising a plan");
+            var desiredFinalTime = _session!.Plugin.FlightPlanGetDesiredFinalTime(handle, _guid);
+            return new PrincipiaMaterialisedPlanGate(
+                _session, _generation, _guid, desiredFinalTime);
         }
 
         /// <summary>

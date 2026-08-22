@@ -21,15 +21,18 @@
 
 import type {
   PrincipiaFlightPlan,
+  PrincipiaPlan,
   PrincipiaSettings,
 } from "./contract";
 
 export interface GeneratedTopicPayloadMap {
   "principia.flightPlan": PrincipiaFlightPlan;
+  "principia.plan": PrincipiaPlan;
   "principia.settings": PrincipiaSettings;
 }
 
 export const GENERATED_TOPIC_IDS = [
   "principia.flightPlan",
+  "principia.plan",
   "principia.settings",
 ] as const;

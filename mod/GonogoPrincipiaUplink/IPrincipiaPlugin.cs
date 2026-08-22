@@ -103,5 +103,74 @@ namespace GonogoPrincipiaUplink
         PrincipiaVector FlightPlanGetGuidance(IntPtr plugin, string vesselGuid, int index);
         PrincipiaVector FlightPlanGetManoeuvreInitialPlottedVelocity(
             IntPtr plugin, string vesselGuid, int index);
+
+        /// <summary>
+        /// Whether the WRITE half of this surface bound, and why not when it did
+        /// not.
+        ///
+        /// <para>Separate from binding at all, deliberately. A build whose write
+        /// entry points are not the shape they were analysed in must still be
+        /// readable: a read misfire is a wrong number on a screen, a write misfire
+        /// is a corrupted save. So the write half fails closed on its own and
+        /// leaves everything above it publishing.</para>
+        /// </summary>
+        bool WritesBound(out string reason);
+
+        /// <summary>
+        /// The manoeuvre index the producer's optimiser is working on, or -1 when
+        /// no optimisation is running.
+        ///
+        /// <para>A read, on the write surface, because it exists only to keep a
+        /// write from being silently reverted. Its preconditions are stricter than
+        /// any other plan read's: it needs the plan to have been MATERIALISED in
+        /// this frame, because the native body reaches into the plan's variant with
+        /// no deserialisation test.</para>
+        /// </summary>
+        int FlightPlanOptimizationDriverInProgress(IntPtr plugin, string vesselGuid);
+
+        /// <summary>
+        /// Inserts <paramref name="burn"/> at <paramref name="index"/>, which may
+        /// equal the manoeuvre count (that appends). Returns the producer's own
+        /// status object.
+        /// </summary>
+        object? FlightPlanInsert(IntPtr plugin, string vesselGuid, object burn, int index);
+
+        /// <summary>
+        /// Replaces the burn at <paramref name="index"/>, which must be strictly
+        /// less than the manoeuvre count. The bound differs from
+        /// <see cref="FlightPlanInsert"/>'s by exactly one and the difference is a
+        /// clean abort rather than an error return.
+        /// </summary>
+        object? FlightPlanReplace(IntPtr plugin, string vesselGuid, object burn, int index);
+
+        object? FlightPlanRemove(IntPtr plugin, string vesselGuid, int index);
+
+        object? FlightPlanSetDesiredFinalTime(IntPtr plugin, string vesselGuid, double finalTime);
+
+        /// <summary>
+        /// Writes back a step-parameter struct that came OUT of
+        /// <see cref="FlightPlanGetAdaptiveStepParameters"/>. There is deliberately
+        /// no overload that takes the five values: two of them are integrator kinds
+        /// from disjoint sets, and supplying the wrong one aborts with no message.
+        /// </summary>
+        object? FlightPlanSetAdaptiveStepParameters(
+            IntPtr plugin, string vesselGuid, object parameters);
+
+        /// <summary>
+        /// Creates a plan and selects it. Reports nothing: re-read the plan to find
+        /// out what happened. <paramref name="finalTime"/> before the vessel's
+        /// present is an assertion failure inside the producer, not an error.
+        /// </summary>
+        void FlightPlanCreate(IntPtr plugin, string vesselGuid, double finalTime, double massInTonnes);
+
+        /// <summary>
+        /// Deletes the selected plan. <b>On a vessel with no plan this is undefined
+        /// behaviour rather than a diagnosed abort</b>, and the producer's own
+        /// header comment promises the opposite. Never reachable except through the
+        /// gate that has just proved a plan exists.
+        /// </summary>
+        void FlightPlanDelete(IntPtr plugin, string vesselGuid);
+
+        void FlightPlanDuplicate(IntPtr plugin, string vesselGuid);
     }
 }

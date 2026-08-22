@@ -153,6 +153,11 @@ namespace GonogoPrincipiaUplink.Tests
         /// things somebody once thought about. The report the safety analysis makes
         /// about its own method applies here: an enumeration that cannot certify
         /// its completeness reports the same "all clear" as an empty one.</para>
+        ///
+        /// <para>The port carries the WRITE half too, so the cleared set is the
+        /// union of the two registers. Keeping them as two lists and one union is
+        /// the point: the read register refuses anything with a write verb, which is
+        /// what stops a write being acquired by adding a name to the read list.</para>
         /// </summary>
         [Fact]
         public void ThePortAndTheAllowlistNameExactlyTheSameCalls()
@@ -161,8 +166,18 @@ namespace GonogoPrincipiaUplink.Tests
                 .GetType("GonogoPrincipiaUplink.IPrincipiaPlugin");
             Assert.NotNull(portType);
 
-            var portNames = portType!.GetMethods().Select(m => m.Name).OrderBy(n => n).ToArray();
-            var allowed = PrincipiaCalls.Allowed.OrderBy(n => n).ToArray();
+            var portNames = portType!.GetMethods()
+                .Select(m => m.Name)
+                // Not a Principia call: it reports whether the write half BOUND, and
+                // it is on the port because only the port knows.
+                .Where(n => n != "WritesBound")
+                .OrderBy(n => n)
+                .ToArray();
+            var allowed = PrincipiaCalls.Allowed
+                .Concat(PrincipiaWriteCalls.Allowed)
+                .Concat(PrincipiaWriteCalls.AllowedReads)
+                .OrderBy(n => n)
+                .ToArray();
 
             Assert.Equal(allowed, portNames);
         }

@@ -248,7 +248,13 @@ namespace GonogoPrincipiaUplink.Tests
                 read.Add(burn.Manoeuvre());
             }
 
-            Assert.Equal(new object?[] { "manoeuvre-0", "manoeuvre-1", "manoeuvre-2" }, read);
+            // Identified by ignition instant rather than by object identity: the
+            // double hands back a FRESH manoeuvre on every read, as Principia's own
+            // marshaller does, and the fixture spaces the three burns a thousand
+            // seconds apart so a mis-ordered or repeated read is visible.
+            Assert.Equal(
+                new double[] { 2000.0, 3000.0, 4000.0 },
+                read.Select(m => ((FakeManoeuvre)m!).burn.initial_time).ToArray());
             Assert.Equal(
                 new[]
                 {

@@ -95,3 +95,143 @@ export interface PrincipiaSettings
 	recordJournalRequested?: boolean;
 	journaling?: boolean;
 }
+export interface PrincipiaPlan
+{
+	vesselId?: string;
+	sampledAtUt?: Value<"ut">;
+	planExists?: boolean;
+	writeSurface?: PrincipiaWriteSurface;
+	planCount?: Value<"count">;
+	selectedPlan?: Value<"count">;
+	initialTimeUt?: Value<"ut">;
+	desiredFinalTimeUt?: Value<"ut">;
+	actualFinalTimeUt?: Value<"ut">;
+	anomalousBurnCount?: Value<"count">;
+	optimisationRunning?: boolean;
+	integrator?: PrincipiaPlanIntegrator;
+	burns?: PrincipiaPlannedBurn[];
+}
+export interface PrincipiaWriteSurface
+{
+	available?: boolean;
+	armed?: boolean;
+	reason?: string;
+	analysedVersion?: string;
+	detectedVersion?: string;
+}
+export interface PrincipiaPlanIntegrator
+{
+	maxSteps?: Value<"count">;
+	lengthToleranceMetres?: Value<"m">;
+	speedToleranceMetresPerSecond?: Value<"m/s">;
+	integratorKind?: number;
+	generalizedIntegratorKind?: number;
+}
+export interface PrincipiaPlannedBurn
+{
+	index?: Value<"count">;
+	ignitionUt?: Value<"ut">;
+	cutoffUt?: Value<"ut">;
+	durationSeconds?: Value<"s">;
+	timeToHalfDeltaVSeconds?: Value<"s">;
+	deltaV?: Value<"m/s">;
+	deltaVTangent?: Value<"m/s">;
+	deltaVNormal?: Value<"m/s">;
+	deltaVBinormal?: Value<"m/s">;
+	coordinateSystem?: number;
+	inertiallyFixed?: boolean;
+	thrustKilonewtons?: Value<"kN">;
+	specificImpulseSeconds?: Value<"s">;
+	initialMassTons?: Value<"t">;
+	finalMassTons?: Value<"t">;
+	massFlowKilogramsPerSecond?: Value<"kg/s">;
+	frameType?: number;
+	frameEditable?: boolean;
+	executing?: boolean;
+	anomalous?: boolean;
+}
+export enum PrincipiaWriteOutcome {
+	Refused = 0,
+	Rejected = 1,
+	Written = 2
+}
+export enum PrincipiaWriteRefusal {
+	SurfaceUnavailable = 0,
+	NotRefused = 1,
+	NotArmed = 2,
+	LayoutUnverified = 3,
+	VesselUnknown = 4,
+	NoFlightPlan = 5,
+	PlanAlreadyExists = 6,
+	PlanSlotsFull = 7,
+	BurnIndexOutOfRange = 8,
+	BurnExecuting = 9,
+	BurnFrameUnsupported = 10,
+	OptimisationRunning = 11,
+	ValueNotFinite = 12,
+	ThrustNotPositive = 13,
+	IntegratorKindUnexpected = 14,
+	IntegratorBoundsExceeded = 15,
+	FinalTimeInPast = 16,
+	NoTemplateBurn = 17,
+	PluginShapeChanged = 18
+}
+export interface PrincipiaPlanWriteReceipt
+{
+	requestId?: string;
+	replayed?: boolean;
+	outcome: PrincipiaWriteOutcome;
+	refusal: PrincipiaWriteRefusal;
+	refusalDetail?: string;
+	statusError?: number;
+	statusMessage?: string;
+	plan?: PrincipiaPlan;
+}
+export interface PrincipiaPlanArmArgs
+{
+	vesselId?: string;
+	requestId?: string;
+}
+export enum PrincipiaBurnProfile {
+	Unchanged = 0,
+	InstantImpulse = 1
+}
+export interface PrincipiaBurnEditArgs
+{
+	vesselId?: string;
+	requestId?: string;
+	burnIndex: number;
+	ignitionUt?: number;
+	deltaVTangent?: number;
+	deltaVNormal?: number;
+	deltaVBinormal?: number;
+	inertiallyFixed?: boolean;
+	profile: PrincipiaBurnProfile;
+}
+export interface PrincipiaBurnRemoveArgs
+{
+	vesselId?: string;
+	requestId?: string;
+	burnIndex: number;
+}
+export interface PrincipiaPlanHorizonArgs
+{
+	vesselId?: string;
+	requestId?: string;
+	desiredFinalTimeUt: number;
+}
+export interface PrincipiaPlanIntegratorArgs
+{
+	vesselId?: string;
+	requestId?: string;
+	maxSteps?: number;
+	lengthToleranceMetres?: number;
+	speedToleranceMetresPerSecond?: number;
+}
+export interface PrincipiaPlanSlotArgs
+{
+	vesselId?: string;
+	requestId?: string;
+	finalTimeUt?: number;
+	massTons?: number;
+}

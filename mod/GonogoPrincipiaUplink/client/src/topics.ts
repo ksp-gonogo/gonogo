@@ -5,6 +5,7 @@ import {
 } from "@ksp-gonogo/sitrep-sdk";
 import type {
   PrincipiaFlightPlan,
+  PrincipiaPlan,
   PrincipiaSettings,
 } from "./__generated__/contract";
 import {
@@ -17,18 +18,24 @@ import {
 declare module "@ksp-gonogo/sitrep-sdk" {
   interface TopicPayloadMap {
     "principia.flightPlan": PrincipiaFlightPlan;
+    "principia.plan": PrincipiaPlan;
     "principia.settings": PrincipiaSettings;
   }
 }
 
 registerBarePrimitiveTopic("principia.flightPlan");
+registerBarePrimitiveTopic("principia.plan");
 registerBarePrimitiveTopic("principia.settings");
 
 // The runtime half of the type above: `ApplyUnitValueTypes` fixes the
 // codegen-time TYPE, and this fixes the decode-time VALUE. Without it every
 // instant and Δv on the payload arrives as a bare number while the type still
 // says `Value<"ut">`, which is the kind of disagreement nothing fails on.
-for (const topic of ["principia.flightPlan", "principia.settings"] as const) {
+for (const topic of [
+  "principia.flightPlan",
+  "principia.plan",
+  "principia.settings",
+] as const) {
   registerTopicUnits(
     topic,
     GENERATED_TOPIC_UNITS[topic] ?? {},

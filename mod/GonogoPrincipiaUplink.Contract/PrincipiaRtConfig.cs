@@ -42,9 +42,31 @@ public static class PrincipiaRtConfig
             typeof(PrincipiaFlightPlanBurn),
             typeof(PrincipiaSettings),
             typeof(PrincipiaReferenceFrame),
+            typeof(PrincipiaPlan),
+            typeof(PrincipiaWriteSurface),
+            typeof(PrincipiaPlanIntegrator),
+            typeof(PrincipiaPlannedBurn),
+            typeof(PrincipiaPlanWriteReceipt),
+            typeof(PrincipiaPlanArmArgs),
+            typeof(PrincipiaBurnEditArgs),
+            typeof(PrincipiaBurnRemoveArgs),
+            typeof(PrincipiaPlanHorizonArgs),
+            typeof(PrincipiaPlanIntegratorArgs),
+            typeof(PrincipiaPlanSlotArgs),
         };
 
         builder.ExportAsInterfaces(wireTypes, c => c.AutoI(false).WithPublicProperties());
+
+        // The write surface's three closed sets. They generate as numeric enums,
+        // the same convention the core contract's own enums use, so a client
+        // branches on a member rather than on a magic integer.
+        builder.ExportAsEnums(
+            new[]
+            {
+                typeof(PrincipiaWriteOutcome),
+                typeof(PrincipiaWriteRefusal),
+                typeof(PrincipiaBurnProfile),
+            });
 
         Sitrep.Contract.RtConfig.ApplyUnitValueTypes(builder, wireTypes, valueImportFrom: "@ksp-gonogo/sitrep-sdk");
 
