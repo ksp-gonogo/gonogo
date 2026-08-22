@@ -78,7 +78,7 @@ function makeId(kind: MissionEventKind, ut: number, disc?: string): string {
   return disc ? `${kind}:${ut}:${disc}` : `${kind}:${ut}`;
 }
 
-// --- Tier A: discrete-topic shapers -----------------------------------------
+// Tier A: discrete-topic shapers.
 
 interface DiscretePayload {
   ut?: unknown;
@@ -250,7 +250,7 @@ export function fromReputationLoss(
   };
 }
 
-// --- Tier B: value-edge detectors (caller supplies the current view `ut`) -----
+// Tier B: value-edge detectors, where the caller supplies the current view `ut`.
 
 /** Staging edge: the stage COUNT decreasing (a stage separated). */
 export function detectStaging(

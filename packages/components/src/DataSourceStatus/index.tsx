@@ -293,8 +293,6 @@ function RemoteVersionPill({ sourceId }: { sourceId: string }) {
   );
 }
 
-// --- Style helpers ---
-
 // Resets the semantic `<ul>`'s own bullet/margin/padding; `Stack` supplies
 // the flex-column + gap.
 const LIST_STYLE = { listStyle: "none", margin: 0, padding: 0 } as const;

@@ -185,31 +185,29 @@ function resolveGroupValue(
   }
 }
 
-// ---------------------------------------------------------------------------
-// Delayed-command dispatch (command-surface-delay-audit #1-4): every toggle
-// this widget fires (Stage, Abort, SAS/RCS/Gear/Brake/Light, AGX customs)
-// actuates the vessel, so it rides `useCommand` instead of the legacy
-// `useExecuteAction` string path, the same toggle -> absolute bridge
-// `map-command.ts`'s `toggleHome`/`actionGroupHome` apply, but built here
-// directly off the group's already-known live `value` (this widget already
-// reads it for the state pill), no separate current-value store sample
-// needed.
-// ---------------------------------------------------------------------------
-
-/** Sentinel: the current value isn't a boolean yet (unknown/numeric Stage
- * read through the wrong branch), so a toggle can't safely be inverted.
- * Mirrors `map-command.ts`'s own `INVALID` contract: never dispatch an
- * ambiguous toggle as a blind set. */
+/**
+ * Sentinel: the current value isn't a boolean yet (unknown, or a numeric Stage
+ * read through the wrong branch), so a toggle cannot safely be inverted.
+ * Mirrors `map-command`'s own `INVALID` contract: never dispatch an ambiguous
+ * toggle as a blind set.
+ */
 const TOGGLE_INVALID: unique symbol = Symbol("action-group-toggle-invalid");
 
 /**
  * The mapped absolute-set command for one group's toggle, or `null` when the
- * group has no toggle (Precision Control) or isn't recognized. Keyed the
- * same way `map-command.ts`'s `LEGACY_COMMAND_HOMES`/`actionGroupHome`
- * are: an AGX custom (`group.index !== undefined`) always resolves to the
- * shared `setActionGroup` command regardless of name; Stage has its own
- * unconditional (non-invert) command; the remaining stock singletons each
- * have a dedicated absolute-set command.
+ * group has no toggle (Precision Control) or is not recognised. Every toggle
+ * this widget fires actuates the vessel, so all of them ride `useCommand` and
+ * are subject to signal delay.
+ *
+ * Keyed the same way `map-command`'s `LEGACY_COMMAND_HOMES` and
+ * `actionGroupHome` are: an AGX custom (`group.index !== undefined`) always
+ * resolves to the shared `setActionGroup` command regardless of name, Stage has
+ * its own unconditional non-invert command, and the remaining stock singletons
+ * each have a dedicated absolute-set command.
+ *
+ * The toggle-to-absolute bridge itself is built here off the group's already
+ * known live `value`, which this widget reads anyway for the state pill, so no
+ * separate current-value sample is needed.
  */
 export function toggleCommandFor(group: ActionGroup): string | null {
   if (group.index !== undefined) return "vessel.control.setActionGroup";

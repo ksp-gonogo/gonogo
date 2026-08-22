@@ -15,7 +15,7 @@ import {
   type MissionEvent,
 } from "./events";
 
-// --- Tier A: discrete-topic events (payload carries its own `ut`) ------------
+// Tier A: discrete-topic events, whose payload carries its own `ut`.
 
 describe("Tier A discrete-topic events", () => {
   it("shapes a launch event from flight.started", () => {
@@ -67,7 +67,7 @@ describe("Tier A discrete-topic events", () => {
   });
 });
 
-// --- Tier B: value-edge detectors (event `ut` supplied by the caller) ---------
+// Tier B: value-edge detectors, whose event `ut` is supplied by the caller.
 
 describe("Tier B edge detectors", () => {
   it("staging: fires when currentStage decreases, not on increase/equal", () => {

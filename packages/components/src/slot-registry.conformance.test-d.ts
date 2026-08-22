@@ -46,9 +46,7 @@ import type { SystemOverlayContext } from "./SystemView";
 type Assignable<A, B> = A extends B ? true : false;
 type Expect<T extends true> = T;
 
-// --- Trivial (Record<string, never>) slots ----------------------------------
-// No named context type on either side, just confirm the mirror resolved
-// the merge at all (didn't fall back to the loose `Record<string, unknown>`).
+// Trivial `Record<string, never>` slots: no named context type on either side, so all these confirm is that the mirror resolved the merge at all rather than falling back to the loose `Record<string, unknown>`.
 type _SpaceCenterSections = Expect<
   Assignable<
     SdkSlotProps<"space-center-status.sections">,
@@ -90,7 +88,7 @@ type _ExperimentsActions = Expect<
   Assignable<SdkSlotProps<"experiments.actions">, Record<string, never>>
 >;
 
-// --- Named-context slots: checked both directions --------------------------
+// Named-context slots, checked in both directions.
 
 type _D2tCamera = Expect<
   Assignable<

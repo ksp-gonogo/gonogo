@@ -270,13 +270,12 @@ function TargetPickerComponent({
     tarRelPos && tarRelVelVec
       ? radialSpeed(tarRelPos, tarRelVelVec)
       : undefined;
-  // Delayed vessel commands (command-surface-delay-audit #18-20): setting or
-  // clearing the KSP target is dispatched to the craft, subject to signal
-  // delay, so this rides `useCommand` instead of the legacy
-  // `useExecuteAction` string path. Both `tar.setTargetBody/Vessel/Part`
-  // resolve to the SAME `vessel.target.set` command (map-command.ts), keyed
-  // by the `TargetKind` ordinal already on the entry (the same enum
-  // `target.available` entries carry `entry.kind` as).
+  /**
+   * Setting or clearing the target is dispatched to the craft and so is subject
+   * to signal delay, which is why both ride `useCommand`. A body, a vessel and
+   * a part all set through the one `vessel.target.set` command, keyed by the
+   * `TargetKind` ordinal each entry already carries as `entry.kind`.
+   */
   const setTargetCmd = useCommand("vessel.target.set");
   const clearTargetCmd = useCommand("vessel.target.clear");
   usePanelDelay(setTargetCmd);

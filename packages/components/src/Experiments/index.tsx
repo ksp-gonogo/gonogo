@@ -77,11 +77,7 @@ declare module "@ksp-gonogo/core" {
   }
 }
 
-// The facade-sealed-client copy of this merge lives in
-// `mod/sitrep-sdk/src/api/slots.ts`, not a second `declare module
-// "@ksp-gonogo/sitrep-sdk"` block here: see MapView/index.tsx's identical
-// comment / that module's header for why
-// (docs/superpowers/plans/2026-07-19-facade-sealing.md §2.3).
+// The facade-sealed-client copy of this merge lives in `mod/sitrep-sdk/src/api/slots.ts` rather than as a second `declare module "@ksp-gonogo/sitrep-sdk"` block here; MapView's identical comment and that module's header both say why.
 
 /**
  * Parses `sci.instruments`. Two wire shapes land here:
@@ -237,12 +233,7 @@ function ExperimentsComponent({
   w,
   h,
 }: Readonly<ComponentProps<ExperimentsConfig>>) {
-  // The instrument list reads the canonical `science.instruments` Topic
-  // (old `sci.instruments`); parseInstruments accepts both wire shapes.
-  // Deploy/transmit are commands dispatched to the craft (command-surface-
-  // delay-audit #35/#36), subject to signal delay, so they ride `useCommand`
-  // against the real `science.experiment.deploy`/`.transmit` commands
-  // instead of the legacy `useExecuteAction` string path.
+  // Deploy and transmit are dispatched to the craft and so are subject to signal delay, which is why both ride `useCommand`.
   /**
    * These three feed parsers typed `(raw: unknown)`, so the migration produced no
    * type error here at all: a `Reading` object went into `parseInstruments`, failed

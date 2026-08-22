@@ -66,19 +66,18 @@ import { usePlannerInputs } from "./usePlannerInputs";
 // bindings (commit from a physical button) can be added later.
 const maneuverActions = [] as const satisfies readonly ActionDefinition[];
 
-// ---------------------------------------------------------------------------
-// Augment slots (Uplink architecture §4: locked in augment-slot-map.md)
-//
-// One whole-widget append slot, a broad escape hatch: it carries no per-item
-// datum, so its props are empty. `maneuver-planner.sections` sits below the
-// live preview + feasibility check for alternate transfer-strategy comparisons
-// (e.g. a porkchop / optimal-transfer Uplink). Typed here via co-located
-// declaration-merging into core's `SlotRegistry` so `<AugmentSlot>` and
-// `registerAugment` see the precise (empty) prop shape rather than the loose
-// `Record<string, unknown>` fallback an unmerged slot id gets.
-// ---------------------------------------------------------------------------
-
-/** No slot props: whole-widget append escape hatch (no per-item datum). */
+/**
+ * One whole-widget append slot, a broad escape hatch carrying no per-item
+ * datum, so its props are empty. `maneuver-planner.sections` sits below the
+ * live preview and feasibility check, for alternate transfer-strategy
+ * comparisons such as a porkchop or optimal-transfer Uplink.
+ *
+ * The slot id and its props type are declaration-merged into core's
+ * `SlotRegistry` here rather than in a shared central file, so that
+ * `<AugmentSlot>` and `registerAugment` see the precise (empty) prop shape
+ * rather than the loose `Record<string, unknown>` an unmerged slot id gets,
+ * and so parallel per-widget slot work never collides in one file.
+ */
 export type ManeuverPlannerSectionsSlotProps = Record<string, never>;
 
 declare module "@ksp-gonogo/core" {
@@ -287,11 +286,7 @@ function ManeuverPlannerComponent({
    */
   const availableDeltaV = magnitudeOf(useProcessor(DELTA_V_BUDGET)?.totalVac);
 
-  // Delayed vessel commands (command-surface-delay-audit #15-17): adding,
-  // updating and removing a maneuver node all actuate the craft's flight
-  // plan, subject to signal delay, so this rides `useCommand` against the
-  // real `vessel.maneuver.add`/`.update`/`.remove` commands instead of the
-  // legacy `useExecuteAction` string path.
+  // Adding, updating and removing a node all actuate the craft's flight plan, so each is subject to signal delay and rides `useCommand`.
   const addNodeCmd = useCommand("vessel.maneuver.add");
   const updateNodeCmd = useCommand("vessel.maneuver.update");
   const removeNodeCmd = useCommand("vessel.maneuver.remove");
@@ -299,21 +294,19 @@ function ManeuverPlannerComponent({
   usePanelDelay(updateNodeCmd);
   usePanelDelay(removeNodeCmd);
 
-  // The maneuver-node id round-trip. `o.maneuverNodes` itself (behind
-  // `useManeuverNodes` above) now rides the stream (the `vessel.maneuver.
-  // legacy` reshape) but its `id` field is always the legacy positional
-  // index, not the real stream guid: this SEPARATE,
-  // narrower `o.maneuverNodeIds` read exists purely to recover each node's
-  // round-tripping stable `id` for the update/remove commands,
-  // it never touches the rendered node list (see ManeuverNodeList/NodeRow,
-  // unchanged). `streamNodeIds`/`nodes` come from two independently-timed
-  // reads of what is ultimately the same underlying KSP maneuver-node list,
-  // correlated by ARRAY POSITION (both server-side lists reflect the same
-  // ordering): `resolveNodeId` below is the correlation point.
-  // A planned node is a fact: it exists on the craft until something changes it,
-  // and a link that is not delivering cannot have changed it. A confirmed-no-nodes
-  // tombstone is an empty plan, which is what the widget shows when there is
-  // nothing planned, so it is named here rather than read as a wait.
+  /**
+   * The maneuver-node id round-trip. The rendered node list carries a
+   * positional index as its `id`, not the stable guid the update and remove
+   * commands need, so this read exists purely to recover the real guids.
+   * `resolveNodeId` below correlates the two by array position, which holds
+   * because both reflect the same server-side ordering.
+   *
+   * A planned node is a fact: it exists on the craft until something changes
+   * it, and a link that is not delivering cannot have changed it, hence
+   * `stillTrue`. A confirmed-no-nodes tombstone is an empty plan, which is what
+   * the widget shows when nothing is planned, so it is named here rather than
+   * read as a wait.
+   */
   const streamNodeIds = stillTrue(
     useTelemetry("vessel.maneuver"),
     EMPTY_MANEUVER,
@@ -979,19 +972,12 @@ registerComponent<ManeuverPlannerConfig>({
   defaultSize: { w: 10, h: 18 },
   minSize: { w: 6, h: 9 },
   component: ManeuverPlannerComponent,
-  // One whole-widget append slot (a broad escape hatch): a body `sections`
-  // slot for alternate-transfer-strategy comparisons. Empty until an augment
-  // binds (Uplink §4 / augment-slot-map.md).
+  // A body `sections` slot for alternate-transfer-strategy comparisons, empty until an augment binds.
   augmentSlots: ["maneuver-planner.sections"],
-  // `dv.stages` and `o.maneuverNodes` are mapped on the wire and ride the
-  // stream transparently (see the `useVesselDeltaV` / `useManeuverNodes`
-  // read call sites above), no change needed to this list, it already
-  // carries the resolved key names. The `o.maneuverNodes` ->
-  // `previewManeuver` post-burn preview derivation is explicitly
-  // optional/lower-priority and deferred, not attempted here.
-  // The `tar.o.*` group splits: the target's raw ELEMENTS come off
-  // `vessel.target.orbit`, while the three quantities that need propagating to
-  // the same view-UT as the self vessel are derived `vessel.state` fields.
+  // The target's reads split by kind: its raw orbital ELEMENTS come off
+  // `vessel.target.orbit`, while the three quantities that have to be
+  // propagated to the same view-UT as the self vessel are derived
+  // `vessel.state` fields instead.
   dataRequirements: [
     "vessel.orbit.sma",
     "vessel.orbit.ecc",
