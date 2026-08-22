@@ -121,7 +121,13 @@ export const PUBLISHED_PACKAGES = [
   {
     name: "@ksp-gonogo/ui-kit",
     dir: "packages/ui-kit",
-    entries: ["src/index.ts", "src/testing.ts", "src/guards.ts"],
+    entries: [
+      "src/index.ts",
+      "src/testing.ts",
+      "src/guards.ts",
+      "src/render-probe.tsx",
+      "src/render.ts",
+    ],
   },
 ] as const;
 

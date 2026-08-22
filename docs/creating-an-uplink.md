@@ -343,8 +343,11 @@ two packages gonogo publishes for RUNTIME, and between them they carry the whole
 authoring surface: the hooks, every `registerX`, the generated contract, the unit
 system and the design system.
 
-There is a third, **`@ksp-gonogo/sitrep-testing`**, and it is a devDependency: your
-tests import it, your widgets never do. See "Testing your Uplink" below.
+Each has a `/testing` subpath your tests import and your widgets never do, and
+ui-kit adds `/render-probe` and `/render` for the render harness. See "Testing your
+Uplink" below. There is no third package: `@ksp-gonogo/sitrep-testing` used to be
+one and was deleted once the spine came down into the SDK, so anything that names
+it is out of date.
 
 A camera Uplink also gets **`@ksp-gonogo/sitrep-sdk/media`**, a subpath of the same
 package: the delayed-playout buffer, the per-frame pipeline and the shared
@@ -368,7 +371,11 @@ and do NOT bundle your own copies.
   "styled-components": "^6.0.0"
 },
 "devDependencies": {
-  "@ksp-gonogo/sitrep-testing": "..."
+  // The render harness's two optional peers. Nothing else: the test and
+  // render surfaces are subpaths of the two packages above.
+  "playwright": "^1.60.0",
+  "esbuild": "^0.28.0",
+  "@fontsource/jetbrains-mono": "^5.2.8"
 }
 ```
 
@@ -425,30 +432,43 @@ the loader at your local build directly.
 
 ## Testing your Uplink
 
-Install **`@ksp-gonogo/sitrep-testing`**. It is the third and last package gonogo
-publishes, and it is a devDependency: your widgets never import it, only your tests
-do.
+The harness is two subpaths of the two packages you already have:
+**`@ksp-gonogo/sitrep-sdk/testing`** for the host, the spine and the stream
+fixture, and **`@ksp-gonogo/ui-kit/testing`** for the provider stack a widget is
+mounted in and the readout assertions. They deliberately do not re-export each
+other: a host and a provider stack are genuinely two things, and your setup names
+both.
 
 Your widgets call SDK hooks (`useTelemetry`, `useCommand`, `useStream`), and those
 are shims that resolve through the host the app installs at boot. A unit test has no
-app, so it has to install one. That is one line:
+app, so it has to install one:
 
 ```ts
 // client/src/test/setup.ts, in full
-import { installDomStubs, installRealTestHost, PerfBudget }
-  from "@ksp-gonogo/sitrep-testing";
-import { setQuantityLocale } from "@ksp-gonogo/ui-kit";
+import { PerfBudget } from "@ksp-gonogo/sitrep-sdk";
+import { installDomStubs, installRealTestHost }
+  from "@ksp-gonogo/sitrep-sdk/testing";
+import {
+  AugmentSlot, clearAugments, getAugmentsForSlot, registerAugment,
+  setQuantityLocale,
+} from "@ksp-gonogo/ui-kit";
 
-installDomStubs();          // jsdom gaps: ResizeObserver, canvas, matchMedia
+installDomStubs();            // jsdom gaps: ResizeObserver, canvas, matchMedia
 PerfBudget.installTestGate(); // fail a test that pushes a budget over its cap
-installRealTestHost();      // wire the SDK shims to the real implementations
-setQuantityLocale("en-GB"); // so a render is reproducible off your machine
+setQuantityLocale("en-GB");   // so a render is reproducible off your machine
+
+// The four augment members come from ui-kit because that is where the augment
+// registry and `<AugmentSlot>` live, and ui-kit imports the SDK, so the SDK
+// cannot import them back. Everything else in the host is the SDK's own.
+installRealTestHost({
+  AugmentSlot, clearAugments, getAugmentsForSlot, registerAugment,
+});
 ```
 
 You cannot write `installRealTestHost` yourself, and it is worth knowing why: the
-implementations behind the shims are the app's, and passing a shim back in as its
-own implementation is infinite recursion rather than a bridge. That is the single
-thing this package exists to hand you.
+implementations behind the shims are the ones the app installs, and passing a shim
+back in as its own implementation is infinite recursion rather than a bridge. That
+is the single thing you are being handed here.
 
 ### Running a widget off the real stream
 
@@ -459,7 +479,7 @@ stream and not about a mock of it.
 
 ```tsx
 import { render, screen, setupStreamFixture, waitFor }
-  from "@ksp-gonogo/sitrep-testing";
+  from "@ksp-gonogo/sitrep-sdk/testing";
 
 const fixture = setupStreamFixture({
   carriedChannels: ["mymod.reactor"],  // required: nothing is promoted silently
@@ -488,13 +508,25 @@ Two things that surprise everyone once:
 
 ### `render`, and the theme
 
-`render` and `renderHook` come from here (or from
-`@ksp-gonogo/sitrep-sdk/testing` if you want them without the spine) and they mount
+`render` and `renderHook` come from `@ksp-gonogo/sitrep-sdk/testing` and they mount
 the kit's theme for you. Every `@ksp-gonogo/ui-kit` primitive reads
 `theme.space[…]` off the styled-components context, and with no provider that is a
 TypeError rather than a fallback. Everything else Testing Library offers
 (`screen`, `waitFor`, `within`, `act`, `fireEvent`) is re-exported unchanged, so
 this is a drop-in for the import source.
+
+For a widget rather than a plain component, `renderWidget` from
+`@ksp-gonogo/ui-kit/testing` mounts it inside the same provider stack the dashboard
+puts around one. A widget rendered bare is a widget the app never runs: `Panel`
+reads its stream status off a provider, so with none mounted the status badge never
+appears and a `waitFor` on it returns having proved nothing.
+
+### Screenshots and your README
+
+`gonogo-uplink render` and `gonogo-uplink docs` turn your fixtures into images and
+your registrations into a page, and `docs --check` keeps that page from going
+stale. See **[docs/uplink-rendering.md](./uplink-rendering.md)**: it is the same
+harness your unit tests use, driven through a real browser.
 
 ---
 
@@ -726,6 +758,7 @@ something the week after.
       seams: dimension and ratio with the SDK, family and rungs with ui-kit
 - [ ] `expectNoHandTypedUnits({ dir: "src" })` runs as a test (skip only if the Uplink renders nothing)
 - [ ] the test setup calls `setQuantityLocale("en-GB")`, so a render is reproducible
-- [ ] tests import `@ksp-gonogo/sitrep-testing` (a devDependency), and nothing in `src/` does
+- [ ] tests import `@ksp-gonogo/sitrep-sdk/testing` and `@ksp-gonogo/ui-kit/testing`, and nothing in `src/` does
+- [ ] every widget has at least one fixture, `gonogo-uplink docs` runs, and `docs --check` is in CI
 - [ ] widget tests read readouts with `visibleText` / `toShowQuantity`, not `getByText`
 - [ ] the main screen is served over https or localhost so integrity verification works

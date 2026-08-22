@@ -10,8 +10,10 @@ An Uplink client (`mod/Gonogo*Uplink/client/src/**`) may import:
 
 - **`@ksp-gonogo/sitrep-sdk`**, the devkit, and its subpaths:
   - `@ksp-gonogo/sitrep-sdk/media`, the delayed-media layer a camera Uplink needs
-  - `@ksp-gonogo/sitrep-sdk/testing`, the test harness
-- **`@ksp-gonogo/ui-kit`**, the published design system
+  - `@ksp-gonogo/sitrep-sdk/testing`, the host, the spine and the stream fixture
+- **`@ksp-gonogo/ui-kit`**, the published design system, and its subpaths:
+  - `@ksp-gonogo/ui-kit/testing`, the widget provider stack and the readout helpers
+  - `@ksp-gonogo/ui-kit/render-probe` and `/render`, the render harness
 - `react`, `styled-components`, and third-party packages
 
 Nothing else from this repo. `core`, `ui`, `components`, `data`, `logger`,
@@ -24,9 +26,8 @@ and app-side; only `ui-kit` is published.
 
 `@ksp-gonogo/test-utils` was the exception nobody noticed: it went unlisted in
 `FORBIDDEN_PACKAGES` until 2026-08-18, so the guard read as clean while 56 Uplink
-files imported it. It is now a one-line re-export of
-`@ksp-gonogo/ui-kit/testing-react`, which is where the themed `render`/`renderHook`
-live and is published. Import that.
+files imported it. The themed `render`/`renderHook` are published from
+`@ksp-gonogo/sitrep-sdk/testing`. Import those.
 
 ### The import map is not a licence
 
@@ -57,25 +58,30 @@ sensible export sitting in the wrong package, not a design problem:
 - an authoring or runtime API (`registerComponent`, `AugmentSlot`,
   `useActionInput`, `PerfBudget`) → move or re-export it through
   `@ksp-gonogo/sitrep-sdk`
-- a render helper (`render`, `renderHook`, and the Testing Library surface
-  alongside them) → `@ksp-gonogo/ui-kit/testing-react`. It is a separate entry
-  from `@ksp-gonogo/ui-kit/testing` because that one deliberately imports nothing
-  from React or the DOM, and a runtime bundle must never pull React test code in
-- a test helper that needs the real spine (`clearRegistry`, `MockDataSource`,
-  `installDomStubs`, `clearUplinkHandles`, `clearActionHandlers`,
-  `setupStreamFixture`, and `installRealTestHost` itself) →
-  `@ksp-gonogo/sitrep-testing`, a published package that sits ABOVE `core` and
-  `sitrep-client` and hands over the REAL `TelemetryClient` / `TimelineStore` /
-  `StubTransport`. It exists, so an Uplink's tests should need nothing else
+- a test helper that needs the real spine (`render`, `renderHook`,
+  `clearRegistry`, `MockDataSource`, `installDomStubs`, `clearUplinkHandles`,
+  `clearActionHandlers`, `setupStreamFixture`, and `installRealTestHost` itself)
+  → **`@ksp-gonogo/sitrep-sdk/testing`**, which hands over the REAL
+  `TelemetryClient` / `TimelineStore` / `StubTransport` rather than a
+  reimplementation. That matters more than where it lives: a stream test against
+  an in-memory stand-in passes while testing the stand-in, which is the exact
+  inversion of `CLAUDE.md`'s "mock as little of the system as possible"
+- a provider stack (`renderWidget`, `WidgetHost`) or a readout assertion
+  (`visibleText`, `toShowQuantity`, `expectNoA11yViolations`) →
+  **`@ksp-gonogo/ui-kit/testing`**. The two testing entries deliberately do not
+  re-export each other: a widget's harness is a host from the sdk and a provider
+  stack from the kit, and those are genuinely two things
+- a whole-widget screenshot or a generated page →
+  **`@ksp-gonogo/ui-kit/render-probe`** and **`@ksp-gonogo/ui-kit/render`**, the
+  two halves of the render harness, driven by the `gonogo-uplink` bin. See
+  `docs/uplink-rendering.md`
 
-  It deliberately does NOT go in `@ksp-gonogo/sitrep-sdk/testing`. The SDK is the
-  leaf everything else depends on, so it cannot re-export from `core` or
-  `sitrep-client` without a cycle, and the only way to publish a harness from
-  there would be to reimplement the spine over an in-memory store. That would
-  leave every stream test passing while testing a reimplementation of the thing
-  it is supposed to be evidence about, which is the exact inversion of
-  `CLAUDE.md`'s "mock as little of the system as possible". A third-party author
-  should run the same spine we do
+  There WAS a third package, `@ksp-gonogo/sitrep-testing`, sitting above `core`
+  and `sitrep-client`, and this document told you to install it for months after
+  it was deleted. The harness moved onto the subpaths above once the spine came
+  down into the sdk, so nothing is reimplemented to make it reachable and there
+  is no cycle to route around. `@ksp-gonogo/ui-kit/testing-react`, which this
+  document also named, never existed at all
 
 If you are unsure which package something belongs in, stop and ask rather than
 importing across the boundary "for now".
