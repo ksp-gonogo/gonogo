@@ -71,8 +71,9 @@ namespace Sitrep.Core.Tests
             // Empty, and it should stay that way. Its one entry was
             // IIntegratedTrajectorySource, which shipped with a declaration, a
             // single `is` check and no implementer, so the n-body horizon reported
-            // closed-form on every live frame. It left this list when the Principia
-            // Uplink began registering a provider carrying the marker.
+            // closed-form on every live frame. It left this list when an Uplink
+            // began registering a propagation provider carrying the marker. Which
+            // Uplink is deliberately not written here: nothing in core names a mod.
         };
 
         /// <summary>
