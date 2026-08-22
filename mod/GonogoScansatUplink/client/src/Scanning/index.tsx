@@ -11,6 +11,7 @@ import {
   Cluster,
   EmptyState,
   Grid,
+  magnitudeOf,
   NULL_DISPLAY,
   Panel,
   PanelTitle,
@@ -267,18 +268,14 @@ function ScanningComponent({
                           </Text>
                         </Cluster>
                         <Text size="xs" tone="muted">
-                          sub-point {v.subLatitude.toFixed(2)},{" "}
-                          {v.subLongitude.toFixed(2)} · alt{" "}
+                          sub-point <Unit value={v.subLatitude} decimals={2} />,{" "}
+                          <Unit value={v.subLongitude} decimals={2} /> · alt{" "}
                           {/* Pinned to km rather than left to the ladder: this
                             widget has three altitude readouts and a range
                             below whose two ends share one symbol, and a rung
                             that moves under any of them reads as a different
                             measurement. */}
-                          <Unit
-                            value={value("m", v.altitude)}
-                            format="km"
-                            decimals={0}
-                          />
+                          <Unit value={v.altitude} format="km" decimals={0} />
                         </Text>
                         <Stack gap="xs">
                           {v.sensors.length === 0 ? (
@@ -295,20 +292,15 @@ function ScanningComponent({
                                   {SCAN_TYPE_LABELS[s.type] ?? `type=${s.type}`}
                                 </Text>
                                 <Text size="xs" tone="muted">
-                                  FoV{" "}
+                                  FoV <Unit value={s.fov} decimals={1} /> · alt{" "}
                                   <Unit
-                                    value={value("°", s.fov)}
-                                    decimals={1}
-                                  />{" "}
-                                  · alt{" "}
-                                  <Unit
-                                    value={value("m", s.minAlt)}
+                                    value={s.minAlt}
                                     format="km"
                                     decimals={0}
                                   />
                                   –
                                   <Unit
-                                    value={value("m", s.maxAlt)}
+                                    value={s.maxAlt}
                                     format="km"
                                     decimals={0}
                                   />
@@ -347,7 +339,10 @@ function ScanningComponent({
               {anomalies && anomalies.length > 0 ? (
                 <Stack gap="xs">
                   {anomalies.map((a) => (
-                    <Grid key={`${a.name}-${a.latitude}`} cols="1fr auto">
+                    <Grid
+                      key={`${a.name}-${magnitudeOf(a.latitude)}`}
+                      cols="1fr auto"
+                    >
                       <Text size="xs" tone={a.known ? "default" : "muted"}>
                         {a.detail
                           ? a.name
@@ -356,9 +351,14 @@ function ScanningComponent({
                             : "(undetected)"}
                       </Text>
                       <Text size="xs" tone="muted">
-                        {a.known
-                          ? `${a.latitude.toFixed(2)}, ${a.longitude.toFixed(2)}`
-                          : NULL_DISPLAY}
+                        {a.known ? (
+                          <>
+                            <Unit value={a.latitude} decimals={2} />,{" "}
+                            <Unit value={a.longitude} decimals={2} />
+                          </>
+                        ) : (
+                          NULL_DISPLAY
+                        )}
                       </Text>
                     </Grid>
                   ))}
@@ -420,6 +420,11 @@ registerComponent<ScanningConfig>({
     "vessel.identity",
     "system.bodies",
     "vessel.surface",
+    // The minimap's own read, and it was missing: the app carries
+    // `vessel.flight` by default so the widget worked, while the declaration a
+    // stream-status badge and a render harness both derive from said the widget
+    // did not need it, and the minimap rendered "no active vessel" forever.
+    "vessel.flight",
   ],
   defaultConfig: {},
   actions: [],

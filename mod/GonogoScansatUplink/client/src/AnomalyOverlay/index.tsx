@@ -26,7 +26,7 @@ import {
   useCommand,
   useTelemetry,
 } from "@ksp-gonogo/sitrep-sdk";
-import { usePanelDelay } from "@ksp-gonogo/ui-kit";
+import { magnitudeOf, magnitudeOr, usePanelDelay } from "@ksp-gonogo/ui-kit";
 import { useMemo } from "react";
 import { useScanAnomalies } from "../FogReveal/useScanLayers";
 
@@ -86,10 +86,14 @@ registerMapPoiProvider({
         .filter((a) => a.known)
         .map(
           (a): MapPoi => ({
-            id: `anomaly:${a.name}-${a.latitude}-${a.longitude}`,
+            // `MapPoi` takes plain numbers for the projection; the anomaly's
+            // own latitude arrives as `Value<"°">`. Passed through unread it
+            // placed every marker at NaN, while the set-target command below
+            // takes the Value and so was always right.
+            id: `anomaly:${a.name}-${magnitudeOf(a.latitude)}-${magnitudeOf(a.longitude)}`,
             bodyId,
-            lat: a.latitude,
-            lon: a.longitude,
+            lat: magnitudeOr(a.latitude, 0),
+            lon: magnitudeOr(a.longitude, 0),
             kind: "anomaly",
             label: a.detail ? a.name : "(unknown)",
             status: "info",

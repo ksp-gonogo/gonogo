@@ -5,8 +5,17 @@
 // of relying on a per-widget field someone has to remember to set.
 import { defineUplinkClient } from "@ksp-gonogo/sitrep-sdk";
 
-// TODO(version): Phase 2 build-injects this from gonogo-uplink.json (spec §5).
-const UPLINK_VERSION = "0.0.0-dev";
+/**
+ * This client's one version line, and it must equal `package.json`'s.
+ *
+ * It was `"0.0.0-dev"` under a TODO saying the build would inject it from
+ * `gonogo-uplink.json`. That was backwards: the manifest is GENERATED from this
+ * declaration, so the manifest cannot be the source of the number that goes into
+ * it. The declaration is the source, and `gonogo-uplink docs` refuses to write a
+ * manifest whose declared version disagrees with the package's, so the two cannot
+ * drift without something saying so.
+ */
+const UPLINK_VERSION = "0.0.1";
 
 export const SCANSAT = defineUplinkClient({
   id: "scansat",

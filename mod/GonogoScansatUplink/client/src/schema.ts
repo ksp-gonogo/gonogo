@@ -13,6 +13,24 @@
  */
 
 /**
+ * These shapes carry `Value<U>` where the contract does, not bare numbers.
+ *
+ * They used to say `number`, and every quantity here arrives hydrated: this
+ * Uplink's `topics.ts` feeds its own generated unit AND type maps into the sdk's
+ * runtime registry, so `wrapTopicPayload` retypes `subLatitude`, `altitude`,
+ * every sensor altitude and the whole nested `trackColor` before a widget sees
+ * them. The mismatch was not cosmetic: `subLatitude.toFixed(2)` threw
+ * `toFixed is not a function` the moment SCANsat reported a single scanning
+ * vessel, and the footprint arithmetic produced `NaN` coordinates rather than
+ * throwing, so the minimap drew nothing and said nothing.
+ *
+ * Found by the first fed render of this widget through the Uplink render
+ * harness, which is what a fed render is for: no test in this package feeds a
+ * scanning vessel in its WIRE shape, so every one of them passed.
+ */
+import type { Value } from "@ksp-gonogo/sitrep-sdk";
+
+/**
  * SCANsat scan-type bit values. The fork's `scan.*` keys take an integer
  * matching one of these: bit positions are the same as SCANsat's own
  * `SCANtype` enum so the wire shape mirrors the source mod.
@@ -109,10 +127,10 @@ export interface SCANBiomeGrid {
  */
 export interface SCANSensorEntry {
   type: number;
-  fov: number;
-  minAlt: number;
-  maxAlt: number;
-  bestAlt: number;
+  fov: Value<"°">;
+  minAlt: Value<"m">;
+  maxAlt: Value<"m">;
+  bestAlt: Value<"m">;
   inRange: boolean;
   bestRange: boolean;
 }
@@ -129,9 +147,9 @@ export interface SCANScanningVessel {
   vesselId: string;
   vesselName: string;
   body: string;
-  subLatitude: number;
-  subLongitude: number;
-  altitude: number;
+  subLatitude: Value<"°">;
+  subLongitude: Value<"°">;
+  altitude: Value<"m">;
   sensors: SCANSensorEntry[];
   /**
    * SCANsat's actual current ground-track FoV for this vessel in
@@ -141,7 +159,7 @@ export interface SCANScanningVessel {
    * Null when SCANsat is not installed or the vessel currently has
    * no in-range sensors.
    */
-  groundTrackWidthDeg?: number | null;
+  groundTrackWidthDeg?: Value<"°"> | null;
   /**
    * Per-side longitude half-width in degrees, computed fork-side as
    * `groundTrackWidthDeg / cos(|subLat|)` and capped at 120°,
@@ -149,13 +167,18 @@ export interface SCANScanningVessel {
    * loop. Null when SCANsat is not installed or the vessel has no
    * in-range sensors.
    */
-  groundTrackLonHalfDeg?: number | null;
+  groundTrackLonHalfDeg?: Value<"°"> | null;
   /**
    * SCANsat's combined per-vessel `trackColor` (Color32). Use the
    * same tint on minimap footprints so the rendering matches the
    * in-game overlay. Null when SCANsat is not installed.
    */
-  trackColor?: { r: number; g: number; b: number; a: number } | null;
+  trackColor?: {
+    r: Value<"count">;
+    g: Value<"count">;
+    b: Value<"count">;
+    a: Value<"count">;
+  } | null;
 }
 
 /**
@@ -168,8 +191,8 @@ export interface SCANScanningVessel {
  */
 export interface SCANAnomalyEntry {
   name: string;
-  latitude: number;
-  longitude: number;
+  latitude: Value<"°">;
+  longitude: Value<"°">;
   known: boolean;
   detail: boolean;
 }

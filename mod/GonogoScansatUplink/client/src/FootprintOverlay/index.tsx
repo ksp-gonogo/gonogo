@@ -29,6 +29,7 @@
 
 import type { SlotProps } from "@ksp-gonogo/sitrep-sdk";
 import { registerAugment } from "@ksp-gonogo/sitrep-sdk";
+import { magnitudeOf, magnitudeOr } from "@ksp-gonogo/ui-kit";
 import { useEffect, useRef } from "react";
 import { useScanningVessels } from "../FogReveal/useScanLayers";
 import type { SCANScanningVessel } from "../schema";
@@ -67,23 +68,37 @@ export function drawFootprints(
 
   for (const v of vessels) {
     if (v.body !== bodyName) continue;
-    const halfLat = v.groundTrackWidthDeg;
-    const halfLon = v.groundTrackLonHalfDeg;
+    // Magnitudes, because everything below is canvas geometry. These arrive as
+    // `Value<"°">` off the wire (this Uplink registers its own type units), and
+    // read as numbers they produced NaN coordinates rather than throwing, so the
+    // footprint silently drew nothing.
+    const halfLat = magnitudeOf(v.groundTrackWidthDeg);
+    const halfLon = magnitudeOf(v.groundTrackLonHalfDeg);
+    const subLat = magnitudeOr(v.subLatitude, 0);
+    const subLon = magnitudeOr(v.subLongitude, 0);
     if (halfLat == null || halfLat <= 0) continue;
     if (halfLon == null || halfLon <= 0) continue;
 
     const tc = v.trackColor;
-    const fill = tc
-      ? `rgba(${tc.r}, ${tc.g}, ${tc.b}, ${(((tc.a ?? 255) / 255) * 0.45).toFixed(3)})`
+    const channels = tc
+      ? {
+          r: magnitudeOr(tc.r, 255),
+          g: magnitudeOr(tc.g, 255),
+          b: magnitudeOr(tc.b, 255),
+          a: magnitudeOr(tc.a, 255),
+        }
+      : undefined;
+    const fill = channels
+      ? `rgba(${channels.r}, ${channels.g}, ${channels.b}, ${((channels.a / 255) * 0.45).toFixed(3)})`
       : "rgba(255, 255, 255, 0.3)";
-    const stroke = tc
-      ? `rgba(${tc.r}, ${tc.g}, ${tc.b}, 0.9)`
+    const stroke = channels
+      ? `rgba(${channels.r}, ${channels.g}, ${channels.b}, 0.9)`
       : "rgba(255, 255, 255, 0.7)";
 
     // Latitude band (no wrap: clamp to the poles, matching `project`'s
     // own body-offset clamp semantics before it's even applied here).
-    const latTop = Math.min(90, v.subLatitude + halfLat);
-    const latBot = Math.max(-90, v.subLatitude - halfLat);
+    const latTop = Math.min(90, subLat + halfLat);
+    const latBot = Math.max(-90, subLat - halfLat);
     const { y: yTop } = project(latTop, 0);
     const { y: yBot } = project(latBot, 0);
     const rectY = Math.min(yTop, yBot);
@@ -92,8 +107,8 @@ export function drawFootprints(
     // Longitude band, wrapped to [-180, 180) before projecting so the
     // wrap-split decision below is correct regardless of what the body
     // offset inside `project` does with the raw value.
-    const lonLo = wrapLon180(v.subLongitude - halfLon);
-    const lonHi = wrapLon180(v.subLongitude + halfLon);
+    const lonLo = wrapLon180(subLon - halfLon);
+    const lonHi = wrapLon180(subLon + halfLon);
     const { x: xLoRaw } = project(0, lonLo);
     const { x: xHiRaw } = project(0, lonHi);
 

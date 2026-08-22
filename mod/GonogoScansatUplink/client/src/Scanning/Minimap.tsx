@@ -4,7 +4,13 @@ import {
   useTelemetry,
   value,
 } from "@ksp-gonogo/sitrep-sdk";
-import { NullValue, Unit, useElementSize } from "@ksp-gonogo/ui-kit";
+import {
+  magnitudeOf,
+  magnitudeOr,
+  NullValue,
+  Unit,
+  useElementSize,
+} from "@ksp-gonogo/ui-kit";
 import { useEffect, useRef } from "react";
 import styled from "styled-components";
 import { useScanCoverageGate } from "../FogReveal/useScanCoverageGate";
@@ -167,8 +173,9 @@ export function Minimap({
     if (anomalies) {
       for (const a of anomalies) {
         if (!a.known) continue;
-        const aTexLat = a.latitude + (body.latitudeOffset ?? 0);
-        const aTexLon = a.longitude + (body.longitudeOffset ?? 0);
+        const aTexLat = magnitudeOr(a.latitude, 0) + (body.latitudeOffset ?? 0);
+        const aTexLon =
+          magnitudeOr(a.longitude, 0) + (body.longitudeOffset ?? 0);
         const dLat = aTexLat - texLat;
         const dLon = shortestLonDelta(wrapLon(aTexLon), wrapLon(texLon));
         if (Math.abs(dLat) > WINDOW_HALF_DEG) continue;
@@ -310,18 +317,24 @@ function drawScannerFootprint(
   centerTexLon: number,
   px: number,
 ): void {
-  const halfLat = v.groundTrackWidthDeg;
-  const halfLon = v.groundTrackLonHalfDeg;
+  // Magnitudes: everything below is canvas geometry, and these arrive as
+  // `Value<"°">` off the wire. Read as numbers they produced NaN and the
+  // footprint quietly drew nothing.
+  const halfLat = magnitudeOf(v.groundTrackWidthDeg);
+  const halfLon = magnitudeOf(v.groundTrackLonHalfDeg);
   if (halfLat == null || halfLat <= 0) return;
   if (halfLon == null || halfLon <= 0) return;
 
   const tc = v.trackColor;
   const fill = tc
-    ? `rgba(${tc.r}, ${tc.g}, ${tc.b}, ${(tc.a / 255).toFixed(3)})`
+    ? `rgba(${magnitudeOr(tc.r, 255)}, ${magnitudeOr(tc.g, 255)}, ` +
+      `${magnitudeOr(tc.b, 255)}, ${(magnitudeOr(tc.a, 255) / 255).toFixed(3)})`
     : "rgba(255, 255, 255, 0.4)";
 
-  const vTexLat = v.subLatitude + (body.latitudeOffset ?? 0);
-  const vTexLon = wrapLon(v.subLongitude + (body.longitudeOffset ?? 0));
+  const vTexLat = magnitudeOr(v.subLatitude, 0) + (body.latitudeOffset ?? 0);
+  const vTexLon = wrapLon(
+    magnitudeOr(v.subLongitude, 0) + (body.longitudeOffset ?? 0),
+  );
   // Vertical extent: straight delta-lat from the minimap centre.
   const dLatTop = vTexLat + halfLat - centerTexLat;
   const dLatBot = vTexLat - halfLat - centerTexLat;
