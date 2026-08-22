@@ -171,7 +171,7 @@ export const LEGACY_KEY_HOMES: Readonly<Record<string, string>> = {
   //  - sasModeName              (SasMode enum → name; Navball's SAS_MODES)
   //  - commsControlStateName    (ControlState enum → name; CommSignal label/tone)
   //  - commsControlStateOrdinal (ControlState enum → CommSignal's 0/1/2 level)
-  // (targetKind is the same display map, but TargetPicker/DistanceToTarget
+  // (targetKind is the same display map, but TargetPicker/Targeting
   // now read `vessel.state.targetKind` directly, no `tar.type` shim key
   // left to map.)
   // ---
@@ -234,7 +234,7 @@ export const LEGACY_KEY_HOMES: Readonly<Record<string, string>> = {
 
   // --- Shared client-side derivations off channels already on the wire,
   // used by Twr, Navball, CrewStatus, ActionGroup ag1..10,
-  // and DistanceToTarget. Each is a `vessel.state.*` field
+  // and Targeting. Each is a `vessel.state.*` field
   // `deriveVesselState` now produces (see
   // vessel-state.ts), same display-map pattern as elsewhere in this table:
   //  - twr (dv.currentTWR) = currentThrust/(totalMass·g) off vessel.propulsion.
@@ -280,7 +280,7 @@ export const LEGACY_KEY_HOMES: Readonly<Record<string, string>> = {
 
   // --- dock.x/dock.y: the two lateral docking-offset scalars (metres) are
   // simply the x/y components of vessel.dock.relativePosition (the Vec3
-  // DistanceToTarget already uses verbatim as their drop-in replacement,
+  // Targeting already uses verbatim as their drop-in replacement,
   // rendering `${x.toFixed(2)} m`). Mapped via the raw-field-subtopic walk
   // (`resolveRawFieldSubtopic`) into the Vec3: no derived field needed, same
   // nested-walk form as the career.status.* sub-tree reads.
@@ -492,7 +492,7 @@ export const LEGACY_KEY_HOMES: Readonly<Record<string, string>> = {
   // established) rather than a `<domain>.<channel>.<field>` walk. PowerSystems reads `parts.power` as a
   // MIXED-source enrichment (preferring `totalProductionEc` over its
   // topology-summed total when carried, `??` falls back otherwise, same
-  // pattern as DistanceToTarget's Vec3 merges). RoboticsConsole/
+  // pattern as Targeting's Vec3 merges). RoboticsConsole/
   // RotorTachometer read `robotics.servos` (filtered by `type`) as their
   // WHOLE identity list: partId-keyed selection and every `robotics.*`
   // command key off the stable stringified `partId` each entry carries.
@@ -816,7 +816,7 @@ export const LEGACY_KEY_GAPS: ReadonlySet<string> = new Set([
   // widget reads, `vessel.state.situationName` / `sasModeName`. See
   // LEGACY_KEY_HOMES above. (`vessel.target.kind` gets the same
   // ordinal→"CelestialBody"-normalized-string treatment on
-  // `vessel.state.targetKind`, which TargetPicker/DistanceToTarget now read
+  // `vessel.state.targetKind`, which TargetPicker/Targeting now read
   // directly: no `tar.type` shim key left to map.)
 
   // tar.o.relativeVelocity is mapped on the wire: the signed scalar
@@ -956,7 +956,7 @@ export const LEGACY_KEY_GAPS: ReadonlySet<string> = new Set([
   // is to DROP them in favour of the LINE-OF-SIGHT HUD proxy, the shared
   // `deriveDockAngles` helper (packages/components/src/shared/dockAngles.ts)
   // computes ax/ay off dock.relativePosition. They stay gapped here
-  // until DistanceToTarget removes the legacy reads +
+  // until Targeting removes the legacy reads +
   // reworks the fixtures/snapshots/visual baselines.
   "dock.ax",
   "dock.ay",

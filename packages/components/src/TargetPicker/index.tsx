@@ -199,7 +199,7 @@ function sortByDistance(list: readonly TargetListEntry[]): TargetListEntry[] {
   });
 }
 
-/** Native per-topic stream status (copy of DistanceToTarget/OrbitView's
+/** Native per-topic stream status (copy of Targeting/OrbitView's
  * helper): `"disconnected"` when no `TelemetryProvider` is mounted. */
 function useStreamStatusOptional(topic: string): StreamStatusValue {
   const client = useTelemetryClientOptional();
@@ -236,7 +236,7 @@ function TargetPickerComponent({
   // Canonical native reads: the whole `target.available` list, and the
   // target-detail scalars off the whole `vessel.target` Topic (name, kind,
   // and the Vec3 fields distance/Δv derive from), the same native-shim
-  // reads DistanceToTarget uses, not the `vessel.state` derived channel
+  // reads Targeting uses, not the `vessel.state` derived channel
   // (which isn't a wire Topic and so can't be declared in
   // `dataRequirements`: see the ratchet test in
   // `packages/core/src/hooks/mapTopic.coverage.test.ts`).

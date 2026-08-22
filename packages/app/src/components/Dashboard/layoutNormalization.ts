@@ -29,6 +29,11 @@ export const RENAMED_COMPONENT_IDS: Record<string, string> = {
   "mission-status": "objectives",
   // 2026-06-25: Deployed Base Monitor renamed to the simpler Deployed Science.
   "deployed-base-monitor": "deployed-science",
+  // 2026-08-22: Distance to Target covers the whole target relationship
+  // (distance, closest approach, relative velocity, target selection, view
+  // modes), so it is named Targeting for the relationship rather than for one
+  // of its fields.
+  "distance-to-target": "targeting",
 };
 
 /** Map a single (possibly renamed) component id forward to its current id. */

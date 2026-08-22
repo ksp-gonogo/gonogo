@@ -12,7 +12,7 @@ On module import it registers:
 
 - a `kerbcast` **DataSource**: the sidecar connection
 - a `camera-feed` **widget**: placeable from the dashboard picker
-- a `kerbcast-docking-camera` **augment**: fills DistanceToTarget's
+- a `kerbcast-docking-camera` **augment**: fills Targeting's
   `distance-to-target.camera` slot with the close-range docking-camera
   backdrop, picking the camera off the Uplink's `isDockingCamera` fact.
   Presence-gated on `kerbcast.available`, so an install without kerbcast

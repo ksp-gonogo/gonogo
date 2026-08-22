@@ -15,6 +15,7 @@ describe("component-id migration", () => {
   it("maps a renamed id forward", () => {
     expect(migrateComponentId("mission-director")).toBe("contract-manager");
     expect(migrateComponentId("mission-status")).toBe("objectives");
+    expect(migrateComponentId("distance-to-target")).toBe("targeting");
   });
 
   it("leaves a current id untouched", () => {

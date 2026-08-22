@@ -45,7 +45,7 @@ import "./targetReckoning";
 
 type DockingHudMode = "hud" | "hud-with-camera";
 
-interface DistanceToTargetConfig {
+interface TargetingConfig {
   /**
    * Auto-switch to the docking HUD when the target is a vessel or docking
    * port and the distance drops under the approach threshold. Defaults to
@@ -67,7 +67,7 @@ interface DistanceToTargetConfig {
 
 // ── Augment slots (Uplink architecture) ─────────────────────────────────────
 //
-// This widget owns three slots (`augment-slot-map.md`, DistanceToTarget row).
+// This widget owns three slots (`augment-slot-map.md`, Targeting row).
 // Two are OVERLAY slots on the docking HUD and so PASS slot-props, an
 // overlay augment must draw in the HUD's own reticle space, so it receives
 // the parent's coordinate frame:
@@ -210,11 +210,11 @@ function observedPayload<T>(reading: Reading<T>): T | undefined {
   }
 }
 
-function DistanceToTargetComponent({
+function TargetingComponent({
   config,
   w,
   h,
-}: Readonly<ComponentProps<DistanceToTargetConfig>>) {
+}: Readonly<ComponentProps<TargetingConfig>>) {
   const autoSwitch = config?.autoSwitch !== false;
   const hudMode: DockingHudMode = config?.hudMode ?? "hud-with-camera";
 
@@ -1239,10 +1239,10 @@ function DockingHud(props: DockingHudProps) {
 
 // ── Config component ──────────────────────────────────────────────────────────
 
-function DistanceToTargetConfigComponent({
+function TargetingConfigComponent({
   config,
   onSave,
-}: Readonly<ConfigComponentProps<DistanceToTargetConfig>>) {
+}: Readonly<ConfigComponentProps<TargetingConfig>>) {
   const [autoSwitch, setAutoSwitch] = useState(config?.autoSwitch !== false);
   const [hudMode, setHudMode] = useState<DockingHudMode>(
     config?.hudMode ?? "hud-with-camera",
@@ -1259,7 +1259,7 @@ function DistanceToTargetConfigComponent({
   // as an override.
   const pinnedCameraId = config?.cameraFlightId;
 
-  const candidate = useMemo<DistanceToTargetConfig>(
+  const candidate = useMemo<TargetingConfig>(
     () => ({
       autoSwitch,
       hudMode,
@@ -1308,16 +1308,16 @@ function DistanceToTargetConfigComponent({
 
 // ── Registration ──────────────────────────────────────────────────────────────
 
-registerComponent<DistanceToTargetConfig>({
-  id: "distance-to-target",
-  name: "Distance to Target",
+registerComponent<TargetingConfig>({
+  id: "targeting",
+  name: "Targeting",
   description:
     "Target name + distance, with an auto-switching docking HUD (crosshair + alignment reticle + optional camera backdrop) when closing on a vessel or docking port.",
   tags: ["telemetry", "rendezvous"],
   defaultSize: { w: 6, h: 9 },
   minSize: { w: 3, h: 4 },
-  component: DistanceToTargetComponent,
-  configComponent: DistanceToTargetConfigComponent,
+  component: TargetingComponent,
+  configComponent: TargetingConfigComponent,
   dataRequirements: ["vessel.target", "vessel.dock"],
   defaultConfig: { autoSwitch: true, hudMode: "hud-with-camera" },
   augmentSlots: ["distance-to-target.camera", "distance-to-target.overlay"],
@@ -1325,4 +1325,4 @@ registerComponent<DistanceToTargetConfig>({
   requires: ["flight"],
 });
 
-export { DistanceToTargetComponent };
+export { TargetingComponent };

@@ -40,7 +40,7 @@
  * topic resolves to `undefined` forever, no throw; see
  * `packages/core/src/hooks/useTelemetry.ts`). A handful of widget specs rely
  * on exactly that (ContractManager's "Awaiting contract telemetry",
- * TargetPicker/DistanceToTarget's "no target" branch): don't add those
+ * TargetPicker/Targeting's "no target" branch): don't add those
  * topics without re-checking the spec that depends on their absence.
  * `vessel.parts`/`dv.stages`/`dv.summary`/`vessel.structure` are deliberately
  * ALSO never in `SNAPSHOT` for the same reason (this is what used to make
@@ -231,7 +231,7 @@ export const SNAPSHOT = {
   // `isCurrent:false` on both (nothing is selected, consistent with the null
   // `vessel.target`). Payload shape is `TargetAvailable { entries:
   // TargetListEntry[] }`; `kind:1` is `TargetKind.Body` (Vessel=0,Body=1,
-  // Other=2,Position=3,Part=4). Adding this leaves DistanceToTarget's
+  // Other=2,Position=3,Part=4). Adding this leaves Targeting's
   // "No target set in KSP" branch intact, that widget reads `vessel.target`
   // (still null), never this list.
   "target.available": {

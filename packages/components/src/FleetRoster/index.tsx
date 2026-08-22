@@ -56,7 +56,7 @@ type FleetRosterConfig = Record<string, never>;
 // vessel, loaded or not, KspHost.BuildVesselRosterEntry's capture-add), NOT
 // a legacy `fleet.vessels` DataSource key. `system.bodies` resolves each
 // entry's `bodyIndex` to a display name, the same pattern SystemView already
-// uses for its own vessel-body lookups. Copy of TargetPicker/DistanceToTarget/
+// uses for its own vessel-body lookups. Copy of TargetPicker/Targeting/
 // OrbitView/LandingStatus's own local `useStreamStatusOptional`, there is no
 // shared export of it yet.
 //

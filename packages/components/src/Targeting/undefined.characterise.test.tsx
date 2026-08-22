@@ -7,7 +7,7 @@ import {
   type StreamFixture,
   setupStreamFixture,
 } from "../test/setupStreamFixture";
-import { DistanceToTargetComponent } from "./index";
+import { TargetingComponent } from "./index";
 
 /**
  * Characterisation of what `undefined` MEANS at every read site in this widget,
@@ -62,7 +62,7 @@ function renderWidget(
       <DashboardItemContext.Provider
         value={{ instanceId: props.id ?? "dtt-c" }}
       >
-        <DistanceToTargetComponent
+        <TargetingComponent
           id={props.id ?? "dtt-c"}
           w={props.w ?? 12}
           h={props.h ?? 10}
@@ -81,7 +81,7 @@ function dockingFixture() {
   });
 }
 
-describe("DistanceToTarget: nothing has arrived on either topic", () => {
+describe("Targeting: nothing has arrived on either topic", () => {
   it("renders the waiting empty state and none of the three value surfaces", () => {
     const fixture = dockingFixture();
     const { container } = renderWidget(fixture);
@@ -102,7 +102,7 @@ describe("DistanceToTarget: nothing has arrived on either topic", () => {
   });
 });
 
-describe("DistanceToTarget: the vessel.dock absence gate", () => {
+describe("Targeting: the vessel.dock absence gate", () => {
   /**
    * `dockingAvailable = dockRelPos !== undefined` is the gate. `undefined` on
    * `vessel.dock` means "the mod is not publishing a dock channel, so this is
@@ -169,7 +169,7 @@ describe("DistanceToTarget: the vessel.dock absence gate", () => {
   });
 });
 
-describe("DistanceToTarget: a partial vessel.dock record", () => {
+describe("Targeting: a partial vessel.dock record", () => {
   /**
    * These pin the `??` fallbacks. `dock.distance` and `dock.relativeVelocity`
    * each fall back to the vessel-to-vessel figure derived off `vessel.target`
@@ -238,7 +238,7 @@ describe("DistanceToTarget: a partial vessel.dock record", () => {
   });
 });
 
-describe("DistanceToTarget: a partial vessel.target record", () => {
+describe("Targeting: a partial vessel.target record", () => {
   it("reports a confident absence for an OBSERVED record that carries no name", async () => {
     // The belt-and-braces `|| tarName === undefined` arm, which survives
     // alongside the `absent` arm. A record DID arrive and is current, so the

@@ -29,7 +29,6 @@ import type {
 } from "@ksp-gonogo/sitrep-sdk";
 import type { ActionGroupSlotContext } from "./ActionGroup";
 import type { CrewAvatarContext, CrewBadgeContext } from "./CrewStatus";
-import type { DistanceToTargetHudContext } from "./DistanceToTarget";
 import type { ExperimentsInstrumentSlotContext } from "./Experiments";
 import type { LaunchDirectorSlotContext } from "./LaunchDirector";
 import type {
@@ -42,6 +41,7 @@ import type { PowerSystemsScope } from "./PowerSystems";
 import type { ScienceDataAboardRowContext } from "./ScienceData";
 import type { ShipMapOverlayContext } from "./ShipMap";
 import type { SystemOverlayContext } from "./SystemView";
+import type { DistanceToTargetHudContext } from "./Targeting";
 
 type Assignable<A, B> = A extends B ? true : false;
 type Expect<T extends true> = T;

@@ -297,7 +297,7 @@ const NOTICE_STYLE = {
 /* HUD-style overlay chip: absolute-positioned, off-token bottom/right measured
    clearance over the chart's tick band, local z-index 1. A bespoke positioned
    overlay has no ui-kit primitive, so it carries inline style (same treatment
-   as DistanceToTarget's docking HUD). */
+   as Targeting's docking HUD). */
 const LIVE_CHIP_STYLE = {
   position: "absolute",
   bottom: 32,

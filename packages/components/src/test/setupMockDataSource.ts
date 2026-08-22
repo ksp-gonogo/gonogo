@@ -60,7 +60,7 @@ export interface MockDataSourceFixture {
  * registerDataSource → connect()` pattern that ~10 widget tests duplicate.
  *
  * Faithfully reproduces the existing setup (e.g. `ManeuverPlanner`,
- * `CurrentOrbit`, `CommSignal`, `ScienceBench`, `DistanceToTarget`,
+ * `CurrentOrbit`, `CommSignal`, `ScienceBench`, `Targeting`,
  * `TargetPicker`, `CrewStatus`):
  *
  * ```ts

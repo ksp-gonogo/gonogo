@@ -179,7 +179,7 @@ const BASELINES: Record<Family, Record<string, number>> = {
    * readouts, both of which the scale stops short of on purpose. The rest
    * are sizes locked into a fixed box or a coarse-pointer calculation
    * (Navball's 9px and 14px terms in a 74px reserve, TechTree's card
-   * ladder against CARD_H = 48, DistanceToTarget's 11px, PanelStatusDot's
+   * ladder against CARD_H = 48, Targeting's 11px, PanelStatusDot's
    * 7px pinned under an 11px dot), plus `shared/` and mod widgets no slice
    * owned.
    */
@@ -191,7 +191,6 @@ const BASELINES: Record<Family, Record<string, number>> = {
     "packages/app/src/goNoGo/GoNoGoComponent.tsx": 5,
     "packages/components/src/CrewStatus/index.tsx": 2,
     "packages/components/src/CurrentOrbit/index.tsx": 2,
-    "packages/components/src/DistanceToTarget/index.tsx": 3,
     "packages/components/src/FuelStatus/index.tsx": 2,
     "packages/components/src/MapView/MapView.styles.ts": 1,
     "packages/components/src/Navball/AttitudeIndicator.tsx": 3,
@@ -203,6 +202,7 @@ const BASELINES: Record<Family, Record<string, number>> = {
     "packages/components/src/SpaceCenterStatus/index.tsx": 3,
     "packages/components/src/StationConnectView/index.tsx": 7,
     "packages/components/src/SystemView/index.tsx": 1,
+    "packages/components/src/Targeting/index.tsx": 3,
     "packages/components/src/TechTree/index.tsx": 5,
     "packages/components/src/Twr/index.tsx": 1,
     "packages/components/src/WarpControl/index.tsx": 1,
@@ -296,13 +296,13 @@ const BASELINES: Record<Family, Record<string, number>> = {
     "mod/": 2,
     "packages/app/src/styles/global.css": 2,
     "packages/components/src/ContractManager/index.tsx": 2,
-    "packages/components/src/DistanceToTarget/index.tsx": 2,
     "packages/components/src/LaunchDirector/index.tsx": 1,
     "packages/components/src/Navball/AttitudeIndicator.tsx": 2,
     "packages/components/src/Navball/index.tsx": 2,
     "packages/components/src/PerfBudgets/index.tsx": 2,
     "packages/components/src/ShipMap/index.tsx": 2,
     "packages/components/src/SpaceCenterStatus/index.tsx": 1,
+    "packages/components/src/Targeting/index.tsx": 2,
     "packages/components/src/TechTree/index.tsx": 1,
     "packages/serial/src/InputMappingTab.tsx": 1,
     "packages/serial/src/InputTester/index.tsx": 1,

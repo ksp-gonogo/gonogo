@@ -17,7 +17,7 @@ import { NavballComponent } from "./index";
  * `ready` flag gated only the numeric captions and `aria-hidden`, never the
  * drawing.
  *
- * `DistanceToTarget` answered the same question for its docking reticle by
+ * `Targeting` answered the same question for its docking reticle by
  * refusing to draw it off a non-observed reading, and the ball is the same kind
  * of object, only more so: the reticle at least drew from real data that had
  * gone old, while the dial fabricated an attitude from nothing at all.

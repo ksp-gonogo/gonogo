@@ -59,7 +59,7 @@ function EscapeProfileComponent({
 }: Readonly<ComponentProps<EscapeProfileConfig>>) {
   // Native read: the `vessel.state` DERIVED channel's `parentBodyName`
   // display map (`vessel.identity.parentBodyIndex` resolved against
-  // `system.bodies`): the same channel `DistanceToTarget`/`TargetPicker`/
+  // `system.bodies`): the same channel `Targeting`/`TargetPicker`/
   // `ManeuverPlanner`/`CurrentOrbit` read for their own `vessel.state.*`
   // fields, off the legacy two-arg `data`-source shim.
   const bodyName =

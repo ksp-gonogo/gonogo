@@ -142,7 +142,6 @@ export const APP_INTERNAL: Readonly<Record<string, number>> = {
   "packages/components/src/CurrentOrbit/__fixtures__/escape-trajectory.json": 1,
   "packages/components/src/CurrentOrbit/producer-consumer-O1.test.tsx": 1,
   "packages/components/src/DataSourceStatus/index.test.tsx": 4,
-  "packages/components/src/DistanceToTarget/reading.test.tsx": 2,
   "packages/components/src/Experiments/stream.test.tsx": 1,
   "packages/components/src/LaunchDirector/index.test.tsx": 2,
   "packages/components/src/ManeuverPlanner/index.test.tsx": 1,
@@ -161,6 +160,7 @@ export const APP_INTERNAL: Readonly<Record<string, number>> = {
   "packages/components/src/SystemView/usePhaseAngles.test.tsx": 1,
   "packages/components/src/TargetPicker/__fixtures__/no-target.json": 1,
   "packages/components/src/TargetPicker/index.test.tsx": 1,
+  "packages/components/src/Targeting/reading.test.tsx": 2,
   "packages/components/src/TechTree/__fixtures__/early-career-63-nodes.json": 4,
   "packages/components/src/ThermalStatus/__fixtures__/no-thermal-data.json": 1,
   "packages/components/src/WarpControl/dual-run.test.tsx": 1,
@@ -206,5 +206,5 @@ export const APP_INTERNAL: Readonly<Record<string, number>> = {
   "tests/playwright/sitrep-stream-server.mjs": 7,
   "tests/playwright/widget-dom-mirror.spec.ts": 1,
   "tests/playwright/widgets/data-source-status.spec.ts": 1,
-  "tests/playwright/widgets/distance-to-target.spec.ts": 1,
+  "tests/playwright/widgets/targeting.spec.ts": 1,
 };

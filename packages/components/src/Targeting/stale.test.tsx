@@ -4,7 +4,7 @@ import { act, render, screen, waitFor } from "@ksp-gonogo/test-utils";
 import { visibleText } from "@ksp-gonogo/ui-kit/testing";
 import { afterEach, describe, expect, it } from "vitest";
 import { setupStreamFixture } from "../test/setupStreamFixture";
-import { DistanceToTargetComponent } from "./index";
+import { TargetingComponent } from "./index";
 
 /**
  * The withholding of the docking alignment, asserted from outside the component.
@@ -44,7 +44,7 @@ function mountAtDockingRange() {
   render(
     <fixture.Provider>
       <DashboardItemContext.Provider value={{ instanceId: "dtt-dock-stale" }}>
-        <DistanceToTargetComponent id="dtt-dock-stale" w={12} h={10} />
+        <TargetingComponent id="dtt-dock-stale" w={12} h={10} />
       </DashboardItemContext.Provider>
     </fixture.Provider>,
   );
@@ -78,7 +78,7 @@ function mountAtDockingRange() {
   return { fixture, emitTarget };
 }
 
-describe("DistanceToTarget: the dock channel alone stops being current", () => {
+describe("Targeting: the dock channel alone stops being current", () => {
   it("withholds the alignment reticle and says why, while the approach numbers keep coming", async () => {
     const { fixture, emitTarget } = mountAtDockingRange();
 

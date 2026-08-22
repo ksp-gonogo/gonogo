@@ -8,10 +8,10 @@ import {
   teardownMockDataSource,
 } from "../test/setupMockDataSource";
 import { setupStreamFixture } from "../test/setupStreamFixture";
-import { DistanceToTargetComponent } from "./index";
+import { TargetingComponent } from "./index";
 
 /**
- * DistanceToTarget's stream test-adapter proof: genuinely running off the real
+ * Targeting's stream test-adapter proof: genuinely running off the real
  * `TelemetryProvider`/`TelemetryClient`/`TimelineStore` pipeline via
  * `StubTransport`. The widget derives EVERY scalar/angle it renders
  * client-side from the `vessel.target`/`vessel.dock` Vec3 fields
@@ -32,7 +32,7 @@ afterEach(() => {
   clearActionHandlers();
 });
 
-describe("DistanceToTarget: genuinely runs off the stream (M3 vessel-gap batch)", () => {
+describe("Targeting: genuinely runs off the stream (M3 vessel-gap batch)", () => {
   it("renders tracking-mode distance/closing-rate derived from vessel.target's Vec3 fields", async () => {
     const fixture = setupStreamFixture({
       carriedChannels: ["vessel.target"],
@@ -47,7 +47,7 @@ describe("DistanceToTarget: genuinely runs off the stream (M3 vessel-gap batch)"
     render(
       <fixture.Provider>
         <DashboardItemContext.Provider value={{ instanceId: "dtt-stream" }}>
-          <DistanceToTargetComponent id="dtt-stream" w={6} h={9} />
+          <TargetingComponent id="dtt-stream" w={6} h={9} />
         </DashboardItemContext.Provider>
       </fixture.Provider>,
     );
@@ -91,7 +91,7 @@ describe("DistanceToTarget: genuinely runs off the stream (M3 vessel-gap batch)"
     render(
       <fixture.Provider>
         <DashboardItemContext.Provider value={{ instanceId: "dtt-dock" }}>
-          <DistanceToTargetComponent id="dtt-dock" w={12} h={10} />
+          <TargetingComponent id="dtt-dock" w={12} h={10} />
         </DashboardItemContext.Provider>
       </fixture.Provider>,
     );
@@ -152,7 +152,7 @@ describe("DistanceToTarget: genuinely runs off the stream (M3 vessel-gap batch)"
     const { container } = render(
       <fixture.Provider>
         <DashboardItemContext.Provider value={{ instanceId: "dtt-cleared" }}>
-          <DistanceToTargetComponent id="dtt-cleared" w={6} h={9} />
+          <TargetingComponent id="dtt-cleared" w={6} h={9} />
         </DashboardItemContext.Provider>
       </fixture.Provider>,
     );
@@ -217,7 +217,7 @@ describe("DistanceToTarget: genuinely runs off the stream (M3 vessel-gap batch)"
     render(
       <fixture.Provider>
         <DashboardItemContext.Provider value={{ instanceId: "dtt-tca" }}>
-          <DistanceToTargetComponent id="dtt-tca" w={6} h={9} />
+          <TargetingComponent id="dtt-tca" w={6} h={9} />
         </DashboardItemContext.Provider>
       </fixture.Provider>,
     );

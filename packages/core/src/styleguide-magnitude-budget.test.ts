@@ -66,7 +66,6 @@ const MAGNITUDE_BUDGET: Record<string, number> = {
   "packages/components/src/CrewStatus/badge.ts": 2,
   "packages/components/src/CrewStatus/index.tsx": 1,
   "packages/components/src/CurrentOrbit/index.tsx": 3,
-  "packages/components/src/DistanceToTarget/index.tsx": 5,
   "packages/components/src/FleetComms/index.tsx": 15,
   "packages/components/src/FleetRoster/index.tsx": 3,
   "packages/components/src/FuelStatus/index.tsx": 1,
@@ -93,6 +92,7 @@ const MAGNITUDE_BUDGET: Record<string, number> = {
   "packages/components/src/SystemView/index.tsx": 27,
   "packages/components/src/SystemView/useCelestialBodies.ts": 2,
   "packages/components/src/SystemView/usePhaseAngles.ts": 7,
+  "packages/components/src/Targeting/index.tsx": 5,
   "packages/components/src/ThermalStatus/index.tsx": 13,
   // +1 for the Δv budget the reach list compares against. `calc/transfer.ts` and
   // the porkchop are deliberately plain-SI ("no React, no side effects", see their

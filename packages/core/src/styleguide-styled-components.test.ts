@@ -46,9 +46,9 @@ const MOD_CLIENT_SRC_SUFFIX = ["client", "src"];
 //   • its settings panel: untouched pre-existing code the scan simply reaches
 //     now. A genuine migration candidate, newly visible rather than newly bad.
 //   • its docking-camera augment: the SAME styled `<video>` backdrop that
-//     used to live in DistanceToTarget as `HudVideo`, deleted from there in
+//     used to live in Targeting as `HudVideo`, deleted from there in
 //     the same commit. The app's bespoke CSS did not grow; it moved into the
-//     Uplink that owns it. It reads as +1 only because DistanceToTarget still
+//     Uplink that owns it. It reads as +1 only because Targeting still
 //     imports styled-components for its other styled parts, so no line came
 //     off that side of the ledger.
 // Held at styled-components rather than respelt as inline styles: a sibling

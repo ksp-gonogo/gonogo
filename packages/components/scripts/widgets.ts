@@ -262,9 +262,9 @@ const WIDGETS: WidgetRenderConfig[] = [
     ],
   },
   {
-    widgetId: "distance-to-target",
-    fixturesPath: "DistanceToTarget/__fixtures__",
-    outPath: "renders/distance-to-target-widget",
+    widgetId: "targeting",
+    fixturesPath: "Targeting/__fixtures__",
+    outPath: "renders/targeting-widget",
     modes: [
       {
         name: "tiny-3x4",

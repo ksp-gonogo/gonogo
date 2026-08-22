@@ -7,7 +7,7 @@ import aligned from "./__fixtures__/docking-aligned.json";
 import misaligned from "./__fixtures__/docking-misaligned.json";
 import far from "./__fixtures__/far-approach-vessel.json";
 import noTarget from "./__fixtures__/no-target.json";
-import { DistanceToTargetComponent } from "./index";
+import { TargetingComponent } from "./index";
 
 /**
  * DOM snapshots off the stream pipeline, driven by each fixture's own
@@ -32,15 +32,15 @@ const FIXTURES: Record<string, Record<string, unknown>> = {
   "docking-misaligned": misaligned,
 };
 
-const config = getWidget("distance-to-target");
-if (!config) throw new Error("distance-to-target missing from widgets.ts");
+const config = getWidget("targeting");
+if (!config) throw new Error("targeting missing from widgets.ts");
 
-describe("DistanceToTarget DOM snapshots", () => {
+describe("Targeting DOM snapshots", () => {
   for (const [name, fixture] of Object.entries(FIXTURES)) {
     for (const mode of config.modes) {
       it(`${name} @ ${mode.name}`, async () => {
         const html = await snapshotWidgetMode({
-          Widget: DistanceToTargetComponent,
+          Widget: TargetingComponent,
           fixture,
           mode,
         });

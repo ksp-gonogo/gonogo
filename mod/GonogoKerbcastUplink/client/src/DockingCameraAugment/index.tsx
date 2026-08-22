@@ -1,11 +1,11 @@
-// kerbcast docking-camera augment for DistanceToTarget.
+// kerbcast docking-camera augment for Targeting.
 //
-// Fills DistanceToTarget's `distance-to-target.camera` slot with a live video
+// Fills Targeting's `distance-to-target.camera` slot with a live video
 // backdrop behind the docking reticle. This is the filler that widget's
 // augment-slot doc block was written for: the slot was previously only
 // EXPOSED, with a built-in `HudCamera` holding the spot "until the kerbcast
 // filler and CameraFeed-out-migration land". That built-in has now been
-// removed: see this module's sibling note in `DistanceToTarget/index.tsx`.
+// removed: see this module's sibling note in `Targeting/index.tsx`.
 //
 // Why an augment and not a standalone CameraFeed instance: the backdrop has to
 // draw in the HUD's own reticle space and share its lifecycle. The slot passes

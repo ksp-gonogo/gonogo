@@ -404,7 +404,7 @@ export interface VesselState {
    * Signed target closing/opening rate, m/s: the range-rate
    * `dot(relativePosition, relativeVelocity) / |relativePosition|` derived from
    * `vessel.target`'s two Vec3 fields. Sign follows the standard KSP convention
-   * DistanceToTarget/TargetPicker were written against: POSITIVE = opening
+   * Targeting/TargetPicker were written against: POSITIVE = opening
    * (gap growing), NEGATIVE = closing (the widgets' `< 0` = closing check).
    * Populated in BOTH bases (self-relative kinematics, not orbital-elements
    * derived). `undefined` when `vessel.target` hasn't arrived, either vector
@@ -462,7 +462,7 @@ export interface VesselState {
   horizontalSpeed: number | null;
   /**
    * Scalar range to the current target, metres, `|vessel.target.
-   * relativePosition|` (DistanceToTarget/TargetPicker). Populated in BOTH
+   * relativePosition|` (Targeting/TargetPicker). Populated in BOTH
    * bases (self-relative kinematics).
    * `undefined` when `vessel.target` hasn't arrived or `relativePosition`
    * isn't available this tick; `null` on a confirmed tombstone. A genuine
@@ -529,7 +529,7 @@ export interface VesselState {
    * numeric `Sitrep.Contract.TargetKind` enum ordinal) to its enum name.
    *
    * This is a LABEL. Nothing branches on it, and nothing should: the ordinal is
-   * on the wire beside it and every gate reads that instead, `DistanceToTarget`'s
+   * on the wire beside it and every gate reads that instead, `Targeting`'s
    * dockable test being `tarKind !== TargetKind.Body`. It used to normalize
    * `Body` to the literal `"CelestialBody"` for a dockable gate that compared
    * against that string, and it outlived the gate by long enough that the

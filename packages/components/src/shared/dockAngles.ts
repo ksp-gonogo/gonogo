@@ -1,6 +1,6 @@
 /**
  * Docking-alignment HUD-proxy helpers: the line-of-sight offset angles +
- * closing-rate derivations DistanceToTarget's docking HUD renders, promoted
+ * closing-rate derivations Targeting's docking HUD renders, promoted
  * out of that widget into a shared module so other widgets (and any future
  * docking view) reuse one implementation.
  *
@@ -13,7 +13,7 @@
  *
  * `targetKindLabel` lives here too: it's the same "derive off native
  * `vessel.target`" family (the SDK `TargetKind` -> the display string
- * widgets render), and both DistanceToTarget and TargetPicker need the
+ * widgets render), and both Targeting and TargetPicker need the
  * identical mapping so a current-target's kind reads the same everywhere.
  */
 import type { Vec3Of } from "@ksp-gonogo/sitrep-sdk";

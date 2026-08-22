@@ -17,7 +17,7 @@
  *   - the Mun / Minmus rows (each also mirrored into "Suggested"), and
  *   - "No target set in KSP." for the selected-target summary, because
  *     `vessel.target` is null (adding the LIST does not select a target,
- *     the two are separate Topics, so DistanceToTarget's no-target branch is
+ *     the two are separate Topics, so Targeting's no-target branch is
  *     untouched).
  *
  * Station-side scope: only the "TARGET PICKER" title (static chrome) is

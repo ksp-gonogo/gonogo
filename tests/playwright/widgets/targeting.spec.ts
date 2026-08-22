@@ -1,5 +1,5 @@
 /**
- * Widget DOM mirror: DistanceToTarget. Asserts the panel title and the
+ * Widget DOM mirror: Targeting. Asserts the panel title and the
  * no-target placeholder match on host and station.
  *
  * The replay feeds `vessel.target` as a literal `null` (see
@@ -23,11 +23,11 @@
 import { test } from "@playwright/test";
 import { bootstrapPair, expect, teardownPair } from "../helpers";
 
-test.describe("widget DOM mirror: DistanceToTarget", () => {
+test.describe("widget DOM mirror: Targeting", () => {
   test("no-target placeholder mirrors across host and station", async ({
     browser,
   }) => {
-    const pair = await bootstrapPair(browser, "distance-to-target", {
+    const pair = await bootstrapPair(browser, "targeting", {
       waitForMain: async (page) => {
         await expect(page.getByText("TARGET", { exact: true })).toBeVisible({
           timeout: 30_000,
