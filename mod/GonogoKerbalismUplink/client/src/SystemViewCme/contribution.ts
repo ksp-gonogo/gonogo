@@ -213,7 +213,7 @@ function computeStormEntity(
     // `warn` is the meaning; which hue it becomes is SystemView's to decide.
     style: {
       emphasis: state === STORM_STATE_IN_PROGRESS ? "normal" : "faint",
-      severity: "warn" as const,
+      severity: "warning" as const,
     },
     meta,
   };

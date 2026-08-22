@@ -135,7 +135,7 @@ describe("computeCmeEntities", () => {
         arriveUt: 5_000_000,
         clearUt: 5_003_600,
       },
-      style: { emphasis: "faint", severity: "warn" },
+      style: { emphasis: "faint", severity: "warning" },
       meta: {
         star: "Kerbol",
         state: "inbound",
@@ -261,7 +261,7 @@ describe("computeCmeEntities", () => {
     // asserts has not come back. Only the emphasis tracks the state.
     expect(entity?.style).toEqual({
       emphasis: "normal",
-      severity: "warn",
+      severity: "warning",
     });
     expect(entity?.meta?.state).toBe("in progress");
   });

@@ -35,7 +35,7 @@ import { bodyPosition, orbitEllipseGeometry } from "./SystemDiagram";
 export type SystemEntityEmphasis = "faint" | "normal" | "bright";
 
 /** Semantic weight a contributor can name: the host maps it to a hue. */
-export type SystemEntitySeverity = "info" | "warn" | "critical";
+export type SystemEntitySeverity = "info" | "warning" | "critical";
 
 export interface SystemEntityStyle {
   /** Defaults to "normal" when omitted. */
@@ -323,7 +323,7 @@ const SEVERITY_COLOUR: Readonly<Record<SystemEntitySeverity, string>> = {
   // A distinctly energetic yellow: the muted warning gold read as an
   // ordinary de-emphasised line at faint emphasis, and the accent green is
   // reserved for selection, so neither could carry "caution" here.
-  warn: "var(--color-tag-yellow-fg)",
+  warning: "var(--color-tag-yellow-fg)",
   critical: "var(--color-status-nogo-fg)",
 };
 
