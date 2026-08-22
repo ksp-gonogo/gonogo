@@ -133,24 +133,60 @@ namespace Gonogo.RealAntennasUplink
             var id = NodeId(node);
             if (seen.Add(id))
             {
-                nodes.Add(new CommsNetworkNode { Id = id, Kind = node.isHome ? CommsHopKind.Home : CommsHopKind.Relay });
+                nodes.Add(new CommsNetworkNode
+                {
+                    Id = id,
+                    DisplayName = NodeDisplayName(node),
+                    Kind = node.isHome ? CommsHopKind.Home : CommsHopKind.Relay,
+                });
             }
         }
 
         /// <summary>
-        /// A node's readable identity, matching CommNetBackend.NodeId. RSS/RA
-        /// fly a dozen named ground stations, so collapsing them all to one
-        /// "home" label erased which station a link ran to and made a station
-        /// handoff read as a range change on a single station. Home-ness rides
-        /// <c>CommsHop.FromIsHome</c>/<c>ToIsHome</c> and
-        /// <c>CommsNetworkNode.Kind</c> instead of the name.
+        /// A node's UNIQUE join key, matching CommNetBackend.NodeId (that
+        /// backend's own doc comment carries the full rationale): the owning
+        /// vessel's persistent id for a vessel node, since two craft can share
+        /// a name and merging them into one node loses a link; the station's
+        /// own name for a ground station, which RSS/RA fly a dozen of and which
+        /// must stay distinguishable.
         /// </summary>
         private static string NodeId(CommNode node)
+        {
+            if (node == null) return "unknown";
+            var vessel = ResolveOwningVessel(node);
+            if (vessel != null) return vessel.id.ToString();
+            if (!string.IsNullOrEmpty(node.displayName)) return node.displayName;
+            if (!string.IsNullOrEmpty(node.name)) return node.name;
+            return node.isHome ? "home" : "node";
+        }
+
+        /// <summary>The human label, independent of the (now unique) id.</summary>
+        private static string NodeDisplayName(CommNode node)
         {
             if (node == null) return "unknown";
             if (!string.IsNullOrEmpty(node.displayName)) return node.displayName;
             if (!string.IsNullOrEmpty(node.name)) return node.name;
             return node.isHome ? "home" : "node";
+        }
+
+        /// <summary>
+        /// The vessel owning <paramref name="node"/>, recovered by
+        /// reference-comparing against every known vessel's own CommNet node:
+        /// stock <see cref="CommNode"/> has no vessel back-reference.
+        /// </summary>
+        private static Vessel? ResolveOwningVessel(CommNode node)
+        {
+            var vessels = FlightGlobals.Vessels;
+            if (vessels == null) return null;
+            foreach (var candidate in vessels)
+            {
+                var conn = candidate?.connection;
+                if (conn != null && ReferenceEquals(conn.Comm, node))
+                {
+                    return candidate;
+                }
+            }
+            return null;
         }
 
         private static CommsControlSource MapSource(Vessel.ControlLevel level) => level switch

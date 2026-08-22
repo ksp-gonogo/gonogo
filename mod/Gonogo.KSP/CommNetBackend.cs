@@ -240,22 +240,52 @@ namespace Gonogo.KSP
                 nodes.Add(new CommsNetworkNode
                 {
                     Id = id,
+                    DisplayName = NodeDisplayName(node),
                     Kind = node.isHome ? CommsHopKind.Home : CommsHopKind.Relay,
                 });
             }
         }
 
         /// <summary>
-        /// A node's readable identity. Ground stations used to collapse to the
-        /// single literal "home", which erased WHICH station a link ran to, so
-        /// a handoff between two stations looked like one station at a changed
-        /// range: see <see cref="CommsHop"/>. Home-ness now rides
-        /// <c>CommsHop.FromIsHome</c>/<c>ToIsHome</c> and
-        /// <c>CommsNetworkNode.Kind</c> instead of the name, so the name is
-        /// free to be the station's own. "home" survives only as the last
-        /// fallback for a station with no name at all.
+        /// A node's UNIQUE join key, the same id space
+        /// <see cref="CommsHop.From"/>/<see cref="CommsHop.To"/> use. A vessel
+        /// node resolves to its owning vessel's persistent id: two craft can
+        /// share a player-chosen name, which made the display name unsafe as a
+        /// graph or roster key and silently merged them into one node. A ground
+        /// station keeps its own name, which is already unique per station and
+        /// is what stops a handoff between two stations reading as one station
+        /// at a changed range (see <see cref="CommsHop"/>); home-ness rides
+        /// <c>FromIsHome</c>/<c>ToIsHome</c> and
+        /// <see cref="CommsNetworkNode.Kind"/> rather than the id, so no
+        /// consumer needs the literal "home". That literal survives only as the
+        /// last fallback for a station with no name at all.
+        /// <see cref="NodeDisplayName"/> carries the label.
         /// </summary>
         private static string NodeId(CommNode node)
+        {
+            if (node == null)
+            {
+                return "unknown";
+            }
+            var vessel = ResolveOwningVessel(node);
+            if (vessel != null)
+            {
+                return vessel.id.ToString();
+            }
+            if (!string.IsNullOrEmpty(node.displayName))
+            {
+                return node.displayName;
+            }
+            if (!string.IsNullOrEmpty(node.name))
+            {
+                return node.name;
+            }
+            return node.isHome ? "home" : "node";
+        }
+
+        /// <summary>The human label for <paramref name="node"/>, independent of
+        /// its (now unique) <see cref="NodeId"/>.</summary>
+        private static string NodeDisplayName(CommNode node)
         {
             if (node == null)
             {
@@ -270,6 +300,32 @@ namespace Gonogo.KSP
                 return node.name;
             }
             return node.isHome ? "home" : "node";
+        }
+
+        /// <summary>
+        /// The <see cref="Vessel"/> that owns <paramref name="node"/>, found by
+        /// reference-comparing it against every known vessel's own CommNet node
+        /// (<c>Vessel.connection.Comm</c>): stock <see cref="CommNode"/> carries
+        /// no back-reference to its owning vessel, so this is the only way to
+        /// recover it. Null for a non-vessel node (a ground station) or one
+        /// whose owning vessel has no live connection this tick.
+        /// </summary>
+        private static Vessel? ResolveOwningVessel(CommNode node)
+        {
+            var vessels = FlightGlobals.Vessels;
+            if (vessels == null)
+            {
+                return null;
+            }
+            foreach (var candidate in vessels)
+            {
+                var conn = candidate?.connection;
+                if (conn != null && ReferenceEquals(conn.Comm, node))
+                {
+                    return candidate;
+                }
+            }
+            return null;
         }
 
         private static CommsControlSource MapControlSource(Vessel.ControlLevel level)

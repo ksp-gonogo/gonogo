@@ -179,7 +179,16 @@ public class CommsPath
     public PayloadMeta Meta { get; set; } = new();
 }
 
-/// <summary>One node in the <see cref="CommsNetwork"/> relay graph.</summary>
+/// <summary>
+/// One node in the <see cref="CommsNetwork"/> relay graph. <see cref="Id"/> is
+/// a UNIQUE, stable join key in the same id space
+/// <see cref="CommsHop.From"/>/<see cref="CommsHop.To"/> use: a vessel's
+/// persistent id for a craft, the station's own name for a ground station.
+/// Never a vessel's display name, which two craft can share, which made it
+/// unsafe as a graph or roster key. <see cref="DisplayName"/> carries the
+/// label, and <see cref="Kind"/> carries home-ness, so nothing has to read
+/// meaning out of the id.
+/// </summary>
 [SitrepContract]
 #if SITREP_CODEGEN
 [TsInterface]
@@ -188,6 +197,8 @@ public class CommsNetworkNode
 {
     [SitrepUnit(Units.Id)]
     public string Id { get; set; } = "";
+    [SitrepUnit(Units.Text)]
+    public string DisplayName { get; set; } = "";
     [SitrepUnit(Units.Enumeration)]
     public CommsHopKind Kind { get; set; }
 }

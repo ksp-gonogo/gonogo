@@ -148,8 +148,8 @@ namespace Sitrep.Core.Tests
             {
                 Nodes = new List<CommsNetworkNode>
                 {
-                    new CommsNetworkNode { Id = "ksc", Kind = CommsHopKind.Home },
-                    new CommsNetworkNode { Id = "vessel", Kind = CommsHopKind.Vessel },
+                    new CommsNetworkNode { Id = "ksc", DisplayName = "KSC", Kind = CommsHopKind.Home },
+                    new CommsNetworkNode { Id = "vessel", DisplayName = "Vessel", Kind = CommsHopKind.Vessel },
                 },
                 Edges = new List<CommsNetworkEdge>
                 {
@@ -160,8 +160,37 @@ namespace Sitrep.Core.Tests
 
             Assert.Equal(2, el.GetProperty("nodes").GetArrayLength());
             Assert.Equal("ksc", el.GetProperty("nodes")[0].GetProperty("id").GetString());
+            Assert.Equal("KSC", el.GetProperty("nodes")[0].GetProperty("displayName").GetString());
             Assert.Equal(1, el.GetProperty("edges").GetArrayLength());
             Assert.True(el.GetProperty("edges")[0].GetProperty("active").GetBoolean());
+        }
+
+        [Fact]
+        public void NetworkNodeIdsStayDistinctWhenDisplayNamesCollide()
+        {
+            // The uniqueness this type exists to guarantee: two vessels can
+            // share a player-chosen display name, but Id (the graph and roster
+            // join key CommsHop.From/To also use) must never collide on that.
+            // The wire carries both independently, and the codec keeps each node
+            // as its own array element rather than de-duplicating on the
+            // now-shared name.
+            var el = Write(new CommsNetwork
+            {
+                Nodes = new List<CommsNetworkNode>
+                {
+                    new CommsNetworkNode { Id = "11111111-2222-3333-4444-555555555555", DisplayName = "Relay Sat", Kind = CommsHopKind.Vessel },
+                    new CommsNetworkNode { Id = "66666666-7777-8888-9999-000000000000", DisplayName = "Relay Sat", Kind = CommsHopKind.Vessel },
+                },
+                Edges = new List<CommsNetworkEdge>(),
+                Meta = new PayloadMeta(),
+            });
+
+            var nodes = el.GetProperty("nodes");
+            Assert.Equal(2, nodes.GetArrayLength());
+            Assert.Equal("11111111-2222-3333-4444-555555555555", nodes[0].GetProperty("id").GetString());
+            Assert.Equal("66666666-7777-8888-9999-000000000000", nodes[1].GetProperty("id").GetString());
+            Assert.Equal("Relay Sat", nodes[0].GetProperty("displayName").GetString());
+            Assert.Equal("Relay Sat", nodes[1].GetProperty("displayName").GetString());
         }
 
         [Fact]

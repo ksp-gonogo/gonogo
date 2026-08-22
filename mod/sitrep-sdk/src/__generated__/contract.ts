@@ -241,6 +241,7 @@ export interface CommsPath
 export interface CommsNetworkNode
 {
 	id: string;
+	displayName: string;
 	kind: CommsHopKind;
 }
 export interface CommsNetworkEdge

@@ -1145,7 +1145,29 @@ namespace Sitrep.Contract
         /// stated reason beyond those two. The flag is true on exactly one
         /// body, and a client with no flagged body omits the home edge rather
         /// than fabricating one at an index.</para>
+        ///
+        /// <para><b>Bumped 23 -&gt; 24: a comms.network node id is unique.</b>
+        /// A new <see cref="CommsNetworkNode.DisplayName"/> carries the label a
+        /// node used to carry in its <see cref="CommsNetworkNode.Id"/>.
+        /// Additive on the wire, but the MEANING of the existing <c>Id</c>
+        /// narrows: for a vessel node it is now that vessel's persistent id
+        /// rather than its display name.</para>
+        ///
+        /// <para>The name was never a key. Two craft can share a player-chosen
+        /// name, and a consumer keying a graph node or a roster row by it merged
+        /// them into one node and lost a link, silently and in the
+        /// everything-is-fine direction. Ground stations keep their own name as
+        /// the id: that name is already unique per station, and it is what stops
+        /// a handoff between two stations reading as one station at a changed
+        /// range. Home-ness rides <see cref="CommsNetworkNode.Kind"/> and
+        /// <see cref="CommsHop.FromIsHome"/>/<see cref="CommsHop.ToIsHome"/>, so
+        /// nothing has to read meaning out of an id.</para>
+        ///
+        /// <para>Stock <c>CommNode</c> carries no back-reference to its owning
+        /// vessel, so both comms backends recover it by reference-comparing
+        /// against every known vessel's own node. The same defect existed in
+        /// both and is fixed in both.</para>
         /// </remarks>
-        public const int Minor = 23;
+        public const int Minor = 24;
     }
 }

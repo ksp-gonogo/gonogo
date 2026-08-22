@@ -276,6 +276,7 @@ export const GENERATED_TYPE_UNITS: Readonly<Record<string, UnitsByField>> = {
     b: "id",
   },
   "CommsNetworkNode": {
+    displayName: "text",
     id: "id",
     kind: "enum",
   },
