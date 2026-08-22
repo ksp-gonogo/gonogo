@@ -1,24 +1,24 @@
 {
   "_meta": {
     "scenario": "kerbin-reentry",
-    "notes": "Re-entry over the equator with predicted impact downrange."
+    "notes": "Re-entry through 28 km, descending at 210 m/s on an inclination-6 track whose periapsis is 261 km below the surface. Impact is 87 s downrange to the east."
   },
   "v.body": "Kerbin",
   "v.lat": -2.5,
   "v.long": -45.2,
   "v.altitude": 28000,
-  "n.pitch": -8,
-  "n.heading": 280,
-  "v.dynamicPressure": 4500,
-  "v.mach": 6.2,
+  "n.pitch": -6.6,
+  "n.heading": 96,
+  "v.dynamicPressure": 19544,
+  "v.mach": 6.395,
   "v.surfaceSpeed": 1820,
   "v.verticalSpeed": -210,
   "t.universalTime": 9876543,
   "o.encounterExists": false,
   "o.orbitPatches": [],
   "o.maneuverNodes": [],
-  "land.predictedLat": 0.4,
-  "land.predictedLon": -65.8,
+  "land.predictedLat": -3.9373,
+  "land.predictedLon": -30.2856,
   "a.physicsMode": "Atmospheric",
   "_stream": {
     "carriedChannels": [
@@ -36,35 +36,35 @@
         "channel": "vessel.orbit",
         "value": {
           "referenceBodyIndex": 1,
-          "sma": 700000,
-          "ecc": 0.1,
-          "inc": 0,
+          "sma": 487578.402,
+          "ecc": 0.30503003,
+          "inc": 6,
           "lan": 0,
-          "argPe": 0,
-          "meanAnomalyAtEpoch": 0,
+          "argPe": 10.563957,
+          "meanAnomalyAtEpoch": 3.577845994,
           "epoch": 9876543,
-          "mu": 3531600000000.0,
+          "mu": 3531600000000,
           "patches": [
             {
-              "sma": 700000,
-              "ecc": 0.1,
-              "inc": 0,
+              "sma": 487578.402,
+              "ecc": 0.30503003,
+              "inc": 6,
               "lan": 0,
-              "argPe": 0,
-              "meanAnomalyAtEpoch": 0,
+              "argPe": 10.563957,
+              "meanAnomalyAtEpoch": 3.577845994,
               "epoch": 9876543,
-              "period": 1958.13,
+              "period": 1138.311,
               "startUt": 9876543,
-              "endUt": 9878501.13,
+              "endUt": 9876629.75,
               "patchStartTransition": 0,
-              "patchEndTransition": 1,
-              "peA": 30000,
-              "apA": 170000,
-              "semiLatusRectum": 693000,
-              "semiMinorAxis": 696491.2,
+              "patchEndTransition": 5,
+              "peA": -261147.652,
+              "apA": 36304.455,
+              "semiLatusRectum": 442212.489,
+              "semiMinorAxis": 464341.748,
               "referenceBody": "Kerbin",
               "referenceBodyIndex": 1,
-              "mu": 3531600000000.0
+              "mu": 3531600000000
             }
           ],
           "horizon": {
@@ -85,11 +85,11 @@
           "altitudeTerrain": 28000,
           "verticalSpeed": -210,
           "surfaceSpeed": 1820,
-          "orbitalSpeed": 1820,
+          "orbitalSpeed": 2000.997,
           "gForce": 1,
-          "dynamicPressureKPa": 4500,
-          "mach": 6.2,
-          "atmDensity": 0
+          "dynamicPressureKPa": 19.544,
+          "mach": 6.395,
+          "atmDensity": 0.011801
         }
       },
       {
@@ -98,7 +98,7 @@
           "vesselId": "v1",
           "name": "Active Vessel",
           "vesselType": 0,
-          "situation": 1,
+          "situation": 5,
           "parentBodyIndex": 1,
           "launchUt": 0
         }

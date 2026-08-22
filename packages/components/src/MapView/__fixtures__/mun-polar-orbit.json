@@ -1,17 +1,17 @@
 {
   "_meta": {
     "scenario": "mun-polar-orbit",
-    "notes": "Polar orbit around Mun: useful for testing the equirectangular projection at high latitudes."
+    "notes": "Circular 35 km polar orbit around the Mun, crossing 65 degrees north northbound. The ground track crosses both poles, which is what exercises the equirectangular projection at high latitudes."
   },
   "v.body": "Mun",
-  "v.lat": 65.0,
-  "v.long": 30.0,
+  "v.lat": 65,
+  "v.long": 30,
   "v.altitude": 35000,
   "n.pitch": 0,
   "n.heading": 0,
   "v.dynamicPressure": 0,
   "v.mach": 0,
-  "v.surfaceSpeed": 632,
+  "v.surfaceSpeed": 526.502,
   "v.verticalSpeed": 0,
   "t.universalTime": 5555555,
   "o.encounterExists": false,
@@ -34,35 +34,35 @@
         "channel": "vessel.orbit",
         "value": {
           "referenceBodyIndex": 1,
-          "sma": 700000,
-          "ecc": 0.1,
-          "inc": 0,
+          "sma": 235000,
+          "ecc": 0,
+          "inc": 90,
           "lan": 0,
           "argPe": 0,
-          "meanAnomalyAtEpoch": 0,
+          "meanAnomalyAtEpoch": 1.134464014,
           "epoch": 5555555,
-          "mu": 3531600000000.0,
+          "mu": 65138398000,
           "patches": [
             {
-              "sma": 700000,
-              "ecc": 0.1,
-              "inc": 0,
+              "sma": 235000,
+              "ecc": 0,
+              "inc": 90,
               "lan": 0,
               "argPe": 0,
-              "meanAnomalyAtEpoch": 0,
+              "meanAnomalyAtEpoch": 1.134464014,
               "epoch": 5555555,
-              "period": 1958.13,
+              "period": 2804.55,
               "startUt": 5555555,
-              "endUt": 5557513.13,
+              "endUt": 5558359.55,
               "patchStartTransition": 0,
               "patchEndTransition": 1,
-              "peA": 30000,
-              "apA": 170000,
-              "semiLatusRectum": 693000,
-              "semiMinorAxis": 696491.2,
+              "peA": 35000,
+              "apA": 35000,
+              "semiLatusRectum": 235000,
+              "semiMinorAxis": 235000,
               "referenceBody": "Mun",
               "referenceBodyIndex": 1,
-              "mu": 3531600000000.0
+              "mu": 65138398000
             }
           ],
           "horizon": {
@@ -77,13 +77,13 @@
       {
         "channel": "vessel.flight",
         "value": {
-          "latitude": 65.0,
-          "longitude": 30.0,
+          "latitude": 65,
+          "longitude": 30,
           "altitudeAsl": 35000,
           "altitudeTerrain": 35000,
           "verticalSpeed": 0,
-          "surfaceSpeed": 632,
-          "orbitalSpeed": 632,
+          "surfaceSpeed": 526.502,
+          "orbitalSpeed": 526.483,
           "gForce": 1,
           "dynamicPressureKPa": 0,
           "mach": 0,
@@ -96,7 +96,7 @@
           "vesselId": "v1",
           "name": "Active Vessel",
           "vesselType": 0,
-          "situation": 1,
+          "situation": 3,
           "parentBodyIndex": 1,
           "launchUt": 0
         }
@@ -109,7 +109,7 @@
               "name": "Mun",
               "index": 1,
               "parentIndex": 0,
-              "radius": 600000,
+              "radius": 200000,
               "orbit": null
             }
           ]
