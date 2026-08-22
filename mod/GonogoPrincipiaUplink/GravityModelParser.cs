@@ -55,8 +55,29 @@ namespace GonogoPrincipiaUplink
         /// </summary>
         public const string BodyTreeModelId = "principia-body-tree";
 
-        private const string NameKey = "name";
-        private const string GravitationalParameterKey = "gravitational_parameter";
+        /// <summary>
+        /// The two keys a body-tree read has to write, so the reader cannot spell
+        /// them differently from the parse that consumes them. A config node's other
+        /// keys stay private: nothing of ours writes those.
+        /// </summary>
+        public const string NameKey = "name";
+
+        /// <summary>See <see cref="NameKey"/>.</summary>
+        public const string GravitationalParameterKey = "gravitational_parameter";
+
+        /// <summary>
+        /// The unit a gravitational parameter read out of the game must state, in the
+        /// exact spelling <see cref="GravitationalParameterUnits"/> recognises.
+        ///
+        /// <para>Here rather than at the read site, because the read site needs the
+        /// game to compile and so no test can check the two agree. A bare number is
+        /// REFUSED by the parse: the game states its GM in metres cubed and a reader
+        /// that omitted the unit would have the body dropped, every perturbation
+        /// would vanish, and the curve would look like a clean two-body conic with
+        /// nothing on it wrong in a way a diagram can show.</para>
+        /// </summary>
+        public const string MetresCubedPerSecondSquared = "m^3/s^2";
+
         private const string ReferenceRadiusKey = "reference_radius";
         private const string J2Key = "j2";
 
@@ -157,7 +178,7 @@ namespace GonogoPrincipiaUplink
             new Dictionary<string, double>(StringComparer.Ordinal)
             {
                 { "km^3/s^2", 1e9 },
-                { "m^3/s^2", 1.0 },
+                { MetresCubedPerSecondSquared, 1.0 },
             };
 
         /// <summary>Lengths, on the same terms. The shipped model writes <c>km</c>.</summary>

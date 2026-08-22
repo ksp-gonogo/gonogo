@@ -186,5 +186,133 @@ namespace GonogoPrincipiaUplink.Tests
             Assert.Null(model.Find(null));
             Assert.Null(model.Find(""));
         }
+
+        /// <summary>
+        /// Kerbin as the game's own body table gives it: a name and a gravitational
+        /// parameter in metres cubed, with no reference radius and no zonal harmonic,
+        /// because the producer's per-body route has neither.
+        /// </summary>
+        private static GravityModelBlock StockKerbin() => Block(
+            "name", "Kerbin",
+            "gravitational_parameter", "3531600000000 m^3/s^2");
+
+        /// <summary>
+        /// The exact strings the body-tree reader writes are strings the parse
+        /// accepts.
+        ///
+        /// <para>The reader needs the game to compile and so is not in this project,
+        /// which is why the key names and the unit spelling are constants on the
+        /// parser and the reader uses them. Without this the two halves could differ
+        /// by one character, every body would be dropped for a missing key or an
+        /// unrecognised unit, and the arc would refuse with no force model on an
+        /// install that had one.</para>
+        /// </summary>
+        [Fact]
+        public void TheSpellingsTheReaderWritesAreTheSpellingsTheParseAccepts()
+        {
+            var asTheReaderWrites = Block(
+                GravityModelParser.NameKey, "Kerbin",
+                GravityModelParser.GravitationalParameterKey,
+                "3531600000000 " + GravityModelParser.MetresCubedPerSecondSquared);
+
+            var model = GravityModelParser.Parse(() => null, () => new[] { asTheReaderWrites });
+
+            Assert.NotNull(model);
+            Assert.Equal(3.5316e12, model!.Find("Kerbin")!.GravitationalParameter, 6);
+        }
+
+        [Fact]
+        public void TheConfiguredModelWinsAndTheBodyTreeIsNotEvenRead()
+        {
+            var walked = 0;
+
+            var model = GravityModelParser.Parse(
+                () => new[] { Earth() },
+                () =>
+                {
+                    walked++;
+                    return new[] { StockKerbin() };
+                });
+
+            Assert.Equal(GravityModelParser.ModelId, model!.ModelId);
+            Assert.NotNull(model.Find("Earth"));
+            // Reading the game's body tree costs a walk of every celestial, and it
+            // buys nothing when the producer's own config answered.
+            Assert.Equal(0, walked);
+        }
+
+        /// <summary>
+        /// With no config node, the game's own bodies become the model, because that
+        /// is what the producer itself integrates in that case.
+        ///
+        /// <para>This is the ordinary install rather than a corner: the producer
+        /// ships its gravity-model config guarded on the planet pack it belongs to,
+        /// so running it against the stock system leaves no such node anywhere. The
+        /// path used to end there, and the arc refused for the lifetime of the
+        /// slice.</para>
+        /// </summary>
+        [Fact]
+        public void WithNoConfiguredModelTheGamesOwnBodiesBecomeIt()
+        {
+            var model = GravityModelParser.Parse(() => null, () => new[] { StockKerbin() });
+
+            Assert.NotNull(model);
+            Assert.Equal(GravityModelParser.BodyTreeModelId, model!.ModelId);
+            Assert.Equal(3.5316e12, model.Find("Kerbin")!.GravitationalParameter, 6);
+        }
+
+        [Fact]
+        public void TheTwoProvenancesAreNeverGivenTheSameId()
+        {
+            // A reader that cannot tell a configured model from one assembled out of
+            // the game's bodies cannot tell which physics parameters a curve was
+            // integrated against.
+            Assert.NotEqual(GravityModelParser.ModelId, GravityModelParser.BodyTreeModelId);
+        }
+
+        [Fact]
+        public void ABodyTreeModelCarriesNoOblatenessTerm()
+        {
+            // The producer's per-body route has nowhere to read a reference radius or
+            // a zonal harmonic from and applies neither, so stating one here would
+            // describe a force the physics is not summing.
+            var kerbin = GravityModelParser
+                .Parse(() => null, () => new[] { StockKerbin() })!
+                .Find("Kerbin");
+
+            Assert.Null(kerbin!.ReferenceRadius);
+            Assert.Null(kerbin.J2);
+        }
+
+        [Fact]
+        public void AnEmptyConfigNodeFallsThroughRatherThanWinningWithNothingInIt()
+        {
+            // A node present but unusable is the same situation as no node: a model
+            // with no bodies integrates happily and produces a two-body curve under
+            // an n-body label.
+            var model = GravityModelParser.Parse(
+                () => new GravityModelBlock[0], () => new[] { StockKerbin() });
+
+            Assert.Equal(GravityModelParser.BodyTreeModelId, model!.ModelId);
+        }
+
+        [Fact]
+        public void NeitherSourceAnsweringIsStillNull()
+        {
+            Assert.Null(GravityModelParser.Parse(() => null, () => null));
+        }
+
+        [Fact]
+        public void AGmWithNoStatedUnitIsDroppedOnTheBodyTreePathToo()
+        {
+            // The game states a bare double and the reader has to attach the unit.
+            // One that forgot would publish a GM a billion times too small, every
+            // perturbation would vanish, and the curve would look like a clean conic.
+            var model = GravityModelParser.Parse(
+                () => null,
+                () => new[] { Block("name", "Kerbin", "gravitational_parameter", "3531600000000") });
+
+            Assert.Null(model);
+        }
     }
 }

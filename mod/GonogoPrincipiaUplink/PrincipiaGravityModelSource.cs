@@ -108,11 +108,6 @@ namespace GonogoPrincipiaUplink
             return blocks;
         }
 
-        /// <summary>The unit the game states a gravitational parameter in, spelled
-        /// the way the parser recognises it. The producer's own per-body fallback
-        /// writes the same unit against the same field.</summary>
-        internal const string GravitationalParameterUnit = " m^3/s^2";
-
         /// <summary>
         /// Every body the producer inserts, as the same string pairs a config node
         /// would have given: a name and a gravitational parameter, and nothing else.
@@ -160,11 +155,11 @@ namespace GonogoPrincipiaUplink
             {
                 into.Add(new GravityModelBlock(new Dictionary<string, string>(StringComparer.Ordinal)
                 {
-                    { "name", name },
+                    { GravityModelParser.NameKey, name },
                     {
-                        "gravitational_parameter",
+                        GravityModelParser.GravitationalParameterKey,
                         body.gravParameter.ToString("R", CultureInfo.InvariantCulture)
-                            + GravitationalParameterUnit
+                            + " " + GravityModelParser.MetresCubedPerSecondSquared
                     },
                 }));
             }
