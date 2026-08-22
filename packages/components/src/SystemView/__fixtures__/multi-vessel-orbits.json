@@ -1,0 +1,194 @@
+{
+  "_meta": {
+    "capturedAt": "2026-08-13",
+    "vessel": "Tester (Mk1 pod), plus four other roster vessels",
+    "body": "Kerbin",
+    "situation": "Task 3 render fixture: the built-in system-view-vessel-orbits contribution draws a faint orbit ring for every vessel on system.vessels, INCLUDING the active vessel; SystemView then suppresses the active vessel's own faint entry host-side (it matches vessel.identity.vesselId), since SystemDiagram already draws that vessel's dedicated bright ring below. The rendered result is a faint ring for every OTHER vessel around the active vessel's own bright ring, plus one grounded vessel with no orbit degrading to a faint dot at Kerbin.",
+    "notes": "Sibling of kerbin-orbit-comms-active.json: same Kerbol/Kerbin/Mun geometry (Minmus dropped here, on purpose: its 47 Mm orbit would dwarf the vessel orbits this fixture exists to show and compress them into an unreadable cluster at the auto-fit scale). 'Munar Transfer Stage' (elliptical, inclined), 'Comsat Relay-1' (circular, near Kerbin-synchronous altitude) and 'Debris XR-42' (Debris type, eccentric+inclined) all orbit Kerbin and render as faint orbit-path rings nested inside Mun's own ring, around the active vessel's own bright ring. 'Flag: Launch Pad' is a planted Flag on Kerbin with no orbit field at all: the contribution degrades it to a faint point at Kerbin's own centre rather than fabricating an orbit, deliberately overlapping the frame body's own marker (see vesselOrbitsContribution.ts's own doc comment on why 'at the body' is the only honest position a landed vessel has in this diagram). Deliberately unfiltered by vessel type (Debris/Flag included), matching the contribution's own documented divergence from FleetRoster's craft-only isRosterCraft filter."
+  },
+  "_stream": {
+    "carriedChannels": [
+      "vessel.orbit",
+      "vessel.identity",
+      "vessel.target",
+      "system.bodies",
+      "system.vessels"
+    ],
+    "pinnedUt": 0,
+    "emits": [
+      {
+        "channel": "system.bodies",
+        "value": {
+          "bodies": [
+            {
+              "index": 0,
+              "name": "Kerbol",
+              "parentIndex": null,
+              "radius": 261600000,
+              "gravParameter": 1.1723328e18,
+              "sphereOfInfluence": null,
+              "orbit": null
+            },
+            {
+              "index": 1,
+              "name": "Kerbin",
+              "parentIndex": 0,
+              "radius": 600000,
+              "gravParameter": 3.5316e12,
+              "sphereOfInfluence": 84159286,
+              "hasOcean": true,
+              "atmosphere": {
+                "depth": 70000,
+                "hasOxygen": true,
+                "seaLevelPressure": 101.325
+              },
+              "orbit": {
+                "sma": 13599840256,
+                "ecc": 0,
+                "inc": 0,
+                "lan": 0,
+                "argPe": 0,
+                "meanAnomalyAtEpoch": 3.14,
+                "epoch": 0
+              }
+            },
+            {
+              "index": 2,
+              "name": "Mun",
+              "parentIndex": 1,
+              "radius": 200000,
+              "gravParameter": 65138398000,
+              "sphereOfInfluence": 2429559,
+              "tidallyLocked": true,
+              "orbit": {
+                "sma": 12000000,
+                "ecc": 0,
+                "inc": 0,
+                "lan": 0,
+                "argPe": 0,
+                "meanAnomalyAtEpoch": 1.93228,
+                "epoch": 0
+              }
+            }
+          ]
+        }
+      },
+      {
+        "channel": "vessel.identity",
+        "value": {
+          "vesselId": "Tester",
+          "name": "Tester",
+          "vesselType": 0,
+          "situation": 3,
+          "parentBodyIndex": 1,
+          "launchUt": null
+        }
+      },
+      {
+        "channel": "vessel.orbit",
+        "value": {
+          "referenceBodyIndex": 1,
+          "sma": 700000,
+          "ecc": 0,
+          "inc": 0,
+          "lan": 0,
+          "argPe": 0,
+          "meanAnomalyAtEpoch": 0,
+          "epoch": 0,
+          "mu": 3.5316e12
+        },
+        "meta": { "quality": 1 }
+      },
+      {
+        "channel": "system.vessels",
+        "value": {
+          "vessels": [
+            {
+              "vesselId": "Tester",
+              "name": "Tester",
+              "vesselType": 0,
+              "situation": 3,
+              "bodyIndex": 1,
+              "crewCount": 1,
+              "crewCapacity": 1,
+              "commsConnected": true,
+              "commsControlSource": 2,
+              "orbit": {
+                "sma": 700000,
+                "ecc": 0,
+                "inc": 0,
+                "lan": 0,
+                "argPe": 0,
+                "meanAnomalyAtEpoch": 0,
+                "epoch": 0
+              }
+            },
+            {
+              "vesselId": "v-munar-transfer",
+              "name": "Munar Transfer Stage",
+              "vesselType": 0,
+              "situation": 4,
+              "bodyIndex": 1,
+              "crewCount": 0,
+              "crewCapacity": 0,
+              "commsConnected": true,
+              "commsControlSource": 1,
+              "orbit": {
+                "sma": 8000000,
+                "ecc": 0.3,
+                "inc": 15,
+                "lan": 60,
+                "argPe": 200,
+                "meanAnomalyAtEpoch": 0.5,
+                "epoch": 0
+              }
+            },
+            {
+              "vesselId": "v-comsat-relay-1",
+              "name": "Comsat Relay-1",
+              "vesselType": 6,
+              "situation": 3,
+              "bodyIndex": 1,
+              "crewCount": 0,
+              "crewCapacity": 0,
+              "commsConnected": true,
+              "commsControlSource": 2,
+              "orbit": {
+                "sma": 3468750,
+                "ecc": 0,
+                "inc": 0,
+                "lan": 0,
+                "argPe": 0,
+                "meanAnomalyAtEpoch": 2.1,
+                "epoch": 0
+              }
+            },
+            {
+              "vesselId": "v-debris-xr42",
+              "name": "Debris XR-42",
+              "vesselType": 9,
+              "situation": 3,
+              "bodyIndex": 1,
+              "orbit": {
+                "sma": 1200000,
+                "ecc": 0.1,
+                "inc": 45,
+                "lan": 300,
+                "argPe": 10,
+                "meanAnomalyAtEpoch": 4.2,
+                "epoch": 0
+              }
+            },
+            {
+              "vesselId": "v-flag-launchpad",
+              "name": "Flag: Launch Pad",
+              "vesselType": 8,
+              "situation": 0,
+              "bodyIndex": 1
+            }
+          ]
+        }
+      }
+    ]
+  }
+}

@@ -107,6 +107,15 @@ export interface SystemEntity {
   style?: SystemEntityStyle;
   meta?: SystemEntityMeta;
   /**
+   * `system.vessels`' `vesselId`, when this entity represents a specific
+   * vessel. Lets host-owned state match an entity by vessel identity without
+   * parsing a contribution-private `id` string: SystemView uses it to
+   * suppress the active/framed vessel's own entry, since `SystemDiagram`
+   * already draws that vessel's dedicated bright ring and a contributed
+   * faint one would sit on top of it.
+   */
+  vesselId?: string;
+  /**
    * Explicit stacking override. Omitted: the shape kind's entry in
    * `SYSTEM_ENTITY_DEFAULT_LAYER` applies. Entities within the same
    * effective layer keep their `entities` array order (ties broken by
@@ -117,7 +126,10 @@ export interface SystemEntity {
 
 declare module "@ksp-gonogo/core" {
   interface ContributionRegistry {
-    "system-view.entities": { entry: SystemEntity };
+    "system-view.entities": {
+      entry: SystemEntity;
+      topics: "system.vessels" | "system.bodies";
+    };
   }
 }
 

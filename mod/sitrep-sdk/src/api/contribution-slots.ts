@@ -128,6 +128,7 @@ export interface SystemEntity {
   shape: SystemEntityShape;
   style?: SystemEntityStyle;
   meta?: SystemEntityMeta;
+  vesselId?: string;
   zHint?: number;
 }
 
@@ -143,6 +144,7 @@ declare module "./types" {
     };
     "system-view.entities": {
       entry: SystemEntity;
+      topics: "system.vessels" | "system.bodies";
     };
   }
 }
