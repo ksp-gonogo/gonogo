@@ -71,6 +71,7 @@ export * from "./processorEvaluator";
 export * from "./processors";
 export * from "./propagation";
 export * from "./reckoners";
+export * from "./reference-frame";
 export * from "./replay-recorder";
 export * from "./replay-session";
 export * from "./replay-session-controller";

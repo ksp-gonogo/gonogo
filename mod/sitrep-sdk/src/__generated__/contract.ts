@@ -1163,7 +1163,9 @@ export enum TrajectoryFrameKind {
 	Unspecified = 0,
 	Perifocal = 1,
 	BodyCentredInertial = 2,
-	BodyCentredRotating = 3
+	BodyCentredRotating = 3,
+	BodyCentredParentDirection = 4,
+	RotatingPulsating = 5
 }
 export enum TrajectoryDerivation {
 	Unspecified = 0,

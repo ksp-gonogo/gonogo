@@ -106,7 +106,9 @@ export const GENERATED_TYPE_UNITS: Readonly<Record<string, UnitsByField>> = {
   },
   "PrincipiaReferenceFrame": {
     centreBody: "text",
+    primaryBodies: "text",
     primaryBody: "text",
+    secondaryBodies: "text",
     secondaryBody: "text",
     selector: "text",
     targetFrameSelected: "flag",

@@ -1,4 +1,5 @@
 using System.Collections;
+using System.Collections.Generic;
 
 namespace GonogoPrincipiaUplink
 {
@@ -57,6 +58,7 @@ namespace GonogoPrincipiaUplink
         private const string BodyNameMember = "bodyName";
         private const string BodyIndexMember = "flightGlobalsIndex";
         private const string ReferenceBodyMember = "referenceBody";
+        private const string OrbitingBodiesMember = "orbitingBodies";
         private const string VesselIdMember = "id";
         private const string VesselNameMember = "vesselName";
 
@@ -70,9 +72,15 @@ namespace GonogoPrincipiaUplink
         /// the pair of bodies, with the centre left unset.</summary>
         private const int BodyCentredNonRotating = 6000;
         private const int BodySurface = 6003;
+        private const int RotatingPulsating = 6004;
 
         /// <summary>The producer's "no body" in an index slot.</summary>
         private const int NoBody = -1;
+
+        /// <summary>How far down a body tree the set walk will go. The deepest real
+        /// chain is star, planet, moon, submoon, so this is well clear of it and
+        /// still bounds a cycle in a graph we do not own.</summary>
+        private const int MaxSystemDepth = 8;
 
         private readonly ReflectedMembers _m = new ReflectedMembers();
 
@@ -152,6 +160,12 @@ namespace GonogoPrincipiaUplink
         /// <para>The centred frames are named by that body alone. The three
         /// rotating kinds are named by it and its parent, in that order, which is
         /// the same pair the producer passes to its own format strings.</para>
+        ///
+        /// <para>A pulsating frame additionally turns about a pair of SETS, and
+        /// those are filled here too. Everything else on this class reads a value
+        /// the producer already computed; this one is the exception, because the
+        /// sets exist only inside the producer's own iterator and the method that
+        /// would return them is on the refusal list.</para>
         /// </summary>
         private void NameFrameBodies(object? centre, FrameObservation frame)
         {
@@ -168,6 +182,75 @@ namespace GonogoPrincipiaUplink
             frame.SecondaryBody = name;
             var parent = _m.Value(centre, ReferenceBodyMember);
             frame.PrimaryBody = parent == null ? null : BodyName(parent);
+            if (frame.Type != RotatingPulsating)
+            {
+                return;
+            }
+            CollectSystem(parent, centre, frame.PrimaryBodies);
+            CollectSystem(centre, null, frame.SecondaryBodies);
+            // A side that turned out to be one body is left as the singular field
+            // alone, so an empty list reads the same way everywhere: the head is
+            // the whole of it. An Earth-Moon frame's primary side really is Earth.
+            if (frame.PrimaryBodies.Count < 2)
+            {
+                frame.PrimaryBodies.Clear();
+            }
+            if (frame.SecondaryBodies.Count < 2)
+            {
+                frame.SecondaryBodies.Clear();
+            }
+        }
+
+        /// <summary>
+        /// The producer's own body-set rule, replicated: a body, then each of its
+        /// children's subtrees in the game's own order, stopping dead at
+        /// <paramref name="end"/>.
+        ///
+        /// <para>The stop is what makes this worth writing out. A Sun-Earth
+        /// pulsating frame's primary side is the Sun's system UP TO Earth, so it is
+        /// Sun, Mercury and Venus, and Mars and everything beyond are excluded.
+        /// That is order-dependent on a list the game owns, so replicating it
+        /// literally is the only way to get the producer's frame rather than a
+        /// plausible one.</para>
+        ///
+        /// <para>The stop is tested at each level rather than propagated out of the
+        /// recursion, which is the producer's own behaviour: its iterator yields a
+        /// break, and a break inside a nested iteration ends that iteration alone.
+        /// It reaches the same answer here because the body a frame stops at is
+        /// always a direct child of the body it starts from.</para>
+        ///
+        /// <para>Depth-bounded because the walk is over a third-party graph. A
+        /// moon listed as its own parent's child would otherwise hang the reading
+        /// thread, which in this Uplink is the game's main thread.</para>
+        /// </summary>
+        private void CollectSystem(object? centre, object? end, List<string> into)
+        {
+            CollectSystem(centre, end, into, 0);
+        }
+
+        private void CollectSystem(object? centre, object? end, List<string> into, int depth)
+        {
+            if (centre == null || depth > MaxSystemDepth)
+            {
+                return;
+            }
+            var name = BodyName(centre);
+            if (name != null)
+            {
+                into.Add(name);
+            }
+            if (_m.Value(centre, OrbitingBodiesMember) is not IEnumerable children)
+            {
+                return;
+            }
+            foreach (var child in children)
+            {
+                if (child == null || ReferenceEquals(child, end))
+                {
+                    return;
+                }
+                CollectSystem(child, end, into, depth + 1);
+            }
         }
 
         /// <summary>The bodies the operator pinned exempt, by name. A dictionary of
@@ -331,19 +414,45 @@ namespace GonogoPrincipiaUplink
         /// </summary>
         private int FirstIndex(object entry, string member)
         {
+            var all = AllIndices(entry, member);
+            return all.Count == 0 ? NoBody : all[0];
+        }
+
+        /// <summary>
+        /// Every index a frame descriptor's primary or secondary field holds, in the
+        /// order it holds them.
+        ///
+        /// <para>The array shape is not a formality: a pulsating frame's side is a
+        /// SET, and the entries past the first are the rest of the mass that decides
+        /// where the frame's origin sits. Taking the head is what the reading did
+        /// before, and it lost them without saying so.</para>
+        ///
+        /// <para>A non-integer entry ends the read rather than being skipped. A
+        /// field that suddenly holds something else has changed shape, and half a
+        /// set published as a whole one is the failure this list exists to
+        /// remove.</para>
+        /// </summary>
+        private List<int> AllIndices(object entry, string member)
+        {
+            var found = new List<int>();
             var value = _m.Value(entry, member);
             if (value is int scalar)
             {
-                return scalar;
+                found.Add(scalar);
+                return found;
             }
             if (value is IEnumerable items)
             {
                 foreach (var item in items)
                 {
-                    return item is int index ? index : NoBody;
+                    if (item is not int index)
+                    {
+                        break;
+                    }
+                    found.Add(index);
                 }
             }
-            return NoBody;
+            return found;
         }
 
         /// <summary>
@@ -365,11 +474,50 @@ namespace GonogoPrincipiaUplink
                 frame.CentreBody = centre == null ? null : celestials.NameOf(centre.Value);
                 return frame;
             }
-            var primary = FirstIndex(descriptor, FramePrimaryIndexMember);
-            var secondary = FirstIndex(descriptor, FrameSecondaryIndexMember);
-            frame.PrimaryBody = primary == NoBody ? null : celestials.NameOf(primary);
-            frame.SecondaryBody = secondary == NoBody ? null : celestials.NameOf(secondary);
+            NameSide(
+                AllIndices(descriptor, FramePrimaryIndexMember),
+                celestials,
+                frame.PrimaryBodies);
+            NameSide(
+                AllIndices(descriptor, FrameSecondaryIndexMember),
+                celestials,
+                frame.SecondaryBodies);
+            frame.PrimaryBody = frame.PrimaryBodies.Count == 0 ? null : frame.PrimaryBodies[0];
+            frame.SecondaryBody =
+                frame.SecondaryBodies.Count == 0 ? null : frame.SecondaryBodies[0];
+            if (frame.PrimaryBodies.Count < 2)
+            {
+                frame.PrimaryBodies.Clear();
+            }
+            if (frame.SecondaryBodies.Count < 2)
+            {
+                frame.SecondaryBodies.Clear();
+            }
             return frame;
+        }
+
+        /// <summary>
+        /// One side of a frame's pair, named body by body.
+        ///
+        /// <para>The "no body" index is dropped rather than named, so an empty slot
+        /// contributes nothing instead of contributing a null the reader has to
+        /// step over.</para>
+        /// </summary>
+        private static void NameSide(
+            List<int> indices, ICelestialNames celestials, List<string> into)
+        {
+            foreach (var index in indices)
+            {
+                if (index == NoBody)
+                {
+                    continue;
+                }
+                var name = celestials.NameOf(index);
+                if (name != null)
+                {
+                    into.Add(name);
+                }
+            }
         }
 
         /// <summary>

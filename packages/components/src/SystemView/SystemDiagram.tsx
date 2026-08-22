@@ -1,5 +1,8 @@
 import { getBody, type OrbitPatch } from "@ksp-gonogo/core";
-import type { OrbitTrajectory } from "@ksp-gonogo/sitrep-client";
+import {
+  type OrbitTrajectory,
+  TrajectoryFrameKindLike,
+} from "@ksp-gonogo/sitrep-client";
 import { value } from "@ksp-gonogo/sitrep-sdk";
 import { NULL_DISPLAY, TextButton, writeQuantity } from "@ksp-gonogo/ui-kit";
 import {
@@ -714,15 +717,27 @@ function VesselOrbitPath({
     vessel.argPe,
     plotScale,
   );
+  // The rotation below takes points from the orbit's own plane into the
+  // diagram's. Points that are already in some other frame have been through
+  // their own transform and applying it as well would turn the curve by an
+  // angle that means nothing: the arc says which frame it is in, and this
+  // honours it rather than assuming the one this widget used to be handed.
+  const inOrbitPlane =
+    trajectory.shape !== "arc" ||
+    trajectory.frame.kind === TrajectoryFrameKindLike.Perifocal;
   // Screen-constant stroke + dashes (see the child-orbit ellipse note):
   // user-unit line metrics would balloon with the viewBox at SOI zoom.
   const strokeW = ACTIVE_VESSEL_ORBIT_STROKE_WIDTH / zoom;
   const dashes = `${4 / zoom} ${3 / zoom}`;
   return (
-    <g transform={`rotate(${ring.rotationDeg})`} pointerEvents="none">
+    <g
+      transform={inOrbitPlane ? `rotate(${ring.rotationDeg})` : undefined}
+      pointerEvents="none"
+    >
       {trajectory.shape === "arc" ? (
         <path
           data-vessel-trajectory="arc"
+          data-trajectory-frame={trajectory.frame.kind}
           d={perifocalPath(trajectory.points, plotScale)}
           fill="none"
           stroke={`url(#${gradId})`}

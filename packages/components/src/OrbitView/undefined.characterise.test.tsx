@@ -131,9 +131,11 @@ describe("OrbitView: a partial payload, the orbit without its body", () => {
     // `parentBodyName` needs `vessel.identity` + `system.bodies`, neither
     // emitted here. The name, the body colour and the rotation marker all
     // drop out silently; the only visible trace is a caption that isn't
-    // there: the panel title and the diagram's own Ap/Pe markers are all the
-    // text this render carries.
-    expect(visibleText(container)).toBe("ORBIT VIEWApPe");
+    // there. The frame caption still speaks, because which frame the curve
+    // is in does not depend on knowing the body's name.
+    expect(visibleText(container)).toBe(
+      "ORBIT VIEWDrawn in the orbit's own planeApPe",
+    );
   });
 
   it("reads a real orbit as 'Sub-orbital' when the apsis ALTITUDES are absent", async () => {

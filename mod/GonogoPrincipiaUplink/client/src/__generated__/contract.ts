@@ -40,6 +40,8 @@ export interface PrincipiaReferenceFrame
 	centreBody?: string;
 	primaryBody?: string;
 	secondaryBody?: string;
+	primaryBodies?: string[];
+	secondaryBodies?: string[];
 	targetFrameSelected?: boolean;
 	targetVesselId?: string;
 	targetVesselName?: string;

@@ -72,7 +72,9 @@
     },
     "PrincipiaReferenceFrame": {
       "centreBody": "text",
+      "primaryBodies": "text",
       "primaryBody": "text",
+      "secondaryBodies": "text",
       "secondaryBody": "text",
       "selector": "text",
       "targetFrameSelected": "flag",

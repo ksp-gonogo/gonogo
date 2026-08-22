@@ -592,6 +592,7 @@ namespace GonogoPrincipiaUplink.Tests
             bodyName = name;
             flightGlobalsIndex = index;
             Parent = parent;
+            parent?.orbitingBodies.Add(this);
         }
 
         private FakeCelestial? Parent { get; }
@@ -605,6 +606,12 @@ namespace GonogoPrincipiaUplink.Tests
         /// that assumed null for the Sun would be reading against a shape that does
         /// not occur.</summary>
         public FakeCelestial referenceBody => Parent ?? this;
+
+        /// <summary>The children, in the order they were constructed, because the
+        /// game's own list is ordered and the producer's set builder stops partway
+        /// along it. A double that sorted them would hide the only thing about that
+        /// rule worth testing.</summary>
+        public readonly List<FakeCelestial> orbitingBodies = new List<FakeCelestial>();
 #pragma warning restore IDE1006
     }
 

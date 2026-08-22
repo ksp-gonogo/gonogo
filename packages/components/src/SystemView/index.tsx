@@ -10,13 +10,17 @@ import {
   useTelemetry,
 } from "@ksp-gonogo/core";
 import {
+  CELESTIAL_FACTS,
+  type CelestialFacts,
   canPropagate,
   type OrbitElements,
   type OrbitTrajectory,
+  type OrbitTrajectoryInput,
   solveAnomalies,
   useFleetVesselSilence,
   useLatestValue,
   useOrbitTrajectory,
+  useProcessor,
   useUtNow,
   useViewUt,
 } from "@ksp-gonogo/sitrep-client";
@@ -41,6 +45,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 // module-scoped store (no augment-only state), safe to read directly.
 import { useFleetCommsToggles } from "../FleetComms/toggles";
 import { quantiseUt } from "../MapView/predictionThrottle";
+import { TrajectoryFrameCaption } from "../shared/trajectoryFrame";
 import { TrajectoryWithheldNote } from "../shared/trajectoryWithheld";
 import { AlmanacPanel } from "./AlmanacPanel";
 import {
@@ -82,6 +87,64 @@ interface SystemViewConfig {
    * name pins the frame regardless of vessel state.
    */
   frame?: "auto" | "root" | string;
+  /**
+   * Which reference frame the vessel's CURVE is drawn in, which is a separate
+   * choice from `frame`: that one says which body sits in the middle of the
+   * diagram, this one says what the axes do.
+   *
+   * `orbit-plane` is the default and is what this widget always drew: the
+   * craft's own orbital plane, where a closed orbit is an ellipse.
+   * `parent-direction` turns with the frame body and its parent, which is what
+   * makes a transfer window legible and which turns that same closed orbit into
+   * a rosette. Absent means `orbit-plane`.
+   */
+  readFrame?: SystemViewReadFrame;
+}
+
+/**
+ * The frames this widget offers for the curve.
+ *
+ * Two, where the arithmetic builds three. The rotating-pulsating frame is
+ * deliberately absent: its origin is the pair's mass centre and its coordinates
+ * are multiples of their separation, so a diagram centred on one body and
+ * scaled in metres would put the curve an orbit's width off the picture and
+ * shrink it to a dot. Offering it here would draw something wrong rather than
+ * something new. The diagram that wants it is the one that draws Lagrange
+ * points, and it has to be centred and scaled for it.
+ */
+const SYSTEM_VIEW_READ_FRAMES = ["orbit-plane", "parent-direction"] as const;
+
+type SystemViewReadFrame = (typeof SYSTEM_VIEW_READ_FRAMES)[number];
+
+/** What each option is called where an operator meets it. No frame vocabulary: an operator meets a picture, not a taxonomy. */
+const READ_FRAME_LABELS: Readonly<Record<SystemViewReadFrame, string>> = {
+  "orbit-plane": "The orbit's own plane (an ellipse stays an ellipse)",
+  "parent-direction": "Hold the parent still (transfer windows)",
+};
+
+/**
+ * The widget's frame option turned into a frame the arithmetic can build, or
+ * nothing when the curve stays in its own plane.
+ *
+ * The body is the one the DIAGRAM is centred on, which is what makes the
+ * rotating options mean what an operator expects: the picture keeps its middle
+ * and only the axes change. A frame body the catalogue has not sent yet, or the
+ * root star, yields no frame here rather than a refusal downstream, because
+ * "the diagram is still loading" and "that frame cannot exist" are different
+ * things to put on screen.
+ */
+function useSystemViewReadFrame(
+  option: SystemViewReadFrame | undefined,
+  frameBodyName: string | null,
+  facts: CelestialFacts | undefined,
+): { readFrame: OrbitTrajectoryInput["readFrame"] } | undefined {
+  return useMemo(() => {
+    if (option === undefined || option === "orbit-plane") return undefined;
+    if (facts === undefined || frameBodyName === null) return undefined;
+    const bodyIndex = facts.indexByName[frameBodyName];
+    if (bodyIndex === undefined) return undefined;
+    return { readFrame: { choice: { kind: option, bodyIndex }, facts } };
+  }, [option, frameBodyName, facts]);
 }
 
 // ── Augment slots (Uplink architecture) ─────────────────────────────────────────
@@ -318,6 +381,9 @@ function SystemViewComponent({
 }: Readonly<ComponentProps<SystemViewConfig>>) {
   const frameSetting = config?.frame ?? "auto";
   const bodies = useCelestialBodies();
+  // The same catalogue the list above comes from, kept whole because a read
+  // frame needs the index lookups and the parent links, not just the bodies.
+  const facts = useProcessor(CELESTIAL_FACTS);
   // Streamed Topics: raw `vessel.*` records read straight off the Uplink
   // store via the canonical `useTelemetry(TopicId)` hook: no legacy
   // `DataSource` fallback. The scalars the widget used to read off
@@ -625,12 +691,28 @@ function SystemViewComponent({
       ? encounter.transitionUt.magnitude
       : null;
 
+  const parentName = resolveFrame(bodies, frameSetting, vesselBody);
+
+  // The frame the operator asked the CURVE to be drawn in, which is a separate
+  // choice from which body the diagram is centred on. A read frame is
+  // arithmetic on bodies we already hold: it changes nothing in the game, so
+  // this screen picking one cannot move what any other screen or the player
+  // sees, and no arbitration is needed.
+  const readFrame = useSystemViewReadFrame(
+    config?.readFrame,
+    parentName,
+    facts,
+  );
+
   // What the vessel's trajectory IS, asked once and handed to the diagram,
   // which draws whichever answer arrives. This widget held TWO independent
   // conic implementations of it, the ellipse the diagram draws from
   // `sma`/`ecc` and the `OrbitPatch` fabricated below, and neither asked
   // whether a conic was the right renderer at all.
-  const vesselTrajectory: OrbitTrajectory | null = useOrbitTrajectory(orbit);
+  const vesselTrajectory: OrbitTrajectory | null = useOrbitTrajectory(
+    orbit,
+    readFrame,
+  );
   const trajectoryWithheld =
     vesselTrajectory !== null && vesselTrajectory.shape === "withheld"
       ? vesselTrajectory
@@ -651,8 +733,6 @@ function SystemViewComponent({
           trueAnomaly: derived?.trueAnomaly ?? 0,
         }
       : null;
-
-  const parentName = resolveFrame(bodies, frameSetting, vesselBody);
 
   // Predicted trajectory input for the diagram. Throttle `ut` into 1s buckets
   // (same as MapView) so the patch projection only re-runs ~1/sec, not on
@@ -943,6 +1023,13 @@ function SystemViewComponent({
       {trajectoryWithheld && (
         <TrajectoryWithheldNote withheld={trajectoryWithheld} compact />
       )}
+      {/* The vessel's curve carries its own frame, which is not the same fact
+          as the "Frame:" caption above: that one is which body the diagram is
+          centred on, and this one is which frame the path was computed in. */}
+      <TrajectoryFrameCaption
+        trajectory={vesselTrajectory}
+        centreBodyIndex={orbit?.referenceBodyIndex}
+      />
       {showDiagram ? (
         <FramedDisplay style={DIAGRAM_FRAME}>
           <div ref={wrapRef} style={DIAGRAM_WRAP}>
@@ -1054,8 +1141,14 @@ function SystemViewConfigComponent({
 }: Readonly<ConfigComponentProps<SystemViewConfig>>) {
   const bodies = useCelestialBodies();
   const [frame, setFrame] = useState(config?.frame ?? "auto");
+  const [readFrame, setReadFrame] = useState<SystemViewReadFrame>(
+    config?.readFrame ?? "orbit-plane",
+  );
 
-  const candidate = useMemo<SystemViewConfig>(() => ({ frame }), [frame]);
+  const candidate = useMemo<SystemViewConfig>(
+    () => ({ frame, readFrame }),
+    [frame, readFrame],
+  );
 
   useModalSaveBar({
     onSave: () => onSave(candidate),
@@ -1086,6 +1179,26 @@ function SystemViewConfigComponent({
           "Auto" follows the vessel's current body: Kerbin-orbit shows
           Mun/Minmus, Mun-orbit shows Mun. "Root parent" walks up to the star so
           you see the whole system. Pick a specific body to pin the frame.
+        </FieldHint>
+      </Field>
+      <Field>
+        <FieldLabel htmlFor="system-read-frame">Draw the path in</FieldLabel>
+        <Select
+          id="system-read-frame"
+          value={readFrame}
+          onChange={(e) => setReadFrame(e.target.value as SystemViewReadFrame)}
+        >
+          {SYSTEM_VIEW_READ_FRAMES.map((option) => (
+            <option key={option} value={option}>
+              {READ_FRAME_LABELS[option]}
+            </option>
+          ))}
+        </Select>
+        <FieldHint>
+          This changes the path only, not which body is in the middle. Holding
+          the parent still is how a transfer window becomes a shape you can see:
+          the orbit stops looking closed, because it is not. The panel says
+          which one you are looking at.
         </FieldHint>
       </Field>
     </ConfigForm>

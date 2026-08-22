@@ -24,6 +24,7 @@ import {
 import type { CSSProperties, ReactNode } from "react";
 import { useEffect, useRef, useState } from "react";
 import { OrbitDiagram } from "../shared/OrbitDiagram";
+import { TrajectoryFrameCaption } from "../shared/trajectoryFrame";
 import { TrajectoryWithheldNote } from "../shared/trajectoryWithheld";
 import { useIsOrbiting } from "../shared/useIsOrbiting";
 
@@ -185,6 +186,13 @@ function CurrentOrbitComponent({
           {refBody}
         </span>
       )}
+      {/* Which frame the curve below is drawn in. The same points are a
+          different path in every frame, so the drawing is only readable
+          alongside its own frame. */}
+      <TrajectoryFrameCaption
+        trajectory={trajectory}
+        centreBodyIndex={orbit?.referenceBodyIndex}
+      />
       {/* A plain div (not a Stack) so the ResizeObserver ref attaches to the
           real measured element: ui-kit's layout primitives don't forward
           refs, and this is the one node in the widget that genuinely needs

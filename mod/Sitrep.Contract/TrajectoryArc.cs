@@ -171,6 +171,24 @@ public enum TrajectoryFrameKind
     /// frame by construction.
     /// </summary>
     BodyCentredRotating = 3,
+
+    /// <summary>
+    /// Centred on a body, with one axis held on the bearing to its parent. The
+    /// frame a transfer window is legible in, because the parent stays put.
+    /// </summary>
+    BodyCentredParentDirection = 4,
+
+    /// <summary>
+    /// Two bodies held at fixed coordinates, which costs the length unit: a
+    /// coordinate here is a multiple of the pair's separation, not a distance.
+    /// The Lagrange points are fixed locations in this frame and in no other,
+    /// which is the whole reason to draw in it.
+    ///
+    /// <para>Always accompanied by <see cref="TrajectoryFrameRef.LengthsPulsate"/>
+    /// set, so a reader that does not know this member still knows not to quote a
+    /// number from it as a distance.</para>
+    /// </summary>
+    RotatingPulsating = 5,
 }
 
 /// <summary>

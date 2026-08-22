@@ -30,14 +30,25 @@ import {
  * `null` means the question could not be put: no elements yet, or no clock. It
  * is NOT a refusal, which arrives as a `withheld` trajectory carrying its
  * reason, and a caller must not render the two the same way.
+ *
+ * `readFrame` is where a widget says which frame it wants the curve in. It is
+ * per-widget and needs no arbitration with any other widget, because a read
+ * frame is arithmetic and changes nothing in the game. Omitting it leaves the
+ * curve in the frame it was computed in, and whichever way that goes the answer
+ * carries `frame`, which is what the widget puts on screen beside the curve.
  */
 export function useOrbitTrajectory(
   orbit: OrbitTrajectoryInput["orbit"] | undefined,
-  samples?: number,
+  options?: Pick<OrbitTrajectoryInput, "samples" | "readFrame">,
 ): OrbitTrajectory | null {
   const clock = useViewClockOptional();
   const viewUt = clock?.viewUt();
   if (orbit === undefined) return null;
   if (viewUt === undefined || !Number.isFinite(viewUt)) return null;
-  return orbitTrajectory({ orbit, viewUt, samples });
+  return orbitTrajectory({
+    orbit,
+    viewUt,
+    samples: options?.samples,
+    readFrame: options?.readFrame,
+  });
 }

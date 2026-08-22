@@ -110,9 +110,18 @@ namespace GonogoPrincipiaUplink
                     ["centreBody"] = frame.CentreBody,
                     ["primaryBody"] = frame.PrimaryBody,
                     ["secondaryBody"] = frame.SecondaryBody,
+                    ["primaryBodies"] = Side(frame.PrimaryBodies),
+                    ["secondaryBodies"] = Side(frame.SecondaryBodies),
                     ["targetFrameSelected"] = frame.TargetFrameSelected,
                     ["targetVesselId"] = frame.TargetVesselId,
                     ["targetVesselName"] = frame.TargetVesselName,
                 };
+
+        /// <summary>One side's bodies, or null when the side is the single body the
+        /// singular field already carries. Null rather than an empty array so a
+        /// reader that finds a list knows it is being told something the pair
+        /// cannot say.</summary>
+        private static string[]? Side(List<string> bodies) =>
+            bodies.Count == 0 ? null : bodies.ToArray();
     }
 }
