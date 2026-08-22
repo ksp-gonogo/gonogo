@@ -65,33 +65,23 @@ interface DistanceToTargetConfig {
   cameraFlightId?: number | null;
 }
 
-// ── Augment slots (Uplink architecture) ─────────────────────────────────────
-//
-// This widget owns three slots (`augment-slot-map.md`, DistanceToTarget row).
-// Two are OVERLAY slots on the docking HUD and so PASS slot-props, an
-// overlay augment must draw in the HUD's own reticle space, so it receives
-// the parent's coordinate frame:
-//
-//   • `distance-to-target.camera` : a video backdrop behind the reticle/HUD.
-//     FILLED: a camera Uplink's augment now draws the close-range docking
-//     view here (not a standalone CameraFeed instance). The built-in
-//     `HudCamera` backdrop this slot once carried has been REMOVED along with
-//     it: it hard-wired one specific camera mod into the core widget, which
-//     is precisely what the slot exists to avoid. This widget no longer knows
-//     what a camera is: it decides WHETHER a backdrop should show
-//     (`hudMode`/viewport size) and passes its reticle frame down; the augment
-//     decides WHICH camera and renders it. An install with no camera Uplink
-//     composes the HUD with no video layer.
-//   • `distance-to-target.overlay`: alignment markers layered on top of the
-//     crosshair/reticle. A precision-docking / laser-rangefinder Uplink draws
-//     into the reticle box using the passed context. Composable by priority
-//     so several rangefinder/marker augments coexist.
-
 /**
- * Coordinate/context the docking-HUD overlay slots pass down so an augment
- * can render in the HUD's own reticle space. Shared by both the camera
- * backdrop (`distance-to-target.camera`) and the alignment-marker overlay
- * (`distance-to-target.overlay`).
+ * The coordinate frame the docking-HUD overlay slots pass down, so an augment
+ * can render in the HUD's own reticle space. This widget owns two such slots,
+ * and both share this context.
+ *
+ * `distance-to-target.camera` is a video backdrop behind the reticle. A camera
+ * Uplink's augment draws the close-range docking view there, rather than a
+ * standalone CameraFeed instance. This widget knows nothing about cameras: it
+ * decides WHETHER a backdrop should show, from `hudMode` and the viewport size,
+ * and passes its reticle frame down, and the augment decides WHICH camera and
+ * renders it. An install with no camera Uplink composes the HUD with no video
+ * layer at all.
+ *
+ * `distance-to-target.overlay` takes alignment markers layered on top of the
+ * crosshair. A precision-docking or laser-rangefinder Uplink draws into the
+ * reticle box using the passed context, and the slot composes by priority so
+ * several marker augments can coexist.
  */
 export interface DistanceToTargetHudContext {
   /** Half-range in degrees the reticle box maps to; the reticle clamps at the edge. */
@@ -122,12 +112,13 @@ export interface DistanceToTargetHudContext {
   cameraFlightId: number | null | undefined;
 }
 
-// Declaration-merge the slot ids → props types into core's `SlotRegistry` (a
-// hybrid, declaration-merging approach). Co-located here per-widget: no shared
-// central registry file: so parallel slot work in other widgets never collides.
-// This is what makes `registerAugment` / `<AugmentSlot props={...}>` type-check the
-// contexts above precisely, rather than the loose `Record<string, unknown>`
-// fallback an unmerged slot id would get.
+/**
+ * Merging the slot ids and their props types into core's `SlotRegistry` is what
+ * makes `registerAugment` and `<AugmentSlot props={...}>` type-check against the
+ * context above precisely, rather than the loose `Record<string, unknown>` an
+ * unmerged slot id would get. Co-located per widget rather than in one shared
+ * registry file, so parallel slot work in other widgets never collides.
+ */
 declare module "@ksp-gonogo/core" {
   interface SlotRegistry {
     "distance-to-target.camera": DistanceToTargetHudContext;
@@ -135,11 +126,7 @@ declare module "@ksp-gonogo/core" {
   }
 }
 
-// The facade-sealed-client copy of this merge lives in
-// `mod/sitrep-sdk/src/api/slots.ts`, not a second `declare module
-// "@ksp-gonogo/sitrep-sdk"` block here: see MapView/index.tsx's identical
-// comment / that module's header for why
-// (docs/superpowers/plans/2026-07-19-facade-sealing.md §2.3).
+// The facade-sealed-client copy of this merge lives in `mod/sitrep-sdk/src/api/slots.ts` rather than as a second `declare module "@ksp-gonogo/sitrep-sdk"` block here; MapView's identical comment and that module's header both say why.
 
 // Distances are in metres. Hysteresis prevents strobing at the thresholds.
 const HUD_ENTER_M = 100;

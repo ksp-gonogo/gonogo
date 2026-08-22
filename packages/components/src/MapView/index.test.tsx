@@ -306,7 +306,6 @@ describe("MapViewComponent", () => {
     expect(screen.queryByText("Altimetry HiRes")).toBeNull();
   });
 
-  // ── Augment slots ─────────────────────────────────────────────────────
   // MapView exposes an OVERLAY slot over the map canvases (passing the live
   // equirectangular projection) and a BADGES escape-hatch in the header. No
   // first-party augment fills them, so these register throwaway augments

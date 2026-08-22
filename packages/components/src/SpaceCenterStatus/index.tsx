@@ -680,8 +680,6 @@ function formatTinyFunds(value: number): string {
   return value.toFixed(0);
 }
 
-// ── Styles ────────────────────────────────────────────────────────────────────
-
 const Body = styled.div`
   display: flex;
   flex-direction: column;
@@ -958,8 +956,6 @@ const TinyPad = styled.span<{ $occupied: boolean }>`
   color: ${(p) =>
     p.$occupied ? "var(--color-accent-fg)" : "var(--color-text-faint)"};
 `;
-
-// ── Registration ──────────────────────────────────────────────────────────────
 
 registerComponent<SpaceCenterStatusConfig>({
   id: "space-center-status",

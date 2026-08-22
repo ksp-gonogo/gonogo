@@ -451,8 +451,7 @@ describe("DescentEnvelope", () => {
     expect(stopColors.every((c) => c === kerbinBlue)).toBe(true);
   });
 
-  // ── Drag-to-weight arrowhead ──────────────────────────────────────────────
-  // A faint, solo OPEN chevron (no shaft, no fill) sat just above the vessel
+  // The drag-to-weight arrowhead: a faint, solo OPEN chevron (no shaft, no fill) sat just above the vessel
   // dot, centred on its x, apex pointing up/away, its SIZE (not length)
   // scaled to the drag-to-weight ratio (drag force ÷ weight). The open
   // bottom of the "^" leaves a small triangular gap above the dot. Opt-in

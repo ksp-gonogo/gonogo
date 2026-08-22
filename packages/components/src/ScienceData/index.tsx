@@ -235,8 +235,6 @@ declare module "@ksp-gonogo/core" {
   }
 }
 
-// ── Registration ──────────────────────────────────────────────────────────────
-
 registerComponent<ScienceDataConfig>({
   id: "science-data",
   name: "Science Data",

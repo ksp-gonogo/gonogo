@@ -184,8 +184,6 @@ const TONE_COLOR: Record<Tone, string> = {
   over: "var(--color-status-nogo-bg)",
 };
 
-// ── Styles ────────────────────────────────────────────────────────────────────
-
 // Structural inline styles (CSS-var tokens): a bespoke budget list + dot
 // summary, no reusable ui-kit primitive fits the layout, so it stays local.
 // The one kit piece it reuses (Card) takes only this widget's column layout
@@ -282,8 +280,6 @@ const DOT: CSSProperties = {
   height: "10px",
   borderRadius: "var(--radius-circle)",
 };
-
-// ── Registration ──────────────────────────────────────────────────────────────
 
 registerComponent<PerfBudgetsConfig>({
   id: "perf-budgets",

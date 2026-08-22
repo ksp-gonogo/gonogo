@@ -349,10 +349,7 @@ function ObjectivesComponent(_: Readonly<ComponentProps<ObjectivesConfig>>) {
   );
 }
 
-// ── The `:empty` frame-fallback machinery (justified styled-components) ──────
-// These two stay styled: the rule below is an `:empty` pseudo-class + adjacent-
-// sibling combinator inline style can't express, and it's load-bearing (keeps
-// the frame agnostic of which augments rendered). See the import's biome-ignore.
+// The `:empty` frame-fallback machinery, and the reason these two stay styled-components: the rule below combines an `:empty` pseudo-class with an adjacent-sibling combinator, which an inline style cannot express, and it is what keeps the frame agnostic of which augments rendered.
 
 // Structural only: the sibling selector needs an element to target so the
 // fallback hides once any source has rendered content. It used to carry
@@ -377,9 +374,7 @@ const Sections = styled.div`
   }
 `;
 
-// ── Structural inline styles (everything that isn't the :empty machinery) ────
-// Per-state colour is applied inline at the call site from STATE_COLOR
-// (a misc-cluster widget: colours preserved, no Value-tone remap).
+// Structural inline styles, everything that is not the `:empty` machinery above. Per-state colour is applied inline at the call site from `STATE_COLOR`, with the widget's own colours preserved rather than remapped onto the Value tones.
 
 const STATE_COLOR: Record<ObjectiveState, string> = {
   pending: "var(--color-text-muted)",

@@ -712,8 +712,6 @@ function renderBody({
   );
 }
 
-// ── Avatar cell ──────────────────────────────────────────────────────────────
-
 // The augment slot layer fills the avatar cell and centres its content.
 const AVATAR_LAYER_STYLE = {
   position: "absolute",
@@ -779,8 +777,6 @@ function CrewAvatarCell({
     </div>
   );
 }
-
-// ── Registration ──────────────────────────────────────────────────────────────
 
 registerComponent<CrewStatusConfig>({
   id: "crew-status",

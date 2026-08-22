@@ -449,8 +449,6 @@ function renderBody(
   );
 }
 
-// ── Styles ────────────────────────────────────────────────────────────────────
-
 // Structural inline styles (CSS-var tokens): a bespoke map column, no reusable
 // ui-kit primitive fits, so the layout stays local. The one kit piece it reuses
 // (Box) takes only this map's column layout inline. The DiagramWrap `::before`
@@ -531,8 +529,6 @@ const TINT_LAYER: CSSProperties = {
   transition: "background 400ms ease-out",
   zIndex: 0,
 };
-
-// ── Registration ──────────────────────────────────────────────────────────────
 
 registerComponent<ShipMapConfig>({
   id: "ship-map",

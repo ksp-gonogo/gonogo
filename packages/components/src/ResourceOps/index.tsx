@@ -659,8 +659,6 @@ function ResourceOpsComponent(
   );
 }
 
-// ── Registration ──────────────────────────────────────────────────────────────
-
 registerComponent<ResourceOpsConfig>({
   id: "resource-ops",
   name: "Resource Ops",

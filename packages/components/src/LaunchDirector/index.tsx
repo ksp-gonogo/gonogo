@@ -1087,8 +1087,6 @@ function ArmedButton({
   );
 }
 
-// ── Styles ────────────────────────────────────────────────────────────────────
-
 const Body = styled.div`
   display: flex;
   flex-direction: column;
@@ -1514,8 +1512,6 @@ const ConfirmButton = styled.button<{
     }
   }
 `;
-
-// ── Registration ──────────────────────────────────────────────────────────────
 
 registerComponent<LaunchDirectorConfig>({
   id: "launch-director",

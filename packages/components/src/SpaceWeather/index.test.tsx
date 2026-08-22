@@ -154,9 +154,7 @@ describe("SpaceWeatherComponent", () => {
     expect(status).toHaveAttribute("aria-live", "polite");
   });
 
-  // ── Sun vantage ────────────────────────────────────────────────────────────
-  //
-  // Asserted BY VALUE throughout. A star card with no star and a tracker with
+  // The sun vantage, asserted BY VALUE throughout. A star card with no star and a tracker with
   // no CME render the same chrome as ones that work, so "the section is there"
   // proves nothing: these name the distance, the target and the ETA.
 

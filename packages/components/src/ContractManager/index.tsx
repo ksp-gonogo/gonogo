@@ -593,8 +593,6 @@ function ContractManagerComponent({
   );
 }
 
-// ── Styles ────────────────────────────────────────────────────────────────────
-
 const Empty = styled.div`
   color: var(--color-text-faint);
   font-size: var(--font-size-sm);
@@ -904,8 +902,6 @@ const Optional = styled.span`
   color: var(--color-text-faint);
   font-style: italic;
 `;
-
-// ── Registration ──────────────────────────────────────────────────────────────
 
 registerComponent<ContractManagerConfig>({
   id: "contract-manager",
