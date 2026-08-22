@@ -251,6 +251,12 @@ export const ALLOWLIST: Record<ModToken, ModAllowlist> = {
       "packages/core/src/schemas/telemachus-scan-types.ts",
     ],
     permanent: [
+      // -- UPLINK-DISCOVERABILITY scan (2026-08-22): the check that every
+      // uplink is registered must WALK every uplink project to find them, so
+      // it necessarily names each directory. It was previously blind to
+      // eleven of twenty-seven uplinks by scanning only Gonogo.KSP for
+      // *Uplink.cs. Ratchet-inventory file, the case this bucket documents.
+      "mod/Gonogo.KSP.Tests/UplinkDiscoverabilityTests.cs",
       // The vendor-name ratchet's seed data enumerates every file in the tree
       // that still carries the retired source's name, so it necessarily lists
       // paths under this Uplink. Inventory data, same category as this file.
@@ -488,6 +494,12 @@ export const ALLOWLIST: Record<ModToken, ModAllowlist> = {
       "packages/app/src/telemetry/SitrepPeerRelay.test.tsx",
     ],
     permanent: [
+      // -- UPLINK-DISCOVERABILITY scan (2026-08-22): the check that every
+      // uplink is registered must WALK every uplink project to find them, so
+      // it necessarily names each directory. It was previously blind to
+      // eleven of twenty-seven uplinks by scanning only Gonogo.KSP for
+      // *Uplink.cs. Ratchet-inventory file, the case this bucket documents.
+      "mod/Gonogo.KSP.Tests/UplinkDiscoverabilityTests.cs",
       // -- BANNER-COMMENT ratchet inventory (2026-08-22): both lists are keyed
       // by file path, so they name every Uplink directory and every schema file
       // that still carries a banner. Ratchet-inventory file, the case this
@@ -1226,6 +1238,12 @@ export const ALLOWLIST: Record<ModToken, ModAllowlist> = {
       "packages/app/src/main.tsx",
     ],
     permanent: [
+      // -- UPLINK-DISCOVERABILITY scan (2026-08-22): the check that every
+      // uplink is registered must WALK every uplink project to find them, so
+      // it necessarily names each directory. It was previously blind to
+      // eleven of twenty-seven uplinks by scanning only Gonogo.KSP for
+      // *Uplink.cs. Ratchet-inventory file, the case this bucket documents.
+      "mod/Gonogo.KSP.Tests/UplinkDiscoverabilityTests.cs",
       // -- BANNER-COMMENT ratchet inventory (2026-08-22): both lists are keyed
       // by file path, so they name every Uplink directory and every schema file
       // that still carries a banner. Ratchet-inventory file, the case this
@@ -1516,6 +1534,12 @@ export const ALLOWLIST: Record<ModToken, ModAllowlist> = {
   principia: {
     domainDebt: [],
     permanent: [
+      // -- UPLINK-DISCOVERABILITY scan (2026-08-22): the check that every
+      // uplink is registered must WALK every uplink project to find them, so
+      // it necessarily names each directory. It was previously blind to
+      // eleven of twenty-seven uplinks by scanning only Gonogo.KSP for
+      // *Uplink.cs. Ratchet-inventory file, the case this bucket documents.
+      "mod/Gonogo.KSP.Tests/UplinkDiscoverabilityTests.cs",
       // -- BANNER-COMMENT ratchet inventory (2026-08-22): both lists are keyed
       // by file path, so they name every Uplink directory and every schema file
       // that still carries a banner. Ratchet-inventory file, the case this
