@@ -37,6 +37,23 @@ import { describe, expect, it } from "vitest";
  * it imports nothing but React, and an Uplink was reaching into this private
  * package for it. Being app-only is a claim about what a primitive DEPENDS on,
  * not about who happens to render it today.
+ *
+ * ---
+ *
+ * The name check above is BLIND INSIDE ui-kit, and that is not an oversight
+ * that can be patched by pointing it at one more directory: TypeScript already
+ * forbids two exports of one name in one module graph, so intra-package
+ * duplication necessarily wears a DIFFERENT name and a name-equality scan can
+ * never see it. It needs a different kind of check, which is the second half of
+ * this file.
+ *
+ * The instance that prompted it: `StatusPill` (`Readout.tsx`) is `Badge` with a
+ * rival tone vocabulary. Both are uppercase, letter-spaced, pill-radiused
+ * status chips; `Badge` speaks the canonical `Severity` and reports itself into
+ * `PanelStatusStore`, `StatusPill` speaks `ReadoutTone` and reports nothing. So
+ * six render sites are status chips that can never reach a panel's status
+ * summary, and nothing said so. The Panel failure mode above, one package
+ * inward.
  */
 
 const HERE = dirname(fileURLToPath(import.meta.url));
@@ -128,5 +145,158 @@ describe("shared primitives are implemented once, in ui-kit", () => {
         `broken package. Move what is needed INTO ui-kit instead:\n` +
         offenders.map((f) => `  ${f}`).join("\n"),
     ).toEqual([]);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Within ui-kit: one visual FORM, one component.
+//
+// Detection is by shape rather than by name, for the reason in the header: a
+// name-equality scan is structurally incapable of seeing intra-package
+// duplication. The "static pill" form is a styled block that is uppercase,
+// letter-spaced and pill-radiused, and is NOT an interactive control (a tab, a
+// filter chip: those are pills that DO something when pressed, and the
+// behaviour is what makes them a different component rather than a copy).
+// ---------------------------------------------------------------------------
+
+/** `const Name = styled.tag<...>` / `styled(Other)<...>`, capturing the tag or the wrapped name. */
+const STYLED_DECL_RE =
+  /(?:export\s+)?const\s+([A-Za-z0-9_]+)\s*=\s*styled(?:\.([a-zA-Z]+)|\(\s*([A-Za-z0-9_.]+)\s*\))/g;
+
+/** Interactive by construction: a control that happens to be pill-shaped. */
+function isInteractive(
+  tag: string | undefined,
+  wrapped: string | undefined,
+): boolean {
+  if (tag === "button" || tag === "a") return true;
+  if (wrapped !== undefined && /Button|Link|Anchor/.test(wrapped)) return true;
+  return false;
+}
+
+/** The styled block's template body: from its opening backtick to the closing one. */
+function styledBody(text: string, from: number): string {
+  const open = text.indexOf("`", from);
+  if (open === -1) return "";
+  const close = text.indexOf("`", open + 1);
+  return close === -1 ? text.slice(open) : text.slice(open + 1, close);
+}
+
+function isStaticPill(body: string): boolean {
+  return (
+    body.includes("text-transform: uppercase") &&
+    body.includes("--radius-pill") &&
+    body.includes("letter-spacing")
+  );
+}
+
+/** styled name -> repo-relative file, for every static pill in ui-kit. */
+function staticPills(dir: string): Map<string, string> {
+  const found = new Map<string, string>();
+  for (const file of sourceFiles(dir)) {
+    const text = readFileSync(file, "utf8");
+    for (const m of text.matchAll(STYLED_DECL_RE)) {
+      const [, name, tag, wrapped] = m;
+      if (isInteractive(tag, wrapped)) continue;
+      if (!isStaticPill(styledBody(text, (m.index ?? 0) + m[0].length))) {
+        continue;
+      }
+      found.set(name, relative(REPO, file));
+    }
+  }
+  return found;
+}
+
+/**
+ * The one component allowed to draw a static status pill. `Badge` is it: it
+ * speaks the canonical `Severity` and reports into `PanelStatusStore`, so a
+ * chip drawn through it can reach a panel's status summary.
+ */
+const PILL_OWNER = "Badge__Body";
+
+/**
+ * Every other static pill in ui-kit, with why it is still here. SHRINK-ONLY:
+ * an entry comes out when the component folds into `Badge`, and a new one is a
+ * failure rather than an addition. Allowlisting a fresh duplicate is the move
+ * this whole file exists to make hard.
+ */
+const PILL_DEBT: Readonly<Record<string, string>> = {
+  // `Badge` with a rival tone vocabulary (`ReadoutTone` rather than `Severity`)
+  // and no `report`, so its six render sites are status chips that cannot
+  // contribute to a panel's status summary. Folding it means giving `Badge`
+  // StatusPill's padding, weight and alert pulse as a variant and migrating
+  // seven call sites across three packages, which is its own change.
+  StatusPill: "packages/ui-kit/src/Readout.tsx",
+};
+
+describe("within ui-kit, one visual form is one component", () => {
+  it("finds no static pill outside Badge and the recorded debt", () => {
+    const pills = staticPills(UI_KIT);
+
+    expect(
+      pills.has(PILL_OWNER),
+      `The scan no longer sees ${PILL_OWNER}, the component it is anchored on.\n` +
+        `A shape scan that stops matching reports an empty offender list, and an\n` +
+        `empty list reads as success. Fix the signature before trusting a pass.`,
+    ).toBe(true);
+
+    const offenders = [...pills.entries()]
+      .filter(([name]) => name !== PILL_OWNER && !(name in PILL_DEBT))
+      .map(([name, file]) => `${name}  (${file})`)
+      .sort();
+
+    expect(
+      offenders,
+      `These draw ui-kit's status pill a second time:\n\n` +
+        offenders.map((o) => `  ${o}`).join("\n") +
+        `\n\nRender through \`Badge\` instead. It speaks the canonical Severity\n` +
+        `and reports into PanelStatusStore, so a chip drawn through it can reach\n` +
+        `a panel's status summary; a private copy never can, and nothing on\n` +
+        `screen says which kind the operator is looking at.`,
+    ).toEqual([]);
+  });
+
+  it("keeps the debt list shrink-only: every entry still exists", () => {
+    const pills = staticPills(UI_KIT);
+    const stale = Object.keys(PILL_DEBT).filter((name) => !pills.has(name));
+
+    expect(
+      stale,
+      `These are recorded as pill debt but are no longer static pills in ui-kit,\n` +
+        `so the entry is stale. Delete it: that is the list shrinking.\n` +
+        stale.map((s) => `  ${s}`).join("\n"),
+    ).toEqual([]);
+  });
+
+  it("sees a violation when there is one", () => {
+    // The scan is only worth its green if it can go red. Same predicate, same
+    // shape, against a block that is deliberately a second pill.
+    const planted = [
+      "const RivalPill = styled.div`",
+      "  display: inline-flex;",
+      "  border-radius: var(--radius-pill, 999px);",
+      "  letter-spacing: 0.12em;",
+      "  text-transform: uppercase;",
+      "`;",
+    ].join("\n");
+
+    const hits: string[] = [];
+    for (const m of planted.matchAll(STYLED_DECL_RE)) {
+      const [, name, tag, wrapped] = m;
+      if (isInteractive(tag, wrapped)) continue;
+      if (isStaticPill(styledBody(planted, (m.index ?? 0) + m[0].length))) {
+        hits.push(name);
+      }
+    }
+
+    expect(hits).toEqual(["RivalPill"]);
+    expect(hits[0] === PILL_OWNER || (hits[0] ?? "") in PILL_DEBT).toBe(false);
+  });
+
+  it("leaves an interactive pill alone: a tab and a filter chip are not badges", () => {
+    const pills = staticPills(UI_KIT);
+    // Both match the pill CSS and both are `styled.button`. A control that does
+    // something when pressed is a different component, not a copy of `Badge`.
+    expect(pills.has("Tabs__Button")).toBe(false);
+    expect(pills.has("ChipButton")).toBe(false);
   });
 });
