@@ -536,18 +536,6 @@ async function flushProviderFrame(providerMounted: boolean): Promise<void> {
 }
 
 /**
- * Mount a widget, emit every fixture key onto its data source, and return
- * the stripped innerHTML for snapshotting. Mirrors the playwright probe
- * (`scripts/probe/probe-entry.tsx`) at the DOM level: same mount path,
- * same fixture seeding, same modes: so vitest catches structural
- * regressions while the PNG harness covers the visual layer.
- *
- * The returned HTML has styled-components hashes and testing-library
- * auto-ids stripped so the snapshot is deterministic across runs. Canvas
- * content, ResizeObserver-driven layout, and CSS-paint visuals don't
- * appear: those live in the playwright PNGs.
- */
-/**
  * Caller's override, else the `defaultConfig` the widget registered, else
  * nothing.
  *
@@ -558,11 +546,9 @@ async function flushProviderFrame(providerMounted: boolean): Promise<void> {
  * def.defaultConfig ?? {}` in probe-entry.tsx); this harness only ever used a
  * `defaultConfig` the CALLER passed, and almost no caller passes one.
  *
- * This used to memoise the answer by component identity, because
- * `setupMockDataSource` opened with `clearRegistry()` and that empties the
- * component registry alongside the data sources: the registry was intact for
- * the first render in a file and gone from the second on. It clears only what
- * it owns now, so the registry is simply there to be read.
+ * The answer is read straight from the registry rather than memoised by
+ * component identity, because `setupMockDataSource` clears only the data
+ * sources it owns and leaves the component registry standing.
  */
 function baselineConfig<Cfg>(opts: SnapshotOpts<Cfg>): Cfg {
   if (opts.defaultConfig !== undefined) return opts.defaultConfig;
@@ -670,6 +656,18 @@ async function flushResizeObservers(): Promise<void> {
   });
 }
 
+/**
+ * Mount a widget, emit every fixture key onto its data source, and return the
+ * stripped innerHTML for snapshotting. Mirrors the playwright probe
+ * (`scripts/probe/probe-entry.tsx`) at the DOM level, with the same mount path,
+ * the same fixture seeding and the same modes, so vitest catches structural
+ * regressions while the PNG harness covers the visual layer.
+ *
+ * The returned HTML has styled-components hashes and testing-library auto-ids
+ * stripped so the snapshot is deterministic across runs. Canvas content,
+ * ResizeObserver-driven layout and CSS-paint visuals do not appear: those live
+ * in the playwright PNGs.
+ */
 export async function snapshotWidgetMode<
   Cfg extends Record<string, unknown> = Record<string, unknown>,
 >(opts: SnapshotOpts<Cfg>): Promise<string> {
@@ -847,17 +845,14 @@ export async function renderWidgetMode<
 }
 
 /**
- * Strip styled-components hashes, testing-library auto-ids, and any
- * `sc-*` class/id attributes that change per build. Without this the
- * snapshot churns on every styled-components release / file edit.
- */
-/**
- * Exported (beyond this file's own two internal callers) for the
- * behavior-preservation golden dual-run (`WarpControl/dual-run.test.tsx`),
- * comparing a legacy render against a stream render needs the exact same
- * styled-components-hash/testid stripping this file already does, so a
- * genuine markup difference isn't masked by two builds' differing
- * volatile-class churn.
+ * Strip styled-components hashes, testing-library auto-ids, and any `sc-*`
+ * class or id attribute that changes per build. Without this the snapshot
+ * churns on every styled-components release and file edit.
+ *
+ * Exported beyond this file's own two internal callers for
+ * `WarpControl/dual-run.test.tsx`'s render golden: comparing two renders needs
+ * exactly the same stripping, so a genuine markup difference is not masked by
+ * two builds' differing volatile-class churn.
  */
 export function stripVolatile(html: string): string {
   return html

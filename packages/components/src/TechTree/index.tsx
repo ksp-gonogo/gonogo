@@ -90,8 +90,8 @@ function stillTrue<T, A>(
  * "Researchable" | "Unavailable"` string) and the career-detail wire
  * shape (`career.status.tech.nodes`, CareerViewProvider.BuildTechNodes:
  * `unlocked: boolean`, no `state` at all: the server deliberately doesn't
- * compute the 3-state "Researchable" distinction, career-capture-extend-
- * report.md). When `state` is absent, derive it from `unlocked`
+ * compute the 3-state "Researchable" distinction). When `state` is absent,
+ * derive it from `unlocked`
  * (`true` -> "Available", `false` -> "Unavailable"): `computeResearchable`
  * below already promotes some "Unavailable" nodes to researchable-now purely
  * from `state`/`parents`/`scienceCost`, exactly the client-side derivation
@@ -334,7 +334,7 @@ function TechTreeComponent({ w, h }: Readonly<ComponentProps<TechTreeConfig>>) {
   // Science reads canonically off `career.status.economy.science`; the tech
   // nodes off `career.status.tech.nodes`: the wire carries
   // id/title/scienceCost/unlocked/parents per node
-  // (career-capture-extend-report.md); parseTechNodes derives the
+  // and parseTechNodes derives the
   // Available/Unavailable state from `unlocked` client-side (no
   // server-computed Researchable 3rd state: this widget's own
   // computeResearchable already does that derivation). The scene reads off

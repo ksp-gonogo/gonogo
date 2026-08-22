@@ -34,8 +34,8 @@
 //     move exists to end.
 //   - `KerbcastAvatarAugment` → registerAugment({ id: "kerbcast-crew-avatar",
 //     ... }) filling @ksp-gonogo/components's CrewStatus widget's
-//     `crew-status.avatar` slot with a live per-kerbal face (facecam-stage6
-//     consumption design). Correlates by kerbal NAME against kerbcast's
+//     `crew-status.avatar` slot with a live per-kerbal face.
+//     Correlates by kerbal NAME against kerbcast's
 //     `kind: Kerbal` cameras: see CrewAvatarGate/selectKerbalCamera.ts.
 //
 // To wire it into the app: `import "@ksp-gonogo/gonogo-kerbcast-uplink";` during app

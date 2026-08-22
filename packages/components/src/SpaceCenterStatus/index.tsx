@@ -75,7 +75,7 @@ type FacilityKey =
  * CareerViewProvider.cs's `BuildFacilities`) is keyed by the full
  * `SpaceCenterFacility` enum name, not this widget's short codes, maps
  * each enum name onto its `FacilityKey`. Names match the real wire
- * (decompile-confirmed, career-capture-extend-report.md; also the exact 9
+ * (decompile-confirmed; also the exact 9
  * keys observed in a real `career.status` capture).
  */
 const ENUM_FACILITY_TO_KEY: Readonly<Record<string, FacilityKey>> = {
@@ -187,7 +187,7 @@ function stillTrue<T, A>(
  * `{ level, max, upgradeFunds, currentLevelText, nextLevelText }`) and the
  * `career.status.facilities` wire shape, keyed by the
  * full `SpaceCenterFacility` enum name: `{ currentTier, maxTier,
- * upgradeCost }`, career-capture-extend-report.md). The new wire's
+ * upgradeCost }`). The new wire's
  * `currentTier`/`maxTier` are the SAME 0-based tier-index convention this
  * widget already assumes for `level`/`max` (decompile-confirmed: a fully
  * upgraded facility reports `currentTier === maxTier`, both actual-tier-
@@ -261,7 +261,7 @@ function SpaceCenterStatusComponent({
   // through map-topic.ts):
   //  - kc.facilityLevels -> career.status.facilities; parseFacilityLevels
   //    accepts the enum-keyed currentTier/maxTier/upgradeCost shape
-  //    (career-capture-extend-report.md) alongside the legacy short-code shape.
+  //    alongside the legacy short-code shape.
   //  - career.funds -> career.status.economy.funds (both off the one
   //    career.status Topic read).
   //  - kc.scene / kc.launchSite -> spaceCenter.scene.{scene,launchSite}

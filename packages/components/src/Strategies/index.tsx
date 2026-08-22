@@ -94,8 +94,8 @@ function stillTrue<T, A>(
  * the new wire shape (`career.status.strategies.all`,
  * CareerViewProvider.BuildStrategyList: `department`): same field-rename
  * normalization ContractManager's `parseContracts` applies. Every other
- * field name matches the new wire 1:1 (decompile-confirmed,
- * career-capture-extend-report.md), including `effectiveCostReputation`
+ * field name matches the new wire 1:1 (decompile-confirmed),
+ * including `effectiveCostReputation`
  * staying absent on the new wire: the fallback below to
  * `initialCostReputation` already covers that, unchanged.
  */
@@ -185,7 +185,7 @@ function StrategiesComponent({
   // reputation,science} and strategies.all are the fields this widget reads,
   // the wire's `career.status.strategies.all` carries the full `id`/costs/
   // canActivate/canDeactivate/effect-text shape `parseStrategies` needs
-  // (career-capture-extend-report.md; note `department`, not the legacy
+  // (note `department`, not the legacy
   // `departmentName`, which parseStrategies normalizes). No legacy read
   // fallback: the canonical Topic read has none. The activate/deactivate COMMANDS
   // migrated too: `career.strategy.activate`/`.deactivate` through

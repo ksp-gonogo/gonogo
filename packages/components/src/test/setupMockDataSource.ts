@@ -56,25 +56,6 @@ export interface MockDataSourceFixture {
 }
 
 /**
- * Stand up the `clearRegistry → MockDataSource → BufferedDataSource →
- * registerDataSource → connect()` pattern that ~10 widget tests duplicate.
- *
- * Faithfully reproduces the existing setup (e.g. `ManeuverPlanner`,
- * `CurrentOrbit`, `CommSignal`, `ScienceBench`, `DistanceToTarget`,
- * `TargetPicker`, `CrewStatus`):
- *
- * ```ts
- * clearRegistry();
- * source = new MockDataSource({ keys, affectedBySignalLoss });
- * buffered = new BufferedDataSource({ source, store: new MemoryStore() });
- * registerDataSource(buffered);
- * await buffered.connect();
- * ```
- *
- * The buffered wrapper is registered (not the raw source), components read
- * through the buffered layer in production, so tests must too.
- */
-/**
  * Reset the data-source registry and put back the two registries this helper
  * does not own.
  *
@@ -101,6 +82,25 @@ function clearOnlyDataSources(): void {
   for (const theme of themes) registerTheme(theme);
 }
 
+/**
+ * Stand up the `clearRegistry → MockDataSource → BufferedDataSource →
+ * registerDataSource → connect()` pattern that ~10 widget tests duplicate.
+ *
+ * Faithfully reproduces the existing setup (e.g. `ManeuverPlanner`,
+ * `CurrentOrbit`, `CommSignal`, `ScienceBench`, `DistanceToTarget`,
+ * `TargetPicker`, `CrewStatus`):
+ *
+ * ```ts
+ * clearRegistry();
+ * source = new MockDataSource({ keys, affectedBySignalLoss });
+ * buffered = new BufferedDataSource({ source, store: new MemoryStore() });
+ * registerDataSource(buffered);
+ * await buffered.connect();
+ * ```
+ *
+ * The buffered wrapper is registered (not the raw source), components read
+ * through the buffered layer in production, so tests must too.
+ */
 export async function setupMockDataSource(
   opts: SetupMockOptions,
 ): Promise<MockDataSourceFixture> {

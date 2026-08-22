@@ -162,8 +162,8 @@ function paramState(ordinal: unknown): ContractParameterState {
  * wire shape" pattern ScienceBench's `parseExperiments` established
  * (`partName ?? part`, map-topic.ts's doc comment). The new shape's
  * `parameters` only carry `{title, state}` (no `optional`/`parameterType`/
- * altitude bounds: decompile-confirmed exact shape, career-capture-extend-
- * report.md); those extra fields simply stay undefined on a new-wire
+ * altitude bounds: decompile-confirmed exact shape); those extra fields simply
+ * stay undefined on a new-wire
  * parameter, degrading the AltitudeProgress bar/optional-badge gracefully
  * rather than breaking. Drops malformed entries; tolerates unknown
  * parameter states by reporting them as "Unknown", never by collapsing them

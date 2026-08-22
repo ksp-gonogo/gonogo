@@ -22,7 +22,7 @@ import { selectKerbalCamera } from "./selectKerbalCamera";
 
 /**
  * kerbcast crew-avatar augment: fills CrewStatus's `crew-status.avatar`
- * slot (facecam-stage6 consumption design) with a live per-kerbal face,
+ * slot with a live per-kerbal face,
  * layering an EVA/IVA badge and a click-to-spotlight modal over kerbcast-
  * react's shared `KerbalFaceFeed` primitive.
  *
