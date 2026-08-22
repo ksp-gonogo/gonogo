@@ -82,9 +82,17 @@ export const DEFAULT_SITREP_CARRIED_TOPICS: readonly string[] = [
   // `local_docs/Wednesday Work/2026-07-16-fleetcomms-use-comms-link.md`), so
   // `comms.connectivity` itself is no longer carried here: no client reads
   // it, completing the comms work's "de-publicise the TrueNow comms.*
-  // observation channels" intent. `comms.network` deliberately NOT listed
-  // (Phase 1 doesn't draw the relay graph, Phase 2).
+  // observation channels" intent.
   "comms.path",
+  // CommNet relay graph: the `system-view-vessel-orbits` contribution reads
+  // it to draw the relay network as faint connection-line entities. That
+  // contribution subscribes directly, since `ContributionsProvider`'s
+  // `SlotAggregator` bypasses this gate entirely, so listing it here is not
+  // load-bearing for that path. It is listed for the same "every mod-served
+  // raw topic is catalogued" convention the rest of this list follows, and
+  // so a direct `useTelemetry("comms.network")` read does not silently fall
+  // back to legacy.
+  "comms.network",
   "system.uplink.pending",
   // system.uplink.gates: every gated command's standing verdict, read by
   // `useCommand` so a control can be drawn dark before the operator presses it.

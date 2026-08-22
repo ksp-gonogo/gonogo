@@ -1,4 +1,9 @@
 import {
+  CommsHopKind,
+  type CommsNetwork,
+  type CommsNetworkEdge,
+  type CommsNetworkNode,
+  Quality,
   RosterCommsControlSource,
   Situation,
   type SystemBodies,
@@ -8,13 +13,22 @@ import {
   value,
 } from "@ksp-gonogo/sitrep-sdk";
 import { describe, expect, it } from "vitest";
-import { computeVesselOrbitEntities } from "./vesselOrbitsContribution";
+import {
+  computeCommsNetworkEntities,
+  computeVesselOrbitEntities,
+} from "./vesselOrbitsContribution";
 
 function bodies(): SystemBodies {
   return {
     bodies: [
       { index: 0, name: "Kerbol", parentIndex: undefined, orbit: undefined },
-      { index: 1, name: "Kerbin", parentIndex: 0, orbit: undefined },
+      {
+        index: 1,
+        name: "Kerbin",
+        parentIndex: 0,
+        orbit: undefined,
+        isHome: true,
+      },
     ],
   };
 }
@@ -188,5 +202,252 @@ describe("computeVesselOrbitEntities", () => {
 
   it("returns nothing for an empty roster", () => {
     expect(computeVesselOrbitEntities(wire([]), bodies())).toEqual([]);
+  });
+});
+
+function node(overrides: Partial<CommsNetworkNode>): CommsNetworkNode {
+  return {
+    id: "home",
+    displayName: "KSC",
+    kind: CommsHopKind.Home,
+    ...overrides,
+  };
+}
+
+function edge(a: string, b: string, active = true): CommsNetworkEdge {
+  return { a, b, active };
+}
+
+function network(
+  nodes: CommsNetworkNode[],
+  edges: CommsNetworkEdge[],
+): CommsNetwork {
+  return { nodes, edges, meta: { source: "test", quality: Quality.Loaded } };
+}
+
+describe("computeCommsNetworkEntities", () => {
+  it("joins a vessel node's edge endpoint to that vessel's own orbit position", () => {
+    const relay = vessel({
+      vesselId: "v-relay",
+      orbit: { sma: value("m", 3_468_750) },
+    });
+    const entities = computeCommsNetworkEntities(
+      network(
+        [
+          node({ id: "home" }),
+          node({ id: "v-relay", kind: CommsHopKind.Relay }),
+        ],
+        [edge("home", "v-relay")],
+      ),
+      wire([relay]),
+      bodies(),
+    );
+
+    expect(entities).toHaveLength(1);
+    expect(entities[0].shape).toEqual({
+      kind: "connection-line",
+      to: {
+        kind: "orbit",
+        parentName: "Kerbin",
+        sma: 3_468_750,
+        ecc: 0,
+        lan: 0,
+        argPe: 0,
+        trueAnomaly: 0,
+      },
+    });
+    expect(entities[0].style).toEqual({ emphasis: "faint" });
+  });
+
+  it("joins a vessel node with no usable orbit to a fixed point at its body, same degrade as the fleet contribution", () => {
+    const landed = vessel({
+      vesselId: "v-landed",
+      situation: Situation.Landed,
+      orbit: undefined,
+    });
+    const entities = computeCommsNetworkEntities(
+      network(
+        [
+          node({ id: "home" }),
+          node({ id: "v-landed", kind: CommsHopKind.Vessel }),
+        ],
+        [edge("home", "v-landed")],
+      ),
+      wire([landed]),
+      bodies(),
+    );
+
+    expect(entities[0].position).toEqual({
+      kind: "fixed",
+      parentName: "Kerbin",
+      xMetres: 0,
+      yMetres: 0,
+    });
+  });
+
+  it("places the home node at the body flagged isHome, independent of vessel data", () => {
+    const entities = computeCommsNetworkEntities(
+      network(
+        [node({ id: "home" }), node({ id: "v-1", kind: CommsHopKind.Vessel })],
+        [edge("home", "v-1")],
+      ),
+      wire([vessel({ orbit: { sma: value("m", 700_000) } })]),
+      bodies(),
+    );
+
+    expect(entities[0].position).toEqual({
+      kind: "fixed",
+      parentName: "Kerbin",
+      xMetres: 0,
+      yMetres: 0,
+    });
+  });
+
+  it("locates the home body by isHome, not by a fixed index, under a hypothetical planet pack ordering", () => {
+    const reorderedBodies: SystemBodies = {
+      bodies: [
+        { index: 0, name: "Kerbol", parentIndex: undefined, orbit: undefined },
+        { index: 1, name: "Moho", parentIndex: 0, orbit: undefined },
+        {
+          index: 2,
+          name: "HomeworldX",
+          parentIndex: 0,
+          orbit: undefined,
+          isHome: true,
+        },
+      ],
+    };
+    const entities = computeCommsNetworkEntities(
+      network(
+        [node({ id: "home" }), node({ id: "v-1", kind: CommsHopKind.Vessel })],
+        [edge("home", "v-1")],
+      ),
+      wire([vessel({ orbit: { sma: value("m", 700_000) }, bodyIndex: 2 })]),
+      reorderedBodies,
+    );
+
+    expect(entities[0].position).toEqual({
+      kind: "fixed",
+      parentName: "HomeworldX",
+      xMetres: 0,
+      yMetres: 0,
+    });
+  });
+
+  it("recognises a home-role node by CommsHopKind.Home even when its id isn't literally 'home'", () => {
+    const entities = computeCommsNetworkEntities(
+      network(
+        [
+          node({ id: "ground-relay-alpha", kind: CommsHopKind.Home }),
+          node({ id: "v-1", kind: CommsHopKind.Vessel }),
+        ],
+        [edge("ground-relay-alpha", "v-1")],
+      ),
+      wire([vessel({ orbit: { sma: value("m", 700_000) } })]),
+      bodies(),
+    );
+
+    expect(entities).toHaveLength(1);
+    expect(entities[0].position).toEqual({
+      kind: "fixed",
+      parentName: "Kerbin",
+      xMetres: 0,
+      yMetres: 0,
+    });
+  });
+
+  it("omits an edge whose endpoint id matches no known vessel and isn't home, never fabricating a position", () => {
+    const entities = computeCommsNetworkEntities(
+      network(
+        [
+          node({ id: "home" }),
+          node({ id: "v-ghost", kind: CommsHopKind.Relay }),
+        ],
+        [edge("home", "v-ghost")],
+      ),
+      wire([]), // v-ghost never lands on the roster
+      bodies(),
+    );
+
+    expect(entities).toEqual([]);
+  });
+
+  it("omits an edge whose vessel endpoint's body can't be resolved yet", () => {
+    const orphan = vessel({ vesselId: "v-orphan", bodyIndex: 99 });
+    const entities = computeCommsNetworkEntities(
+      network(
+        [
+          node({ id: "home" }),
+          node({ id: "v-orphan", kind: CommsHopKind.Vessel }),
+        ],
+        [edge("home", "v-orphan")],
+      ),
+      wire([orphan]),
+      bodies(),
+    );
+
+    expect(entities).toEqual([]);
+  });
+
+  it("draws every other edge even when one is omitted for an unresolvable endpoint", () => {
+    const relay = vessel({
+      vesselId: "v-relay",
+      orbit: { sma: value("m", 3_468_750) },
+    });
+    const entities = computeCommsNetworkEntities(
+      network(
+        [
+          node({ id: "home" }),
+          node({ id: "v-relay", kind: CommsHopKind.Relay }),
+          node({ id: "v-ghost", kind: CommsHopKind.Vessel }),
+        ],
+        [edge("home", "v-relay"), edge("v-relay", "v-ghost")],
+      ),
+      wire([relay]),
+      bodies(),
+    );
+
+    expect(entities.map((e) => e.id)).toEqual(["comms-edge:home:v-relay"]);
+  });
+
+  it("omits an edge to home when no body is flagged isHome yet", () => {
+    const relay = vessel({
+      vesselId: "v-relay",
+      orbit: { sma: value("m", 3_468_750) },
+    });
+    const entities = computeCommsNetworkEntities(
+      network(
+        [
+          node({ id: "home" }),
+          node({ id: "v-relay", kind: CommsHopKind.Relay }),
+        ],
+        [edge("home", "v-relay")],
+      ),
+      wire([relay]),
+      {
+        bodies: [
+          { index: 0, name: "Kerbol", orbit: undefined },
+          { index: 1, name: "Kerbin", parentIndex: 0, orbit: undefined }, // present, but not flagged home
+        ],
+      },
+    );
+
+    expect(entities).toEqual([]);
+  });
+
+  it("returns nothing when comms.network hasn't arrived yet", () => {
+    expect(computeCommsNetworkEntities(undefined, wire([]), bodies())).toEqual(
+      [],
+    );
+  });
+
+  it("returns nothing for a network with no edges", () => {
+    expect(
+      computeCommsNetworkEntities(
+        network([node({ id: "home" })], []),
+        wire([]),
+        bodies(),
+      ),
+    ).toEqual([]);
   });
 });

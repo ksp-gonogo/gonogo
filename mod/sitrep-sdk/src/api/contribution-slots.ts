@@ -144,7 +144,7 @@ declare module "./types" {
     };
     "system-view.entities": {
       entry: SystemEntity;
-      topics: "system.vessels" | "system.bodies";
+      topics: "system.vessels" | "system.bodies" | "comms.network";
     };
   }
 }

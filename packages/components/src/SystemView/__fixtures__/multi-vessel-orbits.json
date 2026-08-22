@@ -3,8 +3,8 @@
     "capturedAt": "2026-08-13",
     "vessel": "Tester (Mk1 pod), plus four other roster vessels",
     "body": "Kerbin",
-    "situation": "Task 3 render fixture: the built-in system-view-vessel-orbits contribution draws a faint orbit ring for every vessel on system.vessels, INCLUDING the active vessel; SystemView then suppresses the active vessel's own faint entry host-side (it matches vessel.identity.vesselId), since SystemDiagram already draws that vessel's dedicated bright ring below. The rendered result is a faint ring for every OTHER vessel around the active vessel's own bright ring, plus one grounded vessel with no orbit degrading to a faint dot at Kerbin.",
-    "notes": "Sibling of kerbin-orbit-comms-active.json: same Kerbol/Kerbin/Mun geometry (Minmus dropped here, on purpose: its 47 Mm orbit would dwarf the vessel orbits this fixture exists to show and compress them into an unreadable cluster at the auto-fit scale). 'Munar Transfer Stage' (elliptical, inclined), 'Comsat Relay-1' (circular, near Kerbin-synchronous altitude) and 'Debris XR-42' (Debris type, eccentric+inclined) all orbit Kerbin and render as faint orbit-path rings nested inside Mun's own ring, around the active vessel's own bright ring. 'Flag: Launch Pad' is a planted Flag on Kerbin with no orbit field at all: the contribution degrades it to a faint point at Kerbin's own centre rather than fabricating an orbit, deliberately overlapping the frame body's own marker (see vesselOrbitsContribution.ts's own doc comment on why 'at the body' is the only honest position a landed vessel has in this diagram). Deliberately unfiltered by vessel type (Debris/Flag included), matching the contribution's own documented divergence from FleetRoster's craft-only isRosterCraft filter."
+    "situation": "Task 3+4 render fixture: the built-in system-view-vessel-orbits contribution draws a faint orbit ring for every vessel on system.vessels, INCLUDING the active vessel; SystemView then suppresses the active vessel's own faint entry host-side (it matches vessel.identity.vesselId), since SystemDiagram already draws that vessel's dedicated bright ring below. The rendered result is a faint ring for every OTHER vessel around the active vessel's own bright ring, plus one grounded vessel with no orbit degrading to a faint dot at Kerbin. Task 4 adds comms.network on top: a faint CommNet relay graph (KSC home node fixed at Kerbin, edges to/through Comsat Relay-1 out to Tester and the Munar Transfer Stage) drawn as connection-line entities between those same vessel-orbit positions.",
+    "notes": "Sibling of kerbin-orbit-comms-active.json: same Kerbol/Kerbin/Mun geometry (Minmus dropped here, on purpose: its 47 Mm orbit would dwarf the vessel orbits this fixture exists to show and compress them into an unreadable cluster at the auto-fit scale). 'Munar Transfer Stage' (elliptical, inclined), 'Comsat Relay-1' (circular, near Kerbin-synchronous altitude) and 'Debris XR-42' (Debris type, eccentric+inclined) all orbit Kerbin and render as faint orbit-path rings nested inside Mun's own ring, around the active vessel's own bright ring. 'Flag: Launch Pad' is a planted Flag on Kerbin with no orbit field at all: the contribution degrades it to a faint point at Kerbin's own centre rather than fabricating an orbit, deliberately overlapping the frame body's own marker (see vesselOrbitsContribution.ts's own doc comment on why 'at the body' is the only honest position a landed vessel has in this diagram). Deliberately unfiltered by vessel type (Debris/Flag included), matching the contribution's own documented divergence from FleetRoster's craft-only isRosterCraft filter. comms.network (Task 4) adds a small relay graph on top of this same roster: home->Comsat Relay-1 (KSC's own fixed dot at Kerbin, out to the relay's near-synchronous ring), Comsat Relay-1->Tester and Comsat Relay-1->Munar Transfer Stage (the relay routing both craft), all drawn as faint connection-line entities joined to the SAME positions the vessel-orbit contribution already computed. One extra edge (a phantom ground relay id absent from system.vessels) is included on purpose and renders NOTHING: an unresolvable endpoint is omitted outright rather than fabricated, the honest-degrade behaviour computeCommsNetworkEntities's tests cover directly."
   },
   "_stream": {
     "carriedChannels": [
@@ -12,7 +12,8 @@
       "vessel.identity",
       "vessel.target",
       "system.bodies",
-      "system.vessels"
+      "system.vessels",
+      "comms.network"
     ],
     "pinnedUt": 0,
     "emits": [
@@ -36,6 +37,7 @@
               "radius": 600000,
               "gravParameter": 3.5316e12,
               "sphereOfInfluence": 84159286,
+              "isHome": true,
               "hasOcean": true,
               "atmosphere": {
                 "depth": 70000,
@@ -185,6 +187,44 @@
               "vesselType": 8,
               "situation": 0,
               "bodyIndex": 1
+            }
+          ]
+        }
+      },
+      {
+        "channel": "comms.network",
+        "value": {
+          "nodes": [
+            { "id": "home", "displayName": "KSC", "kind": 0 },
+            {
+              "id": "v-comsat-relay-1",
+              "displayName": "Comsat Relay-1",
+              "kind": 1
+            },
+            { "id": "Tester", "displayName": "Tester", "kind": 2 },
+            {
+              "id": "v-munar-transfer",
+              "displayName": "Munar Transfer Stage",
+              "kind": 2
+            },
+            {
+              "id": "ground-relay-phantom",
+              "displayName": "Ground Relay (unresolved)",
+              "kind": 1
+            }
+          ],
+          "edges": [
+            { "a": "home", "b": "v-comsat-relay-1", "active": true },
+            { "a": "v-comsat-relay-1", "b": "Tester", "active": true },
+            {
+              "a": "v-comsat-relay-1",
+              "b": "v-munar-transfer",
+              "active": true
+            },
+            {
+              "a": "ground-relay-phantom",
+              "b": "v-debris-xr42",
+              "active": true
             }
           ]
         }

@@ -128,7 +128,7 @@ declare module "@ksp-gonogo/core" {
   interface ContributionRegistry {
     "system-view.entities": {
       entry: SystemEntity;
-      topics: "system.vessels" | "system.bodies";
+      topics: "system.vessels" | "system.bodies" | "comms.network";
     };
   }
 }
