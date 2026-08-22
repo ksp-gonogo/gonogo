@@ -771,7 +771,12 @@ function measure(host: HTMLElement): {
   signature: string;
 } {
   const clone = host.cloneNode(true) as HTMLElement;
-  for (const hidden of clone.querySelectorAll("[data-unit-word]")) {
+  // Screen-reader-only words, and anything a reader cannot read: xterm injects
+  // its own stylesheet INTO the widget, so `textContent` otherwise opens with a
+  // page of CSS selectors and the signature is mostly stylesheet.
+  for (const hidden of clone.querySelectorAll(
+    "[data-unit-word], style, script",
+  )) {
     hidden.remove();
   }
   const visibleText = (clone.textContent ?? "")

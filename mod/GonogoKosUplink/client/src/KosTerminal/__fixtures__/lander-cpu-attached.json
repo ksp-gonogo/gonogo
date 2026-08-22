@@ -1,0 +1,35 @@
+{
+  "_meta": {
+    "notes": "One booted CPU tagged 'lander', with the screen kOS itself draws on boot. The chunk is real VT (a clear-screen and a home, then the banner and prompt), so what renders is xterm's own interpretation of the bytes rather than a string in a box."
+  },
+  "_scene": {
+    "widget": "kos-terminal",
+    "caption": "Attached to the 'lander' CPU with line-mode composition on: what the operator types is held in the bar under the screen until Enter sends it as one command",
+    "config": { "cpuName": "lander", "lineMode": true },
+    "modes": ["default"]
+  },
+  "_stream": {
+    "pinnedUt": 1000000,
+    "emits": [
+      {
+        "topic": "kos.processors",
+        "payload": [
+          {
+            "coreId": 7,
+            "tag": "lander",
+            "hasBooted": true,
+            "processorMode": "READY"
+          }
+        ]
+      },
+      {
+        "topic": "kos.terminal.7",
+        "payload": {
+          "coreId": 7,
+          "chunk": "\u001b[2J\u001b[HkOS Operating System\r\nkOS v1.4.0.0\r\n\r\nProceed.\r\nkOS> ",
+          "fullRepaint": true
+        }
+      }
+    ]
+  }
+}

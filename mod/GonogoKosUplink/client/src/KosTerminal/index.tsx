@@ -1397,7 +1397,13 @@ registerComponent<KosTerminalConfig>({
   openConfigOnAdd: true,
   component: KosTerminalComponent,
   configComponent: KosTerminalConfigComponent,
-  dataRequirements: [],
+  // The CPU discovery channel this widget resolves its `cpuName` against. It
+  // was empty: the app carries `kos.processors` by default so nothing broke,
+  // while the declaration a stream-status badge and a render harness both
+  // derive from said the terminal needed no data at all. The per-CPU
+  // `kos.terminal.<coreId>` channel cannot be listed here, having no fixed
+  // member in the Topic union.
+  dataRequirements: ["kos.processors"],
   defaultConfig: { lineMode: true },
   owner: KOS,
 });

@@ -1,0 +1,11 @@
+{
+  "id": "kos",
+  "version": "0.0.1",
+  "description": "Puts a [kOS](https://github.com/KSP-KOS/KOS) CPU's terminal on the mission-control dashboard, streamed in process over the Uplink with no proxy to run.",
+  "minAppVersion": "0.0.0",
+  "apiVersion": "1.0.0",
+  "uiKitVersion": "0.2.0",
+  "contractMajor": 12,
+  "contractMinor": 22,
+  "integrity": "sha256-fb8169903fd7c22efa27e172d58d86a0020c6103c94d875336debda6c88dfcb4"
+}
