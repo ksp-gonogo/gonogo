@@ -31,6 +31,7 @@ export type KnownSitrepUnit =
   | "kW"
   | "kg"
   | "kg/m³"
+  | "kg/s"
   | "km"
   | "m"
   | "m/s"
@@ -78,6 +79,21 @@ export type UnitsByField = Readonly<Record<string, SitrepUnit>>;
  * payload shapes that no Topic names directly.
  */
 export const GENERATED_TYPE_UNITS: Readonly<Record<string, UnitsByField>> = {
+  "PrincipiaBurnEditArgs": {
+    burnIndex: "count",
+    deltaVBinormal: "m/s",
+    deltaVNormal: "m/s",
+    deltaVTangent: "m/s",
+    ignitionUt: "ut",
+    inertiallyFixed: "flag",
+    requestId: "id",
+    vesselId: "id",
+  },
+  "PrincipiaBurnRemoveArgs": {
+    burnIndex: "count",
+    requestId: "id",
+    vesselId: "id",
+  },
   "PrincipiaFlightPlan": {
     anomalousBurnCount: "count",
     finalTimeUt: "ut",
@@ -103,6 +119,76 @@ export const GENERATED_TYPE_UNITS: Readonly<Record<string, UnitsByField>> = {
     initialMassTons: "t",
     specificImpulseSeconds: "s",
     thrustKilonewtons: "kN",
+  },
+  "PrincipiaPlan": {
+    actualFinalTimeUt: "ut",
+    anomalousBurnCount: "count",
+    desiredFinalTimeUt: "ut",
+    initialTimeUt: "ut",
+    optimisationRunning: "flag",
+    planCount: "count",
+    planExists: "flag",
+    sampledAtUt: "ut",
+    selectedPlan: "count",
+    vesselId: "id",
+  },
+  "PrincipiaPlanArmArgs": {
+    requestId: "id",
+    vesselId: "id",
+  },
+  "PrincipiaPlanHorizonArgs": {
+    desiredFinalTimeUt: "ut",
+    requestId: "id",
+    vesselId: "id",
+  },
+  "PrincipiaPlanIntegrator": {
+    generalizedIntegratorKind: "enum",
+    integratorKind: "enum",
+    lengthToleranceMetres: "m",
+    maxSteps: "count",
+    speedToleranceMetresPerSecond: "m/s",
+  },
+  "PrincipiaPlanIntegratorArgs": {
+    lengthToleranceMetres: "m",
+    maxSteps: "count",
+    requestId: "id",
+    speedToleranceMetresPerSecond: "m/s",
+    vesselId: "id",
+  },
+  "PrincipiaPlanSlotArgs": {
+    finalTimeUt: "ut",
+    massTons: "t",
+    requestId: "id",
+    vesselId: "id",
+  },
+  "PrincipiaPlanWriteReceipt": {
+    refusalDetail: "text",
+    replayed: "flag",
+    requestId: "id",
+    statusError: "enum",
+    statusMessage: "text",
+  },
+  "PrincipiaPlannedBurn": {
+    anomalous: "flag",
+    coordinateSystem: "enum",
+    cutoffUt: "ut",
+    deltaV: "m/s",
+    deltaVBinormal: "m/s",
+    deltaVNormal: "m/s",
+    deltaVTangent: "m/s",
+    durationSeconds: "s",
+    executing: "flag",
+    finalMassTons: "t",
+    frameEditable: "flag",
+    frameType: "enum",
+    ignitionUt: "ut",
+    index: "count",
+    inertiallyFixed: "flag",
+    initialMassTons: "t",
+    massFlowKilogramsPerSecond: "kg/s",
+    specificImpulseSeconds: "s",
+    thrustKilonewtons: "kN",
+    timeToHalfDeltaVSeconds: "s",
   },
   "PrincipiaReferenceFrame": {
     centreBody: "text",
@@ -162,6 +248,13 @@ export const GENERATED_TYPE_UNITS: Readonly<Record<string, UnitsByField>> = {
     unpinnedMarkersHiddenHere: "flag",
     verboseLevel: "count",
   },
+  "PrincipiaWriteSurface": {
+    analysedVersion: "text",
+    armed: "flag",
+    available: "flag",
+    detectedVersion: "text",
+    reason: "text",
+  },
 };
 
 /**
@@ -180,6 +273,18 @@ export const GENERATED_TOPIC_UNITS: Readonly<Record<string, UnitsByField>> = {
     reachedDeadline: "flag",
     statusError: "enum",
     statusMessage: "text",
+    vesselId: "id",
+  },
+  "principia.plan": {
+    actualFinalTimeUt: "ut",
+    anomalousBurnCount: "count",
+    desiredFinalTimeUt: "ut",
+    initialTimeUt: "ut",
+    optimisationRunning: "flag",
+    planCount: "count",
+    planExists: "flag",
+    sampledAtUt: "ut",
+    selectedPlan: "count",
     vesselId: "id",
   },
   "principia.settings": {
@@ -251,6 +356,14 @@ export const GENERATED_TYPE_SHAPES: Readonly<Record<string, ShapesByField>> = {
   "PrincipiaFlightPlan": {
     burns: "PrincipiaFlightPlanBurn",
   },
+  "PrincipiaPlan": {
+    burns: "PrincipiaPlannedBurn",
+    integrator: "PrincipiaPlanIntegrator",
+    writeSurface: "PrincipiaWriteSurface",
+  },
+  "PrincipiaPlanWriteReceipt": {
+    plan: "PrincipiaPlan",
+  },
   "PrincipiaSettings": {
     burnFrames: "PrincipiaReferenceFrame",
     plottingFrame: "PrincipiaReferenceFrame",
@@ -261,6 +374,11 @@ export const GENERATED_TYPE_SHAPES: Readonly<Record<string, ShapesByField>> = {
 export const GENERATED_TOPIC_SHAPES: Readonly<Record<string, ShapesByField>> = {
   "principia.flightPlan": {
     burns: "PrincipiaFlightPlanBurn",
+  },
+  "principia.plan": {
+    burns: "PrincipiaPlannedBurn",
+    integrator: "PrincipiaPlanIntegrator",
+    writeSurface: "PrincipiaWriteSurface",
   },
   "principia.settings": {
     burnFrames: "PrincipiaReferenceFrame",

@@ -123,6 +123,11 @@ export type KnownQuantityKind =
   | "irradiance"
   | "level"
   | "density"
+  // Propellant leaving the vessel per second. A separate kind from `resourceFlow`
+  // for the reason `mass` and `resourceUnits` are separate: one is kilograms, the
+  // other is whatever the tank counts in, and only one of them multiplies by an
+  // exhaust velocity to give a thrust.
+  | "massFlow"
   | "gravParameter"
   | "dimensionless"
   | "percent"
@@ -395,6 +400,9 @@ const DECIMALS: Record<string, number> = {
   irlTime: 0,
   planeAngle: 2,
   density: 4,
+  // Two decimals: a small RCS burn runs at a fraction of a kilogram a second,
+  // and rounding that to zero reads as an engine that is not consuming anything.
+  massFlow: 2,
   // One decimal on the byte ladder: a drive reads "1.4 GB" and a file
   // "12.5 MB", and the rung changes before the digit count has to.
   data: 1,

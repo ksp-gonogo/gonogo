@@ -151,6 +151,14 @@ namespace Sitrep.Contract
         /// </summary>
         public const string Kilograms = "kg";
 
+        /// <summary>
+        /// Kilograms per second: propellant leaving a vessel while an engine
+        /// runs. An n-body flight plan integrates the burn rather than applying
+        /// an impulse, so the mass the vessel is shedding is part of the planned
+        /// profile and a stage change moves the trajectory.
+        /// </summary>
+        public const string KilogramsPerSecond = "kg/s";
+
         // --- Force ---
         /// <summary>Kilonewtons, KSP's own thrust unit (<c>DeltaVStageInfo.thrustVac</c>).</summary>
         public const string Kilonewtons = "kN";

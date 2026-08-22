@@ -36,6 +36,7 @@ export type KnownSitrepUnit =
   | "kW"
   | "kg"
   | "kg/m³"
+  | "kg/s"
   | "km"
   | "m"
   | "m/s"

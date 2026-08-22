@@ -1,0 +1,713 @@
+#if SITREP_CODEGEN
+using Reinforced.Typings.Attributes;
+#endif
+using Sitrep.Contract;
+
+namespace GonogoPrincipiaUplink;
+
+/// <summary>
+/// The <c>principia.plan</c> channel: the selected flight plan as the PLUGIN
+/// answers it, this tick, complete enough to tune a burn against.
+///
+/// <para><b>Why this is not <c>principia.flightPlan</c>.</b> That channel is a
+/// reflection of the producer's own planner window: it cannot abort, it survives
+/// a burn whose manœuvring frame we refuse to read, and it is stamped with the
+/// instant the window last drew. This one asks the plugin directly, so it is
+/// true now rather than whenever-someone-last-looked, and it carries the whole
+/// planned profile (the Δv triple, the mass flow, the frame of each burn) that
+/// the window's fields do not expose. It is also the riskier read of the two:
+/// materialising a plan is a frame spike, and one native call on this path
+/// aborts on a burn frame the producer does not handle. Both channels exist
+/// because neither is a superset of the other.</para>
+///
+/// <para><b>Absence is not silence here either.</b> No sample at all means no
+/// plugin, no vessel or no session. <see cref="PlanExists"/> false is a positive
+/// observation that the vessel holds no plan.</para>
+///
+/// <para><c>DelayRole.Delayed</c>: a per-vessel telemetry fact, subject to the
+/// reveal-gate like the plan mirror beside it.</para>
+/// </summary>
+[SitrepContract]
+[SitrepTopic("principia.plan")]
+#if SITREP_CODEGEN
+[TsInterface]
+#endif
+public sealed class PrincipiaPlan
+{
+    /// <summary>The vessel this plan belongs to, as the guid string.</summary>
+    [SitrepUnit(Units.Id)]
+    public string? VesselId { get; set; }
+
+    /// <summary>When the plugin was asked. Equal to the sample's own instant,
+    /// unlike the window mirror's observation stamp.</summary>
+    [SitrepUnit(Units.UniversalTime)]
+    public double? SampledAtUt { get; set; }
+
+    /// <summary>True when the vessel holds a plan. False is a positive
+    /// observation of none.</summary>
+    [SitrepUnit(Units.Flag)]
+    public bool? PlanExists { get; set; }
+
+    /// <summary>
+    /// Whether an edit can be dispatched at all, and if not, why.
+    ///
+    /// <para>This is the field a control surface renders itself from. A console
+    /// that offers an editor and then refuses every edit has told the operator
+    /// nothing until they tried; the state belongs beside the numbers being
+    /// edited.</para>
+    /// </summary>
+    public PrincipiaWriteSurface? WriteSurface { get; set; }
+
+    /// <summary>How many plans the vessel holds, up to the producer's ten.</summary>
+    [SitrepUnit(Units.Count)]
+    public int? PlanCount { get; set; }
+
+    /// <summary>Which plan is selected, from zero; <b>minus one means none</b>.
+    /// Every number below belongs to whichever this names.</summary>
+    [SitrepUnit(Units.Count)]
+    public int? SelectedPlan { get; set; }
+
+    /// <summary>Where the plan begins.</summary>
+    [SitrepUnit(Units.UniversalTime)]
+    public double? InitialTimeUt { get; set; }
+
+    /// <summary>Where the plan has been asked to end.</summary>
+    [SitrepUnit(Units.UniversalTime)]
+    public double? DesiredFinalTimeUt { get; set; }
+
+    /// <summary>How far it actually integrated. Short of the desired final time
+    /// exactly when the plan is in trouble.</summary>
+    [SitrepUnit(Units.UniversalTime)]
+    public double? ActualFinalTimeUt { get; set; }
+
+    /// <summary>How many burns the integrator flagged. They are the LAST n of
+    /// <see cref="Burns"/>, and each carries its own flag so no client repeats
+    /// that rule.</summary>
+    [SitrepUnit(Units.Count)]
+    public int? AnomalousBurnCount { get; set; }
+
+    /// <summary>
+    /// True when the producer's own optimiser is mid-run on this plan.
+    ///
+    /// <para>Not informational. A running optimiser publishes a fresh candidate
+    /// plan periodically and the producer's planner window swaps it over the
+    /// live one every frame, which discards an in-place edit wholesale and
+    /// reports nothing. An edit dispatched while this is true is refused rather
+    /// than raced.</para>
+    /// </summary>
+    [SitrepUnit(Units.Flag)]
+    public bool? OptimisationRunning { get; set; }
+
+    /// <summary>The integrator bounds this plan is being solved to, and the
+    /// remedy for the commonest reason a plan will not draw.</summary>
+    public PrincipiaPlanIntegrator? Integrator { get; set; }
+
+    /// <summary>The committed burns, in plan order.</summary>
+    public PrincipiaPlannedBurn[]? Burns { get; set; }
+}
+
+/// <summary>
+/// Whether the plan can be edited from here, and what is standing in the way.
+///
+/// <para>Three states rather than a boolean, because "not yet armed" and "this
+/// producer build was never analysed for writes" want completely different
+/// things from an operator: one is a click, the other is a version.</para>
+/// </summary>
+#if SITREP_CODEGEN
+[TsInterface]
+#endif
+public sealed class PrincipiaWriteSurface
+{
+    /// <summary>True when the surface could be armed: the producer's build is
+    /// one whose write entry points were analysed, and a plan is there to
+    /// edit.</summary>
+    [SitrepUnit(Units.Flag)]
+    public bool? Available { get; set; }
+
+    /// <summary>True when the operator has armed it and the struct round-trip
+    /// probes passed, so an edit will actually be attempted.</summary>
+    [SitrepUnit(Units.Flag)]
+    public bool? Armed { get; set; }
+
+    /// <summary>Why the surface is unavailable or unarmed, in a sentence an
+    /// operator can act on. Null only when <see cref="Armed"/> is true.</summary>
+    [SitrepUnit(Units.Text)]
+    public string? Reason { get; set; }
+
+    /// <summary>
+    /// The producer build the write entry points were read against, and the one
+    /// this surface will arm for. Carried so a mismatch can be reported as a
+    /// mismatch rather than as a vague refusal.
+    /// </summary>
+    [SitrepUnit(Units.Text)]
+    public string? AnalysedVersion { get; set; }
+
+    /// <summary>The build actually found. Equal to
+    /// <see cref="AnalysedVersion"/> when the gate opened.</summary>
+    [SitrepUnit(Units.Text)]
+    public string? DetectedVersion { get; set; }
+}
+
+/// <summary>
+/// The bounds the flight plan's own integration runs to, as the plugin holds
+/// them.
+///
+/// <para>The two integrator KINDS travel even though nothing sane changes them,
+/// because they are the field where a change is unlogged: they are drawn from
+/// disjoint sets over different equations, and handing the plugin the wrong one
+/// aborts the game with no message. Publishing them is what lets a client see
+/// that the pair it is about to write back is the pair it read.</para>
+/// </summary>
+#if SITREP_CODEGEN
+[TsInterface]
+#endif
+public sealed class PrincipiaPlanIntegrator
+{
+    /// <summary>Step limit per segment. The remedy when a plan stops short.</summary>
+    [SitrepUnit(Units.Count)]
+    public double? MaxSteps { get; set; }
+
+    /// <summary>Position tolerance.</summary>
+    [SitrepUnit(Units.Metres)]
+    public double? LengthToleranceMetres { get; set; }
+
+    /// <summary>Speed tolerance.</summary>
+    [SitrepUnit(Units.MetresPerSecond)]
+    public double? SpeedToleranceMetresPerSecond { get; set; }
+
+    /// <summary>The integrator kind, as the producer's own enum value.</summary>
+    [SitrepUnit(Units.Enumeration)]
+    public double? IntegratorKind { get; set; }
+
+    /// <summary>The generalized integrator kind, from a DIFFERENT set of
+    /// values than <see cref="IntegratorKind"/>.</summary>
+    [SitrepUnit(Units.Enumeration)]
+    public double? GeneralizedIntegratorKind { get; set; }
+}
+
+/// <summary>
+/// One planned burn, as the plugin describes it rather than as the producer's
+/// window displays it.
+///
+/// <para>The Δv triple is the point of this type. The window mirror carries a
+/// magnitude, which is enough to read and not enough to tune: nudging Δv means
+/// nudging one of three components, and which three depends on
+/// <see cref="CoordinateSystem"/>.</para>
+/// </summary>
+#if SITREP_CODEGEN
+[TsInterface]
+#endif
+public sealed class PrincipiaPlannedBurn
+{
+    /// <summary>Position in the plan, from zero.</summary>
+    [SitrepUnit(Units.Count)]
+    public int? Index { get; set; }
+
+    /// <summary>Ignition instant. The countdown an operator needs is to THIS,
+    /// never to a node: a finite burn starts here and the producer anchors its
+    /// own countdown the same way.</summary>
+    [SitrepUnit(Units.UniversalTime)]
+    public double? IgnitionUt { get; set; }
+
+    /// <summary>Cutoff instant.</summary>
+    [SitrepUnit(Units.UniversalTime)]
+    public double? CutoffUt { get; set; }
+
+    /// <summary>Burn length, an interval.</summary>
+    [SitrepUnit(Units.Seconds)]
+    public double? DurationSeconds { get; set; }
+
+    /// <summary>How long from ignition until half the Δv has been spent, which
+    /// is the instant a stock-shaped node would have been placed at.</summary>
+    [SitrepUnit(Units.Seconds)]
+    public double? TimeToHalfDeltaVSeconds { get; set; }
+
+    /// <summary>Δv magnitude, derived from the triple.</summary>
+    [SitrepUnit(Units.MetresPerSecond)]
+    public double? DeltaV { get; set; }
+
+    /// <summary>The along-track component. The producer's own word for this
+    /// axis is "tangent", and it is kept: relabelling it prograde is safe, but
+    /// relabelling the other two is a physics error, and a triple whose axes
+    /// come from two vocabularies is worse than one that keeps the
+    /// producer's.</summary>
+    [SitrepUnit(Units.MetresPerSecond)]
+    public double? DeltaVTangent { get; set; }
+
+    /// <summary>The in-plane component orthogonal to the track.</summary>
+    [SitrepUnit(Units.MetresPerSecond)]
+    public double? DeltaVNormal { get; set; }
+
+    /// <summary>The out-of-plane component.</summary>
+    [SitrepUnit(Units.MetresPerSecond)]
+    public double? DeltaVBinormal { get; set; }
+
+    /// <summary>Which coordinate system the triple is expressed in, as the
+    /// producer's own enum ordinal. One of its four values is Cartesian and the
+    /// other three are spherical, and the components above are only the whole
+    /// story for the Cartesian one.</summary>
+    [SitrepUnit(Units.Enumeration)]
+    public int? CoordinateSystem { get; set; }
+
+    /// <summary>True when the burn holds a fixed inertial attitude instead of
+    /// tracking its frame. A direction locked to the stars behaves differently
+    /// from one that rotates with the orbit, and that difference is the whole
+    /// point of the setting.</summary>
+    [SitrepUnit(Units.Flag)]
+    public bool? InertiallyFixed { get; set; }
+
+    /// <summary>Thrust the plan assumes.</summary>
+    [SitrepUnit(Units.Kilonewtons)]
+    public double? ThrustKilonewtons { get; set; }
+
+    /// <summary>Specific impulse the plan assumes, at standard gravity.</summary>
+    [SitrepUnit(Units.Seconds)]
+    public double? SpecificImpulseSeconds { get; set; }
+
+    /// <summary>Vessel mass at ignition.</summary>
+    [SitrepUnit(Units.Tonnes)]
+    public double? InitialMassTons { get; set; }
+
+    /// <summary>Vessel mass at cutoff.</summary>
+    [SitrepUnit(Units.Tonnes)]
+    public double? FinalMassTons { get; set; }
+
+    /// <summary>Propellant consumption while the burn runs. Part of the planned
+    /// profile rather than a curiosity: the plan integrates the burn, so a stage
+    /// or engine change moves the trajectory.</summary>
+    [SitrepUnit(Units.KilogramsPerSecond)]
+    public double? MassFlowKilogramsPerSecond { get; set; }
+
+    /// <summary>The burn's own manœuvring frame, as the producer's frame-type
+    /// enum value. Independent of the plotting frame, and routinely
+    /// different.</summary>
+    [SitrepUnit(Units.Enumeration)]
+    public int? FrameType { get; set; }
+
+    /// <summary>
+    /// True when this burn's frame is one an edit may be sent for.
+    ///
+    /// <para>Two of the producer's frame kinds are not. One is constructible but
+    /// no interface of its own ever produces it and it carries five constructor
+    /// invariants; the other has no case at all in the producer's frame factory
+    /// and reaching it aborts the game. Sending a burn back with either is a
+    /// process kill, so the answer travels with the burn rather than being
+    /// rediscovered per client.</para>
+    /// </summary>
+    [SitrepUnit(Units.Flag)]
+    public bool? FrameEditable { get; set; }
+
+    /// <summary>True when the burn is running right now: ignition is past and
+    /// cutoff is not. The plugin permits editing it and will not warn; that
+    /// guard is ours, so the fact is published.</summary>
+    [SitrepUnit(Units.Flag)]
+    public bool? Executing { get; set; }
+
+    /// <summary>True when this burn is one the integrator flagged.</summary>
+    [SitrepUnit(Units.Flag)]
+    public bool? Anomalous { get; set; }
+}
+
+/// <summary>
+/// What actually happened to a dispatched plan write. Three states, and none of
+/// them is a default that reads as success.
+///
+/// <para><b>Zero is <see cref="Refused"/> on purpose.</b> A producer that
+/// forgets to fill this field, or a consumer reading a payload from a producer
+/// that never had it, lands on "we did not touch the plan", which is the safe
+/// reading. A "nothing was refused" sentinel in the zero slot is what a silent
+/// no-op looks like from outside, and it has already been shipped once in this
+/// mod.</para>
+/// </summary>
+#if SITREP_CODEGEN
+[TsEnum]
+#endif
+[SitrepContract]
+public enum PrincipiaWriteOutcome
+{
+    /// <summary>We never called the plugin. <see cref="PrincipiaPlanWriteReceipt.Refusal"/>
+    /// says which guard stopped it.</summary>
+    Refused = 0,
+
+    /// <summary>We called, and the plugin declined: the burn was singular, it
+    /// did not fit between its neighbours, the final time was before the last
+    /// coast, or the integration ran out of budget.
+    /// <see cref="PrincipiaPlanWriteReceipt.StatusError"/> carries the
+    /// producer's own code.</summary>
+    Rejected = 1,
+
+    /// <summary>The plugin accepted the write. The plan state on the receipt is
+    /// what it looks like AFTER, re-read rather than assumed.</summary>
+    Written = 2,
+}
+
+/// <summary>
+/// Which guard refused a plan write.
+///
+/// <para><b>Zero is the closed answer</b>, for the reason
+/// <see cref="PrincipiaWriteOutcome.Refused"/> is: an unset field means "the
+/// surface is not available", never "nothing was wrong".</para>
+/// </summary>
+#if SITREP_CODEGEN
+[TsEnum]
+#endif
+[SitrepContract]
+public enum PrincipiaWriteRefusal
+{
+    /// <summary>No plugin, no session, or a producer build whose write entry
+    /// points were never analysed. Writes fail closed to read-only.</summary>
+    SurfaceUnavailable = 0,
+
+    /// <summary>Nothing refused it: this write was attempted. Only ever paired
+    /// with <see cref="PrincipiaWriteOutcome.Rejected"/> or
+    /// <see cref="PrincipiaWriteOutcome.Written"/>.</summary>
+    NotRefused = 1,
+
+    /// <summary>The surface was not armed. Every plan write changes the
+    /// player's saved game and re-integrates on the game's own thread, so it
+    /// takes a deliberate arm first.</summary>
+    NotArmed = 2,
+
+    /// <summary>The struct this write passes to the plugin failed its
+    /// round-trip probe, or the probe has not run. The producer's own structs
+    /// are generated from a schema that changed in the shipped release, and a
+    /// stale shape does not fail to resolve: it writes a plausible wrong burn
+    /// into the save.</summary>
+    LayoutUnverified = 3,
+
+    /// <summary>The plugin no longer knows this vessel.</summary>
+    VesselUnknown = 4,
+
+    /// <summary>The vessel holds no flight plan to edit.</summary>
+    NoFlightPlan = 5,
+
+    /// <summary>A plan already exists and this write would have created a
+    /// second without being asked to.</summary>
+    PlanAlreadyExists = 6,
+
+    /// <summary>The vessel already holds the producer's maximum of ten plans.
+    /// An eleventh makes the producer's own planner window throw on every
+    /// layout pass, permanently, with the button that would delete it inside the
+    /// part that stopped rendering.</summary>
+    PlanSlotsFull = 7,
+
+    /// <summary>The burn index was outside the count read in the same
+    /// frame.</summary>
+    BurnIndexOutOfRange = 8,
+
+    /// <summary>The burn is running right now. The plugin permits this and only
+    /// the rebase entry point checks, so the guard is ours.</summary>
+    BurnExecuting = 9,
+
+    /// <summary>The burn's manœuvring frame is one the producer's frame factory
+    /// does not handle, so sending the burn back would abort the game.</summary>
+    BurnFrameUnsupported = 10,
+
+    /// <summary>An optimisation is running on this plan and would revert the
+    /// edit without reporting it.</summary>
+    OptimisationRunning = 11,
+
+    /// <summary>A requested value was not finite, or a Δv triple would have
+    /// been.</summary>
+    ValueNotFinite = 12,
+
+    /// <summary>Thrust is not positive. A zero-thrust burn has infinite
+    /// duration, which the producer's own singularity test does not catch: it
+    /// pushes the plan's end instant to infinity, spawns a thread that never
+    /// terminates, and serialises the infinity into the save.</summary>
+    ThrustNotPositive = 13,
+
+    /// <summary>The integrator kinds read back from the plugin were not the
+    /// pair this build expects, so writing them back could abort with no
+    /// message.</summary>
+    IntegratorKindUnexpected = 14,
+
+    /// <summary>A requested integrator bound was outside the range the
+    /// producer's own controls offer.</summary>
+    IntegratorBoundsExceeded = 15,
+
+    /// <summary>A plan cannot be created ending before it starts.</summary>
+    FinalTimeInPast = 16,
+
+    /// <summary>There is no existing burn to copy, and this Uplink never
+    /// assembles one from constants.</summary>
+    NoTemplateBurn = 17,
+
+    /// <summary>A field this write must set was not found on the producer's own
+    /// struct, so its shape is not the shape that was analysed.</summary>
+    PluginShapeChanged = 18,
+}
+
+/// <summary>
+/// What a plan write did, as a separate artefact from the request.
+///
+/// <para><b>Why the plan is re-read rather than assumed.</b> Replacing the last
+/// burn can move the plan's end instant; so can the integration that follows any
+/// write; a rebase silently drops manœuvres that no longer fit and still reports
+/// success. So the honest answer to "what did my edit do" is a fresh reading,
+/// taken in the same frame as the write, and that is what this carries.</para>
+///
+/// <para><b>A refusal and a no-op are different facts.</b>
+/// <see cref="Outcome"/> separates "we never called" from "we called and it
+/// declined" from "it landed", and <see cref="Refusal"/> names the guard in the
+/// first case. Nothing here can render as a quiet success.</para>
+/// </summary>
+[SitrepContract]
+#if SITREP_CODEGEN
+[TsInterface]
+#endif
+public sealed class PrincipiaPlanWriteReceipt
+{
+    /// <summary>The request this answers, echoed back so a client can pair a
+    /// receipt with the edit it sent instead of with the edit it sent next.</summary>
+    [SitrepUnit(Units.Id)]
+    public string? RequestId { get; set; }
+
+    /// <summary>True when this receipt is a replay of an earlier identical
+    /// request rather than a fresh write. A plan write re-integrates
+    /// synchronously, so repeating one on a retry is expensive as well as
+    /// wrong.</summary>
+    [SitrepUnit(Units.Flag)]
+    public bool? Replayed { get; set; }
+
+    /// <summary>Refused, rejected or written. Never a success by default.</summary>
+    public PrincipiaWriteOutcome Outcome { get; set; } = PrincipiaWriteOutcome.Refused;
+
+    /// <summary>Which guard refused it.</summary>
+    public PrincipiaWriteRefusal Refusal { get; set; } = PrincipiaWriteRefusal.SurfaceUnavailable;
+
+    /// <summary>The refusal in a sentence, with the numbers that caused it.</summary>
+    [SitrepUnit(Units.Text)]
+    public string? RefusalDetail { get; set; }
+
+    /// <summary>The producer's own status code when it declined. Zero when it
+    /// accepted; null when we never called.</summary>
+    [SitrepUnit(Units.Enumeration)]
+    public int? StatusError { get; set; }
+
+    /// <summary>The producer's own message for a declined write, passed through
+    /// rather than reworded: it names conditions we do not model.</summary>
+    [SitrepUnit(Units.Text)]
+    public string? StatusMessage { get; set; }
+
+    /// <summary>The plan as it stands after the write, re-read in the same
+    /// frame. Null when nothing was attempted.</summary>
+    public PrincipiaPlan? Plan { get; set; }
+}
+
+/// <summary>
+/// Args for <c>principia.plan.arm</c>: run the struct round-trip probes and,
+/// if they pass, permit edits for a while.
+///
+/// <para>Arming is not a preference toggle. Every plan write is persisted into
+/// the player's save, can move and delete stock manœuvre nodes on the flying
+/// vessel, can quadruple a THIRD vessel's prediction budget, and re-integrates
+/// on the game's own thread with one wait that has no timeout. That is the class
+/// of consequence that put frame-setting behind an arm rather than in a settings
+/// panel.</para>
+/// </summary>
+[SitrepContract]
+#if SITREP_CODEGEN
+[TsInterface]
+#endif
+public class PrincipiaPlanArmArgs
+{
+    [SitrepUnit(Units.Id)]
+    public string? VesselId { get; set; }
+
+    /// <summary>Stable per-intent id. Reuse it on a retry of the same intent
+    /// and bump it only for a new one: a repeated id replays the previous
+    /// receipt instead of writing again.</summary>
+    [SitrepUnit(Units.Id)]
+    public string? RequestId { get; set; }
+}
+
+/// <summary>
+/// Which propulsion profile a burn edit should carry.
+/// </summary>
+#if SITREP_CODEGEN
+[TsEnum]
+#endif
+[SitrepContract]
+public enum PrincipiaBurnProfile
+{
+    /// <summary>Leave the thrust and specific impulse the plan already
+    /// holds.</summary>
+    Unchanged = 0,
+
+    /// <summary>The producer's own instant-impulse preset: thrust set so the
+    /// acceleration is a thousand metres per second squared at the burn's
+    /// initial mass, and a specific impulse of a thousand seconds. It exists to
+    /// see the shape of the resulting arc before tuning a real engine's burn,
+    /// and the numbers are the producer's rather than ours.</summary>
+    InstantImpulse = 1,
+}
+
+/// <summary>
+/// Args for <c>principia.plan.burn.replace</c> and
+/// <c>principia.plan.burn.insert</c>: tune one burn.
+///
+/// <para><b>Every field is optional and an omitted field means "leave it".</b>
+/// The burn that reaches the plugin is the burn READ BACK from it with the
+/// stated fields changed, never one assembled here. The producer's burn struct
+/// is generated from a schema that changed in the release this Uplink is keyed
+/// to; a round trip is layout-agnostic in a way a literal is not.</para>
+///
+/// <para>Insert uses the same shape: the burn at <see cref="BurnIndex"/> (or the
+/// last one, when inserting past the end) is the template, and the new burn goes
+/// in at <see cref="BurnIndex"/>. A plan with no burns has nothing to copy and
+/// the insert is refused rather than composed.</para>
+/// </summary>
+[SitrepContract]
+#if SITREP_CODEGEN
+[TsInterface]
+#endif
+public class PrincipiaBurnEditArgs
+{
+    [SitrepUnit(Units.Id)]
+    public string? VesselId { get; set; }
+
+    /// <summary>Stable per-intent id; see <see cref="PrincipiaPlanArmArgs.RequestId"/>.</summary>
+    [SitrepUnit(Units.Id)]
+    public string? RequestId { get; set; }
+
+    /// <summary>Which burn. Bounded against the count read in the same frame as
+    /// the write, never against one carried from an earlier tick.</summary>
+    [SitrepUnit(Units.Count)]
+    public int BurnIndex { get; set; }
+
+    /// <summary>New ignition instant. An instant, so a UT: the producer anchors
+    /// a burn to its start.</summary>
+    [SitrepUnit(Units.UniversalTime)]
+    public double? IgnitionUt { get; set; }
+
+    /// <summary>New along-track component.</summary>
+    [SitrepUnit(Units.MetresPerSecond)]
+    public double? DeltaVTangent { get; set; }
+
+    /// <summary>New in-plane component.</summary>
+    [SitrepUnit(Units.MetresPerSecond)]
+    public double? DeltaVNormal { get; set; }
+
+    /// <summary>New out-of-plane component.</summary>
+    [SitrepUnit(Units.MetresPerSecond)]
+    public double? DeltaVBinormal { get; set; }
+
+    /// <summary>Whether the burn holds a fixed inertial attitude.</summary>
+    [SitrepUnit(Units.Flag)]
+    public bool? InertiallyFixed { get; set; }
+
+    /// <summary>Which propulsion profile to plan against.</summary>
+    public PrincipiaBurnProfile Profile { get; set; } = PrincipiaBurnProfile.Unchanged;
+}
+
+/// <summary>
+/// Args for <c>principia.plan.burn.remove</c>: drop one burn from the plan.
+/// </summary>
+[SitrepContract]
+#if SITREP_CODEGEN
+[TsInterface]
+#endif
+public class PrincipiaBurnRemoveArgs
+{
+    [SitrepUnit(Units.Id)]
+    public string? VesselId { get; set; }
+
+    [SitrepUnit(Units.Id)]
+    public string? RequestId { get; set; }
+
+    [SitrepUnit(Units.Count)]
+    public int BurnIndex { get; set; }
+}
+
+/// <summary>
+/// Args for <c>principia.plan.horizon</c>: move where the plan is asked to end.
+///
+/// <para>The cheapest mutator in the family: it recomputes only the final coast.
+/// It is also the one that makes later burns vanish when shortened, and a burn
+/// that disappeared reads as a burn that was deleted, which is why the receipt
+/// carries the burn count afterwards.</para>
+/// </summary>
+[SitrepContract]
+#if SITREP_CODEGEN
+[TsInterface]
+#endif
+public class PrincipiaPlanHorizonArgs
+{
+    [SitrepUnit(Units.Id)]
+    public string? VesselId { get; set; }
+
+    [SitrepUnit(Units.Id)]
+    public string? RequestId { get; set; }
+
+    /// <summary>The plan's new end instant.</summary>
+    [SitrepUnit(Units.UniversalTime)]
+    public double DesiredFinalTimeUt { get; set; }
+}
+
+/// <summary>
+/// Args for <c>principia.plan.integrator</c>: raise the step budget or loosen
+/// the tolerances so a plan that stopped short can finish.
+///
+/// <para><b>Only three fields, and that is a safety property rather than a
+/// scope choice.</b> The struct the plugin takes also carries two integrator
+/// kinds, drawn from disjoint sets over different equations; swapping them is an
+/// abort with no message at all. The struct is read back, these three fields are
+/// changed, and it is written whole, which is exactly what the producer's own
+/// controls do and the reason they do it.</para>
+/// </summary>
+[SitrepContract]
+#if SITREP_CODEGEN
+[TsInterface]
+#endif
+public class PrincipiaPlanIntegratorArgs
+{
+    [SitrepUnit(Units.Id)]
+    public string? VesselId { get; set; }
+
+    [SitrepUnit(Units.Id)]
+    public string? RequestId { get; set; }
+
+    /// <summary>New step limit per segment, within the range the producer's own
+    /// stepper offers.</summary>
+    [SitrepUnit(Units.Count)]
+    public double? MaxSteps { get; set; }
+
+    /// <summary>New position tolerance.</summary>
+    [SitrepUnit(Units.Metres)]
+    public double? LengthToleranceMetres { get; set; }
+
+    /// <summary>New speed tolerance.</summary>
+    [SitrepUnit(Units.MetresPerSecond)]
+    public double? SpeedToleranceMetresPerSecond { get; set; }
+}
+
+/// <summary>
+/// Args for <c>principia.plan.create</c>, <c>principia.plan.delete</c> and
+/// <c>principia.plan.duplicate</c>: the plan slots themselves.
+///
+/// <para>Create is the only one that reads the two doubles. Delete and duplicate
+/// act on whichever plan is selected.</para>
+/// </summary>
+[SitrepContract]
+#if SITREP_CODEGEN
+[TsInterface]
+#endif
+public class PrincipiaPlanSlotArgs
+{
+    [SitrepUnit(Units.Id)]
+    public string? VesselId { get; set; }
+
+    [SitrepUnit(Units.Id)]
+    public string? RequestId { get; set; }
+
+    /// <summary>Where a newly created plan should end. Must not be before now:
+    /// the plugin checks that with an assertion and aborts the game rather than
+    /// returning an error.</summary>
+    [SitrepUnit(Units.UniversalTime)]
+    public double? FinalTimeUt { get; set; }
+
+    /// <summary>The mass a newly created plan should start from.</summary>
+    [SitrepUnit(Units.Tonnes)]
+    public double? MassTons { get; set; }
+}

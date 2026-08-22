@@ -59,6 +59,7 @@ export const GENERATED_UNIT_KINDS = {
   "kW": { kind: "power", ratio: 1000 },
   "kg": { kind: "mass", ratio: 1 },
   "kg/m³": { kind: "density", ratio: 1 },
+  "kg/s": { kind: "massFlow", ratio: 1 },
   "km": { kind: "length", ratio: 1000 },
   "km/h": { kind: "speed", ratio: 0.2777777777777778 },
   "km/s": { kind: "speed", ratio: 1000 },

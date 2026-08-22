@@ -171,6 +171,10 @@ export const UNIT_DEFINITIONS = {
 
   // ── Mass, force, energy, power, pressure ─────────────────────────────────
   kg: { dim: { kg: 1 }, ratio: 1, kind: "mass" },
+  // Propellant consumption. Declared outright rather than left to decompose out
+  // of mass-per-time, so it renders under its own kind instead of borrowing
+  // whichever kind the algebra happened to reach for.
+  "kg/s": { dim: { kg: 1, s: -1 }, ratio: 1, kind: "massFlow" },
   t: { dim: { kg: 1 }, ratio: 1_000, kind: "mass" },
   // The astronomical rungs are GRAM-based symbols on a KILOGRAM base: 1 Yg is
   // 1e24 g, which is 1e21 kg. Stating the ratio in kg is not a convenience, it
