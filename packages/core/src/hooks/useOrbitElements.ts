@@ -37,7 +37,7 @@ export interface OrbitElements {
  * Read the standard apo/peri/timeToAp/timeToPe orbital elements in one call.
  *
  * Native read: the whole `vessel.state` derived channel (SDK-side
- * `deriveVesselState`), off the shim: the same channel `DistanceToTarget`/
+ * `deriveVesselState`), off the shim: the same channel `Targeting`/
  * `TargetPicker`/`ManeuverPlanner`/`CurrentOrbit` read for their own
  * `vessel.state.*` fields. See this file's class-level doc comment for why
  * a `null` value (arrived, inapplicable) is passed through as-is rather than

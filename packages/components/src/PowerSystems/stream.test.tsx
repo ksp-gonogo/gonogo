@@ -37,7 +37,7 @@ function render(ui: ReactElement) {
  * read). `usePartsLive`'s per-part `resources` join now rides the SAME
  * `vessel.parts` payload (each part's `resources` map): a
  * `setupMockDataSource` AUX still feeds `parts.power`'s legacy MEASURED
- * reading, the same MIXED-source shape DistanceToTarget/TargetPicker's own
+ * reading, the same MIXED-source shape Targeting/TargetPicker's own
  * stream tests established.
  */
 afterEach(() => {

@@ -36,7 +36,7 @@ type VesselTarget = TopicPayload<"vessel.target">;
  */
 export const targetReckoning = defineProcessor({
   id: "target-reckoning",
-  owner: "distance-to-target",
+  owner: "targeting",
   deps: ["vessel.target"] as const,
   compute: (): { distanceM: number } | undefined => undefined,
 });
@@ -70,4 +70,4 @@ export const targetReckoning = defineProcessor({
  */
 const reckonTarget: ReckonerFor<VesselTarget> = () => undefined;
 
-registerReckoner("vessel.target", "distance-to-target", reckonTarget);
+registerReckoner("vessel.target", "targeting", reckonTarget);

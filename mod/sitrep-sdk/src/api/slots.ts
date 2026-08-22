@@ -61,9 +61,9 @@
 
 // "warp-control.stepper" carries no props today.
 
-// --- DistanceToTarget (packages/components/src/DistanceToTarget) -----------
+// --- Targeting (packages/components/src/Targeting) -----------
 
-/** Mirrors `DistanceToTargetHudContext` (DistanceToTarget/index.tsx). */
+/** Mirrors `DistanceToTargetHudContext` (Targeting/index.tsx). */
 export interface DistanceToTargetHudContext {
   /** Half-range in degrees the reticle box maps to; the reticle clamps at the edge. */
   maxDeg: number;

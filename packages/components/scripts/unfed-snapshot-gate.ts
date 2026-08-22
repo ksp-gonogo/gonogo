@@ -20,7 +20,7 @@
  * is the dashboard's, derived by the host from `dataRequirements`, so under a bare
  * widget harness it never renders at all and the wait is satisfied on the first
  * paint, before any emit. The flaw was diagnosed in a comment in
- * `DistanceToTarget/snapshots.test.tsx` and fixed only there, while the same wait
+ * `Targeting/snapshots.test.tsx` and fixed only there, while the same wait
  * stayed load-bearing elsewhere.
  *
  * A textual detector found the first widget and missed the second, because one
@@ -61,7 +61,7 @@ const EMPTY_BY_DESIGN: Record<string, string> = {
   // first run because their scenarios turned out to depend on their emits after
   // all: `ContractManager/no-contracts` renders "0 offered" from the wire,
   // `ThermalStatus/no-thermal-data` renders from the sentinel readings, and
-  // `DistanceToTarget/no-target` renders the tombstone's own age. All three are
+  // `Targeting/no-target` renders the tombstone's own age. All three are
   // fed renders, so allowlisting them would have granted a permission none of
   // them needed.
   //

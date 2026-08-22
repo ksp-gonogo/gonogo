@@ -194,5 +194,5 @@ export const APP_INTERNAL: Readonly<Record<string, number>> = {
   "tests/playwright/sitrep-stream-server.mjs": 7,
   "tests/playwright/widget-dom-mirror.spec.ts": 1,
   "tests/playwright/widgets/data-source-status.spec.ts": 1,
-  "tests/playwright/widgets/distance-to-target.spec.ts": 1,
+  "tests/playwright/widgets/targeting.spec.ts": 1,
 };

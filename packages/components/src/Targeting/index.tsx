@@ -45,7 +45,7 @@ import "./targetReckoning";
 
 type DockingHudMode = "hud" | "hud-with-camera";
 
-interface DistanceToTargetConfig {
+interface TargetingConfig {
   /**
    * Auto-switch to the docking HUD when the target is a vessel or docking
    * port and the distance drops under the approach threshold. Defaults to
@@ -65,23 +65,33 @@ interface DistanceToTargetConfig {
   cameraFlightId?: number | null;
 }
 
+// ── Augment slots (Uplink architecture) ─────────────────────────────────────
+//
+// This widget owns three slots (`augment-slot-map.md`, Targeting row).
+// Two are OVERLAY slots on the docking HUD and so PASS slot-props, an
+// overlay augment must draw in the HUD's own reticle space, so it receives
+// the parent's coordinate frame:
+//
+//   • `distance-to-target.camera` : a video backdrop behind the reticle/HUD.
+//     FILLED: a camera Uplink's augment now draws the close-range docking
+//     view here (not a standalone CameraFeed instance). The built-in
+//     `HudCamera` backdrop this slot once carried has been REMOVED along with
+//     it: it hard-wired one specific camera mod into the core widget, which
+//     is precisely what the slot exists to avoid. This widget no longer knows
+//     what a camera is: it decides WHETHER a backdrop should show
+//     (`hudMode`/viewport size) and passes its reticle frame down; the augment
+//     decides WHICH camera and renders it. An install with no camera Uplink
+//     composes the HUD with no video layer.
+//   • `distance-to-target.overlay`: alignment markers layered on top of the
+//     crosshair/reticle. A precision-docking / laser-rangefinder Uplink draws
+//     into the reticle box using the passed context. Composable by priority
+//     so several rangefinder/marker augments coexist.
+
 /**
- * The coordinate frame the docking-HUD overlay slots pass down, so an augment
- * can render in the HUD's own reticle space. This widget owns two such slots,
- * and both share this context.
- *
- * `distance-to-target.camera` is a video backdrop behind the reticle. A camera
- * Uplink's augment draws the close-range docking view there, rather than a
- * standalone CameraFeed instance. This widget knows nothing about cameras: it
- * decides WHETHER a backdrop should show, from `hudMode` and the viewport size,
- * and passes its reticle frame down, and the augment decides WHICH camera and
- * renders it. An install with no camera Uplink composes the HUD with no video
- * layer at all.
- *
- * `distance-to-target.overlay` takes alignment markers layered on top of the
- * crosshair. A precision-docking or laser-rangefinder Uplink draws into the
- * reticle box using the passed context, and the slot composes by priority so
- * several marker augments can coexist.
+ * Coordinate/context the docking-HUD overlay slots pass down so an augment
+ * can render in the HUD's own reticle space. Shared by both the camera
+ * backdrop (`distance-to-target.camera`) and the alignment-marker overlay
+ * (`distance-to-target.overlay`).
  */
 export interface DistanceToTargetHudContext {
   /** Half-range in degrees the reticle box maps to; the reticle clamps at the edge. */
@@ -112,13 +122,12 @@ export interface DistanceToTargetHudContext {
   cameraFlightId: number | null | undefined;
 }
 
-/**
- * Merging the slot ids and their props types into core's `SlotRegistry` is what
- * makes `registerAugment` and `<AugmentSlot props={...}>` type-check against the
- * context above precisely, rather than the loose `Record<string, unknown>` an
- * unmerged slot id would get. Co-located per widget rather than in one shared
- * registry file, so parallel slot work in other widgets never collides.
- */
+// Declaration-merge the slot ids → props types into core's `SlotRegistry` (a
+// hybrid, declaration-merging approach). Co-located here per-widget: no shared
+// central registry file: so parallel slot work in other widgets never collides.
+// This is what makes `registerAugment` / `<AugmentSlot props={...}>` type-check the
+// contexts above precisely, rather than the loose `Record<string, unknown>`
+// fallback an unmerged slot id would get.
 declare module "@ksp-gonogo/core" {
   interface SlotRegistry {
     "distance-to-target.camera": DistanceToTargetHudContext;
@@ -126,7 +135,11 @@ declare module "@ksp-gonogo/core" {
   }
 }
 
-// The facade-sealed-client copy of this merge lives in `mod/sitrep-sdk/src/api/slots.ts` rather than as a second `declare module "@ksp-gonogo/sitrep-sdk"` block here; MapView's identical comment and that module's header both say why.
+// The facade-sealed-client copy of this merge lives in
+// `mod/sitrep-sdk/src/api/slots.ts`, not a second `declare module
+// "@ksp-gonogo/sitrep-sdk"` block here: see MapView/index.tsx's identical
+// comment / that module's header for why
+// (docs/superpowers/plans/2026-07-19-facade-sealing.md §2.3).
 
 // Distances are in metres. Hysteresis prevents strobing at the thresholds.
 const HUD_ENTER_M = 100;
@@ -136,6 +149,23 @@ const APPROACH_EXIT_M = 5_500;
 
 type ViewMode = "tracking" | "approach" | "docking-hud";
 
+/**
+ * The last REAL observation behind a reading, whatever its currency, or nothing
+ * where there has not been one.
+ *
+ * Used only to derive the scalars the widget already computed client-side
+ * (distance, closing rate, dock angles) so that arithmetic stays in one place
+ * rather than being duplicated per arm. It deliberately does NOT decide how the
+ * result is presented: every caller branches on `targetReading.state` for that,
+ * and the non-observed branches are the ones that render the age. Passing this
+ * result straight to a readout without checking the state would reintroduce
+ * exactly the bug the union prevents, which is why it is a local helper and not
+ * exported.
+ *
+ * It never returns a MODELLED value: a reckoning is pulled explicitly through
+ * `reckon()` in the branch that renders it, so a propagated number can never
+ * arrive at a readout by accident.
+ */
 /**
  * The value a VERDICT may be drawn from: current, or modelled forward to the frame.
  * A stale reading gives nothing, because a judgement cannot be dated: the operator
@@ -169,23 +199,6 @@ function stillTrue<T, A>(
   return undefined;
 }
 
-/**
- * The last REAL observation behind a reading, whatever its currency, or nothing
- * where there has not been one.
- *
- * Used only to derive the scalars the widget already computed client-side
- * (distance, closing rate, dock angles) so that arithmetic stays in one place
- * rather than being duplicated per arm. It deliberately does NOT decide how the
- * result is presented: every caller branches on `targetReading.state` for that,
- * and the non-observed branches are the ones that render the age. Passing this
- * result straight to a readout without checking the state would reintroduce
- * exactly the bug the union prevents, which is why it is a local helper and not
- * exported.
- *
- * It never returns a MODELLED value: a reckoning is pulled explicitly through
- * `reckon()` in the branch that renders it, so a propagated number can never
- * arrive at a readout by accident.
- */
 function observedPayload<T>(reading: Reading<T>): T | undefined {
   switch (reading.state) {
     case "observed":
@@ -197,11 +210,11 @@ function observedPayload<T>(reading: Reading<T>): T | undefined {
   }
 }
 
-function DistanceToTargetComponent({
+function TargetingComponent({
   config,
   w,
   h,
-}: Readonly<ComponentProps<DistanceToTargetConfig>>) {
+}: Readonly<ComponentProps<TargetingConfig>>) {
   const autoSwitch = config?.autoSwitch !== false;
   const hudMode: DockingHudMode = config?.hudMode ?? "hud-with-camera";
 
@@ -1226,10 +1239,10 @@ function DockingHud(props: DockingHudProps) {
 
 // ── Config component ──────────────────────────────────────────────────────────
 
-function DistanceToTargetConfigComponent({
+function TargetingConfigComponent({
   config,
   onSave,
-}: Readonly<ConfigComponentProps<DistanceToTargetConfig>>) {
+}: Readonly<ConfigComponentProps<TargetingConfig>>) {
   const [autoSwitch, setAutoSwitch] = useState(config?.autoSwitch !== false);
   const [hudMode, setHudMode] = useState<DockingHudMode>(
     config?.hudMode ?? "hud-with-camera",
@@ -1246,7 +1259,7 @@ function DistanceToTargetConfigComponent({
   // as an override.
   const pinnedCameraId = config?.cameraFlightId;
 
-  const candidate = useMemo<DistanceToTargetConfig>(
+  const candidate = useMemo<TargetingConfig>(
     () => ({
       autoSwitch,
       hudMode,
@@ -1295,16 +1308,16 @@ function DistanceToTargetConfigComponent({
 
 // ── Registration ──────────────────────────────────────────────────────────────
 
-registerComponent<DistanceToTargetConfig>({
-  id: "distance-to-target",
-  name: "Distance to Target",
+registerComponent<TargetingConfig>({
+  id: "targeting",
+  name: "Targeting",
   description:
     "Target name + distance, with an auto-switching docking HUD (crosshair + alignment reticle + optional camera backdrop) when closing on a vessel or docking port.",
   tags: ["telemetry", "rendezvous"],
   defaultSize: { w: 6, h: 9 },
   minSize: { w: 3, h: 4 },
-  component: DistanceToTargetComponent,
-  configComponent: DistanceToTargetConfigComponent,
+  component: TargetingComponent,
+  configComponent: TargetingConfigComponent,
   dataRequirements: ["vessel.target", "vessel.dock"],
   defaultConfig: { autoSwitch: true, hudMode: "hud-with-camera" },
   augmentSlots: ["distance-to-target.camera", "distance-to-target.overlay"],
@@ -1312,4 +1325,4 @@ registerComponent<DistanceToTargetConfig>({
   requires: ["flight"],
 });
 
-export { DistanceToTargetComponent };
+export { TargetingComponent };

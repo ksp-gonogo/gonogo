@@ -18,7 +18,7 @@ import { PowerSystemsComponent } from "./index";
 
 /**
  * PowerSystems' behavior-preservation golden
- * dual-run (mirrors `DistanceToTarget/dual-run.test.tsx`): the SAME
+ * dual-run (mirrors `Targeting/dual-run.test.tsx`): the SAME
  * solar-charging scenario, rendered once via `vessel.parts`-carried
  * resources (both legs now: `usePartsLive` reads the per-part `resources`
  * join off `vessel.parts`, not the legacy `DataSource`) and once with

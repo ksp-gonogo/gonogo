@@ -70,7 +70,7 @@ export const ALLOWLIST: Record<ModToken, ModAllowlist> = {
       // uplink architecture §1's "P7 retires" tech-debt note.
       "packages/app/src/screens/MainScreen.tsx",
       "packages/app/src/screens/StationScreen.tsx",
-      // packages/components/src/DistanceToTarget/index.tsx was here: its built-in
+      // packages/components/src/Targeting/index.tsx was here: its built-in
       // HudCamera imported @ksp-gonogo/gonogo-kerbcast-uplink directly. That backdrop is
       // now the `kerbcast-docking-camera` AUGMENT filling the widget's
       // `distance-to-target.camera` slot, and the widget names no camera mod at

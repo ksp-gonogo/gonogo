@@ -720,7 +720,7 @@ function NavballComponent({
   const rows = h ?? 11;
   // The dial draws ONLY off an observed attitude.
   //
-  // `DistanceToTarget` reached the same answer for its docking reticle and the
+  // `Targeting` reached the same answer for its docking reticle and the
   // ball is the same kind of object, more so: both are instruments whose whole
   // meaning is "this is the situation NOW", and holding the last known value in
   // one is indistinguishable from a live reading. There is no caption that fixes

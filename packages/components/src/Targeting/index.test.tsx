@@ -10,7 +10,7 @@ import {
   type StreamFixture,
   setupStreamFixture,
 } from "../test/setupStreamFixture";
-import { DistanceToTargetComponent } from "./index";
+import { TargetingComponent } from "./index";
 
 /**
  * Mode-transition + docking-gate behavior, exercised through the stream
@@ -53,7 +53,7 @@ function renderWidget(
   const view = render(
     <fixture.Provider>
       <DashboardItemContext.Provider value={{ instanceId: props.id ?? "tar" }}>
-        <DistanceToTargetComponent
+        <TargetingComponent
           config={config}
           id={props.id ?? "tar"}
           w={props.w}
@@ -66,7 +66,7 @@ function renderWidget(
   return view;
 }
 
-describe("DistanceToTargetComponent", () => {
+describe("TargetingComponent", () => {
   let fixture: StreamFixture;
 
   afterEach(() => {
@@ -329,7 +329,7 @@ describe("DistanceToTargetComponent", () => {
   });
 });
 
-describe("DistanceToTarget: augment slots (spec §4)", () => {
+describe("Targeting: augment slots (spec §4)", () => {
   afterEach(() => {
     // clearAugments() must come after unmount, else a still-mounted
     // AugmentSlot re-renders outside act() when the registry notifies

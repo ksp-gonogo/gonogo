@@ -88,7 +88,7 @@ export interface FormatDurationOptions {
   /**
    * Prefix a launch-clock sign: `T+` for a negative (already-elapsed/past)
    * value, `T−` for a positive-or-zero (future) value. Mirrors
-   * `DistanceToTarget`'s `formatTca` convention. Off by default.
+   * `Targeting`'s `formatTca` convention. Off by default.
    */
   sign?: boolean;
 }

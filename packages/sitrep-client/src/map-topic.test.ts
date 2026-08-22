@@ -243,7 +243,7 @@ describe("mapTopic(sourceId, key): the M3 useDataValue migration table", () => {
     }
   });
 
-  it("leaves the true docking-orientation axes (dock.ax/ay/az) gapped until the DistanceToTarget migrate-widget task drops them (HUD proxy is the shared prerequisite)", () => {
+  it("leaves the true docking-orientation axes (dock.ax/ay/az) gapped until the Targeting migrate-widget task drops them (HUD proxy is the shared prerequisite)", () => {
     // Not on the wire; the shared deriveDockAngles HUD proxy replaces them, but
     // the widget still reads them legacy-only until its migration reworks the
     // fixtures/snapshots: so they stay tracked gaps for now.

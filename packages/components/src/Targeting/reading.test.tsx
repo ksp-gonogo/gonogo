@@ -9,10 +9,10 @@ import {
   teardownMockDataSource,
 } from "../test/setupMockDataSource";
 import { setupStreamFixture } from "../test/setupStreamFixture";
-import { DistanceToTargetComponent } from "./index";
+import { TargetingComponent } from "./index";
 
 /**
- * The `Reading<T>` proof. DistanceToTarget carried the worst defect the
+ * The `Reading<T>` proof. Targeting carried the worst defect the
  * absence-gate audit found: `tarName === undefined` rendered **"No target set
  * in KSP"**, a positive claim about game state derived from the absence of a
  * frame. A dropped link said "no target set". `vessel.target` is declared
@@ -53,14 +53,14 @@ async function mount(instanceId: string, pinnedUt = 10) {
   const rendered = render(
     <fixture.Provider>
       <DashboardItemContext.Provider value={{ instanceId }}>
-        <DistanceToTargetComponent id={instanceId} w={6} h={9} />
+        <TargetingComponent id={instanceId} w={6} h={9} />
       </DashboardItemContext.Provider>
     </fixture.Provider>,
   );
   return { fixture, legacyAux, rendered };
 }
 
-describe("DistanceToTarget: pending is no longer reported as a confirmed absence", () => {
+describe("Targeting: pending is no longer reported as a confirmed absence", () => {
   it("says it is waiting, not that no target is set, before anything arrives", async () => {
     const { legacyAux } = await mount("dtt-pending");
 
@@ -114,7 +114,7 @@ describe("DistanceToTarget: pending is no longer reported as a confirmed absence
 // producer's vocabulary, which is the trap in miniature: a fixture is not
 // evidence that a shape exists on the wire, and I read one as current twice in
 // two days.
-describe("DistanceToTarget: stale renders the last observation as an observation", () => {
+describe("Targeting: stale renders the last observation as an observation", () => {
   it("keeps the last distance but marks it at-last-contact once the link drops", async () => {
     const { fixture, legacyAux } = await mount("dtt-stale", 10);
 
@@ -178,7 +178,7 @@ describe("DistanceToTarget: stale renders the last observation as an observation
       // The same owner the shipped decliner registers under: this test replaces
       // that module's model rather than competing with it, and two owners on one
       // topic is a conflict the registry answers with nothing.
-      "distance-to-target",
+      "targeting",
       (p) => ({
         // Covers the payload ROOT, which is what a whole-topic read needs. A
         // real relative-position model would name just that path and this read
@@ -239,7 +239,7 @@ describe("DistanceToTarget: stale renders the last observation as an observation
     render(
       <fixture.Provider>
         <DashboardItemContext.Provider value={{ instanceId: "dtt-hud-stale" }}>
-          <DistanceToTargetComponent id="dtt-hud-stale" w={12} h={10} />
+          <TargetingComponent id="dtt-hud-stale" w={12} h={10} />
         </DashboardItemContext.Provider>
       </fixture.Provider>,
     );

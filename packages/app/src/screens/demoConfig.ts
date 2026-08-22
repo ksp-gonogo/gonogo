@@ -34,7 +34,7 @@ export const DEMO_CONFIG: DashboardConfig = {
     },
     { i: "orbit", componentId: "current-orbit" },
     { i: "orbit-view", componentId: "orbit-view" },
-    { i: "target", componentId: "distance-to-target" },
+    { i: "target", componentId: "targeting" },
     { i: "map", componentId: "map-view" },
     { i: "kos", componentId: "kos-terminal" },
     {
