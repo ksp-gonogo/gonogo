@@ -619,9 +619,11 @@ namespace GonogoPrincipiaUplink
             {
                 receipt = new Dictionary<string, object?>(receipt) { ["replayed"] = true };
             }
-            // A replayed receipt reports the outcome it reported the first time,
-            // including a failure, because the honest answer to "what happened to
-            // request 7" does not change on being asked twice.
+            // A replayed receipt reports the outcome AND the code it reported the
+            // first time, including a failure, because the honest answer to "what
+            // happened to request 7" does not change on being asked twice. Both are
+            // recovered from the receipt rather than re-derived from anything live:
+            // the world may have moved on, and this answer is about the past.
             var outcome = receipt.TryGetValue("outcome", out var value) && value is int code
                 ? (PrincipiaWriteOutcome)code
                 : PrincipiaWriteOutcome.Refused;
@@ -629,10 +631,14 @@ namespace GonogoPrincipiaUplink
             {
                 return CommandResult<Dictionary<string, object?>>.Ok(receipt);
             }
+            var refusal =
+                receipt.TryGetValue("refusal", out var refusalValue) && refusalValue is int refusalCode
+                    ? (PrincipiaWriteRefusal)refusalCode
+                    : PrincipiaWriteRefusal.SurfaceUnavailable;
             return new CommandResult<Dictionary<string, object?>>
             {
                 Success = false,
-                ErrorCode = CommandErrorCode.WrongState,
+                ErrorCode = Code(outcome, refusal),
                 Detail = receipt.TryGetValue("refusalDetail", out var detail) ? detail as string : null,
                 Payload = receipt,
             };
@@ -650,9 +656,13 @@ namespace GonogoPrincipiaUplink
         /// sentence instead.</para>
         /// </summary>
         private static CommandErrorCode Code(PrincipiaWriteResult result) =>
-            result.Outcome == PrincipiaWriteOutcome.Rejected
+            Code(result.Outcome, result.Refusal);
+
+        private static CommandErrorCode Code(
+            PrincipiaWriteOutcome outcome, PrincipiaWriteRefusal refusal) =>
+            outcome == PrincipiaWriteOutcome.Rejected
                 ? CommandErrorCode.WrongState
-                : result.Refusal switch
+                : refusal switch
                 {
                     PrincipiaWriteRefusal.SurfaceUnavailable => CommandErrorCode.ModeUnavailable,
                     PrincipiaWriteRefusal.NotArmed => CommandErrorCode.NotClearToProceed,

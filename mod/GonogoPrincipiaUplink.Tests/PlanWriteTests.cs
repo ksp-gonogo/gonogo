@@ -866,9 +866,10 @@ namespace GonogoPrincipiaUplink.Tests
             Assert.Single(plugin.Known(Guid).Burns);
         }
 
-        /// <summary>A replay reports the outcome it reported the first time,
-        /// including a failure: the honest answer to "what happened to request 7"
-        /// does not change on being asked twice.</summary>
+        /// <summary>A replay reports the outcome, the guard AND the typed code it
+        /// reported the first time, including a failure: the honest answer to "what
+        /// happened to request 7" does not change on being asked twice, and a client
+        /// branching on the coarse code must not see it move under a retry.</summary>
         [Fact]
         public void AReplayedRefusalIsStillARefusal()
         {
@@ -884,6 +885,11 @@ namespace GonogoPrincipiaUplink.Tests
             Assert.False(again.Success);
             Assert.Equal(PrincipiaWriteRefusal.BurnIndexOutOfRange, Refusal(again));
             Assert.Equal(true, Receipt(again)["replayed"]);
+            // The coarse code too, and it must be the SAME one: a client that
+            // branches on the shared vocabulary would otherwise see a retry turn
+            // "the burn is not in this plan" into something else.
+            Assert.Equal(CommandErrorCode.NotFound, first.ErrorCode);
+            Assert.Equal(first.ErrorCode, again.ErrorCode);
         }
 
 
