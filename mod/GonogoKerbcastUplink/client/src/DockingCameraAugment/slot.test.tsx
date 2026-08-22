@@ -66,13 +66,13 @@ function renderSlot(stream: StreamFixture) {
     <stream.Provider>
       <DomainAvailabilityProvider>
         <KerbcastAvailabilityFeeder />
-        <AugmentSlot name="distance-to-target.camera" props={HUD_CONTEXT} />
+        <AugmentSlot name="targeting.camera" props={HUD_CONTEXT} />
       </DomainAvailabilityProvider>
     </stream.Provider>,
   );
 }
 
-describe("kerbcast docking-camera augment: distance-to-target.camera slot", () => {
+describe("kerbcast docking-camera augment: targeting.camera slot", () => {
   beforeEach(() => {
     clearRegistry();
     clearUplinkHandles();
@@ -129,7 +129,7 @@ describe("kerbcast docking-camera augment: distance-to-target.camera slot", () =
 
   it("stays absent with no TelemetryProvider at all (no stream mounted)", () => {
     const { container } = render(
-      <AugmentSlot name="distance-to-target.camera" props={HUD_CONTEXT} />,
+      <AugmentSlot name="targeting.camera" props={HUD_CONTEXT} />,
     );
     expect(container.querySelector("video")).toBeNull();
   });

@@ -92,7 +92,7 @@ export function isPartCamera(camera: CameraState): boolean {
 
 // ---------------------------------------------------------------------------
 // Augment slots. CameraFeed is PRIMARILY an
-// augment itself (it fills `distance-to-target.camera`) and secondarily a HOST
+// augment itself (it fills `targeting.camera`) and secondarily a HOST
 // widget that exposes two slots. No first-party augment fills either here, the
 // package move + Kerbalism/RA fillers are a later phase, so each renders
 // nothing until an Uplink registers into it.

@@ -60,7 +60,7 @@ interface TargetingConfig {
    * than this widget: it can see which camera is actually a docking camera).
    * Meaningful only when `hudMode === "hud-with-camera"`. Kept as an opaque
    * number so this widget stays camera-vendor-agnostic; it is passed straight
-   * through to the augment via `DistanceToTargetHudContext`.
+   * through to the augment via `TargetingHudContext`.
    */
   cameraFlightId?: number | null;
 }
@@ -72,7 +72,7 @@ interface TargetingConfig {
 // overlay augment must draw in the HUD's own reticle space, so it receives
 // the parent's coordinate frame:
 //
-//   • `distance-to-target.camera` : a video backdrop behind the reticle/HUD.
+//   • `targeting.camera`: a video backdrop behind the reticle/HUD.
 //     FILLED: a camera Uplink's augment now draws the close-range docking
 //     view here (not a standalone CameraFeed instance). The built-in
 //     `HudCamera` backdrop this slot once carried has been REMOVED along with
@@ -82,7 +82,7 @@ interface TargetingConfig {
 //     (`hudMode`/viewport size) and passes its reticle frame down; the augment
 //     decides WHICH camera and renders it. An install with no camera Uplink
 //     composes the HUD with no video layer.
-//   • `distance-to-target.overlay`: alignment markers layered on top of the
+//   • `targeting.overlay`: alignment markers layered on top of the
 //     crosshair/reticle. A precision-docking / laser-rangefinder Uplink draws
 //     into the reticle box using the passed context. Composable by priority
 //     so several rangefinder/marker augments coexist.
@@ -90,10 +90,10 @@ interface TargetingConfig {
 /**
  * Coordinate/context the docking-HUD overlay slots pass down so an augment
  * can render in the HUD's own reticle space. Shared by both the camera
- * backdrop (`distance-to-target.camera`) and the alignment-marker overlay
- * (`distance-to-target.overlay`).
+ * backdrop (`targeting.camera`) and the alignment-marker overlay
+ * (`targeting.overlay`).
  */
-export interface DistanceToTargetHudContext {
+export interface TargetingHudContext {
   /** Half-range in degrees the reticle box maps to; the reticle clamps at the edge. */
   maxDeg: number;
   /**
@@ -130,8 +130,8 @@ export interface DistanceToTargetHudContext {
 // fallback an unmerged slot id would get.
 declare module "@ksp-gonogo/core" {
   interface SlotRegistry {
-    "distance-to-target.camera": DistanceToTargetHudContext;
-    "distance-to-target.overlay": DistanceToTargetHudContext;
+    "targeting.camera": TargetingHudContext;
+    "targeting.overlay": TargetingHudContext;
   }
 }
 
@@ -1018,7 +1018,7 @@ function DockingHud(props: DockingHudProps) {
   // to draw in the HUD's own space. `reticleTravelPct` (40) is the
   // `50 + dx·40 %` factor the built-in reticle uses, so an augment marker at
   // `50 + offset·reticleTravelPct` % lands in the same space.
-  const hudContext: DistanceToTargetHudContext = {
+  const hudContext: TargetingHudContext = {
     maxDeg: MAX_DEG,
     reticleOffset: { x: dx, y: dy },
     reticleTravelPct: 40,
@@ -1050,7 +1050,7 @@ function DockingHud(props: DockingHudProps) {
           (too small to be worth a backdrop), the same two conditions the
           built-in HudCamera this slot replaced was gated on. */}
       {showCamera && showViewport && (
-        <AugmentSlot name="distance-to-target.camera" props={hudContext} />
+        <AugmentSlot name="targeting.camera" props={hudContext} />
       )}
       {showViewport && (
         <div
@@ -1083,7 +1083,7 @@ function DockingHud(props: DockingHudProps) {
           <VertTick top="90%" />
           {/* Alignment-marker overlay slot: composable augments draw
               on top of the reticle in the same coordinate frame via `hudContext`. */}
-          <AugmentSlot name="distance-to-target.overlay" props={hudContext} />
+          <AugmentSlot name="targeting.overlay" props={hudContext} />
         </div>
       )}
 
@@ -1250,12 +1250,12 @@ function TargetingConfigComponent({
   // Carried through untouched rather than edited here. The camera PICKER left
   // with the built-in HudCamera: listing and labelling cameras needs a camera
   // mod's SDK, and this widget deliberately no longer depends on one. The
-  // augment that fills `distance-to-target.camera` now selects the camera
+  // augment that fills `targeting.camera` now selects the camera
   // itself: for a DOCKING HUD it can identify the actual docking camera,
   // which is strictly better than the manual pick this replaced (that existed
   // only because nothing could tell docking cameras apart). An operator who
   // had pinned a camera keeps it: the value still round-trips through config
-  // and reaches the augment via `DistanceToTargetHudContext`, which honours it
+  // and reaches the augment via `TargetingHudContext`, which honours it
   // as an override.
   const pinnedCameraId = config?.cameraFlightId;
 
@@ -1320,7 +1320,7 @@ registerComponent<TargetingConfig>({
   configComponent: TargetingConfigComponent,
   dataRequirements: ["vessel.target", "vessel.dock"],
   defaultConfig: { autoSwitch: true, hudMode: "hud-with-camera" },
-  augmentSlots: ["distance-to-target.camera", "distance-to-target.overlay"],
+  augmentSlots: ["targeting.camera", "targeting.overlay"],
   pushable: true,
   requires: ["flight"],
 });

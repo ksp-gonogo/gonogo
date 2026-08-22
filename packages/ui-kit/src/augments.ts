@@ -3,6 +3,7 @@ import type {
   NamespacedAugmentSettings,
   SlotProps,
 } from "@ksp-gonogo/sitrep-sdk";
+import { hasHost, logger } from "@ksp-gonogo/sitrep-sdk";
 
 // ---------------------------------------------------------------------------
 // The augment model (Uplink architecture spec §4)
@@ -14,8 +15,9 @@ import type {
 //
 // This registry lives in the published design floor (`@ksp-gonogo/ui-kit`) so
 // contributions AND augments both resolve from the one package a third-party
-// Uplink can import. It is spine-free: it sources only `sitrep-sdk` TYPES, the
-// react types, and this package's own `UplinkClientIdentity`. `@ksp-gonogo/core`
+// Uplink can import. It is spine-free: it sources `sitrep-sdk` types, the react
+// types, this package's own `UplinkClientIdentity`, and the sdk's `logger` /
+// `hasHost` for the retired-slot diagnostic below. `@ksp-gonogo/core`
 // re-exports every symbol here, so a `declare module "@ksp-gonogo/core"`
 // augmentation of `SlotRegistry` still merges and every existing core importer
 // is byte-identical. The frame-batched evaluator that consumes availability
@@ -167,6 +169,53 @@ export type AnyAugment = AugmentDefinition<string>;
 const augments = new Map<string, { def: AnyAugment; order: number }>();
 let registrationCounter = 0;
 
+/**
+ * Slot ids this repo has retired, mapped to the id that replaced them.
+ *
+ * A renamed slot is the one registry mistake that costs nothing at registration
+ * and everything at render: `registerAugment` accepts any string, and
+ * `getAugmentsForSlot` matches on equality, so an augment bound to a retired id
+ * is stored, never matched, and draws nothing, with no error anywhere. A
+ * third-party Uplink pinned to the old name would look installed and healthy
+ * while contributing no pixels.
+ *
+ * There is deliberately no general unknown-slot check to lean on here: slot ids
+ * are a compile-time declaration-merging seam (`SlotRegistry`) declared across
+ * many packages, so at runtime this registry sees only strings and cannot know
+ * which are real. It CAN know which ones we ourselves retired, which is the case
+ * that actually breaks a working Uplink, so that is what this table carries.
+ *
+ * Entries stay for as long as an Uplink built against the old name might still
+ * be installed. The retired id is not accepted, only explained: forwarding it to
+ * the new slot would keep a dead name silently load-bearing.
+ */
+export const RETIRED_SLOT_IDS: Readonly<Record<string, string>> = {
+  "distance-to-target.camera": "targeting.camera",
+  "distance-to-target.overlay": "targeting.overlay",
+};
+
+/**
+ * An augment named a retired slot, so it would render nothing. Reported through
+ * the host's logger when there is a host, so it reaches Axiom and the shared
+ * `exportLogs()` buffer, and through `console.error` when there is not: the
+ * sdk's `logger` is a Proxy over `getHost().logger` and THROWS when nothing is
+ * installed, which would turn a stale slot name into a torn-down module load in
+ * exactly the setting where a bare registration is likeliest, an Uplink's test.
+ */
+function reportIfSlotRetired(
+  def: Pick<AugmentDefinition<string>, "id" | "augments" | "owner">,
+): void {
+  const replacement = RETIRED_SLOT_IDS[def.augments];
+  if (!replacement) return;
+  const owner = def.owner ? `${def.owner.name} (${def.owner.id})` : "unknown";
+  const message =
+    `Augment "${def.id}" binds retired slot "${def.augments}", ` +
+    `renamed to "${replacement}"; it will render nothing until updated. ` +
+    `Registered by Uplink: ${owner}`;
+  if (hasHost()) logger.error(message);
+  else console.error(message);
+}
+
 const augmentListeners = new Set<() => void>();
 function notifyAugmentChange(): void {
   for (const cb of augmentListeners) cb();
@@ -189,6 +238,7 @@ export function onAugmentsChange(cb: () => void): () => void {
 export function registerAugment<S extends string>(
   def: AugmentDefinition<S>,
 ): void {
+  reportIfSlotRetired(def);
   augments.set(def.id, {
     // Erased through `unknown`: with the slot registry merged, `SlotProps<S>` is
     // a real props type rather than the loose bag it collapsed to while ui-kit

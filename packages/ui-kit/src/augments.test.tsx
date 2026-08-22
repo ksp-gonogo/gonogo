@@ -1,10 +1,13 @@
 import { act, render, screen, waitFor } from "@ksp-gonogo/sitrep-sdk/testing";
-import { beforeEach, describe, expect, it } from "vitest";
+import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { AugmentSlot, useAugmentAvailable } from "./AugmentSlot";
 import {
+  type AugmentDefinition,
   clearAugments,
   getAugmentSettings,
+  getAugments,
   getAugmentsForSlot,
+  RETIRED_SLOT_IDS,
   registerAugment,
 } from "./augments";
 import {
@@ -383,5 +386,109 @@ describe("AugmentSlot segment mode", () => {
       <AugmentSlot name="power-systems.sections" props={{}} />,
     );
     expect(container.textContent).toBe("named");
+  });
+});
+
+describe("augment registry: retired slot ids", () => {
+  let errors: string[];
+  let restore: () => void;
+
+  beforeEach(() => {
+    errors = [];
+    const original = console.error;
+    console.error = (...args: unknown[]) => {
+      errors.push(args.map(String).join(" "));
+    };
+    restore = () => {
+      console.error = original;
+    };
+  });
+
+  afterEach(() => restore());
+
+  it("names the old id, the new id and the Uplink when an augment binds a retired slot", () => {
+    registerAugment({
+      id: "docking-camera",
+      augments: "distance-to-target.camera",
+      component: () => null,
+      owner: {
+        id: "demomod",
+        name: "Demo Mod",
+      } as AugmentDefinition<string>["owner"],
+    });
+
+    expect(errors).toHaveLength(1);
+    expect(errors[0]).toContain("distance-to-target.camera");
+    expect(errors[0]).toContain("targeting.camera");
+    expect(errors[0]).toContain("docking-camera");
+    expect(errors[0]).toContain("Demo Mod (demomod)");
+    expect(errors[0]).toContain("render nothing");
+  });
+
+  it("covers every retired id, so no rename is left explaining nothing", () => {
+    for (const retired of Object.keys(RETIRED_SLOT_IDS)) {
+      registerAugment({
+        id: `aug-for-${retired}`,
+        augments: retired,
+        component: () => null,
+      });
+    }
+
+    expect(errors).toHaveLength(Object.keys(RETIRED_SLOT_IDS).length);
+  });
+
+  it("says so even when the Uplink is anonymous, rather than staying quiet", () => {
+    registerAugment({
+      id: "anonymous-aug",
+      augments: "distance-to-target.overlay",
+      component: () => null,
+    });
+
+    expect(errors).toHaveLength(1);
+    expect(errors[0]).toContain("targeting.overlay");
+    expect(errors[0]).toContain("unknown");
+  });
+
+  it("stays quiet for the replacement id, and the augment actually renders", () => {
+    registerAugment({
+      id: "updated-aug",
+      augments: "targeting.camera",
+      component: () => <div>backdrop</div>,
+    });
+
+    expect(errors).toEqual([]);
+    expect(getAugmentsForSlot("targeting.camera")).toHaveLength(1);
+
+    const { container } = render(
+      <AugmentSlot name="targeting.camera" props={{}} />,
+    );
+    expect(container.textContent).toBe("backdrop");
+  });
+
+  it("stays quiet for an unrelated slot", () => {
+    registerAugment({
+      id: "unrelated",
+      augments: "power-systems.sections",
+      component: () => null,
+    });
+
+    expect(errors).toEqual([]);
+  });
+
+  it("stores the augment under the retired id without matching it, which is the silence being reported", () => {
+    registerAugment({
+      id: "stale-aug",
+      augments: "distance-to-target.camera",
+      component: () => <div>stale</div>,
+    });
+
+    // The registry holds it, so the author sees a "registered" augment...
+    expect(getAugments().map((a) => a.id)).toContain("stale-aug");
+    // ...that no slot will ever render, on either the old or the new name.
+    expect(getAugmentsForSlot("targeting.camera")).toEqual([]);
+    const { container } = render(
+      <AugmentSlot name="targeting.camera" props={{}} />,
+    );
+    expect(container.textContent).toBe("");
   });
 });

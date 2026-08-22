@@ -1,6 +1,6 @@
 // kerbcast docking-camera augment for Targeting.
 //
-// Fills Targeting's `distance-to-target.camera` slot with a live video
+// Fills Targeting's `targeting.camera` slot with a live video
 // backdrop behind the docking reticle. This is the filler that widget's
 // augment-slot doc block was written for: the slot was previously only
 // EXPOSED, with a built-in `HudCamera` holding the spot "until the kerbcast
@@ -9,7 +9,7 @@
 //
 // Why an augment and not a standalone CameraFeed instance: the backdrop has to
 // draw in the HUD's own reticle space and share its lifecycle. The slot passes
-// `DistanceToTargetHudContext` for exactly that, and `requires: "kerbcast"`
+// `TargetingHudContext` for exactly that, and `requires: "kerbcast"`
 // means an install without the kerbcast mod composes the HUD without any video
 // layer at all: rather than the core client shipping a camera path it can
 // never light up.
@@ -61,7 +61,7 @@ function stillTrue<T, A>(
 
 export function DockingCameraAugment({
   cameraFlightId,
-}: SlotProps<"distance-to-target.camera">) {
+}: SlotProps<"targeting.camera">) {
   // A camera roster is a fact: cameras are fitted by an event, not by a frame.
   const cameras = stillTrue(useTelemetry("kerbcast.cameras"), undefined);
   const flightId = selectDockingCamera(cameras, cameraFlightId);
@@ -157,7 +157,7 @@ function DockingCameraVideo({ flightId }: { flightId: number }) {
 
 registerAugment({
   id: "kerbcast-docking-camera",
-  augments: "distance-to-target.camera",
+  augments: "targeting.camera",
   requires: "kerbcast",
   channels: ["kerbcast.cameras"],
   component: DockingCameraAugment,

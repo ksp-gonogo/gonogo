@@ -31,6 +31,7 @@ export {
   getAugmentsForSlot,
   type NamespacedAugmentSettings,
   onAugmentsChange,
+  RETIRED_SLOT_IDS,
   registerAugment,
   type SlotId,
   type SlotProps,

@@ -344,18 +344,18 @@ describe("Targeting: augment slots (spec §4)", () => {
   });
 
   it("exposes the docking-HUD .overlay + .camera slots and passes the reticle/camera context", async () => {
-    registerAugment<"distance-to-target.overlay">({
+    registerAugment<"targeting.overlay">({
       id: "test-overlay",
-      augments: "distance-to-target.overlay",
+      augments: "targeting.overlay",
       component: ({ maxDeg, reticleTravelPct }) => (
         <div data-testid="ovl">
           maxDeg={maxDeg}/travel={reticleTravelPct}
         </div>
       ),
     });
-    registerAugment<"distance-to-target.camera">({
+    registerAugment<"targeting.camera">({
       id: "test-camera",
-      augments: "distance-to-target.camera",
+      augments: "targeting.camera",
       component: ({ cameraFlightId }) => (
         <div data-testid="cam">cam={String(cameraFlightId)}</div>
       ),

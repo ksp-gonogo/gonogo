@@ -73,7 +73,7 @@ export const ALLOWLIST: Record<ModToken, ModAllowlist> = {
       // packages/components/src/Targeting/index.tsx was here: its built-in
       // HudCamera imported @ksp-gonogo/gonogo-kerbcast-uplink directly. That backdrop is
       // now the `kerbcast-docking-camera` AUGMENT filling the widget's
-      // `distance-to-target.camera` slot, and the widget names no camera mod at
+      // `targeting.camera` slot, and the widget names no camera mod at
       // all: so the entry went stale and ratcheted off.
 
       // -- TEST-only, exercising the HARD cluster above --

@@ -37,7 +37,7 @@ import type { PowerSystemsScope } from "./PowerSystems";
 import type { ScienceDataAboardRowContext } from "./ScienceData";
 import type { ShipMapOverlayContext } from "./ShipMap";
 import type { SystemOverlayContext } from "./SystemView";
-import type { DistanceToTargetHudContext } from "./Targeting";
+import type { TargetingHudContext } from "./Targeting";
 
 type Assignable<A, B> = A extends B ? true : false;
 type Expect<T extends true> = T;
@@ -86,23 +86,14 @@ type _ExperimentsActions = Expect<
 
 // Named-context slots, checked in both directions.
 
-type _D2tCamera = Expect<
-  Assignable<
-    SdkSlotProps<"distance-to-target.camera">,
-    DistanceToTargetHudContext
-  >
+type _TargetingCamera = Expect<
+  Assignable<SdkSlotProps<"targeting.camera">, TargetingHudContext>
 >;
-type _D2tCameraBack = Expect<
-  Assignable<
-    DistanceToTargetHudContext,
-    SdkSlotProps<"distance-to-target.camera">
-  >
+type _TargetingCameraBack = Expect<
+  Assignable<TargetingHudContext, SdkSlotProps<"targeting.camera">>
 >;
-type _D2tOverlay = Expect<
-  Assignable<
-    SdkSlotProps<"distance-to-target.overlay">,
-    DistanceToTargetHudContext
-  >
+type _TargetingOverlay = Expect<
+  Assignable<SdkSlotProps<"targeting.overlay">, TargetingHudContext>
 >;
 
 type _ShipMapOverlay = Expect<
@@ -256,9 +247,9 @@ export type _SlotRegistryConformance = [
   _MapActions,
   _PowerSections,
   _ExperimentsActions,
-  _D2tCamera,
-  _D2tCameraBack,
-  _D2tOverlay,
+  _TargetingCamera,
+  _TargetingCameraBack,
+  _TargetingOverlay,
   _ShipMapOverlay,
   _ShipMapOverlayBack,
   _CrewBadges,

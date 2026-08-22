@@ -63,8 +63,8 @@
 
 // --- Targeting (packages/components/src/Targeting) -----------
 
-/** Mirrors `DistanceToTargetHudContext` (Targeting/index.tsx). */
-export interface DistanceToTargetHudContext {
+/** Mirrors `TargetingHudContext` (Targeting/index.tsx). */
+export interface TargetingHudContext {
   /** Half-range in degrees the reticle box maps to; the reticle clamps at the edge. */
   maxDeg: number;
   /**
@@ -531,8 +531,8 @@ declare module "./types" {
 
     "warp-control.stepper": Record<string, never>;
 
-    "distance-to-target.camera": DistanceToTargetHudContext;
-    "distance-to-target.overlay": DistanceToTargetHudContext;
+    "targeting.camera": TargetingHudContext;
+    "targeting.overlay": TargetingHudContext;
 
     "comm-signal.sections": Record<string, never>;
 
