@@ -69,7 +69,7 @@ namespace Sitrep.Propagation.Tests
 
         private static TrajectoryArc Drawn(TrajectoryArcAnswer answer)
         {
-            Assert.Equal(TrajectoryRefusal.Unspecified, answer.Refusal);
+            Assert.Equal(TrajectoryRefusal.NotRefused, answer.Refusal);
             Assert.NotNull(answer.Arc);
             return answer.Arc!;
         }
@@ -418,11 +418,37 @@ namespace Sitrep.Propagation.Tests
         [Fact]
         public void ARefusalHasToNameItsReason()
         {
-            // Unspecified is what a producer that never attempted an arc sends, and
-            // a client reads it as nothing refused. Refusing with it would be
-            // silence dressed as a refusal.
+            // NotAttempted is what a producer that never sought an arc sends and
+            // NotRefused accompanies one that was drawn. Refusing with either is a
+            // refusal contradicting itself, so both are rejected rather than the one
+            // that happens to be zero.
             Assert.Throws<ArgumentException>(
-                () => TrajectoryArcAnswer.Refused(TrajectoryRefusal.Unspecified));
+                () => TrajectoryArcAnswer.Refused(TrajectoryRefusal.NotAttempted));
+            Assert.Throws<ArgumentException>(
+                () => TrajectoryArcAnswer.Refused(TrajectoryRefusal.NotRefused));
+        }
+
+        /// <summary>
+        /// A drawn arc and an unattempted one do not carry the same refusal value.
+        ///
+        /// <para>They used to, and it read as reassurance: with the integrated path
+        /// unable to run at all, every live frame carried the value that also
+        /// accompanies a clean curve, so the wire could not distinguish a feature
+        /// working from a feature that had never executed.</para>
+        /// </summary>
+        [Fact]
+        public void ADrawnArcAndAnUnattemptedOneAreDistinguishableOnTheWire()
+        {
+            var arc = new TrajectoryArc();
+            arc.Points.Add(new TrajectoryPoint { Ut = 0, X = 1, Y = 0, Z = 0 });
+            arc.Points.Add(new TrajectoryPoint { Ut = 1, X = 0, Y = 1, Z = 0 });
+
+            Assert.NotEqual(
+                TrajectoryArcAnswer.Drawn(arc).Refusal,
+                TrajectoryArcAnswer.NotAttempted().Refusal);
+            Assert.Equal(
+                TrajectoryRefusal.NotAttempted, TrajectoryArcAnswer.NotAttempted().Refusal);
+            Assert.Equal(0, (int)TrajectoryRefusal.NotAttempted);
         }
 
         [Fact]

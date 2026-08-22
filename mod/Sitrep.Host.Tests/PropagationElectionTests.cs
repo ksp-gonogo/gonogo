@@ -136,6 +136,102 @@ namespace Sitrep.Host.Tests
             Assert.Null(PropagationElection.Elected(kernel));
         }
 
+        /// <summary>
+        /// The stock game's trajectories are closed-form, and the election says so.
+        ///
+        /// <para>This is the answer a client reads as "your elements ARE the curve,
+        /// draw a conic". It was also the answer on every install of every kind for
+        /// as long as the marker had no implementer, which is why the pair below
+        /// matters more than either half.</para>
+        /// </summary>
+        [Fact]
+        public void TheStockTwoBodySolverDoesNotClaimIntegratedTrajectories()
+        {
+            Assert.False(PropagationElection.ElectedIntegrates(Resolved()));
+        }
+
+        /// <summary>
+        /// A provider carrying the marker turns the same question true, so a consumer
+        /// stops authorising a conic for a path the craft will not fly.
+        /// </summary>
+        [Fact]
+        public void AnElectedProviderCarryingTheMarkerIntegrates()
+        {
+            var kernel = Resolved(k => k.RegisterProvider(new ProviderRegistration
+            {
+                Capability = PropagationElection.CapabilityId,
+                Id = "an-nbody-backend",
+                Priority = 100.0,
+                Factory = _ => new IntegratingProvider(),
+            }));
+
+            Assert.True(PropagationElection.ElectedIntegrates(kernel));
+        }
+
+        /// <summary>
+        /// A provider that wins without the marker leaves trajectories closed-form.
+        ///
+        /// <para>The question is about the ANSWER's shape, not about who answered:
+        /// a provider is free to displace the stock solver and still be analytic,
+        /// and a check keyed on "somebody won" rather than on the marker would call
+        /// that integrated.
+        /// </para>
+        /// </summary>
+        [Fact]
+        public void AWinningProviderWithoutTheMarkerStaysClosedForm()
+        {
+            var kernel = Resolved(k => k.RegisterProvider(new ProviderRegistration
+            {
+                Capability = PropagationElection.CapabilityId,
+                Id = "another-analytic-solver",
+                Priority = 100.0,
+                Factory = _ => new FakeProvider("another-analytic-solver"),
+            }));
+
+            Assert.Equal("another-analytic-solver", PropagationElection.Elected(kernel)!.ProviderId);
+            Assert.False(PropagationElection.ElectedIntegrates(kernel));
+        }
+
+        [Fact]
+        public void AKernelThatIsNotUpYetIsClosedFormRatherThanAThrow()
+        {
+            // The resolver is installed during registration and asked on every
+            // sample afterwards, so a caller whose kernel is not resolved yet is
+            // asking a well-formed question. Closed-form is the withholding answer.
+            Assert.False(PropagationElection.ElectedIntegrates(null));
+            Assert.False(PropagationElection.ElectedIntegrates(new Kernel()));
+        }
+
+        private sealed class IntegratingProvider : IPropagationProvider, IIntegratedTrajectorySource
+        {
+            public string ProviderId => "an-nbody-backend";
+
+            public StateVector Solve(PropagationTarget target, PropagationFrame frame, double ut) =>
+                new StateVector(new Vector3d(0, 0, 0), new Vector3d(0, 0, 0));
+
+            public void SolveMany(
+                PropagationTarget target,
+                PropagationFrame frame,
+                IReadOnlyList<double> uts,
+                StateVector[] into)
+            {
+            }
+
+            public double? CharacteristicCycleSeconds(PropagationTarget target) => null;
+
+            public RadiusExtremes? RadiusExtremesOf(PropagationTarget target) => null;
+
+            public bool CanPropagate(
+                PropagationTarget target, PropagationFrame frame, double fromUt, double toUt) => false;
+
+            public ClosestApproach? SolveClosestApproach(
+                PropagationTarget subject,
+                PropagationTarget other,
+                PropagationFrame frame,
+                double fromUt,
+                double toUt) => null;
+        }
+
         [Fact]
         public void PropagationIsNotSpineCriticalBecauseAnEngineWithoutItStillFlies()
         {

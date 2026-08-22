@@ -192,24 +192,30 @@ namespace Sitrep.Contract
                     "path and an absent trajectory render identically and mean opposite things.",
                     nameof(arc));
             }
-            return new TrajectoryArcAnswer(arc, TrajectoryRefusal.Unspecified);
+            return new TrajectoryArcAnswer(arc, TrajectoryRefusal.NotRefused);
         }
 
-        /// <summary>No arc, and the reason. <see cref="TrajectoryRefusal.Unspecified"/> is refused: a refusal with no reason is silence.</summary>
+        /// <summary>
+        /// No arc, and the reason. The two reasons that are not refusals are
+        /// themselves refused here: a refusal with no reason is silence, and a
+        /// refusal claiming nothing refused it is a contradiction.
+        /// </summary>
         public static TrajectoryArcAnswer Refused(TrajectoryRefusal reason)
         {
-            if (reason == TrajectoryRefusal.Unspecified)
+            if (reason == TrajectoryRefusal.NotAttempted
+                || reason == TrajectoryRefusal.NotRefused)
             {
                 throw new ArgumentException(
-                    "A refusal has to name its reason. Unspecified is what a producer that " +
-                    "never attempted an arc sends, and a client reads it as nothing refused.",
+                    "A refusal has to name its reason. NotAttempted is what a producer that " +
+                    "never sought an arc sends and NotRefused accompanies one that was drawn, " +
+                    "so neither can stand in for a stated refusal.",
                     nameof(reason));
             }
             return new TrajectoryArcAnswer(null, reason);
         }
 
-        /// <summary>Nothing was attempted, which is every sample from a provider that does not integrate.</summary>
+        /// <summary>Nothing was sought, which is every sample from a provider that does not integrate.</summary>
         public static TrajectoryArcAnswer NotAttempted() =>
-            new TrajectoryArcAnswer(null, TrajectoryRefusal.Unspecified);
+            new TrajectoryArcAnswer(null, TrajectoryRefusal.NotAttempted);
     }
 }

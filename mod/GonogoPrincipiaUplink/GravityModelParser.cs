@@ -49,6 +49,12 @@ namespace GonogoPrincipiaUplink
         /// <summary>The id published on a curve derived from this model.</summary>
         public const string ModelId = "principia-gravity-model";
 
+        /// <summary>
+        /// The id for a model assembled from the game's own bodies instead of a
+        /// config node, so the two provenances are never confused for each other.
+        /// </summary>
+        public const string BodyTreeModelId = "principia-body-tree";
+
         private const string NameKey = "name";
         private const string GravitationalParameterKey = "gravitational_parameter";
         private const string ReferenceRadiusKey = "reference_radius";
@@ -63,7 +69,10 @@ namespace GonogoPrincipiaUplink
         /// values filled in, which would produce a curve that agrees with nothing
         /// while looking exactly like one that does.</para>
         /// </summary>
-        public static GravityModel? Parse(IEnumerable<GravityModelBlock>? blocks)
+        public static GravityModel? Parse(IEnumerable<GravityModelBlock>? blocks) =>
+            Parse(blocks, ModelId);
+
+        private static GravityModel? Parse(IEnumerable<GravityModelBlock>? blocks, string modelId)
         {
             if (blocks == null) return null;
             var bodies = new List<GravityModelBody>();
@@ -72,7 +81,52 @@ namespace GonogoPrincipiaUplink
                 var body = ParseBody(block);
                 if (body != null) bodies.Add(body);
             }
-            return bodies.Count == 0 ? null : new GravityModel(ModelId, bodies);
+            return bodies.Count == 0 ? null : new GravityModel(modelId, bodies);
+        }
+
+        /// <summary>
+        /// The model to integrate against: the producer's own config when it has
+        /// one, and otherwise the same numbers the producer itself falls back to.
+        ///
+        /// <para><b>The precedence is here, not at the read site, because it is the
+        /// decision and the reads are not.</b> Which source wins, and what an empty
+        /// first source means, are exactly the things a test has to be able to
+        /// drive; the two <see cref="Func{T}"/> arguments exist so it can drive them
+        /// with no game and so the second source is never walked when the first
+        /// answered.</para>
+        ///
+        /// <para><b>Why a fallback is right here and a stock vanilla is not.</b> The
+        /// producer ships its gravity-model config guarded on the planet pack it
+        /// belongs to, so an install running the producer against the stock system
+        /// has no such node at all: the config read returns nothing and this used to
+        /// be the end of it. What the producer does in that case is not "give up",
+        /// it is build a model per body out of the game's own gravitational
+        /// parameters and integrate that, treating every body as a point mass. So
+        /// the game's bodies are not a substitute for the model here, they ARE the
+        /// model, and reading them is the only way to integrate against the physics
+        /// actually running. That is a claim only an Uplink that knows the producer
+        /// may make, which is why it is not a vanilla on the capability: core
+        /// assembling the same numbers with no n-body mod present would be
+        /// describing a force model nothing is applying.</para>
+        ///
+        /// <para><b>No oblateness on the fallback path, and that is not an
+        /// omission.</b> The producer's config route carries reference radii and
+        /// zonal harmonics for some bodies; its per-body route carries neither and
+        /// applies neither, because it has nowhere to read them from. A reader that
+        /// helpfully supplied a J2 here would state a term the physics does not
+        /// include. The reads that feed this are therefore name and gravitational
+        /// parameter only.</para>
+        /// </summary>
+        public static GravityModel? Parse(
+            Func<IEnumerable<GravityModelBlock>?> configured,
+            Func<IEnumerable<GravityModelBlock>?> fromBodyTree)
+        {
+            if (configured == null) throw new ArgumentNullException(nameof(configured));
+            if (fromBodyTree == null) throw new ArgumentNullException(nameof(fromBodyTree));
+
+            var model = Parse(configured(), ModelId);
+            if (model != null) return model;
+            return Parse(fromBodyTree(), BodyTreeModelId);
         }
 
         private static GravityModelBody? ParseBody(GravityModelBlock? block)

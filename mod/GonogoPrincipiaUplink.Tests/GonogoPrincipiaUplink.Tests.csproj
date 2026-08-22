@@ -32,9 +32,16 @@
        project does not need.
 
        The gravity model splits the same way and for the same reason. The GameDatabase
-       walk is in PrincipiaGravityModelSource and is absent; every decision about what
-       a config value means is in GravityModelParser and is here, driven against the
-       shipped file's own spellings.
+       walk and the star's-own-tree walk are in PrincipiaGravityModelSource and are
+       absent; every decision about what a config value means, and which of the two
+       sources wins, is in GravityModelParser and is here, driven against the shipped
+       file's own spellings.
+
+       PrincipiaPropagationProvider is here in full: winning the propagation
+       capability is the one registration this Uplink makes that decides whether any
+       craft's trajectory is published as integrated, and it names no game type at
+       all, so the election it takes part in is drivable against a real kernel with
+       no game running.
 
        Note how little the settings work left in the game-facing file: finding
        the addon, the game's body table, and the game's own target. Every read,
@@ -66,6 +73,7 @@
     <Compile Include="..\GonogoPrincipiaUplink\PrincipiaFrame.cs" />
     <Compile Include="..\GonogoPrincipiaUplink\ReflectedPrincipiaPlugin.cs" />
     <Compile Include="..\GonogoPrincipiaUplink\GravityModelParser.cs" />
+    <Compile Include="..\GonogoPrincipiaUplink\PrincipiaPropagationProvider.cs" />
 
     <!-- The write surface, all of it. Not one line of it needs the game: the
          register, the authority, the gates, the burn and integrator rules, the

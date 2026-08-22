@@ -310,13 +310,13 @@ namespace Gonogo.KSP
             _kspActuator?.SetActionGroupsBackendSource(
                 () => _kernel != null ? ActionGroupsElection.Elected(_kernel) : null);
 
-            // Same shape, for the maneuver WRITE path. The read side already
-            // routes through the election; without this the three write commands
-            // mutate stock's solver whoever owns the plan, which under a foreign
-            // owner leaves a node nothing reads (see `PlanWriteRefusal`).
+            // Same shape, for the horizon a craft's elements carry. The question
+            // is asked of the election rather than answered here: this assembly
+            // needs the game to compile and so sits outside every test run, and an
+            // `is` check written here is one nothing can reach. The whole call is
+            // now a lambda around a core method a resolved kernel can be handed.
             VesselViewProvider.SetIntegratingProviderSource(
-                () => _kernel != null
-                    && PropagationElection.Elected(_kernel) is IIntegratedTrajectorySource);
+                () => PropagationElection.ElectedIntegrates(_kernel));
 
             // The other half of the same fact. Saying a trajectory is integrated
             // and then publishing only the osculating conic it is tangent to leaves

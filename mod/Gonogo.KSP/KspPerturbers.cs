@@ -59,7 +59,14 @@ namespace Gonogo.KSP
             {
                 if (i == primaryIndex) continue;
                 var body = bodies[i];
-                if (body == null || string.IsNullOrEmpty(body.bodyName)) continue;
+                // `name`, the Unity object name, and NOT `bodyName`. A gravity
+                // model is looked up by the key its publisher wrote, and an n-body
+                // physics mod keys its own model on the object name; the two fields
+                // are free to differ, and a planet pack that renames one and not
+                // the other turns every perturber into a term the model cannot
+                // name. The arc then publishes a missing term and a degraded
+                // derivation for a system whose masses are all present.
+                if (body == null || string.IsNullOrEmpty(body.name)) continue;
 
                 var bodyParent = body.orbit != null ? body.orbit.referenceBody : null;
                 var isSatellite = bodyParent == primary;
@@ -67,7 +74,7 @@ namespace Gonogo.KSP
                 var isSibling = parent != null && bodyParent == parent;
                 if (!isSatellite && !isParent && !isSibling) continue;
 
-                list.Add(new PerturbingBody(body.bodyName, i));
+                list.Add(new PerturbingBody(body.name, i));
             }
 
             Cache[primaryIndex] = list;

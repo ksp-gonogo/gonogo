@@ -28,112 +28,6 @@ namespace GonogoPrincipiaUplink.Tests
     /// </summary>
     public class PlanWriteElectionTests
     {
-        /// <summary>
-        /// A host that records what an Uplink asked for and nothing else, so the
-        /// declaration and the registration can be compared to each other.
-        /// </summary>
-        private sealed class RecordingHost : IUplinkHost
-        {
-            public List<string> HandlersRegistered { get; } = new List<string>();
-
-            public List<string> PublishersTaken { get; } = new List<string>();
-
-            public List<string> SampledSourceTopics { get; } = new List<string>();
-
-            public Availability? Availability { get; private set; }
-
-            public void AddCommandHandler<TArgs, TResult>(string command, Func<TArgs, TResult> handler)
-            {
-                Assert.NotNull(handler);
-                HandlersRegistered.Add(command);
-            }
-
-            public IChannelPublisher Publisher(string topic)
-            {
-                PublishersTaken.Add(topic);
-                return new NullPublisher();
-            }
-
-            public void AddSampledSource(
-                Func<KspSnapshot?, object?> captureOnMainThread,
-                Action<object?> handleOnCourier,
-                params string[] subscriptionTopicPrefixes) =>
-                SampledSourceTopics.AddRange(subscriptionTopicPrefixes);
-
-            public void SetAvailability(Availability availability) => Availability = availability;
-
-            /// <summary>
-            /// Everything below throws rather than answering.
-            ///
-            /// <para>A recording host that quietly accepted every call would pass
-            /// this file's assertions while the Uplink did something else entirely
-            /// on the way past. Throwing means the recorded set is the WHOLE set:
-            /// if registration starts doing something new, this fails and says
-            /// so.</para>
-            /// </summary>
-            private static NotSupportedException NotExpected(string what) =>
-                new NotSupportedException(
-                    "PrincipiaUplink.Register is not expected to call " + what
-                    + "; if that changed, the recording above no longer describes what it does");
-
-            public double NowUt() => throw NotExpected("NowUt");
-
-            public void AddSampler(ISnapshotSampler sampler) => throw NotExpected("AddSampler");
-
-            public void AddChannelSource(string topic, Func<KspSnapshot?, object?> map) =>
-                throw NotExpected("AddChannelSource");
-
-            public void AddSampledSource(
-                Func<KspSnapshot?, object?> captureOnMainThread, Action<object?> handleOnCourier) =>
-                throw NotExpected("the untopiced AddSampledSource");
-
-            public bool IsAnyTopicSubscribed(string topicPrefix) =>
-                throw NotExpected("IsAnyTopicSubscribed");
-
-            public IDynamicChannelSource RegisterDynamicNamespace(
-                string prefix, ChannelDeclaration template) =>
-                throw NotExpected("RegisterDynamicNamespace");
-
-            public void AddGateEvaluator(ICommandGateEvaluator evaluator) =>
-                throw NotExpected("AddGateEvaluator");
-
-            public void SetSignalDelaySource(Func<KspSnapshot?, CommsDelay?> computeOnMainThread) =>
-                throw NotExpected("SetSignalDelaySource");
-
-            public void SetVesselDelay(string vesselId, double oneWaySeconds) =>
-                throw NotExpected("SetVesselDelay");
-
-            public void SetAuthorityDelay(string centreId, string vesselId, double oneWaySeconds) =>
-                throw NotExpected("SetAuthorityDelay");
-
-            public void SetCentreDelay(string fromCentreId, string toCentreId, double oneWaySeconds) =>
-                throw NotExpected("SetCentreDelay");
-
-            public void SetVesselConnectivity(string vesselId, bool connected) =>
-                throw NotExpected("SetVesselConnectivity");
-
-            public void SetConnectivitySource(Func<KspSnapshot?, bool?> computeOnMainThread) =>
-                throw NotExpected("SetConnectivitySource");
-
-            public Kernel Kernel => throw NotExpected("Kernel");
-
-            public void ForceKeyframe(string topic) => throw NotExpected("ForceKeyframe");
-
-            public void ResetChannelBirth(IEnumerable<string> topics) =>
-                throw NotExpected("ResetChannelBirth");
-
-            private sealed class NullPublisher : IChannelPublisher
-            {
-                public void Publish(object? payload)
-                {
-                }
-
-                public void Publish(object? payload, double atUt)
-                {
-                }
-            }
-        }
-
         /// <summary>The nine commands this slice ships, taken from the producer's own
         /// constants so a rename cannot make this list stale without failing.</summary>
         private static readonly string[] Expected =
@@ -165,7 +59,7 @@ namespace GonogoPrincipiaUplink.Tests
         public void EveryDeclaredCommandHasAHandlerAndEveryHandlerADeclaration()
         {
             var uplink = Available();
-            var host = new RecordingHost();
+            var host = new RecordingUplinkHost();
 
             uplink.Register(host);
 
@@ -185,7 +79,7 @@ namespace GonogoPrincipiaUplink.Tests
         public void ThePlanChannelIsDeclaredPublishedAndSourced()
         {
             var uplink = Available();
-            var host = new RecordingHost();
+            var host = new RecordingUplinkHost();
 
             uplink.Register(host);
 
@@ -219,7 +113,7 @@ namespace GonogoPrincipiaUplink.Tests
         public void AnAbsentProducerRegistersNoWriteSurface()
         {
             var uplink = new PrincipiaUplink(PrincipiaGuardResult.Fail("Principia not detected"));
-            var host = new RecordingHost();
+            var host = new RecordingUplinkHost();
 
             uplink.Register(host);
 

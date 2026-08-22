@@ -40,6 +40,22 @@ namespace Sitrep.Contract
     /// same instant, both on the wire, with nothing to tell them apart. One
     /// election cannot produce that pair.</para>
     /// </summary>
+    /// <summary>
+    /// The capability id every <see cref="IPropagationProvider"/> competes for.
+    ///
+    /// <para>Declared HERE rather than at the election, which is core's and so out
+    /// of an Uplink's reach, on exactly the reasoning
+    /// <see cref="GravityModelCapability"/> states: a registering Uplink and the
+    /// election that resolves it have to agree on this string, and a second copy of
+    /// it on the far side of a boundary neither can compile across is a copy free to
+    /// disagree in silence. The provider registers, nothing resolves it, and the
+    /// only symptom is a trajectory that stays closed-form forever.</para>
+    /// </summary>
+    public static class PropagationCapability
+    {
+        public const string Id = "propagation";
+    }
+
     public interface IPropagationProvider : ISitrepProvider
     {
         /// <summary>

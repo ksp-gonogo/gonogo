@@ -115,9 +115,14 @@ public class VesselOrbit
     public TrajectoryArc? Arc { get; set; }
 
     /// <summary>
-    /// Why <see cref="Arc"/> is absent, when a provider tried to build one and
-    /// stopped. <see cref="TrajectoryRefusal.Unspecified"/> when nothing was
-    /// refused, which is every sample from a provider that does not integrate.
+    /// What became of the arc: why <see cref="Arc"/> is absent when a provider
+    /// tried to build one and stopped,
+    /// <see cref="TrajectoryRefusal.NotAttempted"/> when none was sought at all,
+    /// and <see cref="TrajectoryRefusal.NotRefused"/> beside one that was drawn.
+    ///
+    /// <para>Those last two used to be one value, and a client could not tell an
+    /// install where the integrated path never runs from one where it runs
+    /// cleanly.</para>
     /// </summary>
     [SitrepUnit(Units.Enumeration)]
     public TrajectoryRefusal ArcRefusal { get; set; }

@@ -52,6 +52,13 @@ namespace Sitrep.Core.Tests
     /// <see cref="ScanFindsItsSubjects"/> pins the discovery itself: named seams it
     /// must find, named implementers it must attribute, and floors on both counts.
     /// If the layout moves, that test fails first and says so.</para>
+    ///
+    /// <para><b>And it is made to see a violation.</b> With <see cref="Debt"/> empty
+    /// the real tree contains no unimplemented seam, so neither ratchet can
+    /// demonstrate that the scan is capable of reporting one.
+    /// <see cref="TheScanSeesAPlantedViolationAndIgnoresAPlantedTestDouble"/> writes
+    /// a tree that does contain one and checks it comes back, along with the
+    /// distinction between a production implementer and a test double.</para>
     /// </summary>
     public class SeamHasAProductionImplementerTests
     {
@@ -61,16 +68,11 @@ namespace Sitrep.Core.Tests
         /// </summary>
         private static readonly Dictionary<string, string> Debt = new(StringComparer.Ordinal)
         {
-            // The n-body trajectory path. VesselUplink's ElementHorizon only says
-            // Until when the elected propagation provider is one of these, so with
-            // no implementer the horizon is always Unbounded, ElementArc always
-            // refuses, and NBodyArcSource / NBodyTrajectory / KspPerturbers are
-            // unreachable from the wire. Measured live 2026-08-22: trajectoryKind
-            // Analytic, arc null, refusal Unspecified. Closing it needs an
-            // implementation AND something that elects it.
-            ["IIntegratedTrajectorySource"] =
-                "the n-body trajectory arc: nothing can make VesselUplink's "
-                + "propagation gate open, so the integrator never runs",
+            // Empty, and it should stay that way. Its one entry was
+            // IIntegratedTrajectorySource, which shipped with a declaration, a
+            // single `is` check and no implementer, so the n-body horizon reported
+            // closed-form on every live frame. It left this list when the Principia
+            // Uplink began registering a provider carrying the marker.
         };
 
         /// <summary>
@@ -138,10 +140,10 @@ namespace Sitrep.Core.Tests
         {
             var graph = Scan();
 
-            // A seam that IS satisfied, a seam that is NOT, and the marker base
-            // interface only reachable through inheritance: if the walk breaks, at
-            // least one of these stops being found and the count floors below fail
-            // rather than the ratchet passing over an empty set.
+            // Named seams the walk must find, including the marker base interface
+            // only reachable through inheritance: if the walk breaks, at least one
+            // of these stops being found and the count floors below fail rather
+            // than the ratchet passing over an empty set.
             foreach (var required in new[]
                      {
                          "ISitrepUplink", "IPropagationProvider", "ICommsBackend",
@@ -154,18 +156,21 @@ namespace Sitrep.Core.Tests
                     + "source it thinks it is");
             }
 
-            foreach (var required in new[] { "IPropagationProvider", "ISitrepProvider", "ISitrepUplink" })
+            foreach (var required in new[]
+                     {
+                         "IPropagationProvider", "ISitrepProvider", "ISitrepUplink",
+                         // Satisfied only across an assembly boundary the solution
+                         // does not build, and satisfied by a type whose base list
+                         // names two interfaces rather than one. Both are why the
+                         // scan reads source text, so both are pinned here.
+                         "IIntegratedTrajectorySource",
+                     })
             {
                 Assert.True(
                     graph.Satisfied.Contains(required),
                     required + " has a production implementer in this repo; the scan "
                     + "failing to attribute one means it is not reading base lists");
             }
-
-            Assert.False(
-                graph.Satisfied.Contains("IIntegratedTrajectorySource"),
-                "IIntegratedTrajectorySource has no implementer anywhere; the scan "
-                + "claiming otherwise means it is counting something that is not one");
 
             Assert.True(
                 graph.ProductionInterfaces.Count >= 40,
@@ -181,6 +186,75 @@ namespace Sitrep.Core.Tests
                 graph.ProductionTypeCount >= 100,
                 "only " + graph.ProductionTypeCount + " production types with a base "
                 + "list found: the walk is reading files but not their declarations");
+        }
+
+        /// <summary>
+        /// The scan can SEE an unimplemented seam, proved against a source tree
+        /// written for the purpose.
+        ///
+        /// <para><b>Why this is not redundant with the two ratchets above.</b> Both
+        /// of them read the real tree, and the real tree currently has no
+        /// unimplemented seam: <see cref="Debt"/> is empty. So a scan that had
+        /// silently stopped attributing anything, or stopped reading files at all,
+        /// would report no violations and pass. A counter that cannot see a
+        /// violation reports zero and zero reads as success, which is the whole
+        /// class of defect this file was added to catch, so the counter is made to
+        /// see one.</para>
+        ///
+        /// <para>Three separate claims, and each fails differently: an interface
+        /// with no implementer is reported, one with a production implementer is not,
+        /// and one implemented ONLY by a type in a test project is reported anyway.
+        /// That last is the distinction the whole file exists to draw.</para>
+        /// </summary>
+        [Fact]
+        public void TheScanSeesAPlantedViolationAndIgnoresAPlantedTestDouble()
+        {
+            var root = Path.Combine(
+                Path.GetTempPath(), "seam-scan-" + Guid.NewGuid().ToString("N"));
+            try
+            {
+                Write(root, "Planted.Contract", "Seams.cs", @"
+namespace Planted
+{
+    public interface IPlantedSatisfied { }
+
+    public interface IPlantedUnsatisfied { }
+
+    public interface IPlantedDoubleOnly { }
+}
+");
+                Write(root, "Planted.Backend", "Backend.cs", @"
+namespace Planted
+{
+    public sealed class PlantedBackend : IPlantedSatisfied { }
+}
+");
+                Write(root, "Planted.Backend.Tests", "Doubles.cs", @"
+namespace Planted.Tests
+{
+    public sealed class FakeBackend : IPlantedDoubleOnly { }
+}
+");
+
+                var graph = Scan(root);
+
+                Assert.Equal(3, graph.ProductionInterfaces.Count);
+                Assert.Contains("IPlantedSatisfied", graph.Satisfied);
+                Assert.DoesNotContain("IPlantedUnsatisfied", graph.Satisfied);
+                Assert.DoesNotContain("IPlantedDoubleOnly", graph.Satisfied);
+                Assert.Equal(1, graph.ProductionTypeCount);
+            }
+            finally
+            {
+                Directory.Delete(root, recursive: true);
+            }
+        }
+
+        private static void Write(string root, string project, string file, string source)
+        {
+            var directory = Path.Combine(root, project);
+            Directory.CreateDirectory(directory);
+            File.WriteAllText(Path.Combine(directory, file), source);
         }
 
         private sealed class TypeGraph
@@ -214,9 +288,10 @@ namespace Sitrep.Core.Tests
 
         private static readonly Regex Identifier = new(@"[A-Za-z_][A-Za-z0-9_]*", RegexOptions.Compiled);
 
-        private static TypeGraph Scan()
+        private static TypeGraph Scan() => Scan(ResolveModDir());
+
+        private static TypeGraph Scan(string modDir)
         {
-            var modDir = ResolveModDir();
             var graph = new TypeGraph();
 
             // Concrete production type -> the names in its base list.

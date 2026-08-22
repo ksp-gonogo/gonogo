@@ -317,9 +317,14 @@ public class TrajectoryForceModel
 /// different remedy: a client that had to borrow the horizon's sentence for one
 /// of them would tell the operator to do the wrong thing.</para>
 ///
-/// <para><see cref="Unspecified"/> is 0 so silence is not a refusal: a producer
-/// that never attempts an arc is not refusing one, and only a producer that
-/// tried and stopped fills this in.</para>
+/// <para><b>Zero is the state of having sought nothing</b>, and it used to be
+/// "nothing was refused", which covered BOTH an arc that was computed and an arc
+/// nobody attempted. That conflation shipped and it read as reassurance: with the
+/// integrated path unable to execute at all, every live frame carried
+/// <c>Unspecified</c>, which said the feature had no complaint rather than that it
+/// had never run. So an unattempted arc now says exactly that, and
+/// <see cref="NotRefused"/> is the separate thing a producer says when it did
+/// attempt one and got a curve.</para>
 /// </summary>
 #if SITREP_CODEGEN
 [TsEnum]
@@ -327,8 +332,18 @@ public class TrajectoryForceModel
 [SitrepContract]
 public enum TrajectoryRefusal
 {
-    /// <summary>Nothing was refused. Either an arc is present or none was attempted.</summary>
-    Unspecified = 0,
+    /// <summary>
+    /// No integrated arc was sought. Every sample from a provider whose
+    /// trajectories are closed-form is this, and so is a sample whose horizon
+    /// named no instant to integrate up to.
+    ///
+    /// <para>It does not mean an arc is fine, and it never accompanies one:
+    /// <see cref="NotRefused"/> does. Read it beside
+    /// <see cref="PropagationHorizon.TrajectoryKind"/>, which says WHY nothing was
+    /// sought: <c>Analytic</c> is an install that propagates in conics, and the arc
+    /// has nothing to add to that sentence.</para>
+    /// </summary>
+    NotAttempted = 0,
 
     /// <summary>
     /// The integration hit its step budget before reaching the requested instant.
@@ -340,6 +355,19 @@ public enum TrajectoryRefusal
     /// The force model's configuration was not found or could not be parsed, so
     /// there is nothing to integrate against. There is no operator remedy: it is
     /// an install problem and it says so.
+    ///
+    /// <para>The ordinary way to reach it is an n-body physics mod installed
+    /// against a solar system it ships no gravity model for, which is a real and
+    /// common install rather than a corner: the model config is guarded on the
+    /// planet pack it belongs to, so the mod runs and the node is not there.</para>
     /// </summary>
     NoForceModel = 2,
+
+    /// <summary>
+    /// An arc was attempted and nothing refused it, so
+    /// <see cref="VesselOrbit.Arc"/> carries one. Only ever paired with a present
+    /// arc, so a reader can tell a computed curve from an absent one without
+    /// looking at the arc field at all.
+    /// </summary>
+    NotRefused = 3,
 }

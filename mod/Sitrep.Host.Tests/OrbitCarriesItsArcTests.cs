@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using Sitrep.Contract;
 using Sitrep.Core.Serialization;
+using Sitrep.Host.Propagation;
 using Xunit;
 
 namespace Sitrep.Host.Tests
@@ -20,6 +21,16 @@ namespace Sitrep.Host.Tests
     /// statics, and joining it is what serialises the two. Nothing else needs it
     /// today: no other test asserts on the horizon or the arc, so a concurrent
     /// class cannot see what this one installs.</para>
+    ///
+    /// <para><b>Nothing here hand-sets the integrating gate, and that is a
+    /// correction rather than a style.</b> Every case below used to install
+    /// <c>SetIntegratingProviderSource(() =&gt; true)</c> directly, which asserts
+    /// everything downstream of the gate and nothing about whether any install can
+    /// open it. The gate had no implementer at all for the whole life of the
+    /// feature and this file was green throughout. So each case now RESOLVES a
+    /// kernel and installs the same expression production installs,
+    /// <see cref="PropagationElection.ElectedIntegrates"/>: what a test chooses is
+    /// which provider the install has, and the gate is computed from that.</para>
     /// </summary>
     [Collection("VesselViewProviderStatics")]
     public class OrbitCarriesItsArcTests : IDisposable
@@ -32,6 +43,86 @@ namespace Sitrep.Host.Tests
             // away would change what every later test in this assembly sees.
             VesselViewProvider.SetTrajectoryArcSource(null);
             VesselViewProvider.SetIntegratingProviderSource(() => false);
+        }
+
+        /// <summary>
+        /// An install whose elected provider integrates, wired to the consumer the
+        /// way production wires it: a resolved kernel, and core's own question asked
+        /// of whichever provider won.
+        /// </summary>
+        private static void IntegratingInstall()
+        {
+            var kernel = new Kernel();
+            PropagationElection.RegisterCapability(kernel);
+            kernel.RegisterProvider(new ProviderRegistration
+            {
+                Capability = PropagationElection.CapabilityId,
+                Id = "an-nbody-backend",
+                Priority = 100.0,
+                Factory = _ => new IntegratingProvider(),
+            });
+            kernel.Resolve(new ResolveOptions { KernelVersion = "1.0.0" });
+
+            Assert.True(
+                PropagationElection.ElectedIntegrates(kernel),
+                "the registered integrating provider did not win the election, so nothing "
+                + "below is testing what it claims to");
+            VesselViewProvider.SetIntegratingProviderSource(
+                () => PropagationElection.ElectedIntegrates(kernel));
+        }
+
+        /// <summary>
+        /// The stock install: nothing registered, so the two-body vanilla wins and
+        /// the same expression answers false.
+        /// </summary>
+        private static void AnalyticInstall()
+        {
+            var kernel = new Kernel();
+            PropagationElection.RegisterCapability(kernel);
+            kernel.Resolve(new ResolveOptions { KernelVersion = "1.0.0" });
+
+            Assert.False(
+                PropagationElection.ElectedIntegrates(kernel),
+                "the stock two-body vanilla claimed integrated trajectories, so the gate is "
+                + "not discriminating and every assertion here is vacuous");
+            VesselViewProvider.SetIntegratingProviderSource(
+                () => PropagationElection.ElectedIntegrates(kernel));
+        }
+
+        /// <summary>
+        /// A provider that integrates, in the only way that matters to the gate: it
+        /// carries the marker. Its arithmetic is never asked for here, because the
+        /// gate is a question about the TYPE and this file is about what the gate
+        /// then does.
+        /// </summary>
+        private sealed class IntegratingProvider : IPropagationProvider, IIntegratedTrajectorySource
+        {
+            public string ProviderId => "an-nbody-backend";
+
+            public StateVector Solve(PropagationTarget target, PropagationFrame frame, double ut) =>
+                new StateVector(new Vector3d(0, 0, 0), new Vector3d(0, 0, 0));
+
+            public void SolveMany(
+                PropagationTarget target,
+                PropagationFrame frame,
+                IReadOnlyList<double> uts,
+                StateVector[] into)
+            {
+            }
+
+            public double? CharacteristicCycleSeconds(PropagationTarget target) => null;
+
+            public RadiusExtremes? RadiusExtremesOf(PropagationTarget target) => null;
+
+            public bool CanPropagate(
+                PropagationTarget target, PropagationFrame frame, double fromUt, double toUt) => false;
+
+            public ClosestApproach? SolveClosestApproach(
+                PropagationTarget subject,
+                PropagationTarget other,
+                PropagationFrame frame,
+                double fromUt,
+                double toUt) => null;
         }
 
         private static TrajectoryArc SomeArc(double fromUt, double toUt) => new TrajectoryArc
@@ -123,7 +214,7 @@ namespace Sitrep.Host.Tests
             // for a path the craft will not fly. Both halves are asserted, because
             // the shape and the reach are separate answers and stating one
             // correctly says nothing about the other.
-            VesselViewProvider.SetIntegratingProviderSource(() => true);
+            IntegratingInstall();
 
             var orbit = VesselViewProvider.BuildOrbit(Snapshot());
 
@@ -142,7 +233,7 @@ namespace Sitrep.Host.Tests
         {
             // The other side of the same fact, so the test above cannot pass by
             // the horizon being stuck rather than by it being decided.
-            VesselViewProvider.SetIntegratingProviderSource(() => false);
+            AnalyticInstall();
 
             var orbit = VesselViewProvider.BuildOrbit(Snapshot());
 
@@ -154,7 +245,7 @@ namespace Sitrep.Host.Tests
         [Fact]
         public void AnIntegratingProviderPublishesItsPointsBesideTheElements()
         {
-            VesselViewProvider.SetIntegratingProviderSource(() => true);
+            IntegratingInstall();
             var asked = 0;
             VesselViewProvider.SetTrajectoryArcSource((_, fromUt, toUt) =>
             {
@@ -167,7 +258,7 @@ namespace Sitrep.Host.Tests
             Assert.NotNull(orbit);
             Assert.Equal(1, asked);
             Assert.NotNull(orbit!.Arc);
-            Assert.Equal(TrajectoryRefusal.Unspecified, orbit.ArcRefusal);
+            Assert.Equal(TrajectoryRefusal.NotRefused, orbit.ArcRefusal);
             Assert.Equal(2, orbit.Arc!.Points.Count);
             Assert.Equal(4096, orbit.Arc.SourcePointCount);
 
@@ -185,7 +276,7 @@ namespace Sitrep.Host.Tests
             // Not a window of our choosing. The whole reason the horizon is on the
             // wire is that a client must never be shown a curve nothing vouched for,
             // and picking a far end here would put that back one layer down.
-            VesselViewProvider.SetIntegratingProviderSource(() => true);
+            IntegratingInstall();
             double? askedTo = null;
             double? askedFrom = null;
             VesselViewProvider.SetTrajectoryArcSource((_, fromUt, toUt) =>
@@ -205,7 +296,7 @@ namespace Sitrep.Host.Tests
         [Fact]
         public void ARefusalRidesOnTheElementsInsteadOfTheArc()
         {
-            VesselViewProvider.SetIntegratingProviderSource(() => true);
+            IntegratingInstall();
             VesselViewProvider.SetTrajectoryArcSource(
                 (_, _, _) => TrajectoryArcAnswer.Refused(TrajectoryRefusal.NoForceModel));
 
@@ -224,7 +315,7 @@ namespace Sitrep.Host.Tests
             // An analytic provider's elements ARE its curve, so an arc beside them
             // would be a second, redundant answer free to drift from the first.
             var asked = 0;
-            VesselViewProvider.SetIntegratingProviderSource(() => false);
+            AnalyticInstall();
             VesselViewProvider.SetTrajectoryArcSource((_, fromUt, toUt) =>
             {
                 asked++;
@@ -235,14 +326,14 @@ namespace Sitrep.Host.Tests
 
             Assert.Equal(0, asked);
             Assert.Null(orbit!.Arc);
-            Assert.Equal(TrajectoryRefusal.Unspecified, orbit.ArcRefusal);
+            Assert.Equal(TrajectoryRefusal.NotAttempted, orbit.ArcRefusal);
             Assert.Equal(PropagationHorizonKind.Unbounded, orbit.Horizon.Kind);
         }
 
         [Fact]
         public void AThrowingResolverCostsTheArcAndNotThePayload()
         {
-            VesselViewProvider.SetIntegratingProviderSource(() => true);
+            IntegratingInstall();
             VesselViewProvider.SetTrajectoryArcSource(
                 (_, _, _) => throw new InvalidOperationException("boom"));
 
@@ -253,22 +344,23 @@ namespace Sitrep.Host.Tests
             Assert.Null(orbit.Arc);
             // Nothing was refused: a resolver fault is our bug, not a state the
             // operator can act on, and naming a remedy for it would misdirect.
-            Assert.Equal(TrajectoryRefusal.Unspecified, orbit.ArcRefusal);
+            Assert.Equal(TrajectoryRefusal.NotAttempted, orbit.ArcRefusal);
         }
 
         [Fact]
         public void WithNoResolverInstalledTheElementsStillPublish()
         {
-            // The ordinary install: no n-body physics, no arc, and the conic the
-            // horizon already authorised.
-            VesselViewProvider.SetIntegratingProviderSource(() => true);
+            // An integrating install whose arc source was never installed: the
+            // horizon still says integrated, and the arc says nothing was sought
+            // rather than claiming a clean one.
+            IntegratingInstall();
             VesselViewProvider.SetTrajectoryArcSource(null);
 
             var orbit = VesselViewProvider.BuildOrbit(Snapshot());
 
             Assert.NotNull(orbit);
             Assert.Null(orbit!.Arc);
-            Assert.Equal(TrajectoryRefusal.Unspecified, orbit.ArcRefusal);
+            Assert.Equal(TrajectoryRefusal.NotAttempted, orbit.ArcRefusal);
         }
     }
 }

@@ -40,8 +40,13 @@ namespace Sitrep.Host.Propagation
     /// </summary>
     public static class PropagationElection
     {
-        /// <summary>The exclusive capability id every propagation provider competes for.</summary>
-        public const string CapabilityId = "propagation";
+        /// <summary>
+        /// The exclusive capability id every propagation provider competes for,
+        /// taken from the contract rather than restated. A registering Uplink
+        /// cannot compile against this file, so a literal here would be a copy free
+        /// to disagree with the one an Uplink writes.
+        /// </summary>
+        public const string CapabilityId = PropagationCapability.Id;
 
         /// <summary>
         /// Registers the exclusive <c>"propagation"</c> capability with
@@ -100,5 +105,31 @@ namespace Sitrep.Host.Propagation
         /// </summary>
         public static IPropagationProvider ElectedOrStock(Kernel kernel) =>
             Elected(kernel) ?? new KeplerProvider();
+
+        /// <summary>
+        /// Whether the elected provider's trajectories are INTEGRATED, which is what
+        /// decides whether a craft's published elements are the path it flies or
+        /// merely the conic tangent to it.
+        ///
+        /// <para><b>The type check lives here because this is the election site</b>,
+        /// and nowhere else may perform it. A consumer reading the answer gets a
+        /// bool: it never sees the provider, so it cannot branch on which one won,
+        /// and the marker interface it would have to name is not the vocabulary a
+        /// wire payload speaks.</para>
+        ///
+        /// <para>It was previously an inline <c>is</c> expression at the one call
+        /// site, in an assembly that needs the game to compile and therefore is
+        /// outside every test run. Nothing could reach it, and nothing did: the
+        /// horizon reported closed-form on every live frame for as long as the
+        /// feature existed. A method here is reachable by a test that resolves a
+        /// real kernel.</para>
+        ///
+        /// <para>Null kernel is false rather than a throw: the resolver is installed
+        /// during registration and runs on every sample afterwards, so a caller
+        /// whose kernel is not up yet asks a well-formed question, and closed-form
+        /// is the withholding answer.</para>
+        /// </summary>
+        public static bool ElectedIntegrates(Kernel? kernel) =>
+            kernel != null && Elected(kernel) is IIntegratedTrajectorySource;
     }
 }

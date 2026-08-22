@@ -56,7 +56,7 @@ namespace Sitrep.Host.Tests
             var answer = Source(Model(), new KeplerProvider(System()))
                 .ArcFor(Craft(), 0.0, 1_000.0, 64);
 
-            Assert.Equal(TrajectoryRefusal.Unspecified, answer.Refusal);
+            Assert.Equal(TrajectoryRefusal.NotRefused, answer.Refusal);
             Assert.NotNull(answer.Arc);
             Assert.Equal(TrajectoryFrameKind.BodyCentredInertial, answer.Arc!.Frame.Kind);
             Assert.Equal(Kerbin, answer.Arc.Frame.CentreBodyIndex);
@@ -84,7 +84,7 @@ namespace Sitrep.Host.Tests
             // Refusing would put a remedy on screen for a problem nobody has.
             var answer = Source(Model(), null).ArcFor(Craft(), 0.0, 1_000.0, 64);
 
-            Assert.Equal(TrajectoryRefusal.Unspecified, answer.Refusal);
+            Assert.Equal(TrajectoryRefusal.NotAttempted, answer.Refusal);
             Assert.Null(answer.Arc);
         }
 
@@ -96,7 +96,7 @@ namespace Sitrep.Host.Tests
             var answer = Source(Model(), new KeplerProvider(System()))
                 .ArcFor(PropagationTarget.Vessel("v", Kerbin, null), 0.0, 1_000.0, 64);
 
-            Assert.Equal(TrajectoryRefusal.Unspecified, answer.Refusal);
+            Assert.Equal(TrajectoryRefusal.NotAttempted, answer.Refusal);
             Assert.Null(answer.Arc);
         }
 

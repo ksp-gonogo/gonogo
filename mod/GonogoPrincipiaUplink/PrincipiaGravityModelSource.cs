@@ -1,19 +1,22 @@
 using System;
 using System.Collections.Generic;
+using System.Globalization;
 using Sitrep.Contract;
 using UnityEngine;
 
 namespace GonogoPrincipiaUplink
 {
     /// <summary>
-    /// Reads the producer's gravity model out of <c>GameDatabase</c> and publishes
-    /// it as the force model an n-body integration runs against.
+    /// Reads the producer's gravity model and publishes it as the force model an
+    /// n-body integration runs against.
     ///
     /// <para><b>This is the only file in the gravity-model path that names a game
-    /// type</b>, and it holds nothing but the read: finding the node and flattening
-    /// each <c>body</c> block into string pairs. Every decision about what those
-    /// pairs mean is in <see cref="GravityModelParser"/>, which is tested headless.
-    /// Keep it that way; logic that migrates here stops being testable.</para>
+    /// type</b>, and it holds nothing but the two reads: finding the config node and
+    /// flattening each <c>body</c> block into string pairs, and walking the star's
+    /// own tree for installs where that node does not exist. Every decision about
+    /// what those pairs mean, and which of the two sources wins, is in
+    /// <see cref="GravityModelParser"/>, which is tested headless. Keep it that way;
+    /// logic that migrates here stops being testable.</para>
     ///
     /// <para><b>Read once and held.</b> The model is configuration: it is the same
     /// on every tick of a session, and re-walking a few dozen config nodes per
@@ -25,19 +28,23 @@ namespace GonogoPrincipiaUplink
     {
         public const string ProviderIdValue = "principia-gravity-model";
 
-        private readonly Func<IEnumerable<GravityModelBlock>?> _read;
+        private readonly Func<IEnumerable<GravityModelBlock>?> _readConfig;
+        private readonly Func<IEnumerable<GravityModelBlock>?> _readBodyTree;
         private GravityModel? _model;
         private bool _readOnce;
 
         public PrincipiaGravityModelSource()
-            : this(ReadFromGameDatabase)
+            : this(ReadFromGameDatabase, ReadFromBodyTree)
         {
         }
 
         /// <summary>Test seam: the blocks injected, so the parse and the caching are both reachable with no game.</summary>
-        internal PrincipiaGravityModelSource(Func<IEnumerable<GravityModelBlock>?> read)
+        internal PrincipiaGravityModelSource(
+            Func<IEnumerable<GravityModelBlock>?> readConfig,
+            Func<IEnumerable<GravityModelBlock>?>? readBodyTree = null)
         {
-            _read = read ?? throw new ArgumentNullException(nameof(read));
+            _readConfig = readConfig ?? throw new ArgumentNullException(nameof(readConfig));
+            _readBodyTree = readBodyTree ?? (() => null);
         }
 
         public string ProviderId => ProviderIdValue;
@@ -51,7 +58,7 @@ namespace GonogoPrincipiaUplink
                     _readOnce = true;
                     try
                     {
-                        _model = GravityModelParser.Parse(_read());
+                        _model = GravityModelParser.Parse(_readConfig, _readBodyTree);
                     }
                     catch (Exception e)
                     {
@@ -99,6 +106,75 @@ namespace GonogoPrincipiaUplink
                 blocks.Add(new GravityModelBlock(values));
             }
             return blocks;
+        }
+
+        /// <summary>The unit the game states a gravitational parameter in, spelled
+        /// the way the parser recognises it. The producer's own per-body fallback
+        /// writes the same unit against the same field.</summary>
+        internal const string GravitationalParameterUnit = " m^3/s^2";
+
+        /// <summary>
+        /// Every body the producer inserts, as the same string pairs a config node
+        /// would have given: a name and a gravitational parameter, and nothing else.
+        ///
+        /// <para><b>The star and its descendants, not the body list.</b> The
+        /// producer seeds its system with the star and then walks
+        /// <c>orbitingBodies</c> down from it, so a body the game holds that is not
+        /// reachable that way is never inserted and exerts no force at all.
+        /// Enumerating the flat body list instead would publish attractors the
+        /// integration does not have.</para>
+        ///
+        /// <para><b>Keyed on <c>name</c> rather than <c>bodyName</c>, because that
+        /// is the key the model is looked up by.</b> The producer matches its config
+        /// against the Unity object name, and the two fields are free to differ: a
+        /// planet pack that renames one and not the other turns every perturber into
+        /// a term the model cannot name, which degrades the curve silently rather
+        /// than failing.</para>
+        ///
+        /// <para>No reference radius and no zonal harmonic, deliberately. The
+        /// producer's per-body route has nowhere to read them from and applies
+        /// neither, so stating one here would describe a force the physics is not
+        /// summing.</para>
+        /// </summary>
+        private static IEnumerable<GravityModelBlock>? ReadFromBodyTree()
+        {
+            var sun = Planetarium.fetch != null ? Planetarium.fetch.Sun : null;
+            if (sun == null) return null;
+
+            var blocks = new List<GravityModelBlock>();
+            AppendBody(sun, blocks);
+            return blocks.Count == 0 ? null : blocks;
+        }
+
+        /// <summary>
+        /// One body and everything orbiting it, depth first. A body with no name or
+        /// no positive gravitational parameter is skipped and its satellites are
+        /// still walked: the gap belongs to that body, not to the branch.
+        /// </summary>
+        private static void AppendBody(CelestialBody body, List<GravityModelBlock> into)
+        {
+            if (body == null) return;
+
+            var name = body.name;
+            if (!string.IsNullOrEmpty(name) && body.gravParameter > 0.0)
+            {
+                into.Add(new GravityModelBlock(new Dictionary<string, string>(StringComparer.Ordinal)
+                {
+                    { "name", name },
+                    {
+                        "gravitational_parameter",
+                        body.gravParameter.ToString("R", CultureInfo.InvariantCulture)
+                            + GravitationalParameterUnit
+                    },
+                }));
+            }
+
+            var orbiting = body.orbitingBodies;
+            if (orbiting == null) return;
+            for (var i = 0; i < orbiting.Count; i++)
+            {
+                AppendBody(orbiting[i], into);
+            }
         }
     }
 }

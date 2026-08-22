@@ -153,22 +153,11 @@ namespace GonogoPrincipiaUplink
         /// <summary>
         /// Attaches the flight-plan observer and sources its channel.
         ///
-        /// <para>The propagation PROVIDER is not registered here yet, but the
-        /// boundary that used to make it impossible is gone:
-        /// <c>IPropagationProvider</c> lives in <c>Sitrep.Contract</c> now,
-        /// alongside <c>IReliabilityBackend</c> and <c>IActionGroupsBackend</c>, so
-        /// an Uplink can build against it. Registering one from here is a piece of
-        /// work rather than a boundary violation.</para>
-        ///
-        /// <para>Two things such a provider should know. Closest approach is part
-        /// of that interface rather than a capability beside it, so winning
-        /// propagation means answering the encounter too, which is what stops an
-        /// integrated trajectory and a two-body encounter reaching the wire for the
-        /// same vessel at the same instant. And the conic answers the
-        /// transfer-window search needs are reachable through
-        /// <c>ProviderContext.Vanilla</c>: the displaced two-body provider is a
-        /// tool, not a rival, and no provider should be carrying a second copy of
-        /// Lambert to get at it.</para>
+        /// <para>It also registers the propagation provider and the force model, in
+        /// that order, and both are registrations rather than channels: nobody reads
+        /// them on a screen, they are what a propagation is run through and against.
+        /// See <see cref="RegisterPropagation"/> for what winning propagation
+        /// actually states.</para>
         /// </summary>
         public void Register(IUplinkHost host)
         {
@@ -181,6 +170,7 @@ namespace GonogoPrincipiaUplink
                 return;
             }
 
+            RegisterPropagation(host);
             RegisterGravityModel(host);
             AttachObserver();
             _observer?.TryAttach();
@@ -392,6 +382,48 @@ namespace GonogoPrincipiaUplink
         /// correctly bundled install, and if one does this Uplink goes inert on that
         /// point rather than taking anything else down.</para>
         /// </summary>
+        /// <summary>
+        /// Wins the propagation capability, and by winning it states that
+        /// trajectories in this install are integrated rather than closed-form.
+        ///
+        /// <para><b>That statement is the reason this exists, and nothing in core
+        /// can make it.</b> An elected provider marked
+        /// <see cref="IIntegratedTrajectorySource"/> is what turns a craft's
+        /// published horizon from "these elements hold forever" into "they hold
+        /// until this instant, and here is the arc it actually flies". Core is not
+        /// allowed to know which physics mod is installed, so without a registration
+        /// from here the marker had no implementer and the horizon reported
+        /// closed-form on every frame of every install, including this one.</para>
+        ///
+        /// <para><b>Registered on the producer being present, not on the force model
+        /// being readable.</b> Those are different facts with different remedies:
+        /// the physics is n-body either way, and an unreadable model reaches a client
+        /// as <see cref="TrajectoryRefusal.NoForceModel"/> on an integrated horizon.
+        /// Standing down here instead would publish conic elements with no complaint
+        /// attached, which reads as a working analytic install.</para>
+        ///
+        /// <para>The factory takes the displaced two-body solver from
+        /// <see cref="ProviderContext.Vanilla{T}"/> and forwards every closed-form
+        /// question to it. Winning propagation means answering the encounter and the
+        /// visibility sweep too, and those are conic questions whose conic answers
+        /// were already correct; a second copy of two-body motion in here to serve
+        /// them is the duplication the seam exists to prevent.</para>
+        ///
+        /// <para>Resolved lazily inside the factory rather than constructed now:
+        /// the vanilla does not exist until the election runs, which is after every
+        /// Uplink has registered.</para>
+        /// </summary>
+        internal void RegisterPropagation(IUplinkHost host)
+        {
+            host.Kernel.RegisterProvider(new ProviderRegistration
+            {
+                Capability = PropagationCapability.Id,
+                Id = PrincipiaPropagationProvider.ProviderIdValue,
+                Factory = ctx => new PrincipiaPropagationProvider(
+                    ctx.Vanilla<IPropagationProvider>(PropagationCapability.Id)),
+            });
+        }
+
         internal void RegisterGravityModel(IUplinkHost host)
         {
             AttachGravityModel();
