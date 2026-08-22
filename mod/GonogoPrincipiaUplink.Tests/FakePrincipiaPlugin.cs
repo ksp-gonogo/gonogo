@@ -118,6 +118,16 @@ namespace GonogoPrincipiaUplink.Tests
             return vessel;
         }
 
+        /// <summary>
+        /// A vessel already added, for a test that wants to inspect or arrange its
+        /// state.
+        ///
+        /// <para>Separate from <see cref="Add"/> because <c>Add</c> REPLACES: a test
+        /// reaching for it as a getter silently resets the plan it was about to
+        /// assert on, which reads as a bug in the code under test.</para>
+        /// </summary>
+        public FakePluginVessel Known(string guid) => _vessels[guid];
+
         /// <summary>Removes a vessel, as recovery or destruction does. Every guid
         /// call for it is an abort from here on.</summary>
         public void Destroy(string guid) => _vessels.Remove(guid);
@@ -296,20 +306,25 @@ namespace GonogoPrincipiaUplink.Tests
                     + (vessel.Burns.Count - 1));
             }
             var copy = vessel.Burns[index].Copy();
-            if (DropThrustOnRead)
+            if (MisreadsThrustAfterAWrite && Writes.Count > 0)
             {
-                copy.burn.thrust_in_kilonewtons = 0.0;
+                copy.burn.thrust_in_kilonewtons *= 2.0;
             }
             return copy;
         }
 
         /// <summary>
-        /// When true, a burn read back after a write comes back with one field
-        /// changed, which is what a struct-layout mismatch on one platform looks
-        /// like from the managed side: nothing throws, nothing fails to resolve, and
-        /// the value is plausible.
+        /// When true, a burn READ BACK after a write comes back with one field
+        /// changed, which is what a struct-layout mismatch on one platform looks like
+        /// from the managed side: nothing throws, nothing fails to resolve, and the
+        /// value is plausible.
+        ///
+        /// <para>The corruption starts at the first write rather than at the first
+        /// read, because that is where a layout mismatch bites: the read that
+        /// composed the burn was fine, the marshalling out was not, and the
+        /// difference is only visible by comparing the two readings.</para>
         /// </summary>
-        public bool DropThrustOnRead { get; set; }
+        public bool MisreadsThrustAfterAWrite { get; set; }
 
         /// <summary>Every write the fake was asked to make, in order, so a test can
         /// assert that a refusal reached the plugin zero times.</summary>
