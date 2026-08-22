@@ -149,6 +149,11 @@
     "reason": "A TWR is not the rate of a burn time. Both fall out of the same stage figures, which is why they sit together.",
     "verdict": "coincidence"
   },
+  "TrajectoryForceModel.stepSeconds": {
+    "rates": ["thirdBodyDominance"],
+    "reason": "Dimensional degeneracy again: `ratio` is dimensionless, so it reads as the per-second rate of every time field in its own type. A third-body dominance is a property of where the craft is, and the integration step is a setting chosen from the orbit's period before the run started. Neither moves the other, and the step does not move at all within an arc.",
+    "verdict": "coincidence"
+  },
   "VesselFlight.altitudeAsl": {
     "rates": ["orbitalSpeed", "surfaceSpeed", "verticalSpeed"],
     "reason": "Ambiguous where it matters: only `verticalSpeed` bears on an altitude, and the rule offers the two horizontal speeds beside it with no way to choose. Integrating an altitude by a speed is also first-order on a curved path, which an orbit always is.",
