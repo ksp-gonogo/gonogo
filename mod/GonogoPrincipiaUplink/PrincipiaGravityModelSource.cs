@@ -30,6 +30,7 @@ namespace GonogoPrincipiaUplink
 
         private readonly Func<IEnumerable<GravityModelBlock>?> _readConfig;
         private readonly Func<IEnumerable<GravityModelBlock>?> _readBodyTree;
+        private readonly object _gate = new object();
         private GravityModel? _model;
         private bool _readOnce;
 
@@ -49,29 +50,41 @@ namespace GonogoPrincipiaUplink
 
         public string ProviderId => ProviderIdValue;
 
+        /// <summary>
+        /// The force model, read once and held.
+        ///
+        /// <para>Under a lock because the caller is the <c>vessel.orbit</c> channel
+        /// mapper on the Courier thread and nothing stops a second reader appearing:
+        /// "read once" is a claim about how often the config is walked, and without
+        /// the lock it would be a claim two threads could both falsify while both
+        /// believing they had honoured it.</para>
+        /// </summary>
         public GravityModel? Model
         {
             get
             {
-                if (!_readOnce)
+                lock (_gate)
                 {
-                    _readOnce = true;
-                    try
+                    if (!_readOnce)
                     {
-                        _model = GravityModelParser.Parse(_readConfig, _readBodyTree);
+                        _readOnce = true;
+                        try
+                        {
+                            _model = GravityModelParser.Parse(_readConfig, _readBodyTree);
+                        }
+                        catch (Exception e)
+                        {
+                            // A throw here would take the whole registration down for
+                            // a config file. Null is the honest answer and reaches a
+                            // client as an install problem it can act on.
+                            Debug.LogWarning(
+                                "[Gonogo] Could not read the Principia gravity model, so no n-body "
+                                + "trajectory will be published: " + e.Message);
+                            _model = null;
+                        }
                     }
-                    catch (Exception e)
-                    {
-                        // A throw here would take the whole registration down for a
-                        // config file. Null is the honest answer and reaches a client
-                        // as an install problem it can act on.
-                        Debug.LogWarning(
-                            "[Gonogo] Could not read the Principia gravity model, so no n-body "
-                            + "trajectory will be published: " + e.Message);
-                        _model = null;
-                    }
+                    return _model;
                 }
-                return _model;
             }
         }
 
@@ -119,12 +132,16 @@ namespace GonogoPrincipiaUplink
         /// Enumerating the flat body list instead would publish attractors the
         /// integration does not have.</para>
         ///
-        /// <para><b>Keyed on <c>name</c> rather than <c>bodyName</c>, because that
-        /// is the key the model is looked up by.</b> The producer matches its config
-        /// against the Unity object name, and the two fields are free to differ: a
-        /// planet pack that renames one and not the other turns every perturber into
-        /// a term the model cannot name, which degrades the curve silently rather
-        /// than failing.</para>
+        /// <para><b>Keyed on <c>bodyName</c>, which is both the key every other body
+        /// table in this mod uses and the only one this thread may read.</b> The
+        /// model is resolved inside the <c>vessel.orbit</c> channel mapper, which
+        /// runs on the Courier thread, and <c>UnityEngine.Object.name</c> is a native
+        /// accessor a non-Unity thread is not entitled to call: reaching for it would
+        /// throw, be swallowed as "nothing attempted", and leave the feature looking
+        /// dead with no complaint on the wire. <c>bodyName</c> is a plain managed
+        /// field, and on the stock system it is the same string. Where a producer's
+        /// own config spells a body differently the arc says so rather than going
+        /// quiet: the term is dropped and the body is named on the payload.</para>
         ///
         /// <para>No reference radius and no zonal harmonic, deliberately. The
         /// producer's per-body route has nowhere to read them from and applies
@@ -150,7 +167,7 @@ namespace GonogoPrincipiaUplink
         {
             if (body == null) return;
 
-            var name = body.name;
+            var name = body.bodyName;
             if (!string.IsNullOrEmpty(name) && body.gravParameter > 0.0)
             {
                 into.Add(new GravityModelBlock(new Dictionary<string, string>(StringComparer.Ordinal)
