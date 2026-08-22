@@ -76,7 +76,6 @@ namespace GonogoPrincipiaUplink.Tests
             return armed;
         }
 
-        // ---- A refusal and an unattempted write are different facts ------------
 
         /// <summary>
         /// The zero value of both enums reads as "we did not touch the plan", so a
@@ -135,7 +134,6 @@ namespace GonogoPrincipiaUplink.Tests
             Assert.Equal(new[] { "Replace@0" }, plugin.Writes);
         }
 
-        // ---- The version gate fails closed to READ-ONLY ------------------------
 
         /// <summary>
         /// A build whose write entry points did not bind still reads. The plan
@@ -188,7 +186,6 @@ namespace GonogoPrincipiaUplink.Tests
             Assert.False(stale.IsArmed(Guid));
         }
 
-        // ---- Arming, and the round-trip probe ---------------------------------
 
         /// <summary>
         /// An edit before arming is refused, and the SAME edit after the real arm
@@ -303,7 +300,6 @@ namespace GonogoPrincipiaUplink.Tests
             Assert.Equal(65_536, plugin.Known(Guid).StepParameters.max_steps);
         }
 
-        // ---- Trap 1: delete on a vessel with no plan --------------------------
 
         /// <summary>
         /// Deleting asks whether a plan exists ONE MORE TIME, immediately before the
@@ -368,7 +364,6 @@ namespace GonogoPrincipiaUplink.Tests
             }
         }
 
-        // ---- Trap 2: the integrator kinds ------------------------------------
 
         /// <summary>
         /// A step-parameter write changes exactly three fields and leaves both
@@ -440,7 +435,6 @@ namespace GonogoPrincipiaUplink.Tests
             Assert.Empty(plugin.Writes);
         }
 
-        // ---- Trap 3: the burn frame ------------------------------------------
 
         /// <summary>
         /// Three frame kinds may go back to the plugin and the rest may not. One of
@@ -493,7 +487,6 @@ namespace GonogoPrincipiaUplink.Tests
             Assert.Empty(plugin.Writes);
         }
 
-        // ---- Trap 4: the optimiser -------------------------------------------
 
         /// <summary>
         /// An edit while the producer's optimiser is running is refused rather than
@@ -516,7 +509,6 @@ namespace GonogoPrincipiaUplink.Tests
             Assert.Empty(plugin.Writes);
         }
 
-        // ---- Trap 5: the ten-plan cap ----------------------------------------
 
         /// <summary>
         /// Duplicating stops at ten. Nothing native does, and the double does not
@@ -586,7 +578,6 @@ namespace GonogoPrincipiaUplink.Tests
             Assert.Empty(plugin.Writes);
         }
 
-        // ---- The guard the plugin does not have ------------------------------
 
         /// <summary>
         /// A burn that is running right now is not editable. Principia permits it,
@@ -646,7 +637,6 @@ namespace GonogoPrincipiaUplink.Tests
             Assert.Equal(refused, result.HasValue);
         }
 
-        // ---- Nothing is composed --------------------------------------------
 
         /// <summary>
         /// An insert copies a burn already in the plan. A plan with no burns is
@@ -828,7 +818,6 @@ namespace GonogoPrincipiaUplink.Tests
             Assert.Equal(PrincipiaWriteRefusal.PluginShapeChanged, refused!.Value.Refusal);
         }
 
-        // ---- The receipt -----------------------------------------------------
 
         /// <summary>
         /// The receipt carries a reading of the plan taken AFTER the write, in the
@@ -897,7 +886,6 @@ namespace GonogoPrincipiaUplink.Tests
             Assert.Equal(true, Receipt(again)["replayed"]);
         }
 
-        // ---- Off the main thread ---------------------------------------------
 
         /// <summary>
         /// A write arriving off the thread the host registered us on is refused.
@@ -931,7 +919,6 @@ namespace GonogoPrincipiaUplink.Tests
             Assert.Empty(plugin.Writes);
         }
 
-        // ---- A vessel that went away -----------------------------------------
 
         [Fact]
         public void AVesselThePluginNoLongerKnowsIsRefusedRatherThanLookedUp()

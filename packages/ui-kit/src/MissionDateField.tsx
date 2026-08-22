@@ -2,6 +2,7 @@ import { useId, useState } from "react";
 import { ActionButton } from "./ActionButton";
 import { Cluster } from "./Cluster";
 import { FieldLabel, Input } from "./Form";
+import { formatDuration } from "./formatDuration";
 import { kspCalendar } from "./kspTime";
 import { Stack } from "./Stack";
 import { Text } from "./Text";
@@ -32,8 +33,8 @@ import { Text } from "./Text";
  * planet pack. The lengths are read per render from `kspCalendar()`, so an
  * entry typed as day 300 means the same instant the game's own clock would call
  * day 300. Compiling the stock numbers in would make this component wrong for
- * an RSS player in a way that still looks like a date, which is the mistake
- * `formatKspDate` already carries a note about.
+ * an RSS player in a way that still looks like a date, which is the whole reason
+ * the calendar is a runtime fact rather than a constant.
  *
  * ## Rounding, and why it is to the second
  *
@@ -74,9 +75,9 @@ export interface MissionDateParts {
  * Splits a UT into calendar components, with years and days ONE-BASED to match
  * every other date this kit renders: UT zero is Year 1 Day 1, not Year 0 Day 0.
  *
- * A non-finite or negative UT lands on the epoch rather than on a negative
- * year, for the reason `formatKspDate` clamps: a stray value should read as the
- * start of time, not as a nonsensical date.
+ * A non-finite or negative UT lands on the epoch rather than on a negative year,
+ * the same way every other date readout in this kit clamps: a stray value should
+ * read as the start of time, not as a nonsensical date.
  */
 export function partsOfUt(ut: number): MissionDateParts {
   const { year: YEAR, day: DAY, hour: HOUR, minute: MINUTE } = kspCalendar();
@@ -115,14 +116,18 @@ export function utOfParts(parts: MissionDateParts): number {
   );
 }
 
-/** A coarse step's label: "1d", "1h", "10m". */
+/**
+ * A coarse step's label, written by the kit's own duration formatter on the live
+ * calendar's tiers: a day's worth of seconds reads as a day, not as 21,600
+ * seconds.
+ *
+ * Not hand-assembled from a number and a letter. A step is a duration and the
+ * kit already owns how a duration is written, including which tiers exist on the
+ * calendar the game reported; spelling "1d" here would be a second answer to
+ * that question, wrong for anyone not on stock Kerbin time.
+ */
 function stepLabel(seconds: number): string {
-  const { day: DAY, hour: HOUR, minute: MINUTE } = kspCalendar();
-  if (seconds >= DAY && seconds % DAY === 0) return `${seconds / DAY}d`;
-  if (seconds >= HOUR && seconds % HOUR === 0) return `${seconds / HOUR}h`;
-  if (seconds >= MINUTE && seconds % MINUTE === 0)
-    return `${seconds / MINUTE}m`;
-  return `${seconds}s`;
+  return formatDuration(seconds);
 }
 
 export function MissionDateField({

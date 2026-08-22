@@ -114,6 +114,26 @@
     "reason": "Dimensional degeneracy, not a pairing: `divide({s:1},{s:1})` is `{}` and `1`/`ratio`/`%` are all dimensionless, so EVERY dimensionless field is the dimensional rate of EVERY time field in its own type. `ecc` is not the rate of an epoch. This is what the algebra says and no vocabulary work fixes it; it is the single strongest argument against deriving a class from units.",
     "verdict": "coincidence"
   },
+  "PrincipiaPlanIntegrator.lengthToleranceMetres": {
+    "rates": ["speedToleranceMetresPerSecond"],
+    "reason": "Two independent knobs on the same integrator, not a quantity and its derivative. A position tolerance and a speed tolerance are the two error bounds the adaptive stepper is asked to hold simultaneously; neither is integrated to reach the other, and the producer's own control happens to move both together because one slider drives two indices.",
+    "verdict": "coincidence"
+  },
+  "PrincipiaPlanIntegratorArgs.lengthToleranceMetres": {
+    "rates": ["speedToleranceMetresPerSecond"],
+    "reason": "The request half of the same pair, and the same answer. See `PrincipiaPlanIntegrator.lengthToleranceMetres`.",
+    "verdict": "coincidence"
+  },
+  "PrincipiaPlannedBurn.finalMassTons": {
+    "rates": ["massFlowKilogramsPerSecond"],
+    "reason": "The mass flow IS the derivative of the mass, so the pairing is real, but this is the END of the integration rather than its start: integrating forward from the mass at cutoff describes a burn that is already over. The rule has the direction backwards here, and the field it should have proposed is the initial mass beside it.",
+    "verdict": "coincidence"
+  },
+  "PrincipiaPlannedBurn.initialMassTons": {
+    "rates": ["massFlowKilogramsPerSecond"],
+    "reason": "Real, and already integrated by the producer: mass flow is the rate of mass, and the plan carries the answer as `finalMassTons`, so a reckoning here would re-derive a number the wire already holds and disagree with it whenever the burn is throttled. Worth modelling only for the mass PARTWAY through a burn in progress, which nothing asks for yet.",
+    "verdict": "real-but-unmodelled"
+  },
   "PartResourceFlow.amount": {
     "rates": ["flow", "nominalFlow"],
     "reason": "`flow` is the rate of `amount`, so this is the one shape the rule was invented for. A model still has to clamp at zero and at the capacity beside it, which the unit table cannot supply.",

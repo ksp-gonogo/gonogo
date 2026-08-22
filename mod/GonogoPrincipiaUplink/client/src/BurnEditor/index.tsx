@@ -4,6 +4,7 @@ import {
   useCommand,
   useTelemetry,
   useViewUt,
+  value,
 } from "@ksp-gonogo/sitrep-sdk";
 import {
   Badge,
@@ -155,9 +156,10 @@ function DeltaVRow({
           if (Number.isFinite(next)) onChange(next);
         }}
       />
-      <Text tone="faint" size="sm">
-        m/s
-      </Text>
+      {/* The bare symbol beside the box, through `<Unit>` rather than as text,
+          so it is styled and announced as a word like every other unit on the
+          board. */}
+      <Unit>m/s</Unit>
     </Cluster>
   );
 }
@@ -434,7 +436,14 @@ export function BurnEditor() {
               />
               <Row as="div">
                 <RowName>MAGNITUDE</RowName>
-                <Text>{`${deltaVMagnitude(draft).toFixed(1)} m/s`}</Text>
+                {/* Built as a VALUE and rendered by `<Unit>`, not written out
+                    beside the number: the magnitude is derived here, so this is
+                    the one place on the row where the unit could disagree with
+                    what it is measuring. */}
+                <Unit
+                  value={value("m/s", deltaVMagnitude(draft))}
+                  decimals={1}
+                />
               </Row>
             </Stack>
 
