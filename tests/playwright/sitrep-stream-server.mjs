@@ -323,6 +323,21 @@ export const SNAPSHOT = {
 };
 
 /**
+ * Topics this fixture deliberately publishes in a shape the contract does NOT
+ * declare, each with the reason. Empty, and meant to stay that way: a mod that
+ * cannot send a field is a mod whose fixture has no business sending it either.
+ * An entry here is a claim that a spec exercises a refusal path.
+ *
+ * Read by `packages/core/src/replay-fixture-conformance.test.ts`, which holds
+ * every payload above against the generated contract. That ratchet exists
+ * because a widget reading a field the fixture never sent renders an em-dash,
+ * and an em-dash is also what "no data yet" looks like: the blank absorbed both
+ * "correctly withheld" and "your fixture is misspelled" until `dv.stages` here
+ * carried `deltaVActual`/`TWRActual`/`thrustASL`/`stageMass` for months.
+ */
+export const NONCONFORMING_FIXTURE_TOPICS = {};
+
+/**
  * Starts a replay server. `extraTopics` (if given) is shallow-merged OVER
  * `SNAPSHOT`: used by `sitrep-stream-server-topology.mjs` to stand up a
  * SEPARATE server/port carrying `vessel.parts`/`dv.*`/`vessel.structure`

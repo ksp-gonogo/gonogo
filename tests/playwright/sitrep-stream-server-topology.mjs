@@ -316,15 +316,36 @@ const VESSEL_STRUCTURE = {
   meta: payloadMeta,
 };
 
-const EXTRA_TOPICS = {
+/**
+ * The topics this variant layers on top of the shared `SNAPSHOT`. Exported so
+ * `packages/core/src/replay-fixture-conformance.test.ts` can hold these exact
+ * objects against the generated contract: a fixture that misspells a field
+ * renders as an em-dash, which is indistinguishable from "no data yet", so the
+ * only place the misspelling is visible is beside the contract itself.
+ */
+export const EXTRA_TOPICS = {
   "vessel.parts": VESSEL_PARTS,
   "dv.stages": DV_STAGES,
   "dv.summary": DV_SUMMARY,
   "vessel.structure": VESSEL_STRUCTURE,
 };
 
-startReplayServer({ port: PORT, extraTopics: EXTRA_TOPICS });
+/**
+ * Topics this fixture deliberately publishes in a shape the contract does NOT
+ * declare, each with the reason. Empty, and meant to stay that way: a mod that
+ * cannot send a field is a mod whose fixture has no business sending it either.
+ * An entry here is a claim that a spec exercises a refusal path.
+ */
+export const NONCONFORMING_FIXTURE_TOPICS = {};
 
-process.stdout.write(
-  `[sitrep-replay-topology] carrying ${Object.keys(SNAPSHOT).length} base topics + ${Object.keys(EXTRA_TOPICS).length} topology/dv topics\n`,
-);
+// Only listen when run directly, so the conformance ratchet can import the
+// payloads above without standing up a port.
+const isMain =
+  process.argv[1] && import.meta.url === `file://${process.argv[1]}`;
+if (isMain) {
+  startReplayServer({ port: PORT, extraTopics: EXTRA_TOPICS });
+
+  process.stdout.write(
+    `[sitrep-replay-topology] carrying ${Object.keys(SNAPSHOT).length} base topics + ${Object.keys(EXTRA_TOPICS).length} topology/dv topics\n`,
+  );
+}
