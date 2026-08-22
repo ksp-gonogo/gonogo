@@ -143,5 +143,144 @@ namespace Sitrep.Host.Tests
                 + low.Arc.ForceModel.StepSeconds.ToString("F2") + " s and high was "
                 + high.Arc.ForceModel.StepSeconds.ToString("F2") + " s.");
         }
+
+        /// <summary>
+        /// A provider that counts the solves it is asked for, so "did the
+        /// integration actually run" is measurable rather than assumed.
+        /// </summary>
+        private sealed class CountingProvider : IPropagationProvider
+        {
+            private readonly IPropagationProvider _inner;
+
+            public CountingProvider(IPropagationProvider inner) => _inner = inner;
+
+            public int Solves { get; private set; }
+
+            public string ProviderId => _inner.ProviderId;
+
+            public StateVector Solve(PropagationTarget target, PropagationFrame frame, double ut)
+            {
+                Solves++;
+                return _inner.Solve(target, frame, ut);
+            }
+
+            public void SolveMany(
+                PropagationTarget target,
+                PropagationFrame frame,
+                IReadOnlyList<double> uts,
+                StateVector[] into) => _inner.SolveMany(target, frame, uts, into);
+
+            public double? CharacteristicCycleSeconds(PropagationTarget target) =>
+                _inner.CharacteristicCycleSeconds(target);
+
+            public RadiusExtremes? RadiusExtremesOf(PropagationTarget target) =>
+                _inner.RadiusExtremesOf(target);
+
+            public ClosestApproach? SolveClosestApproach(
+                PropagationTarget subject,
+                PropagationTarget other,
+                PropagationFrame frame,
+                double fromUt,
+                double toUt) => _inner.SolveClosestApproach(subject, other, frame, fromUt, toUt);
+
+            public bool CanPropagate(
+                PropagationTarget target, PropagationFrame frame, double fromUt, double toUt) =>
+                _inner.CanPropagate(target, frame, fromUt, toUt);
+        }
+
+        [Fact]
+        public void AnUnchangedOrbitIsNotReIntegratedOnTheNextTick()
+        {
+            // Without this the whole integration runs on every sample, which is
+            // thousands of conic solves a second for a curve nobody could tell from
+            // the last one, and it is exactly the regression the curves-published
+            // budget exists to catch.
+            var counting = new CountingProvider(new KeplerProvider(System()));
+            var source = Source(Model(), counting);
+
+            source.ArcFor(Craft(), 0.0, 1_000.0, 64);
+            var afterFirst = counting.Solves;
+            Assert.True(afterFirst > 0, "The first call has to actually integrate.");
+
+            source.ArcFor(Craft(), 1.0, 1_001.0, 64);
+            Assert.Equal(afterFirst, counting.Solves);
+        }
+
+        [Fact]
+        public void AChangedOrbitIsIntegratedAgain()
+        {
+            // The other half, so the reuse test above cannot pass by the source
+            // having stopped integrating altogether.
+            var counting = new CountingProvider(new KeplerProvider(System()));
+            var source = Source(Model(), counting);
+
+            source.ArcFor(Craft(), 0.0, 1_000.0, 64);
+            var afterFirst = counting.Solves;
+
+            source.ArcFor(
+                PropagationTarget.Vessel(
+                    "vessel-guid",
+                    Kerbin,
+                    new OrbitElements(900_000.0, 0.0, 0, 0, 0, 0.0, 0.0, KerbinMu)),
+                1.0,
+                1_001.0,
+                64);
+            Assert.True(
+                counting.Solves > afterFirst,
+                "A different orbit has to be integrated rather than answered from the last one.");
+        }
+
+        [Fact]
+        public void ADifferentVesselIsIntegratedAgainEvenOnIdenticalElements()
+        {
+            // Two craft can share elements to within any threshold and still be two
+            // craft. Answering the second from the first's memo would attribute one
+            // vessel's curve to another, which is worse than publishing nothing.
+            var counting = new CountingProvider(new KeplerProvider(System()));
+            var source = Source(Model(), counting);
+
+            source.ArcFor(Craft(), 0.0, 1_000.0, 64);
+            var afterFirst = counting.Solves;
+
+            source.ArcFor(
+                PropagationTarget.Vessel(
+                    "a-different-guid",
+                    Kerbin,
+                    new OrbitElements(700_000.0, 0.0, 0, 0, 0, 0.0, 0.0, KerbinMu)),
+                1.0,
+                1_001.0,
+                64);
+            Assert.True(counting.Solves > afterFirst);
+        }
+
+        [Fact]
+        public void TheAnswerIsIntegratedAgainOnceTheReusedArcHasAged()
+        {
+            // The floor is a fraction of the arc's OWN span rather than a number of
+            // seconds, because at high warp the same wall time is days of UT and a
+            // UT floor either re-integrates every tick at 1x or goes badly stale.
+            var counting = new CountingProvider(new KeplerProvider(System()));
+            var source = Source(Model(), counting);
+
+            source.ArcFor(Craft(), 0.0, 1_000.0, 64);
+            var afterFirst = counting.Solves;
+
+            var pastTheFloor = 1_000.0 * NBodyArcSource.ReuseFractionOfSpan + 1.0;
+            source.ArcFor(Craft(), pastTheFloor, pastTheFloor + 1_000.0, 64);
+            Assert.True(counting.Solves > afterFirst);
+        }
+
+        [Fact]
+        public void AReusedArcKeepsItsOwnWindowRatherThanBeingRestampedAsFresh()
+        {
+            var source = Source(Model(), new KeplerProvider(System()));
+
+            var first = source.ArcFor(Craft(), 0.0, 1_000.0, 64);
+            var second = source.ArcFor(Craft(), 1.0, 1_001.0, 64);
+
+            Assert.Equal(first.Arc!.FromUt, second.Arc!.FromUt, 6);
+            Assert.Equal(first.Arc.ToUt, second.Arc.ToUt, 6);
+            Assert.Equal(0.0, second.Arc.FromUt, 6);
+        }
     }
 }

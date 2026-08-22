@@ -68,7 +68,97 @@ namespace Sitrep.Host.Propagation
             _perturbers = perturbers ?? throw new ArgumentNullException(nameof(perturbers));
         }
 
+        /// <summary>
+        /// How far into an arc's own span the answer is reused before integrating
+        /// again.
+        ///
+        /// <para>A FRACTION rather than a number of seconds, because a wall-clock
+        /// floor is a warp bug waiting to happen: at 100,000x the same few seconds
+        /// of real time is days of UT, and a floor expressed in UT seconds either
+        /// re-integrates every tick at 1x or goes badly stale under warp. A fraction
+        /// of the arc's own span is the same amount of curve either way.</para>
+        /// </summary>
+        public const double ReuseFractionOfSpan = 0.2;
+
+        /// <summary>
+        /// Relative change in an element that counts as a different orbit.
+        ///
+        /// <para>Not zero, because the elements move continuously under any real
+        /// perturbation and an exact-equality gate would recompute every tick, which
+        /// is the regression the budget above exists to catch. A part in ten
+        /// thousand is well inside the integrator's own truncation, so a change this
+        /// small cannot show on the curve it would produce.</para>
+        /// </summary>
+        public const double ElementChangeThreshold = 1e-4;
+
+        private readonly object _memoLock = new object();
+        private OrbitElements _memoElements;
+        private string? _memoVesselId;
+        private double _memoFromUt = double.NaN;
+        private double _memoToUt = double.NaN;
+        private TrajectoryArcAnswer _memo;
+        private bool _hasMemo;
+
         public TrajectoryArcAnswer ArcFor(
+            PropagationTarget target, double fromUt, double toUt, int maxPoints)
+        {
+            var elements = target.Osculating;
+
+            // Triggered on CHANGE rather than on the tick. Without this the whole
+            // integration runs on every sample, which is thousands of conic solves a
+            // second for a curve nobody could tell from the last one. A reused arc
+            // keeps its own fromUt and toUt, so it states the window it actually
+            // covers rather than being re-stamped as fresh.
+            lock (_memoLock)
+            {
+                if (_hasMemo
+                    && elements != null
+                    && string.Equals(_memoVesselId, target.Id, StringComparison.Ordinal)
+                    && SameOrbit(_memoElements, elements.Value)
+                    && fromUt >= _memoFromUt
+                    && fromUt - _memoFromUt < (_memoToUt - _memoFromUt) * ReuseFractionOfSpan)
+                {
+                    return _memo;
+                }
+            }
+
+            var answer = Compute(target, fromUt, toUt, maxPoints);
+
+            lock (_memoLock)
+            {
+                _hasMemo = elements != null;
+                _memoElements = elements ?? default;
+                _memoVesselId = target.Id;
+                _memoFromUt = fromUt;
+                _memoToUt = toUt;
+                _memo = answer;
+            }
+            return answer;
+        }
+
+        /// <summary>
+        /// Whether two element sets describe the same orbit to within
+        /// <see cref="ElementChangeThreshold"/>. Angles are compared as plain
+        /// differences rather than relative ones: a longitude near zero has no scale
+        /// to be relative to, and a relative test there would call every small
+        /// change enormous.
+        /// </summary>
+        private static bool SameOrbit(OrbitElements a, OrbitElements b) =>
+            Close(a.Sma, b.Sma)
+            && Math.Abs(a.Ecc - b.Ecc) <= ElementChangeThreshold
+            && Math.Abs(a.Inc - b.Inc) <= ElementChangeThreshold
+            && Math.Abs(a.Lan - b.Lan) <= ElementChangeThreshold
+            && Math.Abs(a.ArgPe - b.ArgPe) <= ElementChangeThreshold
+            && Close(a.Mu, b.Mu);
+
+        private static bool Close(double a, double b)
+        {
+            var scale = Math.Max(Math.Abs(a), Math.Abs(b));
+            if (scale <= 0.0) return a == b;
+            return Math.Abs(a - b) / scale <= ElementChangeThreshold;
+        }
+
+        private TrajectoryArcAnswer Compute(
             PropagationTarget target, double fromUt, double toUt, int maxPoints)
         {
             var elements = target.Osculating;
