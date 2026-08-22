@@ -1,0 +1,30 @@
+{
+  "spec_version": 1,
+  "identifier": "GonogoPrincipiaUplink",
+  "name": "Gonogo Principia Uplink",
+  "abstract": "Publishes Principia's n-body state over the Gonogo telemetry connection (trajectory arcs, the flight plan and its burns, integrator settings) and accepts flight-plan edits from the console.",
+  "author": "jonpepler",
+  "license": "MIT",
+  "release_status": "development",
+  "resources": {
+    "homepage": "https://github.com/ksp-gonogo/gonogo"
+  },
+  "tags": [
+    "plugin",
+    "telemetry",
+    "principia"
+  ],
+  "depends": [
+    { "name": "GonogoCore" },
+    { "name": "Harmony2" }
+  ],
+  "recommends": [
+    { "name": "Principia" }
+  ],
+  "install": [
+    {
+      "file": "GameData/GonogoPrincipiaUplink",
+      "install_to": "GameData"
+    }
+  ]
+}

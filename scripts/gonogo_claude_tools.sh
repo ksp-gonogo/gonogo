@@ -999,6 +999,96 @@ build_gonogokerbalismuplink() {
   ls -la "$install_dir"
 }
 
+build_gonogoprincipiauplink() {
+  local proj="$ROOT/mod/GonogoPrincipiaUplink/GonogoPrincipiaUplink.csproj"
+  local out_dir="$ROOT/mod/GonogoPrincipiaUplink/bin/Release"
+  local install_dir="$ROOT/local_docs/syncthing/kspdata/GameData/GonogoPrincipiaUplink/Plugins"
+  if [ ! -f "$proj" ]; then
+    echo "GonogoPrincipiaUplink csproj not found at $proj"
+    return 3
+  fi
+  if [ ! -d "$ROOT/local_docs/syncthing/kspdata/GameData" ]; then
+    echo "kspdata GameData not found under $ROOT/local_docs/syncthing/kspdata"
+    return 3
+  fi
+  echo "=== building GonogoPrincipiaUplink ==="
+  perl -e 'alarm shift; exec @ARGV' "$BUILD_TIMEOUT_S" \
+    dotnet build "$proj" -c Release --nologo -v minimal
+  if [ ! -f "$out_dir/GonogoPrincipiaUplink.dll" ]; then
+    echo "GonogoPrincipiaUplink.dll not produced (missing at $out_dir/GonogoPrincipiaUplink.dll)"
+    return 4
+  fi
+  if [ ! -f "$out_dir/GonogoPrincipiaUplink.Contract.dll" ]; then
+    echo "GonogoPrincipiaUplink.Contract.dll not produced (missing at $out_dir/GonogoPrincipiaUplink.Contract.dll)"
+    return 4
+  fi
+  mkdir -p "$install_dir"
+  # GonogoPrincipiaUplink.dll AND GonogoPrincipiaUplink.Contract.dll, the same
+  # two-DLL shape as the RealAntennas and Kerbalism uplinks. The Contract slice
+  # holds this Uplink's own wire payloads and nothing else in the mod deploys
+  # it, so it takes the default Private and lands in $out_dir. Sitrep.Contract
+  # (provided by gonogo-core) stays reference-only and must NOT be copied here,
+  # and no Principia assembly is ever referenced at all: every Principia member
+  # is reached by reflection, so there is nothing of Principia's to exclude.
+  cp "$out_dir/GonogoPrincipiaUplink.dll" "$install_dir/"
+  cp "$out_dir/GonogoPrincipiaUplink.Contract.dll" "$install_dir/"
+  {
+    echo "version=$(git -C "$ROOT" describe --tags --always --dirty 2>/dev/null || echo unknown)"
+    echo "git_sha=$(git -C "$ROOT" rev-parse HEAD 2>/dev/null || echo unknown)"
+    echo "build_date=$(date -u +%Y-%m-%dT%H:%M:%SZ)"
+  } > "$install_dir/build-info.txt"
+
+  # Prove the bytes that landed are the ones we meant, rather than trusting that
+  # `cp` copied a DLL holding this slice's code. Every symbol below is a specific
+  # claim about the deployed file, each with the control that proves the reader
+  # could have seen it: without one, a scan that reads nothing at all reports the
+  # same clean run as a scan that read everything. See the script's own header
+  # for why both encodings are counted.
+  #
+  #   PrincipiaGravityModelSource  the n-body gravity registration, whose absence
+  #                                is why the live rig still reported Analytic
+  #   PrincipiaLayoutProbe         the burn-editor struct-layout round-trip probe
+  #   principia.plan.arm           a UTF-16LE-only string literal, so the second
+  #                                encoding leg is exercised on every deploy and
+  #                                cannot rot into a UTF-8-only scan
+  #   Reinforced.Typings           an Uplink must never carry the codegen
+  #                                dependency (uplink-packaging-pattern.md §3);
+  #                                a leak of it once hid a dispatch bug for a
+  #                                month
+  #   kOS.Safe                     a type-level kOS.Safe dependency inside an
+  #                                Uplink assembly drops the whole plugin at KSP
+  #                                load, so assert it is not reachable from here
+  # `|| rc=$?` rather than a bare call then `$?`: this script runs under
+  # `set -e`, which would abort the function on the failing exit before the code
+  # could be read, and a deploy that dies silently at its own verification step
+  # is worse than one with no verification at all.
+  echo "=== verifying deployed bytes ==="
+  local uplink_rc=0
+  local contract_rc=0
+  python3 "$ROOT/scripts/verify_deployed_symbols.py" \
+    "$install_dir/GonogoPrincipiaUplink.dll" \
+    --control mscorlib \
+    --require PrincipiaGravityModelSource \
+    --require PrincipiaLayoutProbe \
+    --require principia.plan.arm \
+    --absent Reinforced.Typings \
+    --absent kOS.Safe || uplink_rc=$?
+  python3 "$ROOT/scripts/verify_deployed_symbols.py" \
+    "$install_dir/GonogoPrincipiaUplink.Contract.dll" \
+    --control mscorlib \
+    --require PrincipiaPlan \
+    --require PrincipiaPlannedBurn \
+    --require PrincipiaFlightPlan \
+    --absent Reinforced.Typings || contract_rc=$?
+  if [ "$uplink_rc" -ne 0 ] || [ "$contract_rc" -ne 0 ]; then
+    echo "deployed DLLs failed verification (uplink=$uplink_rc contract=$contract_rc)"
+    return 5
+  fi
+
+  echo "=== deployed to $install_dir ==="
+  ls -la "$install_dir"
+}
+
 # The Deck-only dev tooling mini-mod. Never shipped in a CKAN/SpaceDock
 # release, so it has no build-info stamp and no Contract dll: a single
 # assembly referencing only KSP/Unity (see GonogoDevTools.csproj).
@@ -1068,10 +1158,11 @@ case "${1:-help}" in
       gonogoavionicsuplink) build_gonogoavionicsuplink ;;
       gonogokerbcastuplink) build_gonogokerbcastuplink ;;
       gonogokerbalismuplink) build_gonogokerbalismuplink ;;
+      gonogoprincipiauplink) build_gonogoprincipiauplink ;;
       devtools) build_devtools ;;
       *)
         echo "usage: gonogo_claude_tools.sh build <target>"
-        echo "  targets: ocisly [--baseline], kerbcast, gonogo, gonogoscansatuplink, gonogorealantennasuplink, gonogokosuplink, gonogomechjebuplink, gonogoavionicsuplink, gonogokerbcastuplink, gonogokerbalismuplink, devtools"
+        echo "  targets: ocisly [--baseline], kerbcast, gonogo, gonogoscansatuplink, gonogorealantennasuplink, gonogokosuplink, gonogomechjebuplink, gonogoavionicsuplink, gonogokerbcastuplink, gonogokerbalismuplink, gonogoprincipiauplink, devtools"
         exit 2
         ;;
     esac
