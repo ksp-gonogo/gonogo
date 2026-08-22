@@ -98,6 +98,15 @@ public static class RtConfig
                 // nested payload records
                 typeof(OrbitEncounter),
                 typeof(PropagationHorizon),
+                // The integrated path riding on vessel.orbit, and the three
+                // shapes that describe it. All four are here rather than only
+                // the root: a nested payload left out of this set generates
+                // bare numbers where its parent generates Value<>, in the same
+                // file, with nothing failing.
+                typeof(TrajectoryArc),
+                typeof(TrajectoryPoint),
+                typeof(TrajectoryFrameRef),
+                typeof(TrajectoryForceModel),
                 typeof(OrbitPatch),
                 typeof(ManeuverNode),
                 typeof(DockAlignment),
@@ -412,6 +421,9 @@ public static class RtConfig
                 typeof(TransitionType),
                 typeof(PropagationHorizonKind),
                 typeof(TrajectoryKind),
+                typeof(TrajectoryFrameKind),
+                typeof(TrajectoryDerivation),
+                typeof(TrajectoryRefusal),
                 typeof(VesselType),
                 typeof(WarpMode),
                 typeof(GameMode),

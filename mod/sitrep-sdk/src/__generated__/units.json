@@ -914,6 +914,35 @@
       "minuteSeconds": "s",
       "yearSeconds": "s"
     },
+    "TrajectoryArc": {
+      "derivation": "enum",
+      "fromUt": "ut",
+      "sourcePointCount": "count",
+      "toUt": "ut"
+    },
+    "TrajectoryForceModel": {
+      "bodyEphemeris": "text",
+      "geopotentialDegree": "count",
+      "gravityModelFound": "flag",
+      "integrator": "text",
+      "missingTerm": "text",
+      "perturbingBodyCount": "count",
+      "stepCount": "count",
+      "stepSeconds": "s",
+      "thirdBodyDominance": "ratio",
+      "vacuum": "flag"
+    },
+    "TrajectoryFrameRef": {
+      "centreBodyIndex": "id",
+      "kind": "enum",
+      "lengthsPulsate": "flag"
+    },
+    "TrajectoryPoint": {
+      "ut": "ut",
+      "x": "m",
+      "y": "m",
+      "z": "m"
+    },
     "UnlockTechArgs": {
       "techId": "id"
     },
@@ -1021,6 +1050,7 @@
       "planner": "id"
     },
     "VesselOrbit": {
+      "arcRefusal": "enum",
       "argPe": "°",
       "ecc": "1",
       "epoch": "ut",
@@ -1566,6 +1596,7 @@
       "planner": "id"
     },
     "vessel.orbit": {
+      "arcRefusal": "enum",
       "argPe": "°",
       "ecc": "1",
       "epoch": "ut",
@@ -1788,6 +1819,11 @@
     "TimeCalendar": {
       "meta": "PayloadMeta"
     },
+    "TrajectoryArc": {
+      "forceModel": "TrajectoryForceModel",
+      "frame": "TrajectoryFrameRef",
+      "points": "TrajectoryPoint"
+    },
     "UplinkManifest": {
       "channels": "ChannelDeclaration",
       "clientSource": "UplinkClientSource",
@@ -1821,6 +1857,7 @@
       "nodes": "ManeuverNode"
     },
     "VesselOrbit": {
+      "arc": "TrajectoryArc",
       "encounter": "OrbitEncounter",
       "horizon": "PropagationHorizon",
       "meta": "PayloadMeta",
@@ -1976,6 +2013,7 @@
       "nodes": "ManeuverNode"
     },
     "vessel.orbit": {
+      "arc": "TrajectoryArc",
       "encounter": "OrbitEncounter",
       "horizon": "PropagationHorizon",
       "meta": "PayloadMeta",

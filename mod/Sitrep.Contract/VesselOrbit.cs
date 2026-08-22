@@ -98,6 +98,30 @@ public class VesselOrbit
     /// </summary>
     public PropagationHorizon Horizon { get; set; } = new();
 
+    /// <summary>
+    /// The path the craft actually flies, when the provider integrated one.
+    ///
+    /// <para>Null under an analytic provider, and that is not a gap: its elements
+    /// ARE the curve, so a client draws a conic from them and an arc beside it
+    /// would be a second, redundant copy of the same answer. Null also under an
+    /// integrating provider that has nothing to publish this sample, in which
+    /// case <see cref="ArcRefusal"/> says why.</para>
+    ///
+    /// <para>It rides HERE, on the elements, for the reason
+    /// <see cref="Horizon"/> does: the arc, the elements and the horizon that
+    /// bounds both share one <c>validAt</c>, and split across frames a client
+    /// could hold one sample's arc beside another's elements.</para>
+    /// </summary>
+    public TrajectoryArc? Arc { get; set; }
+
+    /// <summary>
+    /// Why <see cref="Arc"/> is absent, when a provider tried to build one and
+    /// stopped. <see cref="TrajectoryRefusal.Unspecified"/> when nothing was
+    /// refused, which is every sample from a provider that does not integrate.
+    /// </summary>
+    [SitrepUnit(Units.Enumeration)]
+    public TrajectoryRefusal ArcRefusal { get; set; }
+
     public PayloadMeta Meta { get; set; } = new();
 }
 

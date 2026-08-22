@@ -1417,7 +1417,53 @@ namespace Sitrep.Host
             // gate treats as unpropagatable. Correct as a fail-safe, wrong as a
             // routine state.
             ["horizon"] = ToWire(orbit.Horizon),
+            // Conditional, unlike the horizon: an absent arc is the ordinary
+            // state under an analytic provider, whose elements ARE the curve.
+            // The refusal beside it is unconditional for the opposite reason,
+            // its zero arm means "nothing was refused" rather than "nobody said".
+            ["arc"] = orbit.Arc != null ? ToWire(orbit.Arc) : null,
+            ["arcRefusal"] = (int)orbit.ArcRefusal,
             ["meta"] = ToWire(orbit.Meta),
+        };
+
+        private static Dictionary<string, object?> ToWire(TrajectoryArc arc) => new Dictionary<string, object?>
+        {
+            ["frame"] = ToWire(arc.Frame),
+            ["points"] = arc.Points.Select(p => (object?)ToWire(p)).ToList(),
+            ["fromUt"] = arc.FromUt,
+            ["toUt"] = arc.ToUt,
+            ["sourcePointCount"] = arc.SourcePointCount,
+            ["derivation"] = (int)arc.Derivation,
+            ["forceModel"] = arc.ForceModel != null ? ToWire(arc.ForceModel) : null,
+        };
+
+        private static Dictionary<string, object?> ToWire(TrajectoryPoint point) => new Dictionary<string, object?>
+        {
+            ["ut"] = point.Ut,
+            ["x"] = point.X,
+            ["y"] = point.Y,
+            ["z"] = point.Z,
+        };
+
+        private static Dictionary<string, object?> ToWire(TrajectoryFrameRef frame) => new Dictionary<string, object?>
+        {
+            ["kind"] = (int)frame.Kind,
+            ["centreBodyIndex"] = frame.CentreBodyIndex,
+            ["lengthsPulsate"] = frame.LengthsPulsate,
+        };
+
+        private static Dictionary<string, object?> ToWire(TrajectoryForceModel model) => new Dictionary<string, object?>
+        {
+            ["gravityModelFound"] = model.GravityModelFound,
+            ["perturbingBodyCount"] = model.PerturbingBodyCount,
+            ["geopotentialDegree"] = model.GeopotentialDegree,
+            ["bodyEphemeris"] = model.BodyEphemeris,
+            ["thirdBodyDominance"] = model.ThirdBodyDominance,
+            ["missingTerm"] = model.MissingTerm,
+            ["integrator"] = model.Integrator,
+            ["stepSeconds"] = model.StepSeconds,
+            ["stepCount"] = model.StepCount,
+            ["vacuum"] = model.Vacuum,
         };
 
         private static Dictionary<string, object?> ToWire(OrbitEncounter encounter) => new Dictionary<string, object?>

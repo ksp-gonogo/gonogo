@@ -51,6 +51,10 @@ namespace Sitrep.Core.Tests
             // same as OrbitEncounter beside it, so JsonWriter only ever sees the
             // flattened dictionary.
             "PropagationHorizon",
+            // TrajectoryArc rides VesselOrbit.Arc, and its three nested shapes
+            // ride it in turn: ToWire(VesselOrbit) maps the whole tree through
+            // its own overloads, so JsonWriter only ever sees dictionaries.
+            "TrajectoryArc", "TrajectoryPoint", "TrajectoryFrameRef", "TrajectoryForceModel",
             "VesselIdentity", "VesselOrbit", "VesselOrbitTruth", "OrbitEncounter",
             "VesselFlight", "VesselAttitude", "VesselResources", "ResourceAmount",
             // ActionGroupState rides VesselControl.ActionGroups: ToWire(VesselControl)

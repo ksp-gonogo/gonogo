@@ -948,6 +948,35 @@ export const GENERATED_TYPE_UNITS: Readonly<Record<string, UnitsByField>> = {
     minuteSeconds: "s",
     yearSeconds: "s",
   },
+  "TrajectoryArc": {
+    derivation: "enum",
+    fromUt: "ut",
+    sourcePointCount: "count",
+    toUt: "ut",
+  },
+  "TrajectoryForceModel": {
+    bodyEphemeris: "text",
+    geopotentialDegree: "count",
+    gravityModelFound: "flag",
+    integrator: "text",
+    missingTerm: "text",
+    perturbingBodyCount: "count",
+    stepCount: "count",
+    stepSeconds: "s",
+    thirdBodyDominance: "ratio",
+    vacuum: "flag",
+  },
+  "TrajectoryFrameRef": {
+    centreBodyIndex: "id",
+    kind: "enum",
+    lengthsPulsate: "flag",
+  },
+  "TrajectoryPoint": {
+    ut: "ut",
+    x: "m",
+    y: "m",
+    z: "m",
+  },
   "UnlockTechArgs": {
     techId: "id",
   },
@@ -1055,6 +1084,7 @@ export const GENERATED_TYPE_UNITS: Readonly<Record<string, UnitsByField>> = {
     planner: "id",
   },
   "VesselOrbit": {
+    arcRefusal: "enum",
     argPe: "°",
     ecc: "1",
     epoch: "ut",
@@ -1605,6 +1635,7 @@ export const GENERATED_TOPIC_UNITS: Readonly<Record<string, UnitsByField>> = {
     planner: "id",
   },
   "vessel.orbit": {
+    arcRefusal: "enum",
     argPe: "°",
     ecc: "1",
     epoch: "ut",
@@ -1845,6 +1876,11 @@ export const GENERATED_TYPE_SHAPES: Readonly<Record<string, ShapesByField>> = {
   "TimeCalendar": {
     meta: "PayloadMeta",
   },
+  "TrajectoryArc": {
+    forceModel: "TrajectoryForceModel",
+    frame: "TrajectoryFrameRef",
+    points: "TrajectoryPoint",
+  },
   "UplinkManifest": {
     channels: "ChannelDeclaration",
     clientSource: "UplinkClientSource",
@@ -1878,6 +1914,7 @@ export const GENERATED_TYPE_SHAPES: Readonly<Record<string, ShapesByField>> = {
     nodes: "ManeuverNode",
   },
   "VesselOrbit": {
+    arc: "TrajectoryArc",
     encounter: "OrbitEncounter",
     horizon: "PropagationHorizon",
     meta: "PayloadMeta",
@@ -2035,6 +2072,7 @@ export const GENERATED_TOPIC_SHAPES: Readonly<Record<string, ShapesByField>> = {
     nodes: "ManeuverNode",
   },
   "vessel.orbit": {
+    arc: "TrajectoryArc",
     encounter: "OrbitEncounter",
     horizon: "PropagationHorizon",
     meta: "PayloadMeta",
