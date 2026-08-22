@@ -1,7 +1,8 @@
 {
   "_meta": {
     "scenario": "kerbin-launchpad",
-    "notes": "Pre-launch on KSC pad: vessel sitting at the launchpad coordinates."
+    "notes": "Pre-launch on KSC pad: vessel sitting at the launchpad coordinates.",
+    "patchesAbsent": "The only MapView fixture with no patch chain, deliberately: a craft on the pad has no forward ground track, and the empty prediction layer here is the widget answering correctly rather than the fixture starving it. Its sibling fixtures carry a chain so the prediction path is exercised."
   },
   "v.body": "Kerbin",
   "v.lat": -0.0972,

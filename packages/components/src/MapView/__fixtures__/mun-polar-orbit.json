@@ -42,6 +42,29 @@
           "meanAnomalyAtEpoch": 0,
           "epoch": 5555555,
           "mu": 3531600000000.0,
+          "patches": [
+            {
+              "sma": 700000,
+              "ecc": 0.1,
+              "inc": 0,
+              "lan": 0,
+              "argPe": 0,
+              "meanAnomalyAtEpoch": 0,
+              "epoch": 5555555,
+              "period": 1958.13,
+              "startUt": 5555555,
+              "endUt": 5557513.13,
+              "patchStartTransition": 0,
+              "patchEndTransition": 1,
+              "peA": 30000,
+              "apA": 170000,
+              "semiLatusRectum": 693000,
+              "semiMinorAxis": 696491.2,
+              "referenceBody": "Mun",
+              "referenceBodyIndex": 1,
+              "mu": 3531600000000.0
+            }
+          ],
           "horizon": {
             "kind": 1,
             "trajectoryKind": 1
