@@ -332,6 +332,9 @@ function CurrentOrbitComponent({
                 trajectoryPath={
                   trajectory?.shape === "arc" ? trajectory.points : null
                 }
+                trajectoryFarEnd={
+                  trajectory?.shape === "arc" ? trajectory.farEnd : null
+                }
                 sma={sma.magnitude}
                 ecc={eccentricity.magnitude}
                 // `apoapsisR` is `null` on a hyperbolic orbit, OrbitDiagram

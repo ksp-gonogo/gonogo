@@ -420,6 +420,53 @@ function rotatePerifocalToInertial(
   return [x, y, z];
 }
 
+/**
+ * The inverse of the rotation above: a body-centred inertial vector expressed
+ * in the perifocal frame of the element set given.
+ *
+ * Exported because an integrated path arrives in the inertial frame and the
+ * body-centric diagrams draw in the perifocal one, so somewhere the two have to
+ * meet. Doing it HERE keeps the rotation matrix in the one file that owns it:
+ * a second copy of those nine terms elsewhere is free to disagree with this one
+ * about a sign, and the symptom would be a curve that looks plausible and is
+ * mirrored.
+ *
+ * The rotation is orthonormal, so the inverse is the transpose and no matrix
+ * needs inverting. The out-of-plane component survives as `z`: a caller that
+ * flattens it to a plane is throwing away the one thing an n-body path has that
+ * a conic does not.
+ */
+export function rotateInertialToPerifocal(
+  v: Vector3,
+  inc: number,
+  lan: number,
+  argPe: number,
+): Vector3 {
+  const cosLan = Math.cos(lan);
+  const sinLan = Math.sin(lan);
+  const cosArgPe = Math.cos(argPe);
+  const sinArgPe = Math.sin(argPe);
+  const cosInc = Math.cos(inc);
+  const sinInc = Math.sin(inc);
+
+  const r11 = cosLan * cosArgPe - sinLan * sinArgPe * cosInc;
+  const r12 = -cosLan * sinArgPe - sinLan * cosArgPe * cosInc;
+  const r13 = sinLan * sinInc;
+  const r21 = sinLan * cosArgPe + cosLan * sinArgPe * cosInc;
+  const r22 = -sinLan * sinArgPe + cosLan * cosArgPe * cosInc;
+  const r23 = -cosLan * sinInc;
+  const r31 = sinArgPe * sinInc;
+  const r32 = cosArgPe * sinInc;
+  const r33 = cosInc;
+
+  const [x, y, z] = v;
+  return [
+    r11 * x + r21 * y + r31 * z,
+    r12 * x + r22 * y + r32 * z,
+    r13 * x + r23 * y + r33 * z,
+  ];
+}
+
 function wrapTwoPi(angle: number): number {
   const twoPi = 2.0 * Math.PI;
   const wrapped = angle % twoPi;

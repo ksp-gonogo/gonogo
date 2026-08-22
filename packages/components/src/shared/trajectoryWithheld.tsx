@@ -15,10 +15,16 @@ export type WithheldTrajectory = Extract<
  *
  * A heading in the same vocabulary `TrajectoryCurrencyBridge` badges with, so
  * an operator reading a badge and a drawing sees one word for one fact, plus a
- * line saying what it means for this particular drawing. The four reasons stay
- * four sentences: "nobody stated a horizon" and "you have outrun a stated one"
+ * line saying what it means for this particular drawing. The six reasons stay
+ * six sentences: "nobody stated a horizon" and "you have outrun a stated one"
  * have different remedies, and an integrator that has not computed this far
  * ahead yet resolves on its own where a producer that dropped a field does not.
+ *
+ * The last two arrived with the integrating provider and neither of the earlier
+ * four could say them. A step budget exhausted is something the operator can act
+ * on, by shortening the window, and it may also clear itself; a missing force
+ * model is an install problem with no operator remedy at all. Collapsing either
+ * into "past horizon" would have someone waiting for a curve that is not coming.
  *
  * One table, not one per widget. Six widgets draw a trajectory and every one of
  * them can now be refused; six copies of these sentences would drift, and an
@@ -49,6 +55,18 @@ export function trajectoryWithheldCopy(withheld: WithheldTrajectory): {
       return {
         heading: "SHAPE NOT STATED",
         detail: "Nothing has said whether this trajectory is a conic.",
+      };
+    case "beyond-budget":
+      return {
+        heading: "BEYOND BUDGET",
+        detail:
+          "The integration ran out of steps before reaching this instant. Shorten the window, or wait.",
+      };
+    case "no-force-model":
+      return {
+        heading: "NO FORCE MODEL",
+        detail:
+          "The gravity model could not be read, so there is nothing to integrate against. Check the install.",
       };
     default:
       return {

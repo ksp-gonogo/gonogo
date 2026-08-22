@@ -1,4 +1,5 @@
 import { render } from "@ksp-gonogo/test-utils";
+import { expectNoA11yViolations } from "@ksp-gonogo/ui-kit/testing";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it } from "vitest";
 import { OrbitDiagram } from "./OrbitDiagram";
@@ -145,5 +146,96 @@ describe("OrbitDiagram projected overlay", () => {
     const plainW = Number.parseFloat(plainVb.split(" ")[2] ?? "0");
     const withW = Number.parseFloat(withVb.split(" ")[2] ?? "0");
     expect(withW).toBeGreaterThan(plainW);
+  });
+});
+
+/** A short supplied arc heading straight along +x, so its stop mark is vertical. */
+const SUPPLIED = [
+  { x: 600_000, y: 0 },
+  { x: 650_000, y: 0 },
+  { x: 700_000, y: 0 },
+];
+
+describe("OrbitDiagram horizon mark", () => {
+  it("marks the far end of every supplied path", () => {
+    const { container } = render(
+      <OrbitDiagram
+        {...BASE}
+        trajectoryPath={SUPPLIED}
+        trajectoryFarEnd="horizon"
+      />,
+    );
+    const mark = container.querySelector("[data-trajectory-mark]");
+    expect(mark).not.toBeNull();
+    expect(mark?.getAttribute("data-trajectory-mark")).toBe("horizon");
+  });
+
+  it("draws it as a bar across the curve, not as a fade", () => {
+    // A fade would arrive as an opacity or a gradient on the path itself. The
+    // mark is a line element with two distinct endpoints and full opacity, and
+    // asserting the geometry is what tells the two apart: a zero-length mark or
+    // one drawn along the heading would pass a "does an element exist" check.
+    const { container } = render(
+      <OrbitDiagram
+        {...BASE}
+        trajectoryPath={SUPPLIED}
+        trajectoryFarEnd="horizon"
+      />,
+    );
+    const mark = container.querySelector("line[data-trajectory-mark]");
+    expect(mark).not.toBeNull();
+    const x1 = Number.parseFloat(mark?.getAttribute("x1") ?? "0");
+    const x2 = Number.parseFloat(mark?.getAttribute("x2") ?? "0");
+    const y1 = Number.parseFloat(mark?.getAttribute("y1") ?? "0");
+    const y2 = Number.parseFloat(mark?.getAttribute("y2") ?? "0");
+    // Perpendicular to a path running along +x: no run in x, real extent in y.
+    expect(x1).toBeCloseTo(x2, 6);
+    expect(Math.abs(y2 - y1)).toBeGreaterThan(0);
+    // Sits at the far end, not at the start.
+    expect(x1).toBeCloseTo(700_000, 6);
+    // And nothing on the drawn curve fades toward it.
+    const path = container.querySelector('path[data-trajectory="supplied"]');
+    expect(path?.getAttribute("stroke")).not.toMatch(/url\(#/);
+    expect(path?.getAttribute("opacity")).toBeNull();
+  });
+
+  it("says a revolution is a drawing convention, not a horizon", () => {
+    const { container } = render(
+      <OrbitDiagram
+        {...BASE}
+        trajectoryPath={SUPPLIED}
+        trajectoryFarEnd="revolution"
+      />,
+    );
+    const mark = container.querySelector("[data-trajectory-mark]");
+    expect(mark?.getAttribute("data-trajectory-mark")).toBe("revolution");
+    expect(mark?.textContent).toContain("One revolution drawn");
+  });
+
+  it("draws no mark where there is no supplied path to end", () => {
+    const { container } = render(<OrbitDiagram {...BASE} />);
+    expect(container.querySelector("[data-trajectory-mark]")).toBeNull();
+  });
+
+  it("draws no mark from a single point, which has no heading", () => {
+    const { container } = render(
+      <OrbitDiagram
+        {...BASE}
+        trajectoryPath={[{ x: 700_000, y: 0 }]}
+        trajectoryFarEnd="horizon"
+      />,
+    );
+    expect(container.querySelector("[data-trajectory-mark]")).toBeNull();
+  });
+
+  it("has no accessibility violations with the mark drawn", async () => {
+    const { container } = render(
+      <OrbitDiagram
+        {...BASE}
+        trajectoryPath={SUPPLIED}
+        trajectoryFarEnd="horizon"
+      />,
+    );
+    await expectNoA11yViolations(container);
   });
 });

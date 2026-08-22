@@ -3,6 +3,7 @@ import {
   orbitalToCartesian,
   trueAnomalyToRadius,
 } from "@ksp-gonogo/core";
+import type { ArcFarEnd } from "@ksp-gonogo/sitrep-client";
 import { value } from "@ksp-gonogo/sitrep-sdk";
 import { writeQuantity } from "@ksp-gonogo/ui-kit";
 import { useCallback, useEffect, useRef, useState } from "react";
@@ -115,6 +116,20 @@ export interface OrbitDiagramProps {
    * arc says nothing about how large the orbit it belongs to is.
    */
   trajectoryPath?: readonly { x: number; y: number }[] | null;
+  /**
+   * What the far end of `trajectoryPath` IS, which decides the sentence on the
+   * mark drawn there.
+   *
+   * A supplied path always gets that mark and it is always a MARK rather than a
+   * fade, because the failure it prevents is that a prediction which stops short
+   * and a trajectory which ends look identical. A fade is the wrong instrument
+   * for it: fading reads as growing uncertainty about the shape, where the fact
+   * is complete certainty about where the authority behind the shape stops.
+   *
+   * Null when the caller has no supplied path, which is when there is no far end
+   * to mark.
+   */
+  trajectoryFarEnd?: ArcFarEnd | null;
 }
 
 // Per-variant styling knobs. Kept here so the two call sites don't diverge.
@@ -161,6 +176,7 @@ export function OrbitDiagram({
   atmosphereDepthM = null,
   atmosphereHasOxygen = null,
   trajectoryPath = null,
+  trajectoryFarEnd = null,
 }: Readonly<OrbitDiagramProps>) {
   const cfg = variantConfig[variant];
 
@@ -440,13 +456,22 @@ export function OrbitDiagram({
                the trajectory, and deriving one from the elements beside it
                would be drawing a second, contradicting answer. Open by
                construction, no `Z`: it stops where the provider stopped. */
-            <path
-              data-trajectory="supplied"
-              d={buildSuppliedPath(trajectoryPath)}
-              fill="none"
-              stroke={orbitStroke}
-              strokeWidth={strokeW}
-            />
+            <>
+              <path
+                data-trajectory="supplied"
+                d={buildSuppliedPath(trajectoryPath)}
+                fill="none"
+                stroke={orbitStroke}
+                strokeWidth={strokeW}
+              />
+              <HorizonMark
+                points={trajectoryPath}
+                farEnd={trajectoryFarEnd}
+                length={dotR * 2.4}
+                strokeWidth={strokeW * 1.8}
+                stroke={orbitStroke}
+              />
+            </>
           ) : isHyperbolic ? (
             <path
               d={buildHyperbolicPath(sma, ecc, periapsis * HYPERBOLIC_SCALE)}
@@ -740,6 +765,74 @@ function buildSuppliedPath(
     );
   }
   return parts.join(" ");
+}
+
+/**
+ * The stop mark at the far end of a supplied path: a bar drawn ACROSS the
+ * curve, perpendicular to its last heading.
+ *
+ * <b>A mark, and specifically not a fade.</b> A prediction that stops short and
+ * a trajectory that ends look identical on a diagram, so something has to say
+ * which this is. Fading the tail out is the instrument reached for first and it
+ * says the wrong thing: a fade reads as the shape becoming uncertain, where the
+ * fact is that the shape is certain and the AUTHORITY behind it ends here. A bar
+ * across the curve reads as a stop, which is what happened.
+ *
+ * Renders nothing when there are fewer than two finite points to take a heading
+ * from, because a bar with no direction would be a bar at an arbitrary angle,
+ * and an arbitrary angle on a diagram is read as meaning something.
+ */
+function HorizonMark({
+  points,
+  farEnd,
+  length,
+  strokeWidth,
+  stroke,
+}: Readonly<{
+  points: readonly { x: number; y: number }[];
+  farEnd: ArcFarEnd | null;
+  length: number;
+  strokeWidth: number;
+  stroke: string;
+}>) {
+  const finite = points.filter(
+    (p) => Number.isFinite(p.x) && Number.isFinite(p.y),
+  );
+  if (finite.length < 2) return null;
+  const end = finite[finite.length - 1];
+  const before = finite[finite.length - 2];
+
+  // The heading of the last segment, in the same y-down space the path is
+  // emitted in, so the bar sits square across the drawn curve rather than
+  // across the curve's mirror image.
+  const dx = end.x - before.x;
+  const dy = -(end.y - before.y);
+  const len = Math.hypot(dx, dy);
+  if (!(len > 0)) return null;
+  // Perpendicular to the heading, half the bar each side of the end point.
+  const nx = (-dy / len) * (length / 2);
+  const ny = (dx / len) * (length / 2);
+  const ex = end.x;
+  const ey = -end.y;
+
+  return (
+    <line
+      data-trajectory-mark={farEnd ?? "horizon"}
+      x1={ex - nx}
+      y1={ey - ny}
+      x2={ex + nx}
+      y2={ey + ny}
+      stroke={stroke}
+      strokeWidth={strokeWidth}
+      strokeLinecap="butt"
+    >
+      <title>
+        {farEnd === "revolution"
+          ? "One revolution drawn. The path continues; a second lap is not drawn because an integrated path does not retrace."
+          : "Horizon. Nothing is drawn past here because nothing has vouched for it."}
+      </title>
+    </line>
+  );
 }
 
 /** Sample points along a hyperbolic trajectory and emit an SVG path `d`

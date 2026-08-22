@@ -196,24 +196,31 @@ export {
 } from "./heartbeat-tracker";
 export type {
   Anomalies,
+  ArcFarEnd,
   OrbitElements,
   OrbitTrajectory,
   OrbitTrajectoryInput,
-  PerifocalPoint,
   PropagationHorizonLike,
   PropagationRefusal,
   StateVector,
+  TrajectoryFrame,
+  TrajectoryPoint,
   TrajectoryWithheldReason,
   Vector3,
+  WireTrajectoryArc,
 } from "./kepler";
 export {
   canPropagate,
   orbitTrajectory,
   PropagationHorizonKindLike,
+  rotateInertialToPerifocal,
   solve,
   solveAnomalies,
   solveEccentricAnomaly,
+  TrajectoryDerivationLike,
+  TrajectoryFrameKindLike,
   TrajectoryKindLike,
+  TrajectoryRefusalLike,
   useOrbitTrajectory,
 } from "./kepler";
 export type { CommandStatus } from "./lifecycle";
