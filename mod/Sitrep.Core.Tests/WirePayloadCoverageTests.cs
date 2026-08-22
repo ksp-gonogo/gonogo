@@ -94,6 +94,17 @@ namespace Sitrep.Core.Tests
             // publishes that, so JsonWriter only ever sees the flattened dictionary;
             // the POCO exists for the generated TS shape only.
             "FleetVesselSilence",
+            // fleet.silence: FleetSilenceRosterBuilder builds the same flattened
+            // dictionary per entry (reusing FleetVesselSilenceBuilder, so the
+            // aggregate and the per-vessel topic cannot drift) and wraps them in
+            // a { vessels: [...] } dictionary, exactly as BuildSystemVessels
+            // does; both POCOs are TS-shape-only.
+            "FleetSilence", "FleetSilenceEntry",
+            // fleet.<guid>.resources: FleetVesselResourcesBuilder hand-builds
+            // the same { resources: { name: {current,max,active} } } dictionary
+            // tree KspHost already builds for vessel.resources; the POCO is a
+            // TS-shape marker only.
+            "FleetVesselResources",
             // currency.<guid>.science: CurrencyEventBuilder.BuildScienceCredit returns
             // a Dictionary<string, object?> and CurrencyEventUplink publishes that, so
             // JsonWriter only ever sees the flattened dictionary; the POCO exists for

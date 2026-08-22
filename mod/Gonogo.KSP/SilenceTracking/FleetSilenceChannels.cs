@@ -37,7 +37,17 @@ namespace Gonogo.KSP.SilenceTracking
         private static readonly PerfBudget SilenceCaptureBudget = new PerfBudget(
             "FleetSilenceChannels silence capture", threshold: 2000, windowSec: 1.0, unit: "vessels");
 
+        /// <summary>
+        /// Roster entries pushed onto <c>fleet.silence</c> per second. Sized like
+        /// the capture budget above: the aggregate carries one entry per tracked
+        /// vessel per tick, so a fleet that outgrows the capture budget outgrows
+        /// this at the same moment, and a duplicated publish shows up here first.
+        /// </summary>
+        private static readonly PerfBudget SilenceRosterBudget = new PerfBudget(
+            "FleetSilenceChannels roster entries", threshold: 2000, windowSec: 1.0, unit: "entries");
+
         private IDynamicChannelSource? _silenceSource;
+        private IChannelPublisher? _rosterPublisher;
 
         /// <summary>
         /// Called from <see cref="CommsCoreUplink.Register"/>, on that uplink's
@@ -57,6 +67,8 @@ namespace Gonogo.KSP.SilenceTracking
                 // to the engine.
                 PerVesselNode = true,
             });
+
+            _rosterPublisher = host.Publisher(CommsCoreUplink.FleetSilenceTopic);
 
             // Ungated: no subscriptionTopicPrefixes argument, see this
             // class's own doc comment above.
@@ -133,10 +145,32 @@ namespace Gonogo.KSP.SilenceTracking
                     DeadlineUt = state.DeadlineUt,
                     DeadlineBasis = state.DeadlineBasis,
                     PredictedReacquisitionUt = state.PredictedReacquisitionUt,
+                    PredictionGraceSec = state.PredictionGraceSec,
                 });
             }
 
-            return new SilenceCapture { Ut = ut, Vessels = snapshots };
+            // The aggregate carries EVERY tracked vessel, not just the ones this
+            // tick touched. `touched` is a change list, and a consumer that has
+            // to work the fleet out for itself needs the whole fleet: a vessel
+            // sitting quietly at Nominal is exactly the one that would go
+            // missing from a change-list roster and reappear only when it went
+            // dark, which is the wrong way round.
+            var roster = new List<SilenceContactSnapshot>(tracker.States.Count);
+            foreach (var state in tracker.States.Values)
+            {
+                roster.Add(new SilenceContactSnapshot
+                {
+                    VesselId = state.VesselId,
+                    State = state.State,
+                    SilenceSinceUt = state.SilenceSinceUt,
+                    DeadlineUt = state.DeadlineUt,
+                    DeadlineBasis = state.DeadlineBasis,
+                    PredictedReacquisitionUt = state.PredictedReacquisitionUt,
+                    PredictionGraceSec = state.PredictionGraceSec,
+                });
+            }
+
+            return new SilenceCapture { Ut = ut, Vessels = snapshots, Roster = roster };
         }
 
         /// <summary>
@@ -158,8 +192,20 @@ namespace Gonogo.KSP.SilenceTracking
             foreach (var v in cap.Vessels)
             {
                 _silenceSource.Publisher(v.VesselId + ChannelEngine.SilenceStateSuffix).Publish(
-                    FleetVesselSilenceBuilder.Build(v.State.ToString(), v.SilenceSinceUt, v.DeadlineUt, v.DeadlineBasis, v.PredictedReacquisitionUt),
+                    FleetVesselSilenceBuilder.Build(v.State.ToString(), v.SilenceSinceUt, v.DeadlineUt, v.DeadlineBasis, v.PredictedReacquisitionUt, v.PredictionGraceSec),
                     cap.Ut);
+            }
+
+            if (_rosterPublisher != null)
+            {
+                var entries = new List<Dictionary<string, object?>>(cap.Roster.Count);
+                foreach (var v in cap.Roster)
+                {
+                    entries.Add(FleetSilenceRosterBuilder.BuildEntry(
+                        v.VesselId, v.State.ToString(), v.SilenceSinceUt, v.DeadlineUt, v.DeadlineBasis, v.PredictedReacquisitionUt, v.PredictionGraceSec));
+                }
+                SilenceRosterBudget.Record(entries.Count, cap.Ut);
+                _rosterPublisher.Publish(FleetSilenceRosterBuilder.Build(entries), cap.Ut);
             }
         }
 
@@ -215,7 +261,12 @@ namespace Gonogo.KSP.SilenceTracking
         private sealed class SilenceCapture
         {
             public double Ut { get; set; }
+
+            /// <summary>The vessels this tick TOUCHED, which is what the per-vessel topics publish.</summary>
             public List<SilenceContactSnapshot> Vessels { get; set; } = new List<SilenceContactSnapshot>();
+
+            /// <summary>Every tracked vessel, which is what the fleet-wide roster publishes.</summary>
+            public List<SilenceContactSnapshot> Roster { get; set; } = new List<SilenceContactSnapshot>();
         }
 
         /// <summary>
@@ -232,6 +283,7 @@ namespace Gonogo.KSP.SilenceTracking
             public double? DeadlineUt { get; set; }
             public string? DeadlineBasis { get; set; }
             public double? PredictedReacquisitionUt { get; set; }
+            public double? PredictionGraceSec { get; set; }
         }
     }
 }

@@ -44,6 +44,7 @@ namespace Gonogo.KSP.SilenceTracking
                 if (state.DeadlineUt.HasValue) vesselNode.AddValue("deadlineUt", state.DeadlineUt.Value);
                 if (state.DeadlineBasis != null) vesselNode.AddValue("deadlineBasis", state.DeadlineBasis);
                 if (state.PredictedReacquisitionUt.HasValue) vesselNode.AddValue("predictedReacquisitionUt", state.PredictedReacquisitionUt.Value);
+                if (state.PredictionGraceSec.HasValue) vesselNode.AddValue("predictionGraceSec", state.PredictionGraceSec.Value);
                 if (state.DeclaredLostUt.HasValue) vesselNode.AddValue("declaredLostUt", state.DeclaredLostUt.Value);
             }
         }
@@ -93,6 +94,7 @@ namespace Gonogo.KSP.SilenceTracking
                     DeadlineUt = ReadNullableDouble(vesselNode, "deadlineUt"),
                     DeadlineBasis = vesselNode.HasValue("deadlineBasis") ? vesselNode.GetValue("deadlineBasis") : null,
                     PredictedReacquisitionUt = ReadNullableDouble(vesselNode, "predictedReacquisitionUt"),
+                    PredictionGraceSec = ReadNullableDouble(vesselNode, "predictionGraceSec"),
                     DeclaredLostUt = ReadNullableDouble(vesselNode, "declaredLostUt"),
                 };
 

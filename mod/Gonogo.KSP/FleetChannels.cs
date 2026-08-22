@@ -1,6 +1,7 @@
 using System.Collections.Generic;
 using Sitrep.Contract;
 using Sitrep.Host;
+using UnityEngine;
 
 namespace Gonogo.KSP
 {
@@ -48,6 +49,19 @@ namespace Gonogo.KSP
     /// </summary>
     public sealed class FleetChannels : ISitrepUplink
     {
+        /// <summary>The per-vessel topic suffix, alongside the engine's own `.contact`.</summary>
+        private const string ResourcesSuffix = ".resources";
+
+        /// <summary>
+        /// Resource rows read per second across the fleet. This is the one
+        /// per-vessel read here that walks a craft's PARTS rather than a couple
+        /// of scalars, so it is the one that would show a fleet outgrowing the
+        /// per-vessel subscription gate: a runaway here means the gate stopped
+        /// gating, not that the fleet got big.
+        /// </summary>
+        private static readonly PerfBudget FleetResourceBudget = new PerfBudget(
+            "FleetChannels resource rows read", threshold: 2000, windowSec: 1.0, unit: "rows");
+
         private IDynamicChannelSource? _orbitSource;
         private IUplinkHost? _host;
 
@@ -115,9 +129,82 @@ namespace Gonogo.KSP
                     Connected = connected,
                     Orbit = orbit,
                     LastContactUt = _lastContactUt.TryGetValue(id, out var last) ? (double?)last : null,
+                    // Gated PER VESSEL, not with the rest of the fleet read.
+                    // Walking one craft's parts is cheap; walking every craft's
+                    // parts every tick because something subscribed to one
+                    // craft's contact topic is not, and the whole-namespace gate
+                    // on this source cannot tell those apart. A tracker watching
+                    // one probe pays for one probe.
+                    Resources = ReadResources(vessel, id, ut),
                 });
             }
             return new FleetCapture { Ut = ut, Vessels = captures };
+        }
+
+        /// <summary>
+        /// MAIN-THREAD: one vessel's tank levels, or null when nobody is
+        /// watching this craft's resources.
+        ///
+        /// <para>The per-vessel subscription check is the point. The whole
+        /// fleet read is already gated on the <c>fleet.</c> prefix, but that
+        /// gate opens as soon as ANY fleet topic has a subscriber, so a tracker
+        /// watching one probe's contact state would otherwise pay for a
+        /// part-walk of every craft in the save on every tick. That is fine at
+        /// four vessels and not fine at forty.</para>
+        ///
+        /// <para>Loaded craft read their live parts; unloaded ones read the
+        /// <c>ProtoPartSnapshot</c>s, so a craft parked round the far side of
+        /// the Mun still reports what is in its tanks rather than nothing.</para>
+        /// </summary>
+        private Dictionary<string, object?>? ReadResources(Vessel vessel, string id, double ut)
+        {
+            if (_host == null || !_host.IsAnyTopicSubscribed(ChannelEngine.FleetNodePrefix + id + ResourcesSuffix))
+            {
+                return null;
+            }
+
+            var resources = new Dictionary<string, object?>();
+            try
+            {
+                if (vessel.loaded && vessel.parts != null)
+                {
+                    foreach (var part in vessel.parts)
+                    {
+                        if (part?.Resources == null) continue;
+                        foreach (PartResource res in part.Resources)
+                        {
+                            if (res == null) continue;
+                            FleetVesselResourcesBuilder.Add(resources, res.resourceName, res.amount, res.maxAmount);
+                        }
+                    }
+                }
+                else
+                {
+                    var protoParts = vessel.protoVessel?.protoPartSnapshots;
+                    if (protoParts != null)
+                    {
+                        foreach (var pps in protoParts)
+                        {
+                            if (pps?.resources == null) continue;
+                            foreach (var res in pps.resources)
+                            {
+                                if (res == null) continue;
+                                FleetVesselResourcesBuilder.Add(resources, res.resourceName, res.amount, res.maxAmount);
+                            }
+                        }
+                    }
+                }
+            }
+            catch (System.Exception ex)
+            {
+                // Fail soft and report NOTHING rather than a partial tank list:
+                // half a craft's resources read as a craft with half the fuel.
+                Debug.LogWarning("[Gonogo] fleet resource read failed for vessel " + id + ", omitting: " + ex.Message);
+                return null;
+            }
+
+            FleetResourceBudget.Record(resources.Count, ut);
+            return FleetVesselResourcesBuilder.Build(resources);
         }
 
         /// <summary>COURIER-THREAD handle: set each vessel's node delay + emit its orbit/delay/contact.</summary>
@@ -150,6 +237,13 @@ namespace Gonogo.KSP
                 // reported at all.
                 _orbitSource.Publisher(v.Id + ChannelEngine.ContactMetaSuffix)
                     .Publish(FleetVesselContactBuilder.Build(v.Connected, v.LastContactUt), cap.Ut);
+                // Null means nobody asked for this craft's tanks this tick (see
+                // ReadResources), which is different from a craft with none: that
+                // is an empty map and still publishes.
+                if (v.Resources != null)
+                {
+                    _orbitSource.Publisher(v.Id + ResourcesSuffix).Publish(v.Resources, cap.Ut);
+                }
             }
         }
 
@@ -166,6 +260,7 @@ namespace Gonogo.KSP
             public bool Connected { get; set; }
             public object? Orbit { get; set; }
             public double? LastContactUt { get; set; }
+            public Dictionary<string, object?>? Resources { get; set; }
         }
     }
 }

@@ -73,6 +73,22 @@ namespace Gonogo.KSP
         /// </summary>
         public const string LinkTopic = "comms.link";
 
+        /// <summary>
+        /// The fleet-wide silence roster (<see cref="Sitrep.Contract.FleetSilence"/>),
+        /// published by <see cref="SilenceTracking.FleetSilenceChannels"/> from the
+        /// same tracker tick that feeds the per-vessel <c>silence.&lt;guid&gt;.state</c>
+        /// topics. Comms-owned for the same reason those are: it is a model's
+        /// reckoning, not a fact stock KSP hands you.
+        ///
+        /// <para>A STATIC topic on the main node, unlike its per-vessel siblings,
+        /// which is the entire point of it: a consumer that has to work the fleet
+        /// out for itself cannot name a per-guid topic. See
+        /// <see cref="Sitrep.Contract.FleetSilence"/>'s own doc comment for what
+        /// that costs (the main node's delay rather than each vessel's own) and
+        /// why the per-vessel topics stay authoritative.</para>
+        /// </summary>
+        public const string FleetSilenceTopic = "fleet.silence";
+
         // The config flag lives in core (§3). Default OFF for in-place upgraders;
         // the intended forward default is ON at real light-speed (§3.1), that
         // literal is a config/onboarding decision, so core ships it off and the
@@ -148,6 +164,13 @@ namespace Gonogo.KSP
                 new ChannelDeclaration
                 {
                     Topic = LinkTopic,
+                    Delivery = Delivery.LossyLatest,
+                    Delay = DelayRole.Delayed,
+                    Emission = new EmissionPolicy(keyframeIntervalUt: 30, quantum: EmissionQuantum.Absolute(0)),
+                },
+                new ChannelDeclaration
+                {
+                    Topic = FleetSilenceTopic,
                     Delivery = Delivery.LossyLatest,
                     Delay = DelayRole.Delayed,
                     Emission = new EmissionPolicy(keyframeIntervalUt: 30, quantum: EmissionQuantum.Absolute(0)),

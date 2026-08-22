@@ -151,6 +151,16 @@ public static class RtConfig
                 // so core fleet facts and a comms model's opinion are two
                 // separate wire types on two separately-owned namespaces.
                 typeof(FleetVesselSilence),
+                // fleet.silence: the same reckoning for the whole fleet in one
+                // static topic, so a consumer that has to work the fleet out for
+                // itself has something to read (see FleetSilence's own doc
+                // comment). The per-vessel topic above stays authoritative.
+                typeof(FleetSilence),
+                typeof(FleetSilenceEntry),
+                // fleet.<guid>.resources: what is in one fleet vessel's tanks,
+                // reusing ResourceAmount so a client reads a craft's resources
+                // the same way whether or not it is the one being flown.
+                typeof(FleetVesselResources),
                 // currency.<guid>.* source-attributed currency events: a discrete
                 // per-vessel delta revealed at its SOURCE vessel's light-time, so an
                 // operator cannot infer a distant event from the instant career total.
@@ -829,7 +839,17 @@ public static class RtConfig
         sb.Append("// Sitrep.Contract: the attribute's TopicId is the map key and the tagged\n");
         sb.Append("// type's generated interface (its plain C# name in ./contract.ts) is the\n");
         sb.Append("// value, with `[]` appended for the IsArray channels whose payload is a\n");
-        sb.Append("// bare JSON array of the element type.\n\n");
+        sb.Append("// bare JSON array of the element type.\n");
+        sb.Append("//\n");
+        sb.Append("// THIS IS NOT A LIST OF EVERY TOPIC ON THE WIRE, and it cannot become one.\n");
+        sb.Append("// A DYNAMIC namespace (`fleet.`, `silence.`, `currency.`, vessel part-actions,\n");
+        sb.Append("// and an Uplink's own) is registered at RUNTIME through\n");
+        sb.Append("// `IUplinkHost.RegisterDynamicNamespace` and materialises its topics per\n");
+        sb.Append("// subject, so no [SitrepTopic]-tagged type exists for reflection to find and\n");
+        sb.Append("// nothing about it appears below. Asking this file \"is there per-vessel X\"\n");
+        sb.Append("// gets a confident no for a topic that has been published all along:\n");
+        sb.Append("// `fleet.<guid>.orbit` was surveyed as missing that way. To enumerate the\n");
+        sb.Append("// dynamic half, grep the mod for `RegisterDynamicNamespace` instead.\n\n");
 
         sb.Append("import type {\n");
         foreach (var name in typeNames)

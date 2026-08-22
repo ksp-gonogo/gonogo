@@ -430,6 +430,15 @@ export const GENERATED_TYPE_UNITS: Readonly<Record<string, UnitsByField>> = {
   "FireCrewArgs": {
     kerbalName: "id",
   },
+  "FleetSilenceEntry": {
+    deadlineBasis: "enum",
+    deadlineUt: "ut",
+    predictedReacquisitionUt: "ut",
+    predictionGraceSeconds: "s",
+    silenceSinceUt: "ut",
+    state: "enum",
+    vesselId: "id",
+  },
   "FleetVesselContact": {
     connected: "flag",
     lastContactUt: "ut",
@@ -442,6 +451,7 @@ export const GENERATED_TYPE_UNITS: Readonly<Record<string, UnitsByField>> = {
     deadlineBasis: "enum",
     deadlineUt: "ut",
     predictedReacquisitionUt: "ut",
+    predictionGraceSeconds: "s",
     silenceSinceUt: "ut",
     state: "enum",
   },
@@ -1813,6 +1823,12 @@ export const GENERATED_TYPE_SHAPES: Readonly<Record<string, ShapesByField>> = {
   "EventMsg": {
     meta: "Meta",
   },
+  "FleetSilence": {
+    vessels: "FleetSilenceEntry",
+  },
+  "FleetVesselResources": {
+    resources: "*ResourceAmount",
+  },
   "GateVerdict": {
     breach: "LimitBreach",
   },
@@ -2020,6 +2036,9 @@ export const GENERATED_TOPIC_SHAPES: Readonly<Record<string, ShapesByField>> = {
   },
   "dv.stages": {
     resources: "*ResourceAmount",
+  },
+  "fleet.silence": {
+    vessels: "FleetSilenceEntry",
   },
   "isru.converters": {
     inputs: "IsruResourceFlow",

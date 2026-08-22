@@ -139,6 +139,51 @@ namespace Sitrep.Host.Tests
         }
 
         /// <summary>
+        /// The grace is reported, not just spent. It is the error budget around
+        /// the predicted return, so it is the only thing on the wire that says
+        /// how much confidence to place in that prediction: "back in 15 min" and
+        /// "back in 15 min, and we would not call it late for another 5" are
+        /// different statements, and without this field they render identically.
+        /// </summary>
+        [Fact]
+        public void TheGraceItArmedIsReportedAlongsideTheDeadline()
+        {
+            var orbit = Circular(3600.0);
+            var onset = 1_000.0;
+            var policy = new PredictedReacquisitionSilenceDeadlinePolicy(
+                (sample, ut) => new OneCrossingGeometry(onset + 900.0));
+
+            var deadline = policy.Evaluate(Sample(orbit), ut: onset);
+
+            Assert.NotNull(deadline.PredictionGraceSec);
+            Assert.Equal(322.0, deadline.PredictionGraceSec!.Value, 1);
+            // And it is the same number the deadline was built from, rather than
+            // a second, separately-derived one that could drift from it.
+            Assert.Equal(
+                deadline.DurationSec,
+                (deadline.PredictedReacquisitionUt!.Value - onset) + deadline.PredictionGraceSec.Value,
+                1);
+        }
+
+        /// <summary>
+        /// No prediction means no budget to report. A grace published next to a
+        /// withheld prediction would be an error bar around nothing, which reads
+        /// as more certainty than the withholding was meant to convey.
+        /// </summary>
+        [Fact]
+        public void NoGraceIsReportedWhenThePredictionIsWithheld()
+        {
+            var orbit = Circular(3600.0);
+            var policy = new PredictedReacquisitionSilenceDeadlinePolicy(
+                (sample, ut) => new ConstantMarginGeometry(1.0));
+
+            var deadline = policy.Evaluate(Sample(orbit), ut: 1_000.0);
+
+            Assert.Null(deadline.PredictedReacquisitionUt);
+            Assert.Null(deadline.PredictionGraceSec);
+        }
+
+        /// <summary>
         /// The grace is an error budget, and the vessel's orbital period is not
         /// one of the errors. A quarter of a period gave a Minmus relay 845.8 s
         /// of slack against a measured prediction error of 3.3 s, and gave a

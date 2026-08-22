@@ -172,11 +172,13 @@ export { createFakeWallClock } from "./fake-wall-clock";
 export {
   type ContactPhase,
   contactPhase,
+  type FleetSilenceRoster,
   type FleetVesselContact,
   type FleetVesselSilence,
   getLatestFleetVesselSilence,
   overdueSeconds,
   type SilenceDeadlineBasis,
+  silenceByVessel,
   useFleetVesselContact,
   useFleetVesselSilence,
 } from "./fleet-contact";
@@ -188,6 +190,11 @@ export {
   propagateVesselOrbit,
   useFleetVesselPosition,
 } from "./fleet-position";
+export {
+  type FleetVesselResource,
+  fleetVesselResourceList,
+  useFleetVesselResources,
+} from "./fleet-resources";
 export { buildFullHistoryStore, InstantClock } from "./full-history-replay";
 export type { HeartbeatTrackerOptions } from "./heartbeat-tracker";
 export {

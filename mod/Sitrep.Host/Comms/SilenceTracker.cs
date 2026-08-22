@@ -106,11 +106,36 @@ namespace Sitrep.Host.Comms
         /// </summary>
         public readonly double? PredictedReacquisitionUt;
 
-        public SilenceDeadline(double durationSec, string basis, double? predictedReacquisitionUt = null)
+        /// <summary>
+        /// The error budget the deadline was armed with, seconds: how long after
+        /// the predicted return the craft can stay quiet before the silence is
+        /// something other than a late reappearance.
+        ///
+        /// <para>Reported rather than only spent, because it is the only thing
+        /// that says how much confidence to place in the prediction beside it:
+        /// "back in 15 min" and "back in 15 min, and we would not call it late
+        /// for another 5" are different operational statements. Null wherever
+        /// <see cref="PredictedReacquisitionUt"/> is: a budget quoted next to a
+        /// withheld prediction is an error bar around nothing.</para>
+        ///
+        /// <para>One-sided, and NOT a symmetric uncertainty. It is an allowance
+        /// AFTER the predicted moment, so a client renders "allowing 5 min of
+        /// slack" and never "+/- 5 min". A real two-sided error bar would have
+        /// to come out of the sweep itself, which is separate and larger
+        /// work.</para>
+        /// </summary>
+        public readonly double? PredictionGraceSec;
+
+        public SilenceDeadline(
+            double durationSec,
+            string basis,
+            double? predictedReacquisitionUt = null,
+            double? predictionGraceSec = null)
         {
             DurationSec = durationSec;
             Basis = basis;
             PredictedReacquisitionUt = predictedReacquisitionUt;
+            PredictionGraceSec = predictionGraceSec;
         }
     }
 
@@ -197,6 +222,16 @@ namespace Sitrep.Host.Comms
         /// explain: see <see cref="SilenceDeadlineBasis.NoOccultation"/>.
         /// </summary>
         public double? PredictedReacquisitionUt;
+
+        /// <summary>
+        /// The error budget behind <see cref="DeadlineUt"/>, seconds: how long
+        /// past the predicted return a craft may stay quiet before its silence
+        /// is something other than a late reappearance. Null whenever
+        /// <see cref="PredictedReacquisitionUt"/> is; see
+        /// <see cref="SilenceDeadline.PredictionGraceSec"/> for why it is
+        /// one-sided.
+        /// </summary>
+        public double? PredictionGraceSec;
 
         /// <summary>UT this vessel was most recently declared Lost. Null if never declared.</summary>
         public double? DeclaredLostUt;
@@ -349,6 +384,7 @@ namespace Sitrep.Host.Comms
                 s.DeadlineUt = null;
                 s.DeadlineBasis = null;
                 s.PredictedReacquisitionUt = null;
+                s.PredictionGraceSec = null;
                 s.ConsecutiveSilentSamples = 0;
                 return s;
             }
@@ -368,6 +404,7 @@ namespace Sitrep.Host.Comms
                 s.DeadlineUt = ut + deadline.DurationSec;
                 s.DeadlineBasis = deadline.Basis;
                 s.PredictedReacquisitionUt = deadline.PredictedReacquisitionUt;
+                s.PredictionGraceSec = deadline.PredictionGraceSec;
                 s.DeadlineUpgraded = false;
                 return s;
             }
@@ -453,6 +490,7 @@ namespace Sitrep.Host.Comms
                     s.DeadlineUt = candidate;
                     s.DeadlineBasis = upgraded.Basis;
                     s.PredictedReacquisitionUt = upgraded.PredictedReacquisitionUt;
+                    s.PredictionGraceSec = upgraded.PredictionGraceSec;
                 }
             }
 
