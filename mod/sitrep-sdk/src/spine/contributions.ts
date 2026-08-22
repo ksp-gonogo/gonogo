@@ -116,6 +116,25 @@ export function getContributionsForSlot(slot: string): AnyContribution[] {
     .map((entry) => entry.def);
 }
 
+/**
+ * Every registered contribution, whatever slot it feeds, in registration order.
+ *
+ * The unfiltered read `getAugments()` has had all along and this registry has
+ * not. Without it a contribution cannot be enumerated BY OWNER, so an Uplink's
+ * own docs generator could list the widgets and augments it adds and was
+ * structurally unable to mention its contributions: an asymmetry that showed up
+ * as a page quietly describing less than the Uplink does.
+ *
+ * Registration order, not priority order, deliberately: priority is a per-slot
+ * ordering and this read spans slots, so sorting by it would interleave two
+ * slots' entries into a sequence that means nothing.
+ */
+export function getContributions(): AnyContribution[] {
+  return Array.from(state().entries.values())
+    .sort((a, b) => a.order - b.order)
+    .map((entry) => entry.def);
+}
+
 export function getContributionSettings(
   slot: string,
 ): NamespacedAugmentSettings[] {

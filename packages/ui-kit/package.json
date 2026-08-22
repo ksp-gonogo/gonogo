@@ -29,10 +29,22 @@
     "./guards": {
       "types": "./dist/guards.d.ts",
       "import": "./dist/guards.js"
+    },
+    "./render-probe": {
+      "types": "./dist/render-probe.d.ts",
+      "import": "./dist/render-probe.js"
+    },
+    "./render": {
+      "types": "./dist/render.d.ts",
+      "import": "./dist/render.js"
     }
+  },
+  "bin": {
+    "gonogo-uplink": "./bin/gonogo-uplink.mjs"
   },
   "types": "./dist/index.d.ts",
   "files": [
+    "bin",
     "dist"
   ],
   "scripts": {
@@ -43,9 +55,14 @@
     "typecheck": "tsc --noEmit && tsc -p tsconfig.test-d.json"
   },
   "devDependencies": {
+    "@fontsource/jetbrains-mono": "^5.2.8",
     "@ksp-gonogo/sitrep-sdk": "workspace:*",
     "@ksp-gonogo/theme": "workspace:*",
     "@testing-library/jest-dom": "^6.9.1",
+    "@types/node": "^22.0.0",
+    "esbuild": "^0.28.0",
+    "gifenc": "^1.0.3",
+    "playwright": "^1.60.0",
     "@testing-library/react": "^16.3.2",
     "@testing-library/user-event": "^14.6.1",
     "@types/jest-axe": "^3.5.9",
@@ -60,10 +77,22 @@
   "peerDependencies": {
     "react": "^18.0.0",
     "styled-components": "^6.0.0",
-    "jest-axe": "^10.0.0"
+    "jest-axe": "^10.0.0",
+    "esbuild": "^0.25.0 || ^0.28.0",
+    "playwright": "^1.50.0",
+    "@fontsource/jetbrains-mono": "^5.0.0"
   },
   "peerDependenciesMeta": {
     "jest-axe": {
+      "optional": true
+    },
+    "esbuild": {
+      "optional": true
+    },
+    "playwright": {
+      "optional": true
+    },
+    "@fontsource/jetbrains-mono": {
       "optional": true
     }
   }

@@ -1137,6 +1137,9 @@ importers:
         specifier: ^6.0.0
         version: 6.4.0(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
     devDependencies:
+      '@fontsource/jetbrains-mono':
+        specifier: ^5.2.8
+        version: 5.2.8
       '@ksp-gonogo/sitrep-sdk':
         specifier: workspace:*
         version: link:../../mod/sitrep-sdk
@@ -1155,9 +1158,18 @@ importers:
       '@types/jest-axe':
         specifier: ^3.5.9
         version: 3.5.9
+      '@types/node':
+        specifier: ^22.0.0
+        version: 22.19.17
       '@types/react':
         specifier: ^18.3.28
         version: 18.3.28
+      esbuild:
+        specifier: ^0.28.0
+        version: 0.28.0
+      gifenc:
+        specifier: ^1.0.3
+        version: 1.0.3
       jest-axe:
         specifier: ^10.0.0
         version: 10.0.0
@@ -1167,6 +1179,9 @@ importers:
       lucide-react:
         specifier: ^1.14.0
         version: 1.14.0(react@18.3.1)
+      playwright:
+        specifier: ^1.60.0
+        version: 1.60.0
       tsup:
         specifier: ^8.5.0
         version: 8.5.1(postcss@8.5.9)(tsx@4.21.0)(typescript@5.9.3)
@@ -2872,6 +2887,9 @@ packages:
 
   get-tsconfig@4.13.7:
     resolution: {integrity: sha512-7tN6rFgBlMgpBML5j8typ92BKFi2sFQvIdpAqLA2beia5avZDrMs0FLZiM5etShWq5irVyGcGMEA1jcDaK7A/Q==}
+
+  gifenc@1.0.3:
+    resolution: {integrity: sha512-xdr6AdrfGBcfzncONUOlXMBuc5wJDtOueE3c5rdG0oNgtINLD+f2iFZltrBRZYzACRbKr+mSVU/x98zv2u3jmw==}
 
   gopd@1.2.0:
     resolution: {integrity: sha512-ZUKRh6/kUFoAiTAtTYPZJ3hw9wNxx+BIBOijnlG9PnrJsCcSjs1wyyD6vJpaYtgnzDrKYRSqf3OO6Rfa93xsRg==}
@@ -5393,6 +5411,8 @@ snapshots:
   get-tsconfig@4.13.7:
     dependencies:
       resolve-pkg-maps: 1.0.0
+
+  gifenc@1.0.3: {}
 
   gopd@1.2.0: {}
 

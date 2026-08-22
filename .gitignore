@@ -27,6 +27,11 @@ docs/superpowers/
 .superpowers/
 # C# / .NET build outputs
 bin/
+# ...except a JS package's `bin/`, which is source. The .NET rule above matches
+# a directory of that name at any depth, so ui-kit's committed CLI shim was
+# silently unstageable, with `git add` reporting it as ignored rather than
+# anything explaining why.
+!packages/*/bin/
 obj/
 *.dll
 *.pdb
@@ -45,3 +50,8 @@ feature_log/
 .agent.log
 .launch.sh
 .startup-prompt
+
+# `gonogo-uplink render` review output: pictures for a human, regenerated on
+# demand and never a gate. The docs assets under `docs/assets/` ARE committed,
+# because the generated page references them.
+renders/

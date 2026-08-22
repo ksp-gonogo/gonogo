@@ -92,6 +92,20 @@ function readExportedStringConst(filePath: string, exportName: string): string {
   return match[1];
 }
 
+/** The same trick for an integer constant. */
+function readExportedNumberConst(filePath: string, exportName: string): number {
+  const src = readFileSync(filePath, "utf-8");
+  const match = new RegExp(`export const ${exportName}\\s*=\\s*(-?\\d+)`).exec(
+    src,
+  );
+  if (!match) {
+    throw new Error(
+      `readExportedNumberConst: could not find "export const ${exportName}" in ${filePath}`,
+    );
+  }
+  return Number(match[1]);
+}
+
 // The app's compat identity: the values a runtime-loaded Uplink is gated
 // against BEFORE `import()` (design §5 step 3 / §6.3). Single-sourced here and
 // exposed to the app via `define` below AND written into the local registry
@@ -109,20 +123,33 @@ function readExportedStringConst(filePath: string, exportName: string): string {
 //     Held as hand-maintained app constants (the C# contract owns bumping
 //     them, not this dedupe); both the host `define`s and the registry
 //     fixture read them, so host and descriptor still agree.
+const SDK_COMPAT_VERSIONS = resolve(
+  __dirname,
+  "../../mod/sitrep-sdk/src/compat-versions.ts",
+);
 const HOST_API_VERSION = readExportedStringConst(
-  resolve(packagesDir, "core/src/uplinkVersionCompat.ts"),
+  SDK_COMPAT_VERSIONS,
   "EXTENSION_API_VERSION",
 );
 const HOST_UIKIT_VERSION = readExportedStringConst(
   resolve(packagesDir, "ui-kit/src/version.ts"),
   "UI_KIT_VERSION",
 );
-// Mirrors mod/Sitrep.Contract/ContractVersion.cs, which vite cannot read.
-// Bump BOTH together: this pair is what the app advertises to the Uplink
-// loader's compat check, so if it lags the contract the app claims to be built
-// against a shape it is not. 4.7 -> 5.0 with the kelvin-only thermal channel.
-const HOST_CONTRACT_MAJOR = 5;
-const HOST_CONTRACT_MINOR = 0;
+// Read from the sdk rather than typed here. Held as two local constants, this
+// pair went stale: it said 5.0 (with a comment saying 4.7) while
+// `mod/Sitrep.Contract/ContractVersion.cs` had reached 12.22, so the app
+// advertised a contract it was not built against and would have refused every
+// correctly generated manifest. The sdk's copy is what an Uplink's build writes
+// into `gonogo-uplink.json`, and `contract-version-parity.test.ts` holds it to
+// the C# stamp, so neither side can drift alone now.
+const HOST_CONTRACT_MAJOR = readExportedNumberConst(
+  SDK_COMPAT_VERSIONS,
+  "CONTRACT_MAJOR",
+);
+const HOST_CONTRACT_MINOR = readExportedNumberConst(
+  SDK_COMPAT_VERSIONS,
+  "CONTRACT_MINOR",
+);
 
 // The first-party Uplink clients built as standalone, runtime-loadable ESM
 // bundles (Phase B: scansat + kos, the loader was proven on scansat first in

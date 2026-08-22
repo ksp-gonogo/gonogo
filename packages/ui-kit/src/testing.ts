@@ -153,4 +153,5 @@ export {
   type RenderWidgetOptions,
   renderWidget,
   WidgetHost,
+  WidgetHostFor,
 } from "./renderWidget";

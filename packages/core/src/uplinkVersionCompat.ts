@@ -10,11 +10,14 @@
  * mod-specific type or hardcode a mod name here.
  */
 
+import { EXTENSION_API_VERSION } from "@ksp-gonogo/sitrep-sdk";
 import { type ParsedSemver, parseSemver } from "./version/compare";
 
-// TODO(api-version): bump deliberately as the @ksp-gonogo/core extension
-// surface changes; this is a hand-managed gate, not the package version.
-export const EXTENSION_API_VERSION = "1.0.0";
+// Re-exported, not declared. It was declared here, in a `private: true` package,
+// which meant an Uplink's build had to hand-type the number its own manifest is
+// gated on. It lives in `@ksp-gonogo/sitrep-sdk` now so both sides of the gate
+// read one constant; this re-export keeps every app-side importer unchanged.
+export { EXTENSION_API_VERSION };
 
 /**
  * The manifest an Uplink client bundle ships alongside (design §6.2). Every
@@ -36,6 +39,17 @@ export const EXTENSION_API_VERSION = "1.0.0";
 export interface GonogoUplinkManifest {
   id: string;
   version: string;
+  /**
+   * One sentence saying what this Uplink is for, written by its author and
+   * generated into the manifest from the lede of `client/uplink.md`.
+   *
+   * Optional, and checked by neither `isGonogoUplinkManifest` nor
+   * `checkUplinkCompat`: an Uplink with nothing to say about itself still loads.
+   * It is here so the quarantine list and the Uplinks panel can name an Uplink in
+   * the author's own words, which nothing anywhere could do before: there was no
+   * description field for an Uplink in either language.
+   */
+  description?: string;
   minAppVersion: string;
   apiVersion: string;
   uiKitVersion: string;

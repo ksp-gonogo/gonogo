@@ -93,6 +93,21 @@ export function getReckonerConflicts(): ReckonerConflict[] {
   return conflicts;
 }
 
+/**
+ * Every topic anyone has registered a model for, with its owners.
+ *
+ * `getReckoner` answers with the model and `getReckonerConflicts` with the
+ * contested subset, and neither can tell you that one owner models six topics,
+ * which is what a docs surface enumerating an Uplink's contributions needs.
+ * Sorted by topic so a generated page's ordering does not depend on module
+ * import order.
+ */
+export function getReckonedTopics(): { topic: string; owners: string[] }[] {
+  return [...reckoners.entries()]
+    .map(([topic, byOwner]) => ({ topic, owners: [...byOwner.keys()].sort() }))
+    .sort((a, b) => a.topic.localeCompare(b.topic));
+}
+
 /** Test-only: reset the registry to empty. */
 export function clearReckoners(): void {
   reckoners.clear();

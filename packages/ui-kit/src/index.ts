@@ -275,6 +275,12 @@ export {
 } from "./GraphNotice";
 export { Grid, type GridAlign, type GridProps } from "./Grid";
 export {
+  COL_WIDTH,
+  GRID_MARGIN,
+  gridToPixels,
+  ROW_HEIGHT,
+} from "./gridUnits";
+export {
   ArrowLeftIcon,
   ArrowRightIcon,
   ArrowUpIcon,

@@ -90,6 +90,21 @@ export function getContributedDerivedChannels(): DerivedChannelDefinition<unknow
   return out;
 }
 
+/**
+ * Every topic anyone contributes a channel for, with its owners. The
+ * enumeration twin of {@link getContributedDerivedChannels}, which withholds
+ * the contested ones and so cannot report that a topic was claimed at all.
+ * Same shape and same reason as `getReckonedTopics`.
+ */
+export function getContributedChannelTopics(): {
+  topic: string;
+  owners: string[];
+}[] {
+  return [...contributed.entries()]
+    .map(([topic, byOwner]) => ({ topic, owners: [...byOwner.keys()].sort() }))
+    .sort((a, b) => a.topic.localeCompare(b.topic));
+}
+
 /** Test-only: reset the registry to empty. */
 export function clearContributedDerivedChannels(): void {
   contributed.clear();

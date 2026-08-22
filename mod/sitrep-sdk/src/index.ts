@@ -39,6 +39,13 @@ export {
   deriveInFlight,
   latchForward,
 } from "./command-delay";
+// The compat numbers a `gonogo-uplink.json` is gated on. Published here because
+// an Uplink's build has to write them and could not read any of them.
+export {
+  CONTRACT_MAJOR,
+  CONTRACT_MINOR,
+  EXTENSION_API_VERSION,
+} from "./compat-versions";
 export {
   type ControlChannelHandle,
   type ControlChannelId,

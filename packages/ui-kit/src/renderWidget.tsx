@@ -92,13 +92,24 @@ export function WidgetHost({
 }) {
   const def = requireComponent(widgetId);
   return (
-    <WidgetHostInner def={def} instanceId={instanceId ?? `${widgetId}-test`}>
+    <WidgetHostFor def={def} instanceId={instanceId ?? `${widgetId}-test`}>
       {children}
-    </WidgetHostInner>
+    </WidgetHostFor>
   );
 }
 
-function WidgetHostInner({
+/**
+ * The same stack, given the DEFINITION rather than an id to look one up by.
+ *
+ * For the caller that has no registered widget to name: a render harness
+ * previewing an augment or a contribution is mounting it against a host widget
+ * that lives in a package it cannot import, so it stands in a synthetic
+ * definition carrying the host's id and the one slot under test. Reaching for
+ * `WidgetHost` there would throw on the lookup; hand-building the provider
+ * stack instead is how the two copies start to differ, and this stack is the
+ * thing being reproduced.
+ */
+export function WidgetHostFor({
   def,
   instanceId,
   children,
