@@ -29,7 +29,9 @@
 // have no apsides at all.
 import "./topics";
 import "./FlightPlanSection";
+import "./BurnEditor";
 
+export { BurnEditor } from "./BurnEditor";
 export { FlightPlanSection } from "./FlightPlanSection";
 export type { FrameBodies } from "./plottingFrame";
 export {
