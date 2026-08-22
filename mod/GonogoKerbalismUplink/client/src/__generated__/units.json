@@ -232,7 +232,9 @@
       "star": "text",
       "stormDuration": "s",
       "stormState": "count",
-      "stormTime": "ut"
+      "stormTime": "ut",
+      "targetKind": "enum",
+      "targetName": "text"
     },
     "KerbalismSubjectActionArgs": {
       "subjectId": "id"

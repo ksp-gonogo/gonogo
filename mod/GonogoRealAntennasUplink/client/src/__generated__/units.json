@@ -54,6 +54,22 @@
     },
     "CommsLinkQuality": {
       "value": "ratio"
+    },
+    "RealAntennasHopExt": {
+      "band": "text",
+      "beamwidth": "°",
+      "codingRate": "ratio",
+      "encoder": "text",
+      "modulationBits": "count",
+      "powerDrawEc": "units/s",
+      "requiredEbN0": "dB",
+      "reverseBitsPerSec": "bit/s",
+      "techLevel": "count"
+    },
+    "RealAntennasHopRate": {
+      "bitsPerSec": "bit/s",
+      "fromNodeId": "id",
+      "toNodeId": "id"
     }
   },
   "topics": {
@@ -67,6 +83,11 @@
     },
     "comms.linkQuality": {
       "value": "ratio"
+    },
+    "realantennas.hopRates": {
+      "bitsPerSec": "bit/s",
+      "fromNodeId": "id",
+      "toNodeId": "id"
     }
   },
   "typeShapes": {

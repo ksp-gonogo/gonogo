@@ -58,6 +58,8 @@ namespace Gonogo.KerbalismUplink
         /// StormTime/StormDuration/Dist ride through as-captured: KerbalismReflection.Solar
         /// already only fills them when StormState != 0 (the fair-vs-cheating boundary),
         /// so this mapper does no additional gating, just field-for-field carry.
+        /// targetKind goes on the wire as its integer ordinal, the same treatment
+        /// every other contract enum gets.
         /// </summary>
         private static List<object> BuildStorms(IEnumerable<StormEntryRaw>? storms)
         {
@@ -71,6 +73,8 @@ namespace Gonogo.KerbalismUplink
                     ["stormTime"] = st.StormTime,
                     ["stormDuration"] = st.StormDuration,
                     ["dist"] = st.Dist,
+                    ["targetKind"] = (int)st.TargetKind,
+                    ["targetName"] = st.TargetName,
                 });
             return list;
         }

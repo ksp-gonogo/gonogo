@@ -163,6 +163,12 @@ public static class KerbalismRtConfig
 
         builder.ExportAsInterfaces(wireTypes, c => c.AutoI(false).WithPublicProperties());
 
+        // This slice's own enums, the same numeric `export enum` shape core's
+        // RtConfig uses for Quality/Staleness. The FIRST enum an Uplink slice
+        // has owned: `[TsEnum]` alone does not export it, the type has to be
+        // named to a builder call, exactly as an interface does.
+        builder.ExportAsEnums(new[] { typeof(KerbalismStormTargetKind) });
+
         // Same call core's own Configure makes, just against THIS assembly's
         // types and pointed at the npm package this Uplink's generated file
         // actually imports from (a relative "../value" path, core's default,

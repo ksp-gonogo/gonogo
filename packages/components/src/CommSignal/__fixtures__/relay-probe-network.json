@@ -1,7 +1,7 @@
 {
   "_meta": {
     "scenario": "relay-probe-network",
-    "notes": "Signal routed via a relay network. Strength is good (3 bars) but delay is significant because signal hops through multiple relays in HKO."
+    "notes": "Signal routed via a relay network. Strength is good (3 bars) but delay is significant because signal hops through multiple relays in HKO. comms.path is two hops (vessel -> Relay Sat 1 -> home), the 'You -> Relay Sat 1 -> KSC' route case."
   },
   "comm.connected": true,
   "comm.signalStrength": 0.63,
@@ -12,6 +12,7 @@
     "carriedChannels": [
       "comms.link",
       "comms.delay",
+      "comms.path",
       "vessel.orbit",
       "vessel.flight",
       "vessel.identity",
@@ -32,6 +33,25 @@
         "channel": "comms.delay",
         "value": {
           "oneWaySeconds": 4.7
+        }
+      },
+      {
+        "channel": "comms.path",
+        "value": {
+          "hops": [
+            {
+              "from": "Active Vessel",
+              "to": "Relay Sat 1",
+              "kind": 1,
+              "distanceMeters": 1850000
+            },
+            {
+              "from": "Relay Sat 1",
+              "to": "home",
+              "kind": 0,
+              "distanceMeters": 640000
+            }
+          ]
         }
       },
       {

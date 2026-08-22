@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using Gonogo.KSP.SilenceTracking;
 using Sitrep.Contract;
+using Sitrep.Host.CommandCentres;
 using Sitrep.Host.Comms;
 
 namespace Gonogo.KSP
@@ -89,6 +90,17 @@ namespace Gonogo.KSP
         /// </summary>
         public const string FleetSilenceTopic = "fleet.silence";
 
+        /// <summary>
+        /// The <c>comms.commandCentre</c> topic:
+        /// identifies which command centre the active vessel's <c>ControlPath</c>
+        /// currently terminates at, KSC or a crewed control-source vessel, reusing
+        /// the SAME id/name/kind scheme <c>commandCentre.roster</c> uses. TrueNow
+        /// for the same reason the rest of this family is: it describes the active
+        /// vessel's OWN link (which node its own comms.path already names raw),
+        /// not a fact about some OTHER vessel's state.
+        /// </summary>
+        public const string CommandCentreTopic = "comms.commandCentre";
+
         // The config flag lives in core (§3). Default OFF for in-place upgraders;
         // the intended forward default is ON at real light-speed (§3.1), that
         // literal is a config/onboarding decision, so core ships it off and the
@@ -103,6 +115,19 @@ namespace Gonogo.KSP
         /// <summary>The active SignalDelay config, so the fleet delay capture uses the SAME light-speed scale as the active-vessel authority (Plan 2).</summary>
         internal static SignalDelayConfig SignalDelayConfig => _signalDelayConfig;
 
+        // Held the same way as _signalDelayConfig above: Plan 3's command-centre
+        // registry (GonogoAddon.cs builds it after uplink discovery, alongside the
+        // stock-home-node + crewed-vessel sources) so comms.commandCentre resolves
+        // the ACTIVE vessel's terminal node against the SAME live centres
+        // commandCentre.roster does, rather than constructing throwaway sources
+        // (and re-paying their FindObjectsOfType/vessel-scan cost) every comms
+        // capture tick.
+        private static CommandCentreRegistry? _commandCentreRegistry;
+
+        /// <summary>Set the shared command-centre registry (called by GonogoAddon once Plan 3's registry is built).</summary>
+        public static void ConfigureCommandCentreRegistry(CommandCentreRegistry registry) =>
+            _commandCentreRegistry = registry;
+
         private IChannelPublisher? _connectivity;
         private IChannelPublisher? _signalStrength;
         private IChannelPublisher? _controlState;
@@ -111,6 +136,7 @@ namespace Gonogo.KSP
         private IChannelPublisher? _delay;
         private IChannelPublisher? _link;
         private IChannelPublisher? _occlusion;
+        private IChannelPublisher? _commandCentre;
 
         private Kernel? _kernel;
 
@@ -175,6 +201,7 @@ namespace Gonogo.KSP
                     Delay = DelayRole.Delayed,
                     Emission = new EmissionPolicy(keyframeIntervalUt: 30, quantum: EmissionQuantum.Absolute(0)),
                 },
+                TrueNow(CommandCentreTopic),
             },
         };
 
@@ -207,6 +234,7 @@ namespace Gonogo.KSP
             _delay = host.Publisher(DelayTopic);
             _link = host.Publisher(LinkTopic);
             _occlusion = host.Publisher(OcclusionTopic);
+            _commandCentre = host.Publisher(CommandCentreTopic);
 
             host.AddSampledSource(
                 CaptureOnMain,
@@ -218,7 +246,8 @@ namespace Gonogo.KSP
                 NetworkTopic,
                 DelayTopic,
                 LinkTopic,
-                OcclusionTopic);
+                OcclusionTopic,
+                CommandCentreTopic);
 
             // Advertise comms.delay to the engine's server-side reveal gate as
             // the AUTHORITATIVE, subscription-independent delay source (§7.3
@@ -387,6 +416,15 @@ namespace Gonogo.KSP
                     };
                 }
 
+                // comms.commandCentre: which centre the vessel's OWN path
+                // terminated at, KSC vs a crewed control-source vessel. Only
+                // CommNetBackend resolves this today: a third-party backend
+                // (RealAntennas) gets the same all-null "unknown" result the
+                // no-connection case already produces, never a throw.
+                var commandCentre = backend is CommNetBackend commNetBackend
+                    ? commNetBackend.CommandCentre(_commandCentreRegistry)
+                    : new CommsCommandCentre { Meta = connectivity.Meta };
+
                 return new CommsCapture
                 {
                     Ut = snapshot?.Ut ?? 0.0,
@@ -401,6 +439,7 @@ namespace Gonogo.KSP
                     // (the same one system.bodies reads), so no backend has to
                     // walk FlightGlobals itself.
                     Occlusion = OcclusionFor(backend, snapshot),
+                    CommandCentre = commandCentre,
                 };
             }
             catch (Exception)
@@ -457,6 +496,7 @@ namespace Gonogo.KSP
                 Connected = capture.Connectivity.Connected,
                 Meta = capture.Connectivity.Meta,
             }, capture.Ut);
+            _commandCentre?.Publish(capture.CommandCentre, capture.Ut);
         }
 
         /// <summary>
@@ -482,6 +522,7 @@ namespace Gonogo.KSP
             public CommsNetwork Network = new();
             public CommsDelay Delay = new();
             public CommsOcclusion Occlusion = new();
+            public CommsCommandCentre CommandCentre = new();
         }
     }
 }

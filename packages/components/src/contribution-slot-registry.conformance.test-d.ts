@@ -27,6 +27,7 @@ import type {
   ContributionEntry as SdkContributionEntry,
   ContributionRegistry as SdkContributionRegistry,
 } from "@ksp-gonogo/sitrep-sdk";
+import type { CommSignalHopRateEntry } from "./CommSignal/commsRoute";
 import type { ShipMapPartMetaEntry, ShipMapPartMeterEntry } from "./ShipMap";
 import type { SystemEntity } from "./SystemView";
 
@@ -108,6 +109,38 @@ type _SystemViewEntitiesRealBack = Expect<
   Assignable<SystemEntity, SdkContributionEntry<"system-view.entities">>
 >;
 
+// `comm-signal.hop-rates`, checked both directions.
+//
+// Importing `CommSignalHopRateEntry` from `./CommSignal/commsRoute` above also
+// loads that module's `declare module "@ksp-gonogo/core"` merge, which is what
+// puts the slot on core's real registry for the keys check (same reason the
+// ship-map checks import `./ShipMap`).
+
+type _CommSignalHopRates = Expect<
+  Assignable<
+    SdkContributionEntry<"comm-signal.hop-rates">,
+    CoreContributionEntry<"comm-signal.hop-rates">
+  >
+>;
+type _CommSignalHopRatesBack = Expect<
+  Assignable<
+    CoreContributionEntry<"comm-signal.hop-rates">,
+    SdkContributionEntry<"comm-signal.hop-rates">
+  >
+>;
+type _CommSignalHopRatesReal = Expect<
+  Assignable<
+    SdkContributionEntry<"comm-signal.hop-rates">,
+    CommSignalHopRateEntry
+  >
+>;
+type _CommSignalHopRatesRealBack = Expect<
+  Assignable<
+    CommSignalHopRateEntry,
+    SdkContributionEntry<"comm-signal.hop-rates">
+  >
+>;
+
 // Keep every alias "used" under noUnusedLocals.
 export type _ContributionRegistryConformance = [
   _SdkKeysAssignableToCore,
@@ -123,4 +156,8 @@ export type _ContributionRegistryConformance = [
   _SystemViewEntitiesBack,
   _SystemViewEntitiesReal,
   _SystemViewEntitiesRealBack,
+  _CommSignalHopRates,
+  _CommSignalHopRatesBack,
+  _CommSignalHopRatesReal,
+  _CommSignalHopRatesRealBack,
 ];

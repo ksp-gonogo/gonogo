@@ -1,0 +1,115 @@
+{
+  "_meta": {
+    "scenario": "command-centre-crewed-vessel",
+    "notes": "KSC is unreachable, the vessel's ControlPath resolved to a crewed control-source vessel instead (the stock 6-kerbal command-center mechanic). comms.commandCentre names it, so the caption reads 'Signal to Constant Companion' rather than the hardcoded 'Signal to KSC'. comms.path's single hop lands on that same crewed vessel (kind Relay, neither end is home), the 'You -> Constant Companion' route case."
+  },
+  "comm.connected": true,
+  "comm.signalStrength": 0.63,
+  "comm.controlState": 2,
+  "comm.controlStateName": "Full",
+  "comm.signalDelay": 0.011,
+  "_stream": {
+    "carriedChannels": [
+      "comms.link",
+      "comms.delay",
+      "comms.commandCentre",
+      "comms.path",
+      "vessel.orbit",
+      "vessel.flight",
+      "vessel.identity",
+      "system.bodies",
+      "vessel.control",
+      "vessel.target",
+      "vessel.comms",
+      "vessel.propulsion"
+    ],
+    "emits": [
+      {
+        "channel": "comms.link",
+        "value": {
+          "connected": true
+        }
+      },
+      {
+        "channel": "comms.delay",
+        "value": {
+          "oneWaySeconds": 0.011
+        }
+      },
+      {
+        "channel": "comms.commandCentre",
+        "value": {
+          "id": "vessel:abc-123",
+          "displayName": "Constant Companion",
+          "kind": "CrewedVessel",
+          "bodyIndex": null
+        }
+      },
+      {
+        "channel": "comms.path",
+        "value": {
+          "hops": [
+            {
+              "from": "Active Vessel",
+              "to": "Constant Companion",
+              "kind": 1,
+              "distanceMeters": 95000
+            }
+          ]
+        }
+      },
+      {
+        "channel": "vessel.comms",
+        "value": {
+          "connected": true,
+          "signalStrength": 0.63,
+          "controlState": 4
+        }
+      },
+      {
+        "channel": "vessel.orbit",
+        "value": {
+          "referenceBodyIndex": 1,
+          "sma": 700000,
+          "ecc": 0.01,
+          "inc": 0,
+          "lan": 0,
+          "argPe": 0,
+          "meanAnomalyAtEpoch": 0,
+          "epoch": 0,
+          "mu": 3531600000000.0,
+          "horizon": {
+            "kind": 1,
+            "trajectoryKind": 1
+          }
+        }
+      },
+      {
+        "channel": "vessel.identity",
+        "value": {
+          "vesselId": "v1",
+          "name": "Active Vessel",
+          "vesselType": 0,
+          "situation": 1,
+          "parentBodyIndex": 1,
+          "launchUt": 0
+        }
+      },
+      {
+        "channel": "system.bodies",
+        "value": {
+          "bodies": [
+            {
+              "name": "Kerbin",
+              "index": 1,
+              "parentIndex": 0,
+              "radius": 600000,
+              "orbit": null
+            }
+          ]
+        }
+      }
+    ],
+    "pinnedUt": 0
+  }
+}

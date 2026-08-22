@@ -23,16 +23,19 @@ import type {
   CommsDataRate,
   CommsLinkMargin,
   CommsLinkQuality,
+  RealAntennasHopRate,
 } from "./contract";
 
 export interface GeneratedTopicPayloadMap {
   "comms.dataRate": CommsDataRate;
   "comms.linkMargin": CommsLinkMargin;
   "comms.linkQuality": CommsLinkQuality;
+  "realantennas.hopRates": RealAntennasHopRate[];
 }
 
 export const GENERATED_TOPIC_IDS = [
   "comms.dataRate",
   "comms.linkMargin",
   "comms.linkQuality",
+  "realantennas.hopRates",
 ] as const;

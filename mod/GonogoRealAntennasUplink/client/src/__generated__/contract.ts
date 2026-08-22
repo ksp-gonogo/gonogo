@@ -22,3 +22,21 @@ export interface CommsLinkMargin
 	closesLink: boolean;
 	meta: PayloadMeta;
 }
+export interface RealAntennasHopExt
+{
+	band?: string;
+	techLevel?: Value<"count">;
+	modulationBits?: Value<"count">;
+	encoder?: string;
+	codingRate?: Value<"ratio">;
+	requiredEbN0?: Value<"dB">;
+	beamwidth?: Value<"°">;
+	powerDrawEc?: Value<"units/s">;
+	reverseBitsPerSec?: Value<"bit/s">;
+}
+export interface RealAntennasHopRate
+{
+	fromNodeId: string;
+	toNodeId: string;
+	bitsPerSec: Value<"bit/s">;
+}

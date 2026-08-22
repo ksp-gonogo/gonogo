@@ -38,6 +38,7 @@ import type {
   CommsDataRate,
   CommsLinkMargin,
   CommsLinkQuality,
+  RealAntennasHopRate,
 } from "./__generated__/contract";
 import {
   GENERATED_TOPIC_SHAPES,
@@ -45,6 +46,15 @@ import {
   GENERATED_TYPE_SHAPES,
   GENERATED_TYPE_UNITS,
 } from "./__generated__/units";
+
+/**
+ * The Domain presence gate: a bare JSON boolean the RA uplink emits (TrueNow)
+ * while RealAntennas is loaded. Its value MUST match
+ * `RealAntennasUplink.AvailableTopic` in ../../RealAntennasUplink.cs. The RA
+ * augments bind `requires: "realantennas"`, which resolves to this Topic, so
+ * their detail composes into CommSignal only when RA is actually running.
+ */
+export const REALANTENNAS_AVAILABLE_TOPIC = "realantennas.available";
 
 /**
  * Link margin normalised to 0..1. Its value MUST match
@@ -59,17 +69,31 @@ export const COMMS_DATA_RATE_TOPIC = "comms.dataRate";
 /** Re-derived link budget: decibel margin plus whether the link closes. */
 export const COMMS_LINK_MARGIN_TOPIC = "comms.linkMargin";
 
+/**
+ * Per-hop forward band rate: a BARE ARRAY of {@link RealAntennasHopRate}, one
+ * entry per hop that has a readable rate, keyed by the same node ids
+ * `comms.path` carries. Its value MUST match `RealAntennasUplink.HopRatesTopic`
+ * in ../../RealAntennasUplink.cs. The `comm-signal.hop-rates` contribution (see
+ * ./CommSignal/hopRates.ts) reads it and joins each rate onto the route the core
+ * CommSignal schedule already renders, so CommSignal never names RealAntennas.
+ */
+export const REALANTENNAS_HOP_RATES_TOPIC = "realantennas.hopRates";
+
 declare module "@ksp-gonogo/sitrep-sdk" {
   interface TopicPayloadMap {
+    "realantennas.available": boolean;
     "comms.linkQuality": CommsLinkQuality;
     "comms.dataRate": CommsDataRate;
     "comms.linkMargin": CommsLinkMargin;
+    "realantennas.hopRates": RealAntennasHopRate[];
   }
 }
 
+registerBarePrimitiveTopic(REALANTENNAS_AVAILABLE_TOPIC);
 registerBarePrimitiveTopic(COMMS_LINK_QUALITY_TOPIC);
 registerBarePrimitiveTopic(COMMS_DATA_RATE_TOPIC);
 registerBarePrimitiveTopic(COMMS_LINK_MARGIN_TOPIC);
+registerBarePrimitiveTopic(REALANTENNAS_HOP_RATES_TOPIC);
 
 // The runtime half of the relocation. Both registries are fed, by looping over
 // the generated maps rather than naming entries, so a Topic or type added to
@@ -107,6 +131,9 @@ type Equal<A, B> =
     ? true
     : false;
 type Expect<T extends true> = T;
+export type _ResolvesRealAntennasAvailable = Expect<
+  Equal<TopicPayload<"realantennas.available">, boolean>
+>;
 export type _ResolvesLinkQuality = Expect<
   Equal<TopicPayload<"comms.linkQuality">, CommsLinkQuality>
 >;
@@ -115,4 +142,7 @@ export type _ResolvesDataRate = Expect<
 >;
 export type _ResolvesLinkMargin = Expect<
   Equal<TopicPayload<"comms.linkMargin">, CommsLinkMargin>
+>;
+export type _ResolvesHopRates = Expect<
+  Equal<TopicPayload<"realantennas.hopRates">, RealAntennasHopRate[]>
 >;

@@ -1,0 +1,117 @@
+{
+  "_meta": {
+    "scenario": "relay-network-multi-hop",
+    "notes": "Signal routed through TWO relays (three hops: vessel -> Relay Sat 1 -> Relay Sat 2 -> home), the train-schedule case with several relay circles on the rail."
+  },
+  "comm.connected": true,
+  "comm.signalStrength": 0.55,
+  "comm.controlState": 2,
+  "comm.controlStateName": "Full",
+  "comm.signalDelay": 6.2,
+  "_stream": {
+    "carriedChannels": [
+      "comms.link",
+      "comms.delay",
+      "comms.path",
+      "vessel.orbit",
+      "vessel.flight",
+      "vessel.identity",
+      "system.bodies",
+      "vessel.control",
+      "vessel.target",
+      "vessel.comms",
+      "vessel.propulsion"
+    ],
+    "emits": [
+      {
+        "channel": "comms.link",
+        "value": {
+          "connected": true
+        }
+      },
+      {
+        "channel": "comms.delay",
+        "value": {
+          "oneWaySeconds": 6.2
+        }
+      },
+      {
+        "channel": "comms.path",
+        "value": {
+          "hops": [
+            {
+              "from": "Explorer II",
+              "to": "Relay Sat 1",
+              "kind": 1,
+              "distanceMeters": 1250000
+            },
+            {
+              "from": "Relay Sat 1",
+              "to": "Relay Sat 2",
+              "kind": 1,
+              "distanceMeters": 2400000
+            },
+            {
+              "from": "Relay Sat 2",
+              "to": "home",
+              "kind": 0,
+              "distanceMeters": 640000
+            }
+          ]
+        }
+      },
+      {
+        "channel": "vessel.comms",
+        "value": {
+          "connected": true,
+          "signalStrength": 0.55,
+          "controlState": 4
+        }
+      },
+      {
+        "channel": "vessel.orbit",
+        "value": {
+          "referenceBodyIndex": 1,
+          "sma": 700000,
+          "ecc": 0.01,
+          "inc": 0,
+          "lan": 0,
+          "argPe": 0,
+          "meanAnomalyAtEpoch": 0,
+          "epoch": 0,
+          "mu": 3531600000000.0,
+          "horizon": {
+            "kind": 1,
+            "trajectoryKind": 1
+          }
+        }
+      },
+      {
+        "channel": "vessel.identity",
+        "value": {
+          "vesselId": "v2",
+          "name": "Explorer II",
+          "vesselType": 0,
+          "situation": 1,
+          "parentBodyIndex": 1,
+          "launchUt": 0
+        }
+      },
+      {
+        "channel": "system.bodies",
+        "value": {
+          "bodies": [
+            {
+              "name": "Kerbin",
+              "index": 1,
+              "parentIndex": 0,
+              "radius": 600000,
+              "orbit": null
+            }
+          ]
+        }
+      }
+    ],
+    "pinnedUt": 0
+  }
+}

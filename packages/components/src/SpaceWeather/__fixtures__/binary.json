@@ -1,0 +1,96 @@
+{
+  "_meta": {
+    "scenario": "binary",
+    "notes": "Two stars, which is the case the per-star diagram exists for: one quiet, one with an inbound CME, so a fused single diagram could not tell them apart. Kopernicus packs are where this shows up; the wire shape is identical for one star or five."
+  },
+  "sw.radiationRadPerHour": 0.31,
+  "sw.stormState": 1,
+  "sw.innerBelt": 0,
+  "sw.outerBelt": 0,
+  "sw.magnetosphere": 1,
+  "sw.blackout": 0,
+  "sw.shieldingValue": 2.1,
+  "sw.shieldingCapacity": 3.308,
+  "sw.altitudeM": 250000,
+  "sw.ut": 149489,
+  "t.universalTime": 149489,
+  "sw.stars": [
+    {
+      "star": "Kerbol",
+      "direction": { "x": 0.31, "y": -0.04, "z": 0.95 },
+      "distance": { "magnitude": 13400000000, "unit": "m" }
+    },
+    {
+      "star": "Valentine",
+      "direction": { "x": -0.62, "y": 0.18, "z": 0.76 },
+      "distance": { "magnitude": 41200000000, "unit": "m" }
+    }
+  ],
+  "sw.storms": [
+    { "star": "Kerbol", "stormState": 0 },
+    {
+      "star": "Valentine",
+      "stormState": 1,
+      "stormTime": 149889,
+      "stormDuration": 420,
+      "dist": 41200000000,
+      "targetKind": 0,
+      "targetName": "Kerbin"
+    }
+  ],
+  "sw.stormEjectionSpeed": 98931511.14,
+  "_stream": {
+    "carriedChannels": ["kerbalism.spaceweather", "vessel.flight"],
+    "pinnedUt": 149489,
+    "emits": [
+      {
+        "channel": "kerbalism.spaceweather",
+        "value": {
+          "radiationRadPerSecond": 0.00008611111111111111,
+          "habitatRadiationRadPerSecond": 0.00008611111111111111,
+          "magnetosphere": true,
+          "innerBelt": false,
+          "outerBelt": false,
+          "stormIncoming": true,
+          "stormInProgress": false,
+          "blackout": false,
+          "inSunlight": true,
+          "shieldingAmount": 2.1,
+          "shieldingCapacity": 3.308,
+          "stars": [
+            {
+              "star": "Kerbol",
+              "direction": { "x": 0.31, "y": -0.04, "z": 0.95 },
+              "distance": { "magnitude": 13400000000, "unit": "m" }
+            },
+            {
+              "star": "Valentine",
+              "direction": { "x": -0.62, "y": 0.18, "z": 0.76 },
+              "distance": { "magnitude": 41200000000, "unit": "m" }
+            }
+          ],
+          "storms": [
+            { "star": "Kerbol", "stormState": 0 },
+            {
+              "star": "Valentine",
+              "stormState": 1,
+              "stormTime": 149889,
+              "stormDuration": 420,
+              "dist": 41200000000,
+              "targetKind": 0,
+              "targetName": "Kerbin"
+            }
+          ],
+          "stormEjectionSpeed": 98931511.14
+        }
+      },
+      {
+        "channel": "vessel.flight",
+        "value": {
+          "altitudeAsl": 250000,
+          "altitudeTerrain": 250000
+        }
+      }
+    ]
+  }
+}

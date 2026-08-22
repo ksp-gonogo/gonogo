@@ -1,6 +1,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using Gonogo.KerbalismUplink;
+using GonogoKerbalismUplink;
 using Sitrep.Contract;
 using Xunit;
 
@@ -30,6 +31,52 @@ public class KerbalismCaptureTests
         Assert.Equal(true, sw["magnetosphere"]);
         Assert.Equal(false, sw["innerBelt"]);
         Assert.Equal(3.308449424001643, (double)sw["shieldingCapacity"]!, 12);
+    }
+
+    /// <summary>
+    /// A CME slot names its target, so the client can say who the storm is
+    /// inbound TO: the SOI body for a vessel around a body, the vessel itself
+    /// for one in solar orbit (Kerbalism rolls those per-vessel). The kind rides
+    /// as its integer ordinal, like every other contract enum on the wire.
+    /// </summary>
+    [Fact]
+    public void BuildSpaceWeather_names_the_storm_target_for_a_body_and_a_vessel()
+    {
+        var storms = new[]
+        {
+            new StormEntryRaw
+            {
+                Star = "Kerbol",
+                StormState = 1,
+                StormTime = 149549,
+                StormDuration = 300,
+                Dist = 13599840256,
+                TargetKind = KerbalismStormTargetKind.Body,
+                TargetName = "Kerbin",
+            },
+            new StormEntryRaw
+            {
+                Star = "Kerbol",
+                StormState = 1,
+                StormTime = 152000,
+                StormDuration = 620,
+                Dist = 41000000000,
+                TargetKind = KerbalismStormTargetKind.Vessel,
+                TargetName = "Jool Transfer Probe",
+            },
+        };
+        var sw = KerbalismCapture.BuildSpaceWeather(new KerbalismSnapshot(), storms: storms);
+        var mapped = ((List<object>)sw["storms"]!)
+            .Cast<Dictionary<string, object?>>()
+            .ToList();
+
+        Assert.Equal((int)KerbalismStormTargetKind.Body, mapped[0]["targetKind"]);
+        Assert.Equal("Kerbin", mapped[0]["targetName"]);
+        Assert.Equal((int)KerbalismStormTargetKind.Vessel, mapped[1]["targetKind"]);
+        Assert.Equal("Jool Transfer Probe", mapped[1]["targetName"]);
+        // The rest of the slot rides through unchanged.
+        Assert.Equal("Kerbol", mapped[1]["star"]);
+        Assert.Equal(152000d, (double)mapped[1]["stormTime"]!, 6);
     }
 
     [Fact]

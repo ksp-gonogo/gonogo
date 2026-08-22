@@ -211,6 +211,12 @@
       "errorCode": "enum",
       "success": "flag"
     },
+    "CommsCommandCentre": {
+      "bodyIndex": "id",
+      "displayName": "text",
+      "id": "id",
+      "kind": "text"
+    },
     "CommsConnectivity": {
       "connected": "flag",
       "controlSource": "enum",
@@ -225,7 +231,6 @@
       "source": "enum"
     },
     "CommsHop": {
-      "bandRateBitsPerSec": "bit/s",
       "distanceMeters": "m",
       "from": "id",
       "fromIsHome": "flag",
@@ -1182,6 +1187,12 @@
       "latitude": "°",
       "longitude": "°"
     },
+    "comms.commandCentre": {
+      "bodyIndex": "id",
+      "displayName": "text",
+      "id": "id",
+      "kind": "text"
+    },
     "comms.connectivity": {
       "connected": "flag",
       "controlSource": "enum",
@@ -1725,6 +1736,9 @@
     "CommandResult": {
       "breach": "LimitBreach"
     },
+    "CommsCommandCentre": {
+      "meta": "PayloadMeta"
+    },
     "CommsConnectivity": {
       "meta": "PayloadMeta"
     },
@@ -1942,6 +1956,9 @@
       "facilities": "*CareerFacility",
       "strategies": "CareerStrategies",
       "tech": "CareerTech"
+    },
+    "comms.commandCentre": {
+      "meta": "PayloadMeta"
     },
     "comms.connectivity": {
       "meta": "PayloadMeta"

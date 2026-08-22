@@ -12,5 +12,10 @@
  * gate that does not gate.
  */
 export const READING_GATE_DEBT: readonly string[] = [
-  "packages/components/scripts/probe/probe-entry.tsx:296",
+  // Same site, four lines lower: one more Uplink joined the probe harness's
+  // side-effect imports above it. Renumbered, not fixed: the fix is
+  // `state !== "pending"` (`AugmentAvailabilityFeeder` already made it), and
+  // making it here changes which augments the probe renders, which moves the
+  // visual baselines.
+  "packages/components/scripts/probe/probe-entry.tsx:300",
 ];

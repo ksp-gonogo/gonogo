@@ -106,12 +106,12 @@ namespace Sitrep.Core.Tests
                     new CommsHop
                     {
                         From = "vessel", To = "ksc", ToIsHome = true, Kind = CommsHopKind.Home,
-                        DistanceMeters = 1234.5, BandRateBitsPerSec = null,
+                        DistanceMeters = 1234.5,
                     },
                     new CommsHop
                     {
                         From = "relay", To = "ksc", Kind = CommsHopKind.Relay,
-                        DistanceMeters = null, BandRateBitsPerSec = 9600,
+                        DistanceMeters = null,
                     },
                 },
                 Meta = new PayloadMeta(),
@@ -122,9 +122,7 @@ namespace Sitrep.Core.Tests
             Assert.Equal(2, hops.GetArrayLength());
             Assert.Equal("vessel", hops[0].GetProperty("from").GetString());
             Assert.Equal(1234.5, hops[0].GetProperty("distanceMeters").GetDouble());
-            Assert.Equal(JsonValueKind.Null, hops[0].GetProperty("bandRateBitsPerSec").ValueKind);
             Assert.Equal(JsonValueKind.Null, hops[1].GetProperty("distanceMeters").ValueKind);
-            Assert.Equal(9600, hops[1].GetProperty("bandRateBitsPerSec").GetDouble());
             // Which END is the ground station, per hop: the bit that tells a
             // direct vessel-to-KSC link apart from a relay-mediated one without
             // parsing the endpoint names.
@@ -259,6 +257,59 @@ namespace Sitrep.Core.Tests
             Write(new CommsControlState());
             Write(new CommsPath());
             Write(new CommsNetwork());
+            Write(new CommsCommandCentre());
+        }
+
+        [Fact]
+        public void CommandCentreWithNoResolvedCentreSerializesAllFieldsAsJsonNull()
+        {
+            // No live remote centre this tick (no connection, or the terminal
+            // node matched neither a ground station nor a crewed control
+            // source): every identity field is null, not an empty string.
+            var el = Write(new CommsCommandCentre { Meta = new PayloadMeta() });
+
+            Assert.Equal(JsonValueKind.Null, el.GetProperty("id").ValueKind);
+            Assert.Equal(JsonValueKind.Null, el.GetProperty("displayName").ValueKind);
+            Assert.Equal(JsonValueKind.Null, el.GetProperty("kind").ValueKind);
+            Assert.Equal(JsonValueKind.Null, el.GetProperty("bodyIndex").ValueKind);
+        }
+
+        [Fact]
+        public void CommandCentreForKscSerializesIdentity()
+        {
+            var el = Write(new CommsCommandCentre
+            {
+                Id = "ksc",
+                DisplayName = "Kerbin Space Center",
+                Kind = "GroundStation",
+                BodyIndex = 1,
+                Meta = new PayloadMeta { Source = "vessel:1", Quality = Quality.Loaded },
+            });
+
+            Assert.Equal("ksc", el.GetProperty("id").GetString());
+            Assert.Equal("Kerbin Space Center", el.GetProperty("displayName").GetString());
+            Assert.Equal("GroundStation", el.GetProperty("kind").GetString());
+            Assert.Equal(1, el.GetProperty("bodyIndex").GetInt32());
+        }
+
+        [Fact]
+        public void CommandCentreForCrewedVesselSerializesIdentityWithNullBodyIndex()
+        {
+            // A moving crewed-vessel centre: BodyIndex is legitimately null
+            // (the roster's own convention for a non-surface-anchored centre).
+            var el = Write(new CommsCommandCentre
+            {
+                Id = "vessel:abc-123",
+                DisplayName = "Constant Companion",
+                Kind = "CrewedVessel",
+                BodyIndex = null,
+                Meta = new PayloadMeta(),
+            });
+
+            Assert.Equal("vessel:abc-123", el.GetProperty("id").GetString());
+            Assert.Equal("Constant Companion", el.GetProperty("displayName").GetString());
+            Assert.Equal("CrewedVessel", el.GetProperty("kind").GetString());
+            Assert.Equal(JsonValueKind.Null, el.GetProperty("bodyIndex").ValueKind);
         }
 
         [Fact]

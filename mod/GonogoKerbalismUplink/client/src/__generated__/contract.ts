@@ -52,9 +52,15 @@ export interface KerbalismStarInfo
 	direction?: Vec3Of<"1">;
 	distance?: Value<"m">;
 }
+export enum KerbalismStormTargetKind {
+	Body = 0,
+	Vessel = 1
+}
 export interface KerbalismStormEntry
 {
 	star?: string;
+	targetKind?: KerbalismStormTargetKind;
+	targetName?: string;
 	stormState?: Value<"count">;
 	stormTime?: Value<"ut">;
 	stormDuration?: Value<"s">;

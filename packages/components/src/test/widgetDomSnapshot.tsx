@@ -145,6 +145,11 @@ const fbool = (fixture: Fixture, key: string): boolean =>
  * Radiation is stored rad/h in the fixture but the Topic (and real mod) is
  * rad/s, so it is divided by 3600 here, the widget multiplies it back for the
  * identical readout. Storm state 0/1/2 -> the incoming/inProgress bools.
+ *
+ * `sw.stars` / `sw.storms` / `sw.stormEjectionSpeed` pass through UNRESHAPED:
+ * they are already the Topic's own shape (the sun-vantage half of the payload),
+ * and a fixture carrying none simply leaves the star cards and CME tracker on
+ * their empty states.
  */
 function resolveKerbalismSpaceWeatherWire(fixture: Fixture): unknown {
   const hasSw = Object.keys(fixture).some((k) => k.startsWith("sw."));
@@ -163,6 +168,9 @@ function resolveKerbalismSpaceWeatherWire(fixture: Fixture): unknown {
     inSunlight: true,
     shieldingAmount: fnum(fixture, "sw.shieldingValue") ?? 0,
     shieldingCapacity: fnum(fixture, "sw.shieldingCapacity") ?? 0,
+    stars: fixture["sw.stars"] ?? [],
+    storms: fixture["sw.storms"] ?? [],
+    stormEjectionSpeed: fnum(fixture, "sw.stormEjectionSpeed"),
   };
 }
 

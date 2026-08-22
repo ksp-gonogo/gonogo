@@ -245,6 +245,12 @@ export const GENERATED_TYPE_UNITS: Readonly<Record<string, UnitsByField>> = {
     errorCode: "enum",
     success: "flag",
   },
+  "CommsCommandCentre": {
+    bodyIndex: "id",
+    displayName: "text",
+    id: "id",
+    kind: "text",
+  },
   "CommsConnectivity": {
     connected: "flag",
     controlSource: "enum",
@@ -259,7 +265,6 @@ export const GENERATED_TYPE_UNITS: Readonly<Record<string, UnitsByField>> = {
     source: "enum",
   },
   "CommsHop": {
-    bandRateBitsPerSec: "bit/s",
     distanceMeters: "m",
     from: "id",
     fromIsHome: "flag",
@@ -1221,6 +1226,12 @@ export const GENERATED_TOPIC_UNITS: Readonly<Record<string, UnitsByField>> = {
     latitude: "°",
     longitude: "°",
   },
+  "comms.commandCentre": {
+    bodyIndex: "id",
+    displayName: "text",
+    id: "id",
+    kind: "text",
+  },
   "comms.connectivity": {
     connected: "flag",
     controlSource: "enum",
@@ -1782,6 +1793,9 @@ export const GENERATED_TYPE_SHAPES: Readonly<Record<string, ShapesByField>> = {
   "CommandResult": {
     breach: "LimitBreach",
   },
+  "CommsCommandCentre": {
+    meta: "PayloadMeta",
+  },
   "CommsConnectivity": {
     meta: "PayloadMeta",
   },
@@ -2001,6 +2015,9 @@ export const GENERATED_TOPIC_SHAPES: Readonly<Record<string, ShapesByField>> = {
     facilities: "*CareerFacility",
     strategies: "CareerStrategies",
     tech: "CareerTech",
+  },
+  "comms.commandCentre": {
+    meta: "PayloadMeta",
   },
   "comms.connectivity": {
     meta: "PayloadMeta",

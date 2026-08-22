@@ -1,0 +1,143 @@
+{
+  "_meta": {
+    "scenario": "realantennas-link",
+    "notes": "Direct 4-bar link to KSC with the RealAntennas Uplink installed and elected: the comm-signal.badges band/rate chip and the comm-signal.sections margin/encoder/modulation/tech-level/Eb-N0/uplink-rate panel both compose in, reading only RA's own comms.dataRate/comms.linkMargin/comms.path channels, gated on realantennas.available."
+  },
+  "comm.connected": true,
+  "comm.signalStrength": 0.87,
+  "comm.controlState": 2,
+  "comm.controlStateName": "Full",
+  "comm.signalDelay": 0.0004,
+  "_stream": {
+    "carriedChannels": [
+      "comms.link",
+      "comms.delay",
+      "vessel.orbit",
+      "vessel.flight",
+      "vessel.identity",
+      "system.bodies",
+      "vessel.control",
+      "vessel.target",
+      "vessel.comms",
+      "vessel.propulsion",
+      "realantennas.available",
+      "comms.dataRate",
+      "comms.linkMargin",
+      "comms.path"
+    ],
+    "emits": [
+      {
+        "channel": "comms.link",
+        "value": {
+          "connected": true
+        }
+      },
+      {
+        "channel": "comms.delay",
+        "value": {
+          "oneWaySeconds": 0.0004
+        }
+      },
+      {
+        "channel": "vessel.comms",
+        "value": {
+          "connected": true,
+          "signalStrength": 0.87,
+          "controlState": 4
+        }
+      },
+      {
+        "channel": "vessel.orbit",
+        "value": {
+          "referenceBodyIndex": 1,
+          "sma": 700000,
+          "ecc": 0.01,
+          "inc": 0,
+          "lan": 0,
+          "argPe": 0,
+          "meanAnomalyAtEpoch": 0,
+          "epoch": 0,
+          "mu": 3531600000000.0,
+          "horizon": {
+            "kind": 1,
+            "trajectoryKind": 1
+          }
+        }
+      },
+      {
+        "channel": "vessel.identity",
+        "value": {
+          "vesselId": "v1",
+          "name": "Active Vessel",
+          "vesselType": 0,
+          "situation": 1,
+          "parentBodyIndex": 1,
+          "launchUt": 0
+        }
+      },
+      {
+        "channel": "system.bodies",
+        "value": {
+          "bodies": [
+            {
+              "name": "Kerbin",
+              "index": 1,
+              "parentIndex": 0,
+              "radius": 600000,
+              "orbit": null
+            }
+          ]
+        }
+      },
+      {
+        "channel": "realantennas.available",
+        "value": true
+      },
+      {
+        "channel": "comms.dataRate",
+        "value": {
+          "upBitsPerSec": 9600,
+          "downBitsPerSec": 262000
+        }
+      },
+      {
+        "channel": "comms.linkMargin",
+        "value": {
+          "decibelMargin": 8.4,
+          "closesLink": true
+        }
+      },
+      {
+        "channel": "comms.path",
+        "value": {
+          "hops": [
+            {
+              "from": "vessel",
+              "to": "home",
+              "kind": 0,
+              "distanceMeters": 1234.5,
+              "extensions": {
+                "realantennas": {
+                  "band": "X",
+                  "techLevel": 7,
+                  "modulationBits": 4,
+                  "encoder": "Reed-Solomon 255/223",
+                  "codingRate": 0.8745,
+                  "requiredEbN0": 6.1,
+                  "beamwidth": 12.5,
+                  "powerDrawEc": 3.25,
+                  "reverseBitsPerSec": 9600
+                }
+              }
+            }
+          ],
+          "meta": {
+            "source": "vessel:1",
+            "quality": 1
+          }
+        }
+      }
+    ],
+    "pinnedUt": 0
+  }
+}

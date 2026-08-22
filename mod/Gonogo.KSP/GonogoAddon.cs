@@ -162,6 +162,12 @@ namespace Gonogo.KSP
                     ccRegistry.RegisterSource(src);
                 }
                 _engine.RegisterUplink(new CommandCentres.CommandCentreDelayUplink(ccRegistry));
+                // comms.commandCentre: give
+                // CommsCoreUplink the SAME registry instance so it resolves the
+                // active vessel's terminal node against the live centres the
+                // roster above already enumerates, instead of re-scanning its
+                // own throwaway sources every comms capture tick.
+                CommsCoreUplink.ConfigureCommandCentreRegistry(ccRegistry);
                 // Drive the capability Kernel once every uplink has registered
                 // its providers (the comms backend election, CommNet vanilla vs
                 // RealAntennas when present, see Sitrep.Host.Comms.CommsElection)

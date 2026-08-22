@@ -22,6 +22,7 @@ import {
   COMMS_DATA_RATE_TOPIC,
   COMMS_LINK_MARGIN_TOPIC,
   COMMS_LINK_QUALITY_TOPIC,
+  REALANTENNAS_AVAILABLE_TOPIC,
 } from "./topics";
 
 // src -> client -> GonogoRealAntennasUplink
@@ -73,6 +74,20 @@ describe("the three RA-only Topics (relocated out of Sitrep.Contract)", () => {
       expect(isTopicId(topic), `${topic} is not a known TopicId`).toBe(true);
       expect(getAllKnownTopicIds()).toContain(topic);
     }
+  });
+});
+
+describe("the realantennas.available presence gate", () => {
+  it("registers the same string the C# Uplink declares", () => {
+    expect(REALANTENNAS_AVAILABLE_TOPIC).toBe(csTopic("AvailableTopic"));
+  });
+
+  // The RA augments bind `requires: "realantennas"`, which the host resolves to
+  // this Topic; if it were not a known TopicId the gate would never open and the
+  // detail would never render.
+  it("is a known TopicId once this client's topics module has loaded", () => {
+    expect(isTopicId(REALANTENNAS_AVAILABLE_TOPIC)).toBe(true);
+    expect(getAllKnownTopicIds()).toContain(REALANTENNAS_AVAILABLE_TOPIC);
   });
 });
 

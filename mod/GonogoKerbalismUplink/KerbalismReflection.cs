@@ -3,6 +3,7 @@ using System.Collections;
 using System.Collections.Generic;
 using System.Globalization;
 using System.Reflection;
+using Sitrep.Contract;
 using UnityEngine;
 using Sitrep.Contract;
 
@@ -35,7 +36,9 @@ namespace Gonogo.KerbalismUplink
         private readonly MethodInfo? _buildReliabilityList;
         private readonly MethodInfo? _dbStorm;
         private readonly MethodInfo? _stormKeyMethod;
+        private readonly MethodInfo? _isInterplanetaryBody;
         private readonly MethodInfo? _dbKerbalismData;
+        private readonly MethodInfo? _getStormDataForStar;
         private readonly MethodInfo? _resourceCacheGet;
         private readonly MethodInfo? _modifiersEvaluate;
         private readonly PropertyInfo? _prefsRadiationInstanceProp;
@@ -89,8 +92,23 @@ namespace Gonogo.KerbalismUplink
             _stormKeyMethod = _stormType?.GetMethod(
                 "StormKey", BindingFlags.Public | BindingFlags.Static, null,
                 new[] { typeof(CelestialBody), typeof(CelestialBody) }, null);
+            // Kerbalism's own "does this vessel count as interplanetary" test, the
+            // guard on its Storm.Update(Vessel) overload (a sun or a barycenter as
+            // mainBody). Looked up NonPublic too since it is an internal helper;
+            // Solar falls back to a star-membership test when it moves or goes.
+            _isInterplanetaryBody = _stormType?.GetMethod(
+                "IsInterplanetaryBody",
+                BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Static, null,
+                new[] { typeof(CelestialBody) }, null);
             _dbKerbalismData = _dbType?.GetMethod(
                 "KerbalismData", BindingFlags.Public | BindingFlags.Static, null, new[] { typeof(Vessel) }, null);
+            // VesselData is reached only as DB.KerbalismData's return type: the
+            // uplink never names it, so this is where the per-vessel storm slot
+            // accessor (Kerbalism's own interplanetary path) comes from.
+            _getStormDataForStar = _dbKerbalismData?.ReturnType.GetMethod(
+                "GetStormDataForStar",
+                BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance, null,
+                new[] { typeof(CelestialBody) }, null);
             _resourceCacheGet = _resourceCacheType?.GetMethod(
                 "Get", BindingFlags.Public | BindingFlags.Static, null, new[] { typeof(Vessel) }, null);
             _prefsRadiationInstanceProp = _prefsRadiationType?.GetProperty("Instance", BindingFlags.Public | BindingFlags.Static);
@@ -544,12 +562,21 @@ namespace Gonogo.KerbalismUplink
 
         /// <summary>
         /// Per-star vantage (<c>VesselData.EnvSunsInfo</c>) plus, for each of those
-        /// stars, the CME slot for THIS vessel's current SOI body
-        /// (<c>DB.Storm(Storm.StormKey(v.mainBody, star))</c>). Star-agnostic: one
-        /// entry per star Kerbalism tracks for this vessel, 1..N uniformly.
+        /// stars, the CME slot that actually governs THIS vessel. Star-agnostic:
+        /// one entry per star Kerbalism tracks for this vessel, 1..N uniformly.
         /// StormTime/StormDuration/Dist are only filled when storm_state != 0 (see
         /// <c>Sitrep.Contract.KerbalismStormEntry</c>'s fair-vs-cheating doc
         /// comment); storm_generation is never read.
+        ///
+        /// <para>Which slot depends on where the vessel is, mirroring Kerbalism's
+        /// two <c>Storm.Update</c> overloads. In a body's SOI it is the shared
+        /// per-body slot, <c>DB.Storm(Storm.StormKey(v.mainBody, star))</c>, and
+        /// every vessel there sees that same storm. With no body SOI (solar orbit
+        /// or a barycenter) Kerbalism rolls storms PER VESSEL instead, against
+        /// <c>VesselData.GetStormDataForStar(star)</c> and that vessel's own sun
+        /// distance, so an interplanetary craft is its own target and reading the
+        /// body slot would report a storm that does not govern it. Each entry
+        /// names which it is (TargetKind/TargetName).</para>
         /// </summary>
         public SolarRaw Solar(Vessel v)
         {
@@ -562,7 +589,10 @@ namespace Gonogo.KerbalismUplink
 
             if (Member(vd, "EnvSunsInfo") is not IEnumerable sunsInfo) return raw;
 
-            var mainBody = v.mainBody;
+            // Two passes: the vantages first (they also produce the star list the
+            // interplanetary fallback test needs), then one storm slot per star,
+            // once it is known WHICH kind of slot governs this vessel.
+            var stars = new List<KeyValuePair<object, CelestialBody>>();
             foreach (var sunInfo in sunsInfo)
             {
                 if (sunInfo == null) continue;
@@ -586,30 +616,112 @@ namespace Gonogo.KerbalismUplink
                     DirZ = dz,
                     Distance = MemberDouble(sunInfo, "Distance") ?? 0,
                 });
+                stars.Add(new KeyValuePair<object, CelestialBody>(sunInfo, star));
+            }
 
-                if (mainBody == null || _stormKeyMethod == null || _dbStorm == null) continue;
+            var mainBody = v.mainBody;
+            var perVessel = IsInterplanetary(mainBody, stars);
 
-                string? key = null;
-                try { key = _stormKeyMethod.Invoke(null, new object[] { mainBody, star }) as string; } catch { }
-                if (string.IsNullOrEmpty(key)) continue;
+            foreach (var pair in stars)
+            {
+                var sunInfo = pair.Key;
+                var star = pair.Value;
 
-                object? storm = null;
-                try { storm = _dbStorm.Invoke(null, new object[] { key }); } catch { }
+                var storm = perVessel ? PerVesselStorm(vd, star) : BodyStorm(mainBody, star);
                 if (storm == null) continue;
 
                 int state = 0;
                 try { state = Convert.ToInt32(Member(storm, "storm_state") ?? 0); } catch { }
 
-                var entry = new StormEntryRaw { Star = star.bodyName, StormState = state };
+                var entry = new StormEntryRaw
+                {
+                    Star = star.bodyName,
+                    StormState = state,
+                    TargetKind = perVessel
+                        ? KerbalismStormTargetKind.Vessel
+                        : KerbalismStormTargetKind.Body,
+                    TargetName = (perVessel ? v.vesselName : mainBody?.bodyName) ?? "",
+                };
                 if (state != 0)
                 {
                     entry.StormTime = MemberDouble(storm, "storm_time");
                     entry.StormDuration = MemberDouble(storm, "storm_duration");
-                    entry.Dist = Vector3d.Distance(mainBody.position, star.position);
+                    // The same geometry Kerbalism's own CreateStorm call site uses
+                    // for this slot: sunInfo.Distance interplanetary, sun-to-body
+                    // otherwise.
+                    entry.Dist = perVessel
+                        ? MemberDouble(sunInfo, "Distance")
+                        : Vector3d.Distance(mainBody!.position, star.position);
                 }
                 raw.Storms.Add(entry);
             }
             return raw;
+        }
+
+        /// <summary>
+        /// Does Kerbalism roll storms for this vessel per-VESSEL rather than
+        /// per-body? Prefers Kerbalism's own <c>Storm.IsInterplanetaryBody</c>
+        /// (the guard on its Storm.Update(Vessel) overload, true for a sun or a
+        /// barycenter). When that helper is absent, falls back to asking whether
+        /// the vessel's SOI parent is one of the stars Kerbalism tracks for it,
+        /// which catches the solar-orbit case (the common one) but not a
+        /// Kopernicus barycenter.
+        /// </summary>
+        private bool IsInterplanetary(CelestialBody? mainBody, List<KeyValuePair<object, CelestialBody>> stars)
+        {
+            if (mainBody == null) return false;
+            if (_isInterplanetaryBody != null)
+            {
+                try
+                {
+                    if (_isInterplanetaryBody.Invoke(null, new object[] { mainBody }) is bool b) return b;
+                }
+                catch { }
+            }
+            foreach (var pair in stars)
+                if (ReferenceEquals(pair.Value, mainBody)) return true;
+            return false;
+        }
+
+        /// <summary>The shared per-(body, star) slot, <c>DB.Storm(Storm.StormKey(body, star))</c>.</summary>
+        private object? BodyStorm(CelestialBody? mainBody, CelestialBody star)
+        {
+            if (mainBody == null || _stormKeyMethod == null || _dbStorm == null) return null;
+
+            string? key = null;
+            try { key = _stormKeyMethod.Invoke(null, new object[] { mainBody, star }) as string; } catch { }
+            if (string.IsNullOrEmpty(key)) return null;
+
+            try { return _dbStorm.Invoke(null, new object[] { key! }); } catch { return null; }
+        }
+
+        /// <summary>
+        /// The vessel's own slot, <c>VesselData.GetStormDataForStar(star)</c>, with
+        /// a direct <c>stormDataByStar</c> dictionary read as the fallback (the
+        /// accessor is a convenience over that field, and the field is the older
+        /// of the two surfaces). Both key by star name.
+        /// </summary>
+        private object? PerVesselStorm(object vd, CelestialBody star)
+        {
+            if (_getStormDataForStar != null)
+            {
+                try
+                {
+                    var byMethod = _getStormDataForStar.Invoke(vd, new object[] { star });
+                    if (byMethod != null) return byMethod;
+                }
+                catch { }
+            }
+
+            if (Member(vd, "stormDataByStar") is IDictionary byStar)
+            {
+                try
+                {
+                    if (byStar.Contains(star.bodyName)) return byStar[star.bodyName];
+                }
+                catch { }
+            }
+            return null;
         }
 
         /// <summary>

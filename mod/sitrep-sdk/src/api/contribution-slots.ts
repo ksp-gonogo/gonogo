@@ -70,6 +70,23 @@ export interface ShipMapPartMetaEntry {
   text?: string;
 }
 
+/**
+ * One `comm-signal.hop-rates` entry: a single hop's forward band rate, keyed by
+ * the SAME node ids `comms.path` carries (`fromNodeId`/`toNodeId`), so
+ * CommSignal's route schedule can join a rate onto the hop it already renders
+ * WITHOUT importing any backend-aware code or naming a provider. The join key is
+ * derived once, in `CommSignal/commsRoute.ts`; a contributor relays the node ids
+ * verbatim off its own Topic. `bitsPerSec` is a plain magnitude (bits/sec); the
+ * schedule wraps it in `<Unit>` for display and compares magnitudes to flag the
+ * bottleneck (minimum-rate) hop. Owned by `packages/components/src/CommSignal`;
+ * the built-in RealAntennas contribution fills it off `realantennas.hopRates`.
+ */
+export interface CommSignalHopRateEntry {
+  fromNodeId: string;
+  toNodeId: string;
+  bitsPerSec: number;
+}
+
 // SystemView (packages/components/src/SystemView)
 //
 // `system-view.entities` (the shape-contribution foundation: vessel orbits,
@@ -178,6 +195,10 @@ declare module "./types" {
     "crew-status.row-tone": {
       entry: CrewRowToneEntry;
       topics: "vessel.crew";
+    };
+    "comm-signal.hop-rates": {
+      entry: CommSignalHopRateEntry;
+      topics: "realantennas.hopRates";
     };
   }
 }

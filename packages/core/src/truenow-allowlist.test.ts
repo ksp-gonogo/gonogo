@@ -119,18 +119,25 @@ const ALLOWED_TRUENOW: Record<string, number> = {
   // an even wider margin: not an observation of the vessel at all, but the
   // universe's geometry plus the rule the elected comms backend applies to
   // it, and delaying the rule would have a predictor computing tomorrow's
-  // blackout from yesterday's assumptions. Declared via the `TrueNow(topic)`
-  // helper: 1 explicit `Delay =` line inside the helper body + 7 call sites
-  // (one per topic) + the helper's own declaration line (also matches the
-  // call-site regex) = 8 helper matches. 1 explicit + 8 helper = 9.
-  "mod/Gonogo.KSP/CommsCoreUplink.cs": 9,
+  // blackout from yesterday's assumptions. Joined too by comms.commandCentre,
+  // which names WHICH centre the active vessel's OWN path resolved to: a node
+  // its own comms.path already discloses raw, not a fact about another vessel.
+  // Declared via the `TrueNow(topic)` helper: 1 explicit `Delay =` line inside
+  // the helper body + 8 call sites (one per topic) + the helper's own
+  // declaration line (also matches the call-site regex) = 9 helper matches.
+  // 1 explicit + 9 helper = 10.
+  "mod/Gonogo.KSP/CommsCoreUplink.cs": 10,
 
-  // RealAntennas link-quality/data-rate/link-margin: same "facts about
-  // the link" class as CommsCoreUplink above, same helper shape: 1
-  // explicit `Delay =` line inside the helper body + 3 call sites + the
-  // helper's own declaration line = 4 helper matches. 1 explicit + 4
-  // helper = 5.
-  "mod/GonogoRealAntennasUplink/RealAntennasUplink.cs": 5,
+  // RealAntennas link-quality/data-rate/link-margin, plus
+  // realantennas.available (whether RA is installed, same install-fact
+  // class as scansat/kerbcast .available) and realantennas.hopRates (the
+  // per-hop forward band rate that left CommsHop for this Uplink's own
+  // channel, a ground-side fact about the link the same as the rest): same
+  // "facts about the link (or its presence)" class as CommsCoreUplink above,
+  // same helper shape: 1 explicit `Delay =` line inside the helper body + 5
+  // call sites + the helper's own declaration line = 6 helper matches. 1
+  // explicit + 6 helper = 7.
+  "mod/GonogoRealAntennasUplink/RealAntennasUplink.cs": 7,
 
   // SCANsat scan-coverage availability: ground-side (the map data the
   // centre already has), not a live vessel reading. 1 explicit

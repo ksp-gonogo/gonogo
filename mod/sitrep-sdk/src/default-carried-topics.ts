@@ -73,6 +73,12 @@ export const DEFAULT_SITREP_CARRIED_TOPICS: readonly string[] = [
   // carried or the disconnect edge never reaches the client and "NO SIGNAL"
   // never fires: see comms-delay-model-consistency spec.
   "comms.link",
+  // comms.commandCentre (CommsCoreUplink, TrueNow): which centre (KSC or a
+  // crewed control-source vessel) the
+  // active vessel's own comms link currently terminates at. CommSignal reads
+  // it to label its readout with the real centre instead of assuming KSC;
+  // must be carried or that read silently stays undefined.
+  "comms.commandCentre",
   // System View / Fleet-Comms augment (Phase 1 spine,
   // local_docs/design/specs/2026-07-15-system-view-fleet-comms-design.md):
   // active-vessel comms-path highlight + command-traffic (pending-uplink)

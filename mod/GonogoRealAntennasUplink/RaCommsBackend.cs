@@ -12,9 +12,12 @@ namespace Gonogo.RealAntennasUplink
     /// (§4.3: <c>RACommLink : CommNet.CommLink</c>, <c>RACommNode : CommNet.CommNode</c>,
     /// so <c>precisePosition</c>/<c>ControlPath</c> are stock reads under either
     /// backend): NO RA reflection is needed for those. The one RA-specific
-    /// enrichment here is per-hop <c>BandRateBitsPerSec</c>, read via
-    /// <see cref="RaReflection"/> off the live RACommLink (typed absence when
-    /// unreadable, never 0).
+    /// enrichment here is the per-hop <c>Extensions["realantennas"]</c> bag (band,
+    /// tech level, modulation, reverse rate, ...), read via
+    /// <see cref="RaReflection"/> off the live RACommLink. The FORWARD band rate is
+    /// no longer set on the hop: it rides this Uplink's own
+    /// <c>realantennas.hopRates</c> channel instead, keyed by the same
+    /// <see cref="NodeId"/>s these hops carry.
     ///
     /// <para>Main-thread only (live KSP reads), called from the RA uplink's
     /// capture-on-main sampler.</para>
@@ -88,9 +91,12 @@ namespace Gonogo.RealAntennasUplink
                         ToIsHome = link.b.isHome,
                         Kind = link.b.isHome || link.a.isHome ? CommsHopKind.Home : CommsHopKind.Relay,
                         DistanceMeters = (link.a.precisePosition - link.b.precisePosition).magnitude,
-                        // RA enrichment: per-hop forward data rate off the live
-                        // RACommLink (§1 "path hops gain RA band/rate annotations").
-                        BandRateBitsPerSec = _ra.ForwardDataRate(link),
+                        // The RA-only per-hop extras (band, tech level, modulation,
+                        // encoder, required Eb/N0, beamwidth, EC draw, reverse rate)
+                        // ride the provider extension bag under "realantennas",
+                        // typed client-side by RealAntennasHopExt. Null under bare
+                        // CommNet, where this backend is not even elected.
+                        Extensions = RaHopExtensions.ForHop(_ra, link),
                     });
                 }
             }
@@ -149,8 +155,13 @@ namespace Gonogo.RealAntennasUplink
         /// a name and merging them into one node loses a link; the station's
         /// own name for a ground station, which RSS/RA fly a dozen of and which
         /// must stay distinguishable.
+        ///
+        /// <para>Internal rather than private so this Uplink's
+        /// <c>realantennas.hopRates</c> capture keys its per-hop entries by
+        /// exactly this derivation, which is what guarantees the client can join
+        /// a rate onto the route <c>comms.path</c> already published.</para>
         /// </summary>
-        private static string NodeId(CommNode node)
+        internal static string NodeId(CommNode node)
         {
             if (node == null) return "unknown";
             var vessel = ResolveOwningVessel(node);

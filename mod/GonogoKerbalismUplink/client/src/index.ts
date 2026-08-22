@@ -37,6 +37,11 @@ export type {
   KerbalismSpaceWeather,
   KerbalismStarInfo,
   KerbalismStormEntry,
+  // Type-only on purpose, though it is an enum: a VALUE import from this barrel
+  // runs `defineUplinkClient` at module load, which throws in any tree with no
+  // host installed. A reader annotates the ordinal it compares against instead,
+  // so a renumber on the mod side still fails its build.
+  KerbalismStormTargetKind,
 } from "./__generated__/contract";
 // This Uplink's namespaces of the two elected `isru.*` payloads' extension bags, same
 // boundary and same load-bearing re-export again. Kerbalism WINS the ISRU election too,

@@ -97,8 +97,12 @@ public class KerbalismSpaceWeather
     /// </summary>
     public List<KerbalismStarInfo>? Stars { get; set; }
     /// <summary>
-    /// One entry per (this vessel's current SOI body, star) CME slot,
-    /// <c>Storm.StormKey(body, star)</c>-keyed. See
+    /// One CME slot per star. Which slot depends on where the vessel is:
+    /// around a body it is the shared (body, star) slot
+    /// (<c>Storm.StormKey(body, star)</c>-keyed); in solar orbit the vessel is
+    /// its own storm target and the slot is its private per-vessel one. Each
+    /// entry names its own target, see
+    /// <see cref="KerbalismStormEntry.TargetKind"/>. See
     /// <see cref="KerbalismStormEntry"/> for the fair-vs-cheating read boundary
     /// that governs which of its members are populated.
     /// </summary>
@@ -137,10 +141,38 @@ public class KerbalismStarInfo
     public double? Distance { get; set; }
 }
 
+/// <summary>What a CME is aimed at: a celestial body, or one vessel on its own.</summary>
+#if SITREP_CODEGEN
+[TsEnum]
+#endif
+[SitrepContract]
+public enum KerbalismStormTargetKind
+{
+    /// <summary>
+    /// The shared per-(body, star) slot, <c>DB.Storm(Storm.StormKey(body,
+    /// star))</c>. Every vessel in that body's SOI sees the SAME storm, so the
+    /// target is the body and the storm is correlated across its traffic.
+    /// </summary>
+    Body = 0,
+    /// <summary>
+    /// The vessel's own private slot,
+    /// <c>VesselData.GetStormDataForStar(star)</c> / <c>stormDataByStar</c>.
+    /// Kerbalism rolls this per-vessel for a craft with no body SOI (solar
+    /// orbit or a barycenter), against that vessel's own sun distance, so the
+    /// vessel IS the target and no other craft shares the storm.
+    /// </summary>
+    Vessel = 1,
+}
+
 /// <summary>
-/// One (this vessel's current SOI body, star) CME slot,
-/// <c>Storm.StormKey(body, star)</c>-keyed against Kerbalism's own
-/// <c>StormData</c>.
+/// One CME slot per star, read against Kerbalism's own <c>StormData</c>. Which
+/// slot is read depends on where the vessel is, and
+/// <see cref="TargetKind"/>/<see cref="TargetName"/> say which one this entry
+/// came from: the shared <c>Storm.StormKey(body, star)</c> slot for a vessel in
+/// a body's SOI, or the vessel's private <c>stormDataByStar</c> slot for a
+/// vessel in solar orbit (Kerbalism's <c>Storm.Update(Vessel)</c> overload
+/// rolls those per-vessel, so an interplanetary craft is its own target rather
+/// than borrowing whatever body it happens to be reckoned against).
 ///
 /// <para><b>FAIR-vs-CHEATING boundary.</b> <see cref="StormState"/> mirrors
 /// <c>StormData.storm_state</c> (0 none / 1 inbound-in-transit / 2 in
@@ -171,6 +203,23 @@ public class KerbalismStormEntry
     /// <summary>Source star body name. Join key onto <see cref="KerbalismStarInfo.Star"/>.</summary>
     [SitrepUnit(Units.Text)]
     public string? Star { get; set; }
+    /// <summary>
+    /// Whether this slot is the shared per-body one or the vessel's own private
+    /// one. Always populated (it describes which slot was READ, not the storm's
+    /// state, so it is outside the fair-vs-cheating boundary below and carries
+    /// even when <see cref="StormState"/> is 0).
+    /// </summary>
+    [SitrepUnit(Units.Enumeration)]
+    public KerbalismStormTargetKind? TargetKind { get; set; }
+    /// <summary>
+    /// The target's name: the body's <c>CelestialBody.bodyName</c> when
+    /// <see cref="TargetKind"/> is <see cref="KerbalismStormTargetKind.Body"/>,
+    /// the vessel's <c>Vessel.vesselName</c> when it is
+    /// <see cref="KerbalismStormTargetKind.Vessel"/>. Always populated,
+    /// alongside <see cref="TargetKind"/>.
+    /// </summary>
+    [SitrepUnit(Units.Text)]
+    public string? TargetName { get; set; }
     /// <summary><c>StormData.storm_state</c>: 0 none, 1 inbound (in transit), 2 in progress (arrived).</summary>
     [SitrepUnit(Units.Count)]
     public int? StormState { get; set; }

@@ -44,6 +44,10 @@ const MAGNITUDE_BUDGET: Record<string, number> = {
   "mod/GonogoKerbalismUplink/client/src/resourceProjection.ts": 5,
   "mod/GonogoKerbalismUplink/client/src/ScienceFileManager/index.tsx": 1,
   "mod/GonogoKerbcastUplink/client/src/CameraFeed/CameraFeed.tsx": 4,
+  // 1: the contribution entry carries a BARE bits/sec so CommSignal can compare
+  // legs to find the bottleneck. A comparison across a slot boundary cannot
+  // carry a Value, because the entry crosses the published contract as JSON.
+  "mod/GonogoRealAntennasUplink/client/src/CommSignal/hopRates.ts": 1,
   "mod/GonogoKosUplink/client/src/KosTerminal/index.tsx": 1,
   "mod/GonogoScansatUplink/client/src/Scanning/Minimap.tsx": 2,
   "mod/sitrep-sdk/src/command-delay.ts": 5,
@@ -52,6 +56,11 @@ const MAGNITUDE_BUDGET: Record<string, number> = {
   "packages/app/src/alarms/WarpObserver.ts": 1,
   "packages/app/src/maneuverTriggers/ManeuverTriggerHostService.ts": 1,
   "packages/app/src/telemetry/KspCalendarObserver.tsx": 4,
+  // 3, all three in `commsLegTimeSeconds`: a leg's share of the path delay is
+  // `hopMeters * (delaySeconds / totalMeters)`, a length over a length, and the
+  // algebra has no term for a ratio of two same-unit values. The three unwraps
+  // are deliberately together so the route's other call sites hand it Values.
+  "packages/components/src/CommSignal/commsRoute.ts": 3,
   "packages/components/src/CommSignal/index.tsx": 1,
   "packages/components/src/ContractManager/index.tsx": 2,
   "packages/components/src/CrewStatus/badge.ts": 2,

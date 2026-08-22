@@ -1,7 +1,9 @@
 using System;
 using System.Collections.Generic;
 using CommNet;
+using Gonogo.KSP.CommandCentres;
 using Sitrep.Contract;
+using Sitrep.Host.CommandCentres;
 using UnityEngine;
 
 namespace Gonogo.KSP
@@ -153,8 +155,6 @@ namespace Gonogo.KSP
                             ToIsHome = link.b.isHome,
                             Kind = link.b.isHome || link.a.isHome ? CommsHopKind.Home : CommsHopKind.Relay,
                             DistanceMeters = (link.a.precisePosition - link.b.precisePosition).magnitude,
-                            // CommNet has no per-hop RF rate, RA annotates this (§1).
-                            BandRateBitsPerSec = null,
                         });
                     }
                 }
@@ -324,6 +324,94 @@ namespace Gonogo.KSP
                 {
                     return candidate;
                 }
+            }
+            return null;
+        }
+
+        /// <summary>
+        /// Identifies which command centre the active vessel's <c>ControlPath</c>
+        /// currently terminates at. Stock
+        /// <c>CreateControlConnection</c> tries a route home first and only falls
+        /// back to the nearest crewed control source when no home is reachable
+        /// (agent-2's command-centre-sources research), so the terminal node of
+        /// an already-resolved <c>ControlPath</c> is exactly "the centre this
+        /// stats readout is relative to": no separate routing decision needed
+        /// here, only IDENTIFYING the node stock already picked. Matched by
+        /// reference against the SAME live centres <c>commandCentre.roster</c>
+        /// enumerates, so the two can never name the terminus differently. Not
+        /// part of <see cref="ICommsBackend"/>: a RealAntennas backend has no
+        /// obligation to implement this yet, so <see cref="CommsCoreUplink"/>
+        /// downcasts and a backend that cannot answer yields "unknown".
+        /// </summary>
+        public CommsCommandCentre CommandCentre(CommandCentreRegistry? registry)
+        {
+            try
+            {
+                if (registry == null)
+                {
+                    return new CommsCommandCentre { Meta = Meta() };
+                }
+
+                var conn = Connection();
+                var terminal = TerminalNode(conn?.ControlPath?.Last);
+                if (terminal == null)
+                {
+                    return new CommsCommandCentre { Meta = Meta() };
+                }
+
+                foreach (var centre in registry.EnumerateActive())
+                {
+                    if (centre is KspCommandCentre ksp && ReferenceEquals(ksp.Node, terminal))
+                    {
+                        return new CommsCommandCentre
+                        {
+                            Id = ksp.Id,
+                            DisplayName = ksp.DisplayName,
+                            Kind = ksp.Kind.ToString(),
+                            BodyIndex = ksp.BodyIndex,
+                            Meta = Meta(),
+                        };
+                    }
+                }
+
+                return new CommsCommandCentre { Meta = Meta() };
+            }
+            catch (Exception ex)
+            {
+                Debug.LogWarning("[Gonogo] CommNetBackend.CommandCentre read failed (treating as unknown): " + ex.Message);
+                return new CommsCommandCentre { Meta = Meta() };
+            }
+        }
+
+        /// <summary>
+        /// The remote end of the path's last hop: whichever side is flagged
+        /// <c>isHome</c> (a ground station reached via <c>FindHome</c>) or, when
+        /// neither end is home, <c>isControlSource</c> (a crewed vessel reached
+        /// via the no-home <c>FindClosestControlSource</c> fallback). Home is
+        /// checked first because stock always prefers it: a home-reachable path's
+        /// last hop can, in principle, also touch a control-source relay.
+        /// </summary>
+        private static CommNode? TerminalNode(CommLink? last)
+        {
+            if (last == null)
+            {
+                return null;
+            }
+            if (last.a != null && last.a.isHome)
+            {
+                return last.a;
+            }
+            if (last.b != null && last.b.isHome)
+            {
+                return last.b;
+            }
+            if (last.a != null && last.a.isControlSource)
+            {
+                return last.a;
+            }
+            if (last.b != null && last.b.isControlSource)
+            {
+                return last.b;
             }
             return null;
         }

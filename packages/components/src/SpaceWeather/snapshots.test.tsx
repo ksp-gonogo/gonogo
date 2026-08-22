@@ -18,7 +18,9 @@
 import { describe, expect, it } from "vitest";
 import { getWidget } from "../../scripts/widgets";
 import { snapshotWidgetMode } from "../test/widgetDomSnapshot";
+import binary from "./__fixtures__/binary.json";
 import innerBelt from "./__fixtures__/inner-belt.json";
+import interplanetary from "./__fixtures__/interplanetary.json";
 import nominal from "./__fixtures__/nominal.json";
 import stormInbound from "./__fixtures__/storm-inbound.json";
 import stormPeak from "./__fixtures__/storm-peak.json";
@@ -29,6 +31,10 @@ const FIXTURES = {
   "inner-belt": innerBelt,
   "storm-inbound": stormInbound,
   "storm-peak": stormPeak,
+  // The two scenarios the sun-vantage half exists for: more than one star, and
+  // a CME aimed at the craft itself rather than at a body under it.
+  binary,
+  interplanetary,
 };
 
 const config = getWidget("space-weather");

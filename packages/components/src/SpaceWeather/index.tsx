@@ -19,18 +19,44 @@ import { registerComponent, useTelemetry } from "@ksp-gonogo/core";
 // then: it is a shrink-only `domainDebt` entry on the frontend uplink-boundary
 // ratchet, so moving the widget deletes the entry and the ratchet forces that
 // deletion in the same commit.
-import type {} from "@ksp-gonogo/gonogo-kerbalism-uplink";
-import type { Reading } from "@ksp-gonogo/sitrep-client";
+//
+// The three sun-vantage types are named imports off the same package for the
+// same reason: they are Kerbalism's own wire shapes, and they left core with
+// the rest of that Domain.
+import type {
+  KerbalismStarInfo,
+  KerbalismStormEntry,
+  KerbalismStormTargetKind,
+} from "@ksp-gonogo/gonogo-kerbalism-uplink";
+import {
+  type Reading,
+  useStream,
+  useViewUt,
+  type VesselState,
+} from "@ksp-gonogo/sitrep-client";
 import { value } from "@ksp-gonogo/sitrep-sdk";
 import { Meter } from "@ksp-gonogo/ui";
 import {
   Badge,
+  Box,
+  Card,
+  Cluster,
+  Countdown,
   EmptyState,
+  MissionDate,
   Panel,
+  ProgressBar,
   ReadoutCaption,
+  type ReadoutTone,
   Section,
+  SectionTitle,
+  type Severity,
+  Stack,
+  Text,
+  Unit,
 } from "@ksp-gonogo/ui-kit";
 import type { CSSProperties } from "react";
+import styled, { css, keyframes } from "styled-components";
 import { magnitudeOf, magnitudeOr } from "../shared/magnitude";
 
 type SpaceWeatherConfig = Record<string, never>;
@@ -60,6 +86,12 @@ interface SpaceWeatherData {
   /** null when the vessel's altitude is not current: the rings then draw no "you are here" dot */
   altitudeKm: number | null;
   seed: number;
+  /** Every star this vessel sees, its own vantage on each. 1..N, uniform for a binary pack. */
+  stars: KerbalismStarInfo[];
+  /** Every CME slot the mod reports, INCLUDING state 0 (none): callers filter. */
+  storms: KerbalismStormEntry[];
+  /** `PreferencesRadiation.Instance.StormEjectionSpeed`, m/s. Null until first capture. */
+  stormEjectionSpeedMps: number | null;
 }
 
 /** Why the board is not being drawn, in the operator's terms. */
@@ -170,6 +202,9 @@ function useSpaceWeather(): SpaceWeatherRead {
       // (stormTimeSec removed: see the FUTURE note above.)
       shieldingCapacity: magnitudeOr(t.shieldingCapacity, 1),
       altitudeKm: altitudeM === null ? null : altitudeM / 1000,
+      stars: t.stars ?? [],
+      storms: t.storms ?? [],
+      stormEjectionSpeedMps: magnitudeOf(t.stormEjectionSpeed),
       // Deterministic noise seed derived from the weather state itself (stable
       // across renders for snapshots; no Math.random, no clock/provider needed).
       seed:
@@ -233,6 +268,420 @@ function statusFor(d: SpaceWeatherData): { label: string; tone: Tone } {
     return { label: "Exposed", tone: "warn" };
   if (!d.magnetosphere) return { label: "Unshielded", tone: "info" };
   return { label: "Sheltered", tone: "go" };
+}
+
+// ---------------------------------------------------------------------------
+// Sun vantage
+//
+// What the SUN is doing, as distinct from what the craft is sitting in. A
+// vessel cannot report its own blackout, because a blackout kills the downlink
+// that would carry the report, so the ground has to predict from the star
+// instead. Every star this vessel sees comes off `stars`; CME tracking comes
+// off `storms`, star-agnostic, so a binary or trinary pack reads the same as a
+// single sun.
+//
+// The CME timeline reads `stormState` ONLY, never `storm_generation` (the RNG
+// schedule for the next roll, which is readable at all times whether or not a
+// storm exists). Departure, transit progress and impact ETA all derive from
+// `stormTime` / `dist` / `stormEjectionSpeed`, mirroring Kerbalism's own
+// `Time_to_impact(dist) = dist / StormEjectionSpeed` exactly.
+//
+// Activity is a per-(body, star) fact, so each star gets its OWN ring and its
+// own spikes rather than one diagram fusing every star's storms together. A
+// single CME tracker below still aggregates every active storm across all
+// stars, which reads fine as one list.
+// ---------------------------------------------------------------------------
+
+interface StormDerived {
+  key: string;
+  star: string;
+  state: number;
+  /** UT the CME departed the star; null when dist or the ejection speed is uncaptured. */
+  departureUt: number | null;
+  /** 0..100, transit progress toward `dist`. Only meaningful when departureUt is set. */
+  progressPct: number;
+  /** stormTime - now, seconds. Negative once the CME has arrived. */
+  impactEtaSec: number | null;
+  /** What the CME is aimed at; null on a stream whose mod predates named targets. */
+  targetKind: KerbalismStormTargetKind | null;
+  /** The target's name (body or vessel, per `targetKind`); null on an older stream. */
+  targetName: string | null;
+}
+
+function deriveStorm(
+  entry: KerbalismStormEntry,
+  index: number,
+  nowUt: number,
+  stormEjectionSpeedMps: number | null,
+): StormDerived {
+  const state = magnitudeOf(entry.stormState) ?? 0;
+  const stormTime = magnitudeOf(entry.stormTime);
+  const dist = magnitudeOf(entry.dist);
+  const impactEtaSec = stormTime !== null ? stormTime - nowUt : null;
+
+  let departureUt: number | null = null;
+  let progressPct = 0;
+  if (
+    stormTime !== null &&
+    dist !== null &&
+    stormEjectionSpeedMps !== null &&
+    stormEjectionSpeedMps > 0
+  ) {
+    const transitSec = dist / stormEjectionSpeedMps;
+    departureUt = stormTime - transitSec;
+    progressPct =
+      transitSec > 0
+        ? Math.max(0, Math.min(100, ((nowUt - departureUt) / transitSec) * 100))
+        : 100;
+  }
+
+  return {
+    key: `${entry.star ?? "star"}-${index}`,
+    star: entry.star ?? "Unknown star",
+    state,
+    departureUt,
+    progressPct,
+    impactEtaSec,
+    targetKind: entry.targetKind ?? null,
+    targetName: entry.targetName ?? null,
+  };
+}
+
+function stormSeverity(state: number): Severity {
+  return state >= 2 ? "critical" : "warning";
+}
+
+function stormLabel(state: number): string {
+  return state >= 2 ? "Impact" : "Inbound";
+}
+
+/**
+ * `Severity` to `Card`'s `tone`. Only the three severities this widget ever
+ * produces (nominal / warning / critical) carry meaning; the rest fold to
+ * `default` defensively, since `Severity` is the wider shared vocabulary.
+ */
+const SEVERITY_CARD_TONE: Record<Severity, ReadoutTone> = {
+  nominal: "go",
+  info: "default",
+  caution: "warning",
+  warning: "warning",
+  critical: "alert",
+  offline: "default",
+};
+
+const SEVERITY_HEX: Record<Severity, string> = {
+  nominal: "var(--color-status-go-bg)",
+  info: "var(--color-status-info-bg)",
+  caution: "var(--color-status-warning-bg)",
+  warning: "var(--color-status-warning-bg)",
+  critical: "var(--color-status-nogo-bg)",
+  offline: "var(--color-text-muted)",
+};
+
+/**
+ * Warm star colour, never the app's brand green: a star's own light is a colour
+ * fact rather than a status accent, so it must never read as "GO".
+ */
+const STAR_FILL = "var(--color-tag-yellow-fg)";
+
+/**
+ * `KerbalismStormTargetKind.Vessel`, as its ordinal.
+ *
+ * The ENUM'S VALUE lives in the Kerbalism Uplink's barrel, and importing a
+ * value from there runs that client's `defineUplinkClient` registration at
+ * module load, which throws in any tree with no host installed and is not a
+ * component library's business to trigger. The type import at the top of this
+ * file is erased and costs nothing; this is its runtime half.
+ */
+const STORM_TARGET_VESSEL: KerbalismStormTargetKind = 1;
+
+/** Seeded per STAR, so a ring's shape is stable whichever other stars render beside it. */
+function seedForStar(name: string): number {
+  let s = name.length * 101 + 1;
+  for (let i = 0; i < name.length; i++) s = (s * 31 + name.charCodeAt(i)) | 0;
+  return s || 1;
+}
+
+/** Point at radius `r` (SVG units) and bearing `deg` (0 = up, clockwise), centred on (50, 50). */
+function pointAt(r: number, deg: number): { x: number; y: number } {
+  const rad = (deg * Math.PI) / 180;
+  return { x: 50 + r * Math.sin(rad), y: 50 - r * Math.cos(rad) };
+}
+
+interface StarActivity {
+  level: number;
+  severity: Severity;
+  /** This star's own active (nonzero-state) storms only. */
+  storms: StormDerived[];
+}
+
+/**
+ * A star's activity level in 0..1, honestly derived from whether and how
+ * imminent an in-transit CME is for THIS star. 0 is no CME at all, a tight and
+ * calm ring. It ramps toward 1 as an inbound CME's transit progress nears
+ * impact, the same figure the tracker cards show, and an arrived CME reads as
+ * the maximum. The level drives the ring's colour, weight, turbulence AND its
+ * distance from the star, so quiet and active are never confusable.
+ */
+function starActivity(
+  allStorms: StormDerived[],
+  starName: string,
+): StarActivity {
+  const mine = allStorms.filter((s) => s.star === starName && s.state !== 0);
+  if (mine.length === 0) return { level: 0, severity: "nominal", storms: [] };
+  const severity: Severity = mine.some((s) => s.state >= 2)
+    ? "critical"
+    : "warning";
+  const level = Math.max(
+    ...mine.map((s) => {
+      if (s.state >= 2) return 1;
+      // Active, but transit has not been captured: half, so it never reads calm.
+      if (s.departureUt === null) return 0.5;
+      return Math.max(0.15, Math.min(1, s.progressPct / 100));
+    }),
+  );
+  return { level, severity, storms: mine };
+}
+
+function ringGeometry(level: number) {
+  return {
+    baseR: 20 + level * 18,
+    jitterAmp: 1.2 + level * 7,
+    strokeWidth: 1 + level * 1.6,
+    opacity: 0.4 + level * 0.5,
+  };
+}
+
+function ringPathD(seed: number, level: number): string {
+  const rng = mulberry32(seed);
+  const { baseR, jitterAmp } = ringGeometry(level);
+  const ringPoints = 28;
+  let d = "";
+  for (let i = 0; i <= ringPoints; i++) {
+    const deg = (360 * i) / ringPoints;
+    const jitter = (rng() - 0.5) * jitterAmp;
+    const { x, y } = pointAt(baseR + jitter, deg);
+    d += `${i === 0 ? "M" : "L"} ${x.toFixed(2)} ${y.toFixed(2)} `;
+  }
+  return `${d}Z`;
+}
+
+function ringColor(level: number, severity: Severity): string {
+  return level <= 0 ? "var(--color-text-muted)" : SEVERITY_HEX[severity];
+}
+
+const cmeRingPulse = keyframes`
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.55; }
+`;
+
+/**
+ * The only animated cue in this widget, and only ever on an active ring. The
+ * `prefers-reduced-motion` guard lives INSIDE the same rule as the animation:
+ * wrapping the keyframes alone would leave it running for a reduced-motion
+ * reader.
+ */
+const RingPath = styled.path<{ $active: boolean }>`
+  ${({ $active }) =>
+    $active &&
+    css`
+      @media (prefers-reduced-motion: no-preference) {
+        animation: ${cmeRingPulse} 2.4s ease-in-out infinite;
+      }
+    `}
+`;
+
+/**
+ * One star: the star itself, its own activity ring, and a directional spike per
+ * active storm.
+ *
+ * Spike DIRECTION is explicitly representational. Kerbalism models CME emission
+ * as radial from the source star and carries no bearing data at all, so spikes
+ * fan out at fixed, evenly spaced angles rather than pointing at real geometry.
+ * The existence of a spike is the honest signal; its angle is not.
+ */
+function StarDiagram({
+  starName,
+  activity,
+  compact,
+}: {
+  starName: string;
+  activity: StarActivity;
+  compact: boolean;
+}) {
+  const seed = seedForStar(starName);
+  const d = ringPathD(seed, activity.level);
+  const { strokeWidth, opacity } = ringGeometry(activity.level);
+  const color = ringColor(activity.level, activity.severity);
+  const label =
+    activity.level <= 0
+      ? `Solar activity for ${starName}: baseline`
+      : `Solar activity for ${starName}: ${
+          activity.severity === "critical" ? "CME impacting" : "CME inbound"
+        }`;
+
+  return (
+    <Box
+      style={{
+        flex: "0 0 auto",
+        height: compact ? 56 : 76,
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+      }}
+    >
+      <svg
+        viewBox="0 0 100 100"
+        width="100%"
+        height="100%"
+        role="img"
+        aria-label={label}
+      >
+        <RingPath
+          d={d}
+          fill="none"
+          stroke={color}
+          strokeWidth={strokeWidth}
+          opacity={opacity}
+          $active={activity.level > 0}
+        />
+        {activity.storms.map((storm, i) => {
+          const count = activity.storms.length;
+          const centreDeg = (360 * i) / count;
+          const tip = pointAt(46, centreDeg);
+          const left = pointAt(24, centreDeg - 3);
+          const right = pointAt(24, centreDeg + 3);
+          return (
+            <polygon
+              key={storm.key}
+              points={`${left.x},${left.y} ${tip.x},${tip.y} ${right.x},${right.y}`}
+              fill={SEVERITY_HEX[stormSeverity(storm.state)]}
+            />
+          );
+        })}
+        <circle cx={50} cy={50} r={14} fill={STAR_FILL} />
+      </svg>
+    </Box>
+  );
+}
+
+/**
+ * Transit-progress colour. `ProgressBar` defaults to the brand green used
+ * everywhere else to mean "on track", and a CME closing in is the opposite of
+ * that: further along the bar means CLOSER to impact, so a green fill reads as
+ * reassuring for what is a threat. Colour keys on imminence instead, cool while
+ * the CME is far out, ramping through amber into red as it nears 100, and
+ * pinned to red the instant it has arrived whatever the percentage says.
+ */
+function transitThreatColor(storm: StormDerived): string {
+  if (storm.state >= 2) return "var(--color-status-nogo-bg)";
+  if (storm.progressPct >= 66) return "var(--color-status-nogo-bg)";
+  if (storm.progressPct >= 33) return "var(--color-status-warning-bg)";
+  return "var(--color-status-info-fg)";
+}
+
+/**
+ * One tracked CME.
+ *
+ * **Where the target name comes from.** Each storm entry names its own target
+ * (`targetKind` plus `targetName`), because Kerbalism has two storm paths and
+ * they aim at different things. Around a body the slot is the shared
+ * `Storm.StormKey(body, star)` one and every vessel in that SOI sees the same
+ * storm, so the body is the target. With no body SOI, `Storm.Update(Vessel)`
+ * rolls per-vessel against that vessel's own sun distance, so the VESSEL is the
+ * target and no other craft shares the storm: hence the "(current vessel)"
+ * qualifier, which says the CME is aimed at this craft in deep space rather
+ * than at a body it happens to be near.
+ *
+ * `vessel.state.parentBodyName` remains a fallback only, for a stream whose mod
+ * predates the named-target capture. A stream carrying neither degrades to
+ * "current body".
+ */
+function StormCard({
+  storm,
+  compact,
+  fallbackBodyName,
+}: {
+  storm: StormDerived;
+  compact: boolean;
+  fallbackBodyName: string | undefined;
+}) {
+  const severity = stormSeverity(storm.state);
+  const target = storm.targetName ?? fallbackBodyName ?? "current body";
+  const verb = storm.state >= 2 ? "Impacting" : "Inbound to";
+  // Only the per-vessel case gets a qualifier: a body target reads plainly.
+  const qualifier =
+    storm.targetKind === STORM_TARGET_VESSEL ? " (current vessel)" : "";
+
+  return (
+    <Card tone={SEVERITY_CARD_TONE[severity]}>
+      <Stack gap="xs">
+        <Cluster justify="between" align="baseline">
+          <Text tone="default" weight="semibold" size="sm">
+            {storm.star}
+          </Text>
+          <Badge severity={severity} size="sm">
+            {stormLabel(storm.state)}
+          </Badge>
+        </Cluster>
+
+        <Text tone="muted" size="xs">
+          {`${verb} ${target}${qualifier}`}
+        </Text>
+
+        {storm.departureUt !== null ? (
+          <>
+            {!compact && (
+              <Cluster justify="between">
+                <Text tone="muted" size="xs">
+                  Departed
+                </Text>
+                <Text tone="default" size="xs">
+                  <MissionDate value={storm.departureUt} />
+                </Text>
+              </Cluster>
+            )}
+            <ProgressBar
+              value={storm.progressPct}
+              ariaLabel={`Transit progress from ${storm.star}`}
+              fillColor={transitThreatColor(storm)}
+            />
+          </>
+        ) : (
+          <Text tone="muted" size="xs">
+            Transit data not yet captured.
+          </Text>
+        )}
+
+        <Cluster justify="between">
+          <Text tone="muted" size="xs">
+            Impact
+          </Text>
+          <Text
+            tone={storm.state >= 2 ? "nogo" : "warn"}
+            size="xs"
+            weight="semibold"
+            // `warn` alone renders --color-status-warning-fg, a near-black
+            // meant for text ON the warning "-bg" orange, e.g. inside a Badge;
+            // standalone on this card's raised dark surface that is
+            // functionally invisible. The `-fg-muted` override is the fix.
+            // `nogo`'s own `-fg` is a light pink and needs none.
+            style={
+              storm.state < 2
+                ? { color: "var(--color-status-warning-fg-muted)" }
+                : undefined
+            }
+          >
+            {storm.impactEtaSec !== null ? (
+              <Countdown value={storm.impactEtaSec} clock />
+            ) : (
+              "unknown"
+            )}
+          </Text>
+        </Cluster>
+      </Stack>
+    </Card>
+  );
 }
 
 // ---------------------------------------------------------------------------
@@ -467,6 +916,14 @@ function SpaceWeatherComponent({
   h,
 }: Readonly<ComponentProps<SpaceWeatherConfig>>) {
   const read = useSpaceWeather();
+  // Both read unconditionally, ahead of the absence branch below, so the hook
+  // order is the same on every render.
+  const nowUt = magnitudeOr(useViewUt(), 0);
+  // Only the FALLBACK target name, for a stream whose mod predates the
+  // named-target capture; see `StormCard`.
+  const fallbackBodyName =
+    useStream<VesselState>("vessel.state")?.parentBodyName ?? undefined;
+
   if (!read.readable) {
     // No verdict badge in the header either: "Sheltered" is a claim about a
     // habitat, and the whole point of getting here is that there is nothing to
@@ -496,6 +953,11 @@ function SpaceWeatherComponent({
   const shieldFrac =
     d.shieldingCapacity > 0 ? d.shieldingValue / d.shieldingCapacity : 0;
 
+  const allStorms = d.storms.map((s, i) =>
+    deriveStorm(s, i, nowUt, d.stormEjectionSpeedMps),
+  );
+  const activeStorms = allStorms.filter((s) => s.state !== 0);
+
   return (
     <Panel
       panelTitle="Space Weather"
@@ -515,6 +977,70 @@ function SpaceWeatherComponent({
         </Badge>
       }
     >
+      {/* Sun vantage first: the widget's subject is what the STAR is doing,
+          and the vessel-local consequence below is downstream of it. */}
+      <Section>
+        <SectionTitle>Stars</SectionTitle>
+        {d.stars.length === 0 ? (
+          <EmptyState>No stars detected yet.</EmptyState>
+        ) : (
+          // `justify="start"`, not Cluster's default `between`: with one or two
+          // stars, space-between shoves the cards to opposite edges with a
+          // canyon between them, which reads as broken rather than as "not much
+          // going on". Packing left with a fixed card width is what scales from
+          // a lone star to a five-star system, wrapping instead of stretching.
+          <Cluster gap="sm" wrap justify="start">
+            {d.stars.map((star) => {
+              const name = star.star ?? "Unknown star";
+              const activity = starActivity(allStorms, name);
+              return (
+                <Card
+                  key={name}
+                  tone={SEVERITY_CARD_TONE[activity.severity]}
+                  // Fixed width, not a minWidth: every card is the same size
+                  // whatever the star's name length, so a row packs and wraps
+                  // predictably. flexShrink 0 keeps that width honest under
+                  // `wrap`, so the browser wraps rather than squeezing.
+                  style={{ width: 128, flexShrink: 0 }}
+                >
+                  <Stack gap="xs">
+                    <StarDiagram
+                      starName={name}
+                      activity={activity}
+                      compact={compact}
+                    />
+                    <Text tone="default" weight="semibold" size="sm">
+                      {name}
+                    </Text>
+                    <Text tone="muted" size="xs">
+                      <Unit value={star.distance} />
+                    </Text>
+                  </Stack>
+                </Card>
+              );
+            })}
+          </Cluster>
+        )}
+      </Section>
+
+      <Section>
+        <SectionTitle>CME tracker</SectionTitle>
+        {activeStorms.length === 0 ? (
+          <EmptyState>No inbound CMEs detected.</EmptyState>
+        ) : (
+          <Stack gap="sm">
+            {activeStorms.map((storm) => (
+              <StormCard
+                key={storm.key}
+                storm={storm}
+                compact={compact}
+                fallbackBodyName={fallbackBodyName}
+              />
+            ))}
+          </Stack>
+        )}
+      </Section>
+
       <StormTimeline state={d.stormState} />
 
       <div style={midRowStyle(compact)}>
@@ -767,7 +1293,7 @@ registerComponent<SpaceWeatherConfig>({
   id: "space-weather",
   name: "Space Weather",
   description:
-    "Radiation, storm forecast, and magnetic-belt exposure for the active vessel: CME timeline, habitat dose rate with a solar-wind flux trace, belt/magnetopause position rings, and shielding.",
+    "Sun vantage plus vessel exposure: a per-star activity diagram for every star this vessel sees and a CME tracker (departure, transit progress, impact ETA, and the named target, the body below or the vessel itself out in solar orbit), then the craft's own habitat dose rate, belt/magnetopause position rings and shielding.",
   tags: ["telemetry", "kerbalism"],
   defaultSize: { w: 8, h: 11 },
   minSize: { w: 3, h: 4 },

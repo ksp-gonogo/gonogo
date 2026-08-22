@@ -130,6 +130,9 @@ public static class RtConfig
                 // geometry, per body (see CommsOcclusion.cs)
                 typeof(CommsOcclusion),
                 typeof(CommsOcclusionBody),
+                // comms.commandCentre: which centre the active vessel's own
+                // ControlPath currently terminates at (see CommsCommandCentre)
+                typeof(CommsCommandCentre),
                 // The three provider-private comms channels (comms.linkQuality /
                 // comms.dataRate / comms.linkMargin) used to be listed right here.
                 // They moved OUT of core into GonogoRealAntennasUplink.Contract:

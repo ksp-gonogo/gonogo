@@ -1,0 +1,7 @@
+[
+  {
+    "name": "path-with-realantennas-hop",
+    "topic": "comms.path",
+    "json": "{\"type\":\"stream-data\",\"topic\":\"comms.path\",\"payload\":{\"hops\":[{\"from\":\"vessel\",\"to\":\"home\",\"fromIsHome\":false,\"toIsHome\":true,\"kind\":0,\"distanceMeters\":1234.5,\"extensions\":{\"realantennas\":{\"band\":\"X\",\"techLevel\":7,\"modulationBits\":4,\"encoder\":\"Reed-Solomon 255/223\",\"codingRate\":0.8745,\"requiredEbN0\":6.1,\"beamwidth\":12.5,\"powerDrawEc\":3.25,\"reverseBitsPerSec\":9600}}}],\"meta\":{\"source\":\"vessel:1\",\"quality\":1}},\"meta\":{\"source\":\"vessel-1\",\"validAt\":120.5,\"seq\":7,\"deliveredAt\":122.75,\"vantage\":\"KSC\",\"quality\":0,\"active\":true,\"staleness\":0,\"timelineEpoch\":0}}"
+  }
+]

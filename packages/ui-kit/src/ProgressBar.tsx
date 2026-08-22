@@ -7,6 +7,15 @@ export interface ProgressBarProps
   value: number;
   /** Accessible label for screen readers (e.g. "Biome coverage, Kerbin"). */
   ariaLabel?: string;
+  /**
+   * CSS colour for the fill, overriding the default `--color-accent-fg`.
+   * For a bar whose progress is itself a threat (a CME closing in, not a
+   * coverage percentage getting better), the default green reads as
+   * reassuring; pass a status token here instead (e.g.
+   * `var(--color-status-nogo-bg)`) so "further along" doesn't visually mean
+   * "more done".
+   */
+  fillColor?: string;
 }
 
 /**
@@ -18,6 +27,7 @@ export interface ProgressBarProps
 export function ProgressBar({
   value,
   ariaLabel,
+  fillColor,
   ...rest
 }: Readonly<ProgressBarProps>) {
   const clamped = Number.isFinite(value)
@@ -32,7 +42,7 @@ export function ProgressBar({
       aria-valuemax={100}
       {...rest}
     >
-      <ProgressBar__Fill $percent={clamped} />
+      <ProgressBar__Fill $percent={clamped} $fillColor={fillColor} />
     </ProgressBar__Track>
   );
 }
@@ -46,10 +56,10 @@ const ProgressBar__Track = styled.div`
   overflow: hidden;
 `;
 
-const ProgressBar__Fill = styled.div<{ $percent: number }>`
+const ProgressBar__Fill = styled.div<{ $percent: number; $fillColor?: string }>`
   height: 100%;
   width: ${({ $percent }) => `${$percent}%`};
-  background: var(--color-accent-fg);
+  background: ${({ $fillColor }) => $fillColor ?? "var(--color-accent-fg)"};
   /* Off the motion scale on purpose: a determinate fill has to advance at a
      constant rate, so both the 250ms and the linear timing carry meaning
      rather than taste. The motion tokens cover UI transitions only. */

@@ -1,4 +1,5 @@
 import { clearRegistry, DashboardItemContext } from "@ksp-gonogo/core";
+import { value } from "@ksp-gonogo/sitrep-sdk";
 import { act, render, screen, waitFor } from "@ksp-gonogo/test-utils";
 import {
   expectNoA11yViolations,
@@ -151,6 +152,171 @@ describe("SpaceWeatherComponent", () => {
     const status = screen.getByRole("status");
     expect(status).toHaveTextContent("Storm in progress");
     expect(status).toHaveAttribute("aria-live", "polite");
+  });
+
+  // ── Sun vantage ────────────────────────────────────────────────────────────
+  //
+  // Asserted BY VALUE throughout. A star card with no star and a tracker with
+  // no CME render the same chrome as ones that work, so "the section is there"
+  // proves nothing: these name the distance, the target and the ETA.
+
+  /** The sun-vantage half of the payload, emitted beside a nominal vessel read. */
+  function emitSun(sun: {
+    stars: unknown[];
+    storms: unknown[];
+    stormEjectionSpeed?: number;
+  }) {
+    act(() => {
+      stream.emit("kerbalism.spaceweather", {
+        radiationRadPerSecond: NOMINAL.radiationRadPerHour / 3600,
+        habitatRadiationRadPerSecond: NOMINAL.radiationRadPerHour / 3600,
+        magnetosphere: true,
+        innerBelt: false,
+        outerBelt: false,
+        stormIncoming: false,
+        stormInProgress: false,
+        blackout: false,
+        inSunlight: true,
+        shieldingAmount: NOMINAL.shieldingValue,
+        shieldingCapacity: NOMINAL.shieldingCapacity,
+        stormEjectionSpeed: 98_931_511.14,
+        ...sun,
+      });
+    });
+  }
+
+  it("draws a card per star, naming each one and its distance", async () => {
+    renderWidget();
+    emitSun({
+      stars: [
+        { star: "Kerbol", distance: value("m", 13_400_000_000) },
+        { star: "Valentine", distance: value("m", 41_200_000_000) },
+      ],
+      storms: [],
+    });
+
+    await waitFor(() => expect(screen.getByText("Kerbol")).toBeInTheDocument());
+    expect(screen.getByText("Valentine")).toBeInTheDocument();
+    const text = visibleText();
+    expect(text).toContain("13.4 Gm");
+    expect(text).toContain("41.2 Gm");
+    // A ring per star, each labelled with its own baseline verdict, is what
+    // makes "per-star" true rather than one diagram fused across the pack.
+    expect(
+      screen.getByLabelText("Solar activity for Kerbol: baseline"),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByLabelText("Solar activity for Valentine: baseline"),
+    ).toBeInTheDocument();
+  });
+
+  it("names the body a CME is aimed at, with its transit and impact ETA", async () => {
+    renderWidget();
+    emitSun({
+      stars: [{ star: "Kerbol", distance: value("m", 13_400_000_000) }],
+      storms: [
+        {
+          star: "Kerbol",
+          stormState: 1,
+          // 80s out at the pinned UT of 149,489.
+          stormTime: 149_569,
+          dist: 13_400_000_000,
+          targetKind: 0,
+          targetName: "Kerbin",
+        },
+      ],
+    });
+
+    await waitFor(() =>
+      expect(screen.getByText("Inbound to Kerbin")).toBeInTheDocument(),
+    );
+    // No "(current vessel)" qualifier on a BODY target: that phrase is what
+    // distinguishes the per-vessel slot, so it must not appear here.
+    expect(visibleText()).not.toContain("current vessel");
+    expect(screen.getByText("Inbound")).toBeInTheDocument();
+    // The ETA is the pinned 80 seconds, not a placeholder.
+    expect(visibleText()).toContain("1min 20s");
+    // The star's own ring switches off baseline once it has a CME in transit.
+    expect(
+      screen.getByLabelText("Solar activity for Kerbol: CME inbound"),
+    ).toBeInTheDocument();
+    // Transit progress is a real percentage off dist / ejection speed, and it
+    // is the bar's own accessible value rather than decoration.
+    const bar = screen.getByRole("progressbar", {
+      name: "Transit progress from Kerbol",
+    });
+    expect(Number(bar.getAttribute("aria-valuenow"))).toBeGreaterThan(0);
+  });
+
+  it("names the VESSEL as the target for a craft in solar orbit", async () => {
+    renderWidget();
+    emitSun({
+      stars: [{ star: "Kerbol", distance: value("m", 17_500_000_000) }],
+      storms: [
+        {
+          star: "Kerbol",
+          stormState: 1,
+          stormTime: 149_579,
+          dist: 17_500_000_000,
+          // The per-vessel slot: Kerbalism rolled this against the craft's own
+          // sun distance, so no other vessel shares it.
+          targetKind: 1,
+          targetName: "Duna Surveyor 1",
+        },
+      ],
+    });
+
+    await waitFor(() =>
+      expect(
+        screen.getByText("Inbound to Duna Surveyor 1 (current vessel)"),
+      ).toBeInTheDocument(),
+    );
+  });
+
+  it("reads an arrived CME as an impact, not as another inbound one", async () => {
+    renderWidget();
+    emitSun({
+      stars: [{ star: "Kerbol", distance: value("m", 13_400_000_000) }],
+      storms: [
+        {
+          star: "Kerbol",
+          stormState: 2,
+          stormTime: 149_409,
+          dist: 13_400_000_000,
+          targetKind: 0,
+          targetName: "Kerbin",
+        },
+      ],
+    });
+
+    await waitFor(() =>
+      expect(screen.getByText("Impacting Kerbin")).toBeInTheDocument(),
+    );
+    // "Impact" is BOTH the badge label and the ETA row label, so the badge
+    // is queried by role rather than by a text match that finds two nodes.
+    expect(screen.getByRole("status")).toBeInTheDocument();
+    expect(screen.getAllByText("Impact")).toHaveLength(2);
+    expect(
+      screen.getByLabelText("Solar activity for Kerbol: CME impacting"),
+    ).toBeInTheDocument();
+  });
+
+  it("keeps the vessel's own exposure readout alongside the sun vantage", async () => {
+    // The recovered branch DELETED this half, on the grounds that it had moved
+    // to ShipSystems and CrewStatus. It had not. This pins both halves on one
+    // render so a future move has to be deliberate.
+    renderWidget();
+    emitSun({
+      stars: [{ star: "Kerbol", distance: value("m", 13_400_000_000) }],
+      storms: [],
+    });
+
+    await waitFor(() => expect(screen.getByText("Kerbol")).toBeInTheDocument());
+    const text = visibleText();
+    expect(text).toContain("0.014 rad/h");
+    expect(text).toContain("habitat dose rate");
+    expect(text).toContain("Shielding");
+    expect(text).toContain("Magnetosphere");
   });
 
   it("has no axe violations", async () => {

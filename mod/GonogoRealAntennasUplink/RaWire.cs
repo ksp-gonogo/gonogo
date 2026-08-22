@@ -57,6 +57,29 @@ namespace Gonogo.RealAntennasUplink
             };
 
         /// <summary>
+        /// The <c>realantennas.hopRates</c> channel value: a bare ARRAY, one
+        /// flattened entry per hop that has a readable forward rate. Keyed by the
+        /// same node ids <c>comms.path</c> carries, so the client joins each rate
+        /// onto the existing route without this Uplink republishing the topology.
+        /// Empty list is a legitimate value (connected but no hop rate readable),
+        /// not typed absence.
+        /// </summary>
+        public static List<Dictionary<string, object?>> HopRates(IReadOnlyList<RealAntennasHopRate> hops)
+        {
+            var list = new List<Dictionary<string, object?>>(hops.Count);
+            foreach (var hop in hops)
+            {
+                list.Add(new Dictionary<string, object?>
+                {
+                    ["fromNodeId"] = hop.FromNodeId,
+                    ["toNodeId"] = hop.ToNodeId,
+                    ["bitsPerSec"] = hop.BitsPerSec,
+                });
+            }
+            return list;
+        }
+
+        /// <summary>
         /// <c>{ source, quality }</c>, quality as its integer ordinal. A null
         /// meta collapses to the same defaults core's own writer used (empty
         /// source, <c>Quality.OnRails</c>), so a payload built without one keeps

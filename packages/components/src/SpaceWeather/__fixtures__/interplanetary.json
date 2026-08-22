@@ -1,0 +1,76 @@
+{
+  "_meta": {
+    "scenario": "interplanetary",
+    "notes": "A craft in solar orbit with no body SOI, which is the case the named target exists for. Kerbalism rolls this storm PER VESSEL against the craft's own sun distance, so the vessel is the target and the card reads 'Inbound to Duna Surveyor 1 (current vessel)'. Before the target fields the widget named the star it happened to be orbiting, which is not a target at all."
+  },
+  "sw.radiationRadPerHour": 0.42,
+  "sw.stormState": 1,
+  "sw.innerBelt": 0,
+  "sw.outerBelt": 0,
+  "sw.magnetosphere": 0,
+  "sw.blackout": 0,
+  "sw.shieldingValue": 1.9,
+  "sw.shieldingCapacity": 3.308,
+  "sw.ut": 149489,
+  "t.universalTime": 149489,
+  "sw.stars": [
+    {
+      "star": "Kerbol",
+      "direction": { "x": 0.42, "y": -0.11, "z": 0.9 },
+      "distance": { "magnitude": 17500000000, "unit": "m" }
+    }
+  ],
+  "sw.storms": [
+    {
+      "star": "Kerbol",
+      "stormState": 1,
+      "stormTime": 149579,
+      "stormDuration": 386,
+      "dist": 17500000000,
+      "targetKind": 1,
+      "targetName": "Duna Surveyor 1"
+    }
+  ],
+  "sw.stormEjectionSpeed": 98931511.14,
+  "_stream": {
+    "carriedChannels": ["kerbalism.spaceweather"],
+    "pinnedUt": 149489,
+    "emits": [
+      {
+        "channel": "kerbalism.spaceweather",
+        "value": {
+          "radiationRadPerSecond": 0.00011666666666666667,
+          "habitatRadiationRadPerSecond": 0.00011666666666666667,
+          "magnetosphere": false,
+          "innerBelt": false,
+          "outerBelt": false,
+          "stormIncoming": true,
+          "stormInProgress": false,
+          "blackout": false,
+          "inSunlight": true,
+          "shieldingAmount": 1.9,
+          "shieldingCapacity": 3.308,
+          "stars": [
+            {
+              "star": "Kerbol",
+              "direction": { "x": 0.42, "y": -0.11, "z": 0.9 },
+              "distance": { "magnitude": 17500000000, "unit": "m" }
+            }
+          ],
+          "storms": [
+            {
+              "star": "Kerbol",
+              "stormState": 1,
+              "stormTime": 149579,
+              "stormDuration": 386,
+              "dist": 17500000000,
+              "targetKind": 1,
+              "targetName": "Duna Surveyor 1"
+            }
+          ],
+          "stormEjectionSpeed": 98931511.14
+        }
+      }
+    ]
+  }
+}

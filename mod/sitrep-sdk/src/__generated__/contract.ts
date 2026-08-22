@@ -231,7 +231,7 @@ export interface CommsHop
 	toIsHome: boolean;
 	kind: CommsHopKind;
 	distanceMeters?: Value<"m">;
-	bandRateBitsPerSec?: Value<"bit/s">;
+	extensions?: ProviderExtensions;
 }
 export interface CommsPath
 {
@@ -269,6 +269,14 @@ export interface CommsDelay
 export interface CommsLink
 {
 	connected: boolean;
+	meta: PayloadMeta;
+}
+export interface CommsCommandCentre
+{
+	id?: string;
+	displayName?: string;
+	kind?: string;
+	bodyIndex?: number;
 	meta: PayloadMeta;
 }
 export interface CommsOcclusionBody

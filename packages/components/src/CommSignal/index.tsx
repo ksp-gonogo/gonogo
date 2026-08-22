@@ -2,6 +2,7 @@ import type { ComponentProps } from "@ksp-gonogo/core";
 import {
   getWidgetShape,
   registerComponent,
+  useContributions,
   useTelemetry,
 } from "@ksp-gonogo/core";
 import {
@@ -9,7 +10,7 @@ import {
   useStream,
   type VesselState,
 } from "@ksp-gonogo/sitrep-client";
-import { value } from "@ksp-gonogo/sitrep-sdk";
+import { type CommsHop, type Value, value } from "@ksp-gonogo/sitrep-sdk";
 import {
   Cluster,
   Countdown,
@@ -22,7 +23,15 @@ import {
   Unit,
   VisuallyHidden,
 } from "@ksp-gonogo/ui-kit";
-import type { ReactNode } from "react";
+import { Fragment, type ReactNode, useMemo } from "react";
+import {
+  buildCommsRouteNodes,
+  type CommsRouteNode,
+  commsBottleneckHopId,
+  commsHopId,
+  commsLegTimeSeconds,
+  commsRouteRelayCount,
+} from "./commsRoute";
 
 type CommSignalConfig = Record<string, never>;
 
@@ -122,6 +131,14 @@ function CommSignalComponent({
   //    same ordinal resolved to its enum NAME string)
   //  - `comm.signalDelay`   -> `comms.delay.oneWaySeconds` (gonogo's own
   //    SignalDelay authority, live via CommsCoreUplink)
+  //  - `comm.commandCentre` -> `comms.commandCentre` (which centre the active
+  //    vessel's own ControlPath terminates at this tick: KSC, or a crewed
+  //    control-source vessel under the stock six-kerbal rule). Every other read
+  //    above is ALREADY relative to that centre, because stock prefers a route
+  //    home and falls back to the nearest control source only when no home is
+  //    reachable. This is only the LABEL, and it used to be the literal string
+  //    "KSC" while the numbers beside it were not.
+  //  - `comms.path`         -> the ordered hop list the route schedule draws
   /**
    * A link indicator is the one instrument where withholding is not merely honest
    * but informative: silence IS evidence about a link. A held "connected: true"
@@ -141,6 +158,49 @@ function CommSignalComponent({
   const controlState = vesselState?.commsControlStateOrdinal ?? undefined;
   const controlStateName = vesselState?.commsControlStateName ?? undefined;
   const delay = judgeable(useTelemetry("comms.delay"))?.oneWaySeconds;
+
+  /**
+   * The centre's NAME falls back to "KSC" when the channel is absent or empty,
+   * which is the honest default: KSC is the only centre the game itself ever
+   * creates without a mod, or without a crewed vessel meeting the
+   * control-source threshold. Every fixture recorded before the channel existed
+   * therefore keeps reading exactly as it did.
+   */
+  const commandCentreName = judgeable(
+    useTelemetry("comms.commandCentre"),
+  )?.displayName;
+  const centreLabel =
+    commandCentreName && commandCentreName.length > 0
+      ? commandCentreName
+      : "KSC";
+
+  const hops = judgeable(useTelemetry("comms.path"))?.hops ?? [];
+  const relayCount = commsRouteRelayCount(hops);
+
+  /**
+   * Gonogo is the experience FROM the command centre, so the route's source
+   * stop is NAMED for the active vessel rather than addressed as "you". Falls
+   * back to a generic label on the rare tick `vessel.identity` has not resolved
+   * yet (scene load), same shape as the `centreLabel` fallback above.
+   */
+  const vesselName = judgeable(useTelemetry("vessel.identity"))?.name;
+  const vesselLabel =
+    vesselName && vesselName.length > 0 ? vesselName : "Vessel";
+
+  // Per-hop bitrate comes from a `comm-signal.hop-rates` contribution, NOT from
+  // the core hop: `comms.path` stays provider-agnostic. A comms Uplink reads its
+  // OWN per-hop-rate Topic and yields an entry keyed by the same node ids these
+  // hops carry, and the schedule joins them by `commsHopId`. No contribution
+  // means no bitrate and an otherwise unchanged schedule, which is what bare
+  // CommNet gets. CommSignal only ever names the slot id.
+  const hopRateEntries = useContributions("comm-signal.hop-rates");
+  const rateByHopId = useMemo(() => {
+    const map = new Map<string, number>();
+    for (const entry of hopRateEntries) {
+      map.set(commsHopId(entry.fromNodeId, entry.toNodeId), entry.bitsPerSec);
+    }
+    return map;
+  }, [hopRateEntries]);
 
   const hasData =
     connected !== undefined ||
@@ -198,6 +258,20 @@ function CommSignalComponent({
   const isLandscape = getWidgetShape(w, h).shape === "landscape";
   const showSubtitle = rows >= 4;
   const showDetailGrid = rows >= 4 && cols >= 4;
+  // The vertical train schedule needs more room than the detail grid alone: in
+  // landscape it is a whole extra column beside the readout, so it only needs
+  // the detail grid's own rows floor; portrait stacks it BELOW the readout and
+  // needs real headroom above that, or the schedule is clipped at the
+  // registered default (6x5) with nothing to show for it. Below the threshold
+  // the caption still names the centre, with a hop-count hint instead of the
+  // schedule, so a cramped tile loses the route's detail and never the route.
+  const showFullPath = cols >= 5 && (isLandscape ? rows >= 4 : rows >= 6);
+  const hopHint =
+    connected !== false && hops.length > 0 && !showFullPath
+      ? relayCount === 0
+        ? " (direct)"
+        : ` (${relayCount} relay${relayCount === 1 ? "" : "s"})`
+      : "";
   // "LOS" (loss of signal) vs NULL_DISPLAY (no telemetry), both render zero
   // bars, so the headline label is the only differentiator at tiny
   // sizes where subtitle + detail grid are suppressed. Without this
@@ -245,7 +319,9 @@ function CommSignalComponent({
             letterSpacing: "0.04em",
           }}
         >
-          {connected === false ? "No signal" : "Signal to KSC"}
+          {connected === false
+            ? "No signal"
+            : `Signal to ${centreLabel}${hopHint}`}
         </span>
       )}
 
@@ -276,6 +352,18 @@ function CommSignalComponent({
               <CommSignalDetailRows control={control} delay={delay} />
             </Grid>
           )}
+
+          {showFullPath && (
+            <div style={{ flex: "0 1 auto", minWidth: 0 }}>
+              <CommsPathRoute
+                hops={hops}
+                vesselLabel={vesselLabel}
+                centreLabel={centreLabel}
+                pathDelay={delay}
+                rateByHopId={rateByHopId}
+              />
+            </div>
+          )}
         </Cluster>
       ) : (
         <Stack gap="md" style={{ flex: 1, minHeight: 0 }}>
@@ -289,9 +377,273 @@ function CommSignalComponent({
               <CommSignalDetailRows control={control} delay={delay} />
             </Grid>
           )}
+
+          {showFullPath && (
+            <CommsPathRoute
+              hops={hops}
+              vesselLabel={vesselLabel}
+              centreLabel={centreLabel}
+              pathDelay={delay}
+              rateByHopId={rateByHopId}
+            />
+          )}
         </Stack>
       )}
     </Panel>
+  );
+}
+
+// ── Comms-path route: a vertical train-schedule (vessel at top, centre at
+//    bottom) ───────────────────────────────────────────────────────────────
+
+const ROUTE_LABEL_STYLE = {
+  color: "var(--color-text-dim)",
+  letterSpacing: "0.1em",
+  textTransform: "uppercase" as const,
+};
+
+// Rail geometry: a dashed vertical line down the left edge with a circle at
+// each stop, train-schedule style. The line is a `borderLeft` on every row's
+// rail slot (stop rows AND leg rows): adjoining slots share an edge, so the
+// dash pattern reads as one continuous rail down the column rather than a
+// broken segment per row.
+const RAIL_WIDTH_PX = 20;
+const RAIL_STOP_DIAMETER_PX = 10;
+
+/**
+ * The vertical train-schedule: the source vessel at the top, each relay as a
+ * circle on the rail, the command centre at the bottom. Each leg's distance AND
+ * light-time (and the per-hop bitrate a `comm-signal.hop-rates` contributor
+ * supplies, when present, with the bottleneck hop flagged) sit in the gap
+ * between its two stops, against the rail. Renders nothing for an empty `hops`
+ * list (no path home is already covered by the LOS headline).
+ */
+function CommsPathRoute({
+  hops,
+  vesselLabel,
+  centreLabel,
+  pathDelay,
+  rateByHopId,
+}: {
+  hops: readonly CommsHop[];
+  vesselLabel: string;
+  centreLabel: string;
+  /** The path's total one-way delay: apportioned across legs by distance, see `commsLegTimeSeconds`. */
+  pathDelay: Value<"s"> | undefined;
+  /** Per-hop forward bitrate (bits/sec) keyed by `commsHopId`, joined from the
+   *  `comm-signal.hop-rates` contribution. Empty under bare CommNet / no RA. */
+  rateByHopId: ReadonlyMap<string, number>;
+}) {
+  const nodes = buildCommsRouteNodes(hops, vesselLabel, centreLabel);
+  if (nodes.length === 0) return null;
+  const bottleneckId = commsBottleneckHopId(hops, rateByHopId);
+  return (
+    <Stack gap="xs" style={{ minWidth: 0 }}>
+      <Text tone="muted" size="xs" style={ROUTE_LABEL_STYLE}>
+        Route
+      </Text>
+      <div>
+        {nodes.map((node, i) => {
+          const hop = i < hops.length ? hops[i] : undefined;
+          const hopId = hop ? commsHopId(hop.from, hop.to) : undefined;
+          return (
+            // biome-ignore lint/suspicious/noArrayIndexKey: stops have no stable identity beyond their position along the rail
+            <Fragment key={i}>
+              <CommsPathStop
+                node={node}
+                emphasize={i === 0 || i === nodes.length - 1}
+              />
+              {hop && hopId !== undefined && (
+                <CommsPathLeg
+                  hop={hop}
+                  hops={hops}
+                  pathDelay={pathDelay}
+                  rate={rateByHopId.get(hopId)}
+                  isBottleneck={hopId === bottleneckId}
+                />
+              )}
+            </Fragment>
+          );
+        })}
+      </div>
+    </Stack>
+  );
+}
+
+/** One stop on the rail: a circle marker plus the stop's label. */
+function CommsPathStop({
+  node,
+  emphasize,
+}: {
+  node: CommsRouteNode;
+  emphasize: boolean;
+}) {
+  return (
+    <div
+      style={{
+        display: "flex",
+        alignItems: "center",
+        gap: "var(--space-8)",
+      }}
+    >
+      <RailSlot stop />
+      <Text
+        tone="default"
+        size="sm"
+        weight={emphasize ? "semibold" : "regular"}
+        title={node.title}
+      >
+        {node.label}
+      </Text>
+    </div>
+  );
+}
+
+/**
+ * One leg's distance AND light-time, plus, when a `comm-signal.hop-rates`
+ * contribution supplied one, this hop's forward bitrate: the slowest hop in
+ * the path (the bottleneck that caps end-to-end throughput) is flagged by
+ * tinting its rate amber, since that is the number an operator reads to know
+ * the real ceiling. No label word: a leg is a fixed-width row in the
+ * schedule, and spelling the flag out as text was overflowing it. Colour
+ * alone is never the only signal (WCAG 2.1 AA), so a `VisuallyHidden` hint
+ * and a hover `title` carry the same meaning to screen readers and mouse
+ * users respectively.
+ */
+function CommsPathLeg({
+  hop,
+  hops,
+  pathDelay,
+  rate,
+  isBottleneck,
+}: {
+  hop: CommsHop;
+  hops: readonly CommsHop[];
+  pathDelay: Value<"s"> | undefined;
+  /** This hop's forward bitrate (bits/sec), or undefined when none was contributed. */
+  rate: number | undefined;
+  /** Whether this hop is the path's minimum-rate (limiting) hop. */
+  isBottleneck: boolean;
+}) {
+  const legSeconds = commsLegTimeSeconds(hop, hops, pathDelay);
+  const hasDetail = hop.distanceMeters !== undefined || rate !== undefined;
+  return (
+    <div
+      style={{
+        display: "flex",
+        alignItems: "center",
+        gap: "var(--space-8)",
+        minHeight: hasDetail ? undefined : "var(--space-16)",
+      }}
+    >
+      <RailSlot stop={false} />
+      {hasDetail && (
+        <Cluster
+          gap="xs"
+          align="baseline"
+          style={{ color: "var(--color-text-dim)" }}
+        >
+          {hop.distanceMeters !== undefined && (
+            <Text tone="muted" size="xs">
+              <Unit value={hop.distanceMeters} />
+            </Text>
+          )}
+          {legSeconds !== undefined && (
+            // nowrap: `Countdown`'s "0 ms" is plain text with a breaking
+            // space, unlike `Unit`'s own number+symbol pairing (which
+            // carries its own nowrap), so a narrow column could otherwise
+            // split it mid-value across two lines.
+            <Text tone="muted" size="xs" style={{ whiteSpace: "nowrap" }}>
+              <Countdown value={legSeconds} precise />
+            </Text>
+          )}
+          {/* Per-hop bitrate, joined from the `comm-signal.hop-rates`
+              contribution (never a core hop field): absent under bare CommNet /
+              no RA, so it simply never renders there. */}
+          {rate !== undefined && (
+            <Text
+              tone="muted"
+              size="xs"
+              weight={isBottleneck ? "semibold" : "regular"}
+              title={
+                isBottleneck
+                  ? "Slowest hop: caps end-to-end throughput"
+                  : undefined
+              }
+              style={{
+                whiteSpace: "nowrap",
+                // `TONE_TEXT_COLOR` below explains the choice of the MUTED
+                // warning foreground: the bare `-fg` token is near-black,
+                // meant for the orange chip rather than standalone text on
+                // this panel. `Text`'s own `warn` tone resolves to that bare
+                // token, so it cannot serve here.
+                color: isBottleneck
+                  ? "var(--color-status-warning-fg-muted)"
+                  : undefined,
+              }}
+            >
+              <Unit value={value("bit/s", rate)} />
+              {isBottleneck && (
+                <VisuallyHidden>
+                  , slowest hop, limits end-to-end rate
+                </VisuallyHidden>
+              )}
+            </Text>
+          )}
+        </Cluster>
+      )}
+    </div>
+  );
+}
+
+/**
+ * One row's slice of the dashed vertical rail: the line itself (a
+ * `borderLeft` stretched the row's full height) plus, at a stop row, the
+ * circle marker centred on it. Purely decorative, the stop label beside it
+ * already carries the same information, so this is hidden from assistive
+ * tech rather than duplicated into it.
+ */
+function RailSlot({ stop }: { stop: boolean }) {
+  return (
+    <div
+      aria-hidden="true"
+      style={{
+        position: "relative",
+        width: RAIL_WIDTH_PX,
+        alignSelf: "stretch",
+        flexShrink: 0,
+      }}
+    >
+      <div
+        style={{
+          position: "absolute",
+          left: RAIL_WIDTH_PX / 2 - 1,
+          top: 0,
+          bottom: 0,
+          borderLeft: "2px dashed var(--color-border-subtle)",
+        }}
+      />
+      {stop && (
+        <div
+          style={{
+            position: "absolute",
+            left: (RAIL_WIDTH_PX - RAIL_STOP_DIAMETER_PX) / 2,
+            top: "50%",
+            transform: "translateY(-50%)",
+            width: RAIL_STOP_DIAMETER_PX,
+            height: RAIL_STOP_DIAMETER_PX,
+            // border-box: the 2px border must be INCLUDED in the diameter,
+            // not added on top of it. Content-box (the default) rendered a
+            // 14px circle (10px content + 2px border each side) whose centre
+            // sat 2px right of the rail's dashed line, off-centre.
+            boxSizing: "border-box",
+            borderRadius: "50%",
+            background: "var(--color-surface-panel)",
+            border: "2px solid var(--color-text-dim)",
+          }}
+        />
+      )}
+    </div>
   );
 }
 

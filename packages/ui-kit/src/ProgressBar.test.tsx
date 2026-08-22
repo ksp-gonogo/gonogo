@@ -34,4 +34,22 @@ describe("ProgressBar", () => {
       "0",
     );
   });
+
+  it("defaults the fill to the accent colour", () => {
+    render(<ProgressBar value={50} ariaLabel="Coverage" />);
+    const fill = screen.getByRole("progressbar").firstElementChild;
+    expect(fill).toHaveStyle({ background: "var(--color-accent-fg)" });
+  });
+
+  it("uses fillColor to override the default when given a status token", () => {
+    render(
+      <ProgressBar
+        value={90}
+        ariaLabel="Transit"
+        fillColor="var(--color-status-nogo-bg)"
+      />,
+    );
+    const fill = screen.getByRole("progressbar").firstElementChild;
+    expect(fill).toHaveStyle({ background: "var(--color-status-nogo-bg)" });
+  });
 });

@@ -124,9 +124,12 @@ public enum CommsHopKind
 /// One ordered hop toward KSC in the control path. <see cref="DistanceMeters"/>
 /// is the geometry SignalDelay consumes for light-time; it is nullable,
 /// absent when the backend cannot supply per-hop geometry (typed absence,
-/// never 0). <see cref="BandRateBitsPerSec"/> is the RealAntennas-only
-/// per-hop rate annotation (§1 "path hops gain RA band/rate annotations only
-/// under RA"): absent under bare CommNet.
+/// never 0). Per-hop RealAntennas rate is NOT a field on this shared shape: the
+/// forward band rate rides the RA uplink's own <c>realantennas.hopRates</c>
+/// channel (a thin per-hop annotation keyed by these same node ids, joined onto
+/// the route client-side by a <c>comm-signal.hop-rates</c> contribution), and
+/// the other RA per-hop facts ride <see cref="Extensions"/> under
+/// <c>"realantennas"</c>. The core hop stays RA-agnostic.
 ///
 /// <para><see cref="From"/>/<see cref="To"/> name the endpoints. Ground
 /// stations carry their OWN name (RSS/RealAntennas fly a dozen of them), not a
@@ -159,8 +162,20 @@ public class CommsHop
     public CommsHopKind Kind { get; set; }
     [SitrepUnit(Units.Metres)]
     public double? DistanceMeters { get; set; }
-    [SitrepUnit(Units.BitsPerSecond)]
-    public double? BandRateBitsPerSec { get; set; }
+
+    /// <summary>
+    /// The provider-namespaced extension bag: how the elected comms backend
+    /// carries per-hop facts this shared shape does not declare, WITHOUT a PR
+    /// against core (see <see cref="ProviderExtensionBagAttribute"/> for the
+    /// whole mechanism). Null under the vanilla CommNet backend, which has
+    /// nothing stock does not already say; a RealAntennas install fills
+    /// <c>Extensions["realantennas"]</c> with band, tech level, modulation,
+    /// encoder, required Eb/N0, beamwidth, EC draw and the reverse-direction
+    /// rate, typed by the RA client's own <c>RealAntennasHopExt</c>. It rides
+    /// <c>comms.path</c>, so it inherits that channel's TrueNow classification.
+    /// </summary>
+    [ProviderExtensionBag]
+    public Dictionary<string, object?>? Extensions { get; set; }
 }
 
 /// <summary>
@@ -317,6 +332,42 @@ public class CommsLink
     public PayloadMeta Meta { get; set; } = new();
 }
 
+/// <summary>
+/// The <c>comms.commandCentre</c> payload:
+/// identifies WHICH command centre the active vessel's control path currently
+/// terminates at, vanilla KSC or a crewed control-source vessel (the stock
+/// "6-kerbal command center" mechanic), so a client can show its own stats
+/// against the right name instead of assuming KSC. Shares its id/kind scheme
+/// with <see cref="CommandCentreEntry"/> (the <c>commandCentre.roster</c>
+/// union): it names ONE entry from that same set, whichever one the vessel's
+/// own <c>ControlPath</c> resolved to this tick. Every field is null when
+/// there is no live remote centre right now (no connection, or the terminal
+/// node matches neither a ground station nor a crewed control source), the
+/// existing comms.link/comms.connectivity "No signal" case already covers
+/// that for a reader.
+/// </summary>
+[SitrepContract]
+#if SITREP_CODEGEN
+[TsInterface]
+#endif
+[SitrepTopic("comms.commandCentre")]
+public class CommsCommandCentre
+{
+    /// <summary>Stable authority/vantage key, same scheme as <see cref="CommandCentreEntry.Id"/>: "ksc" | "ground:&lt;name&gt;" | "kk:&lt;site&gt;" | "vessel:&lt;guid&gt;". Null when no remote centre resolved.</summary>
+    [SitrepUnit(Units.Id)]
+    public string? Id { get; set; }
+    /// <summary>Human-facing name.</summary>
+    [SitrepUnit(Units.Text)]
+    public string? DisplayName { get; set; }
+    /// <summary>One of <c>GroundStation</c> / <c>CrewedVessel</c> / <c>Colony</c> / <c>Custom</c> (the <c>CommandCentreKind</c> name), same as <see cref="CommandCentreEntry.Kind"/>.</summary>
+    [SitrepUnit(Units.Text)]
+    public string? Kind { get; set; }
+    /// <summary>Index into system.bodies of the body this centre sits on; null when unknown, not surface-anchored, or the centre is a moving vessel.</summary>
+    [SitrepUnit(Units.Id)]
+    public int? BodyIndex { get; set; }
+    public PayloadMeta Meta { get; set; } = new();
+}
+
 // The three provider-private payloads this file used to end with
 // (comms.linkQuality / comms.dataRate / comms.linkMargin) are no longer
 // declared here. They were the one part of the comms family only ONE backend
@@ -331,11 +382,16 @@ public class CommsLink
 // Everything above stays, and the boundary is the PROVIDER axis this file's own
 // header describes rather than a filename: an elected backend fills the shared
 // shapes, so those shapes are core no matter which backend is winning today.
-// CommsHop.BandRateBitsPerSec is the case that shows the difference: this file
-// documents it as a RealAntennas-only annotation, absent under bare CommNet, and
-// it still belongs here, because it is a nullable FIELD on a shared type rather
-// than a type of its own. Splitting it out would fork the one shape both
-// backends fill. RA-only presence is not RA-only ownership.
+// CommsHop once carried a RealAntennas-only BandRateBitsPerSec field on the
+// argument that a nullable field on a shared type was not the same as a private
+// type. That argument lost: an RA-only number sitting on the shared hop was
+// still a core PR a future out-of-tree comms provider (RemoteTech) could not
+// land, and it read as jank. The forward band rate now rides the RA uplink's own
+// realantennas.hopRates channel, a thin per-hop annotation keyed by these same
+// node ids and joined onto the route client-side, so the shared hop is finally
+// RA-agnostic. The other RA per-hop facts already ride CommsHop.Extensions under
+// "realantennas". RA-only presence was never RA-only ownership, and the hop no
+// longer pretends otherwise.
 
 /// <summary>
 /// The pure, KSP-free object the exclusive <c>"comms"</c> capability resolves

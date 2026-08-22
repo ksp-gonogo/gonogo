@@ -58,7 +58,17 @@ namespace GonogoRealAntennasUplink.Tests
         public void EveryRelocatedTypeIsReachedByTheCoverageScan() =>
             UnitCoverageAssertion.AssertContractTypesAreExactly(
                 typeof(CommsLinkQuality).Assembly,
-                nameof(CommsLinkQuality), nameof(CommsDataRate), nameof(CommsLinkMargin));
+                nameof(CommsLinkQuality),
+                nameof(CommsDataRate),
+                nameof(CommsLinkMargin),
+                // The RA namespace of CommsHop's provider extension bag: RA-owned,
+                // so its unit coverage is guarded here alongside the three private
+                // channels rather than in core (CommsHop itself stays core).
+                nameof(RealAntennasHopExt),
+                // The element type of the realantennas.hopRates channel: the
+                // forward band rate that left CommsHop (Major 13) for this Uplink's
+                // own channel, keyed by node id. RA-owned, guarded here.
+                nameof(RealAntennasHopRate));
 
         /// <summary>
         /// The margin, pinned by name and by unit. It is the one reading in this

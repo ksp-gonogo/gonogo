@@ -308,8 +308,41 @@ namespace Sitrep.Contract
         /// happens to be standing in the contract at the time, and the whole point
         /// of the ledger is that a Major cannot rewrite what it inherited.</para>
         ///
+        /// <para><b>Bumped 12 -&gt; 13: the per-hop RA rate leaves the shared
+        /// hop.</b> Removed <see cref="CommsHop"/>'s
+        /// <c>BandRateBitsPerSec</c> (<c>double?</c>). A removed member on a
+        /// wire-visible type is breaking by definition, which is why this is a
+        /// Major and not a quiet edit. It IS on the frozen Major-12 floor (CommsHop
+        /// has carried the field since before the v6.0 freeze), so its removal
+        /// registers as a single genuine <c>member-removed:</c> break, the whole of
+        /// this Major's <c>Breaks</c>.</para>
+        ///
+        /// <para>Why it was worth one: <c>BandRateBitsPerSec</c> was a
+        /// RealAntennas-only per-hop number sitting on the ONE comms shape both the
+        /// vanilla CommNet backend and an elected RA (or future out-of-tree)
+        /// provider fill. That is the hand-curated-superset anti-pattern the
+        /// provider extension bag exists to retire: a provider-specific field on a
+        /// shared type needs a core PR an out-of-tree comms provider cannot land,
+        /// and it read as jank next to the freshly RA-agnostic hop. The forward
+        /// band rate now rides the RA uplink's OWN <c>realantennas.hopRates</c>
+        /// channel, a thin per-hop annotation keyed by the same node ids
+        /// <c>comms.path</c> uses and joined onto the route client-side by a
+        /// <c>comm-signal.hop-rates</c> contribution; the shared hop no longer
+        /// carries an RA-only field at all (the rest of RA's per-hop facts already
+        /// ride <c>CommsHop.Extensions["realantennas"]</c>). Sanctioned on the same
+        /// standing grounds as every Major above: the mod is still pre-release with
+        /// NO external Uplinks, and the app and mod ship together, so no artifact
+        /// exists that was built against the old shape.</para>
+        ///
+        /// <para><b>What the Major-13 floor deliberately does NOT absorb.</b>
+        /// Frozen as the Major-12 floor MINUS exactly that one member, never as the
+        /// live reflected shape, so the Major-12 minors that landed after that floor
+        /// (CommsHop.Extensions, comms.commandCentre, and the rest) are NOT written
+        /// into the Major-13 floor: they stay additive-over-the-floor exactly as
+        /// they were, and any unrelated drift elsewhere is still caught rather than
+        /// silently blessed by a re-freeze from HEAD.</para>
         /// </remarks>
-        public const int Major = 12;
+        public const int Major = 13;
 
         /// <summary>
         /// Reset to 0 alongside the Major 3 -&gt; 4 bump (see <see cref="Major"/>),
@@ -1167,7 +1200,48 @@ namespace Sitrep.Contract
         /// vessel, so both comms backends recover it by reference-comparing
         /// against every known vessel's own node. The same defect existed in
         /// both and is fixed in both.</para>
+        ///
+        /// <para><b>Bumped 24 -&gt; 25: the RealAntennas per-hop provider
+        /// extension bag.</b> <see cref="CommsHop"/> gains one nullable
+        /// <c>Extensions</c> member, the provider-namespaced hole that lets the
+        /// elected comms backend carry per-hop facts core does not declare
+        /// without a PR against it (see
+        /// <c>Sitrep.Contract/ProviderExtensions.cs</c>). The RealAntennas
+        /// backend fills <c>Extensions["realantennas"]</c> with band, tech
+        /// level, modulation, encoder, coding rate, required Eb/N0, beamwidth,
+        /// EC draw and the reverse-direction rate, typed by the RA client's own
+        /// <c>RealAntennasHopExt</c> (declared in
+        /// <c>GonogoRealAntennasUplink.Contract</c>, not here). Additive and
+        /// nullable: one new member on one existing shape plus a new RA-owned
+        /// type, nothing removed or retyped, so it cannot break an Uplink built
+        /// against Major 12 and the frozen Major-12 floor is NOT re-frozen. The
+        /// wire is additive too: the <c>extensions</c> key is omitted entirely
+        /// when no provider filled a bag, so a bare-CommNet hop is
+        /// byte-for-byte what it was (<c>CommsHopExtensionWireTests</c> pins
+        /// that). <c>CommsHop.Extensions</c> is the LAST hand-listed
+        /// provider-facing addition that type should take:
+        /// <c>Sitrep.Host.Tests.CommsHopContractShapeTests</c> now pins its
+        /// member set, so a new provider field lands in the bag instead. The
+        /// augment that renders it also gains a bare-boolean
+        /// <c>realantennas.available</c> presence-gate channel (no POCO, so it
+        /// never reaches the shape baseline).</para>
+        ///
+        /// <para><b>Bumped 25 -&gt; 26: the active vessel's command centre is
+        /// named.</b> The new <see cref="CommsCommandCentre"/> type on the new
+        /// <c>comms.commandCentre</c> topic, identifying which command centre
+        /// the active vessel's control path currently terminates at (KSC, or a
+        /// crewed control-source vessel under the stock six-kerbal rule), so a
+        /// client can label its own comms readout correctly instead of assuming
+        /// KSC. A new wire type on a new topic, additive-only, never touches an
+        /// existing member, so an Uplink built against any earlier Major-12
+        /// minor is unaffected and the frozen Major-12 floor is NOT
+        /// re-frozen.</para>
+        ///
+        /// <para>Reset 26 -&gt; 0 alongside the Major 12 -&gt; 13 bump (the
+        /// per-hop <c>CommsHop.BandRateBitsPerSec</c> removal; see
+        /// <see cref="Major"/>). Every additive change on the Major-12 line
+        /// above is carried forward into Major 13.</para>
         /// </remarks>
-        public const int Minor = 24;
+        public const int Minor = 0;
     }
 }

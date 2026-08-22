@@ -27,6 +27,17 @@
     <Compile Include="..\GonogoRealAntennasUplink\RaLinkBudget.cs" />
     <Compile Include="..\GonogoRealAntennasUplink\RaLinkDown.cs" />
     <Compile Include="..\GonogoRealAntennasUplink\RaWire.cs" />
+    <!-- RaLinkDirection is the pure, KSP-free up/down resolver for the RA link's
+         forward/reverse rates; RaLinkDirectionTests exercises both orientations. -->
+    <Compile Include="..\GonogoRealAntennasUplink\RaLinkDirection.cs" />
+  </ItemGroup>
+
+  <!-- The C#-to-TS golden fixture for the CommsHop provider-extension bag:
+       CommsHopExtensionWireTests proves this file is exactly what the real codec
+       produces, and the client's hopExt.test.ts reads it back through the real
+       decode path, so neither side can drift silently. -->
+  <ItemGroup>
+    <None Include="..\golden-fixtures\commshop-extensions.json" Link="golden-fixtures/commshop-extensions.json" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
 
   <ItemGroup>

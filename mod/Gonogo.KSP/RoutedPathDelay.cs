@@ -65,7 +65,6 @@ namespace Gonogo.KSP
                     To = string.Empty,
                     Kind = hop.IsHome ? CommsHopKind.Home : CommsHopKind.Relay,
                     DistanceMeters = hop.DistanceMeters,
-                    BandRateBitsPerSec = null,
                 });
             }
 

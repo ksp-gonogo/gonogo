@@ -12,8 +12,19 @@
   "sw.shieldingCapacity": 3.308,
   "sw.altitudeM": 1300000,
   "sw.ut": 149489,
+  "t.universalTime": 149489,
+  "sw.stars": [
+    {
+      "star": "Kerbol",
+      "direction": { "x": 0.31, "y": -0.04, "z": 0.95 },
+      "distance": { "magnitude": 13400000000, "unit": "m" }
+    }
+  ],
+  "sw.storms": [{ "star": "Kerbol", "stormState": 0 }],
+  "sw.stormEjectionSpeed": 98931511.14,
   "_stream": {
     "carriedChannels": ["kerbalism.spaceweather", "vessel.flight"],
+    "pinnedUt": 149489,
     "emits": [
       {
         "channel": "kerbalism.spaceweather",
@@ -28,7 +39,16 @@
           "blackout": false,
           "inSunlight": true,
           "shieldingAmount": 1.2,
-          "shieldingCapacity": 3.308
+          "shieldingCapacity": 3.308,
+          "stars": [
+            {
+              "star": "Kerbol",
+              "direction": { "x": 0.31, "y": -0.04, "z": 0.95 },
+              "distance": { "magnitude": 13400000000, "unit": "m" }
+            }
+          ],
+          "storms": [{ "star": "Kerbol", "stormState": 0 }],
+          "stormEjectionSpeed": 98931511.14
         }
       },
       {
