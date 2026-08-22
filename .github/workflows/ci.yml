@@ -61,6 +61,21 @@ jobs:
         run: pnpm install --frozen-lockfile
 
       - run: pnpm lint
+
+      # `pnpm typecheck` is the ONLY thing that runs the workspace's
+      # `*.test-d.ts` type-level assertions: vitest goes through esbuild and
+      # never typechecks, and each package's main tsconfig excludes the
+      # `.test-d.ts` glob, so they are compiled solely by the per-package
+      # `tsconfig.test-d.json` pass inside this script. Before it was added
+      # here the local pre-commit hook was their only gate, which a
+      # `--no-verify` commit or a CI-only edit walked straight past.
+      #
+      # It lives as a step of `test` rather than as its own job on purpose: a
+      # new job has to be marked required in branch protection to gate
+      # anything, and one nobody remembers to mark is the same silent pass in
+      # a new place. A step in an already-required job cannot be skipped.
+      - run: pnpm typecheck
+
       - run: pnpm test
 
       # Un-fed snapshot gate: re-runs the DOM snapshot specs with every stream
