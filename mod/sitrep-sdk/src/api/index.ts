@@ -111,6 +111,7 @@ export type {
   MapPoiAction,
   MapPoiProviderContext,
   MapPoiProviderDefinition,
+  MeterEntry,
   NamespacedAugmentSettings,
   PerfBudgetHandle,
   PerfBudgetOptions,

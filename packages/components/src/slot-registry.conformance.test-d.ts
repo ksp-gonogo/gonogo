@@ -28,11 +28,7 @@ import type {
   WidgetScope as SdkWidgetScope,
 } from "@ksp-gonogo/sitrep-sdk";
 import type { ActionGroupSlotContext } from "./ActionGroup";
-import type {
-  CrewAvatarContext,
-  CrewBadgeContext,
-  CrewSurvivalSlotContext,
-} from "./CrewStatus";
+import type { CrewAvatarContext, CrewBadgeContext } from "./CrewStatus";
 import type { DistanceToTargetHudContext } from "./DistanceToTarget";
 import type { ExperimentsInstrumentSlotContext } from "./Experiments";
 import type { LaunchDirectorSlotContext } from "./LaunchDirector";
@@ -134,13 +130,6 @@ type _CrewAvatar = Expect<
 >;
 type _CrewAvatarBack = Expect<
   Assignable<CrewAvatarContext, SdkSlotProps<"crew-status.avatar">>
->;
-
-type _CrewSurvival = Expect<
-  Assignable<SdkSlotProps<"crew-status.survival">, CrewSurvivalSlotContext>
->;
-type _CrewSurvivalBack = Expect<
-  Assignable<CrewSurvivalSlotContext, SdkSlotProps<"crew-status.survival">>
 >;
 
 // crew-status.summary carries no widget-owned context type (whole-widget,
@@ -280,8 +269,6 @@ export type _SlotRegistryConformance = [
   _ShipMapOverlayBack,
   _CrewBadges,
   _CrewBadgesBack,
-  _CrewSurvival,
-  _CrewSurvivalBack,
   _LaunchSections,
   _LaunchBack,
   _ActionGroupSections,

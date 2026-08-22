@@ -41,7 +41,7 @@ import {
 } from "@ksp-gonogo/core";
 import { clearProcessorRuntime } from "@ksp-gonogo/sitrep-client";
 // Side-effect import: the Kerbalism Uplink's crew-survival augment (per-row
-// badges + meters, `crew-status.survival`) self-registers on module load.
+// badges + the `crew-status.meters` contribution) self-registers on module load.
 // Its SEPARATE panel-level "N crew critical" contribution also registers
 // here but is deliberately never surfaced by this probe (no
 // ContributionsProvider->useWidgetBadges->PanelBadgesProvider chain, unlike

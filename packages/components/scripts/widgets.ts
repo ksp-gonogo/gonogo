@@ -768,7 +768,7 @@ const WIDGETS: WidgetRenderConfig[] = [
     // widget itself (registered above) reads only the vanilla `vessel.crew`
     // roster now; the CrewSurvival augment lives entirely in the Uplink
     // (mod/GonogoKerbalismUplink/client/src/CrewSurvival) and fills the
-    // generic `crew-status.survival` slot CrewStatus exposes. Same
+    // generic `crew-status.meters` segment CrewStatus draws per row. Same
     // widget as above, a dedicated fixtures dir (mirrors landing-status's
     // multi-scenario convention): `label` disambiguates this render set from
     // the base-widget one since both share `widgetId: "crew-status"`.

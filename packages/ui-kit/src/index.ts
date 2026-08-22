@@ -529,6 +529,7 @@ export { VisuallyHidden } from "./VisuallyHidden";
 export { UI_KIT_VERSION } from "./version";
 export { WidgetHeader, type WidgetHeaderProps } from "./WidgetHeader";
 export * from "./WidgetMetaContext";
+export { WidgetMeters, type WidgetMetersProps } from "./WidgetMeters";
 export {
   useWidgetScope,
   type WidgetScope,

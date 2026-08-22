@@ -6,12 +6,22 @@ import {
   setupStreamFixture,
   within,
 } from "@ksp-gonogo/sitrep-sdk/testing";
+import {
+  ContributionsProvider,
+  WidgetMetaContext,
+  WidgetMeters,
+} from "@ksp-gonogo/ui-kit";
 import { expectNoA11yViolations } from "@ksp-gonogo/ui-kit/testing";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
-// Importing the real module runs its module-load registerAugment(...).
-import { CrewSurvivalAugment, CrewSurvivalBadgeAugment } from "./index";
+// Importing the real module runs its module-load registerAugment(...) and,
+// through `./meters`, the `crew-status.meters` registerContribution(...).
+import { CrewSurvivalBadgeAugment } from "./index";
 
-const CARRIED = ["vessel.crew", "kerbalism.crew"];
+// `kerbalism.available` is here for the METERS half: a contribution's
+// `requires` gate is read straight off the client by the aggregation
+// (`contributionsRuntime.tsx`), where an augment's is a render-time check on
+// ui-kit's own availability store. Same reason `panel-badge.test.tsx` carries it.
+const CARRIED = ["vessel.crew", "kerbalism.crew", "kerbalism.available"];
 
 const renderedTrees: Array<() => void> = [];
 
@@ -30,14 +40,35 @@ function newFixture() {
   return fixture;
 }
 
-function renderAugment(
+/**
+ * One roster row, wired the way CrewStatus wires it: the dashboard's widget
+ * identity, the contribution aggregation, and ui-kit's `WidgetMeters` reading
+ * the universal `crew-status.meters` segment for this kerbal.
+ *
+ * The survival meters used to be a React augment this file rendered directly.
+ * They are DATA now, so a test that only called the compute function would
+ * prove nothing about them reaching a row; this mounts the whole chain, so a
+ * break anywhere along it shows up here.
+ */
+function CrewRow({ crewName }: { crewName: string }) {
+  return (
+    <WidgetMetaContext.Provider
+      value={{ componentId: "crew-status", contributionSlots: [] }}
+    >
+      <ContributionsProvider>
+        <WidgetMeters row={crewName} />
+      </ContributionsProvider>
+    </WidgetMetaContext.Provider>
+  );
+}
+
+function renderMeters(
   fixture: ReturnType<typeof newFixture>,
   crewName: string,
-  crewIndex: number,
 ) {
   const result = render(
     <fixture.Provider>
-      <CrewSurvivalAugment crewName={crewName} crewIndex={crewIndex} />
+      <CrewRow crewName={crewName} />
     </fixture.Provider>,
   );
   renderedTrees.push(result.unmount);
@@ -66,6 +97,11 @@ function emit(
   act(() => {
     fixture.emit("vessel.crew", crew);
     fixture.emit("kerbalism.crew", kerbals);
+    // The meters contribution's `requires: "kerbalism"` gate reads this
+    // directly off the client, so without it the aggregation skips the
+    // contribution entirely and every meter assertion below would fail for a
+    // reason that has nothing to do with what it is testing.
+    fixture.emit("kerbalism.available", true);
   });
 }
 
@@ -97,19 +133,19 @@ const CREW = {
   ],
 };
 
-describe("CrewSurvivalAugment", () => {
+describe("crew-status.meters contribution", () => {
   it("renders nothing before any survival data has arrived", () => {
     const fixture = newFixture();
-    renderAugment(fixture, "Jebediah Kerman", 0);
+    renderMeters(fixture, "Jebediah Kerman");
     // No emit at all: useProcessor(CREW_SURVIVAL) has nothing to derive from
     // yet, the augment must render nothing rather than a "stable" default
     // for a kerbal it knows nothing about.
-    expect(screen.queryByLabelText("survival meters")).not.toBeInTheDocument();
+    expect(screen.queryByLabelText("meters")).not.toBeInTheDocument();
   });
 
   it("renders a single rule as a meter, no badge alongside it", async () => {
     const fixture = newFixture();
-    renderAugment(fixture, "Jebediah Kerman", 0);
+    renderMeters(fixture, "Jebediah Kerman");
     emit(fixture, CREW, [
       {
         name: "Jebediah Kerman",
@@ -137,7 +173,7 @@ describe("CrewSurvivalAugment", () => {
 
   it("renders every rule as its own meter, not just the worst", async () => {
     const fixture = newFixture();
-    renderAugment(fixture, "Jebediah Kerman", 0);
+    renderMeters(fixture, "Jebediah Kerman");
     emit(fixture, CREW, [
       {
         name: "Jebediah Kerman",
@@ -162,7 +198,7 @@ describe("CrewSurvivalAugment", () => {
 
   it("renders every rule unconditionally, no overflow disclosure", async () => {
     const fixture = newFixture();
-    renderAugment(fixture, "Jebediah Kerman", 0);
+    renderMeters(fixture, "Jebediah Kerman");
     emit(fixture, CREW, [
       {
         name: "Jebediah Kerman",
@@ -210,12 +246,12 @@ describe("CrewSurvivalAugment", () => {
     const fixture = newFixture();
     const jeb = render(
       <fixture.Provider>
-        <CrewSurvivalAugment crewName="Jebediah Kerman" crewIndex={0} />
+        <CrewRow crewName="Jebediah Kerman" />
       </fixture.Provider>,
     );
     const bill = render(
       <fixture.Provider>
-        <CrewSurvivalAugment crewName="Bill Kerman" crewIndex={1} />
+        <CrewRow crewName="Bill Kerman" />
       </fixture.Provider>,
     );
     renderedTrees.push(jeb.unmount, bill.unmount);
@@ -229,15 +265,18 @@ describe("CrewSurvivalAugment", () => {
 
     await within(jeb.container).findByRole("meter", { name: "Radiation dose" });
     expect(
-      within(bill.container).queryByLabelText("survival meters"),
+      within(bill.container).queryByLabelText("meters"),
     ).not.toBeInTheDocument();
   });
 
-  it("falls back to a name search when crewIndex has drifted from the Processor's own order", async () => {
+  it("addresses a row by NAME, so roster order cannot mis-attribute a meter", async () => {
     const fixture = newFixture();
-    // crewIndex 5 does not exist in the roster; the augment must still find
-    // Bill Kerman by name.
-    renderAugment(fixture, "Bill Kerman", 5);
+    // Bill is second in the roster and the only kerbal Kerbalism reports on,
+    // so his meter is entry 0 of the contribution and row 1 of the list. The
+    // entry carries his name, so the two never have to agree: the augment this
+    // replaced matched by index first and fell back to a name search when the
+    // orders drifted, and that fallback is now unreachable by construction.
+    renderMeters(fixture, "Bill Kerman");
     emit(fixture, CREW, [
       {
         name: "Bill Kerman",
@@ -251,7 +290,7 @@ describe("CrewSurvivalAugment", () => {
 
   it("has no axe violations", async () => {
     const fixture = newFixture();
-    const { container } = renderAugment(fixture, "Jebediah Kerman", 0);
+    const { container } = renderMeters(fixture, "Jebediah Kerman");
     emit(fixture, CREW, [
       {
         name: "Jebediah Kerman",
@@ -267,7 +306,7 @@ describe("CrewSurvivalAugment", () => {
 describe("CrewSurvivalBadgeAugment", () => {
   it("shows no badge for a nominal kerbal", async () => {
     const fixture = newFixture();
-    renderAugment(fixture, "Jebediah Kerman", 0);
+    renderMeters(fixture, "Jebediah Kerman");
     renderBadgeAugment(fixture, "Jebediah Kerman", 0);
     emit(fixture, CREW, [
       {
@@ -284,7 +323,7 @@ describe("CrewSurvivalBadgeAugment", () => {
 
   it("shows no badge for a merely-elevated (warn-tier) kerbal", async () => {
     const fixture = newFixture();
-    renderAugment(fixture, "Jebediah Kerman", 0);
+    renderMeters(fixture, "Jebediah Kerman");
     renderBadgeAugment(fixture, "Jebediah Kerman", 0);
     emit(fixture, CREW, [
       {

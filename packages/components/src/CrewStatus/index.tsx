@@ -24,6 +24,7 @@ import {
   Truncate,
   Unit,
   useElementSize,
+  WidgetMeters,
 } from "@ksp-gonogo/ui-kit";
 import type { ReactNode } from "react";
 import { magnitudeOf, type Quantityish } from "../shared/magnitude";
@@ -301,34 +302,25 @@ declare module "@ksp-gonogo/core" {
 }
 
 // ---------------------------------------------------------------------------
-// The `crew-status.survival` slot contract (see augment-slot-map)
+// Per-crew-row survival meters
 //
-// A per-crew-row section slot, directly below each roster row: the generic
-// home for a per-kerbal survival readout (death clock, worst rule, degen).
-// This widget carries NO Kerbalism-specific reads itself (it used to, the
-// Kerbalism crew-rules and life-support Topics were read inline here; that
-// contaminated the vanilla roster with a Kerbalism concept and has moved
-// wholesale to the Kerbalism Uplink's own `crew-status-survival` augment,
-// mod/GonogoKerbalismUplink/client/src/CrewSurvival). Same per-row keying as
-// `crew-status.row-badges`/`.avatar`: `crewName` is the augment's identity
-// handle, `crewIndex` disambiguates duplicate names. Renders nothing when no
-// augment is bound (no Uplink, or the Uplink has nothing to show for this
-// kerbal), so the roster degrades gracefully exactly like the avatar slot.
+// There is no `crew-status.survival` slot any more, and no widget-authored
+// anything: each roster row mounts ui-kit's `<WidgetMeters row={name}>`, which
+// draws whatever is contributed to the framework's universal
+// `crew-status.meters` segment for that kerbal.
+//
+// It WAS an augment slot, filled by a Kerbalism component whose entire render
+// was a `Stack` of `Meter` and nothing else: zero pixels this widget did not
+// already own. That is the definition of a contribution, and as one the host
+// gets back what an augment could never give it, the ability to count what
+// arrived, order it, and lay it out with its own rows. The kerbal's name rides
+// on each entry's `row`, which is what lets a once-per-widget segment address a
+// per-row extension at all.
+//
+// This widget still carries NO Kerbalism-specific reads: the derivation lives
+// in the Uplink's own Processor (mod/GonogoKerbalismUplink/client/src/
+// CrewSurvival/meters.ts) exactly as it did before.
 // ---------------------------------------------------------------------------
-
-/** Props passed to every `crew-status.survival` augment, one per crew row. */
-export interface CrewSurvivalSlotContext {
-  /** The crew member this row belongs to, its identity for the augment. */
-  crewName: string;
-  /** Position in the roster; disambiguates duplicate names. */
-  crewIndex: number;
-}
-
-declare module "@ksp-gonogo/core" {
-  interface SlotRegistry {
-    "crew-status.survival": CrewSurvivalSlotContext;
-  }
-}
 
 // ---------------------------------------------------------------------------
 // The `crew-status.summary` slot contract (see augment-slot-map)
@@ -622,14 +614,11 @@ function renderBody({
                     />
                   </Inline>
                 </Cluster>
-                {/* Per-crew survival section slot. Renders nothing until an
-                    Uplink (e.g. Kerbalism) binds; this widget carries no
-                    Kerbalism-specific data itself, see the slot's own doc
-                    comment above. */}
-                <AugmentSlot
-                  name="crew-status.survival"
-                  props={{ crewName: name, crewIndex: index }}
-                />
+                {/* This kerbal's contributed survival meters (e.g. the
+                    Kerbalism Uplink's per-rule dose/stress bars). Renders
+                    nothing at all when nothing is contributed, so the roster
+                    degrades exactly as it did with an unbound slot. */}
+                <WidgetMeters row={name} style={CREW_METERS_STYLE} />
               </Stack>
             </Cluster>
           </li>
@@ -671,6 +660,14 @@ const NAME_FLEX_STYLE = { flex: "1 1 auto" } as const;
  * it still spans the full width, same as before this column existed.
  */
 const CREW_INFO_STYLE = { flex: "1 1 auto", minWidth: 0 } as const;
+
+/** Indents a row's contributed meters under the kerbal's name, and keeps a gap
+ *  before the next roster row. Carried on the stack itself rather than on a
+ *  wrapper here, so a kerbal with no meters leaves no padding behind. */
+const CREW_METERS_STYLE = {
+  paddingBottom: "var(--space-4)",
+  paddingLeft: "var(--space-12)",
+} as const;
 
 /**
  * Leading per-crew avatar cell: a square that reserves room for an avatar-face
@@ -716,18 +713,17 @@ registerComponent<CrewStatusConfig>({
   //     wraps under the name (Cluster `wrap`) rather than truncating it.
   //   crew-status.avatar, leading square face cell (Uplink-provided avatar); only
   //     reserved while an Uplink actually binds it, see `avatarAugmentPresent`.
-  //   crew-status.survival, per-row survival section (e.g. Kerbalism death
-  //     clock/worst rule), see that slot's own doc comment above. This widget
-  //     carries no Kerbalism-specific reads itself; the per-kerbal survival
-  //     model lives entirely in the Kerbalism Uplink's own Processor/augment
-  //     (mod/GonogoKerbalismUplink/client/src/CrewSurvival).
   //   crew-status.summary, ONE whole-widget section above the roster (e.g. a
   //     Kerbalism vessel radiation-environment reading), not per-kerbal, see
   //     that slot's own doc comment above.
+  //
+  // The per-row survival section is NOT here: it is the framework's universal
+  // `crew-status.meters` CONTRIBUTION segment now, drawn by `<WidgetMeters>`
+  // per roster row. It stopped being an augment because the Uplink filling it
+  // was rendering a stack of the kit's own `Meter` and nothing else.
   augmentSlots: [
     "crew-status.row-badges",
     "crew-status.avatar",
-    "crew-status.survival",
     "crew-status.summary",
   ],
   dataRequirements: [

@@ -199,14 +199,6 @@ export interface CrewAvatarContext {
   crewIndex: number;
 }
 
-/** Mirrors `CrewSurvivalSlotContext` (CrewStatus/index.tsx). */
-export interface CrewSurvivalSlotContext {
-  /** The crew member this row belongs to, its identity for the augment. */
-  crewName: string;
-  /** Position in the roster; disambiguates duplicate names. */
-  crewIndex: number;
-}
-
 // --- LaunchDirector (packages/components/src/LaunchDirector) ---------------
 
 /** Mirrors `LaunchDirectorSlotContext` (LaunchDirector/index.tsx). */
@@ -548,7 +540,6 @@ declare module "./types" {
 
     "crew-status.row-badges": CrewBadgeContext;
     "crew-status.avatar": CrewAvatarContext;
-    "crew-status.survival": CrewSurvivalSlotContext;
     "crew-status.summary": Record<string, never>;
 
     "launch-director.preflight": LaunchDirectorSlotContext;

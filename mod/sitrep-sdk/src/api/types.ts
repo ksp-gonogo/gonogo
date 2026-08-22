@@ -232,6 +232,41 @@ export interface BadgeEntry {
   tone?: "neutral" | "go" | "nogo" | "warn" | "info";
 }
 
+/**
+ * One meter in a widget's meter stack: a labelled 0..1 bar.
+ *
+ * Declared here rather than beside the `Meter` that draws it, for the same
+ * reason `BadgeEntry` is: it is the ENTRY TYPE of the framework-universal
+ * `meters` segment, which is contribution DATA an Uplink writes and the
+ * contract therefore has to name. `MeterProps` minus the styling.
+ *
+ * The tree already wrote this slot twice, once as data and once as React:
+ * `ship-map.part-meters` is a typed widget-owned slot of exactly this shape,
+ * and a per-crew-row survival augment was a `Stack` of `Meter` and nothing
+ * else, i.e. zero pixels its host did not already own. This segment is what
+ * lets the second kind stop being React.
+ */
+export interface MeterEntry {
+  /** Stable id, unique within the contributing Uplink. */
+  id: string;
+  /** Short label above the bar; also the meter's accessible name. */
+  label: string;
+  /** Fill fraction, 0..1. */
+  value: number;
+  /** Semantic colour of the fill. Inlined for the reason `BadgeEntry.tone` is. */
+  tone?: "neutral" | "go" | "warn" | "nogo" | "info";
+  /** Text on the right of the header; a percentage when absent. */
+  valueLabel?: string;
+  /**
+   * Which ROW of the host widget this meter belongs beside, when the host
+   * renders a list: a kerbal's name, a part id. Absent for a whole-widget
+   * meter. This is what lets a once-per-widget segment address a row, the one
+   * thing an augment segment cannot do, and it is why a per-row stack of bars
+   * is a contribution rather than an augment.
+   */
+  row?: string;
+}
+
 export interface ComponentSlotRegistry {
   /**
    * The framework-universal filter segment: a contribution is a pre-filled
@@ -252,6 +287,13 @@ export interface ComponentSlotRegistry {
    * surfaced it, in three Uplink badge files at once.
    */
   badges: BadgeEntry;
+  /**
+   * The framework-universal meter segment: a contribution is one labelled 0..1
+   * bar, optionally addressed at a row of the host's list. Host-invariant for
+   * the same reason `badges` is, a meter means the same thing in any widget,
+   * and rendered by ui-kit's own `WidgetMeters`.
+   */
+  meters: MeterEntry;
 }
 
 /** Every segment declared as a host-invariant component slot. */

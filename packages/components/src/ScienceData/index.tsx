@@ -216,7 +216,7 @@ function ScienceDataComponent({
 // capacity, transmit/delete/flag controls). This widget carries no drive
 // concept itself, Kerbalism is the only model that has one; a stock save
 // leaves the slot unbound and the row renders exactly as it does today. The
-// `subjectId` is identity only, matching `crew-status.survival`'s per-row
+// `subjectId` is identity only, matching `crew-status.row-badges`'s per-row
 // keying: the filling augment reads its own data (`science.experiments`)
 // and joins by this id rather than being handed the row's fields directly.
 // ---------------------------------------------------------------------------

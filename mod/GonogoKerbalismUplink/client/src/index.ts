@@ -105,7 +105,7 @@ import "./processor";
 import "./ShipSystems";
 import "./ShipSystems/badge";
 // CrewStatus's per-kerbal survival: a Processor (CrewSurvival/processor.ts),
-// the `crew-status.survival` augment that renders it into the BASE widget's
+// the `crew-status.meters` contribution that carries it into the BASE widget's
 // (packages/components/src/CrewStatus) own slot, and the panel badge off
 // the same Processor. Per-kerbal survival is a Kerbalism concept and never
 // belonged in the base widget itself, see that widget's own doc comment on
@@ -141,7 +141,7 @@ import "./ResourceOps/processFilters";
 import "./ScienceFileManager";
 
 // The CrewSurvival Processor handle + its result types, the single per-frame
-// derivation the `crew-status.survival` augment and its badge both consume.
+// derivation the survival meters, the per-row badge and the panel badge all consume.
 export {
   CREW_SURVIVAL,
   type CrewSurvival,

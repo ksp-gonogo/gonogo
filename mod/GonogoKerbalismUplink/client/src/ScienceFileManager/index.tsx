@@ -105,7 +105,7 @@ function DriveCapacity({ ext }: { ext: KerbalismScienceExperimentExt }) {
  * The `science-data.aboard-row` augment: Kerbalism's File Manager, one
  * instance per Aboard subject. Joins its own `science.experiments` read
  * against the row's `subjectId` (the base widget hands over identity only,
- * never the drive data itself, matching `crew-status.survival`'s pattern),
+ * never the drive data itself, matching `crew-status.row-badges`'s pattern),
  * and renders the applicable verbs per kind: a file gets Send (reversible,
  * reflects `sendFlagged`) and Delete (irreversible); a sample gets Analyze
  * (reversible, reflects the `analyze` flag), Dump (irreversible), and Move

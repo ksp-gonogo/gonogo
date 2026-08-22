@@ -15,7 +15,8 @@ import { KERBALISM } from "../uplink";
 // This is the derivation that used to live INLINE in CrewStatus
 // (`packages/components`), contaminating the vanilla base widget with a
 // Kerbalism-specific read. It now lives here, the Kerbalism Uplink's own
-// Processor, consumed by the `crew-status.survival` augment (index.tsx)
+// Processor, consumed by the `crew-status.meters` contribution (meters.ts),
+// the per-row badge augment (index.tsx)
 // and the panel badge (badge.ts): one per-frame derivation, two consumers,
 // same dogfood pattern as `SHIP_SYSTEMS`/`ship-systems-badge`.
 //

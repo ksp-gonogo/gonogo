@@ -1,12 +1,13 @@
 import { clearAugments, registerAugment } from "@ksp-gonogo/core";
 import { act, render, screen, waitFor, within } from "@ksp-gonogo/test-utils";
+import { ContributionsPanelStore, WidgetMetaContext } from "@ksp-gonogo/ui-kit";
+import type { ReactNode } from "react";
 import { afterEach, describe, expect, it } from "vitest";
 import { setupStreamFixture } from "../test/setupStreamFixture";
 import {
   type CrewAvatarContext,
   type CrewBadgeContext,
   CrewStatusComponent,
-  type CrewSurvivalSlotContext,
 } from "./index";
 
 /**
@@ -51,13 +52,43 @@ function newFixture() {
   });
 }
 
-function renderCrew(fixture: ReturnType<typeof newFixture>) {
+function renderCrew(
+  fixture: ReturnType<typeof newFixture>,
+  meters: readonly unknown[] = [],
+) {
   const { unmount } = render(
     <fixture.Provider>
-      <CrewStatusComponent config={{}} id="crew" />
+      {/* The identity the dashboard supplies, plus a seeded contribution store:
+          the per-row survival meters arrive through the framework's universal
+          `crew-status.meters` segment, which resolves its slot id from this
+          meta. Seeded directly rather than through the aggregation, which would
+          mean standing up an Uplink to test a roster. */}
+      <WidgetMetaContext.Provider
+        value={{ componentId: "crew-status", contributionSlots: [] }}
+      >
+        <ContributionsPanelStore.Provider>
+          <SeedMeters entries={meters}>
+            <CrewStatusComponent config={{}} id="crew" />
+          </SeedMeters>
+        </ContributionsPanelStore.Provider>
+      </WidgetMetaContext.Provider>
     </fixture.Provider>,
   );
   renderedTrees.push(unmount);
+}
+
+function SeedMeters({
+  entries,
+  children,
+}: {
+  entries: readonly unknown[];
+  children: ReactNode;
+}) {
+  const store = ContributionsPanelStore.useStore();
+  if (store && store.getSnapshot().length === 0) {
+    store.register({ id: "crew-status.meters", entries });
+  }
+  return <>{children}</>;
 }
 
 afterEach(() => {
@@ -436,13 +467,16 @@ describe("CrewStatusComponent, de-contaminated from Kerbalism", () => {
 });
 
 /**
- * The `crew-status.survival` per-row slot: the generic home a Kerbalism (or
- * any other) Uplink fills with per-kerbal survival state. Same per-row
- * keying as `.badges`/`.avatar` above; this suite builds only the slot +
- * empty-composes-to-nothing contract, matching those siblings' own tests.
+ * Per-row survival meters. Not a widget-authored slot any more: each roster row
+ * draws ui-kit's `WidgetMeters` for the framework-universal `crew-status.meters`
+ * CONTRIBUTION segment, addressed at that kerbal by the entry's own `row`.
+ *
+ * The old `crew-status.survival` augment slot was filled by a component whose
+ * entire render was a stack of the kit's own `Meter`, i.e. zero pixels this
+ * widget did not already own; as data the host can count, order and place them.
  */
-describe("CrewStatusComponent, survival slot", () => {
-  it("renders nothing extra per row when no survival augment is bound", async () => {
+describe("CrewStatusComponent, per-row survival meters", () => {
+  it("renders nothing extra per row when nothing is contributed", async () => {
     const fixture = newFixture();
     renderCrew(fixture);
     act(() => {
@@ -456,22 +490,29 @@ describe("CrewStatusComponent, survival slot", () => {
       expect(screen.getByText("Jebediah Kerman")).toBeInTheDocument(),
     );
     expect(screen.getByText("Bill Kerman")).toBeInTheDocument();
-    expect(screen.queryByTestId("crew-survival")).not.toBeInTheDocument();
+    expect(screen.queryByRole("meter")).not.toBeInTheDocument();
   });
 
-  it("composes a bound crew-status.survival augment once per row, carrying each kerbal's identity", async () => {
-    registerAugment<"crew-status.survival">({
-      id: "test-crew-survival",
-      augments: "crew-status.survival",
-      component: ({ crewName, crewIndex }: CrewSurvivalSlotContext) => (
-        <span data-testid="crew-survival" data-index={crewIndex}>
-          {crewName} survival
-        </span>
-      ),
-    });
-
+  it("puts each contributed meter in the row its `row` names", async () => {
     const fixture = newFixture();
-    renderCrew(fixture);
+    renderCrew(fixture, [
+      {
+        id: "jeb:dose",
+        label: "Radiation dose",
+        value: 0.4,
+        tone: "warn",
+        valueLabel: "40%",
+        row: "Jebediah Kerman",
+      },
+      {
+        id: "bill:stress",
+        label: "Stress",
+        value: 0.1,
+        tone: "go",
+        valueLabel: "10%",
+        row: "Bill Kerman",
+      },
+    ]);
     act(() => {
       fixture.emit("vessel.crew", {
         count: 2,
@@ -480,17 +521,20 @@ describe("CrewStatusComponent, survival slot", () => {
       });
     });
 
-    const rows = await screen.findAllByTestId("crew-survival");
-    expect(rows).toHaveLength(2);
-    expect(rows.map((r) => r.textContent)).toEqual([
-      "Jebediah Kerman survival",
-      "Bill Kerman survival",
-    ]);
+    await screen.findByRole("meter", { name: "Radiation dose" });
     const billRow = screen.getByText("Bill Kerman").closest("li");
     expect(billRow).not.toBeNull();
+    // Bill's row has HIS meter and not Jebediah's: a per-row extension that
+    // pooled every kerbal's meters into one stack would pass a "both rendered"
+    // assertion and be attributed to nobody.
     expect(
-      within(billRow as HTMLElement).getByTestId("crew-survival"),
-    ).toHaveTextContent("Bill Kerman survival");
+      within(billRow as HTMLElement).getByRole("meter", { name: "Stress" }),
+    ).toBeInTheDocument();
+    expect(
+      within(billRow as HTMLElement).queryByRole("meter", {
+        name: "Radiation dose",
+      }),
+    ).toBeNull();
   });
 });
 

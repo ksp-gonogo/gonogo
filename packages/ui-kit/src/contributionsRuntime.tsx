@@ -326,12 +326,13 @@ export function ContributionsProvider({
 
 // Framework-universal segments aggregated for EVERY widget, on top of whatever
 // it declared, so a component that owns one of these slots (a mounted
-// `FilterList`, a badge) gets its contributions without the host widget writing
-// anything. `badges` is the original auto-slot (spec §13.2); `filters` is the
-// component-extension-slot generalisation, completed the same `${componentId}.
-// ${segment}` way. A widget that also lists one of these in `contributionSlots`
-// is harmlessly deduped below.
-const FRAMEWORK_SEGMENTS = ["badges", "filters"] as const;
+// `FilterList`, a badge, a meter stack) gets its contributions without the host
+// widget writing anything. `badges` is the original auto-slot (spec §13.2);
+// `filters` is the component-extension-slot generalisation and `meters` its
+// second instance, both completed the same `${componentId}.${segment}` way. A
+// widget that also lists one of these in `contributionSlots` is harmlessly
+// deduped below.
+const FRAMEWORK_SEGMENTS = ["badges", "filters", "meters"] as const;
 
 function ContributionsAggregation({ children }: { children?: ReactNode }) {
   const meta = useWidgetMeta();
