@@ -73,14 +73,24 @@
   <!-- The arm's-length compile surface a third-party uplink needs, plus this
        Uplink's own contract slice for the flight-plan payload. NO reference to
        any Principia assembly, by design: every Principia member is reached by
-       reflection. -->
+       reflection.
+
+       The two references differ in Private, and the difference is what gets
+       deployed. Sitrep.Contract is provided at runtime by gonogo-core's own
+       Plugins folder, so Private="false" keeps it out of this project's output.
+       GonogoPrincipiaUplink.Contract is the opposite case: it holds THIS
+       Uplink's wire payloads (PrincipiaPlan, PrincipiaFlightPlan,
+       PrincipiaSettings and the args types), nothing else in the mod ships it,
+       and PlanReader / PrincipiaFrame / PrincipiaSession bind those types at
+       compile time. Marked Private="false" it never reached bin/Release, so
+       there was nothing for a deploy to copy and KSP would have dropped the
+       whole Uplink on a failed assembly resolve. It takes the default, the same
+       as every sibling Uplink's own contract slice. -->
   <ItemGroup>
     <ProjectReference Include="..\Sitrep.Contract\Sitrep.Contract.csproj">
       <Private>false</Private>
     </ProjectReference>
-    <ProjectReference Include="..\GonogoPrincipiaUplink.Contract\GonogoPrincipiaUplink.Contract.csproj">
-      <Private>false</Private>
-    </ProjectReference>
+    <ProjectReference Include="..\GonogoPrincipiaUplink.Contract\GonogoPrincipiaUplink.Contract.csproj" />
   </ItemGroup>
 
 </Project>
