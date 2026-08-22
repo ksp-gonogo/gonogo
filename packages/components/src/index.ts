@@ -25,6 +25,7 @@ export * from "./Graph";
 export * from "./KeplerPeriod";
 export * from "./LandingStatus";
 export * from "./LaunchDirector";
+export * from "./LibrationPoints";
 export * from "./ManeuverPlanner";
 export * from "./ManeuverPlanner/planning";
 export * from "./ManeuverPlanner/presets";
