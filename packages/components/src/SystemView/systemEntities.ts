@@ -34,10 +34,25 @@ import { bodyPosition, orbitEllipseGeometry } from "./SystemDiagram";
 
 export type SystemEntityEmphasis = "faint" | "normal" | "bright";
 
+/** Semantic weight a contributor can name: the host maps it to a hue. */
+export type SystemEntitySeverity = "info" | "warn" | "critical";
+
 export interface SystemEntityStyle {
   /** Defaults to "normal" when omitted. */
   emphasis?: SystemEntityEmphasis;
-  /** CSS colour (a `var(--...)` token or a literal); overrides the emphasis default. */
+  /**
+   * What this entity MEANS, when it means more than "here it is": the host
+   * turns it into a hue. A contributor names a severity and never a colour,
+   * so a palette change reaches every contributed entity at once and an
+   * Uplink cannot hard-code a token that stops matching the theme.
+   */
+  severity?: SystemEntitySeverity;
+  /**
+   * A resolved CSS colour, overriding both of the above. For the HOST's own
+   * `decorate` hook, which already knows the palette (SystemView tints a
+   * selected vessel's route by its comms quality this way). A contribution
+   * names `severity` instead.
+   */
   colour?: string;
 }
 
@@ -258,6 +273,12 @@ function effectiveLayer(entity: SystemEntity): number {
 
 // ── Style resolution ──────────────────────────────────────────────────────
 
+const SEVERITY_COLOUR: Readonly<Record<SystemEntitySeverity, string>> = {
+  info: "var(--color-status-info-fg)",
+  warn: "var(--color-status-warning-fg-muted)",
+  critical: "var(--color-status-nogo-fg)",
+};
+
 const EMPHASIS_COLOUR: Readonly<Record<SystemEntityEmphasis, string>> = {
   faint: "var(--color-text-faint)",
   normal: "var(--color-status-info-fg)",
@@ -271,7 +292,9 @@ const EMPHASIS_OPACITY: Readonly<Record<SystemEntityEmphasis, number>> = {
 };
 
 function resolveColour(style: SystemEntityStyle): string {
-  return style.colour ?? EMPHASIS_COLOUR[style.emphasis ?? "normal"];
+  if (style.colour != null) return style.colour;
+  if (style.severity != null) return SEVERITY_COLOUR[style.severity];
+  return EMPHASIS_COLOUR[style.emphasis ?? "normal"];
 }
 
 function resolveOpacity(style: SystemEntityStyle): number {

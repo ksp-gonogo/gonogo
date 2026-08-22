@@ -79,9 +79,14 @@ export interface ShipMapPartMetaEntry {
 
 export type SystemEntityEmphasis = "faint" | "normal" | "bright";
 
-/** Mirrors `SystemEntityStyle`. */
+/** Mirrors `SystemEntitySeverity`. */
+export type SystemEntitySeverity = "info" | "warn" | "critical";
+
+/** Mirrors `SystemEntityStyle`. A contribution names `emphasis` and
+ *  `severity`; `colour` is the host's own decoration channel. */
 export interface SystemEntityStyle {
   emphasis?: SystemEntityEmphasis;
+  severity?: SystemEntitySeverity;
   colour?: string;
 }
 
