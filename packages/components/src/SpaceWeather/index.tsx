@@ -171,12 +171,13 @@ function useSpaceWeather(): SpaceWeatherRead {
     : t.stormIncoming
       ? "incoming"
       : "none";
-  // FUTURE: storm-ETA countdown. The mod emits storm PRESENCE only
-  // (stormIncoming/stormInProgress bools, KerbalismCapture.cs): no onset/clear
-  // clock: so the timeline renders the phase WITHOUT a numeric countdown. A
-  // real countdown needs a mod-side storm-onset clock (Kerbalism tracks storm
-  // timing internally / reflectable) surfaced on the Topic; the UI was designed
-  // for it, the data isn't wired. Tracked in local_docs/feature_log/.
+  /**
+   * The timeline renders the storm phase without a numeric countdown, because
+   * the mod emits storm PRESENCE only: `stormIncoming` and `stormInProgress`
+   * are bools and there is no onset or clear clock behind them. A countdown
+   * would need a mod-side storm-onset clock on the Topic, which Kerbalism
+   * tracks internally but does not currently surface.
+   */
   // Reported per second, read per hour: a scale change the registry knows,
   // rather than a bare 3600 sitting next to a comment saying which end it is.
   const radiationRadPerHour = value(

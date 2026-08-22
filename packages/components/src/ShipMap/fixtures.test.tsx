@@ -11,16 +11,10 @@ import {
 } from "./shipTopology";
 
 /**
- * Fixture-driven scaffolding for Ship Map snapshot tests.
- *
- * Each fixture is a raw `v.topology` payload captured from a live KSP
- * session 2026-05-15. The tests below assert the *invariants* the
- * fixtures encode: they don't yet do full DOM snapshots; that work is
- * still pending. For now they at least pin the wire-shape
- * contract so future fixture captures can be validated.
- *
- * See `local_docs/2026-05-16-phase-2-shipmap-handoff.md` for the
- * intended follow-on work that extends these.
+ * Fixture-driven scaffolding for Ship Map snapshot tests. Each fixture is a raw
+ * topology payload captured from a live KSP session, and the tests below assert
+ * the invariants those fixtures encode rather than rendering them: they pin the
+ * wire shape, so a future fixture capture can be validated against it.
  */
 
 interface Fixture {

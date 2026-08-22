@@ -4,12 +4,9 @@
  * `FogReveal/scanDecode.ts` / `FogReveal/useScanLayers.ts` / decode+sync
  * hooks, and by `Scanning`/`AnomalyOverlay`/`Minimap` here.
  *
- * `packages/core/src/schemas/scansat.ts` still holds a duplicate copy for
- * `packages/components`'s MapView (not yet migrated off it) and
- * `packages/core/src/schemas/telemachus.ts` (still-shipped legacy
- * Telemachus `scan.*` keys): see T9 in
- * `docs/superpowers/plans/2026-07-18-mapview-overlay-host-foundation.md`
- * for the deletion of that copy once MapView's augment migration lands.
+ * `packages/core/src/schemas/scansat.ts` still holds a duplicate copy, for
+ * `packages/components`'s MapView, which has not yet migrated off it. That copy
+ * goes when MapView's augment migration lands.
  */
 
 /**

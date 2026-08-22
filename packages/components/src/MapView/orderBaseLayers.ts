@@ -1,6 +1,5 @@
-// Draw-order for MapView's stackable `map-view.base` layers (spec:
-// local_docs/spec-mapview-stackable-layers.md §2: "Draw order: group by
-// Uplink, then honour each Uplink's own declared order within its group").
+// Draw-order for MapView's stackable `map-view.base` layers: group by Uplink,
+// then honour each Uplink's own declared order within its group.
 //
 // `getAugmentsForSlot("map-view.base")` already returns a flat list sorted
 // by ascending `priority` (ties in registration order), a GLOBAL sort that

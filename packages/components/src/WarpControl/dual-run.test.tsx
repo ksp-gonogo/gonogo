@@ -18,11 +18,11 @@ import rails from "./__fixtures__/rails-warp-1000x.json";
 import { WarpControlComponent } from "./index";
 
 /**
- * WarpControl's stream render golden. This began life as a
- * fork↔stream byte-identical dual-run; with WarpControl de-Telemachus'd,
- * the widget no longer has a legacy read path to compare against, so the
- * legacy leg is gone (the id='data' MockDataSource legacy comparison was
- * dropped).
+ * WarpControl's stream render golden. This began life as a byte-identical
+ * dual-run against the retired legacy read path; the widget no longer has one,
+ * so there is nothing to compare against and the `id='data'` MockDataSource leg
+ * is gone.
+ *
  * What remains proves the widget renders the full warp state correctly off
  * the real stream pipeline (`TelemetryProvider` + `TelemetryClient`/
  * `TimelineStore`).

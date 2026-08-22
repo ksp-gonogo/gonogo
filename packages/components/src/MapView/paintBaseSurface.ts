@@ -1,8 +1,8 @@
 // Background paint for MapView's world canvas.
 //
 // The map is a BACKGROUND, with everything else (overlays, POIs, trajectory,
-// vessel marker) drawn on top of it. `map-view.base` is a STACKABLE slot
-// (local_docs/spec-mapview-stackable-layers.md): any number of augments may
+// vessel marker) drawn on top of it. `map-view.base` is a STACKABLE slot:
+// any number of augments may
 // each contribute a canvas, and every currently-active one is composited in
 // draw order: this module doesn't decide that order (see orderBaseLayers.ts)
 // or which augments count as "active" (that's config/settings, resolved by

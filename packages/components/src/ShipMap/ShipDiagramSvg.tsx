@@ -1028,8 +1028,7 @@ function renderPartShape(
 
 /**
  * `ShipMapPartMeterEntry.status` -> a border/tint colour, deliberately NOT
- * a fill hue (design doc: local_docs/design/2026-08-08-resource-colour-
- * system.md, gonogo main repo). The fill itself is the resource's IDENTITY
+ * a fill hue. The fill itself is the resource's IDENTITY
  * colour (`resourceColor(m.resource)` below); this is the SEPARATE status
  * signal, painted as a stroke around the bar's track rather than blended
  * into the fill, so "what resource is this" and "how is it doing" stay two

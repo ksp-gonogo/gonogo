@@ -477,8 +477,8 @@ describe("TargetPickerComponent: Suggested + categorised list", () => {
 
   it("treats a cleared target as no target in compact mode", () => {
     // Replaces a test that emitted the string "No Target Selected." and asserted
-    // the widget hid it. That was Telemachus's sentinel for a null target, and no
-    // producer can generate it: `KspHost.BuildTarget` returns null before `name`
+    // the widget hid it. That was the retired data source's sentinel for a null
+    // target, and no producer can generate it: `KspHost.BuildTarget` returns null before `name`
     // is ever read, and `vessel.target` is declared `absenceIsData`, so a cleared
     // target arrives as the tombstone below. The old test asserted behaviour
     // against synthetic input, and the translator it was protecting is deleted.

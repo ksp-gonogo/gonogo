@@ -107,8 +107,8 @@ describe("DistanceToTarget: pending is no longer reported as a confirmed absence
 // sentinel a third encoding of absence that the wire could produce. It cannot:
 // `KspHost.BuildTarget` returns null before `name` is read, and `vessel.target`
 // is declared `absenceIsData`, so the only thing a cleared target produces is the
-// tombstone the test above already covers. The string was Telemachus's, and
-// Telemachus stopped being the data source in 806e7fe2.
+// tombstone the test above already covers. The string belonged to the legacy
+// data source, which was retired in 806e7fe2.
 //
 // So the fixture that taught me the "lesson" was itself preserving a dead
 // producer's vocabulary, which is the trap in miniature: a fixture is not

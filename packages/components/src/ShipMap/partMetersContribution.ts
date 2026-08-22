@@ -28,16 +28,11 @@ import type { ShipMapPartMeterEntry } from "./shipTopology";
 // ---------------------------------------------------------------------------
 
 /**
- * The five classic drainable propellants this contribution watches. Used
- * to be a `Record<string, MeterTone>` that ALSO doubled as each resource's
- * fill colour, five bespoke CSS-var picks standing in for "what is this
- * resource" (see the design doc, `local_docs/design/2026-08-08-resource-
- * colour-system.md`, for the full case against that conflation): a fixed
- * per-resource tone with no reference at all to how full the tank actually
- * was. The fill colour is now the resource's IDENTITY
- * (`resourceColor(resource)`, derived by the renderer straight from
- * `resource`, not carried on this entry at all), so this contribution only
- * needs to name which resources earn a meter; `statusFor` below supplies
+ * The five classic drainable propellants this contribution watches. This names
+ * which resources earn a meter and nothing more: the fill colour is the
+ * resource's IDENTITY (`resourceColor(resource)`, derived by the renderer
+ * straight from `resource`, not carried on this entry at all), so it is not a
+ * colour choice, and `statusFor` below supplies
  * the SEPARATE, level-driven status signal that tone used to stand in for.
  */
 const DRAINABLE_RESOURCES = [

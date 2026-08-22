@@ -10,7 +10,7 @@ import { type OrbitScenario, renderOrbitViewStream } from "./streamHarness";
  * the SDK stream now, so these render through a real `TelemetryProvider` via
  * `renderOrbitViewStream`: the shared legacy `MockDataSource`
  * `snapshotWidgetMode` harness no longer feeds a stream-only widget. Scenarios
- * mirror the former Telemachus fixtures as `vessel.orbit` element sets (the
+ * mirror the retired legacy fixtures as `vessel.orbit` element sets (the
  * apsis radii / true anomaly / body name are derived off the stream, not
  * hand-authored). The view clock is pinned at UT 0 for deterministic
  * propagation. Stream reads settle one frame after the emit, so each snapshot

@@ -124,10 +124,7 @@ describe("ShipMap: self-contribution unify (spec §13.4)", () => {
 
   it("paints each resource's identity colour (resourceColor), not a shared MeterTone CSS var", async () => {
     const { container } = await renderShipMap();
-    // Design doc (local_docs/design/2026-08-08-resource-colour-system.md):
-    // the fill is the resource's own identity colour now, derived straight
-    // from `resourceColor`, not a five-value MeterTone CSS var shared across
-    // unrelated resources.
+    // The fill is the resource's own identity colour, derived straight from `resourceColor`, not a five-value MeterTone CSS var shared across unrelated resources.
     const fills = Array.from(container.querySelectorAll("rect")).map((r) =>
       r.getAttribute("fill"),
     );

@@ -22,8 +22,7 @@ const NO_META: readonly ShipMapPartMetaEntry[] = [];
  * `ShipDiagramSvg`'s own `STATUS_BORDER`: a resource meter's fill is its
  * identity colour (`resourceColor`) regardless of level, status is drawn as
  * a separate ring around the compact meter rather than blended into the
- * fill hue (design doc: local_docs/design/2026-08-08-resource-colour-
- * system.md, gonogo main repo).
+ * fill hue.
  */
 const STATUS_OUTLINE: Record<"low" | "critical", string> = {
   low: "var(--color-status-warning-bg)",

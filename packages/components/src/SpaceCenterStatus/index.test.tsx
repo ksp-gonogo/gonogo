@@ -331,8 +331,7 @@ describe("parseFacilityLevels", () => {
       unknownFacility: { level: 1, max: 3 },
       launchPad: { level: 0, max: 3 },
     });
-    // currentLevelText / nextLevelText default to empty strings when the
-    // older Telemachus DLL doesn't emit them (pre-2026-05-13).
+    // currentLevelText / nextLevelText default to empty strings when the producer does not emit them.
     expect(parsed).toEqual({
       vab: {
         level: 1,

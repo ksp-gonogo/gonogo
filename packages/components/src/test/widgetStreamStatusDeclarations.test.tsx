@@ -8,7 +8,7 @@ import { setupStreamFixture } from "./setupStreamFixture";
  * What a widget is allowed to write in `dataRequirements` and still get a
  * panel badge.
  *
- * The hook used to accept exactly two shapes: a legacy Telemachus key, or a
+ * The hook used to accept exactly two shapes: a flat legacy key, or a
  * two-segment `TopicId`. Neither is what a migrated widget wants to say. The
  * modern spelling of `career.funds` is the field subtopic
  * `career.status.economy.funds`, which is not a `TopicId` (`isTopicId` covers
