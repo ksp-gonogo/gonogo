@@ -205,6 +205,43 @@ namespace GonogoPrincipiaUplink.Tests
             Assert.Equal(observed, result.DetectedVersion);
         }
 
+        /// <summary>
+        /// The name is asserted as a LITERAL, never through the constant. Every
+        /// other case here builds its double with
+        /// <c>new FakeAdapterAssembly(PrincipiaVersionGuard.AssemblyName, …)</c>,
+        /// which feeds the subject its own answer: the assertion then holds for
+        /// any value of the constant, right or wrong. It was wrong. It read
+        /// <c>ksp_plugin_adapter</c> while the shipped adapter is
+        /// <c>principia.ksp_plugin_adapter</c>, so the guard said "Principia not
+        /// loaded" on an install where it was loaded, and this file was green
+        /// throughout.
+        ///
+        /// <para>The literal below was read off the installed
+        /// <c>ksp_plugin_adapter.dll</c> on the live rig, not reasoned about.</para>
+        /// </summary>
+        [Fact]
+        public void MatchesTheNameTheShippedAdapterReallyHas()
+        {
+            Assert.Equal("principia.ksp_plugin_adapter", PrincipiaVersionGuard.AssemblyName);
+
+            var shipped = new FakeAdapterAssembly(
+                "principia.ksp_plugin_adapter",
+                Version.Parse(PrincipiaVersionGuard.ObservedAdapterVersion));
+
+            Assert.True(
+                PrincipiaVersionGuard.Probe(shipped).IsAvailable,
+                "the guard refused the name the shipped adapter really carries, so every "
+                + "slice behind it stands down on a working install");
+
+            // The bare word must NOT pass, which is what makes the assertion above
+            // discriminating rather than merely true.
+            var bare = new FakeAdapterAssembly(
+                "ksp_plugin_adapter",
+                Version.Parse(PrincipiaVersionGuard.ObservedAdapterVersion));
+
+            Assert.False(PrincipiaVersionGuard.Probe(bare).IsAvailable);
+        }
+
         [Fact]
         public void AcceptsAnyVersionOfTheAdapter()
         {

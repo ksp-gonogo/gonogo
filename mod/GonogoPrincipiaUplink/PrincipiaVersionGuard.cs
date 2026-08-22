@@ -64,11 +64,23 @@ namespace GonogoPrincipiaUplink
     public static class PrincipiaVersionGuard
     {
         /// <summary>
-        /// The assembly Principia's KSP adapter ships as. Matched exactly rather
-        /// than by prefix: a prefix match would also accept an unrelated
-        /// assembly that merely starts with the same word.
+        /// The assembly Principia's KSP adapter ships as, verified against the
+        /// installed binary: the simple name carries the vendor prefix, so it is
+        /// <c>principia.ksp_plugin_adapter</c> and not the bare word. Matched
+        /// exactly rather than by prefix, because a prefix match would also
+        /// accept an unrelated assembly that merely starts the same way.
+        ///
+        /// <para>This constant read <c>ksp_plugin_adapter</c> for the whole life
+        /// of the Uplink, so the guard reported "Principia not loaded" on an
+        /// install where Principia was loaded, and every slice behind it stood
+        /// down. The tests could not catch it: they built their happy-path double
+        /// as <c>new FakeAdapterAssembly(PrincipiaVersionGuard.AssemblyName, …)</c>,
+        /// feeding the constant under test back into the subject, so the
+        /// assertion held for any value of it. See
+        /// <c>PrincipiaVersionGuardTests.MatchesTheNameTheShippedAdapterReallyHas</c>,
+        /// which asserts the literal instead.</para>
         /// </summary>
-        public const string AssemblyName = "ksp_plugin_adapter";
+        public const string AssemblyName = "principia.ksp_plugin_adapter";
 
         /// <summary>
         /// There is NO version gate, deliberately, and this is the one guard here
