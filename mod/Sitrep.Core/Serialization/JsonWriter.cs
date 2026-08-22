@@ -1291,6 +1291,10 @@ namespace Sitrep.Core.Serialization
             sb.Append(':');
             AppendString(sb, n.Id ?? "");
             sb.Append(',');
+            AppendString(sb, "displayName");
+            sb.Append(':');
+            AppendString(sb, n.DisplayName ?? "");
+            sb.Append(',');
             AppendString(sb, "kind");
             sb.Append(':');
             AppendInteger(sb, (long)n.Kind);

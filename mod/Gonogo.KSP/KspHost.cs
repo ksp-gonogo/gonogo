@@ -1541,7 +1541,8 @@ namespace Gonogo.KSP
         /// entry (primitives only, same discipline as every other Build*
         /// helper in this class): id/name/vesselType/situation/mainBody, plus
         /// the FleetRoster crew/comms capture-add (crewCount/crewCapacity/
-        /// commsConnected/commsControlSource).
+        /// commsConnected/commsControlSource), plus the vessel's own orbital
+        /// elements (see <see cref="AddRosterOrbitFields"/>).
         /// <c>mainBody</c> is the raw BODY NAME (not yet resolved to an
         /// index -- <c>SystemViewProvider.BuildSystemVessels</c> resolves it
         /// against <c>snapshot.Values["bodies"]</c>, same two-step pattern
@@ -1582,8 +1583,35 @@ namespace Gonogo.KSP
 
             AddRosterCrewFields(entry, vessel);
             AddRosterCommsFields(entry, vessel);
+            AddRosterOrbitFields(entry, orbit);
 
             return entry;
+        }
+
+        /// <summary>
+        /// This vessel's own orbital elements, same raw key set (and same
+        /// <c>SystemViewProvider.BuildOrbit</c> consumer) <see cref="BuildBodyEntry"/>
+        /// uses for a body's orbit: the join key that positions a roster
+        /// vessel, and a SystemView graph node keyed to it, client-side. Keys
+        /// are omitted entirely (never emitted as explicit nulls) when
+        /// <paramref name="orbit"/> is null, so <c>SystemViewProvider</c> maps
+        /// the whole thing to a null <c>OrbitEntry</c> rather than an
+        /// all-null one.
+        /// </summary>
+        private static void AddRosterOrbitFields(Dictionary<string, object?> entry, Orbit? orbit)
+        {
+            if (orbit == null)
+            {
+                return;
+            }
+
+            entry["sma"] = orbit.semiMajorAxis;
+            entry["ecc"] = orbit.eccentricity;
+            entry["inc"] = orbit.inclination;
+            entry["lan"] = orbit.LAN;
+            entry["argPe"] = orbit.argumentOfPeriapsis;
+            entry["meanAnomalyAtEpoch"] = orbit.meanAnomalyAtEpoch;
+            entry["epoch"] = orbit.epoch;
         }
 
         /// <summary>
@@ -3797,6 +3825,7 @@ namespace Gonogo.KSP
                 ["tidallyLocked"] = body.tidallyLocked,
                 ["hasOcean"] = body.ocean,
                 ["description"] = body.bodyDescription,
+                ["isHome"] = body.isHomeWorld,
                 // Atmosphere as FLAT keys (a nested dict here would need special
                 // handling across the RecordedSessionCodec JSON round-trip); the
                 // provider reassembles them into the nested wire object.

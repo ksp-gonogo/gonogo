@@ -641,7 +641,7 @@ async function renderOneWidget(
   console.log(`Rendered ${count} widget shots → ${outDir}`);
 }
 
-interface PreparePageOpts {
+export interface PreparePageOpts {
   /** esbuild entry point (probe-entry.tsx or screen-entry.tsx). */
   entry: string;
   /** HTML template path with the `probe-theme` style + script placeholder. */

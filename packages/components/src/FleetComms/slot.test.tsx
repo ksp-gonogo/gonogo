@@ -1,4 +1,5 @@
 import {
+  ContributionsProvider,
   getAugmentsForSlot,
   getContributionsForSlot,
   WidgetMetaContext,
@@ -8,6 +9,12 @@ import { expectNoA11yViolations } from "@ksp-gonogo/ui-kit/testing";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it } from "vitest";
 import { SystemViewComponent } from "../SystemView";
+// Side-effect import: registers the real `system-view-vessel-orbits`
+// contribution (the fleet plus the comms.network relay graph), the same
+// shape-contribution model the Commlinks/Traffic toggles below now gate,
+// matching `commsNetworkContribution.integration.test.tsx` and
+// `commsTraffic.integration.test.tsx`'s own style.
+import "../SystemView/vesselOrbitsContribution";
 import { UNBOUNDED_HORIZON } from "../test/orbitHorizon";
 import {
   type StreamFixture,
@@ -18,28 +25,35 @@ import {
 // `registerComponent`): deliberately NOT cleared with `clearAugments()`
 // between tests the way `SystemView/slot.test.tsx` clears its ad-hoc,
 // per-test test-augments: there is nothing here to re-register between
-// tests, so clearing would just permanently empty both slots after the
+// tests, so clearing would just permanently empty the slot after the
 // first `it()`.
 import "./index";
 import { __resetFleetCommsTogglesForTests } from "./toggles";
 
 const KERBIN_MU = 3.5316e12;
 
+const META = {
+  componentId: "system-view",
+  contributionSlots: ["system-view.entities"] as const,
+};
+
 /**
- * Integration coverage for the Fleet/Comms augment (Phase 1 spine,
- * local_docs/design/specs/2026-07-15-system-view-fleet-comms-design.md):
- * registers into SystemView's real `system-view.overlay`/`system-view.actions`
- * slots and renders through the real host, same pattern
- * as `SystemView/slot.test.tsx`'s own test-augment cases. Pure projection/timing
- * math is covered by `projection.test.ts`/`pendingPulse.test.ts`; this file
- * proves the WIRING: the augment reads the right topics, anchors the
- * commlink line/pulses on the vessel's projected position without drawing a
- * second copy of `SystemDiagram`'s own vessel marker, and the two action
- * toggles actually gate what's drawn. The header link badge left this file
- * with the augment it used to be: it is a contribution now, covered end to
- * end by `./panel-badge.test.tsx`.
+ * Integration coverage for the Fleet/Comms augment after its comms drawing
+ * moved onto the contribution model
+ * (`local_docs/design/specs/2026-07-15-system-view-fleet-comms-design.md`
+ * described a `system-view.overlay` fill that drew its own straight-line
+ * comms path and command-traffic pulse). That fill is gone, superseded by
+ * the CommNet relay graph, the selected-path highlight and the graph-routed
+ * traffic pulses `SystemView`'s own `SystemEntitiesLayer` draws.
+ *
+ * This file proves what is left: the augment registers `.actions` and
+ * nothing else, the two toggles gate that model's connection-line and pulse
+ * entities rather than a second draw of their own, and the route and pulse
+ * each render EXACTLY ONCE with the toggles on, which is what would catch
+ * the duplicate draw coming back. The header link badge is a contribution
+ * now, covered end to end by `./panel-badge.test.tsx`.
  */
-describe("FleetComms: Phase 1 spine augment on SystemView", () => {
+describe("FleetComms: actions augment on SystemView, comms drawing on the contribution model", () => {
   let fixture: StreamFixture;
 
   beforeEach(() => {
@@ -48,9 +62,9 @@ describe("FleetComms: Phase 1 spine augment on SystemView", () => {
       carriedChannels: [
         "vessel.orbit",
         "vessel.identity",
-        "vessel.target",
         "system.bodies",
-        "comms.path",
+        "system.vessels",
+        "comms.network",
         "comms.link",
         "system.uplink.pending",
       ],
@@ -58,57 +72,62 @@ describe("FleetComms: Phase 1 spine augment on SystemView", () => {
     });
   });
 
+  /** Mounts SystemView framed on Kerbin with one active vessel directly
+   *  linked to home over one edge: the minimal scene a comms line needs a
+   *  route to draw on, wrapped in the real contribution providers the
+   *  shape-contribution model requires. */
   async function renderDiagram() {
     const result = render(
       <fixture.Provider>
-        {/* The identity the dashboard supplies: `Panel` completes
-            `${componentId}.${segment}` from it for the universal `sections`
-            and `actions` seams. */}
-        <WidgetMetaContext.Provider
-          value={{ componentId: "system-view", contributionSlots: [] }}
-        >
-          <SystemViewComponent config={{ frame: "Kerbin" }} id="sv" />
+        <WidgetMetaContext.Provider value={META}>
+          <ContributionsProvider>
+            <SystemViewComponent config={{ frame: "Kerbin" }} id="sv" />
+          </ContributionsProvider>
         </WidgetMetaContext.Provider>
       </fixture.Provider>,
     );
     act(() => {
+      // Kerbin carries `isHome`, which is what the graph's `"home"` node
+      // resolves against: without a flagged body there is no honest position
+      // for the ground station and the edge is omitted rather than guessed.
       fixture.emit("system.bodies", {
         bodies: [
           {
             index: 0,
-            name: "Kerbin",
+            name: "Kerbol",
             parentIndex: null,
-            radius: 600_000,
-            gravParameter: KERBIN_MU,
+            radius: 261_600_000,
+            gravParameter: 1.1723328e18,
             orbit: null,
           },
           {
             index: 1,
-            name: "Mun",
+            name: "Kerbin",
             parentIndex: 0,
-            radius: 200_000,
-            gravParameter: 6.5138398e10,
+            radius: 600_000,
+            gravParameter: KERBIN_MU,
+            isHome: true,
             orbit: {
-              sma: 12_000_000,
+              sma: 13_599_840_256,
               ecc: 0,
               inc: 0,
               lan: 0,
               argPe: 0,
-              meanAnomalyAtEpoch: 0,
-              epoch: 100,
+              meanAnomalyAtEpoch: 3.14,
+              epoch: 0,
             },
           },
         ],
       });
       fixture.emit("vessel.identity", {
-        vesselId: "v",
+        vesselId: "v-active",
         name: "Test Ship",
         vesselType: 0,
         situation: 3,
-        parentBodyIndex: 0,
+        parentBodyIndex: 1,
       });
       fixture.emit("vessel.orbit", {
-        referenceBodyIndex: 0,
+        referenceBodyIndex: 1,
         sma: 700_000,
         ecc: 0,
         inc: 0,
@@ -119,6 +138,33 @@ describe("FleetComms: Phase 1 spine augment on SystemView", () => {
         mu: KERBIN_MU,
         horizon: UNBOUNDED_HORIZON,
       });
+      fixture.emit("system.vessels", {
+        vessels: [
+          {
+            vesselId: "v-active",
+            name: "Test Ship",
+            vesselType: 0,
+            situation: 3,
+            bodyIndex: 1,
+            orbit: {
+              sma: 700_000,
+              ecc: 0,
+              inc: 0,
+              lan: 0,
+              argPe: 0,
+              meanAnomalyAtEpoch: 0,
+              epoch: 100,
+            },
+          },
+        ],
+      });
+      fixture.emit("comms.network", {
+        nodes: [
+          { id: "home", displayName: "KSC", kind: 0 },
+          { id: "v-active", displayName: "Test Ship", kind: 2 },
+        ],
+        edges: [{ a: "home", b: "v-active", active: true }],
+      });
     });
     await waitFor(() =>
       expect(screen.getAllByText("Kerbin").length).toBeGreaterThanOrEqual(1),
@@ -126,15 +172,13 @@ describe("FleetComms: Phase 1 spine augment on SystemView", () => {
     return result;
   }
 
-  it("registers both slot fills at module load", () => {
+  it("registers the actions augment and no overlay fill: the old straight-line draw is gone", () => {
     const overlay = getAugmentsForSlot("system-view.overlay");
     const actions = getAugmentsForSlot("system-view.actions");
-    expect(overlay.map((a) => a.id)).toContain("fleet-comms-overlay");
+    expect(overlay.map((a) => a.id)).not.toContain("fleet-comms-overlay");
     expect(actions.map((a) => a.id)).toContain("fleet-comms-actions");
   });
 
-  // The badge is no longer one of them, and this is what would catch a
-  // half-done migration that left the augment registered as well.
   it("no longer registers a badges augment", () => {
     expect(getAugmentsForSlot("system-view.badges")).toEqual([]);
   });
@@ -150,150 +194,28 @@ describe("FleetComms: Phase 1 spine augment on SystemView", () => {
     ).toContain("core:fleet-comms-badge");
   });
 
-  it("does not draw a second vessel dot on top of SystemDiagram's own marker (regression: 'green dots stacked in the centre')", async () => {
-    // Root cause of the live-reported bug: this augment used to render its
-    // OWN copy of the active-vessel dot at the exact same projected point
-    // `SystemDiagram.tsx`'s built-in `VesselMarker` already draws (both use
-    // the identical `--color-accent-fg` fill): two circles stacked exactly
-    // on top of each other, which a realistic low orbit projects only a few
-    // px from the diagram's origin, reading as duplicate dots sitting on the
-    // frame body itself. `SystemDiagram`'s marker fill is the only thing
-    // that should ever paint that colour once this augment has mounted.
-    await renderDiagram();
+  it("draws the active vessel's comms route exactly once, via the shape-contribution graph", async () => {
+    const { container } = await renderDiagram();
     await waitFor(() => {
       expect(
-        document.querySelectorAll('circle[fill="var(--color-accent-fg)"]'),
+        container.querySelectorAll(
+          '[data-entity-id="comms-edge:home:v-active"]',
+        ),
       ).toHaveLength(1);
     });
+    // No second, FleetComms-drawn line anywhere in the tree: the only
+    // `<line>` element is the one contributed edge.
+    expect(container.querySelectorAll("line")).toHaveLength(1);
   });
 
-  it("anchors the commlink line on the vessel's actual projected position, not the origin", async () => {
-    await renderDiagram();
-    act(() => {
-      fixture.emit("comms.link", { connected: true });
-      fixture.emit("comms.path", {
-        hops: [{ from: "Test Ship", to: "KSC", kind: 0 }],
-      });
-    });
-    await waitFor(() => {
-      // Scoped to this augment's own overlay `<svg>`: `SystemDiagram`'s own
-      // vessel marker can ALSO draw a `<line>` (a leader line back to the
-      // vessel's true position when its marker would otherwise land on the
-      // frame body's own dot), a bare `document.querySelector("line")`
-      // would happily match that one instead of the commlink line this
-      // test means to check.
-      const line = document.querySelector(
-        '[aria-label="Fleet and comms overlay"] line',
-      );
-      expect(line).toBeTruthy();
-      // x1/y1 is the diagram origin (the frame body); x2/y2 must be a
-      // distinct, non-zero point: i.e. the vessel's real projected
-      // position, not collapsed onto the origin.
-      const x2 = Number(line?.getAttribute("x2"));
-      const y2 = Number(line?.getAttribute("y2"));
-      expect(Number.isFinite(x2)).toBe(true);
-      expect(Number.isFinite(y2)).toBe(true);
-      expect(x2 !== 0 || y2 !== 0).toBe(true);
-    });
-  });
-
-  it("does not draw a commlink line when the vessel orbits a different body than the frame", async () => {
-    render(
-      <fixture.Provider>
-        {/* The identity the dashboard supplies: `Panel` completes
-            `${componentId}.${segment}` from it for the universal `sections`
-            and `actions` seams. */}
-        <WidgetMetaContext.Provider
-          value={{ componentId: "system-view", contributionSlots: [] }}
-        >
-          <SystemViewComponent config={{ frame: "Kerbin" }} id="sv" />
-        </WidgetMetaContext.Provider>
-      </fixture.Provider>,
-    );
-    act(() => {
-      fixture.emit("system.bodies", {
-        bodies: [
-          {
-            index: 0,
-            name: "Kerbin",
-            parentIndex: null,
-            radius: 600_000,
-            gravParameter: KERBIN_MU,
-            orbit: null,
-          },
-          {
-            index: 1,
-            name: "Mun",
-            parentIndex: 0,
-            radius: 200_000,
-            gravParameter: 6.5138398e10,
-            orbit: {
-              sma: 12_000_000,
-              ecc: 0,
-              inc: 0,
-              lan: 0,
-              argPe: 0,
-              meanAnomalyAtEpoch: 0,
-              epoch: 100,
-            },
-          },
-        ],
-      });
-      // Vessel orbits Mun (index 1), diagram frame is Kerbin, off-frame.
-      fixture.emit("vessel.identity", {
-        vesselId: "v",
-        name: "Test Ship",
-        vesselType: 0,
-        situation: 3,
-        parentBodyIndex: 1,
-      });
-      fixture.emit("vessel.orbit", {
-        referenceBodyIndex: 1,
-        sma: 50_000,
-        ecc: 0,
-        inc: 0,
-        lan: 0,
-        argPe: 0,
-        meanAnomalyAtEpoch: 0,
-        epoch: 100,
-        mu: 6.5138398e10,
-        horizon: UNBOUNDED_HORIZON,
-      });
-    });
-    await waitFor(() =>
-      expect(screen.getAllByText("Kerbin").length).toBeGreaterThanOrEqual(1),
-    );
-    // Scoped to this augment's own overlay `<svg>`, see the doc comment on
-    // the earlier "anchors the commlink line" test for why a bare "line"
-    // selector would also match SystemDiagram's own vessel-marker leader
-    // line (not present here regardless, the vessel is off-frame).
-    expect(
-      document.querySelector('[aria-label="Fleet and comms overlay"] line'),
-    ).toBeNull();
-  });
-
-  it("hides the commlink highlight when the Commlinks toggle is switched off", async () => {
+  it("hides the comms route when the Commlinks toggle is switched off, and restores it when switched back on", async () => {
     const user = userEvent.setup();
-    await renderDiagram();
-    act(() => {
-      fixture.emit("comms.link", { connected: true });
-      fixture.emit("comms.path", {
-        hops: [{ from: "Test Ship", to: "KSC", kind: 0 }],
-      });
-    });
-
-    // `getByTitle` only recognises a `<title>` child of the `<svg>` ROOT
-    // element, not one nested inside a shape element (`<line>`), so the
-    // commlink line's own `<title>` tooltip is asserted via a direct DOM
-    // query instead. Scoped to this augment's own overlay `<svg>` for the
-    // same reason as the earlier "anchors the commlink line" test.
-    await waitFor(() => {
+    const { container } = await renderDiagram();
+    await waitFor(() =>
       expect(
-        document.querySelector(
-          '[aria-label="Fleet and comms overlay"] line > title',
-        )?.textContent,
-      ).toBe("Test Ship -> KSC");
-    });
+        container.querySelector('[data-entity-id="comms-edge:home:v-active"]'),
+      ).not.toBeNull(),
+    );
 
     const commlinksButton = screen.getByRole("button", { name: "Commlinks" });
     expect(commlinksButton.getAttribute("aria-pressed")).toBe("true");
@@ -301,21 +223,22 @@ describe("FleetComms: Phase 1 spine augment on SystemView", () => {
     expect(commlinksButton.getAttribute("aria-pressed")).toBe("false");
     await waitFor(() => {
       expect(
-        document.querySelector('[aria-label="Fleet and comms overlay"] line'),
+        container.querySelector('[data-entity-id="comms-edge:home:v-active"]'),
       ).toBeNull();
+    });
+
+    await user.click(commlinksButton);
+    expect(commlinksButton.getAttribute("aria-pressed")).toBe("true");
+    await waitFor(() => {
+      expect(
+        container.querySelector('[data-entity-id="comms-edge:home:v-active"]'),
+      ).not.toBeNull();
     });
   });
 
-  it("draws a pending-uplink pulse while the Command Traffic toggle is on, and none once switched off", async () => {
+  it("draws a pending-uplink pulse exactly once while the Traffic toggle is on, and none once switched off", async () => {
     const user = userEvent.setup();
-    await renderDiagram();
-    // `useUtNow()` tracks the view clock's undelayed estimate, anchored off
-    // the `deliveredAt` of the most recently ingested sample ACROSS EVERY
-    // topic (`ViewClock.observeSample`): not `validAt`, and not this
-    // fixture's `pinnedUt` (that only affects `useViewUt()`'s DELAYED read).
-    // Overriding `deliveredAt: 95` here anchors `utNow` at 95 for the
-    // assertions below (dispatchedAt 90 + oneWaySeconds 5 = still in the
-    // outbound leg at t=95).
+    const { container } = await renderDiagram();
     act(() => {
       fixture.emit(
         "system.uplink.pending",
@@ -328,7 +251,7 @@ describe("FleetComms: Phase 1 spine augment on SystemView", () => {
               topic: "kos/1",
               vantage: "KSC",
               dispatchedAt: 90,
-              oneWaySeconds: 5,
+              oneWaySeconds: 1_000_000,
             },
           ],
         },
@@ -337,48 +260,29 @@ describe("FleetComms: Phase 1 spine augment on SystemView", () => {
     });
 
     await waitFor(() => {
-      // The gradient pulse dot is keyed by the entry id, assert via the
-      // gradient fill it uses (only present once a pulse actually renders).
       expect(
-        document.querySelector(
-          'circle[fill="url(#fleet-comms-pulse-gradient)"]',
+        container.querySelectorAll(
+          '[data-pulse-edge-id="comms-edge:home:v-active"]',
         ),
-      ).toBeTruthy();
+      ).toHaveLength(1);
     });
 
-    const trafficButton = screen.getByRole("button", {
-      name: "Traffic",
-    });
+    const trafficButton = screen.getByRole("button", { name: "Traffic" });
+    expect(trafficButton.getAttribute("aria-pressed")).toBe("true");
     await user.click(trafficButton);
-    expect(
-      document.querySelector('circle[fill="url(#fleet-comms-pulse-gradient)"]'),
-    ).toBeNull();
+    expect(trafficButton.getAttribute("aria-pressed")).toBe("false");
+    await waitFor(() => {
+      expect(container.querySelector("[data-pulse-edge-id]")).toBeNull();
+    });
   });
 
-  it("has no axe violations with both slots filled", async () => {
-    // `renderDiagram()` already mounts the diagram with both slots filled and
-    // its data emitted: a second mount of the same widget added nothing to
-    // scan, and left a tree that was still mid-first-frame while axe's long
-    // async traversal ran.
+  it("has no axe violations with the actions augment and the contributed graph rendered", async () => {
     const { container } = await renderDiagram();
-    act(() => {
-      fixture.emit("comms.link", { connected: true });
-      fixture.emit("comms.path", {
-        hops: [{ from: "Test Ship", to: "KSC", kind: 0 }],
-      });
-    });
-    // Settle the geometry first so the scan sees the drawn overlay rather than
-    // a half-built one.
-    await waitFor(() => {
+    await waitFor(() =>
       expect(
-        document.querySelector('[aria-label="Fleet and comms overlay"] line'),
-      ).toBeTruthy();
-    });
-    // The helper, not a bare `await axe(...)`: `comms.link` rides `useTelemetry`
-    // (the delayed `TimelineStore` frame), so the overlay keeps updating while
-    // axe walks the DOM, and awaited bare those updates land outside act. The
-    // badge used to be a later settle target that hid this; it is a contribution
-    // now and no longer in this tree.
+        container.querySelector('[data-entity-id="comms-edge:home:v-active"]'),
+      ).not.toBeNull(),
+    );
     await expectNoA11yViolations(container);
   });
 });

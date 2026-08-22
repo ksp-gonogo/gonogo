@@ -122,6 +122,11 @@ import "./CrewSurvival/summary";
 // widget stays in @ksp-gonogo/components for now (relocation is a later step);
 // only the Kerbalism-derived badge lives here.
 import "./SpaceWeather/badge";
+// The CME / solar-activity overlay: a contribution to SystemView's
+// `system-view.entities` slot off the same `kerbalism.spaceweather` Topic,
+// one faint blob per active storm. SystemView itself stays in
+// @ksp-gonogo/components and has no idea Kerbalism exists.
+import "./SystemViewCme/contribution";
 // ShipMap's self-contribution (spec §13.4): supply-tank part-meters and
 // fitted-process part-meta, on the SAME two slots the built-in `core`
 // contribution feeds (`packages/components/src/ShipMap/

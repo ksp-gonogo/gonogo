@@ -595,11 +595,11 @@ export const ALLOWLIST: Record<ModToken, ModAllowlist> = {
       // is NOT relisted here: see the 2026-07-29 systemview-overlays branch.
       "packages/components/src/FleetComms/pendingPulse.ts",
       "packages/components/src/FleetComms/slot.test.tsx",
-      // The `undefined.characterise.test.tsx` files pin what each widget does
-      // with absent telemetry, so they name the same domain tokens their widget
-      // does: a real topic id, a real wire value, or the widget's own copy. Same
-      // debt as the widget beside them, not new debt.
-      "packages/components/src/FleetComms/undefined.characterise.test.tsx",
+      // commsTraffic.integration.test.tsx exercises the same
+      // `system.uplink.pending` -> route pulse wiring, drawn on SystemView:
+      // its fixture also uses "kos.run" as a sample pending-command string,
+      // no real kOS import or coupling.
+      "packages/components/src/SystemView/commsTraffic.integration.test.tsx",
       "mod/GonogoKerbcastUplink/client/src/CameraFeed/CameraFeed.tsx",
       "mod/GonogoKerbcastUplink/client/src/CameraFeed/CameraFeed.test.tsx",
       "mod/Sitrep.Contract/Comms.cs",
@@ -1367,6 +1367,13 @@ export const ALLOWLIST: Record<ModToken, ModAllowlist> = {
       "packages/components/src/ShipMap/index.tsx",
       "packages/components/src/ShipMap/partMetersContribution.ts",
       "packages/components/src/ShipMap/shipTopology.ts",
+      // systemEntities.ts: the `travelling-pulse` shape's doc comment names
+      // Kerbalism's own storm-arrival UT/duration as the realistic EXAMPLE of
+      // where a contribution's `arriveUt`/`clearUt` come from, while
+      // documenting a mod-agnostic contract every contribution (not just
+      // Kerbalism's CME entry) implements. No kerbalism Topic, type or import
+      // is referenced.
+      "packages/components/src/SystemView/systemEntities.ts",
       // DivergingBar.tsx: the kit primitive credits the HTML prototype its
       // design was ported from, which happens to be named after the Domain it
       // was mocked for. A provenance citation.

@@ -15,10 +15,12 @@ import {
   type OrbitTrajectory,
   solveAnomalies,
   useFleetVesselSilence,
+  useLatestValue,
   useOrbitTrajectory,
+  useUtNow,
   useViewUt,
 } from "@ksp-gonogo/sitrep-client";
-import type { Value } from "@ksp-gonogo/sitrep-sdk";
+import type { PendingUplinkQueue, Value } from "@ksp-gonogo/sitrep-sdk";
 import {
   ConfigForm,
   Field,
@@ -31,11 +33,30 @@ import {
 } from "@ksp-gonogo/ui";
 import { FramedDisplay, NULL_DISPLAY } from "@ksp-gonogo/ui-kit";
 import type { CSSProperties } from "react";
-import { useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
+// FleetComms's `.actions` slot (Commlinks/Traffic toggles) now gates THIS
+// host's own shape-contribution render, not a second overlay draw:
+// reconciled the old straight-line comms overlay onto the graph/highlight/
+// pulse model built in Tasks 4-6, so the toggles moved with it. A pure
+// module-scoped store (no augment-only state), safe to read directly.
+import { useFleetCommsToggles } from "../FleetComms/toggles";
 import { quantiseUt } from "../MapView/predictionThrottle";
 import { TrajectoryWithheldNote } from "../shared/trajectoryWithheld";
 import { AlmanacPanel } from "./AlmanacPanel";
+import {
+  COMMS_PATH_COLOUR,
+  commsControlQuality,
+  deriveCommsPath,
+  NO_COMMS_PATH,
+} from "./commsPath";
+import { deriveTraffic, NO_TRAFFIC } from "./commsTraffic";
 import { SystemDiagram, vesselPlotStateFromStatus } from "./SystemDiagram";
+import { SystemEntitiesLayer } from "./SystemEntitiesLayer";
+import type { SystemEntityStyle } from "./systemEntities";
+// Side-effect import: the built-in vessel-orbits contribution self-registers
+// against `system-view.entities` on module load (same pattern as ShipMap's
+// `./partMetersContribution`).
+import "./vesselOrbitsContribution";
 import {
   angleDelta,
   hohmannPhaseAngle,
@@ -44,6 +65,7 @@ import {
 } from "./transferWindow";
 import { type CelestialBody, useCelestialBodies } from "./useCelestialBodies";
 import { usePhaseAngles } from "./usePhaseAngles";
+import { VesselInfoPanel } from "./VesselInfoPanel";
 // Side-effect import: registers the `system-view.vessel-status` built-in
 // contribution (the comms-derived silence reckoning for the plotted
 // vessel), on equal footing with any third-party Uplink contribution to the
@@ -353,6 +375,19 @@ function SystemViewComponent({
     targetReading.state === "observed" || targetReading.state === "stale"
       ? targetReading.value.name
       : undefined;
+  // Raw CommNet graph, read directly rather than through the contribution:
+  // the selection highlight walks it host-side to derive the SELECTED
+  // vessel's route home, a generic traversal over the same topic
+  // `vesselOrbitsContribution.ts` already draws as faint connection lines.
+  // A relay graph does not decay into meaninglessness, so a stale one still
+  // says what the topology last was, which is what the faint lines already
+  // assert.
+  const commsNetworkReading = useTelemetry("comms.network");
+  const commsNetwork =
+    commsNetworkReading.state === "observed" ||
+    commsNetworkReading.state === "stale"
+      ? commsNetworkReading.value
+      : undefined;
   // View-UT: the SDK view time the propagation already evaluates at
   // (`t.universalTime` was never a stream; it IS `sdk.view.ut()`).
   // `.magnitude` at the read. Everything below is geometry on a bare UT, and two
@@ -360,6 +395,152 @@ function SystemViewComponent({
   // which both answer NO for a wrapped value and would silently stop drawing the
   // arc with no type error at all.
   const universalTime = useViewUt()?.magnitude;
+  // Command traffic: TrueNow command-centre bookkeeping, same
+  // `useLatestValue`/`useUtNow` split `FleetComms` already rides for this
+  // exact topic (see that widget's class doc for why: dispatch-time facts,
+  // not delayed craft telemetry).
+  const pendingQueue = useLatestValue<PendingUplinkQueue>(
+    "system.uplink.pending",
+  );
+  const utNow = useUtNow();
+  // FleetComms's Commlinks/Traffic toggles: they used
+  // to gate that augment's own straight-line overlay draw; now they gate the
+  // relay-graph `connection-line` entities and the command-traffic pulses
+  // below, the shapes that superseded it.
+  const { showCommlinks, showCommandTraffic } = useFleetCommsToggles();
+
+  // Shape-contribution foundation: every `system-view.entities` contribution
+  // (vessel orbits, the CommNet graph, a future CME front, ...), aggregated
+  // and z-ordered by `SystemEntitiesLayer`, projected through the SAME
+  // auto-fit `overlayContext` an overlay augment already draws against
+  // (built further down). SystemView owns the one piece of dynamic state a
+  // contribution can't: which entity, if any, is selected.
+  const rawEntities = useContributions("system-view.entities");
+  // Suppress the active/framed vessel's own entry, but only while
+  // `SystemDiagram` actually has a dedicated bright ring to draw in its
+  // place: that ring comes from `vessel.orbit` (`vesselOrbit` below), a
+  // separate topic from `vessel.identity`. Gating on identity alone used to
+  // strand a hop endpoint with no marker at all whenever a caller carried
+  // identity (needed so command traffic, further down, knows which vessel
+  // it's routing to) without also carrying orbit: neither the dedicated ring
+  // nor the contributed faint one rendered. Host state, not contribution
+  // data: matched by `vesselId`, not by parsing a contribution-private `id`
+  // string.
+  //
+  // `showCommlinks` off drops every `connection-line` entity (the CommNet
+  // relay graph, `vesselOrbitsContribution.ts`'s `comms-edge:*` entries, and
+  // with them the selected-path highlight, since that's the SAME line
+  // decorated bright rather than a separate shape): the Commlinks toggle's
+  // new home.
+  const entities = useMemo(() => {
+    const withoutActiveVessel =
+      identity?.vesselId != null && orbit != null
+        ? rawEntities.filter((e) => e.vesselId !== identity.vesselId)
+        : rawEntities;
+    return showCommlinks
+      ? withoutActiveVessel
+      : withoutActiveVessel.filter((e) => e.shape.kind !== "connection-line");
+  }, [rawEntities, identity?.vesselId, orbit, showCommlinks]);
+  // `selectedVesselId` is keyed by the ACTIVATED ENTITY's own `id` (e.g.
+  // `vessel-orbit:<vesselId>`), not the bare vesselId: that's what the
+  // click/keyboard handler on `SystemEntitiesLayer` reports, and it's also
+  // exactly what `decorate` needs to match below. The selected entity's own
+  // `vesselId` field (read back via `selectedEntity`) is what CommNet path
+  // derivation needs instead, since a graph node's id IS a vessel's
+  // `vesselId`, not the contribution's own entity id string.
+  const [selectedVesselId, setSelectedVesselId] = useState<string | null>(null);
+  const handleEntityActivate = useCallback((id: string) => {
+    setSelectedVesselId((prev) => (prev === id ? null : id));
+  }, []);
+  const handleDeselect = useCallback(() => setSelectedVesselId(null), []);
+  // Escape-to-deselect: a DOCUMENT-level listener (same idiom as
+  // ActionMenu.tsx's outside-pointer dismiss), not a keydown handler on the
+  // diagram's own container, since that container is a plain layout `<div>`
+  // with no interactive role of its own (`noStaticElementInteractions`).
+  // Only live while something is actually selected, so it never intercepts
+  // Escape elsewhere on the dashboard.
+  useEffect(() => {
+    if (selectedVesselId === null) return;
+    const onKeyDown = (e: globalThis.KeyboardEvent) => {
+      if (e.key === "Escape") handleDeselect();
+    };
+    document.addEventListener("keydown", onKeyDown);
+    return () => document.removeEventListener("keydown", onKeyDown);
+  }, [selectedVesselId, handleDeselect]);
+  const selectedEntity = useMemo(
+    () => entities.find((e) => e.id === selectedVesselId) ?? null,
+    [entities, selectedVesselId],
+  );
+  // The selected vessel's CommNet route to home,
+  // a generic BFS over `comms.network`'s already-contributed graph (no
+  // per-vessel path ships on the wire). Falls back to `NO_COMMS_PATH` when
+  // nothing is selected or the selected entity carries no `vesselId` (e.g.
+  // a hypothetical future non-vessel selectable entity).
+  const commsPath = useMemo(
+    () =>
+      selectedEntity?.vesselId != null
+        ? deriveCommsPath(commsNetwork, selectedEntity.vesselId)
+        : NO_COMMS_PATH,
+    [commsNetwork, selectedEntity],
+  );
+  const commsPathEdgeIds = useMemo(
+    () => new Set(commsPath.edgeIds),
+    [commsPath],
+  );
+  // The highlighted path's colour: the SELECTED VESSEL'S own roster comms
+  // control state (`meta.comms`, the same label the info panel shows), not
+  // `commsPath.quality` (that field governs traversal only, see
+  // `commsPath.ts`'s module doc comment). Keeps the line's colour in
+  // agreement with the info panel's "Comms: ..." row even when the BFS
+  // happened to find an all-active edge chain through another vessel's
+  // relay.
+  const commsPathColour = useMemo(
+    () => COMMS_PATH_COLOUR[commsControlQuality(selectedEntity?.meta?.comms)],
+    [selectedEntity],
+  );
+  // Command traffic: `system.uplink.pending` has no vessel-target
+  // field (a hard contract invariant, see `commsTraffic.ts`'s module doc), so
+  // every pending entry is implicitly addressed to the ACTIVE vessel, routed
+  // over the SAME `comms.network` graph the selection path above walks.
+  // Independent of selection: traffic keeps animating on the active vessel's
+  // route whether or not the operator has anything else selected.
+  //
+  // `showCommandTraffic` off (the Traffic toggle's new home)
+  // short-circuits straight to `NO_TRAFFIC` rather than deriving then
+  // discarding: same "don't do the work if nothing will render" discipline
+  // `entities`' own `showCommlinks` filter follows above.
+  const traffic = useMemo(
+    () =>
+      showCommandTraffic
+        ? deriveTraffic(
+            pendingQueue?.pending ?? [],
+            commsNetwork,
+            identity?.vesselId,
+            utNow,
+          )
+        : NO_TRAFFIC,
+    [pendingQueue, commsNetwork, identity?.vesselId, utNow, showCommandTraffic],
+  );
+  // The id-keyed decoration hook: brightens the selected vessel's own
+  // orbit/point entity (faint -> bright, no colour override needed, the
+  // `bright` emphasis token already reads prominent) and colours the derived
+  // CommNet path's edges by the selected vessel's control state. Command
+  // traffic deliberately does NOT decorate the edge itself: the moving
+  // gradient pulse (`SystemEntitiesLayer`'s `pulses` prop, below) is the
+  // sole traffic indicator, riding a plain grey/white CommNet line, so an
+  // ambient "this route carries traffic" wash never sits underneath and
+  // dilutes the travelling glow into an always-bright line. Never touches
+  // the contribution's data, purely a style override keyed by id.
+  const decorate = useCallback(
+    (id: string): SystemEntityStyle | undefined => {
+      if (id === selectedVesselId) return { emphasis: "bright" };
+      if (commsPathEdgeIds.has(id)) {
+        return { emphasis: "bright", colour: commsPathColour };
+      }
+      return undefined;
+    },
+    [selectedVesselId, commsPathEdgeIds, commsPathColour],
+  );
 
   // Stable body-index → NAME map (from `system.bodies`' stable `index`, never
   // array position): the display-map behind `v.body` / `o.encounterBody`.
@@ -679,6 +860,11 @@ function SystemViewComponent({
     };
   }, [parentName, children, vesselOrbit, size]);
 
+  // The info panel: the selected vessel's own roster fields (name/type/
+  // situation/body/crew/comms, carried on its entity's `meta`) when
+  // something is selected, else the frame body's almanac unchanged.
+  // Deselecting (Escape / click again, both drive `selectedVesselId` back
+  // to null) falls back here automatically, no separate reset needed.
   const almanac = (
     <AlmanacPanel
       body={panelBody}
@@ -717,6 +903,12 @@ function SystemViewComponent({
       }
     />
   );
+  const sidebarContent =
+    selectedEntity?.meta != null ? (
+      <VesselInfoPanel meta={selectedEntity.meta} />
+    ) : (
+      almanac
+    );
 
   return (
     <Panel
@@ -726,7 +918,7 @@ function SystemViewComponent({
       // `auto` measures the tile and picks the axis, which is the pair of
       // arrangements this widget used to compute for itself (a right-hand
       // column on a wide tile, a bottom strip on a tall one).
-      panelSidebar={showAlmanac ? almanac : undefined}
+      panelSidebar={showAlmanac ? sidebarContent : undefined}
     >
       <div style={FRAME_CAPTION} role="status" aria-live="polite">
         {bodies.length === 0
@@ -769,6 +961,27 @@ function SystemViewComponent({
                 predicted={predicted}
                 width={size.w}
                 height={size.h}
+              />
+            )}
+            {/* Shape-contribution entities: host-drawn (not an augment), same
+                auto-fit projection as the overlay slot below it. Renders
+                nothing when the slot is empty or nothing on it projects onto
+                the current frame. */}
+            {overlayContext !== null && (
+              <SystemEntitiesLayer
+                entities={entities}
+                ctx={overlayContext}
+                decorate={decorate}
+                selectedId={selectedVesselId}
+                onEntityActivate={handleEntityActivate}
+                pulses={traffic.pulses}
+                // Real-time bookkeeping clock, same one command traffic
+                // above already rides: a CME's `arriveUt`/`clearUt` are
+                // real-UT facts the mod stamps the instant a storm rolls,
+                // not delayed craft telemetry, so this drives its single,
+                // non-looping travelling-pulse pass (see
+                // `SystemEntitiesLayer.tsx`'s own `nowUt` doc comment).
+                nowUt={utNow}
               />
             )}
             {/* Overlay slot: layered over the body diagram, passed the diagram's
@@ -963,10 +1176,15 @@ registerComponent<SystemViewConfig>({
   // what a widget opens up; `.overlay` is this widget's own, and passes the
   // diagram's projection as typed slot props.
   augmentSlots: ["system-view.actions", "system-view.overlay"],
-  // The plotted vessel's node decoration: fed by the built-in comms-derived
-  // contribution (`./vesselStatusContribution.ts`) and open to any other
-  // Uplink contributing SEMANTIC status for the same vessel.
-  contributionSlots: ["system-view.vessel-status"],
+  // Two contribution slots. `system-view.vessel-status` is the plotted
+  // vessel's node decoration, fed by the built-in comms-derived contribution
+  // (`./vesselStatusContribution.ts`) and open to any Uplink contributing
+  // SEMANTIC status for the same vessel. `system-view.entities` is the shape
+  // foundation: a flat list of positioned display objects anyone can add to,
+  // aggregated by `ContributionsAggregation` via `WidgetMetaContext`
+  // (`GridItemContent.tsx` reads this list to build that context) and read
+  // back here through `useContributions`.
+  contributionSlots: ["system-view.vessel-status", "system-view.entities"],
   // The body table + phase angles still fan out over the shared `b.*` hooks
   // (`useCelestialBodies`/`usePhaseAngles`): a separate, shared-hook migration.
   // Everything else reads the streamed `vessel.*`/`system.bodies` Topics below.
@@ -980,6 +1198,13 @@ registerComponent<SystemViewConfig>({
     "vessel.identity",
     "vessel.target",
     "system.bodies",
+    // The CommNet path derivation reads this
+    // directly (`useTelemetry("comms.network")`), on top of the built-in
+    // contribution's own subscription through the SlotAggregator.
+    "comms.network",
+    // Command traffic: read directly via `useLatestValue`, same
+    // reasoning as `comms.network` above.
+    "system.uplink.pending",
   ],
   defaultConfig: { frame: "auto" },
   actions: [],
@@ -987,6 +1212,27 @@ registerComponent<SystemViewConfig>({
 });
 
 export { AlmanacPanel } from "./AlmanacPanel";
+export { SystemEntitiesLayer } from "./SystemEntitiesLayer";
+export type {
+  OrbitRingGeometry,
+  ResolvedSystemEntity,
+  SystemEntitiesContext,
+  SystemEntity,
+  SystemEntityEmphasis,
+  SystemEntityFixedPosition,
+  SystemEntityMeta,
+  SystemEntityOrbitPosition,
+  SystemEntityPosition,
+  SystemEntitySeverity,
+  SystemEntityShape,
+  SystemEntityStyle,
+} from "./systemEntities";
+export {
+  projectEntityPosition,
+  projectOrbitRing,
+  resolveSystemEntities,
+  SYSTEM_ENTITY_DEFAULT_LAYER,
+} from "./systemEntities";
 export type { CelestialBody } from "./useCelestialBodies";
 export { useCelestialBodies } from "./useCelestialBodies";
 export { usePhaseAngles } from "./usePhaseAngles";

@@ -104,6 +104,7 @@
       "hasOcean": "flag",
       "hillSphere": "m",
       "index": "id",
+      "isHome": "flag",
       "mass": "kg",
       "name": "text",
       "parentIndex": "id",
@@ -241,6 +242,7 @@
       "b": "id"
     },
     "CommsNetworkNode": {
+      "displayName": "text",
       "id": "id",
       "kind": "enum"
     },
@@ -1894,6 +1896,9 @@
     "VesselResources": {
       "meta": "PayloadMeta",
       "resources": "*ResourceAmount"
+    },
+    "VesselRosterEntry": {
+      "orbit": "OrbitEntry"
     },
     "VesselStructure": {
       "meta": "PayloadMeta"

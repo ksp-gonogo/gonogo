@@ -70,6 +70,82 @@ export interface ShipMapPartMetaEntry {
   text?: string;
 }
 
+// --- SystemView (packages/components/src/SystemView) -----------------------
+//
+// `system-view.entities` (the shape-contribution foundation: vessel orbits,
+// the CommNet graph, selection, a future CME front all ride this one slot).
+// Mirrors `SystemEntity` and its position/shape unions from
+// `SystemView/systemEntities.ts`.
+
+export type SystemEntityEmphasis = "faint" | "normal" | "bright";
+
+/** Mirrors `SystemEntitySeverity`. */
+export type SystemEntitySeverity = "info" | "warn" | "critical";
+
+/** Mirrors `SystemEntityStyle`. A contribution names `emphasis` and
+ *  `severity`; `colour` is the host's own decoration channel. */
+export interface SystemEntityStyle {
+  emphasis?: SystemEntityEmphasis;
+  severity?: SystemEntitySeverity;
+  colour?: string;
+}
+
+/** Mirrors `SystemEntityMeta`. */
+export type SystemEntityMeta = Readonly<
+  Record<string, string | number | boolean>
+>;
+
+/** Mirrors `SystemEntityOrbitPosition`. */
+export interface SystemEntityOrbitPosition {
+  kind: "orbit";
+  parentName: string;
+  sma: number;
+  ecc: number;
+  lan: number;
+  argPe: number;
+  trueAnomaly: number;
+}
+
+/** Mirrors `SystemEntityFixedPosition`. */
+export interface SystemEntityFixedPosition {
+  kind: "fixed";
+  parentName: string;
+  xMetres: number;
+  yMetres: number;
+}
+
+/** Mirrors `SystemEntityPosition`. */
+export type SystemEntityPosition =
+  | SystemEntityOrbitPosition
+  | SystemEntityFixedPosition;
+
+/** Mirrors `SystemEntityShape`. */
+export type SystemEntityShape =
+  | { kind: "point"; radiusPx?: number }
+  | { kind: "orbit-path" }
+  | { kind: "connection-line"; to: SystemEntityPosition }
+  | { kind: "blob"; radiusMetres: number }
+  | {
+      kind: "travelling-pulse";
+      to: SystemEntityPosition;
+      segmentLengthMetres: number;
+      /** UT the leading edge reaches `to`. */
+      arriveUt: number;
+      /** UT the trailing edge fully clears `to`. */
+      clearUt: number;
+    };
+
+/** Mirrors `SystemEntity`. */
+export interface SystemEntity {
+  id: string;
+  position: SystemEntityPosition;
+  shape: SystemEntityShape;
+  style?: SystemEntityStyle;
+  meta?: SystemEntityMeta;
+  vesselId?: string;
+  zHint?: number;
+}
+
 declare module "./types" {
   interface ContributionRegistry {
     "ship-map.part-meters": {
@@ -79,6 +155,10 @@ declare module "./types" {
     "ship-map.part-meta": {
       entry: ShipMapPartMetaEntry;
       topics: "kerbalism.lifesupport" | "kerbalism.profile";
+    };
+    "system-view.entities": {
+      entry: SystemEntity;
+      topics: "system.vessels" | "system.bodies" | "comms.network";
     };
   }
 }

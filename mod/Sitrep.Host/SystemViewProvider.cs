@@ -181,6 +181,7 @@ namespace Sitrep.Host
                 ["tidallyLocked"] = GetBool(raw, "tidallyLocked"),
                 ["hasOcean"] = GetBool(raw, "hasOcean"),
                 ["description"] = GetString(raw, "description"),
+                ["isHome"] = GetBool(raw, "isHome"),
                 // Nested atmosphere object: null when the body is airless, so a
                 // client tells "airless" apart from "no data" (same null-not-
                 // sentinel discipline the orbit block uses for the root star).
@@ -232,10 +233,10 @@ namespace Sitrep.Host
         /// Maps <paramref name="snapshot"/>'s raw <c>"vessels"</c> list
         /// (<c>Gonogo.KSP.KspHost.BuildVesselRosterEntry</c>'s shape: id/
         /// name/vesselType/situation/mainBody/crewCount/crewCapacity/
-        /// commsConnected/commsControlSource, primitives only) to the
-        /// <c>system.vessels</c> payload: <c>{ "vessels": [ { vesselId,
+        /// commsConnected/commsControlSource/sma..epoch, primitives only) to
+        /// the <c>system.vessels</c> payload: <c>{ "vessels": [ { vesselId,
         /// name, vesselType, situation, bodyIndex, crewCount, crewCapacity,
-        /// commsConnected, commsControlSource }, ... ] }</c>. Follows
+        /// commsConnected, commsControlSource, orbit }, ... ] }</c>. Follows
         /// <see cref="BuildSystemBodies"/>'s own untyped-dict convention
         /// (no separate Sitrep.Contract POCO: this channel isn't
         /// vessel-scoped-provenance like the <c>vessel.*</c> family, it's a
@@ -251,7 +252,10 @@ namespace Sitrep.Host
         /// zero/false (FleetRoster capture-add; see
         /// <see cref="VesselRosterEntry"/>'s own doc comments for the
         /// loaded-vs-proto crew read and the comms read's independence from
-        /// <see cref="ICommsBackend"/>).
+        /// <see cref="ICommsBackend"/>). <c>orbit</c> reuses <see cref="BuildOrbit"/>,
+        /// the same routine <see cref="BuildBody"/> uses for
+        /// <see cref="BodyEntry.Orbit"/>: null when the producer had no
+        /// orbitDriver to read for this vessel.
         /// </summary>
         public static object? BuildSystemVessels(KspSnapshot? snapshot)
         {
@@ -297,6 +301,12 @@ namespace Sitrep.Host
                     ["crewCapacity"] = GetInt(rawVessel, "crewCapacity"),
                     ["commsConnected"] = GetBool(rawVessel, "commsConnected"),
                     ["commsControlSource"] = controlSource.HasValue ? (int)controlSource.Value : (int?)null,
+                    // Same BuildOrbit routine BuildBody reuses for BodyEntry.Orbit.
+                    // Presence keyed off "sma" (the producer omits every orbit key,
+                    // never emits them as explicit nulls, when the vessel had no
+                    // orbitDriver to read), so an absent orbit maps to null rather
+                    // than an all-null OrbitEntry.
+                    ["orbit"] = rawVessel.ContainsKey("sma") ? BuildOrbit(rawVessel) : null,
                 });
             }
 

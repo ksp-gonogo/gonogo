@@ -26,6 +26,8 @@
     "render-crew-status-panel-badge": "TSX_TSCONFIG_PATH=tsconfig.json tsx scripts/render-crew-status-panel-badge.ts",
     "render-crew-status-avatar": "TSX_TSCONFIG_PATH=tsconfig.json tsx scripts/render-crew-status-avatar.ts",
     "render-cross-browser": "TSX_TSCONFIG_PATH=tsconfig.json tsx scripts/render-cross-browser.ts",
+    "render-systemview-traffic-video": "TSX_TSCONFIG_PATH=tsconfig.json tsx scripts/render-systemview-traffic-video.ts",
+    "render-systemview-cme-video": "TSX_TSCONFIG_PATH=tsconfig.json tsx scripts/render-systemview-cme-video.ts",
     "visual-gate": "TSX_TSCONFIG_PATH=tsconfig.json tsx scripts/visual-gate.ts",
     "render-contact-timeline": "TSX_TSCONFIG_PATH=tsconfig.json tsx scripts/render-contact-timeline.ts"
   },
