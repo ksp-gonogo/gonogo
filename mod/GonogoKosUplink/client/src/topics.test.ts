@@ -87,7 +87,7 @@ describe("kos.processors Topic (relocated out of Sitrep.Contract)", () => {
   });
 });
 
-// ── The relocated unit registry: both halves, and what each actually carries ──────
+// The relocated unit registry: both halves, and what each actually carries.
 //
 // Every other relocated slice proves its registration by DECODING a frame and
 // finding a Value where a bare number would otherwise be. This slice cannot, and

@@ -7,7 +7,7 @@
 // handle.
 import { defineUplinkClient } from "@ksp-gonogo/sitrep-sdk";
 
-// TODO(version): Phase 2 build-injects this from gonogo-uplink.json (spec §5).
+// This declaration is the source of the client's version, not the manifest: `gonogo-uplink.json` is generated FROM it, so it cannot supply the number that goes into it. Keep it equal to `package.json`'s.
 const UPLINK_VERSION = "0.0.0-dev";
 
 // "RealAntennas" is the human label; the "realantennas" id is the load-bearing

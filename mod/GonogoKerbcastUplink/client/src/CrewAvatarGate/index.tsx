@@ -172,7 +172,6 @@ registerAugment({
 
 export { selectKerbalCamera };
 
-// ── Styles ────────────────────────────────────────────────────────────────
 // Inline style objects + ui-kit primitives (Badge, TextButton) rather than a
 // bespoke styled-components import: TextButton already carries the no-chrome
 // reset and the shared `:focus-visible` ring; only the sizing here is local.

@@ -138,8 +138,6 @@ function ScansatScienceAugment(_props: SlotProps<"experiments.actions">) {
     </div>
   );
 }
-
-// ── Styles ──────────────────────────────────────────────────────────────
 // Structural inline styles (CSS-var tokens): a one-off header dropdown, no
 // reusable ui-kit primitive fits, so the layout stays local rather than
 // carrying styled-components into a consumer widget. The one interactive

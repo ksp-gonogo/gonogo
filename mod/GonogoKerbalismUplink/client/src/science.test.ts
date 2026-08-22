@@ -135,7 +135,7 @@ describe("kerbalism's namespaces of the elected science.* payloads", () => {
     expect(readKerbalismScienceBreakdownExt(undefined)).toBeUndefined();
   });
 
-  // ── The end-to-end assertion this whole mechanism exists to make good on ──────
+  // The end-to-end assertion this whole mechanism exists to make good on.
   //
   // A quantity inside a provider's namespace is a real gonogo Value and has to
   // survive decode like any other. Nothing in core can know that: the bag is opaque

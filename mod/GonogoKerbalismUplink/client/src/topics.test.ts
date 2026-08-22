@@ -84,9 +84,10 @@ describe("kerbalism structured Topics (relocated out of Sitrep.Contract)", () =>
     }
   });
 
-  // ── Half one: the Topic's OWN fields (registerTopicUnits) ────────────────────
-  // The runtime-hydration half of the uplink-types-out-of-core plan's Unit guard
-  // (§5b): a decode test, not just a generated-file type check. Drives the REAL
+  // Half one: the Topic's OWN fields, registered by `registerTopicUnits`.
+  //
+  // The runtime-hydration half of the Unit guard: a decode test, not just a
+  // generated-file type check. Drives the REAL
   // TelemetryClient/StubTransport pipeline (setupStreamFixture), so this proves
   // registerTopicUnits (topics.ts) actually reaches wrapTopicPayload's
   // decode-time lookup. Without that call, radiationRadPerSecond and
@@ -139,7 +140,8 @@ describe("kerbalism structured Topics (relocated out of Sitrep.Contract)", () =>
     expect(result.current?.blackout).toBe(false);
   });
 
-  // ── Half two: NESTED shapes (registerTypeUnits) ──────────────────────────────
+  // Half two: NESTED shapes, registered by `registerTypeUnits`.
+  //
   // wrapTopicPayload learns a field holds another shape from shapesForTopic, then
   // recurses through wrapTypePayload, which resolves that shape BY TYPE NAME via
   // unitsForType/shapesForType. Those read the SDK's TYPE-keyed generated maps,

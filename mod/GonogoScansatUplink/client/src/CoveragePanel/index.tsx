@@ -140,8 +140,6 @@ function CoverageRow({
     </div>
   );
 }
-
-// ── Styles ──────────────────────────────────────────────────────────────
 // Structural inline styles (CSS-var tokens): this is a bespoke coverage grid,
 // no reusable ui-kit primitive fits, so the layout stays local rather than
 // carrying styled-components into a consumer widget.

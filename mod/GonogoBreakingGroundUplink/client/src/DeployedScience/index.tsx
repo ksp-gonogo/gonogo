@@ -470,8 +470,6 @@ function DeployedScienceComponent(
   );
 }
 
-// ── Augment slots ─────────────────────────────────────────────────────────────
-
 /**
  * Props passed to every `deployed-science.experiment` augment. The slot renders
  * once PER experiment card, so its props MUST carry that card's experiment
@@ -502,8 +500,6 @@ declare module "@ksp-gonogo/sitrep-sdk" {
     "deployed-science.experiment": DeployedExperimentContext;
   }
 }
-
-// ── Registration ──────────────────────────────────────────────────────────────
 
 registerComponent<DeployedScienceConfig>({
   id: "deployed-science",

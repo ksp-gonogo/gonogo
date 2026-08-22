@@ -76,13 +76,18 @@ registerTopicUnits(
   GENERATED_TOPIC_SHAPES[KERBCAST_CAMERAS_TOPIC] ?? {},
 );
 
-// ── Compile-time invariant (checked by `pnpm build`/`typecheck`) ────────────────────
-// Proves the augmentation above is in-program and resolves the Topic to its real payload
-// type rather than the `unknown` a missing augmentation would leave. This is the per-Uplink
-// half of the SDK's `_AssertNoTopicResolvesToUnknown`, devolved here because the SDK leaf
-// cannot see this augmenting module (2026-07-20). Kept inline (type-only, erased at
-// runtime) rather than in a `.test-d.ts`: the client's build tsconfig does not exclude
-// `*.test-d.ts`, so a separate file would be emitted into `dist`.
+/**
+ * A compile-time invariant, checked by `pnpm build` and `pnpm typecheck`: it
+ * proves the augmentation above is in-program and resolves the Topic to its real
+ * payload type, rather than the `unknown` a missing augmentation would leave
+ * behind.
+ *
+ * This is the per-Uplink half of the SDK's `_AssertNoTopicResolvesToUnknown`,
+ * devolved here because the SDK leaf cannot see this augmenting module. It stays
+ * inline, being type-only and erased at runtime, rather than moving to a
+ * `.test-d.ts`: the client's build tsconfig does not exclude `*.test-d.ts`, so
+ * a separate file would be emitted into `dist`.
+ */
 type Equal<A, B> =
   (<T>() => T extends A ? 1 : 2) extends <T>() => T extends B ? 1 : 2
     ? true

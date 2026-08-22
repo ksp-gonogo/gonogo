@@ -120,7 +120,7 @@ describe("kerbalism's namespaces of the elected isru.* payloads", () => {
     expect(readKerbalismIsruConverterExt(undefined)).toBeUndefined();
   });
 
-  // ── The end-to-end assertion this whole mechanism exists to make good on ──────
+  // The end-to-end assertion this whole mechanism exists to make good on.
   //
   // A quantity inside a provider's namespace is a real gonogo Value and has to
   // survive decode like any other. Nothing in core can know that: the bag is opaque
@@ -177,7 +177,7 @@ describe("kerbalism's namespaces of the elected isru.* payloads", () => {
     expect(scrubber?.broken).toBe(true);
   });
 
-  // ── What separates this bag from the science one ─────────────────────────────
+  // What separates this bag from the science one.
   //
   // Kerbalism's science has to leave core fields null, because its figures are in
   // megabytes and core's are in mits. Its ISRU does not: a Kerbalism drill's rate is

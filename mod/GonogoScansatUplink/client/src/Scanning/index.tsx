@@ -399,8 +399,6 @@ function CoverageRow({
   );
 }
 
-// ── Registration ────────────────────────────────────────────────────────────
-
 registerComponent<ScanningConfig>({
   id: "scanning",
   name: "Scanning",
