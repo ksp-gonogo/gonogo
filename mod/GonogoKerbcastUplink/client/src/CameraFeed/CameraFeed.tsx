@@ -448,14 +448,13 @@ export function CameraFeed({
           showDebugInfo={showDebugInfo}
           enableFullscreen
           enablePictureInPicture
-          // TODO(main): needs kerbcast 1.9.0 lockfile bump. Once the
-          // @ksp-gonogo/kerbcast-react pin moves from 1.8.1 to 1.9.0, pass
-          // `disableManualControls={controlMode === "staged"}` here so the SDK's
-          // built-in live pan/zoom controls are truly disabled above the delay
-          // threshold (the honest gate the #35 design calls for). The prop does
-          // NOT exist on 1.8.1's CameraFeedProps, so adding it now fails
-          // typecheck; until the bump lands, the CameraSetpointSurface below is
-          // the delayed control path and the SDK's live controls stay reachable.
+          // `disableManualControls={controlMode === "staged"}` belongs here, so
+          // the SDK's built-in live pan and zoom are genuinely disabled above
+          // the delay threshold. The prop does not exist on the pinned
+          // @ksp-gonogo/kerbcast-react 1.8.1's `CameraFeedProps`, so passing it
+          // fails typecheck; it needs a 1.9.0 lockfile bump first. Until then
+          // the CameraSetpointSurface below is the delayed control path and the
+          // SDK's live controls stay reachable.
         />
         {unavailableReason && (
           <div role="status" aria-live="polite" style={FEED_UNAVAILABLE_STYLE}>
@@ -544,10 +543,9 @@ function describeSignalQuality(
 ): QualityBadgeInfo | null {
   if (connected === undefined && signalStrength === undefined) return null;
   // NO SIGNAL when the link is down OR the strength has decayed to
-  // effectively zero (0%): a 0% link carries nothing, so it reads as no
-  // signal rather than a "0%" quality badge (comms-delay-model-consistency
-  // spec, Phase 3). The tiny epsilon is a float-noise guard, not a "weak
-  // link" threshold: a real 1% link still shows its percentage.
+  // effectively zero: a 0% link carries nothing, so it reads as no signal
+  // rather than a "0%" quality badge. The tiny epsilon is a float-noise guard,
+  // not a "weak link" threshold: a real 1% link still shows its percentage.
   const strength = signalStrength?.magnitude;
   const zeroSignal =
     strength !== undefined && Number.isFinite(strength) && strength <= 1e-6;

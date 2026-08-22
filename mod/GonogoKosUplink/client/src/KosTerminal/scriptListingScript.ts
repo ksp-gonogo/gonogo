@@ -1,6 +1,5 @@
 /**
- * Kerboscript for the `/`-script picker's live drive listing
- * (kos-terminal-script-picker, hub-wizard-kos Phase 1 increment (b)).
+ * Kerboscript for the `/`-script picker's live drive listing.
  * Resurrected VERBATIM from the deleted KosFiles widget (`git show
  * 855bd024^:mod/GonogoKosUplink/client/src/KosFiles/filesScript.ts`): same
  * [KOSDATA] contract, same two-mode dispatcher. The picker only ever

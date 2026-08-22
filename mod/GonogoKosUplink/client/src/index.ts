@@ -8,8 +8,8 @@
 //   - KosTerminal → registerComponent(...) so it's placeable from the
 //     dashboard widget picker. The other kOS widgets (KosProcessors,
 //     KosFiles, KosScriptRunner, KosWidget, KosWrapperTester) were removed
-//     as janky/failing legacy: the terminal is the valuable surface
-//     (hub-wizard-kos plan, Phase 1, 2026-07-19). Their shared UI-authoring
+//     as janky/failing legacy: the terminal is the valuable surface.
+//     Their shared UI-authoring
 //     infra (KosScriptFrame, KosCpuPicker, the kos-cpu-registry chrome
 //     provider, useKosScriptPayload, useKosScriptStatus) went with them:
 //     KosTerminal doesn't use that pattern, it reads kos.processors and

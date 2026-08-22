@@ -1,11 +1,9 @@
 // SCANsat scanning-vessel footprint overlay for MapView.
 //
 // Fills MapView's `map-view.overlay` slot with each tracked vessel's ground-
-// track rectangle: moved out of core MapView (T8a,
-// docs/superpowers/plans/2026-07-18-mapview-overlay-host-foundation.md) so
-// core MapView no longer reads `scansat.scanningVessels` or does any
-// SCANsat-shaped geometry itself (Uplink invariant #5, "augment, don't
-// embed").
+// track rectangle. It lives here rather than in core MapView so that MapView
+// reads no `scansat.scanningVessels` and does no SCANsat-shaped geometry of its
+// own: augment, do not embed.
 //
 // `map-view.overlay` is an OVERLAY slot: MapView passes down `project()`,
 // the exact per-body-offset + camera chain the base map itself draws with,

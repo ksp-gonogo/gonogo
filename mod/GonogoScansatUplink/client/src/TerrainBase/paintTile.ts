@@ -1,20 +1,17 @@
-// Shared tile→pixel-rect paint loop for the `map-view.base` colormap
-// augments (AltimetryBase, BiomeBase: T8c,
-// docs/superpowers/plans/2026-07-18-mapview-overlay-host-foundation.md).
+// Shared tile→pixel-rect paint loop for the `map-view.base` colormap augments,
+// AltimetryBase and BiomeBase.
 //
 // Ported near-verbatim from the per-cell block-fill loop in
 // packages/components/src/MapView/useScanLayerCanvas.ts's
-// `paintBiomeCanvas`/`paintHeightCanvas` (the loop itself is generic body-
-// texture geometry, not SCANsat-specific: only the per-cell colour lookup
-// differs between altimetry and biome). The one behavioural change from
-// that pre-T8c code: each tile's alpha is now modulated by the T4 coverage
-// paint-gate instead of being baked in as a fixed ramp opacity, per the
-// settled "no fog layer" model (packages/components/src/MapView/
-// useCoverageGate.ts's own header comment): covered tiles paint at (up to)
-// full opacity, uncovered tiles paint nothing.
+// `paintBiomeCanvas`/`paintHeightCanvas`: the loop itself is generic body-
+// texture geometry rather than anything SCANsat-specific, and only the
+// per-cell colour lookup differs between altimetry and biome. Each tile's
+// alpha is modulated by the coverage paint-gate rather than baked in as a
+// fixed ramp opacity, following the settled "no fog layer" model
+// (packages/components/src/MapView/useCoverageGate.ts's own header): covered
+// tiles paint at up to full opacity, uncovered tiles paint nothing.
 //
-// PAINT-RESOLUTION SEMANTICS (the preflight's flagged ambiguity:
-// .superpowers/sdd/preflight-T6-T9.md, T8c section):
+// PAINT-RESOLUTION SEMANTICS
 //
 // `MapBaseLayerContext.width`/`height` (threaded onto `SlotProps<
 // "map-view.base">`) are MapView's LIVE viewport/container pixel size,
@@ -29,11 +26,11 @@
 // Instead, `BASE_LAYER_CANVAS_W`/`H` below are a FIXED internal paint
 // resolution, independent of the viewport, matching two existing
 // conventions that already agree on this exact number:
-//   1. `BIOME_CANVAS_W`/`H` (2048×1024) in the pre-T8c
+//   1. `BIOME_CANVAS_W`/`H` (2048×1024) in the
 //      `useBiomeCanvas`/`useHeightCanvas` this module replaces.
 //   2. `DEFAULT_MASK_WIDTH`/`HEIGHT` (2048×1024) in
-//      packages/data/src/fog/FogMaskCache.ts: the resolution the T4
-//      coverage gate's own composite `Uint8Array` is built at.
+//      packages/data/src/fog/FogMaskCache.ts: the resolution the coverage
+//      gate's own composite `Uint8Array` is built at.
 // MapView's own composite step already scales whatever canvas an augment
 // hands back to `WORLD_W`×`WORLD_H` via `ctx.drawImage(canvas, 0, 0,
 // WORLD_W, WORLD_H)` (see index.tsx's `map-view.base composite` comment),
@@ -165,9 +162,8 @@ export function withAlpha(rgbComponents: string, alpha: number): string {
 }
 
 /**
- * effectiveAlpha = layerOpacity * coverageAlpha (spec:
- * local_docs/spec-mapview-stackable-layers.md §1: "restore the blend").
- * `coverageAlpha` is surveyed-ness (unchanged, from `coverageAlphaForTile`);
+ * effectiveAlpha = layerOpacity * coverageAlpha.
+ * `coverageAlpha` is surveyed-ness, from `coverageAlphaForTile`;
  * `layerOpacity` is this LAYER's own translucency, e.g. a layer drawn on
  * top of another, more opaque one. These are two separate channels that
  * must multiply, not collapse into one: a fully-surveyed tile on a

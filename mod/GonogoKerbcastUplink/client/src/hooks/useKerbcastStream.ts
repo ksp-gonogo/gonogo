@@ -176,14 +176,13 @@ const CONNECTING: DelayedPlayoutResult = { kind: "connecting" };
  * stream: raw}` unchanged, so the LAN case is bit-for-bit the old
  * behaviour, with NO pipeline spun up.
  *
- * With `delay`, THREE backends are tried in order (2026-07-16, encoded-transform
- * video-delay work, `local_docs/reports/encoded-video-delay-report.md`):
+ * With `delay`, THREE backends are tried in order:
  *
  *  0. **Encoded transform on the receiver** (`attachEncodedWorkerFrameDelay`),
  *     tried first when `getUplinkHandle("kerbcast")` can resolve an
  *     `RTCRtpReceiver` for `raw` (via `KerbcastDataSource.getReceiverForStream`)
  *     AND `RTCRtpScriptTransform` exists. Empirically confirmed cross-browser
- *     correct (Chromium/Firefox/WebKit, Phase 1 of that report), the ONLY
+ *     correct on Chromium, Firefox and WebKit, and the ONLY
  *     backend that can reach Firefox at all. Delays IN PLACE (no new track):
  *     on success the result's `stream` is `raw` itself, unchanged, the delay
  *     happens transparently upstream of decode.
@@ -192,9 +191,8 @@ const CONNECTING: DelayedPlayoutResult = { kind: "connecting" };
  *     receiver resolvable: e.g. a test fixture, or a future non-`BrowserRTCTransport`
  *     transport: or the browser lacks `RTCRtpScriptTransform`).
  *  2. **Worker-hosted Breakout Box** (`createWorkerFrameDelayStream`):
- *     tried only when (0) and (1) are both unavailable. Safari/WebKit
- *     supports this today (see `local_docs/reports/video-worker-report.md`
- *     for the per-engine breakdown backends 1/2's ordering rests on).
+ *     tried only when (0) and (1) are both unavailable. Safari and WebKit
+ *     support this, which is what puts it behind (1) rather than ahead.
  *
  * If NO backend can build a pipeline, resolves `{kind: "unavailable",
  * reason}`: **never** the raw stream. The old silent

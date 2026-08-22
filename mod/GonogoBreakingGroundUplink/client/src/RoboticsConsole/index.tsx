@@ -234,12 +234,10 @@ function RoboticsConsoleComponent({
     undefined,
   )?.available;
 
-  // Delayed vessel commands (Breaking Ground robotics-audit-migration): the
-  // servo motor/lock/target are actuated on the craft, subject to the same
-  // signal delay as any other flight-control command, so this widget
-  // dispatches over `useCommand` (not the legacy `useExecuteAction` string
-  // path) to pick up per-command in-flight state for free, same shape as
-  // MechJeb.
+  // The servo motor, lock and target are actuated on the craft and so are
+  // subject to the same signal delay as any other flight-control command. Each
+  // dispatches over `useCommand`, which carries per-command in-flight state,
+  // the same shape MechJeb uses.
   const targetCmd = useCommand("robotics.servo.setTarget");
   const motorCmd = useCommand("robotics.servo.setMotor");
   const lockCmd = useCommand("robotics.servo.setLock");

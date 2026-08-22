@@ -1,14 +1,10 @@
 // SCANsat per-scan-type coverage readout for MapView.
 //
 // Fills MapView's `map-view.sections` slot with the compact below-map
-// coverage panel: moved out of core MapView (T8b,
-// docs/superpowers/plans/2026-07-18-mapview-overlay-host-foundation.md) so
-// core MapView no longer reads `scansat.coverage.<body>.<type>` or
-// `scansat.scanningVessels` itself (Uplink invariant #5, "augment, don't
-// embed"). This is a direct port of the old MapView-internal
-// `CoveragePanelView`/`CoverageRow`/`COVERAGE_TYPES`
-// (packages/components/src/MapView/index.tsx) sourced from this Uplink's
-// own scan schema (`../schema`) instead of the shared core copy.
+// coverage panel. It lives here rather than in core MapView so that MapView
+// reads neither `scansat.coverage.<body>.<type>` nor `scansat.scanningVessels`
+// itself: augment, do not embed. The rows are sourced from this Uplink's own
+// scan schema (`../schema`) rather than the shared core copy.
 //
 // `map-view.sections` is a below-content panel slot: MapView passes down
 // only the mapped body name (plus per-namespace augment settings, unused

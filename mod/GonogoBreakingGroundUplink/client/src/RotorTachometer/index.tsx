@@ -184,11 +184,10 @@ function RotorTachometerComponent({
     undefined,
   )?.available;
 
-  // Delayed vessel commands (Breaking Ground robotics-audit-migration): rotor
-  // RPM/torque/brake/motor/lock/direction are actuated on the craft, subject
-  // to signal delay, so this dispatches over `useCommand` (not the legacy
-  // `useExecuteAction` string path) for per-command in-flight state, same
-  // shape as RoboticsConsole/MechJeb.
+  // Rotor RPM, torque, brake, motor, lock and direction are all actuated on the
+  // craft and so are subject to signal delay. Each dispatches over
+  // `useCommand`, which carries per-command in-flight state, the same shape
+  // RoboticsConsole and MechJeb use.
   const rpmCmd = useCommand("robotics.rotor.setRpmLimit");
   const torqueCmd = useCommand("robotics.rotor.setTorqueLimit");
   const brakeCmd = useCommand("robotics.rotor.setBrake");

@@ -25,9 +25,9 @@ import { useId, useState } from "react";
 import { MECHJEB } from "../uplink";
 
 /**
- * MechJeb: a delayed-command CONTROL surface (not a telemetry readout;
- * MechJeb's own readouts are derivable, see
- * `local_docs/kerbalism-RO-design-DECISIONS.md`). Three remote-autopilot
+ * MechJeb: a delayed-command CONTROL surface rather than a telemetry readout,
+ * because MechJeb's own readouts are all derivable from what the stream already
+ * carries. Three remote-autopilot
  * commands (engage ascent autopilot, execute the next maneuver node, land at
  * the selected target) dispatched through the app's command layer
  * (`useCommand`) and gated on the signal delay: each button reflects its own
@@ -36,8 +36,8 @@ import { MECHJEB } from "../uplink";
  *
  * Co-located with the `GonogoMechJebUplink` mod
  * (`mod/GonogoMechJebUplink/MechJebUplink.cs`), which HANDLES `mechjeb.*` by
- * direct-linking MechJeb2's own ascent-autopilot/node-executor/landing-
- * autopilot API (see `local_docs/design/mechjeb-decompile-lock.md`). Command
+ * direct-linking MechJeb2's own ascent-autopilot, node-executor and
+ * landing-autopilot API. Command
  * handling is fail-soft: MechJeb2 absent, or an API drift the version guard
  * catches, takes the mod-side uplink inert and these commands degrade to the
  * same `no reply` the UX already renders honestly.

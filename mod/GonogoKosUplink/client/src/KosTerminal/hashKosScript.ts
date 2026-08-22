@@ -10,8 +10,7 @@
  *
  * Resurrected from the deleted KosFiles widget (`git show
  * 855bd024^:mod/GonogoKosUplink/client/src/shared/hashKosScript.ts`) for the
- * `/`-script picker's live drive listing (kos-terminal-script-picker,
- * hub-wizard-kos Phase 1 increment (b)): same managed-script
+ * `/`-script picker's live drive listing: same managed-script
  * check-and-write contract, unrelated to any other consumer.
  */
 export function hashKosScript(body: string): string {
