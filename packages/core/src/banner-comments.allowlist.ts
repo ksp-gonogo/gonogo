@@ -96,7 +96,6 @@ export const BANNER_COMMENT_DEBT: Record<string, number> = {
   "packages/components/src/DataSourceStatus/index.tsx": 1,
   "packages/components/src/MissionEventLog/events.test.ts": 2,
   "packages/components/src/MissionEventLog/events.ts": 2,
-  "packages/components/src/contribution-slot-registry.conformance.test-d.ts": 2,
   "packages/components/src/slot-registry.conformance.test-d.ts": 2,
   "packages/serial/src/mocks/mockWebSerial.ts": 1,
   "packages/serial/src/transports/GamepadTransport.ts": 1,

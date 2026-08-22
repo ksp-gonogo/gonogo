@@ -39,7 +39,7 @@ type _SdkKeysAssignableToCore = Expect<
   Assignable<keyof SdkContributionRegistry, keyof CoreContributionRegistry>
 >;
 
-// --- ship-map.part-meters: checked both directions -------------------------
+// ship-map.part-meters: checked both directions
 
 type _ShipMapPartMeters = Expect<
   Assignable<
@@ -66,7 +66,7 @@ type _ShipMapPartMetersRealBack = Expect<
   >
 >;
 
-// --- ship-map.part-meta: checked both directions ----------------------------
+// ship-map.part-meta: checked both directions
 
 type _ShipMapPartMeta = Expect<
   Assignable<
@@ -87,7 +87,7 @@ type _ShipMapPartMetaRealBack = Expect<
   Assignable<ShipMapPartMetaEntry, SdkContributionEntry<"ship-map.part-meta">>
 >;
 
-// --- system-view.entities: checked both directions --------------------------
+// system-view.entities: checked both directions
 
 type _SystemViewEntities = Expect<
   Assignable<

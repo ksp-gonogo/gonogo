@@ -1,0 +1,44 @@
+Total messages: 120 (Errors: 41, Warnings: 11)
+Returning 41 messages for level "error"
+
+[ERROR] Failed to load resource: net::ERR_CONNECTION_REFUSED @ http://localhost:3002/bootstrap-config:0
+[ERROR] Failed to load resource: net::ERR_CONNECTION_REFUSED @ http://localhost:3002/analytics-config:0
+[ERROR] Failed to load resource: net::ERR_CONNECTION_REFUSED @ http://localhost:3002/ice-config:0
+[ERROR] Failed to load resource: net::ERR_CONNECTION_REFUSED @ http://localhost:3002/ice-config:0
+[ERROR] Failed to load resource: net::ERR_CONNECTION_REFUSED @ http://localhost:3002/analytics-config:0
+[ERROR] Failed to load resource: net::ERR_CONNECTION_REFUSED @ http://localhost:3002/analytics-config:0
+[ERROR] Failed to load resource: net::ERR_CONNECTION_REFUSED @ http://localhost:3002/analytics-config:0
+[ERROR] Failed to load resource: net::ERR_CONNECTION_REFUSED @ http://localhost:3002/host:0
+[ERROR] Failed to load resource: net::ERR_CONNECTION_REFUSED @ http://localhost:3002/host:0
+[ERROR] Failed to load resource: net::ERR_CONNECTION_REFUSED @ http://localhost:3002/analytics-config:0
+[ERROR] Failed to load resource: net::ERR_CONNECTION_REFUSED @ http://localhost:3002/ice-config:0
+[ERROR] Failed to load resource: net::ERR_CONNECTION_REFUSED @ http://localhost:3002/host:0
+[ERROR] Failed to load resource: net::ERR_CONNECTION_REFUSED @ http://localhost:3002/analytics-config:0
+[ERROR] Failed to load resource: net::ERR_CONNECTION_REFUSED @ http://localhost:3002/host:0
+[ERROR] Failed to load resource: net::ERR_CONNECTION_REFUSED @ http://localhost:3002/analytics-config:0
+[ERROR] Failed to load resource: net::ERR_CONNECTION_REFUSED @ http://localhost:3002/analytics-config:0
+[ERROR] Failed to load resource: net::ERR_CONNECTION_REFUSED @ http://localhost:3002/ice-config:0
+[ERROR] Failed to load resource: net::ERR_CONNECTION_REFUSED @ http://localhost:3002/host:0
+[ERROR] Failed to load resource: net::ERR_CONNECTION_REFUSED @ http://localhost:3002/analytics-config:0
+[ERROR] Failed to load resource: net::ERR_CONNECTION_REFUSED @ http://localhost:3002/host:0
+[ERROR] Failed to load resource: net::ERR_CONNECTION_REFUSED @ http://localhost:3002/analytics-config:0
+[ERROR] Failed to load resource: net::ERR_CONNECTION_REFUSED @ http://localhost:3002/ice-config:0
+[ERROR] Failed to load resource: net::ERR_CONNECTION_REFUSED @ http://localhost:3002/host:0
+[ERROR] Failed to load resource: net::ERR_CONNECTION_REFUSED @ http://localhost:3002/analytics-config:0
+[ERROR] Failed to load resource: net::ERR_CONNECTION_REFUSED @ http://localhost:3002/host:0
+[ERROR] Failed to load resource: net::ERR_CONNECTION_REFUSED @ http://localhost:3002/analytics-config:0
+[ERROR] Failed to load resource: net::ERR_CONNECTION_REFUSED @ http://localhost:3002/ice-config:0
+[ERROR] Failed to load resource: net::ERR_CONNECTION_REFUSED @ http://localhost:3002/host:0
+[ERROR] Failed to load resource: net::ERR_CONNECTION_REFUSED @ http://localhost:3002/analytics-config:0
+[ERROR] Failed to load resource: net::ERR_CONNECTION_REFUSED @ http://localhost:3002/host:0
+[ERROR] Failed to load resource: net::ERR_CONNECTION_REFUSED @ http://localhost:3002/analytics-config:0
+[ERROR] Failed to load resource: net::ERR_CONNECTION_REFUSED @ http://localhost:3002/ice-config:0
+[ERROR] Failed to load resource: net::ERR_CONNECTION_REFUSED @ http://localhost:3002/host:0
+[ERROR] Failed to load resource: net::ERR_CONNECTION_REFUSED @ http://localhost:3002/analytics-config:0
+[ERROR] Failed to load resource: net::ERR_CONNECTION_REFUSED @ http://localhost:3002/host:0
+[ERROR] Failed to load resource: net::ERR_CONNECTION_REFUSED @ http://localhost:3002/analytics-config:0
+[ERROR] Failed to load resource: net::ERR_CONNECTION_REFUSED @ http://localhost:3002/ice-config:0
+[ERROR] Failed to load resource: net::ERR_CONNECTION_REFUSED @ http://localhost:3002/host:0
+[ERROR] Failed to load resource: net::ERR_CONNECTION_REFUSED @ http://localhost:3002/analytics-config:0
+[ERROR] Failed to load resource: net::ERR_CONNECTION_REFUSED @ http://localhost:3002/analytics-config:0
+[ERROR] Failed to load resource: net::ERR_CONNECTION_REFUSED @ http://localhost:3002/host:0

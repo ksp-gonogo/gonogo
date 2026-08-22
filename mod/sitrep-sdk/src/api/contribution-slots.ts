@@ -70,7 +70,7 @@ export interface ShipMapPartMetaEntry {
   text?: string;
 }
 
-// --- SystemView (packages/components/src/SystemView) -----------------------
+// SystemView (packages/components/src/SystemView)
 //
 // `system-view.entities` (the shape-contribution foundation: vessel orbits,
 // the CommNet graph, selection, a future CME front all ride this one slot).
