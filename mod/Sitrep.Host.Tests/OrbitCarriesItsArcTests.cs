@@ -114,6 +114,44 @@ namespace Sitrep.Host.Tests
         }
 
         [Fact]
+        public void AnIntegratingProviderNeverClaimsAnUnboundedHorizon()
+        {
+            // `Unbounded` is a CLAIM, made by a provider that genuinely has no
+            // limit. An integrating one has three that can each bind first, so
+            // saying it would have a client reasoning "unbounded, therefore
+            // analytic, therefore an ellipse is fine" and drawing a closed conic
+            // for a path the craft will not fly. Both halves are asserted, because
+            // the shape and the reach are separate answers and stating one
+            // correctly says nothing about the other.
+            VesselViewProvider.SetIntegratingProviderSource(() => true);
+
+            var orbit = VesselViewProvider.BuildOrbit(Snapshot());
+
+            Assert.NotNull(orbit);
+            Assert.Equal(TrajectoryKind.Integrated, orbit!.Horizon.TrajectoryKind);
+            Assert.Equal(PropagationHorizonKind.Until, orbit.Horizon.Kind);
+            Assert.NotEqual(PropagationHorizonKind.Unbounded, orbit.Horizon.Kind);
+            // Set if and only if the arm is `Until`, never a sentinel standing in
+            // for forever.
+            Assert.NotNull(orbit.Horizon.UntilUt);
+            Assert.True(orbit.Horizon.UntilUt!.Value > 0.0);
+        }
+
+        [Fact]
+        public void AnAnalyticProviderStillSaysUnboundedAndAnalytic()
+        {
+            // The other side of the same fact, so the test above cannot pass by
+            // the horizon being stuck rather than by it being decided.
+            VesselViewProvider.SetIntegratingProviderSource(() => false);
+
+            var orbit = VesselViewProvider.BuildOrbit(Snapshot());
+
+            Assert.Equal(TrajectoryKind.Analytic, orbit!.Horizon.TrajectoryKind);
+            Assert.Equal(PropagationHorizonKind.Unbounded, orbit.Horizon.Kind);
+            Assert.Null(orbit.Horizon.UntilUt);
+        }
+
+        [Fact]
         public void AnIntegratingProviderPublishesItsPointsBesideTheElements()
         {
             VesselViewProvider.SetIntegratingProviderSource(() => true);
