@@ -831,6 +831,24 @@ const WIDGETS: WidgetRenderConfig[] = [
       { name: "default-10x12", w: 10, h: 12 },
       // wide landscape.
       { name: "wide-14x10", w: 14, h: 10 },
+      // The selection payoff: clicks the Munar Transfer Stage's own orbit
+      // ring (a relayed CommNet route, home -> Comsat Relay-1 -> Munar
+      // Transfer Stage), showing the brightened orbit, the two-hop path
+      // highlight coloured by that craft's own Partial control state, and
+      // the swapped vessel info panel, against multi-vessel-orbits.json's
+      // existing fleet and relay graph.
+      {
+        name: "vessel-selected",
+        w: 10,
+        h: 12,
+        forFixtures: ["multi-vessel-orbits"],
+        clicks: [
+          {
+            selector: '[data-entity-id="vessel-orbit:v-munar-transfer"]',
+            awaitMs: 200,
+          },
+        ],
+      },
     ],
   },
   {

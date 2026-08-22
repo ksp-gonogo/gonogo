@@ -285,6 +285,11 @@ interface ResolvedBase {
   colour: string;
   opacity: number;
   meta?: SystemEntityMeta;
+  /** Carried through from `SystemEntity.vesselId`: lets a consumer (the
+   *  selection interactivity in `SystemEntitiesLayer`) recognise which
+   *  resolved shapes represent a specific vessel, regardless of whether the
+   *  contribution drew it as a point or a full orbit ring. */
+  vesselId?: string;
 }
 
 export type ResolvedSystemEntity =
@@ -365,6 +370,7 @@ export function resolveSystemEntities(
           colour,
           opacity,
           meta: entity.meta,
+          vesselId: entity.vesselId,
         },
       });
     } else if (entity.shape.kind === "orbit-path") {
@@ -385,6 +391,7 @@ export function resolveSystemEntities(
           colour,
           opacity,
           meta: entity.meta,
+          vesselId: entity.vesselId,
         },
       });
     } else if (entity.shape.kind === "connection-line") {

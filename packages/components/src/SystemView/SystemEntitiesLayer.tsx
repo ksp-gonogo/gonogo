@@ -1,9 +1,11 @@
 import type { CSSProperties, KeyboardEvent } from "react";
 import { useMemo } from "react";
-// PointMarker below is a styled.g whose keyboard focus ring
+// InteractiveMarker below is a styled.g whose keyboard focus ring
 // (`&:focus-visible .focus-ring`) is an SVG pseudo-class + descendant rule
 // that inline `style` cannot express, and no ui-kit primitive is an SVG <g>
 // focus wrapper. Same pattern as `ShipMap/ShipDiagramSvg.tsx`'s `PartGroup`.
+// Shared by both interactive shapes, point markers and vessel orbit-path
+// rings: the focus treatment is identical either way.
 // biome-ignore lint/style/noRestrictedImports: SVG <g> focus ring, no inline/primitive equivalent (see above)
 import { styled } from "styled-components";
 import {
@@ -28,13 +30,15 @@ export interface SystemEntitiesLayerProps {
   ctx: SystemEntitiesContext;
   /** Id-keyed decoration hook: see `resolveSystemEntities`'s own doc comment. */
   decorate?: (id: string) => SystemEntityStyle | undefined;
-  /** Currently selected entity id, if any: drives `aria-pressed` on point markers. */
+  /** Currently selected entity id, if any: drives `aria-pressed` on the matching marker. */
   selectedId?: string | null;
   /**
-   * Fires when a point marker is activated (click, Enter, Space). Only
-   * point-shaped entities are made interactive: lines/rings/blobs are
-   * background geometry, not selectable targets. Omitted: points render as
-   * plain (non-interactive, non-focusable) markers.
+   * Fires when a vessel display object is activated (click, Enter, Space):
+   * a `point` marker, or an `orbit-path` ring that carries a `vesselId`
+   * that is selectable. Connection lines and blobs stay background
+   * geometry, never selectable targets, and an `orbit-path` with no
+   * `vesselId` (a hypothetical non-vessel ring) stays inert too. Omitted:
+   * every shape renders as a plain (non-interactive, non-focusable) marker.
    */
   onEntityActivate?: (id: string) => void;
 }
@@ -88,14 +92,64 @@ function Primitive({
   onActivate?: (id: string) => void;
 }>) {
   switch (r.kind) {
-    case "orbit-path":
+    case "orbit-path": {
+      // Only a vessel's own ring is selectable (`vesselId` set): a body's
+      // orbit ring, drawn by `SystemDiagram` itself rather than this layer,
+      // never reaches here, but a future non-vessel `orbit-path`
+      // contribution shouldn't accidentally become clickable either.
+      const interactive = onActivate !== undefined && r.vesselId != null;
+      if (!interactive) {
+        return (
+          <g
+            transform={`rotate(${r.rotationDeg})`}
+            pointerEvents="none"
+            data-entity-id={r.id}
+          >
+            <ellipse
+              cx={r.cx}
+              cy={r.cy}
+              rx={r.rx}
+              ry={r.ry}
+              fill="none"
+              stroke={r.colour}
+              strokeOpacity={r.opacity}
+              strokeWidth={1.2}
+            />
+          </g>
+        );
+      }
+      const activate = () => onActivate?.(r.id);
       return (
-        <g
+        <InteractiveMarker
           transform={`rotate(${r.rotationDeg})`}
-          pointerEvents="none"
           data-entity-id={r.id}
+          role="button"
+          tabIndex={0}
+          aria-label={formatEntityLabel(r.id, r.meta)}
+          aria-pressed={selected}
+          onClick={activate}
+          onKeyDown={(e: KeyboardEvent) => {
+            if (e.key === "Enter" || e.key === " ") {
+              e.preventDefault();
+              activate();
+            }
+          }}
+          style={POINT_INTERACTIVE_STYLE}
         >
+          {/* Transparent, wider stroke: enlarges the click/tap hit target
+              past the thin visible ring without changing its drawn weight. */}
           <ellipse
+            data-hit-target="true"
+            cx={r.cx}
+            cy={r.cy}
+            rx={r.rx}
+            ry={r.ry}
+            fill="none"
+            stroke="transparent"
+            strokeWidth={14}
+          />
+          <ellipse
+            data-ring="true"
             cx={r.cx}
             cy={r.cy}
             rx={r.rx}
@@ -105,8 +159,20 @@ function Primitive({
             strokeOpacity={r.opacity}
             strokeWidth={1.2}
           />
-        </g>
+          <ellipse
+            className="focus-ring"
+            cx={r.cx}
+            cy={r.cy}
+            rx={r.rx + 3}
+            ry={r.ry + 3}
+            fill="none"
+            stroke="var(--color-accent-fg)"
+            strokeWidth={2}
+            pointerEvents="none"
+          />
+        </InteractiveMarker>
       );
+    }
     case "connection-line":
       return (
         <line
@@ -156,7 +222,7 @@ function Primitive({
           }
         : { style: POINT_STATIC_STYLE };
       return (
-        <PointMarker data-entity-id={r.id} {...interactiveProps}>
+        <InteractiveMarker data-entity-id={r.id} {...interactiveProps}>
           <circle
             cx={r.x}
             cy={r.y}
@@ -178,7 +244,7 @@ function Primitive({
               pointerEvents="none"
             />
           )}
-        </PointMarker>
+        </InteractiveMarker>
       );
     }
     default:
@@ -206,7 +272,7 @@ const POINT_STATIC_STYLE: CSSProperties = { pointerEvents: "none" };
 // The one styled block that stays: an SVG <g> keyboard focus ring. See the
 // justified biome-ignore on the styled-components import at the top of the
 // file.
-const PointMarker = styled.g`
+const InteractiveMarker = styled.g`
   outline: none;
   .focus-ring {
     visibility: hidden;

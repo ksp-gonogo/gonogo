@@ -7,13 +7,13 @@ import {
 } from "../test/setupStreamFixture";
 import { SystemViewComponent } from "./index";
 // Side-effect import: registers the real `system-view-vessel-orbits`
-// contribution (owns BOTH the fleet and the comms.network graph, Task 4),
+// contribution (owns BOTH the fleet and the comms.network graph),
 // same as `index.tsx` does for the live app.
 import "./vesselOrbitsContribution";
 
 /**
  * End-to-end proof for the CommNet relay graph half of the built-in
- * `system-view-vessel-orbits` contribution (Task 4): a real `comms.network`
+ * `system-view-vessel-orbits` contribution: a real `comms.network`
  * stream, a real `SystemViewComponent`, and the actual `SystemEntitiesLayer`
  * DOM it renders into, not a unit test of `computeCommsNetworkEntities` in
  * isolation.

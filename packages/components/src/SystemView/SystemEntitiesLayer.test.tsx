@@ -41,6 +41,22 @@ const RING: SystemEntity = {
   shape: { kind: "orbit-path" },
 };
 
+const VESSEL_RING: SystemEntity = {
+  id: "vessel-orbit:v-relay",
+  vesselId: "v-relay",
+  position: {
+    kind: "orbit",
+    parentName: "Kerbin",
+    sma: 1_000_000,
+    ecc: 0.3,
+    lan: 10,
+    argPe: 5,
+    trueAnomaly: 0,
+  },
+  shape: { kind: "orbit-path" },
+  meta: { name: "Comsat Relay-1" },
+};
+
 const LINK: SystemEntity = {
   id: "link-1",
   position: { kind: "fixed", parentName: "Kerbin", xMetres: 0, yMetres: 0 },
@@ -192,6 +208,68 @@ describe("SystemEntitiesLayer", () => {
         ctx={CTX}
         onEntityActivate={() => {}}
         selectedId="vessel-1"
+      />,
+    );
+    const results = await axe(container);
+    expect(results).toHaveNoViolations();
+  });
+
+  it("does not make an orbit-path with no vesselId interactive, even with onEntityActivate", () => {
+    render(
+      <SystemEntitiesLayer
+        entities={[RING]}
+        ctx={CTX}
+        onEntityActivate={() => {}}
+      />,
+    );
+    expect(screen.queryByRole("button")).toBeNull();
+  });
+
+  it("makes a vessel's orbit-path ring (vesselId set) interactive: fires onEntityActivate on click and Enter/Space", () => {
+    const onEntityActivate = vi.fn();
+    render(
+      <SystemEntitiesLayer
+        entities={[VESSEL_RING]}
+        ctx={CTX}
+        onEntityActivate={onEntityActivate}
+      />,
+    );
+    const button = screen.getByRole("button", { name: /Comsat Relay-1/ });
+    fireEvent.click(button);
+    fireEvent.keyDown(button, { key: "Enter" });
+    fireEvent.keyDown(button, { key: " " });
+    expect(onEntityActivate).toHaveBeenCalledTimes(3);
+    expect(onEntityActivate).toHaveBeenCalledWith("vessel-orbit:v-relay");
+  });
+
+  it("reflects selectedId as aria-pressed on the matching vessel orbit-path ring", () => {
+    const { rerender } = render(
+      <SystemEntitiesLayer
+        entities={[VESSEL_RING]}
+        ctx={CTX}
+        onEntityActivate={() => {}}
+        selectedId={null}
+      />,
+    );
+    expect(screen.getByRole("button")).toHaveAttribute("aria-pressed", "false");
+    rerender(
+      <SystemEntitiesLayer
+        entities={[VESSEL_RING]}
+        ctx={CTX}
+        onEntityActivate={() => {}}
+        selectedId="vessel-orbit:v-relay"
+      />,
+    );
+    expect(screen.getByRole("button")).toHaveAttribute("aria-pressed", "true");
+  });
+
+  it("has no axe violations with an interactive vessel orbit-path ring rendered", async () => {
+    const { container } = render(
+      <SystemEntitiesLayer
+        entities={[VESSEL_RING, LINK, BLOB]}
+        ctx={CTX}
+        onEntityActivate={() => {}}
+        selectedId="vessel-orbit:v-relay"
       />,
     );
     const results = await axe(container);
