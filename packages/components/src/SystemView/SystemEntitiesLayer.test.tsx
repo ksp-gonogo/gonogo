@@ -275,4 +275,94 @@ describe("SystemEntitiesLayer", () => {
     const results = await axe(container);
     expect(results).toHaveNoViolations();
   });
+
+  describe("pulses", () => {
+    it("renders nothing extra with no pending traffic (omitted or empty)", () => {
+      const { container: withoutProp } = render(
+        <SystemEntitiesLayer entities={[LINK]} ctx={CTX} />,
+      );
+      expect(withoutProp.querySelectorAll("[data-pulse-edge-id]")).toHaveLength(
+        0,
+      );
+
+      const { container: withEmpty } = render(
+        <SystemEntitiesLayer entities={[LINK]} ctx={CTX} pulses={[]} />,
+      );
+      expect(withEmpty.querySelectorAll("[data-pulse-edge-id]")).toHaveLength(
+        0,
+      );
+    });
+
+    it("draws a pulse interpolated along its edge's already-projected endpoints", () => {
+      const { container } = render(
+        <SystemEntitiesLayer
+          entities={[LINK]}
+          ctx={CTX}
+          pulses={[{ id: "cmd-1", edgeId: "link-1", t: 0.5, opacity: 0.75 }]}
+        />,
+      );
+      // LINK projects to x1=0, x2=2 (see the "connection-line" test above);
+      // t=0.5 should sit exactly halfway.
+      const pulse = container.querySelector('[data-pulse-edge-id="link-1"]');
+      expect(pulse).not.toBeNull();
+      expect(Number(pulse?.getAttribute("cx"))).toBeCloseTo(1, 6);
+      expect(Number(pulse?.getAttribute("cy"))).toBeCloseTo(0, 6);
+      expect(pulse?.getAttribute("opacity")).toBe("0.75");
+    });
+
+    it("silently skips a pulse whose edgeId matches no resolved connection-line", () => {
+      const { container } = render(
+        <SystemEntitiesLayer
+          entities={[LINK]}
+          ctx={CTX}
+          pulses={[{ id: "cmd-1", edgeId: "no-such-edge", t: 0.5, opacity: 1 }]}
+        />,
+      );
+      expect(container.querySelectorAll("[data-pulse-edge-id]")).toHaveLength(
+        0,
+      );
+    });
+
+    it("renders one marker per pulse when several share the same edge", () => {
+      const { container } = render(
+        <SystemEntitiesLayer
+          entities={[LINK]}
+          ctx={CTX}
+          pulses={[
+            { id: "cmd-1", edgeId: "link-1", t: 0.2, opacity: 1 },
+            { id: "cmd-2", edgeId: "link-1", t: 0.8, opacity: 0.5 },
+          ]}
+        />,
+      );
+      expect(
+        container.querySelectorAll('[data-pulse-edge-id="link-1"]'),
+      ).toHaveLength(2);
+    });
+
+    it("pulse markers are never interactive (pointer-events: none, no role)", () => {
+      const { container } = render(
+        <SystemEntitiesLayer
+          entities={[LINK]}
+          ctx={CTX}
+          pulses={[{ id: "cmd-1", edgeId: "link-1", t: 0.5, opacity: 1 }]}
+        />,
+      );
+      const pulse = container.querySelector('[data-pulse-edge-id="link-1"]');
+      expect(pulse).toHaveAttribute("pointer-events", "none");
+      expect(pulse).not.toHaveAttribute("role");
+    });
+
+    it("has no axe violations with pulses rendered alongside an interactive marker", async () => {
+      const { container } = render(
+        <SystemEntitiesLayer
+          entities={[VESSEL_RING, LINK]}
+          ctx={CTX}
+          onEntityActivate={() => {}}
+          pulses={[{ id: "cmd-1", edgeId: "link-1", t: 0.5, opacity: 1 }]}
+        />,
+      );
+      const results = await axe(container);
+      expect(results).toHaveNoViolations();
+    });
+  });
 });

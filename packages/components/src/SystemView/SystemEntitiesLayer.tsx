@@ -25,6 +25,21 @@ import {
  * `overlayContext`, reused rather than recomputed). Renders nothing (`null`)
  * when nothing projects, so an empty contribution set costs nothing.
  */
+
+/** A moving traffic marker riding an ALREADY-drawn `connection-line` entity:
+ *  never a second render of the graph geometry, purely a decoration keyed by
+ *  that entity's own id (see `commsTraffic.ts`'s module doc comment). */
+export interface SystemEntityPulse {
+  /** Stable identity for this pulse (its `system.uplink.pending` entry's own
+   *  id): the React key, since two pulses can share an `edgeId` at once. */
+  id: string;
+  /** The `connection-line` entity id this pulse currently sits on. */
+  edgeId: string;
+  /** 0..1 along the edge's own a -> b direction (its x1,y1 -> x2,y2 draw order). */
+  t: number;
+  opacity: number;
+}
+
 export interface SystemEntitiesLayerProps {
   entities: readonly SystemEntity[];
   ctx: SystemEntitiesContext;
@@ -41,6 +56,16 @@ export interface SystemEntitiesLayerProps {
    * every shape renders as a plain (non-interactive, non-focusable) marker.
    */
   onEntityActivate?: (id: string) => void;
+  /**
+   * Command-traffic markers: one small dot per in-flight
+   * `system.uplink.pending` entry, interpolated along an already-resolved
+   * `connection-line`'s endpoints. A pulse whose `edgeId` doesn't match any
+   * resolved connection-line (off-frame, or the contribution hasn't drawn
+   * it) is silently skipped, the same "just doesn't render this frame"
+   * contract every other entity follows. Omitted or empty: renders nothing
+   * extra.
+   */
+  pulses?: readonly SystemEntityPulse[];
 }
 
 export function SystemEntitiesLayer({
@@ -49,13 +74,36 @@ export function SystemEntitiesLayer({
   decorate,
   selectedId,
   onEntityActivate,
+  pulses,
 }: Readonly<SystemEntitiesLayerProps>) {
   const resolved = useMemo(
     () => resolveSystemEntities(entities, ctx, decorate),
     [entities, ctx, decorate],
   );
 
-  if (resolved.length === 0) return null;
+  const resolvedPulses = useMemo(() => {
+    if (!pulses || pulses.length === 0) return [];
+    const edgesById = new Map(
+      resolved
+        .filter((r) => r.kind === "connection-line")
+        .map((r) => [r.id, r] as const),
+    );
+    return pulses.flatMap((p) => {
+      const edge = edgesById.get(p.edgeId);
+      if (!edge || edge.kind !== "connection-line") return [];
+      return [
+        {
+          id: p.id,
+          edgeId: p.edgeId,
+          opacity: p.opacity,
+          x: edge.x1 + (edge.x2 - edge.x1) * p.t,
+          y: edge.y1 + (edge.y2 - edge.y1) * p.t,
+        },
+      ];
+    });
+  }, [pulses, resolved]);
+
+  if (resolved.length === 0 && resolvedPulses.length === 0) return null;
 
   const halfW = ctx.width / 2;
   const halfH = ctx.height / 2;
@@ -76,6 +124,18 @@ export function SystemEntitiesLayer({
           resolved={r}
           selected={selectedId === r.id}
           onActivate={onEntityActivate}
+        />
+      ))}
+      {resolvedPulses.map((p) => (
+        <circle
+          key={p.id}
+          data-pulse-edge-id={p.edgeId}
+          cx={p.x}
+          cy={p.y}
+          r={PULSE_RADIUS_PX}
+          fill="var(--color-accent-fg)"
+          opacity={p.opacity}
+          pointerEvents="none"
         />
       ))}
     </svg>
@@ -251,6 +311,10 @@ function Primitive({
       return null;
   }
 }
+
+/** Slightly smaller than a vessel point marker's default radius, so a pulse
+ *  reads as traffic riding the line, not a second vessel dot. */
+const PULSE_RADIUS_PX = 3;
 
 const LAYER_SVG: CSSProperties = {
   position: "absolute",

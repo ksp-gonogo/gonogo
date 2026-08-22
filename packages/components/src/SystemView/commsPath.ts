@@ -54,8 +54,8 @@ function resolveHomeNodeIds(network: CommsNetwork): ReadonlySet<string> {
 
 /** The id a `comms.network` edge's contributed `connection-line` entity is
  *  assigned. `vesselOrbitsContribution.ts` calls this to produce the id, and
- *  a consumer calls it again to walk the SAME edges by id. One definition, so
- *  producer and consumers can never drift apart. */
+ *  `commsTraffic.ts` calls it again to walk the SAME edges by id to place a
+ *  pulse. One definition, so producer and consumers can never drift apart. */
 export function edgeEntityId(edge: CommsNetworkEdge): string {
   return `comms-edge:${edge.a}:${edge.b}`;
 }
