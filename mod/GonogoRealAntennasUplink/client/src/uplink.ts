@@ -1,4 +1,4 @@
-// RealAntennas uplink client identity (Uplink Client Contract design §3.1). The
+// RealAntennas uplink client identity. The
 // contribution this package registers stamps this handle as `owner`, and its
 // `registerContribution` resolves `ContributionEntry` against the SDK's own
 // contribution registry (where `comm-signal.hop-rates` is declared), which is

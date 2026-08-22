@@ -401,10 +401,9 @@ describe("CameraFeed: camera selection", () => {
   ];
 
   it("excludes kerbal face cameras from the picker (facecam kind separation)", async () => {
-    // Facecam-stage6 consumption design, "requirements gonogo-side" §5: kerbal
-    // face cams get their own crew surfaces (CrewStatus's avatar augment,
-    // eventually a dedicated facecam wall) and should never also show up in
-    // this general part-camera picker/auto-latch.
+    // Kerbal face cams get their own crew surfaces (CrewStatus's avatar
+    // augment, eventually a dedicated facecam wall) and should never also show
+    // up in this general part-camera picker and auto-latch.
     await buildConnectedSource([
       ...TWO_CAMERAS,
       makeCamera({
@@ -1303,10 +1302,10 @@ describe("CameraFeed: station (brokered) mode", () => {
 });
 
 // ---------------------------------------------------------------------------
-// Augment slot (Uplink architecture spec §4). CameraFeed exposes an OVERLAY
+// Augment slot. CameraFeed exposes an OVERLAY
 // slot (`camera-feed.overlay`, over the video). No first-party augment fills it
 // (P3/P6): an empty slot renders cleanly, and a test augment registered into it
-// appears, receiving the displayed camera's flightID as typed slot props (§4.4).
+// appears, receiving the displayed camera's flightID as typed slot props.
 // ---------------------------------------------------------------------------
 
 describe("CameraFeed: augment slots (spec §4)", () => {
@@ -1344,7 +1343,7 @@ describe("CameraFeed: augment slots (spec §4)", () => {
     });
 
     const augment = await screen.findByTestId("cam-overlay-augment");
-    // The slot passed the displayed camera's flightID down (spec §4.4). The
+    // The slot passed the displayed camera's flightID down. The
     // measured size is 0×0 under jsdom's no-op ResizeObserver stub.
     await waitFor(() => expect(augment.textContent).toBe("HUD:42:0x0"));
   });

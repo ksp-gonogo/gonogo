@@ -71,7 +71,7 @@ describe("kerbcast.cameras Topic (relocated out of Sitrep.Contract)", () => {
   });
 
   // The runtime-hydration half of the uplink-types-out-of-core plan's Unit
-  // guard (§5b): a widget/decode test, not just the generated-file type
+  // guard: a widget/decode test, not just the generated-file type
   // check. Drives the REAL TelemetryClient/StubTransport pipeline
   // (setupStreamFixture), so this proves registerTopicUnits (topics.ts)
   // actually reaches wrapTopicPayload's decode-time lookup. Without that

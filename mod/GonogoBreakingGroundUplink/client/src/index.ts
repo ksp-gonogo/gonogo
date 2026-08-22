@@ -11,8 +11,8 @@
 // component registry:
 //
 //   - `uplink.ts` -> defineUplinkClient({ id: "breakingGround", ... })
-//     declares this client's identity (Uplink Client Contract design
-//     §3.1); every registration below stamps the returned BREAKING_GROUND
+//     declares this client's identity; every registration below stamps the
+//     returned BREAKING_GROUND
 //     handle as `owner`, so the widget picker's mod search tags derive
 //     "breakingGround" automatically.
 //   - `RoboticsConsole` -> registerComponent({ id: "robotics-console", ... })

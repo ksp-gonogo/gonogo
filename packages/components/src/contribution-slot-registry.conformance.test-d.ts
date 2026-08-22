@@ -11,8 +11,8 @@
 // AND is where every first-party contribution slot will eventually be
 // owned, same split as the augment-slot mirror).
 //
-// `ship-map.part-meters` / `ship-map.part-meta` (spec §13.4, the framework's
-// self-contribution flagship) are the first real slots to land here, so this
+// `ship-map.part-meters` and `ship-map.part-meta`, this repo's
+// self-contribution flagship, are the first real slots to land here, so this
 // file grows real per-key bidirectional checks (mirrors ↔ core's real
 // registry, mirrors ↔ the real widget-owned entry types), exactly the same
 // two-directions-per-slot pattern `slot-registry.conformance.test-d.ts`

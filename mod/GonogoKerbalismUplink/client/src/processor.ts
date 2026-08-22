@@ -7,10 +7,9 @@ import type {
 import { mag, type Summary, summarise } from "./ecosystem";
 import { KERBALISM } from "./uplink";
 
-// ---------------------------------------------------------------------------
 // The single per-frame derivation the Ship Systems widget AND its panel badge
-// both pull from (contribution-slots-spec.md §13-14, the Processor primitive's
-// first real Uplink consumer). `summarise` runs ONCE against the four
+// both pull from, and the Processor primitive's
+// first real Uplink consumer. `summarise` runs ONCE against the four
 // Kerbalism/vessel payloads per Sitrep frame no matter how many surfaces read
 // it: the widget via `useProcessor`, the badge via a contribution `deps` on the
 // handle this module exports. Before this, the widget re-derived on its own and

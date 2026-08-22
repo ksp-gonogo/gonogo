@@ -6,14 +6,12 @@
 // MapPoiLayer.tsx) exactly like every other POI kind (KSC, launch sites,
 // contract targets): one hover/action surface, no per-kind bolt-on UI.
 //
-// Replaces the old `AnomalyOverlay` `map-view.overlay` augment (MapView
-// overlay-host foundation plan T-POI-8): that component owned its own
-// on-map markers AND a bespoke ranked-by-distance panel
-// (`rankAnomaliesByDistance`/`compassPoint`, `geometry.ts`). The panel has
-// no replacement here: dropped per the plan's default (POI design spec
-// §7.1, left open as a future "generalise a nearby-POI panel" follow-up,
-// not rebuilt in this task). What this provider gains over the old augment:
-// every anomaly now carries a "Set as Target" action for free.
+// Replaces the old `AnomalyOverlay` `map-view.overlay` augment, which owned its
+// own on-map markers AND a bespoke ranked-by-distance panel
+// (`rankAnomaliesByDistance` and `compassPoint`, `geometry.ts`). That panel has
+// no replacement: a nearby-POI panel belongs in the generic layer if it is
+// wanted at all, not per POI kind. What this provider gains in exchange is that
+// every anomaly carries a "Set as Target" action for free.
 //
 // Presence-gated on `requires: "scansat"`: MapPoiLayer only calls
 // `usePois` once `scansat.available` is live, so an install without

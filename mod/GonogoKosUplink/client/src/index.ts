@@ -1,7 +1,7 @@
 // kOS Uplink client for gonogo.
 //
 // Co-located with the GonogoKosUplink C# mod (mod/GonogoKosUplink): one directory holds
-// the mod and the client TS it ships (Uplink architecture §1). Importing this
+// the mod and the client TS it ships. Importing this
 // package's entry point side-effects the widget registration into
 // @ksp-gonogo/core's global registry:
 //
@@ -32,7 +32,7 @@
 
 // defineUplinkClient(KOS): every widget/augment this package registers
 // stamps the returned handle as `owner`, so the widget picker's mod search
-// tags derive "kos" automatically (Uplink Client Contract design §3.1/§3.3).
+// tags derive "kos" automatically.
 // (Also re-run by `./runtime`, below, idempotent, see that module's doc.)
 import "./uplink";
 

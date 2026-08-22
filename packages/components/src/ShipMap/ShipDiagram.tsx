@@ -42,12 +42,12 @@ interface Props {
   /** Current `f.throttle` (0..1+). Forwarded to ShipDiagramSvg so
    *  engine-flame overlays gate on actual thrust. */
   throttle?: number;
-  /** Per-part resource meters (spec §13.4 self-contribution), keyed by
+  /** Per-part resource meters, keyed by
    *  `ShipMapPart.flightId` (stringified). Forwarded to `ShipDiagramSvg`
    *  for the compact in-body fill bars, and read here to render the SAME
    *  entries as real `<Meter>`s in the hover tooltip. */
   partMeters?: ReadonlyMap<string, readonly ShipMapPartMeterEntry[]>;
-  /** Per-part status/metadata rows (spec §13.4), same keying as
+  /** Per-part status/metadata rows, same keying as
    *  `partMeters`. Rendered only in the hover tooltip, ShipDiagramSvg has
    *  no compact-body equivalent for these. */
   partMeta?: ReadonlyMap<string, readonly ShipMapPartMetaEntry[]>;
@@ -167,7 +167,7 @@ export function ShipDiagram({
     setMouse({ x: e.clientX - rect.left, y: e.clientY - rect.top });
   };
 
-  // The hovered part's contributed rows (spec §13.4): rendered here through
+  // The hovered part's contributed rows: rendered here through
   // the real ui-kit `<Meter>`, the SAME component ShipSystems and every other
   // meter-bearing widget uses, so a contributed reading and a built-in one
   // look like one system rather than two. `ShipDiagramSvg`'s compact in-body

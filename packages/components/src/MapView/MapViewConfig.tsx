@@ -45,8 +45,7 @@ export function MapViewConfigComponent({
     [],
   );
 
-  // Every augment's own settings for MapView's slots, merged into one panel
-  // (spec §4.7): the read-back half of `registerAugment({ settings: [...] })`.
+  // Every augment's own settings for MapView's slots, merged into one panel: the read-back half of `registerAugment({ settings: [...] })`.
   const augmentSettingsBlocks = useMemo<NamespacedAugmentSettings[]>(
     () => [
       ...getAugmentSettings("map-view.overlay"),

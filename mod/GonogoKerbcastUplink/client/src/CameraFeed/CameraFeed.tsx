@@ -91,7 +91,7 @@ export function isPartCamera(camera: CameraState): boolean {
 }
 
 // ---------------------------------------------------------------------------
-// Augment slots (Uplink architecture spec §4). CameraFeed is PRIMARILY an
+// Augment slots. CameraFeed is PRIMARILY an
 // augment itself (it fills `distance-to-target.camera`) and secondarily a HOST
 // widget that exposes two slots. No first-party augment fills either here, the
 // package move + Kerbalism/RA fillers are a later phase, so each renders
@@ -99,7 +99,7 @@ export function isPartCamera(camera: CameraState): boolean {
 // ---------------------------------------------------------------------------
 
 /**
- * Props for `camera-feed.overlay`: an OVERLAY slot (spec §4.8), rendered in a
+ * Props for `camera-feed.overlay`: an OVERLAY slot, rendered in a
  * layer absolutely positioned OVER the video element. Data-over-video augments
  * (a telemetry HUD painted on the feed at key moments) draw here in the feed's
  * pixel space, so the slot passes the rendered video-container dimensions and
@@ -120,8 +120,8 @@ export interface CameraOverlayContext {
   height: number;
 }
 
-// Co-located declaration-merge of this widget's slot ids → their props (spec
-// §4.6). Kept next to the widget (not a central registry file) so parallel slot
+// Co-located declaration-merge of this widget's slot ids onto their props types.
+// Kept next to the widget (not a central registry file) so parallel slot
 // work on other widgets never collides on this seam. Targets the sitrep-sdk
 // facade, not @ksp-gonogo/core directly: CameraFeed OWNS these slots (it's the
 // one file that both renders <AugmentSlot> for them AND is sealed onto the
@@ -372,7 +372,7 @@ export function CameraFeed({
 
   if (!client || !subscriptions) return null;
 
-  // Slot props (spec §4.4). Both carry the displayed camera's flightID; the
+  // Slot props. Both carry the displayed camera's flightID; the
   // overlay additionally carries the measured video-container size so an
   // overlay augment can draw in the feed's pixel space.
   const overlayContext: CameraOverlayContext = {
@@ -420,7 +420,7 @@ export function CameraFeed({
     setpointInitial !== undefined;
 
   // Inject gonogo's delayed-playout stream source through the SDK's `useStream`
-  // seam (kerbcam §3.4). `useDelayedKerbcastStream` is a stable module-scope
+  // seam. `useDelayedKerbcastStream` is a stable module-scope
   // hook, satisfying the seam's rules-of-hooks contract. Its signature matches
   // the SDK's `CameraStreamHook` type, so the prop is passed plainly.
   //

@@ -2,8 +2,8 @@ import type { BadgeEntry } from "@ksp-gonogo/ui-kit";
 import { SHIP_SYSTEMS, type ShipSystems } from "../processor";
 import { KERBALISM } from "../uplink";
 
-// ---------------------------------------------------------------------------
-// The Ship Systems panel badge (contribution-slots-spec §13.2, panelBadges).
+// The Ship Systems panel badge.
+//
 // A pure contribution to the widget's auto-wired `${componentId}.badges` slot,
 // fed by the SAME `SHIP_SYSTEMS` Processor the widget body reads via
 // useProcessor. This is the dogfood: one per-frame `summarise` evaluation, two

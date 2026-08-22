@@ -774,7 +774,7 @@ function FuelStatusConfigComponent({
 // ── Augment slots ─────────────────────────────────────────────────────────────
 
 // Declaration-merge this widget's slot ids → their props types into core's
-// `SlotRegistry` (Uplink architecture §4.6). Both slots are plain
+// `SlotRegistry`. Both slots are plain
 // section/badge slots (not overlays), so they pass no coordinate/projection
 // context: an empty props object. Kept co-located here, not in a shared
 // central registry file, so parallel per-widget slot work never collides.

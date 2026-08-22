@@ -2,7 +2,7 @@
 //
 // Co-located with the GonogoRealAntennasUplink C# mod
 // (mod/GonogoRealAntennasUplink): one directory holds the mod and the client TS
-// it ships (Uplink architecture §1).
+// it ships.
 //
 // This one registers NO standalone widget, and that is deliberate. RealAntennas
 // is an elected PROVIDER: its main job is to make the shared comms.* channels

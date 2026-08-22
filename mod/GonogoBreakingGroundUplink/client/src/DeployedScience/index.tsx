@@ -482,7 +482,7 @@ export interface DeployedExperimentContext {
 }
 
 // Declaration-merge this widget's slot ids → their props types into the sdk's
-// `SlotRegistry` (Uplink architecture §4.6). Kept co-located here, not in a
+// `SlotRegistry`. Kept co-located here, not in a
 // shared central registry file, so parallel per-widget slot work never
 // collides. `.sections` is a typed-contract per-card slot, carrying the
 // experiment.

@@ -242,7 +242,7 @@ describe("SpaceCenterStatusComponent", () => {
     expect((upgradeButtons[0] as HTMLButtonElement).disabled).toBe(true);
   });
 
-  // Augment slot (Uplink architecture §4): the widget exposes
+  // Augment slot: the widget exposes
   // `space-center-status.sections` (body, appended to the facility list). With
   // no augment registered the slot renders nothing and the widget is
   // unchanged; once an augment binds it its component appears in the widget's

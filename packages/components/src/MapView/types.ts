@@ -25,7 +25,7 @@ export interface MapViewConfig {
    */
   showPois?: boolean;
   /**
-   * Per-augment settings (spec §4.7), namespaced by augment id, the
+   * Per-augment settings, namespaced by augment id, the
    * read-back half of `registerAugment({ settings: [...] })`. Populated by
    * `AugmentSettingsPanel` in the config UI, merged from
    * `getAugmentSettings("map-view.overlay"|"map-view.sections"|"map-view.base")`

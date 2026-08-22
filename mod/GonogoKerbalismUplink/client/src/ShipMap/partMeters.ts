@@ -3,9 +3,8 @@ import type { KerbalismProfile } from "../__generated__/contract";
 import { mag, resourceFacts } from "../ecosystem";
 import { KERBALISM } from "../uplink";
 
-// ---------------------------------------------------------------------------
-// The Kerbalism half of the `ship-map.part-meters` self-contribution (spec
-// §13.4, the framework's flagship demonstration): supply-tank resources this
+// The Kerbalism half of the `ship-map.part-meters` self-contribution:
+// supply-tank resources this
 // vessel carries, on the SAME slot the built-in `core` contribution feeds
 // its five classic drainable propellants into
 // (`packages/components/src/ShipMap/partMetersContribution.ts`). ShipMap

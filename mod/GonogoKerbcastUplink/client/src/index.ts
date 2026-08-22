@@ -1,8 +1,8 @@
 // kerbcast Uplink client for gonogo.
 //
 // Co-located with the GonogoKerbcastUplink C# mod (mod/GonogoKerbcastUplink):
-// one directory holds the mod and the client TS it ships (Uplink architecture
-// §1), the same layout every sibling Uplink client uses. It keeps the npm name
+// one directory holds the mod and the client TS it ships, the same layout every
+// sibling Uplink client uses. It keeps the npm name
 // `@ksp-gonogo/gonogo-kerbcast-uplink`: `@ksp-gonogo/kerbcast` is NOT available to
 // rename onto, being the external kerbcast protocol SDK this package consumes
 // from public npm (see .npmrc). So the package NAME deviates from the sibling

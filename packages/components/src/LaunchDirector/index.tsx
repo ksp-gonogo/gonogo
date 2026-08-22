@@ -61,8 +61,8 @@ export interface LaunchDirectorSlotContext {
   funds: number | undefined;
 }
 
-// Declaration-merge the slot ids → props type into core's `SlotRegistry` (spec
-// §4.6). Co-located here (not a shared central file) so parallel slot work on
+// Declaration-merge the slot ids onto their props type in core's `SlotRegistry`.
+// Co-located here (not a shared central file) so parallel slot work on
 // other widgets can't collide. This makes `registerAugment` and
 // `<AugmentSlot name="launch-director.preflight" ...>` type-check against
 // `LaunchDirectorSlotContext` rather than the loose fallback.

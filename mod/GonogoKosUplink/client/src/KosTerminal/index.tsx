@@ -1138,7 +1138,7 @@ function KosTerminalScreen({
     // line-mode toggle never tears down and wipes the terminal.
   }, [readOnly]);
 
-  // Threshold split (spec §4): char-mode always gets the badge; line-mode
+  // Threshold split: char-mode always gets the badge; line-mode
   // gets the badge ONLY when the delay is too short for a strip to be worth
   // it (<=1s one-way), otherwise the full in-transit strip. The two are
   // mutually exclusive: never both. A read-only viewer in line mode with a

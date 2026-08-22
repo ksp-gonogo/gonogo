@@ -237,7 +237,7 @@ function ObjectivesSection({ items, renderAlarm }: ObjectiveSection) {
 }
 
 // ---------------------------------------------------------------------------
-// The built-in objective source: bound to the slot as an augment (§4.9)
+// The built-in objective source: bound to the slot as an augment
 // ---------------------------------------------------------------------------
 
 /**
@@ -458,7 +458,7 @@ registerComponent<ObjectivesConfig>({
 });
 
 // The built-in source binds the slot as an augment. It declares a show/hide
-// setting that the host widget's settings panel merges in (§4.7); collected
+// setting that the host widget's settings panel merges in; collected
 // via `getAugmentSettings("objectives.source")`.
 registerAugment({
   id: "objectives-contracts",

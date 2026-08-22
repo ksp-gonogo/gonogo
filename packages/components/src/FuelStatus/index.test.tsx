@@ -314,7 +314,7 @@ describe("FuelStatusComponent", () => {
     expect(stageValueTexts).toContain("1700 m/s");
   });
 
-  // Augment slot (Uplink architecture §4): the widget exposes
+  // Augment slot: the widget exposes
   // `fuel-status.sections` (body). With no augment registered the slot renders
   // nothing and the widget is unchanged.
   it("renders with an empty augment slot when nothing is registered", async () => {

@@ -15,7 +15,7 @@
 // for the "all layers toggled off" case: if suppression is on, the surface
 // stays black (the dark panel fill already on the canvas shows through),
 // never falling back to the stock texture just because nothing is currently
-// painting (spec §5): "don't like it, don't have the Uplink" is meant
+// painting: "don't like it, don't have the Uplink" is meant
 // literally: the Uplink's mere presence, not its current per-layer
 // visibility, decides this.
 //

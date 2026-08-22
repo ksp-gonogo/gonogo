@@ -13,7 +13,7 @@ import { topologyToVesselPartsWire } from "../test/topologyToVesselPartsWire";
 import { ShipMapComponent } from "./index";
 
 /**
- * Proves the self-contribution unify end to end (spec §13.4): ShipMap's
+ * Proves the self-contribution unify end to end: ShipMap's
  * compact fill bars come from the aggregated `ship-map.part-meters` slot,
  * not from a hardcoded resource allowlist inside `ShipDiagramSvg`. The
  * built-in `core` contribution is exercised here (it lives in this

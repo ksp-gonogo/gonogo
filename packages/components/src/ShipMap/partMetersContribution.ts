@@ -3,9 +3,8 @@ import { buildResourcesByFlightId } from "@ksp-gonogo/data";
 import type { VesselParts } from "@ksp-gonogo/sitrep-sdk";
 import type { ShipMapPartMeterEntry } from "./shipTopology";
 
-// ---------------------------------------------------------------------------
-// The built-in half of the `ship-map.part-meters` self-contribution (spec
-// §13.4, the framework's flagship demonstration): the five classic
+// The built-in half of the `ship-map.part-meters` self-contribution, and this
+// repo's flagship demonstration of the pattern: the five classic
 // drainable propellants, moved off ShipDiagramSvg's old hardcoded `DRAINABLE`
 // Set + `resourceColor` switch and onto the SAME contribution slot a
 // Kerbalism-style Uplink contributes its own supply tanks to

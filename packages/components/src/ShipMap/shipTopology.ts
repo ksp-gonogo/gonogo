@@ -112,7 +112,7 @@ export interface ShipMapPart {
 /**
  * One resource meter for a single part, aggregated from the
  * `ship-map.part-meters` contribution slot (the framework's self-
- * contribution flagship, spec §13.4). Both the built-in `core` contribution
+ * contribution flagship). Both the built-in `core` contribution
  * (the five classic drainable propellants, `ShipMap/partMetersContribution.ts`)
  * and a Kerbalism-style Uplink contribution (its supply tanks) emit this SAME
  * shape onto the SAME slot, so `ShipDiagramSvg`'s per-part fill bars and

@@ -1,12 +1,12 @@
 // SCANsat Uplink client for gonogo.
 //
 // Co-located with the GonogoScansatUplink C# mod (mod/GonogoScansatUplink):
-// one directory holds the mod and the client TS it ships (Uplink architecture
-// §1). Importing this package's entry point side-effects the widget
+// one directory holds the mod and the client TS it ships.
+// Importing this package's entry point side-effects the widget
 // registration into @ksp-gonogo/core's global component registry:
 //
 //   - `uplink.ts` → defineUplinkClient({ id: "scansat", ... }) declares this
-//     client's identity (Uplink Client Contract design §3.1); every
+//     client's identity; every
 //     registration below stamps the returned SCANSAT handle as `owner`, so
 //     the widget picker's mod search tags derive "scansat" automatically.
 //

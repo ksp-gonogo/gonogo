@@ -68,7 +68,7 @@ const sharedDelayedStreams = new SharedDelayedStreams<
  * This is the thin data-source glue only, a strict LAN passthrough. Delayed
  * playout is layered on top by composing it with {@link useDelayedPlayout}
  * (see `useDelayedKerbcastStream`), which keeps the SDK / buffer / clock
- * concerns cleanly separated (M2 design §5).
+ * concerns cleanly separated.
  */
 export function useKerbcastStream(flightId: number | null): MediaStream | null {
   const [rawStream, setRawStream] = useState<MediaStream | null>(() => {
@@ -101,13 +101,11 @@ export function useKerbcastStream(flightId: number | null): MediaStream | null {
 }
 
 /**
- * Opt-in delayed playout for a raw kerbcast `MediaStream` (M2 design §5,
- * "media delay (kerbcast)"). Omit this argument entirely for the existing
- * LAN passthrough behaviour (zero regression, scenario 6); see
- * `DelayedPlayoutResult`'s `"raw"` kind, the one retained live-video path
- * (cross-browser kerbcast video-delay design, 2026-07-16).
+ * Opt-in delayed playout for a raw kerbcast `MediaStream`. Omit this argument
+ * entirely for LAN passthrough; see `DelayedPlayoutResult`'s `"raw"` kind, the
+ * one retained live-video path.
  *
- * A REAL per-frame delay (2026-07-15 fix, made cross-browser 2026-07-16):
+ * A REAL per-frame delay:
  * every video frame read off the track is individually stamped with the
  * live interpolated capture UT and gated on the shared clock; see
  * `../frameDelay.ts` (main-thread backend, Chrome) and `../worker/`
@@ -171,7 +169,7 @@ const CONNECTING: DelayedPlayoutResult = { kind: "connecting" };
 
 /**
  * Route a raw `MediaStream` through the real per-frame delay pipeline,
- * sharing the app's telemetry delay clock (M2 design §5). Without `delay`
+ * sharing the app's telemetry delay clock. Without `delay`
  * (the default) this is a strict passthrough, it returns `{kind: "raw",
  * stream: raw}` unchanged, so the LAN case is bit-for-bit the old
  * behaviour, with NO pipeline spun up.

@@ -5,8 +5,7 @@ import { CREW_SURVIVAL, type CrewSurvival } from "./processor";
 // ---------------------------------------------------------------------------
 // CrewStatus's panel badge (mirrors `ShipSystems/badge.ts`'s
 // `ship-systems-badge`): a pure contribution to the widget's auto-wired
-// `crew-status.badges` slot (the collapsed-header badge the panel-header
-// redesign surfaces, contribution-slots-spec §13.2 `panelBadges`). The
+// `crew-status.badges` slot, the collapsed-header `panelBadges` row. The
 // widget-authored per-row AugmentSlot that used to share this exact string is
 // now `crew-status.row-badges`: one name across two registries rendered in two
 // places on screen and gave an author no way to tell which they were binding.

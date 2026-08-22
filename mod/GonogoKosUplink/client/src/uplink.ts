@@ -1,4 +1,4 @@
-// Uplink client identity (Uplink Client Contract design §3.1). One
+// Uplink client identity. One
 // declaration per client bundle: every widget/augment this package
 // registers stamps this handle as `owner`, so the widget picker's mod
 // search tags (effectiveSearchTags) derive "kos" automatically instead of
