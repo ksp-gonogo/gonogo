@@ -17,7 +17,7 @@
     "dev": "tsc -p tsconfig.json --watch",
     "test": "tsc -p tsconfig.test-d.json && vitest run",
     "test:coverage": "vitest run --coverage",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit && tsc -p tsconfig.test-d.json"
   },
   "dependencies": {
     "@ksp-gonogo/ui-kit": "workspace:*",
