@@ -253,27 +253,28 @@ const VESSEL_PARTS = {
 // antenna, no engine) is the final stage. `thrustVac`/TWR figures are
 // derived from the shared SNAPSHOT's `vessel.propulsion` (totalMass
 // 13.8299436569214 t, availableThrust 215 kN) so the two fixtures agree:
-// TWRVac = 215 / (13.8299436569214 * 9.81) ≈ 1.5848.
+// twrVac = 215 / (13.8299436569214 * 9.81) ≈ 1.5848.
+//
+// Field names are `Sitrep.Contract.StageDeltaVEntry`'s and only its, because
+// this process impersonates the mod's own stream and the mod sends nothing
+// else: `dvVac`/`dvAsl`/`dvActual`, `twrVac`/`twrAsl`/`twrActual`,
+// `thrustAsl`. There is no `stageMass` and no `isp*` on that contract at all.
 const DV_STAGES = [
   {
     stage: 1,
-    stageMass: 13.8299436569214,
     dryMass: 7.793,
     fuelMass: 6.0369436569214,
     startMass: 13.8299436569214,
     endMass: 7.793,
     burnTime: 210.4,
-    deltaVVac: 1450.2,
-    deltaVASL: 1120.5,
-    deltaVActual: 1310.8,
-    TWRVac: 1.5848,
-    TWRASL: 1.2246,
-    TWRActual: 1.4321,
-    ispVac: 345,
-    ispASL: 265,
-    ispActual: 310,
+    dvVac: 1450.2,
+    dvAsl: 1120.5,
+    dvActual: 1310.8,
+    twrVac: 1.5848,
+    twrAsl: 1.2246,
+    twrActual: 1.4321,
     thrustVac: 215,
-    thrustASL: 166.2,
+    thrustAsl: 166.2,
     thrustActual: 195,
     resources: {
       LiquidFuel: { current: 539.797302768469, max: 1980 },
@@ -282,23 +283,19 @@ const DV_STAGES = [
   },
   {
     stage: 0,
-    stageMass: 7.793,
     dryMass: 7.793,
     fuelMass: 0,
     startMass: 7.793,
     endMass: 7.793,
     burnTime: 0,
-    deltaVVac: 0,
-    deltaVASL: 0,
-    deltaVActual: 0,
-    TWRVac: 0,
-    TWRASL: 0,
-    TWRActual: 0,
-    ispVac: 0,
-    ispASL: 0,
-    ispActual: 0,
+    dvVac: 0,
+    dvAsl: 0,
+    dvActual: 0,
+    twrVac: 0,
+    twrAsl: 0,
+    twrActual: 0,
     thrustVac: 0,
-    thrustASL: 0,
+    thrustAsl: 0,
     thrustActual: 0,
     resources: {},
   },

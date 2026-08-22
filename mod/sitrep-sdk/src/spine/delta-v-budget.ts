@@ -141,7 +141,17 @@ export interface DeltaVBudget {
   budget: BudgetProvenance;
 }
 
-/** The wire shape of a `dv.stages` row, as either transport may send it. */
+/**
+ * The wire shape of a `dv.stages` row: `Sitrep.Contract.StageDeltaVEntry` and
+ * only it, read by the contract's own names (`dvActual`, `twrActual`,
+ * `thrustAsl`, …).
+ *
+ * The `parseStages` this replaced also answered to a second set of names
+ * (`deltaVActual`, `TWRActual`) left over from a transport that no longer
+ * exists. Nothing gains that alias back: a fixture that spells a field the mod
+ * never sends should read as absent, which is the only reason the one e2e still
+ * spelling them the old way was ever found.
+ */
 type StageWireEntry = Record<string, unknown>;
 
 /** A number, a `Value`'s magnitude, or `NaN` when the field carries neither. */
