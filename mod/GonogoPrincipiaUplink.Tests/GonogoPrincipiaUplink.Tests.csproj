@@ -21,14 +21,20 @@
        the observation, the builder and the reflection walk need nothing but the
        framework; the uplink needs Sitrep.Contract for ISitrepUplink.
 
-       PrincipiaUplink.Observer.cs, FlightPlannerHook.cs, PrincipiaSettingsSource.cs
-       and PrincipiaSession.Live.cs are deliberately ABSENT. They are the only
-       files naming a KSP or Harmony type, and both PrincipiaUplink and
-       PrincipiaSession are partial precisely so that omitting them still
-       compiles: the AttachObserver partial method call disappears and the publish
-       rule is driven by a fake observer instead, and the sourcing protocol runs
-       against a fake plugin with no way to find a real one. Adding any of them
-       here would trade that coverage for a reference this project does not need.
+       PrincipiaUplink.Observer.cs, FlightPlannerHook.cs, PrincipiaSettingsSource.cs,
+       PrincipiaGravityModelSource.cs and PrincipiaSession.Live.cs are deliberately
+       ABSENT. They are the only files naming a KSP or Harmony type, and both
+       PrincipiaUplink and PrincipiaSession are partial precisely so that omitting
+       them still compiles: the AttachObserver and AttachGravityModel partial method
+       calls disappear and the publish rule is driven by a fake observer instead, and
+       the sourcing protocol runs against a fake plugin with no way to find a real
+       one. Adding any of them here would trade that coverage for a reference this
+       project does not need.
+
+       The gravity model splits the same way and for the same reason. The GameDatabase
+       walk is in PrincipiaGravityModelSource and is absent; every decision about what
+       a config value means is in GravityModelParser and is here, driven against the
+       shipped file's own spellings.
 
        Note how little the settings work left in the game-facing file: finding
        the addon, the game's body table, and the game's own target. Every read,
@@ -59,6 +65,7 @@
     <Compile Include="..\GonogoPrincipiaUplink\PrincipiaSession.cs" />
     <Compile Include="..\GonogoPrincipiaUplink\PrincipiaFrame.cs" />
     <Compile Include="..\GonogoPrincipiaUplink\ReflectedPrincipiaPlugin.cs" />
+    <Compile Include="..\GonogoPrincipiaUplink\GravityModelParser.cs" />
   </ItemGroup>
 
   <ItemGroup>

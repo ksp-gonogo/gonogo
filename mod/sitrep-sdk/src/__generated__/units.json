@@ -1757,6 +1757,12 @@
     "GateVerdict": {
       "breach": "LimitBreach"
     },
+    "GravityModel": {
+      "bodies": "GravityModelBody"
+    },
+    "IGravityModelSource": {
+      "model": "GravityModel"
+    },
     "ISitrepUplink": {
       "manifest": "UplinkManifest"
     },
@@ -1823,6 +1829,9 @@
       "forceModel": "TrajectoryForceModel",
       "frame": "TrajectoryFrameRef",
       "points": "TrajectoryPoint"
+    },
+    "TrajectoryArcAnswer": {
+      "arc": "TrajectoryArc"
     },
     "UplinkManifest": {
       "channels": "ChannelDeclaration",

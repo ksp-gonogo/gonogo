@@ -281,6 +281,11 @@ namespace Gonogo.KSP
         {
             ActionGroupsElection.RegisterCapability(kernel, _ => new StockActionGroupsBackend());
             PropagationElection.RegisterCapability(kernel, SilenceTracking.KspSystemTable.Current);
+            // No vanilla, unlike every other declaration here, and the asymmetry is
+            // the point: stock has no n-body force model to fall back on, so an
+            // install with nothing registered is honestly unsatisfied rather than
+            // quietly served a model assembled from stock's own numbers.
+            GravityModelElection.RegisterCapability(kernel);
             // The SAME registry KspVesselActuator resolves update/remove's
             // nodeId against, so a burn's id round-trips into a command whether
             // the burn was authored through vessel.maneuver.add or placed by
@@ -312,6 +317,23 @@ namespace Gonogo.KSP
             VesselViewProvider.SetIntegratingProviderSource(
                 () => _kernel != null
                     && PropagationElection.Elected(_kernel) is IIntegratedTrajectorySource);
+
+            // The other half of the same fact. Saying a trajectory is integrated
+            // and then publishing only the osculating conic it is tangent to leaves
+            // every client sampling an ellipse under an integrated label, so the
+            // arc source is installed beside the flag that claims it.
+            //
+            // Assembled here rather than registered as a provider because it is not
+            // one: it composes two elections (whoever published a force model,
+            // whoever won propagation) with a body list only this assembly can read,
+            // and none of those three is entitled to know about the other two.
+            var arcs = new NBodyArcSource(
+                () => GravityModelElection.Model(_kernel),
+                () => _kernel != null ? PropagationElection.Elected(_kernel) : null,
+                KspPerturbers.Around);
+            VesselViewProvider.SetTrajectoryArcSource(
+                (target, fromUt, toUt) =>
+                    arcs.ArcFor(target, fromUt, toUt, NBodyArcSource.PublishedPoints));
 
             _kspActuator?.SetPlanOwnerSource(() =>
             {

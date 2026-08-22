@@ -1814,6 +1814,12 @@ export const GENERATED_TYPE_SHAPES: Readonly<Record<string, ShapesByField>> = {
   "GateVerdict": {
     breach: "LimitBreach",
   },
+  "GravityModel": {
+    bodies: "GravityModelBody",
+  },
+  "IGravityModelSource": {
+    model: "GravityModel",
+  },
   "ISitrepUplink": {
     manifest: "UplinkManifest",
   },
@@ -1880,6 +1886,9 @@ export const GENERATED_TYPE_SHAPES: Readonly<Record<string, ShapesByField>> = {
     forceModel: "TrajectoryForceModel",
     frame: "TrajectoryFrameRef",
     points: "TrajectoryPoint",
+  },
+  "TrajectoryArcAnswer": {
+    arc: "TrajectoryArc",
   },
   "UplinkManifest": {
     channels: "ChannelDeclaration",
