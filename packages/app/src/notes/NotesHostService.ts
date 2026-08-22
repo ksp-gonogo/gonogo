@@ -23,8 +23,6 @@ export class NotesHostService {
     if (loaded) this.notes = [...loaded];
   }
 
-  // ─────────────────── Public read API ───────────────────
-
   snapshot(): NotesSnapshot {
     return { notes: this.notes };
   }
@@ -33,8 +31,6 @@ export class NotesHostService {
     this.listeners.add(listener);
     return () => this.listeners.delete(listener);
   }
-
-  // ─────────────────── Public mutators ───────────────────
 
   addNote(input: { body: string; createdBy?: string }): Note {
     const now = this.nowFn();
@@ -107,8 +103,6 @@ export class NotesHostService {
     this.notes = [...notes];
     this.persistAndEmit();
   }
-
-  // ─────────────────── Internals ───────────────────
 
   private nextOrder(): number {
     if (this.notes.length === 0) return 0;

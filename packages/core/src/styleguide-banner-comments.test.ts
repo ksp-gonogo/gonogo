@@ -52,7 +52,16 @@ const ALLOWLIST_PATH = "packages/core/src/banner-comments.allowlist.ts";
  * without it, `[-=*]{3,}.*[-=*]{3,}` matches a bare `// ---------` by splitting
  * the run of dashes in two, and the count goes from 341 to over a thousand.
  */
-const BANNER_RE = /^[ \t]*\/\/[ \t]*[-=*]{3,}(?=.*[A-Za-z]).*[-=*]{3,}[ \t]*$/;
+// Box-drawing runs count as rule characters, not only ASCII. The first version
+// of this matched `[-=*]` alone and so could not see `// -- Title --` written
+// with U+2500 or U+2550, which is 134 files: a larger population than the one it
+// was guarding. A gate blind to the commonest spelling of the thing it forbids
+// reports a clean repo, and planting an ASCII banner to prove it fires shares
+// the blindness, so it proves nothing about the shape it cannot match.
+const RULE_CHARS = "-=*\u2500\u2501\u2504\u2505\u2508\u2509\u254c\u254d\u2550";
+const BANNER_RE = new RegExp(
+  `^[ \t]*//[ \t]*[${RULE_CHARS}]{3,}(?=.*[A-Za-z]).*[${RULE_CHARS}]{3,}[ \t]*$`,
+);
 
 /** Languages whose line comment is `//`. Nothing else can carry the shape. */
 const SOURCE_RE = /\.(ts|tsx|js|jsx|mjs|cjs|cs)$/;
