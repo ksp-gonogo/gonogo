@@ -488,6 +488,11 @@ export const ALLOWLIST: Record<ModToken, ModAllowlist> = {
       "packages/app/src/telemetry/SitrepPeerRelay.test.tsx",
     ],
     permanent: [
+      // -- BANNER-COMMENT ratchet inventory (2026-08-22): both lists are keyed
+      // by file path, so they name every Uplink directory and every schema file
+      // that still carries a banner. Ratchet-inventory file, the case this
+      // bucket documents.
+      "packages/core/src/banner-comments.allowlist.ts",
       // -- MAGNITUDE budget ratchet (2026-08-19): the per-file `.magnitude`
       // budget is keyed by file path, so it names every Uplink that unwraps a
       // Value. Ratchet-inventory file, the case this bucket documents.
@@ -1221,6 +1226,11 @@ export const ALLOWLIST: Record<ModToken, ModAllowlist> = {
       "packages/app/src/main.tsx",
     ],
     permanent: [
+      // -- BANNER-COMMENT ratchet inventory (2026-08-22): both lists are keyed
+      // by file path, so they name every Uplink directory and every schema file
+      // that still carries a banner. Ratchet-inventory file, the case this
+      // bucket documents.
+      "packages/core/src/banner-comments.allowlist.ts",
       // -- KSP's OWN enums (2026-08-21). KspEnums.cs mirrors seven stock KSP
       // enums so their ordinals can cross the wire, and one of them,
       // ResourceFlowMode, is read by this Uplink and by nothing else. The enum
@@ -1499,6 +1509,11 @@ export const ALLOWLIST: Record<ModToken, ModAllowlist> = {
   principia: {
     domainDebt: [],
     permanent: [
+      // -- BANNER-COMMENT ratchet inventory (2026-08-22): both lists are keyed
+      // by file path, so they name every Uplink directory and every schema file
+      // that still carries a banner. Ratchet-inventory file, the case this
+      // bucket documents.
+      "packages/core/src/banner-comments.allowlist.ts",
       // -- CI gating ratchet (2026-08-20): names the four Uplink test
       // projects that were in mod/Gonogo.sln and in no CI job, which is the
       // finding itself: "four projects drifted" without saying which is not
