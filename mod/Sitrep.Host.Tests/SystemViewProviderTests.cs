@@ -317,6 +317,73 @@ namespace Sitrep.Host.Tests
             Assert.Equal(70_000.0, parsedAtmo["depth"]);
         }
 
+        [Fact]
+        public void BuildSystemBodiesCarriesIsHomeTrueOnExactlyTheHomeBody()
+        {
+            // isHome is what a client locates home by, so the provider must
+            // pass the raw producer's flag through unchanged: true on exactly
+            // the flagged body and null (not false) on every other body the
+            // raw producer did not flag at all.
+            var snapshot = new KspSnapshot
+            {
+                Ut = 0.0,
+                Values = new Dictionary<string, object?>
+                {
+                    ["bodies"] = new List<object?>
+                    {
+                        new Dictionary<string, object?>
+                        {
+                            ["name"] = "Kerbol",
+                            ["index"] = 0,
+                        },
+                        new Dictionary<string, object?>
+                        {
+                            ["name"] = "Kerbin",
+                            ["index"] = 1,
+                            ["parentIndex"] = 0,
+                            ["isHome"] = true,
+                        },
+                        new Dictionary<string, object?>
+                        {
+                            ["name"] = "Mun",
+                            ["index"] = 2,
+                            ["parentIndex"] = 1,
+                        },
+                    },
+                },
+            };
+
+            var payload = SystemViewProvider.BuildSystemBodies(snapshot);
+            var root = Assert.IsType<Dictionary<string, object?>>(payload);
+            var bodies = Assert.IsType<List<object?>>(root["bodies"]);
+
+            var star = Assert.IsType<Dictionary<string, object?>>(bodies[0]);
+            var kerbin = Assert.IsType<Dictionary<string, object?>>(bodies[1]);
+            var mun = Assert.IsType<Dictionary<string, object?>>(bodies[2]);
+
+            Assert.Null(star["isHome"]);
+            Assert.Equal(true, kerbin["isHome"]);
+            Assert.Null(mun["isHome"]);
+
+            // Serializes cleanly through the real production path, true on
+            // exactly the one body after a round trip.
+            var streamData = new StreamData<object?>
+            {
+                Topic = SystemViewProvider.Topic,
+                Payload = payload,
+                Meta = new Meta { Source = "system", ValidAt = 0, Vantage = "host", Quality = Quality.Loaded, Active = true, Staleness = Staleness.Fresh },
+            };
+            var json = EnvelopeCodec.WriteStreamData(streamData);
+            var parsed = EnvelopeCodec.ParseStreamData(json);
+            var parsedRoot2 = Assert.IsType<Dictionary<string, object?>>(parsed.Payload);
+            var parsedBodies2 = Assert.IsType<List<object?>>(parsedRoot2["bodies"]);
+            var homeFlags = parsedBodies2
+                .Select(b => Assert.IsType<Dictionary<string, object?>>(b))
+                .Select(b => b.TryGetValue("isHome", out var v) ? v : null)
+                .ToList();
+            Assert.Single(homeFlags, v => v is true);
+        }
+
         // ----------------------------------------------------------------
         // system.vessels -- M3 R3 roster capture-add
         // ----------------------------------------------------------------
@@ -450,6 +517,63 @@ namespace Sitrep.Host.Tests
 
             var second = Assert.IsType<Dictionary<string, object?>>(vessels[1]);
             Assert.Equal(2, second["bodyIndex"]); // "Mun" -> index 2
+        }
+
+        [Fact]
+        public void BuildSystemVesselsMapsEachVesselsOwnOrbitViaTheSharedBuildOrbitRoutine()
+        {
+            // The join a SystemView graph node uses to derive its position:
+            // no separate node-position field, see VesselRosterEntry.Orbit's
+            // own doc comment. Reuses the same raw key set (and the same
+            // BuildOrbit helper) BuildBody uses for BodyEntry.Orbit.
+            var snapshot = new KspSnapshot
+            {
+                Ut = 0.0,
+                Values = new Dictionary<string, object?>
+                {
+                    ["vessels"] = new List<object?>
+                    {
+                        new Dictionary<string, object?>
+                        {
+                            ["id"] = "11111111-2222-3333-4444-555555555555",
+                            ["name"] = "Kerbal X",
+                            ["sma"] = 700000.0,
+                            ["ecc"] = 0.01,
+                            ["inc"] = 0.05,
+                            ["lan"] = 12.0,
+                            ["argPe"] = 34.0,
+                            ["meanAnomalyAtEpoch"] = 1.2,
+                            ["epoch"] = 500.0,
+                        },
+                        new Dictionary<string, object?>
+                        {
+                            // No orbitDriver to read (e.g. a settling scene
+                            // transition): the producer omits the orbit keys
+                            // entirely rather than emit an all-null block.
+                            ["id"] = "22222222-0000-0000-0000-000000000000",
+                            ["name"] = "No Orbit Yet",
+                        },
+                    },
+                },
+            };
+
+            var payload = SystemViewProvider.BuildSystemVessels(snapshot);
+
+            var root = Assert.IsType<Dictionary<string, object?>>(payload);
+            var vessels = Assert.IsType<List<object?>>(root["vessels"]);
+
+            var withOrbit = Assert.IsType<Dictionary<string, object?>>(vessels[0]);
+            var orbit = Assert.IsType<Dictionary<string, object?>>(withOrbit["orbit"]);
+            Assert.Equal(700000.0, orbit["sma"]);
+            Assert.Equal(0.01, orbit["ecc"]);
+            Assert.Equal(0.05, orbit["inc"]);
+            Assert.Equal(12.0, orbit["lan"]);
+            Assert.Equal(34.0, orbit["argPe"]);
+            Assert.Equal(1.2, orbit["meanAnomalyAtEpoch"]);
+            Assert.Equal(500.0, orbit["epoch"]);
+
+            var withoutOrbit = Assert.IsType<Dictionary<string, object?>>(vessels[1]);
+            Assert.Null(withoutOrbit["orbit"]);
         }
 
         [Fact]

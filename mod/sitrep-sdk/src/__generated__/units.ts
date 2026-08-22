@@ -138,6 +138,7 @@ export const GENERATED_TYPE_UNITS: Readonly<Record<string, UnitsByField>> = {
     hasOcean: "flag",
     hillSphere: "m",
     index: "id",
+    isHome: "flag",
     mass: "kg",
     name: "text",
     parentIndex: "id",
@@ -1951,6 +1952,9 @@ export const GENERATED_TYPE_SHAPES: Readonly<Record<string, ShapesByField>> = {
   "VesselResources": {
     meta: "PayloadMeta",
     resources: "*ResourceAmount",
+  },
+  "VesselRosterEntry": {
+    orbit: "OrbitEntry",
   },
   "VesselStructure": {
     meta: "PayloadMeta",

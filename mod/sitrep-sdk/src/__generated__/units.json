@@ -104,6 +104,7 @@
       "hasOcean": "flag",
       "hillSphere": "m",
       "index": "id",
+      "isHome": "flag",
       "mass": "kg",
       "name": "text",
       "parentIndex": "id",
@@ -1894,6 +1895,9 @@
     "VesselResources": {
       "meta": "PayloadMeta",
       "resources": "*ResourceAmount"
+    },
+    "VesselRosterEntry": {
+      "orbit": "OrbitEntry"
     },
     "VesselStructure": {
       "meta": "PayloadMeta"

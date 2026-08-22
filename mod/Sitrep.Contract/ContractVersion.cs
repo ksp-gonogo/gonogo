@@ -1119,7 +1119,33 @@ namespace Sitrep.Contract
         /// enums in <c>Assembly-CSharp.dll</c> and fails on a member, name or
         /// value that disagrees. Without it these seven types would be the same
         /// unguarded transcription the ordinals were introduced to replace.</para>
+        ///
+        /// <para><b>Bumped 22 -&gt; 23: a roster vessel carries its own orbit,
+        /// and one body says it is home.</b> Two new nullable fields on two
+        /// existing wire types: <see cref="VesselRosterEntry.Orbit"/> (the same
+        /// <c>OrbitEntry</c> shape, filled by the same
+        /// <c>SystemViewProvider.BuildOrbit</c> routine, that
+        /// <see cref="BodyEntry.Orbit"/> already carries) and
+        /// <see cref="BodyEntry.IsHome"/> (<c>CelestialBody.isHomeWorld</c>).
+        /// Additive: nothing removed or retyped, so an Uplink built against any
+        /// earlier Major 12 is unaffected and the frozen Major-12 floor is NOT
+        /// re-frozen.</para>
+        ///
+        /// <para>Both close the same gap. <c>system.vessels</c> named every
+        /// craft in the save and positioned none of them, so a client that
+        /// wanted the fleet's geometry had to plot the one active vessel and
+        /// guess at the rest. The orbit each entry now carries is the join that
+        /// removes the guess, and it needs no separate node-position field
+        /// because a graph node already keys to
+        /// <see cref="VesselRosterEntry.VesselId"/>. It is null, never a
+        /// sentinel, when the producer had no orbit driver to read.</para>
+        ///
+        /// <para><c>IsHome</c> replaces the other guess: a client located KSC
+        /// by assuming body index 1, which holds for stock and RSS and for no
+        /// stated reason beyond those two. The flag is true on exactly one
+        /// body, and a client with no flagged body omits the home edge rather
+        /// than fabricating one at an index.</para>
         /// </remarks>
-        public const int Minor = 22;
+        public const int Minor = 23;
     }
 }

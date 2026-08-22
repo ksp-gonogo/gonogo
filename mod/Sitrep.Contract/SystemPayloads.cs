@@ -132,6 +132,10 @@ public class BodyEntry
     [SitrepUnit(Units.Text)]
     public string? Description { get; set; }
 
+    /// <summary>Whether KSC and the launch sites sit on this body (<c>CelestialBody.isHomeWorld</c>); true on exactly one body, null when absent. The authoritative home-body marker: a client locates home by this flag, never by index.</summary>
+    [SitrepUnit(Units.Flag)]
+    public bool? IsHome { get; set; }
+
     // Deliberately NO "eccentricAnomaly" field: see the class doc.
     //
     // Mass, SurfaceGravity, HillSphere and Orbit.Period used to be absent for
@@ -341,4 +345,15 @@ public class VesselRosterEntry
     /// </summary>
     [SitrepUnit(Units.Enumeration)]
     public RosterCommsControlSource? CommsControlSource { get; set; }
+
+    /// <summary>
+    /// This vessel's own orbital elements, the same shape (and the same
+    /// <c>SystemViewProvider.BuildOrbit</c> routine) that fills
+    /// <see cref="BodyEntry.Orbit"/>. This is what positions a roster vessel
+    /// (and a SystemView graph node keyed to it via <see cref="VesselId"/>):
+    /// no separate node-position field exists, a client derives position by
+    /// joining a node's id to this orbit. Null when the vessel has no
+    /// orbitDriver yet (a scene-transition race), never a sentinel.
+    /// </summary>
+    public OrbitEntry? Orbit { get; set; }
 }

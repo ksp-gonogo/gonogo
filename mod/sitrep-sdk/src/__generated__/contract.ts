@@ -1051,6 +1051,7 @@ export interface BodyEntry
 	atmosphere?: AtmosphereEntry;
 	hasOcean?: boolean;
 	description?: string;
+	isHome?: boolean;
 }
 export interface AtmosphereEntry
 {
@@ -1088,6 +1089,7 @@ export interface VesselRosterEntry
 	crewCapacity?: Value<"count">;
 	commsConnected?: boolean;
 	commsControlSource?: RosterCommsControlSource;
+	orbit?: OrbitEntry;
 }
 export interface TargetListEntry
 {
