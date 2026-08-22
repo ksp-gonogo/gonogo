@@ -1522,9 +1522,7 @@ registerComponent<LaunchDirectorConfig>({
   defaultSize: { w: 7, h: 10 },
   minSize: { w: 4, h: 6 },
   component: LaunchDirectorComponent,
-  // A pre-launch checklist section (augment-slot-map:
-  // launch-director.preflight). Unfilled until a life-support / logistics
-  // Uplink binds: the launch flow renders exactly as before.
+  // A pre-launch checklist section, unfilled until a life-support or logistics Uplink binds; the launch flow renders unchanged either way.
   augmentSlots: ["launch-director.preflight"],
   dataRequirements: [
     "spaceCenter.savedShips",

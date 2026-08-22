@@ -37,11 +37,10 @@ import {
 
 type SpaceCenterStatusConfig = Record<string, never>;
 
-// Augment slots (Uplink architecture §4 / augment-slot-map: space-center-status).
-// `.sections` appends extra facility-level rows to the body (e.g. a KSC-expansion
-// Uplink's custom facilities / ground-based life-support depot). A plain marker
-// with no slot props. Co-located `SlotRegistry` declaration-merge so parallel slot
-// work doesn't collide on a shared central file.
+// `space-center-status.sections` appends extra facility-level rows to the body,
+// for a KSC-expansion Uplink's custom facilities or a ground-based life-support
+// depot. A plain marker carrying no slot props. The `SlotRegistry` merge is
+// co-located per widget so parallel slot work never collides on one shared file.
 declare module "@ksp-gonogo/core" {
   interface SlotRegistry {
     "space-center-status.sections": Record<string, never>;

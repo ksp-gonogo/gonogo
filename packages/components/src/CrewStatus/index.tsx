@@ -94,8 +94,6 @@ const AVATAR_CELL_WIDTH_FRACTION = 0.2;
  *  rather than pinned to the floor). */
 const AVATAR_MEASURE_SEED = { w: 232, h: 0 };
 
-/** Pure size calc, unit-testable with no DOM: clamp a fraction of the
- *  measured roster width between the cell's min/max bounds. */
 /**
  * The value a VERDICT may be drawn from: current, or modelled forward to the frame.
  * A stale reading gives nothing, because a judgement cannot be dated: the operator
@@ -129,6 +127,7 @@ function stillTrue<T, A>(
   return undefined;
 }
 
+/** Pure size calc, unit-testable with no DOM: clamps a fraction of the measured roster width between the cell's min and max bounds. */
 function avatarCellSizePx(containerWidthPx: number): number {
   return Math.round(
     Math.min(
@@ -143,7 +142,6 @@ function avatarCellSizePx(containerWidthPx: number): number {
 
 type CrewStatusConfig = Record<string, never>;
 
-// -----------------------------------------------------------------------
 // EVA suit resources (additive; only meaningful while the active vessel IS
 // an EVA kerbal). A stock KSP EVA kerbal is a real Vessel with its own
 // resource-carrying Part (Kerbalism source, System/Callbacks.cs's
@@ -153,7 +151,6 @@ type CrewStatusConfig = Record<string, never>;
 // (GameData/KerbalismConfig/Profiles/Default.cfg) attaches exactly two
 // resources with a nonzero `on_eva`: ElectricCharge and Oxygen. Read here as
 // plain resource-name lookups, no Kerbalism-specific shape.
-// -----------------------------------------------------------------------
 
 interface SuitResourceReadout {
   current: number;
@@ -234,8 +231,7 @@ function EvaSuitReadout({
   );
 }
 
-// ---------------------------------------------------------------------------
-// The `crew-status.row-badges` slot contract (see augment-slot-map)
+// The `crew-status.row-badges` slot contract.
 //
 // A per-crew-row inline badges slot: a future Kerbalism `Habitat`/`Radiation`
 // Uplink can badge each kerbal with comfort/radiation-dose without leaving this
@@ -251,7 +247,6 @@ function EvaSuitReadout({
 // `CrewSurvival/badge.ts`). One name, two registries, two places on screen, and
 // nothing to tell an author which one they were binding. The framework segment
 // cannot be renamed for one widget, so this one was.
-// ---------------------------------------------------------------------------
 
 /** Props passed to every `crew-status.row-badges` augment, one per crew row. */
 export interface CrewBadgeContext {
@@ -272,8 +267,7 @@ declare module "@ksp-gonogo/core" {
   }
 }
 
-// ---------------------------------------------------------------------------
-// The `crew-status.avatar` slot contract (see augment-slot-map)
+// The `crew-status.avatar` slot contract.
 //
 // A per-crew-row LEADING square cell (left of the name): the SDK-independent
 // shell of a per-kerbal avatar/portrait. An Uplink can register an augment
@@ -288,7 +282,6 @@ declare module "@ksp-gonogo/core" {
 // Uplink has nothing to show for (avatar source disabled, kerbal not seated),
 // the cell renders blank rather than a placeholder: the avatar augment is
 // entirely optional, both at the slot level and per-kerbal.
-// ---------------------------------------------------------------------------
 
 /** Props passed to every `crew-status.avatar` augment, one per crew row. */
 export interface CrewAvatarContext {
@@ -304,7 +297,6 @@ declare module "@ksp-gonogo/core" {
   }
 }
 
-// ---------------------------------------------------------------------------
 // Per-crew-row survival meters
 //
 // There is no `crew-status.survival` slot any more, and no widget-authored
@@ -323,9 +315,7 @@ declare module "@ksp-gonogo/core" {
 // This widget still carries NO Kerbalism-specific reads: the derivation lives
 // in the Uplink's own Processor (mod/GonogoKerbalismUplink/client/src/
 // CrewSurvival/meters.ts) exactly as it did before.
-// ---------------------------------------------------------------------------
 
-// ---------------------------------------------------------------------------
 // The `crew-status.row-tone` CONTRIBUTION slot (contribution-slots-spec,
 // same "pure data, host renders its own chrome" model as ShipMap's
 // `ship-map.part-meters`/`.part-meta`, NOT an AugmentSlot: unlike
@@ -349,7 +339,6 @@ declare module "@ksp-gonogo/core" {
 // body, below); a kerbal absent from every contribution's entries renders
 // with no tone (`Card`'s own default, an untinted border). First-registered
 // entry per name wins, same convention as ShipMap's `groupByPart`.
-// ---------------------------------------------------------------------------
 
 /** One entry of a `crew-status.row-tone` contribution: how alarming this
  *  kerbal's situation is, or omit the kerbal entirely for "nothing to
@@ -379,8 +368,7 @@ const ROW_TONE_BY_SEVERITY: Record<CrewRowToneEntry["severity"], ReadoutTone> =
     critical: "alert",
   };
 
-// ---------------------------------------------------------------------------
-// The `crew-status.summary` slot contract (see augment-slot-map)
+// The `crew-status.summary` slot contract.
 //
 // A WHOLE-WIDGET section slot, rendered once above the roster rather than
 // once per kerbal: the generic home for a status that affects the whole
@@ -391,7 +379,6 @@ const ROW_TONE_BY_SEVERITY: Record<CrewRowToneEntry["severity"], ReadoutTone> =
 // slot (`ThermalStatus/index.tsx`): no props, an empty object contract.
 // Renders nothing when no augment is bound, so the roster degrades
 // gracefully exactly like the other slots.
-// ---------------------------------------------------------------------------
 
 declare module "@ksp-gonogo/core" {
   interface SlotRegistry {
@@ -787,7 +774,7 @@ registerComponent<CrewStatusConfig>({
   defaultSize: { w: 6, h: 8 },
   minSize: { w: 3, h: 3 },
   component: CrewStatusComponent,
-  // Per-crew-row augment slots (augment-slot-map). All unfilled until an Uplink
+  // Per-crew-row augment slots, all unfilled until an Uplink
   // binds, the roster renders as before:
   //   crew-status.row-badges, trailing inline badges (e.g. Kerbalism dose/comfort);
   //     wraps under the name (Cluster `wrap`) rather than truncating it.
