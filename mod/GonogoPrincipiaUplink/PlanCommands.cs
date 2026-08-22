@@ -257,6 +257,20 @@ namespace GonogoPrincipiaUplink
                             "Principia's manoeuvre carried no burn where this Uplink expects one.");
                     }
 
+                    // Against `now`, which is the instant the write ARRIVED at
+                    // rather than the instant it was composed at. A declared
+                    // precondition would run at dispatch and so could not see this
+                    // at all; under signal delay the two instants are a light time
+                    // apart, and the difference between them is the whole of what
+                    // this catches. Applies to an insert as well, because an
+                    // inserted burn is written at the requested instant too.
+                    var stale = PrincipiaBurnRules.RejectRequestedIgnition(
+                        args.IgnitionUt, now);
+                    if (stale.HasValue)
+                    {
+                        return stale.Value;
+                    }
+
                     if (!insert)
                     {
                         var executing = PrincipiaBurnRules.RejectExecuting(

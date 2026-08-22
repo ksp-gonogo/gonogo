@@ -137,6 +137,62 @@ namespace GonogoPrincipiaUplink
         }
 
         /// <summary>
+        /// Why an ignition instant this write ASKED FOR must not be written, or null.
+        ///
+        /// <para><b>The requested instant, tested against the instant the write
+        /// arrived at.</b> Every other check in this file is about the burn as the
+        /// plugin handed it over; this one is about what the operator asked for, and
+        /// it is the only one that can catch a request that was correct when it was
+        /// composed. Under signal delay the plan on the operator's screen left the
+        /// game one light time ago and the edit spends another getting back, so at a
+        /// thirty-light-minute vantage an instant an hour ahead on screen arrives
+        /// already spent, with nothing done wrong at either end.</para>
+        ///
+        /// <para><b>Nothing else in the chain tests it.</b> The finiteness check does
+        /// not look at a clock. <see cref="RejectExecuting"/> tests the burn's
+        /// CURRENT ignition, and correctly permits one wholly in the past, because
+        /// its question is whether the craft is under thrust. A declared precondition
+        /// runs at dispatch, before the courier is involved, which is the wrong end
+        /// of the delay entirely: the only place the arrival instant exists is
+        /// here.</para>
+        ///
+        /// <para><b>What is not established.</b> What the plugin actually DOES with a
+        /// manoeuvre whose ignition is behind the current time but still inside the
+        /// plan's own interval was not determined: it may integrate it, refuse it, or
+        /// produce an arc from a state the craft was never in. So this refusal is not
+        /// justified by a consequence anyone has observed. It is justified by what
+        /// the write MEANS: a burn asked to start at an instant that has gone is a
+        /// manoeuvre the craft did not fly, so the plan it produces is a
+        /// counterfactual whatever the integrator makes of it, and a receipt reading
+        /// Written for one is the misreport worth refusing.</para>
+        ///
+        /// <para>A request that states no instant is not tested. That is what keeps
+        /// tidying a flown burn's delta-v possible, which the producer's own window
+        /// allows too.</para>
+        /// </summary>
+        public static PrincipiaWriteResult? RejectRequestedIgnition(
+            double? requestedIgnitionUt, double nowUt)
+        {
+            if (requestedIgnitionUt == null || !IsFinite(requestedIgnitionUt.Value))
+            {
+                return null;
+            }
+            if (requestedIgnitionUt.Value > nowUt)
+            {
+                return null;
+            }
+            return PrincipiaWriteResult.Refused(
+                PrincipiaWriteRefusal.IgnitionInPast,
+                "This edit asked for an ignition at " + requestedIgnitionUt.Value
+                + ", and it is now " + nowUt + ", so the instant had passed before the edit "
+                + "arrived. Under signal delay that happens to an edit that was correct when "
+                + "it was sent: the plan it was composed against is one light time old and the "
+                + "edit is another light time behind that. Nothing has been written, because a "
+                + "burn starting at an instant that has gone is a manoeuvre this craft did not "
+                + "fly. Send the burn at a later instant.");
+        }
+
+        /// <summary>
         /// Applies an operator's edit to a burn that came OUT of the plugin,
         /// returning the refusal when it cannot.
         ///

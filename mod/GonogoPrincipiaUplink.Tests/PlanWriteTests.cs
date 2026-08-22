@@ -637,6 +637,114 @@ namespace GonogoPrincipiaUplink.Tests
             Assert.Equal(refused, result.HasValue);
         }
 
+        /// <summary>
+        /// A REQUESTED ignition instant that has already passed by the time the
+        /// write arrives is refused.
+        ///
+        /// <para><b>Why this is a guard and not an operator error.</b> Under signal
+        /// delay the operator composes the edit against a plan that left the game one
+        /// light time ago and the edit spends another light time getting back, so an
+        /// instant that was comfortably in the future when they pressed can be in the
+        /// past on arrival with nothing done wrong at either end. Nothing else in the
+        /// chain tests it: the finiteness check does not look at the clock,
+        /// <see cref="PrincipiaBurnRules.RejectExecuting"/> tests the burn's CURRENT
+        /// ignition rather than the requested one, and a declared precondition runs
+        /// at dispatch, before the courier is involved, which is the wrong end of the
+        /// delay entirely.</para>
+        ///
+        /// <para>Without it the plugin is asked to integrate a burn that never
+        /// happened and the receipt reads <c>Written</c>.</para>
+        /// </summary>
+        [Fact]
+        public void ARequestedIgnitionThatHasAlreadyPassedOnArrivalIsRefused()
+        {
+            var (plugin, commands) = Wire();
+            Armed(commands);
+            // Burn 0 ignites at 2000 and cuts off at 3000; the clock is now past
+            // both, so the burn is not executing and the finiteness check is
+            // satisfied. The requested instant is the only thing wrong.
+            plugin.CurrentTimeValue = 9999.0;
+            plugin.Writes.Clear();
+
+            var refused = commands.ReplaceBurn(
+                new PrincipiaBurnEditArgs
+                {
+                    VesselId = Guid, RequestId = "e", BurnIndex = 0, IgnitionUt = 5000.0,
+                });
+
+            Assert.Equal(PrincipiaWriteOutcome.Refused, Outcome(refused));
+            Assert.Equal(PrincipiaWriteRefusal.IgnitionInPast, Refusal(refused));
+            Assert.Empty(plugin.Writes);
+        }
+
+        /// <summary>The complement. A requested instant still ahead of the arrival
+        /// clock is written, so the guard above cannot be satisfied by a handler that
+        /// refuses every stated ignition.</summary>
+        [Fact]
+        public void ARequestedIgnitionStillAheadOfArrivalIsWritten()
+        {
+            var (plugin, commands) = Wire();
+            Armed(commands);
+            plugin.CurrentTimeValue = 4000.0;
+
+            var written = commands.ReplaceBurn(
+                new PrincipiaBurnEditArgs
+                {
+                    VesselId = Guid, RequestId = "e", BurnIndex = 0, IgnitionUt = 5000.0,
+                });
+
+            Assert.Equal(PrincipiaWriteOutcome.Written, Outcome(written));
+            Assert.Equal(5000.0, plugin.Known(Guid).Burns[0].burn.initial_time);
+        }
+
+        /// <summary>An inserted burn is written at the requested instant too, so it
+        /// carries the same guard: a burn added to a plan already in the past is a
+        /// manoeuvre the craft did not fly.</summary>
+        [Fact]
+        public void AnInsertAtAnInstantAlreadyPassedIsRefused()
+        {
+            var (plugin, commands) = Wire();
+            Armed(commands);
+            plugin.CurrentTimeValue = 9999.0;
+            plugin.Writes.Clear();
+
+            var refused = commands.InsertBurn(
+                new PrincipiaBurnEditArgs
+                {
+                    VesselId = Guid, RequestId = "i", BurnIndex = 0, IgnitionUt = 5000.0,
+                });
+
+            Assert.Equal(PrincipiaWriteRefusal.IgnitionInPast, Refusal(refused));
+            Assert.Empty(plugin.Writes);
+        }
+
+        /// <summary>
+        /// Closed at the instant itself. A burn asked to ignite exactly at the
+        /// arrival instant has no future left to be planned into, and the open
+        /// boundary is where an off-by-one lets one through.
+        /// </summary>
+        [Theory]
+        [InlineData(2000.0, 1000.0, false)]
+        [InlineData(2000.0, 1999.0, false)]
+        [InlineData(2000.0, 2000.0, true)]
+        [InlineData(2000.0, 2001.0, true)]
+        public void TheRequestedIgnitionGuardIsClosedAtTheArrivalInstant(
+            double requested, double now, bool refused)
+        {
+            var result = PrincipiaBurnRules.RejectRequestedIgnition(requested, now);
+            Assert.Equal(refused, result.HasValue);
+        }
+
+        /// <summary>A request that states no ignition instant is not tested against
+        /// the clock, which is what keeps
+        /// <see cref="ABurnInThePastIsStillEditable"/> true: tidying the delta-v of a
+        /// burn that has already flown states no instant and changes none.</summary>
+        [Fact]
+        public void ARequestWithNoStatedIgnitionIsNotTestedAgainstTheClock()
+        {
+            Assert.Null(PrincipiaBurnRules.RejectRequestedIgnition(null, 9999.0));
+        }
+
 
         /// <summary>
         /// An insert copies a burn already in the plan. A plan with no burns is

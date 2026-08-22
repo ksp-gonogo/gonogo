@@ -436,6 +436,18 @@ public enum PrincipiaWriteRefusal
     /// <summary>A field this write must set was not found on the producer's own
     /// struct, so its shape is not the shape that was analysed.</summary>
     PluginShapeChanged = 18,
+
+    /// <summary>The ignition instant this write asked for had already passed by
+    /// the time the write arrived. Distinct from
+    /// <see cref="FinalTimeInPast"/>, which is about a plan's END and only
+    /// reachable while creating one.
+    ///
+    /// <para>Reached under signal delay with nothing done wrong at either end: an
+    /// instant comfortably ahead when the operator pressed can be behind by the
+    /// time the command lands. Writing it anyway asks the plugin to integrate a
+    /// burn that never happened, and the receipt would read
+    /// <see cref="PrincipiaWriteOutcome.Written"/>.</para></summary>
+    IgnitionInPast = 19,
 }
 
 /// <summary>

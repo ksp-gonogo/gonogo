@@ -121,7 +121,8 @@ export interface UseCommandButtonOptions {
   handle: CommandButtonHandle;
   args?: unknown;
   commandLabel?: string;
-  onConfirmed?: () => void;
+  /** Receives the dispatch's resolved result. See {@link CommandButtonProps.onConfirmed}. */
+  onConfirmed?: (result: unknown) => void;
 }
 
 export interface CommandButtonState {
@@ -257,9 +258,9 @@ export function useCommandButton({
       setPhase(next);
     };
     handle.send(args, commandLabel ? { label: commandLabel } : undefined).then(
-      () => {
+      (result: unknown) => {
         settle("idle", null);
-        onConfirmed?.();
+        onConfirmed?.(result);
       },
       (err: unknown) => {
         const rejection = classifyCommandRejection(err);
@@ -424,8 +425,15 @@ export interface CommandButtonProps extends NativeButtonProps {
   /**
    * Called once a dispatch is confirmed, for a caller with local state to
    * settle. The pending state itself needs nothing from you.
+   *
+   * Receives whatever the dispatch RESOLVED with, which is the command's own
+   * result payload. Worth reading, because a confirmed command is not always a
+   * command that did something: a mod that de-duplicates on request id answers a
+   * repeat with the receipt it stored the first time, and the receipt is the only
+   * place a repeat is distinguishable from a fresh write. A caller that ignores
+   * the argument behaves exactly as it did.
    */
-  onConfirmed?: () => void;
+  onConfirmed?: (result: unknown) => void;
 }
 
 /**

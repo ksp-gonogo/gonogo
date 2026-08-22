@@ -228,6 +228,36 @@ describe("CommandButton: the in-flight window", () => {
     expect(onConfirmed).toHaveBeenCalledTimes(1);
   });
 
+  /**
+   * The dispatch's own answer reaches the caller.
+   *
+   * A confirmed command is not always a command that DID something: a mod that
+   * de-duplicates on request id answers a repeat with the receipt it stored the
+   * first time, and that receipt is the only place the repeat is distinguishable
+   * from a fresh write. Discarding the resolved value made every such reply read
+   * as a fresh success, which is a widget saying the plan changed when it did
+   * not.
+   */
+  it("hands onConfirmed what the dispatch resolved with", async () => {
+    const user = userEvent.setup();
+    const d = deferred();
+    const onConfirmed = vi.fn();
+    render(
+      <CommandButton
+        handle={makeHandle(() => d.promise)}
+        label="Go"
+        onConfirmed={onConfirmed}
+      />,
+    );
+
+    await user.click(screen.getByRole("button", { name: "Go" }));
+    await act(async () => {
+      d.resolve({ replayed: true });
+    });
+
+    expect(onConfirmed).toHaveBeenCalledWith({ replayed: true });
+  });
+
   it("does not set state from a dispatch that settles after unmount", async () => {
     const user = userEvent.setup();
     const d = deferred();
