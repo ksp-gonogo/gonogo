@@ -636,63 +636,6 @@ namespace GonogoPrincipiaUplink.Tests
     }
 
     /// <summary>
-    /// A burn's descriptor, which carries BARE INTEGERS for the same field names the
-    /// plotting one carries arrays for, and minus one where that one is empty. One
-    /// accessor has to cover both, so the double presents both.
-    /// </summary>
-    public class FakeBurnFrameParameters
-    {
-        public FakeBurnFrameParameters(int type, int centre, int primary, int secondary)
-        {
-            extension = type;
-            centre_index = centre;
-            primary_index = primary;
-            secondary_index = secondary;
-        }
-
-#pragma warning disable CS0414, IDE0044, IDE1006
-        public int extension;
-        public int centre_index;
-        private int primary_index;
-        private int secondary_index;
-#pragma warning restore CS0414, IDE0044, IDE1006
-    }
-
-    public class FakeManoeuvre
-    {
-        public FakeManoeuvre(FakeBurnFrameParameters frame) => burn = new FakeBurn(frame);
-
-#pragma warning disable IDE1006
-        public FakeBurn burn;
-#pragma warning restore IDE1006
-    }
-
-    public class FakeBurn
-    {
-        public FakeBurn(FakeBurnFrameParameters parameters) => frame = parameters;
-
-#pragma warning disable IDE1006
-        public FakeBurnFrameParameters frame;
-#pragma warning restore IDE1006
-    }
-
-    public class FakeStepParameters
-    {
-        public FakeStepParameters(double tolerance, long steps)
-        {
-            length_integration_tolerance = tolerance;
-            max_steps = steps;
-        }
-
-#pragma warning disable IDE1006
-        public long integrator_kind = 1;
-        public long max_steps;
-        public double length_integration_tolerance;
-        public double speed_integration_tolerance;
-#pragma warning restore IDE1006
-    }
-
-    /// <summary>
     /// The producer's main window, by member name.
     ///
     /// <para>The two prediction indices are present AND at their real constructor

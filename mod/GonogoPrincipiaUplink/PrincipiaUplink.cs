@@ -43,6 +43,7 @@ namespace GonogoPrincipiaUplink
         internal PrincipiaUplink(PrincipiaGuardResult guard)
         {
             _guard = guard;
+            _planCommands = new PlanCommands(() => _settings);
         }
 
         /// <summary>Test seam: the observer injected too, so the publish rule is
@@ -70,6 +71,7 @@ namespace GonogoPrincipiaUplink
 
         public const string FlightPlanTopic = "principia.flightPlan";
         public const string SettingsTopic = "principia.settings";
+        public const string PlanTopic = "principia.plan";
 
         private IFlightPlanObserver? _observer;
         private ISettingsSource? _settings;
@@ -77,7 +79,17 @@ namespace GonogoPrincipiaUplink
         private readonly NativeSettingsReader _nativeSettingsReader = new NativeSettingsReader();
         private IChannelPublisher? _flightPlan;
         private IChannelPublisher? _settingsPublisher;
+        private IChannelPublisher? _planPublisher;
+        private readonly PlanReader _planReader = new PlanReader();
         private double _publishedAtUt = double.NegativeInfinity;
+
+        /// <summary>
+        /// The write half, reading its session from the same seam the settings
+        /// channel does, through a lambda rather than a captured value: the settings
+        /// source is attached during <c>Register</c> and a command handler runs long
+        /// after, so a value captured at construction would be the null it was then.
+        /// </summary>
+        private readonly PlanCommands _planCommands;
 
         public UplinkManifest Manifest { get; } = new UplinkManifest
         {
@@ -107,6 +119,34 @@ namespace GonogoPrincipiaUplink
                     Delay = DelayRole.TrueNow,
                     Emission = new EmissionPolicy(keyframeIntervalUt: 30, quantum: EmissionQuantum.Absolute(0)),
                 },
+                // Delayed, like the plan mirror and unlike the settings beside it:
+                // this is a per-vessel telemetry fact about a craft, not a
+                // ground-side configuration.
+                new ChannelDeclaration
+                {
+                    Topic = PlanTopic,
+                    Delivery = Delivery.LossyLatest,
+                    Delay = DelayRole.Delayed,
+                    Emission = new EmissionPolicy(keyframeIntervalUt: 30, quantum: EmissionQuantum.Absolute(0)),
+                },
+            },
+            Commands = new List<CommandDeclaration>
+            {
+                // All Delayed. A flight plan is what the craft will fly, and every
+                // one of these writes moves a stock maneuver node on the vessel and
+                // is persisted into the save, so they are craft actuation rather
+                // than console preferences. The arm is Delayed too, and that is not
+                // an oversight: arming RUNS the round-trip probe, which is a real
+                // write of Principia's own burn back into the plan.
+                new CommandDeclaration { Command = PlanCommands.ArmCommand, Delayed = true },
+                new CommandDeclaration { Command = PlanCommands.ReplaceBurnCommand, Delayed = true },
+                new CommandDeclaration { Command = PlanCommands.InsertBurnCommand, Delayed = true },
+                new CommandDeclaration { Command = PlanCommands.RemoveBurnCommand, Delayed = true },
+                new CommandDeclaration { Command = PlanCommands.HorizonCommand, Delayed = true },
+                new CommandDeclaration { Command = PlanCommands.IntegratorCommand, Delayed = true },
+                new CommandDeclaration { Command = PlanCommands.CreateCommand, Delayed = true },
+                new CommandDeclaration { Command = PlanCommands.DeleteCommand, Delayed = true },
+                new CommandDeclaration { Command = PlanCommands.DuplicateCommand, Delayed = true },
             },
         };
 
@@ -149,6 +189,76 @@ namespace GonogoPrincipiaUplink
             host.AddSampledSource(CaptureOnMain, HandleOnCourier, FlightPlanTopic);
             _settingsPublisher = host.Publisher(SettingsTopic);
             host.AddSampledSource(CaptureSettingsOnMain, HandleSettingsOnCourier, SettingsTopic);
+            _planPublisher = host.Publisher(PlanTopic);
+            host.AddSampledSource(CapturePlanOnMain, HandlePlanOnCourier, PlanTopic);
+            RegisterPlanCommands(host);
+        }
+
+        /// <summary>
+        /// Wires the nine plan-write handlers, and records the thread the host
+        /// registered them on.
+        ///
+        /// <para>The thread is the point of doing this here. The host documents
+        /// <c>Register</c> as running on the main thread, and every write on this
+        /// surface has to run there too: Principia's plan members are main-thread
+        /// only and a write destroys trajectory segments a renderer may be walking.
+        /// Capturing the thread turns that requirement into something a refusal can
+        /// state, instead of a comment nobody can test.</para>
+        /// </summary>
+        internal void RegisterPlanCommands(IUplinkHost host)
+        {
+            _planCommands.BindToCallingThread();
+            host.AddCommandHandler<PrincipiaPlanArmArgs, CommandResult<Dictionary<string, object?>>>(
+                PlanCommands.ArmCommand, _planCommands.Arm);
+            host.AddCommandHandler<PrincipiaBurnEditArgs, CommandResult<Dictionary<string, object?>>>(
+                PlanCommands.ReplaceBurnCommand, _planCommands.ReplaceBurn);
+            host.AddCommandHandler<PrincipiaBurnEditArgs, CommandResult<Dictionary<string, object?>>>(
+                PlanCommands.InsertBurnCommand, _planCommands.InsertBurn);
+            host.AddCommandHandler<PrincipiaBurnRemoveArgs, CommandResult<Dictionary<string, object?>>>(
+                PlanCommands.RemoveBurnCommand, _planCommands.RemoveBurn);
+            host.AddCommandHandler<PrincipiaPlanHorizonArgs, CommandResult<Dictionary<string, object?>>>(
+                PlanCommands.HorizonCommand, _planCommands.SetHorizon);
+            host.AddCommandHandler<PrincipiaPlanIntegratorArgs, CommandResult<Dictionary<string, object?>>>(
+                PlanCommands.IntegratorCommand, _planCommands.SetIntegrator);
+            host.AddCommandHandler<PrincipiaPlanSlotArgs, CommandResult<Dictionary<string, object?>>>(
+                PlanCommands.CreateCommand, _planCommands.CreatePlan);
+            host.AddCommandHandler<PrincipiaPlanSlotArgs, CommandResult<Dictionary<string, object?>>>(
+                PlanCommands.DeleteCommand, _planCommands.DeletePlan);
+            host.AddCommandHandler<PrincipiaPlanSlotArgs, CommandResult<Dictionary<string, object?>>>(
+                PlanCommands.DuplicateCommand, _planCommands.DuplicatePlan);
+        }
+
+        /// <summary>
+        /// MAIN-THREAD capture: asks the plugin for the selected plan, every tick.
+        ///
+        /// <para>Published every tick rather than on change, unlike the window
+        /// mirror, and the difference is what the payload CLAIMS. That one asserts a
+        /// past observation, so re-stamping it would move the observation forward in
+        /// time; this one is the plugin's answer as of now and saying so repeatedly
+        /// is honest.</para>
+        ///
+        /// <para>Null when there is nothing to say: no settings source, no session,
+        /// no vessel, or a vessel Principia has forgotten. That is not the same fact
+        /// as a vessel having no plan, which arrives as a sample with
+        /// <c>planExists</c> false.</para>
+        /// </summary>
+        internal object? CapturePlanOnMain(KspSnapshot? snapshot)
+        {
+            var settings = _settings;
+            if (settings == null)
+            {
+                return null;
+            }
+            return _planReader.Read(settings.Session, settings.ActiveVesselGuid, snapshot?.Ut ?? 0.0);
+        }
+
+        internal void HandlePlanOnCourier(object? captured)
+        {
+            if (captured is not PlanObservation observation)
+            {
+                return;
+            }
+            _planPublisher?.Publish(PlanBuilder.Build(observation), observation.SampledAtUt);
         }
 
         /// <summary>

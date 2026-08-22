@@ -66,10 +66,30 @@
     <Compile Include="..\GonogoPrincipiaUplink\PrincipiaFrame.cs" />
     <Compile Include="..\GonogoPrincipiaUplink\ReflectedPrincipiaPlugin.cs" />
     <Compile Include="..\GonogoPrincipiaUplink\GravityModelParser.cs" />
+
+    <!-- The write surface, all of it. Not one line of it needs the game: the
+         register, the authority, the gates, the burn and integrator rules, the
+         round-trip probe, the plan reader, the mapper and the nine command
+         handlers are reached through the same two seams the read side uses, so
+         every guard between a console control and the player's save is drivable
+         against a double that carries the producer's own field names. That is the
+         property to preserve: a guard that can only be exercised in a running KSP
+         is a guard nobody exercises. -->
+    <Compile Include="..\GonogoPrincipiaUplink\PrincipiaWriteCalls.cs" />
+    <Compile Include="..\GonogoPrincipiaUplink\PrincipiaWriteAuthority.cs" />
+    <Compile Include="..\GonogoPrincipiaUplink\PrincipiaBurnStruct.cs" />
+    <Compile Include="..\GonogoPrincipiaUplink\PrincipiaBurnRules.cs" />
+    <Compile Include="..\GonogoPrincipiaUplink\PrincipiaPlanWrite.cs" />
+    <Compile Include="..\GonogoPrincipiaUplink\PrincipiaLayoutProbe.cs" />
+    <Compile Include="..\GonogoPrincipiaUplink\PlanObservation.cs" />
+    <Compile Include="..\GonogoPrincipiaUplink\PlanReader.cs" />
+    <Compile Include="..\GonogoPrincipiaUplink\PlanBuilder.cs" />
+    <Compile Include="..\GonogoPrincipiaUplink\PlanCommands.cs" />
   </ItemGroup>
 
   <ItemGroup>
     <ProjectReference Include="..\Sitrep.Contract\Sitrep.Contract.csproj" />
+    <ProjectReference Include="..\GonogoPrincipiaUplink.Contract\GonogoPrincipiaUplink.Contract.csproj" />
   </ItemGroup>
 
 </Project>

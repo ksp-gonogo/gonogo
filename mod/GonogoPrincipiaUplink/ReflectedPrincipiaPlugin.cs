@@ -32,10 +32,13 @@ namespace GonogoPrincipiaUplink
         private static readonly ReflectedMembers Members = new ReflectedMembers();
 
         private readonly Dictionary<string, MethodInfo> _methods;
+        private readonly string _writeBindFailure;
 
-        private ReflectedPrincipiaPlugin(Dictionary<string, MethodInfo> methods)
+        private ReflectedPrincipiaPlugin(
+            Dictionary<string, MethodInfo> methods, string writeBindFailure)
         {
             _methods = methods;
+            _writeBindFailure = writeBindFailure;
         }
 
         /// <summary>
@@ -87,9 +90,80 @@ namespace GonogoPrincipiaUplink
                 return false;
             }
 
-            plugin = new ReflectedPrincipiaPlugin(methods);
+            // The write half binds SEPARATELY and its failure is not this method's
+            // failure. A producer build whose write entry points moved must still
+            // be readable, so a missing write leaves the read surface intact and
+            // fails the write surface closed with a reason an operator can read.
+            var writeFailure = BindWrites(forwarder, methods);
+
+            plugin = new ReflectedPrincipiaPlugin(methods, writeFailure);
             reason = string.Empty;
             return true;
+        }
+
+        /// <summary>
+        /// Binds every audited write and the one read that exists to guard them,
+        /// returning the empty string on success or the reason on failure.
+        /// </summary>
+        private static string BindWrites(Type forwarder, Dictionary<string, MethodInfo> methods)
+        {
+            var missing = new List<string>();
+            foreach (var name in PrincipiaWriteCalls.Allowed)
+            {
+                var method = BindWriteMethod(forwarder, name);
+                if (method == null)
+                {
+                    missing.Add(name);
+                    continue;
+                }
+                methods[name] = method;
+            }
+            foreach (var name in PrincipiaWriteCalls.AllowedReads)
+            {
+                var method = BindWriteMethod(forwarder, name);
+                if (method == null)
+                {
+                    missing.Add(name);
+                    continue;
+                }
+                methods[name] = method;
+            }
+
+            return missing.Count == 0
+                ? string.Empty
+                : "Principia's flight-plan write entry points are not the shape this Uplink was "
+                    + "audited against; could not bind: " + string.Join(", ", missing.ToArray())
+                    + ". The plan stays readable and no edit will be attempted.";
+        }
+
+        /// <summary>
+        /// Resolves one audited WRITE, through the write register rather than the
+        /// read one.
+        ///
+        /// <para>The read register screens every name carrying a write verb and
+        /// refuses it with "this Uplink only reads", which is exactly the guard that
+        /// should stay in place: a write must be asked for through this door, so
+        /// nobody acquires one by adding a name to the read allowlist.</para>
+        /// </summary>
+        internal static MethodInfo? BindWriteMethod(Type forwarder, string name)
+        {
+            PrincipiaWriteCalls.RequireAllowed(name);
+
+            MethodInfo? found = null;
+            foreach (var candidate in forwarder.GetMethods(
+                BindingFlags.Static | BindingFlags.Public | BindingFlags.NonPublic))
+            {
+                if (!string.Equals(candidate.Name, name, StringComparison.Ordinal))
+                {
+                    continue;
+                }
+                if (found != null)
+                {
+                    return null;
+                }
+                found = candidate;
+            }
+            return found;
         }
 
         /// <summary>
@@ -248,6 +322,42 @@ namespace GonogoPrincipiaUplink
         public PrincipiaVector FlightPlanGetManoeuvreInitialPlottedVelocity(
             IntPtr plugin, string vesselGuid, int index) =>
             Vector(Call("FlightPlanGetManoeuvreInitialPlottedVelocity", plugin, vesselGuid, index));
+
+        public bool WritesBound(out string reason)
+        {
+            reason = _writeBindFailure;
+            return _writeBindFailure.Length == 0;
+        }
+
+        public int FlightPlanOptimizationDriverInProgress(IntPtr plugin, string vesselGuid) =>
+            Int("FlightPlanOptimizationDriverInProgress", plugin, vesselGuid);
+
+        public object? FlightPlanInsert(IntPtr plugin, string vesselGuid, object burn, int index) =>
+            Call("FlightPlanInsert", plugin, vesselGuid, burn, index);
+
+        public object? FlightPlanReplace(IntPtr plugin, string vesselGuid, object burn, int index) =>
+            Call("FlightPlanReplace", plugin, vesselGuid, burn, index);
+
+        public object? FlightPlanRemove(IntPtr plugin, string vesselGuid, int index) =>
+            Call("FlightPlanRemove", plugin, vesselGuid, index);
+
+        public object? FlightPlanSetDesiredFinalTime(
+            IntPtr plugin, string vesselGuid, double finalTime) =>
+            Call("FlightPlanSetDesiredFinalTime", plugin, vesselGuid, finalTime);
+
+        public object? FlightPlanSetAdaptiveStepParameters(
+            IntPtr plugin, string vesselGuid, object parameters) =>
+            Call("FlightPlanSetAdaptiveStepParameters", plugin, vesselGuid, parameters);
+
+        public void FlightPlanCreate(
+            IntPtr plugin, string vesselGuid, double finalTime, double massInTonnes) =>
+            Call("FlightPlanCreate", plugin, vesselGuid, finalTime, massInTonnes);
+
+        public void FlightPlanDelete(IntPtr plugin, string vesselGuid) =>
+            Call("FlightPlanDelete", plugin, vesselGuid);
+
+        public void FlightPlanDuplicate(IntPtr plugin, string vesselGuid) =>
+            Call("FlightPlanDuplicate", plugin, vesselGuid);
 
         private object? Call(string name, params object?[] args) =>
             _methods[name].Invoke(null, args);

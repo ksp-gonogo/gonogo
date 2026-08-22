@@ -79,14 +79,29 @@ namespace GonogoPrincipiaUplink
         private bool _frameOpen;
         private IntPtr _frameHandle;
 
-        private PrincipiaSession(IPrincipiaPlugin plugin, IPrincipiaPluginHandle handle)
+        private PrincipiaSession(
+            IPrincipiaPlugin plugin,
+            IPrincipiaPluginHandle handle,
+            PrincipiaWriteAuthority writes)
         {
             _plugin = plugin;
             _handle = handle;
+            Writes = writes;
         }
 
         /// <summary>The build string this session bound against, for the roster's detail line.</summary>
         public string Version { get; private set; } = string.Empty;
+
+        /// <summary>
+        /// Whether this session may CHANGE a flight plan, which is a narrower
+        /// permission than reading one and is decided on its own terms.
+        ///
+        /// <para>Always present, frequently closed. A session binds whenever the
+        /// reads are safe; the write surface then answers separately, so a build
+        /// this Uplink can read and must not write fails to read-only rather than
+        /// failing to nothing.</para>
+        /// </summary>
+        public PrincipiaWriteAuthority Writes { get; }
 
         /// <summary>
         /// Version-gates once and returns a session, or fails closed with a reason
@@ -140,7 +155,15 @@ namespace GonogoPrincipiaUplink
                 return false;
             }
 
-            session = new PrincipiaSession(plugin, handle) { Version = version! };
+            // The write surface's own gate, evaluated here and never again: it
+            // compares the SAME build string against its OWN constant, and asks the
+            // port whether the write entry points bound. Both answers are recorded
+            // rather than acted on, because a closed write surface is not a reason to
+            // stop reading.
+            var writesBound = plugin.WritesBound(out var writeReason);
+            var writes = new PrincipiaWriteAuthority(version!, writesBound, writeReason);
+
+            session = new PrincipiaSession(plugin, handle, writes) { Version = version! };
             reason = string.Empty;
             return true;
         }

@@ -274,6 +274,14 @@ namespace GonogoPrincipiaUplink.Tests
 
         public bool ok() => isOk;
 #pragma warning restore IDE1006
+
+        /// <summary>The status a write that landed comes back with.</summary>
+        public static FakeStatus Ok() => new FakeStatus();
+
+        /// <summary>The status a write the producer DECLINED comes back with: its
+        /// own code and its own words, which name conditions we do not model.</summary>
+        public static FakeStatus Declined(int code, string text) =>
+            new FakeStatus { error = code, message = text, isOk = false };
     }
 
     /// <summary>Mirrors the burn editor: ignition and cutoff as properties over
