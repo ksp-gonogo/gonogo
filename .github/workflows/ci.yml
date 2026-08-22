@@ -111,6 +111,26 @@ jobs:
 
       - run: pnpm --filter @ksp-gonogo/components probe-render-smoke
 
+      # Uplink page drift: regenerate each migrated Uplink's README and
+      # `gonogo-uplink.json` in memory and fail on any difference.
+      #
+      # In `test` for the same reason as the two steps above: `visual` is red on
+      # purpose, so a finding placed there shows the colour that job always
+      # shows. It asks a question neither of them can, either: not "did the
+      # pixels drift" nor "did the harness render anything", but "does the page
+      # still describe the Uplink the code actually is". A page that quietly
+      # stops listing a widget reads exactly like an Uplink with fewer widgets.
+      #
+      # Asset BYTES are deliberately not compared, only which assets exist:
+      # rasterisation is per-engine and per-OS, so a byte comparison would fail
+      # on every machine but the one that generated it, and a gate that cries
+      # wolf is a gate someone turns off.
+      - name: Uplink pages are not stale
+        run: |
+          pnpm --filter @ksp-gonogo/ui-kit... build
+          pnpm --filter @ksp-gonogo/gonogo-scansat-uplink docs:check
+          pnpm --filter @ksp-gonogo/gonogo-kos-uplink docs:check
+
   # act() warning ratchet: per-file counts held against scripts/act-warning-debt.mjs.
   #
   # Its OWN job rather than a step in `test`, because it re-runs every suite with

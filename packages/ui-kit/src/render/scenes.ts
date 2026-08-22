@@ -72,8 +72,8 @@ export interface Scene {
   motion: { fps: number; pingPong: boolean };
 }
 
-/** Matches the Principia harness's pinned instant, so a fixture converted from
- *  it keeps meaning the same thing. Only its stability matters. */
+/** Matches the pinned instant the hand-copied harnesses used, so a fixture
+ *  converted from one keeps meaning the same thing. Only its stability matters. */
 const DEFAULT_PINNED_UT = 1_000_000;
 
 /** The tile an augment or contribution scene is drawn in, absent `_scene.size`.
@@ -224,9 +224,11 @@ function unknownTarget(
       : target.kind === "augment"
         ? inventory.augments.map((a) => a.id)
         : inventory.contributions.map((c) => c.id);
+  // "Registered <kind> ids" rather than pluralising the interpolation: `${x}s`
+  // reads to the hand-typed-unit guard as a seconds symbol next to a value.
   return new Error(
     `${where}: "${target.id}" is not a registered ${target.kind} of Uplink ` +
-      `"${inventory.id}". Registered ${target.kind}s: ` +
+      `"${inventory.id}". Registered ${target.kind} ids: ` +
       `${known.sort().join(", ") || "(none)"}.`,
   );
 }

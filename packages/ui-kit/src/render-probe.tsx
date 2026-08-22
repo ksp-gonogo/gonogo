@@ -27,6 +27,22 @@ import {
   MockDataSource,
   setupStreamFixture,
 } from "@ksp-gonogo/sitrep-sdk/testing";
+import type { AnyAugment, DomainAvailabilityStore } from "@ksp-gonogo/ui-kit";
+import {
+  AugmentSlot,
+  clearAugments,
+  DomainAvailabilityProvider,
+  getAugments,
+  getAugmentsForSlot,
+  gridToPixels,
+  Panel,
+  PanelBody,
+  registerAugment,
+  setQuantityLocale,
+  UI_KIT_VERSION,
+  useDomainAvailabilityStore,
+} from "@ksp-gonogo/ui-kit";
+import { WidgetHost, WidgetHostFor } from "@ksp-gonogo/ui-kit/testing";
 import {
   createElement,
   Fragment,
@@ -37,25 +53,7 @@ import {
 } from "react";
 import { createRoot, type Root } from "react-dom/client";
 import { ThemeProvider } from "styled-components";
-import { AugmentSlot } from "./AugmentSlot";
-import {
-  type AnyAugment,
-  clearAugments,
-  getAugments,
-  getAugmentsForSlot,
-  registerAugment,
-} from "./augments";
-import {
-  DomainAvailabilityProvider,
-  type DomainAvailabilityStore,
-  useDomainAvailabilityStore,
-} from "./domainAvailability";
-import { gridToPixels } from "./gridUnits";
-import { Panel, PanelBody } from "./Panel";
 import { RENDER_PROBE_GLOBAL } from "./render/probe-global";
-import { WidgetHost, WidgetHostFor } from "./renderWidget";
-import { setQuantityLocale } from "./units";
-import { UI_KIT_VERSION } from "./version";
 
 /**
  * The BROWSER half of the Uplink render harness: everything that has to run
@@ -78,6 +76,18 @@ import { UI_KIT_VERSION } from "./version";
  * The Node half is `@ksp-gonogo/ui-kit/render`, and the two are shipped together
  * deliberately: the generated entry, the page it is injected into and the
  * `window` global it installs are one contract.
+ *
+ * It reaches the kit through its own PACKAGE name rather than relative paths,
+ * and that is load-bearing rather than stylistic. Relative imports would put
+ * `renderWidget` into a code-split chunk shared with `./testing`, and a chunk
+ * reachable only through `dist/testing.js` does not evaluate under a consumer's
+ * vitest: the namespace carries the export names with every value `undefined`,
+ * so `renderWidget is not a function` in eight of an Uplink's tests while
+ * `dist/index.js` (a real exports entry, so its chunk does load) works. Reaching
+ * the kit as a consumer keeps `render-probe` self-contained AND keeps exactly
+ * one copy of the augment registry at probe-bundle time, which is the failure
+ * the other direction produces: `registerAugment` writing to a Map that
+ * `<AugmentSlot>` never reads.
  */
 
 export { RENDER_PROBE_GLOBAL } from "./render/probe-global";
@@ -380,7 +390,8 @@ export function readInventory(uplinkId?: string): UplinkInventory {
 
 /**
  * What `client/gonogo-render.setup.ts` may do, for the two Uplinks in nine that
- * need a fake only they can write: a kOS topic-status source, a WebRTC session.
+ * need a fake only they can write: a data source with a bespoke status surface,
+ * a live WebRTC session.
  *
  * The constraint that makes it safe: `beforeScene` is told whether the scene is
  * STARVED, and a setup that feeds data must honour it. The driver renders every
@@ -552,10 +563,10 @@ async function renderScene(scene: ScenePayload): Promise<SceneReport> {
 
   // The dynamic prefixes are folded in the way `TelemetryProvider` folds them in
   // the app, rather than being left to the fixture. They name whole-topic
-  // NAMESPACES whose members are keyed at runtime (`scansat.coverage.<body>.<n>`,
-  // `fleet.<guid>.delay`), so no registration can list one member and a fixture
-  // listing them by hand would be the hand-written carried set this design
-  // removed. Everything else in the set comes from the registration.
+  // NAMESPACES whose members are keyed at runtime (a per-body survey layer, a
+  // per-vessel `fleet.<guid>.delay`), so no registration can list one member and
+  // a fixture listing them by hand would be the hand-written carried set this
+  // design removed. Everything else in the set comes from the registration.
   const carried = [
     ...new Set([...scene.carriedChannels, ...DYNAMIC_CARRIED_TOPIC_PREFIXES]),
   ];
@@ -623,9 +634,9 @@ async function renderScene(scene: ScenePayload): Promise<SceneReport> {
  *
  * One pass is not enough, and the reason is a property of the widget rather
  * than a timing accident: a widget subscribes to a per-body or per-vessel topic
- * only after learning WHICH body, so `scansat.coverage.<body>.<type>` has no
+ * only after learning WHICH body, so a per-body coverage channel has no
  * subscriber until `system.bodies` and `vessel.identity` have both arrived and
- * the coverage rows have mounted. Production behaves the same way (the mod only
+ * the rows keyed on them have mounted. Production behaves the same way (a mod only
  * produces a channel while something is subscribed to it), so rounds are the
  * faithful shape, not a workaround.
  *

@@ -7,8 +7,8 @@
  * the sdk resolves to TypeScript source inside this workspace, so the bin died on
  * an unresolvable import before it had parsed an argument.
  *
- * Naming it once is also the point. `PROBE_PAGES` exists in the first-party
- * harness for the same reason: a second spelling of the handshake is free to
- * drift green.
+ * Naming it once is also the point: a second spelling of the handshake is free
+ * to drift green, since a driver that installs one name and waits for another
+ * simply times out somewhere far from the typo.
  */
 export const RENDER_PROBE_GLOBAL = "__gonogoRenderProbe";

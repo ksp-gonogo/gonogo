@@ -2,7 +2,20 @@
   "extends": "../../tsconfig.base.json",
   "compilerOptions": {
     "outDir": "./dist",
-    "rootDir": "./src"
+    "rootDir": "./src",
+    "baseUrl": ".",
+    // `src/render-probe.tsx` reaches the kit by its own package name, so that
+    // the built file stays a CONSUMER of the kit and shares no code-split chunk
+    // with it (see tsup.config.ts). These map that self-reference back to source
+    // for typechecking, which is both more accurate than the emitted `.d.ts` and
+    // free of a build-order dependency on this package's own `dist`.
+    //
+    // esbuild matches `external` against the import path as WRITTEN, before it
+    // consults `paths`, so the bundler still leaves the specifier alone.
+    "paths": {
+      "@ksp-gonogo/ui-kit": ["./src/index.ts"],
+      "@ksp-gonogo/ui-kit/testing": ["./src/testing.ts"]
+    }
   },
   "include": ["src"],
   "exclude": ["src/**/*.test.ts", "src/**/*.test.tsx", "src/**/*.test-d.ts"]

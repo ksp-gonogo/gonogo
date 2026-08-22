@@ -38,6 +38,7 @@ import { PeerClientProvider } from "../peer/PeerClientContext";
 import type { PeerClientService } from "../peer/PeerClientService";
 import { setConsentPrompt } from "./consent";
 import { LOADER_UPLINK_IDS } from "./flag";
+import { hostCompat } from "./hostCompat";
 import { __resetUplinkOutcomes, getUplinkOutcomes } from "./loaderState";
 import type { RegistryIndex } from "./registry";
 import {
@@ -75,14 +76,17 @@ function registryWith(integrity: string): RegistryIndex {
           {
             version: "1.0.0",
             minAppVersion: "0.0.0",
-            // Matches the real hostCompat this module imports (no injection
-            // seam for it) under vitest: EXTENSION_API_VERSION "1.0.0",
-            // UI_KIT_VERSION "0.1.0", contractMajor/Minor default to 0/0
-            // (no __GONOGO_CONTRACT_*__ define outside the real Vite build).
-            apiVersion: "1.0.0",
-            uiKitVersion: "0.1.0",
-            contractMajor: 0,
-            contractMinor: 0,
+            // Read off the real `hostCompat` this module imports rather than
+            // typed here. Typed, `uiKitVersion` said "0.1.0" and stayed right
+            // only while the constant was ALSO wrong: the moment ui-kit's
+            // version was corrected to match its package, four tests failed
+            // with a compat mismatch about a number neither side chose.
+            // contractMajor/Minor stay 0 because no `__GONOGO_CONTRACT_*__`
+            // define exists outside the real Vite build.
+            apiVersion: hostCompat.apiVersion,
+            uiKitVersion: hostCompat.uiKitVersion,
+            contractMajor: hostCompat.contractMajor,
+            contractMinor: hostCompat.contractMinor,
             bundleUrl: BUNDLE_URL,
             integrity,
             expectedClientHash: null,

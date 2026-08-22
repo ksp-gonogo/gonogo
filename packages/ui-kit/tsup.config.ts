@@ -38,20 +38,15 @@ export default defineConfig([
     // `./testing` in turn because it reads the filesystem, which would break a
     // browser-based test runner that only wanted the DOM helpers.
     //
-    // `./render-probe` is the BROWSER half of the Uplink render harness. Its Node
-    // half is a second config below, because that one has to be built FOR Node:
-    // tsup's default platform shims `require`, so any CJS dependency reaching for
-    // a builtin produces a bundle that resolves and then throws "Dynamic require
-    // of util is not supported" on its first frame.
-    //
-    // The unit-test render harness (`renderWidget`) is a different thing and stays
-    // on `./testing`, beside the readout helpers a widget test wants with it.
-    entry: [
-      "src/index.ts",
-      "src/testing.ts",
-      "src/guards.ts",
-      "src/render-probe.tsx",
-    ],
+    // The two halves of the Uplink render harness are configs of their OWN below,
+    // and not entries here. Adding `render-probe` to this entry list is what a
+    // first attempt did, and it moved `renderWidget` into a code-split chunk
+    // shared with `./testing`: a chunk reachable only through `dist/testing.js`
+    // does not evaluate under a consumer's vitest, so the namespace carried the
+    // export names with every value `undefined` and eight of an Uplink's tests
+    // failed with `renderWidget is not a function`. Nothing about this entry
+    // list may change the chunking of the three below it.
+    entry: ["src/index.ts", "src/testing.ts", "src/guards.ts"],
     clean: true,
     // Inline the internal, never-published theme package + lucide-react (icons).
     noExternal: ["@ksp-gonogo/theme", "lucide-react"],
@@ -110,6 +105,28 @@ export default defineConfig([
       // external regardless: `external` above governs the dts pass too.
       resolve: true,
     },
+  },
+  {
+    ...shared,
+    // The BROWSER half of the render harness, built as a CONSUMER of the kit
+    // rather than as part of it: `@ksp-gonogo/ui-kit` and its `/testing` subpath
+    // stay external, so this file shares no chunk with them and there is exactly
+    // one copy of the augment registry once an Uplink's probe bundle resolves
+    // both. `splitting` is off because there is nothing left to share.
+    entry: ["src/render-probe.tsx"],
+    clean: false,
+    splitting: false,
+    external: [
+      "@ksp-gonogo/ui-kit",
+      "@ksp-gonogo/ui-kit/*",
+      "@ksp-gonogo/sitrep-sdk",
+      "@ksp-gonogo/sitrep-sdk/*",
+      "react",
+      "react-dom",
+      "react/jsx-runtime",
+      "styled-components",
+    ],
+    dts: { resolve: true },
   },
   {
     ...shared,
