@@ -9,6 +9,7 @@ import { CommandDelay, NULL_DISPLAY } from "@ksp-gonogo/ui-kit";
 import { describe, expect, it } from "vitest";
 import { TelemetryClient } from "./client";
 import { TelemetryProvider } from "./context";
+import type { LegacyManeuverNode } from "./maneuver-legacy";
 import { StubTransport } from "./stub-transport";
 import { useCommand } from "./use-command";
 import { useStream } from "./use-stream";
@@ -73,5 +74,68 @@ describe("sitrep-client end-to-end spine", () => {
     expect(transport.isSubscribed("v.alt")).toBe(true);
     unmount();
     expect(transport.isSubscribed("v.alt")).toBe(false);
+  });
+
+  /**
+   * Reading a DERIVED topic must open a wire subscription for its declared
+   * input, because no server channel ever publishes the derived name and a
+   * caller that subscribed to it verbatim would wait forever.
+   *
+   * Written to settle a specific accusation: `vessel.maneuver` recorded zero
+   * frames in a 20 s live capture where `vessel.orbit` delivered, and an
+   * enumeration of the mod's emission path narrowed the cause to "no
+   * subscriber", leaving open whether the spine propagates a subscription
+   * for `vessel.maneuver.legacy`'s input at all. It does. The assertions
+   * below fail if that ever stops being true, on the whole chain (provider,
+   * client, ref-count, transport) rather than on `resolveSubscriptionTopics`
+   * in isolation, which is where the existing coverage stops.
+   */
+  it("a derived-topic read opens a wire subscription for its input, not for its own name", async () => {
+    const transport = new StubTransport();
+    const client = new TelemetryClient(transport);
+
+    function ManeuverProbe() {
+      const nodes = useStream<LegacyManeuverNode[]>(
+        "vessel.maneuver.legacy.nodes",
+      );
+      // The node's own UT, not a count: a count reads the same whether the
+      // reshape ran or handed back an array of nothing.
+      return (
+        <span>nodes:{nodes?.map((n) => n.UT).join(",") ?? NULL_DISPLAY}</span>
+      );
+    }
+
+    const { unmount } = render(
+      <TelemetryProvider client={client}>
+        <ManeuverProbe />
+      </TelemetryProvider>,
+    );
+
+    expect(transport.isSubscribed("vessel.maneuver")).toBe(true);
+    // Nothing publishes either of these, so a subscription to one is a
+    // subscription to silence.
+    expect(transport.isSubscribed("vessel.maneuver.legacy")).toBe(false);
+    expect(transport.isSubscribed("vessel.maneuver.legacy.nodes")).toBe(false);
+
+    // `StubTransport.emit` is subscription-gated, so delivery here is itself
+    // the proof the wire subscription is real rather than bookkeeping.
+    act(() => {
+      transport.emit("vessel.maneuver", {
+        nodes: [
+          {
+            id: "node-1",
+            ut: 1200,
+            dvRadial: 0,
+            dvNormal: 0,
+            dvPrograde: 850,
+            patches: [],
+          },
+        ],
+      });
+    });
+    await waitFor(() => expect(screen.getByText("nodes:1200")).toBeTruthy());
+
+    unmount();
+    expect(transport.isSubscribed("vessel.maneuver")).toBe(false);
   });
 });
