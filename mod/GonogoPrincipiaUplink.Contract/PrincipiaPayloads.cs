@@ -228,6 +228,31 @@ public sealed class PrincipiaReferenceFrame
     [SitrepUnit(Units.Text)]
     public string? SecondaryBody { get; set; }
 
+    /// <summary>
+    /// Every body on the primary side, of which <see cref="PrimaryBody"/> is the
+    /// first.
+    ///
+    /// <para>A rotating frame turns about a pair of bodies; a pulsating one turns
+    /// about a pair of SETS, and holds the separation of their two mass centres
+    /// fixed. A Sun-Earth pulsating frame's primary side is Sun, Mercury and
+    /// Venus, not Sun alone, because the producer's set builder walks the star's
+    /// children and stops at the selected body. Publishing only the head loses
+    /// two bodies out of the mass that defines where the frame's origin is, and
+    /// loses them silently, since the head is the name a reader recognises.</para>
+    ///
+    /// <para>Always carries the singular field's value as its first entry when it
+    /// carries anything, so a reader wanting the pair can take the heads and a
+    /// reader computing the frame can take the sets.</para>
+    /// </summary>
+    [SitrepUnit(Units.Text)]
+    public string[]? PrimaryBodies { get; set; }
+
+    /// <summary>Every body on the secondary side, of which
+    /// <see cref="SecondaryBody"/> is the first. See <see cref="PrimaryBodies"/>
+    /// for why the set travels rather than the head alone.</summary>
+    [SitrepUnit(Units.Text)]
+    public string[]? SecondaryBodies { get; set; }
+
     /// <summary>True when the frame is the target frame, which sits orthogonally
     /// to the kind enum rather than inside it. It is the only frame in which the
     /// producer computes closest approach, and one in which apsides do not exist

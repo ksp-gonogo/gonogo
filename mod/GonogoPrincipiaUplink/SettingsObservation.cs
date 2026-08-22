@@ -25,6 +25,20 @@ namespace GonogoPrincipiaUplink
         public string? CentreBody;
         public string? PrimaryBody;
         public string? SecondaryBody;
+
+        /// <summary>
+        /// The bodies on each side, of which the two singular fields above are the
+        /// heads.
+        ///
+        /// <para>A pulsating frame turns about a pair of SETS rather than a pair of
+        /// bodies, so the singular fields cannot express it: a Sun-Earth frame's
+        /// primary side is Sun, Mercury and Venus. Left empty for the frames whose
+        /// sides really are one body each, so an empty list means "the head is the
+        /// whole of it" rather than "not read".</para>
+        /// </summary>
+        public List<string> PrimaryBodies = new List<string>();
+        public List<string> SecondaryBodies = new List<string>();
+
         public bool? TargetFrameSelected;
         public string? TargetVesselId;
         public string? TargetVesselName;
