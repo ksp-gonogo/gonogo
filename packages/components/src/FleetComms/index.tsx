@@ -12,9 +12,8 @@ import {
 } from "./toggles";
 
 /**
- * Fleet/Comms on `SystemView`: the Commlinks/Traffic controls, plus the
- * link-status badge its sibling `./badge` contributes
- * (`local_docs/design/specs/2026-07-15-system-view-fleet-comms-design.md`).
+ * Fleet/Comms on `SystemView`: the Commlinks and Traffic controls, plus the
+ * link-status badge its sibling `./badge` contributes.
  *
  * This used to fill `system-view.overlay` as well, drawing its own comms-path
  * line and command-traffic pulses in the diagram's coordinate space: a single

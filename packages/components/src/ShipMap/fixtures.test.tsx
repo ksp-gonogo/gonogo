@@ -27,7 +27,7 @@ function loadParts(fixture: Fixture): ShipMapPart[] {
   return topo.parts.map((p) => buildShipMapPart(p, undefined, undefined, useX));
 }
 
-describe("Ship Map fixtures (Phase 2 scaffolding)", () => {
+describe("Ship Map fixtures", () => {
   it("rover-b-alone: 28 parts, vertical Y stack, classifyable", () => {
     const parts = loadParts(roverBAlone as Fixture);
     expect(parts).toHaveLength(28);

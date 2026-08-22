@@ -1,27 +1,23 @@
-// ---------------------------------------------------------------------------
-// Drift guard: the `@ksp-gonogo/sitrep-sdk` slot-registry MIRROR
-// (`mod/sitrep-sdk/src/api/slots.ts`) vs the real widget-owned context types
-// declared in this package.
-//
-// Facade-sealing gap 1 fix (2026-07-19, docs/superpowers/plans/
-// 2026-07-19-facade-sealing.md §2.3): the sdk leaf cannot import
-// `@ksp-gonogo/components` (would form a turbo `^build` cycle, components
-// already depends on the sdk), so every slot context type the sdk exposes
-// via its own `SlotRegistry` merge is a hand-mirrored duplicate, not a live
-// import. This file: living in components, which devDepends on the sdk AND
-// owns every real type: is the one place both sides are visible, so it is
-// where every mirror is kept honest: if a real slot context type drifts out
-// of structural compatibility with the sdk's mirror, this fails this
-// package's `tsc` typecheck (`tsconfig.test-d.json`, same convention as
-// `Objectives/slot-contract.test-d.ts`).
-//
-// Checked bidirectionally (mirrors `packages/core/src/
-// sdk-facade.conformance.test-d.ts`'s own pattern): an augment authored
-// against the sdk's mirrored `SlotProps<S>` must satisfy the real widget's
-// `registerAugment`/`<AugmentSlot>` call (mirror → real), and a real
-// context value read back must satisfy the sdk-typed author view (real →
-// mirror).
-// ---------------------------------------------------------------------------
+/**
+ * Drift guard: the `@ksp-gonogo/sitrep-sdk` slot-registry MIRROR
+ * (`mod/sitrep-sdk/src/api/slots.ts`) against the real widget-owned context
+ * types declared in this package.
+ *
+ * The sdk leaf cannot import `@ksp-gonogo/components`, which would form a turbo
+ * `^build` cycle since components already depends on the sdk, so every slot
+ * context type the sdk exposes through its own `SlotRegistry` merge is a
+ * hand-mirrored duplicate rather than a live import. This file lives in
+ * components, which devDepends on the sdk and owns every real type, making it
+ * the one place both sides are visible: when a real slot context type drifts out
+ * of structural compatibility with the sdk's mirror, this fails the package's
+ * `tsc` typecheck through `tsconfig.test-d.json`.
+ *
+ * Checked in both directions, the same way `packages/core`'s
+ * `sdk-facade.conformance.test-d.ts` does it: an augment authored against the
+ * sdk's mirrored `SlotProps<S>` must satisfy the real widget's
+ * `registerAugment` and `<AugmentSlot>` call, and a real context value read back
+ * must satisfy the sdk-typed author view.
+ */
 
 import type {
   SlotProps as SdkSlotProps,

@@ -26,24 +26,23 @@ const STOCK_GROUPS_ALL_OFF = Array.from({ length: 10 }, (_, i) => ({
  * code proves each one dispatches with the right envelope, not a re-
  * derivation of `map-command.test.ts`'s own coverage):
  *
- * 1. **toggle -> absolute (delayed-command-ux migration)**: the SAS ON/OFF
- *    button dispatches `vessel.control.setSas` directly via `useCommand`,
- *    same bridge shape `ActionGroup`'s own migration uses, built off the
- *    already-known live `sas` value instead of a `mapCommand` current-value
- *    sample. Unconditional now: no carried-channels gate, no legacy
- *    `DataSource` fallback (see `toggleSas` in index.tsx).
- * 2. **positional -> named enum (delayed-command-ux migration)**: a SAS-mode
- *    button dispatches `vessel.control.setSasMode` directly via
- *    `useCommand`, the mode name resolved to its ordinal off `SAS_MODES`'
- *    own array position (see `setSasMode` in index.tsx). Also unconditional.
- * 3. **continuous, delayed control-stream (control-delay-stream-viz Task 4)**:
- *    the throttle ZERO button. Throttle rides `useControlStream`: the button
- *    sets local commanded state, the hook's coalesced write half dispatches
+ * 1. **toggle to absolute**: the SAS ON/OFF button dispatches
+ *    `vessel.control.setSas` directly via `useCommand`, the same bridge shape
+ *    `ActionGroup` uses, built off the already-known live `sas` value rather
+ *    than a `mapCommand` current-value sample. Unconditional: no
+ *    carried-channels gate, no legacy `DataSource` fallback (see `toggleSas` in
+ *    index.tsx).
+ * 2. **positional to named enum**: a SAS-mode button dispatches
+ *    `vessel.control.setSasMode` directly via `useCommand`, the mode name
+ *    resolved to its wire ordinal by `sasModeOrdinal`, which reads the
+ *    generated enum rather than counting `SAS_MODES`' array positions (see
+ *    `setSasMode` in index.tsx). Also unconditional.
+ * 3. **continuous, delayed control-stream**: the throttle ZERO button.
+ *    Throttle rides `useControlStream`: the button sets local commanded state,
+ *    and the hook's coalesced write half dispatches
  *    `vessel.control.setThrottle` on its own 10 Hz tick. Unconditional too,
- *    same as bridges 1/2: no carried-channels gate, no legacy `DataSource`
- *    fallback (the pre-migration version of this file proved the opposite:
- *    a carried-gated shim promotion with a legacy fallback; that shape is
- *    gone for throttle specifically).
+ *    the same as bridges 1 and 2: no carried-channels gate and no legacy
+ *    `DataSource` fallback.
  * 4. **nullable-partial field set**: each trim action dispatches
  *    `vessel.control.setAxes` carrying ONLY its own field. Trim is the one
  *    fly-by-wire input with no `[SitrepControlChannel]` (the contract has the
