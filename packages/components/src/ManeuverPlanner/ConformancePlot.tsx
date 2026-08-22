@@ -170,6 +170,11 @@ export function ConformancePlot({
                 ? currentTrajectory.points
                 : null
             }
+            trajectoryFarEnd={
+              currentTrajectory?.shape === "arc"
+                ? currentTrajectory.farEnd
+                : null
+            }
             sma={current.sma}
             ecc={current.ecc}
             apoapsis={current.apoapsis}

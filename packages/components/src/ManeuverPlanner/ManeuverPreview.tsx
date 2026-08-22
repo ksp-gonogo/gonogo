@@ -349,6 +349,9 @@ function ManeuverDiagram({
         trajectoryPath={
           currentTrajectory?.shape === "arc" ? currentTrajectory.points : null
         }
+        trajectoryFarEnd={
+          currentTrajectory?.shape === "arc" ? currentTrajectory.farEnd : null
+        }
         sma={diagram.sma ?? 0}
         ecc={diagram.ecc ?? 0}
         apoapsis={diagram.ApR}

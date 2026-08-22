@@ -60,6 +60,14 @@ namespace GonogoPrincipiaUplink
             _settings = settings;
         }
 
+        /// <summary>Test seam for the force model, same reasoning: the registration
+        /// is provable with no config database to read.</summary>
+        internal PrincipiaUplink(PrincipiaGuardResult guard, IGravityModelSource gravityModel)
+            : this(guard)
+        {
+            _gravityModel = gravityModel;
+        }
+
         public const string FlightPlanTopic = "principia.flightPlan";
         public const string SettingsTopic = "principia.settings";
 
@@ -133,6 +141,7 @@ namespace GonogoPrincipiaUplink
                 return;
             }
 
+            RegisterGravityModel(host);
             AttachObserver();
             _observer?.TryAttach();
             _settings?.TryAttach();
@@ -252,6 +261,57 @@ namespace GonogoPrincipiaUplink
         /// "installed but not a version we know" it is, because those want
         /// different actions from an operator.
         /// </summary>
+
+        /// <summary>
+        /// Publishes the producer's gravity model as the force model an n-body
+        /// integration runs against.
+        ///
+        /// <para>The reading is a <c>GameDatabase</c> node and nothing else: it
+        /// never touches the plugin, so the native ABI's abort-on-bad-call has
+        /// nothing to fire on. That is why the force model is reachable at all,
+        /// given every trajectory export is either a write or aborts on state we do
+        /// not control.</para>
+        ///
+        /// <para>Registered rather than published on a channel because it is not
+        /// telemetry. Nobody reads it on a screen; it is what a propagation runs
+        /// against, so it goes where a propagation can resolve it and core never
+        /// learns whose model it is.</para>
+        ///
+        /// <para>The try/catch is defence in depth on the same terms as every other
+        /// Uplink's registration: a genuinely absent capability cannot happen in a
+        /// correctly bundled install, and if one does this Uplink goes inert on that
+        /// point rather than taking anything else down.</para>
+        /// </summary>
+        internal void RegisterGravityModel(IUplinkHost host)
+        {
+            AttachGravityModel();
+            var source = _gravityModel;
+            if (source == null)
+            {
+                // A headless build has no way to read a config database, so it
+                // registers nothing and the capability stays unsatisfied. That is
+                // the same state an install without the producer is in, and a client
+                // is told the same thing by both.
+                return;
+            }
+            host.Kernel.RegisterProvider(new ProviderRegistration
+            {
+                Capability = GravityModelCapability.Id,
+                Id = source.ProviderId,
+                Factory = _ => source,
+            });
+        }
+
+        /// <summary>
+        /// Sets <c>_gravityModel</c> to the real reader. Implemented only in the
+        /// game-facing partial, on the same terms as <see cref="AttachObserver"/>:
+        /// a build that omits that file registers no source and says so by leaving
+        /// the capability unsatisfied.
+        /// </summary>
+        partial void AttachGravityModel();
+
+        /// <summary>Test seam: the source injected, so registration is provable with no game.</summary>
+        private IGravityModelSource? _gravityModel;
 
         /// <summary>Sets <c>_observer</c> to the real hook. Implemented only in the
         /// game-facing partial, so a headless build has no observer and says so by

@@ -16,5 +16,10 @@ namespace GonogoPrincipiaUplink
             _observer ??= new FlightPlannerHook();
             _settings ??= new PrincipiaSettingsSource();
         }
+
+        partial void AttachGravityModel()
+        {
+            _gravityModel ??= new PrincipiaGravityModelSource();
+        }
     }
 }

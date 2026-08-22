@@ -117,6 +117,13 @@ const MAGNITUDE_BUDGET: Record<string, number> = {
   // or already unwrapped, so one read normalises the two. Not arithmetic: the
   // number is compared against a window and never computed with.
   "mod/sitrep-sdk/src/spine/kepler.ts": 1,
+  // The trajectory arc's points arrive either wrapped (as the wire delivers
+  // them) or already unwrapped (as a caller-built fixture has them), so one read
+  // normalises the two, exactly as `canPropagate`'s does above. Not arithmetic:
+  // the numbers go into a rotation matrix as raw metres, which is geometry in a
+  // single frame with a single unit and has no dimension for the algebra to
+  // check.
+  "mod/sitrep-sdk/src/spine/orbit-trajectory.ts": 1,
   "mod/sitrep-sdk/src/spine/maneuver-legacy.ts": 6,
   "mod/sitrep-sdk/src/spine/orbit-patches.ts": 14,
   "mod/sitrep-sdk/src/spine/use-command.ts": 1,

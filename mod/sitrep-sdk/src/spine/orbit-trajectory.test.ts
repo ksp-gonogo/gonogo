@@ -3,7 +3,12 @@ import {
   PropagationHorizonKindLike as Reach,
   TrajectoryKindLike as Shape,
 } from "./kepler";
-import { orbitTrajectory } from "./orbit-trajectory";
+import {
+  TrajectoryDerivationLike as Derivation,
+  TrajectoryFrameKindLike as Frame,
+  orbitTrajectory,
+  TrajectoryRefusalLike as Refusal,
+} from "./orbit-trajectory";
 
 /** Kerbin's GM, so the periods below are the real ~2000 s of a low orbit. */
 const KERBIN_MU = 3.5316e12;
@@ -180,5 +185,244 @@ describe("orbitTrajectory", () => {
     expect(answer.shape).toBe("arc");
     if (answer.shape !== "arc") return;
     expect(answer.toUt).toBe(500);
+  });
+});
+
+/** An arc as the wire delivers it: a named frame, points, and a stated span. */
+function wireArc(overrides: Record<string, unknown> = {}) {
+  return {
+    frame: { kind: Frame.Perifocal, lengthsPulsate: false },
+    points: [
+      {
+        ut: { magnitude: 0 },
+        x: { magnitude: 700_000 },
+        y: { magnitude: 0 },
+        z: { magnitude: 0 },
+      },
+      {
+        ut: { magnitude: 250 },
+        x: { magnitude: 0 },
+        y: { magnitude: 700_000 },
+        z: { magnitude: 1_000 },
+      },
+      {
+        ut: { magnitude: 500 },
+        x: { magnitude: -700_000 },
+        y: { magnitude: 0 },
+        z: { magnitude: 0 },
+      },
+    ],
+    fromUt: { magnitude: 0 },
+    toUt: { magnitude: 500 },
+    sourcePointCount: { magnitude: 4096 },
+    derivation: Derivation.OwnNBody,
+    ...overrides,
+  };
+}
+
+const INTEGRATED = {
+  kind: Reach.Until,
+  untilUt: 500,
+  trajectoryKind: Shape.Integrated,
+};
+
+describe("orbitTrajectory: the provider's own points", () => {
+  it("draws the carried points rather than the conic they are tangent to", () => {
+    const answer = orbitTrajectory({
+      orbit: lko({ horizon: INTEGRATED, arc: wireArc() }),
+      viewUt: 0,
+    });
+    expect(answer.shape).toBe("arc");
+    if (answer.shape !== "arc") return;
+    // Three carried points, not the 128 a sampled conic would produce.
+    expect(answer.points).toHaveLength(3);
+    expect(answer.points[1]).toEqual({ x: 0, y: 700_000, z: 1_000, ut: 250 });
+    expect(answer.derivation).toBe(Derivation.OwnNBody);
+  });
+
+  it("names the far end as the horizon, never as a revolution", () => {
+    // An integrated path does not retrace, so it has no lap convention to stop
+    // at: wherever a carried arc ends, that is where the provider's authority
+    // stopped, and the mark on the diagram says exactly that.
+    const answer = orbitTrajectory({
+      orbit: lko({ horizon: INTEGRATED, arc: wireArc() }),
+      viewUt: 0,
+    });
+    expect(answer.shape).toBe("arc");
+    if (answer.shape !== "arc") return;
+    expect(answer.farEnd).toBe("horizon");
+  });
+
+  it("carries the pre-decimation count so a thinned curve is not read as a short one", () => {
+    const answer = orbitTrajectory({
+      orbit: lko({ horizon: INTEGRATED, arc: wireArc() }),
+      viewUt: 0,
+    });
+    expect(answer.shape).toBe("arc");
+    if (answer.shape !== "arc") return;
+    expect(answer.points.length).toBe(3);
+    expect(answer.sourcePointCount).toBe(4096);
+  });
+
+  it("rotates inertial points into the frame the diagrams draw in", () => {
+    // A polar orbit with the node and periapsis on the reference axis: the
+    // perifocal +y axis then points along inertial +z, so a purely inertial-z
+    // point must come back as a purely perifocal-y one. A sign error in the
+    // rotation shows up here as a mirrored curve rather than as a crash.
+    const answer = orbitTrajectory({
+      orbit: lko({
+        inc: { magnitude: 90 },
+        lan: { magnitude: 0 },
+        argPe: { magnitude: 0 },
+        horizon: INTEGRATED,
+        arc: wireArc({
+          frame: { kind: Frame.BodyCentredInertial, lengthsPulsate: false },
+          points: [
+            { ut: 0, x: 700_000, y: 0, z: 0 },
+            { ut: 250, x: 0, y: 0, z: 700_000 },
+            // Inertial +y is perifocal -z for this orbit. The out-of-plane
+            // component is the ONLY one whose sign this case can see: the two
+            // points above both land on a perifocal axis with z genuinely zero,
+            // and a sign error there is invisible because zero has no sign.
+            { ut: 500, x: 0, y: 700_000, z: 0 },
+          ],
+        }),
+      }),
+      viewUt: 0,
+    });
+    expect(answer.shape).toBe("arc");
+    if (answer.shape !== "arc") return;
+    expect(answer.points[0].x).toBeCloseTo(700_000, 6);
+    expect(answer.points[0].y).toBeCloseTo(0, 6);
+    expect(answer.points[0].z).toBeCloseTo(0, 6);
+    expect(answer.points[1].x).toBeCloseTo(0, 6);
+    expect(answer.points[1].y).toBeCloseTo(700_000, 6);
+    expect(answer.points[2].z).toBeCloseTo(-700_000, 6);
+    // And the arc names the frame it ENDED in, not the one it arrived in.
+    expect(answer.frame.kind).toBe(Frame.Perifocal);
+  });
+
+  it("declines an arc whose frame nobody named", () => {
+    // The same points are a different curve per frame, so guessing one produces
+    // a plausible wrong shape. Falling back to the conic is the visible answer.
+    const answer = orbitTrajectory({
+      orbit: lko({
+        horizon: INTEGRATED,
+        arc: wireArc({
+          frame: { kind: Frame.Unspecified, lengthsPulsate: false },
+        }),
+      }),
+      viewUt: 0,
+    });
+    expect(answer.shape).toBe("arc");
+    if (answer.shape !== "arc") return;
+    expect(answer.points).toHaveLength(128);
+    expect(answer.derivation).toBe(Derivation.OwnClosedForm);
+  });
+
+  it("declines an arc of one point, which is not a path", () => {
+    const answer = orbitTrajectory({
+      orbit: lko({
+        horizon: INTEGRATED,
+        arc: wireArc({ points: [{ ut: 0, x: 700_000, y: 0, z: 0 }] }),
+      }),
+      viewUt: 0,
+    });
+    expect(answer.shape).toBe("arc");
+    if (answer.shape !== "arc") return;
+    expect(answer.points).toHaveLength(128);
+  });
+});
+
+describe("orbitTrajectory: the two refusals only an integrating provider has", () => {
+  it("says beyond-budget rather than borrowing the horizon's sentence", () => {
+    expect(
+      orbitTrajectory({
+        orbit: lko({ horizon: INTEGRATED, arcRefusal: Refusal.BeyondBudget }),
+        viewUt: 0,
+      }),
+    ).toEqual({
+      shape: "withheld",
+      reason: "beyond-budget",
+      trajectoryKind: Shape.Integrated,
+    });
+  });
+
+  it("says no-force-model, which has no operator remedy at all", () => {
+    expect(
+      orbitTrajectory({
+        orbit: lko({ horizon: INTEGRATED, arcRefusal: Refusal.NoForceModel }),
+        viewUt: 0,
+      }),
+    ).toEqual({
+      shape: "withheld",
+      reason: "no-force-model",
+      trajectoryKind: Shape.Integrated,
+    });
+  });
+
+  it("answers the arc refusal ahead of the horizon gate", () => {
+    // A producer with no force model never got as far as having a horizon
+    // opinion. Letting `no-horizon-stated` answer for it would name a producer
+    // bug where the truth is a missing install, and send the operator looking
+    // in the wrong place.
+    expect(
+      orbitTrajectory({
+        orbit: lko({ arcRefusal: Refusal.NoForceModel }),
+        viewUt: 0,
+      }),
+    ).toEqual({
+      shape: "withheld",
+      reason: "no-force-model",
+      trajectoryKind: undefined,
+    });
+  });
+
+  it("treats an unstated refusal as nothing refused", () => {
+    expect(
+      orbitTrajectory({
+        orbit: lko({ horizon: ANALYTIC, arcRefusal: Refusal.Unspecified }),
+        viewUt: 0,
+      }),
+    ).toEqual({ shape: "conic" });
+  });
+});
+
+describe("orbitTrajectory: what the far end of a sampled conic means", () => {
+  it("calls a lap a revolution, not a horizon", () => {
+    const answer = orbitTrajectory({
+      orbit: lko({
+        horizon: {
+          kind: Reach.Until,
+          untilUt: 1e9,
+          trajectoryKind: Shape.Integrated,
+        },
+      }),
+      viewUt: 0,
+    });
+    expect(answer.shape).toBe("arc");
+    if (answer.shape !== "arc") return;
+    expect(answer.farEnd).toBe("revolution");
+  });
+
+  it("calls a stated bound a horizon", () => {
+    const answer = orbitTrajectory({
+      orbit: lko({ horizon: INTEGRATED }),
+      viewUt: 0,
+    });
+    expect(answer.shape).toBe("arc");
+    if (answer.shape !== "arc") return;
+    expect(answer.farEnd).toBe("horizon");
+  });
+
+  it("gives a conic a real zero out of plane, not an unfilled field", () => {
+    const answer = orbitTrajectory({
+      orbit: lko({ horizon: INTEGRATED }),
+      viewUt: 0,
+    });
+    expect(answer.shape).toBe("arc");
+    if (answer.shape !== "arc") return;
+    for (const p of answer.points) expect(p.z).toBe(0);
+    expect(answer.frame.kind).toBe(Frame.Perifocal);
   });
 });

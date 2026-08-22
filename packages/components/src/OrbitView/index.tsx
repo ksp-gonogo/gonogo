@@ -289,6 +289,7 @@ function OrbitViewComponent({
       // The seam's answer, drawn as given. `null` on the conic arm, where the
       // diagram's own conic renderer is what the provider said is right.
       trajectoryPath={trajectory.shape === "arc" ? trajectory.points : null}
+      trajectoryFarEnd={trajectory.shape === "arc" ? trajectory.farEnd : null}
       sma={sma.magnitude}
       ecc={eccentricity.magnitude}
       // `apoapsisR` is `null` on a hyperbolic orbit, OrbitDiagram already

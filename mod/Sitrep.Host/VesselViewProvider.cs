@@ -237,6 +237,14 @@ namespace Sitrep.Host
             }
 
             var patches = MapOrbitPatches(orbit.TryGetValue("patches", out var rawPatches) ? rawPatches : null);
+            var horizon = ElementHorizon(snapshot.Ut, sma.Value, mu.Value);
+            // Through FromKspDegrees, never the plain constructor: inc/lan/argPe
+            // are degrees on this record and radians in the elements, and passing
+            // the degree values compiles, runs, and yields a rotated orbit.
+            var arc = ElementArc(vesselId, referenceBodyIndex.Value, horizon, snapshot.Ut,
+                OrbitElements.FromKspDegrees(
+                    sma.Value, ecc.Value, inc.Value, lan ?? 0.0, argPe ?? 0.0,
+                    maae.Value, epoch.Value, mu.Value));
 
             return new VesselOrbit
             {
@@ -251,9 +259,76 @@ namespace Sitrep.Host
                 Mu = mu.Value,
                 Encounter = encounter,
                 Patches = patches,
-                Horizon = ElementHorizon(snapshot.Ut, sma.Value, mu.Value),
+                Horizon = horizon,
+                Arc = arc.Arc,
+                ArcRefusal = arc.Refusal,
                 Meta = BuildMeta(vesselId),
             };
+        }
+
+        /// <summary>
+        /// Whoever can hand back real integrated points, late-bound for the same
+        /// reason <see cref="_electedIsIntegrating"/> is: the capability kernel is
+        /// not resolved when this static class is first touched.
+        ///
+        /// <para>A delegate rather than the source itself, so this class never links
+        /// the propagation assembly and nothing here can branch on which provider
+        /// won. The TYPE check that produces it lives at the election site, which is
+        /// the only place entitled to recognise its own registrations.</para>
+        /// </summary>
+        private static Func<PropagationTarget, double, double, TrajectoryArcAnswer>? _arcSource;
+
+        /// <summary>
+        /// Installs the arc resolver, or clears it with null. See
+        /// <see cref="_arcSource"/>.
+        ///
+        /// <para>Clearable because it is process-wide state and a test that installs
+        /// one has to be able to put it back. Cleared is also the ordinary state: an
+        /// install with no n-body physics never sets one, and publishes elements
+        /// with no arc beside them.</para>
+        /// </summary>
+        public static void SetTrajectoryArcSource(
+            Func<PropagationTarget, double, double, TrajectoryArcAnswer>? resolver)
+        {
+            _arcSource = resolver;
+        }
+
+        /// <summary>
+        /// The arc riding on these elements, or a stated absence.
+        ///
+        /// <para>Attempted only where the horizon names an instant to integrate up
+        /// to. An unbounded or unstated horizon is not an invitation to pick a far
+        /// end ourselves: the whole reason the horizon is on the wire is that a
+        /// client must never be shown a curve nothing vouched for, and fabricating
+        /// the bound here would put that back one layer down.</para>
+        /// </summary>
+        private static TrajectoryArcAnswer ElementArc(
+            string vesselId,
+            int referenceBodyIndex,
+            PropagationHorizon horizon,
+            double sampleUt,
+            OrbitElements elements)
+        {
+            var source = _arcSource;
+            if (source == null) return TrajectoryArcAnswer.NotAttempted();
+            if (horizon.Kind != PropagationHorizonKind.Until) return TrajectoryArcAnswer.NotAttempted();
+            var toUt = horizon.UntilUt;
+            if (toUt == null || !(toUt.Value > sampleUt)) return TrajectoryArcAnswer.NotAttempted();
+
+            try
+            {
+                return source(
+                    PropagationTarget.Vessel(vesselId, referenceBodyIndex, elements),
+                    sampleUt,
+                    toUt.Value);
+            }
+            catch (Exception)
+            {
+                // A resolver fault must not cost the whole orbit payload. Nothing
+                // attempted is the conservative read: the elements still publish,
+                // and a client draws whatever the horizon and shape authorise.
+                return TrajectoryArcAnswer.NotAttempted();
+            }
         }
 
         /// <summary>
@@ -1417,7 +1492,53 @@ namespace Sitrep.Host
             // gate treats as unpropagatable. Correct as a fail-safe, wrong as a
             // routine state.
             ["horizon"] = ToWire(orbit.Horizon),
+            // Conditional, unlike the horizon: an absent arc is the ordinary
+            // state under an analytic provider, whose elements ARE the curve.
+            // The refusal beside it is unconditional for the opposite reason,
+            // its zero arm means "nothing was refused" rather than "nobody said".
+            ["arc"] = orbit.Arc != null ? ToWire(orbit.Arc) : null,
+            ["arcRefusal"] = (int)orbit.ArcRefusal,
             ["meta"] = ToWire(orbit.Meta),
+        };
+
+        private static Dictionary<string, object?> ToWire(TrajectoryArc arc) => new Dictionary<string, object?>
+        {
+            ["frame"] = ToWire(arc.Frame),
+            ["points"] = arc.Points.Select(p => (object?)ToWire(p)).ToList(),
+            ["fromUt"] = arc.FromUt,
+            ["toUt"] = arc.ToUt,
+            ["sourcePointCount"] = arc.SourcePointCount,
+            ["derivation"] = (int)arc.Derivation,
+            ["forceModel"] = arc.ForceModel != null ? ToWire(arc.ForceModel) : null,
+        };
+
+        private static Dictionary<string, object?> ToWire(TrajectoryPoint point) => new Dictionary<string, object?>
+        {
+            ["ut"] = point.Ut,
+            ["x"] = point.X,
+            ["y"] = point.Y,
+            ["z"] = point.Z,
+        };
+
+        private static Dictionary<string, object?> ToWire(TrajectoryFrameRef frame) => new Dictionary<string, object?>
+        {
+            ["kind"] = (int)frame.Kind,
+            ["centreBodyIndex"] = frame.CentreBodyIndex,
+            ["lengthsPulsate"] = frame.LengthsPulsate,
+        };
+
+        private static Dictionary<string, object?> ToWire(TrajectoryForceModel model) => new Dictionary<string, object?>
+        {
+            ["gravityModelFound"] = model.GravityModelFound,
+            ["perturbingBodyCount"] = model.PerturbingBodyCount,
+            ["geopotentialDegree"] = model.GeopotentialDegree,
+            ["bodyEphemeris"] = model.BodyEphemeris,
+            ["thirdBodyDominance"] = model.ThirdBodyDominance,
+            ["missingTerm"] = model.MissingTerm,
+            ["integrator"] = model.Integrator,
+            ["stepSeconds"] = model.StepSeconds,
+            ["stepCount"] = model.StepCount,
+            ["vacuum"] = model.Vacuum,
         };
 
         private static Dictionary<string, object?> ToWire(OrbitEncounter encounter) => new Dictionary<string, object?>

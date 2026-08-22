@@ -1114,6 +1114,60 @@ export interface TimeCalendar
 	kerbinTime: boolean;
 	meta: PayloadMeta;
 }
+export interface TrajectoryArc
+{
+	frame: TrajectoryFrameRef;
+	points: TrajectoryPoint[];
+	fromUt: Value<"ut">;
+	toUt: Value<"ut">;
+	sourcePointCount: Value<"count">;
+	derivation: TrajectoryDerivation;
+	forceModel?: TrajectoryForceModel;
+}
+export interface TrajectoryPoint
+{
+	ut: Value<"ut">;
+	x: Value<"m">;
+	y: Value<"m">;
+	z: Value<"m">;
+}
+export interface TrajectoryFrameRef
+{
+	kind: TrajectoryFrameKind;
+	centreBodyIndex?: number;
+	lengthsPulsate: boolean;
+}
+export enum TrajectoryFrameKind {
+	Unspecified = 0,
+	Perifocal = 1,
+	BodyCentredInertial = 2,
+	BodyCentredRotating = 3
+}
+export enum TrajectoryDerivation {
+	Unspecified = 0,
+	Foreign = 1,
+	OwnNBody = 2,
+	OwnNBodyDegraded = 3,
+	OwnClosedForm = 4
+}
+export interface TrajectoryForceModel
+{
+	gravityModelFound: boolean;
+	perturbingBodyCount: Value<"count">;
+	geopotentialDegree: Value<"count">;
+	bodyEphemeris?: string;
+	thirdBodyDominance?: Value<"ratio">;
+	missingTerm?: string;
+	integrator?: string;
+	stepSeconds: Value<"s">;
+	stepCount: Value<"count">;
+	vacuum: boolean;
+}
+export enum TrajectoryRefusal {
+	Unspecified = 0,
+	BeyondBudget = 1,
+	NoForceModel = 2
+}
 export enum GateOutcome {
 	Pass = 0,
 	Fail = 1,
@@ -1432,6 +1486,8 @@ export interface VesselOrbit
 	encounter?: OrbitEncounter;
 	patches: OrbitPatch[];
 	horizon: PropagationHorizon;
+	arc?: TrajectoryArc;
+	arcRefusal: TrajectoryRefusal;
 	meta: PayloadMeta;
 }
 export interface PropagationHorizon
