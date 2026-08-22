@@ -157,6 +157,10 @@ public static class RtConfig
                 // comment). The per-vessel topic above stays authoritative.
                 typeof(FleetSilence),
                 typeof(FleetSilenceEntry),
+                // fleet.<guid>.resources: what is in one fleet vessel's tanks,
+                // reusing ResourceAmount so a client reads a craft's resources
+                // the same way whether or not it is the one being flown.
+                typeof(FleetVesselResources),
                 // currency.<guid>.* source-attributed currency events: a discrete
                 // per-vessel delta revealed at its SOURCE vessel's light-time, so an
                 // operator cannot infer a distant event from the instant career total.

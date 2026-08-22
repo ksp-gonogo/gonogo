@@ -154,6 +154,39 @@ public class FleetVesselSilence
 }
 
 /// <summary>
+/// One fleet vessel's resource amounts on <c>fleet.&lt;guid&gt;.resources</c>:
+/// the same keyed map <see cref="VesselResources"/> carries for the active
+/// craft, with the same three-way absence semantics (see that type's doc
+/// comment), for a craft you are not flying.
+///
+/// <para><b>Amounts only. No rate, and deliberately no exhaustion time.</b> A
+/// consumption rate for an UNLOADED vessel is background simulation, which is a
+/// life-support Uplink's domain and not core's: stock does not run one, and a
+/// core-published "life support runs out at UT X" would be core pretending to a
+/// model it does not have. Core reports what is in the tanks; whatever models
+/// the draw contributes the exhaustion time on top. That ownership split is
+/// why an exhaustion time has to arrive through a contribution slot rather than
+/// as a field here. No slot hosts it today: the one this was designed against
+/// went with the retired VesselTracker widget, and `fleet-roster.updates` is
+/// the per-vessel seam of the same shape still standing.</para>
+///
+/// <para>Rides the Delayed per-vessel <c>fleet.</c> namespace like
+/// <c>fleet.&lt;guid&gt;.orbit</c>, so the reading arrives light-time-late,
+/// which is honest: how much fuel a distant craft has is exactly as old as the
+/// last signal from it. Unlike its siblings it is NOT freeze-exempt, and should
+/// not be: a tank level from a craft we cannot currently hear is last-known,
+/// and freezing it at last-known is the correct depiction.</para>
+/// </summary>
+[SitrepContract]
+#if SITREP_CODEGEN
+[TsInterface]
+#endif
+public class FleetVesselResources
+{
+    public Dictionary<string, ResourceAmount> Resources { get; set; } = new Dictionary<string, ResourceAmount>();
+}
+
+/// <summary>
 /// One vessel's reckoning inside the fleet-wide <see cref="FleetSilence"/>
 /// roster: the same fields <see cref="FleetVesselSilence"/> carries, plus the
 /// vessel id that the per-vessel topic gets from its own topic string.

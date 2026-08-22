@@ -1769,6 +1769,9 @@
     "FleetSilence": {
       "vessels": "FleetSilenceEntry"
     },
+    "FleetVesselResources": {
+      "resources": "*ResourceAmount"
+    },
     "GateVerdict": {
       "breach": "LimitBreach"
     },

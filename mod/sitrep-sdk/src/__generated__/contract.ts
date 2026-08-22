@@ -420,6 +420,10 @@ export interface FleetVesselSilence
 	predictedReacquisitionUt?: Value<"ut">;
 	predictionGraceSeconds?: Value<"s">;
 }
+export interface FleetVesselResources
+{
+	resources: { [key:string]: ResourceAmount };
+}
 export interface FleetSilenceEntry
 {
 	vesselId: string;

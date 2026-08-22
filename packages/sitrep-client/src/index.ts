@@ -190,6 +190,11 @@ export {
   propagateVesselOrbit,
   useFleetVesselPosition,
 } from "./fleet-position";
+export {
+  type FleetVesselResource,
+  fleetVesselResourceList,
+  useFleetVesselResources,
+} from "./fleet-resources";
 export { buildFullHistoryStore, InstantClock } from "./full-history-replay";
 export type { HeartbeatTrackerOptions } from "./heartbeat-tracker";
 export {
