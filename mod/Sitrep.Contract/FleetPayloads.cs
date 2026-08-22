@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 #if SITREP_CODEGEN
 using Reinforced.Typings.Attributes;
 #endif
@@ -131,4 +132,77 @@ public class FleetVesselSilence
     /// </summary>
     [SitrepUnit(Units.UniversalTime)]
     public double? PredictedReacquisitionUt { get; set; }
+}
+
+/// <summary>
+/// One vessel's reckoning inside the fleet-wide <see cref="FleetSilence"/>
+/// roster: the same fields <see cref="FleetVesselSilence"/> carries, plus the
+/// vessel id that the per-vessel topic gets from its own topic string.
+/// </summary>
+[SitrepContract]
+#if SITREP_CODEGEN
+[TsInterface]
+#endif
+public class FleetSilenceEntry
+{
+    /// <summary>Stable subject id (KSP vessel GUID), the same id the <c>fleet.</c> and <c>silence.</c> namespaces key on.</summary>
+    [SitrepUnit(Units.Id)]
+    public string VesselId { get; set; } = "";
+
+    /// <summary>One of <c>Nominal</c> / <c>Silent</c> / <c>Lost</c>.</summary>
+    [SitrepUnit(Units.Enumeration)]
+    public string State { get; set; } = "Nominal";
+
+    /// <summary>UT the current silence run began. Null while Nominal.</summary>
+    [SitrepUnit(Units.UniversalTime)]
+    public double? SilenceSinceUt { get; set; }
+
+    /// <summary>UT at which this silence run becomes eligible to be declared Lost. Null while Nominal, or for a destroyed vessel.</summary>
+    [SitrepUnit(Units.UniversalTime)]
+    public double? DeadlineUt { get; set; }
+
+    /// <summary>One of <c>Sitrep.Host.Comms.SilenceDeadlineBasis</c>. Null while Nominal.</summary>
+    [SitrepUnit(Units.Enumeration)]
+    public string? DeadlineBasis { get; set; }
+
+    /// <summary>UT the radio path is predicted to re-open. Null is a prediction WITHHELD, never an emergence of "now".</summary>
+    [SitrepUnit(Units.UniversalTime)]
+    public double? PredictedReacquisitionUt { get; set; }
+}
+
+/// <summary>
+/// The fleet-wide silence roster on <c>fleet.silence</c>: every vessel the
+/// tracker holds a reckoning for, in one payload.
+///
+/// <para><b>Why this exists when <c>silence.&lt;guid&gt;.state</c> already
+/// does.</b> A per-vessel topic can only be read by something that already
+/// knows which vessel to ask for, which makes it unusable as the input to
+/// anything that has to work the fleet out for itself. Concretely: a
+/// contribution declares its dependencies STATICALLY at module load, so no
+/// contribution can name a per-guid topic, and the client-side bridge that
+/// reaches those topics only holds vessels some component is ALREADY
+/// subscribed to. A fan-out over that bridge sees exactly the vessels a widget
+/// had already rendered, which is circular. One static topic carrying every
+/// entry breaks the circle: a Processor declares it once, derives once per
+/// frame, and a contribution fans out over entries that genuinely exist.</para>
+///
+/// <para><b>Delayed on the MAIN node, and that is a real difference.</b>
+/// <see cref="FleetVesselSilence"/> rides the per-vessel node, so each
+/// vessel's reckoning arrives on that vessel's own light-time and is
+/// freeze-exempt. A single aggregate cannot do that: one payload has one node
+/// and one delay. So this rides the main node's delay, exactly as
+/// <see cref="SystemVessels"/> does while carrying per-vessel
+/// <c>CommsConnected</c> alongside the per-subject-delayed
+/// <see cref="FleetVesselContact"/>. The per-vessel topic stays authoritative
+/// for one vessel on that vessel's own clock; this is the fleet-wide index.
+/// A consumer that needs the former must not substitute the latter.</para>
+/// </summary>
+[SitrepContract]
+[SitrepTopic("fleet.silence")]
+#if SITREP_CODEGEN
+[TsInterface]
+#endif
+public class FleetSilence
+{
+    public IReadOnlyList<FleetSilenceEntry> Vessels { get; set; } = new List<FleetSilenceEntry>();
 }

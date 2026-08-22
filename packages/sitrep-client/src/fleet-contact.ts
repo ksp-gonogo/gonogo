@@ -43,6 +43,65 @@ export interface FleetVesselSilence {
   predictedReacquisitionUt?: number | null;
 }
 
+/**
+ * One entry of the fleet-wide `fleet.silence` roster, as it arrives. Unlike
+ * the per-vessel `silence.<guid>.state`, this topic IS unit-wrapped on decode
+ * (`wrapTopicPayload` matches its exact, static topic string), so every UT
+ * arrives as a `Value<"ut">` rather than a bare number, hence the separate
+ * shape and {@link silenceByVessel}'s unwrapping.
+ */
+interface FleetSilenceWireEntry {
+  vesselId: string;
+  state: string;
+  silenceSinceUt?: { magnitude: number } | number | null;
+  deadlineUt?: { magnitude: number } | number | null;
+  deadlineBasis?: string | null;
+  predictedReacquisitionUt?: { magnitude: number } | number | null;
+}
+
+/** The `fleet.silence` payload: every tracked vessel's reckoning in one message. */
+export interface FleetSilenceRoster {
+  vessels?: readonly FleetSilenceWireEntry[] | null;
+}
+
+function magnitude(
+  v: { magnitude: number } | number | null | undefined,
+): number | null {
+  const n = typeof v === "object" && v !== null ? v.magnitude : v;
+  return n == null || !Number.isFinite(n) ? null : n;
+}
+
+/**
+ * The fleet-wide roster reshaped into the per-vessel form every consumer
+ * already speaks, keyed by vessel id.
+ *
+ * This is what makes the reckoning readable by something that does NOT already
+ * know which vessel to ask about: a contribution declares its dependencies
+ * statically at module load, so it can never name a per-guid topic, and the
+ * per-vessel bridge only holds vessels something is already subscribed to. One
+ * static topic, fanned out here, is what breaks that circle.
+ *
+ * An entry with no id is dropped rather than keyed under an empty string: a
+ * reckoning that cannot say which craft it is about is not about any craft.
+ */
+export function silenceByVessel(
+  roster: FleetSilenceRoster | undefined,
+): ReadonlyMap<string, FleetVesselSilence> {
+  const byVessel = new Map<string, FleetVesselSilence>();
+  for (const entry of roster?.vessels ?? []) {
+    if (!entry?.vesselId) continue;
+    byVessel.set(entry.vesselId, {
+      state: entry.state as FleetVesselSilence["state"],
+      silenceSinceUt: magnitude(entry.silenceSinceUt),
+      deadlineUt: magnitude(entry.deadlineUt),
+      deadlineBasis: (entry.deadlineBasis ??
+        null) as SilenceDeadlineBasis | null,
+      predictedReacquisitionUt: magnitude(entry.predictedReacquisitionUt),
+    });
+  }
+  return byVessel;
+}
+
 export type SilenceDeadlineBasis =
   | "orbital-period"
   | "policy-floor"

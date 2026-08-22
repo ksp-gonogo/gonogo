@@ -8,6 +8,16 @@
 // type's generated interface (its plain C# name in ./contract.ts) is the
 // value, with `[]` appended for the IsArray channels whose payload is a
 // bare JSON array of the element type.
+//
+// THIS IS NOT A LIST OF EVERY TOPIC ON THE WIRE, and it cannot become one.
+// A DYNAMIC namespace (`fleet.`, `silence.`, `currency.`, vessel part-actions,
+// and an Uplink's own) is registered at RUNTIME through
+// `IUplinkHost.RegisterDynamicNamespace` and materialises its topics per
+// subject, so no [SitrepTopic]-tagged type exists for reflection to find and
+// nothing about it appears below. Asking this file "is there per-vessel X"
+// gets a confident no for a topic that has been published all along:
+// `fleet.<guid>.orbit` was surveyed as missing that way. To enumerate the
+// dynamic half, grep the mod for `RegisterDynamicNamespace` instead.
 
 import type {
   ArchiveEntry,
@@ -29,6 +39,7 @@ import type {
   DockAlignment,
   ExperimentBreakdownEntry,
   ExperimentEntry,
+  FleetSilence,
   FlightCurrent,
   FlightEnded,
   FlightStarted,
@@ -94,6 +105,7 @@ export interface GeneratedTopicPayloadMap {
   "deployed.bases": DeployedEntry[];
   "dv.stages": StageDeltaVEntry[];
   "dv.summary": StageDeltaVSummary;
+  "fleet.silence": FleetSilence;
   "flight.current": FlightCurrent;
   "flight.ended": FlightEnded;
   "flight.started": FlightStarted;
@@ -163,6 +175,7 @@ export const GENERATED_TOPIC_IDS = [
   "deployed.bases",
   "dv.stages",
   "dv.summary",
+  "fleet.silence",
   "flight.current",
   "flight.ended",
   "flight.started",

@@ -396,6 +396,14 @@
     "FireCrewArgs": {
       "kerbalName": "id"
     },
+    "FleetSilenceEntry": {
+      "deadlineBasis": "enum",
+      "deadlineUt": "ut",
+      "predictedReacquisitionUt": "ut",
+      "silenceSinceUt": "ut",
+      "state": "enum",
+      "vesselId": "id"
+    },
     "FleetVesselContact": {
       "connected": "flag",
       "lastContactUt": "ut"
@@ -1756,6 +1764,9 @@
     "EventMsg": {
       "meta": "Meta"
     },
+    "FleetSilence": {
+      "vessels": "FleetSilenceEntry"
+    },
     "GateVerdict": {
       "breach": "LimitBreach"
     },
@@ -1961,6 +1972,9 @@
     },
     "dv.stages": {
       "resources": "*ResourceAmount"
+    },
+    "fleet.silence": {
+      "vessels": "FleetSilenceEntry"
     },
     "isru.converters": {
       "inputs": "IsruResourceFlow",

@@ -172,11 +172,13 @@ export { createFakeWallClock } from "./fake-wall-clock";
 export {
   type ContactPhase,
   contactPhase,
+  type FleetSilenceRoster,
   type FleetVesselContact,
   type FleetVesselSilence,
   getLatestFleetVesselSilence,
   overdueSeconds,
   type SilenceDeadlineBasis,
+  silenceByVessel,
   useFleetVesselContact,
   useFleetVesselSilence,
 } from "./fleet-contact";
