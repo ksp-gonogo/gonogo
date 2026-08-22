@@ -34,6 +34,7 @@ export type KnownSitrepUnit =
   | "kN"
   | "kPa"
   | "kW"
+  | "kg"
   | "kg/m³"
   | "km"
   | "m"

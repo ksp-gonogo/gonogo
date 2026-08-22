@@ -1,10 +1,7 @@
 import type { BodyEntry } from "../__generated__/contract";
 import {
   deriveEscapeVelocity,
-  deriveHillSphere,
-  deriveMass,
   derivePeriod,
-  deriveSurfaceGravityG,
   deriveTrueAnomalyDeg,
 } from "./body-derivations";
 import { CORE_UPLINK_CLIENT } from "./uplink-clients";
@@ -12,19 +9,43 @@ import { CORE_UPLINK_CLIENT } from "./uplink-clients";
 // ---------------------------------------------------------------------------
 // "What do we know about this body?", answered once per Sitrep frame.
 //
-// The enriched celestial-body catalogue: every `system.bodies` entry with the
-// almanac values the wire deliberately drops folded back in (mass, orbital
-// period, surface gravity in g, escape velocity, hill sphere, and a per-body
-// Kepler solve for true anomaly at the frame's view time). Keeping those off
-// the wire is the "gravParameter is the one primitive" design, and this is
-// where the client pays for it.
-//
-// It used to be paid FOUR TIMES per frame. `useCelestialBodies` memoised on
+// It used to be answered FOUR TIMES per frame. `useCelestialBodies` memoised on
 // `[systemBodies, ut]`, and `ut` moves every frame, so the whole map re-ran on
 // every frame in every consumer: SystemView's body, SystemView's config
 // component, TransferWindow, and `useBodyRotation` (which OrbitView calls, on
 // the stated grounds that it AVOIDS the catalogue cost, while its own first
 // line paid it).
+//
+// ## What this DERIVES, and what it only carries
+//
+// Deliberately small. It derives exactly two things, and both are ours because
+// the game has no answer to give:
+//
+//   escapeVelocity  √(2μ/r). `CelestialBody` has no escape-velocity member at
+//                   all, confirmed by a member dump of the installed assembly.
+//   trueAnomaly     solved at the FRAME's view time. `Orbit.trueAnomaly` exists
+//                   but is the live value, and a delayed console needs the body
+//                   where it was when the light left, which the game has no
+//                   concept of. This is the only field here that needs a frame,
+//                   and so the only reason this is a Processor rather than a
+//                   plain function of one Topic.
+//   period          `2π√(a³/μ_parent)`, and this one is a judgement rather than a
+//                   gap. `Orbit.period` exists, but decompiled it is
+//                   `2π/meanMotion` over `meanMotion = √(μ/|a|³)`, which is
+//                   character-for-character the expression below. There is no
+//                   authority to defer to and no error to fix, only a join to
+//                   the parent's `gravParameter` to avoid, and that parent is
+//                   already in hand here. So it stays ours, unlike the three
+//                   above, each of which closed a real gap.
+//
+// Everything else is CARRIED from the wire. Mass, surface gravity, hill sphere
+// and orbital period were client-side derivations until the contract grew them
+// (Sitrep.Contract/SystemPayloads.cs), on the stated grounds that deriving them
+// from gravParameter "never wastes wire bytes". That trade cost more than the
+// bytes: two of the four were already sampled into the host's own dictionary
+// and dropped before they reached the payload, and the hill-sphere derivation
+// used the textbook a·(1−e)·∛(m/3M) where KSP uses a·(1−e)·(m/M)^(1/3), so
+// every hill sphere the app drew was about 31% too small.
 //
 // The catalogue is also where the index-to-name question the tree asks in seven
 // other places belongs, so `nameByIndex` / `indexByName` ride along: they are a
@@ -58,19 +79,17 @@ export interface CelestialBody {
   argumentOfPeriapsis: number | null;
   meanAnomalyAtEpoch: number | null;
   epoch: number | null;
-  // ── Derived orbit values (from the elements + view-UT) ──────────────────
-  /** Orbital period, seconds: derived `2π√(a³/μ_parent)`. */
+  /** Orbital period, seconds: derived `2π√(a³/μ_parent)`. OURS, and see below. */
   period: number | null;
-  /** True anomaly, degrees in [0, 360), at the current view-UT, derived. */
+  /** True anomaly, degrees in [0, 360), solved for the frame's view time. OURS. */
   trueAnomaly: number | null;
-  // ── Derived body properties (from μ + radius) ───────────────────────────
-  /** Mass, kg: derived `μ/G`. */
+  /** Mass, kg (`CelestialBody.Mass` on the wire). */
   mass: number | null;
-  /** Surface gravity in g: derived `μ/r²/g₀`. */
+  /** Surface gravity in g (`CelestialBody.GeeASL` on the wire, verbatim). */
   geeASL: number | null;
-  /** Escape velocity, m/s: derived `√(2μ/r)`. */
+  /** Escape velocity, m/s: derived `√(2μ/r)`. The game has no such member. OURS. */
   escapeVelocity: number | null;
-  /** Hill-sphere radius, metres: derived from the orbit + masses. */
+  /** Hill-sphere radius, metres (`CelestialBody.hillSphere` on the wire); null for the root star. */
   hillSphere: number | null;
   // ── Almanac (on the wire) ───────────────────────────────────────────────
   rotationPeriod: number | null;
@@ -159,8 +178,6 @@ function mapBody(
       }
     : null;
 
-  const mass = deriveMass(gravParameter);
-  const parentMass = deriveMass(parentGravParameter);
   const rotationPeriod = numOrNull(entry.rotationPeriod);
 
   return {
@@ -186,10 +203,10 @@ function mapBody(
       parentGravParameter,
       ut,
     }),
-    mass,
-    geeASL: deriveSurfaceGravityG(gravParameter, radius),
+    mass: numOrNull(entry.mass),
+    geeASL: numOrNull(entry.surfaceGravity),
     escapeVelocity: deriveEscapeVelocity(gravParameter, radius),
-    hillSphere: deriveHillSphere(semiMajorAxis, eccentricity, mass, parentMass),
+    hillSphere: numOrNull(entry.hillSphere),
     rotationPeriod,
     tidallyLocked: boolOrNull(entry.tidallyLocked),
     rotates:
@@ -214,7 +231,8 @@ const NOTHING_KNOWN: CelestialFacts = {
 
 /**
  * The whole derivation, pure. Exported so a test can exercise it directly
- * without a live evaluator, the same way Kerbalism's `deriveCrewSurvival` is.
+ * without a live evaluator, the way every processor in the tree exposes its
+ * derivation beside its handle.
  */
 export function deriveCelestialFacts(
   wire: readonly BodyEntry[] | undefined,

@@ -489,9 +489,9 @@ function FuelStatusComponent({
     budget !== undefined && budget.budget.state !== "pending";
   const stageCount = budget?.stageCount ?? undefined;
   // Magnitudes: these feed `fmtFixed` and the per-stage bar scaling.
-  const totalDVVac = budget?.totalVac?.magnitude;
-  const totalDVASL = budget?.totalAsl?.magnitude;
-  const totalDVActual = budget?.totalActual?.magnitude;
+  const totalDVVac = magnitudeOf(budget?.totalVac) ?? undefined;
+  const totalDVASL = magnitudeOf(budget?.totalAsl) ?? undefined;
+  const totalDVActual = magnitudeOf(budget?.totalActual) ?? undefined;
   // `null` when the sim reported no figure, which `Unit` renders as the em-dash:
   // NOT collapsed to `undefined`, which would take the bare-string branch below
   // and bypass the one unit renderer.

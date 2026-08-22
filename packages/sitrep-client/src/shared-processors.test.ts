@@ -67,6 +67,10 @@ const SYSTEM = {
       parentIndex: 0,
       radius: 600_000,
       gravParameter: KERBIN_MU,
+      // On the wire, not derived: KSP's own Mass / GeeASL / hillSphere.
+      mass: 5.2915158e22,
+      surfaceGravity: 1,
+      hillSphere: 84_159_286,
       orbit: {
         sma: 13_599_840_256,
         ecc: 0,
@@ -212,7 +216,7 @@ describe("CELESTIAL_FACTS", () => {
     for (const deactivate of off) deactivate();
   });
 
-  it("enriches every body with the values the wire drops (3 bodies, 3 enriched)", () => {
+  it("carries the 3 game-authored almanac fields verbatim, and derives 2 more", () => {
     const off = activateProcessor(CELESTIAL_FACTS.id);
     store.ingest("system.bodies", point(0, SYSTEM));
     store.beginFrame();
@@ -221,17 +225,44 @@ describe("CELESTIAL_FACTS", () => {
     expect(facts?.bodies).toHaveLength(3);
     const kerbin = facts?.bodies[1];
     expect(kerbin?.referenceBody).toBe("Kerbol");
-    // μ/G, √(2μ/r), μ/r²/g₀: none of these are on the wire.
-    expect(kerbin?.mass).toBeCloseTo(KERBIN_MU / 6.6743e-11, -18);
+
+    // CARRIED. These were derived from gravParameter until the contract grew
+    // them; the surface-gravity derivation ran KSP's own arithmetic backwards
+    // (the game derives mass and gravParameter FROM GeeASL), and the hill-sphere
+    // derivation used the textbook ∛(m/3M) where KSP uses (m/M)^(1/3).
+    expect(kerbin?.mass).toBe(5.2915158e22);
+    expect(kerbin?.geeASL).toBe(1);
+    expect(kerbin?.hillSphere).toBe(84_159_286);
+
+    // DERIVED, because the game has no answer: CelestialBody carries no
+    // escape-velocity member at all.
     expect(kerbin?.escapeVelocity).toBeCloseTo(
       Math.sqrt((2 * KERBIN_MU) / 600_000),
       6,
     );
-    expect(kerbin?.geeASL).toBeCloseTo(KERBIN_MU / 600_000 ** 2 / 9.80665, 6);
+    // DERIVED, and this one by choice: Orbit.period exists but is
+    // 2π/√(μ/a³), the same expression, so there is no authority to defer to.
     expect(kerbin?.period).toBeCloseTo(
       2 * Math.PI * Math.sqrt(13_599_840_256 ** 3 / KERBOL_MU),
       3,
     );
+
+    off();
+  });
+
+  it("reads a hill sphere the wire did not send as null, never as a guess", () => {
+    // The root star: KSP's own hillSphere is PositiveInfinity there and the
+    // host's non-finite-is-absent rule drops it. Nothing bounds the star, and a
+    // client-side reconstruction would have invented a number for it.
+    const off = activateProcessor(CELESTIAL_FACTS.id);
+    store.ingest("system.bodies", point(0, SYSTEM));
+    store.beginFrame();
+
+    const kerbol = getProcessorValue<CelestialFacts>(CELESTIAL_FACTS.id)
+      ?.bodies[0];
+    expect(kerbol?.name).toBe("Kerbol");
+    expect(kerbol?.hillSphere).toBeNull();
+    expect(kerbol?.mass).toBeNull();
 
     off();
   });

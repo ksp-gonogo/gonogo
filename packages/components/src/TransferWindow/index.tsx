@@ -33,6 +33,7 @@ import {
 import { type ReactNode, useEffect, useId, useMemo, useState } from "react";
 import styled from "styled-components";
 import { useAlarmCreator } from "../shared/AlarmsLauncher";
+import { magnitudeOf } from "../shared/magnitude";
 import {
   buildTransferPorkchop,
   computeTransfer,
@@ -274,7 +275,7 @@ function TransferWindowComponent({
    * the day someone writes it.
    */
   const budget = useProcessor(DELTA_V_BUDGET);
-  const budgetDeltaV = budget?.totalVac?.magnitude ?? null;
+  const budgetDeltaV = magnitudeOf(budget?.totalVac);
   const budgetNotCurrent = budget?.budget.state === "stale";
   /** The stock Δv sim has no figure for this craft, as opposed to none having arrived. */
   const budgetConfirmedAbsent = budget?.budget.confirmedAbsent ?? false;

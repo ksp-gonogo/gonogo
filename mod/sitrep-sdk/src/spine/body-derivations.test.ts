@@ -1,15 +1,19 @@
 import { describe, expect, it } from "vitest";
-import { STANDARD_GRAVITY } from "../unit-system/definitions";
 import {
   deriveEscapeVelocity,
-  deriveHillSphere,
-  deriveMass,
   derivePeriod,
-  deriveSurfaceGravity,
-  deriveSurfaceGravityG,
   deriveTrueAnomalyDeg,
-  GRAVITATIONAL_CONSTANT,
 } from "./body-derivations";
+
+/**
+ * What is left after mass, surface gravity and the hill sphere moved onto the
+ * wire: the two values the GAME has no answer for, plus the orbital period,
+ * which it does hold but computes with this exact expression.
+ *
+ * `deriveHillSphere`'s own case used to read "computes a·(1−e)·∛(m/3M)", which
+ * is the textbook form. KSP's is a·(1−e)·(m/M)^(1/3), with no three, so the test
+ * pinned a number about 31% below the game's as correct.
+ */
 
 // Kerbin's stock figures (μ, radius, orbit) for round-number sanity checks.
 const KERBIN_MU = 3.5316e12;
@@ -18,48 +22,6 @@ const KERBOL_MU = 1.1723328e18;
 const KERBIN_SMA = 13_599_840_256;
 
 describe("bodyDerivations", () => {
-  describe("deriveMass", () => {
-    it("inverts μ = G·M", () => {
-      expect(deriveMass(KERBIN_MU)).toBeCloseTo(
-        KERBIN_MU / GRAVITATIONAL_CONSTANT,
-        -10,
-      );
-    });
-    it("returns null for missing / non-positive μ", () => {
-      expect(deriveMass(null)).toBeNull();
-      expect(deriveMass(undefined)).toBeNull();
-      expect(deriveMass(0)).toBeNull();
-      expect(deriveMass(Number.NaN)).toBeNull();
-    });
-  });
-
-  describe("deriveSurfaceGravity", () => {
-    it("computes μ/r² (Kerbin ≈ 9.81 m/s²)", () => {
-      expect(deriveSurfaceGravity(KERBIN_MU, KERBIN_RADIUS)).toBeCloseTo(
-        KERBIN_MU / (KERBIN_RADIUS * KERBIN_RADIUS),
-        6,
-      );
-      // Kerbin is tuned to ~1 g.
-      expect(deriveSurfaceGravity(KERBIN_MU, KERBIN_RADIUS)).toBeCloseTo(
-        9.81,
-        1,
-      );
-    });
-    it("expresses gravity in g via deriveSurfaceGravityG", () => {
-      const ms2 = deriveSurfaceGravity(KERBIN_MU, KERBIN_RADIUS) as number;
-      expect(deriveSurfaceGravityG(KERBIN_MU, KERBIN_RADIUS)).toBeCloseTo(
-        ms2 / STANDARD_GRAVITY,
-        9,
-      );
-      expect(deriveSurfaceGravityG(KERBIN_MU, KERBIN_RADIUS)).toBeCloseTo(1, 2);
-    });
-    it("returns null when μ or radius is missing/non-positive", () => {
-      expect(deriveSurfaceGravity(null, KERBIN_RADIUS)).toBeNull();
-      expect(deriveSurfaceGravity(KERBIN_MU, 0)).toBeNull();
-      expect(deriveSurfaceGravityG(KERBIN_MU, null)).toBeNull();
-    });
-  });
-
   describe("deriveEscapeVelocity", () => {
     it("computes √(2μ/r) (Kerbin ≈ 3431 m/s)", () => {
       expect(deriveEscapeVelocity(KERBIN_MU, KERBIN_RADIUS)).toBeCloseTo(
@@ -89,25 +51,6 @@ describe("bodyDerivations", () => {
       expect(derivePeriod(null, KERBOL_MU)).toBeNull();
       expect(derivePeriod(KERBIN_SMA, null)).toBeNull();
       expect(derivePeriod(KERBIN_SMA, 0)).toBeNull();
-    });
-  });
-
-  describe("deriveHillSphere", () => {
-    it("computes a·(1−e)·∛(m/3M)", () => {
-      const mass = deriveMass(KERBIN_MU) as number;
-      const parentMass = deriveMass(KERBOL_MU) as number;
-      const expected =
-        KERBIN_SMA * (1 - 0) * Math.cbrt(mass / (3 * parentMass));
-      expect(deriveHillSphere(KERBIN_SMA, 0, mass, parentMass)).toBeCloseTo(
-        expected,
-        0,
-      );
-    });
-    it("returns null for missing inputs", () => {
-      expect(deriveHillSphere(null, 0, 1, 1)).toBeNull();
-      expect(deriveHillSphere(1, 0, null, 1)).toBeNull();
-      expect(deriveHillSphere(1, 0, 1, null)).toBeNull();
-      expect(deriveHillSphere(1, Number.NaN, 1, 1)).toBeNull();
     });
   });
 

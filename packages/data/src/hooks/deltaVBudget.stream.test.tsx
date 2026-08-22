@@ -105,22 +105,28 @@ describe("DELTA_V_BUDGET over a live stream", () => {
     expect(renders.at(-1)?.totalAsl?.magnitude).toBe(1700);
   });
 
-  it("reconciles both wires' stage field names onto one row shape", async () => {
+  it("maps the wire's own dvVac/dvAsl/dvActual onto the row the widgets render", async () => {
+    // The mod writes `dvVac`/`dvAsl`/`dvActual`; the widgets render
+    // `deltaVVac`/`deltaVASL`/`deltaVActual`. That rename is the whole of the
+    // reconciliation, and it used to sit beside a fallback accepting the widget
+    // spelling ON THE WIRE, which nothing has emitted since the retired legacy
+    // DataSource was deleted.
     const { transport, renders } = renderProbe();
     act(() => {
       transport.emit("dv.stages", [
-        // The mod's own `StageDeltaVEntry` names.
         { stage: 1, dvVac: 1200, dvAsl: 1000, dvActual: 1100 },
-        // The historical `StageInfo` names.
-        { stage: 0, deltaVVac: 600, deltaVASL: 500, deltaVActual: 550 },
+        // No ΔV figures at all: a decoupler-only stage.
+        { stage: 0, dryMass: 600 },
       ]);
     });
     await waitFor(() => expect(renders.at(-1)?.stages).toHaveLength(2));
     const [upper, lower] = renders.at(-1)?.stages ?? [];
     expect(upper.deltaVVac).toBe(1200);
+    expect(upper.deltaVASL).toBe(1000);
     expect(upper.deltaVActual).toBe(1100);
-    expect(lower.deltaVVac).toBe(600);
-    expect(lower.deltaVActual).toBe(550);
+    // NaN, not 0: the sim had no figure, which is not the same as no ΔV.
+    expect(lower.deltaVVac).toBeNaN();
+    expect(lower.dryMass).toBe(600);
   });
 
   it("marks the active stage from vessel.structure.currentStage", async () => {

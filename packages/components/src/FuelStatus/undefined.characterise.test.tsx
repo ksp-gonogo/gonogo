@@ -208,8 +208,8 @@ describe("FuelStatus: what undefined means today", () => {
 
     act(() => {
       fixture.emit("dv.stages", [
-        { stage: 2, deltaVActual: 2000, TWRActual: 1.4, burnTime: 60 },
-        { stage: 1, deltaVActual: 1500, TWRActual: 1.2, burnTime: 40 },
+        { stage: 2, dvActual: 2000, twrActual: 1.4, burnTime: 60 },
+        { stage: 1, dvActual: 1500, twrActual: 1.2, burnTime: 40 },
       ]);
     });
 
@@ -241,16 +241,16 @@ describe("FuelStatus: what undefined means today", () => {
   });
 
   it("shows a confident '0s' burn and an em-dash TWR for a stage row whose fields never arrived", async () => {
-    // `parseStages`'s `num()` returns NaN for a field no wire name matched, and
-    // the two consumers then disagree about what that NaN means: TWR renders
-    // the honest placeholder, while burn time renders "0s", a claim that the
-    // stage has a known zero burn. Both come from the same absence.
+    // `normaliseStage` returns NaN for a field the wire did not carry, and the
+    // two consumers then disagree about what that NaN means: TWR renders the
+    // honest placeholder, while burn time renders "0s", a claim that the stage
+    // has a known zero burn. Both come from the same absence.
     const fixture = makeFixture();
     const { container } = renderFuel(fixture);
 
     act(() => {
       fixture.emit("vessel.structure", { currentStage: 1 });
-      fixture.emit("dv.stages", [{ stage: 1, deltaVActual: 1900 }]);
+      fixture.emit("dv.stages", [{ stage: 1, dvActual: 1900 }]);
     });
 
     await waitFor(() => expect(visibleText(container)).toContain("1900 m/s"));

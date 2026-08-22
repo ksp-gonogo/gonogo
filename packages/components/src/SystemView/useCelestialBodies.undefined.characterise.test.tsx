@@ -172,10 +172,12 @@ describe("useCelestialBodies: what undefined means today", () => {
     // `usePhaseAngles` can skip the body instead of plotting it at longitude 0.
     expect(root.period).toBeNull();
     expect(root.trueAnomaly).toBeNull();
+    // Carried, not derived: a wire that did not send it reads null, which is
+    // also what KSP's own PositiveInfinity for the root star becomes.
     expect(root.hillSphere).toBeNull();
-    // The properties that only need mu + radius still resolve, so a partial
+    expect(root.mass).toBeNull();
+    // The one property that only needs mu + radius still resolves, so a partial
     // record is partially populated rather than dropped.
-    expect(root.mass).not.toBeNull();
     expect(root.escapeVelocity).not.toBeNull();
   });
 

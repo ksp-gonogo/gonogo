@@ -191,7 +191,6 @@ export const APP_INTERNAL: Readonly<Record<string, number>> = {
   "packages/data/src/hooks/useManeuverNodes.ts": 1,
   "packages/data/src/hooks/useTopology.ts": 1,
   "packages/data/src/hooks/useValueKeys.ts": 1,
-  "packages/data/src/hooks/useVesselDeltaV.ts": 1,
   "packages/data/src/index.ts": 1,
   "packages/data/src/schema/legacyDataCatalog.ts": 3,
   "packages/data/src/schema/telemachusMeta.ts": 5,

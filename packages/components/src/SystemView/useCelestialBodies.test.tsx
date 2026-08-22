@@ -1,7 +1,3 @@
-import {
-  GRAVITATIONAL_CONSTANT,
-  STANDARD_GRAVITY,
-} from "@ksp-gonogo/sitrep-client";
 import { act, renderHook, waitFor } from "@ksp-gonogo/test-utils";
 import { describe, expect, it } from "vitest";
 import { setupStreamFixture } from "../test/setupStreamFixture";
@@ -77,7 +73,7 @@ describe("useCelestialBodies", () => {
     expect(kerbin.semiMajorAxis).toBe(13_599_840_256);
   });
 
-  it("derives mass, surface gravity and period the wire no longer carries", async () => {
+  it("carries the game's own mass and surface gravity, and derives the period", async () => {
     const { fixture, result } = renderBodies();
     act(() => {
       fixture.emit("system.bodies", {
@@ -96,6 +92,13 @@ describe("useCelestialBodies", () => {
             parentIndex: 0,
             radius: 600_000,
             gravParameter: KERBIN_MU,
+            // Both on the wire now. They were reconstructed from gravParameter
+            // until the contract grew them, and the surface-gravity
+            // reconstruction ran the game's own arithmetic backwards: KSP
+            // derives mass and gravParameter FROM GeeASL, not the other way.
+            mass: 5.2915158e22,
+            surfaceGravity: 1,
+            hillSphere: 84_159_286,
             orbit: {
               sma: 13_599_840_256,
               ecc: 0,
@@ -112,10 +115,14 @@ describe("useCelestialBodies", () => {
 
     await waitFor(() => expect(result.current).toHaveLength(2));
     const kerbin = result.current[1];
-    expect(kerbin.mass).toBeCloseTo(KERBIN_MU / GRAVITATIONAL_CONSTANT, -10);
-    expect(kerbin.geeASL).toBeCloseTo(
-      KERBIN_MU / (600_000 * 600_000) / STANDARD_GRAVITY,
-      2,
+    // Verbatim off the wire, not re-derived.
+    expect(kerbin.mass).toBe(5.2915158e22);
+    expect(kerbin.geeASL).toBe(1);
+    expect(kerbin.hillSphere).toBe(84_159_286);
+    // Still ours: the game has no escape-velocity member at all.
+    expect(kerbin.escapeVelocity).toBeCloseTo(
+      Math.sqrt((2 * KERBIN_MU) / 600_000),
+      6,
     );
     // Parent μ = Kerbol's → a real, positive orbital period.
     expect(kerbin.period).not.toBeNull();

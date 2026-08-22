@@ -288,8 +288,7 @@ function ManeuverPlannerComponent({
    * a budget that vanished mid-blackout turned a craft that is demonstrably short
    * into one we have no opinion about, and re-enabled the button.
    */
-  const availableDeltaV =
-    useProcessor(DELTA_V_BUDGET)?.totalVac?.magnitude ?? null;
+  const availableDeltaV = magnitudeOf(useProcessor(DELTA_V_BUDGET)?.totalVac);
 
   // Delayed vessel commands (command-surface-delay-audit #15-17): adding,
   // updating and removing a maneuver node all actuate the craft's flight

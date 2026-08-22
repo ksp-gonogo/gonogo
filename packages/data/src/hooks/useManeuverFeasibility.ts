@@ -53,7 +53,9 @@ export function useManeuverFeasibility(): ManeuverFeasibility {
   // The one shared budget: the game's own vessel total, carried and dated
   // rather than blanked when it goes stale. A blanked budget reads as "no
   // opinion", and `allOk` is what a commit gate consults.
-  const available = useProcessor(DELTA_V_BUDGET)?.totalVac?.magnitude ?? null;
+  const budget = useProcessor(DELTA_V_BUDGET)?.totalVac;
+  const available =
+    budget === null || budget === undefined ? null : budget.magnitude;
 
   return useMemo(() => {
     if (nodes.length === 0) {

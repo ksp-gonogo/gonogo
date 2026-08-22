@@ -57,67 +57,55 @@
   "o.radius": 648777.935284754,
   "dv.stages": [
     {
-      "stageMass": 3.4995334148407,
       "thrustVac": 214.999984741211,
-      "deltaVVac": 502.2119140625,
-      "ispASL": 250,
+      "dvVac": 502.2119140625,
       "burnTime": 7.55388927459717,
-      "deltaVASL": 392.353057861328,
+      "dvAsl": 392.353057861328,
       "startMass": 3.4995334148407,
-      "TWRVac": 6.26266574859619,
+      "twrVac": 6.26266574859619,
       "fuelMass": 0.557533442974091,
-      "ispVac": 320,
-      "TWRASL": 4.89270830154419,
-      "deltaVActual": 502.191009521484,
+      "twrAsl": 4.89270830154419,
+      "dvActual": 502.191009521484,
       "dryMass": 2.94199991226196,
       "stage": 2,
       "thrustActual": 214.991027832031,
       "endMass": 2.98199987411499,
-      "ispActual": 319.986663818359,
-      "TWRActual": 6.26240491867065,
-      "thrustASL": 167.96875
+      "twrActual": 6.26240491867065,
+      "thrustAsl": 167.96875
     },
     {
-      "stageMass": 2.98199987411499,
       "thrustVac": 0,
-      "deltaVVac": 0,
-      "ispASL": 0,
+      "dvVac": 0,
       "burnTime": 0,
-      "deltaVASL": 0,
+      "dvAsl": 0,
       "startMass": 1.17999982833862,
-      "TWRVac": 0,
+      "twrVac": 0,
       "fuelMass": 0.0400000624358654,
-      "ispVac": 0,
-      "TWRASL": 0,
-      "deltaVActual": 0,
+      "twrAsl": 0,
+      "dvActual": 0,
       "dryMass": 1.13999998569489,
       "stage": 1,
       "thrustActual": 0,
       "endMass": 1.17999982833862,
-      "ispActual": 0,
-      "TWRActual": 0,
-      "thrustASL": 0
+      "twrActual": 0,
+      "thrustAsl": 0
     },
     {
-      "stageMass": 1.1800000667572,
       "thrustVac": 0,
-      "deltaVVac": 0,
-      "ispASL": 0,
+      "dvVac": 0,
       "burnTime": 0,
-      "deltaVASL": 0,
+      "dvAsl": 0,
       "startMass": 1.1800000667572,
-      "TWRVac": 0,
+      "twrVac": 0,
       "fuelMass": 0.0400000028312206,
-      "ispVac": 0,
-      "TWRASL": 0,
-      "deltaVActual": 0,
+      "twrAsl": 0,
+      "dvActual": 0,
       "dryMass": 1.14000010490417,
       "stage": 0,
       "thrustActual": 0,
       "endMass": 1.1800000667572,
-      "ispActual": 0,
-      "TWRActual": 0,
-      "thrustASL": 0
+      "twrActual": 0,
+      "thrustAsl": 0
     }
   ],
   "o.ApR": 651472.672848284,
@@ -171,15 +159,15 @@
                   },
                   "inc": {
                     "magnitude": 7.48656558210146,
-                    "unit": "°"
+                    "unit": "\u00b0"
                   },
                   "lan": {
                     "magnitude": 18.1447306307575,
-                    "unit": "°"
+                    "unit": "\u00b0"
                   },
                   "argPe": {
                     "magnitude": 185.792710062224,
-                    "unit": "°"
+                    "unit": "\u00b0"
                   },
                   "meanAnomalyAtEpoch": {
                     "magnitude": 3.14362968912802,
@@ -223,7 +211,7 @@
                   "closestEncounterBody": null,
                   "mu": {
                     "magnitude": 3531600000000.0,
-                    "unit": "m³/s²"
+                    "unit": "m\u00b3/s\u00b2"
                   },
                   "referenceBodyIndex": 1,
                   "closestEncounterBodyIndex": null
@@ -256,19 +244,19 @@
           },
           "inc": {
             "magnitude": 7.48670482007197,
-            "unit": "°"
+            "unit": "\u00b0"
           },
           "lan": {
             "magnitude": 18.1448066391876,
-            "unit": "°"
+            "unit": "\u00b0"
           },
           "argPe": {
             "magnitude": 185.804298723466,
-            "unit": "°"
+            "unit": "\u00b0"
           },
           "mu": {
             "magnitude": 3531600000000.0,
-            "unit": "m³/s²"
+            "unit": "m\u00b3/s\u00b2"
           },
           "meanAnomalyAtEpoch": {
             "magnitude": 0.0,

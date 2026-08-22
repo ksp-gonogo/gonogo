@@ -68,13 +68,46 @@ public class BodyEntry
 
     /// <summary>
     /// Standard gravitational parameter μ = G·M, m³/s² (KSP
-    /// <c>CelestialBody.gravParameter</c>). The single compute primitive the
-    /// client derives mass (μ/G), surface gravity (μ/r²), escape velocity
-    /// (√(2μ/r)) and orbital period (2π√(a³/μ_parent)) from: so none of those
-    /// ride the wire. Null when the live game hasn't populated it.
+    /// <c>CelestialBody.gravParameter</c>). Null when the live game hasn't
+    /// populated it.
     /// </summary>
     [SitrepUnit(Units.CubicMetresPerSecondSquared)]
     public double? GravParameter { get; set; }
+
+    /// <summary>
+    /// Body mass, kilograms (<c>CelestialBody.Mass</c>).
+    /// </summary>
+    [SitrepUnit(Units.Kilograms)]
+    public double? Mass { get; set; }
+
+    /// <summary>
+    /// Surface gravity in multiples of g₀ (<c>CelestialBody.GeeASL</c>),
+    /// verbatim.
+    ///
+    /// This is the CONFIG PRIMITIVE, not a derived quantity: KSP computes mass
+    /// and gravParameter FROM it (<c>Mass = Radius² · (GeeASL ·
+    /// PhysicsGlobals.GravitationalAcceleration) / G</c>), so a client
+    /// reconstructing it as μ/r²/g₀ is running the game's own arithmetic
+    /// backwards and can only lose precision doing it.
+    /// </summary>
+    [SitrepUnit(Units.GForce)]
+    public double? SurfaceGravity { get; set; }
+
+    /// <summary>
+    /// Hill-sphere radius, metres (<c>CelestialBody.hillSphere</c>).
+    ///
+    /// Null for the root star, where KSP's own value is
+    /// <c>double.PositiveInfinity</c> and there is no parent to be bound by.
+    ///
+    /// On the wire because the textbook expression and KSP's disagree, and we
+    /// shipped the textbook one. KSP computes
+    /// <c>a·(1−e)·(m/M)^(1/3)</c>; the standard form carries a factor of three
+    /// under the root, <c>a·(1−e)·∛(m/3M)</c>. Ours had the three, so every
+    /// hill sphere the app has ever drawn was ∛(1/3) ≈ 0.693 of the game's,
+    /// about 31% too small, in two widgets that render it as a fact.
+    /// </summary>
+    [SitrepUnit(Units.Metres)]
+    public double? HillSphere { get; set; }
 
     /// <summary>Sphere-of-influence radius, metres (<c>CelestialBody.sphereOfInfluence</c>); null when absent.</summary>
     [SitrepUnit(Units.Metres)]
@@ -100,9 +133,21 @@ public class BodyEntry
     public string? Description { get; set; }
 
     // Deliberately NO "eccentricAnomaly" field: see the class doc.
-    // Deliberately NO raw mass / surfaceGravity / escapeVelocity / period /
-    // trueAnomaly / rotates / hillSphere: all derived client-side from
-    // GravParameter + Radius + Orbit, so they never waste wire bytes.
+    //
+    // Mass, SurfaceGravity, HillSphere and Orbit.Period used to be absent for
+    // the same stated reason, that the client could derive them from
+    // GravParameter + Radius + Orbit "so they never waste wire bytes". The trade
+    // cost more than the bytes: four widgets each rebuilt the same numbers every
+    // frame, and one of the four derivations did not match the game's (see
+    // HillSphere). Two of them were already being sampled into the host's own
+    // dictionary and thrown away before they reached this payload.
+    //
+    // Still deliberately absent, because the game genuinely has no opinion:
+    //   escapeVelocity  CelestialBody has no such member at all (member dump)
+    //   trueAnomaly     Orbit.trueAnomaly is the LIVE value; a delayed console
+    //                   needs it solved at a view time the game knows nothing
+    //                   about, which is what the client's Kepler solve is for
+    //   rotates         conveyed by RotationPeriod being finite and non-zero
 }
 
 /// <summary>
@@ -178,6 +223,7 @@ public class OrbitEntry
     /// <summary>Epoch UT, seconds.</summary>
     [SitrepUnit(Units.UniversalTime)]
     public double? Epoch { get; set; }
+
 }
 
 /// <summary>

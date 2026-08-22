@@ -166,10 +166,16 @@ namespace Sitrep.Host
                 // Telemachus's "sun has a bogus orbit" wart.
                 ["orbit"] = parentIndex.HasValue ? BuildOrbit(raw) : null,
                 // Almanac enrichment: the "better-than-Telemachus" field set.
-                // gravParameter is the single compute primitive; mass, surface
-                // gravity, escape velocity and period are ALL derived client-side
-                // from it (never on the wire). See the contract's BodyEntry doc.
+                // The four the GAME is the authority for ride the wire, because
+                // the client rebuilding them off gravParameter cost more than
+                // the bytes it saved: four widgets each rebuilt them per frame,
+                // and the hill-sphere reconstruction did not match KSP's own
+                // formula. See the contract's BodyEntry doc for the full list,
+                // and for what stays client-side and why.
                 ["gravParameter"] = GetDouble(raw, "gravParameter"),
+                ["mass"] = GetDouble(raw, "mass"),
+                ["surfaceGravity"] = GetDouble(raw, "geeASL"),
+                ["hillSphere"] = GetDouble(raw, "hillSphere"),
                 ["sphereOfInfluence"] = GetDouble(raw, "sphereOfInfluence"),
                 ["rotationPeriod"] = GetDouble(raw, "rotationPeriod"),
                 ["tidallyLocked"] = GetBool(raw, "tidallyLocked"),

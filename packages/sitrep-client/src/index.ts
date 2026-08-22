@@ -41,17 +41,13 @@ export {
   decideAutoDispatch,
   useAutoCommand,
 } from "./auto-command";
-// Pure almanac derivations behind CELESTIAL_FACTS: the values `system.bodies`
-// deliberately leaves off the wire, reconstructed from mu + radius + the orbit.
+// The two almanac values behind CELESTIAL_FACTS the GAME cannot answer: escape
+// velocity (no such member on CelestialBody) and a true anomaly solved for a
+// delayed view time (Orbit.trueAnomaly is the live one).
 export {
   deriveEscapeVelocity,
-  deriveHillSphere,
-  deriveMass,
   derivePeriod,
-  deriveSurfaceGravity,
-  deriveSurfaceGravityG,
   deriveTrueAnomalyDeg,
-  GRAVITATIONAL_CONSTANT,
 } from "./body-derivations";
 // The two shared Processors and their result types. Also on the SDK's ROOT
 // barrel, which is what an Uplink imports; here so app-side call sites read the

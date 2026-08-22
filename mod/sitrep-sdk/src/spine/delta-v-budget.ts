@@ -47,23 +47,25 @@ import { CORE_UPLINK_CLIENT } from "./uplink-clients";
 // ---------------------------------------------------------------------------
 
 /**
- * One stage's row, field-names reconciled.
+ * One stage's row: the fourteen scalar fields `StageDeltaVEntry` actually
+ * carries, under the names the widgets already render off.
  *
- * Names match `@ksp-gonogo/core`'s historical `StageInfo` exactly, so the
- * widgets that already render off that shape are a drop-in. The wire disagrees
- * with itself about them: the mod's `StageDeltaVEntry` streams `dvVac` / `dvAsl`
- * / `dvActual` / `twr*` / `thrustAsl`, and never carries `stageMass` or `isp*`
- * at all.
+ * It used to declare nineteen and accept two spellings of six of them. Both
+ * excesses were pointed at a wire that does not exist: `KspHost.BuildDeltaV`
+ * writes exactly sixteen keys and `dvVac`/`twrVac`/`thrustAsl` are the names it
+ * writes, so the `deltaVVac`/`TWRVac`/`thrustASL` fallbacks matched nothing;
+ * and `stageMass`/`ispVac`/`ispASL`/`ispActual` are on no wire at all, so they
+ * were permanently `NaN` and rendered by nothing. The alternative spellings
+ * came from the retired legacy `DataSource`, which is deleted.
  *
  * Every field is a magnitude rather than a `Value`: these feed bar scaling, a
- * rocket-equation solve and `Math.max`, all of which are arithmetic on numbers,
- * and the row is where that conversion has always happened. **`NaN` means the
- * wire carried no figure**, which is why every reader filters on
- * `Number.isFinite` rather than truthiness.
+ * rocket-equation solve and `Math.max`, all arithmetic on numbers, and the row
+ * is where that conversion has always happened. **`NaN` means the wire carried
+ * no figure**, which is why every reader filters on `Number.isFinite` rather
+ * than truthiness: a stage with no engine has no ΔV, and a spent stage has 0.
  */
 export interface DeltaVStage {
   stage: number;
-  stageMass: number;
   dryMass: number;
   fuelMass: number;
   startMass: number;
@@ -75,9 +77,6 @@ export interface DeltaVStage {
   TWRVac: number;
   TWRASL: number;
   TWRActual: number;
-  ispVac: number;
-  ispASL: number;
-  ispActual: number;
   thrustVac: number;
   thrustASL: number;
   thrustActual: number;
@@ -152,13 +151,9 @@ function magnitudeOrNaN(raw: unknown): number {
   return Number.NaN;
 }
 
-/** The first of `keys` carrying a finite figure, or `NaN`. */
-function field(entry: StageWireEntry, ...keys: string[]): number {
-  for (const key of keys) {
-    const magnitude = magnitudeOrNaN(entry[key]);
-    if (Number.isFinite(magnitude)) return magnitude;
-  }
-  return Number.NaN;
+/** One wire field's magnitude, or `NaN` when it carries no finite figure. */
+function field(entry: StageWireEntry, key: string): number {
+  return magnitudeOrNaN(entry[key]);
 }
 
 /**
@@ -170,23 +165,19 @@ export function normaliseStage(raw: unknown): DeltaVStage | null {
   const e = raw as StageWireEntry;
   return {
     stage: field(e, "stage"),
-    stageMass: field(e, "stageMass"),
     dryMass: field(e, "dryMass"),
     fuelMass: field(e, "fuelMass"),
     startMass: field(e, "startMass"),
     endMass: field(e, "endMass"),
     burnTime: field(e, "burnTime"),
-    deltaVVac: field(e, "deltaVVac", "dvVac"),
-    deltaVASL: field(e, "deltaVASL", "dvAsl"),
-    deltaVActual: field(e, "deltaVActual", "dvActual"),
-    TWRVac: field(e, "TWRVac", "twrVac"),
-    TWRASL: field(e, "TWRASL", "twrAsl"),
-    TWRActual: field(e, "TWRActual", "twrActual"),
-    ispVac: field(e, "ispVac"),
-    ispASL: field(e, "ispASL"),
-    ispActual: field(e, "ispActual"),
+    deltaVVac: field(e, "dvVac"),
+    deltaVASL: field(e, "dvAsl"),
+    deltaVActual: field(e, "dvActual"),
+    TWRVac: field(e, "twrVac"),
+    TWRASL: field(e, "twrAsl"),
+    TWRActual: field(e, "twrActual"),
     thrustVac: field(e, "thrustVac"),
-    thrustASL: field(e, "thrustASL", "thrustAsl"),
+    thrustASL: field(e, "thrustAsl"),
     thrustActual: field(e, "thrustActual"),
   };
 }
@@ -227,7 +218,8 @@ const NO_BUDGET: DeltaVBudget = {
 
 /**
  * The whole derivation, pure. Exported so a test can exercise it directly
- * without a live evaluator, mirroring Kerbalism's `deriveCrewSurvival`.
+ * without a live evaluator, the way every processor in the tree exposes its
+ * derivation beside its handle.
  */
 export function deriveDeltaVBudget(
   summaryReading: Reading<SummaryWire>,

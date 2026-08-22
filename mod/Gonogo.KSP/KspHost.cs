@@ -3786,6 +3786,10 @@ namespace Gonogo.KSP
                 ["mass"] = body.Mass,
                 ["sphereOfInfluence"] = body.sphereOfInfluence,
                 ["geeASL"] = body.GeeASL,
+                // PositiveInfinity for the root star, which the provider's
+                // non-finite-is-absent rule turns into a null rather than a
+                // token: nothing bounds the star.
+                ["hillSphere"] = body.hillSphere,
                 ["rotationPeriod"] = body.rotationPeriod,
                 ["initialRotation"] = body.initialRotation,
                 ["rotationAngle"] = body.rotationAngle,

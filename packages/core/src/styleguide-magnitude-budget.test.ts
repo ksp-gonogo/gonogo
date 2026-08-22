@@ -86,12 +86,31 @@ const MAGNITUDE_BUDGET: Record<string, number> = {
   // to be compared against a solver's cost. Doing it in the algebra instead would
   // mean wrapping every figure the coplanar model returns.
   "packages/components/src/TransferWindow/index.tsx": 3,
+  // The shared ΔV budget's one raw read: `totalVac` is `Value<"m/s"> | null` and
+  // the feasibility deduction below it subtracts plain node magnitudes in a
+  // running total. Doing it in the algebra would wrap and unwrap once per node
+  // for a number that never leaves this function.
+  "packages/data/src/hooks/useManeuverFeasibility.ts": 1,
   "packages/data/src/hooks/useDataSeries.ts": 1,
-  "packages/data/src/hooks/useVesselDeltaV.ts": 1,
   "packages/data/src/hooks/vesselPartsAdapter.ts": 20,
   "packages/data/src/replaySession/ReplaySessionBanner.tsx": 1,
   "packages/sitrep-client/src/auto-command.ts": 1,
   "packages/sitrep-client/src/control-expectation.ts": 2,
+  // `numOrNull`, the one funnel where a body's wire quantities become the plain
+  // numbers the system diagram scales into SVG coordinates. One place,
+  // deliberately, and it is why re-pointing that file at the unit system was a
+  // two-line change.
+  "mod/sitrep-sdk/src/spine/celestial-facts.ts": 1,
+  // Two: reading a stage field's magnitude out of a wire row typed `unknown`
+  // (there is no Value to do algebra with until it has been recognised as one),
+  // and the budget's age against the frame's view UT, which arrives as a plain
+  // number on `ProcessorFrame` rather than as an instant.
+  "mod/sitrep-sdk/src/spine/delta-v-budget.ts": 2,
+  // The Value arm of the evaluator's result-equality walk. It compares the two
+  // own properties directly BECAUSE it must not go through the algebra: the
+  // algebra throws across dimensions, and a comparison that throws when a
+  // processor changes a unit is worse than one that answers "not equal".
+  "mod/sitrep-sdk/src/spine/processorEvaluator.ts": 1,
   "mod/sitrep-sdk/src/spine/delay-authority.ts": 1,
   "packages/sitrep-client/src/fleet-position.ts": 1,
   // `canPropagate` accepts a horizon UT either wrapped (as the wire delivers it)
