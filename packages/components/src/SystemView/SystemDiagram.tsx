@@ -362,22 +362,24 @@ export function SystemDiagram({
         {children.map((c) => {
           const sma = c.semiMajorAxis ?? 0;
           if (sma <= 0) return null;
-          const a = sma * plotScale;
-          const e = Math.min(Math.max(c.eccentricity ?? 0, 0), 0.999);
-          const b = a * Math.sqrt(1 - e * e);
-          const phi = (c.lan ?? 0) + (c.argumentOfPeriapsis ?? 0);
-          const focusOffset = a * e;
+          const ring = orbitEllipseGeometry(
+            sma,
+            c.eccentricity ?? 0,
+            c.lan ?? 0,
+            c.argumentOfPeriapsis ?? 0,
+            plotScale,
+          );
           return (
             <g
               key={`orbit-${c.index}`}
-              transform={`rotate(${phi})`}
+              transform={`rotate(${ring.rotationDeg})`}
               pointerEvents="none"
             >
               <ellipse
-                cx={-focusOffset}
-                cy={0}
-                rx={a}
-                ry={b}
+                cx={ring.cx}
+                cy={ring.cy}
+                rx={ring.rx}
+                ry={ring.ry}
                 fill="none"
                 stroke={`url(#${tiltGradId}-${c.index})`}
                 // Screen-constant, like every dot/marker/label below: the SVG
@@ -689,17 +691,19 @@ function VesselOrbitPath({
   zoom: number;
 }>) {
   if (trajectory === null || trajectory.shape === "withheld") return null;
-  const a = vessel.sma * plotScale;
-  const e = Math.min(Math.max(vessel.ecc, 0), 0.999);
-  const b = a * Math.sqrt(1 - e * e);
-  const phi = vessel.lan + vessel.argPe;
-  const focusOffset = a * e;
+  const ring = orbitEllipseGeometry(
+    vessel.sma,
+    vessel.ecc,
+    vessel.lan,
+    vessel.argPe,
+    plotScale,
+  );
   // Screen-constant stroke + dashes (see the child-orbit ellipse note):
   // user-unit line metrics would balloon with the viewBox at SOI zoom.
   const strokeW = 1.4 / zoom;
   const dashes = `${4 / zoom} ${3 / zoom}`;
   return (
-    <g transform={`rotate(${phi})`} pointerEvents="none">
+    <g transform={`rotate(${ring.rotationDeg})`} pointerEvents="none">
       {trajectory.shape === "arc" ? (
         <path
           data-vessel-trajectory="arc"
@@ -712,10 +716,10 @@ function VesselOrbitPath({
       ) : (
         <ellipse
           data-vessel-trajectory="conic"
-          cx={-focusOffset}
-          cy={0}
-          rx={a}
-          ry={b}
+          cx={ring.cx}
+          cy={ring.cy}
+          rx={ring.rx}
+          ry={ring.ry}
           fill="none"
           stroke={`url(#${gradId})`}
           strokeWidth={strokeW}
@@ -1022,8 +1026,11 @@ function pointsToPath(points: readonly ProjectedPoint[]): string {
  * which is exact for an elliptical orbit. The 2D projection is a
  * top-down view ignoring inclination: the inclination axis is
  * rendered separately as a stroke gradient.
+ *
+ * Exported so `systemEntities.ts` projects contributed shapes through the
+ * same conic-section math instead of reimplementing it.
  */
-function bodyPosition(
+export function bodyPosition(
   sma: number,
   eccentricity: number,
   lanDeg: number,
@@ -1040,6 +1047,43 @@ function bodyPosition(
   return {
     x: localX * Math.cos(phi) - localY * Math.sin(phi),
     y: localX * Math.sin(phi) + localY * Math.cos(phi),
+  };
+}
+
+/**
+ * Ellipse parameters for the full ring of an orbit, focus at the origin
+ * (parent-centric, pre-rotation local frame): the caller wraps
+ * `<ellipse cx cy rx ry>` in a `<g transform="rotate(rotationDeg)">` around
+ * the parent's own screen position. Same conic-section math `bodyPosition`
+ * uses to place a single point on the ring, factored out so a child-body
+ * orbit, the active vessel's orbit, and `systemEntities.ts`'s contributed
+ * `orbit-path` shapes all derive the ring from one place instead of three.
+ */
+export interface OrbitEllipseGeometry {
+  cx: number;
+  cy: number;
+  rx: number;
+  ry: number;
+  rotationDeg: number;
+}
+
+export function orbitEllipseGeometry(
+  sma: number,
+  eccentricity: number,
+  lanDeg: number,
+  argPeDeg: number,
+  scale: number,
+): OrbitEllipseGeometry {
+  const a = sma * scale;
+  const e = Math.min(Math.max(eccentricity, 0), 0.999);
+  const b = a * Math.sqrt(1 - e * e);
+  const focusOffset = a * e;
+  return {
+    cx: -focusOffset,
+    cy: 0,
+    rx: a,
+    ry: b,
+    rotationDeg: lanDeg + argPeDeg,
   };
 }
 

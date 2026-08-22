@@ -28,6 +28,7 @@ import type {
   ContributionRegistry as SdkContributionRegistry,
 } from "@ksp-gonogo/sitrep-sdk";
 import type { ShipMapPartMetaEntry, ShipMapPartMeterEntry } from "./ShipMap";
+import type { SystemEntity } from "./SystemView";
 
 type Assignable<A, B> = A extends B ? true : false;
 type Expect<T extends true> = T;
@@ -86,6 +87,27 @@ type _ShipMapPartMetaRealBack = Expect<
   Assignable<ShipMapPartMetaEntry, SdkContributionEntry<"ship-map.part-meta">>
 >;
 
+// --- system-view.entities: checked both directions --------------------------
+
+type _SystemViewEntities = Expect<
+  Assignable<
+    SdkContributionEntry<"system-view.entities">,
+    CoreContributionEntry<"system-view.entities">
+  >
+>;
+type _SystemViewEntitiesBack = Expect<
+  Assignable<
+    CoreContributionEntry<"system-view.entities">,
+    SdkContributionEntry<"system-view.entities">
+  >
+>;
+type _SystemViewEntitiesReal = Expect<
+  Assignable<SdkContributionEntry<"system-view.entities">, SystemEntity>
+>;
+type _SystemViewEntitiesRealBack = Expect<
+  Assignable<SystemEntity, SdkContributionEntry<"system-view.entities">>
+>;
+
 // Keep every alias "used" under noUnusedLocals.
 export type _ContributionRegistryConformance = [
   _SdkKeysAssignableToCore,
@@ -97,4 +119,8 @@ export type _ContributionRegistryConformance = [
   _ShipMapPartMetaBack,
   _ShipMapPartMetaReal,
   _ShipMapPartMetaRealBack,
+  _SystemViewEntities,
+  _SystemViewEntitiesBack,
+  _SystemViewEntitiesReal,
+  _SystemViewEntitiesRealBack,
 ];

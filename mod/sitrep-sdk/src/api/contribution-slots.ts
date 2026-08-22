@@ -70,6 +70,67 @@ export interface ShipMapPartMetaEntry {
   text?: string;
 }
 
+// --- SystemView (packages/components/src/SystemView) -----------------------
+//
+// `system-view.entities` (the shape-contribution foundation: vessel orbits,
+// the CommNet graph, selection, a future CME front all ride this one slot).
+// Mirrors `SystemEntity` and its position/shape unions from
+// `SystemView/systemEntities.ts`.
+
+export type SystemEntityEmphasis = "faint" | "normal" | "bright";
+
+/** Mirrors `SystemEntityStyle`. */
+export interface SystemEntityStyle {
+  emphasis?: SystemEntityEmphasis;
+  colour?: string;
+}
+
+/** Mirrors `SystemEntityMeta`. */
+export type SystemEntityMeta = Readonly<
+  Record<string, string | number | boolean>
+>;
+
+/** Mirrors `SystemEntityOrbitPosition`. */
+export interface SystemEntityOrbitPosition {
+  kind: "orbit";
+  parentName: string;
+  sma: number;
+  ecc: number;
+  lan: number;
+  argPe: number;
+  trueAnomaly: number;
+}
+
+/** Mirrors `SystemEntityFixedPosition`. */
+export interface SystemEntityFixedPosition {
+  kind: "fixed";
+  parentName: string;
+  xMetres: number;
+  yMetres: number;
+}
+
+/** Mirrors `SystemEntityPosition`. */
+export type SystemEntityPosition =
+  | SystemEntityOrbitPosition
+  | SystemEntityFixedPosition;
+
+/** Mirrors `SystemEntityShape`. */
+export type SystemEntityShape =
+  | { kind: "point"; radiusPx?: number }
+  | { kind: "orbit-path" }
+  | { kind: "connection-line"; to: SystemEntityPosition }
+  | { kind: "blob"; radiusMetres: number };
+
+/** Mirrors `SystemEntity`. */
+export interface SystemEntity {
+  id: string;
+  position: SystemEntityPosition;
+  shape: SystemEntityShape;
+  style?: SystemEntityStyle;
+  meta?: SystemEntityMeta;
+  zHint?: number;
+}
+
 declare module "./types" {
   interface ContributionRegistry {
     "ship-map.part-meters": {
@@ -79,6 +140,9 @@ declare module "./types" {
     "ship-map.part-meta": {
       entry: ShipMapPartMetaEntry;
       topics: "kerbalism.lifesupport" | "kerbalism.profile";
+    };
+    "system-view.entities": {
+      entry: SystemEntity;
     };
   }
 }
