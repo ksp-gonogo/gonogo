@@ -33,6 +33,7 @@ import { useState } from "react";
 import type {
   PrincipiaPlan,
   PrincipiaPlannedBurn,
+  PrincipiaPlanWriteReceipt,
 } from "../__generated__/contract";
 import { PrincipiaBurnProfile } from "../__generated__/contract";
 import { plottingFrameLabel } from "../plottingFrame";
@@ -288,6 +289,19 @@ function ProfileRow({
   );
 }
 
+/**
+ * The receipt a confirmed dispatch resolved with, or null when it carried none.
+ *
+ * <para>Narrowed by hand because the resolved value crosses the wire as
+ * `unknown`, and a cast would make a widget that renders a receipt out of
+ * whatever came back. Only the two fields this widget reads are checked; the rest
+ * of the receipt is the producer's business.</para>
+ */
+function writeReceipt(result: unknown): PrincipiaPlanWriteReceipt | null {
+  if (typeof result !== "object" || result === null) return null;
+  return result as PrincipiaPlanWriteReceipt;
+}
+
 /** The magnitude of a triple, so the row of three has a headline. */
 export function deltaVMagnitude(draft: Draft): number {
   return Math.sqrt(
@@ -311,6 +325,9 @@ export function BurnEditor() {
   usePanelDelay(removeCmd);
 
   const [draft, setDraft] = useState<Draft | null>(null);
+  const [lastWrite, setLastWrite] = useState<PrincipiaPlanWriteReceipt | null>(
+    null,
+  );
 
   if (view.kind === "none") {
     return (
@@ -655,6 +672,7 @@ export function BurnEditor() {
                 confirmLabel="CONFIRM APPLY"
                 confirmTone="nogo"
                 pendingLabel="Applying..."
+                onConfirmed={(result) => setLastWrite(writeReceipt(result))}
                 disabled={frozen || tooLate}
                 aria-label="Apply the edited burn"
                 confirmAriaLabel="Confirm applying the edited burn"
@@ -676,6 +694,7 @@ export function BurnEditor() {
                 confirmLabel="CONFIRM ADD"
                 confirmTone="nogo"
                 pendingLabel="Adding..."
+                onConfirmed={(result) => setLastWrite(writeReceipt(result))}
                 // The same deadline: an inserted burn is written at the draft's
                 // ignition too, so one composed for an instant the write cannot
                 // beat is a burn added to the plan already in the past.
@@ -696,6 +715,7 @@ export function BurnEditor() {
                 confirmLabel="CONFIRM REMOVE"
                 confirmTone="nogo"
                 pendingLabel="Removing..."
+                onConfirmed={(result) => setLastWrite(writeReceipt(result))}
                 // Out of contact freezes this too: the index is the whole of the
                 // request, and an index off an hour-old burn list can name a
                 // different burn by the time it arrives. NOT frozen by the edit
@@ -707,6 +727,26 @@ export function BurnEditor() {
                 confirmAriaLabel="Confirm removing this burn from the plan"
               />
             </Cluster>
+
+            {/* A confirmed dispatch is not always a write. The mod answers a
+                repeated request id with the receipt it stored the first time, and
+                the plugin is never called; the control's own success state cannot
+                tell the two apart, because both resolve. Live-regioned because it
+                is the outcome of something the operator just pressed, and it
+                contradicts what the button beside it is showing. */}
+            {lastWrite?.replayed === true && (
+              <Stack gap="xs" role="status" aria-live="polite">
+                <Cluster justify="start">
+                  <Badge severity="warning">NOTHING WAS WRITTEN</Badge>
+                </Cluster>
+                <Text tone="faint" size="sm">
+                  This edit matched one already sent, so the mod answered with
+                  the earlier receipt instead of writing again. The plan still
+                  holds whatever the last write that DID land put there. Change
+                  a value and send again.
+                </Text>
+              </Stack>
+            )}
 
             {/* The values on screen came from a reading; APPLY sends them all,
                 including the ones nobody touched, so the operator is told which

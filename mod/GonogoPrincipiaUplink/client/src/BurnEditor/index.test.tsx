@@ -7,6 +7,10 @@ import {
 } from "@ksp-gonogo/sitrep-sdk/testing";
 import userEvent from "@testing-library/user-event";
 import { afterEach, describe, expect, it } from "vitest";
+import {
+  PrincipiaWriteOutcome,
+  PrincipiaWriteRefusal,
+} from "../__generated__/contract";
 import { axe } from "../test/axe";
 import { BurnEditor } from "./index";
 
@@ -482,6 +486,40 @@ describe("BurnEditor", () => {
 
     expect(screen.queryByText(/EDIT WINDOW/)).not.toBeInTheDocument();
     expect(screen.queryByText("TOO LATE TO EDIT")).not.toBeInTheDocument();
+    await act(async () => {});
+  });
+
+  /**
+   * A write the mod answered from its own store is not a write.
+   *
+   * The request id is content-addressed from the draft, so tuning a burn to 105
+   * and back to 100 sends the SAME id as the first edit did, and the mod answers
+   * the second one with the receipt it stored the first time: the plugin is never
+   * called, the plan stays at 105, and the receipt reads `Written`. Nudge and
+   * revert is what tuning is, so a control that reports that as success reports
+   * the plan changing when it did not.
+   */
+  it("says a write answered from an earlier receipt changed nothing", async () => {
+    const stream = mount();
+    // The receipt the mod's replay path produces: the stored outcome, unchanged,
+    // plus the flag saying it was answered rather than performed.
+    stream.transport.setCommandHandler(() => ({
+      requestId: "replace-0",
+      replayed: true,
+      outcome: PrincipiaWriteOutcome.Written,
+      refusal: PrincipiaWriteRefusal.NotRefused,
+    }));
+    await emitPlan(stream);
+
+    await userEvent.click(screen.getByRole("button", { name: "Burn 1" }));
+    await userEvent.click(
+      screen.getByRole("button", { name: "Apply the edited burn" }),
+    );
+    await userEvent.click(
+      screen.getByRole("button", { name: "Confirm applying the edited burn" }),
+    );
+
+    expect(await screen.findByText("NOTHING WAS WRITTEN")).toBeInTheDocument();
     await act(async () => {});
   });
 
