@@ -23,7 +23,10 @@
 // mirror).
 // ---------------------------------------------------------------------------
 
-import type { SlotProps as SdkSlotProps } from "@ksp-gonogo/sitrep-sdk";
+import type {
+  SlotProps as SdkSlotProps,
+  WidgetScope as SdkWidgetScope,
+} from "@ksp-gonogo/sitrep-sdk";
 import type { ActionGroupSlotContext } from "./ActionGroup";
 import type {
   CrewAvatarContext,
@@ -31,19 +34,15 @@ import type {
   CrewSurvivalSlotContext,
 } from "./CrewStatus";
 import type { DistanceToTargetHudContext } from "./DistanceToTarget";
-import type {
-  ExperimentsInstrumentSlotContext,
-  ExperimentsSlotContext,
-} from "./Experiments";
+import type { ExperimentsInstrumentSlotContext } from "./Experiments";
 import type { LaunchDirectorSlotContext } from "./LaunchDirector";
 import type {
-  MapActionsContext,
   MapBaseLayerContext,
   MapOverlayContext,
-  MapSectionsContext,
+  MapViewScope,
 } from "./MapView";
 import type { OrbitOverlayContext } from "./OrbitView";
-import type { PowerSystemsSlotContext } from "./PowerSystems";
+import type { PowerSystemsScope } from "./PowerSystems";
 import type { ScienceDataAboardRowContext } from "./ScienceData";
 import type { ShipMapOverlayContext } from "./ShipMap";
 import type { SystemOverlayContext } from "./SystemView";
@@ -67,7 +66,7 @@ type _TargetPickerSections = Expect<
   Assignable<SdkSlotProps<"target-picker.sections">, Record<string, never>>
 >;
 type _WarpActions = Expect<
-  Assignable<SdkSlotProps<"warp-control.actions">, Record<string, never>>
+  Assignable<SdkSlotProps<"warp-control.stepper">, Record<string, never>>
 >;
 type _CommSections = Expect<
   Assignable<SdkSlotProps<"comm-signal.sections">, Record<string, never>>
@@ -77,6 +76,22 @@ type _SystemActions = Expect<
 >;
 type _FuelSections = Expect<
   Assignable<SdkSlotProps<"fuel-status.sections">, Record<string, never>>
+>;
+// Universal segments `Panel` mounts. Their ids stay in both registries so a
+// binder still types against the propless contract rather than the loose
+// fallback; what the host widget knows and an augment wants reaches it through
+// `WidgetScopeRegistry` instead, checked at the bottom of this file.
+type _MapSections = Expect<
+  Assignable<SdkSlotProps<"map-view.sections">, Record<string, never>>
+>;
+type _MapActions = Expect<
+  Assignable<SdkSlotProps<"map-view.actions">, Record<string, never>>
+>;
+type _PowerSections = Expect<
+  Assignable<SdkSlotProps<"power-systems.sections">, Record<string, never>>
+>;
+type _ExperimentsActions = Expect<
+  Assignable<SdkSlotProps<"experiments.actions">, Record<string, never>>
 >;
 
 // --- Named-context slots: checked both directions --------------------------
@@ -137,18 +152,18 @@ type _CrewSummary = Expect<
 
 type _LaunchSections = Expect<
   Assignable<
-    SdkSlotProps<"launch-director.sections">,
+    SdkSlotProps<"launch-director.preflight">,
     LaunchDirectorSlotContext
   >
 >;
 type _LaunchBack = Expect<
   Assignable<
     LaunchDirectorSlotContext,
-    SdkSlotProps<"launch-director.sections">
+    SdkSlotProps<"launch-director.preflight">
   >
 >;
 
-// "objectives.sections" is deliberately NOT bidirectionally checked here.
+// "objectives.source" is deliberately NOT bidirectionally checked here.
 // Its props are a COMPONENT-VALUED contract (`{ Section: ComponentType<...>
 // }`, Objectives/index.tsx's "typed-contract slot"), and comparing two
 // `ComponentType<P>`s via a plain `extends` check runs into real React
@@ -164,10 +179,10 @@ type _LaunchBack = Expect<
 // conformance file.
 
 type _ActionGroupSections = Expect<
-  Assignable<SdkSlotProps<"action-group.sections">, ActionGroupSlotContext>
+  Assignable<SdkSlotProps<"action-group.subsystem">, ActionGroupSlotContext>
 >;
 type _ActionGroupBack = Expect<
-  Assignable<ActionGroupSlotContext, SdkSlotProps<"action-group.sections">>
+  Assignable<ActionGroupSlotContext, SdkSlotProps<"action-group.subsystem">>
 >;
 
 type _SystemOverlay = Expect<
@@ -182,25 +197,12 @@ type _MapOverlay = Expect<
 type _MapOverlayBack = Expect<
   Assignable<MapOverlayContext, SdkSlotProps<"map-view.overlay">>
 >;
-type _MapSections = Expect<
-  Assignable<SdkSlotProps<"map-view.sections">, MapSectionsContext>
->;
-type _MapSectionsBack = Expect<
-  Assignable<MapSectionsContext, SdkSlotProps<"map-view.sections">>
->;
 type _MapBase = Expect<
   Assignable<SdkSlotProps<"map-view.base">, MapBaseLayerContext>
 >;
 type _MapBaseBack = Expect<
   Assignable<MapBaseLayerContext, SdkSlotProps<"map-view.base">>
 >;
-type _MapActions = Expect<
-  Assignable<SdkSlotProps<"map-view.actions">, MapActionsContext>
->;
-type _MapActionsBack = Expect<
-  Assignable<MapActionsContext, SdkSlotProps<"map-view.actions">>
->;
-
 type _OrbitOverlay = Expect<
   Assignable<SdkSlotProps<"orbit-view.overlay">, OrbitOverlayContext>
 >;
@@ -220,25 +222,29 @@ type _ExperimentsSectionsBack = Expect<
     SdkSlotProps<"experiments.instrument">
   >
 >;
-type _ExperimentsBadges = Expect<
-  Assignable<SdkSlotProps<"experiments.actions">, ExperimentsSlotContext>
->;
-type _ExperimentsBadgesBack = Expect<
-  Assignable<ExperimentsSlotContext, SdkSlotProps<"experiments.actions">>
->;
-
-// _DeployedSections/_DeployedSectionsBack (deployed-science.sections vs
+// _DeployedSections/_DeployedSectionsBack (deployed-science.experiment vs
 // DeployedExperimentContext) moved to
 // mod/GonogoBreakingGroundUplink/client/src/slot-registry.conformance.test-d.ts:
 // DeployedScience no longer lives in this package (Breaking Ground uplink
 // extraction), so the real widget-owned type this file's header describes
 // checking against is no longer visible from here.
 
-type _PowerSections = Expect<
-  Assignable<SdkSlotProps<"power-systems.sections">, PowerSystemsSlotContext>
+// --- Widget SCOPES: the same mirror-vs-real drift guard, applied to what a
+// widget publishes about its own current focus. A universal segment carries no
+// props, so this is the seam a scope-key augment resolves through, and it drifts
+// exactly the way the slot mirrors do.
+
+type _MapViewScope = Expect<
+  Assignable<SdkWidgetScope<"map-view">, MapViewScope>
 >;
-type _PowerSectionsBack = Expect<
-  Assignable<PowerSystemsSlotContext, SdkSlotProps<"power-systems.sections">>
+type _MapViewScopeBack = Expect<
+  Assignable<MapViewScope, SdkWidgetScope<"map-view">>
+>;
+type _PowerScope = Expect<
+  Assignable<SdkWidgetScope<"power-systems">, PowerSystemsScope>
+>;
+type _PowerScopeBack = Expect<
+  Assignable<PowerSystemsScope, SdkWidgetScope<"power-systems">>
 >;
 
 type _ScienceDataAboardRow = Expect<
@@ -263,6 +269,10 @@ export type _SlotRegistryConformance = [
   _CommSections,
   _SystemActions,
   _FuelSections,
+  _MapSections,
+  _MapActions,
+  _PowerSections,
+  _ExperimentsActions,
   _D2tCamera,
   _D2tCameraBack,
   _D2tOverlay,
@@ -280,18 +290,16 @@ export type _SlotRegistryConformance = [
   _SystemOverlayBack,
   _MapOverlay,
   _MapOverlayBack,
-  _MapSections,
-  _MapSectionsBack,
   _MapBase,
   _MapBaseBack,
   _OrbitOverlay,
   _OrbitOverlayBack,
   _ExperimentsSections,
   _ExperimentsSectionsBack,
-  _ExperimentsBadges,
-  _ExperimentsBadgesBack,
-  _PowerSections,
-  _PowerSectionsBack,
   _ScienceDataAboardRow,
   _ScienceDataAboardRowBack,
+  _MapViewScope,
+  _MapViewScopeBack,
+  _PowerScope,
+  _PowerScopeBack,
 ];

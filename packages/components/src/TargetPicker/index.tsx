@@ -4,7 +4,6 @@ import type {
   ConfigComponentProps,
 } from "@ksp-gonogo/core";
 import {
-  AugmentSlot,
   registerComponent,
   useActionInput,
   useTelemetry,
@@ -618,13 +617,6 @@ function TargetPickerComponent({
           )}
         </ListScroll>
       )}
-      {/* Host slot for a fleet-management Uplink's filter/grouping section,
-          rendered below the stock sections. Empty (renders no DOM) until an
-          augment binds `target-picker.sections`; the wrapper collapses to
-          zero height so the widget's own layout is untouched when unfilled. */}
-      <AugmentSectionsRow>
-        <AugmentSlot name="target-picker.sections" props={{}} />
-      </AugmentSectionsRow>
     </Panel>
   );
 }
@@ -705,15 +697,6 @@ const OrbitalEventChipsRow = styled.div`
 /** Wraps the `target-picker.sections` augment slot. Collapses to zero height
  *  when no augment is bound (the slot renders no DOM), keeping the stock layout
  *  identical to before the slot existed. */
-const AugmentSectionsRow = styled.div`
-  display: flex;
-  flex-direction: column;
-  margin-top: var(--space-6);
-  &:empty {
-    display: none;
-  }
-`;
-
 const CurrentSummary = styled.div`
   margin-top: var(--space-6);
   display: flex;

@@ -3,6 +3,7 @@ import {
   clearRegistry,
   getAugmentsForSlot,
   registerAugment,
+  WidgetMetaContext,
 } from "@ksp-gonogo/core";
 import { act, render, screen, waitFor } from "@ksp-gonogo/test-utils";
 import { visibleText } from "@ksp-gonogo/ui-kit/testing";
@@ -62,7 +63,14 @@ describe("SystemView: augment slots (spec §4)", () => {
   async function renderDiagram() {
     const { unmount } = render(
       <fixture.Provider>
-        <SystemViewComponent config={{ frame: "Kerbin" }} id="sv" />
+        {/* The identity the dashboard supplies: `Panel` completes
+            `${componentId}.${segment}` from it for the universal `sections`
+            and `actions` seams. */}
+        <WidgetMetaContext.Provider
+          value={{ componentId: "system-view", contributionSlots: [] }}
+        >
+          <SystemViewComponent config={{ frame: "Kerbin" }} id="sv" />
+        </WidgetMetaContext.Provider>
       </fixture.Provider>,
     );
     renderedTrees.push(unmount);

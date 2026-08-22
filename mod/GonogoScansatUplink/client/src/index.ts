@@ -57,10 +57,7 @@
 // `TerrainBase/paintTile.ts`, same as BiomeBase: it no longer borrows
 // MapView's canvas hooks via @ksp-gonogo/components at all (T9-Minimap).
 
-export type {
-  ScanningConfig,
-  ScanningSlotContext,
-} from "./Scanning";
+export type { ScanningConfig, ScanningScope } from "./Scanning";
 export { ScanningComponent } from "./Scanning";
 export type { MinimapProps } from "./Scanning/Minimap";
 export { Minimap, MinimapForActiveVessel } from "./Scanning/Minimap";

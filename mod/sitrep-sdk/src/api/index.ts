@@ -138,6 +138,8 @@ export type {
   UseCommandResult,
   UseMapPois,
   UseRouteCommandsResult,
+  WidgetScope,
+  WidgetScopeRegistry,
 } from "./types";
 
 /**

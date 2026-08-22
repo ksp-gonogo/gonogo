@@ -94,7 +94,7 @@ describe("ObjectivesComponent", () => {
 
 describe("Objectives: augment slot composition (spec §4.9)", () => {
   it("binds the built-in contracts source to the slot", () => {
-    const ids = getAugmentsForSlot("objectives.sections").map((a) => a.id);
+    const ids = getAugmentsForSlot("objectives.source").map((a) => a.id);
     expect(ids).toEqual(["objectives-contracts"]);
   });
 
@@ -117,7 +117,7 @@ describe("Objectives: augment slot composition (spec §4.9)", () => {
   });
 
   it("merges the source's namespaced show/hide setting into the host panel (spec §4.7)", () => {
-    const merged = getAugmentSettings("objectives.sections");
+    const merged = getAugmentSettings("objectives.source");
     expect(merged.map((m) => m.namespace)).toEqual(["objectives-contracts"]);
     expect(merged.every((m) => m.fields[0]?.key === "show")).toBe(true);
   });

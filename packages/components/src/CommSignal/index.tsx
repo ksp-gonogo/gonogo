@@ -1,6 +1,5 @@
 import type { ComponentProps } from "@ksp-gonogo/core";
 import {
-  AugmentSlot,
   getWidgetShape,
   registerComponent,
   useTelemetry,
@@ -292,11 +291,6 @@ function CommSignalComponent({
           )}
         </Stack>
       )}
-
-      {/* Body sections below the signal-bars readout, a comms Uplink (e.g. a
-          RealAntennas per-antenna breakdown) composes here from its own Topics.
-          Renders nothing until an augment binds this slot. */}
-      <AugmentSlot name="comm-signal.sections" props={{}} />
     </Panel>
   );
 }

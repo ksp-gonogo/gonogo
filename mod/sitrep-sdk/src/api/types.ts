@@ -147,6 +147,28 @@ export type SlotProps<S extends string> = S extends keyof SlotRegistry
   ? SlotRegistry[S]
   : Record<string, unknown>;
 
+/**
+ * Declaration-merging seam for what a widget is currently FOCUSED ON, keyed by
+ * COMPONENT ID rather than by slot: a resource picker's selection, the body a
+ * map is following. The framework's universal augment segments are propless by
+ * construction, so a scope key cannot ride their props; the host publishes it
+ * once through `WidgetScopeProvider` and any augment of that widget reads it
+ * with `useWidgetScope`, both from `@ksp-gonogo/ui-kit`.
+ *
+ * Declared HERE, beside `SlotRegistry`, and not in ui-kit where the provider
+ * and hook live, for the reason `slots.ts` exists at all: a widget in
+ * `packages/components` merging its scope is invisible to an Uplink that
+ * cannot see that package, so the merge has to land somewhere every Uplink
+ * already compiles against.
+ */
+// biome-ignore lint/suspicious/noEmptyInterface: declaration-merging seam
+export interface WidgetScopeRegistry {}
+
+/** The scope a given widget publishes; a loose record for one that publishes none. */
+export type WidgetScope<C extends string> = C extends keyof WidgetScopeRegistry
+  ? WidgetScopeRegistry[C]
+  : Record<string, unknown>;
+
 // --- Contributions (pure-data slot composition) ------------------------------
 
 /**

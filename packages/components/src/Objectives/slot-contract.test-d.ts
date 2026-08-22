@@ -1,4 +1,4 @@
-// Type-level proof that `objectives.sections` is a genuinely TYPED-CONTRACT slot,
+// Type-level proof that `objectives.source` is a genuinely TYPED-CONTRACT slot,
 // the dogfood's whole point.
 //
 // Checked by `tsc` (the package `typecheck`), NOT the vitest runner: a
@@ -28,7 +28,7 @@ import type { ObjectiveSourceContext } from "./index";
 // rather than imported by name: the sdk's `api/slots.ts` is pulled into the
 // barrel for its ambient merge ONLY and adds no named exports, which is what
 // makes the merge reach a facade-sealed client that never imports it directly.
-type MirroredContext = SlotProps<"objectives.sections">;
+type MirroredContext = SlotProps<"objectives.source">;
 
 type Equal<A, B> =
   (<T>() => T extends A ? 1 : 2) extends <T>() => T extends B ? 1 : 2
@@ -47,7 +47,7 @@ type _SlotIsTyped = Expect<Assignable<MirroredContext, { Section: unknown }>>;
 //    slot silently fell back to the loose bag AND the mirror happened to be a
 //    loose bag too, which is precisely the failure this file exists to catch.
 type _SlotIsNotLoose = Expect<
-  Equal<Equal<SlotProps<"objectives.sections">, Record<string, unknown>>, false>
+  Equal<Equal<SlotProps<"objectives.source">, Record<string, unknown>>, false>
 >;
 
 // ── The mirror matches the widget, both ways. Mutual assignability is the
@@ -64,15 +64,15 @@ type _WidgetMatchesMirror = Expect<
 
 // ── A component satisfying the contract is assignable to what the slot passes
 //    down: this is exactly the constraint `registerAugment` enforces on an
-//    `objectives.sections` augment's `component`.
-const _GoodSource: ComponentType<SlotProps<"objectives.sections">> = (
+//    `objectives.source` augment's `component`.
+const _GoodSource: ComponentType<SlotProps<"objectives.source">> = (
   _: ObjectiveSourceContext,
 ) => null;
 
 // ── A component requiring a prop the slot does not provide is REJECTED, proving
 //    the generic actually gates the augment's props against the contract.
 // @ts-expect-error component props are not satisfied by the slot's props
-const _BadSource: ComponentType<SlotProps<"objectives.sections">> = (_: {
+const _BadSource: ComponentType<SlotProps<"objectives.source">> = (_: {
   notASlotProp: boolean;
 }) => null;
 
@@ -87,5 +87,5 @@ export type {
   _WidgetMatchesMirror,
 };
 export const _typedSlotFixtures: ComponentType<
-  SlotProps<"objectives.sections">
+  SlotProps<"objectives.source">
 >[] = [_GoodSource, _BadSource];

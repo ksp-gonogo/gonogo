@@ -11,7 +11,7 @@ import { setupStreamFixture } from "../test/setupStreamFixture";
 import { WarpControlComponent } from "./index";
 
 /**
- * WarpControl exposes one augment slot, `warp-control.actions`: an Uplink
+ * WarpControl exposes one augment slot, `warp-control.stepper`: an Uplink
  * contributes a "Warp to <mod-event>" action alongside the widget's own warp
  * buttons. This only EXPOSES the slot; no built-in augment fills it, so an
  * unaugmented widget renders exactly as before and the slot composes nothing.
@@ -61,17 +61,17 @@ describe("WarpControl: augment slots", () => {
     expect(screen.queryByTestId("warp-actions-augment")).toBeNull();
   });
 
-  it("composes an augment registered into warp-control.actions", async () => {
+  it("composes an augment registered into warp-control.stepper", async () => {
     registerAugment({
       id: "test-warp-action",
-      augments: "warp-control.actions",
+      augments: "warp-control.stepper",
       component: () => (
         <button type="button" data-testid="warp-actions-augment">
           Warp to periapsis
         </button>
       ),
     });
-    expect(getAugmentsForSlot("warp-control.actions").map((a) => a.id)).toEqual(
+    expect(getAugmentsForSlot("warp-control.stepper").map((a) => a.id)).toEqual(
       ["test-warp-action"],
     );
 

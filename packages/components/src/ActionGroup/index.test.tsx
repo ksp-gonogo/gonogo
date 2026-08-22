@@ -321,9 +321,9 @@ describe("ActionGroupComponent", () => {
     });
 
     it("renders a sections augment in the body with the group id", async () => {
-      registerAugment<"action-group.sections">({
+      registerAugment<"action-group.subsystem">({
         id: "test-ag-section",
-        augments: "action-group.sections",
+        augments: "action-group.subsystem",
         component: TestSection,
       });
       renderGroup({ actionGroupId: "Gear" });

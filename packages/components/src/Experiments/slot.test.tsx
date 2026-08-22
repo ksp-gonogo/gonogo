@@ -4,6 +4,7 @@ import {
   DashboardItemContext,
   getAugmentsForSlot,
   registerAugment,
+  WidgetMetaContext,
 } from "@ksp-gonogo/core";
 import { act, render, screen, waitFor } from "@ksp-gonogo/test-utils";
 import { afterEach, describe, expect, it } from "vitest";
@@ -11,7 +12,6 @@ import { setupStreamFixture } from "../test/setupStreamFixture";
 import {
   ExperimentsComponent,
   type ExperimentsInstrumentSlotContext,
-  type ExperimentsSlotContext,
   type Instrument,
 } from "./index";
 
@@ -52,9 +52,16 @@ async function renderFullList(): Promise<void> {
   });
   const { unmount } = render(
     <fixture.Provider>
-      <DashboardItemContext.Provider value={{ instanceId: "sci-slot" }}>
-        <ExperimentsComponent config={{}} id="sci-slot" w={6} h={8} />
-      </DashboardItemContext.Provider>
+      {/* The identity the dashboard supplies: `Panel` completes
+          `${componentId}.${segment}` from it for the universal
+          `sections` and `actions` seams. */}
+      <WidgetMetaContext.Provider
+        value={{ componentId: "experiments", contributionSlots: [] }}
+      >
+        <DashboardItemContext.Provider value={{ instanceId: "sci-slot" }}>
+          <ExperimentsComponent config={{}} id="sci-slot" w={6} h={8} />
+        </DashboardItemContext.Provider>
+      </WidgetMetaContext.Provider>
     </fixture.Provider>,
   );
   renderedTrees.push(unmount);
@@ -120,25 +127,28 @@ describe("Experiments: augment slots (spec §4)", () => {
     expect(augment.textContent).toBe("LAB: Mystery Goo");
   });
 
-  it("renders a test augment bound to the badges slot in the header, receiving the instrument list", async () => {
-    function BadgeAugment({ instruments, dataAmount }: ExperimentsSlotContext) {
-      return (
-        <span data-testid="sci-badge-augment">
-          {instruments?.length ?? 0}@{dataAmount}
-        </span>
-      );
+  it("renders a test augment bound to the header actions segment", async () => {
+    // `experiments.actions` is the framework's universal header segment now,
+    // mounted by `Panel` for every widget and propless by construction: an
+    // actions augment reads its own Topics rather than being handed the host's
+    // instrument list. This one reads nothing, which is the point: it renders
+    // on the widget's identity alone, with the widget declaring no slot.
+    function ActionsAugment() {
+      return <span data-testid="sci-actions-augment">EXTRA 3</span>;
     }
     await renderFullList();
 
     act(() => {
       registerAugment({
-        id: "test-sci-badge",
+        id: "test-sci-actions",
         augments: "experiments.actions",
-        component: BadgeAugment,
+        component: ActionsAugment,
       });
     });
 
-    const badge = await screen.findByTestId("sci-badge-augment");
-    expect(badge.textContent).toBe("1@12.5");
+    const augment = await screen.findByTestId("sci-actions-augment");
+    expect(augment.textContent).toBe("EXTRA 3");
+    // In the header beside the title, not in the body.
+    expect(augment.closest("[data-panel-header]")).not.toBeNull();
   });
 });

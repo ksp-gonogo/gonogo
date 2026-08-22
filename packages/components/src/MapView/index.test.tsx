@@ -7,15 +7,19 @@ import {
   registerAugment,
   registerDataSource,
   registerStockBodies,
+  WidgetMetaContext,
 } from "@ksp-gonogo/core";
 import { BufferedDataSource, MemoryStore } from "@ksp-gonogo/data";
 import { Quality } from "@ksp-gonogo/sitrep-sdk";
 import { act, render, screen, waitFor, within } from "@ksp-gonogo/test-utils";
 import {
+  AugmentSettingsProvider,
   createDomainAvailabilityStore,
   DomainAvailabilityContext,
   ModalChromeContext,
   type ModalChromeValue,
+  useAugmentSettings,
+  useWidgetScope,
 } from "@ksp-gonogo/ui-kit";
 import {
   expectNoA11yViolations,
@@ -29,12 +33,7 @@ import {
   type StreamFixture,
   setupStreamFixture,
 } from "../test/setupStreamFixture";
-import type {
-  MapActionsContext,
-  MapBaseLayerContext,
-  MapOverlayContext,
-  MapSectionsContext,
-} from "./index";
+import type { MapBaseLayerContext, MapOverlayContext } from "./index";
 import { MapViewComponent, VanillaSuppressionProbe } from "./index";
 import { MapViewConfigComponent } from "./MapViewConfig";
 
@@ -131,12 +130,49 @@ describe("MapViewComponent", () => {
     );
   }
 
-  /** MapView reads DashboardItemContext via useActionInput, wrap in the provider. */
-  function Wrap({ children }: { children: ReactNode }) {
+  /**
+   * The provider pair the dashboard puts round every widget:
+   * `DashboardItemContext` for the instance (MapView reads it via
+   * `useActionInput`), and `WidgetMetaContext` for the identity `Panel`
+   * completes `${componentId}.${segment}` from. Without the latter the
+   * universal `sections` and `actions` seams have no slot id to resolve.
+   */
+  function Wrap({
+    config,
+    onConfigChange,
+    children,
+  }: {
+    config?: Record<string, unknown>;
+    onConfigChange?: (config: Record<string, unknown>) => void;
+    children: ReactNode;
+  }) {
+    const augmentSettings = config?.augmentSettings as
+      | Record<string, Record<string, unknown>>
+      | undefined;
     return (
-      <DashboardItemContext.Provider value={{ instanceId: "map-test" }}>
-        {children}
-      </DashboardItemContext.Provider>
+      <WidgetMetaContext.Provider
+        value={{ componentId: "map-view", contributionSlots: [] }}
+      >
+        <AugmentSettingsProvider
+          settings={augmentSettings}
+          setAugmentSetting={(augmentId, key, valueToSave) =>
+            onConfigChange?.({
+              ...config,
+              augmentSettings: {
+                ...augmentSettings,
+                [augmentId]: {
+                  ...augmentSettings?.[augmentId],
+                  [key]: valueToSave,
+                },
+              },
+            })
+          }
+        >
+          <DashboardItemContext.Provider value={{ instanceId: "map-test" }}>
+            {children}
+          </DashboardItemContext.Provider>
+        </AugmentSettingsProvider>
+      </WidgetMetaContext.Provider>
     );
   }
 
@@ -151,10 +187,9 @@ describe("MapViewComponent", () => {
     });
     const result = render(
       <fixture.Provider>
-        <Wrap>
+        <Wrap config={config} onConfigChange={onConfigChange}>
           <MapViewComponent
             config={config}
-            onConfigChange={onConfigChange}
             id="map-test"
             w={size?.w}
             h={size?.h}
@@ -385,12 +420,17 @@ describe("MapViewComponent", () => {
     });
 
     it("composes a fake map-view.sections augment below the map", async () => {
+      // The mapped body reaches the augment through the widget's published
+      // SCOPE: `map-view.sections` is the framework's universal segment now and
+      // a universal segment carries no props.
+      function SectionsAugment() {
+        const bodyName = useWidgetScope("map-view")?.bodyName;
+        return <div>Sections for {bodyName}</div>;
+      }
       registerAugment({
         id: "test-map-sections",
         augments: "map-view.sections",
-        component: (ctx: MapSectionsContext) => (
-          <div>Sections for {ctx.bodyName}</div>
-        ),
+        component: SectionsAugment,
       });
 
       const { container, fixture } = renderMap();
@@ -488,18 +528,23 @@ describe("MapViewComponent", () => {
       expect(calls).not.toContain("fake-base-off");
     });
 
-    it("map-view.actions: a registered augment can toggle a base layer's show via setAugmentShow, writing the SAME augmentSettings the settings panel reads", async () => {
+    it("map-view.actions: a registered augment can toggle a base layer's show, writing the SAME augmentSettings the settings panel reads", async () => {
+      // The augment writes through the framework's own settings loop, not
+      // through a handle MapView threaded down: `useAugmentSettings` writes
+      // under the augment's own id, so a quick toggle and the settings-panel
+      // checkbox are the same value by construction.
+      function ToggleAugment() {
+        const settings = useAugmentSettings("scan-layer");
+        return (
+          <button type="button" onClick={() => settings.set("show", false)}>
+            Toggle scan layer
+          </button>
+        );
+      }
       registerAugment({
         id: "test-map-actions",
         augments: "map-view.actions",
-        component: (ctx: MapActionsContext) => (
-          <button
-            type="button"
-            onClick={() => ctx.setAugmentShow("scan-layer", false)}
-          >
-            Toggle scan layer
-          </button>
-        ),
+        component: ToggleAugment,
       });
 
       const onConfigChange = vi.fn();
@@ -520,15 +565,19 @@ describe("MapViewComponent", () => {
       );
     });
 
-    it("map-view.actions receives the widget's current augmentSettings, the same values the settings panel reads", async () => {
+    it("map-view.actions reads the widget's current augmentSettings, the same values the settings panel reads", async () => {
+      function ReadAugment() {
+        const settings = useAugmentSettings("scan-layer");
+        return (
+          <div data-testid="actions-probe">
+            show={String(settings.values.show)}
+          </div>
+        );
+      }
       registerAugment({
         id: "test-map-actions-read",
         augments: "map-view.actions",
-        component: (ctx: MapActionsContext) => (
-          <div data-testid="actions-probe">
-            show={String(ctx.augmentSettings?.["scan-layer"]?.show)}
-          </div>
-        ),
+        component: ReadAugment,
       });
 
       const { container, fixture } = renderMap({
@@ -641,17 +690,20 @@ describe("MapViewComponent", () => {
       clearAugments();
     });
 
-    it("a config edit saved through AugmentSettingsPanel reads back on ctx.augmentSettings at render time", async () => {
+    it("a config edit saved through AugmentSettingsPanel reads back on the augment's own settings at render time", async () => {
       const user = userEvent.setup();
+      function SettingsProbe() {
+        const settings = useAugmentSettings("test-map-sections-settings");
+        return (
+          <div data-testid="sections-settings-probe">
+            show={String(settings.values.show)}
+          </div>
+        );
+      }
       registerAugment({
         id: "test-map-sections-settings",
         augments: "map-view.sections",
-        component: (ctx: MapSectionsContext) => (
-          <div data-testid="sections-settings-probe">
-            show=
-            {String(ctx.augmentSettings?.["test-map-sections-settings"]?.show)}
-          </div>
-        ),
+        component: SettingsProbe,
         settings: [
           {
             key: "show",

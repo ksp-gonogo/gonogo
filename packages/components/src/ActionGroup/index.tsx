@@ -68,7 +68,7 @@ export type ActionGroupActions = typeof actionGroupActions;
 // and live readout of the *one* group this instance drives. An augment binds a
 // Kerbalism/mod-subsystem status describing WHAT that group toggles, e.g.
 // "AG3 → radiators": using the group id/datum to scope itself.
-//   • `action-group.sections`: a richer whole-widget status block in the body.
+//   • `action-group.subsystem`: a richer whole-widget status block in the body.
 // ---------------------------------------------------------------------------
 
 /**
@@ -90,11 +90,11 @@ export interface ActionGroupSlotContext {
 // Declaration-merge the slot ids → props type into core's `SlotRegistry`.
 // Co-located here (not a central file) so
 // parallel slot work on other widgets can't collide. This makes
-// `registerAugment` and `<AugmentSlot name="action-group.sections" ...>` type-check
+// `registerAugment` and `<AugmentSlot name="action-group.subsystem" ...>` type-check
 // against `ActionGroupSlotContext` rather than the loose fallback.
 declare module "@ksp-gonogo/core" {
   interface SlotRegistry {
-    "action-group.sections": ActionGroupSlotContext;
+    "action-group.subsystem": ActionGroupSlotContext;
   }
 }
 
@@ -619,7 +619,7 @@ function ActionGroupView({
       )}
       {/* Whole-widget status block. An Uplink describing what this group
           toggles (e.g. a Kerbalism subsystem) renders here. Empty until bound. */}
-      <AugmentSlot name="action-group.sections" props={slotContext} />
+      <AugmentSlot name="action-group.subsystem" props={slotContext} />
     </Panel>
   );
 }
@@ -704,7 +704,7 @@ registerComponent<ActionGroupConfig>({
   dataRequirements: [],
   defaultConfig: { actionGroupId: "AG1" },
   actions: actionGroupActions,
-  augmentSlots: ["action-group.sections"],
+  augmentSlots: ["action-group.subsystem"],
   requires: ["flight"],
 });
 

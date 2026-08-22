@@ -1,6 +1,5 @@
 import type { ComponentProps, Reading } from "@ksp-gonogo/sitrep-sdk";
 import {
-  AugmentSlot,
   getBody,
   registerComponent,
   useTelemetry,
@@ -22,6 +21,8 @@ import {
   Stack,
   Text,
   Unit,
+  WidgetScopeProvider,
+  WidgetSections,
 } from "@ksp-gonogo/ui-kit";
 import { useMemo } from "react";
 import {
@@ -52,8 +53,15 @@ import { MinimapForActiveVessel } from "./Minimap";
 // ships here yet: the slot renders nothing until one registers.
 // ---------------------------------------------------------------------------
 
-/** Props the Scanning `sections` slot passes to its augments. */
-export interface ScanningSlotContext {
+/**
+ * What this widget is currently looking at, published for every augment bound
+ * to any of its slots. Read with `useWidgetScope("scanning")`.
+ *
+ * It was `scanning.sections`'s slot props, which is what kept that slot from
+ * being the universal `sections` segment: the body is a SCOPE, not something a
+ * coverage-row augment's own job needs handing to it.
+ */
+export interface ScanningScope {
   /**
    * The body the widget's body-scoped sections (coverage, anomalies) are
    * currently following: the config override when set, else the active
@@ -71,12 +79,19 @@ export interface ScanningSlotContext {
 // cross-package reachability problem for the slot's OWNER (only for a
 // FOREIGN filler in a different package, which isn't the case here today;
 // see slots.ts's header comment for the full reasoning). This is what
-// types `registerAugment({ augments: "scanning.sections", ... })` and
-// `<AugmentSlot name="scanning.sections" props={...} />` against
-// `ScanningSlotContext` rather than the loose fallback.
+// types `registerAugment({ augments: "scanning.sections", ... })` and this
+// widget's published scope against their real shapes rather than the loose
+// fallback.
 declare module "@ksp-gonogo/sitrep-sdk" {
   interface SlotRegistry {
-    "scanning.sections": ScanningSlotContext;
+    // Mounted by `Panel`'s universal `sections` segment rather than by this
+    // widget. Declared so a binder types against the propless contract rather
+    // than the loose fallback.
+    "scanning.sections": Record<string, never>;
+  }
+
+  interface WidgetScopeRegistry {
+    scanning: ScanningScope;
   }
 }
 
@@ -169,13 +184,10 @@ function ScanningComponent({
   const scanningVessels = useScanningVessels();
   const anomalies = useScanAnomalies(bodyName);
 
-  // Stable per-body slot-props object so an unchanged body focus doesn't churn
-  // mounted augments. Declared before any early return so the hook
-  // order stays stable across the SCANsat-absent / present paths.
-  const slotProps = useMemo<ScanningSlotContext>(
-    () => ({ bodyName }),
-    [bodyName],
-  );
+  // Stable so an unchanged body focus doesn't churn mounted augments. Declared
+  // before any early return so the hook order stays stable across the
+  // SCANsat-absent / present paths.
+  const scope = useMemo<ScanningScope>(() => ({ bodyName }), [bodyName]);
 
   if (scanAvailable === false) {
     return (
@@ -193,161 +205,172 @@ function ScanningComponent({
   const body = bodyName ? getBody(bodyName) : undefined;
 
   return (
-    <Panel>
-      <Cluster>
-        <PanelTitle>Scanning</PanelTitle>
-      </Cluster>
+    <WidgetScopeProvider widget="scanning" scope={scope}>
+      <Panel panelSections={false}>
+        <Cluster>
+          <PanelTitle>Scanning</PanelTitle>
+        </Cluster>
 
-      <ScrollArea>
-        <Stack gap="lg">
-          {biome ? (
-            <Card>
-              <Text size="sm" tone="default">
-                Biome: {biome}
-              </Text>
-            </Card>
-          ) : null}
+        <ScrollArea>
+          <Stack gap="lg">
+            {biome ? (
+              <Card>
+                <Text size="sm" tone="default">
+                  Biome: {biome}
+                </Text>
+              </Card>
+            ) : null}
 
-          {body ? (
+            {body ? (
+              <Section>
+                <SectionTitle>Live view</SectionTitle>
+                <MinimapForActiveVessel body={body} />
+              </Section>
+            ) : null}
+
             <Section>
-              <SectionTitle>Live view</SectionTitle>
-              <MinimapForActiveVessel body={body} />
-            </Section>
-          ) : null}
-
-          <Section>
-            <SectionTitle>Coverage: {bodyName ?? "?"}</SectionTitle>
-            {bodyName ? (
-              <Stack gap="xs">
-                {DISPLAY_SCAN_TYPES.map((type) => (
-                  <CoverageRow key={type} bodyName={bodyName} scanType={type} />
-                ))}
-              </Stack>
-            ) : (
-              <EmptyState>No active body.</EmptyState>
-            )}
-            {/* Augment coverage rows: e.g. a resource-scanning Uplink
+              <SectionTitle>Coverage: {bodyName ?? "?"}</SectionTitle>
+              {bodyName ? (
+                <Stack gap="xs">
+                  {DISPLAY_SCAN_TYPES.map((type) => (
+                    <CoverageRow
+                      key={type}
+                      bodyName={bodyName}
+                      scanType={type}
+                    />
+                  ))}
+                </Stack>
+              ) : (
+                <EmptyState>No active body.</EmptyState>
+              )}
+              {/* Augment coverage rows: e.g. a resource-scanning Uplink
                 contributing its own scan-type coverage alongside SCANsat's.
-                Appended to the coverage list; empty until an Uplink registers. */}
-            <AugmentSlot name="scanning.sections" props={slotProps} />
-          </Section>
+                Placed rather than left to `Panel`'s end-of-body default because
+                these belong IN the coverage list, above the scanning-vessel
+                section that follows. */}
+              <WidgetSections />
+            </Section>
 
-          <Section>
-            <SectionTitle>Scanning vessels</SectionTitle>
-            {scanningVessels && scanningVessels.length > 0 ? (
-              <Stack gap="md">
-                {scanningVessels.map((v) => (
-                  <Card key={v.vesselId}>
-                    <Stack gap="xs">
-                      <Cluster>
-                        <Text size="sm" tone="default">
-                          {v.vesselName || "(unnamed)"}
-                        </Text>
+            <Section>
+              <SectionTitle>Scanning vessels</SectionTitle>
+              {scanningVessels && scanningVessels.length > 0 ? (
+                <Stack gap="md">
+                  {scanningVessels.map((v) => (
+                    <Card key={v.vesselId}>
+                      <Stack gap="xs">
+                        <Cluster>
+                          <Text size="sm" tone="default">
+                            {v.vesselName || "(unnamed)"}
+                          </Text>
+                          <Text size="xs" tone="muted">
+                            {v.body}
+                          </Text>
+                        </Cluster>
                         <Text size="xs" tone="muted">
-                          {v.body}
-                        </Text>
-                      </Cluster>
-                      <Text size="xs" tone="muted">
-                        sub-point {v.subLatitude.toFixed(2)},{" "}
-                        {v.subLongitude.toFixed(2)} · alt{" "}
-                        {/* Pinned to km rather than left to the ladder: this
+                          sub-point {v.subLatitude.toFixed(2)},{" "}
+                          {v.subLongitude.toFixed(2)} · alt{" "}
+                          {/* Pinned to km rather than left to the ladder: this
                             widget has three altitude readouts and a range
                             below whose two ends share one symbol, and a rung
                             that moves under any of them reads as a different
                             measurement. */}
-                        <Unit
-                          value={value("m", v.altitude)}
-                          format="km"
-                          decimals={0}
-                        />
-                      </Text>
-                      <Stack gap="xs">
-                        {v.sensors.length === 0 ? (
-                          <EmptyState>No scanners.</EmptyState>
-                        ) : (
-                          v.sensors.map((s, i) => (
-                            <Grid
-                              // biome-ignore lint/suspicious/noArrayIndexKey: sensors don't have a stable id; index is the natural order
-                              key={i}
-                              cols="140px 1fr auto"
-                              gap="md"
-                            >
-                              <Text size="xs" tone="default">
-                                {SCAN_TYPE_LABELS[s.type] ?? `type=${s.type}`}
-                              </Text>
-                              <Text size="xs" tone="muted">
-                                FoV{" "}
-                                <Unit value={value("°", s.fov)} decimals={1} />{" "}
-                                · alt{" "}
-                                <Unit
-                                  value={value("m", s.minAlt)}
-                                  format="km"
-                                  decimals={0}
-                                />
-                                –
-                                <Unit
-                                  value={value("m", s.maxAlt)}
-                                  format="km"
-                                  decimals={0}
-                                />
-                              </Text>
-                              <Badge
-                                size="sm"
-                                severity={
-                                  s.bestRange
-                                    ? "nominal"
-                                    : s.inRange
-                                      ? "info"
-                                      : undefined
-                                }
+                          <Unit
+                            value={value("m", v.altitude)}
+                            format="km"
+                            decimals={0}
+                          />
+                        </Text>
+                        <Stack gap="xs">
+                          {v.sensors.length === 0 ? (
+                            <EmptyState>No scanners.</EmptyState>
+                          ) : (
+                            v.sensors.map((s, i) => (
+                              <Grid
+                                // biome-ignore lint/suspicious/noArrayIndexKey: sensors don't have a stable id; index is the natural order
+                                key={i}
+                                cols="140px 1fr auto"
+                                gap="md"
                               >
-                                {s.bestRange
-                                  ? "best"
-                                  : s.inRange
-                                    ? "scanning"
-                                    : "out of range"}
-                              </Badge>
-                            </Grid>
-                          ))
-                        )}
+                                <Text size="xs" tone="default">
+                                  {SCAN_TYPE_LABELS[s.type] ?? `type=${s.type}`}
+                                </Text>
+                                <Text size="xs" tone="muted">
+                                  FoV{" "}
+                                  <Unit
+                                    value={value("°", s.fov)}
+                                    decimals={1}
+                                  />{" "}
+                                  · alt{" "}
+                                  <Unit
+                                    value={value("m", s.minAlt)}
+                                    format="km"
+                                    decimals={0}
+                                  />
+                                  –
+                                  <Unit
+                                    value={value("m", s.maxAlt)}
+                                    format="km"
+                                    decimals={0}
+                                  />
+                                </Text>
+                                <Badge
+                                  size="sm"
+                                  severity={
+                                    s.bestRange
+                                      ? "nominal"
+                                      : s.inRange
+                                        ? "info"
+                                        : undefined
+                                  }
+                                >
+                                  {s.bestRange
+                                    ? "best"
+                                    : s.inRange
+                                      ? "scanning"
+                                      : "out of range"}
+                                </Badge>
+                              </Grid>
+                            ))
+                          )}
+                        </Stack>
                       </Stack>
-                    </Stack>
-                  </Card>
-                ))}
-              </Stack>
-            ) : (
-              <EmptyState>No vessels tracked by SCANsat yet.</EmptyState>
-            )}
-          </Section>
+                    </Card>
+                  ))}
+                </Stack>
+              ) : (
+                <EmptyState>No vessels tracked by SCANsat yet.</EmptyState>
+              )}
+            </Section>
 
-          <Section>
-            <SectionTitle>Anomalies: {bodyName ?? "?"}</SectionTitle>
-            {anomalies && anomalies.length > 0 ? (
-              <Stack gap="xs">
-                {anomalies.map((a) => (
-                  <Grid key={`${a.name}-${a.latitude}`} cols="1fr auto">
-                    <Text size="xs" tone={a.known ? "default" : "muted"}>
-                      {a.detail
-                        ? a.name
-                        : a.known
-                          ? "(unknown)"
-                          : "(undetected)"}
-                    </Text>
-                    <Text size="xs" tone="muted">
-                      {a.known
-                        ? `${a.latitude.toFixed(2)}, ${a.longitude.toFixed(2)}`
-                        : NULL_DISPLAY}
-                    </Text>
-                  </Grid>
-                ))}
-              </Stack>
-            ) : (
-              <EmptyState>None known.</EmptyState>
-            )}
-          </Section>
-        </Stack>
-      </ScrollArea>
-    </Panel>
+            <Section>
+              <SectionTitle>Anomalies: {bodyName ?? "?"}</SectionTitle>
+              {anomalies && anomalies.length > 0 ? (
+                <Stack gap="xs">
+                  {anomalies.map((a) => (
+                    <Grid key={`${a.name}-${a.latitude}`} cols="1fr auto">
+                      <Text size="xs" tone={a.known ? "default" : "muted"}>
+                        {a.detail
+                          ? a.name
+                          : a.known
+                            ? "(unknown)"
+                            : "(undetected)"}
+                      </Text>
+                      <Text size="xs" tone="muted">
+                        {a.known
+                          ? `${a.latitude.toFixed(2)}, ${a.longitude.toFixed(2)}`
+                          : NULL_DISPLAY}
+                      </Text>
+                    </Grid>
+                  ))}
+                </Stack>
+              ) : (
+                <EmptyState>None known.</EmptyState>
+              )}
+            </Section>
+          </Stack>
+        </ScrollArea>
+      </Panel>
+    </WidgetScopeProvider>
   );
 }
 

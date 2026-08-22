@@ -6,6 +6,7 @@ import {
   MockDataSource,
   registerAugment,
   registerDataSource,
+  WidgetMetaContext,
 } from "@ksp-gonogo/core";
 import { BufferedDataSource, MemoryStore } from "@ksp-gonogo/data";
 import {
@@ -960,7 +961,14 @@ describe("ManeuverPlanner: augment slots (Uplink §4)", () => {
     });
     render(
       <utFixture.Provider>
-        <ManeuverPlannerComponent id="mnv" config={{}} />
+        {/* The identity the dashboard supplies: `Panel` completes
+          `${componentId}.${segment}` from it for the universal `sections`
+          and `actions` seams. */}
+        <WidgetMetaContext.Provider
+          value={{ componentId: "maneuver-planner", contributionSlots: [] }}
+        >
+          <ManeuverPlannerComponent id="mnv" config={{}} />
+        </WidgetMetaContext.Provider>
       </utFixture.Provider>,
     );
     act(() => {

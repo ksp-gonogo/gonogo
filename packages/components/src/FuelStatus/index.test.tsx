@@ -2,6 +2,7 @@ import {
   clearAugments,
   DashboardItemContext,
   registerAugment,
+  WidgetMetaContext,
 } from "@ksp-gonogo/core";
 import {
   dvCurrentStageResourceChannel,
@@ -78,9 +79,16 @@ function renderFuel(
 ) {
   return render(
     <fixture.Provider>
-      <DashboardItemContext.Provider value={{ instanceId: "fuel-test" }}>
-        <FuelStatusComponent config={config} id="fuel-test" />
-      </DashboardItemContext.Provider>
+      {/* The identity the dashboard supplies: `Panel` completes
+          `${componentId}.${segment}` from it for the universal
+          `sections` and `actions` seams. */}
+      <WidgetMetaContext.Provider
+        value={{ componentId: "fuel-status", contributionSlots: [] }}
+      >
+        <DashboardItemContext.Provider value={{ instanceId: "fuel-test" }}>
+          <FuelStatusComponent config={config} id="fuel-test" />
+        </DashboardItemContext.Provider>
+      </WidgetMetaContext.Provider>
     </fixture.Provider>,
   );
 }

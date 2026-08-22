@@ -8,7 +8,8 @@ import {
 import type { RenderResult } from "@ksp-gonogo/sitrep-sdk/testing";
 import { render } from "@ksp-gonogo/sitrep-sdk/testing";
 import type { JSXElementConstructor } from "react";
-import { type ReactNode, useMemo } from "react";
+import { type ReactNode, useCallback, useMemo, useState } from "react";
+import { AugmentSettingsProvider } from "./AugmentSettings";
 import { DelayRailProvider } from "./CommandDelay/DelayRailContext";
 import { ContributionsProvider } from "./contributionsRuntime";
 import { PanelStatusProvider } from "./Panel";
@@ -114,16 +115,36 @@ function WidgetHostInner({
     }),
     [def.id, def.contributionSlots],
   );
+  // Real state, not a stub: the dashboard's own provider writes into the widget
+  // instance's saved config, so an augment's settings round-trip. A test that
+  // toggles one and reads it back is testing the loop it will meet in the app.
+  const [augmentSettings, setAugmentSettings] = useState<
+    Record<string, Record<string, unknown>>
+  >({});
+  const setAugmentSetting = useCallback(
+    (augmentId: string, key: string, value: unknown) => {
+      setAugmentSettings((prev) => ({
+        ...prev,
+        [augmentId]: { ...prev[augmentId], [key]: value },
+      }));
+    },
+    [],
+  );
   return (
     <DelayRailProvider>
       <PanelStatusStoreProvider>
         <DashboardItemContext.Provider value={itemContext}>
           <WidgetMetaContext.Provider value={meta}>
-            <ContributionsProvider>
-              <WidgetBadges>
-                <WidgetStreamStatus def={def}>{children}</WidgetStreamStatus>
-              </WidgetBadges>
-            </ContributionsProvider>
+            <AugmentSettingsProvider
+              settings={augmentSettings}
+              setAugmentSetting={setAugmentSetting}
+            >
+              <ContributionsProvider>
+                <WidgetBadges>
+                  <WidgetStreamStatus def={def}>{children}</WidgetStreamStatus>
+                </WidgetBadges>
+              </ContributionsProvider>
+            </AugmentSettingsProvider>
           </WidgetMetaContext.Provider>
         </DashboardItemContext.Provider>
       </PanelStatusStoreProvider>

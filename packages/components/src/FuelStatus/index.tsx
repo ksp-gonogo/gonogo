@@ -1,6 +1,5 @@
 import type { ComponentProps, ConfigComponentProps } from "@ksp-gonogo/core";
 import {
-  AugmentSlot,
   clampSafe,
   getWidgetShape,
   registerComponent,
@@ -32,6 +31,7 @@ import {
   Truncate,
   Unit,
   useModalSaveBar,
+  WidgetSections,
   writeQuantity,
 } from "@ksp-gonogo/ui-kit";
 import type { ReactNode } from "react";
@@ -576,17 +576,17 @@ function FuelStatusComponent({
       ),
     });
   }
-  // Body slot appended after the per-stage ΔV/TWR stack. An engine-realism
-  // Uplink (ignitions-remaining, propellant boil-off) contributes per-stage
-  // supplemental rows here. Renders nothing until an augment binds
-  // `fuel-status.sections`.
+  // Appended after the per-stage ΔV/TWR stack: an engine-realism Uplink
+  // (ignitions-remaining, propellant boil-off) contributes supplemental rows
+  // here. One of the body's `sections`, which landscape lays out as side-by-side
+  // columns, so this is placed rather than left to `Panel`'s end-of-body default.
   sections.push({
     key: "augment",
-    node: <AugmentSlot name="fuel-status.sections" props={{}} />,
+    node: <WidgetSections />,
   });
 
   return (
-    <Panel panelTitle="FUEL · ΔV">
+    <Panel panelTitle="FUEL · ΔV" panelSections={false}>
       {/* Stage caption relocated out of the panel subtitle into the body
           (staging change), carried by ui-kit's ReadoutCaption. */}
       {showSubtitle && currentStage !== undefined && (

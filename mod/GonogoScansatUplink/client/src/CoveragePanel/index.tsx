@@ -20,9 +20,8 @@
 // `scansat.available` is live, so an install without SCANsat never mounts
 // it: zero impact on MapView for non-SCANsat users.
 
-import type { SlotProps } from "@ksp-gonogo/sitrep-sdk";
 import { registerAugment, useTelemetry, value } from "@ksp-gonogo/sitrep-sdk";
-import { NULL_DISPLAY, Unit } from "@ksp-gonogo/ui-kit";
+import { NULL_DISPLAY, Unit, useWidgetScope } from "@ksp-gonogo/ui-kit";
 import type { CSSProperties } from "react";
 import { useMemo } from "react";
 import { useScanningVessels } from "../FogReveal/useScanLayers";
@@ -44,9 +43,12 @@ const COVERAGE_TYPES: { type: SCANType; label: string }[] = [
  * scanner. Driven entirely by `scansat.coverage.<body>.<type>` and the
  * sensors on `scansat.scanningVessels` for this body.
  */
-function CoveragePanel(ctx: SlotProps<"map-view.sections">) {
+function CoveragePanel() {
   const scanningVessels = useScanningVessels();
-  const bodyName = ctx.bodyName;
+  // The mapped body comes from the host widget's published SCOPE, not from slot
+  // props: `map-view.sections` is the framework's universal segment now, and a
+  // universal segment carries no props.
+  const bodyName = useWidgetScope("map-view")?.bodyName;
 
   // Aggregate per-type range state across every scanning vessel on this
   // body: a type is "best" if any sensor is bestRange, "scanning" if any

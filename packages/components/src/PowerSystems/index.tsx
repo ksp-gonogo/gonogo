@@ -4,7 +4,6 @@ import type {
   ConfigComponentProps,
 } from "@ksp-gonogo/core";
 import {
-  AugmentSlot,
   getWidgetShape,
   registerComponent,
   useActionInput,
@@ -30,6 +29,8 @@ import {
   Text,
   Unit,
   useModalSaveBar,
+  WidgetScopeProvider,
+  WidgetSections,
 } from "@ksp-gonogo/ui-kit";
 import type { CSSProperties } from "react";
 import { useEffect, useMemo, useState } from "react";
@@ -101,8 +102,16 @@ interface Contribution {
 // ships here yet: the slot renders nothing until one registers.
 // ---------------------------------------------------------------------------
 
-/** Props the PowerSystems `sections` slot passes to its augments. */
-export interface PowerSystemsSlotContext {
+/**
+ * What this widget is currently looking at, published for every augment bound
+ * to any of its slots. Read with `useWidgetScope("power-systems")`.
+ *
+ * It was `power-systems.sections`'s slot props, which is what kept that slot
+ * from being the universal `sections` segment: the resource is a SCOPE, not
+ * something the section augment's own job needs handing to it, and a universal
+ * segment is propless by construction.
+ */
+export interface PowerSystemsScope {
   /**
    * The resource the widget is currently focused on (the picker/action-cycle
    * selection). Lets an augment scope its breakdown/badge to the same resource
@@ -111,16 +120,18 @@ export interface PowerSystemsSlotContext {
   resource: string;
 }
 
-// Declaration-merge the slot ids → props types into core's `SlotRegistry`
-// (the declaration-merging hybrid base). Co-located here so parallel slot work
-// on other widgets never collides on a shared central file. This is what types
-// `registerAugment({ augments: "power-systems.sections", ... })` and
-// `<AugmentSlot name="power-systems.sections" props={...} />` against
-// `PowerSystemsSlotContext` rather than the loose `Record<string, unknown>`
-// fallback an unmerged slot id would receive.
+// Declaration-merge into core's registries, co-located here so parallel slot
+// work on other widgets never collides on a shared central file.
 declare module "@ksp-gonogo/core" {
   interface SlotRegistry {
-    "power-systems.sections": PowerSystemsSlotContext;
+    // Mounted by `Panel`'s universal `sections` segment rather than by this
+    // widget. Declared so a binder types against the propless contract rather
+    // than the loose fallback.
+    "power-systems.sections": Record<string, never>;
+  }
+
+  interface WidgetScopeRegistry {
+    "power-systems": PowerSystemsScope;
   }
 }
 
@@ -237,13 +248,8 @@ function PowerSystemsComponent({
     },
   });
 
-  // Stable per-resource slot-props object so an unchanged resource selection
-  // doesn't churn mounted augments. Passed to both PowerSystems
-  // augment slots.
-  const slotProps = useMemo<PowerSystemsSlotContext>(
-    () => ({ resource }),
-    [resource],
-  );
+  // Stable so an unchanged resource selection doesn't churn mounted augments.
+  const scope = useMemo<PowerSystemsScope>(() => ({ resource }), [resource]);
 
   // Per-part flow contributions for the selected resource. Includes
   // zero-flow rows when the part exposes a nominalFlow, those are
@@ -418,186 +424,190 @@ function PowerSystemsComponent({
   }
 
   return (
-    <Panel
-      panelTitle="POWER SYSTEMS"
-      panelAside={
-        <>
-          <Select
-            style={RESOURCE_SELECT}
-            value={resource}
-            onChange={(e) => {
-              setResource(e.target.value);
-              setUserPicked(true);
-            }}
-            aria-label="Resource"
-          >
-            {pickerResources.map((name) => (
-              <option key={name} value={name}>
-                {name}
-              </option>
-            ))}
-          </Select>
-        </>
-      }
-    >
-      {/* Discrete power-state announcement for assistive tech, the visible NET
+    <WidgetScopeProvider widget="power-systems" scope={scope}>
+      <Panel
+        panelTitle="POWER SYSTEMS"
+        panelSections={false}
+        panelAside={
+          <>
+            <Select
+              style={RESOURCE_SELECT}
+              value={resource}
+              onChange={(e) => {
+                setResource(e.target.value);
+                setUserPicked(true);
+              }}
+              aria-label="Resource"
+            >
+              {pickerResources.map((name) => (
+                <option key={name} value={name}>
+                  {name}
+                </option>
+              ))}
+            </Select>
+          </>
+        }
+      >
+        {/* Discrete power-state announcement for assistive tech, the visible NET
           readout communicates surplus/deficit through colour + a ticking
           number; this narrates the state word and updates only when the state
           flips (kept out of the ticking value so it doesn't flood). */}
-      <VisuallyHidden role="status" aria-live="polite">
-        {netTone === "go"
-          ? "Power surplus"
-          : netTone === "warn"
-            ? "Power deficit"
-            : "Power balanced"}
-      </VisuallyHidden>
+        <VisuallyHidden role="status" aria-live="polite">
+          {netTone === "go"
+            ? "Power surplus"
+            : netTone === "warn"
+              ? "Power deficit"
+              : "Power balanced"}
+        </VisuallyHidden>
 
-      {contributions.length === 0 && (
-        <div style={SECTION_EMPTY} role="status">
-          No active {splitCamel(resource)} flow right now.
-        </div>
-      )}
-
-      <div style={TOTALS}>
-        <div style={{ ...TOTALS_CELL, ...netCellStyle(netTone) }}>
-          <span style={{ ...CELL_LABEL, color: cellLabelColor(netTone) }}>
-            NET
-          </span>
-          <Text size="sm" style={CELL_VALUE}>
-            {net >= 0 ? "+" : ""}
-            {net.toFixed(2)}/s
-          </Text>
-        </div>
-        <div style={TOTALS_CELL}>
-          <span style={CELL_LABEL}>PROD</span>
-          <Text tone="go" size="sm" style={CELL_VALUE}>
-            {totalProduced > 0 ? "+" : ""}
-            {totalProduced.toFixed(2)}
-          </Text>
-        </div>
-        {measuredDisagrees && (
-          <div
-            style={{ ...TOTALS_CELL, ...MEASURED_CELL }}
-            title={`parts.power.totalProductionEc reports ${measuredTotalProduced?.toFixed(2)}, disagreeing with the ${totalProduced.toFixed(2)} the itemized Producers rows sum to. PROD/NET always reflect the itemized rows; this is the separate raw measurement.`}
-          >
-            <span style={CELL_LABEL}>MEASURED</span>
-            <Text size="sm" style={CELL_VALUE}>
-              {measuredTotalProduced?.toFixed(2)}
-            </Text>
+        {contributions.length === 0 && (
+          <div style={SECTION_EMPTY} role="status">
+            No active {splitCamel(resource)} flow right now.
           </div>
         )}
-        <div style={TOTALS_CELL}>
-          <span style={CELL_LABEL}>CONS</span>
-          <Text tone="warn" size="sm" style={CELL_VALUE}>
-            {totalConsumed.toFixed(2)}
-          </Text>
-        </div>
-        {storage.maxAmount > 0 && (
-          <div style={TOTALS_CELL}>
-            <span style={CELL_LABEL}>STORED</span>
-            <Text size="sm" style={STORED_VALUE}>
-              {formatUnits(storage.amount)} / {formatUnits(storage.maxAmount)}
-            </Text>
-          </div>
-        )}
-      </div>
 
-      {storage.maxAmount > 0 && sparkValues.length >= 2 && (
-        <div
-          style={SPARKLINE_ROW}
-          role="img"
-          aria-label={`${splitCamel(resource)} level over the last ${speakQuantity(
-            value("s", SPARKLINE_WINDOW_SEC),
-          )}`}
-        >
-          <span style={SPARKLINE_LABEL}>
-            Trend
-            <span style={SPARKLINE_SUB}>
-              · <Unit value={value("s", SPARKLINE_WINDOW_SEC)} />
+        <div style={TOTALS}>
+          <div style={{ ...TOTALS_CELL, ...netCellStyle(netTone) }}>
+            <span style={{ ...CELL_LABEL, color: cellLabelColor(netTone) }}>
+              NET
             </span>
-          </span>
-          <div style={SPARKLINE_SLOT}>
-            <Sparkline
-              values={sparkValues}
-              width={240}
-              height={36}
-              color={
-                netTone === "warn"
-                  ? "var(--color-status-warning-bg)"
-                  : netTone === "go"
-                    ? "var(--color-status-go-fg)"
-                    : "var(--color-text-primary)"
-              }
-              yDomain={sparkDomain}
-              ariaLabel={`${splitCamel(resource)} level trend`}
-            />
+            <Text size="sm" style={CELL_VALUE}>
+              {net >= 0 ? "+" : ""}
+              {net.toFixed(2)}/s
+            </Text>
           </div>
+          <div style={TOTALS_CELL}>
+            <span style={CELL_LABEL}>PROD</span>
+            <Text tone="go" size="sm" style={CELL_VALUE}>
+              {totalProduced > 0 ? "+" : ""}
+              {totalProduced.toFixed(2)}
+            </Text>
+          </div>
+          {measuredDisagrees && (
+            <div
+              style={{ ...TOTALS_CELL, ...MEASURED_CELL }}
+              title={`parts.power.totalProductionEc reports ${measuredTotalProduced?.toFixed(2)}, disagreeing with the ${totalProduced.toFixed(2)} the itemized Producers rows sum to. PROD/NET always reflect the itemized rows; this is the separate raw measurement.`}
+            >
+              <span style={CELL_LABEL}>MEASURED</span>
+              <Text size="sm" style={CELL_VALUE}>
+                {measuredTotalProduced?.toFixed(2)}
+              </Text>
+            </div>
+          )}
+          <div style={TOTALS_CELL}>
+            <span style={CELL_LABEL}>CONS</span>
+            <Text tone="warn" size="sm" style={CELL_VALUE}>
+              {totalConsumed.toFixed(2)}
+            </Text>
+          </div>
+          {storage.maxAmount > 0 && (
+            <div style={TOTALS_CELL}>
+              <span style={CELL_LABEL}>STORED</span>
+              <Text size="sm" style={STORED_VALUE}>
+                {formatUnits(storage.amount)} / {formatUnits(storage.maxAmount)}
+              </Text>
+            </div>
+          )}
         </div>
-      )}
 
-      <SectionsScroll $landscape={isLandscape}>
-        <Section
-          as="section"
-          style={isLandscape ? PANEL_SECTION_LANDSCAPE : undefined}
-        >
-          <SectionTitle as="h3">
-            Producers
-            {producers.length > 0 && (
-              <span style={SECTION_COUNT}>· {producers.length}</span>
-            )}
-          </SectionTitle>
-          {producers.length === 0 ? (
-            <div style={SECTION_EMPTY}>Nothing producing.</div>
-          ) : (
-            <div style={CONTRIB_LIST}>
-              {producers.map((c) => (
-                <ContributionRow key={c.flightId} contribution={c} />
-              ))}
+        {storage.maxAmount > 0 && sparkValues.length >= 2 && (
+          <div
+            style={SPARKLINE_ROW}
+            role="img"
+            aria-label={`${splitCamel(resource)} level over the last ${speakQuantity(
+              value("s", SPARKLINE_WINDOW_SEC),
+            )}`}
+          >
+            <span style={SPARKLINE_LABEL}>
+              Trend
+              <span style={SPARKLINE_SUB}>
+                · <Unit value={value("s", SPARKLINE_WINDOW_SEC)} />
+              </span>
+            </span>
+            <div style={SPARKLINE_SLOT}>
+              <Sparkline
+                values={sparkValues}
+                width={240}
+                height={36}
+                color={
+                  netTone === "warn"
+                    ? "var(--color-status-warning-bg)"
+                    : netTone === "go"
+                      ? "var(--color-status-go-fg)"
+                      : "var(--color-text-primary)"
+                }
+                yDomain={sparkDomain}
+                ariaLabel={`${splitCamel(resource)} level trend`}
+              />
             </div>
-          )}
-        </Section>
-        <Section
-          as="section"
-          style={isLandscape ? PANEL_SECTION_LANDSCAPE : undefined}
-        >
-          <SectionTitle as="h3">
-            Consumers
-            {consumers.length > 0 && (
-              <span style={SECTION_COUNT}>· {consumers.length}</span>
-            )}
-          </SectionTitle>
-          {consumers.length === 0 ? (
-            <div style={SECTION_EMPTY}>Nothing consuming.</div>
-          ) : (
-            <div style={CONTRIB_LIST}>
-              {consumers.map((c) => (
-                <ContributionRow key={c.flightId} contribution={c} />
-              ))}
-            </div>
-          )}
-        </Section>
-        {idle.length > 0 && (
+          </div>
+        )}
+
+        <SectionsScroll $landscape={isLandscape}>
           <Section
             as="section"
             style={isLandscape ? PANEL_SECTION_LANDSCAPE : undefined}
           >
             <SectionTitle as="h3">
-              Idle
-              <span style={SECTION_COUNT}>· {idle.length}</span>
+              Producers
+              {producers.length > 0 && (
+                <span style={SECTION_COUNT}>· {producers.length}</span>
+              )}
             </SectionTitle>
-            <div style={IDLE_LIST}>
-              {idle.map((c) => (
-                <ContributionRow key={c.flightId} contribution={c} />
-              ))}
-            </div>
+            {producers.length === 0 ? (
+              <div style={SECTION_EMPTY}>Nothing producing.</div>
+            ) : (
+              <div style={CONTRIB_LIST}>
+                {producers.map((c) => (
+                  <ContributionRow key={c.flightId} contribution={c} />
+                ))}
+              </div>
+            )}
           </Section>
-        )}
-        {/* Augment sections: e.g. a Kerbalism EC-broker breakdown:
-            compose here, below the stock producer/consumer/idle readout. Empty
-            (a bare fragment) until an Uplink registers into the slot. */}
-        <AugmentSlot name="power-systems.sections" props={slotProps} />
-      </SectionsScroll>
-    </Panel>
+          <Section
+            as="section"
+            style={isLandscape ? PANEL_SECTION_LANDSCAPE : undefined}
+          >
+            <SectionTitle as="h3">
+              Consumers
+              {consumers.length > 0 && (
+                <span style={SECTION_COUNT}>· {consumers.length}</span>
+              )}
+            </SectionTitle>
+            {consumers.length === 0 ? (
+              <div style={SECTION_EMPTY}>Nothing consuming.</div>
+            ) : (
+              <div style={CONTRIB_LIST}>
+                {consumers.map((c) => (
+                  <ContributionRow key={c.flightId} contribution={c} />
+                ))}
+              </div>
+            )}
+          </Section>
+          {idle.length > 0 && (
+            <Section
+              as="section"
+              style={isLandscape ? PANEL_SECTION_LANDSCAPE : undefined}
+            >
+              <SectionTitle as="h3">
+                Idle
+                <span style={SECTION_COUNT}>· {idle.length}</span>
+              </SectionTitle>
+              <div style={IDLE_LIST}>
+                {idle.map((c) => (
+                  <ContributionRow key={c.flightId} contribution={c} />
+                ))}
+              </div>
+            </Section>
+          )}
+          {/* Augment sections: e.g. a Kerbalism EC-broker breakdown, composed
+            below the stock producer/consumer/idle readout and INSIDE the same
+            scroller, which is why the seam is placed here rather than left to
+            `Panel`'s default end-of-body mount. */}
+          <WidgetSections />
+        </SectionsScroll>
+      </Panel>
+    </WidgetScopeProvider>
   );
 }
 

@@ -18,7 +18,7 @@ import { useWidgetMeta } from "./WidgetMetaContext";
  * `props` is REQUIRED (spec §4.4): slot props are passed down to every augment,
  * typed against the slot's {@link SlotProps} entry. Overlay slots pass their
  * parent's projection/transform so an augment can draw in the parent's
- * coordinate space; typed-contract slots (e.g. `objectives.sections`) pass the
+ * coordinate space; typed-contract slots (e.g. `objectives.source`) pass the
  * interface an augment must satisfy. Pass `{}` for a slot with no props.
  *
  * Presence gating (spec §4.2): an augment declaring `requires: "<domain>"`

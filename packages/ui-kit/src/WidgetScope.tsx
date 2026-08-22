@@ -1,5 +1,5 @@
+import type { WidgetScope } from "@ksp-gonogo/sitrep-sdk";
 import { createContext, type ReactNode, useContext, useMemo } from "react";
-import { useWidgetMeta } from "./WidgetMetaContext";
 
 // ---------------------------------------------------------------------------
 // What the host widget is currently looking at.
@@ -23,40 +23,39 @@ import { useWidgetMeta } from "./WidgetMetaContext";
 // a widget-authored slot's own props type, where a reader can see all of it.
 // ---------------------------------------------------------------------------
 
-/**
- * Component id -> the scope that widget publishes. Augmented by whichever
- * package owns the widget, the same declaration-merging seam `SlotRegistry`
- * uses:
- *
- *   declare module "@ksp-gonogo/core" {
- *     interface WidgetScopeRegistry {
- *       "power-systems": { resource: string };
- *     }
- *   }
- */
-// biome-ignore lint/suspicious/noEmptyInterface: declaration-merging seam, populated by whichever package owns the widget
-export interface WidgetScopeRegistry {}
+// The seam itself is the sdk's, re-exported, for the reason `slots.ts` exists
+// at all: a widget in `packages/components` merging its scope is invisible to
+// an Uplink that cannot see that package, so the interface has to live where
+// every Uplink already compiles against it. A widget merges into
+// `@ksp-gonogo/core`, an Uplink into `@ksp-gonogo/sitrep-sdk`, and the
+// re-export carries both onto the one interface.
+export type { WidgetScope, WidgetScopeRegistry } from "@ksp-gonogo/sitrep-sdk";
 
-/** The scope type a given widget publishes; a loose record for one that has declared none. */
-export type WidgetScope<C extends string> = C extends keyof WidgetScopeRegistry
-  ? WidgetScopeRegistry[C]
-  : Record<string, unknown>;
-
-const WidgetScopeContext = createContext<unknown>(undefined);
+const WidgetScopeContext = createContext<{
+  widget: string;
+  scope: unknown;
+} | null>(null);
 
 /**
  * Publishes what this widget instance is currently focused on, for augments
  * bound to any of its slots to read. Rendered by the widget, around whatever
  * part of its tree the slots live in (or the whole panel, which is simplest).
+ *
+ * `widget` is the publishing widget's registered component id. It types `scope`
+ * against that widget's registry entry, and it is what a reader matches
+ * against, so an augment can never be handed a different widget's scope through
+ * a provider it happens to sit under.
  */
 export function WidgetScopeProvider<C extends string>({
+  widget,
   scope,
   children,
 }: {
+  widget: C;
   scope: WidgetScope<C>;
   children?: ReactNode;
 }) {
-  const value = useMemo(() => scope, [scope]);
+  const value = useMemo(() => ({ widget, scope }), [widget, scope]);
   return (
     <WidgetScopeContext.Provider value={value}>
       {children}
@@ -69,17 +68,11 @@ export function WidgetScopeProvider<C extends string>({
  * `undefined` when that widget publishes none, or when the augment is rendered
  * outside one (a test, a probe): an augment must handle that, exactly as it
  * already handles a scope key the host has not resolved yet.
- *
- * The component id is checked against the mounting widget's own meta where
- * meta is available, so an augment naming a widget it is not actually inside
- * reads `undefined` rather than silently picking up a different widget's
- * scope through a nested provider.
  */
 export function useWidgetScope<C extends string>(
   componentId: C,
 ): WidgetScope<C> | undefined {
-  const scope = useContext(WidgetScopeContext);
-  const meta = useWidgetMeta();
-  if (meta && meta.componentId !== componentId) return undefined;
-  return scope as WidgetScope<C> | undefined;
+  const published = useContext(WidgetScopeContext);
+  if (!published || published.widget !== componentId) return undefined;
+  return published.scope as WidgetScope<C>;
 }

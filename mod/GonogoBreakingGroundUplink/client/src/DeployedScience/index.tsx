@@ -449,14 +449,14 @@ function DeployedScienceComponent(
                       />
                     </div>
                     {/* Per-experiment-card body slot (augment-slot-map:
-                        deployed-science.sections). A Kerbalism Uplink appends a
+                        deployed-science.experiment). A Kerbalism Uplink appends a
                         background-transmission progress bar here; because the
                         slot renders once PER experiment card, its props carry
                         THIS card's experiment datum (and its body) so the
                         augment targets the right experiment. Renders nothing
                         until an augment binds. */}
                     <AugmentSlot
-                      name="deployed-science.sections"
+                      name="deployed-science.experiment"
                       props={{ experiment: exp, body: base.body }}
                     />
                   </Stack>
@@ -473,7 +473,7 @@ function DeployedScienceComponent(
 // ── Augment slots ─────────────────────────────────────────────────────────────
 
 /**
- * Props passed to every `deployed-science.sections` augment. The slot renders
+ * Props passed to every `deployed-science.experiment` augment. The slot renders
  * once PER experiment card, so its props MUST carry that card's experiment
  * datum: a Kerbalism-style Uplink appends a background-transmission progress
  * bar and needs THIS experiment's identity/progress to target the right one.
@@ -499,7 +499,7 @@ export interface DeployedExperimentContext {
 // every augment of this slot typed as the loose fallback.
 declare module "@ksp-gonogo/sitrep-sdk" {
   interface SlotRegistry {
-    "deployed-science.sections": DeployedExperimentContext;
+    "deployed-science.experiment": DeployedExperimentContext;
   }
 }
 
@@ -517,7 +517,7 @@ registerComponent<DeployedScienceConfig>({
   dataRequirements: ["deployed.bases", "game.dlc.breakingGround"],
   defaultConfig: {},
   actions: [],
-  augmentSlots: ["deployed-science.sections"],
+  augmentSlots: ["deployed-science.experiment"],
   pushable: true,
   owner: BREAKING_GROUND,
 });

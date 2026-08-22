@@ -52,7 +52,7 @@ declare module "@ksp-gonogo/core" {
   interface SlotRegistry {
     // Footer action row: an Uplink contributes a warp-target action
     // ("Warp to <mod-event>") alongside the widget's own warp buttons.
-    "warp-control.actions": Record<string, never>;
+    "warp-control.stepper": Record<string, never>;
   }
 }
 
@@ -347,8 +347,8 @@ function WarpControlComponent({
           {/* Contributed-actions slot: an Uplink adds a warp-target action
               ("Warp to <mod-event>") alongside the widget's own warp buttons.
               Empty (renders nothing) until an augment binds
-              `warp-control.actions`. */}
-          <AugmentSlot name="warp-control.actions" props={{}} />
+              `warp-control.stepper`. */}
+          <AugmentSlot name="warp-control.stepper" props={{}} />
         </Body>
       </DimmedOverlay>
     </Panel>
@@ -477,7 +477,7 @@ registerComponent<WarpControlConfig>({
   ],
   defaultConfig: {},
   actions: warpActions,
-  augmentSlots: ["warp-control.actions"],
+  augmentSlots: ["warp-control.stepper"],
   pushable: true,
 });
 

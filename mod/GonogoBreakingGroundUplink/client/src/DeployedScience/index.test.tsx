@@ -170,13 +170,13 @@ describe("DeployedScienceComponent", () => {
   });
 
   it("renders a bound sections augment per experiment card, carrying its datum", async () => {
-    // A test Uplink binds `deployed-science.sections` and echoes back the
+    // A test Uplink binds `deployed-science.experiment` and echoes back the
     // per-card experiment props. Proves (a) the slot is exposed, (b) an
     // augment composes into it once per experiment, and (c) the props carry
     // the right experiment/body so a per-card augment targets correctly.
-    registerAugment<"deployed-science.sections">({
+    registerAugment<"deployed-science.experiment">({
       id: "test-deployed-section",
-      augments: "deployed-science.sections",
+      augments: "deployed-science.experiment",
       component: ({ experiment, body }: DeployedExperimentContext) => (
         <span data-testid="deployed-section">
           {body}:{experiment.name}:{Math.round(experiment.progress * 100)}

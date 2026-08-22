@@ -18,9 +18,10 @@ import {
   screen,
   TelemetryProvider,
 } from "@ksp-gonogo/sitrep-sdk/testing";
+import { useWidgetScope, WidgetMetaContext } from "@ksp-gonogo/ui-kit";
 
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
-import { ScanningComponent, type ScanningSlotContext } from "./index";
+import { ScanningComponent } from "./index";
 
 /**
  * Scanning augment-slot exposure: SCANsat-OWNED widget exposing a slot OTHER
@@ -87,7 +88,15 @@ describe("Scanning: augment slots (spec §4)", () => {
   async function renderPresent() {
     const result = render(
       <TelemetryProvider client={client}>
-        <ScanningComponent config={{}} id="scanning" />
+        {/* `scanning.sections` is the framework's universal segment now, and
+            a segment slot completes its id from the widget meta the dashboard
+            supplies, so a bare render has no seam to bind to. This is the
+            identity half of that stack, which is all this suite needs. */}
+        <WidgetMetaContext.Provider
+          value={{ componentId: "scanning", contributionSlots: [] }}
+        >
+          <ScanningComponent config={{}} id="scanning" />
+        </WidgetMetaContext.Provider>
       </TelemetryProvider>,
     );
     renderedTrees.push(result.unmount);
@@ -110,8 +119,9 @@ describe("Scanning: augment slots (spec §4)", () => {
     expect(screen.queryByTestId("scan-section-augment")).toBeNull();
   });
 
-  it("renders a test augment bound to the sections slot, passing the focused body as slot props", async () => {
-    function SectionAugment({ bodyName }: ScanningSlotContext) {
+  it("renders a test augment bound to the sections slot, which reads the focused body from the widget's scope", async () => {
+    function SectionAugment() {
+      const bodyName = useWidgetScope("scanning")?.bodyName;
       return (
         <div data-testid="scan-section-augment">RESOURCE-SCAN: {bodyName}</div>
       );

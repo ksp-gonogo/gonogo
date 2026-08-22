@@ -2,6 +2,7 @@ import {
   clearAugments,
   DashboardItemContext,
   registerAugment,
+  WidgetMetaContext,
 } from "@ksp-gonogo/core";
 import {
   KSP_SPACE_CENTER_FACILITY_NAMES,
@@ -63,9 +64,16 @@ describe("SpaceCenterStatusComponent", () => {
   function renderWidget(id = "ksc") {
     return render(
       <stream.Provider>
-        <DashboardItemContext.Provider value={{ instanceId: id }}>
-          <SpaceCenterStatusComponent config={{}} id={id} />
-        </DashboardItemContext.Provider>
+        {/* The identity the dashboard supplies: `Panel` completes
+            `${componentId}.${segment}` from it for the universal
+            `sections` and `actions` seams. */}
+        <WidgetMetaContext.Provider
+          value={{ componentId: "space-center-status", contributionSlots: [] }}
+        >
+          <DashboardItemContext.Provider value={{ instanceId: id }}>
+            <SpaceCenterStatusComponent config={{}} id={id} />
+          </DashboardItemContext.Provider>
+        </WidgetMetaContext.Provider>
       </stream.Provider>,
     );
   }

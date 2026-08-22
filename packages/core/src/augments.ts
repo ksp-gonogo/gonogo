@@ -35,6 +35,8 @@ export {
   type SlotId,
   type SlotProps,
   type SlotRegistry,
+  type WidgetScope,
+  type WidgetScopeRegistry,
 } from "@ksp-gonogo/ui-kit";
 
 /**

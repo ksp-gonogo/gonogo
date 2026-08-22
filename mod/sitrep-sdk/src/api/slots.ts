@@ -59,7 +59,7 @@
 
 // --- WarpControl (packages/components/src/WarpControl) ---------------------
 
-// "warp-control.actions" carries no props today.
+// "warp-control.stepper" carries no props today.
 
 // --- DistanceToTarget (packages/components/src/DistanceToTarget) -----------
 
@@ -340,13 +340,11 @@ export interface MapOverlayContext {
   vesselLon: number | undefined;
 }
 
-/** Mirrors `MapSectionsContext` (MapView/index.tsx). */
-export interface MapSectionsContext {
+/** Mirrors `MapViewScope` (MapView/index.tsx): what the widget is currently
+ *  looking at, read with `useWidgetScope("map-view")`. */
+export interface MapViewScope {
   /** The mapped body (may diverge from the active vessel under a pin). */
   bodyName: string | undefined;
-  /** Per-namespace augment settings, keyed by augment id. Always `undefined`
-   *  until the settings read-back loop lands (see the real widget's doc). */
-  augmentSettings: Record<string, Record<string, unknown>> | undefined;
 }
 
 /** Mirrors `CoverageGate` (MapView/useCoverageGate.ts). */
@@ -368,7 +366,8 @@ export interface MapBaseLayerContext {
   bodyId: string | undefined;
   width: number;
   height: number;
-  /** Per-namespace augment settings: same shape/caveat as `MapSectionsContext`. */
+  /** Per-namespace augment settings, keyed by augment id. Read straight off
+   *  the host widget instance's saved config. */
   augmentSettings: Record<string, Record<string, unknown>> | undefined;
   /** The paint-gate (T4) for this body. */
   coverageGate: MapCoverageGate;
@@ -380,14 +379,6 @@ export interface MapBaseLayerContext {
     canvas: HTMLCanvasElement | null,
     version: number,
   ) => void;
-}
-
-/** Mirrors `MapActionsContext` (MapView/index.tsx). */
-export interface MapActionsContext {
-  /** Per-namespace augment settings: same shape as `MapSectionsContext`'s own field. */
-  augmentSettings: Record<string, Record<string, unknown>> | undefined;
-  /** Persists ONE augment's `show` setting into this widget instance's own config. */
-  setAugmentShow: (augmentId: string, show: boolean) => void;
 }
 
 // --- TechTree (packages/components/src/TechTree) ---------------------------
@@ -477,14 +468,6 @@ export interface ExperimentsInstrumentSlotContext {
   instrument: ExperimentsInstrument;
 }
 
-/** Mirrors `ExperimentsSlotContext` (Experiments/index.tsx). */
-export interface ExperimentsSlotContext {
-  /** Parsed instrument list, or `null` before telemetry arrives. */
-  instruments: ExperimentsInstrument[] | null;
-  /** Total stored science data across all instruments, in mits. */
-  dataAmount: number;
-}
-
 // --- DeployedScience (mod/GonogoBreakingGroundUplink/client/src/DeployedScience) ---
 
 /** Mirrors `DeployedExperiment` (DeployedScience/index.tsx). */
@@ -516,8 +499,9 @@ export interface DeployedExperimentContext {
 
 // --- PowerSystems (packages/components/src/PowerSystems) -------------------
 
-/** Mirrors `PowerSystemsSlotContext` (PowerSystems/index.tsx). */
-export interface PowerSystemsSlotContext {
+/** Mirrors `PowerSystemsScope` (PowerSystems/index.tsx): what the widget is
+ *  currently looking at, read with `useWidgetScope("power-systems")`. */
+export interface PowerSystemsScope {
   /**
    * The resource the widget is currently focused on (the picker/action-cycle
    * selection). Lets an augment scope its breakdown/badge to the same
@@ -553,7 +537,7 @@ declare module "./types" {
 
     "target-picker.sections": Record<string, never>;
 
-    "warp-control.actions": Record<string, never>;
+    "warp-control.stepper": Record<string, never>;
 
     "distance-to-target.camera": DistanceToTargetHudContext;
     "distance-to-target.overlay": DistanceToTargetHudContext;
@@ -567,31 +551,45 @@ declare module "./types" {
     "crew-status.survival": CrewSurvivalSlotContext;
     "crew-status.summary": Record<string, never>;
 
-    "launch-director.sections": LaunchDirectorSlotContext;
+    "launch-director.preflight": LaunchDirectorSlotContext;
 
-    "objectives.sections": ObjectiveSourceContext;
+    "objectives.source": ObjectiveSourceContext;
 
-    "action-group.sections": ActionGroupSlotContext;
+    "action-group.subsystem": ActionGroupSlotContext;
 
     "system-view.actions": Record<string, never>;
     "system-view.overlay": SystemOverlayContext;
 
     "map-view.overlay": MapOverlayContext;
-    "map-view.sections": MapSectionsContext;
     "map-view.base": MapBaseLayerContext;
-    "map-view.actions": MapActionsContext;
+    // Mounted by `Panel`'s universal segments, not by the widget. Declared so a
+    // binder types against the propless contract, not the loose fallback.
+    "map-view.sections": Record<string, never>;
+    "map-view.actions": Record<string, never>;
 
     "science-data.aboard-row": ScienceDataAboardRowContext;
 
     "orbit-view.overlay": OrbitOverlayContext;
 
     "experiments.instrument": ExperimentsInstrumentSlotContext;
-    "experiments.actions": ExperimentsSlotContext;
+    // Mounted by `Panel`'s universal `actions` segment, not by the widget.
+    "experiments.actions": Record<string, never>;
 
-    "deployed-science.sections": DeployedExperimentContext;
+    "deployed-science.experiment": DeployedExperimentContext;
 
     "fuel-status.sections": Record<string, never>;
 
-    "power-systems.sections": PowerSystemsSlotContext;
+    // Mounted by `Panel`'s universal `sections` segment; the resource in focus
+    // reaches an augment through `WidgetScopeRegistry` below instead.
+    "power-systems.sections": Record<string, never>;
+  }
+
+  // What each widget publishes about its own current focus, for an augment to
+  // read with `useWidgetScope`. Mirrored here for the same reachability reason
+  // the slot props above are: a widget in `packages/components` declaring its
+  // scope is invisible to a sealed client that cannot see that package.
+  interface WidgetScopeRegistry {
+    "map-view": MapViewScope;
+    "power-systems": PowerSystemsScope;
   }
 }

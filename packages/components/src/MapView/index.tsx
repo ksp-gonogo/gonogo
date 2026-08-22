@@ -34,6 +34,8 @@ import {
   Panel,
   ReadoutCaption,
   Unit,
+  WidgetScopeProvider,
+  WidgetSections,
 } from "@ksp-gonogo/ui-kit";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { OrbitalEventChips } from "../shared/OrbitalEventChips";
@@ -113,7 +115,7 @@ function canvasColor(
 // equirectangular projection down as slot props. Composable /
 // layered by priority: an Uplink's own scan-layer, commlink, and
 // trajectory overlays all route HERE. `map-view.sections` is a
-// below-content panel slot (mirrors `objectives.sections`/
+// below-content panel slot (mirrors `objectives.source`/
 // `power-systems.sections`); `map-view.actions` is a header control-row
 // slot (mirrors `system-view.actions`) for quick per-layer toggles; and
 // `map-view.base` is the STACKABLE REPLACE slot for the map's base
@@ -168,22 +170,19 @@ export interface MapOverlayContext {
 }
 
 /**
- * Props for `map-view.sections`: a below-content panel slot, composed
- * additively by priority exactly like `map-view.overlay` and the
- * already-established `objectives.sections`/`power-systems.sections`
- * pattern. One panel per registered augment, rendered below the map canvas.
+ * What this widget is currently looking at, published for every augment bound
+ * to any of its slots. Read with `useWidgetScope("map-view")`.
+ *
+ * It was `map-view.sections`'s slot props, alongside an `augmentSettings` field
+ * whose own doc said it was "always `undefined` until [the read-back loop
+ * lands]". The read-back loop is the framework's now
+ * (`AugmentSettingsProvider`), and the body is a scope, so neither belongs in a
+ * slot's props: `map-view.sections` is the universal propless segment `Panel`
+ * mounts for every widget.
  */
-export interface MapSectionsContext {
+export interface MapViewScope {
   /** The mapped body (may diverge from the active vessel under a pin). */
   bodyName: string | undefined;
-  /**
-   * Per-namespace augment settings, keyed by augment id, the same
-   * namespacing `getAugmentSettings` uses. Threaded through now so the
-   * slot contract is stable; the read-back loop that resolves real
-   * per-instance values from the widget's saved config lands in a later
-   * task, so this is always `undefined` until then.
-   */
-  augmentSettings: Record<string, Record<string, unknown>> | undefined;
 }
 
 /**
@@ -233,31 +232,15 @@ export interface MapBaseLayerContext {
   ) => void;
 }
 
-/**
- * Props for `map-view.actions`: a header control-row slot (mirrors
- * `system-view.actions`) for quick per-layer toggles, alongside the
- * generic settings-panel checkboxes `AugmentSettingsPanel` already renders.
- * Unlike `system-view.actions` (which takes no props: its own toggles are
- * dashboard-instance-wide, not per-widget), MapView can have multiple
- * instances (different `bodyOverride` pins), so this slot threads the
- * CURRENT widget instance's own settings down and a way to persist a change
- * back into THAT instance's saved config: the same `augmentSettings[id]`
- * storage `map-view.base`/`map-view.sections` read and the settings-panel
- * Switch writes, so a quick toggle here and the settings-panel checkbox
- * always agree (spec: one source of truth, two surfaces).
- */
-export interface MapActionsContext {
-  /** Per-namespace augment settings: same shape/caveat as
-   *  `MapSectionsContext`'s own field. A read-only snapshot of this widget
-   *  instance's current saved values. */
-  augmentSettings: Record<string, Record<string, unknown>> | undefined;
-  /**
-   * Persists ONE augment's `show` setting into this widget instance's own
-   * config. A no-op when the widget isn't hosted by something that wired
-   * up `onConfigChange` (e.g. an isolated render in a test).
-   */
-  setAugmentShow: (augmentId: string, show: boolean) => void;
-}
+// `map-view.actions` used to be declared here with props of
+// `{ augmentSettings, setAugmentShow }`, threaded down because a per-instance
+// read/write handle on the augment-SETTINGS system had nowhere else to live.
+// That is the framework's capability, not MapView's: it is now
+// `AugmentSettingsProvider` / `useAugmentSettings`, mounted for every widget by
+// the dashboard. With the props gone, `map-view.actions` is propless and is
+// simply the universal `actions` segment `Panel` mounts, the same one
+// `system-view.actions` is; the difference between the two was never anything
+// about maps.
 
 // Co-located declaration-merge of this widget's slot ids → their props. Kept
 // next to the widget (not in a central registry file) so parallel slot work
@@ -265,9 +248,16 @@ export interface MapActionsContext {
 declare module "@ksp-gonogo/core" {
   interface SlotRegistry {
     "map-view.overlay": MapOverlayContext;
-    "map-view.sections": MapSectionsContext;
     "map-view.base": MapBaseLayerContext;
-    "map-view.actions": MapActionsContext;
+    // Both mounted by `Panel`'s universal segments rather than by this widget.
+    // The ids stay declared so a binder's component types against the propless
+    // contract rather than the loose fallback.
+    "map-view.sections": Record<string, never>;
+    "map-view.actions": Record<string, never>;
+  }
+
+  interface WidgetScopeRegistry {
+    "map-view": MapViewScope;
   }
 }
 
@@ -379,7 +369,6 @@ function VanillaSuppressionProbe({
 
 function MapViewComponent({
   config,
-  onConfigChange,
   w,
   h,
 }: Readonly<ComponentProps<MapViewConfig>>) {
@@ -623,25 +612,6 @@ function MapViewComponent({
   // settings) already treats that as "no overrides".
   const augmentSettings: Record<string, Record<string, unknown>> | undefined =
     config?.augmentSettings;
-
-  // Read/write half of `map-view.actions`'s quick per-layer toggles (spec:
-  // the action and the settings-panel checkbox read/write the SAME
-  // `augmentSettings[id].show`: one source of truth, two surfaces). Mirrors
-  // OrbitView's own `onConfigChange?.({ ...config, ... })` inline-persist
-  // pattern; a no-op when nothing wired up `onConfigChange` (e.g. an
-  // isolated test render).
-  const setAugmentShow = useCallback(
-    (augmentId: string, show: boolean) => {
-      onConfigChange?.({
-        ...config,
-        augmentSettings: {
-          ...augmentSettings,
-          [augmentId]: { ...augmentSettings?.[augmentId], show },
-        },
-      });
-    },
-    [config, augmentSettings, onConfigChange],
-  );
 
   // T4's paint-gate: a mod-agnostic map-view.base augment samples this
   // per output tile while drawing its own surface (settled model: zero
@@ -1164,11 +1134,10 @@ function MapViewComponent({
   // position, so an augment can do its own distance/bearing ranking
   // against it. `overlay` is null until the container has measured, the
   // layer only mounts once there's a pixel-sized map beneath it.
-  const sectionsContext: MapSectionsContext = {
-    bodyName: displayName,
-    augmentSettings,
-  };
-  const actionsContext: MapActionsContext = { augmentSettings, setAugmentShow };
+  const scope: MapViewScope = useMemo(
+    () => ({ bodyName: displayName }),
+    [displayName],
+  );
   const baseLayerContext: MapBaseLayerContext | null = containerSize
     ? {
         bodyId: targetBodyId,
@@ -1210,60 +1179,62 @@ function MapViewComponent({
 
   if (!showMap) {
     return (
-      <Panel
-        panelTitle="MAP VIEW"
-        // No manual stream badge here: the composed header below renders the
-        // host-derived status (every topic this widget declares), same as the
-        // full map branch.
-        panelAside={
-          showBodyLabel && displayName ? (
-            <BodyLabel>{displayName}</BodyLabel>
-          ) : undefined
-        }
-      >
-        <CompactReadout>
-          <CompactRow>
-            <CompactLabel>Lat</CompactLabel>
-            <CompactValue>
-              {lat === undefined ? (
-                NULL_DISPLAY
-              ) : (
-                <Unit value={lat} decimals={2} />
-              )}
-            </CompactValue>
-          </CompactRow>
-          <CompactRow>
-            <CompactLabel>Lon</CompactLabel>
-            <CompactValue>
-              {lon === undefined ? (
-                NULL_DISPLAY
-              ) : (
-                <Unit value={lon} decimals={2} />
-              )}
-            </CompactValue>
-          </CompactRow>
-          {altSea !== undefined && rows >= 5 && (
+      <WidgetScopeProvider widget="map-view" scope={scope}>
+        <Panel
+          panelTitle="MAP VIEW"
+          // No manual stream badge here: the composed header below renders the
+          // host-derived status (every topic this widget declares), same as the
+          // full map branch.
+          panelAside={
+            showBodyLabel && displayName ? (
+              <BodyLabel>{displayName}</BodyLabel>
+            ) : undefined
+          }
+        >
+          <CompactReadout>
             <CompactRow>
-              <CompactLabel>Alt</CompactLabel>
+              <CompactLabel>Lat</CompactLabel>
               <CompactValue>
-                <Unit value={value("m", altSea)} />
+                {lat === undefined ? (
+                  NULL_DISPLAY
+                ) : (
+                  <Unit value={lat} decimals={2} />
+                )}
               </CompactValue>
             </CompactRow>
-          )}
-          {/* The compact branch needs the same statement the full map makes.
+            <CompactRow>
+              <CompactLabel>Lon</CompactLabel>
+              <CompactValue>
+                {lon === undefined ? (
+                  NULL_DISPLAY
+                ) : (
+                  <Unit value={lon} decimals={2} />
+                )}
+              </CompactValue>
+            </CompactRow>
+            {altSea !== undefined && rows >= 5 && (
+              <CompactRow>
+                <CompactLabel>Alt</CompactLabel>
+                <CompactValue>
+                  <Unit value={value("m", altSea)} />
+                </CompactValue>
+              </CompactRow>
+            )}
+            {/* The compact branch needs the same statement the full map makes.
               Without it a withheld position is a bare em dash, which is exactly
               "renders nothing and is indistinguishable from broken": the
               operator cannot tell a craft that never reported from one whose
               coordinates we have stopped vouching for. */}
-          {positionStale && (
-            <CompactRow>
-              <ReadoutCaption>
-                Position not current: marker withheld
-              </ReadoutCaption>
-            </CompactRow>
-          )}
-        </CompactReadout>
-      </Panel>
+            {positionStale && (
+              <CompactRow>
+                <ReadoutCaption>
+                  Position not current: marker withheld
+                </ReadoutCaption>
+              </CompactRow>
+            )}
+          </CompactReadout>
+        </Panel>
+      </WidgetScopeProvider>
     );
   }
 
@@ -1308,94 +1279,100 @@ function MapViewComponent({
     ) : undefined;
 
   return (
-    <Panel
-      panelTitle="MAP VIEW"
-      panelAside={
-        <AugmentSlot name="map-view.actions" props={actionsContext} />
-      }
-      panelToolbar={toolbar}
-    >
-      <MapBody>
-        <MapFrame>
-          <MapOuter ref={outerRef}>
-            <CanvasContainer
-              ref={interactionRef}
-              style={
-                containerSize
-                  ? { width: containerSize.w, height: containerSize.h }
-                  : undefined
-              }
-              onPointerDown={onPointerDown}
-              onPointerMove={onPointerMove}
-              onPointerUp={onPointerUp}
-              onPointerCancel={onPointerCancel}
-            >
-              <BaseCanvas ref={baseRef} data-testid="map-view-base-canvas" />
-              <OverlayCanvas ref={overlayRef} />
-              <PersistentDataCanvas ref={persistentDataRef} />
-              {/* The sampled-segment count, on the layer that draws it. A
+    <WidgetScopeProvider widget="map-view" scope={scope}>
+      <Panel
+        panelTitle="MAP VIEW"
+        panelToolbar={toolbar}
+        /* The sections seam belongs under `MapSections`'s own divider, not at the
+         bare end of the body, so this widget places it and turns off the
+         default mount. */
+        panelSections={false}
+      >
+        <MapBody>
+          <MapFrame>
+            <MapOuter ref={outerRef}>
+              <CanvasContainer
+                ref={interactionRef}
+                style={
+                  containerSize
+                    ? { width: containerSize.w, height: containerSize.h }
+                    : undefined
+                }
+                onPointerDown={onPointerDown}
+                onPointerMove={onPointerMove}
+                onPointerUp={onPointerUp}
+                onPointerCancel={onPointerCancel}
+              >
+                <BaseCanvas ref={baseRef} data-testid="map-view-base-canvas" />
+                <OverlayCanvas ref={overlayRef} />
+                <PersistentDataCanvas ref={persistentDataRef} />
+                {/* The sampled-segment count, on the layer that draws it. A
                   canvas has no inspectable content, so without this the only
                   observable difference between a drawn track and a refused one
                   is pixels nothing can read, and a gate whose effect cannot be
                   seen reports success either way. */}
-              <PredictionCanvas
-                ref={predictionRef}
-                data-prediction-segments={predictionSegments.length}
-              />
-              <DataCanvas ref={dataRef} />
-              {(lat === undefined || lon === undefined) && (
-                <NoSignal>
-                  {positionStale
-                    ? "Position not current: marker withheld"
-                    : targetBodyId === undefined
-                      ? "Waiting for telemetry..."
-                      : "No position data"}
-                </NoSignal>
-              )}
-              {baseLayerContext && (
-                <AugmentSlot name="map-view.base" props={baseLayerContext} />
-              )}
-              {getAugmentsForSlot("map-view.base")
-                .filter((a) => a.suppressesVanillaBase === true)
-                .map((a) => (
-                  <VanillaSuppressionProbe
-                    key={a.id}
-                    augment={a}
-                    onAvailableChange={onSuppressAvailabilityChange}
-                  />
-                ))}
-              {overlayContext && (
-                <OverlayAugmentLayer>
-                  <AugmentSlot name="map-view.overlay" props={overlayContext} />
-                </OverlayAugmentLayer>
-              )}
-              {overlayContext && showPois && (
-                <MapPoiLayer
-                  bodyId={targetBodyId}
-                  project={overlayContext.project}
-                  width={overlayContext.width}
-                  height={overlayContext.height}
+                <PredictionCanvas
+                  ref={predictionRef}
+                  data-prediction-segments={predictionSegments.length}
                 />
-              )}
-            </CanvasContainer>
-          </MapOuter>
-        </MapFrame>
-      </MapBody>
+                <DataCanvas ref={dataRef} />
+                {(lat === undefined || lon === undefined) && (
+                  <NoSignal>
+                    {positionStale
+                      ? "Position not current: marker withheld"
+                      : targetBodyId === undefined
+                        ? "Waiting for telemetry..."
+                        : "No position data"}
+                  </NoSignal>
+                )}
+                {baseLayerContext && (
+                  <AugmentSlot name="map-view.base" props={baseLayerContext} />
+                )}
+                {getAugmentsForSlot("map-view.base")
+                  .filter((a) => a.suppressesVanillaBase === true)
+                  .map((a) => (
+                    <VanillaSuppressionProbe
+                      key={a.id}
+                      augment={a}
+                      onAvailableChange={onSuppressAvailabilityChange}
+                    />
+                  ))}
+                {overlayContext && (
+                  <OverlayAugmentLayer>
+                    <AugmentSlot
+                      name="map-view.overlay"
+                      props={overlayContext}
+                    />
+                  </OverlayAugmentLayer>
+                )}
+                {overlayContext && showPois && (
+                  <MapPoiLayer
+                    bodyId={targetBodyId}
+                    project={overlayContext.project}
+                    width={overlayContext.width}
+                    height={overlayContext.height}
+                  />
+                )}
+              </CanvasContainer>
+            </MapOuter>
+          </MapFrame>
+        </MapBody>
 
-      {/* Under the map rather than over it: the terrain, the base layers and the
+        {/* Under the map rather than over it: the terrain, the base layers and the
           craft's own marker are all still correct, and only the forward track is
           missing, so covering the map would overstate what was refused. */}
-      {trajectoryWithheld && predictionEnabled && hasPatchChain && (
-        <ReadoutCaption role="status">
-          {trajectoryWithheldCopy(trajectoryWithheld).heading}: no predicted
-          ground track
-        </ReadoutCaption>
-      )}
+        {trajectoryWithheld && predictionEnabled && hasPatchChain && (
+          <ReadoutCaption role="status">
+            {trajectoryWithheldCopy(trajectoryWithheld).heading}: no predicted
+            ground track
+          </ReadoutCaption>
+        )}
 
-      <MapSections>
-        <AugmentSlot name="map-view.sections" props={sectionsContext} />
-      </MapSections>
-    </Panel>
+        <MapSections>
+          <WidgetSections />
+        </MapSections>
+      </Panel>
+    </WidgetScopeProvider>
   );
 }
 

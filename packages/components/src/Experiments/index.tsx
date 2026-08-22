@@ -56,23 +56,11 @@ export interface ExperimentsInstrumentSlotContext {
   instrument: Instrument;
 }
 
-/**
- * Slot context for `experiments.actions`: the header escape-hatch slot next
- * to the title. It was `science-officer.badges`, a name that matched neither
- * the widget's registered id (`experiments`) nor the registry it lived in:
- * `.badges` is the framework's CONTRIBUTION segment, auto-completed for every
- * widget, so an augment wearing that name sat on a string a second registry
- * already owned. Deliberately broad: it carries the whole instrument list
- * (`null` while awaiting telemetry, `[]` for a vessel with no instruments)
- * plus the total stored science so a header augment can summarise
- * vessel-wide science state without re-reading the topics itself.
- */
-export interface ExperimentsSlotContext {
-  /** Parsed instrument list, or `null` before telemetry arrives. */
-  instruments: Instrument[] | null;
-  /** Total stored science data across all instruments, in mits. */
-  dataAmount: number;
-}
+// `experiments.actions` is the framework's universal header segment, mounted by
+// `Panel` for every widget, so this widget declares no props type for it: a
+// universal segment is propless. It was `science-officer.badges` with a context
+// carrying the instrument list and total science; the one binder ignored both
+// (`_props`) and reads its own Topic instead, which is what an augment is for.
 
 // Declaration-merge the slot ids → props types into core's `SlotRegistry`.
 // Co-located here so parallel slot work on other widgets never collides on
@@ -84,7 +72,8 @@ export interface ExperimentsSlotContext {
 declare module "@ksp-gonogo/core" {
   interface SlotRegistry {
     "experiments.instrument": ExperimentsInstrumentSlotContext;
-    "experiments.actions": ExperimentsSlotContext;
+    // Mounted by `Panel`'s universal `actions` segment, not by this widget.
+    "experiments.actions": Record<string, never>;
   }
 }
 
@@ -369,17 +358,10 @@ function ExperimentsComponent({
   ));
 
   return (
-    <Panel
-      panelTitle="EXPERIMENTS"
-      /* Header escape-hatch slot: a broad badge/summary augment composes next
-         to the title. Empty (renders nothing) until an Uplink registers. */
-      panelAside={
-        <AugmentSlot
-          name="experiments.actions"
-          props={{ instruments, dataAmount: totalDataMits }}
-        />
-      }
-    >
+    /* The header escape-hatch slot is `Panel`'s universal `actions` segment,
+       so there is nothing to render here: an augment composing next to the
+       title binds `experiments.actions` and `Panel` places it. */
+    <Panel panelTitle="EXPERIMENTS">
       {showSubtitle && (
         <Text tone="muted" size="xs" role="status" aria-live="polite">
           {totals.hasData}/{totals.total} with data · {totals.deployed} deployed

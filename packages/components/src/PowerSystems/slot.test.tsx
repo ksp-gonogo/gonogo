@@ -5,6 +5,7 @@ import {
   DashboardItemContext,
   getAugmentsForSlot,
   registerAugment,
+  WidgetMetaContext,
 } from "@ksp-gonogo/core";
 import {
   act,
@@ -12,6 +13,7 @@ import {
   screen,
   waitFor,
 } from "@ksp-gonogo/test-utils";
+import { useWidgetScope } from "@ksp-gonogo/ui-kit";
 import type { ReactElement } from "react";
 import { afterEach, describe, expect, it } from "vitest";
 import {
@@ -19,7 +21,7 @@ import {
   teardownMockDataSource,
 } from "../test/setupMockDataSource";
 import { setupStreamFixture } from "../test/setupStreamFixture";
-import { PowerSystemsComponent, type PowerSystemsSlotContext } from "./index";
+import { PowerSystemsComponent } from "./index";
 
 // Rendered trees, tracked so afterEach can unmount them BEFORE clearing the
 // action-handler / augment registries: clearActionHandlers()/clearAugments()
@@ -37,8 +39,8 @@ function render(ui: ReactElement) {
  * PowerSystems augment-slot exposure (this widget
  * is THE worked example). The `power-systems.sections` slot is exposed but
  * ships no filler here (that is an Uplink augment's job): an empty slot must
- * render cleanly, and a test augment registered into it must appear, receiving
- * the widget's resource focus as typed slot props.
+ * render cleanly, and a test augment registered into it must appear, reading
+ * the widget's resource focus from its published scope.
  */
 
 const KEYS: DataKey[] = [
@@ -88,9 +90,16 @@ async function renderFullList() {
   });
   render(
     <streamFixture.Provider>
-      <DashboardItemContext.Provider value={{ instanceId: "ps-slot" }}>
-        <PowerSystemsComponent id="ps-slot" w={8} h={12} />
-      </DashboardItemContext.Provider>
+      {/* The identity the dashboard supplies: `Panel` completes
+          `${componentId}.${segment}` from it for the universal
+          `sections` and `actions` seams. */}
+      <WidgetMetaContext.Provider
+        value={{ componentId: "power-systems", contributionSlots: [] }}
+      >
+        <DashboardItemContext.Provider value={{ instanceId: "ps-slot" }}>
+          <PowerSystemsComponent id="ps-slot" w={8} h={12} />
+        </DashboardItemContext.Provider>
+      </WidgetMetaContext.Provider>
     </streamFixture.Provider>,
   );
   act(() => {
@@ -125,8 +134,12 @@ describe("PowerSystems: augment slots (spec §4)", () => {
     teardownMockDataSource(fixture);
   });
 
-  it("renders a test augment bound to the sections slot, passing the focused resource as slot props", async () => {
-    function SectionAugment({ resource }: PowerSystemsSlotContext) {
+  it("renders a test augment bound to the sections slot, which reads the focused resource from the widget's scope", async () => {
+    // `power-systems.sections` is the framework's universal segment now and
+    // carries no props; the resource the operator is looking at reaches the
+    // augment through the widget's published SCOPE instead.
+    function SectionAugment() {
+      const resource = useWidgetScope("power-systems")?.resource;
       return <div data-testid="ps-section-augment">EC-BROKER: {resource}</div>;
     }
     const fixture = await renderFullList();
@@ -141,7 +154,7 @@ describe("PowerSystems: augment slots (spec §4)", () => {
 
     const augment = await screen.findByTestId("ps-section-augment");
     expect(augment).toBeTruthy();
-    // The slot passed the widget's current resource focus down.
+    // The widget published its current resource focus, and the augment read it.
     expect(augment.textContent).toBe("EC-BROKER: ElectricCharge");
     teardownMockDataSource(fixture);
   });

@@ -1,6 +1,5 @@
 import {
   type ActionDefinition,
-  AugmentSlot,
   type ComponentProps,
   type CurrentOrbit,
   getBody,
@@ -28,6 +27,7 @@ import {
   Stack,
   Tabs,
   usePanelDelay,
+  WidgetSections,
 } from "@ksp-gonogo/ui-kit";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import styled from "styled-components";
@@ -86,9 +86,6 @@ declare module "@ksp-gonogo/core" {
     "maneuver-planner.sections": ManeuverPlannerSectionsSlotProps;
   }
 }
-
-// Stable empty reference so slot re-renders don't churn mounted augments.
-const EMPTY_SLOT_PROPS: Record<string, never> = {};
 
 /**
  * The command-string id for the node at legacy array position `index`: the
@@ -877,7 +874,7 @@ function ManeuverPlannerComponent({
   }
 
   return (
-    <Panel panelTitle="MANEUVER PLANNER">
+    <Panel panelTitle="MANEUVER PLANNER" panelSections={false}>
       <ScrollBody>
         {refBody !== undefined && (
           <RefBodyCaption data-ref-body-caption="">{refBody}</RefBodyCaption>
@@ -954,13 +951,12 @@ function ManeuverPlannerComponent({
             onArm={handleArmTrigger}
           />
         )}
-        {/* Whole-widget append below the preview + feasibility check, an
-            alternate-transfer-strategy Uplink (porkchop / optimal transfer)
-            binds here. Renders nothing until an augment registers. */}
-        <AugmentSlot
-          name="maneuver-planner.sections"
-          props={EMPTY_SLOT_PROPS}
-        />
+        {/* Below the preview + feasibility check: an alternate-transfer-strategy
+            Uplink (porkchop / optimal transfer) binds here. Placed rather than
+            left to `Panel`'s end-of-body default because this is the PLAN tab;
+            the default mount would sit outside the tabs and show on every one
+            of them. */}
+        <WidgetSections />
       </>
     );
   }

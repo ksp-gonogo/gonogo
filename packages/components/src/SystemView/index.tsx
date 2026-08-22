@@ -98,10 +98,12 @@ export interface SystemOverlayContext {
 
 // Co-located declaration-merge of this widget's slot ids → their props. Kept
 // next to the widget (not in a central registry file) so parallel slot work
-// on other widgets never collides on this seam. `.actions` takes no
-// props (`Record<string, never>`): an actions augment reads its own state.
+// on other widgets never collides on this seam.
 declare module "@ksp-gonogo/core" {
   interface SlotRegistry {
+    // Rendered by `Panel`'s universal `actions` segment, not by this widget:
+    // the id is declared here only so a binder's component still types against
+    // the propless contract rather than the loose fallback.
     "system-view.actions": Record<string, never>;
     "system-view.overlay": SystemOverlayContext;
   }
@@ -719,13 +721,6 @@ function SystemViewComponent({
   return (
     <Panel
       panelTitle="SYSTEM"
-      panelAside={
-        // Header slot: an `.actions` control row beside the panel's own title.
-        // Empty until an Uplink binds: an empty slot renders nothing. Header
-        // BADGES arrive separately, through the automatic `system-view.badges`
-        // contribution slot Panel draws itself.
-        <AugmentSlot name="system-view.actions" props={{}} />
-      }
       // The almanac is a second scrolling region, not more body content:
       // reading it must not scroll the diagram it describes off the tile.
       // `auto` measures the tile and picks the axis, which is the pair of
@@ -962,8 +957,11 @@ registerComponent<SystemViewConfig>({
   component: SystemViewComponent,
   configComponent: SystemViewConfigComponent,
   // Exposes a coordinated `.actions` + `.overlay` pair: one augment can drive
-  // an overlay from a header control, sharing its own context. The overlay slot
-  // passes the diagram's projection as typed slot props.
+  // an overlay from a header control, sharing its own context. `.actions` is
+  // the framework's universal header segment (`Panel` mounts it for every
+  // widget) and is listed here because this is where an author looks to find
+  // what a widget opens up; `.overlay` is this widget's own, and passes the
+  // diagram's projection as typed slot props.
   augmentSlots: ["system-view.actions", "system-view.overlay"],
   // The plotted vessel's node decoration: fed by the built-in comms-derived
   // contribution (`./vesselStatusContribution.ts`) and open to any other

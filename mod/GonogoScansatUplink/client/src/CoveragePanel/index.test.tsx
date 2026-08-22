@@ -6,7 +6,6 @@ import {
   MemoryStore,
   Quality,
   registerDataSource,
-  type SlotProps,
 } from "@ksp-gonogo/sitrep-sdk";
 import {
   act,
@@ -19,6 +18,7 @@ import {
   waitFor,
   within,
 } from "@ksp-gonogo/sitrep-sdk/testing";
+import { WidgetScopeProvider } from "@ksp-gonogo/ui-kit";
 import {
   expectNoA11yViolations,
   visibleText,
@@ -67,15 +67,24 @@ function vessel(over: Partial<SCANScanningVessel>): SCANScanningVessel {
   };
 }
 
-function sectionsProps(
-  overrides: Partial<SlotProps<"map-view.sections">> = {},
-): SlotProps<"map-view.sections"> {
-  return {
-    bodyName: "Kerbin",
-    augmentSettings: undefined,
-    ...overrides,
-  };
+// `map-view.sections` is the framework's universal segment and carries no
+// props: the mapped body reaches the augment through MapView's published SCOPE,
+// so a test stands that up the way the real host does.
+function MappedBody({
+  bodyName = "Kerbin" as string | undefined,
+  children,
+}: {
+  bodyName?: string | undefined;
+  children: ReactElement;
+}) {
+  return (
+    <WidgetScopeProvider widget="map-view" scope={{ bodyName }}>
+      {children}
+    </WidgetScopeProvider>
+  );
 }
+
+const NO_PROPS: Record<string, never> = {};
 
 // Rendered trees, tracked so afterEach can unmount them BEFORE disconnecting
 // the buffered source. RTL auto-cleanup runs after this file's afterEach, so it
@@ -123,7 +132,9 @@ describe("CoveragePanel: map-view.sections slot", () => {
     renderSlot(
       <TelemetryProvider client={client}>
         <WithScansatAvailability>
-          <AugmentSlot name="map-view.sections" props={sectionsProps()} />
+          <MappedBody>
+            <AugmentSlot name="map-view.sections" props={NO_PROPS} />
+          </MappedBody>
         </WithScansatAvailability>
       </TelemetryProvider>,
     );
@@ -140,7 +151,9 @@ describe("CoveragePanel: map-view.sections slot", () => {
     // No TelemetryProvider at all: the app-realistic case of a KSP install
     // with no SCANsat mod present: scansat.available never arrives.
     renderSlot(
-      <AugmentSlot name="map-view.sections" props={sectionsProps()} />,
+      <MappedBody>
+        <AugmentSlot name="map-view.sections" props={NO_PROPS} />
+      </MappedBody>,
     );
     act(() => {
       source.emit("scansat.coverage.Kerbin.2", 45.6);
@@ -158,7 +171,9 @@ describe("CoveragePanel: map-view.sections slot", () => {
     renderSlot(
       <TelemetryProvider client={client}>
         <WithScansatAvailability>
-          <AugmentSlot name="map-view.sections" props={sectionsProps()} />
+          <MappedBody>
+            <AugmentSlot name="map-view.sections" props={NO_PROPS} />
+          </MappedBody>
         </WithScansatAvailability>
       </TelemetryProvider>,
     );
@@ -204,7 +219,9 @@ describe("CoveragePanel: map-view.sections slot", () => {
     renderSlot(
       <TelemetryProvider client={client}>
         <WithScansatAvailability>
-          <AugmentSlot name="map-view.sections" props={sectionsProps()} />
+          <MappedBody>
+            <AugmentSlot name="map-view.sections" props={NO_PROPS} />
+          </MappedBody>
         </WithScansatAvailability>
       </TelemetryProvider>,
     );
@@ -234,10 +251,9 @@ describe("CoveragePanel: map-view.sections slot", () => {
     renderSlot(
       <TelemetryProvider client={client}>
         <WithScansatAvailability>
-          <AugmentSlot
-            name="map-view.sections"
-            props={sectionsProps({ bodyName: undefined })}
-          />
+          <MappedBody bodyName={undefined}>
+            <AugmentSlot name="map-view.sections" props={NO_PROPS} />
+          </MappedBody>
         </WithScansatAvailability>
       </TelemetryProvider>,
     );
@@ -258,7 +274,9 @@ describe("CoveragePanel: map-view.sections slot", () => {
     const { container } = renderSlot(
       <TelemetryProvider client={client}>
         <WithScansatAvailability>
-          <AugmentSlot name="map-view.sections" props={sectionsProps()} />
+          <MappedBody>
+            <AugmentSlot name="map-view.sections" props={NO_PROPS} />
+          </MappedBody>
         </WithScansatAvailability>
       </TelemetryProvider>,
     );

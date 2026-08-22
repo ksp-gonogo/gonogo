@@ -1,6 +1,5 @@
 import { render, screen } from "@ksp-gonogo/sitrep-sdk/testing";
 import { describe, expect, it } from "vitest";
-import { WidgetMetaContext } from "./WidgetMetaContext";
 import { useWidgetScope, WidgetScopeProvider } from "./WidgetScope";
 
 function ScopeProbe({ host }: { host: string }) {
@@ -18,9 +17,9 @@ function Host({
   children: React.ReactNode;
 }) {
   return (
-    <WidgetMetaContext.Provider value={{ componentId, contributionSlots: [] }}>
-      <WidgetScopeProvider scope={scope}>{children}</WidgetScopeProvider>
-    </WidgetMetaContext.Provider>
+    <WidgetScopeProvider widget={componentId} scope={scope}>
+      {children}
+    </WidgetScopeProvider>
   );
 }
 

@@ -2,6 +2,7 @@ import {
   DashboardItemContext,
   getAugmentsForSlot,
   registerAugment,
+  WidgetMetaContext,
 } from "@ksp-gonogo/core";
 import { act, render, screen, waitFor, within } from "@ksp-gonogo/test-utils";
 import {
@@ -31,15 +32,22 @@ function renderPicker(
 ) {
   return render(
     <fixture.Provider>
-      <DashboardItemContext.Provider
-        value={{ instanceId: opts.instanceId ?? "tp" }}
+      {/* The identity the dashboard supplies: `Panel` completes
+          `${componentId}.${segment}` from it for the universal `sections`
+          and `actions` seams. */}
+      <WidgetMetaContext.Provider
+        value={{ componentId: "target-picker", contributionSlots: [] }}
       >
-        <TargetPickerComponent
-          id={opts.instanceId ?? "tp"}
-          w={opts.w ?? 10}
-          h={opts.h ?? 14}
-        />
-      </DashboardItemContext.Provider>
+        <DashboardItemContext.Provider
+          value={{ instanceId: opts.instanceId ?? "tp" }}
+        >
+          <TargetPickerComponent
+            id={opts.instanceId ?? "tp"}
+            w={opts.w ?? 10}
+            h={opts.h ?? 14}
+          />
+        </DashboardItemContext.Provider>
+      </WidgetMetaContext.Provider>
     </fixture.Provider>,
   );
 }

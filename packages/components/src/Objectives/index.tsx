@@ -33,7 +33,7 @@ import { useAlarmCreator, useAlarmManager } from "../shared/AlarmsLauncher";
  * Objectives: a read-only, in-flight-friendly view of everything you're
  * currently trying to achieve. It is the **augment-model dogfood**: the
  * widget itself is a pure *frame* (Panel +
- * `OBJECTIVES` title + one `objectives.sections` slot), and its content arrives
+ * `OBJECTIVES` title + one `objectives.source` slot), and its content arrives
  * through the augment system. Active-contract parameters (`contracts.active`)
  * are the sole source, rendered as an augment satisfying the typed "objective
  * source" contract the frame publishes as the slot's props.
@@ -68,7 +68,7 @@ export interface ObjectiveItem {
 // ---------------------------------------------------------------------------
 // The typed "objective source" contract
 //
-// `objectives.sections` is the first typed-contract slot. The frame publishes,
+// `objectives.source` is the first typed-contract slot. The frame publishes,
 // as the slot's props, the interface an objective-source augment must satisfy:
 // a presentational `Section` component that renders a source's contributed
 // `ObjectiveItem[]` plus an optional per-item alarm affordance. An augment
@@ -91,7 +91,7 @@ export interface ObjectiveSection {
 
 /**
  * The slot's props: the "objective source" contract itself. An augment bound to
- * `objectives.sections` receives this and contributes by rendering `<Section ...>`.
+ * `objectives.source` receives this and contributes by rendering `<Section ...>`.
  */
 export interface ObjectiveSourceContext {
   Section: ComponentType<ObjectiveSection>;
@@ -337,7 +337,7 @@ function ObjectivesComponent(_: Readonly<ComponentProps<ObjectivesConfig>>) {
   return (
     <Panel panelTitle="OBJECTIVES">
       <Sections>
-        <AugmentSlot name="objectives.sections" props={OBJECTIVES_SLOT} />
+        <AugmentSlot name="objectives.source" props={OBJECTIVES_SLOT} />
       </Sections>
       {/* Frame-level fallback: shown only while no bound source yields content
           (the `Sections` wrapper renders empty). CSS `:empty` keeps the frame
@@ -455,7 +455,7 @@ registerComponent<ObjectivesConfig>({
   component: ObjectivesComponent,
   // Exposes one typed-contract slot; the built-in source below binds into it,
   // and any future Uplink objective source can too.
-  augmentSlots: ["objectives.sections"],
+  augmentSlots: ["objectives.source"],
   dataRequirements: ["career.status.contracts.active"],
   defaultConfig: {},
   actions: [],
@@ -464,10 +464,10 @@ registerComponent<ObjectivesConfig>({
 
 // The built-in source binds the slot as an augment. It declares a show/hide
 // setting that the host widget's settings panel merges in (§4.7); collected
-// via `getAugmentSettings("objectives.sections")`.
+// via `getAugmentSettings("objectives.source")`.
 registerAugment({
   id: "objectives-contracts",
-  augments: "objectives.sections",
+  augments: "objectives.source",
   component: ContractsObjectiveSource,
   // `contracts.active` is carried by the `career.status` Topic (see the stream
   // dual-run tests); the legacy key is mapped onto it by the migration shim.

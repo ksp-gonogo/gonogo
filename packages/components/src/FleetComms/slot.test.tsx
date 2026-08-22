@@ -1,4 +1,8 @@
-import { getAugmentsForSlot, getContributionsForSlot } from "@ksp-gonogo/core";
+import {
+  getAugmentsForSlot,
+  getContributionsForSlot,
+  WidgetMetaContext,
+} from "@ksp-gonogo/core";
 import { act, render, screen, waitFor } from "@ksp-gonogo/test-utils";
 import { expectNoA11yViolations } from "@ksp-gonogo/ui-kit/testing";
 import userEvent from "@testing-library/user-event";
@@ -57,7 +61,14 @@ describe("FleetComms: Phase 1 spine augment on SystemView", () => {
   async function renderDiagram() {
     const result = render(
       <fixture.Provider>
-        <SystemViewComponent config={{ frame: "Kerbin" }} id="sv" />
+        {/* The identity the dashboard supplies: `Panel` completes
+            `${componentId}.${segment}` from it for the universal `sections`
+            and `actions` seams. */}
+        <WidgetMetaContext.Provider
+          value={{ componentId: "system-view", contributionSlots: [] }}
+        >
+          <SystemViewComponent config={{ frame: "Kerbin" }} id="sv" />
+        </WidgetMetaContext.Provider>
       </fixture.Provider>,
     );
     act(() => {
@@ -189,7 +200,14 @@ describe("FleetComms: Phase 1 spine augment on SystemView", () => {
   it("does not draw a commlink line when the vessel orbits a different body than the frame", async () => {
     render(
       <fixture.Provider>
-        <SystemViewComponent config={{ frame: "Kerbin" }} id="sv" />
+        {/* The identity the dashboard supplies: `Panel` completes
+            `${componentId}.${segment}` from it for the universal `sections`
+            and `actions` seams. */}
+        <WidgetMetaContext.Provider
+          value={{ componentId: "system-view", contributionSlots: [] }}
+        >
+          <SystemViewComponent config={{ frame: "Kerbin" }} id="sv" />
+        </WidgetMetaContext.Provider>
       </fixture.Provider>,
     );
     act(() => {

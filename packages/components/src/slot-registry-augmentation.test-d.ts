@@ -10,7 +10,7 @@
 // Checked by `tsc` (the package `typecheck`), NOT the vitest runner. The
 // sibling `contribution-registry-augmentation.test-d.ts` proves the same for
 // the contribution seams; `Objectives/slot-contract.test-d.ts` proves it for a
-// real widget's `objectives.sections` contract.
+// real widget's `objectives.source` contract.
 
 import type { SlotProps } from "@ksp-gonogo/core";
 

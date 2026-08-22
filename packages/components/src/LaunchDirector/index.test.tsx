@@ -886,9 +886,9 @@ describe("LaunchDirectorComponent augment slots", () => {
   });
 
   it("appends a bound checklist-section augment carrying the selection", async () => {
-    registerAugment<"launch-director.sections">({
+    registerAugment<"launch-director.preflight">({
       id: "test-ld-section",
-      augments: "launch-director.sections",
+      augments: "launch-director.preflight",
       component: ({ selectedShip, funds }: LaunchDirectorSlotContext) => (
         <div data-testid="ld-section">
           ship:{String(selectedShip)} funds:{String(funds)}

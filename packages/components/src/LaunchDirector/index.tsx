@@ -64,11 +64,11 @@ export interface LaunchDirectorSlotContext {
 // Declaration-merge the slot ids → props type into core's `SlotRegistry` (spec
 // §4.6). Co-located here (not a shared central file) so parallel slot work on
 // other widgets can't collide. This makes `registerAugment` and
-// `<AugmentSlot name="launch-director.sections" ...>` type-check against
+// `<AugmentSlot name="launch-director.preflight" ...>` type-check against
 // `LaunchDirectorSlotContext` rather than the loose fallback.
 declare module "@ksp-gonogo/core" {
   interface SlotRegistry {
-    "launch-director.sections": LaunchDirectorSlotContext;
+    "launch-director.preflight": LaunchDirectorSlotContext;
   }
 }
 
@@ -778,7 +778,7 @@ function LaunchDirectorComponent({
             {/* Pre-launch checklist augments: a life-support / logistics Uplink
                 appends a checklist item here. Empty until bound; the
                 funds readout and existing controls above are untouched. */}
-            <AugmentSlot name="launch-director.sections" props={slotContext} />
+            <AugmentSlot name="launch-director.preflight" props={slotContext} />
           </>
         )}
       </Body>
@@ -1527,9 +1527,9 @@ registerComponent<LaunchDirectorConfig>({
   minSize: { w: 4, h: 6 },
   component: LaunchDirectorComponent,
   // A pre-launch checklist section (augment-slot-map:
-  // launch-director.sections). Unfilled until a life-support / logistics
+  // launch-director.preflight). Unfilled until a life-support / logistics
   // Uplink binds: the launch flow renders exactly as before.
-  augmentSlots: ["launch-director.sections"],
+  augmentSlots: ["launch-director.preflight"],
   dataRequirements: [
     "spaceCenter.savedShips",
     "spaceCenter.crewRoster",

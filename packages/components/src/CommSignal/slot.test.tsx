@@ -3,6 +3,7 @@ import {
   DashboardItemContext,
   getAugmentsForSlot,
   registerAugment,
+  WidgetMetaContext,
 } from "@ksp-gonogo/core";
 import {
   act,
@@ -66,9 +67,16 @@ function renderWithSignal() {
   });
   const utils = render(
     <fixture.Provider>
-      <DashboardItemContext.Provider value={{ instanceId: "comm-slot" }}>
-        <CommSignalComponent id="comm-slot" w={6} h={5} />
-      </DashboardItemContext.Provider>
+      {/* The identity the dashboard supplies: `Panel` completes
+          `${componentId}.${segment}` from it for the universal
+          `sections` and `actions` seams. */}
+      <WidgetMetaContext.Provider
+        value={{ componentId: "comm-signal", contributionSlots: [] }}
+      >
+        <DashboardItemContext.Provider value={{ instanceId: "comm-slot" }}>
+          <CommSignalComponent id="comm-slot" w={6} h={5} />
+        </DashboardItemContext.Provider>
+      </WidgetMetaContext.Provider>
     </fixture.Provider>,
   );
   act(() => {

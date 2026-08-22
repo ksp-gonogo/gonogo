@@ -1,6 +1,5 @@
 import type { ComponentProps } from "@ksp-gonogo/core";
 import {
-  AugmentSlot,
   formatCompactCurrency,
   getSizeBucket,
   registerComponent,
@@ -27,6 +26,7 @@ import {
   Unit,
   useCommandButton,
   usePanelDelay,
+  WidgetSections,
 } from "@ksp-gonogo/ui-kit";
 import styled from "styled-components";
 import {
@@ -423,7 +423,7 @@ function SpaceCenterStatusComponent({
   }
 
   return (
-    <Panel panelTitle="SPACE CENTER">
+    <Panel panelTitle="SPACE CENTER" panelSections={false}>
       <Body>
         {showSubtitle && (
           <PadStatusLine role="status" aria-live="polite">
@@ -562,11 +562,11 @@ function SpaceCenterStatusComponent({
           })}
         </FacilityGrid>
 
-        {/* Body slot (augment-slot-map: appended to the facility-level list).
-            A KSC-expansion Uplink can render extra facility rows here (custom
-            facilities / ground-based life-support depot). Renders nothing until
-            an augment binds it. */}
-        <AugmentSlot name="space-center-status.sections" props={{}} />
+        {/* Appended to the facility-level list: a KSC-expansion Uplink can
+            render extra facility rows here. Placed rather than left to
+            `Panel`'s end-of-body default because the parts-unlocked footer
+            below is in-body, and extra facilities belong above it. */}
+        <WidgetSections />
 
         <Footer>
           <FooterCell title="Parts unlocked by current R&D tier">

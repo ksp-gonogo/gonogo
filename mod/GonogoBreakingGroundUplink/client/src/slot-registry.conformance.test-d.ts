@@ -27,13 +27,13 @@ type Expect<T extends true> = T;
 
 type _DeployedSections = Expect<
   Assignable<
-    SdkSlotProps<"deployed-science.sections">,
+    SdkSlotProps<"deployed-science.experiment">,
     DeployedExperimentContext
   >
 >;
 type _DeployedSectionsBack = Expect<
   Assignable<
     DeployedExperimentContext,
-    SdkSlotProps<"deployed-science.sections">
+    SdkSlotProps<"deployed-science.experiment">
   >
 >;
