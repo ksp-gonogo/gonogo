@@ -32,16 +32,28 @@
  */
 
 import { PerfBudget } from "../perf/PerfBudget";
+import type { CelestialFacts } from "./celestial-facts";
 import {
   canPropagate,
   horizonUtOf,
   type OrbitElements,
   type PropagationHorizonLike,
   rotateInertialToPerifocal,
+  rotatePerifocalToInertial,
   solveAnomalies,
   TrajectoryKindLike,
+  type Vector3,
 } from "./kepler";
 import { orbitalPeriod } from "./propagation";
+import {
+  frameInstantAt,
+  frameSides,
+  type ReadFrameChoice,
+  systemInstantAt,
+  TRAJECTORY_SCALE_CONVENTIONS,
+  type TrajectoryScaleConvention,
+  toFrame,
+} from "./reference-frame";
 import { buildElements, type WireOrbitElements } from "./vessel-state";
 
 /**
@@ -71,6 +83,8 @@ export const TrajectoryFrameKindLike = {
   Perifocal: 1,
   BodyCentredInertial: 2,
   BodyCentredRotating: 3,
+  BodyCentredParentDirection: 4,
+  RotatingPulsating: 5,
 } as const;
 export type TrajectoryFrameKindLike =
   (typeof TrajectoryFrameKindLike)[keyof typeof TrajectoryFrameKindLike];
@@ -102,6 +116,24 @@ export interface TrajectoryFrame {
   centreBodyIndex?: number;
   /** True when the frame's lengths are not lengths, so a readout says so rather than showing a number. */
   lengthsPulsate: boolean;
+  /**
+   * The two bodies the frame is named for, when it is named for a pair. The
+   * first is the one held at the far end of the first axis.
+   */
+  primaryBodyIndex?: number;
+  secondaryBodyIndex?: number;
+  /**
+   * How to read a coordinate in this frame. Absent means metres, which is every
+   * frame the producers publish; only a pulsating read frame says otherwise, and
+   * it says so rather than leaving a reader to infer it from `lengthsPulsate`.
+   */
+  scaleConvention?: TrajectoryScaleConvention;
+  /**
+   * What a pulsating frame divided by at the view instant, metres. A caller
+   * wanting a length in metres-as-of-now multiplies by this; a caller quoting a
+   * coordinate as a distance without it is quoting a ratio.
+   */
+  unitLength?: number;
 }
 
 /**
@@ -142,7 +174,18 @@ export type TrajectoryWithheldReason =
    * operator remedy at all: it is an install problem, and saying "past horizon"
    * for it would have someone waiting for a curve that is never coming.
    */
-  | "no-force-model";
+  | "no-force-model"
+  /**
+   * There is a curve, and the frame asked for could not be formed from the
+   * bodies the catalogue carries: a body it has not sent yet, a rotating frame
+   * asked for on the root star, or a pair whose separation is degenerate.
+   *
+   * Distinct from every reason above because the propagation is FINE. Drawing
+   * the curve in whatever frame it arrived in would answer a question nobody
+   * asked, and in a rotating frame the difference is the whole shape of the
+   * path rather than an offset.
+   */
+  | "frame-unavailable";
 
 export type OrbitTrajectory =
   | {
@@ -192,6 +235,9 @@ export type OrbitTrajectory =
       trajectoryKind?: TrajectoryKindLike;
     };
 
+/** The arc arm of {@link OrbitTrajectory}, named so the functions that only ever produce one can say so. */
+export type TrajectoryArcAnswer = Extract<OrbitTrajectory, { shape: "arc" }>;
+
 /** The arc as it arrives on the wire, in whatever frame the producer computed it in. */
 export interface WireTrajectoryArc {
   frame?: {
@@ -226,11 +272,32 @@ export interface OrbitTrajectoryInput {
     arc?: WireTrajectoryArc | null;
     /** Why there is no arc, when a provider tried to build one and stopped. */
     arcRefusal?: TrajectoryRefusalLike;
+    /**
+     * The `system.bodies` index the elements are measured against. Needed only
+     * to re-express the curve into a read frame, because that is the one thing
+     * here that has to know where the curve sits in the system rather than only
+     * its shape.
+     */
+    referenceBodyIndex?: number;
   };
   /** The instant on screen, which is the instant the operator's question is about. */
   viewUt: number;
   /** Points along a sampled arc. Default 128, the same density `buildOrbitPatches` uses. */
   samples?: number;
+  /**
+   * The frame the CALLER wants the curve in, and the catalogue to build it
+   * from. Absent leaves the curve in whatever frame it was computed in, which
+   * is what every caller did before read frames existed.
+   *
+   * A read frame is a coordinate change and nothing else: it cannot move
+   * anything in the game, so two widgets may pick different ones with no
+   * arbitration between them, and a station screen picking one changes nothing
+   * on the main screen.
+   */
+  readFrame?: {
+    choice: ReadFrameChoice;
+    facts: CelestialFacts;
+  };
 }
 
 const DEFAULT_ARC_SAMPLES = 128;
@@ -280,8 +347,24 @@ export function orbitTrajectory(input: OrbitTrajectoryInput): OrbitTrajectory {
     return { shape: "withheld", reason: refusal.reason, trajectoryKind };
   }
 
+  const reframing = wantsReframing(input.readFrame);
+
   if (trajectoryKind === TrajectoryKindLike.Analytic) {
-    return { shape: "conic" };
+    // A conic answer says "the elements ARE the curve", and in a rotating frame
+    // they are not: the ellipse is a shape in one frame and a rosette in
+    // another. So a caller that asked for a different frame gets the conic
+    // sampled and re-expressed, and never the instruction to draw an ellipse.
+    if (reframing === null) return { shape: "conic" };
+    const sampled = sampleArc(
+      buildElements(orbit),
+      horizon,
+      viewUt,
+      input.samples,
+    );
+    if (sampled === null) {
+      return { shape: "withheld", reason: "no-arc-available", trajectoryKind };
+    }
+    return reframeArc(sampled, buildElements(orbit), orbit, reframing, viewUt);
   }
   if (trajectoryKind !== TrajectoryKindLike.Integrated) {
     // `Unspecified`, or absent entirely. Both are what a producer that never
@@ -297,12 +380,167 @@ export function orbitTrajectory(input: OrbitTrajectoryInput): OrbitTrajectory {
   // for an integrating provider is the ellipse the craft is tangent to, drawn
   // under a label that says integrated.
   const carried = arcFromReading(orbit.arc, elements, viewUt);
-  if (carried !== null) return carried;
+  const arc = carried ?? sampleArc(elements, horizon, viewUt, input.samples);
+  if (arc === null) {
+    return { shape: "withheld", reason: "no-arc-available", trajectoryKind };
+  }
+  if (reframing === null) return arc;
+  return reframeArc(arc, elements, orbit, reframing, viewUt);
+}
 
-  const arc = sampleArc(elements, horizon, viewUt, input.samples);
-  return (
-    arc ?? { shape: "withheld", reason: "no-arc-available", trajectoryKind }
+/**
+ * The concrete frame a caller asked for, or null when it asked for nothing and
+ * the curve stays where it was computed.
+ *
+ * `follow-control-frame` arriving here unresolved is null rather than a
+ * refusal: it means no control frame was observed, which is every stream with
+ * no n-body mod on it, and that is the ordinary case rather than a fault.
+ */
+function wantsReframing(
+  readFrame: OrbitTrajectoryInput["readFrame"],
+): { choice: ReadFrameChoice; facts: CelestialFacts } | null {
+  if (readFrame === undefined) return null;
+  if (readFrame.choice.kind === "follow-control-frame") return null;
+  return readFrame;
+}
+
+/**
+ * A curve moved into the frame the caller asked for.
+ *
+ * The two steps are separate on purpose. First the points are lifted out of
+ * whatever frame they were computed in and into the system: perifocal points
+ * are un-rotated by the elements that built them, body-centred points already
+ * are, and the centre body's own position at each point's OWN instant is added.
+ * Only then does the frame transform run. A curve lifted at one instant and
+ * transformed at another is a curve that never existed.
+ *
+ * Refuses rather than approximates when the source frame is one it cannot lift
+ * from. A curve already in somebody's rotating frame would need that frame's
+ * own state to undo, and we do not have it.
+ */
+function reframeArc(
+  arc: TrajectoryArcAnswer,
+  elements: OrbitElements,
+  orbit: OrbitTrajectoryInput["orbit"],
+  readFrame: { choice: ReadFrameChoice; facts: CelestialFacts },
+  viewUt: number,
+): OrbitTrajectory {
+  const unavailable: OrbitTrajectory = {
+    shape: "withheld",
+    reason: "frame-unavailable",
+  };
+  const centreIndex = orbit.referenceBodyIndex ?? arc.frame.centreBodyIndex;
+  if (centreIndex === undefined) return unavailable;
+  const sourceKind = arc.frame.kind;
+  if (
+    sourceKind !== TrajectoryFrameKindLike.Perifocal &&
+    sourceKind !== TrajectoryFrameKindLike.BodyCentredInertial
+  ) {
+    return unavailable;
+  }
+  const sides = frameSides(readFrame.facts, readFrame.choice);
+  if (sides === null) return unavailable;
+  const kind = readFrameKind(readFrame.choice.kind);
+  if (kind === TrajectoryFrameKindLike.Unspecified) return unavailable;
+
+  // The perifocal frame's own axes in inertial components, built once rather
+  // than per point. The third is the orbit normal, which the two-dimensional
+  // rotation cannot give and which a carried arc's out-of-plane component needs:
+  // dropping it would flatten an n-body curve into the osculating plane and say
+  // nothing about it.
+  const pHat = rotatePerifocalToInertial(
+    1,
+    0,
+    elements.inc,
+    elements.lan,
+    elements.argPe,
   );
+  const qHat = rotatePerifocalToInertial(
+    0,
+    1,
+    elements.inc,
+    elements.lan,
+    elements.argPe,
+  );
+  const wHat: Vector3 = [
+    pHat[1] * qHat[2] - pHat[2] * qHat[1],
+    pHat[2] * qHat[0] - pHat[0] * qHat[2],
+    pHat[0] * qHat[1] - pHat[1] * qHat[0],
+  ];
+
+  const points: TrajectoryPoint[] = [];
+  let unitLengthAtView: number | undefined;
+  let scaleConvention: TrajectoryScaleConvention =
+    TRAJECTORY_SCALE_CONVENTIONS.metres;
+  for (const p of arc.points) {
+    const system = systemInstantAt(readFrame.facts, p.ut);
+    const centre = system.positionByIndex.get(centreIndex);
+    if (centre === undefined) return unavailable;
+    const instant = frameInstantAt(
+      readFrame.facts,
+      readFrame.choice,
+      p.ut,
+      system,
+    );
+    if (instant === null) return unavailable;
+    scaleConvention = instant.scaleConvention;
+    if (unitLengthAtView === undefined || p.ut <= viewUt) {
+      unitLengthAtView = instant.unitLength;
+    }
+    const local: Vector3 =
+      sourceKind === TrajectoryFrameKindLike.Perifocal
+        ? [
+            p.x * pHat[0] + p.y * qHat[0] + p.z * wHat[0],
+            p.x * pHat[1] + p.y * qHat[1] + p.z * wHat[1],
+            p.x * pHat[2] + p.y * qHat[2] + p.z * wHat[2],
+          ]
+        : [p.x, p.y, p.z];
+    TRAJECTORY_TRANSFORM_BUDGET.record();
+    const moved = toFrame(instant, [
+      local[0] + centre[0],
+      local[1] + centre[1],
+      local[2] + centre[2],
+    ]);
+    points.push({
+      x: moved.position[0],
+      y: moved.position[1],
+      z: moved.position[2],
+      ut: p.ut,
+    });
+  }
+  if (points.length < 2) return unavailable;
+
+  const pulsating = readFrame.choice.kind === "rotating-pulsating";
+  return {
+    ...arc,
+    points,
+    frame: {
+      kind,
+      centreBodyIndex: pulsating ? undefined : sides.primary[0],
+      primaryBodyIndex: sides.primary[0],
+      secondaryBodyIndex: sides.secondary[0],
+      lengthsPulsate: pulsating,
+      scaleConvention,
+      unitLength: unitLengthAtView,
+    },
+  };
+}
+
+function readFrameKind(kind: ReadFrameChoice["kind"]): TrajectoryFrameKindLike {
+  switch (kind) {
+    case "body-centred-inertial":
+      return TrajectoryFrameKindLike.BodyCentredInertial;
+    case "parent-direction":
+      return TrajectoryFrameKindLike.BodyCentredParentDirection;
+    case "rotating-pulsating":
+      return TrajectoryFrameKindLike.RotatingPulsating;
+    default:
+      // `follow-control-frame`, which never reaches here, and anything added
+      // later. Unspecified is refused by the caller rather than drawn, so a new
+      // member shows up as a frame that cannot be formed instead of as a curve
+      // in a frame nobody named.
+      return TrajectoryFrameKindLike.Unspecified;
+  }
 }
 
 /** The withheld reason a stated arc refusal maps to, or null when nothing was refused. */
@@ -336,7 +574,7 @@ function arcFromReading(
   wire: WireTrajectoryArc | null | undefined,
   elements: OrbitElements,
   viewUt: number,
-): OrbitTrajectory | null {
+): TrajectoryArcAnswer | null {
   if (wire == null) return null;
   const raw = wire.points;
   if (raw === undefined || raw.length < 2) {
@@ -432,7 +670,7 @@ function sampleArc(
   horizon: PropagationHorizonLike | undefined,
   viewUt: number,
   samples: number | undefined,
-): OrbitTrajectory | null {
+): TrajectoryArcAnswer | null {
   // `solveAnomalies` refuses outside `[0, 1)`, so an unbound osculating set has
   // no arc rather than a thrown render.
   if (!(elements.ecc >= 0 && elements.ecc < 1)) return null;
@@ -471,4 +709,94 @@ function sampleArc(
     derivation: TrajectoryDerivationLike.OwnClosedForm,
     sourcePointCount: points.length,
   };
+}
+
+/**
+ * What frame a curve was drawn in, as a phrase a widget puts beside it.
+ *
+ * <b>Every widget that draws a curve says this.</b> The same points are a
+ * different path in every frame, so a curve with no frame named is a picture
+ * whose meaning the reader has to guess, and the guess it invites is whichever
+ * frame that widget used to draw in. That is the failure this exists to
+ * prevent, and it is why the phrase is built here once rather than in each
+ * widget: four widgets naming the same frame four ways is the same problem
+ * wearing four hats.
+ *
+ * A body the catalogue has not named renders as its index rather than being
+ * dropped, because a frame missing half its name still says more than a frame
+ * with no name at all.
+ */
+export function trajectoryFrameLabel(
+  frame: TrajectoryFrame | null | undefined,
+  names: Pick<CelestialFacts, "nameByIndex"> | undefined,
+): string {
+  if (frame == null) return "frame not stated";
+  const named = (index: number | undefined): string =>
+    index === undefined
+      ? "unnamed body"
+      : (names?.nameByIndex[index] ?? `body ${index}`);
+  switch (frame.kind) {
+    case TrajectoryFrameKindLike.Perifocal:
+      return "the orbit's own plane";
+    case TrajectoryFrameKindLike.BodyCentredInertial:
+      return `${named(frame.centreBodyIndex)}-centred, fixed stars`;
+    case TrajectoryFrameKindLike.BodyCentredRotating:
+      return `${named(frame.centreBodyIndex)}-centred, turning with its surface`;
+    case TrajectoryFrameKindLike.BodyCentredParentDirection:
+      return `${named(frame.primaryBodyIndex)}-centred, ${named(frame.secondaryBodyIndex)} held still`;
+    case TrajectoryFrameKindLike.RotatingPulsating:
+      return `${named(frame.primaryBodyIndex)}-${named(frame.secondaryBodyIndex)} rotating-pulsating`;
+    default:
+      // A producer that named no frame, or one this build does not know. Both
+      // are states a reader must be able to see, because a curve drawn under a
+      // guessed frame reads exactly like a curve drawn under a known one.
+      return "frame not stated";
+  }
+}
+
+/**
+ * True when a coordinate in this frame must not be quoted as a distance.
+ *
+ * A pulsating frame's length unit is the pair's own separation, so a coordinate
+ * in it is a ratio. `unitLength` on the frame is what turns one back into
+ * metres, and a readout that has neither says so rather than printing the
+ * ratio with a metre sign after it.
+ */
+export function frameCoordinatesArePulsating(
+  frame: TrajectoryFrame | null | undefined,
+): boolean {
+  return (
+    frame?.lengthsPulsate === true ||
+    frame?.scaleConvention ===
+      TRAJECTORY_SCALE_CONVENTIONS.separationAtPointInstant
+  );
+}
+
+/**
+ * The frame a widget actually DREW in, which is not always a field on the
+ * answer.
+ *
+ * A conic answer carries no frame because it carries no points: the caller
+ * builds the ellipse itself from the elements, and the frame that lands in is
+ * the orbit's own plane about the body the elements are measured against. That
+ * is a real frame and it has to be nameable, or the widgets that draw a conic
+ * would be the only ones unable to say what they drew.
+ *
+ * Null for a refusal, because nothing was drawn and a frame named for an absent
+ * curve is a caption with no picture.
+ */
+export function drawnFrame(
+  trajectory: OrbitTrajectory | null | undefined,
+  centreBodyIndex?: number,
+): TrajectoryFrame | null {
+  if (trajectory == null) return null;
+  if (trajectory.shape === "arc") return trajectory.frame;
+  if (trajectory.shape === "conic") {
+    return {
+      kind: TrajectoryFrameKindLike.Perifocal,
+      centreBodyIndex,
+      lengthsPulsate: false,
+    };
+  }
+  return null;
 }

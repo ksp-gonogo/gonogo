@@ -392,7 +392,7 @@ function solveWrappedEccentricAnomaly(
  * (Vallado/AIAA convention). Applies identically to position and velocity
  * components. Mirrors `RotatePerifocalToInertial`.
  */
-function rotatePerifocalToInertial(
+export function rotatePerifocalToInertial(
   xPf: number,
   yPf: number,
   inc: number,

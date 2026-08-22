@@ -19,6 +19,7 @@ import { useCallback, useSyncExternalStore } from "react";
 import styled from "styled-components";
 import { useBodyRotation } from "../SystemView/useBodyRotation";
 import { OrbitDiagram } from "../shared/OrbitDiagram";
+import { TrajectoryFrameCaption } from "../shared/trajectoryFrame";
 import {
   trajectoryWithheldCopy,
   type WithheldTrajectory,
@@ -425,6 +426,13 @@ function OrbitViewComponent({
           {bodyName}
         </Text>
       )}
+      {/* Which frame the drawing below is in. An orbit that closes in one frame
+          is a rosette in another, so the curve is only readable next to its
+          own frame's name. */}
+      <TrajectoryFrameCaption
+        trajectory={trajectory}
+        centreBodyIndex={orbit?.referenceBodyIndex}
+      />
       {!hasOrbit ? (
         <NoData>
           {/* "measured" (Loaded/packed) basis: there IS an orbit, just no

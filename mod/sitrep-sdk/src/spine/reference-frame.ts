@@ -675,3 +675,29 @@ export function toFrame(
     ),
   };
 }
+
+/**
+ * A frame choice with `follow-control-frame` replaced by whatever the control
+ * frame turned out to be.
+ *
+ * The control frame arrives as an already-concrete choice rather than as any
+ * particular mod's frame descriptor, because that descriptor is the mod's
+ * business and translating it belongs in that mod's own client. What this owns
+ * is the rule: a widget pinned to the control frame follows it wherever it
+ * goes, and follows nothing when there is nothing to follow.
+ *
+ * Null means "no frame to move to", and a caller then draws the curve in the
+ * frame it arrived in rather than refusing. A stream with no such mod on it has
+ * no control frame, and that is the ordinary case rather than a fault.
+ */
+export function resolveReadFrame(
+  choice: ReadFrameChoice,
+  controlFrame: ReadFrameChoice | null | undefined,
+): ReadFrameChoice | null {
+  if (choice.kind !== "follow-control-frame") return choice;
+  if (controlFrame == null) return null;
+  // A control frame that itself said "follow the control frame" would be a
+  // cycle. No real descriptor produces one; answering null is the reading that
+  // draws something rather than recursing.
+  return controlFrame.kind === "follow-control-frame" ? null : controlFrame;
+}

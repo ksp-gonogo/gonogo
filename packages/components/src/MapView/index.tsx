@@ -20,6 +20,7 @@ import {
 } from "@ksp-gonogo/core";
 import {
   type OrbitTrajectory,
+  TrajectoryFrameKindLike,
   useOrbitTrajectory,
   useStream,
   useViewUt,
@@ -39,6 +40,7 @@ import {
 } from "@ksp-gonogo/ui-kit";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { OrbitalEventChips } from "../shared/OrbitalEventChips";
+import { TrajectoryFrameCaption } from "../shared/trajectoryFrame";
 import { trajectoryWithheldCopy } from "../shared/trajectoryWithheld";
 import {
   cameraTransform,
@@ -1366,6 +1368,19 @@ function MapViewComponent({
             {trajectoryWithheldCopy(trajectoryWithheld).heading}: no predicted
             ground track
           </ReadoutCaption>
+        )}
+        {/* The frame is stated outright rather than taken off the path,
+            because a ground track is a body-fixed projection whatever frame
+            the path was computed in: captioning the path's frame here would
+            name a frame this map never draws in. */}
+        {!trajectoryWithheld && predictionEnabled && hasPatchChain && (
+          <TrajectoryFrameCaption
+            centreBodyName={targetBodyId}
+            frame={{
+              kind: TrajectoryFrameKindLike.BodyCentredRotating,
+              lengthsPulsate: false,
+            }}
+          />
         )}
 
         <MapSections>

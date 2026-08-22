@@ -68,6 +68,12 @@ export function trajectoryWithheldCopy(withheld: WithheldTrajectory): {
         detail:
           "The gravity model could not be read, so there is nothing to integrate against. Check the install.",
       };
+    case "frame-unavailable":
+      return {
+        heading: "FRAME UNAVAILABLE",
+        detail:
+          "The trajectory is fine; the frame it was asked for cannot be built from the bodies known here. Pick another frame.",
+      };
     default:
       return {
         heading: "NO PATH AVAILABLE",
