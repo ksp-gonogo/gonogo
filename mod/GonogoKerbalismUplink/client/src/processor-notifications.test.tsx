@@ -1,4 +1,4 @@
-import { useProcessor } from "@ksp-gonogo/sitrep-sdk";
+import { PerfBudget, useProcessor } from "@ksp-gonogo/sitrep-sdk";
 import {
   act,
   render,
@@ -7,6 +7,7 @@ import {
 import { afterEach, describe, expect, it } from "vitest";
 import { CREW_SURVIVAL } from "./CrewSurvival/processor";
 import { SHIP_SYSTEMS } from "./processor";
+import { KERBALISM } from "./uplink";
 
 // ---------------------------------------------------------------------------
 // The two REAL registered processors, against the real spine, counting what a
@@ -196,6 +197,43 @@ describe("the registered Kerbalism processors, on a still wire", () => {
     // The counterweight: silencing a processor whose input genuinely changed
     // would be a worse defect than the churn.
     expect(watched.handovers).toBe(2);
+  });
+});
+
+describe("the notify guard's own gate, seen from inside an Uplink", () => {
+  it("is registered here, and fires here, so an Uplink author's processor is gated too", () => {
+    // The reason this is in an Uplink suite rather than app-side. A processor
+    // whose result the guard cannot read wakes every consumer on every frame,
+    // and an Uplink author is the likeliest person to write one, so the budget
+    // that catches it has to be visible in the suite THEY run. Its two siblings
+    // are wired core-side, which no Uplink loads, so all nine of these suites
+    // called `PerfBudget.installTestGate()` and gated nothing about processors.
+    const registered = PerfBudget.getAll().find(
+      (b) => b.name === "Processor uncomparable results/sec",
+    );
+    expect(registered).toBeDefined();
+    // Zero, so the gate fails rather than merely warns.
+    expect(registered?.threshold).toBe(0);
+
+    const fixture = newFixture(10);
+    const handle = KERBALISM.registerProcessor({
+      id: "uncomparable-probe",
+      deps: [] as const,
+      // A `Map` keeps its entries in an internal slot no enumeration reaches,
+      // so the guard genuinely cannot answer. Planted deliberately: a gate that
+      // cannot be made to fire is not evidence of anything.
+      compute: () => ({ byName: new Map([["Oxygen", 12]]) }),
+    });
+    watch(fixture, handle);
+    const before = registered?.rate() ?? 0;
+    runFrames(fixture, 5);
+
+    // Frame 1 is a real change (no previous value); frames 2-5 are the four the
+    // guard could not read.
+    expect((registered?.rate() ?? 0) - before).toBe(4);
+
+    // Deliberate breach, so the gate's own documented escape.
+    registered?.reset();
   });
 });
 

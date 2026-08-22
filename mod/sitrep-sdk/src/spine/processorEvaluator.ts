@@ -1,5 +1,6 @@
-import { isValue } from "../unit-system/value";
-import type { Value } from "../value";
+import { hasHost } from "../api/host";
+import { logger } from "../api/logger";
+import { PerfBudget } from "../perf/PerfBudget";
 import {
   type AnyProcessorDefinition,
   type Dep,
@@ -44,6 +45,78 @@ let recordNotification: () => void = () => {};
 /** Wire the notification-rate PerfBudget recorder (called once per listener told). */
 export function setProcessorNotificationRecorder(fn: () => void): void {
   recordNotification = fn;
+}
+
+/**
+ * The third budget, and the only one that can see the notify guard failing.
+ *
+ * The other two measure work: evaluations, and the wakeups those evaluations
+ * cost. Neither can say whether a wakeup was EARNED, so a guard that has
+ * quietly stopped recognising the results it is handed reads off both of them
+ * as a busy dashboard and nothing anywhere disagrees. That is not a
+ * hypothetical: this guard shipped twice in a state where it could never once
+ * fire, and both times it was found by someone reading the code rather than by
+ * anything measuring it. See `Comparison`.
+ *
+ * It is defined HERE rather than core-side through a recorder seam like its two
+ * siblings, and the difference matters. Those two predate `PerfBudget` moving
+ * into this package, and their core-side home means they are wired in the app's
+ * test setup and in NO Uplink's: every Uplink suite calls
+ * `PerfBudget.installTestGate()` and would still have run blind to this one,
+ * which is exactly the author most likely to write the processor that trips it.
+ *
+ * The threshold is ZERO, which makes it a gate rather than a soft cap: the test
+ * gate fails any test in which a processor returns a result the guard cannot
+ * read. That is the intended strictness. A processor result is data (it is
+ * rendered, and it crosses PeerJS to a station screen), so a `Map`, a `Date`, a
+ * class hiding its state behind methods, or a closure in the payload is a
+ * defect in the processor, not a number to raise this to. A test that plants
+ * one on purpose resets this budget at the end, the documented pattern for
+ * every deliberate breach.
+ */
+export const PROCESSOR_UNCOMPARABLE_BUDGET = new PerfBudget({
+  name: "Processor uncomparable results/sec",
+  threshold: 0,
+  windowMs: 1000,
+  unit: "results",
+});
+
+/**
+ * One warn per processor per shape. The budget makes it fail in CI; this makes
+ * it findable at a glance in a live session, and names the shape so the author
+ * has somewhere to start. Not rate-limited by time, because the set of pairs is
+ * bounded by the registry and each one is worth saying exactly once.
+ */
+const REPORTED_UNCOMPARABLE = new Set<string>();
+
+function reportUncomparable(id: string, shape: string): void {
+  PROCESSOR_UNCOMPARABLE_BUDGET.record();
+  recordUncomparable(id, shape);
+  const key = `${id} ${shape}`;
+  if (REPORTED_UNCOMPARABLE.has(key)) return;
+  REPORTED_UNCOMPARABLE.add(key);
+  const message = `[processors] "${id}" returns a result the notify guard cannot compare (${shape}), so every consumer is woken on every frame`;
+  // Host-gated for the reason `PerfBudget.record` gives: the logger shim throws
+  // when no host is installed, and a diagnostic that takes down the thing it is
+  // observing is worse than no diagnostic.
+  if (hasHost()) logger.warn(message, { processorId: id, shape });
+  else console.warn(message, { processorId: id, shape });
+}
+
+// The test seam beside the budget: a case that wants the exact ids and shapes
+// (rather than a count) reads them here without going through a rate window.
+let recordUncomparable: (id: string, shape: string) => void = () => {};
+
+/**
+ * Wire the report for a processor result the notify guard cannot read
+ * (`Comparison`'s `uncomparable` arm). Called at most once per evaluation, with
+ * the processor's id and a short description of the shape that stopped it, and
+ * never with a value. Pass `undefined` to clear it.
+ */
+export function setProcessorUncomparableRecorder(
+  fn: ((id: string, shape: string) => void) | undefined,
+): void {
+  recordUncomparable = fn ?? (() => {});
 }
 
 let activeStore: TimelineStore | undefined;
@@ -260,31 +333,142 @@ function isReadingDep(dep: Dep): dep is ReadingDep {
 }
 
 /**
- * Ceiling on the nodes one comparison may visit. Reaching it answers "not
- * equal", so an oversized result degrades to exactly the previous behaviour
- * (notify every frame) rather than spending unbounded time proving a thing it
- * is about to notify about anyway.
+ * Ceiling on the nodes one comparison may visit. Reaching it is an
+ * `uncomparable` answer, not a quiet "different": the result still goes out
+ * (that is the safe direction), but an oversized result silently degrading to
+ * notify-every-frame is the very failure this guard exists to prevent, so it
+ * gets reported rather than absorbed.
  */
 const EQUALITY_NODE_BUDGET = 2048;
 
 /**
- * The two own properties of a `Value`, compared. `Object.is` on the magnitude
- * for the same NaN reason the walk below gives; `===` on the unit because a
- * changed unit is a changed answer even at an identical magnitude.
+ * What one comparison can answer. THREE arms rather than two, and that is the
+ * whole of the fix.
+ *
+ * ## Why the two-armed shape kept failing
+ *
+ * This guard has now been written twice and failed twice, the same way both
+ * times, and the fault was never the comparison: it was the answer set.
+ *
+ * A boolean guard is a RECOGNISER. It enumerates the shapes it knows how to
+ * compare, and every shape it does not recognise falls through to `false`.
+ * `false` is the safe direction (a value delivered when it need not have been
+ * costs a render; a value withheld when it moved is a frozen dashboard), so
+ * the fallback is correct. It is also INDISTINGUISHABLE from a real change,
+ * which means a guard that recognises nothing at all reports as a perfectly
+ * healthy, busy dashboard and nothing anywhere can tell the difference.
+ *
+ * - The first version gated on `Object.is(entry.value, next)`. Every `compute`
+ *   allocates, so it answered `false` for every processor ever written: a
+ *   guard that could not fire, at all, that nothing could see was not firing
+ * - The second replaced it with a structural walk over an ALLOWLIST of
+ *   prototypes (`Object.prototype`, arrays). A `Value` is
+ *   `Object.create(sharedPrototype)`, so it was off the allowlist, and any
+ *   result carrying so much as one wire quantity answered `false` on every
+ *   frame. Units on the wire are the house style, so that was most of them
+ *
+ * Adding `Value` to the allowlist fixes the shape in front of us and leaves
+ * the property that produced both failures exactly where it was, ready for
+ * the next shape.
+ *
+ * ## What replaces it
+ *
+ * The unrecognised case gets its own arm and is REPORTED (see
+ * `setProcessorUncomparableRecorder`, and `PROCESSOR_UNCOMPARABLE_BUDGET`
+ * core-side, whose threshold is zero). `uncomparable` behaves like
+ * `different` (the value is delivered, nothing is withheld), so the safe
+ * direction is unchanged. What changes is that it can no longer happen
+ * quietly: a tenth processor returning a shape this cannot read says so,
+ * naming itself and the shape, instead of costing a wakeup per consumer per
+ * frame forever.
  */
-function valuesEqual(a: object, b: object): boolean {
-  return (
-    Object.is((a as Value).magnitude, (b as Value).magnitude) &&
-    (a as Value).unit === (b as Value).unit
-  );
+type Comparison = "equal" | "different" | "uncomparable";
+
+/**
+ * Per-prototype verdict on whether own-key enumeration sees the whole of an
+ * instance's state. Keyed on the PROTOTYPE, not the instance: it is a fact
+ * about the shape, and one lookup per node per frame is the hot path.
+ */
+const STATELESS_PROTOTYPE = new WeakMap<object, boolean>();
+
+/**
+ * True when nothing between `proto` and `Object.prototype` contributes state:
+ * every link carries only methods (data properties whose value is a function).
+ *
+ * This is what handles a `Value` without naming one. `Value` is a plain data
+ * object over a shared prototype that holds only methods, precisely so the two
+ * own properties are all that serialise (unit-system/value.ts), and that
+ * PROPERTY is what makes it comparable by its own keys. Any wrapper an Uplink
+ * writes in the same style is comparable for the same reason, with nothing to
+ * add here.
+ *
+ * An accessor anywhere on the chain fails it, because a getter is state that
+ * own-key enumeration cannot see, and comparing what it can see would answer
+ * "equal" for two objects that differ. That direction is the dangerous one, so
+ * it is the one the check is built around.
+ */
+function hasStatelessPrototypeChain(proto: object | null): boolean {
+  if (proto === null || proto === Object.prototype) return true;
+  const cached = STATELESS_PROTOTYPE.get(proto);
+  if (cached !== undefined) return cached;
+  let verdict = true;
+  for (const key of Reflect.ownKeys(proto)) {
+    const descriptor = Object.getOwnPropertyDescriptor(proto, key);
+    if (!descriptor || typeof descriptor.value !== "function") {
+      verdict = false;
+      break;
+    }
+  }
+  if (verdict)
+    verdict = hasStatelessPrototypeChain(Object.getPrototypeOf(proto));
+  STATELESS_PROTOTYPE.set(proto, verdict);
+  return verdict;
 }
 
 /**
- * Structural equality over the shapes a `compute` actually returns: plain
- * objects, arrays, primitives, and `Value`s, recursively. Anything else (a
- * `Date`, a `Map`, a class instance, a thunk) is compared by identity, so a
- * processor returning one keeps today's notify-every-frame behaviour instead of
- * being silently declared equal on a comparison this does not understand.
+ * Whether `obj`'s own enumerable keys are the whole of what it carries.
+ *
+ * A plain object (or a null-prototype one) is taken as read, which keeps the
+ * overwhelmingly common case at exactly the cost it had before. Anything else
+ * has to earn it:
+ *
+ * - `[object Object]`, because a `Date`, a `Map`, a `Set`, a `Promise` and a
+ *   typed array all keep their state in internal slots that no enumeration
+ *   reaches, AND their prototypes carry only methods, so the chain check alone
+ *   waves every one of them straight through
+ * - a stateless prototype chain, per above
+ * - at least one own key. A method-bearing prototype whose instances expose no
+ *   data of their own is not data: it is an object whose state is reachable
+ *   only by calling it (a closure, a private field), and comparing zero keys
+ *   against zero keys would call every such pair equal
+ */
+function readableByOwnKeys(obj: object): boolean {
+  const proto = Object.getPrototypeOf(obj) as object | null;
+  if (proto === Object.prototype || proto === null) return true;
+  if (Object.prototype.toString.call(obj) !== "[object Object]") return false;
+  if (!hasStatelessPrototypeChain(proto)) return false;
+  return Object.keys(obj).length > 0;
+}
+
+/** What an `uncomparable` verdict was about, for the report. Short, and never a value. */
+function describeShape(x: unknown): string {
+  if (typeof x === "function") return "function";
+  if (typeof x !== "object" || x === null) return typeof x;
+  const tag = Object.prototype.toString.call(x);
+  if (tag !== "[object Object]") return tag;
+  const name = (
+    Object.getPrototypeOf(x) as { constructor?: { name?: string } } | null
+  )?.constructor?.name;
+  return name && name !== "Object" ? `${name} instance` : "object";
+}
+
+/** Set by `compareResults` alongside an `uncomparable` verdict; read straight after. */
+let lastUncomparableShape: string | undefined;
+
+/**
+ * Structural comparison over the shapes a `compute` returns: primitives,
+ * arrays, and objects whose own enumerable keys are the whole of them,
+ * recursively.
  *
  * The comparison is on the RESULT rather than on the inputs, which is where
  * this parts company with `sampleReading`'s input-identity gate one layer over.
@@ -294,69 +478,87 @@ function valuesEqual(a: object, b: object): boolean {
  * moving upstream has a moving input and a still answer. Comparing the result
  * needs no declaration of which inputs a `compute` really reads.
  *
- * A `Value` is named explicitly because it is `Object.create(prototype)` over a
- * SHARED prototype rather than `Object.prototype` (unit-system/value.ts: a
- * plain data object whose methods live off the instance so they never
- * serialise). The plain-object arm rejects exactly that shape, so until this
- * was handled a result carrying so much as one wire quantity compared unequal
- * every frame and woke every consumer, which is the failure the notification
- * budget was added to catch and could not see. Not a corner case: units on the
- * wire are the house style, and `SHIP_SYSTEMS` already returns a `Value<"ut">`
- * inside its provenance.
+ * `different` short-circuits, `uncomparable` does not: a node this cannot read
+ * says nothing about whether a sibling moved, so the walk finishes and reports
+ * `uncomparable` only if it found no outright difference.
+ *
+ * The residual it does NOT catch: state held in a non-enumerable or
+ * symbol-keyed own property is invisible to `Object.keys` and would compare
+ * equal. That was true of the previous walk too, it is not a shape any
+ * processor returns, and unlike the failures above it errs towards a stuck
+ * value rather than churn, which the notification budget cannot see but a
+ * widget stuck on a stale number very obviously can.
  */
-function resultsEqual(previous: unknown, next: unknown): boolean {
+function compareResults(previous: unknown, next: unknown): Comparison {
   let budget = EQUALITY_NODE_BUDGET;
+  let uncomparable: string | undefined;
 
-  function walk(a: unknown, b: unknown): boolean {
+  function walk(a: unknown, b: unknown): Comparison {
     // Also the NaN case: `Object.is(NaN, NaN)` is true, and a telemetry
     // derivation that yields NaN twice running has not changed its answer.
-    if (Object.is(a, b)) return true;
-    if (budget-- <= 0) return false;
+    if (Object.is(a, b)) return "equal";
+    if (budget-- <= 0) {
+      uncomparable ??= "node-budget";
+      return "uncomparable";
+    }
+
+    // Two functions that are not the same function. Nothing decides this: two
+    // closures can behave identically and there is no way to find out. Said
+    // out loud, because a result carrying a thunk notifies on every frame and
+    // the author is the only one who can do anything about it.
+    if (typeof a === "function" && typeof b === "function") {
+      uncomparable ??= "function";
+      return "uncomparable";
+    }
     if (
       typeof a !== "object" ||
       typeof b !== "object" ||
       a === null ||
       b === null
     ) {
-      return false;
+      return "different";
     }
 
     const aIsArray = Array.isArray(a);
-    if (aIsArray !== Array.isArray(b)) return false;
+    if (aIsArray !== Array.isArray(b)) return "different";
     if (aIsArray) {
       const aItems = a as unknown[];
       const bItems = b as unknown[];
-      if (aItems.length !== bItems.length) return false;
+      if (aItems.length !== bItems.length) return "different";
+      let sawUncomparable = false;
       for (let i = 0; i < aItems.length; i++) {
-        if (!walk(aItems[i], bItems[i])) return false;
+        const verdict = walk(aItems[i], bItems[i]);
+        if (verdict === "different") return "different";
+        if (verdict === "uncomparable") sawUncomparable = true;
       }
-      return true;
+      return sawUncomparable ? "uncomparable" : "equal";
     }
 
-    // Plain objects and `Value`s only. Any other prototype can carry meaning in
-    // a getter that own-key enumeration never sees.
-    const aProto = Object.getPrototypeOf(a);
-    if (aProto !== Object.getPrototypeOf(b)) return false;
-    if (isValue(a) && isValue(b)) return valuesEqual(a, b);
-    if (aProto !== Object.prototype && aProto !== null) return false;
+    if (Object.getPrototypeOf(a) !== Object.getPrototypeOf(b))
+      return "different";
+    if (!readableByOwnKeys(a) || !readableByOwnKeys(b)) {
+      uncomparable ??= describeShape(a);
+      return "uncomparable";
+    }
 
     const aKeys = Object.keys(a);
-    if (aKeys.length !== Object.keys(b).length) return false;
+    if (aKeys.length !== Object.keys(b).length) return "different";
+    let sawUncomparable = false;
     for (const key of aKeys) {
-      if (!Object.hasOwn(b, key)) return false;
-      if (
-        !walk(
-          (a as Record<string, unknown>)[key],
-          (b as Record<string, unknown>)[key],
-        )
-      ) {
-        return false;
-      }
+      if (!Object.hasOwn(b, key)) return "different";
+      const verdict = walk(
+        (a as Record<string, unknown>)[key],
+        (b as Record<string, unknown>)[key],
+      );
+      if (verdict === "different") return "different";
+      if (verdict === "uncomparable") sawUncomparable = true;
     }
-    return true;
+    return sawUncomparable ? "uncomparable" : "equal";
   }
 
-  return walk(previous, next);
+  const verdict = walk(previous, next);
+  lastUncomparableShape = verdict === "uncomparable" ? uncomparable : undefined;
+  return verdict;
 }
 
 function evaluate(id: string, token: { generation: number }): void {
@@ -381,7 +583,14 @@ function evaluate(id: string, token: { generation: number }): void {
   // value to `useSyncExternalStore`, which re-reads `getSnapshot` outside any
   // notification and compares with `Object.is`, so a silenced listener over a
   // fresh identity is still an infinite render loop.
-  if (resultsEqual(entry.value, next)) return;
+  const comparison = compareResults(entry.value, next);
+  // Reported BEFORE the fan-out, and separately from it: this is the arm where
+  // the guard is doing nothing, so it has to be visible as itself rather than
+  // as a notification indistinguishable from an earned one.
+  if (comparison === "uncomparable") {
+    reportUncomparable(id, lastUncomparableShape ?? "unknown");
+  }
+  if (comparison === "equal") return;
   entry.value = next;
   for (const cb of entry.listeners) {
     recordNotification();
@@ -459,6 +668,12 @@ export function clearProcessorRuntime(): void {
   activeStore = undefined;
   recordEvaluation = () => {};
   recordNotification = () => {};
+  // `recordUncomparable` is deliberately NOT reset. The other two count a rate
+  // within one test and a leftover counter would corrupt the next one; this one
+  // reports a defect, and an instrument a routine reset quietly unplugs is the
+  // shape of failure the whole `Comparison` arm exists to stop happening a
+  // third time. A test that plants an uncomparable result on purpose resets the
+  // BUDGET at the end, which is the documented pattern for a deliberate breach.
   subscribeInputTopic = () => () => {};
   hasTopicSubscriber = false;
 }

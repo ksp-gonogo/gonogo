@@ -6,6 +6,7 @@ import {
   getProcessorValue,
   setActiveTimelineStore,
   setProcessorTopicSubscriber,
+  setProcessorUncomparableRecorder,
   subscribeProcessor,
 } from "./processorEvaluator";
 import { clearProcessors, defineProcessor } from "./processors";
@@ -356,6 +357,271 @@ describe("processorEvaluator", () => {
     expect(cb).toHaveBeenCalledTimes(1);
 
     unsubscribe();
+    deactivate();
+  });
+});
+
+// ---------------------------------------------------------------------------
+// The notify guard's answer set.
+//
+// Every case above asks whether the guard got the right answer. These ask
+// whether it was capable of answering at all, which is the question neither of
+// the two previous versions could be asked: both shipped permanently unable to
+// fire, and both read, from every instrument in the system, as a busy
+// dashboard. See `Comparison` in processorEvaluator.ts.
+// ---------------------------------------------------------------------------
+
+/**
+ * A unit-carrying wrapper in exactly `Value`'s style, and deliberately NOT a
+ * `Value`: an `Object.create` over a shared, methods-only prototype, which is
+ * the shape any Uplink writing its own quantity type will produce.
+ *
+ * It exists to be the case a name-based fix fails. The guard's second version
+ * was repaired by naming `Value`, so `Value` proves nothing about the third
+ * one; this proves the recognition is on the SHAPE. Nested inside an array and
+ * an object, because that is where a wrapper actually appears in a result.
+ */
+const bespokePrototype = {
+  toString(this: { amount: number; symbol: string }) {
+    return `${this.amount}${this.symbol}`;
+  },
+  scaled(this: { amount: number; symbol: string }, by: number) {
+    return quantity(this.amount * by, this.symbol);
+  },
+};
+
+function quantity(amount: number, symbol: string): object {
+  const q = Object.create(bespokePrototype) as {
+    amount: number;
+    symbol: string;
+  };
+  q.amount = amount;
+  q.symbol = symbol;
+  return q;
+}
+
+describe("the notify guard's answer set", () => {
+  it("goes quiet over a wrapper it has never heard of: 10 frames, 1 notification", () => {
+    const store = makeStore();
+    setActiveTimelineStore(store);
+
+    const handle = defineProcessor({
+      id: "bespoke-wrapper",
+      owner: "core",
+      deps: [] as const,
+      compute: () => ({
+        headline: quantity(4502, "m/s"),
+        rows: [{ figure: quantity(180, "s") }, { figure: quantity(9, "t") }],
+      }),
+    });
+
+    const cb = vi.fn();
+    const deactivate = activateProcessor(handle.id);
+    const unsubscribe = subscribeProcessor(handle.id, cb);
+
+    for (let i = 0; i < 10; i++) store.beginFrame();
+
+    expect(cb).toHaveBeenCalledTimes(1);
+
+    unsubscribe();
+    deactivate();
+  });
+
+  it("still notifies when one field inside that wrapper moves", () => {
+    // The counterweight. Silencing a wrapper whose contents genuinely changed
+    // is a frozen dashboard, which is worse than the churn being fixed here.
+    const store = makeStore();
+    setActiveTimelineStore(store);
+
+    let amount = 4502;
+    const handle = defineProcessor({
+      id: "bespoke-wrapper-moving",
+      owner: "core",
+      deps: [] as const,
+      compute: () => ({ rows: [{ figure: quantity(amount++, "m/s") }] }),
+    });
+
+    const cb = vi.fn();
+    const deactivate = activateProcessor(handle.id);
+    const unsubscribe = subscribeProcessor(handle.id, cb);
+
+    for (let i = 0; i < 5; i++) store.beginFrame();
+
+    expect(cb).toHaveBeenCalledTimes(5);
+
+    unsubscribe();
+    deactivate();
+  });
+
+  it("reports a result it cannot read, and still delivers it", () => {
+    // The planted violation. A `Map` keeps its entries in an internal slot no
+    // enumeration reaches, so the guard genuinely cannot answer, and the whole
+    // point of the third version is that it says so instead of quietly
+    // answering "changed" ten times a second forever.
+    const store = makeStore();
+    setActiveTimelineStore(store);
+
+    const reported: Array<[string, string]> = [];
+    setProcessorUncomparableRecorder((id, shape) => {
+      reported.push([id, shape]);
+    });
+
+    const handle = defineProcessor({
+      id: "uncomparable-map",
+      owner: "core",
+      deps: [] as const,
+      compute: () => ({ byName: new Map([["Oxygen", 12]]) }),
+    });
+
+    const cb = vi.fn();
+    const deactivate = activateProcessor(handle.id);
+    const unsubscribe = subscribeProcessor(handle.id, cb);
+
+    for (let i = 0; i < 10; i++) store.beginFrame();
+
+    // Frame 1 is a real change (there was no previous value), frames 2-10 are
+    // the nine the guard could not read.
+    expect(reported).toHaveLength(9);
+    expect(reported[0]).toEqual(["core:uncomparable-map", "[object Map]"]);
+    // Delivered, every time. `uncomparable` behaves exactly like `different`,
+    // so nothing is withheld on a shape this does not understand.
+    expect(cb).toHaveBeenCalledTimes(10);
+
+    setProcessorUncomparableRecorder(undefined);
+    unsubscribe();
+    deactivate();
+  });
+
+  it("names a closure in the result, which nothing can compare", () => {
+    const store = makeStore();
+    setActiveTimelineStore(store);
+
+    const reported: string[] = [];
+    setProcessorUncomparableRecorder((_id, shape) => {
+      reported.push(shape);
+    });
+
+    const handle = defineProcessor({
+      id: "uncomparable-thunk",
+      owner: "core",
+      deps: [] as const,
+      compute: () => ({ label: "Oxygen", render: () => "Oxygen" }),
+    });
+
+    const deactivate = activateProcessor(handle.id);
+    for (let i = 0; i < 3; i++) store.beginFrame();
+
+    expect(reported).toEqual(["function", "function"]);
+
+    setProcessorUncomparableRecorder(undefined);
+    deactivate();
+  });
+
+  it("refuses an object whose state is behind a getter, rather than calling two of them equal", () => {
+    // The dangerous direction, and the reason the recogniser is built around a
+    // property of the prototype rather than around a list of shapes. A getter
+    // is state `Object.keys` cannot see, so comparing what it CAN see would
+    // answer "equal" for two objects that differ, and a wrongly-silenced
+    // processor is a widget stuck on a number that has moved.
+    const store = makeStore();
+    setActiveTimelineStore(store);
+
+    const reported: string[] = [];
+    setProcessorUncomparableRecorder((_id, shape) => {
+      reported.push(shape);
+    });
+
+    let hidden = 1;
+    class Hiding {
+      get level(): number {
+        return hidden;
+      }
+    }
+
+    const handle = defineProcessor({
+      id: "uncomparable-getter",
+      owner: "core",
+      deps: [] as const,
+      compute: () => ({ tank: new Hiding() }),
+    });
+
+    const cb = vi.fn();
+    const deactivate = activateProcessor(handle.id);
+    const unsubscribe = subscribeProcessor(handle.id, cb);
+
+    store.beginFrame();
+    hidden = 2;
+    store.beginFrame();
+    hidden = 3;
+    store.beginFrame();
+
+    expect(reported).toEqual(["Hiding instance", "Hiding instance"]);
+    // Three frames, three deliveries: the moved level reaches the consumer.
+    expect(cb).toHaveBeenCalledTimes(3);
+
+    setProcessorUncomparableRecorder(undefined);
+    unsubscribe();
+    deactivate();
+  });
+
+  it("says nothing at all about a result it CAN read, so the report is not a constant", () => {
+    // The control for the four cases above. A recorder wired to fire on every
+    // evaluation would satisfy every one of them and report a permanently
+    // broken guard as working, which is the exact instrument failure this arm
+    // was added to end.
+    const store = makeStore();
+    setActiveTimelineStore(store);
+
+    const reported: string[] = [];
+    setProcessorUncomparableRecorder((_id, shape) => {
+      reported.push(shape);
+    });
+
+    let tick = 0;
+    const handle = defineProcessor({
+      id: "comparable-control",
+      owner: "core",
+      deps: [] as const,
+      compute: () => ({ tick: tick++, headline: quantity(1, "m/s") }),
+    });
+
+    const deactivate = activateProcessor(handle.id);
+    for (let i = 0; i < 10; i++) store.beginFrame();
+
+    expect(reported).toEqual([]);
+
+    setProcessorUncomparableRecorder(undefined);
+    deactivate();
+  });
+
+  it("survives clearProcessorRuntime, because a reset that unplugs the report is the failure", () => {
+    // `clearProcessorRuntime` resets the evaluation and notification recorders
+    // (a leftover counter would corrupt the next test's rate). This one is a
+    // defect report rather than a counter, and every fixture in the tree calls
+    // that reset, so resetting it too would leave the instrument off in
+    // precisely the places that run the most processors.
+    const reported: string[] = [];
+    setProcessorUncomparableRecorder((_id, shape) => {
+      reported.push(shape);
+    });
+
+    clearProcessorRuntime();
+
+    const store = makeStore();
+    setActiveTimelineStore(store);
+    const handle = defineProcessor({
+      id: "uncomparable-after-clear",
+      owner: "core",
+      deps: [] as const,
+      compute: () => ({ when: new Date(0) }),
+    });
+    const deactivate = activateProcessor(handle.id);
+    store.beginFrame();
+    store.beginFrame();
+
+    expect(reported).toEqual(["[object Date]"]);
+
+    setProcessorUncomparableRecorder(undefined);
     deactivate();
   });
 });

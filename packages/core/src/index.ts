@@ -64,6 +64,7 @@ export * from "./perf/PerfBudget";
 export {
   PROCESSOR_EVAL_BUDGET,
   PROCESSOR_NOTIFY_BUDGET,
+  PROCESSOR_UNCOMPARABLE_BUDGET,
 } from "./processorPerfBudget";
 export * from "./registry";
 export * from "./rss-bodies";

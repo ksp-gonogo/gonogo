@@ -279,6 +279,10 @@ export {
   clearProcessorRuntime,
   evaluateActiveProcessors,
   getProcessorValue,
+  // The uncomparable-result gate lives beside the evaluator (see its own doc
+  // for why it is not wired core-side like the other two processor budgets);
+  // named here so `@ksp-gonogo/core` can keep all three in one place.
+  PROCESSOR_UNCOMPARABLE_BUDGET,
   // Exported for the same reason `clearProcessorRuntime` above is: an Uplink's
   // own Processor test needs to point the evaluator at a store it built, and
   // reaching across the workspace boundary into this package's internals to do
@@ -286,6 +290,7 @@ export {
   setActiveTimelineStore,
   setProcessorEvaluationRecorder,
   setProcessorNotificationRecorder,
+  setProcessorUncomparableRecorder,
 } from "./processorEvaluator";
 export {
   type AnyProcessorDefinition,

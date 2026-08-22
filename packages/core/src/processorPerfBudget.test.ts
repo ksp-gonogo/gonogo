@@ -5,6 +5,7 @@ import {
   TimelineStore,
   ViewClock,
 } from "@ksp-gonogo/sitrep-client";
+import { value } from "@ksp-gonogo/sitrep-sdk";
 // `subscribeProcessor` is not on sitrep-client's curated barrel; the spine
 // subpath it re-exports from is the same module instance either way.
 import { subscribeProcessor } from "@ksp-gonogo/sitrep-sdk/spine";
@@ -12,6 +13,7 @@ import { describe, expect, it } from "vitest";
 import {
   PROCESSOR_EVAL_BUDGET,
   PROCESSOR_NOTIFY_BUDGET,
+  PROCESSOR_UNCOMPARABLE_BUDGET,
 } from "./processorPerfBudget";
 
 // The budgets are wired to the spine by a module-scope side effect in
@@ -91,5 +93,65 @@ describe("the processor PerfBudgets", () => {
 
     unsubscribe();
     deactivate();
+  });
+
+  it("counts nothing uncomparable for a result the guard can read", () => {
+    // The control, and the half that matters most: this budget's threshold is
+    // ZERO, so a recorder wired to fire on every evaluation would turn every
+    // test in the tree red and get "fixed" by raising the threshold. It has to
+    // be provably silent over a normal result before its firing means anything.
+    const store = makeStore();
+    setActiveTimelineStore(store);
+
+    const handle = defineProcessor({
+      id: "budget-comparable",
+      owner: "core",
+      deps: [] as const,
+      compute: () => ({ totalVac: value("m/s", 3500) }),
+    });
+
+    const deactivate = activateProcessor(handle.id);
+    const unsubscribe = subscribeProcessor(handle.id, () => {});
+
+    const uncomparableBefore = PROCESSOR_UNCOMPARABLE_BUDGET.rate();
+    for (let i = 0; i < 10; i++) store.beginFrame();
+
+    expect(PROCESSOR_UNCOMPARABLE_BUDGET.rate() - uncomparableBefore).toBe(0);
+
+    unsubscribe();
+    deactivate();
+  });
+
+  it("counts a result the guard cannot read, once per frame it could not read it", () => {
+    // The planted violation. This budget is re-exported from the spine rather
+    // than declared here, and a re-export that stopped pointing at the live
+    // instance would leave the number flat at zero forever while zero reads as
+    // healthy. That is the failure mode the whole third arm exists to end, so
+    // it gets a live check on this side of the re-export as well.
+    const store = makeStore();
+    setActiveTimelineStore(store);
+
+    const handle = defineProcessor({
+      id: "budget-uncomparable",
+      owner: "core",
+      deps: [] as const,
+      compute: () => ({ byResource: new Map([["Oxygen", 12]]) }),
+    });
+
+    const deactivate = activateProcessor(handle.id);
+    const unsubscribe = subscribeProcessor(handle.id, () => {});
+
+    const uncomparableBefore = PROCESSOR_UNCOMPARABLE_BUDGET.rate();
+    // The first frame is a genuine change (no previous value); the next four
+    // are the ones the guard cannot answer.
+    for (let i = 0; i < 5; i++) store.beginFrame();
+
+    expect(PROCESSOR_UNCOMPARABLE_BUDGET.rate() - uncomparableBefore).toBe(4);
+
+    unsubscribe();
+    deactivate();
+    // Deliberate breach, so the gate's own documented escape: without this the
+    // zero threshold fails THIS test, which is the behaviour being asserted.
+    PROCESSOR_UNCOMPARABLE_BUDGET.reset();
   });
 });
