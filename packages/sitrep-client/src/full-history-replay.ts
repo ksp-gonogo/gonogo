@@ -2,6 +2,7 @@ import type { ServerMessage } from "@ksp-gonogo/sitrep-sdk";
 import { DYNAMIC_CARRIED_TOPIC_PREFIXES } from "@ksp-gonogo/sitrep-sdk";
 import { TelemetryClient } from "./client";
 import type { Clock } from "./clock";
+import { PRODUCTION_DERIVED_CHANNELS } from "./context";
 import type { ReplayFixture } from "./replay-transport";
 import { ReplayTransport } from "./replay-transport";
 import { TimelineStore } from "./timeline-store";
@@ -116,6 +117,13 @@ export class InstantClock implements Pick<Clock, "now" | "schedule"> {
  * `ReplayTransport` → `TelemetryClient.handleMessage` → `store.ingest`: so
  * there is zero divergence from how the live store or `ReplaySessionController`
  * populate data; only the clock and retention window differ.
+ *
+ * That "zero divergence" has to cover what the store can RESOLVE, not only
+ * what it ingests. A recording carries raw wire topics and nothing else, so
+ * without `PRODUCTION_DERIVED_CHANNELS` registered here every derived read
+ * off this store (`vessel.state.*`, `vessel.maneuver.legacy.*`,
+ * `dv.legacyScalars.*`, and the rest) answers `undefined`, which is the same
+ * answer as "this recording holds nothing for that key".
  */
 export function buildFullHistoryStore(fixture: ReplayFixture): TimelineStore {
   const clock = new ViewClock({ delaySeconds: () => 0, warpRate: () => 1 });
@@ -125,6 +133,9 @@ export function buildFullHistoryStore(fixture: ReplayFixture): TimelineStore {
     // topics so a full-history replay subscribes/samples the same wire strings.
     dynamicWholeTopicPrefixes: DYNAMIC_CARRIED_TOPIC_PREFIXES,
   });
+  for (const channel of PRODUCTION_DERIVED_CHANNELS) {
+    store.registerDerivedChannel(channel);
+  }
 
   const instantClock = new InstantClock();
   // ReplayTransport arms its whole delivery schedule at construction time,

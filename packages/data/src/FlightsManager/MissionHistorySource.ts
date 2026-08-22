@@ -133,7 +133,19 @@ export class MissionHistorySource implements DataSource {
     const store = await this.getFullHistoryStore(missionId);
     if (!store) return { t: [], v: [] };
 
-    const points = store.sampleRange(topic, fromUt, toUt);
+    // A DERIVED topic has no buffered range of its own: `sampleRange`
+    // returns `undefined` for one by construction. So every mapped key
+    // landing on `vessel.state.*`, `vessel.maneuver.legacy.*`,
+    // `dv.legacyScalars.*`, `spaceCenter.state.*` or `system.state.*` used to
+    // answer with an empty series here (59 of the 162 in `LEGACY_KEY_HOMES`
+    // when this was found), which the graph renders as "No recorded samples":
+    // the same words it uses for a recording that genuinely holds nothing.
+    // `sampleDerivedRange` replays the channel's `derive()` over its raw
+    // inputs' own buffered ranges instead, the branch `useDataSeries` already
+    // takes for the live window.
+    const points = store.isDerivedTopic(topic)
+      ? store.sampleDerivedRange(topic, fromUt, toUt)
+      : store.sampleRange(topic, fromUt, toUt);
     if (!points) return { t: [], v: [] };
     return {
       t: points.map((p) => p.validAt),

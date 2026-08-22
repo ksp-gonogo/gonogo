@@ -10,7 +10,12 @@ import { MissionHistorySource } from "./MissionHistorySource";
 
 let dbCounter = 0;
 
-function frame(topic: string, payload: unknown, deliveredAt: number): string {
+function frame(
+  topic: string,
+  payload: unknown,
+  deliveredAt: number,
+  quality: Quality = Quality.OnRails,
+): string {
   const message: ServerMessage = {
     type: "stream-data",
     topic,
@@ -21,7 +26,7 @@ function frame(topic: string, payload: unknown, deliveredAt: number): string {
       seq: 0,
       deliveredAt,
       vantage: "stub",
-      quality: Quality.OnRails,
+      quality,
       active: false,
       staleness: Staleness.Fresh,
       timelineEpoch: 0,
@@ -30,13 +35,48 @@ function frame(topic: string, payload: unknown, deliveredAt: number): string {
   return JSON.stringify(message);
 }
 
+function flightFrame(altitudeAsl: number, ut: number): string {
+  return frame(
+    "vessel.flight",
+    { altitudeAsl, verticalSpeed: 0, surfaceSpeed: 0, orbitalSpeed: 0 },
+    ut,
+  );
+}
+
+/**
+ * Frames in the shape a real `StreamRecorder` capture carries: RAW wire
+ * topics only. `vessel.state` and `vessel.maneuver.legacy` are client-side
+ * derived channels, so no recording ever contains a frame on either, and a
+ * fixture that invents one exercises the raw-record path and can never
+ * reach the derivation the live graph actually uses. `vessel.orbit` rides
+ * at `Quality.Loaded` so `deriveVesselState` takes its measured basis and
+ * reads `altitudeAsl` straight off `vessel.flight`.
+ */
 function longFixture(): ReplayFixture {
   return {
-    subscribedTopics: ["vessel.state"],
+    subscribedTopics: ["vessel.orbit", "vessel.flight", "vessel.maneuver"],
     frames: [
-      frame("vessel.state", { altitudeAsl: 100 }, 0),
-      frame("vessel.state", { altitudeAsl: 5000 }, 400), // > 300s past the first point
-      frame("vessel.state", { altitudeAsl: 70000 }, 900),
+      frame("vessel.orbit", { referenceBodyIndex: 1 }, 0, Quality.Loaded),
+      flightFrame(100, 0),
+      flightFrame(5000, 400), // > 300s past the first point
+      flightFrame(70000, 900),
+      frame("vessel.maneuver", { nodes: [] }, 0),
+      frame(
+        "vessel.maneuver",
+        {
+          nodes: [
+            {
+              id: "node-1",
+              ut: 1200,
+              dvRadial: 0,
+              dvNormal: 0,
+              dvPrograde: 850,
+              patches: [],
+            },
+          ],
+        },
+        400,
+      ),
     ],
   };
 }
@@ -113,6 +153,51 @@ describe("MissionHistorySource", () => {
       const range = await source.queryRange("v.altitude", 0, 900, "m1");
       expect(range.t).toEqual([0, 400, 900]);
       expect(range.v).toEqual([100, 5000, 70000]);
+    });
+
+    /**
+     * `o.maneuverNodes` resolves to `vessel.maneuver.legacy.nodes`, a
+     * derived channel over the raw `vessel.maneuver` record. Two things had
+     * to hold and neither did: the full-history store must register the
+     * production derived channels, and `queryRange` must read a derived
+     * topic through `sampleDerivedRange` (`sampleRange` returns `undefined`
+     * for one by construction). Both failures collapse onto `{ t: [], v: [] }`,
+     * the same answer as "this recording holds no maneuver data", which is
+     * why the graph's "No recorded samples" message was believed.
+     */
+    it("serves a DERIVED key off the raw topics a real recording actually carries", async () => {
+      const { source, store } = freshSource();
+      await store.saveMission(mission());
+
+      const range = await source.queryRange("o.maneuverNodes", 0, 900, "m1");
+      expect(range.t).toEqual([0, 400]);
+      expect(range.v).toEqual([
+        [],
+        [
+          {
+            UT: 1200,
+            deltaV: [0, 0, 850],
+            PeA: 0,
+            ApA: 0,
+            inclination: 0,
+            eccentricity: 0,
+            epoch: 0,
+            period: 0,
+            argumentOfPeriapsis: 0,
+            sma: 0,
+            lan: 0,
+            maae: 0,
+            referenceBody: "",
+            closestEncounterBody: null,
+            orbitPatches: [],
+            // Null rather than absent: nothing in this recording models a
+            // finite burn, and that is a different fact from an instantaneous
+            // one. See `mapManeuverNode`.
+            ignitionUt: null,
+            cutoffUt: null,
+          },
+        ],
+      ]);
     });
 
     it("returns empty when missionId is omitted", async () => {
