@@ -185,20 +185,37 @@ describe("e2e replay fixtures conform to the Sitrep contract", () => {
 
     const declared = new Set(resolver.topicIds);
     const missed: string[] = [];
+    const foundPerFile = new Map<string, number>();
     for (const fixture of FIXTURES) {
       const source = readFileSync(join(repoRoot, fixture.file), "utf8");
       // Quoted keys of the `"a.b": value` shape, which is how every topic entry
       // in these fixtures is written.
+      let found = 0;
       for (const match of source.matchAll(
         /"([a-z][A-Za-z0-9]*(?:\.[A-Za-z0-9]+)+)"\s*:/g,
       )) {
         const key = match[1];
         if (!declared.has(key)) continue;
+        found += 1;
         if (checked.has(key)) continue;
         missed.push(`${fixture.file}: ${key}`);
       }
+      foundPerFile.set(fixture.file, found);
     }
     expect(missed).toEqual([]);
+
+    // The scan's own catch: `missed` is empty both when every mentioned topic
+    // is checked AND when the pattern stopped matching anything, and those are
+    // opposite outcomes. So say up front what each file is expected to yield.
+    // broker.mjs is a PeerJS signalling broker and mentions no topics: its zero
+    // is a real zero, not a broken regex, and only pinning the other two
+    // separates the two readings.
+    expect(Object.fromEntries(foundPerFile)).toEqual({
+      "tests/playwright/sitrep-stream-server.mjs": Object.keys(SNAPSHOT).length,
+      "tests/playwright/sitrep-stream-server-topology.mjs":
+        Object.keys(EXTRA_TOPICS).length,
+      "tests/playwright/broker.mjs": 0,
+    });
   });
 
   it("keeps the deliberate non-conformance lists empty", () => {
