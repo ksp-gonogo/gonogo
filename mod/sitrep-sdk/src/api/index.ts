@@ -311,6 +311,17 @@ export const registerSetting = <T extends SettingType = "boolean">(
  * no `write` are read-only whether or not they said so.
  */
 export { isReadOnlySetting, settingTypeOf } from "../spine/settings-registry";
+export type { VantageTrajectory } from "../spine/use-vantage-trajectory";
+// Asking where a craft goes from THIS command centre's point of view. On the
+// author surface because an Uplink widget is exactly who asks: the question only
+// has an answer relative to a vantage, and a widget is where a vantage is being
+// looked at. The refusal mapper comes with it, so a caller can tell a message
+// that never left from a craft this vantage cannot see.
+export {
+  refusalFromError,
+  useVantageTrajectory,
+  VANTAGE_TRAJECTORY_COMMAND,
+} from "../spine/use-vantage-trajectory";
 
 // --- Hook shims (stateful → injected host) ----------------------------------
 

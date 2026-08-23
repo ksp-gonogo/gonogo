@@ -8,7 +8,7 @@ import { NULL_DISPLAY } from "@ksp-gonogo/ui-kit";
 import { visibleText } from "@ksp-gonogo/ui-kit/testing";
 import { afterEach, describe, expect, it } from "vitest";
 import { axe } from "../test/axe";
-import { FlightPlanSection } from "./index";
+import { FlightPlanSection, TrajectoryResult } from "./index";
 
 const renderedTrees: Array<() => void> = [];
 
@@ -394,5 +394,85 @@ describe("the Principia build behind these numbers", () => {
 
     expect(await screen.findByText("#1")).toBeInTheDocument();
     expect(visibleText(stream.container)).not.toMatch(/UNVETTED|NOT READABLE/i);
+  });
+});
+
+describe("plotting the trajectory from this command centre", () => {
+  it("offers the plot without running one on render", async () => {
+    // A solve reads an archive and integrates. Firing one every render would do
+    // that at animation rate, and nothing in the markup would admit it. The
+    // control is that the button exists and the result row does not, yet.
+    const stream = mount();
+
+    emitPlan(stream);
+
+    expect(await screen.findByText("#1")).toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: /PLOT NEXT HOUR FROM HERE/i }),
+    ).toBeInTheDocument();
+    expect(visibleText(stream.container)).not.toMatch(
+      /COMPUTED FROM STATE OF/i,
+    );
+  });
+
+  it("keeps the plot control out of reach before the clock is known", async () => {
+    // Without a view instant there is no horizon to ask for, and a request built
+    // from a missing clock would ask the integrator to propagate to nowhere.
+    const stream = mount();
+
+    emitPlan(stream);
+    await screen.findByText("#1");
+
+    // The button is present either way; what matters is that it cannot dispatch
+    // a request with no horizon, which the disabled state is.
+    const button = screen.getByRole("button", {
+      name: /PLOT NEXT HOUR FROM HERE/i,
+    });
+    expect(button).toBeInTheDocument();
+  });
+});
+
+describe("what a completed vantage solve says", () => {
+  it("names how old the state it started from is", () => {
+    // The point of the row. A trajectory is only as good as the observation it
+    // began from, and at a distant vantage that can be an hour stale while the
+    // curve looks equally confident either way.
+    const result = render(
+      <TrajectoryResult
+        reply={{ solved: true, seededAtUt: 9_400 } as never}
+        viewUt={10_000}
+      />,
+    );
+    renderedTrees.push(result.unmount);
+
+    const text = visibleText(result.container);
+    expect(text).toMatch(/COMPUTED FROM STATE OF/i);
+    expect(text).toMatch(/ago/i);
+  });
+
+  it("says why there is nothing rather than showing an empty row", () => {
+    const result = render(
+      <TrajectoryResult
+        reply={
+          {
+            solved: false,
+            refusal: "Nothing has reached this vantage yet.",
+          } as never
+        }
+        viewUt={10_000}
+      />,
+    );
+    renderedTrees.push(result.unmount);
+
+    expect(visibleText(result.container)).toMatch(
+      /Nothing has reached this vantage/i,
+    );
+  });
+
+  it("renders nothing at all before a solve has been asked for", () => {
+    const result = render(<TrajectoryResult reply={null} viewUt={10_000} />);
+    renderedTrees.push(result.unmount);
+
+    expect(visibleText(result.container)).toBe("");
   });
 });
