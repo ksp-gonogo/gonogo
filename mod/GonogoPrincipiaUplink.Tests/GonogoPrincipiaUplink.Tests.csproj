@@ -62,6 +62,7 @@
     <Compile Include="..\GonogoPrincipiaUplink\PrincipiaConformanceGate.cs" />
     <Compile Include="..\GonogoPrincipiaUplink\PrincipiaComposedPlanRules.cs" />
     <Compile Include="..\GonogoPrincipiaUplink\PrincipiaWorkerHost.cs" />
+    <Compile Include="..\GonogoPrincipiaUplink\MappedModules.cs" />
     <Compile Include="..\GonogoPrincipiaUplink\NativeExportReader.cs" />
     <Compile Include="..\GonogoPrincipiaUplink\PrincipiaSymbolGate.cs" />
     <Compile Include="..\GonogoPrincipiaUplink\PrincipiaUplink.cs" />
