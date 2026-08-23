@@ -993,7 +993,6 @@ registerComponent<ManeuverPlannerConfig>({
     "vessel.state.orbitalRadius",
     "vessel.state.referenceBodyName",
     "vessel.state.parentBodyName",
-    "vessel.maneuver.legacy.nodes",
     "vessel.maneuver.nodes",
     "dv.stages",
     "vessel.target.orbit.inc",

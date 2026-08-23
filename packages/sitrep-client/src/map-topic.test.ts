@@ -313,10 +313,13 @@ describe("mapTopic(sourceId, key): the M3 useDataValue migration table", () => {
     expect(isKnownLegacyKeyGap("data", "o.orbitPatches")).toBe(false);
   });
 
-  it("maps o.maneuverNodes onto the dedicated vessel.maneuver.legacy channel", () => {
-    expect(mapTopic("data", "o.maneuverNodes")).toBe(
-      "vessel.maneuver.legacy.nodes",
-    );
+  it("maps o.maneuverNodes onto the same channel as o.maneuverNodeIds", () => {
+    // Both name the plan, so both resolve to it. They used to disagree: the
+    // ids went to the wire channel and the nodes to a reshape of it that
+    // flattened each burn into a positional delta-v triple, which had nowhere
+    // to carry the frame the burn is expressed in.
+    expect(mapTopic("data", "o.maneuverNodes")).toBe("vessel.maneuver.nodes");
+    expect(mapTopic("data", "o.maneuverNodeIds")).toBe("vessel.maneuver.nodes");
     expect(isKnownLegacyKeyGap("data", "o.maneuverNodes")).toBe(false);
   });
 

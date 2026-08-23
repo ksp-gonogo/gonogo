@@ -156,16 +156,30 @@ describe("MissionHistorySource", () => {
     });
 
     /**
-     * `o.maneuverNodes` resolves to `vessel.maneuver.legacy.nodes`, a
-     * derived channel over the raw `vessel.maneuver` record. Two things had
-     * to hold and neither did: the full-history store must register the
-     * production derived channels, and `queryRange` must read a derived
-     * topic through `sampleDerivedRange` (`sampleRange` returns `undefined`
-     * for one by construction). Both failures collapse onto `{ t: [], v: [] }`,
-     * the same answer as "this recording holds no maneuver data", which is
-     * why the graph's "No recorded samples" message was believed.
+     * `o.orbitPatches` resolves to `vessel.state.orbitPatches`, a derived
+     * channel over the raw `vessel.orbit` record. Two things had to hold and
+     * neither did: the full-history store must register the production
+     * derived channels, and `queryRange` must read a derived topic through
+     * `sampleDerivedRange` (`sampleRange` returns `undefined` for one by
+     * construction). Both failures collapse onto `{ t: [], v: [] }`, the same
+     * answer as "this recording holds no data for that key", which is why the
+     * graph's "No recorded samples" message was believed.
+     *
+     * This asserted on `o.maneuverNodes` until that key stopped naming a
+     * derived channel. A key resolving to a raw topic exercises the raw-record
+     * path and reaches none of the above, so the coverage moved to a key that
+     * is still derived rather than staying on a name that no longer tests
+     * anything.
      */
     it("serves a DERIVED key off the raw topics a real recording actually carries", async () => {
+      const { source, store } = freshSource();
+      await store.saveMission(mission());
+
+      const range = await source.queryRange("o.orbitPatches", 0, 900, "m1");
+      expect(range.t.length).toBeGreaterThan(0);
+    });
+
+    it("serves o.maneuverNodes as the plan the recording actually carries", async () => {
       const { source, store } = freshSource();
       await store.saveMission(mission());
 
@@ -174,27 +188,17 @@ describe("MissionHistorySource", () => {
       expect(range.v).toEqual([
         [],
         [
+          // Values rather than bare numbers, which is the point of the key
+          // resolving here: the burn arrives carrying its units, and the
+          // instant carries `ut` rather than being a number that could be
+          // read as a duration.
           {
-            UT: 1200,
-            deltaV: [0, 0, 850],
-            PeA: 0,
-            ApA: 0,
-            inclination: 0,
-            eccentricity: 0,
-            epoch: 0,
-            period: 0,
-            argumentOfPeriapsis: 0,
-            sma: 0,
-            lan: 0,
-            maae: 0,
-            referenceBody: "",
-            closestEncounterBody: null,
-            orbitPatches: [],
-            // Null rather than absent: nothing in this recording models a
-            // finite burn, and that is a different fact from an instantaneous
-            // one. See `mapManeuverNode`.
-            ignitionUt: null,
-            cutoffUt: null,
+            id: "node-1",
+            ut: { magnitude: 1200, unit: "ut" },
+            dvRadial: { magnitude: 0, unit: "m/s" },
+            dvNormal: { magnitude: 0, unit: "m/s" },
+            dvPrograde: { magnitude: 850, unit: "m/s" },
+            patches: [],
           },
         ],
       ]);

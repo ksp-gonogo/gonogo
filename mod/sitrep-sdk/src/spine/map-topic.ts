@@ -389,25 +389,25 @@ export const LEGACY_KEY_HOMES: Readonly<Record<string, string>> = {
   // ManeuverPlanner/index.tsx's `resolveNodeId`. ---
   "o.maneuverNodeIds": "vessel.maneuver.nodes",
 
-  // --- o.orbitPatches / o.maneuverNodes: the mod now walks the full
+  // --- o.orbitPatches / o.maneuverNodes: the mod walks the full
   // patched-conic chain (Orbit.nextPatch, `mod/Sitrep.Contract/
   // OrbitPatch.cs`) and streams it on `vessel.orbit.patches` (current
   // trajectory) and each `vessel.maneuver.nodes[].patches` (post-burn
   // trajectory). `vessel.state.orbitPatches` (vessel-state.ts) reshapes the
-  // former into the exact legacy `OrbitPatch[]` shape MapView/
-  // trajectory.ts's `predictGroundTrack` already consume: a pure field
-  // rename, no client math needed (the mod's `OrbitPatch` already ships
-  // body-name strings + the same PeA/ApA/semiLatusRectum/semiMinorAxis
-  // fields KSP itself computes). `o.maneuverNodes` needs the SAME reshape
-  // per node plus the `[dvRadial,dvNormal,dvPrograde]` tuple and a flatten
-  // of `orbitPatches[0]` onto the node's own headline fields, that lives
-  // on its own small derived channel (`maneuver-legacy.ts`'s
-  // `vessel.maneuver.legacy`), kept separate from `vessel.state` so this
-  // reshape's `vessel.maneuver` input doesn't widen every OTHER
-  // `vessel.state.*` consumer's carried-channels requirement (see that
-  // file's own doc comment). ---
+  // former into the `OrbitPatch[]` shape trajectory.ts's
+  // `predictGroundTrack` consumes: a pure field rename, no client math
+  // needed, because the mod's `OrbitPatch` already ships body-name strings
+  // and the same PeA/ApA/semiLatusRectum/semiMinorAxis fields KSP computes.
+  //
+  // The nodes go straight to `vessel.maneuver.nodes`, the same home
+  // `o.maneuverNodeIds` already uses. They used to route through a derived
+  // channel that flattened each node into a positional
+  // `[dvRadial,dvNormal,dvPrograde]` triple: that reshape had nowhere to put
+  // the frame the burn is expressed in, which is a real property of a node
+  // once something other than stock owns the plan, and cannot be recovered
+  // from the triple afterwards. ---
   "o.orbitPatches": "vessel.state.orbitPatches",
-  "o.maneuverNodes": "vessel.maneuver.legacy.nodes",
+  "o.maneuverNodes": "vessel.maneuver.nodes",
 
   // --- land.predictedLat / land.predictedLon: a client derivation on the
   // same orbit-patch chain (NO mod-side terrain/impact predictor; see

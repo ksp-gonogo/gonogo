@@ -19,12 +19,13 @@ import {
   useTelemetry,
 } from "@ksp-gonogo/core";
 import {
+  type ManeuverNodeWirePayload,
+  mapOrbitPatch,
   type OrbitTrajectory,
   TrajectoryFrameKindLike,
   useOrbitTrajectory,
   useStream,
   useViewUt,
-  type VesselManeuverLegacyState,
   type VesselState,
 } from "@ksp-gonogo/sitrep-client";
 import { value } from "@ksp-gonogo/sitrep-sdk";
@@ -386,7 +387,7 @@ function MapViewComponent({
   // fields for the surface-frame measurements, and the client-derived
   // `vessel.state` channel for the quality-picked altitude, the index→name
   // body label, the reshaped orbit-patch chain, the encounter sign, and the
-  // ballistic impact point. `vessel.maneuver.legacy` carries the post-burn
+  // ballistic impact point. `vessel.maneuver` carries the post-burn
   // node trajectories reshaped into the legacy `o.maneuverNodes` shape.
   const flightReading = useTelemetry("vessel.flight");
   const vesselState = useStream<VesselState>("vessel.state");
@@ -440,8 +441,14 @@ function MapViewComponent({
   // waiting for its first elements would report a decision nobody had asked
   // for, and read as a fault while the stream is simply cold.
   const hasPatchChain = (orbitPatches?.length ?? 0) > 0;
-  const maneuverNodes = useStream<VesselManeuverLegacyState>(
-    "vessel.maneuver.legacy",
+  // Read from `vessel.maneuver` directly rather than through the legacy reshape.
+  // This widget only ever wanted two things from a node, its instant and its
+  // post-burn patches, and both are on the modern shape. The reshape in between
+  // built a positional delta-v triple and never read the burn's FRAME, so a
+  // planner with more than one frame would have had its burns silently relabelled
+  // by a mapper this widget did not even use the output of.
+  const maneuverNodes = useStream<{ nodes?: ManeuverNodeWirePayload[] }>(
+    "vessel.maneuver",
   )?.nodes;
   // t.universalTime is dropped as a data key, it was never a stream, it IS
   // the SDK view-UT the propagation is evaluated at, so read that directly.
@@ -910,19 +917,18 @@ function MapViewComponent({
     const bodyRadius = body.radius;
     const rotPeriod = body.rotationPeriod;
     return maneuverNodes.map((node) => {
-      const firstPatch = node.orbitPatches.find(
-        (p) => p.referenceBody === targetBodyId,
-      );
+      const patches = (node.patches ?? []).map(mapOrbitPatch);
+      const firstPatch = patches.find((p) => p.referenceBody === targetBodyId);
       if (!firstPatch) return [];
       // Horizon extends from ref.ut up through the maneuver and 1.5 × its
       // first post-burn period: enough to see the new orbit close up.
       const horizon = Math.min(
-        node.UT - universalTime + 1.5 * firstPatch.period,
+        node.ut.magnitude - universalTime + 1.5 * firstPatch.period,
         kspCalendar().day,
       );
       if (horizon <= 0) return [];
       const samples = predictGroundTrack(
-        node.orbitPatches,
+        patches,
         targetBodyId,
         bodyRadius,
         rotPeriod,

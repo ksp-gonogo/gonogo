@@ -86,7 +86,11 @@ const MAGNITUDE_BUDGET: Record<string, number> = {
   "packages/components/src/LibrationPoints/index.tsx": 1,
   "packages/components/src/ManeuverPlanner/index.tsx": 5,
   "packages/components/src/ManeuverPlanner/LocalManeuverTriggerService.ts": 10,
-  "packages/components/src/MapView/index.tsx": 15,
+  // 16: the sixteenth is a maneuver node's own UT. It reads the modern
+  // vessel.maneuver shape, where the instant is a Value; the horizon it feeds
+  // is plain-number geometry against a plain-number view instant, so the
+  // unwrap belongs at that boundary rather than one term deeper.
+  "packages/components/src/MapView/index.tsx": 16,
   "packages/components/src/MapView/vanillaPoiProvider.ts": 2,
   "packages/components/src/MissionEventLog/useMissionEvents.ts": 1,
   "packages/components/src/Navball/index.tsx": 1,
