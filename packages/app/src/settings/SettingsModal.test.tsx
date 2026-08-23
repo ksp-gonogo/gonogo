@@ -416,6 +416,48 @@ describe("SettingsModal Data Sources tab: per-Uplink health (system.uplinkHealth
     expect(screen.queryByRole("button", { name: /show/i })).toBeNull();
   });
 
+  it("lists an uplink's own diagnostic facts as labelled rows", async () => {
+    const stream = setupTelemetryStream();
+    registerDataSource(makeSitrepStub(vi.fn(), "connected"));
+    const { container } = renderModalWithStream(stream);
+    await openDataSourcesTab();
+
+    // The identity of whatever the uplink depends on, authored entirely by the
+    // uplink. Nothing here knows what a "descriptor" is, which is the point: an
+    // uplink publishes its dependency's build and hash without a topic of its
+    // own and without this file learning a word about it.
+    stream.emit({
+      uplinks: [
+        {
+          id: "demo-native",
+          version: "1.0.0",
+          available: true,
+          reason: null,
+          health: {
+            state: 1,
+            detail: "This build has not been vetted here.",
+            facts: [
+              { label: "descriptor", value: "b2569d21" },
+              { label: "release", value: null },
+            ],
+          },
+        },
+      ],
+    });
+
+    const label = await screen.findByText("descriptor");
+    expect(label.closest("dt")).not.toBeNull();
+    expect(screen.getByText("b2569d21").closest("dl")).toBe(
+      label.closest("dl"),
+    );
+    // A fact the uplink could not establish reads as the null placeholder
+    // rather than as a blank cell an operator scans past.
+    const placeholders = [...container.querySelectorAll("dd")].filter(
+      (dd) => dd.textContent === NULL_DISPLAY,
+    );
+    expect(placeholders).toHaveLength(1);
+  });
+
   it("shows a placeholder when the reported uplink list is empty", async () => {
     const stream = setupTelemetryStream();
     registerDataSource(makeSitrepStub(vi.fn(), "connected"));
