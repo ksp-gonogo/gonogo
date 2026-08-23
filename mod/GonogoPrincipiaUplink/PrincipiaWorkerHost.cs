@@ -124,6 +124,30 @@ namespace GonogoPrincipiaUplink
     /// spawning because it is the part that can be wrong in a way nobody notices: a
     /// worker that runs and produces plausible numbers under the wrong label is worse
     /// than one that refuses, and it looks exactly like success.</para>
+    ///
+    /// <para><b>Spawning a worker beside KSP is possible, and that is measured rather
+    /// than assumed.</b> KSP runs inside a pressure-vessel MOUNT namespace, separate
+    /// from a host shell's, which is why a check run over SSH says nothing about what
+    /// the game can do. Read from inside instead, on a live game:</para>
+    ///
+    /// <list type="bullet">
+    /// <item><description>KSP already HAS a child, <c>kerbcast-sidecar</c>, a native
+    /// ELF shipped under its own mod's GameData folder and started by that mod. A
+    /// plugin starting a process is not a thing to prove, it is a thing already
+    /// happening.</description></item>
+    /// <item><description>That child's mount namespace is byte-identical to KSP's, so
+    /// a worker inherits the container's filesystem view rather than the
+    /// host's.</description></item>
+    /// <item><description>Inside that view, GameData resolves at the same path it does
+    /// outside, and Principia's own build is visible there. A worker can find the
+    /// file it is meant to borrow.</description></item>
+    /// <item><description>The existing sidecar talks over pipes and sockets, both of
+    /// which therefore work across this boundary.</description></item>
+    /// </list>
+    ///
+    /// <para>One thing the container does NOT have is a managed runtime: no
+    /// <c>mono</c>, no <c>dotnet</c>. A worker is a native executable shipped beside
+    /// the mod, which is exactly what the working precedent is.</para>
     /// </summary>
     public static class PrincipiaWorkerHost
     {
