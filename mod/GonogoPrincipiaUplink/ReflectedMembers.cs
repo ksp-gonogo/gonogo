@@ -85,6 +85,23 @@ namespace GonogoPrincipiaUplink
         /// surface, and it is guarded by a running-plugin test on the line above
         /// it. Nothing else on this list crosses that boundary, and nothing new
         /// should join it without the same paragraph.</para>
+        ///
+        /// <para><b>Swept 2026-08-23, and the list is now known COMPLETE for the
+        /// settings path.</b> Every name <c>SettingsReflection</c> and
+        /// <c>PrincipiaSettingsSource</c> read (45 of them) was resolved against the
+        /// type that really declares it, in the shipped
+        /// <c>ksp_plugin_adapter.dll</c> and in KSP's <c>Assembly-CSharp.dll</c>.
+        /// Thirteen are properties and all thirteen are below; the other
+        /// thirty-two are fields, which this guard is never consulted for. No name
+        /// is a field on one declaring type and a property on another, so the
+        /// resolution is unambiguous.</para>
+        ///
+        /// <para>Two claims that were previously asserted here are now measured
+        /// rather than trusted: <c>bodyName</c> is <c>public string bodyName</c> on
+        /// <c>CelestialBody</c> and <c>id</c> is <c>public Guid id</c> on
+        /// <c>Vessel</c>, both plain fields. Note that both names also exist as
+        /// PROPERTIES elsewhere in KSP (<c>id</c> on four other types), so a
+        /// name-only check would have got this wrong in both directions.</para>
         /// </summary>
         public static readonly string[] ReadableProperties =
         {
