@@ -18,10 +18,13 @@ import {
   Text,
   Unit,
 } from "@ksp-gonogo/ui-kit";
+import type { ReactNode } from "react";
 import type {
+  PrincipiaConformanceReport,
   PrincipiaFlightPlan,
   PrincipiaFlightPlanBurn,
 } from "../__generated__/contract";
+import { PrincipiaConformance } from "../__generated__/contract";
 import { PRINCIPIA } from "../uplink";
 // Side-effect import: hydrates this Topic's units at decode time and augments
 // the payload map for the type. Pulled in here rather than left to the entry
@@ -184,9 +187,40 @@ function BurnRow({
  * to show below the built-in preview. So the host widget needed no edit at
  * all.</para>
  */
+/**
+ * Says so when the numbers above came out of a Principia build nobody has checked
+ * our reading of.
+ *
+ * Nothing at all when the build is vetted, deliberately. A green tick on every
+ * panel teaches an operator to stop reading badges, and this section already
+ * spends its badge row on things that vary. Silence here means the ordinary case.
+ *
+ * The wording avoids naming the mechanism. What an operator needs is whether to
+ * trust these numbers, not that a descriptor hash failed to match a set.
+ */
+function conformanceBadge(
+  reading: Reading<PrincipiaConformanceReport>,
+): ReactNode {
+  if (reading.state !== "observed") {
+    // Not knowing is not the same as a bad build, and the gate deliberately
+    // takes a moment: it does not run until Principia's own startup has mapped
+    // its library. Saying nothing yet is the honest report.
+    return null;
+  }
+  const state = reading.value.state;
+  if (state === PrincipiaConformance.UnknownRelease) {
+    return <Badge severity="caution">UNVETTED PRINCIPIA VERSION</Badge>;
+  }
+  if (state === PrincipiaConformance.Refused) {
+    return <Badge severity="warning">PRINCIPIA NOT READABLE</Badge>;
+  }
+  return null;
+}
+
 export function FlightPlanSection() {
   const view = planView(useTelemetry("principia.flightPlan"));
   const identity = useTelemetry("vessel.identity");
+  const conformance = useTelemetry("principia.conformance");
   const viewUt = magnitudeOf(useViewUt());
 
   if (view.kind === "unobserved") {
@@ -247,6 +281,10 @@ export function FlightPlanSection() {
             <Badge severity="warning">PLAN INCOMPLETE</Badge>
           )}
           {integrationBadge(plan)}
+          {/* Last in the row because it qualifies the whole section rather than
+              one number, and because it is usually absent: a badge that is
+              normally missing should not shift the ones that are always there. */}
+          {conformanceBadge(conformance)}
         </Cluster>
 
         {/* The planner draws for its OWN predicted vessel, which is not always

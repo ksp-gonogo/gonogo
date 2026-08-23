@@ -20,7 +20,11 @@ afterEach(() => {
 /** The instant every fixture pins the view clock to. */
 const VIEW_UT = 10_000;
 
-const CARRIED = ["principia.flightPlan", "vessel.identity"];
+const CARRIED = [
+  "principia.flightPlan",
+  "vessel.identity",
+  "principia.conformance",
+];
 
 function mount(pinnedUt = VIEW_UT) {
   const stream = setupStreamFixture({ carriedChannels: CARRIED, pinnedUt });
@@ -317,5 +321,78 @@ describe("FlightPlanSection: an observation, dated", () => {
 
     expect(await screen.findByText("#1")).toBeInTheDocument();
     expect(await axe(stream.container)).toHaveNoViolations();
+  });
+});
+
+describe("the Principia build behind these numbers", () => {
+  /** Matches the C# `PrincipiaConformance` arms by value, not by name. */
+  const CONFORMANT = 1;
+  const UNKNOWN_RELEASE = 2;
+  const REFUSED = 3;
+
+  function emitConformance(
+    stream: ReturnType<typeof mount>,
+    state: number,
+  ): void {
+    act(() => {
+      stream.emit(
+        "principia.conformance",
+        { state, variant: 2, interfaceExports: 170 },
+        { validAt: VIEW_UT },
+      );
+    });
+  }
+
+  it("flags a version nobody has checked our reading of", async () => {
+    const stream = mount();
+
+    emitPlan(stream);
+    emitConformance(stream, UNKNOWN_RELEASE);
+
+    expect(
+      await screen.findByText("UNVETTED PRINCIPIA VERSION"),
+    ).toBeInTheDocument();
+  });
+
+  it("flags a build it could not read at all, differently", async () => {
+    // Two different problems and two different next moves: an unvetted version
+    // is one we have not got to, an unreadable one is a fault. Collapsing them
+    // would send an operator looking for the wrong thing.
+    const stream = mount();
+
+    emitPlan(stream);
+    emitConformance(stream, REFUSED);
+
+    expect(
+      await screen.findByText("PRINCIPIA NOT READABLE"),
+    ).toBeInTheDocument();
+    expect(visibleText(stream.container)).not.toMatch(/UNVETTED/i);
+  });
+
+  it("says nothing at all when the build is one we have vetted", async () => {
+    // The ordinary case, and the reason there is no green tick: a badge on every
+    // panel every time teaches an operator to stop reading the badge row, and
+    // this section spends that row on things that actually vary.
+    const stream = mount();
+
+    emitPlan(stream);
+    emitConformance(stream, CONFORMANT);
+
+    // Awaited on something the plan itself renders, so the absence below is read
+    // AFTER the tree settled rather than before it drew anything at all.
+    expect(await screen.findByText("#1")).toBeInTheDocument();
+    expect(visibleText(stream.container)).not.toMatch(/UNVETTED|NOT READABLE/i);
+  });
+
+  it("says nothing YET when the gate has not run", async () => {
+    // The gate deliberately waits for Principia's own startup to map its
+    // library, so an early silence is not a bad build. Reporting one would put a
+    // warning on every session's first seconds.
+    const stream = mount();
+
+    emitPlan(stream);
+
+    expect(await screen.findByText("#1")).toBeInTheDocument();
+    expect(visibleText(stream.container)).not.toMatch(/UNVETTED|NOT READABLE/i);
   });
 });
