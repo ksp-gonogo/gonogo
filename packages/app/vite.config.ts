@@ -12,6 +12,10 @@ import { resolve } from "node:path";
 import react from "@vitejs/plugin-react";
 import browserslistToEsbuild from "browserslist-to-esbuild";
 import { defineConfig, type PluginOption } from "vite";
+import {
+  UPLINK_EXTERNAL_ENTRIES,
+  UPLINK_EXTERNAL_NO_CHUNK,
+} from "./src/uplinks/externals/entries";
 
 // Resolve every @ksp-gonogo/* workspace package to its TypeScript source so
 // Vite compiles it on-the-fly rather than serving pre-built dist files.
@@ -152,10 +156,13 @@ const HOST_CONTRACT_MINOR = readExportedNumberConst(
 );
 
 // The first-party Uplink clients built as standalone, runtime-loadable ESM
-// bundles (Phase B: scansat + kos, the loader was proven on scansat first in
-// Phase A, design §6). Each is emitted to public/uplinks/<id>.client.js and
-// recorded in the local registry fixture. Adding another Uplink here is the
-// whole change.
+// bundles. Each is emitted to public/uplinks/<id>.client.js and recorded in the
+// local registry fixture. Adding another Uplink here is the whole change.
+//
+// `runtimeLink.test.ts` builds the same entry points to check they still link
+// against the import map. It derives them from `flag.ts`'s ids rather than
+// sharing this list, because a list of mod names inside `src/` is what the
+// mod-ownership boundary guard exists to stop.
 const UPLINK_BUNDLE_TARGETS: {
   id: string;
   name: string;
@@ -198,23 +205,7 @@ const UPLINK_EXTERNALS: {
   specifier: string;
   entryName: string;
   file: string;
-}[] = (
-  [
-    ["react", "ext-react"],
-    ["react-dom", "ext-react-dom"],
-    ["react/jsx-runtime", "ext-react-jsx-runtime"],
-    ["styled-components", "ext-styled-components"],
-    ["@ksp-gonogo/core", "ext-core"],
-    ["@ksp-gonogo/components", "ext-components"],
-    ["@ksp-gonogo/data", "ext-data"],
-    ["@ksp-gonogo/ui", "ext-ui"],
-    ["@ksp-gonogo/ui-kit", "ext-ui-kit"],
-    ["@ksp-gonogo/sitrep-client", "ext-sitrep-client"],
-    ["@ksp-gonogo/sitrep-sdk", "ext-sitrep-sdk"],
-    ["@ksp-gonogo/sitrep-sdk/media", "ext-sitrep-sdk-media"],
-    ["@ksp-gonogo/logger", "ext-logger"],
-  ] as const
-).map(([specifier, entryName]) => ({
+}[] = UPLINK_EXTERNAL_ENTRIES.map(([specifier, entryName]) => ({
   specifier,
   entryName,
   file: resolve(externalsDir, `${entryName}.ts`),
@@ -263,10 +254,9 @@ const uplinkBundles = (): PluginOption => ({
       },
     };
 
-    const external = UPLINK_EXTERNALS.map((e) => e.specifier).concat([
-      "react-dom/client",
-      "react/jsx-dev-runtime",
-    ]);
+    const external = UPLINK_EXTERNALS.map((e) => e.specifier).concat(
+      UPLINK_EXTERNAL_NO_CHUNK,
+    );
 
     const entries: Record<string, unknown>[] = [];
     for (const target of UPLINK_BUNDLE_TARGETS) {

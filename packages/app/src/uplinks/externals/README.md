@@ -1,7 +1,8 @@
 # Uplink external-entry chunks
 
-Each `ext-*.ts` here is a standalone Vite build entry (wired in `vite.config.ts`
-via `UPLINK_EXTERNALS`) that re-exports one shared package the app already owns.
+Each `ext-*.ts` here is a standalone Vite build entry (listed in `entries.ts`,
+wired in `vite.config.ts` via `UPLINK_EXTERNALS`) that re-exports one shared
+package the app already owns.
 Because a single Rollup build keeps every shared module in exactly ONE chunk,
 these entries re-export the app's **singleton** instances (the `@ksp-gonogo/core`
 registry `Map`s, React's dispatcher, the styled-components stylesheet) rather
@@ -24,3 +25,26 @@ Two findings from the R1 spike are baked into the file shapes here:
 2. **CJS-interop named exports don't survive `export *`.** `export * from "react"`
    did NOT expose `useEffect` (react is CJS); the named surface must be
    re-exported EXPLICITLY: see `ext-react.ts` / `ext-react-jsx-runtime.ts`.
+
+## A subpath needs its own entry
+
+An import map matches a key without a trailing slash EXACTLY, so
+`@ksp-gonogo/sitrep-sdk` resolves nothing for `@ksp-gonogo/sitrep-sdk/spine`.
+esbuild makes this invisible before load: it externalises a subpath of an
+externalised package NAME, so the bare specifier survives into the bundle with no
+warning and the build succeeds. It then throws at `import(bundleUrl)`.
+
+Every other check reports clean while this is broken. It typechecks, and the
+Uplink isolation ratchet is a denylist of packages, so it permits a permitted
+package at any depth. `/spine` shipped unresolvable for exactly this reason.
+
+Two checks cover it now, and both are only meaningful because they use a
+runtime-loaded Uplink: a statically bundled one resolves through Vite and never
+consults the import map.
+
+- `runtimeLink.test.ts` here builds the real loader clients, plus a client that
+  imports the frame arithmetic from `/spine`, through the same esbuild call the
+  plugin makes, and resolves every surviving specifier the way a browser does.
+- `packages/core/src/sdk-subpath-alias.test.ts` classifies every subpath the sdk
+  declares as runtime-resolvable or deliberately not, so the next one added
+  cannot default to broken.
