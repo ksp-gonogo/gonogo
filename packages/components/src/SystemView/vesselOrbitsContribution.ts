@@ -102,7 +102,7 @@ function hasUsableOrbit(v: VesselRosterEntry): boolean {
 /**
  * A vessel's own position, in `bodyName`'s frame: the full Keplerian element
  * set when `v.orbit` is usable, else a faint-dot degrade AT the body
- * (`xMetres: 0, yMetres: 0`), honestly "this vessel is here" without
+ * (all three components zero), honestly "this vessel is here" without
  * fabricating orbital elements it doesn't have. Shared by
  * `computeVesselOrbitEntities` (draws it) and `computeCommsNetworkEntities`
  * (joins a graph node's id to it, never redoing the projection choice).
@@ -112,7 +112,13 @@ function vesselPosition(
   bodyName: string,
 ): SystemEntityPosition {
   if (!hasUsableOrbit(v)) {
-    return { kind: "fixed", parentName: bodyName, xMetres: 0, yMetres: 0 };
+    return {
+      kind: "fixed",
+      parentName: bodyName,
+      xMetres: 0,
+      yMetres: 0,
+      zMetres: 0,
+    };
   }
   return {
     kind: "orbit",
@@ -121,6 +127,7 @@ function vesselPosition(
     ecc: magnitudeOr(v.orbit?.ecc, 0),
     lan: magnitudeOr(v.orbit?.lan, 0),
     argPe: magnitudeOr(v.orbit?.argPe, 0),
+    inclination: magnitudeOr(v.orbit?.inc, 0),
     trueAnomaly: 0, // ignored by "orbit-path", which draws the whole ring
   };
 }
@@ -200,7 +207,13 @@ function resolveNodePosition(
 ): SystemEntityPosition | null {
   if (isHomeNode) {
     return homeName
-      ? { kind: "fixed", parentName: homeName, xMetres: 0, yMetres: 0 }
+      ? {
+          kind: "fixed",
+          parentName: homeName,
+          xMetres: 0,
+          yMetres: 0,
+          zMetres: 0,
+        }
       : null;
   }
   const vessel = vesselsById.get(nodeId);

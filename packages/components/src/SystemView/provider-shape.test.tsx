@@ -142,9 +142,15 @@ describe("SystemView draws the vessel trajectory the provider states", () => {
         throw new Error("the vessel curve has not rendered yet");
       }
     });
-    expect(
-      container.querySelector('ellipse[data-vessel-trajectory="conic"]'),
-    ).not.toBeNull();
+    // A closed path rather than an `<ellipse>`: the conic ARM is unchanged (the
+    // elements are still the curve), and the diagram draws it by sampling and
+    // placing the ring like any other, since a projected inclined orbit has a
+    // centre `cx`/`cy` cannot express.
+    const conic = container.querySelector(
+      'path[data-vessel-trajectory="conic"]',
+    );
+    expect(conic).not.toBeNull();
+    expect(conic?.getAttribute("d") ?? "").toMatch(/Z$/);
   });
 
   it("draws the vouched-for arc, not a conic, when the provider integrates", async () => {
@@ -159,7 +165,7 @@ describe("SystemView draws the vessel trajectory the provider states", () => {
     // Open by construction: it stops where the provider stopped.
     expect(arc?.getAttribute("d") ?? "").not.toMatch(/z/i);
     expect(
-      container.querySelector('ellipse[data-vessel-trajectory="conic"]'),
+      container.querySelector('[data-vessel-trajectory="conic"]'),
     ).toBeNull();
   });
 
@@ -183,7 +189,9 @@ describe("SystemView draws the vessel trajectory the provider states", () => {
         throw new Error("the refusal has not rendered yet");
       }
     });
-    expect(container.querySelectorAll("ellipse").length).toBeGreaterThan(0);
+    expect(
+      container.querySelectorAll("path[data-body-orbit]").length,
+    ).toBeGreaterThan(0);
   });
 
   it("keeps the vessel marker when its trajectory is refused", async () => {

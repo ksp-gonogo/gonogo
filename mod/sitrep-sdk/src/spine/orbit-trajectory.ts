@@ -447,7 +447,7 @@ function reframeArc(
   }
   const sides = frameSides(readFrame.facts, readFrame.choice);
   if (sides === null) return unavailable;
-  const kind = readFrameKind(readFrame.choice.kind);
+  const kind = trajectoryFrameKindFor(readFrame.choice.kind);
   if (kind === TrajectoryFrameKindLike.Unspecified) return unavailable;
 
   // The perifocal frame's own axes in inertial components, built once rather
@@ -533,7 +533,16 @@ function reframeArc(
   };
 }
 
-function readFrameKind(kind: ReadFrameChoice["kind"]): TrajectoryFrameKindLike {
+/**
+ * The `TrajectoryFrame` kind a read-frame choice draws in.
+ *
+ * Exported because a widget that does its OWN framing still has to caption the
+ * frame it drew in, and building the same switch beside the caption is how two
+ * mappings of one enum drift apart.
+ */
+export function trajectoryFrameKindFor(
+  kind: ReadFrameChoice["kind"],
+): TrajectoryFrameKindLike {
   switch (kind) {
     case "body-centred-inertial":
       return TrajectoryFrameKindLike.BodyCentredInertial;

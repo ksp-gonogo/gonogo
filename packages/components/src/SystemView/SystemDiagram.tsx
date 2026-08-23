@@ -17,23 +17,47 @@ import {
   useState,
 } from "react";
 import {
+  type PatchPoint,
   type PredictedTrajectory,
   type ProjectedPatch,
-  type ProjectedPoint,
   predictTrajectory,
 } from "./predictedTrajectory";
+import {
+  DEPTH_ABOVE_COLOUR,
+  DEPTH_BELOW_COLOUR,
+  DEPTH_LEVEL_COLOUR,
+  type DepthGradientAxis,
+  depthColour,
+  depthGradientAxis,
+  depthStrength,
+  INERTIAL_PLACEMENT,
+  orbitPointAt,
+  orbitRingPoints,
+  type Placement,
+  perifocalToParent,
+  type ResolvedProjection,
+} from "./projection";
 import type { CelestialBody } from "./useCelestialBodies";
 
 /**
- * Top-down view of every body orbiting a chosen parent. Geometry is now
- * physically meaningful (parent at the focus of each ellipse, body
- * positioned via the polar form of the conic), with three layered
- * affordances on top of the basic schematic:
+ * Every body orbiting a chosen parent, drawn in one frame.
  *
- *   - Inclination is implied by a stroke gradient perpendicular to each
- *     orbit's line of nodes: red for the half above the reference
- *     plane, blue for the half below. Strength scales with inclination,
- *     so flat orbits are mostly neutral.
+ * <b>The arithmetic is three-dimensional and the projection to two dimensions
+ * happens once, at the last step.</b> It used to flatten first, which is what
+ * made a frame transform impossible: a rotation into a pair-rotating frame is a
+ * rotation about an arbitrary axis, and a plane the third component has already
+ * been dropped from has no such rotation to perform. Every position here is a
+ * parent-centred three-vector in metres, put through the projection in force,
+ * and only then multiplied into plot units and written into an SVG attribute.
+ *
+ * The component that gets dropped is what the colour means. A body's marker
+ * carries a cue from its OWN depth at this instant, and a drawn path carries a
+ * gradient along the axis its own depth varies on, which is a different reading
+ * from the inclination the stroke gradient used to encode: a body at its
+ * ascending node has no depth however inclined its orbit is.
+ *
+ * Layered affordances on top of the schematic:
+ *
  *   - The active vessel renders as a green dot on its own orbit when
  *     the chosen frame matches the vessel's parent.
  *   - Hover any body for a mouse-tracked tooltip with the canonical
@@ -114,6 +138,18 @@ export interface SystemDiagramProps {
    * marker. `ut` is the current universal time, used to find the live patch.
    */
   predicted?: { orbitPatches: readonly OrbitPatch[]; ut: number } | null;
+  /**
+   * The frame the WHOLE picture is drawn in: the bodies, their rings, the craft
+   * and its curve alike.
+   *
+   * `null` is the catalogue refusing to form the frame that was asked for, not
+   * the absence of a frame. The diagram then draws in the coordinates its own
+   * positions already arrive in, which is the parent-centred inertial frame the
+   * host's own stock entry registers, and the caller names that frame beside the
+   * picture. There is one coalesce for this, at the top of the component, so no
+   * draw site below it asks whether a projection exists.
+   */
+  projection?: ResolvedProjection | null;
   width: number;
   height: number;
 }
@@ -150,6 +186,7 @@ export function SystemDiagram({
   transferStatuses,
   onFocusBodyChange,
   predicted,
+  projection = null,
   width,
   height,
 }: SystemDiagramProps) {
@@ -158,12 +195,26 @@ export function SystemDiagram({
     [bodies, parentName],
   );
 
-  // Plot scale (metres → px). Independent of zoom/pan, those are applied via
-  // the SVG viewBox: so it only changes when the frame, geometry, or tile
-  // size do. Lifted above the empty-state return so the trajectory memo can
-  // depend on it without violating the rules of hooks.
+  // The ONE coalesce. Below this line nothing asks whether a projection is in
+  // force, only which one, and the fallback is the named frame the diagram's own
+  // coordinates already sit in rather than the absence of one.
+  const placement: Placement = projection ?? INERTIAL_PLACEMENT;
+
+  // Plot scale. Independent of zoom/pan, which are applied via the SVG viewBox,
+  // so it only changes when the frame, geometry, projection or tile size do.
+  //
+  // <b>The auto-fit is the first thing a projection changes the meaning of.</b>
+  // Fitting the outermost apoapsis in metres is right for a frame whose origin
+  // is this body and whose lengths are metres, and meaningless for one whose
+  // coordinates are multiples of a separation. So the projection states which,
+  // and states it as a value rather than by omission.
   const plotScale = useMemo(() => {
     const baseRadius = Math.min(width, height) / 2 - PAD;
+    if (placement.extent.kind === "fixed-units") {
+      return placement.extent.units > 0
+        ? baseRadius / placement.extent.units
+        : 1;
+    }
     const effectiveMax = Math.max(
       maxRadius,
       vessel && nameMatches(vessel.parentName, parentName)
@@ -171,41 +222,78 @@ export function SystemDiagram({
         : 0,
     );
     return effectiveMax > 0 ? baseRadius / effectiveMax : 1;
-  }, [width, height, maxRadius, vessel, parentName]);
+  }, [width, height, maxRadius, vessel, parentName, placement]);
 
-  // Predicted multi-SOI trajectory. Memoised so panning/zooming/hovering:
-  // which re-render the SVG; don't re-run the Kepler propagation. Only a new
-  // patch set, a new `ut` bucket (parent throttles to 1 Hz), a frame change, or
-  // a geometry/size change invalidates it. Child offsets are the drawn moon
-  // positions so an encounter patch plots in that moon's local frame.
+  // Every drawn position, placed once. Memoised on the projection (which the
+  // caller rebuilds on the one-second UT bucket) rather than recomputed per
+  // render, because this widget re-renders at requestAnimationFrame rate:
+  // `useUtNow` sets state on `clock.onFrame` and UT advances every tick. Zoom is
+  // deliberately NOT a dependency, so a wheel gesture repaints without replacing
+  // 3,000 placements.
+  const placed = useMemo(
+    () =>
+      placeDiagram({
+        parent,
+        children,
+        vessel,
+        parentName,
+        placement,
+        plotScale,
+      }),
+    [parent, children, vessel, parentName, placement, plotScale],
+  );
+
+  // Predicted multi-SOI trajectory. Same memo discipline, and the child offsets
+  // it carries are parent-centred METRES rather than drawn positions: a frame
+  // transform is affine, so offsetting a moon-local arc after placing it would
+  // add a translation the frame had already accounted for. Composing in metres
+  // and placing the sum once is exact in every frame.
   const trajectory = useMemo<PredictedTrajectory | null>(() => {
     if (!predicted || predicted.orbitPatches.length === 0 || plotScale <= 0) {
       return null;
     }
-    const childOffsets = new Map<string, ProjectedPoint>();
+    const childOffsets = new Map<string, PatchPoint>();
     for (const c of children) {
       const sma = c.semiMajorAxis ?? 0;
       if (sma <= 0 || c.name === null) continue;
-      childOffsets.set(
-        c.name,
-        bodyPosition(
-          sma,
-          c.eccentricity ?? 0,
-          c.lan ?? 0,
-          c.argumentOfPeriapsis ?? 0,
-          c.trueAnomaly ?? 0,
-          plotScale,
-        ),
+      const at = orbitPointAt(
+        sma,
+        c.eccentricity ?? 0,
+        c.lan ?? 0,
+        c.argumentOfPeriapsis ?? 0,
+        c.inclination ?? 0,
+        c.trueAnomaly ?? 0,
       );
+      childOffsets.set(c.name, { x: at[0], y: at[1], z: at[2] });
     }
     return predictTrajectory({
       patches: predicted.orbitPatches,
       parentName,
       ut: predicted.ut,
-      scale: plotScale,
       childOffsets,
     });
   }, [predicted, plotScale, children, parentName]);
+
+  // The predicted arcs, placed into the frame in force. Split from the
+  // propagation above so a projection change replaces the placement without
+  // re-solving Kepler, and a new patch set re-solves without a second pass over
+  // the frame arithmetic.
+  const placedPatches = useMemo(
+    () =>
+      trajectory === null
+        ? null
+        : {
+            patches: trajectory.patches.map((patch) => ({
+              patch,
+              points: patch.points.map((p) => placement.place([p.x, p.y, p.z])),
+            })),
+            encounters: trajectory.encounters.map((enc) => ({
+              enc,
+              at: placement.place([enc.x, enc.y, enc.z]),
+            })),
+          },
+    [trajectory, placement],
+  );
 
   // Zoom + pan state: kept above the empty-state return so the hook
   // count stays stable across renders.
@@ -350,102 +438,99 @@ export function SystemDiagram({
           System view around {parentName} ({children.length} bodies)
         </title>
 
-        {/* Inclination-gradient defs. One per orbit, perpendicular to
-            its line of nodes; intensity scales with |inclination|. */}
+        {/* Depth-gradient defs. One per drawn curve, along the axis that
+            curve's own depth varies on. */}
         <defs>
-          {children.map((c) => {
-            if ((c.semiMajorAxis ?? 0) <= 0) return null;
-            return (
-              <InclinationGradient
-                key={`grad-${c.index}`}
-                id={`${tiltGradId}-${c.index}`}
-                lanDeg={c.lan ?? 0}
-                inclination={c.inclination ?? 0}
-                extent={(c.semiMajorAxis ?? 0) * plotScale * 1.2}
+          {placed.bodies.map((p) =>
+            p.ringDepth === null ? null : (
+              <DepthGradient
+                key={`grad-${p.body.index}`}
+                id={`${tiltGradId}-${p.body.index}`}
+                axis={p.ringDepth}
+                zoom={zoom}
               />
-            );
-          })}
-          {showVessel && (
-            <InclinationGradient
+            ),
+          )}
+          {placed.vessel?.ringDepth && (
+            <DepthGradient
               id={`${tiltGradId}-vessel`}
-              lanDeg={vessel.lan}
-              inclination={vessel.inclination}
-              extent={vessel.sma * plotScale * 1.2}
+              axis={placed.vessel.ringDepth}
+              zoom={zoom}
             />
           )}
         </defs>
 
-        {/* Orbit ellipses: focus at origin (parent). Each is its own
-            <g rotate(phi)> so the ellipse can sit with periapsis along
-            +x and the focus at origin via cx = -ae. */}
-        {children.map((c) => {
-          const sma = c.semiMajorAxis ?? 0;
-          if (sma <= 0) return null;
-          const ring = orbitEllipseGeometry(
-            sma,
-            c.eccentricity ?? 0,
-            c.lan ?? 0,
-            c.argumentOfPeriapsis ?? 0,
-            plotScale,
-          );
-          return (
-            <g
-              key={`orbit-${c.index}`}
-              transform={`rotate(${ring.rotationDeg})`}
+        {/* Orbit rings, as sampled polylines rather than SVG ellipses. An
+            ellipse is the shape a closed orbit has in its own plane; projected
+            honestly it has a centre `cx`/`cy` cannot express, and in a rotating
+            frame it is a rosette. One rendering strategy, so the only one there
+            is stays exercised. */}
+        {placed.bodies.map((p) =>
+          p.ring === null ? null : (
+            <path
+              key={`orbit-${p.body.index}`}
+              data-body-orbit={p.body.name ?? ""}
+              d={p.ring}
+              fill="none"
+              stroke={
+                p.ringDepth === null
+                  ? DEPTH_LEVEL_COLOUR
+                  : `url(#${tiltGradId}-${p.body.index})`
+              }
+              // Screen-constant, like every dot/marker/label below: the SVG
+              // viewBox magnifies user-units by `zoom`, so a user-unit stroke
+              // would otherwise balloon at the 25x cap, swallowing a
+              // near-parent orbit into an unreadable blob at SOI zoom.
+              strokeWidth={BODY_ORBIT_STROKE_WIDTH / zoom}
+              strokeOpacity={p.ringDepth === null ? 0.45 : undefined}
               pointerEvents="none"
-            >
-              <ellipse
-                cx={ring.cx}
-                cy={ring.cy}
-                rx={ring.rx}
-                ry={ring.ry}
-                fill="none"
-                stroke={`url(#${tiltGradId}-${c.index})`}
-                // Screen-constant, like every dot/marker/label below: the SVG
-                // viewBox magnifies user-units by `zoom`, so a user-unit stroke
-                // would otherwise balloon at the 25x cap, swallowing a
-                // near-parent orbit into an unreadable blob at SOI zoom.
-                strokeWidth={BODY_ORBIT_STROKE_WIDTH / zoom}
-              />
-            </g>
-          );
-        })}
+            />
+          ),
+        )}
 
         {/* Predicted multi-SOI trajectory: patch arcs. Drawn under the body
             dots and vessel marker so they read as background path. The live
             patch is solid green; upcoming patches are dashed + de-emphasised. */}
-        {trajectory?.patches.map((patch) => (
+        {placedPatches?.patches.map(({ patch, points }) => (
           <PredictedPatchArc
             key={`pred-${patch.patchIndex}`}
             patch={patch}
+            points={points}
+            plotScale={plotScale}
             zoom={zoom}
           />
         ))}
 
-        {/* Vessel orbit (if any): same focus-correct geometry, in whichever
-            form the propagation seam authorised. */}
+        {/* Vessel orbit (if any): whichever form the propagation seam
+            authorised, lifted into the frame the rest of the picture is in. */}
         {showVessel && (
           <VesselOrbitPath
             vessel={vessel}
             trajectory={vesselTrajectory}
+            conicRing={placed.vessel?.ring ?? null}
+            placement={placement}
             plotScale={plotScale}
             gradId={`${tiltGradId}-vessel`}
+            hasGradient={placed.vessel?.ringDepth != null}
             zoom={zoom}
           />
         )}
 
-        {/* Parent body */}
+        {/* Parent body. Placed like everything else: it sits at the origin under
+            the inertial projection and somewhere else under any frame whose
+            origin is not this body. */}
         <circle
-          cx={0}
-          cy={0}
+          data-body={parent.name ?? ""}
+          cx={placed.parent.x}
+          cy={placed.parent.y}
           r={6 / zoom}
           fill={parentColor(parent)}
           stroke="var(--color-text-inverse)"
           strokeWidth={1 / zoom}
         />
         <text
-          x={0}
-          y={18 / zoom}
+          x={placed.parent.x}
+          y={placed.parent.y + 18 / zoom}
           fill="var(--color-text-primary)"
           fontSize={10 / zoom}
           textAnchor="middle"
@@ -454,17 +539,11 @@ export function SystemDiagram({
         </text>
 
         {/* Child bodies */}
-        {children.map((c) => {
-          const sma = c.semiMajorAxis ?? 0;
-          if (sma <= 0) return null;
-          const pos = bodyPosition(
-            sma,
-            c.eccentricity ?? 0,
-            c.lan ?? 0,
-            c.argumentOfPeriapsis ?? 0,
-            c.trueAnomaly ?? 0,
-            plotScale,
-          );
+        {placed.bodies.map((p) => {
+          const c = p.body;
+          if ((c.semiMajorAxis ?? 0) <= 0) return null;
+          const pos = p;
+          const depthPx = p.depthUnits * zoom;
           const isTarget = targetName && c.name === targetName;
           const isHighlighted =
             !isTarget && c.name !== null && highlightSet.has(c.name);
@@ -502,19 +581,31 @@ export function SystemDiagram({
                 : prev,
             );
           };
-          // The parent's own name label is fixed at screen-space (0, 18): a
-          // child orbiting close enough to the parent (at this zoom) that
-          // its own label would land in that same few-px neighbourhood
-          // renders name-on-name unreadable, e.g. a close-in moon like Mun
-          // labelled right under Kerbin's own "Kerbin" text at a
-          // zoomed-out default view. The dot alone still marks its
-          // position; zooming in separates it from the parent enough for
+          // The parent's own name label sits 18 screen px below the parent's
+          // DRAWN position: a child close enough to it at this zoom that its own
+          // label lands in the same few-px neighbourhood renders name-on-name
+          // unreadable, e.g. a close-in moon like Mun labelled right under
+          // Kerbin's own "Kerbin" text at a zoomed-out default view. Measured
+          // from where the parent is drawn rather than from the origin, because
+          // under a frame whose origin is not this body those are two different
+          // places and it is the drawn one the labels can collide at. The dot
+          // alone still marks its position; zooming in separates it enough for
           // its label to clear.
-          const screenDistFromParent = Math.hypot(pos.x, pos.y) * zoom;
+          const screenDistFromParent =
+            Math.hypot(pos.x - placed.parent.x, pos.y - placed.parent.y) * zoom;
           const labelWouldCollideWithParent = screenDistFromParent < 30;
           return (
             <g key={`body-${c.index}`}>
+              <DepthRing
+                cx={pos.x}
+                cy={pos.y}
+                radius={dotR * 1.9}
+                depthPx={depthPx}
+                zoom={zoom}
+              />
               <circle
+                data-body={c.name ?? ""}
+                data-depth-px={depthPx}
                 cx={pos.x}
                 cy={pos.y}
                 r={dotR}
@@ -569,11 +660,11 @@ export function SystemDiagram({
 
         {/* Encounter / escape markers: SOI crossings on the predicted path.
             Drawn above the arcs and body dots so they're unmistakable. */}
-        {trajectory?.encounters.map((enc) => (
+        {placedPatches?.encounters.map(({ enc, at }) => (
           <EncounterMarker
             key={`enc-${enc.patchIndex}`}
-            x={enc.x}
-            y={enc.y}
+            x={at[0] * plotScale}
+            y={at[1] * plotScale}
             kind={enc.kind}
             body={enc.body}
             zoom={zoom}
@@ -581,10 +672,10 @@ export function SystemDiagram({
         ))}
 
         {/* Vessel marker: drawn last so it's always on top. */}
-        {showVessel && (
+        {placed.vessel && (
           <VesselMarker
-            vessel={vessel}
-            plotScale={plotScale}
+            at={placed.vessel}
+            crowdAnchor={placed.parent}
             zoom={zoom}
             state={vesselPlotState}
           />
@@ -635,47 +726,191 @@ export function SystemDiagram({
   );
 }
 
+// ── Placement ─────────────────────────────────────────────────────────────────
+
+/** One drawn thing, in plot units, with the depth the projection dropped. */
+export interface PlacedPoint {
+  x: number;
+  y: number;
+  /**
+   * Distance out of the projection's reference plane, PLOT units. Multiply by
+   * the live zoom for screen pixels, which is what a depth cue is read from.
+   */
+  depthUnits: number;
+}
+
+interface PlacedBody extends PlacedPoint {
+  body: CelestialBody;
+  /** The whole ring as an SVG path in plot units, or null when there is none. */
+  ring: string | null;
+  ringDepth: DepthGradientAxis | null;
+}
+
+interface PlacedRing {
+  ring: string | null;
+  ringDepth: DepthGradientAxis | null;
+}
+
+interface PlacedDiagram {
+  /** The frame body. At the origin under the inertial projection, elsewhere otherwise. */
+  parent: PlacedPoint;
+  bodies: PlacedBody[];
+  vessel: (PlacedPoint & PlacedRing) | null;
+}
+
+/**
+ * Every position the diagram draws, taken from orbital elements in three
+ * dimensions, put through the projection, and scaled into plot units.
+ *
+ * A pure function of its arguments so the component can memoise it whole. The
+ * elements come from the wire and the frame comes from a Kepler solve at the view
+ * instant, which is worth stating because it is a real seam: a body's position
+ * here is the MEASUREMENT the stream carried, and the frame it is rotated into is
+ * a MODEL of where the pair was. Under the inertial projection the two never
+ * meet, since the origin is added and immediately subtracted. Under a rotating
+ * one, any disagreement between the wire's true anomaly and the solve at the same
+ * instant shows up as a small rotation, and preferring the solve for the
+ * positions as well would move every body in the ordinary picture to satisfy a
+ * frame nobody had selected.
+ */
+function placeDiagram({
+  parent,
+  children,
+  vessel,
+  parentName,
+  placement,
+  plotScale,
+}: {
+  parent: CelestialBody | null;
+  children: readonly CelestialBody[];
+  vessel: VesselOrbit | null | undefined;
+  parentName: string;
+  placement: Placement;
+  plotScale: number;
+}): PlacedDiagram {
+  const at = (point: readonly [number, number, number]): PlacedPoint => {
+    const p = placement.place([point[0], point[1], point[2]]);
+    return {
+      x: p[0] * plotScale,
+      y: p[1] * plotScale,
+      depthUnits: p[2] * plotScale,
+    };
+  };
+  const ringOf = (
+    sma: number,
+    ecc: number,
+    lan: number,
+    argPe: number,
+    inclination: number,
+  ): PlacedRing => {
+    if (!(sma > 0)) return { ring: null, ringDepth: null };
+    const points = orbitRingPoints(sma, ecc, lan, argPe, inclination).map((p) =>
+      placement.place(p),
+    );
+    return {
+      ring: closedPath(points, plotScale),
+      ringDepth: depthGradientAxis(points, plotScale),
+    };
+  };
+  return {
+    parent: at([0, 0, 0]),
+    bodies: children.map((c) => {
+      const sma = c.semiMajorAxis ?? 0;
+      const ecc = c.eccentricity ?? 0;
+      const lan = c.lan ?? 0;
+      const argPe = c.argumentOfPeriapsis ?? 0;
+      const inclination = c.inclination ?? 0;
+      return {
+        body: c,
+        ...at(
+          orbitPointAt(sma, ecc, lan, argPe, inclination, c.trueAnomaly ?? 0),
+        ),
+        ...ringOf(sma, ecc, lan, argPe, inclination),
+      };
+    }),
+    vessel:
+      vessel && nameMatches(vessel.parentName, parentName)
+        ? {
+            ...at(
+              orbitPointAt(
+                vessel.sma,
+                vessel.ecc,
+                vessel.lan,
+                vessel.argPe,
+                vessel.inclination,
+                vessel.trueAnomaly,
+              ),
+            ),
+            ...ringOf(
+              vessel.sma,
+              vessel.ecc,
+              vessel.lan,
+              vessel.argPe,
+              vessel.inclination,
+            ),
+          }
+        : null,
+  };
+}
+
+/** A closed polyline through placed points, in plot units. */
+function closedPath(
+  points: readonly (readonly [number, number, number])[],
+  plotScale: number,
+): string | null {
+  if (points.length < 2) return null;
+  let d = "";
+  for (let i = 0; i < points.length; i++) {
+    d += `${i === 0 ? "M" : "L"}${points[i][0] * plotScale},${points[i][1] * plotScale}`;
+    if (i < points.length - 1) d += " ";
+  }
+  return `${d} Z`;
+}
+
 // ── Sub-components ────────────────────────────────────────────────────────────
 
-function InclinationGradient({
+/**
+ * How far a drawn curve leaves the projection's reference plane, as a stroke
+ * gradient along the axis its own depth varies on.
+ *
+ * <b>This replaced an inclination gradient, and the two are not the same
+ * reading.</b> The old one ran perpendicular to the line of nodes at a strength
+ * taken from the inclination angle, so it described the ORBIT: Moho's seven
+ * degrees painted at full colour on a whole-system view where the tilt amounts to
+ * a pixel, and a body sitting exactly on its ascending node painted as steeply
+ * inclined. This one runs between the projected positions of the curve's own
+ * deepest and highest samples at a strength taken from how far apart they are ON
+ * SCREEN, so it describes the CURVE: a path that dives below the plane and
+ * returns reads that way, a path that never leaves it reads neutral, and zooming
+ * in on a mild tilt reveals it because at that zoom it is genuinely visible.
+ *
+ * Same three colours, because this is the honest version of what the old cue was
+ * reaching for and not a different language.
+ */
+function DepthGradient({
   id,
-  lanDeg,
-  inclination,
-  extent,
-}: Readonly<{
-  id: string;
-  lanDeg: number;
-  inclination: number;
-  extent: number;
-}>) {
-  // Gradient direction is perpendicular to the line of nodes (LAN
-  // axis). One end represents "above the reference plane" (red),
-  // the other "below" (blue). Strength scales with |inclination|;
-  // flat orbits are mostly neutral.
-  const lanRad = (lanDeg * Math.PI) / 180;
-  const perpAngle = lanRad + Math.PI / 2;
-  const dx = Math.cos(perpAngle) * extent;
-  const dy = Math.sin(perpAngle) * extent;
-  const tilt = Math.min(Math.abs(inclination) / 60, 1);
-  const stopOpacity = 0.35 + 0.55 * tilt;
+  axis,
+  zoom,
+}: Readonly<{ id: string; axis: DepthGradientAxis; zoom: number }>) {
+  const stopOpacity = 0.35 + 0.55 * depthStrength(axis.depthUnits * zoom);
   return (
     <linearGradient
       id={id}
       gradientUnits="userSpaceOnUse"
-      x1={-dx}
-      y1={-dy}
-      x2={dx}
-      y2={dy}
+      x1={axis.x1}
+      y1={axis.y1}
+      x2={axis.x2}
+      y2={axis.y2}
     >
       <stop
         offset="0%"
-        stopColor="rgb(80, 130, 230)"
+        stopColor={DEPTH_BELOW_COLOUR}
         stopOpacity={stopOpacity}
       />
-      <stop offset="50%" stopColor="rgb(160, 160, 170)" stopOpacity={0.45} />
+      <stop offset="50%" stopColor={DEPTH_LEVEL_COLOUR} stopOpacity={0.45} />
       <stop
         offset="100%"
-        stopColor="rgb(230, 90, 90)"
+        stopColor={DEPTH_ABOVE_COLOUR}
         stopOpacity={stopOpacity}
       />
     </linearGradient>
@@ -683,13 +918,67 @@ function InclinationGradient({
 }
 
 /**
- * The vessel's own trajectory, drawn as the propagation seam authorised it.
+ * A body's own depth right now, as a ring around its dot.
  *
- * Both arms sit inside the SAME `rotate(lan + argPe)` group, because both are
- * expressed in the orbit's own plane with periapsis on +x: the conic puts the
- * focus at the origin via `cx = -ae`, and the sampled points are already
- * measured from the focus. Nothing here decides which arm applies, it only
- * draws, which is the whole point of the split.
+ * Its own current position rather than its orbit's shape, which is the
+ * distinction the path gradient above makes at the level of a whole curve: a
+ * body at a node reads level, and the same body a quarter turn later reads as
+ * high or low as its orbit takes it. Invisible at zero depth rather than
+ * suppressed, so a flat system draws no rings at all without a case for it.
+ */
+function DepthRing({
+  cx,
+  cy,
+  radius,
+  depthPx,
+  zoom,
+}: Readonly<{
+  cx: number;
+  cy: number;
+  radius: number;
+  depthPx: number;
+  zoom: number;
+}>) {
+  const strength = depthStrength(depthPx);
+  if (strength <= 0) return null;
+  return (
+    <circle
+      cx={cx}
+      cy={cy}
+      r={radius}
+      fill="none"
+      stroke={depthColour(depthPx)}
+      strokeWidth={1.4 / zoom}
+      opacity={0.25 + 0.6 * strength}
+      pointerEvents="none"
+    />
+  );
+}
+
+/**
+ * The vessel's own trajectory, drawn as the propagation seam authorised it, in
+ * the frame the rest of the picture is in.
+ *
+ * <b>No `rotate()` group any more, and that is the substance of the change.</b>
+ * The old version put both arms inside one `rotate(lan + argPe)`, which is the
+ * zero-inclination case of taking a curve from the orbit's own plane into the
+ * diagram's, and it worked only because the bodies had been flattened by the same
+ * approximation. Every arm now goes through the same placement the bodies do, so
+ * the curve and the bodies are in ONE frame by construction rather than by
+ * agreement.
+ *
+ * Three arms, and each is a different question about where the points already
+ * are:
+ *
+ *   - a CONIC answer says the elements are the curve, so the diagram samples the
+ *     ring itself in three dimensions and places it, exactly as it does a body's
+ *     ring
+ *   - a PERIFOCAL arc is measured in the orbit's own plane, so the elements'
+ *     three-dimensional rotation lifts it to parent-centred metres first
+ *   - a BODY-CENTRED-INERTIAL arc is already in parent-centred metres
+ *
+ * Anything else arrived in a frame this diagram cannot lift from, and draws
+ * nothing rather than a curve turned by an angle that means nothing.
  *
  * A refusal renders nothing at all rather than an empty path: "here is a
  * trajectory with no points in it" and "there is no trajectory to draw" look
@@ -699,80 +988,101 @@ function InclinationGradient({
 function VesselOrbitPath({
   vessel,
   trajectory,
+  conicRing,
+  placement,
   plotScale,
   gradId,
+  hasGradient,
   zoom,
 }: Readonly<{
   vessel: VesselOrbit;
   trajectory: OrbitTrajectory | null;
+  conicRing: string | null;
+  placement: Placement;
   plotScale: number;
   gradId: string;
+  hasGradient: boolean;
   zoom: number;
 }>) {
   if (trajectory === null || trajectory.shape === "withheld") return null;
-  const ring = orbitEllipseGeometry(
-    vessel.sma,
-    vessel.ecc,
-    vessel.lan,
-    vessel.argPe,
-    plotScale,
-  );
-  // The rotation below takes points from the orbit's own plane into the
-  // diagram's. Points that are already in some other frame have been through
-  // their own transform and applying it as well would turn the curve by an
-  // angle that means nothing: the arc says which frame it is in, and this
-  // honours it rather than assuming the one this widget used to be handed.
-  const inOrbitPlane =
-    trajectory.shape !== "arc" ||
-    trajectory.frame.kind === TrajectoryFrameKindLike.Perifocal;
-  // Screen-constant stroke + dashes (see the child-orbit ellipse note):
+  // Screen-constant stroke + dashes (see the child-orbit ring note):
   // user-unit line metrics would balloon with the viewBox at SOI zoom.
   const strokeW = ACTIVE_VESSEL_ORBIT_STROKE_WIDTH / zoom;
   const dashes = `${4 / zoom} ${3 / zoom}`;
+  const stroke = hasGradient ? `url(#${gradId})` : DEPTH_LEVEL_COLOUR;
+  if (trajectory.shape === "conic") {
+    if (conicRing === null) return null;
+    return (
+      <path
+        data-vessel-trajectory="conic"
+        d={conicRing}
+        fill="none"
+        stroke={stroke}
+        strokeWidth={strokeW}
+        strokeDasharray={dashes}
+        pointerEvents="none"
+      />
+    );
+  }
+  const lifted = liftArc(trajectory, vessel);
+  if (lifted === null) return null;
   return (
-    <g
-      transform={inOrbitPlane ? `rotate(${ring.rotationDeg})` : undefined}
-      pointerEvents="none"
-    >
-      {trajectory.shape === "arc" ? (
-        <path
-          data-vessel-trajectory="arc"
-          data-trajectory-frame={trajectory.frame.kind}
-          d={perifocalPath(trajectory.points, plotScale)}
-          fill="none"
-          stroke={`url(#${gradId})`}
-          strokeWidth={strokeW}
-          strokeDasharray={dashes}
-        />
-      ) : (
-        <ellipse
-          data-vessel-trajectory="conic"
-          cx={ring.cx}
-          cy={ring.cy}
-          rx={ring.rx}
-          ry={ring.ry}
-          fill="none"
-          stroke={`url(#${gradId})`}
-          strokeWidth={strokeW}
-          strokeDasharray={dashes}
-        />
+    <path
+      data-vessel-trajectory="arc"
+      data-trajectory-frame={trajectory.frame.kind}
+      d={openPath(
+        lifted.map((p) => placement.place(p)),
+        plotScale,
       )}
-    </g>
+      fill="none"
+      stroke={stroke}
+      strokeWidth={strokeW}
+      strokeDasharray={dashes}
+      pointerEvents="none"
+    />
   );
 }
 
 /**
- * A sampled arc, in the orbit's own plane, as an OPEN polyline in plot units.
- * No `Z`: it stops where the provider stopped, and closing it would assert the
- * one thing a bounded arc cannot promise.
+ * A sampled arc in the frame it arrived in, put into parent-centred inertial
+ * metres, or null when the frame it arrived in is not one this diagram can lift
+ * from.
  */
-function perifocalPath(
-  points: readonly { x: number; y: number }[],
+function liftArc(
+  trajectory: Extract<OrbitTrajectory, { shape: "arc" }>,
+  vessel: VesselOrbit,
+): (readonly [number, number, number])[] | null {
+  switch (trajectory.frame.kind) {
+    case TrajectoryFrameKindLike.Perifocal:
+      return trajectory.points.map((p) =>
+        perifocalToParent(
+          p.x,
+          p.y,
+          vessel.lan,
+          vessel.argPe,
+          vessel.inclination,
+          p.z,
+        ),
+      );
+    case TrajectoryFrameKindLike.BodyCentredInertial:
+      return trajectory.points.map((p) => [p.x, p.y, p.z]);
+    default:
+      return null;
+  }
+}
+
+/**
+ * An OPEN polyline through placed points, in plot units. No `Z`: it stops where
+ * the provider stopped, and closing it would assert the one thing a bounded arc
+ * cannot promise.
+ */
+function openPath(
+  points: readonly (readonly [number, number, number])[],
   plotScale: number,
 ): string {
   return points
     .map(
-      (p, i) => `${i === 0 ? "M" : "L"}${p.x * plotScale},${p.y * plotScale}`,
+      (p, i) => `${i === 0 ? "M" : "L"}${p[0] * plotScale},${p[1] * plotScale}`,
     )
     .join(" ");
 }
@@ -876,58 +1186,73 @@ export interface VesselMarkerPlacement {
  * line back to its true position.
  *
  * Pushing the marker out to a minimum screen distance along the SAME
- * direction from the parent keeps whatever contact treatment it carries
+ * direction from `anchor` keeps whatever contact treatment it carries
  * (colour/dash/ring) legible without lying about where the craft actually
  * is: the leader line is what says "the true position is back here".
  *
+ * <b>`anchor` is the DRAWN position of the body the craft orbits, not the
+ * origin.</b> It was the origin, which assumed the two were the same place, and
+ * they are the same place only in a frame centred on that body. In a pulsating
+ * frame the origin is the pair's mass centre, so pushing away from it would push
+ * a craft in low orbit around the secondary straight through the body it is
+ * trying not to sit on. The thing the marker must not be confused with is the
+ * body, so the body is what it moves away from.
+ *
  * Falls back to a fixed direction (up-and-right) only when the vessel sits
- * exactly on the parent (a zero, or effectively zero, screen-space orbit
+ * exactly on the anchor (a zero, or effectively zero, screen-space orbit
  * radius): there is no real direction to preserve at that point.
  */
 export function resolveVesselMarkerPlacement(
   pos: { x: number; y: number },
   zoom: number,
+  anchor: { x: number; y: number } = { x: 0, y: 0 },
 ): VesselMarkerPlacement {
-  const screenDist = Math.hypot(pos.x, pos.y) * zoom;
+  const dx = pos.x - anchor.x;
+  const dy = pos.y - anchor.y;
+  const screenDist = Math.hypot(dx, dy) * zoom;
   if (screenDist >= MARKER_CROWD_THRESHOLD_PX) {
     return { marker: pos, leaderFrom: null };
   }
-  const angle = screenDist > 1e-6 ? Math.atan2(pos.y, pos.x) : -Math.PI / 4;
+  const angle = screenDist > 1e-6 ? Math.atan2(dy, dx) : -Math.PI / 4;
   const targetUserDist =
     (MARKER_CROWD_THRESHOLD_PX + MARKER_OFFSET_MARGIN_PX) / zoom;
   return {
     marker: {
-      x: Math.cos(angle) * targetUserDist,
-      y: Math.sin(angle) * targetUserDist,
+      x: anchor.x + Math.cos(angle) * targetUserDist,
+      y: anchor.y + Math.sin(angle) * targetUserDist,
     },
     leaderFrom: pos,
   };
 }
 
 function VesselMarker({
-  vessel,
-  plotScale,
+  at,
+  crowdAnchor,
   zoom,
   state = "observed",
 }: Readonly<{
-  vessel: VesselOrbit;
-  plotScale: number;
+  at: PlacedPoint;
+  crowdAnchor: PlacedPoint;
   zoom: number;
   state?: VesselPlotState;
 }>) {
-  const pos = bodyPosition(
-    vessel.sma,
-    vessel.ecc,
-    vessel.lan,
-    vessel.argPe,
-    vessel.trueAnomaly,
-    plotScale,
+  const pos = { x: at.x, y: at.y };
+  const { marker, leaderFrom } = resolveVesselMarkerPlacement(
+    pos,
+    zoom,
+    crowdAnchor,
   );
-  const { marker, leaderFrom } = resolveVesselMarkerPlacement(pos, zoom);
   const r = 5 / zoom;
   const { colour, filled, opacity } = markerStyle(state);
   return (
     <g pointerEvents="none" opacity={opacity}>
+      <DepthRing
+        cx={marker.x}
+        cy={marker.y}
+        radius={r * 3}
+        depthPx={at.depthUnits * zoom}
+        zoom={zoom}
+      />
       {leaderFrom && (
         // Says "the true position is back here": drawn first so the marker
         // itself sits on top of it.
@@ -968,10 +1293,17 @@ function VesselMarker({
 
 function PredictedPatchArc({
   patch,
+  points,
+  plotScale,
   zoom,
-}: Readonly<{ patch: ProjectedPatch; zoom: number }>) {
-  if (patch.points.length < 2) return null;
-  const d = pointsToPath(patch.points);
+}: Readonly<{
+  patch: ProjectedPatch;
+  points: readonly (readonly [number, number, number])[];
+  plotScale: number;
+  zoom: number;
+}>) {
+  if (points.length < 2) return null;
+  const d = openPath(points, plotScale);
   // Live patch: solid bright green (matches the vessel accent). Upcoming
   // patches: dashed, dimmer info-blue, colour-coded by event so an
   // encounter (warm) reads differently from an escape (cool/faint).
@@ -1036,86 +1368,6 @@ function EncounterMarker({
       </text>
     </g>
   );
-}
-
-/** Build an SVG path `d` string from projected points (move to first, line to rest). */
-function pointsToPath(points: readonly ProjectedPoint[]): string {
-  if (points.length === 0) return "";
-  let d = `M ${points[0].x} ${points[0].y}`;
-  for (let i = 1; i < points.length; i++) {
-    d += ` L ${points[i].x} ${points[i].y}`;
-  }
-  return d;
-}
-
-// ── Math ──────────────────────────────────────────────────────────────────────
-
-/**
- * Position of a body on its orbit in the parent frame, with the parent
- * at the origin (focus of the ellipse). Uses the polar form:
- *   r(θ) = a (1 - e²) / (1 + e cos θ)
- * which is exact for an elliptical orbit. The 2D projection is a
- * top-down view ignoring inclination: the inclination axis is
- * rendered separately as a stroke gradient.
- *
- * Exported so `systemEntities.ts` projects contributed shapes through the
- * same conic-section math instead of reimplementing it.
- */
-export function bodyPosition(
-  sma: number,
-  eccentricity: number,
-  lanDeg: number,
-  argPeDeg: number,
-  trueAnomalyDeg: number,
-  scale: number,
-): { x: number; y: number } {
-  const e = Math.min(Math.max(eccentricity, 0), 0.999);
-  const theta = (trueAnomalyDeg * Math.PI) / 180;
-  const phi = ((lanDeg + argPeDeg) * Math.PI) / 180;
-  const r = ((sma * (1 - e * e)) / (1 + e * Math.cos(theta))) * scale;
-  const localX = r * Math.cos(theta);
-  const localY = r * Math.sin(theta);
-  return {
-    x: localX * Math.cos(phi) - localY * Math.sin(phi),
-    y: localX * Math.sin(phi) + localY * Math.cos(phi),
-  };
-}
-
-/**
- * Ellipse parameters for the full ring of an orbit, focus at the origin
- * (parent-centric, pre-rotation local frame): the caller wraps
- * `<ellipse cx cy rx ry>` in a `<g transform="rotate(rotationDeg)">` around
- * the parent's own screen position. Same conic-section math `bodyPosition`
- * uses to place a single point on the ring, factored out so a child-body
- * orbit, the active vessel's orbit, and `systemEntities.ts`'s contributed
- * `orbit-path` shapes all derive the ring from one place instead of three.
- */
-export interface OrbitEllipseGeometry {
-  cx: number;
-  cy: number;
-  rx: number;
-  ry: number;
-  rotationDeg: number;
-}
-
-export function orbitEllipseGeometry(
-  sma: number,
-  eccentricity: number,
-  lanDeg: number,
-  argPeDeg: number,
-  scale: number,
-): OrbitEllipseGeometry {
-  const a = sma * scale;
-  const e = Math.min(Math.max(eccentricity, 0), 0.999);
-  const b = a * Math.sqrt(1 - e * e);
-  const focusOffset = a * e;
-  return {
-    cx: -focusOffset,
-    cy: 0,
-    rx: a,
-    ry: b,
-    rotationDeg: lanDeg + argPeDeg,
-  };
 }
 
 function parentColor(parent: CelestialBody): string {

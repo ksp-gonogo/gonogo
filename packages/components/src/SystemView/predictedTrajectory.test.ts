@@ -2,7 +2,7 @@ import type { OrbitPatch } from "@ksp-gonogo/core";
 import { describe, expect, it } from "vitest";
 import {
   nextEncounter,
-  type ProjectedPoint,
+  type PatchPoint,
   predictTrajectory,
 } from "./predictedTrajectory";
 
@@ -30,47 +30,52 @@ function patch(overrides: Partial<OrbitPatch> = {}): OrbitPatch {
   };
 }
 
-const NO_CHILDREN: ReadonlyMap<string, ProjectedPoint> = new Map();
+const NO_CHILDREN: ReadonlyMap<string, PatchPoint> = new Map();
 
 describe("predictTrajectory", () => {
-  it("returns nothing without patches or a positive scale", () => {
+  it("returns nothing without patches", () => {
     expect(
       predictTrajectory({
         patches: [],
         parentName: "Kerbin",
         ut: 0,
-        scale: 1,
-        childOffsets: NO_CHILDREN,
-      }).patches,
-    ).toEqual([]);
-    expect(
-      predictTrajectory({
-        patches: [patch()],
-        parentName: "Kerbin",
-        ut: 0,
-        scale: 0,
         childOffsets: NO_CHILDREN,
       }).patches,
     ).toEqual([]);
   });
 
-  it("projects a circular equatorial patch onto a centred ring at plot scale", () => {
-    const scale = 1e-5; // 1e6 m → 10 px
+  it("samples a circular equatorial patch onto a centred ring in metres", () => {
     const { patches } = predictTrajectory({
       patches: [patch({ startUT: 0, endUT: 100 })],
       parentName: "Kerbin",
       ut: 0,
-      scale,
       childOffsets: NO_CHILDREN,
     });
     expect(patches).toHaveLength(1);
     const pts = patches[0].points;
     expect(pts.length).toBeGreaterThan(2);
-    // Every sample sits on a circle of radius sma*scale around the origin.
+    // Metres, not plot units: the diagram places these into the frame in force
+    // and scales them, so a plot scale applied here would be a second one.
     for (const p of pts) {
-      const r = Math.hypot(p.x, p.y);
-      expect(r).toBeCloseTo(1e6 * scale, 4);
+      expect(Math.hypot(p.x, p.y)).toBeCloseTo(1e6, 1);
+      expect(p.z).toBeCloseTo(0, 6);
     }
+  });
+
+  it("keeps the out-of-plane component of an inclined patch", () => {
+    const { patches } = predictTrajectory({
+      patches: [patch({ inclination: 30, startUT: 0, endUT: 100 })],
+      parentName: "Kerbin",
+      ut: 0,
+      childOffsets: NO_CHILDREN,
+    });
+    // This used to be dropped here, on the stated grounds that the diagram was
+    // flat, and the diagram is not flat: `patchStateAt` already answers in three
+    // dimensions and two components of it were being taken.
+    const depths = patches[0].points.map((p) => p.z);
+    const peak = 1e6 * Math.sin((30 * Math.PI) / 180);
+    expect(Math.max(...depths)).toBeCloseTo(peak, 1);
+    expect(Math.min(...depths)).toBeCloseTo(-peak, 1);
   });
 
   it("marks the live patch (containing ut) as current and starts it at ut", () => {
@@ -78,7 +83,6 @@ describe("predictTrajectory", () => {
       patches: [patch({ startUT: 0, endUT: 100 })],
       parentName: "Kerbin",
       ut: 25,
-      scale: 1e-5,
       childOffsets: NO_CHILDREN,
     });
     expect(patches).toHaveLength(1);
@@ -86,13 +90,13 @@ describe("predictTrajectory", () => {
     // First sample is the vessel's position at ut=25 (quarter orbit), not at
     // startUT. For a circular orbit with maae=0, ut=25 → 90° → +y axis.
     const first = patches[0].points[0];
-    expect(first.x).toBeCloseTo(0, 2);
-    expect(first.y).toBeCloseTo(1e6 * 1e-5, 4);
+    expect(first.x).toBeCloseTo(0, 1);
+    expect(first.y).toBeCloseTo(1e6, 1);
   });
 
   it("draws an encounter patch offset to the child body position and records the marker", () => {
-    const munOffset = { x: 120, y: 0 };
-    const childOffsets = new Map<string, ProjectedPoint>([["Mun", munOffset]]);
+    const munOffset = { x: 120e5, y: 0, z: 0 };
+    const childOffsets = new Map<string, PatchPoint>([["Mun", munOffset]]);
     const patches = [
       patch({ startUT: 0, endUT: 50, patchEndTransition: "ENCOUNTER" }),
       patch({
@@ -110,18 +114,19 @@ describe("predictTrajectory", () => {
       patches,
       parentName: "Kerbin",
       ut: 0,
-      scale: 1e-5,
       childOffsets,
     });
     expect(projected).toHaveLength(2);
     const munPatch = projected.find((p) => p.referenceBody === "Mun");
     expect(munPatch).toBeDefined();
     expect(munPatch?.startEncounter).toBe("encounter");
-    // The Mun arc is centred on Mun's offset, not the origin.
+    // The Mun arc is centred on Mun's offset, not the origin, and the offset is
+    // composed in METRES: a frame transform is affine, so adding a placed offset
+    // to a placed arc would apply the frame's own translation twice.
     for (const p of munPatch?.points ?? []) {
       expect(Math.hypot(p.x - munOffset.x, p.y - munOffset.y)).toBeCloseTo(
-        200_000 * 1e-5,
-        3,
+        200_000,
+        1,
       );
     }
     expect(encounters).toHaveLength(1);
@@ -140,7 +145,6 @@ describe("predictTrajectory", () => {
       patches,
       parentName: "Kerbin",
       ut: 0,
-      scale: 1e-5,
       childOffsets: NO_CHILDREN,
     });
     expect(encounters).toHaveLength(1);
@@ -156,7 +160,6 @@ describe("predictTrajectory", () => {
       patches,
       parentName: "Kerbin",
       ut: 0,
-      scale: 1e-5,
       childOffsets: NO_CHILDREN,
     });
     expect(projected).toHaveLength(1);
@@ -172,7 +175,6 @@ describe("predictTrajectory", () => {
       patches,
       parentName: "Kerbin",
       ut: 0,
-      scale: 1e-5,
       childOffsets: NO_CHILDREN,
     });
     expect(projected).toHaveLength(1);
@@ -184,7 +186,6 @@ describe("predictTrajectory", () => {
       patches: [patch({ referenceBody: " kerbin " })],
       parentName: "Kerbin",
       ut: 0,
-      scale: 1e-5,
       childOffsets: NO_CHILDREN,
     });
     expect(patches).toHaveLength(1);
@@ -197,15 +198,14 @@ describe("nextEncounter", () => {
       patches: [patch()],
       parentName: "Kerbin",
       ut: 0,
-      scale: 1e-5,
       childOffsets: NO_CHILDREN,
     });
     expect(nextEncounter(traj, 0)).toBeNull();
   });
 
   it("picks the earliest encounter after ut", () => {
-    const childOffsets = new Map<string, ProjectedPoint>([
-      ["Mun", { x: 100, y: 0 }],
+    const childOffsets = new Map<string, PatchPoint>([
+      ["Mun", { x: 100e5, y: 0, z: 0 }],
     ]);
     const patches = [
       patch({ startUT: 0, endUT: 50 }),
@@ -222,7 +222,6 @@ describe("nextEncounter", () => {
       patches,
       parentName: "Kerbin",
       ut: 10,
-      scale: 1e-5,
       childOffsets,
     });
     const next = nextEncounter(traj, 10);

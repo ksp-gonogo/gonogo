@@ -18,6 +18,19 @@ const CTX: SystemEntitiesContext = {
   center: { x: 0, y: 0 },
 };
 
+/** The points of a closed `M x,y L x,y ... Z` ring path. */
+function pathPoints(d: string): { x: number; y: number }[] {
+  return d
+    .replace(/[MLZ]/g, " ")
+    .trim()
+    .split(/\s+/)
+    .filter((s) => s.length > 0)
+    .map((pair) => {
+      const [x, y] = pair.split(",").map(Number);
+      return { x, y };
+    });
+}
+
 describe("projectEntityPosition", () => {
   it("projects an orbit position onto its Keplerian point, matching bodyPosition's convention", () => {
     // Circular, equatorial (ecc=0, lan=argPe=0): trueAnomaly=0 sits on +x.
@@ -29,6 +42,7 @@ describe("projectEntityPosition", () => {
         ecc: 0,
         lan: 0,
         argPe: 0,
+        inclination: 0,
         trueAnomaly: 0,
       },
       CTX,
@@ -47,6 +61,7 @@ describe("projectEntityPosition", () => {
         ecc: 0,
         lan: 0,
         argPe: 0,
+        inclination: 0,
         trueAnomaly: 90,
       },
       CTX,
@@ -64,6 +79,7 @@ describe("projectEntityPosition", () => {
         ecc: 0,
         lan: 0,
         argPe: 0,
+        inclination: 0,
         trueAnomaly: 0,
       },
       CTX,
@@ -80,6 +96,7 @@ describe("projectEntityPosition", () => {
         ecc: 0,
         lan: 0,
         argPe: 0,
+        inclination: 0,
         trueAnomaly: 0,
       },
       CTX,
@@ -97,6 +114,7 @@ describe("projectEntityPosition", () => {
           ecc: 0,
           lan: 0,
           argPe: 0,
+          inclination: 0,
           trueAnomaly: 0,
         },
         CTX,
@@ -111,6 +129,7 @@ describe("projectEntityPosition", () => {
           ecc: 0,
           lan: 0,
           argPe: 0,
+          inclination: 0,
           trueAnomaly: 0,
         },
         CTX,
@@ -125,6 +144,7 @@ describe("projectEntityPosition", () => {
         parentName: "Kerbin",
         xMetres: 500_000,
         yMetres: -250_000,
+        zMetres: 0,
       },
       CTX,
     );
@@ -133,7 +153,13 @@ describe("projectEntityPosition", () => {
 
   it("offsets a fixed position from a non-zero center", () => {
     const p = projectEntityPosition(
-      { kind: "fixed", parentName: "Kerbin", xMetres: 100_000, yMetres: 0 },
+      {
+        kind: "fixed",
+        parentName: "Kerbin",
+        xMetres: 100_000,
+        yMetres: 0,
+        zMetres: 0,
+      },
       { ...CTX, center: { x: 3, y: 7 } },
     );
     expect(p).toEqual({ x: 4, y: 7 });
@@ -147,6 +173,7 @@ describe("projectEntityPosition", () => {
           parentName: "Kerbin",
           xMetres: Number.NaN,
           yMetres: 0,
+          zMetres: 0,
         },
         CTX,
       ),
@@ -156,7 +183,13 @@ describe("projectEntityPosition", () => {
   it("returns null for a fixed position on a different frame", () => {
     expect(
       projectEntityPosition(
-        { kind: "fixed", parentName: "Mun", xMetres: 0, yMetres: 0 },
+        {
+          kind: "fixed",
+          parentName: "Mun",
+          xMetres: 0,
+          yMetres: 0,
+          zMetres: 0,
+        },
         CTX,
       ),
     ).toBeNull();
@@ -164,7 +197,7 @@ describe("projectEntityPosition", () => {
 });
 
 describe("projectOrbitRing", () => {
-  it("derives rx/ry/rotation for an eccentric, rotated orbit", () => {
+  it("closes an eccentric, rotated orbit around its focus with periapsis on the line of apsides", () => {
     const ring = projectOrbitRing(
       {
         kind: "orbit",
@@ -173,18 +206,29 @@ describe("projectOrbitRing", () => {
         ecc: 0.5,
         lan: 30,
         argPe: 15,
+        inclination: 0,
         trueAnomaly: 0, // ignored by the ring
       },
       CTX,
     );
     expect(ring).not.toBeNull();
+    // A polyline, not an `<ellipse cx cy rx ry>` in a rotate() group: the four
+    // attributes describe the shape a closed orbit has in its OWN plane, and
+    // once the projection is honest it has a centre they cannot express. So the
+    // assertions are on the drawn geometry: the focus is at the origin, the
+    // nearest point is a(1-e) away and the furthest a(1+e), and the nearest one
+    // lies along lan+argPe, which is what "rotated by 45 degrees" meant.
+    const points = pathPoints(ring as string);
+    expect(points.length).toBe(97);
     const a = 1_000_000 * CTX.plotScale; // 10
-    const b = a * Math.sqrt(1 - 0.5 * 0.5);
-    expect(ring?.rx).toBeCloseTo(a, 6);
-    expect(ring?.ry).toBeCloseTo(b, 6);
-    expect(ring?.rotationDeg).toBe(45); // lan + argPe
-    expect(ring?.cx).toBeCloseTo(-a * 0.5, 6); // -focusOffset
-    expect(ring?.cy).toBe(0);
+    const radii = points.map((p) => Math.hypot(p.x, p.y));
+    expect(Math.min(...radii)).toBeCloseTo(a * 0.5, 4);
+    expect(Math.max(...radii)).toBeCloseTo(a * 1.5, 4);
+    const periapsis = points[radii.indexOf(Math.min(...radii))];
+    expect((Math.atan2(periapsis.y, periapsis.x) * 180) / Math.PI).toBeCloseTo(
+      45,
+      4,
+    );
   });
 
   it("returns null when the orbit's parent doesn't match the frame", () => {
@@ -197,6 +241,7 @@ describe("projectOrbitRing", () => {
           ecc: 0,
           lan: 0,
           argPe: 0,
+          inclination: 0,
           trueAnomaly: 0,
         },
         CTX,
@@ -214,6 +259,7 @@ describe("projectOrbitRing", () => {
           ecc: 0,
           lan: 0,
           argPe: 0,
+          inclination: 0,
           trueAnomaly: 0,
         },
         CTX,
@@ -235,6 +281,7 @@ function pointEntity(
       ecc: 0,
       lan: 0,
       argPe: 0,
+      inclination: 0,
       trueAnomaly: 0,
     },
     shape: { kind: "point" },
@@ -313,6 +360,7 @@ describe("resolveSystemEntities", () => {
           ecc: 0,
           lan: 0,
           argPe: 0,
+          inclination: 0,
           trueAnomaly: 0,
         },
       }),
@@ -331,6 +379,7 @@ describe("resolveSystemEntities", () => {
           parentName: "Kerbin",
           xMetres: 0,
           yMetres: 0,
+          zMetres: 0,
         },
         shape: { kind: "orbit-path" },
       },
@@ -352,6 +401,7 @@ describe("resolveSystemEntities", () => {
           ecc: 0,
           lan: 0,
           argPe: 0,
+          inclination: 0,
           trueAnomaly: 90, // +y for a circular equatorial orbit
         },
         shape: { kind: "orbit-path" },
@@ -381,6 +431,7 @@ describe("resolveSystemEntities", () => {
             ecc: 0,
             lan: 0,
             argPe: 0,
+            inclination: 0,
             trueAnomaly: 0,
           },
         },
@@ -398,6 +449,7 @@ describe("resolveSystemEntities", () => {
           parentName: "Kerbin",
           xMetres: 0,
           yMetres: 0,
+          zMetres: 0,
         },
         shape: {
           kind: "connection-line",
@@ -406,6 +458,7 @@ describe("resolveSystemEntities", () => {
             parentName: "Kerbin",
             xMetres: 100_000,
             yMetres: 0,
+            zMetres: 0,
           },
         },
       },
@@ -457,6 +510,7 @@ describe("resolveSystemEntities", () => {
             parentName: "Kerbin",
             xMetres: 0,
             yMetres: 0,
+            zMetres: 0,
           },
           shape: {
             kind: "travelling-pulse",
@@ -465,6 +519,7 @@ describe("resolveSystemEntities", () => {
               parentName: "Kerbin",
               xMetres: 1_000_000,
               yMetres: 0,
+              zMetres: 0,
             },
             segmentLengthMetres: 200_000,
             arriveUt: 1_000,
@@ -497,6 +552,7 @@ describe("resolveSystemEntities", () => {
               parentName: "Kerbin",
               xMetres: 0,
               yMetres: 0,
+              zMetres: 0,
             },
             shape: {
               kind: "travelling-pulse",
@@ -505,6 +561,7 @@ describe("resolveSystemEntities", () => {
                 parentName: "Mun",
                 xMetres: 1_000_000,
                 yMetres: 0,
+                zMetres: 0,
               },
               segmentLengthMetres: 200_000,
               arriveUt: 1_000,
@@ -526,6 +583,7 @@ describe("resolveSystemEntities", () => {
               parentName: "Kerbin",
               xMetres: 0,
               yMetres: 0,
+              zMetres: 0,
             },
             shape: {
               kind: "travelling-pulse",
@@ -534,6 +592,7 @@ describe("resolveSystemEntities", () => {
                 parentName: "Kerbin",
                 xMetres: 1_000_000,
                 yMetres: 0,
+                zMetres: 0,
               },
               segmentLengthMetres: 0,
               arriveUt: 1_000,
@@ -557,6 +616,7 @@ describe("resolveSystemEntities", () => {
               parentName: "Kerbin",
               xMetres: 0,
               yMetres: 0,
+              zMetres: 0,
             },
             shape: {
               kind: "travelling-pulse",
@@ -565,6 +625,7 @@ describe("resolveSystemEntities", () => {
                 parentName: "Kerbin",
                 xMetres: 0,
                 yMetres: 0,
+                zMetres: 0,
               },
               segmentLengthMetres: 200_000,
               arriveUt: 1_000,

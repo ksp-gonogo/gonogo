@@ -1,15 +1,21 @@
 /**
- * Multi-SOI predicted-trajectory projection for the top-down SystemView
- * diagram. Reuses the same Keplerian propagator as MapView's ground-track
- * (`patchStateAt`), but projects the inertial XYZ state onto the diagram's
- * reference plane (x, y) instead of converting to lat/lon.
+ * Multi-SOI predicted-trajectory sampling for the SystemView diagram. Reuses the
+ * same Keplerian propagator as MapView's ground-track (`patchStateAt`) and keeps
+ * the whole inertial state.
+ *
+ * <b>It used to drop `z` here, and it does not any more.</b> `patchStateAt`
+ * already answers with a full three-dimensional parent-centred position, and
+ * taking two components of it was the same flat convention the body placement
+ * used. Everything below is parent-centred METRES; the diagram places it into the
+ * frame in force and scales it, so the predicted arc lands in the same frame as
+ * the bodies it passes.
  *
  * SystemView renders one parent frame at a time (e.g. Kerbin with its moons).
  * An `o.orbitPatches` array can span several SOIs:
  *
  *   - A patch whose `referenceBody` matches the rendered frame is the vessel's
  *     trajectory **around the frame body**: drawn at the frame's plot scale,
- *     origin at the parent (same convention as `bodyPosition`).
+ *     origin at the frame body.
  *   - A patch whose `referenceBody` is one of the frame's **children** (a moon
  *     the vessel encounters) is drawn in that child's local frame, offset to
  *     the child's drawn position. The encounter loop is small relative to the
@@ -22,10 +28,16 @@
 import { type OrbitPatch, patchStateAt } from "@ksp-gonogo/core";
 import type { TransitionName } from "@ksp-gonogo/sitrep-client";
 
-/** A point on a predicted arc, in diagram-local px (origin = frame parent). */
-export interface ProjectedPoint {
+/**
+ * A point on a predicted arc, in parent-centred inertial METRES (origin = the
+ * frame body). Not plot units: the diagram places and scales it, and offsetting a
+ * moon-local arc after the frame transform would add a translation the transform
+ * has already accounted for.
+ */
+export interface PatchPoint {
   x: number;
   y: number;
+  z: number;
 }
 
 export type EncounterKind = "encounter" | "escape";
@@ -88,8 +100,8 @@ export interface ProjectedPatch {
    * vs. de-emphasised styling in the diagram.
    */
   isCurrent: boolean;
-  /** Sampled polyline in diagram-local px. */
-  points: ProjectedPoint[];
+  /** Sampled polyline in parent-centred metres. */
+  points: PatchPoint[];
   /**
    * SOI transition at the *start* of this patch, if any. The transition point
    * is `points[0]`. `null` for the initial patch.
@@ -98,9 +110,10 @@ export interface ProjectedPatch {
 }
 
 export interface EncounterMarker {
-  /** Diagram-local px of the SOI-crossing point. */
+  /** Parent-centred metres of the SOI-crossing point. */
   x: number;
   y: number;
+  z: number;
   kind: EncounterKind;
   /** Body whose SOI is entered (encounter) or left (escape). */
   body: string;
@@ -122,22 +135,25 @@ function isElliptical(patch: OrbitPatch): boolean {
 }
 
 /**
- * Project a patch's inertial state at `ut` into the diagram's top-down (x, y)
- * plane. The propagator places periapsis along +x with the orbit's angular
- * momentum along +z; the reference-plane projection drops z, matching
- * `bodyPosition`'s inclination-agnostic top-down convention. `offset` shifts
- * the arc to the reference body's drawn position (zero for the frame parent).
+ * A patch's parent-centred inertial state at `ut`, metres, offset to where its
+ * reference body sits. `offset` is the frame body's own zero for a patch orbiting
+ * the frame body, and the moon's parent-centred position for an encounter patch.
+ *
+ * Composed in metres rather than in drawn coordinates. A frame transform is
+ * affine, so placing the arc and then adding a placed offset would apply the
+ * frame's own translation twice; adding first and placing the sum is exact in
+ * every frame.
  */
-function projectAt(
+function patchPointAt(
   patch: OrbitPatch,
   ut: number,
-  scale: number,
-  offset: ProjectedPoint,
-): ProjectedPoint {
+  offset: PatchPoint,
+): PatchPoint {
   const state = patchStateAt(patch, ut);
   return {
-    x: offset.x + state.x * scale,
-    y: offset.y + state.y * scale,
+    x: offset.x + state.x,
+    y: offset.y + state.y,
+    z: offset.z + state.z,
   };
 }
 
@@ -147,14 +163,12 @@ export interface PredictTrajectoryArgs {
   parentName: string;
   /** Current universal time: identifies the live patch. */
   ut: number;
-  /** metres → px (the diagram's `plotScale`). */
-  scale: number;
   /**
-   * Drawn px positions of the frame's children, keyed by body name. Used to
-   * offset encounter arcs around the moon the vessel passes. The parent frame
-   * itself is the origin (0, 0).
+   * Parent-centred positions of the frame's children in METRES, keyed by body
+   * name. Used to offset encounter arcs around the moon the vessel passes. The
+   * frame body itself is the origin.
    */
-  childOffsets: ReadonlyMap<string, ProjectedPoint>;
+  childOffsets: ReadonlyMap<string, PatchPoint>;
   /** Samples per patch arc. Capped to bound work; defaults to 64. */
   samplesPerPatch?: number;
 }
@@ -179,13 +193,12 @@ export function predictTrajectory({
   patches,
   parentName,
   ut,
-  scale,
   childOffsets,
   samplesPerPatch = DEFAULT_SAMPLES,
 }: PredictTrajectoryArgs): PredictedTrajectory {
   const out: ProjectedPatch[] = [];
   const encounters: EncounterMarker[] = [];
-  if (patches.length === 0 || scale <= 0) {
+  if (patches.length === 0) {
     return { patches: out, encounters };
   }
   const steps = Math.max(2, Math.min(MAX_SAMPLES, Math.floor(samplesPerPatch)));
@@ -211,9 +224,9 @@ export function predictTrajectory({
     if (!isElliptical(patch)) continue;
 
     // Resolve where this patch's reference body sits in the diagram.
-    let offset: ProjectedPoint | null = null;
+    let offset: PatchPoint | null = null;
     if (sameBody(patch.referenceBody, parentName)) {
-      offset = { x: 0, y: 0 };
+      offset = { x: 0, y: 0, z: 0 };
     } else {
       for (const [name, pos] of childOffsets) {
         if (sameBody(name, patch.referenceBody)) {
@@ -231,10 +244,10 @@ export function predictTrajectory({
     const to = patch.endUT;
     if (!(to > from)) continue;
 
-    const points: ProjectedPoint[] = [];
+    const points: PatchPoint[] = [];
     for (let s = 0; s <= steps; s++) {
       const t = from + ((to - from) * s) / steps;
-      points.push(projectAt(patch, t, scale, offset));
+      points.push(patchPointAt(patch, t, offset));
     }
 
     const startEncounter = soiEventKind(patch.patchStartTransition);
@@ -251,6 +264,7 @@ export function predictTrajectory({
       encounters.push({
         x: points[0].x,
         y: points[0].y,
+        z: points[0].z,
         kind: startEncounter,
         body: patch.referenceBody,
         ut: patch.startUT,

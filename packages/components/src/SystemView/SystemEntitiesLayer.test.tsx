@@ -24,6 +24,7 @@ const POINT: SystemEntity = {
     ecc: 0,
     lan: 0,
     argPe: 0,
+    inclination: 0,
     trueAnomaly: 0,
   },
   shape: { kind: "point" },
@@ -39,6 +40,7 @@ const RING: SystemEntity = {
     ecc: 0.3,
     lan: 10,
     argPe: 5,
+    inclination: 0,
     trueAnomaly: 0,
   },
   shape: { kind: "orbit-path" },
@@ -54,6 +56,7 @@ const VESSEL_RING: SystemEntity = {
     ecc: 0.3,
     lan: 10,
     argPe: 5,
+    inclination: 0,
     trueAnomaly: 0,
   },
   shape: { kind: "orbit-path" },
@@ -62,16 +65,34 @@ const VESSEL_RING: SystemEntity = {
 
 const LINK: SystemEntity = {
   id: "link-1",
-  position: { kind: "fixed", parentName: "Kerbin", xMetres: 0, yMetres: 0 },
+  position: {
+    kind: "fixed",
+    parentName: "Kerbin",
+    xMetres: 0,
+    yMetres: 0,
+    zMetres: 0,
+  },
   shape: {
     kind: "connection-line",
-    to: { kind: "fixed", parentName: "Kerbin", xMetres: 200_000, yMetres: 0 },
+    to: {
+      kind: "fixed",
+      parentName: "Kerbin",
+      xMetres: 200_000,
+      yMetres: 0,
+      zMetres: 0,
+    },
   },
 };
 
 const BLOB: SystemEntity = {
   id: "cme-1",
-  position: { kind: "fixed", parentName: "Kerbin", xMetres: 0, yMetres: 0 },
+  position: {
+    kind: "fixed",
+    parentName: "Kerbin",
+    xMetres: 0,
+    yMetres: 0,
+    zMetres: 0,
+  },
   shape: { kind: "blob", radiusMetres: 300_000 },
 };
 
@@ -83,10 +104,22 @@ const BLOB: SystemEntity = {
 // round leadingPx.
 const TRAVELLING_PULSE: SystemEntity = {
   id: "cme-pulse-1",
-  position: { kind: "fixed", parentName: "Kerbin", xMetres: 0, yMetres: 0 },
+  position: {
+    kind: "fixed",
+    parentName: "Kerbin",
+    xMetres: 0,
+    yMetres: 0,
+    zMetres: 0,
+  },
   shape: {
     kind: "travelling-pulse",
-    to: { kind: "fixed", parentName: "Kerbin", xMetres: 500_000, yMetres: 0 },
+    to: {
+      kind: "fixed",
+      parentName: "Kerbin",
+      xMetres: 500_000,
+      yMetres: 0,
+      zMetres: 0,
+    },
     segmentLengthMetres: 100_000,
     arriveUt: 100,
     clearUt: 101,
@@ -113,25 +146,27 @@ describe("SystemEntitiesLayer", () => {
     expect(circle?.getAttribute("cy")).toBe("0");
   });
 
-  it("draws an orbit-path as a rotated ellipse", () => {
+  it("draws an orbit-path as a closed polyline, with no residual rotation", () => {
     const { container } = render(
       <SystemEntitiesLayer entities={[RING]} ctx={CTX} />,
     );
-    const g = container.querySelector('g[data-entity-id="ring-1"]');
-    expect(g?.getAttribute("transform")).toBe("rotate(15)");
-    expect(g?.querySelector("ellipse")).not.toBeNull();
+    const path = container.querySelector('path[data-entity-id="ring-1"]');
+    expect(path).not.toBeNull();
+    const d = path?.getAttribute("d") ?? "";
+    expect(d.startsWith("M")).toBe(true);
+    expect(d.endsWith("Z")).toBe(true);
+    // No `rotate()` anywhere on it. The projection has been applied to every
+    // sample, so there is no residual rotation left to apply, and applying one
+    // would turn an already-turned curve a second time.
+    expect(path?.getAttribute("transform")).toBeNull();
+    expect(path?.closest("[transform]")).toBeNull();
+    expect(container.querySelector("ellipse")).toBeNull();
   });
 
-  it("also draws a small dot at the orbit-path entity's own declared anomaly, OUTSIDE the ring's rotated group", () => {
+  it("also draws a small dot at the orbit-path entity's own declared anomaly", () => {
     const { container } = render(
       <SystemEntitiesLayer entities={[RING]} ctx={CTX} />,
     );
-    const g = container.querySelector('g[data-entity-id="ring-1"]');
-    // The dot is NOT a child of the rotated ellipse group: its own
-    // coordinates are already fully resolved (bodyPosition bakes in
-    // lan+argPe+trueAnomaly), so nesting it inside a second `rotate()`
-    // would rotate an already-rotated point a second time.
-    expect(g?.querySelector("circle")).toBeNull();
     const dot = container.querySelector('circle[data-entity-dot-id="ring-1"]');
     expect(dot).not.toBeNull();
     // RING: sma=1e6, ecc=0.3, lan=10, argPe=5, trueAnomaly=0, plotScale=1e-5.

@@ -1,5 +1,10 @@
 import { logger } from "@ksp-gonogo/logger";
-import { bodyPosition, orbitEllipseGeometry } from "./SystemDiagram";
+import {
+  INERTIAL_PLACEMENT,
+  orbitPointAt,
+  orbitRingPoints,
+  type Placement,
+} from "./projection";
 
 /**
  * The `system-view.entities` contribution slot (contribution-slots-spec
@@ -79,6 +84,17 @@ export interface SystemEntityOrbitPosition {
   lan: number;
   /** Argument of periapsis, degrees. */
   argPe: number;
+  /**
+   * Inclination to the parent's reference plane, degrees.
+   *
+   * <b>Required, and required is the point.</b> The diagram's arithmetic is
+   * three-dimensional and a frame transform is a rotation about an arbitrary
+   * axis, so a two-dimensional position is not something it can accept at all:
+   * the transform would have nothing to rotate. An orbit that really is
+   * equatorial says `0` deliberately, which is a statable fact, where an omitted
+   * field is a contributor who was never asked.
+   */
+  inclination: number;
   /** True anomaly, degrees. */
   trueAnomaly: number;
 }
@@ -97,6 +113,12 @@ export interface SystemEntityFixedPosition {
   parentName: string;
   xMetres: number;
   yMetres: number;
+  /**
+   * Out of the parent's reference plane, metres. Same reasoning as
+   * `SystemEntityOrbitPosition.inclination`: a position with two components is
+   * not a position the projection can turn.
+   */
+  zMetres: number;
 }
 
 export type SystemEntityPosition =
@@ -209,6 +231,13 @@ export interface SystemEntitiesContext {
   plotScale: number;
   /** The parent body sits at this SVG-space point (the origin, in practice). */
   center: { x: number; y: number };
+  /**
+   * The frame the diagram is drawing in, so a contributed entity lands in the
+   * same one the bodies do. Absent means the parent-centred inertial frame the
+   * host's own stock entry names, which is the frame a contributed position is
+   * already expressed in.
+   */
+  placement?: Placement;
 }
 
 /** Case/whitespace-insensitive body-name match (mirrors `SystemDiagram`'s own `nameMatches`). */
@@ -227,66 +256,72 @@ export function projectEntityPosition(
   ctx: SystemEntitiesContext,
 ): { x: number; y: number } | null {
   if (!sameParent(position.parentName, ctx.parentName)) return null;
+  const placement = ctx.placement ?? INERTIAL_PLACEMENT;
   if (position.kind === "orbit") {
     if (!(position.sma > 0) || !Number.isFinite(position.sma)) return null;
-    return bodyPosition(
-      position.sma,
-      position.ecc,
-      position.lan,
-      position.argPe,
-      position.trueAnomaly,
-      ctx.plotScale,
+    const at = placement.place(
+      orbitPointAt(
+        position.sma,
+        position.ecc,
+        position.lan,
+        position.argPe,
+        position.inclination,
+        position.trueAnomaly,
+      ),
     );
+    return { x: at[0] * ctx.plotScale, y: at[1] * ctx.plotScale };
   }
   if (
     !Number.isFinite(position.xMetres) ||
-    !Number.isFinite(position.yMetres)
+    !Number.isFinite(position.yMetres) ||
+    !Number.isFinite(position.zMetres)
   ) {
     return null;
   }
+  const at = placement.place([
+    position.xMetres,
+    position.yMetres,
+    position.zMetres,
+  ]);
   return {
-    x: ctx.center.x + position.xMetres * ctx.plotScale,
-    y: ctx.center.y + position.yMetres * ctx.plotScale,
+    x: ctx.center.x + at[0] * ctx.plotScale,
+    y: ctx.center.y + at[1] * ctx.plotScale,
   };
 }
 
 /**
- * Ellipse parameters for an `orbit-path` ring, positioned at `ctx.center`:
- * the caller wraps `<ellipse cx cy rx ry>` in a `<g transform="rotate(rotationDeg)">`
- * around `ctx.center`. `null` for a frame mismatch or degenerate sma, same
- * as `projectEntityPosition`. The ellipse geometry itself comes from
- * `orbitEllipseGeometry` (`SystemDiagram.tsx`), the same conic-section math
- * a child body's and the active vessel's own orbit rings use, just
- * re-centred from origin-relative to `ctx.center`.
+ * An `orbit-path` ring as a closed polyline in the diagram's SVG user units,
+ * centred on `ctx.center`. `null` for a frame mismatch or degenerate sma, same
+ * as `projectEntityPosition`.
+ *
+ * A polyline rather than the `<ellipse cx cy rx ry>` in a `rotate()` group this
+ * used to be, for the reason the diagram's own body rings changed: an ellipse is
+ * the shape a closed orbit has in its own plane, and once the projection is
+ * honest it has a centre those four attributes cannot express. Same sampling as
+ * the host's rings, so a contributed ring and a body ring cannot disagree about
+ * the shape of the same orbit.
  */
-export interface OrbitRingGeometry {
-  cx: number;
-  cy: number;
-  rx: number;
-  ry: number;
-  rotationDeg: number;
-}
-
 export function projectOrbitRing(
   orbit: SystemEntityOrbitPosition,
   ctx: SystemEntitiesContext,
-): OrbitRingGeometry | null {
+): string | null {
   if (!sameParent(orbit.parentName, ctx.parentName)) return null;
   if (!(orbit.sma > 0) || !Number.isFinite(orbit.sma)) return null;
-  const ring = orbitEllipseGeometry(
+  const placement = ctx.placement ?? INERTIAL_PLACEMENT;
+  const points = orbitRingPoints(
     orbit.sma,
     orbit.ecc,
     orbit.lan,
     orbit.argPe,
-    ctx.plotScale,
-  );
-  return {
-    cx: ctx.center.x + ring.cx,
-    cy: ctx.center.y + ring.cy,
-    rx: ring.rx,
-    ry: ring.ry,
-    rotationDeg: ring.rotationDeg,
-  };
+    orbit.inclination,
+  ).map((p) => placement.place(p));
+  let d = "";
+  for (let i = 0; i < points.length; i++) {
+    const x = ctx.center.x + points[i][0] * ctx.plotScale;
+    const y = ctx.center.y + points[i][1] * ctx.plotScale;
+    d += `${i === 0 ? "M" : " L"}${x},${y}`;
+  }
+  return `${d} Z`;
 }
 
 // ── Z-order ───────────────────────────────────────────────────────────────
@@ -372,11 +407,12 @@ export type ResolvedSystemEntity =
     })
   | (ResolvedBase & {
       kind: "orbit-path";
-      cx: number;
-      cy: number;
-      rx: number;
-      ry: number;
-      rotationDeg: number;
+      /**
+       * The whole ring as a closed SVG path in the diagram's user units, already
+       * absolute: no wrapping `rotate()` group, because the projection has been
+       * applied to every sample and there is no residual rotation left to apply.
+       */
+      ring: string;
       /** The entity's own `position` (its declared anomaly), projected: a
        *  small marker distinguishing WHERE on the ring this entity's data
        *  actually points (e.g. a `connection-line`'s join point) from the
@@ -480,7 +516,7 @@ export function resolveSystemEntities(
         resolved: {
           kind: "orbit-path",
           id: entity.id,
-          ...ring,
+          ring,
           ...(dot ? { dotX: dot.x, dotY: dot.y } : {}),
           colour,
           opacity,

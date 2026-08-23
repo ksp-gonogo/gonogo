@@ -56,11 +56,9 @@ import { KERBALISM } from "../uplink";
 // always present alongside a storm entry for that star. Negating it gives a
 // star-to-vessel bearing, a fair stand-in for star-to-body (the vessel sits
 // inside that body's SOI, negligible next to interplanetary `dist`). This
-// diagram already flattens every orbit onto one plane (`SystemDiagram`
-// ignores inclination), so the bearing does the same: only the direction
-// vector's x/z components are used (its y, the out-of-plane component, is
-// dropped), matching the plane every other entity in this diagram already
-// draws into. A storm with no matching `stars` entry (defensive: the two
+// bearing carries all three components: SystemView's arithmetic is
+// three-dimensional and its third component is out of the ecliptic, which is
+// the game's own `y`. A storm with no matching `stars` entry (defensive: the two
 // lists come off the same reflection loop, so this shouldn't happen in
 // practice) is skipped outright rather than drawn with a fabricated bearing.
 //
@@ -90,29 +88,36 @@ function stormStateLabel(state: number): string {
 /**
  * The star-to-body bearing, in the diagram's own parent-centric metres, from
  * `star.direction` (Kerbalism's vessel-to-star unit vector): negated for
- * star-to-vessel, x/z only (this diagram's own flattened plane, see this
- * file's honesty note above), scaled to `distMetres`. `null` when the
- * direction is absent or degenerate (e.g. a zero vector, or its x/z
- * components both vanish because the vessel sits exactly along the star's
- * polar axis): the caller treats that the same as any other missing datum,
- * no draw rather than a fabricated bearing.
+ * star-to-vessel, scaled to `distMetres`. `null` when the direction is absent
+ * or degenerate (a zero vector): the caller treats that the same as any other
+ * missing datum, no draw rather than a fabricated bearing.
+ *
+ * <b>All three components, where this used to drop one.</b> It kept x and z and
+ * threw the out-of-plane component away, on the stated grounds that SystemView
+ * flattened every orbit onto one plane anyway. That diagram's arithmetic is
+ * three-dimensional now, so the component this had been discarding is one it can
+ * draw, and a bearing missing it would put an interplanetary front in the
+ * ecliptic when the storm is not. The game's `y` is out of the ecliptic and the
+ * diagram's third component is too.
  */
 function bearingMetres(
   direction: KerbalismStarInfo["direction"] | undefined,
   distMetres: number,
-): { xMetres: number; yMetres: number } | null {
+): { xMetres: number; yMetres: number; zMetres: number } | null {
   if (!direction) return null;
   const dx = magnitudeOf(direction.x);
+  const dy = magnitudeOf(direction.y);
   const dz = magnitudeOf(direction.z);
-  if (dx == null || dz == null) return null;
-  const planarMag = Math.hypot(dx, dz);
-  if (!(planarMag > 0)) return null;
+  if (dx == null || dy == null || dz == null) return null;
+  const mag = Math.hypot(dx, dy, dz);
+  if (!(mag > 0)) return null;
   // `|| 0` normalises a -0 result (e.g. dz === 0) to plain 0: a real
   // negative bearing is truthy and passes through untouched, only the
   // signed-zero edge case gets folded.
   return {
-    xMetres: (-dx / planarMag) * distMetres || 0,
-    yMetres: (-dz / planarMag) * distMetres || 0,
+    xMetres: (-dx / mag) * distMetres || 0,
+    yMetres: (-dz / mag) * distMetres || 0,
+    zMetres: (-dy / mag) * distMetres || 0,
   };
 }
 
@@ -193,7 +198,13 @@ function computeStormEntity(
     // "root parent" frame setting, the whole-system view a CME threatening
     // the whole neighbourhood belongs on), same off-frame degrade every
     // other entity gets.
-    position: { kind: "fixed", parentName: storm.star, xMetres: 0, yMetres: 0 },
+    position: {
+      kind: "fixed",
+      parentName: storm.star,
+      xMetres: 0,
+      yMetres: 0,
+      zMetres: 0,
+    },
     shape: {
       kind: "travelling-pulse",
       to: { kind: "fixed", parentName: storm.star, ...bearing },
