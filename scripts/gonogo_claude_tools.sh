@@ -1080,6 +1080,14 @@ build_gonogoprincipiauplink() {
   # is reached by reflection, so there is nothing of Principia's to exclude.
   cp "$out_dir/GonogoPrincipiaUplink.dll" "$install_dir/"
   cp "$out_dir/GonogoPrincipiaUplink.Contract.dll" "$install_dir/"
+  # The worker script, beside the plugins rather than inside them. It is not an
+  # assembly and KSP would try to load it as one. The mod spawns it as a child
+  # process to run Principia's own code outside the game, so it has to be on disk
+  # where the mod can find it: an undeployed worker makes Spawn return null
+  # forever, which reads as "this machine has no python" and is not that at all.
+  local worker_dir="$ROOT/local_docs/syncthing/kspdata/GameData/GonogoPrincipiaUplink/Worker"
+  mkdir -p "$worker_dir"
+  cp "$ROOT/mod/GonogoPrincipiaUplink/worker/principia_worker.py" "$worker_dir/"
   {
     echo "version=$(git -C "$ROOT" describe --tags --always --dirty 2>/dev/null || echo unknown)"
     echo "git_sha=$(git -C "$ROOT" rev-parse HEAD 2>/dev/null || echo unknown)"
