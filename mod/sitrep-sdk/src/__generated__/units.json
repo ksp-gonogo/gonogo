@@ -1772,6 +1772,9 @@
       "flightStats": "CrashFlightStats",
       "partsLost": "CrashPartLost"
     },
+    "DelayedObservation": {
+      "state": "StateVector"
+    },
     "DockAlignment": {
       "meta": "PayloadMeta"
     },

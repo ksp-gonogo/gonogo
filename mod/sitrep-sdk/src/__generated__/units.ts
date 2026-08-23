@@ -1829,6 +1829,9 @@ export const GENERATED_TYPE_SHAPES: Readonly<Record<string, ShapesByField>> = {
     flightStats: "CrashFlightStats",
     partsLost: "CrashPartLost",
   },
+  "DelayedObservation": {
+    state: "StateVector",
+  },
   "DockAlignment": {
     meta: "PayloadMeta",
   },

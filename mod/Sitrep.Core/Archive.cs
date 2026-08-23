@@ -143,7 +143,22 @@ namespace Sitrep.Core
         /// ValidAt &lt;= scene, or null if nothing has "arrived" yet at that
         /// vantage.
         /// </summary>
-        public ArchiveSample? ReadAtVantage(string topic, string vantage, double delaySeconds, double nowUt)
+        public ArchiveSample? ReadAtVantage(string topic, string vantage, double delaySeconds, double nowUt) =>
+            ReadAtVantage(topic, vantage, delaySeconds, nowUt, out _);
+
+        /// <summary>
+        /// As <see cref="ReadAtVantage(string, string, double, double)"/>, also
+        /// reporting the scene instant it actually used.
+        ///
+        /// <para>Needed because the scene is NOT <c>nowUt - delaySeconds</c> whenever
+        /// the clamp bites: on a receding craft the delay grows faster than UT
+        /// advances, and the cursor freezes rather than rewinding. A caller that
+        /// recomputed the raw value would get an instant EARLIER than the one the
+        /// answer came from, and would then see a sample apparently dated after its
+        /// own view instant, which reads exactly like a future leak.</para>
+        /// </summary>
+        public ArchiveSample? ReadAtVantage(
+            string topic, string vantage, double delaySeconds, double nowUt, out double sceneUt)
         {
             var rawScene = nowUt - delaySeconds;
 
@@ -157,6 +172,7 @@ namespace Sitrep.Core
                 ? Math.Max(rawScene, lastScene)
                 : rawScene;
             byVantage[vantage] = scene;
+            sceneUt = scene;
 
             if (!_samplesByTopic.TryGetValue(topic, out var list) || list.Count == 0)
             {
