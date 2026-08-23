@@ -14,13 +14,12 @@
     "telemetry",
     "principia"
   ],
+  "x_gonogo_note_principia": "Principia is deliberately NOT listed as a dependency of any kind. It is not indexed by CKAN at all: no identifier in CKAN-meta and no netkan, so a `recommends` on it is a dangling reference CKAN cannot resolve and a `depends` would make this Uplink uninstallable. The version guard fail-softs, so a player without Principia gets an Uplink that reports itself unavailable with a reason rather than a broken install.",
   "depends": [
     { "name": "GonogoCore" },
     { "name": "Harmony2" }
-  ],
-  "recommends": [
-    { "name": "Principia" }
-  ],
+  ]
+  ,
   "install": [
     {
       "file": "GameData/GonogoPrincipiaUplink",
