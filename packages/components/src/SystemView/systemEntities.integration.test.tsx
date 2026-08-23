@@ -54,6 +54,7 @@ const ENTITY: SystemEntity = {
     parentName: "Kerbin",
     xMetres: 1_000_000,
     yMetres: 0,
+    zMetres: 0,
   },
   shape: { kind: "point" },
   meta: { name: "Test Vessel" },

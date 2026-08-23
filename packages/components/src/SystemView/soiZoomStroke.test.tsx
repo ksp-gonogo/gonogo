@@ -106,7 +106,9 @@ describe("SystemView: near-parent orbit stroke stays readable at SOI zoom (board
       fixture.emit("system.bodies", wideSystem());
     });
     await waitFor(() =>
-      expect(container.querySelectorAll("ellipse").length).toBeGreaterThan(0),
+      expect(
+        container.querySelectorAll("path[data-body-orbit]").length,
+      ).toBeGreaterThan(0),
     );
 
     // Zoom to the 25x cap (wheel is 1.15x per notch; 30 notches saturates).
@@ -117,12 +119,14 @@ describe("SystemView: near-parent orbit stroke stays readable at SOI zoom (board
     const zoom = currentZoom(container);
     expect(zoom).toBeGreaterThan(20); // reached (near) the 25x cap
 
-    // Every orbit ellipse's ON-SCREEN stroke (user-unit width * zoom) must stay
-    // a thin line. Pre-fix this was 1.2 * 25 = 30 px; a screen-constant stroke
+    // Every orbit ring's ON-SCREEN stroke (user-unit width * zoom) must stay a
+    // thin line. Pre-fix this was 1.2 * 25 = 30 px; a screen-constant stroke
     // stays ~1.2 px. Cap at 3 px leaves headroom without admitting the blob.
-    const ellipses = Array.from(container.querySelectorAll("ellipse"));
-    expect(ellipses.length).toBeGreaterThan(0);
-    for (const el of ellipses) {
+    const rings = Array.from(
+      container.querySelectorAll("path[data-body-orbit]"),
+    );
+    expect(rings.length).toBeGreaterThan(0);
+    for (const el of rings) {
       const strokeUser = Number(el.getAttribute("stroke-width"));
       const onScreen = strokeUser * zoom;
       expect(onScreen).toBeLessThanOrEqual(3);

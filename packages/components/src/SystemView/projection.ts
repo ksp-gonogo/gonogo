@@ -362,6 +362,22 @@ export const INERTIAL_PLACEMENT: Placement = {
 };
 
 /**
+ * The frame {@link INERTIAL_PLACEMENT} draws in, so the caption can name it.
+ *
+ * Beside the placement rather than inferred at the caption, because the two have
+ * to agree: a picture drawn in a fallback frame with no name on it is exactly the
+ * silence this whole change is about, one layer down.
+ */
+export function inertialFrameFor(frameBodyIndex: number): TrajectoryFrame {
+  return {
+    kind: trajectoryFrameKindFor("body-centred-inertial"),
+    centreBodyIndex: frameBodyIndex,
+    lengthsPulsate: false,
+    scaleConvention: TRAJECTORY_SCALE_CONVENTIONS.metres,
+  };
+}
+
+/**
  * The projection in force, at `ut`, or null when the catalogue cannot form it.
  *
  * Null is a refusal to draw in the asked-for frame, not a licence to draw in

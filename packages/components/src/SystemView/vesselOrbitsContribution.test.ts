@@ -79,6 +79,9 @@ describe("computeVesselOrbitEntities", () => {
       ecc: 0.1,
       lan: 20,
       argPe: 30,
+      // Carried, not dropped: the diagram's arithmetic is three-dimensional and a
+      // contributed ring with no inclination is a ring it cannot turn.
+      inclination: 5,
       trueAnomaly: 0,
     });
   });
@@ -95,6 +98,7 @@ describe("computeVesselOrbitEntities", () => {
       ecc: 0,
       lan: 0,
       argPe: 0,
+      inclination: 0,
       trueAnomaly: 0,
     });
   });
@@ -112,6 +116,7 @@ describe("computeVesselOrbitEntities", () => {
       parentName: "Kerbin",
       xMetres: 0,
       yMetres: 0,
+      zMetres: 0,
     });
   });
 
@@ -253,6 +258,7 @@ describe("computeCommsNetworkEntities", () => {
         ecc: 0,
         lan: 0,
         argPe: 0,
+        inclination: 0,
         trueAnomaly: 0,
       },
     });
@@ -282,6 +288,7 @@ describe("computeCommsNetworkEntities", () => {
       parentName: "Kerbin",
       xMetres: 0,
       yMetres: 0,
+      zMetres: 0,
     });
   });
 
@@ -300,6 +307,7 @@ describe("computeCommsNetworkEntities", () => {
       parentName: "Kerbin",
       xMetres: 0,
       yMetres: 0,
+      zMetres: 0,
     });
   });
 
@@ -331,6 +339,7 @@ describe("computeCommsNetworkEntities", () => {
       parentName: "HomeworldX",
       xMetres: 0,
       yMetres: 0,
+      zMetres: 0,
     });
   });
 
@@ -353,6 +362,7 @@ describe("computeCommsNetworkEntities", () => {
       parentName: "Kerbin",
       xMetres: 0,
       yMetres: 0,
+      zMetres: 0,
     });
   });
 

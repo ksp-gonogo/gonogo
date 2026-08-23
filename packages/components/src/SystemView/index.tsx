@@ -55,7 +55,7 @@ import {
   NO_COMMS_PATH,
 } from "./commsPath";
 import { deriveTraffic, NO_TRAFFIC } from "./commsTraffic";
-import { resolveProjection } from "./projection";
+import { inertialFrameFor, resolveProjection } from "./projection";
 // Side-effect import: the host's own entries on `system-view.projection`, so the
 // picker, the filter and the resolver are all travelled on a bare stock install
 // with no Uplinks at all.
@@ -1045,7 +1045,12 @@ function SystemViewComponent({
           and the picture is in the parent-centred inertial coordinates it
           already had. */}
       <TrajectoryFrameCaption
-        frame={projection?.frame ?? null}
+        frame={
+          projection?.frame ??
+          (frameBodyIndex === undefined
+            ? null
+            : inertialFrameFor(frameBodyIndex))
+        }
         centreBodyName={parentName ?? undefined}
       />
       {showDiagram ? (
