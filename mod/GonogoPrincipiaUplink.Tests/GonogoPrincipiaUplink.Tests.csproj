@@ -58,6 +58,8 @@
     <Compile Include="..\GonogoPrincipiaUplink\PrincipiaVersionGuard.cs" />
     <Compile Include="..\GonogoPrincipiaUplink\PrincipiaBinaryDiscovery.cs" />
     <Compile Include="..\GonogoPrincipiaUplink\PrincipiaDescriptorReader.cs" />
+    <Compile Include="..\GonogoPrincipiaUplink\NativeExportReader.cs" />
+    <Compile Include="..\GonogoPrincipiaUplink\PrincipiaSymbolGate.cs" />
     <Compile Include="..\GonogoPrincipiaUplink\PrincipiaUplink.cs" />
     <Compile Include="..\GonogoPrincipiaUplink\IFlightPlanObserver.cs" />
     <Compile Include="..\GonogoPrincipiaUplink\FlightPlanObservation.cs" />
