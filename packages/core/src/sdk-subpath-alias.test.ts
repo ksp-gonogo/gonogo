@@ -81,7 +81,7 @@ function configsAliasingTheSdk(): { path: string; source: string }[] {
  * arithmetic landed on it. Listing both halves here means the NEXT subpath forces
  * the decision to be made rather than defaulted.
  */
-const RUNTIME_RESOLVABLE_SUBPATHS = ["media", "spine"];
+const RUNTIME_RESOLVABLE_SUBPATHS = ["frames", "media", "spine"];
 
 /** Subpaths that must NOT have an entry, with the reason each is unreachable. */
 const RUNTIME_ABSENT_SUBPATHS: Record<string, string> = {

@@ -18,6 +18,10 @@ export default defineConfig({
     // `sitrep-testing/dist`, which reads as a build problem rather than a missing
     // alias, and cost a while to place the first time it happened.
     alias: {
+      "@ksp-gonogo/sitrep-sdk/frames": path.resolve(
+        sdkPkgs,
+        "src/frames/index.ts",
+      ),
       "@ksp-gonogo/sitrep-sdk/media": path.resolve(
         sdkPkgs,
         "src/media/index.ts",

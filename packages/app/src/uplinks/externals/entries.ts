@@ -27,6 +27,7 @@ export const UPLINK_EXTERNAL_ENTRIES = [
   // Each sdk subpath needs its OWN pair: an import map matches a key without a
   // trailing slash EXACTLY, so the bare `@ksp-gonogo/sitrep-sdk` entry above
   // resolves nothing for a subpath import.
+  ["@ksp-gonogo/sitrep-sdk/frames", "ext-sitrep-sdk-frames"],
   ["@ksp-gonogo/sitrep-sdk/media", "ext-sitrep-sdk-media"],
   ["@ksp-gonogo/sitrep-sdk/spine", "ext-sitrep-sdk-spine"],
   ["@ksp-gonogo/logger", "ext-logger"],

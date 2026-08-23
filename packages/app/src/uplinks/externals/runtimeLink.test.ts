@@ -170,9 +170,62 @@ async function externalSpecifiers(
   return [...specifiers].sort();
 }
 
+/**
+ * A client importing the frame arithmetic from the `/frames` author surface.
+ *
+ * **This file cannot see a NAME, only a specifier.** The sdk is marked external,
+ * so esbuild never resolves the module: renaming `frameVector` on the barrel
+ * leaves all six tests here green, measured. The names below are written out so
+ * the probe reads like the client it stands in for, and the surface itself is
+ * pinned by `mod/sitrep-sdk/src/frames/frames.test-d.ts`, which `tsc` compiles
+ * against the real declarations and which reported two diagnostics for that same
+ * rename. What THIS answers is the one question that check cannot: whether a
+ * browser could have found the module at all.
+ */
+const FRAMES_PROBE_SOURCE = `
+import {
+  type FrameCoordinates,
+  type FrameInstant,
+  frameInstantAt,
+  frameVector,
+  fromFrame,
+  READ_FRAME_KINDS,
+  type ReadFrameChoice,
+  type ReadFrameKind,
+  resolveReadFrame,
+  type SystemInstant,
+  systemInstantAt,
+  toFrame,
+  TRAJECTORY_SCALE_CONVENTIONS,
+  type TrajectoryScaleConvention,
+  type Vector3,
+} from "@ksp-gonogo/sitrep-sdk/frames";
+
+export const probe = {
+  frameInstantAt,
+  frameVector,
+  fromFrame,
+  READ_FRAME_KINDS,
+  resolveReadFrame,
+  systemInstantAt,
+  toFrame,
+  TRAJECTORY_SCALE_CONVENTIONS,
+};
+export type Probe = [
+  FrameCoordinates,
+  FrameInstant,
+  ReadFrameChoice,
+  ReadFrameKind,
+  SystemInstant,
+  TrajectoryScaleConvention,
+  Vector3,
+];
+`;
+
 // The read-frame and libration-point arithmetic that lives on the `/spine`
-// subpath. Named individually rather than wildcard-imported so the build fails
-// here if one is renamed, instead of silently checking nothing.
+// subpath, which first-party code reaches and an Uplink author may not. Named
+// individually so the probe reads like a real client; as above, a rename is
+// invisible here because the specifier is externalised rather than resolved.
 const SPINE_PROBE_SOURCE = `
 import {
   type CelestialFacts,
@@ -242,20 +295,47 @@ describe("runtime-loaded Uplink link surface", () => {
     expect(unresolved).toEqual([]);
   });
 
-  it("resolves the frame arithmetic imported from the /spine subpath", async () => {
+  /**
+   * Build one probe as a runtime-loaded Uplink client would be built, and report
+   * what a browser could not resolve.
+   *
+   * Runs from a real client's directory so the probe resolves the sdk through an
+   * Uplink's own `node_modules`, which is the only place the subpath's `exports`
+   * map is consulted the way an outside author's build would consult it.
+   */
+  async function unresolvedFor(
+    sourcefile: string,
+    contents: string,
+  ): Promise<{ found: string[]; unresolved: string[] }> {
     const first = clients[0];
     if (first === undefined) throw new Error("no loader Uplink clients found");
     const found = await externalSpecifiers(esbuild, first.dir, [], {
-      contents: SPINE_PROBE_SOURCE,
-      sourcefile: "spine-probe.ts",
+      contents,
+      sourcefile,
     });
+    const keys = importMapKeys();
+    return { found, unresolved: found.filter((s) => !resolvesAtLoad(s, keys)) };
+  }
+
+  it("resolves the frame arithmetic imported from the /frames subpath", async () => {
+    const { found, unresolved } = await unresolvedFor(
+      "frames-probe.ts",
+      FRAMES_PROBE_SOURCE,
+    );
 
     // The premise: esbuild leaves the subpath alone rather than inlining it, so
     // nothing before load can notice a missing key.
-    expect(found).toContain("@ksp-gonogo/sitrep-sdk/spine");
+    expect(found).toContain("@ksp-gonogo/sitrep-sdk/frames");
+    expect(unresolved).toEqual([]);
+  });
 
-    const keys = importMapKeys();
-    const unresolved = found.filter((s) => !resolvesAtLoad(s, keys));
+  it("resolves the frame arithmetic imported from the /spine subpath", async () => {
+    const { found, unresolved } = await unresolvedFor(
+      "spine-probe.ts",
+      SPINE_PROBE_SOURCE,
+    );
+
+    expect(found).toContain("@ksp-gonogo/sitrep-sdk/spine");
     expect(unresolved).toEqual([]);
   });
 });
