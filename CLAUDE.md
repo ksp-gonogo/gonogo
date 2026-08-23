@@ -380,9 +380,15 @@ that changes how they are distributed, not what they may import. Every Uplink in
 this repo is meant to be a working example of what an outside author can build,
 and one that reaches into the app is not.
 
-The app's baked import map (`packages/app/src/uplinks/externals/`) resolves thirteen
+The app's baked import map (`packages/app/src/uplinks/externals/`) resolves fourteen
 specifiers at runtime, `core` included. **That is not a licence to import them**,
 it fixes runtime resolution only and does nothing for building.
+
+A **subpath** needs its own entry in that map. It matches keys exactly, and
+esbuild externalises a subpath of an externalised package name, so a missing
+entry survives typecheck, the isolation ratchet and the build itself, then throws
+at `import(bundleUrl)`. That is how `/spine` shipped unresolvable. See that
+directory's README for the two checks that now cover it.
 
 If something you need is missing from the SDK, **move the export into
 `sitrep-sdk` or `ui-kit`**, don't import across the boundary. Never put a

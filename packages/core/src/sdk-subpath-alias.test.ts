@@ -65,6 +65,72 @@ function configsAliasingTheSdk(): { path: string; source: string }[] {
   return found;
 }
 
+/**
+ * Which sdk subpaths a runtime-loaded Uplink can resolve at load, and which
+ * deliberately cannot.
+ *
+ * esbuild externalises a SUBPATH of an externalised package name, so marking
+ * `@ksp-gonogo/sitrep-sdk` external leaves every `@ksp-gonogo/sitrep-sdk/<sub>`
+ * in a loaded bundle as a bare specifier. The app's import map then matches keys
+ * exactly, so a subpath without its own `ext-*.ts` entry resolves to nothing at
+ * `import(bundleUrl)`. Nothing before load can see it: it typechecks, the Uplink
+ * isolation ratchet permits it (the ratchet is a denylist of packages, and the
+ * sdk is permitted at any depth), and esbuild reports no warning.
+ *
+ * That is what happened to `/spine` when the read-frame and libration-point
+ * arithmetic landed on it. Listing both halves here means the NEXT subpath forces
+ * the decision to be made rather than defaulted.
+ */
+const RUNTIME_RESOLVABLE_SUBPATHS = ["media", "spine"];
+
+/** Subpaths that must NOT have an entry, with the reason each is unreachable. */
+const RUNTIME_ABSENT_SUBPATHS: Record<string, string> = {
+  // App orchestration (which widgets a dashboard renders). The app reaches it
+  // through core's re-export, so it is resolved inside the app's own build and
+  // never survives as a specifier; an Uplink has no business calling it.
+  registry: "app orchestration, reached through core's re-export",
+  // Test-only. No shipped Uplink bundle imports it, so nothing has to resolve it
+  // in a browser.
+  testing: "test harness, never in a shipped bundle",
+};
+
+const EXTERNALS_ENTRIES = join(
+  REPO_ROOT,
+  "packages",
+  "app",
+  "src",
+  "uplinks",
+  "externals",
+  "entries.ts",
+);
+
+describe("sdk subpath runtime resolution", () => {
+  it("classifies every declared subpath, so a new one cannot default", () => {
+    const classified = new Set([
+      ...RUNTIME_RESOLVABLE_SUBPATHS,
+      ...Object.keys(RUNTIME_ABSENT_SUBPATHS),
+    ]);
+    const unclassified = sdkSubpaths().filter((sub) => !classified.has(sub));
+    expect(unclassified).toEqual([]);
+  });
+
+  it("bakes an import-map entry for every runtime-resolvable subpath", () => {
+    const source = readFileSync(EXTERNALS_ENTRIES, "utf8");
+    const missing = RUNTIME_RESOLVABLE_SUBPATHS.filter(
+      (sub) => !source.includes(`"@ksp-gonogo/sitrep-sdk/${sub}"`),
+    );
+    expect(missing).toEqual([]);
+  });
+
+  it("bakes no entry for a subpath nothing loads", () => {
+    const source = readFileSync(EXTERNALS_ENTRIES, "utf8");
+    const unexpected = Object.keys(RUNTIME_ABSENT_SUBPATHS).filter((sub) =>
+      source.includes(`"@ksp-gonogo/sitrep-sdk/${sub}"`),
+    );
+    expect(unexpected).toEqual([]);
+  });
+});
+
 describe("sdk subpath aliases", () => {
   it("finds the sdk's declared subpaths, so a green result means something", () => {
     // The probe check: if `exports` is ever restructured so this returns nothing,

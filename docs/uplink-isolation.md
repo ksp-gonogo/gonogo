@@ -31,7 +31,7 @@ files imported it. The themed `render`/`renderHook` are published from
 
 ### The import map is not a licence
 
-`packages/app/src/uplinks/externals/` bakes an import map that resolves thirteen
+`packages/app/src/uplinks/externals/` bakes an import map that resolves fourteen
 specifiers, `core` and `sitrep-client` among them, to the app's singleton chunks at
 runtime. That mechanism is real and load-bearing: it is what makes a loaded
 widget's `registerComponent` write into the registry the dashboard reads.
@@ -39,6 +39,15 @@ widget's `registerComponent` write into the registry the dashboard reads.
 It fixes RUNTIME resolution only. It says nothing about how an author builds in the
 first place, and a package you cannot install is not available to you just because
 the browser could have found it.
+
+The converse also holds, and cost a subpath: an entry in that map is what makes a
+specifier RESOLVE, and a subpath needs its own. `@ksp-gonogo/sitrep-sdk/spine`
+carried the read-frame and libration-point arithmetic for a while with no entry,
+which nothing caught, because esbuild externalises a subpath of an externalised
+package name and the isolation ratchet below is a denylist of packages that
+permits a permitted one at any depth. The break lands at `import(bundleUrl)` and
+nowhere earlier. `packages/core/src/sdk-subpath-alias.test.ts` now requires every
+declared subpath to be classified either way.
 
 ### There is no first-party exemption
 
