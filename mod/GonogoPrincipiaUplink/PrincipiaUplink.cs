@@ -219,7 +219,7 @@ namespace GonogoPrincipiaUplink
         }
 
         /// <summary>
-        /// Wires the nine plan-write handlers, and records the thread the host
+        /// Wires the ten plan-write handlers, and records the thread the host
         /// registered them on.
         ///
         /// <para>The thread is the point of doing this here. The host documents
