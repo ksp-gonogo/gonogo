@@ -80,6 +80,14 @@ export const ALLOWLIST: Record<ModToken, ModAllowlist> = {
       "packages/app/src/__tests__/gamehost-repoints-both.test.tsx",
     ],
     permanent: [
+      // -- WORKER FEASIBILITY citation (2026-08-23): the Principia Uplink's
+      // worker doc names `kerbcast-sidecar` as the evidence that a KSP plugin
+      // can start a child process inside the pressure-vessel container, which
+      // was recorded twice as an unanswered blocker. Naming the process is what
+      // makes it checkable: "another mod does it" is an assertion, a named ELF
+      // at a known path running right now is a measurement. Text-only mention
+      // in a doc comment, no import and no coupling.
+      "mod/GonogoPrincipiaUplink/PrincipiaWorkerHost.cs",
       // -- MAGNITUDE budget ratchet (2026-08-19): the per-file `.magnitude`
       // budget is keyed by file path, so it names every Uplink that unwraps a
       // Value. Ratchet-inventory file, the case this bucket documents.
