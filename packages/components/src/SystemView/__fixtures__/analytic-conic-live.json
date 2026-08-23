@@ -1,0 +1,550 @@
+{
+  "_meta": {
+    "capturedAt": "2026-08-23",
+    "vessel": "commsat (250 km LKO, Kerbin)",
+    "body": "Kerbin",
+    "situation": "A 250 km circular Kerbin orbit, captured live. Paired with analytic-conic-live, which is the same frame under the analytic solver",
+    "provider": "stock-analytic",
+    "notes": "The captured payload with the three provider fields set to what VesselViewProvider.AnalyticHorizon publishes when no integrating provider is elected: kind=1 (Unbounded), trajectoryKind=1 (Analytic), arc null, arcRefusal=0 (NotAttempted). Every other field, and both other channels, are the capture untouched, so a difference against the Principia twin is the provider and not the scenario."
+  },
+  "_stream": {
+    "carriedChannels": [
+      "vessel.orbit",
+      "vessel.identity",
+      "system.bodies",
+      "vessel.target"
+    ],
+    "pinnedUt": 315659.495086983,
+    "emits": [
+      {
+        "channel": "system.bodies",
+        "value": {
+          "bodies": [
+            {
+              "name": "Sun",
+              "index": 0,
+              "parentIndex": null,
+              "radius": 261600000,
+              "orbit": null,
+              "gravParameter": 1.17233279483249e18,
+              "mass": 1.75654591319326e28,
+              "surfaceGravity": 1.74684656100137,
+              "hillSphere": null,
+              "sphereOfInfluence": null,
+              "rotationPeriod": 432000,
+              "tidallyLocked": false,
+              "hasOcean": false,
+              "description": "#autoLOC_910002",
+              "isHome": false,
+              "atmosphere": {
+                "depth": 600000,
+                "hasOxygen": false,
+                "seaLevelPressure": 16
+              }
+            },
+            {
+              "name": "Kerbin",
+              "index": 1,
+              "parentIndex": 0,
+              "radius": 600000,
+              "orbit": {
+                "sma": 13571150574.6316,
+                "ecc": 0.00210575761409403,
+                "inc": 6.0865971597401e-5,
+                "lan": 283.857200410525,
+                "argPe": 179.701281195803,
+                "meanAnomalyAtEpoch": 3.11876407382173,
+                "epoch": 315661.495086984
+              },
+              "gravParameter": 3531600000000,
+              "mass": 5.29151583439215e22,
+              "surfaceGravity": 1.00034160493135,
+              "hillSphere": 196414707.77848,
+              "sphereOfInfluence": 84159286.4796305,
+              "rotationPeriod": 21549.4251830899,
+              "tidallyLocked": false,
+              "hasOcean": true,
+              "description": "#autoLOC_900101",
+              "isHome": true,
+              "atmosphere": {
+                "depth": 70000,
+                "hasOxygen": true,
+                "seaLevelPressure": 101.324996948242
+              }
+            },
+            {
+              "name": "Mun",
+              "index": 2,
+              "parentIndex": 1,
+              "radius": 200000,
+              "orbit": {
+                "sma": 12308686.0511305,
+                "ecc": 0.0186865468772927,
+                "inc": 0.000649040828455594,
+                "lan": 282.35783151951,
+                "argPe": 359.833377341191,
+                "meanAnomalyAtEpoch": 0.0386009109522635,
+                "epoch": 315661.495086984
+              },
+              "gravParameter": 65138397520.7807,
+              "mass": 9.7599066119646e20,
+              "surfaceGravity": 0.166056700098353,
+              "hillSphere": 3170563.33757116,
+              "sphereOfInfluence": 2429559.11656475,
+              "rotationPeriod": 138984.376574476,
+              "tidallyLocked": false,
+              "hasOcean": false,
+              "description": "#autoLOC_900090",
+              "isHome": false,
+              "atmosphere": null
+            },
+            {
+              "name": "Minmus",
+              "index": 3,
+              "parentIndex": 1,
+              "radius": 60000,
+              "orbit": {
+                "sma": 47012018.9586863,
+                "ecc": 0.0190318051100514,
+                "inc": 6.10742315076681,
+                "lan": 165.405246557777,
+                "argPe": 37.0787314828222,
+                "meanAnomalyAtEpoch": 2.7387987453096,
+                "epoch": 315661.495086984
+              },
+              "gravParameter": 1765800026.31247,
+              "mass": 2.64575795662095e19,
+              "surfaceGravity": 0.05001708099188,
+              "hillSphere": 3730392.49065433,
+              "sphereOfInfluence": 2247428.3879023,
+              "rotationPeriod": 40400,
+              "tidallyLocked": false,
+              "hasOcean": false,
+              "description": "#autoLOC_900088",
+              "isHome": false,
+              "atmosphere": null
+            },
+            {
+              "name": "Moho",
+              "index": 4,
+              "parentIndex": 0,
+              "radius": 250000,
+              "orbit": {
+                "sma": 5263141746.80131,
+                "ecc": 0.199999806857043,
+                "inc": 6.99999825137666,
+                "lan": 159.999988447227,
+                "argPe": 14.9996588742138,
+                "meanAnomalyAtEpoch": 4.03512552137572,
+                "epoch": 315661.495086984
+              },
+              "gravParameter": 168609378654.509,
+              "mass": 2.52633139930162e21,
+              "surfaceGravity": 0.275093947318621,
+              "hillSphere": 22060314.8155466,
+              "sphereOfInfluence": 9646663.02332811,
+              "rotationPeriod": 1210000,
+              "tidallyLocked": false,
+              "hasOcean": false,
+              "description": "#autoLOC_900105",
+              "isHome": false,
+              "atmosphere": null
+            },
+            {
+              "name": "Eve",
+              "index": 5,
+              "parentIndex": 0,
+              "radius": 700000,
+              "orbit": {
+                "sma": 9832727216.99832,
+                "ecc": 0.0099981043917875,
+                "inc": 2.10000411358722,
+                "lan": 105.000015081739,
+                "argPe": 0.00112156944316002,
+                "meanAnomalyAtEpoch": 3.49051920696165,
+                "epoch": 315661.495086984
+              },
+              "gravParameter": 8171730229210.87,
+              "mass": 1.2243980038014e23,
+              "surfaceGravity": 1.7005807760833,
+              "hillSphere": 185949494.965972,
+              "sphereOfInfluence": 85109364.7382441,
+              "rotationPeriod": 80500,
+              "tidallyLocked": false,
+              "hasOcean": true,
+              "description": "#autoLOC_900103",
+              "isHome": false,
+              "atmosphere": {
+                "depth": 90000,
+                "hasOxygen": false,
+                "seaLevelPressure": 506.625
+              }
+            },
+            {
+              "name": "Duna",
+              "index": 6,
+              "parentIndex": 0,
+              "radius": 320000,
+              "orbit": {
+                "sma": 20694632254.3594,
+                "ecc": 0.0523911874974859,
+                "inc": 0.0604930605523423,
+                "lan": 225.543873852743,
+                "argPe": 2.68719895145589,
+                "meanAnomalyAtEpoch": 3.20199018704988,
+                "epoch": 315661.495086984
+              },
+              "gravParameter": 301363211975.098,
+              "mass": 4.51542702477492e21,
+              "surfaceGravity": 0.300102493404406,
+              "hillSphere": 125063736.748336,
+              "sphereOfInfluence": 47921949.369738,
+              "rotationPeriod": 65517.859375,
+              "tidallyLocked": false,
+              "hasOcean": false,
+              "description": "#autoLOC_900100",
+              "isHome": false,
+              "atmosphere": {
+                "depth": 50000,
+                "hasOxygen": false,
+                "seaLevelPressure": 6.75500011444092
+              }
+            },
+            {
+              "name": "Ike",
+              "index": 7,
+              "parentIndex": 6,
+              "radius": 130000,
+              "orbit": {
+                "sma": 3490559.55952622,
+                "ecc": 0.0898994039295748,
+                "inc": 0.200056699616492,
+                "lan": 89.986107907271,
+                "argPe": 22.3748791407233,
+                "meanAnomalyAtEpoch": 0.165271729706676,
+                "epoch": 315661.495086984
+              },
+              "gravParameter": 18568368573.144,
+              "mass": 2.78216152235874e20,
+              "surfaceGravity": 0.112038263210561,
+              "hillSphere": 1225978.58343315,
+              "sphereOfInfluence": 1049598.93931162,
+              "rotationPeriod": 65517.8621348081,
+              "tidallyLocked": false,
+              "hasOcean": false,
+              "description": "#autoLOC_900086",
+              "isHome": false,
+              "atmosphere": null
+            },
+            {
+              "name": "Jool",
+              "index": 8,
+              "parentIndex": 0,
+              "radius": 6000000,
+              "orbit": {
+                "sma": 69313944834.8894,
+                "ecc": 0.0588886687146516,
+                "inc": 1.29841416991097,
+                "lan": 141.966573024074,
+                "argPe": 351.877299115557,
+                "meanAnomalyAtEpoch": 0.243381691401506,
+                "epoch": 315661.495086984
+              },
+              "gravParameter": 282528004209995,
+              "mass": 4.23321273059351e24,
+              "surfaceGravity": 0.800273295870079,
+              "hillSphere": 4065824625.34358,
+              "sphereOfInfluence": 2455985185.42347,
+              "rotationPeriod": 36000,
+              "tidallyLocked": false,
+              "hasOcean": false,
+              "description": "#autoLOC_900096",
+              "isHome": false,
+              "atmosphere": {
+                "depth": 200000,
+                "hasOxygen": false,
+                "seaLevelPressure": 1519.875
+              }
+            },
+            {
+              "name": "Laythe",
+              "index": 9,
+              "parentIndex": 8,
+              "radius": 500000,
+              "orbit": {
+                "sma": 27435539.5723375,
+                "ecc": 0.00757343156109521,
+                "inc": 0.000210233860546962,
+                "lan": 179.531512326532,
+                "argPe": 77.6372477370508,
+                "meanAnomalyAtEpoch": 6.26604960433293,
+                "epoch": 315661.495086984
+              },
+              "gravParameter": 1962000029236.08,
+              "mass": 2.93973106291216e22,
+              "surfaceGravity": 0.800273295870079,
+              "hillSphere": 5186318.66159496,
+              "sphereOfInfluence": 3723645.81113302,
+              "rotationPeriod": 52980.8790593796,
+              "tidallyLocked": false,
+              "hasOcean": true,
+              "description": "#autoLOC_900084",
+              "isHome": false,
+              "atmosphere": {
+                "depth": 50000,
+                "hasOxygen": true,
+                "seaLevelPressure": 60.795
+              }
+            },
+            {
+              "name": "Vall",
+              "index": 10,
+              "parentIndex": 8,
+              "radius": 300000,
+              "orbit": {
+                "sma": 51437218.2422717,
+                "ecc": 0.067968782725851,
+                "inc": 0.00115717330321176,
+                "lan": 187.930072795277,
+                "argPe": 57.9270152552678,
+                "meanAnomalyAtEpoch": 0.7571560640413,
+                "epoch": 315661.495086984
+              },
+              "gravParameter": 207481499473.751,
+              "mass": 3.10876554482042e21,
+              "surfaceGravity": 0.235080276562617,
+              "hillSphere": 3893201.55262436,
+              "sphereOfInfluence": 2406401.44479404,
+              "rotationPeriod": 105962.088893924,
+              "tidallyLocked": false,
+              "hasOcean": false,
+              "description": "#autoLOC_900082",
+              "isHome": false,
+              "atmosphere": null
+            },
+            {
+              "name": "Bop",
+              "index": 11,
+              "parentIndex": 8,
+              "radius": 65000,
+              "orbit": {
+                "sma": 141377233.892001,
+                "ecc": 0.265577921280924,
+                "inc": 164.687067230461,
+                "lan": 99.4497754806612,
+                "argPe": 23.5610617137656,
+                "meanAnomalyAtEpoch": 4.11815393722816,
+                "epoch": 315661.495086984
+              },
+              "gravParameter": 2486834944.41491,
+              "mass": 3.72610898343278e19,
+              "surfaceGravity": 0.0600204949543182,
+              "hillSphere": 2029674.44211376,
+              "sphereOfInfluence": 1221060.86284253,
+              "rotationPeriod": 544507.428516654,
+              "tidallyLocked": false,
+              "hasOcean": false,
+              "description": "#autoLOC_910001",
+              "isHome": false,
+              "atmosphere": null
+            },
+            {
+              "name": "Tylo",
+              "index": 12,
+              "parentIndex": 8,
+              "radius": 600000,
+              "orbit": {
+                "sma": 96195671.7846823,
+                "ecc": 0.0468962605041634,
+                "inc": 0.0246402628387049,
+                "lan": 89.038641428389,
+                "argPe": 171.850217492769,
+                "meanAnomalyAtEpoch": 0.00412965299938749,
+                "epoch": 315661.495086984
+              },
+              "gravParameter": 2825280042099.95,
+              "mass": 4.23321273059351e22,
+              "surfaceGravity": 0.800273295870079,
+              "hillSphere": 14757877.6267184,
+              "sphereOfInfluence": 10856518.3683586,
+              "rotationPeriod": 211926.35802123,
+              "tidallyLocked": false,
+              "hasOcean": false,
+              "description": "#autoLOC_900080",
+              "isHome": false,
+              "atmosphere": null
+            },
+            {
+              "name": "Gilly",
+              "index": 13,
+              "parentIndex": 5,
+              "radius": 13000,
+              "orbit": {
+                "sma": 31196862.4647021,
+                "ecc": 0.588152344298249,
+                "inc": 12.5531459854177,
+                "lan": 169.370485095594,
+                "argPe": 8.16641903436308,
+                "meanAnomalyAtEpoch": 6.14463989826227,
+                "epoch": 315661.495086984
+              },
+              "gravParameter": 8289449.81471635,
+              "mass": 1.24203632781093e17,
+              "surfaceGravity": 0.00500170791285985,
+              "hillSphere": 142427.423478875,
+              "sphereOfInfluence": 126123.271704568,
+              "rotationPeriod": 28255,
+              "tidallyLocked": false,
+              "hasOcean": false,
+              "description": "#autoLOC_900092",
+              "isHome": false,
+              "atmosphere": null
+            },
+            {
+              "name": "Pol",
+              "index": 14,
+              "parentIndex": 8,
+              "radius": 44000,
+              "orbit": {
+                "sma": 194205251.083432,
+                "ecc": 0.0910807596616393,
+                "inc": 4.10867638468781,
+                "lan": 91.3114046522455,
+                "argPe": 22.8371455515808,
+                "meanAnomalyAtEpoch": 2.9589785400409,
+                "epoch": 315661.495086984
+              },
+              "gravParameter": 721702080,
+              "mass": 1.08135065806823e19,
+              "surfaceGravity": 0.0380129809873912,
+              "hillSphere": 2038945.47430365,
+              "sphereOfInfluence": 1042138.89230178,
+              "rotationPeriod": 901902.623531173,
+              "tidallyLocked": false,
+              "hasOcean": false,
+              "description": "#autoLOC_900077",
+              "isHome": false,
+              "atmosphere": null
+            },
+            {
+              "name": "Dres",
+              "index": 15,
+              "parentIndex": 0,
+              "radius": 138000,
+              "orbit": {
+                "sma": 40841382291.244,
+                "ecc": 0.14494967337553,
+                "inc": 4.99998841697146,
+                "lan": 10.0006954535207,
+                "argPe": 89.9970226549285,
+                "meanAnomalyAtEpoch": 3.18146235917281,
+                "epoch": 315661.495086984
+              },
+              "gravParameter": 21484488600,
+              "mass": 3.21909365785247e20,
+              "surfaceGravity": 0.115039284567105,
+              "hillSphere": 92059713.5005964,
+              "sphereOfInfluence": 32832839.5767762,
+              "rotationPeriod": 34800,
+              "tidallyLocked": false,
+              "hasOcean": false,
+              "description": "#autoLOC_900098",
+              "isHome": false,
+              "atmosphere": null
+            },
+            {
+              "name": "Eeloo",
+              "index": 16,
+              "parentIndex": 0,
+              "radius": 210000,
+              "orbit": {
+                "sma": 90160373029.3733,
+                "ecc": 0.25958355233397,
+                "inc": 6.14959894335881,
+                "lan": 139.984724532705,
+                "argPe": 260.038822099602,
+                "meanAnomalyAtEpoch": 3.15172982967311,
+                "epoch": 315661.495086984
+              },
+              "gravParameter": 74410814527.0496,
+              "mass": 1.11492242417007e21,
+              "surfaceGravity": 0.172058761891442,
+              "hillSphere": 266016718.015223,
+              "sphereOfInfluence": 119082941.647812,
+              "rotationPeriod": 19460,
+              "tidallyLocked": false,
+              "hasOcean": false,
+              "description": "#autoLOC_900094",
+              "isHome": false,
+              "atmosphere": null
+            }
+          ]
+        }
+      },
+      {
+        "channel": "vessel.identity",
+        "value": {
+          "vesselId": "9398a45f-4a0c-428b-8caf-2fa6fe92cdc0",
+          "name": "commsat",
+          "vesselType": 6,
+          "situation": 3,
+          "parentBodyIndex": 1,
+          "launchUt": 52325.0798713929,
+          "meta": {
+            "source": "vessel:9398a45f-4a0c-428b-8caf-2fa6fe92cdc0",
+            "quality": 0
+          }
+        }
+      },
+      {
+        "channel": "vessel.orbit",
+        "value": {
+          "referenceBodyIndex": 1,
+          "sma": 850000.575174203,
+          "ecc": 3.56929155433913e-5,
+          "inc": 7.08799766603758e-7,
+          "lan": 10.0353196731341,
+          "argPe": 21.1297371831436,
+          "meanAnomalyAtEpoch": 4.26730930024485,
+          "epoch": 315659.475086983,
+          "mu": 3531600000000,
+          "encounter": null,
+          "patches": [
+            {
+              "sma": 850000.575174203,
+              "ecc": 3.56929155433913e-5,
+              "inc": 7.08799766603758e-7,
+              "lan": 10.0353196731341,
+              "argPe": 21.1297371831436,
+              "meanAnomalyAtEpoch": 4.26730930024485,
+              "epoch": 315659.475086983,
+              "period": 2620.13062697184,
+              "startUt": 315659.475086983,
+              "endUt": 318279.605713954,
+              "patchStartTransition": 0,
+              "patchEndTransition": 1,
+              "peA": 249970.236175461,
+              "apA": 250030.914172944,
+              "semiLatusRectum": 850000.574091315,
+              "semiMinorAxis": 850000.574632759,
+              "referenceBody": "Kerbin",
+              "closestEncounterBody": null,
+              "mu": 3531600000000,
+              "referenceBodyIndex": 1,
+              "closestEncounterBodyIndex": null
+            }
+          ],
+          "horizon": {
+            "kind": 1,
+            "trajectoryKind": 1
+          },
+          "arc": null,
+          "arcRefusal": 0
+        },
+        "meta": {
+          "quality": 1
+        }
+      }
+    ]
+  }
+}

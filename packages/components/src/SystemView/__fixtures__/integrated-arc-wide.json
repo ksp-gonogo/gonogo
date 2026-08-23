@@ -1,0 +1,131 @@
+{
+  "_meta": {
+    "capturedAt": "2026-08-23",
+    "vessel": "Polar Survey (Mk1 pod)",
+    "body": "Kerbin",
+    "situation": "A 63.4-degree, 0.4-eccentricity Kerbin orbit reaching most of the way to Minmus. Paired with analytic-conic-wide, which is the same orbit under the analytic solver",
+    "provider": "principia-nbody",
+    "notes": "RECONSTRUCTED, not captured. The live 250 km orbit is 1.8% of the diagram's auto-fit radius (Minmus's apoapsis sets the extent), so the live pair renders byte-identical and shows nothing. This pair puts the same provider question on kerbin-orbit-inclined's geometry, which is a visible fraction of that extent. The horizon is computed the way IntegratedHorizon.UntilUt computes it (sampleUt + 0.25 * characteristic cycle), and the arc is deliberately absent: no points are invented here, the spine's own documented fallback samples the osculating conic and bounds it at the horizon, which is what SystemView draws for an integrating provider whose arc did not arrive."
+  },
+  "_stream": {
+    "carriedChannels": [
+      "vessel.orbit",
+      "vessel.identity",
+      "system.bodies",
+      "vessel.target"
+    ],
+    "pinnedUt": 0,
+    "emits": [
+      {
+        "channel": "system.bodies",
+        "value": {
+          "bodies": [
+            {
+              "index": 0,
+              "name": "Kerbol",
+              "parentIndex": null,
+              "radius": 261600000,
+              "gravParameter": 1.1723328e18,
+              "sphereOfInfluence": null,
+              "orbit": null
+            },
+            {
+              "index": 1,
+              "name": "Kerbin",
+              "parentIndex": 0,
+              "radius": 600000,
+              "gravParameter": 3531600000000.0,
+              "sphereOfInfluence": 84159286,
+              "hasOcean": true,
+              "atmosphere": {
+                "depth": 70000,
+                "hasOxygen": true,
+                "seaLevelPressure": 101.325
+              },
+              "orbit": {
+                "sma": 13599840256,
+                "ecc": 0,
+                "inc": 0,
+                "lan": 0,
+                "argPe": 0,
+                "meanAnomalyAtEpoch": 1.0,
+                "epoch": 0
+              }
+            },
+            {
+              "index": 2,
+              "name": "Mun",
+              "parentIndex": 1,
+              "radius": 200000,
+              "gravParameter": 65138398000,
+              "sphereOfInfluence": 2429559,
+              "tidallyLocked": true,
+              "orbit": {
+                "sma": 12000000,
+                "ecc": 0,
+                "inc": 0,
+                "lan": 0,
+                "argPe": 0,
+                "meanAnomalyAtEpoch": 1.93228,
+                "epoch": 0
+              }
+            },
+            {
+              "index": 3,
+              "name": "Minmus",
+              "parentIndex": 1,
+              "radius": 60000,
+              "gravParameter": 1765800000,
+              "sphereOfInfluence": 2247428,
+              "tidallyLocked": true,
+              "orbit": {
+                "sma": 47000000,
+                "ecc": 0,
+                "inc": 6.0,
+                "lan": 0,
+                "argPe": 0,
+                "meanAnomalyAtEpoch": 3.490659,
+                "epoch": 0
+              }
+            }
+          ]
+        }
+      },
+      {
+        "channel": "vessel.identity",
+        "value": {
+          "vesselId": "Polar Survey",
+          "name": "Polar Survey",
+          "vesselType": 0,
+          "situation": 3,
+          "parentBodyIndex": 1,
+          "launchUt": null
+        }
+      },
+      {
+        "channel": "vessel.orbit",
+        "value": {
+          "referenceBodyIndex": 1,
+          "sma": 30000000,
+          "ecc": 0.4,
+          "inc": 63.4,
+          "lan": 30,
+          "argPe": 90,
+          "meanAnomalyAtEpoch": 0,
+          "epoch": 0,
+          "mu": 3531600000000.0,
+          "horizon": {
+            "kind": 2,
+            "trajectoryKind": 2,
+            "untilUt": 137345.99661059192
+          },
+          "arc": null,
+          "arcRefusal": 0
+        },
+        "meta": {
+          "quality": 1
+        }
+      }
+    ]
+  }
+}
