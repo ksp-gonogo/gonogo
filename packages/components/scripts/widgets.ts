@@ -849,6 +849,21 @@ const WIDGETS: WidgetRenderConfig[] = [
           },
         ],
       },
+      // The projection seam, under a frame that is not the identity: the bodies,
+      // their rings and the craft's curve all turn with the bearing to Kerbol,
+      // which is what "hold the parent still" always claimed and never did.
+      // Scoped to the one inclined fixture, because a coplanar-circular system
+      // under a rotating frame is a picture whose foreshortening is zero.
+      {
+        name: "parent-direction-10x12",
+        w: 10,
+        h: 12,
+        forFixtures: ["kerbin-orbit-inclined"],
+        config: {
+          frame: "Kerbin",
+          projection: "system-view.parent-direction.1",
+        },
+      },
     ],
   },
   {
