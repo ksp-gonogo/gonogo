@@ -458,6 +458,19 @@ namespace Sitrep.Propagation
         /// invariant rather than a contract: every path in reaches this through
         /// <see cref="CanPropagate"/>, which declines an unbound orbit first.</para>
         /// </summary>
+        /// <summary>
+        /// The same two-body solve, from elements a CALLER holds rather than from
+        /// elements read out of the game.
+        ///
+        /// <para>Exposed because a command centre's archive stores elements, not
+        /// state vectors, and something has to turn what a vantage was told into
+        /// something an integrator can be seeded with. Doing that conversion twice,
+        /// once here and once in whatever needs it, is how two parts of one program
+        /// come to disagree about where a craft is.</para>
+        /// </summary>
+        public static StateVector StateFrom(OrbitElements orbit, double ut) =>
+            new KeplerProvider().Solve(orbit, ut);
+
         private StateVector Solve(OrbitElements orbit, double ut)
         {
             if (orbit.Ecc < 0.0 || orbit.Ecc >= 1.0)

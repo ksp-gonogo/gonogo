@@ -177,6 +177,10 @@ namespace Sitrep.Core.Tests
             "Meta", "PayloadMeta", "ErrorMsg", "EventMsg", "Subscribe", "Unsubscribe", "SetVantage",
             // Inbound command-arg types: only ever DESERIALIZED (client → server);
             // never serialized outbound as a raw POCO.
+            // vessel.trajectory.forVantage: the request is inbound-only, and the
+            // reply goes out as a flattened dictionary like every other command
+            // result, with the POCO existing so a client has a type to read it as.
+            "VantagePlanRequest", "VantagePlanReply",
             "AddManeuverNodeArgs", "RemoveManeuverNodeArgs", "UpdateManeuverNodeArgs",
             "SetActionGroupArgs", "SetEnabledArgs",
             "SetPausedArgs", "SetSasModeArgs", "SetTargetArgs", "SetThrottleArgs",

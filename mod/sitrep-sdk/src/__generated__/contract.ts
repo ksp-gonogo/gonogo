@@ -1239,6 +1239,22 @@ export interface PendingUplinkQueue
 {
 	pending: PendingUplink[];
 }
+export interface VantagePlanRequest
+{
+	topic?: string;
+	toUt: Value<"ut">;
+	maxPoints: Value<"count">;
+}
+export interface VantagePlanReply
+{
+	solved: boolean;
+	arc?: TrajectoryArc;
+	seededAtUt?: Value<"ut">;
+	vantage?: string;
+	refusal?: string;
+	Refused(refusal: string) : VantagePlanReply;
+	From(answer: any, vantage: string) : VantagePlanReply;
+}
 export interface Vec3
 {
 	x: number;
@@ -1711,4 +1727,15 @@ export interface WarpState
 	warpMode: WarpMode;
 	paused: boolean;
 	meta: PayloadMeta;
+}
+export interface DelayedObservation
+{
+	established: boolean;
+	state: any;
+	centreBodyIndex: number;
+	observedAtUt: number;
+	viewUt: number;
+	ageSeconds: number;
+	refusal: number;
+	reason?: string;
 }

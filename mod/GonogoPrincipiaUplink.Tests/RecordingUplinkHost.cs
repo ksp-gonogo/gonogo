@@ -104,6 +104,14 @@ namespace GonogoPrincipiaUplink.Tests
             Assert.NotNull(handler);
             HandlersRegistered.Add(command);
         }
+        public void AddVantageCommandHandler<TArgs, TResult>(
+            string command, Func<TArgs, string, TResult> handler)
+        {
+            // Recorded into the same list as the plain path. What the parity test
+            // asserts is that every declared command HAS a handler, and by which
+            // route it was registered is not part of that claim.
+            HandlersRegistered.Add(command);
+        }
 
         public IChannelPublisher Publisher(string topic)
         {

@@ -69,6 +69,14 @@ public static class RtConfig
         // have its properties retyped, so the two lists must not drift apart.
         var wirePayloadTypes = new[]
             {
+                // vessel.trajectory.forVantage: the request a command centre sends
+                // and the reply it gets back. Registered so they generate under
+                // their own names; an unregistered wire type emits I-prefixed and a
+                // client cannot import it, which builds cleanly and fails only at
+                // the boundary.
+                typeof(VantagePlanRequest),
+                typeof(VantagePlanReply),
+                typeof(DelayedObservation),
                 // shared value shapes
                 typeof(Vec3),
                 typeof(PayloadMeta),

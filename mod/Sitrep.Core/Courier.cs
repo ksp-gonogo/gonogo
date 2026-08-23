@@ -694,6 +694,34 @@ namespace Sitrep.Core
             }
         }
 
+        /// <summary>
+        /// What <paramref name="vantage"/> currently knows about
+        /// <paramref name="topic"/> on <paramref name="node"/>, as something a
+        /// propagation can be seeded from.
+        ///
+        /// <para>Here rather than on the archive because the DELAY is the Courier's:
+        /// the archive can read at a vantage given a delay, and only this knows what
+        /// that delay is. Splitting the two across a caller is how a read ends up
+        /// using a delay nobody checked.</para>
+        /// </summary>
+        public DelayedObservation ObserveAtVantage(
+            string node,
+            string topic,
+            string vantage,
+            double nowUt,
+            Func<object?, StateAboutBody?> toState)
+        {
+            if (!_archives.TryGetValue(node, out var archive))
+            {
+                return DelayedObservation.Refused(
+                    DelayedStateRefusal.NothingArrived,
+                    "Nothing has been recorded for '" + node + "' at all, so this vantage has "
+                        + "certainly not been told about '" + topic + "'.");
+            }
+            return DelayedStateReader.Read(
+                archive, topic, vantage, _network.DelayTo(vantage, node), nowUt, toState);
+        }
+
         private Archive ArchiveFor(string node)
         {
             if (!_archives.TryGetValue(node, out var archive))

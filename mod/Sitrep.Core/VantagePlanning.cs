@@ -31,6 +31,42 @@ namespace Sitrep.Core
         /// is seeding it from a state they have not been told, which is the one thing
         /// this cannot do.</para>
         /// </summary>
+        /// <summary>
+        /// The same rules, for a caller that has already established what its vantage
+        /// may see. Used where the archive and the delay live together, so the read
+        /// and the delay cannot be taken from different places.
+        /// </summary>
+        public static SeededTrajectory Solve(
+            DelayedObservation seed,
+            ISeededPropagationProvider? provider,
+            double toUt,
+            int maxPoints)
+        {
+            if (provider == null)
+            {
+                return SeededTrajectory.Refused(
+                    "No propagation provider is elected, so nothing here can integrate a trajectory.");
+            }
+            if (!seed.Established)
+            {
+                return SeededTrajectory.Refused(
+                    seed.Reason ?? "This vantage has nothing to plan from yet.");
+            }
+            if (double.IsNaN(toUt) || toUt <= seed.ObservedAtUt)
+            {
+                return SeededTrajectory.Refused(
+                    "The requested horizon is at or before the instant this state was true, so "
+                        + "there is nothing to propagate.");
+            }
+            if (!provider.CanSeedFrom(seed))
+            {
+                return SeededTrajectory.Refused(
+                    "The elected provider cannot propagate from this state, most likely because it "
+                        + "has no gravity model for the body it is measured about.");
+            }
+            return provider.SolveFrom(seed, toUt, maxPoints);
+        }
+
         public static SeededTrajectory Solve(
             Archive archive,
             ISeededPropagationProvider? provider,

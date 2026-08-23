@@ -6,6 +6,7 @@ using System.Linq;
 using System.Reflection;
 using System.Text;
 using System.Threading;
+using Sitrep.Propagation;
 using Sitrep.Contract;
 using Sitrep.Core;
 using Sitrep.Core.Serialization;
@@ -389,6 +390,22 @@ namespace Sitrep.Host
         // comment): appropriate here since the channel reports on OTHER
         // uplinks' availability rather than having any of its own.
         internal const string UplinksTopic = "system.uplinks";
+
+        /// <summary>
+        /// Ask where a craft goes, FROM THIS COMMAND CENTRE'S POINT OF VIEW.
+        ///
+        /// <para>Registered here rather than by an Uplink because it is not any one
+        /// mod's question. The physics comes from whichever seeded provider is
+        /// elected, and what makes the answer honest is the archive and the vantage,
+        /// both of which are core's.</para>
+        ///
+        /// <para>Undelayed, and that is the subtle part. This is not a command to a
+        /// craft, it is an operator asking their own command centre to work something
+        /// out from what it already knows. Delaying it would make a room full of
+        /// people wait a light-time for the result of their own arithmetic. The delay
+        /// lives where it belongs, in the STATE the answer is computed from.</para>
+        /// </summary>
+        internal const string PlanForVantageCommand = "vessel.trajectory.forVantage";
 
         // The ground-side pending-uplink queue self-report channel (see
         // Sitrep.Contract.PendingUplink's doc comment for the prediction-only
@@ -809,6 +826,14 @@ namespace Sitrep.Host
                 Delay = DelayRole.TrueNow,
             };
             _channelSources[UplinksTopic] = BuildSystemUplinksPayload;
+
+            _commandDeclarations[PlanForVantageCommand] = new CommandDeclaration
+            {
+                Command = PlanForVantageCommand,
+                Delayed = false,
+            };
+            _vantageCommandHandlers[PlanForVantageCommand] =
+                (args, vantage) => PlanForVantage(args, vantage);
 
             // Built-in system.uplink.pending declaration + source: see
             // UplinkPendingTopic's doc comment. Declared (and its source
@@ -2396,6 +2421,92 @@ namespace Sitrep.Host
         /// <c>null</c> as a graceful failure result instead of propagating
         /// and killing the thread (the CRITICAL-2 fix).
         /// </summary>
+        /// <summary>
+        /// The seeded propagator this engine plans with, or null when the install has
+        /// none. Settable so a host can supply one built from the elected physics,
+        /// and so the planning command refuses honestly rather than crashing when
+        /// nothing is configured.
+        /// </summary>
+        public ISeededPropagationProvider? SeededPropagation { get; set; }
+
+        /// <summary>
+        /// Answer where a craft goes, from a given command centre's point of view.
+        ///
+        /// <para>The whole delay model in one call: the state comes from what THIS
+        /// vantage has been told, the horizon comes from the operator, and the physics
+        /// comes from whichever seeded provider is elected. Nothing here can reach the
+        /// game's live state, which is the point.</para>
+        /// </summary>
+        private object? PlanForVantage(object? args, string vantage)
+        {
+            var bound = BindCommandArgs(args, typeof(VantagePlanRequest)) as VantagePlanRequest;
+            if (bound == null || string.IsNullOrEmpty(bound.Topic))
+            {
+                return VantagePlanReply.Refused(
+                    "This request named no topic, so there is nothing to plan from.");
+            }
+
+            var node = NodeFor(bound.Topic!);
+            var nowUt = _clock.Now();
+            var answer = VantagePlanning.Solve(
+                _courier.ObserveAtVantage(node, bound.Topic!, vantage, nowUt, OrbitPayloadToState),
+                SeededPropagation,
+                bound.ToUt,
+                bound.MaxPoints);
+
+            // Flattened here rather than returned as a POCO, like every other command
+            // result on this engine: the wire writer takes dictionaries, and the
+            // reply type exists so a client has something to read it AS.
+            var reply = answer.Solved
+                ? VantagePlanReply.From(answer, vantage)
+                : VantagePlanReply.Refused(answer.Refusal ?? "No trajectory could be computed.");
+            return new Dictionary<string, object?>
+            {
+                ["solved"] = reply.Solved,
+                ["arc"] = reply.Arc,
+                ["seededAtUt"] = reply.SeededAtUt,
+                ["vantage"] = reply.Vantage,
+                ["refusal"] = reply.Refusal,
+            };
+        }
+
+        /// <summary>
+        /// Turn an archived orbit sample into a state a propagation can start from.
+        ///
+        /// <para>The wire carries ELEMENTS, so this is where they become a position
+        /// and a velocity, through the same two-body solve the analytic provider uses.
+        /// Converting them a second way here would let two parts of one program
+        /// disagree about where a craft is.</para>
+        /// </summary>
+        private static StateAboutBody? OrbitPayloadToState(object? payload)
+        {
+            if (payload is not VesselOrbit orbit)
+            {
+                return null;
+            }
+            // An orbit with no semi-major axis or a non-elliptical eccentricity is
+            // not something the two-body solve can turn into a state, and guessing
+            // one would seed an integrator with a craft that is not there.
+            if (!(orbit.Sma > 0) || orbit.Ecc < 0 || orbit.Ecc >= 1 || !(orbit.Mu > 0))
+            {
+                return null;
+            }
+
+            var elements = new OrbitElements
+            {
+                Sma = orbit.Sma,
+                Ecc = orbit.Ecc,
+                Inc = orbit.Inc,
+                Lan = orbit.Lan ?? 0.0,
+                ArgPe = orbit.ArgPe ?? 0.0,
+                MeanAnomalyAtEpoch = orbit.MeanAnomalyAtEpoch,
+                Epoch = orbit.Epoch,
+                Mu = orbit.Mu,
+            };
+            return new StateAboutBody(
+                KeplerProvider.StateFrom(elements, orbit.Epoch), orbit.ReferenceBodyIndex);
+        }
+
         private object? InvokeCommandHandler(string command, object? args, string vantage)
         {
             if (!IsCommandAvailable(command))

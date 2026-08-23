@@ -1012,6 +1012,17 @@ export const GENERATED_TYPE_UNITS: Readonly<Record<string, UnitsByField>> = {
   "UpgradeFacilityArgs": {
     facilityId: "id",
   },
+  "VantagePlanReply": {
+    refusal: "text",
+    seededAtUt: "ut",
+    solved: "flag",
+    vantage: "id",
+  },
+  "VantagePlanRequest": {
+    maxPoints: "count",
+    toUt: "ut",
+    topic: "id",
+  },
   "Vec3": {
     x: "n/a",
     y: "n/a",
@@ -1933,6 +1944,9 @@ export const GENERATED_TYPE_SHAPES: Readonly<Record<string, ShapesByField>> = {
     channels: "ChannelDeclaration",
     clientSource: "UplinkClientSource",
     commands: "CommandDeclaration",
+  },
+  "VantagePlanReply": {
+    arc: "TrajectoryArc",
   },
   "VesselAttitude": {
     meta: "PayloadMeta",
