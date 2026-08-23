@@ -9,6 +9,8 @@ depends on surfaces they actually have.
 An Uplink client (`mod/Gonogo*Uplink/client/src/**`) may import:
 
 - **`@ksp-gonogo/sitrep-sdk`**, the devkit, and its subpaths:
+  - `@ksp-gonogo/sitrep-sdk/frames`, the reference-frame arithmetic a projection
+    contribution needs
   - `@ksp-gonogo/sitrep-sdk/media`, the delayed-media layer a camera Uplink needs
   - `@ksp-gonogo/sitrep-sdk/testing`, the host, the spine and the stream fixture
 - **`@ksp-gonogo/ui-kit`**, the published design system, and its subpaths:
@@ -21,6 +23,19 @@ Nothing else from this repo. `core`, `ui`, `components`, `data`, `logger`,
 author outside this tree cannot install them, typecheck against them, or build. So
 are the Uplinks themselves, which is why one Uplink may not import another.
 
+**That subpath list is exhaustive, and the sdk publishes subpaths that are not on
+it.** `@ksp-gonogo/sitrep-sdk/spine` and `@ksp-gonogo/sitrep-sdk/registry` are
+NOT author surfaces. `/spine` is where the client half is implemented (the read
+semantics of a topic, the timeline store, every hook the root barrel shims) and
+`/registry` is dashboard orchestration; publishing either would freeze evolving
+internals as third-party API, and both barrels say so in their own headers.
+
+`/spine` does resolve at runtime, deliberately, because first-party code needs it
+to. Read nothing into that: an import-map entry is not permission (below), and
+the entry exists because a loaded Uplink was failing to link, not because the
+subpath became authorable. The frame arithmetic an Uplink genuinely needs was
+given its own narrow surface, `/frames`, for exactly this reason.
+
 `@ksp-gonogo/ui` and `@ksp-gonogo/ui-kit` are different packages. `ui` is private
 and app-side; only `ui-kit` is published.
 
@@ -31,7 +46,7 @@ files imported it. The themed `render`/`renderHook` are published from
 
 ### The import map is not a licence
 
-`packages/app/src/uplinks/externals/` bakes an import map that resolves fourteen
+`packages/app/src/uplinks/externals/` bakes an import map that resolves fifteen
 specifiers, `core` and `sitrep-client` among them, to the app's singleton chunks at
 runtime. That mechanism is real and load-bearing: it is what makes a loaded
 widget's `registerComponent` write into the registry the dashboard reads.
@@ -48,6 +63,9 @@ package name and the isolation ratchet below is a denylist of packages that
 permits a permitted one at any depth. The break lands at `import(bundleUrl)` and
 nowhere earlier. `packages/core/src/sdk-subpath-alias.test.ts` now requires every
 declared subpath to be classified either way.
+
+An entry is therefore necessary and not sufficient: `/frames` needed one to
+resolve, and what makes it importable is being on the rule's list above.
 
 ### There is no first-party exemption
 

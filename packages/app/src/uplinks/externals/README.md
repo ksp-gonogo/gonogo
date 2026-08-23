@@ -43,8 +43,9 @@ runtime-loaded Uplink: a statically bundled one resolves through Vite and never
 consults the import map.
 
 - `runtimeLink.test.ts` here builds the real loader clients, plus a client that
-  imports the frame arithmetic from `/spine`, through the same esbuild call the
-  plugin makes, and resolves every surviving specifier the way a browser does.
+  imports the frame arithmetic from `/frames` and one that imports it from
+  `/spine`, through the same esbuild call the plugin makes, and resolves every
+  surviving specifier the way a browser does.
 - `packages/core/src/sdk-subpath-alias.test.ts` classifies every subpath the sdk
   declares as runtime-resolvable or deliberately not, so the next one added
   cannot default to broken.

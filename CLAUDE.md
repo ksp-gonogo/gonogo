@@ -380,9 +380,11 @@ that changes how they are distributed, not what they may import. Every Uplink in
 this repo is meant to be a working example of what an outside author can build,
 and one that reaches into the app is not.
 
-The app's baked import map (`packages/app/src/uplinks/externals/`) resolves fourteen
+The app's baked import map (`packages/app/src/uplinks/externals/`) resolves fifteen
 specifiers at runtime, `core` included. **That is not a licence to import them**,
-it fixes runtime resolution only and does nothing for building.
+it fixes runtime resolution only and does nothing for building. The permitted sdk
+subpaths are `/frames`, `/media` and `/testing`; `/spine` and `/registry` resolve
+at runtime for first-party code and are not author surfaces.
 
 A **subpath** needs its own entry in that map. It matches keys exactly, and
 esbuild externalises a subpath of an externalised package name, so a missing
