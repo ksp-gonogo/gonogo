@@ -174,6 +174,10 @@ namespace GonogoPrincipiaUplink
                 new CommandDeclaration { Command = PlanCommands.CreateCommand, Delayed = true },
                 new CommandDeclaration { Command = PlanCommands.DeleteCommand, Delayed = true },
                 new CommandDeclaration { Command = PlanCommands.DuplicateCommand, Delayed = true },
+                // The composed send is Delayed like the rest, and more obviously so:
+                // it is a command centre telling a craft what to fly, which is the
+                // case the whole delay model exists for.
+                new CommandDeclaration { Command = PlanCommands.SendCommand, Delayed = true },
             },
         };
 
@@ -245,6 +249,8 @@ namespace GonogoPrincipiaUplink
                 PlanCommands.DeleteCommand, _planCommands.DeletePlan);
             host.AddCommandHandler<PrincipiaPlanSlotArgs, CommandResult<Dictionary<string, object?>>>(
                 PlanCommands.DuplicateCommand, _planCommands.DuplicatePlan);
+            host.AddCommandHandler<PrincipiaPlanSendArgs, CommandResult<Dictionary<string, object?>>>(
+                PlanCommands.SendCommand, _planCommands.SendPlan);
         }
 
         /// <summary>

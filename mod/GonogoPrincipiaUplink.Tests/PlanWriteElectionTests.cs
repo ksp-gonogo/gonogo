@@ -28,7 +28,7 @@ namespace GonogoPrincipiaUplink.Tests
     /// </summary>
     public class PlanWriteElectionTests
     {
-        /// <summary>The nine commands this slice ships, taken from the producer's own
+        /// <summary>The ten commands this slice ships, taken from the producer's own
         /// constants so a rename cannot make this list stale without failing.</summary>
         private static readonly string[] Expected =
         {
@@ -41,6 +41,7 @@ namespace GonogoPrincipiaUplink.Tests
             PlanCommands.CreateCommand,
             PlanCommands.DeleteCommand,
             PlanCommands.DuplicateCommand,
+            PlanCommands.SendCommand,
         };
 
         private static PrincipiaUplink Available() =>

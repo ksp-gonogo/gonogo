@@ -42,6 +42,7 @@ namespace GonogoPrincipiaUplink
         public const string IntegratorCommand = "principia.plan.integrator";
         public const string CreateCommand = "principia.plan.create";
         public const string DeleteCommand = "principia.plan.delete";
+        public const string SendCommand = "principia.plan.send";
         public const string DuplicateCommand = "principia.plan.duplicate";
 
         private static readonly PrincipiaBurnStruct Fields = new PrincipiaBurnStruct();
@@ -488,6 +489,146 @@ namespace GonogoPrincipiaUplink
         /// <summary>
         /// The five steps every plan write shares, so no handler can leave one out.
         /// </summary>
+        /// <summary>
+        /// Install a whole flight plan composed at a command centre.
+        ///
+        /// <para>Checked entirely before anything is written, and one unusable burn
+        /// refuses the lot. Principia offers no transaction, so this is
+        /// validate-then-write and not a rollback: what it guarantees is that a plan
+        /// failing any check writes NOTHING, and the receipt re-reads the plan either
+        /// way so a partial write cannot be mistaken for a clean one.</para>
+        ///
+        /// <para>Burns are not composed from constants, for the same reason a single
+        /// edit is not: the struct is a third party's and this Uplink only ever
+        /// round-trips one it was given. So an existing burn is the template for
+        /// every burn installed, and a plan with none refuses rather than inventing
+        /// the first.</para>
+        /// </summary>
+        public CommandResult<Dictionary<string, object?>> SendPlan(PrincipiaPlanSendArgs? args)
+        {
+            if (args == null)
+            {
+                return Refusal(SendCommand, null, NoArgs(), null);
+            }
+            if (Replay(SendCommand, args.RequestId, out var replayed))
+            {
+                return Ok(replayed!, replay: true);
+            }
+
+            return InPlan(
+                SendCommand,
+                args.VesselId,
+                args.RequestId,
+                (session, gate, now) =>
+                {
+                    if (!session.Writes.BurnLayoutVerified)
+                    {
+                        return LayoutUnverified(session, "burn");
+                    }
+
+                    // Against `now`, the instant the plan ARRIVED. A plan composed
+                    // while every burn was ahead can land a light-time later with its
+                    // first already past, and the sender cannot know that.
+                    var refused = PrincipiaComposedPlanRules.Reject(args, now);
+                    if (refused.HasValue)
+                    {
+                        return refused.Value;
+                    }
+
+                    var wanted = args.Burns!;
+                    if (gate.ManoeuvreCount() <= 0 && wanted.Length > 0)
+                    {
+                        return PrincipiaWriteResult.Refused(
+                            PrincipiaWriteRefusal.NoTemplateBurn,
+                            "This plan has no burns, so there is none to copy and this Uplink never "
+                            + "assembles one from constants. Add the first burn in Principia's own "
+                            + "planner; a composed plan can be installed over it.");
+                    }
+
+                    // Extend the horizon first where one was asked for: a burn beyond
+                    // the plan's end is not a burn Principia will accept, and the
+                    // rules above already refuse a plan that ends before its own last
+                    // ignition.
+                    if (args.DesiredFinalTimeUt != null)
+                    {
+                        var horizon = gate.SetDesiredFinalTime(args.DesiredFinalTimeUt.Value);
+                        if (horizon.Outcome != PrincipiaWriteOutcome.Written)
+                        {
+                            return horizon;
+                        }
+                    }
+
+                    // Surplus goes from the END, so the indices of the burns being
+                    // kept do not move under the loop that follows.
+                    while (gate.ManoeuvreCount() > wanted.Length)
+                    {
+                        var dropped = gate.Remove(gate.ManoeuvreCount() - 1);
+                        if (dropped.Outcome != PrincipiaWriteOutcome.Written)
+                        {
+                            return dropped;
+                        }
+                    }
+
+                    for (var i = 0; i < wanted.Length; i++)
+                    {
+                        var existing = gate.ManoeuvreCount();
+                        var insert = i >= existing;
+                        var templateIndex = insert ? existing - 1 : i;
+                        var manoeuvre = gate.Manoeuvre(templateIndex);
+                        if (manoeuvre == null)
+                        {
+                            return PrincipiaWriteResult.Refused(
+                                PrincipiaWriteRefusal.BurnIndexOutOfRange,
+                                "Burn " + (templateIndex + 1) + " went missing while this plan was "
+                                + "being installed, which means the plan changed underneath the "
+                                + "write.");
+                        }
+
+                        var burn = Fields.Get(manoeuvre, PrincipiaBurnStruct.ManoeuvreBurnField);
+                        if (burn == null)
+                        {
+                            return PrincipiaWriteResult.Refused(
+                                PrincipiaWriteRefusal.PluginShapeChanged,
+                                "Principia's manoeuvre carried no burn where this Uplink expects one.");
+                        }
+
+                        var applied = PrincipiaBurnRules.Apply(
+                            burn,
+                            AsEdit(wanted[i], i),
+                            Fields.GetDouble(manoeuvre, PrincipiaBurnStruct.ManoeuvreInitialMassField));
+                        if (applied.HasValue)
+                        {
+                            return applied.Value;
+                        }
+
+                        var written = insert ? gate.Insert(i, burn) : gate.Replace(i, burn);
+                        if (written.Outcome != PrincipiaWriteOutcome.Written)
+                        {
+                            return written;
+                        }
+                    }
+
+                    return PrincipiaWriteResult.Written();
+                });
+        }
+
+        /// <summary>
+        /// A composed burn as the single-burn writer wants it. Every component is
+        /// carried, never <c>Unchanged</c>: a composed plan states its burns outright
+        /// rather than as a delta against a value the sender could not see.
+        /// </summary>
+        private static PrincipiaBurnEditArgs AsEdit(PrincipiaComposedBurn burn, int index) =>
+            new PrincipiaBurnEditArgs
+            {
+                BurnIndex = index,
+                IgnitionUt = burn.IgnitionUt,
+                DeltaVTangent = burn.DeltaVTangent,
+                DeltaVNormal = burn.DeltaVNormal,
+                DeltaVBinormal = burn.DeltaVBinormal,
+                InertiallyFixed = burn.InertiallyFixed,
+                Profile = burn.Profile,
+            };
+
         private CommandResult<Dictionary<string, object?>> InPlan(
             string command,
             string? vesselId,
