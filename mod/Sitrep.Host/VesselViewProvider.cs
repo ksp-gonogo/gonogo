@@ -1745,7 +1745,10 @@ namespace Sitrep.Host
             // on some planner's own channel: one widget reads either kind of plan
             // and gets more detail from the richer one without knowing, or caring,
             // which produced it.
-            ["frameReference"] = node.FrameReference,
+            ["frameReference"] = node.FrameReference == null
+                ? null
+                : (object)(int)node.FrameReference.Value,
+            ["frameReferenceBodyIndex"] = node.FrameReferenceBodyIndex,
             ["inertiallyFixed"] = node.InertiallyFixed,
             ["thrust"] = node.Thrust,
             ["specificImpulse"] = node.SpecificImpulse,

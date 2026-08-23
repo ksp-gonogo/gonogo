@@ -142,8 +142,7 @@ public class ManeuverNode
     public double? DvTotal { get; set; }
 
     /// <summary>
-    /// What <see cref="Frame"/>'s basis is measured RELATIVE TO, as the planner
-    /// names it.
+    /// What <see cref="Frame"/>'s basis is measured RELATIVE TO.
     ///
     /// <para><see cref="ManeuverFrame"/> names a BASIS and not a frame, and for
     /// stock that is enough because there is only ever one thing the basis can be
@@ -152,11 +151,56 @@ public class ManeuverNode
     /// different burn depending on what it is tangent TO, and a client shown the
     /// numbers without this is being shown a burn it cannot identify.</para>
     ///
+    /// <para><b>A kind and a body, not a name.</b> A string would be a second
+    /// vocabulary for something the app already has one of: the read-frame side
+    /// names exactly these four kinds, and every widget that draws a frame already
+    /// resolves them. Two ways of naming one concept is how a compatibility shim
+    /// starts.</para>
+    ///
     /// <para>Null when the planner has only one frame, which is the stock case and
     /// not a gap.</para>
     /// </summary>
-    [SitrepUnit(Units.Text)]
-    public string? FrameReference { get; set; }
+    [SitrepUnit(Units.Enumeration)]
+    public ManeuverFrameReference? FrameReference { get; set; }
+
+    /// <summary>
+    /// The body <see cref="FrameReference"/> is about, as a <c>system.bodies</c>
+    /// index. Unused by a frame that needs no body.
+    /// </summary>
+    [SitrepUnit(Units.Count)]
+    public int? FrameReferenceBodyIndex { get; set; }
+
+    /// <summary>
+    /// What a burn's basis is measured relative to.
+    ///
+    /// <para>The same four the read-frame side names, deliberately. A frame an
+    /// operator picked to READ a trajectory in and a frame a burn was PLANNED in
+    /// are the same kind of thing, and giving them separate vocabularies would make
+    /// "is this burn in the frame I am looking at" a question nobody could answer
+    /// without a translation table.</para>
+    /// </summary>
+#if SITREP_CODEGEN
+    [TsEnum]
+#endif
+    [SitrepContract]
+    public enum ManeuverFrameReference
+    {
+        /// <summary>Not stated. Zero so a planner that says nothing is not read as
+        /// having claimed a frame.</summary>
+        Unspecified = 0,
+
+        /// <summary>Whatever the craft's own control frame currently is.</summary>
+        FollowControlFrame = 1,
+
+        /// <summary>Non-rotating, centred on a body.</summary>
+        BodyCentredInertial = 2,
+
+        /// <summary>Aligned with the direction to a body's parent.</summary>
+        ParentDirection = 3,
+
+        /// <summary>Rotating with two primaries, with lengths that pulsate.</summary>
+        RotatingPulsating = 4,
+    }
 
     /// <summary>
     /// Whether the craft holds a fixed inertial attitude through the burn rather

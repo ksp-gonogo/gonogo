@@ -1513,7 +1513,8 @@ export interface ManeuverNode
 	dvNormal?: Value<"m/s">;
 	dvPrograde?: Value<"m/s">;
 	dvTotal?: Value<"m/s">;
-	frameReference?: string;
+	frameReference?: ManeuverFrameReference;
+	frameReferenceBodyIndex?: Value<"count">;
 	inertiallyFixed?: boolean;
 	thrust?: Value<"kN">;
 	specificImpulse?: Value<"s">;
@@ -1733,6 +1734,13 @@ export interface WarpState
 	warpMode: WarpMode;
 	paused: boolean;
 	meta: PayloadMeta;
+}
+export enum ManeuverFrameReference {
+	Unspecified = 0,
+	FollowControlFrame = 1,
+	BodyCentredInertial = 2,
+	ParentDirection = 3,
+	RotatingPulsating = 4
 }
 export interface DelayedObservation
 {
