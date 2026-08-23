@@ -119,15 +119,22 @@ describe("computeCmeEntities", () => {
     });
     expect(entity).toEqual({
       id: "cme:Kerbol",
-      position: { kind: "fixed", parentName: "Kerbol", xMetres: 0, yMetres: 0 },
+      position: {
+        kind: "fixed",
+        parentName: "Kerbol",
+        xMetres: 0,
+        yMetres: 0,
+        zMetres: 0,
+      },
       shape: {
         kind: "travelling-pulse",
-        // direction (1,0,0) negated -> bearing (-1,0) * dist.
+        // direction (1,0,0) negated -> bearing (-1,0,0) * dist.
         to: {
           kind: "fixed",
           parentName: "Kerbol",
           xMetres: -13_599_840_256,
           yMetres: 0,
+          zMetres: 0,
         },
         // ejectionSpeedMps (99e6) * durationS (3_600) = 3.564e11, well past
         // `dist` (13.6e9), so the segment clamps to the full apex->tip span.
@@ -145,6 +152,39 @@ describe("computeCmeEntities", () => {
         arrivalUt: 5_000_000,
       },
     });
+  });
+
+  it("keeps the out-of-plane component of the bearing", () => {
+    // The game's `y` is out of the ecliptic and SystemView's third component is
+    // too. This used to keep x and z and throw y away, on the stated grounds
+    // that the diagram flattened everything anyway; it does not, so a bearing
+    // missing this put an interplanetary front in the ecliptic when the storm
+    // was not. A 45-degree direction, so the dropped component was the same
+    // size as the ones that were kept.
+    const dist = 13_599_840_256;
+    const [entity] = computeCmeEntities({
+      stormEjectionSpeed: { magnitude: 99_000_000 },
+      stars: [starDirection(1, 1, 0)],
+      storms: [
+        {
+          star: "Kerbol",
+          stormState: { magnitude: 1 },
+          stormTime: { magnitude: 5_000_000 },
+          stormDuration: { magnitude: 3_600 },
+          dist: { magnitude: dist },
+        },
+      ],
+    });
+    const to =
+      entity.shape.kind === "travelling-pulse" ? entity.shape.to : null;
+    if (to === null || to.kind !== "fixed") throw new Error("no bearing drawn");
+    const leg = -dist / Math.SQRT2;
+    expect(to.xMetres).toBeCloseTo(leg, 0);
+    expect(to.zMetres).toBeCloseTo(leg, 0);
+    expect(to.yMetres).toBeCloseTo(0, 6);
+    // Still a unit bearing scaled to the distance, which is the invariant a
+    // per-component fix is easiest to break.
+    expect(Math.hypot(to.xMetres, to.yMetres, to.zMetres)).toBeCloseTo(dist, 0);
   });
 
   it("derives the segment length from ejection speed * active duration when it's SHORTER than the full apex->tip distance", () => {
