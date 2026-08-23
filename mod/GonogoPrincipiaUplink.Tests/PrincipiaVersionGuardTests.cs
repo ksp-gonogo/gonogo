@@ -127,7 +127,7 @@ namespace GonogoPrincipiaUplink.Tests
     public class PrincipiaUplinkTests
     {
         [Fact]
-        public void DeclaresItsFourChannelsAndNoAvailabilityTopic()
+        public void DeclaresItsThreeChannelsAndNoAvailabilityTopic()
         {
             var manifest = new PrincipiaUplink().Manifest;
 
@@ -137,14 +137,16 @@ namespace GonogoPrincipiaUplink.Tests
                 {
                     "principia.flightPlan",
                     "principia.settings",
-                    "principia.conformance",
                     "principia.plan",
                 },
                 manifest.Channels.Select(c => c.Topic).ToArray());
 
             // Presence still rides `system.uplinks` rather than a dedicated
             // availability topic: a client gates on a channel carrying a sample,
-            // which is a stronger fact than the mod being loaded.
+            // which is a stronger fact than the mod being loaded. Which Principia
+            // build is loaded rides the same roster, as health, rather than the
+            // `principia.conformance` topic that used to sit in this list: see
+            // PrincipiaBinaryHealthTests.
             Assert.DoesNotContain(manifest.Channels, c => c.Topic!.EndsWith(".available"));
         }
 
@@ -266,12 +268,16 @@ namespace GonogoPrincipiaUplink.Tests
         [Fact]
         public void ReportsHealthyAndNamesTheVersionWhenPresent()
         {
+            // The version is a fact row rather than part of the detail sentence it
+            // used to be appended to. Same claim, moved: the roster still names
+            // which Principia was detected, and now says so beside the rest of the
+            // build's identity instead of inside the line that explains the state.
             var uplink = new PrincipiaUplink(PrincipiaGuardResult.Ok(new Version(1, 2, 3, 4)));
 
             var health = uplink.Health();
 
             Assert.Equal(UplinkHealthState.Healthy, health.State);
-            Assert.Contains("1.2.3.4", health.Detail);
+            Assert.Contains(health.Facts, f => f.Label == "version" && f.Value == "1.2.3.4");
         }
 
         [Fact]

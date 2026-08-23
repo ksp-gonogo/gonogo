@@ -4,7 +4,6 @@ import {
   registerTypeUnits,
 } from "@ksp-gonogo/sitrep-sdk";
 import type {
-  PrincipiaConformanceReport,
   PrincipiaFlightPlan,
   PrincipiaPlan,
   PrincipiaSettings,
@@ -18,14 +17,12 @@ import {
 
 declare module "@ksp-gonogo/sitrep-sdk" {
   interface TopicPayloadMap {
-    "principia.conformance": PrincipiaConformanceReport;
     "principia.flightPlan": PrincipiaFlightPlan;
     "principia.plan": PrincipiaPlan;
     "principia.settings": PrincipiaSettings;
   }
 }
 
-registerBarePrimitiveTopic("principia.conformance");
 registerBarePrimitiveTopic("principia.flightPlan");
 registerBarePrimitiveTopic("principia.plan");
 registerBarePrimitiveTopic("principia.settings");
@@ -35,7 +32,6 @@ registerBarePrimitiveTopic("principia.settings");
 // instant and Δv on the payload arrives as a bare number while the type still
 // says `Value<"ut">`, which is the kind of disagreement nothing fails on.
 for (const topic of [
-  "principia.conformance",
   "principia.flightPlan",
   "principia.plan",
   "principia.settings",

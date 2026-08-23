@@ -22,6 +22,19 @@ namespace GonogoPrincipiaUplink.Tests
 
         public List<string> SampledSourceTopics { get; } = new List<string>();
 
+        /// <summary>
+        /// The capture/handle pairs registered with NO topic prefixes, which the
+        /// engine therefore runs on every tick regardless of what is subscribed.
+        ///
+        /// <para>Recorded as the callable pair rather than counted, because what a
+        /// test of one of these has to establish is that driving the capture reaches
+        /// the handler: a source registered but never joined up is the failure this
+        /// is here to catch.</para>
+        /// </summary>
+        public List<(Func<KspSnapshot?, object?> Capture, Action<object?> Handle)>
+            UngatedSampledSources { get; } =
+            new List<(Func<KspSnapshot?, object?>, Action<object?>)>();
+
         public Availability? Availability { get; private set; }
 
         /// <summary>
@@ -125,6 +138,10 @@ namespace GonogoPrincipiaUplink.Tests
             params string[] subscriptionTopicPrefixes) =>
             SampledSourceTopics.AddRange(subscriptionTopicPrefixes);
 
+        public void AddSampledSource(
+            Func<KspSnapshot?, object?> captureOnMainThread, Action<object?> handleOnCourier) =>
+            UngatedSampledSources.Add((captureOnMainThread, handleOnCourier));
+
         public void SetAvailability(Availability availability) => Availability = availability;
 
         /// <summary>
@@ -147,10 +164,6 @@ namespace GonogoPrincipiaUplink.Tests
 
         public void AddChannelSource(string topic, Func<KspSnapshot?, object?> map) =>
             throw NotExpected("AddChannelSource");
-
-        public void AddSampledSource(
-            Func<KspSnapshot?, object?> captureOnMainThread, Action<object?> handleOnCourier) =>
-            throw NotExpected("the untopiced AddSampledSource");
 
         public bool IsAnyTopicSubscribed(string topicPrefix) =>
             throw NotExpected("IsAnyTopicSubscribed");

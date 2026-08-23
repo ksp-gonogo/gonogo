@@ -1,6 +1,11 @@
-import type { Reading, VantagePlanReply } from "@ksp-gonogo/sitrep-sdk";
+import type {
+  Reading,
+  SystemUplinkHealth,
+  VantagePlanReply,
+} from "@ksp-gonogo/sitrep-sdk";
 import {
   registerAugment,
+  useStream,
   useTelemetry,
   useVantageTrajectory,
   useViewUt,
@@ -24,11 +29,9 @@ import {
 } from "@ksp-gonogo/ui-kit";
 import type { ReactNode } from "react";
 import type {
-  PrincipiaConformanceReport,
   PrincipiaFlightPlan,
   PrincipiaFlightPlanBurn,
 } from "../__generated__/contract";
-import { PrincipiaConformance } from "../__generated__/contract";
 import { PRINCIPIA } from "../uplink";
 // Side-effect import: hydrates this Topic's units at decode time and augments
 // the payload map for the type. Pulled in here rather than left to the entry
@@ -203,6 +206,12 @@ function BurnRow({
  * Says so when the numbers above came out of a Principia build nobody has checked
  * our reading of.
  *
+ * Read off the uplink roster rather than a topic of this Uplink's own. Which
+ * Principia is installed is the identity of a file on the operator's machine, and
+ * the roster is already where an Uplink says whether the thing it depends on is
+ * usable. The state below is core's word, not Principia's, so a client that has
+ * never heard of Principia renders the same badge from the same field.
+ *
  * Nothing at all when the build is vetted, deliberately. A green tick on every
  * panel teaches an operator to stop reading badges, and this section already
  * spends its badge row on things that vary. Silence here means the ordinary case.
@@ -210,23 +219,17 @@ function BurnRow({
  * The wording avoids naming the mechanism. What an operator needs is whether to
  * trust these numbers, not that a descriptor hash failed to match a set.
  */
-function conformanceBadge(
-  reading: Reading<PrincipiaConformanceReport>,
-): ReactNode {
-  if (reading.state !== "observed") {
-    // Not knowing is not the same as a bad build, and the gate deliberately
-    // takes a moment: it does not run until Principia's own startup has mapped
-    // its library. Saying nothing yet is the honest report.
+function buildBadge(roster: SystemUplinkHealth | undefined): ReactNode {
+  const entry = roster?.uplinks.find((u) => u.id === PRINCIPIA.id);
+  if (entry?.health.state !== "degraded") {
+    // Silence covers the ordinary case, the moment before the gate has answered
+    // (it does not run until Principia's own startup has mapped its library, and
+    // not knowing is not the same as a bad build), and an Uplink reporting
+    // unavailable, which is a statement about Principia being absent rather than
+    // about the build being wrong.
     return null;
   }
-  const state = reading.value.state;
-  if (state === PrincipiaConformance.UnknownRelease) {
-    return <Badge severity="caution">UNVETTED PRINCIPIA VERSION</Badge>;
-  }
-  if (state === PrincipiaConformance.Refused) {
-    return <Badge severity="warning">PRINCIPIA NOT READABLE</Badge>;
-  }
-  return null;
+  return <Badge severity="caution">UNVETTED PRINCIPIA BUILD</Badge>;
 }
 
 /**
@@ -321,7 +324,7 @@ function VantageTrajectoryRow({ viewUt }: { viewUt: number | null }) {
 export function FlightPlanSection() {
   const view = planView(useTelemetry("principia.flightPlan"));
   const identity = useTelemetry("vessel.identity");
-  const conformance = useTelemetry("principia.conformance");
+  const buildHealth = useStream<SystemUplinkHealth>("system.uplinkHealth");
   const viewUt = magnitudeOf(useViewUt());
 
   if (view.kind === "unobserved") {
@@ -385,7 +388,7 @@ export function FlightPlanSection() {
           {/* Last in the row because it qualifies the whole section rather than
               one number, and because it is usually absent: a badge that is
               normally missing should not shift the ones that are always there. */}
-          {conformanceBadge(conformance)}
+          {buildBadge(buildHealth)}
         </Cluster>
 
         {/* The planner draws for its OWN predicted vessel, which is not always

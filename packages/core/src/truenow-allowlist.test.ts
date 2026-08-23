@@ -206,15 +206,12 @@ const ALLOWED_TRUENOW: Record<string, number> = {
   // number on the dashboard until light-time had passed, which is the opposite
   // of what a qualifier is for. The flight-plan channel beside it in the same
   // file IS a claim about a craft's future and stays Delayed.
-  // The second is `principia.conformance` (2026-08-23): whether the Principia
-  // build on this machine is one the Uplink may call into. Which files are
-  // installed is a ground-side fact in the same class as uplink health, and it is
-  // established by reading the game's own mapped modules, never by asking a craft.
-  // Delaying it would mean someone who just installed Principia could not be told
-  // their build was unvetted until light-time had passed, and an unvetted build is
-  // precisely the thing to know BEFORE trusting a trajectory.
-  // 2 explicit declarations.
-  "mod/GonogoPrincipiaUplink/PrincipiaUplink.cs": 2,
+  // Which Principia build is installed used to be a second TrueNow declaration
+  // here. It is not a channel any more: it is the same class of ground-side fact
+  // as uplink health, so it IS uplink health now, and `system.uplinks` is already
+  // TrueNow where the engine declares it.
+  // 1 explicit declaration.
+  "mod/GonogoPrincipiaUplink/PrincipiaUplink.cs": 1,
 };
 
 function findRepoRoot(start: string): string {

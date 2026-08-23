@@ -4,35 +4,6 @@
 
 import { Value, Vec3Of } from '@ksp-gonogo/sitrep-sdk';
 
-export enum PrincipiaBinaryVariant {
-	Unknown = 0,
-	X64 = 1,
-	X64AvxFma = 2
-}
-export enum PrincipiaConformance {
-	NotEstablished = 0,
-	Conformant = 1,
-	UnknownRelease = 2,
-	Refused = 3
-}
-export enum PrincipiaNumericsProvenance {
-	NotEstablished = 0,
-	Reproduced = 1,
-	ReproducedExceptTrig = 2,
-	IndependentEstimate = 3
-}
-export interface PrincipiaConformanceReport
-{
-	state: PrincipiaConformance;
-	variant: PrincipiaBinaryVariant;
-	activePath?: string;
-	descriptorSha256?: string;
-	releaseName?: string;
-	interfaceExports: Value<"count">;
-	reason?: string;
-	provenance: PrincipiaNumericsProvenance;
-	provenanceReason?: string;
-}
 export interface PrincipiaFlightPlan
 {
 	vesselId?: string;
