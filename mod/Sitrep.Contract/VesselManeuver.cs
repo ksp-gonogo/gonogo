@@ -142,6 +142,58 @@ public class ManeuverNode
     public double? DvTotal { get; set; }
 
     /// <summary>
+    /// What <see cref="Frame"/>'s basis is measured RELATIVE TO, as the planner
+    /// names it.
+    ///
+    /// <para><see cref="ManeuverFrame"/> names a BASIS and not a frame, and for
+    /// stock that is enough because there is only ever one thing the basis can be
+    /// relative to. A planner that lets an operator choose the reference frame
+    /// breaks that assumption: the same tangent/normal/binormal triple means a
+    /// different burn depending on what it is tangent TO, and a client shown the
+    /// numbers without this is being shown a burn it cannot identify.</para>
+    ///
+    /// <para>Null when the planner has only one frame, which is the stock case and
+    /// not a gap.</para>
+    /// </summary>
+    [SitrepUnit(Units.Text)]
+    public string? FrameReference { get; set; }
+
+    /// <summary>
+    /// Whether the craft holds a fixed inertial attitude through the burn rather
+    /// than following the frame as it rotates.
+    ///
+    /// <para>Not a nicety: over a long burn the two steer differently, so a plan
+    /// shown without it is a plan whose execution cannot be predicted from what is
+    /// on screen. Null when the planner has no such concept, which is stock.</para>
+    /// </summary>
+    [SitrepUnit(Units.Flag)]
+    public bool? InertiallyFixed { get; set; }
+
+    /// <summary>
+    /// Thrust the plan was computed against.
+    ///
+    /// <para>Stock CAN fill this and today does not: the impulsive model has no use
+    /// for it, so nothing asked. It is here rather than on a planner-specific
+    /// channel because "what thrust was this planned against" is a question about
+    /// the burn, and the answer differs between a plan made at full throttle and one
+    /// made on a single engine whatever computed it.</para>
+    /// </summary>
+    [SitrepUnit(Units.Kilonewtons)]
+    public double? Thrust { get; set; }
+
+    /// <summary>Specific impulse the plan was computed against.</summary>
+    [SitrepUnit(Units.Seconds)]
+    public double? SpecificImpulse { get; set; }
+
+    /// <summary>Craft mass at ignition, as the plan assumed it.</summary>
+    [SitrepUnit(Units.Tonnes)]
+    public double? InitialMass { get; set; }
+
+    /// <summary>Craft mass at cutoff, as the plan assumed it.</summary>
+    [SitrepUnit(Units.Tonnes)]
+    public double? FinalMass { get; set; }
+
+    /// <summary>
     /// This node's post-burn future-orbit patch chain: element 0 is the
     /// orbit the vessel is on IMMEDIATELY after the burn (KSP's own
     /// <c>ManeuverNode.nextPatch</c>), followed by any subsequent

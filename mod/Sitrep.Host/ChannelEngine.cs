@@ -2437,6 +2437,20 @@ namespace Sitrep.Host
         /// comes from whichever seeded provider is elected. Nothing here can reach the
         /// game's live state, which is the point.</para>
         /// </summary>
+        /// <summary>
+        /// Whether the dispatcher would recognise this command, reading the same
+        /// stores its gate does.
+        ///
+        /// <para>Exposed because the gate and the invoke read DIFFERENT stores, and
+        /// a test that checks registration alone passes while the gate refuses the
+        /// command as unknown. That is not hypothetical: it is what the live game
+        /// did. Read-only, and it asks the question the dispatcher asks rather than
+        /// restating it, so the two cannot drift apart again.</para>
+        /// </summary>
+        internal bool RecognisesCommandForTests(string command) =>
+            _commandHandlers.ContainsKey(command)
+            || _vantageCommandHandlers.ContainsKey(command);
+
         private object? PlanForVantage(object? args, string vantage)
         {
             var bound = BindCommandArgs(args, typeof(VantagePlanRequest)) as VantagePlanRequest;
@@ -4155,7 +4169,14 @@ namespace Sitrep.Host
             // throwing mapper marks its owning uplink Unavailable, and from then
             // on every command that uplink owns landed here, so the whole widget
             // failed while the board showed a healthy link.
-            if (!IsCommandAvailable(job.Command) || !_commandHandlers.ContainsKey(job.Command))
+            // BOTH stores. They are deliberately disjoint at invoke time, and this
+            // gate reading only one of them refused every vantage-aware command
+            // before its handler was ever reached, with the same sentence a command
+            // that does not exist gets. Adding a store means finding every reader of
+            // the old one, and this was the reader that was missed.
+            if (!IsCommandAvailable(job.Command)
+                || (!_commandHandlers.ContainsKey(job.Command)
+                    && !_vantageCommandHandlers.ContainsKey(job.Command)))
             {
                 job.OnRefused?.Invoke(RefusalReason(job.Command));
                 job.Done?.Set();

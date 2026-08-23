@@ -412,13 +412,65 @@ namespace GonogoPrincipiaUplink
             return platform == PlatformID.MacOSX ? "macos" : "windows";
         }
 
+        /// <summary>
+        /// Test seam: run a report through the REAL flattening and hand the result
+        /// to <paramref name="sink"/> instead of a publisher.
+        ///
+        /// <para>The flattening itself is what a test has to see, because the defect
+        /// it guards is publishing a shape the wire writer cannot emit, and that
+        /// throws inside the courier where no assertion reaches it.</para>
+        /// </summary>
+        internal void PublishConformanceForTests(
+            PrincipiaConformanceReport report, Action<object?> sink)
+        {
+            var captured = _conformancePublisher;
+            _conformancePublisher = new SinkPublisher(sink);
+            try
+            {
+                HandleConformanceOnCourier(report);
+            }
+            finally
+            {
+                _conformancePublisher = captured;
+            }
+        }
+
+        private sealed class SinkPublisher : IChannelPublisher
+        {
+            private readonly Action<object?> _sink;
+
+            public SinkPublisher(Action<object?> sink) => _sink = sink;
+
+            public void Publish(object? payload, double validAtUt) => _sink(payload);
+        }
+
         internal void HandleConformanceOnCourier(object? captured)
         {
             if (captured is not PrincipiaConformanceReport report)
             {
                 return;
             }
-            _conformancePublisher?.Publish(report, _conformanceUt);
+            // Flattened, like `principia.plan` beside it. The wire writer emits a
+            // hand-written set of core contract types and nothing else, so a POCO
+            // from an Uplink's own contract reaches it as an unsupported value, the
+            // mapper throws, and the ENTIRE uplink is marked unavailable: this
+            // channel took the plan, the settings and every plan command down with
+            // it in-game. Publishing a dictionary is what the other three do and is
+            // the only shape that survives the boundary.
+            _conformancePublisher?.Publish(
+                new Dictionary<string, object?>
+                {
+                    ["state"] = (int)report.State,
+                    ["variant"] = (int)report.Variant,
+                    ["activePath"] = report.ActivePath,
+                    ["descriptorSha256"] = report.DescriptorSha256,
+                    ["releaseName"] = report.ReleaseName,
+                    ["interfaceExports"] = report.InterfaceExports,
+                    ["reason"] = report.Reason,
+                    ["provenance"] = (int)report.Provenance,
+                    ["provenanceReason"] = report.ProvenanceReason,
+                },
+                _conformanceUt);
         }
 
         internal void HandlePlanOnCourier(object? captured)

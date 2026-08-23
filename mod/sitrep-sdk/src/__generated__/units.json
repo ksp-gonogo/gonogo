@@ -548,9 +548,15 @@
       "dvPrograde": "m/s",
       "dvRadial": "m/s",
       "dvTotal": "m/s",
+      "finalMass": "t",
       "frame": "enum",
+      "frameReference": "text",
       "id": "id",
       "ignitionUt": "ut",
+      "inertiallyFixed": "flag",
+      "initialMass": "t",
+      "specificImpulse": "s",
+      "thrust": "kN",
       "ut": "ut"
     },
     "Meta": {

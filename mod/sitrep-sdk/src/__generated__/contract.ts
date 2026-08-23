@@ -1513,6 +1513,12 @@ export interface ManeuverNode
 	dvNormal?: Value<"m/s">;
 	dvPrograde?: Value<"m/s">;
 	dvTotal?: Value<"m/s">;
+	frameReference?: string;
+	inertiallyFixed?: boolean;
+	thrust?: Value<"kN">;
+	specificImpulse?: Value<"s">;
+	initialMass?: Value<"t">;
+	finalMass?: Value<"t">;
 	patches: OrbitPatch[];
 }
 export interface VesselManeuver

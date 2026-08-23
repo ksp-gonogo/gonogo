@@ -1739,6 +1739,18 @@ namespace Sitrep.Host
             ["ignitionUt"] = node.IgnitionUt,
             ["cutoffUt"] = node.CutoffUt,
             ["frame"] = node.Frame == null ? null : (object)(int)node.Frame.Value,
+            // What the basis is measured relative to, and the burn's propulsion
+            // profile. All null from the stock backend today and all meaningful
+            // from an integrating planner, which is why they live here rather than
+            // on some planner's own channel: one widget reads either kind of plan
+            // and gets more detail from the richer one without knowing, or caring,
+            // which produced it.
+            ["frameReference"] = node.FrameReference,
+            ["inertiallyFixed"] = node.InertiallyFixed,
+            ["thrust"] = node.Thrust,
+            ["specificImpulse"] = node.SpecificImpulse,
+            ["initialMass"] = node.InitialMass,
+            ["finalMass"] = node.FinalMass,
             ["patches"] = node.Patches.Select(p => (object?)ToWire(p)).ToList(),
         };
 
