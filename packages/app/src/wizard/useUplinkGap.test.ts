@@ -21,7 +21,7 @@ function roster(
       available: e.available ?? true,
       reason: e.reason ?? null,
       ownedPrefixes: e.ownedPrefixes ?? [],
-      health: e.health ?? { state: "healthy", detail: null },
+      health: e.health ?? { state: "healthy", detail: null, facts: [] },
     })),
   };
 }

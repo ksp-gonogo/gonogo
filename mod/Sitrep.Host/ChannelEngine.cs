@@ -1050,7 +1050,7 @@ namespace Sitrep.Host
         /// Uplink health self-reporting feature. Walks every currently
         /// <see cref="_registeredUplinks"/> entry and produces one wire entry
         /// per uplink: <c>{ id, version, available, reason, health: { state,
-        /// detail } }</c>. <c>available</c>/<c>reason</c> come straight from
+        /// detail, facts } }</c>. <c>available</c>/<c>reason</c> come straight from
         /// <see cref="AvailabilityOf"/> (the registration-time fail-soft
         /// status this engine already tracked before this feature existed).
         /// <c>health</c> comes from <see cref="ISitrepUplink.Health"/>
@@ -1189,10 +1189,28 @@ namespace Sitrep.Host
                 }
             }
 
+            var facts = new List<object?>();
+            foreach (var fact in health.Facts)
+            {
+                facts.Add(new Dictionary<string, object?>
+                {
+                    ["label"] = fact.Label,
+                    ["value"] = fact.Value,
+                });
+            }
+
             return new Dictionary<string, object?>
             {
                 ["state"] = (int)health.State,
                 ["detail"] = health.Detail,
+                // Flattened here rather than by the uplink, which is the point of
+                // putting an uplink's dependency facts on this surface at all: the
+                // wire writer emits core contract types and nothing else, so an
+                // uplink publishing its own POCO on its own topic throws at the
+                // boundary and takes every one of its channels and commands down
+                // with it. Nothing an uplink hands to Health() reaches the writer
+                // as anything but a string.
+                ["facts"] = facts,
             };
         }
 

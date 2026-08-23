@@ -1048,23 +1048,80 @@ namespace Sitrep.Contract
     }
 
     /// <summary>
+    /// One labelled diagnostic on an <see cref="UplinkHealth"/>: which file, which
+    /// build, which hash, whatever an operator would have to quote when reporting
+    /// this uplink's state to somebody else.
+    ///
+    /// <para>Both halves are plain display text and the engine parses neither. A
+    /// client renders the list as rows without knowing what any uplink is, which is
+    /// the whole point: an uplink that wants to publish its dependency's identity
+    /// does not need a topic of its own, and a client does not need to learn a
+    /// vendor-specific payload shape to show it.</para>
+    ///
+    /// <para>Facts are for what would go in a bug report, not for anything a
+    /// reading is taken from. A number that changes as the mission runs is
+    /// telemetry and belongs on a channel, where it gets a unit, a delay role and a
+    /// history; putting it here would make it a string nobody can plot.</para>
+    /// </summary>
+    public readonly struct UplinkHealthFact
+    {
+        /// <summary>What the value is, in the operator's terms, e.g. "binary".</summary>
+        public string Label { get; }
+
+        /// <summary>The value as it should read on a screen. Null when the uplink
+        /// knows the fact applies but has not established it.</summary>
+        public string? Value { get; }
+
+        public UplinkHealthFact(string label, string? value)
+        {
+            Label = label;
+            Value = value;
+        }
+    }
+
+    /// <summary>
     /// One <see cref="IUplinkHealthReporter.Health"/> result: a coarse
     /// <see cref="State"/> plus an OPTIONAL uplink-authored <see cref="Detail"/>
     /// string explaining what "ready" means for THIS uplink (e.g. "no active
     /// CPU selected" for kOS, "no comms backend elected" for comms). The
     /// engine never fabricates or parses <see cref="Detail"/>, it is opaque,
     /// display-only text the uplink itself writes.
+    ///
+    /// <para><see cref="Facts"/> carries the same author's-own text in a form a
+    /// client can lay out: the identity of whatever this uplink depends on, one
+    /// labelled row at a time. <see cref="State"/> is the glanceable answer and
+    /// <see cref="Detail"/> the sentence beneath it; the facts are what somebody
+    /// diagnosing the state would need to quote, and they are deliberately not the
+    /// same length as either.</para>
     /// </summary>
     public readonly struct UplinkHealth
     {
         public UplinkHealthState State { get; }
         public string? Detail { get; }
 
+        /// <summary>
+        /// Labelled diagnostics, in the order the author wants them read. Never
+        /// null: an uplink with nothing to add reports an empty list, so a client
+        /// enumerates unconditionally.
+        /// </summary>
+        public IReadOnlyList<UplinkHealthFact> Facts { get; }
+
         public UplinkHealth(UplinkHealthState state, string? detail = null)
+            : this(state, detail, null)
+        {
+        }
+
+        public UplinkHealth(
+            UplinkHealthState state,
+            string? detail,
+            IReadOnlyList<UplinkHealthFact>? facts)
         {
             State = state;
             Detail = detail;
+            Facts = facts ?? NoFacts;
         }
+
+        private static readonly UplinkHealthFact[] NoFacts = new UplinkHealthFact[0];
 
         /// <summary>
         /// The trivial "all good, nothing to say" result, a shared instance so

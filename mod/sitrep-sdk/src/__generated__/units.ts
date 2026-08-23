@@ -1947,6 +1947,9 @@ export const GENERATED_TYPE_SHAPES: Readonly<Record<string, ShapesByField>> = {
   "TrajectoryArcAnswer": {
     arc: "TrajectoryArc",
   },
+  "UplinkHealth": {
+    facts: "UplinkHealthFact",
+  },
   "UplinkManifest": {
     channels: "ChannelDeclaration",
     clientSource: "UplinkClientSource",

@@ -423,6 +423,7 @@ export type { Transport, TransportStatus } from "./transport";
 export type {
   SystemUplinkHealth,
   UplinkHealthEntry,
+  UplinkHealthFact,
   UplinkHealthStateName,
 } from "./uplink-health";
 export {
