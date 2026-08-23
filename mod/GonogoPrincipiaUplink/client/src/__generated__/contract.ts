@@ -175,7 +175,8 @@ export enum PrincipiaWriteRefusal {
 	FinalTimeInPast = 16,
 	NoTemplateBurn = 17,
 	PluginShapeChanged = 18,
-	IgnitionInPast = 19
+	IgnitionInPast = 19,
+	PlanMalformed = 20
 }
 export interface PrincipiaPlanWriteReceipt
 {
@@ -208,6 +209,24 @@ export interface PrincipiaBurnEditArgs
 	deltaVBinormal?: number;
 	inertiallyFixed?: boolean;
 	profile: PrincipiaBurnProfile;
+}
+export interface IPrincipiaComposedBurn
+{
+	ignitionUt: number;
+	deltaVTangent: number;
+	deltaVNormal: number;
+	deltaVBinormal: number;
+	inertiallyFixed: boolean;
+	profile: PrincipiaBurnProfile;
+}
+export interface IPrincipiaPlanSendArgs
+{
+	vesselId?: string;
+	requestId?: string;
+	composedAtViewUt?: number;
+	observedAtUt?: number;
+	burns?: IPrincipiaComposedBurn[];
+	desiredFinalTimeUt?: number;
 }
 export interface PrincipiaBurnRemoveArgs
 {

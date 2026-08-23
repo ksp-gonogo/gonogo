@@ -94,6 +94,13 @@ export const GENERATED_TYPE_UNITS: Readonly<Record<string, UnitsByField>> = {
     requestId: "id",
     vesselId: "id",
   },
+  "PrincipiaComposedBurn": {
+    deltaVBinormal: "m/s",
+    deltaVNormal: "m/s",
+    deltaVTangent: "m/s",
+    ignitionUt: "ut",
+    inertiallyFixed: "flag",
+  },
   "PrincipiaFlightPlan": {
     anomalousBurnCount: "count",
     finalTimeUt: "ut",
@@ -153,6 +160,13 @@ export const GENERATED_TYPE_UNITS: Readonly<Record<string, UnitsByField>> = {
     maxSteps: "count",
     requestId: "id",
     speedToleranceMetresPerSecond: "m/s",
+    vesselId: "id",
+  },
+  "PrincipiaPlanSendArgs": {
+    composedAtViewUt: "ut",
+    desiredFinalTimeUt: "ut",
+    observedAtUt: "ut",
+    requestId: "id",
     vesselId: "id",
   },
   "PrincipiaPlanSlotArgs": {
@@ -360,6 +374,9 @@ export const GENERATED_TYPE_SHAPES: Readonly<Record<string, ShapesByField>> = {
     burns: "PrincipiaPlannedBurn",
     integrator: "PrincipiaPlanIntegrator",
     writeSurface: "PrincipiaWriteSurface",
+  },
+  "PrincipiaPlanSendArgs": {
+    burns: "PrincipiaComposedBurn",
   },
   "PrincipiaPlanWriteReceipt": {
     plan: "PrincipiaPlan",

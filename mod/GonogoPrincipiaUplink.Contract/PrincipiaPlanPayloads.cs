@@ -448,6 +448,19 @@ public enum PrincipiaWriteRefusal
     /// burn that never happened, and the receipt would read
     /// <see cref="PrincipiaWriteOutcome.Written"/>.</para></summary>
     IgnitionInPast = 19,
+
+    /// <summary>
+    /// A composed plan that cannot be read as one: no burn list where a list was
+    /// required, a burn missing from the middle, more burns than a single command may
+    /// install, ignitions out of time order, or an end that falls before the last
+    /// burn.
+    ///
+    /// <para>Separate from <see cref="ValueNotFinite"/>, which is one number being
+    /// unusable. This is the SHAPE being wrong, and it refuses the whole plan rather
+    /// than one burn of it, because a plan half-installed is a trajectory nobody
+    /// composed.</para>
+    /// </summary>
+    PlanMalformed = 20,
 }
 
 /// <summary>
@@ -611,6 +624,99 @@ public class PrincipiaBurnEditArgs
 
     /// <summary>Which propulsion profile to plan against.</summary>
     public PrincipiaBurnProfile Profile { get; set; } = PrincipiaBurnProfile.Unchanged;
+}
+
+/// <summary>
+/// One burn as a command centre composed it, carried inside
+/// <see cref="PrincipiaPlanSendArgs"/>.
+///
+/// <para>Every component is stated. There is no "unchanged" here, unlike
+/// <see cref="PrincipiaBurnEditArgs"/>, because a composed plan is not a delta
+/// against something the sender cannot see: at a light-delayed vantage, "leave the
+/// normal component as it is" refers to a value that may already have moved.</para>
+/// </summary>
+[SitrepContract]
+#if SITREP_CODEGEN
+[TsInterface]
+#endif
+public class PrincipiaComposedBurn
+{
+    /// <summary>Ignition instant, as a UT: a burn is anchored to its start.</summary>
+    [SitrepUnit(Units.UniversalTime)]
+    public double IgnitionUt { get; set; }
+
+    [SitrepUnit(Units.MetresPerSecond)]
+    public double DeltaVTangent { get; set; }
+
+    [SitrepUnit(Units.MetresPerSecond)]
+    public double DeltaVNormal { get; set; }
+
+    [SitrepUnit(Units.MetresPerSecond)]
+    public double DeltaVBinormal { get; set; }
+
+    [SitrepUnit(Units.Flag)]
+    public bool InertiallyFixed { get; set; }
+
+    public PrincipiaBurnProfile Profile { get; set; } = PrincipiaBurnProfile.Unchanged;
+}
+
+/// <summary>
+/// Args for <c>principia.plan.send</c>: a whole flight plan, composed at a command
+/// centre and transmitted to be instantiated aboard.
+///
+/// <para><b>Why this exists when per-burn edits already do.</b> Five separate burn
+/// commands are five separate messages, each with its own light-time, each able to
+/// arrive late, out of order or not at all. A craft that received three of them
+/// would fly a plan no one composed and no one approved. One plan is one message,
+/// applied whole or not at all.</para>
+///
+/// <para><b>The burns are transmitted, never re-derived.</b> The receiving side does
+/// not re-solve toward a goal: it installs these numbers. A plan re-solved on arrival
+/// would be computed against the craft's true state, which is ahead of everything the
+/// operator saw, so the craft would fly something nobody at the command centre ever
+/// looked at.</para>
+/// </summary>
+[SitrepContract]
+#if SITREP_CODEGEN
+[TsInterface]
+#endif
+public class PrincipiaPlanSendArgs
+{
+    [SitrepUnit(Units.Id)]
+    public string? VesselId { get; set; }
+
+    /// <summary>Stable per-intent id; see <see cref="PrincipiaPlanArmArgs.RequestId"/>.</summary>
+    [SitrepUnit(Units.Id)]
+    public string? RequestId { get; set; }
+
+    /// <summary>
+    /// The view instant the plan was composed against: what the command centre could
+    /// see when it decided. Recorded on the receipt so the divergence between the
+    /// state that was planned against and the state that received the plan is a
+    /// measurement rather than a guess.
+    /// </summary>
+    [SitrepUnit(Units.UniversalTime)]
+    public double? ComposedAtViewUt { get; set; }
+
+    /// <summary>
+    /// The instant the vessel state used for planning was actually TRUE, which is at
+    /// or before <see cref="ComposedAtViewUt"/>. Both are carried because they answer
+    /// different questions: one is when the operator decided, the other is how old
+    /// their information already was.
+    /// </summary>
+    [SitrepUnit(Units.UniversalTime)]
+    public double? ObservedAtUt { get; set; }
+
+    /// <summary>
+    /// The burns, in order. An EMPTY list is a plan with no burns, which is a
+    /// meaningful thing to send (it clears the plan); a NULL list is a malformed
+    /// command and is refused, because the two must not be confused.
+    /// </summary>
+    public PrincipiaComposedBurn[]? Burns { get; set; }
+
+    /// <summary>How far the plan is asked to run.</summary>
+    [SitrepUnit(Units.UniversalTime)]
+    public double? DesiredFinalTimeUt { get; set; }
 }
 
 /// <summary>
