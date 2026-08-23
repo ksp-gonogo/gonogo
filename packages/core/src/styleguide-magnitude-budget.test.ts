@@ -51,6 +51,14 @@ const MAGNITUDE_BUDGET: Record<string, number> = {
   "mod/GonogoKosUplink/client/src/KosTerminal/index.tsx": 1,
   "mod/GonogoScansatUplink/client/src/Scanning/Minimap.tsx": 2,
   "mod/sitrep-sdk/src/command-delay.ts": 5,
+  // 1, in `frameVector`, and this file exists so that number stays 1. The frame
+  // arithmetic works in bare metres throughout (a rotation matrix has no unit to
+  // carry), so SOMETHING has to unwrap a wire vector before `toFrame` sees it.
+  // The alternative is every Uplink author doing it at their own call sites,
+  // which in this repo was previously written as a cast and put `Value` objects
+  // through arithmetic that wanted numbers. The unwrap is constrained to `"m"`
+  // and `"m/s"` here, which is the check a hand-rolled one does not get.
+  "mod/sitrep-sdk/src/frames/index.ts": 1,
   "mod/sitrep-sdk/src/spine/timeline-store.ts": 1,
   "mod/sitrep-sdk/src/testing/render.tsx": 1,
   "packages/app/src/alarms/WarpObserver.ts": 1,
