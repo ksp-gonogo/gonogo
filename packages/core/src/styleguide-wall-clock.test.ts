@@ -78,6 +78,15 @@ const ALLOWED_WALL_CLOCK: Record<string, number> = {
   // frame's view time, and the samples want their own `validAt`); allowlisted
   // so the ratchet can land without dragging that fix in. 1 read.
   "packages/components/src/Graph/index.tsx": 1,
+
+  // Throttling how often an expensive solve may RUN, which is wall-time by
+  // nature: the projection is rebuilt at most once a real second whatever the
+  // warp. The frame's view time is the wrong clock here rather than the right
+  // one, and specifically so: game UT is what stops throttling above 60x warp,
+  // which is the defect this floor exists to fix. Nothing here describes how
+  // current a value is. The throttle itself takes the instant as an argument
+  // and reads no clock, so this is the only read. 1 read.
+  "packages/components/src/SystemView/index.tsx": 1,
 };
 
 function findRepoRoot(start: string): string {
