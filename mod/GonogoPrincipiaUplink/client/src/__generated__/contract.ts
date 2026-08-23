@@ -15,14 +15,14 @@ export enum PrincipiaConformance {
 	UnknownRelease = 2,
 	Refused = 3
 }
-export interface IPrincipiaConformanceReport
+export interface PrincipiaConformanceReport
 {
 	state: PrincipiaConformance;
 	variant: PrincipiaBinaryVariant;
 	activePath?: string;
 	descriptorSha256?: string;
 	releaseName?: string;
-	interfaceExports: number;
+	interfaceExports: Value<"count">;
 	reason?: string;
 }
 export interface PrincipiaFlightPlan
@@ -231,22 +231,22 @@ export interface PrincipiaBurnEditArgs
 	inertiallyFixed?: boolean;
 	profile: PrincipiaBurnProfile;
 }
-export interface IPrincipiaComposedBurn
+export interface PrincipiaComposedBurn
 {
-	ignitionUt: number;
-	deltaVTangent: number;
-	deltaVNormal: number;
-	deltaVBinormal: number;
+	ignitionUt: Value<"ut">;
+	deltaVTangent: Value<"m/s">;
+	deltaVNormal: Value<"m/s">;
+	deltaVBinormal: Value<"m/s">;
 	inertiallyFixed: boolean;
 	profile: PrincipiaBurnProfile;
 }
-export interface IPrincipiaPlanSendArgs
+export interface PrincipiaPlanSendArgs
 {
 	vesselId?: string;
 	requestId?: string;
 	composedAtViewUt?: number;
 	observedAtUt?: number;
-	burns?: IPrincipiaComposedBurn[];
+	burns?: PrincipiaComposedBurn[];
 	desiredFinalTimeUt?: number;
 }
 export interface PrincipiaBurnRemoveArgs

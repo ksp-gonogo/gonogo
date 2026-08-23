@@ -53,6 +53,9 @@ public static class PrincipiaRtConfig
             typeof(PrincipiaPlanHorizonArgs),
             typeof(PrincipiaPlanIntegratorArgs),
             typeof(PrincipiaPlanSlotArgs),
+            typeof(PrincipiaComposedBurn),
+            typeof(PrincipiaPlanSendArgs),
+            typeof(PrincipiaConformanceReport),
         };
 
         builder.ExportAsInterfaces(wireTypes, c => c.AutoI(false).WithPublicProperties());
