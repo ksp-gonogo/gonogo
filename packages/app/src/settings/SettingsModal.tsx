@@ -29,11 +29,18 @@ import {
   Badge,
   Cluster,
   Input,
+  NULL_DISPLAY,
   ReadOnlyField,
   SectionTitle,
   Stack,
 } from "@ksp-gonogo/ui-kit";
-import { useCallback, useRef, useState, useSyncExternalStore } from "react";
+import {
+  Fragment,
+  useCallback,
+  useRef,
+  useState,
+  useSyncExternalStore,
+} from "react";
 import styled from "styled-components";
 import { analyticsConsentService } from "../analytics/AnalyticsConsentService";
 import { BackupManager } from "../backup/BackupManager";
@@ -362,6 +369,24 @@ function UplinkRow({ entry }: { entry: UplinkHealthEntry }) {
         </HealthLabel>
       </ConnectionRow>
       {detail && <UplinkDetail>{detail}</UplinkDetail>}
+      {/* A description list rather than more detail text: these are the identity
+          of whatever the Uplink depends on (a file, a build, a hash), and what an
+          operator does with them is copy one into a bug report. Labels the Uplink
+          wrote, values the Uplink wrote, and nothing here knows what any of them
+          mean. */}
+      {entry.health.facts.length > 0 && (
+        <UplinkFacts>
+          {entry.health.facts.map((fact) => (
+            <Fragment key={fact.label}>
+              <UplinkFactLabel>{fact.label}</UplinkFactLabel>
+              {/* An unestablished fact reads as the null placeholder rather
+                  than as a blank, which an operator scans past as an alignment
+                  gap. */}
+              <UplinkFactValue>{fact.value ?? NULL_DISPLAY}</UplinkFactValue>
+            </Fragment>
+          ))}
+        </UplinkFacts>
+      )}
     </UplinkItem>
   );
 }
@@ -865,6 +890,29 @@ const UplinkDetail = styled.span`
   white-space: pre-wrap;
   overflow-wrap: anywhere;
   line-height: var(--line-height-body);
+`;
+
+const UplinkFacts = styled.dl`
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: var(--space-2) var(--space-8);
+  margin: 0 0 0 var(--space-16);
+  font-size: var(--font-size-xs);
+`;
+
+const UplinkFactLabel = styled.dt`
+  color: var(--color-text-faint);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  white-space: nowrap;
+`;
+
+const UplinkFactValue = styled.dd`
+  margin: 0;
+  color: var(--color-text-dim);
+  /* A path or a SHA has no spaces to wrap at and would otherwise push the modal
+     wide; breaking anywhere keeps the column its share of the row. */
+  overflow-wrap: anywhere;
 `;
 
 const loaderStatusColor: Record<UplinkLoadStatus, string> = {

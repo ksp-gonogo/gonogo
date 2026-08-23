@@ -101,13 +101,6 @@ export const GENERATED_TYPE_UNITS: Readonly<Record<string, UnitsByField>> = {
     ignitionUt: "ut",
     inertiallyFixed: "flag",
   },
-  "PrincipiaConformanceReport": {
-    interfaceExports: "count",
-    provenance: "enum",
-    provenanceReason: "text",
-    state: "enum",
-    variant: "enum",
-  },
   "PrincipiaFlightPlan": {
     anomalousBurnCount: "count",
     finalTimeUt: "ut",

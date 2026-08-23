@@ -316,7 +316,9 @@ export const SNAPSHOT = {
         version: "1.0.0",
         available: true,
         reason: null,
-        health: { state: 0, detail: null },
+        // `facts` empty rather than absent, matching what the engine emits for
+        // an Uplink with nothing to add: the real wire always carries the key.
+        health: { state: 0, detail: null, facts: [] },
       },
     ],
   },

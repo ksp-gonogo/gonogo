@@ -105,8 +105,14 @@ public sealed class MyUplink : ISitrepUplink
 Key points:
 
 - **`Health()` is mandatory** and cheap: it is polled on a background thread, so read a cached field, not
-  live KSP state. Return `UplinkHealth.Unavailable(reason)` when your dependency is absent, and the app
-  surfaces that reason instead of the widget silently doing nothing
+  live KSP state. Return `new UplinkHealth(UplinkHealthState.Unavailable, reason)` when your dependency is
+  absent, and the app surfaces that reason instead of the widget silently doing nothing
+- **Health is also where a dependency's IDENTITY goes.** The third argument is a list of
+  `UplinkHealthFact(label, value)` rows: which file you loaded, which build, which hash, whatever an
+  operator would have to quote when reporting your Uplink's state. The app lists them beside your detail
+  line without knowing what any of them mean, so you do not need a Topic of your own to carry them, and
+  you should not invent one: a Topic gets a unit, a delay role and a history, none of which a file path
+  wants. Keep readings on Topics and identity here
 - **`AddChannelSource`** publishes a Topic from the main-thread game snapshot; **`AddSampledSource`** is the
   gated, higher-cost variant for expensive reads (see `ScansatUplink.cs`)
 - **Topic and Command names are namespaced by your id** (`my-uplink.reading`), which keeps them from

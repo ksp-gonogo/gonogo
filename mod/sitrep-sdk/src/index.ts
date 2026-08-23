@@ -197,6 +197,18 @@ export {
   defineProcessorContract,
   type ProcessorHandle,
 } from "./spine/processors";
+// The shape of `system.uplinkHealth`, so an Uplink can read the roster it is
+// itself reported on. Published because health is where an Uplink says what it
+// depends on and whether that dependency is usable, which is the sort of thing a
+// widget wants to badge beside the numbers it draws. Types only: the roster is
+// read with `useStream("system.uplinkHealth")` like any other channel, and
+// deriving it is the spine's job rather than an author's.
+export type {
+  SystemUplinkHealth,
+  UplinkHealthEntry,
+  UplinkHealthFact,
+  UplinkHealthStateName,
+} from "./spine/uplink-health";
 export * from "./timeline";
 export {
   getAllKnownTopicIds,

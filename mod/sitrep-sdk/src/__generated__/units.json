@@ -1890,6 +1890,9 @@
     "TrajectoryArcAnswer": {
       "arc": "TrajectoryArc"
     },
+    "UplinkHealth": {
+      "facts": "UplinkHealthFact"
+    },
     "UplinkManifest": {
       "channels": "ChannelDeclaration",
       "clientSource": "UplinkClientSource",

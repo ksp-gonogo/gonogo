@@ -1,14 +1,11 @@
 import type { JSX, ReactNode } from "react";
 import type { Meta } from "../__generated__/contract";
 import {
-  dvCurrentStageResourceChannel,
-  dvCurrentStageResourceMaxChannel,
-  spaceCenterStateChannel,
+  PRODUCTION_DERIVED_CHANNELS,
   TelemetryClient,
   TelemetryProvider,
   TimelineStore,
   ViewClock,
-  vesselStateChannel,
 } from "../spine";
 import { createFakeWallClock, type FakeWallClock } from "./fake-wall-clock";
 import { StubTransport } from "./stub-transport";
@@ -33,8 +30,9 @@ import { StubTransport } from "./stub-transport";
  *
  * It replaces nine copies of itself. Every Uplink carried its own
  * `src/test/setupStreamFixture.tsx`, five byte-identical and the other four
- * varying only in the derived channels they registered. This is the superset, so
- * every caller gets every channel rather than discovering which one their widget
+ * varying only in the derived channels they registered. It registers
+ * `PRODUCTION_DERIVED_CHANNELS`, the same list the provider registers, so every
+ * caller gets every channel rather than discovering which one their widget
  * needed.
  *
  * - **`StubTransport`** (not `ReplayTransport`): subscription-gated exactly like
@@ -106,10 +104,14 @@ export function setupStreamFixture(opts: StreamFixtureOptions): StreamFixture {
   const store = new TimelineStore(clock, {
     dynamicWholeTopicPrefixes: carriedChannels.filter((t) => t.endsWith(".")),
   });
-  store.registerDerivedChannel(vesselStateChannel);
-  store.registerDerivedChannel(spaceCenterStateChannel);
-  store.registerDerivedChannel(dvCurrentStageResourceChannel);
-  store.registerDerivedChannel(dvCurrentStageResourceMaxChannel);
+  // The production list itself rather than a hand-picked four of it. The four
+  // were the ones some Uplink's widget happened to need, so a widget reading any
+  // of the other four got `undefined` from a store the app would have answered
+  // from, and the test agreed with itself. Registering the same list the provider
+  // registers is the only version of this that stays true as the list grows.
+  for (const channel of PRODUCTION_DERIVED_CHANNELS) {
+    store.registerDerivedChannel(channel);
+  }
   if (opts.pinnedUt !== undefined) clock.scrubTo(opts.pinnedUt);
 
   function Provider({ children }: { children: ReactNode }) {

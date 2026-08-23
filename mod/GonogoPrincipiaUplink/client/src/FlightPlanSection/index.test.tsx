@@ -20,11 +20,7 @@ afterEach(() => {
 /** The instant every fixture pins the view clock to. */
 const VIEW_UT = 10_000;
 
-const CARRIED = [
-  "principia.flightPlan",
-  "vessel.identity",
-  "principia.conformance",
-];
+const CARRIED = ["principia.flightPlan", "vessel.identity", "system.uplinks"];
 
 function mount(pinnedUt = VIEW_UT) {
   const stream = setupStreamFixture({ carriedChannels: CARRIED, pinnedUt });
@@ -324,49 +320,63 @@ describe("FlightPlanSection: an observation, dated", () => {
   });
 });
 
+/**
+ * Read off `system.uplinks` rather than a topic of this Uplink's own, which is
+ * where the mod now reports which Principia build it found. These emissions are
+ * the raw roster the engine builds; the badge reads the derived
+ * `system.uplinkHealth` over it, so every one of these also proves the fixture's
+ * store derives that channel at all.
+ */
 describe("the Principia build behind these numbers", () => {
-  /** Matches the C# `PrincipiaConformance` arms by value, not by name. */
-  const CONFORMANT = 1;
-  const UNKNOWN_RELEASE = 2;
-  const REFUSED = 3;
+  /** Matches the C# `UplinkHealthState` arms by value, not by name. */
+  const HEALTHY = 0;
+  const DEGRADED = 1;
+  const UNAVAILABLE = 2;
 
-  function emitConformance(
+  function emitRoster(
     stream: ReturnType<typeof mount>,
     state: number,
+    detail: string | null = null,
   ): void {
     act(() => {
       stream.emit(
-        "principia.conformance",
-        { state, variant: 2, interfaceExports: 170 },
+        "system.uplinks",
+        {
+          uplinks: [
+            {
+              id: "principia",
+              version: "1.0.0",
+              available: state !== UNAVAILABLE,
+              reason: null,
+              ownedPrefixes: ["principia.flightPlan"],
+              health: {
+                state,
+                detail,
+                facts: [
+                  { label: "build", value: "/GameData/Principia/principia.so" },
+                ],
+              },
+            },
+          ],
+        },
         { validAt: VIEW_UT },
       );
     });
   }
 
-  it("flags a version nobody has checked our reading of", async () => {
+  it("flags a build nobody has checked our reading of", async () => {
     const stream = mount();
 
     emitPlan(stream);
-    emitConformance(stream, UNKNOWN_RELEASE);
+    emitRoster(
+      stream,
+      DEGRADED,
+      "This Principia release has not been vetted here.",
+    );
 
     expect(
-      await screen.findByText("UNVETTED PRINCIPIA VERSION"),
+      await screen.findByText("UNVETTED PRINCIPIA BUILD"),
     ).toBeInTheDocument();
-  });
-
-  it("flags a build it could not read at all, differently", async () => {
-    // Two different problems and two different next moves: an unvetted version
-    // is one we have not got to, an unreadable one is a fault. Collapsing them
-    // would send an operator looking for the wrong thing.
-    const stream = mount();
-
-    emitPlan(stream);
-    emitConformance(stream, REFUSED);
-
-    expect(
-      await screen.findByText("PRINCIPIA NOT READABLE"),
-    ).toBeInTheDocument();
-    expect(visibleText(stream.container)).not.toMatch(/UNVETTED/i);
   });
 
   it("says nothing at all when the build is one we have vetted", async () => {
@@ -376,12 +386,25 @@ describe("the Principia build behind these numbers", () => {
     const stream = mount();
 
     emitPlan(stream);
-    emitConformance(stream, CONFORMANT);
+    emitRoster(stream, HEALTHY);
 
     // Awaited on something the plan itself renders, so the absence below is read
     // AFTER the tree settled rather than before it drew anything at all.
     expect(await screen.findByText("#1")).toBeInTheDocument();
-    expect(visibleText(stream.container)).not.toMatch(/UNVETTED|NOT READABLE/i);
+    expect(visibleText(stream.container)).not.toMatch(/UNVETTED/i);
+  });
+
+  it("says nothing about the build when Principia is not there at all", async () => {
+    // An Uplink reporting unavailable is a statement about the mod being absent,
+    // not about a build being wrong. Badging it here would send an operator
+    // looking at a file that was never loaded.
+    const stream = mount();
+
+    emitPlan(stream);
+    emitRoster(stream, UNAVAILABLE, "Principia not detected");
+
+    expect(await screen.findByText("#1")).toBeInTheDocument();
+    expect(visibleText(stream.container)).not.toMatch(/UNVETTED/i);
   });
 
   it("says nothing YET when the gate has not run", async () => {
@@ -393,7 +416,7 @@ describe("the Principia build behind these numbers", () => {
     emitPlan(stream);
 
     expect(await screen.findByText("#1")).toBeInTheDocument();
-    expect(visibleText(stream.container)).not.toMatch(/UNVETTED|NOT READABLE/i);
+    expect(visibleText(stream.container)).not.toMatch(/UNVETTED/i);
   });
 });
 

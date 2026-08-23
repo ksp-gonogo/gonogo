@@ -89,7 +89,20 @@ export interface SystemUplinksTopicPayloadMap {
        * check reads it there).
        */
       clientSource: { url: string; devPath: string | null } | null;
-      health: { state: number; detail: string | null };
+      /**
+       * `state` is the integer ordinal of `UplinkHealthState`; `detail` the
+       * Uplink's own sentence about it. `facts` is the identity of whatever the
+       * Uplink depends on, labelled by the Uplink and read by nothing: a client
+       * lists the rows without knowing what any of them mean, which is what
+       * lets an Uplink publish its dependency's build and hash without a topic
+       * or a payload type of its own. Present and empty for an Uplink with
+       * nothing to add.
+       */
+      health: {
+        state: number;
+        detail: string | null;
+        facts: Array<{ label: string; value: string | null }>;
+      };
     }>;
   };
 }

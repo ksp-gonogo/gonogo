@@ -45,6 +45,7 @@ namespace GonogoPrincipiaUplink
         internal PrincipiaUplink(PrincipiaGuardResult guard)
         {
             _guard = guard;
+            _detecting = PrincipiaBinaryHealth.Detecting(guard.DetectedVersion);
             _planCommands = new PlanCommands(() => _settings);
         }
 
@@ -74,7 +75,6 @@ namespace GonogoPrincipiaUplink
         public const string FlightPlanTopic = "principia.flightPlan";
         public const string SettingsTopic = "principia.settings";
         public const string PlanTopic = "principia.plan";
-        public const string ConformanceTopic = "principia.conformance";
 
         private IFlightPlanObserver? _observer;
         private ISettingsSource? _settings;
@@ -83,21 +83,34 @@ namespace GonogoPrincipiaUplink
         private IChannelPublisher? _flightPlan;
         private IChannelPublisher? _settingsPublisher;
         private IChannelPublisher? _planPublisher;
-        private IChannelPublisher? _conformancePublisher;
 
         /// <summary>
-        /// The conformance verdict, computed at most once per session.
+        /// Whether the gate has already answered, read and written on the MAIN
+        /// thread only.
         ///
-        /// <para>Cached because it cannot change while the game runs: the mapped
-        /// build is mapped for the process's life, and reading it means scanning
-        /// tens of megabytes to find the embedded descriptor. Recomputing that per
-        /// tick would put a file scan on the sampled path to re-derive a constant.</para>
+        /// <para>Separate from <see cref="_binaryHealth"/>, which the Courier thread
+        /// owns, so neither thread has to see the other's field to do its job. The
+        /// gate runs at most once per session because its answer cannot change while
+        /// the process lives (the mapped build stays mapped) and establishing it
+        /// means scanning tens of megabytes and starting a worker process.</para>
         /// </summary>
-        private PrincipiaConformanceReport? _conformance;
+        private bool _binaryGateHasRun;
 
-        /// <summary>The UT the verdict was reached at, so the sample is stamped with
-        /// when it was established rather than with whatever tick republished it.</summary>
-        private double _conformanceUt;
+        /// <summary>
+        /// What the gate concluded, in roster terms.
+        ///
+        /// <para>Unsynchronised, and the reason is that only one thread touches it:
+        /// the handle-on-Courier half of the sampled source writes it and
+        /// <see cref="Health"/> reads it, and the host documents both as running on
+        /// the Courier thread. The value itself is immutable once built, so a reader
+        /// that somehow saw the reference early would still see a complete reading
+        /// rather than a half-populated one.</para>
+        /// </summary>
+        private PrincipiaBinaryHealth? _binaryHealth;
+
+        /// <summary>What the roster is told before the gate answers. Built once
+        /// because it is polled on every sample and never changes.</summary>
+        private readonly PrincipiaBinaryHealth _detecting;
         private readonly PlanReader _planReader = new PlanReader();
         private double _publishedAtUt = double.NegativeInfinity;
 
@@ -137,19 +150,9 @@ namespace GonogoPrincipiaUplink
                     Delay = DelayRole.TrueNow,
                     Emission = new EmissionPolicy(keyframeIntervalUt: 30, quantum: EmissionQuantum.Absolute(0)),
                 },
-                // Delayed, like the plan mirror and unlike the settings beside it:
+                // Delayed, like the flight plan and unlike the settings beside it:
                 // this is a per-vessel telemetry fact about a craft, not a
                 // ground-side configuration.
-                // TrueNow for the same reason the settings are: which files are on
-                // the operator's own machine is a ground-side fact, not something
-                // travelling from a craft.
-                new ChannelDeclaration
-                {
-                    Topic = ConformanceTopic,
-                    Delivery = Delivery.LossyLatest,
-                    Delay = DelayRole.TrueNow,
-                    Emission = new EmissionPolicy(keyframeIntervalUt: 60, quantum: EmissionQuantum.Absolute(0)),
-                },
                 new ChannelDeclaration
                 {
                     Topic = PlanTopic,
@@ -213,8 +216,12 @@ namespace GonogoPrincipiaUplink
             host.AddSampledSource(CaptureSettingsOnMain, HandleSettingsOnCourier, SettingsTopic);
             _planPublisher = host.Publisher(PlanTopic);
             host.AddSampledSource(CapturePlanOnMain, HandlePlanOnCourier, PlanTopic);
-            _conformancePublisher = host.Publisher(ConformanceTopic);
-            host.AddSampledSource(CaptureConformanceOnMain, HandleConformanceOnCourier, ConformanceTopic);
+            // No topic prefixes, so the engine never skips it. What this source
+            // feeds is the uplink's own health, which the roster polls whether or
+            // not a client has subscribed to anything of ours; gating it on a
+            // subscription would leave the roster describing a build nobody had
+            // read yet for as long as nobody was looking.
+            host.AddSampledSource(CaptureBinaryHealthOnMain, AdoptBinaryHealthOnCourier);
             RegisterPlanCommands(host);
         }
 
@@ -280,34 +287,33 @@ namespace GonogoPrincipiaUplink
 
         /// <summary>
         /// MAIN-THREAD capture: whether the Principia build this game loaded is one
-        /// the Uplink may call into.
+        /// the Uplink may call into, in the shape <see cref="Health"/> reports.
         ///
-        /// <para>Computed on the FIRST capture rather than in <c>Register</c>, and
-        /// then cached. Two reasons, and neither is tidiness. The gate scans tens of
-        /// megabytes to find the embedded descriptor, which is not something to do on
-        /// the main thread while the game is still building its scene. And the native
-        /// build is mapped during Principia's own startup, so a read taken during
-        /// registration can legitimately find nothing mapped at all and would record
-        /// "Principia is not loaded" about a game that is about to load it.</para>
+        /// <para>Run from the sampled-source loop rather than from <c>Register</c>,
+        /// and only once. Two reasons, and neither is tidiness. The gate scans tens
+        /// of megabytes to find the embedded descriptor and starts a worker process,
+        /// which is not something to do while the game is still building its scene.
+        /// And the native build is mapped during Principia's own startup, so a read
+        /// taken during registration can legitimately find nothing mapped at all and
+        /// would record "Principia is not loaded" about a game that is about to load
+        /// it.</para>
         ///
-        /// <para>Cached rather than recomputed because the answer cannot change while
-        /// the process lives: the file that is mapped stays mapped.</para>
+        /// <para>Returning null leaves the roster reading whatever it already had,
+        /// which for the not-yet-mapped case is the detecting line. The gate is asked
+        /// again on the next tick, which is what makes "still starting" resolve
+        /// itself instead of sticking.</para>
         /// </summary>
-        internal object? CaptureConformanceOnMain(KspSnapshot? snapshot)
+        internal object? CaptureBinaryHealthOnMain(KspSnapshot? snapshot)
         {
-            if (_conformance != null)
+            if (_binaryGateHasRun)
             {
-                return _conformance;
+                return null;
             }
 
             var verdict = PrincipiaConformanceGate.Check(
                 MappedModules.OfThisProcess(),
                 path => File.OpenRead(path));
-            _conformanceUt = snapshot?.Ut ?? 0.0;
 
-            // A build that is not mapped YET is not a verdict. Leaving the cache
-            // empty means the next tick asks again, which is what makes the "still
-            // starting" case resolve itself instead of sticking.
             if (verdict.State == PrincipiaConformance.NotEstablished)
             {
                 return null;
@@ -321,19 +327,21 @@ namespace GonogoPrincipiaUplink
             var decision = PrincipiaWorkerHost.Decide(
                 verdict, hostFacts, hostFacts, UsesCorrectSinCos);
 
-            _conformance = new PrincipiaConformanceReport
+            _binaryGateHasRun = true;
+            return PrincipiaBinaryHealth.Of(_guard.DetectedVersion, verdict, decision);
+        }
+
+        /// <summary>
+        /// COURIER-THREAD half: adopts the reading so the next roster poll reports
+        /// it. Ignores anything else, including the null a tick with no verdict
+        /// returns.
+        /// </summary>
+        internal void AdoptBinaryHealthOnCourier(object? captured)
+        {
+            if (captured is PrincipiaBinaryHealth reading)
             {
-                State = verdict.State,
-                Variant = verdict.Variant,
-                ActivePath = verdict.ActivePath,
-                DescriptorSha256 = verdict.DescriptorSha256,
-                ReleaseName = verdict.ReleaseName,
-                InterfaceExports = verdict.ExportCount,
-                Reason = verdict.Reason,
-                Provenance = decision.Provenance,
-                ProvenanceReason = decision.MayRun ? null : decision.Reason,
-            };
-            return _conformance;
+                _binaryHealth = reading;
+            }
         }
 
         /// <summary>
@@ -410,67 +418,6 @@ namespace GonogoPrincipiaUplink
                 return Directory.Exists("/System/Library") ? "macos" : "linux";
             }
             return platform == PlatformID.MacOSX ? "macos" : "windows";
-        }
-
-        /// <summary>
-        /// Test seam: run a report through the REAL flattening and hand the result
-        /// to <paramref name="sink"/> instead of a publisher.
-        ///
-        /// <para>The flattening itself is what a test has to see, because the defect
-        /// it guards is publishing a shape the wire writer cannot emit, and that
-        /// throws inside the courier where no assertion reaches it.</para>
-        /// </summary>
-        internal void PublishConformanceForTests(
-            PrincipiaConformanceReport report, Action<object?> sink)
-        {
-            var captured = _conformancePublisher;
-            _conformancePublisher = new SinkPublisher(sink);
-            try
-            {
-                HandleConformanceOnCourier(report);
-            }
-            finally
-            {
-                _conformancePublisher = captured;
-            }
-        }
-
-        private sealed class SinkPublisher : IChannelPublisher
-        {
-            private readonly Action<object?> _sink;
-
-            public SinkPublisher(Action<object?> sink) => _sink = sink;
-
-            public void Publish(object? payload, double validAtUt) => _sink(payload);
-        }
-
-        internal void HandleConformanceOnCourier(object? captured)
-        {
-            if (captured is not PrincipiaConformanceReport report)
-            {
-                return;
-            }
-            // Flattened, like `principia.plan` beside it. The wire writer emits a
-            // hand-written set of core contract types and nothing else, so a POCO
-            // from an Uplink's own contract reaches it as an unsupported value, the
-            // mapper throws, and the ENTIRE uplink is marked unavailable: this
-            // channel took the plan, the settings and every plan command down with
-            // it in-game. Publishing a dictionary is what the other three do and is
-            // the only shape that survives the boundary.
-            _conformancePublisher?.Publish(
-                new Dictionary<string, object?>
-                {
-                    ["state"] = (int)report.State,
-                    ["variant"] = (int)report.Variant,
-                    ["activePath"] = report.ActivePath,
-                    ["descriptorSha256"] = report.DescriptorSha256,
-                    ["releaseName"] = report.ReleaseName,
-                    ["interfaceExports"] = report.InterfaceExports,
-                    ["reason"] = report.Reason,
-                    ["provenance"] = (int)report.Provenance,
-                    ["provenanceReason"] = report.ProvenanceReason,
-                },
-                _conformanceUt);
         }
 
         internal void HandlePlanOnCourier(object? captured)
@@ -691,13 +638,28 @@ namespace GonogoPrincipiaUplink
         /// publishing nothing.</summary>
         partial void AttachObserver();
 
-        public UplinkHealth Health() =>
-            _guard.IsAvailable
-                ? new UplinkHealth(
-                    UplinkHealthState.Healthy,
-                    _guard.DetectedVersion == null
-                        ? null
-                        : "Principia " + _guard.DetectedVersion)
-                : new UplinkHealth(UplinkHealthState.Unavailable, _guard.Reason);
+        /// <summary>
+        /// Presence from the managed assembly, and everything else from the native
+        /// build the game mapped.
+        ///
+        /// <para>The two are different questions and the roster answers both here
+        /// rather than on a channel of this uplink's own. Which Principia is
+        /// installed is not an observation of a craft: it is the identity of a file
+        /// on the operator's machine, in the same class as every other fact this
+        /// surface already carries about whether an uplink is working. A topic for
+        /// it would have been a second place to look for the same answer, in a
+        /// vocabulary only a Principia-aware client could read.</para>
+        ///
+        /// <para>Polled on every roster sample, so it does no work: the gate's answer
+        /// is established once by the sampled source and this reads it.</para>
+        /// </summary>
+        public UplinkHealth Health()
+        {
+            if (!_guard.IsAvailable)
+            {
+                return new UplinkHealth(UplinkHealthState.Unavailable, _guard.Reason);
+            }
+            return (_binaryHealth ?? _detecting).ToHealth();
+        }
     }
 }

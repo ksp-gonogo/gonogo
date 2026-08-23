@@ -3956,9 +3956,11 @@ namespace Sitrep.Host.IntegrationTests
         /// cover:
         /// <list type="bullet">
         /// <item><description><see cref="HealthReportingTestUplink"/> self-reports
-        /// <see cref="UplinkHealthState.Degraded"/> with its own Detail text,
-        /// the uplink-authored "what ready means for me" case (health is a
-        /// mandatory member of <see cref="ISitrepUplink"/> now).</description></item>
+        /// <see cref="UplinkHealthState.Degraded"/> with its own Detail text and
+        /// its own <see cref="UplinkHealthFact"/> rows, the uplink-authored "what
+        /// ready means for me" case plus the identity of what it depends on
+        /// (health is a mandatory member of <see cref="ISitrepUplink"/>
+        /// now).</description></item>
         /// <item><description><see cref="PlainNoHealthTestUplink"/> reports the
         /// trivial <see cref="UplinkHealth.Healthy"/> floor: a plain channel
         /// uplink that is fine once registered, no detail.</description></item>
@@ -4011,6 +4013,24 @@ namespace Sitrep.Host.IntegrationTests
                 var reportingHealth = Assert.IsType<Dictionary<string, object?>>(reporting["health"]);
                 Assert.Equal((double)(int)UplinkHealthState.Degraded, reportingHealth["state"]);
                 Assert.Equal(HealthReportingTestUplink.DetailText, reportingHealth["detail"]);
+                // Asserted through the REAL socket rather than off the built
+                // dictionary, because the defect this covers is a shape the wire
+                // writer cannot emit: that throws at the boundary and drops the
+                // frame, which a producer-side assertion never sees. It used to be
+                // covered per-uplink, by an uplink flattening its own payload onto
+                // a topic of its own; the engine flattens facts for every uplink
+                // now, so one test here covers all of them.
+                var facts = Assert.IsType<List<object?>>(reportingHealth["facts"]);
+                Assert.Equal(HealthReportingTestUplink.Facts.Length, facts.Count);
+                var backend = Assert.IsType<Dictionary<string, object?>>(facts[0]);
+                Assert.Equal("backend", backend["label"]);
+                Assert.Equal("test-backend-7", backend["value"]);
+                // A fact the uplink could not establish arrives as null rather than
+                // as an empty string, so a client can tell "not known" from "known
+                // to be nothing".
+                var build = Assert.IsType<Dictionary<string, object?>>(facts[1]);
+                Assert.Equal("build", build["label"]);
+                Assert.Null(build["value"]);
 
                 var plain = byId[PlainNoHealthTestUplink.UplinkId];
                 Assert.Equal(true, plain["available"]);
@@ -4020,6 +4040,9 @@ namespace Sitrep.Host.IntegrationTests
                 var plainHealth = Assert.IsType<Dictionary<string, object?>>(plain["health"]);
                 Assert.Equal((double)(int)UplinkHealthState.Healthy, plainHealth["state"]);
                 Assert.Null(plainHealth["detail"]);
+                // Present and empty rather than absent, so a client enumerates
+                // unconditionally instead of testing for the key first.
+                Assert.Empty(Assert.IsType<List<object?>>(plainHealth["facts"]));
 
                 var throwing = byId[ThrowingRegisterTestUplink.UplinkId];
                 Assert.Equal(false, throwing["available"]);
@@ -4159,7 +4182,22 @@ namespace Sitrep.Host.IntegrationTests
                 // to prove the ISitrepUplink.Health self-report path.
             }
 
-            public UplinkHealth Health() => new UplinkHealth(UplinkHealthState.Degraded, DetailText);
+            /// <summary>
+            /// Facts as well as a detail line: an uplink saying WHICH thing it
+            /// depends on, not only that something is wrong with it.
+            ///
+            /// <para>The null value is deliberate. An uplink that knows a fact
+            /// applies and has not established it says so rather than inventing a
+            /// blank, and the engine has to carry that difference to the wire.</para>
+            /// </summary>
+            public static readonly UplinkHealthFact[] Facts =
+            {
+                new UplinkHealthFact("backend", "test-backend-7"),
+                new UplinkHealthFact("build", null),
+            };
+
+            public UplinkHealth Health() =>
+                new UplinkHealth(UplinkHealthState.Degraded, DetailText, Facts);
         }
 
         private sealed class PlainNoHealthTestUplink : ISitrepUplink

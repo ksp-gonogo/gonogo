@@ -19,11 +19,23 @@ import type { DerivedChannelDefinition, DerivedGet } from "./timeline-store";
  * into itself the first time `derive` calls `get()` on that input.
  */
 
+/** One `Sitrep.Contract.UplinkHealthFact`, before decode. */
+interface RawUplinkHealthFact {
+  label: string;
+  value: string | null;
+}
+
 /** One `system.uplinks` wire entry's `health` field, before decode. */
 interface RawUplinkHealth {
   /** `Sitrep.Contract.UplinkHealthState`'s integer ordinal: see `HEALTH_STATE_NAMES`. */
   state: number;
   detail: string | null;
+  /**
+   * `Sitrep.Contract.UplinkHealth.Facts`. Optional on the wire type so a mod
+   * build predating uplink-authored facts (field absent) decodes to an empty
+   * list rather than throwing.
+   */
+  facts?: RawUplinkHealthFact[];
 }
 
 /** One `system.uplinks` wire entry, before decode. */
@@ -68,6 +80,17 @@ export const HEALTH_STATE_NAMES = [
 /** Decoded, widget-facing form of `UplinkHealthState`. */
 export type UplinkHealthStateName = (typeof HEALTH_STATE_NAMES)[number];
 
+/**
+ * One labelled diagnostic an Uplink reports about whatever it depends on: which
+ * file, which build, which hash. Both halves are display text the Uplink itself
+ * authored, so a client lists them without knowing what the Uplink is or what
+ * the fact means.
+ */
+export interface UplinkHealthFact {
+  label: string;
+  value: string | null;
+}
+
 /** Decoded, widget-facing form of one Uplink's health self-report. */
 export interface UplinkHealthEntry {
   id: string;
@@ -86,6 +109,11 @@ export interface UplinkHealthEntry {
     state: UplinkHealthStateName;
     /** Uplink-authored "what ready means for me" text, opaque, display-only. */
     detail: string | null;
+    /**
+     * Uplink-authored diagnostics, in the order the Uplink wants them read.
+     * Empty (never absent) when the Uplink has nothing to add.
+     */
+    facts: UplinkHealthFact[];
   };
 }
 
@@ -119,6 +147,10 @@ export function deriveSystemUplinkHealth(
       health: {
         state: HEALTH_STATE_NAMES[entry.health.state] ?? "unavailable",
         detail: entry.health.detail ?? null,
+        facts: (entry.health.facts ?? []).map((fact) => ({
+          label: fact.label,
+          value: fact.value ?? null,
+        })),
       },
     })),
   };
