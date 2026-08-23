@@ -87,6 +87,48 @@ namespace GonogoPrincipiaUplink.Tests
                     + "actually exercised: " + string.Join(", ", found));
         }
 
+        [Fact]
+        public void TheWholeGateAcceptsTheBuildTheRigActuallyRuns()
+        {
+            // Every other gate test builds its own bytes, so all of them would pass
+            // against a reader that agreed with the test author and not with
+            // Principia. This one runs discovery, descriptor, SupportedSet and export
+            // reading over the file the game really loads, through the real vetted
+            // set, and is the only test that can catch the four agreeing with each
+            // other while disagreeing with reality.
+            var installRoot = FindInstallRoot();
+            if (installRoot == null)
+            {
+                return;
+            }
+            var fma = Path.Combine(
+                installRoot,
+                "GameData/Principia/Linux/x64_AVX_FMA/principia.so"
+                    .Replace('/', Path.DirectorySeparatorChar));
+            var baseline = Path.Combine(
+                installRoot,
+                "GameData/Principia/Linux/x64/principia.so"
+                    .Replace('/', Path.DirectorySeparatorChar));
+            if (!File.Exists(fma) || !File.Exists(baseline))
+            {
+                return;
+            }
+
+            // Both mapped, as they are on a running game: the loader maps the
+            // baseline build to query CPUID through it and never unloads it.
+            var verdict = PrincipiaConformanceGate.Check(
+                new[] { baseline, fma },
+                path => File.OpenRead(path));
+
+            Assert.Equal(PrincipiaConformance.Conformant, verdict.State);
+            Assert.True(verdict.MayProceed);
+            Assert.Equal(PrincipiaBinaryVariant.X64AvxFma, verdict.Variant);
+            Assert.Equal(fma, verdict.ActivePath);
+            Assert.Equal(ExpectedSha256, verdict.DescriptorSha256);
+            Assert.Equal(170, verdict.ExportCount);
+            Assert.NotNull(verdict.ReleaseName);
+        }
+
         /// <summary>
         /// The local mirror of the rig's KSP install. Walks up from the test binary
         /// to the workspace root rather than assuming a working directory.
