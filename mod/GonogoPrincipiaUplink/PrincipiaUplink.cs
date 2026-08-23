@@ -14,6 +14,7 @@
 // by a horizon) rather than as the vendor's identity.
 using Sitrep.Contract;
 
+using System;
 using System.Collections.Generic;
 using System.IO;
 
@@ -312,6 +313,14 @@ namespace GonogoPrincipiaUplink
                 return null;
             }
 
+            // Ask the worker what THIS machine reports, which is the one thing the
+            // decision below cannot get any other way: reading CPUID here would
+            // answer about whatever machine this code runs on, and the question is
+            // about the game's. A worker beside the game is that machine.
+            var hostFacts = AskTheWorker(verdict);
+            var decision = PrincipiaWorkerHost.Decide(
+                verdict, hostFacts, hostFacts, UsesCorrectSinCos);
+
             _conformance = new PrincipiaConformanceReport
             {
                 State = verdict.State,
@@ -321,8 +330,86 @@ namespace GonogoPrincipiaUplink
                 ReleaseName = verdict.ReleaseName,
                 InterfaceExports = verdict.ExportCount,
                 Reason = verdict.Reason,
+                Provenance = decision.Provenance,
+                ProvenanceReason = decision.MayRun ? null : decision.Reason,
             };
             return _conformance;
+        }
+
+        /// <summary>
+        /// Whether the save routes trigonometry through Principia's own functions
+        /// or the platform's C library.
+        ///
+        /// <para>Null, and honestly so. It is a field of the serialized plugin, no
+        /// export reports it, and reading it means asking the plugin to serialise
+        /// itself uncompressed and parsing field 21 out of the result. That is a
+        /// real and known route and it is not built. Null makes the decision report
+        /// `ReproducedExceptTrig` rather than claiming reproduction it has not
+        /// established, which is the answer that costs nothing to be wrong
+        /// about.</para>
+        /// </summary>
+        private static bool? UsesCorrectSinCos => null;
+
+        /// <summary>
+        /// Start a worker beside the game and ask it what the CPU reports, then stop
+        /// it.
+        ///
+        /// <para>Once per session and only for a build that passed the gate: there
+        /// is nothing to ask a worker about a build we would not call into anyway.
+        /// The worker is disposed immediately because this one question is all it is
+        /// asked so far, and a process left running for a value that cannot change
+        /// is a process nobody remembers to stop.</para>
+        ///
+        /// <para>Every failure is unknown rather than false. No python, no script, a
+        /// worker that dies: none of those are a CPU without FMA, and treating them
+        /// as one would have the decision claim a match nobody measured.</para>
+        /// </summary>
+        private static PrincipiaHostFacts AskTheWorker(PrincipiaConformanceVerdict verdict)
+        {
+            var osFamily = OsFamily();
+            if (verdict.State != PrincipiaConformance.Conformant || verdict.ActivePath == null)
+            {
+                return new PrincipiaHostFacts(osFamily, null);
+            }
+
+            using var channel = PrincipiaWorkerProcess.Spawn("python3", WorkerScriptPath());
+            return PrincipiaWorkerProcess.AskCpuidFeatureFlags(
+                channel, verdict.ActivePath, osFamily);
+        }
+
+        /// <summary>
+        /// The worker script, found relative to this assembly rather than from a
+        /// configured path: it ships beside the plugin and moves with it, and a
+        /// path an operator could set is a path that can be set wrong.
+        /// </summary>
+        private static string WorkerScriptPath()
+        {
+            try
+            {
+                var plugins = Path.GetDirectoryName(
+                    typeof(PrincipiaUplink).Assembly.Location);
+                var root = plugins == null ? null : Path.GetDirectoryName(plugins);
+                return root == null
+                    ? string.Empty
+                    : Path.Combine(root, "Worker", "principia_worker.py");
+            }
+            catch (Exception)
+            {
+                return string.Empty;
+            }
+        }
+
+        private static string OsFamily()
+        {
+            var platform = Environment.OSVersion.Platform;
+            if (platform == PlatformID.Unix)
+            {
+                // KSP on macOS also reports Unix, so the two are told apart by a path
+                // only one of them has. Getting this wrong would call a Linux worker
+                // and a macOS game the same machine.
+                return Directory.Exists("/System/Library") ? "macos" : "linux";
+            }
+            return platform == PlatformID.MacOSX ? "macos" : "windows";
         }
 
         internal void HandleConformanceOnCourier(object? captured)

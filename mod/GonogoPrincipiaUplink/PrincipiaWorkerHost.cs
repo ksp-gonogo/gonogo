@@ -2,37 +2,6 @@ using System;
 
 namespace GonogoPrincipiaUplink
 {
-    /// <summary>What relationship a computed trajectory has to the game's own arithmetic.</summary>
-    public enum PrincipiaNumericsProvenance
-    {
-        /// <summary>
-        /// Not determined. Zero so an unset field never reads as a claim: the whole
-        /// point of this type is that saying "these are the game's numbers" requires
-        /// evidence, and a default must not supply it.
-        /// </summary>
-        NotEstablished = 0,
-
-        /// <summary>
-        /// The game's own arithmetic. Same build, same numeric path, same trigonometry.
-        /// </summary>
-        Reproduced = 1,
-
-        /// <summary>
-        /// Everything matched except which trigonometry the save selects, which could
-        /// not be read. Its own arm rather than a downgrade to
-        /// <see cref="IndependentEstimate"/>: this is a much stronger claim than
-        /// "computed with a different build", and collapsing them would tell an
-        /// operator deciding whether to trust a burn far less than is known.
-        /// </summary>
-        ReproducedExceptTrig = 2,
-
-        /// <summary>
-        /// Computed with a Principia that is not in the game's configuration. Useful,
-        /// and honestly labelled, but not the game's answer.
-        /// </summary>
-        IndependentEstimate = 3,
-    }
-
     /// <summary>Why no worker may be started.</summary>
     public enum PrincipiaWorkerRefusal
     {

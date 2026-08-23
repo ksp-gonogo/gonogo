@@ -59,6 +59,42 @@ public enum PrincipiaConformance
 }
 
 
+/// <summary>What relationship a computed trajectory has to the game's own arithmetic.</summary>
+#if SITREP_CODEGEN
+[TsEnum]
+#endif
+[SitrepContract]
+public enum PrincipiaNumericsProvenance
+{
+    /// <summary>
+    /// Not determined. Zero so an unset field never reads as a claim: the whole
+    /// point of this type is that saying "these are the game's numbers" requires
+    /// evidence, and a default must not supply it.
+    /// </summary>
+    NotEstablished = 0,
+
+    /// <summary>
+    /// The game's own arithmetic. Same build, same numeric path, same trigonometry.
+    /// </summary>
+    Reproduced = 1,
+
+    /// <summary>
+    /// Everything matched except which trigonometry the save selects, which could
+    /// not be read. Its own arm rather than a downgrade to
+    /// <see cref="IndependentEstimate"/>: this is a much stronger claim than
+    /// "computed with a different build", and collapsing them would tell an
+    /// operator deciding whether to trust a burn far less than is known.
+    /// </summary>
+    ReproducedExceptTrig = 2,
+
+    /// <summary>
+    /// Computed with a Principia that is not in the game's configuration. Useful,
+    /// and honestly labelled, but not the game's answer.
+    /// </summary>
+    IndependentEstimate = 3,
+}
+
+
 /// <summary>
 /// The <c>principia.conformance</c> channel: whether the Principia build this game
 /// is running is one the Uplink may call into, and how it knows.
@@ -105,4 +141,20 @@ public sealed class PrincipiaConformanceReport
 
     /// <summary>Why, in the operator's terms. Null when the build is conformant.</summary>
     public string? Reason { get; set; }
+
+    /// <summary>
+    /// What a trajectory computed beside the game could claim about its
+    /// relationship to the game's own arithmetic.
+    ///
+    /// <para>Separate from <see cref="State"/> because they answer different
+    /// questions. A build can be perfectly vetted while the machine that would
+    /// compute with it selects a different numeric path, and an operator deciding
+    /// whether to trust a burn needs both.</para>
+    /// </summary>
+    [SitrepUnit(Units.Enumeration)]
+    public PrincipiaNumericsProvenance Provenance { get; set; }
+
+    /// <summary>Why the numbers cannot be the game's own. Null when they can.</summary>
+    [SitrepUnit(Units.Text)]
+    public string? ProvenanceReason { get; set; }
 }

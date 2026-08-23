@@ -103,6 +103,8 @@ export const GENERATED_TYPE_UNITS: Readonly<Record<string, UnitsByField>> = {
   },
   "PrincipiaConformanceReport": {
     interfaceExports: "count",
+    provenance: "enum",
+    provenanceReason: "text",
     state: "enum",
     variant: "enum",
   },

@@ -15,6 +15,12 @@ export enum PrincipiaConformance {
 	UnknownRelease = 2,
 	Refused = 3
 }
+export enum PrincipiaNumericsProvenance {
+	NotEstablished = 0,
+	Reproduced = 1,
+	ReproducedExceptTrig = 2,
+	IndependentEstimate = 3
+}
 export interface PrincipiaConformanceReport
 {
 	state: PrincipiaConformance;
@@ -24,6 +30,8 @@ export interface PrincipiaConformanceReport
 	releaseName?: string;
 	interfaceExports: Value<"count">;
 	reason?: string;
+	provenance: PrincipiaNumericsProvenance;
+	provenanceReason?: string;
 }
 export interface PrincipiaFlightPlan
 {
