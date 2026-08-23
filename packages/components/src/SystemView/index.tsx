@@ -37,14 +37,13 @@ import {
 } from "@ksp-gonogo/ui";
 import { FramedDisplay, NULL_DISPLAY } from "@ksp-gonogo/ui-kit";
 import type { CSSProperties } from "react";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 // FleetComms's `.actions` slot (Commlinks/Traffic toggles) now gates THIS
 // host's own shape-contribution render, not a second overlay draw:
 // reconciled the old straight-line comms overlay onto the graph/highlight/
 // pulse model built in Tasks 4-6, so the toggles moved with it. A pure
 // module-scoped store (no augment-only state), safe to read directly.
 import { useFleetCommsToggles } from "../FleetComms/toggles";
-import { quantiseUt } from "../MapView/predictionThrottle";
 import { TrajectoryFrameCaption } from "../shared/trajectoryFrame";
 import { TrajectoryWithheldNote } from "../shared/trajectoryWithheld";
 import { AlmanacPanel } from "./AlmanacPanel";
@@ -56,6 +55,7 @@ import {
 } from "./commsPath";
 import { deriveTraffic, NO_TRAFFIC } from "./commsTraffic";
 import { inertialFrameFor, resolveProjection } from "./projection";
+import { createUtBucketThrottle } from "./utBucketThrottle";
 // Side-effect import: the host's own entries on `system-view.projection`, so the
 // picker, the filter and the resolver are all travelled on a bare stock install
 // with no Uplinks at all.
@@ -697,12 +697,20 @@ function SystemViewComponent({
         }
       : null;
 
-  // Predicted trajectory input for the diagram. Throttle `ut` into 1s buckets
-  // (same as MapView) so the patch projection only re-runs ~1/sec, not on
-  // every stream frame: the orbit shape doesn't change between ticks.
-  const utBucket = quantiseUt(
+  // Predicted trajectory input for the diagram, throttled so the patch
+  // projection re-runs about once a REAL second rather than once per game
+  // second: the orbit shape doesn't change between ticks, and a game-second
+  // bucket stops throttling at 60x warp because a whole second then passes
+  // inside one frame. See `createUtBucketThrottle`.
+  const utBucketThrottle = useRef<ReturnType<
+    typeof createUtBucketThrottle
+  > | null>(null);
+  if (utBucketThrottle.current === null) {
+    utBucketThrottle.current = createUtBucketThrottle();
+  }
+  const utBucket = utBucketThrottle.current(
     typeof universalTime === "number" ? universalTime : undefined,
-    1,
+    performance.now(),
   );
   // Client-propagated predicted trajectory: with only the current elements +
   // the next transition on the wire, the honestly-drawable

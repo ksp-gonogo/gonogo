@@ -52,8 +52,14 @@ import {
  * placement moving out of the UT-bucket memo and onto the render, and SystemView
  * re-renders at requestAnimationFrame rate because `useUtNow` sets state on
  * `clock.onFrame`: that is ~198,000/sec for one diagram. The threshold sits
- * 7x above steady state and 8x below the regression, so neither reading is
- * ambiguous.
+ * 7x above steady state and 8x below the regression.
+ *
+ * Those two readings are only distinguishable because the bucket is floored on
+ * WALL-CLOCK time, in `createUtBucketThrottle`. Keyed on game seconds alone the
+ * bucket changes every frame from 60x warp upward, so ordinary warp produced the
+ * regression figure on its own and the budget could not tell warp from a
+ * genuine regression. If that throttle is ever removed, this budget stops
+ * measuring what it says it measures.
  */
 const SYSTEM_PLACEMENT_BUDGET = new PerfBudget({
   name: "SystemView body placements/sec",
