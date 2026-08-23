@@ -4,22 +4,6 @@ using System.IO;
 
 namespace GonogoPrincipiaUplink
 {
-    /// <summary>
-    /// Which of Principia's two shipped native builds a process has mapped.
-    /// </summary>
-    public enum PrincipiaBinaryVariant
-    {
-        /// <summary>Nothing was identified. The refusing answer, so a caller that
-        /// forgets to check gets no binary rather than an arbitrary one.</summary>
-        Unknown = 0,
-
-        /// <summary>The baseline build, used on a CPU without FMA.</summary>
-        X64 = 1,
-
-        /// <summary>The FMA build, selected only when CPUID reports FMA.</summary>
-        X64AvxFma = 2,
-    }
-
     /// <summary>One native Principia build seen in a process's mappings.</summary>
     public readonly struct PrincipiaNativeBinary
     {

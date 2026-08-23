@@ -15,6 +15,7 @@
 using Sitrep.Contract;
 
 using System.Collections.Generic;
+using System.IO;
 
 namespace GonogoPrincipiaUplink
 {
@@ -72,6 +73,7 @@ namespace GonogoPrincipiaUplink
         public const string FlightPlanTopic = "principia.flightPlan";
         public const string SettingsTopic = "principia.settings";
         public const string PlanTopic = "principia.plan";
+        public const string ConformanceTopic = "principia.conformance";
 
         private IFlightPlanObserver? _observer;
         private ISettingsSource? _settings;
@@ -80,6 +82,21 @@ namespace GonogoPrincipiaUplink
         private IChannelPublisher? _flightPlan;
         private IChannelPublisher? _settingsPublisher;
         private IChannelPublisher? _planPublisher;
+        private IChannelPublisher? _conformancePublisher;
+
+        /// <summary>
+        /// The conformance verdict, computed at most once per session.
+        ///
+        /// <para>Cached because it cannot change while the game runs: the mapped
+        /// build is mapped for the process's life, and reading it means scanning
+        /// tens of megabytes to find the embedded descriptor. Recomputing that per
+        /// tick would put a file scan on the sampled path to re-derive a constant.</para>
+        /// </summary>
+        private PrincipiaConformanceReport? _conformance;
+
+        /// <summary>The UT the verdict was reached at, so the sample is stamped with
+        /// when it was established rather than with whatever tick republished it.</summary>
+        private double _conformanceUt;
         private readonly PlanReader _planReader = new PlanReader();
         private double _publishedAtUt = double.NegativeInfinity;
 
@@ -122,6 +139,16 @@ namespace GonogoPrincipiaUplink
                 // Delayed, like the plan mirror and unlike the settings beside it:
                 // this is a per-vessel telemetry fact about a craft, not a
                 // ground-side configuration.
+                // TrueNow for the same reason the settings are: which files are on
+                // the operator's own machine is a ground-side fact, not something
+                // travelling from a craft.
+                new ChannelDeclaration
+                {
+                    Topic = ConformanceTopic,
+                    Delivery = Delivery.LossyLatest,
+                    Delay = DelayRole.TrueNow,
+                    Emission = new EmissionPolicy(keyframeIntervalUt: 60, quantum: EmissionQuantum.Absolute(0)),
+                },
                 new ChannelDeclaration
                 {
                     Topic = PlanTopic,
@@ -181,6 +208,8 @@ namespace GonogoPrincipiaUplink
             host.AddSampledSource(CaptureSettingsOnMain, HandleSettingsOnCourier, SettingsTopic);
             _planPublisher = host.Publisher(PlanTopic);
             host.AddSampledSource(CapturePlanOnMain, HandlePlanOnCourier, PlanTopic);
+            _conformancePublisher = host.Publisher(ConformanceTopic);
+            host.AddSampledSource(CaptureConformanceOnMain, HandleConformanceOnCourier, ConformanceTopic);
             RegisterPlanCommands(host);
         }
 
@@ -240,6 +269,63 @@ namespace GonogoPrincipiaUplink
                 return null;
             }
             return _planReader.Read(settings.Session, settings.ActiveVesselGuid, snapshot?.Ut ?? 0.0);
+        }
+
+        /// <summary>
+        /// MAIN-THREAD capture: whether the Principia build this game loaded is one
+        /// the Uplink may call into.
+        ///
+        /// <para>Computed on the FIRST capture rather than in <c>Register</c>, and
+        /// then cached. Two reasons, and neither is tidiness. The gate scans tens of
+        /// megabytes to find the embedded descriptor, which is not something to do on
+        /// the main thread while the game is still building its scene. And the native
+        /// build is mapped during Principia's own startup, so a read taken during
+        /// registration can legitimately find nothing mapped at all and would record
+        /// "Principia is not loaded" about a game that is about to load it.</para>
+        ///
+        /// <para>Cached rather than recomputed because the answer cannot change while
+        /// the process lives: the file that is mapped stays mapped.</para>
+        /// </summary>
+        internal object? CaptureConformanceOnMain(KspSnapshot? snapshot)
+        {
+            if (_conformance != null)
+            {
+                return _conformance;
+            }
+
+            var verdict = PrincipiaConformanceGate.Check(
+                MappedModules.OfThisProcess(),
+                path => File.OpenRead(path));
+            _conformanceUt = snapshot?.Ut ?? 0.0;
+
+            // A build that is not mapped YET is not a verdict. Leaving the cache
+            // empty means the next tick asks again, which is what makes the "still
+            // starting" case resolve itself instead of sticking.
+            if (verdict.State == PrincipiaConformance.NotEstablished)
+            {
+                return null;
+            }
+
+            _conformance = new PrincipiaConformanceReport
+            {
+                State = verdict.State,
+                Variant = verdict.Variant,
+                ActivePath = verdict.ActivePath,
+                DescriptorSha256 = verdict.DescriptorSha256,
+                ReleaseName = verdict.ReleaseName,
+                InterfaceExports = verdict.ExportCount,
+                Reason = verdict.Reason,
+            };
+            return _conformance;
+        }
+
+        internal void HandleConformanceOnCourier(object? captured)
+        {
+            if (captured is not PrincipiaConformanceReport report)
+            {
+                return;
+            }
+            _conformancePublisher?.Publish(report, _conformanceUt);
         }
 
         internal void HandlePlanOnCourier(object? captured)

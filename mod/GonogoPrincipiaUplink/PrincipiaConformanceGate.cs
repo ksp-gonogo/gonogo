@@ -4,34 +4,6 @@ using System.IO;
 
 namespace GonogoPrincipiaUplink
 {
-    /// <summary>
-    /// What the gate concluded about the build the game is running.
-    /// </summary>
-    public enum PrincipiaConformance
-    {
-        /// <summary>
-        /// Nothing was concluded. Zero so a caller that forgets to check gets the
-        /// answer that withholds: had `Conformant` been zero, a gate that failed to
-        /// run would have read as a pass.
-        /// </summary>
-        NotEstablished = 0,
-
-        /// <summary>A vetted release, with every intended export present.</summary>
-        Conformant = 1,
-
-        /// <summary>
-        /// Readable, and nothing is wrong with it, but its interface has not been
-        /// vetted here. Its hash is on the verdict so it can be recorded and added.
-        /// </summary>
-        UnknownRelease = 2,
-
-        /// <summary>
-        /// The build is not what it claims: unreadable, carrying no descriptor, or
-        /// missing exports a vetted release of that hash is supposed to have.
-        /// </summary>
-        Refused = 3,
-    }
-
     /// <summary>The gate's answer, carrying what it learned rather than only a verdict.</summary>
     public readonly struct PrincipiaConformanceVerdict
     {
