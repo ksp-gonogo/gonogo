@@ -67,8 +67,8 @@ namespace GonogoPrincipiaUplink
         /// compiler-generated backing-field reads on auto-properties
         /// (<c>display_patched_conics</c>, <c>frame_type</c>,
         /// <c>frames_that_hide_unpinned_markers</c> and its celestial twin,
-        /// <c>selected_celestial</c>, <c>target</c>, <c>target_frame_selected</c>,
-        /// <c>flightGlobalsIndex</c>), which cannot run producer code at all. Four
+        /// <c>selected_celestial</c>, <c>selecting_active_vessel_target</c>,
+        /// <c>target</c>, <c>target_frame_selected</c>, <c>flightGlobalsIndex</c>), which cannot run producer code at all. Four
         /// do arithmetic and nothing else: <c>value</c> answers a nullable's
         /// default, <c>history_length</c> forwards to that same slider,
         /// <c>initial_time</c> forwards to a field and <c>final_time</c> adds two.
@@ -100,6 +100,7 @@ namespace GonogoPrincipiaUplink
             "predicted_vessel",
             "referenceBody",
             "selected_celestial",
+            "selecting_active_vessel_target",
             "target",
             "target_frame_selected",
             "value",

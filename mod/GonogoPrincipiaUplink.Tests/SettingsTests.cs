@@ -662,11 +662,11 @@ namespace GonogoPrincipiaUplink.Tests
             ((HashSet<FakeFrameParameters>)frames_that_hide_unpinned_markers).Add(frame);
 
 #pragma warning disable CS0414, IDE0044, IDE1006
-        private bool display_patched_conics = true;
-        private double history_length = 604_800.0;
+        private bool display_patched_conics { get; set; } = true;
+        private double history_length { get; set; } = 604_800.0;
         private object frames_that_hide_unpinned_markers;
         private object frames_that_hide_unpinned_celestials;
-        private bool selecting_active_vessel_target = true;
+        private bool selecting_active_vessel_target { get; set; } = true;
         private bool selecting_target_celestial_ = false;
         private int verbose_logging_ = 3;
         private int suppressed_logging_ = 1;
@@ -827,7 +827,7 @@ namespace GonogoPrincipiaUplink.Tests
     public class FakeJournallingMainWindow
     {
 #pragma warning disable CS0414, IDE0044, IDE1006
-        private bool display_patched_conics = true;
+        private bool display_patched_conics { get; set; } = true;
         private bool must_record_journal_ = true;
         private static readonly bool journaling_ = true;
 #pragma warning restore CS0414, IDE0044, IDE1006
