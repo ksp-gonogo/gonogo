@@ -9,7 +9,6 @@ import { CommandDelay, NULL_DISPLAY } from "@ksp-gonogo/ui-kit";
 import { describe, expect, it } from "vitest";
 import { TelemetryClient } from "./client";
 import { TelemetryProvider } from "./context";
-import type { LegacyManeuverNode } from "./maneuver-legacy";
 import { StubTransport } from "./stub-transport";
 import { useCommand } from "./use-command";
 import { useStream } from "./use-stream";
@@ -81,61 +80,85 @@ describe("sitrep-client end-to-end spine", () => {
    * input, because no server channel ever publishes the derived name and a
    * caller that subscribed to it verbatim would wait forever.
    *
-   * Written to settle a specific accusation: `vessel.maneuver` recorded zero
-   * frames in a 20 s live capture where `vessel.orbit` delivered, and an
-   * enumeration of the mod's emission path narrowed the cause to "no
-   * subscriber", leaving open whether the spine propagates a subscription
-   * for `vessel.maneuver.legacy`'s input at all. It does. The assertions
-   * below fail if that ever stops being true, on the whole chain (provider,
-   * client, ref-count, transport) rather than on `resolveSubscriptionTopics`
-   * in isolation, which is where the existing coverage stops.
+   * Written to settle a specific accusation: a channel recorded zero frames in
+   * a 20 s live capture where `vessel.orbit` delivered, and an enumeration of
+   * the mod's emission path narrowed the cause to "no subscriber", leaving
+   * open whether the spine propagates a subscription for a derived channel's
+   * input at all. It does. The assertions below fail if that stops being true,
+   * on the whole chain (provider, client, ref-count, transport) rather than on
+   * `resolveSubscriptionTopics` in isolation, which is where the existing
+   * coverage stops.
+   *
+   * The example was `vessel.maneuver.legacy` until that channel was retired.
+   * What is under test is the subscription propagation, not the channel, so it
+   * moved to one that is still derived.
    */
   it("a derived-topic read opens a wire subscription for its input, not for its own name", async () => {
     const transport = new StubTransport();
     const client = new TelemetryClient(transport);
 
-    function ManeuverProbe() {
-      const nodes = useStream<LegacyManeuverNode[]>(
-        "vessel.maneuver.legacy.nodes",
+    function OrbitPatchesProbe() {
+      const patches = useStream<{ referenceBody: string }[]>(
+        "vessel.state.orbitPatches",
       );
-      // The node's own UT, not a count: a count reads the same whether the
-      // reshape ran or handed back an array of nothing.
+      // The patch's own body, not a count: a count reads the same whether the
+      // derivation ran or handed back an array of nothing.
       return (
-        <span>nodes:{nodes?.map((n) => n.UT).join(",") ?? NULL_DISPLAY}</span>
+        <span>
+          patches:
+          {patches?.map((p) => p.referenceBody).join(",") ?? NULL_DISPLAY}
+        </span>
       );
     }
 
     const { unmount } = render(
       <TelemetryProvider client={client}>
-        <ManeuverProbe />
+        <OrbitPatchesProbe />
       </TelemetryProvider>,
     );
 
-    expect(transport.isSubscribed("vessel.maneuver")).toBe(true);
+    expect(transport.isSubscribed("vessel.orbit")).toBe(true);
     // Nothing publishes either of these, so a subscription to one is a
     // subscription to silence.
-    expect(transport.isSubscribed("vessel.maneuver.legacy")).toBe(false);
-    expect(transport.isSubscribed("vessel.maneuver.legacy.nodes")).toBe(false);
+    expect(transport.isSubscribed("vessel.state")).toBe(false);
+    expect(transport.isSubscribed("vessel.state.orbitPatches")).toBe(false);
 
     // `StubTransport.emit` is subscription-gated, so delivery here is itself
     // the proof the wire subscription is real rather than bookkeeping.
     act(() => {
-      transport.emit("vessel.maneuver", {
-        nodes: [
+      transport.emit("vessel.orbit", {
+        referenceBodyIndex: 1,
+        // A whole patch, because `mapOrbitPatch` reads every field: a partial
+        // one throws inside the derivation and renders nothing, which is not
+        // the failure this test is looking for.
+        patches: [
           {
-            id: "node-1",
-            ut: 1200,
-            dvRadial: 0,
-            dvNormal: 0,
-            dvPrograde: 850,
-            patches: [],
+            sma: 700_000,
+            ecc: 0,
+            inc: 0,
+            lan: 0,
+            argPe: 0,
+            meanAnomalyAtEpoch: 0,
+            epoch: 0,
+            period: 1800,
+            startUt: 0,
+            endUt: 1800,
+            patchStartTransition: 0,
+            patchEndTransition: 0,
+            peA: 100_000,
+            apA: 100_000,
+            semiLatusRectum: 700_000,
+            semiMinorAxis: 700_000,
+            referenceBody: "Kerbin",
           },
         ],
       });
     });
-    await waitFor(() => expect(screen.getByText("nodes:1200")).toBeTruthy());
+    await waitFor(() =>
+      expect(screen.getByText(/patches:Kerbin/)).toBeTruthy(),
+    );
 
     unmount();
-    expect(transport.isSubscribed("vessel.maneuver")).toBe(false);
+    expect(transport.isSubscribed("vessel.orbit")).toBe(false);
   });
 });

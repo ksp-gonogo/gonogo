@@ -1,5 +1,4 @@
 import { clearActionHandlers, DashboardItemContext } from "@ksp-gonogo/core";
-import { vesselManeuverLegacyChannel } from "@ksp-gonogo/sitrep-client";
 import { act, render, screen, waitFor } from "@ksp-gonogo/test-utils";
 import { visibleText } from "@ksp-gonogo/ui-kit/testing";
 import userEvent from "@testing-library/user-event";
@@ -127,7 +126,6 @@ describe("ManeuverPlanner: maneuver-node id round-trip (M3 vessel-gap batch)", (
       ],
       pinnedUt: 1_000_000,
     });
-    fixture.store.registerDerivedChannel(vesselManeuverLegacyChannel);
     const commandHandler = vi.fn(() => ({ ok: true }));
     fixture.transport.setCommandHandler(commandHandler);
 
@@ -170,7 +168,6 @@ describe("ManeuverPlanner: maneuver-node id round-trip (M3 vessel-gap batch)", (
       carriedChannels: [...CARRIED_ORBIT, "vessel.maneuver"],
       pinnedUt: 1_000_000,
     });
-    fixture.store.registerDerivedChannel(vesselManeuverLegacyChannel);
     const commandHandler = vi.fn(() => ({ ok: true }));
     fixture.transport.setCommandHandler(commandHandler);
 
@@ -242,7 +239,6 @@ describe("ManeuverPlanner: maneuver-node id round-trip (M3 vessel-gap batch)", (
       ],
       pinnedUt: 1_000_000,
     });
-    fixture.store.registerDerivedChannel(vesselManeuverLegacyChannel);
     const commandHandler = vi.fn(() => ({ ok: true }));
     fixture.transport.setCommandHandler(commandHandler);
 

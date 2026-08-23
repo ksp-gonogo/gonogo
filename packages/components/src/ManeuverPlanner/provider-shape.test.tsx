@@ -1,8 +1,5 @@
 import { clearActionHandlers, DashboardItemContext } from "@ksp-gonogo/core";
-import {
-  type PropagationHorizonLike,
-  vesselManeuverLegacyChannel,
-} from "@ksp-gonogo/sitrep-client";
+import type { PropagationHorizonLike } from "@ksp-gonogo/sitrep-client";
 import { act, render, screen, waitFor } from "@ksp-gonogo/test-utils";
 import { visibleText } from "@ksp-gonogo/ui-kit/testing";
 import userEvent from "@testing-library/user-event";
@@ -78,7 +75,6 @@ function mountPlanner(horizon: PropagationHorizonLike, instanceId: string) {
     carriedChannels: CARRIED,
     pinnedUt: PINNED_UT,
   });
-  fixture.store.registerDerivedChannel(vesselManeuverLegacyChannel);
   const view = render(
     <fixture.Provider>
       <DashboardItemContext.Provider value={{ instanceId }}>

@@ -825,8 +825,8 @@ export const LEGACY_KEY_GAPS: ReadonlySet<string> = new Set([
   // fields, positive=opening / <0=closing as the widgets expect. See
   // LEGACY_KEY_HOMES above.
 
-  // o.maneuverNodes is mapped on the wire; see LEGACY_KEY_HOMES
-  // above (`vessel.maneuver.legacy.nodes`, `maneuver-legacy.ts`).
+  // o.maneuverNodes is mapped on the wire; see LEGACY_KEY_HOMES above
+  // (`vessel.maneuver.nodes`).
 
   // dv.currentTWR is mapped on the wire: `VesselPropulsion`
   // ships CurrentThrust + TotalMass, so TWR = currentThrust/(totalMass·g) is

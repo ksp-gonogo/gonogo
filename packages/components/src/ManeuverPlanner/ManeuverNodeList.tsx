@@ -13,8 +13,8 @@ interface ManeuverNodeListProps {
   availableDv: number | null;
   /** Resolves to a no-op the operator can ignore, we only surface the error
    *  via the orchestrator's `error` state. */
-  onDelete: (id: number) => Promise<void> | void;
-  onEdit: (id: number, patch: NodeEditPatch) => Promise<void> | void;
+  onDelete: (nodeId: string) => Promise<void> | void;
+  onEdit: (nodeId: string, patch: NodeEditPatch) => Promise<void> | void;
   onClearAll: () => Promise<void> | void;
 }
 

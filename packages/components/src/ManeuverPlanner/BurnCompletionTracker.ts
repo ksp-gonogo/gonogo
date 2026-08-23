@@ -86,7 +86,7 @@ interface UseBurnCompletionTrackerResult {
  */
 export function useBurnCompletionTracker(
   nodes: readonly ParsedManeuverNode[],
-  removeNode: (nodePosition: number) => void,
+  removeNode: (nodeId: string) => void,
 ): UseBurnCompletionTrackerResult {
   const [completedNodes, setCompletedNodes] = useState<
     ReadonlyMap<number, CompletedEntry>
@@ -116,12 +116,9 @@ export function useBurnCompletionTracker(
       timers.push(
         setTimeout(() => {
           const live = nodesRef.current.find((n) => n.UT === ut);
-          if (live) {
-            // `live.id` is the positional array index (`ParsedManeuverNode`'s
-            // own shape), re-read here rather than captured, because an earlier
-            // removal shifts every later node down one.
-            removeNode(live.id);
-          }
+          // Re-read rather than captured, so a node the operator already
+          // removed during the hold is not asked to be removed again.
+          if (live) removeNode(live.id);
           setCompletedNodes((current) => {
             if (!current.has(ut)) return current;
             const next = new Map(current);

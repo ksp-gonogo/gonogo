@@ -266,17 +266,6 @@ export {
   useOrbitTrajectory,
 } from "./kepler";
 export type { CommandStatus } from "./lifecycle";
-export type {
-  LegacyManeuverNode,
-  ManeuverNodeWirePayload,
-  VesselManeuverLegacyState,
-  VesselManeuverPayload,
-} from "./maneuver-legacy";
-export {
-  deriveVesselManeuverLegacy,
-  mapManeuverNode,
-  vesselManeuverLegacyChannel,
-} from "./maneuver-legacy";
 export type { GetCurrentValue, MappedCommand } from "./map-command";
 export {
   hasCommandHome,

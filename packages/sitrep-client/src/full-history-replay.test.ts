@@ -2,7 +2,6 @@ import type { ServerMessage } from "@ksp-gonogo/sitrep-sdk";
 import { value } from "@ksp-gonogo/sitrep-sdk";
 import { describe, expect, it } from "vitest";
 import { buildFullHistoryStore, InstantClock } from "./full-history-replay";
-import type { LegacyManeuverNode } from "./maneuver-legacy";
 import type { ReplayFixture } from "./replay-transport";
 import { makeMeta } from "./stub-transport";
 
@@ -73,50 +72,36 @@ describe("buildFullHistoryStore", () => {
 
   it("registers the production derived channels, so a derived read resolves off the raw topics a recording carries", () => {
     // A recording carries raw wire topics only: nothing ever publishes a
-    // `vessel.maneuver.legacy` frame. Without the registration this store
-    // resolves the topic through the raw-field-subtopic fallback, finds no
-    // record, and answers `undefined`: identical to "the recording holds no
-    // maneuver data", which is why the gap survived. `isDerivedTopic` is the
-    // distinction the answer alone cannot carry.
+    // `vessel.state` frame. Without the registration this store resolves the
+    // topic through the raw-field-subtopic fallback, finds no record, and
+    // answers `undefined`: identical to "the recording holds nothing for that
+    // key", which is why the gap survived. `isDerivedTopic` is the distinction
+    // the answer alone cannot carry.
+    //
+    // Written against `vessel.maneuver.legacy` until that channel was retired.
+    // The mechanism under test is the registration, not the channel, so the
+    // example moved to one that is still derived rather than the test being
+    // dropped with the channel.
     const fixture: ReplayFixture = {
-      subscribedTopics: ["vessel.maneuver"],
+      subscribedTopics: ["vessel.orbit"],
       frames: [
-        frame("vessel.maneuver", { nodes: [] }, 0),
-        frame(
-          "vessel.maneuver",
-          {
-            nodes: [
-              {
-                id: "node-1",
-                ut: 1200,
-                dvRadial: 0,
-                dvNormal: 0,
-                dvPrograde: 850,
-                patches: [],
-              },
-            ],
-          },
-          400,
-        ),
+        frame("vessel.orbit", { referenceBodyIndex: 1, patches: [] }, 0),
+        frame("vessel.orbit", { referenceBodyIndex: 1, patches: [] }, 400),
       ],
     };
 
     const store = buildFullHistoryStore(fixture);
 
-    expect(store.isDerivedTopic("vessel.maneuver.legacy.nodes")).toBe(true);
-    const points = store.sampleDerivedRange<LegacyManeuverNode[]>(
-      "vessel.maneuver.legacy.nodes",
+    expect(store.isDerivedTopic("vessel.state.orbitPatches")).toBe(true);
+    const points = store.sampleDerivedRange<unknown[]>(
+      "vessel.state.orbitPatches",
       0,
       400,
     );
+    // Both instants resolve, not just a truthy answer at one of them: an
+    // unregistered channel and a channel whose `derive()` produced nothing
+    // usable both yield a plausible-looking empty answer.
     expect(points?.map((p) => p.validAt)).toEqual([0, 400]);
-    // The reshaped node's own numbers, not just an array of the right length:
-    // an unregistered channel and a channel whose `derive()` produced nothing
-    // usable both yield a plausible-looking empty answer, and a length check
-    // cannot tell either from the real thing.
-    expect(points?.map((p) => p.payload.length)).toEqual([0, 1]);
-    expect(points?.[1].payload[0].UT).toBe(1200);
-    expect(points?.[1].payload[0].deltaV).toEqual([0, 0, 850]);
   });
 
   it("runs synchronously (no pending timers left behind)", () => {

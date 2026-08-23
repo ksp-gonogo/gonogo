@@ -19,7 +19,6 @@ import {
   useTelemetry,
 } from "@ksp-gonogo/core";
 import {
-  type ManeuverNodeWirePayload,
   mapOrbitPatch,
   type OrbitTrajectory,
   TrajectoryFrameKindLike,
@@ -28,7 +27,7 @@ import {
   useViewUt,
   type VesselState,
 } from "@ksp-gonogo/sitrep-client";
-import { value } from "@ksp-gonogo/sitrep-sdk";
+import { type VesselManeuver, value } from "@ksp-gonogo/sitrep-sdk";
 import { Switch } from "@ksp-gonogo/ui";
 import {
   kspCalendar,
@@ -447,9 +446,7 @@ function MapViewComponent({
   // built a positional delta-v triple and never read the burn's FRAME, so a
   // planner with more than one frame would have had its burns silently relabelled
   // by a mapper this widget did not even use the output of.
-  const maneuverNodes = useStream<{ nodes?: ManeuverNodeWirePayload[] }>(
-    "vessel.maneuver",
-  )?.nodes;
+  const maneuverNodes = useStream<VesselManeuver>("vessel.maneuver")?.nodes;
   // t.universalTime is dropped as a data key, it was never a stream, it IS
   // the SDK view-UT the propagation is evaluated at, so read that directly.
   // `.magnitude` at the read: this widget threads the view time through geometry and

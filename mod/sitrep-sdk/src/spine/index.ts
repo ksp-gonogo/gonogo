@@ -62,7 +62,6 @@ export * from "./heartbeat-tracker";
 export * from "./kepler";
 export * from "./lagrange";
 export * from "./lifecycle";
-export * from "./maneuver-legacy";
 export * from "./map-command";
 export * from "./map-topic";
 export * from "./never-reckonable";

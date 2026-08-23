@@ -9,10 +9,7 @@ import {
   WidgetMetaContext,
 } from "@ksp-gonogo/core";
 import { BufferedDataSource, MemoryStore } from "@ksp-gonogo/data";
-import {
-  TelemetryProvider,
-  vesselManeuverLegacyChannel,
-} from "@ksp-gonogo/sitrep-client";
+import { TelemetryProvider } from "@ksp-gonogo/sitrep-client";
 import { act, render as rtlRender, screen } from "@ksp-gonogo/test-utils";
 import { visibleText } from "@ksp-gonogo/ui-kit/testing";
 import userEvent from "@testing-library/user-event";
@@ -65,7 +62,6 @@ const utFixture = setupStreamFixture({
 // `vessel.maneuver` wire topic: not one of the two derived channels
 // `setupStreamFixture` pre-registers (`vesselStateChannel`/
 // `spaceCenterStateChannel`), so register it here.
-utFixture.store.registerDerivedChannel(vesselManeuverLegacyChannel);
 
 /**
  * Reconstructs the legacy `o.addManeuverNode[...]` action string from a
@@ -468,7 +464,6 @@ describe("ManeuverPlannerComponent", () => {
       carriedChannels: [],
       pinnedUt: UT_FIXTURE_VALUE,
     });
-    spent.store.registerDerivedChannel(vesselManeuverLegacyChannel);
 
     render(
       <spent.Provider>

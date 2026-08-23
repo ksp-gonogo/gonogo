@@ -1,16 +1,16 @@
 import {
-  type ManeuverNodeWirePayload,
   StubTransport,
   TelemetryClient,
   TelemetryProvider,
 } from "@ksp-gonogo/sitrep-client";
+import type { ManeuverNode } from "@ksp-gonogo/sitrep-sdk";
 import { act, render, waitFor } from "@ksp-gonogo/test-utils";
 import { describe, expect, it } from "vitest";
 import { useManeuverNodes } from "./useManeuverNodes";
 
 function fakeWireNode(
-  partial: Partial<ManeuverNodeWirePayload> & { id: string; ut: number },
-): ManeuverNodeWirePayload {
+  partial: Partial<ManeuverNode> & { id: string; ut: number },
+): ManeuverNode {
   return {
     patches: [],
     ...partial,
@@ -28,12 +28,10 @@ function Probe({
 }
 
 /**
- * `useManeuverNodes` reads the `vessel.maneuver.legacy` derived channel
- * (`maneuver-legacy.ts`, reshaping the raw `vessel.maneuver` wire topic) via
- * `useStream`: the retired `("data", "o.maneuverNodes")` shim read never had
- * a live legacy `DataSource` behind it in production, so these tests exercise
- * the real `TelemetryProvider`/`TelemetryClient` stream pipeline (emitting raw
- * `vessel.maneuver`) instead of a `MockDataSource` under id `"data"`.
+ * `useManeuverNodes` reads the `vessel.maneuver` wire topic through
+ * `useStream`, so these tests drive the real
+ * `TelemetryProvider`/`TelemetryClient` pipeline by emitting that topic,
+ * rather than standing a `MockDataSource` under the id `"data"`.
  */
 describe("useManeuverNodes", () => {
   function renderProbe() {
@@ -54,7 +52,7 @@ describe("useManeuverNodes", () => {
     await waitFor(() => expect(renders.at(-1)).toEqual([]));
   });
 
-  it("parses nodes and derives deltaVMagnitude + id", async () => {
+  it("carries each node's own id, not its position in the list", async () => {
     const { transport, renders } = renderProbe();
     act(() =>
       transport.emit("vessel.maneuver", {
@@ -79,13 +77,15 @@ describe("useManeuverNodes", () => {
 
     await waitFor(() => expect(renders.at(-1)).toHaveLength(2));
     const last = renders.at(-1);
+    // The ids the update and remove commands address these nodes by. A
+    // position would read as 0 and 1 here and resolve to nothing on the craft.
     expect(last?.[0]).toMatchObject({
-      id: 0,
+      id: "a",
       UT: 100,
       deltaVMagnitude: 5,
     });
     expect(last?.[1]).toMatchObject({
-      id: 1,
+      id: "b",
       UT: 200,
       deltaVMagnitude: 12,
     });

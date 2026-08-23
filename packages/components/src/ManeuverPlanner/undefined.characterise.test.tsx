@@ -1,5 +1,4 @@
 import { DashboardItemContext } from "@ksp-gonogo/core";
-import { vesselManeuverLegacyChannel } from "@ksp-gonogo/sitrep-client";
 import { act, render, screen, waitFor } from "@ksp-gonogo/test-utils";
 import { NULL_DISPLAY } from "@ksp-gonogo/ui-kit";
 import { visibleText } from "@ksp-gonogo/ui-kit/testing";
@@ -18,7 +17,7 @@ import { ManeuverPlannerComponent } from "./index";
  *  1. "no orbit has arrived, wait"     -> the awaiting-orbit empty state
  *  2. "there is no target set"         -> a confident "No target selected in-game."
  *  3. "there is no delta-V"            -> coerced to 0, then 0 is a null-display sentinel
- *  4. "no stream node id yet"          -> silently substitutes an array index
+ *  4. "no stream node id yet"          -> refuses the command and says so
  *
  * Every assertion below pins one of those meanings as it is today.
  */
@@ -60,7 +59,6 @@ function setup(config: Record<string, unknown> = {}) {
     carriedChannels: CARRIED,
     pinnedUt: PINNED_UT,
   });
-  fixture.store.registerDerivedChannel(vesselManeuverLegacyChannel);
   const view = renderTracked(
     <fixture.Provider>
       <DashboardItemContext.Provider value={{ instanceId: "mnv-characterise" }}>
@@ -295,14 +293,16 @@ describe("ManeuverPlanner: a partial vessel.orbit payload", () => {
   });
 });
 
-describe("ManeuverPlanner: an absent node id becomes an array index", () => {
-  it("dispatches the positional index as the nodeId when the node arrived without one", async () => {
+describe("ManeuverPlanner: an absent node id refuses instead of guessing", () => {
+  it("dispatches nothing, and says why, when the node arrived without an id", async () => {
     // Meaning 4, and a field-level absence inside a PRESENT record: the raw
-    // `vessel.maneuver` read landed, its node just carries no `id`, so
-    // `nodeIdAtPosition`'s `typeof real === "string"` gate falls through to
-    // `String(index)`. `KspVesselActuator.RemoveManeuverNode` resolves only an
-    // exact GUID match, so "0" can only ever come back NotFound: the widget
-    // sends it anyway and reports nothing.
+    // `vessel.maneuver` read landed, its node just carries no `id`.
+    //
+    // This used to substitute the node's array position and send that.
+    // `KspVesselActuator.RemoveManeuverNode` resolves only an exact GUID
+    // match, so "0" could only ever come back NotFound, and nothing surfaced
+    // the refusal: the operator pressed Delete and the node stayed. A command
+    // that cannot resolve is now not sent, and the reason is on screen.
     const { fixture } = setup();
     const dispatched: Array<[string, unknown]> = [];
     fixture.transport.setCommandHandler((command, args) => {
@@ -340,8 +340,11 @@ describe("ManeuverPlanner: an absent node id becomes an array index", () => {
       deleteBtn.click();
     });
     await waitFor(() =>
-      expect(dispatched).toEqual([["vessel.maneuver.remove", { nodeId: "0" }]]),
+      expect(screen.getByText(/arrived without an id/i)).toBeInTheDocument(),
     );
+    // The absence of a dispatch is the point, so it is asserted rather than
+    // left to the sentence above to imply.
+    expect(dispatched).toEqual([]);
   });
 });
 

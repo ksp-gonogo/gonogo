@@ -25,10 +25,10 @@ export interface OrbitPatchWirePayload {
   lan: Value<"°">;
   argPe: Value<"°">;
   meanAnomalyAtEpoch: Value<"rad">;
-  epoch: Value<"s">;
+  epoch: Value<"ut">;
   period: Value<"s">;
-  startUt: Value<"s">;
-  endUt: Value<"s">;
+  startUt: Value<"ut">;
+  endUt: Value<"ut">;
   /** Raw `Sitrep.Contract.TransitionType` ordinal: see `transitionName`. */
   patchStartTransition: number;
   patchEndTransition: number;

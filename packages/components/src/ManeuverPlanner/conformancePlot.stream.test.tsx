@@ -1,5 +1,4 @@
 import { clearActionHandlers, DashboardItemContext } from "@ksp-gonogo/core";
-import { vesselManeuverLegacyChannel } from "@ksp-gonogo/sitrep-client";
 import { act, render, screen, waitFor } from "@ksp-gonogo/test-utils";
 import userEvent from "@testing-library/user-event";
 import { afterEach, describe, expect, it } from "vitest";
@@ -110,7 +109,6 @@ async function mountOnConformance(patches: unknown[]) {
     carriedChannels: CARRIED,
     pinnedUt: 1_000_000,
   });
-  fixture.store.registerDerivedChannel(vesselManeuverLegacyChannel);
 
   const view = render(
     <fixture.Provider>
@@ -150,7 +148,6 @@ describe("ManeuverPlanner: the render gate's selector still matches", () => {
       carriedChannels: CARRIED,
       pinnedUt: 1_000_000,
     });
-    fixture.store.registerDerivedChannel(vesselManeuverLegacyChannel);
     const view = render(
       <fixture.Provider>
         <DashboardItemContext.Provider value={{ instanceId: "mnv-gate" }}>

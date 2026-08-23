@@ -26,7 +26,6 @@ import {
   dvCurrentStageResourceChannel,
   dvCurrentStageResourceMaxChannel,
 } from "./dv-stage-resources";
-import { vesselManeuverLegacyChannel } from "./maneuver-legacy";
 import { mapCommand } from "./map-command";
 import { mapTopic } from "./map-topic";
 import {
@@ -408,7 +407,6 @@ export const PRODUCTION_DERIVED_CHANNELS: DerivedChannelDefinition<unknown>[] =
     spaceCenterStateChannel as DerivedChannelDefinition<unknown>,
     dvCurrentStageResourceChannel as DerivedChannelDefinition<unknown>,
     dvCurrentStageResourceMaxChannel as DerivedChannelDefinition<unknown>,
-    vesselManeuverLegacyChannel as DerivedChannelDefinition<unknown>,
     dvLegacyScalarsChannel as DerivedChannelDefinition<unknown>,
   ];
 

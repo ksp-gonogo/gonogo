@@ -5,16 +5,14 @@ import {
 } from "@ksp-gonogo/core";
 import {
   createFakeWallClock,
-  type ManeuverNodeWirePayload,
   StubTransport,
   TelemetryClient,
   TelemetryProvider,
   TimelineStore,
   ViewClock,
-  vesselManeuverLegacyChannel,
   vesselStateChannel,
 } from "@ksp-gonogo/sitrep-client";
-import { wrapTypePayload } from "@ksp-gonogo/sitrep-sdk";
+import { type ManeuverNode, wrapTypePayload } from "@ksp-gonogo/sitrep-sdk";
 import { act, render, screen, waitFor, within } from "@ksp-gonogo/test-utils";
 import userEvent from "@testing-library/user-event";
 import type { ReactElement } from "react";
@@ -243,13 +241,13 @@ describe("AlarmsModal onFire editor", () => {
   });
 });
 
-// P1 de-Telemachus: `useManeuverNodes` reads the `vessel.maneuver.legacy`
-// derived channel (reshaping the raw `vessel.maneuver` wire topic) via
-// `useStream`: it never had a legacy "data" `DataSource` behind it. So the
-// preset tests below feed a real `TelemetryProvider`/`TelemetryClient` stream
-// (emitting raw wire nodes), not the MockDataSource. Only `ut` matters to the
-// preset's soonest-future-node pick; the rest satisfy the wire shape.
-function makeWireNode(id: string, ut: number): ManeuverNodeWirePayload {
+// `useManeuverNodes` reads the `vessel.maneuver` wire topic through
+// `useStream`, so the preset tests below feed a real
+// `TelemetryProvider`/`TelemetryClient` stream rather than a MockDataSource.
+// Only `ut` matters to the preset's soonest-future-node pick; the rest
+// satisfy the wire shape.
+
+function makeWireNode(id: string, ut: number): ManeuverNode {
   // Wire-shaped, then wrapped: `emit` does this to a real frame, and these
   // nodes are handed to the store directly.
   return wrapTypePayload("ManeuverNode", {
@@ -259,13 +257,13 @@ function makeWireNode(id: string, ut: number): ManeuverNodeWirePayload {
     dvNormal: 0,
     dvPrograde: 0,
     patches: [],
-  } as Record<string, unknown>) as unknown as ManeuverNodeWirePayload;
+  } as Record<string, unknown>) as unknown as ManeuverNode;
 }
 
-// The eight `vesselStateChannel` inputs plus `vessel.maneuver` (the
-// `vessel.maneuver.legacy` reshape's input): carrying all of them makes both
-// the derived `vessel.state.*` fields (`timeToAp`/`timeToPe`) and the maneuver
-// node list resolvable off the stream.
+// The eight `vesselStateChannel` inputs plus `vessel.maneuver`: carrying all
+// of them makes both the derived `vessel.state.*` fields
+// (`timeToAp`/`timeToPe`) and the maneuver node list resolvable off the
+// stream.
 const PRESET_CARRIED = [
   "vessel.orbit",
   "vessel.flight",
@@ -279,7 +277,7 @@ const PRESET_CARRIED = [
 ];
 
 // Mount AlarmsModal inside a real TelemetryProvider so both `useManeuverNodes`
-// (`vessel.maneuver.legacy`) and the apoapsis/periapsis presets (derived
+// and the apoapsis/periapsis presets (derived
 // `vessel.state.timeToAp`/`timeToPe`) resolve off the stream. `pinnedUt` fixes
 // the view clock so an emitted orbit derives a deterministic time-to-apsis.
 function renderWithStream(modal: ReactElement, pinnedUt?: number) {
@@ -293,7 +291,6 @@ function renderWithStream(modal: ReactElement, pinnedUt?: number) {
   });
   const store = new TimelineStore(clock);
   store.registerDerivedChannel(vesselStateChannel);
-  store.registerDerivedChannel(vesselManeuverLegacyChannel);
   if (pinnedUt !== undefined) clock.scrubTo(pinnedUt);
 
   render(

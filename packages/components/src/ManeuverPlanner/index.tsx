@@ -120,33 +120,6 @@ function stillTrue<T, A>(
   return undefined;
 }
 
-/**
- * The command-string id for the node at legacy array position `index`: the
- * real stream guid when the id-carrying read has delivered a node at that
- * position, else the plain positional index as a string.
- *
- * The fallback is only correct while the stream has not answered yet.
- * `KspVesselActuator.RemoveManeuverNode` resolves a node exclusively through
- * `ReferenceIdRegistry.TryResolve`, an exact string match against a GUID, so a
- * positional index never resolves and comes back NotFound. See map-command.ts's
- * `o.updateManeuverNode`/`o.removeManeuverNode` doc comment for the
- * accepted-risk note on it when reads and commands are carried unevenly.
- *
- * Module scope so both the operator-driven edit/delete path and the
- * auto-removal timeout resolve identically. They did not, and the auto-removal
- * was the one that was wrong.
- */
-function nodeIdAtPosition(
-  streamNodes: readonly { id?: string }[] | undefined,
-  index: number,
-): string {
-  const real = streamNodes?.[index]?.id;
-  return typeof real === "string" && real.length > 0 ? real : String(index);
-}
-
-/** A confirmed-no-nodes tombstone: a plan, and it is empty. */
-const EMPTY_MANEUVER = { nodes: [] as { id: string }[] };
-
 function ManeuverPlannerComponent({
   config,
 }: Readonly<ComponentProps<ManeuverPlannerConfig>>) {
@@ -294,60 +267,15 @@ function ManeuverPlannerComponent({
   usePanelDelay(updateNodeCmd);
   usePanelDelay(removeNodeCmd);
 
-  /**
-   * The maneuver-node id round-trip. The rendered node list carries a
-   * positional index as its `id`, not the stable guid the update and remove
-   * commands need, so this read exists purely to recover the real guids.
-   * `resolveNodeId` below correlates the two by array position, which holds
-   * because both reflect the same server-side ordering.
-   *
-   * A planned node is a fact: it exists on the craft until something changes
-   * it, and a link that is not delivering cannot have changed it, hence
-   * `stillTrue`. A confirmed-no-nodes tombstone is an empty plan, which is what
-   * the widget shows when nothing is planned, so it is named here rather than
-   * read as a wait.
-   */
-  const streamNodeIds = stillTrue(
-    useTelemetry("vessel.maneuver"),
-    EMPTY_MANEUVER,
-  )?.nodes;
-
-  /**
-   * Resolves the command-string id for the node at legacy array position
-   * `index`: the real stream guid when the id-only read has delivered a
-   * node at that position, else the plain positional index (string), the
-   * same value `handleDelete`/`handleEdit` have always sent, so a widget
-   * with no live stream (or one whose `vessel.maneuver.nodes[index].id`
-   * hasn't arrived yet) behaves exactly as before. See map-command.ts's
-   * `o.updateManeuverNode`/`o.removeManeuverNode` doc comment for the
-   * accepted-risk note on this fallback when reads/commands are carried
-   * unevenly.
-   */
-  function resolveNodeId(index: number): string {
-    return nodeIdAtPosition(streamNodeIds, index);
-  }
-
-  // The auto-removal resolves through a ref rather than through
-  // `resolveNodeId` directly, and the ref is the whole point rather than an
-  // optimisation: `removeNode` must stay referentially stable because
-  // `useBurnCompletionTracker` puts it in a `useEffect` dependency array that
-  // schedules the 10 s hold. `vessel.maneuver` re-emits on every 1 UT sample,
-  // so closing over `streamNodeIds` would rebuild the callback several times a
-  // second, tear the timers down each time, and the hold would never elapse.
-  const streamNodeIdsRef = useRef(streamNodeIds);
-  useEffect(() => {
-    streamNodeIdsRef.current = streamNodeIds;
-  }, [streamNodeIds]);
-
-  // Takes the node's POSITION and resolves the id here, because the tracker
-  // knows positions in the list it was handed and knows nothing about stream
-  // guids. It used to be handed a string and passed the positional index
-  // straight through as one, which `KspVesselActuator.RemoveManeuverNode`
-  // could only ever answer NotFound to.
+  // The node carries the id the remove command addresses it by, so there is
+  // nothing to resolve and nothing to keep in a ref. `removeNode` stays
+  // referentially stable, which it must: `useBurnCompletionTracker` puts it in
+  // a `useEffect` dependency array that schedules the 10 s hold, and a callback
+  // rebuilt on every 1 UT sample would tear the timers down before it elapsed.
   const removeNode = useCallback(
-    (nodeIndex: number) => {
+    (nodeId: string) => {
       void removeNodeCmd.send(
-        { nodeId: nodeIdAtPosition(streamNodeIdsRef.current, nodeIndex) },
+        { nodeId },
         { label: "Auto-remove completed node" },
       );
     },
@@ -587,25 +515,40 @@ function ManeuverPlannerComponent({
     triggerService.cancel(id);
   }
 
-  async function handleDelete(id: number) {
+  /**
+   * A node the craft cannot be asked about. Nothing on the live wire omits an
+   * id, so this is an off-contract payload rather than a wait, and saying so
+   * beats dispatching a command that cannot resolve: the widget used to send
+   * the node's array position instead, which the actuator answers NotFound to
+   * every time, and the refusal was never shown to anyone.
+   */
+  const UNADDRESSABLE =
+    "This node arrived without an id, so there is nothing to address the command to.";
+
+  async function handleDelete(nodeId: string) {
+    if (!nodeId) {
+      setError(UNADDRESSABLE);
+      return;
+    }
     try {
-      await removeNodeCmd.send(
-        { nodeId: resolveNodeId(id) },
-        { label: "Remove maneuver node" },
-      );
+      await removeNodeCmd.send({ nodeId }, { label: "Remove maneuver node" });
     } catch (err) {
       setError(err instanceof Error ? err.message : String(err));
     }
   }
 
-  async function handleEdit(id: number, patch: NodeEditPatch) {
+  async function handleEdit(nodeId: string, patch: NodeEditPatch) {
+    if (!nodeId) {
+      setError(UNADDRESSABLE);
+      return;
+    }
     // Same vector convention as `o.addManeuverNode`: KSP's node-local frame is
     // `Vector3d(radialOut, normal, prograde)`, so the on-wire arg order is
     // RADIAL, NORMAL, PROGRADE: *not* prograde-first.
     try {
       await updateNodeCmd.send(
         {
-          nodeId: resolveNodeId(id),
+          nodeId,
           ut: patch.ut,
           radialOut: patch.radial,
           normal: patch.normal,
@@ -621,11 +564,13 @@ function ManeuverPlannerComponent({
   }
 
   async function handleClearAll() {
-    // Remove from the highest index down: removing index 0 first would
-    // shift every subsequent id and break the loop.
+    // Last node first. Order no longer decides whether this works, now each
+    // node is addressed by its own id rather than by a position that shifted
+    // under the loop, but the craft loses its plan from the far end inward,
+    // which is the order an operator watching the list expects.
     for (let i = nodes.length - 1; i >= 0; i--) {
       await removeNodeCmd.send(
-        { nodeId: resolveNodeId(i) },
+        { nodeId: nodes[i].id },
         { label: "Remove maneuver node" },
       );
     }

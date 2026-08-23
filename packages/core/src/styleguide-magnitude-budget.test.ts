@@ -117,6 +117,10 @@ const MAGNITUDE_BUDGET: Record<string, number> = {
   // running total. Doing it in the algebra would wrap and unwrap once per node
   // for a number that never leaves this function.
   "packages/data/src/hooks/useManeuverFeasibility.ts": 1,
+  // 5: the burn instant, the three delta-v components and the plan's own
+  // total, unwrapped here because this hook IS the boundary between the wire
+  // shape and the plain-number geometry every node consumer works in.
+  "packages/data/src/hooks/useManeuverNodes.ts": 5,
   "packages/data/src/hooks/useDataSeries.ts": 1,
   "packages/data/src/hooks/vesselPartsAdapter.ts": 20,
   "packages/data/src/replaySession/ReplaySessionBanner.tsx": 1,
@@ -157,7 +161,6 @@ const MAGNITUDE_BUDGET: Record<string, number> = {
   // single frame with a single unit and has no dimension for the algebra to
   // check.
   "mod/sitrep-sdk/src/spine/orbit-trajectory.ts": 1,
-  "mod/sitrep-sdk/src/spine/maneuver-legacy.ts": 6,
   "mod/sitrep-sdk/src/spine/orbit-patches.ts": 14,
   "mod/sitrep-sdk/src/spine/use-command.ts": 1,
   "packages/sitrep-client/src/use-control-stream.tsx": 2,
