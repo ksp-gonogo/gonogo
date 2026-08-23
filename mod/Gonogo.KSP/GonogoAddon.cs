@@ -201,6 +201,26 @@ namespace Gonogo.KSP
                 _host.SetPropagationSource(
                     () => PropagationElection.Elected(engine.Kernel));
 
+                // The planning half of the same physics. The election above answers
+                // where a craft goes from where the game says it IS; this answers
+                // where it goes from where a vantage was TOLD it was, and at
+                // light-time those are different states and so different curves.
+                // Sharing the integrator is what later makes the two comparable.
+                //
+                // Assembled here rather than registered as a provider, for the same
+                // reason as the arc source in VesselUplink: it composes two
+                // elections with a body table only this assembly can read, and none
+                // of the three is entitled to know about the other two.
+                //
+                // The force model ignores the body index it is handed because the
+                // elected source publishes one model for the whole system. The index
+                // chooses the perturber neighbourhood, not the physics.
+                _engine.SeededPropagation = new SeededNBodyProvider(
+                    GravitationalParameterOf,
+                    KspPerturbers.Around,
+                    () => PropagationElection.Elected(engine.Kernel),
+                    _ => GravityModelElection.Model(engine.Kernel));
+
                 // The command gates' evaluators, each wrapping one authority KSP
                 // publishes (game mode, loaded scene, the GameVariables facility
                 // surface, ClearToSaveStatus, the PreFlightTests set). Registered
@@ -258,6 +278,28 @@ namespace Gonogo.KSP
         /// <para>Cheap insurance against the most expensive kind of wasted
         /// cycle: a conclusion drawn from a binary that was never deployed.</para>
         /// </summary>
+        /// <summary>
+        /// A body's gravitational parameter by its <c>FlightGlobals.Bodies</c> index,
+        /// which is the index every other body table in this mod speaks, or null when
+        /// the game has no body there.
+        ///
+        /// <para>Reached from the Courier thread as well as the main one, so it touches
+        /// a plain managed field and nothing native: a native accessor here would throw
+        /// inside the solve and come back as a refusal, which reads as "this state
+        /// cannot be integrated" rather than as the fault it is.</para>
+        /// </summary>
+        private static double? GravitationalParameterOf(int bodyIndex)
+        {
+            var bodies = FlightGlobals.Bodies;
+            if (bodies == null || bodyIndex < 0 || bodyIndex >= bodies.Count)
+            {
+                return null;
+            }
+
+            var body = bodies[bodyIndex];
+            return body != null ? (double?)body.gravParameter : null;
+        }
+
         private static void LogBuildIdentity()
         {
             try
