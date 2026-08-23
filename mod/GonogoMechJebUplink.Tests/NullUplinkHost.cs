@@ -27,6 +27,7 @@ namespace GonogoMechJebUplink.Tests
         public bool IsAnyTopicSubscribed(string topicPrefix) => throw NotExpected();
         public IDynamicChannelSource RegisterDynamicNamespace(string prefix, ChannelDeclaration template) => throw NotExpected();
         public void AddCommandHandler<TArgs, TResult>(string command, Func<TArgs, TResult> handler) => throw NotExpected();
+        public void AddVantageCommandHandler<TArgs, TResult>(string command, Func<TArgs, string, TResult> handler) => throw NotExpected();
         public void AddGateEvaluator(ICommandGateEvaluator evaluator) => throw NotExpected();
         public void SetSignalDelaySource(Func<KspSnapshot?, CommsDelay?> computeOnMainThread) => throw NotExpected();
         public void SetVesselDelay(string vesselId, double oneWaySeconds) => throw NotExpected();
