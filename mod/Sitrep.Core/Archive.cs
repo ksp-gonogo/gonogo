@@ -177,6 +177,132 @@ namespace Sitrep.Core
         }
 
         /// <summary>
+        /// C#-ONLY addition. Drop samples no vantage can reach any more, keeping the
+        /// one that is still CURRENT at <paramref name="cutoffUt"/>.
+        ///
+        /// <para>The archive grew without bound, and memory was the smaller half of
+        /// the cost: <see cref="Courier"/> walks a topic's whole history on every
+        /// subscribe to schedule what is still in flight, so the work per subscribe
+        /// grew with the length of the session rather than with the number of
+        /// samples actually in flight.</para>
+        ///
+        /// <para><b>The rule is NOT "drop everything older than the cutoff", and the
+        /// difference is the whole of the correctness here.</b>
+        /// <see cref="ReadAtVantage"/> answers with the latest sample at or before
+        /// the vantage instant, so a slow-changing topic that recorded once and then
+        /// said nothing for hours has an OLD sample as its current value. Dropping it
+        /// leaves the channel answering null forever, with no exception and nothing
+        /// in a log. So the newest sample at or before the cutoff is kept, and only
+        /// what precedes it goes.</para>
+        ///
+        /// <para>What makes this safe to do at all: after a prune, a read that would
+        /// have needed a dropped sample finds nothing at or before its instant and
+        /// returns null. It never falls forward onto a NEWER sample, which would
+        /// show a vantage something its light has not yet carried.</para>
+        ///
+        /// <para>C#-only for the same reason <see cref="ResetTimeline"/> is: the
+        /// TypeScript reference is a test double that runs for milliseconds and
+        /// cannot exhibit unbounded growth. Retention is deliberately outside the
+        /// conformed contract. Read behaviour, which IS conformed, is unchanged
+        /// inside the window by construction.</para>
+        /// </summary>
+        /// <summary>
+        /// Drop what precedes the newest sample at or before <paramref name="cutoffUt"/>,
+        /// keeping that sample and the topic's FIRST one.
+        ///
+        /// <para>Two things are retained rather than one, and the second was found by
+        /// a test rather than reasoned out. The newest sample at or before the cutoff
+        /// is the value still CURRENT there, so retention starts at it and not after
+        /// it. The first sample is kept as well because a cursor only describes a
+        /// vantage that exists NOW, and a rewind resurrects the need for older
+        /// history: quickloading to an instant below every cursor leaves the earliest
+        /// sample as the only answer for the span between the topic's birth and its
+        /// second sample.</para>
+        ///
+        /// <para>The limit this accepts, stated rather than discovered later: a
+        /// rewind to the MIDDLE of a pruned span cannot be answered from the archive,
+        /// and a subscriber joining in that window sees the birth value until the
+        /// next sample is recorded. On a live mod that is about a second, because the
+        /// channels re-record continuously; the alternative is keeping every sample
+        /// forever against a rewind that may never come.</para>
+        /// </summary>
+        private static void RetainFrom(List<Sample> list, double cutoffUt)
+        {
+            if (list.Count < 3)
+            {
+                // Nothing to gain, and with two samples the pair is already the birth
+                // value and the current one.
+                return;
+            }
+
+            var keepFrom = -1;
+            for (var i = 0; i < list.Count; i++)
+            {
+                if (list[i].ValidAt > cutoffUt)
+                {
+                    break;
+                }
+                keepFrom = i;
+            }
+
+            // Index 0 is the birth sample and is kept, so the drop starts at 1.
+            if (keepFrom > 1)
+            {
+                list.RemoveRange(1, keepFrom - 1);
+            }
+        }
+
+        public void PruneBefore(double cutoffUt)
+        {
+            foreach (var list in _samplesByTopic.Values)
+            {
+                if (list.Count == 0)
+                {
+                    continue;
+                }
+
+                RetainFrom(list, cutoffUt);
+            }
+        }
+
+        /// <summary>
+        /// C#-ONLY addition. Prune each topic to the OLDEST vantage still reading it.
+        ///
+        /// <para>Needs no knowledge of delays, which is the point: a vantage's cursor
+        /// already records where that vantage reads from, and
+        /// <see cref="ReadAtVantage"/> only ever moves a cursor forward. So the
+        /// oldest cursor on a topic bounds what any current vantage can still reach.
+        /// Pruning to the NEWEST cursor instead would delete what a lagging vantage
+        /// has not read yet, which is precisely the data a distant command centre is
+        /// waiting on.</para>
+        ///
+        /// <para>A topic no vantage has read is left alone. No cursor is no evidence
+        /// about what is reachable, and a topic nobody has subscribed to yet is
+        /// exactly the one whose history a first subscriber will ask for.</para>
+        /// </summary>
+        public void PruneToVantageCursors()
+        {
+            foreach (var entry in _samplesByTopic)
+            {
+                if (!_cursors.TryGetValue(entry.Key, out var byVantage) || byVantage.Count == 0)
+                {
+                    continue;
+                }
+
+                var oldest = double.MaxValue;
+                foreach (var scene in byVantage.Values)
+                {
+                    if (scene < oldest)
+                    {
+                        oldest = scene;
+                    }
+                }
+
+                RetainFrom(entry.Value, oldest);
+            }
+        }
+
+        /// <summary>
         /// C#-ONLY addition, for the timeline-reset (quickload/rewind) fix,
         /// see <see cref="Courier.ResetTimeline"/>'s call site, which invokes
         /// this for EVERY node's archive right before resetting the clock.

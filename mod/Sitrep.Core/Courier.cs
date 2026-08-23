@@ -285,6 +285,9 @@ namespace Sitrep.Core
             // returns must already see it too.
             _epoch++;
             _pendingCommands.Clear();
+            // UT has moved backwards, so a schedule set on the abandoned timeline
+            // would sit in the future and suppress pruning for the rest of the run.
+            _nextPruneUt = double.NegativeInfinity;
             foreach (var archive in _archives.Values)
             {
                 archive.ResetTimeline(ut);
@@ -363,6 +366,15 @@ namespace Sitrep.Core
         public void Record(string node, string topic, object? value, double validAtUt, Delivery delivery = Delivery.LossyLatest, bool isKeyframe = false)
         {
             ArchiveFor(node).Record(topic, value, validAtUt, _epoch);
+
+            // Bound the archives as time moves, so a long session does not make
+            // every later subscribe walk the whole session to find the few samples
+            // still in flight.
+            if (validAtUt >= _nextPruneUt)
+            {
+                PruneArchives();
+                _nextPruneUt = validAtUt + PruneIntervalUt;
+            }
 
             if (isKeyframe)
             {
@@ -637,6 +649,38 @@ namespace Sitrep.Core
         {
             _seq += 1;
             return _seq;
+        }
+
+        /// <summary>
+        /// How often, in UT seconds, archives are pruned back to what their
+        /// vantages can still reach.
+        ///
+        /// <para>Driven off recording rather than a timer because that is the call
+        /// that grows the thing being bounded, and throttled because a prune walks
+        /// each topic from its oldest sample: doing it per record would put an O(n)
+        /// scan on the hot path to save an O(1) append.</para>
+        ///
+        /// <para>A minute of UT is chosen against the cost it removes rather than
+        /// against tidiness. <see cref="SubscribeStream"/> walks a topic's whole
+        /// history on every subscribe, so what matters is that the history is short
+        /// by the time somebody subscribes, not that it is short at every instant.</para>
+        /// </summary>
+        private const double PruneIntervalUt = 60;
+
+        private double _nextPruneUt = double.NegativeInfinity;
+
+        /// <summary>
+        /// Bound every archive to what its vantages can still read. Safe to call at
+        /// any time: it only ever drops samples that no current vantage can reach,
+        /// and a read that would have wanted one answers null rather than falling
+        /// forward onto a newer sample.
+        /// </summary>
+        private void PruneArchives()
+        {
+            foreach (var archive in _archives.Values)
+            {
+                archive.PruneToVantageCursors();
+            }
         }
 
         private Archive ArchiveFor(string node)
