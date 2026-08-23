@@ -218,13 +218,13 @@ function Primitive({
       // orbit ring, drawn by `SystemDiagram` itself rather than this layer,
       // never reaches here, but a future non-vessel `orbit-path`
       // contribution shouldn't accidentally become clickable either.
-      // `dotX`/`dotY` come from `projectEntityPosition`, which (via
-      // `bodyPosition`) already bakes lan+argPe+trueAnomaly into an
-      // ABSOLUTE point, unlike the ellipse's own `cx`/`cy`/`rotationDeg`
-      // (an UNROTATED local frame the caller rotates via the wrapping `<g>`,
-      // see `projectOrbitRing`'s doc comment). Nesting the dot inside that
-      // same rotated `<g>` would rotate an already-rotated point a second
-      // time, so it renders as a sibling instead, outside the transform.
+      // The ring is a closed path through samples the projection has already
+      // been applied to, and `dotX`/`dotY` came through the same placement, so
+      // both are absolute and neither sits inside a transform. It used to be an
+      // `<ellipse>` in a `rotate(lan + argPe)` group, which is the shape a closed
+      // orbit has in its own plane and only in that plane: projected honestly it
+      // has a centre `cx`/`cy` cannot express, and in a rotating frame it is a
+      // rosette.
       const dot =
         r.dotX != null && r.dotY != null ? (
           <circle
@@ -241,22 +241,15 @@ function Primitive({
       if (!interactive) {
         return (
           <>
-            <g
-              transform={`rotate(${r.rotationDeg})`}
+            <path
+              d={r.ring}
+              fill="none"
+              stroke={r.colour}
+              strokeOpacity={r.opacity}
+              strokeWidth={VESSEL_ORBIT_STROKE_WIDTH_PX}
               pointerEvents="none"
               data-entity-id={r.id}
-            >
-              <ellipse
-                cx={r.cx}
-                cy={r.cy}
-                rx={r.rx}
-                ry={r.ry}
-                fill="none"
-                stroke={r.colour}
-                strokeOpacity={r.opacity}
-                strokeWidth={VESSEL_ORBIT_STROKE_WIDTH_PX}
-              />
-            </g>
+            />
             {dot}
           </>
         );
@@ -265,7 +258,6 @@ function Primitive({
       return (
         <>
           <InteractiveMarker
-            transform={`rotate(${r.rotationDeg})`}
             data-entity-id={r.id}
             role="button"
             tabIndex={0}
@@ -280,24 +272,31 @@ function Primitive({
             }}
             style={POINT_INTERACTIVE_STYLE}
           >
+            {/* Traces the ring itself at a heavier weight rather than sitting
+                3px outside it: an offset curve of a projected rosette is not the
+                same curve scaled, so widening the stroke is the only outline that
+                stays on the shape it is outlining. */}
+            <path
+              className="focus-ring"
+              d={r.ring}
+              fill="none"
+              stroke="var(--color-accent-fg)"
+              strokeWidth={VESSEL_ORBIT_STROKE_WIDTH_SELECTED_PX + 4}
+              strokeOpacity={0.9}
+              pointerEvents="none"
+            />
             {/* Transparent, wider stroke: enlarges the click/tap hit target
                 past the thin visible ring without changing its drawn weight. */}
-            <ellipse
+            <path
               data-hit-target="true"
-              cx={r.cx}
-              cy={r.cy}
-              rx={r.rx}
-              ry={r.ry}
+              d={r.ring}
               fill="none"
               stroke="transparent"
               strokeWidth={14}
             />
-            <ellipse
+            <path
               data-ring="true"
-              cx={r.cx}
-              cy={r.cy}
-              rx={r.rx}
-              ry={r.ry}
+              d={r.ring}
               fill="none"
               stroke={r.colour}
               strokeOpacity={r.opacity}
@@ -310,17 +309,6 @@ function Primitive({
                   ? VESSEL_ORBIT_STROKE_WIDTH_SELECTED_PX
                   : VESSEL_ORBIT_STROKE_WIDTH_PX
               }
-            />
-            <ellipse
-              className="focus-ring"
-              cx={r.cx}
-              cy={r.cy}
-              rx={r.rx + 3}
-              ry={r.ry + 3}
-              fill="none"
-              stroke="var(--color-accent-fg)"
-              strokeWidth={2}
-              pointerEvents="none"
             />
           </InteractiveMarker>
           {dot}

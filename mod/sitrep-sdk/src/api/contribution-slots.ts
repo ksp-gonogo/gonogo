@@ -112,7 +112,11 @@ export type SystemEntityMeta = Readonly<
   Record<string, string | number | boolean>
 >;
 
-/** Mirrors `SystemEntityOrbitPosition`. */
+/** Mirrors `SystemEntityOrbitPosition`. Both `inclination` and the fixed
+ *  position's `zMetres` are REQUIRED: SystemView's arithmetic is
+ *  three-dimensional and the frame it draws in is a rotation about an arbitrary
+ *  axis, so a two-component position is not a position it can turn. An orbit
+ *  that really is equatorial says `0`. */
 export interface SystemEntityOrbitPosition {
   kind: "orbit";
   parentName: string;
@@ -120,6 +124,8 @@ export interface SystemEntityOrbitPosition {
   ecc: number;
   lan: number;
   argPe: number;
+  /** Inclination to the parent's reference plane, degrees. */
+  inclination: number;
   trueAnomaly: number;
 }
 
@@ -129,6 +135,8 @@ export interface SystemEntityFixedPosition {
   parentName: string;
   xMetres: number;
   yMetres: number;
+  /** Out of the parent's reference plane, metres. */
+  zMetres: number;
 }
 
 /** Mirrors `SystemEntityPosition`. */

@@ -261,6 +261,7 @@ export {
   TrajectoryKindLike,
   TrajectoryRefusalLike,
   toFrame,
+  trajectoryFrameKindFor,
   trajectoryFrameLabel,
   useOrbitTrajectory,
 } from "./kepler";
