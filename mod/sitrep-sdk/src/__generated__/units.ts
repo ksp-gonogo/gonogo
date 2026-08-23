@@ -1900,6 +1900,9 @@ export const GENERATED_TYPE_SHAPES: Readonly<Record<string, ShapesByField>> = {
   "ResolveResult": {
     notices: "ResolutionNotice",
   },
+  "SeededTrajectory": {
+    arc: "TrajectoryArc",
+  },
   "StageDeltaVEntry": {
     resources: "*ResourceAmount",
   },

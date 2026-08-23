@@ -1843,6 +1843,9 @@
     "ResolveResult": {
       "notices": "ResolutionNotice"
     },
+    "SeededTrajectory": {
+      "arc": "TrajectoryArc"
+    },
     "StageDeltaVEntry": {
       "resources": "*ResourceAmount"
     },
