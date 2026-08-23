@@ -740,6 +740,24 @@ namespace Sitrep.Contract
         void AddCommandHandler<TArgs, TResult>(string command, Func<TArgs, TResult> handler);
 
         /// <summary>
+        /// Register a handler that is told which command centre the command came
+        /// FROM, as well as what it said.
+        ///
+        /// <para>Additive rather than a widening of the signature above, because
+        /// almost no command needs this: setting a throttle means the same thing
+        /// wherever it was sent from. The ones that do are the questions whose
+        /// correct answer differs per vantage, because each has been told different
+        /// things: where a craft goes, what a plan would do. Those cannot be answered
+        /// from the game's own state, which is every vantage's future.</para>
+        ///
+        /// <para>The vantage is the sender's, resolved where the command entered
+        /// rather than passed in its arguments. A client that named its own vantage
+        /// in a payload could name another one.</para>
+        /// </summary>
+        void AddVantageCommandHandler<TArgs, TResult>(
+            string command, Func<TArgs, string, TResult> handler);
+
+        /// <summary>
         /// Register an evaluator for one <see cref="CommandRequirement.Kind"/>.
         ///
         /// <para>Available to any Uplink, first-party or not, so an Uplink can

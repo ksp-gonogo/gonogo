@@ -226,7 +226,12 @@ namespace Sitrep.Core.Tests
         /// installs, mirrors the TS generator's <c>defaultCommandHandler</c>
         /// in <c>mod/golden-fixtures/gen/courier.gen.ts</c>.
         /// </summary>
-        private static object? DefaultCommandHandler(string command, object? args, string node)
+        // The vantage is accepted and ignored: the golden fixtures were generated
+        // by the TypeScript reference, which has no vantage in its handler shape, so
+        // reading it here would make the C# port answer differently from the thing it
+        // is conformance-tested against.
+        private static object? DefaultCommandHandler(
+            string command, object? args, string node, string vantage)
         {
             return new Dictionary<string, object?>
             {

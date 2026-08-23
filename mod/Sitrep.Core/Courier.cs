@@ -14,7 +14,17 @@ using CommandResponse = Sitrep.Contract.CommandResponse<object?>;
 namespace Sitrep.Core
 {
     /// <summary>Executes a dispatched command on <c>node</c>; returns the result carried back in the confirmation.</summary>
-    public delegate object? CommandHandler(string command, object? args, string node);
+    /// <summary>
+    /// Runs a command that has arrived.
+    ///
+    /// <para><paramref name="vantage"/> is the command centre it was sent FROM, and
+    /// it is carried through because some commands cannot be answered without it: a
+    /// question like "where does this craft go" has a different correct answer at
+    /// each vantage, since each has been told different things. Dropping it here
+    /// meant a handler could only ever answer from the game's own state, which is
+    /// every vantage's future.</para>
+    /// </summary>
+    public delegate object? CommandHandler(string command, object? args, string node, string vantage);
 
     /// <summary>
     /// C# port of <c>mod/sitrep-server/src/courier.ts</c>'s <c>Courier</c>:
@@ -111,7 +121,7 @@ namespace Sitrep.Core
             new Dictionary<string, Dictionary<string, ArchiveSample>>();
 
         private long _seq;
-        private CommandHandler _commandHandler = (_, __, ___) => null;
+        private CommandHandler _commandHandler = (_, __, ___, ____) => null;
 
         // Generation counter for the current timeline -- see Meta.TimelineEpoch's
         // doc comment. Incremented once per ResetTimeline call (quickload/
@@ -214,7 +224,8 @@ namespace Sitrep.Core
         {
             _clock.Schedule(pending.ExecuteUt, () =>
             {
-                var result = _commandHandler(pending.Command, pending.Args, pending.Node);
+                var result = _commandHandler(
+                    pending.Command, pending.Args, pending.Node, pending.Vantage);
                 _clock.Schedule(pending.ConfirmUt, () =>
                 {
                     // Remove before invoking the callback: a re-entrant

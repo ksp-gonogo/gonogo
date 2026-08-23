@@ -141,7 +141,7 @@ namespace Sitrep.Core.Tests
             var clock = new ManualClock();
             var network = new StubNetwork();
             var courier = new Courier(clock, network);
-            courier.SetCommandHandler((command, args, node) => "ok");
+            courier.SetCommandHandler((command, args, node, _vantage) => "ok");
 
             Sitrep.Contract.CommandResponse<object?>? response = null;
             courier.DispatchCommand("vessel", "r1", "deploy", null, "KSC", r => response = r);

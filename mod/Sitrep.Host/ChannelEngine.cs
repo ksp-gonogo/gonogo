@@ -623,6 +623,8 @@ namespace Sitrep.Host
 
         private readonly Dictionary<string, CommandDeclaration> _commandDeclarations = new Dictionary<string, CommandDeclaration>();
         private readonly Dictionary<string, Func<object?, object?>> _commandHandlers = new Dictionary<string, Func<object?, object?>>();
+        private readonly Dictionary<string, Func<object?, string, object?>> _vantageCommandHandlers =
+            new Dictionary<string, Func<object?, string, object?>>();
 
         // Owner travels WITH each sampler (rather than a parallel dictionary
         // keyed by the sampler instance) because a sampler has no natural
@@ -776,7 +778,8 @@ namespace Sitrep.Host
             // Courier.ScheduleCommand: fail-softs its owning uplink
             // instead of unwinding out of the Courier's scheduled callback
             // and killing the thread. See InvokeCommandHandler's doc comment.
-            _courier.SetCommandHandler((command, args, node) => InvokeCommandHandler(command, args));
+            _courier.SetCommandHandler(
+                (command, args, node, vantage) => InvokeCommandHandler(command, args, vantage));
             _listener = new FleckTransportListener(bindUri);
             _listener.ClientConnected += OnClientConnected;
             _courierThread = new Thread(CourierLoop) { IsBackground = true, Name = "Sitrep-ChannelEngine-Courier" };
@@ -1891,6 +1894,27 @@ namespace Sitrep.Host
         }
 
         /// <summary>
+        /// As <see cref="AddCommandHandler{TArgs,TResult}"/>, for the handlers whose
+        /// answer depends on which command centre asked.
+        ///
+        /// <para>Kept in its own store rather than as a wider signature on the same
+        /// one, so the hundred handlers that do not care are untouched. Args binding
+        /// is identical: only the extra argument differs.</para>
+        /// </summary>
+        public void AddVantageCommandHandler<TArgs, TResult>(
+            string command, Func<TArgs, string, TResult> handler)
+        {
+            if (!_commandDeclarations.ContainsKey(command))
+            {
+                throw new InvalidOperationException(
+                    $"AddVantageCommandHandler(\"{command}\") has no matching CommandDeclaration, " +
+                    "declare it in the registering uplink's Manifest.Commands first.");
+            }
+            _vantageCommandHandlers[command] =
+                (args, vantage) => handler((TArgs)BindCommandArgs(args, typeof(TArgs))!, vantage);
+        }
+
+        /// <summary>
         /// Converts a command's generic wire-deserialized args (the
         /// double/bool/string/<c>Dictionary&lt;string, object?&gt;</c>/
         /// <c>List&lt;object?&gt;</c> shape <see cref="EnvelopeCodec.ParseCommandRequest"/>
@@ -2372,9 +2396,32 @@ namespace Sitrep.Host
         /// <c>null</c> as a graceful failure result instead of propagating
         /// and killing the thread (the CRITICAL-2 fix).
         /// </summary>
-        private object? InvokeCommandHandler(string command, object? args)
+        private object? InvokeCommandHandler(string command, object? args, string vantage)
         {
-            if (!IsCommandAvailable(command) || !_commandHandlers.TryGetValue(command, out var handler))
+            if (!IsCommandAvailable(command))
+            {
+                return null;
+            }
+
+            // A vantage-aware handler is tried first, and the two stores are
+            // deliberately disjoint: a command registered in both would run whichever
+            // lookup came first, which is a coin-toss nobody wrote down.
+            if (_vantageCommandHandlers.TryGetValue(command, out var vantageHandler))
+            {
+                try
+                {
+                    return _executeCommandsOnMainThread
+                        ? RunOnMainThread(a => vantageHandler(a, vantage), args)
+                        : vantageHandler(args, vantage);
+                }
+                catch (Exception ex)
+                {
+                    FailSoftCommand(command, ex);
+                    return null;
+                }
+            }
+
+            if (!_commandHandlers.TryGetValue(command, out var handler))
             {
                 return null;
             }
@@ -4058,7 +4105,7 @@ namespace Sitrep.Host
                 // Courier.SetCommandHandler) so a throwing handler
                 // fail-softs its own uplink instead of killing the
                 // Courier thread: the CRITICAL-2 fix.
-                var result = InvokeCommandHandler(job.Command, job.Args);
+                var result = InvokeCommandHandler(job.Command, job.Args, job.Vantage);
                 job.OnResult(result);
                 job.Done?.Set();
                 return;

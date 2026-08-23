@@ -44,7 +44,7 @@ namespace Sitrep.Core.Tests
             var network = new StubNetwork(delay: 0);
             network.SetDefaultDelay(3.0); // signal delay 3 -> round-trip 6
             var courier = new Courier(clock, network);
-            courier.SetCommandHandler((command, args, node) => "ok");
+            courier.SetCommandHandler((command, args, node, _vantage) => "ok");
 
             var results = new List<object?>();
             // No explicit uplinkDelaySeconds: the Courier falls back to

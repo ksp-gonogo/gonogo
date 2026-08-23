@@ -33,7 +33,7 @@ namespace Sitrep.Core.Tests
             var network = new StubNetwork();
             network.SetDelay("KSC", "vessel", 5);
             var courier = new Courier(clock, network);
-            courier.SetCommandHandler((command, args, node) => new { ok = command, node });
+            courier.SetCommandHandler((command, args, node, _vantage) => new { ok = command, node });
 
             CommandResponse? response = null;
             courier.DispatchCommand("vessel", "r1", "deploy", null, "KSC", msg => response = msg);
@@ -61,7 +61,7 @@ namespace Sitrep.Core.Tests
             var restoredNetwork = new StubNetwork();
             restoredNetwork.SetDelay("KSC", "vessel", 5);
             var restoredCourier = new Courier(restoredClock, restoredNetwork);
-            restoredCourier.SetCommandHandler((command, args, node) => new { ok = command, node });
+            restoredCourier.SetCommandHandler((command, args, node, _vantage) => new { ok = command, node });
 
             CommandResponse? restoredResponse = null;
             restoredCourier.RestoreCommands(snapshot, msg => restoredResponse = msg);
@@ -107,7 +107,7 @@ namespace Sitrep.Core.Tests
             var network = new StubNetwork();
             network.SetDelay("KSC", "vessel", 1);
             var courier = new Courier(clock, network);
-            courier.SetCommandHandler((command, args, node) => "done");
+            courier.SetCommandHandler((command, args, node, _vantage) => "done");
 
             courier.DispatchCommand("vessel", "r1", "deploy", null, "KSC", _ => { });
             Assert.Single(courier.SnapshotCommands().Commands);

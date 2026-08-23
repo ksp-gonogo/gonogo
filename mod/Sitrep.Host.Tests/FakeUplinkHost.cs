@@ -63,6 +63,15 @@ namespace Sitrep.Host.Tests
         public void AddCommandHandler<TArgs, TResult>(string command, Func<TArgs, TResult> handler)
         {
         }
+        public void AddVantageCommandHandler<TArgs, TResult>(
+            string command, Func<TArgs, string, TResult> handler)
+        {
+            // Recorded like the plain one: what these fakes assert is that a command
+            // was registered at all, and by which path.
+            VantageHandlersRegistered.Add(command);
+        }
+
+        public readonly List<string> VantageHandlersRegistered = new List<string>();
 
         /// <summary>Recorded rather than ignored, so a test can assert an uplink registered one.</summary>
         public List<ICommandGateEvaluator> GateEvaluators { get; } = new List<ICommandGateEvaluator>();

@@ -198,7 +198,7 @@ namespace Sitrep.Core.Tests
             var network = new StubNetwork();
             network.SetDelay("KSC", "vessel", 5);
             var courier = new Courier(clock, network);
-            courier.SetCommandHandler((command, args, node) => "result");
+            courier.SetCommandHandler((command, args, node, _vantage) => "result");
 
             CommandResponse? response = null;
             courier.DispatchCommand("vessel", "r1", "deploy", null, "KSC", msg => response = msg);
