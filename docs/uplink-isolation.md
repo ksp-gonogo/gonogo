@@ -217,7 +217,10 @@ references instead.
 
 `packages/core/src/uplink-isolation.test.ts` scans every Uplink client, fails on
 any import outside the debt list, fails on a blocked strategy returning, and
-fails if the debt list grows against `origin/staging`.
+fails if the debt list grows against the ratchet base revision, which is the tip
+before the push on a push and the branch's fork point on a pull request, never
+the branch being pushed. See the base-revision section of `docs/ratchets.md`:
+that half of this gate could not run in CI at all until 2026-08-25.
 
 `mod/Sitrep.Core.Tests/UplinkIsolationTests.cs` is the C# half: it fails on a
 reachable private assembly, on an import of a private namespace, on a bundled

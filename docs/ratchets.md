@@ -84,12 +84,56 @@ array. The shrink check needs to load that file's contents _at a different git
 revision_, and if the list is embedded in the test, doing so drags the test framework
 and the scanner along with it. Splitting them makes the shrink check a few lines.
 
-The base revision is a variable with a sensible default, so the same check works
-locally and in CI:
+### Getting the base revision right, which we did not
+
+This is the part of the shape we got wrong for the whole life of these gates, and
+it is worth more space than it looks like it deserves, because the failure was
+invisible from every angle.
+
+Each shrink check read its list at a base revision and diffed. The base was a
+variable with a sensible-looking default:
 
 ```
-const BASE_REF = process.env.RATCHET_BASE_REF ?? "origin/staging";
+const BASE_REF = process.env.RATCHET_BASE_REF ?? "origin/staging"   // WRONG, twice over
 ```
+
+Nothing set that variable. And our CI checks out at depth 1, so `origin/staging`
+did not exist in the clone at all. Every gate wrapped the read in a `try` that
+returned `undefined` on failure, and every caller opened with "if there is no
+base, return". So in CI the read failed, the check returned early, and the test
+passed. Five ratchets, green on every run, having never once compared anything.
+The only place they could fail was a developer's own machine.
+
+Then the second half, which survives fixing the first: on a push to the branch
+the default names, `origin/staging` **is the commit under test**. A file diffed
+against itself reports "unchanged" forever. Fetching the ref would have bought a
+gate that still could not fail.
+
+Both halves generalise, and both are the same mistake in different clothes:
+
+> **A base revision is not a constant. It is a function of the trigger, and a
+> gate that cannot reach a usable one must fail, not skip.**
+
+What we run now:
+
+- one resolver, shared by every ratchet, that **throws** when no base can be
+  reached and **throws** when the base turns out to be the commit under test.
+  Neither condition can be expressed as a passing test, so neither can be
+  mistaken for one
+- a CI step that works the base out per trigger and refuses rather than guessing:
+  the tip **before** the push (`github.event.before`) on a push, the branch's
+  fork point on a pull request, never `origin/<the branch being pushed>`
+- a checkout at `fetch-depth: 0`, because at depth 1 there is no second revision
+  to compare against
+- a separate test, `ratchet-base-ref.test.ts`, whose only subject is the
+  apparatus: did a base resolve, is it an ancestor of the checkout rather than
+  the checkout itself, was every debt list actually readable there. None of the
+  five gates can ask that about itself, which is the whole reason the blindness
+  lasted
+
+The last one is category 7 below applied to the machinery rather than to a scan,
+and it is where the value is. Fixing the base ref makes the gates work; the guard
+is what tells you when they stop working again.
 
 ### When a test is the wrong host
 
@@ -118,6 +162,13 @@ it needs a host outside them.
 
 A ratchet that only runs in CI is worse than one that runs locally, because the person
 who broke it finds out long after they moved on, and cannot reproduce it.
+
+The inverse bit us harder, and for longer. Our shrink-only gates ran ONLY locally,
+not by design but because their base revision was unreachable on a runner, so CI
+was "the authority of record" for a set of checks it was structurally unable to
+run. Both statements in the table can be true at once and neither is worth much
+on its own: what matters is whether the check could have failed where it ran. See
+the base-revision section above for how that one went unnoticed.
 
 ### The escape hatch that will eat you
 

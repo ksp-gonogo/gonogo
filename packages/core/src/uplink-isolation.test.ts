@@ -3,12 +3,12 @@
 // Node realm rather than the package's jsdom default, matching
 // `uplink-boundary.test.ts`: the shrink-only check transpiles the allowlist at a
 // git ref through esbuild, which asserts a real TextEncoder/Uint8Array realm.
-import { execFileSync } from "node:child_process";
 import { existsSync, readdirSync, readFileSync, statSync } from "node:fs";
 import { dirname, join, relative } from "node:path";
 import { fileURLToPath } from "node:url";
 import { transformSync } from "esbuild";
 import { describe, expect, it } from "vitest";
+import { ratchetBaseRef, sourceAtRatchetBase } from "./ratchetBaseRef";
 import {
   BLOCKED_FILENAMES,
   DECLARED_DEPENDENCY_DEBT,
@@ -37,7 +37,6 @@ import {
 const HERE = dirname(fileURLToPath(import.meta.url));
 const REPO_ROOT = join(HERE, "..", "..", "..");
 const MOD_DIR = join(REPO_ROOT, "mod");
-const BASE_REF = process.env.RATCHET_BASE_REF ?? "origin/staging";
 const ALLOWLIST_PATH = "packages/core/src/uplink-isolation.allowlist.ts";
 
 /**
@@ -390,32 +389,31 @@ describe("uplink isolation", () => {
 
   describe("the debt lists only ever shrink", () => {
     /**
-     * Both lists at `BASE_REF`, or `undefined` when there is no base (first
-     * land, shallow clone, detached CI ref) and there is nothing to diff
-     * against. Soft-pass in that case, same as `uplink-boundary` does.
+     * Both lists as they stood at the ratchet base, with the ref they came from
+     * so a failure can quote it.
+     *
+     * `ratchetBaseRef` THROWS when no base can be reached, which is the whole
+     * point of it. This used to catch that and return `undefined`, and every
+     * caller below opens by returning early on `undefined`, so an unreachable
+     * base made the shrink check evaporate and report green. Undefined now
+     * means only that the checkout IS the base (nothing to diff) or that the
+     * list did not exist there, and `ratchet-base-ref.test.ts` grades the
+     * second case in one place rather than leaving each caller to shrug at it.
      */
-    function baseAllowlist(): Record<string, unknown> | undefined {
-      let baseSource: string;
-      try {
-        baseSource = execFileSync(
-          "git",
-          ["show", `${BASE_REF}:${ALLOWLIST_PATH}`],
-          {
-            cwd: REPO_ROOT,
-            encoding: "utf8",
-            stdio: ["ignore", "pipe", "pipe"],
-          },
-        );
-      } catch {
-        return undefined;
-      }
+    function baseAllowlist():
+      | { ref: string; lists: Record<string, unknown> }
+      | undefined {
+      const at = ratchetBaseRef();
+      if (!at) return undefined;
+      const baseSource = sourceAtRatchetBase(at, ALLOWLIST_PATH);
+      if (baseSource === null) return undefined;
       const js = transformSync(baseSource, {
         loader: "ts",
         format: "cjs",
       }).code;
       const module_ = { exports: {} as Record<string, unknown> };
       new Function("module", "exports", js)(module_, module_.exports);
-      return module_.exports;
+      return { ref: at.ref, lists: module_.exports };
     }
 
     /**
@@ -458,30 +456,30 @@ describe("uplink isolation", () => {
     }
 
     it("INTERNAL_IMPORT_DEBT", () => {
-      const base = baseAllowlist();
-      if (!base) return;
-      const baseDebt = base.INTERNAL_IMPORT_DEBT as
+      const at = baseAllowlist();
+      if (!at) return;
+      const baseDebt = at.lists.INTERNAL_IMPORT_DEBT as
         | Record<string, readonly ForbiddenPackage[]>
         | undefined;
       if (!baseDebt) return;
       expect(
-        additions(INTERNAL_IMPORT_DEBT, baseDebt, gradedPackages(base)),
-        `Debt entries may only be REMOVED, never added, vs ${BASE_REF}. See docs/uplink-isolation.md.`,
+        additions(INTERNAL_IMPORT_DEBT, baseDebt, gradedPackages(at.lists)),
+        `Debt entries may only be REMOVED, never added, vs ${at.ref}. See docs/uplink-isolation.md.`,
       ).toEqual([]);
     });
 
     it("DECLARED_DEPENDENCY_DEBT", () => {
-      const base = baseAllowlist();
-      if (!base) return;
-      const baseDebt = base.DECLARED_DEPENDENCY_DEBT as
+      const at = baseAllowlist();
+      if (!at) return;
+      const baseDebt = at.lists.DECLARED_DEPENDENCY_DEBT as
         | Record<string, readonly ForbiddenPackage[]>
         | undefined;
-      // Absent at base: the list was seeded after BASE_REF, so every entry is
-      // the seed rather than growth. Graded from the next commit onwards.
+      // Absent at the base: the list was seeded after it, so every entry is the
+      // seed rather than growth. Graded from the next commit onwards.
       if (!baseDebt) return;
       expect(
-        additions(DECLARED_DEPENDENCY_DEBT, baseDebt, gradedPackages(base)),
-        `Declared-dependency debt may only be REMOVED, never added, vs ${BASE_REF}. See docs/uplink-isolation.md.`,
+        additions(DECLARED_DEPENDENCY_DEBT, baseDebt, gradedPackages(at.lists)),
+        `Declared-dependency debt may only be REMOVED, never added, vs ${at.ref}. See docs/uplink-isolation.md.`,
       ).toEqual([]);
     });
 
@@ -500,9 +498,9 @@ describe("uplink isolation", () => {
      * error over an unrelated union type is the only reason anyone looked.
      */
     it("FORBIDDEN_PACKAGES never shrinks", () => {
-      const base = baseAllowlist();
-      if (!base) return;
-      const baseForbidden = base.FORBIDDEN_PACKAGES as
+      const at = baseAllowlist();
+      if (!at) return;
+      const baseForbidden = at.lists.FORBIDDEN_PACKAGES as
         | readonly string[]
         | undefined;
       if (!baseForbidden) return;
@@ -510,7 +508,7 @@ describe("uplink isolation", () => {
       expect(
         baseForbidden.filter((pkg) => !now.has(pkg)),
         [
-          `A package was REMOVED from FORBIDDEN_PACKAGES vs ${BASE_REF}.`,
+          `A package was REMOVED from FORBIDDEN_PACKAGES vs ${at.ref}.`,
           "",
           "The rule may widen, never narrow. An Uplink importing a private",
           "package is unbuildable by an outside author whether or not this list",
@@ -534,9 +532,9 @@ describe("uplink isolation", () => {
      * re-derived it and believes they are correcting an oversight.
      */
     it("BLOCKED_FILENAMES never shrinks", () => {
-      const base = baseAllowlist();
-      if (!base) return;
-      const baseBlocked = base.BLOCKED_FILENAMES as
+      const at = baseAllowlist();
+      if (!at) return;
+      const baseBlocked = at.lists.BLOCKED_FILENAMES as
         | readonly string[]
         | undefined;
       if (!baseBlocked) return;
@@ -544,7 +542,7 @@ describe("uplink isolation", () => {
       expect(
         baseBlocked.filter((name) => !now.has(name)),
         [
-          `A name was REMOVED from BLOCKED_FILENAMES vs ${BASE_REF}.`,
+          `A name was REMOVED from BLOCKED_FILENAMES vs ${at.ref}.`,
           "",
           "These are strategies removed rather than allowlisted, each with its own",
           "story in the allowlist. Deleting the entry does not unblock the",

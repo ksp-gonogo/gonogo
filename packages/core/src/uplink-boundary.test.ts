@@ -5,12 +5,16 @@
 // check below, asserts `new TextEncoder().encode("") instanceof Uint8Array`
 // and throws "JavaScript environment is broken" under jsdom, where that
 // realm doesn't line up. Nothing else in this file touches the DOM.
-import { execFileSync } from "node:child_process";
 import { existsSync, readdirSync, readFileSync, statSync } from "node:fs";
 import { dirname, join, relative } from "node:path";
 import { fileURLToPath } from "node:url";
 import { transformSync } from "esbuild";
 import { beforeAll, describe, expect, it } from "vitest";
+import {
+  type RatchetBase,
+  ratchetBaseRef,
+  sourceAtRatchetBase,
+} from "./ratchetBaseRef";
 import {
   ALLOWLIST,
   type ModAllowlist,
@@ -673,64 +677,17 @@ describe("the code-only scan can still see", () => {
 });
 
 /**
- * Resolves a git ref to diff the domain-debt allowlist against. Prefers an
- * explicit CI-supplied ref, falls back to origin/main or main for local
- * dev, and returns null (soft-pass) if nothing resolves, mirrors the
- * visual-gate's "no baseline yet" soft-pass posture rather than hard-
- * failing somewhere this can't meaningfully run (a fresh clone with no
- * origin, a detached HEAD, first-land before any base ref exists).
- *
- * UPLINK_ALLOWLIST_BASE_REF is not yet wired into ci.yml; see the design
- * doc §2.8. Until that lands, this check soft-passes in CI (the
- * origin/staging / origin/main / main fallbacks resolve there too, but
- * against whatever commit CI happened to fetch, not a meaningful "previous
- * push" ref) and only truly enforces on a local machine with a real remote.
- *
- * `origin/staging` comes before `origin/main` because branches are cut from
- * staging and land there first, so main trails it by however long a release
- * takes. Resolving to main meant every branch diffed its allowlist against a
- * ref where a recently-added allowlist FILE does not exist yet, which
- * `loadAllowlistAt` reports as the bootstrap case and the caller soft-passes
- * on. A ratchet is at its most load-bearing in the weeks after it lands, and
- * that was exactly the window in which it could not run.
- */
-function resolveBaseRef(): string | null {
-  const candidates = [
-    process.env.UPLINK_ALLOWLIST_BASE_REF,
-    process.env.GITHUB_BASE_REF && `origin/${process.env.GITHUB_BASE_REF}`,
-    "origin/staging",
-    "origin/main",
-    "main",
-  ].filter((v): v is string => Boolean(v));
-  for (const ref of candidates) {
-    try {
-      execFileSync("git", ["rev-parse", "--verify", ref], { stdio: "ignore" });
-      return ref;
-    } catch {
-      // try the next candidate
-    }
-  }
-  return null;
-}
-
-/**
- * Dynamically loads the allowlist module's exports as they existed at
- * `ref`, without touching the working tree. Transpiles the git blob with
- * esbuild and imports it as a `data:` URL so no temp-file cleanup is
+ * Dynamically loads the allowlist module's exports as they existed at the
+ * ratchet base, without touching the working tree. Transpiles the git blob
+ * with esbuild and imports it as a `data:` URL so no temp-file cleanup is
  * needed.
  */
 async function loadAllowlistAt(
-  ref: string,
+  base: RatchetBase,
   relPath: string,
 ): Promise<Partial<Record<ModToken, ModAllowlist | string[]>> | null> {
-  let source: string;
-  try {
-    source = execFileSync("git", ["show", `${ref}:${relPath}`], {
-      encoding: "utf8",
-    });
-  } catch {
-    return null; // file didn't exist at ref yet, bootstrap case
-  }
+  const source = sourceAtRatchetBase(base, relPath);
+  if (source === null) return null; // file didn't exist at the base, bootstrap case
   const { code } = transformSync(source, { loader: "ts", format: "esm" });
   const mod = await import(`data:text/javascript,${encodeURIComponent(code)}`);
   return mod.ALLOWLIST;
@@ -836,8 +793,12 @@ describe("findDomainDebtGrowth: shrink-only comparison logic (synthetic fixtures
 
 describe("uplink boundary: domain-debt allowlist entries only ever shrink", () => {
   it("no token's domainDebt set gained an entry vs the base ref", async () => {
-    const baseRef = resolveBaseRef();
-    if (!baseRef) return; // soft-pass: no comparison ref available
+    // Throws when no base can be reached. It used to walk a candidate list and
+    // return null on exhaustion, which read as a pass, and in CI it resolved
+    // nothing at all: the checkout was a depth-1 clone with no remote refs in
+    // it, so this gate never once ran there.
+    const base = ratchetBaseRef();
+    if (!base) return; // the checkout IS the base, so there is nothing to diff
 
     const root = findRepoRoot(dirname(fileURLToPath(import.meta.url)));
     const relPath = relative(
@@ -847,21 +808,13 @@ describe("uplink boundary: domain-debt allowlist entries only ever shrink", () =
         "uplink-boundary.allowlist.ts",
       ),
     );
-    const previous = await loadAllowlistAt(baseRef, relPath);
+    const previous = await loadAllowlistAt(base, relPath);
     if (!previous) {
-      // Two different situations reach here and only one of them is benign,
-      // so say which. "No ref at all" (fresh clone, detached HEAD) is handled
-      // above by `resolveBaseRef` returning null. This branch means a ref DID
-      // resolve and the allowlist is simply absent at it, which is genuine on
-      // a first land and suspicious afterwards: the check is not running, and
-      // it looked identical to passing until this line existed.
-      console.warn(
-        `[uplink-boundary] shrink-only check SKIPPED: ${relPath} does not ` +
-          `exist at ${baseRef}, so there is nothing to diff against. Expected ` +
-          `on the commit that first adds the allowlist; otherwise the base ref ` +
-          `is wrong and no growth is being detected. Set ` +
-          `UPLINK_ALLOWLIST_BASE_REF to a ref that has the file.`,
-      );
+      // A base DID resolve and the allowlist is simply absent at it, which is
+      // genuine on the commit that first adds the list and suspicious after.
+      // `ratchet-base-ref.test.ts` is what grades it, in one place for all five
+      // lists, because a warning printed here is invisible: vitest suppresses
+      // console output for tests that pass.
       return;
     }
 
@@ -871,7 +824,7 @@ describe("uplink boundary: domain-debt allowlist entries only ever shrink", () =
         growth
           .map(
             ({ token, added }) =>
-              `New DOMAIN-DEBT entries for "${token}" vs ${baseRef}, domain-debt ` +
+              `New DOMAIN-DEBT entries for "${token}" vs ${base.ref}, domain-debt ` +
               `entries may only be REMOVED (ratcheted off as code moves into the ` +
               `owning Uplink), never added:\n` +
               added.map((f) => `  ${f}`).join("\n"),

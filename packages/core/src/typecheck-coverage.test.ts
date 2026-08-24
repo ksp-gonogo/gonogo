@@ -4,7 +4,6 @@
 // `uplink-isolation.test.ts`: the shrink-only check transpiles the allowlist at
 // a git ref through esbuild, which asserts a real TextEncoder/Uint8Array realm,
 // and the scan asks `ts.sys` to resolve config files off disk.
-import { execFileSync } from "node:child_process";
 import {
   existsSync,
   mkdtempSync,
@@ -20,6 +19,7 @@ import { fileURLToPath } from "node:url";
 import { transformSync } from "esbuild";
 import ts from "typescript";
 import { describe, expect, it } from "vitest";
+import { ratchetBaseRef, sourceAtRatchetBase } from "./ratchetBaseRef";
 import { TYPECHECK_COVERAGE_DEBT } from "./typecheck-coverage.allowlist";
 
 /**
@@ -48,7 +48,6 @@ import { TYPECHECK_COVERAGE_DEBT } from "./typecheck-coverage.allowlist";
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 const REPO_ROOT = join(HERE, "..", "..", "..");
-const BASE_REF = process.env.RATCHET_BASE_REF ?? "origin/staging";
 const ALLOWLIST_PATH = "packages/core/src/typecheck-coverage.allowlist.ts";
 
 /** Roots holding workspace packages. */
@@ -317,47 +316,46 @@ describe("typecheck coverage: every package typechecks its own test files", () =
 
   describe("the debt list only ever shrinks", () => {
     /**
-     * The debt list at `BASE_REF`, or `undefined` when there is no base (first
-     * land, shallow clone, detached CI ref) and there is nothing to diff
-     * against. Soft-pass in that case, same as the other shrink checks here.
+     * The debt list as it stood at the ratchet base, with the ref it came from
+     * so a failure can quote it.
+     *
+     * `ratchetBaseRef` THROWS when no base can be reached. This used to catch
+     * that and return `undefined`, and the caller below reads `undefined` as
+     * "nothing to grade", so an unreachable base made the check pass without
+     * running. Undefined now means only that the checkout IS the base or that
+     * the list did not exist there, and `ratchet-base-ref.test.ts` grades the
+     * second case.
      */
-    function baseDebt(): Record<string, string> | undefined {
-      let source: string;
-      try {
-        source = execFileSync(
-          "git",
-          ["show", `${BASE_REF}:${ALLOWLIST_PATH}`],
-          {
-            cwd: REPO_ROOT,
-            encoding: "utf8",
-            stdio: ["ignore", "pipe", "pipe"],
-          },
-        );
-      } catch {
-        return undefined;
-      }
+    function baseDebt():
+      | { ref: string; debt: Record<string, string> }
+      | undefined {
+      const at = ratchetBaseRef();
+      if (!at) return undefined;
+      const source = sourceAtRatchetBase(at, ALLOWLIST_PATH);
+      if (source === null) return undefined;
       const js = transformSync(source, { loader: "ts", format: "cjs" }).code;
       const module_ = { exports: {} as Record<string, unknown> };
       new Function("module", "exports", js)(module_, module_.exports);
-      return module_.exports.TYPECHECK_COVERAGE_DEBT as
+      const debt = module_.exports.TYPECHECK_COVERAGE_DEBT as
         | Record<string, string>
         | undefined;
+      return debt ? { ref: at.ref, debt } : undefined;
     }
 
     it("gains no entry vs the base ref", () => {
-      const base = baseDebt();
-      if (!base) {
-        // Absent at base: the list was seeded after BASE_REF, so there is
-        // nothing to grade and every entry is the seed.
+      const at = baseDebt();
+      if (!at) {
+        // Absent at the base: the list was seeded after it, so there is nothing
+        // to grade and every entry is the seed.
         expect(true).toBe(true);
         return;
       }
       const added = Object.keys(TYPECHECK_COVERAGE_DEBT).filter(
-        (dir) => !(dir in base),
+        (dir) => !(dir in at.debt),
       );
       expect(
         added,
-        `Debt entries may only be REMOVED, never added, vs ${BASE_REF}. A package that newly excludes its tests is the regression this gate exists to stop.`,
+        `Debt entries may only be REMOVED, never added, vs ${at.ref}. A package that newly excludes its tests is the regression this gate exists to stop.`,
       ).toEqual([]);
     });
   });

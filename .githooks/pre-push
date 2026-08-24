@@ -1,6 +1,12 @@
 #!/bin/sh
 # Pre-push gate: fast, affected-only checks. CI is the gate of record.
 #
+# That last sentence was false for the shrink-only ratchets until 2026-08-25:
+# their base revision was unreachable on a runner, so all five returned early and
+# reported green there, and this "deliberately LIGHT" hook was the only place they
+# could fail. CI now fetches full history and resolves a real base per trigger
+# (scripts/resolve-ratchet-base-ref.sh), so the sentence holds again.
+#
 # A push to main deploys the dev channel, and the deploy only fires when CI is
 # green (deploy.yml triggers on a successful CI workflow_run). So a push that
 # fails CI silently skips the deploy. This hook catches the common failures

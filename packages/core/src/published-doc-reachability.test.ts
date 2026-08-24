@@ -26,6 +26,7 @@ import {
   type Tier,
   TS_QUALIFIER_PATTERNS,
 } from "./published-doc-reachability.allowlist";
+import { ratchetBaseRef, sourceAtRatchetBase } from "./ratchetBaseRef";
 
 /**
  * Published-doc reachability: a doc comment on a published barrel's export may
@@ -49,7 +50,6 @@ import {
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 const REPO_ROOT = join(HERE, "..", "..", "..");
-const BASE_REF = process.env.RATCHET_BASE_REF ?? "origin/staging";
 const ALLOWLIST_PATH =
   "packages/core/src/published-doc-reachability.allowlist.ts";
 
@@ -754,37 +754,35 @@ describe("published doc reachability", () => {
 
   describe("the debt lists only ever shrink", () => {
     /**
-     * The allowlist at `BASE_REF`, or `undefined` when there is no base (first
-     * land, shallow clone, detached CI ref) and there is nothing to diff
-     * against. Soft-pass in that case, same as the other ratchets.
+     * The allowlist as it stood at the ratchet base, with the ref it came from
+     * so a failure can quote it.
+     *
+     * `ratchetBaseRef` THROWS when no base can be reached. This used to catch
+     * that and return `undefined`, which every caller below reads as "nothing
+     * to diff", so an unreachable base turned all four checks into passes.
+     * Undefined now means only that the checkout IS the base or that the list
+     * did not exist there, and `ratchet-base-ref.test.ts` grades the second
+     * case.
      */
-    function baseAllowlist(): Record<string, unknown> | undefined {
-      let source: string;
-      try {
-        source = execFileSync(
-          "git",
-          ["show", `${BASE_REF}:${ALLOWLIST_PATH}`],
-          {
-            cwd: REPO_ROOT,
-            encoding: "utf8",
-            stdio: ["ignore", "pipe", "pipe"],
-          },
-        );
-      } catch {
-        return undefined;
-      }
+    function baseAllowlist():
+      | { ref: string; lists: Record<string, unknown> }
+      | undefined {
+      const at = ratchetBaseRef();
+      if (!at) return undefined;
+      const source = sourceAtRatchetBase(at, ALLOWLIST_PATH);
+      if (source === null) return undefined;
       const js = transformSync(source, { loader: "ts", format: "cjs" }).code;
       const module_ = { exports: {} as Record<string, unknown> };
       new Function("module", "exports", js)(module_, module_.exports);
-      return module_.exports;
+      return { ref: at.ref, lists: module_.exports };
     }
 
     it("DOC_DEBT", () => {
-      const base = baseAllowlist();
-      const baseDebt = base?.DOC_DEBT as
+      const at = baseAllowlist();
+      const baseDebt = at?.lists.DOC_DEBT as
         | Record<string, Partial<Record<Tier, number>>>
         | undefined;
-      if (!baseDebt) return;
+      if (!at || !baseDebt) return;
       const grown: string[] = [];
       for (const [file, tiers] of Object.entries(DOC_DEBT)) {
         for (const [tier, count] of Object.entries(tiers)) {
@@ -797,7 +795,7 @@ describe("published doc reachability", () => {
       expect(
         grown,
         [
-          `Debt may only be LOWERED, never raised, vs ${BASE_REF}.`,
+          `Debt may only be LOWERED, never raised, vs ${at.ref}.`,
           "",
           "Per-file AND per-tier on purpose: one file's fix must not pay for",
           "another file's regression, and a T1b instance appearing while three T2",
@@ -808,19 +806,19 @@ describe("published doc reachability", () => {
     });
 
     it("CS_CAPABILITY_SEAM_DEBT", () => {
-      const base = baseAllowlist();
-      const baseDebt = base?.CS_CAPABILITY_SEAM_DEBT as
+      const at = baseAllowlist();
+      const baseDebt = at?.lists.CS_CAPABILITY_SEAM_DEBT as
         | Record<string, number>
         | undefined;
-      // Absent at base: the list was seeded after BASE_REF, so every entry is
-      // the seed rather than growth. Graded from the next commit onwards.
-      if (!baseDebt) return;
+      // Absent at the base: the list was seeded after it, so every entry is the
+      // seed rather than growth. Graded from the next commit onwards.
+      if (!at || !baseDebt) return;
       const grown = Object.entries(CS_CAPABILITY_SEAM_DEBT)
         .filter(([file, count]) => count > (baseDebt[file] ?? 0))
         .map(([file, count]) => `${file} ${baseDebt[file] ?? 0} -> ${count}`);
       expect(
         grown,
-        `Capability-seam debt may only be LOWERED, never raised, vs ${BASE_REF}.`,
+        `Capability-seam debt may only be LOWERED, never raised, vs ${at.ref}.`,
       ).toEqual([]);
     });
 
@@ -836,8 +834,9 @@ describe("published doc reachability", () => {
      * members too, and the full suite passed with a package silently unguarded.
      */
     it("the rule never narrows", () => {
-      const base = baseAllowlist();
-      if (!base) return;
+      const at = baseAllowlist();
+      if (!at) return;
+      const base = at.lists;
       const narrowed: string[] = [];
 
       const compare = (
@@ -883,7 +882,7 @@ describe("published doc reachability", () => {
       expect(
         narrowed,
         [
-          `The rule's SUBJECT narrowed vs ${BASE_REF}.`,
+          `The rule's SUBJECT narrowed vs ${at.ref}.`,
           "",
           "These lists may widen, never narrow. A doc pointing at a private",
           "package is unreadable to an outside author whether or not this file",

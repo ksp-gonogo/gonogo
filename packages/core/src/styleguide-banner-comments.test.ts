@@ -14,6 +14,7 @@ import {
   SCHEME_MIN,
   SECTIONED_CEILINGS,
 } from "./banner-comments.allowlist";
+import { ratchetBaseRef, sourceAtRatchetBase } from "./ratchetBaseRef";
 
 /**
  * Banner-comment ratchet. CLAUDE.md has always said "no banner comments above an
@@ -43,7 +44,6 @@ import {
  * A type-level check would gate nothing: `pnpm typecheck` is not a CI job.
  */
 
-const BASE_REF = process.env.RATCHET_BASE_REF ?? "origin/staging";
 const ALLOWLIST_PATH = "packages/core/src/banner-comments.allowlist.ts";
 
 /**
@@ -303,29 +303,27 @@ describe("banner comments", () => {
 
   describe("the debt list only ever shrinks", () => {
     /**
-     * The list at `BASE_REF`, or `undefined` when there is no base (first land,
-     * shallow clone, detached CI ref) and there is nothing to diff against.
-     * Soft-pass in that case, same as the other ratchets do.
+     * The list as it stood at the ratchet base, with the ref it came from so a
+     * failure can quote it.
+     *
+     * `ratchetBaseRef` THROWS when no base can be reached. This used to catch
+     * that and return `undefined`, which every caller below treats as "nothing
+     * to check", so an unreachable base turned the whole shrink check into a
+     * pass. Undefined now means only that the checkout IS the base or that the
+     * list did not exist there, and `ratchet-base-ref.test.ts` grades the
+     * second case.
      */
-    function baseAllowlist(): Record<string, unknown> | undefined {
-      let source: string;
-      try {
-        source = execFileSync(
-          "git",
-          ["show", `${BASE_REF}:${ALLOWLIST_PATH}`],
-          {
-            cwd: repoRoot(),
-            encoding: "utf8",
-            stdio: ["ignore", "pipe", "pipe"],
-          },
-        );
-      } catch {
-        return undefined;
-      }
+    function baseAllowlist():
+      | { ref: string; lists: Record<string, unknown> }
+      | undefined {
+      const at = ratchetBaseRef();
+      if (!at) return undefined;
+      const source = sourceAtRatchetBase(at, ALLOWLIST_PATH);
+      if (source === null) return undefined;
       const js = transformSync(source, { loader: "ts", format: "cjs" }).code;
       const module_ = { exports: {} as Record<string, unknown> };
       new Function("module", "exports", js)(module_, module_.exports);
-      return module_.exports;
+      return { ref: at.ref, lists: module_.exports };
     }
 
     function additions(
@@ -342,15 +340,15 @@ describe("banner comments", () => {
     }
 
     it("BANNER_COMMENT_DEBT", () => {
-      const base = baseAllowlist();
-      if (!base) return;
-      const before = base.BANNER_COMMENT_DEBT as
+      const at = baseAllowlist();
+      if (!at) return;
+      const before = at.lists.BANNER_COMMENT_DEBT as
         | Record<string, number>
         | undefined;
       if (!before) return;
       expect(
         additions(BANNER_COMMENT_DEBT, before),
-        `Debt entries may only be REMOVED or lowered, never added or raised, vs ${BASE_REF}.`,
+        `Debt entries may only be REMOVED or lowered, never added or raised, vs ${at.ref}.`,
       ).toEqual([]);
     });
 
@@ -360,9 +358,9 @@ describe("banner comments", () => {
      * list: down only.
      */
     it("SECTIONED_CEILINGS", () => {
-      const base = baseAllowlist();
-      if (!base) return;
-      const before = base.SECTIONED_CEILINGS as
+      const at = baseAllowlist();
+      if (!at) return;
+      const before = at.lists.SECTIONED_CEILINGS as
         | { files: number; banners: number }
         | undefined;
       if (!before) return;
@@ -377,7 +375,7 @@ describe("banner comments", () => {
       }
       expect(
         raised,
-        `The tolerated-population ceilings may only be LOWERED, vs ${BASE_REF}.`,
+        `The tolerated-population ceilings may only be LOWERED, vs ${at.ref}.`,
       ).toEqual([]);
     });
   });

@@ -34,6 +34,29 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v5
+        with:
+          # The shrink-only ratchets read their debt lists at a BASE revision
+          # (`git show <ref>:<path>`) and diff them. At the default depth of 1
+          # there is no other revision in the clone at all, so that read failed
+          # on every CI run since those gates landed, and each of them caught the
+          # failure and returned early. Five gates, green in CI throughout,
+          # having never once compared anything.
+          fetch-depth: 0
+
+      # Which revision that is depends on the trigger, and on a push it is NOT
+      # `origin/staging`: on a push to staging that ref IS the commit under test,
+      # and a debt list diffed against itself can only ever report "unchanged".
+      # The script works the answer out per trigger and refuses rather than
+      # guessing; `ratchetBaseRef.ts` refuses a second time on the same two
+      # grounds, so deleting this step cannot quietly restore the silence.
+      - name: Resolve the ratchets' base revision
+        env:
+          PUSH_BEFORE: ${{ github.event.before }}
+          PR_BASE_REF: ${{ github.base_ref }}
+        run: |
+          set -euo pipefail
+          base="$(bash scripts/resolve-ratchet-base-ref.sh)"
+          echo "RATCHET_BASE_REF=$base" >> "$GITHUB_ENV"
 
       - uses: actions/setup-node@v6
         with:
@@ -147,7 +170,22 @@ jobs:
   act-warnings:
     runs-on: ubuntu-latest
     steps:
+      # Same checkout depth and base ref as `test`, because this job re-runs
+      # every suite (the ratchets included) and treats a non-zero vitest exit as
+      # its own failure. Without them the shrink-only gates would throw here on
+      # an unreachable base and take this job's warning count down with them.
       - uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+
+      - name: Resolve the ratchets' base revision
+        env:
+          PUSH_BEFORE: ${{ github.event.before }}
+          PR_BASE_REF: ${{ github.base_ref }}
+        run: |
+          set -euo pipefail
+          base="$(bash scripts/resolve-ratchet-base-ref.sh)"
+          echo "RATCHET_BASE_REF=$base" >> "$GITHUB_ENV"
 
       - uses: actions/setup-node@v6
         with:
