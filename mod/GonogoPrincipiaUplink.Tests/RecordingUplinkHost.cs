@@ -182,7 +182,12 @@ namespace GonogoPrincipiaUplink.Tests
 
         public double NowUt() => throw NotExpected("NowUt");
 
-        public void AddSampler(ISnapshotSampler sampler) => throw NotExpected("AddSampler");
+        /// <summary>Recorded rather than refused: the frame the control-frame
+        /// capability answers from is kept fresh by one of these, and a test that
+        /// threw here could not tell a registered sampler from an absent one.</summary>
+        public List<ISnapshotSampler> Samplers { get; } = new List<ISnapshotSampler>();
+
+        public void AddSampler(ISnapshotSampler sampler) => Samplers.Add(sampler);
 
         public void AddChannelSource(string topic, Func<KspSnapshot?, object?> map) =>
             throw NotExpected("AddChannelSource");

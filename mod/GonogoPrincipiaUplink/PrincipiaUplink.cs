@@ -216,6 +216,24 @@ namespace GonogoPrincipiaUplink
             host.AddSampledSource(CaptureOnMain, HandleOnCourier, FlightPlanTopic);
             _settingsPublisher = host.Publisher(SettingsTopic);
             host.AddSampledSource(CaptureSettingsOnMain, HandleSettingsOnCourier, SettingsTopic);
+            // Keeps the plotting frame readable whether or not anyone subscribes
+            // principia.settings.
+            //
+            // A sampled source runs only while its own topic has a subscriber,
+            // and the control frame is read out of the same observation. That
+            // made system.frame a DEAD channel on a fresh session for any client
+            // that subscribed to it alone: this uplink holds the controlFrame
+            // capability exclusively, answered null because nothing had populated
+            // the observation, and an exclusive capability does not fall through
+            // to the vanilla. No exception and no log line, just a topic that
+            // never emitted. Measured on the rig, where a probe subscribing
+            // system.frame by itself saw zero frames in 45 seconds and the same
+            // probe with principia.settings added saw 28 in 30.
+            //
+            // Falling back to stock's answer would have been worse than the
+            // silence: stock reports body-centred inertial, so a player sitting
+            // in a pulsating frame would have been told they were somewhere else.
+            host.AddSampler(new SettingsRefresh(this));
             _planPublisher = host.Publisher(PlanTopic);
             host.AddSampledSource(CapturePlanOnMain, HandlePlanOnCourier, PlanTopic);
             // No topic prefixes, so the engine never skips it. What this source
@@ -539,6 +557,28 @@ namespace GonogoPrincipiaUplink
         /// Written on the main thread, read from a channel mapper.
         /// </summary>
         private volatile SettingsObservation? _lastSettings;
+
+        /// <summary>
+        /// Reads the producer's settings every tick, so whatever is derived from
+        /// them can be answered without their own topic being subscribed.
+        ///
+        /// <para>A sampler rather than a second sampled source, because that is
+        /// the seam that runs unconditionally. The settings channel still takes
+        /// its own reading when it is subscribed: that is one extra reflective
+        /// read per tick in that case, and the alternative was routing a
+        /// subscribed channel's payload through a field written by something
+        /// else, which makes the channel's freshness depend on the sampler's
+        /// order rather than on its own.</para>
+        /// </summary>
+        private sealed class SettingsRefresh : ISnapshotSampler
+        {
+            private readonly PrincipiaUplink _uplink;
+
+            internal SettingsRefresh(PrincipiaUplink uplink) => _uplink = uplink;
+
+            public void Sample(KspSnapshot snapshot) =>
+                _uplink.CaptureSettingsOnMain(snapshot);
+        }
 
         /// <summary>What an operator is told while we have stopped reading, and the
         /// one action that resumes it.</summary>

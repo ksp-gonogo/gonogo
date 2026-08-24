@@ -219,7 +219,7 @@ function CurrentOrbitComponent({
           it takes one of them away, because a frame caption on a panel whose
           readouts it does not touch is a line of text that explains nothing. */}
       {noApsidesHere && controlFrameLabel(controlFrame) !== undefined && (
-        <FrameCaveat>Frame: {controlFrameLabel(controlFrame)}</FrameCaveat>
+        <FrameCaveat>{`Frame: ${controlFrameLabel(controlFrame)}`}</FrameCaveat>
       )}
       {/* A plain div (not a Stack) so the ResizeObserver ref attaches to the
           real measured element: ui-kit's layout primitives don't forward
