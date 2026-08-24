@@ -548,6 +548,69 @@ namespace GonogoPrincipiaUplink
                 session.Plugin.BurnType(), request, source.Celestials.Indices, out reason);
         }
 
+        /// <summary>
+        /// Makes a plan for a craft that has none, so a composed plan has somewhere
+        /// to be installed. Null when there is one already or one was made, and the
+        /// refusal when it could not be.
+        ///
+        /// <para>Its own frame, before the install's. Two frames rather than one
+        /// because creating and editing are different gates on the producer's side
+        /// and the second is minted from a proof the first has already succeeded.
+        /// Nothing is lost by the split: the create writes no burn, and the install
+        /// re-reads the plan it lands in.</para>
+        /// </summary>
+        private PrincipiaWriteResult? EnsurePlanExists(
+            string? vesselId, double? desiredFinalTimeUt)
+        {
+            var offThread = WrongThread();
+            if (offThread.HasValue)
+            {
+                return offThread.Value;
+            }
+
+            var session = Session();
+            if (session == null)
+            {
+                return NoSession();
+            }
+            using var frame = Frame(session);
+            if (frame == null)
+            {
+                return NoPlugin();
+            }
+            if (!frame.TryVessel(vesselId, out var vessel))
+            {
+                return UnknownVessel(vesselId);
+            }
+            if (vessel.TryFlightPlan(out _))
+            {
+                return null;
+            }
+
+            if (!vessel.TryPlanCreation(out var gate, out var refusal, out var detail))
+            {
+                return PrincipiaWriteResult.Refused(refusal, detail);
+            }
+
+            var massTons = _source()?.MassTonsOf(vessel.Guid);
+            if (massTons == null || !(massTons.Value > 0))
+            {
+                return PrincipiaWriteResult.Refused(
+                    PrincipiaWriteRefusal.SurfaceUnavailable,
+                    "The craft's mass could not be read, and a plan created without one starts "
+                    + "from a craft that weighs nothing.");
+            }
+
+            // An hour past now when the plan did not say, which is what the
+            // producer's own planner asks for when it is given nothing. A plan
+            // ending before it starts is an assertion failure inside the plugin
+            // rather than an error return.
+            var now = frame.CurrentTime();
+            var finalTime = desiredFinalTimeUt ?? now + 3600.0;
+            var created = gate.Create(finalTime, massTons.Value);
+            return created.Outcome == PrincipiaWriteOutcome.Written ? null : created;
+        }
+
         /// <summary>Drops one burn from the plan.</summary>
         public CommandResult<Dictionary<string, object?>> RemoveBurn(PrincipiaBurnRemoveArgs? args)
         {
@@ -761,11 +824,13 @@ namespace GonogoPrincipiaUplink
         /// failing any check writes NOTHING, and the receipt re-reads the plan either
         /// way so a partial write cannot be mistaken for a clean one.</para>
         ///
-        /// <para>Burns are not composed from constants, for the same reason a single
-        /// edit is not: the struct is a third party's and this Uplink only ever
-        /// round-trips one it was given. So an existing burn is the template for
-        /// every burn installed, and a plan with none refuses rather than inventing
-        /// the first.</para>
+        /// <para>The head burn is BUILT where the craft holds none, from the type the
+        /// producer's own entry point declares, and every burn after it is copied
+        /// from that head. A craft with no plan at all gets one made for it here
+        /// rather than being refused: "install this plan on that craft" is the whole
+        /// of what this command means, and requiring the operator to send a separate
+        /// create first would put the two halves a light-time apart, which is exactly
+        /// what sending a plan as ONE message exists to avoid.</para>
         /// </summary>
         public CommandResult<Dictionary<string, object?>> SendPlan(PrincipiaPlanSendArgs? args)
         {
@@ -778,13 +843,24 @@ namespace GonogoPrincipiaUplink
                 return Ok(replayed!, replay: true);
             }
 
+            var madeOne = EnsurePlanExists(args.VesselId, args.DesiredFinalTimeUt);
+            if (madeOne.HasValue)
+            {
+                return Refusal(SendCommand, args.RequestId, madeOne.Value, null);
+            }
+
             return InPlan(
                 SendCommand,
                 args.VesselId,
                 args.RequestId,
                 (session, gate, now) =>
                 {
-                    if (!session.Writes.BurnLayoutVerified)
+                    // Only where there is a burn to copy. A plan sent to a craft
+                    // holding none builds its head instead, and that build is its own
+                    // demonstration of the struct, so gating on a verdict the arm
+                    // could not reach would refuse exactly the case this command
+                    // exists for: giving a plan to a craft that has none.
+                    if (gate.ManoeuvreCount() > 0 && !session.Writes.BurnLayoutVerified)
                     {
                         return LayoutUnverified(session, "burn");
                     }

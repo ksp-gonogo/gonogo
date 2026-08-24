@@ -1003,6 +1003,37 @@ namespace GonogoPrincipiaUplink.Tests
         }
 
         /// <summary>
+        /// A composed plan sent to a craft with NO PLAN AT ALL makes one for it.
+        ///
+        /// <para>"Install this plan on that craft" is the whole of what the command
+        /// means. Requiring a separate create first would put the two halves a
+        /// light-time apart, which is exactly what sending a plan as one message
+        /// exists to avoid.</para>
+        /// </summary>
+        [Fact]
+        public void AComposedPlanReachesACraftThatHasNoPlanAtAll()
+        {
+            var (plugin, commands) = Wire(p => p.Add(Guid, hasFlightPlan: false));
+            Armed(commands);
+
+            var written = commands.SendPlan(
+                new PrincipiaPlanSendArgs
+                {
+                    VesselId = Guid,
+                    RequestId = "s-none",
+                    DesiredFinalTimeUt = 40_000.0,
+                    Burns = new[]
+                    {
+                        new PrincipiaComposedBurn { IgnitionUt = 5000.0, DeltaVTangent = 90.0 },
+                    },
+                });
+
+            Assert.Equal(PrincipiaWriteOutcome.Written, Outcome(written));
+            Assert.True(plugin.Known(Guid).HasFlightPlan);
+            Assert.Single(plugin.Known(Guid).Burns);
+        }
+
+        /// <summary>
         /// An armed vessel whose plan holds no burns. The burn probe cannot run with
         /// no burns, so the arm happens on a plan that has one and the plan is
         /// emptied after: what is under test is the missing template, not the arm.
