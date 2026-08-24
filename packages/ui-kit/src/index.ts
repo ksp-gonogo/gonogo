@@ -341,6 +341,24 @@ export {
   type LineGraphThresholdStyle,
 } from "./LineGraph";
 export {
+  AntiNormalIcon,
+  AntiTargetIcon,
+  BinormalIcon,
+  FrenetNormalIcon,
+  MARKER_ICONS,
+  MARKER_IDS,
+  ManeuverIcon,
+  type MarkerIconProps,
+  type MarkerId,
+  NormalIcon,
+  ProgradeIcon,
+  RadialInIcon,
+  RadialOutIcon,
+  RetrogradeIcon,
+  TangentIcon,
+  TargetIcon,
+} from "./MarkerIcons";
+export {
   Meter,
   type MeterProps,
   type MeterSize,

@@ -55,6 +55,7 @@
     "build": "tsup && cp node_modules/@ksp-gonogo/theme/dist/tokens.css dist/tokens.css",
     "dev": "tsup --watch",
     "lint": "tsc --noEmit",
+    "render:markers": "node scripts/render-markers.ts",
     "test": "vitest run",
     "typecheck": "tsc --noEmit && tsc -p tsconfig.test-d.json"
   },

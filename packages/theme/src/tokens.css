@@ -124,6 +124,27 @@
   --color-tag-red-fg: #ff4466;
 
   /*
+   * Attitude and manoeuvre marker palette: the hue KSP paints each navball
+   * marker, so an operator who knows a marker by its colour is not retrained.
+   * These are FACTS about the game, not a design choice, and are not to be
+   * tuned for the surface: the marker glyphs in `@ksp-gonogo/ui-kit`
+   * (`MarkerIcons.tsx`) carry a `currentColor` keyline that supplies the
+   * luminance contrast against either ground, so the hue is free to be the
+   * game's. Stock ships the glyph atlas as a white alpha mask
+   * (`Squad/Props/IVANavBallNoBase/navBall_vectors_IVA.png`) and tints it from
+   * the NavBall prefab; the values here are RasterPropMonitor's stock-matching
+   * tints (`JSIPrimaryFlightDisplay.cs`), converted from Unity `Color` floats.
+   * A pair (prograde/retrograde, normal/anti-normal, radial in/out,
+   * target/anti-target) shares one hue in game and shares one token here:
+   * within a pair, SHAPE carries the distinction.
+   */
+  --color-marker-prograde: #d6fa00;
+  --color-marker-normal: #ed00ff;
+  --color-marker-radial: #00fff4;
+  --color-marker-maneuver: #001dff;
+  --color-marker-target: #ff00ff;
+
+  /*
    * Categorical data palette: used for chart series, telemetry rows,
    * body markers, and anything where the role is "make this category
    * visually distinct from neighbours". Cycle by index (see
