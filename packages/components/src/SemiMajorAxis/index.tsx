@@ -9,6 +9,11 @@ import {
   type VesselState,
   withoutReckoning,
 } from "@ksp-gonogo/sitrep-client";
+import {
+  type ControlFrame,
+  controlFrameLabel,
+  lengthsAreLengths,
+} from "@ksp-gonogo/sitrep-sdk";
 import { EmptyState, Panel, Sparkline } from "@ksp-gonogo/ui";
 import { formatDuration, ReadoutCaption, Unit } from "@ksp-gonogo/ui-kit";
 import { useCallback, useRef, useState } from "react";
@@ -71,6 +76,8 @@ function SemiMajorAxisComponent({
   // Held rather than never-seen: only `stale` reads as "the link went quiet",
   // and a cold start must not accuse it.
   const smaHeld = notCurrent(orbitReading);
+  const controlFrame = useStream<ControlFrame>("system.frame");
+  const lengthsPulsate = lengthsAreLengths(controlFrame) === "invalid";
   // Age of the observation against the FRAME's view time, never a wall clock:
   // two reads in one frame must not disagree about how old the same sample is.
   const viewUt = useViewUt();
@@ -176,6 +183,18 @@ function SemiMajorAxisComponent({
           <ReadoutCaption role="status">
             at last contact
             {smaAgeSec !== undefined && `, ${formatDuration(smaAgeSec)} ago`}
+          </ReadoutCaption>
+        )}
+        {/* A length in a pulsating frame is not a length: that frame holds its
+            two primaries' separation fixed, so its length unit varies with
+            time. LABELLED rather than suppressed, which is the difference
+            between this and an apsis. An apsis in such a frame does not exist
+            at all and must not show a number; a semi-major axis does exist, it
+            is simply measured in units that move, and an operator who knows
+            that can still read it. */}
+        {lengthsPulsate && (
+          <ReadoutCaption role="status">
+            {`in ${controlFrameLabel(controlFrame) ?? "a pulsating frame"}: lengths vary with time`}
           </ReadoutCaption>
         )}
         {showSparkline && (
