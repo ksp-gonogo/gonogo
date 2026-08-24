@@ -72,6 +72,28 @@ describe("Sparkline", () => {
     expect(svg).not.toBeNull();
   });
 
+  it("keeps the peak's stroke inside the viewport instead of centred on its top edge", () => {
+    // Ascending values put the peak (the newest sample) at the domain
+    // maximum, which the Y scale used to map straight to y=0: the exact top
+    // edge of the SVG's own clip box, so half the stroke's ink drew above
+    // it and the apex read as clipped. With `strokeWidth` 4 the padding is
+    // large enough to assert on directly rather than needing a pixel probe.
+    const { container } = render(
+      <Sparkline
+        values={[1, 2, 3, 10]}
+        width={100}
+        height={20}
+        strokeWidth={4}
+      />,
+    );
+    const d = container.querySelector("path")?.getAttribute("d") ?? "";
+    // The path's last point is the peak; its y coordinate must sit at least
+    // half a stroke width below the SVG's own top edge (y=0).
+    const points = [...d.matchAll(/[ML]([\d.]+),([\d.]+)/g)];
+    const lastY = Number(points.at(-1)?.[2]);
+    expect(lastY).toBeGreaterThanOrEqual(2);
+  });
+
   it("exposes its aria-label", () => {
     const { container } = render(
       <Sparkline

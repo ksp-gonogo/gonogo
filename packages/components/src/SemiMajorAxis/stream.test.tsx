@@ -140,7 +140,10 @@ describe("SemiMajorAxis: genuinely runs off the stream (M3 batch 2)", () => {
       // Rising series (679_400 -> 679_800 -> 680_000) draws a
       // monotonically DEscending y (SVG y grows downward), proves the
       // point ORDER came through correctly too, not just the count.
-      expect(d).toBe("M0.00,28.00 L60.00,9.33 L120.00,0.00");
+      // Inset by half the stroke's width at each extreme, so the highest and
+      // lowest points plot INSIDE the box rather than centred on its edge,
+      // where an SVG clips half the ink away.
+      expect(d).toBe("M0.00,27.25 L60.00,9.58 L120.00,0.75");
     });
   });
 });

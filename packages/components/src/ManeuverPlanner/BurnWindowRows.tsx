@@ -26,12 +26,13 @@ import {
 //
 //   - each row states what distinguishes it from the other two, because three
 //     rows each showing only a duration are indistinguishable
-//   - the long explanatory text is a TOOLTIP; on the row it truncates first and
-//     truncating it is what destroyed the distinction it existed to draw
+//   - a row only grows a subtitle to say WHY it has no time (no burn-time
+//     model); routine provenance ("rocket equation"/"planned") added nothing
+//     the label and value didn't already say, and was dropped as noise
 //   - the pair most likely to be conflated is separated by SHAPE, not hue, so
 //     it survives greyscale and colour-vision deficiency
-//   - the numeric extra (here the duration) sits beside the value, never folded
-//     into the basis line, which pushed both off the end of the row
+//   - the burn's overall duration is its own line above the three rows, never
+//     folded into one of them, which pushed both off the end of the row
 // ---------------------------------------------------------------------------
 
 /**
@@ -139,12 +140,16 @@ function InstantRow({ row, nowUt }: { row: BurnInstantRow; nowUt: number }) {
               {row.label}
             </span>
           </Cluster>
-          {/* The basis alone. The long form is the tooltip: on the row it is
-              the first thing to truncate, and truncating it is what made two
-              rows read alike in the widget this layout came from. */}
-          <Truncate style={CAPTION} title={row.detail ?? row.question}>
-            {row.basis}
-          </Truncate>
+          {/* Only for the absent case: which is WHY there's no time, not
+              routine provenance. "rocket equation" / "planned" said nothing a
+              reader didn't already have from the label and the value beside
+              it, and were dropped as noise; "no burn-time model" is the one
+              subtitle that answers a question the row's own value can't. */}
+          {row.atUt == null && (
+            <Truncate style={CAPTION} title={row.detail ?? row.question}>
+              {row.basis}
+            </Truncate>
+          )}
         </Stack>
       </Cluster>
       <Stack gap="xs" style={{ alignItems: "flex-end", flex: "0 0 auto" }}>
@@ -265,17 +270,10 @@ export function BurnWindowRows({
 
   return (
     <Stack gap="xs">
-      <Cluster
-        justify="between"
-        align="baseline"
-        style={{ gap: "var(--space-6)" }}
-      >
-        <span style={{ ...KIND_CHIP, color: "var(--color-text-muted)" }}>
-          Burn window
-        </span>
-        {/* Beside the value, never folded into a basis line: it is a separate
-            fact from how the instants were derived, and sharing that line
-            pushed both off the end of the row. */}
+      {/* No "Burn window" caption here: the section heading above already
+          says "Burn windows", and restating it on the first row said nothing
+          the heading hadn't. The duration is the one fact this line adds. */}
+      <Cluster justify="end" align="baseline" style={{ gap: "var(--space-6)" }}>
         <span style={CAPTION}>
           {duration == null
             ? NULL_DISPLAY

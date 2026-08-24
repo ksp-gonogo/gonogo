@@ -92,9 +92,17 @@ export function Sparkline({
     );
   }
 
+  // Half the stroke's own width, reserved top and bottom, so the highest and
+  // lowest points plot inside the viewport instead of ON its edge. An SVG
+  // clips to its own box by default, and a stroke is centred on its path: a
+  // peak scaled all the way to y=0 draws half its ink above the box, which is
+  // the apex-gets-cut-off bug this guards against. The domain's actual min/max
+  // still touch the edges of this padded band exactly, so the line's true
+  // extremes are unchanged, only where they land in pixels moves.
+  const padY = strokeWidth / 2;
   const xs = finite.map((_, i) => i);
   const scaleX = makeScale(0, finite.length - 1, 0, width);
-  const scaleY = makeScale(domain[0], domain[1], height, 0);
+  const scaleY = makeScale(domain[0], domain[1], height - padY, padY);
   const d = buildPath(xs, finite, scaleX, scaleY);
   // Filled-area path: the line plus the bottom-left/right corners. Gives
   // the sparkline visual weight against a plot background without

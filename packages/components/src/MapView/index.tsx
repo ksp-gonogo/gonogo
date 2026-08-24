@@ -21,7 +21,6 @@ import {
 import {
   mapOrbitPatch,
   type OrbitTrajectory,
-  TrajectoryFrameKindLike,
   useOrbitTrajectory,
   useStream,
   useViewUt,
@@ -40,7 +39,6 @@ import {
 } from "@ksp-gonogo/ui-kit";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { OrbitalEventChips } from "../shared/OrbitalEventChips";
-import { TrajectoryFrameCaption } from "../shared/trajectoryFrame";
 import { trajectoryWithheldCopy } from "../shared/trajectoryWithheld";
 import {
   cameraTransform,
@@ -1373,20 +1371,10 @@ function MapViewComponent({
             ground track
           </ReadoutCaption>
         )}
-        {/* The frame is stated outright rather than taken off the path,
-            because a ground track is a body-fixed projection whatever frame
-            the path was computed in: captioning the path's frame here would
-            name a frame this map never draws in. */}
-        {!trajectoryWithheld && predictionEnabled && hasPatchChain && (
-          <TrajectoryFrameCaption
-            centreBodyName={targetBodyId}
-            frame={{
-              kind: TrajectoryFrameKindLike.BodyCentredRotating,
-              lengthsPulsate: false,
-            }}
-          />
-        )}
-
+        {/* No frame caption. A ground track is a body-fixed projection whatever
+            frame the path was computed in, so this map has exactly one frame it
+            can ever draw in and naming it states a constant. The caption earns
+            its place on the views that CAN be in another frame. */}
         <MapSections>
           <WidgetSections />
         </MapSections>

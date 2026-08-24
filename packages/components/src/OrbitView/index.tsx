@@ -286,6 +286,14 @@ function OrbitViewComponent({
   // standard mission-control shorthand the operator already reads
   // elsewhere (e.g. flight-plan annotations).
   const compactPill = cols < 4 || rows < 4;
+  // The header row gives the title a fixed reserved width and does not grow
+  // it into a chevron-collapsed aside's freed space, so a title that doesn't
+  // fit at this column count is squeezed far below what the row actually has
+  // room for. Same threshold and the same reasoning as `compactPill` above
+  // (only the COLUMN count matters here, not rows: a title truncates
+  // horizontally, so a wide-but-short landscape slot needs no shortening).
+  const compactTitle = cols < 4;
+  const panelTitleText = compactTitle ? "OVIEW" : "ORBIT VIEW";
   let pillLabel = NULL_DISPLAY;
   let pillTone: ReadoutTone = "default";
   if (hasOrbit) {
@@ -386,7 +394,7 @@ function OrbitViewComponent({
     // title row runs the full width and the diagram gets whatever besides.
     return (
       <Panel
-        panelTitle="ORBIT VIEW"
+        panelTitle={panelTitleText}
         panelSidebar={
           <LandscapeChrome>
             {bodyName !== undefined && (
@@ -426,7 +434,7 @@ function OrbitViewComponent({
     !drawingFillsPanel && showSubtitle && bodyName !== undefined;
   return (
     <Panel
-      panelTitle="ORBIT VIEW"
+      panelTitle={panelTitleText}
       // The stream badge is gone from here on purpose: the composed header
       // renders the host-derived status, which watches every topic this widget
       // declares rather than the one this hook picked by hand.
@@ -446,11 +454,15 @@ function OrbitViewComponent({
       )}
       {/* Which frame the drawing below is in. An orbit that closes in one frame
           is a rosette in another, so the curve is only readable next to its
-          own frame's name. */}
-      <TrajectoryFrameCaption
-        trajectory={trajectory}
-        centreBodyIndex={orbit?.referenceBodyIndex}
-      />
+          own frame's name. Gated on `showDiagram`: below that threshold there
+          is no drawing for the caption to be about, only the status pill,
+          which already says everything this size has room to say. */}
+      {showDiagram && (
+        <TrajectoryFrameCaption
+          trajectory={trajectory}
+          centreBodyIndex={orbit?.referenceBodyIndex}
+        />
+      )}
       {!hasOrbit ? (
         <NoData>
           {/* "measured" (Loaded/packed) basis: there IS an orbit, just no
