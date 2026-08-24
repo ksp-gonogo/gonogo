@@ -207,6 +207,7 @@ namespace GonogoPrincipiaUplink
 
             RegisterPropagation(host);
             RegisterGravityModel(host);
+            RegisterControlFrame(host);
             AttachObserver();
             _observer?.TryAttach();
             _settings?.TryAttach();
@@ -511,8 +512,19 @@ namespace GonogoPrincipiaUplink
 
             observation.TargetCelestialBody = _settings.TargetCelestialBody;
             _nativeSettingsReader.Read(_settings, observation);
+            // Kept for the control-frame source, which answers a channel on the
+            // Courier thread and so cannot reach the producer itself. A reference
+            // assignment, which is atomic: the reader sees either the previous
+            // observation or this one, never a half-built one.
+            _lastSettings = observation;
             return observation;
         }
+
+        /// <summary>
+        /// The most recent settings observation, or null before the first capture.
+        /// Written on the main thread, read from a channel mapper.
+        /// </summary>
+        private volatile SettingsObservation? _lastSettings;
 
         /// <summary>What an operator is told while we have stopped reading, and the
         /// one action that resumes it.</summary>
@@ -599,6 +611,25 @@ namespace GonogoPrincipiaUplink
                 Id = PrincipiaPropagationProvider.ProviderIdValue,
                 Factory = ctx => new PrincipiaPropagationProvider(
                     ctx.Vanilla<IPropagationProvider>(PropagationCapability.Id)),
+            });
+        }
+
+        /// <summary>
+        /// Offers the producer's plotting frame as the game's control frame.
+        ///
+        /// <para>Registered unconditionally, unlike the gravity model beside it: a
+        /// build with nothing to read answers null, which is the same answer stock
+        /// gives before a craft has an orbit, and a client is told the same thing
+        /// by both. There is nothing here that a missing config could make
+        /// unanswerable, so there is no case for registering nothing.</para>
+        /// </summary>
+        internal void RegisterControlFrame(IUplinkHost host)
+        {
+            host.Kernel.RegisterProvider(new ProviderRegistration
+            {
+                Capability = ControlFrameCapability.Id,
+                Id = "principia",
+                Factory = _ => new PrincipiaControlFrameSource(() => _lastSettings),
             });
         }
 

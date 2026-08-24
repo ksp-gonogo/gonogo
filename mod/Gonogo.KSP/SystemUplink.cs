@@ -22,8 +22,25 @@ namespace Gonogo.KSP
     /// <see cref="IUplinkHost.AddSampler"/> exists for.
     /// </summary>
     [SitrepUplink("system")]
-    public sealed class SystemUplink : ISitrepUplink
+    public sealed class SystemUplink : ISitrepUplink, IUplinkCapabilityDeclarer
     {
+        /// <summary>
+        /// Declares the <c>controlFrame</c> capability, with stock's own answer as
+        /// its vanilla.
+        ///
+        /// <para>Declared by the uplink that OWNS <c>system.frame</c> rather than
+        /// alongside the vessel capabilities, which is the contract's own rule: the
+        /// channel and the capability behind it move together, so a reader looking
+        /// for what answers this topic finds both in one place.</para>
+        ///
+        /// <para>Stock's map view really is body-centred with inertial axes, so
+        /// this vanilla is a true answer rather than a stand-in, and a widget
+        /// following the control frame has something to follow on an install with
+        /// no n-body producer at all.</para>
+        /// </summary>
+        public void DeclareCapabilities(Kernel kernel) =>
+            ControlFrameElection.RegisterCapability(kernel, _ => new StockControlFrameSource());
+
         /// <summary>
         /// The frame the game's navigation view is in: what the player is looking
         /// at, and what a widget set to follow the control frame resolves against.

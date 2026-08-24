@@ -74,6 +74,17 @@ namespace GonogoPrincipiaUplink.Tests
                 // force model, and unsatisfied is the honest state.
                 Vanilla = null,
             });
+            kernel.RegisterCapability(new CapabilityDescriptor
+            {
+                Id = ControlFrameCapability.Id,
+                Exclusive = true,
+                SpineCritical = false,
+                // Core declares this one WITH a vanilla, because stock's map view
+                // really is body-centred inertial. Null here only because nothing
+                // in these tests reads the stock answer, and a stand-in would be a
+                // second thing to keep in step with core for no gain.
+                Vanilla = null,
+            });
             return kernel;
         }
 
