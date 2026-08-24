@@ -502,6 +502,11 @@ export {
 } from "./ToggleButton";
 export { Truncate } from "./Truncate";
 export { Unit } from "./Unit";
+export {
+  type SlidableRange,
+  UnitInput,
+  type UnitInputProps,
+} from "./UnitInput";
 // ── Units ───────────────────────────────────────────────────────────────────
 // The contract declares what a field IS; these decide how to SHOW it. The wire
 // is canonical SI and never pre-scaled, so every ladder lives here.

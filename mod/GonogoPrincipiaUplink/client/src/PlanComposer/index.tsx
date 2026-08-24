@@ -10,12 +10,11 @@ import {
   type Value,
   type VesselIdentity,
   value,
+  vectorMagnitude,
   withoutReckoning,
 } from "@ksp-gonogo/sitrep-sdk";
 import {
   FieldLabel,
-  Input,
-  magnitudeOf,
   PrimaryButton,
   Row,
   RowName,
@@ -23,8 +22,11 @@ import {
   SectionTitle,
   Stack,
   Text,
+  Unit,
+  UnitInput,
   usePanelDelay,
 } from "@ksp-gonogo/ui-kit";
+import { useState } from "react";
 import { PRINCIPIA } from "../uplink";
 
 /**
@@ -60,6 +62,9 @@ export function PlanComposer() {
 
   const { store, drafts } = usePlanDrafts();
   const send = useSendPlan();
+  // Which draft the one outcome belongs to. The send handle is shared across
+  // every draft, so without this an answer renders under all of them.
+  const [sent, setSent] = useState<string | null>(null);
   // The send is a command like any other, so its schedule belongs on the
   // panel's delay rail: at a light-delayed vantage an operator has to be able to
   // see when the plan will actually reach the craft.
@@ -96,7 +101,7 @@ export function PlanComposer() {
 
   return (
     <Section>
-      <SectionTitle>Compose a plan</SectionTitle>
+      <SectionTitle>Uplinked plans</SectionTitle>
       <Stack gap="sm">
         <PrimaryButton
           onClick={() =>
@@ -108,69 +113,64 @@ export function PlanComposer() {
             })
           }
         >
-          New plan
+          Draft plan
         </PrimaryButton>
 
         {mine.length === 0 ? (
           <Text tone="faint" size="sm">
-            No plans composed for this craft yet.
+            Nothing drafted. A draft stays here until it is uplinked.
           </Text>
         ) : null}
 
-        {mine.map((draft) => (
+        {mine.map((draft, planIndex) => (
           <Stack gap="xs" key={draft.id}>
             <Row>
-              <RowName>{draft.name}</RowName>
+              {/* A sequence position, not a name. Nothing edits it and nothing
+                  sends it: the craft has no use for what a draft was called. */}
+              <RowName>Draft {planIndex + 1}</RowName>
             </Row>
 
             {draft.burns.map((burn, index) => (
               // biome-ignore lint/suspicious/noArrayIndexKey: position IS a burn's identity in a plan; two burns can share an instant and every other field
               <Stack gap="xs" key={`${draft.id}-${index}`}>
                 <FieldLabel>Burn {index + 1}</FieldLabel>
-                <Input
-                  aria-label={`Burn ${index + 1} ignition`}
-                  type="number"
-                  value={magnitudeOf(burn.ignitionUt) ?? 0}
-                  onChange={(event) =>
-                    setComponent(draft, index, {
-                      ignitionUt: value("ut", number(event.target.value)),
-                    })
+                <UnitInput
+                  label="Ignition"
+                  unit="ut"
+                  value={burn.ignitionUt}
+                  onChange={(next) =>
+                    setComponent(draft, index, { ignitionUt: next })
                   }
                 />
-                {/* Slot order, not names. The three Δv slots carry the BASIS's own
-                    components in its own order, and the basis this burn declares
-                    is tangent, normal, binormal: so dvRadial is the tangent and
-                    dvPrograde is the binormal. Labelling these by their field
-                    names would put an operator's along-track burn out of plane,
-                    which is a wrong burn that reads as a right one. */}
-                <Input
-                  aria-label={`Burn ${index + 1} tangent`}
-                  type="number"
-                  value={magnitudeOf(burn.dvRadial) ?? 0}
-                  onChange={(event) =>
-                    setComponent(draft, index, {
-                      dvRadial: value("m/s", number(event.target.value)),
-                    })
+                {/* Slot order, not names. The three Δv slots carry the BASIS's
+                    own components in its own order, and the basis this burn
+                    declares is tangent, normal, binormal: so dvRadial is the
+                    tangent and dvPrograde is the binormal. Labelling these by
+                    their field names would put an operator's along-track burn
+                    out of plane, which is a wrong burn that reads as a right
+                    one. */}
+                <UnitInput
+                  label="Tangent"
+                  unit="m/s"
+                  value={burn.dvRadial}
+                  onChange={(next) =>
+                    setComponent(draft, index, { dvRadial: next })
                   }
                 />
-                <Input
-                  aria-label={`Burn ${index + 1} normal`}
-                  type="number"
-                  value={magnitudeOf(burn.dvNormal) ?? 0}
-                  onChange={(event) =>
-                    setComponent(draft, index, {
-                      dvNormal: value("m/s", number(event.target.value)),
-                    })
+                <UnitInput
+                  label="Normal"
+                  unit="m/s"
+                  value={burn.dvNormal}
+                  onChange={(next) =>
+                    setComponent(draft, index, { dvNormal: next })
                   }
                 />
-                <Input
-                  aria-label={`Burn ${index + 1} binormal`}
-                  type="number"
-                  value={magnitudeOf(burn.dvPrograde) ?? 0}
-                  onChange={(event) =>
-                    setComponent(draft, index, {
-                      dvPrograde: value("m/s", number(event.target.value)),
-                    })
+                <UnitInput
+                  label="Binormal"
+                  unit="m/s"
+                  value={burn.dvPrograde}
+                  onChange={(next) =>
+                    setComponent(draft, index, { dvPrograde: next })
                   }
                 />
               </Stack>
@@ -191,36 +191,67 @@ export function PlanComposer() {
               Add burn
             </PrimaryButton>
 
+            <Row>
+              <RowName>Total Δv</RowName>
+              <Unit value={totalDeltaV(draft)} />
+            </Row>
+
             <PrimaryButton
               disabled={send.pending}
               onClick={async () => {
+                setSent(draft.id);
                 // Awaited rather than dropped: the craft's answer is what the
-                // status line below renders, and a dispatch whose outcome is
+                // status line renders, and a dispatch whose outcome is
                 // discarded shows an operator nothing when the game refuses.
                 await send.send(draftAsPlan(draft));
               }}
             >
-              Send to craft
+              Uplink to craft
             </PrimaryButton>
+
+            {/* Under the draft it answers, not at the foot of the panel. One
+                handle serves every draft, so an outcome floating below them all
+                says a plan was accepted without saying which. */}
+            {sent === draft.id && send.outcome !== null ? (
+              <Text
+                role="status"
+                tone={send.outcome.accepted ? "default" : "warn"}
+                size="sm"
+              >
+                {send.outcome.accepted
+                  ? "Aboard. The craft is flying this plan."
+                  : send.outcome.refusal}
+              </Text>
+            ) : null}
           </Stack>
         ))}
-
-        {/* The craft's answer in full. A plan the craft declined is a decision
-            an operator has to act on, and a control that merely stopped spinning
-            would leave them guessing which decision it was. */}
-        {send.outcome === null ? null : (
-          <Text
-            role="status"
-            tone={send.outcome.accepted ? "default" : "warn"}
-            size="sm"
-          >
-            {send.outcome.accepted
-              ? "Plan accepted by the craft."
-              : send.outcome.refusal}
-          </Text>
-        )}
       </Stack>
     </Section>
+  );
+}
+
+/**
+ * What the whole draft costs, as one number.
+ *
+ * <p>Per burn it is the magnitude of the three components, and those add across
+ * burns rather than combining: a plan's cost is what the craft must actually
+ * spend, and two burns in opposite directions cost the sum of both, not their
+ * difference.</p>
+ */
+function totalDeltaV(draft: PlanDraft): Value<"m/s"> {
+  // Through the algebra rather than by hand: `vectorMagnitude` is the same
+  // hypotenuse every other three-component read takes, and doing it here with
+  // raw magnitudes would be a second implementation free to disagree with it.
+  return draft.burns.reduce(
+    (sum, burn) =>
+      sum.plus(
+        vectorMagnitude({
+          x: burn.dvRadial,
+          y: burn.dvNormal,
+          z: burn.dvPrograde,
+        }),
+      ),
+    value("m/s", 0),
   );
 }
 
@@ -255,12 +286,6 @@ function knownId(reading: Reading<VesselIdentity>): string | undefined {
     return reading.value.vesselId;
   }
   return undefined;
-}
-
-/** A typed field's value, with a blank or a half-typed minus sign read as zero. */
-function number(text: string): number {
-  const parsed = Number.parseFloat(text);
-  return Number.isFinite(parsed) ? parsed : 0;
 }
 
 registerAugment({

@@ -102,8 +102,16 @@ export type SameDimensionAs<U> = {
  * `percent`/`ratio` behaving exactly as they did.
  */
 
-/** Units whose kind names an INSTANT rather than an amount. */
-type PointUnit = {
+/**
+ * Units whose kind names an INSTANT rather than an amount.
+ *
+ * <p>Exported because the distinction decides more than arithmetic. An input
+ * control cannot offer a slider over an instant: a UT is legitimately years out,
+ * so no range bounds it usefully, where an interval bounded by a range slides
+ * fine. Derived from the registry's own `affineVector` rather than from a list,
+ * so a unit added as point-like is point-like everywhere at once.</p>
+ */
+export type PointUnit = {
   [K in KnownUnit]: (typeof UNIT_DEFINITIONS)[K] extends {
     affineVector: string;
   }

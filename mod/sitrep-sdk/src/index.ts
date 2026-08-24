@@ -246,6 +246,7 @@ export {
   kspYearDays,
   lookupUnit,
   namespaceOf,
+  type PointUnit,
   registerUnit,
   resetUnitRegistry,
   type SameDimensionAs,

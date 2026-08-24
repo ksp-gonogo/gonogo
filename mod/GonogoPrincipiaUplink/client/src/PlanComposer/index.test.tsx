@@ -79,7 +79,7 @@ async function setup() {
   // Delivery is asynchronous: the samples reach the store after the emit
   // returns, so a synchronous assertion reads the pending state and every test
   // would be asserting against a widget that has no craft.
-  await screen.findByRole("button", { name: "New plan" });
+  await screen.findByRole("button", { name: "Draft plan" });
   return { fixture, view };
 }
 
@@ -96,12 +96,18 @@ describe("PlanComposer", () => {
     // able to work without disturbing each other or the player at the keyboard.
     const { fixture } = await setup();
 
-    press("New plan");
+    press("Draft plan");
     press("Add burn");
     await act(async () => {});
 
     expect(fixture.transport.sentCommands).toHaveLength(0);
-    expect(screen.getByLabelText("Burn 1 ignition")).toBeTruthy();
+    // Labelled VISIBLY, by `UnitInput`. The composer's first cut had four
+    // unlabelled boxes carrying only an aria-label, which reads as a column of
+    // bare numbers to anyone looking at the screen.
+    expect(screen.getByLabelText("Ignition")).toBeTruthy();
+    expect(screen.getByText("Tangent")).toBeTruthy();
+    expect(screen.getByText("Normal")).toBeTruthy();
+    expect(screen.getByText("Binormal")).toBeTruthy();
   });
 
   it("sends the whole plan as one message carrying both instants", async () => {
@@ -110,10 +116,10 @@ describe("PlanComposer", () => {
     const { fixture } = await setup();
     fixture.transport.setCommandHandler(() => ({ success: true }));
 
-    press("New plan");
+    press("Draft plan");
     press("Add burn");
     press("Add burn");
-    press("Send to craft");
+    press("Uplink to craft");
     await act(async () => {});
 
     expect(fixture.transport.sentCommands).toHaveLength(1);
@@ -143,8 +149,8 @@ describe("PlanComposer", () => {
       detail: "Stock has no way to install a composed plan in one step.",
     }));
 
-    press("New plan");
-    press("Send to craft");
+    press("Draft plan");
+    press("Uplink to craft");
     await act(async () => {});
 
     expect(screen.getByRole("status").textContent).toContain(

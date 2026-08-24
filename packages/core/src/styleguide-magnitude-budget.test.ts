@@ -73,6 +73,11 @@ const MAGNITUDE_BUDGET: Record<string, number> = {
   // 2: the observed instant a plan was built from, and the comparison against
   // the view instant that catches a plan built from a state nobody could have
   // seen. Both are read out here because this file IS that boundary.
+  // The one place a magnitude is unavoidable on the INPUT side: a DOM field
+  // holds a string, so somewhere the value has to become a number and back.
+  // Having it here once is what lets every widget stop doing it: `UnitInput`
+  // emits a `Value`, so a call site never sees a bare number at all.
+  "packages/ui-kit/src/UnitInput.tsx": 1,
   // Raised deliberately, and this file is where the escape hatch belongs: its
   // job IS the wire shape, and the receiving side binds every instant and every
   // Δv component to a plain double. A `Value` reaching it is refused from inside

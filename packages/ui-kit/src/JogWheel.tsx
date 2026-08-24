@@ -13,13 +13,25 @@
  */
 
 import type { KeyboardEvent, PointerEvent } from "react";
-import { useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import styled from "styled-components";
 
-export interface JogWheelProps {
+/**
+ * What displacement MEANS.
+ *
+ * <p><b>offset</b>: where the handle sits is the value. Needs bounds, and is the
+ * original behaviour.</p>
+ *
+ * <p><b>rate</b>: where the handle sits is the SPEED the value changes at, and
+ * it springs back to centre on release. Needs no bounds at all, which is the
+ * whole reason it exists: an instant is legitimately years out, and no pair of
+ * bounds spans that while leaving useful precision anywhere inside it. The
+ * producer's own planner drives time and Δv this way.</p>
+ */
+export type JogWheelMode = "offset" | "rate";
+
+interface JogWheelCommon {
   value: number;
-  min: number;
-  max: number;
   step: number;
   /** Drag/keyboard axis. Default "horizontal". */
   orientation?: "horizontal" | "vertical";
@@ -30,8 +42,36 @@ export interface JogWheelProps {
   disabled?: boolean;
 }
 
+export type JogWheelProps =
+  | (JogWheelCommon & {
+      mode?: "offset";
+      min: number;
+      max: number;
+    })
+  | (JogWheelCommon & {
+      mode: "rate";
+      /** Optional here: a rate control does not need somewhere to stop. */
+      min?: number;
+      max?: number;
+      /**
+       * How many `step`s per second at FULL displacement. The travel between
+       * centre and full is what gives the fine end of the range, so this sets
+       * the coarse end.
+       */
+      stepsPerSecond?: number;
+    });
+
 /** Pixels of pointer travel per `step` of value. */
 const SENSITIVITY_PX_PER_STEP = 4;
+
+/** Pointer travel from centre to FULL rate, in rate mode. */
+const RATE_TRAVEL_PX = 80;
+
+/** How often a held rate control emits, in ms. */
+const RATE_TICK_MS = 60;
+
+/** Default steps per second at full displacement. */
+const DEFAULT_STEPS_PER_SECOND = 30;
 
 /**
  * Pure clamp + quantise: move `value` by `deltaSteps` of `step` (fractional
@@ -50,27 +90,62 @@ export function applyDelta(
   return Math.min(max, Math.max(min, snapped));
 }
 
-export function JogWheel({
-  value,
-  min,
-  max,
-  step,
-  orientation = "horizontal",
-  onChange,
-  format,
-  ariaLabel,
-  disabled = false,
-}: JogWheelProps): JSX.Element {
-  const bounds = { min, max, step };
+export function JogWheel(props: JogWheelProps): JSX.Element {
+  const {
+    value,
+    min,
+    max,
+    step,
+    orientation = "horizontal",
+    onChange,
+    format,
+    ariaLabel,
+    disabled = false,
+  } = props;
+  const rate = props.mode === "rate";
+  // A rate control has no ends, so its arithmetic runs unbounded. `applyDelta`
+  // clamps, and clamping to an invented pair is exactly what this mode exists
+  // to avoid.
+  const lo = min ?? Number.NEGATIVE_INFINITY;
+  const hi = max ?? Number.POSITIVE_INFINITY;
+  const bounds = { min: lo, max: hi, step };
   const drag = useRef<{ start: number; startValue: number } | null>(null);
+  // The latest value, for the ticking effect below: it runs on an interval and
+  // would otherwise close over whatever `value` was when the drag began, so
+  // every tick would restate the same number.
+  const latest = useRef(value);
+  latest.current = value;
+  const [displacement, setDisplacement] = useState(0);
 
   const label = format ? format(value) : String(Math.round(value));
-  const fraction = max > min ? (value - min) / (max - min) : 0;
+  const fraction =
+    hi > lo && Number.isFinite(hi - lo) ? (value - lo) / (hi - lo) : 0.5;
 
   const emit = (next: number): void => {
     if (disabled) return;
     if (next !== value) onChange(next);
   };
+
+  /**
+   * While the handle is off centre, move the value at a speed set by how far.
+   *
+   * <p>Cleaned up on release AND on unmount. A timer that outlived either would
+   * keep driving a value nobody is holding, which for a flight plan means a burn
+   * instant sliding while the operator is looking somewhere else.</p>
+   */
+  useEffect(() => {
+    if (!rate || displacement === 0 || disabled) return;
+    const perSecond =
+      (props.mode === "rate" ? props.stepsPerSecond : undefined) ??
+      DEFAULT_STEPS_PER_SECOND;
+    const timer = setInterval(() => {
+      const moved =
+        latest.current +
+        displacement * perSecond * step * (RATE_TICK_MS / 1000);
+      onChange(moved);
+    }, RATE_TICK_MS);
+    return () => clearInterval(timer);
+  }, [rate, displacement, disabled, step, onChange, props]);
 
   const handleKeyDown = (e: KeyboardEvent<HTMLDivElement>): void => {
     if (disabled) return;
@@ -85,10 +160,14 @@ export function JogWheel({
         next = applyDelta(value, bounds, -1);
         break;
       case "Home":
-        next = min;
+        // Nowhere to go in a mode with no ends, so the key does nothing rather
+        // than jumping to an infinity.
+        if (!Number.isFinite(lo)) return;
+        next = lo;
         break;
       case "End":
-        next = max;
+        if (!Number.isFinite(hi)) return;
+        next = hi;
         break;
       default:
         return;
@@ -113,6 +192,14 @@ export function JogWheel({
       orientation === "vertical"
         ? drag.current.start - axisPos(e)
         : axisPos(e) - drag.current.start;
+    if (rate) {
+      // Displacement sets the SPEED, so nothing is emitted here: the ticking
+      // effect does the moving, and a value that also jumped with the pointer
+      // would be driven by two things at once.
+      const fractionOfFull = travel / RATE_TRAVEL_PX;
+      setDisplacement(Math.max(-1, Math.min(1, fractionOfFull)));
+      return;
+    }
     const deltaSteps = travel / SENSITIVITY_PX_PER_STEP;
     emit(applyDelta(drag.current.startValue, bounds, deltaSteps));
   };
@@ -120,6 +207,9 @@ export function JogWheel({
   const endDrag = (e: PointerEvent<HTMLDivElement>): void => {
     if (!drag.current) return;
     drag.current = null;
+    // Springs back to centre: a rate control left displaced would keep moving
+    // the value after the operator let go of it.
+    setDisplacement(0);
     if (e.currentTarget.hasPointerCapture(e.pointerId)) {
       e.currentTarget.releasePointerCapture(e.pointerId);
     }
