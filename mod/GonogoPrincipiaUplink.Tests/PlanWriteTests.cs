@@ -1048,5 +1048,63 @@ namespace GonogoPrincipiaUplink.Tests
             Assert.Equal(PrincipiaWriteRefusal.VesselUnknown, Refusal(refused));
             Assert.Empty(plugin.Writes);
         }
+
+        /// <summary>
+        /// Creating a flight plan is reachable from a client, using nothing but
+        /// the command surface.
+        ///
+        /// <para><b>It was not, and the deadlock was three-sided.</b> Arming
+        /// refused without a plan, creating refused without an arm, and creating
+        /// is the only thing that makes a plan. So <c>principia.plan.create</c>
+        /// could never succeed over the wire at all. Measured on the rig: arm
+        /// answered "The vessel has no flight plan. Create one first." and create
+        /// answered "The flight-plan write surface is not armed for this
+        /// vessel."</para>
+        ///
+        /// <para><b>This suite could not see it.</b>
+        /// <see cref="CreateRefusesAnEndInstantBeforeNow"/> armed the authority
+        /// DIRECTLY, skipping exactly the gate that made the command unreachable,
+        /// so it passed over the defect by construction. These two go through the
+        /// commands a client actually has and nothing else.</para>
+        /// </summary>
+        [Fact]
+        public void ArmingSucceedsOnAVesselWithNoPlanYet()
+        {
+            var (_, commands) = Wire(p => p.Add(Guid, hasFlightPlan: false));
+
+            var armed = commands.Arm(new PrincipiaPlanArmArgs
+            {
+                VesselId = Guid,
+                RequestId = "arm-no-plan",
+            });
+
+            Assert.True(armed.Success, armed.Detail);
+        }
+
+        [Fact]
+        public void ArmingThenCreatingWorksThroughTheCommandSurfaceAlone()
+        {
+            // No reaching past the commands to the authority underneath. If this
+            // passes only when something arms the session directly, the command is
+            // still unreachable to every real client.
+            var (_, commands) = Wire(p => p.Add(Guid, hasFlightPlan: false));
+
+            var armed = commands.Arm(new PrincipiaPlanArmArgs
+            {
+                VesselId = Guid,
+                RequestId = "arm-1",
+            });
+            Assert.True(armed.Success, armed.Detail);
+
+            var created = commands.CreatePlan(new PrincipiaPlanSlotArgs
+            {
+                VesselId = Guid,
+                RequestId = "create-1",
+                FinalTimeUt = 100_000,
+                MassTons = 12,
+            });
+
+            Assert.True(created.Success, created.Detail);
+        }
     }
 }

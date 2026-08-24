@@ -139,12 +139,30 @@ namespace GonogoPrincipiaUplink
             {
                 return Refusal(ArmCommand, requestId, UnknownVessel(vesselId), null);
             }
+            var now = frame.CurrentTime();
             if (!vessel.TryFlightPlan(out var plan))
             {
-                return Refusal(ArmCommand, requestId, NoPlan(), null);
+                // Arm anyway, and this is the whole of what made plan creation
+                // reachable. Arming needed a plan, creating a plan needed an arm,
+                // and creation is the only thing that makes a plan: the three
+                // deadlocked, so `principia.plan.create` could never succeed from
+                // a client at all. Measured on the rig, both refusals verbatim.
+                //
+                // Safe because of what this arm can and cannot authorise. The
+                // probe skipped here round-trips Principia's BURN struct, and a
+                // plan with no burns has none to probe; creation writes no burn
+                // struct either, it asks for an empty plan and a final time. Every
+                // burn write consults `BurnLayoutVerified` on its own account
+                // rather than trusting the arm, so an arm taken without that probe
+                // cannot be spent on one.
+                session.Writes.Arm(vessel.Guid);
+                return Settle(
+                    ArmCommand,
+                    requestId,
+                    PrincipiaWriteResult.Written(),
+                    _reader.ReadInFrame(session, frame, vessel.Guid, now));
             }
 
-            var now = frame.CurrentTime();
             var materialised = plan.Materialise();
             var probeRefusal = PrincipiaLayoutProbe.Run(materialised, session.Writes);
             if (probeRefusal.HasValue)
