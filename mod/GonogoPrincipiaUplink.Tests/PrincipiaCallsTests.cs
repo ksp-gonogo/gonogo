@@ -168,9 +168,10 @@ namespace GonogoPrincipiaUplink.Tests
 
             var portNames = portType!.GetMethods()
                 .Select(m => m.Name)
-                // Not a Principia call: it reports whether the write half BOUND, and
-                // it is on the port because only the port knows.
-                .Where(n => n != "WritesBound")
+                // Neither of these is a Principia call. WritesBound reports whether
+                // the write half BOUND, and BurnType reports the type off a bound
+                // signature; both are on the port because only the port knows.
+                .Where(n => n != "WritesBound" && n != "BurnType")
                 .OrderBy(n => n)
                 .ToArray();
             var allowed = PrincipiaCalls.Allowed

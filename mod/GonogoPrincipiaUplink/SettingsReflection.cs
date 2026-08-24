@@ -174,6 +174,7 @@ namespace GonogoPrincipiaUplink
                 return;
             }
             var name = BodyName(centre);
+            frame.SelectedBodyIndex = _m.ReadInt(centre, BodyIndexMember);
             if (frame.Type == BodyCentredNonRotating || frame.Type == BodySurface)
             {
                 frame.CentreBody = name;
@@ -181,6 +182,7 @@ namespace GonogoPrincipiaUplink
             }
             frame.SecondaryBody = name;
             var parent = _m.Value(centre, ReferenceBodyMember);
+            frame.ParentBodyIndex = parent == null ? null : _m.ReadInt(parent, BodyIndexMember);
             frame.PrimaryBody = parent == null ? null : BodyName(parent);
             if (frame.Type != RotatingPulsating)
             {
@@ -323,12 +325,16 @@ namespace GonogoPrincipiaUplink
         /// would have to reach a fatal-logging method to obtain.</para>
         ///
         /// <para>Our side of the comparison is reconstructed from the selector's
-        /// own two fields by the producer's rule: the centred kinds key on the
-        /// selected body with no primaries, the rotating kinds key on the pair with
-        /// the centre left unset. For the rotating kinds the producer's arrays run
-        /// longer than one entry, but every entry after the first is derived from
-        /// the same body, so the first pair determines the whole descriptor and the
-        /// quadruple is a complete key rather than a prefix of one.</para>
+        /// own two fields by the producer's rule, and the producer does not use ONE
+        /// rule. The centred kinds key on the selected body with no primaries. The
+        /// pulsating kind keys on the parent then the selected body. The direction
+        /// kinds key on those two the other way round, which is the producer's own
+        /// deliberate inversion: the body it wants held fixed is the selected one,
+        /// and the frame it builds calls the held body the primary. For the
+        /// rotating kinds the producer's arrays run longer than one entry, but
+        /// every entry after the first is derived from the same body, so the first
+        /// pair determines the whole descriptor and the quadruple is a complete key
+        /// rather than a prefix of one.</para>
         /// </summary>
         private void ReadDeclutter(object? window, object? selector, SettingsObservation into)
         {
@@ -368,8 +374,16 @@ namespace GonogoPrincipiaUplink
                 // The producer leaves the centre unset on this branch, so its
                 // descriptor carries the type's default rather than a body.
                 keyCentre = 0;
-                keyPrimary = parentIndex.Value;
-                keySecondary = centreIndex.Value;
+                if (type == RotatingPulsating)
+                {
+                    keyPrimary = parentIndex.Value;
+                    keySecondary = centreIndex.Value;
+                }
+                else
+                {
+                    keyPrimary = centreIndex.Value;
+                    keySecondary = parentIndex.Value;
+                }
             }
 
             into.UnpinnedMarkersHiddenHere = SetContainsFrame(

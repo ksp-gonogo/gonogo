@@ -173,10 +173,10 @@ export enum PrincipiaWriteRefusal {
 	IntegratorKindUnexpected = 14,
 	IntegratorBoundsExceeded = 15,
 	FinalTimeInPast = 16,
-	NoTemplateBurn = 17,
 	PluginShapeChanged = 18,
 	IgnitionInPast = 19,
-	PlanMalformed = 20
+	PlanMalformed = 20,
+	ComposedBurnIncomplete = 21
 }
 export interface PrincipiaPlanWriteReceipt
 {
@@ -209,6 +209,7 @@ export interface PrincipiaBurnEditArgs
 	deltaVBinormal?: number;
 	inertiallyFixed?: boolean;
 	profile: PrincipiaBurnProfile;
+	massTons?: number;
 }
 export interface PrincipiaComposedBurn
 {
@@ -227,6 +228,7 @@ export interface PrincipiaPlanSendArgs
 	observedAtUt?: number;
 	burns?: PrincipiaComposedBurn[];
 	desiredFinalTimeUt?: number;
+	massTons?: number;
 }
 export interface PrincipiaBurnRemoveArgs
 {

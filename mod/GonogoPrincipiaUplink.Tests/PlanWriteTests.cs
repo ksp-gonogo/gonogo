@@ -30,6 +30,24 @@ namespace GonogoPrincipiaUplink.Tests
         /// handlers over the top: the production chain minus the two things that
         /// need a running KSP (finding the addon, and the host's own command pump).
         /// </summary>
+        /// <summary>
+        /// The frame the game's navigation view is in, which is the frame a burn
+        /// built here is expressed in. Kerbin-centred and non-rotating, which is the
+        /// simplest kind: one body, in the centre slot.
+        /// </summary>
+        internal static SettingsObservation ViewingKerbin() =>
+            new SettingsObservation
+            {
+                PlottingFrame = new FrameObservation
+                {
+                    Selector = "plotting",
+                    Type = 6000,
+                    CentreBody = "Kerbin",
+                    SelectedBodyIndex = 1,
+                    ParentBodyIndex = 0,
+                },
+            };
+
         private static (FakePrincipiaPlugin Plugin, PlanCommands Commands)
             Wire(Action<FakePrincipiaPlugin>? arrange = null)
         {
@@ -41,7 +59,7 @@ namespace GonogoPrincipiaUplink.Tests
                     plugin, new FakePluginHandle(plugin), out var session, out var reason),
                 reason);
             var source = new FakeSettingsSource { Session = session, ActiveVesselGuid = Guid };
-            var commands = new PlanCommands(() => source);
+            var commands = new PlanCommands(() => source, ViewingKerbin);
             commands.BindToCallingThread();
             return (plugin, commands);
         }
@@ -564,7 +582,8 @@ namespace GonogoPrincipiaUplink.Tests
                     plugin, new FakePluginHandle(plugin), out var session, out _));
             session!.Writes.Arm(Guid);
             var commandsForCreate = new PlanCommands(
-                () => new FakeSettingsSource { Session = session, ActiveVesselGuid = Guid });
+                () => new FakeSettingsSource { Session = session, ActiveVesselGuid = Guid },
+                ViewingKerbin);
             commandsForCreate.BindToCallingThread();
             plugin.Writes.Clear();
 
@@ -747,27 +766,169 @@ namespace GonogoPrincipiaUplink.Tests
 
 
         /// <summary>
-        /// An insert copies a burn already in the plan. A plan with no burns is
-        /// refused rather than served from constants, because a composed burn is a
-        /// bet on a struct layout and a copied one is not.
+        /// An insert with nothing to copy BUILDS the burn, from the loaded build's
+        /// own struct type.
+        ///
+        /// <para>The layout rule this used to be refused by is about a stale field
+        /// SET: a shape written down here resolves rather than throws, and writes a
+        /// plausible wrong burn into somebody's save. A struct made from the type
+        /// the producer's own entry point declares carries exactly this build's
+        /// fields, which is the same guarantee a copy has.</para>
         /// </summary>
         [Fact]
-        public void AnInsertWithNoBurnToCopyIsRefused()
+        public void AnInsertWithNoBurnToCopyBuildsTheFirstOne()
+        {
+            var (plugin, commands) = EmptyPlan();
+
+            var written = commands.InsertBurn(
+                new PrincipiaBurnEditArgs
+                {
+                    VesselId = Guid,
+                    RequestId = "i",
+                    BurnIndex = 0,
+                    IgnitionUt = 5000.0,
+                    DeltaVTangent = 120.0,
+                    MassTons = 8.0,
+                });
+
+            Assert.Equal(PrincipiaWriteOutcome.Written, Outcome(written));
+            Assert.Single(plugin.Known(Guid).Burns);
+        }
+
+        /// <summary>
+        /// The built burn is expressed in the frame the operator is looking at,
+        /// which is the producer's own rule for a burn it opens. In any other frame
+        /// the three components mean something else, so the operator would be
+        /// reading a tangent that is not the one they aimed.
+        /// </summary>
+        [Fact]
+        public void TheBuiltBurnCarriesTheFrameTheViewIsIn()
+        {
+            var (plugin, commands) = EmptyPlan();
+
+            commands.InsertBurn(
+                new PrincipiaBurnEditArgs
+                {
+                    VesselId = Guid,
+                    RequestId = "i",
+                    BurnIndex = 0,
+                    IgnitionUt = 5000.0,
+                    MassTons = 8.0,
+                });
+
+            var fields = new PrincipiaBurnStruct();
+            var burn = plugin.Known(Guid).Burns[0].burn;
+            Assert.Equal(6000, fields.FrameExtension(burn));
+            Assert.Equal(1, fields.FrameCentreIndex(burn));
+        }
+
+        /// <summary>
+        /// A burn with nothing ahead of it takes nothing from the burn ahead of it,
+        /// so the two values it cannot derive have to be stated. Written anyway, the
+        /// mass would be zero and the propulsion derived from it would divide.
+        /// </summary>
+        [Fact]
+        public void ABuiltBurnRefusesWithoutTheMassItIsPlannedAgainst()
+        {
+            var (plugin, commands) = EmptyPlan();
+
+            var refused = commands.InsertBurn(
+                new PrincipiaBurnEditArgs
+                {
+                    VesselId = Guid, RequestId = "i", BurnIndex = 0, IgnitionUt = 5000.0,
+                });
+
+            Assert.Equal(PrincipiaWriteRefusal.ComposedBurnIncomplete, Refusal(refused));
+            Assert.Empty(plugin.Known(Guid).Burns);
+        }
+
+        /// <summary>
+        /// And without the instant it lights. Everywhere else an absent instant means
+        /// "leave it where it is"; here there is nothing for it to be left at.
+        /// </summary>
+        [Fact]
+        public void ABuiltBurnRefusesWithoutAnIgnitionInstant()
+        {
+            var (plugin, commands) = EmptyPlan();
+
+            var refused = commands.InsertBurn(
+                new PrincipiaBurnEditArgs
+                {
+                    VesselId = Guid, RequestId = "i", BurnIndex = 0, MassTons = 8.0,
+                });
+
+            Assert.Equal(PrincipiaWriteRefusal.ComposedBurnIncomplete, Refusal(refused));
+            Assert.Empty(plugin.Known(Guid).Burns);
+        }
+
+        /// <summary>
+        /// A REPLACE still refuses: it names a burn, and there is no burn there. The
+        /// building path is the insert's alone.
+        /// </summary>
+        [Fact]
+        public void AReplaceWithNoBurnToChangeIsStillRefused()
+        {
+            var (plugin, commands) = EmptyPlan();
+
+            var refused = commands.ReplaceBurn(
+                new PrincipiaBurnEditArgs
+                {
+                    VesselId = Guid,
+                    RequestId = "r",
+                    BurnIndex = 0,
+                    IgnitionUt = 5000.0,
+                    MassTons = 8.0,
+                });
+
+            Assert.Equal(PrincipiaWriteRefusal.BurnIndexOutOfRange, Refusal(refused));
+            Assert.Empty(plugin.Known(Guid).Burns);
+        }
+
+        /// <summary>
+        /// A whole plan sent to a craft with no burns installs all of them: the head
+        /// is built and the rest are copied from it.
+        ///
+        /// <para>This is the shape a command centre actually sends. Refusing it
+        /// because the craft's plan is empty made a composed plan reachable only for
+        /// a craft that had already been planned for by hand at the other
+        /// end.</para>
+        /// </summary>
+        [Fact]
+        public void AComposedPlanInstallsOntoACraftWithNoBurnsAtAll()
+        {
+            var (plugin, commands) = EmptyPlan();
+
+            var written = commands.SendPlan(
+                new PrincipiaPlanSendArgs
+                {
+                    VesselId = Guid,
+                    RequestId = "s",
+                    MassTons = 8.0,
+                    DesiredFinalTimeUt = 40_000.0,
+                    Burns = new[]
+                    {
+                        new PrincipiaComposedBurn { IgnitionUt = 5000.0, DeltaVTangent = 120.0 },
+                        new PrincipiaComposedBurn { IgnitionUt = 9000.0, DeltaVNormal = 15.0 },
+                    },
+                });
+
+            Assert.Equal(PrincipiaWriteOutcome.Written, Outcome(written));
+            Assert.Equal(2, plugin.Known(Guid).Burns.Count);
+        }
+
+        /// <summary>
+        /// An armed vessel whose plan holds no burns. The burn probe cannot run with
+        /// no burns, so the arm happens on a plan that has one and the plan is
+        /// emptied after: what is under test is the missing template, not the arm.
+        /// </summary>
+        private static (FakePrincipiaPlugin Plugin, PlanCommands Commands) EmptyPlan()
         {
             var (plugin, commands) = Wire(p => p.Add(Guid, hasFlightPlan: true, manoeuvres: 0));
-            // The burn probe cannot run with no burns, so arm on a plan that has one
-            // and then empty it: the point under test is the template, not the arm.
             plugin.Add(Guid, hasFlightPlan: true, manoeuvres: 1);
             Armed(commands);
             plugin.Known(Guid).Burns.Clear();
             plugin.Writes.Clear();
-
-            var refused = commands.InsertBurn(
-                new PrincipiaBurnEditArgs { VesselId = Guid, RequestId = "i", BurnIndex = 0 });
-
-            Assert.Equal(PrincipiaWriteRefusal.NoTemplateBurn, Refusal(refused));
-            Assert.Contains("never assembles one from constants", Detail(refused));
-            Assert.Empty(plugin.Writes);
+            return (plugin, commands);
         }
 
         /// <summary>

@@ -142,6 +142,7 @@ namespace GonogoPrincipiaUplink
                 ComposedAtViewUt = plan.ComposedAtViewUt,
                 ObservedAtUt = plan.ObservedAtUt,
                 DesiredFinalTimeUt = plan.DesiredFinalTimeUt,
+                MassTons = plan.MassTons,
                 Burns = burns.ToArray(),
             };
         }

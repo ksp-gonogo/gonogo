@@ -48,14 +48,24 @@ namespace GonogoPrincipiaUplink
         private static readonly PrincipiaBurnStruct Fields = new PrincipiaBurnStruct();
 
         private readonly Func<ISettingsSource?> _source;
+        private readonly Func<SettingsObservation?> _observation;
+        private readonly PrincipiaBurnComposer _composer = new PrincipiaBurnComposer(Fields);
         private readonly PlanReader _reader = new PlanReader();
         private readonly Dictionary<string, Dictionary<string, object?>> _receipts =
             new Dictionary<string, Dictionary<string, object?>>();
         private readonly List<string> _receiptOrder = new List<string>();
 
-        public PlanCommands(Func<ISettingsSource?> source)
+        /// <param name="observation">The last settings reading, which is where the
+        /// frame a composed burn is expressed in comes from. A separate seam from
+        /// <paramref name="source"/> because it is a SAMPLE rather than a live
+        /// object: turning the producer's selector into a frame is the settings
+        /// channel's work, and doing it again here would be a second reading that
+        /// could disagree with the one on the wire.</param>
+        public PlanCommands(
+            Func<ISettingsSource?> source, Func<SettingsObservation?> observation)
         {
             _source = source;
+            _observation = observation;
         }
 
         /// <summary>
@@ -245,11 +255,26 @@ namespace GonogoPrincipiaUplink
                     var count = gate.ManoeuvreCount();
                     if (count <= 0)
                     {
-                        return PrincipiaWriteResult.Refused(
-                            PrincipiaWriteRefusal.NoTemplateBurn,
-                            "This plan has no burns, so there is none to copy and this Uplink never "
-                            + "assembles one from constants. Add the first burn in Principia's own "
-                            + "planner; every burn after it can be added from here.");
+                        // Nothing to copy, so the first burn is BUILT, from the
+                        // loaded build's own struct. Only an insert may: a replace
+                        // names a burn that is not there.
+                        if (!insert)
+                        {
+                            return PrincipiaWriteResult.Refused(
+                                PrincipiaWriteRefusal.BurnIndexOutOfRange,
+                                "This plan has no burns, so there is none to change. Add one "
+                                + "first.");
+                        }
+                        return ComposeFirstBurn(
+                            session,
+                            gate,
+                            args.IgnitionUt,
+                            args.DeltaVTangent,
+                            args.DeltaVNormal,
+                            args.DeltaVBinormal,
+                            args.InertiallyFixed,
+                            args.MassTons,
+                            now);
                     }
 
                     // Insert copies a template and puts the new burn at the requested
@@ -315,6 +340,105 @@ namespace GonogoPrincipiaUplink
                         ? gate.Insert(args.BurnIndex, burn)
                         : gate.Replace(args.BurnIndex, burn);
                 });
+        }
+
+        /// <summary>
+        /// Builds the plan's first burn and inserts it at the head.
+        ///
+        /// <para><b>Why building one is safe here when copying is the rule
+        /// everywhere else.</b> The rule guards against a STALE FIELD SET: the burn
+        /// struct is generated from a schema that has moved between releases, so a
+        /// shape written down here would resolve, not throw, and write a plausible
+        /// wrong burn into somebody's save. A struct constructed from the loaded
+        /// build's own type has that property by construction, exactly as a copy
+        /// does, because every field it carries is a field this build declares. It
+        /// is the same guarantee reached a different way, not an exception to
+        /// it.</para>
+        ///
+        /// <para><b>Every value is stated and none is inherited.</b> There is no
+        /// burn to be a delta against, so an absent component is zero rather than
+        /// unchanged, and the propulsion is the producer's own instant-impulse
+        /// preset against a stated mass. That preset is the only profile this Uplink
+        /// ever writes, on this path or the copy path, because the other two are
+        /// computed from the vessel's live engines by a method on the producer's own
+        /// window rather than by anything readable from here.</para>
+        /// </summary>
+        private PrincipiaWriteResult ComposeFirstBurn(
+            PrincipiaSession session,
+            PrincipiaPlanWriteGate gate,
+            double? ignitionUt,
+            double? deltaVTangent,
+            double? deltaVNormal,
+            double? deltaVBinormal,
+            bool? inertiallyFixed,
+            double? massTons,
+            double now)
+        {
+            if (ignitionUt == null)
+            {
+                return PrincipiaWriteResult.Refused(
+                    PrincipiaWriteRefusal.ComposedBurnIncomplete,
+                    "The first burn of a plan has no earlier burn to take an instant from, so "
+                    + "its ignition has to be stated.");
+            }
+            var stale = PrincipiaBurnRules.RejectRequestedIgnition(ignitionUt, now);
+            if (stale.HasValue)
+            {
+                return stale.Value;
+            }
+            if (massTons == null || !(massTons.Value > 0))
+            {
+                return PrincipiaWriteResult.Refused(
+                    PrincipiaWriteRefusal.ComposedBurnIncomplete,
+                    "A burn built from nothing needs the mass it is planned against: the "
+                    + "propulsion is derived from it, and there is no earlier manœuvre here to "
+                    + "read one off.");
+            }
+
+            var celestials = _source()?.Celestials;
+            if (celestials == null)
+            {
+                return PrincipiaWriteResult.Refused(
+                    PrincipiaWriteRefusal.SurfaceUnavailable,
+                    "The game's body table is not reachable, so the frame this burn would be "
+                    + "built in cannot be checked.");
+            }
+
+            if (!PrincipiaComposedFrame.TryResolve(
+                    _observation()?.PlottingFrame,
+                    out var extension,
+                    out var centre,
+                    out var primary,
+                    out var secondary,
+                    out var frameRefusal))
+            {
+                return PrincipiaWriteResult.Refused(
+                    PrincipiaWriteRefusal.BurnFrameUnsupported, frameRefusal!);
+            }
+
+            var request = new ComposedBurnRequest(
+                ignitionUt: ignitionUt.Value,
+                deltaVTangent: deltaVTangent ?? 0.0,
+                deltaVNormal: deltaVNormal ?? 0.0,
+                deltaVBinormal: deltaVBinormal ?? 0.0,
+                inertiallyFixed: inertiallyFixed ?? false,
+                thrustKilonewtons:
+                    massTons.Value * PrincipiaBurnRules.InstantImpulseThrustPerTonne,
+                specificImpulseSeconds: PrincipiaBurnRules.InstantImpulseSpecificImpulseSeconds,
+                frameExtension: extension,
+                centreBodyIndex: centre,
+                primaryBodyIndex: primary,
+                secondaryBodyIndex: secondary);
+
+            var burn = _composer.Compose(
+                session.Plugin.BurnType(), request, celestials.Indices, out var refusal);
+            if (burn == null)
+            {
+                return PrincipiaWriteResult.Refused(
+                    PrincipiaWriteRefusal.PluginShapeChanged, refusal!);
+            }
+
+            return gate.Insert(0, burn);
         }
 
         /// <summary>Drops one burn from the plan.</summary>
@@ -554,14 +678,6 @@ namespace GonogoPrincipiaUplink
                     }
 
                     var wanted = args.Burns!;
-                    if (gate.ManoeuvreCount() <= 0 && wanted.Length > 0)
-                    {
-                        return PrincipiaWriteResult.Refused(
-                            PrincipiaWriteRefusal.NoTemplateBurn,
-                            "This plan has no burns, so there is none to copy and this Uplink never "
-                            + "assembles one from constants. Add the first burn in Principia's own "
-                            + "planner; a composed plan can be installed over it.");
-                    }
 
                     // Extend the horizon first where one was asked for: a burn beyond
                     // the plan's end is not a burn Principia will accept, and the
@@ -584,6 +700,29 @@ namespace GonogoPrincipiaUplink
                         if (dropped.Outcome != PrincipiaWriteOutcome.Written)
                         {
                             return dropped;
+                        }
+                    }
+
+                    // The head burn is BUILT where the plan is empty, so that every
+                    // burn after it has one to copy. Done inside the horizon that was
+                    // just set and before the loop, because the loop's whole shape
+                    // assumes a template exists.
+                    if (gate.ManoeuvreCount() <= 0 && wanted.Length > 0)
+                    {
+                        var head = wanted[0];
+                        var composed = ComposeFirstBurn(
+                            session,
+                            gate,
+                            head.IgnitionUt,
+                            head.DeltaVTangent,
+                            head.DeltaVNormal,
+                            head.DeltaVBinormal,
+                            head.InertiallyFixed,
+                            args.MassTons,
+                            now);
+                        if (composed.Outcome != PrincipiaWriteOutcome.Written)
+                        {
+                            return composed;
                         }
                     }
 
@@ -854,7 +993,7 @@ namespace GonogoPrincipiaUplink
                         CommandErrorCode.CapabilityMismatch,
                     PrincipiaWriteRefusal.IntegratorBoundsExceeded => CommandErrorCode.Range,
                     PrincipiaWriteRefusal.FinalTimeInPast => CommandErrorCode.Range,
-                    PrincipiaWriteRefusal.NoTemplateBurn => CommandErrorCode.WrongState,
+                    PrincipiaWriteRefusal.ComposedBurnIncomplete => CommandErrorCode.Range,
                     PrincipiaWriteRefusal.PluginShapeChanged => CommandErrorCode.CapabilityMismatch,
                     _ => CommandErrorCode.Unknown,
                 };

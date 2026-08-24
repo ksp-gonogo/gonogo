@@ -47,7 +47,7 @@ namespace GonogoPrincipiaUplink.Tests
         {
             // A command that arrived without its payload must not read as "install a
             // plan with no burns", which is a real and destructive instruction.
-            var commands = new PlanCommands(() => null);
+            var commands = new PlanCommands(() => null, () => null);
             commands.BindToCallingThread();
 
             var result = commands.SendPlan(null);

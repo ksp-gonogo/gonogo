@@ -39,6 +39,24 @@ namespace GonogoPrincipiaUplink
         public List<string> PrimaryBodies = new List<string>();
         public List<string> SecondaryBodies = new List<string>();
 
+        /// <summary>
+        /// The two bodies the producer's own selector holds, as the game indexes
+        /// them: the one it is selected on, and that one's parent.
+        ///
+        /// <para>Carried beside the names rather than instead of them because they
+        /// answer different questions. A name is what an operator reads; an index
+        /// is what a frame is BUILT from, and a writer that had only names would
+        /// have to search the body table for one, which is a guess wherever two
+        /// bodies share a name.</para>
+        ///
+        /// <para>Named for what the selector holds rather than for a side of the
+        /// descriptor, because which side each falls on is decided by the frame's
+        /// kind and the producer does not decide it the same way for every
+        /// kind.</para>
+        /// </summary>
+        public int? SelectedBodyIndex;
+        public int? ParentBodyIndex;
+
         public bool? TargetFrameSelected;
         public string? TargetVesselId;
         public string? TargetVesselName;

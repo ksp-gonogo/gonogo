@@ -313,6 +313,7 @@ export interface SendManeuverPlanArgs
 	observedAtUt?: number;
 	burns?: ComposedBurn[];
 	desiredFinalTimeUt?: number;
+	massTons?: number;
 }
 export interface ControlFrame
 {

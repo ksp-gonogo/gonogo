@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using HarmonyLib;
 using UnityEngine;
 
@@ -182,6 +183,26 @@ namespace GonogoPrincipiaUplink
                     }
                 }
                 return null;
+            }
+
+            public IReadOnlyList<int> Indices
+            {
+                get
+                {
+                    if (FlightGlobals.Bodies == null)
+                    {
+                        return Array.Empty<int>();
+                    }
+                    var indices = new List<int>();
+                    foreach (var body in FlightGlobals.Bodies)
+                    {
+                        if (body != null)
+                        {
+                            indices.Add(body.flightGlobalsIndex);
+                        }
+                    }
+                    return indices;
+                }
             }
         }
     }

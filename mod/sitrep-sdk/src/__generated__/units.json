@@ -797,6 +797,7 @@
     "SendManeuverPlanArgs": {
       "composedAtViewUt": "ut",
       "desiredFinalTimeUt": "ut",
+      "massTons": "t",
       "observedAtUt": "ut",
       "requestId": "id",
       "vesselId": "id"

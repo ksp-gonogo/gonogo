@@ -221,6 +221,61 @@ namespace GonogoPrincipiaUplink.Tests
         }
 
         /// <summary>
+        /// The direction kinds key on the SAME pair as the pulsating kind and in the
+        /// opposite order, which is the producer's own inversion rather than a
+        /// symmetry it happens to break: the body it wants held fixed is the one the
+        /// selector is on, and the frame it builds names the held body the primary.
+        ///
+        /// <para>Keyed the pulsating way instead, this frame is simply never found
+        /// in the set, and a frame that hides its markers reports that it draws
+        /// them. That sends an operator hunting a physics problem for a marker the
+        /// producer was asked to hide.</para>
+        /// </summary>
+        [Fact]
+        public void MatchesADirectionFrameOnThePairInTheProducersOwnOrder()
+        {
+            var source = new FakeSettingsSource();
+            source.Selector.SetFrameType(FakeFrameType.BodyCentredParentDirection);
+            // Selected on Kerbin (1), whose parent is Kerbol (0): the producer's
+            // descriptor is primary Kerbin, secondary Kerbol.
+            source.Window.HideMarkersIn(
+                new FakeFrameParameters(6002, 0, new[] { 1 }, new[] { 0 }));
+
+            Assert.True(Read(source).UnpinnedMarkersHiddenHere);
+        }
+
+        /// <summary>
+        /// The pulsating kind is the one the other order really is right for, so the
+        /// two rules have to both hold at once rather than one replacing the other.
+        /// </summary>
+        [Fact]
+        public void StillMatchesAPulsatingFrameOnTheParentFirstOrder()
+        {
+            var source = new FakeSettingsSource();
+            source.Selector.SetFrameType(FakeFrameType.RotatingPulsating);
+            source.Window.HideMarkersIn(
+                new FakeFrameParameters(6004, 0, new[] { 0 }, new[] { 1 }));
+
+            Assert.True(Read(source).UnpinnedMarkersHiddenHere);
+        }
+
+        /// <summary>
+        /// The bodies as INDICES, which is what a frame is built from. The names
+        /// beside them are what an operator reads, and a writer given only those
+        /// would have to search the body table for one.
+        /// </summary>
+        [Fact]
+        public void CarriesTheSelectorsBodiesAsIndicesAsWellAsNames()
+        {
+            var source = new FakeSettingsSource();
+            source.Selector.SetFrameType(FakeFrameType.BodyCentredParentDirection);
+
+            var frame = Read(source).PlottingFrame!;
+            Assert.Equal(1, frame.SelectedBodyIndex);
+            Assert.Equal(0, frame.ParentBodyIndex);
+        }
+
+        /// <summary>
         /// Each object contributes independently: a build that moved one should cost
         /// its own settings, not the whole reading.
         /// </summary>
@@ -765,6 +820,8 @@ namespace GonogoPrincipiaUplink.Tests
         };
 
         public string? NameOf(int index) => Names.TryGetValue(index, out var name) ? name : null;
+
+        public IReadOnlyList<int> Indices => new List<int>(Names.Keys);
     }
 
     public class FakeSettingsSource : ISettingsSource

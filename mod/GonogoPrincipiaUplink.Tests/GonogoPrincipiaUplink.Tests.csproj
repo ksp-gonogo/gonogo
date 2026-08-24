@@ -101,6 +101,8 @@
     <Compile Include="..\GonogoPrincipiaUplink\PrincipiaWriteAuthority.cs" />
     <Compile Include="..\GonogoPrincipiaUplink\PrincipiaBurnStruct.cs" />
     <Compile Include="..\GonogoPrincipiaUplink\PrincipiaBurnRules.cs" />
+    <Compile Include="..\GonogoPrincipiaUplink\PrincipiaBurnComposer.cs" />
+    <Compile Include="..\GonogoPrincipiaUplink\PrincipiaComposedFrame.cs" />
     <Compile Include="..\GonogoPrincipiaUplink\PrincipiaPlanWrite.cs" />
     <Compile Include="..\GonogoPrincipiaUplink\PrincipiaLayoutProbe.cs" />
     <Compile Include="..\GonogoPrincipiaUplink\PlanObservation.cs" />

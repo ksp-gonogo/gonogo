@@ -52,9 +52,13 @@ namespace GonogoPrincipiaUplink
         internal const string YField = "y";
         internal const string ZField = "z";
 
-        /// <summary>The frame's kind, and the only field on it this Uplink
-        /// reads.</summary>
+        /// <summary>The four fields that are the whole of a burn's frame: its kind
+        /// and the three body slots, of which each kind reads some and ignores the
+        /// rest.</summary>
         internal const string ExtensionField = "extension";
+        internal const string CentreIndexField = "centre_index";
+        internal const string PrimaryIndexField = "primary_index";
+        internal const string SecondaryIndexField = "secondary_index";
 
         /// <summary>
         /// Fields on the manoeuvre, which is the burn plus everything the plugin
@@ -90,6 +94,35 @@ namespace GonogoPrincipiaUplink
         /// operator is invisible from where we stand.</para>
         /// </summary>
         public static readonly int[] EditableFrameExtensions = { 6000, 6002, 6003 };
+
+        /// <summary>The producer's own "no body", which its descriptors carry in a
+        /// slot the frame's kind does not read.</summary>
+        public const int NoBody = -1;
+
+        /// <summary>
+        /// The centre slot on a descriptor whose kind does not read it.
+        ///
+        /// <para>Zero rather than <see cref="NoBody"/>, and that is a match rather
+        /// than a choice: the producer builds these descriptors by naming the kind
+        /// and the pair and leaving the centre at the field's default, so a
+        /// descriptor of ours carrying anything else would not compare equal to one
+        /// of the producer's for the same frame.</para>
+        /// </summary>
+        public const int UnsetCentre = 0;
+
+        /// <summary>
+        /// True when the frame's kind is defined by ONE body it centres on, false
+        /// when it is defined by a PAIR.
+        ///
+        /// <para>This is the producer's own split, from the switch that turns a
+        /// descriptor into a frame: the non-rotating and surface kinds read the
+        /// centre slot and nothing else, the direction kind reads the primary and
+        /// secondary and never looks at the centre. A slot the kind does not read
+        /// is not merely ignored, it is unvalidated, so filling the wrong one is a
+        /// frame silently centred somewhere nobody asked for.</para>
+        /// </summary>
+        public static bool FrameCentresOnOneBody(int extension) =>
+            extension == 6000 || extension == 6003;
 
         /// <summary>The Cartesian coordinate system, the one whose three Δv
         /// components are the whole of the intensity. The other three members of
@@ -252,10 +285,22 @@ namespace GonogoPrincipiaUplink
 
         /// <summary>The burn's frame kind, as the producer's own extension
         /// number.</summary>
-        public int? FrameExtension(object burn)
+        public int? FrameExtension(object burn) => FrameSlot(burn, ExtensionField);
+
+        /// <summary>The body the burn's frame centres on, read whether or not its
+        /// kind is one that looks at the slot.</summary>
+        public int? FrameCentreIndex(object burn) => FrameSlot(burn, CentreIndexField);
+
+        /// <summary>The first body of the pair a direction frame is built from.</summary>
+        public int? FramePrimaryIndex(object burn) => FrameSlot(burn, PrimaryIndexField);
+
+        /// <summary>The second body of that pair.</summary>
+        public int? FrameSecondaryIndex(object burn) => FrameSlot(burn, SecondaryIndexField);
+
+        private int? FrameSlot(object burn, string name)
         {
             var frame = Get(burn, FrameField);
-            return frame == null ? null : GetInt(frame, ExtensionField);
+            return frame == null ? null : GetInt(frame, name);
         }
 
         /// <summary>

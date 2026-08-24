@@ -332,6 +332,22 @@ namespace GonogoPrincipiaUplink
         public int FlightPlanOptimizationDriverInProgress(IntPtr plugin, string vesselGuid) =>
             Int("FlightPlanOptimizationDriverInProgress", plugin, vesselGuid);
 
+        /// <summary>
+        /// Read off the bound method rather than looked up by name, so it is the
+        /// type this build's own <c>FlightPlanInsert</c> accepts and cannot drift
+        /// from it.
+        /// </summary>
+        public Type? BurnType()
+        {
+            if (!_methods.TryGetValue("FlightPlanInsert", out var method))
+            {
+                return null;
+            }
+            var parameters = method.GetParameters();
+            // (plugin, vesselGuid, burn, index): the burn is the third.
+            return parameters.Length >= 3 ? parameters[2].ParameterType : null;
+        }
+
         public object? FlightPlanInsert(IntPtr plugin, string vesselGuid, object burn, int index) =>
             Call("FlightPlanInsert", plugin, vesselGuid, burn, index);
 

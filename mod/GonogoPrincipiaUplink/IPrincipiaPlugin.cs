@@ -129,6 +129,20 @@ namespace GonogoPrincipiaUplink
         int FlightPlanOptimizationDriverInProgress(IntPtr plugin, string vesselGuid);
 
         /// <summary>
+        /// The type the producer's own build declares for a burn, taken off the
+        /// signature of the call that accepts one. Null when that call could not
+        /// be bound.
+        ///
+        /// <para>The LOADED build's type, never a shape written here. That is the
+        /// whole reason this is exposed: a burn constructed from it carries
+        /// exactly the fields this build has, so a schema that moved between
+        /// releases cannot leave a stale field behind. A literal would not fail
+        /// to resolve and would not throw, it would write a plausible wrong burn
+        /// into the player's save.</para>
+        /// </summary>
+        Type? BurnType();
+
+        /// <summary>
         /// Inserts <paramref name="burn"/> at <paramref name="index"/>, which may
         /// equal the manoeuvre count (that appends). Returns the producer's own
         /// status object.

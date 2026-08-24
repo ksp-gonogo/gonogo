@@ -13,6 +13,16 @@ namespace GonogoPrincipiaUplink
         /// <summary>The body's name, or null when the index names none. Minus one
         /// is the producer's own "no body" and is not an error.</summary>
         string? NameOf(int index);
+
+        /// <summary>
+        /// Every body index this game has, in the order the game holds them.
+        ///
+        /// <para>A write that names a body needs this and <see cref="NameOf"/>
+        /// cannot supply it: asking "is 7 a body" one index at a time cannot tell
+        /// an index the game does not have from a table that has not loaded, and
+        /// the two want opposite answers. Empty means not read.</para>
+        /// </summary>
+        System.Collections.Generic.IReadOnlyList<int> Indices { get; }
     }
 
     /// <summary>

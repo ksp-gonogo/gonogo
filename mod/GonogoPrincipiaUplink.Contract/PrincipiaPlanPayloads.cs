@@ -429,10 +429,6 @@ public enum PrincipiaWriteRefusal
     /// <summary>A plan cannot be created ending before it starts.</summary>
     FinalTimeInPast = 16,
 
-    /// <summary>There is no existing burn to copy, and this Uplink never
-    /// assembles one from constants.</summary>
-    NoTemplateBurn = 17,
-
     /// <summary>A field this write must set was not found on the producer's own
     /// struct, so its shape is not the shape that was analysed.</summary>
     PluginShapeChanged = 18,
@@ -461,6 +457,16 @@ public enum PrincipiaWriteRefusal
     /// composed.</para>
     /// </summary>
     PlanMalformed = 20,
+
+    /// <summary>
+    /// A burn with no earlier burn to copy was asked for without a value it can
+    /// only be told: the instant it lights, or the mass it is planned against.
+    ///
+    /// <para>Only the FIRST burn of a plan can reach this. Every later one takes
+    /// what it is not told from the burn ahead of it, and a plan's first has
+    /// nothing ahead of it to take from.</para>
+    /// </summary>
+    ComposedBurnIncomplete = 21,
 }
 
 /// <summary>
@@ -624,6 +630,18 @@ public class PrincipiaBurnEditArgs
 
     /// <summary>Which propulsion profile to plan against.</summary>
     public PrincipiaBurnProfile Profile { get; set; } = PrincipiaBurnProfile.Unchanged;
+
+    /// <summary>
+    /// The mass the burn is planned against, needed only when the plan has no burn
+    /// to copy and this one has to be built.
+    ///
+    /// <para>Stated rather than read because there is nothing to read it from: the
+    /// mass a burn is planned against comes off the manœuvre ahead of it, and the
+    /// first burn of a plan has none. Ignored on every edit that does have a burn
+    /// to copy, where the planner's own figure is the better one.</para>
+    /// </summary>
+    [SitrepUnit(Units.Tonnes)]
+    public double? MassTons { get; set; }
 }
 
 /// <summary>
@@ -717,6 +735,14 @@ public class PrincipiaPlanSendArgs
     /// <summary>How far the plan is asked to run.</summary>
     [SitrepUnit(Units.UniversalTime)]
     public double? DesiredFinalTimeUt { get; set; }
+
+    /// <summary>
+    /// The mass the plan's FIRST burn is planned against, needed only when the
+    /// vessel's plan has no burn to copy. See
+    /// <see cref="PrincipiaBurnEditArgs.MassTons"/>.
+    /// </summary>
+    [SitrepUnit(Units.Tonnes)]
+    public double? MassTons { get; set; }
 }
 
 /// <summary>

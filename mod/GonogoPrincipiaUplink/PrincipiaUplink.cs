@@ -46,7 +46,7 @@ namespace GonogoPrincipiaUplink
         {
             _guard = guard;
             _detecting = PrincipiaBinaryHealth.Detecting(guard.DetectedVersion);
-            _planCommands = new PlanCommands(() => _settings);
+            _planCommands = new PlanCommands(() => _settings, () => _lastSettings);
         }
 
         /// <summary>Test seam: the observer injected too, so the publish rule is

@@ -348,6 +348,10 @@ namespace GonogoPrincipiaUplink.Tests
             Plan("FlightPlanOptimizationDriverInProgress", plugin, vesselGuid).OptimisingBurn;
 
         /// <summary>Insert accepts an index EQUAL to the count, which appends.</summary>
+        /// <summary>The stand-in burn this fake accepts, which is what a
+        /// production read off FlightPlanInsert's signature would find.</summary>
+        public Type? BurnType() => typeof(FakeBurn);
+
         public object? FlightPlanInsert(IntPtr plugin, string vesselGuid, object burn, int index)
         {
             var vessel = Plan("FlightPlanInsert", plugin, vesselGuid, index);
