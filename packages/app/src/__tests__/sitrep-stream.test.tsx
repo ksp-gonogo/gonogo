@@ -20,7 +20,7 @@ import { SitrepTelemetryProvider } from "../telemetry/SitrepTelemetryProvider";
  * End-to-end proof of the browser-transport brief's validation requirement
  * (b): mounting `<SitrepTelemetryProvider enabled>` on the main screen makes a
  * CARRIED, MAPPED topic read from the streaming pipeline instead of the legacy
- * Telemachus `DataSource`.
+ * `DataSource`.
  *
  * Nothing internal is mocked, the REAL `SitrepTelemetryProvider`, a REAL
  * `TelemetryClient`/`TimelineStore`, the REAL `useDataValue` shim and a REAL

@@ -12,7 +12,7 @@ import { usePhaseAngles } from "./usePhaseAngles";
 
 /**
  * `usePhaseAngles` derives each body's phase angle to the active vessel
- * CLIENT-SIDE (the Telemachus `b.o.phaseAngle[i]` key it used to read is gone).
+ * CLIENT-SIDE, from elements the stream already carries.
  * Phase angle = `wrap360(bodyLon − vesselLon)` in [0, 360), where a body's true
  * longitude is `wrap360(lan + argPe + trueAnomaly)`. The bodies arrive with those
  * elements already on `CelestialBody` (view-UT-derived `trueAnomaly`); the vessel

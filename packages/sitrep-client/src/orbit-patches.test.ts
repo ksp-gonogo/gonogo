@@ -37,7 +37,7 @@ function wirePatch(
 }
 
 describe("mapOrbitPatch", () => {
-  it("renames wire fields onto the legacy Telemachus OrbitPatch shape", () => {
+  it("renames wire fields onto the legacy OrbitPatch shape", () => {
     const wire = wirePatch();
     const legacy = mapOrbitPatch(wire);
     expect(legacy).toEqual<LegacyOrbitPatch>({

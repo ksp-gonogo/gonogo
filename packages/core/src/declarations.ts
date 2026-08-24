@@ -23,7 +23,7 @@ import { isTopicId } from "@ksp-gonogo/sitrep-sdk";
  * something other than this file:
  */
 export type RequirementKind =
-  /** A legacy Telemachus key the migration table still resolves. Shrinking
+  /** A legacy flat key the migration table still resolves. Shrinking
    *  debt: every slice of the vocabulary migration removes some of these. */
   | "legacy-key"
   /** A wire channel the mod publishes (`isTopicId`, generated from the C#

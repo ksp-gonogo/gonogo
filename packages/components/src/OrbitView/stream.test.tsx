@@ -23,7 +23,7 @@ import { renderOrbitViewStream } from "./streamHarness";
  * stream.
  */
 
-describe("OrbitView: genuinely runs off the stream (R6 de-Telemachus)", () => {
+describe("OrbitView: genuinely runs off the stream (R6)", () => {
   it("renders the orbit diagram off the real stream pipeline, not legacy", async () => {
     const { container, fixture } = renderOrbitViewStream(
       { w: 9, h: 18 },

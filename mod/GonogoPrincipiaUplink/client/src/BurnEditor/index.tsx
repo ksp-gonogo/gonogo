@@ -36,6 +36,7 @@ import type {
   PrincipiaPlanWriteReceipt,
 } from "../__generated__/contract";
 import { PrincipiaBurnProfile } from "../__generated__/contract";
+import { commandWindow } from "../commandWindow";
 import { plottingFrameLabel } from "../plottingFrame";
 import { PRINCIPIA } from "../uplink";
 import "../topics";
@@ -130,59 +131,11 @@ function outOfContactReason(grade: StaleGrade): string {
 }
 
 /**
- * When an edit to a burn stops being able to reach it.
- *
- * <para><b>The deadline is not ignition.</b> A press leaves at the operator's
- * VIEW instant, and the view instant trails reality by one one-way light time
- * because that is how long the reading on screen took to arrive. The command
- * then spends a second one-way light time in flight. So an edit composed against
- * the instant on screen lands two one-way delays later, and the last view
- * instant it can leave from is `ignition - 2 * oneWay`.</para>
- *
- * <para>At a thirty-light-minute vantage that is a full HOUR before the ignition
- * countdown reaches zero, and for that hour every control reads as live, APPLY
- * is accepted, and the write arrives after the burn has flown. The operator
- * believes they acted.</para>
- *
- * <para>Measured against the DRAFT's ignition rather than the burn's, because
- * the draft's is the instant that gets written: an operator who pushes the burn
- * further out reopens the window, and one who drags it into the past shuts it.
- * That is the same comparison the mod makes on arrival
- * (<c>PrincipiaBurnRules.RejectRequestedIgnition</c>), so the prediction here
- * and the refusal there cannot disagree about what they are testing.</para>
+ * When an edit to a burn stops being able to reach it: `commandWindow`, whose
+ * doc carries the reasoning. Measured against the DRAFT's ignition rather than
+ * the burn's, because the draft's is the instant that gets written.
  */
-interface EditWindow {
-  /** One-way light time to this vessel, in seconds. */
-  oneWaySeconds: number;
-  /** The last view instant an edit can leave from. */
-  deadlineUt: number;
-  /** How long the window has left. Negative once it has shut. */
-  remainingSeconds: number;
-  /** True once an edit sent now would arrive after the requested ignition. */
-  shut: boolean;
-}
-
-/**
- * Null at a vantage with no delay, where the deadline IS ignition and the
- * ignition countdown already on the row says so. A second countdown reading the
- * same number would be furniture, and a widget that showed one would train the
- * operator to ignore it at the vantages where the two differ by an hour.
- */
-function editWindow(
-  ignitionUt: number | null,
-  viewUt: number | null,
-  oneWaySeconds: number,
-): EditWindow | null {
-  if (ignitionUt === null || viewUt === null || oneWaySeconds <= 0) return null;
-  const deadlineUt = ignitionUt - 2 * oneWaySeconds;
-  const remainingSeconds = deadlineUt - viewUt;
-  return {
-    oneWaySeconds,
-    deadlineUt,
-    remainingSeconds,
-    shut: remainingSeconds <= 0,
-  };
-}
+const editWindow = commandWindow;
 
 /** What the operator has changed but not yet sent. */
 interface Draft {

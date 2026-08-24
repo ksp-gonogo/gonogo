@@ -40,7 +40,7 @@ interface GridItemContentProps {
 }
 
 // GridItemContent: memoised per-item subtree so a sibling re-render
-// (e.g. one widget's useDataValue firing on a Telemachus tick) doesn't
+// (e.g. one widget's useDataValue firing on a telemetry tick) doesn't
 // reconcile every other item in the grid. The parent passes stable
 // callbacks (already wrapped in useCallback by useDashboardState); we
 // bind them to `item.i` here so each item gets its own stable handlers.

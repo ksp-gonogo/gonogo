@@ -6,7 +6,7 @@
  * No physics simulation happens here.
  *
  * Angle convention: all public API accepts/returns degrees (matching
- * Telemachus output). Radians are only used internally.
+ * the wire's own angle convention). Radians are only used internally.
  */
 
 import type { BodyDefinition } from "./bodies";

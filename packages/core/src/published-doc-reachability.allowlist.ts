@@ -249,7 +249,7 @@ export const CS_CAPABILITY_ELECTION_PATTERNS: readonly string[] = [
  * T1b 2, T2 37. Maximum 6 in any one file.
  */
 export const DOC_DEBT: Record<string, Partial<Record<Tier, number>>> = {
-  "mod/sitrep-sdk/src/api/host.ts": { T2: 2 },
+  "mod/sitrep-sdk/src/api/host.ts": { T2: 1 },
   "mod/sitrep-sdk/src/api/index.ts": { T1a: 1 },
   "mod/sitrep-sdk/src/api/logger.ts": { T1a: 1 },
   "mod/sitrep-sdk/src/api/transport.ts": { T2: 1 },

@@ -1331,7 +1331,11 @@ registerComponent<SystemViewConfig>({
     "Solar-system diagram of every body orbiting a chosen parent, highlighting the vessel's current body and any selected target.",
   tags: ["telemetry", "navigation"],
   defaultSize: { w: 10, h: 12 },
-  minSize: { w: 3, h: 4 },
+  // Three columns is below what this widget can draw. It carries a diagram, a
+  // row of view pills and a column of body facts, and at that width the pills
+  // clip and the labels collide with the values. Six is where the two-column
+  // layout it is built around actually fits.
+  minSize: { w: 6, h: 8 },
   component: SystemViewComponent,
   configComponent: SystemViewConfigComponent,
   // Exposes a coordinated `.actions` + `.overlay` pair: one augment can drive

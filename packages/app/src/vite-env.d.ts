@@ -44,7 +44,7 @@ interface ImportMetaEnv {
   /**
    * Build-time fallback host for the Sitrep mod WebSocket (default
    * `localhost`). `SitrepTelemetryProvider` mounts unconditionally: the mod
-   * is the app's only telemetry source since the legacy Telemachus
+   * is the app's only telemetry source since the legacy
    * `DataSource` was deleted at the R6 cutover (806e7fe2), and this value
    * is only the FLOOR of `sitrepRuntime.ts`'s resolution order: a
    * KSP_HOST bundle seed or a saved Data Sources panel config both

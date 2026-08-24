@@ -136,7 +136,7 @@ namespace Sitrep.Host.Tests
         }
 
         // ----------------------------------------------------------------
-        // Stage-scoped resources: the old Telemachus r.resourceCurrent[X]/
+        // Stage-scoped resources: the old r.resourceCurrent[X]/
         // r.resourceCurrentMax[X] pair, KspHost.BuildStageResources's
         // per-resource {current, max} map for THIS stage.
         // ----------------------------------------------------------------

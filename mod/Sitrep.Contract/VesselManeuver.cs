@@ -11,7 +11,7 @@ namespace Sitrep.Contract;
 /// <see cref="IgnitionUt"/> and <see cref="CutoffUt"/> are absent rather than
 /// equal.
 ///
-/// <para>Kills O-4: Telemachus's <c>o.addManeuverNode[ut, x, y, z]</c> (where
+/// <para>Kills O-4: the legacy <c>o.addManeuverNode[ut, x, y, z]</c> (where
 /// <c>[x,y,z]</c> is secretly <c>[radialOut, normal, prograde]</c>, with
 /// <c>updateManeuverNode</c> prepending an <c>id</c> that shifts every
 /// subsequent index by one, and a THIRD, different display order) is the

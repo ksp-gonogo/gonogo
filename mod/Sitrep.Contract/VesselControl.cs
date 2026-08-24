@@ -79,8 +79,8 @@ public class ActionGroupState
 }
 
 /// <summary>
-/// The <c>vessel.control</c> channel payload: the READ half of what
-/// Telemachus split across <c>f.</c> (toggle/action) and <c>v.</c>
+/// The <c>vessel.control</c> channel payload: the READ half of what the
+/// legacy vocabulary split across <c>f.</c> (toggle/action) and <c>v.</c>
 /// (value-read) prefixes for the same concept (N-1's read half; the WRITE
 /// half is a future typed-command task). Every field is individually
 /// nullable, R1(a): a null field is a normal, meaningful "this input isn't

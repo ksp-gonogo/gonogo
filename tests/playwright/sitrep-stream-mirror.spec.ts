@@ -1,15 +1,15 @@
 /**
  * Recorded-flight-style Sitrep stream test: successor to
- * `replay-mirror.spec.ts` (removed), which proved a real `TelemachusDataSource`
+ * `replay-mirror.spec.ts` (removed), which proved the real legacy `DataSource`
  * decoding a replayed flight and PBDS mirroring representative key shapes
  * (string/number/boolean) to the station over PeerJS.
  *
  * Both halves of that premise changed with the R6 cutover
- * (`806e7fe2`, "delete the legacy Telemachus data source"):
+ * (`806e7fe2`, "delete the legacy data source"):
  *
  *   1. The app's only telemetry source is now the Sitrep stream
  *      (`SitrepTelemetryProvider` / `WebSocketTransport` /
- *      `TimelineStore`), not `TelemachusDataSource`: so this test replays
+ *      `TimelineStore`), not the legacy `DataSource`: so this test replays
  *      against `sitrep-stream-server.mjs` instead.
  *   2. `main.tsx`'s `__gonogo_get_value__` debug hook: the mechanism the
  *      old test used to read decoded values directly off the window,
@@ -25,7 +25,7 @@
  * (Number and nested-object shapes get their own dedicated coverage in
  * `widgets/semi-major-axis.spec.ts` and `widgets/thermal-status.spec.ts`
  * respectively: not duplicated here.) That's the SDK's decode path, end
- * to end, the same guarantee the old test gave for Telemachus's wire
+ * to end, the same guarantee the old test gave for the legacy wire
  * format.
  *
  * What it does NOT (yet) prove: station-side mirroring of that data. Only

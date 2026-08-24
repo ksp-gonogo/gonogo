@@ -1,15 +1,14 @@
 /**
  * Orbit / trajectory / vessel-targeting shapes shared by the trajectory
- * calculator, the maneuver planner, and both the legacy Telemachus schema
- * and the current stream-derived data paths.
+ * calculator, the maneuver planner, and the stream-derived data paths.
  */
 import type { TransitionName } from "@ksp-gonogo/sitrep-client";
 
 /**
  * One entry of the `dv.stages` complex-object response. Note the JSON field
- * names differ from the per-key names Telemachus uses for the indexed
- * accessors (e.g. `dv.stageDVVac[n]` → `deltaVVac`): the labels below match
- * the JSON response, not the dv keys.
+ * names differ from the legacy per-key names for the indexed accessors
+ * (e.g. `dv.stageDVVac[n]` → `deltaVVac`): the labels below match the JSON
+ * response, not the dv keys.
  *
  * `stage` is the stage number as KSP counts them (current stage counts down
  * as stages separate).
@@ -37,9 +36,8 @@ export interface StageInfo {
 }
 
 /**
- * A single patched-conic segment as returned by Telemachus's
- * `OrbitPatchJSONFormatter`. One of the array entries for `o.orbitPatches`
- * and for each `ManeuverNode.orbitPatches`.
+ * A single patched-conic segment. One of the array entries for
+ * `o.orbitPatches` and for each `ManeuverNode.orbitPatches`.
  *
  * Caveat: the `eccentricAnomaly` field in the raw response is a known bug,
  * it's actually `eccentricity` again. Intentionally omitted from this type so
@@ -97,9 +95,9 @@ export interface AvailableVesselEntry {
 }
 
 /**
- * A planned maneuver node. Telemachus includes the post-burn orbit patches
- * inline so a single subscription to `o.maneuverNodes` covers both the node
- * and its resulting trajectory.
+ * A planned maneuver node. The post-burn orbit patches are inline, so a
+ * single subscription to `o.maneuverNodes` covers both the node and its
+ * resulting trajectory.
  */
 export interface ManeuverNode {
   UT: number;

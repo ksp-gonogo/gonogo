@@ -1,4 +1,4 @@
-import { TELEMACHUS_META } from "@ksp-gonogo/data";
+import { LEGACY_KEY_META } from "@ksp-gonogo/data";
 import {
   type ChangeEvent,
   forwardRef,
@@ -33,7 +33,7 @@ export interface TagAutocompleteProps {
 
 /**
  * Text input that opens a key-picker popover when the user types `{{`,
- * filtered against `TELEMACHUS_META`'s friendly labels/groups (the stream-
+ * filtered against `LEGACY_KEY_META`'s friendly labels/groups (the stream-
  * mapped key catalog: see `useKeyOptions` below). Selection inserts
  * `{{<key>}}` and moves the cursor past the closer.
  *
@@ -233,12 +233,12 @@ export const TagAutocomplete = forwardRef<
 
 function useKeyOptions(): KeyOption[] {
   // The legacy "data" `DataSource` (and its live schema listing) is gone,
-  // suggestions now come straight from `TELEMACHUS_META`, which already
+  // suggestions now come straight from `LEGACY_KEY_META`, which already
   // covers every stream-mapped key (see `map-topic.ts`'s
   // `LEGACY_KEY_HOMES`). Recomputed every render, the map is small
   // (~few dozen entries) and the cost is well under a millisecond.
   return useMemo<KeyOption[]>(() => {
-    const merged: KeyOption[] = Object.entries(TELEMACHUS_META).map(
+    const merged: KeyOption[] = Object.entries(LEGACY_KEY_META).map(
       ([k, meta]) => ({
         key: k,
         label: meta.label,

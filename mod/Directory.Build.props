@@ -10,28 +10,16 @@
     global and wins over everything here, which is why every assignment below is
     conditioned on the property being empty.
 
-    Two candidate directories, preferred first:
-
-      local_docs/ksp-references              the name that says what it holds
-      local_docs/telemachus-fork/references  where they have lived since the
-                                             Telemachus fork was checked out
-                                             there, and all that survives of it
-
-    Both are honoured deliberately. local_docs is gitignored, so a rename on one
-    machine cannot travel with a commit: hard-coding the new name alone would
-    land a build that only works after a manual step nobody had been told about,
-    on every clone. Preferring the new name and falling back to the old lets the
-    directory be renamed whenever, or never, without a broken window either way.
+    The directory is local_docs/ksp-references. local_docs is gitignored, so
+    a machine whose copy still sits under an older directory name points this
+    at it with a symlink rather than a private edit to this file.
   -->
   <PropertyGroup Condition="'$(KspManaged)' == ''">
-    <_KspReferencesPreferred>$(MSBuildThisFileDirectory)..\local_docs\ksp-references</_KspReferencesPreferred>
-    <_KspReferencesLegacy>$(MSBuildThisFileDirectory)..\local_docs\telemachus-fork\references</_KspReferencesLegacy>
-    <KspManaged Condition="Exists('$(_KspReferencesPreferred)')">$(_KspReferencesPreferred)</KspManaged>
-    <KspManaged Condition="'$(KspManaged)' == '' And Exists('$(_KspReferencesLegacy)')">$(_KspReferencesLegacy)</KspManaged>
-    <!-- Neither present (a worktree, a fresh clone, CI without the checkout):
-         name the preferred one, so the "could not resolve Assembly-CSharp"
-         message points at where the DLLs SHOULD go. -->
-    <KspManaged Condition="'$(KspManaged)' == ''">$(_KspReferencesPreferred)</KspManaged>
+    <_KspReferences>$(MSBuildThisFileDirectory)..\local_docs\ksp-references</_KspReferences>
+    <!-- Named even when absent (a worktree, a fresh clone, CI without the
+         checkout), so the "could not resolve Assembly-CSharp" message points
+         at where the DLLs SHOULD go. -->
+    <KspManaged>$(_KspReferences)</KspManaged>
   </PropertyGroup>
 
 </Project>

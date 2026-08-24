@@ -7,6 +7,7 @@ import {
   usePlanDrafts,
   useSendPlan,
   useTelemetry,
+  useViewUt,
   type Value,
   type VesselIdentity,
   value,
@@ -14,7 +15,9 @@ import {
   withoutReckoning,
 } from "@ksp-gonogo/sitrep-sdk";
 import {
+  Countdown,
   FieldLabel,
+  MissionDate,
   PrimaryButton,
   Row,
   RowName,
@@ -27,21 +30,22 @@ import {
   usePanelDelay,
 } from "@ksp-gonogo/ui-kit";
 import { useState } from "react";
+import { commandWindow } from "../commandWindow";
 import { PRINCIPIA } from "../uplink";
 
 /**
  * Compose a flight plan here and send it whole.
  *
  * <p><b>Why this sits beside the burn editor rather than replacing it.</b> The
- * editor changes the plan the craft is ALREADY flying, one burn at a time, and
+ * editor changes the plan the vessel is ALREADY flying, one burn at a time, and
  * each change is its own message. This builds a plan that does not exist yet and
  * sends it as ONE: five separate burn commands are five light-times, each able
- * to arrive late, out of order or not at all, and a craft that received three of
+ * to arrive late, out of order or not at all, and a vessel that received three of
  * them would fly a trajectory nobody composed and nobody approved.</p>
  *
- * <p><b>Nothing here touches the craft until Send.</b> Drafts are
+ * <p><b>Nothing here touches the vessel until Upload.</b> Drafts are
  * command-centre objects, so two operators can work on different plans for the
- * same craft without disturbing each other or the player at the keyboard.</p>
+ * same vessel without disturbing each other or the player at the keyboard.</p>
  *
  * <p><b>The instant the draft was built from is stamped when it is built.</b> It
  * records how old the information was that the operator decided on, which is a
@@ -62,12 +66,13 @@ export function PlanComposer() {
 
   const { store, drafts } = usePlanDrafts();
   const send = useSendPlan();
+  const viewUt = useViewUt();
   // Which draft the one outcome belongs to. The send handle is shared across
   // every draft, so without this an answer renders under all of them.
   const [sent, setSent] = useState<string | null>(null);
   // The send is a command like any other, so its schedule belongs on the
   // panel's delay rail: at a light-delayed vantage an operator has to be able to
-  // see when the plan will actually reach the craft.
+  // see when the plan will actually reach the vessel.
   usePanelDelay(send.command);
 
   if (vesselId === undefined || seenAt === undefined) {
@@ -75,7 +80,7 @@ export function PlanComposer() {
       <Section>
         <SectionTitle>Compose a plan</SectionTitle>
         <Text tone="faint" size="sm">
-          No craft is being read, so there is nothing to plan for.
+          No vessel is being read, so there is nothing to plan for.
         </Text>
       </Section>
     );
@@ -99,134 +104,243 @@ export function PlanComposer() {
     edit(draft, burns);
   };
 
+  const composing = mine.filter((draft) => draft.saved !== true);
+  const ready = mine.filter((draft) => draft.saved === true);
+
   return (
-    <Section>
-      <SectionTitle>Uplinked plans</SectionTitle>
-      <Stack gap="sm">
-        <PrimaryButton
-          onClick={() =>
-            store.create({
-              name: `Plan ${mine.length + 1}`,
-              vesselId,
-              burns: [],
-              observedAt: seenAt,
-            })
-          }
-        >
-          Draft plan
-        </PrimaryButton>
+    <>
+      <Section>
+        <SectionTitle>Ready to upload</SectionTitle>
+        <Stack gap="sm">
+          {ready.length === 0 ? (
+            <Text tone="faint" size="sm">
+              Nothing saved. A plan reaches the vessel only from here.
+            </Text>
+          ) : null}
+          {ready.map((draft, index) => (
+            <ReadyPlan
+              key={draft.id}
+              draft={draft}
+              ordinal={index + 1}
+              viewUt={viewUt?.magnitude ?? null}
+              oneWaySeconds={send.command.effectiveDelaySeconds}
+              pending={send.pending}
+              outcome={sent === draft.id ? send.outcome : null}
+              onReopen={() => store.update(draft.id, { saved: false })}
+              onSend={async () => {
+                setSent(draft.id);
+                await send.send(draftAsPlan(draft));
+              }}
+            />
+          ))}
+        </Stack>
+      </Section>
 
-        {mine.length === 0 ? (
-          <Text tone="faint" size="sm">
-            Nothing drafted. A draft stays here until it is uplinked.
-          </Text>
-        ) : null}
+      <Section>
+        <SectionTitle>Composing</SectionTitle>
+        <Stack gap="sm">
+          <PrimaryButton
+            onClick={() =>
+              store.create({
+                name: `Plan ${mine.length + 1}`,
+                vesselId,
+                burns: [],
+                observedAt: seenAt,
+              })
+            }
+          >
+            Draft plan
+          </PrimaryButton>
 
-        {mine.map((draft, planIndex) => (
-          <Stack gap="xs" key={draft.id}>
-            <Row>
-              {/* A sequence position, not a name. Nothing edits it and nothing
-                  sends it: the craft has no use for what a draft was called. */}
-              <RowName>Draft {planIndex + 1}</RowName>
-            </Row>
+          {composing.length === 0 ? (
+            <Text tone="faint" size="sm">
+              Nothing being composed.
+            </Text>
+          ) : null}
 
-            {draft.burns.map((burn, index) => (
-              // biome-ignore lint/suspicious/noArrayIndexKey: position IS a burn's identity in a plan; two burns can share an instant and every other field
-              <Stack gap="xs" key={`${draft.id}-${index}`}>
-                <FieldLabel>Burn {index + 1}</FieldLabel>
-                <UnitInput
-                  label="Ignition"
-                  unit="ut"
-                  value={burn.ignitionUt}
-                  onChange={(next) =>
-                    setComponent(draft, index, { ignitionUt: next })
-                  }
-                />
-                {/* Slot order, not names. The three Δv slots carry the BASIS's
+          {composing.map((draft, planIndex) => (
+            <Stack gap="xs" key={draft.id}>
+              <Row>
+                {/* A sequence position, not a name. Nothing edits it and nothing
+                  sends it: the vessel has no use for what a draft was called. */}
+                <RowName>Draft {planIndex + 1}</RowName>
+              </Row>
+
+              {draft.burns.map((burn, index) => (
+                // biome-ignore lint/suspicious/noArrayIndexKey: position IS a burn's identity in a plan; two burns can share an instant and every other field
+                <Stack gap="xs" key={`${draft.id}-${index}`}>
+                  <FieldLabel>Burn {index + 1}</FieldLabel>
+                  <UnitInput
+                    label="Ignition"
+                    unit="ut"
+                    value={burn.ignitionUt}
+                    onChange={(next) =>
+                      setComponent(draft, index, { ignitionUt: next })
+                    }
+                  />
+                  {/* Slot order, not names. The three Δv slots carry the BASIS's
                     own components in its own order, and the basis this burn
                     declares is tangent, normal, binormal: so dvRadial is the
                     tangent and dvPrograde is the binormal. Labelling these by
                     their field names would put an operator's along-track burn
                     out of plane, which is a wrong burn that reads as a right
                     one. */}
-                <UnitInput
-                  label="Tangent"
-                  unit="m/s"
-                  value={burn.dvRadial}
-                  onChange={(next) =>
-                    setComponent(draft, index, { dvRadial: next })
-                  }
-                />
-                <UnitInput
-                  label="Normal"
-                  unit="m/s"
-                  value={burn.dvNormal}
-                  onChange={(next) =>
-                    setComponent(draft, index, { dvNormal: next })
-                  }
-                />
-                <UnitInput
-                  label="Binormal"
-                  unit="m/s"
-                  value={burn.dvPrograde}
-                  onChange={(next) =>
-                    setComponent(draft, index, { dvPrograde: next })
-                  }
-                />
-              </Stack>
-            ))}
+                  <UnitInput
+                    label="Tangent"
+                    unit="m/s"
+                    value={burn.dvRadial}
+                    onChange={(next) =>
+                      setComponent(draft, index, { dvRadial: next })
+                    }
+                  />
+                  <UnitInput
+                    label="Normal"
+                    unit="m/s"
+                    value={burn.dvNormal}
+                    onChange={(next) =>
+                      setComponent(draft, index, { dvNormal: next })
+                    }
+                  />
+                  <UnitInput
+                    label="Binormal"
+                    unit="m/s"
+                    value={burn.dvPrograde}
+                    onChange={(next) =>
+                      setComponent(draft, index, { dvPrograde: next })
+                    }
+                  />
+                </Stack>
+              ))}
 
-            <PrimaryButton
-              onClick={() =>
-                edit(draft, [
-                  ...draft.burns,
-                  emptyBurn(
-                    draft.burns.length === 0
-                      ? seenAt
-                      : draft.burns[draft.burns.length - 1].ignitionUt,
-                  ),
-                ])
-              }
-            >
-              Add burn
-            </PrimaryButton>
-
-            <Row>
-              <RowName>Total Δv</RowName>
-              <Unit value={totalDeltaV(draft)} />
-            </Row>
-
-            <PrimaryButton
-              disabled={send.pending}
-              onClick={async () => {
-                setSent(draft.id);
-                // Awaited rather than dropped: the craft's answer is what the
-                // status line renders, and a dispatch whose outcome is
-                // discarded shows an operator nothing when the game refuses.
-                await send.send(draftAsPlan(draft));
-              }}
-            >
-              Uplink to craft
-            </PrimaryButton>
-
-            {/* Under the draft it answers, not at the foot of the panel. One
-                handle serves every draft, so an outcome floating below them all
-                says a plan was accepted without saying which. */}
-            {sent === draft.id && send.outcome !== null ? (
-              <Text
-                role="status"
-                tone={send.outcome.accepted ? "default" : "warn"}
-                size="sm"
+              <PrimaryButton
+                onClick={() =>
+                  edit(draft, [
+                    ...draft.burns,
+                    emptyBurn(
+                      draft.burns.length === 0
+                        ? seenAt
+                        : draft.burns[draft.burns.length - 1].ignitionUt,
+                    ),
+                  ])
+                }
               >
-                {send.outcome.accepted
-                  ? "Aboard. The craft is flying this plan."
-                  : send.outcome.refusal}
-              </Text>
-            ) : null}
-          </Stack>
-        ))}
-      </Stack>
-    </Section>
+                Add burn
+              </PrimaryButton>
+
+              <Row>
+                <RowName>Total Δv</RowName>
+                <Unit value={totalDeltaV(draft)} />
+              </Row>
+
+              {/* Saving is the end of composing. Nothing leaves here: the draft
+                goes to the list below, where transmitting it is a separate,
+                deliberate act. Two surfaces rather than one button, so the
+                difference between "written down" and "aboard a vessel" is
+                visible rather than something an operator has to remember. */}
+              <PrimaryButton
+                onClick={() => store.update(draft.id, { saved: true })}
+              >
+                Save draft
+              </PrimaryButton>
+            </Stack>
+          ))}
+        </Stack>
+      </Section>
+    </>
+  );
+}
+
+/**
+ * One saved plan, and whether it can still get where it is going.
+ *
+ * <p>The verdict is the point of this row. A plan whose first burn is closer
+ * than the round trip cannot be flown from here however healthy the link looks:
+ * the press leaves at a view instant already one light time old, spends another
+ * in flight, and lands after the burn should have lit. Saying so before the
+ * press is the difference between an operator knowing that and believing they
+ * acted.</p>
+ */
+function ReadyPlan({
+  draft,
+  ordinal,
+  viewUt,
+  oneWaySeconds,
+  pending,
+  outcome,
+  onSend,
+  onReopen,
+}: Readonly<{
+  draft: PlanDraft;
+  ordinal: number;
+  viewUt: number | null;
+  oneWaySeconds: number;
+  pending: boolean;
+  outcome: { accepted: boolean; refusal?: string } | null;
+  onSend: () => void;
+  onReopen: () => void;
+}>) {
+  const first = draft.burns[0];
+  const window = commandWindow(
+    first ? first.ignitionUt.magnitude : null,
+    viewUt,
+    oneWaySeconds,
+  );
+
+  return (
+    <Stack gap="xs">
+      <Row>
+        <RowName>Plan {ordinal}</RowName>
+        <Unit value={totalDeltaV(draft)} />
+      </Row>
+
+      {first ? (
+        <Row>
+          <RowName>First burn</RowName>
+          <MissionDate value={first.ignitionUt.magnitude} />
+        </Row>
+      ) : null}
+
+      {/* Nothing at a vantage with no delay: there the deadline IS ignition and
+          the instant above already says it. A second line reading the same
+          number would train an operator to ignore it at the vantages where the
+          two are an hour apart. */}
+      {window ? (
+        <Row>
+          <RowName>{window.shut ? "Too late" : "Send within"}</RowName>
+          {window.shut ? (
+            <Text tone="warn" size="sm">
+              arrives after ignition
+            </Text>
+          ) : (
+            <Countdown value={window.remainingSeconds} />
+          )}
+        </Row>
+      ) : null}
+
+      {/* An EMPTY plan is sendable, deliberately: a plan with no burns is a
+          meaningful instruction, it clears the vessel's. Only a window that has
+          shut stops a send, because that one cannot arrive in time whatever it
+          contains. */}
+      <PrimaryButton
+        disabled={pending || window?.shut === true}
+        onClick={onSend}
+      >
+        Upload to vessel
+      </PrimaryButton>
+      <PrimaryButton onClick={onReopen}>Reopen</PrimaryButton>
+
+      {outcome === null ? null : (
+        <Text
+          role="status"
+          tone={outcome.accepted ? "default" : "warn"}
+          size="sm"
+        >
+          {outcome.accepted
+            ? "Aboard. The vessel is flying this plan."
+            : outcome.refusal}
+        </Text>
+      )}
+    </Stack>
   );
 }
 
@@ -234,7 +348,7 @@ export function PlanComposer() {
  * What the whole draft costs, as one number.
  *
  * <p>Per burn it is the magnitude of the three components, and those add across
- * burns rather than combining: a plan's cost is what the craft must actually
+ * burns rather than combining: a plan's cost is what the vessel must actually
  * spend, and two burns in opposite directions cost the sum of both, not their
  * difference.</p>
  */
@@ -274,10 +388,10 @@ function emptyBurn(ignitionUt: Value<"ut">): ComposedBurn {
 }
 
 /**
- * The craft's id when one has been read.
+ * The vessel's id when one has been read.
  *
- * <p>A stale identity still names the craft: which craft this is does not stop
- * being true because the link went quiet, and refusing to plan for a craft whose
+ * <p>A stale identity still names the vessel: which vessel this is does not stop
+ * being true because the link went quiet, and refusing to plan for a vessel whose
  * name is a minute old would make this useless at exactly the distances it is
  * for.</p>
  */

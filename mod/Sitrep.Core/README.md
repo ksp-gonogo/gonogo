@@ -2,7 +2,7 @@
 
 The pure, KSP-free half of the Sitrep C# mod (M5). `netstandard2.0`, and by
 architectural rule **must never reference `UnityEngine` or
-`Assembly-CSharp`**: that's what makes Telemachus's off-thread-game-state-read
+`Assembly-CSharp`**: that's what makes the old fork's off-thread-game-state-read
 bug structurally impossible to write here. Only `Gonogo.KSP` (not yet built)
 touches Unity/KSP types.
 

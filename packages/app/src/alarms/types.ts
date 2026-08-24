@@ -25,7 +25,7 @@ export interface TimeTrigger {
 
 export interface ThresholdTrigger {
   kind: "threshold";
-  /** Telemachus key to read (e.g. `v.altitude`, `v.surfaceVelocity`). */
+  /** Data key to read (e.g. `v.altitude`, `v.surfaceVelocity`). */
   dataKey: string;
   /** Comparison operator. */
   op: ThresholdOp;
@@ -104,7 +104,7 @@ export type AlarmTrigger =
 
 /**
  * Side-effect to dispatch when the alarm fires. Currently action-group
- * only: the operator picks an existing Telemachus action key (`f.ag1`,
+ * only: the operator picks an existing action key (`f.ag1`,
  * `f.stage`, etc.) and the host calls `dataSource.execute()` at fire
  * time. Lives alongside the visual fire event so the central alarm
  * pipeline (warp dewarp ramp, cross-screen acknowledge) covers the
@@ -117,7 +117,7 @@ export type AlarmTrigger =
  */
 export type AlarmFireAction = {
   kind: "action-group";
-  /** Telemachus action key, e.g. `f.ag1`, `f.abort`, `f.stage`. */
+  /** Action key, e.g. `f.ag1`, `f.abort`, `f.stage`. */
   action: string;
 };
 
@@ -150,14 +150,14 @@ export interface AlarmWarpState {
   index: number;
   /** Numeric multiplier corresponding to the index. */
   rate: number;
-  /** "HIGH" | "LOW": matches Telemachus's t.warpMode when known. */
+  /** "HIGH" | "LOW": matches the wire's warp mode when known. */
   mode: "HIGH" | "LOW" | "UNKNOWN";
 }
 
 export interface AlarmSnapshot {
   alarms: Alarm[];
   /**
-   * Latest KSP universal time we've observed from Telemachus, seconds.
+   * Latest KSP universal time we've observed on the wire, seconds.
    * Stations use this to render the T-minus countdown against an
    * authoritative source without subscribing to t.universalTime themselves.
    */

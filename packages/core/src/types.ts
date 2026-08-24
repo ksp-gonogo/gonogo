@@ -3,7 +3,6 @@
 import type { TopicId } from "@ksp-gonogo/sitrep-sdk";
 import type { ComponentType } from "react";
 import type { ContributionSlotId } from "./contributions";
-import type { TelemaachusSchema } from "./schemas/telemachus";
 import type { GonogoTheme } from "./theme";
 import type { UplinkClientHandle } from "./uplinkClients";
 
@@ -12,29 +11,6 @@ export type DataSourceStatus =
   | "disconnected"
   | "reconnecting"
   | "error";
-
-// ---------------------------------------------------------------------------
-// Data source schema registry: extensible via declaration merging
-// ---------------------------------------------------------------------------
-
-/**
- * Maps data source IDs to their key→value schema.
- *
- * Built-in schemas are pre-populated here. Third-party packages can add their
- * own data sources by augmenting this interface via declaration merging:
- *
- *   declare module '@ksp-gonogo/core' {
- *     interface DataSourceRegistry {
- *       'my-source': MySourceSchema;
- *     }
- *   }
- *
- * Once registered, `useTelemetry("my-source", key)` infers the return type
- * from the schema automatically: no manual type parameter needed.
- */
-export interface DataSourceRegistry {
-  telemachus: TelemaachusSchema;
-}
 
 export interface DataKey {
   key: string;
@@ -51,7 +27,7 @@ export interface ConfigField {
 /**
  * One entry in the action-group registry (`@ksp-gonogo/core/actionGroups`).
  *
- * Note there is no longer a `value:` Telemachus read key. That field
+ * Note there is no longer a `value:` legacy read key. That field
  * (`"v.sasValue"`, `"v.ag1Value"`, …) was the last thing forcing `ActionGroup`
  * to resolve its read dynamically off this registry, which made it the
  * mapTopic coverage scan's own blind spot AND kept a legacy
@@ -63,7 +39,7 @@ export interface ConfigField {
 export interface ActionGroup {
   /** Display name. Stock singletons: "SAS"/"Gear"/…. Customs: whatever the elected backend called it ("AG1" under stock, "Solar Panels" under AGX). */
   name: string;
-  /** Telemachus-era action key to toggle (bridged to a typed command by `map-command.ts`), or null for read-only indicators like Precision Control. */
+  /** Legacy-era action key to toggle (bridged to a typed command by `map-command.ts`), or null for read-only indicators like Precision Control. */
   toggle: string | null;
   description: string;
   /**

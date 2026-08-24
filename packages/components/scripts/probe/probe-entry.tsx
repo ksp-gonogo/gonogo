@@ -364,7 +364,7 @@ async function renderProbe(payload: ProbePayload): Promise<void> {
     (k) => !k.startsWith("_"),
   );
   // kOS-feed widgets read from a separate `"kos"` source. Route any key
-  // prefixed `kos.` there; everything else (Telemachus telemetry) stays on
+  // prefixed `kos.` there; everything else stays on
   // the `"data"` source.
   const isKosKey = (k: string) => k.startsWith("kos.");
   const kosKeys = fixtureKeys.filter(isKosKey);

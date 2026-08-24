@@ -64,7 +64,7 @@ export interface SitrepTelemetryProviderProps {
   children: ReactNode;
   /**
    * The stream is on by default, the mod is the app's only telemetry
-   * source since the legacy Telemachus `DataSource` was deleted (`806e7fe2`).
+   * source since the legacy `DataSource` was deleted (`806e7fe2`).
    * This only exists as a test/embedding seam (e.g. asserting the
    * "disabled" fallback still renders `children` untouched); nothing in the
    * app itself passes `false`.
@@ -92,7 +92,7 @@ export interface SitrepTelemetryProviderProps {
 
 /**
  * Mounts a live `<TelemetryProvider>` fed by a `WebSocketTransport` to the mod
- * server: ON BY DEFAULT. The legacy Telemachus `DataSource` was deleted in
+ * server: ON BY DEFAULT. The legacy `DataSource` was deleted in
  * `806e7fe2` (R6 cutover), so this is now the app's ONLY telemetry source;
  * there is no dev flag gating it and no fallback to fall back to.
  *

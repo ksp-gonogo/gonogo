@@ -7,7 +7,7 @@ import type { DataKeyMeta } from "../types";
  * Returns the enriched schema (key + label / unit / group) for the given
  * data source.
  *
- * `sourceId === "data"` (the default) is the legacy Telemachus key
+ * `sourceId === "data"` (the default) is the legacy flat-key
  * catalog: there is no `DataSource` registered under that id any more (it
  * was deleted in `806e7fe2`, the R6 cutover), so this returns
  * `LEGACY_DATA_CATALOG` (`../schema/legacyDataCatalog.ts`), built straight

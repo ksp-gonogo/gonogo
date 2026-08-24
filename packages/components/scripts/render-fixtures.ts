@@ -35,7 +35,7 @@ interface Fixture {
  * `PartStateModule[]`. The harness loads `<fixture>.partState.json`
  * when present so the rendered SVG exercises the engine-flame /
  * parachute-canopy / deploy-chevron overlays. Real captures pull
- * `v.partState[fid]` from Telemachus; for demo purposes (where no
+ * `v.partState[fid]` off the wire; for demo purposes (where no
  * live capture is available) a hand-written sidecar drives the same
  * code path.
  */

@@ -45,8 +45,7 @@ export type ModToken =
   | "avionics"
   | "kerbalism"
   | "testflight"
-  | "principia"
-  | "telemachus";
+  | "principia";
 
 export interface ModAllowlist {
   /** Wire/contract/generated-code files, cross-Uplink ratchet/inventory
@@ -249,14 +248,6 @@ export const ALLOWLIST: Record<ModToken, ModAllowlist> = {
       "packages/app/src/peer/protocol.ts",
       "packages/app/src/screens/StationScreen.tsx",
       "packages/components/src/MapView/types.ts",
-      "packages/core/src/schemas/telemachus.ts",
-      // T9: a deliberately narrow, telemachus-only copy of the wire-shape
-      // types the legacy (still-installable, no-longer-app-consumed)
-      // Telemachus fork's `scan.*` keys need. The real SCANsat schema lives
-      // entirely in mod/GonogoScansatUplink/client/src/schema.ts now: this
-      // file exists solely so telemachus.ts keeps typing without reaching
-      // into the owning Uplink.
-      "packages/core/src/schemas/telemachus-scan-types.ts",
     ],
     permanent: [
       // -- UPLINK-DISCOVERABILITY scan (2026-08-22): the check that every
@@ -265,10 +256,6 @@ export const ALLOWLIST: Record<ModToken, ModAllowlist> = {
       // eleven of twenty-seven uplinks by scanning only Gonogo.KSP for
       // *Uplink.cs. Ratchet-inventory file, the case this bucket documents.
       "mod/Gonogo.KSP.Tests/UplinkDiscoverabilityTests.cs",
-      // The vendor-name ratchet's seed data enumerates every file in the tree
-      // that still carries the retired source's name, so it necessarily lists
-      // paths under this Uplink. Inventory data, same category as this file.
-      "packages/core/src/vendor-name.allowlist.ts",
       // -- MAGNITUDE budget ratchet (2026-08-19): the per-file `.magnitude`
       // budget is keyed by file path, so it names every Uplink that unwraps a
       // Value. Ratchet-inventory file, the case this bucket documents.
@@ -742,8 +729,8 @@ export const ALLOWLIST: Record<ModToken, ModAllowlist> = {
       // aside now names the vessel rather than the Uplink that reads it, so this
       // ratcheted off; what stayed behind is the `declare module` block, which
       // names nothing.
-      // packages/kerbcast/src/index.ts was here (a "alongside Telemachus / kOS /
-      // etc." aside in its header). That package is now
+      // packages/kerbcast/src/index.ts was here (an "alongside the legacy source /
+      // kOS / etc." aside in its header). That package is now
       // mod/GonogoKerbcastUplink/client, and its rewritten header no longer names
       // another Uplink at all: stale twice over, so it ratcheted off.
       "packages/relay/src/bootstrapConfig.ts",
@@ -1605,15 +1592,16 @@ export const ALLOWLIST: Record<ModToken, ModAllowlist> = {
       "mod/sitrep-sdk/src/spine/map-topic.ts",
       "packages/sitrep-client/src/map-topic.rawFieldRoots.coverage.test.ts",
       "packages/app/src/telemetry/SitrepTelemetryProvider.mappedAndCarried.test.ts",
-      // Documentation of the LEGACY TELEMACHUS wire key's literal values, which
-      // were "patched_conics" and "n_body" with Principia as the stated cause.
-      // Describing a third party's format is not coupling to it.
-      "packages/core/src/schemas/telemachus.ts",
       // truenow-allowlist.test.ts: the sibling architectural ratchet, listed here
       // for the same reason it is under the other tokens. It is a path-keyed
       // allowlist over every Uplink's .cs files, so it necessarily names them all.
       // A path string in a ratchet, not a dependency.
       "packages/core/src/truenow-allowlist.test.ts",
+      // The `.magnitude` budget ratchet, listed here for the same reason it is
+      // under the other tokens: the budget is keyed by file path, so it names
+      // every Uplink that unwraps a Value. Ratchet-inventory file, the case
+      // this bucket documents.
+      "packages/core/src/styleguide-magnitude-budget.test.ts",
       // The two SANCTIONED SELF-REGISTRATION IMPORTS of this Uplink's client
       // package, the same pair every bundled Uplink has. An import of a package
       // whose name contains the mod's is the mechanism by which an Uplink
@@ -1623,78 +1611,6 @@ export const ALLOWLIST: Record<ModToken, ModAllowlist> = {
       // is deleted, so is the import.
       "packages/app/src/main.tsx",
       "packages/app/src/__tests__/topic-cs-sync.test.ts",
-    ],
-  },
-  telemachus: {
-    // A RETIRED dependency rather than an Uplink: see this token's entry in
-    // uplink-boundary.test.ts for why it is gated at all, and
-    // local_docs/design/2026-08-17-telemachus-residue-inventory.md for the
-    // full inventory. Scanned with comments stripped, so every line below is
-    // real code or a real string, and every one names WHO references it: a
-    // Telemachus-named file is not evidence of anything, which is the mistake
-    // that put fakeTelemachus.ts in the "dead" bucket of the very inventory
-    // written to catch it.
-    permanent: [
-      // The ratchet that counts this name, and its seed data. Naming it is
-      // their whole job, and they are the instrument that retires every other
-      // entry in this token.
-      "packages/core/src/vendor-name.allowlist.ts",
-      "packages/core/src/vendor-name.test.ts",
-      // Files whose only mention RECORDS that the coupling is gone, or
-      // describes a third party's bug. Naming it is the file's job.
-      "packages/components/src/OrbitView/stream.test.tsx",
-      "packages/core/src/hooks/useGameContext.test.tsx",
-      "mod/Sitrep.Host.IntegrationTests/MilestoneReplayEndToEndTests.cs",
-      "mod/Sitrep.Host.Tests/SystemViewProviderTests.cs",
-    ],
-    domainDebt: [
-      // --- The mapTopic shim: LEGACY_KEY_HOMES, 204 entries, called by
-      // context.tsx on every useTelemetry read, with 76 old-style keys still
-      // declared across 23 widget files. The largest item by far, and a
-      // 76-key migration rather than a rename. ---
-      "packages/sitrep-client/src/map-topic.test.ts",
-      "packages/core/src/hooks/mapTopic.coverage.test.ts",
-      // orbit-patches renames wire fields onto the legacy OrbitPatch shape,
-      // and its test says so in a test name. Retires when that shape does.
-      "packages/sitrep-client/src/orbit-patches.test.ts",
-      // core's barrel re-exports schemas/telemachus.ts. The schema file itself
-      // is invisible to this token: its type is spelled TelemaachusSchema, with
-      // a typo, so only the import path matches. Retires with the shim.
-      "packages/core/src/index.ts",
-
-      // --- The legacy data catalog: TELEMACHUS_META / legacyDataCatalog,
-      // reached through BufferedDataSource and useDataSchema.
-      // packages/app/src/dataSources/missionHistory.ts already records that
-      // "data"/BufferedDataSource are slated for wholesale deletion. ---
-      "packages/data/src/schema/telemachusMeta.ts",
-      "packages/data/src/schema/legacyDataCatalog.ts",
-      // BufferedDataSource(.test).ts were here. They moved to
-      // `@ksp-gonogo/sitrep-sdk` on 2026-08-19 and could not carry the name onto a
-      // published leaf, so `enrichKey` became an injected seam: the catalogue stays
-      // here with the keys it describes, and the buffering layer no longer knows
-      // whose keys it is labelling. Ratcheted off.
-      "packages/data/src/FlightsManager/MissionHistorySource.ts",
-      "packages/data/src/FlightsManager/MissionHistorySource.test.ts",
-      "packages/data/src/index.ts",
-      // imports TELEMACHUS_META for its friendly labels.
-      "packages/app/src/notes/TagAutocomplete.tsx",
-
-      // --- Test scaffolding for the legacy useTelemetry("data", key) branch.
-      // fakeTelemachus stands in for the DataSource; the peer tests use
-      // "telemachus" as a source id. All retire with the shim above and not
-      // before: that fixture has two live importers. ---
-      "packages/app/src/__tests__/fixtures/fakeTelemachus.ts",
-      "packages/app/src/__tests__/action-group.test.tsx",
-      "packages/app/src/__tests__/peer-roundtrip.test.ts",
-      "packages/app/src/__tests__/peer-client-service.test.ts",
-      "packages/app/src/__tests__/peer-client-data-source.test.ts",
-      "packages/app/src/__tests__/peer-data-sources.test.ts",
-      "packages/components/src/DataSourceStatus/index.test.tsx",
-
-      // The USER-FACING COPY group that stood here is PAID OFF: seven widgets
-      // named the retired source in strings an operator reads on screen, and
-      // none of them does now. Each kept the fact it was stating and dropped
-      // the vendor.
     ],
   },
 };

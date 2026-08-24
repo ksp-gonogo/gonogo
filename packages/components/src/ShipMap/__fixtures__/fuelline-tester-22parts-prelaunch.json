@@ -626,12 +626,12 @@
         "name": "fuelLine"
       },
       {
-        "modules": ["TelemachusDataLink", "TelemachusPowerDrain", "KOSNameTag"],
+        "modules": ["RelayDataLink", "RelayPowerDrain", "KOSNameTag"],
         "dryMass": 0.00499999988824129,
         "persistentId": 2317469622,
         "fuelLineTarget": null,
         "orgPos": [-0.555722713470459, -0.106305122375488, 3.54170737182358e-8],
-        "title": "Telemachus TeleBlade Antenna",
+        "title": "Relay TeleBlade Antenna",
         "up": [-0.960914731025696, 0.276844650506973, 1.49011611938477e-7],
         "flightId": 2142191657,
         "crewCapacity": 0,
@@ -652,12 +652,12 @@
         "name": "Telemach.Blade"
       },
       {
-        "modules": ["TelemachusDataLink", "TelemachusPowerDrain", "KOSNameTag"],
+        "modules": ["RelayDataLink", "RelayPowerDrain", "KOSNameTag"],
         "dryMass": 0.00499999988824129,
         "persistentId": 84290765,
         "fuelLineTarget": null,
         "orgPos": [0.555722713470459, -0.106305122375488, -8.39998932633534e-8],
-        "title": "Telemachus TeleBlade Antenna",
+        "title": "Relay TeleBlade Antenna",
         "up": [0.960914790630341, 0.276844680309296, -2.08616256713867e-7],
         "flightId": 132207464,
         "crewCapacity": 0,

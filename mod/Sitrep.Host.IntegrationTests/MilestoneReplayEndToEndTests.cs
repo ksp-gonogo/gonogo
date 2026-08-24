@@ -405,7 +405,7 @@ namespace Sitrep.Host.IntegrationTests
             }
             if (raw.Contains("eccentricAnomaly"))
             {
-                result.WartViolations.Add($"raw frame contains the eccentricAnomaly key (Telemachus copy-paste bug): {Truncate(raw)}");
+                result.WartViolations.Add($"raw frame contains the eccentricAnomaly key (the old fork's copy-paste bug): {Truncate(raw)}");
             }
         }
 

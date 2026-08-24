@@ -25,7 +25,7 @@ namespace Sitrep.Host.Tests
     public class SystemViewProviderTests
     {
         [Fact]
-        public void BuildSystemBodiesMapsRawBodiesToTypedTreeFixingTelemachusWarts()
+        public void BuildSystemBodiesMapsRawBodiesToTypedTreeFixingLegacyWarts()
         {
             var snapshot = new KspSnapshot
             {
@@ -228,7 +228,7 @@ namespace Sitrep.Host.Tests
         [Fact]
         public void BuildSystemBodiesCarriesTheAlmanacEnrichmentFields()
         {
-            // The "better-than-Telemachus almanac" field set: gravParameter (the
+            // The almanac enrichment field set: gravParameter (the
             // compute primitive), soi, rotationPeriod, tidallyLocked, hasOcean,
             // description, and a nested atmosphere object -- null when airless.
             var snapshot = new KspSnapshot

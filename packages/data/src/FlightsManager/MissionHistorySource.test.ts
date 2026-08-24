@@ -107,7 +107,7 @@ function freshSource(): {
 
 describe("MissionHistorySource", () => {
   describe("schema", () => {
-    it("includes a known Telemachus key with its enriched label/unit", () => {
+    it("includes a known legacy key with its enriched label/unit", () => {
       const { source } = freshSource();
       const schema = source.schema();
       const altitude = schema.find((k) => k.key === "v.altitude");

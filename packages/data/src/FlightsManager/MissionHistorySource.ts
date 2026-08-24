@@ -12,7 +12,7 @@ import {
   type TimelineStore,
 } from "@ksp-gonogo/sitrep-client";
 import { ListenerSet } from "@ksp-gonogo/sitrep-sdk";
-import { enrichKey, TELEMACHUS_META } from "../schema/telemachusMeta";
+import { enrichKey, LEGACY_KEY_META } from "../schema/legacyKeyMeta";
 import type {
   MissionMeta,
   MissionRecord,
@@ -45,7 +45,7 @@ const FULL_HISTORY_REBUILD_BUDGET = new PerfBudget({
 });
 
 /**
- * Legacy Telemachus keys with no queryable stream equivalent, filtered out
+ * Legacy flat keys with no queryable stream equivalent, filtered out
  * of `schema()` the same way `BufferedDataSource`'s live schema never
  * offered them; nothing to `sampleRange` against.
  */
@@ -57,7 +57,7 @@ function isGapKey(key: string): boolean {
  * The `"data"`/`BufferedDataSource` replacement for the flight-history
  * surface (`FlightsManager`, `FlightGraph`, `ChaptersEditor`, and the
  * flight-history peer RPCs): reads exclusively off `MissionStore`'s
- * "press record" recordings instead of always-on Telemachus capture.
+ * "press record" recordings instead of always-on flat-key capture.
  *
  * Registered under a FRESH id (`"missionHistory"`, see
  * `packages/app/src/dataSources/missionHistory.ts`) rather than reusing
@@ -90,7 +90,7 @@ export class MissionHistorySource implements DataSource {
   disconnect(): void {}
 
   schema(): DataKeyMeta[] {
-    return Object.keys(TELEMACHUS_META)
+    return Object.keys(LEGACY_KEY_META)
       .filter((key) => !isGapKey(key))
       .map((key) => ({ key, ...enrichKey(key) }));
   }

@@ -7,7 +7,7 @@ import {
 } from "./map-command";
 
 /**
- * The write-half analog of `map-topic.ts`'s `mapTopic`: old Telemachus action-string
+ * The write-half analog of `map-topic.ts`'s `mapTopic`: old legacy action-string
  * key -> new `vessel.*`/`time.*` typed command + args. Command topics/arg
  * shapes are confirmed against `mod/Sitrep.Host/VesselCommandProvider.cs` and
  * `mod/Sitrep.Contract/VesselCommands.cs`; the wire's arg CASING is

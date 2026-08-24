@@ -34,8 +34,8 @@ namespace Gonogo.KSP
         // surface (in-game GUI or a PluginData config file) should let the
         // user change bind host/port without a rebuild.
         // Binds all interfaces (0.0.0.0) so a client on another LAN device can
-        // reach it at ws://<this-machine-LAN-IP>:8090 (matches Telemachus's
-        // LAN-wide bind). ws:// only - read-only telemetry, home-LAN scope.
+        // reach it at ws://<this-machine-LAN-IP>:8090. ws:// only - read-only
+        // telemetry, home-LAN scope.
         private const string BindUri = "ws://0.0.0.0:8090";
 
         // UT-cadence sampling (Track C): the v1 mod sampled the host every

@@ -82,8 +82,8 @@ public class ClosestApproach
 /// target only (no roster; <c>system.vessels</c>/<c>tar.availableVessels</c>'s
 /// replacement is a deferred M1.5 add per the design doc §5.2). Kills V-8:
 /// <see cref="RelativePosition"/>/<see cref="RelativeVelocity"/> both use the
-/// ONE canonical <see cref="Vec3"/> shape, replacing Telemachus's two
-/// incompatible vector encodings (bare <c>[x,y,z]</c> array vs. <c>{x,y,z}</c>
+/// ONE canonical <see cref="Vec3"/> shape, replacing the legacy vocabulary's
+/// two incompatible vector encodings (bare <c>[x,y,z]</c> array vs. <c>{x,y,z}</c>
 /// object) that coexisted across different key families.
 ///
 /// <para><see cref="Orbit"/> reuses <see cref="VesselOrbit"/> itself (not a

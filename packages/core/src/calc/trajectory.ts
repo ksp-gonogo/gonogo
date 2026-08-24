@@ -1,5 +1,5 @@
 /**
- * Forward trajectory prediction on top of Telemachus orbit-patch data.
+ * Forward trajectory prediction on top of orbit-patch data.
  *
  * The Keplerian elements in each `OrbitPatch` let us analytically propagate
  * the vessel's state forward in time within a single SOI. We don't attempt

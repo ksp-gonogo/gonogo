@@ -24,7 +24,7 @@ import { useDataSchema } from "./useDataSchema";
  *
  * No hand-maintained allowlist: a key becomes eligible the moment
  * `map-topic.ts`'s migration table picks it up, and drops out again if that
- * table ever loses it (e.g. Telemachus deletion retiring a stale entry).
+ * table ever loses it (e.g. a purge retiring a stale entry).
  */
 export function useValueKeys(sourceId = "data"): DataKeyMeta[] {
   const schema = useDataSchema(sourceId);

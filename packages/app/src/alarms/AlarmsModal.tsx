@@ -578,7 +578,7 @@ function RecommendedPresets({
   // `timeToAp` / `timeToPe` are seconds-from-now; the maneuver node UT
   // is absolute. We read them live so a preset reflects the current orbit
   // at the moment of the click. Both are derived `vessel.state.*` fields now
-  // (the old `o.timeToAp`/`o.timeToPe` Telemachus keys, mapped in
+  // (the old `o.timeToAp`/`o.timeToPe` legacy keys, mapped in
   // `map-topic.ts`), read off the canonical stream.
   const vesselState = useStream<VesselState>("vessel.state");
   const timeToAp = vesselState?.timeToAp ?? undefined;

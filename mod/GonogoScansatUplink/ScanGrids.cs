@@ -15,7 +15,7 @@ namespace Gonogo.ScansatUplink
     /// <see cref="CoverageHash"/>/<see cref="CoveragePlane"/> already use.
     ///
     /// <para><b>Cell order matches the wire contract verbatim</b>
-    /// (<c>telemachus.ts</c> + scansat-migration-spec.md §2.3): row-major
+    /// (<c>client/src/schema.ts</c> + scansat-migration-spec.md §2.3): row-major
     /// index <c>ilon * height + ilat</c>, walked at <c>degPerCellLon =
     /// 360/width</c>, <c>degPerCellLat = 180/height</c> so that <c>lon =
     /// ilon*degPerCellLon - 180</c> and <c>lat = ilat*degPerCellLat - 90</c>,

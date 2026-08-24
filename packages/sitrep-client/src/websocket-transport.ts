@@ -96,8 +96,8 @@ const DEFAULT_RETRY_TIMEOUT_MS = 5 * 60 * 1000;
  * default port 8090: the `GonogoAddon`/Fleck server).
  *
  * Owns its own socket lifecycle (opens in the constructor, like
- * `ReplayTransport`) and mirrors `TelemachusDataSource.openWebSocket`'s
- * robustness: fixed-interval reconnect with an overall give-up timeout, clean
+ * `ReplayTransport`) and is robust the same way the retired legacy WS
+ * client was: fixed-interval reconnect with an overall give-up timeout, clean
  * `connected`/`reconnecting`/`disconnected`/`error` status transitions, and
  * re-subscription of every still-active topic on every fresh connection.
  *
@@ -329,7 +329,7 @@ export class WebSocketTransport implements Transport {
       message = parseServerMessage(text);
     } catch {
       // Malformed / unknown envelope: drop it, same posture as the
-      // Telemachus data source's own JSON guard.
+      // legacy data source's own JSON guard.
       return;
     }
 

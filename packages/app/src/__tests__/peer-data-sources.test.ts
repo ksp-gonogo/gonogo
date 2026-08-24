@@ -308,7 +308,7 @@ describe("PeerClientDataSource", () => {
 
   beforeEach(() => {
     client = makeFakeClient();
-    source = new PeerClientDataSource("tel", "Telemachus", client as never);
+    source = new PeerClientDataSource("tel", "Telemetry", client as never);
   });
 
   afterEach(() => {

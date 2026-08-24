@@ -12,7 +12,7 @@ export const SEND_PLAN_COMMAND = "vessel.maneuver.plan.send";
 /** What a caller states about a plan it composed. */
 export interface ComposedPlan {
   /**
-   * The burns, in order. An EMPTY array clears the craft's plan, which is a
+   * The burns, in order. An EMPTY array clears the vessel's plan, which is a
    * real instruction, so it is sent rather than treated as nothing to do.
    */
   burns: ComposedBurn[];
@@ -29,7 +29,7 @@ export interface ComposedPlan {
    */
   observedAt: Value<"ut">;
 
-  /** Which craft. */
+  /** Which vessel. */
   vesselId?: string;
 
   /**
@@ -80,15 +80,15 @@ export interface SendPlanHandle {
  *
  * <p>Separate and exported because the distinction matters and is otherwise
  * untestable without mocking the transport, which this codebase does not do. A
- * plan that did not reach the game is NOT a plan the craft declined: one is a
+ * plan that did not reach the game is NOT a plan the vessel declined: one is a
  * network fact and the other a mission fact, and showing the second for the
- * first would have an operator believe their craft rejected a plan it never
+ * first would have an operator believe their vessel rejected a plan it never
  * saw.</p>
  */
 export function sendRefusalFromError(error: unknown): SendPlanOutcome {
   const rejection = classifyCommandRejection(error);
   if (rejection.kind === "refused") {
-    // The plan DID reach the game and the craft declined it, so the craft's own
+    // The plan DID reach the game and the vessel declined it, so the vessel's own
     // words are the answer. Reporting this as a message that never left would
     // have an operator retransmit a plan that has already been considered and
     // turned down.
@@ -180,7 +180,7 @@ export function planSendArgs(
  *
  * <p>A reply that did not say it succeeded is a refusal, not an unknown. The
  * engine answers every dispatch it accepted, so an absent success flag means the
- * craft declined, and treating it as "no news" would leave a control spinning
+ * vessel declined, and treating it as "no news" would leave a control spinning
  * over a decision that has already been made.</p>
  */
 export function outcomeOfReply(
@@ -197,6 +197,6 @@ export function outcomeOfReply(
     refusal:
       reply?.detail && reply.detail.length > 0
         ? reply.detail
-        : "The craft declined the plan and gave no reason. Check the flight-plan write surface is armed.",
+        : "The vessel declined the plan and gave no reason. Check the flight-plan write surface is armed.",
   };
 }

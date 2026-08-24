@@ -46,7 +46,7 @@ public class SetThrottleArgs
 /// <summary>
 /// <c>vessel.control.stage</c>'s result is <c>CommandResult&lt;int&gt;</c>, a
 /// real value comes back (the new current stage index in <c>Payload</c>),
-/// unlike Telemachus's <c>f.stage</c> void fire-and-forget. See
+/// unlike the legacy <c>f.stage</c> void fire-and-forget. See
 /// <see cref="CommandResult{T}"/>.
 /// </summary>
 
@@ -75,8 +75,7 @@ public class SetActionGroupArgs
 /// <c>vessel.maneuver.add</c>'s args: NAMED delta-v components in the
 /// node's own radial/normal/prograde frame, exactly like the wire's
 /// <see cref="ManeuverNode"/> shape. Kills O-4: there is no positional
-/// <c>[ut,x,y,z]</c> array to mis-order: see the project's own "Telemachus
-/// maneuver-node arg order" finding (raw KSP <c>ManeuverNode.DeltaV</c> is
+/// <c>[ut,x,y,z]</c> array to mis-order (raw KSP <c>ManeuverNode.DeltaV</c> is
 /// <c>x=radialOut, y=normal, z=prograde</c>) for why the actuator seam must
 /// preserve this exact component assignment rather than "helpfully"
 /// reordering it.
@@ -105,7 +104,7 @@ public class AddManeuverNodeArgs
 /// <summary>
 /// <c>vessel.maneuver.update</c>'s args: keyed by the opaque <see cref="NodeId"/>
 /// that <c>vessel.maneuver.add</c>'s <c>CommandResult&lt;string&gt;</c> returned, never a positional index
-/// (O-4's second half: Telemachus's <c>updateManeuverNode</c> shifted every
+/// (O-4's second half: the legacy <c>updateManeuverNode</c> shifted every
 /// later sibling's index by one).
 /// </summary>
 [SitrepContract]

@@ -7,7 +7,7 @@ namespace Sitrep.Host.Crash
     /// <summary>
     /// Accumulates the running per-flight statistics + timestamped event log a
     /// crash record carries (<see cref="FlightStats"/>, <c>events[]</c>): the
-    /// equivalent of the per-flight tracker the Telemachus fork kept. Pure and
+    /// equivalent of the per-flight tracker the old fork kept. Pure and
     /// KSP-free: the KSP-facing producer reads the live active vessel on the
     /// main thread each sample tick and feeds plain scalars in here, so the
     /// maxima and the flight log exist for a late (re-connecting) subscriber

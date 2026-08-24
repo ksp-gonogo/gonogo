@@ -10,7 +10,7 @@
  * status/config front over the live `WebSocketTransport`
  * `SitrepTelemetryProvider` owns, see `packages/app/src/dataSources/sitrep.ts`)
  * reports "connected": exercising the host's Sitrep stream path end to end
- * against the replay server. The old `data`/"Buffered Telemachus Reborn" row
+ * against the replay server. The old buffered `data` row
  * this test used to check no longer exists, that `DataSource` was deleted in
  * `806e7fe2` once the Sitrep stream became the app's only telemetry source.
  */

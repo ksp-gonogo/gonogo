@@ -73,6 +73,12 @@ const MAGNITUDE_BUDGET: Record<string, number> = {
   // 2: the observed instant a plan was built from, and the comparison against
   // the view instant that catches a plan built from a state nobody could have
   // seen. Both are read out here because this file IS that boundary.
+  // The uplink window is arithmetic on INSTANTS against a delay in seconds, and
+  // the shared `commandWindow` it feeds takes plain numbers because the burn
+  // editor computes the same window from the same numbers. Two of these are the
+  // instants going in and one is the view clock; doing it in the algebra would
+  // mean a second implementation of a deadline both surfaces have to agree on.
+  "mod/GonogoPrincipiaUplink/client/src/PlanComposer/index.tsx": 3,
   // The one place a magnitude is unavoidable on the INPUT side: a DOM field
   // holds a string, so somewhere the value has to become a number and back.
   // Having it here once is what lets every widget stop doing it: `UnitInput`

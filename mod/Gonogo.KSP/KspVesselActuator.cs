@@ -534,8 +534,7 @@ namespace Gonogo.KSP
 
         /// <summary>
         /// <c>ManeuverNode.DeltaV</c> is in the node's own radial/normal/
-        /// prograde frame -- x=radialOut, y=normal, z=prograde (the project's
-        /// own "Telemachus maneuver-node arg order" finding, re-confirmed by
+        /// prograde frame -- x=radialOut, y=normal, z=prograde (re-confirmed by
         /// <c>KspHost.BuildManeuverNodes</c>' identical doc comment). This
         /// assignment must NOT be reordered.
         /// </summary>

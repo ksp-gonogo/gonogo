@@ -77,7 +77,7 @@ installTestHost({
   useStream,
   useStreamEvent,
   // Overloaded on the sdk side (canonical one-arg Topic read, and the
-  // retired useDataValue's legacy two-arg DataSourceRegistry read carried
+  // retired useDataValue's legacy two-arg flat-key read carried
   // over onto this same name: see GonogoHost.useTelemetry's doc). Mirrors
   // the app's own `buildGonogoHost()` wiring (packages/app/src/uplinks/
   // host.ts) member-for-member: real core `useTelemetry` already branches

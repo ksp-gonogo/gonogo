@@ -9,8 +9,8 @@ namespace Sitrep.Contract;
 /// R7 Fix 1's replacement for the bare <c>string</c> error codes
 /// (<c>"E_RANGE"</c>/<c>"E_NOT_FOUND"</c>/<c>"E_MODE_UNAVAILABLE"</c>/
 /// <c>"E_NO_VESSEL"</c>) the three hand-rolled result records used to return.
-/// A string code is a Telemachus habit: it forces the client to string-match
-/// a magic value that the compiler can neither check nor enumerate. This enum
+/// A string code forces the client to string-match a magic value that the
+/// compiler can neither check nor enumerate. This enum
 /// makes the failure surface a closed, typed set instead.
 ///
 /// <para><see cref="None"/> is the success sentinel (paired with
@@ -341,8 +341,8 @@ public class CommandResult
 /// <summary>
 /// R7 Fix 1: the payload-carrying result, <see cref="CommandResult"/> plus a
 /// typed <see cref="Payload"/>. <c>vessel.control.stage</c> returns
-/// <c>CommandResult&lt;int&gt;</c> (the new current stage index, unlike
-/// Telemachus's <c>f.stage</c> void fire-and-forget); <c>vessel.maneuver.add</c>
+/// <c>CommandResult&lt;int&gt;</c> (the new current stage index, rather than a
+/// void fire-and-forget); <c>vessel.maneuver.add</c>
 /// returns <c>CommandResult&lt;string&gt;</c> (the created node's opaque id,
 /// O-6 fixed). <see cref="Payload"/> is default (null for reference types) when
 /// <see cref="CommandResult.Success"/> is false.

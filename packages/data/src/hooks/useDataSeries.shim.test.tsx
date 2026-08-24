@@ -269,7 +269,7 @@ describe("useDataSeries shim: a DERIVED mapped topic streams a REAL series compu
 /**
  * A plot key is not always a label a widget author wrote: `GraphView` resolves
  * `GraphConfig.series[].key`/`xKey` through this hook, so a widget migrating
- * off the Telemachus vocabulary has to be able to plot the modern path.
+ * off the legacy vocabulary has to be able to plot the modern path.
  *
  * `mapTopic` translates the OLD spelling. It has nothing to say about the new
  * one, so a widget that switched to `vessel.orbit.sma` resolved to `undefined`,

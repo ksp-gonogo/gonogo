@@ -136,7 +136,7 @@ export class PeerBroadcastingDataSource extends DataSourceWrapper {
   }
 
   // The BufferedDataSource extensions `useDataSeries` expects. When the wrapped
-  // source doesn't implement them (e.g. a raw telemachus source wrapped for
+  // source doesn't implement them (e.g. a raw source wrapped for
   // broadcasting), fall back to the base `subscribe` contract and return empty
   // history so the hook keeps working.
   subscribeSamples(key: string, cb: (sample: Sample) => void) {
@@ -173,7 +173,7 @@ export class PeerBroadcastingDataSource extends DataSourceWrapper {
       return this.real.subscribeCollection(keys, cb);
     }
     // Fall back to individual subscribes for sources that don't support
-    // batched collection (e.g. a raw Telemachus wrapper without buffering).
+    // batched collection (e.g. a raw wrapper without buffering).
     const snapshot: unknown[] = new Array<unknown>(keys.length).fill(undefined);
     const unsubs: Array<() => void> = [];
     keys.forEach((key, i) => {

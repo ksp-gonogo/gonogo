@@ -3,11 +3,11 @@ import type { DataKeyMeta } from "../types";
 type MetaEntry = Omit<DataKeyMeta, "key">;
 
 /**
- * Human-facing metadata for every static key in TelemaachusSchema.
- * Dynamic indexed keys (`b.name[N]` etc.) are not listed here, they get the
- * "Other" group fallback in `enrichKey`.
+ * Human-facing metadata for every static key in the legacy flat-key
+ * vocabulary. Dynamic indexed keys (`b.name[N]` etc.) are not listed here,
+ * they get the "Other" group fallback in `enrichKey`.
  */
-export const TELEMACHUS_META: Record<string, MetaEntry> = {
+export const LEGACY_KEY_META: Record<string, MetaEntry> = {
   // --- Position & altitude ---
   "v.altitude": { label: "Altitude", unit: "m", group: "Position" },
   "v.heightFromTerrain": {
@@ -407,7 +407,7 @@ export const TELEMACHUS_META: Record<string, MetaEntry> = {
   // --- Application / physics ---
   "a.physicsMode": { label: "Physics mode", unit: "enum", group: "State" },
 
-  // --- Landing prediction (Telemachus WIP) ---
+  // --- Landing prediction ---
   // Sentinels: lat === 0 && lon === 0 means "no prediction". timeToImpact is
   // NaN when vessel isn't SUB_ORBITAL or FLYING. Guard on the consumer side.
   "land.timeToImpact": { label: "Time to impact", unit: "s", group: "Landing" },
@@ -447,11 +447,11 @@ export const TELEMACHUS_META: Record<string, MetaEntry> = {
     group: "Landing",
   },
 
-  // --- Telemachus antenna status ---
+  // --- Antenna status ---
   // p.paused: 0=active, 1=game paused, 2=no power (or fork-bug collapse
   // for off / not found), 3=off, 4=not found, 5=not in flight. Drives
   // the trust gate in BufferedDataSource.
-  "p.paused": { label: "Telemachus antenna", unit: "raw", group: "CommNet" },
+  "p.paused": { label: "Antenna state", unit: "raw", group: "CommNet" },
 
   // --- CommNet signal state ---
   "comm.connected": {
@@ -653,5 +653,5 @@ export const TELEMACHUS_META: Record<string, MetaEntry> = {
 
 /** Enrich a raw key with metadata. Falls back to `{ label: key, group: "Other" }`. */
 export function enrichKey(key: string): Omit<DataKeyMeta, "key"> {
-  return TELEMACHUS_META[key] ?? { label: key, group: "Other" };
+  return LEGACY_KEY_META[key] ?? { label: key, group: "Other" };
 }

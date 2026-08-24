@@ -102,7 +102,7 @@ public class StageDeltaVEntry
 
     /// <summary>
     /// Per-resource current/max amounts for the parts active IN THIS STAGE,
-    /// the old Telemachus <c>r.resourceCurrent[X]</c>/<c>r.resourceCurrentMax[X]</c>
+    /// the old <c>r.resourceCurrent[X]</c>/<c>r.resourceCurrentMax[X]</c>
     /// pair (as opposed to <c>vessel.resources</c>'s vessel-WIDE totals).
     /// <c>DeltaVStageInfo</c> itself has no per-resource field (only aggregate
     /// dry/fuel mass), so this is built by walking every part's

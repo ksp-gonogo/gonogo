@@ -24,7 +24,7 @@ interface PendingSample {
  * survives browser restarts.
  *
  * Writes are batched and flushed every `flushIntervalMs` (default 250ms)
- * to reduce per-sample transaction overhead: a live Telemachus stream
+ * to reduce per-sample transaction overhead: a live telemetry stream
  * produces ~4 samples/sec per subscribed key, and committing each one
  * individually is measurably wasteful in Chromium. Reads always trigger
  * a synchronous flush so range queries observe the latest data.

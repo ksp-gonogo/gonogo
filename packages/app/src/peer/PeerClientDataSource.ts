@@ -34,7 +34,7 @@ interface SeriesRange {
 
 /**
  * Soft cap on samples fanned out to local station-side subscribers from the
- * peer link. The host forwards Telemachus (~170 keys @ 4 Hz, worst-case
+ * peer link. The host forwards telemetry (~170 keys @ 4 Hz, worst-case
  * 680/sec) plus selective subs the station opts into, so 2500 leaves
  * comfortable headroom over realistic steady state while still catching a
  * runaway broadcast or a duplicated peer message.

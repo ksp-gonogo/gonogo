@@ -28,8 +28,8 @@ import type { JSX, ReactNode } from "react";
  * to genuinely run OFF THE STREAM (a real `TelemetryProvider` + a real
  * `TelemetryClient`/`TimelineStore` pipeline), not the legacy
  * `MockDataSource` registry. Built for the WarpControl pilot; scoped to
- * what it needs, a fuller `fromTelemachusFixture` bulk-fixture-converter
- * is later work once more widgets migrate.
+ * what it needs, a fuller bulk-fixture-converter is later work once more
+ * widgets migrate.
  *
  * - **`StubTransport`** (not `ReplayTransport`): this adapter is for
  *   hand-authored, per-test wire emissions (`fixture.emit(topic, payload)`),

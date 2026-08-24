@@ -69,7 +69,7 @@ export function buildGonogoHost(): GonogoHost {
       registerAugment(def as unknown as Parameters<typeof registerAugment>[0]),
 
     // Overloaded on the sdk side (canonical one-arg Topic read, and the
-    // retired useDataValue's legacy two-arg DataSourceRegistry read carried
+    // retired useDataValue's legacy two-arg flat-key read carried
     // over onto this same name: see GonogoHost.useTelemetry's doc). Real
     // core `useTelemetry` already branches internally on whether `key` is
     // present while keeping every hook call unconditional (its own

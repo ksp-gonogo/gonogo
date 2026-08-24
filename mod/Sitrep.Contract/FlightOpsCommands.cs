@@ -58,7 +58,7 @@ public class SwitchVesselArgs
 /// before the game is ever touched.
 ///
 /// <para><see cref="Crew"/> is a real array of kerbal names (empty = launch
-/// unmanned), NOT the legacy semicolon-joined blob the old Telemachus action
+/// unmanned), NOT the legacy semicolon-joined blob the old action
 /// string used: the command surface is JSON, so the client unwinds its
 /// <c>;</c>-encoded crew list back into an array before dispatching and the
 /// host assigns each name into a free craft seat.</para>

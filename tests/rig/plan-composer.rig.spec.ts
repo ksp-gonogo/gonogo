@@ -10,7 +10,7 @@ import { expect, type Page, test } from "@playwright/test";
  * spec so the next person watches it back rather than re-deriving it.</p>
  *
  * <p><b>It asserts against the game, not the widget.</b> A widget that says it
- * sent a plan and a craft that holds one are different claims, and it was
+ * sent a plan and a vessel that holds one are different claims, and it was
  * exactly that gap the hand-driven run kept falling into: the status line read
  * the same whether the plan had landed or the uplink had been latched
  * unavailable twenty minutes earlier.</p>
@@ -18,7 +18,7 @@ import { expect, type Page, test } from "@playwright/test";
 const RIG_HOST = process.env.RIG_HOST ?? "192.168.86.33";
 const SITREP = `ws://${RIG_HOST}:${process.env.RIG_SITREP_PORT ?? "8090"}`;
 
-/** The craft's flight plan, read straight off the stream. */
+/** The vessel's flight plan, read straight off the stream. */
 async function planFromGame(): Promise<{
   planExists?: boolean;
   burns?: Array<Record<string, number>>;
@@ -48,7 +48,7 @@ async function press(page: Page, label: string) {
   await page.getByRole("button", { name: label }).first().click();
 }
 
-test("a plan composed here reaches the craft", async ({ page }) => {
+test("a plan composed here reaches the vessel", async ({ page }) => {
   await page.goto("/");
 
   // The composer is an augment inside the maneuver planner, so the planner has
@@ -60,7 +60,7 @@ test("a plan composed here reaches the craft", async ({ page }) => {
   await press(page, "Draft plan");
   await press(page, "Add burn");
 
-  // Ahead of the craft and inside the plan's window. A burn behind the craft is
+  // Ahead of the vessel and inside the plan's window. A burn behind the vessel is
   // refused by the producer, and that refusal reads like a struct fault.
   const ignitionUt = 425600;
   await page
@@ -70,12 +70,15 @@ test("a plan composed here reaches the craft", async ({ page }) => {
   // slots carry the basis's own components in its own order.
   await page.getByRole("spinbutton", { name: "Tangent" }).fill("65");
 
-  await press(page, "Uplink to craft");
+  // Two acts, deliberately. Saving ends composing and nothing leaves; the plan
+  // reaches the vessel only from the list it lands in.
+  await press(page, "Save draft");
+  await press(page, "Upload to vessel");
   await expect(
-    page.getByText("Aboard. The craft is flying this plan."),
+    page.getByText("Aboard. The vessel is flying this plan."),
   ).toBeVisible();
 
-  // The claim that matters. The widget saying so is not the craft holding one.
+  // The claim that matters. The widget saying so is not the vessel holding one.
   const plan = await planFromGame();
   expect(plan.planExists).toBe(true);
   expect(plan.burns).toHaveLength(1);

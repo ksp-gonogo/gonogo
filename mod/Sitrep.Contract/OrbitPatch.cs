@@ -35,8 +35,8 @@ namespace Sitrep.Contract;
 /// deliberate, narrower exception to this codebase's usual R1 "never NaN,
 /// never a fake 0" rule: the client's propagation math
 /// (<c>trajectory.ts</c>'s <c>patchStateAt</c>) already hard-assumes a finite
-/// number for both (no null-handling branch), matching Telemachus's own
-/// historical behaviour for a near-circular/near-equatorial patch. Capturing
+/// number for both (no null-handling branch), matching the historical
+/// behaviour for a near-circular/near-equatorial patch. Capturing
 /// them nullable here would silently break every consumer without a matching
 /// client-side rewrite: out of scope for this Topic. See
 /// <c>Gonogo.KSP.KspHost.BuildOrbitPatchChain</c>'s doc comment for how a

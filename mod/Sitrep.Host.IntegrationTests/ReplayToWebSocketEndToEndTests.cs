@@ -415,7 +415,7 @@ namespace Sitrep.Host.IntegrationTests
             Assert.Contains("argPe", orbit.Keys);
             Assert.Contains("meanAnomalyAtEpoch", orbit.Keys);
             Assert.Contains("epoch", orbit.Keys);
-            // The Telemachus copy-paste bug (OrbitPatchJSONFormatter assigning
+            // The old fork's copy-paste bug (its orbit-patch formatter assigning
             // "eccentricAnomaly" the body's eccentricity) is NOT reproduced here.
             Assert.DoesNotContain("eccentricAnomaly", orbit.Keys);
         }

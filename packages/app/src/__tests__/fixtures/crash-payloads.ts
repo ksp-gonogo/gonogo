@@ -1,4 +1,4 @@
-// Real `crash.lastCrash` payloads captured from a live KSP + Telemachus-fork
+// Real `crash.lastCrash` payloads captured from a live KSP + legacy-fork
 // session on 2026-06-02 (the diagnostic run that confirmed the source-side
 // debris filter). Use these in UI tests instead of hand-written objects so the
 // parser stays pinned to the real wire shape, nested `flightStats`, the

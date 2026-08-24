@@ -233,7 +233,7 @@ export function FlightGraph({
 }
 
 /**
- * Group data keys by their Telemachus prefix for the picker's group
+ * Group data keys by their flat-key prefix for the picker's group
  * headers. Anything unknown lands under "Other". The picker's own group
  * sort takes over after this.
  */

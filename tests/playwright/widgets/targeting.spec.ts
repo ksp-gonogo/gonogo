@@ -16,7 +16,7 @@
  *
  * An earlier version of this comment said the recording carried
  * "No Target Selected." in a name field and that the widget's job was to
- * recognise it. That was wrong: the string was Telemachus's sentinel for a null
+ * recognise it. That was wrong: the string was the legacy fork's sentinel for a null
  * target, `KspHost.BuildTarget` returns null before `name` is ever read, and the
  * client-side translator for it has been deleted. This test never exercised it.
  */

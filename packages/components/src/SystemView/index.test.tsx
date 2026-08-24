@@ -31,8 +31,7 @@ function WithContributions({ children }: { children: ReactNode }) {
 
 /**
  * SystemView reads entirely off the stream. The body table
- * (`useCelestialBodies`) now rides the mod's `system.bodies` Topic, the old
- * Telemachus `b.*[i]` fan-out via `getDataSource("data")` is gone, and the
+ * (`useCelestialBodies`) rides the mod's `system.bodies` Topic, and the
  * orbit / target / encounter / apsis scalars + view-UT come off the streamed
  * `vessel.*` Topics via `useTelemetry` / `useViewUt`, all through a real
  * `TelemetryProvider` + `TimelineStore` (`setupStreamFixture`).

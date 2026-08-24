@@ -86,7 +86,7 @@
         },
         "manufacturer": "Karmin Navigation",
         "crashTolerance": 5,
-        "title": "Telemachus TeleBlade Antenna",
+        "title": "Relay TeleBlade Antenna",
         "dryMass": 0.00499999988824129,
         "inverseStage": -1,
         "flightId": 876573819,
@@ -95,7 +95,7 @@
         "orgPos": [-0.555722713470459, -0.106305122375488, 3.54170737182358e-8],
         "maxTemp": 1600,
         "parentFlightId": 639904890,
-        "modules": ["TelemachusDataLink", "TelemachusPowerDrain", "KOSNameTag"]
+        "modules": ["RelayDataLink", "RelayPowerDrain", "KOSNameTag"]
       },
       {
         "category": "Control",
@@ -110,7 +110,7 @@
         },
         "manufacturer": "Karmin Navigation",
         "crashTolerance": 5,
-        "title": "Telemachus TeleBlade Antenna",
+        "title": "Relay TeleBlade Antenna",
         "dryMass": 0.00499999988824129,
         "inverseStage": -1,
         "flightId": 3137022360,
@@ -119,7 +119,7 @@
         "orgPos": [0.555722713470459, -0.106305122375488, -8.39998932633534e-8],
         "maxTemp": 1600,
         "parentFlightId": 639904890,
-        "modules": ["TelemachusDataLink", "TelemachusPowerDrain", "KOSNameTag"]
+        "modules": ["RelayDataLink", "RelayPowerDrain", "KOSNameTag"]
       }
     ]
   }

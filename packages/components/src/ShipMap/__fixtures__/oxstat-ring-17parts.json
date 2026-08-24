@@ -88,12 +88,12 @@
         "name": "parachuteSingle"
       },
       {
-        "modules": ["TelemachusDataLink", "TelemachusPowerDrain", "KOSNameTag"],
+        "modules": ["RelayDataLink", "RelayPowerDrain", "KOSNameTag"],
         "dryMass": 0.00499999988824129,
         "persistentId": 23270310,
         "fuelLineTarget": null,
         "orgPos": [-0.489370256662369, 0.114500045776367, 3.14621573238583e-8],
-        "title": "Telemachus TeleBlade Antenna",
+        "title": "Relay TeleBlade Antenna",
         "up": [-0.960914731025696, 0.276844650506973, 1.49011611938477e-7],
         "flightId": 4196444896,
         "crewCapacity": 0,

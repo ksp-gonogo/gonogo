@@ -318,12 +318,12 @@
         "name": "KAL9000"
       },
       {
-        "modules": ["TelemachusDataLink", "TelemachusPowerDrain", "KOSNameTag"],
+        "modules": ["RelayDataLink", "RelayPowerDrain", "KOSNameTag"],
         "dryMass": 0.00499999988824129,
         "persistentId": 135627592,
         "fuelLineTarget": null,
         "orgPos": [-2.34393073839101e-8, 0.395749062299728, 0.410338848829269],
-        "title": "Telemachus TeleBlade Antenna",
+        "title": "Relay TeleBlade Antenna",
         "up": [5.50258150155969e-8, 0.276844382286072, 0.960914969444275],
         "flightId": 1531195025,
         "crewCapacity": 0,

@@ -11,7 +11,7 @@ namespace Sitrep.Host
     /// <c>vessel.identity</c>/<c>vessel.orbit</c>/<c>vessel.orbit.truth</c>/
     /// <c>vessel.flight</c>: the Task 1 foundation for the vessel telemetry
     /// uplink. See local_docs/telemetry-mod/m1-provider-taxonomy-design.md
-    /// §2.2 and telemachus-api-issues.md O-1/O-8/O-9/O-10/V-10/V-12/V-13.
+    /// §2.2 and the legacy-API issue catalogue's O-1/O-8/O-9/O-10/V-10/V-12/V-13.
     /// Reads <see cref="KspSnapshot.Values"/>'s <c>"vessel"</c> groups (see
     /// <c>Gonogo.KSP.KspHost.BuildVesselEntry</c>'s doc comment for the raw
     /// shape) and produces the typed <c>Sitrep.Contract</c> POCOs. Every

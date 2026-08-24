@@ -385,8 +385,8 @@ function formatNextLine(alarm: Alarm, utNow: number | null): string | null {
 }
 
 function formatWarp(index: number, rate: number): string {
-  // `rate` is the source of truth, Telemachus delivers it on every WS
-  // frame. `index` may be unavailable in some KSP / Telemachus builds, so
+  // `rate` is the source of truth, it arrives on every WS frame.
+  // `index` may be unavailable in some KSP builds, so
   // never gate on `index === 0` (that would silently mask manual warp).
   if (!Number.isFinite(rate) || rate <= 0) {
     return Number.isFinite(index) ? `${index}×` : NULL_DISPLAY;

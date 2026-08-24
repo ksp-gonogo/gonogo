@@ -22,7 +22,7 @@ namespace Sitrep.Contract
     /// <para>Spellings are the OPERATOR-FACING symbols already used by the
     /// client's existing presentation code (<c>kg/m³</c> per
     /// <c>packages/components/src/shared/formatDensity.ts</c>, <c>°</c>/<c>g</c>
-    /// per <c>packages/data/src/schema/telemachusMeta.ts</c>) rather than a new
+    /// per <c>packages/data/src/schema/legacyKeyMeta.ts</c>) rather than a new
     /// abstract identifier, so a formatter that has no special rule for a unit
     /// can fall back to appending the token verbatim and still be correct.</para>
     ///
@@ -93,8 +93,8 @@ namespace Sitrep.Contract
         /// time correctly, with a comment explaining why: one author knew and
         /// the others could not, because <c>"s"</c> is the same token on both
         /// meanings and the boundary that exists to catch this had nothing to
-        /// say. Telemachus, for what it is worth, carried two separate keys for
-        /// this one event and the migration collapsed them.</para>
+        /// say. The pre-stream vocabulary carried two separate keys for this
+        /// one event and the migration collapsed them.</para>
         /// </remarks>
         public const string UniversalTime = "ut";
 

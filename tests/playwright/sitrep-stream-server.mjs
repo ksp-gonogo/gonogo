@@ -6,9 +6,9 @@
  * real Chromium tab can drive its dashboard widgets without needing KSP or
  * the mod running.
  *
- * Successor to `telemachus-replay-server.mjs`, retired once the app's only
+ * Successor to the legacy replay server, retired once the app's only
  * telemetry source became the Sitrep stream (`806e7fe2`, "delete the legacy
- * Telemachus data source"). Same snapshot-replay model, new wire protocol:
+ * data source"). Same snapshot-replay model, new wire protocol:
  *
  *   Client -> server: `{"type":"subscribe","topic":"<t>"}` /
  *                      `{"type":"unsubscribe","topic":"<t>"}`
@@ -16,7 +16,7 @@
  *   topic's current snapshot value (if this fixture has one), then the same
  *   frame again every 250ms for as long as the topic stays subscribed, this
  *   mirrors the real mod's change-gated-but-periodically-reconfirmed delivery
- *   and covers the same "late subscriber" race the Telemachus replay server's
+ *   and covers the same "late subscriber" race the legacy replay server's
  *   own doc comment described (WebSocketTransport re-subscribes every still-
  *   active topic on reconnect; a snapshot re-emit means a late/reconnected
  *   subscriber never waits longer than one tick).
@@ -26,7 +26,7 @@
  * `mod/Sitrep.Host.IntegrationTests/WireFixtureGeneratorTests.cs`) but are
  * gitignored/local-only and don't cover every topic anyway, not usable as a
  * committed CI fixture. This snapshot is hand-authored instead, translating
- * the OLD `test/recorded_fixtures/launch_to_apoapsis_10000.json` Telemachus
+ * the OLD `test/recorded_fixtures/launch_to_apoapsis_10000.json` recorded
  * flight (a Kerbin-orbiting "Mun Tester" craft, Bob Kerman aboard, LOS at
  * end of recording) into the new topic/field shapes via
  * `packages/sitrep-client/src/map-topic.ts`'s migration table: chosen so
@@ -35,7 +35,7 @@
  * IDENTICAL underlying number/string here and needs no assertion rewrite.
  *
  * Topics with no snapshot entry below are simply never sent, exactly the
- * "missing key" behaviour the old Telemachus replay server had for keys
+ * "missing key" behaviour the old replay server had for keys
  * absent from its recording (confirmed safe: an un-carried-or-never-arrived
  * topic resolves to `undefined` forever, no throw; see
  * `packages/core/src/hooks/useTelemetry.ts`). A handful of widget specs rely
@@ -63,8 +63,8 @@
  * sample delivered" for the derived-channel gate while resolving every
  * `vessel.target.*` field read to `undefined`. A tombstone is what
  * `absenceIsData` makes of a cleared target, so this is the real wire shape;
- * the deleted NO_TARGET_SENTINEL this note used to cite was Telemachus's
- * string for the same condition and was never producible here.
+ * the deleted NO_TARGET_SENTINEL this note used to cite was the legacy
+ * fork's string for the same condition and was never producible here.
  */
 import { createServer } from "node:http";
 import { WebSocketServer } from "ws";
@@ -393,7 +393,7 @@ export function startReplayServer({ port = PORT, extraTopics = {} } = {}) {
     }
 
     // Periodic re-emit: mirrors the mod's own periodic reconfirmation and
-    // covers the same "late subscriber" race the Telemachus replay server's
+    // covers the same "late subscriber" race the legacy replay server's
     // own ticker existed for.
     const ticker = setInterval(() => {
       if (ws.readyState !== ws.OPEN) return;

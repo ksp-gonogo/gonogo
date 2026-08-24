@@ -57,7 +57,7 @@ class FakeDataConnection {
 vi.mock("peerjs", () => ({ default: FakePeer }));
 
 /**
- * Synthetic Telemachus-like source. ~150 numeric keys; a single
+ * Synthetic high-rate source. ~150 numeric keys; a single
  * `tick()` fans a sample out to every key's subscribers, mimicking what
  * BufferedDataSource does on each WebSocket frame.
  */

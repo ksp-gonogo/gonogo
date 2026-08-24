@@ -2,7 +2,7 @@
 /**
  * Regenerate the six `LandingStatus/__fixtures__/*.json` scenarios in the
  * `_stream` Sitrep format (the same envelope the working `__render__/*.json`
- * use). They were stale Telemachus flat-key fixtures (`v.body`,
+ * use). They were stale flat-key fixtures (`v.body`,
  * `v.heightFromTerrain`, `land.*`) that the Sitrep-migrated LandingStatus no
  * longer reads, so the `landing-status-widget` visual config rendered the
  * OFFLINE empty state. Driving the real Sitrep topics leaves offline and

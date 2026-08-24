@@ -6,10 +6,10 @@ import type { Value } from "./value";
  * A plan being composed at a command centre, before anything has been sent.
  *
  * <p><b>Drafts live here and nowhere else.</b> The game holds at most the one
- * plan a craft is flying, and holds nothing at all until a send puts something
+ * plan a vessel is flying, and holds nothing at all until a send puts something
  * there. Everything an operator is still deciding about is a command-centre
  * object, which is what lets two people work on different plans for the same
- * craft at once: neither is touching the game, so neither can disturb the other
+ * vessel at once: neither is touching the game, so neither can disturb the other
  * or the player at the keyboard.</p>
  *
  * <p><b>The observed instant is recorded when the draft is BUILT, not when it
@@ -23,10 +23,10 @@ export interface PlanDraft {
   /** This draft's own id, assigned by the command centre and never the game's. */
   id: string;
 
-  /** What the operator calls it. Never sent: the craft has no use for a name. */
+  /** What the operator calls it. Never sent: the vessel has no use for a name. */
   name: string;
 
-  /** Which craft it is for. */
+  /** Which vessel it is for. */
   vesselId?: string;
 
   burns: ComposedBurn[];
@@ -36,10 +36,22 @@ export interface PlanDraft {
 
   /** The instant the state this draft was built from was actually true. */
   observedAt: Value<"ut">;
+
+  /**
+   * Whether the operator has finished composing this one.
+   *
+   * <p>The difference between a plan being WRITTEN DOWN and a plan being aboard
+   * a vessel is the most important distinction this surface has, and a single
+   * button cannot express it. A draft is composed, then saved, and only a saved
+   * one is offered for transmission: a half-typed burn cannot be sent by a
+   * misplaced press, and sending is a deliberate second act rather than the end
+   * of editing.</p>
+   */
+  saved?: boolean;
 }
 
 /**
- * The command centre's own plans, held per craft.
+ * The command centre's own plans, held per vessel.
  *
  * <p>Deliberately not a React thing and deliberately not persistent. It is a
  * plain observable collection so the same drafts can be read by a widget, a
@@ -138,7 +150,7 @@ export class PlanDraftStore {
 /**
  * A draft in the shape the send hook takes.
  *
- * <p>The name is dropped, because the craft has no use for one. The draft's id
+ * <p>The name is dropped, because the vessel has no use for one. The draft's id
  * becomes the request id, so a draft retransmitted after a silence is
  * recognised as the same intent rather than applied twice: that is the whole
  * job of a request id, and the draft is the intent.</p>

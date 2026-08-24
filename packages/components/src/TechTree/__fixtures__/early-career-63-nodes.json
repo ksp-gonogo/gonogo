@@ -3,7 +3,7 @@
     "capturedAt": "2026-05-29",
     "body": "Kerbin",
     "situation": "Career flight",
-    "notes": "Live tech.nodes capture (63 nodes) from gonogo Telemachus fork TechTreeDataLinkHandler."
+    "notes": "Live tech.nodes capture (63 nodes) from the legacy fork's tech-tree handler."
   },
   "tech.nodes": [
     {
@@ -642,7 +642,7 @@
           "purchased": true,
           "category": "Control",
           "name": "Telemach.Blade",
-          "title": "Telemachus TeleBlade Antenna",
+          "title": "Relay TeleBlade Antenna",
           "entryCostEffective": 1000,
           "entryCost": 1000,
           "manufacturer": "Karmin Navigation"
@@ -651,7 +651,7 @@
           "purchased": true,
           "category": "Control",
           "name": "Telemach.Fustek",
-          "title": "Telemachus FusTek Antenna",
+          "title": "Relay FusTek Antenna",
           "entryCostEffective": 2400,
           "entryCost": 2400,
           "manufacturer": "FusTek"
@@ -660,7 +660,7 @@
           "purchased": true,
           "category": "Control",
           "name": "TeleMach.Yagi",
-          "title": "Telemachus Yagi Antenna",
+          "title": "Relay Yagi Antenna",
           "entryCostEffective": 1800,
           "entryCost": 1800,
           "manufacturer": "Borklund"

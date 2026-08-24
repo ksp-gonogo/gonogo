@@ -54,7 +54,7 @@ export interface GonogoHost {
    * carried over onto `useTelemetry` itself (real `useTelemetry` in
    * `@ksp-gonogo/core` has always answered both call shapes off the one
    * function; `useDataValue` was only ever a name for this same call). Still
-   * needed by Uplinks reading a legacy `DataSourceRegistry` key (e.g.
+   * needed by Uplinks reading a legacy flat key (e.g.
    * `useTelemetry<number>("data", "comm.signalStrength")`) that has no
    * canonical Topic yet.
    */

@@ -70,7 +70,6 @@ export * from "./registry";
 export * from "./rss-bodies";
 export * from "./safeRandomUuid";
 export * from "./schemas/orbit";
-export * from "./schemas/telemachus";
 export * from "./schemas/vessel-parts";
 export * from "./searchTags";
 export * from "./settings/gameHost";

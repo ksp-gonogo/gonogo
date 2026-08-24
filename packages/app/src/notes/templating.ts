@@ -12,7 +12,7 @@
  *   - Key is known but value not arrived yet → `...`
  *   - Value is null/NaN                     → the null-display placeholder
  *
- * Tags must be `[a-zA-Z0-9._\[\]-]+`, covers Telemachus key shapes
+ * Tags must be `[a-zA-Z0-9._\[\]-]+`, covers the legacy key shapes
  * including bracketed resource keys like `r.resource[Oxidizer]`.
  */
 

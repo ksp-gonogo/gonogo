@@ -74,7 +74,7 @@ function areIceServersEqual(a: RTCIceServer[], b: RTCIceServer[]): boolean {
 /**
  * Soft cap on the bandwidth a single host pours into the PeerJS data
  * channel each second (summed across all connected peers). At ~150
- * Telemachus keys × 4 Hz × 2 peers, the wire format averages ~50 bytes
+ * keys × 4 Hz × 2 peers, the wire format averages ~50 bytes
  * per sample, which is roughly 60 KB/s. We set the budget at 200 KB/s,
  * well above steady state, low enough to catch a regression that
  * adds an unexpected broadcast loop.

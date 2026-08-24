@@ -22,7 +22,7 @@ public enum WarpMode
 }
 
 /// <summary>
-/// The <c>time.warp</c> channel payload: kills N-3 (Telemachus's
+/// The <c>time.warp</c> channel payload: kills N-3 (the legacy
 /// <c>p.paused</c> conflates game-pause, no-power, off, antenna-not-found,
 /// and scene state into one undocumented int, with a doc/impl mismatch: the
 /// docs say <c>0..4</c> but <c>partPaused()</c> can return an undocumented

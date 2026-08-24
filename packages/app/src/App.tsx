@@ -21,7 +21,7 @@ export default function App() {
 function AppRoute() {
   if (isStationRoute()) return <StationScreen />;
 
-  // The main screen reaches KSP's Telemachus over insecure ws://, which a
+  // The main screen reaches the Gonogo mod over insecure ws://, which a
   // secure-origin (HTTPS) page can't do (mixed content), so a hosted build
   // can never run the main screen. Over HTTPS, show the front-door landing
   // that points at local setup; over http:// (local container / dev) render

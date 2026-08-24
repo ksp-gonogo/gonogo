@@ -11,14 +11,9 @@ import {
   ViewClock,
 } from "@ksp-gonogo/sitrep-client";
 import { act, render, screen, waitFor } from "@ksp-gonogo/test-utils";
-import { NULL_DISPLAY } from "@ksp-gonogo/ui-kit";
 import userEvent from "@testing-library/user-event";
 import type { ReactNode } from "react";
-import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import {
-  type FakeTelemachusHandle,
-  setupFakeTelemachus,
-} from "./fixtures/fakeTelemachus";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 
 function withItemContext(instanceId: string, children: ReactNode) {
   return (
@@ -37,10 +32,7 @@ function withItemContext(instanceId: string, children: ReactNode) {
  * The WRITE path is migrated too (command-surface-delay-audit): the toggle
  * fires `useCommand`, which dispatches straight through `TelemetryClient` to
  * the transport, so `stream.transport.sentCommands` is the write-path
- * assertion point, not the legacy fake's `executedActions`. The legacy
- * `fakeTelemachus` fixture is still mounted alongside purely because a couple
- * of untouched tests below (the alarm bell) exercise `group.toggle`, an
- * identifier string unrelated to dispatch mechanism.
+ * assertion point.
  */
 function makeControlStream() {
   const transport = new StubTransport();
@@ -93,15 +85,8 @@ function ag(index: number, state: boolean) {
   };
 }
 
-let fake: FakeTelemachusHandle | null = null;
-
 beforeEach(() => {
   clearRegistry();
-});
-
-afterEach(() => {
-  fake?.buffered.disconnect();
-  fake = null;
 });
 
 describe("ActionGroup component", () => {
@@ -111,7 +96,6 @@ describe("ActionGroup component", () => {
   });
 
   it("shows group name and OFF state on initial connect", async () => {
-    fake = await setupFakeTelemachus({});
     const stream = makeControlStream();
     render(
       <stream.Provider>
@@ -128,7 +112,6 @@ describe("ActionGroup component", () => {
   });
 
   it("shows ON when the action group is already active", async () => {
-    fake = await setupFakeTelemachus({});
     const stream = makeControlStream();
     render(
       <stream.Provider>
@@ -145,7 +128,6 @@ describe("ActionGroup component", () => {
 
   it("sends a toggle request and reflects the updated state", async () => {
     const user = userEvent.setup();
-    fake = await setupFakeTelemachus({});
     const stream = makeControlStream();
     render(
       <stream.Provider>
@@ -182,7 +164,6 @@ describe("ActionGroup component", () => {
   });
 
   it("shows a disabled toggle for a read-only group (Precision Control)", async () => {
-    fake = await setupFakeTelemachus({});
     const stream = makeControlStream();
     render(
       <stream.Provider>
@@ -205,46 +186,8 @@ describe("ActionGroup component", () => {
     ).toBeDisabled();
   });
 
-  /**
-   * BEHAVIOUR DELTA, asserted rather than quietly dropped. This used to assert
-   * the pill cleared to NULL_DISPLAY when the legacy `DataSource` disconnected. Now that
-   * the widget reads the canonical stream, it HOLDS the last-known value
-   * instead: the documented M2 semantic delta (`useTelemetry`'s own doc
-   * comment: "the legacy path clears to `undefined` when the DataSource status
-   * leaves connected; the new streamed path does not, a TelemetryClient holds
-   * the last-known value... a defensible, documented gap, not a silent
-   * regression"). Staleness is meant to surface via `useStreamStatus`, which
-   * this widget does not yet adopt.
-   *
-   * Pinned here so the day ActionGroup grows a staleness affordance, this test
-   * is the thing that has to change on purpose.
-   */
-  it("holds the last-known state when the legacy connection drops (streamed reads)", async () => {
-    fake = await setupFakeTelemachus({});
-    const stream = makeControlStream();
-    render(
-      <stream.Provider>
-        {withItemContext(
-          "t",
-          <ActionGroupComponent config={{ actionGroupId: "AG1" }} id="t" />,
-        )}
-      </stream.Provider>,
-    );
-    stream.emitControl(ag(1, true));
-
-    expect(await screen.findByText("ON")).toBeInTheDocument();
-
-    act(() => {
-      fake?.telemachus.disconnect();
-    });
-
-    expect(screen.getByText("ON")).toBeInTheDocument();
-    expect(screen.queryByText(NULL_DISPLAY)).not.toBeInTheDocument();
-  });
-
   it("toggles SAS independently from AG1", async () => {
     const user = userEvent.setup();
-    fake = await setupFakeTelemachus({});
     const stream = makeControlStream();
     render(
       <stream.Provider>
@@ -276,14 +219,12 @@ describe("ActionGroup component", () => {
   });
 
   it("hides the alarm bell when no AlarmsLauncherProvider is mounted", async () => {
-    fake = await setupFakeTelemachus({ "v.ag1Value": false });
     render(
       withItemContext(
         "t",
         <ActionGroupComponent config={{ actionGroupId: "AG1" }} id="t" />,
       ),
     );
-    fake.seed();
 
     await waitFor(() => expect(screen.getByText("AG1")).toBeInTheDocument());
     expect(
@@ -294,7 +235,6 @@ describe("ActionGroup component", () => {
   it("invokes the alarms launcher with the group's toggle action when the bell is clicked", async () => {
     const user = userEvent.setup();
     const launcher = vi.fn();
-    fake = await setupFakeTelemachus({ "v.ag1Value": false });
     render(
       <AlarmsLauncherProvider launcher={launcher}>
         {withItemContext(
@@ -303,7 +243,6 @@ describe("ActionGroup component", () => {
         )}
       </AlarmsLauncherProvider>,
     );
-    fake.seed();
 
     await waitFor(() => expect(screen.getByText("AG1")).toBeInTheDocument());
     await user.click(
@@ -317,7 +256,6 @@ describe("ActionGroup component", () => {
 
   it("hides the bell on read-only groups (Precision Control has no toggle action)", async () => {
     const launcher = vi.fn();
-    fake = await setupFakeTelemachus({ "v.precisionControlValue": false });
     render(
       <AlarmsLauncherProvider launcher={launcher}>
         {withItemContext(
@@ -329,7 +267,6 @@ describe("ActionGroup component", () => {
         )}
       </AlarmsLauncherProvider>,
     );
-    fake.seed();
 
     await waitFor(() =>
       expect(screen.getByText("Precision Control")).toBeInTheDocument(),

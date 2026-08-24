@@ -1,7 +1,7 @@
 {
   "_meta": {
     "scenario": "escape-trajectory",
-    "notes": "Hyperbolic escape trajectory from Kerbin (e=1.42). SMA is negative for a hyperbola (the codebase's established Telemachus convention; see CurrentOrbit's escape-trajectory fixture and vessel-state.ts's deriveApsides), sized so periapsisRadius = sma*(1-ecc) reproduces PeR/PeA below. Widget should show StatusPill 'Escape'."
+    "notes": "Hyperbolic escape trajectory from Kerbin (e=1.42). SMA is negative for a hyperbola (the codebase's established convention; see CurrentOrbit's escape-trajectory fixture and vessel-state.ts's deriveApsides), sized so periapsisRadius = sma*(1-ecc) reproduces PeR/PeA below. Widget should show StatusPill 'Escape'."
   },
   "v.body": "Kerbin",
   "o.sma": -1619048,

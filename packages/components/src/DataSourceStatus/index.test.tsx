@@ -78,17 +78,17 @@ describe("DataSourceStatus", () => {
   });
 
   it("renders each registered source by name", () => {
-    registerDataSource(makeFixtureSource("telemachus", "Telemachus Reborn"));
+    registerDataSource(makeFixtureSource("stream", "Gonogo Stream"));
     registerDataSource(makeFixtureSource("kos", "kOS"));
 
     render(<DataSourceStatusComponent />);
 
-    expect(screen.getByText("Telemachus Reborn")).toBeInTheDocument();
+    expect(screen.getByText("Gonogo Stream")).toBeInTheDocument();
     expect(screen.getByText("kOS")).toBeInTheDocument();
   });
 
   it("displays the status label for each source", () => {
-    registerDataSource(makeFixtureSource("telemachus", "Telemachus Reborn"));
+    registerDataSource(makeFixtureSource("stream", "Gonogo Stream"));
 
     render(<DataSourceStatusComponent />);
 
@@ -96,7 +96,7 @@ describe("DataSourceStatus", () => {
   });
 
   it("updates the status label when a source status changes", () => {
-    const source = makeFixtureSource("telemachus", "Telemachus Reborn");
+    const source = makeFixtureSource("stream", "Gonogo Stream");
     registerDataSource(source);
 
     render(<DataSourceStatusComponent />);

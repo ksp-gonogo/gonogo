@@ -55,7 +55,7 @@ beforeEach(() => clearRegistry());
  * So with no `TelemetryProvider` mounted (a station tree with no stream, or
  * the warmup window before the first frame) every read is `undefined` and the
  * context sits at its Unknown/false defaults; a legacy `DataSource` carrying
- * the old Telemachus keys is never consulted.
+ * the old flat keys is never consulted.
  */
 describe("useGameContext: no TelemetryProvider mounted", () => {
   it("sits at Unknown/false defaults", () => {
@@ -68,7 +68,7 @@ describe("useGameContext: no TelemetryProvider mounted", () => {
     expect(result.current.hasGameSignal).toBe(false);
   });
 
-  it("ignores a legacy DataSource carrying the old Telemachus keys", () => {
+  it("ignores a legacy DataSource carrying the old flat keys", () => {
     const source = makeSource();
     registerDataSource(source);
 

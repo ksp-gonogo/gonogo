@@ -18,11 +18,14 @@ import { APP_INTERNAL, SDK_SURFACE } from "./vendor-name.allowlist";
 const HERE = dirname(fileURLToPath(import.meta.url));
 const REPO_ROOT = join(HERE, "..", "..", "..");
 
-/** Their own job is to name the thing, so they cannot be held to it. */
-const SELF = [
-  "packages/core/src/vendor-name.allowlist.ts",
-  "packages/core/src/vendor-name.test.ts",
-];
+/**
+ * Assembled from fragments so this file does not itself contain the string it
+ * hunts. A gate that must spell its own needle can never report the tree clean,
+ * and self-exempting the gate hides the one file nobody re-reads. Splitting the
+ * literal costs a line of explanation and buys an honest zero.
+ */
+const NEEDLE = ["tele", "machus"].join("");
+
 /**
  * History, deliberately kept: see the allowlist header.
  *
@@ -34,6 +37,28 @@ const SELF = [
  * separately, and excluding them here does not depend on that happening.
  */
 const EXEMPT_PREFIXES = ["CLAUDE.md", "local_docs/", ".serena/"];
+
+/** `git grep -c -i <needle>`, parsed into path -> matching-line count. */
+function countLines(needle: string): Map<string, number> {
+  // `|| true`: git grep exits 1 when nothing matches, which is a legitimate
+  // result here (it is what "finished" looks like) and not an error.
+  const out = execFileSync(
+    "sh",
+    ["-c", `git grep -c -i ${needle} -- . || true`],
+    { cwd: REPO_ROOT, encoding: "utf-8", maxBuffer: 32 * 1024 * 1024 },
+  );
+  const counts = new Map<string, number>();
+  for (const line of out.split("\n")) {
+    if (!line.trim()) continue;
+    const idx = line.lastIndexOf(":");
+    const path = line.slice(0, idx);
+    const n = Number(line.slice(idx + 1));
+    if (!Number.isFinite(n)) continue;
+    if (EXEMPT_PREFIXES.some((p) => path === p || path.startsWith(p))) continue;
+    counts.set(path, n);
+  }
+  return counts;
+}
 
 /**
  * One scan, shared. Three assertions need the same answer and `git grep` over
@@ -48,31 +73,8 @@ const EXEMPT_PREFIXES = ["CLAUDE.md", "local_docs/", ".serena/"];
  */
 let cached: Map<string, number> | undefined;
 function scan(): Map<string, number> {
-  if (cached) return cached;
-  cached = scanUncached();
+  cached ??= countLines(NEEDLE);
   return cached;
-}
-
-function scanUncached(): Map<string, number> {
-  // `|| true`: git grep exits 1 when nothing matches, which is a legitimate
-  // result here (it is what "finished" looks like) and not an error.
-  const out = execFileSync(
-    "sh",
-    ["-c", "git grep -c -i telemachus -- . || true"],
-    { cwd: REPO_ROOT, encoding: "utf-8", maxBuffer: 32 * 1024 * 1024 },
-  );
-  const counts = new Map<string, number>();
-  for (const line of out.split("\n")) {
-    if (!line.trim()) continue;
-    const idx = line.lastIndexOf(":");
-    const path = line.slice(0, idx);
-    const n = Number(line.slice(idx + 1));
-    if (!Number.isFinite(n)) continue;
-    if (SELF.includes(path)) continue;
-    if (EXEMPT_PREFIXES.some((p) => path === p || path.startsWith(p))) continue;
-    counts.set(path, n);
-  }
-  return counts;
 }
 
 const isSdk = (p: string) => p.startsWith("mod/sitrep-sdk/");
@@ -91,15 +93,16 @@ describe("vendor name", () => {
    * and a `mod/*​/client/src` pathspec that does not cross `/` returned a
    * confident zero while 67 files were in violation.
    *
-   * Asserted against a known-present mention rather than a bare count, so the
-   * check fails if the pattern breaks even while the tree still has hundreds.
+   * The debt itself can no longer serve as the positive control, because it is
+   * down to two lines and is meant to reach zero. So the control is a DIFFERENT
+   * needle run through the SAME scan. It is the project's own name rather than
+   * a mod's: a mod token would put this file in violation of the uplink-boundary
+   * gate, and it would also be a needle that could legitimately reach zero one
+   * day. A zero here means the pipeline is broken (wrong cwd, no git, mangled
+   * pathspec) rather than that the sweep finished.
    */
   it("actually scanned the tree", () => {
-    const found = scan();
-    expect(found.size).toBeGreaterThan(50);
-    // A file every version of this sweep leaves until last, because the legacy
-    // key table is the vocabulary itself.
-    expect([...found.keys()].some((p) => p.includes("map-topic"))).toBe(true);
+    expect(countLines("gonogo").size).toBeGreaterThan(50);
   });
 
   it("the published SDK surface carries the name nowhere at all", () => {
@@ -165,19 +168,18 @@ describe("vendor name", () => {
         "Up means a sweep is being undone. Before deleting a comment, check",
         "whether it records a DISTINCTION rather than a rename: those get",
         "rewritten without the name, never dropped. The full text of every",
-        "comment removed so far is in",
-        "local_docs/design/telemachus-provenance.md.",
+        "comment removed so far is under local_docs/design/.",
       ].join("\n"),
     ).toEqual([]);
   });
 
   /**
    * The seeded totals, asserted so the direction of travel is visible in the
-   * test name rather than buried in a diff of two hundred numbers. Update both
-   * when a slice lands; they can only fall.
+   * test name rather than buried in a diff. Update both when a slice lands;
+   * they can only fall.
    */
-  it("stands at zero published, and 343 elsewhere", () => {
+  it("stands at zero published, and 2 elsewhere", () => {
     expect(SEEDED_SDK_TOTAL).toBe(0);
-    expect(SEEDED_APP_TOTAL).toBeLessThanOrEqual(343);
+    expect(SEEDED_APP_TOTAL).toBeLessThanOrEqual(2);
   });
 });

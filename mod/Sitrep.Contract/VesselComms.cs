@@ -43,7 +43,7 @@ public enum ControlState
 ///
 /// <para><b>Scope fence</b> (per the design doc): this is what the vessel
 /// itself reports. The delay authority and link modelling live in a future
-/// <c>comms.*</c> CAPABILITY channel (RemoteTech-default): Telemachus's
+/// <c>comms.*</c> CAPABILITY channel (RemoteTech-default): the legacy
 /// <c>comm.signalDelay</c> does NOT get a field here; that successor is
 /// <c>comms.delay</c>, a different provider entirely.</para>
 /// </summary>

@@ -5,8 +5,8 @@ using Reinforced.Typings.Attributes;
 namespace Sitrep.Contract;
 
 /// <summary>
-/// The flight-lifecycle domain: retires the last Telemachus-era artifact in
-/// this codebase: the client-side <c>FlightDetector</c> heuristic that
+/// The flight-lifecycle domain: retires the client-side
+/// <c>FlightDetector</c> heuristic that
 /// reconstructed flight boundaries from <c>vesselName</c> + <c>missionTime</c>
 /// + a revert-threshold guess (see
 /// <c>docs/superpowers/plans/2026-07-11-flight-lifecycle-spec.md</c>). The

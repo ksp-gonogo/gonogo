@@ -10,7 +10,7 @@ import { deriveTopologyFromVesselParts } from "./vesselPartsAdapter";
  * into the legacy `VesselTopology` shape via `deriveTopologyFromVesselParts`,
  * the diagram code (`shipTopology.ts`) is unchanged.
  *
- * Formerly a hand-rolled seq-driven refetch against the old Telemachus fork's
+ * Formerly a hand-rolled seq-driven refetch against the old fork's
  * `v.topologySeq`/`v.topology` key pair (to avoid streaming the full
  * structural payload at the legacy WS's fixed ~4Hz). `vessel.parts` doesn't
  * need that trick, the mod's channel engine is itself change-gated, so the

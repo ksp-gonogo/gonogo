@@ -10,7 +10,7 @@ namespace Gonogo.ScansatUplink
     /// <para><b>The sub-topic type component is the NUMERIC SCANtype bit
     /// value, not the enum name.</b> The client subscribes to
     /// <c>scansat.coverage.Kerbin.1</c> / <c>scansat.mask.Kerbin.256</c>
-    /// (see <c>packages/core/src/schemas/telemachus.ts</c>'s <c>SCAN_TYPE</c>
+    /// (see <c>client/src/schema.ts</c>'s <c>SCAN_TYPE</c>
     /// map and <c>packages/components/src/{Scanning,MapView}/index.tsx</c>'s
     /// <c>scansat.coverage.${bodyName}.${scanType}</c>), so the mod MUST
     /// publish under the same numeric strings: an earlier pass published
@@ -24,7 +24,7 @@ namespace Gonogo.ScansatUplink
         /// and the Scanning/MapView widgets request coverage/mask for,
         /// AltimetryLoRes(1), AltimetryHiRes(2), Biome(8), Anomaly(16),
         /// ResourceLoRes(128), ResourceHiRes(256). Kept in sync with
-        /// <c>packages/core/src/schemas/telemachus.ts</c>'s <c>SCAN_TYPE</c>
+        /// <c>client/src/schema.ts</c>'s <c>SCAN_TYPE</c>
         /// and asserted at the enum-value level by <see cref="VersionGuard"/>
         /// (AltimetryLoRes=1 / ResourceHiRes=256).
         /// </summary>

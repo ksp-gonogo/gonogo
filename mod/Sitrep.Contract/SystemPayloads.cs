@@ -35,11 +35,11 @@ public class SystemBodies
 /// <summary>
 /// One celestial body in the <see cref="SystemBodies"/> tree. Mirrors the
 /// exact per-body dict <c>SystemViewProvider.BuildBody</c> emits: same field
-/// names, casing and nullability. Kills the Telemachus orbit warts at the
+/// names, casing and nullability. Kills the legacy orbit warts at the
 /// source: an explicit parent-index tree (no flat <c>b.*[idx]</c> keys), no
 /// numeric sentinels for missing data, and no <c>eccentricAnomaly</c> field
-/// (Telemachus's <c>OrbitPatchJSONFormatter</c> mis-assigns that key the
-/// body's eccentricity: a confirmed copy-paste bug).
+/// (the old fork's orbit-patch formatter mis-assigns that key the body's
+/// eccentricity: a confirmed copy-paste bug).
 /// </summary>
 [SitrepContract]
 #if SITREP_CODEGEN
@@ -113,7 +113,7 @@ public class BodyEntry
     [SitrepUnit(Units.Metres)]
     public double? SphereOfInfluence { get; set; }
 
-    /// <summary>Sidereal rotation period, seconds (<c>CelestialBody.rotationPeriod</c>); a NEGATIVE value denotes retrograde rotation. Null when absent. Conveys the old Telemachus <c>rotates</c> bool (a body rotates iff this is finite and non-zero), so that bool is NOT emitted.</summary>
+    /// <summary>Sidereal rotation period, seconds (<c>CelestialBody.rotationPeriod</c>); a NEGATIVE value denotes retrograde rotation. Null when absent. Conveys the old <c>rotates</c> bool (a body rotates iff this is finite and non-zero), so that bool is NOT emitted.</summary>
     [SitrepUnit(Units.Seconds)]
     public double? RotationPeriod { get; set; }
 

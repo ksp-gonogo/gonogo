@@ -55,7 +55,7 @@ describe("redirectKinematicSubtopic (T3: new-SDK topic safety net)", () => {
 });
 
 describe("mapTopic(sourceId, key): the M3 useDataValue migration table", () => {
-  it("maps clean-home Telemachus keys to their new stream topic", () => {
+  it("maps clean-home legacy keys to their new stream topic", () => {
     expect(mapTopic("data", "v.altitude")).toBe("vessel.state.altitudeAsl");
     expect(mapTopic("data", "o.orbitalSpeed")).toBe(
       "vessel.state.orbitalSpeed",
@@ -465,10 +465,8 @@ describe("mapTopic(sourceId, key): the M3 useDataValue migration table", () => {
   });
 
   it("returns undefined for a totally unrecognized 'data' key rather than pretending it's mapped", () => {
-    expect(mapTopic("data", "not.a.real.telemachus.key")).toBeUndefined();
-    expect(isKnownLegacyKeyGap("data", "not.a.real.telemachus.key")).toBe(
-      false,
-    );
+    expect(mapTopic("data", "not.a.real.legacy.key")).toBeUndefined();
+    expect(isKnownLegacyKeyGap("data", "not.a.real.legacy.key")).toBe(false);
   });
 
   it("LEGACY_KEY_GAPS and LEGACY_KEY_HOMES never claim the same key", () => {

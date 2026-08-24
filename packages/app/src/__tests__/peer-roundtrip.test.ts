@@ -2,7 +2,7 @@
  * End-to-end integration test for the host → station telemetry path.
  *
  * Wires:
- *   MockTelemachus
+ *   MockTelemetrySource
  *   → BufferedDataSource (real, incl. signal-loss gate + flight detection)
  *   → PeerBroadcastingDataSource (real)
  *   → in-memory relay (stand-in for PeerJS data channel)
@@ -33,14 +33,14 @@ import type { PeerMessage } from "../peer/protocol";
 // Fakes
 // ---------------------------------------------------------------------------
 
-// Minimal Telemachus-shaped fake: built from the shared MockDataSource
+// Minimal telemetry-shaped fake: built from the shared MockDataSource
 // fixture. `affectedBySignalLoss: true` mirrors the now-deleted legacy
-// TelemachusDataSource so BufferedDataSource's signal-loss gate is
+// WS DataSource so BufferedDataSource's signal-loss gate is
 // exercised end-to-end.
-function makeMockTelemachus(keys: DataKey[]): MockDataSource {
+function makeMockTelemetrySource(keys: DataKey[]): MockDataSource {
   return new MockDataSource({
-    id: "telemachus",
-    name: "Mock Telemachus",
+    id: "telemetry",
+    name: "Mock Telemetry",
     keys,
     affectedBySignalLoss: true,
   });
@@ -106,12 +106,12 @@ function makeFakeClient() {
 // Test scaffolding
 // ---------------------------------------------------------------------------
 
-const TELEMACHUS_KEYS: DataKey[] = [
+const TELEMETRY_KEYS: DataKey[] = [
   { key: "v.name" },
   { key: "v.missionTime" },
   { key: "v.altitude" },
   // f.throttle is on BufferedDataSource's antenna-only blocklist
-  // (collapses to literal 2 when the Telemachus antenna is down,
+  // (collapses to literal 2 when the antenna is down,
   // see 2026-05-18 live test). Use it for the gate drop-path
   // assertion; v.altitude flows honestly regardless of antenna
   // state so it can't exercise the drop.
@@ -120,9 +120,9 @@ const TELEMACHUS_KEYS: DataKey[] = [
 ];
 
 function setup() {
-  const telemachus = makeMockTelemachus(TELEMACHUS_KEYS);
+  const telemetry = makeMockTelemetrySource(TELEMETRY_KEYS);
   const buffered = new BufferedDataSource({
-    source: telemachus,
+    source: telemetry,
     store: new MemoryStore(),
   });
   const fakeHost = makeFakeHost();
@@ -139,7 +139,7 @@ function setup() {
     fakeClient as never,
   );
 
-  return { telemachus, buffered, fakeHost, fakeClient, stationSide };
+  return { telemetry, buffered, fakeHost, fakeClient, stationSide };
 }
 
 /** Prime flight detection so BufferedDataSource fans out samples. */
@@ -148,7 +148,7 @@ function primeFlight(tm: MockDataSource) {
   tm.emit("v.missionTime", 0);
 }
 
-describe("peer roundtrip: telemachus → buffered → PBDS → relay → PCDS", () => {
+describe("peer roundtrip: telemetry → buffered → PBDS → relay → PCDS", () => {
   let ctx: ReturnType<typeof setup>;
 
   beforeEach(async () => {
@@ -160,12 +160,12 @@ describe("peer roundtrip: telemachus → buffered → PBDS → relay → PCDS", 
     ctx.buffered.disconnect();
   });
 
-  it("delivers a live telemachus sample all the way to a station subscriber", () => {
+  it("delivers a live telemetry sample all the way to a station subscriber", () => {
     const received: unknown[] = [];
     ctx.stationSide.subscribe("v.altitude", (v) => received.push(v));
 
-    primeFlight(ctx.telemachus);
-    ctx.telemachus.emit("v.altitude", 12_345);
+    primeFlight(ctx.telemetry);
+    ctx.telemetry.emit("v.altitude", 12_345);
 
     expect(received).toEqual([12_345]);
   });
@@ -174,12 +174,12 @@ describe("peer roundtrip: telemachus → buffered → PBDS → relay → PCDS", 
     const received: unknown[] = [];
     ctx.stationSide.subscribe("v.altitude", (v) => received.push(v));
 
-    // Simulate Telemachus on a vessel with no antenna / CommNet off:
+    // Simulate a vessel with no antenna / CommNet off:
     // comm.connected arrives false before the gate has ever confirmed a link.
-    primeFlight(ctx.telemachus);
-    ctx.telemachus.emit("comm.connected", false);
-    ctx.telemachus.emit("v.altitude", 500);
-    ctx.telemachus.emit("v.altitude", 600);
+    primeFlight(ctx.telemetry);
+    ctx.telemetry.emit("comm.connected", false);
+    ctx.telemetry.emit("v.altitude", 500);
+    ctx.telemetry.emit("v.altitude", 600);
 
     // Gate must not engage, widgets must keep receiving values.
     expect(received).toEqual([500, 600]);
@@ -193,15 +193,15 @@ describe("peer roundtrip: telemachus → buffered → PBDS → relay → PCDS", 
     // live test in local_docs/2026-05-18/_decisions.md.
     ctx.stationSide.subscribe("f.throttle", (v) => received.push(v));
 
-    primeFlight(ctx.telemachus);
-    ctx.telemachus.emit("comm.connected", true); // confirm link
-    ctx.telemachus.emit("f.throttle", 0.5); // flows
+    primeFlight(ctx.telemetry);
+    ctx.telemetry.emit("comm.connected", true); // confirm link
+    ctx.telemetry.emit("f.throttle", 0.5); // flows
 
-    ctx.telemachus.emit("comm.connected", false); // blackout
-    ctx.telemachus.emit("f.throttle", 2); // dropped at the gate (sentinel)
+    ctx.telemetry.emit("comm.connected", false); // blackout
+    ctx.telemetry.emit("f.throttle", 2); // dropped at the gate (sentinel)
 
-    ctx.telemachus.emit("comm.connected", true); // restore
-    ctx.telemachus.emit("f.throttle", 0.7); // flows again
+    ctx.telemetry.emit("comm.connected", true); // restore
+    ctx.telemetry.emit("f.throttle", 0.7); // flows again
 
     expect(received).toEqual([0.5, 0.7]);
   });
@@ -227,8 +227,8 @@ describe("peer roundtrip: telemachus → buffered → PBDS → relay → PCDS", 
     const received: Array<{ t: number; v: unknown }> = [];
     ctx.stationSide.subscribeSamples("v.altitude", (s) => received.push(s));
 
-    primeFlight(ctx.telemachus);
-    ctx.telemachus.emit("v.altitude", 777);
+    primeFlight(ctx.telemetry);
+    ctx.telemetry.emit("v.altitude", 777);
 
     expect(received).toHaveLength(1);
     expect(received[0].v).toBe(777);

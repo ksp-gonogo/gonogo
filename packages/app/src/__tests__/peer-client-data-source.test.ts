@@ -109,7 +109,7 @@ describe("PeerClientDataSource", () => {
     const received: unknown[] = [];
     source.subscribe("v.altitude", (v) => received.push(v));
 
-    fake.emitData("telemachus", "v.altitude", 99, 5000);
+    fake.emitData("telemetry", "v.altitude", 99, 5000);
     expect(received).toEqual([]);
   });
 

@@ -737,7 +737,7 @@ namespace Sitrep.Host.Tests
                 identity: new Dictionary<string, object?> { ["id"] = VesselGuid },
                 resources: new Dictionary<string, object?>
                 {
-                    // Carried but currently empty -- a real, meaningful {0, >0}, never Telemachus's -1 sentinel (R-1).
+                    // Carried but currently empty -- a real, meaningful {0, >0}, never the legacy -1 sentinel (R-1).
                     ["ElectricCharge"] = new Dictionary<string, object?> { ["current"] = 0.0, ["max"] = 150.0 },
                     ["LiquidFuel"] = new Dictionary<string, object?> { ["current"] = 40.0, ["max"] = 100.0 },
                     // "MonoPropellant" deliberately NOT included -- not-carried (structural, R-1/R-3/R-4).

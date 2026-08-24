@@ -4,7 +4,7 @@
  * matches on host and station: the data-flow tests only prove values
  * reach the data source layer; this one proves they reach the DOM.
  *
- * `o.ApA` (old Telemachus) is now the DERIVED `vessel.state.apoapsisAlt`,
+ * `o.ApA` (the old flat key) is now the DERIVED `vessel.state.apoapsisAlt`,
  * `sma·(1+ecc) - bodyRadius` off the fixture's `vessel.orbit.{sma,ecc}` and
  * `system.bodies`' Kerbin radius (`sitrep-stream-server.mjs`). With
  * sma=773862.315964763 / ecc=0.0956792487342901 / radius=600000 that comes

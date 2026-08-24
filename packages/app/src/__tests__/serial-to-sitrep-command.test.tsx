@@ -6,10 +6,9 @@
  * SerialDeviceService, real InputDispatcher, real dispatchAction, real
  * useActionInput, real useCommand.
  *
- * Was `serial-to-telemachus.test.tsx`, driving the legacy
- * `useExecuteAction("data")` write path against a `MockDataSource`-backed
- * `fakeTelemachus` fixture. That fixture and the write path it stood in for
- * are both gone: ActionGroup's toggle now rides `useCommand`
+ * The legacy `useExecuteAction("data")` write path and the `MockDataSource`
+ * fixture it was driven against are both gone: ActionGroup's toggle now rides
+ * `useCommand`
  * (command-surface-delay-audit), so this test dispatches the AGX
  * `setActionGroup` command straight at a `StubTransport` and asserts
  * `transport.sentCommands`, the same read+write stream this widget actually

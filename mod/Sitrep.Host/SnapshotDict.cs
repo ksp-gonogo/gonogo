@@ -20,8 +20,8 @@ namespace Sitrep.Host
     /// This is not a hypothetical: KSP's own <c>Orbit.LAN</c> is <c>NaN</c>
     /// for a near-equatorial orbit (inc ~ 0) and <c>argumentOfPeriapsis</c>
     /// is <c>NaN</c> for a near-circular orbit (ecc ~ 0) -- both ROUTINE
-    /// flight states, not edge cases -- and <c>telemachus-api-issues.md</c>
-    /// F-1 catalogues the old Telemachus fork stringifying exactly these
+    /// flight states, not edge cases -- and the legacy-API issue catalogue's
+    /// F-1 records the old fork stringifying exactly these
     /// values onto the wire as <c>"NaN"</c>. <c>m1-provider-taxonomy-design.md</c>
     /// R1 is explicit: "numbers are always finite -- a non-finite in the
     /// mapper is a bug, not a wire value." A caller that requires a field

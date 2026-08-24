@@ -1,7 +1,7 @@
 {
   "_meta": {
     "scenario": "no-thermal-data",
-    "notes": "Early-career rocket with no thermometer instrument fitted. Telemachus emits near-absolute-zero sentinels (~2K). The widget's sentinel guard should collapse all groups and show the empty-state placeholder."
+    "notes": "Early-career rocket with no thermometer instrument fitted. The wire emits near-absolute-zero sentinels (~2K). The widget's sentinel guard should collapse all groups and show the empty-state placeholder."
   },
   "therm.hottestPartName": "",
   "therm.hottestPartTemp": 2.05,

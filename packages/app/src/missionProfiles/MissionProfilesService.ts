@@ -17,7 +17,7 @@ import type { DashboardItem } from "../components/Dashboard";
 
 /**
  * KSP scene names a profile can bind to. Stored as plain strings so
- * Telemachus's kc.scene values flow through unchanged. Transient scenes
+ * the wire's scene values flow through unchanged. Transient scenes
  * (MainMenu, Loading, Unknown) are intentionally absent, the binding
  * model only ever switches *to* a profile when entering a tagged scene,
  * never away because of one, so there's no use case for binding to a

@@ -8,7 +8,7 @@ import { classifyRequirement } from "../declarations";
 
 /**
  * Coverage gate for the M3 `mapTopic` migration table (M2 Task 7): every
- * Telemachus key a real widget actually asks for, via a declared
+ * legacy flat key a real widget actually asks for, via a declared
  * `dataRequirements` entry or a literal `useTelemetry("data", "<key>")` call,
  * must be either mapped to a new stream topic (`mapTopic("data", key)`) or
  * explicitly listed as a known gap (`isKnownLegacyKeyGap`). Anything
@@ -52,7 +52,7 @@ function listSourceFiles(dir: string): string[] {
  * `dataRequirements:` in `source`, starting the scan at `fromIndex`.
  *
  * A plain non-greedy regex (`\[(.*?)\]`) breaks here because several
- * `dataRequirements` entries are themselves bracketed, parametric Telemachus
+ * `dataRequirements` entries are themselves bracketed, parametric legacy
  * keys (e.g. `"r.resource[LiquidFuel]"`): the FIRST `]` a naive regex finds
  * is inside one of those string literals, not the end of the array. This
  * walks the array as a tiny state machine (string-literal aware) so an `]`
@@ -91,7 +91,7 @@ function extractDataRequirementsArray(
   return keys;
 }
 
-function collectWidgetTelemachusKeys(): Set<string> {
+function collectWidgetLegacyKeys(): Set<string> {
   const keys = new Set<string>();
   for (const file of listSourceFiles(COMPONENTS_SRC)) {
     const source = readFileSync(file, "utf-8");
@@ -118,7 +118,7 @@ function collectWidgetTelemachusKeys(): Set<string> {
  * ---------------------------------------------------------------------------
  * THE DYNAMIC-KEY BLIND SPOT IS CLOSED, this scan is now complete
  * ---------------------------------------------------------------------------
- * There used to be a `collectDynamicTelemachusKeys()` here, and a documented
+ * There used to be a `collectDynamicLegacyKeys()` here, and a documented
  * hole it patched: `ActionGroup` resolved its read key dynamically
  * (`useTelemetry("data", group?.value ?? "v.sasValue")`) off `@ksp-gonogo/core`'s
  * hardcoded `ACTION_GROUPS` registry, with an empty `dataRequirements: []`. The
@@ -126,7 +126,7 @@ function collectWidgetTelemachusKeys(): Set<string> {
  * `v.sasValue`/`v.ag1Value`/… were invisible to it and had to be re-derived from
  * the registry by hand.
  *
- * That widget no longer reads any Telemachus key at all: it reads the canonical
+ * That widget no longer reads any legacy key at all: it reads the canonical
  * `vessel.control` / `vessel.structure` Topics one-arg and resolves each group's
  * value from the payload, so there is no dynamic key left to collect. The
  * registry itself stopped carrying read keys entirely (`ActionGroup` in
@@ -139,18 +139,18 @@ function collectWidgetTelemachusKeys(): Set<string> {
  * reinstate a collector here rather than letting the key go unpoliced.
  */
 
-describe("mapTopic coverage: every widget Telemachus key is mapped or a declared gap", () => {
+describe("mapTopic coverage: every widget legacy key is mapped or a declared gap", () => {
   // A `dataRequirements` entry can now ALSO be a native SDK topic id read
   // canonically (`useTelemetry(topicId)`, bypassing `mapTopic` entirely:
   // `ShipMap`/`PowerSystems`'s `"vessel.parts"`, the `useTopology` un-gap),
   // or a DERIVED channel a widget reads wholesale (`useStream("vessel.state")`,
   // which is not an `isTopicId` because nothing on the wire publishes it).
-  // Those aren't old Telemachus keys at all, so this scan, built to police
+  // Those aren't old legacy keys at all, so this scan, built to police
   // the legacy-key migration table specifically: excludes them rather than
   // asking `mapTopic`/`isKnownLegacyKeyGap` to account for a key that was
   // never theirs to route. `classifyRequirement` owns the full set of legal
   // declaration forms; this test only cares which of them are legacy keys.
-  const scanned = collectWidgetTelemachusKeys();
+  const scanned = collectWidgetLegacyKeys();
   const widgetKeys = new Set(
     [...scanned].filter(
       (key) =>
@@ -173,7 +173,7 @@ describe("mapTopic coverage: every widget Telemachus key is mapped or a declared
     expect(scanned.size).toBeGreaterThan(100);
   });
 
-  it("maps or explicitly gaps every widget-declared Telemachus key, no silent misses", () => {
+  it("maps or explicitly gaps every widget-declared legacy key, no silent misses", () => {
     const unaccounted = [...widgetKeys]
       .filter(
         (key) =>

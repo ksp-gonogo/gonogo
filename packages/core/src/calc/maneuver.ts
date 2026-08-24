@@ -10,7 +10,7 @@
  * from live telemetry with `gravParameterFromState(v, r, a)`, the
  * vis-viva equation gives an exact answer from any point on the orbit.
  *
- * Frame convention: ΔV components are in Telemachus's maneuver-node frame,
+ * Frame convention: ΔV components are in the maneuver-node frame,
  * prograde along velocity, radial along +r̂ (outward from body), normal
  * perpendicular to the orbital plane. The projected-orbit math handles
  * arbitrary flight-path angle; plane change from a non-zero normal is
@@ -20,7 +20,7 @@
 import { degToRad, radToDeg } from "../utils/math";
 import { eccentricToTrueAnomaly, solveKepler } from "./trajectory";
 
-/** Orbit snapshot taken from Telemachus `o.*` keys. All distances in metres. */
+/** Orbit snapshot of the live vessel's elements. All distances in metres. */
 export interface CurrentOrbit {
   /** Semi-major axis. */
   sma: number;
@@ -327,7 +327,7 @@ export function customAtApsis(
  * Arbitrary ΔV at an arbitrary UT. Propagates the current orbit to the
  * burn point with `stateAtUT` so the projected shape reflects the real
  * flight-path angle at that point (unlike the apsis presets which assume
- * γ = 0). `currentTrueAnomalyDeg` is Telemachus's `o.trueAnomaly` at
+ * γ = 0). `currentTrueAnomalyDeg` is the true anomaly at
  * `currentUT`.
  *
  * If `burnUT <= currentUT`, projected is null, we can't plan a burn in
@@ -703,10 +703,9 @@ export function hohmannToRadius(
 
 /**
  * State of the target needed for a Hohmann rendezvous calc. All angles
- * in degrees, distances in metres. Maps directly to Telemachus's
- * `tar.o.sma`, `tar.o.PeR` (= PeA + bodyRadius), `tar.o.inclination`,
- * `tar.o.lan`, `tar.o.argumentOfPeriapsis`, `tar.o.trueAnomaly`,
- * `tar.o.period`.
+ * in degrees, distances in metres. Maps directly to the target's own
+ * orbital elements (`sma`, `PeR` = PeA + bodyRadius, `inc`, `lan`, `argPe`,
+ * `trueAnomaly`, `period`).
  */
 export interface TargetOrbitState {
   sma: number;

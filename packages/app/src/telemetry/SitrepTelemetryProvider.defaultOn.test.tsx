@@ -15,7 +15,7 @@ import { SitrepTelemetryProvider } from "./SitrepTelemetryProvider";
 import { resetSitrepRuntimeForTests } from "./sitrepRuntime";
 
 /**
- * Proves the play-blocking gap from `806e7fe2` (Telemachus deletion) is
+ * Proves the play-blocking gap from `806e7fe2` (legacy source deletion) is
  * actually closed: with the `VITE_SITREP_STREAM` gate removed, the stream
  * must connect with ZERO configuration, no `enabled` prop, no `host`/`port`
  * prop, no env var. This test passes none of those and asserts a REAL

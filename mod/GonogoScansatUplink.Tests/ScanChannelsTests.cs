@@ -41,7 +41,7 @@ namespace GonogoScansatUplink.Tests
         [Fact]
         public void ClientScanTypesMatchTheClientSCANTYPEMap()
         {
-            // packages/core/src/schemas/telemachus.ts SCAN_TYPE:
+            // client/src/schema.ts SCAN_TYPE:
             // AltimetryLoRes 1, AltimetryHiRes 2, Biome 8, Anomaly 16,
             // ResourceLoRes 128, ResourceHiRes 256.
             Assert.Equal(new short[] { 1, 2, 8, 16, 128, 256 }, ScanChannels.ClientScanTypes);

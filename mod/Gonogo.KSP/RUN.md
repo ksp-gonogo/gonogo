@@ -50,9 +50,9 @@ client and send:
 ```
 
 ## Notes
-- `ws://` only (no TLS): bound to `0.0.0.0` (all LAN interfaces), matching how
-  Telemachus binds. The read-only telemetry is thus exposed to your local
-  network; fine on a home LAN. (The bind is still hard-coded for this first build.)
+- `ws://` only (no TLS): bound to `0.0.0.0` (all LAN interfaces). The read-only
+  telemetry is thus exposed to your local network; fine on a home LAN. (The bind
+  is still hard-coded for this first build.)
 - If KSP fails to load the mod, grab `KSP.log` (repo root of your KSP install) and
   send it: the first-run KSP-assembly/Mono load is the one genuine unknown we're
   validating.

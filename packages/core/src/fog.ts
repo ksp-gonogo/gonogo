@@ -2,7 +2,7 @@
  * Fog-of-war painter: projects an imaging footprint onto an equirectangular
  * mask based on ship position, attitude, and altitude.
  *
- * All math is in the body's physical frame (i.e. Telemachus lat/lon). Body
+ * All math is in the body's physical frame (raw lat/lon). Body
  * `longitudeOffset` / `latitudeOffset` only come in when translating between
  * physical lat/lon and the texture's pixel index, they don't affect the
  * geometry of visibility.
@@ -28,9 +28,9 @@ export interface MaskTarget {
 }
 
 export interface FogPaintParams {
-  /** Ship latitude, degrees, -90..90 (Telemachus raw frame). */
+  /** Ship latitude, degrees, -90..90 (raw physical frame). */
   shipLat: number;
-  /** Ship longitude, degrees, -180..180 (Telemachus raw frame). */
+  /** Ship longitude, degrees, -180..180 (raw physical frame). */
   shipLon: number;
   /** Ship altitude above sea level, metres. */
   altitude: number;
@@ -310,7 +310,7 @@ export function paintFogFromBody(
 }
 
 export interface FogDiscParams {
-  /** Disc centre latitude (degrees, physical/Telemachus frame). */
+  /** Disc centre latitude (degrees, physical frame). */
   lat: number;
   /** Disc centre longitude (degrees, physical frame). */
   lon: number;

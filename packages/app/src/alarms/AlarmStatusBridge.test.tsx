@@ -99,7 +99,7 @@ describe("alarmSubjectKey / alarmMatchesWidget", () => {
 });
 
 /**
- * The properties a widget's `dataRequirements` migration off the Telemachus
+ * The properties a widget's `dataRequirements` migration off the legacy
  * vocabulary has to preserve. Attribution used to be three string equalities
  * against a legacy key, so it survived only while the widget kept declaring
  * that key: swapping in the modern topic the widget actually reads silently
@@ -152,7 +152,7 @@ describe("alarm attribution survives the vocabulary migration", () => {
       sustainSeconds: 0,
     });
     // The subject is the app's own hardcoded string, not something an
-    // operator ever picked, so it has no business being a Telemachus key.
+    // operator ever picked, so it has no business being a legacy key.
     expect(alarmSubjectKey(contract)).toBe("career.status.contracts.active");
     expect(
       alarmMatchesWidget(contract, ["career.status.contracts.active"]),

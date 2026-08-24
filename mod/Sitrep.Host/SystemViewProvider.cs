@@ -7,13 +7,12 @@ namespace Sitrep.Host
     /// KSP-free mapping logic for the "System View" typed stream topic
     /// (<see cref="Topic"/> = <c>"system.bodies"</c>). Reads the raw body
     /// data an <see cref="IKspHost.Sample"/> snapshot carries and produces
-    /// the clean, typed <c>system.bodies</c> wire payload: fixing the
-    /// Telemachus orbit warts catalogued in
-    /// <c>local_docs/telemetry-mod/telemachus-api-issues.md</c> (O-1, O-7,
-    /// O-9, N-2) rather than reproducing them: an explicit parent-index tree
-    /// instead of flat <c>b.*[idx]</c> keys, no in-band numeric sentinels for
-    /// missing data, and no <c>eccentricAnomaly</c> field (Telemachus's
-    /// <c>OrbitPatchJSONFormatter</c> assigns that key the body's
+    /// the clean, typed <c>system.bodies</c> wire payload: fixing the legacy
+    /// orbit warts catalogued under <c>local_docs/telemetry-mod/</c>
+    /// (O-1, O-7, O-9, N-2) rather than reproducing them: an explicit
+    /// parent-index tree instead of flat <c>b.*[idx]</c> keys, no in-band
+    /// numeric sentinels for missing data, and no <c>eccentricAnomaly</c>
+    /// field (the old fork's orbit-patch formatter assigns that key the body's
     /// eccentricity: a confirmed copy-paste bug; see O-1).
     ///
     /// This class does NOT touch the Courier/transport, Task 4's
@@ -162,10 +161,10 @@ namespace Sitrep.Host
                 ["parentIndex"] = parentIndex,
                 ["radius"] = GetDouble(raw, "radius"),
                 // Orbit is meaningless for the root star (no parent), suppress it
-                // entirely rather than emit junk elements, per the fix for
-                // Telemachus's "sun has a bogus orbit" wart.
+                // entirely rather than emit junk elements, per the fix for the
+                // legacy "sun has a bogus orbit" wart.
                 ["orbit"] = parentIndex.HasValue ? BuildOrbit(raw) : null,
-                // Almanac enrichment: the "better-than-Telemachus" field set.
+                // Almanac enrichment field set.
                 // The four the GAME is the authority for ride the wire, because
                 // the client rebuilding them off gravParameter cost more than
                 // the bytes it saved: four widgets each rebuilt them per frame,
@@ -221,9 +220,9 @@ namespace Sitrep.Host
                 ["argPe"] = GetDouble(raw, "argPe"),
                 ["meanAnomalyAtEpoch"] = GetDouble(raw, "meanAnomalyAtEpoch"),
                 ["epoch"] = GetDouble(raw, "epoch"),
-                // NO "eccentricAnomaly": Telemachus's OrbitPatchJSONFormatter
+                // NO "eccentricAnomaly": the old fork's orbit-patch formatter
                 // assigns that key the body's ECCENTRICITY (a confirmed
-                // copy-paste bug; see telemachus-api-issues.md O-1). If a real
+                // copy-paste bug; see the legacy-API issue catalogue's O-1). If a real
                 // anomaly is ever needed, compute it correctly under its own
                 // name rather than resurrect this one.
             };

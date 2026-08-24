@@ -7,7 +7,7 @@ import {
   ViewClock,
 } from "@ksp-gonogo/sitrep-client";
 import type { DataKeyMeta } from "../types";
-import { enrichKey, TELEMACHUS_META } from "./telemachusMeta";
+import { enrichKey, LEGACY_KEY_META } from "./legacyKeyMeta";
 
 /**
  * The legacy `"data"` `DataSource` was deleted in `806e7fe2` (R6 cutover),
@@ -49,7 +49,7 @@ function buildLegacyDataCatalog(): DataKeyMeta[] {
   const carriedChannels = new Set(DEFAULT_SITREP_CARRIED_TOPICS);
 
   const catalog: DataKeyMeta[] = [];
-  for (const key of Object.keys(TELEMACHUS_META)) {
+  for (const key of Object.keys(LEGACY_KEY_META)) {
     const target = mapTopic("data", key);
     if (target === undefined) continue;
     if (!isTopicCarried(store, carriedChannels, target)) continue;
@@ -59,7 +59,7 @@ function buildLegacyDataCatalog(): DataKeyMeta[] {
 }
 
 /**
- * Computed once at module load: `TELEMACHUS_META`, `LEGACY_KEY_HOMES`
+ * Computed once at module load: `LEGACY_KEY_META`, `LEGACY_KEY_HOMES`
  * and `DEFAULT_SITREP_CARRIED_TOPICS` are all static, so there's nothing to
  * recompute per render/session. `useDataSchema("data")` returns this array
  * directly (stable identity across renders, same contract the old

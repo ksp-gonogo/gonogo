@@ -9,7 +9,7 @@ namespace Sitrep.Contract;
 /// named frames, both anchored to the same reference-transform ORIENTATION
 /// but measuring the surface up/north vectors from a different POSITION (see
 /// <c>Gonogo.KSP.KspHost.BuildAttitude</c>'s doc comment for the shared
-/// construction). Kills V-9: the Telemachus <c>n.heading</c>/
+/// construction). Kills V-9: the legacy <c>n.heading</c>/
 /// <c>n.heading2</c>/<c>n.rawheading</c>/<c>n.rawheading2</c> quartet (root
 /// vs CoM, raw vs adjusted, no guidance which to use) is NOT reproduced by
 /// numeric suffix: per this class's original decision, a second frame is a

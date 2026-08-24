@@ -12,7 +12,7 @@ import type { AlarmSnapshot, AlarmTrigger } from "./types";
 /**
  * Provides an `AlarmsLauncher` to the subtree that wraps `useModal().open`
  * so widgets (e.g. `ActionGroup`) can open the alarms modal pre-populated
- * with `onFire` set to a chosen Telemachus action key. Identical wiring
+ * with `onFire` set to a chosen action key. Identical wiring
  * for main + station: only the backing snapshot/CRUD callbacks change,
  * which the screens already build for `AlarmsFab`.
  */

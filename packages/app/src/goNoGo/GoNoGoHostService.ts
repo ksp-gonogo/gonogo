@@ -138,8 +138,8 @@ export class GoNoGoHostService {
         // If an abort is already on record, treat this as a re-notification
         // (station reconnecting after a host refresh). Rebroadcast the
         // attribution so any fresh/reconnecting stations learn who aborted,
-        // but don't re-fire f.abort: the action group is a toggle in
-        // Telemachus and double-firing would undo it.
+        // but don't re-fire f.abort: the action group is a toggle and
+        // double-firing would undo it.
         if (this.abort) {
           this.host.broadcast({
             type: "gonogo-abort-notify",

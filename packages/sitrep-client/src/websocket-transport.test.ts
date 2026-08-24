@@ -18,7 +18,7 @@ import { WebSocketTransport } from "./websocket-transport";
 /**
  * Network-boundary tests for `WebSocketTransport` (browser-transport brief §
  * Validation): intercept the real WebSocket via MSW's `ws` link, the same
- * pattern the app's Telemachus WS tests use, and drive connect -> subscribe
+ * pattern the app's other WS tests use, and drive connect -> subscribe
  * -> receive decoded envelope -> status transitions -> reconnect through the
  * REAL transport. No internal module is mocked.
  */

@@ -105,7 +105,7 @@ describe("PeerClientService", () => {
       type: "schema",
       sources: [
         {
-          id: "telemachus",
+          id: "telemetry",
           name: "T",
           keys: [{ key: "v.altitude", label: "Altitude" }],
         },
@@ -123,16 +123,16 @@ describe("PeerClientService", () => {
 
     (svc as unknown as PeerClientServiceInternal).handleMessage({
       type: "data",
-      sourceId: "telemachus",
+      sourceId: "telemetry",
       key: "v.altitude",
       value: 42,
     });
-    expect(hits).toEqual([["telemachus", "v.altitude", 42]]);
+    expect(hits).toEqual([["telemetry", "v.altitude", 42]]);
 
     unsub();
     (svc as unknown as PeerClientServiceInternal).handleMessage({
       type: "data",
-      sourceId: "telemachus",
+      sourceId: "telemetry",
       key: "v.altitude",
       value: 99,
     });

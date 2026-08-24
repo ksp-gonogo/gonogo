@@ -38,7 +38,7 @@ export interface GameContext {
    */
   padOccupied: boolean | undefined;
   /**
-   * `career.mode` from Telemachus. `"Unknown"` when the value hasn't
+   * The save's career mode. `"Unknown"` when the value hasn't
    * arrived yet. Sandbox saves are a meaningful state to detect
    * (gate career-only widgets): don't lump it in with Unknown.
    */
@@ -101,7 +101,7 @@ export const GAME_MODE_ORDINAL: readonly CareerMode[] = [
 /**
  * `career.mode` (P4a D1) reads through two possible shapes depending on
  * whether the read routed to the stream or the legacy `DataSource`:
- *  - **legacy** (GonogoTelemetry's `career.mode` Telemachus key): a plain
+ *  - **legacy** (GonogoTelemetry's flat `career.mode` key): a plain
  *    string (`"CAREER"`/`"SCIENCE"`/`"SANDBOX"`, any casing).
  *  - **stream** (mapped to `career.mode.mode`: see `map-topic.ts`): the
  *    mod's `GameMode` enum ORDINAL (a number), since `CareerMode.mode` is
@@ -132,7 +132,7 @@ function resolveCareerMode(raw: unknown): CareerMode {
  * once because `useDataValue` already deduplicates per-key.
  */
 export function useGameContext(): GameContext {
-  // Canonical Topic reads (former Telemachus kc.*/career.* keys resolved
+  // Canonical Topic reads (former flat kc.*/career.* keys resolved
   // through map-topic.ts): kc.scene -> spaceCenter.scene.scene and
   // career.mode -> career.mode.mode (the numeric GameMode ordinal
   // resolveCareerMode below maps to a display string), both plain one-arg

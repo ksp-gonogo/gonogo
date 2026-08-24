@@ -77,7 +77,7 @@ public class LaunchSiteEntry
 /// <summary>
 /// The <c>spaceCenter.scene</c> channel payload: the single current KSP game
 /// scene, produced by <c>Sitrep.Host.SpaceCenterViewProvider.BuildScene</c>.
-/// This is the migration target for the legacy Telemachus <c>kc.scene</c> key:
+/// This is the migration target for the legacy <c>kc.scene</c> key:
 /// <see cref="Scene"/> carries exactly one of the six strings
 /// <c>{"Flight","SpaceCenter","Editor","TrackingStation","MainMenu","Other"}</c>
 /// (the provider folds KSP's <c>GameScenes</c> enum onto that fixed set; any

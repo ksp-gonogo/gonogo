@@ -252,7 +252,7 @@ function NoteRenderedText({ body }: Readonly<{ body: string }>) {
 /**
  * Legacy source id `mapTopic` uses to resolve a `{{v.altitude}}`-style tag
  * onto its stream `Topic`: no `DataSource` is registered under this id any
- * more (deleted alongside `dataSources/telemachus.ts`), but `map-topic.ts`'s
+ * more (the legacy source module is deleted), but `map-topic.ts`'s
  * migration table survives P4c-b as the live stream router (see its own
  * doc comment), so this id is still the correct lookup key.
  */
@@ -260,7 +260,7 @@ const LEGACY_DATA_SOURCE_ID = "data";
 
 /**
  * Set of keys known to the legacy `data` source. The `DataSource` itself is
- * gone (deleted alongside `dataSources/telemachus.ts`), so this always
+ * gone (the legacy source module is deleted), so this always
  * returns an empty set: `renderTemplate`'s empty-set fall-through treats
  * that as "don't flag unknown tags" rather than crashing, so autocomplete
  * degrades to always-trusting instead of validating against a live schema.

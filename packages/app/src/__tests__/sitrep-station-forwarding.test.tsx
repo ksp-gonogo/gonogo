@@ -4,7 +4,7 @@
  *
  * The repo's prior "recorded-fixture top-level test" (the PBDS-bridge
  * two-screen harness referenced in project memory) was deleted in
- * `cb96f069`: the same commit that removed the entire legacy Telemachus
+ * `cb96f069`: the same commit that removed the entire legacy
  * replay stack (`FlightReplayDataSource`, `replay-server`, etc.) it depended
  * on. This is its Sitrep-native successor: same "sequential render, direct
  * in-process wiring, fake peerjs" trick, new pipeline.

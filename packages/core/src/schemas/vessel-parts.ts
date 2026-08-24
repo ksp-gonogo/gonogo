@@ -1,13 +1,13 @@
 /**
- * Vessel-topology and per-part state shapes. Originally part of the
- * Telemachus Reborn API schema; now also the shapes `@ksp-gonogo/data`'s
+ * Vessel-topology and per-part state shapes. Originally part of the legacy
+ * flat-key API schema; now also the shapes `@ksp-gonogo/data`'s
  * `useTopology` / `vesselPartsAdapter.ts` derive from the mod's
  * `vessel.parts` stream Topic.
  */
 
 /**
- * One part in the `v.topology` payload. Shape mirrors the Telemachus
- * `PartsTopologyDataLinkHandler` walker exactly: no client-side renaming.
+ * One part in the `v.topology` payload. Shape mirrors the source walker
+ * exactly: no client-side renaming.
  * Live per-tick values (resources, temperatures) are NOT here; they live on
  * the separate `r.resourceFor[flightId]` / `therm.part[flightId]` keys so
  * the topology snapshot stays cacheable across staging-quiet stretches.

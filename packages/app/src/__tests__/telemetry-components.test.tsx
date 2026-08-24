@@ -96,7 +96,7 @@ const VESSEL_STATE_INPUTS = [
 // ---------------------------------------------------------------------------
 // Helper: mount a real TelemetryProvider (TelemetryClient + TimelineStore
 // over a StubTransport) for widgets that read via the canonical `useTelemetry`
-// stream path post-P1 de-Telemachus migration. Mirrors
+// stream path post-P1 vocabulary migration. Mirrors
 // `packages/components/src/test/setupStreamFixture.tsx` (the pattern used by
 // Targeting's and OrbitView's own dedicated stream tests), duplicated
 // here in miniature rather than imported, since `@ksp-gonogo/components`'s test
@@ -209,7 +209,7 @@ describe("CurrentOrbitComponent", () => {
   });
 
   it("shows reference body when provided", async () => {
-    // P1 de-Telemachus: the subtitle reads the derived
+    // P1: the subtitle reads the derived
     // `vessel.state.referenceBodyName` now (the mapped home of the legacy
     // `o.referenceBody` scalar), which `deriveVesselState` resolves from
     // `vessel.orbit.referenceBodyIndex` against `system.bodies`: so feed the
@@ -245,7 +245,7 @@ describe("TargetingComponent", () => {
   });
 
   it("shows target name and distance when telemetry arrives", async () => {
-    // P1 de-Telemachus: the widget no longer reads a legacy `tar.distance`
+    // P1: the widget no longer reads a legacy `tar.distance`
     // scalar: it derives distance client-side from the `vessel.target` Vec3
     // `relativePosition` (see Targeting's own `stream.test.tsx`).
     // `tar.name` maps to `vessel.target.name`, a raw-field subtopic of the
@@ -276,7 +276,7 @@ describe("TargetingComponent", () => {
   });
 
   it("shows target name with dash when distance is unavailable", async () => {
-    // P1 de-Telemachus: `tar.name` has no shim left to map through (the
+    // P1: `tar.name` has no shim left to map through (the
     // widget reads `vessel.target` natively), feed the name via the stream
     // with no `relativePosition`, so `tarDistance` stays undefined and the
     // distance readout falls back to the dash.
@@ -314,7 +314,7 @@ describe("OrbitViewComponent", () => {
   });
 
   it("renders SVG diagram when orbital data arrives", async () => {
-    // P1 de-Telemachus: OrbitView reads exclusively off the canonical
+    // P1: OrbitView reads exclusively off the canonical
     // `useTelemetry("vessel.orbit")` stream overload now: no legacy
     // DataSource fallback (see OrbitView's own `stream.test.tsx`).
     //
@@ -351,7 +351,7 @@ describe("OrbitViewComponent", () => {
 // MapView
 // ---------------------------------------------------------------------------
 describe("MapViewComponent", () => {
-  // P1 de-Telemachus: MapView reads position off the canonical stream now,
+  // P1: MapView reads position off the canonical stream now,
   // `vessel.flight.latitude`/`.longitude` for lat/lon, and the derived
   // `vessel.state.parentBodyName` (index→name resolved against `system.bodies`)
   // for the header body label: not the old `v.body`/`v.lat`/`v.long` keys.

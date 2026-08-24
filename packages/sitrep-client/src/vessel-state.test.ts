@@ -273,7 +273,7 @@ describe("enum-ordinal → NAME display maps: situationName/sasModeName/targetKi
     expect(state?.sasModeName).toBe("StabilityAssist");
     expect(state?.targetKind).toBe("Vessel");
     expect(state?.commsControlStateName).toBe("Unknown");
-    // ControlState.Unknown maps to NO Telemachus level → undefined ordinal.
+    // ControlState.Unknown maps to NO legacy level → undefined ordinal.
     expect(state?.commsControlStateOrdinal).toBeUndefined();
   });
 
