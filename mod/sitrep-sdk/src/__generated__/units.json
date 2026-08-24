@@ -269,6 +269,16 @@
     "ContractActionArgs": {
       "contractId": "id"
     },
+    "ControlFrame": {
+      "centreBody": "text",
+      "kind": "enum",
+      "primaryBodies": "text",
+      "primaryBody": "text",
+      "secondaryBodies": "text",
+      "secondaryBody": "text",
+      "targetFrameSelected": "flag",
+      "targetId": "id"
+    },
     "CrashFlightStats": {
       "flightEndMode": "text",
       "groundDistance": "m",
@@ -1530,6 +1540,16 @@
       "launchSite": "text",
       "scene": "text"
     },
+    "system.frame": {
+      "centreBody": "text",
+      "kind": "enum",
+      "primaryBodies": "text",
+      "primaryBody": "text",
+      "secondaryBodies": "text",
+      "secondaryBody": "text",
+      "targetFrameSelected": "flag",
+      "targetId": "id"
+    },
     "time.calendar": {
       "daySeconds": "s",
       "hourSeconds": "s",
@@ -1813,6 +1833,9 @@
     },
     "GravityModel": {
       "bodies": "GravityModelBody"
+    },
+    "IControlFrameSource": {
+      "frame": "ControlFrame"
     },
     "IGravityModelSource": {
       "model": "GravityModel"

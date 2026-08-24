@@ -294,6 +294,17 @@ export interface CommsOcclusion
 	bodies: CommsOcclusionBody[];
 	meta: PayloadMeta;
 }
+export interface ControlFrame
+{
+	kind: ControlFrameKind;
+	centreBody?: string;
+	primaryBody?: string;
+	secondaryBody?: string;
+	primaryBodies?: string[];
+	secondaryBodies?: string[];
+	targetFrameSelected?: boolean;
+	targetId?: string;
+}
 export interface CrashReport
 {
 	vesselId: string;
@@ -1752,4 +1763,12 @@ export interface DelayedObservation
 	ageSeconds: number;
 	refusal: number;
 	reason?: string;
+}
+export enum ControlFrameKind {
+	Unspecified = 0,
+	BodyCentredInertial = 1,
+	BodyCentredBodyDirection = 2,
+	BarycentricRotating = 3,
+	RotatingPulsating = 4,
+	BodySurface = 5
 }

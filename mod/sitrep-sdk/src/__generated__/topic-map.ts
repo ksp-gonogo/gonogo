@@ -34,6 +34,7 @@ import type {
   CommsOcclusion,
   CommsPath,
   CommsSignalStrength,
+  ControlFrame,
   CrashReport,
   CrewRosterEntry,
   DeployedEntry,
@@ -136,6 +137,7 @@ export interface GeneratedTopicPayloadMap {
   "spaceCenter.savedShips": SavedShipEntry[];
   "spaceCenter.scene": SpaceCenterScene;
   "system.bodies": SystemBodies;
+  "system.frame": ControlFrame;
   "system.vessels": SystemVessels;
   "target.available": TargetAvailable;
   "time.calendar": TimeCalendar;
@@ -207,6 +209,7 @@ export const GENERATED_TOPIC_IDS = [
   "spaceCenter.savedShips",
   "spaceCenter.scene",
   "system.bodies",
+  "system.frame",
   "system.vessels",
   "target.available",
   "time.calendar",

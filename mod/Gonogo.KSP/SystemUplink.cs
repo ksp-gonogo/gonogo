@@ -24,6 +24,14 @@ namespace Gonogo.KSP
     [SitrepUplink("system")]
     public sealed class SystemUplink : ISitrepUplink
     {
+        /// <summary>
+        /// The frame the game's navigation view is in: what the player is looking
+        /// at, and what a widget set to follow the control frame resolves against.
+        /// Beside <c>system.bodies</c> and <c>system.units</c> because it is the
+        /// same kind of fact, one global reference the whole view is read in.
+        /// </summary>
+        public const string ControlFrameTopic = "system.frame";
+
         public UplinkManifest Manifest { get; } = new UplinkManifest
         {
             Id = "system",
@@ -83,6 +91,20 @@ namespace Gonogo.KSP
                     Delay = DelayRole.Delayed,
                     Emission = new EmissionPolicy(keyframeIntervalUt: 30, quantum: EmissionQuantum.Absolute(0)),
                 },
+                // system.frame -- what frame the game's navigation view is in.
+                // TrueNow, because it is a ground-side fact about the player's own
+                // screen rather than anything observed down a comms link: no delay
+                // could apply to it, and delaying it would make a widget following
+                // the control frame lag a change the operator made themselves.
+                // A fresh Dictionary every call reads as "changed", so the 30s
+                // keyframe floor covers a view nobody is touching.
+                new ChannelDeclaration
+                {
+                    Topic = ControlFrameTopic,
+                    Delivery = Delivery.LossyLatest,
+                    Delay = DelayRole.TrueNow,
+                    Emission = new EmissionPolicy(keyframeIntervalUt: 30, quantum: EmissionQuantum.Absolute(0)),
+                },
                 // ksp.revertAvailability -- whether the two stock in-flight
                 // "revert" actions are available right now, for LaunchDirector's
                 // revert-availability gating. A flight-scene game-state fact
@@ -127,6 +149,42 @@ namespace Gonogo.KSP
             host.AddChannelSource(SystemViewProvider.TargetAvailableTopic, SystemViewProvider.BuildTargetAvailable);
             host.AddChannelSource(SystemViewProvider.RevertTopic, SystemViewProvider.BuildRevertAvailability);
             host.AddChannelSource(SystemViewProvider.DlcTopic, SystemViewProvider.BuildGameDlc);
+            // Read through the election rather than off stock directly, which is
+            // the whole point of the capability: an n-body producer elected over
+            // stock answers this channel instead, and nothing here learns that it
+            // did. The kernel is reached at call time rather than captured,
+            // because Register runs before capabilities resolve.
+            host.AddChannelSource(ControlFrameTopic, _ => BuildControlFrame(host.Kernel));
+        }
+
+        /// <summary>
+        /// The frame the game's navigation view is in. Flattened rather than
+        /// published as the contract object: a POCO on the wire throws in the
+        /// writer and takes the whole uplink down with it, every channel and
+        /// command at once.
+        /// </summary>
+        internal static Dictionary<string, object?>? BuildControlFrame(Kernel? kernel)
+        {
+            var frame = ControlFrameElection.Elected(kernel);
+            if (frame == null)
+            {
+                // Nothing knows what the player is looking at. Null rather than a
+                // frame with an unset kind, so a reader waiting for one is not
+                // handed something that reads as an answer.
+                return null;
+            }
+
+            return new Dictionary<string, object?>
+            {
+                ["kind"] = (int)frame.Kind,
+                ["centreBody"] = frame.CentreBody,
+                ["primaryBody"] = frame.PrimaryBody,
+                ["secondaryBody"] = frame.SecondaryBody,
+                ["primaryBodies"] = frame.PrimaryBodies,
+                ["secondaryBodies"] = frame.SecondaryBodies,
+                ["targetFrameSelected"] = frame.TargetFrameSelected,
+                ["targetId"] = frame.TargetId,
+            };
         }
     }
 }

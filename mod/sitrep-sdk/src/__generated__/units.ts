@@ -303,6 +303,16 @@ export const GENERATED_TYPE_UNITS: Readonly<Record<string, UnitsByField>> = {
   "ContractActionArgs": {
     contractId: "id",
   },
+  "ControlFrame": {
+    centreBody: "text",
+    kind: "enum",
+    primaryBodies: "text",
+    primaryBody: "text",
+    secondaryBodies: "text",
+    secondaryBody: "text",
+    targetFrameSelected: "flag",
+    targetId: "id",
+  },
   "CrashFlightStats": {
     flightEndMode: "text",
     groundDistance: "m",
@@ -1569,6 +1579,16 @@ export const GENERATED_TOPIC_UNITS: Readonly<Record<string, UnitsByField>> = {
     launchSite: "text",
     scene: "text",
   },
+  "system.frame": {
+    centreBody: "text",
+    kind: "enum",
+    primaryBodies: "text",
+    primaryBody: "text",
+    secondaryBodies: "text",
+    secondaryBody: "text",
+    targetFrameSelected: "flag",
+    targetId: "id",
+  },
   "time.calendar": {
     daySeconds: "s",
     hourSeconds: "s",
@@ -1870,6 +1890,9 @@ export const GENERATED_TYPE_SHAPES: Readonly<Record<string, ShapesByField>> = {
   },
   "GravityModel": {
     bodies: "GravityModelBody",
+  },
+  "IControlFrameSource": {
+    frame: "ControlFrame",
   },
   "IGravityModelSource": {
     model: "GravityModel",

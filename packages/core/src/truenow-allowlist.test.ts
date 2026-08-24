@@ -101,9 +101,13 @@ const ALLOWED_TRUENOW: Record<string, number> = {
   // vessel's comms link. 2 explicit declarations.
   "mod/Gonogo.KSP/CareerUplink.cs": 2,
 
-  // KSP version/build id and similar mod-host facts, not vessel state.
-  // 3 explicit declarations.
-  "mod/Gonogo.KSP/SystemUplink.cs": 3,
+  // KSP version/build id and similar mod-host facts, not vessel state, plus
+  // system.frame: what frame the player's own navigation view is in. That is a
+  // fact about their screen rather than anything observed down a link, so no
+  // delay could apply, and delaying it would make a widget following the
+  // control frame lag a change the operator made themselves.
+  // 4 explicit declarations.
+  "mod/Gonogo.KSP/SystemUplink.cs": 4,
 
   // kerbcast.available: whether the kerbcast mod is INSTALLED, a fact about
   // the player's install that the command centre knows independent of any

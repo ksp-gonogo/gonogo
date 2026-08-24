@@ -292,6 +292,12 @@ namespace Gonogo.KSP
             // hand in the map view.
             ManeuverPlanElection.RegisterCapability(
                 kernel, _ => new StockManeuverPlanBackend(GonogoAddon.SharedManeuverNodeIdRegistry));
+            // Stock's map view really is body-centred and inertial, so this
+            // vanilla is a true answer rather than a stand-in, and a widget
+            // following the control frame has something to follow on an install
+            // with no n-body producer at all.
+            ControlFrameElection.RegisterCapability(
+                kernel, _ => new StockControlFrameSource());
         }
 
         /// <summary>Mandatory health self-report (see <see cref="ISitrepUplink.Health"/>): a plain
