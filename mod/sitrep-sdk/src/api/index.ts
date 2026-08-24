@@ -23,7 +23,12 @@
 // ---------------------------------------------------------------------------
 
 import type { ReactElement, ReactNode } from "react";
-import { createElement, useCallback, useState } from "react";
+import {
+  createElement,
+  useCallback,
+  useState,
+  useSyncExternalStore,
+} from "react";
 import {
   type ComposedPlan,
   outcomeOfReply,
@@ -34,6 +39,7 @@ import {
   sendRefusalFromError,
   whyNotSendable,
 } from "../plan-composition";
+import { draftAsPlan, type PlanDraft, PlanDraftStore } from "../plan-drafts";
 import type { Reading } from "../reading";
 import type { TopicId, TopicPayload } from "../topics";
 import type { Value } from "../value";
@@ -187,6 +193,11 @@ export {
   sendRefusalFromError,
   whyNotSendable,
 } from "../plan-composition";
+// The command centre's OWN plans, which the game never sees until one is sent.
+// `draftAsPlan` is the seam between the two: it is what stops a widget building
+// the send arguments by hand and getting the vantage stamp wrong privately.
+export type { PlanDraft } from "../plan-drafts";
+export { draftAsPlan, PlanDraftStore } from "../plan-drafts";
 
 // --- Registration shims (stateful → injected host) --------------------------
 
@@ -428,6 +439,42 @@ export function useCommand(command: string) {
  * here puts the complaint at the site that made the mistake rather than a
  * light-time away.</p>
  */
+/**
+ * The command centre's own plans for this screen, and a live view of them.
+ *
+ * <p>One store per screen rather than one per widget, so a plan composed in one
+ * panel is the same object another panel can review or send. Drafts are
+ * command-centre objects and the game never sees one until it is sent, which is
+ * what lets two operators work on different plans for the same craft without
+ * either disturbing the other or the player at the keyboard.</p>
+ */
+export function usePlanDrafts(): {
+  store: PlanDraftStore;
+  drafts: readonly PlanDraft[];
+} {
+  const store = useSyncExternalStore(
+    PLAN_DRAFTS.subscribe.bind(PLAN_DRAFTS),
+    () => PLAN_DRAFTS,
+    () => PLAN_DRAFTS,
+  );
+  const drafts = useSyncExternalStore(
+    PLAN_DRAFTS.subscribe.bind(PLAN_DRAFTS),
+    () => PLAN_DRAFTS.list(),
+    () => PLAN_DRAFTS.list(),
+  );
+  return { store, drafts };
+}
+
+/**
+ * The screen's draft store.
+ *
+ * <p>Module scope, like the component registry beside it: a store held in a
+ * provider would make a plan composed in one panel invisible to the next, and
+ * the whole point of a command centre's drafts is that they are the command
+ * centre's rather than one widget's.</p>
+ */
+const PLAN_DRAFTS = new PlanDraftStore();
+
 export function useSendPlan(): SendPlanHandle {
   const command = useCommand(SEND_PLAN_COMMAND);
   const viewUt = useViewUt();
