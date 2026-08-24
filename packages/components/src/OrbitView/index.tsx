@@ -13,6 +13,7 @@ import {
   useTelemetryStoreOptional,
   type VesselState,
 } from "@ksp-gonogo/sitrep-client";
+import { apsidesExist, type ControlFrame } from "@ksp-gonogo/sitrep-sdk";
 import { Panel, type ReadoutTone, StatusPill } from "@ksp-gonogo/ui";
 import { NULL_DISPLAY, Text } from "@ksp-gonogo/ui-kit";
 import { useCallback, useSyncExternalStore } from "react";
@@ -158,7 +159,16 @@ function OrbitViewComponent({
   w,
   h,
 }: Readonly<ComponentProps<OrbitViewConfig>>) {
-  const showMarkers = config?.showMarkers ?? true;
+  /**
+   * The apsis markers, gated on the operator's own view frame as well as their
+   * config. An apsis is defined against a centre, and the frames defined by a
+   * pair of bodies have none: drawing a dot labelled Ap in one of those puts a
+   * marker on a point that does not exist, next to a panel elsewhere on the
+   * dashboard saying so.
+   */
+  const controlFrame = useStreamOptional<ControlFrame>("system.frame");
+  const noApsidesHere = apsidesExist(controlFrame) === "invalid";
+  const showMarkers = (config?.showMarkers ?? true) && !noApsidesHere;
 
   useActionInput<OrbitViewActions>({
     toggleMarkers: (payload) => {

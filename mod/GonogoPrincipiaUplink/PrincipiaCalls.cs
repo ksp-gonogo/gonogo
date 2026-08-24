@@ -131,6 +131,23 @@ namespace GonogoPrincipiaUplink
                     "no cancel exists: creating an executor commits us to pumping its loop to "
                     + "completion in this frame, and every ordinary reason a poller has to bail "
                     + "out early aborts the process",
+                // Read against the shipped revision's own source
+                // (mockingbirdnest/Principia @ c6615048, the sha in this build's
+                // release name), not inferred from the name.
+                ["VesselGetPlottingFramePayload"] =
+                    "takes the frame it looks up as an ARGUMENT, so it is a keyed map read "
+                    + "rather than a source of one, and the payload it returns is a two-instant "
+                    + "client scratchpad unrelated to a burn's frame; a zero extension reaches "
+                    + "LOG(FATAL) in NewNavigationFrame and any index reaches the same "
+                    + "unguardable celestial FindOrDie the Celestial family is refused for",
+                ["VesselSetPlottingFramePayload"] =
+                    "aborts on EVERY call whatever the arguments: the native body never calls "
+                    + "its journal Method's Return, and the destructor's CHECK(returned_) is "
+                    + "not gated on journalling being active. Live in the shipped binary; "
+                    + "unnoticed upstream because nothing in the adapter calls it",
+                ["VesselClearPlottingFramePayload"] =
+                    "aborts on EVERY call whatever the arguments, the same unreturned journal "
+                    + "Method as its Set sibling",
                 ["CollisionNewFlightPlanExecutor"] =
                     "no cancel exists: creating an executor commits us to pumping its loop to "
                     + "completion in this frame, and every ordinary reason a poller has to bail "
@@ -190,7 +207,6 @@ namespace GonogoPrincipiaUplink
             "NavballOrientation",
             "PartGetActualRigidMotion",
             "PartIsTruthful",
-            "VesselGetPlottingFramePayload",
             "UnmanageableVesselVelocity",
             "HasEncounteredApocalypse",
             "EquipotentialCount",
@@ -220,6 +236,12 @@ namespace GonogoPrincipiaUplink
         {
             "Create", "Delete", "Insert", "Remove", "Replace", "Select", "Set",
             "Rebase", "Duplicate",
+            // `Clear` was missing, so VesselClearPlottingFramePayload fell past
+            // the verb screen and landed on the not-audited branch instead. Both
+            // still refuse, but for the wrong stated reason, and a refusal that
+            // misdescribes itself is what sends the next reader looking in the
+            // wrong place.
+            "Clear",
         };
 
         /// <summary>
