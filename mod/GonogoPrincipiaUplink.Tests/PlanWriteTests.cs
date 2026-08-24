@@ -294,10 +294,53 @@ namespace GonogoPrincipiaUplink.Tests
         }
 
         /// <summary>
-        /// A plan with no burns has nothing to round-trip, so burn edits stay
-        /// refused. The step-parameter remedy is NOT withheld with them, which is
-        /// the whole reason the two verdicts are separate: a plan that drew no burns
-        /// is the plan most likely to need its step budget raised.
+        /// Arming a plan with NO burns still proves the burn struct, by building one
+        /// and round-tripping that.
+        ///
+        /// <para>The round trip needs a burn, not a burn that came from the plan, and
+        /// one built from the loaded build's own type carries exactly this build's
+        /// fields. Without this the gate was the same deadlock one level up: burn
+        /// writes needed a probe, the probe needed a burn, and a burn needed a
+        /// write.</para>
+        /// </summary>
+        [Fact]
+        public void ArmingAPlanWithNoBurnsProvesTheStructByBuildingOne()
+        {
+            var (plugin, commands) = Wire(p => p.Add(Guid, hasFlightPlan: true, manoeuvres: 0));
+
+            Armed(commands);
+
+            var read = commands.Arm(
+                new PrincipiaPlanArmArgs { VesselId = Guid, RequestId = "a2" });
+            var surface = (Dictionary<string, object?>)
+                ((Dictionary<string, object?>)Receipt(read)["plan"]!)["writeSurface"]!;
+            Assert.Equal(true, surface["armed"]);
+            Assert.Null(surface["reason"]);
+        }
+
+        /// <summary>
+        /// And takes its own burn back out. A probe that left one behind would put a
+        /// manœuvre in somebody's plan that no operator asked for, and it would be
+        /// found only by noticing a burn nobody remembers adding.
+        /// </summary>
+        [Fact]
+        public void TheProbeLeavesThePlanAsItFoundIt()
+        {
+            var (plugin, commands) = Wire(p => p.Add(Guid, hasFlightPlan: true, manoeuvres: 0));
+
+            Armed(commands);
+
+            Assert.Empty(plugin.Known(Guid).Burns);
+        }
+
+        /// <summary>
+        /// A plan with no burns has its own burn round-tripped, so a burn edit gets
+        /// past the layout gate and is judged on its own merits: this one states no
+        /// ignition, which a burn with no manœuvre ahead of it cannot derive.
+        ///
+        /// <para>The step-parameter remedy is NOT withheld either way, which is the
+        /// whole reason the two verdicts are separate: a plan that drew no burns is
+        /// the plan most likely to need its step budget raised.</para>
         /// </summary>
         [Fact]
         public void APlanWithNoBurnsStillGetsTheStepParameterRemedy()
@@ -309,7 +352,7 @@ namespace GonogoPrincipiaUplink.Tests
 
             var burnEdit = commands.InsertBurn(
                 new PrincipiaBurnEditArgs { VesselId = Guid, RequestId = "b", BurnIndex = 0 });
-            Assert.Equal(PrincipiaWriteRefusal.LayoutUnverified, Refusal(burnEdit));
+            Assert.Equal(PrincipiaWriteRefusal.ComposedBurnIncomplete, Refusal(burnEdit));
 
             var raise = commands.SetIntegrator(
                 new PrincipiaPlanIntegratorArgs

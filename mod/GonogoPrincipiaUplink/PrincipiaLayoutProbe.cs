@@ -1,3 +1,5 @@
+using System;
+
 namespace GonogoPrincipiaUplink
 {
     /// <summary>
@@ -41,8 +43,14 @@ namespace GonogoPrincipiaUplink
         /// that needs the failed struct refuses later with
         /// <see cref="PrincipiaWriteRefusal.LayoutUnverified"/>.</para>
         /// </summary>
+        /// <param name="composeAt">Builds a burn for a stated ignition instant,
+        /// used only when the plan holds none to round-trip. Null when nothing can
+        /// build one, which leaves the burn verdict where it was before: a plan with
+        /// no burns cannot be probed.</param>
         public static PrincipiaWriteResult? Run(
-            PrincipiaMaterialisedPlanGate plan, PrincipiaWriteAuthority authority)
+            PrincipiaMaterialisedPlanGate plan,
+            PrincipiaWriteAuthority authority,
+            Func<double, object?>? composeAt = null)
         {
             if (!plan.TryProbe(out var gate, out var refusal, out var detail))
             {
@@ -50,7 +58,7 @@ namespace GonogoPrincipiaUplink
             }
 
             ProbeIntegrator(gate, authority);
-            ProbeBurn(gate, authority);
+            ProbeBurn(gate, authority, composeAt, plan.DesiredFinalTimeUt);
             return null;
         }
 
@@ -112,16 +120,20 @@ namespace GonogoPrincipiaUplink
         /// on that being true.</para>
         /// </summary>
         private static void ProbeBurn(
-            PrincipiaPlanWriteGate gate, PrincipiaWriteAuthority authority)
+            PrincipiaPlanWriteGate gate,
+            PrincipiaWriteAuthority authority,
+            Func<double, object?>? composeAt,
+            double desiredFinalTimeUt)
         {
             if (gate.ManoeuvreCount() <= 0)
             {
-                authority.LayoutFailed(
-                    "This plan has no burns, so the burn round trip could not be run. Burn edits "
-                    + "stay refused until a plan with a burn has been armed: the alternative is "
-                    + "trusting a struct shape that has never been demonstrated.",
-                    burn: true,
-                    integrator: false);
+                // No burn to copy, so one is BUILT and round-tripped instead, then
+                // taken out again. The property under test is the same and is tested
+                // the same way: a struct goes through the producer's marshaller and
+                // what comes back is compared with what went in. Using a composed
+                // burn is if anything the truer test, because a composed burn is
+                // exactly what the write that follows will send.
+                ProbeComposedBurn(gate, authority, composeAt, desiredFinalTimeUt);
                 return;
             }
 
@@ -162,6 +174,99 @@ namespace GonogoPrincipiaUplink
                     + "what went in. That is the platform struct-layout failure this probe exists "
                     + "for, and it would otherwise have written a plausible wrong burn into the "
                     + "save.",
+                    burn: true,
+                    integrator: false);
+                return;
+            }
+
+            authority.BurnLayoutPassed();
+        }
+
+        /// <summary>
+        /// Round-trips a BUILT burn through an empty plan, then takes it out again.
+        ///
+        /// <para><b>Why an empty plan can be probed at all now.</b> The round trip
+        /// needs a burn, not a burn that came from the plan, and one built from the
+        /// loaded build's own struct type carries exactly this build's fields. So the
+        /// probe inserts it, reads it back, compares, and removes it, which is the
+        /// same demonstration the copy probe makes and leaves the plan as it found
+        /// it.</para>
+        ///
+        /// <para><b>The removal is checked.</b> A probe that left its own burn behind
+        /// would put a manoeuvre in somebody's plan that no operator asked for, and a
+        /// failure to remove is reported rather than passed over: the plan is not as
+        /// it was, and saying so is the only way anyone finds out.</para>
+        /// </summary>
+        private static void ProbeComposedBurn(
+            PrincipiaPlanWriteGate gate,
+            PrincipiaWriteAuthority authority,
+            Func<double, object?>? composeAt,
+            double desiredFinalTimeUt)
+        {
+            if (composeAt == null)
+            {
+                authority.LayoutFailed(
+                    "This plan has no burns and none could be built to round trip, so the burn "
+                    + "round trip could not be run. Burn edits stay refused: the alternative is "
+                    + "trusting a struct shape that has never been demonstrated.",
+                    burn: true,
+                    integrator: false);
+                return;
+            }
+
+            // The caller picks the instant, given the plan's end: it holds the
+            // frame's own clock and so is the only side that can place a burn both
+            // ahead of now and inside the plan. A burn outside the window is one the
+            // producer will not accept, and that refusal would read here as a layout
+            // failure rather than as a badly chosen instant.
+            var burn = composeAt(desiredFinalTimeUt);
+            if (burn == null)
+            {
+                authority.LayoutFailed(
+                    "A burn could not be built to round trip through this plan, so the struct's "
+                    + "shape has not been demonstrated.",
+                    burn: true,
+                    integrator: false);
+                return;
+            }
+
+            var snapshot = BurnSnapshot(burn);
+            var written = gate.Insert(0, burn);
+            if (written.Outcome != PrincipiaWriteOutcome.Written)
+            {
+                authority.LayoutFailed(
+                    "Writing a built burn into this plan was " + written.Outcome + ": "
+                    + (written.Detail ?? written.StatusMessage ?? "no reason given"),
+                    burn: true,
+                    integrator: false);
+                return;
+            }
+
+            var after = gate.Manoeuvre(0);
+            var afterBurn = after == null
+                ? null
+                : Fields.Get(after, PrincipiaBurnStruct.ManoeuvreBurnField);
+            var survived = afterBurn != null && BurnSnapshot(afterBurn) == snapshot;
+
+            var removed = gate.Remove(0);
+            if (removed.Outcome != PrincipiaWriteOutcome.Written)
+            {
+                authority.LayoutFailed(
+                    "The burn this probe wrote could not be taken back out: " + removed.Outcome
+                    + ": " + (removed.Detail ?? removed.StatusMessage ?? "no reason given")
+                    + ". The plan is not as it was.",
+                    burn: true,
+                    integrator: false);
+                return;
+            }
+
+            if (!survived)
+            {
+                authority.LayoutFailed(
+                    "A built burn did not survive a round trip through Principia: what came back "
+                    + "is not what went in. That is the platform struct-layout failure this probe "
+                    + "exists for, and it would otherwise have written a plausible wrong burn "
+                    + "into the save.",
                     burn: true,
                     integrator: false);
                 return;

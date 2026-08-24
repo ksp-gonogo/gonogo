@@ -174,7 +174,14 @@ namespace GonogoPrincipiaUplink
             }
 
             var materialised = plan.Materialise();
-            var probeRefusal = PrincipiaLayoutProbe.Run(materialised, session.Writes);
+            var probeRefusal = PrincipiaLayoutProbe.Run(
+                materialised,
+                session.Writes,
+                // Halfway between now and the plan's end, so the probe's burn is
+                // ahead of the craft and inside the plan. Both matter: a burn behind
+                // the craft or past the plan's end is refused by the producer, and
+                // that refusal would be recorded here as a struct-layout failure.
+                endUt => ComposeProbeBurn(session, args?.VesselId, now + ((endUt - now) / 2.0)));
             if (probeRefusal.HasValue)
             {
                 return Refusal(
@@ -440,6 +447,62 @@ namespace GonogoPrincipiaUplink
             }
 
             return gate.Insert(0, burn);
+        }
+
+        /// <summary>
+        /// A burn for the layout probe to round trip, or null when one cannot be
+        /// built.
+        ///
+        /// <para>Deliberately the SAME construction the real write uses, down to the
+        /// frame and the propulsion, because a probe that demonstrated a different
+        /// struct than the one that follows it would be demonstrating the wrong
+        /// thing. Nothing is refused here with a reason: the probe turns a null into
+        /// its own layout verdict, which is the sentence an operator reads.</para>
+        /// </summary>
+        private object? ComposeProbeBurn(
+            PrincipiaSession session, string? vesselId, double ignitionUt)
+        {
+            var source = _source();
+            if (source == null || vesselId == null)
+            {
+                return null;
+            }
+            var massTons = source.MassTonsOf(vesselId);
+            if (massTons == null || !(massTons.Value > 0))
+            {
+                return null;
+            }
+            if (!PrincipiaComposedFrame.TryResolve(
+                    _observation()?.PlottingFrame,
+                    out var extension,
+                    out var centre,
+                    out var primary,
+                    out var secondary,
+                    out _))
+            {
+                return null;
+            }
+
+            // No Δv at all: the probe is about the struct surviving the crossing,
+            // and a burn that would move the craft is a bigger thing to write into
+            // somebody's plan than one that would not, even for the instant it is
+            // there.
+            var request = new ComposedBurnRequest(
+                ignitionUt: ignitionUt,
+                deltaVTangent: 0.0,
+                deltaVNormal: 0.0,
+                deltaVBinormal: 0.0,
+                inertiallyFixed: false,
+                thrustKilonewtons:
+                    massTons.Value * PrincipiaBurnRules.InstantImpulseThrustPerTonne,
+                specificImpulseSeconds: PrincipiaBurnRules.InstantImpulseSpecificImpulseSeconds,
+                frameExtension: extension,
+                centreBodyIndex: centre,
+                primaryBodyIndex: primary,
+                secondaryBodyIndex: secondary);
+
+            return _composer.Compose(
+                session.Plugin.BurnType(), request, source.Celestials.Indices, out _);
         }
 
         /// <summary>Drops one burn from the plan.</summary>
