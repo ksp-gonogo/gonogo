@@ -133,9 +133,7 @@ describe("OrbitView: a partial payload, the orbit without its body", () => {
     // drop out silently; the only visible trace is a caption that isn't
     // there. The frame caption still speaks, because which frame the curve
     // is in does not depend on knowing the body's name.
-    expect(visibleText(container)).toBe(
-      "ORBIT VIEWDrawn in the orbit's own planeApPe",
-    );
+    expect(visibleText(container)).toBe("ORBIT VIEWorbit planeApPe");
   });
 
   it("reads a real orbit as 'Sub-orbital' when the apsis ALTITUDES are absent", async () => {

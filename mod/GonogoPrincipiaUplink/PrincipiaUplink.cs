@@ -220,19 +220,16 @@ namespace GonogoPrincipiaUplink
             // principia.settings.
             //
             // A sampled source runs only while its own topic has a subscriber,
-            // and the control frame is read out of the same observation. That
-            // made system.frame a DEAD channel on a fresh session for any client
-            // that subscribed to it alone: this uplink holds the controlFrame
-            // capability exclusively, answered null because nothing had populated
-            // the observation, and an exclusive capability does not fall through
-            // to the vanilla. No exception and no log line, just a topic that
-            // never emitted. Measured on the rig, where a probe subscribing
-            // system.frame by itself saw zero frames in 45 seconds and the same
-            // probe with principia.settings added saw 28 in 30.
+            // and the control frame is read out of the same observation. Without
+            // an ungated refresh, system.frame is a DEAD channel for any client
+            // that subscribes to it alone: this uplink holds the controlFrame
+            // capability exclusively, so answering null does not fall through to
+            // the vanilla, and the topic emits nothing with no exception and no
+            // log line to say why.
             //
-            // Falling back to stock's answer would have been worse than the
-            // silence: stock reports body-centred inertial, so a player sitting
-            // in a pulsating frame would have been told they were somewhere else.
+            // Falling back to stock's answer would be worse than the silence.
+            // Stock reports body-centred inertial, so a player sitting in a
+            // pulsating frame would be told they were somewhere else.
             host.AddSampler(new SettingsRefresh(this));
             _planPublisher = host.Publisher(PlanTopic);
             host.AddSampledSource(CapturePlanOnMain, HandlePlanOnCourier, PlanTopic);

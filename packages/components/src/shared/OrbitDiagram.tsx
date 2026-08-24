@@ -795,6 +795,13 @@ function HorizonMark({
   strokeWidth: number;
   stroke: string;
 }>) {
+  // Marked only where the stop is a drawing CONVENTION rather than the end of
+  // the data: a second lap is not drawn because an integrated path does not
+  // retrace, and that is worth annotating. A path that simply reached the last
+  // instant anyone vouched for stops where the points stop, which the curve's
+  // own end already shows.
+  if (farEnd !== "revolution") return null;
+
   const finite = points.filter(
     (p) => Number.isFinite(p.x) && Number.isFinite(p.y),
   );

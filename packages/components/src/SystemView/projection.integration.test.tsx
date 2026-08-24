@@ -339,7 +339,9 @@ describe("SystemView body placement", () => {
     await waitFor(() => {
       expect(view.container.querySelector("svg")).not.toBeNull();
     });
-    expect(view.container.textContent).toContain("lengths are not lengths");
+    // The frame's name carries that its lengths pulsate: it is the name the
+    // operator selected the frame by.
+    expect(view.container.textContent).toContain("Lagrange");
     await expectNoA11yViolations(view.container);
   });
 });

@@ -552,9 +552,7 @@ describe("orbitTrajectory read frames", () => {
     expect(answer.frame.kind).toBe(Frame.BodyCentredParentDirection);
     expect(answer.frame.primaryBodyIndex).toBe(1);
     expect(answer.frame.secondaryBodyIndex).toBe(0);
-    expect(trajectoryFrameLabel(answer.frame, SYSTEM)).toBe(
-      "Home-centred, Star held still",
-    );
+    expect(trajectoryFrameLabel(answer.frame, SYSTEM)).toBe("Star-Home-Orbit");
   });
 
   it("keeps every radius, because a rotating frame turns the axes and moves nothing", () => {
@@ -602,7 +600,7 @@ describe("orbitTrajectory read frames", () => {
     expect(answer.frame.unitLength).toBeCloseTo(AU, -8);
     expect(answer.frame.centreBodyIndex).toBeUndefined();
     expect(trajectoryFrameLabel(answer.frame, SYSTEM)).toBe(
-      "Star-Home rotating-pulsating",
+      "Star-Home Lagrange",
     );
     // A coordinate here is a ratio, so the whole orbit is a small fraction of
     // one. That IS the frame: quoting it in metres would be off by an AU.
@@ -692,7 +690,7 @@ describe("trajectoryFrameLabel", () => {
         },
         SYSTEM,
       ),
-    ).toBe("body 44-centred, fixed stars");
+    ).toBe("body 44-Centred Inertial");
   });
 
   it("names the perifocal frame as the orbit's own plane, which is what every widget drew in before", () => {
@@ -701,6 +699,6 @@ describe("trajectoryFrameLabel", () => {
         { kind: Frame.Perifocal, lengthsPulsate: false },
         SYSTEM,
       ),
-    ).toBe("the orbit's own plane");
+    ).toBe("orbit plane");
   });
 });

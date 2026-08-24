@@ -155,10 +155,10 @@ describe("LibrationPoints: the pair reaches the frame", () => {
     expect(markerPositions(svg).size).toBe(5);
     // And the widget says which frame it drew in, in the same words every other
     // trajectory-drawing widget uses.
-    expect(view.container.textContent).toContain(
-      "Drawn in Kerbin-Mun rotating-pulsating",
-    );
-    expect(view.container.textContent).toContain("lengths are not lengths");
+    expect(view.container.textContent).toContain("Kerbin-Mun Lagrange");
+    // The frame's name is what carries that its lengths pulsate: it is the
+    // name the operator selected the frame by, and a pulsating frame is
+    // pulsating by definition to whoever chose one.
     // And the craft's own curve arrived IN this frame rather than in metres: 5
     // is `RotatingPulsating`, carried from the answer onto the drawing, so the
     // assertion is against the picture and not against a value a test set.

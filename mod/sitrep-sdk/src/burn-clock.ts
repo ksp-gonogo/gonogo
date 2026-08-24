@@ -28,12 +28,11 @@ export interface BurnInstantParts {
  * A UT split into calendar parts.
  *
  * <p><b>Every conversion goes through the unit system.</b> `Value` is what
- * knows how long a day is on the running game's calendar, and an earlier
- * revision of this file divided by ratios it carried itself: a second clock
- * beside the one the whole app already renders through, free to disagree with
- * it the moment an install said its day was 86,400 seconds. The year is the one
- * boundary the catalogue has no symbol for, so it comes from
- * <see cref="kspYearDays"/> rather than from a number here.</p>
+ * knows how long a day is on the running game's calendar, so a file carrying
+ * its own ratios would be a second clock beside the one the app renders
+ * through, free to disagree the moment an install says its day is 86,400
+ * seconds. The year is the one boundary the catalogue has no symbol for, so it
+ * comes from <see cref="kspYearDays"/> rather than from a number here.</p>
  *
  * <p>Whole seconds. A burn scheduled to the microsecond is one nobody can
  * enter, and the fraction would reappear as a rounding difference the next time

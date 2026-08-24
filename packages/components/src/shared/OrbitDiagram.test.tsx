@@ -157,7 +157,24 @@ const SUPPLIED = [
 ];
 
 describe("OrbitDiagram horizon mark", () => {
-  it("marks the far end of every supplied path", () => {
+  it("marks a path that stopped after one revolution", () => {
+    const { container } = render(
+      <OrbitDiagram
+        {...BASE}
+        trajectoryPath={SUPPLIED}
+        trajectoryFarEnd="revolution"
+      />,
+    );
+    const mark = container.querySelector("[data-trajectory-mark]");
+    expect(mark).not.toBeNull();
+    expect(mark?.getAttribute("data-trajectory-mark")).toBe("revolution");
+  });
+
+  it("does NOT mark a path that merely reached its horizon", () => {
+    // An integrated path is always bounded, so a horizon cap appeared on almost
+    // every arc and annotated the fact that the curve stops where it stops.
+    // The curve's own end already says that, and a mark on every arc reads as
+    // meaning something specific to that arc.
     const { container } = render(
       <OrbitDiagram
         {...BASE}
@@ -165,9 +182,8 @@ describe("OrbitDiagram horizon mark", () => {
         trajectoryFarEnd="horizon"
       />,
     );
-    const mark = container.querySelector("[data-trajectory-mark]");
-    expect(mark).not.toBeNull();
-    expect(mark?.getAttribute("data-trajectory-mark")).toBe("horizon");
+
+    expect(container.querySelector("[data-trajectory-mark]")).toBeNull();
   });
 
   it("draws it as a bar across the curve, not as a fade", () => {
@@ -179,7 +195,7 @@ describe("OrbitDiagram horizon mark", () => {
       <OrbitDiagram
         {...BASE}
         trajectoryPath={SUPPLIED}
-        trajectoryFarEnd="horizon"
+        trajectoryFarEnd="revolution"
       />,
     );
     const mark = container.querySelector("line[data-trajectory-mark]");

@@ -185,16 +185,14 @@ function SemiMajorAxisComponent({
             {smaAgeSec !== undefined && `, ${formatDuration(smaAgeSec)} ago`}
           </ReadoutCaption>
         )}
-        {/* A length in a pulsating frame is not a length: that frame holds its
-            two primaries' separation fixed, so its length unit varies with
-            time. LABELLED rather than suppressed, which is the difference
-            between this and an apsis. An apsis in such a frame does not exist
-            at all and must not show a number; a semi-major axis does exist, it
-            is simply measured in units that move, and an operator who knows
-            that can still read it. */}
+        {/* The frame's name. A pulsating frame's length unit is its pair's own
+            separation, so a length quoted in it moves with the pair; naming the
+            frame is what says which units these are. LABELLED rather than
+            suppressed, unlike an apsis: an apsis in such a frame does not exist
+            at all, where a semi-major axis does. */}
         {lengthsPulsate && (
           <ReadoutCaption role="status">
-            {`in ${controlFrameLabel(controlFrame) ?? "a pulsating frame"}: lengths vary with time`}
+            {controlFrameLabel(controlFrame) ?? "pulsating frame"}
           </ReadoutCaption>
         )}
         {showSparkline && (

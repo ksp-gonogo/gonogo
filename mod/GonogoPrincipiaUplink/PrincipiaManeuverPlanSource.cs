@@ -154,12 +154,9 @@ namespace GonogoPrincipiaUplink
         /// planner can make one for it and simply has not: null on that seam is
         /// reserved for "this craft cannot hold a plan at all", which is how an
         /// un-upgraded Tracking Station reaches a client, and it is what decides
-        /// whether the wire names a planner beside the nodes.</para>
-        ///
-        /// <para>These were collapsed, and the rig showed what that costs: a
-        /// craft with no flight plan reported no planner either, so a client
-        /// could not tell an install with an n-body planner from one with none.
-        /// The doc comment here already said empty, and the code said null.</para>
+        /// whether the wire names a planner beside the nodes. Collapsing the two
+        /// leaves a client unable to tell an install with an n-body planner from
+        /// one with none.</para>
         /// </summary>
         internal static IList<Sitrep.Contract.ManeuverNode>? Map(PlanObservation? plan)
         {

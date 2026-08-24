@@ -54,7 +54,7 @@ function setup() {
 }
 
 describe("SemiMajorAxis: what a pulsating frame does to a length", () => {
-  it("still shows the number, and says its units move", async () => {
+  it("still shows the number, and names the frame its units move with", async () => {
     // Labelled, NOT suppressed: the quantity exists, and an operator who knows
     // the units move can still read it.
     const fixture = setup();
@@ -67,7 +67,7 @@ describe("SemiMajorAxis: what a pulsating frame does to a length", () => {
     });
 
     await waitFor(() =>
-      expect(screen.getByText(/lengths vary with time/i)).toBeTruthy(),
+      expect(screen.getByText(/Kerbol-Kerbin Lagrange/)).toBeTruthy(),
     );
     // The frame is named, so the caveat points at something the operator can
     // change rather than reading as an unexplained warning.
@@ -84,7 +84,7 @@ describe("SemiMajorAxis: what a pulsating frame does to a length", () => {
 
     await waitFor(() => expect(screen.getByText(/682/)).toBeTruthy());
     expect(
-      screen.queryByText(/lengths vary with time/i),
+      screen.queryByText(/Kerbol-Kerbin Lagrange/),
     ).not.toBeInTheDocument();
   });
 
@@ -95,7 +95,7 @@ describe("SemiMajorAxis: what a pulsating frame does to a length", () => {
 
     await waitFor(() => expect(screen.getByText(/682/)).toBeTruthy());
     expect(
-      screen.queryByText(/lengths vary with time/i),
+      screen.queryByText(/Kerbol-Kerbin Lagrange/),
     ).not.toBeInTheDocument();
   });
 });

@@ -58,10 +58,11 @@ export function TrajectoryFrameCaption({
   const label = trajectoryFrameLabel(frame, facts);
   const pulsating = frameCoordinatesArePulsating(frame);
   return (
+    // The frame's name and nothing else. The caption says WHICH frame the curve
+    // is in, because the same points are a different path in each; a frame's
+    // own properties are known to whoever selected it.
     <Text tone="muted" size="xs">
-      {pulsating
-        ? `Drawn in ${label}; lengths are not lengths`
-        : `Drawn in ${label}`}
+      {label}
     </Text>
   );
 }

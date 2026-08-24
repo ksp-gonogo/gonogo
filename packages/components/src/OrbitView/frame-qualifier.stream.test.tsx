@@ -90,9 +90,7 @@ describe("OrbitView: the apsis markers and the view frame", () => {
     // which here was before the diagram existed at all: the assertion passed
     // with the frame gate deliberately disabled, and would have passed on a
     // widget that drew nothing.
-    await waitFor(() =>
-      expect(screen.getByText(/Drawn in the orbit's own plane/)).toBeTruthy(),
-    );
+    await waitFor(() => expect(screen.getByText(/orbit plane/)).toBeTruthy());
     expect(screen.queryByText("Ap")).not.toBeInTheDocument();
     expect(screen.queryByText("Pe")).not.toBeInTheDocument();
   });

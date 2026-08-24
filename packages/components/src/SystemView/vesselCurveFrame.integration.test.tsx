@@ -143,7 +143,7 @@ describe("SystemView vessel curve", () => {
     // The frame the DIAGRAM is in, not the frame the seam happened to compute
     // in. The two used to be captioned as one thing, and under the option this
     // file was written for they were two different frames in one picture.
-    expect(view.container.textContent).toContain("Drawn in Kerbin-centred");
+    expect(view.container.textContent).toContain("Kerbin-Centred Inertial");
     await act(async () => {});
   });
 

@@ -752,17 +752,23 @@ export function trajectoryFrameLabel(
     index === undefined
       ? "unnamed body"
       : (names?.nameByIndex[index] ?? `body ${index}`);
+  // The producer's own wording. These are the names an operator selects the
+  // frame BY in the game's own interface, so renaming them here would make a
+  // reader hold two vocabularies for one thing.
   switch (frame.kind) {
     case TrajectoryFrameKindLike.Perifocal:
-      return "the orbit's own plane";
+      // Ours: the producer has no name for it, because it never draws in it.
+      return "orbit plane";
     case TrajectoryFrameKindLike.BodyCentredInertial:
-      return `${named(frame.centreBodyIndex)}-centred, fixed stars`;
-    case TrajectoryFrameKindLike.BodyCentredRotating:
-      return `${named(frame.centreBodyIndex)}-centred, turning with its surface`;
+      return `${named(frame.centreBodyIndex)}-Centred Inertial`;
+    case TrajectoryFrameKindLike.BodyCentredRotating: {
+      const centre = named(frame.centreBodyIndex);
+      return `${centre}-Centred ${centre}-Fixed`;
+    }
     case TrajectoryFrameKindLike.BodyCentredParentDirection:
-      return `${named(frame.primaryBodyIndex)}-centred, ${named(frame.secondaryBodyIndex)} held still`;
+      return `${named(frame.secondaryBodyIndex)}-${named(frame.primaryBodyIndex)}-Orbit`;
     case TrajectoryFrameKindLike.RotatingPulsating:
-      return `${named(frame.primaryBodyIndex)}-${named(frame.secondaryBodyIndex)} rotating-pulsating`;
+      return `${named(frame.primaryBodyIndex)}-${named(frame.secondaryBodyIndex)} Lagrange`;
     default:
       // A producer that named no frame, or one this build does not know. Both
       // are states a reader must be able to see, because a curve drawn under a

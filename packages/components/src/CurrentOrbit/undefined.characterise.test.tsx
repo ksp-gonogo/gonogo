@@ -206,7 +206,7 @@ describe("CurrentOrbit: null (inapplicable) versus undefined (nothing yet)", () 
 
     // Four dashes: Ap, t-Ap, t-Pe, T. Pe/Inc/Ecc carry real values.
     expect(visibleText(container)).toBe(
-      `ORBITKerbinDrawn in the orbit's own planeAp${NULL_DISPLAY}Pe100.0 kmInc0.3°t-Ap${NULL_DISPLAY}t-Pe${NULL_DISPLAY}Ecc1.3500T${NULL_DISPLAY}`,
+      `ORBITKerbinorbit planeAp${NULL_DISPLAY}Pe100.0 kmInc0.3°t-Ap${NULL_DISPLAY}t-Pe${NULL_DISPLAY}Ecc1.3500T${NULL_DISPLAY}`,
     );
 
     // Ap's gate is `apoapsisA === undefined`, which a `null` does not
