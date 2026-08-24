@@ -486,6 +486,22 @@ export function usePlanDrafts(): {
  */
 const PLAN_DRAFTS = new PlanDraftStore();
 
+/**
+ * Discards every draft on this screen.
+ *
+ * <p>Test-facing, and the sibling of `clearAugments` beside it: the store is
+ * module scope by design, which means it OUTLIVES a rendered tree, so without
+ * this a plan composed in one case is still there in the next and the two are
+ * asserting against each other's drafts. Call it after unmounting rather than
+ * before: clearing while a tree is still mounted notifies its subscribers
+ * outside `act`.</p>
+ */
+export const clearPlanDrafts = (): void => {
+  for (const draft of PLAN_DRAFTS.list()) {
+    PLAN_DRAFTS.remove(draft.id);
+  }
+};
+
 export function useSendPlan(): SendPlanHandle {
   const command = useCommand(SEND_PLAN_COMMAND);
   const viewUt = useViewUt();
@@ -523,7 +539,7 @@ export function useSendPlan(): SendPlanHandle {
     [command, viewUt],
   );
 
-  return { send, pending, outcome };
+  return { send, pending, outcome, command };
 }
 
 /**

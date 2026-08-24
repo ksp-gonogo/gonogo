@@ -2,7 +2,7 @@ import styled from "styled-components";
 
 /**
  * Styled bits shared between ManeuverPlanner/index.tsx and its sub-component
- * files (NodeRow, PresetPicker, LabeledInput). Single-use styles live
+ * files (NodeRow, PresetPicker, PresetInput). Single-use styles live
  * alongside their component.
  */
 

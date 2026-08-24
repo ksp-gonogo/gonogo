@@ -2,6 +2,8 @@ import type {
   ComposedBurn,
   SendManeuverPlanArgs,
 } from "./__generated__/contract";
+import { classifyCommandRejection } from "./api/command-rejection";
+import type { UseCommandResult } from "./spine/use-command";
 import type { Value } from "./value";
 
 /** The command the engine registers for this. Not an Uplink's. */
@@ -59,6 +61,18 @@ export interface SendPlanHandle {
 
   /** The most recent outcome, or null before one has been attempted. */
   outcome: SendPlanOutcome | null;
+
+  /**
+   * The underlying dispatch, for `usePanelDelay(handle.command)`.
+   *
+   * <p>Exposed because the delay rail lives in the kit and this package cannot
+   * reach it: a widget sending a plan has to contribute the schedule itself,
+   * exactly as it would for any other command. Without it the send throws on
+   * commit rather than quietly shipping a control with no delay UX, which is
+   * the guard working, but the handle has to be reachable for the caller to
+   * satisfy it.</p>
+   */
+  command: UseCommandResult;
 }
 
 /**
@@ -72,12 +86,29 @@ export interface SendPlanHandle {
  * saw.</p>
  */
 export function sendRefusalFromError(error: unknown): SendPlanOutcome {
+  const rejection = classifyCommandRejection(error);
+  if (rejection.kind === "refused") {
+    // The plan DID reach the game and the craft declined it, so the craft's own
+    // words are the answer. Reporting this as a message that never left would
+    // have an operator retransmit a plan that has already been considered and
+    // turned down.
+    return {
+      accepted: false,
+      refusal: rejection.detail ?? rejection.message,
+    };
+  }
+  if (rejection.kind === "lost") {
+    // Nothing was decided, and the plan may have been installed anyway. Saying
+    // so is the whole value: a retransmit here can double a plan rather than
+    // replace it.
+    return {
+      accepted: false,
+      refusal: `No answer to the plan arrived: ${rejection.message}. It may have been installed anyway.`,
+    };
+  }
   return {
     accepted: false,
-    refusal:
-      error instanceof Error
-        ? `The plan did not reach the game: ${error.message}`
-        : "The plan did not reach the game.",
+    refusal: `The plan did not reach the game: ${rejection.message}`,
   };
 }
 

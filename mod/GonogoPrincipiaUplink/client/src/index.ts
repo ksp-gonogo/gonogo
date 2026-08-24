@@ -30,9 +30,11 @@
 import "./topics";
 import "./FlightPlanSection";
 import "./BurnEditor";
+import "./PlanComposer";
 
 export { BurnEditor } from "./BurnEditor";
 export { FlightPlanSection } from "./FlightPlanSection";
+export { PlanComposer } from "./PlanComposer";
 export type { FrameBodies } from "./plottingFrame";
 export {
   FRAME_TYPE,

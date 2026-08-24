@@ -1,7 +1,11 @@
 import { value } from "@ksp-gonogo/sitrep-sdk";
-import { NULL_DISPLAY, Unit, writeQuantity } from "@ksp-gonogo/ui-kit";
+import {
+  LabeledInput,
+  NULL_DISPLAY,
+  Unit,
+  writeQuantity,
+} from "@ksp-gonogo/ui-kit";
 import styled from "styled-components";
-import { LabeledInput } from "./LabeledInput";
 import { PresetPicker } from "./PresetPicker";
 import { computeRelInc } from "./planning";
 import { PRESETS } from "./presets";

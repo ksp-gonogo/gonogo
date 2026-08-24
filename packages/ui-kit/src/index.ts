@@ -331,6 +331,8 @@ export {
   STOCK_KERBIN_CALENDAR,
   setKspCalendar,
 } from "./kspTime";
+// ── Layout primitives ────────────────────────────────────────────────────────
+export { LabeledInput, type LabeledInputProps } from "./LabeledInput";
 export {
   LineGraph,
   type LineGraphProps,
@@ -422,7 +424,6 @@ export {
   type SelectableRowProps,
 } from "./SelectableRow";
 export { Spinner, type SpinnerProps } from "./Spinner";
-// ── Layout primitives ────────────────────────────────────────────────────────
 export { type SpaceToken, Stack, type StackProps } from "./Stack";
 export {
   StatusIndicator,

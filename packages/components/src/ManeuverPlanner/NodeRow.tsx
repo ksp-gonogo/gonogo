@@ -4,13 +4,13 @@ import { CloseIcon, PencilIcon } from "@ksp-gonogo/ui";
 import {
   Countdown,
   IconButton,
+  LabeledInput,
   NULL_DISPLAY,
   PrimaryButton,
   Unit,
 } from "@ksp-gonogo/ui-kit";
 import { useState } from "react";
 import styled from "styled-components";
-import { LabeledInput } from "./LabeledInput";
 import { FeasibilityChip } from "./styles";
 
 export interface NodeEditPatch {

@@ -1,6 +1,14 @@
 import styled from "styled-components";
 
-interface LabeledInputProps {
+/**
+ * A number with a name and a unit beside it, laid out so a column of them lines
+ * up on the label, the field and the suffix.
+ *
+ * <p>The field is right-aligned because these are read as a column of
+ * magnitudes, and a column of numbers that agree on their last digit is one an
+ * operator can compare at a glance.</p>
+ */
+export interface LabeledInputProps {
   label: string;
   value: number;
   onChange: (next: number) => void;

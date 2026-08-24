@@ -42,7 +42,11 @@ export { clearActionHandlers } from "../api/action-dispatch";
 // Both resolve through the host, which is the point: a test observes the same
 // registry the shim wrote to, instead of reaching for ui-kit's copy and relying on
 // the two happening to be the same object.
-export { clearAugments, getAugmentsForSlot } from "../api/index";
+export {
+  clearAugments,
+  clearPlanDrafts,
+  getAugmentsForSlot,
+} from "../api/index";
 export { clearMapPoiProviders } from "../api/map-poi";
 export { clearUplinkHandles } from "../api/uplink-handles";
 // The transport double. It named nothing above this leaf (wire messages, `Meta`,

@@ -106,6 +106,7 @@ const EXPECTED_BARREL_VALUE_EXPORTS = [
   "decomposeUt",
   "isBurning",
   "timeToIgnition",
+  "clearPlanDrafts",
   "draftAsPlan",
   "PlanDraftStore",
   "usePlanDrafts",
