@@ -12,7 +12,12 @@ import {
   useStream,
   type VesselState,
 } from "@ksp-gonogo/sitrep-client";
-import { value } from "@ksp-gonogo/sitrep-sdk";
+import {
+  apsidesExist,
+  type ControlFrame,
+  frameCaveat,
+  value,
+} from "@ksp-gonogo/sitrep-sdk";
 import {
   Countdown,
   Grid,
@@ -69,6 +74,19 @@ function CurrentOrbitComponent({
     timeToApoapsis: timeToAp,
     timeToPeriapsis: timeToPe,
   } = useOrbitElements();
+
+  /**
+   * What the operator's own view frame does to these two numbers.
+   *
+   * An apsis is defined against a centre, and the frames defined by a pair of
+   * bodies have none; a frame defined against the target has none whatever kind
+   * it carries. In those an apoapsis is not merely unmeasured, it does not
+   * exist, and that is a different thing to tell someone than an em-dash, which
+   * this widget already uses to mean "absent on this trajectory".
+   */
+  const controlFrame = useStream<ControlFrame>("system.frame");
+  const apsides = apsidesExist(controlFrame);
+  const noApsidesHere = apsides === "invalid";
   // Every read rides the SDK stream directly, no legacy `useTelemetry("data",
   // ...)` fallback:
   //   - sma/eccentricity/inclination/argPe are raw `vessel.orbit.*` elements,
@@ -223,7 +241,11 @@ function CurrentOrbitComponent({
                 a real "1000.00 Mm", so render an em-dash and let the operator
                 see the absence rather than mistake an escape trajectory for a
                 vast bound orbit. */}
-            {apoapsisA === undefined ? (
+            {noApsidesHere ? (
+              <FrameCaveat title={frameCaveat(apsides, "apoapsis")}>
+                no Ap here
+              </FrameCaveat>
+            ) : apoapsisA === undefined ? (
               NULL_DISPLAY
             ) : hyperbolic ? (
               NULL_DISPLAY
@@ -242,7 +264,11 @@ function CurrentOrbitComponent({
             tight={tight}
             narrow={narrow}
           >
-            {periapsisA === undefined ? (
+            {noApsidesHere ? (
+              <FrameCaveat title={frameCaveat(apsides, "periapsis")}>
+                no Pe here
+              </FrameCaveat>
+            ) : periapsisA === undefined ? (
               NULL_DISPLAY
             ) : (
               <Unit value={value("m", periapsisA)} />
@@ -420,6 +446,41 @@ function OrbitLabel({ children }: { children: ReactNode }) {
         color: "var(--color-text-faint)",
         letterSpacing: "0.08em",
         textTransform: "uppercase",
+      }}
+    >
+      {children}
+    </span>
+  );
+}
+
+/**
+ * What stands where a number would, when the operator's own view frame means
+ * the quantity does not exist.
+ *
+ * <p>Words rather than the null-display dash this widget already uses. The dash
+ * means "absent on this trajectory", which a hyperbolic orbit's apoapsis is;
+ * this is "not a quantity in the frame you are looking through", which is a
+ * fact about the operator's own view and one they can act on by changing it.
+ * Rendering both the same way would tell them their orbit had changed when only
+ * their frame had.</p>
+ *
+ * <p>Smaller and quieter than a value, because it is not one. The full sentence
+ * is on the title so the short form can stay inside a readout cell.</p>
+ */
+function FrameCaveat({
+  children,
+  title,
+}: {
+  children: ReactNode;
+  title?: string;
+}) {
+  return (
+    <span
+      title={title}
+      style={{
+        fontSize: "var(--font-size-xs)",
+        color: "var(--color-text-faint)",
+        fontStyle: "italic",
       }}
     >
       {children}
