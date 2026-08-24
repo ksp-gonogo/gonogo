@@ -169,6 +169,17 @@ export type {
  */
 export const GAME_HOST_KEY = "gameHost" as const;
 
+// A burn's clock. Five calendar fields rather than one seconds box, because a
+// burn is scheduled against a date and nudged against a minute, and the
+// countdown runs to IGNITION rather than to the node: counting to the node puts
+// ignition half a burn in the past by the time it reaches zero.
+export type { BurnInstantParts } from "../burn-clock";
+export {
+  composeUt,
+  decomposeUt,
+  isBurning,
+  secondsToIgnition,
+} from "../burn-clock";
 // What the frame in force does to a readout. A physics rule rather than a
 // wording choice, so it lives once here instead of in each widget that quotes a
 // length or an apsis, and it is on the author surface because a widget cannot
