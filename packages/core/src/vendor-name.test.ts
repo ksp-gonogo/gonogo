@@ -38,7 +38,13 @@ const NEEDLE = ["tele", "machus"].join("");
  */
 const EXEMPT_PREFIXES = ["CLAUDE.md", "local_docs/", ".serena/"];
 
-/** `git grep -c -i <needle>`, parsed into path -> matching-line count. */
+/**
+ * `git grep -c -i <needle>`, parsed into path -> matching-line count.
+ *
+ * Raw, with the exemptions left to the caller. They are the ratchet's policy
+ * rather than a property of the grep, and keeping them out of here is what
+ * lets an exempt path serve as a positive control for the needle itself.
+ */
 function countLines(needle: string): Map<string, number> {
   // `|| true`: git grep exits 1 when nothing matches, which is a legitimate
   // result here (it is what "finished" looks like) and not an error.
@@ -54,11 +60,13 @@ function countLines(needle: string): Map<string, number> {
     const path = line.slice(0, idx);
     const n = Number(line.slice(idx + 1));
     if (!Number.isFinite(n)) continue;
-    if (EXEMPT_PREFIXES.some((p) => path === p || path.startsWith(p))) continue;
     counts.set(path, n);
   }
   return counts;
 }
+
+const isExempt = (path: string) =>
+  EXEMPT_PREFIXES.some((p) => path === p || path.startsWith(p));
 
 /**
  * One scan, shared. Three assertions need the same answer and `git grep` over
@@ -73,7 +81,9 @@ function countLines(needle: string): Map<string, number> {
  */
 let cached: Map<string, number> | undefined;
 function scan(): Map<string, number> {
-  cached ??= countLines(NEEDLE);
+  cached ??= new Map(
+    [...countLines(NEEDLE)].filter(([path]) => !isExempt(path)),
+  );
   return cached;
 }
 
@@ -103,6 +113,42 @@ describe("vendor name", () => {
    */
   it("actually scanned the tree", () => {
     expect(countLines("gonogo").size).toBeGreaterThan(50);
+  });
+
+  /**
+   * The second instrument check, and a DIFFERENT KIND from the one above
+   * rather than another of the same. That one proves the pipeline runs; this
+   * one proves the needle is the word.
+   *
+   * Nothing else covers the gap between them, and the gap is not hypothetical.
+   * `NEEDLE` is assembled from fragments so this file does not contain what it
+   * hunts, and that assembly is hand-rolled, unread and unverified: change one
+   * character in a fragment and the pipeline stays healthy, the tree scan comes
+   * back empty, and every debt assertion below passes over nothing. Measured,
+   * not reasoned: with a real violation planted in a tracked file and one
+   * letter altered in a fragment, all four tests in this file passed.
+   *
+   * `CLAUDE.md` is the control because the project rule deliberately keeps the
+   * name there, so it is a known-present instance no sweep will ever remove.
+   * Being EXEMPT is what qualifies it: its match was never part of the debt, so
+   * this assertion cannot go blind at the moment the debt reaches zero, which
+   * is the failure the pipeline control was itself introduced to avoid.
+   */
+  it("the assembled needle actually matches the name", () => {
+    expect(
+      [...countLines(NEEDLE).keys()],
+      [
+        "The needle this gate hunts with no longer matches the name.",
+        "",
+        "It is assembled from fragments, and a typo in one of them cannot fail",
+        "anywhere else: the scan simply returns nothing and the debt assertions",
+        "pass over an empty tree. CLAUDE.md is the positive control because the",
+        "project rule keeps the name there on purpose.",
+        "",
+        "If CLAUDE.md genuinely no longer carries the name, this control needs",
+        "re-siting onto another known-present instance. Do not delete it.",
+      ].join("\n"),
+    ).toContain("CLAUDE.md");
   });
 
   it("the published SDK surface carries the name nowhere at all", () => {
