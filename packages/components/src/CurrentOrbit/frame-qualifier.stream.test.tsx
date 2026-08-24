@@ -68,8 +68,10 @@ describe("CurrentOrbit: what the view frame does to the apsis readouts", () => {
       fixture.emit("system.frame", { kind: 4, centreBody: null });
     });
 
-    await waitFor(() => expect(screen.getByText(/no Ap here/i)).toBeTruthy());
-    expect(screen.getByText(/no Pe here/i)).toBeTruthy();
+    await waitFor(() =>
+      expect(screen.getAllByText(/no Ap here/i).length).toBeGreaterThan(0),
+    );
+    expect(screen.getAllByText(/no Pe here/i).length).toBeGreaterThan(0);
   });
 
   it("still renders the numbers in a frame that has a centre", async () => {
@@ -133,5 +135,28 @@ describe("CurrentOrbit: naming the frame that took the numbers away", () => {
       expect(screen.queryByText(/no Ap here/i)).not.toBeInTheDocument(),
     );
     expect(screen.queryByText(/^Frame: /)).not.toBeInTheDocument();
+  });
+});
+
+describe("CurrentOrbit: the countdowns to an apsis the frame does not have", () => {
+  it("suppresses the time-to-apsis rows too, not just the apsis values", async () => {
+    // Found on a render, not by a test. Suppressing AP and PE while leaving
+    // T-AP and T-PE counting is a countdown to an event that does not happen,
+    // sitting directly under a row saying it does not exist. The widget is
+    // 9x18 here because the progress rows only render at six rows or more.
+    const fixture = mount();
+    emitOrbit(fixture);
+    act(() => {
+      fixture.emit("system.frame", {
+        kind: 4,
+        primaryBody: "Kerbol",
+        secondaryBody: "Kerbin",
+      });
+    });
+
+    await waitFor(() =>
+      expect(screen.getAllByText(/no Ap here/i).length).toBeGreaterThan(1),
+    );
+    expect(screen.getAllByText(/no Pe here/i).length).toBeGreaterThan(1);
   });
 });

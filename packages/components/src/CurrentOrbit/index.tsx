@@ -306,7 +306,15 @@ function CurrentOrbitComponent({
                     zero here would read as "arriving now" on a countdown, so
                     render an em-dash rather than let a hyperbolic flyby look
                     like an imminent event. */}
-                {timeToAp === undefined || hyperbolic ? (
+                {/* And the frame, on the same footing as the apsis itself: a
+                    countdown to an apsis the frame does not have is a time to
+                    an event that does not happen, sitting directly under a row
+                    saying so. */}
+                {noApsidesHere ? (
+                  <FrameCaveat title={frameCaveat(apsides, "apoapsis")}>
+                    no Ap here
+                  </FrameCaveat>
+                ) : timeToAp === undefined || hyperbolic ? (
                   NULL_DISPLAY
                 ) : (
                   <Countdown value={timeToAp} />
@@ -320,7 +328,13 @@ function CurrentOrbitComponent({
                     0-sentinel source would read as "arriving now"), render an
                     em-dash rather than a countdown. `=== undefined` alone
                     misses `null` (`null === undefined` is false). */}
-                {timeToPe === undefined || timeToPe === null || hyperbolic ? (
+                {noApsidesHere ? (
+                  <FrameCaveat title={frameCaveat(apsides, "periapsis")}>
+                    no Pe here
+                  </FrameCaveat>
+                ) : timeToPe === undefined ||
+                  timeToPe === null ||
+                  hyperbolic ? (
                   NULL_DISPLAY
                 ) : (
                   <Countdown value={timeToPe} />
