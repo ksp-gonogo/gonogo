@@ -163,6 +163,16 @@ export type {
  */
 export const GAME_HOST_KEY = "gameHost" as const;
 
+// What the frame in force does to a readout. A physics rule rather than a
+// wording choice, so it lives once here instead of in each widget that quotes a
+// length or an apsis, and it is on the author surface because a widget cannot
+// qualify its own numbers without it.
+export type { FrameValidity } from "../frame-qualifier";
+export {
+  apsidesExist,
+  frameCaveat,
+  lengthsAreLengths,
+} from "../frame-qualifier";
 // Composing a flight plan at a command centre and transmitting it. The types an
 // author states a plan in, plus `whyNotSendable` so a control greys itself out
 // on the SAME answer the send refuses on rather than a second opinion about it.
