@@ -211,6 +211,22 @@ namespace GonogoPrincipiaUplink
                 return null;
             }
 
+            // The coordinate system FIRST, and stated rather than inherited.
+            //
+            // <para>The producer's enum starts at one and has no zero member, so a
+            // burn built from nothing carries a value that is not a member of it at
+            // all. A copied burn never can: it arrives with the producer's own. That
+            // out-of-range byte crossing the boundary is what took the game down
+            // twice on the rig, and it left no diagnostic behind because there is no
+            // case for it to land in.</para>
+            if (!_fields.SetCoordinateSystem(burn, PrincipiaBurnStruct.CartesianTnb))
+            {
+                refusal =
+                    "The burn's coordinate system could not be written, and a burn without one "
+                    + "names no meaning for its three components.";
+                return null;
+            }
+
             if (!_fields.SetDeltaV(
                     burn,
                     request.DeltaVTangent,

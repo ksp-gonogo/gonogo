@@ -44,15 +44,28 @@ namespace GonogoPrincipiaUplink.Tests
         public bool is_inertially_fixed;
 #pragma warning restore IDE1006
 
+        /// <summary>
+        /// A burn built from nothing: no frame and no coordinate system, exactly as
+        /// the producer's is.
+        ///
+        /// <para>The producer's coordinate-system enum starts at ONE and has no zero
+        /// member, so a fresh burn's is not a member of it at all. A fake that
+        /// presets it is kinder than the producer in the one way that matters, and
+        /// that kindness hid an out-of-range byte crossing into C++.</para>
+        /// </summary>
         public FakeBurn()
         {
-            intensity = new FakeIntensity { coordinate_system_ = 1 };
+            intensity = new FakeIntensity();
         }
 
-        /// <summary>A burn as it comes OUT of the plugin, which always carries a
-        /// frame: only a burn built from nothing does not.</summary>
+        /// <summary>A burn as it comes OUT of the plugin, which always carries both a
+        /// frame and a coordinate system: only a burn built from nothing does
+        /// not.</summary>
         public static FakeBurn FromPlugin() =>
-            new FakeBurn(new FakeBurnFrameParameters(6000, 1, -1, -1));
+            new FakeBurn(new FakeBurnFrameParameters(6000, 1, -1, -1))
+            {
+                intensity = new FakeIntensity { coordinate_system_ = 1 },
+            };
 
         public FakeBurn(FakeBurnFrameParameters parameters)
             : this()

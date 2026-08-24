@@ -136,6 +136,25 @@ namespace GonogoPrincipiaUplink.Tests
             Assert.Contains("No such body", refusal);
         }
 
+        /// <summary>
+        /// The built burn names what its three components MEAN.
+        ///
+        /// <para>The producer's enum starts at one and has no zero member, so a burn
+        /// built from nothing carries a value that is not a member of it at all.
+        /// Sending that across took the game down twice on the rig and left no
+        /// diagnostic, because there is no case for it to land in. A copied burn
+        /// cannot reach this: it arrives with the producer's own.</para>
+        /// </summary>
+        [Fact]
+        public void NamesTheCoordinateSystemRatherThanLeavingItOutsideTheEnum()
+        {
+            var burn = Composer().Compose(typeof(FakeBurn), Request(), Bodies, out _);
+
+            Assert.Equal(
+                PrincipiaBurnStruct.CartesianTnb,
+                new PrincipiaBurnStruct().CoordinateSystem(burn!));
+        }
+
         [Fact]
         public void ComposesNothingWithoutTheProducersOwnType()
         {

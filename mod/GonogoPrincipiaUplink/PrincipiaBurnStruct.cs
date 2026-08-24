@@ -351,6 +351,27 @@ namespace GonogoPrincipiaUplink
         /// otherwise, and the write then lands successfully with the wrong
         /// numbers.</para>
         /// </summary>
+        /// <summary>
+        /// Names what a burn's three components MEAN, through the same
+        /// box-and-write-back the Δv takes.
+        ///
+        /// <para>Separate from <see cref="SetDeltaV"/> because a copied burn must
+        /// keep the producer's own: an operator editing a burn expressed in one of
+        /// the three spherical systems is editing a magnitude and two angles, and
+        /// silently restamping it as Cartesian would reinterpret numbers nobody
+        /// touched. Only a burn built from nothing has no answer to inherit.</para>
+        /// </summary>
+        public bool SetCoordinateSystem(object burn, int system)
+        {
+            var intensity = Get(burn, IntensityField);
+            if (intensity == null)
+            {
+                return false;
+            }
+            return Set(intensity, CoordinateSystemField, (byte)system)
+                && Set(burn, IntensityField, intensity);
+        }
+
         public bool SetDeltaV(object burn, double tangent, double normal, double binormal)
         {
             var intensity = Get(burn, IntensityField);

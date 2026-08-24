@@ -261,12 +261,11 @@ namespace GonogoPrincipiaUplink
                 args.RequestId,
                 (session, gate, now) =>
                 {
-                    if (!session.Writes.BurnLayoutVerified)
+                    var count = gate.ManoeuvreCount();
+                    if (count > 0 && !session.Writes.BurnLayoutVerified)
                     {
                         return LayoutUnverified(session, "burn");
                     }
-
-                    var count = gate.ManoeuvreCount();
                     if (count <= 0)
                     {
                         // Nothing to copy, so the first burn is BUILT, from the
@@ -453,7 +452,37 @@ namespace GonogoPrincipiaUplink
                     PrincipiaWriteRefusal.PluginShapeChanged, refusal!);
             }
 
-            return gate.Insert(0, burn);
+            var written = gate.Insert(0, burn);
+            if (written.Outcome != PrincipiaWriteOutcome.Written)
+            {
+                return written;
+            }
+
+            // The insert IS the round trip. A burn built rather than copied has no
+            // earlier crossing behind it, so reading this one back and comparing is
+            // the only demonstration there is that the struct this build takes is the
+            // struct it hands out. Done here rather than at arming so the write
+            // happens on an operator asking for a burn, never on their asking whether
+            // editing is possible.
+            var after = gate.Manoeuvre(0);
+            var afterBurn = after == null
+                ? null
+                : Fields.Get(after, PrincipiaBurnStruct.ManoeuvreBurnField);
+            if (afterBurn == null || !PrincipiaLayoutProbe.SameBurn(burn, afterBurn))
+            {
+                // Taken back out, because what is in the plan is not what was asked
+                // for and leaving it would be the plausible wrong burn this whole
+                // apparatus exists to keep out of somebody's save.
+                gate.Remove(0);
+                return PrincipiaWriteResult.Refused(
+                    PrincipiaWriteRefusal.LayoutUnverified,
+                    "The burn did not survive the crossing into Principia: what came back is "
+                    + "not what went in, so it was taken back out. That is the struct-layout "
+                    + "failure this check exists for.");
+            }
+
+            session.Writes.BurnLayoutPassed();
+            return written;
         }
 
         /// <summary>

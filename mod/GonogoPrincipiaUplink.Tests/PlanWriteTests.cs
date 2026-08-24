@@ -377,12 +377,14 @@ namespace GonogoPrincipiaUplink.Tests
         }
 
         /// <summary>
-        /// A plan with no burns leaves burn edits refused, because the arm makes no
-        /// write to prove the struct with.
+        /// A burn edit on a plan with no burns is judged on its own merits rather
+        /// than on the arm's verdict: this one states no ignition, which a burn with
+        /// no manœuvre ahead of it cannot derive. The struct is proved by the insert
+        /// itself, so an unproved arm does not stand in its way.
         ///
-        /// <para>The step-parameter remedy is NOT withheld with them, which is the
-        /// whole reason the two verdicts are separate: a plan that drew no burns is
-        /// the plan most likely to need its step budget raised.</para>
+        /// <para>The step-parameter remedy is separate from either, which is the
+        /// whole reason the two verdicts are: a plan that drew no burns is the plan
+        /// most likely to need its step budget raised.</para>
         /// </summary>
         [Fact]
         public void APlanWithNoBurnsStillGetsTheStepParameterRemedy()
@@ -394,7 +396,7 @@ namespace GonogoPrincipiaUplink.Tests
 
             var burnEdit = commands.InsertBurn(
                 new PrincipiaBurnEditArgs { VesselId = Guid, RequestId = "b", BurnIndex = 0 });
-            Assert.Equal(PrincipiaWriteRefusal.LayoutUnverified, Refusal(burnEdit));
+            Assert.Equal(PrincipiaWriteRefusal.ComposedBurnIncomplete, Refusal(burnEdit));
 
             var raise = commands.SetIntegrator(
                 new PrincipiaPlanIntegratorArgs

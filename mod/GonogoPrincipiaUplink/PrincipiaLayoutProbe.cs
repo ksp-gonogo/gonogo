@@ -289,6 +289,19 @@ namespace GonogoPrincipiaUplink
         }
 
         /// <summary>
+        /// Whether a burn read back out of the plan is the burn that went in.
+        ///
+        /// <para>The same comparison the probe makes, offered to the one caller that
+        /// makes the demonstration and the write in a single act: a burn built rather
+        /// than copied has no earlier round trip behind it, so the insert that
+        /// originates it IS the round trip. Sharing the comparison is the point. Two
+        /// notions of "the same burn" would let one of them drift, and the drifted
+        /// one would be the one deciding whether somebody's plan is trustworthy.</para>
+        /// </summary>
+        public static bool SameBurn(object went, object came) =>
+            BurnSnapshot(went) == BurnSnapshot(came);
+
+        /// <summary>
         /// Every field of the burn that matters, flattened into one comparable
         /// string.
         ///
