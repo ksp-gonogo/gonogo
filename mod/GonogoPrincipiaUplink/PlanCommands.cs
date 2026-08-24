@@ -181,7 +181,9 @@ namespace GonogoPrincipiaUplink
                 // ahead of the craft and inside the plan. Both matter: a burn behind
                 // the craft or past the plan's end is refused by the producer, and
                 // that refusal would be recorded here as a struct-layout failure.
-                endUt => ComposeProbeBurn(session, args?.VesselId, now + ((endUt - now) / 2.0)));
+                (double endUt, out string? why) =>
+                    ComposeProbeBurn(
+                        session, args?.VesselId, now + ((endUt - now) / 2.0), out why));
             if (probeRefusal.HasValue)
             {
                 return Refusal(
@@ -460,16 +462,22 @@ namespace GonogoPrincipiaUplink
         /// its own layout verdict, which is the sentence an operator reads.</para>
         /// </summary>
         private object? ComposeProbeBurn(
-            PrincipiaSession session, string? vesselId, double ignitionUt)
+            PrincipiaSession session,
+            string? vesselId,
+            double ignitionUt,
+            out string? reason)
         {
+            reason = null;
             var source = _source();
             if (source == null || vesselId == null)
             {
+                reason = "the game is not reachable from here";
                 return null;
             }
             var massTons = source.MassTonsOf(vesselId);
             if (massTons == null || !(massTons.Value > 0))
             {
+                reason = "the craft's mass could not be read, and the propulsion comes from it";
                 return null;
             }
             if (!PrincipiaComposedFrame.TryResolve(
@@ -478,8 +486,9 @@ namespace GonogoPrincipiaUplink
                     out var centre,
                     out var primary,
                     out var secondary,
-                    out _))
+                    out var frameReason))
             {
+                reason = frameReason;
                 return null;
             }
 
@@ -502,7 +511,7 @@ namespace GonogoPrincipiaUplink
                 secondaryBodyIndex: secondary);
 
             return _composer.Compose(
-                session.Plugin.BurnType(), request, source.Celestials.Indices, out _);
+                session.Plugin.BurnType(), request, source.Celestials.Indices, out reason);
         }
 
         /// <summary>Drops one burn from the plan.</summary>

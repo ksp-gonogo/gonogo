@@ -3,6 +3,18 @@ using System;
 namespace GonogoPrincipiaUplink
 {
     /// <summary>
+    /// Builds a burn for the layout probe to round trip, saying why when it
+    /// cannot.
+    ///
+    /// <para>The reason is an out-parameter rather than a null return because a
+    /// probe that can only say "the struct's shape has not been demonstrated"
+    /// leaves an operator with nothing to act on, and leaves the next person
+    /// reading a rig transcript guessing between a missing frame, an unreadable
+    /// mass and a struct that genuinely moved.</para>
+    /// </summary>
+    public delegate object? ProbeBurnFactory(double desiredFinalTimeUt, out string? reason);
+
+    /// <summary>
     /// Proves, by doing it, that a struct handed to the plugin comes back
     /// unchanged.
     ///
@@ -50,7 +62,7 @@ namespace GonogoPrincipiaUplink
         public static PrincipiaWriteResult? Run(
             PrincipiaMaterialisedPlanGate plan,
             PrincipiaWriteAuthority authority,
-            Func<double, object?>? composeAt = null)
+            ProbeBurnFactory? composeAt = null)
         {
             if (!plan.TryProbe(out var gate, out var refusal, out var detail))
             {
@@ -122,7 +134,7 @@ namespace GonogoPrincipiaUplink
         private static void ProbeBurn(
             PrincipiaPlanWriteGate gate,
             PrincipiaWriteAuthority authority,
-            Func<double, object?>? composeAt,
+            ProbeBurnFactory? composeAt,
             double desiredFinalTimeUt)
         {
             if (gate.ManoeuvreCount() <= 0)
@@ -200,7 +212,7 @@ namespace GonogoPrincipiaUplink
         private static void ProbeComposedBurn(
             PrincipiaPlanWriteGate gate,
             PrincipiaWriteAuthority authority,
-            Func<double, object?>? composeAt,
+            ProbeBurnFactory? composeAt,
             double desiredFinalTimeUt)
         {
             if (composeAt == null)
@@ -219,12 +231,13 @@ namespace GonogoPrincipiaUplink
             // ahead of now and inside the plan. A burn outside the window is one the
             // producer will not accept, and that refusal would read here as a layout
             // failure rather than as a badly chosen instant.
-            var burn = composeAt(desiredFinalTimeUt);
+            var burn = composeAt(desiredFinalTimeUt, out var why);
             if (burn == null)
             {
                 authority.LayoutFailed(
                     "A burn could not be built to round trip through this plan, so the struct's "
-                    + "shape has not been demonstrated.",
+                    + "shape has not been demonstrated: "
+                    + (why ?? "no reason given"),
                     burn: true,
                     integrator: false);
                 return;
