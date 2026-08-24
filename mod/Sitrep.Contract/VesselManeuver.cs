@@ -116,6 +116,19 @@ public class ManeuverNode
     /// because <see cref="ManeuverFrame.RadialNormalPrograde"/> is index 0, so
     /// a defaulted value would assert the stock basis for components that might
     /// be in another one.</para>
+    ///
+    /// <para><b>The three fields are POSITIONAL slots, and this names what they
+    /// hold.</b> They are the basis's first, second and third component in the
+    /// basis's own declared order:
+    /// <see cref="ManeuverFrame.RadialNormalPrograde"/> puts radial, normal and
+    /// prograde in them, and <see cref="ManeuverFrame.TangentNormalBinormal"/>
+    /// puts tangent, normal and binormal. So on a Frenet burn
+    /// <see cref="DvRadial"/> carries the TANGENT and <see cref="DvPrograde"/>
+    /// carries the BINORMAL, which the field names actively work against and is
+    /// why it is written down here rather than left to be inferred. Saying so is
+    /// the difference between a reader that renders a Frenet burn correctly and
+    /// one that silently rotates every burn an integrating planner produces while
+    /// looking right.</para>
     /// </summary>
     [SitrepUnit(Units.Enumeration)]
     public ManeuverFrame? Frame { get; set; }

@@ -56,6 +56,7 @@
        Selective Compile, the pattern the sibling uplink Tests projects use. -->
   <ItemGroup>
     <Compile Include="..\GonogoPrincipiaUplink\PrincipiaControlFrameSource.cs" />
+    <Compile Include="..\GonogoPrincipiaUplink\PrincipiaManeuverPlanSource.cs" />
     <Compile Include="..\GonogoPrincipiaUplink\PrincipiaVersionGuard.cs" />
     <Compile Include="..\GonogoPrincipiaUplink\PrincipiaBinaryVocabulary.cs" />
     <Compile Include="..\GonogoPrincipiaUplink\PrincipiaBinaryHealth.cs" />

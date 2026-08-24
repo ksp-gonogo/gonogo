@@ -49,4 +49,18 @@ namespace Sitrep.Contract
         /// </summary>
         IList<ManeuverNode>? Plan();
     }
+
+    /// <summary>
+    /// The capability id an <see cref="IManeuverPlanSource"/> competes for.
+    ///
+    /// <para>Moved here from the election, which lives in an assembly an Uplink
+    /// cannot compile against: a registering Uplink had to write the string
+    /// itself, so the two copies were free to disagree, and the only symptom of
+    /// a disagreement is a plan that never arrives. One declaration, taken by
+    /// both sides, is what makes that impossible rather than unlikely.</para>
+    /// </summary>
+    public static class ManeuverPlanCapability
+    {
+        public const string Id = "maneuverPlan";
+    }
 }

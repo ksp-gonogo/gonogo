@@ -39,7 +39,7 @@ namespace Sitrep.Host.Maneuver
     public static class ManeuverPlanElection
     {
         /// <summary>The exclusive capability id every maneuver-plan provider competes for.</summary>
-        public const string CapabilityId = "maneuverPlan";
+        public const string CapabilityId = ManeuverPlanCapability.Id;
 
         /// <summary>
         /// Registers the exclusive <c>"maneuverPlan"</c> capability with the

@@ -208,6 +208,7 @@ namespace GonogoPrincipiaUplink
             RegisterPropagation(host);
             RegisterGravityModel(host);
             RegisterControlFrame(host);
+            RegisterManeuverPlan(host);
             AttachObserver();
             _observer?.TryAttach();
             _settings?.TryAttach();
@@ -283,8 +284,21 @@ namespace GonogoPrincipiaUplink
             {
                 return null;
             }
-            return _planReader.Read(settings.Session, settings.ActiveVesselGuid, snapshot?.Ut ?? 0.0);
+            var plan = _planReader.Read(
+                settings.Session, settings.ActiveVesselGuid, snapshot?.Ut ?? 0.0);
+            // Kept for the maneuver-plan source, which answers an election on the
+            // Courier thread and cannot reach the producer itself. A reference
+            // assignment, so a reader sees the previous observation or this one and
+            // never a half-built one.
+            _lastPlan = plan;
+            return plan;
         }
+
+        /// <summary>
+        /// The most recent plan observation, or null before the first capture.
+        /// Written on the main thread, read from the plan election.
+        /// </summary>
+        private volatile PlanObservation? _lastPlan;
 
         /// <summary>
         /// MAIN-THREAD capture: whether the Principia build this game loaded is one
@@ -630,6 +644,25 @@ namespace GonogoPrincipiaUplink
                 Capability = ControlFrameCapability.Id,
                 Id = "principia",
                 Factory = _ => new PrincipiaControlFrameSource(() => _lastSettings),
+            });
+        }
+
+        /// <summary>
+        /// Offers the producer's flight-plan burns as the craft's maneuver plan.
+        ///
+        /// <para>Winning this election is what makes stock's write path refuse:
+        /// the plan owner is read off whoever won, and a stock actuator resolving
+        /// a producer's burn id would answer NotFound to every edit. Refusing with
+        /// a reason is the correct outcome there, and it is reachable only because
+        /// something now competes for the capability at all.</para>
+        /// </summary>
+        internal void RegisterManeuverPlan(IUplinkHost host)
+        {
+            host.Kernel.RegisterProvider(new ProviderRegistration
+            {
+                Capability = ManeuverPlanCapability.Id,
+                Id = "principia",
+                Factory = _ => new PrincipiaManeuverPlanSource(() => _lastPlan),
             });
         }
 

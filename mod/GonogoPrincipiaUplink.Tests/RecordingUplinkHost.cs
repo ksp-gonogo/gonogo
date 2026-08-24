@@ -76,6 +76,17 @@ namespace GonogoPrincipiaUplink.Tests
             });
             kernel.RegisterCapability(new CapabilityDescriptor
             {
+                Id = ManeuverPlanCapability.Id,
+                Exclusive = true,
+                SpineCritical = false,
+                // Core declares this with stock's patched-conic backend as the
+                // vanilla. Null here because nothing in these tests reads it, and
+                // a stand-in would be a second thing to keep in step with core for
+                // no gain.
+                Vanilla = null,
+            });
+            kernel.RegisterCapability(new CapabilityDescriptor
+            {
                 Id = ControlFrameCapability.Id,
                 Exclusive = true,
                 SpineCritical = false,
