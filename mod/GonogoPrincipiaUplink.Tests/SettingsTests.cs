@@ -853,6 +853,12 @@ namespace GonogoPrincipiaUplink.Tests
         public string? TargetCelestialBody => null;
 
         public ICelestialNames Celestials { get; } = new FakeCelestialNames();
+
+        /// <summary>Whatever the craft is set to weigh, for any guid: these tests
+        /// drive one craft and the lookup is not what they are about.</summary>
+        public double? MassTons { get; set; } = 8.0;
+
+        public double? MassTonsOf(string vesselGuid) => MassTons;
     }
 
     /// <summary>The same producer with a recorder actually running. A separate type
@@ -879,6 +885,12 @@ namespace GonogoPrincipiaUplink.Tests
         public string? TargetCelestialBody => null;
 
         public ICelestialNames Celestials { get; } = new FakeCelestialNames();
+
+        /// <summary>Whatever the craft is set to weigh, for any guid: these tests
+        /// drive one craft and the lookup is not what they are about.</summary>
+        public double? MassTons { get; set; } = 8.0;
+
+        public double? MassTonsOf(string vesselGuid) => MassTons;
     }
 
     public class FakeJournallingMainWindow
@@ -911,5 +923,11 @@ namespace GonogoPrincipiaUplink.Tests
         public string? TargetCelestialBody => null;
 
         public ICelestialNames Celestials { get; } = new FakeCelestialNames();
+
+        /// <summary>Whatever the craft is set to weigh, for any guid: these tests
+        /// drive one craft and the lookup is not what they are about.</summary>
+        public double? MassTons { get; set; } = 8.0;
+
+        public double? MassTonsOf(string vesselGuid) => MassTons;
     }
 }

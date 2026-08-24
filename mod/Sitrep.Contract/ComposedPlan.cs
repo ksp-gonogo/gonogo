@@ -141,17 +141,5 @@ namespace Sitrep.Contract
         /// <summary>How far the plan is asked to run.</summary>
         [SitrepUnit(Units.UniversalTime)]
         public double? DesiredFinalTimeUt { get; set; }
-
-        /// <summary>
-        /// The vessel mass the plan's FIRST burn is planned against.
-        ///
-        /// <para>Needed only where the craft has no plan yet, and only for the
-        /// first burn: every burn after it is planned against the mass the planner
-        /// computed for the one ahead of it. A planner that already has a plan
-        /// aboard ignores this and uses its own figure, which is the better
-        /// one.</para>
-        /// </summary>
-        [SitrepUnit(Units.Tonnes)]
-        public double? MassTons { get; set; }
     }
 }

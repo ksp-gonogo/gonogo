@@ -70,5 +70,17 @@ namespace GonogoPrincipiaUplink
 
         /// <summary>The game's body table.</summary>
         ICelestialNames Celestials { get; }
+
+        /// <summary>
+        /// What the craft currently weighs, in tonnes, or null when the game has no
+        /// such craft.
+        ///
+        /// <para>Read here rather than stated by whoever is planning, because it is
+        /// a fact about the craft and the craft is where it is true. A command
+        /// centre's figure for it is a light-time old by the time a plan lands, and
+        /// a plan built on a mass the craft no longer has is a plan the craft cannot
+        /// fly.</para>
+        /// </summary>
+        double? MassTonsOf(string vesselGuid);
     }
 }

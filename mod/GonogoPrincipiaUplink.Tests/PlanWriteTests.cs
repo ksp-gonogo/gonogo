@@ -49,7 +49,7 @@ namespace GonogoPrincipiaUplink.Tests
             };
 
         private static (FakePrincipiaPlugin Plugin, PlanCommands Commands)
-            Wire(Action<FakePrincipiaPlugin>? arrange = null)
+            Wire(Action<FakePrincipiaPlugin>? arrange = null, double? massTons = 8.0)
         {
             var plugin = new FakePrincipiaPlugin();
             plugin.Add(Guid, hasFlightPlan: true, manoeuvres: 2);
@@ -58,7 +58,10 @@ namespace GonogoPrincipiaUplink.Tests
                 PrincipiaSession.TryBind(
                     plugin, new FakePluginHandle(plugin), out var session, out var reason),
                 reason);
-            var source = new FakeSettingsSource { Session = session, ActiveVesselGuid = Guid };
+            var source = new FakeSettingsSource
+            {
+                Session = session, ActiveVesselGuid = Guid, MassTons = massTons,
+            };
             var commands = new PlanCommands(() => source, ViewingKerbin);
             commands.BindToCallingThread();
             return (plugin, commands);
@@ -563,7 +566,7 @@ namespace GonogoPrincipiaUplink.Tests
             plugin.Writes.Clear();
 
             var refused = commands.CreatePlan(
-                new PrincipiaPlanSlotArgs { VesselId = Guid, RequestId = "c", MassTons = 10.0 });
+                new PrincipiaPlanSlotArgs { VesselId = Guid, RequestId = "c" });
 
             Assert.Equal(PrincipiaWriteRefusal.PlanAlreadyExists, Refusal(refused));
             Assert.Empty(plugin.Writes);
@@ -590,7 +593,7 @@ namespace GonogoPrincipiaUplink.Tests
             var refused = commandsForCreate.CreatePlan(
                 new PrincipiaPlanSlotArgs
                 {
-                    VesselId = Guid, RequestId = "c", FinalTimeUt = 10.0, MassTons = 10.0,
+                    VesselId = Guid, RequestId = "c", FinalTimeUt = 10.0,
                 });
 
             Assert.Equal(PrincipiaWriteRefusal.FinalTimeInPast, Refusal(refused));
@@ -788,7 +791,6 @@ namespace GonogoPrincipiaUplink.Tests
                     BurnIndex = 0,
                     IgnitionUt = 5000.0,
                     DeltaVTangent = 120.0,
-                    MassTons = 8.0,
                 });
 
             Assert.Equal(PrincipiaWriteOutcome.Written, Outcome(written));
@@ -813,7 +815,6 @@ namespace GonogoPrincipiaUplink.Tests
                     RequestId = "i",
                     BurnIndex = 0,
                     IgnitionUt = 5000.0,
-                    MassTons = 8.0,
                 });
 
             var fields = new PrincipiaBurnStruct();
@@ -823,14 +824,14 @@ namespace GonogoPrincipiaUplink.Tests
         }
 
         /// <summary>
-        /// A burn with nothing ahead of it takes nothing from the burn ahead of it,
-        /// so the two values it cannot derive have to be stated. Written anyway, the
-        /// mass would be zero and the propulsion derived from it would divide.
+        /// The propulsion is derived from the craft's own mass, read at the craft.
+        /// A mass nobody has refuses rather than defaulting: zero is accepted
+        /// everywhere it is used and plans a craft that cannot be slowed down.
         /// </summary>
         [Fact]
-        public void ABuiltBurnRefusesWithoutTheMassItIsPlannedAgainst()
+        public void ABuiltBurnRefusesWhenTheCraftsMassCannotBeRead()
         {
-            var (plugin, commands) = EmptyPlan();
+            var (plugin, commands) = EmptyPlan(massTons: null);
 
             var refused = commands.InsertBurn(
                 new PrincipiaBurnEditArgs
@@ -838,7 +839,7 @@ namespace GonogoPrincipiaUplink.Tests
                     VesselId = Guid, RequestId = "i", BurnIndex = 0, IgnitionUt = 5000.0,
                 });
 
-            Assert.Equal(PrincipiaWriteRefusal.ComposedBurnIncomplete, Refusal(refused));
+            Assert.Equal(PrincipiaWriteRefusal.SurfaceUnavailable, Refusal(refused));
             Assert.Empty(plugin.Known(Guid).Burns);
         }
 
@@ -854,7 +855,7 @@ namespace GonogoPrincipiaUplink.Tests
             var refused = commands.InsertBurn(
                 new PrincipiaBurnEditArgs
                 {
-                    VesselId = Guid, RequestId = "i", BurnIndex = 0, MassTons = 8.0,
+                    VesselId = Guid, RequestId = "i", BurnIndex = 0,
                 });
 
             Assert.Equal(PrincipiaWriteRefusal.ComposedBurnIncomplete, Refusal(refused));
@@ -877,7 +878,6 @@ namespace GonogoPrincipiaUplink.Tests
                     RequestId = "r",
                     BurnIndex = 0,
                     IgnitionUt = 5000.0,
-                    MassTons = 8.0,
                 });
 
             Assert.Equal(PrincipiaWriteRefusal.BurnIndexOutOfRange, Refusal(refused));
@@ -903,7 +903,6 @@ namespace GonogoPrincipiaUplink.Tests
                 {
                     VesselId = Guid,
                     RequestId = "s",
-                    MassTons = 8.0,
                     DesiredFinalTimeUt = 40_000.0,
                     Burns = new[]
                     {
@@ -921,9 +920,11 @@ namespace GonogoPrincipiaUplink.Tests
         /// no burns, so the arm happens on a plan that has one and the plan is
         /// emptied after: what is under test is the missing template, not the arm.
         /// </summary>
-        private static (FakePrincipiaPlugin Plugin, PlanCommands Commands) EmptyPlan()
+        private static (FakePrincipiaPlugin Plugin, PlanCommands Commands) EmptyPlan(
+            double? massTons = 8.0)
         {
-            var (plugin, commands) = Wire(p => p.Add(Guid, hasFlightPlan: true, manoeuvres: 0));
+            var (plugin, commands) =
+                Wire(p => p.Add(Guid, hasFlightPlan: true, manoeuvres: 0), massTons);
             plugin.Add(Guid, hasFlightPlan: true, manoeuvres: 1);
             Armed(commands);
             plugin.Known(Guid).Burns.Clear();
@@ -1262,7 +1263,6 @@ namespace GonogoPrincipiaUplink.Tests
                 VesselId = Guid,
                 RequestId = "create-1",
                 FinalTimeUt = 100_000,
-                MassTons = 12,
             });
 
             Assert.True(created.Success, created.Detail);

@@ -86,7 +86,6 @@ export const GENERATED_TYPE_UNITS: Readonly<Record<string, UnitsByField>> = {
     deltaVTangent: "m/s",
     ignitionUt: "ut",
     inertiallyFixed: "flag",
-    massTons: "t",
     requestId: "id",
     vesselId: "id",
   },
@@ -166,14 +165,12 @@ export const GENERATED_TYPE_UNITS: Readonly<Record<string, UnitsByField>> = {
   "PrincipiaPlanSendArgs": {
     composedAtViewUt: "ut",
     desiredFinalTimeUt: "ut",
-    massTons: "t",
     observedAtUt: "ut",
     requestId: "id",
     vesselId: "id",
   },
   "PrincipiaPlanSlotArgs": {
     finalTimeUt: "ut",
-    massTons: "t",
     requestId: "id",
     vesselId: "id",
   },

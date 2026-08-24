@@ -273,7 +273,7 @@ namespace GonogoPrincipiaUplink
                             args.DeltaVNormal,
                             args.DeltaVBinormal,
                             args.InertiallyFixed,
-                            args.MassTons,
+                            args.VesselId!,
                             now);
                     }
 
@@ -371,7 +371,7 @@ namespace GonogoPrincipiaUplink
             double? deltaVNormal,
             double? deltaVBinormal,
             bool? inertiallyFixed,
-            double? massTons,
+            string vesselGuid,
             double now)
         {
             if (ignitionUt == null)
@@ -386,22 +386,23 @@ namespace GonogoPrincipiaUplink
             {
                 return stale.Value;
             }
-            if (massTons == null || !(massTons.Value > 0))
-            {
-                return PrincipiaWriteResult.Refused(
-                    PrincipiaWriteRefusal.ComposedBurnIncomplete,
-                    "A burn built from nothing needs the mass it is planned against: the "
-                    + "propulsion is derived from it, and there is no earlier manœuvre here to "
-                    + "read one off.");
-            }
-
-            var celestials = _source()?.Celestials;
-            if (celestials == null)
+            var source = _source();
+            if (source == null)
             {
                 return PrincipiaWriteResult.Refused(
                     PrincipiaWriteRefusal.SurfaceUnavailable,
-                    "The game's body table is not reachable, so the frame this burn would be "
-                    + "built in cannot be checked.");
+                    "The game is not reachable, so neither the craft's mass nor the frame this "
+                    + "burn would be built in can be read.");
+            }
+
+            var massTons = source.MassTonsOf(vesselGuid);
+            if (massTons == null || !(massTons.Value > 0))
+            {
+                return PrincipiaWriteResult.Refused(
+                    PrincipiaWriteRefusal.SurfaceUnavailable,
+                    "The craft's mass could not be read, and the propulsion for a burn with no "
+                    + "manœuvre ahead of it is derived from it. Nothing is written on a mass "
+                    + "nobody has.");
             }
 
             if (!PrincipiaComposedFrame.TryResolve(
@@ -431,7 +432,7 @@ namespace GonogoPrincipiaUplink
                 secondaryBodyIndex: secondary);
 
             var burn = _composer.Compose(
-                session.Plugin.BurnType(), request, celestials.Indices, out var refusal);
+                session.Plugin.BurnType(), request, source.Celestials.Indices, out var refusal);
             if (burn == null)
             {
                 return PrincipiaWriteResult.Refused(
@@ -587,7 +588,21 @@ namespace GonogoPrincipiaUplink
             // operator gives it nothing. Stated rather than left to a null: a plan
             // that ends before it starts is an assertion failure inside the plugin.
             var finalTime = args.FinalTimeUt ?? now + 3600.0;
-            var result = gate.Create(finalTime, args.MassTons ?? 0.0);
+            var massTons = _source()?.MassTonsOf(vessel.Guid);
+            if (massTons == null || !(massTons.Value > 0))
+            {
+                // Zero is accepted here and produces a plan whose craft cannot be
+                // slowed down, so a mass nobody has refuses rather than defaults.
+                return Refusal(
+                    CreateCommand,
+                    args.RequestId,
+                    PrincipiaWriteResult.Refused(
+                        PrincipiaWriteRefusal.SurfaceUnavailable,
+                        "The craft's mass could not be read, and a plan created without one "
+                        + "starts from a craft that weighs nothing."),
+                    _reader.ReadInFrame(session, frame, vessel.Guid, now));
+            }
+            var result = gate.Create(finalTime, massTons.Value);
             return Settle(
                 CreateCommand,
                 args.RequestId,
@@ -718,7 +733,7 @@ namespace GonogoPrincipiaUplink
                             head.DeltaVNormal,
                             head.DeltaVBinormal,
                             head.InertiallyFixed,
-                            args.MassTons,
+                            args.VesselId!,
                             now);
                         if (composed.Outcome != PrincipiaWriteOutcome.Written)
                         {

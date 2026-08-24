@@ -831,7 +831,6 @@ export const GENERATED_TYPE_UNITS: Readonly<Record<string, UnitsByField>> = {
   "SendManeuverPlanArgs": {
     composedAtViewUt: "ut",
     desiredFinalTimeUt: "ut",
-    massTons: "t",
     observedAtUt: "ut",
     requestId: "id",
     vesselId: "id",

@@ -54,6 +54,34 @@ namespace GonogoPrincipiaUplink
         public ICelestialNames Celestials { get; } = new FlightGlobalsCelestials();
 
         /// <summary>
+        /// The craft's total mass, found by the same guid the plan writes are keyed
+        /// to.
+        ///
+        /// <para>Null for a craft the game does not have rather than zero: a zero
+        /// mass is accepted everywhere it is used and produces a craft that cannot
+        /// be slowed down, where a null refuses.</para>
+        /// </summary>
+        public double? MassTonsOf(string vesselGuid)
+        {
+            if (string.IsNullOrEmpty(vesselGuid) || FlightGlobals.Vessels == null)
+            {
+                return null;
+            }
+            foreach (var vessel in FlightGlobals.Vessels)
+            {
+                if (vessel == null
+                    || !string.Equals(
+                        vessel.id.ToString(), vesselGuid, StringComparison.OrdinalIgnoreCase))
+                {
+                    continue;
+                }
+                var mass = vessel.GetTotalMass();
+                return mass > 0 ? mass : (double?)null;
+            }
+            return null;
+        }
+
+        /// <summary>
         /// The bound session, or null.
         ///
         /// <para>Bound lazily and at most once per refusal, because the version

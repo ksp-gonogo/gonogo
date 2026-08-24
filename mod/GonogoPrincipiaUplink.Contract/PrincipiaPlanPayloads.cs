@@ -459,12 +459,13 @@ public enum PrincipiaWriteRefusal
     PlanMalformed = 20,
 
     /// <summary>
-    /// A burn with no earlier burn to copy was asked for without a value it can
-    /// only be told: the instant it lights, or the mass it is planned against.
+    /// A burn with no manœuvre ahead of it was asked for without the instant it
+    /// lights.
     ///
-    /// <para>Only the FIRST burn of a plan can reach this. Every later one takes
-    /// what it is not told from the burn ahead of it, and a plan's first has
-    /// nothing ahead of it to take from.</para>
+    /// <para>Everywhere else an absent instant means "leave it where it is", which
+    /// refers to the burn being changed. A burn with nothing ahead of it has no
+    /// instant to be left at, so the one value it cannot derive has to be
+    /// stated.</para>
     /// </summary>
     ComposedBurnIncomplete = 21,
 }
@@ -630,18 +631,6 @@ public class PrincipiaBurnEditArgs
 
     /// <summary>Which propulsion profile to plan against.</summary>
     public PrincipiaBurnProfile Profile { get; set; } = PrincipiaBurnProfile.Unchanged;
-
-    /// <summary>
-    /// The mass the burn is planned against, needed only when the plan has no burn
-    /// to copy and this one has to be built.
-    ///
-    /// <para>Stated rather than read because there is nothing to read it from: the
-    /// mass a burn is planned against comes off the manœuvre ahead of it, and the
-    /// first burn of a plan has none. Ignored on every edit that does have a burn
-    /// to copy, where the planner's own figure is the better one.</para>
-    /// </summary>
-    [SitrepUnit(Units.Tonnes)]
-    public double? MassTons { get; set; }
 }
 
 /// <summary>
@@ -735,14 +724,6 @@ public class PrincipiaPlanSendArgs
     /// <summary>How far the plan is asked to run.</summary>
     [SitrepUnit(Units.UniversalTime)]
     public double? DesiredFinalTimeUt { get; set; }
-
-    /// <summary>
-    /// The mass the plan's FIRST burn is planned against, needed only when the
-    /// vessel's plan has no burn to copy. See
-    /// <see cref="PrincipiaBurnEditArgs.MassTons"/>.
-    /// </summary>
-    [SitrepUnit(Units.Tonnes)]
-    public double? MassTons { get; set; }
 }
 
 /// <summary>
@@ -850,8 +831,4 @@ public class PrincipiaPlanSlotArgs
     /// returning an error.</summary>
     [SitrepUnit(Units.UniversalTime)]
     public double? FinalTimeUt { get; set; }
-
-    /// <summary>The mass a newly created plan should start from.</summary>
-    [SitrepUnit(Units.Tonnes)]
-    public double? MassTons { get; set; }
 }

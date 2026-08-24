@@ -209,7 +209,6 @@ export interface PrincipiaBurnEditArgs
 	deltaVBinormal?: number;
 	inertiallyFixed?: boolean;
 	profile: PrincipiaBurnProfile;
-	massTons?: number;
 }
 export interface PrincipiaComposedBurn
 {
@@ -228,7 +227,6 @@ export interface PrincipiaPlanSendArgs
 	observedAtUt?: number;
 	burns?: PrincipiaComposedBurn[];
 	desiredFinalTimeUt?: number;
-	massTons?: number;
 }
 export interface PrincipiaBurnRemoveArgs
 {
@@ -255,5 +253,4 @@ export interface PrincipiaPlanSlotArgs
 	vesselId?: string;
 	requestId?: string;
 	finalTimeUt?: number;
-	massTons?: number;
 }
