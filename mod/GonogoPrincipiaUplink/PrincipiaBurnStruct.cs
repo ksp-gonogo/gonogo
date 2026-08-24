@@ -283,6 +283,44 @@ namespace GonogoPrincipiaUplink
             return intensity == null ? null : GetInt(intensity, CoordinateSystemField);
         }
 
+        /// <summary>
+        /// The named member, building one from the field's OWN declared type when
+        /// the object carries a null there.
+        ///
+        /// <para><b>Why a burn can carry a null at all.</b> Most of what a burn
+        /// holds is a value type, which a fresh one has zeroed. Its FRAME is not: it
+        /// is a class, and a burn built rather than read out of the plugin has
+        /// nothing in that slot. Reading that null as "this build has no such field"
+        /// is the mistake this exists to stop, and it is one only a burn built from
+        /// nothing can make, which is why it went unseen until one was.</para>
+        ///
+        /// <para>The type comes from the field's own metadata, so what gets built is
+        /// this build's shape by the same argument that lets a burn be built at all.
+        /// Null still means "no such field", and a type that cannot be constructed
+        /// is null too rather than an exception through a reflection call.</para>
+        /// </summary>
+        public object? GetOrCreate(object target, string name)
+        {
+            var field = Field(target.GetType(), name);
+            if (field == null)
+            {
+                return null;
+            }
+            var existing = field.GetValue(target);
+            if (existing != null)
+            {
+                return existing;
+            }
+            try
+            {
+                return Activator.CreateInstance(field.FieldType);
+            }
+            catch (Exception)
+            {
+                return null;
+            }
+        }
+
         /// <summary>The burn's frame kind, as the producer's own extension
         /// number.</summary>
         public int? FrameExtension(object burn) => FrameSlot(burn, ExtensionField);

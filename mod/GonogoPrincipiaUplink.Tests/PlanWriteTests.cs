@@ -294,51 +294,93 @@ namespace GonogoPrincipiaUplink.Tests
         }
 
         /// <summary>
-        /// Arming a plan with NO burns still proves the burn struct, by building one
-        /// and round-tripping that.
+        /// The probe CAN prove the struct on a plan with no burns, by building a burn
+        /// and round-tripping that, and it takes its own burn back out afterwards.
         ///
-        /// <para>The round trip needs a burn, not a burn that came from the plan, and
-        /// one built from the loaded build's own type carries exactly this build's
-        /// fields. Without this the gate was the same deadlock one level up: burn
-        /// writes needed a probe, the probe needed a burn, and a burn needed a
-        /// write.</para>
+        /// <para>Driven directly rather than through an arm, because an arm
+        /// deliberately does not reach it: see <see cref="ArmingAPlanWithNoBurnsWritesNothing"/>
+        /// for why. Covered here so the mechanism is demonstrated rather than merely
+        /// written down, and so the day it is wired up the wiring is the only new
+        /// thing.</para>
         /// </summary>
         [Fact]
-        public void ArmingAPlanWithNoBurnsProvesTheStructByBuildingOne()
+        public void TheProbeCanProveTheStructFromABuiltBurnAndRemovesItAfter()
         {
-            var (plugin, commands) = Wire(p => p.Add(Guid, hasFlightPlan: true, manoeuvres: 0));
+            var plugin = new FakePrincipiaPlugin();
+            plugin.Add(Guid, hasFlightPlan: true, manoeuvres: 0);
+            Assert.True(
+                PrincipiaSession.TryBind(
+                    plugin, new FakePluginHandle(plugin), out var session, out _));
+            session!.Writes.Arm(Guid);
 
-            Armed(commands);
+            Assert.True(session.TryBeginFrame(out var frame));
+            using (frame)
+            {
+                Assert.True(frame!.TryVessel(Guid, out var v));
+                Assert.True(v.TryFlightPlan(out var plan));
 
-            var read = commands.Arm(
-                new PrincipiaPlanArmArgs { VesselId = Guid, RequestId = "a2" });
-            var surface = (Dictionary<string, object?>)
-                ((Dictionary<string, object?>)Receipt(read)["plan"]!)["writeSurface"]!;
-            Assert.Equal(true, surface["armed"]);
-            Assert.Null(surface["reason"]);
+                var composer = new PrincipiaBurnComposer(new PrincipiaBurnStruct());
+                var refusal = PrincipiaLayoutProbe.Run(
+                    plan.Materialise(),
+                    session.Writes,
+                    (double endUt, out string? why) =>
+                        composer.Compose(
+                            typeof(FakeBurn),
+                            new ComposedBurnRequest(
+                                ignitionUt: endUt - 100.0,
+                                deltaVTangent: 0.0,
+                                deltaVNormal: 0.0,
+                                deltaVBinormal: 0.0,
+                                inertiallyFixed: false,
+                                thrustKilonewtons: 60.0,
+                                specificImpulseSeconds: 320.0,
+                                frameExtension: 6000,
+                                centreBodyIndex: 1),
+                            new[] { 0, 1, 5 },
+                            out why));
+
+                Assert.Null(refusal);
+                Assert.True(session.Writes.BurnLayoutVerified);
+            }
+
+            // And the plan is as it was: a probe that left its own burn behind would
+            // put a manœuvre in somebody's plan that no operator asked for.
+            Assert.Empty(plugin.Known(Guid).Burns);
         }
 
         /// <summary>
-        /// And takes its own burn back out. A probe that left one behind would put a
-        /// manœuvre in somebody's plan that no operator asked for, and it would be
-        /// found only by noticing a burn nobody remembers adding.
+        /// Arming a plan with NO burns writes nothing to the producer.
+        ///
+        /// <para>The probe CAN prove the struct on an empty plan, by building a burn
+        /// and round-tripping that, and the mechanism is covered directly below. It
+        /// is deliberately not reached from an arm. The one attempt against a running
+        /// game ended with the process aborting, on a rig whose craft had been
+        /// teleported out from under a plan anchored elsewhere, and the composed burn
+        /// could not be told apart from that as the cause. An arm is what an operator
+        /// does to find out whether editing is possible, so it must not be the thing
+        /// that ends their game.</para>
         /// </summary>
         [Fact]
-        public void TheProbeLeavesThePlanAsItFoundIt()
+        public void ArmingAPlanWithNoBurnsWritesNothing()
         {
             var (plugin, commands) = Wire(p => p.Add(Guid, hasFlightPlan: true, manoeuvres: 0));
 
             Armed(commands);
 
             Assert.Empty(plugin.Known(Guid).Burns);
+
+            var read = commands.Arm(
+                new PrincipiaPlanArmArgs { VesselId = Guid, RequestId = "a2" });
+            var surface = (Dictionary<string, object?>)
+                ((Dictionary<string, object?>)Receipt(read)["plan"]!)["writeSurface"]!;
+            Assert.Contains("no burns", (string)surface["reason"]!);
         }
 
         /// <summary>
-        /// A plan with no burns has its own burn round-tripped, so a burn edit gets
-        /// past the layout gate and is judged on its own merits: this one states no
-        /// ignition, which a burn with no manœuvre ahead of it cannot derive.
+        /// A plan with no burns leaves burn edits refused, because the arm makes no
+        /// write to prove the struct with.
         ///
-        /// <para>The step-parameter remedy is NOT withheld either way, which is the
+        /// <para>The step-parameter remedy is NOT withheld with them, which is the
         /// whole reason the two verdicts are separate: a plan that drew no burns is
         /// the plan most likely to need its step budget raised.</para>
         /// </summary>
@@ -352,7 +394,7 @@ namespace GonogoPrincipiaUplink.Tests
 
             var burnEdit = commands.InsertBurn(
                 new PrincipiaBurnEditArgs { VesselId = Guid, RequestId = "b", BurnIndex = 0 });
-            Assert.Equal(PrincipiaWriteRefusal.ComposedBurnIncomplete, Refusal(burnEdit));
+            Assert.Equal(PrincipiaWriteRefusal.LayoutUnverified, Refusal(burnEdit));
 
             var raise = commands.SetIntegrator(
                 new PrincipiaPlanIntegratorArgs
@@ -1084,7 +1126,11 @@ namespace GonogoPrincipiaUplink.Tests
         [Fact]
         public void ZeroThrustIsRefused()
         {
-            var burn = new FakeBurn { thrust_in_kilonewtons = 0.0 };
+            // From the plugin, because these rules judge a burn that is IN a plan
+            // and such a burn always carries a frame. Judged without one the frame
+            // check answers first and this would be testing that instead.
+            var burn = FakeBurn.FromPlugin();
+            burn.thrust_in_kilonewtons = 0.0;
 
             var refused = PrincipiaBurnRules.Reject(burn);
 

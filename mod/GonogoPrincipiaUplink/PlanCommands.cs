@@ -174,16 +174,21 @@ namespace GonogoPrincipiaUplink
             }
 
             var materialised = plan.Materialise();
-            var probeRefusal = PrincipiaLayoutProbe.Run(
-                materialised,
-                session.Writes,
-                // Halfway between now and the plan's end, so the probe's burn is
-                // ahead of the craft and inside the plan. Both matter: a burn behind
-                // the craft or past the plan's end is refused by the producer, and
-                // that refusal would be recorded here as a struct-layout failure.
-                (double endUt, out string? why) =>
-                    ComposeProbeBurn(
-                        session, args?.VesselId, now + ((endUt - now) / 2.0), out why));
+            // No burn factory, so arming a plan with no burns writes NOTHING to the
+            // producer and the burn verdict stays unproven, exactly as before.
+            //
+            // A composed burn round-trips correctly in principle and the marshalling
+            // says it should: the frame travels by value as four inline integers, so
+            // one we built crosses identically to one the plugin handed out. It has
+            // not been demonstrated against a running game. The one attempt ended
+            // with the process aborting, on a rig whose craft had just been
+            // teleported out from under a plan anchored somewhere else, and those two
+            // causes cannot be told apart from the evidence that run left.
+            //
+            // Until they can, arming does not make that write. An arm is something an
+            // operator does to find out whether editing is possible, and it must not
+            // be the thing that ends their game.
+            var probeRefusal = PrincipiaLayoutProbe.Run(materialised, session.Writes);
             if (probeRefusal.HasValue)
             {
                 return Refusal(

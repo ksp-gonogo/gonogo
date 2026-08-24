@@ -27,7 +27,18 @@ namespace GonogoPrincipiaUplink.Tests
 #pragma warning disable IDE1006
         public double thrust_in_kilonewtons = 100.0;
         public double specific_impulse_in_seconds_g0 = 300.0;
-        public FakeBurnFrameParameters frame = new FakeBurnFrameParameters(6000, 1, -1, -1);
+
+        /// <summary>
+        /// NULL on a fresh burn, exactly as the producer's is.
+        ///
+        /// <para>The producer's frame is a CLASS with no initialiser, so a burn
+        /// built rather than read out of the plugin carries nothing here. A fake
+        /// that handed one out anyway is a fake kinder than reality, and it hid a
+        /// composed burn failing to take a frame until the rig showed it: the
+        /// composer read the null as "this build has no such field" and refused,
+        /// and no test could reach the branch.</para>
+        /// </summary>
+        public FakeBurnFrameParameters? frame;
         public double initial_time;
         public FakeIntensity intensity;
         public bool is_inertially_fixed;
@@ -37,6 +48,11 @@ namespace GonogoPrincipiaUplink.Tests
         {
             intensity = new FakeIntensity { coordinate_system_ = 1 };
         }
+
+        /// <summary>A burn as it comes OUT of the plugin, which always carries a
+        /// frame: only a burn built from nothing does not.</summary>
+        public static FakeBurn FromPlugin() =>
+            new FakeBurn(new FakeBurnFrameParameters(6000, 1, -1, -1));
 
         public FakeBurn(FakeBurnFrameParameters parameters)
             : this()
@@ -91,6 +107,12 @@ namespace GonogoPrincipiaUplink.Tests
     /// </summary>
     public class FakeBurnFrameParameters
     {
+        /// <summary>The implicit constructor the producer's own frame type has, so
+        /// a slot that has to be materialised can be.</summary>
+        public FakeBurnFrameParameters()
+        {
+        }
+
         public FakeBurnFrameParameters(int type, int centre, int primary, int secondary)
         {
             extension = type;
@@ -120,7 +142,9 @@ namespace GonogoPrincipiaUplink.Tests
         public FakeManoeuvre(FakeBurnFrameParameters frame) => burn = new FakeBurn(frame);
 
 #pragma warning disable IDE1006
-        public FakeBurn burn = new FakeBurn();
+        // A manœuvre's burn came OUT of the plugin, so it carries a frame. Only a
+        // burn built from nothing does not.
+        public FakeBurn burn = FakeBurn.FromPlugin();
         public double initial_mass_in_tonnes = 10.0;
         public double final_mass_in_tonnes = 9.0;
         public double mass_flow = 25.0;

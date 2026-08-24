@@ -247,7 +247,10 @@ namespace GonogoPrincipiaUplink
         /// </summary>
         private bool SetFrame(object burn, ComposedBurnRequest request, bool centred)
         {
-            var frame = _fields.Get(burn, PrincipiaBurnStruct.FrameField);
+            // Built when the burn carries none, which a burn built rather than read
+            // out of the plugin always does: the frame is a class and a fresh burn's
+            // slot is null.
+            var frame = _fields.GetOrCreate(burn, PrincipiaBurnStruct.FrameField);
             if (frame == null)
             {
                 return false;
