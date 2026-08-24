@@ -266,6 +266,16 @@
     "CommsSignalStrength": {
       "value": "ratio"
     },
+    "ComposedBurn": {
+      "dvNormal": "m/s",
+      "dvPrograde": "m/s",
+      "dvRadial": "m/s",
+      "frame": "enum",
+      "ignitionUt": "ut",
+      "inertiallyFixed": "flag",
+      "specificImpulse": "s",
+      "thrust": "kN"
+    },
     "ContractActionArgs": {
       "contractId": "id"
     },
@@ -783,6 +793,13 @@
       "ut": "ut",
       "vesselId": "id",
       "vesselName": "text"
+    },
+    "SendManeuverPlanArgs": {
+      "composedAtViewUt": "ut",
+      "desiredFinalTimeUt": "ut",
+      "observedAtUt": "ut",
+      "requestId": "id",
+      "vesselId": "id"
     },
     "SensorEntry": {
       "active": "flag",
@@ -1893,6 +1910,9 @@
     },
     "SeededTrajectory": {
       "arc": "TrajectoryArc"
+    },
+    "SendManeuverPlanArgs": {
+      "burns": "ComposedBurn"
     },
     "StageDeltaVEntry": {
       "resources": "*ResourceAmount"

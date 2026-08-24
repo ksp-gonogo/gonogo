@@ -160,5 +160,102 @@ namespace GonogoPrincipiaUplink.Tests
 
             Assert.Equal(3, PrincipiaManeuverPlanSource.Map(plan)!.Count);
         }
+
+        private static SendManeuverPlanArgs Composed(params ComposedBurn[] burns) =>
+            new SendManeuverPlanArgs
+            {
+                VesselId = "v1",
+                RequestId = "r1",
+                ComposedAtViewUt = 900,
+                ObservedAtUt = 880,
+                DesiredFinalTimeUt = 5000,
+                Burns = burns,
+            };
+
+        private static ComposedBurn Frenet() => new ComposedBurn
+        {
+            IgnitionUt = 1000,
+            Frame = ManeuverFrame.TangentNormalBinormal,
+            DvRadial = 3,
+            DvNormal = 4,
+            DvPrograde = 5,
+            InertiallyFixed = true,
+        };
+
+        [Fact]
+        public void AComposedPlanTranslatesIntoTheProducersOwnShape()
+        {
+            var sent = PrincipiaManeuverPlanSource.Translate(Composed(Frenet()), out var refusal);
+
+            Assert.Null(refusal);
+            Assert.Equal("v1", sent?.VesselId);
+            Assert.Equal("r1", sent?.RequestId);
+            // The vantage numbers travel, which is what makes the divergence
+            // between what was planned against and what received the plan a
+            // measurement rather than a guess.
+            Assert.Equal(900, sent?.ComposedAtViewUt);
+            Assert.Equal(880, sent?.ObservedAtUt);
+            Assert.Equal(5000, sent?.DesiredFinalTimeUt);
+
+            var burn = Assert.Single(sent!.Burns!);
+            Assert.Equal(1000, burn.IgnitionUt);
+            // Slot order again, on the way out this time.
+            Assert.Equal(3, burn.DeltaVTangent);
+            Assert.Equal(4, burn.DeltaVNormal);
+            Assert.Equal(5, burn.DeltaVBinormal);
+            Assert.True(burn.InertiallyFixed);
+        }
+
+        [Fact]
+        public void ABurnStatedInAnotherBasisIsRefusedRatherThanPassedThrough()
+        {
+            // The three numbers are a DIFFERENT burn in the other basis, and
+            // converting needs the trajectory the burn sits on, which this side
+            // does not have. Passing them through would fly something else and look
+            // completely ordinary doing it.
+            var burn = Frenet();
+            burn.Frame = ManeuverFrame.RadialNormalPrograde;
+
+            var sent = PrincipiaManeuverPlanSource.Translate(Composed(burn), out var refusal);
+
+            Assert.Null(sent);
+            Assert.Contains("basis", refusal, System.StringComparison.OrdinalIgnoreCase);
+        }
+
+        [Fact]
+        public void AStatedEngineIsRefusedRatherThanSilentlyDropped()
+        {
+            // The producer's whole-plan write carries a preset, not a thrust and an
+            // Isp, so a stated engine has nowhere to go. Dropping it would fly the
+            // composed burn with the wrong engine and report success.
+            var burn = Frenet();
+            burn.Thrust = 60;
+
+            var sent = PrincipiaManeuverPlanSource.Translate(Composed(burn), out var refusal);
+
+            Assert.Null(sent);
+            Assert.Contains("engine", refusal, System.StringComparison.OrdinalIgnoreCase);
+        }
+
+        [Fact]
+        public void AnEmptyPlanTranslatesRatherThanBeingRefused()
+        {
+            // An empty burn list is a real instruction: it clears the plan.
+            var sent = PrincipiaManeuverPlanSource.Translate(Composed(), out var refusal);
+
+            Assert.Null(refusal);
+            Assert.Empty(sent!.Burns!);
+        }
+
+        [Fact]
+        public void WithNoWriteAttachedTheSendIsRefusedRatherThanReportingSuccess()
+        {
+            var source = new PrincipiaManeuverPlanSource(() => null);
+
+            var result = source.SendPlan(Composed(Frenet()));
+
+            Assert.False(result.Success);
+            Assert.Equal(CommandErrorCode.ModeUnavailable, result.ErrorCode);
+        }
     }
 }

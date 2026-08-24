@@ -88,5 +88,41 @@ namespace Sitrep.Host.Maneuver
                 return null;
             }
         }
+
+        /// <summary>
+        /// Hands a command-centre-composed plan to whoever owns the craft's plan.
+        ///
+        /// <para>Through the election rather than at a named planner, which is
+        /// what makes a plan sendable without the sender knowing what is flying
+        /// it. The same source that REPORTS the plan receives it, so an operator
+        /// cannot read one plan and replace another.</para>
+        ///
+        /// <para>A null plan is refused rather than treated as an empty one. An
+        /// empty burn list is a real instruction, it clears the plan, and a
+        /// malformed command that arrived without its burns would otherwise wipe a
+        /// craft's plan while reporting success.</para>
+        /// </summary>
+        public static CommandResult Send(Kernel? kernel, SendManeuverPlanArgs? plan)
+        {
+            if (plan == null || plan.Burns == null)
+            {
+                return CommandResult.Fail(
+                    CommandErrorCode.Unknown,
+                    "The command carried no burns. An empty plan clears the craft's plan "
+                        + "and is sent as an empty list; a missing list is a malformed "
+                        + "command and is not acted on.");
+            }
+
+            var source = kernel == null ? null : Elected(kernel);
+            if (source == null)
+            {
+                return CommandResult.Fail(
+                    CommandErrorCode.ModeUnavailable,
+                    "Nothing here owns this craft's flight plan, so there is nothing to "
+                        + "install it into.");
+            }
+
+            return source.SendPlan(plan);
+        }
     }
 }

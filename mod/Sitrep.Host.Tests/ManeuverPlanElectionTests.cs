@@ -27,6 +27,8 @@ namespace Sitrep.Host.Tests
             public string ProviderId { get; }
 
             public IList<Sitrep.Contract.ManeuverNode>? Plan() => null;
+
+            public CommandResult SendPlan(SendManeuverPlanArgs plan) => CommandResult.Ok();
         }
 
         private static Kernel Resolved(bool withCompetitor)

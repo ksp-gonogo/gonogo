@@ -39,15 +39,112 @@ namespace GonogoPrincipiaUplink
         internal const string IdPrefix = "principia:";
 
         private readonly Func<PlanObservation?> _observation;
+        private readonly PlanCommands? _commands;
 
-        internal PrincipiaManeuverPlanSource(Func<PlanObservation?> observation)
+        internal PrincipiaManeuverPlanSource(
+            Func<PlanObservation?> observation, PlanCommands? commands = null)
         {
             _observation = observation ?? throw new ArgumentNullException(nameof(observation));
+            _commands = commands;
         }
 
         public string ProviderId => "principia";
 
         public IList<Sitrep.Contract.ManeuverNode>? Plan() => Map(_observation());
+
+        /// <summary>
+        /// Installs a composed plan through the producer's own whole-plan write.
+        ///
+        /// <para>Translated rather than reinterpreted. Two things are refused
+        /// instead of being quietly dropped, because dropping either changes what
+        /// the craft flies while the command still reports success.</para>
+        /// </summary>
+        public CommandResult SendPlan(SendManeuverPlanArgs plan)
+        {
+            if (_commands == null)
+            {
+                return CommandResult.Fail(
+                    CommandErrorCode.ModeUnavailable,
+                    "The producer's plan write is not attached, so there is nothing to "
+                        + "install this plan into.");
+            }
+
+            var translated = Translate(plan, out var refusal);
+            if (translated == null)
+            {
+                return CommandResult.Fail(CommandErrorCode.Range, refusal);
+            }
+
+            var result = _commands.SendPlan(translated);
+            return result.Success
+                ? CommandResult.Ok()
+                : CommandResult.Fail(result.ErrorCode, result.Detail);
+        }
+
+        /// <summary>
+        /// The composed plan in the producer's own shape, or null with a reason.
+        ///
+        /// <para><b>A basis mismatch is refused, never converted.</b> Turning a
+        /// radial/normal/prograde burn into a Frenet one needs the trajectory the
+        /// burn sits on, which this side does not have. Passing the three numbers
+        /// through unchanged would fly a different burn, and it would look
+        /// completely ordinary doing it.</para>
+        ///
+        /// <para><b>A stated engine is refused too.</b> The producer's whole-plan
+        /// write carries an engine PRESET rather than a thrust and a specific
+        /// impulse, so numbers stated here have nowhere to go. Silently leaving
+        /// the plan's existing engine would fly the composed burn with the wrong
+        /// one.</para>
+        /// </summary>
+        internal static PrincipiaPlanSendArgs? Translate(
+            SendManeuverPlanArgs plan, out string? refusal)
+        {
+            refusal = null;
+            var burns = new List<PrincipiaComposedBurn>();
+            foreach (var burn in plan.Burns!)
+            {
+                if (burn.Frame != ManeuverFrame.TangentNormalBinormal)
+                {
+                    refusal =
+                        "This planner works in the Frenet trihedron, and the plan states its "
+                        + "burns in another basis. Converting one to the other needs the "
+                        + "trajectory the burn sits on, so the same three numbers would fly a "
+                        + "different burn.";
+                    return null;
+                }
+                if (burn.Thrust != null || burn.SpecificImpulse != null)
+                {
+                    refusal =
+                        "This planner's whole-plan write carries an engine preset rather than a "
+                        + "thrust and a specific impulse, so the stated engine has nowhere to "
+                        + "go. Set the engine on the burn in the planner, then send the plan.";
+                    return null;
+                }
+
+                burns.Add(new PrincipiaComposedBurn
+                {
+                    IgnitionUt = burn.IgnitionUt,
+                    // Slot order, not a rename: the three positional slots carry
+                    // the basis's own components in its own order, and this basis
+                    // is tangent, normal, binormal.
+                    DeltaVTangent = burn.DvRadial,
+                    DeltaVNormal = burn.DvNormal,
+                    DeltaVBinormal = burn.DvPrograde,
+                    InertiallyFixed = burn.InertiallyFixed,
+                    Profile = PrincipiaBurnProfile.Unchanged,
+                });
+            }
+
+            return new PrincipiaPlanSendArgs
+            {
+                VesselId = plan.VesselId,
+                RequestId = plan.RequestId,
+                ComposedAtViewUt = plan.ComposedAtViewUt,
+                ObservedAtUt = plan.ObservedAtUt,
+                DesiredFinalTimeUt = plan.DesiredFinalTimeUt,
+                Burns = burns.ToArray(),
+            };
+        }
 
         /// <summary>
         /// The observed plan as generalised nodes.

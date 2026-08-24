@@ -119,6 +119,8 @@ public static class RtConfig
                 typeof(ManeuverNode),
                 typeof(ControlFrame),
                 typeof(SetControlFrameArgs),
+                typeof(ComposedBurn),
+                typeof(SendManeuverPlanArgs),
                 typeof(DockAlignment),
                 typeof(ResourceAmount),
                 typeof(ThermalHottestPart),

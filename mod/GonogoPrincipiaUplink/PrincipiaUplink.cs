@@ -662,7 +662,7 @@ namespace GonogoPrincipiaUplink
             {
                 Capability = ManeuverPlanCapability.Id,
                 Id = "principia",
-                Factory = _ => new PrincipiaManeuverPlanSource(() => _lastPlan),
+                Factory = _ => new PrincipiaManeuverPlanSource(() => _lastPlan, _planCommands),
             });
         }
 

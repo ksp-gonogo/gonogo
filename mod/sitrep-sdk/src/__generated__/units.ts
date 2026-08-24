@@ -300,6 +300,16 @@ export const GENERATED_TYPE_UNITS: Readonly<Record<string, UnitsByField>> = {
   "CommsSignalStrength": {
     value: "ratio",
   },
+  "ComposedBurn": {
+    dvNormal: "m/s",
+    dvPrograde: "m/s",
+    dvRadial: "m/s",
+    frame: "enum",
+    ignitionUt: "ut",
+    inertiallyFixed: "flag",
+    specificImpulse: "s",
+    thrust: "kN",
+  },
   "ContractActionArgs": {
     contractId: "id",
   },
@@ -817,6 +827,13 @@ export const GENERATED_TYPE_UNITS: Readonly<Record<string, UnitsByField>> = {
     ut: "ut",
     vesselId: "id",
     vesselName: "text",
+  },
+  "SendManeuverPlanArgs": {
+    composedAtViewUt: "ut",
+    desiredFinalTimeUt: "ut",
+    observedAtUt: "ut",
+    requestId: "id",
+    vesselId: "id",
   },
   "SensorEntry": {
     active: "flag",
@@ -1950,6 +1967,9 @@ export const GENERATED_TYPE_SHAPES: Readonly<Record<string, ShapesByField>> = {
   },
   "SeededTrajectory": {
     arc: "TrajectoryArc",
+  },
+  "SendManeuverPlanArgs": {
+    burns: "ComposedBurn",
   },
   "StageDeltaVEntry": {
     resources: "*ResourceAmount",

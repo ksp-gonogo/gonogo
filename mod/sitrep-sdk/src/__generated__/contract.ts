@@ -294,6 +294,26 @@ export interface CommsOcclusion
 	bodies: CommsOcclusionBody[];
 	meta: PayloadMeta;
 }
+export interface ComposedBurn
+{
+	ignitionUt: Value<"ut">;
+	frame: ManeuverFrame;
+	dvRadial: Value<"m/s">;
+	dvNormal: Value<"m/s">;
+	dvPrograde: Value<"m/s">;
+	inertiallyFixed: boolean;
+	thrust?: Value<"kN">;
+	specificImpulse?: Value<"s">;
+}
+export interface SendManeuverPlanArgs
+{
+	vesselId?: string;
+	requestId?: string;
+	composedAtViewUt?: number;
+	observedAtUt?: number;
+	burns?: ComposedBurn[];
+	desiredFinalTimeUt?: number;
+}
 export interface ControlFrame
 {
 	kind: ControlFrameKind;

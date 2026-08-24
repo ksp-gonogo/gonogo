@@ -184,7 +184,7 @@ namespace Sitrep.Core.Tests
             "AddManeuverNodeArgs", "RemoveManeuverNodeArgs", "UpdateManeuverNodeArgs",
             "SetActionGroupArgs", "SetEnabledArgs",
             "SetPausedArgs", "SetSasModeArgs", "SetTargetArgs", "SetThrottleArgs",
-            "SetControlFrameArgs",
+            "SetControlFrameArgs", "SendManeuverPlanArgs", "ComposedBurn",
             "SetWarpIndexArgs", "SetFlyByWireArgs", "SetControlAxesArgs",
             "ActivateStrategyArgs", "DeactivateStrategyArgs", "UnlockTechArgs",
             "ContractActionArgs", "UpgradeFacilityArgs", "HireApplicantArgs", "FireCrewArgs", "RevertToEditorArgs",

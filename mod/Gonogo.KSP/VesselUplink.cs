@@ -255,6 +255,7 @@ namespace Gonogo.KSP
                 Command(VesselCommandProvider.ManeuverAddCommand, delayed: true),
                 Command(VesselCommandProvider.ManeuverUpdateCommand, delayed: true),
                 Command(VesselCommandProvider.ManeuverRemoveCommand, delayed: true),
+                Command(VesselCommandProvider.ManeuverPlanSendCommand, delayed: true),
                 Command(VesselCommandProvider.TargetSetCommand, delayed: false),
                 Command(VesselCommandProvider.TargetClearCommand, delayed: false),
                 Command(VesselCommandProvider.SetWarpIndexCommand, delayed: false),
@@ -386,6 +387,11 @@ namespace Gonogo.KSP
             host.AddCommandHandler<AddManeuverNodeArgs, CommandResult<string>>(VesselCommandProvider.ManeuverAddCommand, args => VesselCommandProvider.HandleManeuverAdd(_actuator, args));
             host.AddCommandHandler<UpdateManeuverNodeArgs, CommandResult>(VesselCommandProvider.ManeuverUpdateCommand, args => VesselCommandProvider.HandleManeuverUpdate(_actuator, args));
             host.AddCommandHandler<RemoveManeuverNodeArgs, CommandResult>(VesselCommandProvider.ManeuverRemoveCommand, args => VesselCommandProvider.HandleManeuverRemove(_actuator, args));
+            // Through the election, so the source that reports this craft's plan is
+            // the one that installs a new one.
+            host.AddCommandHandler<SendManeuverPlanArgs, CommandResult>(
+                VesselCommandProvider.ManeuverPlanSendCommand,
+                args => ManeuverPlanElection.Send(host.Kernel, args));
             host.AddCommandHandler<SetTargetArgs, CommandResult>(VesselCommandProvider.TargetSetCommand, args => VesselCommandProvider.HandleTargetSet(_actuator, args));
             host.AddCommandHandler<object?, CommandResult>(VesselCommandProvider.TargetClearCommand, args => VesselCommandProvider.HandleTargetClear(_actuator, args));
             host.AddCommandHandler<SetWarpIndexArgs, CommandResult>(VesselCommandProvider.SetWarpIndexCommand, args => VesselCommandProvider.HandleSetWarpIndex(_actuator, args));

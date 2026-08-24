@@ -155,5 +155,23 @@ namespace Gonogo.KSP
 
             return plan;
         }
+
+        /// <summary>
+        /// Stock does not take a whole plan.
+        ///
+        /// <para>It can be given nodes one at a time through the maneuver add and
+        /// update commands, and those are what a stock plan is edited with. What
+        /// it has no way to do is apply a composed plan atomically: there is no
+        /// stock operation that swaps one node list for another, so a "send" here
+        /// would be a loop that can fail halfway and leave the craft holding half
+        /// of two different plans. That is the exact outcome sending a whole plan
+        /// exists to prevent, so it is refused rather than approximated.</para>
+        /// </summary>
+        public CommandResult SendPlan(SendManeuverPlanArgs plan) =>
+            CommandResult.Fail(
+                CommandErrorCode.ModeUnavailable,
+                "Stock has no way to install a composed plan in one step. Its nodes are "
+                    + "edited one at a time, and applying a plan as a sequence of edits "
+                    + "can leave the craft holding half of two plans.");
     }
 }
