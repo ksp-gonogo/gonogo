@@ -173,7 +173,7 @@ registerComponent<EscapeProfileConfig>({
   minSize: { w: 5, h: 4 },
   mobileHeight: 280,
   component: EscapeProfileComponent,
-  dataRequirements: ["v.altitude", "v.orbitalVelocity"],
+  dataRequirements: ["vessel.state.altitudeAsl", "vessel.state.orbitalSpeed"],
   defaultConfig: { windowSec: 600 },
   actions: [],
   pushable: true,

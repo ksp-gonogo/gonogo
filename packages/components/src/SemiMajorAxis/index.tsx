@@ -98,7 +98,7 @@ function SemiMajorAxisComponent({
   // is carried this sparkline reads its window straight off the
   // `TimelineStore`'s buffered history, same as the headline `sma` value
   // above. See `stream.test.tsx` for the end-to-end proof.
-  const series = useDataSeries("data", "o.sma", SPARK_WINDOW_SEC);
+  const series = useDataSeries("data", "vessel.orbit.sma", SPARK_WINDOW_SEC);
   const sparkValues = series.v as number[];
   // Connectivity indicator keyed off the headline `o.sma` -> `vessel.orbit.sma`.
 
@@ -251,7 +251,7 @@ registerComponent<SemiMajorAxisConfig>({
   defaultSize: { w: 4, h: 4 },
   minSize: { w: 3, h: 3 },
   component: SemiMajorAxisComponent,
-  dataRequirements: ["o.sma", "o.referenceBody"],
+  dataRequirements: ["vessel.orbit.sma", "vessel.state.referenceBodyName"],
   defaultConfig: {},
   actions: [],
   pushable: true,

@@ -144,7 +144,12 @@ registerComponent<KeplerPeriodConfig>({
   minSize: { w: 5, h: 4 },
   mobileHeight: 280,
   component: KeplerPeriodComponent,
-  dataRequirements: ["o.sma", "o.period", "o.referenceBody", "v.body"],
+  dataRequirements: [
+    "vessel.orbit.sma",
+    "vessel.state.period",
+    "vessel.state.referenceBodyName",
+    "vessel.state.parentBodyName",
+  ],
   defaultConfig: { windowSec: 60 },
   actions: [],
   pushable: true,

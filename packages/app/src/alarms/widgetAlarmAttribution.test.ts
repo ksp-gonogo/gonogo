@@ -220,13 +220,6 @@ const MIGRATED: readonly MigratedWidget[] = [
       { key: "v.body", expectMatch: true },
       { key: "o.maneuverNodes", expectMatch: true },
       { key: "o.maneuverNodeIds", expectMatch: true },
-      { key: "tar.o.inclination", expectMatch: true },
-      { key: "tar.o.lan", expectMatch: true },
-      { key: "tar.o.sma", expectMatch: true },
-      { key: "tar.o.argumentOfPeriapsis", expectMatch: true },
-      { key: "tar.o.PeA", expectMatch: true },
-      { key: "tar.o.trueAnomaly", expectMatch: true },
-      { key: "tar.o.period", expectMatch: true },
     ],
   },
   {

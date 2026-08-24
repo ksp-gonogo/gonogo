@@ -131,7 +131,11 @@ registerComponent<OrbitalAscentConfig>({
   minSize: { w: 5, h: 4 },
   mobileHeight: 280,
   component: OrbitalAscentComponent,
-  dataRequirements: ["v.altitude", "v.horizontalVelocity", "v.body"],
+  dataRequirements: [
+    "vessel.state.altitudeAsl",
+    "vessel.state.horizontalSpeed",
+    "vessel.state.parentBodyName",
+  ],
   defaultConfig: { windowSec: 600 },
   actions: [],
   pushable: true,

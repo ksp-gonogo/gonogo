@@ -919,10 +919,16 @@ registerComponent<ManeuverPlannerConfig>({
   component: ManeuverPlannerComponent,
   // A body `sections` slot for alternate-transfer-strategy comparisons, empty until an augment binds.
   augmentSlots: ["maneuver-planner.sections"],
-  // The target's reads split by kind: its raw orbital ELEMENTS come off
-  // `vessel.target.orbit`, while the three quantities that have to be
-  // propagated to the same view-UT as the self vessel are derived
-  // `vessel.state` fields instead.
+  // The target's reads split by kind: the three quantities propagated to the
+  // same view-UT as the self vessel are derived `vessel.state` fields.
+  //
+  // The raw target-orbit field subtopics are deliberately not named. Nothing
+  // targeted is the common case, and the wire tombstones the whole
+  // `vessel.target` topic for it, which a badge reads as a confirmed absence:
+  // declaring them badged this panel NO DATA whenever no target was selected,
+  // drowning out nodes, burn windows and a preview that were all populated.
+  // The widget reads the topic through `useTelemetry("vessel.target")`, which
+  // subscribes on its own account, so naming it here buys nothing.
   dataRequirements: [
     "vessel.orbit.sma",
     "vessel.orbit.ecc",
@@ -940,10 +946,6 @@ registerComponent<ManeuverPlannerConfig>({
     "vessel.state.parentBodyName",
     "vessel.maneuver.nodes",
     "dv.stages",
-    "vessel.target.orbit.inc",
-    "vessel.target.orbit.lan",
-    "vessel.target.orbit.sma",
-    "vessel.target.orbit.argPe",
     "vessel.state.targetPeriapsisAlt",
     "vessel.state.targetTrueAnomaly",
     "vessel.state.targetPeriod",
