@@ -143,13 +143,19 @@ namespace GonogoPrincipiaUplink.Tests
         }
 
         [Fact]
-        public void NoPlanReadIsNotTheSameAsAPlanWithNoBurns()
+        public void NotHavingReadTheCraftIsNotTheSameAsTheCraftHavingNoPlan()
         {
-            // Null is "we have not read the craft"; empty is "the craft has no
-            // plan". Collapsing them shows an operator an empty plan for a craft
-            // nobody has looked at.
+            // Null on this seam means "this craft cannot hold a plan at all",
+            // which is what makes the wire name a planner beside the nodes. A
+            // craft this planner COULD plan for, and simply has not, answers
+            // empty.
+            //
+            // These were collapsed and the rig showed the cost: a craft with no
+            // flight plan reported no planner either, so a client could not tell
+            // an install with an n-body planner from one with none.
             Assert.Null(PrincipiaManeuverPlanSource.Map(null));
-            Assert.Null(PrincipiaManeuverPlanSource.Map(new PlanObservation { PlanExists = false }));
+            Assert.Empty(
+                PrincipiaManeuverPlanSource.Map(new PlanObservation { PlanExists = false })!);
             Assert.Empty(PrincipiaManeuverPlanSource.Map(PlanOf())!);
         }
 

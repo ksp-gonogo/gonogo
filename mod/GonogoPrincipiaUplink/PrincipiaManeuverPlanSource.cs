@@ -149,20 +149,31 @@ namespace GonogoPrincipiaUplink
         /// <summary>
         /// The observed plan as generalised nodes.
         ///
-        /// <para>Null when nothing has been observed, and an EMPTY list when a
-        /// plan was observed to hold no burns. Those are different facts: the
-        /// first is "we have not read the craft", the second is "the craft has no
-        /// plan", and collapsing them would show an operator an empty plan for a
-        /// craft nobody has looked at.</para>
+        /// <para>Null ONLY when nothing has been observed. A craft that was read
+        /// and holds no flight plan answers with an EMPTY list, because this
+        /// planner can make one for it and simply has not: null on that seam is
+        /// reserved for "this craft cannot hold a plan at all", which is how an
+        /// un-upgraded Tracking Station reaches a client, and it is what decides
+        /// whether the wire names a planner beside the nodes.</para>
+        ///
+        /// <para>These were collapsed, and the rig showed what that costs: a
+        /// craft with no flight plan reported no planner either, so a client
+        /// could not tell an install with an n-body planner from one with none.
+        /// The doc comment here already said empty, and the code said null.</para>
         /// </summary>
         internal static IList<Sitrep.Contract.ManeuverNode>? Map(PlanObservation? plan)
         {
-            if (plan == null || !plan.PlanExists)
+            if (plan == null)
             {
                 return null;
             }
 
             var nodes = new List<Sitrep.Contract.ManeuverNode>();
+            if (!plan.PlanExists)
+            {
+                return nodes;
+            }
+
             foreach (var burn in plan.Burns)
             {
                 var node = MapBurn(burn);
