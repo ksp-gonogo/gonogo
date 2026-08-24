@@ -5,8 +5,14 @@ import type {
   ManeuverPlan,
   ManeuverSequence,
 } from "@ksp-gonogo/core";
-import type { OrbitTrajectory } from "@ksp-gonogo/sitrep-client";
-import { value } from "@ksp-gonogo/sitrep-sdk";
+import { type OrbitTrajectory, useStream } from "@ksp-gonogo/sitrep-client";
+import {
+  apsidesExist,
+  type ControlFrame,
+  controlFrameLabel,
+  frameCaveat,
+  value,
+} from "@ksp-gonogo/sitrep-sdk";
 import { Button, GhostButton } from "@ksp-gonogo/ui";
 import {
   Countdown,
@@ -269,11 +275,37 @@ function ProjectedRows({
   body,
   prefix = "New",
 }: ProjectedRowsProps) {
+  /**
+   * What the operator's own view frame does to these two rows. A projected
+   * apoapsis is still an apoapsis: it is defined against a centre, and the
+   * frames defined by a pair of bodies do not have one, so a number here would
+   * be exactly as meaningless as the same number on the current orbit.
+   */
+  const controlFrame = useStream<ControlFrame>("system.frame");
+  const apsides = apsidesExist(controlFrame);
+
   if (!projected) {
+    // Ordered ahead of the frame check on purpose: "this burn leaves no orbit"
+    // is a fact about the PLAN, and a plan that does not work outranks a view
+    // that cannot describe one that does.
     return (
       <>
         <Label>Projection</Label>
         <PreviewValue>escape / invalid</PreviewValue>
+      </>
+    );
+  }
+  if (apsides === "invalid") {
+    // One row rather than two empty ones. The plan is real and still
+    // committable; what is missing is a way to describe its result in the frame
+    // the operator chose, and saying that once is clearer than saying it twice
+    // beside labels that now name nothing.
+    return (
+      <>
+        <Label>{prefix} apsides</Label>
+        <PreviewValue title={frameCaveat(apsides, "apsides")}>
+          {`none in ${controlFrameLabel(controlFrame) ?? "this frame"}`}
+        </PreviewValue>
       </>
     );
   }
