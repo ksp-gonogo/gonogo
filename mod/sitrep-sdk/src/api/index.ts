@@ -23,7 +23,17 @@
 // ---------------------------------------------------------------------------
 
 import type { ReactElement, ReactNode } from "react";
-import { createElement } from "react";
+import { createElement, useCallback, useState } from "react";
+import {
+  type ComposedPlan,
+  outcomeOfReply,
+  planSendArgs,
+  SEND_PLAN_COMMAND,
+  type SendPlanHandle,
+  type SendPlanOutcome,
+  sendRefusalFromError,
+  whyNotSendable,
+} from "../plan-composition";
 import type { Reading } from "../reading";
 import type { TopicId, TopicPayload } from "../topics";
 import type { Value } from "../value";
@@ -152,6 +162,20 @@ export type {
  * `packages/core/src/sdk-facade.conformance.test-d.ts`.
  */
 export const GAME_HOST_KEY = "gameHost" as const;
+
+// Composing a flight plan at a command centre and transmitting it. The types an
+// author states a plan in, plus `whyNotSendable` so a control greys itself out
+// on the SAME answer the send refuses on rather than a second opinion about it.
+export type {
+  ComposedPlan,
+  SendPlanHandle,
+  SendPlanOutcome,
+} from "../plan-composition";
+export {
+  SEND_PLAN_COMMAND,
+  sendRefusalFromError,
+  whyNotSendable,
+} from "../plan-composition";
 
 // --- Registration shims (stateful → injected host) --------------------------
 
@@ -375,6 +399,62 @@ export function useViewUt(): Value<"ut"> | undefined {
 
 export function useCommand(command: string) {
   return getHost().useCommand(command);
+}
+
+/**
+ * Compose a flight plan at a command centre and transmit it to be instantiated
+ * aboard.
+ *
+ * <p>Here rather than beside the raw command because getting the two instants
+ * right is the whole difficulty, and every widget that hand-rolled it would get
+ * to make the same mistake privately. This stamps when the operator decided, off
+ * the view clock it already holds. The caller states how old the information it
+ * decided on was, because only the caller knows which reading it planned
+ * against.</p>
+ *
+ * <p>A plan built from a state later than the view it was composed at is
+ * refused before it leaves. That is the delay model inverted, and catching it
+ * here puts the complaint at the site that made the mistake rather than a
+ * light-time away.</p>
+ */
+export function useSendPlan(): SendPlanHandle {
+  const command = useCommand(SEND_PLAN_COMMAND);
+  const viewUt = useViewUt();
+  const [pending, setPending] = useState(false);
+  const [outcome, setOutcome] = useState<SendPlanOutcome | null>(null);
+
+  const send = useCallback(
+    async (plan: ComposedPlan): Promise<SendPlanOutcome> => {
+      const composedAtViewUt = viewUt?.magnitude;
+      const refusal = whyNotSendable(plan, composedAtViewUt);
+      if (refusal) {
+        const refused: SendPlanOutcome = { accepted: false, refusal };
+        setOutcome(refused);
+        return refused;
+      }
+
+      setPending(true);
+      try {
+        const reply = await command.send(
+          planSendArgs(plan, composedAtViewUt as number),
+        );
+        const next = outcomeOfReply(
+          reply as { success?: boolean; detail?: string } | undefined,
+        );
+        setOutcome(next);
+        return next;
+      } catch (error) {
+        const failed = sendRefusalFromError(error);
+        setOutcome(failed);
+        return failed;
+      } finally {
+        setPending(false);
+      }
+    },
+    [command, viewUt],
+  );
+
+  return { send, pending, outcome };
 }
 
 /**

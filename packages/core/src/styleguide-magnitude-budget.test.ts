@@ -58,7 +58,15 @@ const MAGNITUDE_BUDGET: Record<string, number> = {
   // which in this repo was previously written as a cast and put `Value` objects
   // through arithmetic that wanted numbers. The unwrap is constrained to `"m"`
   // and `"m/s"` here, which is the check a hand-rolled one does not get.
+  // 1: the view instant, read out to stamp when a composed plan was decided.
+  // The wire carries it as a plain UT because the receiving side records it on
+  // a receipt rather than doing algebra with it.
+  "mod/sitrep-sdk/src/api/index.ts": 1,
   "mod/sitrep-sdk/src/frames/index.ts": 1,
+  // 2: the observed instant a plan was built from, and the comparison against
+  // the view instant that catches a plan built from a state nobody could have
+  // seen. Both are read out here because this file IS that boundary.
+  "mod/sitrep-sdk/src/plan-composition.ts": 2,
   "mod/sitrep-sdk/src/spine/timeline-store.ts": 1,
   "mod/sitrep-sdk/src/testing/render.tsx": 1,
   "packages/app/src/alarms/WarpObserver.ts": 1,
