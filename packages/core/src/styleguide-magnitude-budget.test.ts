@@ -61,6 +61,13 @@ const MAGNITUDE_BUDGET: Record<string, number> = {
   // 1: the view instant, read out to stamp when a composed plan was decided.
   // The wire carries it as a plain UT because the receiving side records it on
   // a receipt rather than doing algebra with it.
+  // 6: the floors that turn an instant into calendar PARTS, plus the round
+  // that lands the inverse back on a whole second. A day number is not a
+  // quantity with a unit, it is an ordinal, so producing one is where the
+  // algebra stops. Every RATIO still comes from the unit system: this file
+  // owns none, which is what stops it being a second clock beside the one the
+  // app renders through.
+  "mod/sitrep-sdk/src/burn-clock.ts": 6,
   "mod/sitrep-sdk/src/api/index.ts": 1,
   "mod/sitrep-sdk/src/frames/index.ts": 1,
   // 2: the observed instant a plan was built from, and the comparison against

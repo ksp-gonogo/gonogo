@@ -39,7 +39,7 @@ import {
   sendRefusalFromError,
   whyNotSendable,
 } from "../plan-composition";
-import { draftAsPlan, type PlanDraft, PlanDraftStore } from "../plan-drafts";
+import { type PlanDraft, PlanDraftStore } from "../plan-drafts";
 import type { Reading } from "../reading";
 import type { TopicId, TopicPayload } from "../topics";
 import type { Value } from "../value";
@@ -178,7 +178,7 @@ export {
   composeUt,
   decomposeUt,
   isBurning,
-  secondsToIgnition,
+  timeToIgnition,
 } from "../burn-clock";
 // What the frame in force does to a readout. A physics rule rather than a
 // wording choice, so it lives once here instead of in each widget that quotes a
