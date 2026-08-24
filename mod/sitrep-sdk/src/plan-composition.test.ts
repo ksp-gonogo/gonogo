@@ -1,6 +1,8 @@
 import { describe, expect, it } from "vitest";
+import { ManeuverFrame } from "./__generated__/contract";
 import {
   type ComposedPlan,
+  planSendArgs,
   SEND_PLAN_COMMAND,
   sendRefusalFromError,
   whyNotSendable,
@@ -10,6 +12,47 @@ import { value } from "./unit-system/value";
 function plan(observedAt: number): ComposedPlan {
   return { burns: [], observedAt: value("ut", observedAt) };
 }
+
+describe("the shape the command takes", () => {
+  /**
+   * Magnitudes on the wire, not `Value`s.
+   *
+   * <p>The generated burn types its instant and its Δv as unit-bound values,
+   * which is right for everything that reads one, and the receiving side binds
+   * each to a plain double. A `Value` reaching it is refused with "cannot bind
+   * wire value of type Dictionary to numeric Double" from INSIDE the handler, so
+   * the whole plan is lost rather than one field. On the rig, that throw also
+   * marked the entire `vessel` uplink unavailable for the rest of the session,
+   * so every later command was refused too.</p>
+   */
+  it("unwraps every burn's values to the numbers the wire binds", () => {
+    const args = planSendArgs(
+      {
+        burns: [
+          {
+            ignitionUt: value("ut", 424900),
+            frame: ManeuverFrame.TangentNormalBinormal,
+            dvRadial: value("m/s", 55),
+            dvNormal: value("m/s", 0),
+            dvPrograde: value("m/s", 0),
+            inertiallyFixed: false,
+          },
+        ],
+        observedAt: value("ut", 422560),
+      },
+      423508,
+    );
+
+    const burn = (args.burns as unknown as Record<string, unknown>[])[0];
+    for (const field of ["ignitionUt", "dvRadial", "dvNormal", "dvPrograde"]) {
+      expect(typeof burn[field]).toBe("number");
+    }
+    expect(burn.ignitionUt).toBe(424900);
+    expect(burn.dvRadial).toBe(55);
+    expect(args.observedAtUt).toBe(422560);
+    expect(args.composedAtViewUt).toBe(423508);
+  });
+});
 
 describe("sending a plan composed at a command centre", () => {
   it("sends under the engine's own command name", () => {

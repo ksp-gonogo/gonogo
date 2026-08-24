@@ -73,7 +73,13 @@ const MAGNITUDE_BUDGET: Record<string, number> = {
   // 2: the observed instant a plan was built from, and the comparison against
   // the view instant that catches a plan built from a state nobody could have
   // seen. Both are read out here because this file IS that boundary.
-  "mod/sitrep-sdk/src/plan-composition.ts": 2,
+  // Raised deliberately, and this file is where the escape hatch belongs: its
+  // job IS the wire shape, and the receiving side binds every instant and every
+  // Δv component to a plain double. A `Value` reaching it is refused from inside
+  // the handler, which loses the whole plan and marks the vessel uplink
+  // unavailable for the session. Unwrapping once here is what stops every caller
+  // building that shape by hand and finding out the same way.
+  "mod/sitrep-sdk/src/plan-composition.ts": 8,
   "mod/sitrep-sdk/src/spine/timeline-store.ts": 1,
   "mod/sitrep-sdk/src/testing/render.tsx": 1,
   "packages/app/src/alarms/WarpObserver.ts": 1,

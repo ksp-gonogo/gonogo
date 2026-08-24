@@ -137,13 +137,19 @@ export function PlanComposer() {
                     })
                   }
                 />
+                {/* Slot order, not names. The three Δv slots carry the BASIS's own
+                    components in its own order, and the basis this burn declares
+                    is tangent, normal, binormal: so dvRadial is the tangent and
+                    dvPrograde is the binormal. Labelling these by their field
+                    names would put an operator's along-track burn out of plane,
+                    which is a wrong burn that reads as a right one. */}
                 <Input
-                  aria-label={`Burn ${index + 1} prograde`}
+                  aria-label={`Burn ${index + 1} tangent`}
                   type="number"
-                  value={magnitudeOf(burn.dvPrograde) ?? 0}
+                  value={magnitudeOf(burn.dvRadial) ?? 0}
                   onChange={(event) =>
                     setComponent(draft, index, {
-                      dvPrograde: value("m/s", number(event.target.value)),
+                      dvRadial: value("m/s", number(event.target.value)),
                     })
                   }
                 />
@@ -158,12 +164,12 @@ export function PlanComposer() {
                   }
                 />
                 <Input
-                  aria-label={`Burn ${index + 1} radial`}
+                  aria-label={`Burn ${index + 1} binormal`}
                   type="number"
-                  value={magnitudeOf(burn.dvRadial) ?? 0}
+                  value={magnitudeOf(burn.dvPrograde) ?? 0}
                   onChange={(event) =>
                     setComponent(draft, index, {
-                      dvRadial: value("m/s", number(event.target.value)),
+                      dvPrograde: value("m/s", number(event.target.value)),
                     })
                   }
                 />

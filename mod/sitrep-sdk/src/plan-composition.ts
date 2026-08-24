@@ -153,8 +153,26 @@ export function planSendArgs(
     composedAtViewUt,
     observedAtUt: plan.observedAt.magnitude,
     desiredFinalTimeUt: plan.desiredFinalTimeUt,
-    burns: plan.burns,
-  } as SendManeuverPlanArgs;
+    // Magnitudes, not `Value`s. The generated burn types its instants and its
+    // Δv as unit-bound values, which is right for everything that READS one, and
+    // the receiving side binds each to a plain double. A `Value` reaching it is
+    // refused with "cannot bind wire value of type Dictionary to numeric
+    // Double", and from INSIDE the handler: the whole plan is lost rather than
+    // one field, and the throw marks the entire vessel uplink unavailable for
+    // the rest of the session. Unwrapped here because this is the function whose
+    // job is the shape the command takes; every caller building that shape by
+    // hand would get to discover it the same way.
+    burns: plan.burns.map((burn) => ({
+      ignitionUt: burn.ignitionUt.magnitude,
+      frame: burn.frame,
+      dvRadial: burn.dvRadial.magnitude,
+      dvNormal: burn.dvNormal.magnitude,
+      dvPrograde: burn.dvPrograde.magnitude,
+      inertiallyFixed: burn.inertiallyFixed,
+      thrust: burn.thrust?.magnitude,
+      specificImpulse: burn.specificImpulse?.magnitude,
+    })),
+  } as unknown as SendManeuverPlanArgs;
 }
 
 /**
@@ -168,7 +186,17 @@ export function planSendArgs(
 export function outcomeOfReply(
   reply: { success?: boolean; detail?: string } | undefined,
 ): SendPlanOutcome {
-  return reply?.success
-    ? { accepted: true }
-    : { accepted: false, refusal: reply?.detail };
+  if (reply?.success) {
+    return { accepted: true };
+  }
+  // Never an empty refusal. A caller renders whatever is here, so a decline that
+  // arrived without a reason would draw an empty box: worse than saying nothing,
+  // because the operator can see that something answered and cannot see what.
+  return {
+    accepted: false,
+    refusal:
+      reply?.detail && reply.detail.length > 0
+        ? reply.detail
+        : "The craft declined the plan and gave no reason. Check the flight-plan write surface is armed.",
+  };
 }
