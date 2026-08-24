@@ -62,6 +62,57 @@ export function apsidesExist(frame: ControlFrame | undefined): FrameValidity {
 }
 
 /**
+ * Each kind's label, with the placeholders it declines with. `<centre>` is the
+ * frame's centre body, `<primary>` the body a rotating frame turns about and
+ * `<secondary>` the one it is anchored to.
+ */
+const FRAME_NAMES: Readonly<Record<number, string>> = {
+  [ControlFrameKind.BodyCentredInertial]: "<centre>-Centred Inertial",
+  [ControlFrameKind.BarycentricRotating]: "Barycentric rotating",
+  [ControlFrameKind.BodyCentredBodyDirection]: "<secondary>-<primary>-Orbit",
+  [ControlFrameKind.BodySurface]: "<centre>-Centred <centre>-Fixed",
+  [ControlFrameKind.RotatingPulsating]: "<primary>-<secondary> Lagrange",
+};
+
+/**
+ * The frame in force, named so an operator can see WHY a readout beside it says
+ * a quantity does not exist.
+ *
+ * <p>A kind this build has no name for renders as the kind rather than as a
+ * guess: a frame added by a later producer should read as obviously incomplete
+ * instead of being rounded to whichever neighbour is closest, because a wrong
+ * frame name is a wrong claim about what every coordinate on the board
+ * means.</p>
+ *
+ * <p>A body the payload did not carry leaves its placeholder standing, for the
+ * same reason: "&lt;centre&gt;-Centred Inertial" says a body is missing, where
+ * "-Centred Inertial" reads like a formatting slip.</p>
+ */
+export function controlFrameLabel(
+  frame: ControlFrame | undefined,
+): string | undefined {
+  if (frame === undefined) {
+    return undefined;
+  }
+  if (frame.targetFrameSelected) {
+    // Orthogonal to the kind, and it is what the operator selected, so it is
+    // what they are told: naming the underlying kind here would caption the
+    // frame they did not choose.
+    return "Target frame";
+  }
+  const template = FRAME_NAMES[frame.kind];
+  if (template === undefined) {
+    return frame.centreBody
+      ? `Frame ${frame.kind}, ${frame.centreBody}`
+      : `Frame ${frame.kind}`;
+  }
+  return template
+    .replace(/<centre>/g, frame.centreBody ?? "<centre>")
+    .replace(/<primary>/g, frame.primaryBody ?? "<primary>")
+    .replace(/<secondary>/g, frame.secondaryBody ?? "<secondary>");
+}
+
+/**
  * What to put where a number would go, or undefined when the number itself
  * belongs there.
  *

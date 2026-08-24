@@ -102,6 +102,7 @@ const EXPECTED_BARREL_VALUE_EXPORTS = [
   "unregisterUplinkHandle",
   "useActionInput",
   "apsidesExist",
+  "controlFrameLabel",
   "frameCaveat",
   "lengthsAreLengths",
   "SEND_PLAN_COMMAND",

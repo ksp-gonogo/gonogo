@@ -3,6 +3,7 @@ import type { ControlFrame } from "./__generated__/contract";
 import { ControlFrameKind } from "./__generated__/contract";
 import {
   apsidesExist,
+  controlFrameLabel,
   frameCaveat,
   lengthsAreLengths,
 } from "./frame-qualifier";
@@ -92,5 +93,58 @@ describe("what the frame in force does to a readout", () => {
 
     expect(unknown).toBeTruthy();
     expect(unknown).not.toBe(frameCaveat("invalid", "periapsis"));
+  });
+});
+
+describe("naming the frame in force", () => {
+  it("declines a centred frame's name with its centre body", () => {
+    expect(
+      controlFrameLabel({
+        kind: ControlFrameKind.BodyCentredInertial,
+        centreBody: "Kerbin",
+      } as ControlFrame),
+    ).toBe("Kerbin-Centred Inertial");
+  });
+
+  it("declines a rotating frame's name with both its bodies", () => {
+    expect(
+      controlFrameLabel({
+        kind: ControlFrameKind.RotatingPulsating,
+        primaryBody: "Kerbol",
+        secondaryBody: "Kerbin",
+      } as ControlFrame),
+    ).toBe("Kerbol-Kerbin Lagrange");
+  });
+
+  it("names the target frame as what the operator chose, not its kind", () => {
+    // The flag is orthogonal to the kind, and naming the kind would caption a
+    // frame they did not select.
+    expect(
+      controlFrameLabel({
+        kind: ControlFrameKind.BodyCentredInertial,
+        centreBody: "Kerbin",
+        targetFrameSelected: true,
+      } as ControlFrame),
+    ).toBe("Target frame");
+  });
+
+  it("leaves a missing body's placeholder standing rather than collapsing the name", () => {
+    // "-Centred Inertial" reads like a formatting slip; the placeholder says a
+    // body is missing.
+    expect(
+      controlFrameLabel({
+        kind: ControlFrameKind.BodyCentredInertial,
+      } as ControlFrame),
+    ).toBe("<centre>-Centred Inertial");
+  });
+
+  it("renders an unnamed kind as the kind rather than the nearest neighbour", () => {
+    // A wrong frame name is a wrong claim about what every coordinate on the
+    // board means, so an unknown one reads as obviously incomplete.
+    expect(controlFrameLabel({ kind: 99 } as ControlFrame)).toBe("Frame 99");
+  });
+
+  it("names nothing when no frame has been reported", () => {
+    expect(controlFrameLabel(undefined)).toBeUndefined();
   });
 });

@@ -100,3 +100,38 @@ describe("CurrentOrbit: what the view frame does to the apsis readouts", () => {
     expect(screen.queryByText(/no Ap here/i)).not.toBeInTheDocument();
   });
 });
+
+describe("CurrentOrbit: naming the frame that took the numbers away", () => {
+  it("names the frame in force when it is why the apsides are gone", async () => {
+    // The caveat alone says a quantity is missing; the name says WHY, and the
+    // why is something the operator can act on by changing their view.
+    const fixture = mount();
+    emitOrbit(fixture);
+    act(() => {
+      fixture.emit("system.frame", {
+        kind: 4,
+        primaryBody: "Kerbol",
+        secondaryBody: "Kerbin",
+      });
+    });
+
+    await waitFor(() =>
+      expect(screen.getByText(/Kerbol-Kerbin Lagrange/)).toBeTruthy(),
+    );
+  });
+
+  it("does not caption a frame that takes nothing away", async () => {
+    // A frame caption on a panel whose readouts it does not touch is a line of
+    // text that explains nothing.
+    const fixture = mount();
+    emitOrbit(fixture);
+    act(() => {
+      fixture.emit("system.frame", { kind: 1, centreBody: "Kerbin" });
+    });
+
+    await waitFor(() =>
+      expect(screen.queryByText(/no Ap here/i)).not.toBeInTheDocument(),
+    );
+    expect(screen.queryByText(/^Frame: /)).not.toBeInTheDocument();
+  });
+});

@@ -15,6 +15,7 @@ import {
 import {
   apsidesExist,
   type ControlFrame,
+  controlFrameLabel,
   frameCaveat,
   value,
 } from "@ksp-gonogo/sitrep-sdk";
@@ -211,6 +212,15 @@ function CurrentOrbitComponent({
         trajectory={trajectory}
         centreBodyIndex={orbit?.referenceBodyIndex}
       />
+      {/* The GAME's own view frame, which is a different fact from the frame
+          this widget drew in above: that one is this panel's choice and nobody
+          else's, this one is what the operator is looking at in the game and
+          what decides whether the numbers below exist at all. Named only when
+          it takes one of them away, because a frame caption on a panel whose
+          readouts it does not touch is a line of text that explains nothing. */}
+      {noApsidesHere && controlFrameLabel(controlFrame) !== undefined && (
+        <FrameCaveat>Frame: {controlFrameLabel(controlFrame)}</FrameCaveat>
+      )}
       {/* A plain div (not a Stack) so the ResizeObserver ref attaches to the
           real measured element: ui-kit's layout primitives don't forward
           refs, and this is the one node in the widget that genuinely needs

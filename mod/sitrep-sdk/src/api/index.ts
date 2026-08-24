@@ -170,6 +170,7 @@ export const GAME_HOST_KEY = "gameHost" as const;
 export type { FrameValidity } from "../frame-qualifier";
 export {
   apsidesExist,
+  controlFrameLabel,
   frameCaveat,
   lengthsAreLengths,
 } from "../frame-qualifier";
