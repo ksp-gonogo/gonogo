@@ -869,6 +869,13 @@ export const GENERATED_TYPE_UNITS: Readonly<Record<string, UnitsByField>> = {
     yawTrim: "1",
     z: "1",
   },
+  "SetControlFrameArgs": {
+    centreBody: "text",
+    kind: "enum",
+    primaryBody: "text",
+    secondaryBody: "text",
+    targetFrameSelected: "flag",
+  },
   "SetEnabledArgs": {
     enabled: "flag",
   },

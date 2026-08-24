@@ -305,6 +305,14 @@ export interface ControlFrame
 	targetFrameSelected?: boolean;
 	targetId?: string;
 }
+export interface SetControlFrameArgs
+{
+	kind: ControlFrameKind;
+	centreBody?: string;
+	primaryBody?: string;
+	secondaryBody?: string;
+	targetFrameSelected?: boolean;
+}
 export interface CrashReport
 {
 	vesselId: string;

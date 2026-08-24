@@ -54,5 +54,21 @@ namespace Gonogo.KSP
                 };
             }
         }
+
+        /// <summary>
+        /// Stock cannot be put in a frame. Its view frame is the active craft's
+        /// reference body, which changes when the craft changes sphere of
+        /// influence and at no other time, so there is nothing here to set.
+        ///
+        /// <para>Refused rather than silently accepted, because a command that
+        /// reports success and moves nothing leaves an operator believing the view
+        /// is somewhere it is not, and the next thing they read off it will be
+        /// read in the wrong frame.</para>
+        /// </summary>
+        public CommandResult SetFrame(SetControlFrameArgs frame) =>
+            CommandResult.Fail(
+                CommandErrorCode.ModeUnavailable,
+                "Stock's view frame follows the active craft's reference body and "
+                    + "cannot be set. An n-body producer offers selectable frames.");
     }
 }

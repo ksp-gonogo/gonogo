@@ -134,9 +134,64 @@ namespace Sitrep.Contract
     /// looks exactly like one drawn in the frame the player is actually in, and
     /// nothing downstream could tell them apart.</para>
     /// </summary>
+    /// <summary>
+    /// <c>system.frame.set</c>'s args: the frame to put the view in.
+    ///
+    /// <para><b>A caller names the pair, not the sets.</b> Unlike
+    /// <see cref="ControlFrame"/>, which reports <c>PrimaryBodies</c> and
+    /// <c>SecondaryBodies</c>, this carries only the two heads. Which bodies fall
+    /// on each side of a pulsating frame is decided by the producer walking its
+    /// own body tree, so a caller stating them would be stating a conclusion it
+    /// cannot reach, and a set that disagreed with the producer's would name a
+    /// frame nothing can select.</para>
+    /// </summary>
+    [SitrepContract]
+#if SITREP_CODEGEN
+    [TsInterface]
+#endif
+    public class SetControlFrameArgs
+    {
+        [SitrepUnit(Units.Enumeration)]
+        public ControlFrameKind Kind { get; set; }
+
+        /// <summary>The body to centre on. Required for the centred frames.</summary>
+        [SitrepUnit(Units.Text)]
+        public string? CentreBody { get; set; }
+
+        /// <summary>The body a rotating frame turns about. Required for the rotating frames.</summary>
+        [SitrepUnit(Units.Text)]
+        public string? PrimaryBody { get; set; }
+
+        /// <summary>The body a rotating frame is anchored to. Required for the rotating frames.</summary>
+        [SitrepUnit(Units.Text)]
+        public string? SecondaryBody { get; set; }
+
+        /// <summary>
+        /// Ask for the target frame, which sits orthogonally to
+        /// <see cref="Kind"/> rather than inside it.
+        /// </summary>
+        [SitrepUnit(Units.Flag)]
+        public bool? TargetFrameSelected { get; set; }
+    }
+
     public interface IControlFrameSource : ISitrepProvider
     {
         ControlFrame? Frame { get; }
+
+        /// <summary>
+        /// Put the view in <paramref name="frame"/>.
+        ///
+        /// <para>On the SAME interface as the read rather than a seam of its own,
+        /// because the thing that owns the view is the only thing that can move
+        /// it, and splitting them would let an install elect one source to read
+        /// and another to write, which is two answers about one view.</para>
+        ///
+        /// <para>Refusing is a normal outcome and not a fault: stock's frame
+        /// follows the craft's own reference body and cannot be set at all. A
+        /// source that cannot honour a frame says so, rather than accepting and
+        /// leaving the view where it was.</para>
+        /// </summary>
+        CommandResult SetFrame(SetControlFrameArgs frame);
     }
 
     /// <summary>

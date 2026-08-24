@@ -71,5 +71,33 @@ namespace Sitrep.Host
                 return null;
             }
         }
+
+        /// <summary>
+        /// Asks the elected source to put the view in <paramref name="frame"/>.
+        ///
+        /// <para>Whoever answers the READ answers the write, which is what stops
+        /// the view being reported by one source and moved by another. An
+        /// unsatisfied capability refuses rather than throwing, because "nothing
+        /// here owns the view" is an answer an operator can act on.</para>
+        /// </summary>
+        public static CommandResult Set(Kernel? kernel, SetControlFrameArgs? frame)
+        {
+            if (frame == null)
+            {
+                return CommandResult.Fail(
+                    CommandErrorCode.Unknown,
+                    "The command carried no frame, so there is nothing to put the view in.");
+            }
+
+            var source = kernel?.Query<IControlFrameSource>(CapabilityId);
+            if (source == null)
+            {
+                return CommandResult.Fail(
+                    CommandErrorCode.ModeUnavailable,
+                    "Nothing here owns the game's navigation view, so it cannot be moved.");
+            }
+
+            return source.SetFrame(frame);
+        }
     }
 }

@@ -32,6 +32,13 @@ namespace Gonogo.KSP
         /// </summary>
         public const string ControlFrameTopic = "system.frame";
 
+        /// <summary>
+        /// Puts the game's navigation view in a frame, so a command centre can
+        /// move it to where a plan is being discussed rather than describing where
+        /// it wants the operator to look.
+        /// </summary>
+        public const string SetControlFrameCommand = "system.frame.set";
+
         public UplinkManifest Manifest { get; } = new UplinkManifest
         {
             Id = "system",
@@ -136,6 +143,19 @@ namespace Gonogo.KSP
                     Delay = DelayRole.TrueNow,
                 },
             },
+            Commands = new List<CommandDeclaration>
+            {
+                // Not delayed, on the same reasoning as vessel.target.set: this
+                // designates what the operator is looking at rather than actuating
+                // anything on a craft, so there is no light-time for it to ride.
+                // A frame change that took minutes to apply would be a fiction
+                // about the operator's own screen.
+                new CommandDeclaration
+                {
+                    Command = SetControlFrameCommand,
+                    Delayed = false,
+                },
+            },
         };
 
         /// <summary>Mandatory health self-report (see <see cref="ISitrepUplink.Health"/>): a plain
@@ -155,6 +175,11 @@ namespace Gonogo.KSP
             // did. The kernel is reached at call time rather than captured,
             // because Register runs before capabilities resolve.
             host.AddChannelSource(ControlFrameTopic, _ => BuildControlFrame(host.Kernel));
+            // Through the same election as the read, so the source reporting the
+            // view is the one that moves it.
+            host.AddCommandHandler<SetControlFrameArgs, CommandResult>(
+                SetControlFrameCommand,
+                args => ControlFrameElection.Set(host.Kernel, args));
         }
 
         /// <summary>
