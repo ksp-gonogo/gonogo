@@ -26,6 +26,7 @@ import {
   type WithheldTrajectory,
 } from "../shared/trajectoryWithheld";
 import { useIsOrbiting } from "../shared/useIsOrbiting";
+import { usePastTrack } from "../shared/usePastTrack";
 
 /**
  * Provider-optional read of a raw OR derived stream Topic, mirrors
@@ -209,6 +210,12 @@ function OrbitViewComponent({
         ? orbitReading.reckoned.value
         : undefined;
   const orbitStale = orbitReading.state === "stale";
+  /**
+   * Where the craft has been, drawn behind it. Five minutes: long enough to
+   * read as a direction of travel on a low orbit, and short enough to stay
+   * within samples this frame can place.
+   */
+  const trail = usePastTrack(300, orbit?.referenceBodyIndex);
   const vesselState = useStreamOptional<VesselState>("vessel.state");
   const sma = orbit?.sma;
   const eccentricity = orbit?.ecc;
@@ -300,6 +307,7 @@ function OrbitViewComponent({
       // The seam's answer, drawn as given. `null` on the conic arm, where the
       // diagram's own conic renderer is what the provider said is right.
       trajectoryPath={trajectory.shape === "arc" ? trajectory.points : null}
+      trailPath={trail}
       trajectoryFarEnd={trajectory.shape === "arc" ? trajectory.farEnd : null}
       sma={sma.magnitude}
       ecc={eccentricity.magnitude}

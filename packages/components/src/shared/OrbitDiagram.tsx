@@ -117,6 +117,16 @@ export interface OrbitDiagramProps {
    */
   trajectoryPath?: readonly { x: number; y: number }[] | null;
   /**
+   * Where the craft HAS BEEN, drawn behind it.
+   *
+   * <p>Deliberately a separate prop from `trajectoryPath` and drawn in a
+   * different weight, because the two are different kinds of claim: one is a
+   * record of what was observed, the other a prediction of what will happen.
+   * Joined into one curve through the craft they would read as equally certain,
+   * and the half that is a guess is the half an operator would act on.</p>
+   */
+  trailPath?: readonly { x: number; y: number }[] | null;
+  /**
    * What the far end of `trajectoryPath` IS, which decides the sentence on the
    * mark drawn there.
    *
@@ -176,6 +186,7 @@ export function OrbitDiagram({
   atmosphereDepthM = null,
   atmosphereHasOxygen = null,
   trajectoryPath = null,
+  trailPath = null,
   trajectoryFarEnd = null,
 }: Readonly<OrbitDiagramProps>) {
   const cfg = variantConfig[variant];
@@ -451,6 +462,18 @@ export function OrbitDiagram({
 
         {/* Trajectory first so the body overdraws it at the focus */}
         <g transform={`rotate(${-argPe})`}>
+          {trailPath && trailPath.length > 1 && (
+            /* Dimmer and thinner than the forward arc, because it is the other
+               kind of claim: what was observed, against what is predicted. */
+            <path
+              data-trajectory="trail"
+              d={buildSuppliedPath(trailPath)}
+              fill="none"
+              stroke={orbitStroke}
+              strokeOpacity={0.35}
+              strokeWidth={strokeW * 0.6}
+            />
+          )}
           {trajectoryPath ? (
             /* A supplied path wins over the conic: the seam has said this is
                the trajectory, and deriving one from the elements beside it

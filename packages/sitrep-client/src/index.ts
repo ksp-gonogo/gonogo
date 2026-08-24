@@ -248,6 +248,7 @@ export {
   librationPositionsFor,
   orbitTrajectory,
   PropagationHorizonKindLike,
+  pastTrack,
   READ_FRAME_KINDS,
   resolveReadFrame,
   rotateInertialToPerifocal,

@@ -112,6 +112,9 @@ const MAGNITUDE_BUDGET: Record<string, number> = {
   "packages/components/src/OrbitView/index.tsx": 8,
   "packages/components/src/ResourceOps/index.tsx": 1,
   "packages/components/src/SemiMajorAxis/index.tsx": 2,
+  // 1: the view instant, unwrapped to bound a history window. sampleRange
+  // takes plain UT numbers because a store index is not a quantity.
+  "packages/components/src/shared/usePastTrack.ts": 1,
   "packages/components/src/shared/dockAngles.ts": 1,
   "packages/components/src/shared/OrbitalEventChips.tsx": 1,
   "packages/components/src/SpaceWeather/index.tsx": 1,
