@@ -753,9 +753,20 @@ namespace Sitrep.Host
 
         /// <param name="bindUri">A <c>ws://host:port</c> URI: see <see cref="FleckTransportListener"/>.</param>
         /// <param name="networkDelaySeconds">
-        /// One-way delay the Courier applies between record and delivery; see
-        /// <c>GonogoBodiesServer</c>'s identical constructor parameter for the
-        /// same-machine/LAN rationale.
+        /// SEED value for the whole-network delay default, the third and lowest
+        /// tier of <see cref="INetwork.DelayTo"/>. It is the one-way delay the
+        /// Courier applies between record and delivery for any (vantage, node)
+        /// pair with no <see cref="INetwork.SetNodeDelay"/> node-default and no
+        /// explicit <see cref="INetwork.SetDelay"/> pair, which in practice
+        /// means the active vessel's <see cref="NodeId"/> node.
+        ///
+        /// <para>It is a SEED, not the operating value: <see
+        /// cref="CaptureSignalDelay"/> overwrites it every tick from the live
+        /// <c>comms.delay</c> scalar. Production therefore leaves this at 0 and
+        /// gets its light-time at runtime instead. Do not read "production
+        /// passes nothing" as "the whole-network default is unused": tier 3 is
+        /// how the active vessel's signal delay reaches the Courier and the
+        /// reveal gate, and neutering it fails the reveal-gate suite.</para>
         /// </param>
         /// <param name="executeCommandsOnMainThread">
         /// F2 Part 1: when <c>true</c>, command handlers are marshaled onto the
@@ -784,8 +795,26 @@ namespace Sitrep.Host
             _mainThreadCommandTimeout = TimeSpan.FromSeconds(mainThreadCommandTimeoutSeconds);
             _clock = new ManualClock();
             var stubNetwork = new StubNetwork(delay: networkDelaySeconds, reachable: true);
-            // Pin the meta-vantage to 0 so instant/exempt topics stay instant
-            // once the whole-network default carries the signal delay (Plan 1).
+            // Pin the meta-vantage to 0 so instant/exempt topics on the active
+            // vessel's node stay instant. The whole-network default underneath
+            // is not 0 for long: CaptureSignalDelay drives it from the live
+            // comms.delay every tick, so an exempt topic that fell through to
+            // it would pick up the signal delay it is exempt from.
+            //
+            // Written as an EXPLICIT (vantage, node) pair rather than left to
+            // any default, because DelayTo resolves the explicit pair FIRST and
+            // that is the only tier nothing else writes to. It is NOT made
+            // redundant by networkDelaySeconds being 0 here: that argument only
+            // seeds tier 3, which the live delay then overwrites within a tick.
+            //
+            // The Subscribe path re-asserts the same pin per instant topic (see
+            // the SetDelay(MetaVantage, NodeFor(topic), 0.0) there, which also
+            // covers fleet.<guid> nodes minted later), so this one holds the
+            // active vessel's node for any DelayTo(meta, system) read that
+            // happens before a subscription exists. Nothing currently in the
+            // suite distinguishes the two: removing this line leaves
+            // Sitrep.Host.IntegrationTests fully green, so treat that greenness
+            // as unmeasured rather than as permission to delete it.
             stubNetwork.SetDelay(MetaVantage, NodeId, 0.0);
             _network = stubNetwork;
             _courier = new Courier(_clock, _network);
