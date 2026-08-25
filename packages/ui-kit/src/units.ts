@@ -1148,8 +1148,21 @@ export function formatQuantity(
     // including KSP's 6-hour day, so this delegates rather than restating it.
     // The symbol comes back empty because the parts are interleaved with the
     // number and cannot be split off the way "12.4" and "km" can.
+    //
+    // Both duration formatters take SECONDS, so the declared unit's ratio has
+    // to be applied on the way in. A field declared in days is 43 days, not 43
+    // seconds, and handing the raw magnitude over rendered it as the latter
+    // under a label that still read like the former.
+    //
+    // `ratioOf` and not the generated table: `d`, `h`, `min` and `y` are sized
+    // by the calendar the GAME reported, and only `ratioOf` asks it. Freezing
+    // the stock 21,600 here would put the same bug back one layer down.
     if (kind === "time") {
-      return { value: formatDuration(value), symbol: "", rung: "s" };
+      return {
+        value: formatDuration(value * (ratioOf(unit) ?? 1)),
+        symbol: "",
+        rung: "s",
+      };
     }
 
     // `irlTime` is the same ladder on a real day, and it is a SEPARATE kind
@@ -1158,7 +1171,11 @@ export function formatQuantity(
     // side in this UI, and the difference between them is a factor of four
     // that renders as a plausible number.
     if (kind === "irlTime") {
-      return { value: formatIrlDuration(value), symbol: "", rung: "irl:s" };
+      return {
+        value: formatIrlDuration(value * (ratioOf(unit) ?? 1)),
+        symbol: "",
+        rung: "irl:s",
+      };
     }
 
     // A universal time is an INSTANT, not a length, and it is the one kind that

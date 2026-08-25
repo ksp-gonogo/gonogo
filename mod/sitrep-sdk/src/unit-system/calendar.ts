@@ -126,6 +126,7 @@ export function kspYearDays(): number {
  * not look like a day at a glance.
  */
 const CALENDAR_RATIO: Record<string, (calendar: KspCalendar) => number> = {
+  y: (c) => c.year,
   d: (c) => c.day,
   h: (c) => c.hour,
   min: (c) => c.minute,

@@ -154,6 +154,14 @@ export const UNIT_DEFINITIONS = {
   min: { dim: { s: 1 }, ratio: 60, kind: "time" },
   h: { dim: { s: 1 }, ratio: 3_600, kind: "time" },
   d: { dim: { s: 1 }, ratio: 21_600, kind: "time" },
+  // The duration ladder's top tier. It renders in every mission clock that
+  // runs past a Kerbin year, and having no entry here left it the one tier
+  // symbol with no kind: `kindOfUnit("y")` answered `undefined`, so a field
+  // declared in years missed the duration branch and rendered as a bare
+  // number. Like `min`, `h` and `d` it is a display and arithmetic unit
+  // rather than a contract token, and like them its size is the calendar's
+  // to decide, not this table's.
+  y: { dim: { s: 1 }, ratio: 426 * 21_600, kind: "time" },
 
   // ── Speed ────────────────────────────────────────────────────────────────
   "m/s": { dim: { m: 1, s: -1 }, ratio: 1, kind: "speed" },

@@ -89,5 +89,6 @@ export const GENERATED_UNIT_KINDS = {
   "units": { kind: "resourceUnits", ratio: 1 },
   "units/s": { kind: "resourceFlow", ratio: 1 },
   "ut": { kind: "universalTime", ratio: 1 },
+  "y": { kind: "time", ratio: 9201600 },
   "°": { kind: "planeAngle", ratio: 0.017453292519943295 },
 } as const;

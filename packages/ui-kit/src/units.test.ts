@@ -1,8 +1,8 @@
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import type { SitrepUnit } from "@ksp-gonogo/sitrep-sdk";
-import { value } from "@ksp-gonogo/sitrep-sdk";
-import { describe, expect, it } from "vitest";
+import { setKspCalendar, value } from "@ksp-gonogo/sitrep-sdk";
+import { afterEach, describe, expect, it } from "vitest";
 import { NULL_DISPLAY } from "./NullValue";
 import {
   formatQuantity,
@@ -11,6 +11,14 @@ import {
   setQuantityLocale,
   writeQuantity,
 } from "./units";
+
+/** A 24-hour day and a 365-day year, what RSS and `KERBIN_TIME` off both give. */
+const EARTH_CALENDAR = {
+  minute: 60,
+  hour: 3600,
+  day: 86_400,
+  year: 365 * 86_400,
+};
 
 /**
  * These pin the rules that a naive implementation gets wrong. Each one exists
@@ -809,5 +817,96 @@ describe("formatQuantity: a format across KINDS is refused, not applied", () => 
   // every format: within one kind the pin is honoured.
   it("still honours a format within the same kind", () => {
     expect(formatQuantity(12_400, "m", { format: "km" }).symbol).toBe("km");
+  });
+});
+
+// ---------------------------------------------------------------------------
+// A duration arrives in whatever unit the field declares, and only one of
+// those units is the baseline the composite formatter reads.
+// ---------------------------------------------------------------------------
+describe("a duration is converted to seconds before it is laddered", () => {
+  it("reads a value declared in days as days", () => {
+    // 43 days, not 43 seconds. The dimension reached this branch and the
+    // ratio did not, so every non-second duration rendered its raw magnitude
+    // under a seconds ladder: a number wrong by the unit's own ratio, shown
+    // with a label that looked right.
+    expect(formatQuantity(43, "d").value).toBe("43d");
+  });
+
+  it("reads a value declared in hours as hours", () => {
+    expect(formatQuantity(2, "h").value).toBe("2h");
+  });
+
+  it("reads a value declared in minutes as minutes", () => {
+    expect(formatQuantity(5, "min").value).toBe("5min");
+  });
+
+  it("reads a value declared in years as years", () => {
+    // `y` is the ladder's top tier and had no entry in the unit model at all,
+    // so it carried no kind: it missed the duration branch entirely and
+    // rendered as a bare number beside a symbol.
+    expect(formatQuantity(1, "y").value).toBe("1y");
+    expect(kindOfUnit("y")).toBe("time");
+  });
+
+  it("leaves a value already in seconds exactly as it was", () => {
+    // The baseline IS seconds, so its ratio is 1 and every existing call site
+    // reads the same before and after.
+    expect(formatQuantity(90, "s").value).toBe("1min 30s");
+    expect(formatQuantity(928_800, "s").value).toBe("43d");
+    expect(formatQuantity(8100, "s").value).toBe("2h 15min");
+  });
+
+  it("does the same for the wall-clock kind, which has the same rungs", () => {
+    // `irlTime` declares four units of its own and read them all as seconds
+    // for the same reason.
+    expect(formatQuantity(2, "irl:h").value).toBe("2h");
+    expect(formatQuantity(1, "irl:d").value).toBe("1d");
+    expect(formatQuantity(90, "irl:s").value).toBe("1min 30s");
+  });
+
+  it("still gives the raw magnitude when asked not to scale", () => {
+    // `"never"` opts out of the composite presentation, so it opts out of the
+    // conversion that feeds it: the answer is the reading in the declared
+    // unit, which is what the caller asked for.
+    expect(formatQuantity(43, "d", { scale: "never" })).toMatchObject({
+      value: "43",
+      symbol: "d",
+    });
+  });
+});
+
+describe("a duration's rungs follow the calendar the game reported", () => {
+  afterEach(() => {
+    setKspCalendar();
+  });
+
+  it("re-sizes a day when the game says a day is 24 hours", () => {
+    // Stock Kerbin: 43 days is 43 six-hour days, and a year is 426 of them.
+    expect(formatQuantity(43, "d").value).toBe("43d");
+    expect(formatQuantity(1, "d", { format: "h" })).toMatchObject({
+      value: "6",
+      symbol: "h",
+    });
+
+    setKspCalendar(EARTH_CALENDAR);
+
+    // Same 43 days, four times as long, and the top tier moves with it: 365
+    // days to a year rather than 426.
+    expect(formatQuantity(43, "d").value).toBe("43d");
+    expect(formatQuantity(1, "d", { format: "h" })).toMatchObject({
+      value: "24",
+      symbol: "h",
+    });
+    expect(formatQuantity(1, "y").value).toBe("1y");
+    expect(formatQuantity(365 * 86_400, "s").value).toBe("1y");
+  });
+
+  it("keeps the wall-clock kind on a real day whatever the game says", () => {
+    setKspCalendar(EARTH_CALENDAR);
+    expect(formatQuantity(1, "irl:d").value).toBe("1d");
+    setKspCalendar({ day: 3600, hour: 600, minute: 10, year: 3600 * 100 });
+    expect(formatQuantity(1, "irl:d").value).toBe("1d");
+    expect(formatQuantity(24 * 3600, "irl:s").value).toBe("1d");
   });
 });
