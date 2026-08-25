@@ -131,3 +131,54 @@ export const _channelsAssignable: ComponentDefinition["channels"] =
   asConstManifest.channels;
 export const _optionalAssignable: ComponentDefinition["optionalChannels"] =
   asConstManifest.optionalChannels;
+
+// ── A DERIVED channel is declarable, a legacy flat key is not ───────────────────────
+// The declaration union is `TopicId | DerivedChannelId`, closed on both arms. The
+// first assignment is the whole point of widening it: `vessel.state` is the
+// most-declared channel in the tree and no widget could name it while `channels`
+// was `TopicId[]`. The `@ts-expect-error` lines are the negative controls, and they
+// FAIL THE BUILD IF THEY START COMPILING: a legacy flat key that typechecks again is
+// how the retired vocabulary comes back, so the assertion that it does not is the
+// thing keeping it retired.
+const derivedManifest = defineTopicManifest({
+  channels: ["vessel.state", "vessel.orbit"],
+  optionalChannels: ["spaceCenter.state"],
+} as const);
+
+export const _derivedChannelsAssignable: ComponentDefinition["channels"] =
+  derivedManifest.channels;
+export const _derivedOptionalAssignable: ComponentDefinition["optionalChannels"] =
+  derivedManifest.optionalChannels;
+
+// A derived channel is DECLARED but not read through the manifest hook: it is read
+// with `useStream`, which answers the value rather than a `Reading`. The wire arm of
+// the same manifest still is.
+type _DerivedArg = Parameters<typeof derivedManifest.useTelemetry>[0];
+export type _DerivedNotAcceptedArg = Expect<
+  Equal<"vessel.state" extends _DerivedArg ? true : false, false>
+>;
+export type _WireStillAcceptedArg = Expect<
+  Equal<"vessel.orbit" extends _DerivedArg ? true : false, true>
+>;
+export type _DerivedWireReadIsReading = Expect<
+  Equal<
+    ReturnType<typeof derivedManifest.useTelemetry<"vessel.orbit">>,
+    Reading<VesselOrbit>
+  >
+>;
+
+defineTopicManifest({
+  // @ts-expect-error a legacy flat key is not a WidgetChannelId
+  channels: ["career.funds"],
+});
+
+defineTopicManifest({
+  // @ts-expect-error a FIELD PATH is not a WidgetChannelId; it collapses to its root
+  channels: ["vessel.state.altitudeAsl"],
+});
+
+defineTopicManifest({
+  channels: ["vessel.orbit"],
+  // @ts-expect-error the optional arm is the same closed union
+  optionalChannels: ["r.resource[ElectricCharge]"],
+});

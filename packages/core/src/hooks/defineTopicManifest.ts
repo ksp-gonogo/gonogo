@@ -1,5 +1,9 @@
 import type { Reading } from "@ksp-gonogo/sitrep-client";
-import type { TopicId, TopicPayload } from "@ksp-gonogo/sitrep-sdk";
+import type {
+  TopicId,
+  TopicPayload,
+  WidgetChannelId,
+} from "@ksp-gonogo/sitrep-sdk";
 import { useTelemetry } from "./useTelemetry";
 
 /**
@@ -87,17 +91,27 @@ export type WidgetTopicValue<
 > = Reading<TopicPayload<T>>;
 
 /**
- * A telemetry read hook bound to one widget's declared Topics. The single call
+ * A telemetry read hook bound to one widget's declared channels. The single call
  * signature constrains the argument to the union of the two declared arrays,
- * reading an undeclared Topic is a compile error, and maps the return type
+ * reading an undeclared channel is a compile error, and maps the return type
  * through {@link WidgetTopicValue}.
+ *
+ * The argument is `Extract<..., TopicId>`, narrower than what may be DECLARED. A
+ * widget may declare a derived channel and does, `vessel.state` is the most-read
+ * channel in the tree, but the derived ones are read with `useStream`, which
+ * answers with the value rather than a `Reading`. Admitting them here would mean
+ * either fabricating a `Reading` for a channel with no reckoning model or
+ * silently handing back a different shape from the same call, and the second is
+ * the class of thing this hook exists to make impossible. A declared derived
+ * channel therefore still gates the mount and still feeds the badge; only the
+ * read stays on the other hook.
  */
 export type BoundTelemetryHook<
-  Required extends readonly TopicId[],
-  Optional extends readonly TopicId[],
-> = <T extends Required[number] | Optional[number]>(
+  Required extends readonly WidgetChannelId[],
+  Optional extends readonly WidgetChannelId[],
+> = <T extends Extract<Required[number] | Optional[number], TopicId>>(
   topic: T,
-) => WidgetTopicValue<T, Required>;
+) => WidgetTopicValue<T, Extract<Required[number], TopicId>[]>;
 
 /**
  * The value returned by {@link defineTopicManifest}: the two declared arrays
@@ -105,8 +119,8 @@ export type BoundTelemetryHook<
  * plus the widget-bound {@link BoundTelemetryHook}.
  */
 export interface TopicManifest<
-  Required extends readonly TopicId[],
-  Optional extends readonly TopicId[],
+  Required extends readonly WidgetChannelId[],
+  Optional extends readonly WidgetChannelId[],
 > {
   readonly channels: Required;
   readonly optionalChannels: Optional;
@@ -134,8 +148,8 @@ export interface TopicManifest<
  *   registerComponent({ id: "power-systems", channels, optionalChannels, component: PowerSystems /* ... *\/ });
  */
 export function defineTopicManifest<
-  const Required extends readonly TopicId[],
-  const Optional extends readonly TopicId[] = readonly [],
+  const Required extends readonly WidgetChannelId[],
+  const Optional extends readonly WidgetChannelId[] = readonly [],
 >(manifest: {
   channels: Required;
   optionalChannels?: Optional;

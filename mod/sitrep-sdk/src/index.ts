@@ -211,13 +211,18 @@ export type {
 } from "./spine/uplink-health";
 export * from "./timeline";
 export {
+  DERIVED_CHANNEL_IDS,
+  type DerivedChannelId,
   getAllKnownTopicIds,
+  isDerivedChannelId,
   isTopicId,
+  isWidgetChannelId,
   registerBarePrimitiveTopic,
   TOPIC_IDS,
   type TopicId,
   type TopicPayload,
   type TopicPayloadMap,
+  type WidgetChannelId,
 } from "./topics";
 // The unit model: Value, dimensions, arithmetic, the unit table.
 //

@@ -1,6 +1,6 @@
 // Core shared types: expand as features are built
 
-import type { TopicId } from "@ksp-gonogo/sitrep-sdk";
+import type { WidgetChannelId } from "@ksp-gonogo/sitrep-sdk";
 import type { ComponentType } from "react";
 import type { ContributionSlotId } from "./contributions";
 import type { GonogoTheme } from "./theme";
@@ -222,21 +222,23 @@ export interface ComponentDefinition<TConfig = Record<string, unknown>> {
    * Topics this widget REQUIRES (Uplink architecture spec §3.2). The widget
    * only mounts once every one of these Topics is live, so a required Topic's
    * payload is read non-null through the manifest hook (§3.3). Typed as
-   * `readonly TopicId[]`: the same typed token the read hook is keyed by, so
-   * there is no drift between declaration and read. Authored via
-   * {@link defineTopicManifest} (`channels`), which also yields the bound
-   * `useTelemetry` hook. Coexists with the legacy `dataRequirements` during
-   * migration; the rename/removal is R7 (do-last) territory.
+   * `readonly WidgetChannelId[]`: the same typed token the read hook is keyed
+   * by, so there is no drift between declaration and read. The union's other
+   * arm is the client-side derived channels, which a widget consumes exactly as
+   * it consumes a wire Topic and which are not `TopicId`s; see
+   * `DERIVED_CHANNEL_IDS`. Authored via {@link defineTopicManifest}
+   * (`channels`), which also yields the bound `useTelemetry` hook. Coexists
+   * with the legacy `dataRequirements` during migration.
    */
-  channels?: readonly TopicId[];
+  channels?: readonly WidgetChannelId[];
   /**
    * Topics this widget OPTIONALLY consumes (Uplink architecture spec §3.2).
    * May be absent at runtime, so every Value read from one is `| undefined`
    * through the manifest hook (§3.3): a widget therefore cannot hard-depend
-   * on an optional Topic, statically. Typed as `readonly TopicId[]`. Authored
-   * via {@link defineTopicManifest} (`optionalChannels`).
+   * on an optional Topic, statically. Typed as `readonly WidgetChannelId[]`.
+   * Authored via {@link defineTopicManifest} (`optionalChannels`).
    */
-  optionalChannels?: readonly TopicId[];
+  optionalChannels?: readonly WidgetChannelId[];
   behaviors?: ComponentBehavior[];
   defaultConfig?: Partial<TConfig>;
   /**

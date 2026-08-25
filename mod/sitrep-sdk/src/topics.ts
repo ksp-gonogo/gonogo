@@ -259,6 +259,63 @@ export function isTopicId(value: string): value is TopicId {
   return TOPIC_ID_SET.has(value) || barePrimitiveTopicIds.has(value);
 }
 
+/**
+ * The client-side DERIVED channels, which a widget may declare and read exactly
+ * as it declares and reads a wire Topic, and which are not `TopicId`s.
+ *
+ * A derived channel is computed in the browser over the `TimelineStore` at the
+ * VIEW instant (`vessel.state` runs a Kepler solve per frame against the
+ * `ViewClock`), so it is not in-game value and has no `[SitrepTopic]` type for
+ * codegen to reflect. It is nonetheless a real thing a widget consumes: more
+ * built-in widgets read `vessel.state` than read any single wire Topic.
+ *
+ * Listed here by hand because the literal cannot be recovered from
+ * `PRODUCTION_DERIVED_CHANNELS`: that array is typed
+ * `DerivedChannelDefinition<unknown>[]` through an `as` cast, and
+ * `DerivedChannelDefinition.topic` is a plain `string`, so the ids are erased
+ * before any type could read them. `derived-channel-ids.test.ts` asserts set
+ * equality against that array in both directions, so a channel registered
+ * without being listed here, or listed here without being registered, fails.
+ */
+export const DERIVED_CHANNEL_IDS = [
+  "vessel.state",
+  "system.state",
+  "system.uplinkHealth",
+  "spaceCenter.state",
+  "dv.currentStageResource",
+  "dv.currentStageResourceMax",
+  "dv.legacyScalars",
+] as const;
+
+/** One of the client-side derived channels. See {@link DERIVED_CHANNEL_IDS}. */
+export type DerivedChannelId = (typeof DERIVED_CHANNEL_IDS)[number];
+
+const DERIVED_CHANNEL_ID_SET: ReadonlySet<string> = new Set(
+  DERIVED_CHANNEL_IDS,
+);
+
+/** Runtime narrowing guard: is `value` a known {@link DerivedChannelId}? */
+export function isDerivedChannelId(value: string): value is DerivedChannelId {
+  return DERIVED_CHANNEL_ID_SET.has(value);
+}
+
+/**
+ * What a widget may name in `channels` / `optionalChannels`: a wire Topic or a
+ * derived channel, and nothing else.
+ *
+ * The union is CLOSED on purpose. Widening this to `string` would let a legacy
+ * flat key typecheck again, and it is the fact that a legacy key does not
+ * typecheck that makes its removal permanent rather than a thing to be
+ * re-litigated. A field path is not an arm either: it collapses to whichever of
+ * these two carries it, which is what the read hook keys on anyway.
+ */
+export type WidgetChannelId = TopicId | DerivedChannelId;
+
+/** Runtime narrowing guard: is `value` a {@link WidgetChannelId}? */
+export function isWidgetChannelId(value: string): value is WidgetChannelId {
+  return isTopicId(value) || isDerivedChannelId(value);
+}
+
 // ── Compile-time invariants (checked by `pnpm typecheck`) ───────────────────────────
 // These bind the runtime `TOPIC_IDS` array to the SDK-OWNED `SdkOwnedTopicPayloadMap` in
 // both directions and prove that no SDK-owned Topic resolves to `unknown`, so a drift

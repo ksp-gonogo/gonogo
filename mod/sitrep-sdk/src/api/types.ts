@@ -18,7 +18,7 @@
 
 import type { ComponentType } from "react";
 import type { UplinkClientHandle } from "../spine/uplink-clients";
-import type { TopicId, TopicPayload } from "../topics";
+import type { TopicId, TopicPayload, WidgetChannelId } from "../topics";
 
 /** A dashboard component's declared data dependency, e.g. `"vessel.altitude"`. */
 export type DataRequirement = string;
@@ -88,10 +88,10 @@ export interface ComponentDefinition<TConfig = Record<string, unknown>> {
   mobileWidth?: "full" | "half";
   mobileHeight?: number;
   dataRequirements?: DataRequirement[];
-  /** Topics this widget REQUIRES; read non-null through the manifest hook. */
-  channels?: readonly TopicId[];
-  /** Topics this widget OPTIONALLY consumes: each read is `| undefined`. */
-  optionalChannels?: readonly TopicId[];
+  /** Channels this widget REQUIRES; read non-null through the manifest hook. */
+  channels?: readonly WidgetChannelId[];
+  /** Channels this widget OPTIONALLY consumes: each read is `| undefined`. */
+  optionalChannels?: readonly WidgetChannelId[];
   behaviors?: ComponentBehavior[];
   defaultConfig?: Partial<TConfig>;
   /** Actions this component exposes to the serial input platform. */
