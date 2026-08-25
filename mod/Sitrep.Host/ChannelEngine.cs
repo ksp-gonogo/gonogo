@@ -783,9 +783,23 @@ namespace Sitrep.Host
             _executeCommandsOnMainThread = executeCommandsOnMainThread;
             _mainThreadCommandTimeout = TimeSpan.FromSeconds(mainThreadCommandTimeoutSeconds);
             _clock = new ManualClock();
+            // `networkDelaySeconds` is a SEED, not the delay. In production it is
+            // never passed (GonogoAddon constructs with the default 0) and the live
+            // one-way light-time arrives every tick through
+            // `SetDefaultDelay(_signalDelaySeconds)` in CaptureSignalDelay, sourced
+            // from the elected comms backend via CommsCoreUplink.ComputeDelayOnMain.
+            //
+            // So the whole-network default is the ACTIVE carrier of signal delay for
+            // the primary node, not a leftover: `NodeId` is "system", nothing writes
+            // a node-level default for it, and SetVesselDelay/SetAuthorityDelay only
+            // ever write `fleet.*` nodes and command-centre pairs. For an operator
+            // vantage observing the active vessel, this tier is the ONLY one that
+            // resolves. Emptying `SetDefaultDelay` reds eight RevealGateTests.
             var stubNetwork = new StubNetwork(delay: networkDelaySeconds, reachable: true);
-            // Pin the meta-vantage to 0 so instant/exempt topics stay instant
-            // once the whole-network default carries the signal delay (Plan 1).
+            // Pinned as an EXPLICIT (vantage, node) pair rather than left to the
+            // default, so instant/exempt topics stay instant whatever the tick
+            // writes above. Do not "simplify" this away on the grounds that the
+            // default is currently zero: it is zero only until the first tick.
             stubNetwork.SetDelay(MetaVantage, NodeId, 0.0);
             _network = stubNetwork;
             _courier = new Courier(_clock, _network);
