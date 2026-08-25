@@ -11,6 +11,7 @@ import Peer, { type DataConnection } from "peerjs";
 import { BUILD_TIME, VERSION } from "../version";
 import { BundleFetchCache } from "./BundleFetchCache";
 import { deriveHostPeerId } from "./hostPeerId";
+import { attachIceDiagnostics } from "./iceDiagnostics";
 import { fetchHostIceServers } from "./iceServers";
 import { MessageDispatcher } from "./MessageDispatcher";
 import { peerBrokerOptions } from "./peerOptions";
@@ -339,8 +340,16 @@ export class PeerHostService {
    * because a claim dies with the `DataConnection` that made it, and because
    * releasing on disconnect needs to know exactly which claims were that
    * station's rather than another's.
+   *
+   * A `Map` rather than a `WeakMap` so `reconcileSitrepSubs` can walk it: the
+   * refcounts below are only as correct as the release events that feed them,
+   * and reconstructing them from the live connections is what makes a missed
+   * event recoverable. `dropConnection` and the reconcile both delete the
+   * entry, so a connection is not held past its own teardown.
    */
-  private readonly sitrepSubs = new WeakMap<DataConnection, Set<string>>();
+  private readonly sitrepSubs = new Map<DataConnection, Set<string>>();
+  /** Connections already torn down, so a `close` after an ICE death is a no-op. */
+  private readonly droppedConnections = new WeakSet<DataConnection>();
   /**
    * One entry per topic ANY station is reading, refcounted across connections,
    * holding the host's own upstream subscription. Two stations reading the same
@@ -572,6 +581,16 @@ export class PeerHostService {
           this.turnEscalationTimers.delete(conn);
         }
         this.connections.add(conn);
+        // PeerJS can lose an open data connection without ever firing
+        // `close`: the RTCPeerConnection goes silent and the events stop. A
+        // station already watches for that on its own side and reconnects;
+        // the host did not, so a departed station's claims stayed on the
+        // sitrep refcount for the rest of the session and its reconnect added
+        // a second set. Same detector the station uses, same grace window,
+        // pointed at the same teardown `close` runs. Attached here rather than
+        // on the `connection` event because the underlying peer connection is
+        // only reliably readable once the connection is open.
+        attachIceDiagnostics(conn, () => this.dropConnection(conn, "ICE dead"));
         logger.info(
           `[PeerHost] connection open: peer=${conn.peer}, total=${this.connections.size}`,
         );
@@ -632,44 +651,7 @@ export class PeerHostService {
         this.events.emit("peerConnect", conn.peer);
       });
       conn.on("data", (raw) => this.handleIncoming(raw as PeerMessage, conn));
-      conn.on("close", () => {
-        // If the connection closes before "open" fires (e.g. the escalation
-        // timer fires and then the conn closes), cancel any pending timer to
-        // avoid a double-escalation or a stale reference.
-        const pendingTimer = this.turnEscalationTimers.get(conn);
-        if (pendingTimer !== undefined) {
-          clearTimeout(pendingTimer);
-          this.turnEscalationTimers.delete(conn);
-        }
-        this.connections.delete(conn);
-        this.peerIdToStationKey.delete(conn.peer);
-        // Release any demand-only upstream subscribes held on behalf
-        // of this peer. WeakMap-keyed by `conn`, so we must read it
-        // before the conn drops out of scope. Without this, leaving
-        // stations leak the per-key refCount and the upstream
-        // subscribe stays pinned forever.
-        const subs = this.peerSubs.get(conn);
-        if (subs) {
-          for (const [sourceId, keys] of subs) {
-            for (const key of keys) {
-              this.releasePeerDrivenSub(sourceId, key);
-            }
-          }
-        }
-        // Same rule for this station's sitrep topics: read the set before the
-        // conn goes out of scope, or the refcount pins the upstream
-        // subscription for the rest of the session.
-        const claimed = this.sitrepSubs.get(conn);
-        if (claimed) {
-          for (const topic of [...claimed]) {
-            this.releaseSitrepSub(conn, topic);
-          }
-        }
-        logger.info(
-          `[PeerHost] connection closed: peer=${conn.peer}, total=${this.connections.size}`,
-        );
-        this.events.emit("peerDisconnect", conn.peer);
-      });
+      conn.on("close", () => this.dropConnection(conn, "closed"));
       conn.on("error", (err) => {
         logger.error(`[PeerHost] connection error: peer=${conn.peer}`, err);
       });
@@ -998,13 +980,84 @@ export class PeerHostService {
   }
 
   /**
+   * Forget a connection and everything held on its behalf. Called both from
+   * PeerJS's own `close` and from the ICE liveness detector, which is why it
+   * guards against running twice: a connection that goes silent and is later
+   * closed must release its claims once, not twice.
+   */
+  private dropConnection(conn: DataConnection, why: string): void {
+    if (this.droppedConnections.has(conn)) return;
+    this.droppedConnections.add(conn);
+    // If the connection dies before "open" fires (e.g. the escalation timer
+    // fires and then the conn closes), cancel any pending timer to avoid a
+    // double-escalation or a stale reference.
+    const pendingTimer = this.turnEscalationTimers.get(conn);
+    if (pendingTimer !== undefined) {
+      clearTimeout(pendingTimer);
+      this.turnEscalationTimers.delete(conn);
+    }
+    this.connections.delete(conn);
+    this.peerIdToStationKey.delete(conn.peer);
+    // Release any demand-only upstream subscribes held on behalf
+    // of this peer. WeakMap-keyed by `conn`, so we must read it
+    // before the conn drops out of scope. Without this, leaving
+    // stations leak the per-key refCount and the upstream
+    // subscribe stays pinned forever.
+    const subs = this.peerSubs.get(conn);
+    if (subs) {
+      for (const [sourceId, keys] of subs) {
+        for (const key of keys) {
+          this.releasePeerDrivenSub(sourceId, key);
+        }
+      }
+    }
+    // Same rule for this station's sitrep topics: read the set before the
+    // conn goes out of scope, or the refcount pins the upstream
+    // subscription for the rest of the session.
+    const claimed = this.sitrepSubs.get(conn);
+    if (claimed) {
+      for (const topic of [...claimed]) {
+        this.releaseSitrepSub(conn, topic);
+      }
+    }
+    this.sitrepSubs.delete(conn);
+    logger.info(
+      `[PeerHost] connection ${why}: peer=${conn.peer}, total=${this.connections.size}`,
+    );
+    this.events.emit("peerDisconnect", conn.peer);
+  }
+
+  /**
+   * Rebuild the sitrep refcounts from the connections that are actually live,
+   * dropping every claim held by one that is not. The refcounts decide what the
+   * host pulls from the mod, and they are fed by events (`sitrep-unsubscribe`,
+   * a connection dying) that can be missed: `stop()` clears the connection set
+   * without releasing anything, and a connection can be dropped by a path that
+   * never reaches `dropConnection`. Without this the count can only ever climb,
+   * so the host keeps pulling topics for stations that are gone.
+   *
+   * Runs where the upstream subscriptions are rebuilt anyway, so the corrected
+   * set is what gets re-established.
+   */
+  private reconcileSitrepSubs(): void {
+    for (const [conn, claimed] of [...this.sitrepSubs]) {
+      if (this.connections.has(conn)) continue;
+      for (const topic of [...claimed]) {
+        this.releaseSitrepSub(conn, topic);
+      }
+      this.sitrepSubs.delete(conn);
+    }
+  }
+
+  /**
    * Point station subscription multiplexing at the host's live stream. Any
-   * topic already claimed before this is called is subscribed now, so a station
+   * topic still claimed by a live connection is subscribed now, so a station
    * that connects before the relay mounts is not left unserved. The returned
    * detach drops every upstream subscription while keeping the refcounts, so a
    * remount re-establishes exactly what the stations still want.
    */
   attachSitrepSink(sink: SitrepSubscriptionSink): () => void {
+    this.reconcileSitrepSubs();
     this.sitrepSink = sink;
     for (const [topic, entry] of this.sitrepTopicRefs) {
       entry.unsub ??= sink.subscribe(topic);
@@ -1054,6 +1107,7 @@ export class PeerHostService {
   private releaseSitrepSub(conn: DataConnection, topic: string): void {
     const claimed = this.sitrepSubs.get(conn);
     if (!claimed?.delete(topic)) return;
+    if (claimed.size === 0) this.sitrepSubs.delete(conn);
     const entry = this.sitrepTopicRefs.get(topic);
     if (!entry) return;
     entry.refCount -= 1;
@@ -1904,6 +1958,10 @@ export class PeerHostService {
     this.destroyPeer();
     this.peerId = null;
     this.connections.clear();
+    // Clearing the set is not the same as each connection closing, so nothing
+    // released what those stations were reading. Reconcile against the (now
+    // empty) live set so the host stops pulling their topics from the mod.
+    this.reconcileSitrepSubs();
     this.events.emit("id", null);
     logger.info("[PeerHost] stopped");
   }
