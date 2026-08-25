@@ -1,3 +1,4 @@
+import { PerfBudget } from "@ksp-gonogo/core";
 import {
   StubTransport,
   TelemetryClient,
@@ -7,7 +8,7 @@ import type { Meta, ServerMessage } from "@ksp-gonogo/sitrep-sdk";
 import { Quality, Staleness } from "@ksp-gonogo/sitrep-sdk";
 import { act, render } from "@ksp-gonogo/test-utils";
 import { describe, expect, it } from "vitest";
-import type { PeerHostService } from "../peer/PeerHostService";
+import { PeerHostService } from "../peer/PeerHostService";
 import type { PeerMessage } from "../peer/protocol";
 import { SitrepPeerRelay } from "./SitrepPeerRelay";
 
@@ -122,5 +123,52 @@ describe("the relay tap", () => {
 
     view.unmount();
     await act(async () => {});
+  });
+});
+
+/**
+ * Relayed frames scale with the number of connected stations, and after
+ * station-driven subscription the relayed topic set is the union of every
+ * station's demand, so one station opening a heavy widget spends every other
+ * station's PeerJS leg.
+ *
+ * `SITREP_PEER_RELAY_BUDGET` deliberately cannot see that axis: it records once
+ * per frame tapped off the host, not per recipient. The axis IS counted, by
+ * `PeerHostService.broadcast`, which is the path a relayed frame takes. Pinned
+ * because routing sitrep frames around `broadcast` would leave the axis station
+ * demand controls with no instrument on it.
+ */
+describe("relayed frames are counted per recipient", () => {
+  function budgetRate(name: string): number {
+    return (
+      PerfBudget.getAll()
+        .find((b) => b.name === name)
+        ?.rate() ?? -1
+    );
+  }
+
+  it("records once per connected station, not once per frame", () => {
+    const host = new PeerHostService();
+    const before = budgetRate("PeerHostService.broadcast count/sec");
+
+    // Two stand-in connections, so a single broadcast must count two.
+    const conns = [{ send: () => {} }, { send: () => {} }];
+    for (const conn of conns) {
+      (host as unknown as { connections: Set<unknown> }).connections.add(conn);
+    }
+
+    host.broadcast({
+      type: "sitrep-frame",
+      message: {
+        type: "stream-data",
+        topic: UPLINK_TOPIC,
+        payload: { value: 1 },
+        meta: makeMeta(),
+      },
+    });
+
+    const after = budgetRate("PeerHostService.broadcast count/sec");
+    expect(after - before).toBe(conns.length);
+    host.stop();
   });
 });

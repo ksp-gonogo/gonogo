@@ -80,4 +80,19 @@ export interface Transport {
    * complete, known-in-advance set of topics it can ever deliver.
    */
   readonly carriedChannels?: readonly string[];
+
+  /**
+   * OPTIONAL: whether this transport can carry a vantage selection at all.
+   * Absent means yes, which is right for every transport that owns its own
+   * session with the mod.
+   *
+   * `PeerTransport` is the one that cannot. The mod keeps `SelectedVantage` on
+   * the `ClientSession` and a host has exactly one session, so a station
+   * selecting a vantage would move every other station's observation with it.
+   * Declaring `false` here makes `TelemetryClient.setVantage` refuse rather
+   * than change its own selection and re-subscribe every topic against a
+   * request the wire will never carry, which would leave the client claiming a
+   * vantage its data is not from.
+   */
+  readonly carriesVantage?: boolean;
 }

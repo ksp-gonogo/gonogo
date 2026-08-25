@@ -231,6 +231,15 @@ export class TelemetryClient {
   }
 
   /**
+   * Whether {@link setVantage} can do anything on this connection. False on a
+   * station, whose frames are relayed from a host session it does not own; a
+   * control should render dark rather than offer a choice that cannot be made.
+   */
+  get canSetVantage(): boolean {
+    return this.transport.carriesVantage !== false;
+  }
+
+  /**
    * Subscribe to selected-vantage changes (for a reactive read, e.g.
    * `useSelectedVantage`). Fires after {@link setVantage} updates the selection.
    * Returns an unsubscribe.
@@ -250,6 +259,12 @@ export class TelemetryClient {
    * this optimistically tracks the request.
    */
   setVantage(centreId: string): void {
+    // A transport that cannot carry the selection must not have one made
+    // against it. Changing `selectedVantageId` anyway would leave every reader
+    // of it, the vantage control included, naming a command centre the data is
+    // not from; and the re-subscribe below would churn the whole topic set for
+    // a request nothing will act on.
+    if (!this.canSetVantage) return;
     this.selectedVantageId = centreId;
     for (const listener of this.vantageListeners) listener();
     this.transport.send({ type: "set-vantage", centreId });

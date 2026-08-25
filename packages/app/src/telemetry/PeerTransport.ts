@@ -59,11 +59,15 @@ function toTransportStatus(status: ConnStatus): TransportStatus {
  * the replay a reconnected station would sit blank on every topic it had
  * already subscribed.
  *
- * `set-vantage` is still dropped, and that one IS a limit rather than an
- * omission: the mod keeps `SelectedVantage` per `ClientSession` and the host
- * has exactly one session, so two stations cannot observe at two vantages over
- * one relayed stream. Per-station observation vantage needs a wire change and
- * is separate work.
+ * `set-vantage` is refused rather than dropped, via `carriesVantage`. The mod
+ * keeps `SelectedVantage` per `ClientSession` and the host has one session, so
+ * two stations cannot observe at two vantages over one relayed stream. Dropping
+ * the message alone was not enough: `TelemetryClient.setVantage` would still
+ * change its own selection, leaving the vantage control naming a command centre
+ * the data was not from, and would still re-subscribe every active topic, which
+ * now reaches the host and churns its upstream subscriptions. Refusing at the
+ * client keeps the control honest and the churn absent. Per-station observation
+ * vantage needs a wire change and is separate work.
  *
  * That gap used to mean a command whose peer connection dropped mid-flight
  * (or that was dispatched with no live `conn` at all,
@@ -85,6 +89,14 @@ function toTransportStatus(status: ConnStatus): TransportStatus {
  *     still deliver a response that was already in flight when it dropped.
  */
 export class PeerTransport implements Transport {
+  /**
+   * A station's frames are relayed from a host session it does not own, and the
+   * mod keeps `SelectedVantage` on that session. So a station cannot select a
+   * vantage without moving every other station's observation with it.
+   * Declaring it here makes `TelemetryClient` refuse the selection instead of
+   * making one it cannot honour.
+   */
+  readonly carriesVantage = false;
   private _status: TransportStatus;
   private readonly messageListeners = new Set<
     (message: ServerMessage) => void
@@ -173,9 +185,10 @@ export class PeerTransport implements Transport {
       this.client.sendSitrepUnsubscribe(message.topic);
       return;
     }
-    // set-vantage: see this class's doc comment. Dropping it leaves a station
-    // observing at the host's vantage, which is what it already does; sending
-    // it would move every OTHER station's observation too.
+    // set-vantage: unreachable in practice, since `carriesVantage: false` makes
+    // `TelemetryClient.setVantage` refuse before it sends. Left as a no-op
+    // rather than a throw so a direct `send` from a test or a future caller
+    // degrades the same way it always did.
   }
 
   onMessage(listener: (message: ServerMessage) => void): () => void {
