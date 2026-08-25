@@ -6,11 +6,13 @@ import {
 import type { Meta, ServerMessage } from "@ksp-gonogo/sitrep-sdk";
 import { Quality, Staleness } from "@ksp-gonogo/sitrep-sdk";
 import { act, render, waitFor } from "@ksp-gonogo/test-utils";
-import { afterEach, describe, expect, it } from "vitest";
-import type { PeerHostService } from "../peer/PeerHostService";
+import { describe, expect, it } from "vitest";
+import type {
+  PeerHostService,
+  SitrepSubscriptionSink,
+} from "../peer/PeerHostService";
 import type { PeerMessage } from "../peer/protocol";
 import { SitrepPeerRelay } from "./SitrepPeerRelay";
-import { DEFAULT_SITREP_CARRIED_TOPICS } from "./SitrepTelemetryProvider";
 
 function makeMeta(overrides: Partial<Meta> = {}): Meta {
   return {
@@ -30,8 +32,11 @@ function makeMeta(overrides: Partial<Meta> = {}): Meta {
 /**
  * Duck-typed fake `PeerHostService`: exposes only the surface
  * `SitrepPeerRelay` touches (`getConnectedPeerIds`/`onPeerConnect`/
- * `onPeerDisconnect`/`broadcast`/`sendToPeer`), plus test-only
- * `connectPeer`/`disconnectPeer` drivers.
+ * `onPeerDisconnect`/`broadcast`/`sendToPeer`/`attachSitrepSink`), plus
+ * test-only drivers. `claim`/`release` stand in for a station's
+ * `sitrep-subscribe`, refcounted per topic exactly as `retainSitrepSub` does,
+ * because after the eager carried list went away that is the only route by
+ * which any topic reaches the mod.
  */
 function makeFakeHost() {
   const connected = new Set<string>();
@@ -39,7 +44,8 @@ function makeFakeHost() {
   const disconnectListeners = new Set<(id: string) => void>();
   const broadcasts: PeerMessage[] = [];
   const sentToPeer: Array<{ peerId: string; msg: PeerMessage }> = [];
-  const sitrepSinks: unknown[] = [];
+  const claims = new Map<string, { refCount: number; unsub: () => void }>();
+  let sink: SitrepSubscriptionSink | null = null;
 
   return {
     getConnectedPeerIds: () => Array.from(connected),
@@ -57,14 +63,10 @@ function makeFakeHost() {
     sendToPeer: (peerId: string, msg: PeerMessage) => {
       sentToPeer.push({ peerId, msg });
     },
-    // The relay hands this over so station-driven subscriptions can reach the
-    // host's own client. Recorded rather than exercised here; the demand-driven
-    // path itself is proven end to end in `sitrep-station-forwarding.test.tsx`.
-    attachSitrepSink: (sink: unknown) => {
-      sitrepSinks.push(sink);
+    attachSitrepSink: (next: SitrepSubscriptionSink) => {
+      sink = next;
       return () => {
-        const at = sitrepSinks.indexOf(sink);
-        if (at >= 0) sitrepSinks.splice(at, 1);
+        if (sink === next) sink = null;
       };
     },
     connectPeer(id: string) {
@@ -75,9 +77,30 @@ function makeFakeHost() {
       connected.delete(id);
       for (const cb of disconnectListeners) cb(id);
     },
+    /** A station says it is reading `topic`. */
+    claim(topic: string) {
+      const existing = claims.get(topic);
+      if (existing) {
+        existing.refCount += 1;
+        return;
+      }
+      const unsub = sink?.subscribe(topic);
+      if (unsub) claims.set(topic, { refCount: 1, unsub });
+    },
+    /** That station stops reading it. */
+    release(topic: string) {
+      const entry = claims.get(topic);
+      if (!entry) return;
+      entry.refCount -= 1;
+      if (entry.refCount > 0) return;
+      entry.unsub();
+      claims.delete(topic);
+    },
+    cachedFrame(topic: string) {
+      return sink?.cachedFrame(topic);
+    },
     broadcasts,
     sentToPeer,
-    sitrepSinks,
   };
 }
 
@@ -93,42 +116,93 @@ function renderRelay(peerHost: ReturnType<typeof makeFakeHost>) {
 }
 
 describe("SitrepPeerRelay", () => {
-  afterEach(() => {
-    // Match the repo's act()-warning convention: unmount before the test's
-    // transport/client fall out of scope.
-  });
-
   it("subscribes to nothing and broadcasts nothing when no station is connected", async () => {
     const peerHost = makeFakeHost();
     const { transport, view } = renderRelay(peerHost);
 
-    expect(transport.isSubscribed(DEFAULT_SITREP_CARRIED_TOPICS[0])).toBe(
-      false,
-    );
+    expect(transport.isSubscribed("vessel.orbit")).toBe(false);
+    expect(transport.isSubscribed("system.uplinks")).toBe(false);
     expect(peerHost.broadcasts).toEqual([]);
 
     view.unmount();
   });
 
-  it("subscribes to every carried topic once a station connects, and tears down once the last one disconnects", async () => {
+  it("holds the bootstrap floor and nothing else for a station with nothing mounted", async () => {
     const peerHost = makeFakeHost();
     const { transport, view } = renderRelay(peerHost);
 
     act(() => peerHost.connectPeer("station-a"));
-    await waitFor(() => {
-      expect(transport.isSubscribed("vessel.orbit")).toBe(true);
-      // A second, unrelated topic: not "comms.delay", which
-      // `TelemetryProvider`'s own auto-attached `DelayAuthority` ALSO
-      // subscribes to independently, so its ref count never drops to zero
-      // just because this relay tears its own subscription down.
-      expect(transport.isSubscribed("system.bodies")).toBe(true);
-    });
+    await waitFor(() =>
+      // The roster, so the station can find out which bundles to load. It is
+      // core's own channel, so pinning it privileges no mod.
+      expect(transport.isSubscribed("system.uplinks")).toBe(true),
+    );
+    // Nothing else, however commonplace: a station reads `vessel.orbit`
+    // because a widget on it asked, not because it is a well-known topic.
+    expect(transport.isSubscribed("vessel.orbit")).toBe(false);
+    expect(transport.isSubscribed("system.bodies")).toBe(false);
 
     act(() => peerHost.disconnectPeer("station-a"));
-    await waitFor(() => {
-      expect(transport.isSubscribed("vessel.orbit")).toBe(false);
-      expect(transport.isSubscribed("system.bodies")).toBe(false);
+    await waitFor(() =>
+      expect(transport.isSubscribed("system.uplinks")).toBe(false),
+    );
+
+    view.unmount();
+  });
+
+  it("subscribes a topic no list names once a station says it is reading it", async () => {
+    const peerHost = makeFakeHost();
+    const { transport, view } = renderRelay(peerHost);
+
+    act(() => peerHost.connectPeer("station-a"));
+    act(() => peerHost.claim("thirdparty.readout"));
+    await waitFor(() =>
+      expect(transport.isSubscribed("thirdparty.readout")).toBe(true),
+    );
+
+    act(() => peerHost.release("thirdparty.readout"));
+    await waitFor(() =>
+      expect(transport.isSubscribed("thirdparty.readout")).toBe(false),
+    );
+
+    view.unmount();
+  });
+
+  it("reaches a topic under a dynamic namespace through the same path, with no per-namespace code in between", async () => {
+    // The acceptance criterion for removing the eager list. The relay used to
+    // mirror one Uplink's device list into a per-device subscription, because
+    // that Uplink's ids are only known at runtime and a station's own
+    // subscription could not reach the host. Now it can, and a runtime-keyed
+    // topic stops being a special case: the station's widget subscribes it like
+    // any other, and the relay knows nothing about the namespace.
+    const peerHost = makeFakeHost();
+    const { transport, view } = renderRelay(peerHost);
+
+    act(() => peerHost.connectPeer("station-a"));
+    act(() => {
+      peerHost.claim("thirdparty.devices");
+      peerHost.claim("thirdparty.device.7");
     });
+    await waitFor(() => {
+      expect(transport.isSubscribed("thirdparty.devices")).toBe(true);
+      expect(transport.isSubscribed("thirdparty.device.7")).toBe(true);
+    });
+    // And no device the station is not watching: nothing here enumerates them.
+    expect(transport.isSubscribed("thirdparty.device.9")).toBe(false);
+
+    act(() => {
+      transport.emit("thirdparty.device.7", { id: 7, chunk: "boot ok" });
+    });
+    await waitFor(() =>
+      expect(
+        peerHost.broadcasts.some(
+          (m) =>
+            m.type === "sitrep-frame" &&
+            m.message.type === "stream-data" &&
+            m.message.topic === "thirdparty.device.7",
+        ),
+      ).toBe(true),
+    );
 
     view.unmount();
   });
@@ -138,6 +212,7 @@ describe("SitrepPeerRelay", () => {
     const { transport, view } = renderRelay(peerHost);
 
     act(() => peerHost.connectPeer("station-a"));
+    act(() => peerHost.claim("vessel.orbit"));
     await waitFor(() =>
       expect(transport.isSubscribed("vessel.orbit")).toBe(true),
     );
@@ -169,6 +244,7 @@ describe("SitrepPeerRelay", () => {
     const { transport, view } = renderRelay(peerHost);
 
     act(() => peerHost.connectPeer("station-a"));
+    act(() => peerHost.claim("vessel.orbit"));
     await waitFor(() =>
       expect(transport.isSubscribed("vessel.orbit")).toBe(true),
     );
@@ -205,55 +281,31 @@ describe("SitrepPeerRelay", () => {
     view.unmount();
   });
 
-  it("subscribes kos.terminal.<coreId> per live CPU so a station-only terminal gets its downlink", async () => {
+  it("answers a station asking for a topic the host is already holding, from the cache", async () => {
     const peerHost = makeFakeHost();
     const { transport, view } = renderRelay(peerHost);
 
-    act(() => peerHost.connectPeer("station-a"));
-    await waitFor(() =>
-      expect(transport.isSubscribed("kos.processors")).toBe(true),
-    );
-
-    // The mod publishes the CPU list; the relay mirrors it into per-CPU
-    // terminal subscriptions.
+    // The host reads this on its own account, and the only frame arrives before
+    // any station exists. `client.subscribe` for an already-held topic sends no
+    // wire subscribe and re-emits no frame, so the cache is the only answer.
+    const unsubHost = transport.isSubscribed("vessel.identity");
+    expect(unsubHost).toBe(false);
     act(() => {
-      transport.emit("kos.processors", [
-        { coreId: 7, tag: "lander" },
-        { coreId: 9, tag: "probe" },
-      ]);
-    });
-    await waitFor(() => {
-      expect(transport.isSubscribed("kos.terminal.7")).toBe(true);
-      expect(transport.isSubscribed("kos.terminal.9")).toBe(true);
-    });
-
-    // A terminal frame for one of them relays verbatim to stations.
-    act(() => {
-      transport.emit("kos.terminal.7", {
-        coreId: 7,
-        chunk: "boot ok",
-        fullRepaint: true,
+      transport.emitRaw({
+        type: "stream-data",
+        topic: "vessel.identity",
+        payload: { name: "Kerbal X" },
+        meta: makeMeta(),
       });
     });
-    await waitFor(() =>
-      expect(
-        peerHost.broadcasts.some(
-          (m) =>
-            m.type === "sitrep-frame" &&
-            m.message.type === "stream-data" &&
-            m.message.topic === "kos.terminal.7",
-        ),
-      ).toBe(true),
-    );
 
-    // A CPU dropping out of the list drops its terminal subscription.
-    act(() => {
-      transport.emit("kos.processors", [{ coreId: 7, tag: "lander" }]);
-    });
+    act(() => peerHost.connectPeer("station-a"));
     await waitFor(() =>
-      expect(transport.isSubscribed("kos.terminal.9")).toBe(false),
+      expect(peerHost.cachedFrame("vessel.identity")).toMatchObject({
+        type: "sitrep-frame",
+        message: { topic: "vessel.identity", payload: { name: "Kerbal X" } },
+      }),
     );
-    expect(transport.isSubscribed("kos.terminal.7")).toBe(true);
 
     view.unmount();
   });
@@ -263,6 +315,7 @@ describe("SitrepPeerRelay", () => {
     const { transport, view } = renderRelay(peerHost);
 
     act(() => peerHost.connectPeer("station-a"));
+    act(() => peerHost.claim("crash.lastCrash"));
     await waitFor(() =>
       expect(transport.isSubscribed("crash.lastCrash")).toBe(true),
     );

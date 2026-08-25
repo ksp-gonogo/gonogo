@@ -172,9 +172,15 @@ import {
   TelemetryProvider,
   useCertainty,
   useStream,
+  useStreamEvent,
   useTelemetryStore,
 } from "@ksp-gonogo/sitrep-client";
-import { useHostIceServers, useUplinkRelay } from "@ksp-gonogo/sitrep-sdk";
+import {
+  Quality,
+  Staleness,
+  useHostIceServers,
+  useUplinkRelay,
+} from "@ksp-gonogo/sitrep-sdk";
 import { act, render, screen, waitFor } from "@ksp-gonogo/test-utils";
 import { useEffect, useState } from "react";
 import { afterEach, describe, expect, it, vi } from "vitest";
@@ -235,6 +241,48 @@ function StationApp({
       <Probe testId="station-orbit" topic="vessel.orbit" />
       <Probe testId="station-identity" topic="vessel.identity" />
       {extraTopic ? <Probe testId="station-extra" topic={extraTopic} /> : null}
+    </TelemetryProvider>
+  );
+}
+
+/**
+ * A station widget whose second read depends on its first: a device list names
+ * an id, and the id names the downlink topic under a namespace whose keys only
+ * exist at runtime. Nothing here knows it is on a station, and nothing outside
+ * it knows the namespace.
+ */
+/** A domain no list, allowlist or first-party Uplink in this repo names. */
+const UPLINK_DOMAIN = "thirdparty";
+
+function ChainProbe() {
+  const devices =
+    useStream<Array<{ id?: number }>>(`${UPLINK_DOMAIN}.devices`) ?? [];
+  const id = devices[0]?.id;
+  if (id === undefined)
+    return <div data-testid="station-terminal">no devices detected</div>;
+  return <DownlinkProbe id={id} />;
+}
+
+function DownlinkProbe({ id }: { id: number }) {
+  // `useStreamEvent`, as a downlink widget does: a stream of chunks rather than
+  // a sticky value, and it subscribes the runtime-keyed topic verbatim.
+  const [chunk, setChunk] = useState<string>("awaiting");
+  useStreamEvent<{ chunk?: string }>(
+    `${UPLINK_DOMAIN}.device.${id}`,
+    (payload) => {
+      setChunk(payload?.chunk ?? "awaiting");
+    },
+  );
+  return <div data-testid="station-terminal">{chunk}</div>;
+}
+
+function StationChainApp({ clientSvc }: { clientSvc: PeerClientService }) {
+  const [telemetryClient] = useState(
+    () => new TelemetryClient(new PeerTransport(clientSvc)),
+  );
+  return (
+    <TelemetryProvider client={telemetryClient}>
+      <ChainProbe />
     </TelemetryProvider>
   );
 }
@@ -606,6 +654,68 @@ describe("station subscription intent reaches the mod", () => {
     await waitFor(() =>
       expect(screen.getAllByTestId("station-extra")[0]?.textContent).toContain(
         "250000",
+      ),
+    );
+  });
+
+  it("resolves a two-hop chain whose first hop went quiet before the station connected", async () => {
+    // The shape a terminal-style widget has, and the one thing that could still
+    // have broken when the relay stopped mirroring a device list into a
+    // per-device subscription: the station reads the list, picks an id off it,
+    // and only then knows which downlink topic to subscribe. Miss the first hop
+    // and the widget resolves no id and renders "no devices", an absence stated
+    // as a fact.
+    //
+    // The only frame for the first hop is emitted before the station exists, so
+    // this passes on the relay cache rather than on the mod re-emitting.
+    const { peerHost, hostTransport } = setupHost();
+    await peerHost.start();
+    await waitForHostPeerId(peerHost);
+
+    const pastUt = Date.now() / 1000 - 10_000;
+    act(() => {
+      hostTransport.emitRaw({
+        type: "stream-data",
+        topic: `${UPLINK_DOMAIN}.devices`,
+        payload: [{ id: 7, tag: "lander" }],
+        meta: {
+          source: "test",
+          validAt: pastUt,
+          seq: 0,
+          deliveredAt: pastUt,
+          vantage: "test",
+          quality: Quality.OnRails,
+          active: false,
+          staleness: Staleness.Fresh,
+          timelineEpoch: 0,
+        },
+      });
+    });
+
+    const clientSvc = new PeerClientService();
+    render(<StationChainApp clientSvc={clientSvc} />);
+    act(() => clientSvc.connect(peerHost.shareCode));
+    await waitFor(() => expect(clientSvc.getConnStatus()).toBe("connected"));
+    stationServices.push(clientSvc);
+
+    // Second hop: the station worked out the id for itself and subscribed the
+    // downlink, with nothing namespace-shaped anywhere between it and the mod.
+    await waitFor(() =>
+      expect(hostTransport.isSubscribed(`${UPLINK_DOMAIN}.device.7`)).toBe(
+        true,
+      ),
+    );
+
+    act(() => {
+      hostTransport.emit(
+        `${UPLINK_DOMAIN}.device.7`,
+        { id: 7, chunk: "boot ok" },
+        { validAt: pastUt, deliveredAt: pastUt },
+      );
+    });
+    await waitFor(() =>
+      expect(screen.getByTestId("station-terminal").textContent).toContain(
+        "boot ok",
       ),
     );
   });

@@ -122,8 +122,9 @@ export async function probeUplinkRoster(
  * short-lived `WebSocketTransport` straight to the mod, which is exactly the
  * direct-to-KSP connection a station is forbidden from making; a station
  * instead has a live peer-backed `TelemetryClient` already mounted (fed by
- * `SitrepPeerRelay` over PeerJS), and `system.uplinks` is in
- * `DEFAULT_SITREP_CARRIED_TOPICS`, so this only needs to subscribe to it.
+ * `SitrepPeerRelay` over PeerJS), so this only needs to subscribe to it. The
+ * relay pins `system.uplinks` for as long as a station is connected, precisely
+ * so this read cannot be the one thing a station cannot bootstrap.
  *
  * `SitrepPeerRelay` backfills the most recent frame to a newly-connecting
  * station, so the sticky value is often already cached on `client` by the

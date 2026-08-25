@@ -22,6 +22,13 @@
  * without `data` taking a dependency on `app`, `app` already depends on
  * `data`, so the reverse would be circular. One list, read from the lowest
  * layer both consumers already share.
+ *
+ * It decides NOTHING about station screens. A station receives a topic because
+ * a widget mounted on it subscribed, which reaches the mod through
+ * `SitrepPeerRelay`'s refcounted sink; a topic missing from here is as
+ * reachable from a station as one on it. Adding an entry to help a station is
+ * always the wrong fix, and a topic an Uplink installed this morning could
+ * never be on a list written here anyway.
  */
 export const DEFAULT_SITREP_CARRIED_TOPICS: readonly string[] = [
   "vessel.orbit",

@@ -483,7 +483,6 @@ export const ALLOWLIST: Record<ModToken, ModAllowlist> = {
       // ratchet's scan, not individually named in the audit's kOS table).
       "mod/Sitrep.Core/Serialization/JsonWriter.cs",
       "packages/app/src/screens/MainScreen.tsx",
-      "packages/app/src/telemetry/SitrepPeerRelay.tsx",
 
       // -- kos migration (2026-07-18), Task 4: CpuRegistryService/
       // CpuRegistryProvider moved from @ksp-gonogo/data into the kos Uplink.
@@ -502,9 +501,6 @@ export const ALLOWLIST: Record<ModToken, ModAllowlist> = {
       "packages/app/src/__tests__/component-overlay-add.test.tsx",
       "packages/app/src/__tests__/dashboard-error-boundary.test.tsx",
       "packages/app/src/__tests__/dashboard-tabbed-config.test.tsx",
-
-      // -- TEST-only, exercising SitrepPeerRelay.tsx (HARD, above) --
-      "packages/app/src/telemetry/SitrepPeerRelay.test.tsx",
     ],
     permanent: [
       // -- UPLINK WIDGET-DECLARATION gate (2026-08-25): the app-side check that

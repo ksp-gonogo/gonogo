@@ -91,10 +91,16 @@ describe("the relay's own subscriptions", () => {
     const host = makeFakeHost();
     const { transport, view } = renderRelay(host);
 
-    // The eager set is still here until the station-demand path replaces it.
-    expect(transport.isSubscribed("vessel.orbit")).toBe(true);
-    // Nothing has asked for this one, on either screen.
+    // Nothing has asked for either of these, on either screen. `vessel.orbit`
+    // is named specifically because it is the first entry of the list the relay
+    // used to subscribe eagerly: a station reaches it the same way it reaches a
+    // topic an Uplink installed this morning, by a mounted widget asking.
+    expect(transport.isSubscribed("vessel.orbit")).toBe(false);
     expect(transport.isSubscribed(UPLINK_TOPIC)).toBe(false);
+
+    // The one exception, and it is core's own channel: a station cannot mount
+    // the widgets that would ask for anything until it has read the roster.
+    expect(transport.isSubscribed("system.uplinks")).toBe(true);
 
     view.unmount();
     await act(async () => {});
@@ -115,10 +121,14 @@ describe("the relay tap", () => {
       transport.emitRaw(raw);
     });
 
-    // Unfiltered by design: whatever arrives at the host reaches every station,
-    // whoever asked for it. Per-station delivery filtering would be a bandwidth
-    // change, and it can only be made with a test proving nothing is lost,
-    // since a delivery set that is wrong loses data silently.
+    // Unfiltered: whatever arrives at the host reaches every station, whoever
+    // asked for it. Per-station delivery filtering is DEFERRED, not ruled out.
+    // The legacy `data` path already ships it in production, with the same
+    // per-connection refcount and every station opted in via
+    // `sendDataMode("selective")`, so the mechanism is proven and the
+    // per-connection half is already ported here. What is missing is the test:
+    // a delivery set that is wrong loses data silently, so the change needs a
+    // proof that nothing is LOST, not a measurement that less is sent.
     expect(relayedTopics(host)).toContain(UPLINK_TOPIC);
 
     view.unmount();

@@ -4,7 +4,14 @@ import type { ServerMessage, StreamData } from "@ksp-gonogo/sitrep-sdk";
 import { useEffect, useRef, useState } from "react";
 import type { PeerHostService } from "../peer/PeerHostService";
 import type { PeerMessage } from "../peer/protocol";
-import { DEFAULT_SITREP_CARRIED_TOPICS } from "./SitrepTelemetryProvider";
+
+/**
+ * The Uplink roster. A station reads it to know which bundles to load, which is
+ * the one thing it cannot discover by mounting a widget, so the relay holds it
+ * on the station's behalf. Declared by the engine itself rather than by any
+ * Uplink's manifest, so it belongs to no mod.
+ */
+const BOOTSTRAP_TOPIC = "system.uplinks";
 
 /**
  * Fan-out budget for the host relay: separate from `SITREP_STREAM_BUDGET`
@@ -59,17 +66,18 @@ function isCarriedFrame(
  * be inside the provider's subtree to read the live client); see
  * `MainScreen.tsx`.
  *
- * Upstream subscription is DEMAND-DRIVEN: `attachSitrepSink` hands
- * `PeerHostService` the ability to hold a `client.subscribe(topic, noop)`
- * keep-alive, and the host holds one per topic any connected station says it is
- * reading. The no-op callbacks carry nothing; delivery happens off the
- * `onRawMessage` tap below.
+ * Upstream subscription is DEMAND-DRIVEN, and that is the only way a topic gets
+ * pulled: `attachSitrepSink` hands `PeerHostService` the ability to hold a
+ * `client.subscribe(topic, noop)` keep-alive, and the host holds one per topic
+ * any connected station says it is reading. The no-op callbacks carry nothing;
+ * delivery happens off the `onRawMessage` tap below. The relay subscribes to
+ * nothing on its own account except the bootstrap floor named below, so a
+ * station reaches a topic because a widget on it asked, never because the topic
+ * appears on a list somebody maintained.
  *
- * Alongside that, this still eagerly subscribes `DEFAULT_SITREP_CARRIED_TOPICS`
- * while any station is connected. That eager set is what stations depended on
- * before their own subscriptions could reach the host, and removing it is a
- * separate, subtractive change: keeping it here means demand-driven
- * subscription can only ADD topics a station reaches, never take one away.
+ * What throttles the pull is therefore the refcount alone, and what re-syncs
+ * that refcount when a station leaves without saying so is
+ * `PeerHostService.reconcileSitrepSubs` plus the host's ICE liveness detector.
  *
  * Backfill: keeps its own `Map<topic, StreamData>` of the last-seen frame
  * per topic, filled from mount rather than from the first station's arrival,
@@ -104,13 +112,10 @@ export function SitrepPeerRelay({ peerHost }: { peerHost: PeerHostService }) {
     };
   }, [peerHost]);
 
-  // Per-connection backfill: independent of `hasConnections`'s own
-  // subscribe/teardown gating below: for the SECOND (and later) station to
-  // connect while the relay is already live, the cache is already populated
-  // from ongoing broadcasts and must be replayed to that connection alone.
-  // For the FIRST connecting station there's nothing cached yet (nothing
-  // was subscribed before any station connected), which is correct: there
-  // is genuinely no prior value to backfill.
+  // Per-connection backfill, independent of the `hasConnections` gating below:
+  // whatever the host has seen so far is replayed to the arriving connection
+  // alone, so a station joining mid-flight is not blank on a topic that last
+  // changed before it got here.
   useEffect(() => {
     return peerHost.onPeerConnect((peerId) => {
       for (const frame of cacheRef.current.values()) {
@@ -164,51 +169,17 @@ export function SitrepPeerRelay({ peerHost }: { peerHost: PeerHostService }) {
 
   useEffect(() => {
     if (!client || !hasConnections) return;
-    const unsubTopics = DEFAULT_SITREP_CARRIED_TOPICS.map((topic) =>
-      client.subscribe(topic, () => {}),
-    );
-
-    // Dynamic kos.terminal.<coreId> downlinks aren't in the static carried
-    // list (the coreIds aren't known up front). A station opening a kOS
-    // terminal subscribes over PeerTransport, but that subscription never
-    // reaches the host's mod client: so unless the host is itself subscribed,
-    // no terminal frames arrive to relay. Mirror kos.processors here and keep
-    // the host subscribed to every current CPU's terminal topic while any
-    // station is connected, so a station-only terminal gets its downlink. The
-    // mod's poll is subscription- and change-gated, so an idle CPU costs one
-    // repaint then goes quiet; only an active screen streams. (v2 bandwidth
-    // follow-up: a ref-counted sitrep-subscribe from the station, same as the
-    // static-list eager-subscribe note above.)
-    const terminalSubs = new Map<number, () => void>();
-    const syncTerminalSubs = (payload: unknown) => {
-      const list = Array.isArray(payload)
-        ? (payload as Array<{ coreId?: number }>)
-        : [];
-      const present = new Set<number>();
-      for (const p of list) {
-        if (typeof p?.coreId === "number") present.add(p.coreId);
-      }
-      for (const coreId of present) {
-        if (!terminalSubs.has(coreId)) {
-          terminalSubs.set(
-            coreId,
-            client.subscribe(`kos.terminal.${coreId}`, () => {}),
-          );
-        }
-      }
-      for (const [coreId, unsub] of terminalSubs) {
-        if (!present.has(coreId)) {
-          unsub();
-          terminalSubs.delete(coreId);
-        }
-      }
-    };
-    // subscribe() replays the sticky last processor list synchronously, so the
-    // current CPUs are subscribed immediately; later updates re-sync.
-    const unsubProcessors = client.subscribe(
-      "kos.processors",
-      syncTerminalSubs,
-    );
+    // The bootstrap floor, and the whole of it. A station with nothing mounted
+    // correctly asks for nothing, but it cannot mount its Uplinks' widgets
+    // until it has read the roster, and it cannot read the roster off a topic
+    // nobody is pulling. Holding it from the moment a station connects also
+    // warms the frame cache, so the station's own roster read is answered from
+    // the replay rather than waiting on the mod's next emission.
+    //
+    // `system.uplinks` is the engine's own channel, so pinning it names no mod
+    // and privileges nothing: every other topic, first-party or not, reaches a
+    // station only because a mounted widget asked for it.
+    const unsubBootstrap = client.subscribe(BOOTSTRAP_TOPIC, () => {});
 
     const detachRaw = client.onRawMessage((message) => {
       if (!isCarriedFrame(message)) return;
@@ -220,9 +191,7 @@ export function SitrepPeerRelay({ peerHost }: { peerHost: PeerHostService }) {
     });
     return () => {
       detachRaw();
-      unsubProcessors();
-      for (const unsub of terminalSubs.values()) unsub();
-      for (const unsub of unsubTopics) unsub();
+      unsubBootstrap();
     };
   }, [client, hasConnections, peerHost]);
 
