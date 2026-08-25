@@ -1,5 +1,5 @@
-import type { Logger } from "@ksp-gonogo/logger";
 import { getHost } from "./host";
+import type { Logger } from "./logger-contract";
 
 /**
  * The app's single logger instance (design: `@ksp-gonogo/logger`'s `logger`

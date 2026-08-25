@@ -2,7 +2,7 @@
   "name": "@ksp-gonogo/sitrep-sdk",
   "description": "Author-facing SDK for Gonogo (Sitrep) KSP Uplinks: the generated wire contract plus the curated framework/data/hook surface",
   "license": "MIT",
-  "version": "0.0.1",
+  "version": "0.1.0",
   "type": "module",
   "main": "src/index.ts",
   "exports": {
@@ -12,7 +12,8 @@
     "./registry": "./src/registry/index.ts",
     "./spine": "./src/spine/index.ts",
     "./testing": "./src/testing/index.ts",
-    "./biome": "./biome.shared.json"
+    "./biome": "./biome.shared.json",
+    "./tsconfig.base.json": "./tsconfig.base.json"
   },
   "repository": {
     "type": "git",
@@ -23,7 +24,8 @@
   "files": [
     "biome.shared.json",
     "dist",
-    "src"
+    "src",
+    "tsconfig.base.json"
   ],
   "publishConfig": {
     "access": "public",
@@ -53,7 +55,8 @@
       "./testing": {
         "types": "./dist/testing/index.d.ts",
         "import": "./dist/testing/index.js"
-      }
+      },
+      "./tsconfig.base.json": "./tsconfig.base.json"
     }
   },
   "scripts": {

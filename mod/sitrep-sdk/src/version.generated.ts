@@ -2,4 +2,4 @@
 // Do not edit by hand, the version is single-sourced from the manifest so
 // the exported marker can never drift from the published version. The
 // version.gate.test.ts alongside it fails CI if this file goes stale.
-export const SDK_VERSION = "0.0.1";
+export const SDK_VERSION = "0.1.0";

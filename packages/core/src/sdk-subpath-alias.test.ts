@@ -35,9 +35,12 @@ function sdkSubpaths(): string[] {
     Object.keys(pkg.exports)
       .filter((key) => key.startsWith("./") && key !== ".")
       .map((key) => key.slice(2))
-      // `./biome` is a shared config file, not an importable module, so no test
-      // ever resolves it and no alias is needed.
-      .filter((sub) => sub !== "biome")
+      // `./biome` and `./tsconfig.base.json` are shared CONFIG files, not
+      // importable modules: nothing resolves them through the module graph, so
+      // an alias would have nothing to fix. They are matched by shape rather
+      // than by name so the next one does not need an edit here, and the
+      // classification test below still fails on a genuinely new module subpath.
+      .filter((sub) => sub !== "biome" && !sub.endsWith(".json"))
   );
 }
 

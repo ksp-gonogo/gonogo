@@ -1,0 +1,180 @@
+name: Uplinks
+
+# Per-Uplink CI, one leg per Uplink, discovered rather than listed.
+#
+# Two things this asks that `ci.yml` structurally cannot:
+#
+#   1. can each Uplink still BUILD AND TEST on its own, rather than as one cell
+#      of a turbo run where a failure names the whole graph
+#   2. can each Uplink LEAVE: does it compile against the PUBLISHED
+#      `@ksp-gonogo/sitrep-sdk` and `@ksp-gonogo/ui-kit` rather than the
+#      workspace copies pnpm links in
+#
+# The second is the reason this file exists. The isolation ratchets
+# (`packages/core/src/uplink-isolation.test.ts`, `UplinkIsolationTests.cs`) check
+# IMPORTS and are correct, and both are blind to it: the build still resolves
+# through workspace links, so an Uplink can import only permitted packages, pass
+# every gate, and depend on API that has never been published. Measured on
+# 2026-08-25, 249 of 292 distinct import bindings across the ten clients did not
+# resolve against what was actually on npm, with every gate in the tree green.
+#
+# NON-BLOCKING FOR NOW (`continue-on-error` on the matrix job). Everything here
+# still runs in `ci.yml` too, so this duplicates rather than replaces while the
+# raggedness assumptions and the flake profile are observed. Removing the
+# duplication is a later, separate step, and `pnpm test` keeps running the Uplink
+# suites until these legs are proven equivalent: turbo's filter graph guarantees
+# each suite runs against freshly built dependencies and `--filter` here does not
+# carry that for free.
+#
+# What deliberately does NOT move:
+#   - `visual`, which is RED ON PURPOSE. Not referenced here, baselines untouched
+#   - `act-warnings`, whose self-test would run once per leg and whose per-file
+#     debt would fragment at the shard boundary
+#   - the isolation ratchets and every other check that reads a debt list at a
+#     base git ref. That is the rule: if it reads a debt list at a base ref, it
+#     stays repo-wide
+#   - the Uplink plugin assemblies, compiled by `scripts/uplink-mod-build.sh` as
+#     a step of ci.yml's `mod` job. One dotnet setup for all eleven beats twelve
+
+on:
+  push:
+    branches: [main, ci-dev, staging]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  packages: read
+
+jobs:
+  # The matrix axis, computed from disk. `uplink-matrix.mjs` refuses to emit a
+  # short list, because an empty matrix produces a job GitHub Actions SKIPS, and
+  # a skipped matrix job reports as successful.
+  discover:
+    runs-on: ubuntu-latest
+    outputs:
+      matrix: ${{ steps.matrix.outputs.matrix }}
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v6
+        with:
+          node-version: '24'
+      - id: matrix
+        run: node scripts/uplink-matrix.mjs --github >> "$GITHUB_OUTPUT"
+      - name: What the matrix will run
+        run: node scripts/uplink-matrix.mjs
+
+  uplink:
+    needs: discover
+    runs-on: ubuntu-latest
+    continue-on-error: true
+    strategy:
+      fail-fast: false
+      matrix: ${{ fromJson(needs.discover.outputs.matrix) }}
+    steps:
+      # A leg that applies to nothing is the failure this matrix exists to
+      # prevent, not a free pass. Twelve directories are ragged: ten have a
+      # client, eleven a plugin csproj, one is client-only and two are C#-only.
+      # A directory that is neither is a mistake, and this is the only thing that
+      # would notice.
+      - uses: actions/checkout@v5
+
+      - name: This leg has something to do
+        run: |
+          set -euo pipefail
+          if [ '${{ matrix.uplink.client }}' != 'true' ] && [ '${{ matrix.uplink.csproj }}' != 'true' ]; then
+            echo "::error::${{ matrix.uplink.id }} has neither a client nor a plugin csproj, so this leg would run nothing and report green."
+            exit 1
+          fi
+          if [ '${{ matrix.uplink.client }}' != 'true' ]; then
+            echo "::notice::${{ matrix.uplink.id }} is C#-only. Its plugin assembly is compiled by scripts/uplink-mod-build.sh in ci.yml's mod job; nothing further applies here."
+          fi
+
+      - uses: actions/setup-node@v6
+        if: matrix.uplink.client
+        with:
+          node-version: '24'
+
+      - uses: pnpm/action-setup@v6
+        if: matrix.uplink.client
+        with:
+          run_install: false
+
+      - name: Get pnpm store path
+        if: matrix.uplink.client
+        id: pnpm-cache
+        run: echo "store=$(pnpm store path)" >> $GITHUB_OUTPUT
+
+      - uses: actions/cache@v5
+        if: matrix.uplink.client
+        with:
+          path: ${{ steps.pnpm-cache.outputs.store }}
+          key: ${{ runner.os }}-pnpm-${{ hashFiles('**/pnpm-lock.yaml') }}
+          restore-keys: ${{ runner.os }}-pnpm-
+
+      - name: pnpm install
+        if: matrix.uplink.client
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: pnpm install --frozen-lockfile
+
+      # `...` pulls the dependency graph, so the suites run against freshly built
+      # dists rather than whatever a cache happened to hold.
+      - name: Build
+        if: matrix.uplink.client
+        run: pnpm --filter '${{ matrix.uplink.pkg }}...' build
+
+      - name: Test
+        if: matrix.uplink.client
+        run: pnpm --filter '${{ matrix.uplink.pkg }}' test
+
+      - name: Typecheck
+        if: matrix.uplink.client && matrix.uplink.typecheck
+        run: pnpm --filter '${{ matrix.uplink.pkg }}' typecheck
+
+      # The `if:` is load-bearing, not tidiness. `biome check` on a directory
+      # holding no JS or TS exits 1 with "No files were processed in the
+      # specified paths", so running this on the two C#-only Uplinks would fail
+      # their legs for a reason that has nothing to do with their code.
+      # Warnings do not fail it; several Uplinks carry some today and exit 0.
+      - name: Lint
+        if: matrix.uplink.client
+        run: pnpm exec biome check 'mod/${{ matrix.uplink.id }}'
+
+      - name: Pages are not stale
+        if: matrix.uplink.client && matrix.uplink.docsCheck
+        run: pnpm --filter '${{ matrix.uplink.pkg }}' docs:check
+
+      # The extraction probe. Materialises this Uplink OUTSIDE the pnpm
+      # workspace, installs it against tarballs packed exactly as a release would
+      # publish them, and typechecks. Escaping the workspace is the whole trick:
+      # a filtered `pnpm install`, however scoped, still resolves `workspace:*` to
+      # the directory next door, which is what hid this for the life of the repo.
+      #
+      # It proves its own instrument first, planting an import of an export the
+      # sdk does not have and exiting BLIND if that typechecks cleanly.
+      - name: Can this Uplink leave
+        if: matrix.uplink.client
+        run: node scripts/uplink-extraction-probe.mjs --only '${{ matrix.uplink.id }}'
+
+  # Branch protection cannot require a matrix leg: the legs vary in number and
+  # name with the tree, which is the point of discovering them. It also cannot
+  # tell a leg that was SKIPPED from one that passed. So the required check is
+  # this, and it reads the matrix job's result rather than its own.
+  #
+  # Currently informational, matching the matrix job's `continue-on-error`. When
+  # this becomes the blocking check, drop that and turn the notice into `exit 1`.
+  uplink-matrix-result:
+    needs: uplink
+    if: always()
+    runs-on: ubuntu-latest
+    steps:
+      - name: Every Uplink leg passed
+        run: |
+          set -euo pipefail
+          RESULT='${{ needs.uplink.result }}'
+          echo "matrix result: $RESULT"
+          if [ "$RESULT" != "success" ]; then
+            echo "::notice::At least one Uplink leg did not pass ($RESULT). This job is informational while uplink.yml runs alongside ci.yml; it becomes the blocking check once the duplication is removed."
+          fi

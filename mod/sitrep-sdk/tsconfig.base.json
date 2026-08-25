@@ -1,0 +1,16 @@
+{
+  "//": "The TypeScript baseline an Uplink author builds against. Shipped in the sdk tarball and exported as `@ksp-gonogo/sitrep-sdk/tsconfig.base.json`, so an Uplink that leaves this repo keeps compiling with the same settings the first-party ones use. `packages/core/src/uplink-tsconfig-parity.test.ts` holds it identical to the repo's own `tsconfig.base.json`.",
+  "compilerOptions": {
+    "strict": true,
+    "target": "ES2022",
+    "module": "ESNext",
+    "moduleResolution": "bundler",
+    "jsx": "react-jsx",
+    "declaration": true,
+    "declarationMap": true,
+    "sourceMap": true,
+    "esModuleInterop": true,
+    "skipLibCheck": true,
+    "isolatedModules": true
+  }
+}

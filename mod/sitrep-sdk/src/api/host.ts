@@ -15,10 +15,10 @@
 // message. Tests inject a host via `@ksp-gonogo/sitrep-sdk/testing`.
 // ---------------------------------------------------------------------------
 
-import type { Logger } from "@ksp-gonogo/logger";
 import type { ComponentType, ReactNode } from "react";
 import type { TopicId, TopicPayload } from "../topics";
 import type { Value } from "../value";
+import type { Logger } from "./logger-contract";
 import type {
   ActionDefinition,
   ActionHandlers,
