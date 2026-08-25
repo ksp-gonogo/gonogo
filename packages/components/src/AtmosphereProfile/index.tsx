@@ -1,9 +1,9 @@
 import type { BodyDefinition, ComponentProps } from "@ksp-gonogo/core";
 import {
+  defineTopicManifest,
   getBody,
   pressureAtAltitude,
   registerComponent,
-  useTelemetry,
 } from "@ksp-gonogo/core";
 import {
   type Reading,
@@ -26,6 +26,8 @@ export interface AtmosphereProfileConfig {
   /** Override the auto-derived altitude ceiling for the curve (metres). */
   altitudeCeiling?: number;
 }
+
+const topics = defineTopicManifest({ channels: ["vessel.flight"] });
 
 const REFERENCE_SAMPLES = 80;
 
@@ -95,7 +97,7 @@ function AtmosphereProfileComponent({
    * names the reason, rather than the chip holding a sea-level density over a
    * craft that has since left the air.
    */
-  const flightReading = useTelemetry("vessel.flight");
+  const flightReading = topics.useTelemetry("vessel.flight");
   const flight = judgeable(flightReading);
   const flightNotCurrent = notCurrent(flightReading);
   const bodyName = vesselState?.parentBodyName ?? undefined;
@@ -344,7 +346,7 @@ registerComponent<AtmosphereProfileConfig>({
   minSize: { w: 5, h: 4 },
   mobileHeight: 280,
   component: AtmosphereProfileComponent,
-  dataRequirements: ["vessel.flight"],
+  channels: topics.channels,
   defaultConfig: {},
   actions: [],
   pushable: true,

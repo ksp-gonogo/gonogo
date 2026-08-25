@@ -4,9 +4,9 @@ import type {
   ConfigComponentProps,
 } from "@ksp-gonogo/core";
 import {
+  defineTopicManifest,
   registerComponent,
   useActionInput,
-  useTelemetry,
 } from "@ksp-gonogo/core";
 import {
   type Reading,
@@ -53,6 +53,10 @@ import {
 } from "../shared/dockAngles";
 import { magnitudeOf } from "../shared/magnitude";
 import { OrbitalEventChips } from "../shared/OrbitalEventChips";
+
+const topics = defineTopicManifest({
+  channels: ["target.available", "vessel.target"],
+});
 
 // Config is empty, bodies/vessels/parts all come off the one
 // `target.available` list now, so there is nothing per-instance to save.
@@ -249,7 +253,7 @@ function TargetPickerComponent({
    * held target is the right answer there too (it is what we last told it and what
    * it last confirmed), which is why both take `stillTrue` and neither is withheld.
    */
-  const availableReading = useTelemetry("target.available");
+  const availableReading = topics.useTelemetry("target.available");
   /**
    * "The producer says there are no targets" and "no roster has reached us" are
    * different sentences and this widget already said them differently, by accident
@@ -259,7 +263,7 @@ function TargetPickerComponent({
    * wait.
    */
   const available = stillTrue(availableReading, EMPTY_ROSTER);
-  const target = stillTrue(useTelemetry("vessel.target"), undefined);
+  const target = stillTrue(topics.useTelemetry("vessel.target"), undefined);
   const tarName = target?.name;
   const tarType = targetKindLabel(target?.kind);
   const tarRelPos = target?.relativePosition && bare(target.relativePosition);
@@ -917,7 +921,7 @@ registerComponent<TargetPickerConfig>({
   // One host-owned augment slot: a body `.sections` slot for a fleet-management
   // Uplink's filter/grouping view. Unfilled until an Uplink binds it.
   augmentSlots: ["target-picker.sections"],
-  dataRequirements: ["target.available", "vessel.target"],
+  channels: topics.channels,
   defaultConfig: {},
   actions: targetPickerActions,
   pushable: true,

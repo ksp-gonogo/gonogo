@@ -5,9 +5,9 @@ import type {
 } from "@ksp-gonogo/core";
 import {
   AugmentSlot,
+  defineTopicManifest,
   registerComponent,
   useContributions,
-  useTelemetry,
 } from "@ksp-gonogo/core";
 import { usePartsLive, useTopology } from "@ksp-gonogo/data";
 import { type Reading, useCommand } from "@ksp-gonogo/sitrep-client";
@@ -30,6 +30,15 @@ import {
   type ShipMapPartMetaEntry,
   type ShipMapPartMeterEntry,
 } from "./shipTopology";
+
+const topics = defineTopicManifest({
+  channels: [
+    "vessel.parts",
+    "vessel.thermal",
+    "vessel.flight",
+    "vessel.control",
+  ],
+});
 
 // Re-exported so a sibling file (the contribution-slot-registry conformance
 // test, an Uplink's own contribution) can import these from the widget's
@@ -136,7 +145,7 @@ function ShipMapComponent(_props: Readonly<ComponentProps<ShipMapConfig>>) {
    * now, so the verdict is withheld and the header tag says why: the ring
    * disappearing on its own would read as a craft that cooled down.
    */
-  const thermalReading = useTelemetry("vessel.thermal");
+  const thermalReading = topics.useTelemetry("vessel.thermal");
   const hottestPartName = judgeable(thermalReading)?.hottestPart?.name;
   const hottestNotCurrent = notCurrent(thermalReading);
   // Ambient skin temperature: drives a background tint on the diagram so
@@ -146,7 +155,7 @@ function ShipMapComponent(_props: Readonly<ComponentProps<ShipMapConfig>>) {
   // A temperature TINT, not a position: a number that can be dated, and the
   // widget's own currency chrome is what says how old it is. Last observed on
   // every arm that has one.
-  const flightReading = useTelemetry("vessel.flight");
+  const flightReading = topics.useTelemetry("vessel.flight");
   const externalTemperature =
     flightReading.state === "observed" ||
     flightReading.state === "stale" ||
@@ -163,7 +172,7 @@ function ShipMapComponent(_props: Readonly<ComponentProps<ShipMapConfig>>) {
   // reading rather than an assertion about now, and the widget's currency
   // chrome dates it. Zero on a cold start, which is what the guard below
   // already did.
-  const controlReading = useTelemetry("vessel.control");
+  const controlReading = topics.useTelemetry("vessel.control");
   const throttleRaw =
     controlReading.state === "observed" || controlReading.state === "stale"
       ? controlReading.value.throttle
@@ -548,12 +557,7 @@ registerComponent<ShipMapConfig>({
   // the mapTopic shim, same as useVesselDeltaV's stream-native reads); the
   // per-part thermal/resources/module-state joins in usePartsLive all ride
   // the same payload: no per-flightId subscriptions.
-  dataRequirements: [
-    "vessel.parts",
-    "vessel.thermal.hottestPart.name",
-    "vessel.flight.externalTemperature",
-    "vessel.control.throttle",
-  ],
+  channels: topics.channels,
   defaultConfig: {},
   actions: [],
   pushable: true,

@@ -17,6 +17,7 @@ import { PanelBadgesProvider } from "./PanelBadges";
 import { PanelStatusStoreProvider } from "./status/PanelStatusStore";
 import { useWidgetBadges } from "./useWidgetBadges";
 import { WidgetMetaContext } from "./WidgetMetaContext";
+import { widgetDeclaredTopics } from "./widgetDeclaredTopics";
 
 /**
  * Render a widget THE WAY THE DASHBOARD DOES, by its registered id.
@@ -177,7 +178,7 @@ function WidgetStreamStatus({
   def: ComponentDefinition;
   children: ReactNode;
 }) {
-  const status = useWidgetStreamStatus(def.dataRequirements);
+  const status = useWidgetStreamStatus(widgetDeclaredTopics(def));
   return <PanelStatusProvider status={status}>{children}</PanelStatusProvider>;
 }
 

@@ -1,10 +1,10 @@
 import type { ActionDefinition, ComponentProps } from "@ksp-gonogo/core";
 import {
+  defineTopicManifest,
   type PorkchopCell,
   registerComponent,
   type TransferSolution,
   useActionInput,
-  useTelemetry,
 } from "@ksp-gonogo/core";
 import {
   bodyAtIndex,
@@ -47,6 +47,10 @@ import {
   transferDestinations,
   upcomingWindows,
 } from "./transferData";
+
+const topics = defineTopicManifest({
+  channels: ["system.bodies", "vessel.orbit", "target.available", "dv.summary"],
+});
 
 /** Stable empty catalogue: `useProcessor` answers undefined before the first frame. */
 const NO_BODIES: CelestialBody[] = [];
@@ -232,7 +236,7 @@ function TransferWindowComponent({
    * number a readout can date: `orbitNotCurrent` captions it rather than blanking
    * a whole board that is otherwise live.
    */
-  const orbitReading = useTelemetry("vessel.orbit");
+  const orbitReading = topics.useTelemetry("vessel.orbit");
   const orbit = stillTrue(orbitReading, undefined);
   const orbitNotCurrent = notCurrent(orbitReading);
   /**
@@ -307,7 +311,10 @@ function TransferWindowComponent({
    * empty roster and a roster that has not arrived both mean nothing is targeted,
    * and the fall-through to the first sibling is already the answer to that.
    */
-  const targetList = stillTrue(useTelemetry("target.available"), undefined);
+  const targetList = stillTrue(
+    topics.useTelemetry("target.available"),
+    undefined,
+  );
   const targetBodyIndex = useMemo(
     () =>
       targetList?.entries.find((e) => e.isCurrent && e.kind === TargetKind.Body)
@@ -1156,12 +1163,7 @@ registerComponent<TransferWindowConfig>({
   defaultSize: { w: 12, h: 20 },
   minSize: { w: 6, h: 10 },
   component: TransferWindowComponent,
-  dataRequirements: [
-    "system.bodies",
-    "vessel.orbit",
-    "target.available",
-    "dv.summary",
-  ],
+  channels: topics.channels,
   defaultConfig: { showPorkchop: true, leadHours: 6, reserveDeltaV: 0 },
   actions: transferWindowActions,
   pushable: true,

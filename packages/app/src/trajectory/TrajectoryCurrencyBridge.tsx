@@ -34,9 +34,9 @@ const TRAJECTORY_TOPIC = "vessel.orbit";
  * and guessing in this direction is the loud-false-positive trade above.
  */
 export function widgetReadsTrajectory(
-  dataRequirements: readonly string[] | undefined,
+  declaredTopics: readonly string[] | undefined,
 ): boolean {
-  for (const requirement of dataRequirements ?? []) {
+  for (const requirement of declaredTopics ?? []) {
     const topic = mapTopic("data", requirement) ?? requirement;
     if (topic === TRAJECTORY_TOPIC) return true;
     if (topic.startsWith(`${TRAJECTORY_TOPIC}.`)) return true;
@@ -119,14 +119,14 @@ export function trajectoryCurrencyContribution(
  * all, so they pay no subscription for a badge that could never fire.
  */
 export function TrajectoryCurrencyBridge({
-  dataRequirements,
+  declaredTopics,
 }: {
-  dataRequirements: readonly string[] | undefined;
+  declaredTopics: readonly string[] | undefined;
 }) {
-  // Resolved on the joined list rather than the array: `registerComponent`
-  // hands back a fresh array identity on some read paths, and this decides
-  // whether a subscribing child is mounted at all.
-  const key = (dataRequirements ?? []).join(" ");
+  // Resolved on the joined list rather than the array: the declaration is
+  // rebuilt into a fresh array on every read, and this decides whether a
+  // subscribing child is mounted at all.
+  const key = (declaredTopics ?? []).join(" ");
   const reads = useMemo(
     () => widgetReadsTrajectory(key.length > 0 ? key.split(" ") : []),
     [key],

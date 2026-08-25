@@ -16,6 +16,7 @@ import {
   PanelBadgesProvider,
   PanelStatusProvider,
   PanelStatusStoreProvider,
+  widgetDeclaredTopics,
 } from "@ksp-gonogo/ui-kit";
 import { memo, type ReactNode, useCallback, useMemo } from "react";
 import styled from "styled-components";
@@ -127,12 +128,12 @@ export const GridItemContent = memo(function GridItemContent({
         {/* Folds active alarms attributed to this widget's subject into the same
           store, so a firing alarm lights the widget's summary with its own name.
           Renders nothing; no-op where no alarm host is mounted. */}
-        <AlarmStatusBridge dataRequirements={def.dataRequirements} />
+        <AlarmStatusBridge declaredTopics={widgetDeclaredTopics(def)} />
         {/* Folds the trajectory's own propagation horizon into the same store,
           so a widget drawing orbital numbers says whether they can answer for
           the instant on screen. Mounts a subscribing child only for widgets that
           read the trajectory; renders nothing otherwise. */}
-        <TrajectoryCurrencyBridge dataRequirements={def.dataRequirements} />
+        <TrajectoryCurrencyBridge declaredTopics={widgetDeclaredTopics(def)} />
         <CellHeader className="drag-handle" title="Drag to reposition">
           {/* widget-action-buttons: draggableCancel target so touch events don't trigger drag */}
           <ActionButtons className="widget-action-buttons">
@@ -234,8 +235,8 @@ function WidgetBadges({ children }: { children: ReactNode }) {
 }
 
 /**
- * Derives the widget's stream status from the `dataRequirements` it already
- * registered, and hands it to whatever `Panel` the widget renders. The widget
+ * Derives the widget's stream status from the topics it already declared, and
+ * hands it to whatever `Panel` the widget renders. The widget
  * itself wires nothing: it is the dashboard that knows both which topics the
  * widget declared and how stale each of them is, so it is the dashboard that
  * should answer the question.
@@ -251,7 +252,7 @@ function WidgetStreamStatus({
   def: ComponentDefinition;
   children: ReactNode;
 }) {
-  const status = useWidgetStreamStatus(def.dataRequirements);
+  const status = useWidgetStreamStatus(widgetDeclaredTopics(def));
   return <PanelStatusProvider status={status}>{children}</PanelStatusProvider>;
 }
 

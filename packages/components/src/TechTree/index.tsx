@@ -1,9 +1,9 @@
 import type { ComponentProps } from "@ksp-gonogo/core";
 import {
+  defineTopicManifest,
   getSizeBucket,
   registerComponent,
   useGameContext,
-  useTelemetry,
 } from "@ksp-gonogo/core";
 import {
   META_VANTAGE,
@@ -27,6 +27,10 @@ import {
   magnitudeOr,
   type Quantityish,
 } from "../shared/magnitude";
+
+const topics = defineTopicManifest({
+  channels: ["career.status", "spaceCenter.scene"],
+});
 
 type TechTreeConfig = Record<string, never>;
 
@@ -360,13 +364,16 @@ function TechTreeComponent({ w, h }: Readonly<ComponentProps<TechTreeConfig>>) {
    * lets the refusal say "no longer current" rather than accusing the link of
    * never having delivered.
    */
-  const career = useTelemetry("career.status");
+  const career = topics.useTelemetry("career.status");
   const nodesRaw = stillTrue(career, undefined)?.tech?.nodes;
   const careerScience = judgeable(career)?.economy?.science;
   const careerNotCurrent = notCurrent(career);
   // The game scene is a fact as well: it changes when the player walks through
   // a door, which is an event and not a drift.
-  const scene = stillTrue(useTelemetry("spaceCenter.scene"), undefined)?.scene;
+  const scene = stillTrue(
+    topics.useTelemetry("spaceCenter.scene"),
+    undefined,
+  )?.scene;
   const { chargesScience } = useGameContext();
   // Unlocking a tech node is an R&D-desk action with no vessel signal delay,
   // so it dispatches at the meta-vantage (instant). The handle is contributed to
@@ -1579,11 +1586,7 @@ registerComponent<TechTreeConfig>({
   defaultSize: { w: 6, h: 9 },
   minSize: { w: 2, h: 2 },
   component: TechTreeComponent,
-  dataRequirements: [
-    "career.status.tech.nodes",
-    "career.status.economy.science",
-    "spaceCenter.scene.scene",
-  ],
+  channels: topics.channels,
   defaultConfig: {},
   actions: [],
   pushable: true,

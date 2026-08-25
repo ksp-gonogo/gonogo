@@ -5,9 +5,9 @@ import type {
 } from "@ksp-gonogo/core";
 import {
   AugmentSlot,
+  defineTopicManifest,
   registerComponent,
   useContributions,
-  useTelemetry,
 } from "@ksp-gonogo/core";
 import {
   CELESTIAL_FACTS,
@@ -82,6 +82,21 @@ import { VesselInfoPanel } from "./VesselInfoPanel";
 // same slot.
 import "./vesselStatusContribution";
 import type { SystemViewVesselStatusEntry } from "./vesselStatusContribution";
+
+// The CommNet path derivation reads comms.network directly, on top of the
+// built-in contribution's own subscription through the SlotAggregator. Command
+// traffic on system.uplink.pending is read directly via useLatestValue, for the
+// same reason.
+const topics = defineTopicManifest({
+  channels: ["system.bodies"],
+  optionalChannels: [
+    "vessel.orbit",
+    "vessel.identity",
+    "vessel.target",
+    "comms.network",
+    "system.uplink.pending",
+  ],
+});
 
 interface SystemViewConfig {
   /**
@@ -357,7 +372,7 @@ function SystemViewComponent({
   // a model if one is on offer, and otherwise from nothing at all, and the
   // "just don't draw it" contract this diagram's own marker already follows
   // takes over. Same decision as MapView and FleetComms, for the same reason.
-  const orbitReading = useTelemetry("vessel.orbit");
+  const orbitReading = topics.useTelemetry("vessel.orbit");
   const orbit =
     orbitReading.state === "observed"
       ? orbitReading.value
@@ -366,7 +381,7 @@ function SystemViewComponent({
         : undefined;
   // An identity does not decay: a stale SOI index is still which body this craft
   // is around, and it only decides which FRAME the dot belongs in.
-  const identityReading = useTelemetry("vessel.identity");
+  const identityReading = topics.useTelemetry("vessel.identity");
   const identity =
     identityReading.state === "observed" || identityReading.state === "stale"
       ? identityReading.value
@@ -394,12 +409,12 @@ function SystemViewComponent({
     : undefined;
   const vesselPlotState = vesselPlotStateFromStatus(vesselStatus ?? null);
   // A catalogue and a name, neither of which decays.
-  const bodiesReading = useTelemetry("system.bodies");
+  const bodiesReading = topics.useTelemetry("system.bodies");
   const systemBodies =
     bodiesReading.state === "observed" || bodiesReading.state === "stale"
       ? bodiesReading.value
       : undefined;
-  const targetReading = useTelemetry("vessel.target");
+  const targetReading = topics.useTelemetry("vessel.target");
   const targetName =
     targetReading.state === "observed" || targetReading.state === "stale"
       ? targetReading.value.name
@@ -411,7 +426,7 @@ function SystemViewComponent({
   // A relay graph does not decay into meaninglessness, so a stale one still
   // says what the topology last was, which is what the faint lines already
   // assert.
-  const commsNetworkReading = useTelemetry("comms.network");
+  const commsNetworkReading = topics.useTelemetry("comms.network");
   const commsNetwork =
     commsNetworkReading.state === "observed" ||
     commsNetworkReading.state === "stale"
@@ -1365,20 +1380,8 @@ registerComponent<SystemViewConfig>({
   // count, so it declares the array. The old `b.number` mapped to the derived
   // `system.state.bodyCount`, a value this widget does not render: keeping it
   // would point body-count alarms here on the strength of a key nothing reads.
-  dataRequirements: ["system.bodies"],
-  optionalChannels: [
-    "vessel.orbit",
-    "vessel.identity",
-    "vessel.target",
-    "system.bodies",
-    // The CommNet path derivation reads this
-    // directly (`useTelemetry("comms.network")`), on top of the built-in
-    // contribution's own subscription through the SlotAggregator.
-    "comms.network",
-    // Command traffic: read directly via `useLatestValue`, same
-    // reasoning as `comms.network` above.
-    "system.uplink.pending",
-  ],
+  channels: topics.channels,
+  optionalChannels: topics.optionalChannels,
   defaultConfig: { frame: "auto" },
   actions: [],
   pushable: true,

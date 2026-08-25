@@ -98,7 +98,7 @@ function mount(requirements: readonly string[]) {
   render(
     <stream.Provider>
       <PanelStatusStoreProvider>
-        <TrajectoryCurrencyBridge dataRequirements={requirements} />
+        <TrajectoryCurrencyBridge declaredTopics={requirements} />
         <SummaryProbe />
       </PanelStatusStoreProvider>
     </stream.Provider>,

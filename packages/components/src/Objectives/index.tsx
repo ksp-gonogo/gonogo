@@ -1,9 +1,9 @@
 import type { ComponentProps } from "@ksp-gonogo/core";
 import {
   AugmentSlot,
+  defineTopicManifest,
   registerAugment,
   registerComponent,
-  useTelemetry,
 } from "@ksp-gonogo/core";
 import type { Reading } from "@ksp-gonogo/sitrep-client";
 import {
@@ -28,6 +28,8 @@ import {
   parseContracts,
 } from "../ContractManager";
 import { useAlarmCreator, useAlarmManager } from "../shared/AlarmsLauncher";
+
+const topics = defineTopicManifest({ channels: ["career.status"] });
 
 /**
  * Objectives: a read-only, in-flight-friendly view of everything you're
@@ -258,8 +260,10 @@ function ContractsObjectiveSource({ Section }: ObjectiveSourceContext) {
   // reason: it is an event on a record, not a quantity that decays between
   // frames. Nothing on this record is the second kind, so nothing here goes
   // through `judgeable`.
-  const contractsRaw = stillTrue(useTelemetry("career.status"), undefined)
-    ?.contracts?.active;
+  const contractsRaw = stillTrue(
+    topics.useTelemetry("career.status"),
+    undefined,
+  )?.contracts?.active;
   const createAlarm = useAlarmCreator<ContractParameterAlarmTrigger>();
   const alarmManager = useAlarmManager();
 
@@ -451,7 +455,7 @@ registerComponent<ObjectivesConfig>({
   // Exposes one typed-contract slot; the built-in source below binds into it,
   // and any future Uplink objective source can too.
   augmentSlots: ["objectives.source"],
-  dataRequirements: ["career.status.contracts.active"],
+  channels: topics.channels,
   defaultConfig: {},
   actions: [],
   pushable: true,

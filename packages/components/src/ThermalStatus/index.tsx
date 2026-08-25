@@ -1,5 +1,9 @@
 import type { ComponentProps } from "@ksp-gonogo/core";
-import { clampSafe, registerComponent, useTelemetry } from "@ksp-gonogo/core";
+import {
+  clampSafe,
+  defineTopicManifest,
+  registerComponent,
+} from "@ksp-gonogo/core";
 import type { Reading } from "@ksp-gonogo/sitrep-client";
 import { value } from "@ksp-gonogo/sitrep-sdk";
 import {
@@ -14,6 +18,8 @@ import {
 } from "@ksp-gonogo/ui-kit";
 import styled from "styled-components";
 import { magnitudeOr } from "../shared/magnitude";
+
+const topics = defineTopicManifest({ channels: ["vessel.thermal"] });
 
 // Empty config: room to add a "hide heat shield" toggle later.
 type ThermalStatusConfig = Record<string, never>;
@@ -169,7 +175,7 @@ function ThermalStatusComponent({
    * on a green one, and `thermalNotCurrent` lets the widget say which of the two
    * reasons it is unknown for.
    */
-  const thermalReading = useTelemetry("vessel.thermal");
+  const thermalReading = topics.useTelemetry("vessel.thermal");
   const thermal = judgeable(thermalReading);
   const thermalNotCurrent = notCurrent(thermalReading);
   const rawHottestName = thermal?.hottestPart?.name;
@@ -543,18 +549,7 @@ registerComponent<ThermalStatusConfig>({
   defaultSize: { w: 8, h: 7 },
   minSize: { w: 3, h: 4 },
   component: ThermalStatusComponent,
-  dataRequirements: [
-    "vessel.thermal.hottestPart.name",
-    "vessel.thermal.hottestPart.skinTemp",
-    "vessel.thermal.hottestPart.skinMaxTemp",
-    "vessel.thermal.maxInternalTempRatio",
-    "vessel.thermal.hottestEngineTemp",
-    "vessel.thermal.hottestEngineMaxTemp",
-    "vessel.thermal.hottestEngineTempRatio",
-    "vessel.thermal.anyEnginesOverheating",
-    "vessel.thermal.heatShieldTemp",
-    "vessel.thermal.heatShieldFlux",
-  ],
+  channels: topics.channels,
   defaultConfig: {},
   actions: [],
   pushable: true,

@@ -1,5 +1,5 @@
 import type { ComponentProps, ConfigComponentProps } from "@ksp-gonogo/core";
-import { registerComponent, useTelemetry } from "@ksp-gonogo/core";
+import { defineTopicManifest, registerComponent } from "@ksp-gonogo/core";
 import {
   buildElements,
   CELESTIAL_FACTS,
@@ -48,6 +48,11 @@ import { quantiseUt } from "../MapView/predictionThrottle";
 import { TrajectoryFrameCaption } from "../shared/trajectoryFrame";
 import { TrajectoryWithheldNote } from "../shared/trajectoryWithheld";
 import { LibrationDiagram } from "./LibrationDiagram";
+
+const topics = defineTopicManifest({
+  channels: ["system.bodies"],
+  optionalChannels: ["vessel.orbit", "vessel.identity"],
+});
 
 /**
  * Libration points as PLACES: where a body pair's five of them are, and how far
@@ -211,14 +216,14 @@ function LibrationPointsComponent({
   // The craft's dot is a positive claim about where it is, so the elements come
   // from a current reading or from a model that offers one, and otherwise from
   // nothing: the diagram simply draws no craft.
-  const orbitReading = useTelemetry("vessel.orbit");
+  const orbitReading = topics.useTelemetry("vessel.orbit");
   const orbit =
     orbitReading.state === "observed"
       ? orbitReading.value
       : orbitReading.state === "reckonable"
         ? orbitReading.reckoned.value
         : undefined;
-  const identityReading = useTelemetry("vessel.identity");
+  const identityReading = topics.useTelemetry("vessel.identity");
   const identity =
     identityReading.state === "observed" || identityReading.state === "stale"
       ? identityReading.value
@@ -517,8 +522,8 @@ registerComponent<LibrationPointsConfig>({
   minSize: { w: 4, h: 7 },
   component: LibrationPointsComponent,
   configComponent: LibrationPointsConfigComponent,
-  dataRequirements: ["system.bodies"],
-  optionalChannels: ["vessel.orbit", "vessel.identity"],
+  channels: topics.channels,
+  optionalChannels: topics.optionalChannels,
   defaultConfig: { pair: AUTO_PAIR },
   actions: [],
   pushable: true,

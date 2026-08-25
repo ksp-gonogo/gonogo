@@ -1,8 +1,8 @@
 import type { ActionDefinition, ComponentProps } from "@ksp-gonogo/core";
 import {
+  defineTopicManifest,
   registerComponent,
   useActionInput,
-  useTelemetry,
 } from "@ksp-gonogo/core";
 import {
   META_VANTAGE,
@@ -30,6 +30,14 @@ import { useMemo, useState } from "react";
 import styled from "styled-components";
 import { type KerbalStatFields, KerbalStats } from "../shared/KerbalStats";
 import { magnitudeOf, type Quantityish } from "../shared/magnitude";
+
+const topics = defineTopicManifest({
+  channels: [
+    "spaceCenter.astronautComplex",
+    "spaceCenter.crewRoster",
+    "career.status",
+  ],
+});
 
 type AstronautComplexConfig = Record<string, never>;
 
@@ -171,7 +179,7 @@ function AstronautComplexComponent(
    * nobody is looking, and a blanked pool would report a Complex with no
    * candidates for a save that has four waiting.
    */
-  const complexReading = useTelemetry("spaceCenter.astronautComplex");
+  const complexReading = topics.useTelemetry("spaceCenter.astronautComplex");
   const complex = stillTrue(complexReading, undefined);
   /**
    * Off career there is no Astronaut Complex and the producer says so, which is
@@ -188,7 +196,7 @@ function AstronautComplexComponent(
    * spent; withheld instead, with `fundsNotCurrent` saying which of the two
    * reasons the figure is missing for.
    */
-  const fundsReading = useTelemetry("career.status");
+  const fundsReading = topics.useTelemetry("career.status");
   const careerFunds = magnitudeOf(judgeable(fundsReading)?.economy?.funds);
   const fundsNotCurrent = notCurrent(fundsReading);
   /**
@@ -196,7 +204,7 @@ function AstronautComplexComponent(
    * an event takes them off, so the last roster received is still the roster.
    */
   const crewRosterRaw = stillTrue(
-    useTelemetry("spaceCenter.crewRoster"),
+    topics.useTelemetry("spaceCenter.crewRoster"),
     undefined,
   );
   const crewRoster = useMemo(
@@ -863,11 +871,7 @@ registerComponent<AstronautComplexConfig>({
   defaultSize: { w: 6, h: 8 },
   minSize: { w: 3, h: 4 },
   component: AstronautComplexComponent,
-  dataRequirements: [
-    "spaceCenter.astronautComplex",
-    "spaceCenter.crewRoster",
-    "career.status.economy.funds",
-  ],
+  channels: topics.channels,
   defaultConfig: {},
   actions: astronautComplexActions,
   pushable: true,

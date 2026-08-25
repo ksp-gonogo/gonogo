@@ -200,7 +200,7 @@ describe("AlarmStatusBridge", () => {
           makeAlarm("a", "IMPACT", "firing", threshold("vessel.altitude")),
         ]),
         <>
-          <AlarmStatusBridge dataRequirements={["vessel.altitude"]} />
+          <AlarmStatusBridge declaredTopics={["vessel.altitude"]} />
           <SummaryProbe />
         </>,
       ),
@@ -215,7 +215,7 @@ describe("AlarmStatusBridge", () => {
           makeAlarm("a", "BURN SOON", "arming", threshold("vessel.altitude")),
         ]),
         <>
-          <AlarmStatusBridge dataRequirements={["vessel.altitude"]} />
+          <AlarmStatusBridge declaredTopics={["vessel.altitude"]} />
           <SummaryProbe />
         </>,
       ),
@@ -232,7 +232,7 @@ describe("AlarmStatusBridge", () => {
           makeAlarm("a", "IMPACT", "pending", threshold("vessel.altitude")),
         ]),
         <>
-          <AlarmStatusBridge dataRequirements={["vessel.altitude"]} />
+          <AlarmStatusBridge declaredTopics={["vessel.altitude"]} />
           <SummaryProbe />
         </>,
       ),
@@ -247,7 +247,7 @@ describe("AlarmStatusBridge", () => {
           makeAlarm("a", "IMPACT", "firing", threshold("vessel.altitude")),
         ]),
         <>
-          <AlarmStatusBridge dataRequirements={["career.funds"]} />
+          <AlarmStatusBridge declaredTopics={["career.funds"]} />
           <SummaryProbe />
         </>,
       ),
@@ -258,7 +258,7 @@ describe("AlarmStatusBridge", () => {
   it("renders nothing and stays quiet with no alarm host in the tree", () => {
     render(
       <PanelStatusStoreProvider>
-        <AlarmStatusBridge dataRequirements={["vessel.altitude"]} />
+        <AlarmStatusBridge declaredTopics={["vessel.altitude"]} />
         <SummaryProbe />
       </PanelStatusStoreProvider>,
     );

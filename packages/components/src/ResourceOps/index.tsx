@@ -1,8 +1,8 @@
 import type { ActionDefinition, ComponentProps } from "@ksp-gonogo/core";
 import {
+  defineTopicManifest,
   registerComponent,
   useActionInput,
-  useTelemetry,
 } from "@ksp-gonogo/core";
 import type { Reading } from "@ksp-gonogo/sitrep-client";
 import type {
@@ -32,6 +32,11 @@ import {
 } from "@ksp-gonogo/ui-kit";
 import { useMemo, useState } from "react";
 import { magnitudeOf, type Quantityish } from "../shared/magnitude";
+
+const topics = defineTopicManifest({
+  channels: ["isru.drills", "isru.converters"],
+  optionalChannels: ["vessel.identity", "system.bodies"],
+});
 
 /**
  * In-situ resource operations: every drill and every chemical converter on the
@@ -501,8 +506,8 @@ function ResourceOpsComponent(
    * its own currency: a stale drill channel says nothing about the converters, and
    * hollowing out both because one went would withhold figures that are current.
    */
-  const drillsReading = useTelemetry("isru.drills");
-  const convertersReading = useTelemetry("isru.converters");
+  const drillsReading = topics.useTelemetry("isru.drills");
+  const convertersReading = topics.useTelemetry("isru.converters");
   const drillsNotCurrent = notCurrent(drillsReading);
   const convertersNotCurrent = notCurrent(convertersReading);
 
@@ -572,8 +577,11 @@ function ResourceOpsComponent(
   // event (a rename, an SOI change), and the body table is the solar system
   // itself, so the last answer is still the answer and dropping "at Prospector
   // One · Duna" would lose a caption that is still true.
-  const identity = stillTrue(useTelemetry("vessel.identity"), undefined);
-  const systemBodies = stillTrue(useTelemetry("system.bodies"), undefined);
+  const identity = stillTrue(topics.useTelemetry("vessel.identity"), undefined);
+  const systemBodies = stillTrue(
+    topics.useTelemetry("system.bodies"),
+    undefined,
+  );
   const bodyName = useMemo(() => {
     if (identity?.parentBodyIndex == null) return undefined;
     return (systemBodies?.bodies ?? []).find(
@@ -668,11 +676,11 @@ registerComponent<ResourceOpsConfig>({
   defaultSize: { w: 6, h: 8 },
   minSize: { w: 3, h: 4 },
   component: ResourceOpsComponent,
-  dataRequirements: ["isru.drills", "isru.converters"],
+  channels: topics.channels,
   // Additive vessel/body context for the header's "at" readout (see the
   // class doc's LOCATION note); the core drill/converter list works fully
   // without either, so these never gate the widget's mount.
-  optionalChannels: ["vessel.identity", "system.bodies"],
+  optionalChannels: topics.optionalChannels,
   defaultConfig: {},
   actions: resourceOpsActions,
   pushable: true,

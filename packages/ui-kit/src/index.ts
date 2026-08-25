@@ -573,3 +573,7 @@ export {
   WidgetScopeProvider,
   type WidgetScopeRegistry,
 } from "./WidgetScope";
+export {
+  type WidgetTopicDeclaration,
+  widgetDeclaredTopics,
+} from "./widgetDeclaredTopics";

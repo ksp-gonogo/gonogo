@@ -1,9 +1,9 @@
 import type { ComponentProps } from "@ksp-gonogo/core";
 import {
   AugmentSlot,
+  defineTopicManifest,
   getAugmentsForSlot,
   registerComponent,
-  useTelemetry,
 } from "@ksp-gonogo/core";
 import {
   contactPhase,
@@ -46,6 +46,10 @@ import {
   useState,
 } from "react";
 import { magnitudeOf } from "../shared/magnitude";
+
+const topics = defineTopicManifest({
+  channels: ["system.vessels", "system.bodies", "commandCentre.roster"],
+});
 
 type FleetRosterConfig = Record<string, never>;
 
@@ -193,11 +197,11 @@ function useFleet(): { known: boolean; vessels: FleetVessel[] } {
    * `pending` would show "waiting for the fleet" to an operator whose save genuinely
    * has no other vessels, which is a wait that never ends.
    */
-  const systemReading = useTelemetry("system.vessels");
+  const systemReading = topics.useTelemetry("system.vessels");
   const system = stillTrue(systemReading, EMPTY_FLEET);
   // The body catalogue is a fact, and a tombstone for it would mean a save with no
   // celestial bodies, which cannot happen; `undefined` is the honest answer there.
-  const bodiesReading = useTelemetry("system.bodies");
+  const bodiesReading = topics.useTelemetry("system.bodies");
   const bodies = stillTrue(bodiesReading, undefined);
 
   const nameByIndex = useMemo(() => {
@@ -572,7 +576,7 @@ function FleetRosterComponent({
   // A command-centre roster is ground-side and declared unmodellable: centres do
   // not move and a stale list is still the list. Falls back to the raw id before
   // anything has landed, which is what the comment above already described.
-  const centresReading = useTelemetry("commandCentre.roster");
+  const centresReading = topics.useTelemetry("commandCentre.roster");
   const centres =
     centresReading.state === "observed" || centresReading.state === "stale"
       ? centresReading.value
@@ -773,7 +777,7 @@ registerComponent<FleetRosterConfig>({
   defaultSize: { w: 8, h: 10 },
   minSize: { w: 4, h: 4 },
   component: FleetRosterComponent,
-  dataRequirements: ["system.vessels", "system.bodies", "commandCentre.roster"],
+  channels: topics.channels,
   defaultConfig: {},
   actions: [],
   requires: ["flight"],

@@ -1,9 +1,9 @@
 import type { ComponentProps } from "@ksp-gonogo/core";
 import {
+  defineTopicManifest,
   formatCompactNumber,
   getSizeBucket,
   registerComponent,
-  useTelemetry,
 } from "@ksp-gonogo/core";
 import {
   META_VANTAGE,
@@ -29,6 +29,8 @@ import {
   magnitudeOr,
   type Quantityish,
 } from "../shared/magnitude";
+
+const topics = defineTopicManifest({ channels: ["career.status"] });
 
 type StrategiesConfig = Record<string, never>;
 
@@ -206,7 +208,7 @@ function StrategiesComponent({
   // that has stopped delivering. Committing 500,000f against a figure we can no
   // longer vouch for is the exact harm the balance-visibility rule exists for, so
   // a stale balance is withheld and the refusal says why.
-  const careerReading = useTelemetry("career.status");
+  const careerReading = topics.useTelemetry("career.status");
   const stratsRaw = stillTrue(careerReading, undefined)?.strategies?.all;
   const economy = judgeable(careerReading)?.economy;
   const funds = economy?.funds;
@@ -963,12 +965,7 @@ registerComponent<StrategiesConfig>({
   defaultSize: { w: 5, h: 9 },
   minSize: { w: 2, h: 2 },
   component: StrategiesComponent,
-  dataRequirements: [
-    "career.status.strategies.all",
-    "career.status.economy.funds",
-    "career.status.economy.reputation",
-    "career.status.economy.science",
-  ],
+  channels: topics.channels,
   defaultConfig: {},
   actions: [],
   pushable: true,

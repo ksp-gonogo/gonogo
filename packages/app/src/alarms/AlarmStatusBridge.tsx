@@ -26,7 +26,7 @@ export function severityFromAlarmState(state: AlarmState): Severity | null {
 
 /**
  * The data subject an alarm is about, as a key that can be matched against a
- * widget's `dataRequirements`, or `null` when it has no per-widget subject. A
+ * widget's declared topics, or `null` when it has no per-widget subject. A
  * threshold alarm names its `dataKey`, an event alarm its `topic`, a
  * contract-parameter alarm belongs to whatever widget reads the active
  * contracts, and a time alarm has no data subject at all (it is a mission-wide
@@ -72,12 +72,12 @@ export function alarmSubjectKey(alarm: Alarm): string | null {
  */
 export function alarmMatchesWidget(
   alarm: Alarm,
-  dataRequirements: readonly string[] | undefined,
+  declaredTopics: readonly string[] | undefined,
 ): boolean {
   const subject = alarmSubjectKey(alarm);
   if (subject === null) return false;
   const subjectTopic = mapTopic("data", subject) ?? subject;
-  for (const requirement of dataRequirements ?? []) {
+  for (const requirement of declaredTopics ?? []) {
     if (requirement === subject) return true;
     const requirementTopic = mapTopic("data", requirement) ?? requirement;
     if (requirementTopic === subjectTopic) return true;
@@ -94,19 +94,19 @@ export function alarmMatchesWidget(
  * with the alarm's own name as the label.
  *
  * Rendered once per grid item, so it is scoped to that item's store and
- * `dataRequirements`. When no alarm host is mounted (a station screen without
+ * declared topics. When no alarm host is mounted (a station screen without
  * one, most tests) it renders nothing.
  */
 export function AlarmStatusBridge({
-  dataRequirements,
+  declaredTopics,
 }: {
-  dataRequirements: readonly string[] | undefined;
+  declaredTopics: readonly string[] | undefined;
 }) {
   const snapshot = useAlarmSnapshotOptional();
   const matched = (snapshot?.alarms ?? []).filter(
     (alarm) =>
       severityFromAlarmState(alarm.state) !== null &&
-      alarmMatchesWidget(alarm, dataRequirements),
+      alarmMatchesWidget(alarm, declaredTopics),
   );
   return (
     <>

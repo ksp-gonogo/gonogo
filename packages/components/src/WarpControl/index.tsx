@@ -1,10 +1,10 @@
 import type { ActionDefinition, ComponentProps } from "@ksp-gonogo/core";
 import {
   AugmentSlot,
+  defineTopicManifest,
   registerComponent,
   useActionInput,
   useGameContext,
-  useTelemetry,
 } from "@ksp-gonogo/core";
 import {
   META_VANTAGE,
@@ -23,6 +23,8 @@ import {
 import { useEffect, useState } from "react";
 import styled from "styled-components";
 import { magnitudeOf } from "../shared/magnitude";
+
+const topics = defineTopicManifest({ channels: ["time.warp"] });
 
 /**
  * Time-warp control widget. Reads the current warp index/rate off the
@@ -143,7 +145,7 @@ function WarpControlComponent({
   // renders as 1x pressed and warp-down disabled, which is a positive claim that
   // the simulation is at realtime. Refusing to answer would make the widget
   // assert something it had stopped knowing.
-  const warpReading = useTelemetry("time.warp");
+  const warpReading = topics.useTelemetry("time.warp");
   const warp = stillTrue(warpReading, undefined);
   const rate = warp?.warpRate;
   const indexRaw = warp?.warpRateIndex;
@@ -469,12 +471,7 @@ registerComponent<WarpControlConfig>({
   defaultSize: { w: 6, h: 5 },
   minSize: { w: 4, h: 4 },
   component: WarpControlComponent,
-  dataRequirements: [
-    "time.warp.warpRate",
-    "time.warp.warpRateIndex",
-    "time.warp.warpMode",
-    "time.warp.paused",
-  ],
+  channels: topics.channels,
   defaultConfig: {},
   actions: warpActions,
   augmentSlots: ["warp-control.stepper"],

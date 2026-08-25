@@ -1,5 +1,9 @@
 import type { ComponentProps, ConfigComponentProps } from "@ksp-gonogo/core";
-import { AugmentSlot, registerComponent, useTelemetry } from "@ksp-gonogo/core";
+import {
+  AugmentSlot,
+  defineTopicManifest,
+  registerComponent,
+} from "@ksp-gonogo/core";
 import { observedAt, type Reading, useViewUt } from "@ksp-gonogo/sitrep-client";
 import { TargetKind, value } from "@ksp-gonogo/sitrep-sdk";
 import {
@@ -42,6 +46,10 @@ import { magnitudeOf } from "../shared/magnitude";
 // declines and the widget renders no modelled figure) plus the frame-memoised
 // processor its arithmetic will run through.
 import "./targetReckoning";
+
+const topics = defineTopicManifest({
+  channels: ["vessel.target", "vessel.dock"],
+});
 
 type DockingHudMode = "hud" | "hud-with-camera";
 
@@ -243,8 +251,8 @@ function TargetingComponent({
   // leaves the widget with the same nothing to draw. Neither one is a readout
   // that could carry different wording: the only visible consequence is a HUD
   // that does not open.
-  const targetReading = useTelemetry("vessel.target");
-  const dockReading = useTelemetry("vessel.dock");
+  const targetReading = topics.useTelemetry("vessel.target");
+  const dockReading = topics.useTelemetry("vessel.dock");
   const dock = judgeable(dockReading);
   const dockPairing = stillTrue(dockReading, undefined);
   const target = observedPayload(targetReading);
@@ -1318,7 +1326,7 @@ registerComponent<TargetingConfig>({
   minSize: { w: 3, h: 4 },
   component: TargetingComponent,
   configComponent: TargetingConfigComponent,
-  dataRequirements: ["vessel.target", "vessel.dock"],
+  channels: topics.channels,
   defaultConfig: { autoSwitch: true, hudMode: "hud-with-camera" },
   augmentSlots: ["targeting.camera", "targeting.overlay"],
   pushable: true,
