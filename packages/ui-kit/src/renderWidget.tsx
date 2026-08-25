@@ -1,7 +1,10 @@
 import type { ComponentDefinition } from "@ksp-gonogo/sitrep-sdk";
 import { getComponent } from "@ksp-gonogo/sitrep-sdk";
 import { getComponents } from "@ksp-gonogo/sitrep-sdk/registry";
-import { DashboardItemContext } from "@ksp-gonogo/sitrep-sdk/spine";
+import {
+  DashboardItemContext,
+  TelemetrySubscriberLabel,
+} from "@ksp-gonogo/sitrep-sdk/spine";
 import type { RenderResult } from "@ksp-gonogo/sitrep-sdk/testing";
 import { render } from "@ksp-gonogo/sitrep-sdk/testing";
 import type { JSXElementConstructor } from "react";
@@ -142,14 +145,18 @@ export function WidgetHostFor({
       <PanelStatusStoreProvider>
         <DashboardItemContext.Provider value={itemContext}>
           <WidgetMetaContext.Provider value={meta}>
-            <AugmentSettingsProvider
-              settings={augmentSettings}
-              setAugmentSetting={setAugmentSetting}
-            >
-              <ContributionsProvider>
-                <WidgetBadges>{children}</WidgetBadges>
-              </ContributionsProvider>
-            </AugmentSettingsProvider>
+            {/* Same id as `meta` above, for the SDK's own diagnostics: it
+                cannot read ui-kit's context, since ui-kit depends on it. */}
+            <TelemetrySubscriberLabel label={def.id}>
+              <AugmentSettingsProvider
+                settings={augmentSettings}
+                setAugmentSetting={setAugmentSetting}
+              >
+                <ContributionsProvider>
+                  <WidgetBadges>{children}</WidgetBadges>
+                </ContributionsProvider>
+              </AugmentSettingsProvider>
+            </TelemetrySubscriberLabel>
           </WidgetMetaContext.Provider>
         </DashboardItemContext.Provider>
       </PanelStatusStoreProvider>

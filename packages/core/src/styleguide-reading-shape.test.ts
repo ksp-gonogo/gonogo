@@ -62,11 +62,18 @@ function trackedSourceFiles(): string[] {
  * taken off it, and which never goes through one of the reading accessors.
  *
  * The accessors are the sanctioned narrowings (`judgeable`, `stillTrue`, `dateable`,
- * `withoutReckoning`, `readingAge`, `notCurrent`), plus an explicit `.state` branch,
- * which is what a widget with its own rule writes.
+ * `withoutReckoning`, `readingAge`, `notCurrent`, `hasAnswered`), plus an explicit
+ * `.state` branch, which is what a widget with its own rule writes.
+ *
+ * `hasAnswered` is the odd one out and worth a line: the others are per-site local
+ * helpers matched by name, while it is exported from the SDK and shared. It answers
+ * the presence-gate question ("has the producer spoken at all"), which the other
+ * three do not, and it is shared precisely because five sites were answering it by
+ * hand as `state !== "pending"` and every one of them read the `unowned` arm as the
+ * producer having answered.
  */
 const ACCESSORS =
-  /judgeable|stillTrue|dateable|withoutReckoning|readingAge|notCurrent/;
+  /judgeable|stillTrue|dateable|withoutReckoning|readingAge|notCurrent|hasAnswered/;
 
 /**
  * The one sanctioned exception, with its reason.
@@ -169,7 +176,8 @@ describe("styleguide: a Reading is never handed on whole", () => {
             `shape checks, and the widget will render as though the vessel reported ` +
             `nothing. That is invisible to \`tsc\`:\n${detail}\n\n` +
             `Narrow it at the read: \`judgeable\` for a verdict, \`stillTrue\` for a ` +
-            `standing fact, \`dateable\` for a value you can caption with its age.`,
+            `standing fact, \`dateable\` for a value you can caption with its age, ` +
+            `\`hasAnswered\` for a presence gate.`,
     ).toEqual([]);
   });
 

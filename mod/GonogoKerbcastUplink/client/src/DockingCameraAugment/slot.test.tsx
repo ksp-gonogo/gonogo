@@ -1,9 +1,10 @@
-import type { TopicId } from "@ksp-gonogo/sitrep-sdk";
 import {
   AugmentSlot,
   clearRegistry,
+  hasAnswered,
   Quality,
   registerUplinkHandle,
+  type TopicId,
   useTelemetry,
 } from "@ksp-gonogo/sitrep-sdk";
 import {
@@ -53,7 +54,7 @@ function KerbcastAvailabilityFeeder() {
     // arm now: a `Reading` is never `undefined`, so the old spelling announced the
     // domain before anything arrived and the "does not subscribe until announced"
     // case could not fail.
-    store?.setAvailable("kerbcast", reading.state !== "pending");
+    store?.setAvailable("kerbcast", hasAnswered(reading));
   }, [store, reading]);
   return null;
 }

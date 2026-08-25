@@ -194,6 +194,17 @@ export class TelemetryClient {
   private readonly unownedListeners = new Set<(topic: string) => void>();
 
   /**
+   * Which widgets are reading each topic, refcounted, so the unowned warning
+   * can name the widget as well as the topic.
+   *
+   * Diagnostics only: nothing about delivery consults it, and a topic read
+   * outside a widget carries no label and simply is not in here. Refcounted
+   * rather than a plain set because two instances of one widget id both
+   * subscribing and one unmounting must not erase the label for the other.
+   */
+  private readonly subscriberLabels = new Map<string, Map<string, number>>();
+
+  /**
    * `clock` defaults to `RealTimeClock`: every real transport uses it
    * unmodified. Tests inject a deterministic `Clock` (or a structurally
    * compatible one, like sitrep-server's `ManualClock`) so loss-inference
@@ -256,6 +267,35 @@ export class TelemetryClient {
    */
   topicOwnership(topic: string): TopicOwnership {
     return this.ownership?.ownershipOf(topic) ?? "undecided";
+  }
+
+  /**
+   * Record that `label` (a widget id) is reading `topic`, for diagnostics.
+   * Returns a release function; call it when the read stops.
+   */
+  noteSubscriberLabel(topic: string, label: string): () => void {
+    let labels = this.subscriberLabels.get(topic);
+    if (!labels) {
+      labels = new Map();
+      this.subscriberLabels.set(topic, labels);
+    }
+    labels.set(label, (labels.get(label) ?? 0) + 1);
+    return () => {
+      const current = this.subscriberLabels.get(topic);
+      const count = current?.get(label);
+      if (!current || count === undefined) return;
+      if (count > 1) {
+        current.set(label, count - 1);
+        return;
+      }
+      current.delete(label);
+      if (current.size === 0) this.subscriberLabels.delete(topic);
+    };
+  }
+
+  /** The widgets currently reading `topic`, by id. Empty outside a widget. */
+  readersOf(topic: string): readonly string[] {
+    return [...(this.subscriberLabels.get(topic)?.keys() ?? [])];
   }
 
   /**
@@ -659,6 +699,7 @@ export class TelemetryClient {
     this.lastValues.clear();
     this.storeListeners.clear();
     this.unownedListeners.clear();
+    this.subscriberLabels.clear();
     this.commands.clear();
     this.stores.clear();
   }

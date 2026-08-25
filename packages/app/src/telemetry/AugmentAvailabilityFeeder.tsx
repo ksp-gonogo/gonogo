@@ -1,5 +1,5 @@
 import { getAugments, onAugmentsChange, useTelemetry } from "@ksp-gonogo/core";
-import type { TopicId } from "@ksp-gonogo/sitrep-sdk";
+import { hasAnswered, type TopicId } from "@ksp-gonogo/sitrep-sdk";
 import {
   type DomainAvailabilityStore,
   useDomainAvailabilityStore,
@@ -60,15 +60,15 @@ function DomainAvailabilityWatch({
   /**
    * Whether the domain has EVER reported, which is what a presence gate asks.
    *
-   * `pending` is the only answer that means "no Uplink here". Everything else is the
-   * producer speaking: `observed` obviously, `stale` because a domain that reported
-   * and went quiet is still installed, and `absent` because a producer saying "there
-   * is no value" is still a producer. That last one is why the pre-migration
-   * `value !== undefined` accidentally got the tombstone case RIGHT while getting
-   * everything else wrong, and it is the rule the Uplink-side availability feeders
-   * use too.
+   * Two answers mean "no Uplink here": `pending`, and `unowned` which says so
+   * outright. Everything else is the producer speaking: `observed` obviously,
+   * `stale` because a domain that reported and went quiet is still installed,
+   * and `absent` because a producer saying "there is no value" is still a
+   * producer. That last one is why the pre-migration `value !== undefined`
+   * accidentally got the tombstone case RIGHT while getting everything else
+   * wrong, and it is the rule the Uplink-side availability feeders use too.
    */
-  const reported = availability.state !== "pending";
+  const reported = hasAnswered(availability);
   useEffect(() => {
     store.setAvailable(domain, reported);
     return () => store.setAvailable(domain, false);

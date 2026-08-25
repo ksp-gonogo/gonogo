@@ -4,7 +4,12 @@ import {
   onMapPoiProvidersChange,
   useTelemetry,
 } from "@ksp-gonogo/core";
-import { isValue, type TopicId, value } from "@ksp-gonogo/sitrep-sdk";
+import {
+  hasAnswered,
+  isValue,
+  type TopicId,
+  value,
+} from "@ksp-gonogo/sitrep-sdk";
 import { Button } from "@ksp-gonogo/ui";
 import { Unit, writeQuantity } from "@ksp-gonogo/ui-kit";
 import type { CSSProperties, ReactElement } from "react";
@@ -251,9 +256,9 @@ function PoiProviderGate({
   // comparison stayed legal, so the types said nothing; `MapPoiLayer.test.tsx`
   // is what caught it.
   // `absent` counts too: a producer answering "there is no value" is still a
-  // producer, so the Uplink is installed. `pending` is the only answer that means
-  // nothing is there, which is why this reads as a single negative test.
-  const domainReported = available.state !== "pending";
+  // producer, so the Uplink is installed. The two answers that mean nothing is
+  // there are `pending` and `unowned`, which is what `hasAnswered` collapses.
+  const domainReported = hasAnswered(available);
 
   if (provider.requires && !domainReported) {
     return null;

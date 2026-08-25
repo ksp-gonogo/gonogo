@@ -382,6 +382,53 @@ export function withoutReckoning<T>(reading: Reading<T>): Reading<T> {
 }
 
 /**
+ * Whether the producer has spoken about this topic at all, whatever it said.
+ *
+ * The question a PRESENCE GATE asks, and five call sites were asking it by hand
+ * as `reading.state !== "pending"`: the augment-availability feeder, the map's
+ * POI provider gate, the mission log's dock read, the ΔV totals row, and two
+ * Uplink test helpers. Every one of them reasoned "pending is the only answer
+ * that means nothing is there".
+ *
+ * That reasoning was complete when `pending` was the only empty arm and stopped
+ * being complete the moment `unowned` existed, in the dangerous direction: a
+ * hand-rolled `!== "pending"` reads `unowned` as the producer having ANSWERED,
+ * when it is the strongest evidence there is that no producer exists. A gate
+ * built that way shows an Uplink's UI on an install where the Uplink is not
+ * present. Named here so the next arm has one place to be considered rather
+ * than five to be missed.
+ *
+ * `absent` is deliberately TRUE: a producer saying "there is no value" is still
+ * a producer, and a tombstone is data. `stale` and `reckonable` likewise, since
+ * a domain that reported and went quiet is still installed.
+ *
+ * The two falses are NOT interchangeable even though this collapses them, and a
+ * caller that renders something for the user should branch on the arm rather
+ * than on this: `pending` may become true on the next frame and `unowned` never
+ * will. This answers "should the gate be open", not "what should I say".
+ *
+ * Takes the discriminant rather than `Reading<T>`, because it reads nothing
+ * else and because the callers that need it most cannot supply a `Reading<T>`:
+ * a presence gate reads `` `${domain}.available` `` through a runtime `as
+ * TopicId` cast, so its reading is the union over EVERY topic and unifies with
+ * no single `T`.
+ */
+export function hasAnswered(reading: {
+  readonly state: ReadingState;
+}): boolean {
+  switch (reading.state) {
+    case "pending":
+    case "unowned":
+      return false;
+    case "absent":
+    case "observed":
+    case "stale":
+    case "reckonable":
+      return true;
+  }
+}
+
+/**
  * The instant a reading's OBSERVATION was made, or `undefined` when there has not
  * been one.
  *

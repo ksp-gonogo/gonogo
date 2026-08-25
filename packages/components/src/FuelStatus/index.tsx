@@ -484,7 +484,12 @@ function FuelStatusComponent({
    * it the day a total starts arriving absent rather than null.
    */
   const budgetReported =
-    budget !== undefined && budget.budget.state !== "pending";
+    budget !== undefined &&
+    budget.budget.state !== "pending" &&
+    // A build whose ΔV sim publishes nothing has not answered and never will,
+    // so the row stays away rather than showing a pair of em-dashes that read
+    // as "this craft has no ΔV" instead of "nothing here measures it".
+    budget.budget.state !== "unowned";
   const stageCount = budget?.stageCount ?? undefined;
   // Magnitudes: these feed `fmtFixed` and the per-stage bar scaling.
   const totalDVVac = magnitudeOf(budget?.totalVac) ?? undefined;

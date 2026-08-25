@@ -40,6 +40,7 @@ import { spaceCenterStateChannel } from "./space-center-state";
 import { systemStateChannel } from "./system-state";
 import type { DerivedChannelDefinition } from "./timeline-store";
 import { TimelineStore } from "./timeline-store";
+import { installUnownedTopicWarning } from "./unowned-warning";
 import { systemUplinkHealthChannel } from "./uplink-health";
 import type { VesselState } from "./vessel-state";
 import { vesselStateChannel } from "./vessel-state";
@@ -282,6 +283,10 @@ export function TelemetryProvider({
   }, [store]);
 
   useEffect(() => client.attachStore(store), [client, store]);
+  // The author-facing half of the unowned mechanism. Mounted here because this
+  // is where the client's lifetime is owned: one installation per client, so a
+  // topic is warned about once however many widgets are reading it.
+  useEffect(() => installUnownedTopicWarning(client), [client]);
   // Registers this provider's clock as the non-React `getViewUt()` accessor's
   // source: see `activeViewClock`'s doc comment above. Also registers the
   // store itself as `getVesselOrbit()`/`getVesselTarget()`/

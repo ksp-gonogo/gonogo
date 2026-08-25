@@ -25,7 +25,7 @@ export type {
   StaleGrade,
   TopicModel,
 } from "../reading";
-export { observedAt, withoutReckoning } from "../reading";
+export { hasAnswered, observedAt, withoutReckoning } from "../reading";
 
 import type { TimelinePoint } from "./client-timeline";
 import type { StreamStatusValue } from "./stream-status";

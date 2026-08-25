@@ -1,5 +1,5 @@
 import type { TopicId } from "@ksp-gonogo/sitrep-sdk";
-import { useTelemetry } from "@ksp-gonogo/sitrep-sdk";
+import { hasAnswered, useTelemetry } from "@ksp-gonogo/sitrep-sdk";
 import {
   DomainAvailabilityProvider,
   useDomainAvailabilityStore,
@@ -20,7 +20,7 @@ function ScansatAvailabilityFeeder() {
     // `pending` arm rather than `undefined`: a `Reading` is never undefined, so the
     // old test announced the domain as available before anything had arrived and
     // the "does not mount until announced" cases could not fail.
-    store?.setAvailable("scansat", reading.state !== "pending");
+    store?.setAvailable("scansat", hasAnswered(reading));
   }, [store, reading]);
   return null;
 }
