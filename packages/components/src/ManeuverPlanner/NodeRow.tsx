@@ -1,5 +1,5 @@
 import type { ParsedManeuverNode } from "@ksp-gonogo/data";
-import { value } from "@ksp-gonogo/sitrep-sdk";
+import { maneuverBasisLabels, value } from "@ksp-gonogo/sitrep-sdk";
 import { CloseIcon, PencilIcon } from "@ksp-gonogo/ui";
 import {
   Countdown,
@@ -13,6 +13,11 @@ import { useState } from "react";
 import styled from "styled-components";
 import { FeasibilityChip } from "./styles";
 
+/**
+ * An edit, in the same POSITIONAL slots the node arrived in. The field names are
+ * the stock basis's and the slots are whatever basis the node declared, which is
+ * why the editor labels its boxes from `node.frame` rather than from these.
+ */
 export interface NodeEditPatch {
   ut: number;
   radial: number;
@@ -140,6 +145,7 @@ function NodeEditor({
   const [radial, setRadial] = useState(node.deltaV[0]);
   const [normal, setNormal] = useState(node.deltaV[1]);
   const [prograde, setProgade] = useState(node.deltaV[2]);
+  const [slot0, slot1, slot2] = maneuverBasisLabels(node.frame);
   const timeTo = currentUT !== undefined ? ut - currentUT : null;
   const dirty =
     ut !== node.UT ||
@@ -157,9 +163,13 @@ function NodeEditor({
       <EditHint>
         burn in <Countdown value={timeTo} />
       </EditHint>
-      <LabeledInput label="Prograde" value={prograde} onChange={setProgade} />
-      <LabeledInput label="Normal" value={normal} onChange={setNormal} />
-      <LabeledInput label="Radial" value={radial} onChange={setRadial} />
+      {/* Named from the burn's own basis, and in slot order, so the box an
+          operator types an along-track burn into is the one that carries it.
+          The stock and Frenet bases put different quantities in the same
+          slots, and the field names below are only the first basis's. */}
+      <LabeledInput label={slot2} value={prograde} onChange={setProgade} />
+      <LabeledInput label={slot1} value={normal} onChange={setNormal} />
+      <LabeledInput label={slot0} value={radial} onChange={setRadial} />
       <EditActions>
         <SecondaryButton type="button" onClick={onCancel} disabled={saving}>
           Cancel

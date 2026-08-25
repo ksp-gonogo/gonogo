@@ -1,4 +1,5 @@
 import { clearActionHandlers, DashboardItemContext } from "@ksp-gonogo/core";
+import { ManeuverFrame } from "@ksp-gonogo/sitrep-sdk";
 import { act, render, screen, waitFor } from "@ksp-gonogo/test-utils";
 import { visibleText } from "@ksp-gonogo/ui-kit/testing";
 import userEvent from "@testing-library/user-event";
@@ -110,6 +111,10 @@ function emitManeuverNode(fixture: ReturnType<typeof setupStreamFixture>) {
         dvNormal: 0,
         dvPrograde: 30,
         dvTotal: 30,
+        // Stated, because `StockManeuverPlanBackend` states it: a node with no
+        // basis is a shape the stock producer never sends, and the editor
+        // rightly declines to put stock's words on one.
+        frame: ManeuverFrame.RadialNormalPrograde,
         patches: [],
       },
     ],

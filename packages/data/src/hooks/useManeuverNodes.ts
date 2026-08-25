@@ -3,14 +3,17 @@ import {
   mapOrbitPatch,
   useStream,
 } from "@ksp-gonogo/sitrep-client";
-import type { ManeuverNode, VesselManeuver } from "@ksp-gonogo/sitrep-sdk";
+import type {
+  ManeuverFrame,
+  ManeuverNode,
+  VesselManeuver,
+} from "@ksp-gonogo/sitrep-sdk";
 import { magnitudeOr } from "@ksp-gonogo/ui-kit";
 import { useMemo } from "react";
 
 /**
- * One planned maneuver node, with its burn as the
- * `[radialOut, normal, prograde]` triple the node editor works in and a
- * cached magnitude.
+ * One planned maneuver node, with its burn as the three positional slots the
+ * node editor works in, the basis that names them, and a cached magnitude.
  *
  * `id` is the node's OWN id, the one the update and remove commands address,
  * rather than its position in this list. A position stops being valid the
@@ -21,8 +24,24 @@ export interface ParsedManeuverNode {
   id: string;
   /** The burn instant, UT seconds. */
   UT: number;
-  /** `[radialOut, normal, prograde]`, m/s. */
+  /**
+   * The burn's three components in slot order, m/s. WHICH components those are
+   * is {@link frame}'s to say, and the field-name convention actively misleads:
+   * under the Frenet basis slot 0 is the tangent and slot 2 is the binormal.
+   */
   deltaV: [number, number, number];
+  /**
+   * The basis {@link deltaV}'s slots are expressed in, or null when the node
+   * did not state one.
+   *
+   * Carried rather than dropped. It used to be discarded here, one function
+   * below the editor that labels the slots, so an n-body planner's Frenet burn
+   * reached the operator with its along-track component labelled "Radial" and
+   * its out-of-plane one labelled "Prograde". Null stays null: defaulting to
+   * the stock basis would assert a basis the node declined to state, on numbers
+   * that may be in another one.
+   */
+  frame: ManeuverFrame | null;
   /** The burn's size, m/s. */
   deltaVMagnitude: number;
   /**
@@ -50,6 +69,7 @@ function parse(node: ManeuverNode): ParsedManeuverNode {
     id: node.id,
     UT: node.ut.magnitude,
     deltaV,
+    frame: node.frame ?? null,
     // The plan's own total when it carries one, because whoever owns the plan
     // knows how it sums its burn and a client re-deriving it can only agree by
     // coincidence. The hypotenuse is the fallback for a plan that does not say.

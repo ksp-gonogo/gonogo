@@ -152,6 +152,14 @@ export {
   magnitudeOr,
   type Quantityish,
 } from "./magnitude";
+// What a burn's three delta-v slots are called in the basis the burn declares.
+// Published for the reason `enum-names` above is: the slots are positional and
+// the field names are the stock basis's, so an Uplink planner working in the
+// Frenet trihedron needs these words and had been transcribing them.
+export {
+  type ManeuverBasisLabels,
+  maneuverBasisLabels,
+} from "./maneuver-basis";
 // The curated author-facing barrel (registration + hook shims + author types).
 // PROPOSAL surface pending operator sign-off (design D-D) before first external
 // publish. See ./api for why these are host-injected shims, not core re-exports.
