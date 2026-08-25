@@ -23,6 +23,10 @@ import {
 import styled from "styled-components";
 import { OrbitDiagram } from "../shared/OrbitDiagram";
 import { TrajectoryWithheldNote } from "../shared/trajectoryWithheld";
+import {
+  projectionDiffersFromTrajectory,
+  TwoBodyProjectionNote,
+} from "../shared/twoBodyProjection";
 import { isSequence, type PlanResult } from "./planning";
 import {
   FeasibilityBanner,
@@ -87,6 +91,13 @@ export function ManeuverPreview(props: ManeuverPreviewProps) {
           <ManeuverDiagram {...props} />
         </PreviewMain>
       </PreviewContainer>
+      {/* Above the plane caveat because it qualifies every figure in the
+          readouts, where that one qualifies the drawing. */}
+      {projectionDiffersFromTrajectory(props.currentTrajectory) && (
+        <Note>
+          <TwoBodyProjectionNote />
+        </Note>
+      )}
       {props.normal !== 0 && (
         <Note>
           Normal component tilts the plane; projection shows in-plane shape

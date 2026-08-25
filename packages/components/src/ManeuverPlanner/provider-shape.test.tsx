@@ -228,4 +228,53 @@ describe("ManeuverPlanner's preview diagram draws the shape the provider states"
     // of the very elements the provider declined to authorise a curve through.
     expect(container.querySelectorAll("svg ellipse").length).toBe(0);
   });
+
+  /**
+   * The post-burn figures are computed here from the live osculating elements
+   * by a two-body solver, whatever the provider said the trajectory is. When
+   * the provider integrates, those elements are exact at the sample instant
+   * and drift from there, so "New Ap" is where the craft would go if nothing
+   * else pulled on it, which is the one assumption an integrating provider
+   * exists to deny.
+   *
+   * Measured before this was written: the whole panel's visible text was
+   * character-identical between {@link ANALYTIC_UNBOUNDED_HORIZON} and
+   * {@link integratedHorizon}, down to "New T 33min 7s", a PERIOD for a craft
+   * whose provider will not vouch for a full revolution. The drawing differed
+   * (an open arc rather than a closed ellipse) and not one number did.
+   *
+   * Asserted in BOTH directions on purpose. A test that only checked the note
+   * appears would still pass if the note were rendered unconditionally, which
+   * would put a two-body warning on every stock dashboard and teach the
+   * operator to ignore it.
+   */
+  it("says the post-burn figures are two-body when the provider integrates", async () => {
+    const { container } = mountPlanner(
+      integratedHorizon(PINNED_UT + 500),
+      "mnv-preview-integrated",
+    );
+    await waitFor(() => {
+      if (container.querySelector("svg path[data-trajectory]") === null) {
+        throw new Error("the arc has not rendered yet");
+      }
+    });
+    expect(visibleText(container)).toMatch(/two-body/i);
+    await act(async () => {});
+  });
+
+  it("says nothing of the sort when the provider's own trajectories are conics", async () => {
+    const { container } = mountPlanner(
+      ANALYTIC_UNBOUNDED_HORIZON,
+      "mnv-preview-analytic-quiet",
+    );
+    await waitFor(() => {
+      if (container.querySelector("svg ellipse") === null) {
+        throw new Error("the preview diagram has not rendered yet");
+      }
+    });
+    // Under a two-body provider the projection and the trajectory rest on the
+    // same model, so there is no disagreement to declare.
+    expect(visibleText(container)).not.toMatch(/two-body/i);
+    await act(async () => {});
+  });
 });
