@@ -883,10 +883,15 @@ const WIDGETS: WidgetRenderConfig[] = [
       const dualLine = {
         windowSec: WINDOW,
         series: [
-          { id: "alt", key: "v.altitude", label: "Altitude", axis: "primary" },
+          {
+            id: "alt",
+            key: "vessel.state.altitudeAsl",
+            label: "Altitude",
+            axis: "primary",
+          },
           {
             id: "hvel",
-            key: "v.horizontalVelocity",
+            key: "vessel.state.horizontalSpeed",
             label: "H. velocity",
             axis: "secondary",
           },
@@ -914,7 +919,7 @@ const WIDGETS: WidgetRenderConfig[] = [
             series: [
               {
                 id: "alt",
-                key: "v.altitude",
+                key: "vessel.state.altitudeAsl",
                 label: "Altitude",
                 type: "line",
                 axis: "primary",
@@ -936,7 +941,7 @@ const WIDGETS: WidgetRenderConfig[] = [
             series: [
               {
                 id: "vs",
-                key: "v.verticalSpeed",
+                key: "vessel.state.verticalSpeed",
                 label: "V. speed (step)",
                 type: "step",
                 axis: "primary",
@@ -956,7 +961,7 @@ const WIDGETS: WidgetRenderConfig[] = [
             series: [
               {
                 id: "alt",
-                key: "v.altitude",
+                key: "vessel.state.altitudeAsl",
                 label: "Altitude (scatter)",
                 type: "scatter",
                 axis: "primary",
@@ -979,7 +984,7 @@ const WIDGETS: WidgetRenderConfig[] = [
             series: [
               {
                 id: "alt",
-                key: "v.altitude",
+                key: "vessel.state.altitudeAsl",
                 label: "Altitude (sparse scatter)",
                 type: "scatter",
                 axis: "primary",
@@ -1009,7 +1014,7 @@ const WIDGETS: WidgetRenderConfig[] = [
               },
               {
                 id: "altline",
-                key: "v.altitude",
+                key: "vessel.state.altitudeAsl",
                 label: "Altitude",
                 type: "line",
                 axis: "primary",
@@ -1030,7 +1035,7 @@ const WIDGETS: WidgetRenderConfig[] = [
             series: [
               {
                 id: "alt",
-                key: "v.altitude",
+                key: "vessel.state.altitudeAsl",
                 label: "Altitude",
                 axis: "primary",
               },
@@ -1048,7 +1053,7 @@ const WIDGETS: WidgetRenderConfig[] = [
             series: [
               {
                 id: "alt",
-                key: "v.altitude",
+                key: "vessel.state.altitudeAsl",
                 label: "Altitude",
                 axis: "primary",
               },
@@ -1067,7 +1072,7 @@ const WIDGETS: WidgetRenderConfig[] = [
             series: [
               {
                 id: "alt",
-                key: "v.altitude",
+                key: "vessel.state.altitudeAsl",
                 label: "Altitude",
                 axis: "primary",
               },
@@ -1084,11 +1089,11 @@ const WIDGETS: WidgetRenderConfig[] = [
           config: {
             windowSec: WINDOW,
             variant: "chart",
-            xKey: "v.altitude",
+            xKey: "vessel.state.altitudeAsl",
             series: [
               {
                 id: "vs",
-                key: "v.verticalSpeed",
+                key: "vessel.state.verticalSpeed",
                 label: "V. speed vs altitude",
                 type: "line",
                 axis: "primary",
@@ -1108,7 +1113,7 @@ const WIDGETS: WidgetRenderConfig[] = [
             series: [
               {
                 id: "alt",
-                key: "v.altitude",
+                key: "vessel.state.altitudeAsl",
                 label: "Altitude",
                 axis: "primary",
               },
@@ -1145,7 +1150,7 @@ const WIDGETS: WidgetRenderConfig[] = [
             series: [
               {
                 id: "alt",
-                key: "v.altitude",
+                key: "vessel.state.altitudeAsl",
                 label: "Altitude (log)",
                 type: "line",
                 axis: "primary",
