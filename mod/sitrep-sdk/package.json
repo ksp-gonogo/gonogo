@@ -12,7 +12,8 @@
     "./registry": "./src/registry/index.ts",
     "./spine": "./src/spine/index.ts",
     "./testing": "./src/testing/index.ts",
-    "./biome": "./biome.shared.json"
+    "./biome": "./biome.shared.json",
+    "./tsconfig.base.json": "./tsconfig.base.json"
   },
   "repository": {
     "type": "git",
@@ -23,7 +24,8 @@
   "files": [
     "biome.shared.json",
     "dist",
-    "src"
+    "src",
+    "tsconfig.base.json"
   ],
   "publishConfig": {
     "access": "public",
@@ -53,7 +55,8 @@
       "./testing": {
         "types": "./dist/testing/index.d.ts",
         "import": "./dist/testing/index.js"
-      }
+      },
+      "./tsconfig.base.json": "./tsconfig.base.json"
     }
   },
   "scripts": {

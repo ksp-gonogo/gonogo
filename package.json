@@ -22,7 +22,9 @@
     "lint": "biome check --write .",
     "release:patch": "node scripts/release.mjs patch",
     "release:minor": "node scripts/release.mjs minor",
-    "release:major": "node scripts/release.mjs major"
+    "release:major": "node scripts/release.mjs major",
+    "uplink-matrix": "node scripts/uplink-matrix.mjs",
+    "uplink-extraction-probe": "node scripts/uplink-extraction-probe.mjs"
   },
   "devDependencies": {
     "@biomejs/biome": "2.4.12",
