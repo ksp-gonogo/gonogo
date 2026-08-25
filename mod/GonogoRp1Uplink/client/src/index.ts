@@ -6,7 +6,13 @@
 import "./uplink";
 import "./units";
 import "./topics";
+import "./LaunchComplexStatus";
+import "./ResearchQueue";
+import "./SpaceCentrePersonnel";
 
+export { LaunchComplexStatus } from "./LaunchComplexStatus";
+export { ResearchQueue } from "./ResearchQueue";
+export { SpaceCentrePersonnel } from "./SpaceCentrePersonnel";
 export {
   RP1_AVAILABLE_TOPIC,
   RP1_BUILD_QUEUE_TOPIC,
