@@ -66,7 +66,7 @@ namespace Gonogo.KSP
             Channels = new List<ChannelDeclaration>
             {
                 Channel(CrashTopics.LastCrashTopic, Delivery.ReliableOrdered),
-                Channel(CrashTopics.HasRecent, Delivery.ReliableOrdered),
+                Channel(CrashTopics.HasRecentTopic, Delivery.ReliableOrdered),
             },
         };
 
@@ -77,7 +77,7 @@ namespace Gonogo.KSP
         public void Register(IUplinkHost host)
         {
             _lastCrash = host.Publisher(CrashTopics.LastCrashTopic);
-            _hasRecent = host.Publisher(CrashTopics.HasRecent);
+            _hasRecent = host.Publisher(CrashTopics.HasRecentTopic);
 
             // Per-tick main-thread sample of the active vessel, feeding the
             // per-flight stats tracker. Deliberately UN-gated (no subscription

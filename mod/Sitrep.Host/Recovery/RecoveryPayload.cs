@@ -14,7 +14,7 @@ namespace Sitrep.Host.Recovery
     public static class RecoveryTopics
     {
         public const string LastSummaryTopic = "recovery.lastSummary";
-        public const string HasRecent = "recovery.hasRecent";
+        public const string HasRecentTopic = "recovery.hasRecent";
     }
 
     /// <summary>

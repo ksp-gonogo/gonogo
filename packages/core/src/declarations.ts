@@ -1,6 +1,5 @@
 import {
   isKnownFieldPath,
-  mapTopic,
   PRODUCTION_DERIVED_CHANNELS,
 } from "@ksp-gonogo/sitrep-client";
 import { isTopicId } from "@ksp-gonogo/sitrep-sdk";
@@ -23,9 +22,6 @@ import { isTopicId } from "@ksp-gonogo/sitrep-sdk";
  * something other than this file:
  */
 export type RequirementKind =
-  /** A legacy flat key the migration table still resolves. Shrinking
-   *  debt: every slice of the vocabulary migration removes some of these. */
-  | "legacy-key"
   /** A wire channel the mod publishes (`isTopicId`, generated from the C#
    *  contract, so a typo is not a `TopicId`). */
   | "wire-topic"
@@ -40,10 +36,12 @@ export type RequirementKind =
    *  raw ones. This clause borrows those proofs rather than inventing a third
    *  mechanism.
    *
-   *  It is also the clause that ties this gate to the migration table's
-   *  lifetime. When the table retires, this must be re-sourced from the
-   *  contract's generated field metadata (`shapesForTopic`/`unitsForTopic`)
-   *  plus each derived channel's produced field set, NOT simply deleted. */
+   *  Sourced from the contract's own generated field metadata plus each
+   *  derived channel's declared field set, so it stands on its own now that the
+   *  migration table has gone: the walk behind it reads through
+   *  `unitsForTopic`/`shapesForTopic` rather than the generated maps directly,
+   *  which is what lets it see a Topic an Uplink or a derived channel
+   *  registered at module load. */
   | "field-path";
 
 const DERIVED_CHANNEL_TOPICS: ReadonlySet<string> = new Set(
@@ -58,7 +56,6 @@ const DERIVED_CHANNEL_TOPICS: ReadonlySet<string> = new Set(
 export function classifyRequirement(
   requirement: string,
 ): RequirementKind | undefined {
-  if (mapTopic("data", requirement) !== undefined) return "legacy-key";
   if (isTopicId(requirement)) return "wire-topic";
   if (DERIVED_CHANNEL_TOPICS.has(requirement)) return "derived-channel";
   if (isKnownFieldPath(requirement)) return "field-path";

@@ -74,6 +74,10 @@ describe("widget dataRequirements resolve to something real", () => {
     );
     expect(classifyRequirement("career.status")).toBe("wire-topic");
     expect(classifyRequirement("vessel.state")).toBe("derived-channel");
-    expect(classifyRequirement("career.funds")).toBe("legacy-key");
+    // A key from the retired flat vocabulary. It resolved once, through a
+    // migration table that no longer exists, and a declaration naming one now
+    // has nothing to resolve against: exactly the answer a name nothing
+    // publishes should get.
+    expect(classifyRequirement("career.funds")).toBeUndefined();
   });
 });
