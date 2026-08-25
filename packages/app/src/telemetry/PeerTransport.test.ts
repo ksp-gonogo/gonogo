@@ -282,6 +282,27 @@ describe("PeerTransport", () => {
     ]);
   });
 
+  it("refuses a vantage selection outright, rather than making one it cannot honour", () => {
+    const client = makeFakeClient();
+    const transport = new PeerTransport(client as unknown as PeerClientService);
+    const telemetry = new TelemetryClient(transport);
+    telemetry.subscribe("vessel.orbit", () => {});
+    telemetry.subscribe("vessel.flight", () => {});
+    client.sentSubscribes.length = 0;
+
+    expect(telemetry.canSetVantage).toBe(false);
+    telemetry.setVantage("some-centre");
+
+    // The selection does not move, so the vantage control cannot name a centre
+    // the data is not from.
+    expect(telemetry.selectedVantage).not.toBe("some-centre");
+    // And no unsubscribe/subscribe storm reaches the host. Two topics here;
+    // a real station reads dozens, and each click would be two ops apiece.
+    expect(client.sentSubscribes).toEqual([]);
+
+    telemetry.dispose();
+  });
+
   it("drops set-vantage, which moves the whole host session rather than one station", () => {
     const client = makeFakeClient();
     const transport = new PeerTransport(client as unknown as PeerClientService);
