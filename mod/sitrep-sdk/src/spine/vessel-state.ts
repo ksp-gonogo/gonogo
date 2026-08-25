@@ -1852,10 +1852,17 @@ export function deriveVesselState(
   return {
     position: null,
     velocity: null,
-    altitudeAsl: mag(flight.altitudeAsl),
-    verticalSpeed: mag(flight.verticalSpeed),
-    surfaceSpeed: mag(flight.surfaceSpeed),
-    orbitalSpeed: mag(flight.orbitalSpeed),
+    // `finiteOrNull`, like every other derived scalar in this file. These four
+    // come STRAIGHT off the wire rather than out of a computation, which is why
+    // they were the four that skipped it, and `mag` answers NaN for an absent
+    // field (see its own doc for why that is the right answer THERE). NaN is
+    // neither of the two answers these fields declare, and a consumer's `??`
+    // does not catch it: the readout still renders as absent, but every
+    // threshold compared against it silently stops firing.
+    altitudeAsl: finiteOrNull(mag(flight.altitudeAsl)),
+    verticalSpeed: finiteOrNull(mag(flight.verticalSpeed)),
+    surfaceSpeed: finiteOrNull(mag(flight.surfaceSpeed)),
+    orbitalSpeed: finiteOrNull(mag(flight.orbitalSpeed)),
     met: null,
     period: null,
     trueAnomaly: null,
