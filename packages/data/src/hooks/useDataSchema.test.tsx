@@ -38,7 +38,7 @@ describe("useDataSchema", () => {
   // regression completely, since the mock always answers a non-empty
   // schema(). This test deliberately registers NOTHING to prove the real,
   // mock-free path works.
-  it("returns a non-empty catalog for the legacy 'data' source with NO DataSource registered at all", () => {
+  it("returns a non-empty catalog for the stream vocabulary with NO DataSource registered at all", () => {
     let captured: DataKeyMeta[] = [];
     render(
       <Probe
@@ -49,12 +49,12 @@ describe("useDataSchema", () => {
     );
 
     expect(captured.length).toBeGreaterThan(0);
-    const altitude = captured.find((k) => k.key === "v.altitude");
-    expect(altitude).toEqual({
-      key: "v.altitude",
-      label: "Altitude",
+    const altitude = captured.find((k) => k.key === "vessel.state.altitudeAsl");
+    expect(altitude).toMatchObject({
+      key: "vessel.state.altitudeAsl",
+      label: "Altitude ASL",
       unit: "m",
-      group: "Position",
+      group: "vessel.state",
     });
   });
 
@@ -68,10 +68,12 @@ describe("useDataSchema", () => {
       />,
     );
 
-    expect(captured.some((k) => k.key === "v.altitude")).toBe(true);
+    expect(captured.some((k) => k.key === "vessel.state.altitudeAsl")).toBe(
+      true,
+    );
   });
 
-  it("every legacy 'data' catalog entry carries a real label (proves enrichKey ran, not a bare fallback list)", () => {
+  it("every catalog entry carries a real label, so no key reaches a picker bare", () => {
     let captured: DataKeyMeta[] = [];
     render(
       <Probe

@@ -89,6 +89,13 @@ export * from "./replaySession/ReplaySessionController";
 export * from "./replaySession/ReplaySessionProvider";
 export { registerBuiltinDerivedKeys } from "./schema/builtinDerivedKeys";
 export { enrichKey, LEGACY_KEY_META } from "./schema/legacyKeyMeta";
+export {
+  humaniseFieldPath,
+  isThresholdSubject,
+  TOPIC_FIELD_CATALOG,
+  type TopicFieldKey,
+  UNDESCRIBED_CARRIED_TOPICS,
+} from "./schema/topicFieldCatalog";
 export { IndexedDbStore } from "./storage/IndexedDbStore";
 export type {
   MissionMeta,

@@ -2,6 +2,7 @@ import type { ReplayFixture } from "@ksp-gonogo/sitrep-client";
 import type { ServerMessage } from "@ksp-gonogo/sitrep-sdk";
 import { Quality, Staleness } from "@ksp-gonogo/sitrep-sdk";
 import { describe, expect, it } from "vitest";
+import { TOPIC_FIELD_CATALOG } from "../schema/topicFieldCatalog";
 import type { MissionMeta, MissionRecord } from "../storage/MissionStore";
 import { MissionStore } from "../storage/MissionStore";
 import { MissionHistorySource } from "./MissionHistorySource";
@@ -107,17 +108,19 @@ function freshSource(): {
 
 describe("MissionHistorySource", () => {
   describe("schema", () => {
-    it("includes a known legacy key with its enriched label/unit", () => {
+    it("offers a field with its label and unit", () => {
       const { source } = freshSource();
       const schema = source.schema();
-      const altitude = schema.find((k) => k.key === "v.altitude");
-      expect(altitude).toMatchObject({ label: "Altitude", unit: "m" });
+      const altitude = schema.find((k) => k.key === "vessel.state.altitudeAsl");
+      expect(altitude).toMatchObject({ label: "Altitude ASL", unit: "m" });
     });
 
-    it("excludes known-gap keys that have no stream equivalent", () => {
+    it("offers the same vocabulary a live picker does", () => {
+      // A recording is read back under the keys it was recorded with, so a
+      // catalogue of its own would be a second thing to keep in step with the
+      // wire. That drift is what the retired hand-written table did.
       const { source } = freshSource();
-      const schema = source.schema();
-      expect(schema.some((k) => k.key === "t.universalTime")).toBe(false);
+      expect(source.schema()).toBe(TOPIC_FIELD_CATALOG);
     });
   });
 

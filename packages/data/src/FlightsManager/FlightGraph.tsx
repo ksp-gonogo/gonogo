@@ -4,6 +4,7 @@ import { DataKeyMultiPicker, LineChart } from "@ksp-gonogo/ui";
 import { useEffect, useMemo, useRef, useState } from "react";
 import styled from "styled-components";
 import { useDataSchema } from "../hooks/useDataSchema";
+import { isThresholdSubject } from "../schema/topicFieldCatalog";
 import type { MissionHistorySource } from "./MissionHistorySource";
 
 /**
@@ -94,20 +95,18 @@ export function FlightGraph({
   // complex objects as `raw`, and booleans as `bool`, filter those out so
   // the picker stays focused.
   const options: KeyOption[] = useMemo(() => {
-    return schema
-      .filter(
-        (k) =>
-          k.unit !== undefined &&
-          k.unit !== "bool" &&
-          k.unit !== "enum" &&
-          k.unit !== "raw",
-      )
-      .map((k) => ({
-        key: k.key,
-        label: k.label ?? k.key,
-        unit: k.unit,
-        group: keyGroup(k.key),
-      }));
+    return (
+      schema
+        // Same magnitude requirement as a live graph axis, and the same shared
+        // predicate: a recorded flag or enum cannot be plotted either.
+        .filter(isThresholdSubject)
+        .map((k) => ({
+          key: k.key,
+          label: k.label ?? k.key,
+          unit: k.unit,
+          group: keyGroup(k.key),
+        }))
+    );
   }, [schema]);
 
   // Re-fetch whenever the selection or the mission changes. Each key is a

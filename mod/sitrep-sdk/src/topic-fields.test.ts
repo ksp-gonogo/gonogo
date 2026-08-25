@@ -149,3 +149,41 @@ describe("enumerateTopicFields on a client-derived channel", () => {
     expect(quantities.length).toBeGreaterThan(30);
   });
 });
+
+describe("isKnownFieldPath on a registered topic", () => {
+  it("accepts a derived channel's field that no legacy table ever named", () => {
+    // `vessel.state.basis` has no entry in the retiring migration table, so the
+    // only thing that can vouch for it is the field metadata the channel
+    // registers for itself. A judgement that read the generated maps directly
+    // would be blind to that, and to every Uplink-registered Topic with it.
+    void vesselStateChannel;
+    expect(isKnownFieldPath("vessel.state.basis")).toBe(true);
+    expect(isKnownFieldPath("vessel.state.subjectId")).toBe(true);
+  });
+
+  it("still refuses a field the channel does not declare", () => {
+    void vesselStateChannel;
+    expect(isKnownFieldPath("vessel.state.notAField")).toBe(false);
+  });
+});
+
+describe("isKnownFieldPath on a vector component", () => {
+  it("accepts a component of a vector field", () => {
+    // A vector's unit sits on DOTTED leaf keys in the unit map
+    // (`"relativePosition.x": "m"`) rather than on a nested shape, because the
+    // shared vector type carries no unit of its own. A walk that only ever
+    // consumed one segment at a time could never match one, while the read
+    // resolves it perfectly well by walking into the payload.
+    expect(isKnownFieldPath("vessel.target.relativePosition.x")).toBe(true);
+    expect(isKnownFieldPath("vessel.dock.relativeVelocity.z")).toBe(true);
+  });
+
+  it("accepts a vector component on a derived channel too", () => {
+    void vesselStateChannel;
+    expect(isKnownFieldPath("vessel.state.position.y")).toBe(true);
+  });
+
+  it("refuses a component the vector does not have", () => {
+    expect(isKnownFieldPath("vessel.target.relativePosition.w")).toBe(false);
+  });
+});

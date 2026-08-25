@@ -339,6 +339,7 @@ export function AlarmsModal({
             <Field>
               <FieldLabel htmlFor="alarm-data-key">Telemetry key</FieldLabel>
               <DataKeyPicker
+                subjectNoun="alarm subject"
                 keys={numericKeys}
                 value={dataKey || null}
                 onChange={(k) => setDataKey(k ?? "")}

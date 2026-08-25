@@ -30,7 +30,7 @@ import {
   dvCurrentStageResourceMaxChannel,
 } from "./dv-stage-resources";
 import { mapCommand } from "./map-command";
-import { mapTopic } from "./map-topic";
+import { resolveValueTopic } from "./map-topic";
 import {
   setActiveTimelineStore as setProcessorEvaluatorStore,
   setProcessorTopicSubscriber,
@@ -860,25 +860,26 @@ export function getVesselState(): VesselState | undefined {
  * Non-hook, Value-restricted equivalent of `useTelemetry(dataSourceId, key)`'s
  * legacy overload: for a plain-class caller (alarm/maneuver-trigger threshold
  * evaluation) that needs to read an OPERATOR-PICKED legacy key, not one of a
- * fixed set decided at call time. `key` is resolved via `mapTopic` (same
- * migration table `useTelemetry` itself consults) and the resulting Topic is
- * sampled off the active `TimelineStore` via `sampleActiveTopic`. Narrowed to
+ * fixed set decided at call time. `key` is resolved through the same routing
+ * `useTelemetry` consults, covering both a flat legacy key and a field path, and
+ * the resulting Topic is sampled off the active `TimelineStore`. Narrowed to
  * `number`: the one type every threshold comparison
  * (`AlarmTrigger`/`ArmedTrigger`) needs, so a non-numeric or not-yet-arrived
  * read is a plain `undefined`, matching the legacy `getLatestValue` +
  * `typeof v === "number"` guard this replaces.
  *
- * Deliberately restricted to keys `mapTopic` actually resolves: the alarm/
- * trigger `DataKeyPicker` (see `@ksp-gonogo/data`'s `useValueKeys`) only ever
- * offers keys in that resolvable set, so an unmapped key here means a stale
- * persisted `dataKey` from before that restriction landed, `undefined` is
- * the correct, safe answer (the trigger simply never matches), not a crash.
+ * Deliberately restricted to keys the routing actually resolves: the alarm and
+ * trigger pickers (see `@ksp-gonogo/data`'s `useValueKeys`) only ever offer keys
+ * in that resolvable set, so an unresolvable key here is a stale persisted
+ * `dataKey` naming a retired subject. `undefined` is the correct answer, and the
+ * surface that stored it is responsible for showing the operator that its
+ * subject no longer resolves rather than drawing a reading it never got.
  */
 export function getValue(
   dataSourceId: string,
   key: string,
 ): number | undefined {
-  const topic = mapTopic(dataSourceId, key);
+  const topic = resolveValueTopic(dataSourceId, key);
   if (topic === undefined) return undefined;
   const value = sampleActiveTopic<unknown>(topic);
   return typeof value === "number" && Number.isFinite(value)

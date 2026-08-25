@@ -6,13 +6,12 @@ import type {
 import { PerfBudget } from "@ksp-gonogo/core";
 import {
   buildFullHistoryStore,
-  LEGACY_KEY_GAPS,
   mapTopic,
   type ReplayFixture,
   type TimelineStore,
 } from "@ksp-gonogo/sitrep-client";
 import { ListenerSet } from "@ksp-gonogo/sitrep-sdk";
-import { enrichKey, LEGACY_KEY_META } from "../schema/legacyKeyMeta";
+import { TOPIC_FIELD_CATALOG } from "../schema/topicFieldCatalog";
 import type {
   MissionMeta,
   MissionRecord,
@@ -43,15 +42,6 @@ const FULL_HISTORY_REBUILD_BUDGET = new PerfBudget({
   windowMs: 60_000,
   unit: "rebuilds",
 });
-
-/**
- * Legacy flat keys with no queryable stream equivalent, filtered out
- * of `schema()` the same way `BufferedDataSource`'s live schema never
- * offered them; nothing to `sampleRange` against.
- */
-function isGapKey(key: string): boolean {
-  return LEGACY_KEY_GAPS.has(key);
-}
 
 /**
  * The `"data"`/`BufferedDataSource` replacement for the flight-history
@@ -90,9 +80,10 @@ export class MissionHistorySource implements DataSource {
   disconnect(): void {}
 
   schema(): DataKeyMeta[] {
-    return Object.keys(LEGACY_KEY_META)
-      .filter((key) => !isGapKey(key))
-      .map((key) => ({ key, ...enrichKey(key) }));
+    // The same vocabulary a live picker offers. A recording is read back with
+    // the keys it was recorded under, so a catalogue of its own would be a
+    // second thing to keep in step with the wire.
+    return TOPIC_FIELD_CATALOG;
   }
 
   subscribe(_key: string, _cb: (value: unknown) => void): () => void {

@@ -39,12 +39,13 @@
  */
 
 import {
-  GENERATED_TOPIC_SHAPES,
-  GENERATED_TOPIC_UNITS,
-  GENERATED_TYPE_SHAPES,
-  GENERATED_TYPE_UNITS,
-} from "../__generated__/units";
-import { isPluralShape } from "../units";
+  isPluralShape,
+  shapesForTopic,
+  shapesForType,
+  shapeTypeName,
+  unitsForTopic,
+  unitsForType,
+} from "../units";
 
 /** Kinematics → `vessel.state.*` routing: `mapTopic` points kinematics at
  * `vessel.state.*` derived subtopics from the first migrated widget. Two
@@ -1256,32 +1257,44 @@ const KNOWN_FIELD_PATHS: ReadonlySet<string> = new Set(
 function walksContractMetadata(topic: string, segments: string[]): boolean {
   if (segments.length === 0) return false;
 
-  let units: Readonly<Record<string, string>> | undefined =
-    GENERATED_TOPIC_UNITS[topic];
-  let shapes: Readonly<Record<string, string>> | undefined =
-    GENERATED_TOPIC_SHAPES[topic];
-  if (units === undefined && shapes === undefined) return false;
+  let units: Readonly<Record<string, string>> = unitsForTopic(topic as never);
+  let shapes: Readonly<Record<string, string>> = shapesForTopic(topic as never);
+  if (isEmpty(units) && isEmpty(shapes)) return false;
 
   for (let i = 0; i < segments.length; i++) {
     const segment = segments[i];
     const last = i === segments.length - 1;
 
-    if (units?.[segment] !== undefined) {
+    if (units[segment] !== undefined) {
       // A unit is a leaf, so anything after it is not a field.
       return last;
     }
 
-    const shape: string | undefined = shapes?.[segment];
+    // A vector's unit sits on a DOTTED leaf key (`"relativePosition.x"`) rather
+    // than on a nested shape, because the shared vector type carries no unit of
+    // its own and the components are what a reader indexes. Consuming one
+    // segment at a time can never match one, so the whole remainder is tried as
+    // a single key. The read resolves such a path by walking into the payload,
+    // which is why refusing it here would reject a field that works.
+    if (!last && units[segments.slice(i).join(".")] !== undefined) return true;
+
+    const shape: string | undefined = shapes[segment];
     if (shape === undefined) return false;
     if (last) return true;
     if (isPluralShape(shape)) return false;
 
-    units = GENERATED_TYPE_UNITS[shape];
-    shapes = GENERATED_TYPE_SHAPES[shape];
-    if (units === undefined && shapes === undefined) return false;
+    const nested = shapeTypeName(shape);
+    units = unitsForType(nested);
+    shapes = shapesForType(nested);
+    if (isEmpty(units) && isEmpty(shapes)) return false;
   }
 
   return false;
+}
+
+function isEmpty(record: Readonly<Record<string, unknown>>): boolean {
+  for (const _ in record) return false;
+  return true;
 }
 
 /**
@@ -1309,12 +1322,35 @@ export function isKnownFieldPath(path: string): boolean {
   for (let cut = segments.length - 1; cut >= 1; cut--) {
     const topic = segments.slice(0, cut).join(".");
     if (
-      GENERATED_TOPIC_UNITS[topic] === undefined &&
-      GENERATED_TOPIC_SHAPES[topic] === undefined
+      isEmpty(unitsForTopic(topic as never)) &&
+      isEmpty(shapesForTopic(topic as never))
     ) {
       continue;
     }
     if (walksContractMetadata(topic, segments.slice(cut))) return true;
   }
   return false;
+}
+
+/**
+ * The Topic a picked key reads from, for the two vocabularies that currently
+ * coexist.
+ *
+ * A key from the retiring flat vocabulary goes through the migration table
+ * above. A key from the field-path vocabulary IS the path it reads, so it needs
+ * no translation and only needs vouching for: the picker offers paths the
+ * contract declares, and a path it does not declare resolves to nothing rather
+ * than to a subscription no channel serves.
+ *
+ * Both arms are here so that the two readers of a picked key (the threshold
+ * evaluators and the note-tag resolver) agree on what a key means. When the flat
+ * vocabulary goes, the first arm goes with it and this becomes the vouch alone.
+ */
+export function resolveValueTopic(
+  dataSourceId: string,
+  key: string,
+): string | undefined {
+  const mapped = mapTopic(dataSourceId, key);
+  if (mapped !== undefined) return mapped;
+  return isKnownFieldPath(key) ? key : undefined;
 }

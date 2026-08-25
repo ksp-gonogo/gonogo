@@ -5,7 +5,7 @@ import {
   safeRandomUuid,
 } from "@ksp-gonogo/core";
 import type { DataKeyMeta, SeriesRange } from "@ksp-gonogo/data";
-import { useDataSchema } from "@ksp-gonogo/data";
+import { isThresholdSubject, useDataSchema } from "@ksp-gonogo/data";
 import type {
   ChartSeries,
   ChartSeriesData,
@@ -586,13 +586,11 @@ function GraphConfigComponent({
   );
 
   const schema = useDataSchema("data");
-  const numericKeys = schema.filter(
-    (k) =>
-      k.unit !== "bool" &&
-      k.unit !== "enum" &&
-      k.unit !== "raw" &&
-      k.group !== "Actions",
-  );
+  // A graph axis orders its values, so it needs the same magnitude a threshold
+  // does. Shared with the alarm and trigger pickers rather than re-tested here:
+  // this call site used to compare against unit spellings the contract does not
+  // emit, and so admitted every flag and enum it meant to exclude.
+  const numericKeys = schema.filter(isThresholdSubject);
   // X-axis picker: time is an always-present pseudo-key; numeric data keys below.
   const xKeyOptions = [
     { key: TIME_AXIS, label: "Time", group: "Axis" },

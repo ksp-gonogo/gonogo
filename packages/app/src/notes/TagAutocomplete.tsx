@@ -1,4 +1,4 @@
-import { LEGACY_KEY_META } from "@ksp-gonogo/data";
+import { TOPIC_FIELD_CATALOG } from "@ksp-gonogo/data";
 import {
   type ChangeEvent,
   forwardRef,
@@ -33,7 +33,7 @@ export interface TagAutocompleteProps {
 
 /**
  * Text input that opens a key-picker popover when the user types `{{`,
- * filtered against `LEGACY_KEY_META`'s friendly labels/groups (the stream-
+ * filtered against the topic-field catalogue's labels and groups (the stream-
  * mapped key catalog: see `useKeyOptions` below). Selection inserts
  * `{{<key>}}` and moves the cursor past the closer.
  *
@@ -232,23 +232,27 @@ export const TagAutocomplete = forwardRef<
 });
 
 function useKeyOptions(): KeyOption[] {
-  // The legacy "data" `DataSource` (and its live schema listing) is gone,
-  // suggestions now come straight from `LEGACY_KEY_META`, which already
-  // covers every stream-mapped key (see `map-topic.ts`'s
-  // `LEGACY_KEY_HOMES`). Recomputed every render, the map is small
-  // (~few dozen entries) and the cost is well under a millisecond.
+  // The stream's own vocabulary, enumerated from the contract: every field of
+  // every carried Topic, keyed by the path a tag resolves through. A note tag
+  // can name anything readable, so unlike the alarm and trigger pickers this
+  // one is NOT restricted to orderable values: a body name or a situation is
+  // exactly the sort of thing a note wants to interpolate.
+  //
+  // A collection is excluded: `{{career.status.contracts.active}}` would
+  // interpolate a whole array into a sentence.
   return useMemo<KeyOption[]>(() => {
-    const merged: KeyOption[] = Object.entries(LEGACY_KEY_META).map(
-      ([k, meta]) => ({
-        key: k,
-        label: meta.label,
-        group: meta.group ?? "Other",
-        unit: meta.unit === "raw" ? undefined : meta.unit,
-      }),
-    );
-    return merged.sort((a, b) => {
-      if (a.group !== b.group) return a.group.localeCompare(b.group);
-      return a.label.localeCompare(b.label);
+    const options: KeyOption[] = TOPIC_FIELD_CATALOG.filter(
+      (entry) => entry.kind !== "collection",
+    ).map((entry) => ({
+      key: entry.key,
+      label: entry.label,
+      group: entry.group ?? "Other",
+      unit: entry.unit,
+    }));
+    return options.sort((a, b) => {
+      if (a.group !== b.group)
+        return (a.group ?? "").localeCompare(b.group ?? "");
+      return (a.label ?? "").localeCompare(b.label ?? "");
     });
   }, []);
 }
