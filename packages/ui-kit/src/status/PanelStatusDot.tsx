@@ -59,14 +59,14 @@ const PanelStatusDot__Root = styled.span<{
   align-items: center;
   justify-content: center;
   box-sizing: border-box;
-  /* One fixed diameter whether or not a count is shown. The count used to be a
-     direct text child, which put it in normal flex-item flow: it could nudge
-     this box's effective cross-size and, with it, the box's centred position
-     in the row, so a counted dot measurably rendered smaller and off-baseline
-     from a bare one. PanelStatusDot__Count is now absolutely positioned
-     instead (see below), which makes that structurally impossible rather than
-     tuned-around: an out-of-flow child cannot affect this box's size no matter
-     what font-size or line-height it carries. */
+  /* One fixed diameter whether or not a count is shown. A count rendered as a
+     direct text child sits in normal flex-item flow, where it can nudge this
+     box's effective cross-size and, with it, the box's centred position in the
+     row, so a counted dot renders measurably smaller and off-baseline from a
+     bare one. PanelStatusDot__Count is absolutely positioned (see below), which
+     makes that structurally impossible rather than tuned-around: an
+     out-of-flow child cannot affect this box's size no matter what font-size
+     or line-height it carries. */
   width: ${DOT_DIAMETER};
   height: ${DOT_DIAMETER};
   border-radius: var(--radius-circle);

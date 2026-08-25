@@ -108,14 +108,14 @@ function ledeSentence(lede: string): string | undefined {
 /**
  * The sha256 of the file the author DISTRIBUTES, and only when they name it.
  *
- * It used to fall back to hashing `dist/index.js`, which was wrong twice over.
- * That file is a `tsc` output, not the bundle anyone ships (the shipped one is
- * an esbuild bundle built elsewhere), so the hash described a file no consumer
- * ever fetches. And because it is a gitignored build artifact, `--check`
- * compared a committed hash against whatever the last local build happened to
- * produce: within hours of landing, a sibling branch adding a widget changed
- * `dist/index.js` and the gate reported the page stale over a number that is not
- * the page's business. A gate that cries wolf is a gate someone turns off.
+ * Deliberately NO fallback to hashing `dist/index.js`, which is wrong twice
+ * over. That file is a `tsc` output, not the bundle anyone ships (the shipped
+ * one is an esbuild bundle built elsewhere), so the hash would describe a file
+ * no consumer ever fetches. And because it is a gitignored build artifact,
+ * `--check` would compare a committed hash against whatever the last local
+ * build happened to produce, so a sibling branch adding a widget reports the
+ * page stale over a number that is not the page's business. A gate that cries
+ * wolf is a gate someone turns off.
  *
  * So: no `--bundle`, no integrity, and a loud warning saying what that costs.
  */

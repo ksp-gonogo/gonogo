@@ -5,11 +5,11 @@ import styled from "styled-components";
  *
  * `$boxed` puts it on a panel surface with a border and its own padding, and
  * tightens the gap, because a boxed form is a denser thing than a section of a
- * settings page. It exists because `SitrepConnection` and `DataSourceStatus`
- * had each written the identical five declarations under their own local
- * `ConfigForm`: byte-for-byte the same, in two packages, shadowing this one.
- * Two independent copies of the same block is a variant, the same argument
- * that gave `SectionTitle` its `$rule`.
+ * settings page. It exists so `SitrepConnection` and `DataSourceStatus` share
+ * it rather than each declaring the identical five properties under a local
+ * `ConfigForm` of its own, in two packages, shadowing this one. Two
+ * independent copies of the same block is a variant, the same argument that
+ * gave `SectionTitle` its `$rule`.
  */
 export const ConfigForm = styled.div<{ $boxed?: boolean }>`
   display: flex;

@@ -28,8 +28,8 @@
 //
 // Both tiers are normalised into the SAME saturation band and lightness
 // range, so a curated resource and a hashed one read as one system rather
-// than two. This retires the old muted `MeterTone`-as-identity workaround in
-// ShipMap.
+// than two. ShipMap takes resource identity from here, never from
+// `MeterTone`, which encodes severity and not identity.
 // ---------------------------------------------------------------------------
 
 /** Fixed saturation shared by both tiers, tuned for the dark ShipMap canvas.
@@ -67,8 +67,8 @@ const GOLDEN_ANGLE_DEG = 137.508;
 
 /** Default half-width, in degrees, of a curated family's Tier-2 reserved
  *  zone before it gets clamped down to fit the gap to its nearest
- *  neighbour (see `RESERVED_RADII_DEG` below). This no longer sizes a
- *  member-placement band, members share the family's exact centre hue now,
+ *  neighbour (see `RESERVED_RADII_DEG` below). It does NOT size a
+ *  member-placement band, since members share the family's exact centre hue;
  *  it only keeps an unknown resource's hashed hue from landing on top of a
  *  curated family's neighbourhood. */
 const RESERVED_ZONE_DEFAULT_DEG = 10;
@@ -153,11 +153,10 @@ function hueDistance(a: number, b: number): number {
  * Each family's EFFECTIVE Tier-2 reserved-zone radius:
  * `min(RESERVED_ZONE_DEFAULT_DEG, halfGapToNearestOtherCentre -
  * RESERVED_ZONE_MARGIN_DEG)`, clamped to >= 0, computed once at module load
- * from `CURATED`'s own centres. This is purely an exclusion zone for Tier
- * 2's hash fallback now (member placement no longer needs it, members share
- * the family's exact hue), but the clamp mechanism carries over unchanged:
- * it keeps zones from ever overlapping without hand-tuning any individual
- * family.
+ * from `CURATED`'s own centres. Purely an exclusion zone for Tier 2's hash
+ * fallback: member placement does not use it, since members share the family's
+ * exact hue. The clamp keeps zones from ever overlapping without hand-tuning
+ * any individual family.
  */
 const RESERVED_RADII_DEG: readonly number[] = CURATED.map((family, index) => {
   let nearestGap = Infinity;

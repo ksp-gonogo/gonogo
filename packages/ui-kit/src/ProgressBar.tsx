@@ -50,8 +50,9 @@ export function ProgressBar({
 const ProgressBar__Track = styled.div`
   height: 6px;
   background: var(--color-surface-raised);
-  /* Stadium, not a corner: the old 3px was exactly half the 6px height, so
-     --radius-sm would have decoupled the corner from the track. */
+  /* Stadium, not a corner: a fixed radius sized to half this 6px height
+     decouples the corner from the track the moment the height changes.
+     --radius-pill clamps to the same shape and survives it. */
   border-radius: var(--radius-pill, 999px);
   overflow: hidden;
 `;

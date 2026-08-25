@@ -104,11 +104,11 @@ function measureNaturalElementWidth(el: HTMLElement | null): number {
 
 /**
  * The measured-fit collapse `PanelHeader` runs to decide whether its aside
- * belongs inline or behind the dots + expand box (replaces the old fixed
- * `@container (max-width: 320px)` breakpoint on the PANEL's width, which was
- * content-blind: a short-title widget with plenty of room for its aside
- * collapsed anyway because the panel itself was narrow, hiding content behind
- * black space).
+ * belongs inline or behind the dots + expand box. Measured rather than a fixed
+ * `@container (max-width: 320px)` breakpoint on the PANEL's width, because a
+ * width breakpoint is content-blind: it collapses a short-title widget with
+ * plenty of room for its aside just because the panel itself is narrow, hiding
+ * content behind black space.
  *
  * `rowRef` is the header row, whose measured width is the room available to
  * title + aside together. `titleRef` (the rendered `PanelTitle`) and

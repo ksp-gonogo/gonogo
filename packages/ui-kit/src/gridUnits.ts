@@ -3,10 +3,10 @@
  *
  * A widget's `defaultSize` / `minSize` are grid units, and anything that has to
  * lay one out outside the dashboard (a render harness sizing its mount box, a
- * docs page quoting a tile size) has to convert. Both numbers used to be
- * hand-mirrored in `packages/components/scripts/widgetRenderHarness.ts` with a
- * comment saying so, which is a copy of a layout constant living in a package no
- * Uplink can install: a third-party author sizing a render had nothing to read.
+ * docs page quoting a tile size) has to convert. Both numbers live HERE rather
+ * than hand-mirrored in `packages/components/scripts/widgetRenderHarness.ts`,
+ * which is a package no Uplink can install: a third-party author sizing a
+ * render would have nothing to read.
  *
  * `COL_WIDTH` approximates the `lg` breakpoint (36 columns) at a comfortable
  * viewport rather than being exact, because a column's real width is a fraction

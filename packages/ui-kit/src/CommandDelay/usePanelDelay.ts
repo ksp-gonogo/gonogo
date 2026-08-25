@@ -23,9 +23,9 @@ import { useDelayRailStore } from "./DelayRailContext";
  * - `null` contributes nothing, so a widget can pass the handle conditionally
  *   (an instant command, a control not yet armed) without branching around the
  *   hook
- * - consumes the command's dev-only must-consume token, the check the inline
- *   `<CommandDelay>` used to satisfy, so a delayed command still can never
- *   dispatch without its delay UX wired (see `useCommand`'s assertion)
+ * - consumes the command's dev-only must-consume token, so a delayed command
+ *   can never dispatch without its delay UX wired (see `useCommand`'s
+ *   assertion)
  *
  * The handle shape is the structural `CommandDelayHandle` declared in this
  * package, NOT imported from `@ksp-gonogo/sitrep-client`: ui-kit stays the

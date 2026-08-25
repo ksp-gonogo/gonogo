@@ -82,8 +82,8 @@ export const StarIcon = makeIcon(Star);
 /**
  * Reputation, per the currency-icon trial. Close to the in-game glyph.
  *
- * Star previously also meant "starred flight" in FlightsManager; that moved to
- * HeartIcon so one glyph does not carry two unrelated meanings.
+ * Reputation ONLY. FlightsManager's "starred flight" is `HeartIcon`, so that
+ * one glyph does not carry two unrelated meanings.
  */
 export const HeartIcon = makeIcon(Heart);
 /** Science, per the currency-icon trial. */

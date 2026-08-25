@@ -126,8 +126,8 @@ export const PanelTitle = styled.h3`
      unused headroom, closing the gap between the two centres. */
   line-height: var(--line-height-flush, 1);
   /* One line, always. A long title (a widget name plus context, e.g. a
-     Strategies aside label) used to wrap to a second line, which pushed the
-     chevron/aside down with it and broke the "aside never drops to its own
+     Strategies aside label) allowed to wrap to a second line pushes the
+     chevron/aside down with it and breaks the "aside never drops to its own
      row" invariant PanelHeader__Row already enforces on the OTHER side of the
      row. min-width:0 lives on PanelHeader__Titles (the flex item), which is
      what lets this actually shrink and truncate instead of forcing the row
@@ -139,14 +139,14 @@ export const PanelTitle = styled.h3`
 
 const PanelHeader__Row = styled.div<{ $overlay?: boolean }>`
   display: flex;
-  /* Centre, not flex-start: the title is now single-line and truncates
+  /* Centre, not flex-start: the title is single-line and truncates
      rather than wrapping (see PanelTitle's overflow rules below), so its box
      height is a fixed one-line measure and there is no second line that
      could ever push a top-aligned aside out of register. With that settled,
      centring is what actually levels the collapsed dot row + chevron on the
-     title's own text line; top-aligning them left the dots sitting visibly
+     title's own text line; top-aligning them leaves the dots sitting visibly
      lower, since PanelTitle's line-height gives the glyphs some headroom
-     above the box's top edge that the dots (a fixed box with none) did not
+     above the box's top edge that the dots (a fixed box with none) do not
      share. */
   align-items: center;
   justify-content: space-between;
@@ -226,11 +226,11 @@ const PanelHeader__Aside = styled.div<{ $overlay?: boolean }>`
  * summary, the per-severity status dots plus a chevron, and the FULL aside
  * (badges AND controls) floats open in a glow-backed box on toggle.
  *
- * `$collapsed` is JS state (`useHeaderAsideFit`, in usePanelAsideSize.ts) now,
- * not a `@container` condition on a fixed panel-width threshold: the old
- * fixed breakpoint collapsed a short-title widget with room to spare for its
- * aside just because the PANEL was narrow, which is content-blind by
- * construction. The measured-fit version and its hysteresis (why collapsing
+ * `$collapsed` is JS state (`useHeaderAsideFit`, in usePanelAsideSize.ts),
+ * deliberately not a `@container` condition on a fixed panel-width threshold:
+ * a fixed breakpoint is content-blind by construction, and collapses a
+ * short-title widget with room to spare for its aside just because the PANEL
+ * is narrow. The measured fit and its hysteresis (why collapsing
  * and re-expanding use different thresholds) are documented on
  * `nextAsideCollapsed`.
  */
@@ -257,7 +257,7 @@ const PanelAsideExpand = styled.details<{ $collapsed?: boolean }>`
     display: contents;
   }
   /* Shrink to its content: the aside sits right-aligned on the title row and
-     never grows to a full row (that wrap-and-grow behaviour was removed), so
+     never grows to a full row, so
      the box is exactly its content wide, inline when there is room and the
      dots + caret summary when the measured-fit collapse fires. */
   flex: 0 0 auto;
@@ -840,11 +840,12 @@ const ScrollOverflowGlow = styled.div<{
         scroll" highlight right at the boundary.
      2. Mask (bottom): var(--color-surface-panel) at FULL opacity, held solid
         across the title band (to ~27% of the box) then blurring to transparent
-        by ~50%, about half its earlier reach so the dark no longer bleeds so
-        far into the body while still fully covering the title. A
-        semi-transparent tint cannot cover scrolled content (that was the v7
-        ghost); only a fully opaque base masks it, so the sticky title reads
-        over clean panel colour rather than over the content behind it.
+        by ~50%: short enough that the dark does not bleed far into the body,
+        long enough to cover the title completely. FULL opacity is the
+        load-bearing part. A semi-transparent tint cannot cover scrolled
+        content, it ghosts it; only a fully opaque base masks it, so the sticky
+        title reads over clean panel colour rather than over the content
+        behind it.
 
      Both keep colour token-derived, so a future light theme inherits them from
      --color-surface-panel. */
@@ -1548,17 +1549,17 @@ const PanelStickyHeader = styled(PanelHeader)`
   position: sticky;
   /* Reach the panel's true top edge. No rail: stick at MINUS the body's top
      padding, cancelling the inset so the header reaches the true top. Rail
-     present: the rail now sits flush at the true top (its wrap cancels the same
+     present: the rail sits flush at the true top (its wrap cancels the same
      inset) and publishes its height, so the header sticks exactly at that
      height, directly under the rail, no extra padding term. */
   top: var(--panel-rail-height, calc(-1 * var(--space-8, 8px)));
   z-index: 2;
   /* Cancel the body's inset horizontally so the header spans the full panel
-     width; the negative top keeps the title at the same inset the old pinned
-     band used and lines the header up with the pulled-up sticky offset. */
+     width; the negative top keeps the title at the body's own inset and lines
+     the header up with the pulled-up sticky offset. */
   margin: calc(-1 * var(--space-8, 8px)) calc(-1 * var(--space-16, 16px)) 0;
-  /* The sticky header is transparent (the scroll glow, now a uniform lighter
-     tint, is only a scroll affordance and no longer masks). So the ONE header
+  /* The sticky header is transparent, and the scroll glow behind it is a
+     uniform lighter tint that affords scrolling without masking. So the ONE header
      designed to read over the glow AND over scrolled content gets a brighter
      title than the standard dim chrome token: a notch up from
      --color-text-dim, token-derived so a future light theme inherits it. Only
@@ -1625,18 +1626,17 @@ function PanelRoot({
     hasActionAugments;
 
   // The panel's header status comes from the per-item PanelStatusStore, so an
-  // active alarm and any `report` badge merge into one summary rather than the
-  // single value the old aside splice could show.
+  // active alarm and any `report` badge merge into ONE summary rather than
+  // each splicing a single value into the aside.
   //
   // The stream half is the WIDGET'S own to supply, via `panelStatus`. The host
-  // used to derive one across every topic a widget declared and hand it down,
-  // and that reading was withdrawn: one worst-of pill for five topics cannot
-  // say which of them is degraded, and "absent" means opposite things per
-  // topic (an empty `vessel.maneuvers` is a normal state, an absent
-  // `vessel.orbit` is not). Stale and reckoned Values now ride the wire per
-  // Value, so currency is carried at a finer granularity than a panel-wide
-  // summary could express, and a lossy summary that can read as a fault when
-  // there is none is worse than none.
+  // deliberately does NOT derive one across every topic a widget declares: one
+  // worst-of pill for five topics cannot say which of them is degraded, and
+  // "absent" means opposite things per topic (an empty `vessel.maneuvers` is a
+  // normal state, an absent `vessel.orbit` is not). Stale and reckoned Values
+  // ride the wire per Value, so currency is already carried at a finer
+  // granularity than a panel-wide summary could express, and a lossy summary
+  // that can read as a fault when there is none is worse than none.
   const status = panelStatus ?? null;
   // Live/none/absent-of-status contribute nothing (the floor), so a healthy
   // stream keeps today's "no green pill" rule. A degraded status folds in as

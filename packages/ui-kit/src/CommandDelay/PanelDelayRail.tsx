@@ -201,8 +201,8 @@ export function PanelDelayRail() {
 
 /**
  * The measured rail box: the toggle button plus, when expanded, the refusal
- * boxes under it. Carries the flush-to-the-edges bleed the button used to own
- * (cancels the panel body's own top + side inset) so both children line up on
+ * boxes under it. The FRAME carries the flush-to-the-edges bleed, not the
+ * button (it cancels the panel body's own top + side inset), so both children line up on
  * the same edges rather than each choosing its own.
  */
 const PanelDelayRail__Frame = styled.div`

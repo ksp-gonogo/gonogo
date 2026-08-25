@@ -37,10 +37,10 @@ export interface ScienceExperimentRowProps {
   instrument: ScienceInstrument;
   /**
    * The deploy command. Omit for a READ-ONLY listing: the control is then not
-   * rendered at all, rather than rendered inert. This used to be an optional
-   * callback, so a listing that passed none still got a Deploy button that
-   * armed, spun for five seconds and did nothing, which is the same lie about
-   * a command landing that this row's in-flight state exists to avoid telling.
+   * rendered at all, rather than rendered inert. A control that renders
+   * without a command behind it arms, spins for five seconds and does nothing,
+   * which is the same lie about a command landing that this row's in-flight
+   * state exists to avoid telling.
    */
   deployCmd?: CommandButtonHandle;
   /** The transmit command. Omit for a read-only listing; see `deployCmd`. */
@@ -58,10 +58,9 @@ export interface ScienceExperimentRowProps {
  * shared command lifecycle: arm, in-flight and refused all behave here exactly
  * as they do on every other command control.
  *
- * The pending state used to be reconciled against `deployed`/`hasData`
- * flipping, with a 5s timeout behind it. That predicate is per-command and
- * cannot be shared; the dispatch promise settles for any command, so it is what
- * clears the control now.
+ * The pending state clears on the DISPATCH PROMISE settling, not on
+ * `deployed`/`hasData` flipping behind a 5s timeout: that predicate is
+ * per-command and cannot be shared, while the promise settles for any command.
  */
 export function ScienceExperimentRow({
   instrument,

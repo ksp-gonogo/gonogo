@@ -34,23 +34,17 @@ export type FormatsFor<U extends string> = [
 /**
  * How many of the kind's BASE unit one of `symbol` is worth.
  *
- * Two sources, and neither is written by hand here: the model's declared
- * ratio, or the rung's own divisor for a rung the model has no unit for. The
- * multiplicative conversions this package used to hard-code (g to m/s², rad to
- * degrees) are just ratios and now come from the model like everything else.
- */
-/**
- * How many of the kind's BASE unit one of `symbol` is worth.
+ * Three sources, in order, and none of them written by hand here. The LIVE
+ * CALENDAR first, because `d`, `h`, `min` and `science/day` are sized by the
+ * running game rather than by physics and codegen bakes stock Kerbin figures
+ * for all four. Then the model's declared ratio, then the rung's own divisor
+ * for a rung the model has no unit for. Even the multiplicative conversions
+ * (g to m/s², rad to degrees) come through as ordinary ratios.
  *
- * Three sources, in order. The LIVE CALENDAR first, because `d`, `h`, `min`
- * and `science/day` are sized by the running game rather than by physics and
- * codegen bakes stock Kerbin figures for all four. Then the model's declared
- * ratio, then the rung's own divisor for a rung the model has no unit for.
- *
- * The calendar table lives in the SDK, not here. It used to be duplicated in
- * this file, which meant the kit's DISPLAY path followed the game while
- * `Value` arithmetic in the SDK did not, so a formatted duration and a
- * computed one disagreed. One table, below both consumers, is the fix.
+ * The calendar table lives in the SDK, not here, and duplicating it in this
+ * file makes the kit's DISPLAY path follow the game while `Value` arithmetic
+ * in the SDK does not, so a formatted duration and a computed one disagree.
+ * One table, below both consumers.
  */
 function ratioOf(symbol: string): number | undefined {
   const fromCalendar = calendarRatio(symbol);
@@ -876,8 +870,8 @@ export function registerUnit(def: UnitDefinition): void {
     // other the way a kind-keyed ladder would.
     if (def.family !== undefined) LADDERS_BY_FAMILY[def.family] = def.ladder;
     else LADDERS[def.kind] = def.ladder;
-    // The derived rung index is now stale: a replaced ladder brings its own
-    // symbols and drops the ones it replaced.
+    // Drop the derived rung index: a replacement ladder brings its own symbols
+    // and drops the ones it replaces, so the cached index no longer holds.
     rungKinds = undefined;
   }
   if (def.scientific) SCIENTIFIC.add(def.kind);

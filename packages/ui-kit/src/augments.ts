@@ -62,15 +62,15 @@ import { hasHost, logger } from "@ksp-gonogo/sitrep-sdk";
 // The seam itself is NOT declared here. It is `@ksp-gonogo/sitrep-sdk`'s,
 // re-exported, and a re-export carries the augmentation: a `declare module
 // "@ksp-gonogo/core"` merge lands on the aliased declaration, so every in-repo
-// augmentation keeps working unchanged and now lands on the SAME interface an
-// Uplink's `declare module "@ksp-gonogo/sitrep-sdk"` merge does.
+// augmentation keeps working and lands on the SAME interface an Uplink's
+// `declare module "@ksp-gonogo/sitrep-sdk"` merge does.
 //
-// Both were declared, in both packages, until now. That is the one divergence
-// shape that cannot fail loudly: an Uplink merging a slot id into the sdk's
-// registry and a widget merging one into ui-kit's are both correct-looking, both
-// compile, and landed on two different interfaces. `AugmentSlot` read ui-kit's
-// and so never saw an Uplink's slot ids; `SlotProps` off the sdk never saw a
-// widget's. Neither side could observe the other's absence.
+// Declaring it in BOTH packages is the one divergence shape that cannot fail
+// loudly: an Uplink merging a slot id into the sdk's registry and a widget
+// merging one into ui-kit's are both correct-looking and both compile, onto two
+// different interfaces. `AugmentSlot` reads ui-kit's and never sees an Uplink's
+// slot ids; `SlotProps` off the sdk never sees a widget's. Neither side can
+// observe the other's absence.
 export type {
   SlotId,
   SlotProps,
@@ -241,9 +241,8 @@ export function registerAugment<S extends string>(
   reportIfSlotRetired(def);
   augments.set(def.id, {
     // Erased through `unknown`: with the slot registry merged, `SlotProps<S>` is
-    // a real props type rather than the loose bag it collapsed to while ui-kit
-    // carried its own permanently-empty copy of the seam, so `ComponentType` is
-    // no longer bivariantly comparable to the erased form. The erasure itself is
+    // a real props type rather than a loose bag, so `ComponentType` is not
+    // bivariantly comparable to the erased form. The erasure itself is
     // the point (the registry holds augments for every slot); `S` is checked at
     // this call site, which is the only place it can be.
     def: def as unknown as AnyAugment,

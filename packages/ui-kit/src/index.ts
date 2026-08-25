@@ -15,11 +15,11 @@ import "./styledComponentsTheme";
 // is the one way a host mounts the tokens, and it is a build-time copy of the
 // theme's `tokens.css`, so it cannot drift from it.
 //
-// There used to be a second route, a `GonogoTokens` styled-components global
-// sheet, for hosts that build their global styles in JS. It was a hand-typed
-// copy of the same values, nothing consumed it, and it fell 39 properties
-// behind without anyone noticing. Removed rather than automated: a consumer
-// that can install this package can import a stylesheet.
+// Deliberately the ONLY route. A second one for hosts that build their global
+// styles in JS (a `GonogoTokens` styled-components sheet) means a hand-typed
+// copy of the same values that nothing checks: the one that existed fell 39
+// properties behind without anyone noticing. A consumer that can install this
+// package can import a stylesheet.
 //
 // The inline fallbacks written through this package (`var(--space-8, 8px)`)
 // are the last line of defence for a host that mounts NO sheet: they keep a
@@ -181,9 +181,9 @@ export { configEqual } from "./configEqual";
 // ── Contribution seam (relocated from @ksp-gonogo/core) ───────────────────────
 // The type surface (re-exported from the sdk, which declares it), the read hooks
 // and per-widget store, AND the per-frame aggregation that writes into that store.
-// Both halves are here now: the aggregation used to sit in core because it needed
-// spine values, and every one of those is on the sdk, which this package already
-// imports. Only the REGISTRATION registry is elsewhere, on the sdk.
+// Both halves are here: the aggregation needs spine values, and every one of
+// those is on the sdk, which this package already imports. Only the
+// REGISTRATION registry is elsewhere, on the sdk.
 //
 // `@ksp-gonogo/core` re-exports every symbol below, so existing importers are
 // byte-identical and a `declare module "@ksp-gonogo/core"` augmentation of

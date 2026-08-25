@@ -156,8 +156,8 @@ const ToggleButton__Body = styled.button<{
   @media (pointer: coarse) {
     min-height: 44px;
     /* md goes one rung wider than its base inset (--space-12), same as ui-kit
-       Button: the old 14px would have snapped onto the base rung and erased
-       the horizontal widening this block exists for. sm was already on rungs. */
+       Button: a 14px value snaps onto the base rung and erases the horizontal
+       widening this block exists for. sm sits on rungs already. */
     padding: ${({ $size }) =>
       $size === "sm"
         ? "var(--space-6) var(--space-10)"

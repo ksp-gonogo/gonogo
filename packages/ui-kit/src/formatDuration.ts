@@ -31,8 +31,8 @@ function tiers(): readonly Tier[] {
     { symbol: "h", size: calendar.hour },
     // "min", not "m": the generated unit model already declares `min` as
     // the `time` kind's minute symbol (`__generated__/unit-kinds.ts`), and
-    // this ladder used to disagree with its own bare "m", colliding with
-    // the `length` kind's metre. A duration composed of "4m" and rendered
+    // a bare "m" here both disagrees with that and collides with the
+    // `length` kind's metre. A duration composed of "4m" and rendered
     // through a widget that uppercases its text (a severity Badge's
     // `text-transform: uppercase`) reads as "4M", indistinguishable from
     // four METRES. See `unit-symbol-collision.test.ts`.

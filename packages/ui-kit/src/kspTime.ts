@@ -1,15 +1,15 @@
 /**
  * The calendar the game is running, re-exported from the unit model.
  *
- * **This file used to OWN the calendar, and that was half a fix.** The kit can
- * only reach its own display path, so `formatDuration`, `formatKspDate` and
- * `<Unit>` followed the live calendar while `Value` arithmetic did not:
- * `value("s", 86_400).in("d")` answered 4 under an Earth calendar where it
- * should answer 1, and every `plus` across `h` and `d` was wrong by the same
+ * **The kit must not OWN the calendar.** It can only reach its own display
+ * path, so a calendar held here is followed by `formatDuration`,
+ * `formatKspDate` and `<Unit>` while `Value` arithmetic ignores it:
+ * `value("s", 86_400).in("d")` answers 4 under an Earth calendar where it
+ * should answer 1, and every `plus` across `h` and `d` is wrong by the same
  * factor without saying so.
  *
  * The calendar belongs to the unit MODEL, because it is what decides the ratio
- * of `d` to `s`, so it now lives in `@ksp-gonogo/sitrep-sdk` where both the
+ * of `d` to `s`, so it lives in `@ksp-gonogo/sitrep-sdk` where both the
  * formatters and the arithmetic can see it. These re-exports keep the import
  * path every widget already uses; there is one calendar and one place to set
  * it.

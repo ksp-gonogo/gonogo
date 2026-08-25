@@ -57,8 +57,9 @@ const SwitchInput = styled.input`
 const SwitchTrack = styled.div<{ $checked: boolean; $disabled?: boolean }>`
   width: 28px;
   height: 14px;
-  /* Stadium, not a corner: the old 7px was exactly half the 14px height.
-     --radius-pill clamps to the same shape and survives a height change. */
+  /* Stadium, not a corner: a fixed 7px is exactly half this 14px height and
+     stops being a stadium the moment the height moves. --radius-pill clamps to
+     the same shape and survives a height change. */
   border-radius: var(--radius-pill, 999px);
   background: ${({ $checked, $disabled }) => ($disabled ? "var(--color-surface-raised)" : $checked ? "var(--color-status-go-bg)" : "var(--color-surface-raised)")};
   border: 1px solid ${({ $checked, $disabled }) => ($disabled ? "var(--color-border-strong)" : $checked ? "var(--color-status-go-bg)" : "var(--color-border-strong)")};

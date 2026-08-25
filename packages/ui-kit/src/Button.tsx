@@ -29,10 +29,10 @@ export const Button = styled.button`
   }
   @media (pointer: coarse) {
     min-height: 44px;
-    /* One rung WIDER than the base inset, not the same rung. The old coarse
-       value was 14px against a 12px base; both snap to --space-12, which would
-       have erased the widening this block exists for (min-height only covers
-       the vertical target). --space-16 keeps a touch-sized horizontal target. */
+    /* One rung WIDER than the base inset, not the same rung. A coarse value of
+       14px against a 12px base snaps both onto --space-12, erasing the
+       widening this block exists for (min-height only covers the vertical
+       target). --space-16 keeps a touch-sized horizontal target. */
     padding: var(--space-8, 8px) var(--space-16, 16px);
   }
 `;

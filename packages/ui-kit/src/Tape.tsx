@@ -320,9 +320,9 @@ export function Tape({
         })}
 
         {/* Current-value pointer + flag */}
-        {/* Spans the track, so it follows the mirror. It used to be pinned to
-            the unmirrored TRACK_X, which left the pointer on the opposite side
-            from the track it points at whenever labelSide flipped. */}
+        {/* Spans the track, so it follows the mirror. Pinning it to the
+            unmirrored TRACK_X leaves the pointer on the opposite side from the
+            track it points at whenever labelSide flips. */}
         <line
           x1={trackX - 6}
           y1={pointerY}

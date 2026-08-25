@@ -24,10 +24,10 @@ import { VisuallyHidden } from "./VisuallyHidden";
  * its own unit, so the call site names neither the unit nor the format, and
  * every decision about how it looks and how it is spoken lives here.
  *
- * The previous shape was Quantity, taking value and unit as two props, which
- * made the call site restate what the model already knows: every wire field
- * carries a declared unit, and that declaration is now the field's TYPE. It
- * was also opt-in, which is the inconsistency this exists to end.
+ * Taking value and unit as two props makes the call site restate what the
+ * model already knows: every wire field carries a declared unit, and that
+ * declaration is the field's TYPE. Nor is this opt-in, which is the
+ * inconsistency it exists to end.
  *
  * ## The legacy symbol form
  *
@@ -42,11 +42,10 @@ import { VisuallyHidden } from "./VisuallyHidden";
  * and what the thing is called out loud. A rung symbol (`km`, `MW`) works
  * equally well, since that is what a laddered value hands back.
  *
- * That resolution is the point. There used to be a separate `CurrencyUnit`
- * component holding the funds/science/reputation presentation, which was three
- * kinds the model already knew, with display symbols it already carried. Two
- * places deciding how a unit looks is exactly the duplication this package
- * exists to remove.
+ * That resolution is the point, and it covers currency too: funds, science and
+ * reputation are three kinds the model already knows, with display symbols it
+ * already carries, so they need no component of their own. Two places deciding
+ * how a unit looks is exactly the duplication this package exists to remove.
  *
  * ## Sized and dimmed RELATIVE to the text it sits in
  *
@@ -96,12 +95,11 @@ import { VisuallyHidden } from "./VisuallyHidden";
  * unit renders its word from `wordForSymbol` into the accessibility tree
  * beside the symbol, and a readout that shows a unit announces one.
  *
- * This replaces the convention the old version of this file DOCUMENTED, which
- * was that the enclosing readout should carry an `aria-label` spelling the unit
- * out. That convention was honoured in exactly one hand-written place across
- * the whole app; the other labels interpolated the formatted string and so
- * announced the symbol anyway. A rule kept in one component beats a rule every
- * call site has to remember.
+ * The alternative is a convention that the enclosing readout carries an
+ * `aria-label` spelling the unit out, and it does not survive contact: across
+ * the whole app exactly one hand-written place honoured it, while the rest
+ * interpolated the formatted string and so announced the symbol anyway. A rule
+ * kept in one component beats a rule every call site has to remember.
  */
 
 // The attach rule lives in `./units` so this component and `writeQuantity`

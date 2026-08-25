@@ -402,8 +402,8 @@ const Tabs__Root = styled.div`
 `;
 
 /* Positioned wrapper so the left/right overflow glows can sit over the tab
-   bar's edges. The rule the bar used to sit on is gone: the track is the
-   boundary now, and a line under it read as a second one. */
+   bar's edges. No rule under the bar: the track IS the boundary, and a line
+   under it reads as a second one. */
 const Tabs__BarShell = styled.div`
   position: relative;
 `;

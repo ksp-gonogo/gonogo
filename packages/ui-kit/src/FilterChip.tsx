@@ -31,8 +31,8 @@ const ChipButton = styled.button<{ $selected: boolean }>`
   align-items: center;
   gap: var(--space-6);
   padding: var(--space-2) var(--space-8);
-  /* Stadium, not a corner: with 2px vertical padding the old 12px already
-     exceeded half the rendered height. --radius-pill renders identically and
+  /* Stadium, not a corner: with 2px vertical padding a 12px radius already
+     exceeds half the rendered height, so --radius-pill renders identically and
      survives a padding change. */
   border-radius: var(--radius-pill);
   font-size: var(--font-size-xs);

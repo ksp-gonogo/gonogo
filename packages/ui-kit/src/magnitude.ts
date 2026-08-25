@@ -1,16 +1,16 @@
 /**
- * The magnitude unwrap, re-exported from where it now lives.
+ * The magnitude unwrap, re-exported.
  *
- * It was implemented here until 2026-08-25 and moved down into
- * `@ksp-gonogo/sitrep-sdk` beside `Value`, the type it unwraps. The reason is
- * the dependency direction: ui-kit depends on the sdk, so while the canonical
- * pair lived here nothing in the sdk could reach it without a cycle, and two
- * spine files carried their own copies that disagreed about what absence means.
- * That file's own doc comment carries the full reasoning.
+ * It is implemented in `@ksp-gonogo/sitrep-sdk` beside `Value`, the type it
+ * unwraps, and belongs there because of the dependency direction: ui-kit
+ * depends on the sdk, so a canonical pair defined HERE is unreachable from the
+ * sdk without a cycle, and spine files end up carrying their own copies that
+ * disagree about what absence means. That file's own doc comment carries the
+ * full reasoning.
  *
- * This re-export is what made the move cost nothing at the call sites: ui-kit
- * is the published package a third-party Uplink already imports, so
- * `magnitudeOf` stays reachable from exactly where every caller expects it.
+ * The re-export exists because ui-kit is the published package a third-party
+ * Uplink already imports, so `magnitudeOf` stays reachable from exactly where
+ * every caller expects it.
  */
 export {
   magnitudeOf,

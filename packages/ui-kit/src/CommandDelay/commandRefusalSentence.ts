@@ -154,8 +154,8 @@ function said(detail: string | undefined): string | null {
  * command and its args name the SUBJECT (`commandRefusalSubject`, in the sdk
  * because an Uplink needs the same rule). The typed `errorCode` picks WHICH
  * clause, because it is the only thing that knows a full complex from a maxed
- * building from an unaffordable one, and it used to know none of those (all
- * three arrived as `ModeUnavailable` or `Range`). The `LimitBreach` supplies the
+ * building from an unaffordable one: a coarse code collapses all three onto
+ * `ModeUnavailable` or `Range`. The `LimitBreach` supplies the
  * NUMBERS, which is the part an operator called actionable, and `units.ts`
  * writes them so a fund reads the way funds read everywhere else on the board.
  *
