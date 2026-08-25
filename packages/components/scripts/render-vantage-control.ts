@@ -6,10 +6,15 @@
  * widget or a routed screen, so it gets its own small esbuild + Playwright
  * pipeline rather than a config entry in the shared harness.
  *
- * Renders three states into `local_docs/renders/vantage-control/`:
- *   - `resting-home-only`   : one active centre (KSC), collapsed
- *   - `resting-multi`       : two active centres, collapsed
- *   - `open-multi`          : two active centres, dropdown expanded
+ * Renders into `local_docs/renders/vantage/`. The main screen picks the
+ * vantage, a station only reads it, so the two screens get different renders
+ * of the same banner field:
+ *   - `main-resting-home-only` : one active centre (KSC), collapsed
+ *   - `main-resting-multi`     : two active centres, collapsed
+ *   - `main-open-multi`        : two active centres, dropdown expanded
+ *   - `station-home`           : reading the home centre
+ *   - `station-away`           : reading a centre that is not home
+ *   - `station-unknown`        : nothing has arrived to say which centre
  *
  * Run via `pnpm --filter @ksp-gonogo/components exec tsx scripts/render-vantage-control.ts`.
  */
@@ -24,7 +29,7 @@ import { chromium } from "playwright";
 const require = createRequire(import.meta.url);
 const HERE = dirname(fileURLToPath(import.meta.url));
 const ENTRY = resolve(HERE, "vantage-control-probe/entry.tsx");
-const OUT_DIR = resolve(HERE, "../../../local_docs/renders/vantage-control");
+const OUT_DIR = resolve(HERE, "../../../local_docs/renders/vantage");
 const THEME_TOKENS_CSS = resolve(HERE, "../../theme/src/tokens.css");
 
 // Same recursion hazard `widgetRenderHarness.ts` documents: resolve `.css`
@@ -79,40 +84,43 @@ interface VantageState {
   name: string;
   roster?: unknown[];
   open?: boolean;
+  screen?: "main" | "station";
+  observedVantage?: string;
 }
 
+const KSC = {
+  id: "ksc",
+  displayName: "KSC",
+  kind: "GroundStation",
+  active: true,
+};
+const WOOMERA = {
+  id: "ground:gs1",
+  displayName: "Woomera Station",
+  kind: "GroundStation",
+  active: true,
+};
+
 const STATES: VantageState[] = [
+  { name: "main-resting-home-only", roster: [KSC] },
+  { name: "main-resting-multi", roster: [KSC, WOOMERA] },
+  { name: "main-open-multi", roster: [KSC, WOOMERA], open: true },
   {
-    name: "resting-home-only",
-    roster: [
-      { id: "ksc", displayName: "KSC", kind: "GroundStation", active: true },
-    ],
+    name: "station-home",
+    screen: "station",
+    roster: [KSC, WOOMERA],
+    observedVantage: "ksc",
   },
   {
-    name: "resting-multi",
-    roster: [
-      { id: "ksc", displayName: "KSC", kind: "GroundStation", active: true },
-      {
-        id: "ground:gs1",
-        displayName: "Woomera Station",
-        kind: "GroundStation",
-        active: true,
-      },
-    ],
+    name: "station-away",
+    screen: "station",
+    roster: [KSC, WOOMERA],
+    observedVantage: "ground:gs1",
   },
-  {
-    name: "open-multi",
-    roster: [
-      { id: "ksc", displayName: "KSC", kind: "GroundStation", active: true },
-      {
-        id: "ground:gs1",
-        displayName: "Woomera Station",
-        kind: "GroundStation",
-        active: true,
-      },
-    ],
-    open: true,
-  },
+  // No roster at all, which is the only way a station genuinely has nothing to
+  // state: every real frame carries the vantage it was delayed from, so
+  // "unknown" means no frame has landed rather than one landed unstamped.
+  { name: "station-unknown", screen: "station" },
 ];
 
 async function main(): Promise<void> {
@@ -199,7 +207,12 @@ async function main(): Promise<void> {
               __renderVantage: (payload: unknown) => Promise<void>;
             }
           ).__renderVantage(p),
-        { roster: state.roster, open: state.open },
+        {
+          roster: state.roster,
+          open: state.open,
+          screen: state.screen,
+          observedVantage: state.observedVantage,
+        },
       );
       const outPath = join(OUT_DIR, `${state.name}.png`);
       // Full viewport, not `#root`'s own box: the open dropdown is an

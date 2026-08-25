@@ -5,6 +5,7 @@ import type { ServerMessage } from "../envelope";
 import { type Clock, RealTimeClock } from "./clock";
 import { CommandError, type CommandStatus } from "./lifecycle";
 import type { TimelineStore } from "./timeline-store";
+import { META_VANTAGE } from "./vantage";
 
 type Callback = (value: unknown) => void;
 type StoreListener = () => void;
@@ -156,10 +157,13 @@ export class TelemetryClient {
   private readonly storeListeners = new Set<StoreListener>();
   /** Reactive-read listeners for the selected vantage: see `onSelectedVantageChange`. */
   private readonly vantageListeners = new Set<() => void>();
+  /** Reactive-read listeners for the observed vantage: see `onObservedVantageChange`. */
+  private readonly observedVantageListeners = new Set<() => void>();
   private readonly unsubscribeFromTransport: () => void;
   private readonly commands = new Map<string, PendingCommand>();
   private nextRequestId = 0;
   private selectedVantageId = "ksc";
+  private observedVantageId: string | undefined;
   /** Raw-frame tap listeners: see `onRawMessage`. */
   private readonly rawMessageListeners = new Set<
     (message: ServerMessage) => void
@@ -232,11 +236,31 @@ export class TelemetryClient {
 
   /**
    * Whether {@link setVantage} can do anything on this connection. False on a
-   * station, whose frames are relayed from a host session it does not own; a
-   * control should render dark rather than offer a choice that cannot be made.
+   * station, whose frames are relayed from a host session it does not own, so a
+   * surface there states {@link observedVantage} rather than offering a choice
+   * that cannot be made.
    */
   get canSetVantage(): boolean {
     return this.transport.carriesVantage !== false;
+  }
+
+  /**
+   * The command centre the mod stamped on the most recent ordinary frame, or
+   * `undefined` before one has arrived.
+   *
+   * Where {@link selectedVantage} is intent (what this client asked for), this
+   * is observation (what it is being sent). The two differ wherever a client
+   * does not own the session its frames come from: a station's own selection is
+   * a constructor default that can never move, so it names the right centre
+   * only by luck, while every frame carries the vantage it was genuinely
+   * delayed from.
+   *
+   * Instant-class topics ride the meta vantage instead of the session's
+   * selection, so a frame stamped with it says nothing about where the session
+   * is observing from and never moves this.
+   */
+  get observedVantage(): string | undefined {
+    return this.observedVantageId;
   }
 
   /**
@@ -248,6 +272,19 @@ export class TelemetryClient {
     this.vantageListeners.add(cb);
     return () => {
       this.vantageListeners.delete(cb);
+    };
+  }
+
+  /**
+   * Subscribe to observed-vantage changes (for a reactive read, e.g.
+   * `@ksp-gonogo/sitrep-client`'s `useObservedVantage`). Fires only when an
+   * arriving frame names a different
+   * centre than the last one did, not on every frame. Returns an unsubscribe.
+   */
+  onObservedVantageChange(cb: () => void): () => void {
+    this.observedVantageListeners.add(cb);
+    return () => {
+      this.observedVantageListeners.delete(cb);
     };
   }
 
@@ -554,6 +591,18 @@ export class TelemetryClient {
     this.stores.clear();
   }
 
+  /**
+   * Record the vantage an arriving frame was delayed from. See
+   * {@link observedVantage} for why the meta vantage is not one, and why an
+   * empty stamp (a transport with nothing to say about vantage) is not either.
+   */
+  private noteObservedVantage(vantage: string): void {
+    if (!vantage || vantage === META_VANTAGE) return;
+    if (vantage === this.observedVantageId) return;
+    this.observedVantageId = vantage;
+    for (const listener of this.observedVantageListeners) listener();
+  }
+
   private handleMessage(message: ServerMessage): void {
     if (message.type === "command-response") {
       this.handleCommandResponse(message.requestId, message.result);
@@ -564,6 +613,7 @@ export class TelemetryClient {
       return;
     }
     if (message.type !== "stream-data") return;
+    this.noteObservedVantage(message.meta.vantage);
     this.lastValues.set(message.topic, message.payload);
     const subs = this.subscribers.get(message.topic);
     if (subs) {

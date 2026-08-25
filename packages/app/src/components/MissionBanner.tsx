@@ -13,17 +13,18 @@ import { VantageControl } from "./VantageControl";
  * space. Renders left-to-right as a small `label value` field list so more
  * fields can be added later without touching the layout.
  *
- * Mounted on `MainScreen` only, as the first child of `<Layout as="main">`
- * (normal document flow: see that file for why no flex/position:fixed
- * trickery is needed to reserve the space). A `StationScreen` mount is a
- * trivial follow-up, not done here.
+ * Mounted on both screens as the first child of `<Layout as="main">` (normal
+ * document flow: see either file for why no flex/position:fixed trickery is
+ * needed to reserve the space). `VantageControl` renders itself differently on
+ * each; nothing else here branches.
  *
- * Deliberately NOT a live region: the time field updates roughly once a
- * second off the live view clock, and an `aria-live`/`role="status"` region
- * would announce every tick to a screen reader. This is passive chrome,
- * plain muted text, with a single `aria-label` on the container so the
- * whole strip is discoverable as one unit without being read out loud on
- * every update.
+ * The strip itself is deliberately NOT a live region: the time field updates
+ * roughly once a second off the live view clock, and an
+ * `aria-live`/`role="status"` around it would announce every tick to a screen
+ * reader. A single `aria-label` on the container makes the whole strip
+ * discoverable as one unit instead. A field whose value changes rarely and
+ * matters when it does can still declare its own live region, and the station's
+ * vantage readout is one.
  */
 export function MissionBanner() {
   const ut = useViewUt();

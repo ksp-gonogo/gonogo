@@ -437,6 +437,7 @@ export {
   type Unsubscribe,
   useLateTelemetrySubscribe,
 } from "./use-late-telemetry-subscribe";
+export { useObservedVantage } from "./use-observed-vantage";
 export { useProcessor } from "./use-processor";
 export type {
   PendingUplinkQueueLike,
