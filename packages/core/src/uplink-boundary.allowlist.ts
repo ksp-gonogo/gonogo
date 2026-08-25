@@ -745,7 +745,10 @@ export const ALLOWLIST: Record<ModToken, ModAllowlist> = {
       // leaf every Uplink depends on, so it cannot name one even in prose. They now
       // describe the general shape they always meant ("another feeder", "an
       // authoritative vesselUid from the vessel"), so both ratcheted off.
-      "packages/data/src/hooks/useDataSchema.ts",
+      // useDataSchema.ts was here for a forward-looking aside naming the kOS
+      // datastream as the thing that would add keys after connect. The caveat
+      // now describes any source that grows keys dynamically, naming no Uplink,
+      // so this ratcheted off.
       "mod/sitrep-sdk/src/spine/replay-session.tsx",
       // types.ts was here for `FlightRecord.vesselUid`'s "arrives from kOS" aside.
       // The flight types moved to the sdk leaf with `BufferedDataSource` and the

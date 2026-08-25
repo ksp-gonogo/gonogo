@@ -17,12 +17,12 @@
 //     registry, so `isTopicId` / `getAllKnownTopicIds` enumerate it without the SDK ever
 //     naming the string.
 //
-// `scansat.scanningVessels` and `scansat.science` used to be generated straight into
-// `@ksp-gonogo/sitrep-sdk` (ScanningVesselEntry/ScanScienceEntry lived in
-// Sitrep.Contract). They moved into THIS Uplink's own contract slice
-// (GonogoScansatUplink.Contract, uplink-types-out-of-core plan, fourth relocation), so
-// they are now registered here too, same shape as `scansat.available`, just with real
-// generated payload types behind them instead of `boolean`.
+// `scansat.scanningVessels` and `scansat.science` carry types from THIS
+// Uplink's own contract slice (GonogoScansatUplink.Contract's
+// ScanningVesselEntry/ScanScienceEntry), not from Sitrep.Contract, so the SDK
+// generates nothing for them and they are registered here alongside
+// `scansat.available`, with real generated payload types behind them rather
+// than `boolean`.
 //
 // `index.ts` imports this module for its side effect (the registrations + the ambient
 // augmentation), so importing the package wires every half.
@@ -75,14 +75,14 @@ registerBarePrimitiveTopic(SCANSAT_AVAILABLE_TOPIC);
 registerBarePrimitiveTopic(SCANSAT_SCANNING_VESSELS_TOPIC);
 registerBarePrimitiveTopic(SCANSAT_SCIENCE_TOPIC);
 
-// The runtime half of the relocation. These two Topics used to hydrate their
-// Value<"°">/Value<"m"> fields off the SDK's OWN generated unit map, because
-// ScanningVesselEntry/ScanScienceEntry lived in Sitrep.Contract. They do not any
-// more, so this Uplink feeds its own generated unit/shape entries into the SDK's
+// The runtime half. ScanningVesselEntry/ScanScienceEntry live in THIS Uplink's
+// contract slice, so the SDK's own generated unit map knows nothing about them
+// and cannot hydrate these two Topics' Value<"°">/Value<"m"> fields. This
+// Uplink therefore feeds its own generated unit/shape entries into the SDK's
 // runtime registry (see sitrep-sdk's units.ts doc comments on
-// registerTopicUnits/registerTypeUnits). Without this, subLatitude/subLongitude/
-// altitude/groundTrackWidthDeg/groundTrackLonHalfDeg would arrive as bare numbers
-// at runtime while the TYPE still says Value<"°">/Value<"m">.
+// registerTopicUnits/registerTypeUnits). Without it, subLatitude/subLongitude/
+// altitude/groundTrackWidthDeg/groundTrackLonHalfDeg arrive as bare numbers at
+// runtime while the TYPE still says Value<"°">/Value<"m">.
 //
 // BOTH registries, not just the topic one, and that is the part the three earlier
 // relocations did not need. Their payloads were flat, so a topic-keyed unit map was

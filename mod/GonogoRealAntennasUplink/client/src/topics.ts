@@ -1,11 +1,10 @@
 // GonogoRealAntennasUplink client-owned Topic registration: the three Topics
-// only this Uplink can source, and both halves of the relocated unit registry.
+// only this Uplink can source, and both halves of their unit registry.
 //
-// `comms.linkQuality` / `comms.dataRate` / `comms.linkMargin` used to be
-// generated straight into `@ksp-gonogo/sitrep-sdk`, because their payload types
-// sat inside Sitrep.Contract's Comms.cs. They moved into THIS Uplink's own
-// contract slice (GonogoRealAntennasUplink.Contract, uplink-types-out-of-core
-// plan, seventh and last step), so they are registered here instead:
+// The payload types behind `comms.linkQuality` / `comms.dataRate` /
+// `comms.linkMargin` live in THIS Uplink's own contract slice
+// (GonogoRealAntennasUplink.Contract), not Sitrep.Contract's Comms.cs, so the
+// SDK generates nothing for them and they are registered here:
 //
 //   • TYPE: a `declare module "@ksp-gonogo/sitrep-sdk"` augmentation adds them to
 //     `TopicPayloadMap`, so `useTelemetry("comms.linkMargin")` resolves to

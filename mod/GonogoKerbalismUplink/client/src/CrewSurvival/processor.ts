@@ -12,10 +12,10 @@ import { KERBALISM } from "../uplink";
 // (`vessel.crew`, the same identity source CrewStatus itself renders) joined
 // against Kerbalism's own per-kerbal rule accumulators (`kerbalism.crew`).
 //
-// This is the derivation that used to live INLINE in CrewStatus
-// (`packages/components`), contaminating the vanilla base widget with a
-// Kerbalism-specific read. It now lives here, the Kerbalism Uplink's own
-// Processor, consumed by the `crew-status.meters` contribution (meters.ts),
+// It belongs HERE, in the Kerbalism Uplink's own Processor, and not inline in
+// CrewStatus (`packages/components`), which would contaminate the vanilla base
+// widget with a Kerbalism-specific read. Consumed by the
+// `crew-status.meters` contribution (meters.ts),
 // the per-row badge augment (index.tsx)
 // and the panel badge (badge.ts): one per-frame derivation, two consumers,
 // same dogfood pattern as `SHIP_SYSTEMS`/`ship-systems-badge`.
@@ -26,13 +26,13 @@ import { KERBALISM } from "../uplink";
 // for them yet, or the mod not installed) still gets a roster entry here
 // with no rules, so a consumer can render "stable" rather than nothing.
 //
-// Deliberately does NOT re-derive the shared "time to life-support
-// depletion" cross-resource clock the old inline code computed from
-// `kerbalism.lifesupport`/`kerbalism.profile`/`vessel.resources`: that is
-// Ship Systems' own domain now (`summarise`/`timeToEmptySeconds` in
-// `../ecosystem`), and duplicating it here would be a second derivation of
-// the same fact. `deathClockSec` below is read straight off the wire's own
-// `KerbalismCrewEntry.deathClockSec`, which the mod now fills in: it is the
+// Deliberately does NOT derive the shared "time to life-support depletion"
+// cross-resource clock from
+// `kerbalism.lifesupport`/`kerbalism.profile`/`vessel.resources`: that is Ship
+// Systems' own domain (`summarise`/`timeToEmptySeconds` in `../ecosystem`), and
+// deriving it here too would be a second derivation of the same fact.
+// `deathClockSec` below is read straight off the wire's own
+// `KerbalismCrewEntry.deathClockSec`, which the mod fills in: it is the
 // soonest FATAL rule, and only the mod can compute it because its first stage
 // needs resource amounts that no per-craft channel carries. Null still means
 // not derivable and must keep rendering differently from a long deadline.
@@ -64,9 +64,9 @@ export interface KerbalSurvival {
    *
    * The wire carries `deathClockUt`, the instant itself, so this is a
    * subtraction the processor does once with the frame's own clock rather than
-   * a duration each consumer re-anchors (or forgets to). The wire used to carry
-   * the remaining seconds directly, which was only true measured from the
-   * payload's `asOfUt` and read as current wherever anyone rendered it raw.
+   * a duration each consumer re-anchors (or forgets to). Carrying the remaining
+   * SECONDS on the wire instead would be true only measured from the payload's
+   * `asOfUt`, and read as current wherever anyone rendered it raw.
    * Null while not resolved, and null is never a large number: a kerbal whose
    * deadline cannot be computed and one with years of supplies must not render
    * the same.
@@ -128,10 +128,10 @@ function ruleFraction(rule: KerbalismCrewRule): number | null {
 }
 
 /**
- * Every rule Kerbalism reports for this kerbal, regardless of name: unlike
- * the old base-widget code (a fixed 7-name allowlist that silently dropped
- * any rule outside it, e.g. a custom rule under RO's profile), this reads
- * whatever the loaded profile actually defines, the same "never name a
+ * Every rule Kerbalism reports for this kerbal, regardless of name. A fixed
+ * allowlist silently drops any rule outside it (a custom rule under RO's
+ * profile, say), so this reads whatever the loaded profile actually defines,
+ * the same "never name a
  * resource/rule the profile didn't declare" discipline `../ecosystem` uses
  * for resources.
  */

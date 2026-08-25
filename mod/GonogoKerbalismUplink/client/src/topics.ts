@@ -5,13 +5,12 @@
 // (DelayRole.TrueNow) as the Domain presence gate: it has no [SitrepTopic]
 // payload POCO, so it never flows through codegen.
 //
-// `kerbalism.spaceweather` / `.profile` / `.lifesupport` / `.crew` / `.features`
-// used to be generated straight into `@ksp-gonogo/sitrep-sdk`, because their
-// payload types lived in Sitrep.Contract. They moved into THIS Uplink's own
-// contract slice (GonogoKerbalismUplink.Contract, uplink-types-out-of-core plan,
-// fifth relocation), so they are registered here too, the same two halves
-// `kerbalism.available` already used, just with real generated payload types
-// behind them instead of `boolean`:
+// The payload types behind `kerbalism.spaceweather` / `.profile` /
+// `.lifesupport` / `.crew` / `.features` live in THIS Uplink's own contract
+// slice (GonogoKerbalismUplink.Contract), not Sitrep.Contract, so the SDK
+// generates nothing for them. They register here in the same two halves
+// `kerbalism.available` uses, just with real generated payload types behind
+// them rather than `boolean`:
 //
 //   • TYPE: a `declare module "@ksp-gonogo/sitrep-sdk"` augmentation adds each
 //     Topic to `TopicPayloadMap`, so `useTelemetry("kerbalism.crew")` resolves to

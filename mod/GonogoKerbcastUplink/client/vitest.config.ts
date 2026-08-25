@@ -2,8 +2,8 @@ import { defineConfig } from "vitest/config";
 
 // No `@ksp-gonogo/*` aliases. This client imports only published packages, so
 // everything resolves from its own node_modules the way it would for an author
-// outside this repo. The aliases that used to be here pointed the private
-// packages at their `src`, which is part of what let the harness reach into them.
+// outside this repo. A `@ksp-gonogo/*` alias pointing a private package at its
+// `src` is exactly what lets a harness reach into one.
 
 export default defineConfig({
   test: {

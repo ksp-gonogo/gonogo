@@ -108,10 +108,10 @@ function commandChip(
     case "idle":
       return undefined; // nothing dispatched yet, so nothing to report
   }
-  // Deliberately no `default`. This used to have one, and it is why `refused`
-  // arrived as a silently missing chip rather than a compile error: a widened
-  // `phase: string` plus a catch-all cannot notice a new phase. Assigning to
-  // `never` makes the next one fail the typecheck here instead.
+  // Deliberately no `default`. A widened `phase: string` plus a catch-all
+  // cannot notice a new phase, so one arrives as a silently missing chip rather
+  // than a compile error. Assigning to `never` makes the next one fail the
+  // typecheck here instead.
   const unhandled: never = phase;
   return unhandled;
 }

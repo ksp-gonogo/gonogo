@@ -171,11 +171,11 @@ function parseFlatDeployedEntry(entry: unknown): FlatDeployedEntry | null {
  *
  * This read `ModuleGroundSciencePart.PowerState`, and that field is not an enum
  * name: it is LOCALISED PROSE that `UpdateModuleUI()` writes from `Localizer`.
- * The old comparison tested it against `"Powered"` and against `"NoPower"`, a
- * string KSP has never emitted, so `Unpowered`, `Disabled`,
- * `Controller Disabled` and `N/A` all fell off the end into powered-with-a-
- * partial-flag. An unpowered cluster painted as a working one on a reduced
- * supply, in English, and in any other language a fully powered one did too.
+ * Comparing it against `"Powered"` and `"NoPower"` (a string KSP has never
+ * emitted) drops `Unpowered`, `Disabled`, `Controller Disabled` and `N/A` off
+ * the end into powered-with-a-partial-flag, so an unpowered cluster paints as a
+ * working one on a reduced supply in English, and in any other language a fully
+ * powered one does too.
  *
  * `DeployedPowerState` is OUR enum, derived mod-side from the four booleans
  * stock's own readout branches on, so it is an ordinal and it survives

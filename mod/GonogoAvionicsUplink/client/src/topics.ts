@@ -23,13 +23,13 @@ declare module "@ksp-gonogo/sitrep-sdk" {
 registerBarePrimitiveTopic("avionics.available");
 registerBarePrimitiveTopic("avionics.status");
 
-// The runtime half of the same relocation: avionics.status used to hydrate
-// its Value<"t"> fields off the SDK's OWN generated unit map, because
-// AvionicsStatus lived in Sitrep.Contract. It does not any more, so this
-// Uplink feeds its own generated unit/shape entries into the SDK's runtime
-// registry (see units.ts's own doc comment on registerTopicUnits). Without
-// this, controllableMassTons/vesselMassTons would arrive as bare numbers at
-// runtime while the TYPE still says Value<"t">.
+// The runtime half. `AvionicsStatus` lives in THIS Uplink's contract slice, so
+// the SDK's own generated unit map knows nothing about it and cannot hydrate
+// avionics.status's Value<"t"> fields. This Uplink therefore feeds its own
+// generated unit/shape entries into the SDK's runtime registry (see units.ts's
+// doc comment on registerTopicUnits). Without it,
+// controllableMassTons/vesselMassTons arrive as bare numbers at runtime while
+// the TYPE still says Value<"t">.
 registerTopicUnits(
   "avionics.status",
   GENERATED_TOPIC_UNITS["avionics.status"] ?? {},

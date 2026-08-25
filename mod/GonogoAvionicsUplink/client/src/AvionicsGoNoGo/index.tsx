@@ -55,11 +55,10 @@ export function AvionicsGoNoGoComponent(
   _props: ComponentProps<AvionicsConfig>,
 ) {
   /**
-   * The `as AvionicsStatus | undefined` cast that used to be here hid the whole
-   * migration: `useTelemetry` began answering with a `Reading` and the assertion
-   * silenced it, so `s?.avionicsActive` was permanently undefined and the widget
-   * read "NO AVIONICS" forever. A cast is a stronger blind spot than `unknown`,
-   * because someone chose it.
+   * Deliberately NO `as AvionicsStatus | undefined` cast. `useTelemetry`
+   * answers with a `Reading`, and an assertion here silences that: `avionicsActive`
+   * then reads permanently undefined and the widget says "NO AVIONICS" forever.
+   * A cast is a stronger blind spot than `unknown`, because someone chose it.
    *
    * A GO/NO-GO is the definition of a judgement, so it is withheld rather than held:
    * a stale GO is the single worst thing this widget could draw.

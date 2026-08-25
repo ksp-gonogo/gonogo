@@ -19,12 +19,11 @@
 // kerbcast's camera CONTROL data rides `kerbcast.cameras`; its VIDEO does not
 // ride the Topic stream at all, it stays on kerbcast's own WebRTC path.
 //
-// `kerbcast.cameras` used to be generated straight into `@ksp-gonogo/sitrep-sdk`
-// (KerbcastCameraEntry lived in Sitrep.Contract). It moved into THIS Uplink's own
-// contract slice (GonogoKerbcastUplink.Contract, uplink-types-out-of-core plan,
-// third relocation), so it is now bare-registered here too, same shape as
-// `kerbcast.available`, just with a real generated payload type behind it instead
-// of `boolean`.
+// `KerbcastCameraEntry` lives in THIS Uplink's own contract slice
+// (GonogoKerbcastUplink.Contract), not Sitrep.Contract, so the SDK generates
+// nothing for `kerbcast.cameras` and it is bare-registered here alongside
+// `kerbcast.available`, with a real generated payload type behind it rather
+// than `boolean`.
 //
 // `index.ts` imports this module for its side effect (the registration + the ambient
 // augmentation), so importing the package wires both halves.
@@ -62,14 +61,13 @@ declare module "@ksp-gonogo/sitrep-sdk" {
 registerBarePrimitiveTopic(KERBCAST_AVAILABLE_TOPIC);
 registerBarePrimitiveTopic(KERBCAST_CAMERAS_TOPIC);
 
-// The runtime half of the relocation: kerbcast.cameras used to hydrate its nine
-// Value<"deg"> fields (fieldOfView/panYaw/panPitch + their min/max pairs) off the
-// SDK's OWN generated unit map, because KerbcastCameraEntry lived in
-// Sitrep.Contract. It does not any more, so this Uplink feeds its own generated
-// unit/shape entries into the SDK's runtime registry (see sitrep-sdk's units.ts
-// doc comment on registerTopicUnits). Without this, every one of those nine
-// fields would arrive as a bare number at runtime while the TYPE still says
-// Value<"deg">.
+// The runtime half. The SDK's own generated unit map knows nothing about
+// KerbcastCameraEntry, so it cannot hydrate kerbcast.cameras's nine
+// Value<"deg"> fields (fieldOfView/panYaw/panPitch + their min/max pairs). This
+// Uplink therefore feeds its own generated unit/shape entries into the SDK's
+// runtime registry (see sitrep-sdk's units.ts doc comment on
+// registerTopicUnits). Without it, every one of those nine fields arrives as a
+// bare number at runtime while the TYPE still says Value<"deg">.
 registerTopicUnits(
   KERBCAST_CAMERAS_TOPIC,
   GENERATED_TOPIC_UNITS[KERBCAST_CAMERAS_TOPIC] ?? {},

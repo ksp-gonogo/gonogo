@@ -1,10 +1,9 @@
 // KosUplink client-owned Topic registration: the one static kOS Topic, and both
-// halves of the relocated unit registry.
+// halves of its unit registry.
 //
-// `kos.processors` used to be generated straight into `@ksp-gonogo/sitrep-sdk`,
-// because `KosProcessorInfo` lived in Sitrep.Contract. It moved into THIS
-// Uplink's own contract slice (GonogoKosUplink.Contract, uplink-types-out-of-core
-// plan, sixth and last relocation), so it is registered here instead:
+// `KosProcessorInfo` lives in THIS Uplink's own contract slice
+// (GonogoKosUplink.Contract), not Sitrep.Contract, so the SDK generates nothing
+// for `kos.processors` and both halves are registered here:
 //
 //   • TYPE: a `declare module "@ksp-gonogo/sitrep-sdk"` augmentation adds the
 //     Topic to `TopicPayloadMap`, so `useTelemetry("kos.processors")` resolves to

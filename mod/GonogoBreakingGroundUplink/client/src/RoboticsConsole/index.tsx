@@ -69,10 +69,9 @@ const formatPos = (type: ServoType, v: number): string =>
  * different units and one shared number cannot be right for both.
  *
  * A hinge is in degrees, where half a degree is a sensible dead band. A piston
- * is in METRES, and the shared 0.5 that used to cover both meant a piston
- * sitting half a metre from its target reported "AT TARGET". That was invisible
- * while the widget mislabelled extension as a percentage, since 0.5% is a fine
- * tolerance; correcting the unit is what exposed it.
+ * is in METRES, so one shared 0.5 reports "AT TARGET" for a piston sitting half
+ * a metre away. That stays invisible for as long as extension is mislabelled as
+ * a percentage, since 0.5% is a fine tolerance.
  *
  * 1cm for the piston is a judgement call rather than a measured figure: KSP's
  * piston traverse velocities run 0.05 to 5 m/s, so a centimetre is roughly a
