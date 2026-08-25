@@ -32,11 +32,17 @@ import "../index";
  * assertion over its own registrations; none does yet.
  */
 describe("widget dataRequirements resolve to something real", () => {
+  // Both declaration arrays. `fields` is where a widget's field-granular
+  // declaration lives now, and it is exactly the vocabulary this gate was
+  // written to police, so reading only `dataRequirements` would let the whole
+  // check drain away as widgets migrate while still reporting green.
   const declared = getComponents().flatMap((def) =>
-    (def.dataRequirements ?? []).map((requirement) => ({
-      id: def.id,
-      requirement,
-    })),
+    [...(def.dataRequirements ?? []), ...(def.fields ?? [])].map(
+      (requirement) => ({
+        id: def.id,
+        requirement,
+      }),
+    ),
   );
 
   it("found a non-trivial number of declarations (scan sanity check)", () => {

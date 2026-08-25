@@ -1,5 +1,5 @@
 import { getComponent } from "@ksp-gonogo/core";
-import { widgetDeclaredTopics } from "@ksp-gonogo/ui-kit";
+import { widgetDrawnFields } from "@ksp-gonogo/ui-kit";
 import { describe, expect, it } from "vitest";
 import "@ksp-gonogo/components";
 // The app registers a widget of its own, which importing the component library
@@ -374,7 +374,9 @@ describe("migrated widgets keep the alarms saved against their old keys", () => 
         it(`${expectMatch ? "still attributes" : "no longer attributes"} an alarm on ${key}${why ? `, because ${why}` : ""}`, () => {
           const def = getComponent(widget.id);
           expect(
-            alarmMatchesWidget(thresholdAlarm(key), widgetDeclaredTopics(def)),
+            // The SAME accessor `GridItemContent` hands `AlarmStatusBridge`. It
+            // has to be, or this asserts about a path production does not take.
+            alarmMatchesWidget(thresholdAlarm(key), widgetDrawnFields(def)),
           ).toBe(expectMatch);
         });
       }

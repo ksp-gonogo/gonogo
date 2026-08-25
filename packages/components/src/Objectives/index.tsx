@@ -29,7 +29,10 @@ import {
 } from "../ContractManager";
 import { useAlarmCreator, useAlarmManager } from "../shared/AlarmsLauncher";
 
-const topics = defineTopicManifest({ channels: ["career.status"] });
+const topics = defineTopicManifest({
+  channels: ["career.status"],
+  fields: ["career.status.contracts.active"],
+});
 
 /**
  * Objectives: a read-only, in-flight-friendly view of everything you're
@@ -456,6 +459,7 @@ registerComponent<ObjectivesConfig>({
   // and any future Uplink objective source can too.
   augmentSlots: ["objectives.source"],
   channels: topics.channels,
+  fields: topics.fields,
   defaultConfig: {},
   actions: [],
   pushable: true,

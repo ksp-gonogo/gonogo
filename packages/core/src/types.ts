@@ -1,6 +1,6 @@
 // Core shared types: expand as features are built
 
-import type { WidgetChannelId } from "@ksp-gonogo/sitrep-sdk";
+import type { WidgetChannelId, WidgetFieldPath } from "@ksp-gonogo/sitrep-sdk";
 import type { ComponentType } from "react";
 import type { ContributionSlotId } from "./contributions";
 import type { GonogoTheme } from "./theme";
@@ -239,6 +239,27 @@ export interface ComponentDefinition<TConfig = Record<string, unknown>> {
    * Authored via {@link defineTopicManifest} (`optionalChannels`).
    */
   optionalChannels?: readonly WidgetChannelId[];
+  /**
+   * What this widget DRAWS, when that is narrower than what it mounts on.
+   *
+   * `channels` answers "what must be live for me to render"; this answers "which
+   * numbers do I actually put on screen", and they are different questions. A
+   * widget mounts on the whole of `vessel.state` and draws a handful of its
+   * fields: declaring only the former makes it claim all of them, and alarm
+   * attribution matches by containment, so every other widget's alarm on that
+   * channel lights this panel too. Measured before this existed, 20 of the 23
+   * widgets declaring field paths would have falsely claimed a field another
+   * widget draws.
+   *
+   * OPTIONAL, and absent means "I draw everything I mount on", which is the
+   * honest reading for a widget that renders a whole payload. A bare channel is
+   * a legal entry and means the same thing for that one channel.
+   *
+   * Read by alarm attribution and trajectory currency. NEVER by mounting: a
+   * narrower draw list must not be able to stop a widget rendering, or the two
+   * questions collapse back into one.
+   */
+  fields?: readonly WidgetFieldPath[];
   behaviors?: ComponentBehavior[];
   defaultConfig?: Partial<TConfig>;
   /**

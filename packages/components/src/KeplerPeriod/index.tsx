@@ -1,5 +1,21 @@
 import type { BodyDefinition, ComponentProps } from "@ksp-gonogo/core";
-import { getBody, orbitalPeriod, registerComponent } from "@ksp-gonogo/core";
+import {
+  defineTopicManifest,
+  getBody,
+  orbitalPeriod,
+  registerComponent,
+} from "@ksp-gonogo/core";
+
+const topics = defineTopicManifest({
+  channels: ["vessel.orbit", "vessel.state"],
+  fields: [
+    "vessel.orbit.sma",
+    "vessel.state.period",
+    "vessel.state.referenceBodyName",
+    "vessel.state.parentBodyName",
+  ],
+});
+
 import { useStream, type VesselState } from "@ksp-gonogo/sitrep-client";
 import { Fill, GraphNotice } from "@ksp-gonogo/ui-kit";
 import { useMemo } from "react";
@@ -144,12 +160,8 @@ registerComponent<KeplerPeriodConfig>({
   minSize: { w: 5, h: 4 },
   mobileHeight: 280,
   component: KeplerPeriodComponent,
-  dataRequirements: [
-    "vessel.orbit.sma",
-    "vessel.state.period",
-    "vessel.state.referenceBodyName",
-    "vessel.state.parentBodyName",
-  ],
+  channels: topics.channels,
+  fields: topics.fields,
   defaultConfig: { windowSec: 60 },
   actions: [],
   pushable: true,

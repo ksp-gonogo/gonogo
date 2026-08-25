@@ -30,7 +30,15 @@ import {
   type Quantityish,
 } from "../shared/magnitude";
 
-const topics = defineTopicManifest({ channels: ["career.status"] });
+const topics = defineTopicManifest({
+  channels: ["career.status"],
+  fields: [
+    "career.status.strategies.all",
+    "career.status.economy.funds",
+    "career.status.economy.reputation",
+    "career.status.economy.science",
+  ],
+});
 
 type StrategiesConfig = Record<string, never>;
 
@@ -966,6 +974,7 @@ registerComponent<StrategiesConfig>({
   minSize: { w: 2, h: 2 },
   component: StrategiesComponent,
   channels: topics.channels,
+  fields: topics.fields,
   defaultConfig: {},
   actions: [],
   pushable: true,

@@ -576,4 +576,5 @@ export {
 export {
   type WidgetTopicDeclaration,
   widgetDeclaredTopics,
+  widgetDrawnFields,
 } from "./widgetDeclaredTopics";

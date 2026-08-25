@@ -223,6 +223,7 @@ export {
   type TopicPayload,
   type TopicPayloadMap,
   type WidgetChannelId,
+  type WidgetFieldPath,
 } from "./topics";
 // The unit model: Value, dimensions, arithmetic, the unit table.
 //

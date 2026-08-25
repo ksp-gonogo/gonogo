@@ -4,6 +4,7 @@ import type {
   ConfigComponentProps,
 } from "@ksp-gonogo/core";
 import {
+  defineTopicManifest,
   PerfBudget,
   registerComponent,
   useActionInput,
@@ -50,6 +51,30 @@ import {
   type Quantityish,
 } from "../shared/magnitude";
 import { AttitudeIndicator } from "./AttitudeIndicator";
+
+const topics = defineTopicManifest({
+  channels: [
+    "vessel.attitude",
+    "vessel.state",
+    "vessel.control",
+    "comms.delay",
+  ],
+  fields: [
+    "vessel.attitude.heading",
+    "vessel.attitude.pitch",
+    "vessel.attitude.roll",
+    "vessel.attitude.headingRootFrame",
+    "vessel.attitude.pitchRootFrame",
+    "vessel.attitude.rollRootFrame",
+    "vessel.state.sasModeName",
+    "vessel.control.sas",
+    "vessel.control.precisionControl",
+    "vessel.control.rcs",
+    "vessel.control.throttle",
+    "vessel.state.isControllable",
+    "comms.delay.oneWaySeconds",
+  ],
+});
 
 /**
  * Warn once one-way signal delay crosses this threshold AND fly-by-wire is
@@ -1369,21 +1394,8 @@ registerComponent<NavballConfig>({
   // `useCoMFrame` config selects: `heading`/`pitch`/`roll` are CoM-referenced,
   // the `*RootFrame` trio is the genuinely distinct root-part frame
   // `VesselAttitude` carries alongside it.
-  dataRequirements: [
-    "vessel.attitude.heading",
-    "vessel.attitude.pitch",
-    "vessel.attitude.roll",
-    "vessel.attitude.headingRootFrame",
-    "vessel.attitude.pitchRootFrame",
-    "vessel.attitude.rollRootFrame",
-    "vessel.state.sasModeName",
-    "vessel.control.sas",
-    "vessel.control.precisionControl",
-    "vessel.control.rcs",
-    "vessel.control.throttle",
-    "vessel.state.isControllable",
-    "comms.delay.oneWaySeconds",
-  ],
+  channels: topics.channels,
+  fields: topics.fields,
   defaultConfig: { useCoMFrame: false, controlMode: false },
   actions: navballActions,
   pushable: true,

@@ -1,5 +1,6 @@
 import type { ComponentProps } from "@ksp-gonogo/core";
 import {
+  defineTopicManifest,
   registerComponent,
   useDataStreamStatus,
   useGameContext,
@@ -23,6 +24,27 @@ import {
   parseExperimentBreakdown,
   parseExperiments,
 } from "./parsers";
+
+const topics = defineTopicManifest({
+  channels: [
+    "vessel.state",
+    "vessel.surface",
+    "science.experiments",
+    "science.experimentBreakdown",
+    "science.archive",
+    "career.status",
+  ],
+  fields: [
+    "vessel.state.parentBodyName",
+    "vessel.state.situationName",
+    "vessel.surface.landedAt",
+    "vessel.surface.biome",
+    "science.experiments",
+    "science.experimentBreakdown",
+    "science.archive",
+    "career.status.economy.science",
+  ],
+});
 
 type ScienceDataConfig = Record<string, never>;
 
@@ -247,16 +269,8 @@ registerComponent<ScienceDataConfig>({
   // `career.mode` is gone rather than translated: it appeared only in this
   // list, never in the component. The widget branches on `hasGameSignal` /
   // `inFlight`, not on the career mode.
-  dataRequirements: [
-    "vessel.state.parentBodyName",
-    "vessel.state.situationName",
-    "vessel.surface.landedAt",
-    "vessel.surface.biome",
-    "science.experiments",
-    "science.experimentBreakdown",
-    "science.archive",
-    "career.status.economy.science",
-  ],
+  channels: topics.channels,
+  fields: topics.fields,
   defaultConfig: {},
   // Both tabs are read-only on the base widget itself, no dispatchable
   // action of its own (deploy/transmit live on Experiments; File Manager

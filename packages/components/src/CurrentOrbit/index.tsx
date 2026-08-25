@@ -1,5 +1,6 @@
 import type { ActionDefinition, ComponentProps } from "@ksp-gonogo/core";
 import {
+  defineTopicManifest,
   getBody,
   registerComponent,
   useActionInput,
@@ -33,6 +34,26 @@ import { OrbitDiagram } from "../shared/OrbitDiagram";
 import { TrajectoryFrameCaption } from "../shared/trajectoryFrame";
 import { TrajectoryWithheldNote } from "../shared/trajectoryWithheld";
 import { useIsOrbiting } from "../shared/useIsOrbiting";
+
+const topics = defineTopicManifest({
+  channels: ["vessel.orbit", "vessel.state"],
+  fields: [
+    "vessel.orbit.sma",
+    "vessel.orbit.ecc",
+    "vessel.orbit.inc",
+    "vessel.orbit.argPe",
+    "vessel.state.apoapsisAlt",
+    "vessel.state.periapsisAlt",
+    "vessel.state.apoapsisRadius",
+    "vessel.state.periapsisRadius",
+    "vessel.state.timeToAp",
+    "vessel.state.timeToPe",
+    "vessel.state.trueAnomaly",
+    "vessel.state.period",
+    "vessel.state.referenceBodyName",
+    "vessel.state.parentBodyName",
+  ],
+});
 
 interface CurrentOrbitConfig {
   /** Show the mini SVG orbit diagram. Default: true. */
@@ -430,22 +451,8 @@ registerComponent<CurrentOrbitConfig>({
   // `useOrbitElements`). Declared per field rather than as the two channels so
   // an alarm lands on the widget that draws THAT value, which is what the
   // legacy keys used to buy.
-  dataRequirements: [
-    "vessel.orbit.sma",
-    "vessel.orbit.ecc",
-    "vessel.orbit.inc",
-    "vessel.orbit.argPe",
-    "vessel.state.apoapsisAlt",
-    "vessel.state.periapsisAlt",
-    "vessel.state.apoapsisRadius",
-    "vessel.state.periapsisRadius",
-    "vessel.state.timeToAp",
-    "vessel.state.timeToPe",
-    "vessel.state.trueAnomaly",
-    "vessel.state.period",
-    "vessel.state.referenceBodyName",
-    "vessel.state.parentBodyName",
-  ],
+  channels: topics.channels,
+  fields: topics.fields,
   defaultConfig: { showDiagram: true },
   actions: currentOrbitActions,
   pushable: true,

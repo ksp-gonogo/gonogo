@@ -316,6 +316,24 @@ export function isWidgetChannelId(value: string): value is WidgetChannelId {
   return isTopicId(value) || isDerivedChannelId(value);
 }
 
+/**
+ * One thing a widget DRAWS: a whole channel, or a field path inside one.
+ *
+ * Distinct from {@link WidgetChannelId}, which says what a widget MOUNTS on,
+ * because the two questions have different answers and one array was answering
+ * both. A widget mounts on `vessel.state` and draws seven of its fifty fields;
+ * saying only the first makes it claim all fifty, which points other widgets'
+ * alarms at a panel that does not render them.
+ *
+ * A bare channel is a legal entry and means what it says: everything on it.
+ *
+ * Still closed, because both arms are anchored to a real channel id. A retired
+ * flat key has no channel to hang from (`career.funds` would need a channel
+ * called `career`, and `r.resource[ElectricCharge]` one called `r`), so neither
+ * typechecks, which is the property that keeps the old vocabulary retired.
+ */
+export type WidgetFieldPath = WidgetChannelId | `${WidgetChannelId}.${string}`;
+
 // ── Compile-time invariants (checked by `pnpm typecheck`) ───────────────────────────
 // These bind the runtime `TOPIC_IDS` array to the SDK-OWNED `SdkOwnedTopicPayloadMap` in
 // both directions and prove that no SDK-owned Topic resolves to `unknown`, so a drift

@@ -96,7 +96,12 @@ function collectWidgetLegacyKeys(): Set<string> {
   for (const file of listSourceFiles(COMPONENTS_SRC)) {
     const source = readFileSync(file, "utf-8");
 
-    for (const match of source.matchAll(/dataRequirements:\s*\[/g)) {
+    // BOTH declaration arrays. A widget's field-granular declaration moved from
+    // `dataRequirements` to `fields`, so a scan reading only the former goes
+    // blind one widget at a time as the migration proceeds, and reports a
+    // shrinking count as though the vocabulary were shrinking with it. The keys
+    // did not go anywhere; they are declared under a different name.
+    for (const match of source.matchAll(/(?:dataRequirements|fields):\s*\[/g)) {
       for (const key of extractDataRequirementsArray(
         source,
         match.index ?? 0,

@@ -38,6 +38,15 @@ const topics = defineTopicManifest({
     "vessel.flight",
     "vessel.control",
   ],
+  // One field off each of the three context channels. ThermalStatus draws the
+  // rest of `vessel.thermal`, so mounting on the whole channel without saying
+  // this would put its alarms on the ship diagram too.
+  fields: [
+    "vessel.parts",
+    "vessel.thermal.hottestPart.name",
+    "vessel.flight.externalTemperature",
+    "vessel.control.throttle",
+  ],
 });
 
 // Re-exported so a sibling file (the contribution-slot-registry conformance
@@ -558,6 +567,7 @@ registerComponent<ShipMapConfig>({
   // per-part thermal/resources/module-state joins in usePartsLive all ride
   // the same payload: no per-flightId subscriptions.
   channels: topics.channels,
+  fields: topics.fields,
   defaultConfig: {},
   actions: [],
   pushable: true,

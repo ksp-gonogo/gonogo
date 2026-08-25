@@ -3,6 +3,7 @@ import type {
   TopicId,
   TopicPayload,
   WidgetChannelId,
+  WidgetFieldPath,
 } from "@ksp-gonogo/sitrep-sdk";
 import { useTelemetry } from "./useTelemetry";
 
@@ -114,16 +115,23 @@ export type BoundTelemetryHook<
 ) => WidgetTopicValue<T, Extract<Required[number], TopicId>[]>;
 
 /**
- * The value returned by {@link defineTopicManifest}: the two declared arrays
- * (spread straight into `registerComponent`'s `channels` / `optionalChannels`)
- * plus the widget-bound {@link BoundTelemetryHook}.
+ * The value returned by {@link defineTopicManifest}: the three declared arrays
+ * (spread straight into `registerComponent`'s `channels` / `optionalChannels` /
+ * `fields`) plus the widget-bound {@link BoundTelemetryHook}.
  */
 export interface TopicManifest<
   Required extends readonly WidgetChannelId[],
   Optional extends readonly WidgetChannelId[],
+  Fields extends readonly WidgetFieldPath[],
 > {
   readonly channels: Required;
   readonly optionalChannels: Optional;
+  /**
+   * What the widget draws, spread straight into `registerComponent`'s `fields`.
+   * An empty array when the manifest declared none, which `registerComponent`
+   * treats the same as absent: the widget draws everything it mounts on.
+   */
+  readonly fields: Fields;
   readonly useTelemetry: BoundTelemetryHook<Required, Optional>;
 }
 
@@ -150,15 +158,18 @@ export interface TopicManifest<
 export function defineTopicManifest<
   const Required extends readonly WidgetChannelId[],
   const Optional extends readonly WidgetChannelId[] = readonly [],
+  const Fields extends readonly WidgetFieldPath[] = readonly [],
 >(manifest: {
   channels: Required;
   optionalChannels?: Optional;
-}): TopicManifest<Required, Optional> {
+  fields?: Fields;
+}): TopicManifest<Required, Optional, Fields> {
   const channels = manifest.channels;
   const optionalChannels = (manifest.optionalChannels ?? []) as Optional;
+  const fields = (manifest.fields ?? []) as Fields;
 
   const boundHook = ((topic: TopicId) =>
     useTelemetry(topic)) as unknown as BoundTelemetryHook<Required, Optional>;
 
-  return { channels, optionalChannels, useTelemetry: boundHook };
+  return { channels, optionalChannels, fields, useTelemetry: boundHook };
 }

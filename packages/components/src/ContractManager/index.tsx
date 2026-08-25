@@ -1,5 +1,6 @@
 import type { ComponentProps } from "@ksp-gonogo/core";
 import {
+  defineTopicManifest,
   formatCompactCurrency,
   getWidgetShape,
   registerComponent,
@@ -30,6 +31,19 @@ import {
   magnitudeOr,
   type Quantityish,
 } from "../shared/magnitude";
+
+const topics = defineTopicManifest({
+  channels: ["career.status", "vessel.state"],
+  // `altitudeAsl` is consumed by AltitudeProgress on altitude-bounded contract
+  // parameters; without it the orchestrator never subscribes and the bar stays
+  // empty in production.
+  fields: [
+    "career.status.contracts.active",
+    "career.status.contracts.offered",
+    "career.status.contracts.completedRecent",
+    "vessel.state.altitudeAsl",
+  ],
+});
 
 /**
  * Trigger shape used by the Mission Director's parameter bells. Mirrors
@@ -912,15 +926,8 @@ registerComponent<ContractManagerConfig>({
   defaultSize: { w: 6, h: 8 },
   minSize: { w: 4, h: 5 },
   component: ContractManagerComponent,
-  dataRequirements: [
-    "career.status.contracts.active",
-    "career.status.contracts.offered",
-    "career.status.contracts.completedRecent",
-    // Consumed by AltitudeProgress on altitude-bounded contract
-    // parameters. Without listing it here the orchestrator never
-    // subscribes and the bar stays empty in production.
-    "vessel.state.altitudeAsl",
-  ],
+  channels: topics.channels,
+  fields: topics.fields,
   defaultConfig: {},
   actions: [],
   pushable: true,

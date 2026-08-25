@@ -1,5 +1,6 @@
 import type { ComponentProps } from "@ksp-gonogo/core";
 import {
+  defineTopicManifest,
   formatCompactCurrency,
   getSizeBucket,
   registerComponent,
@@ -34,6 +35,24 @@ import {
   magnitudeOr,
   type Quantityish,
 } from "../shared/magnitude";
+
+const topics = defineTopicManifest({
+  channels: [
+    "career.status",
+    "spaceCenter.partsAvailable",
+    "spaceCenter.scene",
+    "spaceCenter.state",
+  ],
+  fields: [
+    "career.status.facilities",
+    "career.status.economy.funds",
+    "spaceCenter.partsAvailable.count",
+    "spaceCenter.scene.launchSite",
+    "spaceCenter.scene.scene",
+    "spaceCenter.state.padOccupied",
+    "spaceCenter.state.padVesselTitle",
+  ],
+});
 
 type SpaceCenterStatusConfig = Record<string, never>;
 
@@ -965,15 +984,8 @@ registerComponent<SpaceCenterStatusConfig>({
   defaultSize: { w: 6, h: 7 },
   minSize: { w: 2, h: 2 },
   component: SpaceCenterStatusComponent,
-  dataRequirements: [
-    "career.status.facilities",
-    "career.status.economy.funds",
-    "spaceCenter.partsAvailable.count",
-    "spaceCenter.scene.launchSite",
-    "spaceCenter.scene.scene",
-    "spaceCenter.state.padOccupied",
-    "spaceCenter.state.padVesselTitle",
-  ],
+  channels: topics.channels,
+  fields: topics.fields,
   defaultConfig: {},
   actions: [],
   augmentSlots: ["space-center-status.sections"],

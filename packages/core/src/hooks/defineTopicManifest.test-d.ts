@@ -182,3 +182,39 @@ defineTopicManifest({
   // @ts-expect-error the optional arm is the same closed union
   optionalChannels: ["r.resource[ElectricCharge]"],
 });
+
+// ── `fields` narrows what a widget DRAWS, and is closed on the same anchor ──────────
+// A field path hangs off a real channel id, so a retired flat key has nothing to hang
+// from and cannot be named here either. The `@ts-expect-error` lines FAIL THE BUILD IF
+// THEY START COMPILING, which is what stops the old vocabulary re-entering through the
+// one array that most resembles it: `fields` IS the old `dataRequirements`, re-typed.
+const narrowedManifest = defineTopicManifest({
+  channels: ["vessel.orbit", "vessel.state"],
+  fields: ["vessel.orbit.sma", "vessel.state.apoapsisRadius", "vessel.orbit"],
+} as const);
+
+export const _fieldsAssignable: ComponentDefinition["fields"] =
+  narrowedManifest.fields;
+
+// A manifest with no `fields` still satisfies the surface: absent means "I draw
+// everything I mount on", so the empty array must be assignable too.
+export const _emptyFieldsAssignable: ComponentDefinition["fields"] =
+  plainManifest.fields;
+
+defineTopicManifest({
+  channels: ["career.status"],
+  // @ts-expect-error a legacy flat key has no channel to hang off
+  fields: ["career.funds"],
+});
+
+defineTopicManifest({
+  channels: ["vessel.resources"],
+  // @ts-expect-error the vendor-shaped key is not a field path either
+  fields: ["r.resource[ElectricCharge]"],
+});
+
+defineTopicManifest({
+  channels: ["vessel.state"],
+  // @ts-expect-error a field path off a channel that does not exist
+  fields: ["notachannel.field"],
+});

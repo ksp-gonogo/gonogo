@@ -6,6 +6,7 @@ import type {
 } from "@ksp-gonogo/core";
 import {
   AugmentSlot,
+  defineTopicManifest,
   getAugmentsForSlot,
   getBody,
   getImagingWindow,
@@ -89,6 +90,27 @@ import { shouldSuppressVanillaBase } from "./vanillaSuppression";
 // POI provider (T-POI-6) so MapPoiLayer below has something to render out
 // of the box. Co-located with MapView per that file's own doc comment.
 import "./vanillaPoiProvider";
+
+const topics = defineTopicManifest({
+  channels: ["vessel.flight", "vessel.state"],
+  // `encounterUt` is an absolute instant, NOT the duration the retired
+  // `o.encounterTime` named. Those were two keys for one event and the field
+  // holds the instant, which is why that key maps to nothing now: an alarm
+  // saved against it reaches no widget at all, recorded in
+  // widgetAlarmAttribution.test.ts.
+  fields: [
+    "vessel.flight.latitude",
+    "vessel.flight.longitude",
+    "vessel.state.altitudeAsl",
+    "vessel.state.parentBodyName",
+    "vessel.state.orbitPatches",
+    "vessel.state.encounterExists",
+    "vessel.state.encounterBody",
+    "vessel.state.encounterUt",
+    "vessel.state.nextApsisType",
+    "vessel.state.timeToNextApsis",
+  ],
+});
 
 /**
  * Resolve a CSS custom property to a concrete colour for use on a `<canvas>`
@@ -1400,23 +1422,8 @@ registerComponent<MapViewConfig>({
   // The last four are read by `OrbitalEventChips`, rendered inside this
   // widget rather than by the component body itself: declared here because
   // the panel that badges and the panel an alarm lights is this one.
-  dataRequirements: [
-    "vessel.flight.latitude",
-    "vessel.flight.longitude",
-    "vessel.state.altitudeAsl",
-    "vessel.state.parentBodyName",
-    "vessel.state.orbitPatches",
-    "vessel.state.encounterExists",
-    "vessel.state.encounterBody",
-    // `encounterUt`, an absolute instant, NOT the duration `o.encounterTime`
-    // named. Those were two legacy keys for one event and the field holds
-    // the instant, which is why `o.encounterTime` maps to nothing at all now:
-    // see map-topic.ts. An alarm saved against that key cannot reach this
-    // widget any more, recorded in widgetAlarmAttribution.test.ts.
-    "vessel.state.encounterUt",
-    "vessel.state.nextApsisType",
-    "vessel.state.timeToNextApsis",
-  ],
+  channels: topics.channels,
+  fields: topics.fields,
   defaultConfig: {
     trajectoryLength: 2000,
     showPrediction: true,

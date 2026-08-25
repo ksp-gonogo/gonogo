@@ -37,6 +37,14 @@ const topics = defineTopicManifest({
     "spaceCenter.crewRoster",
     "career.status",
   ],
+  // Funds is the only thing drawn off `career.status`; the contracts, tech and
+  // strategy fields on it belong to other widgets and their alarms are not
+  // about this panel.
+  fields: [
+    "spaceCenter.astronautComplex",
+    "spaceCenter.crewRoster",
+    "career.status.economy.funds",
+  ],
 });
 
 type AstronautComplexConfig = Record<string, never>;
@@ -872,6 +880,7 @@ registerComponent<AstronautComplexConfig>({
   minSize: { w: 3, h: 4 },
   component: AstronautComplexComponent,
   channels: topics.channels,
+  fields: topics.fields,
   defaultConfig: {},
   actions: astronautComplexActions,
   pushable: true,

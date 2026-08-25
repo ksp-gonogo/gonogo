@@ -24,7 +24,15 @@ import { useEffect, useState } from "react";
 import styled from "styled-components";
 import { magnitudeOf } from "../shared/magnitude";
 
-const topics = defineTopicManifest({ channels: ["time.warp"] });
+const topics = defineTopicManifest({
+  channels: ["time.warp"],
+  fields: [
+    "time.warp.warpRate",
+    "time.warp.warpRateIndex",
+    "time.warp.warpMode",
+    "time.warp.paused",
+  ],
+});
 
 /**
  * Time-warp control widget. Reads the current warp index/rate off the
@@ -472,6 +480,7 @@ registerComponent<WarpControlConfig>({
   minSize: { w: 4, h: 4 },
   component: WarpControlComponent,
   channels: topics.channels,
+  fields: topics.fields,
   defaultConfig: {},
   actions: warpActions,
   augmentSlots: ["warp-control.stepper"],

@@ -17,6 +17,7 @@ import {
   PanelStatusProvider,
   PanelStatusStoreProvider,
   widgetDeclaredTopics,
+  widgetDrawnFields,
 } from "@ksp-gonogo/ui-kit";
 import { memo, type ReactNode, useCallback, useMemo } from "react";
 import styled from "styled-components";
@@ -128,12 +129,12 @@ export const GridItemContent = memo(function GridItemContent({
         {/* Folds active alarms attributed to this widget's subject into the same
           store, so a firing alarm lights the widget's summary with its own name.
           Renders nothing; no-op where no alarm host is mounted. */}
-        <AlarmStatusBridge declaredTopics={widgetDeclaredTopics(def)} />
+        <AlarmStatusBridge declaredTopics={widgetDrawnFields(def)} />
         {/* Folds the trajectory's own propagation horizon into the same store,
           so a widget drawing orbital numbers says whether they can answer for
           the instant on screen. Mounts a subscribing child only for widgets that
           read the trajectory; renders nothing otherwise. */}
-        <TrajectoryCurrencyBridge declaredTopics={widgetDeclaredTopics(def)} />
+        <TrajectoryCurrencyBridge declaredTopics={widgetDrawnFields(def)} />
         <CellHeader className="drag-handle" title="Drag to reposition">
           {/* widget-action-buttons: draggableCancel target so touch events don't trigger drag */}
           <ActionButtons className="widget-action-buttons">

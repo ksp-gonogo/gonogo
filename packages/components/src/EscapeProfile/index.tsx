@@ -1,5 +1,16 @@
 import type { BodyDefinition, ComponentProps } from "@ksp-gonogo/core";
-import { escapeVelocity, getBody, registerComponent } from "@ksp-gonogo/core";
+import {
+  defineTopicManifest,
+  escapeVelocity,
+  getBody,
+  registerComponent,
+} from "@ksp-gonogo/core";
+
+const topics = defineTopicManifest({
+  channels: ["vessel.state"],
+  fields: ["vessel.state.altitudeAsl", "vessel.state.orbitalSpeed"],
+});
+
 import { useStream, type VesselState } from "@ksp-gonogo/sitrep-client";
 import { Box, Stack } from "@ksp-gonogo/ui-kit";
 import type { CSSProperties } from "react";
@@ -173,7 +184,8 @@ registerComponent<EscapeProfileConfig>({
   minSize: { w: 5, h: 4 },
   mobileHeight: 280,
   component: EscapeProfileComponent,
-  dataRequirements: ["vessel.state.altitudeAsl", "vessel.state.orbitalSpeed"],
+  channels: topics.channels,
+  fields: topics.fields,
   defaultConfig: { windowSec: 600 },
   actions: [],
   pushable: true,

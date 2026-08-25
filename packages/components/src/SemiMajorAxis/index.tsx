@@ -1,5 +1,11 @@
 import type { ComponentProps } from "@ksp-gonogo/core";
-import { registerComponent, useTelemetry } from "@ksp-gonogo/core";
+import { defineTopicManifest, registerComponent } from "@ksp-gonogo/core";
+
+const topics = defineTopicManifest({
+  channels: ["vessel.orbit", "vessel.state"],
+  fields: ["vessel.orbit.sma", "vessel.state.referenceBodyName"],
+});
+
 import { useDataSeries } from "@ksp-gonogo/data";
 import {
   observedAt,
@@ -71,7 +77,7 @@ function SemiMajorAxisComponent({
    * observed history and cannot be modelled forward. So this widget declines the
    * model and says how old the observation is instead.
    */
-  const orbitReading = withoutReckoning(useTelemetry("vessel.orbit"));
+  const orbitReading = withoutReckoning(topics.useTelemetry("vessel.orbit"));
   const sma = stillTrue(orbitReading, undefined)?.sma;
   // Held rather than never-seen: only `stale` reads as "the link went quiet",
   // and a cold start must not accuse it.
@@ -251,7 +257,8 @@ registerComponent<SemiMajorAxisConfig>({
   defaultSize: { w: 4, h: 4 },
   minSize: { w: 3, h: 3 },
   component: SemiMajorAxisComponent,
-  dataRequirements: ["vessel.orbit.sma", "vessel.state.referenceBodyName"],
+  channels: topics.channels,
+  fields: topics.fields,
   defaultConfig: {},
   actions: [],
   pushable: true,

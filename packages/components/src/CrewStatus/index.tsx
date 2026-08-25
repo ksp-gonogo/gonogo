@@ -1,6 +1,7 @@
 import type { ComponentProps } from "@ksp-gonogo/core";
 import {
   AugmentSlot,
+  defineTopicManifest,
   getAugmentsForSlot,
   registerComponent,
   useContributions,
@@ -36,6 +37,17 @@ import { magnitudeOf, type Quantityish } from "../shared/magnitude";
 // module load, see that file's own doc comment for why it lives apart from
 // the per-row AugmentSlot declarations below.
 import "./badge";
+
+const topics = defineTopicManifest({
+  channels: ["vessel.crew", "vessel.state"],
+  optionalChannels: ["vessel.resources"],
+  fields: [
+    "vessel.crew.crew",
+    "vessel.crew.count",
+    "vessel.crew.capacity",
+    "vessel.state.isEVA",
+  ],
+});
 
 /**
  * Tiny-mode hero readout font size. `BigReadout`'s 38px max coexists fine
@@ -427,7 +439,7 @@ function CrewStatusComponent({
    * link dropped, so a held roster is still the crew. The suit resources further
    * down the same record are the opposite and go through `judgeable`.
    */
-  const crewReading = useTelemetry("vessel.crew");
+  const crewReading = topics.useTelemetry("vessel.crew");
   const crew = stillTrue(crewReading, undefined);
   const crewRaw = crew?.crew;
   const crewCount = crew?.count;
@@ -449,7 +461,7 @@ function CrewStatusComponent({
    * now". A held figure would overstate both, on the two numbers that decide
    * whether a kerbal outside the craft has time to get back in.
    */
-  const resourcesReading = useTelemetry("vessel.resources");
+  const resourcesReading = topics.useTelemetry("vessel.resources");
   const resources = judgeable(resourcesReading);
   const suitReadingsNotCurrent = notCurrent(resourcesReading);
   const suitOxygen = isEVA
@@ -799,12 +811,8 @@ registerComponent<CrewStatusConfig>({
   // widget declares it.) Fed by nothing when no Uplink binds, every row's
   // `Card` renders with the default untinted border.
   contributionSlots: ["crew-status.row-tone"],
-  dataRequirements: [
-    "vessel.crew.crew",
-    "vessel.crew.count",
-    "vessel.crew.capacity",
-    "vessel.state.isEVA",
-  ],
+  channels: topics.channels,
+  fields: topics.fields,
   // `vessel.resources` is the (already-existing, already-consumed-by-
   // FuelStatus) generic per-vessel resource Topic; here it feeds the EVA
   // suit O2/EC readout, only relevant while the active vessel is an EVA
@@ -812,7 +820,7 @@ registerComponent<CrewStatusConfig>({
   // reads always work without it, so it must never gate the whole widget's
   // mount the way a REQUIRED `channels` entry would (see `RequiresGuard`'s
   // own doc comment on the distinction).
-  optionalChannels: ["vessel.resources"],
+  optionalChannels: topics.optionalChannels,
   defaultConfig: {},
   actions: [],
   pushable: true,

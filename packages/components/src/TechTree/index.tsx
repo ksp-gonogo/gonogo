@@ -30,6 +30,11 @@ import {
 
 const topics = defineTopicManifest({
   channels: ["career.status", "spaceCenter.scene"],
+  fields: [
+    "career.status.tech.nodes",
+    "career.status.economy.science",
+    "spaceCenter.scene.scene",
+  ],
 });
 
 type TechTreeConfig = Record<string, never>;
@@ -1587,6 +1592,7 @@ registerComponent<TechTreeConfig>({
   minSize: { w: 2, h: 2 },
   component: TechTreeComponent,
   channels: topics.channels,
+  fields: topics.fields,
   defaultConfig: {},
   actions: [],
   pushable: true,

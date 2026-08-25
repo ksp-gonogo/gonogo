@@ -19,7 +19,21 @@ import {
 import styled from "styled-components";
 import { magnitudeOr } from "../shared/magnitude";
 
-const topics = defineTopicManifest({ channels: ["vessel.thermal"] });
+const topics = defineTopicManifest({
+  channels: ["vessel.thermal"],
+  fields: [
+    "vessel.thermal.hottestPart.name",
+    "vessel.thermal.hottestPart.skinTemp",
+    "vessel.thermal.hottestPart.skinMaxTemp",
+    "vessel.thermal.maxInternalTempRatio",
+    "vessel.thermal.hottestEngineTemp",
+    "vessel.thermal.hottestEngineMaxTemp",
+    "vessel.thermal.hottestEngineTempRatio",
+    "vessel.thermal.anyEnginesOverheating",
+    "vessel.thermal.heatShieldTemp",
+    "vessel.thermal.heatShieldFlux",
+  ],
+});
 
 // Empty config: room to add a "hide heat shield" toggle later.
 type ThermalStatusConfig = Record<string, never>;
@@ -550,6 +564,7 @@ registerComponent<ThermalStatusConfig>({
   minSize: { w: 3, h: 4 },
   component: ThermalStatusComponent,
   channels: topics.channels,
+  fields: topics.fields,
   defaultConfig: {},
   actions: [],
   pushable: true,

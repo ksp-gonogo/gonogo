@@ -1,5 +1,6 @@
 import type { ComponentProps } from "@ksp-gonogo/core";
 import {
+  defineTopicManifest,
   getWidgetShape,
   registerComponent,
   useContributions,
@@ -32,6 +33,17 @@ import {
   commsLegTimeSeconds,
   commsRouteRelayCount,
 } from "./commsRoute";
+
+const topics = defineTopicManifest({
+  channels: ["comms.link", "vessel.comms", "vessel.state", "comms.delay"],
+  fields: [
+    "comms.link.connected",
+    "vessel.comms.signalStrength",
+    "vessel.state.commsControlStateOrdinal",
+    "vessel.state.commsControlStateName",
+    "comms.delay.oneWaySeconds",
+  ],
+});
 
 type CommSignalConfig = Record<string, never>;
 
@@ -796,13 +808,8 @@ registerComponent<CommSignalConfig>({
   // the observation is the frozen `vessel.comms` struct, the two control-state
   // shapes are derived off `vessel.state`, and the delay is gonogo's own
   // authority. The `comm.` prefix made them look like one source.
-  dataRequirements: [
-    "comms.link.connected",
-    "vessel.comms.signalStrength",
-    "vessel.state.commsControlStateOrdinal",
-    "vessel.state.commsControlStateName",
-    "comms.delay.oneWaySeconds",
-  ],
+  channels: topics.channels,
+  fields: topics.fields,
   defaultConfig: {},
   actions: [],
   pushable: true,

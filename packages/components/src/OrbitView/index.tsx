@@ -1,6 +1,7 @@
 import type { ActionDefinition, ComponentProps } from "@ksp-gonogo/core";
 import {
   AugmentSlot,
+  defineTopicManifest,
   getBody,
   registerComponent,
   useActionInput,
@@ -27,6 +28,25 @@ import {
 } from "../shared/trajectoryWithheld";
 import { useIsOrbiting } from "../shared/useIsOrbiting";
 import { usePastTrack } from "../shared/usePastTrack";
+
+const topics = defineTopicManifest({
+  channels: ["vessel.orbit", "vessel.state"],
+  // The diagram is drawn from apsis RADII, never the altitudes: `o.ApA` and
+  // `o.PeA` appeared only in the old requirements list and nowhere in the
+  // component, as did `b.number` (the pole marker and body geometry come from
+  // `getBody`'s static table, not from a streamed body count). Naming the
+  // fields drawn, rather than the whole of `vessel.state` this mounts on, is
+  // what keeps their alarms off a widget that does not draw them.
+  fields: [
+    "vessel.orbit.sma",
+    "vessel.orbit.ecc",
+    "vessel.orbit.argPe",
+    "vessel.state.apoapsisRadius",
+    "vessel.state.periapsisRadius",
+    "vessel.state.trueAnomaly",
+    "vessel.state.parentBodyName",
+  ],
+});
 
 /**
  * Provider-optional read of a raw OR derived stream Topic, mirrors
@@ -503,23 +523,8 @@ registerComponent<OrbitViewConfig>({
   // Exposes an overlay slot, drawn over the SVG diagram and passed the
   // diagram's projection. No first-party augment fills it yet.
   augmentSlots: ["orbit-view.overlay"],
-  // Legacy `dataRequirements` kept during migration (rename/removal still
-  // pending); the reads themselves are stream-native (`vessel.orbit` + the
-  // `vessel.state` derived channel).
-  dataRequirements: [
-    // The diagram is drawn from apsis RADII, never the altitudes: `o.ApA` and
-    // `o.PeA` appeared only in this list and nowhere in the component, as did
-    // `b.number` (the pole marker and body geometry come from `getBody`'s
-    // static table, not from a streamed body count). Declaring them again
-    // would keep pointing their alarms at a widget that does not draw them.
-    "vessel.orbit.sma",
-    "vessel.orbit.ecc",
-    "vessel.orbit.argPe",
-    "vessel.state.apoapsisRadius",
-    "vessel.state.periapsisRadius",
-    "vessel.state.trueAnomaly",
-    "vessel.state.parentBodyName",
-  ],
+  channels: topics.channels,
+  fields: topics.fields,
   defaultConfig: { showMarkers: true },
   actions: orbitViewActions,
   pushable: true,

@@ -1,6 +1,7 @@
 import type { BodyDefinition, ComponentProps } from "@ksp-gonogo/core";
 import {
   circularOrbitVelocity,
+  defineTopicManifest,
   getBody,
   registerComponent,
 } from "@ksp-gonogo/core";
@@ -8,6 +9,15 @@ import { useStream, type VesselState } from "@ksp-gonogo/sitrep-client";
 import { Fill, GraphNotice } from "@ksp-gonogo/ui-kit";
 import { useMemo } from "react";
 import { type GraphConfig, GraphView, type ReferenceCurve } from "../Graph";
+
+const topics = defineTopicManifest({
+  channels: ["vessel.state"],
+  fields: [
+    "vessel.state.altitudeAsl",
+    "vessel.state.horizontalSpeed",
+    "vessel.state.parentBodyName",
+  ],
+});
 
 export interface OrbitalAscentConfig {
   /** Seconds of trace history retained. Default 600 (10 min, typical ascent). */
@@ -131,11 +141,8 @@ registerComponent<OrbitalAscentConfig>({
   minSize: { w: 5, h: 4 },
   mobileHeight: 280,
   component: OrbitalAscentComponent,
-  dataRequirements: [
-    "vessel.state.altitudeAsl",
-    "vessel.state.horizontalSpeed",
-    "vessel.state.parentBodyName",
-  ],
+  channels: topics.channels,
+  fields: topics.fields,
   defaultConfig: { windowSec: 600 },
   actions: [],
   pushable: true,
