@@ -67,7 +67,8 @@ export { RealTimeClock } from "./clock";
 export type { CommsLinkLike } from "./connectivity-history";
 export { ConnectivityHistory } from "./connectivity-history";
 export {
-  dispatchActiveCommand,
+  type DispatchActiveCommandResult,
+  dispatchActiveCommandTopic,
   getActiveCarriedChannels,
   getActiveTelemetryClient,
   getContractsActive,
@@ -267,13 +268,7 @@ export {
   useOrbitTrajectory,
 } from "./kepler";
 export type { CommandStatus } from "./lifecycle";
-export type { GetCurrentValue, MappedCommand } from "./map-command";
-export {
-  hasCommandHome,
-  isKnownCommandGap,
-  KNOWN_COMMAND_GAPS,
-  mapCommand,
-} from "./map-command";
+export {} from "./map-command";
 export {
   isKnownFieldPath,
   mapTopic,

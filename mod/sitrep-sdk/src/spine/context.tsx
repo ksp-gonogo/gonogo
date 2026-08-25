@@ -29,7 +29,6 @@ import {
   dvCurrentStageResourceChannel,
   dvCurrentStageResourceMaxChannel,
 } from "./dv-stage-resources";
-import { mapCommand } from "./map-command";
 import { resolveValueTopic } from "./map-topic";
 import {
   setActiveTimelineStore as setProcessorEvaluatorStore,
@@ -957,52 +956,42 @@ export function getActiveCarriedChannels(): ReadonlySet<string> | undefined {
   return activeCarriedChannels;
 }
 
-/** Outcome of `dispatchActiveCommand`: see that function's doc comment. */
+/** Outcome of {@link dispatchActiveCommandTopic}: see its doc comment. */
 export type DispatchActiveCommandResult =
   | { routed: true; settled: Promise<void> }
   | { routed: false };
 
 /**
- * Non-hook equivalent of `@ksp-gonogo/core`'s `useCommand` shim: for a plain
- * class (`GoNoGoHostService`) that needs the exact same "mapped + carried ->
- * dispatch through the stream, else fall back to legacy" routing decision a
- * hook-based widget gets, without a render tree to call `useCallback` from.
+ * Dispatch a command through the stream, for a plain-class caller with no render
+ * tree to call {@link useCommand} from.
  *
- * Mirrors `useCommand`'s own logic exactly (see that hook's doc comment for
- * the full rationale): resolves `action` via `mapCommand`, using
- * `sampleActiveTopic` for the toggle -> absolute arg-shape bridge's
- * `getCurrentValue` reader; dispatches via `TelemetryClient.dispatch` only
- * when a provider is mounted AND the mapped command topic is carried.
+ * **Deliberately SYNCHRONOUS in its routing decision.** A caller must be able to
+ * check `routed` in the SAME tick as the call, so it can say at once that a
+ * command did not go rather than a microtask later. Only the routed case is
+ * genuinely asynchronous, and its `settled` promise never rejects: resolving it
+ * is the caller's business.
  *
- * **Deliberately SYNCHRONOUS in its routing decision** (not `async`), a
- * caller must be able to check `routed` in the SAME tick as the call, so a
- * `!routed` fallback to legacy `DataSource.execute(action)` fires exactly
- * when `useCommand`'s own synchronous fallback branch would, not one
- * microtask later. Only the ROUTED case is genuinely asynchronous (the real
- * dispatch round trip): its `settled` promise never rejects, matching
- * `execute()`'s fire-and-forget contract, but resolving it is the caller's
- * business, not something worth blocking the routing decision on.
+ * Takes the command and its arguments as they are. The version this replaces
+ * took a widget-facing action STRING and resolved it through a table, which is
+ * an indirection that only made sense while the caller's vocabulary was not the
+ * command's own: `WarpControl` formatted `t.timeWarp[4]` for the table to parse
+ * the 4 straight back out.
  */
-export function dispatchActiveCommand(
-  dataSourceId: string,
-  action: string,
+export function dispatchActiveCommandTopic(
+  command: string,
+  args: unknown,
 ): DispatchActiveCommandResult {
   const client = activeTelemetryClient;
   const carried = activeCarriedChannels;
-  const mapped = mapCommand(dataSourceId, action, (topic) =>
-    sampleActiveTopic(topic),
-  );
-  if (mapped && client && carried?.has(mapped.command)) {
-    const { result } = client.dispatch(mapped.command, mapped.args);
-    return {
-      routed: true,
-      settled: result.then(
-        () => undefined,
-        () => undefined,
-      ),
-    };
-  }
-  return { routed: false };
+  if (!client || !carried?.has(command)) return { routed: false };
+  const { result } = client.dispatch(command, args);
+  return {
+    routed: true,
+    settled: result.then(
+      () => undefined,
+      () => undefined,
+    ),
+  };
 }
 
 /**

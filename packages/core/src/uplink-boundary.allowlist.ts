@@ -137,7 +137,6 @@ export const ALLOWLIST: Record<ModToken, ModAllowlist> = {
       "mod/Sitrep.Host/ChannelEngine.cs",
       "mod/sitrep-sdk/src/spine/context.tsx",
       "mod/sitrep-sdk/src/spine/delay-authority.ts",
-      "mod/sitrep-sdk/src/spine/map-command.ts",
       "packages/sitrep-client/src/map-topic.test.ts",
       // view-clock.ts/view-clock-formula.ts: cross-browser kerbcast
       // video-delay design (2026-07-16) extracted ViewClock's
@@ -670,7 +669,6 @@ export const ALLOWLIST: Record<ModToken, ModAllowlist> = {
       "mod/GonogoKerbcastUplink/client/src/CameraFeed/CameraFeed.test.tsx",
       "mod/Sitrep.Contract/Comms.cs",
       "mod/sitrep-sdk/src/default-carried-topics.ts",
-      "packages/sitrep-client/src/map-command.test.ts",
       "packages/sitrep-client/src/map-topic.test.ts",
 
       // -- TEST-only --
@@ -715,7 +713,6 @@ export const ALLOWLIST: Record<ModToken, ModAllowlist> = {
       "packages/components/src/test/widgets.axe.test.tsx",
       // map-command coverage test exercises map-command.ts (permanent,
       // above): same subject, same category.
-      "packages/core/src/hooks/map-command.coverage.test.ts",
       "packages/core/src/styleguide-styled-components.test.ts",
       // uplink-health-render-gating feature (2026-07-19): uplink-health.test.ts,
       // useUplinkHealthFor.test.tsx, and RequiresGuard.test.tsx use
@@ -1046,7 +1043,6 @@ export const ALLOWLIST: Record<ModToken, ModAllowlist> = {
       // `/^f\.ag(\d+)$/` rule instead of a 10-row static table, AGX assigns
       // indices up to 250, same rationale as VesselCommandProvider.cs's own
       // comment above. Prose only; no AGX type or import.
-      "mod/sitrep-sdk/src/spine/map-command.ts",
 
       // -- TEST-only --
       // Regression-comment mirrors the VesselCommandProvider rationale above.
@@ -1054,7 +1050,6 @@ export const ALLOWLIST: Record<ModToken, ModAllowlist> = {
       // map-command.test.ts's new AGX-index test cites "AGX" in a doc-comment
       // (same rationale as map-command.ts above): no AGX import, just
       // exercising the generic mapCommand rule with high indices.
-      "packages/sitrep-client/src/map-command.test.ts",
     ],
   },
   // === mechjeb: owning dirs mod/GonogoMechJebUplink/ (incl. its client/),

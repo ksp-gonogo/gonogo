@@ -97,7 +97,7 @@ function modalWithUt(ut: number | null = SNAPSHOT_UT) {
 /**
  * The ten stock custom groups, as the mod sends them. Emitted wherever a test
  * needs AG1 to EXIST as an option: the registry's custom half is telemetry
- * derived, so without this there is no `f.ag1` row for a caption to be missing
+ * derived, so without this there is no `AG1` row for a caption to be missing
  * from and the caption assertions would pass on an empty list.
  */
 const STOCK_CONTROL_PAYLOAD = {
@@ -110,7 +110,7 @@ const STOCK_CONTROL_PAYLOAD = {
   })),
 };
 
-/** One part binding an action to Custom01, the `f.ag1` caption's live case. */
+/** One part binding an action to Custom01, the `AG1` caption's live case. */
 const PARTS_WITH_AG1_BINDING = {
   parts: [
     {
@@ -146,7 +146,7 @@ function emitOrbit(
 }
 
 function ag1Option(): HTMLElement | null {
-  return screen.queryByRole("option", { name: /^AG1 \(f\.ag1\)/ });
+  return screen.queryByRole("option", { name: /^AG1 \(AG1\)/ });
 }
 
 beforeEach(() => {
@@ -183,9 +183,7 @@ describe("AlarmsModal: nothing has arrived at all", () => {
     // The onFire picker exists with its stock half only: the custom AG rows are
     // telemetry-derived, so absent `vessel.control` means no AG1 row at all.
     expect(screen.getByLabelText("Action group to fire")).toBeTruthy();
-    expect(
-      screen.getByRole("option", { name: /^SAS \(f\.sas\)/ }),
-    ).toBeTruthy();
+    expect(screen.getByRole("option", { name: /^SAS \(SAS\)/ })).toBeTruthy();
     expect(ag1Option()).toBeNull();
   });
 });
@@ -199,9 +197,9 @@ describe("AlarmsModal: the vessel.parts caption gate", () => {
     fixture.emit("vessel.control", STOCK_CONTROL_PAYLOAD);
 
     const option = await screen.findByRole("option", {
-      name: /^AG1 \(f\.ag1\)/,
+      name: /^AG1 \(AG1\)/,
     });
-    expect(option.textContent).toBe("AG1 (f.ag1)");
+    expect(option.textContent).toBe("AG1 (AG1)");
   });
 
   it("renders the same bare caption for a vessel.parts record whose parts field is missing", async () => {
@@ -212,9 +210,9 @@ describe("AlarmsModal: the vessel.parts caption gate", () => {
     fixture.emit("vessel.parts", { meta: {} });
 
     const option = await screen.findByRole("option", {
-      name: /^AG1 \(f\.ag1\)/,
+      name: /^AG1 \(AG1\)/,
     });
-    expect(option.textContent).toBe("AG1 (f.ag1)");
+    expect(option.textContent).toBe("AG1 (AG1)");
   });
 
   it("renders the same bare caption for a null vessel.parts tombstone, making no distinction from warmup", async () => {
@@ -226,12 +224,12 @@ describe("AlarmsModal: the vessel.parts caption gate", () => {
     fixture.emit("vessel.control", STOCK_CONTROL_PAYLOAD);
     fixture.emit("vessel.parts", PARTS_WITH_AG1_BINDING);
     await waitFor(() =>
-      expect(ag1Option()?.textContent).toBe("AG1 (f.ag1): Toggle Solar Panel"),
+      expect(ag1Option()?.textContent).toBe("AG1 (AG1): Toggle Solar Panel"),
     );
 
     fixture.emit("vessel.parts", null);
 
-    await waitFor(() => expect(ag1Option()?.textContent).toBe("AG1 (f.ag1)"));
+    await waitFor(() => expect(ag1Option()?.textContent).toBe("AG1 (AG1)"));
   });
 
   it("CONTROL: a live parts tree does caption the option, so the bare labels above are not vacuous", async () => {
@@ -240,7 +238,7 @@ describe("AlarmsModal: the vessel.parts caption gate", () => {
     fixture.emit("vessel.parts", PARTS_WITH_AG1_BINDING);
 
     await screen.findByRole("option", {
-      name: /^AG1 \(f\.ag1\): Toggle Solar Panel$/,
+      name: /^AG1 \(AG1\): Toggle Solar Panel$/,
     });
   });
 });
@@ -251,7 +249,7 @@ describe("AlarmsModal: the vessel.state preset gate", () => {
     // absence of the ONE read the presets depend on, not an unwired fixture.
     const fixture = mount(modalWithUt());
     fixture.emit("vessel.control", STOCK_CONTROL_PAYLOAD);
-    await screen.findByRole("option", { name: /^AG1 \(f\.ag1\)/ });
+    await screen.findByRole("option", { name: /^AG1 \(AG1\)/ });
 
     expect(screen.queryByRole("button", { name: /recommended/i })).toBeNull();
   });

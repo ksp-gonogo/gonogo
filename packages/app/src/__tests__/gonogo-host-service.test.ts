@@ -1,5 +1,14 @@
 import type { DataKey, DataSource, DataSourceStatus } from "@ksp-gonogo/core";
 import { clearRegistry, registerDataSource } from "@ksp-gonogo/core";
+import {
+  StubTransport,
+  setActiveCarriedChannelsForTests,
+  setActiveTelemetryClientForTests,
+  setActiveTimelineStoreForTests,
+  TelemetryClient,
+  TimelineStore,
+  ViewClock,
+} from "@ksp-gonogo/sitrep-client";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { GoNoGoHostService } from "../goNoGo/GoNoGoHostService";
 import type { PeerHostService } from "../peer/PeerHostService";
@@ -129,6 +138,16 @@ class FakeDataSource implements DataSource {
 // Tests
 // ---------------------------------------------------------------------------
 
+/**
+ * `TelemetryClient.dispatch` hands the command to the transport across a
+ * microtask, so a synchronous assertion right after the trigger sees an empty
+ * list. Two turns is enough and matches what the alarm host's own tests drain.
+ */
+async function drainDispatch(): Promise<void> {
+  await Promise.resolve();
+  await Promise.resolve();
+}
+
 describe("GoNoGoHostService", () => {
   let host: FakeHost;
   let ds: FakeDataSource;
@@ -144,9 +163,39 @@ describe("GoNoGoHostService", () => {
     unsubSound = initSoundSettings(soundSvc);
   }
 
+  let dispatched: Array<{ command: string; args: unknown }>;
+  /** Every abort actually sent, which is what "fired once" means now. */
+  const abortDispatches = () =>
+    dispatched.filter((d) => d.command === "vessel.control.setAbort");
+  let transport: StubTransport;
+  let telemetryClient: TelemetryClient | undefined;
+
   beforeEach(() => {
     vi.useFakeTimers();
     clearRegistry();
+    // The service dispatches its two commands through the stream, naming each
+    // one directly, so what a test can observe is the command that arrived at
+    // the transport rather than a `DataSource.execute` string.
+    dispatched = [];
+    transport = new StubTransport();
+    telemetryClient = new TelemetryClient(transport);
+    const store = new TimelineStore(
+      new ViewClock({
+        nowWall: () => 0,
+        warpRate: () => 1,
+        delaySeconds: () => 0,
+      }),
+    );
+    telemetryClient.attachStore(store);
+    setActiveTimelineStoreForTests(store);
+    transport.setCommandHandler((command, args) => {
+      dispatched.push({ command, args });
+      return null;
+    });
+    setActiveTelemetryClientForTests(telemetryClient);
+    setActiveCarriedChannelsForTests(
+      new Set(["vessel.control.stage", "vessel.control.setAbort"]),
+    );
     // Sound on by default; the host fires the T-0 + abort tones internally.
     __resetSharedAudioContextForTests();
     oscillators = installFakeAudio();
@@ -159,6 +208,10 @@ describe("GoNoGoHostService", () => {
   });
 
   afterEach(() => {
+    setActiveTelemetryClientForTests(undefined);
+    setActiveCarriedChannelsForTests(undefined);
+    setActiveTimelineStoreForTests(undefined);
+    telemetryClient?.dispose();
     svc.dispose();
     unsubSound?.();
     unsubSound = null;
@@ -227,20 +280,24 @@ describe("GoNoGoHostService", () => {
     expect(svc.getSnapshot().countdown).toBeNull();
   });
 
-  it("fires f.stage at T-0 when triggerStageAtZero is on (default)", () => {
+  it("stages at T-0 when triggerStageAtZero is on (default)", async () => {
     svc.setConfig({ countdownLengthMs: 5_000 });
     host.fireConnect("peer-1");
     host.fireVote("peer-1", "go");
     vi.advanceTimersByTime(5_001);
-    expect(ds.executed).toContain("f.stage");
+    await drainDispatch();
+    expect(dispatched.map((d) => d.command)).toContain("vessel.control.stage");
   });
 
-  it("does not fire f.stage at T-0 when triggerStageAtZero is off", () => {
+  it("does not stage at T-0 when triggerStageAtZero is off", async () => {
     svc.setConfig({ countdownLengthMs: 5_000, triggerStageAtZero: false });
     host.fireConnect("peer-1");
     host.fireVote("peer-1", "go");
     vi.advanceTimersByTime(5_001);
-    expect(ds.executed).not.toContain("f.stage");
+    await drainDispatch();
+    expect(dispatched.map((d) => d.command)).not.toContain(
+      "vessel.control.stage",
+    );
   });
 
   it("plays the T-0 commit tone when the countdown reaches zero", () => {
@@ -267,20 +324,27 @@ describe("GoNoGoHostService", () => {
     expect(svc.getSnapshot().launched).toBe(true);
   });
 
-  it("ignores abort messages pre-launch", () => {
+  it("ignores abort messages pre-launch", async () => {
     host.fireConnect("peer-1");
     host.fireStationInfo("peer-1", "CAPCOM");
     host.fireAbort("peer-1");
     expect(svc.getSnapshot().abort).toBeNull();
-    expect(ds.executed).not.toContain("f.abort");
+    await drainDispatch();
+    expect(dispatched.map((d) => d.command)).not.toContain(
+      "vessel.control.setAbort",
+    );
   });
 
-  it("executes f.abort and records station name + peerId when a station aborts post-launch", () => {
+  it("aborts and records station name + peerId when a station aborts post-launch", async () => {
     host.fireConnect("peer-1");
     host.fireStationInfo("peer-1", "CAPCOM");
     ds.emit("v.missionTime", 10);
     host.fireAbort("peer-1");
-    expect(ds.executed).toContain("f.abort");
+    await drainDispatch();
+    expect(dispatched).toContainEqual({
+      command: "vessel.control.setAbort",
+      args: { enabled: true },
+    });
     const snap = svc.getSnapshot();
     expect(snap.abort?.stationName).toBe("CAPCOM");
     expect(snap.abort?.peerId).toBe("peer-1");
@@ -305,17 +369,19 @@ describe("GoNoGoHostService", () => {
     expect(oscillators.length).toBe(afterFirst);
   });
 
-  it("re-notifies (doesn't re-fire) when an already-aborted station resends", () => {
+  it("re-notifies (doesn't re-fire) when an already-aborted station resends", async () => {
     host.fireConnect("peer-1");
     host.fireStationInfo("peer-1", "CAPCOM");
     ds.emit("v.missionTime", 10);
     host.fireAbort("peer-1");
-    expect(ds.executed.filter((a) => a === "f.abort")).toHaveLength(1);
+    await drainDispatch();
+    expect(abortDispatches()).toHaveLength(1);
     // Second abort (e.g. station reconnecting after host refresh) should
-    // rebroadcast attribution but NOT toggle f.abort again.
+    // rebroadcast attribution but NOT abort again.
     host.broadcasts.length = 0;
     host.fireAbort("peer-1");
-    expect(ds.executed.filter((a) => a === "f.abort")).toHaveLength(1);
+    await drainDispatch();
+    expect(abortDispatches()).toHaveLength(1);
     const notify = host.broadcasts.at(-1) as {
       type: string;
       stationName: string;
@@ -324,7 +390,7 @@ describe("GoNoGoHostService", () => {
     expect(notify.stationName).toBe("CAPCOM");
   });
 
-  it("second station aborting after first is ignored (first-abort-wins)", () => {
+  it("second station aborting after first is ignored (first-abort-wins)", async () => {
     host.fireConnect("peer-1");
     host.fireConnect("peer-2");
     host.fireStationInfo("peer-1", "A");
@@ -332,7 +398,8 @@ describe("GoNoGoHostService", () => {
     ds.emit("v.missionTime", 10);
     host.fireAbort("peer-1");
     host.fireAbort("peer-2");
-    expect(ds.executed.filter((a) => a === "f.abort")).toHaveLength(1);
+    await drainDispatch();
+    expect(abortDispatches()).toHaveLength(1);
     expect(svc.getSnapshot().abort?.stationName).toBe("A");
   });
 

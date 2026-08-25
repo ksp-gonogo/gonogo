@@ -28,22 +28,23 @@ const CARRIED_COMMANDS = [
 ];
 
 /**
- * Reconstructs the legacy action string a dispatched `{command, args}` pair
- * used to be: keeps every one of this file's `telemetry.calls`
- * assertions (`.toContain("t.timeWarp[0]")`, `.toContain("f.ag1")`, ...)
- * unchanged even though the dispatch itself now goes through
- * `dispatchActiveCommand`/`TelemetryClient.dispatch` instead of a legacy
- * `DataSource.execute(action)` call.
+ * A dispatched `{command, args}` pair as one readable string, so an assertion
+ * can name both what went and which one it was.
+ *
+ * It used to reconstruct the legacy ACTION KEY the pair came from, which kept
+ * this file's assertions reading in a vocabulary nothing dispatches any more.
+ * They now read in the command's own.
  */
 function formatCommand(command: string, args: unknown): string {
   if (command === "time.setWarpIndex") {
-    return `t.timeWarp[${(args as { index?: number })?.index}]`;
+    return `${command}[${(args as { index?: number })?.index}]`;
   }
   if (command === "vessel.control.setActionGroup") {
-    return `f.ag${(args as { group?: number })?.group}`;
-  }
-  if (command === "vessel.control.stage") {
-    return "f.stage";
+    const { group, state } = (args ?? {}) as {
+      group?: number;
+      state?: boolean;
+    };
+    return `${command}[${group}=${state}]`;
   }
   return command;
 }
@@ -231,7 +232,7 @@ describe("AlarmHostService", () => {
     telemetry.set("t.currentRate", 50);
     await vi.advanceTimersByTimeAsync(1100);
     expect(svc.snapshot().alarms[0].state).toBe("arming");
-    expect(telemetry.calls).toContain("t.timeWarp[0]");
+    expect(telemetry.calls).toContain("time.setWarpIndex[0]");
   });
 
   it("flags unscheduled warp when none is set and the user didn't announce intent", async () => {
@@ -293,7 +294,7 @@ describe("AlarmHostService", () => {
     a.addAlarm({
       name: "Stage",
       trigger: { kind: "time", ut: 2000, leadSeconds: 10 },
-      onFire: [{ kind: "action-group", action: "f.ag1" }],
+      onFire: [{ kind: "action-group", action: "AG1" }],
     });
     a.dispose();
 
@@ -302,7 +303,7 @@ describe("AlarmHostService", () => {
       storage,
     });
     expect(b.snapshot().alarms[0].onFire).toEqual([
-      { kind: "action-group", action: "f.ag1" },
+      { kind: "action-group", action: "AG1" },
     ]);
   });
 
@@ -349,8 +350,8 @@ describe("AlarmHostService", () => {
           sustainSeconds: 0,
         },
         onFire: [
-          { kind: "action-group", action: "f.ag1" },
-          { kind: "action-group", action: "f.stage" },
+          { kind: "action-group", action: "AG1" },
+          { kind: "action-group", action: "Stage" },
         ],
       });
       telemetry.set("vessel.state.altitudeAsl", 70_500);
@@ -362,11 +363,15 @@ describe("AlarmHostService", () => {
       // forever under fake timers.
       await Promise.resolve();
       await Promise.resolve();
-      expect(telemetry.calls).toContain("f.ag1");
-      expect(telemetry.calls).toContain("f.stage");
+      expect(telemetry.calls).toContain(
+        "vessel.control.setActionGroup[1=true]",
+      );
+      expect(telemetry.calls).toContain("vessel.control.stage");
       // Order preserved.
-      const ag1Idx = telemetry.calls.indexOf("f.ag1");
-      const stageIdx = telemetry.calls.indexOf("f.stage");
+      const ag1Idx = telemetry.calls.indexOf(
+        "vessel.control.setActionGroup[1=true]",
+      );
+      const stageIdx = telemetry.calls.indexOf("vessel.control.stage");
       expect(ag1Idx).toBeLessThan(stageIdx);
     });
 
@@ -390,10 +395,10 @@ describe("AlarmHostService", () => {
       // forever under fake timers.
       await Promise.resolve();
       await Promise.resolve();
-      // Filter out warp-step calls (`t.timeWarp[0]`) that the warp-down
+      // Filter out warp-step calls (`time.setWarpIndex[0]`) that the warp-down
       // ladder makes: they're unrelated to onFire dispatch.
       const userActions = telemetry.calls.filter(
-        (c) => !c.startsWith("t.timeWarp"),
+        (c) => !c.startsWith("time.setWarpIndex"),
       );
       expect(userActions).toEqual([]);
     });
@@ -574,7 +579,7 @@ describe("AlarmHostService", () => {
         alarmId: a.id,
         targetIndex: 4,
       });
-      expect(telemetry.calls).toContain("t.timeWarp[4]");
+      expect(telemetry.calls).toContain("time.setWarpIndex[4]");
     });
 
     it("ignores equality-op threshold alarms (non-monotonic, can't plan)", async () => {
@@ -616,7 +621,7 @@ describe("AlarmHostService", () => {
         alarmId: a.id,
         targetIndex: 5,
       });
-      expect(telemetry.calls).toContain("t.timeWarp[5]");
+      expect(telemetry.calls).toContain("time.setWarpIndex[5]");
     });
 
     it("steps the rate down as remaining time shrinks", async () => {
@@ -729,7 +734,7 @@ describe("AlarmHostService", () => {
       svc.cancelWarpTo();
       await Promise.resolve();
       await Promise.resolve();
-      expect(telemetry.calls).toContain("t.timeWarp[0]");
+      expect(telemetry.calls).toContain("time.setWarpIndex[0]");
       expect(svc.snapshot().warpTo).toBeNull();
     });
 
@@ -1148,14 +1153,16 @@ describe("AlarmHostService", () => {
           value: 70_000,
           sustainSeconds: 0,
         },
-        onFire: [{ kind: "action-group", action: "f.ag1" }],
+        onFire: [{ kind: "action-group", action: "AG1" }],
       });
       await Promise.resolve();
       await Promise.resolve();
       expect(svc.snapshot().alarms[0].onFire).toEqual([
-        { kind: "action-group", action: "f.ag1" },
+        { kind: "action-group", action: "AG1" },
       ]);
-      expect(telemetry.calls).toContain("f.ag1");
+      expect(telemetry.calls).toContain(
+        "vessel.control.setActionGroup[1=true]",
+      );
     });
 
     // Regression from 2026-05-17 21:11 BST: stations that connected (or
@@ -1189,10 +1196,10 @@ describe("AlarmHostService", () => {
       });
       captured.updateCb?.("peer-1", {
         id: a.id,
-        patch: { onFire: [{ kind: "action-group", action: "f.stage" }] },
+        patch: { onFire: [{ kind: "action-group", action: "Stage" }] },
       });
       expect(svc.snapshot().alarms[0].onFire).toEqual([
-        { kind: "action-group", action: "f.stage" },
+        { kind: "action-group", action: "Stage" },
       ]);
       captured.updateCb?.("peer-1", {
         id: a.id,
