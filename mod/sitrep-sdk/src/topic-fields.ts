@@ -1,4 +1,3 @@
-import { UNIT_DEFINITIONS } from "./unit-system/definitions";
 import {
   isPluralShape,
   type ShapesByField,
@@ -42,10 +41,14 @@ export interface TopicField {
 }
 
 /**
- * The four contract tokens that annotate a field carrying no dimension.
- * A token absent from `UNIT_DEFINITIONS` and from this map is still a
- * quantity: `UNIT_DEFINITIONS` is the model's own list and an Uplink may
- * register a token of its own that the model has not been taught yet.
+ * The contract tokens that annotate a field carrying no dimension. `id` maps to
+ * `text` because a reader gets a string back either way; the separate token only
+ * records that the string names something.
+ *
+ * A token absent from here is treated as a quantity, which is the right default
+ * for an open vocabulary: an Uplink registers units of its own, and a token this
+ * map has never heard of is far more likely to be one of those than a new kind
+ * of non-quantity.
  */
 const NON_QUANTITY_KINDS: Readonly<Record<string, TopicFieldKind>> =
   Object.freeze({

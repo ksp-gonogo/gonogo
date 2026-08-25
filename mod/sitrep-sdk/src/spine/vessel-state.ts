@@ -7,6 +7,12 @@ import {
 } from "../__generated__/contract";
 import { namesOf } from "../enum-names";
 import { magnitudeOr, type Quantityish } from "../magnitude";
+import {
+  registerTopicUnits,
+  type ShapesByField,
+  type SitrepUnit,
+  type UnitsByField,
+} from "../units";
 import type { Value } from "../value";
 import type { ReckoningBasis } from "./client-reading";
 import type { Anomalies, OrbitElements, StateVector, Vector3 } from "./kepler";
@@ -2063,3 +2069,142 @@ export const vesselStateChannel: DerivedChannelDefinition<VesselState> = {
   deriveReckoning: deriveVesselStateReckoning,
   fields: true,
 };
+
+/**
+ * How one `vessel.state` field is described: a scalar's unit, a vector whose
+ * unit belongs to each component, or a collection with no unit of its own.
+ */
+type VesselStateFieldShape =
+  | { readonly unit: SitrepUnit }
+  | { readonly vector: SitrepUnit }
+  | { readonly collection: string };
+
+/**
+ * What each `vessel.state` field MEANS, in the contract's own unit vocabulary.
+ *
+ * This channel is computed client-side, so no `[SitrepTopic]` type exists for
+ * the unit-map codegen to reflect over and the generated maps know nothing
+ * about it. Every other Topic can be enumerated from those maps; without this
+ * the most-declared channel in the tree, and the one carrying the bulk of what
+ * an operator sets a threshold on, is the one a key picker cannot describe.
+ * `HAND_DECLARED_PAYLOAD_TYPES` in `units.ts` answers the same question for a
+ * Topic whose payload type the codegen cannot see.
+ *
+ * `Record<keyof VesselState, ...>` rather than a free-form map, so the COMPILER
+ * keeps this complete: a field added to the interface above fails the build
+ * until it is described here, and a name that is not a field of it is rejected.
+ * That is the whole guarantee, and it is why there is no fixture to go stale
+ * and no source scan to silently match nothing.
+ *
+ * The payload carries bare magnitudes rather than `Value`s: the derivations
+ * above compute numbers, and nothing wraps a derived channel (the wrap runs on
+ * decoded WIRE frames). So this records what a field means, which is what an
+ * enumeration and a display need, and does not claim the field arrives wrapped.
+ */
+const VESSEL_STATE_FIELDS: Readonly<
+  Record<keyof VesselState, VesselStateFieldShape>
+> = {
+  altitudeAsl: { unit: "m" },
+  apoapsisAlt: { unit: "m" },
+  apoapsisRadius: { unit: "m" },
+  basis: { unit: "text" },
+  commsControlStateName: { unit: "text" },
+  commsControlStateOrdinal: { unit: "enum" },
+  encounterBody: { unit: "text" },
+  // A -1/0/1 sign encoding escape / none / encounter, not a count of them.
+  encounterExists: { unit: "enum" },
+  // An instant on the universal clock, never an interval: a countdown refuses a
+  // UT, and a duration renderer would read this as that many seconds.
+  encounterUt: { unit: "ut" },
+  horizontalSpeed: { unit: "m/s" },
+  isControllable: { unit: "flag" },
+  isEVA: { unit: "flag" },
+  isSplashed: { unit: "flag" },
+  landingBestSpeedAtImpact: { unit: "m/s" },
+  landingPredictedLat: { unit: "°" },
+  landingPredictedLon: { unit: "°" },
+  landingSpeedAtImpact: { unit: "m/s" },
+  landingSuicideBurnCountdown: { unit: "s" },
+  landingTimeToImpact: { unit: "s" },
+  met: { unit: "s" },
+  surfaceSpeed: { unit: "m/s" },
+  nextApsisType: { unit: "enum" },
+  orbitalRadius: { unit: "m" },
+  orbitalSpeed: { unit: "m/s" },
+  parentBodyName: { unit: "text" },
+  periapsisAlt: { unit: "m" },
+  periapsisRadius: { unit: "m" },
+  period: { unit: "s" },
+  position: { vector: "m" },
+  referenceBodyName: { unit: "text" },
+  sasModeName: { unit: "text" },
+  situationName: { unit: "text" },
+  subjectId: { unit: "id" },
+  targetDistance: { unit: "m" },
+  targetKind: { unit: "text" },
+  targetPeriapsisAlt: { unit: "m" },
+  targetPeriod: { unit: "s" },
+  targetRelativeSpeed: { unit: "m/s" },
+  targetTrueAnomaly: { unit: "°" },
+  timeToAp: { unit: "s" },
+  timeToNextApsis: { unit: "s" },
+  timeToPe: { unit: "s" },
+  trueAnomaly: { unit: "°" },
+  // A thrust-to-weight ratio is dimensionless, which is not the same as having
+  // no unit: the explicit token says so.
+  twr: { unit: "1" },
+  velocity: { vector: "m/s" },
+  verticalSpeed: { unit: "m/s" },
+  // The element name on a collection is documentation: a plural entry is never
+  // dereferenced, and declaring these at all is what keeps an enumeration from
+  // missing the field rather than reporting it as a leaf it cannot read.
+  // The ten per-index flags sit beside the map and the named list: a widget
+  // reading one group does not want the whole collection, and a picker can
+  // offer a single group where it cannot offer a dictionary.
+  actionGroup1: { unit: "flag" },
+  actionGroup2: { unit: "flag" },
+  actionGroup3: { unit: "flag" },
+  actionGroup4: { unit: "flag" },
+  actionGroup5: { unit: "flag" },
+  actionGroup6: { unit: "flag" },
+  actionGroup7: { unit: "flag" },
+  actionGroup8: { unit: "flag" },
+  actionGroup9: { unit: "flag" },
+  actionGroup10: { unit: "flag" },
+  actionGroups: { collection: "*flag" },
+  actionGroupsNamed: { collection: "ActionGroupState[]" },
+  orbitPatches: { collection: "OrbitPatch[]" },
+};
+
+/**
+ * Flattens the declaration above into the two maps the units registry holds. A
+ * vector's unit lands on dotted leaf keys, the convention the generated map uses
+ * for a vector field, because the leaves are what a reader indexes.
+ */
+function vesselStateUnitMaps(): {
+  units: UnitsByField;
+  shapes: ShapesByField;
+} {
+  const units: Record<string, SitrepUnit> = {};
+  const shapes: Record<string, string> = {};
+  for (const [field, declared] of Object.entries(VESSEL_STATE_FIELDS)) {
+    if ("collection" in declared) {
+      shapes[field] = declared.collection;
+    } else if ("vector" in declared) {
+      for (const axis of ["x", "y", "z"]) {
+        units[`${field}.${axis}`] = declared.vector;
+      }
+    } else {
+      units[field] = declared.unit;
+    }
+  }
+  return { units, shapes };
+}
+
+const VESSEL_STATE_UNIT_MAPS = vesselStateUnitMaps();
+
+registerTopicUnits(
+  "vessel.state",
+  VESSEL_STATE_UNIT_MAPS.units,
+  VESSEL_STATE_UNIT_MAPS.shapes,
+);
