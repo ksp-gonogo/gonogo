@@ -146,7 +146,7 @@ export function AlarmsModal({
   const [offsetSeconds, setOffsetSeconds] = useState("60");
   const [leadSeconds, setLeadSeconds] = useState(String(DEFAULT_LEAD_SECONDS));
   // Threshold-trigger fields
-  const [dataKey, setDataKey] = useState("v.altitude");
+  const [dataKey, setDataKey] = useState("vessel.state.altitudeAsl");
   const [op, setOp] = useState<ThresholdOp>(">=");
   const [thresholdValue, setThresholdValue] = useState("70000");
   const [sustainSeconds, setSustainSeconds] = useState(

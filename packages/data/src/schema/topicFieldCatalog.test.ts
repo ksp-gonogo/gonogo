@@ -169,3 +169,29 @@ describe("every catalogue key is readable", () => {
     expect(unresolvable.map((entry) => entry.key)).toEqual([]);
   });
 });
+
+describe("one name per value", () => {
+  it("offers the canonical kinematic name and not its wire twin", async () => {
+    const { redirectKinematicSubtopic } = await import(
+      "@ksp-gonogo/sitrep-client"
+    );
+    const keys = new Set(TOPIC_FIELD_CATALOG.map((entry) => entry.key));
+    expect(keys.has("vessel.state.altitudeAsl")).toBe(true);
+    // Real on the wire, and redirected on read. Offering both would put two
+    // names for one altitude in front of the operator.
+    expect(keys.has("vessel.flight.altitudeAsl")).toBe(false);
+    expect(keys.has("vessel.flight.orbitalSpeed")).toBe(false);
+
+    const redirected = TOPIC_FIELD_CATALOG.filter(
+      (entry) => redirectKinematicSubtopic(entry.key) !== entry.key,
+    );
+    expect(redirected.map((entry) => entry.key)).toEqual([]);
+  });
+
+  it("leaves a non-kinematic field of the same Topic alone", () => {
+    // Nothing derives a twin for these, so there is no duplication to collapse
+    // and dropping them would lose real vocabulary.
+    const keys = new Set(TOPIC_FIELD_CATALOG.map((entry) => entry.key));
+    expect(keys.has("vessel.flight.mach")).toBe(true);
+  });
+});

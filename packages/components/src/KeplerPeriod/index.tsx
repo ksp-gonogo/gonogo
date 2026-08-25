@@ -109,14 +109,14 @@ function KeplerPeriodComponent({
       series: [
         {
           id: "current-orbit",
-          key: "o.period",
+          key: "vessel.state.period",
           label: "Current orbit",
           axis: "primary",
           type: "scatter",
         },
       ],
       windowSec,
-      xKey: "o.sma",
+      xKey: "vessel.orbit.sma",
       // SMA spans many orders of magnitude across the system, log scale
       // makes both sides of the curve readable.
       yScalePrimary: "log",

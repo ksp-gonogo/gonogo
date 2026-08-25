@@ -2,7 +2,10 @@
 // SDK's: importing it here is also what LOADS those channel modules, and loading
 // `vessel.state`'s is what registers its hand-declared field metadata. Without
 // that side effect the largest channel in the vocabulary enumerates as empty.
-import { PRODUCTION_DERIVED_CHANNELS } from "@ksp-gonogo/sitrep-client";
+import {
+  PRODUCTION_DERIVED_CHANNELS,
+  redirectKinematicSubtopic,
+} from "@ksp-gonogo/sitrep-client";
 import {
   DEFAULT_SITREP_CARRIED_TOPICS,
   enumerateTopicFields,
@@ -123,7 +126,17 @@ function buildTopicFieldCatalog(): BuiltCatalog {
       undescribed.push(topic);
       continue;
     }
-    for (const field of fields) keys.push(entryFor(topic, field));
+    for (const field of fields) {
+      const key = `${topic}.${field.path}`;
+      // A kinematic field that reads from somewhere else is not offered under
+      // both names. `vessel.flight.altitudeAsl` exists on the wire and resolves
+      // perfectly well, and offering it beside `vessel.state.altitudeAsl` puts
+      // two names for one altitude in front of the operator, which is the
+      // dual-altitude wart the redirect exists to contain. The canonical name is
+      // in the catalogue already, on the Topic the redirect points at.
+      if (redirectKinematicSubtopic(key) !== key) continue;
+      keys.push(entryFor(topic, field));
+    }
   }
   return { keys, undescribed };
 }

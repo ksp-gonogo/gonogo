@@ -95,14 +95,14 @@ function OrbitalAscentComponent({
       series: [
         {
           id: "ascent-trace",
-          key: "v.horizontalVelocity",
+          key: "vessel.state.horizontalSpeed",
           label: "Horizontal velocity",
           axis: "primary",
           type: "line",
         },
       ],
       windowSec,
-      xKey: "v.altitude",
+      xKey: "vessel.state.altitudeAsl",
     }),
     [windowSec],
   );
