@@ -182,6 +182,7 @@ function DeltaVRow({
   hint,
   value,
   disabled,
+  unitKnown = true,
   onChange,
 }: {
   id: string;
@@ -189,6 +190,13 @@ function DeltaVRow({
   hint?: string;
   value: number;
   disabled: boolean;
+  /**
+   * False when the slot's unit depends on a coordinate system that does not put
+   * a velocity in it. The symbol goes rather than being replaced by a guess: two
+   * of the three slots are angles under the spherical systems and one is a
+   * speed, so there is no one symbol that is true of the row.
+   */
+  unitKnown?: boolean;
   onChange: (next: number) => void;
 }) {
   return (
@@ -213,7 +221,7 @@ function DeltaVRow({
       {/* The bare symbol beside the box, through `<Unit>` rather than as text,
           so it is styled and announced as a word like every other unit on the
           board. */}
-      <Unit>m/s</Unit>
+      {unitKnown && <Unit>m/s</Unit>}
     </Cluster>
   );
 }
@@ -325,8 +333,21 @@ export function BurnEditor() {
     draft === null
       ? undefined
       : burns.find((burn) => magnitudeOf(burn.index) === draft.burnIndex);
+  // The producer's Cartesian system, the one whose three Dv slots are three
+  // velocities. Its other three are spherical and put a magnitude and two
+  // ANGLES in the same slots, so the components are neither editable nor
+  // readable as m/s. Compared against the ordinal the payload carries rather
+  // than mapped to a name: the set is the producer's, and a stale mapping here
+  // would mislabel a burn's basis.
+  const CARTESIAN_TNB = 1;
+  const componentsUnreadable =
+    selected !== undefined &&
+    magnitudeOf(selected.coordinateSystem) !== CARTESIAN_TNB;
   const frozen =
-    !armed || selected?.frameEditable !== true || outOfContact !== null;
+    !armed ||
+    selected?.frameEditable !== true ||
+    componentsUnreadable ||
+    outOfContact !== null;
   // The ignition field stays live inside a shut window: pushing the burn further
   // out is how the operator REOPENS one, and freezing the field would leave the
   // deadline as a dead end rather than something to act on.
@@ -470,6 +491,9 @@ export function BurnEditor() {
                   THIS FRAME CANNOT BE WRITTEN BACK
                 </Badge>
               )}
+              {componentsUnreadable && (
+                <Badge severity="warning">DELTA-V NOT IN COMPONENTS</Badge>
+              )}
             </Cluster>
 
             {/* The planned profile. An integrated burn's arc depends on the
@@ -544,12 +568,27 @@ export function BurnEditor() {
 
             <Stack gap="xs">
               <SectionTitle>DELTA-V</SectionTitle>
+              {/* Beside the boxes rather than instead of them: the numbers are
+                  what the producer holds and hiding them would leave an
+                  operator unable to see the burn at all. What is withdrawn is
+                  the claim that they are three velocities, and the ability to
+                  send an edit the producer would refuse a light time later. */}
+              {componentsUnreadable && (
+                <Text tone="faint" size="sm">
+                  This burn states its delta-v in one of Principia's spherical
+                  coordinate systems, which carries a magnitude and two angles
+                  rather than three components. The three numbers below are that
+                  triple, so they are not metres per second and cannot be edited
+                  here. Switch the burn to Cartesian in-game first.
+                </Text>
+              )}
               <DeltaVRow
                 id="burn-dv-tangent"
                 label="TANGENT"
                 hint="prograde"
                 value={draft.tangent}
                 disabled={frozen}
+                unitKnown={!componentsUnreadable}
                 onChange={(next) => setDraft({ ...draft, tangent: next })}
               />
               <DeltaVRow
@@ -557,6 +596,7 @@ export function BurnEditor() {
                 label="NORMAL"
                 value={draft.normal}
                 disabled={frozen}
+                unitKnown={!componentsUnreadable}
                 onChange={(next) => setDraft({ ...draft, normal: next })}
               />
               <DeltaVRow
@@ -564,6 +604,7 @@ export function BurnEditor() {
                 label="BINORMAL"
                 value={draft.binormal}
                 disabled={frozen}
+                unitKnown={!componentsUnreadable}
                 onChange={(next) => setDraft({ ...draft, binormal: next })}
               />
               <Row as="div">
@@ -571,11 +612,20 @@ export function BurnEditor() {
                 {/* Built as a VALUE and rendered by `<Unit>`, not written out
                     beside the number: the magnitude is derived here, so this is
                     the one place on the row where the unit could disagree with
-                    what it is measuring. */}
-                <Unit
-                  value={value("m/s", deltaVMagnitude(draft))}
-                  decimals={1}
-                />
+                    what it is measuring.
+
+                    A hypotenuse is only the size of the burn when the three
+                    slots are three components of it. Over a magnitude and two
+                    angles it is a number with no meaning, and one that reads as
+                    a plausible delta-v, so the dash is the honest answer. */}
+                {componentsUnreadable ? (
+                  <Text>{NULL_DISPLAY}</Text>
+                ) : (
+                  <Unit
+                    value={value("m/s", deltaVMagnitude(draft))}
+                    decimals={1}
+                  />
+                )}
               </Row>
             </Stack>
 

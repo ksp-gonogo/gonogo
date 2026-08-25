@@ -5,6 +5,7 @@ import {
   screen,
   setupStreamFixture,
 } from "@ksp-gonogo/sitrep-sdk/testing";
+import { NULL_DISPLAY } from "@ksp-gonogo/ui-kit";
 import userEvent from "@testing-library/user-event";
 import { afterEach, describe, expect, it } from "vitest";
 import {
@@ -550,6 +551,50 @@ describe("BurnEditor", () => {
     const form = document.querySelector("[data-burn-editor-form]");
     expect(form?.textContent ?? "").toContain("320");
     expect(form?.textContent ?? "").not.toContain("5min 20s");
+    await act(async () => {});
+  });
+
+  /**
+   * The three Dv fields are only three VELOCITIES under the producer's Cartesian
+   * coordinate system. Its other three are spherical and put a magnitude and two
+   * ANGLES in the same three slots, which the producer's own write rule states
+   * in full when it refuses such an edit: writing components onto one "would set
+   * a triple the plugin does not read, so the burn would come back unchanged and
+   * look like a write that landed".
+   *
+   * That refusal is on the far side of a light delay and of a press. Until it
+   * arrives the editor showed three live boxes, each with `m/s` beside it, over
+   * two numbers that are degrees. So the guard is here too, before anything is
+   * typed, in the same shape the frame guard already takes.
+   *
+   * The Cartesian direction is asserted as well, because a badge that showed on
+   * every burn would say nothing.
+   */
+  it("freezes and marks a burn whose Dv is in spherical coordinates", async () => {
+    const stream = mount();
+    await emitPlan(stream, { burns: [burn({ coordinateSystem: 2 })] });
+    await userEvent.click(screen.getByRole("button", { name: "Burn 1" }));
+
+    expect(screen.getByText("DELTA-V NOT IN COMPONENTS")).toBeInTheDocument();
+    // The tangent field's label carries its stock gloss, so it is matched by
+    // prefix where the other two are exact.
+    expect(screen.getByLabelText(/^TANGENT/)).toBeDisabled();
+    expect(screen.getByLabelText("NORMAL")).toBeDisabled();
+    expect(screen.getByLabelText("BINORMAL")).toBeDisabled();
+    // The derived hypotenuse goes with them. Over a magnitude and two angles it
+    // is not the size of the burn, and it reads as a plausible one.
+    const form = document.querySelector("[data-burn-editor-form]");
+    expect(form?.textContent ?? "").toContain(`MAGNITUDE${NULL_DISPLAY}`);
+    await act(async () => {});
+  });
+
+  it("leaves a Cartesian burn's components editable and unmarked", async () => {
+    const stream = mount();
+    await emitPlan(stream);
+    await userEvent.click(screen.getByRole("button", { name: "Burn 1" }));
+
+    expect(screen.queryByText("DELTA-V NOT IN COMPONENTS")).toBeNull();
+    expect(screen.getByLabelText(/^TANGENT/)).not.toBeDisabled();
     await act(async () => {});
   });
 });
