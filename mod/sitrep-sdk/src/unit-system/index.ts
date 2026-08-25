@@ -16,6 +16,7 @@ export {
 export * as Dimension from "./dimension";
 export { assertGuardsRegistered, unitGuard } from "./guards";
 export {
+  affineVectorUnitFor,
   declaredUnitFor,
   displaySymbol,
   lookupUnit,

@@ -1,5 +1,6 @@
 import { getComponent } from "@ksp-gonogo/sitrep-sdk";
 import {
+  clearPlanDrafts,
   harnessTheme,
   installRealTestHost,
   setupStreamFixture,
@@ -115,7 +116,25 @@ interface BadgeScene {
   pxH: number;
 }
 
-type Scene = WidgetScene | SectionScene | BadgeScene;
+/**
+ * The plan composer, driven for real.
+ *
+ * <p>Nothing about it is pre-populated: the driver presses the widget's own
+ * buttons, so what a render shows is what an operator gets by pressing them. A
+ * scene that injected drafts into the store would render a composer that had
+ * never composed anything, which is exactly the state a render cannot be allowed
+ * to be silent about.</p>
+ */
+interface ComposerScene {
+  kind: "composer";
+  hostTitle: string;
+  /** One-way light time to the craft, seconds. Zero for a vantage with no delay. */
+  oneWaySeconds?: number;
+  pxW: number;
+  pxH: number;
+}
+
+type Scene = WidgetScene | SectionScene | BadgeScene | ComposerScene;
 
 let root: Root | null = null;
 
@@ -124,12 +143,54 @@ function teardown(): void {
     root.unmount();
     root = null;
   }
+  // The draft store is module scope, so it OUTLIVES a scene. Without this every
+  // composer scene inherits the drafts the one before it made, and the render
+  // shows a plan list nobody in that scene composed: the armed-upload scene came
+  // out with two plans in it and a leftover empty draft, all of which looked
+  // exactly like the widget's real output. After the unmount, never before,
+  // because clearing it under a mounted tree notifies subscribers of a tree that
+  // is still rendering.
+  clearPlanDrafts();
 }
 
 /** Pinned so an "observed now" badge really is now, and an aged one is aged by
  *  the amount the fixture says. The driver's scenes state their own instants
  *  relative to this. */
 const VIEW_UT = 1_000_000;
+
+/**
+ * Waits for the widget's own subscribe to reach the transport.
+ *
+ * <p><b>An emit to an unsubscribed topic is DROPPED, silently.</b>
+ * `StubTransport.emit` returns early when nothing is listening, which is right:
+ * it mirrors a real stream, and the emit landing at all is part of what this
+ * harness proves. What it also does is turn a slow mount into a render of the
+ * widget's never-observed state, and that render is indistinguishable from a
+ * real one. Two scenes shipped that way in a single run on a loaded machine and
+ * came out identical to the "no plan has been observed" scene, which is exactly
+ * the wrong thing to hand a reviewer.</p>
+ *
+ * <p>A count of animation frames cannot fix this, because how many are enough
+ * depends on the machine. The subscription is the actual precondition, so it is
+ * the thing waited on, and giving up after the deadline THROWS rather than
+ * carrying on to photograph whatever is on screen.</p>
+ */
+const SUBSCRIBE_FRAMES = 300;
+
+async function awaitSubscribed(
+  transport: { isSubscribed: (topic: string) => boolean },
+  topic: string,
+): Promise<void> {
+  for (let frame = 0; frame < SUBSCRIBE_FRAMES; frame++) {
+    if (transport.isSubscribed(topic)) return;
+    await new Promise((r) => requestAnimationFrame(() => r(undefined)));
+  }
+  throw new Error(
+    `Probe: nothing subscribed to "${topic}" after ${SUBSCRIBE_FRAMES} ` +
+      "frames, so an emit would have been dropped and the scene rendered as " +
+      "never observed.",
+  );
+}
 
 function ProbeStatusContribution({
   severity,
@@ -158,7 +219,7 @@ function mount(el: HTMLElement, children: ReactNode): void {
 }
 
 async function renderPrincipia(scene: Scene): Promise<void> {
-  const { FlightPlanSection } = await registered;
+  const { FlightPlanSection, PlanComposer } = await registered;
   teardown();
 
   const el = document.getElementById("root");
@@ -190,11 +251,63 @@ async function renderPrincipia(scene: Scene): Promise<void> {
     "principia.flightPlan",
     "principia.settings",
     "vessel.identity",
+    // The composer's own three. Carried for every scene rather than per kind:
+    // the fixture only DELIVERS what a scene emits, so an unused channel costs
+    // nothing, and a channel missing from this list is a widget that renders
+    // empty for a reason no render can show.
+    "vessel.orbit",
+    "vessel.maneuver.plan.send",
+    "comms.delay",
   ];
   const stream = setupStreamFixture({
     carriedChannels: carried,
     pinnedUt: VIEW_UT,
   });
+
+  if (scene.kind === "composer") {
+    mount(
+      el,
+      createElement(
+        stream.Provider,
+        null,
+        createElement(
+          Panel,
+          { panelTitle: scene.hostTitle },
+          createElement(PanelBody, null, createElement(PlanComposer, null)),
+        ),
+      ),
+    );
+    await awaitSubscribed(stream.transport, "vessel.orbit");
+    stream.emit(
+      "vessel.identity",
+      { vesselId: "Ares-IV", name: "Ares IV", vesselType: 0, situation: 0 },
+      { validAt: VIEW_UT },
+    );
+    stream.emit(
+      "vessel.orbit",
+      {
+        referenceBodyIndex: 1,
+        sma: 850_000,
+        ecc: 0.01,
+        inc: 0,
+        lan: 0,
+        argPe: 0,
+        meanAnomalyAtEpoch: 0,
+        epoch: 0,
+        mu: 3.5316e12,
+      },
+      { validAt: VIEW_UT },
+    );
+    if (scene.oneWaySeconds) {
+      stream.emit(
+        "comms.delay",
+        { oneWaySeconds: scene.oneWaySeconds },
+        { validAt: VIEW_UT },
+      );
+    }
+    await new Promise((r) => requestAnimationFrame(() => r(undefined)));
+    return;
+  }
 
   if (scene.kind === "widget") {
     const def = getComponent(scene.widgetId);
@@ -239,11 +352,17 @@ async function renderPrincipia(scene: Scene): Promise<void> {
     );
   }
 
-  // Emitted AFTER mount, so the widget's own subscribe has run: a
-  // `StubTransport` delivers nothing to an unsubscribed topic, which makes the
-  // emit landing part of what this harness proves.
-  await new Promise((r) => requestAnimationFrame(() => r(undefined)));
+  // Emitted once the widget's own subscribe has REACHED the transport, not
+  // merely after a frame: a `StubTransport` delivers nothing to an unsubscribed
+  // topic, which makes the emit landing part of what this harness proves and
+  // makes a lost one a render of the wrong state. See `awaitSubscribed`.
+  await awaitSubscribed(stream.transport, scene.topic);
   if (scene.kind === "section" && scene.identity) {
+    // Waited on separately. The widget subscribes to both in one render today,
+    // so one wait would do; a scene whose identity went missing because the
+    // other subscribe happened to land first would look like a plan belonging
+    // to nobody, which is a state this harness has a scene for.
+    await awaitSubscribed(stream.transport, "vessel.identity");
     stream.emit("vessel.identity", scene.identity, { validAt: VIEW_UT });
   }
   const validAt =

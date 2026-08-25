@@ -232,6 +232,7 @@ export {
 // name the generated contract puts on a unit-carrying vector, and there is no
 // second spelling of it worth exporting.
 export {
+  affineVectorUnitFor,
   assertGuardsRegistered,
   calendarRatio,
   Dimension,

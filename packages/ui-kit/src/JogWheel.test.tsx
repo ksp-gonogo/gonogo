@@ -161,6 +161,55 @@ describe("JogWheel in rate mode", () => {
     }
   });
 
+  it("steps by one on an arrow key, with no bounds to measure from", () => {
+    // The keyboard is the whole of this control for anyone not using a pointer,
+    // so a mode that cannot be arrowed is a mode half the operators cannot use.
+    // Unbounded is exactly where it broke: the step grid was measured FROM the
+    // minimum, and a minimum of negative infinity makes every arrow press land
+    // on NaN. NaN does not throw, does not compare unequal to anything, and
+    // reaches the value as a burn instant that is not a number.
+    const onChange = vi.fn();
+    render(
+      <JogWheel
+        mode="rate"
+        value={1000}
+        step={60}
+        ariaLabel="Ignition"
+        onChange={onChange}
+      />,
+    );
+    const handle = screen.getByRole("slider", { name: "Ignition" });
+
+    fireEvent.keyDown(handle, { key: "ArrowRight" });
+    expect(onChange.mock.calls[0][0]).toBe(1060);
+
+    fireEvent.keyDown(handle, { key: "ArrowLeft" });
+    expect(onChange.mock.calls[1][0]).toBe(940);
+  });
+
+  it("moves an off-grid value by exactly one step, and snaps it to nothing", () => {
+    // The step grid is anchored at the minimum, and this mode has none. Snapping
+    // to a substituted anchor makes one arrow press on an instant that is not on
+    // the minute move by something other than a minute, so a nudge control
+    // cannot be trusted to nudge. Unbounded moves by what it says it moves by.
+    const onChange = vi.fn();
+    render(
+      <JogWheel
+        mode="rate"
+        value={1030}
+        step={60}
+        ariaLabel="Ignition"
+        onChange={onChange}
+      />,
+    );
+
+    fireEvent.keyDown(screen.getByRole("slider", { name: "Ignition" }), {
+      key: "ArrowRight",
+    });
+
+    expect(onChange.mock.calls[0][0]).toBe(1090);
+  });
+
   it("stops when it is unmounted mid-drag", () => {
     vi.useFakeTimers();
     try {
