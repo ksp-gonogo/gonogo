@@ -1,4 +1,9 @@
-import type { ComposedBurn, PlanDraft, Reading } from "@ksp-gonogo/sitrep-sdk";
+import type {
+  ComposedBurn,
+  PlanDraft,
+  Reading,
+  UseCommandResult,
+} from "@ksp-gonogo/sitrep-sdk";
 import {
   draftAsPlan,
   ManeuverFrame,
@@ -15,6 +20,7 @@ import {
   withoutReckoning,
 } from "@ksp-gonogo/sitrep-sdk";
 import {
+  CommandButton,
   Countdown,
   FieldLabel,
   MissionDate,
@@ -123,13 +129,14 @@ export function PlanComposer() {
               draft={draft}
               ordinal={index + 1}
               viewUt={viewUt?.magnitude ?? null}
+              command={send.command}
               oneWaySeconds={send.command.effectiveDelaySeconds}
               pending={send.pending}
               outcome={sent === draft.id ? send.outcome : null}
               onReopen={() => store.update(draft.id, { saved: false })}
-              onSend={async () => {
+              onSend={() => {
                 setSent(draft.id);
-                await send.send(draftAsPlan(draft));
+                return send.send(draftAsPlan(draft));
               }}
             />
           ))}
@@ -170,10 +177,16 @@ export function PlanComposer() {
                 // biome-ignore lint/suspicious/noArrayIndexKey: position IS a burn's identity in a plan; two burns can share an instant and every other field
                 <Stack gap="xs" key={`${draft.id}-${index}`}>
                   <FieldLabel>Burn {index + 1}</FieldLabel>
+                  {/* A minute a notch, and a minute a second held over: the
+                    transfer-finding loop is nudging an ignition a few minutes
+                    and reading what happens, and the wheel is that gesture where
+                    the calendar fields beside it are for an instant already
+                    known. */}
                   <UnitInput
                     label="Ignition"
                     unit="ut"
                     value={burn.ignitionUt}
+                    rate={{ step: 60, stepsPerSecond: 60 }}
                     onChange={(next) =>
                       setComponent(draft, index, { ignitionUt: next })
                     }
@@ -268,6 +281,7 @@ function ReadyPlan({
   draft,
   ordinal,
   viewUt,
+  command,
   oneWaySeconds,
   pending,
   outcome,
@@ -277,10 +291,12 @@ function ReadyPlan({
   draft: PlanDraft;
   ordinal: number;
   viewUt: number | null;
+  /** The send's own dispatch, for the delay state the armed control renders. */
+  command: UseCommandResult;
   oneWaySeconds: number;
   pending: boolean;
   outcome: { accepted: boolean; refusal?: string } | null;
-  onSend: () => void;
+  onSend: () => Promise<{ accepted: boolean; refusal?: string }>;
   onReopen: () => void;
 }>) {
   const first = draft.burns[0];
@@ -289,6 +305,27 @@ function ReadyPlan({
     viewUt,
     oneWaySeconds,
   );
+
+  /**
+   * The send, in the shape the kit's command control takes.
+   *
+   * <p>The dispatch is the shared one and the args are already built by the send
+   * handle, so this contributes only the press. A REFUSAL is re-thrown, because
+   * the handle resolves on one: the control settles on its own promise, and a
+   * resolved refusal would leave the button reading as though the plan went. The
+   * sentence itself stays on the status line below, which is where a refusal has
+   * room to say which of the three ways it failed.</p>
+   */
+  const upload = {
+    ...command,
+    send: async () => {
+      const answer = await onSend();
+      if (!answer.accepted) {
+        throw new Error(answer.refusal ?? "The vessel declined the plan.");
+      }
+      return answer;
+    },
+  };
 
   return (
     <Stack gap="xs">
@@ -324,13 +361,26 @@ function ReadyPlan({
       {/* An EMPTY plan is sendable, deliberately: a plan with no burns is a
           meaningful instruction, it clears the vessel's. Only a window that has
           shut stops a send, because that one cannot arrive in time whatever it
-          contains. */}
-      <PrimaryButton
+          contains.
+
+          Armed rather than firing on the press, and this is the control that
+          most needs it in the whole Uplink: an upload REPLACES whatever the craft
+          is flying with this, there is no undo from the operator's seat, and at a
+          distant vantage the correction is another round trip behind. Every other
+          write on this surface already arms. */}
+      <CommandButton
+        size="sm"
+        tone="go"
+        handle={upload}
+        commandLabel="Upload the flight plan"
+        label="Upload to vessel"
+        confirmLabel="CONFIRM UPLOAD"
+        confirmTone="nogo"
+        pendingLabel="Uploading..."
         disabled={pending || window?.shut === true}
-        onClick={onSend}
-      >
-        Upload to vessel
-      </PrimaryButton>
+        aria-label="Upload this flight plan to the vessel"
+        confirmAriaLabel="Confirm uploading this flight plan to the vessel"
+      />
       <PrimaryButton onClick={onReopen}>Reopen</PrimaryButton>
 
       {outcome === null ? null : (

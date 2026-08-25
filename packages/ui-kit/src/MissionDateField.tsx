@@ -58,6 +58,11 @@ export interface MissionDateFieldProps {
    * The coarse steps offered, in seconds, smallest first. Rendered as a minus
    * button and a plus button per entry. Defaults to a minute, ten minutes, an
    * hour and a day of the LIVE calendar.
+   *
+   * <p>An EMPTY list removes the row entirely, for a caller that has another
+   * nudge control beside this one. Two rows of nudge buttons doing one job is
+   * one gesture offered twice, and eight buttons that wrap at a panel's width
+   * cost more height than the date fields above them.</p>
    */
   steps?: number[];
 }
@@ -173,6 +178,12 @@ export function MissionDateField({
         id={`${groupId}-${key}`}
         type="number"
         inputMode="numeric"
+        // Named for the group as well as the column, the same way the nudge
+        // buttons below already are. The visible heading stays the column's own
+        // word; without the group in the spoken name, a screen every field of
+        // which is called "DAY" cannot say which instant is being edited, and
+        // two of these on one panel are indistinguishable.
+        aria-label={`${label} ${text}`}
         min={min}
         step={1}
         style={{ width }}
@@ -200,31 +211,36 @@ export function MissionDateField({
         {field("minute", "MIN", 0, "4rem")}
         {field("second", "SEC", 0, "4rem")}
       </Cluster>
-      <Cluster gap="xs" wrap justify="start">
-        <Text tone="faint" size="sm">
-          NUDGE
-        </Text>
-        {coarse.map((step) => (
-          <ActionButton
-            key={`minus-${step}`}
-            disabled={disabled}
-            aria-label={`${label} earlier by ${stepLabel(step)}`}
-            onClick={() => onChange(value - step)}
-          >
-            {`-${stepLabel(step)}`}
-          </ActionButton>
-        ))}
-        {coarse.map((step) => (
-          <ActionButton
-            key={`plus-${step}`}
-            disabled={disabled}
-            aria-label={`${label} later by ${stepLabel(step)}`}
-            onClick={() => onChange(value + step)}
-          >
-            {`+${stepLabel(step)}`}
-          </ActionButton>
-        ))}
-      </Cluster>
+      {/* Gone entirely when there are no steps, heading included. A caller
+          passing an empty list has a different nudge control beside this one, and
+          the word alone above nothing reads as a row that failed to render. */}
+      {coarse.length === 0 ? null : (
+        <Cluster gap="xs" wrap justify="start">
+          <Text tone="faint" size="sm">
+            NUDGE
+          </Text>
+          {coarse.map((step) => (
+            <ActionButton
+              key={`minus-${step}`}
+              disabled={disabled}
+              aria-label={`${label} earlier by ${stepLabel(step)}`}
+              onClick={() => onChange(value - step)}
+            >
+              {`-${stepLabel(step)}`}
+            </ActionButton>
+          ))}
+          {coarse.map((step) => (
+            <ActionButton
+              key={`plus-${step}`}
+              disabled={disabled}
+              aria-label={`${label} later by ${stepLabel(step)}`}
+              onClick={() => onChange(value + step)}
+            >
+              {`+${stepLabel(step)}`}
+            </ActionButton>
+          ))}
+        </Cluster>
+      )}
     </Stack>
   );
 }

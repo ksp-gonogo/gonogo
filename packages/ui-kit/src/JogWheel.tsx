@@ -76,7 +76,16 @@ const DEFAULT_STEPS_PER_SECOND = 30;
 /**
  * Pure clamp + quantise: move `value` by `deltaSteps` of `step` (fractional
  * deltaSteps welcome, for pointer drag), clamp to `[min,max]`, and snap to the
- * step grid measured from `min`.
+ * step grid.
+ *
+ * <p>The grid is anchored at `min`, and a control with no minimum has no anchor,
+ * so an UNBOUNDED one moves by exactly the delta asked for and snaps to nothing.
+ * Two reasons. Measuring the grid from negative infinity produces NaN, which
+ * does not throw, does not compare unequal to anything, and reaches the value as
+ * a burn instant that is not a number while the control merely appears not to
+ * respond. And measuring it from a substituted zero would make one arrow press
+ * on an off-grid instant move by something other than one step, which is a nudge
+ * control that cannot be trusted to nudge.</p>
  */
 export function applyDelta(
   value: number,
@@ -86,6 +95,7 @@ export function applyDelta(
   const { min, max, step } = bounds;
   const raw = value + deltaSteps * step;
   const clamped = Math.min(max, Math.max(min, raw));
+  if (!Number.isFinite(min)) return clamped;
   const snapped = min + Math.round((clamped - min) / step) * step;
   return Math.min(max, Math.max(min, snapped));
 }

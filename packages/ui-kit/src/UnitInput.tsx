@@ -1,6 +1,15 @@
-import { type PointUnit, type Value, value } from "@ksp-gonogo/sitrep-sdk";
+import {
+  affineVectorUnitFor,
+  type PointUnit,
+  type Value,
+  value,
+} from "@ksp-gonogo/sitrep-sdk";
 import { useId, useState } from "react";
 import styled from "styled-components";
+import { JogWheel } from "./JogWheel";
+import { MissionDateField, partsOfUt } from "./MissionDateField";
+import { Stack } from "./Stack";
+import { Text } from "./Text";
 import type { FormatsFor } from "./units";
 
 /**
@@ -12,18 +21,37 @@ import type { FormatsFor } from "./units";
  * positions fine once bounded, which is why this keys on the unit's own
  * point-ness rather than on a prop somebody has to remember.</p>
  *
- * <p><b>This is not the only shape a slider can have, and the other one has no
- * bounds at all.</b> The producer's own planner drives time and Δv with a
- * RATE control: centre is hold, and displacement sets how fast the value
- * changes rather than what it is. That copes with seconds-to-years precisely
- * because it never has to span it. Nothing here offers one yet, and the kit's
- * `JogWheel` is not it either: that clamps to a min and a max. When one is
- * built it belongs beside this rather than inside it, and it may take an instant
- * where this cannot.</p>
+ * <p><b>This is not the only shape a slider can have.</b> See {@link RateControl},
+ * which needs no bounds and therefore takes the instants this cannot.</p>
  */
 export type SlidableRange<U extends string> = U extends PointUnit
   ? never
   : { min: number; max: number; step?: number };
+
+/**
+ * A RATE wheel beside the field, on any unit at all.
+ *
+ * <p>Where the handle sits is the SPEED the value changes at, not the value, and
+ * it springs back to centre when released. That is what lets it take a quantity
+ * a position slider cannot: an instant is legitimately years out, and no pair of
+ * bounds spans that while leaving useful precision anywhere inside it. The
+ * producer's own planner drives both time and Δv this way, so an operator who
+ * knows that gesture is not being retrained.</p>
+ */
+export interface RateControl {
+  /**
+   * One notch, in the unit a value of this kind MOVES BY.
+   *
+   * <p>For an instant that is an INTERVAL: a `ut` moves by seconds, and a wheel
+   * claiming to step "60 ut" would be naming a quantity that does not exist. For
+   * everything else it is the field's own unit, because a speed moves by a
+   * speed. The control says which beside itself rather than leaving it to be
+   * inferred.</p>
+   */
+  step: number;
+  /** Notches per second at full displacement. The wheel's own default otherwise. */
+  stepsPerSecond?: number;
+}
 
 export interface UnitInputProps<U extends string = string> {
   /**
@@ -60,6 +88,8 @@ export interface UnitInputProps<U extends string = string> {
   rungs?: readonly FormatsFor<U>[];
   /** Supplying bounds adds a slider beside the field. See {@link SlidableRange}. */
   range?: SlidableRange<U>;
+  /** Supplying a notch size adds a rate wheel beside the field. See {@link RateControl}. */
+  rate?: RateControl;
   disabled?: boolean;
 }
 
@@ -129,13 +159,17 @@ export function UnitInput<U extends string>({
   label,
   rungs,
   range,
+  rate,
   disabled,
 }: Readonly<UnitInputProps<U>>) {
   const id = useId();
   const bounds = range as
     | { min: number; max: number; step?: number }
     | undefined;
-  const magnitude = current ? current.magnitude : 0;
+  // NaN, not zero, when nothing has been read. Every field below writes an
+  // absent value as an EMPTY box, and a zero standing in for one would read as a
+  // number the operator typed.
+  const magnitude = current ? current.magnitude : Number.NaN;
   // One entry per field: the single control has one, a rung row has one per
   // rung, and the key is the rung's index there. Held whether or not the shape
   // uses several, because hooks cannot be called per branch.
@@ -143,6 +177,59 @@ export function UnitInput<U extends string>({
   const typed = (index: number): Typing | null => typing[index] ?? null;
   const type = (index: number, next: Typing) =>
     setTyping((held) => ({ ...held, [index]: next }));
+
+  const wheel = rate ? (
+    <Stack gap="xs">
+      <JogWheel
+        mode="rate"
+        ariaLabel={`${label} rate`}
+        value={magnitude}
+        step={rate.step}
+        stepsPerSecond={rate.stepsPerSecond}
+        // Nothing to move. A wheel offered against a value that was never read
+        // would dial away from an instant nobody stated.
+        disabled={disabled || !Number.isFinite(magnitude)}
+        format={isInstant(unit) ? caretDate : undefined}
+        onChange={(next) => onChange(value(unit, next))}
+      />
+      {/* Beside the wheel rather than inferred from it. A notch on an instant is
+          an INTERVAL, and the difference between "60 s" and "60 ut" is the
+          difference between a duration and a date. */}
+      <Text
+        tone="faint"
+        size="sm"
+      >{`${rate.step} ${movesBy(unit)} / notch`}</Text>
+    </Stack>
+  ) : null;
+
+  if (isInstant(unit)) {
+    // The calendar entry, because an operator holds an ignition as "day 12,
+    // about ten past four" and never as 4,633,000 seconds. One number box makes
+    // every edit an arithmetic problem about how long a day is on the calendar
+    // the game is running, which this kit already knows and this component would
+    // be making the caller work out. `rungs` have no meaning here: the calendar
+    // IS the rungs, and it is the game's rather than the ladder's.
+    return (
+      <Control>
+        <Stack gap="sm">
+          <MissionDateField
+            label={label}
+            value={Number.isFinite(magnitude) ? magnitude : 0}
+            disabled={disabled}
+            // The wheel IS the nudge where there is one, so the coarse steps go.
+            // Two rows of nudge controls one above the other is one gesture
+            // offered twice, and on a panel it costs more vertical space than the
+            // whole rest of the field: eight buttons that wrap onto a second line
+            // at a panel's width, above a control that does the same job
+            // continuously and says its own notch size.
+            steps={rate ? [] : undefined}
+            onChange={(ut) => onChange(value(unit, ut))}
+          />
+          {wheel}
+        </Stack>
+      </Control>
+    );
+  }
 
   if (rungs && rungs.length > 0) {
     const sizes = rungs.map((symbol) => worth(String(symbol), unit));
@@ -184,6 +271,7 @@ export function UnitInput<U extends string>({
             </RungCell>
           ))}
         </RungRow>
+        {wheel}
       </Control>
     );
   }
@@ -220,16 +308,19 @@ export function UnitInput<U extends string>({
           min={bounds.min}
           max={bounds.max}
           step={bounds.step ?? (bounds.max - bounds.min) / 100}
-          value={magnitude}
+          // Parked at the low end while nothing has been read, rather than
+          // showing a handle at a position no value put it at.
+          value={Number.isFinite(magnitude) ? magnitude : bounds.min}
           // A slider is never mid-edit: the handle is always somewhere, so every
           // position it can be dragged to is a number. It goes straight to the
           // value rather than through the typing buffer, which belongs to the
           // field beside it.
           onChange={(event) =>
-            onChange(value(unit, readNumber(event.target.value) ?? magnitude))
+            onChange(value(unit, readNumber(event.target.value) ?? bounds.min))
           }
         />
       ) : null}
+      {wheel}
     </Control>
   );
 }
@@ -256,11 +347,57 @@ interface Typing {
   against: number;
 }
 
-/** What a field shows: what is being typed into it, or the value it holds. */
+/**
+ * What a field shows: what is being typed into it, or the value it holds, or
+ * NOTHING when it holds none.
+ *
+ * <p>A quantity that has not been read is not a quantity of zero. Writing one as
+ * "0" is the claim `Unit` refuses to make on its output side, and on an input it
+ * is worse, because it also reads as a number the operator typed.</p>
+ */
 function fieldText(typing: Typing | null, magnitude: number): string {
-  return typing !== null && Object.is(typing.against, magnitude)
-    ? typing.text
-    : String(round(magnitude));
+  if (typing !== null && Object.is(typing.against, magnitude)) {
+    return typing.text;
+  }
+  return Number.isFinite(magnitude) ? String(round(magnitude)) : "";
+}
+
+/**
+ * The unit a value of this kind is MOVED by: seconds for an instant, its own
+ * unit for everything else.
+ *
+ * <p>Asked of the registry rather than decided by a table of special cases. The
+ * unit system already declares which kinds are affine and what each one's
+ * companion vector is, and a second answer here would be free to disagree with
+ * the algebra that enforces it.</p>
+ */
+function movesBy(unit: string): string {
+  return affineVectorUnitFor(unit) ?? unit;
+}
+
+/**
+ * True when this kind names an INSTANT rather than an amount.
+ *
+ * <p>An instant is what the calendar entry below is for. Read off the companion
+ * vector rather than off the symbol, so a second time-like point unit gets the
+ * same treatment without this having to be told about it.</p>
+ */
+function isInstant(unit: string): boolean {
+  return affineVectorUnitFor(unit) === "s";
+}
+
+/**
+ * An instant on the wheel's caret: day and clock, not the calendar in full.
+ *
+ * <p>The caret sits in a 120px box, and the fields beside it already carry the
+ * year. What is being dialled at this resolution is the day and the time within
+ * it, so that is what the caret shows.</p>
+ */
+function caretDate(ut: number): string {
+  if (!Number.isFinite(ut)) return "";
+  const { day, hour, minute, second } = partsOfUt(ut);
+  const pad = (n: number) => String(n).padStart(2, "0");
+  return `D${day} ${pad(hour)}:${pad(minute)}:${pad(second)}`;
 }
 
 /**

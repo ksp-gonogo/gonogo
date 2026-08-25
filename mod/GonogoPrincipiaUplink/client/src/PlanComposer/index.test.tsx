@@ -6,6 +6,7 @@ import {
   screen,
   setupStreamFixture,
 } from "@ksp-gonogo/sitrep-sdk/testing";
+import { utOfParts } from "@ksp-gonogo/ui-kit";
 import { afterEach, describe, expect, it } from "vitest";
 import { PlanComposer } from "./index";
 
@@ -91,10 +92,58 @@ function setField(label: string, value: string) {
   });
 }
 
+/**
+ * The instant one burn's date fields add up to.
+ *
+ * <p>Recomposed through the kit's own `utOfParts` rather than read off a single
+ * box: an instant is entered on the game's calendar, so there is no one number
+ * to read, and doing the arithmetic here by hand would be a second answer to how
+ * long a day is.</p>
+ */
+function ignitionUt(index = 0): number {
+  const at = (column: string) =>
+    Number(
+      (
+        screen.getAllByLabelText(`Ignition ${column}`)[
+          index
+        ] as HTMLInputElement
+      ).value,
+    );
+  return utOfParts({
+    year: at("YEAR"),
+    day: at("DAY"),
+    hour: at("HR"),
+    minute: at("MIN"),
+    second: at("SEC"),
+  });
+}
+
+/** Sets a burn's ignition to a whole UT, as seconds from the epoch. */
+function setIgnition(ut: number) {
+  for (const [column, digits] of [
+    ["YEAR", "1"],
+    ["DAY", "1"],
+    ["HR", "0"],
+    ["MIN", "0"],
+    // Last, and carrying the whole instant: the field does not clamp, so an
+    // out-of-range component rolls up through the calendar exactly as a typed
+    // one does.
+    ["SEC", String(ut)],
+  ] as const) {
+    setField(`Ignition ${column}`, digits);
+  }
+}
+
 function press(name: string) {
   act(() => {
     screen.getByRole("button", { name }).click();
   });
+}
+
+/** Presses an armed control twice: once to arm, once to commit. */
+function confirm(name: string, confirmName: string) {
+  press(name);
+  press(confirmName);
 }
 
 describe("PlanComposer", () => {
@@ -112,10 +161,44 @@ describe("PlanComposer", () => {
     // Labelled VISIBLY, by `UnitInput`. The composer's first cut had four
     // unlabelled boxes carrying only an aria-label, which reads as a column of
     // bare numbers to anyone looking at the screen.
-    expect(screen.getByLabelText("Ignition")).toBeTruthy();
+    expect(screen.getByLabelText("Ignition DAY")).toBeTruthy();
     expect(screen.getByText("Tangent")).toBeTruthy();
     expect(screen.getByText("Normal")).toBeTruthy();
     expect(screen.getByText("Binormal")).toBeTruthy();
+  });
+
+  it("enters an ignition as a DATE, with a wheel to nudge it by", async () => {
+    // An operator holds a burn as a day and a time, never as a count of
+    // seconds, and finds a transfer by nudging one a few minutes at a time and
+    // reading what happens. One number box serves neither.
+    await setup();
+
+    press("Draft plan");
+    press("Add burn");
+    await act(async () => {});
+
+    expect(screen.getByLabelText("Ignition YEAR")).toBeTruthy();
+    expect(screen.getByLabelText("Ignition rate")).toBeTruthy();
+    // A notch is an INTERVAL. The instant is a `ut` and what moves it is an
+    // `s`, and the control says so rather than leaving it to be assumed.
+    expect(screen.getByText("60 s / notch")).toBeVisible();
+  });
+
+  it("nudges the ignition by a whole notch from the wheel", async () => {
+    await setup();
+
+    press("Draft plan");
+    press("Add burn");
+    await act(async () => {});
+    const before = ignitionUt();
+
+    act(() => {
+      fireEvent.keyDown(screen.getByLabelText("Ignition rate"), {
+        key: "ArrowRight",
+      });
+    });
+
+    expect(ignitionUt()).toBe(before + 60);
   });
 
   it("sends the whole plan as one message carrying both instants", async () => {
@@ -130,7 +213,10 @@ describe("PlanComposer", () => {
     // Two acts, deliberately. Saving ends composing and nothing leaves; the
     // plan only reaches the vessel from the list it lands in.
     press("Save draft");
-    press("Upload to vessel");
+    confirm(
+      "Upload this flight plan to the vessel",
+      "Confirm uploading this flight plan to the vessel",
+    );
     await act(async () => {});
 
     expect(fixture.transport.sentCommands).toHaveLength(1);
@@ -167,15 +253,44 @@ describe("PlanComposer", () => {
     press("Draft plan");
     press("Add burn");
     // Inside the round trip: 2 x 600s of delay against a burn 300s out.
-    setField("Ignition", String(VIEW_UT + 300));
+    setIgnition(VIEW_UT + 300);
     press("Save draft");
 
     await act(async () => {});
     expect(screen.getByText("Too late")).toBeTruthy();
     expect(
-      screen.getByRole("button", { name: "Upload to vessel" }),
+      screen.getByRole("button", {
+        name: "Upload this flight plan to the vessel",
+      }),
     ).toBeDisabled();
     expect(fixture.transport.sentCommands).toHaveLength(0);
+  });
+
+  it("arms the upload rather than sending it on one press", async () => {
+    // An upload REPLACES whatever the craft is flying, there is no undo from
+    // this seat, and at a distant vantage the correction is another round trip
+    // behind. A single press on the one control that does that is a plan aboard
+    // a vessel because somebody's mouse slipped.
+    const { fixture } = await setup();
+    fixture.transport.setCommandHandler(() => ({ success: true }));
+
+    press("Draft plan");
+    press("Add burn");
+    press("Save draft");
+    press("Upload this flight plan to the vessel");
+    await act(async () => {});
+
+    // Armed, and nothing has left.
+    expect(fixture.transport.sentCommands).toHaveLength(0);
+    expect(
+      screen.getByRole("button", {
+        name: "Confirm uploading this flight plan to the vessel",
+      }),
+    ).toBeTruthy();
+
+    press("Confirm uploading this flight plan to the vessel");
+    await act(async () => {});
+    expect(fixture.transport.sentCommands).toHaveLength(1);
   });
 
   it("seeds a new burn at an instant the vessel can still act on", async () => {
@@ -191,10 +306,7 @@ describe("PlanComposer", () => {
     press("Add burn");
     await act(async () => {});
 
-    const ignition = Number(
-      (screen.getByLabelText("Ignition") as HTMLInputElement).value,
-    );
-    expect(ignition).toBeGreaterThan(VIEW_UT);
+    expect(ignitionUt()).toBeGreaterThan(VIEW_UT);
   });
 
   it("seeds a burn ahead of the round trip at a delayed vantage", async () => {
@@ -211,10 +323,7 @@ describe("PlanComposer", () => {
     press("Add burn");
     await act(async () => {});
 
-    const ignition = Number(
-      (screen.getByLabelText("Ignition") as HTMLInputElement).value,
-    );
-    expect(ignition).toBeGreaterThan(VIEW_UT + 2 * 600);
+    expect(ignitionUt()).toBeGreaterThan(VIEW_UT + 2 * 600);
     // And the window it lands in is open, which is the same arithmetic the row
     // below shows: a seed that arrives already too late is no better than one in
     // the past.
@@ -235,12 +344,8 @@ describe("PlanComposer", () => {
     press("Add burn");
     await act(async () => {});
 
-    const instants = screen
-      .getAllByLabelText("Ignition")
-      .map((field) => Number((field as HTMLInputElement).value));
-
-    expect(instants).toHaveLength(2);
-    expect(instants[1]).toBeGreaterThan(instants[0]);
+    expect(screen.getAllByLabelText("Ignition SEC")).toHaveLength(2);
+    expect(ignitionUt(1)).toBeGreaterThan(ignitionUt(0));
   });
 
   it("says why when the vessel declines the plan", async () => {
@@ -257,7 +362,10 @@ describe("PlanComposer", () => {
     // Two acts, deliberately. Saving ends composing and nothing leaves; the
     // plan only reaches the vessel from the list it lands in.
     press("Save draft");
-    press("Upload to vessel");
+    confirm(
+      "Upload this flight plan to the vessel",
+      "Confirm uploading this flight plan to the vessel",
+    );
     await act(async () => {});
 
     expect(screen.getByRole("status").textContent).toContain(

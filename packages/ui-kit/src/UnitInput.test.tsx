@@ -1,4 +1,8 @@
-import { UNIT_DEFINITIONS, value } from "@ksp-gonogo/sitrep-sdk";
+import {
+  affineVectorUnitFor,
+  UNIT_DEFINITIONS,
+  value,
+} from "@ksp-gonogo/sitrep-sdk";
 import { fireEvent, render, screen } from "@ksp-gonogo/sitrep-sdk/testing";
 import { describe, expect, it, vi } from "vitest";
 import { expectNoA11yViolations } from "./testing";
@@ -195,6 +199,16 @@ describe("UnitInput", () => {
         />,
       );
 
+      if (affineVectorUnitFor(unit) === "s") {
+        // An INSTANT is entered on the game's calendar rather than as one
+        // number, so there is no single box to read a magnitude out of. The
+        // round trip is asserted the same way, one field at a time, in "an
+        // instant, typed" below. Skipping it silently would be the failure this
+        // whole describe exists to prevent, so it says so.
+        expect(screen.getByLabelText(`Field ${unit} SEC`)).toBeTruthy();
+        return;
+      }
+
       const field = screen.getByLabelText(`Field ${unit}`) as HTMLInputElement;
       // Out: what the reader sees is the magnitude that went in.
       expect(Number(field.value)).toBeCloseTo(original.magnitude, 6);
@@ -263,6 +277,215 @@ describe("UnitInput", () => {
       ).toBe("1");
       expect((screen.getByLabelText("Coast s") as HTMLInputElement).value).toBe(
         "30.25",
+      );
+    });
+  });
+
+  describe("driving a value by RATE", () => {
+    /**
+     * The shape a bounded slider cannot have, and the reason instants had no
+     * control at all.
+     *
+     * <p>A position slider maps where the handle sits onto a value, so it needs
+     * a min and a max. An instant is legitimately years out, and any pair wide
+     * enough to reach offers no precision anywhere inside it, so a UT could be
+     * typed and nothing else. A rate control needs no bounds: displacement sets
+     * how FAST the value moves, and the wheel springs back to centre. The
+     * producer's own planner drives both time and Δv this way.</p>
+     */
+    it("offers a rate wheel for an INSTANT, which no slider can take", () => {
+      render(
+        <UnitInput
+          label="Ignition"
+          unit="ut"
+          value={value("ut", 1_000_000)}
+          onChange={() => {}}
+          rate={{ step: 60 }}
+        />,
+      );
+
+      expect(screen.getByLabelText("Ignition rate")).toBeTruthy();
+    });
+
+    it("moves an instant by an INTERVAL, and says which one", () => {
+      // The `ut` / `s` split, on the control. An instant is a `ut` and what
+      // moves it is an `s`; a wheel that claimed to step a UT "by 60 ut" would
+      // be naming a quantity that does not exist. One notch here is a minute.
+      render(
+        <UnitInput
+          label="Ignition"
+          unit="ut"
+          value={value("ut", 1_000_000)}
+          onChange={() => {}}
+          rate={{ step: 60 }}
+        />,
+      );
+
+      expect(screen.getByText("60 s / notch")).toBeVisible();
+    });
+
+    it("emits a Value in the field's OWN unit, not the one it moves by", () => {
+      // What comes back is still an instant. The interval is how far it moved,
+      // never what it became, and a control that emitted `s` here would put a
+      // duration where the plan wants a date.
+      const onChange = vi.fn();
+      render(
+        <UnitInput
+          label="Ignition"
+          unit="ut"
+          value={value("ut", 1_000_000)}
+          onChange={onChange}
+          rate={{ step: 60 }}
+        />,
+      );
+
+      fireEvent.keyDown(screen.getByLabelText("Ignition rate"), {
+        key: "ArrowRight",
+      });
+
+      const emitted = onChange.mock.calls[0][0];
+      expect(emitted.unit).toBe("ut");
+      expect(emitted.magnitude).toBe(1_000_060);
+    });
+
+    it("steps a Δv in its own unit, because it has no other one to move by", () => {
+      // The contrast that shows the interval above is a PROPERTY of instants
+      // rather than a hard-coded time rule: a speed is moved by a speed.
+      const onChange = vi.fn();
+      render(
+        <UnitInput
+          label="Tangent"
+          unit="m/s"
+          value={value("m/s", 120)}
+          onChange={onChange}
+          rate={{ step: 5 }}
+        />,
+      );
+
+      expect(screen.getByText("5 m/s / notch")).toBeVisible();
+      fireEvent.keyDown(screen.getByLabelText("Tangent rate"), {
+        key: "ArrowLeft",
+      });
+
+      expect(onChange.mock.calls[0][0].magnitude).toBe(115);
+    });
+
+    it("has no rate wheel unless one is asked for", () => {
+      render(
+        <UnitInput
+          label="Tangent"
+          unit="m/s"
+          value={value("m/s", 120)}
+          onChange={() => {}}
+        />,
+      );
+
+      expect(screen.queryByLabelText("Tangent rate")).toBeNull();
+    });
+
+    it("freezes the wheel with the field", async () => {
+      const { container } = render(
+        <UnitInput
+          label="Ignition"
+          unit="ut"
+          value={value("ut", 1_000_000)}
+          onChange={() => {}}
+          rate={{ step: 60 }}
+          disabled
+        />,
+      );
+
+      expect(
+        screen.getByLabelText("Ignition rate").getAttribute("aria-disabled"),
+      ).toBe("true");
+      await expectNoA11yViolations(container);
+    });
+  });
+
+  describe("an instant, typed", () => {
+    it("is entered as a DATE rather than as a count of seconds", async () => {
+      // An operator holds an ignition as "year 8, day 12, about ten past four",
+      // never as 4,633,000. One number box for a UT makes every edit an
+      // arithmetic problem about how long a day is on the calendar the game is
+      // running, which is knowledge this kit already owns.
+      const { container } = render(
+        <UnitInput
+          label="Ignition"
+          unit="ut"
+          value={value("ut", 1_000_000)}
+          onChange={() => {}}
+        />,
+      );
+
+      expect(screen.getByLabelText("Ignition YEAR")).toBeTruthy();
+      expect(screen.getByLabelText("Ignition DAY")).toBeTruthy();
+      await expectNoA11yViolations(container);
+    });
+
+    it("drops the coarse-step row when a rate wheel is there to nudge with", () => {
+      // One gesture, offered once. Eight buttons that wrap onto a second line at
+      // a panel's width, sitting above a control that nudges continuously and
+      // says its own notch size, is the same job twice at four times the height.
+      const { rerender } = render(
+        <UnitInput
+          label="Ignition"
+          unit="ut"
+          value={value("ut", 1_000_000)}
+          onChange={() => {}}
+        />,
+      );
+      expect(screen.getByText("NUDGE")).toBeVisible();
+
+      rerender(
+        <UnitInput
+          label="Ignition"
+          unit="ut"
+          value={value("ut", 1_000_000)}
+          onChange={() => {}}
+          rate={{ step: 60 }}
+        />,
+      );
+
+      expect(screen.queryByText("NUDGE")).toBeNull();
+    });
+
+    it("still emits a Value carrying the instant's own unit", () => {
+      const onChange = vi.fn();
+      render(
+        <UnitInput
+          label="Ignition"
+          unit="ut"
+          value={value("ut", 0)}
+          onChange={onChange}
+        />,
+      );
+
+      fireEvent.change(screen.getByLabelText("Ignition DAY"), {
+        target: { value: "2" },
+      });
+
+      const emitted = onChange.mock.calls[0][0];
+      expect(emitted.unit).toBe("ut");
+      expect(emitted.magnitude).toBeGreaterThan(0);
+    });
+  });
+
+  describe("a value that is not there", () => {
+    it("shows nothing rather than a zero nobody entered", () => {
+      // A quantity that has not been read is not a quantity of zero. Rendering
+      // one as "0" is the same claim `Unit` refuses to make on its output side,
+      // and here it also reads as a number the operator typed.
+      render(
+        <UnitInput
+          label="Tangent"
+          unit="m/s"
+          value={null}
+          onChange={() => {}}
+        />,
+      );
+
+      expect((screen.getByLabelText("Tangent") as HTMLInputElement).value).toBe(
+        "",
       );
     });
   });
