@@ -24,6 +24,21 @@ const SITREP_PEER_RELAY_BUDGET = new PerfBudget({
   unit: "frames",
 });
 
+/**
+ * Station-driven upstream subscribe/release operations. Separate from the frame
+ * budget above because it measures a different thing and fails for different
+ * reasons: frames are steady-state volume, these are churn, and a widget
+ * remounting in a loop or a dashboard thrashing its layout shows up here long
+ * before it shows up there. Sized for several stations swapping whole dashboards
+ * at once, which is the realistic burst.
+ */
+const SITREP_PEER_SUB_BUDGET = new PerfBudget({
+  name: "Station stream subscribes/sec",
+  threshold: 200,
+  windowMs: 1000,
+  unit: "subscribes",
+});
+
 function isCarriedFrame(
   message: ServerMessage,
 ): message is StreamData<unknown> | Extract<ServerMessage, { type: "event" }> {
@@ -44,16 +59,17 @@ function isCarriedFrame(
  * be inside the provider's subtree to read the live client); see
  * `MainScreen.tsx`.
  *
- * v1 is eager, broadcast-all: the moment at least one station is connected,
- * this subscribes to every topic in `DEFAULT_SITREP_CARRIED_TOPICS` (a
- * ref-count keep-alive via `client.subscribe(topic, noop)`, the actual
- * delivery to stations happens off the `onRawMessage` tap, not these
- * no-op callbacks) and tears every subscription down once the last station
- * disconnects. See
- * docs/superpowers/plans/2026-07-12-station-stream-forwarding-plan.md §2 for
- * why eager-subscribe-all is the deliberate v1 simplification (a
- * `sitrep-subscribe`/`unsubscribe` ref-counted pair is the v2 bandwidth
- * follow-up, not a correctness requirement).
+ * Upstream subscription is DEMAND-DRIVEN: `attachSitrepSink` hands
+ * `PeerHostService` the ability to hold a `client.subscribe(topic, noop)`
+ * keep-alive, and the host holds one per topic any connected station says it is
+ * reading. The no-op callbacks carry nothing; delivery happens off the
+ * `onRawMessage` tap below.
+ *
+ * Alongside that, this still eagerly subscribes `DEFAULT_SITREP_CARRIED_TOPICS`
+ * while any station is connected. That eager set is what stations depended on
+ * before their own subscriptions could reach the host, and removing it is a
+ * separate, subtractive change: keeping it here means demand-driven
+ * subscription can only ADD topics a station reaches, never take one away.
  *
  * Backfill: keeps its own `Map<topic, StreamData>` of the last-seen frame
  * per topic (never cleared, so it stays useful across a connect/disconnect
@@ -104,6 +120,28 @@ export function SitrepPeerRelay({ peerHost }: { peerHost: PeerHostService }) {
       }
     });
   }, [peerHost]);
+
+  // Demand-driven upstream subscription, independent of `hasConnections`: the
+  // host refcounts what stations ask for and this is only the means of acting
+  // on it, so it attaches for as long as there is a client to subscribe
+  // through. Reads the same frame cache the per-connection backfill above uses,
+  // so a station subscribing a quiet topic gets its current value rather than
+  // waiting for a change that may never come.
+  useEffect(() => {
+    if (!client) return;
+    return peerHost.attachSitrepSink({
+      subscribe: (topic) => {
+        SITREP_PEER_SUB_BUDGET.record();
+        return client.subscribe(topic, () => {});
+      },
+      cachedFrame: (topic) => {
+        const frame = cacheRef.current.get(topic);
+        return frame
+          ? ({ type: "sitrep-frame", message: frame } satisfies PeerMessage)
+          : undefined;
+      },
+    });
+  }, [client, peerHost]);
 
   useEffect(() => {
     if (!client || !hasConnections) return;

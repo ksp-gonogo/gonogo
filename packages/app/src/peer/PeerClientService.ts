@@ -791,6 +791,7 @@ export class PeerClientService {
     args: unknown,
     label: string,
     topic: string,
+    vantage?: string,
   ): void {
     this.conn?.send({
       type: "sitrep-command-request",
@@ -798,7 +799,29 @@ export class PeerClientService {
       command,
       label,
       topic,
+      vantage,
       args,
+    } satisfies PeerMessage);
+  }
+
+  /**
+   * Tell the host this station is reading `topic`, so it holds a matching
+   * subscription on its own client. Silently does nothing with no live
+   * connection: `PeerTransport` re-sends its whole live set on every fresh
+   * connection, so an intent formed while the link was down is not lost.
+   */
+  sendSitrepSubscribe(topic: string): void {
+    this.conn?.send({
+      type: "sitrep-subscribe",
+      topic,
+    } satisfies PeerMessage);
+  }
+
+  /** The release half of {@link sendSitrepSubscribe}. */
+  sendSitrepUnsubscribe(topic: string): void {
+    this.conn?.send({
+      type: "sitrep-unsubscribe",
+      topic,
     } satisfies PeerMessage);
   }
 

@@ -39,6 +39,7 @@ function makeFakeHost() {
   const disconnectListeners = new Set<(id: string) => void>();
   const broadcasts: PeerMessage[] = [];
   const sentToPeer: Array<{ peerId: string; msg: PeerMessage }> = [];
+  const sitrepSinks: unknown[] = [];
 
   return {
     getConnectedPeerIds: () => Array.from(connected),
@@ -56,6 +57,16 @@ function makeFakeHost() {
     sendToPeer: (peerId: string, msg: PeerMessage) => {
       sentToPeer.push({ peerId, msg });
     },
+    // The relay hands this over so station-driven subscriptions can reach the
+    // host's own client. Recorded rather than exercised here; the demand-driven
+    // path itself is proven end to end in `sitrep-station-forwarding.test.tsx`.
+    attachSitrepSink: (sink: unknown) => {
+      sitrepSinks.push(sink);
+      return () => {
+        const at = sitrepSinks.indexOf(sink);
+        if (at >= 0) sitrepSinks.splice(at, 1);
+      };
+    },
     connectPeer(id: string) {
       connected.add(id);
       for (const cb of connectListeners) cb(id);
@@ -66,6 +77,7 @@ function makeFakeHost() {
     },
     broadcasts,
     sentToPeer,
+    sitrepSinks,
   };
 }
 
