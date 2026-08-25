@@ -14,8 +14,11 @@ import { value } from "@ksp-gonogo/sitrep-sdk";
 import {
   CommandButton,
   type CommandButtonHandle,
+  FundsDrain,
   NULL_DISPLAY,
+  netFundsPerDay,
   Panel,
+  reportsFundsDrain,
   ScrollArea,
   Stack,
   speakQuantity,
@@ -37,6 +40,8 @@ const topics = defineTopicManifest({
     "career.status.economy.funds",
     "career.status.economy.reputation",
     "career.status.economy.science",
+    "career.status.economy.subsidyPerDay",
+    "career.status.economy.upkeepPerDay",
   ],
 });
 
@@ -226,6 +231,13 @@ function StrategiesComponent({
   // Both blank the figures and both refuse Activate, but only one of them is a
   // statement about the link, and the operator acts differently on each.
   const balancesNotCurrent = notCurrent(careerReading);
+  /**
+   * A strategy commits funds against a programme that may already be running a
+   * standing cost, so the balance beside the Activate control is only half of
+   * what the operator needs. The rate is whatever money model won the `economy`
+   * capability; stock reports no such mechanism and this renders nothing.
+   */
+  const netFunds = netFundsPerDay(economy);
   // Activating/deactivating a strategy is an Administration-building action
   // with no vessel signal delay, so it dispatches at the meta-vantage
   // (instant). The handles are contributed to the panel delay rail by usePanelDelay.
@@ -336,6 +348,18 @@ function StrategiesComponent({
             funds unknown
           </TinyFundsRow>
         )}
+        {/* Its own row rather than appended to the balance above: that row is
+            nowrap + ellipsis by construction, so anything added to it is the
+            part that gets cut. */}
+        {reportsFundsDrain(netFunds) && (
+          <TinyDrainRow>
+            <FundsDrain
+              funds={magnitudeOf(funds)}
+              netPerDay={netFunds}
+              compact
+            />
+          </TinyDrainRow>
+        )}
       </Panel>
     );
   }
@@ -370,6 +394,17 @@ function StrategiesComponent({
                 {formatNumber(funds?.magnitude)}
                 <Unit>funds</Unit>
               </Tally>
+              {reportsFundsDrain(netFunds) && (
+                <>
+                  <Sep>·</Sep>
+                  <Tally>
+                    <FundsDrain
+                      funds={magnitudeOf(funds)}
+                      netPerDay={netFunds}
+                    />
+                  </Tally>
+                </>
+              )}
               {(w ?? 9) >= 6 && (
                 <>
                   <Sep>·</Sep>
@@ -696,6 +731,15 @@ const TinyFundsRow = styled.div`
   padding: 0 var(--space-12) var(--space-6);
   font-size: var(--font-size-xs);
   color: var(--color-status-go-fg);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+`;
+
+const TinyDrainRow = styled.div`
+  padding: 0 var(--space-12) var(--space-6);
+  font-size: var(--font-size-2xs);
   font-variant-numeric: tabular-nums;
   white-space: nowrap;
   overflow: hidden;

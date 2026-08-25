@@ -17,7 +17,9 @@ import {
 import {
   CommandButton,
   type CommandButtonHandle,
+  FundsDrain,
   NULL_DISPLAY,
+  netFundsPerDay,
   Panel,
   ReadoutCaption,
   speakQuantity,
@@ -44,6 +46,8 @@ const topics = defineTopicManifest({
     "spaceCenter.astronautComplex",
     "spaceCenter.crewRoster",
     "career.status.economy.funds",
+    "career.status.economy.subsidyPerDay",
+    "career.status.economy.upkeepPerDay",
   ],
 });
 
@@ -208,6 +212,13 @@ function AstronautComplexComponent(
   const careerFunds = magnitudeOf(judgeable(fundsReading)?.economy?.funds);
   const fundsNotCurrent = notCurrent(fundsReading);
   /**
+   * Crew are a standing cost, not a one-off: a hire this balance covers today
+   * adds to a payroll the same balance keeps paying. The rate comes from
+   * whichever money model won the `economy` capability, so a stock career, which
+   * charges nothing to keep a kerbal on the books, reports nothing here.
+   */
+  const netFunds = netFundsPerDay(judgeable(fundsReading)?.economy);
+  /**
    * The hired-crew roster is the textbook fact: a kerbal is on the books until
    * an event takes them off, so the last roster received is still the roster.
    */
@@ -296,6 +307,7 @@ function AstronautComplexComponent(
             ) : (
               <FundsValue>{NULL_DISPLAY}</FundsValue>
             )}
+            <FundsDrain funds={careerFunds} netPerDay={netFunds} />
           </FundsLine>
           {fundsNotCurrent && (
             <ReadoutCaption>{FUNDS_STALE_NOTE}</ReadoutCaption>
@@ -333,6 +345,9 @@ function AstronautComplexComponent(
             ) : (
               <StatValue>{NULL_DISPLAY}</StatValue>
             )}
+            <DrainLine>
+              <FundsDrain funds={careerFunds} netPerDay={netFunds} />
+            </DrainLine>
             {fundsNotCurrent && (
               <ReadoutCaption>{FUNDS_STALE_NOTE}</ReadoutCaption>
             )}
@@ -797,6 +812,11 @@ const StatLabel = styled.span`
   letter-spacing: 0.12em;
   text-transform: uppercase;
   color: var(--color-text-faint);
+`;
+
+const DrainLine = styled.span`
+  display: block;
+  font-size: var(--font-size-2xs);
 `;
 
 const StatValue = styled.span<{ $critical?: boolean }>`

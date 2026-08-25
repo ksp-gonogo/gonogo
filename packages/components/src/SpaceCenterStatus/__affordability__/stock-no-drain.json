@@ -1,0 +1,195 @@
+{
+  "_meta": {
+    "notes": "Stock career. The elected economy model answers truthfully that money does not decay, earns no subsidy and costs nothing to hold, so no drain readout appears at all.",
+    "scenario": "stock-no-drain"
+  },
+  "kc.facilityLevels": {
+    "launchPad": {
+      "level": 1,
+      "max": 2,
+      "upgradeFunds": 150000,
+      "currentLevelText": "* Max Size: 140t\n* Max Parts: 255",
+      "nextLevelText": "* Max Size: Unlimited\n* Max Parts: Unlimited"
+    },
+    "runway": {
+      "level": 0,
+      "max": 2,
+      "upgradeFunds": 30000,
+      "currentLevelText": "* Max Size: 18t\n* Max Parts: 30",
+      "nextLevelText": "* Max Size: 140t\n* Max Parts: 255"
+    },
+    "vab": {
+      "level": 2,
+      "max": 2,
+      "upgradeFunds": 0,
+      "currentLevelText": "* Max Size: Unlimited\n* Max Parts: Unlimited",
+      "nextLevelText": ""
+    },
+    "sph": {
+      "level": 1,
+      "max": 2,
+      "upgradeFunds": 175000,
+      "currentLevelText": "* Max Size: 140t\n* Max Parts: 255",
+      "nextLevelText": "* Max Size: Unlimited\n* Max Parts: Unlimited"
+    },
+    "mission": {
+      "level": 2,
+      "max": 2,
+      "upgradeFunds": 0,
+      "currentLevelText": "* Active contracts: Unlimited",
+      "nextLevelText": ""
+    },
+    "tracking": {
+      "level": 1,
+      "max": 2,
+      "upgradeFunds": 115000,
+      "currentLevelText": "* Maneuver nodes enabled",
+      "nextLevelText": "* Patched conics (full)"
+    },
+    "admin": {
+      "level": 0,
+      "max": 2,
+      "upgradeFunds": 55000,
+      "currentLevelText": "* Max Active Strategies: 1\n* Max Commitment: 25.0%",
+      "nextLevelText": "* Max Active Strategies: 3\n* Max Commitment: 60.0%"
+    },
+    "rd": {
+      "level": 1,
+      "max": 2,
+      "upgradeFunds": 225000,
+      "currentLevelText": "* Science archive: 2500 pts",
+      "nextLevelText": "* Science archive: Unlimited"
+    },
+    "astronaut": {
+      "level": 1,
+      "max": 2,
+      "upgradeFunds": 65000,
+      "currentLevelText": "* Max crew: 12",
+      "nextLevelText": "* Max crew: Unlimited"
+    }
+  },
+  "kc.partsAvailable": 183,
+  "kc.launchSite": "LaunchPad",
+  "kc.padOccupied": true,
+  "kc.padVesselTitle": "Mun Shot III",
+  "kc.scene": "SpaceCenter",
+  "career.funds": 78400,
+  "_stream": {
+    "carriedChannels": [
+      "career.status",
+      "spaceCenter.scene",
+      "spaceCenter.partsAvailable",
+      "spaceCenter.launchSites"
+    ],
+    "emits": [
+      {
+        "channel": "spaceCenter.scene",
+        "value": {
+          "scene": "SpaceCenter",
+          "launchSite": "LaunchPad"
+        }
+      },
+      {
+        "channel": "spaceCenter.partsAvailable",
+        "value": {
+          "count": 183
+        }
+      },
+      {
+        "channel": "spaceCenter.launchSites",
+        "value": [
+          {
+            "name": "__pad_occupancy__",
+            "padOccupied": true,
+            "padVesselTitle": "Mun Shot III"
+          }
+        ]
+      },
+      {
+        "channel": "career.status",
+        "value": {
+          "economy": {
+            "funds": 78400,
+            "reputation": null,
+            "science": null,
+            "economyModel": "stock",
+            "reputationDecayPerDay": 0,
+            "subsidyPerDay": 0,
+            "subsidyMinPerDay": 0,
+            "subsidyMaxPerDay": 0,
+            "upkeepPerDay": 0
+          },
+          "facilities": {
+            "launchPad": {
+              "level": 1,
+              "max": 2,
+              "upgradeFunds": 150000,
+              "currentLevelText": "* Max Size: 140t\n* Max Parts: 255",
+              "nextLevelText": "* Max Size: Unlimited\n* Max Parts: Unlimited"
+            },
+            "runway": {
+              "level": 0,
+              "max": 2,
+              "upgradeFunds": 30000,
+              "currentLevelText": "* Max Size: 18t\n* Max Parts: 30",
+              "nextLevelText": "* Max Size: 140t\n* Max Parts: 255"
+            },
+            "vab": {
+              "level": 2,
+              "max": 2,
+              "upgradeFunds": 0,
+              "currentLevelText": "* Max Size: Unlimited\n* Max Parts: Unlimited",
+              "nextLevelText": ""
+            },
+            "sph": {
+              "level": 1,
+              "max": 2,
+              "upgradeFunds": 175000,
+              "currentLevelText": "* Max Size: 140t\n* Max Parts: 255",
+              "nextLevelText": "* Max Size: Unlimited\n* Max Parts: Unlimited"
+            },
+            "mission": {
+              "level": 2,
+              "max": 2,
+              "upgradeFunds": 0,
+              "currentLevelText": "* Active contracts: Unlimited",
+              "nextLevelText": ""
+            },
+            "tracking": {
+              "level": 1,
+              "max": 2,
+              "upgradeFunds": 115000,
+              "currentLevelText": "* Maneuver nodes enabled",
+              "nextLevelText": "* Patched conics (full)"
+            },
+            "admin": {
+              "level": 0,
+              "max": 2,
+              "upgradeFunds": 55000,
+              "currentLevelText": "* Max Active Strategies: 1\n* Max Commitment: 25.0%",
+              "nextLevelText": "* Max Active Strategies: 3\n* Max Commitment: 60.0%"
+            },
+            "rd": {
+              "level": 1,
+              "max": 2,
+              "upgradeFunds": 225000,
+              "currentLevelText": "* Science archive: 2500 pts",
+              "nextLevelText": "* Science archive: Unlimited"
+            },
+            "astronaut": {
+              "level": 1,
+              "max": 2,
+              "upgradeFunds": 65000,
+              "currentLevelText": "* Max crew: 12",
+              "nextLevelText": "* Max crew: Unlimited"
+            }
+          },
+          "contracts": null,
+          "strategies": null,
+          "tech": null
+        }
+      }
+    ],
+    "pinnedUt": 10
+  }
+}

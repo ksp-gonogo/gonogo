@@ -259,6 +259,12 @@ export {
   FramedDisplay,
   type FramedDisplayProps,
 } from "./FramedDisplay";
+export {
+  FundsDrain,
+  type FundsDrainProps,
+  netFundsPerDay,
+  reportsFundsDrain,
+} from "./FundsDrain";
 // The third, and the last: a CLOCK as a string. `<Countdown>` is the node
 // form and is what a call site should reach for; this exists because four
 // separate files had each hand-rolled the same s/m/h ladder to build a

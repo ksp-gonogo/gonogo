@@ -1,0 +1,64 @@
+{
+  "_meta": {
+    "notes": "Stock career. The elected economy model answers truthfully that money does not decay, earns no subsidy and costs nothing to hold, so no drain readout appears at all.",
+    "scenario": "stock-no-drain"
+  },
+  "_stream": {
+    "carriedChannels": ["spaceCenter.astronautComplex", "career.status"],
+    "pinnedUt": 10,
+    "emits": [
+      {
+        "channel": "career.status",
+        "value": {
+          "economy": {
+            "funds": 289848,
+            "economyModel": "stock",
+            "reputationDecayPerDay": 0,
+            "subsidyPerDay": 0,
+            "subsidyMinPerDay": 0,
+            "subsidyMaxPerDay": 0,
+            "upkeepPerDay": 0
+          }
+        }
+      },
+      {
+        "channel": "spaceCenter.astronautComplex",
+        "value": {
+          "applicants": [
+            {
+              "name": "Desdin Kerman",
+              "trait": "Scientist",
+              "experienceLevel": 0,
+              "courage": 0.65,
+              "stupidity": 0.2
+            },
+            {
+              "name": "Limmy Kerman",
+              "trait": "Pilot",
+              "experienceLevel": 0,
+              "courage": 0.4,
+              "stupidity": 0.55
+            },
+            {
+              "name": "Nelemy Kerman",
+              "trait": "Engineer",
+              "experienceLevel": 0,
+              "courage": 0.8,
+              "stupidity": 0.15
+            },
+            {
+              "name": "Sherdrin Kerman",
+              "trait": "Pilot",
+              "experienceLevel": 0,
+              "courage": 0.5,
+              "stupidity": 0.3
+            }
+          ],
+          "activeCrew": 4,
+          "crewCapacity": 13,
+          "nextHireCost": 24000
+        }
+      }
+    ]
+  }
+}

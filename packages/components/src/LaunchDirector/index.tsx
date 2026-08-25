@@ -23,8 +23,11 @@ import {
 } from "@ksp-gonogo/sitrep-sdk";
 import {
   type CommandButtonHandle,
+  FundsDrain,
   NULL_DISPLAY,
+  netFundsPerDay,
   Panel,
+  reportsFundsDrain,
   Spinner,
   Unit,
   useCommandButton,
@@ -356,6 +359,14 @@ function LaunchDirectorComponent({
    * widget accuses the link of dropping on every cold start.
    */
   const fundsNotCurrent = notCurrent(careerReading);
+  /**
+   * The standing cost the balance is also paying for. A craft this widget calls
+   * launchable is one the balance covers today, which is not the same claim as
+   * one the programme can carry, so the rate the elected money model reports
+   * sits beside the balance rather than being folded into the gate. A stock
+   * career reports no such rate and this renders nothing.
+   */
+  const netFunds = netFundsPerDay(judgeable(careerReading)?.economy);
   const { chargesFunds } = useGameContext();
   // career.funds -> career.status.economy.funds is the one
   // MAPPED read in this widget (a funds spender per CLAUDE.md's "always show
@@ -574,6 +585,11 @@ function LaunchDirectorComponent({
             {typeof careerFunds === "number" && (
               <FundsReadout title="Available funds">
                 · <Unit value={value("funds", careerFunds)} />
+              </FundsReadout>
+            )}
+            {reportsFundsDrain(netFunds) && (
+              <FundsReadout>
+                · <FundsDrain funds={careerFunds} netPerDay={netFunds} />
               </FundsReadout>
             )}
             {/* The balance is required beside a spend control, and an absent
@@ -1532,6 +1548,8 @@ registerComponent<LaunchDirectorConfig>({
     "spaceCenter.state.padOccupied",
     "spaceCenter.state.padVesselTitle",
     "career.status.economy.funds",
+    "career.status.economy.subsidyPerDay",
+    "career.status.economy.upkeepPerDay",
     "vessel.identity.name",
     "vessel.state.met",
     "vessel.state.altitudeAsl",

@@ -7,7 +7,7 @@ import {
 } from "@ksp-gonogo/core";
 import type { Reading } from "@ksp-gonogo/sitrep-client";
 import { value } from "@ksp-gonogo/sitrep-sdk";
-import { NULL_DISPLAY, Panel, Unit } from "@ksp-gonogo/ui-kit";
+import { NULL_DISPLAY, netFundsPerDay, Panel, Unit } from "@ksp-gonogo/ui-kit";
 import styled from "styled-components";
 import { magnitudeOf } from "../shared/magnitude";
 
@@ -100,8 +100,10 @@ function CareerEconomyComponent({ w, h }: ComponentProps<CareerEconomyConfig>) {
     sources.length === 0;
 
   // Only from two rates that both arrived. Treating an absent subsidy as zero
-  // would report a drain the model never claimed.
-  const net = subsidy !== null && upkeep !== null ? subsidy - upkeep : null;
+  // would report a drain the model never claimed. Shared with the readout every
+  // funds-spending widget carries, so the two cannot disagree about what this
+  // career is costing.
+  const net = netFundsPerDay(economy);
 
   const bucket = getSizeBucket(w, h);
   const compact = bucket === "tiny" || (w ?? 6) < 4;

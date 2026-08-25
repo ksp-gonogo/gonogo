@@ -20,8 +20,11 @@ import {
   ChevronUpIcon,
   type CommandButtonHandle,
   FitLabelButton,
+  FundsDrain,
   NULL_DISPLAY,
+  netFundsPerDay,
   Panel,
+  reportsFundsDrain,
   Spinner,
   speakQuantity,
   Unit,
@@ -46,6 +49,8 @@ const topics = defineTopicManifest({
   fields: [
     "career.status.facilities",
     "career.status.economy.funds",
+    "career.status.economy.subsidyPerDay",
+    "career.status.economy.upkeepPerDay",
     "spaceCenter.partsAvailable.count",
     "spaceCenter.scene.launchSite",
     "spaceCenter.scene.scene",
@@ -313,6 +318,15 @@ function SpaceCenterStatusComponent({
   // widget's own compact funds formatting, both of which want a number.
   const careerFunds = magnitudeOf(judgeable(careerReading)?.economy?.funds);
   const fundsNotCurrent = notCurrent(careerReading);
+  /**
+   * A balance is only half of what "can I afford this" asks. Under a career
+   * overhaul the programme runs a standing per-day cost against a subsidy, so a
+   * balance that covers an upgrade today need not cover it and next month's
+   * payroll. This is the other half, and it comes from whichever money model
+   * won the `economy` capability rather than from arithmetic invented here, so
+   * a stock career reports no such mechanism and this shows nothing at all.
+   */
+  const netFunds = netFundsPerDay(judgeable(careerReading)?.economy);
   // Only claim a balance is being held when one actually arrived and is being
   // refused. A career that never reported an `economy` block has nothing held.
   const heldFunds =
@@ -412,6 +426,14 @@ function SpaceCenterStatusComponent({
           >
             {formatTinyFunds(Math.round(careerFunds))}
             <TinyFundsUnit>f</TinyFundsUnit>
+            {/* At this size the balance alone is the whole readout, so the
+                drain has to arrive as the one number that changes the answer:
+                how long the balance lasts. */}
+            {reportsFundsDrain(netFunds) && (
+              <TinyDrain>
+                <FundsDrain funds={careerFunds} netPerDay={netFunds} compact />
+              </TinyDrain>
+            )}
           </TinyFunds>
         ) : (
           /* No room for a sentence in a 2x3 box, but the reason still has to
@@ -450,7 +472,13 @@ function SpaceCenterStatusComponent({
               <FundsReadout title="Available funds">
                 · <Unit value={value("funds", careerFunds)} />
               </FundsReadout>
-            ) : (
+            ) : null}
+            {reportsFundsDrain(netFunds) && (
+              <FundsReadout>
+                · <FundsDrain funds={careerFunds} netPerDay={netFunds} />
+              </FundsReadout>
+            )}
+            {careerFunds === null &&
               /* The balance is required beside a spend control, and an absent
                  balance is the state that rule exists for: it is exactly when
                  the affordability check below has nothing to judge against.
@@ -466,8 +494,7 @@ function SpaceCenterStatusComponent({
                 <FundsReadout title="No funds balance has arrived">
                   · funds unknown
                 </FundsReadout>
-              ))
-            )}
+              ))}
           </PadStatusLine>
         )}
         {heldUpgradeInputs.length > 0 && (
@@ -965,6 +992,15 @@ const TinyFundsUnit = styled.span`
   font-size: 12px;
   color: var(--color-text-muted);
   margin-left: var(--space-2);
+`;
+
+const TinyDrain = styled.div`
+  /* Its own line under the balance. The smallest rung on the ladder, because at
+     the 2x3 minSize the balance itself is pinned at its own floor and a
+     qualifier must not out-size what it qualifies. */
+  font-size: var(--font-size-2xs);
+  font-weight: 400;
+  line-height: var(--line-height-flush);
 `;
 
 const TinyPad = styled.span<{ $occupied: boolean }>`
