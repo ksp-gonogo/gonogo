@@ -521,6 +521,7 @@ export {
 export { Truncate } from "./Truncate";
 export { Unit } from "./Unit";
 export {
+  type RateControl,
   type SlidableRange,
   UnitInput,
   type UnitInputProps,

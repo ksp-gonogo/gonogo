@@ -226,7 +226,7 @@ const SCENES: Scene[] = [
     },
   },
 
-  // ---- PlanComposer -----------------------------------------------------
+  // The plan composer, driven through its own buttons.
   {
     // A plan being composed: two burns seeded at instants the craft can still
     // act on, with the calendar entry and the rate wheel on each.
