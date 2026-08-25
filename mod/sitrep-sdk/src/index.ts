@@ -142,6 +142,16 @@ export type {
   UnitHint,
 } from "./flight/types";
 export * from "./ksp-enum-names";
+// The magnitude unwrap, beside `Value` because that is what it unwraps. Moved
+// down from ui-kit on 2026-08-25: ui-kit depends on this package, so while it
+// lived there nothing here could reach it without a cycle and two spine files
+// carried their own diverging copies. `magnitude.ts`'s own doc says what that
+// cost. ui-kit re-exports these three, so no call site moved.
+export {
+  magnitudeOf,
+  magnitudeOr,
+  type Quantityish,
+} from "./magnitude";
 // The curated author-facing barrel (registration + hook shims + author types).
 // PROPOSAL surface pending operator sign-off (design D-D) before first external
 // publish. See ./api for why these are host-injected shims, not core re-exports.

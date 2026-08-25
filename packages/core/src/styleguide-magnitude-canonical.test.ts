@@ -34,24 +34,25 @@ import { describe, expect, it } from "vitest";
  */
 
 /** The one file allowed to declare them. */
-const CANONICAL = "packages/ui-kit/src/magnitude.ts";
+const CANONICAL = "mod/sitrep-sdk/src/magnitude.ts";
 
 /**
- * `mod/sitrep-sdk/**` cannot converge, and the reason is the dependency
- * direction rather than anyone's backlog: `ui-kit` depends on `sitrep-sdk`
- * (`Meter` imports `value` from it), so the sdk importing `magnitudeOf` back
- * out of ui-kit is a cycle. Its spine files therefore keep their own local
- * unwraps, and they disagree about absence exactly the way this check exists
- * to stop: `orbit-trajectory.ts` throws on null, `vessel-state.ts` answers
- * `NaN`.
+ * One file, and it is a deliberate hold rather than a layering problem now.
  *
- * The fix is to move the canonical pair DOWN into `sitrep-sdk`, which is where
- * `Value` is declared and is equally published, leaving a re-export in ui-kit
- * so no call site changes. That is a cross-package move and is not this
- * check's job; the allowance is written here so it reads as a known layering
- * problem with a named answer rather than as a gap nobody noticed.
+ * The canonical pair moved down into `mod/sitrep-sdk/src/magnitude.ts` on
+ * 2026-08-25, so the cycle that used to make every sdk file unable to converge
+ * is gone and `vessel-state.ts` converged with it. `orbit-trajectory.ts` did
+ * not, because its local copy is the only one whose absence answer is THROW,
+ * and nobody has established what a thrown `TypeError` inside that derive
+ * actually does to a render. This project prefers loud to silent, so the throw
+ * may well be correct as it stands, and swapping it for a NaN on the way past
+ * would be a behaviour change with no evidence behind it.
+ *
+ * What it needs is a reproduction: a wire trajectory with a missing point
+ * component, and a look at where the throw lands. Then either converge it or
+ * write down why it stays. Until then this entry is the reason, not a gap.
  */
-const LAYER_BLOCKED = /^mod\/sitrep-sdk\//;
+const HELD = new Set(["mod/sitrep-sdk/src/spine/orbit-trajectory.ts"]);
 
 /**
  * Names a second copy reaches for. `mag` is on the list because it is what the
@@ -163,7 +164,7 @@ describe("the magnitude unwrap has exactly one implementation", () => {
 
   it("has no second implementation anywhere else", () => {
     const duplicates = [...found]
-      .filter(([file]) => file !== CANONICAL && !LAYER_BLOCKED.test(file))
+      .filter(([file]) => file !== CANONICAL && !HELD.has(file))
       .flatMap(([, lines]) => lines)
       .sort();
     if (duplicates.length > 0) {

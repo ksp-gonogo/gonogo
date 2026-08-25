@@ -101,9 +101,8 @@ describe("vessel.state on a partial vessel.flight frame", () => {
 
   for (const field of WIRE_SOURCED) {
     it(`answers null, never NaN, for an unreported ${field}`, () => {
-      const state =
-        deriveVesselState !== undefined ? deriveWithout(field) : null;
-      const value = (state as Record<string, unknown> | null)?.[field];
+      const state = deriveWithout(field) as Record<string, unknown> | null;
+      const value = state?.[field];
       // Both assertions, and in this order. `toBeNull` alone would report
       // `expected NaN to be null`, which is legible; the explicit isNaN check
       // is here because NaN is the ONE wrong answer this file exists to catch
