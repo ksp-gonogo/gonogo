@@ -220,6 +220,7 @@ public static class RtConfig
                 // career.status channel payload + sub-groups (P0.5)
                 typeof(CareerStatus),
                 typeof(CareerEconomy),
+                typeof(CareerUpkeep),
                 typeof(CareerFacility),
                 typeof(CareerContracts),
                 typeof(CareerContract),

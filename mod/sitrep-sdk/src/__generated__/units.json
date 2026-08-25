@@ -13,6 +13,7 @@
     "enum",
     "flag",
     "funds",
+    "funds/day",
     "g",
     "h",
     "id",
@@ -33,6 +34,7 @@
     "rad/s",
     "ratio",
     "rep",
+    "rep/day",
     "rpm",
     "s",
     "science",
@@ -136,9 +138,15 @@
       "title": "text"
     },
     "CareerEconomy": {
+      "economyModel": "id",
       "funds": "funds",
       "reputation": "rep",
-      "science": "science"
+      "reputationDecayPerDay": "rep/day",
+      "science": "science",
+      "subsidyMaxPerDay": "funds/day",
+      "subsidyMinPerDay": "funds/day",
+      "subsidyPerDay": "funds/day",
+      "upkeepPerDay": "funds/day"
     },
     "CareerFacility": {
       "currentTier": "count",
@@ -183,6 +191,15 @@
       "scienceCost": "science",
       "title": "text",
       "unlocked": "flag"
+    },
+    "CareerUpkeep": {
+      "crewBase": "funds/day",
+      "crewInFlight": "funds/day",
+      "facilities": "funds/day",
+      "integrationSalary": "funds/day",
+      "launchComplexes": "funds/day",
+      "researchSalary": "funds/day",
+      "training": "funds/day"
     },
     "ClosestApproach": {
       "distance": "m",
@@ -1767,6 +1784,9 @@
       "completedRecent": "CareerContract",
       "offered": "CareerContract"
     },
+    "CareerEconomy": {
+      "upkeep": "CareerUpkeep"
+    },
     "CareerStatus": {
       "contracts": "CareerContracts",
       "economy": "CareerEconomy",
@@ -1839,6 +1859,9 @@
     },
     "DockAlignment": {
       "meta": "PayloadMeta"
+    },
+    "EconomyReading": {
+      "upkeepBreakdown": "EconomyUpkeepBreakdown"
     },
     "EmissionPolicy": {
       "quantum": "EmissionQuantum"

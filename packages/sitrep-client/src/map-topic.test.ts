@@ -1,10 +1,52 @@
 import { describe, expect, it } from "vitest";
 import {
+  isKnownFieldPath,
   isKnownLegacyKeyGap,
   LEGACY_KEY_GAPS,
   mapTopic,
   redirectKinematicSubtopic,
 } from "./map-topic";
+
+describe("isKnownFieldPath", () => {
+  it("resolves a contract field that no legacy key ever named", () => {
+    // The half the migration table cannot carry. `reputationDecayPerDay` is a
+    // field the wire gained after the migration began, so it has no legacy
+    // predecessor to be the new home of, and a widget declaring it had nothing
+    // to validate against.
+    expect(
+      isKnownFieldPath("career.status.economy.reputationDecayPerDay"),
+    ).toBe(true);
+    expect(isKnownFieldPath("career.status.economy.upkeep")).toBe(true);
+    expect(
+      isKnownFieldPath("career.status.economy.upkeep.launchComplexes"),
+    ).toBe(true);
+  });
+
+  it("still resolves a derived-channel field, which no contract type declares", () => {
+    expect(isKnownFieldPath("vessel.state.altitudeAsl")).toBe(true);
+  });
+
+  it("rejects a plausible name the contract does not declare", () => {
+    // The positive control. A walk that returned true here would make every
+    // declaration gate downstream of it vacuous.
+    expect(isKnownFieldPath("career.status.economy.notAField")).toBe(false);
+    expect(isKnownFieldPath("career.status.economy.upkeep.notASource")).toBe(
+      false,
+    );
+    expect(isKnownFieldPath("vessel.state.notAField")).toBe(false);
+    expect(isKnownFieldPath("notATopic.atAll")).toBe(false);
+  });
+
+  it("stops at a collection rather than guessing past its key", () => {
+    // `facilities` is a dynamic-key map, so what follows it is a facility name
+    // the contract never lists. The collection itself is a real field; a path
+    // through it cannot be judged, and guessing is worse than declining.
+    expect(isKnownFieldPath("career.status.facilities")).toBe(true);
+    expect(isKnownFieldPath("career.status.facilities.LaunchPad.maxTier")).toBe(
+      false,
+    );
+  });
+});
 
 describe("redirectKinematicSubtopic (T3: new-SDK topic safety net)", () => {
   it("routes short kinematic keys onto vessel.state.*", () => {

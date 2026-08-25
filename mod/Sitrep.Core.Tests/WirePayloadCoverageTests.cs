@@ -115,7 +115,7 @@ namespace Sitrep.Core.Tests
             // BuildFacilities/BuildContracts/BuildStrategies/BuildTech, and
             // BuildCareerMode's local ToWire); the Sitrep.Contract POCOs exist only
             // for the generated TS shape and are never handed to AppendValue raw.
-            "CareerMode", "CareerStatus", "CareerEconomy", "CareerFacility",
+            "CareerMode", "CareerStatus", "CareerEconomy", "CareerUpkeep", "CareerFacility",
             "CareerContracts", "CareerContract", "CareerContractParameter",
             "CareerStrategies", "CareerStrategy", "CareerTech", "CareerTechNode",
             // game.dlc / ksp.revertAvailability / system.bodies / system.vessels,

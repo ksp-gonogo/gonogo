@@ -23,6 +23,7 @@ export type KnownSitrepUnit =
   | "enum"
   | "flag"
   | "funds"
+  | "funds/day"
   | "g"
   | "h"
   | "id"
@@ -43,6 +44,7 @@ export type KnownSitrepUnit =
   | "rad/s"
   | "ratio"
   | "rep"
+  | "rep/day"
   | "rpm"
   | "s"
   | "science"
@@ -170,9 +172,15 @@ export const GENERATED_TYPE_UNITS: Readonly<Record<string, UnitsByField>> = {
     title: "text",
   },
   "CareerEconomy": {
+    economyModel: "id",
     funds: "funds",
     reputation: "rep",
+    reputationDecayPerDay: "rep/day",
     science: "science",
+    subsidyMaxPerDay: "funds/day",
+    subsidyMinPerDay: "funds/day",
+    subsidyPerDay: "funds/day",
+    upkeepPerDay: "funds/day",
   },
   "CareerFacility": {
     currentTier: "count",
@@ -217,6 +225,15 @@ export const GENERATED_TYPE_UNITS: Readonly<Record<string, UnitsByField>> = {
     scienceCost: "science",
     title: "text",
     unlocked: "flag",
+  },
+  "CareerUpkeep": {
+    crewBase: "funds/day",
+    crewInFlight: "funds/day",
+    facilities: "funds/day",
+    integrationSalary: "funds/day",
+    launchComplexes: "funds/day",
+    researchSalary: "funds/day",
+    training: "funds/day",
   },
   "ClosestApproach": {
     distance: "m",
@@ -1824,6 +1841,9 @@ export const GENERATED_TYPE_SHAPES: Readonly<Record<string, ShapesByField>> = {
     completedRecent: "CareerContract",
     offered: "CareerContract",
   },
+  "CareerEconomy": {
+    upkeep: "CareerUpkeep",
+  },
   "CareerStatus": {
     contracts: "CareerContracts",
     economy: "CareerEconomy",
@@ -1896,6 +1916,9 @@ export const GENERATED_TYPE_SHAPES: Readonly<Record<string, ShapesByField>> = {
   },
   "DockAlignment": {
     meta: "PayloadMeta",
+  },
+  "EconomyReading": {
+    upkeepBreakdown: "EconomyUpkeepBreakdown",
   },
   "EmissionPolicy": {
     quantum: "EmissionQuantum",

@@ -1,4 +1,19 @@
 {
+  "CareerEconomy.funds": {
+    "rates": [
+      "subsidyMaxPerDay",
+      "subsidyMinPerDay",
+      "subsidyPerDay",
+      "upkeepPerDay"
+    ],
+    "reason": "Funds really do integrate under a career overhaul, and none of these four is the derivative on its own. The balance moves at subsidy MINUS upkeep, so a reckoning wants a composed expression rather than a field pairing; the min and max are the envelope the subsidy sits in and are not rates in effect at all; and the impulses that actually dominate the balance (a contract award, a launch, a facility upgrade) are described by none of them. Also conditional on the elected model: stock answers all four as zero, so a reckoning fitted to them would hold the balance still through every purchase.",
+    "verdict": "real-but-unmodelled"
+  },
+  "CareerEconomy.reputation": {
+    "rates": ["reputationDecayPerDay"],
+    "reason": "A true derivative and the sign is the trap: reputation FALLS by this, so integrating it forward adds where it should subtract. It is also state-dependent rather than constant, being a fixed portion of the current reputation applied daily, which makes the honest model an exponential decay and not a linear ramp. Zero on stock, which has no decay at all.",
+    "verdict": "real-but-unmodelled"
+  },
   "CareerStrategy.dateActivated": {
     "rates": ["factor", "factorSliderDefault"],
     "reason": "Dimensional degeneracy, not a pairing: `divide({s:1},{s:1})` is `{}` and `1`/`ratio`/`%` are all dimensionless, so EVERY dimensionless field is the dimensional rate of EVERY time field in its own type. `ecc` is not the rate of an epoch. This is what the algebra says and no vocabulary work fixes it; it is the single strongest argument against deriving a class from units.",

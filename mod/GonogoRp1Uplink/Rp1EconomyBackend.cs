@@ -37,6 +37,13 @@
 // up to an in-game hour stale, or up to a day under high time warp. That is
 // RP-1's own figure at its own cadence, which is the number its UI shows too.
 //
+// ONE SIGN CONVENTION, and it is not uniform on RP-1's side.
+// UpkeepPerDayForDisplay is built by UpdateUpkeep as a sum of currency-modifier
+// queries run on NEGATED costs, so it is a funds DELTA and is negative;
+// SpaceCenterManagement adds it straight to the subsidy to get a net per-day
+// change. Every field in the breakdown beside it is a positive cost. The wire
+// carries costs, so the total is negated to match the parts it is made of.
+//
 // TWO UNIT CONVERSIONS, both from RP-1's own arithmetic rather than assumed:
 //   the subsidy is a YEARLY figure over a JULIAN year (FillSubsidyDetails divides
 //   ut by 31,557,600 = 365.25 days), so a per-day figure is that over 365.25. Not
@@ -115,10 +122,9 @@ namespace GonogoRp1Uplink
 
             var reading = new EconomyReading
             {
-                // RP-1's own total, as its own UI shows it, rather than our sum of
-                // the parts below: if the two ever disagree, the operator should
-                // see the game's figure.
-                UpkeepPerDay = Rp1Types.ReadDouble(instance, "UpkeepPerDayForDisplay"),
+                // RP-1's own total rather than our sum of the parts below: if the
+                // two ever disagree, the operator should see the game's figure.
+                UpkeepPerDay = AsCost(Rp1Types.ReadDouble(instance, "UpkeepPerDayForDisplay")),
                 UpkeepBreakdown = new EconomyUpkeepBreakdown
                 {
                     Facilities = Rp1Types.ReadDouble(instance, "FacilityUpkeepPerDay"),
@@ -142,6 +148,14 @@ namespace GonogoRp1Uplink
         /// unreadable: a decay figure computed from an assumed reputation would be
         /// a fabrication about the operator's income.
         /// </summary>
+        /// <remarks>
+        /// This is the raw figure RP-1's own daily tick subtracts, and not the
+        /// one its reputation tooltip prints: the tooltip puts the same product
+        /// through a currency-modifier query first, so a leader or strategy that
+        /// softens the decline moves the tooltip and not this. That query
+        /// broadcasts a game event to every modifier in the save, which is a
+        /// thing to run and not a thing to read, so it stays uncalled.
+        /// </remarks>
         private double? DecayPerDay(double? reputation)
         {
             if (reputation == null || _database == null)
@@ -194,5 +208,16 @@ namespace GonogoRp1Uplink
         /// <summary>A yearly subsidy as a daily one. RP-1's year here is Julian, not a game year.</summary>
         private static double? PerDay(double? perYear) =>
             perYear == null ? (double?)null : perYear.Value / SubsidyYearDays;
+
+        /// <summary>
+        /// RP-1's signed funds delta as a positive cost, which is the direction
+        /// every field in the breakdown already uses and the direction the
+        /// contract declares. Zero stays zero rather than becoming a negative
+        /// one, which survives JSON and prints as "-0".
+        /// </summary>
+        private static double? AsCost(double? fundsDelta) =>
+            fundsDelta == null ? (double?)null
+                : fundsDelta.Value == 0.0 ? 0.0
+                : -fundsDelta.Value;
     }
 }

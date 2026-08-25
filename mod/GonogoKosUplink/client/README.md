@@ -20,7 +20,7 @@ range the widget says so; it never becomes a hard startup requirement for the ap
 | --- | --- |
 | Uplink id | `kos` |
 | Version | `0.0.1` |
-| Built against | contract 13.0, api 1.0.0, ui-kit 0.2.0 |
+| Built against | contract 13.1, api 1.0.0, ui-kit 0.2.0 |
 
 ## Widgets
 

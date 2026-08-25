@@ -9,6 +9,7 @@
 export * from "./ActionGroup";
 export * from "./AstronautComplex";
 export * from "./AtmosphereProfile";
+export * from "./CareerEconomy";
 export * from "./CommSignal";
 export * from "./ContractManager";
 export * from "./CrewStatus";

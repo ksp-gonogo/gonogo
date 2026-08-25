@@ -441,6 +441,145 @@ namespace Sitrep.Host.Tests
         }
 
         [Fact]
+        public void BuildCareerCarriesTheElectedEconomyInterpretationWhenTheCaptureHadOne()
+        {
+            var snapshot = new KspSnapshot
+            {
+                Ut = 0.0,
+                Values = new Dictionary<string, object?>
+                {
+                    ["career"] = new Dictionary<string, object?>
+                    {
+                        ["economy"] = new Dictionary<string, object?>
+                        {
+                            ["funds"] = 100.0,
+                            ["reputation"] = 250.0,
+                            ["science"] = 12.0,
+                            ["economyModel"] = "fake-overhaul",
+                            ["reputationDecayPerDay"] = 2.5,
+                            ["subsidyPerDay"] = 500.0,
+                            ["subsidyMinPerDay"] = 100.0,
+                            ["subsidyMaxPerDay"] = 900.0,
+                            ["upkeepPerDay"] = 750.0,
+                            ["upkeep"] = new Dictionary<string, object?>
+                            {
+                                ["facilities"] = 100.0,
+                                ["launchComplexes"] = 200.0,
+                                ["researchSalary"] = 150.0,
+                                ["training"] = 50.0,
+                                ["crewBase"] = 120.0,
+                                ["crewInFlight"] = 30.0,
+                                ["integrationSalary"] = 100.0,
+                            },
+                        },
+                    },
+                },
+            };
+
+            var root = Assert.IsType<Dictionary<string, object?>>(CareerViewProvider.BuildCareer(snapshot));
+            var economy = Assert.IsType<Dictionary<string, object?>>(root["economy"]);
+
+            // The reading the capability does NOT touch, first: interpreting
+            // reputation must never move it.
+            Assert.Equal(250.0, economy["reputation"]);
+
+            Assert.Equal("fake-overhaul", economy["economyModel"]);
+            Assert.Equal(2.5, economy["reputationDecayPerDay"]);
+            Assert.Equal(500.0, economy["subsidyPerDay"]);
+            Assert.Equal(100.0, economy["subsidyMinPerDay"]);
+            Assert.Equal(900.0, economy["subsidyMaxPerDay"]);
+            Assert.Equal(750.0, economy["upkeepPerDay"]);
+
+            var upkeep = Assert.IsType<Dictionary<string, object?>>(economy["upkeep"]);
+            Assert.Equal(100.0, upkeep["facilities"]);
+            Assert.Equal(200.0, upkeep["launchComplexes"]);
+            Assert.Equal(150.0, upkeep["researchSalary"]);
+            Assert.Equal(50.0, upkeep["training"]);
+            Assert.Equal(120.0, upkeep["crewBase"]);
+            Assert.Equal(30.0, upkeep["crewInFlight"]);
+            Assert.Equal(100.0, upkeep["integrationSalary"]);
+        }
+
+        /// <summary>
+        /// A capture taken with no economy backend installed at all, which is
+        /// every capture a bare host produces. The economy group must come out
+        /// carrying the three readings and NOTHING else: an interpretation key
+        /// holding null would say a model was asked and could not answer, where
+        /// the truth is that none was asked.
+        /// </summary>
+        [Fact]
+        public void BuildCareerOmitsTheInterpretationKeysEntirelyWhenNoModelAnswered()
+        {
+            var snapshot = new KspSnapshot
+            {
+                Ut = 0.0,
+                Values = new Dictionary<string, object?>
+                {
+                    ["career"] = new Dictionary<string, object?>
+                    {
+                        ["economy"] = new Dictionary<string, object?>
+                        {
+                            ["funds"] = 100.0,
+                            ["reputation"] = 250.0,
+                            ["science"] = 12.0,
+                        },
+                    },
+                },
+            };
+
+            var root = Assert.IsType<Dictionary<string, object?>>(CareerViewProvider.BuildCareer(snapshot));
+            var economy = Assert.IsType<Dictionary<string, object?>>(root["economy"]);
+
+            Assert.Equal(
+                new[] { "funds", "reputation", "science" },
+                economy.Keys);
+        }
+
+        /// <summary>
+        /// Stock's own answer, end to end: the capability is registered, nothing
+        /// contests it, and the group gains the vanilla backend's truthful zeros
+        /// with no breakdown beside them. The three readings are untouched, which
+        /// is the whole promise this capability makes.
+        /// </summary>
+        [Fact]
+        public void BuildCareerCarriesStockZerosAndNoBreakdown()
+        {
+            var snapshot = new KspSnapshot
+            {
+                Ut = 0.0,
+                Values = new Dictionary<string, object?>
+                {
+                    ["career"] = new Dictionary<string, object?>
+                    {
+                        ["economy"] = new Dictionary<string, object?>
+                        {
+                            ["funds"] = 100.0,
+                            ["reputation"] = 250.0,
+                            ["science"] = 12.0,
+                            ["economyModel"] = "stock",
+                            ["reputationDecayPerDay"] = 0.0,
+                            ["subsidyPerDay"] = 0.0,
+                            ["subsidyMinPerDay"] = 0.0,
+                            ["subsidyMaxPerDay"] = 0.0,
+                            ["upkeepPerDay"] = 0.0,
+                            // no "upkeep": stock has none of the concepts
+                        },
+                    },
+                },
+            };
+
+            var root = Assert.IsType<Dictionary<string, object?>>(CareerViewProvider.BuildCareer(snapshot));
+            var economy = Assert.IsType<Dictionary<string, object?>>(root["economy"]);
+
+            Assert.Equal(100.0, economy["funds"]);
+            Assert.Equal(250.0, economy["reputation"]);
+            Assert.Equal(12.0, economy["science"]);
+            Assert.Equal("stock", economy["economyModel"]);
+            Assert.Equal(0.0, economy["upkeepPerDay"]);
+            Assert.False(economy.ContainsKey("upkeep"));
+        }
+
+        [Fact]
         public void BuildCareerEmitsEmptyCompletedRecentWhenTheRawContractsGroupOmitsIt()
         {
             // A pre-completedRecent capture (or a tick before any contract has

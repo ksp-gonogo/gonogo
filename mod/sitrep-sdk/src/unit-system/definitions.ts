@@ -278,6 +278,26 @@ export const UNIT_DEFINITIONS = {
     kind: "scienceRate",
   },
   rep: { dim: { rep: 1 }, ratio: 1, kind: "reputation" },
+  // Money and standing as RATES, for the career models that make them flow
+  // rather than sit: a funding subsidy arriving and a standing cost leaving,
+  // both continuously, and a reputation that falls a little every day.
+  //
+  // Same game-day denominator, and the same caveat, as `science/day` above: the
+  // ratio here is Kerbin's day because the calendar is a property of the
+  // install rather than of the token, and a solar-system replacement moves it
+  // to 86400s. The number an operator READS is per day either way; only a
+  // conversion into another unit of this dimension is out, by the ratio of the
+  // two calendars.
+  "funds/day": {
+    dim: { funds: 1, s: -1 },
+    ratio: 1 / 21_600,
+    kind: "fundsRate",
+  },
+  "rep/day": {
+    dim: { rep: 1, s: -1 },
+    ratio: 1 / 21_600,
+    kind: "reputationRate",
+  },
 
   // ── Non-physical, but still quantities ───────────────────────────────────
   // A count is its own base. Adding three crew to a 0.5 ratio is nonsense, and

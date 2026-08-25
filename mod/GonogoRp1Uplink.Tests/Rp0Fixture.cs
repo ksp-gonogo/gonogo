@@ -284,6 +284,16 @@ namespace RP0
         public double TrainingUpkeepPerDay;
         public double NautBaseUpkeepPerDay;
         public double NautInFlightUpkeepPerDay;
+
+        /// <summary>
+        /// RP-1's own total, and NEGATIVE, which is the one place its sign
+        /// convention differs from every field above it. The shipped
+        /// UpdateUpkeep builds it as a sum of currency-modifier queries run on
+        /// NEGATED costs, and SpaceCenterManagement adds it straight to the
+        /// subsidy to get a net funds delta per day. A test holding a positive
+        /// here would agree with a reading that puts a credit on the wire where
+        /// the career is being drained.
+        /// </summary>
         public double UpkeepPerDayForDisplay;
 
         public double FacilityUpkeepValue;

@@ -38,6 +38,13 @@
  * live `DataSource`).
  */
 
+import {
+  GENERATED_TOPIC_SHAPES,
+  GENERATED_TOPIC_UNITS,
+  GENERATED_TYPE_SHAPES,
+  GENERATED_TYPE_UNITS,
+} from "../__generated__/units";
+
 /** Kinematics → `vessel.state.*` routing: `mapTopic` points kinematics at
  * `vessel.state.*` derived subtopics from the first migrated widget. Two
  * input shapes are handled:
@@ -1231,22 +1238,81 @@ const KNOWN_FIELD_PATHS: ReadonlySet<string> = new Set(
 );
 
 /**
- * Whether `path` is a field path inside a channel that this module already
- * resolves: precisely the set of targets the migration table points at.
+ * Walks the contract's own generated metadata from a topic root down a dotted
+ * path, returning whether every segment names a real field.
+ *
+ * A field is real when the topic (or the type reached so far) declares it with
+ * a UNIT, or declares it as a nested contract TYPE, which is the two halves the
+ * unit-map codegen emits from one pass.
+ *
+ * A shape recorded as `*Type` is an array or a dynamic-key map, and the walk
+ * stops there rather than descending: what follows a map is a key the contract
+ * never names (a facility id, a vessel id), so a deeper path cannot be judged
+ * and a permissive guess is worse than none. The path AS FAR AS the collection
+ * is still a real field and still resolves.
+ */
+function walksContractMetadata(topic: string, segments: string[]): boolean {
+  if (segments.length === 0) return false;
+
+  let units: Readonly<Record<string, string>> | undefined =
+    GENERATED_TOPIC_UNITS[topic];
+  let shapes: Readonly<Record<string, string>> | undefined =
+    GENERATED_TOPIC_SHAPES[topic];
+  if (units === undefined && shapes === undefined) return false;
+
+  for (let i = 0; i < segments.length; i++) {
+    const segment = segments[i];
+    const last = i === segments.length - 1;
+
+    if (units?.[segment] !== undefined) {
+      // A unit is a leaf, so anything after it is not a field.
+      return last;
+    }
+
+    const shape: string | undefined = shapes?.[segment];
+    if (shape === undefined) return false;
+    if (last) return true;
+    if (shape.startsWith("*")) return false;
+
+    units = GENERATED_TYPE_UNITS[shape];
+    shapes = GENERATED_TYPE_SHAPES[shape];
+    if (units === undefined && shapes === undefined) return false;
+  }
+
+  return false;
+}
+
+/**
+ * Whether `path` is a field path this module can resolve: a field the CONTRACT
+ * declares under one of its topics, or one of the targets the migration table
+ * points at.
  *
  * Exists so a caller can validate a field path WITHOUT importing the table
  * itself, which keeps the retiring vocabulary's name in this file rather than
- * spreading it to every module that needs to ask the question. The membership
- * test is meaningful because every target here is independently proved to
- * resolve: `vessel-state-mapping.coverage.test.ts` invokes the real
- * `deriveVesselState` for the derived ones, `map-topic.rawFieldRoots.coverage
- * .test.ts` checks the wire root of the raw ones.
+ * spreading it to every module that needs to ask the question.
  *
- * When the table retires, this must be re-sourced from the contract's
- * generated field metadata plus each derived channel's produced field set,
- * NOT deleted: its callers are validating declarations, which outlive the
- * vocabulary.
+ * Both halves are needed and neither subsumes the other. The migration table
+ * carries the DERIVED channels (`vessel.state.*`), which are computed here and
+ * appear in no contract type. The contract metadata carries every wire field,
+ * including the ones no legacy key ever named, which is every field added since
+ * the migration began: a widget declaring one of those had nothing to resolve
+ * against and its declaration was rejected as unresolvable.
  */
 export function isKnownFieldPath(path: string): boolean {
-  return KNOWN_FIELD_PATHS.has(path);
+  if (KNOWN_FIELD_PATHS.has(path)) return true;
+
+  // Topic ids contain dots, so the split point is found rather than assumed:
+  // the longest prefix the contract knows as a topic wins.
+  const segments = path.split(".");
+  for (let cut = segments.length - 1; cut >= 1; cut--) {
+    const topic = segments.slice(0, cut).join(".");
+    if (
+      GENERATED_TOPIC_UNITS[topic] === undefined &&
+      GENERATED_TOPIC_SHAPES[topic] === undefined
+    ) {
+      continue;
+    }
+    if (walksContractMetadata(topic, segments.slice(cut))) return true;
+  }
+  return false;
 }

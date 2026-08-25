@@ -146,6 +146,12 @@ export type KnownQuantityKind =
   | "funds"
   | "science"
   | "reputation"
+  // The two currencies that can FLOW. A career overhaul turns reputation into
+  // an income and levies a standing cost against it, so a balance and a rate
+  // sit side by side and must not format the same way: a rate wants a decimal
+  // where a balance does not.
+  | "fundsRate"
+  | "reputationRate"
   | "count"
   | "id"
   | "resourceUnits"
@@ -433,6 +439,11 @@ const DECIMALS: Record<string, number> = {
   funds: 0,
   science: 1,
   reputation: 1,
+  // The rates take a decimal where their balances take none. A daily upkeep of
+  // 980.4 funds is a real distinction from 980, and a reputation decaying by
+  // 0.11 a day rounds to nothing without one.
+  fundsRate: 1,
+  reputationRate: 2,
 };
 
 /**
@@ -640,6 +651,8 @@ const WORD_BY_SYMBOL: Record<string, string> = {
   "%": "percent",
   Mit: "mits",
   "science/day": "science per day",
+  "funds/day": "funds per day",
+  "rep/day": "reputation per day",
   units: "units",
   "units/s": "units per second",
   // The currencies, as displayed. `f` is a letter and `sci`/`rep` are
