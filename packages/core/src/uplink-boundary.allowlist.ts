@@ -1175,6 +1175,17 @@ export const ALLOWLIST: Record<ModToken, ModAllowlist> = {
       // -- Uplink loader: the sanctioned self-registration import, same
       // pattern as kerbcast/kos/scansat/mechjeb's main.tsx entries above.
       "packages/app/src/main.tsx",
+      // -- The OTHER RP-1 Uplink's doc comments (2026-08-25). Two Uplinks read
+      // RP-1 by reflection, and the reason they are separate rather than merged
+      // is the whole argument: a capture that throws takes its owning Uplink
+      // inert, so a build-queue bug must not be able to darken the
+      // controllable-mass go/no-go on the pad. That argument cannot be made
+      // without naming the surface it protects, and the next person wondering
+      // why there are two RP-1 Uplinks will look for it in exactly these two
+      // headers. Text-only, no code coupling: neither file references a type,
+      // an assembly or a topic of the avionics Uplink's.
+      "mod/GonogoRp1Uplink/Rp1ScReflection.cs",
+      "mod/GonogoRp1Uplink/Rp1ScUplink.cs",
 
       // -- Cross-Uplink topic-registry sync test: imports every Uplink
       // client (avionics included) to build the full C#<->registry topic

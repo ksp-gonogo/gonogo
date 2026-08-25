@@ -136,6 +136,21 @@ const WALL_CLOCK_EXEMPT: Array<{ file: string; why: string }> = [
       "is why it is no longer listed here.",
   },
   {
+    file: "mod/GonogoRp1Uplink/Rp1ScMath.cs",
+    why:
+      "Not OUR day, and not a length this file chose. RP-1 hard-codes " +
+      "`tdelta < 86400.0` in both `PredictWeightedEfficiency` and " +
+      "`TimeLeftWithEfficiencyIncrease` as the interval below which a launch " +
+      "complex's crew does not measurably improve. This file mirrors that " +
+      "arithmetic to publish the same ETA RP-1 displays, so the threshold has " +
+      "to be RP-1's own number: substituting a Kerbin day would make our ramp " +
+      "fire on builds RP-1 leaves un-ramped and disagree with the game's own " +
+      "readout. It cannot carry `irl:s` either, being a constant inside a " +
+      "mirrored algorithm on the C# side where `Value` does not exist. Named " +
+      "`RampFloorSeconds` and commented as RP-1's, so it reads as a foreign " +
+      "constant rather than a day.",
+  },
+  {
     file: "mod/sitrep-sdk/src/unit-system/definitions.ts",
     why:
       "The declared unit model: `d` has a ratio, and the stock ratio is one " +

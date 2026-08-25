@@ -1,0 +1,15 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <!-- Codegen-only twin of GonogoRp1Uplink.Contract. See ..\CodegenTwin.props. -->
+  <PropertyGroup>
+    <CodegenTwinSource>..\GonogoRp1Uplink.Contract</CodegenTwinSource>
+    <AssemblyName>GonogoRp1Uplink.Contract</AssemblyName>
+    <RootNamespace>GonogoRp1Uplink</RootNamespace>
+  </PropertyGroup>
+  <Import Project="..\CodegenTwin.props" />
+  <!-- The Sitrep.Contract TWIN, not the shipped contract: rtcli reads this
+       assembly's metadata and resolves the core types it references, and it
+       must see the same core assembly it always did, attributes included. -->
+  <ItemGroup>
+    <ProjectReference Include="..\Sitrep.Contract.Codegen\Sitrep.Contract.Codegen.csproj" />
+  </ItemGroup>
+</Project>

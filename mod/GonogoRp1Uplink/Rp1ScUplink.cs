@@ -1,0 +1,229 @@
+using System;
+using System.Collections.Generic;
+using Sitrep.Contract;
+
+namespace GonogoRp1Uplink
+{
+    /// <summary>
+    /// GonogoRp1Uplink: RP-1's space centre on the wire. The build queue, the
+    /// launch complexes and their pads, the rollout and reconditioning
+    /// operations, the research queue, the payroll, and Confidence.
+    ///
+    /// <para><b>A sibling of GonogoAvionicsUplink, never merged into it.</b> Both
+    /// read RP-1 by reflection, and one probe and one health row would be
+    /// tidier, but <c>AddSampledSource</c>'s contract is that a capture which
+    /// throws takes its OWNING Uplink inert from the next tick. Merged, a
+    /// null-deref in build-queue reflection against an RP-1 build nobody here has
+    /// seen would take the avionics controllable-mass go/no-go dark on the pad.
+    /// That readout is a launch-safety surface and must not depend on the health
+    /// of a build-queue reader. The duplicated probe and the second
+    /// NOTICE-RP1.txt are that rule working, not a lapse: an Uplink may reference
+    /// only Sitrep.Contract and its own contract slice, so a shared helper
+    /// assembly is no more available to us than to a third party.</para>
+    ///
+    /// <para>Every channel is <see cref="DelayRole.TrueNow"/>. This is state at a
+    /// space centre, read at KSC cadence, and it has no analogue in flight: the
+    /// same disposition the stock <c>spaceCenter.*</c> and <c>career.*</c>
+    /// channels take.</para>
+    ///
+    /// <para>The capture/handle split is load-bearing rather than ceremony. The
+    /// reflection walk reads a live object graph, which is only legal on the main
+    /// thread; <see cref="HandleOnCourier"/> receives plain data and publishes,
+    /// touching no game API at all.</para>
+    /// </summary>
+    [SitrepUplink("rp1")]
+    public sealed class Rp1ScUplink : ISitrepUplink
+    {
+        public const string AvailableTopic = "rp1.available";
+        public const string CentresTopic = "rp1.centres";
+        public const string ComplexesTopic = "rp1.complexes";
+        public const string BuildQueueTopic = "rp1.buildQueue";
+        public const string WarehouseTopic = "rp1.warehouse";
+        public const string PadsTopic = "rp1.pads";
+        public const string OperationsTopic = "rp1.operations";
+        public const string ResearchTopic = "rp1.research";
+        public const string PersonnelTopic = "rp1.personnel";
+        public const string ConfidenceTopic = "rp1.confidence";
+
+        /// <summary>
+        /// Rows published per second across every rp1.* channel. One capture per
+        /// tick emits one row per centre, complex, queued vehicle, pad, operation
+        /// and research node, so this counts the thing that actually grows: a
+        /// mature RP-1 career with several centres and a full tech queue is a few
+        /// hundred rows a tick, and a runaway means the subscription gate stopped
+        /// gating rather than that the career got big.
+        /// </summary>
+        private static readonly PerfBudget Rp1RowBudget = new PerfBudget(
+            "Rp1ScUplink rows published", threshold: 5000, windowSec: 1.0, unit: "rows");
+
+        private readonly Rp1ScReflection _rp1 = new Rp1ScReflection();
+
+        private IChannelPublisher? _centres;
+        private IChannelPublisher? _complexes;
+        private IChannelPublisher? _buildQueue;
+        private IChannelPublisher? _warehouse;
+        private IChannelPublisher? _pads;
+        private IChannelPublisher? _operations;
+        private IChannelPublisher? _research;
+        private IChannelPublisher? _personnel;
+        private IChannelPublisher? _confidence;
+
+        /// <summary>
+        /// Last capture's view of whether RP-1 is managing this save. Health is
+        /// polled on the Courier thread and must not read live game state, so it
+        /// reads this instead.
+        /// </summary>
+        private volatile bool _enabledForSave;
+
+        public UplinkManifest Manifest { get; } = new UplinkManifest
+        {
+            Id = "rp1",
+            Version = "1.0.0",
+            Channels = new List<ChannelDeclaration>
+            {
+                Ground(AvailableTopic),
+                Ground(CentresTopic),
+                Ground(ComplexesTopic),
+                Ground(BuildQueueTopic),
+                Ground(WarehouseTopic),
+                Ground(PadsTopic),
+                Ground(OperationsTopic),
+                Ground(ResearchTopic),
+                // Both singletons are legitimately absent from the first tick:
+                // a stock install has no payroll and no Confidence module, and
+                // without this the client would wait for a value that is never
+                // coming instead of being told there is none.
+                Ground(PersonnelTopic, absenceIsData: true),
+                Ground(ConfidenceTopic, absenceIsData: true),
+            },
+        };
+
+        private static ChannelDeclaration Ground(string topic, bool absenceIsData = false) => new ChannelDeclaration
+        {
+            Topic = topic,
+            Delivery = Delivery.LossyLatest,
+            Emission = new EmissionPolicy(keyframeIntervalUt: 30, quantum: EmissionQuantum.Absolute(0)),
+            Delay = DelayRole.TrueNow,
+            AbsenceIsData = absenceIsData,
+        };
+
+        public void Register(IUplinkHost host)
+        {
+            // Presence is always sourced with the real answer, even when RP-1 is
+            // absent, so a client can gate on it definitively rather than
+            // inferring absence from silence.
+            host.AddChannelSource(AvailableTopic, _ => _rp1.IsAvailable && _rp1.IsEnabledForSave());
+
+            if (!_rp1.IsAvailable)
+            {
+                host.SetAvailability(Availability.Unavailable("RP-1 (RP0) assembly not loaded"));
+                return;
+            }
+
+            _centres = host.Publisher(CentresTopic);
+            _complexes = host.Publisher(ComplexesTopic);
+            _buildQueue = host.Publisher(BuildQueueTopic);
+            _warehouse = host.Publisher(WarehouseTopic);
+            _pads = host.Publisher(PadsTopic);
+            _operations = host.Publisher(OperationsTopic);
+            _research = host.Publisher(ResearchTopic);
+            _personnel = host.Publisher(PersonnelTopic);
+            _confidence = host.Publisher(ConfidenceTopic);
+
+            host.AddSampledSource(
+                CaptureOnMain,
+                HandleOnCourier,
+                CentresTopic,
+                ComplexesTopic,
+                BuildQueueTopic,
+                WarehouseTopic,
+                PadsTopic,
+                OperationsTopic,
+                ResearchTopic,
+                PersonnelTopic,
+                ConfidenceTopic);
+        }
+
+        /// <summary>
+        /// MAIN-THREAD capture: the whole reflection walk, returning plain data
+        /// with no live RP-1 object in it.
+        /// </summary>
+        internal object? CaptureOnMain(KspSnapshot? snapshot)
+        {
+            if (!_rp1.IsAvailable)
+            {
+                return null;
+            }
+            var raw = _rp1.Read(snapshot?.Ut ?? 0.0);
+            _enabledForSave = raw.Available;
+            return raw;
+        }
+
+        /// <summary>COURIER-THREAD handle: map to wire dicts and publish. No game API.</summary>
+        internal void HandleOnCourier(object? captured)
+        {
+            if (!(captured is Rp1ScRaw raw))
+            {
+                return;
+            }
+
+            var centres = Rp1ScCapture.BuildCentres(raw);
+            var complexes = Rp1ScCapture.BuildComplexes(raw);
+            var buildQueue = Rp1ScCapture.BuildQueue(raw);
+            var warehouse = Rp1ScCapture.BuildWarehouse(raw);
+            var pads = Rp1ScCapture.BuildPads(raw);
+            var operations = Rp1ScCapture.BuildOperations(raw);
+            var research = Rp1ScCapture.BuildResearch(raw);
+
+            Rp1RowBudget.Record(
+                centres.Count + complexes.Count + buildQueue.Count + warehouse.Count
+                + pads.Count + operations.Count + research.Count,
+                raw.Ut);
+
+            _centres?.Publish(centres, raw.Ut);
+            _complexes?.Publish(complexes, raw.Ut);
+            _buildQueue?.Publish(buildQueue, raw.Ut);
+            _warehouse?.Publish(warehouse, raw.Ut);
+            _pads?.Publish(pads, raw.Ut);
+            _operations?.Publish(operations, raw.Ut);
+            _research?.Publish(research, raw.Ut);
+            _personnel?.Publish(Rp1ScCapture.BuildPersonnel(raw), raw.Ut);
+            _confidence?.Publish(Rp1ScCapture.BuildConfidence(raw), raw.Ut);
+        }
+
+        /// <summary>
+        /// Health, and WHICH RP-1. The version caveat at the top of
+        /// <see cref="Rp1ScReflection"/> is why these facts are load-bearing
+        /// rather than decorative: RP-1 ships roughly monthly, this Uplink is
+        /// locked against one build's disassembly, and an operator reporting "the
+        /// build queue is empty" can be asked to quote a row instead of guessing.
+        /// </summary>
+        public UplinkHealth Health()
+        {
+            var facts = new List<UplinkHealthFact>
+            {
+                new UplinkHealthFact("RP0 assembly", _rp1.AssemblyIdentity),
+                new UplinkHealthFact("SpaceCenterManagement", _rp1.IsAvailable ? "resolved" : "type not found"),
+                new UplinkHealthFact("Confidence", _rp1.ConfidenceTypeResolved ? "present" : "absent"),
+                new UplinkHealthFact("save mode", _enabledForSave ? "enabled" : "not enabled for this save"),
+                new UplinkHealthFact("read against", "RP-1 v4.6.0.0"),
+            };
+
+            if (!_rp1.IsAvailable)
+            {
+                return new UplinkHealth(UplinkHealthState.Unavailable, "RP-1 (RP0) assembly not loaded", facts);
+            }
+            if (!_enabledForSave)
+            {
+                // Degraded rather than Unavailable: RP-1 is installed and the
+                // Uplink is working, the save simply is not one RP-1 manages, and
+                // that distinction is what an operator needs to see.
+                return new UplinkHealth(
+                    UplinkHealthState.Degraded,
+                    "RP-1 is loaded but not enabled for this save",
+                    facts);
+            }
+            return new UplinkHealth(UplinkHealthState.Healthy, null, facts);
+        }
+    }
+}

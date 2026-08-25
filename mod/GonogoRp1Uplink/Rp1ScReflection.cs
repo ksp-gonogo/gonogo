@@ -1,0 +1,943 @@
+// Reflection-only bridge to RP-1's space-centre model. No compile-time reference
+// to the RP-0 plugin (RP0.dll, CC-BY-NC-SA-4.0): every member is reached by
+// runtime reflection, the same arm's-length pattern as AvionicsReflection.
+//
+// PROVENANCE. Member names are RESOLVED, not guessed: every one below was read
+// out of an ilspycmd disassembly of the SHIPPED RP-1 v4.6.0.0 RP0.dll
+// (GameData/RP-1/Plugins/RP0.dll from the published RP-1-v4.6.0.0.zip, whose
+// source tag is c96fda7). Note the version: GonogoAvionicsUplink is locked
+// against v4.5.0.0, and the two are free to disagree. Nothing here has been seen
+// in a running game, because there is no RP-1 install on this machine or the
+// test rig; the disassembly verifies SHAPE and never VALUE, so every lookup is
+// null-safe per hop and degrades to absent rather than to a default that looks
+// like a reading.
+//
+// WHAT IS DELIBERATELY NOT CALLED, and why it is worth the trouble:
+//
+//   LaunchComplex.Efficiency / .EfficiencySource, LCOpsProject.GetTimeLeft() /
+//   .GetBuildRate() / .GetTimeLeftEst(), VesselProject.BuildRate,
+//   ResearchProject.BuildRate / .TimeLeft
+//
+// all reach LCEfficiency.GetOrCreateEfficiencyForLC, which on a cache MISS
+// constructs an LCEfficiency, appends it to a [Persistent] list and calls
+// RefreshAllCaches(). A telemetry read must not write to the player's save. The
+// underlying data is reachable read-only, so nothing is lost by going round
+// them: SpaceCenterManagement.LCToEfficiency is a public field and this file
+// looks the launch complex up in it directly, and the rates come off the private
+// backing fields the getters would otherwise populate. See Rp1ScMath for the
+// arithmetic those two facts make possible.
+//
+// LCOpsProject.GetTimeLeftEstAll() is out for a second reason on top of the
+// first: it mutates three shared static scratch lists on RP-1's own type.
+//
+// WHAT IS CALLED, each with its body read on the shipped assembly:
+//
+//   LCLaunchPad.State          pure; reads its own destruction ConfigNode, its
+//                              own isOperational, and its complex's rollout list
+//   LaunchComplex.MaxEngineers pure arithmetic over massMax/sizeMax/isHumanRated
+//   LaunchComplex.Rate         a plain `=> _rate` backing-field read
+//   LCEfficiency.Efficiency    a plain `=> _efficiency` backing-field read
+//   LCEfficiency.MaxEfficiency a plain `=> _MaxEfficiency` static read
+//   LCEfficiency.PredictWeightedEfficiency
+//                              pure: reads its own efficiency and some statics,
+//                              evaluates a settings curve, writes only locals
+//                              and its out parameter
+//   LCOpsProject.IsBlocking / .IsReversed
+//                              pure on both shipped implementations
+//                              (ReconRolloutProject switches on RRType,
+//                              VesselRepairProject inherits the base constants)
+//
+// ONE CALL REACHES CODE THIS FILE COULD NOT READ, and it is fenced accordingly.
+// LCSpaceCenter.AssociatedGroundStation calls KSCSwitcherInterop
+// .GetGroundStationForKSC, whose body IS read (it returns null outright when
+// KSCSwitcher is absent, and memoises otherwise) but which then invokes
+// KSCSwitcher's own GetSiteByName, and KSCSwitcher is not installed anywhere
+// reachable. So it is called at most ONCE per centre name, its result memoised
+// here as well, and a throw degrades that one field to absent.
+using System;
+using System.Collections;
+using System.Collections.Generic;
+using System.Globalization;
+using System.Reflection;
+
+namespace GonogoRp1Uplink
+{
+    /// <summary>
+    /// Resolves RP-1's space-centre model by reflection and reads one tick of it
+    /// into <see cref="Rp1ScRaw"/>. Nothing in this file touches KSP or Unity, so
+    /// it compiles and runs headless against a stand-in object graph.
+    /// </summary>
+    public sealed class Rp1ScReflection
+    {
+        private const string ScmTypeName = "RP0.SpaceCenterManagement";
+        private const string ConfidenceTypeName = "RP0.Confidence";
+        private const string EfficiencyTypeName = "RP0.LCEfficiency";
+        private const string DatabaseTypeName = "RP0.Database";
+
+        private readonly Type? _scm;
+        private readonly Type? _confidence;
+        private readonly Type? _lcEfficiency;
+        private readonly Type? _database;
+
+        private readonly Dictionary<string, MemberInfo?> _members = new Dictionary<string, MemberInfo?>();
+        private readonly Dictionary<string, string?> _groundStations = new Dictionary<string, string?>();
+
+        /// <summary>
+        /// RP-1 is installed. Gated on the TYPE resolving, never on an assembly
+        /// name: RP-1 historically shipped its construction-time fork under an
+        /// assembly called <c>KerbalConstructionTime</c>, so a name match is not
+        /// evidence that the types exist, and an Uplink that publishes
+        /// <c>available: true</c> and then nothing is worse than one that says no.
+        /// </summary>
+        public bool IsAvailable => _scm != null;
+
+        /// <summary>Whether RP-1's Confidence scenario module type resolved at all.</summary>
+        public bool ConfidenceTypeResolved => _confidence != null;
+
+        /// <summary>
+        /// The assembly the space-centre type actually came from, as
+        /// "<c>name, version</c>", for the health facts. Taken from the resolved
+        /// TYPE rather than from a name scan, so it names the assembly that
+        /// answered rather than one that merely matched.
+        /// </summary>
+        public string? AssemblyIdentity { get; }
+
+        public Rp1ScReflection()
+        {
+            _scm = FindType(ScmTypeName);
+            _confidence = FindType(ConfidenceTypeName);
+            _lcEfficiency = FindType(EfficiencyTypeName);
+            _database = FindType(DatabaseTypeName);
+
+            if (_scm != null)
+            {
+                try
+                {
+                    var name = _scm.Assembly.GetName();
+                    AssemblyIdentity = name.Name + ", " + name.Version;
+                }
+                catch (Exception)
+                {
+                    // fail-soft: an unreadable assembly name is a missing health
+                    // fact, never a missing Uplink
+                }
+            }
+        }
+
+        /// <summary>
+        /// RP-1's scenario module is live and this save is one it manages. False
+        /// on a stock install, in the main menu, and in a save started before
+        /// RP-1 was added, which are three different reasons for the same empty
+        /// answer and all of them mean "publish nothing".
+        /// </summary>
+        public bool IsEnabledForSave()
+        {
+            var instance = ScmInstance();
+            return instance != null && ReadBool(instance, "enabledForSave") == true;
+        }
+
+        /// <summary>
+        /// Reads one tick. Always returns a payload: an unavailable RP-1 yields
+        /// <see cref="Rp1ScRaw.Available"/> false and empty lists, which is the
+        /// state the client needs in order to say so.
+        /// </summary>
+        public Rp1ScRaw Read(double ut)
+        {
+            var raw = new Rp1ScRaw { Ut = ut };
+            var scm = ScmInstance();
+            if (scm == null || ReadBool(scm, "enabledForSave") != true)
+            {
+                return raw;
+            }
+            raw.Available = true;
+
+            var rushRateMult = ReadRushRateMult();
+            var maxEfficiency = ReadMaxEfficiency();
+            var lcToEfficiency = Member(scm, "LCToEfficiency") as IDictionary;
+
+            var totalEngineers = 0;
+            foreach (var ksc in Enumerate(Member(scm, "KSCs")))
+            {
+                var kscName = ReadString(ksc, "KSCName");
+                var kscEngineers = ReadInt(ksc, "Engineers") ?? 0;
+                totalEngineers += kscEngineers;
+
+                var assignedEngineers = 0;
+                var operationalCount = 0;
+                var anyOperationalBeyondHangar = false;
+                var lcIndex = 0;
+
+                foreach (var lc in Enumerate(Member(ksc, "LaunchComplexes")))
+                {
+                    var lcEngineers = ReadInt(lc, "Engineers") ?? 0;
+                    assignedEngineers += lcEngineers;
+                    var operational = ReadBool(lc, "IsOperational") == true;
+                    if (operational)
+                    {
+                        operationalCount++;
+                        // Index 0 is always the hangar, and RP-1's own
+                        // IsAnyLCOperational skips it: the question the flag
+                        // answers is whether there is a pad-side complex to work
+                        // with, not whether the centre exists.
+                        if (lcIndex > 0)
+                        {
+                            anyOperationalBeyondHangar = true;
+                        }
+                    }
+                    lcIndex++;
+
+                    ReadComplex(raw, ksc, kscName, lc, lcEngineers, operational, lcToEfficiency, maxEfficiency, rushRateMult);
+                }
+
+                raw.Centres.Add(new Rp1CentreRaw
+                {
+                    KscName = kscName,
+                    IsActive = ReferenceEquals(ksc, Member(scm, "ActiveSC")),
+                    Engineers = kscEngineers,
+                    UnassignedEngineers = kscEngineers - assignedEngineers,
+                    LaunchComplexCount = operationalCount,
+                    AnyOperational = anyOperationalBeyondHangar,
+                    GroundStation = GroundStationFor(ksc, kscName),
+                });
+            }
+
+            ReadResearch(raw, scm);
+
+            raw.Personnel = new Rp1PersonnelRaw
+            {
+                TotalEngineers = totalEngineers,
+                Researchers = ReadInt(scm, "Researchers") ?? 0,
+                Applicants = ReadInt(scm, "Applicants") ?? 0,
+            };
+
+            raw.Confidence = ReadConfidence();
+            return raw;
+        }
+
+        private void ReadComplex(
+            Rp1ScRaw raw,
+            object ksc,
+            string? kscName,
+            object lc,
+            int engineers,
+            bool operational,
+            IDictionary? lcToEfficiency,
+            double maxEfficiency,
+            double rushRateMult)
+        {
+            var lcId = ReadGuidString(lc, "ID");
+            var lcType = ReadEnumName(lc, "LCType");
+            var isRushing = ReadBool(lc, "IsRushing") == true;
+            var rushRate = isRushing ? rushRateMult : 1.0;
+
+            // The hangar has no efficiency record of its own and RP-1 reads it as
+            // the ceiling; every other complex is looked up, and a MISS is absent
+            // rather than zero, because RP-1 builds the record the first time the
+            // complex is worked and a crew nobody has rated is not a bad crew.
+            var efficiencySource = lcType == "Hangar" ? null : Lookup(lcToEfficiency, lc);
+            double? efficiency = lcType == "Hangar"
+                ? maxEfficiency
+                : efficiencySource == null ? (double?)null : ReadDouble(efficiencySource, "Efficiency");
+
+            var maxEngineers = ReadInt(lc, "MaxEngineers") ?? 0;
+
+            var reconRollout = Materialise(Member(lc, "Recon_Rollout"));
+            var vesselRepairs = Materialise(Member(lc, "VesselRepairs"));
+            var projectBpTotal = ProjectBpTotal(reconRollout, vesselRepairs);
+            var canIntegrate = projectBpTotal == 0.0;
+
+            var ramp = RampFor(efficiencySource, isRushing, engineers, maxEngineers, efficiency, maxEfficiency);
+
+            raw.Complexes.Add(new Rp1ComplexRaw
+            {
+                KscName = kscName,
+                LcId = lcId,
+                Name = ReadString(lc, "Name"),
+                LcType = lcType,
+                IsOperational = operational,
+                IsRushing = isRushing,
+                Engineers = engineers,
+                MaxEngineers = maxEngineers,
+                Efficiency = efficiency,
+                CanIntegrate = canIntegrate,
+                Rate = ReadDouble(lc, "Rate"),
+                HumanRated = ReadBool(lc, "IsHumanRated") == true,
+                MassMin = ReadDouble(lc, "MassMin"),
+                MassMax = UnlimitedAsAbsent(ReadDouble(lc, "MassMax")),
+            });
+
+            foreach (var vp in Enumerate(Member(lc, "BuildList")))
+            {
+                raw.BuildQueue.Add(ReadBuildItem(kscName, lcId, vp, efficiency, rushRate, canIntegrate, ramp, withProgress: true));
+            }
+
+            foreach (var vp in Enumerate(Member(lc, "Warehouse")))
+            {
+                raw.Warehouse.Add(ReadBuildItem(kscName, lcId, vp, efficiency, rushRate, canIntegrate, ramp, withProgress: false));
+            }
+
+            foreach (var pad in Enumerate(Member(lc, "LaunchPads")))
+            {
+                raw.Pads.Add(new Rp1PadRaw
+                {
+                    KscName = kscName,
+                    LcId = lcId,
+                    PadId = ReadGuidString(pad, "id"),
+                    Name = ReadString(pad, "name"),
+                    LaunchSiteName = ReadString(pad, "launchSiteName"),
+                    Level = ReadInt(pad, "level") ?? 0,
+                    FractionalLevel = NegativeAsAbsent(ReadDouble(pad, "fractionalLevel")),
+                    State = ReadEnumName(pad, "State"),
+                });
+            }
+
+            // The blocking set, gathered ONCE for the complex: every operation's
+            // ETA depends on all the others, because they share the complex and
+            // each one's share grows as its neighbours finish.
+            //
+            // Recon_Rollout only, and deliberately so even though the complex's
+            // own blocking-BP total (above) counts vessel repairs as well. That
+            // asymmetry is RP-1's: RecalculateProjectBP walks GetAllLCOps, while
+            // GetTimeLeftEstAll walks Recon_Rollout alone. Mirroring RP-1 beats
+            // being independently consistent.
+            var blockingSet = new List<Rp1ScMath.BlockingOp>();
+            var blockingOps = new List<object>();
+            foreach (var op in reconRollout)
+            {
+                if (ReadBool(op, "IsBlocking") != true)
+                {
+                    continue;
+                }
+                var points = Math.Abs(ReadDouble(op, "BP") ?? 0.0);
+                var progress = ReadDouble(op, "progress") ?? 0.0;
+                var reversed = ReadBool(op, "IsReversed") == true;
+                if (reversed ? progress <= 0.0 : progress >= points)
+                {
+                    continue;
+                }
+                var baseRate = ReadDouble(op, "_buildRate") ?? -1.0;
+                blockingOps.Add(op);
+                blockingSet.Add(new Rp1ScMath.BlockingOp
+                {
+                    Points = points,
+                    Remaining = reversed ? progress : points - progress,
+                    // Un-shared: the sequencing applies each project's share
+                    // itself, and re-applying it here would square it.
+                    Rate = baseRate < 0.0 || efficiency == null
+                        ? 0.0
+                        : baseRate * efficiency.Value * rushRate,
+                });
+            }
+
+            foreach (var op in reconRollout)
+            {
+                raw.Operations.Add(ReadOperation(
+                    kscName, lcId, op, efficiency, rushRate, projectBpTotal, ramp, blockingOps, blockingSet));
+            }
+        }
+
+        /// <summary>
+        /// The blocking set reordered with <paramref name="subjectIndex"/> first,
+        /// which is the ordering <see cref="Rp1ScMath.SequencedTimeLeft"/> reads:
+        /// RP-1 adds the subject before its neighbours and stops the moment the
+        /// subject is next to finish.
+        /// </summary>
+        private static List<Rp1ScMath.BlockingOp> SubjectFirst(
+            List<Rp1ScMath.BlockingOp> set,
+            int subjectIndex)
+        {
+            var ordered = new List<Rp1ScMath.BlockingOp>(set.Count) { set[subjectIndex] };
+            for (var i = 0; i < set.Count; i++)
+            {
+                if (i != subjectIndex)
+                {
+                    ordered.Add(set[i]);
+                }
+            }
+            return ordered;
+        }
+
+        private Rp1BuildItemRaw ReadBuildItem(
+            string? kscName,
+            string? lcId,
+            object vp,
+            double? efficiency,
+            double rushRate,
+            bool canIntegrate,
+            Func<double, double>? ramp,
+            bool withProgress)
+        {
+            var item = new Rp1BuildItemRaw
+            {
+                KscName = kscName,
+                LcId = lcId,
+                ShipName = ReadString(vp, "shipName"),
+                Cost = ReadDouble(vp, "cost") ?? 0.0,
+                Mass = ReadDouble(vp, "mass") ?? 0.0,
+                HumanRated = ReadBool(vp, "humanRated") == true,
+                LaunchSite = ReadString(vp, "launchSite"),
+                ProjectType = ReadEnumName(vp, "Type"),
+            };
+
+            if (!withProgress)
+            {
+                // A warehouse vehicle is finished. Progress, rate and an ETA are
+                // absent rather than complete-looking numbers, because "how far
+                // along" is not a question this row answers.
+                return item;
+            }
+
+            item.Progress = ReadDouble(vp, "progress") ?? 0.0;
+            item.TotalPoints = ReadDouble(vp, "buildPoints") ?? 0.0;
+            item.ProgressRatio = Rp1ScMath.ProgressRatio(item.Progress, item.TotalPoints);
+
+            var baseRate = ReadDouble(vp, "_buildRate") ?? -1.0;
+            item.Rate = Rp1ScMath.VesselRate(baseRate, efficiency, rushRate, canIntegrate);
+            item.Stalled = Rp1ScMath.IsStalled(item.Rate);
+            item.TimeLeftSeconds = Ramped(
+                Rp1ScMath.BaseTimeLeft(item.Progress, item.TotalPoints, item.Rate),
+                ramp);
+            return item;
+        }
+
+        private Rp1OperationRaw ReadOperation(
+            string? kscName,
+            string? lcId,
+            object op,
+            double? efficiency,
+            double rushRate,
+            double projectBpTotal,
+            Func<double, double>? ramp,
+            List<object> blockingOps,
+            List<Rp1ScMath.BlockingOp> blockingSet)
+        {
+            var reversed = ReadBool(op, "IsReversed") == true;
+            var blocking = ReadBool(op, "IsBlocking") == true;
+            var totalPoints = ReadDouble(op, "BP") ?? 0.0;
+            var progress = ReadDouble(op, "progress") ?? 0.0;
+            var baseRate = ReadDouble(op, "_buildRate") ?? -1.0;
+
+            var rate = Rp1ScMath.OperationRate(baseRate, efficiency, rushRate, reversed, blocking, totalPoints, projectBpTotal);
+
+            // A blocking operation's ETA is a SEQUENCE, not a division: it shares
+            // the complex with its neighbours and its share grows as each of them
+            // finishes. The share division alone answers EARLY, and an optimistic
+            // completion time is a correctness defect rather than a rounding one,
+            // so when the sequence cannot be computed the ETA is absent and
+            // BlockingPeers is what an operator reads instead.
+            var subjectIndex = blockingOps.IndexOf(op);
+            double? seconds;
+            if (subjectIndex >= 0)
+            {
+                seconds = Rp1ScMath.SequencedTimeLeft(SubjectFirst(blockingSet, subjectIndex));
+            }
+            else
+            {
+                seconds = Rp1ScMath.BaseTimeLeft(progress, totalPoints, rate, reversed);
+            }
+
+            return new Rp1OperationRaw
+            {
+                KscName = kscName,
+                LcId = lcId,
+                LaunchPadId = ReadString(op, "launchPadID"),
+                Type = ReadEnumName(op, "RRType"),
+                Progress = progress,
+                TotalPoints = totalPoints,
+                ProgressRatio = Rp1ScMath.ProgressRatio(progress, totalPoints, reversed),
+                Rate = rate,
+                Stalled = Rp1ScMath.IsStalled(rate),
+                TimeLeftSeconds = Ramped(seconds, ramp),
+                BlockingPeers = subjectIndex >= 0 ? blockingSet.Count - 1 : 0,
+                Cost = ReadDouble(op, "cost") ?? 0.0,
+                AssociatedVesselId = EmptyAsAbsent(ReadString(op, "associatedID")),
+            };
+        }
+
+        private void ReadResearch(Rp1ScRaw raw, object scm)
+        {
+            foreach (var node in Enumerate(Member(scm, "TechList")))
+            {
+                var scienceCost = ReadInt(node, "scienceCost") ?? 0;
+                var progress = ReadDouble(node, "progress") ?? 0.0;
+                var workRate = ReadDouble(node, "workRate") ?? 1.0;
+                var rate = Rp1ScMath.ResearchRate(ReadDouble(node, "_buildRate") ?? -1.0, workRate);
+
+                raw.Research.Add(new Rp1ResearchRaw
+                {
+                    TechId = ReadString(node, "techID"),
+                    TechName = ReadString(node, "techName"),
+                    ScienceCost = scienceCost,
+                    Progress = progress,
+                    ProgressRatio = Rp1ScMath.ProgressRatio(progress, scienceCost),
+                    WorkRate = workRate,
+                    Rate = rate,
+                    Stalled = Rp1ScMath.IsStalled(rate),
+                    // No efficiency ramp: researchers do not have a launch
+                    // complex's skill-up curve, and RP-1's own TimeLeft is the
+                    // plain division.
+                    TimeLeftSeconds = Rp1ScMath.BaseTimeLeft(progress, scienceCost, rate),
+                    StartYear = NonPositiveAsAbsent(ReadInt(node, "startYear")),
+                    EndYear = NonPositiveAsAbsent(ReadInt(node, "endYear")),
+                });
+            }
+        }
+
+        /// <summary>
+        /// Confidence, or nothing. Probing the instance rather than reading
+        /// <c>Confidence.CurrentConfidence</c> is the whole point: that property
+        /// answers 0 when the module is absent, and a career that has spent its
+        /// confidence genuinely sits at 0, so the getter cannot tell an operator
+        /// which of the two they are looking at.
+        /// </summary>
+        private Rp1ConfidenceRaw? ReadConfidence()
+        {
+            if (_confidence == null)
+            {
+                return null;
+            }
+            var instance = StaticValue(_confidence, "Instance");
+            if (instance == null)
+            {
+                return null;
+            }
+            return new Rp1ConfidenceRaw
+            {
+                Confidence = ReadDouble(instance, "confidence") ?? 0.0,
+                Earned = ReadDouble(instance, "confidenceEarned") ?? 0.0,
+            };
+        }
+
+        /// <summary>
+        /// The blocking work occupying a launch complex, mirroring
+        /// <c>LaunchComplex.RecalculateProjectBP</c> line for line: the absolute
+        /// build points of every blocking, incomplete operation across the
+        /// rollout and repair queues, which are exactly what
+        /// <c>GetAllLCOps()</c> enumerates. Zero means integration can proceed.
+        /// </summary>
+        private double ProjectBpTotal(List<object> reconRollout, List<object> vesselRepairs)
+        {
+            var total = 0.0;
+            foreach (var op in reconRollout)
+            {
+                total += BlockingBp(op);
+            }
+            foreach (var op in vesselRepairs)
+            {
+                total += BlockingBp(op);
+            }
+            return total;
+        }
+
+        private double BlockingBp(object op)
+        {
+            if (ReadBool(op, "IsBlocking") != true)
+            {
+                return 0.0;
+            }
+            var bp = ReadDouble(op, "BP") ?? 0.0;
+            var progress = ReadDouble(op, "progress") ?? 0.0;
+            var reversed = ReadBool(op, "IsReversed") == true;
+            var complete = reversed ? progress <= 0.0 : progress >= bp;
+            return complete ? 0.0 : Math.Abs(bp);
+        }
+
+        /// <summary>
+        /// Binds the efficiency ramp to one launch complex, or returns null when
+        /// there is no efficiency record to ramp against. The delegate takes an
+        /// un-ramped estimate in seconds and answers the ramped one;
+        /// <see cref="Rp1ScMath.RampedTimeLeft"/> holds every condition under
+        /// which the ramp is a no-op, so the caller does not have to.
+        /// </summary>
+        private Func<double, double>? RampFor(
+            object? efficiencySource,
+            bool isRushing,
+            int engineers,
+            int maxEngineers,
+            double? efficiency,
+            double maxEfficiency)
+        {
+            if (efficiencySource == null || efficiency == null || _lcEfficiency == null)
+            {
+                return null;
+            }
+            var predict = Method(_lcEfficiency, "PredictWeightedEfficiency");
+            if (predict == null)
+            {
+                return null;
+            }
+
+            var portionEngineers = maxEngineers > 0 ? (double)engineers / maxEngineers : 0.0;
+            var startingEfficiency = efficiency.Value;
+            Func<double, double> weightedEfficiency = seconds =>
+            {
+                try
+                {
+                    // (isRushing, tdelta, portionEngineers, out newEff, startingEfficiency)
+                    var args = new object?[] { isRushing, seconds, portionEngineers, null, startingEfficiency };
+                    var result = predict.Invoke(efficiencySource, args);
+                    return result is double d ? d : double.NaN;
+                }
+                catch (Exception)
+                {
+                    // A ramp that will not evaluate leaves the un-ramped estimate
+                    // standing: too long, never absent and never invented.
+                    return double.NaN;
+                }
+            };
+
+            return baseSeconds => Rp1ScMath.RampedTimeLeft(
+                baseSeconds,
+                startingEfficiency,
+                maxEfficiency,
+                isRushing,
+                engineers,
+                maxEngineers,
+                weightedEfficiency);
+        }
+
+        private static double? Ramped(double? baseSeconds, Func<double, double>? ramp)
+        {
+            if (baseSeconds == null || ramp == null)
+            {
+                return baseSeconds;
+            }
+            return ramp(baseSeconds.Value);
+        }
+
+        private double ReadRushRateMult()
+        {
+            if (_database == null)
+            {
+                return 1.0;
+            }
+            var settings = StaticValue(_database, "SettingsSC");
+            return settings == null ? 1.0 : ReadDouble(settings, "RushRateMult") ?? 1.0;
+        }
+
+        private double ReadMaxEfficiency()
+        {
+            if (_lcEfficiency == null)
+            {
+                return 1.0;
+            }
+            var value = StaticValue(_lcEfficiency, "MaxEfficiency");
+            return value is double d ? d : 1.0;
+        }
+
+        private object? ScmInstance() => _scm == null ? null : StaticValue(_scm, "Instance");
+
+        /// <summary>
+        /// The centre's associated ground station, memoised per centre name. The
+        /// one call in this file that reaches an assembly whose body could not be
+        /// read; see this file's header for the fence around it.
+        /// </summary>
+        private string? GroundStationFor(object ksc, string? kscName)
+        {
+            var key = kscName ?? string.Empty;
+            if (_groundStations.TryGetValue(key, out var cached))
+            {
+                return cached;
+            }
+            string? value = null;
+            try
+            {
+                value = ReadString(ksc, "AssociatedGroundStation");
+            }
+            catch (Exception)
+            {
+                // fail-soft: an unreadable ground station is one absent field
+            }
+            _groundStations[key] = value;
+            return value;
+        }
+
+        // ── Reflection primitives ────────────────────────────────────────────
+
+        /// <summary>
+        /// Reads a named property or field off an object's runtime type, walking
+        /// the base chain so a protected member declared on a base class (RP-1's
+        /// <c>LCOpsProject._buildRate</c>) resolves from the concrete subclass.
+        /// Null-safe per hop and cached per (type, member).
+        /// </summary>
+        private object? Member(object? target, string name)
+        {
+            if (target == null)
+            {
+                return null;
+            }
+            var type = target.GetType();
+            var key = type.FullName + "." + name;
+            if (!_members.TryGetValue(key, out var member))
+            {
+                member = Resolve(type, name);
+                _members[key] = member;
+            }
+            try
+            {
+                switch (member)
+                {
+                    case PropertyInfo pi:
+                        return pi.GetValue(target);
+                    case FieldInfo fi:
+                        return fi.GetValue(target);
+                    default:
+                        return null;
+                }
+            }
+            catch (Exception)
+            {
+                // fail-soft: a moved or throwing member degrades to absent, and
+                // never takes the Uplink inert
+                return null;
+            }
+        }
+
+        private static MemberInfo? Resolve(Type type, string name)
+        {
+            const BindingFlags flags = BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance | BindingFlags.DeclaredOnly;
+            for (var t = type; t != null; t = t.BaseType)
+            {
+                try
+                {
+                    var pi = t.GetProperty(name, flags);
+                    if (pi != null && pi.CanRead)
+                    {
+                        return pi;
+                    }
+                    var fi = t.GetField(name, flags);
+                    if (fi != null)
+                    {
+                        return fi;
+                    }
+                }
+                catch (Exception)
+                {
+                    // keep walking: an unreadable level is not the end of the chain
+                }
+            }
+            return null;
+        }
+
+        private MethodInfo? Method(Type type, string name)
+        {
+            var key = type.FullName + "()." + name;
+            if (!_members.TryGetValue(key, out var member))
+            {
+                try
+                {
+                    member = type.GetMethod(name, BindingFlags.Public | BindingFlags.Instance);
+                }
+                catch (Exception)
+                {
+                    member = null;
+                }
+                _members[key] = member;
+            }
+            return member as MethodInfo;
+        }
+
+        private static object? StaticValue(Type type, string name)
+        {
+            const BindingFlags flags = BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Static;
+            try
+            {
+                var pi = type.GetProperty(name, flags);
+                if (pi != null && pi.CanRead)
+                {
+                    return pi.GetValue(null);
+                }
+                var fi = type.GetField(name, flags);
+                return fi?.GetValue(null);
+            }
+            catch (Exception)
+            {
+                return null;
+            }
+        }
+
+        private double? ReadDouble(object? target, string name) => ToDouble(Member(target, name));
+
+        private static double? ToDouble(object? value)
+        {
+            switch (value)
+            {
+                case double d: return d;
+                case float f: return f;
+                case int i: return i;
+                case long l: return l;
+                default: return null;
+            }
+        }
+
+        private int? ReadInt(object? target, string name)
+        {
+            var value = Member(target, name);
+            switch (value)
+            {
+                case int i: return i;
+                case long l: return (int)l;
+                case short s: return s;
+                default: return null;
+            }
+        }
+
+        private bool? ReadBool(object? target, string name) => Member(target, name) is bool b ? b : (bool?)null;
+
+        private string? ReadString(object? target, string name) => Member(target, name) as string;
+
+        private string? ReadGuidString(object? target, string name)
+        {
+            var value = Member(target, name);
+            return value is Guid g ? g.ToString() : value as string;
+        }
+
+        /// <summary>
+        /// An enum member read as its NAME. RP-1's ordinals are its own business
+        /// and shift between releases; a name is stable, legible in a bug report,
+        /// and is what a client maps.
+        /// </summary>
+        private string? ReadEnumName(object? target, string name)
+        {
+            var value = Member(target, name);
+            if (value == null)
+            {
+                return null;
+            }
+            try
+            {
+                var type = value.GetType();
+                return type.IsEnum ? Enum.GetName(type, value) : Convert.ToString(value, CultureInfo.InvariantCulture);
+            }
+            catch (Exception)
+            {
+                return null;
+            }
+        }
+
+        /// <summary>
+        /// Enumerates one of RP-1's collections. They are
+        /// <c>ROUtils.DataTypes.PersistentList&lt;T&gt;</c> from a separate
+        /// assembly, so they are walked as a bare <see cref="IEnumerable"/> and
+        /// never cast to <c>List&lt;T&gt;</c>: a cast that happens to work today
+        /// is one release from throwing.
+        /// </summary>
+        private static IEnumerable<object> Enumerate(object? collection)
+        {
+            if (!(collection is IEnumerable e) || collection is string)
+            {
+                yield break;
+            }
+            foreach (var item in e)
+            {
+                if (item != null)
+                {
+                    yield return item;
+                }
+            }
+        }
+
+        private static List<object> Materialise(object? collection)
+        {
+            var list = new List<object>();
+            foreach (var item in Enumerate(collection))
+            {
+                list.Add(item);
+            }
+            return list;
+        }
+
+        private static object? Lookup(IDictionary? map, object key)
+        {
+            if (map == null)
+            {
+                return null;
+            }
+            try
+            {
+                return map.Contains(key) ? map[key] : null;
+            }
+            catch (Exception)
+            {
+                return null;
+            }
+        }
+
+        /// <summary>float.MaxValue is RP-1's "no limit" sentinel; a limit nobody has is not a number.</summary>
+        private static double? UnlimitedAsAbsent(double? value) =>
+            value == null || value.Value >= float.MaxValue ? (double?)null : value;
+
+        private static double? NegativeAsAbsent(double? value) =>
+            value == null || value.Value < 0.0 ? (double?)null : value;
+
+        private static int? NonPositiveAsAbsent(int? value) =>
+            value == null || value.Value <= 0 ? (int?)null : value;
+
+        private static string? EmptyAsAbsent(string? value) =>
+            string.IsNullOrEmpty(value) ? null : value;
+
+        /// <summary>
+        /// Resolves a type by full name across the loaded assemblies, preferring
+        /// RP-1's own if it is identifiable by name. The name scan is a fast path
+        /// only: presence is decided by whether the TYPE resolved.
+        /// </summary>
+        private static Type? FindType(string fullName)
+        {
+            Assembly[] assemblies;
+            try
+            {
+                assemblies = AppDomain.CurrentDomain.GetAssemblies();
+            }
+            catch (Exception)
+            {
+                return null;
+            }
+
+            foreach (var a in assemblies)
+            {
+                string? name = null;
+                try
+                {
+                    name = a.GetName().Name;
+                }
+                catch (Exception)
+                {
+                    // an assembly that will not name itself is simply not the fast path
+                }
+                if (name == null
+                    || !(name.StartsWith("RP0", StringComparison.OrdinalIgnoreCase)
+                         || name.Equals("RP-1", StringComparison.OrdinalIgnoreCase)))
+                {
+                    continue;
+                }
+                var hit = TypeIn(a, fullName);
+                if (hit != null)
+                {
+                    return hit;
+                }
+            }
+
+            foreach (var a in assemblies)
+            {
+                var hit = TypeIn(a, fullName);
+                if (hit != null)
+                {
+                    return hit;
+                }
+            }
+            return null;
+        }
+
+        private static Type? TypeIn(Assembly assembly, string fullName)
+        {
+            try
+            {
+                return assembly.GetType(fullName);
+            }
+            catch (Exception)
+            {
+                return null;
+            }
+        }
+    }
+}

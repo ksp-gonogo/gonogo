@@ -558,6 +558,14 @@ declare module "./types" {
     "map-view.sections": Record<string, never>;
     "map-view.actions": Record<string, never>;
 
+    // Same universal segment, and the reason it is worth naming a second one:
+    // the tech tree looked like a widget that needed a slot ADDED to it (it
+    // declares no `augmentSlots` of its own), which is a first-party edit an
+    // Uplink author cannot make. It does not, because `Panel` mounts
+    // `${componentId}.sections` for every widget. Declared here so a binder
+    // gets the propless contract rather than the loose fallback.
+    "tech-tree.sections": Record<string, never>;
+
     "science-data.aboard-row": ScienceDataAboardRowContext;
 
     "orbit-view.overlay": OrbitOverlayContext;

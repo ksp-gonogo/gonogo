@@ -1,0 +1,29 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <!--
+    GonogoRp1Uplink's OWN contract slice: the rp1.* wire payloads and this
+    Uplink's own unit catalog. No Uplink-specific wire type lives in core, so
+    this project exists for the same reason every other Uplink's does.
+
+    MIT, and it can be: unlike GonogoRp1Uplink.csproj (which reaches RP-1's
+    space-centre model purely by reflection and never links RP0.dll), this slice
+    declares plain DTOs against Sitrep.Contract with no RP-1 code or types in it
+    at all. A third party could write an alternative client against this wire
+    shape without touching RP-1's CC-BY-NC-SA-4.0 content licence.
+  -->
+  <PropertyGroup>
+    <TargetFrameworks>netstandard2.0;net48</TargetFrameworks>
+    <Nullable>enable</Nullable>
+    <LangVersion>latest</LangVersion>
+    <PackageLicenseExpression>MIT</PackageLicenseExpression>
+    <AssemblyName>GonogoRp1Uplink.Contract</AssemblyName>
+    <RootNamespace>GonogoRp1Uplink</RootNamespace>
+  </PropertyGroup>
+
+  <!-- Sitrep.Contract only, Private="false": the attributes and the core unit
+       catalog are provided by the core mod at runtime, never copied here. -->
+  <ItemGroup>
+    <ProjectReference Include="..\Sitrep.Contract\Sitrep.Contract.csproj">
+      <Private>false</Private>
+    </ProjectReference>
+  </ItemGroup>
+</Project>

@@ -300,6 +300,31 @@ echo "codegen -> $principia_out_dir/topic-map.ts"
 echo "codegen -> $principia_out_dir/units.ts"
 echo "codegen -> $principia_out_dir/units.json"
 
+# RP-1: the space-centre slice. Nine types, nine [SitrepTopic]s, and two unit
+# tokens core has never heard of (bp and confidence), declared in this slice's
+# own Units class. The catalog check judges the slice against core's tokens PLUS
+# that class, so an undeclared token stops the build here rather than reaching
+# the client as an opaque symbol with no ladder.
+rp1_proj="$ROOT/mod/GonogoRp1Uplink.Contract.Codegen"
+rp1_out_dir="$ROOT/mod/GonogoRp1Uplink/client/src/__generated__"
+rp1_bin="$rp1_proj/bin/Debug/netstandard2.0"
+
+dotnet build "$rp1_proj/GonogoRp1Uplink.Contract.Codegen.csproj" -v minimal
+mkdir -p "$rp1_out_dir"
+
+DOTNET_ROLL_FORWARD=LatestMajor \
+  SITREP_RP1_TOPICMAP_OUT="$rp1_out_dir/topic-map.ts" \
+  SITREP_RP1_UNITMAP_OUT="$rp1_out_dir/units.ts" \
+  SITREP_RP1_UNITJSON_OUT="$rp1_out_dir/units.json" \
+  dotnet "$RTCLI" \
+  SourceAssemblies="$rp1_bin/GonogoRp1Uplink.Contract.dll" \
+  TargetFile="$rp1_out_dir/contract.ts" \
+  ConfigurationMethod="GonogoRp1Uplink.Rp1RtConfig.Configure"
+echo "codegen -> $rp1_out_dir/contract.ts"
+echo "codegen -> $rp1_out_dir/topic-map.ts"
+echo "codegen -> $rp1_out_dir/units.ts"
+echo "codegen -> $rp1_out_dir/units.json"
+
 # ui-kit's symbol -> kind table is generated FROM the SDK's unit model rather
 # than hand-maintained beside it. It is a separate step because its input is
 # TypeScript rather than the C# assembly: see scripts/gen-unit-kinds.mjs. Run

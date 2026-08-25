@@ -1,0 +1,48 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!-- MIT, like the rest of gonogo (see LICENSING.md). RP-1 (the RP-0 plugin,
+       RP0.dll) is CC-BY-NC-SA-4.0, a Non-Commercial ShareAlike CONTENT licence
+       whose obligations could reach a COMBINED work. This uplink therefore
+       NEVER links RP-0's assembly and NEVER derives from its types: it reaches
+       every RP-1 member by runtime reflection (Rp1ScReflection), the same
+       arm's-length pattern gonogo uses for every third-party-mod uplink. That
+       boundary is what keeps this assembly clear of the NC/ShareAlike
+       obligations. RP-1's attribution notice is retained in NOTICE-RP1.txt
+       alongside this file. -->
+  <PropertyGroup>
+    <PackageLicenseExpression>MIT</PackageLicenseExpression>
+    <TargetFramework>net48</TargetFramework>
+    <LangVersion>12</LangVersion>
+    <Nullable>enable</Nullable>
+    <AssemblyName>GonogoRp1Uplink</AssemblyName>
+    <RootNamespace>GonogoRp1Uplink</RootNamespace>
+    <AssemblyVersion>0.1.0</AssemblyVersion>
+    <FileVersion>0.1.0</FileVersion>
+    <GenerateAssemblyInfo>false</GenerateAssemblyInfo>
+    <AppendTargetFrameworkToOutputPath>false</AppendTargetFrameworkToOutputPath>
+    <CopyLocalLockFileAssemblies>true</CopyLocalLockFileAssemblies>
+  </PropertyGroup>
+
+  <!-- No KSP or Unity reference, deliberately. Everything this uplink reads is
+       RP-1's own state reached by reflection, and everything it publishes is
+       plain data, so there is no live game type in the assembly at all. That is
+       not a saving, it is what lets the whole reflection walk be exercised
+       headless against a stand-in object graph in GonogoRp1Uplink.Tests. -->
+
+  <!-- Sitrep.Contract ONLY (Private="false"): the arm's-length compile surface
+       a third-party uplink needs. NO reference to RP0.dll, by design. -->
+  <ItemGroup>
+    <ProjectReference Include="..\Sitrep.Contract\Sitrep.Contract.csproj">
+      <Private>false</Private>
+    </ProjectReference>
+  </ItemGroup>
+
+  <!-- GonogoRp1Uplink.Contract: this Uplink's OWN wire types. Private defaults
+       to true (unlike the Sitrep.Contract reference above): core does not
+       provide this DLL at runtime, it is this Uplink's own contract slice and
+       bundles into its GameData output. -->
+  <ItemGroup>
+    <ProjectReference Include="..\GonogoRp1Uplink.Contract\GonogoRp1Uplink.Contract.csproj" />
+  </ItemGroup>
+
+</Project>

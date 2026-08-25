@@ -181,7 +181,20 @@ describe("rate-integration candidates carry a written verdict", () => {
     // correct division (an Uplink owns its own quantities) and a real gap in
     // the coverage, so it is written down rather than passed over. Kerbalism's
     // science-data rate is a genuine rate-integration case sitting inside it.
-    expect([...opaqueTokens].sort()).toEqual(["MB", "MB/s", "science/MB"]);
+    // `bp`/`bp/s` are RP-1 build points and the rate progress advances at, and
+    // they are the case this gate is blind to in its most load-bearing form:
+    // the pairing IS real (an ETA is remaining points over that rate) and the
+    // ETA is already derived from it server-side, efficiency-ramped and
+    // sequenced against blocking peers, so there is nothing for a client to
+    // integrate.
+    expect([...opaqueTokens].sort()).toEqual([
+      "MB",
+      "MB/s",
+      "bp",
+      "bp/s",
+      "confidence",
+      "science/MB",
+    ]);
   });
 
   it("finds real derivatives among the coincidences, and mostly coincidences", () => {
