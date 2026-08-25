@@ -17,9 +17,7 @@ import {
 import {
   CommandButton,
   type CommandButtonHandle,
-  FundsDrain,
   NULL_DISPLAY,
-  netFundsPerDay,
   Panel,
   ReadoutCaption,
   speakQuantity,
@@ -30,6 +28,7 @@ import {
 } from "@ksp-gonogo/ui-kit";
 import { useMemo, useState } from "react";
 import styled from "styled-components";
+import { FundsDrain, netFundsPerDay } from "../shared/FundsDrain";
 import { type KerbalStatFields, KerbalStats } from "../shared/KerbalStats";
 import { magnitudeOf, type Quantityish } from "../shared/magnitude";
 

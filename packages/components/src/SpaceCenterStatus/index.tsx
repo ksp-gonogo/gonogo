@@ -20,11 +20,8 @@ import {
   ChevronUpIcon,
   type CommandButtonHandle,
   FitLabelButton,
-  FundsDrain,
   NULL_DISPLAY,
-  netFundsPerDay,
   Panel,
-  reportsFundsDrain,
   Spinner,
   speakQuantity,
   Unit,
@@ -33,6 +30,11 @@ import {
   WidgetSections,
 } from "@ksp-gonogo/ui-kit";
 import styled from "styled-components";
+import {
+  FundsDrain,
+  netFundsPerDay,
+  reportsFundsDrain,
+} from "../shared/FundsDrain";
 import {
   magnitudeOf,
   magnitudeOr,

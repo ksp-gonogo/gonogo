@@ -21,9 +21,9 @@ export type KnownSitrepUnit =
   | "count"
   | "dB"
   | "enum"
+  | "f/day"
   | "flag"
   | "funds"
-  | "funds/day"
   | "g"
   | "h"
   | "id"
@@ -177,10 +177,10 @@ export const GENERATED_TYPE_UNITS: Readonly<Record<string, UnitsByField>> = {
     reputation: "rep",
     reputationDecayPerDay: "rep/day",
     science: "science",
-    subsidyMaxPerDay: "funds/day",
-    subsidyMinPerDay: "funds/day",
-    subsidyPerDay: "funds/day",
-    upkeepPerDay: "funds/day",
+    subsidyMaxPerDay: "f/day",
+    subsidyMinPerDay: "f/day",
+    subsidyPerDay: "f/day",
+    upkeepPerDay: "f/day",
   },
   "CareerFacility": {
     currentTier: "count",
@@ -227,13 +227,13 @@ export const GENERATED_TYPE_UNITS: Readonly<Record<string, UnitsByField>> = {
     unlocked: "flag",
   },
   "CareerUpkeep": {
-    crewBase: "funds/day",
-    crewInFlight: "funds/day",
-    facilities: "funds/day",
-    integrationSalary: "funds/day",
-    launchComplexes: "funds/day",
-    researchSalary: "funds/day",
-    training: "funds/day",
+    crewBase: "f/day",
+    crewInFlight: "f/day",
+    facilities: "f/day",
+    integrationSalary: "f/day",
+    launchComplexes: "f/day",
+    researchSalary: "f/day",
+    training: "f/day",
   },
   "ClosestApproach": {
     distance: "m",

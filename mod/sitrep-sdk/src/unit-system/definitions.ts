@@ -288,7 +288,10 @@ export const UNIT_DEFINITIONS = {
   // to 86400s. The number an operator READS is per day either way; only a
   // conversion into another unit of this dimension is out, by the ratio of the
   // two calendars.
-  "funds/day": {
+  // Spelled with the funds SYMBOL, like `rep/day` below it: `f` is what a
+  // balance renders as, and a rate that spelled the dimension out made the same
+  // quantity read two ways ("289,848f" against "980.0 funds/day").
+  "f/day": {
     dim: { funds: 1, s: -1 },
     ratio: 1 / 21_600,
     kind: "fundsRate",

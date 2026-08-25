@@ -59,21 +59,21 @@ export interface CareerEconomy
 	science?: Value<"science">;
 	economyModel?: string;
 	reputationDecayPerDay?: Value<"rep/day">;
-	subsidyPerDay?: Value<"funds/day">;
-	subsidyMinPerDay?: Value<"funds/day">;
-	subsidyMaxPerDay?: Value<"funds/day">;
-	upkeepPerDay?: Value<"funds/day">;
+	subsidyPerDay?: Value<"f/day">;
+	subsidyMinPerDay?: Value<"f/day">;
+	subsidyMaxPerDay?: Value<"f/day">;
+	upkeepPerDay?: Value<"f/day">;
 	upkeep?: CareerUpkeep;
 }
 export interface CareerUpkeep
 {
-	facilities?: Value<"funds/day">;
-	launchComplexes?: Value<"funds/day">;
-	researchSalary?: Value<"funds/day">;
-	training?: Value<"funds/day">;
-	crewBase?: Value<"funds/day">;
-	crewInFlight?: Value<"funds/day">;
-	integrationSalary?: Value<"funds/day">;
+	facilities?: Value<"f/day">;
+	launchComplexes?: Value<"f/day">;
+	researchSalary?: Value<"f/day">;
+	training?: Value<"f/day">;
+	crewBase?: Value<"f/day">;
+	crewInFlight?: Value<"f/day">;
+	integrationSalary?: Value<"f/day">;
 }
 export interface CareerFacility
 {

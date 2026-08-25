@@ -175,8 +175,8 @@ describe("every funds-spending widget reports the standing drain beside the bala
     it(`${widget}: names the drain and how long the balance covers it`, async () => {
       const text = await textFor(widget, OVERHAUL_ECONOMY);
       // 289,848 funds against a net 980 a day.
-      expect(text).toContain("980.0 funds/day drain");
-      expect(text).toContain("295 days left");
+      expect(text).toContain("980.0 f/day drain");
+      expect(text).toContain("295d left");
     });
 
     it(`${widget}: says nothing at all when the career has no such mechanism`, async () => {
@@ -186,7 +186,7 @@ describe("every funds-spending widget reports the standing drain beside the bala
       const text = await textFor(widget, STOCK_ECONOMY);
       expect(text).not.toContain("/day");
       expect(text).not.toContain("drain");
-      expect(text).not.toContain("days");
+      expect(text).not.toContain("left");
       // The balance is still there: the rule this readout serves is that a
       // spender always shows one.
       expect(text).toContain("289,848f");

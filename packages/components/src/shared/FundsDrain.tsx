@@ -1,7 +1,7 @@
 import type { CareerEconomy } from "@ksp-gonogo/sitrep-sdk";
-import { magnitudeOf, value } from "@ksp-gonogo/sitrep-sdk";
+import { kspCalendar, magnitudeOf, value } from "@ksp-gonogo/sitrep-sdk";
+import { Unit } from "@ksp-gonogo/ui-kit";
 import styled from "styled-components";
-import { Unit } from "./Unit";
 
 /**
  * The standing funds rate a career economy reports: its subsidy less its
@@ -34,11 +34,29 @@ export function reportsFundsDrain(netPerDay: number | null): boolean {
   return netPerDay !== null && netPerDay !== 0;
 }
 
+/**
+ * How long a balance lasts at a rate, as a DURATION rather than a bare count.
+ *
+ * Both sides of the division are in game-days: `f/day`'s denominator is
+ * `KSPUtil.dateTimeFormatter.Day` (`SitrepUnitAttribute.FundsPerDay` says so),
+ * and `kspCalendar()` is the same day read off `time.calendar`. So the day
+ * cancels, and multiplying back up by it hands `Unit` a plain interval in
+ * seconds, which is the only duration the catalogue actually measures.
+ *
+ * NOT `value("d", days)`, though the token exists and looks like the obvious
+ * one: a `d`-symbol value renders through the duration ladder as if its
+ * magnitude were seconds, so `value("d", 43)` reads "43s". Seconds in, and the
+ * ladder picks the day rung itself, off the same live calendar.
+ */
+function coverDuration(days: number) {
+  return value("s", days * kspCalendar().day);
+}
+
 export interface FundsDrainProps {
   /**
    * The balance the drain runs against, in funds. `null` when no balance has
    * arrived or the one that did is no longer current, in which case the rate is
-   * still shown and the days figure is not.
+   * still shown and the cover figure is not.
    */
   funds: number | null;
   /**
@@ -48,8 +66,8 @@ export interface FundsDrainProps {
    */
   netPerDay: number | null;
   /**
-   * Renders the days figure alone, for a cell with room for one number. The full
-   * sentence stays reachable through the title.
+   * Renders the cover figure alone, for a cell with room for one number. The
+   * full sentence stays reachable through the title.
    */
   compact?: boolean;
   /**
@@ -74,6 +92,20 @@ export interface FundsDrainProps {
  * operator standing at a spend control should not have to divide one by the
  * other.
  *
+ * ## Why it lives here and not in the kit
+ *
+ * It renders through `Unit` and carries no layout of its own, which is most of
+ * what a kit primitive is, and four widgets share it. But it opens by importing
+ * `CareerEconomy`: it knows about a DOMAIN, and the kit holds things that know
+ * about shapes. Strip the career economy out and what is left is `Unit`
+ * formatting over two numbers, which is not enough to be a primitive; keep it,
+ * and the kit is holding a contract type. Sharing across widgets never required
+ * the kit, only a shared file, which is what this is.
+ *
+ * An Uplink cannot import this package, so an Uplink that wants the same
+ * readout will need its own. That is the isolation rule working rather than a
+ * gap: the alternative is a contract type in the design system.
+ *
  * ## It reports, it does not permit
  *
  * Nothing here arms or disarms a control. The game decides what is affordable,
@@ -86,7 +118,7 @@ export interface FundsDrainProps {
  *
  * Stock career has no upkeep and no subsidy, and its provider says so with two
  * honest zeros rather than by staying silent. A model that has never answered
- * says nothing at all. Both render as nothing here, because a "0 funds/day"
+ * says nothing at all. Both render as nothing here, because a "0 f/day"
  * chip reads as a programme that happens to break even, and an "unknown" chip
  * beside a balance reads as a link fault. Neither is what happened, and the
  * absence of a mechanism is not a reading about one.
@@ -97,7 +129,7 @@ export function FundsDrain({
   compact,
   separator,
 }: FundsDrainProps) {
-  const lead = separator ? "\u00b7 " : "";
+  const lead = separator ? "· " : "";
   if (!reportsFundsDrain(netPerDay) || netPerDay === null) return null;
 
   if (netPerDay > 0) {
@@ -108,7 +140,7 @@ export function FundsDrain({
       >
         <FundsDrain__Phrase>
           {lead}
-          <Unit value={value("funds/day", netPerDay)} /> credit
+          <Unit value={value("f/day", netPerDay)} /> credit
         </FundsDrain__Phrase>
       </FundsDrain__Root>
     );
@@ -116,24 +148,22 @@ export function FundsDrain({
 
   const perDay = -netPerDay;
   const days = funds === null ? null : Math.floor(Math.max(funds, 0) / perDay);
-  const dayWord = days === 1 ? "day" : "days";
   const sentence =
     days === null
       ? "This programme costs more to hold than it earns"
-      : `This programme costs more to hold than it earns, and the balance covers ${days} more ${dayWord} at that rate`;
+      : `This programme costs more to hold than it earns, and the balance covers ${days} more ${days === 1 ? "day" : "days"} at that rate`;
 
   if (compact) {
     return (
       <FundsDrain__Root $drain={true} title={sentence}>
         <FundsDrain__Phrase>
-          {/* No "left": the compact form exists for a 2x3 tile whose whole
-              width is about a dozen characters, and a phrase that cannot break
-              clips rather than wrapping. The title carries the sentence. */}
           {lead}
           {days === null ? (
-            <Unit value={value("funds/day", perDay)} />
+            <Unit value={value("f/day", perDay)} />
           ) : (
-            `${days} ${dayWord}`
+            <>
+              <Unit value={coverDuration(days)} /> left
+            </>
           )}
         </FundsDrain__Phrase>
       </FundsDrain__Root>
@@ -148,7 +178,7 @@ export function FundsDrain({
           for its own "Net drain" row. */}
       <FundsDrain__Phrase>
         {lead}
-        <Unit value={value("funds/day", perDay)} /> drain
+        <Unit value={value("f/day", perDay)} /> drain
       </FundsDrain__Phrase>
       {/* The separator sits OUTSIDE both phrases, spaces and all: two adjacent
           nowrap spans with no text node between them offer the line breaker no
@@ -157,7 +187,9 @@ export function FundsDrain({
       {days !== null && (
         <>
           {" · "}
-          <FundsDrain__Phrase>{`${days} ${dayWord} left`}</FundsDrain__Phrase>
+          <FundsDrain__Phrase>
+            <Unit value={coverDuration(days)} /> left
+          </FundsDrain__Phrase>
         </>
       )}
     </FundsDrain__Root>

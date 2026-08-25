@@ -297,8 +297,16 @@ namespace Sitrep.Contract
         /// arrives and leaves continuously, so an income and a standing cost are
         /// rates rather than balances, and a rate with no declared period is a
         /// number nobody can compare against the balance beside it.
+        ///
+        /// <para>Spelled with the funds SYMBOL rather than the dimension name,
+        /// matching <see cref="ReputationPerDay"/> beside it. It read
+        /// "funds/day" first, which made the same quantity render two ways
+        /// depending only on whether it was a balance or a rate: "289,848f"
+        /// against "980.0 funds/day". The symbol map's own comment says <c>f</c>
+        /// is deliberately a letter, so spelling it out in the rate contradicted
+        /// the decision recorded beside it.</para>
         /// </summary>
-        public const string FundsPerDay = "funds/day";
+        public const string FundsPerDay = "f/day";
 
         /// <summary>Reputation points.</summary>
         public const string Reputation = "rep";

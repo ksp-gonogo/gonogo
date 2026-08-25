@@ -23,11 +23,8 @@ import {
 } from "@ksp-gonogo/sitrep-sdk";
 import {
   type CommandButtonHandle,
-  FundsDrain,
   NULL_DISPLAY,
-  netFundsPerDay,
   Panel,
-  reportsFundsDrain,
   Spinner,
   Unit,
   useCommandButton,
@@ -35,6 +32,11 @@ import {
 } from "@ksp-gonogo/ui-kit";
 import { useMemo, useState } from "react";
 import styled from "styled-components";
+import {
+  FundsDrain,
+  netFundsPerDay,
+  reportsFundsDrain,
+} from "../shared/FundsDrain";
 import {
   magnitudeOf,
   magnitudeOr,

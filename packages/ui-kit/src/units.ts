@@ -645,7 +645,7 @@ const WORD_BY_SYMBOL: Record<string, string> = {
   "%": "percent",
   Mit: "mits",
   "science/day": "science per day",
-  "funds/day": "funds per day",
+  "f/day": "funds per day",
   "rep/day": "reputation per day",
   units: "units",
   "units/s": "units per second",

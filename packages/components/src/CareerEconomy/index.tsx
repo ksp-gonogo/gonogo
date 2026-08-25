@@ -7,8 +7,9 @@ import {
 } from "@ksp-gonogo/core";
 import type { Reading } from "@ksp-gonogo/sitrep-client";
 import { value } from "@ksp-gonogo/sitrep-sdk";
-import { NULL_DISPLAY, netFundsPerDay, Panel, Unit } from "@ksp-gonogo/ui-kit";
+import { NULL_DISPLAY, Panel, Unit } from "@ksp-gonogo/ui-kit";
 import styled from "styled-components";
+import { netFundsPerDay } from "../shared/FundsDrain";
 import { magnitudeOf } from "../shared/magnitude";
 
 const topics = defineTopicManifest({
@@ -161,12 +162,12 @@ function CareerEconomyComponent({ w, h }: ComponentProps<CareerEconomyConfig>) {
               <Rate>
                 <RateLabel>Subsidy</RateLabel>
                 <RateValue>
-                  <Unit value={value("funds/day", subsidy)} />
+                  <Unit value={value("f/day", subsidy)} />
                 </RateValue>
                 {subsidyMin !== null && subsidyMax !== null && (
                   <RateRange>
-                    of <Unit value={value("funds/day", subsidyMin)} /> to{" "}
-                    <Unit value={value("funds/day", subsidyMax)} />
+                    of <Unit value={value("f/day", subsidyMin)} /> to{" "}
+                    <Unit value={value("f/day", subsidyMax)} />
                   </RateRange>
                 )}
               </Rate>
@@ -175,7 +176,7 @@ function CareerEconomyComponent({ w, h }: ComponentProps<CareerEconomyConfig>) {
               <Rate>
                 <RateLabel>Upkeep</RateLabel>
                 <RateValue>
-                  <Unit value={value("funds/day", upkeep)} />
+                  <Unit value={value("f/day", upkeep)} />
                 </RateValue>
               </Rate>
             )}
@@ -186,7 +187,7 @@ function CareerEconomyComponent({ w, h }: ComponentProps<CareerEconomyConfig>) {
                     often as it is read as a direction. */}
                 <RateLabel>{net < 0 ? "Net drain" : "Net gain"}</RateLabel>
                 <RateValue>
-                  <Unit value={value("funds/day", Math.abs(net))} />
+                  <Unit value={value("f/day", Math.abs(net))} />
                 </RateValue>
               </Rate>
             )}
@@ -201,7 +202,7 @@ function CareerEconomyComponent({ w, h }: ComponentProps<CareerEconomyConfig>) {
                 <BreakdownRow key={source.label}>
                   <dt>{source.label}</dt>
                   <dd>
-                    <Unit value={value("funds/day", source.amount)} />
+                    <Unit value={value("f/day", source.amount)} />
                   </dd>
                 </BreakdownRow>
               ))}
