@@ -27,7 +27,7 @@ import { NodeRow } from "./NodeRow";
  */
 function frenetNode(): ParsedManeuverNode {
   return {
-    id: "principia:0",
+    id: "planner:0",
     UT: 1_000,
     // The wire's positional slots, in the basis's own order: tangent, normal,
     // binormal.

@@ -18,7 +18,7 @@ import { ManeuverFrame } from "./__generated__/contract";
  * <p><b>Published from the root barrel</b> for the reason `enum-names` is: an
  * Uplink whose planner works in the Frenet trihedron needs these words as much
  * as the built-in node editor does, and one that transcribes them beside its own
- * switch is back to the defect this table ends. The Principia flight-plan
+ * switch is back to the defect this table ends. One shipped Uplink's plan
  * composer had exactly that transcription, with a paragraph of comment holding
  * it in place.</p>
  *
