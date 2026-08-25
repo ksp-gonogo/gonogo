@@ -175,6 +175,15 @@ const ALLOWED_TRUENOW: Record<string, number> = {
   // correctly Delayed.) 1 explicit declaration.
   "mod/GonogoAvionicsUplink/AvionicsUplink.cs": 1,
 
+  // Every rp1.* channel: RP-1's space centre, read at the KSC. The build queue,
+  // the launch complexes and their pads, the rollout operations, the research
+  // queue, the payroll and Confidence are all ground state the command centre
+  // knows independent of any vessel's comms link, exactly the class
+  // CareerUplink's career.status and SpaceCenterUplink's launch sites are in.
+  // Nothing here is read off a craft. 1 explicit declaration, in the `Ground`
+  // helper every channel is built through.
+  "mod/GonogoRp1Uplink/Rp1ScUplink.cs": 1,
+
   // science.archive: the whole-career R&D archive (banked science read at
   // KSC/R&D). Career-wide ground-side bookkeeping the command centre always
   // knows, independent of any vessel's comms link, the same class as

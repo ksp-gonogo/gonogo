@@ -1,10 +1,10 @@
 import {
+  getAugmentsForSlot,
   render,
   screen,
   setupStreamFixture,
   waitFor,
 } from "@ksp-gonogo/sitrep-sdk/testing";
-import { getAugmentsForSlot } from "@ksp-gonogo/ui-kit";
 import {
   expectNoA11yViolations,
   visibleText,

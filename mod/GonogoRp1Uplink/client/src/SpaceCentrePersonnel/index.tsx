@@ -2,6 +2,7 @@ import type { Reading } from "@ksp-gonogo/sitrep-sdk";
 import { registerAugment, useTelemetry } from "@ksp-gonogo/sitrep-sdk";
 import {
   Badge,
+  magnitudeOf,
   NULL_DISPLAY,
   Row,
   RowName,
@@ -128,11 +129,9 @@ function ComplexCrew({ complex }: Readonly<{ complex: Rp1ComplexEntry }>) {
 const LIST_STYLE = { listStyle: "none", margin: 0, padding: 0 } as const;
 
 /** Engineers on the payroll and assigned to nothing: salary for no work. */
-function isIdle(
-  unassigned: { magnitude?: number | null } | undefined,
-): boolean {
-  const n = unassigned?.magnitude;
-  return typeof n === "number" && n > 0;
+function isIdle(unassigned: Parameters<typeof magnitudeOf>[0]): boolean {
+  const n = magnitudeOf(unassigned);
+  return n !== null && n > 0;
 }
 
 /** The value where one is current; see LaunchComplexStatus for why reckonable counts. */

@@ -114,6 +114,16 @@
     "reason": "Dimensional degeneracy, not a pairing: `divide({s:1},{s:1})` is `{}` and `1`/`ratio`/`%` are all dimensionless, so EVERY dimensionless field is the dimensional rate of EVERY time field in its own type. `ecc` is not the rate of an epoch. This is what the algebra says and no vocabulary work fixes it; it is the single strongest argument against deriving a class from units.",
     "verdict": "coincidence"
   },
+  "PartResourceFlow.amount": {
+    "rates": ["flow", "nominalFlow"],
+    "reason": "`flow` is the rate of `amount`, so this is the one shape the rule was invented for. A model still has to clamp at zero and at the capacity beside it, which the unit table cannot supply.",
+    "verdict": "real-but-unmodelled"
+  },
+  "PartResourceFlow.maxAmount": {
+    "rates": ["flow", "nominalFlow"],
+    "reason": "A CAPACITY, not a level. The rule proposes draining the tank itself: the flow beside it is the rate of the amount, never of the amount the tank can hold.",
+    "verdict": "coincidence"
+  },
   "PrincipiaPlanIntegrator.lengthToleranceMetres": {
     "rates": ["speedToleranceMetresPerSecond"],
     "reason": "Two independent knobs on the same integrator, not a quantity and its derivative. A position tolerance and a speed tolerance are the two error bounds the adaptive stepper is asked to hold simultaneously; neither is integrated to reach the other, and the producer's own control happens to move both together because one slider drives two indices.",
@@ -134,16 +144,6 @@
     "reason": "Real, and already integrated by the producer: mass flow is the rate of mass, and the plan carries the answer as `finalMassTons`, so a reckoning here would re-derive a number the wire already holds and disagree with it whenever the burn is throttled. Worth modelling only for the mass PARTWAY through a burn in progress, which nothing asks for yet.",
     "verdict": "real-but-unmodelled"
   },
-  "PartResourceFlow.amount": {
-    "rates": ["flow", "nominalFlow"],
-    "reason": "`flow` is the rate of `amount`, so this is the one shape the rule was invented for. A model still has to clamp at zero and at the capacity beside it, which the unit table cannot supply.",
-    "verdict": "real-but-unmodelled"
-  },
-  "PartResourceFlow.maxAmount": {
-    "rates": ["flow", "nominalFlow"],
-    "reason": "A CAPACITY, not a level. The rule proposes draining the tank itself: the flow beside it is the rate of the amount, never of the amount the tank can hold.",
-    "verdict": "coincidence"
-  },
   "ReliabilityPartEntry.mtbfHours": {
     "rates": ["durationConsumed", "ignitionsConsumed", "reliabilityFraction"],
     "reason": "A deliberate source-agnostic SUPERSET read as if it were a record: `remainingRatedBurn` is null for one provider and `durationConsumed`/`ignitionsConsumed` are null for the other, an invariant a shape test already pins, so the integrand and its supposed rate are never both present.",
@@ -152,6 +152,21 @@
   "ReliabilityPartEntry.remainingRatedBurn": {
     "rates": ["durationConsumed", "ignitionsConsumed", "reliabilityFraction"],
     "reason": "A deliberate source-agnostic SUPERSET read as if it were a record: `remainingRatedBurn` is null for one provider and `durationConsumed`/`ignitionsConsumed` are null for the other, an invariant a shape test already pins, so the integrand and its supposed rate are never both present.",
+    "verdict": "coincidence"
+  },
+  "Rp1BuildItemEntry.timeLeftSeconds": {
+    "rates": ["progressRatio"],
+    "reason": "Dimensional degeneracy, the same case as CareerStrategy.dateActivated: `divide({s:1},{s:1})` is `{}`, so EVERY dimensionless field is the dimensional rate of EVERY time field in its own type. A fraction complete is not the rate of an ETA, and neither is a research throttle. The real rate on each of these payloads is `rate`, which carries RP-1's own `bp/s` token and is therefore invisible to this scan (see the opaque-token list). Integrating it would be wrong anyway: the ETA is already derived from the rate server-side, efficiency-ramped and, for a blocking operation, sequenced against its peers, so a client re-integrating it would be second-guessing arithmetic that mirrors RP-1's own.",
+    "verdict": "coincidence"
+  },
+  "Rp1OperationEntry.timeLeftSeconds": {
+    "rates": ["progressRatio"],
+    "reason": "Dimensional degeneracy, the same case as CareerStrategy.dateActivated: `divide({s:1},{s:1})` is `{}`, so EVERY dimensionless field is the dimensional rate of EVERY time field in its own type. A fraction complete is not the rate of an ETA, and neither is a research throttle. The real rate on each of these payloads is `rate`, which carries RP-1's own `bp/s` token and is therefore invisible to this scan (see the opaque-token list). Integrating it would be wrong anyway: the ETA is already derived from the rate server-side, efficiency-ramped and, for a blocking operation, sequenced against its peers, so a client re-integrating it would be second-guessing arithmetic that mirrors RP-1's own.",
+    "verdict": "coincidence"
+  },
+  "Rp1ResearchEntry.timeLeftSeconds": {
+    "rates": ["progressRatio", "workRate"],
+    "reason": "Dimensional degeneracy, the same case as CareerStrategy.dateActivated: `divide({s:1},{s:1})` is `{}`, so EVERY dimensionless field is the dimensional rate of EVERY time field in its own type. A fraction complete is not the rate of an ETA, and neither is a research throttle. The real rate on each of these payloads is `rate`, which carries RP-1's own `bp/s` token and is therefore invisible to this scan (see the opaque-token list). Integrating it would be wrong anyway: the ETA is already derived from the rate server-side, efficiency-ramped and, for a blocking operation, sequenced against its peers, so a client re-integrating it would be second-guessing arithmetic that mirrors RP-1's own.",
     "verdict": "coincidence"
   },
   "ServoEntry.currentAngle": {
@@ -302,6 +317,21 @@
   "robotics.servos.targetAngle": {
     "rates": ["currentRPM", "rpmLimit"],
     "reason": "The COMMANDED angle, which changes only when a command is issued. A servo's RPM moves the current angle toward this one; it does not move this one.",
+    "verdict": "coincidence"
+  },
+  "rp1.buildQueue.timeLeftSeconds": {
+    "rates": ["progressRatio"],
+    "reason": "Dimensional degeneracy, the same case as CareerStrategy.dateActivated: `divide({s:1},{s:1})` is `{}`, so EVERY dimensionless field is the dimensional rate of EVERY time field in its own type. A fraction complete is not the rate of an ETA, and neither is a research throttle. The real rate on each of these payloads is `rate`, which carries RP-1's own `bp/s` token and is therefore invisible to this scan (see the opaque-token list). Integrating it would be wrong anyway: the ETA is already derived from the rate server-side, efficiency-ramped and, for a blocking operation, sequenced against its peers, so a client re-integrating it would be second-guessing arithmetic that mirrors RP-1's own.",
+    "verdict": "coincidence"
+  },
+  "rp1.operations.timeLeftSeconds": {
+    "rates": ["progressRatio"],
+    "reason": "Dimensional degeneracy, the same case as CareerStrategy.dateActivated: `divide({s:1},{s:1})` is `{}`, so EVERY dimensionless field is the dimensional rate of EVERY time field in its own type. A fraction complete is not the rate of an ETA, and neither is a research throttle. The real rate on each of these payloads is `rate`, which carries RP-1's own `bp/s` token and is therefore invisible to this scan (see the opaque-token list). Integrating it would be wrong anyway: the ETA is already derived from the rate server-side, efficiency-ramped and, for a blocking operation, sequenced against its peers, so a client re-integrating it would be second-guessing arithmetic that mirrors RP-1's own.",
+    "verdict": "coincidence"
+  },
+  "rp1.research.timeLeftSeconds": {
+    "rates": ["progressRatio", "workRate"],
+    "reason": "Dimensional degeneracy, the same case as CareerStrategy.dateActivated: `divide({s:1},{s:1})` is `{}`, so EVERY dimensionless field is the dimensional rate of EVERY time field in its own type. A fraction complete is not the rate of an ETA, and neither is a research throttle. The real rate on each of these payloads is `rate`, which carries RP-1's own `bp/s` token and is therefore invisible to this scan (see the opaque-token list). Integrating it would be wrong anyway: the ETA is already derived from the rate server-side, efficiency-ramped and, for a blocking operation, sequenced against its peers, so a client re-integrating it would be second-guessing arithmetic that mirrors RP-1's own.",
     "verdict": "coincidence"
   },
   "science.lab.storedScience": {
