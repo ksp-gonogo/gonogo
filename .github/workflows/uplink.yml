@@ -133,6 +133,11 @@ jobs:
         if: matrix.uplink.client && matrix.uplink.typecheck
         run: pnpm --filter '${{ matrix.uplink.pkg }}' typecheck
 
+      # The `if:` is load-bearing, not tidiness. `biome check` on a directory
+      # holding no JS or TS exits 1 with "No files were processed in the
+      # specified paths", so running this on the two C#-only Uplinks would fail
+      # their legs for a reason that has nothing to do with their code.
+      # Warnings do not fail it; several Uplinks carry some today and exit 0.
       - name: Lint
         if: matrix.uplink.client
         run: pnpm exec biome check 'mod/${{ matrix.uplink.id }}'
