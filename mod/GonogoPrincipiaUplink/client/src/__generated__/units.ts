@@ -27,6 +27,7 @@ export type KnownSitrepUnit =
   | "g"
   | "h"
   | "id"
+  | "isp"
   | "kN"
   | "kPa"
   | "kW"
@@ -126,7 +127,7 @@ export const GENERATED_TYPE_UNITS: Readonly<Record<string, UnitsByField>> = {
     index: "count",
     inertiallyFixed: "flag",
     initialMassTons: "t",
-    specificImpulseSeconds: "s",
+    specificImpulseSeconds: "isp",
     thrustKilonewtons: "kN",
   },
   "PrincipiaPlan": {
@@ -201,7 +202,7 @@ export const GENERATED_TYPE_UNITS: Readonly<Record<string, UnitsByField>> = {
     inertiallyFixed: "flag",
     initialMassTons: "t",
     massFlowKilogramsPerSecond: "kg/s",
-    specificImpulseSeconds: "s",
+    specificImpulseSeconds: "isp",
     thrustKilonewtons: "kN",
     timeToHalfDeltaVSeconds: "s",
   },

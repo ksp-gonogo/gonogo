@@ -27,6 +27,7 @@ export type KnownSitrepUnit =
   | "g"
   | "h"
   | "id"
+  | "isp"
   | "kN"
   | "kPa"
   | "kW"

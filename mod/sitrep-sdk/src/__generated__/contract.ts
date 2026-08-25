@@ -320,7 +320,7 @@ export interface ComposedBurn
 	dvPrograde: Value<"m/s">;
 	inertiallyFixed: boolean;
 	thrust?: Value<"kN">;
-	specificImpulse?: Value<"s">;
+	specificImpulse?: Value<"isp">;
 }
 export interface SendManeuverPlanArgs
 {
@@ -1573,7 +1573,7 @@ export interface ManeuverNode
 	frameReferenceBodyIndex?: Value<"count">;
 	inertiallyFixed?: boolean;
 	thrust?: Value<"kN">;
-	specificImpulse?: Value<"s">;
+	specificImpulse?: Value<"isp">;
 	initialMass?: Value<"t">;
 	finalMass?: Value<"t">;
 	patches: OrbitPatch[];

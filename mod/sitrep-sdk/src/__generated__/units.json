@@ -17,6 +17,7 @@
     "g",
     "h",
     "id",
+    "isp",
     "kN",
     "kPa",
     "kW",
@@ -290,7 +291,7 @@
       "frame": "enum",
       "ignitionUt": "ut",
       "inertiallyFixed": "flag",
-      "specificImpulse": "s",
+      "specificImpulse": "isp",
       "thrust": "kN"
     },
     "ContractActionArgs": {
@@ -593,7 +594,7 @@
       "ignitionUt": "ut",
       "inertiallyFixed": "flag",
       "initialMass": "t",
-      "specificImpulse": "s",
+      "specificImpulse": "isp",
       "thrust": "kN",
       "ut": "ut"
     },

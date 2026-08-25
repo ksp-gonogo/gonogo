@@ -151,6 +151,20 @@ export const UNIT_DEFINITIONS = {
     alias: true,
     affineVector: "time",
   },
+  // A PERFORMANCE figure, not a length of time. Seconds by dimension, because
+  // an exhaust velocity divided by standard gravity is seconds, and every
+  // engine in the game is quoted this way; but nobody reads a 320 s engine as
+  // five minutes and twenty seconds. Same construction as `ut` one entry up and
+  // for the same reason: the dimension has to stay `{s:1}` so the algebra keeps
+  // working, and the `kind` is what stops the duration ladder claiming it.
+  // `alias` because `s` was registered first, and because no calculation
+  // produces an Isp: it is a thing the contract DECLARES a field to be.
+  isp: {
+    dim: { s: 1 },
+    ratio: 1,
+    kind: "specificImpulse",
+    alias: true,
+  },
   min: { dim: { s: 1 }, ratio: 60, kind: "time" },
   h: { dim: { s: 1 }, ratio: 3_600, kind: "time" },
   d: { dim: { s: 1 }, ratio: 21_600, kind: "time" },
