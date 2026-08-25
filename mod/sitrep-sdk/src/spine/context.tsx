@@ -178,13 +178,13 @@ export function TelemetryProvider({
   // biome-ignore lint/correctness/useExhaustiveDependencies: viewClockOptions is deliberately read only ONCE, at construction of a store this provider owns, a caller passing a fresh inline options object every render must not tear down and rebuild the store/clock each time. `client` IS a dependency for the auto-built branch below; see that branch's own comment for why; it's listed here (rather than split into two memos) so a `providedStore` caller's `client` swap still re-triggers the (no-op, `providedStore`-returning) factory, keeping this one memo the single source of truth `store` identity is derived from.
   const { store, delayAuthority } = useMemo(() => {
     if (providedStore) return { store: providedStore, delayAuthority: null };
-    // Auto-built store must rebuild on `client` identity change: `client`
-    // was previously omitted from this memo's deps (on the theory that the
-    // store "isn't tied to a specific client instance"), but an
-    // AUTO-BUILT store has no owner other than this provider, so a
-    // reconnect/client-swap that hands in a fresh `TelemetryClient` would
-    // leave the old store (with its topics/timelines still keyed off the
-    // old client's wire) permanently attached instead of resetting. A
+    // Auto-built store must rebuild on `client` identity change, so `client`
+    // has to stay in this memo's deps. It looks droppable, on the theory that
+    // the store "isn't tied to a specific client instance", but an AUTO-BUILT
+    // store has no owner other than this provider: dropped, a reconnect or
+    // client-swap that hands in a fresh `TelemetryClient` leaves the previous
+    // store (topics and timelines still keyed off the previous client's wire)
+    // permanently attached instead of resetting. A
     // caller-`providedStore` is still exempt, that store is the caller's
     // own, its lifetime is deliberately independent of `client` (see the
     // `attachStore`/ `subscribeStore` effects below, which still re-wire IT
@@ -818,8 +818,8 @@ export function sampleActiveTopic<T>(topic: string): T | undefined {
  * Non-React equivalent of `useTelemetry("vessel.orbit")`: the vessel's own
  * Keplerian orbit elements (`sma`/`ecc`/`inc`/`lan`/`argPe`/`mu`/...). For
  * plain-class callers (`LocalManeuverTriggerService`, the maneuver-trigger
- * host service) that used to read the equivalent `o.*` legacy keys off
- * `getDataSource(...)` one field at a time.
+ * host service), which get the whole record in one read rather than a field at
+ * a time off `getDataSource(...)`.
  */
 export function getVesselOrbit(): VesselOrbit | undefined {
   return sampleActiveTopic<VesselOrbit>("vessel.orbit");
@@ -888,9 +888,8 @@ export function getValue(
 
 /**
  * Non-React equivalent of `useTelemetry("time.warp")`: the whole `WarpState`
- * record (`warpRate`/`warpRateIndex`/`warpMode`/`paused`). Replaces the
- * legacy `t.timeWarp`/`t.currentRateIndex`/`t.currentRate`/`t.warpMode`
- * per-field reads `WarpObserver` used to make against the `"data"`
+ * record (`warpRate`/`warpRateIndex`/`warpMode`/`paused`). `WarpObserver` reads
+ * it here, in one go, rather than four per-field reads against the `"data"`
  * `DataSource`.
  */
 export function getWarpState(): WarpState | undefined {
@@ -900,9 +899,9 @@ export function getWarpState(): WarpState | undefined {
 /**
  * Non-React equivalent of `useTelemetry("career.status.contracts.active")`: the
  * career mode's currently-active contract list, off `career.status`'s
- * `contracts.active` raw-field subtopic. Replaces the legacy
- * `getLatestValue("contracts.active")` read `AlarmStateMachine`'s
- * contract-parameter trigger used to make.
+ * `contracts.active` raw-field subtopic. `AlarmStateMachine`'s
+ * contract-parameter trigger reads it here, not through
+ * `getLatestValue("contracts.active")`.
  */
 export function getContractsActive(): CareerContract[] | undefined {
   return sampleActiveTopic<CareerContract[]>("career.status.contracts.active");

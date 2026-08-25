@@ -135,9 +135,9 @@ export interface UseCommandResult {
    * Separate from `inFlight` because a refusal is not a delay state: it is
    * terminal, it never appears in `system.uplink.pending` (the queue holds
    * commands still travelling), and it is the one outcome that has something to
-   * say. A refusal used to reach the operator as nothing at all in most widgets,
-   * and at best as "command refused: ModeUnavailable" in a thrown message
-   * nobody rendered.
+   * say. Left to the thrown error alone a refusal reaches the operator as
+   * nothing at all in most widgets, and at best as "command refused:
+   * ModeUnavailable" in a message nobody renders.
    *
    * Deliberately refusals ONLY. A `lost` command decided nothing and may well
    * have executed; saying it was refused would be a confident wrong answer, and

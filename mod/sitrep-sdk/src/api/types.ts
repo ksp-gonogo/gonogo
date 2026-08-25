@@ -399,9 +399,8 @@ export type ContributionDep =
  * Both halves of `compute` are typed precisely, against the same
  * declaration-merged `ContributionEntry<S>` a slot owner declares in
  * `./contribution-slots.ts` and the same `ContributionTopics<S>` the aggregation
- * hands in. `topics` used to be `any` because resolving `deps` to their values
- * needed a type this leaf could not see; `ContributionTopics` is declared above
- * now, so it can.
+ * hands in. Neither is `any`: resolving `deps` to their values needs
+ * `ContributionTopics`, which is declared above so this leaf can name it.
  */
 export interface ContributionDefinition<S extends string = string> {
   /** Stable id, unique globally. Auto-namespaced when registered via the handle. */
@@ -477,12 +476,11 @@ export interface AugmentDefinition<S extends string = string> {
  * Re-exported rather than declared: the ONE declaration lives in
  * `../spine/uplink-clients.ts`, beside `defineUplinkClient` which returns it.
  *
- * This file used to carry a second, deliberately loose copy whose four
- * registration methods were typed `any` "name+arity probes", because the leaf
- * could not name `ResolvedDeps`, `ReckonerFor`, `DerivedChannelDefinition` or
- * `ProcessorHandle`. All four are sdk-side now, so there is nothing left to
- * apologise for and no reason to keep a second declaration of a handle that was
- * unchecked on one side.
+ * Emphatically NOT a second, loose copy whose registration methods are `any`
+ * "name+arity probes". `ResolvedDeps`, `ReckonerFor`,
+ * `DerivedChannelDefinition` and `ProcessorHandle` are all sdk-side, so this
+ * leaf can name every one of them, and a handle declared twice with one side
+ * unchecked is the divergence shape that cannot fail loudly.
  */
 export type { UplinkClientHandle } from "../spine/uplink-clients";
 
@@ -695,14 +693,10 @@ export interface FogMaskCacheHandle {
 // dependency, so the shape is mirrored here and kept honest by
 // `packages/core/src/sdk-facade.conformance.test-d.ts`.
 //
-// The `registerDataSource`/`getDataSource` author SPI that used to sit on
-// `GonogoHost` and be typed against this mirror was removed for good on
-// 2026-07-19 (facade-sealing plan §2.1): it went through a removal (2026-07-18,
-// "zero production consumers"), a reversal the same night once two
-// facade-sealed Uplink clients turned out to still need it, and this final
-// removal once both were migrated onto their own non-SPI substitutes
-// (a singleton-handle registration; a lifecycle-managed telemetry
-// subscribe). The type mirror itself stays: an Uplink that carries its
+// `GonogoHost` deliberately carries NO `registerDataSource`/`getDataSource`
+// author SPI. An Uplink needing either reaches for its own non-SPI substitute
+// instead: a singleton-handle registration, or a lifecycle-managed telemetry
+// subscribe. The type mirror itself stays: an Uplink that carries its
 // own connection-status field can still type it against
 // `DataSourceStatus` without registering through the facade at all.
 
@@ -786,12 +780,10 @@ export interface SettingsTabDefinition {
  * bespoke tab. Reach for `registerSettingsTab` only when a setting's UI
  * genuinely can't be a row.
  *
- * These used to be a hand-copied MIRROR of the registry's own declarations,
- * from the era when the registry lived in `@ksp-gonogo/core` and this leaf
- * could not name it. It lives in `../spine/settings-registry` now, inside this
- * package, so the copy has no reason to exist and every reason not to: a
- * second union meaning the same thing is exactly what the `readOnly` /
- * `"number"` / `group` work had to unpick. Re-exported, not restated.
+ * Re-exported, never restated. The registry is `../spine/settings-registry`,
+ * inside this package, so this leaf can name its declarations directly. A
+ * hand-copied MIRROR gives two unions meaning the same thing, and they drift:
+ * `readOnly`, `"number"` and `group` all had to be unpicked from one.
  */
 export type {
   ClientPrefSetting,

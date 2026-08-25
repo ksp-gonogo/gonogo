@@ -36,10 +36,10 @@ export function setProcessorEvaluationRecorder(fn: () => void): void {
 
 // The fan-out counterpart, and the number a dashboard actually pays: an
 // evaluation is one `compute` call however many consumers a processor has, a
-// notification is one consumer woken. The two used to be indistinguishable
-// because the fan-out was ungated, so the evaluation budget could not see the
-// churn at all: the evaluations were correct and wanted, and only their
-// audience was wrong.
+// notification is one consumer woken. They are counted SEPARATELY because an
+// ungated fan-out makes them indistinguishable, and the evaluation budget then
+// cannot see the churn at all: the evaluations are correct and wanted, and only
+// their audience is wrong.
 let recordNotification: () => void = () => {};
 
 /** Wire the notification-rate PerfBudget recorder (called once per listener told). */

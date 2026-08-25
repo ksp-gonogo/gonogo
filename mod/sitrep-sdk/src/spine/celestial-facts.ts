@@ -9,12 +9,11 @@ import { CORE_UPLINK_CLIENT } from "./uplink-clients";
 // ---------------------------------------------------------------------------
 // "What do we know about this body?", answered once per Sitrep frame.
 //
-// It used to be answered FOUR TIMES per frame. `useCelestialBodies` memoised on
-// `[systemBodies, ut]`, and `ut` moves every frame, so the whole map re-ran on
-// every frame in every consumer: SystemView's body, SystemView's config
-// component, TransferWindow, and `useBodyRotation` (which OrbitView calls, on
-// the stated grounds that it AVOIDS the catalogue cost, while its own first
-// line paid it).
+// ONCE, not once per consumer. A per-consumer memo on `[systemBodies, ut]`
+// re-runs the whole map every frame, because `ut` moves every frame, and there
+// are four consumers: SystemView's body, SystemView's config component,
+// TransferWindow, and `useBodyRotation` (which OrbitView calls precisely to
+// AVOID the catalogue cost, while its own first line would pay it).
 //
 // ## What this DERIVES, and what it only carries
 //

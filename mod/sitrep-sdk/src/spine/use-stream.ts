@@ -9,13 +9,13 @@ import {
  * `TimelineStore` supplied (indirectly, via `TelemetryProvider`'s auto-built
  * default) by the nearest `TelemetryProvider`.
  *
- * This used to read `client.getValue(topic)` directly, which
- * only ever saw raw `stream-data` frames whose `topic` matched literally,
- * permanently `undefined` for a derived topic like `vessel.state.altitudeAsl`,
- * since no server channel ever sends that literal topic string. Routing
- * through `store.sample(topic, store.currentFrame())` instead resolves BOTH
- * kinds transparently (`TimelineStore.sample`'s whole point, per its own doc:
- * "callers never need to know whether a topic is raw or derived").
+ * It goes through `store.sample(topic, store.currentFrame())`, never
+ * `client.getValue(topic)`. `getValue` only ever sees raw `stream-data` frames
+ * whose `topic` matches literally, so it is permanently `undefined` for a
+ * derived topic like `vessel.state.altitudeAsl`: no server channel ever sends
+ * that literal topic string. `sample` resolves BOTH kinds transparently, which
+ * is its whole point, per its own doc: "callers never need to know whether a
+ * topic is raw or derived".
  *
  * `subscribe` does two things, both required for a DERIVED topic to ever
  * actually receive data:

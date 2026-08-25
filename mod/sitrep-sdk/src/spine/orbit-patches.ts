@@ -157,14 +157,14 @@ export function mapOrbitPatch(wire: OrbitPatchWirePayload): LegacyOrbitPatch {
 // relocate the shared math to a layer both packages can reach without a
 // circular dependency.
 //
-// The KEPLER SOLVE is no longer part of the duplication. This file used to carry
-// its own Newton iteration, hand-copied from `trajectory.ts` and advertising
-// itself as "same tolerance/cap", and it inherited that copy's defect: from
-// e = 0.994 upward both returned non-solutions just after periapsis, wrong by up
-// to pi radians and silent about it. There is now one solver, `kepler.ts`'s
-// `solveEccentricAnomaly`, and `kepler-conformance.test.ts` fails if a second
-// appears anywhere in the repo. What remains duplicated here is the patch WALK
-// and the perifocal rotation, not the equation.
+// The KEPLER SOLVE is deliberately NOT part of that duplication. There is one
+// solver, `kepler.ts`'s `solveEccentricAnomaly`, and
+// `kepler-conformance.test.ts` fails if a second appears anywhere in the repo.
+// A hand-copied Newton iteration advertising itself as "same tolerance/cap" is
+// how this file came to return non-solutions just after periapsis from
+// e = 0.994 upward, wrong by up to pi radians and silent about it. What remains
+// duplicated here is the patch WALK and the perifocal rotation, not the
+// equation.
 //
 // This copy is intentionally NARROWER than
 // `predictGroundTrack`: it returns only the LAST pre-surface sample (the

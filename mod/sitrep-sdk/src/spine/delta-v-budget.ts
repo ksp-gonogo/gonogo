@@ -50,13 +50,11 @@ import { CORE_UPLINK_CLIENT } from "./uplink-clients";
  * One stage's row: the fourteen scalar fields `StageDeltaVEntry` actually
  * carries, under the names the widgets already render off.
  *
- * It used to declare nineteen and accept two spellings of six of them. Both
- * excesses were pointed at a wire that does not exist: `KspHost.BuildDeltaV`
- * writes exactly sixteen keys and `dvVac`/`twrVac`/`thrustAsl` are the names it
- * writes, so the `deltaVVac`/`TWRVac`/`thrustASL` fallbacks matched nothing;
- * and `stageMass`/`ispVac`/`ispASL`/`ispActual` are on no wire at all, so they
- * were permanently `NaN` and rendered by nothing. The alternative spellings
- * came from the retired legacy `DataSource`, which is deleted.
+ * Fourteen, with ONE spelling each, pinned to the wire that exists.
+ * `KspHost.BuildDeltaV` writes exactly sixteen keys and `dvVac`/`twrVac`/
+ * `thrustAsl` are the names it writes, so a `deltaVVac`/`TWRVac`/`thrustASL`
+ * fallback matches nothing; `stageMass`/`ispVac`/`ispASL`/`ispActual` are on no
+ * wire at all and would sit permanently `NaN`, rendered by nothing.
  *
  * Every field is a magnitude rather than a `Value`: these feed bar scaling, a
  * rocket-equation solve and `Math.max`, all arithmetic on numbers, and the row
@@ -146,11 +144,9 @@ export interface DeltaVBudget {
  * only it, read by the contract's own names (`dvActual`, `twrActual`,
  * `thrustAsl`, …).
  *
- * The `parseStages` this replaced also answered to a second set of names
- * (`deltaVActual`, `TWRActual`) left over from a transport that no longer
- * exists. Nothing gains that alias back: a fixture that spells a field the mod
- * never sends should read as absent, which is the only reason the one e2e still
- * spelling them the old way was ever found.
+ * Deliberately NO alias set (`deltaVActual`, `TWRActual`, …). A fixture that
+ * spells a field the mod never sends should read as ABSENT, which is the only
+ * reason an e2e spelling one another way is ever found.
  */
 type StageWireEntry = Record<string, unknown>;
 

@@ -16,9 +16,9 @@ type StoreListener = () => void;
  * already IS the round trip.
  *
  * **Shared with `classifyRetained`'s `overdueMarginSeconds`, deliberately.** Two
- * layers judge the same silence about the same command and they used to do it on 2s
- * here and 3s there, which is how one command could be `lost` to an awaiting caller
- * while the queue still called it merely late. They are ONE number now.
+ * layers judge the same silence about the same command, so they judge it on ONE
+ * number. Two (2s here, 3s there) is how a command ends up `lost` to an awaiting
+ * caller while the queue still calls it merely late.
  *
  * They still differ in PURPOSE, which is why both exist and neither is redundant:
  *
@@ -64,9 +64,8 @@ interface PendingCommand {
   /**
    * What was dispatched, kept so a refusal can NAME it. Without these three a
    * refusal could only ever say "command refused: ModeUnavailable": the reply
-   * carries a `requestId` and a reason and deliberately no command name, so the
-   * only place the name still exists is here, and it used to be dropped the
-   * moment the request left.
+   * carries a `requestId` and a reason and deliberately no command name, so
+   * this is the ONLY place the name still exists once the request has left.
    *
    * Retained client-side rather than added to the wire on purpose. The mod
    * already told us what we asked it; asking it to say so again would be paying
@@ -613,9 +612,9 @@ export class TelemetryClient {
       reject?.(
         new CommandError(
           COMMAND_REFUSED,
-          // Names what was refused. The old text was the enum member and
-          // nothing else, so every refusal of every command in the mod read the
-          // same and an operator could not tell which control had said no.
+          // Names what was refused. The enum member alone reads identically for
+          // every refusal of every command in the mod, so an operator cannot
+          // tell which control said no.
           `command ${JSON.stringify(pending.command)} refused: ${
             CommandErrorCode[errorCode] ?? errorCode
           }`,

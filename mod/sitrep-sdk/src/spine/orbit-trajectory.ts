@@ -59,11 +59,11 @@ import { buildElements, type WireOrbitElements } from "./vessel-state";
 /**
  * A point on a drawable trajectory: where, and when.
  *
- * <b>Three dimensions and an instant, where this was once a flat `{x, y}`.</b>
- * The old shape was a point in the orbit's own plane with periapsis on +x, which
- * an osculating conic always has and an integrated path never does: an n-body
- * curve leaves the plane, and in a rotating frame it has no central body to be
- * measured from at all. `z` is the out-of-plane component and is zero exactly
+ * <b>Three dimensions and an instant, never a flat `{x, y}`.</b> A point in the
+ * orbit's own plane with periapsis on +x is something an osculating conic
+ * always has and an integrated path never does: an n-body curve leaves the
+ * plane, and in a rotating frame it has no central body to be measured from at
+ * all. `z` is the out-of-plane component and is zero exactly
  * when the curve came from a conic. `ut` is on the point because a reader
  * interpolating between two of them needs to know which side of a burn it is on.
  *
@@ -103,9 +103,9 @@ export type TrajectoryDerivationLike =
 /**
  * What became of a producer's arc. Mirrors `TrajectoryRefusal` by value.
  *
- * `NotAttempted` at zero and `NotRefused` beside a drawn arc are two values
- * where there used to be one, and the split matters: an install whose integrated
- * path never runs and one where it runs cleanly used to send the same number.
+ * `NotAttempted` at zero and `NotRefused` beside a drawn arc are deliberately
+ * TWO values: collapsed into one, an install whose integrated path never runs
+ * and one where it runs cleanly send the same number.
  */
 export const TrajectoryRefusalLike = {
   NotAttempted: 0,
@@ -734,7 +734,7 @@ function sampleArc(
  * <b>Every widget that draws a curve says this.</b> The same points are a
  * different path in every frame, so a curve with no frame named is a picture
  * whose meaning the reader has to guess, and the guess it invites is whichever
- * frame that widget used to draw in. That is the failure this exists to
+ * frame that widget drew in last. That is the failure this exists to
  * prevent, and it is why the phrase is built here once rather than in each
  * widget: four widgets naming the same frame four ways is the same problem
  * wearing four hats.

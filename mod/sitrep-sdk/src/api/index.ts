@@ -388,13 +388,12 @@ export {
  * Canonical overload: keyed by TopicId, answers with a `Reading` of the Topic's
  * payload.
  *
- * This used to declare `TopicPayload<T> | undefined` while forwarding to the host's
- * implementation, which returns a `Reading`. Every Uplink client therefore
- * typechecked clean and broke at runtime, and the lie was invisible to `tsc` in both
- * directions: the clients compiled, and a sweep of the clients reported zero errors.
- * It surfaced as "experiments is not iterable" deep inside a parser typed
- * `(raw: unknown)`, in the one bundled Uplink whose imports go only through this
- * surface.
+ * The declared return MUST stay a `Reading`, because that is what the host's
+ * implementation this forwards to returns. Declaring `TopicPayload<T> |
+ * undefined` here instead is a lie `tsc` cannot see in either direction: every
+ * Uplink client typechecks clean, a sweep of the clients reports zero errors,
+ * and the break arrives at runtime as "experiments is not iterable" deep inside
+ * a parser typed `(raw: unknown)`.
  *
  * An Uplink drawing a radiation dose has to confront currency for the same reasons a
  * built-in widget does, so the honest signature is the one that makes it.

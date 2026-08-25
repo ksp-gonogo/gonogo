@@ -33,12 +33,12 @@ import { registerReckoner } from "./reckoners";
  * Mod-agnostic like `api/uplink-handles.ts`: never import a mod-specific type or
  * hardcode a mod name here.
  *
- * This is the ONE declaration of the handle. `api/types.ts` used to carry a second,
- * deliberately loose "name+arity probe" copy with five `any`s, because the leaf
- * could not name `ResolvedDeps`, `ReckonerFor`, `DerivedChannelDefinition` or
- * `ProcessorHandle`. All four are sdk-side now, so the apology no longer applies
- * and the probe is gone: `api/types.ts` re-exports this one instead. Two
- * declarations of a handle whose methods were typed `any` on one side is the
+ * This is the ONE declaration of the handle: `api/types.ts` re-exports it
+ * rather than declaring a loose "name+arity probe" copy of its own.
+ * `ResolvedDeps`, `ReckonerFor`, `DerivedChannelDefinition` and
+ * `ProcessorHandle` are all sdk-side, so there is nothing the leaf cannot name
+ * and no reason to reach for `any`. Two
+ * declarations of a handle whose methods are typed `any` on one side is the
  * divergence shape that cannot fail loudly, which is the same reason the
  * contribution declaration-merge seam was collapsed to one.
  */

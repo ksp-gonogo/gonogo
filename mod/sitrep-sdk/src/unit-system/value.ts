@@ -77,9 +77,9 @@ export type SameDimensionAs<U> = {
  * all. `CombinableWith` is that set with the `never` case replaced by `U`
  * itself, so an out-of-catalog unit still combines with an exact match.
  *
- * Previously named `Addend`, which fit `plus` and nothing else: `in` is a
- * conversion and the comparisons are orderings, not additions, and the name
- * read as nonsense on those.
+ * Named for combination rather than addition, because `plus` is not its only
+ * caller: `in` is a conversion and the comparisons are orderings, and a name
+ * like `Addend` reads as nonsense on those.
  *
  * `UnknownUnit` is checked first and short-circuits to `never`, BEFORE the
  * generic fallback below gets a chance to answer `U`. Left to the generic
@@ -324,8 +324,8 @@ export interface Value<U extends string = string> {
    *
    * 1. **`number` first.** A `Value` is an object type and is not assignable to
    *    `number` despite `valueOf`, so it cannot be captured here by mistake.
-   *    This arm alone is an improvement: `value("kW",3).times(2)` used to be
-   *    `Value<string>` and is now `Value<"kW">`.
+   *    It is what keeps `value("kW",3).times(2)` a `Value<"kW">` rather than
+   *    collapsing it to `Value<string>`.
    * 2. **The generic arm** does the dimensional algebra, so `m.per(s)` is
    *    `Value<"m/s">` and `force.times(distance)` is `Value<"J">`.
    * 3. **The wide arm last, and it is what keeps this non-breaking.** Without
