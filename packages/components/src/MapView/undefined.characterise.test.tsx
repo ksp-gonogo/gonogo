@@ -313,7 +313,7 @@ describe("MapView: what undefined telemetry means today", () => {
 
   // ── 4. A partial payload: the record arrived, a field did not ──────────
 
-  it("a vessel.flight WITHOUT altitudeAsl reports a confident IMAGING, because the missing field arrives as NaN rather than undefined", async () => {
+  it("a vessel.flight WITHOUT altitudeAsl reports NO DATA, because the missing field now arrives as null", async () => {
     const { fixture } = renderMap({}, { w: 14, h: 14 });
     emitBodyOnly(fixture);
     act(() => {
@@ -322,16 +322,23 @@ describe("MapView: what undefined telemetry means today", () => {
     await flushFrames();
 
     expect(screen.getByText("Kerbin")).toBeInTheDocument();
-    // `mag()` maps an absent wire field to NaN, so `vessel.state.altitudeAsl`
-    // is NaN, `altSea ?? undefined` keeps NaN, `altSea === undefined` is
-    // false, and both `NaN < min` and `NaN > max` are false. The one gate
-    // written for "no altitude" is bypassed and the widget claims the craft is
-    // inside the imaging window.
-    expect(screen.getByText("IMAGING")).toBeInTheDocument();
-    expect(screen.queryByText("NO DATA")).toBeNull();
+    // This case read IMAGING until 2026-08-25, and it was the most legible
+    // symptom of a real defect rather than a quirk of this widget. The
+    // derivation mapped an absent wire field to NaN, `altSea ?? undefined`
+    // kept NaN (`??` catches null and undefined, not NaN), `altSea ===
+    // undefined` was false, and both `NaN < min` and `NaN > max` are false.
+    // So the one gate written for "no altitude" was bypassed and the widget
+    // stated positively that the craft was inside the imaging window, off a
+    // reading nobody had sent.
+    //
+    // `vessel.state` now answers null for an unreported field, which is what
+    // that field has always declared, so the gate fires and the widget says it
+    // does not know.
+    expect(screen.getByText("NO DATA")).toBeInTheDocument();
+    expect(screen.queryByText("IMAGING")).toBeNull();
   });
 
-  it("compact size with the same partial payload: the Alt row is PRESENT and dashed, where a cold start had no row", async () => {
+  it("compact size with the same partial payload: the Alt row is ABSENT, the same as a cold start", async () => {
     const { container, fixture } = renderMap({}, { w: 4, h: 5 });
     act(() => {
       fixture.emit("vessel.orbit", {}, { quality: Quality.Loaded });
@@ -339,12 +346,13 @@ describe("MapView: what undefined telemetry means today", () => {
     });
     await flushFrames();
 
-    // NaN passes `altSea !== undefined`, so the row renders and `Unit` prints
-    // the null dash. This is the one place the widget renders a partial
-    // payload differently from an absent one, and it does it by accident.
-    expect(screen.getByText("Alt")).toBeInTheDocument();
-    expect(visibleText(container)).toBe(
-      `MAP VIEWLat12.00°Lon35.00°Alt${NULL_DISPLAY}`,
-    );
+    // This rendered an `Alt` row with a null dash until 2026-08-25, because
+    // NaN passed `altSea !== undefined`. It was the one place the widget told a
+    // partial payload from an absent one, and it did so by accident. With null
+    // reaching it instead, the row is gone and the two read alike, which is the
+    // honest answer: an unreported altitude and an unreported flight record are
+    // both "no altitude to show".
+    expect(screen.queryByText("Alt")).toBeNull();
+    expect(visibleText(container)).toBe("MAP VIEWLat12.00°Lon35.00°");
   });
 });

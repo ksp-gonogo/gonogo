@@ -6,6 +6,7 @@ import {
   TargetKind,
 } from "../__generated__/contract";
 import { namesOf } from "../enum-names";
+import { magnitudeOr, type Quantityish } from "../magnitude";
 import type { Value } from "../value";
 import type { ReckoningBasis } from "./client-reading";
 import type { Anomalies, OrbitElements, StateVector, Vector3 } from "./kepler";
@@ -780,15 +781,26 @@ function wrapDegrees360(deg: number): number {
 /**
  * A wire quantity's magnitude, or `NaN` when the field is absent.
  *
- * A Topic sends a subset of its fields routinely, and the wrap deliberately
- * leaves an absent field absent. Before the flip that meant the arithmetic
- * below saw `undefined` and produced `NaN`, which every guard here already
- * accounts for (`finiteOrNull`, `!(h > 0)`, `Number.isFinite`). `NaN` keeps
- * exactly that behaviour; `v.magnitude` on a missing field would throw
- * instead, turning a partial frame into a crashed derivation.
+ * `magnitudeOr(v, NaN)` rather than a local unwrap: the canonical pair lives in
+ * this package now (`../magnitude`), so there is one implementation and one
+ * place that decides what a missing `.magnitude` means.
+ *
+ * NaN is the right FALLBACK here specifically, and the arithmetic below is why.
+ * A Topic sends a subset of its fields routinely and the wrap deliberately
+ * leaves an absent field absent, so the arithmetic used to see `undefined` and
+ * produce NaN, which every guard here already accounts for (`finiteOrNull`,
+ * `!(h > 0)`, `Number.isFinite`). NaN keeps exactly that behaviour. The
+ * alternative, threading `null` through a dozen expressions, buys nothing the
+ * guards do not already do.
+ *
+ * What it does NOT license is handing NaN onward. Every field this feeds goes
+ * through `finiteOrNull` before it reaches `VesselState`, because those fields
+ * declare `number | null` and a consumer's `??` does not catch NaN. Four of
+ * them skipped that and the readings they fed stopped tripping their
+ * thresholds; see `vessel-state-partial-flight.test.ts`.
  */
-function mag(v: { magnitude: number } | null | undefined): number {
-  return v == null ? Number.NaN : v.magnitude;
+function mag(v: Quantityish): number {
+  return magnitudeOr(v, Number.NaN);
 }
 
 function finiteOrNull(x: number): number | null {
@@ -1852,10 +1864,17 @@ export function deriveVesselState(
   return {
     position: null,
     velocity: null,
-    altitudeAsl: mag(flight.altitudeAsl),
-    verticalSpeed: mag(flight.verticalSpeed),
-    surfaceSpeed: mag(flight.surfaceSpeed),
-    orbitalSpeed: mag(flight.orbitalSpeed),
+    // `finiteOrNull`, like every other derived scalar in this file. These four
+    // come STRAIGHT off the wire rather than out of a computation, which is why
+    // they were the four that skipped it, and `mag` answers NaN for an absent
+    // field (see its own doc for why that is the right answer THERE). NaN is
+    // neither of the two answers these fields declare, and a consumer's `??`
+    // does not catch it: the readout still renders as absent, but every
+    // threshold compared against it silently stops firing.
+    altitudeAsl: finiteOrNull(mag(flight.altitudeAsl)),
+    verticalSpeed: finiteOrNull(mag(flight.verticalSpeed)),
+    surfaceSpeed: finiteOrNull(mag(flight.surfaceSpeed)),
+    orbitalSpeed: finiteOrNull(mag(flight.orbitalSpeed)),
     met: null,
     period: null,
     trueAnomaly: null,

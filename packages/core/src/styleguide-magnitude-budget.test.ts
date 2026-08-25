@@ -201,7 +201,10 @@ const MAGNITUDE_BUDGET: Record<string, number> = {
   "packages/sitrep-client/src/use-control-stream.tsx": 2,
   "mod/sitrep-sdk/src/spine/vessel-state.ts": 2,
   "packages/ui-kit/src/Countdown.tsx": 1,
-  "packages/ui-kit/src/magnitude.ts": 1,
+  // 1, and it is the implementation: this is the ONE unwrap in the repo, moved
+  // down from ui-kit on 2026-08-25 so `sitrep-sdk`'s own files could reach it
+  // without a cycle. ui-kit re-exports it and now spends none.
+  "mod/sitrep-sdk/src/magnitude.ts": 1,
   "packages/ui-kit/src/MissionDate.tsx": 1,
   "packages/ui-kit/src/Unit.tsx": 1,
   "packages/ui-kit/src/units.ts": 2,

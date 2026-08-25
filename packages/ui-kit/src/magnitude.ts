@@ -1,43 +1,19 @@
 /**
- * Taking a quantity's magnitude, at the places where a widget genuinely has to.
+ * The magnitude unwrap, re-exported from where it now lives.
  *
- * ## When this is right
+ * It was implemented here until 2026-08-25 and moved down into
+ * `@ksp-gonogo/sitrep-sdk` beside `Value`, the type it unwraps. The reason is
+ * the dependency direction: ui-kit depends on the sdk, so while the canonical
+ * pair lived here nothing in the sdk could reach it without a cycle, and two
+ * spine files carried their own copies that disagreed about what absence means.
+ * That file's own doc comment carries the full reasoning.
  *
- * A widget that draws or computes. SVG attributes take numbers; a Kepler
- * solver, a median filter and a rolling window all take numbers; a model that
- * predates the unit system and is shared with code that does the above takes
- * numbers. Those boundaries are real, and one funnel through them is better
- * than `.magnitude` sprinkled at every use.
- *
- * ## When this is WRONG
- *
- * Showing the value. `<Unit value={x} />` is how a quantity is displayed, and
- * reaching for a magnitude to build a string is how a dashboard ends up with
- * six spellings of "m/s" and one readout quietly showing kilometres under a
- * metres label. If the number is going on screen, this is not the function you
- * want.
- *
- * The narrow `{ magnitude: number }` parameter rather than `Value<U>` is
- * deliberate: it accepts a plain number too, which is what the app's own
- * derived models still carry, so a caller does not have to know which side of
- * the migration a given field is on.
- *
- * Lives in ui-kit (not `@ksp-gonogo/components`) because it is a genuinely
- * generic numeric primitive with no dependency on the built-in widget
- * library: any Uplink client widget that draws or computes needs the same
- * funnel, and ui-kit is the published package a third-party Uplink can
- * import. `@ksp-gonogo/components`'s own `shared/magnitude.ts` re-exports
- * this rather than carrying a second copy.
+ * This re-export is what made the move cost nothing at the call sites: ui-kit
+ * is the published package a third-party Uplink already imports, so
+ * `magnitudeOf` stays reachable from exactly where every caller expects it.
  */
-export type Quantityish = { magnitude: number } | number | null | undefined;
-
-/** The magnitude, or `null` for anything absent or non-finite. */
-export function magnitudeOf(v: Quantityish): number | null {
-  const n = typeof v === "object" && v !== null ? v.magnitude : v;
-  return n === null || n === undefined || !Number.isFinite(n) ? null : n;
-}
-
-/** The magnitude, or `fallback` when there is nothing usable to take. */
-export function magnitudeOr(v: Quantityish, fallback: number): number {
-  return magnitudeOf(v) ?? fallback;
-}
+export {
+  magnitudeOf,
+  magnitudeOr,
+  type Quantityish,
+} from "@ksp-gonogo/sitrep-sdk";
