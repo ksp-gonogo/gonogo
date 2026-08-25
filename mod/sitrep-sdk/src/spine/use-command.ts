@@ -27,15 +27,9 @@ import {
 } from "./context";
 import { commandDelayed, commandShape } from "./map-command";
 import { useLatestValue } from "./use-stream";
+import { META_VANTAGE } from "./vantage";
 
-/**
- * The program-meta vantage: a command sent from `"meta"` is instant
- * (`DelayTo("meta", *) = 0` server-side, `ChannelEngine.MetaVantage`). Program
- * acts with no physical vantage (tech unlock, strategy, contract accept) pass
- * this so they stay instant regardless of the operator's selected command
- * centre. Kept in sync with the C# `MetaVantage` constant.
- */
-export const META_VANTAGE = "meta";
+export { META_VANTAGE };
 
 /**
  * The dev-only must-consume token this hook hands out on every dispatch handle.

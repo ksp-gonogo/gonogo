@@ -16,6 +16,7 @@
  * optionally clicks the trigger open before the driver screenshots.
  */
 
+import { type Screen, ScreenProvider } from "@ksp-gonogo/core";
 import {
   StubTransport,
   TelemetryClient,
@@ -33,6 +34,11 @@ export interface VantageProbePayload {
   roster?: unknown[];
   /** Click the trigger open before the screenshot. */
   open?: boolean;
+  /** Which screen to mount on. Defaults to `"main"`, the picker. */
+  screen?: Screen;
+  /** The vantage to stamp the roster frame with, which is what the station
+   *  readout states. Omit to leave the readout with nothing to state. */
+  observedVantage?: string;
 }
 
 let activeRoot: Root | null = null;
@@ -64,7 +70,11 @@ async function renderVantage(payload: VantageProbePayload): Promise<void> {
     createElement(
       TelemetryProvider,
       { client, store, carriedChannels: ["commandCentre.roster"] },
-      createElement(MissionBanner),
+      createElement(
+        ScreenProvider,
+        { value: payload.screen ?? "main" },
+        createElement(MissionBanner),
+      ),
     ),
   );
 
@@ -75,7 +85,13 @@ async function renderVantage(payload: VantageProbePayload): Promise<void> {
   await settle(120);
 
   if (payload.roster) {
-    transport.emit("commandCentre.roster", payload.roster);
+    transport.emit(
+      "commandCentre.roster",
+      payload.roster,
+      payload.observedVantage
+        ? { vantage: payload.observedVantage }
+        : undefined,
+    );
     await rafTick();
     await settle(60);
   }

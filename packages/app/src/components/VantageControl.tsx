@@ -1,5 +1,6 @@
-import { useTelemetry } from "@ksp-gonogo/core";
+import { useScreen, useTelemetry } from "@ksp-gonogo/core";
 import {
+  useObservedVantage,
   useSelectedVantage,
   useTelemetryClientOptional,
 } from "@ksp-gonogo/sitrep-client";
@@ -10,6 +11,8 @@ import {
   ComboboxListbox,
   type ComboboxOption,
   EmptyState,
+  Text,
+  VisuallyHidden,
 } from "@ksp-gonogo/ui-kit";
 import type { KeyboardEvent } from "react";
 import { useCallback, useEffect, useId, useRef, useState } from "react";
@@ -17,6 +20,11 @@ import styled from "styled-components";
 
 interface VantageOption extends ComboboxOption {
   isHome: boolean;
+}
+
+interface ActiveCentre {
+  id: string;
+  displayName?: string;
 }
 
 /**
@@ -36,21 +44,11 @@ function resolveHomeCentreId(
   return (active.find((c) => c.id === "ksc") ?? active[0])?.id;
 }
 
-/**
- * The command centre this mission control commands from and observes at:
- * each active centre's own light-time defines the delay on every
- * downlink and command, so switching one re-points the whole view (via
- * `client.setVantage`, which re-subscribes every active topic at the new
- * vantage's offset).
- *
- * The dropdown affordance is always present, even with a single (or zero)
- * enumerated centre: a stock save with only KSC still shows the same control
- * a multi-centre save does, rather than swapping to a plain readout, so an
- * operator discovers "other command centres are a thing" from the control's
- * shape alone. Opening it with one option still works, it just has one
- * option to land on.
- */
-export function VantageControl() {
+/** The currently-active command centres, and which of them is home. */
+function useActiveCentres(): {
+  active: ActiveCentre[];
+  homeId: string | undefined;
+} {
   // FAIL-OPEN FIX as well as a migration: `(roster ?? [])` never took its
   // fallback once the read became a Reading, so the filter below ran against a
   // Reading rather than a list. Ground-side and declared unmodellable, so a
@@ -60,6 +58,77 @@ export function VantageControl() {
     rosterReading.state === "observed" || rosterReading.state === "stale"
       ? rosterReading.value
       : undefined;
+  const active = (roster ?? []).filter(
+    (c): c is typeof c & { id: string } => c.active && c.id != null,
+  );
+  return { active, homeId: resolveHomeCentreId(active) };
+}
+
+/**
+ * The command centre in force, rendered as a chooser on the main screen and as
+ * a plain statement of fact on a station.
+ *
+ * A station reads the vantage, it does not pick one. The mod keeps
+ * `SelectedVantage` on the `ClientSession` and a host has exactly one session,
+ * so two stations at two vantages would need two differently-delayed streams
+ * down one socket: per-station vantage is not implementable without a wire
+ * change, quite apart from being unwanted. But a station operator reading
+ * delayed data still has to know WHICH centre it is delayed from or they cannot
+ * interpret any of it, so the answer stays on screen; only the lever goes.
+ */
+export function VantageControl() {
+  return useScreen() === "station" ? <VantageReadout /> : <VantagePicker />;
+}
+
+/**
+ * What the station sees: the command centre its frames were actually delayed
+ * from, stated and nothing more.
+ *
+ * Sourced from the frames rather than from `useSelectedVantage`, which on a
+ * station answers a constructor default that can never move and so names the
+ * host's centre only by coincidence. Before any frame has named one there is
+ * nothing to state, and saying so is the point: "we do not know yet" and "we
+ * are at KSC" are different facts and must not look alike.
+ */
+function VantageReadout() {
+  const { active, homeId } = useActiveCentres();
+  const observed = useObservedVantage();
+  const entry = active.find((c) => c.id === observed);
+
+  return (
+    <VantageReadout__Root role="status" aria-live="polite">
+      <VisuallyHidden>Command centre vantage: </VisuallyHidden>
+      {observed === undefined ? (
+        <Text tone="muted" size="xs">
+          Unknown
+        </Text>
+      ) : (
+        <>
+          <Text tone="default" size="xs">
+            {entry?.displayName ?? observed}
+          </Text>
+          {observed === homeId && <Badge size="sm">Home</Badge>}
+        </>
+      )}
+    </VantageReadout__Root>
+  );
+}
+
+/**
+ * The main screen's chooser: each active centre's own light-time
+ * defines the delay on every downlink and command, so switching one re-points
+ * the whole view (via `client.setVantage`, which re-subscribes every active
+ * topic at the new vantage's offset).
+ *
+ * The dropdown affordance is always present, even with a single (or zero)
+ * enumerated centre: a stock save with only KSC still shows the same control
+ * a multi-centre save does, rather than swapping to a plain readout, so an
+ * operator discovers "other command centres are a thing" from the control's
+ * shape alone. Opening it with one option still works, it just has one
+ * option to land on.
+ */
+function VantagePicker() {
+  const { active, homeId } = useActiveCentres();
   const selected = useSelectedVantage();
   const client = useTelemetryClientOptional();
 
@@ -69,11 +138,6 @@ export function VantageControl() {
   const listboxId = useId();
   const optionIdPrefix = useId();
   const optionId = (key: string) => `${optionIdPrefix}-${key}`;
-
-  const active = (roster ?? []).filter(
-    (c): c is typeof c & { id: string } => c.active && c.id != null,
-  );
-  const homeId = resolveHomeCentreId(active);
 
   const options: VantageOption[] = active.map((c) => ({
     key: c.id,
@@ -201,6 +265,17 @@ export function VantageControl() {
 const Container = styled.div`
   position: relative;
   display: inline-flex;
+`;
+
+/**
+ * No border, no background, no chevron, nothing focusable: the picker's
+ * `ActionButton` shell is exactly what must not survive here, because a control
+ * a station operator cannot work is worse than no control at all.
+ */
+const VantageReadout__Root = styled.span`
+  display: inline-flex;
+  align-items: baseline;
+  gap: var(--space-6);
 `;
 
 const Trigger = styled(ActionButton)`
