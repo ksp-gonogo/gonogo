@@ -135,6 +135,7 @@ const EXPECTED_BARREL_VALUE_EXPORTS = [
   "useTelemetry",
   "useTelemetryClientOptional",
   "useTelemetryStoreOptional",
+  "useUplinkRelay",
   "useUtNow",
   "useViewClock",
   "useViewClockOptional",

@@ -954,6 +954,18 @@ export interface UseCommandResult {
  * `UseRouteCommandsResult`: same leaf constraint as every other type in
  * this file.
  */
+/**
+ * One Uplink's own method call, as `useUplinkRelay` hands it over. `method` and
+ * `args` mean whatever the Uplink's registered handle says they mean; nothing
+ * between the caller and that handle interprets either.
+ *
+ * Rejects with an `Error` on no route (no handle registered, or a station with
+ * no live link) and on a throw inside the handle, whose own extra Error
+ * properties survive the hop so a client can read back what its own host code
+ * classified.
+ */
+export type UplinkRelay = (method: string, args?: unknown) => Promise<unknown>;
+
 export interface UseRouteCommandsResult {
   items: InFlightCommand[];
   mode: DelayMode;

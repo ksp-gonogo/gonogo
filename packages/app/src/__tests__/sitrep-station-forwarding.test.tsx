@@ -165,6 +165,7 @@ vi.mock("peerjs", () => {
   return { default: FakePeer };
 });
 
+import { registerUplinkHandle, unregisterUplinkHandle } from "@ksp-gonogo/core";
 import {
   StubTransport,
   TelemetryClient,
@@ -173,9 +174,11 @@ import {
   useStream,
   useTelemetryStore,
 } from "@ksp-gonogo/sitrep-client";
+import { useUplinkRelay } from "@ksp-gonogo/sitrep-sdk";
 import { act, render, screen, waitFor } from "@ksp-gonogo/test-utils";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { afterEach, describe, expect, it, vi } from "vitest";
+import { PeerClientProvider } from "../peer/PeerClientContext";
 import { PeerClientService } from "../peer/PeerClientService";
 import { PeerHostService } from "../peer/PeerHostService";
 import { PeerTransport } from "../telemetry/PeerTransport";
@@ -610,5 +613,141 @@ describe("station subscription intent reaches the mod", () => {
       expect(probes).toHaveLength(2);
       expect(probes[1]?.textContent).toContain("11");
     });
+  });
+});
+
+/**
+ * An Uplink's own method calls, made from a station. The widget below reaches
+ * the seam the way an outside author would: `useUplinkRelay` off
+ * `@ksp-gonogo/sitrep-sdk`, with nothing imported from the app, no per-Uplink
+ * entry anywhere, and no knowledge of which screen it is on.
+ */
+describe("an Uplink's own methods, called from a station", () => {
+  const stationServices: PeerClientService[] = [];
+  const hostServices: PeerHostService[] = [];
+
+  afterEach(() => {
+    act(() => {
+      for (const svc of stationServices) svc.disconnect();
+      for (const svc of hostServices) svc.stop();
+    });
+    stationServices.length = 0;
+    hostServices.length = 0;
+    unregisterUplinkHandle("fixture-uplink");
+    localStorage.clear();
+    peerRegistry.clear();
+  });
+
+  /**
+   * The whole of the fixture Uplink's client. Imports the sdk and nothing else,
+   * which is the point: an outside author has no other option.
+   */
+  function FixtureWidget({ onAnswer }: { onAnswer: (value: unknown) => void }) {
+    const relay = useUplinkRelay("fixture-uplink");
+    useEffect(() => {
+      let live = true;
+      relay("describe", { detail: "cameras" })
+        .then((value) => {
+          if (live) onAnswer(value);
+        })
+        .catch((err: Error) => {
+          if (live) onAnswer(`rejected: ${err.message}`);
+        });
+      return () => {
+        live = false;
+      };
+    }, [relay, onAnswer]);
+    return null;
+  }
+
+  function StationWithFixture({
+    clientSvc,
+    onAnswer,
+  }: {
+    clientSvc: PeerClientService;
+    onAnswer: (value: unknown) => void;
+  }) {
+    return (
+      <PeerClientProvider client={clientSvc}>
+        <FixtureWidget onAnswer={onAnswer} />
+      </PeerClientProvider>
+    );
+  }
+
+  it("reaches the handle registered on the HOST, with no per-Uplink wiring on either screen", async () => {
+    const peerHost = new PeerHostService();
+    hostServices.push(peerHost);
+    await peerHost.start();
+    await waitForHostPeerId(peerHost);
+
+    const calls: Array<{ method: string; args: unknown }> = [];
+    registerUplinkHandle("fixture-uplink", {
+      relay: (method: string, args: unknown) => {
+        calls.push({ method, args });
+        return Promise.resolve({ cameras: [1, 2] });
+      },
+    });
+
+    const clientSvc = new PeerClientService();
+    stationServices.push(clientSvc);
+    const answers: unknown[] = [];
+    render(
+      <StationWithFixture
+        clientSvc={clientSvc}
+        onAnswer={(value) => answers.push(value)}
+      />,
+    );
+    act(() => clientSvc.connect(peerHost.shareCode));
+    await waitFor(() => expect(clientSvc.getConnStatus()).toBe("connected"));
+
+    // The widget mounts before the link is up, so its first attempt is
+    // rejected and the status edge re-fires the effect. That retry is the
+    // answer, and getting it without the Uplink writing a retry is the point.
+    await waitFor(() => expect(answers.at(-1)).toEqual({ cameras: [1, 2] }));
+    expect(calls.at(-1)).toEqual({
+      method: "describe",
+      args: { detail: "cameras" },
+    });
+  });
+
+  it("rejects rather than hanging when the Uplink has no handle on the host", async () => {
+    const peerHost = new PeerHostService();
+    hostServices.push(peerHost);
+    await peerHost.start();
+    await waitForHostPeerId(peerHost);
+
+    const clientSvc = new PeerClientService();
+    stationServices.push(clientSvc);
+    const answers: unknown[] = [];
+    render(
+      <StationWithFixture
+        clientSvc={clientSvc}
+        onAnswer={(value) => answers.push(value)}
+      />,
+    );
+    act(() => clientSvc.connect(peerHost.shareCode));
+    await waitFor(() => expect(clientSvc.getConnStatus()).toBe("connected"));
+
+    // Once connected the host answers, and its answer is the named refusal
+    // rather than silence: an Uplink whose handle never registered can say so.
+    await waitFor(() =>
+      expect(String(answers.at(-1))).toContain("no relay handle registered"),
+    );
+  });
+
+  it("calls the handle directly on a screen with no peer client, same code in the widget", async () => {
+    const calls: string[] = [];
+    registerUplinkHandle("fixture-uplink", {
+      relay: (method: string) => {
+        calls.push(method);
+        return Promise.resolve("local");
+      },
+    });
+
+    const answers: unknown[] = [];
+    render(<FixtureWidget onAnswer={(value) => answers.push(value)} />);
+
+    await waitFor(() => expect(answers).toEqual(["local"]));
+    expect(calls).toEqual(["describe"]);
   });
 });

@@ -152,6 +152,7 @@ export type {
   ThemeDefinition,
   UplinkClientHandle,
   UplinkClientIdentity,
+  UplinkRelay,
   UseCommandResult,
   UseMapPois,
   UseRouteCommandsResult,
@@ -432,6 +433,30 @@ export function useViewUt(): Value<"ut"> | undefined {
 
 export function useCommand(command: string) {
   return getHost().useCommand(command);
+}
+
+/**
+ * Call one of an Uplink's own methods from a widget, on either screen.
+ *
+ * A Topic carries what the game is doing and a command changes it; this is
+ * neither. It is for the calls an Uplink's client makes to its own host-side
+ * object: a WebRTC offer to answer, an inventory to fetch, anything whose shape
+ * only that Uplink knows. Register the object with `registerUplinkHandle`, then
+ * call it from anywhere with this.
+ *
+ * The hook is the screen boundary. On the main screen the call reaches the
+ * handle directly. On a station it is relayed through the main screen, which is
+ * the only thing a station ever talks to, and the Uplink's code is identical
+ * either way.
+ *
+ *   const relay = useUplinkRelay("my-uplink");
+ *   const cameras = await relay("listCameras", { vesselId });
+ *
+ * The returned function is stable for as long as the route is, so it is safe in
+ * a dependency array. It rejects, rather than hanging, when no route exists.
+ */
+export function useUplinkRelay(uplinkId: string) {
+  return getHost().useUplinkRelay(uplinkId);
 }
 
 /**

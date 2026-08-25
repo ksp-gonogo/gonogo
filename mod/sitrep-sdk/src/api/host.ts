@@ -31,6 +31,7 @@ import type {
   SettingsTabDefinition,
   TelemetryClient,
   UplinkClientHandle,
+  UplinkRelay,
   UseCommandResult,
   UseRouteCommandsResult,
 } from "./types";
@@ -77,6 +78,20 @@ export interface GonogoHost {
    */
   useViewUt(): Value<"ut"> | undefined;
   useCommand(command: string): UseCommandResult;
+  /**
+   * Call one of `uplinkId`'s own methods, wherever this screen is. On the main
+   * screen the call reaches the registered handle directly; on a station it is
+   * relayed through the host, because a station never talks to anything but the
+   * main screen.
+   *
+   * Same boundary property as `useTelemetry`: an Uplink writes the call once
+   * and the hook decides how it travels, so a control that works on the main
+   * screen works on a station without the Uplink knowing stations exist.
+   *
+   * Rejects rather than hanging when there is no route: an Uplink with no
+   * registered handle, or a station whose link is down.
+   */
+  useUplinkRelay(uplinkId: string): UplinkRelay;
   /**
    * Cross-origin route reader: every currently-pending command addressed to
    * `topic`, regardless of which command centre dispatched it, the
