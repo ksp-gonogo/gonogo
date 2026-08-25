@@ -30,7 +30,7 @@ import {
   usePanelDelay,
 } from "@ksp-gonogo/ui-kit";
 import { useState } from "react";
-import { commandWindow } from "../commandWindow";
+import { commandWindow, seededIgnitionUt } from "../commandWindow";
 import { PRINCIPIA } from "../uplink";
 
 /**
@@ -217,9 +217,13 @@ export function PlanComposer() {
                   edit(draft, [
                     ...draft.burns,
                     emptyBurn(
-                      draft.burns.length === 0
-                        ? seenAt
-                        : draft.burns[draft.burns.length - 1].ignitionUt,
+                      seededIgnitionUt(
+                        draft.burns.length === 0
+                          ? null
+                          : draft.burns[draft.burns.length - 1].ignitionUt,
+                        viewUt ?? seenAt,
+                        send.command.effectiveDelaySeconds,
+                      ),
                     ),
                   ])
                 }
@@ -371,7 +375,7 @@ function totalDeltaV(draft: PlanDraft): Value<"m/s"> {
 
 /**
  * A burn with no Δv in it yet, which is what "add a burn" means: an instant the
- * operator has chosen and three components they have not.
+ * plan can still reach, and three components the operator has not typed.
  *
  * <p>Frenet, because the three numbers an operator types are along-track, normal
  * and radial. The same three in another frame would mean something else.</p>

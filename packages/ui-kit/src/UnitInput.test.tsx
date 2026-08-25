@@ -38,6 +38,116 @@ describe("UnitInput", () => {
     expect(emitted.magnitude).toBe(34);
   });
 
+  describe("a field being cleared", () => {
+    /**
+     * A control that reads a blank field as zero commits a number the operator
+     * never typed, and does it at the moment they are most obviously mid-edit.
+     * On a burn's Δv that is a real instruction: clear the field, look away, and
+     * the plan now says burn nothing on that axis rather than what it said
+     * before. The same read makes a value impossible to retype at all, because
+     * the field snaps to "0" between keystrokes.
+     */
+    it("commits nothing when the field is emptied", () => {
+      const onChange = vi.fn();
+      render(
+        <UnitInput
+          label="Tangent"
+          unit="m/s"
+          value={value("m/s", 12)}
+          onChange={onChange}
+        />,
+      );
+
+      fireEvent.change(screen.getByLabelText("Tangent"), {
+        target: { value: "" },
+      });
+
+      expect(onChange).not.toHaveBeenCalled();
+    });
+
+    it("leaves the emptied field empty rather than filling in a zero", () => {
+      // The other half of the same fault. A field that refills itself cannot be
+      // cleared and retyped, which is the ordinary way anybody changes a number.
+      render(
+        <UnitInput
+          label="Tangent"
+          unit="m/s"
+          value={value("m/s", 12)}
+          onChange={() => {}}
+        />,
+      );
+
+      const field = screen.getByLabelText("Tangent") as HTMLInputElement;
+      fireEvent.change(field, { target: { value: "" } });
+
+      expect(field.value).toBe("");
+    });
+
+    it("commits nothing for a minus sign on its own", () => {
+      // The first keystroke of every negative number. Reading it as zero puts a
+      // zero on the wire on the way to typing -40.
+      const onChange = vi.fn();
+      render(
+        <UnitInput
+          label="Tangent"
+          unit="m/s"
+          value={value("m/s", 12)}
+          onChange={onChange}
+        />,
+      );
+
+      fireEvent.change(screen.getByLabelText("Tangent"), {
+        target: { value: "-" },
+      });
+
+      expect(onChange).not.toHaveBeenCalled();
+    });
+
+    it("commits nothing when a RUNG is emptied", () => {
+      // Same rule on the several-field shape: an emptied hours box is an
+      // unfinished edit, and reading it as zero silently subtracts four hours.
+      const onChange = vi.fn();
+      render(
+        <UnitInput
+          label="Coast"
+          unit="s"
+          rungs={["h", "min", "s"]}
+          value={value("s", 4 * 3600 + 12 * 60 + 30)}
+          onChange={onChange}
+        />,
+      );
+
+      fireEvent.change(screen.getByLabelText("Coast h"), {
+        target: { value: "" },
+      });
+
+      expect(onChange).not.toHaveBeenCalled();
+      expect((screen.getByLabelText("Coast h") as HTMLInputElement).value).toBe(
+        "",
+      );
+    });
+
+    it("still commits a zero the operator actually types", () => {
+      // The contrast that makes the rule above a rule rather than a hole: zero
+      // is a real Δv and typing it must reach the plan.
+      const onChange = vi.fn();
+      render(
+        <UnitInput
+          label="Tangent"
+          unit="m/s"
+          value={value("m/s", 12)}
+          onChange={onChange}
+        />,
+      );
+
+      fireEvent.change(screen.getByLabelText("Tangent"), {
+        target: { value: "0" },
+      });
+
+      expect(onChange.mock.calls[0][0].magnitude).toBe(0);
+    });
+  });
+
   it("gives every control a VISIBLE name", async () => {
     // A column of unlabelled boxes is unreadable, and this is not hypothetical:
     // the plan composer shipped four of them, distinguishable only by an

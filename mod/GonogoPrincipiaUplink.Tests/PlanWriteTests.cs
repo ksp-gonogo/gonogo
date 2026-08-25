@@ -1034,6 +1034,42 @@ namespace GonogoPrincipiaUplink.Tests
         }
 
         /// <summary>
+        /// A plan that fails its own rules leaves a craft that had no plan still
+        /// holding none.
+        ///
+        /// <para>The command states this as a guarantee: "a plan failing any check
+        /// writes NOTHING". Making the plan before checking the burns spends that
+        /// guarantee on the one case it matters in, because a craft the operator
+        /// never planned for comes back holding an empty plan created by a command
+        /// that answered with a refusal.</para>
+        /// </summary>
+        [Fact]
+        public void ARefusedPlanLeavesACraftWithNoPlanStillHoldingNone()
+        {
+            var (plugin, commands) = Wire(p => p.Add(Guid, hasFlightPlan: false));
+            Armed(commands);
+            plugin.Writes.Clear();
+
+            var refused = commands.SendPlan(
+                new PrincipiaPlanSendArgs
+                {
+                    VesselId = Guid,
+                    RequestId = "s-past",
+                    DesiredFinalTimeUt = 40_000.0,
+                    Burns = new[]
+                    {
+                        // Behind the fake's present of 1000, so the composed-plan
+                        // rules refuse the whole plan.
+                        new PrincipiaComposedBurn { IgnitionUt = 500.0, DeltaVTangent = 90.0 },
+                    },
+                });
+
+            Assert.Equal(PrincipiaWriteRefusal.IgnitionInPast, Refusal(refused));
+            Assert.False(plugin.Known(Guid).HasFlightPlan);
+            Assert.Empty(plugin.Writes);
+        }
+
+        /// <summary>
         /// An armed vessel whose plan holds no burns. The burn probe cannot run with
         /// no burns, so the arm happens on a plan that has one and the plan is
         /// emptied after: what is under test is the missing template, not the arm.

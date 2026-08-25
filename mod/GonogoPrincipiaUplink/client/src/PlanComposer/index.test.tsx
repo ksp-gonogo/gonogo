@@ -178,6 +178,71 @@ describe("PlanComposer", () => {
     expect(fixture.transport.sentCommands).toHaveLength(0);
   });
 
+  it("seeds a new burn at an instant the vessel can still act on", async () => {
+    // A seeded burn is the one an operator who does not retype the instant
+    // sends. Seeding it at the instant the state was OBSERVED puts it two light
+    // times behind the moment the plan arrives, and the mod refuses any burn
+    // ignoiting at or before arrival, so the whole plan is refused: the control
+    // offers a plan that cannot be flown and says nothing about it until the
+    // craft answers.
+    await setup();
+
+    press("Draft plan");
+    press("Add burn");
+    await act(async () => {});
+
+    const ignition = Number(
+      (screen.getByLabelText("Ignition") as HTMLInputElement).value,
+    );
+    expect(ignition).toBeGreaterThan(VIEW_UT);
+  });
+
+  it("seeds a burn ahead of the round trip at a delayed vantage", async () => {
+    // The instant that has to be cleared is ARRIVAL, not the view: the press
+    // leaves one light time behind reality and spends another in flight. A seed
+    // ahead of the view instant but inside the round trip is refused on arrival
+    // exactly as one in the past is.
+    const { fixture } = await setup();
+    act(() => {
+      fixture.emit("comms.delay", { oneWaySeconds: 600 }, { validAt: VIEW_UT });
+    });
+
+    press("Draft plan");
+    press("Add burn");
+    await act(async () => {});
+
+    const ignition = Number(
+      (screen.getByLabelText("Ignition") as HTMLInputElement).value,
+    );
+    expect(ignition).toBeGreaterThan(VIEW_UT + 2 * 600);
+    // And the window it lands in is open, which is the same arithmetic the row
+    // below shows: a seed that arrives already too late is no better than one in
+    // the past.
+    press("Save draft");
+    await act(async () => {});
+    expect(screen.queryByText("Too late")).toBeNull();
+  });
+
+  it("seeds a second burn after the first rather than on top of it", async () => {
+    // Two burns at one instant are not in time order, which the mod refuses on
+    // its own account: a plan whose burns are not ordered was either composed
+    // wrongly or reordered in transit. Seeding every burn at its predecessor's
+    // instant made every multi-burn plan refusable from the first press.
+    await setup();
+
+    press("Draft plan");
+    press("Add burn");
+    press("Add burn");
+    await act(async () => {});
+
+    const instants = screen
+      .getAllByLabelText("Ignition")
+      .map((field) => Number((field as HTMLInputElement).value));
+
+    expect(instants).toHaveLength(2);
+    expect(instants[1]).toBeGreaterThan(instants[0]);
+  });
+
   it("says why when the vessel declines the plan", async () => {
     // Stock refuses this command outright, with a real reason. A control that
     // merely stopped spinning would leave the operator guessing at a decision

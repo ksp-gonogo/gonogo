@@ -1,4 +1,4 @@
-import { solve } from "./kepler";
+import { rotateInertialToPerifocal, solve } from "./kepler";
 import type { TrajectoryPoint } from "./orbit-trajectory";
 import { buildElements, type WireOrbitElements } from "./vessel-state";
 
@@ -22,11 +22,32 @@ export interface OrbitSample {
  * <p>This is why the forward arc and the trail must be drawn differently. One
  * is a prediction and one is a record, and a single unbroken curve through the
  * craft would assert the same confidence in both.</p>
+ *
+ * <p><b>Expressed in `frame`'s perifocal frame, and that argument is required
+ * for a reason.</b> Each point is SOLVED from its own sample, which is what
+ * makes the trail a record, and a solve hands back a body-centred inertial
+ * position. The arc it is drawn beside is in the perifocal frame of the elements
+ * the diagram was drawn from, so a trail left inertial is a curve of the right
+ * shape and the right size sitting rotated away from the path the craft is on by
+ * that orbit's own three angles, and out of its plane entirely once the orbit is
+ * tilted. Nothing about it looks wrong. Defaulting the frame would let the next
+ * caller inherit that silently, so there is no default: naming the elements the
+ * points are to be read against is part of asking for them.</p>
  */
 export function pastTrack(
   samples: readonly OrbitSample[],
-  options: { centreBodyIndex?: number } = {},
+  options: {
+    /**
+     * The elements whose perifocal frame the points come back in. The same ones
+     * the diagram was drawn from, never the sample's own: osculating elements
+     * drift, and a point placed in the frame belonging to its own instant would
+     * put every point in a slightly different frame from its neighbour.
+     */
+    frame: WireOrbitElements;
+    centreBodyIndex?: number;
+  },
 ): TrajectoryPoint[] {
+  const into = buildElements(options.frame);
   const points: TrajectoryPoint[] = [];
   for (const sample of samples) {
     // A sample taken about a DIFFERENT body is a different frame, and joining
@@ -54,7 +75,12 @@ export function pastTrack(
       continue;
     }
 
-    const [x, y, z] = solve(elements, sample.validAt).position;
+    const [x, y, z] = rotateInertialToPerifocal(
+      solve(elements, sample.validAt).position,
+      into.inc,
+      into.lan,
+      into.argPe,
+    );
     points.push({ x, y, z, ut: sample.validAt });
   }
   return points;

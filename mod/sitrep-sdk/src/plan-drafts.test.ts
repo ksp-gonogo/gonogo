@@ -1,6 +1,18 @@
 import { describe, expect, it, vi } from "vitest";
+import { type ComposedBurn, ManeuverFrame } from "./__generated__/contract";
 import { draftAsPlan, type PlanDraft, PlanDraftStore } from "./plan-drafts";
 import { value } from "./unit-system/value";
+
+function burn(ignitionUt: number): ComposedBurn {
+  return {
+    ignitionUt: value("ut", ignitionUt),
+    frame: ManeuverFrame.TangentNormalBinormal,
+    dvRadial: value("m/s", 0),
+    dvNormal: value("m/s", 0),
+    dvPrograde: value("m/s", 0),
+    inertiallyFixed: false,
+  };
+}
 
 function draft(overrides: Partial<Omit<PlanDraft, "id">> = {}) {
   return {
@@ -97,13 +109,55 @@ describe("the command centre's own plans", () => {
     expect(updated?.id).toBe(created.id);
   });
 
-  it("carries the draft's id as the request id when sent", () => {
-    // A draft IS the intent, so its id is the intent's id: a retransmission
-    // after a silence is recognised as the same plan rather than applied twice.
+  it("carries a request id built from the draft when sent", () => {
+    // A retransmission after a silence has to be recognised as the same plan
+    // rather than applied twice, and the request id is what does that.
     const store = new PlanDraftStore();
     const created = store.create(draft());
 
-    expect(draftAsPlan(created).requestId).toBe(created.id);
+    expect(draftAsPlan(created).requestId).toContain(created.id);
+  });
+
+  it("keeps the request id across a retransmission of an unedited draft", () => {
+    // The intent has not changed, so the id must not: this is the whole of what
+    // makes a repeat safe.
+    const store = new PlanDraftStore();
+    const created = store.create(draft());
+
+    const again = store.get(created.id);
+
+    expect(draftAsPlan(again!).requestId).toBe(draftAsPlan(created).requestId);
+  });
+
+  it("gives an EDITED draft a request id the old receipt cannot answer", () => {
+    // The failure this stops: the receiving side answers a repeated request id
+    // from its replay cache without looking at the plan, so an edited draft sent
+    // under the id its earlier version was sent under comes back with the
+    // EARLIER answer. The operator reads "aboard" about a plan the craft has
+    // never seen, and every later correction reads the same way.
+    const store = new PlanDraftStore();
+    const created = store.create(draft({ burns: [] }));
+    const before = draftAsPlan(created).requestId;
+
+    const edited = store.update(created.id, {
+      burns: [burn(5000)],
+      observedAt: value("ut", 950),
+    });
+
+    expect(draftAsPlan(edited!).requestId).not.toBe(before);
+  });
+
+  it("does not move the request id when only the saved flag changes", () => {
+    // Saving and reopening decide nothing about the plan. Moving the id there
+    // would spend the repeat protection on an operator changing their mind about
+    // whether they had finished typing.
+    const store = new PlanDraftStore();
+    const created = store.create(draft({ burns: [burn(5000)] }));
+    const before = draftAsPlan(created).requestId;
+
+    const saved = store.update(created.id, { saved: true });
+
+    expect(draftAsPlan(saved!).requestId).toBe(before);
   });
 
   it("does not send the name", () => {

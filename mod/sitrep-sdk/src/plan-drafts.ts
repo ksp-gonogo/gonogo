@@ -23,6 +23,25 @@ export interface PlanDraft {
   /** This draft's own id, assigned by the command centre and never the game's. */
   id: string;
 
+  /**
+   * How many times what this draft would SEND has changed. Assigned by the store.
+   *
+   * <p><b>The id alone cannot be the intent's id.</b> The receiving side answers
+   * a request id it has already seen out of its replay cache, without looking at
+   * the plan that came with it, which is exactly right for a retransmission after
+   * a silence and exactly wrong for an edit. A draft corrected and sent again
+   * under the id its earlier version was sent under is answered with the EARLIER
+   * receipt: the operator reads "aboard" about a plan the craft has never seen,
+   * and every further correction reads the same way.</p>
+   *
+   * <p>So the intent is the draft's CONTENT, and this counts it. Only the fields
+   * that travel move it: saving and reopening decide nothing about the plan, and
+   * spending the repeat protection on an operator changing their mind about
+   * whether they had finished typing would make a genuine retransmission apply
+   * twice.</p>
+   */
+  revision: number;
+
   /** What the operator calls it. Never sent: the vessel has no use for a name. */
   name: string;
 
@@ -92,8 +111,12 @@ export class PlanDraftStore {
    * contents: two drafts with identical burns are still two drafts, because an
    * operator made them separately and may be comparing them.</p>
    */
-  create(draft: Omit<PlanDraft, "id">): PlanDraft {
-    const created: PlanDraft = { ...draft, id: `draft-${this.nextId}` };
+  create(draft: Omit<PlanDraft, "id" | "revision">): PlanDraft {
+    const created: PlanDraft = {
+      ...draft,
+      id: `draft-${this.nextId}`,
+      revision: 1,
+    };
     this.nextId += 1;
     this.drafts.set(created.id, created);
     this.changed();
@@ -111,13 +134,18 @@ export class PlanDraftStore {
    */
   update(
     id: string,
-    changes: Partial<Omit<PlanDraft, "id">>,
+    changes: Partial<Omit<PlanDraft, "id" | "revision">>,
   ): PlanDraft | undefined {
     const existing = this.drafts.get(id);
     if (existing === undefined) {
       return undefined;
     }
-    const updated: PlanDraft = { ...existing, ...changes, id };
+    const updated: PlanDraft = {
+      ...existing,
+      ...changes,
+      id,
+      revision: existing.revision + (touchesTheWire(changes) ? 1 : 0),
+    };
     this.drafts.set(id, updated);
     this.changed();
     return updated;
@@ -148,19 +176,36 @@ export class PlanDraftStore {
 }
 
 /**
+ * Which of a draft's fields reach the craft, so a change to one of them is a
+ * different intent and a change to the rest is not.
+ */
+const WIRE_FIELDS = [
+  "burns",
+  "observedAt",
+  "vesselId",
+  "desiredFinalTimeUt",
+] as const satisfies readonly (keyof PlanDraft)[];
+
+function touchesTheWire(changes: Partial<Omit<PlanDraft, "id">>): boolean {
+  return WIRE_FIELDS.some((field) => field in changes);
+}
+
+/**
  * A draft in the shape the send hook takes.
  *
- * <p>The name is dropped, because the vessel has no use for one. The draft's id
- * becomes the request id, so a draft retransmitted after a silence is
- * recognised as the same intent rather than applied twice: that is the whole
- * job of a request id, and the draft is the intent.</p>
+ * <p>The name is dropped, because the vessel has no use for one. The request id
+ * is the draft AT ITS REVISION, not the draft: a retransmission of the same
+ * plan carries the same id and is recognised as the same intent rather than
+ * applied twice, and an edited plan carries a new one so the receiving side
+ * cannot answer it out of the receipt it kept for the version before. See
+ * {@link PlanDraft.revision}.</p>
  */
 export function draftAsPlan(draft: PlanDraft): ComposedPlan {
   return {
     burns: draft.burns,
     observedAt: draft.observedAt,
     vesselId: draft.vesselId,
-    requestId: draft.id,
+    requestId: `${draft.id}@${draft.revision}`,
     desiredFinalTimeUt: draft.desiredFinalTimeUt,
   };
 }

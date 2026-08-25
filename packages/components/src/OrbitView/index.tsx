@@ -215,7 +215,7 @@ function OrbitViewComponent({
    * read as a direction of travel on a low orbit, and short enough to stay
    * within samples this frame can place.
    */
-  const trail = usePastTrack(300, orbit?.referenceBodyIndex);
+  const trail = usePastTrack(300, orbit);
   const vesselState = useStreamOptional<VesselState>("vessel.state");
   const sma = orbit?.sma;
   const eccentricity = orbit?.ecc;

@@ -1,5 +1,5 @@
 import { type PointUnit, type Value, value } from "@ksp-gonogo/sitrep-sdk";
-import { useId } from "react";
+import { useId, useState } from "react";
 import styled from "styled-components";
 import type { FormatsFor } from "./units";
 
@@ -136,18 +136,34 @@ export function UnitInput<U extends string>({
     | { min: number; max: number; step?: number }
     | undefined;
   const magnitude = current ? current.magnitude : 0;
+  // One entry per field: the single control has one, a rung row has one per
+  // rung, and the key is the rung's index there. Held whether or not the shape
+  // uses several, because hooks cannot be called per branch.
+  const [typing, setTyping] = useState<Readonly<Record<number, Typing>>>({});
+  const typed = (index: number): Typing | null => typing[index] ?? null;
+  const type = (index: number, next: Typing) =>
+    setTyping((held) => ({ ...held, [index]: next }));
 
   if (rungs && rungs.length > 0) {
     const sizes = rungs.map((symbol) => worth(String(symbol), unit));
     const parts = splitAcross(magnitude, sizes);
-    const emit = (index: number, typed: number) => {
+    const emit = (index: number, text: string) => {
+      const amount = readNumber(text);
+      if (amount === undefined) {
+        // An unfinished edit. Held so the field shows what was typed into it,
+        // and nothing is committed: an emptied hours box is a box being retyped,
+        // and reading it as zero would quietly subtract four hours from a plan.
+        type(index, { text, against: parts[index] });
+        return;
+      }
       const next = parts.slice();
-      next[index] = typed;
+      next[index] = amount;
       const total = next.reduce(
-        (sum, amount, i) =>
-          Number.isFinite(sizes[i]) ? sum + amount * sizes[i] : sum,
+        (sum, each, i) =>
+          Number.isFinite(sizes[i]) ? sum + each * sizes[i] : sum,
         0,
       );
+      type(index, { text, against: amount });
       onChange(value(unit, total));
     };
 
@@ -161,10 +177,8 @@ export function UnitInput<U extends string>({
                 type="number"
                 disabled={disabled}
                 aria-label={`${label} ${String(symbol)}`}
-                value={round(parts[index])}
-                onChange={(event) =>
-                  emit(index, readNumber(event.target.value))
-                }
+                value={fieldText(typed(index), parts[index])}
+                onChange={(event) => emit(index, event.target.value)}
               />
               <UnitSymbol aria-hidden="true">{String(symbol)}</UnitSymbol>
             </RungCell>
@@ -173,6 +187,14 @@ export function UnitInput<U extends string>({
       </Control>
     );
   }
+
+  const emit = (text: string) => {
+    const amount = readNumber(text);
+    type(0, { text, against: amount ?? magnitude });
+    if (amount !== undefined) {
+      onChange(value(unit, amount));
+    }
+  };
 
   return (
     <Control>
@@ -185,10 +207,8 @@ export function UnitInput<U extends string>({
           min={bounds?.min}
           max={bounds?.max}
           step={bounds?.step}
-          value={round(magnitude)}
-          onChange={(event) =>
-            onChange(value(unit, readNumber(event.target.value)))
-          }
+          value={fieldText(typed(0), magnitude)}
+          onChange={(event) => emit(event.target.value)}
         />
         <UnitSymbol aria-hidden="true">{unit}</UnitSymbol>
       </ValueRow>
@@ -201,8 +221,12 @@ export function UnitInput<U extends string>({
           max={bounds.max}
           step={bounds.step ?? (bounds.max - bounds.min) / 100}
           value={magnitude}
+          // A slider is never mid-edit: the handle is always somewhere, so every
+          // position it can be dragged to is a number. It goes straight to the
+          // value rather than through the typing buffer, which belongs to the
+          // field beside it.
           onChange={(event) =>
-            onChange(value(unit, readNumber(event.target.value)))
+            onChange(value(unit, readNumber(event.target.value) ?? magnitude))
           }
         />
       ) : null}
@@ -210,10 +234,46 @@ export function UnitInput<U extends string>({
   );
 }
 
-/** A typed field's value, with a blank or a half-typed minus read as zero. */
-function readNumber(text: string): number {
+/**
+ * What is in a field while it is being typed in, and the magnitude it was typed
+ * against.
+ *
+ * <p>The pair is what makes a half-finished edit survivable. A field carrying
+ * nothing, or a minus sign on its own, is not a number and must not become one:
+ * reading it as zero commits an instruction the operator never gave, at the
+ * moment they are most obviously mid-edit, and it also makes the field
+ * impossible to clear and retype because it refills itself between
+ * keystrokes.</p>
+ *
+ * <p>`against` is what says when to stop showing the text. It holds the
+ * magnitude the field's own value was when the text was typed, so a value moved
+ * from ANYWHERE ELSE, another control, an arriving reading, a whole draft
+ * reloaded, no longer matches and the field goes back to showing the value it
+ * has. No effect, no subscription, no chance of the two disagreeing.</p>
+ */
+interface Typing {
+  text: string;
+  against: number;
+}
+
+/** What a field shows: what is being typed into it, or the value it holds. */
+function fieldText(typing: Typing | null, magnitude: number): string {
+  return typing !== null && Object.is(typing.against, magnitude)
+    ? typing.text
+    : String(round(magnitude));
+}
+
+/**
+ * A typed field's number, or undefined when what is in it is not one yet.
+ *
+ * <p>A digit has to be there. `parseFloat` reads a lone minus as `NaN` and an
+ * empty string as `NaN`, which the finite check already catches, but requiring a
+ * digit is the rule stated positively rather than as the union of whatever that
+ * function happens to reject.</p>
+ */
+function readNumber(text: string): number | undefined {
   const parsed = Number.parseFloat(text);
-  return Number.isFinite(parsed) ? parsed : 0;
+  return Number.isFinite(parsed) && /\d/.test(text) ? parsed : undefined;
 }
 
 /** Trims float dust so a value that is rendered and typed back does not grow digits. */

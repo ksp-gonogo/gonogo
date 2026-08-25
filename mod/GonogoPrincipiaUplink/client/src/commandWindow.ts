@@ -1,3 +1,5 @@
+import { type Value, value } from "@ksp-gonogo/sitrep-sdk";
+
 /**
  * When a command stops being able to reach the thing it is about.
  *
@@ -41,6 +43,47 @@ export interface CommandWindow {
  * comparison the mod makes on arrival, so the prediction here and the refusal
  * there cannot disagree about what they are testing.</p>
  */
+/**
+ * How much of the window a seeded burn leaves the operator to work in.
+ *
+ * <p>Ten minutes. A seed is what an operator who does not retype the instant
+ * actually sends, so it has to sit far enough past the round trip that finishing
+ * the burn does not close the window that was open when they started, and near
+ * enough that it reads as "shortly" rather than as a number somebody invented.
+ * It is also the gap seeded between one burn and the next: two burns at one
+ * instant are not in time order, and the mod refuses a plan whose burns are
+ * not.</p>
+ */
+export const COMPOSING_MARGIN_SECONDS = 600;
+
+/**
+ * The instant to seed a burn at: after `previousUt` when there is one, and past
+ * the round trip either way.
+ *
+ * <p><b>The bar is ARRIVAL, not the view.</b> The mod refuses any burn igniting
+ * at or before the instant the plan lands, and a plan composed here lands two
+ * one-way light times after the view instant it was composed at. Seeding a burn
+ * at the instant the state was OBSERVED, which is what a composer with no window
+ * arithmetic reaches for, puts every burn behind that bar the moment it is
+ * created: the plan is offered, sent, and refused whole, and nothing on the way
+ * says so.</p>
+ */
+export function seededIgnitionUt(
+  previous: Value<"ut"> | null,
+  viewUt: Value<"ut">,
+  oneWaySeconds: number,
+): Value<"ut"> {
+  const flyable = viewUt.plus(
+    value("s", 2 * Math.max(oneWaySeconds, 0) + COMPOSING_MARGIN_SECONDS),
+  );
+  if (previous === null) return flyable;
+  // Whichever is later. A burn seeded after one the operator has already dragged
+  // past the window keeps the order; a burn after one dragged into the past is
+  // still flyable rather than inheriting the problem.
+  const after = previous.plus(value("s", COMPOSING_MARGIN_SECONDS));
+  return after.greaterThan(flyable) ? after : flyable;
+}
+
 export function commandWindow(
   targetUt: number | null,
   viewUt: number | null,

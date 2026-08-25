@@ -559,6 +559,38 @@ namespace GonogoPrincipiaUplink
         /// Nothing is lost by the split: the create writes no burn, and the install
         /// re-reads the plan it lands in.</para>
         /// </summary>
+        /// <summary>
+        /// The instant a write issued now would land at, or null with the reason the
+        /// game could not be asked.
+        ///
+        /// <para>Its own frame, opened for nothing but the clock, so a check that has
+        /// to run before any write can have the instant it compares against. Reading
+        /// it from the frame the write happens in would be one call cheaper and would
+        /// put the check after the write it exists to prevent.</para>
+        /// </summary>
+        private double? ArrivalInstant(out PrincipiaWriteResult? unreachable)
+        {
+            unreachable = WrongThread();
+            if (unreachable.HasValue)
+            {
+                return null;
+            }
+
+            var session = Session();
+            if (session == null)
+            {
+                unreachable = NoSession();
+                return null;
+            }
+            using var frame = Frame(session);
+            if (frame == null)
+            {
+                unreachable = NoPlugin();
+                return null;
+            }
+            return frame.CurrentTime();
+        }
+
         private PrincipiaWriteResult? EnsurePlanExists(
             string? vesselId, double? desiredFinalTimeUt)
         {
@@ -841,6 +873,22 @@ namespace GonogoPrincipiaUplink
             if (Replay(SendCommand, args.RequestId, out var replayed))
             {
                 return Ok(replayed!, replay: true);
+            }
+
+            // Checked before the plan is made, because making one is a write and the
+            // guarantee this command states is that a plan failing any check writes
+            // NOTHING. Checked again inside the install below, against that frame's
+            // own instant: this one exists to keep an empty plan off a craft the
+            // operator never planned for, not to replace the check the write makes.
+            var arrival = ArrivalInstant(out var unreachable);
+            if (arrival == null)
+            {
+                return Refusal(SendCommand, args.RequestId, unreachable!.Value, null);
+            }
+            var unusable = PrincipiaComposedPlanRules.Reject(args, arrival.Value);
+            if (unusable.HasValue)
+            {
+                return Refusal(SendCommand, args.RequestId, unusable.Value, null);
             }
 
             var madeOne = EnsurePlanExists(args.VesselId, args.DesiredFinalTimeUt);
