@@ -181,9 +181,9 @@ const GRAPH_MIN_COLS = 10;
  * A node is *researchable-now* when it is not yet owned, every parent is
  * already unlocked, and its science cost is affordable. The plugin only emits
  * `Available` / `Unavailable`, so this status is computed here rather than read
- * off `state` (the old default filter matched a `state === "Researchable"`
- * that real saves never produce: hence the empty first paint). Test fixtures
- * that set an explicit `"Researchable"` state are also honoured.
+ * off `state`: filtering on `state === "Researchable"` matches nothing a real
+ * save produces, and paints an empty tree. Test fixtures that set an explicit
+ * `"Researchable"` state are also honoured.
  */
 function computeResearchable(
   nodes: TechNode[],
@@ -453,9 +453,9 @@ function TechTreeComponent({ w, h }: Readonly<ComponentProps<TechTreeConfig>>) {
     );
   }
 
-  // Unlocking is a Space Center action and it spends science. An unknown scene
-  // used to enable the button; it now withholds it, because not knowing where
-  // the player is standing is not permission to spend on their behalf.
+  // Unlocking is a Space Center action and it spends science, so an unknown
+  // scene WITHHOLDS the button: not knowing where the player is standing is not
+  // permission to spend on their behalf.
   const upgradesEnabled = scene === "SpaceCenter";
 
   const unlockHandlersFor = (n: TechNode) => {

@@ -787,8 +787,8 @@ function BeltRings({
   // between-bands case.
   //
   // `null` when neither a belt nor a current altitude places it, and then no dot
-  // is drawn at all. It used to coerce an absent altitude to 0 km, which put the
-  // craft on the body's surface: a landed vessel, drawn from nothing.
+  // is drawn at all. Coercing an absent altitude to 0 km puts the craft on the
+  // body's surface: a landed vessel, drawn from nothing.
   const vr =
     inner || outer
       ? inner

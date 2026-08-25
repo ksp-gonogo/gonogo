@@ -323,7 +323,7 @@ function TargetingComponent({
 
   // "Close-ops eligible" = a real target that isn't a celestial body, drives
   // the mid-range APPROACH view (rendezvous distance/closing rate), valid for
-  // any Vessel/Part target, matching the old `tarType !== "CelestialBody"`.
+  // any Vessel/Part target. Read off the ORDINAL, never a type name string.
   const dockable =
     tarKind !== undefined &&
     tarKind !== TargetKind.Body &&
@@ -420,11 +420,9 @@ function TargetingComponent({
   // is declared `absenceIsData`.
   //
   // `tarName === undefined` is kept alongside it as a belt-and-braces guard for a
-  // record that somehow arrives without a name. It is not a second encoding of
-  // absence: an earlier version of this comment claimed KSP had one, a
-  // "No Target Selected." sentinel, and that was wrong. It was the OLD data
-  // source's string, unproducible since that source was retired, and the
-  // client-side translator for it has been deleted.
+  // record that somehow arrives without a name. It is NOT a second encoding of
+  // absence: KSP has no "No Target Selected." sentinel, and nothing on this
+  // wire produces one.
   //
   // A confirmed absence can itself go old, which is what the age says: with the
   // link down, "no target set" stops being a claim about now.

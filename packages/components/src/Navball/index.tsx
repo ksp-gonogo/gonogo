@@ -115,8 +115,8 @@ const CONTROL_STREAM_BUDGET = new PerfBudget({
  * Typed as member names rather than as bare strings, so an entry that is not a
  * real member does not compile, and `sasModeOrdinal.test.ts` fails if the list
  * stops covering the enum. The ORDER here is the grid's layout and nothing
- * else: it used to double as the wire ordinal via `indexOf`, which made a
- * member inserted into the C# enum a mis-command rather than a missing button.
+ * else, never the wire ordinal via `indexOf`: doubled up that way, a member
+ * inserted into the C# enum becomes a mis-command rather than a missing button.
  */
 const SAS_MODES: readonly Exclude<SasModeName, "Unknown">[] = [
   "StabilityAssist",

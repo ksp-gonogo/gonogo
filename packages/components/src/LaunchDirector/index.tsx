@@ -108,13 +108,12 @@ export interface LaunchSiteEntry {
 /**
  * The editor a saved craft launches from, as the `ksp.launch` command spells it.
  *
- * Derived from the ORDINAL, not from KSP's name. The name used to be checked
- * against a hand-written `{"VAB", "SPH"}` set and REPLACED WITH `"VAB"` when it
- * missed, and that value was then dispatched as the command's `facility`
- * argument. A substituted default that becomes a dispatched argument is not a
- * fallback: it launches a spaceplane from the launchpad. The set also omitted
- * `None`, which KSP declares, so a craft reporting `None` already dispatched as
- * a VAB craft today.
+ * Derived from the ORDINAL, not from KSP's name. Checking the name against a
+ * hand-written `{"VAB", "SPH"}` set and substituting `"VAB"` on a miss puts
+ * that substitution straight into the command's `facility` argument, and a
+ * default that becomes a dispatched argument is not a fallback: it launches a
+ * spaceplane from the launchpad. Such a set also misses `None`, which KSP
+ * declares.
  *
  * The mod refuses an unrecognised facility outright (`CommandErrorCode.Range`,
  * see `FlightOpsCommandProvider.ParseEditorFacility`), so passing the raw name
@@ -312,10 +311,10 @@ function LaunchDirectorComponent({
   );
   /**
    * One read of the record, both fields off it: two subscriptions to the same
-   * derived channel could not disagree usefully and the casts they used to
-   * carry (`as boolean | undefined`, `as string | undefined`) each erased a
-   * `null` the channel genuinely reports, so an unreported pad and a pad
-   * reported clear arrived here as one value.
+   * derived channel cannot disagree usefully, and a cast on each
+   * (`as boolean | undefined`, `as string | undefined`) erases a `null` the
+   * channel genuinely reports, collapsing an unreported pad and a pad reported
+   * clear into one value.
    *
    * Only `true` makes a pad claim below. `null`/`undefined` fall through to
    * the saved-craft list, which describes what we do have without asserting
@@ -1012,10 +1011,10 @@ function Altitude({ m }: { m: number | null }) {
  * is how the operator tells a recover from a revert at a glance in a stack of
  * four, and the default `CommandButton` rendering has no such axis.
  *
- * The pending state is what the local `launching` flag used to be for the launch
- * button alone. That flag's stated purpose was idempotency, suppressing a double
- * dispatch, and the same state answers honesty too, which is why every button
- * here has one now rather than only that one.
+ * EVERY button here carries a pending state, not just launch. It buys
+ * idempotency (a double dispatch is suppressed) and honesty (the operator can
+ * see the command is still travelling) off the same piece of state, and both
+ * apply to a recover and a revert as much as to a launch.
  */
 function ArmedButton({
   handle,

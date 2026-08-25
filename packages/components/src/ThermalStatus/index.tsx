@@ -45,12 +45,11 @@ type ThermalStatusConfig = Record<string, never>;
 // bogus CRITICAL bars. 50 K is well below any operational KSP part max (parts
 // melt at thousands of K) and well below any meaningful in-game temperature.
 //
-// One threshold, because `vessel.thermal` is now uniformly Kelvin. It used to
-// need a Celsius twin, and that pair is what hid a real bug: `hottestPart.
-// skinTemp` is Kelvin on the contract but was read as Celsius here, so it
-// rendered ~273° high AND its guard (< −223 °C) could never fire on a kelvin
-// sentinel. Keeping one unit on the channel removes the choice that was being
-// got wrong.
+// ONE threshold, because `vessel.thermal` is uniformly Kelvin. A Celsius twin
+// beside it is what hides a unit error: `hottestPart.skinTemp` is Kelvin on the
+// contract, and read as Celsius it renders ~273° high while its own guard
+// (< −223 °C) can never fire on a kelvin sentinel. One unit on the channel
+// removes the choice.
 const THERMAL_SENTINEL_K = 50;
 
 const isSentinelK = (k: number | undefined): boolean =>
@@ -84,9 +83,9 @@ function notCurrent<T>(reading: Reading<T>): boolean {
 }
 
 /**
- * `unknown` exists because this used to answer "nominal" for a ratio that had
- * not arrived. A green NOMINAL pill is a positive claim that nothing is
- * overheating, and an absent ratio is not evidence of that: it read identically
+ * `unknown` exists so an unarrived ratio never answers "nominal". A green
+ * NOMINAL pill is a positive claim that nothing is overheating, and an absent
+ * ratio is not evidence of that: collapsed onto `nominal` it reads identically
  * to a part measured at 40% of its maximum.
  */
 function bandFromRatio(ratio: number | undefined): Band {
@@ -97,10 +96,10 @@ function bandFromRatio(ratio: number | undefined): Band {
   return "nominal";
 }
 
-// Heat escalation: green → yellow → orange → red. Pre-fix, both warm
-// and hot mapped to the same orange, operator at 94% saw the same
-// colour as 80% and couldn't tell they were approaching critical. The
-// distinct yellow/orange split gives a visible step at the 90% gate.
+// Heat escalation: green → yellow → orange → red, and warm and hot are
+// DIFFERENT colours. Mapped to one orange, an operator at 94% sees the same
+// colour as at 80% and cannot tell they are approaching critical. The
+// yellow/orange split gives a visible step at the 90% gate.
 const BAND_COLOR: Record<Band, string> = {
   unknown: "var(--color-text-faint)",
   nominal: "var(--color-accent-fg)",
@@ -255,9 +254,9 @@ function ThermalStatusComponent({
    * "No thermal data" replaces the whole body, so it has to mean that nothing at
    * all is known, not that the four named fields are missing.
    *
-   * It used to check only the names and temperatures, so a payload carrying a
-   * `maxInternalTempRatio` of 0.99 and nothing else rendered "No thermal data":
-   * a part at 99% of its maximum, present on the wire, suppressed by the absence
+   * Checking only the names and temperatures makes a payload carrying a
+   * `maxInternalTempRatio` of 0.99 and nothing else render "No thermal data": a
+   * part at 99% of its maximum, present on the wire, suppressed by the absence
    * of readings around it. The ratios and the overheat flag are readings too.
    */
   const noData =

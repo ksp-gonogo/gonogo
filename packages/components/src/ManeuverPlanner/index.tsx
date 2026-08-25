@@ -249,13 +249,13 @@ function ManeuverPlannerComponent({
   /**
    * The shared ΔV budget: the game's own vessel total off `dv.summary`, never a
    * client-side sum of the stage rows. The two are built from different stage
-   * lists (`OperatingStageInfo` versus `WorkingStageInfo`), so the planner and
-   * the fuel panel used to be able to disagree about the same craft.
+   * lists (`OperatingStageInfo` versus `WorkingStageInfo`), so summing the rows
+   * here lets the planner and the fuel panel disagree about the same craft.
    *
    * Carried when it goes stale rather than blanked, which matters here more than
    * anywhere: `feasible === false` is the ONLY thing that disables the commit, so
-   * a budget that vanished mid-blackout turned a craft that is demonstrably short
-   * into one we have no opinion about, and re-enabled the button.
+   * a budget vanishing mid-blackout turns a craft that is demonstrably short
+   * into one we have no opinion about, and re-enables the button.
    */
   const availableDeltaV = magnitudeOf(useProcessor(DELTA_V_BUDGET)?.totalVac);
 
@@ -518,9 +518,9 @@ function ManeuverPlannerComponent({
   /**
    * A node the craft cannot be asked about. Nothing on the live wire omits an
    * id, so this is an off-contract payload rather than a wait, and saying so
-   * beats dispatching a command that cannot resolve: the widget used to send
-   * the node's array position instead, which the actuator answers NotFound to
-   * every time, and the refusal was never shown to anyone.
+   * beats dispatching a command that cannot resolve. Falling back to the node's
+   * array POSITION is the tempting substitute, and the actuator answers
+   * NotFound to it every time, with the refusal reaching nobody.
    */
   const UNADDRESSABLE =
     "This node arrived without an id, so there is nothing to address the command to.";

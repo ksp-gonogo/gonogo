@@ -38,9 +38,9 @@ export interface Vec3 {
  * A unit-carrying vector's components, for the maths below.
  *
  * The wire's `relativePosition` is a `Vec3Of<"m">` and its leaves are
- * quantities. Widgets used to reach them through an `as Vec3` cast, which
- * asserted they were numbers and, once they stopped being, put a `Value` into
- * `toFixed`. This says the same thing honestly and in one place.
+ * quantities. Reaching them through an `as Vec3` cast asserts they are numbers
+ * and puts a `Value` into `toFixed` the moment they are not. This unwraps them
+ * honestly, in one place.
  */
 export function bare<U extends string>(v: Vec3Of<U>): Vec3 {
   return { x: v.x.magnitude, y: v.y.magnitude, z: v.z.magnitude };
@@ -83,9 +83,9 @@ export function deriveDockAngles(position: Vec3): { ax: number; ay: number } {
 }
 
 /**
- * `TargetKind` ordinal -> the display label the badge/mode logic used to get
- * from the legacy `tar.type` string. Docking modes gate on "not a body", so
- * only the Body case needs to read as the old `"CelestialBody"`.
+ * `TargetKind` ordinal -> the display label the badge/mode logic reads. Docking
+ * modes gate on "not a body", so the Body case is the only one whose exact
+ * string (`"CelestialBody"`) any caller depends on.
  */
 export function targetKindLabel(
   kind: TargetKind | undefined,

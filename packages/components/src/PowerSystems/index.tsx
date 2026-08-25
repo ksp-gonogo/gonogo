@@ -164,14 +164,13 @@ function PowerSystemsComponent({
   // `parts.power.totalProductionEc` is a SEPARATE vessel-wide
   // measurement of the same quantity the itemized rows sum to.
   //
-  // This measurement used to WIN over the topology-summed
-  // total whenever carried, so PROD/NET (which drives a charge/consume
-  // read the operator relies on) could silently contradict the itemized
-  // Producers rows right below it: the widget's own tests enshrined a
-  // PROD of +42.00 over a single +5.00 row as "expected". Fixed: PROD/NET
-  // now ALWAYS derive from the itemized total (`computedTotalProduced`
-  // below), so they can never disagree with the rows. When the streamed
-  // measurement meaningfully DISAGREES with that total, it's surfaced
+  // It must NEVER win over the topology-summed total. Letting it do so lets
+  // PROD/NET (which drives a charge/consume read the operator relies on)
+  // silently contradict the itemized Producers rows right below: a PROD of
+  // +42.00 over a single +5.00 row. PROD/NET therefore ALWAYS derive from the
+  // itemized total (`computedTotalProduced` below), so they cannot disagree
+  // with the rows. When the streamed measurement meaningfully DISAGREES with
+  // that total, it's surfaced
   // separately as an explicitly-labeled "MEASURED" reading (see the
   // `Totals` cells) instead of being silently dropped OR silently winning.
   /**
@@ -363,9 +362,9 @@ function PowerSystemsComponent({
   const cols = w ?? 8;
   const rows = h ?? 10;
   // Wide-short boxes (landscape-18x5) have plenty of *width* but too few
-  // *rows* to clear the normal `rows >= 8` height gate, so they used to
-  // drop into the near-empty compact path with ~80% of the width dead. When
-  // the grid box is genuinely landscape we instead flow the three sections
+  // *rows* to clear the normal `rows >= 8` height gate, so the height gate
+  // alone drops them into the near-empty compact path with ~80% of the width
+  // dead. When the grid box is genuinely landscape we instead flow the three sections
   // side-by-side (see SectionsScroll/$landscape) so the full list fits in
   // the short height by spending the spare width. Portrait/square keep the
   // height-gated stacked layout untouched.

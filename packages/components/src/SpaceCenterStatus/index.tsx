@@ -347,11 +347,11 @@ function SpaceCenterStatusComponent({
    * Upgrades work in the Space Center scene only, KSP's upgrade pipeline isn't
    * safe to drive from elsewhere.
    *
-   * An unknown scene used to enable them anyway, on the reasoning that it meant
-   * telemetry warmup and the operator should see the affordance immediately.
-   * That granted permission to spend from not knowing where the player was, and
-   * it read the same on a dropped frame mid-session as it did on first paint.
-   * No scene means no permission.
+   * An unknown scene does NOT enable them, however tempting the "it just means
+   * telemetry warmup, show the affordance immediately" reading is. That grants
+   * permission to spend from not knowing where the player is, and it reads the
+   * same on a dropped frame mid-session as on first paint. No scene means no
+   * permission.
    *
    * Which is why the scene reads through `judgeable` while the launch site beside
    * it on the same record does not. The site is something this widget reports; the
@@ -386,9 +386,9 @@ function SpaceCenterStatusComponent({
 
   /**
    * "No vehicle on pad" is a claim about the pad, and this line is announced
-   * through `aria-live="polite"`, so it used to read that claim out from two
-   * absences: no `padOccupied` and no `launchSite`. A screen reader was told
-   * something nobody had established.
+   * through `aria-live="polite"`, so it must not be reached from two absences
+   * (no `padOccupied` and no `launchSite`): that announces to a screen reader
+   * something nobody has established.
    */
   const padKnown = padOccupied !== undefined && padOccupied !== null;
   const padLine = !padKnown
@@ -491,9 +491,9 @@ function SpaceCenterStatusComponent({
             const atMax = !!f && f.max > 0 && f.level >= f.max;
             const displayLevel = f ? f.level + 1 : 0;
             const displayMax = f && f.max > 0 ? f.max + 1 : 0;
-            // An absent balance used to satisfy this check. It guards a button
-            // that spends career funds, so it now refuses: not knowing the
-            // balance is not the same as knowing the upgrade is affordable.
+            // An absent balance must NOT satisfy this check. It guards a button
+            // that spends career funds, and not knowing the balance is not the
+            // same as knowing the upgrade is affordable.
             const canAfford =
               !!f &&
               f.upgradeFunds > 0 &&

@@ -76,9 +76,9 @@ const MAX_EXPERIENCE_LEVEL = 5;
  * stays neutral rather than crying wolf. Undefined renders Badge's decorative
  * grey, the same "just busy" chip the career-flights count uses.
  *
- * Reads the ORDINAL. This used to compare the situation NAME against `"Dead"`
- * and `"Missing"`, which is KSP's spelling to change: rename either member and a
- * dead kerbal's badge quietly goes grey. Failing toward "nothing to see" is the
+ * Reads the ORDINAL, never the situation NAME. `"Dead"` and `"Missing"` are
+ * KSP's spellings to change: matched by name, a rename of either sends a dead
+ * kerbal's badge quietly grey. Failing toward "nothing to see" is the
  * worst available direction for the one badge whose whole job is to be alarming.
  */
 function unavailableSeverity(

@@ -247,7 +247,8 @@ function TransferWindowComponent({
    */
   const orbitConfirmedAbsent = orbitReading.state === "absent";
   // The one enriched catalogue, evaluated once per frame however many widgets
-  // read it, plus the index lookup this panel used to do by hand.
+  // read it, and it carries the index lookup too rather than each panel
+  // repeating one by hand.
   const facts = useProcessor(CELESTIAL_FACTS);
   const bodies = facts?.bodies ?? NO_BODIES;
   // `.magnitude`: everything below treats the view time as a bare UT for arithmetic,
@@ -361,11 +362,11 @@ function TransferWindowComponent({
   /**
    * What the porkchop's inputs are rounded to before they reach a memo.
    *
-   * The grid is 1,024 Lambert solves and measures about 7ms. It used to depend on raw
-   * `nowUt`, and `useViewUt` notifies every frame the clock moves, so it rebuilt at 60Hz
-   * for an answer that is identical frame to frame: roughly 42% of one core, burned
-   * continuously, on the main thread. It fits inside a frame, which is why nothing
-   * failed and why `PORKCHOP_SOLVE_BUDGET` exists.
+   * The grid is 1,024 Lambert solves and measures about 7ms, so it must not
+   * depend on raw `nowUt`: `useViewUt` notifies every frame the clock moves,
+   * which rebuilds at 60Hz for an answer identical frame to frame, roughly 42%
+   * of one core burned continuously on the main thread. It fits inside a frame,
+   * so nothing fails, which is why `PORKCHOP_SOLVE_BUDGET` exists.
    *
    * The quantum SCALES WITH THE CHART rather than being a fixed number of seconds, and
    * that is the load-bearing part. A fixed quantum is not warp-proof: at 100,000x, sixty

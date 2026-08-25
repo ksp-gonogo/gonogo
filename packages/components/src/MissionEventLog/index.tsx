@@ -19,7 +19,7 @@ import { useMissionEvents } from "./useMissionEvents";
 type MissionEventLogConfig = Record<string, never>;
 
 // Badge severity per kind, so each row reads at a glance. `undefined` keeps the
-// two decorative kinds (flight-ended / undocking, formerly `neutral`) as grey
+// two decorative kinds (flight-ended / undocking) as grey
 // no-severity chips: severity has no decorative-grey tier, and Badge renders an
 // undefined severity as that same grey.
 const KIND_SEVERITY: Record<MissionEventKind, Severity | undefined> = {
@@ -166,12 +166,12 @@ function EventRow({
   event: MissionEvent;
   launchUt: number | undefined;
 }) {
-  // No `aria-label` on the row. It used to carry a hand-built
-  // "<label> at <time>" string, which OVERRIDES the row's own text for a
-  // screen reader: the visible stamp and badge went unread and the label
-  // spoke instead. The stamp now renders through the time components, which
-  // already emit the spoken form beside the symbol, so the row's own text is
-  // both the better reading and the one that cannot drift from what is shown.
+  // No `aria-label` on the row. A hand-built "<label> at <time>" string
+  // OVERRIDES the row's own text for a screen reader, so the visible stamp and
+  // badge go unread and the label speaks instead. The stamp renders through the
+  // time components, which already emit the spoken form beside the symbol, so
+  // the row's own text is both the better reading and the one that cannot drift
+  // from what is shown.
   return (
     <Inline gap="sm">
       <Badge severity={KIND_SEVERITY[event.kind]} size="sm">

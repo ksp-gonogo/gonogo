@@ -114,10 +114,9 @@ export function fromFlightStarted(raw: unknown): MissionEvent | null {
  * actually carries (`JsonWriter.AppendFlightEnded` writes
  * `AppendInteger(sb, (long)f.Reason)`).
  *
- * This used to be `typeof p.reason === "string" ? p.reason : undefined`, and no
- * ordinal is ever a string, so the detail was permanently absent: the log read
- * "Flight ended" for a recovery and for a crash alike, and had done since the
- * channel landed.
+ * Read as `typeof p.reason === "string" ? p.reason : undefined` the detail is
+ * permanently absent, because no ordinal is ever a string, and the log reads
+ * "Flight ended" for a recovery and for a crash alike.
  *
  * An ordinal the generated enum cannot name is a mod newer than this build.
  * Nothing is the honest answer there: inventing a cause would put a reason on

@@ -148,10 +148,10 @@ function stillTrue<T, A>(
 /**
  * A contract objective's state as this list models it.
  *
- * Takes the parsed {@link ContractParameterState} rather than KSP's raw name,
- * which it used to compare against `"Complete"` and `"Failed"` directly. A
- * renamed member made every objective read `"pending"`, so a completed one sat
- * in the list as outstanding work and a failed one stopped reading as failed.
+ * Takes the parsed {@link ContractParameterState} rather than KSP's raw name.
+ * Comparing the name against `"Complete"` and `"Failed"` directly means a
+ * renamed member reads every objective as `"pending"`, so a completed one sits
+ * in the list as outstanding work and a failed one stops reading as failed.
  *
  * `"Unknown"` reads `"pending"` here and that is deliberate rather than a
  * fallthrough: this list has three states and none of them means "we cannot
@@ -359,10 +359,9 @@ function ObjectivesComponent(_: Readonly<ComponentProps<ObjectivesConfig>>) {
 // The `:empty` frame-fallback machinery, and the reason these two stay styled-components: the rule below combines an `:empty` pseudo-class with an adjacent-sibling combinator, which an inline style cannot express, and it is what keeps the frame agnostic of which augments rendered.
 
 // Structural only: the sibling selector needs an element to target so the
-// fallback hides once any source has rendered content. It used to carry
-// horizontal padding too, because EmptyState's inline layout had none, but
-// EmptyState now pads itself and doubling up would inset this further than
-// every other widget's empty state.
+// fallback hides once any source has rendered content. No padding of its own:
+// EmptyState pads itself, and doubling up would inset this further than every
+// other widget's empty state.
 const EmptyFallbackWrap = styled.div``;
 
 const Sections = styled.div`
