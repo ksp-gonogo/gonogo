@@ -373,6 +373,36 @@ jobs:
           fi
           echo "KSP reference assemblies present (${#required[@]} checked): the KSP-linked suites will run."
 
+      # The Uplink PLUGIN assemblies, which nothing else compiles.
+      #
+      # `dotnet test` below covers the test projects, and not one of them
+      # references its own Uplink's implementation csproj: they reference the
+      # `.Contract` slice, `Sitrep.Contract` and `Sitrep.Contract.TestSupport`.
+      # So the eleven assemblies that actually ship in GameData were built by no
+      # workflow at all (seven of them), or only by `publish-mods.yml` after CI
+      # on main (the other four), which means a compile error landed on main
+      # first and was reported by a publish job.
+      #
+      # Before `dotnet test` on purpose: a compile break should report as a
+      # compile break in seconds rather than surfacing behind twenty test
+      # projects each retried up to four times.
+      #
+      # Same soft-degrade contract as the suites below, and safe for the same
+      # reason: on main, staging and same-repo PRs the mandatory-assemblies step
+      # above has already failed the job if the reference set is absent, so this
+      # can only skip on a fork that never had the secret.
+      - name: Uplink plugin assemblies compile
+        env:
+          KSP_GAMEDATA: ${{ github.workspace }}/ksp-managed/GameData
+          KSP_MANAGED: ${{ github.workspace }}/ksp-managed/KSP_Data/Managed
+        run: |
+          set -euo pipefail
+          if [ ! -f "$KSP_MANAGED/Assembly-CSharp.dll" ]; then
+            echo "::warning::KSP reference assemblies absent: Uplink plugin assemblies NOT COMPILED (soft-degrade, forks only)."
+            exit 0
+          fi
+          bash scripts/uplink-mod-build.sh
+
       - name: dotnet test (KSP-independent Sitrep projects)
         working-directory: mod
         env:
