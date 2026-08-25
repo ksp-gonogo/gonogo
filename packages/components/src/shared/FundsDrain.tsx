@@ -1,5 +1,5 @@
 import type { CareerEconomy } from "@ksp-gonogo/sitrep-sdk";
-import { kspCalendar, magnitudeOf, value } from "@ksp-gonogo/sitrep-sdk";
+import { magnitudeOf, value } from "@ksp-gonogo/sitrep-sdk";
 import { Unit } from "@ksp-gonogo/ui-kit";
 import styled from "styled-components";
 
@@ -39,17 +39,11 @@ export function reportsFundsDrain(netPerDay: number | null): boolean {
  *
  * Both sides of the division are in game-days: `f/day`'s denominator is
  * `KSPUtil.dateTimeFormatter.Day` (`SitrepUnitAttribute.FundsPerDay` says so),
- * and `kspCalendar()` is the same day read off `time.calendar`. So the day
- * cancels, and multiplying back up by it hands `Unit` a plain interval in
- * seconds, which is the only duration the catalogue actually measures.
- *
- * NOT `value("d", days)`, though the token exists and looks like the obvious
- * one: a `d`-symbol value renders through the duration ladder as if its
- * magnitude were seconds, so `value("d", 43)` reads "43s". Seconds in, and the
- * ladder picks the day rung itself, off the same live calendar.
+ * so the day cancels and what is left is a count of days. `d` is the unit that
+ * says so, and the ladder climbs or descends from there off the live calendar.
  */
 function coverDuration(days: number) {
-  return value("s", days * kspCalendar().day);
+  return value("d", days);
 }
 
 export interface FundsDrainProps {

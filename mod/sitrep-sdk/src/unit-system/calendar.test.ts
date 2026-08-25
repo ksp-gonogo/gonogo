@@ -68,6 +68,17 @@ describe("the calendar the game reported", () => {
     expect(value("irl:d", 1).in("irl:h").magnitude).toBe(24);
   });
 
+  it("sizes a YEAR off the calendar too, not off 426 stock days", () => {
+    // The ladder's top tier, and the one that was missing from the catalogue
+    // outright: it carried no kind, so a value declared in years was not a
+    // duration as far as anything downstream could tell.
+    expect(value("y", 1).in("d").magnitude).toBe(426);
+    expect(value("y", 1).in("s").magnitude).toBe(9_201_600);
+    setKspCalendar(EARTH);
+    expect(value("y", 1).in("d").magnitude).toBe(365);
+    expect(value("y", 1).in("s").magnitude).toBe(31_536_000);
+  });
+
   it("refuses a calendar nobody can divide by and keeps the last good one", () => {
     setKspCalendar({ day: 0 });
     // Dividing by it would make every duration in the app infinity, which is
