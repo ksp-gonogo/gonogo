@@ -6,6 +6,7 @@ import {
   type ShapesByField,
   shapesForTopic,
   shapesForType,
+  shapeTypeName,
   unitsForTopic,
   unitsForType,
 } from "./units";
@@ -135,7 +136,11 @@ function wrap<T>(
       }
       continue;
     }
-    target[field] = wrapTypePayload(typeName, target[field]);
+    // A trailing `[]` marks a LIST of the shape. The element type is what the
+    // wrap needs either way (`wrap` maps over an array it is handed), so the
+    // marker is stripped and the recursion is unchanged: plurality matters to
+    // a caller judging whether a PATH can be sampled, not to this walk.
+    target[field] = wrapTypePayload(shapeTypeName(typeName), target[field]);
   }
   for (const [field, unit] of Object.entries(units)) {
     // A token with no unit in the model is a non-quantity. Nothing to wrap.

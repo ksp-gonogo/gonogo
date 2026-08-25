@@ -221,6 +221,11 @@ export type {
 } from "./spine/uplink-health";
 export * from "./timeline";
 export {
+  enumerateTopicFields,
+  type TopicField,
+  type TopicFieldKind,
+} from "./topic-fields";
+export {
   DERIVED_CHANNEL_IDS,
   type DerivedChannelId,
   getAllKnownTopicIds,
@@ -281,12 +286,17 @@ export {
   vectorMagnitude,
 } from "./unit-system";
 export {
+  isPluralShape,
   type KnownSitrepUnit,
   providerExtensionShapes,
   registerProviderExtensionShape,
   registerTopicUnits,
   registerTypeUnits,
+  type ShapesByField,
   type SitrepUnit,
+  shapesForTopic,
+  shapesForType,
+  shapeTypeName,
   type UnitsByField,
   unitOf,
   unitOfTypeField,

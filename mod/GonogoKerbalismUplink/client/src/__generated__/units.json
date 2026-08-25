@@ -294,40 +294,40 @@
   },
   "typeShapes": {
     "KerbalismCrewEntry": {
-      "rules": "KerbalismCrewRule"
+      "rules": "KerbalismCrewRule[]"
     },
     "KerbalismLifeSupport": {
-      "greenhouses": "KerbalismGreenhouseEntry",
+      "greenhouses": "KerbalismGreenhouseEntry[]",
       "habitat": "KerbalismHabitat",
-      "processes": "KerbalismProcessEntry"
+      "processes": "KerbalismProcessEntry[]"
     },
     "KerbalismProfile": {
-      "processes": "KerbalismProcessDef",
+      "processes": "KerbalismProcessDef[]",
       "resources": "*KerbalismResourceDef",
-      "rules": "KerbalismRuleDef"
+      "rules": "KerbalismRuleDef[]"
     },
     "KerbalismSpaceWeather": {
-      "stars": "KerbalismStarInfo",
-      "storms": "KerbalismStormEntry"
+      "stars": "KerbalismStarInfo[]",
+      "storms": "KerbalismStormEntry[]"
     }
   },
   "topicShapes": {
     "kerbalism.crew": {
-      "rules": "KerbalismCrewRule"
+      "rules": "KerbalismCrewRule[]"
     },
     "kerbalism.lifesupport": {
-      "greenhouses": "KerbalismGreenhouseEntry",
+      "greenhouses": "KerbalismGreenhouseEntry[]",
       "habitat": "KerbalismHabitat",
-      "processes": "KerbalismProcessEntry"
+      "processes": "KerbalismProcessEntry[]"
     },
     "kerbalism.profile": {
-      "processes": "KerbalismProcessDef",
+      "processes": "KerbalismProcessDef[]",
       "resources": "*KerbalismResourceDef",
-      "rules": "KerbalismRuleDef"
+      "rules": "KerbalismRuleDef[]"
     },
     "kerbalism.spaceweather": {
-      "stars": "KerbalismStarInfo",
-      "storms": "KerbalismStormEntry"
+      "stars": "KerbalismStarInfo[]",
+      "storms": "KerbalismStormEntry[]"
     }
   }
 }

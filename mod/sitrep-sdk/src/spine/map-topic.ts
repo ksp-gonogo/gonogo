@@ -44,6 +44,7 @@ import {
   GENERATED_TYPE_SHAPES,
   GENERATED_TYPE_UNITS,
 } from "../__generated__/units";
+import { isPluralShape } from "../units";
 
 /** Kinematics → `vessel.state.*` routing: `mapTopic` points kinematics at
  * `vessel.state.*` derived subtopics from the first migrated widget. Two
@@ -1245,11 +1246,12 @@ const KNOWN_FIELD_PATHS: ReadonlySet<string> = new Set(
  * a UNIT, or declares it as a nested contract TYPE, which is the two halves the
  * unit-map codegen emits from one pass.
  *
- * A shape recorded as `*Type` is an array or a dynamic-key map, and the walk
- * stops there rather than descending: what follows a map is a key the contract
- * never names (a facility id, a vessel id), so a deeper path cannot be judged
- * and a permissive guess is worse than none. The path AS FAR AS the collection
- * is still a real field and still resolves.
+ * A PLURAL shape (`*Type` for a dynamic-key map, `Type[]` for a list) ends the
+ * walk rather than being descended into: what follows a map is a key the
+ * contract never names (a facility id, a vessel id), and what follows a list is
+ * a field of one element, so neither is something a sample of the parent Topic
+ * can reach. The path AS FAR AS the collection is still a real field and still
+ * resolves.
  */
 function walksContractMetadata(topic: string, segments: string[]): boolean {
   if (segments.length === 0) return false;
@@ -1272,7 +1274,7 @@ function walksContractMetadata(topic: string, segments: string[]): boolean {
     const shape: string | undefined = shapes?.[segment];
     if (shape === undefined) return false;
     if (last) return true;
-    if (shape.startsWith("*")) return false;
+    if (isPluralShape(shape)) return false;
 
     units = GENERATED_TYPE_UNITS[shape];
     shapes = GENERATED_TYPE_SHAPES[shape];

@@ -114,13 +114,13 @@
   },
   "typeShapes": {
     "ScanningVesselEntry": {
-      "sensors": "ScanSensorEntry",
+      "sensors": "ScanSensorEntry[]",
       "trackColor": "ScanTrackColor"
     }
   },
   "topicShapes": {
     "scansat.scanningVessels": {
-      "sensors": "ScanSensorEntry",
+      "sensors": "ScanSensorEntry[]",
       "trackColor": "ScanTrackColor"
     }
   }

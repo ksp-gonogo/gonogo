@@ -312,35 +312,35 @@
   },
   "typeShapes": {
     "PrincipiaFlightPlan": {
-      "burns": "PrincipiaFlightPlanBurn"
+      "burns": "PrincipiaFlightPlanBurn[]"
     },
     "PrincipiaPlan": {
-      "burns": "PrincipiaPlannedBurn",
+      "burns": "PrincipiaPlannedBurn[]",
       "integrator": "PrincipiaPlanIntegrator",
       "writeSurface": "PrincipiaWriteSurface"
     },
     "PrincipiaPlanSendArgs": {
-      "burns": "PrincipiaComposedBurn"
+      "burns": "PrincipiaComposedBurn[]"
     },
     "PrincipiaPlanWriteReceipt": {
       "plan": "PrincipiaPlan"
     },
     "PrincipiaSettings": {
-      "burnFrames": "PrincipiaReferenceFrame",
+      "burnFrames": "PrincipiaReferenceFrame[]",
       "plottingFrame": "PrincipiaReferenceFrame"
     }
   },
   "topicShapes": {
     "principia.flightPlan": {
-      "burns": "PrincipiaFlightPlanBurn"
+      "burns": "PrincipiaFlightPlanBurn[]"
     },
     "principia.plan": {
-      "burns": "PrincipiaPlannedBurn",
+      "burns": "PrincipiaPlannedBurn[]",
       "integrator": "PrincipiaPlanIntegrator",
       "writeSurface": "PrincipiaWriteSurface"
     },
     "principia.settings": {
-      "burnFrames": "PrincipiaReferenceFrame",
+      "burnFrames": "PrincipiaReferenceFrame[]",
       "plottingFrame": "PrincipiaReferenceFrame"
     }
   }
