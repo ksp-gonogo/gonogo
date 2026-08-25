@@ -9,6 +9,7 @@ import {
   WidgetMetaContext,
 } from "@ksp-gonogo/core";
 import type { InputMappings } from "@ksp-gonogo/serial";
+import { TelemetrySubscriberLabel } from "@ksp-gonogo/sitrep-sdk/spine";
 import {
   AugmentSettingsProvider,
   DelayRailProvider,
@@ -214,7 +215,12 @@ function WidgetContributions({
   );
   return (
     <WidgetMetaContext.Provider value={meta}>
-      <ContributionsProvider>{children}</ContributionsProvider>
+      {/* The same id again, for the SDK's own diagnostics: it cannot read
+          ui-kit's `WidgetMetaContext`, since ui-kit depends on it. This is what
+          lets the unowned-topic warning name the widget as well as the topic. */}
+      <TelemetrySubscriberLabel label={def.id}>
+        <ContributionsProvider>{children}</ContributionsProvider>
+      </TelemetrySubscriberLabel>
     </WidgetMetaContext.Provider>
   );
 }

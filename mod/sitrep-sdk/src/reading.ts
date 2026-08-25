@@ -135,6 +135,9 @@ export interface TopicModel<T> {
  * - `pending`: nothing at-or-before the frame's view time yet, a cold topic or
  *   a resync after a rewind. Names the never-arrived case that `undefined`
  *   currently conflates with went-stale
+ * - `unowned`: nothing will EVER publish this topic. No installed Uplink
+ *   declares it and it falls under no dynamic namespace, so waiting is futile.
+ *   See "Why `unowned` is not `pending`" below for the whole point of it
  * - `absent`: a confirmed tombstone, the subject says there is no value.
  *   Carries `atUt` because "confirmed nothing, as of when" is the honest
  *   statement: a tombstone can itself go old, and nothing before this could say
@@ -146,6 +149,52 @@ export interface TopicModel<T> {
  *   when it was made. This is the honest majority: most data can only be AGED
  * - `reckonable`: we have missed updates, AND a model exists. Carries the last
  *   observation exactly as `stale` does, plus `reckoned`
+ *
+ * ## Why `unowned` is not `pending`
+ *
+ * A widget subscribing to a topic nothing will ever publish sat on
+ * `{state: "pending"}` for the rest of the session, which reads identically to
+ * "the mod has not sent this yet". An author whose widget rendered blank had
+ * nothing to go on: no log line, no banner, no health row, and the two cases
+ * want opposite next moves. Waiting is right for one and futile for the other.
+ *
+ * The distinction is decided by the mod, not inferred client-side.
+ * `ProcessSubscribe` answers a subscribe for a declared channel (or one under a
+ * registered dynamic namespace) with an `EventMsg { name: "subscribed" }`, and
+ * answers a subscribe for anything else with a bare return: no error, no ack,
+ * nothing. So "we sent a subscribe and no ack came back inside a bounded
+ * window" is the authority's own answer rather than a reconstruction of it, and
+ * it gets a fail-softed Uplink right for free, where a rule built on the
+ * roster's owned-prefix lists would have called four engine built-ins unowned.
+ *
+ * ## `unowned` is a POSITIVE finding, and silence is not one
+ *
+ * The rule that keeps this arm honest: reach it only on evidence that the
+ * subscribe was answered with nothing, never on the mere absence of data.
+ * "Cannot decide" is a third answer and it spells `pending`.
+ *
+ * Undecided, and therefore `pending`:
+ *
+ * - the bounded window has not elapsed yet
+ * - the transport is not connected, so no subscribe has been answered either way
+ * - the read is happening on a STATION. A station's subscribe reaches the mod
+ *   only when the host's own refcount makes a 0 -> 1 transition, so a topic the
+ *   host already holds is never re-acked and a station would see silence for a
+ *   perfectly well owned topic. A station therefore does not decide this arm
+ * - the mod predates the ack, so no topic would ever be acked
+ *
+ * A false `unowned` tells an author their correct code is broken, which is
+ * worse than the silence this arm removes. Every widening of what may reach
+ * this arm has to be argued against that sentence.
+ *
+ * ## It carries nothing, and that is deliberate
+ *
+ * There is no value (there never was one and there never will be), and no
+ * instant (nothing was observed, so `observedAt` answers `undefined` exactly as
+ * it does for `pending`). The topic id a diagnostic wants is the argument the
+ * caller already passed to `useTelemetry`, so putting it on the arm would
+ * duplicate a fact the call site holds and admit the possibility of the two
+ * disagreeing.
  *
  * ## Why `reckonable` is an arm and `grade` is a field
  *
@@ -208,6 +257,7 @@ export interface TopicModel<T> {
  */
 export type Reading<T> =
   | { state: "pending" }
+  | { state: "unowned" }
   | { state: "absent"; atUt: Value<"ut"> }
   | { state: "observed"; value: T; atUt: Value<"ut"> }
   | {
@@ -285,6 +335,22 @@ export type Reading<T> =
 export type StaleGrade = "held-stale" | "disconnected" | "last-before-blackout";
 
 /**
+ * The discriminant alone, for the handful of types that carry a reading's ARM
+ * beside a value they joined from several topics rather than nesting the
+ * `Reading` itself (`BudgetProvenance`, `LevelsProvenance`).
+ *
+ * Derived rather than written out, because both of those spelled the five arms
+ * as a literal union and both silently went stale the moment a sixth was added:
+ * the compiler caught them here, at the assignment, rather than where the
+ * mirror was declared. A derived alias makes the next arm propagate on its own.
+ *
+ * This is NOT a licence to replace a `Reading` with its state. A provenance
+ * field is for a value that is not one Topic's anything; a widget reading one
+ * topic takes the whole `Reading`, so that reaching the value means branching.
+ */
+export type ReadingState = Reading<unknown>["state"];
+
+/**
  * Collapse `reckonable` down to `stale`: the written, greppable way for a
  * widget to decline to propagate.
  *
@@ -316,6 +382,53 @@ export function withoutReckoning<T>(reading: Reading<T>): Reading<T> {
 }
 
 /**
+ * Whether the producer has spoken about this topic at all, whatever it said.
+ *
+ * The question a PRESENCE GATE asks, and five call sites were asking it by hand
+ * as `reading.state !== "pending"`: the augment-availability feeder, the map's
+ * POI provider gate, the mission log's dock read, the ΔV totals row, and two
+ * Uplink test helpers. Every one of them reasoned "pending is the only answer
+ * that means nothing is there".
+ *
+ * That reasoning was complete when `pending` was the only empty arm and stopped
+ * being complete the moment `unowned` existed, in the dangerous direction: a
+ * hand-rolled `!== "pending"` reads `unowned` as the producer having ANSWERED,
+ * when it is the strongest evidence there is that no producer exists. A gate
+ * built that way shows an Uplink's UI on an install where the Uplink is not
+ * present. Named here so the next arm has one place to be considered rather
+ * than five to be missed.
+ *
+ * `absent` is deliberately TRUE: a producer saying "there is no value" is still
+ * a producer, and a tombstone is data. `stale` and `reckonable` likewise, since
+ * a domain that reported and went quiet is still installed.
+ *
+ * The two falses are NOT interchangeable even though this collapses them, and a
+ * caller that renders something for the user should branch on the arm rather
+ * than on this: `pending` may become true on the next frame and `unowned` never
+ * will. This answers "should the gate be open", not "what should I say".
+ *
+ * Takes the discriminant rather than `Reading<T>`, because it reads nothing
+ * else and because the callers that need it most cannot supply a `Reading<T>`:
+ * a presence gate reads `` `${domain}.available` `` through a runtime `as
+ * TopicId` cast, so its reading is the union over EVERY topic and unifies with
+ * no single `T`.
+ */
+export function hasAnswered(reading: {
+  readonly state: ReadingState;
+}): boolean {
+  switch (reading.state) {
+    case "pending":
+    case "unowned":
+      return false;
+    case "absent":
+    case "observed":
+    case "stale":
+    case "reckonable":
+      return true;
+  }
+}
+
+/**
  * The instant a reading's OBSERVATION was made, or `undefined` when there has not
  * been one.
  *
@@ -325,9 +438,10 @@ export function withoutReckoning<T>(reading: Reading<T>): Reading<T> {
  * affine rules made the subtraction say what it means, so a function to do it by hand
  * was one more thing to keep honest.
  *
- * `pending` has no instant: there is no observation to be old. Every other arm has
- * one, `reckonable` included, where the age of the last real contact is the number an
- * operator wants beside a modelled figure.
+ * `pending` and `unowned` have no instant: there is no observation to be old, and for
+ * `unowned` there never will be. Every other arm has one, `reckonable` included, where
+ * the age of the last real contact is the number an operator wants beside a modelled
+ * figure.
  *
  * Callers still clamp at zero. Samples arrive out of order (`ClientTimeline`
  * insert-sorts for it), so one can sit marginally ahead of the frame's view time, and
@@ -336,6 +450,7 @@ export function withoutReckoning<T>(reading: Reading<T>): Reading<T> {
 export function observedAt<T>(reading: Reading<T>): Value<"ut"> | undefined {
   switch (reading.state) {
     case "pending":
+    case "unowned":
       return undefined;
     case "absent":
     case "observed":

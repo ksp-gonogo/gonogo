@@ -79,8 +79,15 @@ type PlanView =
  */
 function planView(reading: Reading<PrincipiaFlightPlan>): PlanView {
   switch (reading.state) {
+    /**
+     * The three absences are grouped on purpose: this section renders the CONTENTS
+     * of a plan, and none of them has anything different to say about a plan there
+     * is no content for. Which absence it is belongs to the widget frame around this
+     * section, which says it once for the whole widget rather than once per section.
+     */
     case "pending":
     case "absent":
+    case "unowned":
       return { kind: "unobserved" };
     case "observed":
       return {

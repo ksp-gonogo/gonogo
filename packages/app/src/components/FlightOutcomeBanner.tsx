@@ -212,13 +212,23 @@ export function FlightOutcomeBanner() {
    * Both are records of an event that already happened, so the last one received is
    * still true: a recovery does not un-happen because the link went quiet. The
    * `hasRecent` gates above already decide whether there is anything to show.
+   *
+   * `unowned` joins the two absences and says nothing extra, which is right for this
+   * one surface: the banner is transient chrome that renders only when its `hasRecent`
+   * gate fires, and that gate reads a topic from the same pair. A build with no outcome
+   * channels leaves the banner silent rather than showing a diagnostic nobody asked for,
+   * and the warning the client logs on the unowned subscribe is where an author finds out.
    */
   const recoveryRaw =
-    recoveryReading.state === "pending" || recoveryReading.state === "absent"
+    recoveryReading.state === "pending" ||
+    recoveryReading.state === "unowned" ||
+    recoveryReading.state === "absent"
       ? undefined
       : recoveryReading.value;
   const crashRaw =
-    crashReading.state === "pending" || crashReading.state === "absent"
+    crashReading.state === "pending" ||
+    crashReading.state === "unowned" ||
+    crashReading.state === "absent"
       ? undefined
       : crashReading.value;
   const currentFlight = useFlight();

@@ -1,4 +1,8 @@
-import type { ResourceAmount, Value } from "@ksp-gonogo/sitrep-sdk";
+import type {
+  ReadingState,
+  ResourceAmount,
+  Value,
+} from "@ksp-gonogo/sitrep-sdk";
 import { observedAt, value } from "@ksp-gonogo/sitrep-sdk";
 import { magnitudeOr } from "@ksp-gonogo/ui-kit";
 import type {
@@ -48,7 +52,7 @@ export interface ShipSystems {
 /** Where the resource levels behind a summary came from, and when. */
 export interface LevelsProvenance {
   /** The reading arm the levels arrived on. */
-  state: "pending" | "absent" | "observed" | "stale" | "reckonable";
+  state: ReadingState;
   /** UT the levels were observed at; undefined when nothing has been observed. */
   asOfUt: Value<"ut"> | undefined;
   /** Seconds between that observation and the frame this was derived for. */

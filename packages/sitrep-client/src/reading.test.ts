@@ -1,6 +1,7 @@
 import { type Value, value } from "@ksp-gonogo/sitrep-sdk";
 import { describe, expect, it } from "vitest";
 import {
+  hasAnswered,
   observedAt,
   type Reading,
   type ReckonerFor,
@@ -282,5 +283,83 @@ describe("observedAt", () => {
     const raw = value("ut", 9.6).minus(observedAt(absent) as Value<"ut">);
     expect(raw.magnitude).toBeCloseTo(-0.4);
     expect(Math.max(0, raw.magnitude)).toBe(0);
+  });
+});
+
+describe("the unowned arm", () => {
+  it("is what an empty read becomes once the mod's verdict is in", () => {
+    expect(readingFrom(undefined, "resyncing", 0, undefined, true)).toEqual({
+      state: "unowned",
+    });
+  });
+
+  it("is pending without the verdict, which is the default", () => {
+    expect(readingFrom(undefined, "resyncing", 0)).toEqual({
+      state: "pending",
+    });
+  });
+
+  /**
+   * The verdict only ever redirects the EMPTY case. A topic that has published
+   * was necessarily acked, so it can never be carrying one, and the arm order
+   * must not let a stale verdict outrank a real observation.
+   */
+  it("never displaces an observation", () => {
+    expect(readingFrom(point(10, 5), "live", 10, undefined, true)).toEqual({
+      state: "observed",
+      value: 5,
+      atUt: value("ut", 10),
+    });
+  });
+
+  it("has no observation instant, exactly as pending has none", () => {
+    expect(observedAt({ state: "unowned" })).toBeUndefined();
+  });
+
+  it("passes through withoutReckoning untouched", () => {
+    const reading: Reading<number> = { state: "unowned" };
+    expect(withoutReckoning(reading)).toBe(reading);
+  });
+});
+
+describe("hasAnswered", () => {
+  const atUt: Value<"ut"> = value("ut", 10);
+
+  it("is false for both empty arms, and unowned is the one that matters", () => {
+    // A hand-rolled `state !== "pending"` reads unowned as the producer having
+    // answered, which opens a presence gate on a build where the Uplink is not
+    // installed. That is the regression this function exists to prevent.
+    expect(hasAnswered({ state: "pending" })).toBe(false);
+    expect(hasAnswered({ state: "unowned" })).toBe(false);
+  });
+
+  it("is true for a tombstone, because a producer saying no is a producer", () => {
+    expect(hasAnswered({ state: "absent", atUt })).toBe(true);
+  });
+
+  it("is true for every arm that carries an observation", () => {
+    expect(hasAnswered({ state: "observed", value: 1, atUt })).toBe(true);
+    expect(
+      hasAnswered({
+        state: "stale",
+        value: 1,
+        asOfUt: atUt,
+        grade: "held-stale",
+      }),
+    ).toBe(true);
+    expect(
+      hasAnswered({
+        state: "reckonable",
+        value: 1,
+        asOfUt: atUt,
+        grade: "last-before-blackout",
+        reckoned: {
+          value: 2,
+          atUt,
+          basis: "linear-dead-reckoning",
+          modelled: [{ path: "", basis: "linear-dead-reckoning" }],
+        },
+      }),
+    ).toBe(true);
   });
 });

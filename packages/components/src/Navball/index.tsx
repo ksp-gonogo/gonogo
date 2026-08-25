@@ -243,6 +243,12 @@ function AttitudeCurrency({
   if (reading.state === "pending") {
     return <ReadoutCaption>Waiting for attitude telemetry</ReadoutCaption>;
   }
+  // Not "waiting", which is what this said for the rest of the session on a
+  // build with no attitude channel. Nothing is coming, and a dial that keeps
+  // promising it will is the reason this arm exists.
+  if (reading.state === "unowned") {
+    return <ReadoutCaption>No attitude channel on this install</ReadoutCaption>;
+  }
   if (reading.state === "absent") {
     return <ReadoutCaption>No attitude reported</ReadoutCaption>;
   }

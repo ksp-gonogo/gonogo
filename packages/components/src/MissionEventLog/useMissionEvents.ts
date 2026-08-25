@@ -5,6 +5,7 @@ import {
   useStickyVesselGuids,
   useViewUt,
 } from "@ksp-gonogo/sitrep-client";
+import { hasAnswered } from "@ksp-gonogo/sitrep-sdk";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { magnitudeOf } from "../shared/magnitude";
 import {
@@ -116,11 +117,13 @@ export function useMissionEvents(): MissionEvent[] {
    * That makes `pending` a different sentence from `absent` and worth a branch.
    * "Nothing has arrived yet" is not evidence of an undocked craft, and reading
    * it as one is what logged a Docked row for a vessel that was already docked
-   * when the dashboard opened.
+   * when the dashboard opened. `unowned` is the same sentence said with more
+   * certainty: a build with no dock channel tells us nothing about docking, so
+   * it must not be read as an undocked craft either.
    */
   const dockReading = useTelemetry("vessel.dock");
   const dock = stillTrue(dockReading, undefined);
-  const dockKnown = dockReading.state !== "pending";
+  const dockKnown = hasAnswered(dockReading);
   const identity = stillTrue(useTelemetry("vessel.identity"), undefined);
   const career = stillTrue(useTelemetry("career.status"), undefined);
 

@@ -5,6 +5,7 @@ import type { ServerMessage } from "../envelope";
 import { type Clock, RealTimeClock } from "./clock";
 import { CommandError, type CommandStatus } from "./lifecycle";
 import type { TimelineStore } from "./timeline-store";
+import { type TopicOwnership, TopicOwnershipTracker } from "./topic-ownership";
 import { META_VANTAGE } from "./vantage";
 
 type Callback = (value: unknown) => void;
@@ -159,6 +160,7 @@ export class TelemetryClient {
   /** Reactive-read listeners for the observed vantage: see `onObservedVantageChange`. */
   private readonly observedVantageListeners = new Set<() => void>();
   private readonly unsubscribeFromTransport: () => void;
+  private readonly unsubscribeFromTransportStatus: () => void;
   private readonly commands = new Map<string, PendingCommand>();
   private nextRequestId = 0;
   private selectedVantageId = "ksc";
@@ -177,6 +179,32 @@ export class TelemetryClient {
   private readonly stores = new Set<TimelineStore>();
 
   /**
+   * Whether the mod has acked each subscribed topic, which is what separates
+   * "nothing will ever publish this" from "it has not arrived yet".
+   *
+   * `undefined` when the transport does not relay acks (see
+   * `Transport.decidesTopicOwnership`), and then every topic reads `undecided`
+   * and no widget is ever told a topic is unowned. That is the safe direction
+   * and the common one: only a connection that owns its own session with the
+   * mod opts in.
+   */
+  private readonly ownership: TopicOwnershipTracker | undefined;
+
+  /** Listeners for a topic reaching a verdict of unowned. See `onTopicUnowned`. */
+  private readonly unownedListeners = new Set<(topic: string) => void>();
+
+  /**
+   * Which widgets are reading each topic, refcounted, so the unowned warning
+   * can name the widget as well as the topic.
+   *
+   * Diagnostics only: nothing about delivery consults it, and a topic read
+   * outside a widget carries no label and simply is not in here. Refcounted
+   * rather than a plain set because two instances of one widget id both
+   * subscribing and one unmounting must not erase the label for the other.
+   */
+  private readonly subscriberLabels = new Map<string, Map<string, number>>();
+
+  /**
    * `clock` defaults to `RealTimeClock`: every real transport uses it
    * unmodified. Tests inject a deterministic `Clock` (or a structurally
    * compatible one, like sitrep-server's `ManualClock`) so loss-inference
@@ -192,10 +220,82 @@ export class TelemetryClient {
   constructor(transport: Transport, clock: Clock = new RealTimeClock()) {
     this.transport = transport;
     this.clock = clock;
+    this.ownership = transport.decidesTopicOwnership
+      ? new TopicOwnershipTracker((topic) => {
+          for (const listener of this.unownedListeners) listener(topic);
+          for (const store of this.stores) store.markTopicUnowned(topic);
+          this.notifyStore();
+        })
+      : undefined;
     this.unsubscribeFromTransport = transport.onMessage((message) => {
       for (const listener of this.rawMessageListeners) listener(message);
       this.handleMessage(message);
     });
+    this.unsubscribeFromTransportStatus = transport.onStatusChange((status) => {
+      if (!this.ownership) return;
+      if (status === "connected") {
+        // The transports re-send their whole subscription set on every connect,
+        // and the mod's session (with its ack bookkeeping) is new, so every
+        // still-subscribed topic needs a fresh window against it.
+        this.ownership.handleConnected(this.subscribers.keys());
+        return;
+      }
+      // A subscribe whose ack was still in flight when the link dropped must
+      // not mature into a verdict while nothing can answer.
+      this.ownership.handleDisconnected();
+      for (const store of this.stores) store.clearTopicOwnership();
+      this.notifyStore();
+    });
+  }
+
+  /**
+   * Notified once per topic per connection, the moment the mod's silence has
+   * gone on long enough to be an answer.
+   *
+   * Fires for the diagnostic surfaces (the logged warning) rather than for
+   * rendering: a widget learns the same fact through its `Reading` arm, which is
+   * the surface that makes it unmissable.
+   */
+  onTopicUnowned(listener: (topic: string) => void): () => void {
+    this.unownedListeners.add(listener);
+    return () => this.unownedListeners.delete(listener);
+  }
+
+  /**
+   * What this connection can say about whether anything will ever publish
+   * `topic`. Always `"undecided"` on a transport that does not relay acks.
+   */
+  topicOwnership(topic: string): TopicOwnership {
+    return this.ownership?.ownershipOf(topic) ?? "undecided";
+  }
+
+  /**
+   * Record that `label` (a widget id) is reading `topic`, for diagnostics.
+   * Returns a release function; call it when the read stops.
+   */
+  noteSubscriberLabel(topic: string, label: string): () => void {
+    let labels = this.subscriberLabels.get(topic);
+    if (!labels) {
+      labels = new Map();
+      this.subscriberLabels.set(topic, labels);
+    }
+    labels.set(label, (labels.get(label) ?? 0) + 1);
+    return () => {
+      const current = this.subscriberLabels.get(topic);
+      const count = current?.get(label);
+      if (!current || count === undefined) return;
+      if (count > 1) {
+        current.set(label, count - 1);
+        return;
+      }
+      current.delete(label);
+      if (current.size === 0) this.subscriberLabels.delete(topic);
+    };
+  }
+
+  /** The widgets currently reading `topic`, by id. Empty outside a widget. */
+  readersOf(topic: string): readonly string[] {
+    return [...(this.subscriberLabels.get(topic)?.keys() ?? [])];
   }
 
   /**
@@ -309,6 +409,7 @@ export class TelemetryClient {
     for (const topic of this.subscribers.keys()) {
       this.transport.send({ type: "unsubscribe", topic });
       this.transport.send({ type: "subscribe", topic });
+      this.ownership?.noteSubscribeSent(topic);
     }
   }
 
@@ -318,6 +419,7 @@ export class TelemetryClient {
       subs = new Set();
       this.subscribers.set(topic, subs);
       this.transport.send({ type: "subscribe", topic });
+      this.ownership?.noteSubscribeSent(topic);
     }
     const sub: Subscription = { cb };
     subs.add(sub);
@@ -334,6 +436,7 @@ export class TelemetryClient {
         this.subscribers.delete(topic);
         this.lastValues.delete(topic);
         this.transport.send({ type: "unsubscribe", topic });
+        this.ownership?.noteReleased(topic);
       }
     };
   }
@@ -377,6 +480,13 @@ export class TelemetryClient {
    */
   attachStore(store: TimelineStore): () => void {
     this.stores.add(store);
+    // Unlike sample history, ownership verdicts DO backfill. There are a
+    // handful of them, they are facts about the mod rather than about a moment,
+    // and a store attached after one was reached would otherwise render a topic
+    // as pending forever with the answer already sitting one object away.
+    for (const topic of this.ownership?.unownedTopics() ?? []) {
+      store.markTopicUnowned(topic);
+    }
     return () => {
       this.stores.delete(store);
     };
@@ -563,6 +673,8 @@ export class TelemetryClient {
    */
   dispose(): void {
     this.unsubscribeFromTransport();
+    this.unsubscribeFromTransportStatus();
+    this.ownership?.dispose();
 
     for (const topic of this.subscribers.keys()) {
       this.transport.send({ type: "unsubscribe", topic });
@@ -586,6 +698,8 @@ export class TelemetryClient {
     this.subscribers.clear();
     this.lastValues.clear();
     this.storeListeners.clear();
+    this.unownedListeners.clear();
+    this.subscriberLabels.clear();
     this.commands.clear();
     this.stores.clear();
   }
@@ -609,6 +723,13 @@ export class TelemetryClient {
     }
     if (message.type === "error") {
       this.handleCommandError(message.requestId, message.code, message.message);
+      return;
+    }
+    // The `subscribed` ack. Every event frame was dropped here until this
+    // branch existed, which is why the mod's own answer to "does anything
+    // publish this topic" reached nothing that could use it.
+    if (message.type === "event") {
+      if (message.name === "subscribed") this.ownership?.noteAck(message.topic);
       return;
     }
     if (message.type !== "stream-data") return;

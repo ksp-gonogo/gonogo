@@ -10,6 +10,7 @@ import {
 } from "./context";
 import { mapTopic } from "./map-topic";
 import type { NeverReckonable, UnmodelledReading } from "./never-reckonable";
+import { useTelemetrySubscriberLabel } from "./subscriber-identity";
 import { useDataSourceSubscription } from "./use-data-source-subscription";
 
 /**
@@ -256,6 +257,9 @@ export function useTelemetry(dataSourceId: string, key?: string): unknown {
     topic !== undefined &&
     carried;
 
+  // Diagnostics only: which widget this read belongs to, so a topic nothing
+  // publishes can be reported with the name of the thing that asked for it.
+  const subscriberLabel = useTelemetrySubscriberLabel();
   const subscribeStream = useCallback(
     (onStoreChange: () => void) => {
       if (!client || !store || topic === undefined || !carried) {
@@ -265,13 +269,22 @@ export function useTelemetry(dataSourceId: string, key?: string): unknown {
       const unsubscribeInputs = inputTopics.map((inputTopic) =>
         client.subscribe(inputTopic, () => {}),
       );
+      // Labelled per INPUT topic rather than per read: a derived topic is not
+      // a wire topic and can never be unowned itself, so the diagnostic has to
+      // name the raw topics the derivation actually subscribed.
+      const releaseLabels = subscriberLabel
+        ? inputTopics.map((inputTopic) =>
+            client.noteSubscriberLabel(inputTopic, subscriberLabel),
+          )
+        : [];
       const unsubscribeFrame = store.subscribeFrame(onStoreChange);
       return () => {
         unsubscribeFrame();
+        for (const release of releaseLabels) release();
         for (const unsubscribe of unsubscribeInputs) unsubscribe();
       };
     },
-    [client, store, topic, carried],
+    [client, store, topic, carried, subscriberLabel],
   );
   const getStreamSnapshot = useCallback(() => {
     if (!store || topic === undefined || !carried) return undefined;

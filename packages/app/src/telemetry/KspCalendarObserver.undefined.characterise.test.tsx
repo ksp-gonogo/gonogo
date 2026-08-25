@@ -47,11 +47,12 @@ const CALENDAR_FIELDS = [
  * apart from one that never arrived at all.
  */
 function CalendarProbe() {
-  // Branches on the ARM. The two absences used to be `undefined` and `null`, which
-  // nothing downstream could reliably separate; they are `pending` and `absent` now
-  // and this probe reports which one arrived.
+  // Branches on the ARM. The absences used to be `undefined` and `null`, which
+  // nothing downstream could reliably separate; they are `pending`, `unowned` and
+  // `absent` now and this probe reports which one arrived.
   const reading = useTelemetry("time.calendar");
   if (reading.state === "pending") return <p>calendar:pending</p>;
+  if (reading.state === "unowned") return <p>calendar:unowned</p>;
   if (reading.state === "absent") return <p>calendar:absent</p>;
   const record = reading.value as unknown as Record<
     string,

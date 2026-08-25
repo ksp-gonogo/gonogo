@@ -72,6 +72,19 @@ export interface SentCommand {
  */
 export class StubTransport implements Transport {
   readonly status: TransportStatus = "connected";
+  /**
+   * Off unless a test asks for it, matching the interface's own default and for
+   * the same reason: a stub never acks unless the test makes it, so opting in by
+   * default would mature every topic in every test into `unowned`.
+   *
+   * A test that opts in is taking on the job of acking, via
+   * {@link StubTransport.ackSubscribe}.
+   */
+  readonly decidesTopicOwnership: boolean;
+
+  constructor(options: { decidesTopicOwnership?: boolean } = {}) {
+    this.decidesTopicOwnership = options.decidesTopicOwnership ?? false;
+  }
 
   private readonly messageListeners = new Set<
     (message: ServerMessage) => void
@@ -238,6 +251,20 @@ export class StubTransport implements Transport {
    * script directly, e.g. a duplicate or late `command-response` arriving
    * for a `requestId` that already settled.
    */
+  /**
+   * Test helper: answer a subscribe the way the mod does, with the `subscribed`
+   * ack `ProcessSubscribe` publishes on the reliable lane. NOT sending one is
+   * the interesting case, since that silence is what makes a topic unowned.
+   */
+  ackSubscribe(topic: string): void {
+    this.emitRaw({
+      type: "event",
+      topic,
+      name: "subscribed",
+      meta: makeMeta(),
+    });
+  }
+
   emitRaw(message: ServerMessage): void {
     this.deliver(message);
   }

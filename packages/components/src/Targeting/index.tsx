@@ -414,6 +414,18 @@ function TargetingComponent({
     );
   }
 
+  // Separate from the wait above and from the confirmed absence below: this is
+  // neither "not yet" nor "no target set", it is "nothing here reports targets".
+  // Rendering it as the wait left the panel promising telemetry that no build
+  // was ever going to send.
+  if (targetReading.state === "unowned") {
+    return (
+      <TargetPanel>
+        <EmptyState>No target channel on this install</EmptyState>
+      </TargetPanel>
+    );
+  }
+
   // Confirmed absence. The wire states it as a tombstone for the whole record
   // (`absent`), which is what the mod sends when the target is cleared:
   // `KspHost.BuildTarget` returns null before `name` is read, and `TargetTopic`
