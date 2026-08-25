@@ -252,12 +252,36 @@ jobs:
           # overwrite an existing version anyway: the registry stays the
           # authority; this check only keeps an unchanged package green.
           if npm view "$NAME@$VERSION" version >/dev/null 2>&1; then
-            echo "::notice::$NAME@$VERSION is already published, no version change, nothing to do."
+            echo "::notice::$NAME@$VERSION is already published, no version change."
             echo "skip=true" >> "$GITHUB_OUTPUT"
           else
             echo "$NAME@$VERSION is not on npm yet."
             echo "skip=false" >> "$GITHUB_OUTPUT"
           fi
+
+      # "Already published" is the right answer for a package nobody touched and
+      # exactly the wrong one for a package whose version never moves. The sdk
+      # sat at 0.0.1 on both sides from its first publish onwards, so this step's
+      # predecessor said "nothing to do" on every release while the workspace
+      # surface grew past the registry copy: 249 of 292 Uplink import bindings
+      # stopped resolving against it, and nothing anywhere said so, because a
+      # correct skip and a fossil skip print the same green step.
+      #
+      # So the skip has to be earned on CONTENT. This packs what the tree builds
+      # and diffs its `dist` against the published tarball; a difference fails
+      # the release asking for a version bump.
+      #
+      # Only when skipping: on the publish path the version has already moved and
+      # there is nothing to compare against.
+      - name: The published copy is not a fossil
+        if: steps.published.outputs.skip == 'true'
+        run: |
+          set -euo pipefail
+          NAME='${{ steps.pkg.outputs.name }}'
+          VERSION='${{ steps.pkg.outputs.version }}'
+          pnpm exec turbo build --filter="$NAME"
+          TARBALL="$(node scripts/pack-publishable.mjs '${{ matrix.dir }}' "$RUNNER_TEMP")"
+          node scripts/published-version-is-current.mjs "$NAME" "$VERSION" "$TARBALL"
 
       # `npm pack` does not run a build, and ui-kit's dist is tsup's output
       # plus a copy of the theme's tokens.css. Packing without this ships a
@@ -268,10 +292,25 @@ jobs:
         if: steps.published.outputs.skip == 'false'
         run: pnpm exec turbo build --filter='${{ steps.pkg.outputs.name }}'
 
+      # Packed through `pack-publishable.mjs` rather than by `npm pack` directly,
+      # because npm does not apply `publishConfig` field overrides and says so:
+      # `npm publish --dry-run` in `mod/sitrep-sdk` prints "Unknown publishConfig
+      # config" for `main`, `types` and `exports`. That package points those at
+      # `./src/*.ts` for the workspace and redirects them at `./dist/*.js` for
+      # consumers through `publishConfig`, which is the pnpm convention; we
+      # publish with npm, for OIDC provenance.
+      #
+      # A plain `npm pack` therefore produces a tarball whose manifest sends
+      # consumers to TypeScript source. `files` ships `src`, so it installs and
+      # resolves, and breaks later inside somebody else's bundler. The script
+      # applies the overrides to the extracted manifest and re-tars; the file set
+      # is whatever npm chose, untouched.
+      #
+      # `verify-package-artifact.mjs` below fails on exactly this manifest, so
+      # the two are belt and braces rather than one doing the other's job.
       - name: Pack
         if: steps.published.outputs.skip == 'false'
-        working-directory: ${{ matrix.dir }}
-        run: npm pack --pack-destination "$RUNNER_TEMP"
+        run: node scripts/pack-publishable.mjs '${{ matrix.dir }}' "$RUNNER_TEMP"
 
       # Gate the tarball, then publish that same file, what was checked is
       # exactly what ships, rather than a re-pack that could differ.

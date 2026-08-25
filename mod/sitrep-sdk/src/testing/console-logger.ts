@@ -1,4 +1,4 @@
-import type { Logger } from "@ksp-gonogo/logger";
+import type { Logger } from "../api/logger-contract";
 
 /**
  * The logger a test host installs: every level straight to `console`.

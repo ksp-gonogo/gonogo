@@ -2,7 +2,7 @@
   "name": "@ksp-gonogo/sitrep-sdk",
   "description": "Author-facing SDK for Gonogo (Sitrep) KSP Uplinks: the generated wire contract plus the curated framework/data/hook surface",
   "license": "MIT",
-  "version": "0.0.1",
+  "version": "0.1.0",
   "type": "module",
   "main": "src/index.ts",
   "exports": {
