@@ -239,7 +239,7 @@ public class ManeuverNode
     public double? Thrust { get; set; }
 
     /// <summary>Specific impulse the plan was computed against.</summary>
-    [SitrepUnit(Units.Seconds)]
+    [SitrepUnit(Units.SpecificImpulse)]
     public double? SpecificImpulse { get; set; }
 
     /// <summary>Craft mass at ignition, as the plan assumed it.</summary>

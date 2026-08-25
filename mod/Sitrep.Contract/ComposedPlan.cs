@@ -76,7 +76,7 @@ namespace Sitrep.Contract
         [SitrepUnit(Units.Kilonewtons)]
         public double? Thrust { get; set; }
 
-        [SitrepUnit(Units.Seconds)]
+        [SitrepUnit(Units.SpecificImpulse)]
         public double? SpecificImpulse { get; set; }
     }
 

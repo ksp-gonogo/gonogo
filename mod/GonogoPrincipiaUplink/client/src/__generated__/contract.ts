@@ -27,7 +27,7 @@ export interface PrincipiaFlightPlanBurn
 	durationSeconds?: Value<"s">;
 	deltaV?: Value<"m/s">;
 	thrustKilonewtons?: Value<"kN">;
-	specificImpulseSeconds?: Value<"s">;
+	specificImpulseSeconds?: Value<"isp">;
 	initialMassTons?: Value<"t">;
 	inertiallyFixed?: boolean;
 	coordinateSystem?: number;
@@ -141,7 +141,7 @@ export interface PrincipiaPlannedBurn
 	coordinateSystem?: number;
 	inertiallyFixed?: boolean;
 	thrustKilonewtons?: Value<"kN">;
-	specificImpulseSeconds?: Value<"s">;
+	specificImpulseSeconds?: Value<"isp">;
 	initialMassTons?: Value<"t">;
 	finalMassTons?: Value<"t">;
 	massFlowKilogramsPerSecond?: Value<"kg/s">;

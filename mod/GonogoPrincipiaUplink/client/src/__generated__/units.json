@@ -17,6 +17,7 @@
     "g",
     "h",
     "id",
+    "isp",
     "kN",
     "kPa",
     "kW",
@@ -92,7 +93,7 @@
       "index": "count",
       "inertiallyFixed": "flag",
       "initialMassTons": "t",
-      "specificImpulseSeconds": "s",
+      "specificImpulseSeconds": "isp",
       "thrustKilonewtons": "kN"
     },
     "PrincipiaPlan": {
@@ -167,7 +168,7 @@
       "inertiallyFixed": "flag",
       "initialMassTons": "t",
       "massFlowKilogramsPerSecond": "kg/s",
-      "specificImpulseSeconds": "s",
+      "specificImpulseSeconds": "isp",
       "thrustKilonewtons": "kN",
       "timeToHalfDeltaVSeconds": "s"
     },

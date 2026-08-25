@@ -99,6 +99,28 @@ namespace Sitrep.Contract
         public const string UniversalTime = "ut";
 
         /// <summary>
+        /// An engine's specific impulse, at standard gravity.
+        /// </summary>
+        ///
+        /// <remarks>
+        /// <para>Seconds by dimension, and a separate token for the reason
+        /// <see cref="UniversalTime"/> is: the dimension is shared so the
+        /// arithmetic keeps working, and the KIND is what decides how it
+        /// renders. A specific impulse is a performance figure rather than a
+        /// length of time, and nobody reads a 320 s engine as five minutes and
+        /// twenty seconds.</para>
+        ///
+        /// <para>This exists because the repo shipped that render. Every Isp on
+        /// this wire was declared <see cref="Seconds"/>, which was harmless for
+        /// as long as nothing displayed one; the first widget to put an Isp
+        /// through the client's unit renderer got "5min 20s" beside a label
+        /// reading ISP. The same shape as the encounter instant that rendered
+        /// as "46d 2h", and the same fix: name the kind on the wire so no call
+        /// site has to know.</para>
+        /// </remarks>
+        public const string SpecificImpulse = "isp";
+
+        /// <summary>
         /// Hours. The ONE non-second duration on this wire, and it exists only
         /// because <c>ReliabilityPartEntry.MtbfHours</c> genuinely carries hours:
         /// TestFlight reports MTBF that way and the contract states what it is

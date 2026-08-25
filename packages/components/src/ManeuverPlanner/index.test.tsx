@@ -10,6 +10,7 @@ import {
 } from "@ksp-gonogo/core";
 import { BufferedDataSource, MemoryStore } from "@ksp-gonogo/data";
 import { TelemetryProvider } from "@ksp-gonogo/sitrep-client";
+import { ManeuverFrame } from "@ksp-gonogo/sitrep-sdk";
 import { act, render as rtlRender, screen } from "@ksp-gonogo/test-utils";
 import { visibleText } from "@ksp-gonogo/ui-kit/testing";
 import userEvent from "@testing-library/user-event";
@@ -231,6 +232,11 @@ function emitManeuverNode(
       dvNormal: n.dvNormal ?? 0,
       dvPrograde: n.dvPrograde ?? 0,
       dvTotal: Math.hypot(n.dvRadial ?? 0, n.dvNormal ?? 0, n.dvPrograde ?? 0),
+      // Stated, because `StockManeuverPlanBackend` states it. The three slots
+      // are positional and the basis is what names them, so a fixture that
+      // leaves it out is sending a node the stock producer never sends, and the
+      // editor rightly declines to put stock's words on one.
+      frame: ManeuverFrame.RadialNormalPrograde,
       patches: [],
     })),
   });

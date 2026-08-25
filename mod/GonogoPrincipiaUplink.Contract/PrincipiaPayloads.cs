@@ -150,7 +150,7 @@ public sealed class PrincipiaFlightPlanBurn
     public double? ThrustKilonewtons { get; set; }
 
     /// <summary>Specific impulse the plan assumes, at standard gravity.</summary>
-    [SitrepUnit(Units.Seconds)]
+    [SitrepUnit(Units.SpecificImpulse)]
     public double? SpecificImpulseSeconds { get; set; }
 
     /// <summary>Vessel mass the plan assumes at ignition.</summary>

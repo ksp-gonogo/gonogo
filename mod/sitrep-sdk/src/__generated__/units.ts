@@ -27,6 +27,7 @@ export type KnownSitrepUnit =
   | "g"
   | "h"
   | "id"
+  | "isp"
   | "kN"
   | "kPa"
   | "kW"
@@ -324,7 +325,7 @@ export const GENERATED_TYPE_UNITS: Readonly<Record<string, UnitsByField>> = {
     frame: "enum",
     ignitionUt: "ut",
     inertiallyFixed: "flag",
-    specificImpulse: "s",
+    specificImpulse: "isp",
     thrust: "kN",
   },
   "ContractActionArgs": {
@@ -627,7 +628,7 @@ export const GENERATED_TYPE_UNITS: Readonly<Record<string, UnitsByField>> = {
     ignitionUt: "ut",
     inertiallyFixed: "flag",
     initialMass: "t",
-    specificImpulse: "s",
+    specificImpulse: "isp",
     thrust: "kN",
     ut: "ut",
   },

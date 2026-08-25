@@ -55,6 +55,7 @@ export const GENERATED_UNIT_KINDS = {
   "irl:h": { kind: "irlTime", ratio: 3600 },
   "irl:min": { kind: "irlTime", ratio: 60 },
   "irl:s": { kind: "irlTime", ratio: 1 },
+  "isp": { kind: "specificImpulse", ratio: 1 },
   "kN": { kind: "force", ratio: 1000 },
   "kPa": { kind: "pressure", ratio: 1000 },
   "kW": { kind: "power", ratio: 1000 },

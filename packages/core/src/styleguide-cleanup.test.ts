@@ -66,7 +66,24 @@ function findRepoRoot(start: string): string {
  * skips that step reports the gate as blind when it is not. CI and the commit
  * hook both see the index, so the case that matters is covered.
  */
+/**
+ * Memoised across the two tests that ask.
+ *
+ * The scan reads every tracked `.ts`/`.tsx` file under the roots, about two
+ * thousand of them, and both tests below want the same answer. Running it twice
+ * doubled the I/O for nothing and put the pair over vitest's 30s ceiling
+ * whenever the machine was busy: under `turbo test` the whole suite runs 45
+ * tasks at once, and a starved scan reported a TIMEOUT, which reads as a
+ * hygiene violation rather than as a slow disk.
+ *
+ * Safe to hold: the input is the git INDEX plus the working tree, and neither
+ * moves during a test run. That is the same property the enumeration already
+ * relies on, written down in the doc above.
+ */
+let memo: { scanned: number; offenders: string[] } | undefined;
+
 function scan(): { scanned: number; offenders: string[] } {
+  if (memo !== undefined) return memo;
   const root = findRepoRoot(dirname(fileURLToPath(import.meta.url)));
   const tracked = execFileSync("git", ["ls-files", "-z", "--", ...SCAN_ROOTS], {
     cwd: root,
@@ -85,7 +102,8 @@ function scan(): { scanned: number; offenders: string[] } {
     }
     if (CLEANUP_IMPORT_RE.test(source)) offenders.push(rel);
   }
-  return { scanned: tracked.length, offenders };
+  memo = { scanned: tracked.length, offenders };
+  return memo;
 }
 
 /**

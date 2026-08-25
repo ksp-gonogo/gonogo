@@ -530,4 +530,26 @@ describe("BurnEditor", () => {
     await userEvent.click(screen.getByRole("button", { name: "Burn 1" }));
     await axe(stream.container);
   });
+
+  /**
+   * A specific impulse is seconds by dimension and is not a length of time, so
+   * the duration ladder is the wrong renderer for it. A 320 s engine reaching
+   * `<Unit>` under the plain seconds token came out as "5min 20s": a true
+   * statement about the wrong quantity, in the same shape as the encounter UT
+   * that rendered as "46d 2h" and gave the vocabulary its `ut` token.
+   *
+   * Asserted on the FORM rather than on the document, because "5min 20s" is a
+   * plausible string elsewhere on this widget (a burn's duration is one), and a
+   * whole-document assertion would pass or fail for the wrong reason.
+   */
+  it("renders a specific impulse as a performance figure, not a duration", async () => {
+    const stream = mount();
+    await emitPlan(stream);
+    await userEvent.click(screen.getByRole("button", { name: "Burn 1" }));
+
+    const form = document.querySelector("[data-burn-editor-form]");
+    expect(form?.textContent ?? "").toContain("320");
+    expect(form?.textContent ?? "").not.toContain("5min 20s");
+    await act(async () => {});
+  });
 });

@@ -101,6 +101,13 @@ export type KnownQuantityKind =
   // not the component for it; `<MissionDate>` is, or subtract the frame's view
   // time and render the duration that leaves.
   | "universalTime"
+  // An engine's specific impulse. Seconds by dimension and NOT a length of
+  // time, which is why it is its own kind rather than an option on `time`: a
+  // 320 s engine on the duration ladder reads "5min 20s", a true statement
+  // about the wrong quantity, and it is the same trap `universalTime` above
+  // exists for. It has no ladder, because an Isp is quoted as itself at every
+  // magnitude an engine reaches.
+  | "specificImpulse"
   // Time measured by a clock on the desk rather than by the game: how long
   // ago a reading arrived, how long a recorder ran. A day is 24 hours here
   // and 6 hours in `time`, which is why they are two kinds and not one.
@@ -398,6 +405,9 @@ const DECIMALS: Record<string, number> = {
   temperature: 0,
   time: 0,
   irlTime: 0,
+  // Integral: the game and every engine chart quote an Isp whole, and the
+  // fractional digit is below what a plan is tuned on.
+  specificImpulse: 0,
   planeAngle: 2,
   density: 4,
   // Two decimals: a small RCS burn runs at a fraction of a kilogram a second,
@@ -467,6 +477,9 @@ const DISPLAY_BY_KIND: Record<string, string> = {
   // this dashboard, writes "mits". The token is what the wire says and this
   // is what an operator reads.
   scienceData: "mits",
+  // An Isp reads in seconds and always has. The kind exists to keep it off the
+  // duration ladder, not to change what an operator sees beside the number.
+  specificImpulse: "s",
   count: "",
   id: "",
   text: "",
