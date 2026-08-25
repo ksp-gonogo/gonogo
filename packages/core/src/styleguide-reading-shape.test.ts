@@ -149,6 +149,53 @@ function bareReadings(sources: ReadonlyMap<string, string>): Suspect[] {
   return found;
 }
 
+/**
+ * A presence gate written as `reading.state !== "pending"`.
+ *
+ * The trap this catches is specific and it has already been sprung once, on five
+ * sites at once. Each asked "has the producer spoken at all", each reasoned that
+ * `pending` was the only answer meaning nothing is there, and each was right until
+ * the `unowned` arm existed. From that moment the same expression reads the
+ * STRONGEST evidence of no producer as the producer having answered, so an
+ * augment's UI renders on an install without its Uplink. Nothing in `tsc` moves,
+ * because a negative test against one arm stays legal however many arms there are.
+ *
+ * `hasAnswered` is the sanctioned form and the whole point of it is that the NEXT
+ * arm gets considered in one place instead of missed in five.
+ *
+ * Scoped to variables bound from a telemetry read, so it cannot fire on the alarm
+ * and objective state machines, which have their own unrelated `"pending"`.
+ */
+function pendingOnlyGates(sources: ReadonlyMap<string, string>): Suspect[] {
+  const found: Suspect[] = [];
+  for (const [file, text] of sources) {
+    if (/\.test\.tsx?$|\.test-d\.tsx?$/.test(file)) continue;
+    if (ALLOWED.has(file)) continue;
+    if (!text.includes("useTelemetry(")) continue;
+    const lines = text.split("\n");
+    const readings = new Set<string>();
+    for (const line of lines) {
+      const assigned = /const (\w+)\s*=\s*useTelemetry\(/.exec(line);
+      if (assigned?.[1] !== undefined) readings.add(assigned[1]);
+    }
+    if (readings.size === 0) continue;
+    for (const [index, line] of lines.entries()) {
+      for (const variable of readings) {
+        if (
+          !new RegExp(`\\b${variable}\\.state\\s*!==\\s*"pending"`).test(line)
+        ) {
+          continue;
+        }
+        // Paired with an explicit unowned test on the same line is a considered
+        // gate rather than the trap, and stays legal.
+        if (line.includes('"unowned"')) continue;
+        found.push({ at: `${file}:${index + 1}`, variable });
+      }
+    }
+  }
+  return found;
+}
+
 const files = trackedSourceFiles();
 
 /**
@@ -197,6 +244,53 @@ describe("styleguide: a Reading is never handed on whole", () => {
     );
     expect(assigned?.[1]).toBe("somethingRaw");
     expect(/[(,{}[\s]somethingRaw(?![\w.?])/.test(lines[1] ?? "")).toBe(true);
+  });
+
+  it("gates presence on hasAnswered, never on pending alone", () => {
+    const suspects = pendingOnlyGates(sources);
+    const detail = suspects.map((s) => `  ${s.at}  (${s.variable})`).join("\n");
+    expect(
+      suspects,
+      suspects.length === 0
+        ? ""
+        : `A presence gate tests \`state !== "pending"\`, which reads the ` +
+            `\`unowned\` arm as the producer having ANSWERED. Unowned is the ` +
+            `strongest evidence there is that no producer exists, so a gate written ` +
+            `this way opens on exactly the install where it should close:\n${detail}` +
+            `\n\nUse \`hasAnswered(reading)\`, which is false for both empty arms ` +
+            `and is the one place the next arm gets considered.`,
+    ).toEqual([]);
+  });
+
+  /**
+   * Guard on the guard, same reasoning as the one above it: a detector that has
+   * stopped matching reports zero identically to a clean tree.
+   */
+  it("still recognises a pending-only gate, and leaves a considered one alone", () => {
+    const trap = new Map([
+      [
+        "widget.tsx",
+        [
+          'const availability = useTelemetry("weather.available");',
+          'const reported = availability.state !== "pending";',
+        ].join("\n"),
+      ],
+    ]);
+    expect(pendingOnlyGates(trap)).toEqual([
+      { at: "widget.tsx:2", variable: "availability" },
+    ]);
+
+    const considered = new Map([
+      [
+        "widget.tsx",
+        [
+          'const availability = useTelemetry("weather.available");',
+          "const reported =",
+          '  availability.state !== "pending" && availability.state !== "unowned";',
+        ].join("\n"),
+      ],
+    ]);
+    expect(pendingOnlyGates(considered)).toEqual([]);
   });
 
   it("scans a non-trivial number of files, so a broken file list cannot pass", () => {
