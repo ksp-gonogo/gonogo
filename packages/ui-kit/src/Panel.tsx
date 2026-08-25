@@ -71,51 +71,6 @@ export function PanelProviders({ children }: { children?: ReactNode }) {
   return <PanelContextProvider>{children}</PanelContextProvider>;
 }
 
-/**
- * The stream status of the widget this panel belongs to, supplied by the
- * host rather than by the widget.
- *
- * A widget's status is derivable: it already declares `dataRequirements` when
- * it registers, and the host already knows how stale each of those topics is.
- * Twenty-five widgets nonetheless hand-wired their own
- * `useDataStreamStatus("data", <a key picked by hand>)` and rendered their own
- * badge, and twenty-two of those keys were simply one of the widget's own
- * declared requirements. That is a derivation, written out longhand,
- * twenty-five times, and it is worse than the derivation: a widget whose
- * SECOND topic goes stale keeps reporting "live", because only the
- * hand-picked one was ever consulted.
- *
- * So the host provides it and the panel renders it. `null` means no host is
- * providing one (a panel outside the dashboard: a settings modal, the station
- * connect view), which renders no badge at all, the same as healthy.
- *
- * The type comes from the sdk rather than `@ksp-gonogo/sitrep-client`: the kit
- * is published and the client is private, so only the sdk's mirrored copy can
- * be named here. It is a type-only import, erased at build.
- */
-const PanelStatusCtx = createContext<StreamStatusValue | null>(null);
-
-export function PanelStatusProvider({
-  status,
-  children,
-}: {
-  status: StreamStatusValue | null;
-  children?: ReactNode;
-}) {
-  return (
-    <PanelStatusCtx.Provider value={status}>{children}</PanelStatusCtx.Provider>
-  );
-}
-
-/**
- * The host-derived stream status for the current widget, or `null` outside a
- * dashboard. Exposed for the rare widget that wants to react to staleness in
- * its body rather than just show the badge.
- */
-export function usePanelStreamStatus(): StreamStatusValue | null {
-  return useContext(PanelStatusCtx);
-}
-
 export const PanelContainer = styled.div`
   /* Chrome only. The inset belongs to Panel.Body and the glow to Panel.Glow;
      this is the border, the surface and the clip, and nothing else. */
@@ -1669,19 +1624,23 @@ function PanelRoot({
     badgePills !== null ||
     hasActionAugments;
 
-  // The panel's header status now comes from the per-item PanelStatusStore, so
-  // stream staleness, active alarms, and any `report` badge merge into one
-  // summary rather than the single host-provided stream value the old aside
-  // splice could show. The host-derived stream status still originates from
-  // `usePanelStreamStatus`; the panel folds it into the store as one ordinary
-  // contribution here, and `panelStatus` overrides or (with "none") suppresses
-  // just that stream contribution.
-  const derived = usePanelStreamStatus();
-  const status = panelStatus ?? derived;
+  // The panel's header status comes from the per-item PanelStatusStore, so an
+  // active alarm and any `report` badge merge into one summary rather than the
+  // single value the old aside splice could show.
+  //
+  // The stream half is the WIDGET'S own to supply, via `panelStatus`. The host
+  // used to derive one across every topic a widget declared and hand it down,
+  // and that reading was withdrawn: one worst-of pill for five topics cannot
+  // say which of them is degraded, and "absent" means opposite things per
+  // topic (an empty `vessel.maneuvers` is a normal state, an absent
+  // `vessel.orbit` is not). Stale and reckoned Values now ride the wire per
+  // Value, so currency is carried at a finer granularity than a panel-wide
+  // summary could express, and a lossy summary that can read as a fault when
+  // there is none is worse than none.
+  const status = panelStatus ?? null;
   // Live/none/absent-of-status contribute nothing (the floor), so a healthy
   // stream keeps today's "no green pill" rule. A degraded status folds in as
-  // the "stream" contribution; `panelStatus="none"` suppresses it by leaving
-  // this null even when the host derived a stale status.
+  // the "stream" contribution; `panelStatus="none"` suppresses it outright.
   const streamStatus: StreamStatusValue | null =
     hasHeader && status !== null && status !== "none" && status !== "live"
       ? status
@@ -1862,8 +1821,6 @@ export const Panel = Object.assign(PanelRoot, {
   Body: PanelBody,
   Split: PanelSplit,
   Sidebar: PanelSidebar,
-  Status: PanelStatusProvider,
-  useStreamStatus: usePanelStreamStatus,
   // The single interface the title-redesign ghost dot consumes. Producing the
   // summary is this file's concern; painting it (the ghost) is the title spec's.
   useStatusSummary,

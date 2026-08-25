@@ -1,10 +1,7 @@
 import type { ComponentDefinition } from "@ksp-gonogo/sitrep-sdk";
 import { getComponent } from "@ksp-gonogo/sitrep-sdk";
 import { getComponents } from "@ksp-gonogo/sitrep-sdk/registry";
-import {
-  DashboardItemContext,
-  useWidgetStreamStatus,
-} from "@ksp-gonogo/sitrep-sdk/spine";
+import { DashboardItemContext } from "@ksp-gonogo/sitrep-sdk/spine";
 import type { RenderResult } from "@ksp-gonogo/sitrep-sdk/testing";
 import { render } from "@ksp-gonogo/sitrep-sdk/testing";
 import type { JSXElementConstructor } from "react";
@@ -12,12 +9,10 @@ import { type ReactNode, useCallback, useMemo, useState } from "react";
 import { AugmentSettingsProvider } from "./AugmentSettings";
 import { DelayRailProvider } from "./CommandDelay/DelayRailContext";
 import { ContributionsProvider } from "./contributionsRuntime";
-import { PanelStatusProvider } from "./Panel";
 import { PanelBadgesProvider } from "./PanelBadges";
 import { PanelStatusStoreProvider } from "./status/PanelStatusStore";
 import { useWidgetBadges } from "./useWidgetBadges";
 import { WidgetMetaContext } from "./WidgetMetaContext";
-import { widgetDeclaredTopics } from "./widgetDeclaredTopics";
 
 /**
  * Render a widget THE WAY THE DASHBOARD DOES, by its registered id.
@@ -152,9 +147,7 @@ export function WidgetHostFor({
               setAugmentSetting={setAugmentSetting}
             >
               <ContributionsProvider>
-                <WidgetBadges>
-                  <WidgetStreamStatus def={def}>{children}</WidgetStreamStatus>
-                </WidgetBadges>
+                <WidgetBadges>{children}</WidgetBadges>
               </ContributionsProvider>
             </AugmentSettingsProvider>
           </WidgetMetaContext.Provider>
@@ -169,17 +162,6 @@ export function WidgetHostFor({
 function WidgetBadges({ children }: { children: ReactNode }) {
   const badges = useWidgetBadges();
   return <PanelBadgesProvider badges={badges}>{children}</PanelBadgesProvider>;
-}
-
-function WidgetStreamStatus({
-  def,
-  children,
-}: {
-  def: ComponentDefinition;
-  children: ReactNode;
-}) {
-  const status = useWidgetStreamStatus(widgetDeclaredTopics(def));
-  return <PanelStatusProvider status={status}>{children}</PanelStatusProvider>;
 }
 
 function requireComponent(widgetId: string): ComponentDefinition {

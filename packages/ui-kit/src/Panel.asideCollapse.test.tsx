@@ -218,14 +218,13 @@ describe("Panel header aside expand box, accessibility", () => {
   it("has no axe violations (summary named, dots labelled, chevron hidden)", async () => {
     const { container } = render(
       <PanelStatusStoreProvider>
-        <Panel.Status status="held-stale">
-          <Panel
-            panelTitle="LANDING"
-            panelAside={<button type="button">Recenter</button>}
-          >
-            <p>content</p>
-          </Panel>
-        </Panel.Status>
+        <Panel
+          panelTitle="LANDING"
+          panelStatus="held-stale"
+          panelAside={<button type="button">Recenter</button>}
+        >
+          <p>content</p>
+        </Panel>
       </PanelStatusStoreProvider>,
     );
     await expectNoA11yViolations(container);

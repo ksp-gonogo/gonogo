@@ -60,30 +60,22 @@ describe("Panel header summary (store-backed)", () => {
     expect(screen.getByRole("status")).toHaveTextContent("OX LOW");
   });
 
-  it("folds the host-derived stream status into the same summary", () => {
-    render(
-      inStore(
-        <Panel.Status status="resyncing">
-          <Panel panelTitle="ORBIT">body</Panel>
-        </Panel.Status>,
-      ),
-    );
+  it("folds the widget's own stream status into the same summary", () => {
+    render(inStore(<Panel panelTitle="ORBIT" panelStatus="resyncing" />));
     expect(screen.getByRole("status")).toHaveTextContent("SYNCING");
   });
 
   it("lets a firing-style critical report outrank a merely stale stream", () => {
     render(
       inStore(
-        <Panel.Status status="held-stale">
-          <Panel panelTitle="DESCENT">
-            <Badge
-              severity="critical"
-              report={{ id: "alarm", label: "NO BURN VECTOR" }}
-            >
-              !
-            </Badge>
-          </Panel>
-        </Panel.Status>,
+        <Panel panelTitle="DESCENT" panelStatus="held-stale">
+          <Badge
+            severity="critical"
+            report={{ id: "alarm", label: "NO BURN VECTOR" }}
+          >
+            !
+          </Badge>
+        </Panel>,
       ),
     );
     // stream held-stale -> warning, the report -> critical, so the alarm wins.
@@ -91,13 +83,7 @@ describe("Panel header summary (store-backed)", () => {
   });
 
   it("shows nothing when a store is present but empty and the stream is live", () => {
-    render(
-      inStore(
-        <Panel.Status status="live">
-          <Panel panelTitle="ORBIT">body</Panel>
-        </Panel.Status>,
-      ),
-    );
+    render(inStore(<Panel panelTitle="ORBIT" panelStatus="live" />));
     expect(screen.queryByRole("status")).toBeNull();
   });
 

@@ -111,11 +111,9 @@ describe("a11y smoke (jest-axe)", () => {
 
   it("Panel (degraded status, ghost dot present) has no axe violations", async () => {
     const { container } = render(
-      <Panel.Status status="held-stale">
-        <Panel panelTitle="Fuel">
-          <p>content</p>
-        </Panel>
-      </Panel.Status>,
+      <Panel panelTitle="Fuel" panelStatus="held-stale">
+        <p>content</p>
+      </Panel>,
     );
     await expectNoA11yViolations(container);
   });
