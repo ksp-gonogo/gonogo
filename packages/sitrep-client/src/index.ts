@@ -276,9 +276,6 @@ export {
 } from "./map-command";
 export {
   isKnownFieldPath,
-  isKnownLegacyKeyGap,
-  LEGACY_KEY_GAPS,
-  LEGACY_KEY_HOMES,
   mapTopic,
   redirectKinematicSubtopic,
   resolveValueTopic,

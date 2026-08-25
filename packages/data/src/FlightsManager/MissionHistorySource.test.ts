@@ -153,7 +153,12 @@ describe("MissionHistorySource", () => {
       const { source, store } = freshSource();
       await store.saveMission(mission());
 
-      const range = await source.queryRange("v.altitude", 0, 900, "m1");
+      const range = await source.queryRange(
+        "vessel.state.altitudeAsl",
+        0,
+        900,
+        "m1",
+      );
       expect(range.t).toEqual([0, 400, 900]);
       expect(range.v).toEqual([100, 5000, 70000]);
     });
@@ -178,7 +183,12 @@ describe("MissionHistorySource", () => {
       const { source, store } = freshSource();
       await store.saveMission(mission());
 
-      const range = await source.queryRange("o.orbitPatches", 0, 900, "m1");
+      const range = await source.queryRange(
+        "vessel.state.orbitPatches",
+        0,
+        900,
+        "m1",
+      );
       expect(range.t.length).toBeGreaterThan(0);
     });
 
@@ -186,7 +196,12 @@ describe("MissionHistorySource", () => {
       const { source, store } = freshSource();
       await store.saveMission(mission());
 
-      const range = await source.queryRange("o.maneuverNodes", 0, 900, "m1");
+      const range = await source.queryRange(
+        "vessel.maneuver.nodes",
+        0,
+        900,
+        "m1",
+      );
       expect(range.t).toEqual([0, 400]);
       expect(range.v).toEqual([
         [],
@@ -210,7 +225,9 @@ describe("MissionHistorySource", () => {
     it("returns empty when missionId is omitted", async () => {
       const { source, store } = freshSource();
       await store.saveMission(mission());
-      expect(await source.queryRange("v.altitude", 0, 900)).toEqual({
+      expect(
+        await source.queryRange("vessel.state.altitudeAsl", 0, 900),
+      ).toEqual({
         t: [],
         v: [],
       });
@@ -229,9 +246,19 @@ describe("MissionHistorySource", () => {
       const { source, store } = freshSource();
       await store.saveMission(mission());
 
-      const first = await source.queryRange("v.altitude", 0, 900, "m1");
+      const first = await source.queryRange(
+        "vessel.state.altitudeAsl",
+        0,
+        900,
+        "m1",
+      );
       source.evictFullHistoryStore("m1");
-      const second = await source.queryRange("v.altitude", 0, 900, "m1");
+      const second = await source.queryRange(
+        "vessel.state.altitudeAsl",
+        0,
+        900,
+        "m1",
+      );
       expect(second).toEqual(first);
     });
   });
@@ -298,7 +325,7 @@ describe("MissionHistorySource", () => {
     it("deleteFlight removes the mission and evicts its history cache entry", async () => {
       const { source, store } = freshSource();
       await store.saveMission(mission());
-      await source.queryRange("v.altitude", 0, 900, "m1"); // populate cache
+      await source.queryRange("vessel.state.altitudeAsl", 0, 900, "m1"); // populate cache
       await source.deleteFlight("m1");
       expect(await source.listFlights()).toEqual([]);
     });

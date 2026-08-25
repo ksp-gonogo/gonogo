@@ -187,7 +187,12 @@ describe("peer roundtrip: telemetry → buffered → PBDS → relay → PCDS", (
 
   it("gates samples after a confirmed true → false transition and resumes on true", () => {
     const received: unknown[] = [];
-    // f.throttle is on the antenna-only blocklist, when the gate is
+    // `f.throttle` is on `BufferedDataSource`'s antenna-only blocklist, and that
+    // blocklist is still written in the retired flat vocabulary. It is not a
+    // live gap: nothing in production constructs a `BufferedDataSource` any
+    // more, so this whole pipeline is harness scaffolding, and the key stays
+    // spelled the way the blocklist spells it rather than being half-migrated.
+    // The blocklist retires with the source. When the gate is
     // active it drops samples (replacing the prior allowlist behaviour
     // that gated nearly every vessel-required key). See the 2026-05-18
     // live test in local_docs/2026-05-18/_decisions.md.

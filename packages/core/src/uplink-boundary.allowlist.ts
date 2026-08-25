@@ -139,7 +139,6 @@ export const ALLOWLIST: Record<ModToken, ModAllowlist> = {
       "mod/sitrep-sdk/src/spine/delay-authority.ts",
       "mod/sitrep-sdk/src/spine/map-command.ts",
       "packages/sitrep-client/src/map-topic.test.ts",
-      "mod/sitrep-sdk/src/spine/map-topic.ts",
       // view-clock.ts/view-clock-formula.ts: cross-browser kerbcast
       // video-delay design (2026-07-16) extracted ViewClock's
       // confirmedEdgeUt()/utNowEstimate() formula into pure functions
@@ -267,6 +266,13 @@ export const ALLOWLIST: Record<ModToken, ModAllowlist> = {
       "packages/components/src/MapView/types.ts",
     ],
     permanent: [
+      // -- DYNAMIC-NAMESPACE ROUTING (2026-08-25): `mapTopic` identity-maps the
+      // per-body scansat namespaces and the kOS compute namespace, because both
+      // materialise their Topics per subject at runtime and so appear in no
+      // generated list. A pattern is the only thing that can vouch for such a
+      // key, and the pattern has to live where the routing does. Permanent: a
+      // dynamic namespace can never be enumerated into the SDK's generated map.
+      "mod/sitrep-sdk/src/spine/map-topic.ts",
       // -- CATALOGUE ABSENCE INVENTORY (2026-08-25): the pinned list of carried
       // Topics the topic-field catalogue can describe nothing about names each
       // Uplink Topic that has none, so a Topic arriving unannotated is a test
@@ -398,7 +404,6 @@ export const ALLOWLIST: Record<ModToken, ModAllowlist> = {
       // scansat-specific is imported or re-exported.
       "mod/sitrep-sdk/src/api/slots.ts",
       "mod/sitrep-sdk/src/default-carried-topics.ts",
-      "mod/sitrep-sdk/src/spine/map-topic.ts",
 
       // -- TEST-only --
       "mod/Sitrep.Core.Tests/WirePayloadCoverageTests.cs",
@@ -519,6 +524,13 @@ export const ALLOWLIST: Record<ModToken, ModAllowlist> = {
       "packages/app/src/__tests__/dashboard-tabbed-config.test.tsx",
     ],
     permanent: [
+      // -- DYNAMIC-NAMESPACE ROUTING (2026-08-25): `mapTopic` identity-maps the
+      // per-body scansat namespaces and the kOS compute namespace, because both
+      // materialise their Topics per subject at runtime and so appear in no
+      // generated list. A pattern is the only thing that can vouch for such a
+      // key, and the pattern has to live where the routing does. Permanent: a
+      // dynamic namespace can never be enumerated into the SDK's generated map.
+      "mod/sitrep-sdk/src/spine/map-topic.ts",
       // -- CATALOGUE ABSENCE INVENTORY (2026-08-25): the pinned list of carried
       // Topics the topic-field catalogue can describe nothing about names each
       // Uplink Topic that has none, so a Topic arriving unannotated is a test
@@ -660,7 +672,6 @@ export const ALLOWLIST: Record<ModToken, ModAllowlist> = {
       "mod/sitrep-sdk/src/default-carried-topics.ts",
       "packages/sitrep-client/src/map-command.test.ts",
       "packages/sitrep-client/src/map-topic.test.ts",
-      "mod/sitrep-sdk/src/spine/map-topic.ts",
 
       // -- TEST-only --
       // pending-uplink wire tests use "kos.run" as the sample command name;
@@ -986,7 +997,6 @@ export const ALLOWLIST: Record<ModToken, ModAllowlist> = {
       // prose when standing in a local `comm-signal.hop-rates` contribution for
       // it; no RA import, the widget only knows the slot id. Test doc mention.
       "packages/components/src/CommSignal/stream.test.tsx",
-      "packages/sitrep-client/src/map-topic.rawFieldRoots.coverage.test.ts",
       // AGX's own election/reflection tests cite CommsElectionTests /
       // RaReflection as the pattern they mirror: doc-mention only.
       "mod/GonogoActionGroupsExtendedUplink.Tests/ActionGroupsExtendedElectionTests.cs",
@@ -1030,7 +1040,6 @@ export const ALLOWLIST: Record<ModToken, ModAllowlist> = {
       // it can no longer assume a 1..10 bound "because Action Groups Extended
       // legitimately goes to 250": prose only, no AGX type/reference.
       "mod/Sitrep.Host/VesselCommandProvider.cs",
-      "mod/sitrep-sdk/src/spine/map-topic.ts",
       "mod/sitrep-sdk/src/spine/vessel-state.ts",
       // f.ag<N>-beyond-10 toggle fix (2026-07-19): actionGroupHome's
       // doc-comment explains why the write bridge is now a generic
@@ -1483,7 +1492,6 @@ export const ALLOWLIST: Record<ModToken, ModAllowlist> = {
       // map-topic.ts / event-timeline.ts: a section header for the kerbalism
       // Topic block, and a design-doc citation respectively.
       "mod/sitrep-sdk/src/event-timeline.ts",
-      "mod/sitrep-sdk/src/spine/map-topic.ts",
 
       // -- base-library widgets: SLOT DOCUMENTATION, not coupling --
       // Each of these names Kerbalism in prose while documenting a slot,
@@ -1702,9 +1710,6 @@ export const ALLOWLIST: Record<ModToken, ModAllowlist> = {
       // The three client-side records of that same revert: they exist to explain
       // why a.physicsMode is neither mapped nor gapped, which is unanswerable
       // without naming what was removed.
-      "mod/sitrep-sdk/src/spine/map-topic.ts",
-      "packages/sitrep-client/src/map-topic.rawFieldRoots.coverage.test.ts",
-      "packages/app/src/telemetry/SitrepTelemetryProvider.mappedAndCarried.test.ts",
       // truenow-allowlist.test.ts: the sibling architectural ratchet, listed here
       // for the same reason it is under the other tokens. It is a path-keyed
       // allowlist over every Uplink's .cs files, so it necessarily names them all.

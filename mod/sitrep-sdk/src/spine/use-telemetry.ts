@@ -8,7 +8,7 @@ import {
   useTelemetryClientOptional,
   useTelemetryStoreOptional,
 } from "./context";
-import { mapTopic } from "./map-topic";
+import { resolveValueTopic } from "./map-topic";
 import type { NeverReckonable, UnmodelledReading } from "./never-reckonable";
 import { useDataSourceSubscription } from "./use-data-source-subscription";
 
@@ -243,7 +243,7 @@ export function useTelemetry(dataSourceId: string, key?: string): unknown {
   const carriedChannels = useCarriedChannelsOptional();
   const topic = canonical
     ? (dataSourceId as TopicId)
-    : mapTopic(dataSourceId, key ?? "");
+    : resolveValueTopic(dataSourceId, key ?? "");
   const carried = canonical
     ? store !== undefined && topic !== undefined
     : store !== undefined &&

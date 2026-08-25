@@ -1,7 +1,7 @@
 import { memoryStorage } from "@ksp-gonogo/core/test";
 import {
   type EventOccurrence,
-  mapTopic,
+  resolveValueTopic,
   StubTransport,
   setActiveCarriedChannelsForTests,
   setActiveTelemetryClientForTests,
@@ -137,9 +137,9 @@ function fakeTelemetry(): FakeTelemetry {
         publish("time.warp", warp);
         return;
       }
-      const topic = mapTopic("data", key);
+      const topic = resolveValueTopic("data", key);
       if (topic === undefined) {
-        throw new Error(`fakeTelemetry: no stream mapping for "${key}"`);
+        throw new Error(`fakeTelemetry: no stream home for "${key}"`);
       }
       publish(topic, v);
     },
@@ -343,7 +343,7 @@ describe("AlarmHostService", () => {
         name: "Stage at 70km",
         trigger: {
           kind: "threshold",
-          dataKey: "v.altitude",
+          dataKey: "vessel.state.altitudeAsl",
           op: ">=",
           value: 70_000,
           sustainSeconds: 0,
@@ -353,7 +353,7 @@ describe("AlarmHostService", () => {
           { kind: "action-group", action: "f.stage" },
         ],
       });
-      telemetry.set("v.altitude", 70_500);
+      telemetry.set("vessel.state.altitudeAsl", 70_500);
       telemetry.set("t.universalTime", 1100);
       await vi.advanceTimersByTimeAsync(1100);
       // Drain the dispatch microtasks (telemetry.execute is awaited).
@@ -376,13 +376,13 @@ describe("AlarmHostService", () => {
         name: "Just notify",
         trigger: {
           kind: "threshold",
-          dataKey: "v.altitude",
+          dataKey: "vessel.state.altitudeAsl",
           op: ">=",
           value: 70_000,
           sustainSeconds: 0,
         },
       });
-      telemetry.set("v.altitude", 70_500);
+      telemetry.set("vessel.state.altitudeAsl", 70_500);
       telemetry.set("t.universalTime", 1100);
       await vi.advanceTimersByTimeAsync(1100);
       // Drain microtasks (telemetry.execute is async). Don't use
@@ -406,18 +406,18 @@ describe("AlarmHostService", () => {
         name: "70km",
         trigger: {
           kind: "threshold",
-          dataKey: "v.altitude",
+          dataKey: "vessel.state.altitudeAsl",
           op: ">=",
           value: 70_000,
           sustainSeconds: 0,
         },
       });
       // Start below threshold: alarm stays pending.
-      telemetry.set("v.altitude", 50_000);
+      telemetry.set("vessel.state.altitudeAsl", 50_000);
       await vi.advanceTimersByTimeAsync(1100);
       expect(svc.snapshot().alarms[0].state).toBe("pending");
       // Cross the threshold: should immediately fire.
-      telemetry.set("v.altitude", 70_500);
+      telemetry.set("vessel.state.altitudeAsl", 70_500);
       telemetry.set("t.universalTime", 1100);
       await vi.advanceTimersByTimeAsync(1100);
       expect(svc.snapshot().alarms[0].state).toBe("firing");
@@ -429,14 +429,14 @@ describe("AlarmHostService", () => {
         name: "Held over",
         trigger: {
           kind: "threshold",
-          dataKey: "v.surfaceSpeed",
+          dataKey: "vessel.state.surfaceSpeed",
           op: ">",
           value: 100,
           sustainSeconds: 3,
         },
       });
       // First tick: condition matches, but sustain not satisfied.
-      telemetry.set("v.surfaceSpeed", 200);
+      telemetry.set("vessel.state.surfaceSpeed", 200);
       telemetry.set("t.universalTime", 1000);
       await vi.advanceTimersByTimeAsync(1100);
       expect(svc.snapshot().alarms[0].state).toBe("pending");
@@ -459,26 +459,26 @@ describe("AlarmHostService", () => {
         name: "Bouncy",
         trigger: {
           kind: "threshold",
-          dataKey: "v.altitude",
+          dataKey: "vessel.state.altitudeAsl",
           op: ">=",
           value: 70_000,
           sustainSeconds: 5,
         },
       });
       // Match starts at UT=1000.
-      telemetry.set("v.altitude", 70_500);
+      telemetry.set("vessel.state.altitudeAsl", 70_500);
       telemetry.set("t.universalTime", 1000);
       await vi.advanceTimersByTimeAsync(1100);
       expect(svc.snapshot().alarms[0].matchSinceUT).toBe(1000);
 
       // Drop below threshold: match resets.
-      telemetry.set("v.altitude", 69_500);
+      telemetry.set("vessel.state.altitudeAsl", 69_500);
       telemetry.set("t.universalTime", 1003);
       await vi.advanceTimersByTimeAsync(1100);
       expect(svc.snapshot().alarms[0].matchSinceUT).toBeNull();
 
       // Cross again at 1010: sustain timer starts fresh, not from 1000.
-      telemetry.set("v.altitude", 71_000);
+      telemetry.set("vessel.state.altitudeAsl", 71_000);
       telemetry.set("t.universalTime", 1010);
       await vi.advanceTimersByTimeAsync(1100);
       expect(svc.snapshot().alarms[0].matchSinceUT).toBe(1010);
@@ -491,14 +491,14 @@ describe("AlarmHostService", () => {
         name: "Apoapsis bell",
         trigger: {
           kind: "threshold",
-          dataKey: "v.altitude",
+          dataKey: "vessel.state.altitudeAsl",
           op: ">=",
           value: 70_000,
           sustainSeconds: 0,
         },
       });
       // Cross threshold → fires.
-      telemetry.set("v.altitude", 70_500);
+      telemetry.set("vessel.state.altitudeAsl", 70_500);
       telemetry.set("t.universalTime", 1000);
       await vi.advanceTimersByTimeAsync(1100);
       expect(svc.snapshot().alarms[0].state).toBe("firing");
@@ -508,10 +508,10 @@ describe("AlarmHostService", () => {
       expect(svc.snapshot().alarms[0].state).toBe("fired");
       // Drop below, then cross again: pre-fix this regressed to firing
       // and chimed a second time.
-      telemetry.set("v.altitude", 69_500);
+      telemetry.set("vessel.state.altitudeAsl", 69_500);
       telemetry.set("t.universalTime", 1006);
       await vi.advanceTimersByTimeAsync(1100);
-      telemetry.set("v.altitude", 70_500);
+      telemetry.set("vessel.state.altitudeAsl", 70_500);
       telemetry.set("t.universalTime", 1009);
       await vi.advanceTimersByTimeAsync(1100);
       expect(svc.snapshot().alarms[0].state).toBe("fired");
@@ -557,7 +557,7 @@ describe("AlarmHostService", () => {
         name: "Threshold",
         trigger: {
           kind: "threshold",
-          dataKey: "v.altitude",
+          dataKey: "vessel.state.altitudeAsl",
           op: ">=",
           value: 70_000,
           sustainSeconds: 0,
@@ -583,7 +583,7 @@ describe("AlarmHostService", () => {
         name: "Equality",
         trigger: {
           kind: "threshold",
-          dataKey: "v.altitude",
+          dataKey: "vessel.state.altitudeAsl",
           op: "==",
           value: 70_000,
           sustainSeconds: 0,
@@ -681,7 +681,7 @@ describe("AlarmHostService", () => {
         name: "Threshold",
         trigger: {
           kind: "threshold",
-          dataKey: "v.altitude",
+          dataKey: "vessel.state.altitudeAsl",
           op: ">=",
           value: 70_000,
           sustainSeconds: 0,
@@ -783,13 +783,13 @@ describe("AlarmHostService", () => {
         name: "Altitude",
         trigger: {
           kind: "threshold",
-          dataKey: "v.altitude",
+          dataKey: "vessel.state.altitudeAsl",
           op: ">=",
           value: 70_000,
           sustainSeconds: 0,
         },
       });
-      telemetry.set("v.altitude", 10_000);
+      telemetry.set("vessel.state.altitudeAsl", 10_000);
       svc.beginWarpTo();
       // Command dispatch settles on a microtask: drain it before any
       // `telemetry.calls` assertion that follows.
@@ -802,7 +802,7 @@ describe("AlarmHostService", () => {
       // distance ≈ 60_000 → ETA ≈ 600s → maxRate 60 → idx 3 (50×).
       for (let i = 1; i <= 4; i++) {
         telemetry.set("t.universalTime", 1000 + i);
-        telemetry.set("v.altitude", 10_000 + i * 100);
+        telemetry.set("vessel.state.altitudeAsl", 10_000 + i * 100);
         await vi.advanceTimersByTimeAsync(1100);
       }
       expect(svc.snapshot().warpTo?.targetIndex).toBe(3);
@@ -814,7 +814,7 @@ describe("AlarmHostService", () => {
         name: "Altitude",
         trigger: {
           kind: "threshold",
-          dataKey: "v.altitude",
+          dataKey: "vessel.state.altitudeAsl",
           op: ">=",
           value: 70_000,
           sustainSeconds: 0,
@@ -828,7 +828,7 @@ describe("AlarmHostService", () => {
       // Build a buffer with a 100 m/s climb, well below the threshold.
       for (let i = 0; i < 6; i++) {
         telemetry.set("t.universalTime", 1000 + i);
-        telemetry.set("v.altitude", 60_000 + i * 100);
+        telemetry.set("vessel.state.altitudeAsl", 60_000 + i * 100);
         await vi.advanceTimersByTimeAsync(1100);
       }
       const farIndex = svc.snapshot().warpTo?.targetIndex ?? 0;
@@ -837,7 +837,7 @@ describe("AlarmHostService", () => {
       // distance at 100 m/s = 0.5s ETA → drops to idx 0.
       for (let i = 6; i < 12; i++) {
         telemetry.set("t.universalTime", 1000 + i);
-        telemetry.set("v.altitude", 69_950 + (i - 6) * 100);
+        telemetry.set("vessel.state.altitudeAsl", 69_950 + (i - 6) * 100);
         await vi.advanceTimersByTimeAsync(1100);
       }
       const nearIndex = svc.snapshot().warpTo?.targetIndex ?? 0;
@@ -850,7 +850,7 @@ describe("AlarmHostService", () => {
         name: "Altitude",
         trigger: {
           kind: "threshold",
-          dataKey: "v.altitude",
+          dataKey: "vessel.state.altitudeAsl",
           op: ">=",
           value: 70_000,
           sustainSeconds: 0,
@@ -864,7 +864,7 @@ describe("AlarmHostService", () => {
       // Descending altitude: moving away from the >= threshold.
       for (let i = 0; i < 6; i++) {
         telemetry.set("t.universalTime", 1000 + i);
-        telemetry.set("v.altitude", 60_000 - i * 100);
+        telemetry.set("vessel.state.altitudeAsl", 60_000 - i * 100);
         await vi.advanceTimersByTimeAsync(1100);
       }
       // No usable ETA → cap holds at idx 4.
@@ -877,7 +877,7 @@ describe("AlarmHostService", () => {
         name: "Altitude",
         trigger: {
           kind: "threshold",
-          dataKey: "v.altitude",
+          dataKey: "vessel.state.altitudeAsl",
           op: ">=",
           value: 70_000,
           // Sustain so it stays in `pending` (matchSinceUT set, but state
@@ -893,7 +893,7 @@ describe("AlarmHostService", () => {
       expect(svc.snapshot().warpTo).not.toBeNull();
       // Cross the threshold.
       telemetry.set("t.universalTime", 2000);
-      telemetry.set("v.altitude", 71_000);
+      telemetry.set("vessel.state.altitudeAsl", 71_000);
       await vi.advanceTimersByTimeAsync(1100);
       // matchSinceUT now set; alarm still `pending` but no longer
       // eligible: session terminates.
@@ -1138,12 +1138,12 @@ describe("AlarmHostService", () => {
       // Threshold already met: the tick inside addAlarm will fire it
       // straight away, so the dispatch path runs without further timer
       // advances.
-      telemetry.set("v.altitude", 70_500);
+      telemetry.set("vessel.state.altitudeAsl", 70_500);
       captured.addCb?.("station-1", {
         name: "Stage at 70km",
         trigger: {
           kind: "threshold",
-          dataKey: "v.altitude",
+          dataKey: "vessel.state.altitudeAsl",
           op: ">=",
           value: 70_000,
           sustainSeconds: 0,

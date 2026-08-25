@@ -58,7 +58,7 @@ function streamFrame(topic: string, payload: unknown): string {
 
 function Throttle() {
   // @ts-expect-error two-arg form is type-banned; runtime shim still under test
-  const throttle = useTelemetry("data", "f.throttle");
+  const throttle = useTelemetry("data", "vessel.control.throttle");
   return (
     <div>
       throttle:{throttle === undefined ? NULL_DISPLAY : probeText(throttle)}

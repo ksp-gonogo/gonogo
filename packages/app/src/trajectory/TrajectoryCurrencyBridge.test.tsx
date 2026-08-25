@@ -176,11 +176,19 @@ describe("TrajectoryCurrencyBridge: the horizon, against the instant on screen",
 });
 
 describe("widgetReadsTrajectory: which declarations the horizon speaks about", () => {
-  it("matches the payload and the fields beneath it, including legacy spellings", () => {
+  it("matches the payload and the fields beneath it", () => {
     expect(widgetReadsTrajectory(["vessel.orbit"])).toBe(true);
     expect(widgetReadsTrajectory(["vessel.orbit.ecc"])).toBe(true);
-    expect(widgetReadsTrajectory(["o.sma"])).toBe(true);
+    expect(widgetReadsTrajectory(["vessel.orbit.sma"])).toBe(true);
     expect(widgetReadsTrajectory(["vessel.comms", "vessel.orbit"])).toBe(true);
+  });
+
+  it("does not match a retired spelling of a field it does speak about", () => {
+    // `o.sma` named this very field once. Nothing translates it now, so it
+    // names nothing, and the horizon has nothing to say about a widget that
+    // declares it. A declaration like this can no longer reach the registry
+    // anyway: `classifyRequirement` refuses it.
+    expect(widgetReadsTrajectory(["o.sma"])).toBe(false);
   });
 
   it("does not match a sibling payload, or nothing at all", () => {

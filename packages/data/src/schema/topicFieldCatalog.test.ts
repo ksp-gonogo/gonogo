@@ -195,3 +195,37 @@ describe("one name per value", () => {
     expect(keys.has("vessel.flight.mach")).toBe(true);
   });
 });
+
+describe("a derived channel is offered only when its inputs are carried", () => {
+  it("offers vessel.state, whose inputs are promoted", () => {
+    const topics = new Set(TOPIC_FIELD_CATALOG.map((entry) => entry.topic));
+    expect(topics.has("vessel.state")).toBe(true);
+  });
+
+  it("would exclude it if they were not", async () => {
+    // The gate itself, exercised rather than assumed. A derived channel's NAME
+    // never appears in the carried list, only the raw Topics it computes from,
+    // so a channel can be registered and enumerate a full field set while
+    // resolving to nothing forever. Offering those fields would put keys in
+    // front of an operator that can never carry a value.
+    //
+    // This is what the retired mapped-AND-carried gate caught. That gate read
+    // the migration table so it retired with it; two real instances had shipped
+    // before it existed.
+    const {
+      isTopicCarried,
+      PRODUCTION_DERIVED_CHANNELS,
+      TimelineStore,
+      ViewClock,
+    } = await import("@ksp-gonogo/sitrep-client");
+    const store = new TimelineStore(
+      new ViewClock({ delaySeconds: () => 0, warpRate: () => 1 }),
+    );
+    for (const channel of PRODUCTION_DERIVED_CHANNELS) {
+      store.registerDerivedChannel(channel);
+    }
+    expect(isTopicCarried(store, new Set<string>(), "vessel.state")).toBe(
+      false,
+    );
+  });
+});

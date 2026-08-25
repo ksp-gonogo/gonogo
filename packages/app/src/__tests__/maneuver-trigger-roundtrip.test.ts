@@ -114,7 +114,7 @@ function buildOrbitStoreFixture(pinnedUt: number) {
 /**
  * `sma`/`ecc` drive `vessel.state.apoapsisRadius` (`sma·(1+ecc)`,
  * body-radius-independent: see `vessel-state.ts`), which is what this
- * file's `dataKey: "o.ApR"` triggers threshold against: 700_000 · 1.01 =
+ * file's `dataKey: "vessel.state.apoapsisRadius"` triggers threshold against: 700_000 · 1.01 =
  * 707_000 at the defaults below.
  */
 function kerbinOrbitPayload(pinnedUt: number, sma = 700_000) {
@@ -245,7 +245,7 @@ describe("Maneuver trigger peer roundtrip", () => {
     // Station arms via its peer-client surface. Baseline apoapsisRadius
     // (707_000) stays below 750_000: pending until the orbit changes.
     clientSvc.arm({
-      dataKey: "o.ApR",
+      dataKey: "vessel.state.apoapsisRadius",
       op: ">=",
       value: 750_000,
       inputs: FROZEN,
@@ -291,7 +291,7 @@ describe("Maneuver trigger peer roundtrip", () => {
     );
 
     clientSvc.arm({
-      dataKey: "o.ApR",
+      dataKey: "vessel.state.apoapsisRadius",
       op: ">=",
       value: 999_999,
       inputs: FROZEN,

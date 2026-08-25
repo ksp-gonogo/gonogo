@@ -6,8 +6,8 @@ import type {
 import { PerfBudget } from "@ksp-gonogo/core";
 import {
   buildFullHistoryStore,
-  mapTopic,
   type ReplayFixture,
+  resolveValueTopic,
   type TimelineStore,
 } from "@ksp-gonogo/sitrep-client";
 import { ListenerSet } from "@ksp-gonogo/sitrep-sdk";
@@ -118,7 +118,10 @@ export class MissionHistorySource implements DataSource {
     missionId?: string,
   ): Promise<SeriesRange> {
     if (!missionId) return { t: [], v: [] };
-    const topic = mapTopic("data", key);
+    // The same resolution a live read uses, so a recording is queried under the
+    // keys a picker offers. A key naming nothing resolves to nothing, and the
+    // empty range below is the honest answer to a subject that no longer exists.
+    const topic = resolveValueTopic("data", key);
     if (!topic) return { t: [], v: [] };
 
     const store = await this.getFullHistoryStore(missionId);

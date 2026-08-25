@@ -119,11 +119,11 @@ describe("useDataSeries shim: mapped + carried key streams from the ClientTimeli
       carriedChannels: ["vessel.orbit"],
       pinnedUt: 100,
     });
-    const legacySource = await buildLegacySource("o.sma");
+    const legacySource = await buildLegacySource("vessel.orbit.sma");
 
     render(
       <fixture.Provider>
-        <Probe dataKey="o.sma" windowSec={300} />
+        <Probe dataKey="vessel.orbit.sma" windowSec={300} />
       </fixture.Provider>,
     );
 
@@ -137,7 +137,7 @@ describe("useDataSeries shim: mapped + carried key streams from the ClientTimeli
 
     // Feeding the legacy source must have NO effect, the mapped+carried key
     // bypasses it entirely.
-    act(() => legacySource.emit("o.sma", 999_999));
+    act(() => legacySource.emit("vessel.orbit.sma", 999_999));
     expect(readProbe()).toBe("t:|v:");
 
     act(() => {
@@ -162,11 +162,11 @@ describe("useDataSeries shim: mapped + carried key streams from the ClientTimeli
       carriedChannels: ["vessel.orbit"],
       pinnedUt: 1000,
     });
-    await buildLegacySource("o.sma");
+    await buildLegacySource("vessel.orbit.sma");
 
     render(
       <fixture.Provider>
-        <Probe dataKey="o.sma" windowSec={100} />
+        <Probe dataKey="vessel.orbit.sma" windowSec={100} />
       </fixture.Provider>,
     );
 
@@ -197,7 +197,7 @@ describe("useDataSeries shim: a DERIVED mapped topic streams a REAL series compu
    * `vessel.flight`) rather than the OnRails Kepler-solve branch, no
    * orbital-elements fixture needed to prove the replay mechanism itself.
    */
-  it("'v.altitude': sampleDerivedRange replays deriveVesselState off vessel.orbit + vessel.flight's own buffered ranges", async () => {
+  it("'vessel.state.altitudeAsl': sampleDerivedRange replays deriveVesselState off vessel.orbit + vessel.flight's own buffered ranges", async () => {
     const fixture = buildStreamFixture({
       carriedChannels: [
         "vessel.orbit",
@@ -214,7 +214,7 @@ describe("useDataSeries shim: a DERIVED mapped topic streams a REAL series compu
 
     render(
       <fixture.Provider>
-        <Probe dataKey="v.altitude" windowSec={200} />
+        <Probe dataKey="vessel.state.altitudeAsl" windowSec={200} />
       </fixture.Provider>,
     );
 
@@ -383,24 +383,24 @@ describe("useDataSeries shim: unmapped/uncarried keys and no-provider behave exa
 
   it("a mapped key NOT in carriedChannels reads the legacy series, never a permanent blank", async () => {
     const fixture = buildStreamFixture({ carriedChannels: [] }); // 'o.sma' is mapped but not carried here
-    const legacySource = await buildLegacySource("o.sma");
+    const legacySource = await buildLegacySource("vessel.orbit.sma");
 
     render(
       <fixture.Provider>
-        <Probe dataKey="o.sma" windowSec={60} />
+        <Probe dataKey="vessel.orbit.sma" windowSec={60} />
       </fixture.Provider>,
     );
 
-    act(() => legacySource.emit("o.sma", 680_000));
+    act(() => legacySource.emit("vessel.orbit.sma", 680_000));
     await waitFor(() => expect(readProbe()).toContain("680000"));
   });
 
   it("no TelemetryProvider in the tree at all, a mapped key still reads legacy (every unmigrated screen today)", async () => {
-    const legacySource = await buildLegacySource("o.sma");
+    const legacySource = await buildLegacySource("vessel.orbit.sma");
 
-    render(<Probe dataKey="o.sma" windowSec={60} />);
+    render(<Probe dataKey="vessel.orbit.sma" windowSec={60} />);
 
-    act(() => legacySource.emit("o.sma", 680_000));
+    act(() => legacySource.emit("vessel.orbit.sma", 680_000));
     await waitFor(() => expect(readProbe()).toContain("680000"));
   });
 });

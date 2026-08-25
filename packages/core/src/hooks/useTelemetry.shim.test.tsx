@@ -112,7 +112,7 @@ function plain(v: unknown): string {
 
 describe("useTelemetry shim: mapped key routes to useStream when a TelemetryProvider is mounted", () => {
   it(
-    "the M2 bridge's key end-to-end proof: 'v.altitude' (-> vessel.state.altitudeAsl, a DERIVED " +
+    "the M2 bridge's key end-to-end proof: 'vessel.state.altitudeAsl' (-> vessel.state.altitudeAsl, a DERIVED " +
       "channel) resolves through the real client -> TimelineStore -> hooks pipeline once real " +
       "vessel.orbit/vessel.flight wire frames arrive: RED before the bridge (permanently dead " +
       "undefined, since nothing fed a TimelineStore in production), GREEN after it",
@@ -123,7 +123,7 @@ describe("useTelemetry shim: mapped key routes to useStream when a TelemetryProv
       registerDataSource(legacySource);
 
       function Alt() {
-        const alt = useLegacyTelemetry("data", "v.altitude");
+        const alt = useLegacyTelemetry("data", "vessel.state.altitudeAsl");
         return <div>alt:{alt === undefined ? NULL_DISPLAY : String(alt)}</div>;
       }
 
@@ -176,7 +176,7 @@ describe("useTelemetry shim: mapped key routes to useStream when a TelemetryProv
 
       // Feeding the legacy DataSource must NOT surface, the mapped key is
       // routed to the stream, so the old path is bypassed entirely.
-      act(() => legacySource.emit("v.altitude", 999));
+      act(() => legacySource.emit("vessel.state.altitudeAsl", 999));
       expect(screen.getByText(`alt:${NULL_DISPLAY}`)).toBeTruthy();
 
       // Feed REAL wire frames for the channel's actual inputs, orbit at
@@ -204,14 +204,17 @@ describe("useTelemetry shim: mapped key routes to useStream when a TelemetryProv
 });
 
 describe("useTelemetry shim: unmapped key falls back to the legacy DataSource path even with a provider mounted", () => {
-  it("a known-gap key ('career.funds') ignores the TelemetryClient and reads the legacy DataSource", () => {
+  it("a known-gap key ('career.status.economy.notAField') ignores the TelemetryClient and reads the legacy DataSource", () => {
     const transport = new StubTransport();
     const client = new TelemetryClient(transport);
     const legacySource = makeLegacySource();
     registerDataSource(legacySource);
 
     function Funds() {
-      const funds = useLegacyTelemetry("data", "career.funds");
+      const funds = useLegacyTelemetry(
+        "data",
+        "career.status.economy.notAField",
+      );
       return (
         <div>funds:{funds === undefined ? NULL_DISPLAY : String(funds)}</div>
       );
@@ -226,11 +229,11 @@ describe("useTelemetry shim: unmapped key falls back to the legacy DataSource pa
     expect(screen.getByText(`funds:${NULL_DISPLAY}`)).toBeTruthy();
 
     // A sample on the new SDK for an unmapped key must have no effect.
-    act(() => transport.emit("career.funds", 500));
+    act(() => transport.emit("career.status.economy.notAField", 500));
     expect(screen.getByText(`funds:${NULL_DISPLAY}`)).toBeTruthy();
 
     // The legacy DataSource is what still drives it.
-    act(() => legacySource.emit("career.funds", 289_848));
+    act(() => legacySource.emit("career.status.economy.notAField", 289_848));
     expect(screen.getByText("funds:289848")).toBeTruthy();
   });
 });
@@ -242,11 +245,11 @@ describe("useTelemetry shim: no TelemetryProvider mounted behaves exactly like t
 
     // No <TelemetryProvider> wrapper at all: this is every screen today.
     const { result } = renderHook(() =>
-      useLegacyTelemetry("data", "v.altitude"),
+      useLegacyTelemetry("data", "vessel.state.altitudeAsl"),
     );
 
     expect(result.current).toBeUndefined();
-    act(() => source.emit("v.altitude", 80_000));
+    act(() => source.emit("vessel.state.altitudeAsl", 80_000));
     expect(result.current).toBe(80_000);
   });
 
@@ -255,9 +258,9 @@ describe("useTelemetry shim: no TelemetryProvider mounted behaves exactly like t
     registerDataSource(source);
 
     const { result } = renderHook(() =>
-      useLegacyTelemetry("data", "v.altitude"),
+      useLegacyTelemetry("data", "vessel.state.altitudeAsl"),
     );
-    act(() => source.emit("v.altitude", 80_000));
+    act(() => source.emit("vessel.state.altitudeAsl", 80_000));
     expect(result.current).toBe(80_000);
 
     act(() => source.setStatus("disconnected"));
@@ -276,7 +279,7 @@ describe("useTelemetry shim: raw-field phantom fallback (M3 whole-branch review 
       registerDataSource(legacySource);
 
       function Throttle() {
-        const throttle = useLegacyTelemetry("data", "f.throttle");
+        const throttle = useLegacyTelemetry("data", "vessel.control.throttle");
         return (
           <div>
             throttle:{throttle === undefined ? NULL_DISPLAY : plain(throttle)}
@@ -285,7 +288,7 @@ describe("useTelemetry shim: raw-field phantom fallback (M3 whole-branch review 
       }
 
       const renderTree = () => (
-        // "f.throttle" maps to the raw-field subtopic
+        // "vessel.control.throttle" maps to the raw-field subtopic
         // "vessel.control.throttle", resolved down to the real wire topic
         // "vessel.control" (see the carried-channels gate test above).
         <TelemetryProvider client={client} carriedChannels={["vessel.control"]}>
@@ -296,7 +299,7 @@ describe("useTelemetry shim: raw-field phantom fallback (M3 whole-branch review 
 
       expect(screen.getByText(`throttle:${NULL_DISPLAY}`)).toBeTruthy();
 
-      act(() => legacySource.emit("f.throttle", 0.4));
+      act(() => legacySource.emit("vessel.control.throttle", 0.4));
       // Still streamed (carried), so the legacy emit must not surface yet,
       // even though the eventual wire record will turn out not to carry the
       // mapped field.
@@ -345,11 +348,11 @@ describe("useTelemetry gate: M3 Wave 0 carried-channels allowlist (the big-bang 
       registerDataSource(legacySource);
 
       function Alt() {
-        const alt = useLegacyTelemetry("data", "v.altitude");
+        const alt = useLegacyTelemetry("data", "vessel.state.altitudeAsl");
         return <div>alt:{alt === undefined ? NULL_DISPLAY : String(alt)}</div>;
       }
 
-      // No `carriedChannels` prop at all: 'v.altitude' maps to a DERIVED
+      // No `carriedChannels` prop at all: 'vessel.state.altitudeAsl' maps to a DERIVED
       // topic (`vessel.state.altitudeAsl`) whose inputs are not carried.
       render(
         <TelemetryProvider client={client}>
@@ -363,7 +366,7 @@ describe("useTelemetry gate: M3 Wave 0 carried-channels allowlist (the big-bang 
       // the gate, mapping + a mounted provider always won, so this legacy
       // emit would have had NO effect and the widget would render blank
       // forever even though a perfectly good legacy value exists.
-      act(() => legacySource.emit("v.altitude", 80_000));
+      act(() => legacySource.emit("vessel.state.altitudeAsl", 80_000));
       expect(screen.getByText("alt:80000")).toBeTruthy();
     },
   );
@@ -375,7 +378,7 @@ describe("useTelemetry gate: M3 Wave 0 carried-channels allowlist (the big-bang 
     registerDataSource(legacySource);
 
     function Throttle() {
-      const throttle = useLegacyTelemetry("data", "f.throttle");
+      const throttle = useLegacyTelemetry("data", "vessel.control.throttle");
       return (
         <div>
           throttle:{throttle === undefined ? NULL_DISPLAY : plain(throttle)}
@@ -384,7 +387,7 @@ describe("useTelemetry gate: M3 Wave 0 carried-channels allowlist (the big-bang 
     }
 
     render(
-      // Promoting "vessel.control": the REAL raw wire topic ("f.throttle"
+      // Promoting "vessel.control": the REAL raw wire topic ("vessel.control.throttle"
       // maps to the raw-field subtopic "vessel.control.throttle", which
       // TimelineStore.resolveSubscriptionTopics resolves down to its actual
       // wire dependency, "vessel.control": see the M3 pilot's
@@ -400,7 +403,7 @@ describe("useTelemetry gate: M3 Wave 0 carried-channels allowlist (the big-bang 
 
     // Legacy emits must NOT surface, the carried topic is routed to the
     // stream, bypassing legacy entirely.
-    act(() => legacySource.emit("f.throttle", 0.4));
+    act(() => legacySource.emit("vessel.control.throttle", 0.4));
     expect(screen.getByText(`throttle:${NULL_DISPLAY}`)).toBeTruthy();
 
     // Emitting to the real raw topic ("vessel.control", a whole record),
@@ -416,7 +419,7 @@ describe("useTelemetry gate: M3 Wave 0 carried-channels allowlist (the big-bang 
     registerDataSource(legacySource);
 
     function Alt() {
-      const alt = useLegacyTelemetry("data", "v.altitude");
+      const alt = useLegacyTelemetry("data", "vessel.state.altitudeAsl");
       return <div>alt:{alt === undefined ? NULL_DISPLAY : String(alt)}</div>;
     }
 
@@ -432,7 +435,7 @@ describe("useTelemetry gate: M3 Wave 0 carried-channels allowlist (the big-bang 
 
     // Still legacy: the derived channel can never produce a whole record
     // with a missing input, so it must not be treated as carried.
-    act(() => legacySource.emit("v.altitude", 12_345));
+    act(() => legacySource.emit("vessel.state.altitudeAsl", 12_345));
     expect(screen.getByText("alt:12345")).toBeTruthy();
 
     // Feeding the (partially) carried input must not flip it to streamed,
@@ -456,7 +459,7 @@ describe("useTelemetry gate: M3 Wave 0 carried-channels allowlist (the big-bang 
       registerDataSource(legacySource);
 
       function Alt() {
-        const alt = useLegacyTelemetry("data", "v.altitude");
+        const alt = useLegacyTelemetry("data", "vessel.state.altitudeAsl");
         return <div>alt:{alt === undefined ? NULL_DISPLAY : String(alt)}</div>;
       }
 
@@ -467,7 +470,7 @@ describe("useTelemetry gate: M3 Wave 0 carried-channels allowlist (the big-bang 
       );
 
       // Not yet carried: legacy drives it.
-      act(() => legacySource.emit("v.altitude", 1));
+      act(() => legacySource.emit("vessel.state.altitudeAsl", 1));
       expect(screen.getByText("alt:1")).toBeTruthy();
 
       // Promote all four inputs (vessel-state-extend, M3: vessel.state.*'s
@@ -517,7 +520,7 @@ describe("useTelemetry gate: M3 Wave 0 carried-channels allowlist (the big-bang 
 
       // And legacy emits still must not surface, proving it's genuinely
       // still on the stream path, not coincidentally matching.
-      act(() => legacySource.emit("v.altitude", 999));
+      act(() => legacySource.emit("vessel.state.altitudeAsl", 999));
       expect(screen.getByText("alt:71234")).toBeTruthy();
     },
   );

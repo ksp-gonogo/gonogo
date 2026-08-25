@@ -58,7 +58,7 @@ describe("useDataStreamStatus: no TelemetryProvider mounted", () => {
     registerDataSource(source);
 
     const { result } = renderHook(() =>
-      useDataStreamStatus("data", "t.timeWarp"),
+      useDataStreamStatus("data", "time.warp.warpRate"),
     );
     expect(result.current).toBe("live");
 
@@ -74,7 +74,7 @@ describe("useDataStreamStatus: no TelemetryProvider mounted", () => {
 
   it("defaults to disconnected when the source isn't registered", () => {
     const { result } = renderHook(() =>
-      useDataStreamStatus("data", "t.timeWarp"),
+      useDataStreamStatus("data", "time.warp.warpRate"),
     );
     expect(result.current).toBe("disconnected");
   });
@@ -88,7 +88,7 @@ describe("useDataStreamStatus: mapped + carried key reads the real stream status
     registerDataSource(legacySource);
 
     function Status() {
-      const status = useDataStreamStatus("data", "t.timeWarp");
+      const status = useDataStreamStatus("data", "time.warp.warpRate");
       return <div>status:{status}</div>;
     }
 
@@ -166,7 +166,7 @@ describe("useDataStreamStatus: mapped but NOT carried falls back to legacy statu
     registerDataSource(legacySource);
 
     const { result } = renderHook(
-      () => useDataStreamStatus("data", "t.timeWarp"),
+      () => useDataStreamStatus("data", "time.warp.warpRate"),
       {
         wrapper: ({ children }) => (
           <TelemetryProvider client={client}>{children}</TelemetryProvider>
