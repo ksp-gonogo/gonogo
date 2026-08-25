@@ -290,8 +290,26 @@ namespace Sitrep.Contract
         /// </summary>
         public const string SciencePerDay = "science/day";
 
+        /// <summary>
+        /// Career funds per GAME-DAY, the same denominator
+        /// <see cref="SciencePerDay"/> carries. Exists for the economy
+        /// capability's subsidy and upkeep figures: under a career overhaul money
+        /// arrives and leaves continuously, so an income and a standing cost are
+        /// rates rather than balances, and a rate with no declared period is a
+        /// number nobody can compare against the balance beside it.
+        /// </summary>
+        public const string FundsPerDay = "funds/day";
+
         /// <summary>Reputation points.</summary>
         public const string Reputation = "rep";
+
+        /// <summary>
+        /// Reputation lost or gained per GAME-DAY. Exists because a career
+        /// overhaul can make reputation DECAY: a bare reputation reading is then
+        /// a snapshot of something actively falling, and the rate is what makes
+        /// it actionable rather than merely current.
+        /// </summary>
+        public const string ReputationPerDay = "rep/day";
 
         // --- Non-dimensional declarations -------------------------------------
         //

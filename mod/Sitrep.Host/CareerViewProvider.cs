@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using Sitrep.Contract;
 
@@ -157,12 +158,56 @@ namespace Sitrep.Host
                 return null;
             }
 
-            return new Dictionary<string, object?>
+            var economy = new Dictionary<string, object?>
             {
                 ["funds"] = GetDouble(raw, "funds"),
                 ["reputation"] = GetDouble(raw, "reputation"),
                 ["science"] = GetDouble(raw, "science"),
             };
+
+            // The elected money model's interpretation of that reputation. Every
+            // key is carried only when the capture had it, so a stock save's wire
+            // shape is unchanged from before the capability and an overhaul adds
+            // context rather than replacing a reading.
+            CarryIfPresent(raw, economy, "economyModel", (d, k) => GetString(d, k));
+            CarryIfPresent(raw, economy, "reputationDecayPerDay", (d, k) => GetDouble(d, k));
+            CarryIfPresent(raw, economy, "subsidyPerDay", (d, k) => GetDouble(d, k));
+            CarryIfPresent(raw, economy, "subsidyMinPerDay", (d, k) => GetDouble(d, k));
+            CarryIfPresent(raw, economy, "subsidyMaxPerDay", (d, k) => GetDouble(d, k));
+            CarryIfPresent(raw, economy, "upkeepPerDay", (d, k) => GetDouble(d, k));
+
+            if (TryGetDict(raw, "upkeep", out var upkeep))
+            {
+                economy["upkeep"] = new Dictionary<string, object?>
+                {
+                    ["facilities"] = GetDouble(upkeep, "facilities"),
+                    ["launchComplexes"] = GetDouble(upkeep, "launchComplexes"),
+                    ["researchSalary"] = GetDouble(upkeep, "researchSalary"),
+                    ["training"] = GetDouble(upkeep, "training"),
+                    ["crewBase"] = GetDouble(upkeep, "crewBase"),
+                    ["crewInFlight"] = GetDouble(upkeep, "crewInFlight"),
+                    ["integrationSalary"] = GetDouble(upkeep, "integrationSalary"),
+                };
+            }
+            return economy;
+        }
+
+        /// <summary>
+        /// Copies a key only when the capture actually carried it. An absent key
+        /// and a key holding null are different facts here: the first is a model
+        /// that does not have the concept, the second a model that has it and
+        /// cannot read it this tick.
+        /// </summary>
+        private static void CarryIfPresent(
+            IDictionary<string, object?> raw,
+            IDictionary<string, object?> into,
+            string key,
+            Func<IDictionary<string, object?>, string, object?> read)
+        {
+            if (raw.ContainsKey(key))
+            {
+                into[key] = read(raw, key);
+            }
         }
 
         private static Dictionary<string, object?>? BuildFacilities(IDictionary<string, object?> career)

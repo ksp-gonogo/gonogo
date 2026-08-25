@@ -52,6 +52,7 @@ namespace RP0
     public sealed class SpaceCenterSettings
     {
         public double RushRateMult = 1.5;
+        public double repPortionLostPerDay = 0.02;
     }
 
     public static class Database
@@ -258,6 +259,50 @@ namespace RP0
         {
             confidence = current;
             confidenceEarned = earned;
+        }
+    }
+
+    /// <summary>
+    /// RP-1's money model. `FillSubsidyDetails` reproduces the shipped
+    /// arithmetic, including the Julian-year divisor the per-day conversion
+    /// depends on, so a test can pin the conversion rather than assume it.
+    /// </summary>
+    public class MaintenanceHandler
+    {
+        public struct SubsidyDetails
+        {
+            public double minSubsidy;
+            public double maxSubsidy;
+            public double maxRep;
+            public double subsidy;
+        }
+
+        public static MaintenanceHandler? Instance { get; set; }
+
+        public double LCsCostPerDay;
+        public double ResearchSalaryPerDay;
+        public double TrainingUpkeepPerDay;
+        public double NautBaseUpkeepPerDay;
+        public double NautInFlightUpkeepPerDay;
+        public double UpkeepPerDayForDisplay;
+
+        public double FacilityUpkeepValue;
+        public double IntegrationSalaryValue;
+
+        public double FacilityUpkeepPerDay => FacilityUpkeepValue;
+        public double IntegrationSalaryPerDay => IntegrationSalaryValue;
+
+        /// <summary>Yearly figures the stand-in hands back, so the /365.25 conversion is observable.</summary>
+        public static double MinSubsidyPerYear = 3652.5;
+        public static double MaxSubsidyPerYear = 7305.0;
+
+        public static void FillSubsidyDetails(ref SubsidyDetails details, double ut, double rep)
+        {
+            details.minSubsidy = MinSubsidyPerYear;
+            details.maxSubsidy = MaxSubsidyPerYear;
+            details.maxRep = 100.0;
+            var t = rep <= 0.0 ? 0.0 : rep >= details.maxRep ? 1.0 : rep / details.maxRep;
+            details.subsidy = details.minSubsidy + (details.maxSubsidy - details.minSubsidy) * t;
         }
     }
 }

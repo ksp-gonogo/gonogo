@@ -3,6 +3,7 @@ using Gonogo.KSP.Gates;
 using Sitrep.Contract;
 using Sitrep.Core;
 using Sitrep.Host;
+using Sitrep.Host.Economy;
 
 namespace Gonogo.KSP
 {
@@ -30,7 +31,7 @@ namespace Gonogo.KSP
     /// declared <c>delayed: false</c> (see the command list below).</para>
     /// </summary>
     [SitrepUplink("career")]
-    public sealed class CareerUplink : ISitrepUplink
+    public sealed class CareerUplink : ISitrepUplink, IUplinkCapabilityDeclarer
     {
         private readonly ICareerActuator _actuator;
 
@@ -120,6 +121,24 @@ namespace Gonogo.KSP
         /// <summary>Mandatory health self-report (see <see cref="ISitrepUplink.Health"/>): a plain
         /// channel uplink is Healthy once it has registered without error.</summary>
         public UplinkHealth Health() => UplinkHealth.Healthy;
+
+        /// <summary>
+        /// Declares the exclusive <c>"economy"</c> capability: what this install's
+        /// money model makes of the reputation this uplink already publishes.
+        ///
+        /// <para>Declared HERE, in the pre-Register capability pass, for the same
+        /// two-pass reason the comms, reliability and ISRU capabilities are: a
+        /// provider uplink's <c>RegisterProvider</c> throws if the capability does
+        /// not exist yet, and assembly-scan discovery fixes no order between
+        /// uplinks. The declaration cannot race the provider from here.</para>
+        ///
+        /// <para>Owned by THIS uplink because it owns <c>career.status</c>, whose
+        /// economy group carries the elected backend's answer. That is the
+        /// shared-namespace-single-declaration rule: a provider adds an
+        /// interpretation, never a channel of its own.</para>
+        /// </summary>
+        public void DeclareCapabilities(Kernel kernel) =>
+            EconomyElection.RegisterCapability(kernel);
 
         public void Register(IUplinkHost host)
         {

@@ -1241,7 +1241,17 @@ namespace Sitrep.Contract
         /// per-hop <c>CommsHop.BandRateBitsPerSec</c> removal; see
         /// <see cref="Major"/>). Every additive change on the Major-12 line
         /// above is carried forward into Major 13.</para>
+        ///
+        /// <para><b>Bumped 0 -&gt; 1: reputation gains its context.</b> Seven new
+        /// members on <see cref="CareerEconomy"/> (the elected model's id, the
+        /// daily reputation decay, three subsidy figures, the daily upkeep and a
+        /// breakdown of it) plus the new <see cref="CareerUpkeep"/> type they
+        /// point at. Every one is nullable and every existing member is untouched:
+        /// <see cref="CareerEconomy.Reputation"/> in particular still carries the
+        /// same stock field, because the value was never wrong and only its
+        /// meaning was missing. Additive-only, so an Uplink built against 13.0 is
+        /// unaffected and the frozen Major-13 floor is NOT re-frozen.</para>
         /// </remarks>
-        public const int Minor = 0;
+        public const int Minor = 1;
     }
 }

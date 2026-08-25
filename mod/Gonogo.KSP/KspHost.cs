@@ -128,6 +128,26 @@ namespace Gonogo.KSP
         }
 
         /// <summary>
+        /// The elected <see cref="IEconomyBackend"/> resolver: what this install's
+        /// money model makes of the reputation this host reads. Same late-bound
+        /// install shape and the same reason as
+        /// <see cref="_actionGroupsBackend"/>, and read on the same main-thread
+        /// sample, because an overhaul's figures come off its own live scenario
+        /// modules.
+        ///
+        /// <para>Null before the addon wires it, and in a bare-host unit test,
+        /// which degrades to reputation published bare: exactly the state that
+        /// existed before the capability, so nothing regresses.</para>
+        /// </summary>
+        private Func<IEconomyBackend?>? _economyBackend;
+
+        /// <summary>Installs the elected economy-backend resolver; see <see cref="_economyBackend"/>.</summary>
+        public void SetEconomyBackendSource(Func<IEconomyBackend?> resolver)
+        {
+            _economyBackend = resolver;
+        }
+
+        /// <summary>
         /// The elected <see cref="IPropagationProvider"/> resolver. Same
         /// late-bound install shape as <see cref="_actionGroupsBackend"/>: read on
         /// the main-thread sample to stamp <c>vessel.target</c>'s
@@ -307,7 +327,7 @@ namespace Gonogo.KSP
                 // career mode - see its own doc comment.
                 try
                 {
-                    var career = BuildCareer();
+                    var career = BuildCareer(_economyBackend?.Invoke(), ut);
                     if (career != null)
                     {
                         values["career"] = career;
@@ -3222,7 +3242,7 @@ namespace Gonogo.KSP
             return game.Mode.ToString();
         }
 
-        private static Dictionary<string, object?>? BuildCareer()
+        private static Dictionary<string, object?>? BuildCareer(IEconomyBackend? economy, double ut)
         {
             var game = HighLogic.CurrentGame;
             if (game == null || game.Mode != Game.Modes.CAREER)
@@ -3231,7 +3251,7 @@ namespace Gonogo.KSP
             }
 
             var career = new Dictionary<string, object?>();
-            TryBuildGroup(career, "economy", BuildCareerEconomy);
+            TryBuildGroup(career, "economy", () => BuildCareerEconomy(economy, ut));
             TryBuildGroup(career, "facilities", BuildCareerFacilities);
             TryBuildGroup(career, "contracts", BuildCareerContracts);
             TryBuildGroup(career, "strategies", BuildCareerStrategies);
@@ -3252,7 +3272,7 @@ namespace Gonogo.KSP
         /// mode gate already passed) - so a hiccup in one doesn't blank the
         /// other two.
         /// </summary>
-        private static Dictionary<string, object?>? BuildCareerEconomy()
+        private static Dictionary<string, object?>? BuildCareerEconomy(IEconomyBackend? economy, double ut)
         {
             var funding = Funding.Instance;
             var reputation = Reputation.Instance;
@@ -3262,12 +3282,53 @@ namespace Gonogo.KSP
                 return null;
             }
 
-            return new Dictionary<string, object?>
+            var rep = reputation != null ? (double?)reputation.reputation : null;
+            var group = new Dictionary<string, object?>
             {
                 ["funds"] = funding != null ? (double?)funding.Funds : null,
-                ["reputation"] = reputation != null ? (double?)reputation.reputation : null,
+                ["reputation"] = rep,
                 ["science"] = rnd != null ? (double?)rnd.Science : null,
             };
+
+            // What that reputation MEANS, from whichever money model won the
+            // election. The reading above is untouched by it: the value was never
+            // in dispute, and a career overhaul that decays reputation daily and
+            // converts it to a funding subsidy changes what the number is FOR
+            // rather than what it is. The elected backend is handed the reputation
+            // rather than reading it, so there is exactly one place that number
+            // comes from.
+            //
+            // Read on the main thread, here, because an overhaul's figures come
+            // off its own live scenario modules. A throw takes this GROUP only,
+            // via TryBuildGroup, leaving funds/reputation/science standing.
+            var reading = economy?.Interpret(ut, rep);
+            if (reading == null)
+            {
+                return group;
+            }
+
+            group["economyModel"] = economy?.ProviderId;
+            group["reputationDecayPerDay"] = reading.ReputationDecayPerDay;
+            group["subsidyPerDay"] = reading.SubsidyPerDay;
+            group["subsidyMinPerDay"] = reading.SubsidyMinPerDay;
+            group["subsidyMaxPerDay"] = reading.SubsidyMaxPerDay;
+            group["upkeepPerDay"] = reading.UpkeepPerDay;
+
+            var breakdown = reading.UpkeepBreakdown;
+            if (breakdown != null)
+            {
+                group["upkeep"] = new Dictionary<string, object?>
+                {
+                    ["facilities"] = breakdown.Facilities,
+                    ["launchComplexes"] = breakdown.LaunchComplexes,
+                    ["researchSalary"] = breakdown.ResearchSalary,
+                    ["training"] = breakdown.Training,
+                    ["crewBase"] = breakdown.CrewBase,
+                    ["crewInFlight"] = breakdown.CrewInFlight,
+                    ["integrationSalary"] = breakdown.IntegrationSalary,
+                };
+            }
+            return group;
         }
 
         /// <summary>
