@@ -578,6 +578,38 @@ describe("station subscription intent reaches the mod", () => {
     expect(hostTransport.isSubscribed("vessel.orbit")).toBe(true);
   });
 
+  it("delivers a topic the host was ALREADY holding when the station asked", async () => {
+    const { peerHost, hostTransport } = setupHost();
+    await peerHost.start();
+    await waitForHostPeerId(peerHost);
+
+    // The host reads this one itself, and the only frame for it arrives BEFORE
+    // any station exists. Every other test in this file emits AFTER the station
+    // has connected, which is why none of them could see this: the relay's
+    // cache used to be filled from inside the tap gated on having connections,
+    // so it learned nothing until the first station arrived and then only
+    // learned what changed. `client.subscribe` for an already-held topic sends
+    // no wire subscribe and re-emits no frame, so the mod is never asked
+    // either, and the station stays blank forever.
+    const pastUt = Date.now() / 1000 - 10_000;
+    act(() => {
+      hostTransport.emit(
+        "vessel.orbit",
+        { apoapsis: 250_000, periapsis: 240_000 },
+        { validAt: pastUt, deliveredAt: pastUt },
+      );
+    });
+
+    const clientSvc = await connectStation(peerHost, "vessel.orbit");
+    stationServices.push(clientSvc);
+
+    await waitFor(() =>
+      expect(screen.getAllByTestId("station-extra")[0]?.textContent).toContain(
+        "250000",
+      ),
+    );
+  });
+
   it("backfills a station that subscribes a topic which last changed before it asked", async () => {
     const { peerHost, hostTransport } = setupHost();
     await peerHost.start();

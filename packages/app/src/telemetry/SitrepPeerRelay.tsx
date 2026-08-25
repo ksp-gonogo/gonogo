@@ -72,10 +72,11 @@ function isCarriedFrame(
  * subscription can only ADD topics a station reaches, never take one away.
  *
  * Backfill: keeps its own `Map<topic, StreamData>` of the last-seen frame
- * per topic (never cleared, so it stays useful across a connect/disconnect
- * gap) and replays it to a NEWLY connecting peer alone (`sendToPeer`, never
- * `broadcast`) so a station connecting mid-flight doesn't sit blank on a
- * low-rate topic that hasn't changed since it joined. `event` frames are
+ * per topic, filled from mount rather than from the first station's arrival,
+ * and never cleared, so it stays useful across a connect/disconnect gap. It is
+ * replayed to a NEWLY connecting peer alone (`sendToPeer`, never `broadcast`)
+ * and to a station that subscribes a topic the host was already holding, so
+ * neither sits blank on a low-rate topic that has not changed since it asked. `event` frames are
  * one-shot by nature and deliberately NOT backfilled, same posture as
  * `StreamRecorder`'s "don't replay events out of causal context".
  */
@@ -120,6 +121,24 @@ export function SitrepPeerRelay({ peerHost }: { peerHost: PeerHostService }) {
       }
     });
   }, [peerHost]);
+
+  // Cache every frame the host's client receives, whether or not a station is
+  // connected. The broadcast tap below cannot do this: it lives inside the
+  // `hasConnections` gate, so the cache learned nothing until the first station
+  // arrived and after that only learned what CHANGED. A station asking for a
+  // topic the host was already holding then found an empty cache, and
+  // `client.subscribe` sends no wire subscribe and re-emits no frame for a
+  // topic already subscribed (it replays the sticky value to the CALLER only),
+  // so the mod was never asked either and the station stayed blank forever.
+  // Caching from mount is what makes `cachedFrame` able to answer.
+  useEffect(() => {
+    if (!client) return;
+    return client.onRawMessage((message) => {
+      if (message.type === "stream-data") {
+        cacheRef.current.set(message.topic, message);
+      }
+    });
+  }, [client]);
 
   // Demand-driven upstream subscription, independent of `hasConnections`: the
   // host refcounts what stations ask for and this is only the means of acting
@@ -193,9 +212,6 @@ export function SitrepPeerRelay({ peerHost }: { peerHost: PeerHostService }) {
 
     const detachRaw = client.onRawMessage((message) => {
       if (!isCarriedFrame(message)) return;
-      if (message.type === "stream-data") {
-        cacheRef.current.set(message.topic, message);
-      }
       SITREP_PEER_RELAY_BUDGET.record();
       peerHost.broadcast({
         type: "sitrep-frame",
