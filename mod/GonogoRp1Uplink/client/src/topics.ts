@@ -1,0 +1,147 @@
+// The rp1.* Topic registrations, both halves.
+//
+//   TYPE: a `declare module "@ksp-gonogo/sitrep-sdk"` augmentation adds each
+//   Topic to `TopicPayloadMap`, so `useTelemetry("rp1.buildQueue")` resolves to
+//   `Rp1BuildItemEntry[]` in any program that statically imports this module.
+//
+//   RUNTIME: `registerBarePrimitiveTopic` feeds the SDK's runtime registry, so
+//   `isTopicId` and the replay recorder know these strings without the SDK ever
+//   naming one, and `registerTopicUnits` feeds the decode-time unit lookup that
+//   turns a bare number on the wire into the `Value<"bp">` the type promises.
+//
+// `rp1.available` is a bare JSON boolean with no payload type, so it never
+// flows through codegen and is declared by hand here, same as every other
+// Domain presence gate.
+import {
+  registerBarePrimitiveTopic,
+  registerTopicUnits,
+  registerTypeUnits,
+  type TopicPayload,
+} from "@ksp-gonogo/sitrep-sdk";
+import type {
+  Rp1BuildItemEntry,
+  Rp1CentreEntry,
+  Rp1ComplexEntry,
+  Rp1Confidence,
+  Rp1OperationEntry,
+  Rp1PadEntry,
+  Rp1Personnel,
+  Rp1ResearchEntry,
+  Rp1WarehouseItemEntry,
+} from "./__generated__/contract";
+import {
+  GENERATED_TOPIC_SHAPES,
+  GENERATED_TOPIC_UNITS,
+  GENERATED_TYPE_SHAPES,
+  GENERATED_TYPE_UNITS,
+} from "./__generated__/units";
+
+/** RP-1 is installed AND managing this save. Its value must match `Rp1ScUplink.AvailableTopic`. */
+export const RP1_AVAILABLE_TOPIC = "rp1.available";
+
+/** The space centres themselves, one row each. */
+export const RP1_CENTRES_TOPIC = "rp1.centres";
+
+/** Launch complexes: the layer stock and standalone KCT have no counterpart for. */
+export const RP1_COMPLEXES_TOPIC = "rp1.complexes";
+
+/** Vehicles being integrated, with a derived rate and ETA. */
+export const RP1_BUILD_QUEUE_TOPIC = "rp1.buildQueue";
+
+/** Finished vehicles: the honest "ready to launch" set under RP-1. */
+export const RP1_WAREHOUSE_TOPIC = "rp1.warehouse";
+
+/** Launch pads, carrying the state that decides whether a launch will work. */
+export const RP1_PADS_TOPIC = "rp1.pads";
+
+/** Rollout, rollback, reconditioning and air-launch operations. */
+export const RP1_OPERATIONS_TOPIC = "rp1.operations";
+
+/** The research queue, global across centres. */
+export const RP1_RESEARCH_TOPIC = "rp1.research";
+
+/** Who is on the payroll. */
+export const RP1_PERSONNEL_TOPIC = "rp1.personnel";
+
+/** RP-1's own currency, absent rather than zero when the module is not live. */
+export const RP1_CONFIDENCE_TOPIC = "rp1.confidence";
+
+declare module "@ksp-gonogo/sitrep-sdk" {
+  interface TopicPayloadMap {
+    "rp1.available": boolean;
+    "rp1.centres": Rp1CentreEntry[];
+    "rp1.complexes": Rp1ComplexEntry[];
+    "rp1.buildQueue": Rp1BuildItemEntry[];
+    "rp1.warehouse": Rp1WarehouseItemEntry[];
+    "rp1.pads": Rp1PadEntry[];
+    "rp1.operations": Rp1OperationEntry[];
+    "rp1.research": Rp1ResearchEntry[];
+    "rp1.personnel": Rp1Personnel;
+    "rp1.confidence": Rp1Confidence;
+  }
+}
+
+registerBarePrimitiveTopic(RP1_AVAILABLE_TOPIC);
+registerBarePrimitiveTopic(RP1_CENTRES_TOPIC);
+registerBarePrimitiveTopic(RP1_COMPLEXES_TOPIC);
+registerBarePrimitiveTopic(RP1_BUILD_QUEUE_TOPIC);
+registerBarePrimitiveTopic(RP1_WAREHOUSE_TOPIC);
+registerBarePrimitiveTopic(RP1_PADS_TOPIC);
+registerBarePrimitiveTopic(RP1_OPERATIONS_TOPIC);
+registerBarePrimitiveTopic(RP1_RESEARCH_TOPIC);
+registerBarePrimitiveTopic(RP1_PERSONNEL_TOPIC);
+registerBarePrimitiveTopic(RP1_CONFIDENCE_TOPIC);
+
+// Driven by looping the generated maps rather than naming each entry, so a
+// Topic added to this Uplink's contract later needs no new call site. Both
+// registries: the topic-keyed one covers a payload's own fields, and the
+// type-keyed one is what a nested shape resolves through.
+for (const [topic, units] of Object.entries(GENERATED_TOPIC_UNITS)) {
+  registerTopicUnits(topic, units, GENERATED_TOPIC_SHAPES[topic] ?? {});
+}
+for (const [typeName, units] of Object.entries(GENERATED_TYPE_UNITS)) {
+  registerTypeUnits(typeName, units, GENERATED_TYPE_SHAPES[typeName] ?? {});
+}
+
+/**
+ * A compile-time invariant checked by `pnpm build` and `pnpm typecheck`: it
+ * proves the augmentation above is in-program and resolves each Topic to its
+ * real payload type rather than the `unknown` a missing augmentation leaves
+ * behind. The per-Uplink half of the SDK's own assertion, devolved here because
+ * the SDK cannot see this augmenting module.
+ */
+type Equal<A, B> =
+  (<T>() => T extends A ? 1 : 2) extends <T>() => T extends B ? 1 : 2
+    ? true
+    : false;
+type Expect<T extends true> = T;
+export type _ResolvesRp1Available = Expect<
+  Equal<TopicPayload<"rp1.available">, boolean>
+>;
+export type _ResolvesRp1Centres = Expect<
+  Equal<TopicPayload<"rp1.centres">, Rp1CentreEntry[]>
+>;
+export type _ResolvesRp1Complexes = Expect<
+  Equal<TopicPayload<"rp1.complexes">, Rp1ComplexEntry[]>
+>;
+export type _ResolvesRp1BuildQueue = Expect<
+  Equal<TopicPayload<"rp1.buildQueue">, Rp1BuildItemEntry[]>
+>;
+export type _ResolvesRp1Warehouse = Expect<
+  Equal<TopicPayload<"rp1.warehouse">, Rp1WarehouseItemEntry[]>
+>;
+export type _ResolvesRp1Pads = Expect<
+  Equal<TopicPayload<"rp1.pads">, Rp1PadEntry[]>
+>;
+export type _ResolvesRp1Operations = Expect<
+  Equal<TopicPayload<"rp1.operations">, Rp1OperationEntry[]>
+>;
+export type _ResolvesRp1Research = Expect<
+  Equal<TopicPayload<"rp1.research">, Rp1ResearchEntry[]>
+>;
+export type _ResolvesRp1Personnel = Expect<
+  Equal<TopicPayload<"rp1.personnel">, Rp1Personnel>
+>;
+export type _ResolvesRp1Confidence = Expect<
+  Equal<TopicPayload<"rp1.confidence">, Rp1Confidence>
+>;

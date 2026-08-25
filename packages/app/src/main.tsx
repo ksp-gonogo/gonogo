@@ -145,6 +145,13 @@ async function registerScansatAndRender(): Promise<void> {
     // entry, plain static import" path as the four above, and the cheapest of
     // them to take unconditionally: there is no widget behind it to evaluate.
     import("@ksp-gonogo/gonogo-realantennas-uplink"),
+    // RP-1's space centre: ten Topic registrations and its own two unit
+    // tokens, plus the augments that read them. Static like the five above
+    // because this Uplink ships with the mod, and unconditional because a
+    // station has to know `rp1.buildQueue` is a Topic to read it off the host
+    // at all. Its channels publish empty on any install without RP-1, which is
+    // every stock one.
+    import("@ksp-gonogo/gonogo-rp1-uplink"),
   ]);
 
   // Wire the real modal-backed consent prompt before the loader runs (the

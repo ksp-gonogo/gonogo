@@ -1,0 +1,40 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <LangVersion>12</LangVersion>
+    <IsPackable>false</IsPackable>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.11.1" />
+    <PackageReference Include="xunit" Version="2.9.2" />
+    <PackageReference Include="xunit.runner.visualstudio" Version="2.8.2">
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+      <PrivateAssets>all</PrivateAssets>
+    </PackageReference>
+  </ItemGroup>
+
+  <!-- The WHOLE uplink compiles here, reflection layer included, because none of
+       it references KSP or Unity: everything it reads is RP-1's own state
+       reached by reflection. So the graph walk is exercised headless against the
+       stand-in RP-1 types in Rp0Fixture.cs rather than being the one part that
+       only a live game could test. -->
+  <ItemGroup>
+    <Compile Include="..\GonogoRp1Uplink\Rp1ScRaw.cs" />
+    <Compile Include="..\GonogoRp1Uplink\Rp1ScMath.cs" />
+    <Compile Include="..\GonogoRp1Uplink\Rp1ScCapture.cs" />
+    <Compile Include="..\GonogoRp1Uplink\Rp1ScReflection.cs" />
+    <Compile Include="..\GonogoRp1Uplink\Rp1ScUplink.cs" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Sitrep.Contract\Sitrep.Contract.csproj" />
+    <ProjectReference Include="..\GonogoRp1Uplink.Contract\GonogoRp1Uplink.Contract.csproj" />
+    <!-- The shared Unit-coverage sweep every relocated Uplink's own coverage
+         test calls; the [Fact]s stay here, naming this Uplink's types. -->
+    <ProjectReference Include="..\Sitrep.Contract.TestSupport\Sitrep.Contract.TestSupport.csproj" />
+  </ItemGroup>
+
+</Project>
