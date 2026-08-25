@@ -171,9 +171,9 @@ const DOT_RADIUS = 6;
 // apex, not a filled triangle, so the open bottom of the V itself reads as
 // a small triangular gap even though the arms' ends touch the dot's top
 // edge (no added offset). Drag is "pulling the vessel back", the opposite
-// intuition from a shaft that grows out of the dot, so the mark sits on the
-// OPPOSITE side of the dot from the old design and carries no direction of
-// travel, only a size. Its SIZE (not length) scales with the drag-to-weight
+// intuition from a shaft that grows out of the dot, so the mark sits ABOVE the
+// dot rather than trailing from it and carries no direction of travel, only a
+// size. Its SIZE (not length) scales with the drag-to-weight
 // ratio (aggregate drag force ÷ vessel weight; >1 decelerating, 1 at
 // terminal, <1 accelerating): a near-invisible point at a low ratio, growing
 // toward a chevron a little wider than the dot itself at

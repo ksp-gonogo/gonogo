@@ -45,15 +45,16 @@ import { deriveHazardVerdict } from "./hazardVerdict";
 import { solveSuicideBurn } from "./solveLanding";
 import { TouchdownReticle } from "./TouchdownReticle";
 
-// Empty config: kept for forward-compat with the old widget's config slot.
+// No config of its own; the empty type names the slot so adding one later
+// doesn't change the registration's shape.
 type LandingStatusConfig = Record<string, never>;
 
 // ── Readouts ─────────────────────────────────────────────────────────────────
 //
-// Three of them, and each is `Unit` with this widget's precision on it. They
-// used to be string formatters, which is what the unit system exists to stop:
-// a widget that writes its own "m/s" is one rename away from disagreeing with
-// every other readout on the dashboard about what a speed looks like.
+// Three of them, and each is `Unit` with this widget's precision on it, never
+// a string formatter, which is what the unit system exists to stop: a widget
+// that writes its own "m/s" is one rename away from disagreeing with every
+// other readout on the dashboard about what a speed looks like.
 //
 // What is genuinely local is the PRECISION, and it is local for a reason a
 // generic ladder cannot know: on a descent, ten metres of altitude is the
@@ -187,16 +188,16 @@ export function deriveActiveBurnParams(
  *
  * `null` means NO PATH and zero means a measured zero-distance link. The
  * contract is explicit about this (`command-delay.ts`: "null means NO PATH,
- * never a measured zero-distance delay. Never coerce it to 0") and this
- * function used to coerce it anyway, falling through to `return 0` for an
- * absent field, a malformed one, and the backend's own "no path" null alike.
+ * never a measured zero-distance delay. Never coerce it to 0"), and the
+ * temptation is a `return 0` fallthrough that takes an absent field, a
+ * malformed one and the backend's own "no path" null alike.
  *
- * `classifyRegime` reads a zero round trip as `live`, so the cost was a vessel
+ * `classifyRegime` reads a zero round trip as `live`, so the cost is a vessel
  * with no comms path rendering "T-1s SUICIDE BURN" behind a green LIVE badge:
  * a countdown an operator would burn on, asserted about a craft nothing can
- * reach. `CommitLayer`'s `no-path` arm was written expecting this null and
- * could only be reached by the whole payload being absent, so the two halves of
- * the design disagreed about which value meant "no path".
+ * reach. `CommitLayer`'s `no-path` arm expects this null: coercing here leaves
+ * that arm reachable only by the whole payload being absent, and the two halves
+ * of the design then disagree about which value means "no path".
  *
  * `CommsDelaySource.None` keeps its zero: that is a LAN loop with genuinely no
  * delay, the one place the number is a measurement rather than a fabrication.
@@ -327,13 +328,14 @@ const RETICLE_SPAN_MAX_M = 6000;
 /**
  * Whether the vessel is on the ground, and so has no descent left to evaluate.
  *
- * Taken off the `Situation` ORDINAL. This used to compare the enum NAME against
- * the single literal "Landed", which a craft on the pad fails: every vessel is
- * `PreLaunch` until the clamps release, and a stationary craft whose centre of
- * mass sits a few metres above the terrain datum still solves to a finite
- * free-fall time-to-impact. The pad therefore ran a live descent evaluation,
- * counting down to a commit point and a blind moment for a rocket that had not
- * moved. `Splashed` is here for the same reason, and matches the ordinal-derived
+ * Taken off the `Situation` ORDINAL, and covering `PreLaunch` as well as
+ * `Landed`. Comparing the enum NAME against the single literal "Landed" is what
+ * a craft on the pad fails: every vessel is `PreLaunch` until the clamps
+ * release, and a stationary craft whose centre of mass sits a few metres above
+ * the terrain datum still solves to a finite free-fall time-to-impact, so the
+ * pad runs a live descent evaluation, counting down to a commit point and a
+ * blind moment for a rocket that has not moved. `Splashed` is here for the same
+ * reason, and matches the ordinal-derived
  * `isSplashed` this verdict sits beside.
  *
  * An absent or unrecognized situation is not a verdict either way: it yields
@@ -559,10 +561,10 @@ function LandingStatusComponent({
   }, [predLat, predLon, bodyRadius]);
 
   // `no-path` is deliberately NOT folded in here. `classifyRegime` goes out of
-  // its way to refuse to call an unknown link live, and this used to throw that
-  // away one line later: with no comms telemetry at all the hero read
-  // "SUICIDE BURN", which is a claim that the loop is closed. CommitLayer has
-  // its own arm for a link it cannot vouch for.
+  // its way to refuse to call an unknown link live, and folding `no-path` in
+  // here throws that away one line later: with no comms telemetry at all the
+  // hero would read "SUICIDE BURN", which is a claim that the loop is closed.
+  // CommitLayer has its own arm for a link it cannot vouch for.
   const live = clocks.regime === "live";
   const width = w ?? 8;
   // The flight instruments (velocity vector + TWR) and the full-height altitude
@@ -949,7 +951,7 @@ function LandingStatusComponent({
     </Stack>
   );
 
-  // The reticle is now svg-only so it aligns with the cross-section square; the
+  // The reticle is svg-only so it aligns with the cross-section square; the
   // verdict banner + biome/terrain readout are composed here, below the plots.
   const reticleSquare = showReticle ? (
     <TouchdownReticle
@@ -1031,14 +1033,14 @@ function LandingStatusComponent({
   return (
     <Panel
       panelTitle="LANDING"
-      // Host-derived now, so the hand-picked `vessel.surface` badge goes: the
-      // panel watches every topic this widget declares instead of the one key
-      // that hook chose.
+      // Host-derived, so there is no hand-picked `vessel.surface` badge: the
+      // panel watches every topic this widget declares rather than one chosen
+      // key.
       // The delay chrome belongs to the panel, not to the body. The regime and
-      // the round trip used to be an internal "Delay" section with its own
-      // heading, a second header inside a widget that already had one, sitting
-      // above the readout it qualifies. They are the standing state of the link
-      // rather than part of the descent readout, which is what the aside is for.
+      // the round trip are the standing state of the LINK rather than part of
+      // the descent readout, which is what the aside is for; carrying them in
+      // the body means a second heading inside a widget that already has one,
+      // sitting above the readout it qualifies.
       panelAside={
         // The state and the round trip read left, where they sit naturally
         // beside the title; only the BADGES float right. A single right-aligned
@@ -1082,8 +1084,7 @@ function LandingStatusComponent({
           already owns one, and a second live region on the same panel floods a
           screen reader rather than informing it. `isDated` rather than
           "not observed", so a cold start says nothing at all: "described from last
-          known" is a lie when nothing has ever arrived, which is the exact
-          conflation this whole workstream exists to stop. It stays on screen with a caption
+          known" is a lie when nothing has ever arrived. It stays on screen with a caption
           naming which readings are no longer current, because losing contact
           mid-descent is the expected case and a blank board is the worst answer
           available. The ignition instant is refused separately, in CommitLayer. */}
@@ -1095,10 +1096,10 @@ function LandingStatusComponent({
       {board === "not-descending" && !landed ? (
         <EmptyState>No landing in progress</EmptyState>
       ) : (
-        // The rail beside the content, both inside the panel's own body. This
-        // used to bleed to the panel edge with `padding: 0` and every text band
-        // paying its own inset, which is how the widget ended up with five
-        // different insets and read tight. The body owns one inset now.
+        // The rail beside the content, both inside the panel's own body, which
+        // owns the single inset. Bleeding to the panel edge with `padding: 0`
+        // makes every text band pay its own inset, which is how a widget ends
+        // up with five different ones and reads tight.
         <div
           ref={measureScroller}
           style={{

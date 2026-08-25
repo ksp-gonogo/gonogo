@@ -12,9 +12,9 @@ import { logger } from "@ksp-gonogo/logger";
  * propagate via the broker's signalling channel, which is enough for
  * one-side TURN to bridge any difficult network. We deliberately
  * construct station Peers with no `iceServers` config so a stale or
- * absent local default can't sabotage that path (we used to default to
- * `turn:localhost:3478`, which from a phone meant the phone itself,
- * four useless STUN/TURN timeouts per attempt).
+ * absent local default can't sabotage that path: a default of
+ * `turn:localhost:3478` means the phone ITSELF when read on a phone, which
+ * costs four useless STUN/TURN timeouts per attempt.
  */
 
 export interface IceConfig {

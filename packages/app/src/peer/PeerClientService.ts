@@ -168,10 +168,10 @@ export class PeerClientService {
   // Sticky cache for the running countdown. `gonogo-countdown-start` is a
   // fire-and-forget broadcast: a GoNoGo widget that subscribes after the
   // message landed (page still mounting, layout switch, widget remount)
-  // used to miss the countdown entirely and show nothing until T-0 flipped
-  // the launch state via telemetry: the 2026-05-08 "Joel saw only T-0"
-  // bug. Replayed to late subscribers while t0 is still in the future;
-  // cleared on cancel.
+  // would otherwise miss the countdown entirely and show nothing until T-0
+  // flipped the launch state via telemetry, which is what an operator seeing
+  // only T-0 is reporting. Replayed to late subscribers while t0 is still in
+  // the future; cleared on cancel.
   private lastCountdownT0Ms: number | null = null;
 
   constructor({
@@ -534,9 +534,9 @@ export class PeerClientService {
   /**
    * Ask the host to relay a single call through to whatever handle an
    * Uplink registered for `uplinkId` (via `registerUplinkHandle` on the
-   * host: see `@ksp-gonogo/core`). Generic replacement for what used to be
-   * one hardcoded send-method per Uplink; each Uplink's own client code
-   * owns the shape of `method`/`args`/the resolved result.
+   * host: see `@ksp-gonogo/core`). ONE generic send serves every Uplink
+   * rather than a hardcoded method each; each Uplink's own client code owns
+   * the shape of `method`/`args`/the resolved result.
    */
   sendUplinkRelay(
     uplinkId: string,

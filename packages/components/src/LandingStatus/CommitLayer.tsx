@@ -133,7 +133,8 @@ export function CommitLayer({
     // Neither hero is answerable without a link. The ignition countdown assumes
     // a closed real-time loop and the burn-GO clock assumes a known delay, so
     // picking either one states something about the link that nothing has told
-    // us. This used to fall into the live arm and read "SUICIDE BURN".
+    // us. Falling through to the live arm here reads "SUICIDE BURN", which is
+    // exactly that unearned claim.
     heroValue = NULL_DISPLAY;
     heroCaption = "BURN TIMING NEEDS A LINK";
     heroTone = "default";
@@ -210,12 +211,12 @@ export function CommitLayer({
         </Readout>
       )}
 
-      {/* UNCOMMANDABLE and PAST COMMIT POINT both used to sit here, and both
-            said the same thing twice: the round trip is longer than the window
-            left, so nothing you send now lands in time. The round trip is the
-            instrument datum, and it is in the panel header beside the regime,
-            so the operator can read the arithmetic rather than be told its
-            conclusion twice in two vocabularies. */}
+      {/* Deliberately no UNCOMMANDABLE or PAST COMMIT POINT banner here. Both
+            say the same thing as each other, and as the header: the round trip
+            is longer than the window left, so nothing you send now lands in
+            time. The round trip IS the instrument datum and it sits in the
+            panel header beside the regime, so the operator reads the
+            arithmetic rather than its conclusion twice in two vocabularies. */}
     </Section>
   );
 }

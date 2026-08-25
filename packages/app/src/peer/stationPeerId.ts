@@ -12,11 +12,10 @@
  *   stall the broker imposes for ~60 s when the previous WS hasn't been
  *   reaped yet (e.g. tab refresh, force close).
  *
- * Background: previously the broker peer id WAS the persistent identity.
- * On hard refresh the new page tried to claim the same id, the broker
- * rejected with `unavailable-id`, and the slow retry loop stalled the
- * station for 60–90 s. Logs from 2026-05-06 captured the symptom on two
- * stations simultaneously.
+ * The two must stay SEPARATE. Making the broker peer id the persistent
+ * identity means a hard refresh claims an id the broker has not reaped, which
+ * it rejects with `unavailable-id`, and the slow retry loop then stalls the
+ * station for 60–90 s.
  */
 
 const STATION_KEY_STORAGE = "gonogo.station.key";
@@ -84,6 +83,6 @@ export function clearStationKey(
   storage.removeItem(LEGACY_PEER_ID_STORAGE);
 }
 
-/** Back-compat alias: call sites that wanted the old "stable" id now get a
- * fresh session id instead. Kept for any external imports. */
+/** Back-compat alias for external importers: a call site asking for a "stable"
+ * station id gets the session id, since no stable one exists. */
 export const clearStationPeerId = clearStationKey;

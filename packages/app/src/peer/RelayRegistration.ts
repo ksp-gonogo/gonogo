@@ -38,8 +38,8 @@ export class RelayRegistration {
 
   /**
    * POST the current `{ shareCode, peerId }` to the relay's host registry.
-   * DIAGNOSTICS ONLY under the stable-host-id model: discovery no longer
-   * depends on this (stations derive the broker id from the share code).
+   * DIAGNOSTICS ONLY under the stable-host-id model: discovery does not
+   * depend on this (stations derive the broker id from the share code).
    * Best-effort: any failure (relay down, timeout, non-2xx) is logged at
    * debug and swallowed. No-op until the Peer has an id.
    */

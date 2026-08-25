@@ -5,10 +5,10 @@
  * The host's PeerJS peer claims a deterministic id derived from the
  * operator-facing 4-char share code (`gonogo-host-<CODE>`). The station
  * derives the *same* id from the code the operator types/scans and connects
- * to it directly: no directory peer, no resolve hop. Both ends are
- * browsers, so mDNS host candidates resolve natively on the LAN; the old
- * Node-wrtc directory peer (which could neither resolve mDNS nor do TURN on
- * a macOS host) is gone.
+ * to it directly: no directory peer, no resolve hop. That keeps both ends
+ * browsers, which is what makes mDNS host candidates resolve natively on the
+ * LAN; a Node-wrtc directory peer in the middle can neither do that nor run
+ * TURN on a macOS host.
  *
  * The prefix is REQUIRED: bare 4-char codes would collide with other gonogo
  * users on the shared broker key "gonogo". The operator never sees the

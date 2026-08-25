@@ -12,10 +12,9 @@ import { ListenerSet } from "@ksp-gonogo/data";
  * and several events (`peerConnect`, `peerId`, `connStatus`, ...) aren't wire
  * messages at all.
  *
- * Backed by a lazily-created `Map<key, ListenerSet>` so iteration order and
- * dedup semantics are byte-for-byte identical to the old per-field
- * `ListenerSet`: `emit` is a thin pass-through to `ListenerSet.fire`, so
- * there's no behavioural drift from the previous code.
+ * Backed by a lazily-created `Map<key, ListenerSet>`, and `emit` is a thin
+ * pass-through to `ListenerSet.fire`, so iteration order and dedup semantics
+ * are `ListenerSet`'s own and this class adds none of its own.
  */
 export class TypedListeners<TMap extends Record<string, readonly unknown[]>> {
   // The per-key sets store heterogeneous tuple types; we keep them as

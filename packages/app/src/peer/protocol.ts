@@ -67,9 +67,8 @@ export type PeerMessage =
   // `t` is the host's sample timestamp, optional so partial deploys stay
   // wire-compatible: the client falls back to Date.now() when absent.
   | { type: "data"; sourceId: string; key: string; value: unknown; t?: number }
-  // Station → host: fire-and-forget action dispatch. No `requestId`/reply,
-  // `execute-result` used to exist as a reply variant but was never
-  // constructed or handled anywhere (dead code, removed).
+  // Station → host: fire-and-forget action dispatch. No `requestId` and no
+  // reply variant, so nothing on either side correlates a result back.
   | { type: "execute"; sourceId: string; action: string }
   | {
       type: "query-range-request";
@@ -107,9 +106,9 @@ export type PeerMessage =
     }
   // Station → host: relay a single call through to a host-side handle
   // registered for `uplinkId` (see `@ksp-gonogo/core`'s
-  // `registerUplinkHandle`/`getUplinkHandle`). Generic replacement for what
-  // used to be one hardcoded request/response pair per Uplink (in-game
-  // script dispatch, camera WebRTC offer/answer signaling): a station
+  // `registerUplinkHandle`/`getUplinkHandle`). ONE generic pair serves every
+  // Uplink, rather than a hardcoded request/response pair each (in-game
+  // script dispatch, camera WebRTC offer/answer signalling): a station
   // never talks to the underlying system directly (see the app's "main
   // screen is the sole KSP data consumer" constraint), so any Uplink action
   // a station triggers has to relay through the host and come back.

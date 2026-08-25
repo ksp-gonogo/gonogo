@@ -19,8 +19,8 @@ import type { PeerMessage } from "./protocol";
 import { RelayRegistration } from "./RelayRegistration";
 import { TypedListeners } from "./typedListeners";
 
-// The host's sole persisted identity. The PeerJS peer id is now *derived*
-// from this code (`gonogo-host-<CODE>`), not persisted: stations derive the
+// The host's sole persisted identity. The PeerJS peer id is *derived* from
+// this code (`gonogo-host-<CODE>`) rather than persisted: stations derive the
 // same id from the operator-typed code and connect directly, no broker
 // directory in between. See `hostPeerId.ts` for the derivation.
 const SHARE_CODE_KEY = "gonogo-host-share-code";
@@ -226,13 +226,12 @@ type NoteReorderListener = (
 ) => void;
 
 /**
- * Argument-tuple map for the host's `TypedListeners` registry. Each key
- * mirrors what the old per-field `ListenerSet<[...]>` fired, the dispatcher
- * handlers still derive these args (`gonogoVote` → `(peerId, status)`), so
- * the registry is a drop-in for the hand-rolled fields with no payload
- * change. Lifecycle keys (`id`, `peerConnect`, `shareCode`, `reclaiming`)
- * aren't wire messages; they live here for the same boilerplate-collapse
- * reason.
+ * Argument-tuple map for the host's `TypedListeners` registry. Each key's tuple
+ * is the argument list its dispatcher handler derives and fires
+ * (`gonogoVote` → `(peerId, status)`), so the tuple is the subscriber contract
+ * and not the wire shape. Lifecycle keys (`id`, `peerConnect`, `shareCode`,
+ * `reclaiming`) aren't wire messages at all; they live here so every host-side
+ * event has one subscription mechanism rather than a hand-rolled field each.
  */
 type HostEventMap = {
   id: [string | null];
@@ -318,7 +317,7 @@ export class PeerHostService {
   // twice for ~60 s while the broker times out the old conn.
   private peerIdToStationKey = new Map<string, string>();
 
-  // D6: download-once cache for Uplink bundle bytes, keyed by bundleUrl.
+  // Download-once cache for Uplink bundle bytes, keyed by bundleUrl.
   // See handleUplinkBundleRequest and BundleFetchCache's own doc comment.
   private readonly bundleFetchCache = new BundleFetchCache();
 
@@ -447,9 +446,9 @@ export class PeerHostService {
   private brokerReconnectAttempt = 0;
   private brokerReconnectTimer: ReturnType<typeof setTimeout> | null = null;
   // Page-lifecycle listeners registered once in `start()` and removed in
-  // `stop()`. Held as bound refs so they're removable (the old code added
-  // anonymous closures that leaked across StrictMode start→stop→start, and
-  // double-registered the pagehide/freeze/resume handlers each remount).
+  // `stop()`. Held as bound refs so they're REMOVABLE: an anonymous closure
+  // per registration leaks across a StrictMode start→stop→start and
+  // double-registers the pagehide/freeze/resume handlers on each remount.
   private lifecycleListenersAttached = false;
   private readonly onPageHide = () => this.destroyPeer();
   private readonly onBeforeUnload = () => this.destroyPeer();
@@ -628,13 +627,12 @@ export class PeerHostService {
           type: "analytics-consent",
           enabled: this.analyticsConsent,
         } satisfies PeerMessage);
-        // Missions have no live "currently recording" concept (a mission
-        // only exists once StreamRecorder finishes and saveMission is
-        // called): unlike the old BufferedDataSource, which tracked an
-        // in-progress flight and pushed live "flight-change" transitions.
-        // Send a permanently-null snapshot for wire back-compat with
-        // stations that still listen for it (useFlight()'s live-current-
-        // flight badge simply never lights up), and nudge the station to
+        // Missions have no live "currently recording" concept: a mission only
+        // exists once StreamRecorder finishes and saveMission is called, so
+        // there is never an in-progress flight to report. Send a
+        // permanently-null snapshot for wire back-compat with stations that
+        // listen for it (useFlight()'s live-current-flight badge simply never
+        // lights up), and nudge the station to
         // (re)fetch its flight list so an open FlightsManager modal doesn't
         // sit on a stale "no flights" view.
         conn.send({
@@ -1744,10 +1742,9 @@ export class PeerHostService {
    * broadcast `flight-list-changed` to every connected station. Idempotent,
    * repeated calls after the first attach are no-ops.
    *
-   * Unlike the old BufferedDataSource-backed broadcaster, there is no
-   * `flight-change` (live in-progress flight) transition to forward,
-   * Missions have no such concept, a mission only exists once recording has
-   * finished (Product Decision: "press record", no always-on capture).
+   * There is no `flight-change` (live in-progress flight) transition to
+   * forward: Missions have no such concept, a mission only exists once
+   * recording has finished ("press record", no always-on capture).
    */
   private async attachFlightListChangeBroadcaster(): Promise<void> {
     if (this.flightListChangeUnsub) return;
