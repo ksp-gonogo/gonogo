@@ -98,6 +98,5 @@ export * from "./use-stream";
 export * from "./use-stream-event";
 export * from "./use-telemetry";
 export * from "./use-vantage-trajectory";
-export * from "./use-widget-stream-status";
 export * from "./vessel-state";
 export * from "./view-clock";

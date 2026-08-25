@@ -412,11 +412,9 @@ export {
   type PanelSidebarSide,
   PanelSplit,
   type PanelSplitProps,
-  PanelStatusProvider,
   PanelTitle,
   PanelToolbar,
   ScrollArea,
-  usePanelStreamStatus,
   WidgetSections,
 } from "./Panel";
 export { type BadgeEntry, PanelBadgesProvider } from "./PanelBadges";

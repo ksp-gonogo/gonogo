@@ -55,36 +55,16 @@ describe("LandingStatus: full-vector solve genuinely runs off the stream", () =>
     stream = setupStreamFixture({ carriedChannels: CARRIED, pinnedUt: 10 });
   });
 
-  /**
-   * The dashboard host, reproduced. `GridItemContent` derives the status from
-   * the widget's REGISTERED dataRequirements and hands it to the panel, so a
-   * test that renders the widget bare cannot see the badge at all: the widget
-   * stopped owning one. Wiring the real derivation here is what keeps the L2
-   * guarantee under test rather than merely asserted.
-   */
-  function HostStatus({ children }: { children: ReactNode }) {
-    const status = useWidgetStreamStatus(
-      getComponent("landing-status")?.dataRequirements,
-    );
-    return (
-      <PanelStatusProvider status={status}>{children}</PanelStatusProvider>
-    );
-  }
-
   function renderWidget(size?: { w: number; h: number }) {
     return render(
       <stream.Provider>
-        <HostStatus>
-          <DashboardItemContext.Provider
-            value={{ instanceId: "landing-stream" }}
-          >
-            <LandingStatusComponent
-              id="landing-stream"
-              w={size?.w ?? 8}
-              h={size?.h ?? 10}
-            />
-          </DashboardItemContext.Provider>
-        </HostStatus>
+        <DashboardItemContext.Provider value={{ instanceId: "landing-stream" }}>
+          <LandingStatusComponent
+            id="landing-stream"
+            w={size?.w ?? 8}
+            h={size?.h ?? 10}
+          />
+        </DashboardItemContext.Provider>
       </stream.Provider>,
     );
   }
@@ -193,28 +173,26 @@ describe("LandingStatus: full-vector solve genuinely runs off the stream", () =>
     });
     await screen.findByText("AGL");
 
-    // The badge is the host's to render now, derived from every declared
-    // requirement rather than one key the widget picked. The guarantee is
-    // unchanged and is still asserted for real: a withheld PRIMARY datum badges
-    // the panel even though the fallback channel it degraded to is live.
-    //
-    // Two things have to hold for that, and only one of them is the ranking.
-    // The derivation SKIPS a requirement that is not carried, so declaring
-    // vessel.surface is load-bearing, not incidental: drop it from the
-    // registration and the withheld datum stops reaching the derivation at all
-    // and the panel goes quiet again, which is the original bug wearing a
-    // different hat.
+    // The declaration is still asserted, because it still drives alarm
+    // attribution: an alarm on the withheld datum has to reach this widget.
     expect(getComponent("landing-status")?.dataRequirements).toContain(
       "vessel.surface",
     );
-    expect(screen.getByText("SYNCING")).toBeInTheDocument();
+
+    // NOT ASSERTED ANY MORE, and named rather than quietly dropped: that the
+    // withheld datum is SURFACED to the operator. It used to be, by the
+    // host-derived panel badge reading SYNCING while the fallback channel was
+    // live. That badge is gone (one worst-of pill across every declared topic
+    // could not say which topic was degraded, and read as a fault when there
+    // was none), and nothing has replaced it here yet.
+    //
+    // So this widget currently degrades to the CoM fallback in silence. The
+    // remaining assertions still prove the DERIVATION is right, which is the
+    // half this file can prove; showing the operator it happened is the
+    // widget's own job now and is not yet built.
 
     // Once vessel.surface arrives the shown AGL switches to the lowest-point
-    // datum. The badge does NOT clear here, and should not: the derivation is
-    // the worst status across every declared requirement, and this fixture
-    // deliberately never delivers several of them, so something on this panel
-    // genuinely is still out of date. Asserting it clears would only be
-    // asserting that the badge watches one hand-picked key again.
+    // datum.
     act(() => {
       stream.emit("vessel.surface", { heightFromTerrain: 4800 });
     });

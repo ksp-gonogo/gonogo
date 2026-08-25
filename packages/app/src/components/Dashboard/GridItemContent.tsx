@@ -6,7 +6,6 @@ import {
   ErrorBoundary,
   getComponent,
   useWidgetBadges,
-  useWidgetStreamStatus,
   WidgetMetaContext,
 } from "@ksp-gonogo/core";
 import type { InputMappings } from "@ksp-gonogo/serial";
@@ -14,9 +13,7 @@ import {
   AugmentSettingsProvider,
   DelayRailProvider,
   PanelBadgesProvider,
-  PanelStatusProvider,
   PanelStatusStoreProvider,
-  widgetDeclaredTopics,
   widgetDrawnFields,
 } from "@ksp-gonogo/ui-kit";
 import { memo, type ReactNode, useCallback, useMemo } from "react";
@@ -165,22 +162,20 @@ export const GridItemContent = memo(function GridItemContent({
             >
               <WidgetContributions def={def}>
                 <WidgetBadges>
-                  <WidgetStreamStatus def={def}>
-                    <ErrorBoundary fallback={renderErrorFallback}>
-                      <RequiresGuard
-                        requires={def.requires}
-                        channels={def.channels}
-                      >
-                        <Comp
-                          id={item.i}
-                          config={item.config}
-                          w={w}
-                          h={h}
-                          onConfigChange={onSaveConfig}
-                        />
-                      </RequiresGuard>
-                    </ErrorBoundary>
-                  </WidgetStreamStatus>
+                  <ErrorBoundary fallback={renderErrorFallback}>
+                    <RequiresGuard
+                      requires={def.requires}
+                      channels={def.channels}
+                    >
+                      <Comp
+                        id={item.i}
+                        config={item.config}
+                        w={w}
+                        h={h}
+                        onConfigChange={onSaveConfig}
+                      />
+                    </RequiresGuard>
+                  </ErrorBoundary>
                 </WidgetBadges>
               </WidgetContributions>
             </AugmentSettingsProvider>
@@ -233,28 +228,6 @@ function WidgetContributions({
 function WidgetBadges({ children }: { children: ReactNode }) {
   const badges = useWidgetBadges();
   return <PanelBadgesProvider badges={badges}>{children}</PanelBadgesProvider>;
-}
-
-/**
- * Derives the widget's stream status from the topics it already declared, and
- * hands it to whatever `Panel` the widget renders. The widget
- * itself wires nothing: it is the dashboard that knows both which topics the
- * widget declared and how stale each of them is, so it is the dashboard that
- * should answer the question.
- *
- * Its own component rather than a hook call in `GridItemContent` because that
- * function returns early when a component id is unknown, and a hook cannot sit
- * behind that.
- */
-function WidgetStreamStatus({
-  def,
-  children,
-}: {
-  def: ComponentDefinition;
-  children: ReactNode;
-}) {
-  const status = useWidgetStreamStatus(widgetDeclaredTopics(def));
-  return <PanelStatusProvider status={status}>{children}</PanelStatusProvider>;
 }
 
 const CellHeader = styled.div`
