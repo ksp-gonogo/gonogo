@@ -18,9 +18,9 @@ const NO_BODIES: CelestialBody[] = [];
  * deliberately drops.
  *
  * The derivation itself is `CELESTIAL_FACTS` in the SDK, which runs ONCE per
- * Sitrep frame however many surfaces read it. It used to live here, memoised on
- * `[systemBodies, ut]`, and `ut` moves every frame, so the whole map re-ran per
- * frame in each of the four consumers.
+ * Sitrep frame however many surfaces read it, and belongs there rather than in
+ * this hook: memoised locally on `[systemBodies, ut]` it would re-run the whole
+ * map every frame, because `ut` moves every frame, once per consumer.
  *
  * A consumer wanting the index lookups (`nameByIndex` / `indexByName`) or a
  * single body by index reads `useProcessor(CELESTIAL_FACTS)` directly and uses

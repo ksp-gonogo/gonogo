@@ -294,10 +294,10 @@ export function projectEntityPosition(
  * centred on `ctx.center`. `null` for a frame mismatch or degenerate sma, same
  * as `projectEntityPosition`.
  *
- * A polyline rather than the `<ellipse cx cy rx ry>` in a `rotate()` group this
- * used to be, for the reason the diagram's own body rings changed: an ellipse is
- * the shape a closed orbit has in its own plane, and once the projection is
- * honest it has a centre those four attributes cannot express. Same sampling as
+ * A polyline rather than an `<ellipse cx cy rx ry>` in a `rotate()` group, for
+ * the same reason the diagram's own body rings are polylines: an ellipse is the
+ * shape a closed orbit has in its own plane, and under an honest projection it
+ * has a centre those four attributes cannot express. Same sampling as
  * the host's rings, so a contributed ring and a body ring cannot disagree about
  * the shape of the same orbit.
  */

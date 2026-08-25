@@ -276,10 +276,10 @@ function normalizeAngle(deg: number): number {
 // reusable ui-kit primitive fits the column, so the layout stays local rather
 // than carrying styled-components into the widget.
 
-// No divider rule of its own. It used to carry a border on whichever edge
-// faced the diagram, which meant the panel had to be told where it was docked;
-// the diagram now sits in a FramedDisplay, and that frame's edge does the
-// dividing on every side at once.
+// No divider rule of its own: the diagram sits in a FramedDisplay and that
+// frame's edge does the dividing on every side at once. A border here would
+// have to be on whichever edge faces the diagram, which means telling this
+// panel where it is docked.
 const WRAP: CSSProperties = {
   display: "flex",
   flexDirection: "column",

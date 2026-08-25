@@ -43,18 +43,18 @@ import type { CelestialBody } from "./useCelestialBodies";
  * Every body orbiting a chosen parent, drawn in one frame.
  *
  * <b>The arithmetic is three-dimensional and the projection to two dimensions
- * happens once, at the last step.</b> It used to flatten first, which is what
- * made a frame transform impossible: a rotation into a pair-rotating frame is a
- * rotation about an arbitrary axis, and a plane the third component has already
- * been dropped from has no such rotation to perform. Every position here is a
+ * happens once, at the last step.</b> Flattening any earlier makes a frame
+ * transform impossible: a rotation into a pair-rotating frame is a rotation
+ * about an arbitrary axis, and a plane the third component has already been
+ * dropped from has no such rotation to perform. Every position here is a
  * parent-centred three-vector in metres, put through the projection in force,
  * and only then multiplied into plot units and written into an SVG attribute.
  *
  * The component that gets dropped is what the colour means. A body's marker
  * carries a cue from its OWN depth at this instant, and a drawn path carries a
  * gradient along the axis its own depth varies on, which is a different reading
- * from the inclination the stroke gradient used to encode: a body at its
- * ascending node has no depth however inclined its orbit is.
+ * from inclination: a body at its ascending node has no depth however inclined
+ * its orbit is.
  *
  * Layered affordances on top of the schematic:
  *
@@ -163,8 +163,9 @@ const MAX_ZOOM = 25;
  * THICKER than the active vessel's own orbit ring
  * (`ACTIVE_VESSEL_ORBIT_STROKE_WIDTH` below) and than a contributed vessel
  * orbit ring (`SystemEntitiesLayer.tsx`'s `VESSEL_ORBIT_STROKE_WIDTH_PX`):
- * the two classes used to sit within a few tenths of a pixel of each other
- * and read as visually identical. Screen-constant (divided by `zoom`, like
+ * the three classes have to stay far enough apart in width to be told apart,
+ * a few tenths of a pixel reads as visually identical. Screen-constant
+ * (divided by `zoom`, like
  * every dot/marker/label in this diagram): `strokeWidth={1.2}` alone would
  * balloon to 30px at the 25x zoom cap (board #28, `soiZoomStroke.test.tsx`).
  */
@@ -873,19 +874,17 @@ function closedPath(
  * How far a drawn curve leaves the projection's reference plane, as a stroke
  * gradient along the axis its own depth varies on.
  *
- * <b>This replaced an inclination gradient, and the two are not the same
- * reading.</b> The old one ran perpendicular to the line of nodes at a strength
- * taken from the inclination angle, so it described the ORBIT: Moho's seven
- * degrees painted at full colour on a whole-system view where the tilt amounts to
- * a pixel, and a body sitting exactly on its ascending node painted as steeply
- * inclined. This one runs between the projected positions of the curve's own
- * deepest and highest samples at a strength taken from how far apart they are ON
- * SCREEN, so it describes the CURVE: a path that dives below the plane and
- * returns reads that way, a path that never leaves it reads neutral, and zooming
- * in on a mild tilt reveals it because at that zoom it is genuinely visible.
- *
- * Same three colours, because this is the honest version of what the old cue was
- * reaching for and not a different language.
+ * <b>This is a depth reading, not an inclination one, and the two are not
+ * interchangeable.</b> A gradient run perpendicular to the line of nodes at a
+ * strength taken from the inclination ANGLE describes the ORBIT: it paints
+ * Moho's seven degrees at full colour on a whole-system view where the tilt
+ * amounts to a pixel, and paints a body sitting exactly on its ascending node
+ * as steeply inclined. This one runs between the projected positions of the
+ * curve's own deepest and highest samples at a strength taken from how far
+ * apart they are ON SCREEN, so it describes the CURVE: a path that dives below
+ * the plane and returns reads that way, a path that never leaves it reads
+ * neutral, and zooming in on a mild tilt reveals it because at that zoom it is
+ * genuinely visible.
  */
 function DepthGradient({
   id,
@@ -959,13 +958,12 @@ function DepthRing({
  * The vessel's own trajectory, drawn as the propagation seam authorised it, in
  * the frame the rest of the picture is in.
  *
- * <b>No `rotate()` group any more, and that is the substance of the change.</b>
- * The old version put both arms inside one `rotate(lan + argPe)`, which is the
- * zero-inclination case of taking a curve from the orbit's own plane into the
- * diagram's, and it worked only because the bodies had been flattened by the same
- * approximation. Every arm now goes through the same placement the bodies do, so
- * the curve and the bodies are in ONE frame by construction rather than by
- * agreement.
+ * <b>No `rotate()` group, deliberately.</b> Wrapping the arms in a single
+ * `rotate(lan + argPe)` is the zero-inclination case of taking a curve from the
+ * orbit's own plane into the diagram's, and agrees with the bodies only if they
+ * have been flattened by the same approximation. Every arm goes through the same
+ * placement the bodies do, so the curve and the bodies are in ONE frame by
+ * construction rather than by agreement.
  *
  * Three arms, and each is a different question about where the points already
  * are:

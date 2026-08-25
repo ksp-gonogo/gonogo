@@ -38,11 +38,10 @@ import {
 import { FramedDisplay, NULL_DISPLAY } from "@ksp-gonogo/ui-kit";
 import type { CSSProperties } from "react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-// FleetComms's `.actions` slot (Commlinks/Traffic toggles) now gates THIS
-// host's own shape-contribution render, not a second overlay draw:
-// reconciled the old straight-line comms overlay onto the graph/highlight/
-// pulse model built in Tasks 4-6, so the toggles moved with it. A pure
-// module-scoped store (no augment-only state), safe to read directly.
+// FleetComms's `.actions` slot (Commlinks/Traffic toggles) gates THIS host's
+// own shape-contribution render, not a second overlay draw: the graph,
+// highlight and pulse entities are all drawn here. A pure module-scoped store
+// (no augment-only state), safe to read directly.
 import { useFleetCommsToggles } from "../FleetComms/toggles";
 import { TrajectoryFrameCaption } from "../shared/trajectoryFrame";
 import { TrajectoryWithheldNote } from "../shared/trajectoryWithheld";
@@ -364,9 +363,9 @@ function SystemViewComponent({
   const facts = useProcessor(CELESTIAL_FACTS);
   // Streamed Topics: raw `vessel.*` records read straight off the Uplink
   // store via the canonical `useTelemetry(TopicId)` hook: no legacy
-  // `DataSource` fallback. The scalars the widget used to read off
-  // trueAnomaly / next-apsis / encounter are reconstructed client-side below
-  // from `vessel.orbit`'s elements + the SDK view-UT.
+  // `DataSource` fallback. The trueAnomaly / next-apsis / encounter scalars
+  // are not on the wire: they are reconstructed client-side below from
+  // `vessel.orbit`'s elements + the SDK view-UT.
   // The vessel's dot and its drawn orbit are MARKERS: positive claims about
   // where the craft is now. So the elements come from a CURRENT reading, or from
   // a model if one is on offer, and otherwise from nothing at all, and the
@@ -463,11 +462,11 @@ function SystemViewComponent({
   // Suppress the active/framed vessel's own entry, but only while
   // `SystemDiagram` actually has a dedicated bright ring to draw in its
   // place: that ring comes from `vessel.orbit` (`vesselOrbit` below), a
-  // separate topic from `vessel.identity`. Gating on identity alone used to
-  // strand a hop endpoint with no marker at all whenever a caller carried
-  // identity (needed so command traffic, further down, knows which vessel
-  // it's routing to) without also carrying orbit: neither the dedicated ring
-  // nor the contributed faint one rendered. Host state, not contribution
+  // separate topic from `vessel.identity`. Gating on identity alone strands a
+  // hop endpoint with no marker at all whenever a caller carries identity
+  // (needed so command traffic, further down, knows which vessel it's routing
+  // to) without also carrying orbit: neither the dedicated ring nor the
+  // contributed faint one would render. Host state, not contribution
   // data: matched by `vesselId`, not by parsing a contribution-private `id`
   // string.
   //
@@ -613,8 +612,8 @@ function SystemViewComponent({
     // (ecc outside `[0, 1)`: escape/flyby trajectories, a routine state for a
     // system-wide diagram during interplanetary transfers). Degrade the
     // orbital scalars to null rather than crashing the whole widget mid-render
-    // (there's no error boundary inside it, and these used to arrive as plain
-    // wire scalars that never threw). Guard
+    // (there's no error boundary inside it, and every other read here is a
+    // plain wire scalar that cannot throw). Guard
     // exactly the solver's own throw condition (`ecc < 0 || ecc >= 1`); the
     // sibling `orbitPatches` memo already gates the same `ecc < 1` boundary.
     if (!(!orbit.ecc.isNegative() && orbit.ecc.lessThan(1))) {
@@ -737,13 +736,14 @@ function SystemViewComponent({
   // chain never fabricates a second patch; the encounter is surfaced separately
   // from the derived `encounter*` scalars above (subtitle + almanac).
   //
-  // Fabricated only on the CONIC answer. The `derived` scalars this leans on are
-  // already gated on reach, so an out-of-horizon sample never got here, but
-  // shape was never asked: a provider that integrates got a confident
-  // one-period conic prediction plus, where an encounter was on the wire, an
-  // SOI crossing predicted by maths it does not use. On the arc answer the
-  // diagram draws the sampled path the provider vouched for instead, which is
-  // the same curve honestly bounded.
+  // Fabricated only on the CONIC answer, and the shape gate is load-bearing on
+  // its own. The `derived` scalars this leans on are already gated on reach, so
+  // an out-of-horizon sample cannot arrive here, but reach says nothing about
+  // SHAPE: without the gate a provider that integrates would be handed a
+  // confident one-period conic prediction plus, where an encounter is on the
+  // wire, an SOI crossing predicted by maths it does not use. On the arc answer
+  // the diagram draws the sampled path the provider vouched for instead, which
+  // is the same curve honestly bounded.
   const orbitPatches = useMemo<OrbitPatch[]>(() => {
     if (!orbit || vesselBody == null || utBucket == null) return [];
     if (vesselTrajectory?.shape !== "conic") return [];
@@ -877,10 +877,9 @@ function SystemViewComponent({
 
   // Diagram size: feeds the SVG viewBox aspect. It measures the diagram's own
   // box inside the panel body, so it legitimately shrinks when the almanac
-  // mounts beside it. (The tile-shaped measurement that used to sit here, and
-  // the side/bottom almanac gates it fed, are the panel's job now:
-  // `sidebarSide="auto"` measures the split container, whose border box does
-  // not move when the arrangement flips, and picks the axis from it.)
+  // mounts beside it. It does NOT choose the almanac's side: that is Panel's
+  // job, and `sidebarSide="auto"` measures the split container, whose border
+  // box does not move when the arrangement flips, and picks the axis from it.
   const { ref: wrapRef, size } = useElementSize({ w: 360, h: 280 });
 
   // Selective rendering: the diagram needs real area. At small sizes collapse
@@ -892,9 +891,8 @@ function SystemViewComponent({
   // AXIS, and correctly refuses to put a 14rem sidebar beside a 232px tile, but
   // it cannot know that at that size the widget would rather be a diagram than
   // a squashed diagram over a clipped table. So the widget decides whether to
-  // offer one at all. The thresholds are the old showSideAlmanac / bottom gates,
-  // collapsed into one: either axis having room is enough, since Panel chooses
-  // which.
+  // offer one at all. One threshold covers both arrangements: either axis
+  // having room is enough, since Panel chooses which.
   const showAlmanac = showDiagram && (cols >= 9 || rows >= 12);
 
   // The frame the whole picture is drawn in.
@@ -1030,9 +1028,8 @@ function SystemViewComponent({
       panelTitle="SYSTEM"
       // The almanac is a second scrolling region, not more body content:
       // reading it must not scroll the diagram it describes off the tile.
-      // `auto` measures the tile and picks the axis, which is the pair of
-      // arrangements this widget used to compute for itself (a right-hand
-      // column on a wide tile, a bottom strip on a tall one).
+      // `auto` measures the tile and picks the axis: a right-hand column on a
+      // wide tile, a bottom strip on a tall one.
       panelSidebar={showAlmanac ? sidebarContent : undefined}
     >
       <div style={FRAME_CAPTION} role="status" aria-live="polite">
@@ -1373,13 +1370,13 @@ registerComponent<SystemViewConfig>({
     "system-view.entities",
     "system-view.projection",
   ],
-  // The body table + phase angles still fan out over the shared `b.*` hooks
-  // (`useCelestialBodies`/`usePhaseAngles`): a separate, shared-hook migration.
-  // Everything else reads the streamed `vessel.*`/`system.bodies` Topics below.
-  // The widget walks the body ARRAY (`systemBodies?.bodies`) and never reads a
-  // count, so it declares the array. The old `b.number` mapped to the derived
-  // `system.state.bodyCount`, a value this widget does not render: keeping it
-  // would point body-count alarms here on the strength of a key nothing reads.
+  // The body table + phase angles fan out over the shared `b.*` hooks
+  // (`useCelestialBodies`/`usePhaseAngles`); everything else reads the streamed
+  // `vessel.*`/`system.bodies` Topics below. The widget walks the body ARRAY
+  // (`systemBodies?.bodies`) and never reads a count, so it declares the array
+  // and deliberately NOT `system.state.bodyCount`: declaring a value this
+  // widget does not render would point body-count alarms here on the strength
+  // of a key nothing reads.
   channels: topics.channels,
   optionalChannels: topics.optionalChannels,
   defaultConfig: { frame: "auto" },

@@ -3,10 +3,10 @@
  * same Keplerian propagator as MapView's ground-track (`patchStateAt`) and keeps
  * the whole inertial state.
  *
- * <b>It used to drop `z` here, and it does not any more.</b> `patchStateAt`
- * already answers with a full three-dimensional parent-centred position, and
- * taking two components of it was the same flat convention the body placement
- * used. Everything below is parent-centred METRES; the diagram places it into the
+ * <b>`z` is kept, not dropped.</b> `patchStateAt` answers with a full
+ * three-dimensional parent-centred position, and taking only two components of
+ * it flattens the arc while the bodies around it stay three-dimensional.
+ * Everything below is parent-centred METRES; the diagram places it into the
  * frame in force and scales it, so the predicted arc lands in the same frame as
  * the bodies it passes.
  *
@@ -46,10 +46,10 @@ export type EncounterKind = "encounter" | "escape";
  * Which way a patch transition crosses an SOI boundary, or `null` when it does
  * not cross one at all.
  *
- * The single place this diagram decides what an SOI event is. It used to be a
- * two-entry `Set` plus an `=== "ESCAPE"` ternary, written out twice: any
- * transition outside the set was silently not an event, so a member appended to
- * `TransitionType` would have drawn no marker on the diagram and listed no row
+ * The single place this diagram decides what an SOI event is, and it is
+ * exhaustive on purpose. Deciding by membership of a hand-written set instead
+ * makes any transition outside the set silently not an event, so a member
+ * appended to `TransitionType` draws no marker on the diagram and lists no row
  * in the almanac, and an operator cannot tell that from a trajectory that
  * genuinely stays in one SOI.
  *

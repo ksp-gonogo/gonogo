@@ -18,21 +18,19 @@ import {
  * Where SystemView's arithmetic lives, in three dimensions, and how the frame it
  * draws in gets chosen.
  *
- * The diagram used to flatten first: `bodyPosition` solved `r(theta)` in the
- * orbit plane and rotated it by `lan + argPe` in two dimensions, which is the
- * inclination-zero case of the real rotation and nothing else. That is what made
- * a frame transform impossible rather than merely absent: a rotation into a
- * pair-rotating frame is a rotation about an arbitrary axis, and there is no such
- * rotation to perform inside a plane the third component was already dropped
- * from. So the arithmetic here is three-dimensional all the way through and the
- * projection to two dimensions happens once, at the point a coordinate becomes
- * an SVG attribute.
+ * The arithmetic is three-dimensional all the way through, and the projection to
+ * two dimensions happens ONCE, at the point a coordinate becomes an SVG
+ * attribute. Flattening any earlier is what makes a frame transform impossible
+ * rather than merely absent: solving `r(theta)` in the orbit plane and rotating
+ * it by `lan + argPe` in two dimensions is the inclination-zero case of the real
+ * rotation and nothing else, and a rotation into a pair-rotating frame is a
+ * rotation about an arbitrary axis, which there is no way to perform inside a
+ * plane the third component has already been dropped from.
  *
  * The dropped component is not discarded. It is the depth the diagram colours
- * with, which is a different fact from the inclination the old stroke gradient
- * encoded: a body at its ascending node has no depth however inclined its orbit
- * is, and the reading that says otherwise is describing the orbit rather than
- * the body.
+ * with, which is a different fact from inclination: a body at its ascending node
+ * has no depth however inclined its orbit is, so a cue encoding inclination is
+ * describing the orbit rather than the body.
  */
 
 /**
@@ -493,9 +491,9 @@ function frameSidesOf(
  * Screen pixels rather than plot units, so the cue tracks what is actually
  * visible: an orbit whose tilt amounts to one pixel on a whole-system view reads
  * flat there, and reads tilted once the operator has zoomed in far enough for
- * the pixel to become thirty. That is the honest answer in both pictures, and it
- * is the reading the old inclination gradient could not give: it painted Moho's
- * seven degrees at full colour on a diagram where the tilt was under a pixel.
+ * the pixel to become thirty. That is the honest answer in both pictures, and a
+ * cue read off the inclination ANGLE cannot give it: that paints Moho's seven
+ * degrees at full colour on a diagram where the tilt is under a pixel.
  */
 const DEPTH_FULL_SCALE_PX = 40;
 
@@ -547,7 +545,7 @@ export interface DepthGradientAxis {
  *
  * Derived from the samples rather than from elements, so it holds for a rosette
  * in a rotating frame exactly as it holds for an ellipse. For a Keplerian ring
- * under the identity projection it recovers the old node-perpendicular axis,
+ * under the identity projection it recovers the node-perpendicular axis,
  * because that is where a Keplerian ring's depth extremes are.
  */
 export function depthGradientAxis(

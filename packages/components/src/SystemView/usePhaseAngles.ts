@@ -12,9 +12,9 @@ import type { CelestialBody } from "./useCelestialBodies";
  * body index: the input the AlmanacPanel's transfer-window readout and
  * SystemDiagram's per-body label consume.
  *
- * This rode a derived phase-angle key that no longer exists, so it is
- * reconstructed CLIENT-SIDE here: each object's true
- * longitude is `L = wrap360(Ω + ω + ν)` (LAN + argPe + true anomaly), and the
+ * The wire carries no phase angle, so it is reconstructed CLIENT-SIDE here:
+ * each object's true longitude is `L = wrap360(Ω + ω + ν)`
+ * (LAN + argPe + true anomaly), and the
  * phase angle is `wrap360(bodyLon − vesselLon)`. Positive = the body is ahead of
  * the vessel in the prograde direction, matching `hohmannPhaseAngle`'s "+ =
  * target ahead" convention so `angleDelta(live, ideal)` lines up.
@@ -61,10 +61,10 @@ export function usePhaseAngles(
     // Ask the provider before propagating the vessel's elements to the view
     // instant, the same question and the same window as SystemView's own
     // `derived` memo: the horizon is an absolute UT bound, so "can these answer
-    // for the moment on screen" is the whole of it. This read used to skip the
-    // gate its sibling applies to the identical propagation, so an operator
-    // scrubbed past an integrator's horizon and got no vessel dot but a live
-    // transfer-window highlight worked out from where the craft would have been.
+    // for the moment on screen" is the whole of it. Skipping the gate here
+    // while the sibling applies it to the identical propagation lets an
+    // operator scrub past an integrator's horizon and get no vessel dot but a
+    // live transfer-window highlight worked out from where the craft would be.
     //
     // SHAPE is deliberately not consulted. A phase angle is a position
     // relationship at one instant, which the osculating elements give exactly

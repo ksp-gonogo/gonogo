@@ -220,11 +220,10 @@ function Primitive({
       // contribution shouldn't accidentally become clickable either.
       // The ring is a closed path through samples the projection has already
       // been applied to, and `dotX`/`dotY` came through the same placement, so
-      // both are absolute and neither sits inside a transform. It used to be an
-      // `<ellipse>` in a `rotate(lan + argPe)` group, which is the shape a closed
-      // orbit has in its own plane and only in that plane: projected honestly it
-      // has a centre `cx`/`cy` cannot express, and in a rotating frame it is a
-      // rosette.
+      // both are absolute and neither sits inside a transform. An `<ellipse>`
+      // in a `rotate(lan + argPe)` group is the shape a closed orbit has in its
+      // own plane and only in that plane: projected honestly it has a centre
+      // `cx`/`cy` cannot express, and in a rotating frame it is a rosette.
       const dot =
         r.dotX != null && r.dotY != null ? (
           <circle
@@ -437,9 +436,8 @@ function Primitive({
                 wavy, energetic ejecta instead of a smooth static dash.
                 Points are computed directly at the wave's CURRENT position
                 (`startPx`) each render: a single real-UT-driven pass has no
-                animation to compose with, so there's no need for the
-                separate static/animated `<g>` split the old looping
-                version needed. */}
+                animation to compose with, so it needs no separate
+                static/animated `<g>` split. */}
             <polyline
               points={travellingPulseWavePoints(segmentLengthPx, startPx)}
               fill="none"

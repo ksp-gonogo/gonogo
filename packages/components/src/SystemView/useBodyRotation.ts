@@ -3,9 +3,8 @@ import { useCelestialBodies } from "./useCelestialBodies";
 
 /**
  * Body rotation angle for the OrbitDiagram pole marker, derived CLIENT-SIDE
- * from the body's `rotationPeriod` + the SDK view-UT, instead of the legacy
- * per-frame `b.rotationAngle[i]` / `b.rotates[i]`
- * indexed reads this hook used to make.
+ * from the body's `rotationPeriod` + the SDK view-UT rather than read per frame
+ * off the wire.
  *
  * `angleDeg = (360 · viewUt / rotationPeriod) mod 360`, the rate is exact
  * (one turn per `rotationPeriod` seconds; a NEGATIVE period spins the marker
@@ -16,14 +15,12 @@ import { useCelestialBodies } from "./useCelestialBodies";
  * surface-longitude reference (the widget draws the marker relative to the
  * body, not the sky).
  *
- * `rotates` is derived from `rotationPeriod` too (a body rotates iff its
- * period is finite and non-zero), so the hook no longer reads `b.rotates[i]`
- * either.
+ * `rotates` is derived from `rotationPeriod` too: a body rotates iff its period
+ * is finite and non-zero.
  *
  * Reads the SDK view-UT NON-reactively (`ViewClock.confirmedEdgeUt()` at
- * render), not via a per-frame `onFrame` subscription, the marker advances on
- * the widget's own telemetry-driven re-renders, the same cadence the legacy
- * `b.rotationAngle[i]` WS read ticked at, and with no extra subscription that
+ * render), not via a per-frame `onFrame` subscription, so the marker advances
+ * on the widget's own telemetry-driven re-renders and adds no subscription that
  * could fire state updates outside React's `act`.
  *
  * Returns `null` for either field while the body index hasn't resolved yet
