@@ -1,7 +1,7 @@
 import { observedAt } from "../reading";
 import { isValue, value } from "../unit-system/value";
 import type { Value } from "../value";
-import type { Reading } from "./client-reading";
+import type { Reading, ReadingState } from "./client-reading";
 import { CORE_UPLINK_CLIENT } from "./uplink-clients";
 
 // ---------------------------------------------------------------------------
@@ -90,7 +90,7 @@ export interface DeltaVStage {
  */
 export interface BudgetProvenance {
   /** The reading arm `dv.summary` arrived on. */
-  state: "pending" | "absent" | "observed" | "stale" | "reckonable";
+  state: ReadingState;
   /** UT the summary was observed at; undefined when nothing has been observed. */
   asOfUt: Value<"ut"> | undefined;
   /** Seconds between that observation and the frame this was derived for. */

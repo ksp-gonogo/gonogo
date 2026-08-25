@@ -18,6 +18,7 @@ import { value } from "../unit-system/value";
 export type {
   ModelledField,
   Reading,
+  ReadingState,
   ReckonerFor,
   Reckoning,
   ReckoningBasis,

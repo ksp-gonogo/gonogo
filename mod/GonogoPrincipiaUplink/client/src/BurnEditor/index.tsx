@@ -93,6 +93,12 @@ function planView(reading: Reading<PrincipiaPlan>): PlanView {
   switch (reading.state) {
     case "pending":
       return { kind: "none", reason: "Waiting for Principia." };
+    case "unowned":
+      return {
+        kind: "none",
+        reason:
+          "Nothing publishes this plan. The Principia Uplink declared no plan channel, so waiting will not help: check KSP's log for an Uplink load error.",
+      };
     case "absent":
       return {
         kind: "none",
