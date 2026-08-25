@@ -63,11 +63,104 @@ public class CareerEconomy
     [SitrepUnit(Units.Funds)]
     public double? Funds { get; set; }
 
+    /// <summary>
+    /// The stock reputation field, unchanged. Under a career overhaul it is the
+    /// most consequential number in the save (it IS the income) and the value was
+    /// never wrong: what was missing is the context below, which is why that
+    /// arrived as an elected interpretation rather than as a replacement here.
+    /// </summary>
     [SitrepUnit(Units.Reputation)]
     public double? Reputation { get; set; }
 
     [SitrepUnit(Units.Science)]
     public double? Science { get; set; }
+
+    /// <summary>
+    /// Which money model answered the four fields below, e.g. <c>"stock"</c>.
+    /// Provenance only: a client reads the interpretation, never branches on who
+    /// produced it.
+    /// </summary>
+    [SitrepUnit(Units.Id)]
+    public string? EconomyModel { get; set; }
+
+    /// <summary>
+    /// Reputation lost per day at the current reputation. Zero on stock, which
+    /// genuinely has no decay, and that zero is a statement rather than a
+    /// placeholder.
+    /// </summary>
+    [SitrepUnit(Units.ReputationPerDay)]
+    public double? ReputationDecayPerDay { get; set; }
+
+    /// <summary>Funding the current reputation earns, per day. Zero on stock.</summary>
+    [SitrepUnit(Units.FundsPerDay)]
+    public double? SubsidyPerDay { get; set; }
+
+    /// <summary>The subsidy at zero reputation: the floor nothing takes away.</summary>
+    [SitrepUnit(Units.FundsPerDay)]
+    public double? SubsidyMinPerDay { get; set; }
+
+    /// <summary>
+    /// The subsidy reputation cannot beat. With the minimum it says how much of
+    /// the range the current reputation has bought, which is what turns a bare
+    /// reputation number into something an operator can act on.
+    /// </summary>
+    [SitrepUnit(Units.FundsPerDay)]
+    public double? SubsidyMaxPerDay { get; set; }
+
+    /// <summary>
+    /// Total ongoing cost per day. This is why <see cref="Funds"/> is the right
+    /// balance and the wrong affordability test under an overhaul: a balance that
+    /// covers a purchase today may not cover it plus next month's salaries.
+    /// </summary>
+    [SitrepUnit(Units.FundsPerDay)]
+    public double? UpkeepPerDay { get; set; }
+
+    /// <summary>
+    /// Where the upkeep goes. ABSENT on stock, which has no per-source model at
+    /// all: seven zeros would claim stock levies seven kinds of nothing, where the
+    /// truth is that it levies none of them.
+    /// </summary>
+    public CareerUpkeep? Upkeep { get; set; }
+}
+
+/// <summary>
+/// Ongoing cost by source, per day, from the elected economy model. Every member
+/// is absent when that model does not have the concept, never zero: an
+/// unmodelled source and a source costing nothing are different facts.
+/// </summary>
+[SitrepContract]
+#if SITREP_CODEGEN
+[TsInterface]
+#endif
+public class CareerUpkeep
+{
+    /// <summary>Buildings: the standing cost of having a space centre at all.</summary>
+    [SitrepUnit(Units.FundsPerDay)]
+    public double? Facilities { get; set; }
+
+    /// <summary>Launch complexes and their pads, which cost whether or not anything is building.</summary>
+    [SitrepUnit(Units.FundsPerDay)]
+    public double? LaunchComplexes { get; set; }
+
+    /// <summary>Researcher salaries, which an idle research queue does not stop.</summary>
+    [SitrepUnit(Units.FundsPerDay)]
+    public double? ResearchSalary { get; set; }
+
+    /// <summary>Crew training in progress.</summary>
+    [SitrepUnit(Units.FundsPerDay)]
+    public double? Training { get; set; }
+
+    /// <summary>Standing crew costs: everyone on the roster, flying or not.</summary>
+    [SitrepUnit(Units.FundsPerDay)]
+    public double? CrewBase { get; set; }
+
+    /// <summary>The extra a crew in flight costs over a crew on the ground.</summary>
+    [SitrepUnit(Units.FundsPerDay)]
+    public double? CrewInFlight { get; set; }
+
+    /// <summary>Engineer salaries on the integration teams.</summary>
+    [SitrepUnit(Units.FundsPerDay)]
+    public double? IntegrationSalary { get; set; }
 }
 
 /// <summary>

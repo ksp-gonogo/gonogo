@@ -22,11 +22,13 @@
        stand-in RP-1 types in Rp0Fixture.cs rather than being the one part that
        only a live game could test. -->
   <ItemGroup>
+    <Compile Include="..\GonogoRp1Uplink\Rp1Types.cs" />
     <Compile Include="..\GonogoRp1Uplink\Rp1ScRaw.cs" />
     <Compile Include="..\GonogoRp1Uplink\Rp1ScMath.cs" />
     <Compile Include="..\GonogoRp1Uplink\Rp1ScCapture.cs" />
     <Compile Include="..\GonogoRp1Uplink\Rp1ScReflection.cs" />
     <Compile Include="..\GonogoRp1Uplink\Rp1ScUplink.cs" />
+    <Compile Include="..\GonogoRp1Uplink\Rp1EconomyBackend.cs" />
   </ItemGroup>
 
   <ItemGroup>

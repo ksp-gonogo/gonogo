@@ -58,6 +58,17 @@ namespace GonogoRp1Uplink
 
         private readonly Rp1ScReflection _rp1 = new Rp1ScReflection();
 
+        /// <summary>
+        /// RP-1's answer to what a career's money is doing, offered to the
+        /// exclusive <c>"economy"</c> capability. Its own reader, not part of the
+        /// space-centre capture: the two share nothing but the assembly, and the
+        /// capability's consumer is core's own career channel.
+        /// </summary>
+        private readonly Rp1EconomyBackend _economy = new Rp1EconomyBackend();
+
+        /// <summary>Set when the provider registration threw, so Health can say so rather than nothing.</summary>
+        private string? _economyRegistrationError;
+
         private IChannelPublisher? _centres;
         private IChannelPublisher? _complexes;
         private IChannelPublisher? _buildQueue;
@@ -118,6 +129,30 @@ namespace GonogoRp1Uplink
             {
                 host.SetAvailability(Availability.Unavailable("RP-1 (RP0) assembly not loaded"));
                 return;
+            }
+
+            // The economy provider: what RP-1 makes of the reputation core already
+            // publishes. Registered from here, gated on the probe, because
+            // registering IS the election gate; a stock install never sees this
+            // line run and keeps the vanilla backend's truthful zeros.
+            //
+            // Registered SEPARATELY from the channels below and deliberately
+            // before them: an economy provider that fails to register must not
+            // cost this Uplink its own read surface, and vice versa. A failure is
+            // surfaced on Health rather than swallowed.
+            try
+            {
+                host.Kernel.RegisterProvider(new ProviderRegistration
+                {
+                    Capability = "economy",
+                    Id = "rp1",
+                    Priority = 10.0,
+                    Factory = _ => _economy,
+                });
+            }
+            catch (Exception ex)
+            {
+                _economyRegistrationError = ex.Message;
             }
 
             _centres = host.Publisher(CentresTopic);
@@ -207,6 +242,11 @@ namespace GonogoRp1Uplink
                 new UplinkHealthFact("Confidence", _rp1.ConfidenceTypeResolved ? "present" : "absent"),
                 new UplinkHealthFact("save mode", _enabledForSave ? "enabled" : "not enabled for this save"),
                 new UplinkHealthFact("read against", "RP-1 v4.6.0.0"),
+                new UplinkHealthFact(
+                    "economy provider",
+                    _economyRegistrationError != null
+                        ? "registration failed: " + _economyRegistrationError
+                        : _economy.IsAvailable ? "registered" : "maintenance types not found"),
             };
 
             if (!_rp1.IsAvailable)

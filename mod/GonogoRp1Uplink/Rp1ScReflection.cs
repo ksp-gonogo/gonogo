@@ -79,7 +79,8 @@ namespace GonogoRp1Uplink
         private readonly Type? _lcEfficiency;
         private readonly Type? _database;
 
-        private readonly Dictionary<string, MemberInfo?> _members = new Dictionary<string, MemberInfo?>();
+        /// <summary>Cached MethodInfo per (type, method): the one member kind read by invoke rather than by value.</summary>
+        private readonly Dictionary<string, MemberInfo?> _methods = new Dictionary<string, MemberInfo?>();
         private readonly Dictionary<string, string?> _groundStations = new Dictionary<string, string?>();
 
         /// <summary>
@@ -104,10 +105,10 @@ namespace GonogoRp1Uplink
 
         public Rp1ScReflection()
         {
-            _scm = FindType(ScmTypeName);
-            _confidence = FindType(ConfidenceTypeName);
-            _lcEfficiency = FindType(EfficiencyTypeName);
-            _database = FindType(DatabaseTypeName);
+            _scm = Rp1Types.Find(ScmTypeName);
+            _confidence = Rp1Types.Find(ConfidenceTypeName);
+            _lcEfficiency = Rp1Types.Find(EfficiencyTypeName);
+            _database = Rp1Types.Find(DatabaseTypeName);
 
             if (_scm != null)
             {
@@ -496,7 +497,7 @@ namespace GonogoRp1Uplink
             {
                 return null;
             }
-            var instance = StaticValue(_confidence, "Instance");
+            var instance = Rp1Types.StaticValue(_confidence, "Instance");
             if (instance == null)
             {
                 return null;
@@ -611,7 +612,7 @@ namespace GonogoRp1Uplink
             {
                 return 1.0;
             }
-            var settings = StaticValue(_database, "SettingsSC");
+            var settings = Rp1Types.StaticValue(_database, "SettingsSC");
             return settings == null ? 1.0 : ReadDouble(settings, "RushRateMult") ?? 1.0;
         }
 
@@ -621,11 +622,11 @@ namespace GonogoRp1Uplink
             {
                 return 1.0;
             }
-            var value = StaticValue(_lcEfficiency, "MaxEfficiency");
+            var value = Rp1Types.StaticValue(_lcEfficiency, "MaxEfficiency");
             return value is double d ? d : 1.0;
         }
 
-        private object? ScmInstance() => _scm == null ? null : StaticValue(_scm, "Instance");
+        private object? ScmInstance() => _scm == null ? null : Rp1Types.StaticValue(_scm, "Instance");
 
         /// <summary>
         /// The centre's associated ground station, memoised per centre name. The
@@ -655,74 +656,17 @@ namespace GonogoRp1Uplink
         // ── Reflection primitives ────────────────────────────────────────────
 
         /// <summary>
-        /// Reads a named property or field off an object's runtime type, walking
-        /// the base chain so a protected member declared on a base class (RP-1's
-        /// <c>LCOpsProject._buildRate</c>) resolves from the concrete subclass.
-        /// Null-safe per hop and cached per (type, member).
+        /// Reads a named property or field off an object's runtime type. Delegates
+        /// to the shared primitive, which walks the base chain so a protected
+        /// member declared on a base class (RP-1's <c>LCOpsProject._buildRate</c>)
+        /// resolves from the concrete subclass.
         /// </summary>
-        private object? Member(object? target, string name)
-        {
-            if (target == null)
-            {
-                return null;
-            }
-            var type = target.GetType();
-            var key = type.FullName + "." + name;
-            if (!_members.TryGetValue(key, out var member))
-            {
-                member = Resolve(type, name);
-                _members[key] = member;
-            }
-            try
-            {
-                switch (member)
-                {
-                    case PropertyInfo pi:
-                        return pi.GetValue(target);
-                    case FieldInfo fi:
-                        return fi.GetValue(target);
-                    default:
-                        return null;
-                }
-            }
-            catch (Exception)
-            {
-                // fail-soft: a moved or throwing member degrades to absent, and
-                // never takes the Uplink inert
-                return null;
-            }
-        }
-
-        private static MemberInfo? Resolve(Type type, string name)
-        {
-            const BindingFlags flags = BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance | BindingFlags.DeclaredOnly;
-            for (var t = type; t != null; t = t.BaseType)
-            {
-                try
-                {
-                    var pi = t.GetProperty(name, flags);
-                    if (pi != null && pi.CanRead)
-                    {
-                        return pi;
-                    }
-                    var fi = t.GetField(name, flags);
-                    if (fi != null)
-                    {
-                        return fi;
-                    }
-                }
-                catch (Exception)
-                {
-                    // keep walking: an unreadable level is not the end of the chain
-                }
-            }
-            return null;
-        }
+        private static object? Member(object? target, string name) => Rp1Types.Member(target, name);
 
         private MethodInfo? Method(Type type, string name)
         {
             var key = type.FullName + "()." + name;
-            if (!_members.TryGetValue(key, out var member))
+            if (!_methods.TryGetValue(key, out var member))
             {
                 try
                 {
@@ -732,28 +676,9 @@ namespace GonogoRp1Uplink
                 {
                     member = null;
                 }
-                _members[key] = member;
+                _methods[key] = member;
             }
             return member as MethodInfo;
-        }
-
-        private static object? StaticValue(Type type, string name)
-        {
-            const BindingFlags flags = BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Static;
-            try
-            {
-                var pi = type.GetProperty(name, flags);
-                if (pi != null && pi.CanRead)
-                {
-                    return pi.GetValue(null);
-                }
-                var fi = type.GetField(name, flags);
-                return fi?.GetValue(null);
-            }
-            catch (Exception)
-            {
-                return null;
-            }
         }
 
         private double? ReadDouble(object? target, string name) => ToDouble(Member(target, name));
@@ -876,68 +801,5 @@ namespace GonogoRp1Uplink
         private static string? EmptyAsAbsent(string? value) =>
             string.IsNullOrEmpty(value) ? null : value;
 
-        /// <summary>
-        /// Resolves a type by full name across the loaded assemblies, preferring
-        /// RP-1's own if it is identifiable by name. The name scan is a fast path
-        /// only: presence is decided by whether the TYPE resolved.
-        /// </summary>
-        private static Type? FindType(string fullName)
-        {
-            Assembly[] assemblies;
-            try
-            {
-                assemblies = AppDomain.CurrentDomain.GetAssemblies();
-            }
-            catch (Exception)
-            {
-                return null;
-            }
-
-            foreach (var a in assemblies)
-            {
-                string? name = null;
-                try
-                {
-                    name = a.GetName().Name;
-                }
-                catch (Exception)
-                {
-                    // an assembly that will not name itself is simply not the fast path
-                }
-                if (name == null
-                    || !(name.StartsWith("RP0", StringComparison.OrdinalIgnoreCase)
-                         || name.Equals("RP-1", StringComparison.OrdinalIgnoreCase)))
-                {
-                    continue;
-                }
-                var hit = TypeIn(a, fullName);
-                if (hit != null)
-                {
-                    return hit;
-                }
-            }
-
-            foreach (var a in assemblies)
-            {
-                var hit = TypeIn(a, fullName);
-                if (hit != null)
-                {
-                    return hit;
-                }
-            }
-            return null;
-        }
-
-        private static Type? TypeIn(Assembly assembly, string fullName)
-        {
-            try
-            {
-                return assembly.GetType(fullName);
-            }
-            catch (Exception)
-            {
-                return null;
-            }
-        }
     }
 }
