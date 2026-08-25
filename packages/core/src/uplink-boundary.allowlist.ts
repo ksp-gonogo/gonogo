@@ -79,6 +79,15 @@ export const ALLOWLIST: Record<ModToken, ModAllowlist> = {
       "packages/app/src/__tests__/gamehost-repoints-both.test.tsx",
     ],
     permanent: [
+      // -- UPLINK WIDGET-DECLARATION gate (2026-08-25): the app-side check that
+      // every Uplink widget's dataRequirements resolve to something real has to
+      // LOAD every Uplink client to read the registry they register into, so it
+      // names all nine by construction. Permanent, not debt: it cannot clear
+      // when the runtime loader lands, because a gate over every Uplink's
+      // declarations will always have to load every Uplink. It lives outside
+      // them for the reason BLOCKED_FILENAMES records, that a gate inside an
+      // Uplink is one a third-party author cannot run.
+      "packages/app/src/__tests__/uplink-widget-declarations.test.ts",
       // -- WORKER FEASIBILITY citation (2026-08-23): the Principia Uplink's
       // worker doc names `kerbcast-sidecar` as the evidence that a KSP plugin
       // can start a child process inside the pressure-vessel container, which
@@ -250,6 +259,15 @@ export const ALLOWLIST: Record<ModToken, ModAllowlist> = {
       "packages/components/src/MapView/types.ts",
     ],
     permanent: [
+      // -- UPLINK WIDGET-DECLARATION gate (2026-08-25): the app-side check that
+      // every Uplink widget's dataRequirements resolve to something real has to
+      // LOAD every Uplink client to read the registry they register into, so it
+      // names all nine by construction. Permanent, not debt: it cannot clear
+      // when the runtime loader lands, because a gate over every Uplink's
+      // declarations will always have to load every Uplink. It lives outside
+      // them for the reason BLOCKED_FILENAMES records, that a gate inside an
+      // Uplink is one a third-party author cannot run.
+      "packages/app/src/__tests__/uplink-widget-declarations.test.ts",
       // -- UPLINK-DISCOVERABILITY scan (2026-08-22): the check that every
       // uplink is registered must WALK every uplink project to find them, so
       // it necessarily names each directory. It was previously blind to
@@ -489,6 +507,15 @@ export const ALLOWLIST: Record<ModToken, ModAllowlist> = {
       "packages/app/src/telemetry/SitrepPeerRelay.test.tsx",
     ],
     permanent: [
+      // -- UPLINK WIDGET-DECLARATION gate (2026-08-25): the app-side check that
+      // every Uplink widget's dataRequirements resolve to something real has to
+      // LOAD every Uplink client to read the registry they register into, so it
+      // names all nine by construction. Permanent, not debt: it cannot clear
+      // when the runtime loader lands, because a gate over every Uplink's
+      // declarations will always have to load every Uplink. It lives outside
+      // them for the reason BLOCKED_FILENAMES records, that a gate inside an
+      // Uplink is one a third-party author cannot run.
+      "packages/app/src/__tests__/uplink-widget-declarations.test.ts",
       // -- UPLINK-DISCOVERABILITY scan (2026-08-22): the check that every
       // uplink is registered must WALK every uplink project to find them, so
       // it necessarily names each directory. It was previously blind to
@@ -761,6 +788,15 @@ export const ALLOWLIST: Record<ModToken, ModAllowlist> = {
   realantennas: {
     domainDebt: [],
     permanent: [
+      // -- UPLINK WIDGET-DECLARATION gate (2026-08-25): the app-side check that
+      // every Uplink widget's dataRequirements resolve to something real has to
+      // LOAD every Uplink client to read the registry they register into, so it
+      // names all nine by construction. Permanent, not debt: it cannot clear
+      // when the runtime loader lands, because a gate over every Uplink's
+      // declarations will always have to load every Uplink. It lives outside
+      // them for the reason BLOCKED_FILENAMES records, that a gate inside an
+      // Uplink is one a third-party author cannot run.
+      "packages/app/src/__tests__/uplink-widget-declarations.test.ts",
       // -- Uplink ISOLATION ratchet inventory (2026-08-18): the inward guard's
       // debt list is keyed by file path, so it necessarily names every Uplink
       // directory. Ratchet-inventory file, the case this bucket documents.
@@ -997,6 +1033,15 @@ export const ALLOWLIST: Record<ModToken, ModAllowlist> = {
   mechjeb: {
     domainDebt: [],
     permanent: [
+      // -- UPLINK WIDGET-DECLARATION gate (2026-08-25): the app-side check that
+      // every Uplink widget's dataRequirements resolve to something real has to
+      // LOAD every Uplink client to read the registry they register into, so it
+      // names all nine by construction. Permanent, not debt: it cannot clear
+      // when the runtime loader lands, because a gate over every Uplink's
+      // declarations will always have to load every Uplink. It lives outside
+      // them for the reason BLOCKED_FILENAMES records, that a gate inside an
+      // Uplink is one a third-party author cannot run.
+      "packages/app/src/__tests__/uplink-widget-declarations.test.ts",
       // -- CI gating ratchet (2026-08-20): names the four Uplink test
       // projects that were in mod/Gonogo.sln and in no CI job, which is the
       // finding itself: "four projects drifted" without saying which is not
@@ -1103,6 +1148,15 @@ export const ALLOWLIST: Record<ModToken, ModAllowlist> = {
   avionics: {
     domainDebt: [],
     permanent: [
+      // -- UPLINK WIDGET-DECLARATION gate (2026-08-25): the app-side check that
+      // every Uplink widget's dataRequirements resolve to something real has to
+      // LOAD every Uplink client to read the registry they register into, so it
+      // names all nine by construction. Permanent, not debt: it cannot clear
+      // when the runtime loader lands, because a gate over every Uplink's
+      // declarations will always have to load every Uplink. It lives outside
+      // them for the reason BLOCKED_FILENAMES records, that a gate inside an
+      // Uplink is one a third-party author cannot run.
+      "packages/app/src/__tests__/uplink-widget-declarations.test.ts",
       // -- CI gating ratchet (2026-08-20): names the four Uplink test
       // projects that were in mod/Gonogo.sln and in no CI job, which is the
       // finding itself: "four projects drifted" without saying which is not
@@ -1257,6 +1311,22 @@ export const ALLOWLIST: Record<ModToken, ModAllowlist> = {
       "packages/app/src/main.tsx",
     ],
     permanent: [
+      // -- UPLINK WIDGET-DECLARATION gate (2026-08-25): the app-side check that
+      // every Uplink widget's dataRequirements resolve to something real has to
+      // LOAD every Uplink client to read the registry they register into, so it
+      // names all nine by construction. Permanent, not debt: it cannot clear
+      // when the runtime loader lands, because a gate over every Uplink's
+      // declarations will always have to load every Uplink. It lives outside
+      // them for the reason BLOCKED_FILENAMES records, that a gate inside an
+      // Uplink is one a third-party author cannot run.
+      "packages/app/src/__tests__/uplink-widget-declarations.test.ts",
+      // -- CANONICAL-UNWRAP ratchet (2026-08-25): text-only, no code coupling.
+      // It holds the magnitude unwrap at one implementation, and its doc
+      // comment names the Uplink whose diverged copy answered 0 for absence,
+      // because the concrete case is the whole value of that comment. No
+      // import, no path, no payload type, and the check itself is repo-wide
+      // and mod-blind.
+      "packages/core/src/styleguide-magnitude-canonical.test.ts",
       // -- UPLINK-DISCOVERABILITY scan (2026-08-22): the check that every
       // uplink is registered must WALK every uplink project to find them, so
       // it necessarily names each directory. It was previously blind to
@@ -1550,6 +1620,15 @@ export const ALLOWLIST: Record<ModToken, ModAllowlist> = {
   principia: {
     domainDebt: [],
     permanent: [
+      // -- UPLINK WIDGET-DECLARATION gate (2026-08-25): the app-side check that
+      // every Uplink widget's dataRequirements resolve to something real has to
+      // LOAD every Uplink client to read the registry they register into, so it
+      // names all nine by construction. Permanent, not debt: it cannot clear
+      // when the runtime loader lands, because a gate over every Uplink's
+      // declarations will always have to load every Uplink. It lives outside
+      // them for the reason BLOCKED_FILENAMES records, that a gate inside an
+      // Uplink is one a third-party author cannot run.
+      "packages/app/src/__tests__/uplink-widget-declarations.test.ts",
       // -- UPLINK-DISCOVERABILITY scan (2026-08-22): the check that every
       // uplink is registered must WALK every uplink project to find them, so
       // it necessarily names each directory. It was previously blind to

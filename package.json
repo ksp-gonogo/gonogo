@@ -13,6 +13,7 @@
     "codegen:check": "bash scripts/codegen-check.sh",
     "test": "turbo test",
     "act-warning-gate": "node scripts/act-warning-gate.mjs",
+    "fixture-gated-report": "node scripts/report-fixture-gated-suites.mjs",
     "test:playwright": "playwright test",
     "rig": "playwright test --config playwright.rig.config.ts",
     "typecheck": "turbo typecheck",
