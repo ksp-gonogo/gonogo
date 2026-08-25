@@ -119,6 +119,15 @@ const DEFAULT_RETRY_TIMEOUT_MS = 5 * 60 * 1000;
  * server grows a real channel-advertisement handshake.
  */
 export class WebSocketTransport implements Transport {
+  /**
+   * This is the connection that owns its own `ClientSession` with the mod, so
+   * the `subscribed` acks it receives are answers to its OWN subscribes and a
+   * missing one is real evidence that nothing will ever publish the topic.
+   *
+   * The only transport in the tree that opts in. See
+   * `Transport.decidesTopicOwnership` for why the default is the other way.
+   */
+  readonly decidesTopicOwnership = true;
   private _status: TransportStatus = "reconnecting";
 
   private readonly url: string;

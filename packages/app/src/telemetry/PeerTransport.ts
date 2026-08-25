@@ -95,6 +95,18 @@ export class PeerTransport implements Transport {
    * making one it cannot honour.
    */
   readonly carriesVantage = false;
+  /**
+   * A station cannot tell a served topic from an unserved one, so it must not
+   * try. Its subscribe reaches the mod only when the HOST's own refcount makes
+   * a 0 -> 1 transition, so a topic the host is already holding is never
+   * re-acked, and every ack minted before this station connected is one it did
+   * not see. Silence here is not evidence, and a false "nothing publishes this"
+   * tells an author their correct code is broken.
+   *
+   * A station's reads therefore stay `pending`. Relaying the host's verdict
+   * over the peer wire would make them decidable and is separate work.
+   */
+  readonly decidesTopicOwnership = false;
   private _status: TransportStatus;
   private readonly messageListeners = new Set<
     (message: ServerMessage) => void

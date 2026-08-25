@@ -95,4 +95,25 @@ export interface Transport {
    * vantage its data is not from.
    */
   readonly carriesVantage?: boolean;
+  /**
+   * OPTIONAL: whether this transport relays the mod's `subscribed` acks, so a
+   * missing one is real evidence that nothing will ever publish the topic.
+   *
+   * **Absent means NO**, which is the opposite default to `carriesVantage` and
+   * deliberately so. Every other transport in the tree is silent about acks:
+   * `StubTransport` emits whatever a test scripts and never acks,
+   * `ReplayTransport` replays a fixture's frames, `CourierTransport` drives the
+   * courier directly. Defaulting to yes would mature every topic in every one
+   * of those into `unowned` the moment the window elapsed, which is precisely
+   * the false-unowned this whole mechanism is built to avoid. Opting in is a
+   * claim a transport has to make about itself.
+   *
+   * `PeerTransport` is the interesting no. A station's subscribe does reach the
+   * mod, but only when the HOST's own refcount makes a 0 -> 1 transition, so a
+   * topic the host already holds is never re-acked; the station also missed
+   * every ack minted before it connected. Silence there is not evidence of
+   * anything. A station therefore stays `pending`, and relaying the host's
+   * verdict to it is separate work.
+   */
+  readonly decidesTopicOwnership?: boolean;
 }

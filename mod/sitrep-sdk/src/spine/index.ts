@@ -84,6 +84,7 @@ export * from "./space-center-state";
 export * from "./stream-status";
 export * from "./system-state";
 export * from "./timeline-store";
+export * from "./topic-ownership";
 export * from "./uplink-clients";
 export * from "./uplink-health";
 export * from "./use-action-input";

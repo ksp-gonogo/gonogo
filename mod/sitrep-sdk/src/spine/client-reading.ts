@@ -53,14 +53,26 @@ function rootCoverage(model: {
  * optional: every reckoning is a function of it, and a default would let a
  * caller build a reading whose modelled value silently answered for the wrong
  * moment.
+ *
+ * `unowned` is the mod's verdict that nothing will ever publish this topic. It
+ * only ever redirects the empty case, and it needs no guard against the OTHER
+ * thing an empty case can mean: `status` is `"resyncing"` both for a cold topic
+ * and for one whose points a rewind dropped, but the verdict already tells them
+ * apart. A topic that has ever published was necessarily acked when it was
+ * subscribed, and an ack settles ownership for the life of the connection, so a
+ * mid-resync topic can never be carrying an `unowned` verdict. Earning the
+ * verdict positively is `TopicOwnershipTracker`'s job; this function trusts it.
  */
 export function readingFrom<T>(
   point: TimelinePoint<T> | undefined,
   status: StreamStatusValue,
   viewUt: number,
   reckoner?: ReckonerFor<T>,
+  unowned = false,
 ): Reading<T> {
-  if (!point || status === "resyncing") return { state: "pending" };
+  if (!point || status === "resyncing") {
+    return unowned ? { state: "unowned" } : { state: "pending" };
+  }
   // A tombstone outranks every staleness grade, the same precedence
   // `sampleRawStatus` uses and for the same reason: a confirmed absence is a
   // stronger claim than "may have changed, cannot tell". It also has no

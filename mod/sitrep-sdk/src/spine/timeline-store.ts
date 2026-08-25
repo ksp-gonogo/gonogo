@@ -340,9 +340,21 @@ export class TimelineStore {
       epoch: number;
       /** The frame view time the reading was built for. Only a reckoning depends on it. */
       viewUt: number;
+      /** Whether the topic was known unowned. Flips the arm with no other input changing. */
+      unowned: boolean;
       reading: Reading<unknown>;
     }
   >();
+
+  /**
+   * Topics the mod answered a subscribe for with nothing, so nothing will ever
+   * publish them. Fed by `TelemetryClient`, which owns the ack tracker that
+   * decides it; the store only remembers the verdict and folds it into the arm.
+   *
+   * A `Set` of the exceptional case rather than a status per topic, because the
+   * overwhelming majority of topics are owned and saying so costs nothing.
+   */
+  private readonly unownedTopics = new Set<string>();
 
   /** Missed-keyframe-heartbeat tracker backing `sampleStatus`'s client-inferred `"held-stale"`. */
   readonly heartbeats: HeartbeatTracker;
@@ -1146,12 +1158,14 @@ export class TimelineStore {
           getReckoner<T>(topic) ??
           this.derivedReckoner<T>(topic, effectiveToken) ??
           this.fieldScopedReckoner<T>(topic, effectiveToken);
+        const unowned = this.unownedTopics.has(topic);
         const previous = this.readings.get(topic);
         if (
           previous !== undefined &&
           previous.point === point &&
           previous.status === status &&
           previous.epoch === epoch &&
+          previous.unowned === unowned &&
           // A reading depends on the frame's view time ONLY through a
           // reckoning, so a topic nobody models keeps its identity across a
           // frame exactly as before. Where a model exists, an advancing view
@@ -1163,12 +1177,13 @@ export class TimelineStore {
         ) {
           return previous.reading as Reading<T>;
         }
-        const reading = readingFrom(point, status, viewUt, reckoner);
+        const reading = readingFrom(point, status, viewUt, reckoner, unowned);
         this.readings.set(topic, {
           point,
           status,
           epoch,
           viewUt,
+          unowned,
           reading: reading as Reading<unknown>,
         });
         return reading;
@@ -1574,6 +1589,40 @@ export class TimelineStore {
     const value = compute();
     cache.set(key, value);
     return value;
+  }
+
+  /**
+   * Record that nothing will ever publish `topic`, so its reading is `unowned`
+   * rather than a `pending` that will never resolve.
+   *
+   * Notifies frame listeners directly rather than waiting for the next
+   * `beginFrame()`: the verdict arrives on a timer, not on a sample, and a
+   * dashboard with no live data has no reason to be minting frames. Without
+   * this the widget that most needs telling would be the last to hear.
+   */
+  markTopicUnowned(topic: string): void {
+    if (this.unownedTopics.has(topic)) return;
+    this.unownedTopics.add(topic);
+    // The reading's other inputs are unchanged, so the identity cache would
+    // hand back the `pending` arm it built before the verdict.
+    this.readings.delete(topic);
+    for (const listener of this.frameListeners) listener();
+  }
+
+  /**
+   * Forget every ownership verdict. The link dropped, so nothing is decided any
+   * more: the next connection is a new mod session and has to answer again.
+   */
+  clearTopicOwnership(): void {
+    if (this.unownedTopics.size === 0) return;
+    for (const topic of this.unownedTopics) this.readings.delete(topic);
+    this.unownedTopics.clear();
+    for (const listener of this.frameListeners) listener();
+  }
+
+  /** Whether the mod answered a subscribe for `topic` with nothing. */
+  isTopicUnowned(topic: string): boolean {
+    return this.unownedTopics.has(topic);
   }
 
   /** Notified once per `beginFrame()` call: backs the reactive tier's `useSyncExternalStore` subscription. */
