@@ -123,6 +123,7 @@ const EXPECTED_BARREL_VALUE_EXPORTS = [
   "useBodyFogMask",
   "useFogMaskCache",
   "useFogMaskStore",
+  "useHostIceServers",
   "useLateTelemetrySubscribe",
   "useLatestValue",
   "useProcessor",

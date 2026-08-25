@@ -174,7 +174,7 @@ import {
   useStream,
   useTelemetryStore,
 } from "@ksp-gonogo/sitrep-client";
-import { useUplinkRelay } from "@ksp-gonogo/sitrep-sdk";
+import { useHostIceServers, useUplinkRelay } from "@ksp-gonogo/sitrep-sdk";
 import { act, render, screen, waitFor } from "@ksp-gonogo/test-utils";
 import { useEffect, useState } from "react";
 import { afterEach, describe, expect, it, vi } from "vitest";
@@ -749,5 +749,79 @@ describe("an Uplink's own methods, called from a station", () => {
 
     await waitFor(() => expect(answers).toEqual(["local"]));
     expect(calls).toEqual(["describe"]);
+  });
+});
+
+/**
+ * TURN credentials for an Uplink opening a media connection from a station. A
+ * station cannot fetch its own: the relay that issues them is reachable from
+ * the main screen, and the loopback address the main screen uses resolves on a
+ * station to the station itself. So the host broadcasts them, and this is the
+ * read an Uplink makes.
+ */
+describe("host-issued ICE servers, read from a station", () => {
+  const stationServices: PeerClientService[] = [];
+  const hostServices: PeerHostService[] = [];
+
+  afterEach(() => {
+    act(() => {
+      for (const svc of stationServices) svc.disconnect();
+      for (const svc of hostServices) svc.stop();
+    });
+    stationServices.length = 0;
+    hostServices.length = 0;
+    localStorage.clear();
+    peerRegistry.clear();
+  });
+
+  const TURN: RTCIceServer[] = [
+    { urls: "turn:relay.example:3478", username: "u", credential: "c" },
+  ];
+
+  /** Imports the sdk and nothing else, as an outside author would. */
+  function IceProbe({ onServers }: { onServers: (s: RTCIceServer[]) => void }) {
+    const ice = useHostIceServers();
+    useEffect(() => {
+      onServers(ice.current());
+      return ice.onChange(onServers);
+    }, [ice, onServers]);
+    return null;
+  }
+
+  it("delivers a rotation to a mounted Uplink without the widget re-rendering", async () => {
+    const peerHost = new PeerHostService();
+    hostServices.push(peerHost);
+    await peerHost.start();
+    await waitForHostPeerId(peerHost);
+
+    const clientSvc = new PeerClientService();
+    stationServices.push(clientSvc);
+    const seen: RTCIceServer[][] = [];
+    render(
+      <PeerClientProvider client={clientSvc}>
+        <IceProbe onServers={(s) => seen.push(s)} />
+      </PeerClientProvider>,
+    );
+    act(() => clientSvc.connect(peerHost.shareCode));
+    await waitFor(() => expect(clientSvc.getConnStatus()).toBe("connected"));
+
+    // Nothing issued yet reads as none, not as a fabricated server.
+    expect(seen.at(-1)).toEqual([]);
+
+    act(() => {
+      peerHost.broadcast({
+        type: "relay-peer-id",
+        peerId: "relay-1",
+        iceServers: TURN,
+      });
+    });
+
+    await waitFor(() => expect(seen.at(-1)).toEqual(TURN));
+  });
+
+  it("reads empty on a screen with no peer client, so the main screen fetches its own", async () => {
+    const seen: RTCIceServer[][] = [];
+    render(<IceProbe onServers={(s) => seen.push(s)} />);
+    await waitFor(() => expect(seen).toEqual([[]]));
   });
 });

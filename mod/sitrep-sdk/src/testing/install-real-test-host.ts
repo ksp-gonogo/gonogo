@@ -121,6 +121,12 @@ export function installRealTestHost(uiKit: UiKitHostPieces): () => void {
     // An Uplink's own test run has no peer client, so a call goes straight to
     // the handle, which is what the main screen does too. The station's relayed
     // route is the app's to supply.
+    // An Uplink's own test run has no host broadcasting credentials, and the
+    // honest answer there is none rather than a fabricated server.
+    useHostIceServers: () => ({
+      current: () => [],
+      onChange: () => () => {},
+    }),
     useUplinkRelay: (uplinkId) => (method, args) => {
       const handle = getUplinkHandle<{
         relay?: (method: string, args: unknown) => Promise<unknown>;

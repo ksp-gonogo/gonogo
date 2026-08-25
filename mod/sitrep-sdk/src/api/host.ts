@@ -24,6 +24,7 @@ import type {
   ActionHandlers,
   AnyContribution,
   AugmentDefinition,
+  HostIceServers,
   LateTelemetrySubscribe,
   PerfBudgetHandle,
   PerfBudgetOptions,
@@ -92,6 +93,11 @@ export interface GonogoHost {
    * registered handle, or a station whose link is down.
    */
   useUplinkRelay(uplinkId: string): UplinkRelay;
+  /**
+   * The ICE servers the main screen is handing out, for an Uplink opening a
+   * media connection from a station. See {@link HostIceServers}.
+   */
+  useHostIceServers(): HostIceServers;
   /**
    * Cross-origin route reader: every currently-pending command addressed to
    * `topic`, regardless of which command centre dispatched it, the

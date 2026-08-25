@@ -966,6 +966,27 @@ export interface UseCommandResult {
  */
 export type UplinkRelay = (method: string, args?: unknown) => Promise<unknown>;
 
+/**
+ * The ICE servers the main screen is handing out, for an Uplink opening a media
+ * connection from a station.
+ *
+ * A station cannot fetch its own TURN credentials: the relay that issues them is
+ * reachable from the main screen, and the loopback address a main screen would
+ * use resolves on a station to the station itself. So the main screen broadcasts
+ * them and this is where an Uplink reads them.
+ *
+ * Imperative rather than a plain array because the consumer is an
+ * `RTCPeerConnection` config rather than JSX, and because credentials rotate:
+ * a connection opened before a rotation has to be able to see the new ones
+ * without the Uplink re-rendering anything.
+ */
+export interface HostIceServers {
+  /** What to use right now. Empty where the host is not issuing any, including the main screen. */
+  current(): RTCIceServer[];
+  /** Notified when the host issues a fresh set. Returns an unsubscribe. */
+  onChange(cb: (servers: RTCIceServer[]) => void): () => void;
+}
+
 export interface UseRouteCommandsResult {
   items: InFlightCommand[];
   mode: DelayMode;

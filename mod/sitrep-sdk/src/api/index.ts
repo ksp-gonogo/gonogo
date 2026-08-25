@@ -121,6 +121,7 @@ export type {
   DelayClockLike,
   DelayMode,
   FogRevealSourceDefinition,
+  HostIceServers,
   InFlightCommand,
   LateTelemetrySubscribe,
   MapPoi,
@@ -457,6 +458,25 @@ export function useCommand(command: string) {
  */
 export function useUplinkRelay(uplinkId: string) {
   return getHost().useUplinkRelay(uplinkId);
+}
+
+/**
+ * The ICE servers the main screen is handing out, for an Uplink opening a media
+ * connection from a station.
+ *
+ * A station has no route to the relay that issues TURN credentials, so the main
+ * screen broadcasts them and this is where they are read. Empty on the main
+ * screen itself, which reaches the relay directly.
+ *
+ *   const ice = useHostIceServers();
+ *   const pc = new RTCPeerConnection({ iceServers: ice.current() });
+ *   useEffect(() => ice.onChange((servers) => reconfigure(pc, servers)), [ice, pc]);
+ *
+ * Credentials rotate, so a long-lived connection has to watch `onChange` rather
+ * than read `current()` once.
+ */
+export function useHostIceServers() {
+  return getHost().useHostIceServers();
 }
 
 /**
