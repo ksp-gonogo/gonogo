@@ -50,6 +50,21 @@ function toTransportStatus(status: ConnStatus): TransportStatus {
  * command dispatch would need the PeerJS round trip's own timing model
  * layered on top of the mod's courier model, not built for v1.
  *
+ * `subscribe`/`unsubscribe` go over the wire, so a station receives what its
+ * own mounted widgets ask for rather than what the host happens to be reading.
+ * The live set is re-sent in full on every transition into `"connected"`,
+ * mirroring `WebSocketTransport` re-subscribing its topics on every socket
+ * open: the host's claims are keyed to a `DataConnection` and die with it, and
+ * `TelemetryClient` only sends `subscribe` on the 0->1 transition, so without
+ * the replay a reconnected station would sit blank on every topic it had
+ * already subscribed.
+ *
+ * `set-vantage` is still dropped, and that one IS a limit rather than an
+ * omission: the mod keeps `SelectedVantage` per `ClientSession` and the host
+ * has exactly one session, so two stations cannot observe at two vantages over
+ * one relayed stream. Per-station observation vantage needs a wire change and
+ * is separate work.
+ *
  * That gap used to mean a command whose peer connection dropped mid-flight
  * (or that was dispatched with no live `conn` at all,
  * `PeerClientService.sendSitrepCommand` silently no-ops when `conn` is
@@ -80,6 +95,8 @@ export class PeerTransport implements Transport {
   private readonly unsubs: Array<() => void>;
   /** `requestId`s of sitrep commands sent but not yet settled (response/error/drop). */
   private readonly pendingCommandIds = new Set<string>();
+  /** Topics with a live `subscribe` and no matching `unsubscribe`, re-sent on every fresh connection. */
+  private readonly subscribedTopics = new Set<string>();
 
   constructor(private readonly client: PeerClientService) {
     this._status = toTransportStatus(client.getConnStatus());
@@ -142,16 +159,23 @@ export class PeerTransport implements Transport {
         message.args,
         message.label,
         message.topic,
+        message.vantage,
       );
       return;
     }
-    // subscribe/unsubscribe: no-op on the wire. `SitrepPeerRelay` already
-    // carries the full static `DEFAULT_SITREP_CARRIED_TOPICS` allowlist
-    // unconditionally to every connected station once at least one is
-    // connected: there's nothing to request yet. A real
-    // sitrep-subscribe/unsubscribe pair (ref-counted host-side, mirroring
-    // `retainPeerDrivenSub`) is the v2 bandwidth-headroom follow-up, not a
-    // correctness requirement for v1: see the plan's §2.
+    if (message.type === "subscribe") {
+      this.subscribedTopics.add(message.topic);
+      this.client.sendSitrepSubscribe(message.topic);
+      return;
+    }
+    if (message.type === "unsubscribe") {
+      this.subscribedTopics.delete(message.topic);
+      this.client.sendSitrepUnsubscribe(message.topic);
+      return;
+    }
+    // set-vantage: see this class's doc comment. Dropping it leaves a station
+    // observing at the host's vantage, which is what it already does; sending
+    // it would move every OTHER station's observation too.
   }
 
   onMessage(listener: (message: ServerMessage) => void): () => void {
@@ -170,6 +194,7 @@ export class PeerTransport implements Transport {
     this.messageListeners.clear();
     this.statusListeners.clear();
     this.pendingCommandIds.clear();
+    this.subscribedTopics.clear();
   }
 
   private setStatus(status: TransportStatus): void {
@@ -177,6 +202,16 @@ export class PeerTransport implements Transport {
     const wasConnected = this._status === "connected";
     this._status = status;
     for (const listener of this.statusListeners) listener(status);
+
+    // A fresh connection is a fresh set of host-side claims: the host keys them
+    // to the `DataConnection` that has just been replaced. `TelemetryClient`
+    // will not re-send, since from its side nothing has unsubscribed, so replay
+    // the live set here.
+    if (!wasConnected && status === "connected") {
+      for (const topic of this.subscribedTopics) {
+        this.client.sendSitrepSubscribe(topic);
+      }
+    }
 
     // The link just dropped (or started reconnecting) while commands were
     // still in flight: none of them can be trusted to still arrive, and

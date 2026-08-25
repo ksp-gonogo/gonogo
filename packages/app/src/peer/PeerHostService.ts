@@ -36,6 +36,24 @@ export interface UplinkRelayHandle {
   relay(method: string, args: unknown): Promise<unknown>;
 }
 
+/**
+ * The host's own live stream, as much of it as station subscription
+ * multiplexing needs. Supplied by `SitrepPeerRelay`, which owns the host's
+ * `TelemetryClient` and the last-frame cache, so this service never reaches for
+ * a client of its own.
+ */
+export interface SitrepSubscriptionSink {
+  /** Hold an upstream subscription for `topic`. Returns its release. */
+  subscribe(topic: string): () => void;
+  /**
+   * The most recent frame seen for `topic`, if any. A station subscribing a
+   * topic the host already holds gets no new frame until the next one arrives,
+   * which on a low-rate topic can be never, so the current value is replayed to
+   * it alone.
+   */
+  cachedFrame(topic: string): PeerMessage | undefined;
+}
+
 function isRelayHandle(handle: unknown): handle is UplinkRelayHandle {
   return (
     !!handle &&
@@ -315,6 +333,25 @@ export class PeerHostService {
     "broadcast-all" | "selective"
   >();
   private peerSubs = new WeakMap<DataConnection, Map<string, Set<string>>>();
+
+  /**
+   * Which sitrep topics each station has told us it is reading. Per connection
+   * because a claim dies with the `DataConnection` that made it, and because
+   * releasing on disconnect needs to know exactly which claims were that
+   * station's rather than another's.
+   */
+  private readonly sitrepSubs = new WeakMap<DataConnection, Set<string>>();
+  /**
+   * One entry per topic ANY station is reading, refcounted across connections,
+   * holding the host's own upstream subscription. Two stations reading the same
+   * topic pull it from the mod once, and the last one leaving is what drops it.
+   */
+  private readonly sitrepTopicRefs = new Map<
+    string,
+    { refCount: number; unsub: (() => void) | null }
+  >();
+  /** The host's live stream, supplied by `SitrepPeerRelay`. Null before it mounts. */
+  private sitrepSink: SitrepSubscriptionSink | null = null;
 
   /** The host's broker peer id: the *derived* `gonogo-host-<shareCode>`
    *  form (NOT the operator-facing 4-char code). Null until the broker
@@ -617,6 +654,15 @@ export class PeerHostService {
             for (const key of keys) {
               this.releasePeerDrivenSub(sourceId, key);
             }
+          }
+        }
+        // Same rule for this station's sitrep topics: read the set before the
+        // conn goes out of scope, or the refcount pins the upstream
+        // subscription for the rest of the session.
+        const claimed = this.sitrepSubs.get(conn);
+        if (claimed) {
+          for (const topic of [...claimed]) {
+            this.releaseSitrepSub(conn, topic);
           }
         }
         logger.info(
@@ -951,6 +997,72 @@ export class PeerHostService {
     perSource.set(key, { refCount: 1, unsub });
   }
 
+  /**
+   * Point station subscription multiplexing at the host's live stream. Any
+   * topic already claimed before this is called is subscribed now, so a station
+   * that connects before the relay mounts is not left unserved. The returned
+   * detach drops every upstream subscription while keeping the refcounts, so a
+   * remount re-establishes exactly what the stations still want.
+   */
+  attachSitrepSink(sink: SitrepSubscriptionSink): () => void {
+    this.sitrepSink = sink;
+    for (const [topic, entry] of this.sitrepTopicRefs) {
+      entry.unsub ??= sink.subscribe(topic);
+    }
+    return () => {
+      if (this.sitrepSink !== sink) return;
+      for (const entry of this.sitrepTopicRefs.values()) {
+        entry.unsub?.();
+        entry.unsub = null;
+      }
+      this.sitrepSink = null;
+    };
+  }
+
+  /**
+   * Record that `conn`'s station is reading `topic` and make sure the host is
+   * subscribed to it. Idempotent per connection: a station re-sending its live
+   * set after a reconnect must not inflate the refcount, and
+   * `PeerTransport` replays that set on every fresh connection.
+   */
+  private retainSitrepSub(conn: DataConnection, topic: string): void {
+    let claimed = this.sitrepSubs.get(conn);
+    if (!claimed) {
+      claimed = new Set();
+      this.sitrepSubs.set(conn, claimed);
+    }
+    if (claimed.has(topic)) return;
+    claimed.add(topic);
+
+    const existing = this.sitrepTopicRefs.get(topic);
+    if (existing) {
+      existing.refCount += 1;
+    } else {
+      this.sitrepTopicRefs.set(topic, {
+        refCount: 1,
+        unsub: this.sitrepSink?.subscribe(topic) ?? null,
+      });
+    }
+
+    // The host may have been subscribed to this for a while, in which case the
+    // next frame is the only thing this station would otherwise see. Replay the
+    // current one to it alone.
+    const cached = this.sitrepSink?.cachedFrame(topic);
+    if (cached) conn.send(cached);
+  }
+
+  private releaseSitrepSub(conn: DataConnection, topic: string): void {
+    const claimed = this.sitrepSubs.get(conn);
+    if (!claimed?.delete(topic)) return;
+    const entry = this.sitrepTopicRefs.get(topic);
+    if (!entry) return;
+    entry.refCount -= 1;
+    if (entry.refCount <= 0) {
+      entry.unsub?.();
+      this.sitrepTopicRefs.delete(topic);
+    }
+  }
+
   private releasePeerDrivenSub(sourceId: string, key: string): void {
     const perSource = this.peerDrivenSubs.get(sourceId);
     const entry = perSource?.get(key);
@@ -1194,6 +1306,12 @@ export class PeerHostService {
     },
     "sitrep-command-request": (msg, conn) => {
       void this.handleSitrepCommand(msg, conn);
+    },
+    "sitrep-subscribe": (msg, conn) => {
+      this.retainSitrepSub(conn, msg.topic);
+    },
+    "sitrep-unsubscribe": (msg, conn) => {
+      this.releaseSitrepSub(conn, msg.topic);
     },
     "uplink-bundle-request": (msg, conn) => {
       void this.handleUplinkBundleRequest(msg, conn);
@@ -1684,6 +1802,10 @@ export class PeerHostService {
         msg.args,
         msg.label ?? "",
         msg.topic ?? "",
+        // The station's own per-call override, not the host's session vantage:
+        // `""` already means "use the session vantage", so passing it through
+        // is a no-op for a command that did not override.
+        msg.vantage,
       );
       const value = await result;
       conn.send({

@@ -1,5 +1,6 @@
 import type { ComponentType } from "react";
 import type { GonogoHost } from "../api/host";
+import { getUplinkHandle } from "../api/uplink-handles";
 import { PerfBudget } from "../perf/PerfBudget";
 import {
   getActiveTelemetryClient,
@@ -117,6 +118,26 @@ export function installRealTestHost(uiKit: UiKitHostPieces): () => void {
     useViewUt: () => useViewUt(),
     useCommand: (command) =>
       useCommand(command) as unknown as ReturnType<GonogoHost["useCommand"]>,
+    // An Uplink's own test run has no peer client, so a call goes straight to
+    // the handle, which is what the main screen does too. The station's relayed
+    // route is the app's to supply.
+    // An Uplink's own test run has no host broadcasting credentials, and the
+    // honest answer there is none rather than a fabricated server.
+    useHostIceServers: () => ({
+      current: () => [],
+      onChange: () => () => {},
+    }),
+    useUplinkRelay: (uplinkId) => (method, args) => {
+      const handle = getUplinkHandle<{
+        relay?: (method: string, args: unknown) => Promise<unknown>;
+      }>(uplinkId);
+      if (typeof handle?.relay !== "function") {
+        return Promise.reject(
+          new Error(`"${uplinkId}" has no relay handle registered`),
+        );
+      }
+      return handle.relay(method, args);
+    },
     useRouteCommands: (topic) =>
       useRouteCommands(topic) as unknown as ReturnType<
         GonogoHost["useRouteCommands"]

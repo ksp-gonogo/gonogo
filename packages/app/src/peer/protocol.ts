@@ -368,6 +368,30 @@ export type PeerMessage =
       type: "sitrep-frame";
       message: import("@ksp-gonogo/sitrep-sdk").ServerMessage;
     }
+  // Station -> host: what this station's mounted widgets are reading. A
+  // station's own widgets are the only thing that knows what a station needs,
+  // and they know it at mount time, so the subscribe call a widget already
+  // makes IS the request; nothing declares a topic ahead of time. The host
+  // refcounts these across connections and holds a matching subscription on
+  // its own client, so a topic is pulled from the mod while any screen reads
+  // it and not otherwise.
+  //
+  // Re-sent in full on every fresh connection, exactly as
+  // `WebSocketTransport` re-subscribes its live topics on every socket open:
+  // the host's per-connection claims die with the old `DataConnection`.
+  //
+  // `set-vantage` has no counterpart here on purpose. The mod keeps
+  // `SelectedVantage` on the `ClientSession` and the host has one session, so
+  // per-station observation vantage needs a wire change rather than a relay
+  // message. Separate work, deliberately absent.
+  | {
+      type: "sitrep-subscribe";
+      topic: string;
+    }
+  | {
+      type: "sitrep-unsubscribe";
+      topic: string;
+    }
   // Station -> host: fire a mapped Sitrep command (`useCommand`'s carried
   // branch) through the host's own live TelemetryClient, the host is the
   // only thing that ever talks to the mod server, so this is a one-way
@@ -384,6 +408,13 @@ export type PeerMessage =
       command: string;
       label: string;
       topic: string;
+      /**
+       * Per-call vantage override, already a field on the mod's own
+       * `CommandRequest`: `""` means the session vantage, `"meta"` pins instant
+       * dispatch. Carried across the hop so a station's override survives
+       * instead of silently re-defaulting to the host's.
+       */
+      vantage?: string;
       args: unknown;
     }
   | {

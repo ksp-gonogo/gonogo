@@ -165,6 +165,7 @@ vi.mock("peerjs", () => {
   return { default: FakePeer };
 });
 
+import { registerUplinkHandle, unregisterUplinkHandle } from "@ksp-gonogo/core";
 import {
   StubTransport,
   TelemetryClient,
@@ -173,9 +174,11 @@ import {
   useStream,
   useTelemetryStore,
 } from "@ksp-gonogo/sitrep-client";
+import { useHostIceServers, useUplinkRelay } from "@ksp-gonogo/sitrep-sdk";
 import { act, render, screen, waitFor } from "@ksp-gonogo/test-utils";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { afterEach, describe, expect, it, vi } from "vitest";
+import { PeerClientProvider } from "../peer/PeerClientContext";
 import { PeerClientService } from "../peer/PeerClientService";
 import { PeerHostService } from "../peer/PeerHostService";
 import { PeerTransport } from "../telemetry/PeerTransport";
@@ -216,7 +219,14 @@ function HostApp({
  * `PeerTransport`/`TelemetryClient`/`TelemetryProvider` classes without also
  * pulling in `StationScreen`'s full screen tree.
  */
-function StationApp({ clientSvc }: { clientSvc: PeerClientService }) {
+function StationApp({
+  clientSvc,
+  extraTopic,
+}: {
+  clientSvc: PeerClientService;
+  /** A topic only this station reads, for the station-only-demand tests below. */
+  extraTopic?: string;
+}) {
   const [telemetryClient] = useState(
     () => new TelemetryClient(new PeerTransport(clientSvc)),
   );
@@ -224,6 +234,7 @@ function StationApp({ clientSvc }: { clientSvc: PeerClientService }) {
     <TelemetryProvider client={telemetryClient}>
       <Probe testId="station-orbit" topic="vessel.orbit" />
       <Probe testId="station-identity" topic="vessel.identity" />
+      {extraTopic ? <Probe testId="station-extra" topic={extraTopic} /> : null}
     </TelemetryProvider>
   );
 }
@@ -268,9 +279,10 @@ async function connectStationService(
 
 async function connectStation(
   peerHost: PeerHostService,
+  extraTopic?: string,
 ): Promise<PeerClientService> {
   const clientSvc = new PeerClientService();
-  render(<StationApp clientSvc={clientSvc} />);
+  render(<StationApp clientSvc={clientSvc} extraTopic={extraTopic} />);
   act(() => clientSvc.connect(peerHost.shareCode));
   await waitFor(() => expect(clientSvc.getConnStatus()).toBe("connected"));
   return clientSvc;
@@ -474,5 +486,374 @@ describe("station Sitrep-stream forwarding: two-screen proof", () => {
     stationAClient.dispose();
     stationBTransport.dispose();
     stationBClient.dispose();
+  });
+});
+
+/**
+ * A station's mounted widgets are the only thing that knows what a station
+ * needs, and they know it at mount time. These prove that knowing it is enough:
+ * no allowlist names the topic below, no per-Uplink rule mentions it, and
+ * nothing on the main screen reads it.
+ *
+ * Observation vantage is deliberately absent from this mechanism.
+ * `ChannelEngine.HandleSetVantage` keeps `SelectedVantage` on the
+ * `ClientSession`, and the host has exactly one session, so two stations cannot
+ * observe at two vantages over one relayed stream without a wire change. That
+ * is separate work, not an oversight here.
+ */
+describe("station subscription intent reaches the mod", () => {
+  const stationServices: PeerClientService[] = [];
+  const hostServices: PeerHostService[] = [];
+
+  afterEach(() => {
+    act(() => {
+      for (const svc of stationServices) svc.disconnect();
+      for (const svc of hostServices) svc.stop();
+    });
+    stationServices.length = 0;
+    hostServices.length = 0;
+    localStorage.clear();
+    peerRegistry.clear();
+  });
+
+  function setupHost(): {
+    peerHost: PeerHostService;
+    hostTransport: StubTransport;
+  } {
+    const hostTransport = new StubTransport();
+    const hostClient = new TelemetryClient(hostTransport);
+    const peerHost = new PeerHostService();
+    hostServices.push(peerHost);
+    render(<HostApp client={hostClient} peerHost={peerHost} />);
+    return { peerHost, hostTransport };
+  }
+
+  const UPLINK_TOPIC = "thirdparty.readout";
+
+  it("subscribes upstream for a topic only a station reads", async () => {
+    const { peerHost, hostTransport } = setupHost();
+    await peerHost.start();
+    await waitForHostPeerId(peerHost);
+
+    const clientSvc = await connectStation(peerHost, UPLINK_TOPIC);
+    stationServices.push(clientSvc);
+
+    await waitFor(() =>
+      expect(hostTransport.isSubscribed(UPLINK_TOPIC)).toBe(true),
+    );
+
+    const pastUt = Date.now() / 1000 - 10_000;
+    act(() => {
+      hostTransport.emit(
+        UPLINK_TOPIC,
+        { reading: 7 },
+        { validAt: pastUt, deliveredAt: pastUt },
+      );
+    });
+
+    await waitFor(() =>
+      expect(screen.getByTestId("station-extra").textContent).toContain("7"),
+    );
+  });
+
+  it("drops the upstream subscription when the last station wanting it goes", async () => {
+    const { peerHost, hostTransport } = setupHost();
+    await peerHost.start();
+    await waitForHostPeerId(peerHost);
+
+    const clientSvc = await connectStation(peerHost, UPLINK_TOPIC);
+    stationServices.push(clientSvc);
+    await waitFor(() =>
+      expect(hostTransport.isSubscribed(UPLINK_TOPIC)).toBe(true),
+    );
+
+    act(() => {
+      clientSvc.disconnect();
+    });
+
+    await waitFor(() =>
+      expect(hostTransport.isSubscribed(UPLINK_TOPIC)).toBe(false),
+    );
+    // The host's own reads are untouched by a station leaving.
+    expect(hostTransport.isSubscribed("vessel.orbit")).toBe(true);
+  });
+
+  it("delivers a topic the host was ALREADY holding when the station asked", async () => {
+    const { peerHost, hostTransport } = setupHost();
+    await peerHost.start();
+    await waitForHostPeerId(peerHost);
+
+    // The host reads this one itself, and the only frame for it arrives BEFORE
+    // any station exists. Every other test in this file emits AFTER the station
+    // has connected, which is why none of them could see this: the relay's
+    // cache used to be filled from inside the tap gated on having connections,
+    // so it learned nothing until the first station arrived and then only
+    // learned what changed. `client.subscribe` for an already-held topic sends
+    // no wire subscribe and re-emits no frame, so the mod is never asked
+    // either, and the station stays blank forever.
+    const pastUt = Date.now() / 1000 - 10_000;
+    act(() => {
+      hostTransport.emit(
+        "vessel.orbit",
+        { apoapsis: 250_000, periapsis: 240_000 },
+        { validAt: pastUt, deliveredAt: pastUt },
+      );
+    });
+
+    const clientSvc = await connectStation(peerHost, "vessel.orbit");
+    stationServices.push(clientSvc);
+
+    await waitFor(() =>
+      expect(screen.getAllByTestId("station-extra")[0]?.textContent).toContain(
+        "250000",
+      ),
+    );
+  });
+
+  it("backfills a station that subscribes a topic which last changed before it asked", async () => {
+    const { peerHost, hostTransport } = setupHost();
+    await peerHost.start();
+    await waitForHostPeerId(peerHost);
+
+    const first = await connectStation(peerHost, UPLINK_TOPIC);
+    stationServices.push(first);
+    await waitFor(() =>
+      expect(hostTransport.isSubscribed(UPLINK_TOPIC)).toBe(true),
+    );
+
+    const pastUt = Date.now() / 1000 - 10_000;
+    act(() => {
+      hostTransport.emit(
+        UPLINK_TOPIC,
+        { reading: 11 },
+        { validAt: pastUt, deliveredAt: pastUt },
+      );
+    });
+    await waitFor(() =>
+      expect(screen.getAllByTestId("station-extra")[0]?.textContent).toContain(
+        "11",
+      ),
+    );
+
+    // A second station asks for the same topic after it went quiet. The host is
+    // already subscribed, so no new frame is coming; only a replay reaches it.
+    const second = await connectStation(peerHost, UPLINK_TOPIC);
+    stationServices.push(second);
+
+    await waitFor(() => {
+      const probes = screen.getAllByTestId("station-extra");
+      expect(probes).toHaveLength(2);
+      expect(probes[1]?.textContent).toContain("11");
+    });
+  });
+});
+
+/**
+ * An Uplink's own method calls, made from a station. The widget below reaches
+ * the seam the way an outside author would: `useUplinkRelay` off
+ * `@ksp-gonogo/sitrep-sdk`, with nothing imported from the app, no per-Uplink
+ * entry anywhere, and no knowledge of which screen it is on.
+ */
+describe("an Uplink's own methods, called from a station", () => {
+  const stationServices: PeerClientService[] = [];
+  const hostServices: PeerHostService[] = [];
+
+  afterEach(() => {
+    act(() => {
+      for (const svc of stationServices) svc.disconnect();
+      for (const svc of hostServices) svc.stop();
+    });
+    stationServices.length = 0;
+    hostServices.length = 0;
+    unregisterUplinkHandle("fixture-uplink");
+    localStorage.clear();
+    peerRegistry.clear();
+  });
+
+  /**
+   * The whole of the fixture Uplink's client. Imports the sdk and nothing else,
+   * which is the point: an outside author has no other option.
+   */
+  function FixtureWidget({ onAnswer }: { onAnswer: (value: unknown) => void }) {
+    const relay = useUplinkRelay("fixture-uplink");
+    useEffect(() => {
+      let live = true;
+      relay("describe", { detail: "cameras" })
+        .then((value) => {
+          if (live) onAnswer(value);
+        })
+        .catch((err: Error) => {
+          if (live) onAnswer(`rejected: ${err.message}`);
+        });
+      return () => {
+        live = false;
+      };
+    }, [relay, onAnswer]);
+    return null;
+  }
+
+  function StationWithFixture({
+    clientSvc,
+    onAnswer,
+  }: {
+    clientSvc: PeerClientService;
+    onAnswer: (value: unknown) => void;
+  }) {
+    return (
+      <PeerClientProvider client={clientSvc}>
+        <FixtureWidget onAnswer={onAnswer} />
+      </PeerClientProvider>
+    );
+  }
+
+  it("reaches the handle registered on the HOST, with no per-Uplink wiring on either screen", async () => {
+    const peerHost = new PeerHostService();
+    hostServices.push(peerHost);
+    await peerHost.start();
+    await waitForHostPeerId(peerHost);
+
+    const calls: Array<{ method: string; args: unknown }> = [];
+    registerUplinkHandle("fixture-uplink", {
+      relay: (method: string, args: unknown) => {
+        calls.push({ method, args });
+        return Promise.resolve({ cameras: [1, 2] });
+      },
+    });
+
+    const clientSvc = new PeerClientService();
+    stationServices.push(clientSvc);
+    const answers: unknown[] = [];
+    render(
+      <StationWithFixture
+        clientSvc={clientSvc}
+        onAnswer={(value) => answers.push(value)}
+      />,
+    );
+    act(() => clientSvc.connect(peerHost.shareCode));
+    await waitFor(() => expect(clientSvc.getConnStatus()).toBe("connected"));
+
+    // The widget mounts before the link is up, so its first attempt is
+    // rejected and the status edge re-fires the effect. That retry is the
+    // answer, and getting it without the Uplink writing a retry is the point.
+    await waitFor(() => expect(answers.at(-1)).toEqual({ cameras: [1, 2] }));
+    expect(calls.at(-1)).toEqual({
+      method: "describe",
+      args: { detail: "cameras" },
+    });
+  });
+
+  it("rejects rather than hanging when the Uplink has no handle on the host", async () => {
+    const peerHost = new PeerHostService();
+    hostServices.push(peerHost);
+    await peerHost.start();
+    await waitForHostPeerId(peerHost);
+
+    const clientSvc = new PeerClientService();
+    stationServices.push(clientSvc);
+    const answers: unknown[] = [];
+    render(
+      <StationWithFixture
+        clientSvc={clientSvc}
+        onAnswer={(value) => answers.push(value)}
+      />,
+    );
+    act(() => clientSvc.connect(peerHost.shareCode));
+    await waitFor(() => expect(clientSvc.getConnStatus()).toBe("connected"));
+
+    // Once connected the host answers, and its answer is the named refusal
+    // rather than silence: an Uplink whose handle never registered can say so.
+    await waitFor(() =>
+      expect(String(answers.at(-1))).toContain("no relay handle registered"),
+    );
+  });
+
+  it("calls the handle directly on a screen with no peer client, same code in the widget", async () => {
+    const calls: string[] = [];
+    registerUplinkHandle("fixture-uplink", {
+      relay: (method: string) => {
+        calls.push(method);
+        return Promise.resolve("local");
+      },
+    });
+
+    const answers: unknown[] = [];
+    render(<FixtureWidget onAnswer={(value) => answers.push(value)} />);
+
+    await waitFor(() => expect(answers).toEqual(["local"]));
+    expect(calls).toEqual(["describe"]);
+  });
+});
+
+/**
+ * TURN credentials for an Uplink opening a media connection from a station. A
+ * station cannot fetch its own: the relay that issues them is reachable from
+ * the main screen, and the loopback address the main screen uses resolves on a
+ * station to the station itself. So the host broadcasts them, and this is the
+ * read an Uplink makes.
+ */
+describe("host-issued ICE servers, read from a station", () => {
+  const stationServices: PeerClientService[] = [];
+  const hostServices: PeerHostService[] = [];
+
+  afterEach(() => {
+    act(() => {
+      for (const svc of stationServices) svc.disconnect();
+      for (const svc of hostServices) svc.stop();
+    });
+    stationServices.length = 0;
+    hostServices.length = 0;
+    localStorage.clear();
+    peerRegistry.clear();
+  });
+
+  const TURN: RTCIceServer[] = [
+    { urls: "turn:relay.example:3478", username: "u", credential: "c" },
+  ];
+
+  /** Imports the sdk and nothing else, as an outside author would. */
+  function IceProbe({ onServers }: { onServers: (s: RTCIceServer[]) => void }) {
+    const ice = useHostIceServers();
+    useEffect(() => {
+      onServers(ice.current());
+      return ice.onChange(onServers);
+    }, [ice, onServers]);
+    return null;
+  }
+
+  it("delivers a rotation to a mounted Uplink without the widget re-rendering", async () => {
+    const peerHost = new PeerHostService();
+    hostServices.push(peerHost);
+    await peerHost.start();
+    await waitForHostPeerId(peerHost);
+
+    const clientSvc = new PeerClientService();
+    stationServices.push(clientSvc);
+    const seen: RTCIceServer[][] = [];
+    render(
+      <PeerClientProvider client={clientSvc}>
+        <IceProbe onServers={(s) => seen.push(s)} />
+      </PeerClientProvider>,
+    );
+    act(() => clientSvc.connect(peerHost.shareCode));
+    await waitFor(() => expect(clientSvc.getConnStatus()).toBe("connected"));
+
+    // Nothing issued yet reads as none, not as a fabricated server.
+    expect(seen.at(-1)).toEqual([]);
+
+    act(() => {
+      peerHost.broadcast({
+        type: "relay-peer-id",
+        peerId: "relay-1",
+        iceServers: TURN,
+      });
+    });
+
+    await waitFor(() => expect(seen.at(-1)).toEqual(TURN));
+  });
+
+  it("reads empty on a screen with no peer client, so the main screen fetches its own", async () => {
+    const seen: RTCIceServer[][] = [];
+    render(<IceProbe onServers={(s) => seen.push(s)} />);
+    await waitFor(() => expect(seen).toEqual([[]]));
   });
 });

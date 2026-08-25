@@ -965,6 +965,39 @@ export interface UseCommandResult {
  * `UseRouteCommandsResult`: same leaf constraint as every other type in
  * this file.
  */
+/**
+ * One Uplink's own method call, as `useUplinkRelay` hands it over. `method` and
+ * `args` mean whatever the Uplink's registered handle says they mean; nothing
+ * between the caller and that handle interprets either.
+ *
+ * Rejects with an `Error` on no route (no handle registered, or a station with
+ * no live link) and on a throw inside the handle, whose own extra Error
+ * properties survive the hop so a client can read back what its own host code
+ * classified.
+ */
+export type UplinkRelay = (method: string, args?: unknown) => Promise<unknown>;
+
+/**
+ * The ICE servers the main screen is handing out, for an Uplink opening a media
+ * connection from a station.
+ *
+ * A station cannot fetch its own TURN credentials: the relay that issues them is
+ * reachable from the main screen, and the loopback address a main screen would
+ * use resolves on a station to the station itself. So the main screen broadcasts
+ * them and this is where an Uplink reads them.
+ *
+ * Imperative rather than a plain array because the consumer is an
+ * `RTCPeerConnection` config rather than JSX, and because credentials rotate:
+ * a connection opened before a rotation has to be able to see the new ones
+ * without the Uplink re-rendering anything.
+ */
+export interface HostIceServers {
+  /** What to use right now. Empty where the host is not issuing any, including the main screen. */
+  current(): RTCIceServer[];
+  /** Notified when the host issues a fresh set. Returns an unsubscribe. */
+  onChange(cb: (servers: RTCIceServer[]) => void): () => void;
+}
+
 export interface UseRouteCommandsResult {
   items: InFlightCommand[];
   mode: DelayMode;

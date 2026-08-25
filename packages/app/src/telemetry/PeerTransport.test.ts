@@ -13,6 +13,7 @@ import { PeerTransport } from "./PeerTransport";
  * PeerJS.
  */
 function makeFakeClient(initialStatus: ConnStatus = "connected") {
+  let status = initialStatus;
   const frameListeners = new Set<(message: ServerMessage) => void>();
   const responseListeners = new Set<
     (requestId: string, result: unknown, meta: Meta) => void
@@ -29,8 +30,13 @@ function makeFakeClient(initialStatus: ConnStatus = "connected") {
     topic: string;
   }> = [];
 
+  const sentSubscribes: Array<{
+    op: "subscribe" | "unsubscribe";
+    topic: string;
+  }> = [];
+
   const fake = {
-    getConnStatus: () => initialStatus,
+    getConnStatus: () => status,
     onSitrepFrame: (cb: (message: ServerMessage) => void) => {
       frameListeners.add(cb);
       return () => frameListeners.delete(cb);
@@ -60,6 +66,12 @@ function makeFakeClient(initialStatus: ConnStatus = "connected") {
     ) => {
       sentCommands.push({ requestId, command, args, label, topic });
     },
+    sendSitrepSubscribe: (topic: string) => {
+      sentSubscribes.push({ op: "subscribe", topic });
+    },
+    sendSitrepUnsubscribe: (topic: string) => {
+      sentSubscribes.push({ op: "unsubscribe", topic });
+    },
     // Test-only helpers to drive the fake from outside, not part of the
     // real PeerClientService surface PeerTransport reads.
     emitFrame(message: ServerMessage) {
@@ -71,10 +83,12 @@ function makeFakeClient(initialStatus: ConnStatus = "connected") {
     emitCommandError(requestId: string, code: string, message: string) {
       for (const cb of errorListeners) cb(requestId, code, message);
     },
-    emitStatus(status: ConnStatus) {
-      for (const cb of statusListeners) cb(status);
+    emitStatus(next: ConnStatus) {
+      status = next;
+      for (const cb of statusListeners) cb(next);
     },
     sentCommands,
+    sentSubscribes,
   };
   return fake;
 }
@@ -235,13 +249,46 @@ describe("PeerTransport", () => {
     ]);
   });
 
-  it("send() is a no-op on the wire for subscribe/unsubscribe", () => {
+  it("send() puts subscribe/unsubscribe on the wire, so the host learns what this station reads", () => {
     const client = makeFakeClient();
     const transport = new PeerTransport(client as unknown as PeerClientService);
 
     transport.send({ type: "subscribe", topic: "vessel.orbit" });
     transport.send({ type: "unsubscribe", topic: "vessel.orbit" });
 
+    expect(client.sentSubscribes).toEqual([
+      { op: "subscribe", topic: "vessel.orbit" },
+      { op: "unsubscribe", topic: "vessel.orbit" },
+    ]);
+    expect(client.sentCommands).toEqual([]);
+  });
+
+  it("re-sends its live subscriptions on a fresh connection", () => {
+    const client = makeFakeClient("connected");
+    const transport = new PeerTransport(client as unknown as PeerClientService);
+    transport.send({ type: "subscribe", topic: "vessel.orbit" });
+    transport.send({ type: "subscribe", topic: "vessel.flight" });
+    transport.send({ type: "unsubscribe", topic: "vessel.flight" });
+    client.sentSubscribes.length = 0;
+
+    // The host keys its claims to the `DataConnection`, so a reconnect starts
+    // it knowing nothing. `TelemetryClient` will not re-send: from its side
+    // nothing unsubscribed.
+    client.emitStatus("reconnecting");
+    client.emitStatus("connected");
+
+    expect(client.sentSubscribes).toEqual([
+      { op: "subscribe", topic: "vessel.orbit" },
+    ]);
+  });
+
+  it("drops set-vantage, which moves the whole host session rather than one station", () => {
+    const client = makeFakeClient();
+    const transport = new PeerTransport(client as unknown as PeerClientService);
+
+    transport.send({ type: "set-vantage", centreId: "ksc" });
+
+    expect(client.sentSubscribes).toEqual([]);
     expect(client.sentCommands).toEqual([]);
   });
 
