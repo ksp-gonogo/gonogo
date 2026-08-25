@@ -2,7 +2,7 @@ import { defineConfig } from "vitest/config";
 
 // No `@ksp-gonogo/*` aliases. This client imports only published packages, so
 // everything resolves from its own node_modules the way it would for an author
-// outside this repo.
+// outside this repo, dist and all.
 
 export default defineConfig({
   test: {
