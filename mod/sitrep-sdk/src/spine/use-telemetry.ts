@@ -138,6 +138,19 @@ const CANONICAL_PENDING: Reading<never> = { state: "pending" };
  * For a topic in `NEVER_RECKONABLE` the `reckonable` arm is dropped from the
  * return type, so a caller cannot write a branch for a case that can never
  * occur. `stale` remains and remains the judgement.
+ *
+ * ## The compile break does NOT always happen, and this is the trap
+ *
+ * Passing this hook's result straight into something that wants the PAYLOAD is
+ * meant to be a type error, and usually is. It is not when the payload type has
+ * every field optional, which most generated Uplink payloads do: a `Reading` is
+ * then structurally assignable to it, so `<Widget weather={useTelemetry(...)} />`
+ * typechecks and hands the widget an object carrying none of its fields.
+ *
+ * That is not hypothetical. An Uplink's radiation-trend test drove a "live
+ * trend" off two samples that measured nothing, for exactly this reason, and
+ * passed for as long as the widget rendered absence as zero. Unwrap the
+ * discriminant, even where the compiler does not force you to.
  */
 export function useTelemetry<T extends TopicId>(
   topic: T,

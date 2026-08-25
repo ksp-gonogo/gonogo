@@ -117,6 +117,21 @@ jobs:
 
       - run: pnpm --filter @ksp-gonogo/components unfed-snapshot-gate
 
+      # Says out loud which suites did not run. Three of them are gated on a
+      # recording generated into `local_docs/`, which is blanket-gitignored, so
+      # CI can never have it and they skip on every run. A skipped suite prints
+      # as skipped, which is what a deliberately-skipped suite prints too, and
+      # `pnpm test` says "passed" either way: the whole recorded-wire tier not
+      # executing has never appeared anywhere a person reads.
+      #
+      # Exits 0 whatever it finds, deliberately. A missing fixture is the
+      # permanent state here and a step that is always red hides the next real
+      # failure behind it, the way `visual` already does. The register it prints
+      # is held to the tree by `packages/core/src/fixture-gated-suites.test.ts`,
+      # so it cannot go stale without that going red.
+      - name: Which suites did not run, and what that costs
+        run: pnpm fixture-gated-report
+
       # Probe-harness smoke check: opens each probe page in Chromium and asserts
       # the bundle installs the global its driver calls. Chromium only, since the
       # question is "does the bundle evaluate", which is engine-independent.
@@ -292,15 +307,37 @@ jobs:
           token: ${{ secrets.KSP_MANAGED_TOKEN }}
           path: ksp-managed
 
-      # On the branches that gate a deploy, the reference assemblies are not
-      # optional: without them GonogoKosUplink.Tests' harness and
+      # On the paths that gate a merge or a deploy, the reference assemblies are
+      # not optional: without them GonogoKosUplink.Tests' harness and
       # Gonogo.KSP.Tests' ledger suite are dropped at BUILD time and the job goes
       # green having run neither. A missing token is a broken CI configuration,
       # not a lighter test run, so it fails here where the reason is legible
-      # rather than as an absence nobody reads. Forks and contributor PRs (which
-      # cannot see repo secrets) keep the soft-degrade.
-      - name: KSP reference assemblies are mandatory on main/staging
-        if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/staging'
+      # rather than as an absence nobody reads.
+      #
+      # A PULL REQUEST is one of those paths, and the condition has to say so
+      # separately: on the `pull_request` trigger `github.ref` is
+      # `refs/pull/<n>/merge`, never `refs/heads/main`, so a check written
+      # against `github.ref` alone cannot match and this step was skipped on
+      # every PR into main. That is the merge gate itself, the one place a
+      # silently-dropped suite decides whether code lands.
+      #
+      # Forks keep the soft-degrade, and `head.repo.full_name` is what
+      # distinguishes them: a fork PR cannot see `KSP_MANAGED_TOKEN`, so the
+      # checkout above genuinely cannot succeed there and failing would only
+      # punish a contributor for a secret they were never given. A same-repo PR
+      # has the secret and is held to the same bar as a push.
+      #
+      # `packages/core/src/ci-mandatory-steps.test.ts` evaluates this exact
+      # expression against each of those event shapes, because a condition that
+      # cannot match is invisible: the step reports as skipped, which is what a
+      # correctly-skipped step also reports.
+      - name: KSP reference assemblies are mandatory on main/staging and on PRs
+        if: >-
+          github.ref == 'refs/heads/main'
+          || github.ref == 'refs/heads/staging'
+          || (github.event_name == 'pull_request'
+              && github.event.pull_request.head.repo.full_name == github.repository
+              && (github.base_ref == 'main' || github.base_ref == 'staging'))
         run: |
           set -euo pipefail
           # THE RULE: every DLL a suite's availability gate conditions on has to

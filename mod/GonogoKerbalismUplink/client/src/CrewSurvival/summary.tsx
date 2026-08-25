@@ -4,11 +4,11 @@ import {
   Badge,
   Cluster,
   type MeterTone,
+  magnitudeOf,
   ReadoutCaption,
   Unit,
 } from "@ksp-gonogo/ui-kit";
 import type { KerbalismSpaceWeather } from "../__generated__/contract";
-import { mag } from "../ecosystem";
 import { KERBALISM } from "../uplink";
 
 // ---------------------------------------------------------------------------
@@ -62,11 +62,13 @@ function radiationSummaryFor(
   // Habitat dose (post-shielding, what the crew actually absorbs) is the
   // right reading for a CREW status summary; falls back to the ambient
   // reading when the mod hasn't resolved a habitat-specific figure yet.
-  const doseRadPerHour =
-    mag(
-      weather.habitatRadiationRadPerSecond ?? weather.radiationRadPerSecond,
-      0,
-    ) * 3600;
+  const doseRadPerSecond = magnitudeOf(
+    weather.habitatRadiationRadPerSecond ?? weather.radiationRadPerSecond,
+  );
+  // No dose reported means no verdict: a summary that stayed silent because it
+  // read an absence as zero would be silent for the wrong reason.
+  if (doseRadPerSecond === null) return null;
+  const doseRadPerHour = doseRadPerSecond * 3600;
   if (doseRadPerHour >= HIGH_RADIATION_RAD_PER_HOUR) {
     return { label: "High radiation environment", tone: "warn" };
   }

@@ -1,6 +1,6 @@
 import type { ContributionEntry } from "@ksp-gonogo/sitrep-sdk";
+import { magnitudeOf } from "@ksp-gonogo/ui-kit";
 import type { KerbalismLifeSupport } from "../__generated__/contract";
-import { mag } from "../ecosystem";
 import { KERBALISM } from "../uplink";
 
 // ---------------------------------------------------------------------------
@@ -36,12 +36,15 @@ export function computeKerbalismPartMeta(
   if (!lifeSupport) return [];
   const entries: PartMetaEntry[] = [];
   for (const entry of lifeSupport.processes ?? []) {
-    if (entry.flightId === undefined) continue; // no part to attach to
+    // A flightID that did not arrive attaches to no part, and defaulting it
+    // would attach the row to part "0", which is a different part's status.
+    const flightId = magnitudeOf(entry.flightId);
+    if (flightId === null) continue;
     const label = entry.title || entry.resource || "process";
     const running = entry.running === true;
     const broken = entry.broken === true;
     entries.push({
-      partId: String(mag(entry.flightId)),
+      partId: String(flightId),
       label,
       tone: broken ? "nogo" : running ? "go" : "neutral",
       kind: "text",

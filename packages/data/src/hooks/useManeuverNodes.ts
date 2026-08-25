@@ -4,6 +4,7 @@ import {
   useStream,
 } from "@ksp-gonogo/sitrep-client";
 import type { ManeuverNode, VesselManeuver } from "@ksp-gonogo/sitrep-sdk";
+import { magnitudeOr } from "@ksp-gonogo/ui-kit";
 import { useMemo } from "react";
 
 /**
@@ -37,15 +38,13 @@ export interface ParsedManeuverNode {
 
 const EMPTY: readonly ParsedManeuverNode[] = [];
 
-function magnitudeOf(component: { magnitude: number } | undefined): number {
-  return component?.magnitude ?? 0;
-}
-
 function parse(node: ManeuverNode): ParsedManeuverNode {
   const deltaV: [number, number, number] = [
-    magnitudeOf(node.dvRadial),
-    magnitudeOf(node.dvNormal),
-    magnitudeOf(node.dvPrograde),
+    // 0 for an absent component: a node's burn is the vector it declares, and
+    // a component nobody sent contributes nothing to it.
+    magnitudeOr(node.dvRadial, 0),
+    magnitudeOr(node.dvNormal, 0),
+    magnitudeOr(node.dvPrograde, 0),
   ];
   return {
     id: node.id,

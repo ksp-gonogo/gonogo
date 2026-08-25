@@ -3,6 +3,7 @@ import {
   Badge,
   Cluster,
   KSP_DAY_SECONDS,
+  NULL_DISPLAY,
   Section,
   type Severity,
   Stack,
@@ -54,16 +55,20 @@ import { KERBALISM } from "../uplink";
  *  passes down as this slot's props. */
 export interface GreenhouseRow {
   cropResource: string;
-  /** Natural light flux reaching the greenhouse, W/m^2. */
-  natural: number;
-  /** Supplemental lamp light flux, W/m^2. */
-  artificial: number;
+  /** Natural light flux reaching the greenhouse, W/m^2. Null when unreported. */
+  natural: number | null;
+  /** Supplemental lamp light flux, W/m^2. Null when unreported. */
+  artificial: number | null;
   /** The player's own on/off toggle, independent of whether it is currently producing. */
   active: boolean;
   /** Blocking reason string, e.g. "insufficient lighting". Empty when growing normally. */
   issue: string;
-  /** Derived continuous production rate, units/s (0 when inactive or blocked). */
-  foodRatePerSec: number;
+  /**
+   * Derived continuous production rate, units/s: 0 when inactive or blocked,
+   * null when the entry carried no rate at all. The two are different answers,
+   * and a halted greenhouse is the one an operator acts on.
+   */
+  foodRatePerSec: number | null;
   /** rad/s. `<= 0` means "not reported": never flag against it. */
   radiationToleranceRadPerSec: number;
 }
@@ -98,15 +103,16 @@ declare module "@ksp-gonogo/sitrep-sdk" {
   }
 }
 
-function fmtWm2(n: number): string {
-  return `${Math.round(n)} W/m²`;
+function fmtWm2(n: number | null): string {
+  return n === null ? NULL_DISPLAY : `${Math.round(n)} W/m²`;
 }
 
 /** Converts the per-second production rate to a per-day figure, more
  *  legible than a tiny per-second fraction for a continuous crop process.
  *  The day is Kerbin's 6h one, so this agrees with the time-to-empty
  *  countdown in the same widget. */
-function fmtRatePerDay(perSec: number): string {
+function fmtRatePerDay(perSec: number | null): string {
+  if (perSec === null) return NULL_DISPLAY;
   if (perSec <= 0) return "0/day";
   const perDay = perSec * KSP_DAY_SECONDS;
   return `${perDay >= 10 ? perDay.toFixed(0) : perDay.toFixed(2)}/day`;

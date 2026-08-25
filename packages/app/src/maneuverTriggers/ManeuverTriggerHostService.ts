@@ -24,6 +24,7 @@ import {
   getViewUt,
   onActiveTimelineFrame,
 } from "@ksp-gonogo/sitrep-client";
+import { magnitudeOf, type Quantityish } from "@ksp-gonogo/ui-kit";
 import type { PeerHostService } from "../peer/PeerHostService";
 
 /**
@@ -71,9 +72,13 @@ const STORAGE_KEY = "gonogo.maneuverTriggers.list";
  * over: the values going IN are checked, the burn coming OUT is re-declared,
  * and in between is maths that reasons about dimensions the registry has no
  * names for.
+ *
+ * `undefined` rather than the canonical `null`, because `PlanInputs` declares
+ * its optional fields that way and the solver's own guards read `undefined`.
+ * The unwrap is ui-kit's, so an absent field cannot become a number here.
  */
-function mag(v: { magnitude: number } | null | undefined): number | undefined {
-  return v?.magnitude;
+function solverInput(v: Quantityish): number | undefined {
+  return magnitudeOf(v) ?? undefined;
 }
 
 export interface ManeuverTriggerHostOptions {
@@ -252,14 +257,14 @@ export class ManeuverTriggerHostService implements ManeuverTriggerService {
     const state = getVesselState();
     const target = getVesselTarget();
     const targetOrbit = target?.orbit;
-    const sma = mag(orbit?.sma);
+    const sma = solverInput(orbit?.sma);
     const orbitalSpeed = state?.orbitalSpeed ?? undefined;
     const radius = state?.orbitalRadius ?? undefined;
     const period = state?.period ?? undefined;
     return {
       currentOrbit: buildCurrentOrbit({
         sma,
-        ecc: mag(orbit?.ecc),
+        ecc: solverInput(orbit?.ecc),
         ApR: state?.apoapsisRadius ?? undefined,
         PeR: state?.periapsisRadius ?? undefined,
         timeToAp: state?.timeToAp ?? undefined,
@@ -271,14 +276,14 @@ export class ManeuverTriggerHostService implements ManeuverTriggerService {
       currentUT: getViewUt(),
       mu: computeMu(orbitalSpeed, radius, sma, period),
       trueAnomaly: state?.trueAnomaly ?? undefined,
-      argPe: mag(orbit?.argPe),
-      inclination: mag(orbit?.inc),
-      lan: mag(orbit?.lan),
-      targetInclinationLive: mag(targetOrbit?.inc),
-      targetLanLive: mag(targetOrbit?.lan),
-      targetSma: mag(targetOrbit?.sma),
+      argPe: solverInput(orbit?.argPe),
+      inclination: solverInput(orbit?.inc),
+      lan: solverInput(orbit?.lan),
+      targetInclinationLive: solverInput(targetOrbit?.inc),
+      targetLanLive: solverInput(targetOrbit?.lan),
+      targetSma: solverInput(targetOrbit?.sma),
       targetPeA: state?.targetPeriapsisAlt ?? undefined,
-      targetArgPe: mag(targetOrbit?.argPe),
+      targetArgPe: solverInput(targetOrbit?.argPe),
       targetTrueAnomaly: state?.targetTrueAnomaly ?? undefined,
       targetPeriod: state?.targetPeriod ?? undefined,
       bodyRadius: getBody(

@@ -2,6 +2,7 @@ import {
   KSP_RESOURCE_FLOW_MODE_NAMES,
   KspResourceFlowMode,
 } from "@ksp-gonogo/sitrep-sdk";
+import { magnitudeOf, magnitudeOr } from "@ksp-gonogo/ui-kit";
 import type {
   KerbalismLifeSupport,
   KerbalismProcessDef,
@@ -21,16 +22,14 @@ import type {
  */
 
 // ── Shared plumbing ─────────────────────────────────────────────────────────
-
-/** A wire quantity, or a bare number where a unit could not be carried. */
-export type Quantityish = { magnitude?: number } | number | null | undefined;
-
-/** Magnitude of a wire quantity, defaulting rather than throwing on absence. */
-export function mag(q: Quantityish, fallback = 0): number {
-  if (typeof q === "number") return q;
-  const m = q?.magnitude;
-  return typeof m === "number" && Number.isFinite(m) ? m : fallback;
-}
+//
+// Quantities come off the wire through ui-kit's `magnitudeOf` (null when a
+// field is absent) and `magnitudeOr` (a stated default). Every default in this
+// file is a modelling decision written at its own call site: a process nobody
+// reported a capacity for contributes nothing to a sum, an unreported
+// environment modifier means "no correction available" and so is 1. What is
+// NOT a default is a reading an operator will look at, which stays null all
+// the way to the widget.
 
 /** A resource this profile touches, with the static facts about it. */
 export interface ResourceFacts {
@@ -176,9 +175,9 @@ export function buildLedger({
     if (entry.broken === true || entry.running !== true) continue;
     const def = entry.resource ? byModifier.get(entry.resource) : undefined;
     if (!def) continue;
-    const capacity = mag(entry.capacity);
-    const perCapacityIn = mag(def.inputs?.[resource], Number.NaN);
-    const perCapacityOut = mag(def.outputs?.[resource], Number.NaN);
+    const capacity = magnitudeOr(entry.capacity, 0);
+    const perCapacityIn = magnitudeOr(def.inputs?.[resource], Number.NaN);
+    const perCapacityOut = magnitudeOr(def.outputs?.[resource], Number.NaN);
     const signed =
       (Number.isNaN(perCapacityOut) ? 0 : perCapacityOut) -
       (Number.isNaN(perCapacityIn) ? 0 : perCapacityIn);
@@ -189,11 +188,11 @@ export function buildLedger({
     // or the reflection target having moved) means "no correction available",
     // which is exactly what k = 1 encodes: falls back to the pre-a' nominal
     // rate rather than zeroing the term.
-    const envModifier = mag(entry.envModifier, 1);
+    const envModifier = magnitudeOr(entry.envModifier, 1);
     terms.push({
       name: def.name || entry.title || entry.resource || "process",
       kind: "process",
-      flightId: entry.flightId === undefined ? undefined : mag(entry.flightId),
+      flightId: magnitudeOf(entry.flightId) ?? undefined,
       ratePerSecond: signed * capacity * envModifier,
       scale: capacity,
     });
@@ -202,7 +201,7 @@ export function buildLedger({
   for (const rule of profile?.rules ?? []) {
     // ratePerSecond, never `rate`: a Rule with an interval fires once per
     // interval, and the mod already did that division so nobody repeats it.
-    const perSecond = mag(rule.ratePerSecond);
+    const perSecond = magnitudeOr(rule.ratePerSecond, 0);
     if (perSecond === 0) continue;
     const signed =
       rule.input === resource
@@ -216,7 +215,7 @@ export function buildLedger({
     // rule definition itself (see KerbalismLifeSupport.RuleEnvModifiers' doc
     // comment: the profile channel's mapper is KSP-free/off-main-thread, so a
     // live Modifiers.Evaluate read can't land there). Missing name -> 1.
-    const ruleEnvModifier = mag(
+    const ruleEnvModifier = magnitudeOr(
       rule.name ? lifeSupport?.ruleEnvModifiers?.[rule.name] : undefined,
       1,
     );
@@ -231,7 +230,7 @@ export function buildLedger({
   terms.sort((a, b) => Math.abs(b.ratePerSecond) - Math.abs(a.ratePerSecond));
   const derivedNet = terms.reduce((sum, t) => sum + t.ratePerSecond, 0);
   const reported = lifeSupport?.rates?.[resource];
-  const reportedNet = reported === undefined ? undefined : mag(reported);
+  const reportedNet = magnitudeOf(reported) ?? undefined;
   return {
     resource,
     terms,
@@ -433,7 +432,11 @@ export function diagnose({
 }: DiagnosisInput): DiagnosisGroup[] {
   const net: Record<string, number> = {};
   for (const [name, rate] of Object.entries(lifeSupport?.rates ?? {})) {
-    net[name] = mag(rate);
+    // A key present with no usable rate is not a rate of zero, and a diagnosis
+    // built on one would state a resource is steady when nobody said so. Left
+    // out of the map entirely: undiagnosable is the honest answer.
+    const perSecond = magnitudeOf(rate);
+    if (perSecond !== null) net[name] = perSecond;
   }
   const short = new Set(Object.keys(net).filter((r) => net[r] < 0));
   const byModifier = processesByModifier(profile);
@@ -450,7 +453,11 @@ export function diagnose({
       if (!def || produced === undefined) continue;
       // A producer too small to move the needle may not implicate anything:
       // a 0.05-capacity fuel cell is not the answer to a station water gap.
-      if (mag(produced) * mag(entry.capacity) < gap * materiality) continue;
+      if (
+        magnitudeOr(produced, 0) * magnitudeOr(entry.capacity, 0) <
+        gap * materiality
+      )
+        continue;
       for (const input of Object.keys(def.inputs ?? {})) {
         if (input === resource) continue;
         if (short.has(input) || (stored[input] ?? 0) <= 0) set.add(input);
@@ -538,8 +545,8 @@ export function timeToEmptySeconds(
 ): number | null {
   const rate = lifeSupport?.rates?.[resource];
   if (rate === undefined) return null;
-  const perSecond = mag(rate);
-  if (perSecond >= 0) return null;
+  const perSecond = magnitudeOf(rate);
+  if (perSecond === null || perSecond >= 0) return null;
   return (stored[resource] ?? 0) / -perSecond;
 }
 
@@ -694,14 +701,15 @@ export function summarise({
     const reported = lifeSupport?.rates?.[f.name];
     const group = roleOf.get(f.name);
     const low = profile?.resources?.[f.name]?.lowThreshold;
-    const lowMagnitude = low === undefined ? undefined : mag(low, Number.NaN);
+    const lowMagnitude =
+      low === undefined ? undefined : magnitudeOr(low, Number.NaN);
     return {
       name: f.name,
       displayName: f.displayName,
       amount,
       capacity: cap,
       fraction: cap > 0 ? amount / cap : null,
-      ratePerSecond: reported === undefined ? null : mag(reported),
+      ratePerSecond: magnitudeOf(reported),
       secondsToEmpty: timeToEmptySeconds(f.name, lifeSupport, stored),
       isSupply: f.isSupply,
       pooled: f.pooled,
@@ -762,7 +770,8 @@ export function wearRows({
       // The process's own gate token is an input too and is not wear; only a
       // DIFFERENT pseudo-resource is a life gauge.
       if (!name.startsWith("_") || name === entry.resource) continue;
-      const drain = mag(perCapacity) * mag(entry.capacity);
+      const drain =
+        magnitudeOr(perCapacity, 0) * magnitudeOr(entry.capacity, 0);
       const amount = stored[name] ?? 0;
       const cap = capacity[name] ?? 0;
       out.push({

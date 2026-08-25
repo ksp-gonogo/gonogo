@@ -5,6 +5,7 @@ import {
   screen,
   setupStreamFixture,
 } from "@ksp-gonogo/sitrep-sdk/testing";
+import { NULL_DISPLAY } from "@ksp-gonogo/ui-kit";
 import { expectNoA11yViolations } from "@ksp-gonogo/ui-kit/testing";
 import { useEffect, useState } from "react";
 import { afterEach, describe, expect, it } from "vitest";
@@ -275,7 +276,19 @@ describe("RadiationSection", () => {
     let setUtRef: ((n: number) => void) | undefined;
     function Harness() {
       const [ut, setUt] = useState(10);
-      const weather = useTelemetry("kerbalism.spaceweather");
+      // The PAYLOAD, not the Reading. Every field on
+      // `KerbalismSpaceWeather` is optional, so a `Reading` is structurally
+      // assignable to it and the hook's own return value typechecked as a
+      // weather frame while carrying none of its fields. The section then read
+      // absence at every arm, which it used to render as 0 rad/s, so this
+      // harness drove a live trend off two samples that measured nothing.
+      const reading = useTelemetry("kerbalism.spaceweather");
+      const weather =
+        reading.state === "observed"
+          ? reading.value
+          : reading.state === "reckonable"
+            ? reading.reckoned.value
+            : undefined;
       useEffect(() => {
         setUtRef = setUt;
       }, []);
@@ -327,5 +340,41 @@ describe("RadiationSection", () => {
     );
     renderedTrees.push(() => {});
     await expectNoA11yViolations(container);
+  });
+});
+
+describe("RadiationSection: a frame that carries no dose rate", () => {
+  it("reads the ambient dose as absent, never as zero radiation", () => {
+    render(
+      <RadiationSection
+        weather={{ magnetosphere: true, inSunlight: true }}
+        utNow={10}
+      />,
+    );
+    renderedTrees.push(() => {});
+    const ambient = screen.getByText("Ambient", { exact: false });
+    expect(ambient.textContent).toContain(NULL_DISPLAY);
+    expect(ambient.textContent).not.toMatch(/\b0(\.0+)?\s*(rad|mrad|µrad)/);
+  });
+
+  it("reads the shielded dose as absent when neither figure is reported", () => {
+    render(
+      <RadiationSection
+        weather={{ magnetosphere: true, inSunlight: true }}
+        utNow={10}
+      />,
+    );
+    renderedTrees.push(() => {});
+    const shielded = screen.getByText("Shielded", { exact: false });
+    expect(shielded.textContent).toContain(NULL_DISPLAY);
+  });
+
+  it("plots no trend point for a dose rate nobody reported", () => {
+    const buffer = pushRadiationSample([], {
+      ut: 0,
+      ambientRadPerSec: null,
+      shieldedRadPerSec: null,
+    });
+    expect(buffer).toEqual([]);
   });
 });

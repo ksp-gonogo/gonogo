@@ -4,8 +4,10 @@ import {
   render,
   screen,
   setupStreamFixture,
+  waitFor,
+  within,
 } from "@ksp-gonogo/sitrep-sdk/testing";
-import { resourceColor } from "@ksp-gonogo/ui-kit";
+import { NULL_DISPLAY, resourceColor } from "@ksp-gonogo/ui-kit";
 import { expectNoA11yViolations } from "@ksp-gonogo/ui-kit/testing";
 import { afterEach, describe, expect, it } from "vitest";
 // Importing the real module runs its module-load registerComponent(...).
@@ -24,7 +26,7 @@ const CARRIED = [
 // and WasteWater to produce Water, and a scrubber process that drains a wear
 // pseudo-resource. Bare numbers throughout: `StubTransport.emit` wraps them
 // into `Value`s the same way a real wire frame arrives (see that method's own
-// doc comment), and `mag()` reads either shape regardless.
+// doc comment), and `magnitudeOf()` reads either shape regardless.
 const PROFILE = {
   name: "Test Profile",
   resources: {
@@ -539,5 +541,74 @@ describe("fmtAmt", () => {
     expect(fmtAmt(-0.05)).toBe("-0.05");
     expect(fmtAmt(12.3)).toBe("12.3");
     expect(fmtAmt(-25)).toBe("-25");
+  });
+});
+
+/**
+ * The habitat block reads five optional wire scalars, and a frame can land
+ * carrying none of them: `kerbalism.lifesupport` is absent until its first
+ * frame while `kerbalism.profile` is not, and a Kerbalism install with the
+ * pressure or comfort feature switched off reports the block empty.
+ *
+ * Each case emits its OWN lifesupport payload, unlike every case above, and
+ * the processor's re-derivation lands a tick after the emit `act` returns. Up
+ * to that point the tree still carries the PREVIOUS case's habitat (the
+ * evaluator keeps a processor's last value across stores by design, see
+ * `processorEvaluator`'s `resetFrameTracking`), so an anchor both states share
+ * resolves early and the assertions read the wrong render. Each case therefore
+ * waits on the habitat head reading what THIS payload implies.
+ */
+describe("ShipSystemsComponent: habitat readings that never arrived", () => {
+  function renderWithHabitat(habitat: Record<string, unknown> | undefined) {
+    const fixture = newFixture();
+    const { container } = renderWidget(fixture);
+    act(() => {
+      fixture.emit("kerbalism.profile", PROFILE);
+      fixture.emit("kerbalism.lifesupport", { ...LIFE_SUPPORT, habitat });
+      fixture.emit("vessel.resources", RESOURCES);
+      fixture.emit("vessel.crew", CREW);
+    });
+    return within(container);
+  }
+
+  /** Resolves once the habitat SectionHead reads `value`, never before. */
+  async function habitatHeadReads(
+    panel: ReturnType<typeof within>,
+    value: string,
+  ) {
+    await waitFor(() => {
+      expect(panel.getByText("HABITAT").parentElement).toHaveTextContent(
+        `HABITAT${value}`,
+      );
+    });
+  }
+
+  it("does not call an unreported habitat unpressurised", async () => {
+    const panel = renderWithHabitat(undefined);
+
+    await habitatHeadReads(panel, NULL_DISPLAY);
+    // Both verdicts are claims about a reading nobody sent
+    expect(panel.queryByText("Unpressurized")).toBeNull();
+    expect(panel.queryByText("Pressurized")).toBeNull();
+  });
+
+  it("does not draw an unreported comfort as a zeroed warning meter", async () => {
+    const panel = renderWithHabitat(undefined);
+
+    await habitatHeadReads(panel, NULL_DISPLAY);
+    // A meter asserts a fill fraction, and there is no fraction to assert
+    expect(panel.queryByRole("meter", { name: "Comfort" })).toBeNull();
+    expect(panel.queryByRole("meter", { name: "Living space" })).toBeNull();
+    expect(panel.queryByRole("meter", { name: "CO2 poisoning" })).toBeNull();
+    // The row still names itself, so the operator can see what is missing
+    expect(panel.getByText("Comfort")).toBeInTheDocument();
+  });
+
+  it("still reads a habitat that reported only some of its scalars", async () => {
+    const panel = renderWithHabitat({ pressure: 0.9, comfort: 0.6 });
+
+    await habitatHeadReads(panel, "Pressurized");
+    expect(panel.getByRole("meter", { name: "Comfort" })).toBeInTheDocument();
+    expect(panel.queryByRole("meter", { name: "CO2 poisoning" })).toBeNull();
   });
 });

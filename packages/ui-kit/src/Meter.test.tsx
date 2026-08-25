@@ -1,6 +1,7 @@
 import { render, screen } from "@ksp-gonogo/sitrep-sdk/testing";
 import { describe, expect, it } from "vitest";
 import { Meter } from "./Meter";
+import { NULL_DISPLAY } from "./NullValue";
 
 describe("Meter", () => {
   it("renders the accessible meter role with the given label and value", () => {
@@ -35,5 +36,19 @@ describe("Meter", () => {
     const meter = screen.getByRole("meter", { name: "Plain" });
     const fill = meter.firstElementChild as HTMLElement;
     expect(fill).toHaveStyle({ background: "var(--color-text-muted)" });
+  });
+
+  it("renders an absent reading as absence, not as a zeroed bar", () => {
+    render(<Meter label="Comfort" value={null} />);
+    // No role="meter": a meter asserts a fill fraction, and there is none
+    expect(screen.queryByRole("meter", { name: "Comfort" })).toBeNull();
+    expect(screen.getByText("Comfort")).toBeInTheDocument();
+    expect(screen.getByText(NULL_DISPLAY)).toBeInTheDocument();
+  });
+
+  it("keeps a genuine zero as a meter, distinct from an absent one", () => {
+    render(<Meter label="Comfort" value={0} />);
+    const meter = screen.getByRole("meter", { name: "Comfort" });
+    expect(meter).toHaveAttribute("aria-valuenow", "0");
   });
 });

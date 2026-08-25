@@ -1,6 +1,7 @@
 import { value as quantity } from "@ksp-gonogo/sitrep-sdk";
 import type { HTMLAttributes, ReactNode } from "react";
 import styled, { css } from "styled-components";
+import { NullValue } from "./NullValue";
 import { Unit } from "./Unit";
 import { speakQuantity } from "./units";
 
@@ -11,8 +12,17 @@ export interface MeterProps
   extends Omit<HTMLAttributes<HTMLDivElement>, "children"> {
   /** Short label shown above the bar and used as the meter's accessible name. */
   label: string;
-  /** Fill fraction, 0..1. Clamped; non-finite renders empty. */
-  value: number;
+  /**
+   * Fill fraction, 0..1. Clamped; non-finite renders empty.
+   *
+   * `null` is a reading that never arrived, and it renders as ABSENCE: the
+   * header shows `NULL_DISPLAY`, the track is empty, and the row drops
+   * `role="meter"` entirely. That last part is the point. A meter asserts a
+   * fill fraction and an `aria-valuenow` to go with it, and there is no
+   * fraction to assert; drawing an unreported reading as a 0% bar tells the
+   * operator the tank is empty rather than that nobody said.
+   */
+  value: number | null;
   /** Semantic colour of the fill. Ignored when `fillColor` is set. */
   tone?: MeterTone;
   /**
@@ -49,7 +59,8 @@ export interface MeterProps
  *
  * Semantics: the track is `role="meter"` with `aria-valuenow/min/max` and
  * `aria-valuetext` (the human `valueLabel`), named by `label`. Colour never
- * carries meaning alone: the header always shows the value in text.
+ * carries meaning alone: the header always shows the value in text. A `null`
+ * value renders the absent form instead, see that prop's own doc.
  */
 export function Meter({
   label,
@@ -61,6 +72,21 @@ export function Meter({
   size = "md",
   ...rest
 }: MeterProps) {
+  if (value === null) {
+    return (
+      <Meter__Root $size={size} {...rest}>
+        <Meter__Head>
+          <Meter__Label>{label}</Meter__Label>
+          <Meter__Value>
+            <NullValue />
+          </Meter__Value>
+        </Meter__Head>
+        {/* Decorative: the track carries no reading, so the label and the
+            placeholder beside it are the whole accessible content. */}
+        <Meter__Track $size={size} aria-hidden="true" />
+      </Meter__Root>
+    );
+  }
   const clamped = Number.isFinite(value) ? Math.min(1, Math.max(0, value)) : 0;
   const pct = Math.round(clamped * 100);
   // `value` is a 0..1 ratio, which is a unit the kit knows, so <Unit> does the

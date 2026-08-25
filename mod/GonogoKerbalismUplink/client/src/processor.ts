@@ -1,10 +1,11 @@
 import type { ResourceAmount, Value } from "@ksp-gonogo/sitrep-sdk";
 import { observedAt, value } from "@ksp-gonogo/sitrep-sdk";
+import { magnitudeOr } from "@ksp-gonogo/ui-kit";
 import type {
   KerbalismLifeSupport,
   KerbalismProfile,
 } from "./__generated__/contract";
-import { mag, type Summary, summarise } from "./ecosystem";
+import { type Summary, summarise } from "./ecosystem";
 import { KERBALISM } from "./uplink";
 
 // The single per-frame derivation the Ship Systems widget AND its panel badge
@@ -95,10 +96,10 @@ export const SHIP_SYSTEMS = KERBALISM.registerProcessor({
     const capacity: Record<string, number> = {};
     const levels: Record<string, ResourceAmount> = resources?.resources ?? {};
     for (const [name, amount] of Object.entries(levels)) {
-      stored[name] = mag(amount.current);
-      capacity[name] = mag(amount.max);
+      stored[name] = magnitudeOr(amount.current, 0);
+      capacity[name] = magnitudeOr(amount.max, 0);
     }
-    const crewCount = mag(crew?.count);
+    const crewCount = magnitudeOr(crew?.count, 0);
     return {
       summary: summarise({
         profile,
