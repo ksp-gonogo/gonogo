@@ -33,9 +33,9 @@ export function severityFromAlarmState(state: AlarmState): Severity | null {
  * countdown, so it lights no single widget).
  *
  * The contract-parameter subject is the app's own string rather than anything
- * an operator picked, so it names the wire field directly. It used to name the
- * legacy `contracts.active` key, which made a widget's attribution depend on
- * that widget still declaring the legacy vocabulary.
+ * an operator picked, so it names the wire field directly. Naming a legacy key
+ * instead makes a widget's attribution depend on that widget still declaring
+ * the legacy vocabulary.
  */
 export function alarmSubjectKey(alarm: Alarm): string | null {
   switch (alarm.trigger.kind) {

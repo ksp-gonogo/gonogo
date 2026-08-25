@@ -69,15 +69,13 @@ function toTransportStatus(status: ConnStatus): TransportStatus {
  * client keeps the control honest and the churn absent. Per-station observation
  * vantage needs a wire change and is separate work.
  *
- * That gap used to mean a command whose peer connection dropped mid-flight
- * (or that was dispatched with no live `conn` at all,
- * `PeerClientService.sendSitrepCommand` silently no-ops when `conn` is
- * null) had NO loss timer and hung `TelemetryClient.dispatch()`'s promise
- * forever, until the connection resumed or `TelemetryClient` was disposed
- * (see this class's own risk note in the station-forwarding plan
- * §"Risks"). Rather than build the full round-trip timing model, this class
- * settles pending commands itself on the two events that actually make a
- * command unanswerable:
+ * Left unhandled, that gap means a command whose peer connection drops
+ * mid-flight (or that is dispatched with no live `conn` at all:
+ * `PeerClientService.sendSitrepCommand` silently no-ops when `conn` is null)
+ * has NO loss timer and hangs `TelemetryClient.dispatch()`'s promise forever,
+ * until the connection resumes or `TelemetryClient` is disposed. Rather than
+ * build the full round-trip timing model, this class settles pending commands
+ * itself on the two events that actually make a command unanswerable:
  *   - `send()` is called for a `command-request` while not `"connected"`,
  *     synthesizes an `error` on the next microtask (never inline; see the
  *     `StubTransport`/`WebSocketTransport` convention every `Transport`

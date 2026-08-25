@@ -17,10 +17,10 @@ import { useEffect } from "react";
  *   outright.
  * - Any other mod that implements that interface.
  *
- * The kit used to compile 21,600 in. Under any of the above, every duration it
- * rendered was four times too many days and every `Y# D#` date was on the
- * wrong calendar, in numbers that look completely plausible: a life-support
- * readout saying "3 days of oxygen" when the player has eighteen hours.
+ * So the kit must never compile a day length in. Baking 21,600 makes every
+ * duration four times too many days under any of the above, and every `Y# D#`
+ * date sit on the wrong calendar, in numbers that look completely plausible: a
+ * life-support readout saying "3 days of oxygen" for eighteen hours' worth.
  *
  * ## Why a component rather than a hook the widgets call
  *
@@ -61,9 +61,9 @@ export function KspCalendarObserver() {
   const minute = calendar?.minuteSeconds?.magnitude;
 
   useEffect(() => {
-    // Every field, or none. A half-applied calendar (a new day length against
-    // the old year) is a state the game is never in, and it would render a
-    // date that is wrong in a way neither calendar explains.
+    // Every field, or none. A half-applied calendar (one calendar's day length
+    // against another's year) is a state the game is never in, and renders a
+    // date wrong in a way neither calendar explains.
     if (
       day === undefined ||
       year === undefined ||

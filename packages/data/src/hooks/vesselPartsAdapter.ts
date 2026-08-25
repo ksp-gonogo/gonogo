@@ -104,15 +104,15 @@ function deriveTopologyPart(p: VesselPart): TopologyPart {
 // registry only knows ratios: `value("K", 300)` in "degC" would be a scaling,
 // and there is no scale factor that turns 300 K into 26.85 C.
 //
-// This file used to carry its own `ABSOLUTE_ZERO_C = 273.15` and subtract it,
-// while core exported `ABSOLUTE_ZERO_C = -273.15` and added it. Same name, two
-// packages, opposite signs, each correct only beside its own operator: reading
-// one and applying the other silently lands you 546.3 K out.
+// The constant lives in ONE place, deliberately. Two packages each exporting an
+// `ABSOLUTE_ZERO_C` with opposite signs (273.15 to subtract, -273.15 to add) are
+// each correct only beside their own operator, and reading one while applying
+// the other silently lands you 546.3 K out.
 
 /**
  * Per-part internal temperature off the SAME `vessel.parts` payload
- * `deriveTopologyFromVesselParts` reads, the old `therm.part[flightId]`
- * live key's dual-unit shape, minus the wire round-trip. `null` when the
+ * `deriveTopologyFromVesselParts` reads, carrying both units, and with no wire
+ * round-trip of its own. `null` when the
  * part hasn't been simulated yet this session (`currentTemp` unset,
  * KSP's `-1` "not yet simulated" sentinel already resolved to `null` on the
  * mod side): same "thermal data not available" contract `PartThermal`'s

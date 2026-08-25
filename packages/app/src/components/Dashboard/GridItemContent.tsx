@@ -80,9 +80,9 @@ export const GridItemContent = memo(function GridItemContent({
 
   // The augment-settings loop, closed here rather than per widget. Any augment
   // on any widget may declare `settings`; the values belong to the HOST WIDGET
-  // INSTANCE's saved config, which is a thing only the dashboard holds. Widgets
-  // used to thread this down as slot props, which stopped the capability at
-  // whichever widget had bothered to do it.
+  // INSTANCE's saved config, which is a thing only the dashboard holds. Leaving
+  // each widget to thread it down as slot props stops the capability at
+  // whichever widget has bothered to do it.
   const augmentSettings = item.config?.augmentSettings as
     | Record<string, Record<string, unknown>>
     | undefined;
@@ -113,9 +113,9 @@ export const GridItemContent = memo(function GridItemContent({
     // the widget body so each subscribes to the same off-tree store: the widget's
     // Panel folds stream staleness and any report badge in, the alarm bridge
     // folds active alarms in, and the drag-bar ghost dot (title redesign) reads
-    // the same summary. This provider replaces the old bespoke aside-injection:
-    // stream health now reaches the header through the store like every other
-    // contribution rather than as the panel's single host-provided status.
+    // the same summary. Stream health reaches the header through this store
+    // like every other contribution, not through a bespoke aside-injection as
+    // the panel's single host-provided status.
     // The per-widget delay-rail store, provided ABOVE the widget exactly like
     // the status store: a command widget calls usePanelDelay in its body, above
     // the <Panel> it returns, so a Panel-held store would be unreachable from

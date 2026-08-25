@@ -326,10 +326,9 @@ function useTagValues(tags: readonly string[]): Map<string, unknown> {
           for (const unsubscribe of unsubscribeInputs) unsubscribe();
         });
       }
-      // No `else` branch: the legacy `DataSource` this used to fall back
-      // to for un-carried tags is gone. An un-mapped or un-carried tag
-      // simply never resolves (stays `undefined`), same as any other
-      // never-arrived value.
+      // No `else` branch, and no fallback source for un-carried tags. An
+      // un-mapped or un-carried tag simply never resolves (stays `undefined`),
+      // same as any other never-arrived value.
     }
     return () => {
       for (const u of unsubs) u();

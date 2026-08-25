@@ -14,8 +14,8 @@ import { useMemo } from "react";
  *
  * `id` is the node's OWN id, the one the update and remove commands address,
  * rather than its position in this list. A position stops being valid the
- * moment a node ahead of it is deleted, and the widget used to correlate the
- * two by reading the plan a second time to recover the real ids.
+ * moment a node ahead of it is deleted, and recovering the real id from one
+ * means reading the plan a second time to correlate them.
  */
 export interface ParsedManeuverNode {
   id: string;

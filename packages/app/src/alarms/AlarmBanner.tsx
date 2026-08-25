@@ -67,10 +67,9 @@ export function AlarmBanner() {
   // (from the 1Hz tick) don't replay the tone.
   useFireBeep(snap.alarms);
 
-  // User feedback (2026-05-12): the warp/alarm banner used to be persistent
-  // at the top of the viewport and clobbered top-row widgets. New rule,
-  // only render when there's something to surface: warp ≠ 1×, an alarm is
-  // pending/firing, or a warpTo plan is queued.
+  // Renders ONLY when there is something to surface: warp ≠ 1×, an alarm
+  // pending/firing, or a warpTo plan queued. A persistent banner at the top of
+  // the viewport clobbers the top row of widgets for the whole session.
   const isQuiet =
     snap.warp.rate <= 1.0001 &&
     nextAlarm === null &&
@@ -103,12 +102,11 @@ export function AlarmBanner() {
             <Label>{headlineLabel(nextAlarm.state)}</Label>
             <AlarmName>{nextAlarm.name}</AlarmName>
             {/* Only render the countdown text when it adds information
-                beyond the alarm name. Threshold alarms used to render
-                the trigger condition next to the name, but the user's
-                name typically already encodes it ("latlong v.lat >= 80"),
-                so we'd produce visible duplicates like "latlong v.lat
-                >= 80  v.lat >= 80". Time alarms still get a T-minus,
-                contract parameters still get the target-state label. */}
+                beyond the alarm name. A threshold alarm gets none: the
+                operator's own name typically already encodes the condition
+                ("latlong v.lat >= 80"), so rendering it beside the name
+                reads as "latlong v.lat >= 80  v.lat >= 80". Time alarms get
+                a T-minus, contract parameters the target-state label. */}
             {(() => {
               const next = formatNextLine(nextAlarm, snap.ut);
               return next === null ? null : (
