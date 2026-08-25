@@ -554,10 +554,11 @@ describe("ManeuverPlannerComponent", () => {
     // Open the trigger editor.
     await user.click(screen.getByRole("button", { name: /add node when/i }));
 
-    // Pick the o.ApA telemetry key via the data-key search input.
+    // Pick the apoapsis-altitude key via the data-key search input. The
+    // picker offers the path the trigger reads from, not a flat alias for it.
     const picker = screen.getByPlaceholderText("Search telemetry...");
     await user.click(picker);
-    await user.type(picker, "o.ApA{Enter}");
+    await user.type(picker, "vessel.state.apoapsisAlt{Enter}");
 
     // Set threshold above current ApA (107000) so it doesn't fire on arm.
     const valueInput = screen.getByLabelText(/^Value$/);
@@ -567,13 +568,13 @@ describe("ManeuverPlannerComponent", () => {
     await user.click(screen.getByRole("button", { name: /^arm$/i }));
 
     // Armed row visible, no burn dispatched yet.
-    expect(visibleText()).toMatch(/o\.ApA >= 200000/);
+    expect(visibleText()).toMatch(/vessel\.state\.apoapsisAlt >= 200000/);
     expect(calls).toHaveLength(0);
 
     // Apoapsis climbs past the threshold: trigger fires and the burn is
     // dispatched with the frozen circularize-apo preset. The trigger's
-    // `dataKey` read (`getValue`) resolves `o.ApA` off the STREAM's derived
-    // `vessel.state.apoapsisAlt`, so the crossing has to come from a new
+    // `dataKey` read (`getValue`) samples the derived
+    // `vessel.state.apoapsisAlt` off the STREAM, so the crossing has to come from a new
     // `vessel.orbit` emit (sma 900_000 -> apoapsisAlt 309_000), not the
     // legacy `source.emit` alone.
     await act(async () => {
@@ -590,7 +591,9 @@ describe("ManeuverPlannerComponent", () => {
     expect(calls.length).toBe(1);
     expect(calls[0]).toMatch(/^o\.addManeuverNode\[/);
     // Armed row removed after firing.
-    expect(screen.queryByText(/o\.ApA >= 200000/)).toBeNull();
+    expect(
+      screen.queryByText(/vessel\.state\.apoapsisAlt >= 200000/),
+    ).toBeNull();
   });
 
   it("fires immediately when the trigger condition is already true at arm time", async () => {
@@ -630,7 +633,7 @@ describe("ManeuverPlannerComponent", () => {
     await user.click(screen.getByRole("button", { name: /add node when/i }));
     const picker = screen.getByPlaceholderText("Search telemetry...");
     await user.click(picker);
-    await user.type(picker, "o.ApA{Enter}");
+    await user.type(picker, "vessel.state.apoapsisAlt{Enter}");
     // Threshold below current ApA (107000): should fire on arm.
     const valueInput = screen.getByLabelText(/^Value$/);
     await user.clear(valueInput);

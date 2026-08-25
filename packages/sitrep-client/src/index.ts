@@ -281,6 +281,7 @@ export {
   LEGACY_KEY_HOMES,
   mapTopic,
   redirectKinematicSubtopic,
+  resolveValueTopic,
 } from "./map-topic";
 export type {
   NeverReckonable,

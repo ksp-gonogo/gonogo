@@ -104,14 +104,14 @@ function EscapeProfileComponent({
       series: [
         {
           id: "speed-trace",
-          key: "v.orbitalVelocity",
+          key: "vessel.state.orbitalSpeed",
           label: "Orbital speed",
           axis: "primary",
           type: "scatter",
         },
       ],
       windowSec,
-      xKey: "v.altitude",
+      xKey: "vessel.state.altitudeAsl",
     }),
     [windowSec],
   );

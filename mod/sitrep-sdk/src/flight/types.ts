@@ -1,4 +1,5 @@
 import type { DataKey } from "../api/types";
+import type { SitrepUnit } from "../units";
 
 // ---------------------------------------------------------------------------
 // Units hint used by the graph widget's axis-grouping heuristic and by
@@ -38,7 +39,13 @@ export type UnitHint =
  */
 export interface DataKeyMeta extends DataKey {
   label: string;
-  unit?: UnitHint;
+  /**
+   * The contract's own unit token. Open rather than the closed `UnitHint`
+   * union below: a key enumerated from the contract carries whatever token the
+   * contract declares, an Uplink registers tokens of its own, and a closed
+   * union cannot accept either.
+   */
+  unit?: SitrepUnit;
   group?: string;
 }
 

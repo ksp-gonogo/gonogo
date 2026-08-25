@@ -37,6 +37,7 @@ export function TriggerEditor({
       <EditorField>
         <FieldLabel>Telemetry key</FieldLabel>
         <DataKeyPicker
+          subjectNoun="trigger subject"
           keys={numericKeys}
           value={triggerKey}
           onChange={setTriggerKey}

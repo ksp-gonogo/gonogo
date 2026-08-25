@@ -197,16 +197,29 @@ namespace Sitrep.Contract
                     // excluded: its unit is declared per USE SITE and
                     // propagates onto dotted leaf keys below.
                     bool isMap;
-                    var nestedType = NestedContractType(prop.PropertyType, out isMap);
+                    bool isList;
+                    var nestedType = NestedContractType(prop.PropertyType, out isMap, out isList);
                     if (nestedType != null
                         && nestedType != typeof(Vec3)
                         && contractTypes.Contains(nestedType.Name))
                     {
-                        // A leading `*` marks a DICTIONARY of the shape: the
-                        // runtime has to map over the values rather than treat
-                        // the dictionary itself as one payload.
+                        // Both markers name the ELEMENT type, because that is
+                        // what a consumer of the payload indexes into, and say
+                        // how many of it the field holds. A leading `*` marks a
+                        // DICTIONARY: the runtime maps over the values rather
+                        // than treating the dictionary itself as one payload. A
+                        // trailing `[]` marks a LIST, spelled as the topic map
+                        // already spells an array channel.
+                        //
+                        // Plurality is what separates a path a caller can
+                        // sample from one it cannot. Without the list marker
+                        // `contracts.active.agent` reads as a field of
+                        // `career.status`, and it is a field of one element of
+                        // an array that no sample can reach.
                         nested[CamelCase(prop.Name)] =
-                            (isMap ? "*" : string.Empty) + nestedType.Name;
+                            (isMap ? "*" : string.Empty)
+                            + nestedType.Name
+                            + (isList ? "[]" : string.Empty);
                     }
 
                     var unit = prop.GetCustomAttribute<SitrepUnitAttribute>();
@@ -426,11 +439,15 @@ namespace Sitrep.Contract
         /// <summary>
         /// The nested contract shape a property holds, or null. <paramref
         /// name="isMap"/> is true for a <c>Dictionary&lt;string, T&gt;</c>,
-        /// which the runtime has to map over rather than wrap whole.
+        /// which the runtime has to map over rather than wrap whole;
+        /// <paramref name="isList"/> is true for an array or sequence of the
+        /// shape. Both describe the ELEMENT type this returns, and a property
+        /// is at most one of them.
         /// </summary>
-        internal static Type NestedContractType(Type type, out bool isMap)
+        internal static Type NestedContractType(Type type, out bool isMap, out bool isList)
         {
             isMap = false;
+            isList = false;
             var dictionaryValue = DictionaryValueType(type);
             if (dictionaryValue != null)
             {
@@ -438,7 +455,9 @@ namespace Sitrep.Contract
                 return dictionaryValue;
             }
 
-            var element = NumericSequenceElement(type) ?? type;
+            var sequenceElement = NumericSequenceElement(type);
+            isList = sequenceElement != null;
+            var element = sequenceElement ?? type;
             var underlying = Nullable.GetUnderlyingType(element) ?? element;
             if (underlying.IsPrimitive || underlying.IsEnum || underlying == typeof(string)
                 || underlying == typeof(decimal) || underlying == typeof(DateTime))

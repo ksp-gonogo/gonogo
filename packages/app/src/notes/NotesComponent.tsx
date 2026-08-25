@@ -2,7 +2,7 @@ import type { ComponentProps, DataKey } from "@ksp-gonogo/core";
 import { registerComponent, useScreen } from "@ksp-gonogo/core";
 import {
   isTopicCarried,
-  mapTopic,
+  resolveValueTopic,
   useCarriedChannelsOptional,
   useTelemetryClientOptional,
   useTelemetryStoreOptional,
@@ -250,7 +250,7 @@ function NoteRenderedText({ body }: Readonly<{ body: string }>) {
 }
 
 /**
- * Legacy source id `mapTopic` uses to resolve a `{{v.altitude}}`-style tag
+ * Source id the tag resolver passes when resolving a `{{...}}` tag
  * onto its stream `Topic`: no `DataSource` is registered under this id any
  * more (the legacy source module is deleted), but `map-topic.ts`'s
  * migration table survives P4c-b as the live stream router (see its own
@@ -304,7 +304,7 @@ function useTagValues(tags: readonly string[]): Map<string, unknown> {
     };
 
     for (const tag of tags) {
-      const topic = mapTopic(LEGACY_DATA_SOURCE_ID, tag);
+      const topic = resolveValueTopic(LEGACY_DATA_SOURCE_ID, tag);
       const carried =
         store !== undefined &&
         topic !== undefined &&

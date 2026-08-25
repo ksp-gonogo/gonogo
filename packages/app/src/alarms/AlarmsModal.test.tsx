@@ -566,8 +566,11 @@ describe("AlarmsModal threshold trigger key picker", () => {
     await user.type(screen.getByLabelText(/^name$/i), "Crossed 70 km");
     await user.click(screen.getByRole("radio", { name: /when telemetry/i }));
     await user.click(getDataKeyCombobox());
+    // Names the subject rather than taking the first match on "altitude": the
+    // catalogue offers several, and a test that picks whichever sorts first is
+    // asserting the sort order rather than the flow.
     const altitudeOption = (await screen.findAllByRole("option")).find((o) =>
-      o.textContent?.toLowerCase().includes("altitude"),
+      o.textContent?.includes("Altitude ASL"),
     );
     expect(altitudeOption).toBeDefined();
     if (altitudeOption) await user.click(altitudeOption);
@@ -577,7 +580,7 @@ describe("AlarmsModal threshold trigger key picker", () => {
     expect(onAdd).toHaveBeenCalledTimes(1);
     expect(onAdd.mock.calls[0][0].trigger).toMatchObject({
       kind: "threshold",
-      dataKey: "v.altitude",
+      dataKey: "vessel.state.altitudeAsl",
     });
   });
 });

@@ -1766,7 +1766,7 @@
   },
   "typeShapes": {
     "AstronautComplexInfo": {
-      "applicants": "CrewRosterEntry"
+      "applicants": "CrewRosterEntry[]"
     },
     "BodyEntry": {
       "atmosphere": "AtmosphereEntry",
@@ -1774,15 +1774,15 @@
     },
     "CapabilitySelection": {
       "descriptor": "CapabilityDescriptor",
-      "providers": "ProviderRegistration"
+      "providers": "ProviderRegistration[]"
     },
     "CareerContract": {
-      "parameters": "CareerContractParameter"
+      "parameters": "CareerContractParameter[]"
     },
     "CareerContracts": {
-      "active": "CareerContract",
-      "completedRecent": "CareerContract",
-      "offered": "CareerContract"
+      "active": "CareerContract[]",
+      "completedRecent": "CareerContract[]",
+      "offered": "CareerContract[]"
     },
     "CareerEconomy": {
       "upkeep": "CareerUpkeep"
@@ -1795,23 +1795,23 @@
       "tech": "CareerTech"
     },
     "CareerStrategies": {
-      "active": "CareerStrategy",
-      "all": "CareerStrategy"
+      "active": "CareerStrategy[]",
+      "all": "CareerStrategy[]"
     },
     "CareerTech": {
-      "nodes": "CareerTechNode"
+      "nodes": "CareerTechNode[]"
     },
     "ChannelDeclaration": {
       "emission": "EmissionPolicy"
     },
     "CommandDeclaration": {
-      "requires": "CommandRequirement"
+      "requires": "CommandRequirement[]"
     },
     "CommandGate": {
       "verdict": "GateVerdict"
     },
     "CommandGateReport": {
-      "gates": "CommandGate"
+      "gates": "CommandGate[]"
     },
     "CommandResponse`1": {
       "meta": "Meta"
@@ -1835,16 +1835,16 @@
       "meta": "PayloadMeta"
     },
     "CommsNetwork": {
-      "edges": "CommsNetworkEdge",
+      "edges": "CommsNetworkEdge[]",
       "meta": "PayloadMeta",
-      "nodes": "CommsNetworkNode"
+      "nodes": "CommsNetworkNode[]"
     },
     "CommsOcclusion": {
-      "bodies": "CommsOcclusionBody",
+      "bodies": "CommsOcclusionBody[]",
       "meta": "PayloadMeta"
     },
     "CommsPath": {
-      "hops": "CommsHop",
+      "hops": "CommsHop[]",
       "meta": "PayloadMeta"
     },
     "CommsSignalStrength": {
@@ -1852,7 +1852,7 @@
     },
     "CrashReport": {
       "flightStats": "CrashFlightStats",
-      "partsLost": "CrashPartLost"
+      "partsLost": "CrashPartLost[]"
     },
     "DelayedObservation": {
       "state": "StateVector"
@@ -1870,7 +1870,7 @@
       "meta": "Meta"
     },
     "FleetSilence": {
-      "vessels": "FleetSilenceEntry"
+      "vessels": "FleetSilenceEntry[]"
     },
     "FleetVesselResources": {
       "resources": "*ResourceAmount"
@@ -1879,7 +1879,7 @@
       "breach": "LimitBreach"
     },
     "GravityModel": {
-      "bodies": "GravityModelBody"
+      "bodies": "GravityModelBody[]"
     },
     "IControlFrameSource": {
       "frame": "ControlFrame"
@@ -1894,24 +1894,24 @@
       "kernel": "Kernel"
     },
     "IsruConverterEntry": {
-      "inputs": "IsruResourceFlow",
-      "outputs": "IsruResourceFlow"
+      "inputs": "IsruResourceFlow[]",
+      "outputs": "IsruResourceFlow[]"
     },
     "ManeuverNode": {
-      "patches": "OrbitPatch"
+      "patches": "OrbitPatch[]"
     },
     "PartActions": {
-      "actions": "PartActionEntry",
+      "actions": "PartActionEntry[]",
       "meta": "PayloadMeta"
     },
     "PartsPower": {
-      "alternators": "AlternatorEntry",
-      "batteries": "BatteryEntry",
-      "fuelCells": "FuelCellEntry",
-      "solarPanels": "SolarPanelEntry"
+      "alternators": "AlternatorEntry[]",
+      "batteries": "BatteryEntry[]",
+      "fuelCells": "FuelCellEntry[]",
+      "solarPanels": "SolarPanelEntry[]"
     },
     "PendingUplinkQueue": {
-      "pending": "PendingUplink"
+      "pending": "PendingUplink[]"
     },
     "PropagationTarget": {
       "osculating": "OrbitElements"
@@ -1923,19 +1923,19 @@
       "targetModVersionRange": "VersionRange"
     },
     "RecoveryReport": {
-      "crewBreakdown": "RecoveryCrewEntry",
-      "partBreakdown": "RecoveryPartEntry",
-      "resourceBreakdown": "RecoveryResourceEntry",
-      "scienceBreakdown": "RecoveryScienceEntry"
+      "crewBreakdown": "RecoveryCrewEntry[]",
+      "partBreakdown": "RecoveryPartEntry[]",
+      "resourceBreakdown": "RecoveryResourceEntry[]",
+      "scienceBreakdown": "RecoveryScienceEntry[]"
     },
     "ResolveResult": {
-      "notices": "ResolutionNotice"
+      "notices": "ResolutionNotice[]"
     },
     "SeededTrajectory": {
       "arc": "TrajectoryArc"
     },
     "SendManeuverPlanArgs": {
-      "burns": "ComposedBurn"
+      "burns": "ComposedBurn[]"
     },
     "StageDeltaVEntry": {
       "resources": "*ResourceAmount"
@@ -1944,13 +1944,13 @@
       "meta": "Meta"
     },
     "SystemBodies": {
-      "bodies": "BodyEntry"
+      "bodies": "BodyEntry[]"
     },
     "SystemVessels": {
-      "vessels": "VesselRosterEntry"
+      "vessels": "VesselRosterEntry[]"
     },
     "TargetAvailable": {
-      "entries": "TargetListEntry"
+      "entries": "TargetListEntry[]"
     },
     "TimeCalendar": {
       "meta": "PayloadMeta"
@@ -1958,18 +1958,18 @@
     "TrajectoryArc": {
       "forceModel": "TrajectoryForceModel",
       "frame": "TrajectoryFrameRef",
-      "points": "TrajectoryPoint"
+      "points": "TrajectoryPoint[]"
     },
     "TrajectoryArcAnswer": {
       "arc": "TrajectoryArc"
     },
     "UplinkHealth": {
-      "facts": "UplinkHealthFact"
+      "facts": "UplinkHealthFact[]"
     },
     "UplinkManifest": {
-      "channels": "ChannelDeclaration",
+      "channels": "ChannelDeclaration[]",
       "clientSource": "UplinkClientSource",
-      "commands": "CommandDeclaration"
+      "commands": "CommandDeclaration[]"
     },
     "VantagePlanReply": {
       "arc": "TrajectoryArc"
@@ -1981,11 +1981,11 @@
       "meta": "PayloadMeta"
     },
     "VesselControl": {
-      "actionGroups": "ActionGroupState",
+      "actionGroups": "ActionGroupState[]",
       "meta": "PayloadMeta"
     },
     "VesselCrew": {
-      "crew": "CrewMember",
+      "crew": "CrewMember[]",
       "meta": "PayloadMeta"
     },
     "VesselFlight": {
@@ -1999,27 +1999,27 @@
     },
     "VesselManeuver": {
       "meta": "PayloadMeta",
-      "nodes": "ManeuverNode"
+      "nodes": "ManeuverNode[]"
     },
     "VesselOrbit": {
       "arc": "TrajectoryArc",
       "encounter": "OrbitEncounter",
       "horizon": "PropagationHorizon",
       "meta": "PayloadMeta",
-      "patches": "OrbitPatch"
+      "patches": "OrbitPatch[]"
     },
     "VesselOrbitTruth": {
       "meta": "PayloadMeta"
     },
     "VesselPart": {
-      "actionBindings": "ActionBinding",
+      "actionBindings": "ActionBinding[]",
       "bounds": "PartBounds",
-      "moduleStates": "PartModuleState",
+      "moduleStates": "PartModuleState[]",
       "resources": "*PartResourceFlow"
     },
     "VesselParts": {
       "meta": "PayloadMeta",
-      "parts": "VesselPart"
+      "parts": "VesselPart[]"
     },
     "VesselPhysicsMode": {
       "meta": "PayloadMeta"
@@ -2077,16 +2077,16 @@
       "meta": "PayloadMeta"
     },
     "comms.network": {
-      "edges": "CommsNetworkEdge",
+      "edges": "CommsNetworkEdge[]",
       "meta": "PayloadMeta",
-      "nodes": "CommsNetworkNode"
+      "nodes": "CommsNetworkNode[]"
     },
     "comms.occlusion": {
-      "bodies": "CommsOcclusionBody",
+      "bodies": "CommsOcclusionBody[]",
       "meta": "PayloadMeta"
     },
     "comms.path": {
-      "hops": "CommsHop",
+      "hops": "CommsHop[]",
       "meta": "PayloadMeta"
     },
     "comms.signalStrength": {
@@ -2094,41 +2094,41 @@
     },
     "crash.lastCrash": {
       "flightStats": "CrashFlightStats",
-      "partsLost": "CrashPartLost"
+      "partsLost": "CrashPartLost[]"
     },
     "dv.stages": {
       "resources": "*ResourceAmount"
     },
     "fleet.silence": {
-      "vessels": "FleetSilenceEntry"
+      "vessels": "FleetSilenceEntry[]"
     },
     "isru.converters": {
-      "inputs": "IsruResourceFlow",
-      "outputs": "IsruResourceFlow"
+      "inputs": "IsruResourceFlow[]",
+      "outputs": "IsruResourceFlow[]"
     },
     "parts.power": {
-      "alternators": "AlternatorEntry",
-      "batteries": "BatteryEntry",
-      "fuelCells": "FuelCellEntry",
-      "solarPanels": "SolarPanelEntry"
+      "alternators": "AlternatorEntry[]",
+      "batteries": "BatteryEntry[]",
+      "fuelCells": "FuelCellEntry[]",
+      "solarPanels": "SolarPanelEntry[]"
     },
     "recovery.lastSummary": {
-      "crewBreakdown": "RecoveryCrewEntry",
-      "partBreakdown": "RecoveryPartEntry",
-      "resourceBreakdown": "RecoveryResourceEntry",
-      "scienceBreakdown": "RecoveryScienceEntry"
+      "crewBreakdown": "RecoveryCrewEntry[]",
+      "partBreakdown": "RecoveryPartEntry[]",
+      "resourceBreakdown": "RecoveryResourceEntry[]",
+      "scienceBreakdown": "RecoveryScienceEntry[]"
     },
     "spaceCenter.astronautComplex": {
-      "applicants": "CrewRosterEntry"
+      "applicants": "CrewRosterEntry[]"
     },
     "system.bodies": {
-      "bodies": "BodyEntry"
+      "bodies": "BodyEntry[]"
     },
     "system.vessels": {
-      "vessels": "VesselRosterEntry"
+      "vessels": "VesselRosterEntry[]"
     },
     "target.available": {
-      "entries": "TargetListEntry"
+      "entries": "TargetListEntry[]"
     },
     "time.calendar": {
       "meta": "PayloadMeta"
@@ -2143,11 +2143,11 @@
       "meta": "PayloadMeta"
     },
     "vessel.control": {
-      "actionGroups": "ActionGroupState",
+      "actionGroups": "ActionGroupState[]",
       "meta": "PayloadMeta"
     },
     "vessel.crew": {
-      "crew": "CrewMember",
+      "crew": "CrewMember[]",
       "meta": "PayloadMeta"
     },
     "vessel.dock": {
@@ -2164,21 +2164,21 @@
     },
     "vessel.maneuver": {
       "meta": "PayloadMeta",
-      "nodes": "ManeuverNode"
+      "nodes": "ManeuverNode[]"
     },
     "vessel.orbit": {
       "arc": "TrajectoryArc",
       "encounter": "OrbitEncounter",
       "horizon": "PropagationHorizon",
       "meta": "PayloadMeta",
-      "patches": "OrbitPatch"
+      "patches": "OrbitPatch[]"
     },
     "vessel.orbit.truth": {
       "meta": "PayloadMeta"
     },
     "vessel.parts": {
       "meta": "PayloadMeta",
-      "parts": "VesselPart"
+      "parts": "VesselPart[]"
     },
     "vessel.physics.mode": {
       "meta": "PayloadMeta"

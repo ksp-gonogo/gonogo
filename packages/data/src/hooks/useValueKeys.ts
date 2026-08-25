@@ -1,43 +1,27 @@
-import { mapTopic } from "@ksp-gonogo/sitrep-client";
 import { useMemo } from "react";
+import { isThresholdSubject } from "../schema/topicFieldCatalog";
 import type { DataKeyMeta } from "../types";
 import { useDataSchema } from "./useDataSchema";
 
 /**
- * The Value-restricted subset of `useDataSchema`'s key list, every key an
- * alarm/maneuver-trigger `DataKeyPicker` may offer. Per the Uplink vocab
- * (Domain/Topic/Value/Stream/Asset), a threshold can only ever be set on a
- * scalar telemetry Value, never a Stream (video) or an Asset (a timeline),
- * and, now that alarms/triggers read off the stream (`getValue` in
- * `@ksp-gonogo/sitrep-client`) rather than the legacy `"data"` `DataSource`
- * directly, a key also has to actually resolve to a stream home via
- * `mapTopic` or the trigger would silently never fire.
+ * The Value-restricted subset of `useDataSchema`'s key list: every key an alarm
+ * or maneuver-trigger picker may offer.
  *
- * Filters `useDataSchema`'s enriched key list down to keys that are BOTH:
- *   - numeric-typed (excludes `bool`/`enum`/`raw` units and the `"Actions"`
- *     group, which are toggles/opaque blobs a threshold comparison can't
- *     use), the same filter `AlarmsModal`/`ManeuverPlanner` each used to
- *     apply locally before this hook existed;
- *   - `mapTopic`-resolvable: the bounded, typed, stream-mapped set that
- *     dissolves the "arbitrary legacy key" problem `LocalManeuverTriggerService`
- *     used to flag on its own `dataKey` reads.
+ * Per the Uplink vocabulary (Domain/Topic/Value/Stream/Asset), a threshold can
+ * only be set on a scalar telemetry Value, never a Stream (video) or an Asset (a
+ * timeline), and never on a name, a flag, an enum or a whole collection: none of
+ * those has a magnitude for a comparison to order.
  *
- * No hand-maintained allowlist: a key becomes eligible the moment
- * `map-topic.ts`'s migration table picks it up, and drops out again if that
- * table ever loses it (e.g. a purge retiring a stale entry).
+ * The filter reads the field's KIND, which the contract's own unit token
+ * decides, rather than testing for particular unit spellings. Four call sites
+ * each used to hand-roll that test against `"bool"` and `"raw"`, tokens the
+ * contract does not emit, so the check passed everything it was meant to
+ * exclude the moment the vocabulary behind it changed.
+ *
+ * No hand-maintained allowlist: a key becomes eligible the moment the contract
+ * declares the field, and drops out again if the contract stops declaring it.
  */
 export function useValueKeys(sourceId = "data"): DataKeyMeta[] {
   const schema = useDataSchema(sourceId);
-  return useMemo(
-    () =>
-      schema.filter(
-        (k) =>
-          k.unit !== "bool" &&
-          k.unit !== "enum" &&
-          k.unit !== "raw" &&
-          k.group !== "Actions" &&
-          mapTopic(sourceId, k.key) !== undefined,
-      ),
-    [schema, sourceId],
-  );
+  return useMemo(() => schema.filter(isThresholdSubject), [schema]);
 }

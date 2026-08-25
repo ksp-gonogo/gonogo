@@ -53,6 +53,28 @@ const EMPTY: UnitsByField = Object.freeze({});
 const NO_SHAPES: ShapesByField = Object.freeze({});
 
 /**
+ * Whether a shape-map entry holds MANY of its element type: a leading `*` for
+ * a string-keyed dictionary, a trailing `[]` for a list.
+ *
+ * Plurality decides whether a dotted path under the field can be sampled. What
+ * follows a dictionary is a key the contract never names, and what follows a
+ * list is a field of one element, so neither is reachable from the parent
+ * Topic and a walk has to stop at the collection itself.
+ *
+ * The marker spelling lives here so the three readers of the shape maps agree
+ * on it: the payload wrap, the field-path judgement, and the field enumeration.
+ */
+export function isPluralShape(entry: string): boolean {
+  return entry.startsWith("*") || entry.endsWith("[]");
+}
+
+/** The element type named by a shape-map entry, with any plural marker removed. */
+export function shapeTypeName(entry: string): string {
+  const withoutMap = entry.startsWith("*") ? entry.slice(1) : entry;
+  return withoutMap.endsWith("[]") ? withoutMap.slice(0, -2) : withoutMap;
+}
+
+/**
  * Hand-declared Topics whose payload IS a reflected contract type.
  *
  * The generated maps are keyed by `[SitrepTopic]`, so an ENGINE-declared
@@ -252,7 +274,8 @@ export function unitsForType(typeName: string): UnitsByField {
  *
  * The unit maps are flat, so a nested shape's declared units are unreachable
  * from the parent's entry; this is what lets the runtime wrap follow the field
- * down. See `GENERATED_TOPIC_SHAPES`' own doc for the case that forced it.
+ * down. See `GENERATED_TOPIC_SHAPES` in mod/sitrep-sdk's generated unit map for
+ * the case that forced it, and for the plural markers an entry can carry.
  */
 export function shapesForTopic(topic: TopicId): ShapesByField {
   const generated = GENERATED_TOPIC_SHAPES[topic];

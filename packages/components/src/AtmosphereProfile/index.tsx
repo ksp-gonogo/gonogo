@@ -173,7 +173,7 @@ function AtmosphereProfileComponent({
       // with the threshold pulling out the current altitude's pressure.
       series: [],
       windowSec: 60,
-      xKey: "v.altitude",
+      xKey: "vessel.state.altitudeAsl",
       yScalePrimary: "log",
       thresholds,
     }),

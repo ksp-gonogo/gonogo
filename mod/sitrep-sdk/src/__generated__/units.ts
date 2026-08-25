@@ -1817,13 +1817,20 @@ export type ShapesByField = Readonly<Record<string, string>>;
  * `vessel.target.orbit.sma` is the plain case: the contract types it as
  * Value<"m">, and without this it arrived as a bare number.
  *
- * A field holding a LIST of a shape is recorded the same way; the element
- * is what a consumer indexes into, which is the same convention the topic
- * unit map already follows for an array Topic.
+ * An entry names the ELEMENT type and says how many of it the field holds:
+ * a bare name is one, a leading `*` a string-keyed DICTIONARY of them, and
+ * a trailing `[]` a LIST of them. The element is what a consumer indexes
+ * into either way, which is the same convention the topic unit map follows
+ * for an array Topic.
+ *
+ * The plural markers are what separate a path something can SAMPLE from a
+ * path that only names a field of an element. `contracts.active.agent` is
+ * the second kind: `career.status.contracts.active` is an array, so no
+ * sample reaches an `agent` under it.
  */
 export const GENERATED_TYPE_SHAPES: Readonly<Record<string, ShapesByField>> = {
   "AstronautComplexInfo": {
-    applicants: "CrewRosterEntry",
+    applicants: "CrewRosterEntry[]",
   },
   "BodyEntry": {
     atmosphere: "AtmosphereEntry",
@@ -1831,15 +1838,15 @@ export const GENERATED_TYPE_SHAPES: Readonly<Record<string, ShapesByField>> = {
   },
   "CapabilitySelection": {
     descriptor: "CapabilityDescriptor",
-    providers: "ProviderRegistration",
+    providers: "ProviderRegistration[]",
   },
   "CareerContract": {
-    parameters: "CareerContractParameter",
+    parameters: "CareerContractParameter[]",
   },
   "CareerContracts": {
-    active: "CareerContract",
-    completedRecent: "CareerContract",
-    offered: "CareerContract",
+    active: "CareerContract[]",
+    completedRecent: "CareerContract[]",
+    offered: "CareerContract[]",
   },
   "CareerEconomy": {
     upkeep: "CareerUpkeep",
@@ -1852,23 +1859,23 @@ export const GENERATED_TYPE_SHAPES: Readonly<Record<string, ShapesByField>> = {
     tech: "CareerTech",
   },
   "CareerStrategies": {
-    active: "CareerStrategy",
-    all: "CareerStrategy",
+    active: "CareerStrategy[]",
+    all: "CareerStrategy[]",
   },
   "CareerTech": {
-    nodes: "CareerTechNode",
+    nodes: "CareerTechNode[]",
   },
   "ChannelDeclaration": {
     emission: "EmissionPolicy",
   },
   "CommandDeclaration": {
-    requires: "CommandRequirement",
+    requires: "CommandRequirement[]",
   },
   "CommandGate": {
     verdict: "GateVerdict",
   },
   "CommandGateReport": {
-    gates: "CommandGate",
+    gates: "CommandGate[]",
   },
   "CommandResponse`1": {
     meta: "Meta",
@@ -1892,16 +1899,16 @@ export const GENERATED_TYPE_SHAPES: Readonly<Record<string, ShapesByField>> = {
     meta: "PayloadMeta",
   },
   "CommsNetwork": {
-    edges: "CommsNetworkEdge",
+    edges: "CommsNetworkEdge[]",
     meta: "PayloadMeta",
-    nodes: "CommsNetworkNode",
+    nodes: "CommsNetworkNode[]",
   },
   "CommsOcclusion": {
-    bodies: "CommsOcclusionBody",
+    bodies: "CommsOcclusionBody[]",
     meta: "PayloadMeta",
   },
   "CommsPath": {
-    hops: "CommsHop",
+    hops: "CommsHop[]",
     meta: "PayloadMeta",
   },
   "CommsSignalStrength": {
@@ -1909,7 +1916,7 @@ export const GENERATED_TYPE_SHAPES: Readonly<Record<string, ShapesByField>> = {
   },
   "CrashReport": {
     flightStats: "CrashFlightStats",
-    partsLost: "CrashPartLost",
+    partsLost: "CrashPartLost[]",
   },
   "DelayedObservation": {
     state: "StateVector",
@@ -1927,7 +1934,7 @@ export const GENERATED_TYPE_SHAPES: Readonly<Record<string, ShapesByField>> = {
     meta: "Meta",
   },
   "FleetSilence": {
-    vessels: "FleetSilenceEntry",
+    vessels: "FleetSilenceEntry[]",
   },
   "FleetVesselResources": {
     resources: "*ResourceAmount",
@@ -1936,7 +1943,7 @@ export const GENERATED_TYPE_SHAPES: Readonly<Record<string, ShapesByField>> = {
     breach: "LimitBreach",
   },
   "GravityModel": {
-    bodies: "GravityModelBody",
+    bodies: "GravityModelBody[]",
   },
   "IControlFrameSource": {
     frame: "ControlFrame",
@@ -1951,24 +1958,24 @@ export const GENERATED_TYPE_SHAPES: Readonly<Record<string, ShapesByField>> = {
     kernel: "Kernel",
   },
   "IsruConverterEntry": {
-    inputs: "IsruResourceFlow",
-    outputs: "IsruResourceFlow",
+    inputs: "IsruResourceFlow[]",
+    outputs: "IsruResourceFlow[]",
   },
   "ManeuverNode": {
-    patches: "OrbitPatch",
+    patches: "OrbitPatch[]",
   },
   "PartActions": {
-    actions: "PartActionEntry",
+    actions: "PartActionEntry[]",
     meta: "PayloadMeta",
   },
   "PartsPower": {
-    alternators: "AlternatorEntry",
-    batteries: "BatteryEntry",
-    fuelCells: "FuelCellEntry",
-    solarPanels: "SolarPanelEntry",
+    alternators: "AlternatorEntry[]",
+    batteries: "BatteryEntry[]",
+    fuelCells: "FuelCellEntry[]",
+    solarPanels: "SolarPanelEntry[]",
   },
   "PendingUplinkQueue": {
-    pending: "PendingUplink",
+    pending: "PendingUplink[]",
   },
   "PropagationTarget": {
     osculating: "OrbitElements",
@@ -1980,19 +1987,19 @@ export const GENERATED_TYPE_SHAPES: Readonly<Record<string, ShapesByField>> = {
     targetModVersionRange: "VersionRange",
   },
   "RecoveryReport": {
-    crewBreakdown: "RecoveryCrewEntry",
-    partBreakdown: "RecoveryPartEntry",
-    resourceBreakdown: "RecoveryResourceEntry",
-    scienceBreakdown: "RecoveryScienceEntry",
+    crewBreakdown: "RecoveryCrewEntry[]",
+    partBreakdown: "RecoveryPartEntry[]",
+    resourceBreakdown: "RecoveryResourceEntry[]",
+    scienceBreakdown: "RecoveryScienceEntry[]",
   },
   "ResolveResult": {
-    notices: "ResolutionNotice",
+    notices: "ResolutionNotice[]",
   },
   "SeededTrajectory": {
     arc: "TrajectoryArc",
   },
   "SendManeuverPlanArgs": {
-    burns: "ComposedBurn",
+    burns: "ComposedBurn[]",
   },
   "StageDeltaVEntry": {
     resources: "*ResourceAmount",
@@ -2001,13 +2008,13 @@ export const GENERATED_TYPE_SHAPES: Readonly<Record<string, ShapesByField>> = {
     meta: "Meta",
   },
   "SystemBodies": {
-    bodies: "BodyEntry",
+    bodies: "BodyEntry[]",
   },
   "SystemVessels": {
-    vessels: "VesselRosterEntry",
+    vessels: "VesselRosterEntry[]",
   },
   "TargetAvailable": {
-    entries: "TargetListEntry",
+    entries: "TargetListEntry[]",
   },
   "TimeCalendar": {
     meta: "PayloadMeta",
@@ -2015,18 +2022,18 @@ export const GENERATED_TYPE_SHAPES: Readonly<Record<string, ShapesByField>> = {
   "TrajectoryArc": {
     forceModel: "TrajectoryForceModel",
     frame: "TrajectoryFrameRef",
-    points: "TrajectoryPoint",
+    points: "TrajectoryPoint[]",
   },
   "TrajectoryArcAnswer": {
     arc: "TrajectoryArc",
   },
   "UplinkHealth": {
-    facts: "UplinkHealthFact",
+    facts: "UplinkHealthFact[]",
   },
   "UplinkManifest": {
-    channels: "ChannelDeclaration",
+    channels: "ChannelDeclaration[]",
     clientSource: "UplinkClientSource",
-    commands: "CommandDeclaration",
+    commands: "CommandDeclaration[]",
   },
   "VantagePlanReply": {
     arc: "TrajectoryArc",
@@ -2038,11 +2045,11 @@ export const GENERATED_TYPE_SHAPES: Readonly<Record<string, ShapesByField>> = {
     meta: "PayloadMeta",
   },
   "VesselControl": {
-    actionGroups: "ActionGroupState",
+    actionGroups: "ActionGroupState[]",
     meta: "PayloadMeta",
   },
   "VesselCrew": {
-    crew: "CrewMember",
+    crew: "CrewMember[]",
     meta: "PayloadMeta",
   },
   "VesselFlight": {
@@ -2056,27 +2063,27 @@ export const GENERATED_TYPE_SHAPES: Readonly<Record<string, ShapesByField>> = {
   },
   "VesselManeuver": {
     meta: "PayloadMeta",
-    nodes: "ManeuverNode",
+    nodes: "ManeuverNode[]",
   },
   "VesselOrbit": {
     arc: "TrajectoryArc",
     encounter: "OrbitEncounter",
     horizon: "PropagationHorizon",
     meta: "PayloadMeta",
-    patches: "OrbitPatch",
+    patches: "OrbitPatch[]",
   },
   "VesselOrbitTruth": {
     meta: "PayloadMeta",
   },
   "VesselPart": {
-    actionBindings: "ActionBinding",
+    actionBindings: "ActionBinding[]",
     bounds: "PartBounds",
-    moduleStates: "PartModuleState",
+    moduleStates: "PartModuleState[]",
     resources: "*PartResourceFlow",
   },
   "VesselParts": {
     meta: "PayloadMeta",
-    parts: "VesselPart",
+    parts: "VesselPart[]",
   },
   "VesselPhysicsMode": {
     meta: "PayloadMeta",
@@ -2136,16 +2143,16 @@ export const GENERATED_TOPIC_SHAPES: Readonly<Record<string, ShapesByField>> = {
     meta: "PayloadMeta",
   },
   "comms.network": {
-    edges: "CommsNetworkEdge",
+    edges: "CommsNetworkEdge[]",
     meta: "PayloadMeta",
-    nodes: "CommsNetworkNode",
+    nodes: "CommsNetworkNode[]",
   },
   "comms.occlusion": {
-    bodies: "CommsOcclusionBody",
+    bodies: "CommsOcclusionBody[]",
     meta: "PayloadMeta",
   },
   "comms.path": {
-    hops: "CommsHop",
+    hops: "CommsHop[]",
     meta: "PayloadMeta",
   },
   "comms.signalStrength": {
@@ -2153,41 +2160,41 @@ export const GENERATED_TOPIC_SHAPES: Readonly<Record<string, ShapesByField>> = {
   },
   "crash.lastCrash": {
     flightStats: "CrashFlightStats",
-    partsLost: "CrashPartLost",
+    partsLost: "CrashPartLost[]",
   },
   "dv.stages": {
     resources: "*ResourceAmount",
   },
   "fleet.silence": {
-    vessels: "FleetSilenceEntry",
+    vessels: "FleetSilenceEntry[]",
   },
   "isru.converters": {
-    inputs: "IsruResourceFlow",
-    outputs: "IsruResourceFlow",
+    inputs: "IsruResourceFlow[]",
+    outputs: "IsruResourceFlow[]",
   },
   "parts.power": {
-    alternators: "AlternatorEntry",
-    batteries: "BatteryEntry",
-    fuelCells: "FuelCellEntry",
-    solarPanels: "SolarPanelEntry",
+    alternators: "AlternatorEntry[]",
+    batteries: "BatteryEntry[]",
+    fuelCells: "FuelCellEntry[]",
+    solarPanels: "SolarPanelEntry[]",
   },
   "recovery.lastSummary": {
-    crewBreakdown: "RecoveryCrewEntry",
-    partBreakdown: "RecoveryPartEntry",
-    resourceBreakdown: "RecoveryResourceEntry",
-    scienceBreakdown: "RecoveryScienceEntry",
+    crewBreakdown: "RecoveryCrewEntry[]",
+    partBreakdown: "RecoveryPartEntry[]",
+    resourceBreakdown: "RecoveryResourceEntry[]",
+    scienceBreakdown: "RecoveryScienceEntry[]",
   },
   "spaceCenter.astronautComplex": {
-    applicants: "CrewRosterEntry",
+    applicants: "CrewRosterEntry[]",
   },
   "system.bodies": {
-    bodies: "BodyEntry",
+    bodies: "BodyEntry[]",
   },
   "system.vessels": {
-    vessels: "VesselRosterEntry",
+    vessels: "VesselRosterEntry[]",
   },
   "target.available": {
-    entries: "TargetListEntry",
+    entries: "TargetListEntry[]",
   },
   "time.calendar": {
     meta: "PayloadMeta",
@@ -2202,11 +2209,11 @@ export const GENERATED_TOPIC_SHAPES: Readonly<Record<string, ShapesByField>> = {
     meta: "PayloadMeta",
   },
   "vessel.control": {
-    actionGroups: "ActionGroupState",
+    actionGroups: "ActionGroupState[]",
     meta: "PayloadMeta",
   },
   "vessel.crew": {
-    crew: "CrewMember",
+    crew: "CrewMember[]",
     meta: "PayloadMeta",
   },
   "vessel.dock": {
@@ -2223,21 +2230,21 @@ export const GENERATED_TOPIC_SHAPES: Readonly<Record<string, ShapesByField>> = {
   },
   "vessel.maneuver": {
     meta: "PayloadMeta",
-    nodes: "ManeuverNode",
+    nodes: "ManeuverNode[]",
   },
   "vessel.orbit": {
     arc: "TrajectoryArc",
     encounter: "OrbitEncounter",
     horizon: "PropagationHorizon",
     meta: "PayloadMeta",
-    patches: "OrbitPatch",
+    patches: "OrbitPatch[]",
   },
   "vessel.orbit.truth": {
     meta: "PayloadMeta",
   },
   "vessel.parts": {
     meta: "PayloadMeta",
-    parts: "VesselPart",
+    parts: "VesselPart[]",
   },
   "vessel.physics.mode": {
     meta: "PayloadMeta",

@@ -165,13 +165,20 @@ export type ShapesByField = Readonly<Record<string, string>>;
  * `vessel.target.orbit.sma` is the plain case: the contract types it as
  * Value<"m">, and without this it arrived as a bare number.
  *
- * A field holding a LIST of a shape is recorded the same way; the element
- * is what a consumer indexes into, which is the same convention the topic
- * unit map already follows for an array Topic.
+ * An entry names the ELEMENT type and says how many of it the field holds:
+ * a bare name is one, a leading `*` a string-keyed DICTIONARY of them, and
+ * a trailing `[]` a LIST of them. The element is what a consumer indexes
+ * into either way, which is the same convention the topic unit map follows
+ * for an array Topic.
+ *
+ * The plural markers are what separate a path something can SAMPLE from a
+ * path that only names a field of an element. `contracts.active.agent` is
+ * the second kind: `career.status.contracts.active` is an array, so no
+ * sample reaches an `agent` under it.
  */
 export const GENERATED_TYPE_SHAPES: Readonly<Record<string, ShapesByField>> = {
   "ScanningVesselEntry": {
-    sensors: "ScanSensorEntry",
+    sensors: "ScanSensorEntry[]",
     trackColor: "ScanTrackColor",
   },
 };
@@ -179,7 +186,7 @@ export const GENERATED_TYPE_SHAPES: Readonly<Record<string, ShapesByField>> = {
 /** The same, keyed by Topic id. */
 export const GENERATED_TOPIC_SHAPES: Readonly<Record<string, ShapesByField>> = {
   "scansat.scanningVessels": {
-    sensors: "ScanSensorEntry",
+    sensors: "ScanSensorEntry[]",
     trackColor: "ScanTrackColor",
   },
 };

@@ -1,5 +1,5 @@
 import { clearRegistry } from "@ksp-gonogo/core";
-import { mapTopic } from "@ksp-gonogo/sitrep-client";
+import { resolveValueTopic } from "@ksp-gonogo/sitrep-client";
 import { render } from "@ksp-gonogo/test-utils";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import type { DataKeyMeta } from "../types";
@@ -43,10 +43,12 @@ describe("useValueKeys", () => {
     );
 
     expect(captured.length).toBeGreaterThan(0);
-    expect(captured.some((k) => k.key === "v.altitude")).toBe(true);
+    expect(captured.some((k) => k.key === "vessel.state.altitudeAsl")).toBe(
+      true,
+    );
   });
 
-  it("excludes bool/enum/raw-unit and 'Actions'-group keys", () => {
+  it("offers only fields with a magnitude, so every choice can be ordered", () => {
     let captured: DataKeyMeta[] = [];
     render(
       <Probe
@@ -56,20 +58,39 @@ describe("useValueKeys", () => {
       />,
     );
 
+    // Asserted against the contract's OWN non-quantity tokens. The check this
+    // replaces tested for `"bool"` and `"raw"`, which the contract does not
+    // emit, so it admitted every flag and enum it was written to exclude.
     for (const entry of captured) {
-      expect(entry.unit).not.toBe("bool");
+      expect(entry.unit).not.toBe("flag");
       expect(entry.unit).not.toBe("enum");
-      expect(entry.unit).not.toBe("raw");
-      expect(entry.group).not.toBe("Actions");
+      expect(entry.unit).not.toBe("text");
+      expect(entry.unit).not.toBe("id");
+      expect(entry.unit).toBeDefined();
     }
   });
 
+  it("offers no collection, which has no single value to compare", () => {
+    let captured: DataKeyMeta[] = [];
+    render(
+      <Probe
+        onRender={(k) => {
+          captured = k;
+        }}
+      />,
+    );
+
+    expect(
+      captured.filter((k) => k.key === "career.status.contracts.active"),
+    ).toEqual([]);
+  });
+
   // The filter's whole justification (see useValueKeys.ts's doc comment) is
-  // that every surviving key must resolve to a live stream home; otherwise
-  // a threshold/trigger picker could offer a key that silently never fires.
-  // Assert that invariant directly against the real mapTopic, not just trust
+  // that every surviving key must resolve to a live stream home; otherwise a
+  // threshold or trigger picker could offer a key that silently never fires.
+  // Asserted directly against the real resolution rather than trusting that
   // the filter predicate reads correctly.
-  it("every returned key resolves via mapTopic(sourceId, key)", () => {
+  it("every returned key resolves to a Topic something can sample", () => {
     let captured: DataKeyMeta[] = [];
     render(
       <Probe
@@ -81,7 +102,7 @@ describe("useValueKeys", () => {
 
     expect(captured.length).toBeGreaterThan(0);
     for (const entry of captured) {
-      expect(mapTopic("data", entry.key)).not.toBeUndefined();
+      expect(resolveValueTopic("data", entry.key)).not.toBeUndefined();
     }
   });
 });

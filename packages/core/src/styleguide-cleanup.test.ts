@@ -88,6 +88,23 @@ function scan(): { scanned: number; offenders: string[] } {
   return { scanned: tracked.length, offenders };
 }
 
+/**
+ * One scan per file, shared by the two assertions below.
+ *
+ * Both of them need a real scan and neither may drop it, so the cost was paid
+ * twice: two `git ls-files` invocations plus two passes of `readFileSync` over
+ * every tracked source. That is nearly two thousand extra file reads, and under
+ * the I/O contention of a whole package's tests running at once it was enough
+ * to take the second call past the 30s timeout while the same test finished in
+ * three seconds run on its own. Memoising changes what it costs, not what it
+ * checks: the floor and the offender list are still read off a real walk.
+ */
+let memoisedScan: ReturnType<typeof scan> | undefined;
+function scanOnce(): ReturnType<typeof scan> {
+  memoisedScan ??= scan();
+  return memoisedScan;
+}
+
 describe("test-hygiene: manual cleanup imports from @testing-library/react", () => {
   it("recognises the import it bans, and leaves its neighbours alone", () => {
     // A ban whose pattern matches nothing passes every file in the repo, so the
@@ -118,12 +135,12 @@ describe("test-hygiene: manual cleanup imports from @testing-library/react", () 
   });
 
   it("walks the tree it claims to walk", () => {
-    const { scanned } = scan();
+    const { scanned } = scanOnce();
     expect(scanned).toBeGreaterThanOrEqual(SCAN_FLOOR);
   });
 
   it("finds no test importing cleanup", () => {
-    const { scanned, offenders } = scan();
+    const { scanned, offenders } = scanOnce();
     expect(scanned).toBeGreaterThanOrEqual(SCAN_FLOOR);
     if (offenders.length > 0) {
       throw new Error(

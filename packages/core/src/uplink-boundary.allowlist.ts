@@ -79,6 +79,14 @@ export const ALLOWLIST: Record<ModToken, ModAllowlist> = {
       "packages/app/src/__tests__/gamehost-repoints-both.test.tsx",
     ],
     permanent: [
+      // -- CATALOGUE ABSENCE INVENTORY (2026-08-25): the pinned list of carried
+      // Topics the topic-field catalogue can describe nothing about names each
+      // Uplink Topic that has none, so a Topic arriving unannotated is a test
+      // failure rather than a silent absence from every picker in the app.
+      // Permanent, not debt: it is a ratchet inventory of TOPIC NAMES and holds
+      // no code coupling, and the whole point of pinning it is that the names
+      // are written down rather than derived.
+      "packages/data/src/schema/topicFieldCatalog.test.ts",
       // -- UPLINK WIDGET-DECLARATION gate (2026-08-25): the app-side check that
       // every Uplink widget's dataRequirements resolve to something real has to
       // LOAD every Uplink client to read the registry they register into, so it
@@ -259,6 +267,14 @@ export const ALLOWLIST: Record<ModToken, ModAllowlist> = {
       "packages/components/src/MapView/types.ts",
     ],
     permanent: [
+      // -- CATALOGUE ABSENCE INVENTORY (2026-08-25): the pinned list of carried
+      // Topics the topic-field catalogue can describe nothing about names each
+      // Uplink Topic that has none, so a Topic arriving unannotated is a test
+      // failure rather than a silent absence from every picker in the app.
+      // Permanent, not debt: it is a ratchet inventory of TOPIC NAMES and holds
+      // no code coupling, and the whole point of pinning it is that the names
+      // are written down rather than derived.
+      "packages/data/src/schema/topicFieldCatalog.test.ts",
       // -- UPLINK WIDGET-DECLARATION gate (2026-08-25): the app-side check that
       // every Uplink widget's dataRequirements resolve to something real has to
       // LOAD every Uplink client to read the registry they register into, so it
@@ -503,6 +519,14 @@ export const ALLOWLIST: Record<ModToken, ModAllowlist> = {
       "packages/app/src/__tests__/dashboard-tabbed-config.test.tsx",
     ],
     permanent: [
+      // -- CATALOGUE ABSENCE INVENTORY (2026-08-25): the pinned list of carried
+      // Topics the topic-field catalogue can describe nothing about names each
+      // Uplink Topic that has none, so a Topic arriving unannotated is a test
+      // failure rather than a silent absence from every picker in the app.
+      // Permanent, not debt: it is a ratchet inventory of TOPIC NAMES and holds
+      // no code coupling, and the whole point of pinning it is that the names
+      // are written down rather than derived.
+      "packages/data/src/schema/topicFieldCatalog.test.ts",
       // -- UPLINK WIDGET-DECLARATION gate (2026-08-25): the app-side check that
       // every Uplink widget's dataRequirements resolve to something real has to
       // LOAD every Uplink client to read the registry they register into, so it

@@ -26,7 +26,23 @@ export interface DataKeyPickerProps {
   onChange: (key: string | null) => void;
   clearable?: boolean;
   placeholder?: string;
+  /**
+   * What to call the thing the picked key names, for the message shown when a
+   * saved key is no longer on offer. Defaults to "value".
+   */
+  subjectNoun?: string;
 }
+
+/**
+ * Shown in place of a label when a saved key is not in `keys`.
+ *
+ * A key can go missing because the vocabulary moved on: a widget saved before a
+ * Topic was renamed or retired still holds the old name. The picker used to
+ * render that key as its own raw string, which reads as a valid selection, so a
+ * graph series drew a flat line and an alarm simply never fired. Both look like
+ * a reading of zero, and a zero is a claim about the craft.
+ */
+const RETIRED_MESSAGE = "no longer available";
 
 export function DataKeyPicker({
   keys,
@@ -34,6 +50,7 @@ export function DataKeyPicker({
   onChange,
   clearable = false,
   placeholder = "Search...",
+  subjectNoun = "value",
 }: DataKeyPickerProps) {
   const [query, setQuery] = useState("");
   const [open, setOpen] = useState(false);
@@ -44,9 +61,19 @@ export function DataKeyPicker({
 
   const listboxId = useId();
   const optionIdPrefix = useId();
+  const retiredId = useId();
   const optionId = (key: string) => `${optionIdPrefix}-${key}`;
 
   const selectedOption = keys.find((k) => k.key === value);
+  // A key is retired once it is saved but no longer offered. Only judged when
+  // there is a vocabulary to judge against: an empty `keys` means the catalogue
+  // has not arrived, and calling every saved key retired at that moment would
+  // report a broken widget on every mount.
+  const retired =
+    value !== null &&
+    value !== "" &&
+    selectedOption === undefined &&
+    keys.length > 0;
 
   const filtered = useMemo(
     () => filterComboboxOptions(keys, query),
@@ -124,6 +151,9 @@ export function DataKeyPicker({
         value={displayValue}
         placeholder={value ? undefined : placeholder}
         $hasValue={!!value && !open}
+        $retired={retired && !open}
+        aria-invalid={retired && !open ? true : undefined}
+        aria-describedby={retired && !open ? retiredId : undefined}
         onFocus={openPicker}
         onChange={(e) => {
           setQuery(e.target.value);
@@ -138,6 +168,11 @@ export function DataKeyPicker({
           activeOption ? optionId(activeOption.key) : undefined
         }
       />
+      {retired && !open && (
+        <RetiredNote id={retiredId}>
+          {`This ${subjectNoun} ${RETIRED_MESSAGE}. Pick another.`}
+        </RetiredNote>
+      )}
       {clearable && value && !open && (
         <ClearButton
           type="button"
@@ -175,11 +210,14 @@ const Container = styled.div`
   position: relative;
 `;
 
-const PickerInput = styled.input<{ $hasValue: boolean }>`
+const PickerInput = styled.input<{ $hasValue: boolean; $retired?: boolean }>`
   background: var(--color-surface-raised);
-  border: 1px solid var(--color-border-strong);
+  border: 1px solid ${({ $retired }) => ($retired ? "var(--color-status-nogo-fg)" : "var(--color-border-strong)")};
   border-radius: var(--radius-sm, 3px);
-  color: ${({ $hasValue }) => ($hasValue ? "var(--color-text-primary)" : "var(--color-text-muted)")};
+  color: ${({ $hasValue, $retired }) => {
+    if ($retired) return "var(--color-status-nogo-fg)";
+    return $hasValue ? "var(--color-text-primary)" : "var(--color-text-muted)";
+  }};
   font-size: var(--font-size-base);
   padding: var(--space-6, 6px) var(--space-8, 8px);
   box-sizing: border-box;
@@ -216,6 +254,18 @@ const ClearButton = styled.button`
   &:hover {
     color: var(--color-text-primary);
   }
+`;
+
+/**
+ * Sits under the input rather than replacing its text, so the operator can
+ * still read WHICH key went missing. Recovering a widget usually means picking
+ * the value the retired one used to name, and that is easier when its name is
+ * still on screen.
+ */
+const RetiredNote = styled.div`
+  color: var(--color-status-nogo-fg);
+  font-size: var(--font-size-xs);
+  margin-top: var(--space-2, 2px);
 `;
 
 const ItemLabel = styled.span`

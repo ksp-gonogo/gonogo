@@ -1,3 +1,4 @@
+import { registerTopicUnits, type SitrepUnit } from "../units";
 import type { DerivedChannelDefinition, DerivedGet } from "./timeline-store";
 
 /**
@@ -83,3 +84,21 @@ export const spaceCenterStateChannel: DerivedChannelDefinition<SpaceCenterState>
     derive: deriveSpaceCenterState,
     fields: true,
   };
+
+/**
+ * What each `spaceCenter.state` field MEANS, in the contract's own unit
+ * vocabulary. This channel is derived client-side, so the unit-map codegen has
+ * no type to reflect over and a key picker built on the generated maps would
+ * find nothing to offer under it.
+ *
+ * `Record<keyof SpaceCenterState, ...>` so the compiler keeps it complete: a
+ * field added above fails the build until it is described here.
+ */
+const SPACE_CENTER_STATE_UNITS: Readonly<
+  Record<keyof SpaceCenterState, SitrepUnit>
+> = {
+  padOccupied: "flag",
+  padVesselTitle: "text",
+};
+
+registerTopicUnits("spaceCenter.state", SPACE_CENTER_STATE_UNITS);
