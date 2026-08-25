@@ -14,23 +14,45 @@ set -euo pipefail
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 cd "$ROOT"
 
-PATHS=(
-  mod/sitrep-sdk/src/__generated__
-  packages/ui-kit/src/__generated__
-  mod/GonogoMechJebUplink/client/src/__generated__
-  mod/GonogoAvionicsUplink/client/src/__generated__
-  mod/GonogoKerbcastUplink/client/src/__generated__
-  mod/GonogoScansatUplink/client/src/__generated__
-  mod/GonogoKerbalismUplink/client/src/__generated__
-  mod/GonogoKosUplink/client/src/__generated__
-  mod/GonogoRealAntennasUplink/client/src/__generated__
-)
+# Every committed generated directory, DISCOVERED rather than listed.
+#
+# This used to be a hand-maintained array, and a hand-maintained list has no
+# gate on its own completeness. It had already drifted by two:
+# `GonogoRp1Uplink` and `GonogoPrincipiaUplink` were both created after the
+# array was written and neither was added to it, so every run regenerated their
+# output and hashed none of it. A hand-edit in either passed silently, which is
+# precisely the state this script exists to make impossible.
+#
+# Discovery also runs on BOTH sides of the regeneration below, so a codegen run
+# that creates a directory nobody has seen before shows up as a difference
+# rather than as an absence.
+generated_dirs() {
+  find . \
+    \( -name node_modules -o -name dist -o -name .git -o -name .claude \) -prune \
+    -o -type d -name __generated__ -print |
+    sed 's|^\./||' | sort
+}
 
 snapshot() {
+  local dirs=()
+  local dir
+  while IFS= read -r dir; do dirs+=("$dir"); done < <(generated_dirs)
   # Sorted so the digest is stable, and missing paths are tolerated so a first
   # run on a clean checkout still works.
-  find "${PATHS[@]}" -type f 2>/dev/null | sort | xargs -r sha256sum
+  find "${dirs[@]}" -type f 2>/dev/null | sort | xargs -r sha256sum
 }
+
+# A discovery that matches nothing hashes nothing, compares equal to itself and
+# reports success, which is the exact shape of a gate that has gone blind. The
+# number is a floor rather than an equality: adding an Uplink must not require
+# editing this script, which was the whole problem.
+DIR_COUNT="$(generated_dirs | wc -l | tr -d ' ')"
+if [ "$DIR_COUNT" -lt 8 ]; then
+  echo "✖ codegen check: found only $DIR_COUNT __generated__ director(y/ies)."
+  echo "  That is fewer than this repo has ever had, so the discovery below is"
+  echo "  broken rather than the tree being small. Refusing to report success."
+  exit 1
+fi
 
 BEFORE="$(snapshot)"
 bash mod/codegen.sh
@@ -44,7 +66,7 @@ if [ "$BEFORE" != "$AFTER" ]; then
   echo
   diff <(echo "$BEFORE") <(echo "$AFTER") || true
   echo
-  git --no-pager diff -- "${PATHS[@]}" || true
+  git --no-pager diff -- $(generated_dirs) || true
   exit 1
 fi
-echo "codegen check: generated files are current."
+echo "codegen check: generated files are current ($DIR_COUNT directories)."

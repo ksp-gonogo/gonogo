@@ -397,12 +397,7 @@ function StrategiesComponent({
               {reportsFundsDrain(netFunds) && (
                 <>
                   <Sep>·</Sep>
-                  <Tally>
-                    <FundsDrain
-                      funds={magnitudeOf(funds)}
-                      netPerDay={netFunds}
-                    />
-                  </Tally>
+                  <FundsDrain funds={magnitudeOf(funds)} netPerDay={netFunds} />
                 </>
               )}
               {(w ?? 9) >= 6 && (

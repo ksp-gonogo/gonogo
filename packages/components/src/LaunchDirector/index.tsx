@@ -587,10 +587,17 @@ function LaunchDirectorComponent({
                 · <Unit value={value("funds", careerFunds)} />
               </FundsReadout>
             )}
+            {/* NOT wrapped in FundsReadout beside it: that span is nowrap, so
+                a readout placed inside it cannot take a second line and clips
+                at the panel edge instead. */}
             {reportsFundsDrain(netFunds) && (
-              <FundsReadout>
-                · <FundsDrain funds={careerFunds} netPerDay={netFunds} />
-              </FundsReadout>
+              <DrainReadout>
+                <FundsDrain
+                  funds={careerFunds}
+                  netPerDay={netFunds}
+                  separator
+                />
+              </DrainReadout>
             )}
             {/* The balance is required beside a spend control, and an absent
                 balance is the state that rule exists for: it is exactly when
@@ -1335,6 +1342,13 @@ const FundsReadout = styled.span`
   /* Keep the separator glued to the amount so a narrow subtitle wraps
      "· 42,500f" as one unit instead of orphaning the middot. */
   white-space: nowrap;
+`;
+
+/* The drain's own spacing. Deliberately not FundsReadout: the drain readout is
+   several phrases long and manages its own break opportunities, so borrowing a
+   span that pins white-space would stop it wrapping at all. */
+const DrainReadout = styled.span`
+  margin-left: var(--space-2);
 `;
 
 const armButtonBase = `

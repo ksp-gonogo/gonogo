@@ -52,6 +52,16 @@ export interface FundsDrainProps {
    * sentence stays reachable through the title.
    */
   compact?: boolean;
+  /**
+   * Prefixes a middot, for a readout that sits in a run of dot-separated items.
+   *
+   * Offered here rather than written at the call site because the separator has
+   * to sit INSIDE the first no-wrap phrase to stay glued to what follows it, and
+   * a caller that wraps this whole component in its own no-wrap span to achieve
+   * that turns the readout into one unbreakable run that clips at the panel edge
+   * instead of taking a second line.
+   */
+  separator?: boolean;
 }
 
 /**
@@ -81,7 +91,13 @@ export interface FundsDrainProps {
  * beside a balance reads as a link fault. Neither is what happened, and the
  * absence of a mechanism is not a reading about one.
  */
-export function FundsDrain({ funds, netPerDay, compact }: FundsDrainProps) {
+export function FundsDrain({
+  funds,
+  netPerDay,
+  compact,
+  separator,
+}: FundsDrainProps) {
+  const lead = separator ? "\u00b7 " : "";
   if (!reportsFundsDrain(netPerDay) || netPerDay === null) return null;
 
   if (netPerDay > 0) {
@@ -91,6 +107,7 @@ export function FundsDrain({ funds, netPerDay, compact }: FundsDrainProps) {
         title="This programme earns more than it costs to hold"
       >
         <FundsDrain__Phrase>
+          {lead}
           <Unit value={value("funds/day", netPerDay)} /> credit
         </FundsDrain__Phrase>
       </FundsDrain__Root>
@@ -112,6 +129,7 @@ export function FundsDrain({ funds, netPerDay, compact }: FundsDrainProps) {
           {/* No "left": the compact form exists for a 2x3 tile whose whole
               width is about a dozen characters, and a phrase that cannot break
               clips rather than wrapping. The title carries the sentence. */}
+          {lead}
           {days === null ? (
             <Unit value={value("funds/day", perDay)} />
           ) : (
@@ -129,6 +147,7 @@ export function FundsDrain({ funds, netPerDay, compact }: FundsDrainProps) {
           is read as a direction, which is the reading `CareerEconomy` reached
           for its own "Net drain" row. */}
       <FundsDrain__Phrase>
+        {lead}
         <Unit value={value("funds/day", perDay)} /> drain
       </FundsDrain__Phrase>
       {/* The separator sits OUTSIDE both phrases, spaces and all: two adjacent

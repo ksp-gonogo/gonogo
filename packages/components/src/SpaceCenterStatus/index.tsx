@@ -474,9 +474,13 @@ function SpaceCenterStatusComponent({
               </FundsReadout>
             ) : null}
             {reportsFundsDrain(netFunds) && (
-              <FundsReadout>
-                · <FundsDrain funds={careerFunds} netPerDay={netFunds} />
-              </FundsReadout>
+              <DrainReadout>
+                <FundsDrain
+                  funds={careerFunds}
+                  netPerDay={netFunds}
+                  separator
+                />
+              </DrainReadout>
             )}
             {careerFunds === null &&
               /* The balance is required beside a spend control, and an absent
@@ -967,6 +971,12 @@ const UpgradesHeld = styled.span`
 const FundsReadout = styled.span`
   color: var(--color-status-go-fg);
   font-variant-numeric: tabular-nums;
+  margin-left: var(--space-2);
+`;
+
+/* Spacing only. The drain readout carries its own colour and its own break
+   opportunities, so it needs no wrapper that decides either for it. */
+const DrainReadout = styled.span`
   margin-left: var(--space-2);
 `;
 
