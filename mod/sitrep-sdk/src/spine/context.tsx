@@ -19,7 +19,10 @@ import { DYNAMIC_CARRIED_TOPIC_PREFIXES } from "../default-carried-topics";
 import { value } from "../unit-system/value";
 import type { Value } from "../value";
 import type { TelemetryClient } from "./client";
-import { getContributedDerivedChannels } from "./contributed-channels";
+import {
+  getContributedDerivedChannels,
+  onContributedChannelsChange,
+} from "./contributed-channels";
 import { DelayAuthority } from "./delay-authority";
 import { dvLegacyScalarsChannel } from "./dv-legacy-scalars";
 import {
@@ -260,6 +263,23 @@ export function TelemetryProvider({
     }
     setCarriedChannels((previous) => unionGrow(previous, additions));
   }, [client, carriedChannelsProp]);
+
+  // A store is built with the channels contributed so far, which on a station
+  // is none of them: its Uplink bundles cannot load until there is a
+  // peer-backed client to read the roster off, so `StationScreen` mounts the
+  // provider as the parent of the loader. Keep draining as contributions
+  // arrive, skipping any topic the store already has so a channel never
+  // changes meaning under a widget that is already reading it.
+  useEffect(() => {
+    const drain = () => {
+      for (const channel of getContributedDerivedChannels()) {
+        if (store.hasDerivedChannel(channel.topic)) continue;
+        store.registerDerivedChannel(channel);
+      }
+    };
+    drain();
+    return onContributedChannelsChange(drain);
+  }, [store]);
 
   useEffect(() => client.attachStore(store), [client, store]);
   // Registers this provider's clock as the non-React `getViewUt()` accessor's

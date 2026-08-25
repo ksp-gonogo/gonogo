@@ -52,6 +52,20 @@ export function contributeDerivedChannel<T>(
     new Map<string, DerivedChannelDefinition<unknown>>();
   byOwner.set(owner, def as DerivedChannelDefinition<unknown>);
   contributed.set(def.topic, byOwner);
+  for (const listener of listeners) listener();
+}
+
+const listeners = new Set<() => void>();
+
+/**
+ * Fires whenever the set of contributed channels changes. A station's Uplink
+ * bundles load only once it has a peer-backed client to read the roster off,
+ * which is after its store exists, so a provider that reads this registry once
+ * at construction sees an empty one. Returns an unsubscribe.
+ */
+export function onContributedChannelsChange(listener: () => void): () => void {
+  listeners.add(listener);
+  return () => listeners.delete(listener);
 }
 
 /** A topic two or more Uplinks both contribute a channel for. */
@@ -108,4 +122,5 @@ export function getContributedChannelTopics(): {
 /** Test-only: reset the registry to empty. */
 export function clearContributedDerivedChannels(): void {
   contributed.clear();
+  for (const listener of listeners) listener();
 }

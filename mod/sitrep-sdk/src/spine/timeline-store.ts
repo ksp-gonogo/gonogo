@@ -484,6 +484,16 @@ export class TimelineStore {
   }
 
   /**
+   * Whether a channel is already registered for `topic`. Lets a caller adding
+   * channels after construction leave an existing one alone, so a topic keeps
+   * the model it was built with rather than the model whichever import landed
+   * last.
+   */
+  hasDerivedChannel(topic: string): boolean {
+    return this.derivedChannels.has(topic);
+  }
+
+  /**
    * Mint a new frozen `FrameToken` from the clock's current `viewUt()` and
    * make it `currentFrame()`'s value. Call once per animation frame / read
    * cycle (e.g. from `clock.onFrame` or a widget's own rAF loop); never
