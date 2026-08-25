@@ -67,10 +67,11 @@ type ContractManagerConfig = Record<string, never>;
  * An objective's state, as this widget models it.
  *
  * The first three are KSP's `Contracts.ParameterState`. `"Unknown"` is OURS and
- * is the point: a state this build does not recognise used to collapse onto
- * `"Incomplete"`, so a completed objective read as outstanding and a mod's
- * appended state read as work still to do. An unrecognised state is not the
- * pessimistic arm, it is a third answer, and the widget says so on screen.
+ * is the point: a state this build does not recognise gets its own answer
+ * rather than collapsing onto `"Incomplete"`. Collapsing would read a completed
+ * objective as outstanding and a mod's appended state as work still to do. An
+ * unrecognised state is not the pessimistic arm, it is a third answer, and the
+ * widget says so on screen.
  */
 export type ContractParameterState =
   | "Incomplete"

@@ -37,8 +37,8 @@ function resolveHomeCentreId(
 }
 
 /**
- * The command centre this mission control commands from and observes at
- * (Plan 3): each active centre's own light-time defines the delay on every
+ * The command centre this mission control commands from and observes at:
+ * each active centre's own light-time defines the delay on every
  * downlink and command, so switching one re-points the whole view (via
  * `client.setVantage`, which re-subscribes every active topic at the new
  * vantage's offset).

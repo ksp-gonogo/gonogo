@@ -15,23 +15,22 @@ import {
  * Fleet/Comms on `SystemView`: the Commlinks and Traffic controls, plus the
  * link-status badge its sibling `./badge` contributes.
  *
- * This used to fill `system-view.overlay` as well, drawing its own comms-path
- * line and command-traffic pulses in the diagram's coordinate space: a single
- * straight segment from the diagram origin to the active vessel's dot,
- * regardless of the relay topology the signal actually took. SystemView's
- * `system-view.entities` contributions answer the same three questions
- * honestly, off the real graph: the CommNet relay edges
+ * This deliberately draws NOTHING into the diagram, and must not: an overlay
+ * fill can only work in the diagram's own coordinate space, which buys a
+ * straight segment from the origin to the active vessel's dot regardless of
+ * the relay topology the signal actually took. SystemView's
+ * `system-view.entities` contributions answer the same three questions off the
+ * real graph instead: the CommNet relay edges
  * (`vesselOrbitsContribution.ts`), the selected vessel's highlighted route
  * home (`commsPath.ts`), and the pending-command pulses riding that route
- * (`commsTraffic.ts`). Both drew at once for a while, which is the reported
- * duplicate-pulse bug; the graph-routed version wins, so the overlay fill is
- * gone rather than kept as a second, disagreeing answer.
+ * (`commsTraffic.ts`). A second, disagreeing answer drawn over the top of
+ * those is what a duplicate pulse looks like on screen.
  *
  * The toggles stay an AUGMENT, deliberately: they add controls to the
  * diagram's action area rather than drawing over it, which is what an augment
- * is for. Their store (`./toggles`) is unchanged and its readers moved:
- * `SystemView/index.tsx` reads it directly to gate the connection-line
- * entities and command-traffic pulses it draws.
+ * is for. Their store (`./toggles`) is read by `SystemView/index.tsx`
+ * directly, to gate the connection-line entities and command-traffic pulses it
+ * draws.
  */
 function FleetCommsActions() {
   const { showCommlinks, showCommandTraffic } = useFleetCommsToggles();

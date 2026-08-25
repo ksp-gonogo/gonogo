@@ -212,9 +212,9 @@ function CurrentOrbitComponent({
 
   return (
     <Panel panelTitle="ORBIT">
-      {/* Reference body as an in-body caption (staging relocated it out of
-          the Panel subtitle slot); a plain span carries the muted caption
-          type without styled-components. */}
+      {/* Reference body as an in-body caption rather than in the Panel
+          subtitle slot; a plain span carries the muted caption type without
+          styled-components. */}
       {showSubtitle && refBody !== undefined && (
         <span
           style={{
@@ -449,8 +449,8 @@ registerComponent<CurrentOrbitConfig>({
   // its own comment describes: raw elements off `vessel.orbit`, everything
   // else off the derived `vessel.state` (six of them through
   // `useOrbitElements`). Declared per field rather than as the two channels so
-  // an alarm lands on the widget that draws THAT value, which is what the
-  // legacy keys used to buy.
+  // an alarm lands on the widget that draws THAT value; channel granularity
+  // would land it on every widget reading the channel.
   channels: topics.channels,
   fields: topics.fields,
   defaultConfig: { showDiagram: true },

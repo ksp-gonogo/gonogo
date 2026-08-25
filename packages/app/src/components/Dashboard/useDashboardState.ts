@@ -57,7 +57,7 @@ function saveState(key: string, state: PersistedState): void {
  * Owns the items + layouts state for a Dashboard instance and persists it
  * under `storageKey`. Screens (MainScreen / StationScreen) call this hook
  * and pass the result into `<Dashboard>` as props, so other consumers
- * (notably the InputDispatcher in Phase 4) can subscribe to item changes
+ * (notably the InputDispatcher) can subscribe to item changes
  * without reaching into Dashboard internals.
  */
 export interface DashboardState {

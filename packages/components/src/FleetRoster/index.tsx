@@ -447,7 +447,7 @@ function FleetContactCell({
 /**
  * The per-row Link cell: the connectivity glyph is the trigger of an accessible
  * Disclosure whose panel shows this vessel's own signal delay + reachability,
- * read from `fleet.<guid>.delay` (Plan 2 / 2c). Focus/tap reachable, NOT
+ * read from `fleet.<guid>.delay`. Focus/tap reachable, NOT
  * hover-only. Each row subscribing to its own `fleet.<guid>.delay` IS the
  * dynamic-subscription reconcile: rows mount/unmount as `system.vessels` changes
  * and each `useFleetVesselLink` ref-counts its own topic.
@@ -772,7 +772,7 @@ registerComponent<FleetRosterConfig>({
   id: "fleet-roster",
   name: "Fleet Roster",
   description:
-    "Fleet-wide roster table: one row per known CRAFT (debris, asteroids/comets, flags, EVA kerbals, and deployed science hardware are filtered out, see isRosterCraft) with name, body, crew, and comms link tier (direct/relay/no link), plus a fleet-wide comms-coverage summary. There is no per-vessel reliability/health signal behind this widget (reliability.summary is active-vessel-only) - the fleet-roster.updates augment slot is the seam for a future Reliability/TestFlight uplink to add that. SystemView draws only the ACTIVE vessel spatially (system.vessels carries no per-vessel position, so a whole-fleet spatial view is a Phase 2 gap, not something this table's data could feed even if SystemView grew a slot for it).",
+    "Fleet-wide roster table: one row per known CRAFT (debris, asteroids/comets, flags, EVA kerbals, and deployed science hardware are filtered out, see isRosterCraft) with name, body, crew, and comms link tier (direct/relay/no link), plus a fleet-wide comms-coverage summary. There is no per-vessel reliability/health signal behind this widget (reliability.summary is active-vessel-only) - the fleet-roster.updates augment slot is the seam for a future Reliability/TestFlight uplink to add that. SystemView draws only the ACTIVE vessel spatially: system.vessels carries no per-vessel position, so a whole-fleet spatial view is not something this table's data could feed even if SystemView grew a slot for it.",
   tags: ["telemetry", "kerbalism"],
   defaultSize: { w: 8, h: 10 },
   minSize: { w: 4, h: 4 },

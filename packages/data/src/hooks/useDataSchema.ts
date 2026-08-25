@@ -15,10 +15,10 @@ import type { DataKeyMeta } from "../types";
  * `sourceId` (e.g. `"kos"`) still reads a live `DataSource.schema()`, those
  * sources are real and registered.
  *
- * Stable for the lifetime of a session, today every live source registers
- * keys at connect time, and the legacy catalog is static. Phase 6 kOS
- * datastream adds keys dynamically after connect; this memo will need a live
- * schema subscription once that lands (for the `"kos"` branch only).
+ * Stable for the lifetime of a session: every live source registers its keys
+ * at connect time and the legacy catalog is static. A source that grew keys
+ * dynamically after connect would need this memo to take a live schema
+ * subscription instead (for the `"kos"` branch only).
  */
 export function useDataSchema(sourceId = "data"): DataKeyMeta[] {
   return useMemo(() => {

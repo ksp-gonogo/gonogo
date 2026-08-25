@@ -89,10 +89,10 @@ function notCurrent<T>(reading: Reading<T>): boolean {
  * The TONE comes off the ordinal, never off the name. `CONTROL_STATE_LEVEL`
  * (vessel-state.ts) has already collapsed all twelve `ControlState` enum
  * members onto this 0/1/2 level scheme by the time the widget reads them, and
- * that collapse is the verdict. This used to substring-match the English enum
- * name instead, which read `ProbeNone` and `KerbalNone` as healthy links,
- * because neither is the literal string "None". A vessel with no control
- * painted green in both the Control row and the signal bars. The name is a
+ * that collapse is the verdict. Substring-matching the English enum name
+ * instead would read `ProbeNone` and `KerbalNone` as healthy links, because
+ * neither is the literal string "None", and a vessel with no control would
+ * paint green in both the Control row and the signal bars. The name is a
  * display label and nothing else.
  *
  * `undefined` is not a link failure: `Unknown` (11) carries no level by design,
@@ -148,8 +148,8 @@ function CommSignalComponent({
   //    control-source vessel under the stock six-kerbal rule). Every other read
   //    above is ALREADY relative to that centre, because stock prefers a route
   //    home and falls back to the nearest control source only when no home is
-  //    reachable. This is only the LABEL, and it used to be the literal string
-  //    "KSC" while the numbers beside it were not.
+  //    reachable. This is only the LABEL, and it has to name the centre those
+  //    numbers are actually relative to, never a hardcoded "KSC".
   //  - `comms.path`         -> the ordered hop list the route schedule draws
   /**
    * A link indicator is the one instrument where withholding is not merely honest
@@ -237,10 +237,10 @@ function CommSignalComponent({
   // order, RemoteTech overrides, vanilla CommNet variants): in that case
   // we derive bars from comm.controlState so the widget still shows
   // something useful: Full → 4, Partial → 2, None → 0.
-  // `.magnitude`: strength is a declared ratio and arrives wrapped. The bar
-  // count and the headline percentage are both arithmetic on it, and the old
-  // `typeof === "number"` test silently answered "no strength reading" for
-  // every live link.
+  // `.magnitude`: strength is a declared ratio and arrives WRAPPED, so the bar
+  // count and the headline percentage both do their arithmetic on the unwrapped
+  // number. Testing `typeof strength === "number"` against the wrapper instead
+  // answers "no strength reading" for every live link, silently.
   const raw = strength?.magnitude;
   const strengthValid =
     typeof raw === "number" && Number.isFinite(raw) && raw > 0;
@@ -318,8 +318,8 @@ function CommSignalComponent({
         {liveAnnouncement}
       </VisuallyHidden>
 
-      {/* Link caption relocated out of the panel subtitle into the body
-          (staging change), carried by a plain span so the title stands alone. */}
+      {/* Link caption sits in the body rather than the panel subtitle,
+          carried by a plain span so the title stands alone. */}
       {showSubtitle && (
         <span
           style={{

@@ -64,12 +64,10 @@ export interface BodyOffsets {
 /**
  * Translate a (ilon, ilat) 1°×1° tile coordinate to a rectangular pixel
  * range on a `(maskW, maskH)` texture-space canvas, honouring the body's
- * texture offsets. Direct copy of `../FogReveal/scanDecode.ts`'s
- * `tileToPixelRect` (itself T7's mod-local copy of the shared
- * `@ksp-gonogo/data` utility): re-declared here rather than imported so
- * this module has no dependency on the FogReveal decode module, only on
- * the coverage-gate shape. Kept byte-for-byte identical; a future task
- * could hoist a single shared copy without changing behaviour.
+ * texture offsets. Deliberately duplicates `../FogReveal/scanDecode.ts`'s
+ * `tileToPixelRect` rather than importing it, so this module depends only
+ * on the coverage-gate shape and not on the FogReveal decode module. The
+ * two must stay in step: a change to one belongs in both.
  */
 export interface TilePixelRect {
   x0: number;

@@ -16,8 +16,8 @@ export interface DashboardItem {
   /** Per-instance component config passed as the `config` prop. */
   config?: Record<string, unknown>;
   /**
-   * Action-id → device input binding. Drives the serial input dispatcher
-   * in Phase 4. Missing = unbound; persisted alongside `config`.
+   * Action-id → device input binding. Drives the serial input
+   * dispatcher. Missing = unbound; persisted alongside `config`.
    */
   inputMappings?: InputMappings;
   /**

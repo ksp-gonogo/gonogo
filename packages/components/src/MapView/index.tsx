@@ -234,7 +234,7 @@ export interface MapBaseLayerContext {
    *  (default true when unset) to decide whether it currently contributes
    *  a layer. */
   augmentSettings: Record<string, Record<string, unknown>> | undefined;
-  /** The paint-gate (T4) for this body: the augment samples this per
+  /** The paint-gate for this body: the augment samples this per
    *  output tile while drawing its own surface. `hasAnySource: false`
    *  means "paint fully open," not "paint nothing." */
   coverageGate: CoverageGate;

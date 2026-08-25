@@ -470,20 +470,18 @@ function FuelStatusComponent({
    *
    * A dated budget is CARRIED and captioned rather than blanked. It only falls by
    * burning and only rises by staging or docking, all events the operator caused,
-   * so the last figure is still the figure. This used to withhold it, and the
-   * caption that would have said so was computed and never rendered.
+   * so the last figure is still the figure.
    */
   const budget = useProcessor(DELTA_V_BUDGET);
   const budgetNotCurrent = budget?.budget.state === "stale";
   /**
    * The stock ΔV sim has answered about this craft, whatever it answered.
    *
-   * Gates the totals row, which used to be gated on a total being `!== undefined`
-   * and so hung on a wire detail: a craft with no engines reports every total as
-   * `null`, and `null !== undefined` happened to be true, so the row rendered a
-   * labelled pair of em-dashes. That is the right thing to show, and saying so
-   * out loud keeps it from turning back into a void the day a total starts
-   * arriving absent instead of null.
+   * Gates the totals row on the sim having ANSWERED, not on any total being
+   * present. A craft with no engines is a real answer of `null` for every
+   * total, and the row should render its labelled pair of em-dashes for it.
+   * Gating on the values instead would hang the row on a wire detail and blank
+   * it the day a total starts arriving absent rather than null.
    */
   const budgetReported =
     budget !== undefined && budget.budget.state !== "pending";
