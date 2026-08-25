@@ -18,6 +18,9 @@ import {
   Grid,
   Meter,
   MeterStack,
+  magnitudeOf,
+  magnitudeOr,
+  NULL_DISPLAY,
   Panel,
   Section,
   type Severity,
@@ -37,7 +40,6 @@ import type {
 import {
   buildLedger,
   type Ledger,
-  mag,
   type ResourceRow,
   type WearRow,
 } from "../ecosystem";
@@ -217,11 +219,11 @@ function processSeverity(state: ProcessRunState): Severity | undefined {
  *  own doc comment below) keeps rendering unchanged. */
 interface GreenhouseRow {
   cropResource: string;
-  natural: number;
-  artificial: number;
+  natural: number | null;
+  artificial: number | null;
   active: boolean;
   issue: string;
-  foodRatePerSec: number;
+  foodRatePerSec: number | null;
   /** rad/s. `<= 0` means "not reported", the same "not fitted" convention
    *  `row.capacity <= 0` uses elsewhere in this file: never flag against it. */
   radiationToleranceRadPerSec: number;
@@ -230,12 +232,12 @@ interface GreenhouseRow {
 function toGreenhouseRow(g: KerbalismGreenhouseEntry): GreenhouseRow {
   return {
     cropResource: g.cropResource || "Food",
-    natural: mag(g.natural),
-    artificial: mag(g.artificial),
+    natural: magnitudeOf(g.natural),
+    artificial: magnitudeOf(g.artificial),
     active: g.active ?? false,
     issue: g.issue ?? "",
-    radiationToleranceRadPerSec: mag(g.radiationToleranceRadPerSec),
-    foodRatePerSec: mag(g.foodRatePerSec),
+    radiationToleranceRadPerSec: magnitudeOr(g.radiationToleranceRadPerSec, 0),
+    foodRatePerSec: magnitudeOf(g.foodRatePerSec),
   };
 }
 
@@ -333,7 +335,10 @@ function ShipSystemsBody({
   // Ambient, not habitat/shielded: a greenhouse part's own tolerance is an
   // exposure limit on what's hitting the HULL, not the crew-shielded figure
   // (see the per-row threshold check this feeds, below).
-  const ambientRadiationRadPerSecond = mag(weather?.radiationRadPerSecond);
+  const ambientRadiationRadPerSecond = magnitudeOr(
+    weather?.radiationRadPerSecond,
+    0,
+  );
 
   // The power footer: ElectricCharge is universal across every Kerbalism
   // profile (stock and RO both declare it), so it is worth a permanently
@@ -354,7 +359,13 @@ function ShipSystemsBody({
       ? `${runningCount} running · ${brokenCount} broken`
       : `${runningCount} / ${processes.length} running`;
 
-  const pressurized = mag(habitat?.pressure) > 0.5;
+  // Null, not false: an unreported pressure is neither pressurised nor
+  // unpressurised, and a LIFE SUPPORT panel that answers "Unpressurized"
+  // because nobody said is the exact reading an operator must never get.
+  const pressureRatio = magnitudeOf(habitat?.pressure);
+  const pressurized = pressureRatio === null ? null : pressureRatio > 0.5;
+  const comfort = magnitudeOf(habitat?.comfort);
+  const poisoning = magnitudeOf(habitat?.poisoning);
 
   // A halted greenhouse is a WIDGET-level event, not just a per-row one: it
   // folds into the header status (see `overallStatus`) so an operator
@@ -520,8 +531,16 @@ function ShipSystemsBody({
         <Section>
           <SectionHead
             label="Habitat"
-            value={pressurized ? "Pressurized" : "Unpressurized"}
-            tone={pressurized ? "go" : "warn"}
+            value={
+              pressurized === null
+                ? NULL_DISPLAY
+                : pressurized
+                  ? "Pressurized"
+                  : "Unpressurized"
+            }
+            tone={
+              pressurized === null ? "neutral" : pressurized ? "go" : "warn"
+            }
           />
           {/* A real grid, not a wrapping Cluster: `Meter` is `width: 100%`,
               so as flex items the three meters each claimed a full row and
@@ -531,20 +550,20 @@ function ShipSystemsBody({
           <Grid minColWidth="10rem" gap="md">
             <Meter
               label="Comfort"
-              value={mag(habitat?.comfort)}
-              tone={mag(habitat?.comfort) < 0.25 ? "warn" : "neutral"}
+              value={comfort}
+              tone={comfort !== null && comfort < 0.25 ? "warn" : "neutral"}
               size="sm"
             />
             <Meter
               label="Living space"
-              value={mag(habitat?.livingSpace)}
+              value={magnitudeOf(habitat?.livingSpace)}
               tone="neutral"
               size="sm"
             />
             <Meter
               label="CO2 poisoning"
-              value={mag(habitat?.poisoning)}
-              tone={mag(habitat?.poisoning) >= 0.5 ? "nogo" : "neutral"}
+              value={poisoning}
+              tone={poisoning !== null && poisoning >= 0.5 ? "nogo" : "neutral"}
               size="sm"
             />
           </Grid>

@@ -1,6 +1,7 @@
 import type { ContributionEntry, VesselParts } from "@ksp-gonogo/sitrep-sdk";
+import { magnitudeOf, magnitudeOr, type Quantityish } from "@ksp-gonogo/ui-kit";
 import type { KerbalismProfile } from "../__generated__/contract";
-import { mag, resourceFacts } from "../ecosystem";
+import { resourceFacts } from "../ecosystem";
 import { KERBALISM } from "../uplink";
 
 // The Kerbalism half of the `ship-map.part-meters` self-contribution:
@@ -57,13 +58,13 @@ const CRITICAL_FRACTION_OF_LOW = 0.33;
 function partMeterStatus(
   amount: number,
   capacity: number,
-  lowThreshold: { magnitude?: number } | number | undefined,
+  lowThreshold: Quantityish,
 ): "low" | "critical" | null {
   if (capacity <= 0) return null;
   const low =
     lowThreshold === undefined
       ? DEFAULT_LOW_THRESHOLD
-      : mag(lowThreshold, DEFAULT_LOW_THRESHOLD);
+      : magnitudeOr(lowThreshold, DEFAULT_LOW_THRESHOLD);
   const ratio = amount / capacity;
   if (ratio < low * CRITICAL_FRACTION_OF_LOW) return "critical";
   if (ratio < low) return "low";
@@ -88,9 +89,12 @@ export function computeKerbalismPartMeters(
       const fact = facts.get(name);
       // Supply-only, confirmed-not-pooled: see this file's header.
       if (!fact || !fact.isSupply || fact.pooled !== false) continue;
-      const capacity = mag(flow.maxAmount);
+      const capacity = magnitudeOr(flow.maxAmount, 0);
       if (capacity <= 0) continue;
-      const amount = mag(flow.amount);
+      // No amount reported is not an empty tank: a meter drawn from it would
+      // read as a part in deficit. Skipped, so nothing is claimed.
+      const amount = magnitudeOf(flow.amount);
+      if (amount === null) continue;
       entries.push({
         partId: String(part.id),
         resource: name,

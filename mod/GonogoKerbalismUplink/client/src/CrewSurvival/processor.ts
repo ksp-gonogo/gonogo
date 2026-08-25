@@ -1,9 +1,9 @@
 import type { VesselCrew } from "@ksp-gonogo/sitrep-sdk";
+import { magnitudeOf, magnitudeOr } from "@ksp-gonogo/ui-kit";
 import type {
   KerbalismCrewEntry,
   KerbalismCrewRule,
 } from "../__generated__/contract";
-import { mag } from "../ecosystem";
 import { KERBALISM } from "../uplink";
 
 // ---------------------------------------------------------------------------
@@ -116,10 +116,14 @@ function kerbalTone(
  * old `ruleFraction`, moved here with the rest of the Kerbalism-specific
  * logic it contaminated the base widget with).
  */
-function ruleFraction(rule: KerbalismCrewRule): number {
-  const accumulated = mag(rule.value, 0);
-  const threshold = mag(rule.fatalThreshold, Number.NaN);
-  if (!Number.isFinite(threshold) || threshold <= 0) return 0;
+function ruleFraction(rule: KerbalismCrewRule): number | null {
+  // Null rather than 0 on either half. A rule whose accumulator or whose
+  // fatal threshold never arrived has no position on the toward-fatal scale,
+  // and 0 on that scale is the reading that says the crew is fine.
+  const accumulated = magnitudeOf(rule.value);
+  const threshold = magnitudeOr(rule.fatalThreshold, Number.NaN);
+  if (accumulated === null) return null;
+  if (!Number.isFinite(threshold) || threshold <= 0) return null;
   return Math.min(1, Math.max(0, accumulated / threshold));
 }
 
@@ -140,7 +144,11 @@ function toKerbalSurvival(
   const rules: KerbalRuleState[] = [];
   for (const rule of entry?.rules ?? []) {
     if (!rule.name) continue;
-    rules.push({ name: rule.name, fraction: ruleFraction(rule) });
+    // A rule with nothing to place on the scale is not carried: a meter or a
+    // tone derived from it would be a claim about a kerbal nobody measured.
+    const fraction = ruleFraction(rule);
+    if (fraction === null) continue;
+    rules.push({ name: rule.name, fraction });
   }
   // Worst (closest to fatal) first: the `.survival` augment shows the most
   // alarming rule first when it has to collapse the rest behind a disclosure.
@@ -149,7 +157,7 @@ function toKerbalSurvival(
   // An INSTANT on the wire, so the remaining time is it minus the frame's view
   // time. Clamped at zero: a deadline already behind us is "now", never a
   // negative countdown.
-  const deathClockUt = mag(entry?.deathClockUt, Number.NaN);
+  const deathClockUt = magnitudeOr(entry?.deathClockUt, Number.NaN);
   const deathClockSec = Number.isFinite(deathClockUt)
     ? Math.max(0, deathClockUt - viewUt)
     : null;

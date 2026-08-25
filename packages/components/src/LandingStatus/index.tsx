@@ -20,6 +20,7 @@ import {
   EmptyState,
   FramedDisplay,
   Grid,
+  magnitudeOf,
   NULL_DISPLAY,
   Panel,
   ReadoutCaption,
@@ -59,13 +60,13 @@ type LandingStatusConfig = Record<string, never>;
 // difference between a landing and a crater, so the last kilometre is read to
 // the metre while a hundred kilometres is read to a tenth of a kilometre.
 
-/** Accepts either shape while the migration is mid-flight. */
+/**
+ * Accepts either shape while the migration is mid-flight, and PARAMETERISED by
+ * unit, which is what this alias adds over ui-kit's own: the readouts below
+ * take a length or a speed and nothing else, so a `Value<"m">` handed to `Mps`
+ * is a compile error here. The unwrap itself is ui-kit's `magnitudeOf`.
+ */
 type Quantityish<U extends string> = Quantity<U> | number | null | undefined;
-
-function magnitudeOf(v: Quantityish<string>): number | null {
-  const n = typeof v === "object" && v !== null ? v.magnitude : v;
-  return n === null || n === undefined || !Number.isFinite(n) ? null : n;
-}
 
 /** A speed, read finer the slower it is: a touchdown is decided in cm/s. */
 function Mps({ v }: { v: Quantityish<"m/s"> }) {

@@ -5,6 +5,7 @@ import {
   GraphNotice,
   LineGraph,
   type LineGraphSeries,
+  magnitudeOf,
   Stack,
   Text,
   Unit,
@@ -12,7 +13,6 @@ import {
 import { useEffect, useState } from "react";
 import type { KerbalismSpaceWeather } from "../__generated__/contract";
 import { HIGH_RADIATION_RAD_PER_HOUR } from "../CrewSurvival/summary";
-import { mag } from "../ecosystem";
 
 // ---------------------------------------------------------------------------
 // The radiation graph + belt/location readout, piece of the Ship Systems
@@ -83,8 +83,10 @@ import { mag } from "../ecosystem";
 
 export interface RadiationSample {
   ut: number;
-  ambientRadPerSec: number;
-  shieldedRadPerSec: number;
+  /** rad/s, or null where the frame carried no dose rate at all. */
+  ambientRadPerSec: number | null;
+  /** rad/s, or null where neither the habitat nor the ambient figure arrived. */
+  shieldedRadPerSec: number | null;
 }
 
 /** 10 minutes of history: long enough to show a storm's onset against a
@@ -109,6 +111,12 @@ export function pushRadiationSample(
   windowSec: number = RADIATION_WINDOW_SEC,
   minGapUt: number = MIN_SAMPLE_GAP_UT,
 ): readonly RadiationSample[] {
+  // A frame that measured neither arm is not a point on this trend, and
+  // recording it would let a rewind be judged against a sample carrying no
+  // reading at all.
+  if (sample.ambientRadPerSec === null && sample.shieldedRadPerSec === null) {
+    return buffer;
+  }
   const last = buffer[buffer.length - 1];
   if (last) {
     // Time moved backwards further than sampling jitter accounts for (a
@@ -130,8 +138,8 @@ function useRadiationHistory(
   utNow: number | undefined,
 ): readonly RadiationSample[] {
   const [history, setHistory] = useState<readonly RadiationSample[]>([]);
-  const ambientRadPerSec = mag(weather?.radiationRadPerSecond);
-  const shieldedRadPerSec = mag(
+  const ambientRadPerSec = magnitudeOf(weather?.radiationRadPerSecond);
+  const shieldedRadPerSec = magnitudeOf(
     weather?.habitatRadiationRadPerSecond ?? weather?.radiationRadPerSecond,
   );
   const hasWeather = weather !== undefined;
@@ -152,14 +160,19 @@ function useRadiationHistory(
 
 const RAD_PER_SEC_TO_RAD_PER_HOUR = 3600;
 
+/** Samples the picked arm actually measured; an unmeasured one plots no point
+ *  rather than a point at zero, so a gap in the trace reads as a gap. */
 function toRadPerHourSeries(
   history: readonly RadiationSample[],
-  pick: (s: RadiationSample) => number,
+  pick: (s: RadiationSample) => number | null,
 ): LineGraphSeries["points"] {
-  return history.map((s) => ({
-    x: s.ut,
-    y: pick(s) * RAD_PER_SEC_TO_RAD_PER_HOUR,
-  }));
+  const points: { x: number; y: number }[] = [];
+  for (const s of history) {
+    const radPerSec = pick(s);
+    if (radPerSec === null) continue;
+    points.push({ x: s.ut, y: radPerSec * RAD_PER_SEC_TO_RAD_PER_HOUR });
+  }
+  return points;
 }
 
 /**
@@ -230,19 +243,36 @@ export function RadiationSection({ weather, utNow }: RadiationSectionProps) {
   const location = locationLabel(weather);
   // Always a real Value (never undefined): an unreported field reads as a
   // genuine "0 rad/h" rather than a blank readout beside a live label.
-  const ambientRadPerSec = mag(weather.radiationRadPerSecond);
-  const shieldedRadPerSec = mag(
+  const ambientRadPerSec = magnitudeOf(weather.radiationRadPerSecond);
+  const shieldedRadPerSec = magnitudeOf(
     weather.habitatRadiationRadPerSecond ?? weather.radiationRadPerSecond,
   );
-  const ambientValue = value("rad/s", ambientRadPerSec);
-  const shieldedValue = value("rad/s", shieldedRadPerSec);
-  const ambientRadPerHour = ambientRadPerSec * RAD_PER_SEC_TO_RAD_PER_HOUR;
-  const shieldedRadPerHour = shieldedRadPerSec * RAD_PER_SEC_TO_RAD_PER_HOUR;
+  // Null all the way to `<Unit>`, which renders it as the absence placeholder.
+  // A frame can land with belt and storm flags but no dose rate, and "0 rad/h"
+  // beside a live label is the reading an operator would act on least safely:
+  // it says the environment is clean when nothing measured it.
+  const ambientValue =
+    ambientRadPerSec === null ? null : value("rad/s", ambientRadPerSec);
+  const shieldedValue =
+    shieldedRadPerSec === null ? null : value("rad/s", shieldedRadPerSec);
+  const ambientRadPerHour =
+    ambientRadPerSec === null
+      ? null
+      : ambientRadPerSec * RAD_PER_SEC_TO_RAD_PER_HOUR;
+  const shieldedRadPerHour =
+    shieldedRadPerSec === null
+      ? null
+      : shieldedRadPerSec * RAD_PER_SEC_TO_RAD_PER_HOUR;
   // Escalation is per-line and threshold-gated (see the header comment):
   // identity hues at rest, warning amber when the ENVIRONMENT is hot, nogo
   // red only when the CREW-side reading itself is over the line.
-  const ambientHigh = ambientRadPerHour > HIGH_RADIATION_RAD_PER_HOUR;
-  const shieldedHigh = shieldedRadPerHour > HIGH_RADIATION_RAD_PER_HOUR;
+  // An unmeasured dose escalates nothing: a threshold needs a reading to cross.
+  const ambientHigh =
+    ambientRadPerHour !== null &&
+    ambientRadPerHour > HIGH_RADIATION_RAD_PER_HOUR;
+  const shieldedHigh =
+    shieldedRadPerHour !== null &&
+    shieldedRadPerHour > HIGH_RADIATION_RAD_PER_HOUR;
 
   const ambientPoints = toRadPerHourSeries(history, (s) => s.ambientRadPerSec);
   const shieldedPoints = toRadPerHourSeries(
@@ -271,8 +301,8 @@ export function RadiationSection({ weather, utNow }: RadiationSectionProps) {
   // Stable frame: 0 up to a stepped nice ceiling, never below twice the
   // threshold so the 0.5 marker always has an honest place mid-frame.
   const dataMaxRadPerHour = Math.max(
-    ambientRadPerHour,
-    shieldedRadPerHour,
+    ambientRadPerHour ?? 0,
+    shieldedRadPerHour ?? 0,
     ...ambientPoints.map((p) => p.y),
     ...shieldedPoints.map((p) => p.y),
   );
@@ -332,14 +362,14 @@ export function RadiationSection({ weather, utNow }: RadiationSectionProps) {
           Ambient{" "}
           <Unit
             value={ambientValue}
-            decimals={doseRateDecimals(ambientRadPerHour)}
+            decimals={doseRateDecimals(ambientRadPerHour ?? 0)}
           />
         </Text>
         <Text tone={shieldedHigh ? "nogo" : "info"} size="xs">
           Shielded{" "}
           <Unit
             value={shieldedValue}
-            decimals={doseRateDecimals(shieldedRadPerHour)}
+            decimals={doseRateDecimals(shieldedRadPerHour ?? 0)}
           />
         </Text>
       </Cluster>

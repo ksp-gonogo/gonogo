@@ -39,9 +39,8 @@ import { describe, expect, it } from "vitest";
  * not use more, and a file absent from this map may not use any.
  */
 const MAGNITUDE_BUDGET: Record<string, number> = {
-  "mod/GonogoKerbalismUplink/client/src/ecosystem.ts": 1,
   "mod/GonogoKerbalismUplink/client/src/processor.ts": 1,
-  "mod/GonogoKerbalismUplink/client/src/resourceProjection.ts": 5,
+  "mod/GonogoKerbalismUplink/client/src/resourceProjection.ts": 4,
   "mod/GonogoKerbalismUplink/client/src/ScienceFileManager/index.tsx": 1,
   "mod/GonogoKerbcastUplink/client/src/CameraFeed/CameraFeed.tsx": 4,
   // 1: the contribution entry carries a BARE bits/sec so CommSignal can compare
@@ -94,7 +93,6 @@ const MAGNITUDE_BUDGET: Record<string, number> = {
   "mod/sitrep-sdk/src/spine/timeline-store.ts": 1,
   "mod/sitrep-sdk/src/testing/render.tsx": 1,
   "packages/app/src/alarms/WarpObserver.ts": 1,
-  "packages/app/src/maneuverTriggers/ManeuverTriggerHostService.ts": 1,
   "packages/app/src/telemetry/KspCalendarObserver.tsx": 4,
   // 3, all three in `commsLegTimeSeconds`: a leg's share of the path delay is
   // `hopMeters * (delaySeconds / totalMeters)`, a length over a length, and the
@@ -109,7 +107,7 @@ const MAGNITUDE_BUDGET: Record<string, number> = {
   "packages/components/src/FleetComms/index.tsx": 15,
   "packages/components/src/FleetRoster/index.tsx": 3,
   "packages/components/src/FuelStatus/index.tsx": 1,
-  "packages/components/src/LandingStatus/index.tsx": 39,
+  "packages/components/src/LandingStatus/index.tsx": 35,
   "packages/components/src/LaunchDirector/index.tsx": 1,
   // 1: the view instant, unwrapped to bucket it and to hand it to the frame
   // arithmetic. Every function that solves a body's position takes a bare UT,
@@ -152,10 +150,12 @@ const MAGNITUDE_BUDGET: Record<string, number> = {
   // running total. Doing it in the algebra would wrap and unwrap once per node
   // for a number that never leaves this function.
   "packages/data/src/hooks/useManeuverFeasibility.ts": 1,
-  // 5: the burn instant, the three delta-v components and the plan's own
-  // total, unwrapped here because this hook IS the boundary between the wire
-  // shape and the plain-number geometry every node consumer works in.
-  "packages/data/src/hooks/useManeuverNodes.ts": 5,
+  // 4: the burn instant and the plan's own total, unwrapped here because this
+  // hook IS the boundary between the wire shape and the plain-number geometry
+  // every node consumer works in. The three delta-v components go through
+  // ui-kit's `magnitudeOr` instead, which is what a component absent from the
+  // wire wants: nothing added to the vector, said in one place.
+  "packages/data/src/hooks/useManeuverNodes.ts": 4,
   "packages/data/src/hooks/useDataSeries.ts": 1,
   "packages/data/src/hooks/vesselPartsAdapter.ts": 20,
   "packages/data/src/replaySession/ReplaySessionBanner.tsx": 1,
