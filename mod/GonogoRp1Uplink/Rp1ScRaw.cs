@@ -121,6 +121,7 @@ namespace GonogoRp1Uplink
         public double? Rate;
         public double? TimeLeftSeconds;
         public bool Stalled;
+        public int BlockingPeers;
         public double Cost;
         public string? AssociatedVesselId;
     }

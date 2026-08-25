@@ -12,8 +12,16 @@
 // number it cannot render. Measured, not assumed: the decode assertions in
 // `topics.test.ts` fail exactly that way with these three calls removed.
 //
+// The reasoning that got this wrong the first time is worth keeping, because it
+// is reasonable and the next person declaring a non-converting unit will follow
+// it: "a dimension is a claim that a quantity converts, and neither of these
+// converts to anything, so neither should have one". Sound about dimensions,
+// false about the mechanism. The model entry is also what marks a token as a
+// QUANTITY at all, so a token with a display seam and no model seam is not "a
+// quantity that does not convert", it is "not a quantity".
+//
 // Each gets its OWN dimension base, which is the same shape core gives `funds`,
-// `science`, `rep` and `count`. Normally inventing a private axis is the wrong
+// `science`, `rep` and `count`. Inventing a private axis is usually the wrong
 // move, because it makes a quantity an island nothing can convert with. Here
 // that is the accurate model: a build point converts to nothing, and Confidence
 // is a sibling of funds rather than a multiple of anything.

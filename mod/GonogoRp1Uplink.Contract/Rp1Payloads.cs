@@ -360,12 +360,28 @@ public sealed class Rp1OperationEntry
     [SitrepUnit(Contract.Units.BuildPointsPerSecond)]
     public double? Rate { get; set; }
 
+    /// <summary>
+    /// Seconds to completion, SEQUENCED against the other blocking operations
+    /// on this complex rather than divided out of this one's share: each
+    /// survivor speeds up as its neighbours finish, so the share division alone
+    /// answers early. Absent when the sequence cannot be computed, never the
+    /// early figure.
+    /// </summary>
     [SitrepUnit(Units.Seconds)]
     public double? TimeLeftSeconds { get; set; }
 
     /// <summary>The rate resolved and is zero, as distinct from not yet costed.</summary>
     [SitrepUnit(Units.Flag)]
     public bool? Stalled { get; set; }
+
+    /// <summary>
+    /// How many OTHER blocking operations are sharing this complex. They run at
+    /// once, each taking the fraction of the complex its build points earn it,
+    /// so a peer is why this is slower than it looks and is what an operator
+    /// reads when <see cref="TimeLeftSeconds"/> is absent.
+    /// </summary>
+    [SitrepUnit(Units.Count)]
+    public int? BlockingPeers { get; set; }
 
     [SitrepUnit(Units.Funds)]
     public double? Cost { get; set; }

@@ -291,10 +291,70 @@ namespace GonogoRp1Uplink
                 });
             }
 
+            // The blocking set, gathered ONCE for the complex: every operation's
+            // ETA depends on all the others, because they share the complex and
+            // each one's share grows as its neighbours finish.
+            //
+            // Recon_Rollout only, and deliberately so even though the complex's
+            // own blocking-BP total (above) counts vessel repairs as well. That
+            // asymmetry is RP-1's: RecalculateProjectBP walks GetAllLCOps, while
+            // GetTimeLeftEstAll walks Recon_Rollout alone. Mirroring RP-1 beats
+            // being independently consistent.
+            var blockingSet = new List<Rp1ScMath.BlockingOp>();
+            var blockingOps = new List<object>();
             foreach (var op in reconRollout)
             {
-                raw.Operations.Add(ReadOperation(kscName, lcId, op, efficiency, rushRate, projectBpTotal, ramp));
+                if (ReadBool(op, "IsBlocking") != true)
+                {
+                    continue;
+                }
+                var points = Math.Abs(ReadDouble(op, "BP") ?? 0.0);
+                var progress = ReadDouble(op, "progress") ?? 0.0;
+                var reversed = ReadBool(op, "IsReversed") == true;
+                if (reversed ? progress <= 0.0 : progress >= points)
+                {
+                    continue;
+                }
+                var baseRate = ReadDouble(op, "_buildRate") ?? -1.0;
+                blockingOps.Add(op);
+                blockingSet.Add(new Rp1ScMath.BlockingOp
+                {
+                    Points = points,
+                    Remaining = reversed ? progress : points - progress,
+                    // Un-shared: the sequencing applies each project's share
+                    // itself, and re-applying it here would square it.
+                    Rate = baseRate < 0.0 || efficiency == null
+                        ? 0.0
+                        : baseRate * efficiency.Value * rushRate,
+                });
             }
+
+            foreach (var op in reconRollout)
+            {
+                raw.Operations.Add(ReadOperation(
+                    kscName, lcId, op, efficiency, rushRate, projectBpTotal, ramp, blockingOps, blockingSet));
+            }
+        }
+
+        /// <summary>
+        /// The blocking set reordered with <paramref name="subjectIndex"/> first,
+        /// which is the ordering <see cref="Rp1ScMath.SequencedTimeLeft"/> reads:
+        /// RP-1 adds the subject before its neighbours and stops the moment the
+        /// subject is next to finish.
+        /// </summary>
+        private static List<Rp1ScMath.BlockingOp> SubjectFirst(
+            List<Rp1ScMath.BlockingOp> set,
+            int subjectIndex)
+        {
+            var ordered = new List<Rp1ScMath.BlockingOp>(set.Count) { set[subjectIndex] };
+            for (var i = 0; i < set.Count; i++)
+            {
+                if (i != subjectIndex)
+                {
+                    ordered.Add(set[i]);
+                }
+            }
+            return ordered;
         }
 
         private Rp1BuildItemRaw ReadBuildItem(
@@ -347,7 +407,9 @@ namespace GonogoRp1Uplink
             double? efficiency,
             double rushRate,
             double projectBpTotal,
-            Func<double, double>? ramp)
+            Func<double, double>? ramp,
+            List<object> blockingOps,
+            List<Rp1ScMath.BlockingOp> blockingSet)
         {
             var reversed = ReadBool(op, "IsReversed") == true;
             var blocking = ReadBool(op, "IsBlocking") == true;
@@ -356,6 +418,24 @@ namespace GonogoRp1Uplink
             var baseRate = ReadDouble(op, "_buildRate") ?? -1.0;
 
             var rate = Rp1ScMath.OperationRate(baseRate, efficiency, rushRate, reversed, blocking, totalPoints, projectBpTotal);
+
+            // A blocking operation's ETA is a SEQUENCE, not a division: it shares
+            // the complex with its neighbours and its share grows as each of them
+            // finishes. The share division alone answers EARLY, and an optimistic
+            // completion time is a correctness defect rather than a rounding one,
+            // so when the sequence cannot be computed the ETA is absent and
+            // BlockingPeers is what an operator reads instead.
+            var subjectIndex = blockingOps.IndexOf(op);
+            double? seconds;
+            if (subjectIndex >= 0)
+            {
+                seconds = Rp1ScMath.SequencedTimeLeft(SubjectFirst(blockingSet, subjectIndex));
+            }
+            else
+            {
+                seconds = Rp1ScMath.BaseTimeLeft(progress, totalPoints, rate, reversed);
+            }
+
             return new Rp1OperationRaw
             {
                 KscName = kscName,
@@ -367,7 +447,8 @@ namespace GonogoRp1Uplink
                 ProgressRatio = Rp1ScMath.ProgressRatio(progress, totalPoints, reversed),
                 Rate = rate,
                 Stalled = Rp1ScMath.IsStalled(rate),
-                TimeLeftSeconds = Ramped(Rp1ScMath.BaseTimeLeft(progress, totalPoints, rate, reversed), ramp),
+                TimeLeftSeconds = Ramped(seconds, ramp),
+                BlockingPeers = subjectIndex >= 0 ? blockingSet.Count - 1 : 0,
                 Cost = ReadDouble(op, "cost") ?? 0.0,
                 AssociatedVesselId = EmptyAsAbsent(ReadString(op, "associatedID")),
             };

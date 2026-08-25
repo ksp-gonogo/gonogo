@@ -129,6 +129,7 @@ export const GENERATED_TYPE_UNITS: Readonly<Record<string, UnitsByField>> = {
   },
   "Rp1OperationEntry": {
     associatedVesselId: "id",
+    blockingPeers: "count",
     cost: "funds",
     kscName: "id",
     launchPadId: "id",
@@ -233,6 +234,7 @@ export const GENERATED_TOPIC_UNITS: Readonly<Record<string, UnitsByField>> = {
   },
   "rp1.operations": {
     associatedVesselId: "id",
+    blockingPeers: "count",
     cost: "funds",
     kscName: "id",
     launchPadId: "id",

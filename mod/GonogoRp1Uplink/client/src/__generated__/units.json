@@ -95,6 +95,7 @@
     },
     "Rp1OperationEntry": {
       "associatedVesselId": "id",
+      "blockingPeers": "count",
       "cost": "funds",
       "kscName": "id",
       "launchPadId": "id",
@@ -194,6 +195,7 @@
     },
     "rp1.operations": {
       "associatedVesselId": "id",
+      "blockingPeers": "count",
       "cost": "funds",
       "kscName": "id",
       "launchPadId": "id",

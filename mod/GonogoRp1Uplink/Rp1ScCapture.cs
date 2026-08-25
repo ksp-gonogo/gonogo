@@ -147,6 +147,7 @@ namespace GonogoRp1Uplink
                     ["rate"] = o.Rate,
                     ["timeLeftSeconds"] = o.TimeLeftSeconds,
                     ["stalled"] = o.Stalled,
+                    ["blockingPeers"] = o.BlockingPeers,
                     ["cost"] = o.Cost,
                     ["associatedVesselId"] = o.AssociatedVesselId,
                 });

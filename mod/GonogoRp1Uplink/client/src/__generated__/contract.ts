@@ -82,6 +82,7 @@ export interface Rp1OperationEntry
 	rate?: Value<"bp/s">;
 	timeLeftSeconds?: Value<"s">;
 	stalled?: boolean;
+	blockingPeers?: Value<"count">;
 	cost?: Value<"funds">;
 	associatedVesselId?: string;
 }

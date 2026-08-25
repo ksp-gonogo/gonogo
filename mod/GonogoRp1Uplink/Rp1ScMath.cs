@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 
 namespace GonogoRp1Uplink
 {
@@ -202,6 +203,134 @@ namespace GonogoRp1Uplink
                 seconds = workAtUnitEfficiency / weighted;
             }
             return seconds;
+        }
+
+        /// <summary>
+        /// One blocking operation competing for a launch complex, as
+        /// <see cref="SequencedTimeLeft"/> needs it.
+        /// </summary>
+        public struct BlockingOp
+        {
+            /// <summary>Absolute build points, which set this operation's share of the complex.</summary>
+            public double Points;
+
+            /// <summary>Work still to do: the distance progress has left to travel, whichever way it runs.</summary>
+            public double Remaining;
+
+            /// <summary>Absolute rate BEFORE the share is applied: base rate times efficiency times rush.</summary>
+            public double Rate;
+        }
+
+        /// <summary>
+        /// When a blocking operation finishes, given that it shares the complex
+        /// with the others. Mirrors <c>LCOpsProject.GetTimeLeftEstAll</c>.
+        /// </summary>
+        /// <remarks>
+        /// <para><b>Why this exists rather than the one-line share division.</b>
+        /// Several blocking operations run at once, each taking the fraction of
+        /// the complex its build points earn it, and as each finishes the
+        /// survivors' shares grow. So the honest completion time is a sequence of
+        /// intervals, and the single division is not a different-but-valid
+        /// quantity, it is EARLY. An optimistic completion time on a
+        /// mission-control dashboard is a correctness defect rather than a
+        /// precision one.</para>
+        ///
+        /// <para><b>Why RP-1's own method cannot be called for it, permanently.</b>
+        /// Two independent reasons, either sufficient. It reaches
+        /// <c>LaunchComplex.Efficiency</c>, whose getter writes to the player's
+        /// save on a cache miss. And it accumulates into three SHARED STATIC
+        /// scratch lists on RP-1's own type, so calling it from a sampled capture
+        /// would race RP-1's own UI doing the same thing on the same lists.</para>
+        ///
+        /// <para>Absent, never a fall back to the share division, when the
+        /// sequence cannot be computed: a rate of zero or unknown anywhere in the
+        /// set, no points to share, or a result that is not finite. The caller
+        /// publishes how many peers the operation has, so "no ETA" still says
+        /// something an operator can act on.</para>
+        /// </remarks>
+        /// <param name="ops">
+        /// Every blocking, incomplete operation on the complex, with the SUBJECT
+        /// at index 0. RP-1 adds the subject before its neighbours and stops the
+        /// moment the subject is next to finish; index 0 is that rule.
+        /// </param>
+        public static double? SequencedTimeLeft(IList<BlockingOp> ops)
+        {
+            if (ops == null || ops.Count == 0)
+            {
+                return null;
+            }
+
+            var points = new List<double>(ops.Count);
+            var remaining = new List<double>(ops.Count);
+            var rates = new List<double>(ops.Count);
+            var pointsTotal = 0.0;
+            foreach (var op in ops)
+            {
+                if (op.Rate <= 0.0 || op.Points <= 0.0 || double.IsNaN(op.Rate) || double.IsNaN(op.Remaining))
+                {
+                    return null;
+                }
+                points.Add(op.Points);
+                remaining.Add(op.Remaining);
+                rates.Add(op.Rate);
+                pointsTotal += op.Points;
+            }
+            if (pointsTotal <= 0.0)
+            {
+                return null;
+            }
+
+            var total = 0.0;
+            while (points.Count > 0)
+            {
+                var soonest = double.MaxValue;
+                var soonestPoints = 0.0;
+                var soonestIndex = 0;
+                // Downward with a strict comparison, matching RP-1: on a tie the
+                // LOWEST index wins, and index 0 is the subject.
+                var i = points.Count;
+                while (i-- > 0)
+                {
+                    var interval = remaining[i] / (rates[i] * (points[i] / pointsTotal));
+                    if (interval < soonest)
+                    {
+                        soonest = interval;
+                        soonestPoints = points[i];
+                        soonestIndex = i;
+                    }
+                }
+
+                if (double.IsNaN(soonest) || double.IsInfinity(soonest))
+                {
+                    return null;
+                }
+                total += soonest;
+                if (soonestIndex == 0)
+                {
+                    return total;
+                }
+
+                var j = points.Count;
+                while (j-- > 0)
+                {
+                    if (j == soonestIndex)
+                    {
+                        points.RemoveAt(j);
+                        remaining.RemoveAt(j);
+                        rates.RemoveAt(j);
+                    }
+                    else
+                    {
+                        remaining[j] -= rates[j] * (points[j] / pointsTotal) * soonest;
+                    }
+                }
+                pointsTotal -= soonestPoints;
+                if (pointsTotal <= 0.0)
+                {
+                    return null;
+                }
+            }
+            return total;
         }
 
         /// <summary>

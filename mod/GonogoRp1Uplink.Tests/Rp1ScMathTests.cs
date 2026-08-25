@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using GonogoRp1Uplink;
 using Xunit;
 
@@ -179,5 +180,83 @@ public class Rp1ScMathTests
     {
         Assert.Null(Rp1ScMath.ResearchRate(-1.0, 1.0));
         Assert.Equal(2.5, Rp1ScMath.ResearchRate(5.0, 0.5)!.Value, 6);
+    }
+
+    [Fact]
+    public void A_lone_blocking_operation_finishes_at_its_own_full_rate()
+    {
+        // Sole occupant, so its share is the whole complex and the sequence
+        // collapses to the plain division.
+        var seconds = Rp1ScMath.SequencedTimeLeft(new List<Rp1ScMath.BlockingOp>
+        {
+            new Rp1ScMath.BlockingOp { Points = 1000.0, Remaining = 500.0, Rate = 10.0 },
+        });
+
+        Assert.Equal(50.0, seconds!.Value, 6);
+    }
+
+    [Fact]
+    public void A_shared_complex_finishes_later_than_the_share_division_says()
+    {
+        // Two equal projects, so each runs at half rate. The subject has 500
+        // points left at 10/s: the share division answers 100s, and it is wrong,
+        // because the peer finishes first (250 left) and the subject speeds up.
+        //
+        // Peer done at 250/(10*0.5) = 50s, by which time the subject has 250
+        // left; alone at 10/s that is another 25s. 75s, not 100s.
+        var ops = new List<Rp1ScMath.BlockingOp>
+        {
+            new Rp1ScMath.BlockingOp { Points = 1000.0, Remaining = 500.0, Rate = 10.0 },
+            new Rp1ScMath.BlockingOp { Points = 1000.0, Remaining = 250.0, Rate = 10.0 },
+        };
+
+        var seconds = Rp1ScMath.SequencedTimeLeft(ops);
+
+        Assert.Equal(75.0, seconds!.Value, 6);
+        // The number this replaces, spelled out so the regression is legible: the
+        // share division alone is optimistic by 25 seconds here, and by more as
+        // the queue grows.
+        var shareDivision = 500.0 / (10.0 * 0.5);
+        Assert.Equal(100.0, shareDivision, 6);
+        Assert.True(seconds.Value < shareDivision);
+    }
+
+    [Fact]
+    public void The_subject_finishing_first_ends_the_sequence_at_its_own_interval()
+    {
+        // Subject has 100 left, the peer 10000: the subject is out first, so the
+        // answer is its own interval and the peer never enters the arithmetic.
+        var seconds = Rp1ScMath.SequencedTimeLeft(new List<Rp1ScMath.BlockingOp>
+        {
+            new Rp1ScMath.BlockingOp { Points = 1000.0, Remaining = 100.0, Rate = 10.0 },
+            new Rp1ScMath.BlockingOp { Points = 1000.0, Remaining = 10_000.0, Rate = 10.0 },
+        });
+
+        Assert.Equal(100.0 / (10.0 * 0.5), seconds!.Value, 6);
+    }
+
+    [Fact]
+    public void An_uncosted_peer_makes_the_whole_sequence_absent()
+    {
+        // A peer RP-1 has not costed yet has no rate we can honestly use, so the
+        // sequence is unknowable. Absent, never the optimistic figure: the caller
+        // publishes the peer COUNT instead, which is a fact rather than a guess.
+        var seconds = Rp1ScMath.SequencedTimeLeft(new List<Rp1ScMath.BlockingOp>
+        {
+            new Rp1ScMath.BlockingOp { Points = 1000.0, Remaining = 500.0, Rate = 10.0 },
+            new Rp1ScMath.BlockingOp { Points = 1000.0, Remaining = 250.0, Rate = 0.0 },
+        });
+
+        Assert.Null(seconds);
+    }
+
+    [Fact]
+    public void An_operation_with_no_points_cannot_hold_a_share_and_is_absent()
+    {
+        Assert.Null(Rp1ScMath.SequencedTimeLeft(new List<Rp1ScMath.BlockingOp>
+        {
+            new Rp1ScMath.BlockingOp { Points = 0.0, Remaining = 500.0, Rate = 10.0 },
+        }));
+        Assert.Null(Rp1ScMath.SequencedTimeLeft(new List<Rp1ScMath.BlockingOp>()));
     }
 }

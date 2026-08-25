@@ -230,6 +230,87 @@ public class Rp1ScReflectionTests : IDisposable
     }
 
     [Fact]
+    public void Two_blocking_operations_sequence_rather_than_each_claiming_its_own_share()
+    {
+        // Both rolling out on one complex, equal build points, so each runs at
+        // half rate. The subject has 500 points left at a base rate of 10: its
+        // own share division says 100s, and that is EARLY, because the peer
+        // finishes at 50s and the subject then has the complex to itself.
+        var subject = new ReconRolloutProject
+        {
+            BP = 1000.0, progress = 500.0, RRType = ReconRolloutProject.RolloutReconType.Rollout,
+            launchPadID = "LP-1",
+        };
+        subject.SetBuildRate(10.0);
+        var peer = new ReconRolloutProject
+        {
+            BP = 1000.0, progress = 750.0, RRType = ReconRolloutProject.RolloutReconType.Rollout,
+            launchPadID = "LP-2",
+        };
+        peer.SetBuildRate(10.0);
+
+        var pad = new LaunchComplex { Name = "Pad A" };
+        pad.Recon_Rollout.Add(subject);
+        pad.Recon_Rollout.Add(peer);
+        Install(pad, efficiency: 1.0);
+
+        var ops = new Rp1ScReflection().Read(1.0).Operations;
+        var first = ops[0];
+
+        Assert.Equal(75.0, first.TimeLeftSeconds!.Value, 6);
+        Assert.Equal(1, first.BlockingPeers);
+        // The share-scaled rate is still published, because it is what progress
+        // advances at right now. It is the ETA that must not be derived from it
+        // alone.
+        Assert.Equal(5.0, first.Rate!.Value, 6);
+    }
+
+    [Fact]
+    public void A_blocking_operation_beside_an_uncosted_one_publishes_no_ETA_and_says_how_many_peers()
+    {
+        // RP-1 has not costed the peer, so the sequence is unknowable. The honest
+        // answer is no ETA plus the peer count, never the optimistic share
+        // division.
+        var subject = new ReconRolloutProject
+        {
+            BP = 1000.0, progress = 500.0, RRType = ReconRolloutProject.RolloutReconType.Rollout,
+        };
+        subject.SetBuildRate(10.0);
+        var uncosted = new ReconRolloutProject
+        {
+            BP = 1000.0, progress = 0.0, RRType = ReconRolloutProject.RolloutReconType.Rollout,
+        };
+
+        var pad = new LaunchComplex { Name = "Pad A" };
+        pad.Recon_Rollout.Add(subject);
+        pad.Recon_Rollout.Add(uncosted);
+        Install(pad, efficiency: 1.0);
+
+        var first = new Rp1ScReflection().Read(1.0).Operations[0];
+        Assert.Null(first.TimeLeftSeconds);
+        Assert.Equal(1, first.BlockingPeers);
+    }
+
+    [Fact]
+    public void A_reconditioning_operation_has_no_peers_and_keeps_its_own_ETA()
+    {
+        // Reconditioning does not block, so it neither takes a share nor waits
+        // for one: RP-1 routes it through the plain division and so do we.
+        var op = new ReconRolloutProject
+        {
+            BP = 100.0, progress = 40.0, RRType = ReconRolloutProject.RolloutReconType.Reconditioning,
+        };
+        op.SetBuildRate(2.0);
+        var pad = new LaunchComplex { Name = "Pad A" };
+        pad.Recon_Rollout.Add(op);
+        Install(pad, efficiency: 1.0);
+
+        var operation = Single(new Rp1ScReflection().Read(1.0).Operations);
+        Assert.Equal(0, operation.BlockingPeers);
+        Assert.Equal(30.0, operation.TimeLeftSeconds!.Value, 6);
+    }
+
+    [Fact]
     public void A_warehouse_vehicle_carries_no_progress_rate_or_ETA()
     {
         var pad = new LaunchComplex { Name = "Pad A" };
