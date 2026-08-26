@@ -28,6 +28,13 @@ using Xunit;
 [Collection("rp0-static-graph")]
 public class EconomyStarvationTests : IDisposable
 {
+    // Claimed for the census in Sitrep.Host.IntegrationTests, which discovers which
+    // capabilities an Uplink can win and fails on one nothing claims. A marker
+    // rather than a path, so this file can move or be renamed without the census
+    // losing track of what it proves.
+    //
+    // exclusive-capability-starvation: economy
+
     public EconomyStarvationTests()
     {
         SpaceCenterManagement.Instance = null;

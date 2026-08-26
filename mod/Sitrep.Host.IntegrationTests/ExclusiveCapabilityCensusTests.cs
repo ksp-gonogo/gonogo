@@ -8,178 +8,125 @@ using Xunit;
 namespace Sitrep.Host.IntegrationTests
 {
     /// <summary>
-    /// The census of EXCLUSIVE capabilities, and the map from each one to the
-    /// behavioural case that proves it is not starved.
+    /// The census of EXCLUSIVE capabilities, and the guard that every one an Uplink
+    /// can win has a behavioural case proving it is not starved.
     ///
     /// <para><b>What starvation is.</b>
     /// <c>IUplinkHost.AddSampledSource</c>'s subscription-gated overload skips its
     /// main-thread capture entirely on any tick where nothing under its declared
     /// topic prefixes is subscribed. That is a pure early-out only for a capture
     /// whose whole effect is its return value. When a capture also WRITES state
-    /// that something else reads, and that something else is an exclusive
-    /// capability's elected provider, the derived channel is starved: no exception,
-    /// no log line, and because the capability is exclusive there is no vanilla
-    /// answering underneath either. Three shipped that way. The control frame was
-    /// found on a rig, the maneuver plan published a payload whose absent planner
-    /// field is documented to mean "there is no planner", and RP-1 told an operator
-    /// that a career it manages was a save it does not.</para>
+    /// something else reads, and that something else is an exclusive capability's
+    /// elected provider, the derived channel is starved: no exception, no log line,
+    /// and because the capability is exclusive there is no vanilla answering
+    /// underneath either. Three shipped that way. One was found on a rig after
+    /// 45 seconds of silence, one published a payload whose absent planner field is
+    /// documented to mean "there is no planner", and one told an operator that a
+    /// career it was managing was a save it does not manage.</para>
     ///
-    /// <para><b>What this file is and is not.</b> It is the CENSUS: it enumerates
-    /// every exclusive capability declared anywhere in production and refuses an
-    /// entry it has never been told about. It is not the behavioural proof. That
-    /// lives in each Uplink's own Tests project, where the Uplink's sources already
-    /// compile and where a red names the Uplink that broke, and this file names the
-    /// case per capability so a capability whose proof is deleted or renamed fails
-    /// here rather than passing quietly.</para>
+    /// <para><b>Everything here is DISCOVERED, and deliberately names no mod.</b>
+    /// Which capabilities are exclusive, which have an Uplink provider, and which
+    /// have a behavioural case are all read out of the tree on every run. A written
+    /// list would drift, and naming the Uplinks would put specific third-party mods
+    /// in a core test project, which <c>uplink-boundary.test.ts</c> forbids for the
+    /// good reason that core has no business knowing them. The behavioural cases
+    /// live in each Uplink's own Tests project, where the Uplink's sources already
+    /// compile and where a red names the Uplink that broke; each one carries the
+    /// marker this file counts.</para>
     ///
-    /// <para><b>Why enumeration cannot be a hand-written list alone.</b> A list
-    /// nobody re-derives stops describing the tree. So the set is read out of the
-    /// production declaration sites on every run and compared against the map in
-    /// both directions: an exclusive capability nobody put in the map fails, and a
-    /// map entry whose declaration site has gone fails too.</para>
+    /// <para><b>The limit, stated rather than left to be found.</b> A marker is a
+    /// claim. This file checks that the claim is made in a file that holds tests,
+    /// not that the test behind it asserts anything. What it does catch is the
+    /// failure that actually happens: a capability arriving with no case at all, and
+    /// a case being deleted or moved out from under one.</para>
     /// </summary>
     public class ExclusiveCapabilityCensusTests
     {
         /// <summary>
-        /// One exclusive capability, with what is known about how it can starve.
+        /// The marker a behavioural case carries, followed by the capability id it
+        /// covers. Written as a comment beside the case rather than derived from the
+        /// file name, so a case can move or be renamed without the census losing
+        /// track of what it proves.
         /// </summary>
-        /// <param name="Id">The capability id, as the declaration site resolves it.</param>
-        /// <param name="DeclaredIn">Repo-relative path of the file declaring it.</param>
-        /// <param name="UplinkProviders">
-        /// The Uplinks that register a provider for it today. Empty means no Uplink
-        /// can win it, so there is nothing an Uplink's capture could starve.
-        /// </param>
+        private const string Marker = "exclusive-capability-starvation:";
+
+        /// <summary>
+        /// One exclusive capability the census knows about.
+        /// </summary>
+        /// <param name="Id">The capability id, as its declaration site resolves it.</param>
+        /// <param name="DeclaredIn">Repo-relative path of the file declaring it exclusive.</param>
         /// <param name="FedByGatedCapture">
         /// Whether the elected provider's answer comes from a subscription-gated
-        /// capture. This is the unsafe shape, and the reason the case for it
-        /// subscribes ONLY the derived topic rather than driving a bare tick.
+        /// capture. The unsafe shape, and the reason a case for it subscribes ONLY
+        /// the derived topic rather than driving a bare tick.
         /// </param>
-        /// <param name="ProvenBy">
-        /// The [Fact] that drives ticks and asserts the capability answers, as
-        /// "&lt;Tests project&gt;/&lt;file&gt;.cs::&lt;method&gt;". Empty only where
-        /// <paramref name="UplinkProviders"/> is empty, or where
-        /// <paramref name="WhyNotProven"/> says why not.
-        /// </param>
-        /// <param name="WhyNotProven">
-        /// Why a capability an Uplink can win has no behavioural case. Never a
-        /// placeholder: an entry here is a gap somebody can close, stated so the
-        /// gap is visible rather than absent.
+        /// <param name="WhyNoBehaviouralCase">
+        /// Why a capability an Uplink can win has no case. Never a placeholder: an
+        /// entry here is a gap somebody can close, written down so the gap is
+        /// visible rather than absent, and asserted STALE once a case appears.
         /// </param>
         private sealed record Entry(
             string Id,
             string DeclaredIn,
-            string[] UplinkProviders,
             bool FedByGatedCapture,
-            string ProvenBy,
-            string WhyNotProven = "");
+            string WhyNoBehaviouralCase = "");
 
         /// <summary>
-        /// Every exclusive capability in the tree, as of 2026-08-26.
-        ///
-        /// <para>Eleven are declared. Ten have a first-party Uplink provider;
-        /// <c>delayedScience</c> is declared with a vanilla and nothing registers
-        /// against it, so no Uplink capture is on its path.</para>
+        /// Every exclusive capability in the tree, as of 2026-08-26. Eleven are
+        /// declared; ten have a provider registered from an Uplink, which this file
+        /// discovers rather than restates.
         /// </summary>
         private static readonly Entry[] Census =
         {
-            new Entry(
-                "controlFrame",
-                "Sitrep.Host/ControlFrameElection.cs",
-                new[] { "GonogoPrincipiaUplink" },
-                FedByGatedCapture: true,
-                "GonogoPrincipiaUplink.Tests/ExclusiveCapabilityStarvationTests.cs"
-                    + "::TheControlFrameAnswersWithOnlyItsDerivedTopicSubscribed"),
-            new Entry(
-                "maneuverPlan",
-                "Sitrep.Host/Maneuver/ManeuverPlanElection.cs",
-                new[] { "GonogoPrincipiaUplink" },
-                FedByGatedCapture: true,
-                "GonogoPrincipiaUplink.Tests/ExclusiveCapabilityStarvationTests.cs"
-                    + "::TheManeuverPlanAnswersWithOnlyItsDerivedTopicSubscribed"),
-            new Entry(
-                "propagation",
-                "Sitrep.Host/Propagation/PropagationElection.cs",
-                new[] { "GonogoPrincipiaUplink" },
-                FedByGatedCapture: false,
-                "GonogoPrincipiaUplink.Tests/ExclusiveCapabilityStarvationTests.cs"
-                    + "::PropagationAnswersWithoutATickHavingBeenDrivenAtAll"),
-            new Entry(
-                "gravityModel",
-                "Sitrep.Host/Propagation/GravityModelElection.cs",
-                new[] { "GonogoPrincipiaUplink" },
-                FedByGatedCapture: false,
-                "GonogoPrincipiaUplink.Tests/ExclusiveCapabilityStarvationTests.cs"
-                    + "::TheGravityModelAnswersWithoutATickHavingBeenDrivenAtAll"),
-            new Entry(
-                "economy",
-                "Sitrep.Host/Economy/EconomyElection.cs",
-                new[] { "GonogoRp1Uplink" },
-                FedByGatedCapture: false,
-                "GonogoRp1Uplink.Tests/EconomyStarvationTests.cs"
-                    + "::The_economy_backend_answers_with_nothing_subscribed"),
-            new Entry(
-                "actionGroups",
-                "Sitrep.Host/ActionGroups/ActionGroupsElection.cs",
-                new[] { "GonogoActionGroupsExtendedUplink" },
-                FedByGatedCapture: false,
-                "GonogoActionGroupsExtendedUplink.Tests/ActionGroupsStarvationTests.cs"
-                    + "::The_action_groups_backend_answers_with_nothing_subscribed"),
+            new Entry("controlFrame", "Sitrep.Host/ControlFrameElection.cs", FedByGatedCapture: true),
+            new Entry("maneuverPlan", "Sitrep.Host/Maneuver/ManeuverPlanElection.cs", FedByGatedCapture: true),
+            new Entry("propagation", "Sitrep.Host/Propagation/PropagationElection.cs", FedByGatedCapture: false),
+            new Entry("gravityModel", "Sitrep.Host/Propagation/GravityModelElection.cs", FedByGatedCapture: false),
+            new Entry("economy", "Sitrep.Host/Economy/EconomyElection.cs", FedByGatedCapture: false),
+            new Entry("actionGroups", "Sitrep.Host/ActionGroups/ActionGroupsElection.cs", FedByGatedCapture: false),
             new Entry(
                 "delayedScience",
                 "Gonogo.KSP/CurrencyEventUplink.cs",
-                Array.Empty<string>(),
                 FedByGatedCapture: false,
-                ProvenBy: "",
-                WhyNotProven: "No Uplink registers a provider: the capability is "
-                    + "declared with a vanilla and core's own sink is the only "
-                    + "instance, so no Uplink capture is on its path. An Uplink "
-                    + "provider appearing here is a change to this line."),
+                WhyNoBehaviouralCase: "No Uplink registers a provider, so no Uplink "
+                    + "capture is on its path. Discovered, not assumed: an Uplink "
+                    + "provider appearing for it makes this line stale and fails."),
             new Entry(
                 "science",
                 "Sitrep.Host/Science/ScienceElection.cs",
-                new[] { "GonogoKerbalismUplink" },
                 FedByGatedCapture: true,
-                ProvenBy: "",
-                WhyNotProven: "KerbalismUplink.Register reads FlightGlobals, so the "
-                    + "registration path does not compile into a headless Tests "
-                    + "project and no case can drive it. The starvation is REAL and "
-                    + "documented at KerbalismScienceBackend.Latest: with no "
-                    + "science. subscription the elected backend reports unmodelled "
-                    + "and the five File Manager verbs refuse. It stands because "
-                    + "ScienceFileManager subscribes science.experiments in the same "
-                    + "component that sends the verbs, which is one client's "
-                    + "construction rather than a guarantee."),
+                WhyNoBehaviouralCase: "The provider is elected as a held instance fed "
+                    + "by a capture gated on the topics it publishes, and the "
+                    + "starvation is real: with nothing under that prefix subscribed "
+                    + "the elected backend reports unmodelled and its five command "
+                    + "verbs refuse, about an install that IS modelling science. It "
+                    + "stands because the only client that sends those verbs "
+                    + "subscribes those topics in the same component, which is one "
+                    + "client's construction and not a guarantee. No case, because "
+                    + "the Register that wires it reads live KSP and the KSP-linked "
+                    + "leg of its Tests project is a separate piece of work."),
             new Entry(
                 "isru",
                 "Sitrep.Host/Isru/IsruElection.cs",
-                new[] { "GonogoKerbalismUplink" },
                 FedByGatedCapture: false,
-                ProvenBy: "",
-                WhyNotProven: "Same headless limit as science above. The provider "
-                    + "constructs fresh and reads live Kerbalism, and IsruCoreUplink "
-                    + "calls it from ITS OWN capture gated on the isru topics, so "
-                    + "the gate and the demand are the same subscription."),
+                WhyNoBehaviouralCase: "Same limit as science: the Register that wires "
+                    + "the provider reads live KSP. The provider constructs fresh and "
+                    + "reads live, and core calls it from ITS OWN capture gated on the "
+                    + "topics that display it, so the gate and the demand are one "
+                    + "subscription."),
             new Entry(
                 "reliability",
                 "Sitrep.Host/Reliability/ReliabilityElection.cs",
-                new[] { "GonogoKerbalismUplink", "GonogoTestFlightUplink" },
                 FedByGatedCapture: false,
-                ProvenBy: "",
-                WhyNotProven: "Same headless limit as science above, for both "
-                    + "providers. Each constructs fresh and reads live, and "
-                    + "ReliabilityCoreUplink calls the winner from ITS OWN capture "
-                    + "gated on the reliability topics."),
+                WhyNoBehaviouralCase: "Same limit as isru, for both of its providers."),
             new Entry(
                 "comms",
                 "Sitrep.Host/Comms/CommsElection.cs",
-                new[] { "GonogoRealAntennasUplink" },
                 FedByGatedCapture: false,
-                ProvenBy: "",
-                WhyNotProven: "RealAntennasUplink.Register reads stock CommNet, so "
-                    + "the same headless limit applies. The provider is constructed "
-                    + "fresh per election and reads live RA, and the delay and "
-                    + "connectivity sources CommsCoreUplink installs beside it are "
-                    + "deliberately UNGATED."),
+                WhyNoBehaviouralCase: "Same limit again: the Register that wires the "
+                    + "provider reads stock CommNet. The provider is constructed fresh "
+                    + "per election and reads live, and the delay and connectivity "
+                    + "sources installed beside it are deliberately UNGATED."),
         };
 
         /// <summary>
@@ -191,12 +138,11 @@ namespace Sitrep.Host.IntegrationTests
         [Fact]
         public void EveryExclusiveCapabilityDeclaredInProductionIsInTheCensus()
         {
-            var declared = ExclusiveDeclarations();
             var censused = Census.Select(e => e.Id).ToHashSet(StringComparer.Ordinal);
 
-            var missing = declared
+            var missing = ExclusiveDeclarations()
                 .Where(d => !censused.Contains(d.Id))
-                .Select(d => $"{d.Id} ({d.File}:{d.Line})")
+                .Select(d => $"{d.Id} ({Relative(d.File)}:{d.Line})")
                 .OrderBy(s => s, StringComparer.Ordinal)
                 .ToList();
 
@@ -204,8 +150,9 @@ namespace Sitrep.Host.IntegrationTests
                 missing.Count == 0,
                 "An EXCLUSIVE capability is declared that this census has never been "
                 + "told about, so nothing anywhere asks whether it can be starved by a "
-                + "gated capture. Add it to Census with the case that proves it "
-                + "answers, or with why there is none:\n  "
+                + "gated capture. Add it to Census, and give it a behavioural case in "
+                + "its Uplink's Tests project carrying the '" + Marker + " <id>' marker, "
+                + "or say why there is none:\n  "
                 + string.Join("\n  ", missing));
         }
 
@@ -221,15 +168,14 @@ namespace Sitrep.Host.IntegrationTests
 
             Assert.True(
                 stale.Count == 0,
-                "A census entry names a capability nothing declares Exclusive any "
-                + "more. A census carrying entries nobody re-derives stops describing "
-                + "the tree, so remove it or fix the id:\n  "
-                + string.Join("\n  ", stale));
+                "A census entry names a capability nothing declares Exclusive any more. "
+                + "A census carrying entries nobody re-derives stops describing the "
+                + "tree, so remove it or fix the id:\n  " + string.Join("\n  ", stale));
 
             var moved = Census
                 .Where(e => declared.ContainsKey(e.Id)
-                    && !declared[e.Id].File.EndsWith(e.DeclaredIn, StringComparison.Ordinal))
-                .Select(e => $"{e.Id}: census says {e.DeclaredIn}, found at {declared[e.Id].File}")
+                    && !Relative(declared[e.Id].File).Equals(e.DeclaredIn, StringComparison.Ordinal))
+                .Select(e => $"{e.Id}: census says {e.DeclaredIn}, found at {Relative(declared[e.Id].File)}")
                 .ToList();
 
             Assert.True(
@@ -239,50 +185,70 @@ namespace Sitrep.Host.IntegrationTests
         }
 
         /// <summary>
-        /// The behavioural proof this census points at has to exist. A named case
-        /// that was renamed or deleted leaves the census asserting a coverage that
-        /// is no longer there, which reads as covered and is not.
+        /// The guard itself: a capability an Uplink can win must have a behavioural
+        /// case, or the census must say why not.
         /// </summary>
         [Fact]
         public void EveryCapabilityAnUplinkCanWinIsEitherProvenOrSaysWhyNot()
         {
-            var mod = ResolveModDir();
+            var winnable = UplinkProvidedCapabilities();
+            var covered = MarkedCapabilities();
             var problems = new List<string>();
 
-            foreach (var entry in Census.Where(e => e.UplinkProviders.Length > 0))
+            foreach (var entry in Census.Where(e => winnable.Contains(e.Id)))
             {
-                if (entry.ProvenBy.Length == 0)
+                if (covered.Contains(entry.Id) || entry.WhyNoBehaviouralCase.Length > 0)
                 {
-                    if (entry.WhyNotProven.Length == 0)
-                    {
-                        problems.Add(
-                            $"{entry.Id}: an Uplink can win it, and the census neither "
-                            + "names a case nor says why there is none");
-                    }
                     continue;
                 }
 
-                var parts = entry.ProvenBy.Split("::", StringSplitOptions.None);
-                Assert.True(parts.Length == 2, $"{entry.Id}: ProvenBy must read <file>::<method>");
-
-                var path = Path.Combine(mod, parts[0].Replace('/', Path.DirectorySeparatorChar));
-                if (!File.Exists(path))
-                {
-                    problems.Add($"{entry.Id}: no such file {parts[0]}");
-                    continue;
-                }
-
-                var source = File.ReadAllText(path);
-                if (!Regex.IsMatch(source, @"\bvoid\s+" + Regex.Escape(parts[1]) + @"\s*\("))
-                {
-                    problems.Add($"{entry.Id}: {parts[0]} has no test named {parts[1]}");
-                }
+                problems.Add(
+                    $"{entry.Id}: an Uplink registers a provider for it and no "
+                    + "behavioural case claims it. Drive ticks with only its derived "
+                    + "topic subscribed, assert the election answers, and mark the case "
+                    + $"'{Marker} {entry.Id}'");
             }
 
             Assert.True(
                 problems.Count == 0,
-                "The census points at behavioural proof that is not there:\n  "
+                "An exclusive capability an Uplink can win is unproven:\n  "
                 + string.Join("\n  ", problems));
+        }
+
+        /// <summary>
+        /// The other direction, so an excuse cannot outlive the thing it excused. A
+        /// reason kept beside a case that now exists is a reason nobody reads.
+        /// </summary>
+        [Fact]
+        public void NoCensusEntryExcusesACapabilityThatIsActuallyProven()
+        {
+            var covered = MarkedCapabilities();
+            var winnable = UplinkProvidedCapabilities();
+
+            var staleExcuses = Census
+                .Where(e => e.WhyNoBehaviouralCase.Length > 0 && covered.Contains(e.Id))
+                .Select(e => e.Id)
+                .ToList();
+
+            Assert.True(
+                staleExcuses.Count == 0,
+                "A census entry says a capability has no behavioural case, and one now "
+                + "carries its marker. Delete the excuse:\n  "
+                + string.Join("\n  ", staleExcuses));
+
+            var wronglyExcused = Census
+                .Where(e => e.WhyNoBehaviouralCase.Length > 0
+                    && !winnable.Contains(e.Id)
+                    && !e.WhyNoBehaviouralCase.Contains("No Uplink registers a provider", StringComparison.Ordinal))
+                .Select(e => e.Id)
+                .ToList();
+
+            Assert.True(
+                wronglyExcused.Count == 0,
+                "A census entry excuses a capability no Uplink provides for a reason "
+                + "about an Uplink. Either an Uplink stopped providing it, in which "
+                + "case say so, or the id is wrong:\n  "
+                + string.Join("\n  ", wronglyExcused));
         }
 
         /// <summary>
@@ -290,22 +256,21 @@ namespace Sitrep.Host.IntegrationTests
         ///
         /// <para>A source-walking gate whose walk returns nothing reports no
         /// violations, and no violations reads exactly like success. This repo has
-        /// been bitten by that shape more than once, so the discovery is pinned
-        /// separately: the files it must have read, the ids it must have found, and
-        /// a floor under the count. If the layout moves, this fails FIRST and says
-        /// so, rather than the census above passing over an empty set.</para>
+        /// been bitten by that shape more than once, so all three discoveries are
+        /// pinned separately: the exclusive set, the Uplink-provided set, and the
+        /// marker set. If the layout moves, this fails FIRST and says so, rather than
+        /// the guard above passing over an empty set.</para>
         /// </summary>
         [Fact]
-        public void TheScanFoundItsSubjects()
+        public void TheScansFoundTheirSubjects()
         {
             var declared = ExclusiveDeclarations();
-
             Assert.True(
                 declared.Count >= 11,
                 "The scan found " + declared.Count + " exclusive capability "
                 + "declarations. Eleven were there on 2026-08-26 and capabilities are "
-                + "not removed lightly, so a smaller number means the walk is no "
-                + "longer reaching the declaration sites.");
+                + "not removed lightly, so fewer means the walk is no longer reaching "
+                + "the declaration sites.");
 
             var ids = declared.Select(d => d.Id).ToHashSet(StringComparer.Ordinal);
             foreach (var known in new[] { "controlFrame", "maneuverPlan", "comms", "delayedScience" })
@@ -315,6 +280,23 @@ namespace Sitrep.Host.IntegrationTests
                     "The scan did not find the '" + known + "' capability, which is "
                     + "declared in production. The walk or the id resolver is broken.");
             }
+
+            var winnable = UplinkProvidedCapabilities();
+            Assert.True(
+                winnable.Count >= 10,
+                "The provider scan found " + winnable.Count + " exclusive capabilities "
+                + "with an Uplink provider, and ten had one on 2026-08-26. Fewer means "
+                + "the scan is no longer reading the registration sites, which would "
+                + "make every capability look unwinnable and the guard vacuous.");
+
+            var covered = MarkedCapabilities();
+            Assert.True(
+                covered.Count >= 6,
+                "The marker scan found " + covered.Count + " capabilities claimed by a "
+                + "behavioural case, and six carried a marker on 2026-08-26. Fewer "
+                + "means the marker scan is not reaching the Tests projects, which "
+                + "would make the coverage guard fail loudly rather than silently, but "
+                + "for the wrong reason.");
         }
 
         /// <summary>
@@ -339,12 +321,10 @@ namespace Sitrep.Host.IntegrationTests
                         continue;
                     }
 
-                    // The id is the sibling initializer. Searched backwards from the
-                    // Exclusive line to the start of the object initializer rather
-                    // than assumed adjacent, so reordering the initializer does not
-                    // silently drop a capability out of the census.
-                    var id = ResolveIdAbove(lines, i, file, constants);
-                    found.Add(new Declaration(id, file, i + 1));
+                    found.Add(new Declaration(
+                        ResolveIdAbove(lines, i, file, constants, @"^\s*Id\s*=\s*([^,]+),\s*$"),
+                        file,
+                        i + 1));
                 }
             }
 
@@ -352,20 +332,112 @@ namespace Sitrep.Host.IntegrationTests
         }
 
         /// <summary>
-        /// The <c>Id = ...</c> nearest above <paramref name="exclusiveLine"/>,
-        /// resolved to the string it names.
+        /// Every capability an Uplink registers a provider for, read from the
+        /// <c>Capability = ...</c> line of each registration inside a
+        /// <c>Gonogo*Uplink</c> project.
         ///
-        /// <para>Throws rather than returning a placeholder when it cannot resolve.
-        /// A census that quietly recorded "unknown" would compare "unknown" against
+        /// <para>Discovered rather than listed for two reasons. A list drifts, and a
+        /// list would have to spell the Uplinks' names in a core test project, which
+        /// is the coupling <c>uplink-boundary.test.ts</c> exists to stop.</para>
+        /// </summary>
+        private static HashSet<string> UplinkProvidedCapabilities()
+        {
+            var mod = ResolveModDir();
+            var constants = StringConstants(mod);
+            var found = new HashSet<string>(StringComparer.Ordinal);
+            var registration = new Regex(@"^\s*Capability\s*=\s*([^,]+),\s*$", RegexOptions.Compiled);
+
+            foreach (var directory in UplinkDirectories(mod))
+            {
+                foreach (var file in Directory.EnumerateFiles(directory, "*.cs", SearchOption.AllDirectories))
+                {
+                    if (IsBuildOutput(file))
+                    {
+                        continue;
+                    }
+
+                    foreach (var line in File.ReadAllLines(file))
+                    {
+                        var match = registration.Match(line);
+                        if (!match.Success)
+                        {
+                            continue;
+                        }
+
+                        var id = Resolve(match.Groups[1].Value.Trim(), file, constants);
+                        if (id == null)
+                        {
+                            throw new InvalidOperationException(
+                                $"{file} registers a provider for capability expression "
+                                + $"'{match.Groups[1].Value.Trim()}' and the census could "
+                                + "not resolve it to a string. It cannot record what it "
+                                + "cannot name; teach Resolve the new shape.");
+                        }
+
+                        found.Add(id);
+                    }
+                }
+            }
+
+            return found;
+        }
+
+        /// <summary>
+        /// Every capability claimed by a marker in a Tests project, where the marked
+        /// file also holds at least one test.
+        /// </summary>
+        private static HashSet<string> MarkedCapabilities()
+        {
+            var mod = ResolveModDir();
+            var found = new HashSet<string>(StringComparer.Ordinal);
+            var marked = new Regex(
+                Regex.Escape(Marker) + @"\s*([A-Za-z0-9_]+)", RegexOptions.Compiled);
+
+            foreach (var directory in Directory.EnumerateDirectories(mod)
+                .Where(d => Path.GetFileName(d).EndsWith(".Tests", StringComparison.Ordinal)))
+            {
+                foreach (var file in Directory.EnumerateFiles(directory, "*.cs", SearchOption.AllDirectories))
+                {
+                    if (IsBuildOutput(file))
+                    {
+                        continue;
+                    }
+
+                    var text = File.ReadAllText(file);
+                    if (!text.Contains("[Fact]", StringComparison.Ordinal))
+                    {
+                        continue;
+                    }
+
+                    foreach (Match match in marked.Matches(text))
+                    {
+                        found.Add(match.Groups[1].Value);
+                    }
+                }
+            }
+
+            return found;
+        }
+
+        /// <summary>
+        /// The <c>Id = ...</c> nearest above <paramref name="anchorLine"/>, resolved
+        /// to the string it names.
+        ///
+        /// <para>Throws rather than returning a placeholder when it cannot resolve. A
+        /// census that quietly recorded "unknown" would compare "unknown" against
         /// itself and pass, which is the failure mode this whole file exists to
         /// stop.</para>
         /// </summary>
         private static string ResolveIdAbove(
-            string[] lines, int exclusiveLine, string file, Dictionary<string, string> constants)
+            string[] lines,
+            int anchorLine,
+            string file,
+            Dictionary<string, string> constants,
+            string pattern)
         {
-            for (var i = exclusiveLine; i >= 0 && i > exclusiveLine - 12; i--)
+            for (var i = anchorLine; i >= 0 && i > anchorLine - 12; i--)
             {
-                var match = Regex.Match(lines[i], @"^\s*Id\s*=\s*([^,]+),\s*$");
+                var match = Regex.Match(lines[i], pattern);
                 if (!match.Success)
                 {
                     continue;
@@ -381,19 +453,19 @@ namespace Sitrep.Host.IntegrationTests
                 throw new InvalidOperationException(
                     $"{file}:{i + 1} declares an exclusive capability whose id "
                     + $"expression '{expression}' could not be resolved to a string. "
-                    + "The census cannot record what it cannot name; teach Resolve "
-                    + "the new shape.");
+                    + "The census cannot record what it cannot name; teach Resolve the "
+                    + "new shape.");
             }
 
             throw new InvalidOperationException(
-                $"{file}:{exclusiveLine + 1} has Exclusive = true with no Id above it. "
-                + "The census cannot record what it cannot name.");
+                $"{file}:{anchorLine + 1} has Exclusive = true with no Id above it. The "
+                + "census cannot record what it cannot name.");
         }
 
         /// <summary>
         /// A literal, a bare constant in the same file, or a <c>Type.Member</c>
-        /// naming a constant elsewhere. Chased through one indirection, which is
-        /// what <c>CapabilityId = ControlFrameCapability.Id</c> needs.
+        /// naming a constant elsewhere. Chased through several hops, which is what an
+        /// id aliased from a contract constant needs.
         /// </summary>
         private static string? Resolve(
             string expression, string file, Dictionary<string, string> constants)
@@ -422,17 +494,15 @@ namespace Sitrep.Host.IntegrationTests
         }
 
         /// <summary>
-        /// Every <c>const string</c> in production, keyed
-        /// <c>&lt;declaring type&gt;.&lt;name&gt;</c> and valued as the right-hand
-        /// side verbatim, so <see cref="Resolve"/> can walk an alias chain.
+        /// Every <c>const string</c> in production, keyed by enclosing type and by
+        /// file name, so <see cref="Resolve"/> can walk an alias chain.
         ///
-        /// <para>Keyed twice, by enclosing type and by file name, because a bare
-        /// <c>CapabilityId</c> in a declaration names the type its file is named
-        /// for while a qualified <c>ControlFrameCapability.Id</c> names a type
-        /// sharing a file with others. A type's constants are read only between its
-        /// own declaration and the next one, so a constant is never attributed to a
-        /// neighbour: an id that cannot be resolved fails loudly rather than
-        /// resolving to the wrong string.</para>
+        /// <para>Keyed twice because a bare <c>CapabilityId</c> in a declaration
+        /// names the type its file is named for, while a qualified
+        /// <c>SomeCapability.Id</c> names a type sharing a file with others. A type's
+        /// constants are read only between its own declaration and the next one, so a
+        /// constant is never attributed to a neighbour: an id that cannot be resolved
+        /// fails loudly rather than resolving to the wrong string.</para>
         /// </summary>
         private static Dictionary<string, string> StringConstants(string mod)
         {
@@ -453,40 +523,62 @@ namespace Sitrep.Host.IntegrationTests
                     var name = types[t].Groups[1].Value;
                     foreach (Match match in constant.Matches(text.Substring(from, to - from)))
                     {
-                        constants[name + "." + match.Groups[1].Value] =
-                            match.Groups[2].Value.Trim();
+                        constants[name + "." + match.Groups[1].Value] = match.Groups[2].Value.Trim();
                     }
                 }
 
-                // Keyed by file name too, which is how a bare CapabilityId in a
-                // declaration resolves without parsing the enclosing type.
                 var fileType = Path.GetFileNameWithoutExtension(file);
                 foreach (Match match in constant.Matches(text))
                 {
-                    constants[fileType + "." + match.Groups[1].Value] =
-                        match.Groups[2].Value.Trim();
+                    constants[fileType + "." + match.Groups[1].Value] = match.Groups[2].Value.Trim();
                 }
             }
 
             return constants;
         }
 
+        /// <summary>Every <c>Gonogo*Uplink</c> project directory: no Tests, no Contract slice.</summary>
+        private static IEnumerable<string> UplinkDirectories(string mod) =>
+            Directory.EnumerateDirectories(mod).Where(d =>
+            {
+                var name = Path.GetFileName(d);
+                return name.StartsWith("Gonogo", StringComparison.Ordinal)
+                    && name.EndsWith("Uplink", StringComparison.Ordinal)
+                    && File.Exists(Path.Combine(d, name + ".csproj"));
+            });
+
         /// <summary>Every production <c>.cs</c> under <c>mod/</c>: no tests, no build output.</summary>
         private static IEnumerable<string> ProductionSources(string mod) =>
             Directory.EnumerateFiles(mod, "*.cs", SearchOption.AllDirectories)
-                .Where(f =>
-                {
-                    var relative = f.Substring(mod.Length).Replace('\\', '/');
-                    return !relative.Contains("/obj/", StringComparison.Ordinal)
-                        && !relative.Contains("/bin/", StringComparison.Ordinal)
-                        && !relative.Contains(".Tests/", StringComparison.Ordinal);
-                });
+                .Where(f => !IsBuildOutput(f)
+                    && !Relative(f).Contains(".Tests/", StringComparison.Ordinal));
+
+        private static bool IsBuildOutput(string file)
+        {
+            var relative = Relative(file);
+            return relative.Contains("/obj/", StringComparison.Ordinal)
+                || relative.Contains("/bin/", StringComparison.Ordinal);
+        }
+
+        /// <summary>A path under <c>mod/</c>, forward-slashed, for messages and comparisons.</summary>
+        private static string Relative(string file)
+        {
+            var mod = ResolveModDir();
+            return file.StartsWith(mod, StringComparison.Ordinal)
+                ? file.Substring(mod.Length).TrimStart('/', '\\').Replace('\\', '/')
+                : file.Replace('\\', '/');
+        }
 
         /// <summary>
         /// Walks up from the test assembly to the checked-out <c>mod/</c> directory,
         /// same pattern as <c>UplinkIsolationTests.ResolveModDir</c>.
         /// </summary>
-        private static string ResolveModDir()
+        private static string ResolveModDir() => LazyModDir.Value;
+
+        /// <summary>Resolved once: every path this file reports goes through it.</summary>
+        private static readonly Lazy<string> LazyModDir = new Lazy<string>(FindModDir);
+
+        private static string FindModDir()
         {
             var directory = new DirectoryInfo(AppContext.BaseDirectory);
             while (directory is not null)

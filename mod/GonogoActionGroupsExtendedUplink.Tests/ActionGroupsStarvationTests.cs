@@ -28,6 +28,11 @@ namespace Gonogo.ActionGroupsExtendedUplink.Tests
     /// </summary>
     public class ActionGroupsStarvationTests
     {
+        // Claimed for the census in Sitrep.Host.IntegrationTests, which discovers
+        // which capabilities an Uplink can win and fails on one nothing claims.
+        //
+        // exclusive-capability-starvation: actionGroups
+
         [Fact]
         public void The_action_groups_backend_answers_with_nothing_subscribed()
         {
