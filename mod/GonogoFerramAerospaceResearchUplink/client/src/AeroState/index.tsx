@@ -14,7 +14,6 @@ import {
   StatusPill,
   Unit,
 } from "@ksp-gonogo/ui-kit";
-import type { AeroState } from "../__generated__/contract";
 // Side-effect import: registers aero.state's unit map into the SDK's runtime
 // hydration registry and augments TopicPayloadMap for the type. This widget is
 // the consumer of that decode-time wrap, so it pulls the registration itself
