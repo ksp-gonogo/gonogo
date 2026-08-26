@@ -76,9 +76,32 @@ namespace Gonogo.ActionGroupsExtendedUplink
             Version = "1.0.0",
         };
 
+        /// <summary>
+        /// The AGX surface this uplink registers against, or null to probe the
+        /// loaded assemblies for it.
+        ///
+        /// <para>A seam rather than a straight <see cref="AgxReflection.Probe"/>
+        /// call, because probing looks for an assembly by name and a headless test
+        /// has no way to put one there. Without it the only registration a test
+        /// could drive was the inert one, so what the capability answers after a
+        /// tick was untestable and the exclusive-capability starvation case for
+        /// action groups had to be written against a copy of Register instead of
+        /// Register.</para>
+        /// </summary>
+        private readonly IAgxApi? _agx;
+
+        public ActionGroupsExtendedUplink()
+        {
+        }
+
+        internal ActionGroupsExtendedUplink(IAgxApi agx)
+        {
+            _agx = agx;
+        }
+
         public void Register(IUplinkHost host)
         {
-            var agx = AgxReflection.Probe();
+            var agx = _agx ?? AgxReflection.Probe();
             if (agx == null || !agx.IsAvailable)
             {
                 // AGX not installed: go inert. The exclusive actionGroups
