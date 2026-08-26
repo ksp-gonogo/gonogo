@@ -141,11 +141,12 @@ namespace Gonogo.ScansatUplink
             // Overload-safe existence check: NEVER call Type.GetMethod(name),
             // which throws AmbiguousMatchException when the method has more than
             // one public overload. Real SCANsat 21.1 has TWO overloads each of
-            // SCANUtil.isCovered and SCANcontroller.getData, so the old
-            // `GetMethod(name) == null && ...` form threw before the fallback
-            // could run, the exception bubbled up through Probe and was caught in
-            // ScansatUplink.Register as "version-guard probe threw", flipping the
-            // whole uplink Unavailable (no scansat.* stream-data ever). The
+            // SCANUtil.isCovered and SCANcontroller.getData, so a
+            // `GetMethod(name) == null && ...` form throws before its own
+            // fallback can run. That exception bubbles up through Probe and is
+            // caught in ScansatUplink.Register as "version-guard probe threw",
+            // flipping the whole uplink Unavailable: no scansat.* stream-data
+            // at all, ever. The
             // GetMethods().Any(...) name scan handles any overload count and
             // covers public instance + static methods (GetMethods' default
             // BindingFlags), which is all this probe asserts.

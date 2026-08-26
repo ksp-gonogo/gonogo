@@ -18,11 +18,10 @@
 // (spec: "don't like it, don't have the Uplink", meaning the Domain is
 // live, not merely that this client package is bundled).
 //
-// Per settled model point 2 (T8c task text): this is a standalone
-// colourised height surface REPLACING the map's base texture, not a tint
-// drawn on top of it: the old MapView-internal `useHeightCanvas`'s
-// baked-in ~0.7 ramp opacity is dropped; visibility now comes from the T4
-// coverage paint-gate MULTIPLIED by this layer's own `layerOpacity` (see
+// This is a standalone colourised height surface REPLACING the map's base
+// texture, never a tint drawn on top of it, so it carries no baked-in ramp
+// opacity of its own: visibility comes from the coverage paint-gate
+// MULTIPLIED by this layer's own `layerOpacity` (see
 // `paintTile.ts`'s `effectiveAlpha`): at the BOTTOM of the stack this
 // layer paints fully opaque (`layerOpacity = 1`) wherever it paints at
 // all, since there's no stock texture beneath it to show through once

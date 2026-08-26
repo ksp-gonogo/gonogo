@@ -34,8 +34,7 @@ namespace Gonogo.ScansatUplink
     /// The COURIER-SIDE half of the SCANsat uplink's capture-on-main /
     /// handle-on-Courier split (see <see cref="ScanCapture"/> and
     /// <see cref="Sitrep.Contract.IUplinkHost.AddSampledSource"/>): the
-    /// hashing / keyframe-on-change / packing logic that used to run inline in
-    /// <c>ScansatUplink.Sample</c> off the main thread, now driven ENTIRELY by
+    /// hashing / keyframe-on-change / packing logic, driven ENTIRELY by
     /// the plain <see cref="ScanCapture"/> payload the main thread already
     /// gathered. It touches ZERO KSP/Unity/SCANsat API: every input is data
     /// on the capture, every output is a <see cref="ScanPublication"/>

@@ -23,22 +23,20 @@
 //     augment.
 //   - `FootprintOverlay` → registerAugment({ id: "scansat-footprint-overlay",
 //     ... }) so it fills the same `map-view.overlay` slot with scanning-
-//     vessel ground-track footprints (MapView overlay-host foundation plan
-//     T8a), replacing the old MapView-internal `drawScanningFootprints`.
+//     vessel ground-track footprints. This is the only source of scanning
+//     footprints; MapView draws none itself.
 //   - `CoveragePanel` → registerAugment({ id: "scansat-coverage-panel", ... })
 //     so it fills the `map-view.sections` slot with the per-scan-type
-//     coverage readout (MapView overlay-host foundation plan T8b), replacing
-//     the old MapView-internal `CoveragePanelView`/`CoverageRow`.
+//     coverage readout. MapView carries no coverage panel of its own.
 //   - `TerrainBase/AltimetryBase` + `TerrainBase/BiomeBase` →
 //     registerAugment({ id: "scansat:altimetry" | "scansat:biome",
 //     augments: "map-view.base", ... }): two mutually-exclusive providers
-//     for the `map-view.base` REPLACE slot (MapView overlay-host foundation
-//     plan T8c), each painting its own standalone colormap surface
-//     (altimetry or biome) modulated per-tile by the T4 coverage paint-gate,
-//     replacing the old MapView-internal `useBiomeCanvas`/`useHeightCanvas`.
+//     for the `map-view.base` REPLACE slot, each painting its own standalone
+//     colormap surface (altimetry or biome) modulated per-tile by the coverage
+//     paint-gate. MapView paints no colormap surface itself.
 //   - `FogReveal/useScanSatFogSync` → registerFogRevealSource(...) once per
-//     scan type ("scansat:AltimetryLoRes" etc., MapView overlay-host
-//     foundation plan T7) so MapView's coverage paint-gate knows this
+//     scan type ("scansat:AltimetryLoRes" etc.) so MapView's coverage
+//     paint-gate knows this
 //     Uplink contributes fog reveal, even before anything calls
 //     useScanSatFogSync itself.
 //

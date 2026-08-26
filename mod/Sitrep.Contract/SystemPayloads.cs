@@ -35,11 +35,11 @@ public class SystemBodies
 /// <summary>
 /// One celestial body in the <see cref="SystemBodies"/> tree. Mirrors the
 /// exact per-body dict <c>SystemViewProvider.BuildBody</c> emits: same field
-/// names, casing and nullability. Kills the legacy orbit warts at the
-/// source: an explicit parent-index tree (no flat <c>b.*[idx]</c> keys), no
-/// numeric sentinels for missing data, and no <c>eccentricAnomaly</c> field
-/// (the old fork's orbit-patch formatter mis-assigns that key the body's
-/// eccentricity: a confirmed copy-paste bug).
+/// names, casing and nullability. Shaped to make the classic orbit warts
+/// unspellable: an explicit parent-index tree rather than flat indexed keys,
+/// no numeric sentinels for missing data, and no <c>eccentricAnomaly</c> field
+/// at all, because an orbit-patch formatter that carries one tends to fill it
+/// with the body's ECCENTRICITY instead.
 /// </summary>
 [SitrepContract]
 #if SITREP_CODEGEN
@@ -113,7 +113,7 @@ public class BodyEntry
     [SitrepUnit(Units.Metres)]
     public double? SphereOfInfluence { get; set; }
 
-    /// <summary>Sidereal rotation period, seconds (<c>CelestialBody.rotationPeriod</c>); a NEGATIVE value denotes retrograde rotation. Null when absent. Conveys the old <c>rotates</c> bool (a body rotates iff this is finite and non-zero), so that bool is NOT emitted.</summary>
+    /// <summary>Sidereal rotation period, seconds (<c>CelestialBody.rotationPeriod</c>); a NEGATIVE value denotes retrograde rotation. Null when absent. Carries "does this body rotate" on its own (a body rotates iff this is finite and non-zero), so no separate bool is emitted for it.</summary>
     [SitrepUnit(Units.Seconds)]
     public double? RotationPeriod { get; set; }
 
@@ -138,15 +138,16 @@ public class BodyEntry
 
     // Deliberately NO "eccentricAnomaly" field: see the class doc.
     //
-    // Mass, SurfaceGravity, HillSphere and Orbit.Period used to be absent for
-    // the same stated reason, that the client could derive them from
-    // GravParameter + Radius + Orbit "so they never waste wire bytes". The trade
-    // cost more than the bytes: four widgets each rebuilt the same numbers every
-    // frame, and one of the four derivations did not match the game's (see
-    // HillSphere). Two of them were already being sampled into the host's own
-    // dictionary and thrown away before they reached this payload.
+    // Mass, SurfaceGravity, HillSphere and Orbit.Period ARE carried, even
+    // though a client could derive each from GravParameter + Radius + Orbit and
+    // save the wire bytes. That trade costs more than the bytes: four widgets
+    // each rebuild the same numbers every frame, and a client-side derivation
+    // can disagree with the game's own (see HillSphere). Two of the four were
+    // being sampled into the host's dictionary and thrown away before they
+    // reached this payload, which is the worst of both.
     //
-    // Still deliberately absent, because the game genuinely has no opinion:
+    // These stay deliberately absent, because the game genuinely has no
+    // opinion:
     //   escapeVelocity  CelestialBody has no such member at all (member dump)
     //   trueAnomaly     Orbit.trueAnomaly is the LIVE value; a delayed console
     //                   needs it solved at a view time the game knows nothing

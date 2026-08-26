@@ -368,30 +368,22 @@ public class CommsCommandCentre
     public PayloadMeta Meta { get; set; } = new();
 }
 
-// The three provider-private payloads this file used to end with
-// (comms.linkQuality / comms.dataRate / comms.linkMargin) are no longer
-// declared here. They were the one part of the comms family only ONE backend
-// could ever source, so they moved into that backend's own contract slice,
-// GonogoRealAntennasUplink.Contract, per the mandate that no uplink-specific
-// wire type lives in core (see
-// local_docs/design/2026-08-10-uplink-types-out-of-core-plan.md, step 7, the
-// last of that migration). The wire format of all three is unchanged; only the
-// declaring assembly moved, and core's serializer no longer carries a case for
-// them because their producer now flattens them itself.
+// What belongs in this file, and what does not.
 //
-// Everything above stays, and the boundary is the PROVIDER axis this file's own
-// header describes rather than a filename: an elected backend fills the shared
-// shapes, so those shapes are core no matter which backend is winning today.
-// CommsHop once carried a RealAntennas-only BandRateBitsPerSec field on the
-// argument that a nullable field on a shared type was not the same as a private
-// type. That argument lost: an RA-only number sitting on the shared hop was
-// still a core PR a future out-of-tree comms provider (RemoteTech) could not
-// land, and it read as jank. The forward band rate now rides the RA uplink's own
-// realantennas.hopRates channel, a thin per-hop annotation keyed by these same
-// node ids and joined onto the route client-side, so the shared hop is finally
-// RA-agnostic. The other RA per-hop facts already ride CommsHop.Extensions under
-// "realantennas". RA-only presence was never RA-only ownership, and the hop no
-// longer pretends otherwise.
+// The boundary is the PROVIDER axis this file's own header describes, never a
+// filename: an elected backend fills the shared shapes, so those shapes are
+// core no matter which backend is winning today. A payload only ONE backend
+// could ever source is NOT core, and is declared in that backend's own contract
+// slice instead. Its producer flattens it itself, so core's serializer needs no
+// case for it either.
+//
+// The tempting counter-argument, that a nullable field on a shared type is not
+// the same as a private type, does not hold. A provider-only number sitting on
+// CommsHop is still a core change a future out-of-tree comms provider cannot
+// land, and it reads as jank. A per-provider fact rides either that provider's
+// own channel, keyed by these same node ids and joined onto the route
+// client-side, or CommsHop.Extensions under the provider's namespace.
+// Provider-only presence is not provider-only ownership.
 
 /// <summary>
 /// The pure, KSP-free object the exclusive <c>"comms"</c> capability resolves

@@ -12,7 +12,7 @@
 /**
  * These shapes carry `Value<U>` where the contract does, not bare numbers.
  *
- * They used to say `number`, and every quantity here arrives hydrated: this
+ * Never bare `number`, because every quantity here arrives hydrated: this
  * Uplink's `topics.ts` feeds its own generated unit AND type maps into the sdk's
  * runtime registry, so `wrapTopicPayload` retypes `subLatitude`, `altitude`,
  * every sensor altitude and the whole nested `trackColor` before a widget sees
