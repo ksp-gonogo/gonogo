@@ -230,10 +230,10 @@ export interface VesselTargetPayload {
  * The `vessel.comms` channel payload: hand-mirrored subset relevant to the
  * comms control-state display maps (mirrors `mod/Sitrep.Contract/
  * VesselComms.cs`). `controlState` is the raw `Sitrep.Contract.ControlState`
- * enum ORDINAL on the wire (`(int)comms.ControlState` in `VesselViewProvider`,
- * despite the old `map-topic.ts` gap comment calling it a "STRING enum", the
- * host serializes the integer, same as every other contract enum). The whole
- * channel is absent when `vessel.connection` is null.
+ * enum ORDINAL on the wire (`(int)comms.ControlState` in `VesselViewProvider`):
+ * the host serializes the integer, same as every other contract enum, so
+ * nothing here should read it as a name. The whole channel is absent when
+ * `vessel.connection` is null.
  */
 export interface VesselCommsPayload {
   controlState: number;
@@ -392,14 +392,12 @@ export interface VesselState {
    * carried through unchanged. `undefined` when there is no encounter or the
    * value is non-finite.
    *
-   * Named `encounterUt` and NOT `encounterTime`, because the older name was a
-   * lie this repo had already told itself. The vocabulary this field replaced
-   * carried TWO keys for one event: a DURATION ("seconds until the SOI
-   * transition") and the ABSOLUTE INSTANT of it. The migration kept the
-   * duration's name and put the instant behind it, so `OrbitalEventChips`,
-   * written against the old meaning, rendered a Mun encounter twenty minutes
-   * away as "46d 2h" in two shipped widgets, and its `> 0` guard held the chip
-   * up forever afterwards because every UT passes it.
+   * Named `encounterUt` and NOT `encounterTime`, because a name that does not
+   * say which of the two it is gets read as the other one. The same event has a
+   * DURATION ("seconds until the SOI transition") and an ABSOLUTE INSTANT, and
+   * a consumer reading this instant as a duration renders a Mun encounter
+   * twenty minutes away as "46d 2h", then holds the chip up forever on a
+   * `> 0` guard that every UT passes. Both of those shipped, in two widgets.
    *
    * So: this is an instant, a consumer wants `encounterUt - viewUt`, and the
    * two must never be collapsed back into one field. `Units.UniversalTime`
@@ -508,8 +506,8 @@ export interface VesselState {
   /**
    * Situation NAME: the display-map resolution of `vessel.identity.situation`
    * (a numeric `Sitrep.Contract.Situation` enum ordinal on the wire) to its
-   * enum name string ("Landed", "Orbiting", ...), the new home for the old
-   * situation string ScienceBench renders. Populated in
+   * enum name string ("Landed", "Orbiting", ...). This is the situation string
+   * ScienceBench renders. Populated in
    * BOTH bases (needs only `vessel.identity`, no propagation). `undefined`
    * while `vessel.identity` hasn't arrived or the ordinal is out of the enum's
    * range (unrecognized: "still resyncing"); `null` when `vessel.identity` is
@@ -537,14 +535,13 @@ export interface VesselState {
    *
    * This is a LABEL. Nothing branches on it, and nothing should: the ordinal is
    * on the wire beside it and every gate reads that instead, `Targeting`'s
-   * dockable test being `tarKind !== TargetKind.Body`. It used to normalize
-   * `Body` to the literal `"CelestialBody"` for a dockable gate that compared
-   * against that string, and it outlived the gate by long enough that the
-   * justification was still written here after the gate went ordinal.
+   * dockable test being `tarKind !== TargetKind.Body`. Nothing here normalizes a
+   * kind to a different spelling for a caller's benefit: a gate that
+   * string-compares against this label is reading the wrong field.
    *
-   * Coarser than what it replaced, which returned the specific VesselType name
-   * (e.g. "Station") for a vessel target: an inherent coarsening of the
-   * `TargetKind` contract. `undefined` when `vessel.target` is absent (nothing
+   * Coarse by construction. `TargetKind` has no arm for the specific VesselType
+   * of a vessel target, so there is no "Station" to report here, only
+   * "Vessel". `undefined` when `vessel.target` is absent (nothing
    * targeted, the common case) or the ordinal is out of range; `null` on a
    * confirmed tombstone.
    */
@@ -793,9 +790,9 @@ function wrapDegrees360(deg: number): number {
  *
  * NaN is the right FALLBACK here specifically, and the arithmetic below is why.
  * A Topic sends a subset of its fields routinely and the wrap deliberately
- * leaves an absent field absent, so the arithmetic used to see `undefined` and
- * produce NaN, which every guard here already accounts for (`finiteOrNull`,
- * `!(h > 0)`, `Number.isFinite`). NaN keeps exactly that behaviour. The
+ * leaves an absent field absent, so the arithmetic below sees `undefined` and
+ * produces NaN, which every guard here already accounts for (`finiteOrNull`,
+ * `!(h > 0)`, `Number.isFinite`). A NaN fallback keeps exactly that. The
  * alternative, threading `null` through a dozen expressions, buys nothing the
  * guards do not already do.
  *
@@ -1175,8 +1172,9 @@ function deriveNextApsis(
  *
  * Derived, not transcribed, so a member appended in C# widens the union on the
  * next codegen and any exhaustive `switch` over it stops compiling until
- * somebody rules on it. A hand-written union would stay closed around the old
- * members and let the new one fall through whatever default arm was there.
+ * somebody rules on it. A hand-written union would stay closed around the
+ * members it was written with and let a new one fall through whatever default
+ * arm happened to be there.
  */
 export type SituationName = keyof typeof Situation;
 export type SasModeName = keyof typeof SasMode;
@@ -1508,8 +1506,7 @@ function deriveActionGroups(get: DerivedGet): {
  *   surface quantities, so altitude/vertical/surface speed come off
  *   `vessel.flight` at `viewUt` via `getInterpolated`: a straight-line lerp
  *   between the two buffered `vessel.flight` samples straddling `viewUt`
- *   (`ClientTimeline.straddle` is the seam, `getInterpolated`
- *   is the "interpolating variant" this doc used to describe as deferred).
+ *   (`ClientTimeline.straddle` is the seam).
  *   Falls back to hold-last itself when there's nothing to straddle (e.g.
  *   only one `vessel.flight` sample so far). `basis: "measured"`.
  *
