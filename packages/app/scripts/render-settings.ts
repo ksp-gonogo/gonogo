@@ -43,6 +43,12 @@ const OUT_DIR =
   resolve(HERE, "../../../local_docs/renders/settings");
 
 const VIEW_UT = 1_000_000;
+/**
+ * A KSP day, in seconds. Written out rather than imported from ui-kit: this is
+ * the NODE half of the harness, and importing the design system here pulls
+ * styled-components into a runtime that has no DOM for it.
+ */
+const KSP_DAY = 21_600;
 const TOPIC = "principia.settings";
 
 /** A quantity as it arrives off the wire, already wrapped. */
@@ -65,7 +71,7 @@ const PRINCIPIA_LIVE = {
   predictionVesselId: "Ares-IV",
   predictionToleranceMetres: q("m", 1),
   predictionMaxSteps: q("count", 1_000_000),
-  analysisMissionDurationRequestedSeconds: q("s", 7 * 86_400),
+  analysisMissionDurationRequestedSeconds: q("s", 28 * KSP_DAY),
   recurrenceAutodetect: true,
   recurrenceRevolutionsPerCycle: q("count", 43),
   recurrenceDaysPerCycle: q("count", 3),

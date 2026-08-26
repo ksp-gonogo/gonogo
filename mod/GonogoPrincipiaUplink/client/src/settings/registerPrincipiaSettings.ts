@@ -3,7 +3,7 @@ import type {
   SettingDefinitionOf,
   SettingType,
 } from "@ksp-gonogo/sitrep-sdk";
-import { registerSetting } from "@ksp-gonogo/sitrep-sdk";
+import { magnitudeOf, registerSetting } from "@ksp-gonogo/sitrep-sdk";
 import type {
   PrincipiaReferenceFrame,
   PrincipiaSettings,
@@ -102,11 +102,15 @@ function severityName(ordinal: number | undefined): string | undefined {
 }
 
 /**
- * A `Value<"count">` arrives wrapped, and a threshold is an ordinal rather than
- * a quantity, so it has to be unwrapped before it can be named.
+ * The ordinal inside a wrapped `Value<"count">`.
+ *
+ * Through the canonical unwrap rather than a raw property read, and this is
+ * the case that helper is for rather than the case it warns against: the
+ * number is not going on screen, it is a key into {@link SEVERITY_NAMES}, and
+ * the word is what the row shows.
  */
-function countOf(v: { magnitude: number } | undefined): number | undefined {
-  return v === undefined ? undefined : v.magnitude;
+function ordinalOf(v: { magnitude: number } | undefined): number | undefined {
+  return magnitudeOf(v) ?? undefined;
 }
 
 /**
@@ -597,7 +601,7 @@ export const PRINCIPIA_SETTINGS: readonly SettingDefinition[] = [
     backing: "stream-backed",
     type: "text",
     topic: "principia.settings",
-    select: (p) => severityName(countOf(settings(p)?.logThreshold)),
+    select: (p) => severityName(ordinalOf(settings(p)?.logThreshold)),
     category: CATEGORY,
     group: GROUP.diagnostics,
     label: "Log file threshold",
@@ -611,7 +615,7 @@ export const PRINCIPIA_SETTINGS: readonly SettingDefinition[] = [
     backing: "stream-backed",
     type: "text",
     topic: "principia.settings",
-    select: (p) => severityName(countOf(settings(p)?.stderrThreshold)),
+    select: (p) => severityName(ordinalOf(settings(p)?.stderrThreshold)),
     category: CATEGORY,
     group: GROUP.diagnostics,
     label: "Standard-error threshold",
@@ -623,7 +627,7 @@ export const PRINCIPIA_SETTINGS: readonly SettingDefinition[] = [
     backing: "stream-backed",
     type: "text",
     topic: "principia.settings",
-    select: (p) => severityName(countOf(settings(p)?.flushThreshold)),
+    select: (p) => severityName(ordinalOf(settings(p)?.flushThreshold)),
     category: CATEGORY,
     group: GROUP.diagnostics,
     label: "Flush threshold",
