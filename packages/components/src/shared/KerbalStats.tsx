@@ -1,4 +1,4 @@
-import { KspRosterStatus, value } from "@ksp-gonogo/sitrep-sdk";
+import { isFatality, value } from "@ksp-gonogo/sitrep-sdk";
 import {
   Badge,
   NULL_DISPLAY,
@@ -35,15 +35,24 @@ export interface KerbalStatFields {
   careerFlights: number;
   available: boolean;
   unavailableReason: string;
-  /** Roster standing as a DISPLAY LABEL: KSP's own word for it, plus
-   *  `Applicant` for a candidate and whatever a mod calls a status of its own.
-   *  Shown, never compared. {@link situationOrdinal} is the field that decides
-   *  anything. */
+  /** Standing as a DISPLAY LABEL. Shown, never compared: {@link standing} is
+   *  the field that decides anything. */
   situation: string;
-  /** KSP's `RosterStatus` ORDINAL (`KspRosterStatus`), driving the unavailable
-   *  badge's severity. `null` for an applicant, which has no roster standing at
-   *  all, and `undefined` for a caller that carries no roster status. */
+  /** `CrewStanding`, the contract's own answer, driving the unavailable badge's
+   *  severity. This is the field that tells a retiree from a fatality, and the
+   *  reason the badge no longer reads the KSP ordinal: under RP-1 that ordinal
+   *  is `Dead` for a living retiree. `undefined` for a caller that carries no
+   *  standing. */
+  standing?: number | null;
+  /** KSP's OWN `RosterStatus` ordinal, carried for a caller that needs to know
+   *  what the game holds. Nothing here branches on it. */
   situationOrdinal?: number | null;
+  /** Whether the kerbal is standing down rather than on duty
+   *  (`ProtoCrewMember.inactive`). A separate axis from {@link standing}: a
+   *  resting kerbal's standing is `Available` throughout. */
+  inactive?: boolean;
+  /** When the stand-down ends, as universal time; absent while on duty. */
+  inactiveUntilUt?: number | null;
   currentVesselName: string;
   /** Ratio 0-1. Carried as non-optional (defaulted via `magnitudeOr(…, 0)`),
    *  so presence alone can't gate the chips: a caller must opt in with
@@ -69,25 +78,27 @@ export interface KerbalStatFields {
 const MAX_EXPERIENCE_LEVEL = 5;
 
 /**
- * Severity for the unavailable badge. `Dead`/`Missing` are the only situations
+ * Severity for the unavailable badge. `Dead`/`Missing` are the only standings
  * worth alarming an operator over; `Assigned` ("on mission") is the expected,
- * healthy state for a crewed vessel, and an unrecognised situation (a mod value
- * this list has never heard of, or an applicant with no roster standing at all)
- * stays neutral rather than crying wolf. Undefined renders Badge's decorative
- * grey, the same "just busy" chip the career-flights count uses.
+ * healthy state for a crewed vessel, `Retired` is a career that ended well, and
+ * a standing this build does not declare stays neutral rather than crying wolf.
+ * Undefined renders Badge's decorative grey, the same "just busy" chip the
+ * career-flights count uses.
  *
- * Reads the ORDINAL, never the situation NAME. `"Dead"` and `"Missing"` are
- * KSP's spellings to change: matched by name, a rename of either sends a dead
- * kerbal's badge quietly grey. Failing toward "nothing to see" is the
- * worst available direction for the one badge whose whole job is to be alarming.
+ * Reads the STANDING, and this is where the RP-1 retiree defect surfaced. It
+ * used to read KSP's own roster ordinal, which RP-1 sets to `Dead` when it
+ * retires a kerbal, so every retiree on the board wore a red fatality badge.
+ * The standing is the contract's own answer and tells the two apart.
+ *
+ * Still an enum comparison rather than a label one: matched by name, a rename
+ * on either side sends a dead kerbal's badge quietly grey, and failing toward
+ * "nothing to see" is the worst available direction for the one badge whose
+ * whole job is to be alarming.
  */
 function unavailableSeverity(
-  situationOrdinal: number | null | undefined,
+  standing: number | null | undefined,
 ): Severity | undefined {
-  return situationOrdinal === KspRosterStatus.Dead ||
-    situationOrdinal === KspRosterStatus.Missing
-    ? "critical"
-    : undefined;
+  return isFatality(standing) ? "critical" : undefined;
 }
 
 export function KerbalStats({
@@ -202,9 +213,24 @@ export function KerbalStats({
             {kerbal.careerFlights}F
           </Badge>
         )}
+        {kerbal.inactive === true && (
+          <Badge
+            severity="caution"
+            size="sm"
+            aria-label="standing down"
+            title={
+              kerbal.inactiveUntilUt !== null &&
+              kerbal.inactiveUntilUt !== undefined
+                ? `Standing down for rest until ${speakQuantity(value("ut", kerbal.inactiveUntilUt))}`
+                : "Standing down for rest"
+            }
+          >
+            RESTING
+          </Badge>
+        )}
         {!kerbal.available && (
           <Badge
-            severity={unavailableSeverity(kerbal.situationOrdinal)}
+            severity={unavailableSeverity(kerbal.standing)}
             size="sm"
             title={
               kerbal.currentVesselName
