@@ -731,6 +731,7 @@ public sealed class Rp1ProgramEntry
     /// table is funding the career can no longer ever draw. Absent rather than
     /// empty when the Program closes nothing off.
     /// </summary>
+    [SitrepUnit(Units.Id)]
     public List<string>? ProgramsToDisableOnAccept { get; set; }
 
     /// <summary>

@@ -52,6 +52,8 @@ namespace RP0.Programs
         public double repPenaltyPerYearLate;
         public int slots = 2;
 
+        public List<string> programsToDisableOnAccept = new List<string>();
+
         /// <summary>Private on RP-1's side, and read as one: the walk must not need it public.</summary>
         private Speed speed = Speed.Normal;
 
@@ -96,9 +98,31 @@ namespace RP0.Programs
         public Dictionary<Program.Speed, float> confidenceCosts = new Dictionary<Program.Speed, float>();
     }
 
+    /// <summary>
+    /// RP-1's career-wide Program settings. Only the two members the walk reads
+    /// are here; RP-1's own class carries the science-to-Confidence curve and the
+    /// rep-to-Confidence rate as well, and neither is on this Uplink's wire.
+    /// </summary>
+    public class ProgramHandlerSettings
+    {
+        public string? defaultFundingCurve;
+
+        /// <summary>
+        /// RP-1 declares this as a
+        /// <c>PersistentDictionaryValueTypeKey&lt;string, HermiteCurve&gt;</c>,
+        /// which IS a <c>Dictionary&lt;string, HermiteCurve&gt;</c> by
+        /// inheritance. A plain dictionary stands in because the walk reads it as
+        /// a bare <c>IDictionary</c> and never names either type.
+        /// </summary>
+        public Dictionary<string, ROUtils.HermiteCurve> paymentCurves =
+            new Dictionary<string, ROUtils.HermiteCurve>();
+    }
+
     public class ProgramHandler
     {
         public static ProgramHandler? Instance { get; set; }
+
+        public static ProgramHandlerSettings? Settings { get; set; }
 
         public static List<Program> Programs { get; set; } = new List<Program>();
 
@@ -129,5 +153,51 @@ namespace RP0.Programs
                 return total;
             }
         }
+    }
+}
+
+// ROUtils, the shared library RP-1's funding curves come from. Declared under
+// its own namespace with its own member names for the same reason the RP0 graph
+// above is: the walk enumerates a curve through IEnumerable<Key> and reads each
+// key's fields by name, so a stand-in that spells them the same way is read by
+// exactly the production code path.
+namespace ROUtils
+{
+    /// <summary>
+    /// A cubic Hermite curve. The stand-in carries the enumeration surface and
+    /// the key shape, which is all the walk touches; RP-1's own class compiles
+    /// polynomial coefficients and evaluates them, and the evaluation this
+    /// Uplink needs is reproduced in <c>Rp1ProgramsMath.EvaluateCurve</c> rather
+    /// than called.
+    /// </summary>
+    public class HermiteCurve : System.Collections.Generic.IEnumerable<HermiteCurve.Key>
+    {
+        public struct Key
+        {
+            public double time;
+            public double value;
+            public double inTangent;
+            public double outTangent;
+
+            public Key(double time, double value, double inTangent, double outTangent)
+            {
+                this.time = time;
+                this.value = value;
+                this.inTangent = inTangent;
+                this.outTangent = outTangent;
+            }
+        }
+
+        private readonly System.Collections.Generic.List<Key> _keys =
+            new System.Collections.Generic.List<Key>();
+
+        public HermiteCurve(params Key[] keys) => _keys.AddRange(keys);
+
+        public int KeyCount => _keys.Count;
+
+        public System.Collections.Generic.IEnumerator<Key> GetEnumerator() => _keys.GetEnumerator();
+
+        System.Collections.IEnumerator System.Collections.IEnumerable.GetEnumerator() =>
+            _keys.GetEnumerator();
     }
 }
