@@ -45,7 +45,7 @@ import {
   usePanelDelay,
 } from "@ksp-gonogo/ui-kit";
 import type { CSSProperties } from "react";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   magnitudeOf,
   magnitudeOr,
@@ -720,11 +720,25 @@ function NavballComponent({
    * switches to.
    */
   const [dialSize, setDialSize] = useState(180);
-  const dialRef = useRef<HTMLDivElement>(null);
   const showThrottleColumnRef = useRef(false);
   const controlModeRef = useRef(false);
-  useEffect(() => {
-    const el = dialRef.current;
+  const dialObserverRef = useRef<ResizeObserver | null>(null);
+  /**
+   * Attaches the observer as a CALLBACK ref rather than reading a `useRef` from
+   * a mount effect, so it follows the element instead of a moment in time.
+   *
+   * The dial box only exists once an attitude has been OBSERVED, and a reading
+   * starts out pending, so on the first commit the numeric readout is what
+   * renders and there is no box. A `[]`-dep effect reads null there and never
+   * runs again, which left the dial pinned to its initial size for the whole
+   * session: 180px in every widget, including a 4-column tile 152px wide, where
+   * it painted over the heading strip and the readout row below it and, in
+   * control mode, over the SAS section as well. Measured on every render the
+   * harness produces, the observer had never once been given an element.
+   */
+  const attachDial = useCallback((el: HTMLDivElement | null) => {
+    dialObserverRef.current?.disconnect();
+    dialObserverRef.current = null;
     if (!el || typeof ResizeObserver === "undefined") return;
     const ro = new ResizeObserver((entries) => {
       for (const e of entries) {
@@ -739,9 +753,7 @@ function NavballComponent({
         // column. Reserve that vertical space so a wide-and-short box (e.g.
         // mobile 9×8, where h is the limiting dimension) doesn't size the
         // dial to the full column height and push the strip + readout past
-        // the Panel's bottom edge. In w-limited modes (medium/wide) and the
-        // cap=200 control modes this reserve doesn't bind, so they're
-        // unchanged.
+        // the Panel's bottom edge.
         const verticalReserve = 74;
         const fit = Math.min(w - throttleReserve, h - verticalReserve);
         // In control mode the dial competes with the SAS / throttle / FBW
@@ -754,7 +766,7 @@ function NavballComponent({
       }
     });
     ro.observe(el);
-    return () => ro.disconnect();
+    dialObserverRef.current = ro;
   }, []);
 
   // Selective rendering: at very small sizes the SVG dial doesn't have
@@ -803,7 +815,7 @@ function NavballComponent({
         showModeBadges ? (
           <div style={MODE_BADGE_ROW}>
             <span style={modeBadgeStyle(sasOn)}>
-              SAS{sasMode ? `: ${sasMode}` : ""}
+              SAS{sasMode ? `: ${badgeSasMode(sasMode)}` : ""}
             </span>
             <span style={modeBadgeStyle(rcsOn)}>RCS</span>
             {precisionOn && <span style={modeBadgeStyle(true)}>PRECISION</span>}
@@ -818,7 +830,7 @@ function NavballComponent({
     >
       <div style={BODY}>
         {showDial ? (
-          <div ref={dialRef} style={DIAL_WRAP}>
+          <div ref={attachDial} style={DIAL_WRAP}>
             <AttitudeIndicator
               heading={heading}
               pitch={pitch}
@@ -1143,6 +1155,25 @@ function modeShort(mode: SasMode): string {
     case "Maneuver":
       return "MNV";
   }
+}
+
+/**
+ * The header badge's mode token: the same three letters the SAS MODE grid puts
+ * on its buttons.
+ *
+ * The full member name is what pushed the badge row wide enough that the Panel
+ * ellipsised its OWN title down to "GNC CO…". The panel header is one row by
+ * design (title left, aside right, no wrap, the aside collapsing to dots rather
+ * than dropping a line), so the aside taking more width can only cost the title
+ * letters, and the grid directly below already spells the active mode out in
+ * full behind its lit button.
+ *
+ * `Unknown` keeps its own name rather than becoming a symbol: it is the
+ * contract's fallback for a mode this build cannot name, and a "?" would leave
+ * an operator unable to tell it from a rendering fault.
+ */
+function badgeSasMode(mode: SasModeName): string {
+  return mode === "Unknown" ? mode : modeShort(mode);
 }
 
 function isButtonPress(p: { kind: string; value: unknown }): boolean {

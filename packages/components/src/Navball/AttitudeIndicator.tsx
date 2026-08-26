@@ -252,6 +252,12 @@ const WRAP: CSSProperties = {
   flexDirection: "column",
   alignItems: "stretch",
   gap: "var(--space-4)",
+  // Fill the column beside the throttle bar rather than shrinking to the dial's
+  // own width. The dial is sized to the SHORTER axis, so on a tall narrow tile
+  // it is much narrower than the space available, and a tape sized to it holds
+  // barely 30° of heading either side of the pointer.
+  flex: "1 1 auto",
+  minWidth: 0,
 };
 
 const HEADING_STRIP: CSSProperties = {

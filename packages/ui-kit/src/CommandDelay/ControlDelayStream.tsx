@@ -292,6 +292,21 @@ export function ControlDelayStream({
   const padX = variant === "inline" ? PAD_X : 0;
   const divX1 = xAt(oneT, span, padX);
   const divX2 = xAt(twoT, span, padX);
+  /**
+   * Nothing has been commanded yet, so the strip is two stage dividers in an
+   * otherwise empty box.
+   *
+   * The zone labels stop being hover-only there. Empty and unlabelled, the strip
+   * is indistinguishable from a row whose contents went missing, which is how it
+   * was read in review; labelled, the same pixels say what the box is for. It
+   * goes back to hover-only the moment there is a line to draw, so the labels
+   * never compete with the data they annotate. Hiding the box instead is the
+   * wrong trade: it would appear and vanish under the operator's hands as
+   * commands come and go, on a surface where the buttons must not move.
+   */
+  const quiet = streams.every(
+    (s) => s.inTransit.length === 0 && s.echo.length === 0,
+  );
 
   return (
     <ControlDelayStream__Root
@@ -302,6 +317,7 @@ export function ControlDelayStream({
     >
       <ControlDelayStream__Svg
         $variant={variant}
+        $quiet={quiet}
         role="img"
         aria-label={ariaLabel}
         viewBox={`0 0 ${VB_W} ${VB_H}`}
@@ -456,6 +472,7 @@ const ControlDelayStream__Root = styled.div<{
 
 const ControlDelayStream__Svg = styled.svg<{
   $variant: "inline" | "rail" | "expanded";
+  $quiet?: boolean;
 }>`
   display: block;
   width: 100%;
@@ -467,7 +484,7 @@ const ControlDelayStream__Svg = styled.svg<{
      edge, just taller than the collapsed strip. No background / border / radius. */
 
   [data-role="hover-labels"] {
-    opacity: 0;
+    opacity: ${({ $quiet }) => ($quiet ? 1 : 0)};
     fill: var(--color-text-muted);
     font-family: var(--font-family-mono);
   }
