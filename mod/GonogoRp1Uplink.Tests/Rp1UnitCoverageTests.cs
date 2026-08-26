@@ -24,8 +24,7 @@ namespace GonogoRp1Uplink.Tests
                 "Units.BuildPoints");
 
         [Fact]
-        public void TheContractTypesAreExactlyTheFifteenWirePayloads() =>
-        public void TheContractTypesAreExactlyTheTwelveTopicPayloads() =>
+        public void TheContractTypesAreExactlyTheSixteenWirePayloads() =>
             UnitCoverageAssertion.AssertContractTypesAreExactly(
                 typeof(Rp1CentreEntry).Assembly,
                 nameof(Rp1CentreEntry),
