@@ -7,8 +7,8 @@ using System.Reflection;
 namespace Gonogo.ActionGroupsExtendedUplink
 {
     /// <summary>
-    /// The arm's-length REFLECTION surface onto Action Groups Extended (AGX)
-    /// (docs/superpowers/specs/2026-07-17-agx-backend-design.md §3/§5.2). NO
+    /// The arm's-length REFLECTION surface onto Action Groups Extended (AGX).
+    /// NO
     /// compile-time reference to AGExt's assembly exists anywhere in this
     /// project: every AGExt member is reached by runtime reflection against
     /// the loaded <c>AGExt</c> assembly, so the GPL3 boundary is never

@@ -9,9 +9,8 @@ namespace Gonogo.ActionGroupsExtendedUplink.Tests
 {
     /// <summary>
     /// The actionGroups backend election, modelled directly on
-    /// <c>Sitrep.Host.Tests.CommsElectionTests</c>
-    /// (docs/superpowers/specs/2026-07-17-agx-backend-design.md §5.4/§9 Task
-    /// 3): drives the REAL <see cref="Kernel"/> through a two-pass uplink
+    /// <c>Sitrep.Host.Tests.CommsElectionTests</c>: drives the REAL
+    /// <see cref="Kernel"/> through a two-pass uplink
     /// discovery: a capability-owning uplink (the vessel uplink's shape)
     /// registering the stock <c>Vanilla</c> factory, and a provider-only
     /// uplink (the AGX uplink's shape, exactly

@@ -28,12 +28,10 @@ import {
  * of per-count, because a boundary violation is "this specific file
  * imports/references a mod it doesn't own", not a fungible occurrence.
  *
- * Full catalogue, categorisation (HARD / gray / test / comment-only), and
- * the reasoning behind every entry:
- *   docs/superpowers/specs/2026-07-13-uplink-boundary-audit.md
- *   docs/superpowers/specs/2026-07-18-ratchet-hardening-design.md
- * The allowlist data itself lives in the sibling `uplink-boundary.allowlist.ts`
- * module (permanent vs shrink-only domainDebt entries: see that file's header).
+ * Full catalogue, categorisation (HARD / gray / test / comment-only), and the
+ * reasoning behind every entry: the sibling `uplink-boundary.allowlist.ts`
+ * module, which carries one comment per entry, and whose header explains
+ * permanent vs shrink-only domainDebt.
  *
  * How the ratchet works:
  *   1. Scan `packages/*\/src` and `mod/*` (.ts/.tsx/.cs) for each mod
@@ -108,8 +106,7 @@ const MOD_OWNERSHIP: Record<ModToken, ModOwnership> = {
       // letter immediately after "SCAN" (a real word start), not a bare
       // "SCAN" prefix: a bare prefix collides with this codebase's
       // unrelated "SCAN_ROOTS" / "COMPONENT_SCAN_ROOTS" convention (three
-      // ratchet tests use "SCAN_ROOTS" to mean "directories to walk"). See
-      // docs/superpowers/specs/2026-07-18-ratchet-hardening-design.md §1.3.
+      // ratchet tests use "SCAN_ROOTS" to mean "directories to walk").
       /\bSCAN[A-Z][a-z]/,
       // The SCAN_TYPE const specifically: doesn't match the above pattern
       // (underscore, not an uppercase letter, follows "SCAN"). \b on both
@@ -551,7 +548,7 @@ describe("uplink boundary: mod references stay inside their owning Uplink", () =
             `Wire/contract/generated/ratchet-inventory files and text-only doc mentions go in ` +
             `.permanent (unconstrained); real code coupling goes in .domainDebt (shrink-only, ` +
             `see the "domain-debt allowlist entries only ever shrink" test below). ` +
-            `See docs/superpowers/specs/2026-07-13-uplink-boundary-audit.md.`,
+            `Each existing entry's own comment there is the worked example.`,
         );
       }
 

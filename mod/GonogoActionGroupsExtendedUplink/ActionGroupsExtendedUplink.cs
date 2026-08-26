@@ -4,8 +4,7 @@ using Sitrep.Contract;
 namespace Gonogo.ActionGroupsExtendedUplink
 {
     /// <summary>
-    /// The GonogoActionGroupsExtendedUplink
-    /// (docs/superpowers/specs/2026-07-17-agx-backend-design.md §5.4). When
+    /// The GonogoActionGroupsExtendedUplink. When
     /// Action Groups Extended is loaded (the <see cref="AgxReflection"/>
     /// probe), it registers a higher-priority <c>"actionGroups"</c> provider
     /// on the engine Kernel so <see cref="AgxActionGroupsBackend"/> WINS the

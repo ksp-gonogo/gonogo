@@ -157,12 +157,14 @@ function walksContractMetadata(topic: string, segments: string[]): boolean {
       return last;
     }
 
-    // A vector's unit sits on a DOTTED leaf key (`"relativePosition.x"`) rather
-    // than on a nested shape, because the shared vector type carries no unit of
-    // its own and the components are what a reader indexes. Consuming one
-    // segment at a time can never match one, so the whole remainder is tried as
-    // a single key. The read resolves such a path by walking into the payload,
-    // which is why refusing it here would reject a field that works.
+    /*
+     * A vector's unit sits on a DOTTED leaf key (`"relativePosition.x"`) rather
+     * than on a nested shape, because the shared vector type carries no unit of
+     * its own and the components are what a reader indexes. Consuming one
+     * segment at a time can never match one, so the whole remainder is tried as
+     * a single key. The read resolves such a path by walking into the payload,
+     * which is why refusing it here would reject a field that works.
+     */
     if (!last && units[segments.slice(i).join(".")] !== undefined) return true;
 
     const shape: string | undefined = shapes[segment];
