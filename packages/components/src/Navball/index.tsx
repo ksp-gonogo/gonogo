@@ -1379,9 +1379,21 @@ const GROUP_LABEL: CSSProperties = {
   color: "var(--color-text-faint)",
 };
 
+/**
+ * 68px holds a mode button's whole content: 12px of ToggleButton padding each
+ * side, the 14px marker, the 4px gap, and three JetBrains Mono characters at
+ * --font-size-sm (12px × 0.6em advance = 21.6px), which is 63.6px with a little
+ * slack for a fallback face.
+ *
+ * The marker is what a narrower column costs. An `<svg>` carries the UA's
+ * `overflow: hidden`, so its automatic minimum size is zero and it is the first
+ * thing a too-narrow flex row gives up, while the label keeps every pixel: at
+ * 48px the glyph laid out 2px wide in a 7-column widget and 0px wide in a
+ * 9-column one, present in the DOM and painting nothing.
+ */
 const BUTTON_GRID: CSSProperties = {
   display: "grid",
-  gridTemplateColumns: "repeat(auto-fit, minmax(48px, 1fr))",
+  gridTemplateColumns: "repeat(auto-fit, minmax(68px, 1fr))",
   gap: "var(--space-4)",
 };
 
