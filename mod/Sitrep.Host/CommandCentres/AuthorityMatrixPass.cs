@@ -9,15 +9,16 @@ namespace Sitrep.Host.CommandCentres
     /// active command centre x every fleet subject, write the explicit
     /// (vantage = centre.Id, node = fleet.&lt;guid&gt;) delay pair. This is the
     /// EXPLICIT-PAIR tier of <c>StubNetwork.DelayTo</c>'s 3-tier lookup, so it
-    /// overrides Plan 2's <c>SetNodeDelay</c> node-default for the selected
-    /// vantage while leaving the KSC-uniform node-default underneath for any
-    /// unselected vantage.
+    /// overrides the <c>SetNodeDelay</c> node-default for the selected vantage
+    /// while leaving the KSC-uniform node-default underneath for any unselected
+    /// vantage.
     ///
     /// <para>Two subject namespaces, same tier: <see cref="Populate"/> writes the
     /// centre-to-VESSEL rows, <see cref="PopulateCentrePairs"/> the
-    /// centre-to-CENTRE ones. The second exists because a centre used to be
-    /// addressable only as a vantage, which left an act aimed at another centre
-    /// (a currency spend routed to the program's home) with no delay to read.</para>
+    /// centre-to-CENTRE ones. The second is what makes a centre addressable as a
+    /// SUBJECT and not only as a vantage; without it an act aimed at another
+    /// centre (a currency spend routed to the program's home) has no delay row
+    /// to read.</para>
     ///
     /// <para>KSP-free by construction: the routing (a centre's CommNet
     /// <c>ControlPath</c> to a subject, straight-line from a position) is injected

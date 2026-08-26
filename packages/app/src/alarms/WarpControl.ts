@@ -150,9 +150,8 @@ export class WarpControl {
   /**
    * Dispatches `time.setWarpIndex` through the stream, a command every
    * production `TelemetryProvider` mount carries. The index goes as an
-   * argument: it used to be formatted into a key for a table to parse back
-   * out, which is a round trip that only made sense while the key was the
-   * name the caller had.
+   * argument rather than formatted into a key for something downstream to
+   * parse back out.
    */
   private commandWarp(index: number): void {
     const outcome = dispatchActiveCommandTopic("time.setWarpIndex", { index });

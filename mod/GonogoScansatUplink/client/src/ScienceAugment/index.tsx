@@ -8,9 +8,9 @@
 // once-per-widget header slot: the right shape for a whole extra section,
 // unlike `experiments.instrument` (per-instrument, wrong shape here).
 //
-// It bound `science-officer.badges` until the slot was renamed. That name
-// matched no registered component id, so nothing could derive it, and it
-// collided with the framework's own `.badges` contribution segment.
+// Deliberately NOT `science-officer.badges`: that name matches no registered
+// component id, so nothing can derive it, and it collides with the framework's
+// own `.badges` contribution segment.
 //
 // Presence-gated on `requires: "scansat"`: `AugmentSlot` renders this only
 // while `scansat.available` is live, so an install without the SCANsat mod

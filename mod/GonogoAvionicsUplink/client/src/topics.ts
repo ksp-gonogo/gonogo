@@ -10,9 +10,9 @@ import {
 
 // The bare TrueNow presence primitive is declared client-side (it has no
 // [SitrepTopic] contract type: see the SDK topics.ts header). avionics.status
-// is the structured Topic, declared in C# + codegen, but now in THIS Uplink's
-// own generated contract (relocated out of Sitrep.Contract: see
-// AvionicsPayloads.cs's header comment), not the SDK's.
+// is the structured Topic, declared in C# + codegen, in THIS Uplink's own
+// generated contract rather than the SDK's (see AvionicsPayloads.cs's header
+// comment for why an Uplink's wire types cannot live in core).
 declare module "@ksp-gonogo/sitrep-sdk" {
   interface TopicPayloadMap {
     "avionics.available": boolean;

@@ -31,12 +31,11 @@ import { usePastTrack } from "../shared/usePastTrack";
 
 const topics = defineTopicManifest({
   channels: ["vessel.orbit", "vessel.state"],
-  // The diagram is drawn from apsis RADII, never the altitudes: `o.ApA` and
-  // `o.PeA` appeared only in the old requirements list and nowhere in the
-  // component, as did `b.number` (the pole marker and body geometry come from
-  // `getBody`'s static table, not from a streamed body count). Naming the
-  // fields drawn, rather than the whole of `vessel.state` this mounts on, is
-  // what keeps their alarms off a widget that does not draw them.
+  // The diagram is drawn from apsis RADII, never the altitudes, and the pole
+  // marker and body geometry come from `getBody`'s static table rather than
+  // from a streamed body count. Naming the fields drawn, rather than the whole
+  // of `vessel.state` this mounts on, is what keeps their alarms off a widget
+  // that does not draw them.
   fields: [
     "vessel.orbit.sma",
     "vessel.orbit.ecc",
@@ -433,22 +432,18 @@ function OrbitViewComponent({
     );
   }
 
-  // The diagram runs under the title rather than beside it. In portrait the
-  // title row was eating most of the vertical space (the comment on the
-  // landscape branch above says so), and an orbit ellipse is the kind of
-  // content that wants the whole tile: the corner it loses to a backed title
-  // is far cheaper than the row the title used to reserve. Only when there IS
-  // a diagram, though. The no-data and pill-only branches are centred text,
-  // and floating a title over centred text just overlaps it.
+  // The diagram runs under the title rather than beside it, and the title
+  // floats over it. In portrait a title row of its own eats most of the
+  // vertical space (the comment on the landscape branch above says so), and an
+  // orbit ellipse is the kind of content that wants the whole tile: the corner
+  // it loses to a backed title is far cheaper than a reserved row. Only when
+  // there IS a diagram, though. The no-data and pill-only branches are centred
+  // text, and floating a title over centred text just overlaps it.
   const drawingFillsPanel = hasTrajectory && showDiagram;
-  // The body name used to be `panelSubtitle`, which the floating-header case
-  // rendered for free (no body row, it floated in the header alongside the
-  // title). Now that subtitles are gone entirely, the two cases split:
-  // floating keeps that free placement by riding along in the aside (still
-  // zero body cost); the non-floating case moves it
-  // into the body as a caption, same as everywhere else the subtitle sweep
-  // touched, gated on the same height tier (`showSubtitle`) the caption used
-  // to gate on.
+  // Where the body name goes follows the header. The floating case rides it
+  // along in the aside, beside the title, at zero cost to the body track; the
+  // non-floating case puts it in the body as a caption, gated on the same
+  // height tier (`showSubtitle`) as every other caption.
   const showBodyNameInAside = drawingFillsPanel && bodyName !== undefined;
   const showBodyNameInBody =
     !drawingFillsPanel && showSubtitle && bodyName !== undefined;

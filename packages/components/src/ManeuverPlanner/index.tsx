@@ -564,10 +564,9 @@ function ManeuverPlannerComponent({
   }
 
   async function handleClearAll() {
-    // Last node first. Order no longer decides whether this works, now each
-    // node is addressed by its own id rather than by a position that shifted
-    // under the loop, but the craft loses its plan from the far end inward,
-    // which is the order an operator watching the list expects.
+    // Last node first. Each node is addressed by its own id, so the order does
+    // not decide whether this works, but the craft loses its plan from the far
+    // end inward, which is the order an operator watching the list expects.
     for (let i = nodes.length - 1; i >= 0; i--) {
       await removeNodeCmd.send(
         { nodeId: nodes[i].id },
@@ -778,11 +777,11 @@ function ManeuverPlannerComponent({
   }
 
   function renderWaitingPanel() {
-    // Was a per-field checklist naming the wire keys it was waiting on. No
-    // other widget exposes its plumbing that way, and the keys it named had
-    // stopped being the ones it reads, so it was sending an operator to look
-    // for something that no longer exists. An ordinary empty state says the
-    // one thing they can act on: there is no orbit to plan against yet.
+    // An ordinary empty state rather than a per-field checklist of the wire
+    // keys being waited on: no other widget exposes its plumbing that way, and
+    // a named key is a thing an operator can be sent looking for and cannot
+    // act on. This says the one thing they can: there is no orbit to plan
+    // against yet.
     return <EmptyState>Awaiting orbit telemetry.</EmptyState>;
   }
 

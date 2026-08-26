@@ -204,7 +204,7 @@ export function MainScreen() {
       // A source that can't connect settles its own status + schedules its own
       // reconnect; swallow the rejection here so it doesn't surface as an
       // unhandled promise rejection. (kerbcast is connected separately, via
-      // useKerbcastMainConnect below: it's no longer a registered DataSource.)
+      // useKerbcastMainConnect below: it is not a registered DataSource.)
       void s.connect().catch(() => {});
     });
     return () => {

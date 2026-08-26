@@ -367,9 +367,9 @@ namespace Gonogo.ScansatUplink
             // the game is fully initialised (e.g. Planetarium not ready at the
             // early ticks right after load). Returning null (skip this tick)
             // rather than letting the throw propagate is what keeps the sampler
-            // ALIVE: a propagated capture throw used to permanently disable this
-            // source for the whole session (the "coverage never surfaces" root
-            // cause). The host also now retries a capture throw, but not throwing
+            // ALIVE. A propagated capture throw is how this source ends up
+            // disabled for a whole session, which presents as "coverage never
+            // surfaces". The host does retry a capture throw, but not throwing
             // in the first place avoids the startup throw/retry churn.
             try
             {

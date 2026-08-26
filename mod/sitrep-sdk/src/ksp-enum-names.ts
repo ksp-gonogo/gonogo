@@ -14,11 +14,10 @@ import { namesByValue } from "./enum-names";
  * the generated mirrors in `Sitrep.Contract/KspEnums.cs`.
  *
  * These exist for the same reason `vessel-state.ts`'s `SituationName` and
- * friends do, and they are the half that was missing. A KSP enum used to reach
- * the client as a bare `.ToString()` name typed `string`, so comparing it
- * against any literal at all compiled, including a literal no version of KSP
- * has ever emitted. Typed as the union below, such a comparison is TS2367 and
- * the error lists the members that ARE valid.
+ * friends do. A KSP enum reaching the client as a bare `.ToString()` name typed
+ * `string` lets a comparison against any literal at all compile, including a
+ * literal no version of KSP has ever emitted. Typed as the union below, such a
+ * comparison is TS2367 and the error lists the members that ARE valid.
  *
  * Every table here is a `namesByValue` map rather than the ordinal-indexed
  * array `namesOf` produces, uniformly, even for the enums that happen to be
@@ -122,9 +121,9 @@ export const KSP_ENUM_NAME_TABLES: ReadonlyArray<{
  * `None` (0) and `REPLACEWITHDEFAULT` (-1) are excluded: 0 matches every mask
  * under `&` and -1 matches any bit set at all, so including either would report
  * a group on every action. Everything else is included by DERIVATION rather
- * than by a list, which is the point: the mod used to intersect the mask
- * against a hand-written table of the groups somebody had thought of, so a
- * group KSP added was dropped before it reached the wire.
+ * than by a list, which is the point: intersecting the mask against a
+ * hand-written table of the groups somebody thought of drops a group KSP added
+ * before it ever reaches the wire.
  */
 export function actionGroupNames(mask: number | null | undefined): string[] {
   if (mask == null) return [];

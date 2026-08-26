@@ -3,12 +3,12 @@
  * rather than transcribed beside it.
  *
  * The wire carries a C# enum as its ORDINAL, and a table like this is what
- * turns one back into a name. Each table used to be a hand-written array with
- * the ordinals in trailing comments, and `TARGET_KIND_NAMES` is what that
- * costs: `TargetKind` grew `Position` and `Part`, the table kept its three
- * entries, and a docking-port target resolved to `undefined` because its
- * ordinal indexed off the end. Nothing threw and nothing warned, so every
- * consumer read that `undefined` as "the channel has not arrived".
+ * turns one back into a name. A hand-written array with the ordinals in
+ * trailing comments is what this replaces, and `TARGET_KIND_NAMES` shows what
+ * that costs: when `TargetKind` grew `Position` and `Part`, a three-entry table
+ * resolved a docking-port target to `undefined` because its ordinal indexed
+ * off the end. Nothing threw and nothing warned, so every consumer read that
+ * `undefined` as "the channel has not arrived".
  *
  * A transcription drifts the moment somebody appends a member, which is the
  * moment nobody re-reads the consumers. Deriving removes the transcription, so

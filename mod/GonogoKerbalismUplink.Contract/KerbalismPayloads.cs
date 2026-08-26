@@ -23,11 +23,9 @@ namespace GonogoKerbalismUplink;
 // are nullable to mirror the permissive-on-absence convention; a live payload
 // always carries concrete values.
 //
-// These types used to live in mod/Sitrep.Contract/KerbalismPayloads.cs. They
-// were relocated into this Uplink's own contract slice per the mandate that no
-// uplink-specific wire type may live in core: see this project's .csproj header
-// and local_docs/design/2026-08-10-uplink-types-out-of-core-plan.md. The wire
-// FORMAT is untouched; only the declaring assembly changed.
+// These types are declared in this Uplink's own contract slice, never in
+// mod/Sitrep.Contract: no uplink-specific wire type may live in core. See this
+// project's .csproj header for the rule.
 //
 // kerbalism.available is a BARE JSON boolean declared client-side
 // (mod/GonogoKerbalismUplink/client/src/topics.ts via registerBarePrimitiveTopic),
@@ -387,13 +385,13 @@ public class KerbalismResourceDef
     /// <c>Sitrep.Contract.KspResourceFlowMode</c>. The enum is stock KSP's, not
     /// Kerbalism's, which is why the mirror lives in the core contract.
     ///
-    /// <para>The pooled/not-pooled verdict is derived from this, not from the
-    /// name. It used to compare the name against a two-entry set, and the failure
-    /// was the ONE answer the field's own doc rules out: an unrecognised name
-    /// yielded <c>false</c>, a confident "not pooled", rather than the
+    /// <para>The pooled/not-pooled verdict is derived from this ordinal, never
+    /// from the name. Comparing the name against a set of known spellings fails
+    /// in the ONE way this field's own doc rules out: an unrecognised name
+    /// yields <c>false</c>, a confident "not pooled", rather than the
     /// <c>undefined</c> that means "vessel-wide pool, mode unknown". A resource
-    /// that pools across the whole vessel would have got a per-part meter
-    /// presented as a reading.</para>
+    /// that pools across the whole vessel then gets a per-part meter presented
+    /// as a reading.</para>
     ///
     /// <para><c>null</c> when the resource definition could not be read at all,
     /// the same case that already leaves <see cref="FlowMode"/> null.</para>

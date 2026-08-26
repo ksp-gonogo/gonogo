@@ -13,10 +13,10 @@ import { useDataSchema } from "./useDataSchema";
  * those has a magnitude for a comparison to order.
  *
  * The filter reads the field's KIND, which the contract's own unit token
- * decides, rather than testing for particular unit spellings. Four call sites
- * each used to hand-roll that test against `"bool"` and `"raw"`, tokens the
- * contract does not emit, so the check passed everything it was meant to
- * exclude the moment the vocabulary behind it changed.
+ * decides, rather than testing for particular unit spellings. A hand-rolled
+ * test at each call site goes wrong silently: one written against `"bool"` and
+ * `"raw"`, tokens the contract does not emit, admits everything it was meant to
+ * exclude and nothing says so.
  *
  * No hand-maintained allowlist: a key becomes eligible the moment the contract
  * declares the field, and drops out again if the contract stops declaring it.

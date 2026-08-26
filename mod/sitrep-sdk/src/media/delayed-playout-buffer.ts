@@ -1,26 +1,21 @@
 /**
- * Media playout buffer that rides the SAME delay clock as telemetry
- * (`local_docs/telemetry-mod/m2-sdk-delay-design.md` §5: "media delay").
+ * Media playout buffer that rides the SAME delay clock as telemetry.
  *
  * The headline guarantee: video and telemetry stamped the same UT become
  * available at the same wall-time, because both read `confirmedEdgeUt()`
  * off one shared clock object. This class never computes
- * `arrival + delaySeconds` itself: see §5.1, "samples confirm, estimate
- * only schedules".
+ * `arrival + delaySeconds` itself: a sample confirms, an estimate only
+ * schedules.
  *
  * The `view` dependency is STRUCTURAL (`DelayClockLike`), not the concrete
- * `ViewClock`: a deliberate choice kept even though this buffer now lives in
- * the same package as `ViewClock` (moved here 2026-07-17 as generic media
- * infra). The original reason: "avoid a circular dependency from the camera
- * Uplink back into sitrep-client": no longer applies; two reasons that DO
- * survive the move keep it structural:
+ * `ViewClock`, even though `ViewClock` lives in this same package. Two reasons:
  *   1. it lets the buffer be unit-tested against a hand-rolled clock double
  *      (see `delayed-playout-buffer.test.ts`) with no real `ViewClock`, no
  *      provider, no wall clock;
  *   2. it documents the MINIMAL surface media delay needs off the one delay
  *      authority, exactly `confirmedEdgeUt()` + `onFrame()`, so the coupling
  *      to the clock stays a two-method contract, not the whole class.
- * The app still wires the real `ViewClock` in at the call site; `ViewClock`
+ * The app wires the real `ViewClock` in at the call site; `ViewClock`
  * satisfies `DelayClockLike` structurally (its `ViewClockView` view is wider).
  */
 

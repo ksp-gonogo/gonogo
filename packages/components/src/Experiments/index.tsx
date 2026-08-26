@@ -235,9 +235,9 @@ function ExperimentsComponent({
     useTelemetry("science.instruments"),
     EMPTY_INSTRUMENTS,
   );
-  // No pre-aggregated data field on the wire, derive the vessel-wide total
-  // client-side from the same `science.experiments` Topic ScienceData uses,
-  // same aggregate semantics as the old "Total science data (mits)".
+  // No pre-aggregated data field on the wire, so the vessel-wide total is
+  // derived client-side from the same `science.experiments` Topic ScienceData
+  // reads, on the same aggregate semantics.
   const experimentsRaw = stillTrue(
     useTelemetry("science.experiments"),
     EMPTY_EXPERIMENTS,

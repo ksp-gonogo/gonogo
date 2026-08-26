@@ -117,8 +117,7 @@ const ENUM_FACILITY_TO_KEY: Readonly<Record<string, FacilityKey>> = {
 };
 
 /**
- * `SpaceCenterFacility` ORDINAL to this widget's short {@link FacilityKey}, the
- * route the wire's map key no longer has to serve.
+ * `SpaceCenterFacility` ORDINAL to this widget's short {@link FacilityKey}.
  *
  * The abbreviations are ours, so the pairing has to be written down somewhere:
  * nothing derives `vab` from `VehicleAssemblyBuilding`. What is NOT written down
@@ -881,13 +880,12 @@ const UpgradeButtonStyled = styled(FitLabelButton)`
   text-align: center;
   /* At the narrow default-6x7 3-col grid the facility cell interior is
      only ~46px: narrower than "Upgrade" can render on one line. A
-     fixed nowrap width used to solve an old label-clipping bug by
-     refusing to shrink, but that just moved the problem: the button
-     kept its full intrinsic width and overflowed the cell (and, for
-     the last column, right past the panel's own padding, reading as
-     a "cut off" button).
+     fixed nowrap width refuses to shrink, so the button keeps its full
+     intrinsic width and overflows the cell (and, for the last column,
+     right past the panel's own padding, reading as a "cut off"
+     button).
 
-     Letting it wrap instead kept every character but broke the word
+     Letting it wrap keeps every character but breaks the word
      mid-syllable, "Upgra / de". FitLabelButton measures the label
      against the box and shows an icon when the word does not fit, so
      nothing is hyphenated and nothing overflows. It still has to

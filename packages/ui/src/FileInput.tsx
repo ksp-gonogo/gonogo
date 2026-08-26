@@ -108,9 +108,9 @@ const FileInputButton = styled.label<{ $disabled: boolean }>`
 
   @media (pointer: coarse) {
     min-height: 44px;
-    /* One rung wider than the base inset (--space-12), same as ui-kit Button:
-       the old 14px would have snapped onto the base rung and erased the
-       horizontal widening this block exists for. */
+    /* One rung wider than the base inset (--space-12), same as ui-kit Button.
+       A 14px value would snap onto the base rung and erase the horizontal
+       widening this block exists for. */
     padding: var(--space-10) var(--space-16);
   }
 `;

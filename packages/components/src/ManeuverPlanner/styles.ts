@@ -10,9 +10,8 @@ export const FeasibilityChip = styled.span<{ $ok: boolean }>`
   font-size: var(--font-size-xs);
   font-weight: ${({ $ok }) => ($ok ? 400 : 700)};
   padding: var(--space-hair) var(--space-6);
-  /* A stadium, not a corner: the old 10px was locked to this chip's own
-     height (1px 6px padding on 11px text). --radius-pill renders the same
-     and survives a change to that height. */
+  /* A stadium, not a corner: --radius-pill rather than a fixed px, so the
+     shape survives a change to this chip's padding or font size. */
   border-radius: var(--radius-pill);
   /* Failing state shifted brighter: the quiet maroon on dark background
      was sliding past readers. WCAG 1.4.11 non-text contrast met at 3:1. */

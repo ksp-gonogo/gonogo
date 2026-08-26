@@ -15,11 +15,9 @@ import type { KerbcastCameraEntry } from "../__generated__/contract";
  *   2. `null`/absent: unknown; might be one, ranks above a known-negative
  *   3. `false`    : known not a docking camera; last resort, never excluded
  *
- * Rank 3 is still eligible because the built-in `HudCamera` this augment
- * replaces fell back to `cameras[0]` unconditionally, it had no docking facts
- * to reason with. Dropping to "no video" where the old widget showed *a* feed
- * would be a regression, so a known-negative camera is used rather than
- * nothing. `isDockingCamera` sharpens the CHOICE; it doesn't narrow the pool.
+ * Rank 3 is still eligible on purpose: showing SOME feed beats showing none,
+ * so a known-negative camera is used rather than nothing. `isDockingCamera`
+ * sharpens the CHOICE; it never narrows the pool.
  *
  * An explicit `override` (the widget's saved `cameraFlightId`) always wins when
  * that camera is still present, so a pinned camera keeps working. A stale

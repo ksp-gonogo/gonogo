@@ -33,14 +33,11 @@ import type { Reading } from "../reading";
  *
  * ## Why a list here rather than a registry, and why it cannot rot
  *
- * This reverses an earlier recommendation of mine, deliberately. I argued
- * against recording class D per topic on the grounds that a list recording the
- * DEFAULT has no source construct to scan for and rots without failing. The
- * reasoning was right and the conclusion was wrong once the premise changed:
- * that list had no consumer, and **this one has the compiler**. A wrong entry
- * surfaces the moment someone writes a `reckonable` branch that used to
- * compile, and a missing one surfaces in `never-reckonable.test.ts`, which
- * asserts every Topic is classified.
+ * A list that merely RECORDS the default has no source construct to scan for,
+ * so it rots without ever failing. This one is not that, because **it has the
+ * compiler as a consumer**: a wrong entry surfaces the moment someone writes a
+ * `reckonable` branch that then refuses to compile, and a missing one surfaces
+ * in `never-reckonable.test.ts`, which asserts every Topic is classified.
  *
  * A list nothing reads rots. A list the type checker reads cannot.
  *

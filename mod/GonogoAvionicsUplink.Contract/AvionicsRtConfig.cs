@@ -40,17 +40,15 @@ namespace GonogoAvionicsUplink;
 /// so <c>EmitTopicMap</c> is wired here too (MechJeb had nothing to name: see
 /// its own <c>Configure</c>'s comment).</para>
 ///
-/// <para><b>Runtime hydration, not just codegen.</b> A relocated Topic's
-/// declared units also have to reach <c>wrapTopicPayload</c>'s runtime
-/// lookup (<c>sitrep-sdk</c>'s <c>unitsForTopic</c>/<c>shapesForTopic</c>),
-/// which used to read <c>avionics.status</c> straight out of the SDK's own
-/// generated map because <see cref="AvionicsStatus"/> lived in
-/// <c>Sitrep.Contract</c>. It does not any more, so this Uplink's client
-/// package (<c>topics.ts</c>) now calls the SDK's <c>registerTopicUnits</c>
-/// at module load, feeding it the UNIT map this Configure emits below (see
-/// that file's comment for why: <c>ApplyUnitValueTypes</c> only fixes the
-/// codegen-time TYPE, not the decode-time VALUE, and nothing exercised that
-/// gap until a relocated type had a real <c>[SitrepTopic]</c> to hydrate).</para>
+/// <para><b>Runtime hydration, not just codegen.</b> This Topic's declared
+/// units also have to reach <c>wrapTopicPayload</c>'s runtime lookup
+/// (<c>sitrep-sdk</c>'s <c>unitsForTopic</c>/<c>shapesForTopic</c>), and the
+/// SDK's own generated map has nothing for a type declared outside
+/// <c>Sitrep.Contract</c>. So this Uplink's client package (<c>topics.ts</c>)
+/// calls the SDK's <c>registerTopicUnits</c> at module load, feeding it the
+/// UNIT map this Configure emits below. Both legs are needed:
+/// <c>ApplyUnitValueTypes</c> fixes the codegen-time TYPE, never the
+/// decode-time VALUE.</para>
 /// </summary>
 public static class AvionicsRtConfig
 {

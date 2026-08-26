@@ -1381,13 +1381,6 @@ export const ALLOWLIST: Record<ModToken, ModAllowlist> = {
       "mod/Gonogo.KSP/KspHost.cs",
       "mod/Sitrep.Contract/VesselAttitude.cs",
 
-      /*
-       * -- The Avionics relocation's own doc comments, citing the MechJeb
-       * pilot as prior art (the mechanism it copies, and the specific
-       * contrast that AvionicsStatus is a real read payload where MechJeb's
-       * two types were command args) -- zero MechJeb code or type coupling --
-       */
-      "mod/GonogoAvionicsUplink.Contract/AvionicsPayloads.cs",
       "mod/GonogoAvionicsUplink.Contract/AvionicsRtConfig.cs",
       /*
        * AvionicsUnitCoverageTests.cs used to sit here too, and stopped naming
@@ -1428,13 +1421,6 @@ export const ALLOWLIST: Record<ModToken, ModAllowlist> = {
        */
       "mod/Sitrep.Core.Tests/WirePayloadCoverageTests.cs",
 
-      /*
-       * -- The Kerbcast relocation's own doc comments, citing the MechJeb
-       * pilot as prior art (its two command-arg types are the precedent
-       * KerbcastSetFieldOfViewArgs/KerbcastSetPanArgs follow: ApplyUnitValueTypes
-       * skips retyping both alike) -- zero MechJeb code or type coupling --
-       */
-      "mod/GonogoKerbcastUplink.Contract/KerbcastPayloads.cs",
       "mod/GonogoKerbcastUplink.Contract/KerbcastRtConfig.cs",
       "mod/GonogoKerbcastUplink/client/src/generated-value-import.test.ts",
     ],
@@ -1566,12 +1552,11 @@ export const ALLOWLIST: Record<ModToken, ModAllowlist> = {
       "mod/GonogoMechJebUplink/client/src/index.ts",
 
       /*
-       * -- sitrep-sdk's own registration mechanism, naming its first
-       * relocated-Uplink caller in a doc comment (registerTopicUnits /
-       * registerBarePrimitiveTopic in topics.ts), plus the test that records
-       * avionics.status no longer being the SDK's own codegen output --
+       * -- The test that records avionics.status coming from the Uplink's own
+       * contract slice rather than the SDK's codegen. topics.ts itself no
+       * longer names the Uplink: its doc comment describes the registration
+       * mechanism without citing a caller --
        */
-      "mod/sitrep-sdk/src/topics.ts",
       "mod/sitrep-sdk/src/topics.test.ts",
 
       /*
@@ -1584,13 +1569,6 @@ export const ALLOWLIST: Record<ModToken, ModAllowlist> = {
        */
       "mod/GonogoDevTools/GonogoDevKerbalismDump.cs",
 
-      /*
-       * -- The Kerbcast relocation's own doc comments, citing Avionics as
-       * prior art (the second relocation, first to prove the Value<>/
-       * Vec3Of<> retype end to end; KerbcastCameraEntry's nine Units.Degrees
-       * fields are the second proof) -- zero Avionics code or type coupling --
-       */
-      "mod/GonogoKerbcastUplink.Contract/KerbcastPayloads.cs",
       "mod/GonogoKerbcastUplink.Contract/KerbcastRtConfig.cs",
       "mod/GonogoKerbcastUplink/client/src/generated-value-import.test.ts",
       "mod/GonogoKerbcastUplink/client/src/topics.test.ts",

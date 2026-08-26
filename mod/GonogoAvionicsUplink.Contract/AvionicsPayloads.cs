@@ -21,14 +21,13 @@ namespace GonogoAvionicsUplink;
 /// the reveal-gate); the bare <c>avionics.available</c> presence primitive is
 /// <c>DelayRole.TrueNow</c> and declared client-side.</para>
 ///
-/// <para>Relocated out of <c>Sitrep.Contract</c> into this Uplink's own
-/// contract slice (<c>GonogoAvionicsUplink.Contract</c>): see
-/// <c>local_docs/design/2026-08-10-uplink-types-out-of-core-plan.md</c>. No
-/// uplink-specific wire type may live in core, even for an in-monorepo
-/// Uplink. Unlike the MechJeb pilot's command-arg types, this one IS a real
-/// outbound read payload, so it is the first relocation to actually exercise
+/// <para>Declared in this Uplink's own contract slice
+/// (<c>GonogoAvionicsUplink.Contract</c>) rather than in <c>Sitrep.Contract</c>:
+/// no uplink-specific wire type may live in core, even for an in-monorepo
+/// Uplink. Being a real outbound READ payload, it exercises
 /// <c>RtConfig.ApplyUnitValueTypes</c>'s <c>Value&lt;&gt;</c>/<c>Vec3Of&lt;&gt;</c>
-/// retype end to end (see <c>AvionicsRtConfig.Configure</c>).</para>
+/// retype end to end, which an inbound command-arg type does not (see
+/// <c>AvionicsRtConfig.Configure</c>).</para>
 /// </summary>
 [SitrepContract]
 [SitrepTopic("avionics.status")]

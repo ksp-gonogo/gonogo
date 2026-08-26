@@ -3164,7 +3164,7 @@ namespace Sitrep.Host
         /// Test-only visibility into the OUTER (<see cref="SubscriptionRegistry"/>)
         /// gate's current subscriber count for a topic, used to prove a
         /// subscribe/unsubscribe/disconnect sequence never leaves an
-        /// orphaned count behind (see the C2-3 fix). Deliberately NOT part
+        /// orphaned count behind. Deliberately NOT part
         /// of <see cref="IUplinkHost"/>: it wraps <c>_subscriptions</c>,
         /// which (per that field's own doc comment) must never be read
         /// off the Courier thread. Promoting it to a public

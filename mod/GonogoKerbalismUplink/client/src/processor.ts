@@ -93,8 +93,8 @@ export const SHIP_SYSTEMS = KERBALISM.registerProcessor({
       resourcesReading.state === "reckonable"
         ? resourcesReading.value
         : undefined;
-    // `observedAt` rather than the five-arm switch that used to be written out
-    // here: the SDK carries it now, and one copy cannot disagree with itself.
+    // `observedAt` rather than a hand-written five-arm switch over the reading
+    // states: the SDK carries it, and one copy cannot disagree with itself.
     const observedAtUt = observedAt(resourcesReading);
     const stored: Record<string, number> = {};
     const capacity: Record<string, number> = {};

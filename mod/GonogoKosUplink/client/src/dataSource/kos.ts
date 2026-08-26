@@ -36,9 +36,9 @@ const KOS_DISPATCH_BUDGET = createPerfBudget({
 interface KosDataSourceOptions {
   callTimeoutMs?: number;
   /**
-   * Accepted for source-construction back-compat (existing tests pass it);
-   * no longer used now that dispatch rides the `kos.run` Uplink rather than a
-   * telnet REPL that needed a post-attach settle delay.
+   * Accepted for source-construction back-compat (existing tests pass it) and
+   * IGNORED: dispatch rides the `kos.run` Uplink, which needs no post-attach
+   * settle delay.
    */
   postAttachDrainDelayMs?: number;
 }

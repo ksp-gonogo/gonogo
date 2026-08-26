@@ -89,7 +89,7 @@ namespace Gonogo.KerbalismUplink
         /// <para>THE authoritative list, and deliberately the ONLY one. It drives
         /// both which names <c>CaptureOnMain</c> asks Kerbalism for a rate about and
         /// what <c>kerbalism.profile</c> declares, so the two cannot drift; a second
-        /// list anywhere would be the old hardcoding in a new disguise. Asserted by
+        /// list anywhere would be a hardcoding in a new disguise. Asserted by
         /// <c>LifeSupportResourceCoverageTests</c>.</para>
         /// </summary>
         public static List<string> ResourceNames(ProfileRaw profile)

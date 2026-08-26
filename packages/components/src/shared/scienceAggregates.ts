@@ -45,17 +45,17 @@ function str(v: unknown, fallback = ""): string {
   return typeof v === "string" ? v : fallback;
 }
 
-/** The two scalar aggregates the old `sci.count` / `sci.dataAmount` carried. */
+/** The two vessel-wide scalars derived from the stored-experiment list. */
 export interface ScienceAggregate {
-  /** Number of stored experiments aboard (old `sci.count`). */
+  /** Number of stored experiments aboard. */
   count: number;
-  /** Total data amount across all stored experiments (old `sci.dataAmount`). */
+  /** Total data amount across all stored experiments. */
   dataAmount: number;
 }
 
 /**
  * Sum the experiment count + total data amount from a `science.experiments`
- * array: the client-side replacement for the two legacy scalar reads. Returns
+ * array. Nothing on the wire carries these pre-aggregated. Returns
  * `null` when `raw` isn't an array at all (nothing to sum, the caller falls
  * back / renders empty), distinct from an empty array (`{ count: 0,
  * dataAmount: 0 }`, a real "no experiments aboard").

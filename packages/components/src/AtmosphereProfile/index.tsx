@@ -84,8 +84,7 @@ function AtmosphereProfileComponent({
   // Canonical native reads: `v.body`/`v.altitude` off the `vessel.state`
   // derived channel (SDK-side `deriveVesselState`: `parentBodyName`/
   // `altitudeAsl`), `v.atmosphericDensity`/`v.atmosphericTemperature`/
-  // `v.externalTemperature` off the raw `vessel.flight` Topic: replacing
-  // every legacy two-arg `data`-source shim read this widget used to make.
+  // `v.externalTemperature` off the raw `vessel.flight` Topic.
   const vesselState = useStream<VesselState>("vessel.state");
   /**
    * All three atmospheric numbers are quantities that drift on their own as the

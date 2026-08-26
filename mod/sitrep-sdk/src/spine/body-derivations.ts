@@ -2,8 +2,8 @@ import { solveAnomalies } from "./kepler";
 
 /**
  * The two celestial-body almanac values the GAME has no answer for, so the
- * client has to derive them. Everything else this module used to compute is now
- * a wire field: see `celestial-facts.ts` for the split and the reasoning.
+ * client has to derive them. Everything else about a body is a wire field: see
+ * `celestial-facts.ts` for the split and the reasoning.
  *
  * All inputs are nullable (the stream drops any value the live game hasn't
  * populated); every helper returns `null` rather than a NaN when it can't

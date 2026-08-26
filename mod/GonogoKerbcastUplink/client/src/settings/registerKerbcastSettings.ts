@@ -3,10 +3,10 @@ import type { KerbcastDataSource } from "../KerbcastDataSource";
 
 /*
  * kerbcast's declarative settings: two rows under one "Kerbcast" category in
- * the app's General settings surface. This REPLACES the old bespoke
- * `KerbcastSettings` tab (registerSettingsTab): declarative is the preferred
- * path (see @ksp-gonogo/core's settings/registry.ts), so kerbcast carries ZERO
- * bespoke settings UI now.
+ * the app's General settings surface. Declarative rather than a bespoke
+ * `registerSettingsTab` panel, which is the preferred path (see
+ * @ksp-gonogo/core's settings/registry.ts), so kerbcast carries ZERO bespoke
+ * settings UI.
  *
  * Side-effect module: importing it runs both registrations once, the same
  * lifecycle as the package's other `registerX` module-load calls.

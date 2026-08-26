@@ -289,9 +289,7 @@ export function CameraFeed({
     requested,
   );
 
-  // Native topic reads (migrated off the `comm.signalStrength`/
-  // `comm.connected`/`comm.signalDelay` two-arg shim; the field paths below
-  // are exactly what that shim used to map to).
+  // Native topic reads: the canonical field paths, not a two-arg shim.
   const vesselComms = judgeable(useTelemetry("vessel.comms"));
   const signalStrength = vesselComms?.signalStrength;
   // `comms.link` (NOT `vessel.comms.connected`): a dedicated, freeze-EXEMPT
@@ -318,11 +316,11 @@ export function CameraFeed({
     if (signalStrength === undefined && commConnected === undefined) return;
 
     // Both signals fold into ONE always-defined level so a blackout's
-    // degrade=1.0 always has a matching reset. The old branching left
-    // `commConnected === false` setting degrade to 1.0 but only resetting it
-    // on the `signalStrength` branch -- when signal returns without a
-    // strength reading (signalStrength undefined), that hit neither branch
-    // and the H.264 decoder stayed wedged at full degrade forever. Folding
+    // degrade=1.0 always has a matching reset. Branch them separately and the
+    // reset goes missing: `commConnected === false` sets degrade to 1.0, but if
+    // only the `signalStrength` branch resets it, then signal returning
+    // WITHOUT a strength reading (signalStrength undefined) hits neither branch
+    // and the H.264 decoder stays wedged at full degrade forever. Folding
     // "connected" into the same `else` makes signal-return unconditionally
     // resolve to a level (0 with no strength reading, the derived value
     // otherwise), so setDegrade is always called with something that undoes
@@ -559,9 +557,9 @@ function describeSignalQuality(
     return null;
   }
   // The value already carries `ratio` as its unit, so <Unit> does the *100 and
-  // writes the symbol. This used to do both by hand, which is how the badge
-  // ended up as the one readout in the app writing "72%" where every other
-  // percentage writes "72 %".
+  // writes the symbol. Doing both by hand here is how a badge ends up as the
+  // one readout in the app writing "72%" where every other percentage writes
+  // "72 %".
   const clamped = value("ratio", Math.max(0, Math.min(1, strength)));
   const pct = Math.round(clamped.magnitude * 100);
   const tone: Severity =

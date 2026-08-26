@@ -574,9 +574,9 @@ const BigButton = styled.button<{ $variant: BigButtonVariant }>`
   transition: transform var(--duration-fast) var(--ease-standard);
   /*
    * Establish a CSS containment context so ButtonLabel can size its text
-   * relative to the button itself (cqmin), not the viewport. The old
-   * 10vw rule made giant buttons keep tiny text on small viewports and
-   * vice versa: reported as a session-2026-05-17 bug.
+   * relative to the button itself (cqmin), not the viewport. A
+   * viewport-relative rule (10vw) leaves giant buttons with tiny text on
+   * small viewports, and vice versa.
    */
   container-type: size;
 

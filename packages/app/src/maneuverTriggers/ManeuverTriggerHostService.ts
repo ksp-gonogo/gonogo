@@ -49,12 +49,11 @@ import type { PeerHostService } from "../peer/PeerHostService";
  * `getVesselOrbit()`/`getVesselTarget()`/`getVesselIdentity()`/
  * `getVesselState()` accessors (`@ksp-gonogo/sitrep-client`): the same
  * `TimelineStore` a mounted widget's `useTelemetry` would read. An armed
- * TRIGGER's own `dataKey` is an operator-picked key too, but no longer an
- * ARBITRARY one: the widget's `DataKeyPicker` only offers keys
- * `@ksp-gonogo/data`'s `useValueKeys` resolves: the Value-restricted,
- * stream-mapped set: so the threshold read (`getValue`) and the
- * maneuver-node fire (`dispatchActiveCommand`) both ride the stream now, the
- * same way `LocalManeuverTriggerService` does.
+ * TRIGGER's own `dataKey` is operator-picked but never arbitrary: the widget's
+ * `DataKeyPicker` only offers keys `@ksp-gonogo/data`'s `useValueKeys`
+ * resolves, the Value-restricted, stream-mapped set, so the threshold read
+ * (`getValue`) and the maneuver-node fire (`dispatchActiveCommand`) both ride
+ * the stream, the same way `LocalManeuverTriggerService` does.
  */
 
 const STORAGE_KEY = "gonogo.maneuverTriggers.list";
@@ -189,10 +188,9 @@ export class ManeuverTriggerHostService implements ManeuverTriggerService {
   private bindVesselWatcher(): void {
     // Vessel-identity/orbit reads ride the stream (`getVesselIdentity()` et
     // al, sampled on demand: see `readLiveOrbit`/`readVesselName`), so this
-    // watches for a new stream FRAME rather than a legacy `v.name` value
-    // emit. The same frame tick re-evaluates every armed trigger's
-    // `dataKey` threshold below (`evaluate()`): no more per-key data-source
-    // subscription.
+    // watches for a new stream FRAME rather than subscribing per key. The same
+    // frame tick re-evaluates every armed trigger's `dataKey` threshold below
+    // (`evaluate()`).
     this.vesselUnsub = onActiveTimelineFrame(() => {
       // Vessel changed: drop triggers for the old one.
       const live = this.readVesselName();
@@ -246,10 +244,9 @@ export class ManeuverTriggerHostService implements ManeuverTriggerService {
     if (!plan) return;
     const burns = isSequence(plan) ? plan.burns : [plan];
     for (const b of burns) {
-      // Named directly, with the burn's own numbers as arguments. They used to
-      // be formatted to three decimals into a key so a table could parse them
-      // back out, which lost precision on the way through for no reason but the
-      // key's shape.
+      // Named directly, with the burn's own numbers as arguments, so the full
+      // precision reaches the command rather than being rounded into a key
+      // string for something downstream to parse back out.
       const outcome = dispatchActiveCommandTopic("vessel.maneuver.add", {
         ut: b.ut,
         prograde: b.prograde,

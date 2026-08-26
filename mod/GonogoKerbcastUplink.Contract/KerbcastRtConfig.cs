@@ -31,20 +31,18 @@ namespace GonogoKerbcastUplink;
 /// into <c>mod/GonogoKerbcastUplink/client/src/__generated__/</c>, never into
 /// <c>sitrep-sdk</c>. <see cref="KerbcastCameraEntry"/> carries a real
 /// <see cref="Sitrep.Contract.SitrepTopicAttribute"/> (<c>kerbcast.cameras</c>),
-/// so <c>EmitTopicMap</c> is wired here too, mirroring
-/// <c>AvionicsRtConfig.Configure</c> (MechJeb had nothing to name: see its own
-/// <c>Configure</c>'s comment).</para>
+/// so <c>EmitTopicMap</c> is wired here too. An Uplink whose types carry no
+/// <c>[SitrepTopic]</c> has nothing to name and skips it.</para>
 ///
-/// <para><b>Runtime hydration, not just codegen.</b> A relocated Topic's
-/// declared units also have to reach <c>wrapTopicPayload</c>'s runtime lookup
-/// (<c>sitrep-sdk</c>'s <c>unitsForTopic</c>/<c>shapesForTopic</c>), which
-/// used to read <c>kerbcast.cameras</c> straight out of the SDK's own
-/// generated map because <see cref="KerbcastCameraEntry"/> lived in
-/// <c>Sitrep.Contract</c>. It does not any more, so this Uplink's client
-/// package (<c>topics.ts</c>) now calls the SDK's <c>registerTopicUnits</c> at
-/// module load, feeding it the UNIT map this Configure emits below (see that
-/// file's comment for why: <c>ApplyUnitValueTypes</c> only fixes the
-/// codegen-time TYPE, not the decode-time VALUE). Without this,
+/// <para><b>Runtime hydration, not just codegen.</b> This Topic's declared
+/// units also have to reach <c>wrapTopicPayload</c>'s runtime lookup
+/// (<c>sitrep-sdk</c>'s <c>unitsForTopic</c>/<c>shapesForTopic</c>), and the
+/// SDK's own generated map has nothing for a type declared outside
+/// <c>Sitrep.Contract</c>. So this Uplink's client package (<c>topics.ts</c>)
+/// calls the SDK's <c>registerTopicUnits</c> at module load, feeding it the
+/// UNIT map this Configure emits below. Both legs are needed:
+/// <c>ApplyUnitValueTypes</c> fixes the codegen-time TYPE, never the
+/// decode-time VALUE. Without this,
 /// fieldOfView/panYaw/panPitch (and their min/max pairs) would arrive as bare
 /// numbers at runtime while the TYPE still says <c>Value&lt;"deg"&gt;</c>.</para>
 /// </summary>

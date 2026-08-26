@@ -5,14 +5,13 @@ export interface FakeWallClock {
 }
 
 /**
- * Promotes the `fakeWall` idiom duplicated across several sitrep-client
- * tests (`reference-wire-fixture.test.ts`, `timeline-store-status.test.ts`,
- * `timeline-store.test.ts`) to a reusable, EXPORTED helper: the
- * `m3-migration-plan.md` §4-test test-adapter's "FixedViewClock" pattern
- * (`new ViewClock({ nowWall: wall.now, warpRate: () => 1, delaySeconds: ()
- * => 0 })`, then `clock.scrubTo(fixtureUt)`) needs a `nowWall` function from
- * OUTSIDE this package (`@ksp-gonogo/components`' `setupStreamFixture`), and
- * there was no exported version to reuse before this.
+ * The `fakeWall` idiom several sitrep-client tests need
+ * (`reference-wire-fixture.test.ts`, `timeline-store-status.test.ts`,
+ * `timeline-store.test.ts`), as one EXPORTED helper rather than a copy per
+ * file. Exported because the fixed-clock test pattern (`new ViewClock({
+ * nowWall: wall.now, warpRate: () => 1, delaySeconds: () => 0 })`, then
+ * `clock.scrubTo(fixtureUt)`) needs a `nowWall` function from OUTSIDE this
+ * package, e.g. `@ksp-gonogo/components`' `setupStreamFixture`.
  */
 export function createFakeWallClock(start = 0): FakeWallClock {
   let now = start;

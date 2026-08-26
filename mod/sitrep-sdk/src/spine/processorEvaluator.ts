@@ -371,16 +371,15 @@ const EQUALITY_NODE_BUDGET = 2048;
  * the property that produced both failures exactly where it was, ready for
  * the next shape.
  *
- * ## What replaces it
+ * ## What this does instead
  *
  * The unrecognised case gets its own arm and is REPORTED (see
  * `setProcessorUncomparableRecorder`, and `PROCESSOR_UNCOMPARABLE_BUDGET`
  * core-side, whose threshold is zero). `uncomparable` behaves like
  * `different` (the value is delivered, nothing is withheld), so the safe
- * direction is unchanged. What changes is that it can no longer happen
- * quietly: a tenth processor returning a shape this cannot read says so,
- * naming itself and the shape, instead of costing a wakeup per consumer per
- * frame forever.
+ * direction is the same. What it cannot do is fail quietly: a tenth processor
+ * returning a shape this cannot read says so, naming itself and the shape,
+ * rather than costing a wakeup per consumer per frame forever.
  */
 type Comparison = "equal" | "different" | "uncomparable";
 

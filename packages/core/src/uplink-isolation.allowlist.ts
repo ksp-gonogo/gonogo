@@ -81,11 +81,11 @@ export type ForbiddenPackage = (typeof FORBIDDEN_PACKAGES)[number];
  * Blocked strategies: patterns that must never be re-introduced, independent of
  * the debt list. Adding a file here is not an allowlist, it is a ban.
  *
- * `widgetDeclarations.test.ts` put a registry-introspection gate INSIDE an Uplink
- * client. It was removed on 2026-08-18 rather than allowlisted: the app-side copy
- * at `packages/components/src/test/widgetDeclarations.test.ts` already covers the
- * built-in components, and a gate that lives in the Uplink makes the first-party
- * Uplinks less like the third-party ones they are meant to model.
+ * `widgetDeclarations.test.ts` is a registry-introspection gate, and one inside
+ * an Uplink client is removed rather than allowlisted: the app-side copy at
+ * `packages/components/src/test/widgetDeclarations.test.ts` already covers the
+ * built-in components, and a gate that lives in the Uplink makes the
+ * first-party Uplinks less like the third-party ones they are meant to model.
  */
 export const BLOCKED_FILENAMES = ["widgetDeclarations.test.ts"] as const;
 

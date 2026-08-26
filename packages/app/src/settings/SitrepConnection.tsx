@@ -16,11 +16,11 @@ import { useState } from "react";
 import styled, { keyframes } from "styled-components";
 
 /**
- * The single Gonogo/Sitrep connection row: reuses `sitrepStreamSource`
- * (`packages/app/src/dataSources/sitrep.ts`) for status/config exactly the
- * way the old `DataSourceStatusComponent` did for every source, narrowed to
- * just this one. Lifted out of `SettingsModal.tsx` so the Hub setup
- * wizard's setup-assist step can reuse the same host/data-source UI.
+ * The single Gonogo/Sitrep connection row: reads status and config off
+ * `sitrepStreamSource` (`packages/app/src/dataSources/sitrep.ts`) through the
+ * generic `DataSource` interface. Its own file rather than inline in
+ * `SettingsModal.tsx` so the Hub setup wizard's setup-assist step can reuse
+ * the same host/data-source UI.
  */
 export function SitrepConnection() {
   const dataSources = useDataSources();

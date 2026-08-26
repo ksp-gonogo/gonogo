@@ -52,8 +52,8 @@ export function GridDashboard({
   lastAddedId,
   clearLastAdded,
 }: Readonly<DashboardProps>) {
-  // Defensive: persisted layouts may carry breakpoint keys that used to
-  // exist in COLS (e.g. `xxxs`). Strip anything RGL wouldn't recognise
+  // Defensive: persisted layouts may carry breakpoint keys that are not in
+  // COLS (e.g. `xxxs`). Strip anything RGL wouldn't recognise
   // before handing the map off so it doesn't warn on every render. Then
   // inject minW/minH + clamp from each item's registered minSize.
   const filteredLayouts = useMemo(

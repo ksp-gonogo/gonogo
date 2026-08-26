@@ -122,9 +122,9 @@ export function actionGroupIdOf(group: ActionGroup): ActionGroupId {
  * The live registry: the stock singletons above, then every CUSTOM group the
  * elected backend reported: NAMED by the backend rather than by us.
  *
- * Under stock this yields the same 18 entries the old hardcoded `ACTION_GROUPS`
- * literal did (AG1..AG10 included), except those ten now arrive as telemetry
- * carrying the mod's own labels. Under a future AGX backend the same code
+ * Under stock this yields 18 entries, AG1..AG10 among them, and those ten
+ * arrive as telemetry carrying the mod's own labels rather than being
+ * hardcoded here. Under a future AGX backend the same code
  * yields the player's 250 named groups with no change here, in the contract, or
  * in the widget, that is the whole point of the capability seam
  * (`mod/Sitrep.Host/ActionGroups/IActionGroupsBackend.cs`).

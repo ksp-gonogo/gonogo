@@ -8,18 +8,15 @@
 // `map-view.overlay` is an OVERLAY slot: MapView passes down `project()`,
 // the exact per-body-offset + camera chain the base map itself draws with,
 // so this augment lands its rectangles on the same pixels without
-// re-deriving that maths. This is a DIRECT PORT of the old MapView-internal
-// `drawScanningFootprints` (packages/components/src/MapView/scanOverlay.ts)
-// with one deliberate change: that function drew in WORLD-space coordinates
-// onto a canvas the caller had already put through a zoom-scaling
-// `ctx.setTransform(...)`, so it pre-divided its stroke width by camera zoom
-// to cancel that transform's own scaling back out. `project()` already
-// hands back post-camera-transform SCREEN pixels: there is no second
-// canvas-level transform here to compensate for, so the stroke width is a
-// fixed screen-space constant instead (see `STROKE_WIDTH_PX`). Everything
-// else (the antimeridian-wrap split, the whole-globe span case) is an
-// affine (zoom+pan) transform either way, so that geometry carries over
-// unchanged.
+// re-deriving that maths.
+//
+// The stroke width is a fixed SCREEN-space constant (`STROKE_WIDTH_PX`), NOT
+// pre-divided by camera zoom. Dividing is what a world-space drawing routine
+// has to do, to cancel out a zoom-scaling `ctx.setTransform(...)` the caller
+// applied; `project()` already hands back post-camera-transform screen pixels,
+// so there is no such transform here to compensate for and dividing would
+// shrink the stroke twice. The rest of the geometry (the antimeridian-wrap
+// split, the whole-globe span case) is an affine zoom+pan either way.
 //
 // Presence-gated on `requires: "scansat"`: renders only while
 // `scansat.available` is live, so an install without SCANsat never mounts

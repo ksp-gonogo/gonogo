@@ -61,9 +61,8 @@ export function imagingQuality(altitude: number, body: BodyDefinition): number {
 /**
  * The single global slot the bodies live in, keyed by a string rather than a
  * symbol so two different builds of this package still find the same Map. See
- * `map-poi.ts` for why a module static is not safe once this can be bundled, and
- * note the old host shim's doc made exactly this point about this registry: a
- * bundled `getBody` would have read its own permanently-empty copy.
+ * `map-poi.ts` for why a module static is not safe once this can be bundled:
+ * held in one, a bundled `getBody` reads its own permanently-empty copy.
  */
 const BODY_REGISTRY_KEY = "__GONOGO_BODIES__" as const;
 

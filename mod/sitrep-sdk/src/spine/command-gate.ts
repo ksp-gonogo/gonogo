@@ -81,9 +81,8 @@ export interface CommandGateStatus {
  * distinguish them, because a control does the same thing in all three: the
  * command declares no requirements, the stream is not carrying
  * `system.uplink.gates`, or nothing is connected. In every case the client
- * knows nothing about this command in advance, which is exactly where every
- * control was before this channel existed, so the fallback is the old
- * behaviour rather than a guess.
+ * knows nothing about this command in advance, so the fallback is to behave as
+ * though there were no gate channel at all rather than to guess.
  *
  * <p>Never treat a Pass as permission. The snapshot is up to one sampling
  * interval old and the dispatch re-evaluates the same gates against live state;

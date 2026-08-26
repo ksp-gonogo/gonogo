@@ -90,7 +90,7 @@ export function ReplaySessionBanner() {
   );
 }
 
-/** Formats an elapsed UT (seconds) as `h:mm:ss`/`mm:ss`, the seconds-domain twin of the old ms-based `formatElapsed`. */
+/** Formats an elapsed UT, in seconds, as `h:mm:ss` or `mm:ss`. */
 function formatElapsed(seconds: number): string {
   if (!Number.isFinite(seconds) || seconds < 0) return "00:00";
   const s = Math.floor(seconds);

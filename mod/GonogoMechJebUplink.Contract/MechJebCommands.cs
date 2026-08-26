@@ -16,9 +16,8 @@ namespace Gonogo.MechJebUplink;
 /// mod converts to metres (<c>EditableDoubleMult.Val = TargetAltitudeKm *
 /// 1000.0</c>) before writing it.
 ///
-/// <para>Relocated out of <c>Sitrep.Contract</c> into this Uplink's own
-/// contract slice (<c>GonogoMechJebUplink.Contract</c>): see
-/// <c>local_docs/design/2026-08-10-uplink-types-out-of-core-plan.md</c>. No
+/// <para>Declared in this Uplink's own contract slice
+/// (<c>GonogoMechJebUplink.Contract</c>), never in <c>Sitrep.Contract</c>: no
 /// uplink-specific wire type may live in core, even for an in-monorepo
 /// Uplink.</para>
 /// </summary>
@@ -40,8 +39,8 @@ public class MechJebAscentArgs
 /// TResult&gt;</c> binds to, so the two commands still have a real typed arg
 /// shape rather than a bare <c>object?</c>.
 ///
-/// <para>Relocated out of <c>Sitrep.Contract</c> alongside
-/// <see cref="MechJebAscentArgs"/>; see its doc comment.</para>
+/// <para>Declared in this Uplink's own contract slice alongside
+/// <see cref="MechJebAscentArgs"/>; see its doc comment for why.</para>
 /// </summary>
 [SitrepContract]
 #if SITREP_CODEGEN

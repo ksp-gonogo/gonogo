@@ -221,13 +221,13 @@ export class GoNoGoHostService {
   /**
    * Fire a command through the stream, naming it and its arguments directly.
    *
-   * Both commands this service sends used to go through a widget-facing action
-   * string, and the string form cost the abort twice over. `f.abort` resolved
-   * to a TOGGLE bridge: it read `vessel.control.abort` and sent the negation, so
-   * an abort raised while one was already engaged would have CLEARED it, and an
-   * abort raised while nothing had subscribed to `vessel.control` resolved to
-   * nothing at all and dispatched silently nowhere. Neither is a thing an abort
-   * vote can be allowed to do.
+   * Never through a widget-facing action string, which costs the abort twice
+   * over: an action string resolves to a TOGGLE bridge, reading
+   * `vessel.control.abort` and sending the negation, so an abort raised while
+   * one was already engaged would CLEAR it, and an abort raised while nothing
+   * had subscribed to `vessel.control` would resolve to nothing at all and
+   * dispatch silently nowhere. Neither is a thing an abort vote can be allowed
+   * to do.
    *
    * Naming `setAbort` with an absolute `true` says what the operator meant, and
    * needs no current value to say it.

@@ -1289,19 +1289,17 @@ export function PanelGlow({
 // `.Body`.
 //
 // `Panel.Glow` WRAPS the scrolling region rather than sitting beside it, so it
-// owns both the glow's behaviour and the inset compensation it needs. That
-// replaced a `--scroll-glow-pad-*` var contract shared between three
-// components with no owner, which is exactly how a unitless `0` sat in the
-// scrollable shell making `calc(-1 * 0)` invalid, so the glow never rendered
-// there at all. The vars themselves are now deleted too: left in place as an
-// escape hatch they acquired no publisher, which is the same failure one step
-// quieter.
+// owns both the glow's behaviour and the inset compensation it needs. A
+// `--scroll-glow-pad-*` var contract shared between components with no owner is
+// how a unitless `0` ends up in the scrollable shell, making `calc(-1 * 0)`
+// invalid so the glow never renders there at all. Such vars are deliberately
+// absent rather than kept as an escape hatch: one with no publisher is the same
+// failure one step quieter.
 //
 // Title and toolbar sit inside the glow but BESIDE the body rather than in
-// it, and the body is the scroller, so the header stays pinned while
-// the content scrolls under the glow. (The retired `PanelScrollable` wrapped
-// all its children in the scroll area, so a widget passing a title got a title
-// that scrolled away; that is what this arrangement fixes.)
+// it, and the body is the scroller, so the header stays pinned while the
+// content scrolls under the glow. A wrapper that put all its children in the
+// scroll area instead would scroll the title away.
 // ---------------------------------------------------------------------------
 
 export interface PanelProps extends ComponentPropsWithoutRef<"div"> {

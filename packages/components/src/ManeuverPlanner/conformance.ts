@@ -40,13 +40,12 @@ export interface BurnConformance {
  * Where the burn is, given the delta-v channel and, for `stopped-short`, the
  * thrust latch on `vessel.propulsion`.
  *
- * There is still no `under-burned` member, and the reason has changed. It used
- * to be that nothing said the engines had stopped; `lastThrustEndUt` now does.
- * What no reading can say is WHY they stopped: a burn paused to be re-planned
- * and a burn abandoned produce the same instant, because the difference between
- * them is whether the operator comes back, which has not happened yet at the
- * moment of the reading. "Under-burned" asserts a shortfall, so it would put
- * exactly that unavailable judgement into the label.
+ * There is no `under-burned` member. `lastThrustEndUt` does say the engines
+ * have stopped, but no reading can say WHY they stopped: a burn paused to be
+ * re-planned and a burn abandoned produce the same instant, because the
+ * difference between them is whether the operator comes back, which has not
+ * happened yet at the moment of the reading. "Under-burned" asserts a
+ * shortfall, so it would put exactly that unavailable judgement into the label.
  *
  * `stopped-short` is what is actually known: thrust has ceased and this burn
  * still owes delta-v. It is true either way, and it reads correctly when the

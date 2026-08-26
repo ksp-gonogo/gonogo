@@ -35,17 +35,13 @@ namespace GonogoKerbcastUplink;
 // not `fov`, `panYawMinimum` not `panYawMin`. The Uplink's contract is gonogo's
 // vocabulary, not a passthrough of the upstream mod's abbreviations.
 //
-// Relocated out of Sitrep.Contract into this Uplink's own contract slice
-// (GonogoKerbcastUplink.Contract): see
-// local_docs/design/2026-08-10-uplink-types-out-of-core-plan.md. No
+// Declared in this Uplink's own contract slice
+// (GonogoKerbcastUplink.Contract), never in Sitrep.Contract: no
 // uplink-specific wire type may live in core, even for an in-monorepo Uplink.
-// Third relocation through the mechanism (after the MechJeb pilot and the
-// Avionics relocation): KerbcastCameraEntry's nine Units.Degrees properties
-// genuinely retype to Value<"deg"> below (see KerbcastRtConfig.Configure),
-// same as Avionics's two Units.Tonnes properties did; the two "Args" command
+// KerbcastCameraEntry's nine Units.Degrees properties retype to Value<"deg">
+// below (see KerbcastRtConfig.Configure); the two "Args" command
 // types (KerbcastSetFieldOfViewArgs/KerbcastSetPanArgs) stay bare numbers,
-// same as MechJeb's, since ApplyUnitValueTypes deliberately skips inbound-only
-// command args.
+// since ApplyUnitValueTypes deliberately skips inbound-only command args.
 // ─────────────────────────────────────────────────────────────────────────────
 
 /// <summary>

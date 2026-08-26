@@ -15,11 +15,10 @@ namespace Gonogo.KosUplink
     public sealed class KosComputeBlock
     {
         /// <summary>
-        /// The emitting CPU's <c>KOSCoreId</c> (spec §4.2). The accumulator
-        /// itself no longer knows this: it keys buffers by the
-        /// <c>ScreenBuffer</c> reference, not the resolved CPU id, so no
-        /// <c>AllInstances()</c> reverse-map runs per <c>PRINT</c> fragment
-        /// (adversarial-review I1). The owning CPU is resolved ONCE and stamped
+        /// The emitting CPU's <c>KOSCoreId</c>. The accumulator itself does not
+        /// know it: it keys buffers by the <c>ScreenBuffer</c> reference rather
+        /// than the resolved CPU id, so no <c>AllInstances()</c> reverse-map
+        /// runs per <c>PRINT</c> fragment. The owning CPU is resolved ONCE and stamped
         /// here by <c>KosExtension.OnPrint</c> at the moment the block completes
         /// and is about to publish. <c>-1</c> until stamped.
         /// </summary>

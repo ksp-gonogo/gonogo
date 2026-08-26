@@ -617,7 +617,7 @@ async function renderProbe(payload: ProbePayload): Promise<void> {
   // CSS transitions on transform / opacity can keep moving for a few
   // frames after the React render commits (the heading-strip ticker has
   // `transition: transform 80ms linear`). Without a settle delay the
-  // screenshot catches the strip mid-flight, which used to look like a
+  // screenshot catches the strip mid-flight, which reads as a
   // strip-alignment bug. Padding generously past the longest known
   // transition (80ms) keeps the harness deterministic.
   await settle(200);

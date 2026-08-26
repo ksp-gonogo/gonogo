@@ -19,10 +19,10 @@ import { SettingsModal } from "./SettingsModal";
  * Uplink Hub tab both need (see that component's own doc comment for why
  * the modal portal doesn't inherit it automatically).
  *
- * Data-source management and serial-device management now live inside the
- * Settings modal (they used to be their own FABs), so this button carries
- * the aggregate "something in here needs attention" badge: an offline data
- * source or a dropped serial device lights it, mirroring the per-tab dots.
+ * Data-source management and serial-device management live inside the
+ * Settings modal, so this one button carries the aggregate "something in here
+ * needs attention" badge: an offline data source or a dropped serial device
+ * lights it, mirroring the per-tab dots.
  */
 export function SettingsFab({ bottom = 384 }: { bottom?: number } = {}) {
   const { open } = useModal();

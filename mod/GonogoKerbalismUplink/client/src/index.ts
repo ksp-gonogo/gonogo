@@ -1,8 +1,8 @@
 // @ksp-gonogo/gonogo-kerbalism-uplink: the KerbalismUplink client package entry.
 //
 // Registers the Kerbalism Domain's Topics: the bare-primitive presence gate plus
-// the five structured Topics whose payload types this Uplink now owns outright
-// (relocated out of Sitrep.Contract, see ./topics.ts). RE-EXPORTED rather than
+// the five structured Topics whose payload types this Uplink owns outright
+// (see ./topics.ts). RE-EXPORTED rather than
 // imported for side effect alone, and that is load-bearing in two ways: it keeps
 // bundlers from tree-shaking the registration calls, AND it puts a real
 // `export ... from "./topics"` into the built `dist/index.d.ts`, which is what
@@ -18,9 +18,8 @@
 // since life support is a Kerbalism concept that never belonged in the base
 // library. SpaceWeather's relocation is a follow-up.
 
-// This Uplink's own wire payload types, now that it declares them rather than
-// core. A consumer that reads a kerbalism.* Topic names its shape from HERE, the
-// same way it used to name it from @ksp-gonogo/sitrep-sdk.
+// This Uplink's own wire payload types: it declares them, not core. A consumer
+// that reads a kerbalism.* Topic names its shape from HERE.
 export type {
   KerbalismCrewEntry,
   KerbalismCrewRule,

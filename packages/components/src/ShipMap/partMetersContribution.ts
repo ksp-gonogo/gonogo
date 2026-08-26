@@ -4,20 +4,17 @@ import type { VesselParts } from "@ksp-gonogo/sitrep-sdk";
 import type { ShipMapPartMeterEntry } from "./shipTopology";
 
 // The built-in half of the `ship-map.part-meters` self-contribution, and this
-// repo's flagship demonstration of the pattern: the five classic
-// drainable propellants, moved off ShipDiagramSvg's old hardcoded `DRAINABLE`
-// Set + `resourceColor` switch and onto the SAME contribution slot a
-// Kerbalism-style Uplink contributes its own supply tanks to
+// repo's flagship demonstration of the pattern: the five classic drainable
+// propellants, on the SAME contribution slot a Kerbalism-style Uplink
+// contributes its own supply tanks to
 // (`mod/GonogoKerbalismUplink/client/src/ShipMap/partMeters.ts`). ShipMap
-// itself no longer knows which resource deserves a meter; that judgement
-// call now lives entirely in contributions, this one included.
+// itself does not know which resource deserves a meter; that judgement call
+// lives entirely in contributions, this one included.
 //
-// Deliberately NOT widened to "every resource on every part": the deleted
-// `DRAINABLE` comment's own reasoning still holds (a bar on every resource on
-// every part is worse than bars on five well-chosen ones), it just now lives
-// here instead of gating a hardcoded Set. A future contribution is free to
-// add more resources; this one keeps the original five so the built-in
-// behaviour is unchanged.
+// Deliberately NOT widened to "every resource on every part": a bar on every
+// resource on every part is worse than bars on five well-chosen ones. A
+// future contribution is free to add more resources; this one stays at the
+// five.
 //
 // Reads `vessel.parts` directly (the same Topic `usePartsLive`/`useTopology`
 // already derive ShipMap's own view-model from) rather than a React hook:
@@ -31,8 +28,8 @@ import type { ShipMapPartMeterEntry } from "./shipTopology";
  * which resources earn a meter and nothing more: the fill colour is the
  * resource's IDENTITY (`resourceColor(resource)`, derived by the renderer
  * straight from `resource`, not carried on this entry at all), so it is not a
- * colour choice, and `statusFor` below supplies
- * the SEPARATE, level-driven status signal that tone used to stand in for.
+ * colour choice. `statusFor` below supplies the SEPARATE, level-driven status
+ * signal.
  */
 const DRAINABLE_RESOURCES = [
   "LiquidFuel",

@@ -202,7 +202,7 @@ function netElectricChargeDraw(
  * way it flows ("in" / "out" / "extract"). Returns a FRAGMENT of three flat
  * cells, not its own row wrapper: the enclosing `Grid` is what turns a run of
  * these into aligned columns across every row in the card (CSS grid
- * auto-flow), the same reason `Flows` used to render atomically.
+ * auto-flow), so a row wrapper here would break the alignment.
  */
 function ResourceCells({
   flow,

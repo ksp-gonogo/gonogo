@@ -80,9 +80,9 @@ export interface SettingsModalProps {
 
 /**
  * Tabbed settings surface. Beyond the auto-rendered registered settings
- * (the "General" tab), this is also the home for the connection/device
- * management that used to live in standalone FABs, Data Sources, Devices
- * (serial), and Diagnostics. Each tab can raise an attention dot; the
+ * (the "General" tab), this is also the home for connection and device
+ * management: Data Sources, Devices (serial), and Diagnostics. Each tab can
+ * raise an attention dot; the
  * Settings FAB aggregates those dots into its own badge (see SettingsFab).
  */
 export function SettingsModal({
@@ -214,12 +214,10 @@ export function SettingsModal({
  * The Data Sources tab. Leads with the single Gonogo/Sitrep connection
  * (host/port config, connect status, setup instructions): the app's sole
  * live telemetry source: then lists every registered mod-side Uplink's
- * self-reported health beneath it. Deliberately does NOT list every
- * registered `DataSource` the way the old `DataSourceStatusComponent` did:
- * stations don't reach this tab (`showDataSources` gates it main-only), and
- * on main there is exactly one telemetry connection to manage now, the
- * per-Uplink rows are the finer-grained detail that replaces the old
- * "other connections" list.
+ * self-reported health beneath it. Deliberately does NOT list every registered
+ * `DataSource`: stations don't reach this tab (`showDataSources` gates it
+ * main-only), and on main there is exactly one telemetry connection to manage,
+ * with the per-Uplink rows carrying the finer-grained detail.
  */
 function DataSourcesPanel() {
   return (

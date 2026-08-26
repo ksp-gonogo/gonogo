@@ -29,8 +29,7 @@
 /**
  * The reserved wire key a bag serialises under, on every payload that carries one.
  * Mirrors `Sitrep.Contract.ProviderExtensions.WireField`; `extensions.test.ts`
- * asserts the two strings agree, the same C#-to-TS pinning every relocated Topic
- * id already gets.
+ * asserts the two strings agree, the same C#-to-TS pinning every Topic id gets.
  */
 export const PROVIDER_EXTENSIONS_FIELD = "extensions";
 

@@ -9,14 +9,11 @@ namespace GonogoScansatUplink;
 // ─────────────────────────────────────────────────────────────────────────────
 // SCANsat Topic payloads.
 //
-// These used to live in `mod/Sitrep.Contract/`. They moved here, into
-// GonogoScansatUplink's OWN contract slice, under the operator mandate that no
-// Uplink-specific wire type may live in core, even for an in-monorepo Uplink
-// (see local_docs/design/2026-08-10-uplink-types-out-of-core-plan.md). Fourth
-// Uplink through that mechanism, and the largest so far. The plan doc names the
-// three earlier steps; this file deliberately does not, since naming a sibling
-// Uplink here would trip ITS own frontend uplink-boundary token (the same
-// reason UplinkContractOwnershipTests.cs gives for not naming them either).
+// Declared here, in GonogoScansatUplink's OWN contract slice, never in
+// `mod/Sitrep.Contract/`: no Uplink-specific wire type may live in core, even
+// for an in-monorepo Uplink. This file deliberately names no sibling Uplink,
+// because doing so would trip THAT Uplink's own frontend uplink-boundary token
+// (the same reason UplinkContractOwnershipTests.cs gives for not naming them).
 //
 // Nothing about the WIRE changed: the same JSON bytes, the same camelCase keys,
 // the same two static Topic ids, only the assembly that declares the names.

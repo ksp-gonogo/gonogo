@@ -146,12 +146,12 @@ namespace Sitrep.Contract
         // --- Temperature ---
         /// <summary>
         /// The only temperature the wire carries. There is deliberately no
-        /// Celsius token: <c>HeatShieldTemp</c> used to send °C and it made the
-        /// channel self-inconsistent (every other temperature beside it was K),
-        /// which is how a client came to render a kelvin reading with a °C
-        /// suffix. Celsius is a PRESENTATION unit, and the client asks for it by
-        /// name (<c>formatQuantity(v, "K", { as: "°C" })</c>). Leaving the token
-        /// out means the mistake cannot be spelled.
+        /// Celsius token: one °C field among kelvin ones makes the channel
+        /// self-inconsistent, and that is how a client comes to render a kelvin
+        /// reading with a °C suffix. Celsius is a PRESENTATION unit, and the
+        /// client asks for it by name
+        /// (<c>formatQuantity(v, "K", { as: "°C" })</c>). Leaving the token out
+        /// means the mistake cannot be spelled.
         /// </summary>
         public const string Kelvin = "K";
 
@@ -347,10 +347,10 @@ namespace Sitrep.Contract
         // which is a different statement from every token above and a very
         // different statement from silence.
         //
-        // They exist because the old doctrine ("only annotate what is KNOWN",
-        // absence means not-yet-stated) made the absent case unfalsifiable: a
-        // new numeric field with no unit is indistinguishable from a boolean
-        // that never needed one, so nothing could ever be enforced. Giving the
+        // They exist so that absence is falsifiable. Under an "only annotate
+        // what is KNOWN" rule, where silence means not-yet-stated, a new
+        // numeric field with no unit is indistinguishable from a boolean that
+        // never needed one, and nothing can be enforced. Giving the
         // non-quantities a way to SAY SO is what lets the coverage gate treat a
         // bare property as a defect.
         //
@@ -392,12 +392,12 @@ namespace Sitrep.Contract
         /// resource: a unit of LiquidFuel and a unit of Ore share a name and
         /// nothing else, with different densities and different costs.
         ///
-        /// <para>This vocabulary previously refused to name them at all (see
-        /// <see cref="Mits"/>, which contrasts itself against exactly this).
-        /// Refusing was right while absence meant "not stated"; under the new
-        /// rule the honest declaration is "this is in resource units, whose
-        /// meaning depends on the resource named beside it", and that is what
-        /// this token says. It is not an SI quantity and never converts.</para>
+        /// <para>Refusing to name them at all would be right if absence meant
+        /// "not stated" (see <see cref="Mits"/>, which contrasts itself against
+        /// exactly this). Since absence has to be falsifiable, the honest
+        /// declaration is "this is in resource units, whose meaning depends on
+        /// the resource named beside it", and that is what this token says. It
+        /// is not an SI quantity and never converts.</para>
         /// </summary>
         public const string ResourceUnits = "units";
 

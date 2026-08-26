@@ -20,9 +20,9 @@
 // than being reimplemented, so the direction of travel is that this subpath
 // eventually holds all of it and `sitrep-testing` retires.
 //
-// An earlier revision of this comment named the not-yet-here helpers as a future
-// proposal, and that cost more than it was worth: greps of the sdk for those
-// symbols hit the prose and read as though the subpath already exported them.
+// Do not name a helper this subpath does not yet export, not even as a
+// proposal: a grep of the sdk for that symbol hits this prose and reads as
+// though the export already exists.
 // ---------------------------------------------------------------------------
 
 // Everything else Testing Library offers (`screen`, `waitFor`, `within`, `act`,

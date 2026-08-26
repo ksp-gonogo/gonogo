@@ -5,10 +5,9 @@ import { kosSource } from "./kos";
 
 /**
  * Stands up kOS CPU discovery for the lifetime of the mounted sitrep stream,
- * and feeds the result into the screen's CPU registry. Merges what used to
- * be two separate pieces (`KosCpuDiscovery` + `useKosMainWiring`) into one
- * component now that both live in the kos Uplink package alongside the
- * concrete `kosSource` instance they both reach into directly.
+ * and feeds the result into the screen's CPU registry. One component doing
+ * both, because both halves reach into the same concrete `kosSource` instance
+ * that lives in this package.
  *
  * Discovery rides the mod's native `kos.processors` push channel, which the
  * `KosDataSource`'s Uplink executor already subscribes to for tagname →
@@ -34,9 +33,9 @@ export function KosCpuDiscovery({
   useEffect(() => {
     if (!client) return;
     // kosSource is always the registered "kos" Uplink handle in-process
-    // (this component only mounts on the main screen), so the instanceof
-    // check that used to guard a generic getDataSource("kos") lookup isn't
-    // needed here: it imports the concrete instance directly.
+    // (this component only mounts on the main screen), and it is imported as
+    // the concrete instance, so no instanceof narrowing is needed the way a
+    // generic getDataSource("kos") lookup would require.
     kosSource.attachTelemetryClient(client);
   }, [client]);
 

@@ -52,9 +52,9 @@ const ACRONYMS: Readonly<Record<string, string>> = Object.freeze({
  *
  * Derived from the field name rather than written per field. That loses the
  * editorial phrasing a hand-maintained catalogue can carry, and buys a label
- * that cannot go stale against the wire, which is the trade the hand-written
- * table lost: it drifted, and a label describing a field that no longer exists
- * is worse than a plainer one that does.
+ * that cannot go stale against the wire. A hand-written table drifts, and a
+ * label describing a field that does not exist is worse than a plainer one
+ * that does.
  */
 export function humaniseFieldPath(path: string): string {
   const words = path

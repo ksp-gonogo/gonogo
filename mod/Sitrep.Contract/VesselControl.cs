@@ -32,13 +32,13 @@ public enum SasMode
 }
 
 /// <summary>
-/// One custom action group's IDENTITY plus its live state. Replaces the old
-/// positional <c>bool[]</c> (<c>[ag1..ag10]</c> by array position), which
-/// could carry state but never a NAME, and a name is the whole point:
-/// stock KSP's ten customs are anonymous, but Action Groups Extended (AGX)
-/// gives the player up to 250 groups they name themselves ("Solar Panels",
-/// "Science Bay"). A positional array cannot express that, so the client was
-/// forced to hardcode "AG1".."AG10" labels.
+/// One custom action group's IDENTITY plus its live state. Deliberately NOT a
+/// positional <c>bool[]</c> indexed <c>[ag1..ag10]</c>: such an array can carry
+/// state but never a NAME, and a name is the whole point. Stock KSP's ten
+/// customs are anonymous, but Action Groups Extended (AGX) gives the player up
+/// to 250 groups they name themselves ("Solar Panels", "Science Bay"). A
+/// positional array cannot express that, and forces the client to hardcode
+/// "AG1".."AG10" labels.
 ///
 /// <para>Scope: this list carries the CUSTOM (extensible) groups only. The
 /// stock singletons (SAS/RCS/Gear/Brakes/Lights/Abort) keep their own
@@ -194,8 +194,7 @@ public class VesselControl
     /// player's own names. Null when action-group data wasn't available this
     /// tick: never a partial list. Order is by <see cref="ActionGroupState.Index"/>
     /// ascending, but read <see cref="ActionGroupState.Index"/> rather than
-    /// relying on array position: position carried the identity in the old
-    /// <c>bool[]</c> shape and no longer does.
+    /// relying on array position: position does not carry identity here.
     /// </summary>
     public ActionGroupState[]? ActionGroups { get; set; }
 

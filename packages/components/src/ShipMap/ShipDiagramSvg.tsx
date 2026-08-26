@@ -1032,8 +1032,7 @@ function renderPartShape(
  * colour (`resourceColor(m.resource)` below); this is the SEPARATE status
  * signal, painted as a stroke around the bar's track rather than blended
  * into the fill, so "what resource is this" and "how is it doing" stay two
- * independently legible things rather than one conflated hue, which is
- * exactly what the old `MeterTone`-as-identity scheme did.
+ * independently legible things rather than one conflated hue.
  */
 const STATUS_BORDER: Record<"low" | "critical", string> = {
   low: "var(--color-status-warning-bg)",
@@ -1393,10 +1392,9 @@ function withBody(
   };
 }
 
-// Relocated from ShipMap/index's DiagramWrap `svg {}` descendant rule (not
-// inline-expressible there); it belongs on the element it sizes. `flex: 1` is
-// inert here (the parent Wrapper is position:relative, not flex) but kept for
-// parity with the rule it replaces.
+// Sizing for the diagram svg, held on the element it sizes rather than as a
+// `svg {}` descendant rule on DiagramWrap. `flex: 1` is inert (the parent
+// Wrapper is position:relative, not flex), so nothing here depends on it.
 //
 // Local sibling ordering inside DiagramWrap's stacking context, not app-global
 // chrome: the svg sits above the ambient tint (z 0) and below the overlay layer

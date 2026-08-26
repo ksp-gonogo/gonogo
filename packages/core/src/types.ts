@@ -27,14 +27,13 @@ export interface ConfigField {
 /**
  * One entry in the action-group registry (`@ksp-gonogo/core/actionGroups`).
  *
- * Note there is no longer a `value:` legacy read key. That field
- * (`"v.sasValue"`, `"v.ag1Value"`, …) was the last thing forcing `ActionGroup`
- * to resolve its read dynamically off this registry, which made it the
- * mapTopic coverage scan's own blind spot AND kept a legacy
- * `useTelemetry("data", …)` shim read alive in the widget. The widget now reads
- * the canonical `vessel.control` / `vessel.structure` topics directly and
- * resolves each group's value from the payload, so the registry only has to
- * describe WHICH group an entry is, not how to read it.
+ * Deliberately carries no read key. A per-entry key would force `ActionGroup`
+ * to resolve its read dynamically off this registry, which is a blind spot for
+ * the `mapTopic` coverage scan and would keep a `useTelemetry("data", …)` shim
+ * read alive in the widget. The widget reads the canonical `vessel.control` /
+ * `vessel.structure` topics directly and resolves each group's value from the
+ * payload, so the registry only has to describe WHICH group an entry is, not
+ * how to read it.
  */
 export interface ActionGroup {
   /** Display name. Stock singletons: "SAS"/"Gear"/…. Customs: whatever the elected backend called it ("AG1" under stock, "Solar Panels" under AGX). */

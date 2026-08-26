@@ -36,15 +36,14 @@
 // ui-kit back here would be the exact same leaf-cycle this file's header
 // (and `./slots.ts`'s) already explains for `@ksp-gonogo/components`.
 //
-// `ShipMapPartMeterEntry` no longer carries a `tone` (design doc:
-// local_docs/design/2026-08-08-resource-colour-system.md, gonogo main
-// repo): the meter's fill is the resource's IDENTITY colour, derived by the
-// renderer from `resource` via ui-kit's `resourceColor`, never chosen by a
-// contributor. `status` is the SEPARATE, level-driven signal (a border tint
-// or badge) that `tone` used to conflate with the fill hue. `ShipMapMeterTone`
-// stays exported for `ShipMapPartMetaEntry`, which is a different kind of
-// row (process running/broken, habitat pressure, ...) and is unaffected by
-// this change: its `tone` genuinely IS a status colour, not an identity.
+// `ShipMapPartMeterEntry` deliberately carries no `tone`: the meter's fill is
+// the resource's IDENTITY colour, derived by the renderer from `resource` via
+// ui-kit's `resourceColor`, never chosen by a contributor. `status` is the
+// SEPARATE, level-driven signal (a border tint or badge), and a single `tone`
+// would conflate it with the fill hue. `ShipMapMeterTone` IS exported, for
+// `ShipMapPartMetaEntry`: that is a different kind of row (process
+// running/broken, habitat pressure, ...) whose `tone` genuinely is a status
+// colour rather than an identity.
 // ---------------------------------------------------------------------------
 
 /** Mirrors ui-kit's `MeterTone` (`packages/ui-kit/src/Meter.tsx`). */

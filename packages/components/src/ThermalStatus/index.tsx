@@ -426,8 +426,8 @@ const PillRow = styled.div`
 
 // The shared StatusPill sizes itself to its label at a fixed padding,
 // fine everywhere it's used except this widget's narrowest "pill-only"
-// mode (minSize is 3 cols wide), where "CRITICAL" no longer fits and was
-// overflowing past the panel's right edge under Panel's overflow:hidden.
+// mode (minSize is 3 cols wide), where "CRITICAL" does not fit and overflows
+// past the panel's right edge under Panel's overflow:hidden.
 // min-width: 0 lets the flex item shrink below its intrinsic content
 // width (the flexbox default is min-width: auto, which blocks exactly
 // that); the tighter padding/letter-spacing buys back room so common

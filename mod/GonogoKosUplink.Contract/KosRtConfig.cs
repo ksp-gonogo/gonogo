@@ -8,20 +8,16 @@ namespace Gonogo.KosUplink;
 /// This Uplink's OWN codegen configuration: mirrors
 /// <c>Sitrep.Contract.RtConfig.Configure</c>'s shape exactly, scoped to just
 /// this assembly's eleven wire types, and reuses
-/// <c>RtConfig.ApplyUnitValueTypes</c> the same way each earlier relocated
-/// Uplink's own <c>Configure</c> does (the uplink-types-out-of-core plan's
-/// mechanism, unchanged here; the plan doc names the five earlier steps, this
-/// file does not, since naming a sibling Uplink would trip ITS own frontend
-/// uplink-boundary token).
+/// <c>RtConfig.ApplyUnitValueTypes</c> the same way every Uplink's own
+/// <c>Configure</c> does. Deliberately names no sibling Uplink: doing so would
+/// trip THAT Uplink's own frontend uplink-boundary token.
 ///
-/// <para><b>One Topic-tagged root out of eleven types, which is the lowest
-/// ratio of any relocated slice.</b> Only <see cref="KosProcessorInfo"/> carries
-/// <c>[SitrepTopic]</c> (<c>kos.processors</c>, <c>isArray</c>), so
-/// <c>EmitTopicMap</c> is wired below but names exactly one entry. The other ten
-/// are not nested shapes either, which is what makes this slice structurally
-/// unlike its predecessors: they are the payloads of DYNAMIC channels and
-/// commands, which by construction cannot carry a static <c>[SitrepTopic]</c>
-/// name.
+/// <para><b>One Topic-tagged root out of eleven types.</b> Only
+/// <see cref="KosProcessorInfo"/> carries <c>[SitrepTopic]</c>
+/// (<c>kos.processors</c>, <c>isArray</c>), so <c>EmitTopicMap</c> is wired
+/// below but names exactly one entry. The other ten are not nested shapes
+/// either: they are the payloads of DYNAMIC channels and commands, which by
+/// construction cannot carry a static <c>[SitrepTopic]</c> name.
 /// <list type="bullet">
 /// <item><see cref="KosTerminalFrame"/> rides
 /// <c>kos.terminal.&lt;coreId&gt;</c> and <see cref="KosRunResult"/> rides
@@ -43,10 +39,9 @@ namespace Gonogo.KosUplink;
 /// <see cref="KosExecArgs"/>, <see cref="KosReEnableArgs"/>,
 /// <see cref="KosRunArgs"/>, <see cref="KosTerminalOpenArgs"/>,
 /// <see cref="KosKeystrokeArgs"/>, <see cref="KosTerminalResizeArgs"/> and
-/// <see cref="KosTerminalCloseArgs"/> keep bare properties. That is the highest
-/// proportion of args in any relocated slice, and it is worth stating plainly
-/// because it is why the retyping this call exists to perform is nearly invisible
-/// here.</para>
+/// <see cref="KosTerminalCloseArgs"/> keep bare properties. Worth stating
+/// plainly, because it is why the retyping this call exists to perform is
+/// nearly invisible here.</para>
 ///
 /// <para><b>Exactly ONE declared quantity survives to a
 /// <c>Value&lt;&gt;</c> in this whole slice</b>, and the honest accounting
@@ -76,12 +71,12 @@ namespace Gonogo.KosUplink;
 /// into <c>mod/GonogoKosUplink/client/src/__generated__/</c>, never into
 /// <c>sitrep-sdk</c>.</para>
 ///
-/// <para><b>Runtime hydration, not just codegen.</b> A relocated Topic's
-/// declared units also have to reach <c>wrapTopicPayload</c>'s runtime lookup
-/// (<c>sitrep-sdk</c>'s <c>unitsForTopic</c>/<c>shapesForTopic</c>), which used
-/// to read <c>kos.processors</c> straight out of the SDK's own generated map
-/// because these types lived in <c>Sitrep.Contract</c>. It does not any more, so
-/// this Uplink's client package (<c>topics.ts</c>) calls the SDK's
+/// <para><b>Runtime hydration, not just codegen.</b> This Topic's declared
+/// units also have to reach <c>wrapTopicPayload</c>'s runtime lookup
+/// (<c>sitrep-sdk</c>'s <c>unitsForTopic</c>/<c>shapesForTopic</c>), and the
+/// SDK's own generated map has nothing for a type declared outside
+/// <c>Sitrep.Contract</c>. So this Uplink's client package (<c>topics.ts</c>)
+/// calls the SDK's
 /// <c>registerTopicUnits</c> AND <c>registerTypeUnits</c> at module load, feeding
 /// them the maps this Configure emits below. Both halves are wired for the same
 /// reason the loop form was chosen over naming entries: what needs registering

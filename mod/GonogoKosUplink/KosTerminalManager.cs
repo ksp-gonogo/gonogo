@@ -137,7 +137,7 @@ namespace Gonogo.KosUplink
         /// <param name="isSubscribed">Is <c>kos.terminal.&lt;coreId&gt;</c> CURRENTLY subscribed (e.g. <c>host.IsAnyTopicSubscribed</c>)? A pure "should I bother reading/publishing this CPU's screen at all" gate, the reseed decision is <see cref="NotifySubscribed"/>'s job, not this one.</param>
         /// <param name="publish">Publish a frame to <c>kos.terminal.&lt;coreId&gt;</c> at the given UT (the current clock read; the terminal channel is <c>Delivery.ReliableOrdered</c>, so the engine forwards each frame in order regardless of whether several share a <c>ValidAt</c>).</param>
         /// <param name="createScreen">Build (or resolve) the screen reader for a CPU; null when the CPU is gone.</param>
-        /// <param name="nowUt">Current UT (main-thread clock read, e.g. <c>host.NowUt</c>). May return the SAME value across several consecutive polls, harmless: the ReliableOrdered lane forwards each frame per-sample, in order, so same-UT frames no longer coalesce.</param>
+        /// <param name="nowUt">Current UT (main-thread clock read, e.g. <c>host.NowUt</c>). May return the SAME value across several consecutive polls, harmless: the ReliableOrdered lane forwards each frame per-sample, in order, so same-UT frames do not coalesce.</param>
         /// <param name="pollIntervalSeconds">Downlink cadence (kOS's own screen loop is 20 Hz, 0.05s).</param>
         /// <param name="keyframeIntervalSeconds">
         /// Periodic full-repaint (keyframe) cadence per subscribed CPU. The

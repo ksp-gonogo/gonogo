@@ -260,15 +260,14 @@ function ActionGroupView({
 }) {
   const currentLabel = config?.label ?? group?.name ?? "";
 
-  // `value` now arrives as a prop, resolved one-arg off the canonical
-  // `vessel.control` / `vessel.structure` Topics by the wrappers above, the
-  // last `useTelemetry("data", group.value)` shim read is gone, and with it
-  // `mapTopic.coverage`'s dynamic-key blind spot: the ACTION_GROUPS registry
-  // no longer carries read keys at all. The `.toggle` side rides `useCommand`
-  // (delayed-command-ux migration): `toggleCommandFor`/`buildToggleArgs`
-  // below apply the same toggle -> absolute bridge `map-command.ts`'s
-  // `toggleHome`/`actionGroupHome` do, off the group's own already-known
-  // `value` instead of a separate store sample.
+  // `value` arrives as a prop, resolved one-arg off the canonical
+  // `vessel.control` / `vessel.structure` Topics by the wrappers above, so the
+  // ACTION_GROUPS registry carries no read keys at all and nothing here rests
+  // on `mapTopic.coverage` resolving a dynamic key. The `.toggle` side rides
+  // `useCommand`: `toggleCommandFor`/`buildToggleArgs` below apply the same
+  // toggle -> absolute bridge `map-command.ts`'s `toggleHome`/`actionGroupHome`
+  // do, off the group's own already-known `value` instead of a separate store
+  // sample.
   // These two reads have clean canonical homes of their own:
   //  - `t.isPaused`     -> `time.warp.paused`
   //  - `comm.connected` -> `comms.link.connected`

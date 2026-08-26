@@ -39,21 +39,21 @@ namespace Gonogo.KSP
         // telemetry, home-LAN scope.
         private const string BindUri = "ws://0.0.0.0:8090";
 
-        // UT-cadence sampling (Track C): the v1 mod sampled the host every
-        // physics tick, which under time-warp is far more often than any
-        // consumer needs. FixedUpdate below checks NowUt() cheaply every
+        // UT-cadence sampling: sampling the host on every physics tick is,
+        // under time-warp, far more often than any consumer needs.
+        // FixedUpdate below checks NowUt() cheaply every
         // tick but only calls the (comparatively expensive) Sample() once
         // this many UT seconds have elapsed since the last sample - warp
         // safe because it's gated on game time, not wall-clock/tick count.
         private const double SampleIntervalUt = 1.0;
 
-        // Periodic recording flush: a serialization bug used to only
-        // surface at quit, after which point a bad session had already lost
-        // everything. Flushing every ~60s of REAL (wall-clock) time - not UT
-        // - means the file exists and grows almost immediately, a bad
-        // serialize throws on the FIRST flush (visible in KSP.log within a
-        // minute, not at quit), and a crash mid-session only loses the last
-        // partial interval instead of the whole flight. Wall-clock,
+        // Periodic recording flush. Writing only at quit means a serialization
+        // bug surfaces only at quit, by which point the whole session is lost.
+        // Flushing every ~60s of REAL (wall-clock) time - not UT - means the
+        // file exists and grows almost immediately, a bad serialize throws on
+        // the FIRST flush (visible in KSP.log within a minute, not at quit),
+        // and a crash mid-session only loses the last partial interval instead
+        // of the whole flight. Wall-clock,
         // gated via FlushCadence, is deliberately steady under time-warp -
         // unlike SampleIntervalUt above, this must NOT speed up/slow down
         // with warp.
@@ -95,12 +95,13 @@ namespace Gonogo.KSP
             {
                 _host = new KspHost(SharedManeuverNodeIdRegistry);
                 _recorder = new Recorder(_host);
-                // executeCommandsOnMainThread: true (F2 Part 1). The engine
-                // marshals every command handler onto its main-thread queue,
-                // drained by _engine.RunPendingCommands() in FixedUpdate below,
-                // so live KSP/Unity actuation (KspVesselActuator) runs on the
-                // Unity main thread, never the Courier thread (the crash class
-                // KspVesselActuator's doc comment used to describe as deferred).
+                // executeCommandsOnMainThread: true. The engine marshals every
+                // command handler onto its main-thread queue, drained by
+                // _engine.RunPendingCommands() in FixedUpdate below, so live
+                // KSP/Unity actuation (KspVesselActuator) runs on the Unity
+                // main thread, never the Courier thread: touching a KSP/Unity
+                // API from Courier is the crash class KspVesselActuator's doc
+                // comment describes.
                 _engine = new ChannelEngine(BindUri, executeCommandsOnMainThread: true);
 
                 // Route the engine's fail-soft diagnostics to the KSP log.
@@ -248,11 +249,10 @@ namespace Gonogo.KSP
 
                 _engine.Start();
 
-                // Session file path is established ONCE here, at startup,
-                // and reused for every periodic flush AND the final save -
-                // previously this was computed fresh at quit, so a crash (or
-                // even a clean quit before the fix) left no file at all.
-                // Directory creation moves here too, for the same reason.
+                // Session file path is established ONCE here, at startup, and
+                // reused for every periodic flush AND the final save. Computed
+                // fresh at quit instead, a crash would leave no file at all.
+                // Directory creation belongs here for the same reason.
                 var dir = Path.Combine(KSPUtil.ApplicationRootPath, "GameData", "Gonogo", "PluginData", "recordings");
                 Directory.CreateDirectory(dir);
                 _sessionPath = Path.Combine(dir, "session-" + DateTime.UtcNow.ToString("yyyyMMdd-HHmmss") + ".json");
@@ -502,7 +502,7 @@ namespace Gonogo.KSP
 
                 // The engine applies every registered channel's mapper
                 // (system.bodies's is SystemViewProvider.BuildSystemBodies,
-                // via SystemUplink) itself - GonogoAddon no longer builds
+                // via SystemUplink) itself, rather than GonogoAddon building
                 // the payload by hand.
                 _engine.Tick(snapshot.Ut, snapshot);
             }

@@ -32,9 +32,9 @@ import { CORE_UPLINK_CLIENT } from "./uplink-clients";
 //
 // AN ABSENT PER-STAGE FIELD IS `NaN`, never `0`. They are opposite facts: a
 // stage with no engine has no ΔV figure, and a spent stage has 0 m/s. Spelling
-// both `0` is the same mistake `useVesselDeltaV` fixed one level up when it made
-// its total nullable, left unfixed one level down. NaN is affordable here
-// precisely BECAUSE the total no longer comes from summing these rows.
+// both `0` is the same mistake `useVesselDeltaV` avoids one level up by making
+// its total nullable. NaN is affordable here precisely BECAUSE the total does
+// not come from summing these rows.
 //
 // THE BUDGET IS CARRIED AND DATED, never withheld. A ΔV budget only falls by
 // burning and only rises by staging or docking, all of which are events the

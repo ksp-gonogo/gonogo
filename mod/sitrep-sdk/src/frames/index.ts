@@ -104,8 +104,8 @@ export type { Vector3 };
  * in throughout. That constraint is why this exists rather than the conversion
  * being written at each call site: a dimensionless `Vec3Of<"1">` (an
  * orientation, say) reads as a position perfectly well once its components are
- * loose numbers, and hand-extraction in this repo was previously written as a
- * cast, which put `Value` objects through arithmetic that wanted numbers.
+ * loose numbers, and hand-extraction gets written as a cast, which puts `Value`
+ * objects through arithmetic that wants numbers.
  *
  * Position and velocity share one door because splitting them would buy
  * nothing: both would return the same tuple type, so neither spelling can stop

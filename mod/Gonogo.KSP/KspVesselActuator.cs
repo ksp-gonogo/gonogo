@@ -27,18 +27,14 @@ namespace Gonogo.KSP
     /// direction of data flow rather than folded into <see cref="KspHost"/>
     /// itself).</para>
     ///
-    /// <para><b>Main-thread marshaling (F2: resolved):</b> every method here
-    /// now runs on the Unity main thread. <see cref="ChannelEngine"/> is
-    /// constructed with <c>executeCommandsOnMainThread: true</c> (see
-    /// <c>GonogoAddon.Awake</c>), so it marshals each command handler onto its
-    /// main-thread queue and blocks the Courier thread until
-    /// <c>GonogoAddon.FixedUpdate</c> drains it via
-    /// <c>ChannelEngine.RunPendingCommands</c>: exactly the "main-thread job
-    /// queue drained every FixedUpdate, Courier thread blocked until the
-    /// action completes" fix the RETIRED <c>GonogoTelemetry</c> staging plugin
-    /// used (<c>GonogoTelemetryAddon.Defer</c>). This closes the previously-
-    /// deferred crash class: no KSP/Unity API here is ever touched from the
-    /// Courier thread.</para>
+    /// <para><b>Main-thread marshaling:</b> every method here runs on the Unity
+    /// main thread. <see cref="ChannelEngine"/> is constructed with
+    /// <c>executeCommandsOnMainThread: true</c> (see <c>GonogoAddon.Awake</c>),
+    /// so it marshals each command handler onto its main-thread queue and
+    /// blocks the Courier thread until <c>GonogoAddon.FixedUpdate</c> drains it
+    /// via <c>ChannelEngine.RunPendingCommands</c>. That is what closes the
+    /// whole deferred-crash class: no KSP/Unity API here is ever touched from
+    /// the Courier thread, which is fatal.</para>
     /// </summary>
     public sealed class KspVesselActuator : IVesselActuator
     {

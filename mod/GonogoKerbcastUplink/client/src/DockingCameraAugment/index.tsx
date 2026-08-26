@@ -1,11 +1,9 @@
 // kerbcast docking-camera augment for Targeting.
 //
-// Fills Targeting's `targeting.camera` slot with a live video
-// backdrop behind the docking reticle. This is the filler that widget's
-// augment-slot doc block was written for: the slot was previously only
-// EXPOSED, with a built-in `HudCamera` holding the spot "until the kerbcast
-// filler and CameraFeed-out-migration land". That built-in has now been
-// removed: see this module's sibling note in `Targeting/index.tsx`.
+// Fills Targeting's `targeting.camera` slot with a live video backdrop behind
+// the docking reticle. This is the filler that widget's augment-slot doc block
+// was written for, and the only one: Targeting ships no built-in backdrop, so
+// without this augment the HUD composes with no video layer at all.
 //
 // Why an augment and not a standalone CameraFeed instance: the backdrop has to
 // draw in the HUD's own reticle space and share its lifecycle. The slot passes

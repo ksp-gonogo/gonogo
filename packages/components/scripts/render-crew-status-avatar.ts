@@ -13,9 +13,9 @@
  * (`crew-avatar-probe-entry.tsx`'s own doc comment). Replays the existing
  * `crew-critical.json` fixture (already used by the panel-badge render and
  * the kerbalism-crew-survival widget-render set) so the avatar column shows
- * up alongside a REAL per-row badge + survival meter, the exact case the
- * layout fix targets: the badge used to render awkwardly low because the
- * avatar sat next to the name only, not the whole block.
+ * up alongside a REAL per-row badge + survival meter, which is the case that
+ * shows whether the avatar is spanning the whole row block rather than
+ * sitting next to the name alone and dragging the badge low.
  *
  * Sizes mirror the `crew-status/kerbalism-survival` render-widget config
  * (`widgets.ts`) so this set is directly comparable to the no-avatar

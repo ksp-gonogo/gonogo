@@ -2,11 +2,11 @@
 
 declare const __GONOGO_VERSION__: string;
 declare const __GONOGO_BUILD_TIME__: string;
-// The C# contract's half of the app's Uplink-compat identity (design §5 step
-// 3 / §6.3): single-sourced in vite.config.ts, gated against a runtime-
-// loaded Uplink descriptor's declared versions before import. apiVersion and
-// uiKitVersion no longer need a define: hostCompat.ts imports
-// EXTENSION_API_VERSION/UI_KIT_VERSION directly (see that file).
+// The C# contract's half of the app's Uplink-compat identity: single-sourced
+// in vite.config.ts, gated against a runtime-loaded Uplink descriptor's
+// declared versions before import. The apiVersion and uiKitVersion halves need
+// no define, because hostCompat.ts imports EXTENSION_API_VERSION and
+// UI_KIT_VERSION directly (see that file).
 declare const __GONOGO_CONTRACT_MAJOR__: number;
 declare const __GONOGO_CONTRACT_MINOR__: number;
 

@@ -221,8 +221,8 @@ namespace Gonogo.KosUplink
             // only the wire-facing value handed to Publish is a
             // self-flattened Dictionary<string, object?>. Fields is already a
             // Dictionary<string, object?> and passes through unchanged. See
-            // KosRunResultBuilder's doc comment for why JsonWriter no longer
-            // needs a hardcoded case for the raw POCO.
+            // KosRunResultBuilder's doc comment for why JsonWriter needs no
+            // hardcoded case for the raw POCO.
             _runManager.SetPublisher((coreId, result) =>
                 _runSource?.Publisher(KosChannels.RunSubTopic(coreId)).Publish(
                     KosRunResultBuilder.Build(result.CoreId, result.RequestId, result.Fields, result.Error),

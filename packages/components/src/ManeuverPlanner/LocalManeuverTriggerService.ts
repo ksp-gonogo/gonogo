@@ -146,10 +146,9 @@ export class LocalManeuverTriggerService implements ManeuverTriggerService {
     if (!plan) return;
     const burns = isSequence(plan) ? plan.burns : [plan];
     for (const b of burns) {
-      // Named directly, with the burn's own numbers as arguments. They used to
-      // be formatted to three decimals into a key so a table could parse them
-      // back out, which lost precision on the way through for no reason but the
-      // key's shape.
+      // Named directly, with the burn's own numbers as arguments, so the full
+      // precision reaches the command rather than being rounded into a key
+      // string for something downstream to parse back out.
       const outcome = dispatchActiveCommandTopic("vessel.maneuver.add", {
         ut: b.ut,
         prograde: b.prograde,

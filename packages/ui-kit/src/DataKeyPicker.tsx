@@ -37,10 +37,10 @@ export interface DataKeyPickerProps {
  * Shown in place of a label when a saved key is not in `keys`.
  *
  * A key can go missing because the vocabulary moved on: a widget saved before a
- * Topic was renamed or retired still holds the old name. The picker used to
- * render that key as its own raw string, which reads as a valid selection, so a
- * graph series drew a flat line and an alarm simply never fired. Both look like
- * a reading of zero, and a zero is a claim about the craft.
+ * Topic was renamed or retired still holds the name it had. Rendering that key
+ * as its own raw string reads as a valid selection, so a graph series draws a
+ * flat line and an alarm simply never fires. Both look like a reading of zero,
+ * and a zero is a claim about the craft.
  */
 const RETIRED_MESSAGE = "no longer available";
 

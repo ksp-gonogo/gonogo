@@ -57,26 +57,23 @@ import { useDataSourceSubscription } from "./use-data-source-subscription";
  *   yet) is identical.
  * - **Unmapped key, no `TelemetryProvider` in the tree yet, or the resolved
  *   topic is NOT carried** → falls back to the legacy registered `DataSource`
- *   path unchanged. This is what lets M3 migrate widgets (and mount
- *   `TelemetryProvider`) group-by-group: an unmigrated screen with no
- *   provider behaves exactly as it does today, a key the migration table
- *   hasn't reached yet (an M1 §5.2 "known gap") keeps working off the old
- *   `DataSource` even once the provider is live, and, the M3 Wave 0
- *   carried-channels allowlist gate (`m3-migration-plan.md` §5.1): a MAPPED
- *   key whose stream the mounted transport doesn't actually carry ALSO stays
- *   on the working legacy read instead of resolving to a permanent
- *   loading-forever `undefined`. See the gate's own comment further down for
- *   the full "why": this is the fix for the plan's "big-bang blank-out"
- *   cliff.
+ *   path unchanged. This is what lets a screen mount `TelemetryProvider`
+ *   without every read on it having to move at once: a screen with no provider
+ *   behaves as it always does, a key the migration table does not cover keeps
+ *   working off its `DataSource` even once the provider is live, and, through
+ *   the carried-channels allowlist gate, a MAPPED key whose stream the mounted
+ *   transport does not actually carry ALSO stays on the working fallback read
+ *   instead of resolving to a permanent loading-forever `undefined`. See the
+ *   gate's own comment further down for the full "why": it is what prevents a
+ *   whole-dashboard blank-out.
  *
- * **The M2 bridge task.** `mapTopic` frequently targets a DERIVED topic
- * (`vessel.state.<field>`: the V-12 dual-altitude fix). A derived topic is
- * never itself a wire topic; nothing sends it, so the shim can't just
- * `client.subscribe`/`client.getValue` it directly the way it used to (that
- * was the exact bug this task fixes, a mapped derived key read as
- * permanently-dead `undefined` even with a provider mounted, since nothing
- * fed the `TimelineStore` that would have derived it). Instead the streamed
- * branch mirrors `useStream` (`@ksp-gonogo/sitrep-client`'s `use-stream.ts`,
+ * **Derived topics.** `mapTopic` frequently targets a DERIVED topic
+ * (`vessel.state.<field>`). A derived topic is never itself a wire topic;
+ * nothing sends it, so the shim cannot `client.subscribe`/`client.getValue` it
+ * directly: doing so reads a mapped derived key as permanently-dead
+ * `undefined` even with a provider mounted, because nothing feeds the
+ * `TimelineStore` that would derive it. Instead the streamed branch mirrors
+ * `useStream` (`@ksp-gonogo/sitrep-client`'s `use-stream.ts`,
  * that file is the source of truth if its subscribe/getSnapshot contract
  * ever changes):
  * - `store.resolveSubscriptionTopics(topic)` resolves `topic` down to the
@@ -208,9 +205,9 @@ export function useTelemetry(dataSourceId: string, key?: string): unknown {
   // topic resolves AND a TelemetryProvider is actually mounted (client
   // AND store both present: `TelemetryProvider` always mounts them
   // together, see `context.tsx`) AND: for the legacy migration path only:
-  // the resolved topic is actually CARRIED (M3 Wave 0 carried-channels
-  // allowlist gate, `m3-migration-plan.md` §5.1: the safety mechanism
-  // against the "big-bang blank-out"). This half deliberately mirrors
+  // the resolved topic is actually CARRIED (the carried-channels allowlist
+  // gate, the safety mechanism against a whole-dashboard blank-out). This
+  // half deliberately mirrors
   // `useStream` (`@ksp-gonogo/sitrep-client`'s `use-stream.ts`), that file is the
   // source of truth if its subscribe/getSnapshot contract ever changes.
   //

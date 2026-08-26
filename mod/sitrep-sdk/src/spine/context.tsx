@@ -83,13 +83,15 @@ function unionGrow(
 /**
  * Schedule `cb` to run on the next animation frame, falling back to a
  * microtask when `requestAnimationFrame` isn't available (SSR, or a bare
- * jsdom constructed without `pretendToBeVisual`). Note that under vitest's
- * jsdom environment `pretendToBeVisual` defaults to true, so tests DO get a
- * real `requestAnimationFrame` and exercise the frame path, not the microtask
- * fallback. An earlier version of this comment claimed the opposite, and that
- * claim sent two separate investigations into the microtask path chasing
- * act-warnings that turned out to originate in test teardown ordering
- * instead. The coalescing primitive behind `TelemetryProvider`'s ingest ->
+ * jsdom constructed without `pretendToBeVisual`).
+ *
+ * **Under vitest's jsdom environment `pretendToBeVisual` defaults to true, so
+ * tests DO get a real `requestAnimationFrame` and exercise the frame path, not
+ * the microtask fallback.** Worth stating plainly: believing otherwise sends an
+ * act-warning investigation into the microtask branch, and an act warning here
+ * originates in test teardown ordering instead.
+ *
+ * The coalescing primitive behind `TelemetryProvider`'s ingest ->
  * `beginFrame()` scheduling below. Returns a cancel function.
  */
 function scheduleFrame(cb: () => void): () => void {
@@ -869,8 +871,7 @@ export function getVesselState(): VesselState | undefined {
  * the resulting Topic is sampled off the active `TimelineStore`. Narrowed to
  * `number`: the one type every threshold comparison
  * (`AlarmTrigger`/`ArmedTrigger`) needs, so a non-numeric or not-yet-arrived
- * read is a plain `undefined`, matching the legacy `getLatestValue` +
- * `typeof v === "number"` guard this replaces.
+ * read is a plain `undefined`.
  *
  * Deliberately restricted to keys the routing actually resolves: the alarm and
  * trigger pickers (see `@ksp-gonogo/data`'s `useValueKeys`) only ever offer keys

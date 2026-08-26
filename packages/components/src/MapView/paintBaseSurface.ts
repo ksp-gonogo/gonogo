@@ -19,19 +19,16 @@
 // literally: the Uplink's mere presence, not its current per-layer
 // visibility, decides this.
 //
-// Why the OLD single-augment shape had to change (2026-07-20): the previous
-// design let exactly one `map-view.base` augment "win" (an `activeLayerId`
-// picker with no UI to ever set it), and treated "did the winning augment
-// hand back a canvas" as the suppression signal. That conflated two
-// concepts a real base-layer Uplink keeps separate (an opaque base surface
-// plus a translucent layer ON TOP of it) and made "hide vanilla, draw
-// nothing" unreachable: a coverage-gated layer that paints nothing for
-// unsurveyed tiles could only ever REPLACE pixels, never intentionally
-// withhold the whole surface.
+// Why suppression is declared rather than inferred from "did a layer hand
+// back a canvas": those are two concepts a real base-layer Uplink keeps
+// separate, an opaque base surface plus a translucent layer ON TOP of it.
+// Reading a returned canvas as the suppression signal makes "hide vanilla,
+// draw nothing" unreachable, because a coverage-gated layer that paints
+// nothing for unsurveyed tiles could then only ever REPLACE pixels, never
+// intentionally withhold the whole surface.
 //
-// The no-suppression, no-layers path is unchanged from before this rework:
-// the stock texture (or a body-colour wash, or nothing) paints exactly as
-// it always did.
+// With no suppression and no layers, the stock texture (or a body-colour
+// wash, or nothing) paints on its own.
 
 /** The subset of the 2D context this module touches. */
 export interface BaseSurfaceCtx {
@@ -121,7 +118,7 @@ export function paintBaseSurface(
  * MapView grid-stroke keys its light-vs-dark choice off this so a
  * suppressed-and-empty (deliberately black) map takes the DARK grid, even when
  * a stock texture happens to still be loaded. Keying off `textureImage` alone
- * (the old bug) drew a faint light grid on that black surface.
+ * would draw a faint light grid on that black surface.
  */
 export function baseSurfacePainted({
   textureImage,

@@ -258,8 +258,8 @@ const HostInput = styled.input`
 
 const ConnectButton = styled.button`
   /* Give the button a visible fill + border so its affordance matches the
-     input's visual weight: the old transparent-ish treatment read as a
-     secondary link next to the prominent code field. */
+     input's visual weight: a transparent treatment reads as a secondary
+     link beside the prominent code field. */
   background: var(--color-status-info-bg);
   border: 1px solid var(--color-status-info-fg);
   border-radius: 4px;

@@ -35,10 +35,8 @@ function legacyToStreamStatus(status: DataSourceStatus): StreamStatusValue {
 }
 
 /**
- * The staleness/absence surface for a legacy `(dataSourceId, key)` pair,
- * the M3 "adopt staleness/certainty" shim (`m3-migration-plan.md` §2 item 3,
- * §Build 1), sibling to `useDataValue` (read). Same allowlist-gated,
- * legacy-fallback contract:
+ * The staleness/absence surface for a `(dataSourceId, key)` pair, sibling to
+ * `useDataValue` (read). Same allowlist-gated, fallback contract:
  *
  * - **Mapped key + a `TelemetryProvider` is mounted + the resolved topic is
  *   CARRIED** -> the real `StreamStatusValue` off the `TimelineStore`
@@ -85,13 +83,14 @@ export function useDataStreamStatus(
   const client = useTelemetryClientOptional();
   const store = useTelemetryStoreOptional();
   const carriedChannels = useCarriedChannelsOptional();
-  // `mapTopic` translates the OLD spelling of a key and says nothing about the
-  // new one, so a migrated caller passing `time.warp.warpRate` resolved to
-  // `undefined` and fell back to the legacy `"data"` `DataSource` that nothing
-  // registers in production: no status, forever, with nothing failing. Pass an
-  // untranslated key through and let `isTopicCarried` answer for both
-  // spellings; a key that is neither still takes the legacy path below. Third
-  // hook of this shape, after `useWidgetStreamStatus` and `useDataSeries`.
+  // `mapTopic` translates one spelling of a key and says nothing about the
+  // canonical one, so translating first would leave a caller passing
+  // `time.warp.warpRate` resolving to `undefined` and falling back to the
+  // `"data"` `DataSource` that nothing registers in production: no status,
+  // forever, with nothing failing. Pass an untranslated key through and let
+  // `isTopicCarried` answer for both spellings; a key that is neither still
+  // takes the fallback path below. Third hook of this shape, after
+  // `useWidgetStreamStatus` and `useDataSeries`.
   const topic = mapTopic(dataSourceId, key) ?? key;
   const carried =
     store !== undefined &&

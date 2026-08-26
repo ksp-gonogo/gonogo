@@ -25,12 +25,10 @@ namespace Sitrep.Contract
     }
 
     /// <summary>
-    /// A channel's delay disposition: Minor-bump addition backing/replacing
-    /// the hardcoded topic-name-keyed delay routing that used to live only
-    /// client-side (<c>packages/sitrep-client/src/</c>). See
-    /// <c>local_docs/telemetry-mod/delay-architecture-resolution.md</c> §3
-    /// for the settled rule this enum encodes per-channel instead of by
-    /// convention: everything is <see cref="Delayed"/> (rides the Courier's
+    /// A channel's delay disposition, declared PER CHANNEL here rather than
+    /// inferred client-side from topic names. The rule this enum encodes
+    /// instead of leaving to convention: everything is
+    /// <see cref="Delayed"/> (rides the Courier's
     /// light-time delay clock) unless it's a ground-side fact with no
     /// analogue in flight (e.g. <c>scansat.available</c>: is the SCANsat
     /// assembly even present, which is <see cref="TrueNow"/>, delivered
@@ -358,7 +356,7 @@ namespace Sitrep.Contract
         /// authority it asked: a full pad and an un-upgraded Tracking Station
         /// are both a gate saying no, and they are not the same refusal.
         /// <see cref="CommandErrorCode.ModeUnavailable"/> is the default for an
-        /// evaluator that says nothing, which is the old behaviour.</para>
+        /// evaluator that says nothing.</para>
         /// </summary>
         [SitrepUnit(Units.Enumeration)]
         public CommandErrorCode ErrorCode { get; set; } = CommandErrorCode.ModeUnavailable;
@@ -1162,10 +1160,8 @@ namespace Sitrep.Contract
         public static readonly UplinkHealth Healthy = new UplinkHealth(UplinkHealthState.Healthy);
     }
 
-    // NOTE (2026-07-21): the former OPTIONAL companion `IUplinkHealthReporter`
-    // was RETIRED when health became mandatory. Its single member `Health()`
-    // moved onto the base `ISitrepUplink` (see that interface's doc), so health
-    // is no longer opt-in, every uplink reports it or does not compile. The
-    // three uplinks that used to implement the companion (Kerbcast, kOS, Comms)
-    // now override the base method with the same body.
+    // Health is MANDATORY, not opt-in: `Health()` is a member of the base
+    // `ISitrepUplink` (see that interface's doc), so every uplink reports it or
+    // does not compile. There is deliberately no optional reporter interface to
+    // implement instead.
 }

@@ -181,9 +181,8 @@ export interface ArchiveBodyGroup {
 
 /**
  * Groups the global archive by body, then by experiment. The archive
- * spans every body the player has ever visited, so body is the outer key
- * (unlike the old vessel-scoped grouping, which only ever saw one body at
- * a time). Experiment grouping prefers the real `experimentId` field the
+ * spans every body the player has ever visited, so body is the outer key.
+ * Experiment grouping prefers the real `experimentId` field the
  * mod parses server-side; falls back to the `<expId>@…` split off
  * `subjectId` only when that field is absent. Rows are sorted by
  * remaining potential desc WITHIN each body group (what's still worth

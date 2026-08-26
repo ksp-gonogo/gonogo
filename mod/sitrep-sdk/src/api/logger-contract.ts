@@ -1,13 +1,12 @@
 /**
  * The logging shape the SDK asks a host for, declared here rather than imported.
  *
- * `@ksp-gonogo/logger` is `private: true` and is never published. The SDK's
- * emitted `.d.ts` used to `import type { Logger } from "@ksp-gonogo/logger"` in
- * four files and re-export `Logger` / `TaggedLogger` publicly from `api/index`,
- * so the published package declared types it could not deliver: a consumer
- * resolving them gets "Cannot find module '@ksp-gonogo/logger'". The repo's own
- * `tsconfig.base.json` sets `skipLibCheck: true`, which is exactly why this
- * survived unnoticed here and would have surfaced only in an author's tree.
+ * `@ksp-gonogo/logger` is `private: true` and is never published. An
+ * `import type { Logger } from "@ksp-gonogo/logger"` reaching the SDK's emitted
+ * `.d.ts` makes the published package declare a type it cannot deliver, and a
+ * consumer resolving it gets "Cannot find module '@ksp-gonogo/logger'". Nothing
+ * in this repo would notice: `tsconfig.base.json` sets `skipLibCheck: true`, so
+ * the failure surfaces only in an author's tree.
  *
  * These are the HOST's logger, never a bundled copy of the app's singleton;
  * `logger.ts` and `registry.ts` both explain why that distinction is

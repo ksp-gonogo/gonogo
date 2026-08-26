@@ -139,10 +139,9 @@ namespace Gonogo.KosUplink
             // Only the true default path (the public parameterless ctor,
             // i.e. real production construction) picks up the real kOS/Unity
             // wiring. A caller that supplies either argument explicitly (every
-            // headless test) keeps exactly what it passed, same contract as
-            // the original single-file `?? BindRealAddon` / `?? ResolveCoreId`
-            // defaults, just relocated behind InstallProductionDefaults() so
-            // this constructor itself stays KSP-free.
+            // headless test) keeps exactly what it passed. The real defaults
+            // sit behind InstallProductionDefaults() rather than in `??`
+            // expressions here, so this constructor itself stays KSP-free.
             bool useProductionDefaults = dispatcher == null && bindDispatcherAddon == null;
 
             Dispatcher = dispatcher ?? new MainThreadDispatcher(
@@ -334,7 +333,7 @@ namespace Gonogo.KosUplink
         /// this method hands to <see cref="IChannelPublisher.Publish"/> is a
         /// self-flattened <c>Dictionary&lt;string, object?&gt;</c> per CPU:
         /// see <see cref="KosProcessorInfoBuilder"/>'s own doc comment for why
-        /// JsonWriter no longer needs a hardcoded case for the raw POCO.
+        /// JsonWriter needs no hardcoded case for the raw POCO.
         /// </summary>
         internal void HandleProcessors(object? captured)
         {

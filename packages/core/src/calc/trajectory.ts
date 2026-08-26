@@ -20,20 +20,17 @@ import { degToRad, radToDeg } from "../utils/math";
 /**
  * Solve Kepler's equation `E - e·sin E = M` for the eccentric anomaly E.
  *
- * A re-export. This file used to carry its own Newton iteration, starting at
- * `M + e·sin(M)` with no high-eccentricity branch, and from `e = 0.994` upward it
- * failed to converge on a minority of mean anomalies just after periapsis and
- * returned its last iterate: wrong by up to pi radians, silently, on a live path
- * through `maneuver.ts`. Its own doc comment said it "returns the best value even if
- * the tolerance isn't met (rare for stock KSP orbits)", which was true and was not a
- * warning anybody could act on.
+ * A re-export, not a local implementation, so that exactly one Newton iteration
+ * on this equation exists in the repo. A naive one starting at `M + e·sin(M)`
+ * with no high-eccentricity branch fails to converge from about `e = 0.994`
+ * upward on a minority of mean anomalies just after periapsis, and returns its
+ * last iterate: wrong by up to pi radians, silently, on a live path through
+ * `maneuver.ts`. "Returns the best value even if the tolerance isn't met" is a
+ * true thing to write about such an implementation and is not a warning anybody
+ * can act on.
  *
- * Kept under this name because it has callers, and re-exported rather than
- * reimplemented because the point of the fix is that there is now exactly one Newton
- * iteration on this equation in the repo.
- *
- * <b>It now REFUSES `ecc >= 1`</b> where it used to return a confident number. Both
- * patch-based callers already filter unbound trajectories; `maneuver.ts`'s
+ * <b>It REFUSES `ecc >= 1`</b> rather than answering with a confident number.
+ * Both patch-based callers already filter unbound trajectories; `maneuver.ts`'s
  * `stateAtUT` does not.
  *
  * All angles in radians.
