@@ -496,16 +496,27 @@ const ASPECT_TOLERANCE = 0.02;
  * axes: the box changes, the ratio does not. Flex shrink acts on one axis only,
  * so distortion is specific to it. A graphic measuring 0×0 is genuinely hidden,
  * which is a legitimate render, not a defect.
+ *
+ * Only ABSOLUTE width/height attributes carry a claim about shape. A diagram
+ * sized `width="100%" height="100%"` fills whatever box it is given and its
+ * attributes say nothing about the ratio, so it is skipped: parsing those as
+ * `100`×`100` reported every responsive diagram in the tree as distorted.
  */
 async function findCrushedGraphics(page: Page): Promise<string[]> {
   return page.evaluate((tolerance) => {
     const host = document.getElementById("root");
     if (!host) return [] as string[];
+    // A regex literal rather than a named arrow helper: tsx's keepNames wraps
+    // a named function in a `__name(…)` call that exists only in module scope,
+    // and this body is serialized into the page without it.
+    const ABSOLUTE = /^\s*\d+(\.\d+)?(px)?\s*$/;
     const out: string[] = [];
     for (const el of Array.from(host.querySelectorAll("svg[width][height]"))) {
+      const rawW = el.getAttribute("width") ?? "";
+      const rawH = el.getAttribute("height") ?? "";
       const asked = {
-        w: Number.parseFloat(el.getAttribute("width") ?? ""),
-        h: Number.parseFloat(el.getAttribute("height") ?? ""),
+        w: ABSOLUTE.test(rawW) ? Number.parseFloat(rawW) : Number.NaN,
+        h: ABSOLUTE.test(rawH) ? Number.parseFloat(rawH) : Number.NaN,
       };
       if (!(asked.w > 0) || !(asked.h > 0)) continue;
       const box = el.getBoundingClientRect();

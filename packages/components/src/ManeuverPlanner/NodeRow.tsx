@@ -246,6 +246,9 @@ const StepButton = styled(IconButton)<{ $active: boolean }>`
   padding: 0;
 `;
 
+// Same bordered 22x22 box as StepButton, in the alert hue. `padding: 0` is
+// load-bearing: a bare <button> keeps the UA's 1px 6px, which leaves 8px of
+// content width inside the border and squashes the 12px glyph to 8px wide.
 const DeleteButton = styled.button`
   background: transparent;
   border: 1px solid var(--color-status-alert-muted);
@@ -257,6 +260,7 @@ const DeleteButton = styled.button`
   display: inline-flex;
   align-items: center;
   justify-content: center;
+  padding: 0;
   &:hover {
     background: var(--color-tag-dark-brown-bg);
     color: var(--color-tag-red-fg);
