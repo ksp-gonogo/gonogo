@@ -196,9 +196,9 @@ export function stateAtUT(
 
   // An unbound trajectory has no answer here, and null is that answer. The
   // elliptical form this function propagates does not describe it, so every
-  // alternative is worse: the number this used to return was a confident
-  // fiction, and throwing would take the whole panel down over one unplannable
-  // burn. `ProjectedRows` already renders a null projection as
+  // alternative is worse: a number here would be a confident fiction, and
+  // throwing would take the whole panel down over one unplannable burn.
+  // `ProjectedRows` already renders a null projection as
   // "escape / invalid", which is exactly what this is.
   if (!(e >= 0) || e >= 1) {
     return null;
@@ -479,8 +479,8 @@ export function matchInclination(
   );
 
   // Unbound: `stateAtUT` has no answer, so neither has this. Returning a plan with a
-  // fabricated normal component would be the same confident fiction the elliptical
-  // solver used to hand back, one layer up. The UI wrappers in
+  // fabricated normal component would be that same confident fiction one layer
+  // up. The UI wrappers in
   // `ManeuverPlanner/planning.ts` already return `ManeuverPlan | null`.
   if (!state) {
     return null;
@@ -578,8 +578,8 @@ export function matchTargetPlane(
   );
 
   // Unbound: `stateAtUT` has no answer, so neither has this. Returning a plan with a
-  // fabricated normal component would be the same confident fiction the elliptical
-  // solver used to hand back, one layer up. The UI wrappers in
+  // fabricated normal component would be that same confident fiction one layer
+  // up. The UI wrappers in
   // `ManeuverPlanner/planning.ts` already return `ManeuverPlan | null`.
   if (!state) {
     return null;

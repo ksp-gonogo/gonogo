@@ -38,8 +38,7 @@ export interface PartLiveSlice {
  * `derivePartThermal`), `resources` (per-part storage + live flow, via
  * `derivePartResources`), and `moduleStates` (per-module behavioural state,
  * via `derivePartState`). No per-id subscription is needed for any of the
- * three any more: the legacy `r.resourceFor[fid]`/`v.partState[fid]` reads
- * this hook used to fall back to are retired.
+ * three.
  *
  * `flightIds` scopes the returned map to the caller's current part set (a
  * vessel swap drops stale ids); a part not present in the latest

@@ -34,10 +34,10 @@ export interface ParsedManeuverNode {
    * The basis {@link deltaV}'s slots are expressed in, or null when the node
    * did not state one.
    *
-   * Carried rather than dropped. It used to be discarded here, one function
-   * below the editor that labels the slots, so an n-body planner's Frenet burn
-   * reached the operator with its along-track component labelled "Radial" and
-   * its out-of-plane one labelled "Prograde". Null stays null: defaulting to
+   * Carried rather than dropped. Dropping it here, one function below the
+   * editor that labels the slots, sends an n-body planner's Frenet burn to the
+   * operator with its along-track component labelled "Radial" and its
+   * out-of-plane one labelled "Prograde". Null stays null: defaulting to
    * the stock basis would assert a basis the node declined to state, on numbers
    * that may be in another one.
    */

@@ -88,10 +88,9 @@ const Wrap = styled.div<{ $bottom: number | undefined }>`
   align-items: stretch;
   background: var(--color-surface-raised);
   border: 1px solid var(--color-status-info-fg);
-  /* Stadium, not a corner: the old 20px was exactly half the 40px height, and
-     the coarse block below hand-recomputed it as 24px for its 48px height.
-     --radius-pill clamps to half the shorter side either way, so the coarse
-     override is gone rather than duplicated. */
+  /* Stadium, not a corner: --radius-pill clamps to half the shorter side, so
+     it holds at this 40px height AND at the coarse block's 48px without that
+     block needing its own radius override. */
   border-radius: var(--radius-pill);
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
   overflow: hidden;

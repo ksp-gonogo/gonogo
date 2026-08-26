@@ -55,13 +55,13 @@ export {
   AutoEmptyState,
   type AutoEmptyStateProps,
 } from "./AutoEmptyState";
-// ── Augment seam (relocated from @ksp-gonogo/core) ────────────────────────────
+// ── Augment seam ──────────────────────────────────────────────────────────────
 // The augment registry + declaration-merge type surface (`SlotRegistry`,
 // `SlotProps`, the segment seam, the setting types), the `<AugmentSlot>`
 // composition point, and the ui-kit-owned domain-availability store its
 // presence gate reads. Spine-free (sdk types only); the frame-batched evaluator
-// stays in core (spec §14). `@ksp-gonogo/core` re-exports every symbol below, so
-// existing importers are byte-identical and a `declare module "@ksp-gonogo/core"`
+// stays in core. `@ksp-gonogo/core` re-exports every symbol below, so an
+// importer may use either package and a `declare module "@ksp-gonogo/core"`
 // augmentation of `SlotRegistry` still merges.
 export * from "./augments";
 export {
@@ -178,15 +178,15 @@ export {
 export { usePanelDelay } from "./CommandDelay/usePanelDelay";
 export { Countdown, type CountdownProps } from "./Countdown";
 export { configEqual } from "./configEqual";
-// ── Contribution seam (relocated from @ksp-gonogo/core) ───────────────────────
+// ── Contribution seam ─────────────────────────────────────────────────────────
 // The type surface (re-exported from the sdk, which declares it), the read hooks
 // and per-widget store, AND the per-frame aggregation that writes into that store.
 // Both halves are here: the aggregation needs spine values, and every one of
 // those is on the sdk, which this package already imports. Only the
 // REGISTRATION registry is elsewhere, on the sdk.
 //
-// `@ksp-gonogo/core` re-exports every symbol below, so existing importers are
-// byte-identical and a `declare module "@ksp-gonogo/core"` augmentation of
+// `@ksp-gonogo/core` re-exports every symbol below, so an importer may use
+// either package and a `declare module "@ksp-gonogo/core"` augmentation of
 // `ContributionRegistry`/`ComponentSlotRegistry` still merges.
 export * from "./contributions";
 export {

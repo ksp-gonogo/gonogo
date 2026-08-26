@@ -7,14 +7,13 @@ import { deriveTopologyFromVesselParts } from "./vesselPartsAdapter";
  * `PowerSystems` build their per-part rendering off. Reads the mod's
  * `vessel.parts` Topic (the structural part-tree stream, a SIBLING of
  * `vessel.structure` per that channel's own doc comment) and reshapes it
- * into the legacy `VesselTopology` shape via `deriveTopologyFromVesselParts`,
- * the diagram code (`shipTopology.ts`) is unchanged.
+ * into the `VesselTopology` shape the diagram code (`shipTopology.ts`) reads,
+ * via `deriveTopologyFromVesselParts`.
  *
- * Formerly a hand-rolled seq-driven refetch against the old fork's
- * `v.topologySeq`/`v.topology` key pair (to avoid streaming the full
- * structural payload at the legacy WS's fixed ~4Hz). `vessel.parts` doesn't
- * need that trick, the mod's channel engine is itself change-gated, so the
- * whole payload only re-emits when the structure actually changes.
+ * No sequence-number refetch dance is needed to keep the full structural
+ * payload off a fixed-rate stream: the mod's channel engine is itself
+ * change-gated, so the whole payload only re-emits when the structure actually
+ * changes.
  */
 export function useTopology(): VesselTopology | undefined {
   const reading = useTelemetry("vessel.parts");

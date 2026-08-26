@@ -177,13 +177,14 @@ export function useDataSeries(
   const client = useTelemetryClientOptional();
   const store = useTelemetryStoreOptional();
   const carriedChannels = useCarriedChannelsOptional();
-  // `mapTopic` translates the OLD spelling of a key and has nothing to say
-  // about the new one, so an already-modern path (`vessel.orbit.sma`, what a
-  // migrated widget plots) resolved to `undefined` and fell through to the
-  // legacy `"data"` `DataSource` that nothing registers in production: an
-  // empty plot, forever, with nothing failing. Passing the key through
-  // unchanged lets `isTopicCarried` answer for both spellings; a key that is
-  // neither still resolves to nothing and still takes the legacy path below.
+  // `mapTopic` translates one spelling of a key and has nothing to say about
+  // the canonical one, so translating first would leave a canonical path
+  // (`vessel.orbit.sma`, what most widgets plot) resolving to `undefined` and
+  // falling through to the `"data"` `DataSource` that nothing registers in
+  // production: an empty plot, forever, with nothing failing. Passing the key
+  // through unchanged lets `isTopicCarried` answer for both spellings; a key
+  // that is neither still resolves to nothing and takes the fallback path
+  // below.
   const topic = mapTopic(sourceId, key) ?? key;
   const carried =
     store !== undefined &&

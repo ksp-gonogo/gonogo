@@ -37,14 +37,12 @@ interface FixtureRow {
 
 /**
  * IndexedDB-backed persistence for `StreamRecorder`-produced mission
- * recordings: the replacement for the old `FlightRecord`/sample-based
- * flight history this record/replay path used to piggyback on. Deliberately
- * a SEPARATE database from `IndexedDbStore`'s `gonogo-data` (still used by
- * `BufferedDataSource` for its own, unrelated flight-detection/graph
- * bookkeeping): this is a fresh, unrelated schema, not a migration of the
- * old one. Old recordings are intentionally not carried over (user-approved:
- * the old `BufferedDataSource` sample format doesn't map onto a raw wire
- * fixture at all).
+ * recordings. Deliberately a SEPARATE database from `IndexedDbStore`'s
+ * `gonogo-data`, which `BufferedDataSource` keeps for its own unrelated
+ * flight-detection and graph bookkeeping: this schema is unrelated to that
+ * one, not a migration of it. A `BufferedDataSource` sample does not map onto
+ * a raw wire fixture at all, so recordings in that older format are
+ * deliberately not carried over.
  */
 export class MissionStore {
   private dbPromise: Promise<IDBDatabase> | null = null;

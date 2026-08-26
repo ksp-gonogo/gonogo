@@ -9,8 +9,8 @@ export interface BannerStackProps {
  * Fixed-position horizontal strip sitting immediately to the left of the
  * action FAB, at the FAB's exact height. All ephemeral status banners
  * (signal loss, version mismatch, flight outcome, scene change, alarm /
- * warp pills) live in this stack so they no longer overwrite top-row
- * widgets and the operator can scroll the dashboard freely.
+ * warp pills) live in this stack so none of them overwrites a top-row
+ * widget and the operator can scroll the dashboard freely.
  *
  * Layout:
  * - Height matches the FAB (48px), so banners sit vertically centered on

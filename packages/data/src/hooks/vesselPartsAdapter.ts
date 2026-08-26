@@ -43,13 +43,11 @@ export function deriveTopologyFromVesselParts(
   const parts: TopologyPart[] = wire.parts.map(deriveTopologyPart);
   const root = wire.parts.find((p) => p.parentId == null);
   return {
-    // `vessel.parts` isn't seq-gated the way the old fork's
-    // `v.topologySeq`/`v.topology` pair was, the whole payload re-emits on
-    // change, so there's no separate lightweight counter to mirror. The
-    // part count is a cheap, honest stand-in for widgets that only used
-    // `topologySeq` to detect "did the structure change" (none currently
-    // read it directly, `useTopology`'s consumers key off the returned
-    // object's own identity via `useMemo`).
+    // `vessel.parts` is not seq-gated: the whole payload re-emits on change,
+    // so there is no separate lightweight counter to mirror here. The part
+    // count is a cheap, honest stand-in for a consumer that wants only "did
+    // the structure change". None reads it directly, `useTopology`'s consumers
+    // key off the returned object's own identity via `useMemo`.
     topologySeq: wire.parts.length,
     rootFlightId: root ? Number(root.id) : 0,
     parts,

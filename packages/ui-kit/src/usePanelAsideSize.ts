@@ -26,9 +26,9 @@ export type PanelAsideSize = "full" | "tiny" | "collapsed";
  * genuinely too narrow never clips), but re-expanding only fires once there is
  * real room to spare. Without the margin, a panel sitting exactly at the fit
  * boundary flips every measurement: expand (now it fits) -> the wider aside
- * no longer fits -> collapse -> repeat. That is precisely the shimmer the
- * fixed `@container` breakpoint this replaces was introduced to avoid, so the
- * replacement needs its own guard against the same failure mode.
+ * no longer fits -> collapse -> repeat. A fixed `@container` breakpoint avoids
+ * that shimmer by never measuring; a measured fit has to guard against it
+ * explicitly, which is what this constant is.
  */
 const REEXPAND_MARGIN_PX = 24;
 

@@ -85,13 +85,14 @@ export function useDataStreamStatus(
   const client = useTelemetryClientOptional();
   const store = useTelemetryStoreOptional();
   const carriedChannels = useCarriedChannelsOptional();
-  // `mapTopic` translates the OLD spelling of a key and says nothing about the
-  // new one, so a migrated caller passing `time.warp.warpRate` resolved to
-  // `undefined` and fell back to the legacy `"data"` `DataSource` that nothing
-  // registers in production: no status, forever, with nothing failing. Pass an
-  // untranslated key through and let `isTopicCarried` answer for both
-  // spellings; a key that is neither still takes the legacy path below. Third
-  // hook of this shape, after `useWidgetStreamStatus` and `useDataSeries`.
+  // `mapTopic` translates one spelling of a key and says nothing about the
+  // canonical one, so translating first would leave a caller passing
+  // `time.warp.warpRate` resolving to `undefined` and falling back to the
+  // `"data"` `DataSource` that nothing registers in production: no status,
+  // forever, with nothing failing. Pass an untranslated key through and let
+  // `isTopicCarried` answer for both spellings; a key that is neither still
+  // takes the fallback path below. Third hook of this shape, after
+  // `useWidgetStreamStatus` and `useDataSeries`.
   const topic = mapTopic(dataSourceId, key) ?? key;
   const carried =
     store !== undefined &&

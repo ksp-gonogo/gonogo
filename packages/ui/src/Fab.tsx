@@ -49,11 +49,11 @@ export function Fab({ bottom, children, ...rest }: Readonly<FabProps>) {
 }
 
 /**
- * Fixed-position row anchored to the same bottom/right as the old standalone
- * button. The round button keeps its exact on-screen position and size: it is
- * the tallest item, so `align-items: center` + `bottom`-anchoring places its
- * bottom edge at `$bottom` and its right edge at `right: 24px`, identical to
- * before. The label sits to its left and never affects the button's position.
+ * Fixed-position row holding the round button and its label. The row does not
+ * move the button: it is the tallest item, so `align-items: center` plus
+ * `bottom`-anchoring places its bottom edge at `$bottom` and its right edge at
+ * `right: 24px` regardless of the label. The label sits to its left and never
+ * affects the button's position.
  */
 const FabRow = styled.div<{ $visible: boolean; $bottom: number }>`
   position: fixed;

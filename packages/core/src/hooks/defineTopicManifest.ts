@@ -74,14 +74,13 @@ import { useTelemetry } from "./useTelemetry";
  * The per-call return type of a widget-bound telemetry hook: a `Reading` of the
  * Topic's payload.
  *
- * This used to be a conditional that resolved a REQUIRED Topic to its payload
- * non-null and an optional one to `payload | undefined`, which is the distinction
- * the `Reading` union now carries in its own arms: `pending` IS "nothing has
- * arrived", and it is not reachable only for the required ones. The conditional was
- * also a lie once `useTelemetry` began answering with a `Reading`, and because the
- * bound hook is built with `as unknown as`, nothing would have caught it. No widget
- * has adopted a manifest yet, so this cost nothing; the first one would have been
- * silently broken.
+ * Deliberately NOT a conditional resolving a REQUIRED Topic to its payload
+ * non-null and an optional one to `payload | undefined`. That distinction is the
+ * one the `Reading` union already carries in its own arms: `pending` IS "nothing
+ * has arrived", and it is unreachable only for the required ones. A conditional
+ * on top of a `Reading` would also be a lie, and because the bound hook is built
+ * with `as unknown as`, nothing would catch it: every widget reading through a
+ * manifest would be silently wrong about what it holds.
  *
  * `Required` stays in the signature because it still constrains which Topics may be
  * read at all, which is the mechanism's real value.
