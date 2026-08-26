@@ -1169,15 +1169,18 @@ function modeShort(mode: SasMode): string {
  * letters, and the grid directly below already spells the active mode out in
  * full behind its lit button.
  *
- * `StabilityAssist` returns nothing, so the badge reads a bare "SAS": its own
- * token IS "SAS" and the suffixed form says "SAS: SAS".
+ * `StabilityAssist` gets its token like every other mode, so the badge reads
+ * "SAS: SAS". It stutters, and it is still the right rendering: dropping the
+ * suffix there instead makes the badge identical to the one shown when the mode
+ * is not on the wire at all, and at display sizes the badge is the ONLY place
+ * the mode appears (the mode grid needs rows>=18 and cols>=7). Consistency with
+ * the button an operator actually presses beats reading well.
  *
  * `Unknown` keeps its own name rather than becoming a symbol: it is the
  * contract's fallback for a mode this build cannot name, and a "?" would leave
  * an operator unable to tell it from a rendering fault.
  */
 function badgeSasMode(mode: SasModeName): string {
-  if (mode === "StabilityAssist") return "";
   return mode === "Unknown" ? mode : modeShort(mode);
 }
 

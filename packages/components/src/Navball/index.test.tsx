@@ -165,9 +165,9 @@ describe("NavballComponent", () => {
   it("surfaces SAS mode in the badge", async () => {
     const { fixture } = renderNavball();
     // sasMode -> vessel.state.sasModeName, derived from vessel.control.sasMode
-    // (1 = Prograde).
+    // (1 = Prograde), rendered as the grid's own three-letter token.
     emitReads(fixture, { control: { sas: true, sasMode: 1 } });
-    expect(await screen.findByText("SAS: Prograde")).toBeInTheDocument();
+    expect(await screen.findByText("SAS: PRO")).toBeInTheDocument();
   });
 
   it("displays the control surface and dispatches vessel.control.setSasMode", async () => {
@@ -404,7 +404,7 @@ describe("Navball: navball.badges augment slot (spec §4)", () => {
     // badges still render and the widget doesn't crash.
     const { fixture } = renderNavball();
     emitReads(fixture, { control: { sas: true, sasMode: 1, rcs: false } });
-    expect(await screen.findByText("SAS: Prograde")).toBeInTheDocument();
+    expect(await screen.findByText("SAS: PRO")).toBeInTheDocument();
     expect(screen.getByText("RCS")).toBeInTheDocument();
     expect(screen.queryByTestId("autopilot-badge")).toBeNull();
   });
