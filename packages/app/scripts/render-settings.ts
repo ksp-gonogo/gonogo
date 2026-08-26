@@ -18,6 +18,7 @@ import { mkdir, readdir, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
+import { STOCK_KERBIN_CALENDAR } from "@ksp-gonogo/sitrep-sdk";
 import { build } from "esbuild";
 import { chromium } from "playwright";
 
@@ -44,11 +45,12 @@ const OUT_DIR =
 
 const VIEW_UT = 1_000_000;
 /**
- * A KSP day, in seconds. Written out rather than imported from ui-kit: this is
+ * A KSP day, in seconds, from the unit model's own calendar rather than
+ * ui-kit's `KSP_DAY_SECONDS`. Same number, and it is the same source: this is
  * the NODE half of the harness, and importing the design system here pulls
- * styled-components into a runtime that has no DOM for it.
+ * styled-components into a runtime with no DOM for it.
  */
-const KSP_DAY = 21_600;
+const KSP_DAY = STOCK_KERBIN_CALENDAR.day;
 const TOPIC = "principia.settings";
 
 /** A quantity as it arrives off the wire, already wrapped. */
