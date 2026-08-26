@@ -54,37 +54,29 @@ function findRepoRoot(start: string): string {
 }
 
 /**
- * Enumerate git-TRACKED `.ts`/`.tsx` files under the scan roots. Deterministic
- * under concurrent `turbo test` load: a live filesystem walk races with the
- * `dist/` output and temp fixtures other packages write mid-run, so the count
- * flickers, while the git index does not move during a test run.
- *
- * The cost of that choice, written down because it WILL mislead somebody
- * probing this gate: an UNTRACKED file is invisible here. A new test carrying
- * the banned import passes until it is added to the index. Verifying this gate
- * therefore means `git add -N` on the planted violation first, and a probe that
- * skips that step reports the gate as blind when it is not. CI and the commit
- * hook both see the index, so the case that matters is covered.
- */
-/**
- * Memoised across the two tests that ask.
- *
- * The scan reads every tracked `.ts`/`.tsx` file under the roots, about two
- * thousand of them, and both tests below want the same answer. Running it twice
- * doubled the I/O for nothing and put the pair over vitest's 30s ceiling
- * whenever the machine was busy: under `turbo test` the whole suite runs 45
- * tasks at once, and a starved scan reported a TIMEOUT, which reads as a
- * hygiene violation rather than as a slow disk.
- *
- * Safe to hold: the input is the git INDEX plus the working tree, and neither
- * moves during a test run. That is the same property the enumeration already
- * relies on, written down in the doc above.
+ * Memoised across the tests that ask. The input is the git index plus the
+ * working tree, and neither moves during a test run, so one answer serves all
+ * three assertions.
  */
 let memo: { scanned: number; offenders: string[] } | undefined;
 
 function scan(): { scanned: number; offenders: string[] } {
   if (memo !== undefined) return memo;
   const root = findRepoRoot(dirname(fileURLToPath(import.meta.url)));
+  /*
+   * Enumerate git-TRACKED sources rather than walking the filesystem. A live
+   * walk races the `dist/` output and temp fixtures other packages write during
+   * a concurrent `turbo test`, so its count flickers; the git index does not
+   * move during a run.
+   *
+   * The cost of that choice, written down because it WILL mislead somebody
+   * probing this gate: an UNTRACKED file is invisible here, so a new test
+   * carrying the banned import passes until it is added to the index.
+   * Verifying this gate therefore means `git add -N` on the planted violation
+   * first, and a probe that skips that step reports the gate as blind when it
+   * is not. CI and the commit hook both see the index, so the case that matters
+   * is covered.
+   */
   const tracked = execFileSync("git", ["ls-files", "-z", "--", ...SCAN_ROOTS], {
     cwd: root,
     encoding: "utf8",
@@ -92,8 +84,47 @@ function scan(): { scanned: number; offenders: string[] } {
   })
     .split("\0")
     .filter((rel) => /\.tsx?$/.test(rel));
+  // `git grep` narrows to the files that could possibly match before anything is
+  // read. A file matching CLEANUP_IMPORT_RE necessarily contains the binding
+  // `cleanup`, so this is a strict superset of the answer and the exact regex
+  // still decides every candidate: what changes is the cost, not the verdict.
+  //
+  // It reads roughly a twentieth of the tree (100 of 2,195 when this landed).
+  // The whole-tree read was ~2,000 `readFileSync` calls, which under the I/O
+  // contention of a parallel run took this past its 30s budget repeatedly while
+  // the same test finished in three seconds alone. That timeout aborts turbo,
+  // which kills sibling tasks mid-run and leaves their partial output looking
+  // like tasks that passed, so a slow scan here was costing whole suites their
+  // verdict rather than just its own.
+  const candidates = execFileSync(
+    "git",
+    ["grep", "-l", "-i", "--", "cleanup", ...SCAN_ROOTS],
+    { cwd: root, encoding: "utf8", maxBuffer: 64 * 1024 * 1024 },
+  )
+    .split("\n")
+    .filter((rel) => /\.tsx?$/.test(rel));
+
+  // A prefilter that quietly matched nothing would report no offenders, which is
+  // indistinguishable from a clean tree. What prevents that is `git grep`'s own
+  // exit status: it returns 1 when nothing matches and 2 on a bad pathspec, and
+  // `execFileSync` throws on both, so a broken narrowing fails the test rather
+  // than passing it. Verified by pointing the pathspec at a directory that does
+  // not exist: two tests go red with "Command failed".
+  //
+  // The check below is therefore unreachable today and is kept as a backstop for
+  // one specific future edit: wrapping this call in a try, or moving to an API
+  // that returns an empty string instead of throwing, would restore exactly the
+  // silence this scan cannot afford.
+  if (candidates.length === 0 && tracked.length > 0) {
+    throw new Error(
+      "styleguide-cleanup: the git-grep prefilter matched no files while the tree " +
+        "has tracked sources. The narrowing is broken, so this scan cannot see an " +
+        "offender and must not report a clean result.",
+    );
+  }
+
   const offenders: string[] = [];
-  for (const rel of tracked) {
+  for (const rel of candidates) {
     let source: string;
     try {
       source = readFileSync(join(root, rel), "utf8");
@@ -104,23 +135,6 @@ function scan(): { scanned: number; offenders: string[] } {
   }
   memo = { scanned: tracked.length, offenders };
   return memo;
-}
-
-/**
- * One scan per file, shared by the two assertions below.
- *
- * Both of them need a real scan and neither may drop it, so the cost was paid
- * twice: two `git ls-files` invocations plus two passes of `readFileSync` over
- * every tracked source. That is nearly two thousand extra file reads, and under
- * the I/O contention of a whole package's tests running at once it was enough
- * to take the second call past the 30s timeout while the same test finished in
- * three seconds run on its own. Memoising changes what it costs, not what it
- * checks: the floor and the offender list are still read off a real walk.
- */
-let memoisedScan: ReturnType<typeof scan> | undefined;
-function scanOnce(): ReturnType<typeof scan> {
-  memoisedScan ??= scan();
-  return memoisedScan;
 }
 
 describe("test-hygiene: manual cleanup imports from @testing-library/react", () => {
@@ -153,12 +167,12 @@ describe("test-hygiene: manual cleanup imports from @testing-library/react", () 
   });
 
   it("walks the tree it claims to walk", () => {
-    const { scanned } = scanOnce();
+    const { scanned } = scan();
     expect(scanned).toBeGreaterThanOrEqual(SCAN_FLOOR);
   });
 
   it("finds no test importing cleanup", () => {
-    const { scanned, offenders } = scanOnce();
+    const { scanned, offenders } = scan();
     expect(scanned).toBeGreaterThanOrEqual(SCAN_FLOOR);
     if (offenders.length > 0) {
       throw new Error(
