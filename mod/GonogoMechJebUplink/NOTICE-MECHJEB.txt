@@ -16,6 +16,21 @@ else. The MIT-licensed Sitrep.Contract assembly it links is GPL-compatible in
 that direction, and GonogoMechJebUplink ships as its own CKAN package in its
 own GameData folder.
 
+This obligation is PERMANENT and it is the obligation the compile-time link
+carries, accepted deliberately rather than inherited by accident. It is also
+not novel: GonogoKosUplink is GPL-3.0-only by the identical mechanism, and
+GonogoScansatUplink links a third-party mod on the same terms. What GPL-3.0-only
+requires of us here is what it already requires of those: this assembly's
+source stays available under GPLv3 (it is in this repository), the licence
+travels with the shipped GameData folder (this file and the LICENSE beside it),
+and it must not be statically combined into anything distributed under terms
+that add restrictions.
+
+A compile-time reference copy of MechJeb2.dll held in a private build-reference
+repository, so that CI can compile this assembly, is not distribution and adds
+no obligation beyond the above. It is the same arrangement kOS.dll and
+SCANsat.dll are already under.
+
 The full GPLv3 text is in this directory's LICENSE, and at the repository
 root as LICENSE-GPL-3.0.txt.
 

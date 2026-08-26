@@ -5,14 +5,18 @@ name: Publish mod zips
 # reference set vendored in ksp-gonogo/ksp-managed. Seven Uplinks carry a
 # .netkan; six of them compile, so six have legs, alongside Gonogo core.
 #
-# The seventh is GonogoMechJebUplink, and it is the only Uplink in the repo
-# that binds its mod's types at compile time instead of by runtime reflection
-# (MechJebController.cs, MechJebUplink.Ksp.cs bind MuMech directly). MechJeb2.dll
-# is not in ksp-managed, so it cannot be built or published here. It is exempt in
+# The seventh is GonogoMechJebUplink. MechJeb2.dll is not in ksp-managed and the
+# Uplink binds MuMech types at compile time (MechJebController.cs,
+# MechJebUplink.Ksp.cs), so it cannot be built or published here. It is exempt in
 # scripts/uplink-mod-build.sh for the same reason, and that exemption expires by
-# itself the moment the dll lands. The recommended resolution is to bring the
-# Uplink onto the reflection pattern every other one follows rather than to
-# vendor: see local_docs/design/mechjeb-reflection-rewrite-scope.md.
+# itself the moment the dll lands.
+#
+# Compile-time binding is not what makes it the odd one out: GonogoScansatUplink
+# names SCANUtil/SCANcontroller/SCANexperiment and GonogoKosUplink names
+# kOS.Module/kOS.Safe.Screen/kOS.UserIO, and both of those mod dlls ARE vendored
+# in ksp-managed, which is why both have legs here. Vendoring MechJeb2.dll is the
+# same one-file operation done a third time, and it is the resolution this leg
+# waits on. Evidence: local_docs/design/mechjeb-provider-and-vendoring.md.
 #
 # The Uplinks with no .netkan (Avionics, Kerbalism, Rp1, TestFlight) are not
 # omitted for a build reason: all four compile. They have declared no CKAN
