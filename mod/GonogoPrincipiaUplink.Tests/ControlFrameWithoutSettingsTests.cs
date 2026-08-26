@@ -87,18 +87,35 @@ namespace GonogoPrincipiaUplink.Tests
         }
 
         [Fact]
-        public void TheReadingIsTakenOncePerTickWhenTheSettingsTopicIsSubscribed()
+        public void SubscribingTheSettingsTopicDoesNotDoubleTheReading()
         {
-            // One reading, not two. The reading touches Principia's plugin, and a
-            // second one per tick is both waste and a second chance for the two
-            // answers to disagree inside a single tick.
-            var host = new RecordingUplinkHost();
-            Available(new FakeSettingsSource()).Register(host);
-            host.Resolve();
+            // One reading per tick either way. The reading calls into Principia's
+            // plugin, and the shape this replaced took a second one whenever the
+            // topic was subscribed: an unconditional refresher registered alongside
+            // the subscription-gated channel source, both driving the same read.
+            //
+            // An equality between the two cases rather than a fixed count, so it
+            // says what it means without depending on how many times one reading
+            // consults the source. That is also its limit, stated rather than left
+            // to be discovered: it sees a double read that DEPENDS on the
+            // subscription, which is the shape that shipped, and not a plain
+            // duplicate registered unconditionally, which would raise both counts
+            // together. Both were planted to check which one this catches.
+            var watched = new FakeSettingsSource();
+            var watchedHost = new RecordingUplinkHost();
+            Available(watched).Register(watchedHost);
+            watchedHost.Resolve();
 
-            host.DriveTick(new KspSnapshot(), PrincipiaUplink.SettingsTopic);
+            var unwatched = new FakeSettingsSource();
+            var unwatchedHost = new RecordingUplinkHost();
+            Available(unwatched).Register(unwatchedHost);
+            unwatchedHost.Resolve();
 
-            Assert.Single(host.PublishedTo(PrincipiaUplink.SettingsTopic));
+            watchedHost.DriveTick(new KspSnapshot(), PrincipiaUplink.SettingsTopic);
+            unwatchedHost.DriveTick(new KspSnapshot());
+
+            Assert.NotEqual(0, unwatched.MainWindowReads);
+            Assert.Equal(unwatched.MainWindowReads, watched.MainWindowReads);
         }
 
         [Fact]

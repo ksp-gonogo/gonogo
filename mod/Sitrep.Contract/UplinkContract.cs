@@ -686,11 +686,33 @@ namespace Sitrep.Contract
         /// prefix(es) an <see cref="RegisterDynamicNamespace"/> owns, and/or the exact
         /// topics a <see cref="Publisher"/> targets (an exact topic is its own prefix).
         ///
-        /// <para>The gate is a pure early-out, never a correctness change: a late
-        /// subscriber still gets the current value the ordinary way (the emitter's
-        /// keyframe-on-subscribe + the Courier archive's catch-up), because the very
-        /// next capture after a 0-&gt;1 subscription runs again. Omitting this overload
-        /// (or passing no prefixes) preserves the original always-capture behaviour.</para>
+        /// <para><b>The gate is a pure early-out ONLY for a capture whose entire
+        /// effect is its return value.</b> For one of those it is never a correctness
+        /// change: a late subscriber still gets the current value the ordinary way
+        /// (the emitter's keyframe-on-subscribe + the Courier archive's catch-up),
+        /// because the very next capture after a 0-&gt;1 subscription runs again.
+        /// Omitting this overload (or passing no prefixes) preserves the original
+        /// always-capture behaviour.</para>
+        ///
+        /// <para><b>A capture that ALSO writes state something else reads is starved
+        /// by this, silently.</b> The skip is total: no capture, so no write, so
+        /// every reader of that state sees whatever was last left there, for as long
+        /// as nobody subscribes a declared prefix. There is no exception, no log
+        /// line, and no degraded mode to notice. If the reader is an EXCLUSIVE
+        /// capability there is no vanilla fallback either, because winning the
+        /// election is what stops stock answering: the client is told nothing, or is
+        /// told positively that there is nothing to tell. Both shapes of that have
+        /// shipped from this Uplink surface, and the first was found on a rig rather
+        /// than by any test.</para>
+        ///
+        /// <para><b>So: never gate a capture that feeds anything but its own
+        /// topics.</b> Register it with the ungated overload above, and put the
+        /// subscription check on the PUBLISH instead if the expensive part is the
+        /// packing rather than the reading (<see cref="IsAnyTopicSubscribed"/>).
+        /// Skipping a publish starves nothing, because keyframe-on-subscribe hands a
+        /// late subscriber the current value; skipping the reading starves everything
+        /// downstream of it. An early-out is safe exactly where nothing else reads
+        /// what it skips.</para>
         /// </summary>
         void AddSampledSource(Func<KspSnapshot?, object?> captureOnMainThread, Action<object?> handleOnCourier, params string[] subscriptionTopicPrefixes);
 
@@ -708,10 +730,18 @@ namespace Sitrep.Contract
         ///
         /// <para>Reads the engine's thread-safe subscribed-topics mirror, so it
         /// is safe to call from the KSP main thread (where the postfix runs) as
-        /// well as the Courier thread. Like the sampled-source gate it is a pure
-        /// early-out hint, never a correctness gate: a late subscriber still
-        /// gets the current value the ordinary way (keyframe-on-subscribe +
-        /// archive catch-up).</para>
+        /// well as the Courier thread.</para>
+        ///
+        /// <para>It carries the SAME condition as the sampled-source gate, and for
+        /// the same reason: a pure early-out hint, never a correctness gate, ONLY
+        /// where the work it skips produces nothing but the gated topics. A late
+        /// subscriber gets the current value the ordinary way
+        /// (keyframe-on-subscribe + archive catch-up), so skipping a PUBLISH is
+        /// always safe. Skipping a READING that something else derives from is not:
+        /// see the gated
+        /// <see cref="AddSampledSource(Func{KspSnapshot?, object?}, Action{object?}, string[])"/>
+        /// overload for what that failure looks like from a client, which is
+        /// silence or a confident wrong answer, and nothing at all in a log.</para>
         /// </summary>
         bool IsAnyTopicSubscribed(string topicPrefix);
 

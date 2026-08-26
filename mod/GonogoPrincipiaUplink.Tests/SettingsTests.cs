@@ -838,7 +838,24 @@ namespace GonogoPrincipiaUplink.Tests
 
         public bool TryAttach() => true;
 
-        public object? MainWindow => Window;
+        /// <summary>
+        /// How many times the reading has gone looking for the producer's window.
+        ///
+        /// <para>Counted so that "the reading is taken once per tick" can be
+        /// asserted rather than assumed. The reading calls into Principia's plugin,
+        /// so a second one per tick is both waste and a second chance for the two
+        /// answers to disagree inside a single tick.</para>
+        /// </summary>
+        public int MainWindowReads { get; private set; }
+
+        public object? MainWindow
+        {
+            get
+            {
+                MainWindowReads++;
+                return Window;
+            }
+        }
 
         public object? FrameSelector => Selector;
 
