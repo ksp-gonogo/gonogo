@@ -38,6 +38,11 @@
          live in Sitrep.Host, which is itself KSP-free, same reference
          Sitrep.Host.Tests takes on itself. -->
     <ProjectReference Include="..\Sitrep.Host\Sitrep.Host.csproj" />
+    <!-- Sitrep.Contract.TestSupport: StarvationProbeHost, the host an Uplink can
+         be registered into and TICKED, so ActionGroupsStarvationTests can ask
+         what the exclusive capability answers under named subscriptions rather
+         than what was registered. -->
+    <ProjectReference Include="..\Sitrep.Contract.TestSupport\Sitrep.Contract.TestSupport.csproj" />
   </ItemGroup>
 
 </Project>
