@@ -43,6 +43,10 @@ namespace Sitrep.Core.Tests
         // each is excluded.
         private static readonly HashSet<string> FlattenedByProducer = new()
         {
+            // Inbound only: comms.setSimulationDelayPolicy's arguments. A
+            // command's args travel client-to-server inside the command
+            // envelope, so JsonWriter never writes this type.
+            "SetSimulationDelayPolicyArgs",
             // vessel.*: VesselViewProvider.ToWire(...) flattens each of these to
             // a Dictionary<string, object?> before Publish; JsonWriter only ever
             // sees the dictionary, never the POCO.

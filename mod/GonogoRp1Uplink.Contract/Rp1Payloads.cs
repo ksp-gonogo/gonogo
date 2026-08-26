@@ -393,6 +393,182 @@ public sealed class Rp1OperationEntry
 }
 
 /// <summary>
+/// One thing being BUILT at a space centre, as opposed to one vehicle being
+/// integrated inside it. Three RP-1 project kinds share this row shape: a
+/// facility upgrade, a launch complex being built or modified, and a pad being
+/// added to a complex.
+///
+/// <para>The other half of the schedule. <c>rp1.buildQueue</c> carries vehicle
+/// integration, which is the half that moves in weeks; construction is the half
+/// that moves in months and consumes the funds a Program pays out. An operator
+/// reading only the queue sees the fast half of an RP-1 career's calendar.</para>
+///
+/// <para><b>Construction runs in PARALLEL, and integration does not.</b> RP-1
+/// zeroes a vehicle's rate at any queue position but the head, and a research
+/// node's likewise, so those two queues advance one item at a time. A
+/// construction's rate does not depend on its queue position at all, so every
+/// row here is moving at once. It does not depend on engineers either: a
+/// construction rate is a per-day constant scaled by the career's own modifiers,
+/// which is why no engineer count appears on this row.</para>
+///
+/// <para>ONE ROW SHAPE DISCRIMINATED BY <see cref="Kind"/>, the same choice
+/// <see cref="Rp1ProgramEntry"/> argues for: the fields only one kind has are
+/// absent on the others rather than split across three Topics that would have to
+/// be read together to answer "what is being built here".</para>
+/// </summary>
+[SitrepContract]
+[SitrepTopic("rp1.constructions", isArray: true)]
+#if SITREP_CODEGEN
+[TsInterface]
+#endif
+public sealed class Rp1ConstructionEntry
+{
+    [SitrepUnit(Units.Id)]
+    public string? KscName { get; set; }
+
+    /// <summary>
+    /// The launch complex this construction concerns, joining
+    /// <c>rp1.complexes[].lcId</c>: the complex being built for a
+    /// <c>LaunchComplex</c> row, the complex gaining a pad for a <c>Pad</c> row.
+    /// Absent on a facility upgrade, which belongs to the centre rather than to
+    /// any complex.
+    /// </summary>
+    [SitrepUnit(Units.Id)]
+    public string? LcId { get; set; }
+
+    /// <summary>
+    /// Which of RP-1's three construction projects this is:
+    /// <c>FacilityUpgrade</c>, <c>LaunchComplex</c> or <c>Pad</c>. These are this
+    /// contract's own names, not RP-1 enum members, because RP-1 draws the
+    /// distinction with three separate types rather than one enum.
+    /// </summary>
+    [SitrepUnit(Units.Enumeration)]
+    public string? Kind { get; set; }
+
+    /// <summary>
+    /// What is being built, in RP-1's own words: the facility's short name, the
+    /// launch complex's name, or the new pad's name. Read from the project's
+    /// stored name rather than through RP-1's display helper, which localises a
+    /// facility name and walks the centre roster for a pad.
+    /// </summary>
+    [SitrepUnit(Units.Text)]
+    public string? Name { get; set; }
+
+    /// <summary>
+    /// The <c>SpaceCenterFacility</c> enum name being upgraded, e.g.
+    /// "VehicleAssemblyBuilding". Present only on a <c>FacilityUpgrade</c> row:
+    /// RP-1's base project answers "LaunchPad" for the other two kinds as its
+    /// transaction category, which is not a claim about a facility and must not
+    /// arrive looking like one.
+    /// </summary>
+    [SitrepUnit(Units.Enumeration)]
+    public string? FacilityType { get; set; }
+
+    /// <summary>The level the facility is at now. FacilityUpgrade rows only.</summary>
+    [SitrepUnit(Units.Count)]
+    public int? CurrentLevel { get; set; }
+
+    /// <summary>The level it is being taken to. FacilityUpgrade rows only.</summary>
+    [SitrepUnit(Units.Count)]
+    public int? TargetLevel { get; set; }
+
+    /// <summary>
+    /// This is a MODIFICATION of an existing launch complex rather than a new
+    /// one. LaunchComplex rows only, and the distinction is what an operator
+    /// plans around: a modify takes the complex out of service while it runs.
+    /// </summary>
+    [SitrepUnit(Units.Flag)]
+    public bool? IsModify { get; set; }
+
+    /// <summary>
+    /// Engineers RP-1 will put back on the complex when the work finishes. They
+    /// are off it for the duration, which is why the centre's unassigned count
+    /// rises the moment a modify is queued. LaunchComplex rows only.
+    /// </summary>
+    [SitrepUnit(Units.Count)]
+    public int? EngineersToReadd { get; set; }
+
+    /// <summary>The pad being built, joining <c>rp1.pads[].padId</c>. Pad rows only.</summary>
+    [SitrepUnit(Units.Id)]
+    public string? PadId { get; set; }
+
+    [SitrepUnit(Contract.Units.BuildPoints)]
+    public double? Progress { get; set; }
+
+    [SitrepUnit(Contract.Units.BuildPoints)]
+    public double? TotalPoints { get; set; }
+
+    /// <summary>Null rather than NaN on a project with no build points at all.</summary>
+    [SitrepUnit(Units.Ratio)]
+    public double? ProgressRatio { get; set; }
+
+    /// <summary>
+    /// The operator's own throttle on this construction, 0 to 1.5. Above 1 is
+    /// RUSHING, which buys speed at a higher daily cost.
+    ///
+    /// <para>RP-1 shows the cost multiplier that buys beside this figure, and
+    /// this contract does not carry it: the multiplier comes off a curve in an
+    /// assembly whose body could not be read, and a fabricated cost on a
+    /// months-long commitment is worse than an absent one. The throttle itself is
+    /// a plain stored field and is the fact that says a construction is being
+    /// rushed at all.</para>
+    /// </summary>
+    [SitrepUnit(Units.Ratio)]
+    public double? WorkRate { get; set; }
+
+    /// <summary>
+    /// Effective rate: the costed base rate times the throttle. Null until RP-1
+    /// has costed the project, which it does when the construction queue changes
+    /// or the career's own rate modifiers move, so a freshly loaded save can
+    /// legitimately answer nothing here.
+    /// </summary>
+    [SitrepUnit(Contract.Units.BuildPointsPerSecond)]
+    public double? Rate { get; set; }
+
+    /// <summary>
+    /// Seconds to completion at the current rate. No efficiency ramp, unlike a
+    /// vehicle: a construction's rate does not improve with the crew, because it
+    /// has no crew.
+    /// </summary>
+    [SitrepUnit(Units.Seconds)]
+    public double? TimeLeftSeconds { get; set; }
+
+    /// <summary>
+    /// The rate resolved and is zero: costed and going nowhere, which under RP-1
+    /// means the throttle is at zero. A different fact from a null
+    /// <see cref="Rate"/>.
+    /// </summary>
+    [SitrepUnit(Units.Flag)]
+    public bool? Stalled { get; set; }
+
+    /// <summary>The whole price of the work, quoted when it was queued.</summary>
+    [SitrepUnit(Units.Funds)]
+    public double? Cost { get; set; }
+
+    /// <summary>
+    /// Paid so far. A construction is billed AS IT PROGRESSES rather than up
+    /// front, so this and <see cref="Cost"/> together are the only place a
+    /// part-paid commitment is visible: cancel at half done and half the money is
+    /// gone.
+    ///
+    /// <para>RP-1's own remaining-cost figure is not carried, and the difference
+    /// of these two is not it: RP-1 runs the outstanding balance through a
+    /// currency query that broadcasts to every modifier in the save, so the
+    /// number it shows includes leader effects this Uplink will not evaluate.
+    /// What is here are the two stored quantities, unmodified.</para>
+    /// </summary>
+    [SitrepUnit(Units.Funds)]
+    public double? SpentCost { get; set; }
+
+    /// <summary>
+    /// Of what has been paid, how much went on rushing. Equal to
+    /// <see cref="SpentCost"/> on a construction that was never rushed.
+    /// </summary>
+    [SitrepUnit(Units.Funds)]
+    public double? SpentRushCost { get; set; }
+}
+
+/// <summary>
 /// One node on RP-1's research queue. Global across centres, so no centre key:
 /// researchers are hired once for the programme, not per space centre.
 /// </summary>

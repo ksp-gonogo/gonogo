@@ -85,6 +85,18 @@ namespace Sitrep.Host.IntegrationTests
             new Entry("economy", "Sitrep.Host/Economy/EconomyElection.cs", FedByGatedCapture: false),
             new Entry("actionGroups", "Sitrep.Host/ActionGroups/ActionGroupsElection.cs", FedByGatedCapture: false),
             new Entry(
+                "simulation",
+                "Sitrep.Host/Comms/SimulationElection.cs",
+                FedByGatedCapture: false,
+                WhyNoBehaviouralCase: "The provider is registered at Register time from a live "
+                    + "reflection probe, not fed by any capture, so there is no gated path that "
+                    + "could starve it. The flight.simulation CHANNEL is subscription-gated and "
+                    + "safe to be: its source's whole effect is its return value, and the delay "
+                    + "cut it reports rides a config read every tick regardless of who watches. "
+                    + "No behavioural case, for the same reason as economy before it: the "
+                    + "Register that wires it reads live KSP and that Uplink's Tests project "
+                    + "compiles a curated file list that cannot include it."),
+            new Entry(
                 "delayedScience",
                 "Gonogo.KSP/CurrencyEventUplink.cs",
                 FedByGatedCapture: false,

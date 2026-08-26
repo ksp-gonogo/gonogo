@@ -207,6 +207,14 @@ namespace Sitrep.Core.Serialization
                     // codec.
                     AppendCommsDelay(sb, commsDelay);
                     break;
+                case Sitrep.Contract.FlightSimulation flightSimulation:
+                    // Whether the flight on screen is a rehearsal, and whether
+                    // signal delay is being applied to it. Flattened here rather
+                    // than by a producer because the channel source hands the
+                    // POCO straight over (FlightUplink's SimulationTopic maps
+                    // FlightSimulationProvider.Build directly).
+                    AppendFlightSimulation(sb, flightSimulation);
+                    break;
                 // There is deliberately no case for kOS's three raw-POCO wire
                 // types (kos.processors / kos.terminal.<coreId> /
                 // kos.run.<coreId>). All three self-flatten producer-side via
@@ -585,6 +593,39 @@ namespace Sitrep.Core.Serialization
             AppendString(sb, "quality");
             sb.Append(':');
             AppendInteger(sb, (long)(delay.Meta?.Quality ?? Sitrep.Contract.Quality.OnRails));
+            sb.Append('}');
+
+            sb.Append('}');
+        }
+
+        private static void AppendFlightSimulation(StringBuilder sb, Sitrep.Contract.FlightSimulation simulation)
+        {
+            sb.Append('{');
+            AppendString(sb, "simulated");
+            sb.Append(':');
+            AppendNullableBool(sb, simulation.Simulated);
+
+            sb.Append(',');
+            AppendString(sb, "delayApplied");
+            sb.Append(':');
+            sb.Append(simulation.DelayApplied ? "true" : "false");
+
+            sb.Append(',');
+            AppendString(sb, "delayInSimulation");
+            sb.Append(':');
+            sb.Append(simulation.DelayInSimulation ? "true" : "false");
+
+            sb.Append(',');
+            AppendString(sb, "meta");
+            sb.Append(':');
+            sb.Append('{');
+            AppendString(sb, "source");
+            sb.Append(':');
+            AppendString(sb, simulation.Meta?.Source ?? "");
+            sb.Append(',');
+            AppendString(sb, "quality");
+            sb.Append(':');
+            AppendInteger(sb, (long)(simulation.Meta?.Quality ?? Sitrep.Contract.Quality.OnRails));
             sb.Append('}');
 
             sb.Append('}');

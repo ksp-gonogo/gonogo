@@ -7,8 +7,8 @@ namespace GonogoRp1Uplink
     /// <summary>
     /// GonogoRp1Uplink: RP-1's space centre on the wire. The build queue, the
     /// launch complexes and their pads, the rollout and reconditioning
-    /// operations, the research queue, the payroll, Confidence, and the
-    /// Programs the career's funding is committed against.
+    /// operations, the construction queue, the research queue, the payroll,
+    /// Confidence, and the Programs the career's funding is committed against.
     ///
     /// <para><b>A sibling of GonogoAvionicsUplink, never merged into it.</b> Both
     /// read RP-1 by reflection, and one probe and one health row would be
@@ -42,6 +42,7 @@ namespace GonogoRp1Uplink
         public const string WarehouseTopic = "rp1.warehouse";
         public const string PadsTopic = "rp1.pads";
         public const string OperationsTopic = "rp1.operations";
+        public const string ConstructionsTopic = "rp1.constructions";
         public const string ResearchTopic = "rp1.research";
         public const string PersonnelTopic = "rp1.personnel";
         public const string ConfidenceTopic = "rp1.confidence";
@@ -52,7 +53,7 @@ namespace GonogoRp1Uplink
         /// <summary>
         /// Rows published per second across every rp1.* channel. One capture per
         /// tick emits one row per centre, complex, queued vehicle, pad, operation,
-        /// research node and Program, so this counts the thing that actually
+        /// construction, research node and Program, so this counts the thing that actually
         /// grows: a mature RP-1 career with several centres, a full tech queue and
         /// the whole thirty-seven Program catalogue is a few hundred rows a tick, and
         /// a runaway means the subscription gate stopped gating rather than that
@@ -114,6 +115,7 @@ namespace GonogoRp1Uplink
         private IChannelPublisher? _warehouse;
         private IChannelPublisher? _pads;
         private IChannelPublisher? _operations;
+        private IChannelPublisher? _constructions;
         private IChannelPublisher? _research;
         private IChannelPublisher? _personnel;
         private IChannelPublisher? _confidence;
@@ -153,6 +155,7 @@ namespace GonogoRp1Uplink
                 Ground(WarehouseTopic),
                 Ground(PadsTopic),
                 Ground(OperationsTopic),
+                Ground(ConstructionsTopic),
                 Ground(ResearchTopic),
                 // Both singletons are legitimately absent from the first tick:
                 // a stock install has no payroll and no Confidence module, and
@@ -274,6 +277,7 @@ namespace GonogoRp1Uplink
             _warehouse = host.Publisher(WarehouseTopic);
             _pads = host.Publisher(PadsTopic);
             _operations = host.Publisher(OperationsTopic);
+            _constructions = host.Publisher(ConstructionsTopic);
             _research = host.Publisher(ResearchTopic);
             _personnel = host.Publisher(PersonnelTopic);
             _confidence = host.Publisher(ConfidenceTopic);
@@ -290,6 +294,7 @@ namespace GonogoRp1Uplink
                 WarehouseTopic,
                 PadsTopic,
                 OperationsTopic,
+                ConstructionsTopic,
                 ResearchTopic,
                 PersonnelTopic,
                 ConfidenceTopic);
@@ -334,11 +339,12 @@ namespace GonogoRp1Uplink
             var warehouse = Rp1ScCapture.BuildWarehouse(raw);
             var pads = Rp1ScCapture.BuildPads(raw);
             var operations = Rp1ScCapture.BuildOperations(raw);
+            var constructions = Rp1ScCapture.BuildConstructions(raw);
             var research = Rp1ScCapture.BuildResearch(raw);
 
             Rp1RowBudget.Record(
                 centres.Count + complexes.Count + buildQueue.Count + warehouse.Count
-                + pads.Count + operations.Count + research.Count,
+                + pads.Count + operations.Count + constructions.Count + research.Count,
                 raw.Ut);
 
             _centres?.Publish(centres, raw.Ut);
@@ -347,6 +353,7 @@ namespace GonogoRp1Uplink
             _warehouse?.Publish(warehouse, raw.Ut);
             _pads?.Publish(pads, raw.Ut);
             _operations?.Publish(operations, raw.Ut);
+            _constructions?.Publish(constructions, raw.Ut);
             _research?.Publish(research, raw.Ut);
             _personnel?.Publish(Rp1ScCapture.BuildPersonnel(raw), raw.Ut);
             _confidence?.Publish(Rp1ScCapture.BuildConfidence(raw), raw.Ut);

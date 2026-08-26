@@ -96,6 +96,28 @@
       "confidence": "confidence",
       "earned": "confidence"
     },
+    "Rp1ConstructionEntry": {
+      "cost": "funds",
+      "currentLevel": "count",
+      "engineersToReadd": "count",
+      "facilityType": "enum",
+      "isModify": "flag",
+      "kind": "enum",
+      "kscName": "id",
+      "lcId": "id",
+      "name": "text",
+      "padId": "id",
+      "progress": "bp",
+      "progressRatio": "ratio",
+      "rate": "bp/s",
+      "spentCost": "funds",
+      "spentRushCost": "funds",
+      "stalled": "flag",
+      "targetLevel": "count",
+      "timeLeftSeconds": "s",
+      "totalPoints": "bp",
+      "workRate": "ratio"
+    },
     "Rp1FundingCurveEntry": {
       "isDefault": "flag",
       "name": "id"
@@ -253,6 +275,28 @@
     "rp1.confidence": {
       "confidence": "confidence",
       "earned": "confidence"
+    },
+    "rp1.constructions": {
+      "cost": "funds",
+      "currentLevel": "count",
+      "engineersToReadd": "count",
+      "facilityType": "enum",
+      "isModify": "flag",
+      "kind": "enum",
+      "kscName": "id",
+      "lcId": "id",
+      "name": "text",
+      "padId": "id",
+      "progress": "bp",
+      "progressRatio": "ratio",
+      "rate": "bp/s",
+      "spentCost": "funds",
+      "spentRushCost": "funds",
+      "stalled": "flag",
+      "targetLevel": "count",
+      "timeLeftSeconds": "s",
+      "totalPoints": "bp",
+      "workRate": "ratio"
     },
     "rp1.operations": {
       "associatedVesselId": "id",

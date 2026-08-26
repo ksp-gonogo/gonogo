@@ -30,6 +30,22 @@
 // LCOpsProject.GetTimeLeftEstAll() is out for a second reason on top of the
 // first: it mutates three shared static scratch lists on RP-1's own type.
 //
+// The construction projects are out for their own reasons, which is why none of
+//
+//   ConstructionProject.GetBuildRate() / .GetTimeLeft() / .GetFractionComplete()
+//   / .RemainingCost / .RushMultiplier / .KSC, FacilityUpgradeProject
+//   .GetItemName(), PadConstructionProject.LC / .GetItemName()
+//
+// is called either. GetBuildRate writes _buildRate and reaches .KSC, which
+// memoises a centre found by walking the whole roster; RemainingCost runs a
+// CurrencyModifierQueryRP0 that broadcasts to every modifier in the save;
+// RushMultiplier evaluates a HermiteCurve from a separate assembly whose body
+// could not be read, so the throttle is published and the cost multiplier it
+// buys is not; PadConstructionProject.LC memoises the same way GetBuildRate's
+// centre does; and the two GetItemName overrides localise a facility name and
+// walk to the complex respectively, where the stored `name` field answers
+// already.
+//
 // WHAT IS CALLED, each with its body read on the shipped assembly:
 //
 //   LCLaunchPad.State          pure; reads its own destruction ConfigNode, its
@@ -217,6 +233,8 @@ namespace GonogoRp1Uplink
                     ReadComplex(raw, ksc, kscName, lc, lcEngineers, operational, lcToEfficiency, maxEfficiency, rushRateMult);
                 }
 
+                ReadConstructions(raw, kscName, ksc);
+
                 raw.Centres.Add(new Rp1CentreRaw
                 {
                     KscName = kscName,
@@ -302,6 +320,19 @@ namespace GonogoRp1Uplink
             foreach (var vp in Enumerate(Member(lc, "Warehouse")))
             {
                 raw.Warehouse.Add(ReadBuildItem(kscName, lcId, vp, efficiency, rushRate, canIntegrate, ramp, withProgress: false));
+            }
+
+            // Pads under construction hang off the COMPLEX, unlike the other two
+            // construction kinds, which hang off the centre. RP-1 files all three
+            // into one per-centre list as well, and that merged list is not what
+            // is walked here: it carries no kind and no owner, and both are what
+            // makes a construction row legible.
+            foreach (var pc in Enumerate(Member(lc, "PadConstructions")))
+            {
+                var row = ReadConstruction(kscName, pc, "Pad");
+                row.LcId = lcId;
+                row.PadId = ReadGuidString(pc, "id");
+                raw.Constructions.Add(row);
             }
 
             foreach (var pad in Enumerate(Member(lc, "LaunchPads")))
@@ -479,6 +510,76 @@ namespace GonogoRp1Uplink
                 BlockingPeers = subjectIndex >= 0 ? blockingSet.Count - 1 : 0,
                 Cost = ReadDouble(op, "cost") ?? 0.0,
                 AssociatedVesselId = EmptyAsAbsent(ReadString(op, "associatedID")),
+            };
+        }
+
+        /// <summary>
+        /// The two construction lists a centre owns. Pads are read per complex,
+        /// in <see cref="ReadComplex"/>, because that is where RP-1 keeps them.
+        /// </summary>
+        private void ReadConstructions(Rp1ScRaw raw, string? kscName, object ksc)
+        {
+            foreach (var fu in Enumerate(Member(ksc, "FacilityUpgrades")))
+            {
+                var row = ReadConstruction(kscName, fu, "FacilityUpgrade");
+                // The one kind whose FacilityType is a claim about a facility.
+                // RP-1's base project answers LaunchPad for the other two as its
+                // transaction category, and publishing that would tell an operator
+                // a launch complex was a pad upgrade.
+                row.FacilityType = ReadEnumName(fu, "FacilityType");
+                row.CurrentLevel = ReadInt(fu, "currentLevel");
+                row.TargetLevel = ReadInt(fu, "upgradeLevel");
+                raw.Constructions.Add(row);
+            }
+
+            foreach (var lcc in Enumerate(Member(ksc, "LCConstructions")))
+            {
+                var row = ReadConstruction(kscName, lcc, "LaunchComplex");
+                row.LcId = ReadGuidString(lcc, "lcID");
+                row.IsModify = ReadBool(lcc, "isModify");
+                row.EngineersToReadd = ReadInt(lcc, "engineersToReadd");
+                raw.Constructions.Add(row);
+            }
+        }
+
+        /// <summary>
+        /// The fields every construction kind shares, off
+        /// <c>ConstructionProject</c>. The per-kind fields are set by the caller,
+        /// which is the one that knows what it is looking at.
+        /// </summary>
+        /// <remarks>
+        /// <c>GetBuildRate()</c>, <c>GetTimeLeft()</c>, <c>GetFractionComplete()</c>
+        /// and <c>RemainingCost</c> are all gone round, each for a reason this file
+        /// applies everywhere else too. <c>GetBuildRate</c> writes its own
+        /// <c>_buildRate</c> and memoises a centre reference found by walking the
+        /// roster; <c>RemainingCost</c> runs a currency query that broadcasts to
+        /// every modifier in the save; and the other two answer an infinity and a
+        /// NaN on a project RP-1 has not costed.
+        /// </remarks>
+        private Rp1ConstructionRaw ReadConstruction(string? kscName, object project, string kind)
+        {
+            var progress = ReadDouble(project, "progress") ?? 0.0;
+            var totalPoints = ReadDouble(project, "BP") ?? 0.0;
+            var workRate = ReadDouble(project, "workRate") ?? 1.0;
+            var rate = Rp1ScMath.ConstructionRate(ReadDouble(project, "_buildRate") ?? -1.0, workRate);
+
+            return new Rp1ConstructionRaw
+            {
+                KscName = kscName,
+                Kind = kind,
+                Name = EmptyAsAbsent(ReadString(project, "name")),
+                Progress = progress,
+                TotalPoints = totalPoints,
+                ProgressRatio = Rp1ScMath.ProgressRatio(progress, totalPoints),
+                WorkRate = workRate,
+                Rate = rate,
+                Stalled = Rp1ScMath.IsStalled(rate),
+                // No efficiency ramp: a construction has no crew to get better at
+                // it, and RP-1's own estimate is the plain division.
+                TimeLeftSeconds = Rp1ScMath.BaseTimeLeft(progress, totalPoints, rate),
+                Cost = ReadDouble(project, "cost") ?? 0.0,
+                SpentCost = ReadDouble(project, "spentCost") ?? 0.0,
+                SpentRushCost = ReadDouble(project, "spentRushCost") ?? 0.0,
             };
         }
 

@@ -7,12 +7,14 @@ import "./uplink";
 import "./units";
 import "./topics";
 import "./settings/rp1SimulationSettings";
+import "./KscConstruction";
 import "./LaunchComplexStatus";
 import "./ProgramDetail";
 import "./ProgramStatus";
 import "./ResearchQueue";
 import "./SpaceCentrePersonnel";
 
+export { KscConstruction } from "./KscConstruction";
 export { LaunchComplexStatus } from "./LaunchComplexStatus";
 export { ProgramDetail } from "./ProgramDetail";
 export { ProgramStatus } from "./ProgramStatus";
@@ -25,6 +27,7 @@ export {
   RP1_CENTRES_TOPIC,
   RP1_COMPLEXES_TOPIC,
   RP1_CONFIDENCE_TOPIC,
+  RP1_CONSTRUCTIONS_TOPIC,
   RP1_OPERATIONS_TOPIC,
   RP1_PADS_TOPIC,
   RP1_PERSONNEL_TOPIC,

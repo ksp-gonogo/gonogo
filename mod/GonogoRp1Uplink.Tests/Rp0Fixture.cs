@@ -206,6 +206,55 @@ namespace RP0
         public bool IsDestroyed => DestroyedValue;
     }
 
+    /// <summary>
+    /// The construction base. <c>_buildRate</c> is PRIVATE on the real type and
+    /// declared on this abstract base, so a reader that resolves it from the
+    /// concrete subclass has to walk the base chain with non-public flags, exactly
+    /// as it does for <c>LCOpsProject</c>. Keeping it private here is what makes
+    /// this fixture able to fail.
+    /// </summary>
+    public abstract class ConstructionProject
+    {
+        public double progress;
+        public double BP;
+        public double cost;
+        public double spentCost;
+        public double spentRushCost;
+        public string name = "";
+        public double workRate = 1.0;
+
+        private double _buildRate = -1.0;
+
+        public virtual SpaceCenterFacility FacilityType => SpaceCenterFacility.LaunchPad;
+
+        public void SetBuildRate(double rate) => _buildRate = rate;
+    }
+
+    public class FacilityUpgradeProject : ConstructionProject
+    {
+        public int upgradeLevel;
+        public int currentLevel;
+        public string id = "";
+
+        protected SpaceCenterFacility sFacilityType;
+
+        public override SpaceCenterFacility FacilityType => sFacilityType;
+
+        public void SetFacility(SpaceCenterFacility facility) => sFacilityType = facility;
+    }
+
+    public class LCConstructionProject : ConstructionProject
+    {
+        public bool isModify;
+        public Guid lcID;
+        public int engineersToReadd;
+    }
+
+    public class PadConstructionProject : ConstructionProject
+    {
+        public Guid id = Guid.NewGuid();
+    }
+
     public class ResearchProject
     {
         public int scienceCost;
@@ -234,6 +283,7 @@ namespace RP0
         public List<VesselProject> Warehouse = new List<VesselProject>();
         public List<ReconRolloutProject> Recon_Rollout = new List<ReconRolloutProject>();
         public List<VesselRepairProject> VesselRepairs = new List<VesselRepairProject>();
+        public List<PadConstructionProject> PadConstructions = new List<PadConstructionProject>();
 
         public LaunchComplexType LcTypeValue = LaunchComplexType.Pad;
         public double RateValue;
@@ -258,6 +308,8 @@ namespace RP0
         public string KSCName = "";
         public int Engineers;
         public List<LaunchComplex> LaunchComplexes = new List<LaunchComplex>();
+        public List<LCConstructionProject> LCConstructions = new List<LCConstructionProject>();
+        public List<FacilityUpgradeProject> FacilityUpgrades = new List<FacilityUpgradeProject>();
 
         public string? GroundStation;
 
@@ -364,6 +416,24 @@ namespace RP0
             details.subsidy = details.minSubsidy + (details.maxSubsidy - details.minSubsidy) * t;
         }
     }
+}
+
+// KSP's own facility enum, which RP-1 stores on a facility-upgrade project.
+// Global-namespaced because that is where KSP declares it and where the
+// production walk's enum-name read will meet it. Only the members this Uplink's
+// tests name are here; the walk reads the NAME rather than the ordinal, so the
+// set being partial cannot make a test agree with production by accident.
+public enum SpaceCenterFacility
+{
+    Administration,
+    AstronautComplex,
+    LaunchPad,
+    MissionControl,
+    ResearchAndDevelopment,
+    Runway,
+    SpaceplaneHangar,
+    TrackingStation,
+    VehicleAssemblyBuilding,
 }
 
 // The one Unity type RP-1's launch-complex envelope is expressed in. Declared
