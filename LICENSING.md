@@ -23,7 +23,7 @@ able to write an Uplink too.
 |---|---|---|
 | `mod/GonogoKosUplink` (+ `.Tests`, + `@ksp-gonogo/gonogo-kos-uplink`) | GPL-3.0-only | **Permanent.** Compile-time links kOS (`kOS.dll` / `kOS.Safe.dll`), which is GPL-3.0-only. |
 | `mod/GonogoScansatUplink` (+ `@ksp-gonogo/gonogo-scansat-uplink`) | GPL-3.0-only | **Provisional, on hold.** See below. |
-| `mod/GonogoMechJebUplink` | GPL-3.0-only | **Avoidable, and should be avoided.** See below. |
+| `mod/GonogoMechJebUplink` (+ `.Tests`, + `@ksp-gonogo/gonogo-mechjeb-uplink`) | GPL-3.0-only | **Permanent.** Compile-time links MechJeb2 (`MechJeb2.dll`), which is GPL-3.0. |
 | Everything else | MIT | Nothing else links anything copyleft. |
 
 All three exceptions are **dependency leaves**, nothing in the repository references any of them,
@@ -53,19 +53,26 @@ Do not relicense it to MIT on the strength of the BSD text alone. If the `restri
 to govern, the problem is bigger than a licence field, because we link the DLL. Full rationale in
 `mod/GonogoScansatUplink/NOTICE-SCANSAT.txt`.
 
-### GonogoMechJebUplink (avoidable: this row should stop existing)
+### GonogoMechJebUplink
 
 MechJeb2 is GPL-3.0 and this uplink compile-time links `MechJeb2.dll`, so the assembly is
-GPL-3.0-only. Unlike the two rows above, nothing forces that. It is the only uplink in the
-repository that binds its mod's types directly instead of reaching them by runtime reflection,
-and the ten MuMech members it touches are already resolved reflectively by its own version guard.
-`GonogoActionGroupsExtendedUplink` reaches AGExt, also GPL-3.0, at arm's length and stays MIT for
-precisely this reason.
+GPL-3.0-only. Same shape as the two rows above, and for the same reason: a leaf assembly, its own
+CKAN package, its own GameData folder, nothing in the repository references it.
 
-The same deviation is why CI cannot compile this assembly and `publish-mods.yml` has no leg for
-it: `MechJeb2.dll` is not in the private reference set, and unlike kOS and SCANsat there is no
-reason to put it there. Scope for the rewrite is in
-`local_docs/design/mechjeb-reflection-rewrite-scope.md`. Until it lands, see
+Compile-time binding is not a deviation here. `GonogoScansatUplink` names `SCANUtil`,
+`SCANcontroller` and `SCANexperiment`; `GonogoKosUplink` names types out of `kOS.Module`,
+`kOS.Safe.Screen` and `kOS.UserIO`. Three uplinks bind their mod's types, and the copyleft on this
+one is not novel: `GonogoKosUplink` is GPL-3.0-only by the same mechanism.
+
+Reflection is what this repository does for a mod whose LICENCE forbids linking, and both of the
+uplinks that reflect say so in their own notice: AGExt is GPL-3.0 and RP-1 is CC-BY-NC-SA-4.0, so
+`GonogoActionGroupsExtendedUplink` and `GonogoAvionicsUplink` reach them at arm's length and stay
+MIT. MechJeb2 is linkable, so the licence poses no question this uplink has to route around.
+
+What is still outstanding is a BUILD gap and not a licence one: `MechJeb2.dll` is absent from the
+private reference set, so CI cannot compile this assembly and `publish-mods.yml` has no leg for it.
+Vendoring the dll closes it, the same operation already done for kOS and SCANsat. Reasoning and
+evidence in `local_docs/design/mechjeb-provider-and-vendoring.md`; the linkage notice is
 `mod/GonogoMechJebUplink/NOTICE-MECHJEB.txt`.
 
 ## The kerbcast caveat: read this before relying on the SPA's MIT
