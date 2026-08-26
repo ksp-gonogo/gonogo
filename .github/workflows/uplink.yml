@@ -93,7 +93,7 @@ jobs:
             exit 1
           fi
           if [ '${{ matrix.uplink.client }}' != 'true' ]; then
-            echo "::notice::${{ matrix.uplink.id }} is C#-only. Its plugin assembly is compiled by scripts/uplink-mod-build.sh in ci.yml's mod job; nothing further applies here."
+            echo "::notice::${{ matrix.uplink.id }} is C#-only, so the client steps below do not apply. Its plugin assembly is compiled by scripts/uplink-mod-build.sh in ci.yml's mod job, and the C# extraction probe still runs here."
           fi
 
       - uses: actions/setup-node@v6
