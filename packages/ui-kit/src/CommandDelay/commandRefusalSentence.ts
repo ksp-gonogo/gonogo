@@ -112,6 +112,10 @@ const GENERAL_REASON: Partial<Record<CommandErrorCode, string>> = {
   [CommandErrorCode.NoConnection]: "there is no usable link to send it on",
   [CommandErrorCode.NotUnlocked]: "it has not been unlocked yet",
   [CommandErrorCode.SiteOccupied]: "another vessel is on the launch site",
+  // Deliberately not "a limit has been reached": under a career overhaul the
+  // vehicle is not over anything, it has simply not been built and rolled out
+  // yet, and the two want opposite responses from an operator.
+  [CommandErrorCode.NotReady]: "the vehicle is not ready to fly yet",
   [CommandErrorCode.FacilityDamaged]: "the building is out of action",
   [CommandErrorCode.NoVessel]: "there is no vessel to act on",
   [CommandErrorCode.NotFound]: "nothing here answers to that",

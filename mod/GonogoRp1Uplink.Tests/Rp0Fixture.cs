@@ -151,14 +151,31 @@ namespace RP0
 
     public class VesselProject
     {
+        public enum ClampsState
+        {
+            Untested,
+            NoClamps,
+            HasClamps,
+        }
+
         public double progress;
         public double buildPoints;
         public string launchSite = "LaunchPad";
         public string shipName = "";
+        public Guid shipID = Guid.NewGuid();
         public ProjectType Type = ProjectType.VAB;
         public bool humanRated;
         public float cost;
         public float mass;
+
+        /// <summary>
+        /// The recorded envelope of the built article. Zero on the real type
+        /// until something asks for it, which is why the launch gate treats a
+        /// zero as a size nobody wrote down.
+        /// </summary>
+        public UnityEngine.Vector3 ShipSize;
+
+        public ClampsState clampState = ClampsState.NoClamps;
 
         private double _buildRate = -1.0;
 
@@ -176,7 +193,17 @@ namespace RP0
 
         public LaunchPadState StateValue = LaunchPadState.Free;
 
+        /// <summary>
+        /// A property on the real type, over its own destruction ConfigNode. The
+        /// node is a KSP type this assembly does not have, so the stand-in keeps
+        /// the SHAPE (a read-only bool property) and takes its answer from a
+        /// field a test can set.
+        /// </summary>
+        public bool DestroyedValue;
+
         public LaunchPadState State => StateValue;
+
+        public bool IsDestroyed => DestroyedValue;
     }
 
     public class ResearchProject
@@ -214,6 +241,7 @@ namespace RP0
         public bool HumanRatedValue;
         public float MassMinValue;
         public float MassMaxValue = 100f;
+        public UnityEngine.Vector3 SizeMaxValue = new UnityEngine.Vector3(100f, 100f, 100f);
 
         public Guid ID => _id;
         public LaunchComplexType LCType => LcTypeValue;
@@ -222,6 +250,7 @@ namespace RP0
         public bool IsHumanRated => HumanRatedValue;
         public float MassMin => MassMinValue;
         public float MassMax => MassMaxValue;
+        public UnityEngine.Vector3 SizeMax => SizeMaxValue;
     }
 
     public class LCSpaceCenter
@@ -313,6 +342,29 @@ namespace RP0
             details.maxRep = 100.0;
             var t = rep <= 0.0 ? 0.0 : rep >= details.maxRep ? 1.0 : rep / details.maxRep;
             details.subsidy = details.minSubsidy + (details.maxSubsidy - details.minSubsidy) * t;
+        }
+    }
+}
+
+// The one Unity type RP-1's launch-complex envelope is expressed in. Declared
+// here for the same reason the RP0 stand-ins above are: the production walk
+// reads x, y and z off whatever object the member hands back, and a stand-in
+// with a different shape would prove the walk works against something RP-1 does
+// not have. This assembly references no Unity assembly, so there is nothing for
+// this to collide with.
+namespace UnityEngine
+{
+    public struct Vector3
+    {
+        public float x;
+        public float y;
+        public float z;
+
+        public Vector3(float x, float y, float z)
+        {
+            this.x = x;
+            this.y = y;
+            this.z = z;
         }
     }
 }

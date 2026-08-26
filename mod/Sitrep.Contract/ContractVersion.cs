@@ -1251,7 +1251,24 @@ namespace Sitrep.Contract
         /// same stock field, because the value was never wrong and only its
         /// meaning was missing. Additive-only, so an Uplink built against 13.0 is
         /// unaffected and the frozen Major-13 floor is NOT re-frozen.</para>
+        ///
+        /// <para><b>Bumped 1 -&gt; 2: an installed mod can impose its own launch
+        /// conditions.</b> <see cref="IUplinkHost.AddCommandRequirement"/> lets an
+        /// Uplink contribute a <see cref="CommandRequirement"/> to a command it
+        /// does not own, and <see cref="CommandErrorCode.NotReady"/> is the arm
+        /// the first such condition refuses on: a vehicle a career overhaul has
+        /// not finished making launchable.</para>
+        ///
+        /// <para>Additive on both halves. A new method on the Uplink-facing HOST
+        /// interface, which Uplinks consume rather than implement, so nothing
+        /// built against 13.1 has anything to add; and a new member appended to a
+        /// wire enum that already declares
+        /// <see cref="CommandErrorCode.Unknown"/> as the forward-compat fallback
+        /// for exactly this, so a consumer that has not heard of NotReady reads it
+        /// as an unrecognised refusal rather than as the wrong one. No existing
+        /// member is removed, renamed or renumbered, so the frozen Major-13 floor
+        /// is NOT re-frozen.</para>
         /// </remarks>
-        public const int Minor = 1;
+        public const int Minor = 2;
     }
 }

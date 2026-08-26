@@ -194,7 +194,8 @@ export enum CommandErrorCode {
 	NoConnection = 17,
 	NotUnlocked = 18,
 	SiteOccupied = 19,
-	FacilityDamaged = 20
+	FacilityDamaged = 20,
+	NotReady = 21
 }
 export interface CommandResult
 {

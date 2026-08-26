@@ -802,6 +802,47 @@ namespace Sitrep.Contract
         void AddGateEvaluator(ICommandGateEvaluator evaluator);
 
         /// <summary>
+        /// Contribute one <see cref="CommandRequirement"/> to a command this
+        /// Uplink does not own, so an installed mod can impose its own
+        /// precondition on a command core declared.
+        ///
+        /// <para><b>Why a command needs preconditions from elsewhere.</b> The
+        /// Uplink that declares a command knows what the GAME requires of it.
+        /// It cannot know what an installed mod requires, and under a career
+        /// overhaul that is most of what stands between an operator and a launch:
+        /// stock will fly any craft file, RP-1 will fly only a vehicle a launch
+        /// complex integrated and then rolled out to a pad. A launch that walks
+        /// past both steps passes every stock test on the way.</para>
+        ///
+        /// <para><b>Contribution, not election.</b> Preconditions COMPOSE: two
+        /// mods may each legitimately impose one, and every requirement on a
+        /// command has to hold. So this appends, and an exclusive capability with
+        /// one winning provider would have silently dropped the loser's
+        /// condition. Registering IS the gate, the same way every presence-probed
+        /// registration in this contract works: an Uplink whose mod is absent
+        /// contributes nothing, and contributing nothing is a complete answer
+        /// rather than an absent one.</para>
+        ///
+        /// <para><b>Order.</b> Contributions are evaluated AFTER the owning
+        /// Uplink's own declared requirements, in the order they were
+        /// contributed. That matters because the engine returns on the first
+        /// non-Pass verdict: core's launch requirements are answerable with no
+        /// arguments and can darken a control in advance, and a contributed
+        /// requirement that abstains ahead of them would hide every one of
+        /// those.</para>
+        ///
+        /// <para><b>The kind still needs an evaluator</b>
+        /// (<see cref="AddGateEvaluator"/>), validated once after every Uplink has
+        /// registered. A contributed requirement nobody can evaluate is a startup
+        /// failure for the same reason a declared one is.</para>
+        ///
+        /// <para>Contributing to a command that does not exist is an error at
+        /// validation time rather than a silent no-op: a typo would otherwise
+        /// read as a condition that is being enforced.</para>
+        /// </summary>
+        void AddCommandRequirement(string command, CommandRequirement requirement);
+
+        /// <summary>
         /// Advertise the AUTHORITATIVE <c>comms.delay</c> one-way signal delay to
         /// the engine's server-side reveal gate: the choke point that makes
         /// <see cref="DelayRole.Delayed"/> channels actually withheld on the host

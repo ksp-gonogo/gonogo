@@ -1,5 +1,7 @@
 using System;
+using System.Collections;
 using System.Collections.Generic;
+using System.Globalization;
 using System.Reflection;
 
 namespace GonogoRp1Uplink
@@ -155,6 +157,69 @@ namespace GonogoRp1Uplink
 
         /// <summary>The member as a double, or null when it is absent or not a number.</summary>
         public static double? ReadDouble(object? target, string name) => ToDouble(Member(target, name));
+
+        /// <summary>The member as a bool, or null when it is absent or not one.</summary>
+        public static bool? ReadBool(object? target, string name) => Member(target, name) is bool b ? b : (bool?)null;
+
+        /// <summary>The member as a string, or null when it is absent or not one.</summary>
+        public static string? ReadString(object? target, string name) => Member(target, name) as string;
+
+        /// <summary>
+        /// The member as a Guid rendered to its string form, or the string it
+        /// already was. RP-1 keeps a vehicle's identity as a <c>Guid</c> on the
+        /// vehicle and as its <c>ToString()</c> on the operations that reference
+        /// it, so one reader has to answer both.
+        /// </summary>
+        public static string? ReadGuidString(object? target, string name)
+        {
+            var value = Member(target, name);
+            return value is Guid g ? g.ToString() : value as string;
+        }
+
+        /// <summary>
+        /// An enum member read as its NAME. RP-1's ordinals are its own business
+        /// and shift between releases; a name is stable, legible in a bug report,
+        /// and is what a client maps.
+        /// </summary>
+        public static string? ReadEnumName(object? target, string name)
+        {
+            var value = Member(target, name);
+            if (value == null)
+            {
+                return null;
+            }
+            try
+            {
+                var type = value.GetType();
+                return type.IsEnum ? Enum.GetName(type, value) : Convert.ToString(value, CultureInfo.InvariantCulture);
+            }
+            catch (Exception)
+            {
+                return null;
+            }
+        }
+
+        /// <summary>
+        /// Enumerates one of RP-1's collections. They are
+        /// <c>ROUtils.DataTypes.PersistentList&lt;T&gt;</c> from a separate
+        /// assembly, so they are walked as a bare <see cref="IEnumerable"/> and
+        /// never cast to <c>List&lt;T&gt;</c>: a cast that happens to work today
+        /// is one release from throwing.
+        /// </summary>
+        public static IEnumerable<object> Enumerate(object? collection)
+        {
+            if (!(collection is IEnumerable e) || collection is string)
+            {
+                yield break;
+            }
+            foreach (var item in e)
+            {
+                if (item != null)
+                {
+                    yield return item;
+                }
+            }
+        }
 
         public static double? ToDouble(object? value)
         {

@@ -164,6 +164,33 @@ describe("what an operator reads when the game says no", () => {
     ).toBe("Launch refused: Launch Site Occupied.");
   });
 
+  it("quotes the mod's own reason when a vehicle is not ready to fly", () => {
+    expect(
+      commandRefusalSentence({
+        errorCode: CommandErrorCode.NotReady,
+        command: "ksp.launch",
+        args: { shipName: "V-2" },
+        detail:
+          '"V-2" is in the warehouse at LC-1 and has not been rolled out to a pad',
+      }),
+    ).toBe(
+      'Launch V-2 refused: "V-2" is in the warehouse at LC-1 and has not been rolled out to a pad.',
+    );
+  });
+
+  // NotReady is its own arm precisely so it does not read as a limit: the
+  // vehicle is not over anything, it has not been built yet, and an operator
+  // does something entirely different about each.
+  it("says the general thing for a not-ready refusal that carried no reason", () => {
+    expect(
+      commandRefusalSentence({
+        errorCode: CommandErrorCode.NotReady,
+        command: "ksp.launch",
+        args: { shipName: "V-2" },
+      }),
+    ).toBe("Launch V-2 refused: the vehicle is not ready to fly yet.");
+  });
+
   it("says the general thing for an arm the game gave no words for", () => {
     expect(
       commandRefusalSentence({

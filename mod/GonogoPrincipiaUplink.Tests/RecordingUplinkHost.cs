@@ -369,6 +369,9 @@ namespace GonogoPrincipiaUplink.Tests
         public void AddGateEvaluator(ICommandGateEvaluator evaluator) =>
             throw NotExpected("AddGateEvaluator");
 
+        public void AddCommandRequirement(string command, CommandRequirement requirement) =>
+            throw NotExpected("AddCommandRequirement");
+
         public void SetSignalDelaySource(Func<KspSnapshot?, CommsDelay?> computeOnMainThread) =>
             throw NotExpected("SetSignalDelaySource");
 

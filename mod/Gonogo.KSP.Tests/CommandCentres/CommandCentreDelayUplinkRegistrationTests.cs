@@ -100,6 +100,8 @@ namespace Gonogo.KSP.Tests.CommandCentres
             public void AddCommandHandler<TArgs, TResult>(string command, Func<TArgs, TResult> handler) => throw new NotSupportedException();
             public void AddVantageCommandHandler<TArgs, TResult>(string command, Func<TArgs, string, TResult> handler) => throw new NotSupportedException();
             public void AddGateEvaluator(ICommandGateEvaluator evaluator) => throw new NotSupportedException();
+
+            public void AddCommandRequirement(string command, CommandRequirement requirement) => throw new NotSupportedException();
             public void SetSignalDelaySource(Func<KspSnapshot?, CommsDelay?> computeOnMainThread) => throw new NotSupportedException();
             public void SetVesselDelay(string vesselId, double oneWaySeconds) => throw new NotSupportedException();
             public void SetAuthorityDelay(string centreId, string vesselId, double oneWaySeconds) => throw new NotSupportedException();
