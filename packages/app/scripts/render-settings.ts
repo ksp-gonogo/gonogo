@@ -156,7 +156,7 @@ const SCENES: Scene[] = [
     emit: { [TOPIC]: PRINCIPIA_LIVE },
     pxW: 900,
     pxH: 700,
-    scrollToLabel: "Prediction step limit",
+    scrollToLabel: "In-game prediction step limit",
   },
   {
     // The Flight plan group: a step limit next to a tolerance, both of them the

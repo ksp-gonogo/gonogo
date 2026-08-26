@@ -18,6 +18,14 @@ import {
 /*
  * Principia's session configuration, as settings rows.
  *
+ * <b>Whose numbers these are.</b> Every one of them is the in-game plugin's,
+ * read off the plugin itself. None of them describes how this console renders
+ * anything, and none can be changed from here. That matters most for the four
+ * rows naming an integration tolerance or a step limit, because our own n-body
+ * propagator has a step budget of the same name: those four say "in-game" in the
+ * LABEL rather than only in a comment, since a step limit read in isolation is
+ * otherwise indistinguishable from a drawing budget an operator could raise.
+ *
  * Every row here is `stream-backed` and therefore read-only: the values arrive
  * on `principia.settings`, a `DelayRole.TrueNow` Topic, and the console has no
  * writer for any of them. That is not a limitation being worked around, it is
@@ -516,9 +524,9 @@ export const PRINCIPIA_SETTINGS: readonly SettingDefinition[] = [
     select: (p) => settings(p)?.predictionToleranceMetres,
     category: CATEGORY,
     group: GROUP.prediction,
-    label: "Prediction tolerance",
+    label: "In-game prediction tolerance",
     description:
-      "Read from that vessel's own integrator parameters, so it is what the prediction actually held to rather than what the slider says.",
+      "Principia's own position tolerance for that vessel's prediction, read off the plugin's per-vessel integrator parameters rather than off its slider, so it is what the prediction actually held to. It bounds the curve the PLAYER sees; nothing this console draws is bounded by it.",
     screens: ["main"],
   }),
 
@@ -530,9 +538,9 @@ export const PRINCIPIA_SETTINGS: readonly SettingDefinition[] = [
     select: (p) => settings(p)?.predictionMaxSteps,
     category: CATEGORY,
     group: GROUP.prediction,
-    label: "Prediction step limit",
+    label: "In-game prediction step limit",
     description:
-      "A prediction that stopped short looks exactly like a trajectory that ended, and this is the only number separating them.",
+      "Principia's own step limit for that vessel's prediction, read off the plugin. A prediction that stopped short looks exactly like a trajectory that ended, and this is the only number separating them. It is the game's limit, not a drawing budget of ours, and it can only be changed in game.",
     screens: ["main"],
   }),
 
