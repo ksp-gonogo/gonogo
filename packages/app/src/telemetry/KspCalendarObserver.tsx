@@ -60,6 +60,15 @@ export function KspCalendarObserver() {
   const hour = calendar?.hourSeconds?.magnitude;
   const minute = calendar?.minuteSeconds?.magnitude;
 
+  // The anchor, when the running game has one. A FACT about the game, adopted
+  // unconditionally like the four lengths beside it; whether dates are
+  // RENDERED against it is the operator's choice and lives in the kit's own
+  // preference (`initCalendarSettings`), not here. Keeping the two apart is
+  // what lets this component stay outside the settings provider, which is
+  // where the telemetry tree puts it.
+  const epochIso = calendar?.epoch;
+  const epochMs = epochIso === undefined ? undefined : Date.parse(epochIso);
+
   useEffect(() => {
     // Every field, or none. A half-applied calendar (one calendar's day length
     // against another's year) is a state the game is never in, and renders a
@@ -72,10 +81,13 @@ export function KspCalendarObserver() {
     ) {
       return;
     }
-    setKspCalendar({ minute, hour, day, year });
-  }, [minute, hour, day, year]);
+    // An unparseable epoch string reaches setKspCalendar as NaN, which it
+    // drops while still adopting the four lengths, so a malformed anchor costs
+    // the date and never the calendar.
+    setKspCalendar({ minute, hour, day, year, epochMs });
+  }, [minute, hour, day, year, epochMs]);
 
-  // Depends on the four numbers rather than the payload object so a keyframe
-  // that re-sends an unchanged calendar does not re-set it every tick.
+  // Depends on the numbers rather than the payload object so a keyframe that
+  // re-sends an unchanged calendar does not re-set it every tick.
   return null;
 }

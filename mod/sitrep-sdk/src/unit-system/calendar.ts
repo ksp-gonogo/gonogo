@@ -20,6 +20,11 @@
  * That is the important distinction: they are the FALLBACK, not the
  * assumption.
  *
+ * The same channel carries an optional EPOCH, and it answers a different
+ * question: not how long a day is but which day it is. A game whose date
+ * formatter models a real calendar has one; stock does not, and the absence is
+ * the correct answer for stock rather than a gap to fill.
+ *
  * ## Why this lives in the SDK rather than in the UI kit
  *
  * It was in the kit first, and that was half a fix. The kit could only reach
@@ -38,7 +43,7 @@
  * `title` attributes and template literals, where a hook cannot reach.
  */
 
-/** The calendar the game is running, all in seconds. */
+/** The calendar the game is running: four lengths in seconds, and an anchor. */
 export interface KspCalendar {
   /** Seconds in a minute. */
   minute: number;
@@ -48,6 +53,24 @@ export interface KspCalendar {
   day: number;
   /** Seconds in a year: 9,201,600 stock, 31,536,000 for 365 Earth days. */
   year: number;
+  /**
+   * The real-world instant UT 0 is, in milliseconds since the Unix epoch, or
+   * absent when the game has no such instant.
+   *
+   * The four lengths above say how long a day is; this says WHICH day it is,
+   * and without it a UT can only ever render as an offset (`Y3 D122`). An RSS
+   * career anchored at 1951 renders `14 Mar 1957` instead, and every
+   * deadline, expiry and window on the wire renders with it, because they are
+   * all the same kind of number.
+   *
+   * **Absent is the normal answer and is not zero.** Stock KSP has no real
+   * calendar, its own UI prints Year 1 Day 1, and so should this. The mod
+   * publishes an epoch only when the running game's date formatter carries
+   * one; see `time.calendar`'s `epoch` on the wire. Milliseconds rather than
+   * seconds because that is what `Date` takes, and this is the one field here
+   * that is a real-world instant rather than a game-time length.
+   */
+  epochMs?: number;
 }
 
 /**
@@ -82,6 +105,12 @@ export function kspCalendar(): KspCalendar {
  * year that is not a positive finite number is refused outright and the stock
  * fallback kept: dividing by it would render every duration as infinity, which
  * is a worse answer than the one already on screen.
+ *
+ * The epoch is refused separately and more gently. A non-finite one is dropped
+ * and the four lengths still adopted, because an anchor and a day length are
+ * independent facts and losing the calendar over a bad anchor would misreport
+ * every duration to fix a date. Omitting `epochMs` clears any anchor
+ * previously set, which is what a game that stopped reporting one means.
  */
 export function setKspCalendar(next?: Partial<KspCalendar>): void {
   if (next === undefined) {
@@ -92,7 +121,14 @@ export function setKspCalendar(next?: Partial<KspCalendar>): void {
   const usable = (["minute", "hour", "day", "year"] as const).every(
     (key) => Number.isFinite(merged[key]) && merged[key] > 0,
   );
-  current = usable ? merged : STOCK_KERBIN_CALENDAR;
+  if (!usable) {
+    current = STOCK_KERBIN_CALENDAR;
+    return;
+  }
+  if (merged.epochMs !== undefined && !Number.isFinite(merged.epochMs)) {
+    delete merged.epochMs;
+  }
+  current = merged;
 }
 
 /**

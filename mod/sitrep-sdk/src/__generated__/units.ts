@@ -1020,6 +1020,7 @@ export const GENERATED_TYPE_UNITS: Readonly<Record<string, UnitsByField>> = {
   },
   "TimeCalendar": {
     daySeconds: "s",
+    epoch: "text",
     hourSeconds: "s",
     kerbinTime: "flag",
     minuteSeconds: "s",
@@ -1633,6 +1634,7 @@ export const GENERATED_TOPIC_UNITS: Readonly<Record<string, UnitsByField>> = {
   },
   "time.calendar": {
     daySeconds: "s",
+    epoch: "text",
     hourSeconds: "s",
     kerbinTime: "flag",
     minuteSeconds: "s",

@@ -1351,6 +1351,11 @@ namespace Sitrep.Host
         /// than falling back to the stock calendar it already assumes. See
         /// <see cref="TimeCalendar"/> for why the channel exists at
         /// all.</para>
+        ///
+        /// <para>The epoch is the opposite case: absent is the normal answer,
+        /// it never withholds the payload, and an empty string is folded to
+        /// null so "the formatter has no epoch" reaches a consumer as one
+        /// value rather than two.</para>
         /// </summary>
         public static TimeCalendar? BuildCalendar(KspSnapshot? snapshot)
         {
@@ -1364,6 +1369,7 @@ namespace Sitrep.Host
             var day = GetDouble(time, "daySeconds");
             var year = GetDouble(time, "yearSeconds");
             var kerbinTime = GetBool(time, "kerbinTime");
+            var epoch = GetString(time, "epoch");
 
             if (!minute.HasValue || !hour.HasValue || !day.HasValue || !year.HasValue)
             {
@@ -1381,6 +1387,7 @@ namespace Sitrep.Host
                 HourSeconds = hour.Value,
                 DaySeconds = day.Value,
                 YearSeconds = year.Value,
+                Epoch = string.IsNullOrEmpty(epoch) ? null : epoch,
                 KerbinTime = kerbinTime ?? true,
                 Meta = BuildGameMeta(),
             };
@@ -1860,6 +1867,7 @@ namespace Sitrep.Host
             ["hourSeconds"] = calendar.HourSeconds,
             ["daySeconds"] = calendar.DaySeconds,
             ["yearSeconds"] = calendar.YearSeconds,
+            ["epoch"] = calendar.Epoch,
             ["kerbinTime"] = calendar.KerbinTime,
             ["meta"] = ToWire(calendar.Meta),
         };

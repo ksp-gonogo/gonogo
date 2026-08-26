@@ -1197,6 +1197,7 @@ export interface TimeCalendar
 	hourSeconds: Value<"s">;
 	daySeconds: Value<"s">;
 	yearSeconds: Value<"s">;
+	epoch?: string;
 	kerbinTime: boolean;
 	meta: PayloadMeta;
 }

@@ -2614,8 +2614,10 @@ namespace Gonogo.KSP
             // maintains for its own clock, so reading it is free and needs no
             // caching; Kopernicus and RSS replace the whole object, and the
             // stock implementation already answers for GameSettings.KERBIN_TIME,
-            // so these four numbers are correct under every configuration
-            // without this code knowing which one it is in.
+            // so these numbers are correct under every configuration without
+            // this code knowing which one it is in. The epoch beside them is
+            // read off the same object, reflectively, because the interface
+            // declares how long a day is and never which day it is.
             var calendar = KSPUtil.dateTimeFormatter;
 
             return new Dictionary<string, object?>
@@ -2628,6 +2630,10 @@ namespace Gonogo.KSP
                 ["hourSeconds"] = (double)calendar.Hour,
                 ["daySeconds"] = (double)calendar.Day,
                 ["yearSeconds"] = (double)calendar.Year,
+                // The instant UT 0 is, when the formatter models a real
+                // calendar. Null for the stock one, which has no such instant
+                // and whose own UI prints Year 1 Day 1; see CalendarEpoch.
+                ["epoch"] = CalendarEpoch.Read(calendar),
                 ["kerbinTime"] = GameSettings.KERBIN_TIME,
             };
         }

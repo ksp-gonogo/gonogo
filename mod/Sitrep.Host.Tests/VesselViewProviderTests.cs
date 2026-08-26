@@ -2167,6 +2167,72 @@ namespace Sitrep.Host.Tests
             Assert.Null(VesselViewProvider.BuildCalendar(snapshot));
         }
 
+        /// <summary>
+        /// The anchor a real-calendar formatter carries. Absent for stock, and
+        /// absent is the answer a consumer must be able to read: it is what
+        /// says "this game prints Year 1 Day 1 and so should you", rather than
+        /// leaving every UT to be rendered against some invented default.
+        /// </summary>
+        [Fact]
+        public void BuildCalendarCarriesTheEpochWhenTheGameHasOne()
+        {
+            var group = CalendarGroup(86_400.0, 365 * 86_400.0, kerbinTime: false);
+            group["epoch"] = "1951-01-01T00:00:00Z";
+            var snapshot = SnapshotWith(
+                identity: new Dictionary<string, object?> { ["id"] = VesselGuid },
+                time: group);
+
+            var calendar = VesselViewProvider.BuildCalendar(snapshot);
+
+            Assert.NotNull(calendar);
+            Assert.Equal("1951-01-01T00:00:00Z", calendar!.Epoch);
+        }
+
+        [Fact]
+        public void BuildCalendarLeavesTheEpochNullForAGameWithoutOne()
+        {
+            var snapshot = SnapshotWith(
+                identity: new Dictionary<string, object?> { ["id"] = VesselGuid },
+                time: CalendarGroup(21_600.0, 426 * 21_600.0, kerbinTime: true));
+
+            var calendar = VesselViewProvider.BuildCalendar(snapshot);
+
+            Assert.NotNull(calendar);
+            Assert.Null(calendar!.Epoch);
+        }
+
+        /// <summary>
+        /// An empty string and an absent key both mean "no anchor". Folding
+        /// them together at the boundary keeps a consumer from having to know
+        /// there were ever two spellings of the same absence.
+        /// </summary>
+        [Fact]
+        public void BuildCalendarFoldsAnEmptyEpochToNull()
+        {
+            var group = CalendarGroup(21_600.0, 426 * 21_600.0, kerbinTime: true);
+            group["epoch"] = "";
+            var snapshot = SnapshotWith(
+                identity: new Dictionary<string, object?> { ["id"] = VesselGuid },
+                time: group);
+
+            Assert.Null(VesselViewProvider.BuildCalendar(snapshot)!.Epoch);
+        }
+
+        /// <summary>
+        /// The epoch is never a reason to withhold the payload, unlike a day
+        /// length nobody can divide by: a game with no real calendar is the
+        /// common case, and its four durations are still wanted.
+        /// </summary>
+        [Fact]
+        public void BuildCalendarStillPublishesWithNoEpoch()
+        {
+            var snapshot = SnapshotWith(
+                identity: new Dictionary<string, object?> { ["id"] = VesselGuid },
+                time: CalendarGroup(21_600.0, 426 * 21_600.0, kerbinTime: true));
+
+            Assert.NotNull(VesselViewProvider.BuildCalendar(snapshot));
+        }
+
         private static Dictionary<string, object?> CalendarGroup(
             double day, double year, bool kerbinTime) =>
             new Dictionary<string, object?>

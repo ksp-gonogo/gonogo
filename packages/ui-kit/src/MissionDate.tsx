@@ -2,7 +2,9 @@ import type { Value } from "@ksp-gonogo/sitrep-sdk";
 import { formatKspDate } from "./formatKspDate";
 
 /**
- * A universal time, rendered as a Kerbin calendar date: `Y1 D5 03:22:37`.
+ * A universal time, rendered as a date on the calendar the game is running:
+ * `Y1 D5 03:22:37` under stock, `14 Mar 1957 03:22:37` under one with a real
+ * calendar.
  *
  * ## Why this is not `<Unit>`
  *
@@ -29,6 +31,12 @@ import { formatKspDate } from "./formatKspDate";
  * whole story. Compiling Kerbin's calendar in renders an RSS player's dates on
  * a calendar their game does not use. See `styleguide-earth-day.test.ts` for
  * the arithmetic form of the same mistake.
+ *
+ * The same channel can carry an ANCHOR, and one changes the notation rather
+ * than the arithmetic: with it, a UT is a real instant and renders as one. It
+ * arrives only from a game whose date formatter has a real calendar, and only
+ * when the operator asked for real dates, so the offset form above stays the
+ * default and stays right for a stock career.
  *
  * A missing or non-finite value renders `NULL_DISPLAY`, same as every other
  * readout: an absent clock shows as absent rather than as the epoch.

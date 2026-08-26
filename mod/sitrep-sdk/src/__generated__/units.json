@@ -986,6 +986,7 @@
     },
     "TimeCalendar": {
       "daySeconds": "s",
+      "epoch": "text",
       "hourSeconds": "s",
       "kerbinTime": "flag",
       "minuteSeconds": "s",
@@ -1594,6 +1595,7 @@
     },
     "time.calendar": {
       "daySeconds": "s",
+      "epoch": "text",
       "hourSeconds": "s",
       "kerbinTime": "flag",
       "minuteSeconds": "s",

@@ -4,6 +4,7 @@ import {
   kspCalendar,
   MissionDate,
   setKspCalendar,
+  setRealDatesPreferred,
 } from "@ksp-gonogo/ui-kit";
 import { visibleText } from "@ksp-gonogo/ui-kit/testing";
 import { afterEach, describe, expect, it } from "vitest";
@@ -25,6 +26,7 @@ afterEach(() => {
   // Module state in the kit: leak it and the next test in this file, or any
   // other, formats on somebody else's calendar.
   setKspCalendar();
+  setRealDatesPreferred(false);
 });
 
 describe("KspCalendarObserver", () => {
@@ -81,6 +83,67 @@ describe("KspCalendarObserver", () => {
     // One real day in reads as D2 on an Earth calendar; on Kerbin's it is D5,
     // which is what this same assertion sees before the rerender.
     await waitFor(() => expect(visibleText()).toContain("Y1 D2 00:00:00"));
+  });
+
+  it("carries the epoch through to a real date, once asked for", async () => {
+    // The anchor is a FACT the observer adopts unconditionally; the notation
+    // is the operator's choice, primed separately by initCalendarSettings.
+    // Both are needed, which is why both are here.
+    setRealDatesPreferred(true);
+    const fixture = setupStreamFixture({ carriedChannels: ["time.calendar"] });
+    const tree = () => (
+      <fixture.Provider>
+        <KspCalendarObserver />
+        <MissionDate value={0} />
+      </fixture.Provider>
+    );
+    const { rerender } = render(tree());
+
+    act(() => {
+      fixture.emit("time.calendar", {
+        minuteSeconds: 60,
+        hourSeconds: 3600,
+        daySeconds: 86_400,
+        yearSeconds: 365 * 86_400,
+        epoch: "1951-01-01T00:00:00Z",
+        kerbinTime: false,
+      });
+      fixture.wall.advanceBy(1);
+      fixture.store.beginFrame();
+    });
+
+    await waitFor(() =>
+      expect(kspCalendar().epochMs).toBe(Date.UTC(1951, 0, 1)),
+    );
+    rerender(tree());
+    await waitFor(() => expect(visibleText()).toContain("1 Jan 1951 00:00:00"));
+  });
+
+  it("leaves the calendar unanchored when the game reports no epoch", async () => {
+    // Stock, and every planet pack with no real-calendar formatter beside it.
+    // Absent is the correct answer, not a gap: KSP's own UI prints Y1 D1 here.
+    setRealDatesPreferred(true);
+    const fixture = setupStreamFixture({ carriedChannels: ["time.calendar"] });
+    render(
+      <fixture.Provider>
+        <KspCalendarObserver />
+      </fixture.Provider>,
+    );
+
+    act(() => {
+      fixture.emit("time.calendar", {
+        minuteSeconds: 60,
+        hourSeconds: 3600,
+        daySeconds: 21_600,
+        yearSeconds: 426 * 21_600,
+        kerbinTime: true,
+      });
+      fixture.wall.advanceBy(1);
+      fixture.store.beginFrame();
+    });
+
+    await waitFor(() => expect(kspCalendar().year).toBe(426 * 21_600));
+    expect(kspCalendar().epochMs).toBeUndefined();
   });
 
   it("keeps the stock fallback when the game reports a day nobody can divide by", async () => {
