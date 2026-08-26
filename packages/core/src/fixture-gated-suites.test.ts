@@ -2,6 +2,7 @@ import { execFileSync } from "node:child_process";
 import { existsSync, readFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
+import { isTopicId } from "@ksp-gonogo/sitrep-sdk";
 import { describe, expect, it } from "vitest";
 import {
   FIXTURE_GATED_SUITES,
@@ -184,5 +185,101 @@ describe("suites that cannot run in CI are declared, not merely skipped", () => 
    */
   it("reports how much coverage the absent fixtures cost", () => {
     expect(fixtureGatedTestCount()).toBe(3);
+  });
+
+  /**
+   * The other half of the register's job, and the one the absence report
+   * cannot do: a fixture that IS present can still be wrong.
+   *
+   * Absence is loud already (`scripts/report-fixture-gated-suites.mjs` prints
+   * it in the job log). Presence is silent, and a recorded-wire fixture is a
+   * snapshot of a contract that has since moved: it keeps replaying happily
+   * against topic names the contract has renamed or dropped, and the suites
+   * reading it pass on a wire nothing produces any more. That is worse than
+   * the skip, because a skip reports as a skip while this reports as coverage.
+   *
+   * `subscribedTopics` is the checkable part. Every entry is a topic the
+   * capture subscribed to, so every entry has to still BE a topic:
+   * `isTopicId` is generated from the C# contract, so a name the contract has
+   * dropped fails here and the message says to regenerate.
+   *
+   * Scoped to what can be proved from the fixture alone. It does not compare
+   * payload SHAPES, which would need a contract stamp inside the fixture that
+   * the generator does not write yet; a retyped field on a surviving topic
+   * still gets through. Said plainly because a gate that reads as total and is
+   * not is the failure this register exists to stop repeating.
+   *
+   * Skips per-fixture when the file is absent, which is every CI run, for the
+   * same reason the rest of this file does not fail on absence.
+   */
+  it("no PRESENT fixture names a topic the contract has since dropped", () => {
+    const stale: string[] = [];
+    const checked: string[] = [];
+
+    for (const fixture of new Set(FIXTURE_GATED_SUITES.map((s) => s.fixture))) {
+      const path = join(ROOT, fixture);
+      if (!existsSync(path)) continue;
+
+      let topics: unknown;
+      try {
+        topics = (
+          JSON.parse(readFileSync(path, "utf8")) as Record<string, unknown>
+        ).subscribedTopics;
+      } catch (err) {
+        stale.push(`${fixture}: could not be parsed as JSON (${String(err)})`);
+        continue;
+      }
+
+      if (!Array.isArray(topics) || topics.length === 0) {
+        // Not tolerated as "nothing to check". A fixture with no topic list is
+        // one this gate cannot read, and reporting that as a pass is how a
+        // silent gate is built.
+        stale.push(
+          `${fixture}: no non-empty "subscribedTopics" array, so its currency ` +
+            "cannot be checked at all",
+        );
+        continue;
+      }
+
+      checked.push(`${fixture} (${topics.length} topics)`);
+      const gone = topics.filter((t) => !isTopicId(t));
+      if (gone.length > 0) {
+        stale.push(
+          `${fixture}: ${gone.length} recorded topic(s) are no longer contract ` +
+            `topics: ${gone.join(", ")}`,
+        );
+      }
+    }
+
+    // The census, so a reader can tell "every fixture is current" from "no
+    // fixture was on disk", which are the same green without it.
+    console.info(
+      checked.length > 0
+        ? `[fixture-gated] checked currency of: ${checked.join("; ")}`
+        : "[fixture-gated] no fixture present, currency unchecked (normal in CI)",
+    );
+
+    if (stale.length > 0) {
+      throw new Error(
+        "A fixture on disk is STALE against the current contract. The suites " +
+          "reading it are passing on a wire the mod no longer produces, which " +
+          "reads as coverage. Regenerate with `dotnet test --filter " +
+          "WireFixtureGeneratorTests` in `mod/`:\n" +
+          stale.map((s) => `  ${s}`).join("\n"),
+      );
+    }
+    expect(stale).toEqual([]);
+  });
+
+  /**
+   * The instrument check. Every assertion above is vacuous in CI, where no
+   * fixture is on disk, so the currency check could be broken for months and
+   * report the same green. This exercises its judgement directly on both
+   * answers, with no file involved.
+   */
+  it("can tell a live topic from a dropped one, so the check above is not inert", () => {
+    expect(isTopicId("vessel.identity")).toBe(true);
+    expect(isTopicId("vessel.identity.thatWasRenamed")).toBe(false);
+    expect(isTopicId("a.topic.no.contract.ever.had")).toBe(false);
   });
 });
