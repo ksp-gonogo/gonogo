@@ -93,9 +93,48 @@ if [ -n "$stale" ]; then
   exit 1
 fi
 
+# UNRESOLVED REFERENCES: a `<Reference>` whose HintPath does not exist is MSB3245,
+# a WARNING, and the build carries on without that assembly on the reference list.
+# So a csproj can name a reference the CI set does not have, compile green, and
+# only go red the day someone writes code that needs a type from it. That is the
+# same shape as a compile nothing runs: a green build that is not checking what it
+# claims to check.
+#
+# It is live right now. Ten csprojs reference Assembly-CSharp-firstpass, the local
+# dev reference directory has it and ksp-gonogo/ksp-managed does not, so every
+# local build resolves it and every CI build silently does not.
+#
+# Same contract as EXEMPT above: named, with a reason, and it EXPIRES BY ITSELF the
+# moment the assembly appears in the reference set.
+UNRESOLVED_OK=(
+  "Assembly-CSharp-firstpass|KSP's own second compilation unit, the sibling of Assembly-CSharp.dll that ksp-managed already vendors. No source in the repo uses a type from it today, which is why nothing is red. Vendor KSP_Data/Managed/Assembly-CSharp-firstpass.dll into ksp-gonogo/ksp-managed (no new licence question: identical status to Assembly-CSharp.dll, same private repo) so the CI and local reference sets agree, then delete this line. Dropping the ten references instead also works and also deletes this line."
+)
+
+unresolved_allowed() {
+  local asm="$1" entry
+  for entry in "${UNRESOLVED_OK[@]}"; do
+    [ "${entry%%|*}" = "$asm" ] && return 0
+  done
+  return 1
+}
+
+# The other direction, for the same reason the EXEMPT list checks both: an entry
+# for an assembly that IS present reads as covered debt and is not.
+for entry in "${UNRESOLVED_OK[@]}"; do
+  asm="${entry%%|*}"
+  if [ -f "$KSP_MANAGED/$asm.dll" ]; then
+    echo "✖ uplink mod build: $asm is listed as an accepted unresolved reference, but it is PRESENT in $KSP_MANAGED."
+    echo "  The entry has outlived its cause: delete it and let the build gate."
+    exit 1
+  fi
+done
+
 echo "Building $COUNT Uplink plugin assemblies against $KSP_MANAGED"
 failed=""
 skipped=""
+unresolved=""
+log="$(mktemp)"
+trap 'rm -f "$log"' EXIT
 for csproj in $(uplink_csprojs); do
   name="$(basename "$csproj" .csproj)"
   if reason="$(exempt_reason "$name")"; then
@@ -105,15 +144,27 @@ for csproj in $(uplink_csprojs); do
   fi
   echo "::group::dotnet build $name"
   if ! dotnet build "$csproj" --configuration Release \
-      -p:KspManaged="$KSP_MANAGED" -p:KspGameData="$KSP_GAMEDATA" --nologo; then
+      -p:KspManaged="$KSP_MANAGED" -p:KspGameData="$KSP_GAMEDATA" --nologo 2>&1 | tee "$log"; then
     failed="$failed $name"
   fi
+  # MSB3245's message names the assembly it could not locate, in quotes.
+  for asm in $(sed -n 's/.*MSB3245.*Could not locate the assembly "\([^"]*\)".*/\1/p' "$log" | sort -u); do
+    unresolved_allowed "$asm" || unresolved="$unresolved
+  $name references $asm, which is not in the reference set."
+  done
   echo "::endgroup::"
 done
 
 if [ -n "$failed" ]; then
   echo "::error::Uplink plugin assemblies failed to compile:$failed"
   echo "These ship in GameData. Nothing else in CI compiles them."
+  exit 1
+fi
+
+if [ -n "$unresolved" ]; then
+  echo "::error::Uplink plugin assemblies compiled against an incomplete reference set:$unresolved"
+  echo "The build is green only because no source uses a type from those assemblies yet."
+  echo "Vendor them into ksp-gonogo/ksp-managed, drop the reference, or name them in UNRESOLVED_OK with a reason."
   exit 1
 fi
 echo "uplink mod build: $((COUNT - $(echo $skipped | wc -w | tr -d ' '))) of $COUNT Uplink plugin assemblies compiled.${skipped:+ Exempt:$skipped}"
