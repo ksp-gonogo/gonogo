@@ -138,12 +138,15 @@ namespace GonogoRp1Uplink
                 // coming instead of being told there is none.
                 Ground(PersonnelTopic, absenceIsData: true),
                 Ground(ConfidenceTopic, absenceIsData: true),
-                // Both Program channels publish NOTHING rather than an empty
-                // list when RP-1's ProgramHandler is not live. The distinction
-                // matters more here than anywhere else on this Uplink: RP-1's
-                // catalogue is never empty, so an empty list can only mean "this
-                // career has been offered nothing", which is a claim about the
-                // career rather than about the install.
+                // All three Program channels publish NOTHING rather than an
+                // empty list when RP-1's ProgramHandler is not live. The
+                // distinction matters more here than anywhere else on this
+                // Uplink: RP-1's catalogue is never empty, so an empty list can
+                // only mean "this career has been offered nothing", which is a
+                // claim about the career rather than about the install. The
+                // curve table is the same shape one layer down: RP-1 ships
+                // twelve curves and pays every Program on one of them, so an
+                // empty table could only say it pays on none.
                 Ground(ProgramsTopic, absenceIsData: true),
                 Ground(ProgramSlotsTopic, absenceIsData: true),
                 Ground(ProgramFundingCurvesTopic, absenceIsData: true),
