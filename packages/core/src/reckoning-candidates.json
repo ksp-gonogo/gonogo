@@ -179,6 +179,36 @@
     "reason": "Dimensional degeneracy, the same case as CareerStrategy.dateActivated: `divide({s:1},{s:1})` is `{}`, so EVERY dimensionless field is the dimensional rate of EVERY time field in its own type. A fraction complete is not the rate of an ETA, and neither is a research throttle. The real rate on each of these payloads is `rate`, which carries RP-1's own `bp/s` token and is therefore invisible to this scan (see the opaque-token list). Integrating it would be wrong anyway: the ETA is already derived from the rate server-side, efficiency-ramped and, for a blocking operation, sequenced against its peers, so a client re-integrating it would be second-guessing arithmetic that mirrors RP-1's own.",
     "verdict": "coincidence"
   },
+  "Rp1ProgramEntry.acceptedUt": {
+    "rates": ["fracElapsed"],
+    "reason": "Dimensional degeneracy, the same case as CareerStrategy.dateActivated: `divide({s:1},{s:1})` is `{}`, so EVERY dimensionless field is the dimensional rate of EVERY time field in its own type, and this payload carries a `ratio` beside five UT instants and a duration. A fraction of the funding curve drawn down is not the rate of the date a Program was accepted, and four of those instants are records of something that already happened and cannot move at all. The one that does move, `deadlineUt`, moves because RP-1 recomputes it on its own funding tick rather than because anything integrates toward it: a client advancing it would push the deadline away from the operator exactly when it matters.",
+    "verdict": "coincidence"
+  },
+  "Rp1ProgramEntry.completedUt": {
+    "rates": ["fracElapsed"],
+    "reason": "Dimensional degeneracy, the same case as CareerStrategy.dateActivated: `divide({s:1},{s:1})` is `{}`, so EVERY dimensionless field is the dimensional rate of EVERY time field in its own type, and this payload carries a `ratio` beside five UT instants and a duration. A fraction of the funding curve drawn down is not the rate of the date a Program was accepted, and four of those instants are records of something that already happened and cannot move at all. The one that does move, `deadlineUt`, moves because RP-1 recomputes it on its own funding tick rather than because anything integrates toward it: a client advancing it would push the deadline away from the operator exactly when it matters.",
+    "verdict": "coincidence"
+  },
+  "Rp1ProgramEntry.deadlineUt": {
+    "rates": ["fracElapsed"],
+    "reason": "Dimensional degeneracy, the same case as CareerStrategy.dateActivated: `divide({s:1},{s:1})` is `{}`, so EVERY dimensionless field is the dimensional rate of EVERY time field in its own type, and this payload carries a `ratio` beside five UT instants and a duration. A fraction of the funding curve drawn down is not the rate of the date a Program was accepted, and four of those instants are records of something that already happened and cannot move at all. The one that does move, `deadlineUt`, moves because RP-1 recomputes it on its own funding tick rather than because anything integrates toward it: a client advancing it would push the deadline away from the operator exactly when it matters.",
+    "verdict": "coincidence"
+  },
+  "Rp1ProgramEntry.lastPaymentUt": {
+    "rates": ["fracElapsed"],
+    "reason": "Dimensional degeneracy, the same case as CareerStrategy.dateActivated: `divide({s:1},{s:1})` is `{}`, so EVERY dimensionless field is the dimensional rate of EVERY time field in its own type, and this payload carries a `ratio` beside five UT instants and a duration. A fraction of the funding curve drawn down is not the rate of the date a Program was accepted, and four of those instants are records of something that already happened and cannot move at all. The one that does move, `deadlineUt`, moves because RP-1 recomputes it on its own funding tick rather than because anything integrates toward it: a client advancing it would push the deadline away from the operator exactly when it matters.",
+    "verdict": "coincidence"
+  },
+  "Rp1ProgramEntry.nominalDurationSeconds": {
+    "rates": ["fracElapsed"],
+    "reason": "Dimensional degeneracy, the same case as CareerStrategy.dateActivated: `divide({s:1},{s:1})` is `{}`, so EVERY dimensionless field is the dimensional rate of EVERY time field in its own type, and this payload carries a `ratio` beside five UT instants and a duration. A fraction of the funding curve drawn down is not the rate of the date a Program was accepted, and four of those instants are records of something that already happened and cannot move at all. The one that does move, `deadlineUt`, moves because RP-1 recomputes it on its own funding tick rather than because anything integrates toward it: a client advancing it would push the deadline away from the operator exactly when it matters.",
+    "verdict": "coincidence"
+  },
+  "Rp1ProgramEntry.objectivesCompletedUt": {
+    "rates": ["fracElapsed"],
+    "reason": "Dimensional degeneracy, the same case as CareerStrategy.dateActivated: `divide({s:1},{s:1})` is `{}`, so EVERY dimensionless field is the dimensional rate of EVERY time field in its own type, and this payload carries a `ratio` beside five UT instants and a duration. A fraction of the funding curve drawn down is not the rate of the date a Program was accepted, and four of those instants are records of something that already happened and cannot move at all. The one that does move, `deadlineUt`, moves because RP-1 recomputes it on its own funding tick rather than because anything integrates toward it: a client advancing it would push the deadline away from the operator exactly when it matters.",
+    "verdict": "coincidence"
+  },
   "Rp1ResearchEntry.timeLeftSeconds": {
     "rates": ["progressRatio", "workRate"],
     "reason": "Dimensional degeneracy, the same case as CareerStrategy.dateActivated: `divide({s:1},{s:1})` is `{}`, so EVERY dimensionless field is the dimensional rate of EVERY time field in its own type. A fraction complete is not the rate of an ETA, and neither is a research throttle. The real rate on each of these payloads is `rate`, which carries RP-1's own `bp/s` token and is therefore invisible to this scan (see the opaque-token list). Integrating it would be wrong anyway: the ETA is already derived from the rate server-side, efficiency-ramped and, for a blocking operation, sequenced against its peers, so a client re-integrating it would be second-guessing arithmetic that mirrors RP-1's own.",
@@ -342,6 +372,36 @@
   "rp1.operations.timeLeftSeconds": {
     "rates": ["progressRatio"],
     "reason": "Dimensional degeneracy, the same case as CareerStrategy.dateActivated: `divide({s:1},{s:1})` is `{}`, so EVERY dimensionless field is the dimensional rate of EVERY time field in its own type. A fraction complete is not the rate of an ETA, and neither is a research throttle. The real rate on each of these payloads is `rate`, which carries RP-1's own `bp/s` token and is therefore invisible to this scan (see the opaque-token list). Integrating it would be wrong anyway: the ETA is already derived from the rate server-side, efficiency-ramped and, for a blocking operation, sequenced against its peers, so a client re-integrating it would be second-guessing arithmetic that mirrors RP-1's own.",
+    "verdict": "coincidence"
+  },
+  "rp1.programs.acceptedUt": {
+    "rates": ["fracElapsed"],
+    "reason": "Dimensional degeneracy, the same case as CareerStrategy.dateActivated: `divide({s:1},{s:1})` is `{}`, so EVERY dimensionless field is the dimensional rate of EVERY time field in its own type, and this payload carries a `ratio` beside five UT instants and a duration. A fraction of the funding curve drawn down is not the rate of the date a Program was accepted, and four of those instants are records of something that already happened and cannot move at all. The one that does move, `deadlineUt`, moves because RP-1 recomputes it on its own funding tick rather than because anything integrates toward it: a client advancing it would push the deadline away from the operator exactly when it matters.",
+    "verdict": "coincidence"
+  },
+  "rp1.programs.completedUt": {
+    "rates": ["fracElapsed"],
+    "reason": "Dimensional degeneracy, the same case as CareerStrategy.dateActivated: `divide({s:1},{s:1})` is `{}`, so EVERY dimensionless field is the dimensional rate of EVERY time field in its own type, and this payload carries a `ratio` beside five UT instants and a duration. A fraction of the funding curve drawn down is not the rate of the date a Program was accepted, and four of those instants are records of something that already happened and cannot move at all. The one that does move, `deadlineUt`, moves because RP-1 recomputes it on its own funding tick rather than because anything integrates toward it: a client advancing it would push the deadline away from the operator exactly when it matters.",
+    "verdict": "coincidence"
+  },
+  "rp1.programs.deadlineUt": {
+    "rates": ["fracElapsed"],
+    "reason": "Dimensional degeneracy, the same case as CareerStrategy.dateActivated: `divide({s:1},{s:1})` is `{}`, so EVERY dimensionless field is the dimensional rate of EVERY time field in its own type, and this payload carries a `ratio` beside five UT instants and a duration. A fraction of the funding curve drawn down is not the rate of the date a Program was accepted, and four of those instants are records of something that already happened and cannot move at all. The one that does move, `deadlineUt`, moves because RP-1 recomputes it on its own funding tick rather than because anything integrates toward it: a client advancing it would push the deadline away from the operator exactly when it matters.",
+    "verdict": "coincidence"
+  },
+  "rp1.programs.lastPaymentUt": {
+    "rates": ["fracElapsed"],
+    "reason": "Dimensional degeneracy, the same case as CareerStrategy.dateActivated: `divide({s:1},{s:1})` is `{}`, so EVERY dimensionless field is the dimensional rate of EVERY time field in its own type, and this payload carries a `ratio` beside five UT instants and a duration. A fraction of the funding curve drawn down is not the rate of the date a Program was accepted, and four of those instants are records of something that already happened and cannot move at all. The one that does move, `deadlineUt`, moves because RP-1 recomputes it on its own funding tick rather than because anything integrates toward it: a client advancing it would push the deadline away from the operator exactly when it matters.",
+    "verdict": "coincidence"
+  },
+  "rp1.programs.nominalDurationSeconds": {
+    "rates": ["fracElapsed"],
+    "reason": "Dimensional degeneracy, the same case as CareerStrategy.dateActivated: `divide({s:1},{s:1})` is `{}`, so EVERY dimensionless field is the dimensional rate of EVERY time field in its own type, and this payload carries a `ratio` beside five UT instants and a duration. A fraction of the funding curve drawn down is not the rate of the date a Program was accepted, and four of those instants are records of something that already happened and cannot move at all. The one that does move, `deadlineUt`, moves because RP-1 recomputes it on its own funding tick rather than because anything integrates toward it: a client advancing it would push the deadline away from the operator exactly when it matters.",
+    "verdict": "coincidence"
+  },
+  "rp1.programs.objectivesCompletedUt": {
+    "rates": ["fracElapsed"],
+    "reason": "Dimensional degeneracy, the same case as CareerStrategy.dateActivated: `divide({s:1},{s:1})` is `{}`, so EVERY dimensionless field is the dimensional rate of EVERY time field in its own type, and this payload carries a `ratio` beside five UT instants and a duration. A fraction of the funding curve drawn down is not the rate of the date a Program was accepted, and four of those instants are records of something that already happened and cannot move at all. The one that does move, `deadlineUt`, moves because RP-1 recomputes it on its own funding tick rather than because anything integrates toward it: a client advancing it would push the deadline away from the operator exactly when it matters.",
     "verdict": "coincidence"
   },
   "rp1.research.timeLeftSeconds": {
