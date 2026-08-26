@@ -304,6 +304,28 @@ namespace Sitrep.Core.Tests
             EnvelopeCodec.WriteStreamData(msg);
         }
 
+        /// <summary>
+        /// The payload-type discovery reaches the contract, so a clean sweep means
+        /// something.
+        ///
+        /// <para><see cref="EveryRawPublishedContractTypeHasAJsonWriterCase"/> reports
+        /// nothing missing over an empty type list, which is the same answer it gives
+        /// for a fully covered one. <c>CommsPayloadsAreCovered_NotAllowlisted</c> is a
+        /// real control for the seven comms types and leaves the rest of the ~200-type
+        /// surface, and the <c>FlattenedByProducer</c> allowlist that forces a decision
+        /// on each NEW type, resting on this discovery holding.</para>
+        /// </summary>
+        [Fact]
+        public void DiscoveryReachesTheContractPayloadTypes()
+        {
+            var found = ContractPayloadTypes().Select(t => t.Name).ToList();
+            Assert.True(
+                found.Count >= 100,
+                "Contract payload discovery collapsed to " + found.Count
+                    + " types, so the wire sweep is covering almost nothing. Found: "
+                    + string.Join(", ", found.OrderBy(x => x)));
+        }
+
         [Fact]
         public void EveryRawPublishedContractTypeHasAJsonWriterCase()
         {

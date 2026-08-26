@@ -290,6 +290,49 @@ namespace Sitrep.Core.Tests
                 + "Adding to " + BaselineFile + " is for recording what was already bare, never for new work.");
         }
 
+        /// <summary>
+        /// <para>The discovery reaches the contract, so a clean gate means something.</para>
+        /// <para><see cref="EveryScalarWirePropertyDeclaresAUnit"/> finds nothing bare when
+        /// every property is annotated and when <see cref="ContractTypes"/> narrows to
+        /// nothing: <c>[SitrepContract]</c> renamed or moved, or the metadata scan losing
+        /// the attribute, empties the surface and all three tests here pass having checked
+        /// no property at all. The baseline cannot cover it either, since it is empty and
+        /// iterates nothing.</para>
+        /// <para>Every per-Uplink descendant of this gate already pairs the sweep with
+        /// <c>AssertContractTypesAreExactly</c> for exactly this reason. Core is the one
+        /// that never got the guard, and it is the one with the whole wire surface behind
+        /// it, so it takes a floor plus named spot-checks rather than an exact list.</para>
+        /// </summary>
+        [Fact]
+        public void DiscoveryReachesTheContractSurface()
+        {
+            var types = ContractTypes().Select(t => t.Name).ToList();
+            Assert.True(
+                types.Count >= 100,
+                "Contract type discovery collapsed to " + types.Count
+                    + " types, so the unit gate is sweeping almost nothing and its clean result says "
+                    + "only that it did not look. Found: " + string.Join(", ", types.OrderBy(x => x)));
+
+            var surface = Surface();
+            Assert.True(
+                surface.Count >= 500,
+                "The scalar wire surface collapsed to " + surface.Count
+                    + " properties. A gate over an empty surface reports the same zero bare properties "
+                    + "as a fully annotated one.");
+
+            // Spot-checks across families that annotate independently, so a
+            // discovery change dropping a whole family is red here rather than
+            // a quiet loss of coverage.
+            foreach (var name in new[]
+                     {
+                         nameof(CommsDelay), nameof(CommsConnectivity),
+                         nameof(FlightCurrent), nameof(VesselControl),
+                     })
+            {
+                Assert.Contains(name, types);
+            }
+        }
+
         [Fact]
         public void BaselineOnlyShrinks()
         {
