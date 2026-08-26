@@ -1,6 +1,6 @@
 {
   "_meta": {
-    "notes": "Active tab, auto-derived situation sub-tabs: five hired kerbals spanning every stock situation (Available/Assigned/Dead/Missing) plus a mod value ('Retired', the RO/RP-1 case the redesign spec calls out) that gets its own sub-tab for free, no code change. Each row shows name/role/courage/stupidity/rank/experience-toward-next-rank via the shared crew-stat row; Bob Kerman (L5) is at max rank, so his chip reads MAX instead of a redundant 100%.",
+    "notes": "Active tab, auto-derived situation sub-tabs: five hired kerbals spanning every stock situation (Available/Assigned/Dead/Missing) plus a mod value ('Retired', the RO/RP-1 case the redesign spec calls out) that gets its own sub-tab for free, no code change. Each row shows name/role/courage/stupidity/rank/experience-toward-next-rank via the shared crew-stat row; Bob Kerman (L5) is at max rank, so his chip reads MAX instead of a redundant 100%. The four stock rows carry situationOrdinal because the Fire control reads the ordinal, not the label, so without it no row is fireable and the harness's arm-the-Fire-button click finds nothing. Gus (Retired) carries none on purpose: the field is optional and a mod status has no stock ordinal, which is also what keeps his sub-tab out of the fireable path.",
     "scenario": "active-crew-multi-situation"
   },
   "_stream": {
@@ -40,6 +40,7 @@
             "trait": "Engineer",
             "experienceLevel": 2,
             "situation": "Available",
+            "situationOrdinal": 0,
             "available": true,
             "unavailableReason": "",
             "courage": 0.5,
@@ -53,6 +54,7 @@
             "trait": "Pilot",
             "experienceLevel": 3,
             "situation": "Assigned",
+            "situationOrdinal": 1,
             "available": false,
             "unavailableReason": "On mission",
             "courage": 0.9,
@@ -64,6 +66,7 @@
             "trait": "Pilot",
             "experienceLevel": 1,
             "situation": "Dead",
+            "situationOrdinal": 2,
             "available": false,
             "unavailableReason": "Dead",
             "courage": 0.6,
@@ -75,6 +78,7 @@
             "trait": "Scientist",
             "experienceLevel": 5,
             "situation": "Missing",
+            "situationOrdinal": 3,
             "available": false,
             "unavailableReason": "Missing",
             "courage": 0.7,
