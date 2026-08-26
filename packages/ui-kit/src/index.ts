@@ -266,6 +266,10 @@ export {
 // copies of a ladder is precisely what this package exists to prevent. It is
 // NOT a general escape from `<Countdown>`: if a node fits, use one.
 export { type FormatDurationOptions, formatDuration } from "./formatDuration";
+// The date NOTATION lever. `formatKspDate` itself stays internal: a caller
+// reads `<MissionDate>`, and the choice between the two notations is the
+// operator's, primed once per screen from the persisted setting.
+export { realDatesWanted, setRealDatesPreferred } from "./formatKspDate";
 // ── Formatters ───────────────────────────────────────────────────────────────
 export { Gauge, type GaugeProps, type GaugeZone } from "./Gauge";
 export {

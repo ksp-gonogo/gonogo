@@ -6,6 +6,7 @@
 import "./uplink";
 import "./units";
 import "./topics";
+import "./settings/rp1SimulationSettings";
 import "./LaunchComplexStatus";
 import "./ProgramDetail";
 import "./ProgramStatus";
@@ -17,6 +18,7 @@ export { ProgramDetail } from "./ProgramDetail";
 export { ProgramStatus } from "./ProgramStatus";
 export { ResearchQueue } from "./ResearchQueue";
 export { SpaceCentrePersonnel } from "./SpaceCentrePersonnel";
+export { RP1_DELAY_IN_SIMULATION_SETTING } from "./settings/rp1SimulationSettings";
 export {
   RP1_AVAILABLE_TOPIC,
   RP1_BUILD_QUEUE_TOPIC,

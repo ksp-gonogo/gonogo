@@ -66,6 +66,7 @@ import { FullscreenFab } from "../components/FullscreenFab";
 import { MissionBanner } from "../components/MissionBanner";
 import { SceneChangeBanner } from "../components/SceneChangeBanner";
 import { SignalLossIndicator } from "../components/SignalLossIndicator";
+import { SimulationIndicator } from "../components/SimulationIndicator";
 import { StationLinkFab } from "../components/StationLinkFab";
 import { SustainedFailureBanner } from "../components/SustainedFailureBanner";
 import { FogSyncHostService } from "../fog/FogSyncHostService";
@@ -84,6 +85,7 @@ import { PushedDashboardOverlay } from "../pushToMain/PushedDashboardOverlay";
 import { PushHostProvider } from "../pushToMain/PushHostContext";
 import { PushHostService } from "../pushToMain/PushHostService";
 import {
+  initCalendarSettings,
   SettingsFab,
   SettingsProvider,
   SettingsService,
@@ -171,6 +173,10 @@ export function MainScreen() {
   // it in sync. MAIN-ONLY: StationScreen never calls this, so station
   // tones stay structurally impossible. Default ON.
   useEffect(() => initSoundSettings(settingsService), [settingsService]);
+
+  // Prime the kit's date-notation flag the same way. NOT main-only, unlike the
+  // sound flag above: a station renders the same dates and calls this too.
+  useEffect(() => initCalendarSettings(settingsService), [settingsService]);
 
   useEffect(() => {
     const dispatcher = new InputDispatcher({
@@ -319,6 +325,7 @@ export function MainScreen() {
                                       <SafetyMarginPill />
                                       <FiredAlarmPills />
                                       <UnscheduledWarpPill />
+                                      <SimulationIndicator />
                                       <SignalLossIndicator />
                                       <SustainedFailureBanner />
                                       <SceneChangeBanner />

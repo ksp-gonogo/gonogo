@@ -101,6 +101,13 @@ namespace Gonogo.KSP
         /// </summary>
         public const string CommandCentreTopic = "comms.commandCentre";
 
+        /// <summary>
+        /// Apply signal delay during a SIMULATION, or cut it. The console's
+        /// only way to change a policy the mod enforces; see
+        /// <see cref="SimulationDelayPolicy"/> for what it decides.
+        /// </summary>
+        public const string SetSimulationDelayPolicyCommand = "comms.setSimulationDelayPolicy";
+
         // The config flag lives in core (§3). Default OFF for in-place upgraders;
         // the intended forward default is ON at real light-speed (§3.1), that
         // literal is a config/onboarding decision, so core ships it off and the
@@ -112,8 +119,38 @@ namespace Gonogo.KSP
         public static void ConfigureSignalDelay(SignalDelayConfig config) =>
             _signalDelayConfig = config ?? SignalDelayConfig.Off();
 
-        /// <summary>The active SignalDelay config, so the fleet delay capture uses the SAME light-speed scale as the active-vessel authority (Plan 2).</summary>
-        internal static SignalDelayConfig SignalDelayConfig => _signalDelayConfig;
+        // The kernel, held statically alongside the config because the delay
+        // policy is a STATIC read: five separate readers reach
+        // SignalDelayConfig below without an instance of this uplink in hand,
+        // and the simulation backend that can cut the delay is elected on the
+        // kernel. Set from Register, the same place the instance field is.
+        private static Kernel? _policyKernel;
+
+        /// <summary>
+        /// Point the delay policy at a kernel. Called from
+        /// <see cref="Register"/> with the host's own; the parameter exists so a
+        /// test can drive the policy without a live engine, and can put it back.
+        /// </summary>
+        internal static void ConfigureSimulationKernel(Kernel? kernel) => _policyKernel = kernel;
+
+        /// <summary>
+        /// The signal-delay config in force, so every delay reader (the reveal
+        /// gate, comms.delay, fleet light-time, the command-centre pass and the
+        /// currency deadline) uses one answer.
+        ///
+        /// <para>EFFECTIVE, not authored: a simulation cuts the delay unless the
+        /// operator asked otherwise, and deriving it here is what makes every
+        /// one of those readers cut together rather than leaving a board whose
+        /// telemetry is live and whose money still arrives late. See
+        /// <see cref="SimulationDelayPolicy"/>.</para>
+        /// </summary>
+        internal static SignalDelayConfig SignalDelayConfig =>
+            SimulationDelayPolicy.Effective(
+                _signalDelayConfig,
+                SimulationElection.Elected(_policyKernel));
+
+        /// <summary>The config as AUTHORED, before a simulation could have cut it: what the settings row reports and the command below writes.</summary>
+        internal static SignalDelayConfig AuthoredSignalDelayConfig => _signalDelayConfig;
 
         // Held the same way as _signalDelayConfig above: Plan 3's command-centre
         // registry (GonogoAddon.cs builds it after uplink discovery, alongside the
@@ -203,6 +240,17 @@ namespace Gonogo.KSP
                 },
                 TrueNow(CommandCentreTopic),
             },
+            Commands = new List<CommandDeclaration>
+            {
+                // Ground infrastructure, not a signal to a craft: a preference
+                // about delay that itself rode the delay would be unusable at
+                // exactly the moment an operator wanted to change it.
+                new CommandDeclaration
+                {
+                    Command = SetSimulationDelayPolicyCommand,
+                    Delayed = false,
+                },
+            },
         };
 
         /// <summary>
@@ -225,6 +273,16 @@ namespace Gonogo.KSP
         public void Register(IUplinkHost host)
         {
             _kernel = host.Kernel;
+            ConfigureSimulationKernel(host.Kernel);
+
+            // The simulation delay policy, written by the console and read by
+            // every delay reader through SignalDelayConfig above. Ground
+            // infrastructure, so delayed:false: a preference about delay that
+            // itself arrived four minutes late would be unusable exactly when
+            // an operator wanted to change it.
+            host.AddCommandHandler<SetSimulationDelayPolicyArgs, CommandResult>(
+                SetSimulationDelayPolicyCommand,
+                SetSimulationDelayPolicy);
 
             _connectivity = host.Publisher(ConnectivityTopic);
             _signalStrength = host.Publisher(SignalStrengthTopic);
@@ -329,6 +387,35 @@ namespace Gonogo.KSP
             // arrives as a clean `false` (Connection() null ⇒ Connected=false,
             // no throw) and still freezes, as intended.
             return backend.Connectivity().Connected;
+        }
+
+        /// <summary>
+        /// Set the standing "apply signal delay during a simulation" policy.
+        ///
+        /// <para>The MOD owns this value, not the console, and that is
+        /// deliberate: the mod is what enforces the delay, so a console
+        /// preference the enforcer never heard would be a switch wired to
+        /// nothing. It is written back to <c>PluginData/gonogo.cfg</c> so it
+        /// survives a restart, beside the flag that turns delay on at
+        /// all.</para>
+        ///
+        /// <para>A failed WRITE is not a failed command. The policy is in force
+        /// from the moment this returns; all that is lost is remembering it next
+        /// launch, and refusing a change that has already taken effect would
+        /// leave the console showing the opposite of what the mod is doing.</para>
+        /// </summary>
+        internal static CommandResult SetSimulationDelayPolicy(SetSimulationDelayPolicyArgs? args)
+        {
+            if (args == null)
+            {
+                return CommandResult.Fail(CommandErrorCode.Range, "no policy given");
+            }
+
+            _signalDelayConfig.DelayInSimulation = args.ApplyDuringSimulation;
+            GonogoConfigFile.WriteSignalDelayFlag(
+                "delayInSimulation",
+                args.ApplyDuringSimulation);
+            return CommandResult.Ok();
         }
 
         /// <summary>

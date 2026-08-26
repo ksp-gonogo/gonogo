@@ -479,6 +479,11 @@
       "vesselId": "id",
       "vesselName": "text"
     },
+    "FlightSimulation": {
+      "delayApplied": "flag",
+      "delayInSimulation": "flag",
+      "simulated": "flag"
+    },
     "FlightStarted": {
       "flightId": "id",
       "ut": "ut",
@@ -890,6 +895,9 @@
     "SetSasModeArgs": {
       "mode": "enum"
     },
+    "SetSimulationDelayPolicyArgs": {
+      "applyDuringSimulation": "flag"
+    },
     "SetTargetArgs": {
       "bodyIndex": "id",
       "kind": "enum",
@@ -987,6 +995,7 @@
     },
     "TimeCalendar": {
       "daySeconds": "s",
+      "epoch": "text",
       "hourSeconds": "s",
       "kerbinTime": "flag",
       "minuteSeconds": "s",
@@ -1359,6 +1368,11 @@
       "vesselId": "id",
       "vesselName": "text"
     },
+    "flight.simulation": {
+      "delayApplied": "flag",
+      "delayInSimulation": "flag",
+      "simulated": "flag"
+    },
     "flight.started": {
       "flightId": "id",
       "ut": "ut",
@@ -1595,6 +1609,7 @@
     },
     "time.calendar": {
       "daySeconds": "s",
+      "epoch": "text",
       "hourSeconds": "s",
       "kerbinTime": "flag",
       "minuteSeconds": "s",
@@ -1877,6 +1892,9 @@
     "FleetVesselResources": {
       "resources": "*ResourceAmount"
     },
+    "FlightSimulation": {
+      "meta": "PayloadMeta"
+    },
     "GateVerdict": {
       "breach": "LimitBreach"
     },
@@ -2103,6 +2121,9 @@
     },
     "fleet.silence": {
       "vessels": "FleetSilenceEntry[]"
+    },
+    "flight.simulation": {
+      "meta": "PayloadMeta"
     },
     "isru.converters": {
       "inputs": "IsruResourceFlow[]",

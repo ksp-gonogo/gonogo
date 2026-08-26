@@ -277,7 +277,8 @@ export interface CommsNetwork
 }
 export enum CommsDelaySource {
 	None = 0,
-	SignalDelay = 1
+	SignalDelay = 1,
+	Simulation = 2
 }
 export interface CommsDelay
 {
@@ -1020,6 +1021,17 @@ export interface ArchiveEntry
 	remainingPotential?: Value<"science">;
 	subjectValue?: Value<"1">;
 }
+export interface FlightSimulation
+{
+	simulated?: boolean;
+	delayApplied: boolean;
+	delayInSimulation: boolean;
+	meta: PayloadMeta;
+}
+export interface SetSimulationDelayPolicyArgs
+{
+	applyDuringSimulation: boolean;
+}
 export interface LaunchSiteEntry
 {
 	name?: string;
@@ -1199,6 +1211,7 @@ export interface TimeCalendar
 	hourSeconds: Value<"s">;
 	daySeconds: Value<"s">;
 	yearSeconds: Value<"s">;
+	epoch?: string;
 	kerbinTime: boolean;
 	meta: PayloadMeta;
 }

@@ -51,6 +51,7 @@ import { FlightOutcomeBanner } from "../components/FlightOutcomeBanner";
 import { FullscreenFab } from "../components/FullscreenFab";
 import { MissionBanner } from "../components/MissionBanner";
 import { SignalLossIndicator } from "../components/SignalLossIndicator";
+import { SimulationIndicator } from "../components/SimulationIndicator";
 import { StationConnectionFab } from "../components/StationConnectionFab";
 import { SustainedFailureBanner } from "../components/SustainedFailureBanner";
 import { downloadLogs } from "../logs/downloadLogs";
@@ -69,6 +70,7 @@ import type { ConnStatus } from "../peer/PeerClientService";
 import { PeerClientService } from "../peer/PeerClientService";
 import { PushClientProvider } from "../pushToMain/PushClientContext";
 import {
+  initCalendarSettings,
   SettingsFab,
   SettingsProvider,
   SettingsService,
@@ -157,6 +159,10 @@ export function StationScreen() {
     alarmClient.snapshot(),
   );
   useEffect(() => alarmClient.subscribe(setAlarmSnapshot), [alarmClient]);
+  // Prime the kit's date-notation flag from this station's own persisted
+  // setting: a station renders the same mission dates the main screen does,
+  // and its settings are its own.
+  useEffect(() => initCalendarSettings(settingsService), [settingsService]);
   // Stable hook the AlarmsFab/Modal can call from inside its own render
   // tree to subscribe to live alarm snapshots. Capturing a snapshot at
   // open() time made the second alarm in a session anchor to a stale UT.
@@ -517,6 +523,7 @@ export function StationScreen() {
                                     }
                                   />
                                   <HostDisconnectBanner client={client} />
+                                  <SimulationIndicator />
                                   <SignalLossIndicator />
                                   <SustainedFailureBanner />
                                   <HostVersionBanner client={client} />

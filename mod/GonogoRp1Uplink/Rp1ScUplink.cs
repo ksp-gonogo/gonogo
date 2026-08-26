@@ -105,6 +105,8 @@ namespace GonogoRp1Uplink
         /// position.
         /// </summary>
         private const string FlightOpsLaunchCommand = "ksp.launch";
+        /// <summary>The same, for the simulation provider. Separate field because the two register independently.</summary>
+        private string? _simulationRegistrationError;
 
         private IChannelPublisher? _centres;
         private IChannelPublisher? _complexes;
@@ -245,6 +247,27 @@ namespace GonogoRp1Uplink
                 _launchGateRegistrationError = ex.Message;
             }
 
+            // The simulation provider: whether the flight on screen is one of
+            // RP-1's rehearsals. Registered on the same gate and for the same
+            // reason as the economy provider above, and separately from it so
+            // neither failure costs the other. Core cuts the signal delay for a
+            // simulation off this answer (SimulationDelayPolicy), which is why
+            // it is a capability rather than an rp1.* channel.
+            try
+            {
+                host.Kernel.RegisterProvider(new ProviderRegistration
+                {
+                    Capability = "simulation",
+                    Id = "rp1",
+                    Priority = 10.0,
+                    Factory = _ => new Rp1SimulationBackend(_rp1),
+                });
+            }
+            catch (Exception ex)
+            {
+                _simulationRegistrationError = ex.Message;
+            }
+
             _centres = host.Publisher(CentresTopic);
             _complexes = host.Publisher(ComplexesTopic);
             _buildQueue = host.Publisher(BuildQueueTopic);
@@ -380,6 +403,22 @@ namespace GonogoRp1Uplink
                         : _launch.IsAvailable
                             ? "contributed to ksp.launch"
                             : "space centre types not found"),
+                new UplinkHealthFact(
+                    "simulation provider",
+                    _simulationRegistrationError != null
+                        ? "registration failed: " + _simulationRegistrationError
+                        : "registered"),
+                // The live answer, because "is this a rehearsal" is the one
+                // fact on this list an operator may need to check mid-flight
+                // against a board that looks like a mission.
+                new UplinkHealthFact(
+                    "simulated flight",
+                    _rp1.IsSimulatedFlight() switch
+                    {
+                        true => "yes",
+                        false => "no",
+                        _ => "cannot say",
+                    }),
             };
 
             if (!_rp1.IsAvailable)

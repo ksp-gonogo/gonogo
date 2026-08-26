@@ -513,6 +513,11 @@ export const GENERATED_TYPE_UNITS: Readonly<Record<string, UnitsByField>> = {
     vesselId: "id",
     vesselName: "text",
   },
+  "FlightSimulation": {
+    delayApplied: "flag",
+    delayInSimulation: "flag",
+    simulated: "flag",
+  },
   "FlightStarted": {
     flightId: "id",
     ut: "ut",
@@ -924,6 +929,9 @@ export const GENERATED_TYPE_UNITS: Readonly<Record<string, UnitsByField>> = {
   "SetSasModeArgs": {
     mode: "enum",
   },
+  "SetSimulationDelayPolicyArgs": {
+    applyDuringSimulation: "flag",
+  },
   "SetTargetArgs": {
     bodyIndex: "id",
     kind: "enum",
@@ -1021,6 +1029,7 @@ export const GENERATED_TYPE_UNITS: Readonly<Record<string, UnitsByField>> = {
   },
   "TimeCalendar": {
     daySeconds: "s",
+    epoch: "text",
     hourSeconds: "s",
     kerbinTime: "flag",
     minuteSeconds: "s",
@@ -1398,6 +1407,11 @@ export const GENERATED_TOPIC_UNITS: Readonly<Record<string, UnitsByField>> = {
     vesselId: "id",
     vesselName: "text",
   },
+  "flight.simulation": {
+    delayApplied: "flag",
+    delayInSimulation: "flag",
+    simulated: "flag",
+  },
   "flight.started": {
     flightId: "id",
     ut: "ut",
@@ -1634,6 +1648,7 @@ export const GENERATED_TOPIC_UNITS: Readonly<Record<string, UnitsByField>> = {
   },
   "time.calendar": {
     daySeconds: "s",
+    epoch: "text",
     hourSeconds: "s",
     kerbinTime: "flag",
     minuteSeconds: "s",
@@ -1941,6 +1956,9 @@ export const GENERATED_TYPE_SHAPES: Readonly<Record<string, ShapesByField>> = {
   "FleetVesselResources": {
     resources: "*ResourceAmount",
   },
+  "FlightSimulation": {
+    meta: "PayloadMeta",
+  },
   "GateVerdict": {
     breach: "LimitBreach",
   },
@@ -2169,6 +2187,9 @@ export const GENERATED_TOPIC_SHAPES: Readonly<Record<string, ShapesByField>> = {
   },
   "fleet.silence": {
     vessels: "FleetSilenceEntry[]",
+  },
+  "flight.simulation": {
+    meta: "PayloadMeta",
   },
   "isru.converters": {
     inputs: "IsruResourceFlow[]",

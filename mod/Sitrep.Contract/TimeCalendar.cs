@@ -5,8 +5,9 @@ using Reinforced.Typings.Attributes;
 namespace Sitrep.Contract;
 
 /// <summary>
-/// The <c>time.calendar</c> channel payload: how long a day is, and a year,
-/// as the RUNNING GAME defines them rather than as anyone assumed.
+/// The <c>time.calendar</c> channel payload: how long a day is, how long a
+/// year is, and what real-world instant UT 0 is (when the game has one), as
+/// the RUNNING GAME defines them rather than as anyone assumed.
 ///
 /// <para><b>Why this channel exists.</b> Every duration on the wire is SI
 /// seconds, so any consumer that wants to say "3 days" has to divide by
@@ -77,6 +78,37 @@ public class TimeCalendar
     /// </summary>
     [SitrepUnit(Units.Seconds)]
     public double YearSeconds { get; set; }
+
+    /// <summary>
+    /// The real-world instant UT 0 corresponds to, ISO-8601 in UTC
+    /// (<c>1951-01-01T00:00:00Z</c>), or <c>null</c> when the running game has
+    /// no such instant.
+    ///
+    /// <para><b>Why the four durations above are not enough.</b> They say how
+    /// long a day is; they do not say which day it is. Every
+    /// <c>Units.UniversalTime</c> field on this wire is an offset from an
+    /// anchor the wire never named, so a programme deadline, a contract expiry
+    /// and a launch window could only ever be rendered as <c>Y3 D122</c>. An
+    /// RSS operator reads <c>14 Mar 1957</c>, and until this field existed
+    /// there was nothing to render it from.</para>
+    ///
+    /// <para><b>Where it comes from.</b> The date formatter itself, and
+    /// nowhere else. <c>KSPUtil.dateTimeFormatter</c> is an interface whose
+    /// implementations that model a real calendar (RSSTimeFormatter,
+    /// Kronometer) hold their anchor in a private <c>DateTime</c> field;
+    /// reflecting it out is the only way to read it, and it is what RP-1 does
+    /// for the same reason (<c>RP0DTUtils.TryGetEpoch</c>). Nothing here knows
+    /// which mod is installed.</para>
+    ///
+    /// <para><b>Null is the normal answer, and it is not zero.</b> The stock
+    /// formatter carries no epoch because stock KSP has no real calendar: its
+    /// own UI prints Year 1, Day 1, and so should every consumer of this
+    /// channel. That holds for a planet pack too whenever no DateTime-based
+    /// formatter is installed alongside it. Rendering some default anchor for
+    /// those games would invent a date the game itself never shows.</para>
+    /// </summary>
+    [SitrepUnit(Units.Text)]
+    public string? Epoch { get; set; }
 
     /// <summary>
     /// The stock <c>GameSettings.KERBIN_TIME</c> flag, for a consumer that

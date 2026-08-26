@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using KSP.UI.Screens;
 using KSP.UI.Screens.SpaceCenter.MissionSummaryDialog;
 using Sitrep.Contract;
+using Sitrep.Host.Comms;
 using Sitrep.Host.Crash;
 using Sitrep.Host.Flight;
 using UnityEngine;
@@ -28,7 +29,7 @@ namespace Gonogo.KSP
     /// stayed separate" note for why).</para>
     /// </summary>
     [SitrepUplink("flight")]
-    public sealed class FlightUplink : ISitrepUplink
+    public sealed class FlightUplink : ISitrepUplink, IUplinkCapabilityDeclarer
     {
         // Mirrors CrashUplink's DedupWindowUt: a single death can raise
         // onCrash/onCrashSplashdown AND onVesselWillDestroy within the same
@@ -65,8 +66,39 @@ namespace Gonogo.KSP
                 EventChannel(FlightTopics.StartedTopic),
                 EventChannel(FlightTopics.EndedTopic),
                 EventChannel(FlightTopics.VesselChangedTopic),
+                // TrueNow, like comms.delay and for the same reason: this is
+                // meta about the stream, and a channel that told an operator
+                // "this is a rehearsal" only after the light-time had elapsed
+                // would be describing the board they saw four minutes ago.
+                // absenceIsData because a game with no rehearsal mode has
+                // nothing to say here, and its silence IS the answer.
+                new ChannelDeclaration
+                {
+                    Topic = FlightTopics.SimulationTopic,
+                    Delay = DelayRole.TrueNow,
+                    Delivery = Delivery.LossyLatest,
+                    Emission = new EmissionPolicy(keyframeIntervalUt: 30, quantum: EmissionQuantum.Absolute(0)),
+                    AbsenceIsData = true,
+                },
             },
         };
+
+        /// <summary>
+        /// Declares the exclusive <c>"simulation"</c> capability: whether the
+        /// flight on screen is a rehearsal rather than a mission.
+        ///
+        /// <para>Declared HERE, in the pre-Register capability pass, for the
+        /// same two-pass reason the comms and economy capabilities are: a
+        /// provider uplink's <c>RegisterProvider</c> throws if the capability
+        /// does not exist yet, and assembly-scan discovery fixes no order
+        /// between uplinks.</para>
+        ///
+        /// <para>Owned by THIS uplink because it owns the <c>flight.*</c>
+        /// namespace, and a rehearsal is a fact about the flight. A provider
+        /// adds the answer, never a channel of its own.</para>
+        /// </summary>
+        public void DeclareCapabilities(Kernel kernel) =>
+            SimulationElection.RegisterCapability(kernel);
 
         /// <summary>Mandatory health self-report (see <see cref="ISitrepUplink.Health"/>): a plain
         /// channel uplink is Healthy once it has registered without error.</summary>
@@ -80,6 +112,18 @@ namespace Gonogo.KSP
                 host.Publisher(FlightTopics.EndedTopic),
                 host.Publisher(FlightTopics.VesselChangedTopic));
             host.AddSampler(_sampler);
+
+            // Subscription-gated, and safe to gate: the whole effect of this
+            // source is its return value. The DELAY cut it reports rides
+            // CommsCoreUplink.SignalDelayConfig, which is read every tick
+            // regardless of who is watching, so a tick nobody subscribes
+            // starves nothing.
+            var kernel = host.Kernel;
+            host.AddChannelSource(
+                FlightTopics.SimulationTopic,
+                _ => FlightSimulationProvider.Build(
+                    SimulationElection.Elected(kernel),
+                    CommsCoreUplink.AuthoredSignalDelayConfig));
 
             HookGameEvents();
         }

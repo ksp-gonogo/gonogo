@@ -227,6 +227,11 @@ export const DEFAULT_SITREP_CARRIED_TOPICS: readonly string[] = [
   "flight.started",
   "flight.ended",
   "flight.vesselChanged",
+  // flight.simulation: whether the flight everything above describes is a
+  // REHEARSAL. TrueNow, absent under a game with no such concept, and carried
+  // here rather than left to a widget's own promotion because a board that
+  // silently omits it reports a simulation as a mission.
+  "flight.simulation",
 ];
 
 /**

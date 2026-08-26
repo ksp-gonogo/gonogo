@@ -96,6 +96,16 @@ const ALLOWED_TRUENOW: Record<string, number> = {
   // source's delay-gating is the Phase-2 follow-up. 1 explicit declaration.
   "mod/Gonogo.KSP/CommandCentres/CommandCentreDelayUplink.cs": 1,
 
+  // flight.simulation: whether the flight on screen is one of RP-1's
+  // REHEARSALS. Meta about the stream rather than an observation of a craft,
+  // the same class as comms.delay: a channel that told an operator "this is a
+  // simulation" only after the light-time had elapsed would be describing the
+  // board they were looking at four minutes ago, and the delay it reports is
+  // the delay being cut for that very flight. Nothing about a rehearsal
+  // travels down a link, because there is no craft at the far end of one.
+  // 1 explicit declaration.
+  "mod/Gonogo.KSP/FlightUplink.cs": 1,
+
   // Active-strategies roster, funds/science/rep totals, contract board:
   // career/admin bookkeeping the centre always knows, independent of any
   // vessel's comms link. 2 explicit declarations.
