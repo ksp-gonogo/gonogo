@@ -595,8 +595,20 @@ describe("uplink subpath isolation", () => {
       .filter((sub) => sub !== "biome" && !sub.endsWith(".json"));
   }
 
+  /**
+   * `from` covers static imports and re-exports; `import(` covers the dynamic
+   * form, which the package-level `IMPORT_RE` above does not see. A widget that
+   * lazily imports the spine reaches it just as completely, and a check that
+   * misses the one spelling nobody has used yet reports clean the first time
+   * someone does.
+   *
+   * A vitest alias is neither. It is `"<specifier>": path.resolve(...)`, with no
+   * `from` and no call, and one Uplink config aliases both non-author subpaths
+   * today because `sdk-subpath-alias.test.ts` requires every published subpath to
+   * be aliased wherever the sdk is.
+   */
   const SUBPATH_IMPORT_RE =
-    /from\s*["']@ksp-gonogo\/(sitrep-sdk|ui-kit)\/([^"']+)["']/g;
+    /(?:from\s*|import\(\s*)["']@ksp-gonogo\/(sitrep-sdk|ui-kit)\/([^"']+)["']/g;
 
   it("classifies every published subpath, so a new one cannot default", () => {
     const unclassified: string[] = [];
