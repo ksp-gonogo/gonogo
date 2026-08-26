@@ -10,6 +10,13 @@
 //     planner an operator is already reading, and that slot exists for exactly
 //     this case.
 //
+//   - `./settings/registerPrincipiaSettings` → 37 declarative settings rows in
+//     one "Principia" category, every one of them stream-backed off
+//     `principia.settings` and therefore read-only. That is what the plugin's
+//     configuration IS: a plotting frame and an integration tolerance decide
+//     what every other number means, and none of them is something a console
+//     may write.
+//
 // It also declares both Topics and hydrates their units (`./topics`), including
 // `principia.settings`, which has no widget of its own and is not meant to.
 //
@@ -28,6 +35,7 @@
 // lengths in the pulsating frame are not lengths, and that three of the frames
 // have no apsides at all.
 import "./topics";
+import "./settings/registerPrincipiaSettings";
 import "./FlightPlanSection";
 import "./BurnEditor";
 import "./PlanComposer";
