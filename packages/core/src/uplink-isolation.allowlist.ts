@@ -119,3 +119,62 @@ export const DECLARED_DEPENDENCY_DEBT: Record<
   string,
   readonly ForbiddenPackage[]
 > = {};
+
+/**
+ * Which SUBPATHS of the two published packages an Uplink may import.
+ *
+ * The package-level checks cannot express this. `IMPORT_RE` is a denylist of
+ * package names and both of these are permitted, at any depth, so
+ * `@ksp-gonogo/sitrep-sdk/spine` in a widget passes every gate in the tree, the
+ * extraction probe included: `/spine` is published, so it resolves from the
+ * tarball and typechecks standing alone. Measured 2026-08-26 by planting that
+ * exact import in a production Uplink file, with the isolation suite at 12/12 and
+ * the extraction probe at zero errors.
+ *
+ * That is the whole of the risk. `/spine` is where the read semantics of a topic
+ * are implemented and `/registry` is dashboard orchestration; both barrels say in
+ * their own headers that publishing them would freeze evolving internals as
+ * third-party API, and `docs/uplink-isolation.md` says an Uplink may not import
+ * either. Nothing said it to a compiler until this list existed.
+ *
+ * Every published subpath is classified here or in `NON_AUTHOR_SUBPATHS`, so a
+ * new one forces the decision rather than defaulting to permitted. Same shape and
+ * the same reason as the classification in `sdk-subpath-alias.test.ts`.
+ */
+export const AUTHOR_SUBPATHS: Record<
+  string,
+  Readonly<Record<string, string>>
+> = {
+  "@ksp-gonogo/sitrep-sdk": {
+    frames: "reference-frame arithmetic a projection contribution needs",
+    media: "the delayed-media layer a camera Uplink needs",
+    testing: "the real host, spine and stream fixture, for an Uplink's tests",
+  },
+  "@ksp-gonogo/ui-kit": {
+    testing: "the widget provider stack and the readout helpers",
+    guards: "the render-time invariants a widget asserts against",
+    "render-probe":
+      "half of the render harness, driven by the gonogo-uplink bin",
+    render: "the other half of the render harness",
+    "page-check": "the generated-page assertions the render harness reads back",
+    "tokens.css": "the design-system custom properties, imported as an asset",
+  },
+};
+
+/**
+ * Published subpaths that are NOT author surfaces, with the reason each one is
+ * reachable anyway. Reachable is the point: every entry here resolves, installs
+ * and typechecks, which is why only a named list can stop it.
+ */
+export const NON_AUTHOR_SUBPATHS: Record<
+  string,
+  Readonly<Record<string, string>>
+> = {
+  "@ksp-gonogo/sitrep-sdk": {
+    spine:
+      "the implementation behind every host shim the root barrel publishes. An Uplink calls the shim; the app and an Uplink's test wire into this. Take what you need off the root barrel, or /frames for the arithmetic",
+    registry:
+      "dashboard orchestration, which widgets a screen renders. The app reaches it through core's re-export and an Uplink has no business calling it",
+  },
+  "@ksp-gonogo/ui-kit": {},
+};

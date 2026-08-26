@@ -54,9 +54,22 @@
  * is impossible in a tree that typechecks, and that impossibility is the only
  * reason the error was caught.
  *
- * So before believing any number, the probe builds a package that imports a name
- * the SDK does not export and requires the typecheck to fail. If it does not,
- * the run exits BLIND rather than reporting a clean tree.
+ * So before believing any number, the probe builds a package under the tsconfig
+ * baseline the sdk ships, importing every entry point the two packages publish,
+ * and requires two things:
+ *
+ *  1. that CONTROL typechecks clean. It doubles as the subpath check: a subpath
+ *     left out of `files` or out of the `publishConfig` export map resolves
+ *     inside the workspace and nowhere else, which is the shape `/spine` shipped
+ *     in and nothing saw until `import(bundleUrl)` threw
+ *  2. the same file with one name the sdk does not export FAILS
+ *
+ * The planted half alone is not enough, and this file is the evidence. It used to
+ * write its own tsconfig, whose default target made the sdk's own generated
+ * declarations fail to PARSE (`skipLibCheck` does not suppress a syntax error),
+ * so the plant "produced 223 errors" and satisfied the check with 222 of them
+ * having nothing to do with it. Under the shipped baseline the same plant
+ * produces one.
  *
  * Usage:
  *   node scripts/uplink-extraction-probe.mjs                  every Uplink
@@ -192,8 +205,39 @@ function probe(clientDir, tarballs, workRoot, label) {
 }
 
 /**
- * Prove the instrument before believing it: a package that imports a name the
- * SDK does not export MUST fail to typecheck.
+ * Every module subpath the two published packages export, as import specifiers.
+ *
+ * Read off the manifests rather than listed, so a new subpath joins by existing.
+ * `./biome` and the `.json` configs are shared CONFIG files that nothing resolves
+ * through the module graph, and a stylesheet has no types to check; all three are
+ * matched by shape so the next one needs no edit here.
+ */
+function publishedSubpaths() {
+  const specs = [];
+  for (const [name, dir] of [
+    ["@ksp-gonogo/sitrep-sdk", "mod/sitrep-sdk"],
+    ["@ksp-gonogo/ui-kit", "packages/ui-kit"],
+  ]) {
+    const pkg = JSON.parse(
+      readFileSync(join(ROOT, dir, "package.json"), "utf8"),
+    );
+    for (const key of Object.keys(pkg.exports ?? {})) {
+      if (!key.startsWith("./") || key === ".") continue;
+      const sub = key.slice(2);
+      if (sub === "biome" || sub.endsWith(".json") || sub.endsWith(".css"))
+        continue;
+      specs.push(`${name}/${sub}`);
+    }
+  }
+  return specs;
+}
+
+/**
+ * Prove the instrument before believing it: a control importing every published
+ * surface MUST typecheck clean, and the same file with one name the SDK does not
+ * export MUST fail. The planted half alone cannot tell a seen violation from an
+ * environment that errors at everything, and this one used to report 223 errors
+ * for a single missing import, which is noise enough to satisfy itself.
  */
 function selfTest(tarballs, workRoot) {
   const work = join(workRoot, "__blind-check__");
@@ -208,6 +252,7 @@ function selfTest(tarballs, workRoot) {
         type: "module",
         devDependencies: {
           "@ksp-gonogo/sitrep-sdk": `file:${tarballs["@ksp-gonogo/sitrep-sdk"]}`,
+          "@ksp-gonogo/ui-kit": `file:${tarballs["@ksp-gonogo/ui-kit"]}`,
           typescript: "^5.0.0",
         },
       },
@@ -215,27 +260,43 @@ function selfTest(tarballs, workRoot) {
       2,
     )}\n`,
   );
+  // The baseline the sdk SHIPS, which is what an Uplink extends and therefore
+  // what a control has to measure under. A hand-written config here measures
+  // settings no author uses: with tsc's default target the sdk's own generated
+  // declarations do not even parse, and the 223 errors that produced were what
+  // the planted-violation check used to be satisfied by.
   writeFileSync(
     join(work, "tsconfig.json"),
     `${JSON.stringify(
       {
-        compilerOptions: {
-          module: "esnext",
-          moduleResolution: "bundler",
-          strict: true,
-          noEmit: true,
-          skipLibCheck: true,
-        },
+        extends: "@ksp-gonogo/sitrep-sdk/tsconfig.base.json",
+        compilerOptions: { noEmit: true },
         include: ["index.ts"],
       },
       null,
       2,
     )}\n`,
   );
-  writeFileSync(
-    join(work, "index.ts"),
-    'import { thisExportCannotExist } from "@ksp-gonogo/sitrep-sdk";\nexport const planted = thisExportCannotExist;\n',
-  );
+  // The control reaches every module subpath the two packages publish. That is
+  // the resolution check as well as the control: a subpath left out of `files`
+  // or out of the `publishConfig` export map resolves inside the workspace and
+  // nowhere else, which is the shape `/spine` shipped in and nothing saw until
+  // `import(bundleUrl)` threw. A type-only namespace import needs no named
+  // export to survive a barrel being reorganised, and still fails TS2307 when
+  // the specifier does not resolve.
+  const specs = [
+    "@ksp-gonogo/sitrep-sdk",
+    "@ksp-gonogo/ui-kit",
+    ...publishedSubpaths(),
+  ];
+  const control = [
+    ...specs.map(
+      (spec, index) => `import * as Reached${index} from "${spec}";`,
+    ),
+    `export const reached = [${specs.map((_, index) => `Reached${index}`).join(", ")}];`,
+    "",
+  ].join("\n");
+  writeFileSync(join(work, "index.ts"), control);
 
   const install = run(
     "npm",
@@ -248,12 +309,38 @@ function selfTest(tarballs, workRoot) {
     );
     process.exit(1);
   }
-  const tsc = run("npx", ["tsc", "--noEmit", "-p", "tsconfig.json"], {
-    cwd: work,
-  });
-  const errors = (`${tsc.stdout}${tsc.stderr}`.match(/error TS\d+/g) ?? [])
-    .length;
-  if (errors === 0) {
+
+  const typecheck = () => {
+    const tsc = run("npx", ["tsc", "--noEmit", "-p", "tsconfig.json"], {
+      cwd: work,
+    });
+    const output = `${tsc.stdout}${tsc.stderr}`;
+    return { errors: (output.match(/error TS\d+/g) ?? []).length, output };
+  };
+
+  const clean = typecheck();
+  if (clean.errors > 0) {
+    console.error(
+      "✖ BLIND: the control, which imports only the root barrels and the subpaths these two\n" +
+        `  packages publish, produced ${clean.errors} error(s). Either a published subpath does not\n` +
+        "  resolve from its own tarball, which is the failure this control exists to catch, or the\n" +
+        "  probe's environment fails at everything and every count below is its own noise.\n" +
+        `${clean.output
+          .split("\n")
+          .filter((line) => /error TS/.test(line))
+          .slice(0, 12)
+          .map((line) => `    ${line.trim()}`)
+          .join("\n")}`,
+    );
+    process.exit(1);
+  }
+
+  writeFileSync(
+    join(work, "index.ts"),
+    `${control}import { thisExportCannotExist } from "@ksp-gonogo/sitrep-sdk";\nexport const planted = thisExportCannotExist;\n`,
+  );
+  const violated = typecheck();
+  if (violated.errors === 0) {
     console.error(
       "✖ BLIND: a deliberate import of an export the sdk does not have typechecked CLEANLY.\n" +
         "  The probe cannot see the failure it exists to measure, so every zero it reports\n" +
@@ -262,7 +349,8 @@ function selfTest(tarballs, workRoot) {
     process.exit(1);
   }
   console.log(
-    `self-test: planted violation produced ${errors} error(s), the probe can see failures.`,
+    `self-test: ${specs.length} published entry point(s) resolved from the tarballs and the control ` +
+      `typechecked clean; the planted violation produced ${violated.errors} error(s).`,
   );
 }
 

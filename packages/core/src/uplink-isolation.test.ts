@@ -10,11 +10,13 @@ import { transformSync } from "esbuild";
 import { describe, expect, it } from "vitest";
 import { ratchetBaseRef, sourceAtRatchetBase } from "./ratchetBaseRef";
 import {
+  AUTHOR_SUBPATHS,
   BLOCKED_FILENAMES,
   DECLARED_DEPENDENCY_DEBT,
   FORBIDDEN_PACKAGES,
   type ForbiddenPackage,
   INTERNAL_IMPORT_DEBT,
+  NON_AUTHOR_SUBPATHS,
 } from "./uplink-isolation.allowlist";
 
 /**
@@ -554,5 +556,114 @@ describe("uplink isolation", () => {
         ].join("\n"),
       ).toEqual([]);
     });
+  });
+});
+
+/**
+ * The subpath half of the rule, which the package-level checks structurally
+ * cannot reach. `IMPORT_RE` is a denylist of package NAMES and both published
+ * packages are permitted at any depth, so a widget importing
+ * `@ksp-gonogo/sitrep-sdk/spine` passes every check above. The extraction probe
+ * passes it too, because `/spine` is published and therefore resolves and
+ * typechecks outside the workspace: being installable is exactly what makes it
+ * invisible to a gate that asks whether an Uplink can leave.
+ *
+ * Measured on 2026-08-26 by planting that import in a production Uplink file:
+ * this suite reported 12 of 12 passing and the extraction probe reported zero
+ * errors, with `docs/uplink-isolation.md` saying in as many words that `/spine`
+ * is not an author surface.
+ */
+describe("uplink subpath isolation", () => {
+  const PUBLISHED = {
+    "@ksp-gonogo/sitrep-sdk": join(MOD_DIR, "sitrep-sdk", "package.json"),
+    "@ksp-gonogo/ui-kit": join(REPO_ROOT, "packages", "ui-kit", "package.json"),
+  } as const;
+
+  /**
+   * The module subpaths a package exports. `./biome` and the `.json` configs are
+   * shared CONFIG files rather than importable modules, matched by shape rather
+   * than by name so the next one needs no edit here, the same way
+   * `sdk-subpath-alias.test.ts` does it.
+   */
+  function publishedSubpaths(manifestPath: string): string[] {
+    const pkg = JSON.parse(readFileSync(manifestPath, "utf8")) as {
+      exports?: Record<string, unknown>;
+    };
+    return Object.keys(pkg.exports ?? {})
+      .filter((key) => key.startsWith("./") && key !== ".")
+      .map((key) => key.slice(2))
+      .filter((sub) => sub !== "biome" && !sub.endsWith(".json"));
+  }
+
+  /**
+   * `from` covers static imports and re-exports; `import(` covers the dynamic
+   * form, which the package-level `IMPORT_RE` above does not see. A widget that
+   * lazily imports the spine reaches it just as completely, and a check that
+   * misses the one spelling nobody has used yet reports clean the first time
+   * someone does.
+   *
+   * A vitest alias is neither. It is `"<specifier>": path.resolve(...)`, with no
+   * `from` and no call, and one Uplink config aliases both non-author subpaths
+   * today because `sdk-subpath-alias.test.ts` requires every published subpath to
+   * be aliased wherever the sdk is.
+   */
+  const SUBPATH_IMPORT_RE =
+    /(?:from\s*|import\(\s*)["']@ksp-gonogo\/(sitrep-sdk|ui-kit)\/([^"']+)["']/g;
+
+  it("classifies every published subpath, so a new one cannot default", () => {
+    const unclassified: string[] = [];
+    for (const [pkg, manifest] of Object.entries(PUBLISHED)) {
+      const author = AUTHOR_SUBPATHS[pkg] ?? {};
+      const nonAuthor = NON_AUTHOR_SUBPATHS[pkg] ?? {};
+      for (const sub of publishedSubpaths(manifest)) {
+        if (sub in author || sub in nonAuthor) continue;
+        unclassified.push(`${pkg}/${sub}`);
+      }
+    }
+    expect(
+      unclassified,
+      [
+        "A published subpath is classified neither as an author surface nor as one",
+        "an Uplink must not import.",
+        "",
+        "Defaulting is what this list exists to prevent: a new subpath is reachable",
+        "the moment it is published, and every other gate in the tree permits it.",
+        "Decide, and record the reason, in AUTHOR_SUBPATHS or NON_AUTHOR_SUBPATHS in",
+        "packages/core/src/uplink-isolation.allowlist.ts.",
+      ].join("\n"),
+    ).toEqual([]);
+  });
+
+  it("no Uplink file imports a subpath that is not an author surface", () => {
+    const offenders: string[] = [];
+    for (const file of uplinkSourceFiles()) {
+      const rel = relative(REPO_ROOT, file).split("\\").join("/");
+      for (const match of readFileSync(file, "utf8").matchAll(
+        SUBPATH_IMPORT_RE,
+      )) {
+        const pkg = `@ksp-gonogo/${match[1]}`;
+        const sub = match[2];
+        if (sub in (AUTHOR_SUBPATHS[pkg] ?? {})) continue;
+        const why = NON_AUTHOR_SUBPATHS[pkg]?.[sub];
+        offenders.push(`${rel} -> ${pkg}/${sub}${why ? `: ${why}` : ""}`);
+      }
+    }
+    expect(
+      offenders,
+      [
+        "An Uplink imported a subpath of a published package that is not an author",
+        "surface.",
+        "",
+        "Being published is not permission. /spine and /registry resolve, install and",
+        "typecheck for anyone, which is precisely why nothing else catches this: the",
+        "package denylist permits the sdk at any depth and the extraction probe finds",
+        "a tarball that does contain them.",
+        "",
+        "Take what you need off the ROOT barrel, or off /frames for the frame",
+        "arithmetic. If it is not there, move it there.",
+        "",
+        "See docs/uplink-isolation.md.",
+      ].join("\n"),
+    ).toEqual([]);
   });
 });
