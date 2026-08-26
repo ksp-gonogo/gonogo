@@ -276,13 +276,6 @@ export const ALLOWLIST: Record<ModToken, ModAllowlist> = {
       "mod/GonogoKosUplink/KosHealth.cs",
       "mod/GonogoKosUplink.Tests/KosHealthTests.cs",
       /*
-       * loaderState.test.ts (Hub-wizard plumbing, 2026-07-19): TEST-only,
-       * names kerbcast as one of the three bundled-fallback ids it feeds
-       * recordBundledOutcomes(): same shape as loader.test.ts/flag.test.ts
-       * below (loaderState.ts itself is generic and names no mod).
-       */
-      "packages/app/src/uplinks/loaderState.test.ts",
-      /*
        * event-timeline.ts (event-stream primitive, 2026-07-22): a text-only
        * doc-comment mention ("see the kerbcast-Uplink") in a mod-agnostic
        * sitrep-client primitive. Words only, nothing kerbcast-specific is
@@ -553,12 +546,6 @@ export const ALLOWLIST: Record<ModToken, ModAllowlist> = {
        * TEST-only, same shape as loader.test.ts above.
        */
       "packages/app/src/uplinks/flag.test.ts",
-      /*
-       * loaderState.test.ts (Hub-wizard plumbing, 2026-07-19): TEST-only,
-       * names scansat as one of the three bundled-fallback ids it feeds
-       * recordBundledOutcomes(): same shape as flag.test.ts above.
-       */
-      "packages/app/src/uplinks/loaderState.test.ts",
       /*
        * useLateTelemetrySubscribe (2026-07-19): scansat's fog-sync is the
        * motivating call site for the new hook (a runtime-templated topic,
