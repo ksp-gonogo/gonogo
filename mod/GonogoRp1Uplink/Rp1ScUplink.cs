@@ -53,7 +53,7 @@ namespace GonogoRp1Uplink
         /// tick emits one row per centre, complex, queued vehicle, pad, operation,
         /// research node and Program, so this counts the thing that actually
         /// grows: a mature RP-1 career with several centres, a full tech queue and
-        /// the whole forty-one Program catalogue is a few hundred rows a tick, and
+        /// the whole thirty-seven Program catalogue is a few hundred rows a tick, and
         /// a runaway means the subscription gate stopped gating rather than that
         /// the career got big.
         /// </summary>
@@ -67,7 +67,7 @@ namespace GonogoRp1Uplink
         /// Separate from the space-centre walk because the two answer unrelated
         /// questions at unrelated rates and share no object: the space centre is
         /// read per launch complex every tick, the Program catalogue is a
-        /// forty-one row list that changes when an operator visits the
+        /// thirty-seven row list that changes when an operator visits the
         /// Administration building. Kept apart, a dashboard watching only the
         /// build queue never pays for the Program walk, which is what the
         /// subscription gate is for.
@@ -221,7 +221,7 @@ namespace GonogoRp1Uplink
             // Gated, and safe to gate: this capture's ENTIRE effect is its
             // return value. It stashes nothing, elects nothing, and no command
             // pre-filter reads it, so a tick nobody is watching skips a walk over
-            // forty-one Programs and starves nothing downstream.
+            // thirty-seven Programs and starves nothing downstream.
             host.AddSampledSource(
                 CaptureProgramsOnMain,
                 HandleProgramsOnCourier,

@@ -12,7 +12,12 @@ import {
 import { describe, expect, it } from "vitest";
 import { ProgramStatus } from "./index";
 
-const TOPICS = ["rp1.available", "rp1.programs", "rp1.programSlots"];
+const TOPICS = [
+  "rp1.available",
+  "rp1.programs",
+  "rp1.programSlots",
+  "rp1.confidence",
+];
 
 function program(overrides: Record<string, unknown> = {}) {
   return {
@@ -86,6 +91,7 @@ describe("ProgramStatus", () => {
     fixture.emit("rp1.available", true);
     fixture.emit("rp1.programs", []);
     fixture.emit("rp1.programSlots", slots({ usedSlots: 0, freeSlots: 3 }));
+    fixture.emit("rp1.confidence", { confidence: 500, earned: 0 });
 
     await waitFor(() => {
       expect(screen.getByText(/Subsidy only/)).toBeInTheDocument();
@@ -97,6 +103,7 @@ describe("ProgramStatus", () => {
     fixture.emit("rp1.available", true);
     fixture.emit("rp1.programs", [program()]);
     fixture.emit("rp1.programSlots", slots());
+    fixture.emit("rp1.confidence", { confidence: 500, earned: 0 });
 
     await waitFor(() => {
       expect(screen.getByText("X-Plane Research")).toBeInTheDocument();
@@ -119,6 +126,7 @@ describe("ProgramStatus", () => {
       program({ fracElapsed: 1.4, repPenaltyAssessed: 52 }),
     ]);
     fixture.emit("rp1.programSlots", slots());
+    fixture.emit("rp1.confidence", { confidence: 500, earned: 0 });
 
     await waitFor(() => {
       expect(screen.getByText("OVERRUN")).toBeInTheDocument();
@@ -133,6 +141,7 @@ describe("ProgramStatus", () => {
     fixture.emit("rp1.available", true);
     fixture.emit("rp1.programs", [program()]);
     fixture.emit("rp1.programSlots", slots());
+    fixture.emit("rp1.confidence", { confidence: 500, earned: 0 });
 
     await waitFor(() => {
       expect(screen.getByText("X-Plane Research")).toBeInTheDocument();
@@ -148,6 +157,7 @@ describe("ProgramStatus", () => {
       program({ objectivesMet: true, canComplete: true }),
     ]);
     fixture.emit("rp1.programSlots", slots());
+    fixture.emit("rp1.confidence", { confidence: 500, earned: 0 });
 
     await waitFor(() => {
       expect(screen.getByText("READY TO COMPLETE")).toBeInTheDocument();
@@ -175,6 +185,7 @@ describe("ProgramStatus", () => {
       }),
     ]);
     fixture.emit("rp1.programSlots", slots());
+    fixture.emit("rp1.confidence", { confidence: 500, earned: 0 });
 
     await waitFor(() => {
       expect(screen.getByText("Early Satellites")).toBeInTheDocument();
@@ -197,6 +208,7 @@ describe("ProgramStatus", () => {
       }),
     ]);
     fixture.emit("rp1.programSlots", slots({ usedSlots: 0, freeSlots: 3 }));
+    fixture.emit("rp1.confidence", { confidence: 500, earned: 0 });
 
     await waitFor(() => {
       expect(screen.getByText(/Subsidy only/)).toBeInTheDocument();
@@ -210,6 +222,7 @@ describe("ProgramStatus", () => {
     fixture.emit("rp1.available", true);
     fixture.emit("rp1.programs", [program()]);
     fixture.emit("rp1.programSlots", slots({ usedSlots: 3, freeSlots: 0 }));
+    fixture.emit("rp1.confidence", { confidence: 500, earned: 0 });
 
     await waitFor(() => {
       expect(screen.getByText("FULL")).toBeInTheDocument();
@@ -225,6 +238,86 @@ describe("ProgramStatus", () => {
     await waitFor(() => {
       expect(screen.queryByText("FULL")).not.toBeInTheDocument();
     });
+  });
+
+  it("shows the Confidence balance beside the prices it is spent on", async () => {
+    // Accepting a Program is the only thing in RP-1 that spends Confidence, so
+    // this is the widget the repo's spend rule binds: a price the operator has
+    // to leave the screen to weigh is a price they weigh wrong.
+    const { fixture } = mount();
+    fixture.emit("rp1.available", true);
+    fixture.emit("rp1.programs", []);
+    fixture.emit("rp1.programSlots", slots({ usedSlots: 0, freeSlots: 3 }));
+    fixture.emit("rp1.confidence", { confidence: 350, earned: 0 });
+
+    await waitFor(() => {
+      expect(screen.getByText("Confidence")).toBeInTheDocument();
+    });
+    expect(visibleText()).toContain("350");
+  });
+
+  it("marks an offer the career cannot afford, and only when both halves are known", async () => {
+    const { fixture } = mount();
+    fixture.emit("rp1.available", true);
+    fixture.emit("rp1.programs", [
+      program({
+        name: "EarlySatellites",
+        title: "Early Satellites",
+        state: "offerable",
+        acceptedUt: null,
+        deadlineUt: null,
+        lastPaymentUt: null,
+        fracElapsed: null,
+        fundsPaidOut: null,
+        fundsRemaining: null,
+        repPenaltyAssessed: null,
+        canAccept: true,
+        confidenceCost: 600,
+      }),
+    ]);
+    fixture.emit("rp1.programSlots", slots({ usedSlots: 0, freeSlots: 3 }));
+    fixture.emit("rp1.confidence", { confidence: 350, earned: 0 });
+
+    await waitFor(() => {
+      expect(screen.getByText("SHORT")).toBeInTheDocument();
+    });
+
+    // An unknown balance is not a short one. RP-1's Confidence module can be
+    // absent entirely, and a SHORT badge there accuses the career of something
+    // nobody measured.
+    fixture.emit("rp1.confidence", { confidence: null, earned: null });
+    await waitFor(() => {
+      expect(screen.queryByText("SHORT")).not.toBeInTheDocument();
+    });
+  });
+
+  it("does not call an affordable offer short, including at exactly the price", async () => {
+    const { fixture } = mount();
+    fixture.emit("rp1.available", true);
+    fixture.emit("rp1.programs", [
+      program({
+        name: "EarlySatellites",
+        title: "Early Satellites",
+        state: "offerable",
+        acceptedUt: null,
+        deadlineUt: null,
+        lastPaymentUt: null,
+        fracElapsed: null,
+        fundsPaidOut: null,
+        fundsRemaining: null,
+        repPenaltyAssessed: null,
+        canAccept: true,
+        confidenceCost: 350,
+      }),
+    ]);
+    fixture.emit("rp1.programSlots", slots({ usedSlots: 0, freeSlots: 3 }));
+    fixture.emit("rp1.confidence", { confidence: 350, earned: 0 });
+
+    await waitFor(() => {
+      expect(screen.getByText("Early Satellites")).toBeInTheDocument();
+    });
+    // Exactly enough IS enough: RP-1 charges the price and leaves zero.
+    expect(screen.queryByText("SHORT")).not.toBeInTheDocument();
   });
 
   it("registers itself into the funding widget's universal sections segment", () => {

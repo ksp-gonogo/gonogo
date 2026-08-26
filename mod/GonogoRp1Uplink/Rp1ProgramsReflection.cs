@@ -85,7 +85,7 @@ namespace GonogoRp1Uplink
         /// Reads one tick, or nothing. Null when RP-1's Program handler is not
         /// live, which is the main menu and any save RP-1 does not manage:
         /// publishing an empty catalogue there would say "this career has no
-        /// Programs to accept" about a game that has forty-one of them.
+        /// Programs to accept" about a game that ships thirty-seven of them.
         /// </summary>
         public Rp1ProgramsRaw? Read(double ut)
         {

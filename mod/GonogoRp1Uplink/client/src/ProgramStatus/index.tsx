@@ -41,6 +41,11 @@ export function ProgramStatus() {
   const available = current(useTelemetry("rp1.available"));
   const programs = current(useTelemetry("rp1.programs"));
   const slots = current(useTelemetry("rp1.programSlots"));
+  // Accepting a Program is the ONLY thing in RP-1 that spends Confidence, so
+  // this is the one screen where the balance decides anything. Same rule the
+  // repo already applies to funds: a price the operator has to leave the widget
+  // to weigh is a price they will weigh wrong.
+  const confidence = current(useTelemetry("rp1.confidence"));
 
   // Invisible without RP-1, rather than an empty section on a stock game.
   if (available !== true) {
@@ -66,6 +71,12 @@ export function ProgramStatus() {
                 <Badge severity="caution">FULL</Badge>
               </>
             )}
+          </Text>
+        </Row>
+        <Row>
+          <RowName>Confidence</RowName>
+          <Text>
+            <Unit value={confidence?.confidence} />
           </Text>
         </Row>
 
@@ -95,6 +106,15 @@ export function ProgramStatus() {
                   <Text>
                     <Unit value={program.totalFunding} /> ·{" "}
                     <Unit value={program.confidenceCost} />
+                    {outOfReach(
+                      program.confidenceCost,
+                      confidence?.confidence,
+                    ) && (
+                      <>
+                        {" "}
+                        <Badge severity="caution">SHORT</Badge>
+                      </>
+                    )}
                   </Text>
                 </Row>
               ))}
@@ -183,6 +203,26 @@ const LIST_STYLE = { listStyle: "none", margin: 0, padding: 0 } as const;
 function isFull(freeSlots: Rp1ProgramSlots["freeSlots"]): boolean {
   const free = magnitudeOf(freeSlots);
   return free !== null && free <= 0;
+}
+
+/**
+ * The career cannot currently afford this Program at its selected speed. Silent
+ * unless BOTH halves are present: an unknown balance is not a short one, and a
+ * price we could not read is not free.
+ *
+ * <para>Deliberately not RP-1's own verdict. RP-1 decides affordability with a
+ * currency-modifier query that broadcasts to every modifier in the save, which
+ * the Uplink does not run, so a leader who discounts Confidence moves the
+ * Administration building's answer and not this one. The comparison is the
+ * honest one against the two numbers actually on the wire.</para>
+ */
+function outOfReach(
+  cost: Rp1ProgramEntry["confidenceCost"],
+  balance: Rp1ProgramEntry["confidenceCost"],
+): boolean {
+  const price = magnitudeOf(cost);
+  const held = magnitudeOf(balance);
+  return price !== null && held !== null && held < price;
 }
 
 /** The value where one is current; see LaunchComplexStatus for why reckonable counts. */
