@@ -64,13 +64,28 @@ fi
 # to be genuinely absent from the reference set: the moment someone vendors it,
 # this script fails as STALE and the exemption has to be deleted. A debt that
 # cannot outlive its cause is the only kind worth writing down.
+#
+# THE LIST IS EMPTY: all eleven Uplink plugin assemblies compile. It stays,
+# empty, because it is what holds eleven-of-eleven there. An Uplink that stops
+# compiling has to earn a line with a reason rather than quietly become a
+# warning, which is what an exemption turns into the moment its cause is gone.
+#
+# The array keeps its multi-line form while empty: uplink-mod-build-coverage's
+# parser looks for `EXEMPT=(` with entries on following lines, and it THROWS when
+# it cannot find one, which is the right report for an array someone deleted and
+# the wrong one for an array that is legitimately empty.
+#
+# Both expansions below are written `${EXEMPT[@]+"${EXEMPT[@]}"}` rather than
+# `"${EXEMPT[@]}"`. Under `set -u` bash 3.2, which is what macOS ships, expanding
+# an EMPTY array is an unbound-variable error, so the plain form kills this
+# script locally while passing on CI's bash 5. An empty list is the state this
+# file is supposed to be in, so it has to be the state it survives.
 EXEMPT=(
-  "GonogoMechJebUplink|MechJeb2/Plugins/MechJeb2.dll|MechJeb2.dll is not vendored in ksp-gonogo/ksp-managed, and this Uplink binds MuMech types at compile time (MechJebController.cs, MechJebUplink.Ksp.cs), so it cannot compile without the dll. THE FIX IS TO VENDOR IT, one file into that private repo, and this line then expires by itself. Three Uplinks bind their mod types at compile time, not one: GonogoScansatUplink names SCANUtil/SCANcontroller/SCANexperiment and GonogoKosUplink names kOS.Module/kOS.Safe.Screen/kOS.UserIO, and BOTH have their mod dll vendored for exactly this reason. MechJeb is the one that was left out, not the one that deviates. Reflection is how an Uplink stays MIT: linking a copyleft mod makes that Uplink copyleft too, which is a choice rather than a prohibition, and GonogoKosUplink already takes it (it links kOS and is GPL-3.0-only, see its NOTICE). AGExt and RP-1 are reflected to keep their Uplinks MIT; MechJeb2 is already linked and its Uplink is already GPL-3.0-only, so rewriting it to reflection would trade the compiler's discovery of the surface for a hand-maintained ProbeTypes list, which is the failure shape this script's own header enumerates five times. Evidence: local_docs/design/mechjeb-provider-and-vendoring.md."
 )
 
 exempt_reason() {
   local name="$1" entry
-  for entry in "${EXEMPT[@]}"; do
+  for entry in ${EXEMPT[@]+"${EXEMPT[@]}"}; do
     [ "${entry%%|*}" = "$name" ] && { echo "${entry#*|}"; return 0; }
   done
   return 1
@@ -79,7 +94,7 @@ exempt_reason() {
 # Both directions, because they fail differently and both fail silently. A stale
 # exemption is the one that matters: it reads as coverage and is not.
 stale=""
-for entry in "${EXEMPT[@]}"; do
+for entry in ${EXEMPT[@]+"${EXEMPT[@]}"}; do
   name="${entry%%|*}"
   rest="${entry#*|}"
   dll="${rest%%|*}"

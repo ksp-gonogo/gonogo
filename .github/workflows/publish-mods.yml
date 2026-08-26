@@ -3,20 +3,15 @@ name: Publish mod zips
 # WHAT BOUNDS THIS MATRIX: an Uplink gets a leg here when it declares a CKAN
 # identity (its own .netkan) AND its plugin assembly compiles against the
 # reference set vendored in ksp-gonogo/ksp-managed. Seven Uplinks carry a
-# .netkan; six of them compile, so six have legs, alongside Gonogo core.
+# .netkan, all seven compile, so all seven have legs, alongside Gonogo core.
 #
-# The seventh is GonogoMechJebUplink. MechJeb2.dll is not in ksp-managed and the
-# Uplink binds MuMech types at compile time (MechJebController.cs,
-# MechJebUplink.Ksp.cs), so it cannot be built or published here. It is exempt in
-# scripts/uplink-mod-build.sh for the same reason, and that exemption expires by
-# itself the moment the dll lands.
-#
-# Compile-time binding is not what makes it the odd one out: GonogoScansatUplink
-# names SCANUtil/SCANcontroller/SCANexperiment and GonogoKosUplink names
-# kOS.Module/kOS.Safe.Screen/kOS.UserIO, and both of those mod dlls ARE vendored
-# in ksp-managed, which is why both have legs here. Vendoring MechJeb2.dll is the
-# same one-file operation done a third time, and it is the resolution this leg
-# waits on. Evidence: local_docs/design/mechjeb-provider-and-vendoring.md.
+# Three of them bind their mod's types at compile time and so need that mod's dll
+# on the reference set: GonogoScansatUplink names
+# SCANUtil/SCANcontroller/SCANexperiment, GonogoKosUplink names types out of
+# kOS.Module/kOS.Safe.Screen/kOS.UserIO, and GonogoMechJebUplink names MuMech.
+# SCANsat.dll, kOS.dll and MechJeb2.dll are all vendored there for exactly that
+# reason. scripts/uplink-mod-build.sh's exemption list is empty as a result, so
+# nothing here is waiting on a build that cannot happen.
 #
 # The Uplinks with no .netkan (Avionics, Kerbalism, Rp1, TestFlight) are not
 # omitted for a build reason: all four compile. They have declared no CKAN
@@ -153,6 +148,13 @@ jobs:
             extra_dlls: "GonogoPrincipiaUplink.Contract.dll"
             notice: mod/GonogoPrincipiaUplink/NOTICE-PRINCIPIA.txt
             mod_id_var: SPACEDOCK_MOD_ID_GONOGOPRINCIPIAUPLINK
+          - id: GonogoMechJebUplink
+            csproj: mod/GonogoMechJebUplink/GonogoMechJebUplink.csproj
+            dll: GonogoMechJebUplink.dll
+            gamedata: GonogoMechJebUplink
+            extra_dlls: "GonogoMechJebUplink.Contract.dll"
+            notice: mod/GonogoMechJebUplink/NOTICE-MECHJEB.txt
+            mod_id_var: SPACEDOCK_MOD_ID_GONOGOMECHJEBUPLINK
           - id: GonogoActionGroupsExtendedUplink
             csproj: mod/GonogoActionGroupsExtendedUplink/GonogoActionGroupsExtendedUplink.csproj
             dll: GonogoActionGroupsExtendedUplink.dll

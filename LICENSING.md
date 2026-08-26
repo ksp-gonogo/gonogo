@@ -69,11 +69,16 @@ uplinks that reflect say so in their own notice: AGExt is GPL-3.0 and RP-1 is CC
 `GonogoActionGroupsExtendedUplink` and `GonogoAvionicsUplink` reach them at arm's length and stay
 MIT. MechJeb2 is linkable, so the licence poses no question this uplink has to route around.
 
-What is still outstanding is a BUILD gap and not a licence one: `MechJeb2.dll` is absent from the
-private reference set, so CI cannot compile this assembly and `publish-mods.yml` has no leg for it.
-Vendoring the dll closes it, the same operation already done for kOS and SCANsat. Reasoning and
-evidence in `local_docs/design/mechjeb-provider-and-vendoring.md`; the linkage notice is
+`MechJeb2.dll` is vendored in the private reference set alongside `kOS.dll` and `SCANsat.dll`, so
+CI compiles this assembly and `publish-mods.yml` publishes it. A compile-time reference copy held
+in a private build repository is not distribution and adds no obligation. Reasoning and evidence in
+`local_docs/design/mechjeb-provider-and-vendoring.md`; the linkage notice is
 `mod/GonogoMechJebUplink/NOTICE-MECHJEB.txt`.
+
+What the three GPL-3.0-only rows DO owe on every release is the licence text travelling with the
+work, and each ships as its own standalone CKAN package, so each zip is the work. Each project
+directory holds the full GPLv3 and `_build-uplink-mod.yml` bundles it into the zip beside the
+NOTICE.
 
 ## The kerbcast caveat: read this before relying on the SPA's MIT
 
