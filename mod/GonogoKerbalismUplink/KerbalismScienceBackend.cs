@@ -52,28 +52,32 @@ namespace Gonogo.KerbalismUplink
         /// KSP-free pre-filter (<see cref="KerbalismFileCommandProvider"/>).
         /// Same Courier-thread-only data as every read method below.
         ///
-        /// <para><b>This is refreshed only while something under <c>science.</c> is
-        /// subscribed</b>, because the capture that stashes it is registered with
-        /// that prefix and the engine skips a gated capture entirely on any tick
-        /// where nothing under its prefixes is watched. The channel mappers above
-        /// are unaffected, since their topics ARE the gated ones. The command
-        /// pre-filter is not: a caller that sends a file verb without ever having
-        /// subscribed a science topic in this session reads the default bundle,
-        /// whose <c>Modeled</c> is false, and every verb refuses with
+        /// <para>Refreshed every tick, because the capture that stashes it is
+        /// registered UNGATED. The channel mappers above would be fine either way,
+        /// since their topics are the ones a gate would key on. The command
+        /// pre-filter would not: a caller that sends a file verb without having
+        /// subscribed a science topic in this session would read the default
+        /// bundle, whose <c>Modeled</c> is false, and every verb would refuse with
         /// ModeUnavailable, meaning "Kerbalism is not modelling science", about an
         /// install that is.</para>
         ///
-        /// <para>Left gated rather than fixed by ungating, and the reason is the
-        /// cost: the capture walks every drive and science module on the vessel, and
-        /// nothing needs that per tick the way the trajectory capabilities need
-        /// their readings. In the shipped path the dependency is satisfied, because
-        /// the File Manager widget subscribes <c>science.experiments</c> and
-        /// <c>science.lab</c> in the same component that sends the verbs, and the
-        /// subject id it sends comes off those rows. That is a coincidence of how
-        /// one client is built, not a guarantee: a command centre or an automation
-        /// holding a subject id and no science subscription gets the false refusal.
-        /// If that becomes a real path, the fix is to read the drive live at command
-        /// time on the main thread, not to ungate this.</para>
+        /// <para>That refusal was reachable. The shipped File Manager widget
+        /// subscribes <c>science.experiments</c> and <c>science.lab</c> in the same
+        /// component that sends the verbs, so it never saw it, but that is one
+        /// client's construction rather than a guarantee: a command centre or an
+        /// automation holding a subject id and no science subscription got the
+        /// false refusal.</para>
+        ///
+        /// <para>The cost is real and is accepted here: the capture walks every
+        /// drive and science module on the vessel, once per tick, whether or not
+        /// anything is watching. The cheaper correct shape is to read the drive
+        /// live at command time on the main thread, which is what this comment
+        /// used to recommend instead of ungating. It is still the better end
+        /// state, and it is not a small change: command handlers run on the
+        /// Courier thread and the host exposes no seam for one to run work on the
+        /// main thread and wait, so it needs a contract addition and an
+        /// asynchronous command path. Until that exists, a per-tick walk is the
+        /// price of a command surface that does not lie about the install.</para>
         /// </summary>
         public ScienceRaw Latest => _latest;
 

@@ -259,15 +259,12 @@ namespace Gonogo.KerbalismUplink
         /// <see cref="Register"/>, after <see cref="RegisterScience"/> has
         /// already wired the capture that feeds that snapshot.
         ///
-        /// <para><b>Every verb here depends on a <c>science.</c> subscription
-        /// existing</b>, because the capture feeding the pre-filter is gated on that
-        /// prefix and a gated capture is skipped entirely while nothing under it is
-        /// watched. With no such subscription the pre-filter reads an unmodelled
-        /// bundle and refuses with ModeUnavailable, which says Kerbalism is not
-        /// modelling science about an install that is.
-        /// <see cref="KerbalismScienceBackend.Latest"/> states the whole dependency,
-        /// why it is left standing, and what to do if a caller that does not
-        /// subscribe ever needs these.</para>
+        /// <para>The verbs here read that snapshot on the Courier thread, so it
+        /// has to be true whether or not anything is watching a science channel.
+        /// That is why the capture feeding it is registered UNGATED: the gated
+        /// overload would skip it in an unwatched session, leaving the pre-filter
+        /// empty and every verb refusing with ModeUnavailable, which asserts
+        /// Kerbalism is not modelling science about an install that is.</para>
         /// </summary>
         private void RegisterFileManagerCommands(IUplinkHost host)
         {
@@ -330,7 +327,23 @@ namespace Gonogo.KerbalismUplink
                 return;
             }
 
-            host.AddSampledSource(CaptureScienceOnMain, HandleScienceOnCourier, "science.");
+            /*
+             * UNGATED deliberately, and it must stay that way. The gated
+             * overload skips the capture entirely while nothing under the
+             * prefix is watched, which is safe only when a capture's whole
+             * effect is its return value. This one's is not: the Courier
+             * handler stashes into the science backend, and the five File
+             * Manager verbs read that stash as their pre-filter. Gated, an
+             * unwatched session left the stash empty and every verb refused
+             * with ModeUnavailable, which asserts Kerbalism is not modelling
+             * science about an install that is.
+             *
+             * The channels cost nothing extra for this: the engine samples a
+             * channel source only when it is subscribed, so the publish side
+             * is still demand-driven. What the ungating buys is a stash that
+             * is true whether or not anyone happens to be watching.
+             */
+            host.AddSampledSource(CaptureScienceOnMain, HandleScienceOnCourier);
         }
 
         /// <summary>MAIN-THREAD capture: read live Kerbalism science into a plain bundle (no KSP handles cross threads).</summary>

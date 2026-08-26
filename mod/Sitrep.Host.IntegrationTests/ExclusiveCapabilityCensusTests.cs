@@ -94,17 +94,17 @@ namespace Sitrep.Host.IntegrationTests
             new Entry(
                 "science",
                 "Sitrep.Host/Science/ScienceElection.cs",
-                FedByGatedCapture: true,
-                WhyNoBehaviouralCase: "The provider is elected as a held instance fed "
-                    + "by a capture gated on the topics it publishes, and the "
-                    + "starvation is real: with nothing under that prefix subscribed "
-                    + "the elected backend reports unmodelled and its five command "
-                    + "verbs refuse, about an install that IS modelling science. It "
-                    + "stands because the only client that sends those verbs "
-                    + "subscribes those topics in the same component, which is one "
-                    + "client's construction and not a guarantee. No case, because "
-                    + "the Register that wires it reads live KSP and the KSP-linked "
-                    + "leg of its Tests project is a separate piece of work."),
+                FedByGatedCapture: false,
+                WhyNoBehaviouralCase: "The starvation here was real and is FIXED. "
+                    + "One provider's capture stashes the bundle its five command "
+                    + "verbs read as a pre-filter, so the handler's effect escapes "
+                    + "the publish path and the capture is now registered ungated; "
+                    + "its own Uplink's Tests project guards that. The other "
+                    + "provider's capture stays gated and is correct, because its "
+                    + "handler only publishes. No behavioural case from here: each "
+                    + "Register reads live KSP, and those Tests projects compile a "
+                    + "curated file list that cannot include it. The KSP-linked leg "
+                    + "is separate work."),
             new Entry(
                 "isru",
                 "Sitrep.Host/Isru/IsruElection.cs",
