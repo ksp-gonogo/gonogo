@@ -147,6 +147,7 @@
       "subsidyMaxPerDay": "f/day",
       "subsidyMinPerDay": "f/day",
       "subsidyPerDay": "f/day",
+      "unlockCredit": "funds",
       "upkeepPerDay": "f/day"
     },
     "CareerFacility": {

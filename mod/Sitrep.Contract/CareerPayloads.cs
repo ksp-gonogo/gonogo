@@ -121,6 +121,20 @@ public class CareerEconomy
     /// truth is that it levies none of them.
     /// </summary>
     public CareerUpkeep? Upkeep { get; set; }
+
+    /// <summary>
+    /// A prepaid allowance the elected money model spends BEFORE <see cref="Funds"/>
+    /// on the purchases it covers. In funds, because that is what it discounts.
+    /// ABSENT on stock, which has no such pool.
+    /// </summary>
+    /// <remarks>
+    /// The second reason <see cref="Funds"/> alone is not an affordability test:
+    /// where this exists, part of a price is already paid. It is a BALANCE and not
+    /// a per-purchase answer, so a surface that offers such a purchase shows this
+    /// and the funds balance together rather than deriving the split itself.
+    /// </remarks>
+    [SitrepUnit(Units.Funds)]
+    public double? UnlockCredit { get; set; }
 }
 
 /// <summary>

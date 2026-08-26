@@ -79,6 +79,21 @@ namespace Sitrep.Contract
         /// which is the honest answer for stock rather than seven zeros.
         /// </summary>
         public EconomyUpkeepBreakdown? UpkeepBreakdown { get; set; }
+
+        /// <summary>
+        /// A prepaid allowance, denominated in funds, that this money model
+        /// consumes BEFORE funds on the purchases it applies to. Null when the
+        /// model has no such pool, which is stock's answer.
+        /// </summary>
+        /// <remarks>
+        /// A balance, never an affordability answer. What a given purchase will
+        /// actually draw from it is a per-purchase question the model answers with
+        /// a currency-modifier query, and a query broadcasts to every modifier in
+        /// the save: a thing to run at the moment an operator commits, not a thing
+        /// to sample. So a client reads this beside the funds balance and shows
+        /// both, rather than trying to reconstruct the split from a list price.
+        /// </remarks>
+        public double? UnlockCredit { get; set; }
     }
 
     /// <summary>

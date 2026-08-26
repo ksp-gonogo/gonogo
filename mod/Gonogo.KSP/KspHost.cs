@@ -3327,6 +3327,16 @@ namespace Gonogo.KSP
                     ["integrationSalary"] = breakdown.IntegrationSalary,
                 };
             }
+
+            // Emitted only when a model actually has such a pool, the same way
+            // the breakdown above is. Unlike decay and subsidy, where stock's
+            // answer is a real zero worth stating, "no prepaid allowance exists
+            // in this install" is said by the key not being there: a zero would
+            // read as an exhausted allowance, which is a different fact.
+            if (reading.UnlockCredit != null)
+            {
+                group["unlockCredit"] = reading.UnlockCredit;
+            }
             return group;
         }
 

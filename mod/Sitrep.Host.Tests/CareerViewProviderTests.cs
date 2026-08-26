@@ -471,6 +471,7 @@ namespace Sitrep.Host.Tests
                                 ["crewInFlight"] = 30.0,
                                 ["integrationSalary"] = 100.0,
                             },
+                            ["unlockCredit"] = 50_000.0,
                         },
                     },
                 },
@@ -498,6 +499,12 @@ namespace Sitrep.Host.Tests
             Assert.Equal(120.0, upkeep["crewBase"]);
             Assert.Equal(30.0, upkeep["crewInFlight"]);
             Assert.Equal(100.0, upkeep["integrationSalary"]);
+
+            // A prepaid allowance the model spends before funds. Carried beside
+            // the funds balance because both are needed to answer one question,
+            // and a surface offering such a purchase that showed only funds would
+            // overstate the price.
+            Assert.Equal(50_000.0, economy["unlockCredit"]);
         }
 
         /// <summary>
@@ -562,7 +569,9 @@ namespace Sitrep.Host.Tests
                             ["subsidyMinPerDay"] = 0.0,
                             ["subsidyMaxPerDay"] = 0.0,
                             ["upkeepPerDay"] = 0.0,
-                            // no "upkeep": stock has none of the concepts
+                            // no "upkeep" and no "unlockCredit": stock has none of
+                            // the concepts, and a zero allowance would read as one
+                            // spent down rather than one that never existed
                         },
                     },
                 },
@@ -577,6 +586,7 @@ namespace Sitrep.Host.Tests
             Assert.Equal("stock", economy["economyModel"]);
             Assert.Equal(0.0, economy["upkeepPerDay"]);
             Assert.False(economy.ContainsKey("upkeep"));
+            Assert.False(economy.ContainsKey("unlockCredit"));
         }
 
         [Fact]

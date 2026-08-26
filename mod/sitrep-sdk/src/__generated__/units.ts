@@ -181,6 +181,7 @@ export const GENERATED_TYPE_UNITS: Readonly<Record<string, UnitsByField>> = {
     subsidyMaxPerDay: "f/day",
     subsidyMinPerDay: "f/day",
     subsidyPerDay: "f/day",
+    unlockCredit: "funds",
     upkeepPerDay: "f/day",
   },
   "CareerFacility": {

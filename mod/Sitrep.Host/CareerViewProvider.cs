@@ -175,6 +175,7 @@ namespace Sitrep.Host
             CarryIfPresent(raw, economy, "subsidyMinPerDay", (d, k) => GetDouble(d, k));
             CarryIfPresent(raw, economy, "subsidyMaxPerDay", (d, k) => GetDouble(d, k));
             CarryIfPresent(raw, economy, "upkeepPerDay", (d, k) => GetDouble(d, k));
+            CarryIfPresent(raw, economy, "unlockCredit", (d, k) => GetDouble(d, k));
 
             if (TryGetDict(raw, "upkeep", out var upkeep))
             {

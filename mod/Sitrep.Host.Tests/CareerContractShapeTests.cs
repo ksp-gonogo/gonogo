@@ -282,6 +282,7 @@ namespace Sitrep.Host.Tests
                             ["crewInFlight"] = 40.0,
                             ["integrationSalary"] = 50.0,
                         },
+                        ["unlockCredit"] = 25_000.0,
                     },
                     ["facilities"] = new Dictionary<string, object?>
                     {
