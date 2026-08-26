@@ -17,11 +17,13 @@ public class Rp1EconomyBackendTests : IDisposable
     public Rp1EconomyBackendTests()
     {
         MaintenanceHandler.Instance = null;
+        UnlockCreditHandler.Instance = null;
     }
 
     public void Dispose()
     {
         MaintenanceHandler.Instance = null;
+        UnlockCreditHandler.Instance = null;
     }
 
     [Fact]
@@ -168,5 +170,49 @@ public class Rp1EconomyBackendTests : IDisposable
 
         Assert.Equal(0.0, reading!.UpkeepPerDay!.Value, 6);
         Assert.False(double.IsNegative(reading.UpkeepPerDay.Value));
+    }
+
+    [Fact]
+    public void The_unlock_credit_balance_is_read_straight_off_RP1s_handler()
+    {
+        MaintenanceHandler.Instance = new MaintenanceHandler();
+        UnlockCreditHandler.Instance = new UnlockCreditHandler(50_000.0);
+
+        var reading = new Rp1EconomyBackend().Interpret(ut: 0.0, reputation: null);
+
+        // No conversion and no sign flip, unlike everything else on this reading:
+        // the handler already holds a funds-denominated balance, and 50,000 is
+        // what a career started on RP-1's Normal preset actually holds.
+        Assert.Equal(50_000.0, reading!.UnlockCredit!.Value, 6);
+    }
+
+    [Fact]
+    public void A_career_that_has_spent_its_whole_allowance_publishes_zero_not_absence()
+    {
+        // Zero credit is a real reading and the commonest one in a long career.
+        // Absent here would say RP-1 has no such allowance, which would stop a
+        // purchase surface showing the operator why their funds are about to take
+        // the whole price.
+        MaintenanceHandler.Instance = new MaintenanceHandler();
+        UnlockCreditHandler.Instance = new UnlockCreditHandler(0.0);
+
+        var reading = new Rp1EconomyBackend().Interpret(ut: 0.0, reputation: null);
+
+        Assert.Equal(0.0, reading!.UnlockCredit!.Value, 6);
+    }
+
+    [Fact]
+    public void The_unlock_credit_is_absent_rather_than_zero_when_its_handler_is_not_live()
+    {
+        // The upkeep is read off a different singleton, so one being live and the
+        // other not is a state that happens, and it must not turn into a claim
+        // that the allowance is exhausted.
+        MaintenanceHandler.Instance = new MaintenanceHandler { UpkeepPerDayForDisplay = -900.0 };
+        UnlockCreditHandler.Instance = null;
+
+        var reading = new Rp1EconomyBackend().Interpret(ut: 0.0, reputation: null);
+
+        Assert.Null(reading!.UnlockCredit);
+        Assert.Equal(900.0, reading.UpkeepPerDay!.Value, 6);
     }
 }

@@ -9,6 +9,16 @@
     "reason": "Funds really do integrate under a career overhaul, and none of these four is the derivative on its own. The balance moves at subsidy MINUS upkeep, so a reckoning wants a composed expression rather than a field pairing; the min and max are the envelope the subsidy sits in and are not rates in effect at all; and the impulses that actually dominate the balance (a contract award, a launch, a facility upgrade) are described by none of them. Also conditional on the elected model: stock answers all four as zero, so a reckoning fitted to them would hold the balance still through every purchase.",
     "verdict": "real-but-unmodelled"
   },
+  "CareerEconomy.unlockCredit": {
+    "rates": [
+      "subsidyMaxPerDay",
+      "subsidyMinPerDay",
+      "subsidyPerDay",
+      "upkeepPerDay"
+    ],
+    "reason": "The allowance genuinely does accrue continuously, and its rate is not on the wire and is not any of these four. RP-1 grows it as a fraction of the researcher salary bill, a band that falls from 0.6 to 0.1 as the research department grows, and ONLY while a tech node is actually progressing in the research queue: an idle queue accrues nothing however large the payroll. So the nearest true rate is a slice of upkeep.researchSalary gated on a condition no field expresses, and upkeepPerDay is the whole outgoing bill rather than that slice. Spending is impulsive too, drawn at a part, upgrade or tooling purchase and at nothing else. Absent entirely under stock, so a reckoning fitted here would be describing one install's mod.",
+    "verdict": "real-but-unmodelled"
+  },
   "CareerEconomy.reputation": {
     "rates": ["reputationDecayPerDay"],
     "reason": "A true derivative and the sign is the trap: reputation FALLS by this, so integrating it forward adds where it should subtract. It is also state-dependent rather than constant, being a fixed portion of the current reputation applied daily, which makes the honest model an exponential decay and not a linear ramp. Zero on stock, which has no decay at all.",

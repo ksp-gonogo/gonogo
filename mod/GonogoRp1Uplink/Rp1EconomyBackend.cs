@@ -26,6 +26,12 @@
 //       public getter, sums its own dictionary and scales by a settings value.
 //       Pure.
 //
+//   UnlockCreditHandler.TotalCredit
+//       public getter over a private [KSPField(isPersistant)] double. Reads
+//       nothing else and computes nothing. The full map of what that number is,
+//       every source and sink of it, and why only the balance is carried:
+//       local_docs/design/2026-08-26-rp1-unlock-credit.md.
+//
 // The rest are plain public fields: LCsCostPerDay, ResearchSalaryPerDay,
 // TrainingUpkeepPerDay, NautBaseUpkeepPerDay, NautInFlightUpkeepPerDay,
 // UpkeepPerDayForDisplay, and Database.SettingsSC.repPortionLostPerDay.
@@ -68,10 +74,12 @@ namespace GonogoRp1Uplink
 
         private const string MaintenanceTypeName = "RP0.MaintenanceHandler";
         private const string DatabaseTypeName = "RP0.Database";
+        private const string UnlockCreditTypeName = "RP0.UnlockCreditHandler";
 
         private readonly Type? _maintenance;
         private readonly Type? _subsidyDetails;
         private readonly Type? _database;
+        private readonly Type? _unlockCredit;
         private readonly MethodInfo? _fillSubsidyDetails;
 
         public string ProviderId => "rp1";
@@ -87,6 +95,7 @@ namespace GonogoRp1Uplink
         {
             _maintenance = Rp1Types.Find(MaintenanceTypeName);
             _database = Rp1Types.Find(DatabaseTypeName);
+            _unlockCredit = Rp1Types.Find(UnlockCreditTypeName);
             // A nested struct, so the name carries the outer type's.
             _subsidyDetails = Rp1Types.Find(MaintenanceTypeName + "+SubsidyDetails");
             if (_maintenance != null)
@@ -136,10 +145,49 @@ namespace GonogoRp1Uplink
                     IntegrationSalary = Rp1Types.ReadDouble(instance, "IntegrationSalaryPerDay"),
                 },
                 ReputationDecayPerDay = DecayPerDay(reputation),
+                UnlockCredit = UnlockCreditBalance(),
             };
 
             FillSubsidy(reading, ut, reputation);
             return reading;
+        }
+
+        /// <summary>
+        /// RP-1's Unlock Credit: a prepaid, funds-denominated allowance it spends
+        /// before funds on part and upgrade entry costs and on tooling, and on
+        /// nothing else. Null when its handler is absent, which is also how a
+        /// stock save answers.
+        /// </summary>
+        /// <remarks>
+        /// <para>A plain field read through a public getter over a persisted
+        /// <c>double</c>, so unlike the upkeep figures above there is no cadence
+        /// to it and no staleness: it is exact at the instant it is read. The
+        /// handler's scenario module is registered for SpaceCenter, Editor,
+        /// Flight and TrackingStation, so there is no career scene where a
+        /// balance exists and cannot be read.</para>
+        /// <para>The BALANCE only. What a given purchase would actually draw from
+        /// it comes from <c>GetPrePostCostAndAffordability</c>, which runs a
+        /// currency-modifier query, and a query broadcasts a game event to every
+        /// modifier in the save: a thing to run when an operator commits, not a
+        /// thing to sample every tick. Same reasoning that keeps
+        /// <see cref="DecayPerDay"/> off RP-1's own tooltip figure.</para>
+        /// <para>Accrual is deliberately not derived here. It is a fraction of the
+        /// researcher salary bill, rebated ONLY while a tech node is actually
+        /// progressing in the research queue, and RP-1's own forecast puts the
+        /// result through the same broadcasting query. A single per-day scalar
+        /// would claim a steady stream that an idle queue does not produce.</para>
+        /// </remarks>
+        private double? UnlockCreditBalance()
+        {
+            if (_unlockCredit == null)
+            {
+                return null;
+            }
+            var instance = Rp1Types.StaticValue(_unlockCredit, "Instance");
+            // No zero-substitute on an absent instance: RP-1's handler not being
+            // live is a different fact from an allowance spent down to nothing,
+            // and a career genuinely can hold zero credit.
+            return instance == null ? (double?)null : Rp1Types.ReadDouble(instance, "TotalCredit");
         }
 
         /// <summary>

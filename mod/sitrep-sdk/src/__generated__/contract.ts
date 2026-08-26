@@ -64,6 +64,7 @@ export interface CareerEconomy
 	subsidyMaxPerDay?: Value<"f/day">;
 	upkeepPerDay?: Value<"f/day">;
 	upkeep?: CareerUpkeep;
+	unlockCredit?: Value<"funds">;
 }
 export interface CareerUpkeep
 {

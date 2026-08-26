@@ -263,6 +263,26 @@ namespace RP0
     }
 
     /// <summary>
+    /// RP-1's prepaid unlock allowance. Shaped like the shipped handler in the
+    /// one respect the reading depends on: a PUBLIC getter over a PRIVATE
+    /// persisted field, so a reader that only looked at public fields would find
+    /// nothing here and would find nothing in the game either.
+    /// </summary>
+    public class UnlockCreditHandler
+    {
+        public static UnlockCreditHandler? Instance { get; set; }
+
+        private double _totalCredit;
+
+        public UnlockCreditHandler(double totalCredit)
+        {
+            _totalCredit = totalCredit;
+        }
+
+        public double TotalCredit => _totalCredit;
+    }
+
+    /// <summary>
     /// RP-1's money model. `FillSubsidyDetails` reproduces the shipped
     /// arithmetic, including the Julian-year divisor the per-day conversion
     /// depends on, so a test can pin the conversion rather than assume it.
