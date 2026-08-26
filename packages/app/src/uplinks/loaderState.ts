@@ -48,25 +48,6 @@ export function subscribeUplinkOutcomes(listener: Listener): () => void {
   return () => listeners.delete(listener);
 }
 
-/**
- * Record every given id as `loaded` with reason `"bundled"`, for an Uplink
- * loaded via a plain static `import()` rather than the runtime loader, so the
- * loaded-outcome set (read by the Settings › Uplinks list and the Hub
- * wizard's gap computation) isn't left empty for it.
- *
- * Nothing in the app calls this. The loader-covered first-party Uplinks
- * (`flag.ts`'s `LOADER_UPLINK_IDS`) go through the runtime loader, which
- * records its own outcomes via `setUplinkOutcome`, and the statically bundled
- * ones outside the loader's scope have no Settings-visible outcome. It stays
- * as a general-purpose helper for a statically-bundled Uplink that wants one,
- * covered by its own unit tests below.
- */
-export function recordBundledOutcomes(ids: readonly string[]): void {
-  for (const id of ids) {
-    setUplinkOutcome({ id, name: id, status: "loaded", reason: "bundled" });
-  }
-}
-
 /** Test-only: clear all recorded outcomes. */
 export function __resetUplinkOutcomes(): void {
   outcomes.clear();

@@ -210,9 +210,17 @@ const UPLINK_EXTERNALS: {
 
 // Build each first-party Uplink client into a standalone ESM bundle with every
 // shared package externalised, hash it, and write the local registry fixture the
-// loader reads in Phase A. Runs at build only (`apply: "build"`) via buildStart,
-// so `public/uplinks/` is populated before Vite copies publicDir into dist. In
-// dev the loader is not exercised, the bundled static-import path is the default.
+/*
+ * loader reads in Phase A. Runs at build only (`apply: "build"`) via buildStart,
+ * so `public/uplinks/` is populated before Vite copies publicDir into dist.
+ *
+ * There is no static-import path for these three: `main.tsx` registers them
+ * ONLY through the runtime loader. So `pnpm dev` has no bundles and no
+ * `registry.local.json` to read, and the loader quarantines all three with
+ * "registry unavailable", leaving their widgets out of the registry. Run a
+ * build first if you need them in the dev server; the Playwright specs that
+ * need a loaded Uplink point at `vite preview` for the same reason.
+ */
 const uplinkBundles = (): PluginOption => ({
   name: "gonogo-uplink-bundles",
   apply: "build",
@@ -228,8 +236,8 @@ const uplinkBundles = (): PluginOption => ({
     const { build } = esbuild;
 
     // Inline every CSS import as a self-injecting <style>, folded INTO the single
-    // hashed JS bundle: mirroring what Vite does on the bundled static-import
-    // path. Without this esbuild emits a sibling `<id>.client.css` the runtime
+    // hashed JS bundle: mirroring what Vite does for the app's own static
+    // imports. Without this esbuild emits a sibling `<id>.client.css` the runtime
     // `import(bundleUrl)` never applies (the loader fetches only the JS), so a
     // loaded Uplink with a stylesheet (kOS's xterm.css) renders unstyled. Folding
     // it in also keeps the whole client under ONE integrity hash. (xterm.css is
@@ -315,8 +323,8 @@ const uplinkBundles = (): PluginOption => ({
 // Bake a native <script type="importmap"> into index.html at build time, mapping
 // each Uplink-external bare specifier to its emitted external-entry chunk URL.
 // Follows the exact `versionMeta()` transformIndexHtml precedent below; only runs
-// at build (the emitted chunks exist only in `dist`), so `pnpm dev` serves the app
-// unchanged via the bundled static-import path. Design §2.2b / L1 (static-baked).
+// at build (the emitted chunks exist only in `dist`), which is half of why a
+// loaded Uplink cannot link under `pnpm dev`. Design §2.2b / L1 (static-baked).
 const uplinkImportMap = (): PluginOption => ({
   name: "gonogo-uplink-importmap",
   apply: "build",
