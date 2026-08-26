@@ -119,10 +119,36 @@ function declarations(dir: string): Map<string, string> {
   return found;
 }
 
+/**
+ * Floors on the two declaration maps, well under what each package declared when
+ * these were written.
+ *
+ * `DECLARED_RE` ceasing to match is the failure this cannot otherwise express: a
+ * barrel-only refactor, an `export default function`, a formatter moving `export`
+ * off column 0, and both maps go empty, nothing is duplicated, and the gate
+ * passes. The debt list is the only other thing that would notice, and it is
+ * meant to reach zero, at which point it notices nothing.
+ */
+const MIN_DECLARATIONS: Record<string, number> = { sdk: 300, "ui-kit": 200 };
+
 describe("a name published by both sdk and ui-kit resolves to one declaration", () => {
   const sdk = declarations(SDK);
   const kit = declarations(UI_KIT);
   const duplicated = [...kit.keys()].filter((name) => sdk.has(name)).sort();
+
+  it("finds the declarations in both packages, so a green result means something", () => {
+    for (const [label, size] of [
+      ["sdk", sdk.size],
+      ["ui-kit", kit.size],
+    ] as const) {
+      expect(
+        size,
+        `Found ${size} declaration(s) in ${label}, expected at least ${MIN_DECLARATIONS[label]}. ` +
+          "An empty map has no duplicates, so it passes the gate below for the same reason a " +
+          "clean tree does.",
+      ).toBeGreaterThanOrEqual(MIN_DECLARATIONS[label]);
+    }
+  });
 
   it("declares no name in both packages, outside the shrink-only debt list", () => {
     const unexpected = duplicated

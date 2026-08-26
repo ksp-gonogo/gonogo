@@ -115,7 +115,32 @@ function violationsUnder(
 
 const REPO_ROOT = findRepoRoot(dirname(fileURLToPath(import.meta.url)));
 
+/**
+ * Floors on the two scan roots, well under the 232 and 143 present when these
+ * were written.
+ *
+ * `walk` returns nothing for a directory that is not there, and both gates pass
+ * on an empty file list, so a package whose `src` moves takes its own boundary
+ * gate with it and the result reads exactly like a clean tree. Both of these
+ * packages have been reorganised before.
+ */
+const MIN_FILES_SCANNED: Record<string, number> = {
+  "packages/ui-kit/src": 150,
+  "packages/sitrep-client/src": 90,
+};
+
 describe("ui-kit <-> spine import boundary", () => {
+  it.each(
+    Object.entries(MIN_FILES_SCANNED),
+  )("actually walks %s, so a clean result means something", (root, floor) => {
+    const scanned = [...walk(join(REPO_ROOT, root))];
+    expect(
+      scanned.length,
+      `Walked ${scanned.length} file(s) under ${root}, expected at least ${floor}. ` +
+        "An empty walk reports the same empty violation list as a clean one.",
+    ).toBeGreaterThanOrEqual(floor);
+  });
+
   it("ui-kit/src does not runtime-import the telemetry spine", () => {
     // Includes ui-kit tests: ui-kit has no spine dependency at all, so no file
     // of any kind should reach the spine at runtime.
