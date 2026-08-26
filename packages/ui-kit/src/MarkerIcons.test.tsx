@@ -11,9 +11,13 @@ import {
   MARKER_IDS,
   ManeuverIcon,
   NormalIcon,
+  ParallelMinusIcon,
+  ParallelPlusIcon,
   ProgradeIcon,
   RadialInIcon,
   RadialOutIcon,
+  RelativeMinusIcon,
+  RelativePlusIcon,
   RetrogradeIcon,
   TargetIcon,
 } from "./MarkerIcons";
@@ -90,6 +94,8 @@ describe("MarkerIcons", () => {
     ["normal/anti-normal", NormalIcon, AntiNormalIcon],
     ["radial out/in", RadialOutIcon, RadialInIcon],
     ["target/anti-target", TargetIcon, AntiTargetIcon],
+    ["relative +/-", RelativePlusIcon, RelativeMinusIcon],
+    ["parallel +/-", ParallelPlusIcon, ParallelMinusIcon],
   ])("the %s pair shares a hue and is told apart by dot versus cross", (_pair, Positive, Negative) => {
     const { container } = render(
       <>
@@ -103,6 +109,41 @@ describe("MarkerIcons", () => {
     expect(hue(pos)).toBe(hue(neg));
     expect(pos.querySelector("circle")).not.toBeNull();
     expect(neg.querySelector("circle")).toBeNull();
+  });
+
+  it("covers every SmartASS direction, and the data-driven map covers every id", () => {
+    expect(MARKER_IDS).toEqual([
+      "prograde",
+      "retrograde",
+      "normal",
+      "antiNormal",
+      "radialOut",
+      "radialIn",
+      "maneuver",
+      "target",
+      "antiTarget",
+      "relativePlus",
+      "relativeMinus",
+      "parallelPlus",
+      "parallelMinus",
+    ]);
+    expect(Object.keys(MARKER_ICONS).sort()).toEqual([...MARKER_IDS].sort());
+  });
+
+  it("draws every target-frame direction in the target hue, as the game does for relative velocity", () => {
+    const { container } = render(
+      <>
+        <TargetIcon />
+        <RelativePlusIcon />
+        <RelativeMinusIcon />
+        <ParallelPlusIcon />
+        <ParallelMinusIcon />
+      </>,
+    );
+    for (const svg of container.querySelectorAll("svg")) {
+      expect(svg.outerHTML).toContain("var(--color-marker-target)");
+      expect(svg.outerHTML).not.toContain("var(--color-marker-prograde)");
+    }
   });
 
   it("references only marker tokens the theme defines", () => {

@@ -15,6 +15,10 @@ const LABELS: Record<MarkerId, string> = {
   maneuver: "maneuver",
   target: "target",
   antiTarget: "anti-target",
+  relativePlus: "relative +",
+  relativeMinus: "relative -",
+  parallelPlus: "parallel +",
+  parallelMinus: "parallel -",
 };
 
 /**
@@ -54,6 +58,7 @@ interface RowSpec {
 const ROWS: RowSpec[] = [
   { title: "dark surface, 56px", ground: DARK, size: 56 },
   { title: "dark surface, 20px (the kit default)", ground: DARK, size: 20 },
+  { title: "dark surface, 14px (the SAS buttons)", ground: DARK, size: 14 },
   { title: "light surface, 56px", ground: LIGHT, size: 56 },
   { title: "light surface, 20px", ground: LIGHT, size: 20 },
   {
@@ -132,7 +137,7 @@ function Row({ title, ground, filter, size }: RowSpec) {
 
 function Sheet() {
   return (
-    <div style={{ width: 1100 }}>
+    <div style={{ width: 1500 }}>
       <svg
         aria-hidden="true"
         width="0"

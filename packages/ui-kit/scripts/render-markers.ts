@@ -58,7 +58,7 @@ html, body { margin: 0; background: #444; font-family: ui-monospace, Menlo, mono
   let failures = 0;
   try {
     const context = await browser.newContext({
-      viewport: { width: 1100, height: 1400 },
+      viewport: { width: 1500, height: 1500 },
       deviceScaleFactor: 2,
     });
     const tab = await context.newPage();

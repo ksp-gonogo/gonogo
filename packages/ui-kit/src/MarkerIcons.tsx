@@ -63,6 +63,23 @@ interface MarkerShape {
 const RING = "M12 6a6 6 0 1 0 0 12a6 6 0 1 0 0-12";
 /** A tighter ring for the radial pair, leaving clear space for the chevrons outside it. */
 const SMALL_RING = "M12 7a5 5 0 1 0 0 10a5 5 0 1 0 0-10";
+/**
+ * The target square's four corner rays, carried onto the velocity ring: the
+ * relative-velocity pair is prograde and retrograde expressed in the target's
+ * frame, which is also how the game shows it (the velocity markers recolour to
+ * the target hue in Target speed mode). The rays leave from the ring's
+ * diagonals, so the outline reads as neither prograde's orthogonal spokes nor
+ * retrograde's two-up-one-down.
+ */
+const RELATIVE_RAYS =
+  "M7.76 7.76L4.2 4.2M16.24 7.76L19.8 4.2M16.24 16.24L19.8 19.8M7.76 16.24L4.2 19.8";
+/**
+ * Two rails, the ∥ notation for parallel. The parallel pair points along the
+ * target's own facing, so it is a target-frame direction like the relative
+ * pair but about orientation rather than motion; an open outline with no ring
+ * and no square keeps it from being mistaken for either.
+ */
+const RAILS = "M7 4.5V19.5M17 4.5V19.5";
 /** The ⊗ half of the notation, centred on (cx, cy). */
 const cross = (cx: number, cy: number): string =>
   `M${cx - 2.5} ${cy - 2.5}l5 5M${cx + 2.5} ${cy - 2.5}l-5 5`;
@@ -126,6 +143,24 @@ const SHAPES = {
       "M6 6L3.5 3.5M18 6L20.5 3.5M18 18L20.5 20.5M6 18L3.5 20.5",
       cross(12, 12),
     ],
+  },
+  relativePlus: {
+    colour: "target",
+    paths: [RING, RELATIVE_RAYS],
+    dot: [12, 12],
+  },
+  relativeMinus: {
+    colour: "target",
+    paths: [RING, RELATIVE_RAYS, cross(12, 12)],
+  },
+  parallelPlus: {
+    colour: "target",
+    paths: [RAILS],
+    dot: [12, 12],
+  },
+  parallelMinus: {
+    colour: "target",
+    paths: [RAILS, cross(12, 12)],
   },
 } satisfies Record<string, MarkerShape>;
 
@@ -230,6 +265,16 @@ export const RadialInIcon = makeMarker("radialIn", "RadialInIcon");
 export const ManeuverIcon = makeMarker("maneuver", "ManeuverIcon");
 export const TargetIcon = makeMarker("target", "TargetIcon");
 export const AntiTargetIcon = makeMarker("antiTarget", "AntiTargetIcon");
+export const RelativePlusIcon = makeMarker("relativePlus", "RelativePlusIcon");
+export const RelativeMinusIcon = makeMarker(
+  "relativeMinus",
+  "RelativeMinusIcon",
+);
+export const ParallelPlusIcon = makeMarker("parallelPlus", "ParallelPlusIcon");
+export const ParallelMinusIcon = makeMarker(
+  "parallelMinus",
+  "ParallelMinusIcon",
+);
 
 /**
  * The Frenet manoeuvring frame (tangent, normal, binormal) that n-body flight
@@ -254,4 +299,8 @@ export const MARKER_ICONS: Record<MarkerId, typeof ProgradeIcon> = {
   maneuver: ManeuverIcon,
   target: TargetIcon,
   antiTarget: AntiTargetIcon,
+  relativePlus: RelativePlusIcon,
+  relativeMinus: RelativeMinusIcon,
+  parallelPlus: ParallelPlusIcon,
+  parallelMinus: ParallelMinusIcon,
 };
