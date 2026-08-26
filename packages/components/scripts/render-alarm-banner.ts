@@ -21,14 +21,12 @@ const PROBE_HTML_TEMPLATE = join(PROBE_DIR, "banner-probe.html");
 const FIXTURES_DIR = join(PROBE_DIR, "__fixtures__");
 const OUT_DIR = resolve(HERE, "../../../local_docs/renders/alarm-banner");
 // The design tokens. Same source, and same reasoning, as
-// `widgetRenderHarness.ts`'s `THEME_TOKENS_CSS`: this used to point at
-// `packages/app/src/styles/global.css`, which carried its own copy of the
-// `:root` block. That copy is gone (global.css `@import`s the theme package
-// now), so `extractRootBlock` found nothing and this driver threw on every
-// run. The widget harness was repointed when the copy was deleted; this
-// sibling driver was missed and has been dead since. Read the theme
-// package's *source* tokens.css: plain text, no bundler resolution, and no
-// dependency on `@ksp-gonogo/theme` having been built first.
+// `widgetRenderHarness.ts`'s `THEME_TOKENS_CSS`: the theme package's *source*
+// tokens.css, which is plain text, needs no bundler resolution, and does not
+// depend on `@ksp-gonogo/theme` having been built first. Pointing this at
+// `packages/app/src/styles/global.css` would find no `:root` block for
+// `extractRootBlock` to match, because that file only `@import`s the theme
+// package, and the driver would throw on every run.
 const THEME_TOKENS_CSS = resolve(HERE, "../../theme/src/tokens.css");
 
 // Viewport sized to match the bottom-right portion of a real dashboard

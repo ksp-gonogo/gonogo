@@ -95,13 +95,12 @@ export const PROBE_PAGES = {
 
 const COMPONENTS_SRC = resolve(HERE, "../src");
 const LOCAL_DOCS = resolve(HERE, "../../../local_docs");
-// The design tokens themselves: `packages/app/src/styles/global.css` used to
-// carry its own copy of the `:root` block and this constant pointed there,
-// but that copy is gone now (it `@import`s `@ksp-gonogo/theme/tokens.css`
-// instead, see that file's header comment). Reading global.css here would
-// find no `:root` block for `extractRootBlock` to match and every probe
-// render would silently lose its colours (or throw, depending on how the
-// match failed), read the theme package's *source* tokens.css directly:
+// The design tokens themselves. `packages/app/src/styles/global.css` only
+// `@import`s `@ksp-gonogo/theme/tokens.css` (see that file's header comment),
+// so reading it here would find no `:root` block for `extractRootBlock` to
+// match and every probe render would silently lose its colours (or throw,
+// depending on how the match failed). Read the theme package's *source*
+// tokens.css directly:
 // no bundler resolution needed, and no dependency on `pnpm --filter
 // @ksp-gonogo/theme build` having run first (its `dist/tokens.css` is a
 // gitignored build artifact; this script only ever reads plain text).

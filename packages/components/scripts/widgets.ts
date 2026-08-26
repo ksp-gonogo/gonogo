@@ -1333,12 +1333,10 @@ const WIDGETS: WidgetRenderConfig[] = [
   {
     // Target Picker. Fixtures are SYNTHETIC (no live capture). Reads only the
     // `"data"` source (tar.* / b.* / o.* keys), no probe kos wiring needed.
-    // The Target API redesign (a00c4307) replaced the old TABBED layout with a
-    // single scrolling view: the Suggested + categorised sections (Bodies /
-    // Vessels / Parts / Other) plus the current-target summary all render AT
-    // ONCE. There is no tablist to click any more, so every list appears in a
-    // static render, the former `role="tab"` reveal-clicks (which threw once
-    // the tabs were gone) are dropped.
+    // The widget is a single scrolling view, not a tablist: the Suggested +
+    // categorised sections (Bodies / Vessels / Parts / Other) plus the
+    // current-target summary all render AT ONCE, so every list appears in a
+    // static render with no reveal-clicks needed.
     widgetId: "target-picker",
     fixturesPath: "TargetPicker/__fixtures__",
     outPath: "renders/target-picker-widget",
@@ -1449,11 +1447,9 @@ const WIDGETS: WidgetRenderConfig[] = [
     // straight in the modern `vessel.parts` wire shape instead.
     widgetId: "ship-map",
     fixturesPath: "ShipMap/__fixtures__/probe",
-    // Renamed from `kerbalism-shipmap` alongside the resource-colour system
-    // landing (local_docs/design/2026-08-08-resource-colour-system.md): the
-    // fills these renders show are no longer the old MeterTone palette, so
-    // the folder name says so rather than silently going stale under the
-    // pre-colour-system name.
+    // The folder name says "colour" because the fills these renders show come
+    // from the resource-colour system, so a reader comparing them against an
+    // older render set knows which palette they are looking at.
     outPath: "renders/kerbalism-shipmap-colour",
     modes: [
       // Registered default.

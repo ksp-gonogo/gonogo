@@ -1032,11 +1032,10 @@ const Controls = styled.div`
   display: flex;
   flex-direction: column;
   gap: var(--space-6);
-  /* No horizontal inset of its own any more: Panel.Body supplies exactly the
-     16px the title carries, so the pills line up with the title without it.
-     Keeping the old local padding here would double the inset and push the
-     "Unlocked" pill back past the panel edge at narrow widths (e.g.
-     portrait-5x18), which is the clipping the padding was added to avoid. */
+  /* No horizontal inset of its own: Panel.Body supplies exactly the 16px the
+     title carries, so the pills line up with the title without one. A local
+     padding here would double the inset and push the "Unlocked" pill back
+     past the panel edge at narrow widths (e.g. portrait-5x18). */
   padding-bottom: var(--space-6);
   flex-shrink: 0;
 `;

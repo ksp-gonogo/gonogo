@@ -297,9 +297,9 @@ export function OrbitDiagram({
   // Bbox pipeline shared by both variants:
   //   orbit (rotated by argPe) → union with projected + body → pad →
   //   centre/aspect-fit
-  // The rotated-bbox step fixes a long-standing mini-variant clip bug
-  // for orbits with non-zero argPe (the old code used apoapsis/b
-  // directly, which is only correct at argPe=0). Including the body
+  // The rotated-bbox step is what keeps the mini variant from clipping
+  // orbits with non-zero argPe: apoapsis/b taken directly is only
+  // correct at argPe=0. Including the body
   // bbox covers sub-orbital trajectories where the body is much larger
   // than the orbit: without it, the body extends past the viewBox and
   // renders as a uniform colour across the whole frame.

@@ -81,15 +81,14 @@ interface TargetingConfig {
 // the parent's coordinate frame:
 //
 //   • `targeting.camera`: a video backdrop behind the reticle/HUD.
-//     FILLED: a camera Uplink's augment now draws the close-range docking
-//     view here (not a standalone CameraFeed instance). The built-in
-//     `HudCamera` backdrop this slot once carried has been REMOVED along with
-//     it: it hard-wired one specific camera mod into the core widget, which
-//     is precisely what the slot exists to avoid. This widget no longer knows
-//     what a camera is: it decides WHETHER a backdrop should show
-//     (`hudMode`/viewport size) and passes its reticle frame down; the augment
-//     decides WHICH camera and renders it. An install with no camera Uplink
-//     composes the HUD with no video layer.
+//     FILLED: a camera Uplink's augment draws the close-range docking view
+//     here (not a standalone CameraFeed instance). There is deliberately no
+//     built-in backdrop, because one would hard-wire a specific camera mod
+//     into the core widget, which is precisely what the slot exists to avoid.
+//     This widget does not know what a camera is: it decides WHETHER a
+//     backdrop should show (`hudMode`/viewport size) and passes its reticle
+//     frame down; the augment decides WHICH camera and renders it. An install
+//     with no camera Uplink composes the HUD with no video layer.
 //   • `targeting.overlay`: alignment markers layered on top of the
 //     crosshair/reticle. A precision-docking / laser-rangefinder Uplink draws
 //     into the reticle box using the passed context. Composable by priority
@@ -284,9 +283,9 @@ function TargetingComponent({
     target?.relativeVelocity && bare(target.relativeVelocity);
   // vessel.dock is null unless the target is a docking port with a free
   // port on the active vessel: undefined here legitimately means "not a
-  // docking scenario right now", not "still loading". Post-migration it also
-  // means "the geometry is no longer current", and `alignmentWithheld` below is
-  // what tells those two apart on screen.
+  // docking scenario right now", not "still loading". It also means "the
+  // geometry is no longer current", and `alignmentWithheld` below is what
+  // tells those two apart on screen.
   const dockRelPos = dock?.relativePosition && bare(dock.relativePosition);
   const dockRelVelVec = dock?.relativeVelocity && bare(dock.relativeVelocity);
   const dockDistanceStream = dock?.distance?.magnitude;
@@ -346,11 +345,10 @@ function TargetingComponent({
   // target that stopped being a docking port. The approach view names it.
   const alignmentWithheld =
     notCurrent(dockReading) && dockPairing?.relativePosition !== undefined;
-  // The age, spelled out now that `readingAge` is gone: an instant minus an instant
-  // is a duration, and the affine rules make that the type. The clamp came with it
-  // and stays, because samples arrive out of order (`ClientTimeline` insert-sorts
-  // for it) so one can sit marginally ahead of the frame and "-0.4 s ago" is never
-  // a thing to render.
+  // The age, spelled out: an instant minus an instant is a duration, and the
+  // affine rules make that the type. The clamp is there because samples arrive
+  // out of order (`ClientTimeline` insert-sorts for it) so one can sit
+  // marginally ahead of the frame, and "-0.4 s ago" is never a thing to render.
   const dockObservedUt = observedAt(dockReading);
   const dockAgeSec =
     universalTime !== undefined && dockObservedUt
@@ -1265,16 +1263,13 @@ function TargetingConfigComponent({
   const [hudMode, setHudMode] = useState<DockingHudMode>(
     config?.hudMode ?? "hud-with-camera",
   );
-  // Carried through untouched rather than edited here. The camera PICKER left
-  // with the built-in HudCamera: listing and labelling cameras needs a camera
-  // mod's SDK, and this widget deliberately no longer depends on one. The
-  // augment that fills `targeting.camera` now selects the camera
-  // itself: for a DOCKING HUD it can identify the actual docking camera,
-  // which is strictly better than the manual pick this replaced (that existed
-  // only because nothing could tell docking cameras apart). An operator who
-  // had pinned a camera keeps it: the value still round-trips through config
-  // and reaches the augment via `TargetingHudContext`, which honours it
-  // as an override.
+  // Carried through untouched rather than edited here. There is no camera
+  // PICKER in this config form, because listing and labelling cameras needs a
+  // camera mod's SDK and this widget deliberately does not depend on one. The
+  // augment that fills `targeting.camera` selects the camera itself, and for a
+  // DOCKING HUD it can identify the actual docking camera, which no manual
+  // pick could. A pinned camera still round-trips through config and reaches
+  // the augment via `TargetingHudContext`, which honours it as an override.
   const pinnedCameraId = config?.cameraFlightId;
 
   const candidate = useMemo<TargetingConfig>(

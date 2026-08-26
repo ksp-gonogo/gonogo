@@ -231,9 +231,9 @@ const RATE: CSSProperties = {
 const BAR: CSSProperties = {
   height: "4px",
   background: "var(--color-surface-raised)",
-  // A stadium, not a corner: the old 2px was exactly half the 4px height.
-  // --radius-pill clamps to half the shorter side, so it renders the same and
-  // keeps tracking the height instead of freezing at 2px.
+  // A stadium, not a corner: --radius-pill clamps to half the shorter side,
+  // so it keeps tracking this bar's height rather than freezing at one px
+  // value.
   borderRadius: "var(--radius-pill)",
   overflow: "hidden",
 };

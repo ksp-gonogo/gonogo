@@ -64,8 +64,8 @@ function TwrComponent({ w, h }: Readonly<ComponentProps<TwrConfig>>) {
   //   normal: gauge + sparkline + subtitle.
   // Switching by widget size (rows/cols) rather than by container pixels
   // keeps the breakpoint deterministic and avoids the size-dependent
-  // ResizeObserver feedback we used to hit when the inner widgets fought
-  // each other for the leftover space.
+  // ResizeObserver feedback that arises when the inner widgets fight each
+  // other for the leftover space.
   const cols = w ?? 4;
   const rows = h ?? 5;
   const variant: "tiny" | "small" | "normal" =
@@ -95,8 +95,8 @@ function TwrComponent({ w, h }: Readonly<ComponentProps<TwrConfig>>) {
   );
   const gaugeH = Math.round(gaugeW * 0.55);
 
-  // Sparkline width follows its slot: fixed-pixel sparklines used to spill
-  // out of narrow widget columns and overlap the title row.
+  // Sparkline width follows its slot: a fixed-pixel sparkline spills out of
+  // narrow widget columns and overlaps the title row.
   const sparkRef = useRef<HTMLDivElement>(null);
   const [sparkWidth, setSparkWidth] = useState(120);
   useEffect(() => {
@@ -191,10 +191,10 @@ const Body = styled.div`
   justify-content: center;
   /* The Gauge SVG draws its value label inside its own bottom strip, flush
      with the SVG box edge. A generous gap keeps that label off the sparkline
-     below it: at the 4×5 default the two used to collide. That makes this
+     below it: at the 4×5 default the two collide without it. That makes this
      measured clearance rather than a rhythm step, so it stays off the
-     spacing ladder, the 20 -> 16 snap is the direction that reproduces the
-     collision. */
+     spacing ladder, and snapping 20 -> 16 is the direction that reproduces
+     the collision. */
   gap: 20px;
   min-height: 0;
 `;

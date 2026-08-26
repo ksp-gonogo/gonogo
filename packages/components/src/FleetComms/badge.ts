@@ -4,11 +4,11 @@ import { NULL_DISPLAY } from "@ksp-gonogo/ui-kit";
 
 // ---------------------------------------------------------------------------
 // The comms link pill in SystemView's header, as a CONTRIBUTION to the
-// widget's automatic `system-view.badges` slot rather than the augment it used
-// to be. It was a `registerAugment` into a hand-declared `system-view.badges`
-// AugmentSlot, which is a whole React component and a slot declaration to say
-// "a label and a tone in the header", the exact shape the framework-universal
-// badges segment already carries for every widget for free.
+// widget's automatic `system-view.badges` slot rather than an augment. A
+// `registerAugment` into a hand-declared AugmentSlot costs a whole React
+// component plus a slot declaration to say "a label and a tone in the header",
+// the exact shape the framework-universal badges segment already carries for
+// every widget for free.
 //
 // Registered on `CORE_UPLINK_CLIENT` rather than an Uplink handle, like
 // `CrewStatus/badge.ts` and `ShipMap/partMetersContribution.ts`: FleetComms is

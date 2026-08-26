@@ -626,10 +626,9 @@ const Summary = styled.div`
 // from the available width rather than hardcoding a fixed "2 columns", so the
 // same rule fills an 18-wide box with several columns and would scale up if the
 // widget were dropped wider. `align-content: start` keeps short lists from
-// stretching. The 8px gap matches the single-column flex spacing the Body
-// inner used to own between cards, so portrait/square are byte-for-byte
-// unchanged. Each Active / Offered section is its own CardList so the section
-// labels stay full-width and the grouping holds.
+// stretching, and the 8px gap is the same card spacing the single-column
+// layout uses. Each Active / Offered section is its own CardList so the
+// section labels stay full-width and the grouping holds.
 const CARD_MIN_WIDTH = "240px";
 const CardList = styled.div<{ $multiColumn: boolean }>`
   ${({ $multiColumn }) =>

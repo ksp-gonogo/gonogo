@@ -52,11 +52,9 @@ export const CompactValue = styled.span`
 `;
 
 /**
- * Row container for the map canvas. (Used to also lay out the anomaly
- * side-panel beside/below the map, that panel moved into the
- * `AnomalyOverlay` augment, which floats over the canvas via `map-view.overlay`
- * instead of reserving row/column layout space here, so this is now a plain
- * flex row with one child.)
+ * Row container for the map canvas: a plain flex row with one child. Nothing
+ * else claims layout space beside the map, because the anomaly panel is an
+ * `AnomalyOverlay` augment floating over the canvas via `map-view.overlay`.
  */
 export const MapBody = styled.div`
   flex: 1;

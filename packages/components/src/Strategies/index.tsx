@@ -572,8 +572,8 @@ function AvailableRow({
    *
    * An absent balance is unaffordable for the same reason: activating a strategy
    * spends career funds, science and reputation, and a balance that never
-   * arrived says nothing about whether the operator has it. The old
-   * `?? POSITIVE_INFINITY` read absence as an unlimited balance.
+   * arrived says nothing about whether the operator has it. Defaulting it to
+   * `POSITIVE_INFINITY` would read absence as an unlimited balance.
    *
    * A balance withheld for going stale takes this same fail-closed path, so the
    * cost chips tint identically for both. The difference between them is carried
@@ -913,9 +913,9 @@ const Slider = styled.input`
   appearance: none;
   -webkit-appearance: none;
 
-  /* Both tracks: a stadium, not a corner (the old 2px was half the 4px
-     height), and the two must stay identical or Chromium and Firefox
-     diverge. --radius-pill renders the same and tracks the height. */
+  /* Both tracks: a stadium, not a corner, and the two must stay identical or
+     Chromium and Firefox diverge. --radius-pill tracks the track height
+     rather than freezing at one px value. */
   &::-webkit-slider-runnable-track {
     width: 100%;
     height: 4px;

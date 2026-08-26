@@ -147,8 +147,7 @@ export interface ShipMapPartMeterEntry {
   /** Current stored amount, resource units. */
   amount: number;
   /** Max storage capacity, resource units. A renderer drops any entry with
-   *  `capacity <= 0` (nothing to fill), the same guard the old hardcoded
-   *  `renderResourceFill` applied. */
+   *  `capacity <= 0`: nothing to fill. */
   capacity: number;
   /**
    * A SEPARATE status signal, never the fill hue: `"critical"` /

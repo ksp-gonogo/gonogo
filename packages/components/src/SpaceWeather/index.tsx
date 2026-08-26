@@ -4,13 +4,11 @@ import { registerComponent, useTelemetry } from "@ksp-gonogo/core";
 // `declare module "@ksp-gonogo/sitrep-sdk"` TopicPayloadMap augmentation and
 // nothing else: erased at runtime, so it adds no import at all to the bundle.
 //
-// This is where this widget's Kerbalism coupling now shows up honestly in its
-// imports. `kerbalism.spaceweather`'s payload type (KerbalismSpaceWeather) used
-// to be core's own codegen output, so `useTelemetry("kerbalism.spaceweather")`
-// resolved out of @ksp-gonogo/sitrep-sdk like any vanilla Topic. It relocated
-// into the Uplink that owns it (uplink-types-out-of-core plan, fifth
-// relocation), which means this file has to say which Uplink it reads from
-// rather than getting a Kerbalism type for free from a mod-agnostic package.
+// This is where this widget's Kerbalism coupling shows up honestly in its
+// imports. `kerbalism.spaceweather`'s payload type (KerbalismSpaceWeather)
+// lives in the Uplink that owns it rather than in a mod-agnostic package, so
+// this file has to say which Uplink it reads from instead of getting a
+// Kerbalism type for free.
 //
 // The real fix is for this widget to LIVE in that Uplink's client, next to Ship
 // Systems and the CrewStatus survival augment, which is where every other

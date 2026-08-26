@@ -31,8 +31,8 @@ import {
 } from "@ksp-gonogo/ui-kit";
 import { useEffect, useState } from "react";
 
-/** Full-row source-name label: pairs `Truncate`'s flex/ellipsis behaviour
- *  with the font-size/colour the old bespoke `Name` span carried. */
+/** Full-row source-name label: the font-size/colour worn over `Truncate`'s
+ *  flex/ellipsis behaviour. */
 const SOURCE_NAME_STYLE = {
   fontSize: "var(--font-size-sm)",
   color: "var(--color-text-primary)",
