@@ -66,6 +66,7 @@ import { FullscreenFab } from "../components/FullscreenFab";
 import { MissionBanner } from "../components/MissionBanner";
 import { SceneChangeBanner } from "../components/SceneChangeBanner";
 import { SignalLossIndicator } from "../components/SignalLossIndicator";
+import { SimulationIndicator } from "../components/SimulationIndicator";
 import { StationLinkFab } from "../components/StationLinkFab";
 import { SustainedFailureBanner } from "../components/SustainedFailureBanner";
 import { FogSyncHostService } from "../fog/FogSyncHostService";
@@ -324,6 +325,7 @@ export function MainScreen() {
                                       <SafetyMarginPill />
                                       <FiredAlarmPills />
                                       <UnscheduledWarpPill />
+                                      <SimulationIndicator />
                                       <SignalLossIndicator />
                                       <SustainedFailureBanner />
                                       <SceneChangeBanner />
