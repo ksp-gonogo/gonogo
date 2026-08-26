@@ -128,6 +128,33 @@ namespace GonogoRp1Uplink
         }
 
         /// <summary>
+        /// A construction's effective rate, mirroring
+        /// <c>ConstructionProject.GetBuildRate</c>: the costed base rate times the
+        /// operator's throttle. Absent until RP-1 has costed the project.
+        /// </summary>
+        /// <remarks>
+        /// The same arithmetic as <see cref="ResearchRate"/> and a separate method
+        /// on purpose: the two throttles have different ranges (a construction's
+        /// runs to 1.5 and buys speed for money above 1, a research node's stops
+        /// at 1) and RP-1 could move one without the other.
+        ///
+        /// <para>Note what is NOT here. A construction's base rate does not depend
+        /// on the queue position or on engineers: <c>Formula
+        /// .GetConstructionBuildRate</c> ignores its index argument entirely and
+        /// reads no crew, so constructions all advance at once while vehicles and
+        /// research nodes are zeroed at any position but the head. There is no
+        /// share to divide and no sequence to walk.</para>
+        /// </remarks>
+        public static double? ConstructionRate(double baseRate, double workRate)
+        {
+            if (baseRate < 0.0)
+            {
+                return null;
+            }
+            return baseRate * workRate;
+        }
+
+        /// <summary>
         /// Seconds of work remaining at <paramref name="rate"/>, before the
         /// efficiency ramp. Absent at an absent or zero rate, where RP-1's own
         /// answer is an infinity.

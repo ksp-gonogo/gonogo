@@ -32,6 +32,7 @@ namespace GonogoRp1Uplink
         public List<Rp1BuildItemRaw> Warehouse = new List<Rp1BuildItemRaw>();
         public List<Rp1PadRaw> Pads = new List<Rp1PadRaw>();
         public List<Rp1OperationRaw> Operations = new List<Rp1OperationRaw>();
+        public List<Rp1ConstructionRaw> Constructions = new List<Rp1ConstructionRaw>();
         public List<Rp1ResearchRaw> Research = new List<Rp1ResearchRaw>();
 
         public Rp1PersonnelRaw? Personnel;
@@ -124,6 +125,35 @@ namespace GonogoRp1Uplink
         public int BlockingPeers;
         public double Cost;
         public string? AssociatedVesselId;
+    }
+
+    /// <summary>
+    /// One construction at a space centre: a facility upgrade, a launch complex,
+    /// or a pad. One type for all three, with the fields only one kind has left
+    /// absent on the others, which is what the wire shape carries too.
+    /// </summary>
+    public sealed class Rp1ConstructionRaw
+    {
+        public string? KscName;
+        public string? LcId;
+        public string? Kind;
+        public string? Name;
+        public string? FacilityType;
+        public int? CurrentLevel;
+        public int? TargetLevel;
+        public bool? IsModify;
+        public int? EngineersToReadd;
+        public string? PadId;
+        public double Progress;
+        public double TotalPoints;
+        public double? ProgressRatio;
+        public double WorkRate;
+        public double? Rate;
+        public double? TimeLeftSeconds;
+        public bool Stalled;
+        public double Cost;
+        public double SpentCost;
+        public double SpentRushCost;
     }
 
     public sealed class Rp1ResearchRaw

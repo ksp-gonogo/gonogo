@@ -155,6 +155,45 @@ namespace GonogoRp1Uplink
             return list;
         }
 
+        /// <summary>
+        /// The construction queue. Every per-kind key is emitted for every row,
+        /// carrying null where the kind does not have it: a client reading
+        /// <c>currentLevel</c> off a pad row must find an absence rather than a
+        /// missing key, which is the same discipline the warehouse row follows for
+        /// the progress fields it does not have.
+        /// </summary>
+        public static List<object?> BuildConstructions(Rp1ScRaw raw)
+        {
+            var list = new List<object?>();
+            foreach (var c in raw.Constructions)
+            {
+                list.Add(new Dictionary<string, object?>
+                {
+                    ["kscName"] = c.KscName,
+                    ["lcId"] = c.LcId,
+                    ["kind"] = c.Kind,
+                    ["name"] = c.Name,
+                    ["facilityType"] = c.FacilityType,
+                    ["currentLevel"] = c.CurrentLevel,
+                    ["targetLevel"] = c.TargetLevel,
+                    ["isModify"] = c.IsModify,
+                    ["engineersToReadd"] = c.EngineersToReadd,
+                    ["padId"] = c.PadId,
+                    ["progress"] = c.Progress,
+                    ["totalPoints"] = c.TotalPoints,
+                    ["progressRatio"] = c.ProgressRatio,
+                    ["workRate"] = c.WorkRate,
+                    ["rate"] = c.Rate,
+                    ["timeLeftSeconds"] = c.TimeLeftSeconds,
+                    ["stalled"] = c.Stalled,
+                    ["cost"] = c.Cost,
+                    ["spentCost"] = c.SpentCost,
+                    ["spentRushCost"] = c.SpentRushCost,
+                });
+            }
+            return list;
+        }
+
         public static List<object?> BuildResearch(Rp1ScRaw raw)
         {
             var list = new List<object?>();
