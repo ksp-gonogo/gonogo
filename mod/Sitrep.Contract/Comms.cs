@@ -368,22 +368,24 @@ public class CommsCommandCentre
     public PayloadMeta Meta { get; set; } = new();
 }
 
-// What belongs in this file, and what does not.
-//
-// The boundary is the PROVIDER axis this file's own header describes, never a
-// filename: an elected backend fills the shared shapes, so those shapes are
-// core no matter which backend is winning today. A payload only ONE backend
-// could ever source is NOT core, and is declared in that backend's own contract
-// slice instead. Its producer flattens it itself, so core's serializer needs no
-// case for it either.
-//
-// The tempting counter-argument, that a nullable field on a shared type is not
-// the same as a private type, does not hold. A provider-only number sitting on
-// CommsHop is still a core change a future out-of-tree comms provider cannot
-// land, and it reads as jank. A per-provider fact rides either that provider's
-// own channel, keyed by these same node ids and joined onto the route
-// client-side, or CommsHop.Extensions under the provider's namespace.
-// Provider-only presence is not provider-only ownership.
+/*
+ * What belongs in this file, and what does not.
+ *
+ * The boundary is the PROVIDER axis this file's own header describes, never a
+ * filename: an elected backend fills the shared shapes, so those shapes are
+ * core no matter which backend is winning today. A payload only ONE backend
+ * could ever source is NOT core, and is declared in that backend's own
+ * contract slice instead. Its producer flattens it itself, so core's serializer
+ * needs no case for it either.
+ *
+ * The tempting counter-argument, that a nullable field on a shared type is not
+ * the same as a private type, does not hold. A provider-only number sitting on
+ * CommsHop is still a core change a future out-of-tree comms provider cannot
+ * land, and it reads as jank. A per-provider fact rides either that provider's
+ * own channel, keyed by these same node ids and joined onto the route
+ * client-side, or CommsHop.Extensions under the provider's namespace.
+ * Provider-only presence is not provider-only ownership.
+ */
 
 /// <summary>
 /// The pure, KSP-free object the exclusive <c>"comms"</c> capability resolves
