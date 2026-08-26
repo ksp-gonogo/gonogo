@@ -1,0 +1,37 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <LangVersion>12</LangVersion>
+    <IsPackable>false</IsPackable>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.11.1" />
+    <PackageReference Include="xunit" Version="2.9.2" />
+    <PackageReference Include="xunit.runner.visualstudio" Version="2.8.2">
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+      <PrivateAssets>all</PrivateAssets>
+    </PackageReference>
+  </ItemGroup>
+
+  <!-- Everything except the uplink class itself, which is the one file that
+       names a KSP type (FlightGlobals). The reflection layer is in here
+       deliberately: it references no KSP type, so the whole read walk runs
+       headless against the stand-in FAR graph in FarFixture.cs rather than being
+       the one part only a live game could test. -->
+  <ItemGroup>
+    <Compile Include="..\GonogoFerramAerospaceResearchUplink\AeroRaw.cs" />
+    <Compile Include="..\GonogoFerramAerospaceResearchUplink\AeroCapture.cs" />
+    <Compile Include="..\GonogoFerramAerospaceResearchUplink\AeroReflection.cs" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\GonogoFerramAerospaceResearchUplink.Contract\GonogoFerramAerospaceResearchUplink.Contract.csproj" />
+    <!-- The shared Unit-coverage sweep every relocated Uplink's own coverage
+         test calls; the [Fact]s stay here, naming this Uplink's types. -->
+    <ProjectReference Include="..\Sitrep.Contract.TestSupport\Sitrep.Contract.TestSupport.csproj" />
+  </ItemGroup>
+
+</Project>

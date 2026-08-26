@@ -325,6 +325,32 @@ echo "codegen -> $rp1_out_dir/topic-map.ts"
 echo "codegen -> $rp1_out_dir/units.ts"
 echo "codegen -> $rp1_out_dir/units.json"
 
+# Ferram Aerospace Research: the aerodynamic-state slice. One type, one
+# [SitrepTopic] (aero.state), and the densest unit annotation of any slice:
+# twelve of AeroState's fifteen properties name a real dimension, so nearly the
+# whole generated interface retypes to Value<>. Two of those tokens are this
+# Uplink's own (kg/m² and W/kg, declared in its Units class), and the catalog
+# check judges the slice against core's tokens PLUS that class.
+aero_proj="$ROOT/mod/GonogoFerramAerospaceResearchUplink.Contract.Codegen"
+aero_out_dir="$ROOT/mod/GonogoFerramAerospaceResearchUplink/client/src/__generated__"
+aero_bin="$aero_proj/bin/Debug/netstandard2.0"
+
+dotnet build "$aero_proj/GonogoFerramAerospaceResearchUplink.Contract.Codegen.csproj" -v minimal
+mkdir -p "$aero_out_dir"
+
+DOTNET_ROLL_FORWARD=LatestMajor \
+  SITREP_AERO_TOPICMAP_OUT="$aero_out_dir/topic-map.ts" \
+  SITREP_AERO_UNITMAP_OUT="$aero_out_dir/units.ts" \
+  SITREP_AERO_UNITJSON_OUT="$aero_out_dir/units.json" \
+  dotnet "$RTCLI" \
+  SourceAssemblies="$aero_bin/GonogoFerramAerospaceResearchUplink.Contract.dll" \
+  TargetFile="$aero_out_dir/contract.ts" \
+  ConfigurationMethod="GonogoFerramAerospaceResearchUplink.AeroRtConfig.Configure"
+echo "codegen -> $aero_out_dir/contract.ts"
+echo "codegen -> $aero_out_dir/topic-map.ts"
+echo "codegen -> $aero_out_dir/units.ts"
+echo "codegen -> $aero_out_dir/units.json"
+
 # ui-kit's symbol -> kind table is generated FROM the SDK's unit model rather
 # than hand-maintained beside it. It is a separate step because its input is
 # TypeScript rather than the C# assembly: see scripts/gen-unit-kinds.mjs. Run

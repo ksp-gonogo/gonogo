@@ -1,0 +1,23 @@
+GonogoFerramAerospaceResearchUplink integrates with Ferram Aerospace Research
+(FAR, https://github.com/dkavolis/Ferram-Aerospace-Research) entirely at ARM'S
+LENGTH: it reads FAR's per-vessel flight information (the FlightGUI vessel
+module's VesselFlightInfo, the airspeed helper beside it, and the voxelisation
+state on FARVesselAero) through reflection ONLY. It does NOT link
+FerramAerospaceResearch.dll at build time, does NOT derive from FAR types, and
+bundles NO FAR source or assets.
+
+FAR ships a LICENSE file at its repository root that automated licence
+detection cannot classify, and the mod is widely understood to be
+copyleft-family. This uplink therefore treats it as copyleft-or-unknown and
+does not link it. Because none of FAR's code is incorporated (arm's-length
+reflection over the running mod's members), no ShareAlike obligation is
+triggered, and GonogoFerramAerospaceResearchUplink is licensed MIT, in line
+with the rest of gonogo.
+
+This notice is retained to attribute FAR and its authors for the aerodynamic
+model this uplink reads: the angle-of-attack and sideslip geometry, the
+wing-area-weighted stall fraction, the whole-vessel force breakdown and its
+coefficients, the indicated and equivalent airspeed derivations, and the
+ballistic-coefficient and terminal-velocity estimates.
+
+FAR contributors: https://github.com/dkavolis/Ferram-Aerospace-Research/graphs/contributors
