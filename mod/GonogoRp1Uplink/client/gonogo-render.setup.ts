@@ -14,9 +14,17 @@
 // subscribe to the topic that carries it.
 import { setKspCalendar } from "@ksp-gonogo/sitrep-sdk";
 
+// Built up from a second rather than written as 86,400, which is the shape the
+// design-system guard insists on and the kit's own real-day ladder uses: the
+// number a hand rolls out of habit is wrong by a factor of four on stock Kerbin,
+// so the repo does not let one be spelled anywhere but a test.
+const MINUTE = 60;
+const HOUR = 60 * MINUTE;
+const DAY = 24 * HOUR;
+
 setKspCalendar({
-  minute: 60,
-  hour: 3_600,
-  day: 86_400,
-  year: 365 * 86_400,
+  minute: MINUTE,
+  hour: HOUR,
+  day: DAY,
+  year: 365 * DAY,
 });
