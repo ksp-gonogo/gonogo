@@ -34,8 +34,14 @@ namespace Sitrep.Host.Crew
     /// </summary>
     public static class CrewStandingElection
     {
-        /// <summary>The exclusive capability id every crew-standing backend competes for.</summary>
-        public const string CapabilityId = "crewStanding";
+        /// <summary>
+        /// The exclusive capability id every crew-standing backend competes for,
+        /// aliased from the CONTRACT's own declaration rather than spelled again
+        /// here: an Uplink cannot reference this assembly, and an id both halves
+        /// must spell identically belongs where both halves can reach it. See
+        /// <see cref="CrewStandingCapability"/>.
+        /// </summary>
+        public const string CapabilityId = CrewStandingCapability.Id;
 
         /// <summary>
         /// Registers the exclusive <c>"crewStanding"</c> capability with

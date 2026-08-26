@@ -58,6 +58,9 @@ namespace RP0
     public static class Database
     {
         public static readonly SpaceCenterSettings SettingsSC = new SpaceCenterSettings();
+
+        /// <summary>The crew half, declared in CrewFixture.cs beside the rest of RP-1's crew graph.</summary>
+        public static readonly CrewSettings SettingsCrew = new CrewSettings();
     }
 
     /// <summary>

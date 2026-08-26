@@ -169,6 +169,24 @@ namespace Sitrep.Contract
     }
 
     /// <summary>
+    /// The exclusive capability id every crew-standing backend competes for,
+    /// declared HERE rather than beside the election.
+    /// </summary>
+    /// <remarks>
+    /// An id both halves must spell identically belongs where both halves can
+    /// reach it. <c>ActionGroupsElection.CapabilityId</c> is the counter-example:
+    /// it lives in the unpublished <c>Sitrep.Host</c>, so the AGX uplink has to
+    /// re-declare <c>"actionGroups"</c> as a constant of its own and a test pins
+    /// the two equal. A test that pins two constants together is a test that
+    /// exists because there should only have been one.
+    /// </remarks>
+    public static class CrewStandingCapability
+    {
+        /// <summary>The capability id. One declaration, reachable from an Uplink.</summary>
+        public const string Id = "crewStanding";
+    }
+
+    /// <summary>
     /// The active instance of the exclusive <c>"crewStanding"</c> capability:
     /// what this install makes of a kerbal whose roster status alone is not the
     /// answer.
