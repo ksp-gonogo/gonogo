@@ -101,16 +101,14 @@ export interface FlightsManagerProps {
 
 /**
  * The unified flight-history table: one list, sourced entirely from
- * `AutoRecordController`'s automatic, on-by-default recordings (2026-07-11
- * auto-record rework: see `AutoRecordController`'s own doc comment for the
- * flight-boundary approach). Replaces what used to be TWO separate panels: a
- * `BufferedDataSource`-backed always-on-capture table (star/chapters/graph/
- * export/bulk-actions/keep-latest-N) and a manual "press record"
- * `RecordingControls` flow. Every feature from both now lives on the one
- * Missions-backed table; recording itself moved out of this component
- * entirely (see `AutoRecordStatus`, this file's replacement for the old
- * record button: a read-only readout, not a control, since there's nothing
- * left for the user to press).
+ * `AutoRecordController`'s automatic, on-by-default recordings (see that
+ * component's own doc comment for the flight-boundary approach). One table
+ * carries every feature over the whole history: star, chapters, graph, export,
+ * bulk actions, keep-latest-N.
+ *
+ * Recording itself is not here. `AutoRecordStatus` below is a read-only
+ * readout rather than a control, because with recording automatic there is
+ * nothing left for the operator to press.
  *
  * Station visibility: browsing/star/chapters/graph/export/delete/bulk
  * actions/keep-latest-N are NOT gated by `isMain`, Task 4's peer RPCs
@@ -119,10 +117,9 @@ export interface FlightsManagerProps {
  * the REPLAY action stays `isMain`-only: `ReplaySessionProvider`/
  * `ReplaySessionController` are only mounted on `MainScreen`, not a
  * data-availability gap peer RPCs could close, a screen the station
- * genuinely doesn't run. (Recording was ALSO main-only under the old manual
- * flow; now it's not rendered here at all, `AutoRecordController` mounts
- * once, on the main screen only, regardless of whether this modal is even
- * open.)
+ * genuinely doesn't run. Recording is not rendered here at all:
+ * `AutoRecordController` mounts once, on the main screen only, regardless of
+ * whether this modal is even open.
  *
  * No "current flight" badge/highlight, and no "current flight" exemption in
  * the keep-latest-N preview: Missions have no live in-progress concept (a
@@ -572,10 +569,9 @@ export function FlightsManager({
 }
 
 /**
- * Read-only recording status readout, replaces the old "press record"
- * button now that `AutoRecordController` (mounted once at `MainScreen`,
- * independent of whether this modal is even open) records every flight
- * automatically. There is deliberately no start/stop control here: a button
+ * Read-only recording status readout. `AutoRecordController`, mounted once at
+ * `MainScreen` independent of whether this modal is even open, records every
+ * flight automatically. There is deliberately no start/stop control here: a button
  * that could start a SECOND, independent `StreamRecorder` session on top of
  * the auto-recorder's would fight it (two open sessions on the same
  * `TelemetryClient`, two competing fixtures), and a "stop" button has

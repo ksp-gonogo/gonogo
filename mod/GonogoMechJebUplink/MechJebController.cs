@@ -19,30 +19,46 @@ namespace Gonogo.MechJebUplink
 {
     /// <summary>
     /// The direct-call bridge to MechJeb2: get the active vessel's master
-    /// core, fetch the relevant computer module, engage. Every member here
-    /// is LOCKED against the installed MechJeb2 2.15.3.0 dll, see
+    /// core, read the module off the core, engage. Every member here is LOCKED
+    /// against the installed MechJeb2 2.15.3.0 dll, see
+    /// <c>local_docs/design/mechjeb-provider-and-vendoring.md</c> §1a and
     /// <c>local_docs/design/mechjeb-decompile-lock.md</c>:
     ///
     /// <list type="bullet">
     /// <item><c>Vessel.GetMasterMechJeb()</c> (<c>MuMech.VesselExtensions</c>,
     /// static extension) -&gt; <see cref="MechJebCore"/>.</item>
-    /// <item><c>MechJebCore.GetComputerModule&lt;T&gt;()</c> to fetch a module;
-    /// <c>MechJebCore.Target</c> (public field) for the target controller.</item>
-    /// <item>Ascent engage: write <c>MechJebModuleAscentSettings.DesiredOrbitAltitude.Val</c>
-    /// (metres; the arg DTO carries kilometres, see
-    /// <see cref="MechJebAscentArgs"/>), then
+    /// <item>Modules come off <see cref="MechJebCore"/>'s own public members:
+    /// <c>Ascent</c>, <c>AscentSettings</c>, <c>Node</c>, <c>Landing</c>,
+    /// <c>Target</c>. <c>MechJebCore.LoadComputerModules</c> assigns four of
+    /// those from its own module registry at load, so the member is that
+    /// registry's answer with no per-command list walk, and <c>Ascent</c> is
+    /// something the registry cannot answer at all (below).</item>
+    /// <item>Ascent engage: write
+    /// <c>MechJebModuleAscentSettings.DesiredOrbitAltitude.Val</c> (metres; the
+    /// arg DTO carries kilometres, see <see cref="MechJebAscentArgs"/>), then
     /// <c>MechJebModuleAscentBaseAutopilot.Users.Add(controller)</c> --
     /// <c>Users</c> is the public <c>UserPool</c> every <c>ComputerModule</c>
-    /// carries, NOT a bare <c>enabled = true</c>.</item>
+    /// carries, NOT a bare <c>enabled = true</c>. <c>UserPool.Add</c> sets
+    /// <c>Enabled = true</c> on the module it controls, which is what makes the
+    /// pool the engage handshake rather than a bookkeeping list.</item>
     /// <item>Node executor: <c>MechJebModuleNodeExecutor.ExecuteOneNode(controller)</c>.</item>
     /// <item>Landing: <c>MechJebModuleTargetController.PositionTargetExists</c>
-    /// gates <c>MechJebModuleLandingAutopilot.LandAtPositionTarget(controller)</c>
-    /// -- this ONE member was flagged unresolved by the decompile-lock ("exact
-    /// target-exists member to lock when writing the handler") and has been
-    /// locked here by decompiling <c>MechJebModuleTargetController</c> directly:
+    /// gates <c>MechJebModuleLandingAutopilot.LandAtPositionTarget(controller)</c>:
     /// <c>public bool PositionTargetExists =&gt; Target != null &amp;&amp;
     /// (Target is PositionTarget || Target is Vessel) &amp;&amp; !(Target is DirectionTarget)</c>.</item>
     /// </list>
+    ///
+    /// <para><b>The ascent autopilot is the one the operator selected, and
+    /// there is exactly one member that says so.</b> <c>MechJebCore.Ascent</c>
+    /// is <c>AscentSettings.AscentAutopilot</c>, which is
+    /// <c>GetAscentModule(AscentType)</c>: a switch on the ascent path the
+    /// operator picked in MechJeb's own GUI (PVG or Classic). MechJeb's module
+    /// registry cannot answer this, because it resolves an abstract type to the
+    /// first entry of a list it names unordered, and the ascent autopilots that
+    /// were not selected are ones <c>MechJebModuleAscentSettings</c> actively
+    /// disables on every ascent-type change. So the registry route flies a
+    /// profile the operator did not choose and does it silently.
+    /// <c>MechJebAscentModuleSelectionTests</c> holds this.</para>
     ///
     /// <para><b>The controller token</b> (the sketch's "a plain object the
     /// uplink owns, one stable instance"): this class instance itself is that
@@ -75,8 +91,8 @@ namespace Gonogo.MechJebUplink
                 return CommandResult.Fail(CommandErrorCode.NoVessel);
             }
 
-            var settings = core.GetComputerModule<MechJebModuleAscentSettings>();
-            var ascent = core.GetComputerModule<MechJebModuleAscentBaseAutopilot>();
+            var settings = core.AscentSettings;
+            var ascent = core.Ascent;
             if (settings == null || ascent == null)
             {
                 return CommandResult.Fail(CommandErrorCode.ModeUnavailable);
@@ -97,7 +113,7 @@ namespace Gonogo.MechJebUplink
                 return CommandResult.Fail(CommandErrorCode.NoVessel);
             }
 
-            var nodeExecutor = core.GetComputerModule<MechJebModuleNodeExecutor>();
+            var nodeExecutor = core.Node;
             if (nodeExecutor == null)
             {
                 return CommandResult.Fail(CommandErrorCode.ModeUnavailable);
@@ -123,7 +139,7 @@ namespace Gonogo.MechJebUplink
                 return CommandResult.Fail(CommandErrorCode.NotFound);
             }
 
-            var landing = core.GetComputerModule<MechJebModuleLandingAutopilot>();
+            var landing = core.Landing;
             if (landing == null)
             {
                 return CommandResult.Fail(CommandErrorCode.ModeUnavailable);

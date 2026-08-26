@@ -8,10 +8,8 @@ namespace Gonogo.ActionGroupsExtendedUplink.Tests
     /// <summary>
     /// The pure mapping logic of <see cref="AgxActionGroupsBackend"/>, unit
     /// tested against a fake <see cref="IAgxApi"/>: no KSP, no real AGExt
-    /// assembly, exactly the TDD step
-    /// docs/superpowers/specs/2026-07-17-agx-backend-design.md §5.2 calls out
-    /// as AGX going one step further than <c>RaCommsBackend</c> (which RA
-    /// leaves untested).
+    /// assembly. This is one step further than <c>RaCommsBackend</c>, which RA
+    /// leaves untested.
     /// </summary>
     public class AgxActionGroupsBackendTests
     {

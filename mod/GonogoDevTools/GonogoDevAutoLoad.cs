@@ -46,9 +46,10 @@ namespace Gonogo.DevTools
     ///
     /// Every decision point below logs with a <c>[GonogoDevAutoLoad]</c> prefix
     /// (via <c>Debug.Log</c> / <c>Debug.LogError</c>) so a failed attempt is
-    /// always explained in KSP.log - there must never be a silent "nothing
-    /// happened" outcome again (this addon previously instantiated at
-    /// MainMenu and never loaded the save, with no log line saying why).
+    /// always explained in KSP.log. A silent "nothing happened" outcome is the
+    /// worst failure this addon has: it instantiates at MainMenu whether or not
+    /// it goes on to load the save, so no log line means no way to tell the two
+    /// apart.
     ///
     /// The cfg is read via a short poll loop rather than a single
     /// <c>File.Exists</c> check: on a heavily-modded boot (SCANsat,
@@ -62,11 +63,11 @@ namespace Gonogo.DevTools
     /// with NO <c>dev-autoload.cfg</c> present, wait for the main menu to
     /// visibly come up, THEN write the cfg over SSH. Do NOT stage the cfg
     /// before/during launch - see <see cref="MenuSettleDelaySeconds"/>'s doc
-    /// comment for why an already-present cfg used to crash the game outright
-    /// (raced MainMenu's own not-yet-finished setup) rather than merely
-    /// failing to load. The settle delay now guards against a pre-staged file
-    /// too, but the request-after-menu-is-up workflow remains the intended
-    /// one and needs no reliance on that guard.</para>
+    /// comment for why an already-present cfg races MainMenu's own
+    /// not-yet-finished setup, which crashes the game outright rather than
+    /// merely failing to load. The settle delay guards a pre-staged file too,
+    /// but the request-after-menu-is-up workflow is the intended one and does
+    /// not lean on that guard.</para>
     ///
     /// <c>once: false</c> means KSP re-instantiates this every time the main
     /// menu scene loads; a process-wide <see cref="_attempted"/> guard ensures
@@ -99,12 +100,12 @@ namespace Gonogo.DevTools
         /// setup continues over the following seconds. If the request cfg is
         /// ALREADY sitting on disk at that instant (staged over SSH before
         /// KSP was even launched, or left over from a prior run that never
-        /// got cleaned up), the old code raced straight through
-        /// <see cref="CfgPollIntervalSeconds"/>'s poll loop (it never waits
-        /// when the file already exists) and called <see cref="LoadSave"/>
-        /// roughly one frame after <see cref="Start"/>, which crashed KSP
-        /// outright (not a load failure, a hard crash), because it raced
-        /// MainMenu's own not-yet-finished setup.
+        /// got cleaned up), then <see cref="CfgPollIntervalSeconds"/>'s poll
+        /// loop does not wait at all: it never waits when the file already
+        /// exists. Without the delay below, <see cref="LoadSave"/> is then
+        /// called roughly one frame after <see cref="Start"/>, racing
+        /// MainMenu's own unfinished setup, and that crashes KSP outright
+        /// rather than failing to load.
         ///
         /// This unconditional delay runs EVERY time, before anything else in
         /// <see cref="AutoLoadRoutine"/>: including before the cfg-presence
@@ -127,9 +128,8 @@ namespace Gonogo.DevTools
         /// only queue the transition - Unity's scene load, and for FLIGHT
         /// specifically FlightDriver's own internal vessel-restore coroutine,
         /// both run asynchronously over the following frames. See the doc
-        /// comment on <see cref="WaitUntilFlightReady"/> for why this addon
-        /// used to declare success before that transition had actually
-        /// finished.
+        /// comment on <see cref="WaitUntilFlightReady"/> for why a queued
+        /// transition must not be reported as a completed one.
         /// </summary>
         private const float FlightReadyPollIntervalSeconds = 0.25f;
         private const float FlightReadyTimeoutSeconds = 60f;
@@ -151,7 +151,7 @@ namespace Gonogo.DevTools
         /// <summary>
         /// Resolves the cfg, polls for it to appear, parses it, verifies the
         /// save exists on disk, and hands off to <see cref="LoadSave"/>.
-        /// Every branch that used to return silently now logs why.
+        /// Every branch that returns without loading logs why.
         /// </summary>
         private IEnumerator AutoLoadRoutine()
         {
@@ -176,9 +176,9 @@ namespace Gonogo.DevTools
             }
 
             // See MenuSettleDelaySeconds' doc comment: unconditional, runs
-            // whether or not the cfg is already present. This is the actual
-            // crash fix - closing the window where an already-staged request
-            // used to fire the load before MainMenu had settled.
+            // whether or not the cfg is already present. This closes the
+            // window where an already-staged request fires the load before
+            // MainMenu has settled, which is the crash rather than a failure.
             // Realtime (unscaled) wait: immune to a timeScale=0 pause.
             Debug.Log(LogPrefix + "settling " + MenuSettleDelaySeconds + "s before looking for a request cfg");
             yield return new WaitForSecondsRealtime(MenuSettleDelaySeconds);
@@ -389,11 +389,11 @@ namespace Gonogo.DevTools
             // LoadSave only QUEUED the scene transition (HighLogic.LoadScene,
             // reached either directly via FlightDriver.StartAndFocusVessel or
             // indirectly via Game.Start()) - it does not block until the new
-            // scene is actually up. The old code returned here and let this
-            // MonoBehaviour (and its coroutine) get destroyed with the
-            // MainMenu scene the instant Unity tore it down, which raced that
-            // transition: on a heavily-modded boot the FLIGHT scene can take
-            // many seconds to finish restoring the vessel, and this addon's
+            // scene is actually up. Returning here would let this
+            // MonoBehaviour and its coroutine be destroyed with the MainMenu
+            // scene the instant Unity tore it down, racing that transition: on
+            // a heavily-modded boot the FLIGHT scene can take many seconds to
+            // finish restoring the vessel, and this addon's
             // "auto-load done" log line - the signal the test harness waits
             // on before driving the game further - fired long before that,
             // producing exactly the broken scene this addon exists to avoid

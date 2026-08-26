@@ -34,6 +34,14 @@
   <ItemGroup>
     <ProjectReference Include="..\Sitrep.Contract\Sitrep.Contract.csproj" />
     <ProjectReference Include="..\GonogoRp1Uplink.Contract\GonogoRp1Uplink.Contract.csproj" />
+    <!-- Sitrep.Host, for EconomyElection: EconomyStarvationTests declares the
+         "economy" capability through core's own election rather than a copy of
+         its descriptor, so a change to how core declares it reaches the test
+         instead of drifting away from it. A reference this project takes says
+         nothing about what the Uplink may build against; the isolation gate
+         scores the Gonogo*Uplink directories, and Sitrep.Host is a test-only
+         reference here exactly as it is in GonogoActionGroupsExtendedUplink.Tests. -->
+    <ProjectReference Include="..\Sitrep.Host\Sitrep.Host.csproj" />
     <!-- The shared Unit-coverage sweep every relocated Uplink's own coverage
          test calls; the [Fact]s stay here, naming this Uplink's types. -->
     <ProjectReference Include="..\Sitrep.Contract.TestSupport\Sitrep.Contract.TestSupport.csproj" />

@@ -809,11 +809,11 @@ namespace Gonogo.KSP
         /// maneuver node's post-burn chain cannot drift apart: both build this
         /// and the wire encoding happens once, in <see cref="PatchToRaw"/>.
         ///
-        /// It used to be two encoders, this one straight to a dictionary and
-        /// PatchToRaw from the POCO, which had to agree key-for-key with
-        /// nothing checking that they did. Going through the POCO also puts the
-        /// every-public-property wire ratchet across this path, which only
-        /// covered the POCO encoder before.
+        /// A second encoder writing a dictionary directly, beside
+        /// <see cref="PatchToRaw"/>'s POCO encoder, would have to agree with it
+        /// key-for-key and nothing could check that it did. Going through the
+        /// POCO also puts the every-public-property wire ratchet across this
+        /// path, which only reaches the POCO encoder.
         /// </summary>
         internal static Sitrep.Contract.OrbitPatch OrbitToPatch(Orbit patch)
         {
@@ -1269,11 +1269,10 @@ namespace Gonogo.KSP
 
             // The NAMED custom action groups, sourced from the elected backend
             // rather than spelled out as ag1..ag10 scalars here. The ten-ness
-            // of stock now lives in exactly ONE place
-            // (StockActionGroupsBackend); this method no longer knows or cares
-            // how many groups there are or what they're called, which is what
-            // lets an AGX backend report 250 player-named groups through this
-            // same code with no edit.
+            // of stock lives in exactly ONE place, StockActionGroupsBackend.
+            // This method knows neither how many groups there are nor what they
+            // are called, which is what lets an AGX backend report 250
+            // player-named groups through this same code with no edit.
             //
             // Null backend / null Groups() => no "actionGroups" key at all,
             // which VesselViewProvider maps to the contract's documented "not
@@ -3338,16 +3337,16 @@ namespace Gonogo.KSP
         /// AstronautComplex/LaunchPad/MissionControl/ResearchAndDevelopment/
         /// Runway/TrackingStation/SpaceplaneHangar/VehicleAssemblyBuilding).
         ///
-        /// <para>M3b career-detail capture-add: switched off the OLD
-        /// <c>ScenarioUpgradeableFacilities.GetFacilityLevel</c> fractional
-        /// [0,1] reading (which the KSC widget can't turn into a tier
-        /// without also knowing the tier count) and onto
-        /// <c>UpgradeableFacility.FacilityLevel</c>/<c>MaxLevel</c> - both
+        /// <para>Read from
+        /// <c>UpgradeableFacility.FacilityLevel</c>/<c>MaxLevel</c> rather than
+        /// <c>ScenarioUpgradeableFacilities.GetFacilityLevel</c>, whose
+        /// fractional [0,1] reading the KSC widget cannot turn into a tier
+        /// without also knowing the tier count. Both are
         /// confirmed via decompile as plain <c>int</c> properties on the
         /// LIVE facility object (0-based: tier 0 is the starting/unupgraded
         /// tier, <c>MaxLevel</c> is the top tier's own index, e.g. 2 for a
-        /// 3-tier facility). Reached the exact same way the old
-        /// <c>upgradeCost</c> capture already did -
+        /// 3-tier facility). Reached the same way the
+        /// <c>upgradeCost</c> capture is -
         /// <c>ScenarioUpgradeableFacilities.protoUpgradeables[SlashSanitize(name)]
         /// .facilityRefs[0]</c> - so <c>currentTier</c>/<c>maxTier</c>/
         /// <c>upgradeCost</c> share ONE gate: all three are only resolvable
@@ -3947,10 +3946,10 @@ namespace Gonogo.KSP
 
         /// <summary>
         /// Per-subject rollup of the same stored <see cref="ScienceData"/>
-        /// <see cref="BuildScienceExperiments"/> lists one-row-per-blob: the
-        /// new home for the old GonogoTelemetry-only
-        /// <c>sci.experimentBreakdown</c> enrichment (no equivalent on the base
-        /// wire until now). Re-walks the vessel's experiment/container modules
+        /// <see cref="BuildScienceExperiments"/> lists one-row-per-blob. This is
+        /// the home of the <c>sci.experimentBreakdown</c> enrichment, which the
+        /// base wire carries no equivalent of.
+        /// Re-walks the vessel's experiment/container modules
         /// independently rather than reusing <see cref="BuildScienceExperiments"/>'s
         /// output, mirroring this group's existing "one independent walk per
         /// sub-group" convention (<see cref="BuildScienceLab"/>/
@@ -5299,9 +5298,9 @@ namespace Gonogo.KSP
         /// (<c>Propellant.currentRequirement</c>, signed negative, no
         /// nominal).</para>
         ///
-        /// <para><b>EC consumption (review finding I3: restores the old
-        /// PowerSystems "Consumers" list, which had nothing but production
-        /// rows to filter negative out of before this).</b> Every
+        /// <para><b>EC consumption</b>, which is what feeds PowerSystems'
+        /// "Consumers" list: without it that list has only production rows to
+        /// filter negatives out of, and finds none. Every
         /// <c>PartModule</c> carries a <c>resHandler</c>
         /// (<c>ModuleResourceHandler</c>) field: decompile of
         /// <c>UpdateModuleResourceInputs</c> shows

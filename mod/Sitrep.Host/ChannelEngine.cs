@@ -72,11 +72,11 @@ namespace Sitrep.Host
         /// <summary>
         /// Per-centre node namespace: the id under which a command centre can be
         /// addressed as the DESTINATION of a command, mirroring
-        /// <see cref="FleetNodePrefix"/>'s per-vessel one. A centre was
-        /// previously only ever a vantage (the left-hand side of
-        /// <c>DelayTo(vantage, node)</c>), so there was no id to name when the
-        /// thing being commanded is another centre rather than a craft, which is
-        /// what a currency spend routed to the program's home centre is.
+        /// <see cref="FleetNodePrefix"/>'s per-vessel one. A centre is otherwise
+        /// only ever a vantage (the left-hand side of
+        /// <c>DelayTo(vantage, node)</c>), which leaves no id to name when the
+        /// thing being commanded is another centre rather than a craft, and a
+        /// currency spend routed to the program's home centre is exactly that.
         ///
         /// <para>Delay-only for now: no channel publishes under this prefix, so
         /// <see cref="NodeForTopic"/> deliberately does not map it. The node
@@ -694,14 +694,14 @@ namespace Sitrep.Host
         // alongside _channelDeclarations/_commandDeclarations. Lets Tick's
         // channel loop and ProcessDispatchCommand consult _availability
         // per-channel/per-command (see IsChannelAvailable/IsCommandAvailable)
-        // instead of only tracking availability without ever acting on it,
-        // the fail-soft half of the contract that used to be missing: a
-        // throwing Register(), or a channel mapper/command handler that
-        // throws at RUNTIME (see FailSoftChannel/FailSoftCommand), now takes
-        // the WHOLE owning uplink's channels/commands inert together,
-        // rather than leaving already-registered ones live against a
-        // half-broken uplink. The sampler loop (see ProcessTick) applies
-        // the exact same rule via each pair's OwnerId above.
+        // rather than tracking availability without acting on it. This is the
+        // fail-soft half of the contract: a throwing Register(), or a channel
+        // mapper/command handler that throws at RUNTIME (see
+        // FailSoftChannel/FailSoftCommand), takes the WHOLE owning uplink's
+        // channels and commands inert together, rather than leaving
+        // already-registered ones live against a half-broken uplink. The
+        // sampler loop (see ProcessTick) applies the same rule via each pair's
+        // OwnerId above.
         private readonly Dictionary<string, string> _channelOwner = new Dictionary<string, string>();
         private readonly Dictionary<string, string> _commandOwner = new Dictionary<string, string>();
 
@@ -725,13 +725,13 @@ namespace Sitrep.Host
         // cadence/reset-keyframe path rather than going silent for a
         // continuously-connected subscriber whose actual tombstone delivery
         // got dropped by the rewind -- see Archive.HasAnyTail's doc comment).
-        // Only a topic with NO surviving sample at all is NOT born (so a
-        // null mapper result keeps being skipped, matching pre-rewind
-        // behavior). An unconditionally-cleared _born used to make EVERY
-        // channel unborn on rewind, silently suppressing the corrective
-        // tombstone for the stale-non-null-tail case; a "non-null tail"
-        // definition of born (the first fix pass) still silently suppressed
-        // it for the stale-tombstone-tail case above.
+        // Only a topic with NO surviving sample at all is NOT born, so a null
+        // mapper result keeps being skipped there, matching the pre-rewind
+        // behaviour. Neither simpler definition of born survives the two cases
+        // above: clearing _born wholesale on rewind makes every channel
+        // unborn and silently suppresses the corrective tombstone for a stale
+        // NON-NULL tail, and defining born as "has a non-null tail" silently
+        // suppresses it for a stale TOMBSTONE tail.
         //
         // Subject-scoped (vessel-switch) resets are a SEPARATE, narrower
         // mechanism: see ResetChannelBirth/IUplinkHost.ResetChannelBirth,
@@ -1175,9 +1175,9 @@ namespace Sitrep.Host
         /// </summary>
         private static Dictionary<string, object?> BuildUplinkHealthPayload(ISitrepUplink uplink, Availability availability)
         {
-            // Health is now MANDATORY on ISitrepUplink (2026-07-21), so the old
-            // "is ISitrepUplink.Health? else availability fallback" branch collapses
-            // to a single self-report call. But availability stays the presence
+            // Health is MANDATORY on ISitrepUplink, so this is a single
+            // self-report call with no "does it implement Health?" branch. But
+            // availability stays the presence
             // AUTHORITY: an uplink whose Register threw (fail-soft-caught by the
             // engine → marked Unavailable) never completed its health setup, so its
             // Health() cannot be trusted: report Unavailable with the registration
@@ -2139,24 +2139,23 @@ namespace Sitrep.Host
         /// <see cref="MemberInfo.Name"/> + <see cref="FieldInfo.GetRawConstantValue"/>),
         /// never <see cref="Enum.Parse(Type,string,bool)"/>.
         ///
-        /// <para>This began as the workaround for the worst instance of the
-        /// codegen-attribute leak. The <c>Sitrep.Contract</c> enums used to
-        /// carry a Reinforced.Typings <c>[TsEnum]</c> in the shipped build, and
-        /// <see cref="Enum.Parse(Type,string,bool)"/> constructs the enum type's
-        /// custom attributes, so it threw
-        /// <see cref="System.IO.FileNotFoundException"/> wherever
-        /// <c>Reinforced.Typings.dll</c> was absent: both the net10.0 test host
-        /// and the live KSP <c>GameData</c> deploy. A string-form enum argument
-        /// (e.g. <c>setTarget {kind:"Vessel"}</c>) would have dead-softed the
-        /// whole command in-game, not just in a test.</para>
+        /// <para>Metadata-only because it is strictly narrower work than
+        /// <see cref="Enum.Parse(Type,string,bool)"/> on a hot command path:
+        /// <see cref="Enum.ToObject"/> only boxes the value, where Parse
+        /// constructs the enum type's custom attributes as well.</para>
         ///
-        /// <para>The leak is fixed: the attributes exist only in
-        /// Sitrep.Contract.Codegen now, and
-        /// <c>Sitrep.Core.Tests.ContractEnumRenderingTests</c> asserts that
-        /// reflective enum parsing works on a contract enum. The metadata-only
-        /// walk stays anyway, being strictly narrower work than
-        /// <see cref="Enum.Parse(Type,string,bool)"/> on a hot command path;
-        /// <see cref="Enum.ToObject"/> just boxes the value.</para>
+        /// <para>Constructing those attributes is also the failure mode this
+        /// avoids by construction. An enum carrying a codegen attribute whose
+        /// assembly is absent at runtime makes Parse throw
+        /// <see cref="System.IO.FileNotFoundException"/>, which dead-softs the
+        /// whole command in-game rather than only in a test, and a string-form
+        /// enum argument (e.g. <c>setTarget {kind:"Vessel"}</c>) is the path
+        /// that reaches it. Nothing in <c>Sitrep.Contract</c> carries such an
+        /// attribute today (they live in Sitrep.Contract.Codegen, and
+        /// <c>Sitrep.Core.Tests.ContractEnumRenderingTests</c> asserts
+        /// reflective enum parsing works on a contract enum), so this walk is
+        /// not the only thing standing between a deploy and that throw. It
+        /// costs nothing to keep it from being reachable at all.</para>
         /// </summary>
         private static object ParseEnumByNameMetadataOnly(Type enumType, string name)
         {
@@ -2653,9 +2652,9 @@ namespace Sitrep.Host
                 throw new InvalidOperationException("ChannelEngine stopped before the command executed on the main thread.");
             }
 
-            // F2-fix (pause backstop): a BOUNDED wait. In production the drain
-            // rides Update() (runs even when Time.timeScale == 0), so a paused
-            // game no longer wedges this; the timeout is the last-resort guard
+            // A BOUNDED wait, as the pause backstop. In production the drain
+            // rides Update(), which runs even when Time.timeScale == 0, so a
+            // paused game does not wedge this; the timeout is the last-resort guard
             // for a scene-load / loading-screen stall where even Update stops
             // pumping. On expiry we abandon the job (the pump may still run it
             // later: MainThreadCommand.Done is intentionally NOT disposed on
@@ -2764,14 +2763,14 @@ namespace Sitrep.Host
             // Attribution must not depend on reading the offending
             // exception's Message: `ex.Message` is an ordinary virtual
             // getter: legal (if perverse) third-party code can override it
-            // to throw. The pre-fix `$"...{ex.Message}"` interpolation ran
-            // BEFORE the _commandOwner lookup/MarkUplinkUnavailable call,
-            // so a throwing getter aborted this method early, escaping to
-            // CourierLoop's non-attributing backstop try/catch and leaving
-            // the offending uplink's command live (and re-throwing)
-            // forever. SafeExceptionMessage below can never throw, so the
-            // owner lookup + MarkUplinkUnavailable are now guaranteed to
-            // run regardless of what ex.Message does.
+            // to throw. Reading it before the _commandOwner lookup and the
+            // MarkUplinkUnavailable call, as a plain `$"...{ex.Message}"`
+            // interpolation does, lets a throwing getter abort this method
+            // early: the throw escapes to CourierLoop's non-attributing
+            // backstop try/catch and the offending uplink's command stays live,
+            // re-throwing forever. SafeExceptionMessage below cannot throw, so
+            // the owner lookup and MarkUplinkUnavailable run regardless of what
+            // ex.Message does.
             if (_commandOwner.TryGetValue(command, out var ownerId))
             {
                 MarkUplinkUnavailable(ownerId, $"command \"{command}\" handler threw: {SafeExceptionMessage(ex)}");
@@ -3168,15 +3167,14 @@ namespace Sitrep.Host
         /// orphaned count behind (see the C2-3 fix). Deliberately NOT part
         /// of <see cref="IUplinkHost"/>: it wraps <c>_subscriptions</c>,
         /// which (per that field's own doc comment) must never be read
-        /// off the Courier thread. It was briefly promoted to a public
-        /// <c>IUplinkHost</c> member so <c>KosTerminalManager.Poll</c>
-        /// (main thread) could read it directly; that was itself the Gap A
-        /// bug (a main-thread read of Courier-owned state, plus a reseed
-        /// signal that only sampled the aggregate once per poll). The fix
-        /// is <see cref="IDynamicChannelSource.OnSubscribed"/>, a genuinely
-        /// thread-safe, per-subscription-transition push instead of a
-        /// cross-thread pull: so this reverts to its original test-only
-        /// shape.
+        /// off the Courier thread. Promoting it to a public
+        /// <c>IUplinkHost</c> member so a main-thread caller like
+        /// <c>KosTerminalManager.Poll</c> can read it directly is therefore
+        /// wrong twice over: a main-thread read of Courier-owned state, and a
+        /// reseed signal that only samples the aggregate once per poll.
+        /// <see cref="IDynamicChannelSource.OnSubscribed"/> is the supported
+        /// route for that need, a thread-safe per-subscription-transition push
+        /// rather than a cross-thread pull.
         /// </summary>
         internal int SubscriberCountFor(string topic) => _subscriptions.SubscriberCount(topic);
 
@@ -3403,11 +3401,12 @@ namespace Sitrep.Host
             // false), so it stays frozen at last-known until the link returns
             // (on reconnect the backlog is DROPPED, see SetCommsConnected).
             // Critically this fires even when _signalDelaySeconds is 0 (the
-            // disconnect case: no path ⇒ SignalDelay None ⇒ 0), which is
-            // exactly where the old delay-magnitude-only gate revealed live.
-            // Per-subject freeze (Plan 2b): a fleet.<guid> topic freezes on ITS
-            // OWN vessel's link; every non-fleet topic + the active vessel key
-            // by "system" (byte-identical to the old single global bool).
+            // disconnect case: no path means SignalDelay None means 0), which
+            // is exactly where a gate keyed on delay MAGNITUDE alone would
+            // reveal live. The freeze is per-subject: a fleet.<guid> topic
+            // freezes on ITS OWN vessel's link, and every non-fleet topic plus
+            // the active vessel key by "system", which for a single-vessel
+            // program is the same answer a single global bool gives.
             if (!SubjectConnected(NodeFor(topic)))
             {
                 return double.PositiveInfinity;
@@ -3913,10 +3912,10 @@ namespace Sitrep.Host
                         new List<(double, bool)> { (double.NegativeInfinity, SubjectConnected(subjectNode)) };
                 }
                 // Same abandoned-timeline treatment for the pending-uplink
-                // roster: every in-flight prediction belonged to the pre-rewind
-                // timeline (its DispatchedAt/OneWaySeconds no longer mean
-                // anything against the new one), so it is dropped rather than
-                // carried forward or pruned normally.
+                // roster: an in-flight prediction is anchored to the timeline it
+                // was dispatched on, so its DispatchedAt/OneWaySeconds mean
+                // nothing against the one the rewind lands on. Dropped whole
+                // rather than carried forward or pruned normally.
                 _pending.Clear();
                 RecomputeChannelBirthFromArchive();
                 BroadcastTimelineReset();
@@ -3926,21 +3925,23 @@ namespace Sitrep.Host
             {
                 foreach (var (ownerId, sampler) in _samplers)
                 {
-                    // Coverage-sweep fix: a sampler is third-party
-                    // (uplink) code running on the Courier thread, an
-                    // unguarded throw here used to kill the thread, so this
-                    // catch is CRITICAL-2's original guard. But it used to
-                    // stop there: no owner attribution meant a Sample() that
-                    // throws every tick just logged forever and was
-                    // re-invoked next tick regardless: unlike a channel
-                    // mapper or command handler (see IsChannelAvailable/
-                    // IsCommandAvailable), the uplink never actually went
-                    // Unavailable. Now mirrors that same pattern: skip a
-                    // sampler whose owner already went Unavailable (from a
-                    // PRIOR tick's throw, or a throwing Register()), and on a
-                    // throw here, attribute it to the owning uplink via
-                    // FailSoftSampler so it stops recurring from the NEXT
-                    // tick onward.
+                    /*
+                     * A sampler is third-party (uplink) code running on the
+                     * Courier thread, so an unguarded throw here kills the
+                     * thread: the catch below is what keeps it alive.
+                     *
+                     * Catching alone is not enough. Without owner attribution a
+                     * Sample() that throws every tick logs forever and is
+                     * re-invoked next tick regardless, so the uplink never goes
+                     * Unavailable the way a throwing channel mapper or command
+                     * handler makes it (see IsChannelAvailable /
+                     * IsCommandAvailable). So this follows the same rule as
+                     * those: skip a sampler whose owner is already Unavailable,
+                     * whether from a PRIOR tick's throw or a throwing
+                     * Register(), and on a throw here attribute it to the
+                     * owning uplink via FailSoftSampler so it stops recurring
+                     * from the NEXT tick onward.
+                     */
                     if (!IsUplinkAvailable(ownerId))
                     {
                         continue;
@@ -4051,13 +4052,12 @@ namespace Sitrep.Host
                 }
                 catch (Exception ex)
                 {
-                    // CRITICAL-2: a channel mapper is uplink-authored
-                    // code; a throw here (e.g. an unexpected snapshot shape)
-                    // used to kill the Courier thread. Caught here instead:
-                    // fail-softs ONLY this channel's owning uplink (see
-                    // FailSoftChannel) and skips to the NEXT channel this
-                    // same tick: every other registered channel keeps
-                    // ticking normally.
+                    // A channel mapper is uplink-authored code, and a throw
+                    // here (an unexpected snapshot shape, say) kills the Courier
+                    // thread if it escapes. Caught, it fail-softs ONLY this
+                    // channel's owning uplink (see FailSoftChannel) and skips to
+                    // the NEXT channel this same tick, so every other
+                    // registered channel keeps ticking normally.
                     FailSoftChannel(topic, ex);
                     continue;
                 }
@@ -4191,21 +4191,21 @@ namespace Sitrep.Host
             // two ask for different things to be looked at: a version skew
             // versus one named uplink that has failed.
             //
-            // Refused rather than dropped. Silence here used to be
-            // indistinguishable, from every consumer's vantage, from a command
-            // still in flight: the client's loss timer eventually rejected the
-            // promise as "signal-lost" (wrong: the link was fine), and the
-            // operator's queue could not call it a failure at all, because this
-            // exit returns BEFORE the pending bookkeeping below, so there was no
-            // queue entry to classify and the path had never been down. One
-            // throwing mapper marks its owning uplink Unavailable, and from then
-            // on every command that uplink owns landed here, so the whole widget
-            // failed while the board showed a healthy link.
+            // Refused rather than dropped, because silence here is
+            // indistinguishable from a command still in flight from every
+            // consumer's vantage. The client's loss timer would reject the
+            // promise as "signal-lost" when the link was fine, and the
+            // operator's queue could not call it a failure at all: this exit
+            // returns BEFORE the pending bookkeeping below, so there is no queue
+            // entry to classify and the path was never down. The blast radius is
+            // an uplink, not a command: one throwing mapper marks its owning
+            // uplink Unavailable and every command that uplink owns lands here,
+            // so a whole widget fails while the board shows a healthy link.
             // BOTH stores. They are deliberately disjoint at invoke time, and this
-            // gate reading only one of them refused every vantage-aware command
-            // before its handler was ever reached, with the same sentence a command
-            // that does not exist gets. Adding a store means finding every reader of
-            // the old one, and this was the reader that was missed.
+            // gate reading only one of them refuses every vantage-aware command
+            // before its handler is reached, with the same sentence a command that
+            // does not exist gets. Adding a handler store means finding every
+            // reader of the existing one, and this is the easiest reader to miss.
             if (!IsCommandAvailable(job.Command)
                 || (!_commandHandlers.ContainsKey(job.Command)
                     && !_vantageCommandHandlers.ContainsKey(job.Command)))
@@ -4231,11 +4231,11 @@ namespace Sitrep.Host
                 // CommandResult, so the client lands in `refused` with the
                 // comparison attached.
                 //
-                // It used to ride OnRefused, which emits an E_UNAVAILABLE error
-                // frame, so the client landed in `failed` and
-                // classifyCommandRejection reported "the machinery broke, a retry
-                // may work". A limit breach is neither: nothing broke, and no
-                // number of retries moves a limit.
+                // Deliberately NOT OnRefused, which emits an E_UNAVAILABLE error
+                // frame: that lands the client in `failed`, where
+                // classifyCommandRejection reports "the machinery broke, a retry
+                // may work". A limit breach is neither of those things. Nothing
+                // broke, and no number of retries moves a limit.
                 job.OnResult(GateRefusalResult(gate));
                 job.Done?.Set();
                 return;
@@ -4697,16 +4697,16 @@ namespace Sitrep.Host
                             // C2-4: `result` is whatever the uplink's
                             // command handler returned -- uplink-owned,
                             // same as a channel payload. This serialization
-                            // used to run OUTSIDE InvokeCommandHandler's
-                            // guard entirely (it happens here, in the
-                            // RESULT callback, not inside the handler call
-                            // itself), so an unserializable result threw
-                            // unattributed and the client got no response at
-                            // all, not even an error -- true silence. Guard
-                            // it the same way as every other uplink-value
-                            // touch point: fail-soft the owning command's
-                            // uplink and send an explicit error response
-                            // instead of dropping the reply on the floor.
+                            // sits OUTSIDE InvokeCommandHandler's guard: it
+                            // runs here, in the RESULT callback, not inside the
+                            // handler call itself, so unguarded an
+                            // unserializable result throws unattributed and the
+                            // client gets no response at all, not even an
+                            // error, which is true silence. Guarded the same way
+                            // as every other uplink-value touch point:
+                            // fail-soft the owning command's uplink and send an
+                            // explicit error response rather than dropping the
+                            // reply on the floor.
                             try
                             {
                                 var response = new CommandResponse<object?>
@@ -4740,11 +4740,13 @@ namespace Sitrep.Host
                                         // PendingCommand, so this callback
                                         // could not still be about to fire
                                         // for an abandoned-timeline
-                                        // dispatch). Previously this Meta was
-                                        // hand-rolled here with no epoch at
-                                        // all -- always the wire default (0),
-                                        // even after a rewind had already
-                                        // bumped the Courier forward.
+                                        // dispatch). Reading the epoch off the
+                                        // Courier rather than hand-rolling this
+                                        // Meta is what keeps it off the wire
+                                        // default of 0, which is what a
+                                        // hand-rolled one carries even after a
+                                        // rewind has bumped the Courier
+                                        // forward.
                                         TimelineEpoch = _courier.CurrentEpoch,
                                     },
                                 };
@@ -4961,15 +4963,14 @@ namespace Sitrep.Host
             public readonly double Ut;
             public readonly object? Value;
 
-            // Flap-leak fix: the effective reveal delay captured at ENQUEUE
-            // time (see Emit), NOT re-read at flush. FlushReveal computes this
-            // entry's horizon as (now − Delay), so a subsequent flap of the
-            // delay authority down to 0 (e.g. comms.delay momentarily dropping
-            // to CommsDelaySource.None mid-buffer) can no longer prematurely
-            // reveal a still-future buffered sample: each entry matures on the
-            // horizon that was in force when it was buffered. Always > 0: a
-            // sample whose delay was ≤ 0 is recorded live in Emit and never
-            // reaches the buffer.
+            // The effective reveal delay captured at ENQUEUE time (see Emit),
+            // NOT re-read at flush. FlushReveal computes this entry's horizon as
+            // (now − Delay), so each entry matures on the horizon that was in
+            // force when it was buffered, and a later flap of the delay
+            // authority down to 0 (comms.delay momentarily dropping to
+            // CommsDelaySource.None mid-buffer, say) cannot prematurely reveal a
+            // still-future buffered sample. Always > 0: a sample whose delay was
+            // ≤ 0 is recorded live in Emit and never reaches the buffer.
             public readonly double Delay;
             public BufferedReveal(double ut, object? value, double delay)
             {

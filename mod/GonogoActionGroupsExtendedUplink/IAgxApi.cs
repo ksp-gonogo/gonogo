@@ -4,8 +4,7 @@ namespace Gonogo.ActionGroupsExtendedUplink
 {
     /// <summary>
     /// KSP-free, Sitrep.Contract-free pure plumbing seam onto Action Groups
-    /// Extended (docs/superpowers/specs/2026-07-17-agx-backend-design.md
-    /// §5.2). <see cref="AgxReflection"/> is the only real implementation,
+    /// Extended. <see cref="AgxReflection"/> is the only real implementation,
     /// it carries the arm's-length GPL3 reflection boundary, but the
     /// mapping logic in <see cref="AgxActionGroupsBackend"/> is written
     /// against this interface so it is unit-testable with a fake, exactly

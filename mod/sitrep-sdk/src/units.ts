@@ -1,14 +1,13 @@
 // Runtime unit lookup for wire-payload fields.
 //
 // ── The hole this closes ────────────────────────────────────────────────────────────
-// The app displays units everywhere and, before this, none of them came from the data.
-// `Sitrep.Contract` stated units only as English prose inside `<summary>` doc comments
-// (and for most fields, not even that), so nothing machine-readable ever reached the
-// client: the generated SDK carried no unit metadata at all. Every widget therefore
-// hand-rolled its own literal, including whole duplicated scaling ladders, and the only
-// machine-readable unit table in the repo is keyed by LEGACY keys
-// (`v.altitude`) that the live topic path no longer
-// speaks.
+// The app displays units everywhere, and without this none of them come from the data.
+// `Sitrep.Contract` can state a unit only as English prose inside a `<summary>` doc
+// comment, which for most fields it does not, and prose reaches no client: without the
+// attribute below the generated SDK carries no unit metadata at all. Each widget is then
+// left to hand-roll its own literal, duplicated scaling ladders included, and the other
+// machine-readable unit table in the repo is keyed by LEGACY keys (`v.altitude`) that the
+// live topic path does not speak.
 //
 // ── The mechanism ───────────────────────────────────────────────────────────────────
 // A `[SitrepUnit(Units.MetresPerSecond)]` attribute on the C# property is the source of
@@ -96,7 +95,7 @@ const HAND_DECLARED_PAYLOAD_TYPES: Readonly<Record<string, string>> =
 
 /**
  * Runtime registry of Topic-scoped unit/shape maps for RELOCATED Uplink
- * payload types (uplink-types-out-of-core plan). `GENERATED_TOPIC_UNITS`/
+ * payload types. `GENERATED_TOPIC_UNITS`/
  * `GENERATED_TOPIC_SHAPES` only know about payload types still reflected out
  * of `Sitrep.Contract`; once a type's Topic moves to its owning Uplink's own
  * contract slice, this SDK's generated map has nothing for it, and
@@ -129,10 +128,9 @@ export function registerTopicUnits(
  * The TYPE-keyed half of the same registry, and it is not optional the moment a
  * relocated payload has any nesting.
  *
- * `registerTopicUnits` above covers a Topic's OWN fields, which was the whole
- * problem while every relocated type was flat, which the plan's first three
- * steps all were. It is not sufficient for a nested
- * one: `wrapTopicPayload` reads `shapesForTopic` to learn that a field holds
+ * `registerTopicUnits` above covers a Topic's OWN fields, which is the whole of
+ * the problem for a FLAT relocated type and none of it for a nested one:
+ * `wrapTopicPayload` reads `shapesForTopic` to learn that a field holds
  * another shape, then recurses through `wrapTypePayload`, which resolves that
  * shape BY NAME through `unitsForType`/`shapesForType`. Those read the
  * type-keyed generated maps, so a relocated nested type is unreachable from the

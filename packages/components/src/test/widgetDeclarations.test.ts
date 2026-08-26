@@ -57,15 +57,31 @@ function stripComments(text: string): string {
  * is worse than no gate: it sees the widgets THIS package registers, and
  * nothing else. An Uplink's widgets (`mod/*​/client/src`) register into the
  * same registry at runtime but from packages this one does not depend on, so
- * their declarations are ungoverned here. `classifyRequirement` is exported
- * from `@ksp-gonogo/core` precisely so each Uplink client can run this same
- * assertion over its own registrations; none does yet.
+ * they are outside this file. The same assertion runs over them, and over the
+ * separate augment registry, in
+ * `packages/app/src/__tests__/uplink-widget-declarations.test.ts`: the app is
+ * the one package that already depends on every Uplink client and can also see
+ * `core`. That file's header says why the check does not live inside each
+ * Uplink, which is a rule rather than an omission.
  */
 describe("widget dataRequirements resolve to something real", () => {
-  // Both declaration arrays. `fields` is where a widget's field-granular
-  // declaration lives now, and it is exactly the vocabulary this gate was
-  // written to police, so reading only `dataRequirements` would let the whole
-  // check drain away as widgets migrate while still reporting green.
+  /**
+   * `dataRequirements` and `fields`, which are the two arrays this package can
+   * resolve on its own. `fields` is where a widget's field-granular declaration
+   * lives, and it is exactly the vocabulary this gate was written to police, so
+   * reading only `dataRequirements` would let the whole check drain away as
+   * widgets migrate while still reporting green.
+   *
+   * `channels` and `optionalChannels` are deliberately NOT here, and the reason
+   * is a limit of this package rather than a gap in the idea. A built-in widget
+   * may mount on a channel an Uplink owns: `space-weather` declares
+   * `kerbalism.spaceweather`, whose topic id only becomes resolvable once
+   * `GonogoKerbalismUplink`'s client registers it. Classified from here that
+   * real channel reads as unresolvable, so widening this array would fail on
+   * correct code and teach the next person to loosen the classifier. The app
+   * gate named in the header does read all four, with every Uplink loaded,
+   * which is the context where the answer is meaningful.
+   */
   const declared = getComponents().flatMap((def) =>
     [...(def.dataRequirements ?? []), ...(def.fields ?? [])].map(
       (requirement) => ({

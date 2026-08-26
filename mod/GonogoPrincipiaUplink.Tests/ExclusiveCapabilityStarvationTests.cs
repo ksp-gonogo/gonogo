@@ -32,6 +32,16 @@ namespace GonogoPrincipiaUplink.Tests
     /// </summary>
     public class ExclusiveCapabilityStarvationTests
     {
+        // The capabilities the cases below prove, claimed for the census in
+        // Sitrep.Host.IntegrationTests. That census discovers which capabilities an
+        // Uplink can win and fails on one nothing claims; these markers are how a
+        // claim is made without a core test project having to name any Uplink.
+        //
+        // exclusive-capability-starvation: controlFrame
+        // exclusive-capability-starvation: maneuverPlan
+        // exclusive-capability-starvation: propagation
+        // exclusive-capability-starvation: gravityModel
+
         private const string Guid = "vessel-1";
 
         private static PrincipiaGuardResult Present =>
