@@ -150,6 +150,13 @@ async function registerScansatAndRender(): Promise<void> {
     // at all. Its channels publish empty on any install without RP-1, which is
     // every stock one.
     import("@ksp-gonogo/gonogo-rp1-uplink"),
+    // The aerodynamic state a full-fidelity aerodynamics model computes: one
+    // widget, two Topic registrations and two unit tokens of its own. Static
+    // like the six above because this Uplink ships with the mod, and
+    // unconditional because a station has to know `aero.state` is a Topic to
+    // read it off the host at all. Its channel publishes an explicit absence on
+    // any install without the model, which is every stock one.
+    import("@ksp-gonogo/gonogo-ferram-aerospace-research-uplink"),
   ]);
 
   // Wire the real modal-backed consent prompt before the loader runs (the

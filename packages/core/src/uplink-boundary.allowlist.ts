@@ -45,7 +45,8 @@ export type ModToken =
   | "avionics"
   | "kerbalism"
   | "testflight"
-  | "principia";
+  | "principia"
+  | "ferram";
 
 export interface ModAllowlist {
   /** Wire/contract/generated-code files, cross-Uplink ratchet/inventory
@@ -2119,6 +2120,48 @@ export const ALLOWLIST: Record<ModToken, ModAllowlist> = {
        * alternative is an app that cannot load its own bundled Uplinks. Not
        * domainDebt, because there is no coupling here to shrink: if the Uplink
        * is deleted, so is the import.
+       */
+      "packages/app/src/main.tsx",
+      "packages/app/src/__tests__/topic-cs-sync.test.ts",
+    ],
+  },
+
+  // === ferram: owning dirs mod/GonogoFerramAerospaceResearchUplink/ (incl. its
+  // client/), mod/GonogoFerramAerospaceResearchUplink.Tests, and
+  // mod/GonogoFerramAerospaceResearchUplink.Contract.
+  //
+  // The token is the MOD's name and nothing on the wire carries it: this
+  // Uplink's id is "aero" and its Topics are aero.available / aero.state,
+  // deliberately, because what an operator reads is the aerodynamic state and
+  // which model computed it is the Uplink's business. So there is no
+  // topic-prefix pattern here to go with the type-name one, and there should not
+  // be: "far." would match prose in half the tree and would be matching a string
+  // no production file contains.
+  ferram: {
+    domainDebt: [],
+    permanent: [
+      /*
+       * -- UPLINK WIDGET-DECLARATION gate: the app-side check that every Uplink
+       * widget's declarations resolve to something real has to LOAD every Uplink
+       * client, so it names each by construction. Permanent for the reason the
+       * other tokens record: a gate over every Uplink's declarations will always
+       * have to load every Uplink, and one placed inside an Uplink is one a
+       * third-party author cannot run.
+       */
+      "packages/app/src/__tests__/uplink-widget-declarations.test.ts",
+      /*
+       * The sibling architectural ratchet: a path-keyed allowlist over every
+       * Uplink's .cs files, so it necessarily names them all. A path string in a
+       * ratchet, not a dependency.
+       */
+      "packages/core/src/truenow-allowlist.test.ts",
+      /*
+       * The two SANCTIONED SELF-REGISTRATION IMPORTS of this Uplink's client
+       * package, the same pair every bundled Uplink has. An import of a package
+       * whose name contains the mod's is the mechanism by which an Uplink
+       * registers at all; the app learns nothing about the mod from it. Not
+       * domainDebt, because there is no coupling here to shrink: if the Uplink is
+       * deleted, so is the import.
        */
       "packages/app/src/main.tsx",
       "packages/app/src/__tests__/topic-cs-sync.test.ts",

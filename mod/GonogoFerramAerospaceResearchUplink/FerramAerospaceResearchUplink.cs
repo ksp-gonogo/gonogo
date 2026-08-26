@@ -19,7 +19,7 @@ namespace GonogoFerramAerospaceResearchUplink
     /// which on an ascent or an entry is the half an operator is actually flying
     /// to.</para>
     ///
-    /// <para>Two channels, on the pattern <c>GonogoAvionicsUplink</c> established.
+    /// <para>Two channels, the shape a reflection-probed Uplink takes here.
     /// The bare <c>aero.available</c> presence primitive is TrueNow and is sourced
     /// whether or not FAR is installed, so a client can gate on it definitively
     /// rather than inferring absence from silence. The per-vessel

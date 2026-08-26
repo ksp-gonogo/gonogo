@@ -13,6 +13,7 @@ import "@ksp-gonogo/gonogo-kerbcast-uplink";
 import "@ksp-gonogo/gonogo-kos-uplink";
 import "@ksp-gonogo/gonogo-scansat-uplink";
 import "@ksp-gonogo/gonogo-realantennas-uplink";
+import "@ksp-gonogo/gonogo-ferram-aerospace-research-uplink";
 import "@ksp-gonogo/gonogo-rp1-uplink";
 import { getAllKnownTopicIds } from "@ksp-gonogo/sitrep-sdk";
 import { describe, expect, it } from "vitest";

@@ -1,7 +1,7 @@
 // Reflection-only bridge to Ferram Aerospace Research. No compile-time reference
 // to FerramAerospaceResearch.dll exists anywhere in this project: every FAR
-// member is reached by runtime reflection, the same arm's-length pattern
-// RaReflection and AvionicsReflection use, and the reason is the same. FAR's
+// member is reached by runtime reflection, the same arm's-length pattern every
+// third-party-mod Uplink here uses, and the reason is the same. FAR's
 // LICENSE file is not machine-classifiable and the mod is widely understood to
 // be copyleft-family, so this assembly USES the running mod rather than
 // INCORPORATING any of it. FAR's attribution notice is retained in

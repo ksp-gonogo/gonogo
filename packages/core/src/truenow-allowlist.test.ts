@@ -174,6 +174,14 @@ const ALLOWED_TRUENOW: Record<string, number> = {
   // sibling avionics.status is the per-vessel controllable-mass reading and is
   // correctly Delayed.) 1 explicit declaration.
   "mod/GonogoAvionicsUplink/AvionicsUplink.cs": 1,
+  // aero.available: whether a full-fidelity aerodynamics model is INSTALLED and
+  // readable, a fact about the player's install the command centre knows
+  // independent of any vessel's comms link, same class as avionics.available
+  // above. Its sibling aero.state is the per-vessel aerodynamic reading and is
+  // correctly Delayed: angle of attack and stall are exactly the kind of
+  // in-flight state an operator must not see ahead of light-time.
+  // 1 explicit declaration.
+  "mod/GonogoFerramAerospaceResearchUplink/FerramAerospaceResearchUplink.cs": 1,
 
   // Every rp1.* channel: RP-1's space centre, read at the KSC. The build queue,
   // the launch complexes and their pads, the rollout operations, the research

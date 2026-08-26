@@ -278,6 +278,22 @@ const MOD_OWNERSHIP: Record<ModToken, ModOwnership> = {
       "mod/GonogoPrincipiaUplink.Tests",
     ],
   },
+  ferram: {
+    // "ferram" alone is distinctive: no unrelated word in this codebase
+    // contains it. Deliberately NOT "far", which is an ordinary English word and
+    // a substring of several more. Nothing on the wire carries either: this
+    // Uplink's id is "aero" and its Topics are aero.available / aero.state, so
+    // the mod's name appears only in the directory, the assembly and the client
+    // package specifier that loads it.
+    patterns: [/ferram/i],
+    ownedDirs: [
+      "mod/GonogoFerramAerospaceResearchUplink",
+      "mod/GonogoFerramAerospaceResearchUplink.Tests",
+      // This Uplink's own contract slice: AeroState lives here, not in
+      // Sitrep.Contract.
+      "mod/GonogoFerramAerospaceResearchUplink.Contract",
+    ],
+  },
 };
 
 /**
