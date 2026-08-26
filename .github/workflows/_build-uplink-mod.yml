@@ -160,6 +160,25 @@ jobs:
             cp "${{ inputs.notice }}" "$plugins_dir/"
           fi
 
+          # And the LICENSE beside it, when the project directory carries one.
+          # Three Uplinks are GPL-3.0-only by linking a copyleft mod (Kos,
+          # Scansat, MechJeb) and each keeps the full GPLv3 text next to its
+          # csproj. GPLv3 requires conveying that text WITH the work, and each
+          # Uplink ships as its own standalone CKAN package, so the zip is the
+          # work: a NOTICE that says "the licence travels with this folder" is
+          # only true if the licence is in the folder.
+          #
+          # Derived from the csproj path rather than added as a matrix input,
+          # because a per-leg input is a second place to forget: an Uplink that
+          # gains a LICENSE gets it shipped without anyone editing this file, and
+          # one that has none is silently skipped, which is correct for the MIT
+          # Uplinks covered by the repository-root LICENSE.
+          uplink_license="$(dirname "${{ inputs.csproj }}")/LICENSE"
+          if [ -f "$uplink_license" ]; then
+            cp "$uplink_license" "$plugins_dir/"
+            echo "bundled $uplink_license"
+          fi
+
           {
             echo "version=${{ inputs.version }}"
             echo "git_sha=${GITHUB_SHA}"
