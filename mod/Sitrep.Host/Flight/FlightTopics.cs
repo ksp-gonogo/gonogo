@@ -17,5 +17,12 @@ namespace Sitrep.Host.Flight
 
         /// <summary>Event: the operator's active-vessel focus moved to a different, already-known vessel. ReliableOrdered.</summary>
         public const string VesselChangedTopic = "flight.vesselChanged";
+
+        /// <summary>
+        /// Whether this flight is a REHEARSAL rather than a mission, and
+        /// whether signal delay is being applied to it. TrueNow, and absent
+        /// under a game with no such concept, which is every stock one.
+        /// </summary>
+        public const string SimulationTopic = "flight.simulation";
     }
 }

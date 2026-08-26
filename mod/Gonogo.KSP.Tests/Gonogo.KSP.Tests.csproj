@@ -207,6 +207,11 @@
     <Compile Include="..\Gonogo.KSP\CommNetBackend.cs" />
     <Compile Include="..\Gonogo.KSP\DevCommsOverride.cs" />
     <Compile Include="..\Gonogo.KSP\CommsCoreUplink.cs" />
+    <!-- GonogoConfigFile.cs is CommsCoreUplink's write side for the simulation
+         delay policy: ConfigNode plus UnityEngine.Debug, so it sits under this
+         gate with its caller. Every failure path inside it is soft, which is
+         what lets the policy command run headlessly at all. -->
+    <Compile Include="..\Gonogo.KSP\GonogoConfigFile.cs" />
     <!-- FleetSilenceChannels.cs is CommsCoreUplink.Register's direct dependency
          (comms registers the SilenceTracker's reckoning when elected, see that
          call site), so it has to resolve here too. It walks FlightGlobals.Vessels

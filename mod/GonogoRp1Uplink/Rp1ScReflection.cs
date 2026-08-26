@@ -138,6 +138,33 @@ namespace GonogoRp1Uplink
         }
 
         /// <summary>
+        /// Whether the flight currently on screen is one of RP-1's SIMULATIONS
+        /// rather than a real mission, or null when RP-1 cannot answer.
+        ///
+        /// <para>Null covers three cases that all mean "do not claim anything":
+        /// RP-1 is not installed, its scenario module is not live (the main
+        /// menu), or the save is not one RP-1 manages. None of them is
+        /// "this is a real mission", and reporting false for them would let a
+        /// consumer stamp a flight as confirmed on no evidence.</para>
+        ///
+        /// <para><c>SpaceCenterManagement.IsSimulatedFlight</c> is a public
+        /// persisted bool field, set true when RP-1 starts a simulation and
+        /// cleared when it ends. Read live rather than cached, the same
+        /// discipline <see cref="IsEnabledForSave"/> follows and for the same
+        /// reason: the callers are polled independently of any subscription, so
+        /// there is no capture whose cadence a cache could ride.</para>
+        /// </summary>
+        public bool? IsSimulatedFlight()
+        {
+            var instance = ScmInstance();
+            if (instance == null || ReadBool(instance, "enabledForSave") != true)
+            {
+                return null;
+            }
+            return ReadBool(instance, "IsSimulatedFlight");
+        }
+
+        /// <summary>
         /// Reads one tick. Always returns a payload: an unavailable RP-1 yields
         /// <see cref="Rp1ScRaw.Available"/> false and empty lists, which is the
         /// state the client needs in order to say so.

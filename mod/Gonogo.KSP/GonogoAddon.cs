@@ -348,6 +348,14 @@ namespace Gonogo.KSP
                         {
                             cfg.LightSpeedScale = scale;
                         }
+                        // Absent means OFF: a simulation cuts the delay unless
+                        // the operator asked to rehearse under it. Written back
+                        // here by the console's own command, see
+                        // GonogoConfigFile.
+                        if (node.HasValue("delayInSimulation") && bool.TryParse(node.GetValue("delayInSimulation"), out var inSim))
+                        {
+                            cfg.DelayInSimulation = inSim;
+                        }
                     }
                 }
             }
@@ -356,7 +364,9 @@ namespace Gonogo.KSP
                 Debug.LogWarning("[Gonogo] signal-delay config read failed, using defaults: " + ex.Message);
             }
 
-            Debug.Log("[Gonogo] SignalDelay enabled=" + cfg.Enabled + " lightSpeedScale=" + cfg.LightSpeedScale);
+            Debug.Log("[Gonogo] SignalDelay enabled=" + cfg.Enabled
+                + " lightSpeedScale=" + cfg.LightSpeedScale
+                + " delayInSimulation=" + cfg.DelayInSimulation);
             return cfg;
         }
 

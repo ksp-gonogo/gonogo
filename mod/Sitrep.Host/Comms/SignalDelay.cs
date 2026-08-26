@@ -30,6 +30,32 @@ namespace Sitrep.Host.Comms
         public double SilenceDeclarationSeconds { get; set; } =
             GameDayDefaults.StockDaySeconds;
 
+        /// <summary>
+        /// Apply signal delay during a SIMULATION as well as a mission. Off,
+        /// so a simulation cuts the delay.
+        ///
+        /// <para>A simulation is a ground-side rehearsal. There is no
+        /// spacecraft, so there is no light-time, and delaying it models a
+        /// distance to a craft that does not exist. A controller may still want
+        /// the delay on, to rehearse under the conditions the real flight will
+        /// have, which is why this is a choice and not a rule.</para>
+        ///
+        /// <para>Only meaningful where something says what a simulation IS: see
+        /// <c>ISimulationBackend</c>. A game with no such concept never reaches
+        /// this flag.</para>
+        /// </summary>
+        public bool DelayInSimulation { get; set; }
+
+        /// <summary>
+        /// Set only on the DERIVED config <see cref="SimulationDelayPolicy"/>
+        /// hands out while a simulation is cutting the delay, never on an
+        /// authored one. It is what lets <see cref="SignalDelay.Compute"/>
+        /// report <see cref="CommsDelaySource.Simulation"/> rather than a bare
+        /// <see cref="CommsDelaySource.None"/>, so a live board says why it is
+        /// live.
+        /// </summary>
+        public bool CutForSimulation { get; set; }
+
         public static SignalDelayConfig Off() => new SignalDelayConfig { Enabled = false };
     }
 
@@ -78,7 +104,7 @@ namespace Sitrep.Host.Comms
             // everything live (§3.1).
             if (config == null || !config.Enabled)
             {
-                return Disabled(meta);
+                return Disabled(config, meta);
             }
 
             // A non-positive scale would divide by zero / go negative; treat
@@ -123,11 +149,22 @@ namespace Sitrep.Host.Comms
             };
         }
 
-        /// <summary>Delay feature is off but the vessel IS connected, a real "zero applied", so <c>OneWaySeconds = 0</c> (never null).</summary>
-        private static CommsDelay Disabled(PayloadMeta meta) => new CommsDelay
+        /// <summary>
+        /// Delay feature is off but the vessel IS connected, a real "zero
+        /// applied", so <c>OneWaySeconds = 0</c> (never null).
+        ///
+        /// <para>Two ways to be off, told apart by <see cref="Source"/>: the
+        /// operator never turned delay on, or this flight is a simulation and
+        /// the delay was cut for it. The magnitude is the same zero and the
+        /// reason is not, and an operator looking at a live board deserves the
+        /// reason.</para>
+        /// </summary>
+        private static CommsDelay Disabled(SignalDelayConfig? config, PayloadMeta meta) => new CommsDelay
         {
             OneWaySeconds = 0.0,
-            Source = CommsDelaySource.None,
+            Source = config != null && config.CutForSimulation
+                ? CommsDelaySource.Simulation
+                : CommsDelaySource.None,
             Meta = meta,
         };
 

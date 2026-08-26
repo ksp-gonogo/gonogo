@@ -260,6 +260,19 @@ public enum CommsDelaySource
 {
     None,
     SignalDelay,
+
+    /// <summary>
+    /// Zero, because the flight on screen is a SIMULATION and the operator has
+    /// not asked for delay during one. A rehearsal has no spacecraft, so it has
+    /// no light-time, and modelling a distance to a craft that is not there is
+    /// a fiction rather than a measurement.
+    ///
+    /// <para>Its own member rather than <see cref="None"/> because a live board
+    /// is a claim, and an operator is entitled to know which claim it is: "no
+    /// delay is configured" and "delay is off because this is a rehearsal" call
+    /// for different reactions. See <c>flight.simulation</c>.</para>
+    /// </summary>
+    Simulation,
 }
 
 /// <summary>
