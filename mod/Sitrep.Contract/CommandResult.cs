@@ -243,6 +243,33 @@ public enum CommandErrorCode
     /// <c>PSystemSetup.Instance.GetSpaceCenterFacility(name).GetFacilityDamage()</c>.</para>
     /// </summary>
     FacilityDamaged = 20,
+
+    /// <summary>
+    /// The vehicle is not a launchable article yet: an install's build and
+    /// logistics model has work outstanding on it. Nothing is over a limit and
+    /// nothing is broken, the thing simply has not been made ready.
+    ///
+    /// <para>Authority: whichever Uplink CONTRIBUTED the readiness requirement
+    /// that refused (see <see cref="IUplinkHost.AddCommandRequirement"/>), never
+    /// a stock KSP read: stock has no build step, so it contributes no readiness
+    /// requirements and this code never arrives on a stock install. Under RP-1 it
+    /// is a vehicle that was never integrated, one still integrating, one
+    /// finished but not rolled out, or one rolled out to a pad still being
+    /// reconditioned. <see cref="CommandResult.Detail"/> says which.</para>
+    ///
+    /// <para>Deliberately NOT <see cref="LimitReached"/>, which is the launch
+    /// refusal an operator already gets for a craft that is too heavy or too
+    /// large for the site, and which is fixed by changing the craft or upgrading
+    /// the pad. This one is fixed by doing the outstanding work, and the two
+    /// want entirely different next moves.</para>
+    ///
+    /// <para>Deliberately NOT <see cref="NotFound"/> either, which
+    /// <c>ksp.launch</c> already returns when no craft file answers to the name.
+    /// A craft that exists on disk and has never been built is a different
+    /// situation from one that does not exist, and collapsing them tells an
+    /// operator to go looking for a file that is sitting right there.</para>
+    /// </summary>
+    NotReady = 21,
 }
 
 /// <summary>

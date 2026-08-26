@@ -33,6 +33,7 @@
     <Compile Include="..\GonogoRp1Uplink\Rp1ProgramsReflection.cs" />
     <Compile Include="..\GonogoRp1Uplink\Rp1ScUplink.cs" />
     <Compile Include="..\GonogoRp1Uplink\Rp1EconomyBackend.cs" />
+    <Compile Include="..\GonogoRp1Uplink\Rp1LaunchGate.cs" />
   </ItemGroup>
 
   <ItemGroup>

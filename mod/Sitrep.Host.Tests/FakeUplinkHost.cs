@@ -81,6 +81,16 @@ namespace Sitrep.Host.Tests
             GateEvaluators.Add(evaluator);
         }
 
+        /// <summary>Every requirement contributed to a command this host does not own, keyed by that command.</summary>
+        public List<KeyValuePair<string, CommandRequirement>> ContributedRequirements { get; } =
+            new List<KeyValuePair<string, CommandRequirement>>();
+
+        public void AddCommandRequirement(string command, CommandRequirement requirement)
+        {
+            ContributedRequirements.Add(
+                new KeyValuePair<string, CommandRequirement>(command, requirement));
+        }
+
         public void SetSignalDelaySource(Func<KspSnapshot?, CommsDelay?> computeOnMainThread)
         {
         }

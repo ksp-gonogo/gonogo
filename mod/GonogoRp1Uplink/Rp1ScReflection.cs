@@ -707,60 +707,15 @@ namespace GonogoRp1Uplink
             }
         }
 
-        private bool? ReadBool(object? target, string name) => Member(target, name) is bool b ? b : (bool?)null;
+        private bool? ReadBool(object? target, string name) => Rp1Types.ReadBool(target, name);
 
-        private string? ReadString(object? target, string name) => Member(target, name) as string;
+        private string? ReadString(object? target, string name) => Rp1Types.ReadString(target, name);
 
-        private string? ReadGuidString(object? target, string name)
-        {
-            var value = Member(target, name);
-            return value is Guid g ? g.ToString() : value as string;
-        }
+        private string? ReadGuidString(object? target, string name) => Rp1Types.ReadGuidString(target, name);
 
-        /// <summary>
-        /// An enum member read as its NAME. RP-1's ordinals are its own business
-        /// and shift between releases; a name is stable, legible in a bug report,
-        /// and is what a client maps.
-        /// </summary>
-        private string? ReadEnumName(object? target, string name)
-        {
-            var value = Member(target, name);
-            if (value == null)
-            {
-                return null;
-            }
-            try
-            {
-                var type = value.GetType();
-                return type.IsEnum ? Enum.GetName(type, value) : Convert.ToString(value, CultureInfo.InvariantCulture);
-            }
-            catch (Exception)
-            {
-                return null;
-            }
-        }
+        private string? ReadEnumName(object? target, string name) => Rp1Types.ReadEnumName(target, name);
 
-        /// <summary>
-        /// Enumerates one of RP-1's collections. They are
-        /// <c>ROUtils.DataTypes.PersistentList&lt;T&gt;</c> from a separate
-        /// assembly, so they are walked as a bare <see cref="IEnumerable"/> and
-        /// never cast to <c>List&lt;T&gt;</c>: a cast that happens to work today
-        /// is one release from throwing.
-        /// </summary>
-        private static IEnumerable<object> Enumerate(object? collection)
-        {
-            if (!(collection is IEnumerable e) || collection is string)
-            {
-                yield break;
-            }
-            foreach (var item in e)
-            {
-                if (item != null)
-                {
-                    yield return item;
-                }
-            }
-        }
+        private static IEnumerable<object> Enumerate(object? collection) => Rp1Types.Enumerate(collection);
 
         private static List<object> Materialise(object? collection)
         {

@@ -29,6 +29,7 @@ namespace GonogoMechJebUplink.Tests
         public void AddCommandHandler<TArgs, TResult>(string command, Func<TArgs, TResult> handler) => throw NotExpected();
         public void AddVantageCommandHandler<TArgs, TResult>(string command, Func<TArgs, string, TResult> handler) => throw NotExpected();
         public void AddGateEvaluator(ICommandGateEvaluator evaluator) => throw NotExpected();
+        public void AddCommandRequirement(string command, CommandRequirement requirement) => throw NotExpected();
         public void SetSignalDelaySource(Func<KspSnapshot?, CommsDelay?> computeOnMainThread) => throw NotExpected();
         public void SetVesselDelay(string vesselId, double oneWaySeconds) => throw NotExpected();
         public void SetAuthorityDelay(string centreId, string vesselId, double oneWaySeconds) => throw NotExpected();

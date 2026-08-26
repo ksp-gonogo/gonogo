@@ -85,6 +85,26 @@ namespace GonogoRp1Uplink
         /// <summary>Set when the provider registration threw, so Health can say so rather than nothing.</summary>
         private string? _economyRegistrationError;
 
+        /// <summary>
+        /// RP-1's launch rules, contributed to core's own <c>ksp.launch</c>. Its
+        /// own reader, not part of the space-centre capture: the capture is
+        /// subscription-gated and one tick stale, and a gate has to answer from
+        /// the model as it stands at the moment of the dispatch.
+        /// </summary>
+        private readonly Rp1LaunchGate _launch = new Rp1LaunchGate();
+
+        /// <summary>Set when the launch-gate registration threw, so Health can say so rather than nothing.</summary>
+        private string? _launchGateRegistrationError;
+
+        /// <summary>
+        /// The command RP-1's launch rules are contributed to. Spelled out rather
+        /// than referenced: <c>FlightOpsCommandProvider</c> lives in
+        /// <c>Sitrep.Host</c>, which an Uplink may not reference, and a
+        /// third-party author naming somebody else's command is in exactly this
+        /// position.
+        /// </summary>
+        private const string FlightOpsLaunchCommand = "ksp.launch";
+
         private IChannelPublisher? _centres;
         private IChannelPublisher? _complexes;
         private IChannelPublisher? _buildQueue;
@@ -191,6 +211,32 @@ namespace GonogoRp1Uplink
             catch (Exception ex)
             {
                 _economyRegistrationError = ex.Message;
+            }
+
+            // RP-1's launch rules, contributed to the command core owns. Same
+            // registering-IS-the-gate discipline as the economy provider above,
+            // and separately fail-softed for the same reason: a launch gate that
+            // fails to register must not cost this Uplink its read surface, and a
+            // read surface that fails must not silently unguard the launch.
+            //
+            // Contributed rather than elected. Preconditions compose: these are
+            // ADDED to the scene rule and the two pre-flight tests core declares
+            // on ksp.launch, and a second installed mod with its own launch
+            // condition adds more rather than displacing these.
+            try
+            {
+                if (_launch.IsAvailable)
+                {
+                    host.AddGateEvaluator(_launch);
+                    foreach (var requirement in Rp1LaunchGate.Requirements())
+                    {
+                        host.AddCommandRequirement(FlightOpsLaunchCommand, requirement);
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                _launchGateRegistrationError = ex.Message;
             }
 
             _centres = host.Publisher(CentresTopic);
@@ -317,6 +363,13 @@ namespace GonogoRp1Uplink
                     _economyRegistrationError != null
                         ? "registration failed: " + _economyRegistrationError
                         : _economy.IsAvailable ? "registered" : "maintenance types not found"),
+                new UplinkHealthFact(
+                    "launch rules",
+                    _launchGateRegistrationError != null
+                        ? "not contributed: " + _launchGateRegistrationError
+                        : _launch.IsAvailable
+                            ? "contributed to ksp.launch"
+                            : "space centre types not found"),
             };
 
             if (!_rp1.IsAvailable)

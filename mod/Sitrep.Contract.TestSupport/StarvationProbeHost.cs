@@ -214,6 +214,10 @@ namespace Sitrep.Contract.TestSupport
         {
         }
 
+        public void AddCommandRequirement(string command, CommandRequirement requirement)
+        {
+        }
+
         public void SetSignalDelaySource(Func<KspSnapshot?, CommsDelay?> computeOnMainThread)
         {
         }

@@ -227,6 +227,14 @@ namespace Sitrep.Host
         private readonly Dictionary<string, ICommandGateEvaluator> _gateEvaluators =
             new Dictionary<string, ICommandGateEvaluator>(StringComparer.Ordinal);
 
+        // Requirements an Uplink contributed to a command it does not own (see
+        // IUplinkHost.AddCommandRequirement). Kept apart from the owning
+        // declaration rather than merged into it so the two orders stay fixed:
+        // the owner's static requirements are evaluated first and can darken a
+        // control in advance, contributions follow in the order they arrived.
+        private readonly Dictionary<string, List<CommandRequirement>> _contributedRequirements =
+            new Dictionary<string, List<CommandRequirement>>(StringComparer.Ordinal);
+
         // The last main-thread gate sample, published to system.uplink.gates by
         // the Courier-thread mapper. See SampleCommandGates.
         private CommandGateReport _commandGateReport = new CommandGateReport();
@@ -1658,6 +1666,57 @@ namespace Sitrep.Host
             _gateEvaluators[evaluator.Kind] = evaluator;
         }
 
+        public void AddCommandRequirement(string command, CommandRequirement requirement)
+        {
+            if (string.IsNullOrWhiteSpace(command)) throw new ArgumentNullException(nameof(command));
+            if (requirement == null) throw new ArgumentNullException(nameof(requirement));
+            if (string.IsNullOrWhiteSpace(requirement.Kind))
+            {
+                throw new InvalidOperationException(
+                    $"a requirement contributed to \"{command}\" must name the gate Kind that answers it");
+            }
+
+            // The command's OWN declaration may not have arrived yet: Uplink
+            // registration order is not controllable, and a mod's Uplink may well
+            // register before the one that declares the command it constrains.
+            // ValidateGateDeclarations checks the pairing once, after all of them.
+            if (!_contributedRequirements.TryGetValue(command, out var contributed))
+            {
+                contributed = new List<CommandRequirement>();
+                _contributedRequirements[command] = contributed;
+            }
+            contributed.Add(requirement);
+        }
+
+        /// <summary>
+        /// Everything that must hold for one command: what its owning Uplink
+        /// declared, then what other Uplinks contributed, in that order.
+        /// </summary>
+        /// <remarks>
+        /// Order is the whole reason this is a concatenation rather than a set.
+        /// <see cref="EvaluateGatesHere"/> returns on the first non-Pass verdict,
+        /// and core's own requirements are the ones answerable with no arguments
+        /// at all: an occupied pad is a fact the game knows in advance, and a
+        /// contributed requirement abstaining ahead of it would turn a control
+        /// that goes dark with a reason into one that fails the press.
+        /// </remarks>
+        private CommandRequirement[] RequirementsFor(string command)
+        {
+            _commandDeclarations.TryGetValue(command, out var declaration);
+            var declared = declaration?.Requires ?? EmptyRequirements;
+            if (!_contributedRequirements.TryGetValue(command, out var contributed) || contributed.Count == 0)
+            {
+                return declared;
+            }
+
+            var all = new CommandRequirement[declared.Length + contributed.Count];
+            Array.Copy(declared, all, declared.Length);
+            contributed.CopyTo(all, declared.Length);
+            return all;
+        }
+
+        private static readonly CommandRequirement[] EmptyRequirements = new CommandRequirement[0];
+
         /// <summary>
         /// Evaluate a command's declared requirements against what is known.
         ///
@@ -1685,9 +1744,7 @@ namespace Sitrep.Host
         /// </summary>
         internal GateVerdict EvaluateGates(string command, IGateArguments arguments)
         {
-            if (!_commandDeclarations.TryGetValue(command, out var declaration)) return GateVerdict.Pass();
-            var declared = declaration.Requires;
-            if (declared == null || declared.Length == 0) return GateVerdict.Pass();
+            if (RequirementsFor(command).Length == 0) return GateVerdict.Pass();
 
             if (!_executeCommandsOnMainThread) return EvaluateGatesHere(command, arguments);
 
@@ -1727,9 +1784,8 @@ namespace Sitrep.Host
         private GateVerdict EvaluateGatesHere(
             string command, IGateArguments arguments, Dictionary<string, GateVerdict>? memo)
         {
-            if (!_commandDeclarations.TryGetValue(command, out var declaration)) return GateVerdict.Pass();
-            var requirements = declaration.Requires;
-            if (requirements == null || requirements.Length == 0) return GateVerdict.Pass();
+            var requirements = RequirementsFor(command);
+            if (requirements.Length == 0) return GateVerdict.Pass();
 
             foreach (var requirement in requirements)
             {
@@ -1844,8 +1900,11 @@ namespace Sitrep.Host
             {
                 foreach (var pair in _commandDeclarations)
                 {
-                    var requires = pair.Value.Requires;
-                    if (requires == null || requires.Length == 0) continue;
+                    // RequirementsFor, not the declaration's own array: a command
+                    // an installed mod has constrained is gated whether or not
+                    // core declared anything about it, and leaving it out would
+                    // publish it as having nothing to say about itself.
+                    if (RequirementsFor(pair.Key).Length == 0) continue;
                     gates.Add(new CommandGate
                     {
                         Command = pair.Key,
@@ -1905,9 +1964,7 @@ namespace Sitrep.Host
             var missing = new List<string>();
             foreach (var pair in _commandDeclarations)
             {
-                var requires = pair.Value.Requires;
-                if (requires == null) continue;
-                foreach (var requirement in requires)
+                foreach (var requirement in RequirementsFor(pair.Key))
                 {
                     var kind = requirement.Kind ?? "";
                     if (!_gateEvaluators.ContainsKey(kind))
@@ -1916,12 +1973,26 @@ namespace Sitrep.Host
                     }
                 }
             }
+
+            // A contribution to a command nobody declares constrains nothing, and
+            // reads exactly like one that is being enforced. Named here rather
+            // than dropped, because the shape of the mistake is a typo in a
+            // command id and the Uplink that made it cannot tell.
+            foreach (var pair in _contributedRequirements)
+            {
+                if (pair.Value.Count > 0 && !_commandDeclarations.ContainsKey(pair.Key))
+                {
+                    missing.Add($"a requirement was contributed to \"{pair.Key}\", which no uplink declares");
+                }
+            }
+
             if (missing.Count > 0)
             {
                 throw new InvalidOperationException(
-                    "gate declarations with no registered evaluator: " + string.Join("; ", missing.ToArray())
-                        + ". Register an ICommandGateEvaluator for each kind, or remove the requirement: "
-                        + "a gate nobody can evaluate is a gate that silently does not exist.");
+                    "gate requirements that cannot be enforced: " + string.Join("; ", missing.ToArray())
+                        + ". Register an ICommandGateEvaluator for each kind, name a command that exists, "
+                        + "or remove the requirement: a gate nobody can evaluate is a gate that silently "
+                        + "does not exist.");
             }
         }
 
