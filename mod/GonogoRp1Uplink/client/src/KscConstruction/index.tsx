@@ -102,7 +102,7 @@ function ConstructionRow({
   nameCentre,
 }: Readonly<{ row: Rp1ConstructionEntry; nameCentre: boolean }>) {
   const ratio = magnitudeOf(row.progressRatio);
-  const label = row.name ?? NULL_DISPLAY;
+  const label = rowLabel(row);
 
   return (
     <Stack as="li" gap="xs">
@@ -127,6 +127,18 @@ function ConstructionRow({
             <TimeLeft row={row} />
           </Text>
         </Row>
+        {row.isModify === true && (
+          <Row>
+            {/* Its own row rather than appended to the detail above. A sentence
+                long enough to wrap takes the whole width of a Row and squeezes
+                the name out of it entirely, which a markup assertion cannot
+                see and a render can. */}
+            <RowName>Engineers</RowName>
+            <Text>
+              <Unit value={row.engineersToReadd} /> off it until it finishes
+            </Text>
+          </Row>
+        )}
         <Row>
           <RowName>Paid</RowName>
           <Text>
@@ -149,9 +161,10 @@ function ConstructionRow({
 }
 
 /**
- * The one line that differs by kind: which levels a facility is moving between,
- * whether a complex is being modified rather than built, and nothing at all for
- * a pad, whose name already says what it is.
+ * The one phrase that differs by kind, and it is kept SHORT on purpose: it
+ * shares a row with the name, and a phrase long enough to wrap takes the whole
+ * width and leaves the name with none. Anything that needs a sentence gets a row
+ * of its own.
  */
 function Detail({ row }: Readonly<{ row: Rp1ConstructionEntry }>) {
   if (row.kind === "FacilityUpgrade") {
@@ -163,16 +176,9 @@ function Detail({ row }: Readonly<{ row: Rp1ConstructionEntry }>) {
     );
   }
   if (row.kind === "LaunchComplex") {
-    return row.isModify === true ? (
-      <>
-        modification, <Unit value={row.engineersToReadd} /> engineers off it
-        until it finishes
-      </>
-    ) : (
-      <>a new launch complex</>
-    );
+    return row.isModify === true ? <>modification</> : <>new complex</>;
   }
-  return <>a new pad</>;
+  return <>new pad</>;
 }
 
 /**
@@ -214,6 +220,39 @@ const KIND_BADGE: Readonly<Record<string, string>> = {
   LaunchComplex: "COMPLEX",
   Pad: "PAD",
 };
+
+/**
+ * KSP's facility enum, spelled the way the building is signposted.
+ *
+ * RP-1's own list writes these out through a localised lookup that reaches KSP,
+ * which a reflection-only Uplink cannot call, so the stored name arrives as the
+ * enum member and "VehicleAssemblyBuilding" is not a thing anybody says. A
+ * facility the table does not know falls back to the stored name rather than to
+ * a dash: an unrecognised building still has to be identifiable.
+ */
+const FACILITY_LABEL: Readonly<Record<string, string>> = {
+  Administration: "Administration",
+  AstronautComplex: "Astronaut Complex",
+  LaunchPad: "Launch Pad",
+  MissionControl: "Mission Control",
+  ResearchAndDevelopment: "Research and Development",
+  Runway: "Runway",
+  SpaceplaneHangar: "Spaceplane Hangar",
+  TrackingStation: "Tracking Station",
+  VehicleAssemblyBuilding: "Vehicle Assembly Building",
+};
+
+/**
+ * What to call this row. A launch complex and a pad are named by their operator,
+ * so RP-1's stored name is already the right words; a facility is named by its
+ * enum member and is not.
+ */
+function rowLabel(row: Rp1ConstructionEntry): string {
+  if (row.facilityType !== undefined && row.facilityType !== null) {
+    return FACILITY_LABEL[row.facilityType] ?? row.name ?? row.facilityType;
+  }
+  return row.name ?? NULL_DISPLAY;
+}
 
 /**
  * A Row renders an `<li>`, so its rows need list semantics around them; see
