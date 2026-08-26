@@ -38,7 +38,26 @@ interface PageFailure {
   pageErrors: string[];
 }
 
+/**
+ * Below this, the harness is not being smoke-tested, it is being iterated over.
+ *
+ * This check is the compensating RED for the permanently-red `visual` job, so a
+ * version of it that reports success having loaded no page is worth less than
+ * nothing. An empty `PROBE_PAGES` runs the loop zero times, collects no failure
+ * and exits 0, which is exactly how a dead render harness would present.
+ */
+const MIN_PROBE_PAGES = 2;
+
 async function main(): Promise<void> {
+  const pageCount = Object.keys(PROBE_PAGES).length;
+  if (pageCount < MIN_PROBE_PAGES) {
+    console.error(
+      `\nprobe-render-smoke: only ${pageCount} probe page(s) declared, expected at least ` +
+        `${MIN_PROBE_PAGES}. Refusing to report a clean smoke run over a set this small.`,
+    );
+    process.exit(1);
+  }
+
   const failures: PageFailure[] = [];
   const browser = await chromium.launch();
   try {

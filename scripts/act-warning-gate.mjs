@@ -303,6 +303,22 @@ const packages = packagesWithTests().filter(
   (p) => !filter || p.short.includes(filter),
 );
 
+/*
+ * The self-test below proves the COUNTER can see a warning. It cannot prove the
+ * gate is measuring anything: `packagesWithTests` skips a directory whose
+ * manifest will not parse, and a `--filter` that matches nothing leaves this
+ * empty, at which point `inScope()` excludes every file and the gate reports a
+ * tree that matches its debt exactly.
+ */
+if (packages.length === 0) {
+  console.error(
+    filter
+      ? `\n✖ --filter ${filter} matched no package with a test script, so nothing was measured.`
+      : "\n✖ BLIND: found no package with a test script, so nothing was measured.",
+  );
+  process.exit(1);
+}
+
 console.log("act-warning-gate: proving the instrument before trusting it");
 const selfTestCount = runSelfTest();
 if (selfTestCount < 1) {
