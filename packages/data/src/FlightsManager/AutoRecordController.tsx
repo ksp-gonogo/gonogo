@@ -56,19 +56,16 @@ export interface AutoRecordControllerProps {
 }
 
 /**
- * Automatic, on-by-default flight recording for the main screen. Replaces
- * the old "press record" `RecordingControls` flow (see `FlightsManager`'s
- * own doc comment): while `missionHistoryEnabled` is on, every flight is
- * captured with no user gesture.
+ * Automatic, on-by-default flight recording for the main screen: while
+ * `missionHistoryEnabled` is on, every flight is captured with no user
+ * gesture. `FlightsManager`'s own doc comment covers the table side.
  *
  * **Boundary approach: mod-native, not a client heuristic:** delimits
- * recordings on the mod's own `flight.started`/`flight.ended` events
- * (`docs/superpowers/plans/2026-07-11-flight-lifecycle-spec.md`), retiring
- * the client-side `FlightDetector` heuristic this component used to run
- * (`vesselName` + `missionTime` + a revert-threshold guess). The mod mints
- * the flight id (`Vessel.id`) and does ALL boundary detection server-side,
- * including revert, which the old heuristic could only approximate, so
- * this controller is a thin, event-driven mirror:
+ * recordings on the mod's own `flight.started`/`flight.ended` events. The mod
+ * mints the flight id (`Vessel.id`) and does ALL boundary detection
+ * server-side, revert included, so this controller is a thin, event-driven
+ * mirror. A client-side guess off `vesselName` + `missionTime` + a
+ * revert threshold can only approximate any of that:
  *
  * - `flight.started` closes whatever session is open and starts a fresh
  *   one for the new flight.
@@ -82,9 +79,9 @@ export interface AutoRecordControllerProps {
  *   exactly when the operator's own view of the flight ends, not when it
  *   happened in real time.
  *
- * One caveat inherent to `StreamRecorder`'s start/stop-a-whole-fixture shape
- * (unlike the old sample-store, which appended into the SAME flight id
- * indefinitely): if the mod ever republishes `flight.started` for a flight
+ * One caveat inherent to `StreamRecorder`'s start/stop-a-whole-fixture shape,
+ * which has no way to append into a flight id it has already closed: if the
+ * mod ever republishes `flight.started` for a flight
  * id that already has a saved mission, a brand-new `StreamRecorder` session
  * starts: a second mission row for what the mod still considers logically
  * one flight. There is no incremental-append path into `MissionStore`
@@ -155,10 +152,10 @@ export function AutoRecordController({
     });
   }, [missionHistoryEnabled, recorder]);
 
-  // Scene-exit-to-non-flight -> stop + save. Mirrors the old tick-based
-  // guard: without this a recording started in flight would sit open until
-  // the mod's OWN flight.ended eventually fires (e.g. a later recovery),
-  // rather than closing the moment the operator navigates away.
+  // Scene-exit-to-non-flight -> stop + save. Without this a recording started
+  // in flight sits open until the mod's OWN flight.ended eventually fires (a
+  // later recovery, say), rather than closing the moment the operator
+  // navigates away.
   useEffect(() => {
     const prev = prevSceneRef.current;
     prevSceneRef.current = scene;

@@ -110,14 +110,16 @@ export function StationScreen() {
   // `useState` singleton. `PeerTransport` subscribes to `client.onSitrepFrame`
   // in its constructor, so its lifecycle must be tied to the effect that owns
   // its disposal: exactly the reasoning `SitrepTelemetryProvider` gives for
-  // building its `WebSocketTransport` in `useEffect`. The old
-  // `useState(singleton)` + `useEffect(() => () => singleton.dispose())` shape
-  // was subtly broken under StrictMode: `useState` preserves the SAME instance
-  // across StrictMode's simulated unmount→remount, but the cleanup still fires
-  // `dispose()` (tearing down the `onSitrepFrame` subscription) and setup never
-  // re-subscribes: so every relayed frame is delivered to a dead transport and
-  // station widgets sit on "SYNCING" forever. Rebuilding in the effect gives a
-  // fresh, re-subscribed instance on every (real or StrictMode) remount.
+  // building its `WebSocketTransport` in `useEffect`.
+  //
+  // A `useState(singleton)` + `useEffect(() => () => singleton.dispose())`
+  // shape breaks under StrictMode: `useState` preserves the SAME instance
+  // across StrictMode's simulated unmount then remount, but the cleanup still
+  // fires `dispose()`, tearing down the `onSitrepFrame` subscription, and setup
+  // never re-subscribes. Every relayed frame is then delivered to a dead
+  // transport and station widgets sit on "SYNCING" forever. Rebuilding in the
+  // effect gives a fresh, re-subscribed instance on every remount, real or
+  // simulated.
   const [peerTransport, setPeerTransport] = useState<PeerTransport | null>(
     null,
   );
@@ -131,8 +133,8 @@ export function StationScreen() {
   }, [client]);
   // True once this station has reached "connected" at least once this
   // session. Lets the connect screen tell "host mid-reclaim after a restart"
-  // (previously connected → show "Host reconnecting...") apart from "wrong
-  // code / host never up" (never connected → "couldn't find that code"). On
+  // (connected once already, so show "Host reconnecting...") apart from "wrong
+  // code / host never up" (never connected, so "couldn't find that code"). On
   // the wire both look like the same `peer-unavailable`.
   const [everConnected, setEverConnected] = useState(false);
   const dashboard = useDashboardState(
@@ -185,11 +187,11 @@ export function StationScreen() {
   }, [serialService, dashboard.getItems]);
 
   useEffect(() => {
-    // Reopen previously-authorised serial ports (no user prompt). Covers the
-    // "auto-reconnect on station refresh" live-test bug. Also re-attach the
-    // hot-plug listeners: destroy() detaches them, so a StrictMode
-    // cleanup→setup cycle would otherwise silently kill hot-plug for the
-    // rest of the page lifetime.
+    // Reopen the serial ports this origin is already authorised for, with no
+    // user prompt, so a station refresh reconnects its hardware by itself. Also
+    // re-attach the hot-plug listeners: destroy() detaches them, so a
+    // StrictMode cleanup-then-setup cycle would otherwise silently kill
+    // hot-plug for the rest of the page lifetime.
     serialService.attachNavigatorListeners();
     void serialService.autoReconnect();
     return () => {
@@ -598,19 +600,19 @@ const StationNameChip = styled.div`
   border: 1px solid var(--color-border-subtle);
   border-radius: var(--radius-sm);
   /*
-   * --z-sticky, not the --z-overlay the old 800 maps to. 800 is the rung for
-   * full-surface overlays that replace the dashboard (PushedDashboardOverlay);
-   * this is a pointer-events: none corner chip, and letting it sit on the
-   * overlay rung means a future retune of --z-overlay (say, to clear the FAB
-   * column) drags the chip up past --z-fab with it. The only real constraint
-   * here is that it stays below --z-fab.
+   * --z-sticky, not --z-overlay. The overlay rung is for full-surface overlays
+   * that replace the dashboard (PushedDashboardOverlay); this is a
+   * pointer-events: none corner chip. Sitting it on the overlay rung means a
+   * future retune of --z-overlay, to clear the FAB column say, drags the chip
+   * up past --z-fab with it. The only real constraint here is that it stays
+   * below --z-fab.
    */
   z-index: var(--z-sticky);
   /*
-   * The chip's padding / background area used to intercept clicks on
-   * widgets beneath it (operator at LFV-1b test, 2026-05-17 session).
-   * Pass pointer events through the wrapper but keep the interactive
-   * children (rename button, input) clickable.
+   * The chip's padding and background area would otherwise intercept clicks
+   * on widgets beneath it, which an operator hit in a live session. Pass
+   * pointer events through the wrapper but keep the interactive children
+   * (rename button, input) clickable.
    */
   pointer-events: none;
 

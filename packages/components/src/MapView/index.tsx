@@ -211,9 +211,9 @@ export interface MapViewScope {
  * Props for `map-view.base`: the STACKABLE REPLACE slot for the map's base
  * surface. Any number of registered augments may fill it; each decides for
  * itself (against its OWN `augmentSettings[itsOwnId]?.show`, and its own
- * data readiness) whether it currently has anything to paint. Like the old
- * single-pick shape, an augment filling this slot renders no JSX onto the
- * page: it hands back a canvas via `onLayer`, keyed by its OWN id (so
+ * data readiness) whether it currently has anything to paint. An augment
+ * filling this slot renders no JSX onto the page: it hands back a canvas via
+ * `onLayer`, keyed by its OWN id (so
  * multiple augments calling `onLayer` concurrently don't clobber one
  * another). MapView composites every currently-supplied canvas in draw
  * order (see orderBaseLayers.ts), on top of its own stock-texture paint,
@@ -241,9 +241,9 @@ export interface MapBaseLayerContext {
   /**
    * Called by the augment whenever it has a fresh canvas to contribute (or
    * `null` to withdraw one, e.g. toggled off). MUST pass the augment's OWN
-   * id as the first argument: MapView keys its per-layer canvas store by
-   * it, since (unlike the old single-pick shape) more than one augment may
-   * hold a canvas at once. Anything a layer leaves transparent falls
+   * id as the first argument: MapView keys its per-layer canvas store by it,
+   * because more than one augment may hold a canvas at once. Anything a layer
+   * leaves transparent falls
    * through to whatever paints beneath it (another layer, the stock
    * texture, or the dark panel fill) rather than being forced opaque.
    */
@@ -254,15 +254,16 @@ export interface MapBaseLayerContext {
   ) => void;
 }
 
-// `map-view.actions` used to be declared here with props of
-// `{ augmentSettings, setAugmentShow }`, threaded down because a per-instance
-// read/write handle on the augment-SETTINGS system had nowhere else to live.
-// That is the framework's capability, not MapView's: it is now
-// `AugmentSettingsProvider` / `useAugmentSettings`, mounted for every widget by
-// the dashboard. With the props gone, `map-view.actions` is propless and is
-// simply the universal `actions` segment `Panel` mounts, the same one
-// `system-view.actions` is; the difference between the two was never anything
-// about maps.
+/*
+ * `map-view.actions` is deliberately absent from the declaration below. It is
+ * propless: the universal `actions` segment `Panel` mounts, identical to
+ * `system-view.actions`, with nothing map-specific about it.
+ *
+ * A per-instance read/write handle on the augment-SETTINGS system does not
+ * belong in its props either. That is the framework's capability rather than
+ * MapView's, and it is reachable from any widget through
+ * `AugmentSettingsProvider` / `useAugmentSettings`, which the dashboard mounts.
+ */
 
 // Co-located declaration-merge of this widget's slot ids → their props. Kept
 // next to the widget (not in a central registry file) so parallel slot work
@@ -568,9 +569,9 @@ function MapViewComponent({
   const predictionRef = useRef<HTMLCanvasElement>(null);
 
   // The map-view.base slot's contributed surfaces: stackable, so keyed by
-  // each contributing augment's OWN id rather than a single ref (the old
-  // single-pick shape's assumption that at most one augment ever holds
-  // this no longer applies; see MapBaseLayerContext's doc comment). A ref
+  // each contributing augment's OWN id rather than a single ref, since any
+  // number of augments can hold a canvas at once (see MapBaseLayerContext's
+  // doc comment). A ref
   // (not state) because it's mutated on every `onLayer` call and read only
   // inside the imperative paint effect below: `baseLayerVersion` is the
   // state that actually triggers a redraw.
