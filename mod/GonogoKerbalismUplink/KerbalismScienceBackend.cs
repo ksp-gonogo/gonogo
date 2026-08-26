@@ -51,6 +51,29 @@ namespace Gonogo.KerbalismUplink
         /// The latest capture, for the File Manager command handlers'
         /// KSP-free pre-filter (<see cref="KerbalismFileCommandProvider"/>).
         /// Same Courier-thread-only data as every read method below.
+        ///
+        /// <para><b>This is refreshed only while something under <c>science.</c> is
+        /// subscribed</b>, because the capture that stashes it is registered with
+        /// that prefix and the engine skips a gated capture entirely on any tick
+        /// where nothing under its prefixes is watched. The channel mappers above
+        /// are unaffected, since their topics ARE the gated ones. The command
+        /// pre-filter is not: a caller that sends a file verb without ever having
+        /// subscribed a science topic in this session reads the default bundle,
+        /// whose <c>Modeled</c> is false, and every verb refuses with
+        /// ModeUnavailable, meaning "Kerbalism is not modelling science", about an
+        /// install that is.</para>
+        ///
+        /// <para>Left gated rather than fixed by ungating, and the reason is the
+        /// cost: the capture walks every drive and science module on the vessel, and
+        /// nothing needs that per tick the way the trajectory capabilities need
+        /// their readings. In the shipped path the dependency is satisfied, because
+        /// the File Manager widget subscribes <c>science.experiments</c> and
+        /// <c>science.lab</c> in the same component that sends the verbs, and the
+        /// subject id it sends comes off those rows. That is a coincidence of how
+        /// one client is built, not a guarantee: a command centre or an automation
+        /// holding a subject id and no science subscription gets the false refusal.
+        /// If that becomes a real path, the fix is to read the drive live at command
+        /// time on the main thread, not to ungate this.</para>
         /// </summary>
         public ScienceRaw Latest => _latest;
 

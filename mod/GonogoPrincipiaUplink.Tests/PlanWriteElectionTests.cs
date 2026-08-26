@@ -72,21 +72,38 @@ namespace GonogoPrincipiaUplink.Tests
         }
 
         /// <summary>
-        /// The plan channel is declared, has a publisher taken, and has a sampled
-        /// source attached to that same topic. A channel declared and never sourced
-        /// publishes nothing forever, and says so nowhere.
+        /// The plan channel is declared, has a publisher taken, and a driven tick
+        /// reaches it. A channel declared and never sourced publishes nothing
+        /// forever, and says so nowhere.
+        ///
+        /// <para>The last of the three is asserted by driving rather than by finding
+        /// the topic in a registration list. The plan reading is ungated, so it no
+        /// longer names its topic at registration at all: what joins the reading to
+        /// the channel is the publish inside the handle, and only a tick can show
+        /// that it happens. See <c>ExclusiveCapabilityStarvationTests</c> for why
+        /// the reading is ungated.</para>
         /// </summary>
         [Fact]
         public void ThePlanChannelIsDeclaredPublishedAndSourced()
         {
-            var uplink = Available();
+            var plugin = new FakePrincipiaPlugin();
+            plugin.Add("vessel-1", hasFlightPlan: true, manoeuvres: 2);
+            Assert.True(
+                PrincipiaSession.TryBind(
+                    plugin, new FakePluginHandle(plugin), out var session, out var reason),
+                reason);
+            var uplink = new PrincipiaUplink(
+                PrincipiaGuardResult.Ok(new Version(2026, 8, 12, 215)),
+                new FakeSettingsSource { Session = session, ActiveVesselGuid = "vessel-1" });
             var host = new RecordingUplinkHost();
 
             uplink.Register(host);
+            host.DriveTick(new KspSnapshot(), PrincipiaUplink.PlanTopic);
 
-            Assert.Contains(PrincipiaUplink.PlanTopic, uplink.Manifest.Channels.Select(c => c.Topic));
+            Assert.Contains(
+                PrincipiaUplink.PlanTopic, uplink.Manifest.Channels.Select(c => c.Topic));
             Assert.Contains(PrincipiaUplink.PlanTopic, host.PublishersTaken);
-            Assert.Contains(PrincipiaUplink.PlanTopic, host.SampledSourceTopics);
+            Assert.NotEmpty(host.PublishedTo(PrincipiaUplink.PlanTopic));
         }
 
         /// <summary>

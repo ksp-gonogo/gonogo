@@ -80,11 +80,23 @@ namespace GonogoRp1Uplink
         private IChannelPublisher? _confidence;
 
         /// <summary>
-        /// Last capture's view of whether RP-1 is managing this save. Health is
-        /// polled on the Courier thread and must not read live game state, so it
-        /// reads this instead.
+        /// Whether RP-1 is managing this save, asked fresh rather than remembered
+        /// from the last capture.
+        ///
+        /// <para>It used to be a field the capture wrote, and that made the answer
+        /// depend on somebody watching an <c>rp1.*</c> topic: the capture is
+        /// subscription-gated, so on an unwatched career the field stayed false and
+        /// the roster reported the Uplink Degraded, with "RP-1 is loaded but not
+        /// enabled for this save", about a save RP-1 was managing throughout. The
+        /// roster is polled whether or not anything of ours is subscribed, so it
+        /// cannot be answered from gated state.</para>
+        ///
+        /// <para>Safe from the Courier thread, where <see cref="Health"/> runs: it
+        /// is a reflected read of a managed static's bool field and touches no Unity
+        /// object. The <c>rp1.available</c> channel source makes the identical read
+        /// from that thread already.</para>
         /// </summary>
-        private volatile bool _enabledForSave;
+        private bool EnabledForSave => _rp1.IsEnabledForSave();
 
         public UplinkManifest Manifest { get; } = new UplinkManifest
         {
@@ -190,7 +202,6 @@ namespace GonogoRp1Uplink
                 return null;
             }
             var raw = _rp1.Read(snapshot?.Ut ?? 0.0);
-            _enabledForSave = raw.Available;
             return raw;
         }
 
@@ -240,7 +251,7 @@ namespace GonogoRp1Uplink
                 new UplinkHealthFact("RP0 assembly", _rp1.AssemblyIdentity),
                 new UplinkHealthFact("SpaceCenterManagement", _rp1.IsAvailable ? "resolved" : "type not found"),
                 new UplinkHealthFact("Confidence", _rp1.ConfidenceTypeResolved ? "present" : "absent"),
-                new UplinkHealthFact("save mode", _enabledForSave ? "enabled" : "not enabled for this save"),
+                new UplinkHealthFact("save mode", EnabledForSave ? "enabled" : "not enabled for this save"),
                 new UplinkHealthFact("read against", "RP-1 v4.6.0.0"),
                 new UplinkHealthFact(
                     "economy provider",
@@ -253,7 +264,7 @@ namespace GonogoRp1Uplink
             {
                 return new UplinkHealth(UplinkHealthState.Unavailable, "RP-1 (RP0) assembly not loaded", facts);
             }
-            if (!_enabledForSave)
+            if (!EnabledForSave)
             {
                 // Degraded rather than Unavailable: RP-1 is installed and the
                 // Uplink is working, the save simply is not one RP-1 manages, and

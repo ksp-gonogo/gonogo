@@ -81,7 +81,7 @@ namespace GonogoPrincipiaUplink.Tests
 
             uplink.Register(host);
 
-            var source = Assert.Single(host.UngatedSampledSources);
+            var source = host.SampledSource(nameof(PrincipiaUplink.CaptureBinaryHealthOnMain));
             source.Handle(
                 PrincipiaBinaryHealth.Of(null, AVettedBuild(), TheGamesOwnNumbers()));
 
@@ -101,7 +101,8 @@ namespace GonogoPrincipiaUplink.Tests
             uplink.Register(host);
 
             Assert.DoesNotContain("principia.conformance", host.SampledSourceTopics);
-            Assert.Single(host.UngatedSampledSources);
+            Assert.False(
+                host.SampledSource(nameof(PrincipiaUplink.CaptureBinaryHealthOnMain)).Gated);
         }
 
         [Fact]

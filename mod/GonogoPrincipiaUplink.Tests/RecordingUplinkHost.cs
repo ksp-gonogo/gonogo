@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using Sitrep.Contract;
 using Xunit;
 
@@ -21,6 +22,126 @@ namespace GonogoPrincipiaUplink.Tests
         public List<string> PublishersTaken { get; } = new List<string>();
 
         public List<string> SampledSourceTopics { get; } = new List<string>();
+
+        /// <summary>
+        /// Every capture/handle pair the Uplink registered, gated and ungated, kept
+        /// callable so a test can drive one rather than only count it.
+        ///
+        /// <para>Recorded because the interesting question about a sampled source is
+        /// not whether it was registered but whether it RUNS under the subscriptions
+        /// a client actually holds. See <see cref="DriveTick"/>.</para>
+        /// </summary>
+        public List<SampledSourceRecord> SampledSources { get; } =
+            new List<SampledSourceRecord>();
+
+        /// <summary>
+        /// The one source whose capture is the named method, so a test can name what
+        /// it means to drive instead of indexing into a list whose order is an
+        /// accident of registration.
+        /// </summary>
+        public SampledSourceRecord SampledSource(string captureMethodName) =>
+            Assert.Single(SampledSources, s => s.CaptureName == captureMethodName);
+
+        /// <summary>
+        /// Runs the election, which the engine does once every Uplink has
+        /// registered and before any tick. A capability queried before this
+        /// resolves to nothing, which is a fact about the ORDER rather than about
+        /// the registration.
+        /// </summary>
+        public void Resolve() =>
+            Kernel.Resolve(new ResolveOptions { KernelVersion = "1.0.0" });
+
+        /// <summary>
+        /// One engine tick, with <paramref name="subscribedTopics"/> standing for
+        /// what clients currently hold.
+        ///
+        /// <para>Applies the SAME rule the engine applies: a source with no declared
+        /// prefixes always captures, and a source with prefixes captures only when
+        /// some subscribed topic starts with one of them (ordinal). See
+        /// <c>ChannelEngine.AnyTopicPrefixSubscribed</c>, which this mirrors, and
+        /// <c>SampledSourceTests</c>, which pins that rule on the engine side. The
+        /// two are coupled by hand and the comment is the coupling: if the engine's
+        /// rule changes, this changes with it.</para>
+        /// </summary>
+        public void DriveTick(KspSnapshot? snapshot, params string[] subscribedTopics)
+        {
+            _subscribedTopics = subscribedTopics;
+            try
+            {
+                foreach (var source in SampledSources)
+                {
+                    if (!Gated(source, subscribedTopics))
+                    {
+                        continue;
+                    }
+                    source.Handle(source.Capture(snapshot));
+                }
+
+                // Samplers run too, and unconditionally, because the engine runs
+                // them unconditionally: driving only the sampled sources would fail
+                // a source registered through the other seam and report it as the
+                // Uplink's defect.
+                if (snapshot != null)
+                {
+                    foreach (var sampler in Samplers)
+                    {
+                        sampler.Sample(snapshot);
+                    }
+                }
+            }
+            finally
+            {
+                _subscribedTopics = Array.Empty<string>();
+            }
+        }
+
+        private static bool Gated(SampledSourceRecord source, string[] subscribedTopics)
+        {
+            if (source.Prefixes.Count == 0)
+            {
+                return true;
+            }
+            foreach (var topic in subscribedTopics)
+            {
+                foreach (var prefix in source.Prefixes)
+                {
+                    if (topic.StartsWith(prefix, StringComparison.Ordinal))
+                    {
+                        return true;
+                    }
+                }
+            }
+            return false;
+        }
+
+        /// <summary>One registered capture-on-main / handle-on-Courier source.</summary>
+        internal sealed class SampledSourceRecord
+        {
+            internal SampledSourceRecord(
+                Func<KspSnapshot?, object?> capture,
+                Action<object?> handle,
+                IReadOnlyList<string> prefixes)
+            {
+                Capture = capture;
+                Handle = handle;
+                Prefixes = prefixes;
+            }
+
+            public Func<KspSnapshot?, object?> Capture { get; }
+
+            public Action<object?> Handle { get; }
+
+            /// <summary>The declared subscription prefixes; empty means ungated.</summary>
+            public IReadOnlyList<string> Prefixes { get; }
+
+            /// <summary>Whether the engine would skip this source while nothing under
+            /// its prefixes is subscribed.</summary>
+            public bool Gated => Prefixes.Count > 0;
+
+            /// <summary>The capture's method name, which is how a test names the
+            /// source it means without depending on registration order.</summary>
+            public string CaptureName => Capture.Method.Name;
+        }
 
         /// <summary>
         /// The capture/handle pairs registered with NO topic prefixes, which the
@@ -151,18 +272,49 @@ namespace GonogoPrincipiaUplink.Tests
         public IChannelPublisher Publisher(string topic)
         {
             PublishersTaken.Add(topic);
-            return new NullPublisher();
+            return new RecordingPublisher(this, topic);
         }
+
+        /// <summary>
+        /// Every payload published, in order, with the topic it went to.
+        ///
+        /// <para>Recorded because "the channel is sourced" is a claim about a value
+        /// ARRIVING, and a registration list cannot make it: a source attached to
+        /// the right topic and never reached publishes nothing forever and says so
+        /// nowhere.</para>
+        /// </summary>
+        public List<(string Topic, object? Payload)> Published { get; } =
+            new List<(string, object?)>();
+
+        /// <summary>What was published to <paramref name="topic"/>, in order.</summary>
+        public List<object?> PublishedTo(string topic) =>
+            Published.Where(p => p.Topic == topic).Select(p => p.Payload).ToList();
+
+        /// <summary>
+        /// What the Uplink is told is currently subscribed. Set by
+        /// <see cref="DriveTick"/> for the duration of the tick, so a handle that
+        /// consults <see cref="IsAnyTopicSubscribed"/> before publishing sees the
+        /// same subscriptions the gate saw.
+        /// </summary>
+        private string[] _subscribedTopics = Array.Empty<string>();
 
         public void AddSampledSource(
             Func<KspSnapshot?, object?> captureOnMainThread,
             Action<object?> handleOnCourier,
-            params string[] subscriptionTopicPrefixes) =>
+            params string[] subscriptionTopicPrefixes)
+        {
             SampledSourceTopics.AddRange(subscriptionTopicPrefixes);
+            SampledSources.Add(new SampledSourceRecord(
+                captureOnMainThread, handleOnCourier, subscriptionTopicPrefixes));
+        }
 
         public void AddSampledSource(
-            Func<KspSnapshot?, object?> captureOnMainThread, Action<object?> handleOnCourier) =>
+            Func<KspSnapshot?, object?> captureOnMainThread, Action<object?> handleOnCourier)
+        {
             UngatedSampledSources.Add((captureOnMainThread, handleOnCourier));
+            SampledSources.Add(new SampledSourceRecord(
+                captureOnMainThread, handleOnCourier, Array.Empty<string>()));
+        }
 
         public void SetAvailability(Availability availability) => Availability = availability;
 
@@ -192,8 +344,23 @@ namespace GonogoPrincipiaUplink.Tests
         public void AddChannelSource(string topic, Func<KspSnapshot?, object?> map) =>
             throw NotExpected("AddChannelSource");
 
-        public bool IsAnyTopicSubscribed(string topicPrefix) =>
-            throw NotExpected("IsAnyTopicSubscribed");
+        /// <summary>
+        /// Answered rather than refused, and against the SAME set
+        /// <see cref="DriveTick"/> gates on, so a handle that decides whether to
+        /// publish sees exactly what the capture gate saw. Outside a tick nothing
+        /// is subscribed, which is the honest answer at registration time.
+        /// </summary>
+        public bool IsAnyTopicSubscribed(string topicPrefix)
+        {
+            foreach (var topic in _subscribedTopics)
+            {
+                if (topic.StartsWith(topicPrefix, StringComparison.Ordinal))
+                {
+                    return true;
+                }
+            }
+            return false;
+        }
 
         public IDynamicChannelSource RegisterDynamicNamespace(
             string prefix, ChannelDeclaration template) =>
@@ -225,15 +392,20 @@ namespace GonogoPrincipiaUplink.Tests
         public void ResetChannelBirth(IEnumerable<string> topics) =>
             throw NotExpected("ResetChannelBirth");
 
-        private sealed class NullPublisher : IChannelPublisher
+        private sealed class RecordingPublisher : IChannelPublisher
         {
-            public void Publish(object? payload)
+            private readonly RecordingUplinkHost _host;
+            private readonly string _topic;
+
+            internal RecordingPublisher(RecordingUplinkHost host, string topic)
             {
+                _host = host;
+                _topic = topic;
             }
 
-            public void Publish(object? payload, double atUt)
-            {
-            }
+            public void Publish(object? payload) => _host.Published.Add((_topic, payload));
+
+            public void Publish(object? payload, double atUt) => Publish(payload);
         }
     }
 }
