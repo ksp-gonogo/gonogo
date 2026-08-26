@@ -140,6 +140,10 @@ export interface Rp1ProgramEntry
 	canComplete?: boolean;
 	requirementsText?: string;
 	objectivesText?: string;
+	durationSeconds?: Value<"s">;
+	speedOptions?: Rp1ProgramSpeedOption[];
+	programsToDisableOnAccept?: string[];
+	fundingPayments?: Rp1ProgramPaymentEntry[];
 }
 export interface Rp1ProgramSlots
 {
@@ -148,4 +152,29 @@ export interface Rp1ProgramSlots
 	freeSlots?: Value<"count">;
 	activeCount?: Value<"count">;
 	completedCount?: Value<"count">;
+}
+export interface Rp1ProgramSpeedOption
+{
+	speed?: string;
+	confidenceCost?: Value<"confidence">;
+	durationSeconds?: Value<"s">;
+}
+export interface Rp1ProgramPaymentEntry
+{
+	year?: Value<"count">;
+	funds?: Value<"funds">;
+	cumulativeFunds?: Value<"funds">;
+}
+export interface Rp1FundingCurveKey
+{
+	frac?: Value<"ratio">;
+	paidFraction?: Value<"ratio">;
+	inTangent?: Value<"1">;
+	outTangent?: Value<"1">;
+}
+export interface Rp1FundingCurveEntry
+{
+	name?: string;
+	isDefault?: boolean;
+	keys?: Rp1FundingCurveKey[];
 }
