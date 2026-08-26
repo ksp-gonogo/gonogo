@@ -23,6 +23,7 @@ import type {
   Rp1CentreEntry,
   Rp1ComplexEntry,
   Rp1Confidence,
+  Rp1ConstructionEntry,
   Rp1OperationEntry,
   Rp1PadEntry,
   Rp1Personnel,
@@ -65,6 +66,13 @@ export const RP1_PADS_TOPIC = "rp1.pads";
 /** Rollout, rollback, reconditioning and air-launch operations. */
 export const RP1_OPERATIONS_TOPIC = "rp1.operations";
 
+/**
+ * What is being BUILT at a space centre, as opposed to integrated inside it:
+ * facility upgrades, launch complexes and pads, one row shape discriminated by
+ * `kind`. The half of the schedule that moves in months.
+ */
+export const RP1_CONSTRUCTIONS_TOPIC = "rp1.constructions";
+
 /** The research queue, global across centres. */
 export const RP1_RESEARCH_TOPIC = "rp1.research";
 
@@ -93,6 +101,7 @@ declare module "@ksp-gonogo/sitrep-sdk" {
     "rp1.warehouse": Rp1WarehouseItemEntry[];
     "rp1.pads": Rp1PadEntry[];
     "rp1.operations": Rp1OperationEntry[];
+    "rp1.constructions": Rp1ConstructionEntry[];
     "rp1.research": Rp1ResearchEntry[];
     "rp1.personnel": Rp1Personnel;
     "rp1.confidence": Rp1Confidence;
@@ -108,6 +117,7 @@ registerBarePrimitiveTopic(RP1_BUILD_QUEUE_TOPIC);
 registerBarePrimitiveTopic(RP1_WAREHOUSE_TOPIC);
 registerBarePrimitiveTopic(RP1_PADS_TOPIC);
 registerBarePrimitiveTopic(RP1_OPERATIONS_TOPIC);
+registerBarePrimitiveTopic(RP1_CONSTRUCTIONS_TOPIC);
 registerBarePrimitiveTopic(RP1_RESEARCH_TOPIC);
 registerBarePrimitiveTopic(RP1_PERSONNEL_TOPIC);
 registerBarePrimitiveTopic(RP1_CONFIDENCE_TOPIC);
@@ -157,6 +167,9 @@ export type _ResolvesRp1Pads = Expect<
 >;
 export type _ResolvesRp1Operations = Expect<
   Equal<TopicPayload<"rp1.operations">, Rp1OperationEntry[]>
+>;
+export type _ResolvesRp1Constructions = Expect<
+  Equal<TopicPayload<"rp1.constructions">, Rp1ConstructionEntry[]>
 >;
 export type _ResolvesRp1Research = Expect<
   Equal<TopicPayload<"rp1.research">, Rp1ResearchEntry[]>

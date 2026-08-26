@@ -86,6 +86,29 @@ export interface Rp1OperationEntry
 	cost?: Value<"funds">;
 	associatedVesselId?: string;
 }
+export interface Rp1ConstructionEntry
+{
+	kscName?: string;
+	lcId?: string;
+	kind?: string;
+	name?: string;
+	facilityType?: string;
+	currentLevel?: Value<"count">;
+	targetLevel?: Value<"count">;
+	isModify?: boolean;
+	engineersToReadd?: Value<"count">;
+	padId?: string;
+	progress?: Value<"bp">;
+	totalPoints?: Value<"bp">;
+	progressRatio?: Value<"ratio">;
+	workRate?: Value<"ratio">;
+	rate?: Value<"bp/s">;
+	timeLeftSeconds?: Value<"s">;
+	stalled?: boolean;
+	cost?: Value<"funds">;
+	spentCost?: Value<"funds">;
+	spentRushCost?: Value<"funds">;
+}
 export interface Rp1ResearchEntry
 {
 	techId?: string;

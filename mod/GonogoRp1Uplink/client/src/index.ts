@@ -6,11 +6,13 @@
 import "./uplink";
 import "./units";
 import "./topics";
+import "./KscConstruction";
 import "./LaunchComplexStatus";
 import "./ProgramStatus";
 import "./ResearchQueue";
 import "./SpaceCentrePersonnel";
 
+export { KscConstruction } from "./KscConstruction";
 export { LaunchComplexStatus } from "./LaunchComplexStatus";
 export { ProgramStatus } from "./ProgramStatus";
 export { ResearchQueue } from "./ResearchQueue";
@@ -21,6 +23,7 @@ export {
   RP1_CENTRES_TOPIC,
   RP1_COMPLEXES_TOPIC,
   RP1_CONFIDENCE_TOPIC,
+  RP1_CONSTRUCTIONS_TOPIC,
   RP1_OPERATIONS_TOPIC,
   RP1_PADS_TOPIC,
   RP1_PERSONNEL_TOPIC,

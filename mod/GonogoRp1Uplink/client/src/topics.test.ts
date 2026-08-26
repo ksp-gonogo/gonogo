@@ -22,6 +22,7 @@ import {
   RP1_CENTRES_TOPIC,
   RP1_COMPLEXES_TOPIC,
   RP1_CONFIDENCE_TOPIC,
+  RP1_CONSTRUCTIONS_TOPIC,
   RP1_OPERATIONS_TOPIC,
   RP1_PADS_TOPIC,
   RP1_PERSONNEL_TOPIC,
@@ -67,6 +68,7 @@ describe("the rp1.* Topic registrations", () => {
     expect(RP1_WAREHOUSE_TOPIC).toBe(csTopic("WarehouseTopic"));
     expect(RP1_PADS_TOPIC).toBe(csTopic("PadsTopic"));
     expect(RP1_OPERATIONS_TOPIC).toBe(csTopic("OperationsTopic"));
+    expect(RP1_CONSTRUCTIONS_TOPIC).toBe(csTopic("ConstructionsTopic"));
     expect(RP1_RESEARCH_TOPIC).toBe(csTopic("ResearchTopic"));
     expect(RP1_PERSONNEL_TOPIC).toBe(csTopic("PersonnelTopic"));
     expect(RP1_CONFIDENCE_TOPIC).toBe(csTopic("ConfidenceTopic"));
@@ -83,6 +85,7 @@ describe("the rp1.* Topic registrations", () => {
       RP1_WAREHOUSE_TOPIC,
       RP1_PADS_TOPIC,
       RP1_OPERATIONS_TOPIC,
+      RP1_CONSTRUCTIONS_TOPIC,
       RP1_RESEARCH_TOPIC,
       RP1_PERSONNEL_TOPIC,
       RP1_CONFIDENCE_TOPIC,
@@ -215,6 +218,63 @@ describe("decode-time unit hydration", () => {
     // A present zero on the same row still wraps, which is what makes the
     // absence above meaningful rather than incidental.
     expect(row?.progress).toMatchObject({ magnitude: 0, unit: "bp" });
+  });
+});
+
+describe("the constructions channel", () => {
+  it("hydrates the money and the work, and leaves the kind bare", async () => {
+    const fixture = setupStreamFixture({
+      carriedChannels: [RP1_CONSTRUCTIONS_TOPIC],
+    });
+    const { result } = renderHook(
+      () => judgeable(useTelemetry(RP1_CONSTRUCTIONS_TOPIC)),
+      { wrapper: fixture.Provider },
+    );
+
+    fixture.emit(RP1_CONSTRUCTIONS_TOPIC, [
+      {
+        kscName: "Cape",
+        lcId: null,
+        kind: "FacilityUpgrade",
+        name: "VehicleAssemblyBuilding",
+        facilityType: "VehicleAssemblyBuilding",
+        currentLevel: 2,
+        targetLevel: 3,
+        isModify: null,
+        engineersToReadd: null,
+        padId: null,
+        progress: 250,
+        totalPoints: 1000,
+        progressRatio: 0.25,
+        workRate: 1,
+        rate: 2,
+        timeLeftSeconds: 375,
+        stalled: false,
+        cost: 40000,
+        spentCost: 10000,
+        spentRushCost: 0,
+      },
+    ]);
+
+    await waitFor(() => {
+      expect(result.current?.[0]?.name).toBe("VehicleAssemblyBuilding");
+    });
+
+    const row = result.current?.[0];
+    expect(row?.progress).toMatchObject({ magnitude: 250, unit: "bp" });
+    expect(row?.rate).toMatchObject({ magnitude: 2, unit: "bp/s" });
+    expect(row?.timeLeftSeconds).toMatchObject({ magnitude: 375, unit: "s" });
+    expect(row?.cost).toMatchObject({ magnitude: 40000, unit: "funds" });
+    // The one an operator plans a cancellation around: money already gone.
+    expect(row?.spentCost).toMatchObject({ magnitude: 10000, unit: "funds" });
+    expect(row?.currentLevel).toMatchObject({ magnitude: 2, unit: "count" });
+    // Enumerations and flags stay bare.
+    expect(row?.kind).toBe("FacilityUpgrade");
+    expect(row?.facilityType).toBe("VehicleAssemblyBuilding");
+    expect(row?.stalled).toBe(false);
+    // The keys this kind does not have arrive absent, not as zeros.
+    expect(row?.padId ?? null).toBeNull();
+    expect(row?.engineersToReadd ?? null).toBeNull();
   });
 });
 
