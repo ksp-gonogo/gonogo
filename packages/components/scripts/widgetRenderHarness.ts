@@ -639,13 +639,8 @@ async function findOverlappingSections(page: Page): Promise<string[]> {
             cs.flexDirection.startsWith("column"));
         if (!stacks) continue;
 
-        const kids: {
-          el: Element;
-          x0: number;
-          y0: number;
-          x1: number;
-          y1: number;
-        }[] = [];
+        type Box = { x0: number; y0: number; x1: number; y1: number };
+        const kids: (Box & { el: Element; boxes: Box[] })[] = [];
         for (const child of Array.from(container.children)) {
           if (child.namespaceURI !== htmlNs) continue;
           const s = getComputedStyle(child);
@@ -702,16 +697,52 @@ async function findOverlappingSections(page: Page): Promise<string[]> {
             }
           }
           if (x1 <= x0 || y1 <= y0) continue;
-          kids.push({ el: child, x0, y0, x1, y1 });
+          // An inline box that has WRAPPED occupies one fragment per line, and
+          // `getBoundingClientRect` returns their union: a rectangle covering
+          // every line it touches, full container width, describing no area it
+          // actually paints. Two such phrases sitting side by side on one line
+          // then read as a collision. Where the child is fragmented, compare its
+          // fragments instead of that union. Everything else (the overwhelming
+          // majority) keeps the one box and the cheap single comparison.
+          const fragments = child.getClientRects();
+          const boxes =
+            fragments.length > 1
+              ? Array.from(fragments).map((r) => ({
+                  x0: r.left,
+                  y0: r.top,
+                  x1: r.right,
+                  y1: r.bottom,
+                }))
+              : [{ x0, y0, x1, y1 }];
+          kids.push({ el: child, x0, y0, x1, y1, boxes });
         }
 
         for (let i = 0; i < kids.length; i++) {
           for (let j = i + 1; j < kids.length; j++) {
             const a = kids[i];
             const b = kids[j];
-            const ox = Math.min(a.x1, b.x1) - Math.max(a.x0, b.x0);
-            const oy = Math.min(a.y1, b.y1) - Math.max(a.y0, b.y0);
-            if (ox <= tolerance || oy <= tolerance) continue;
+            // Cheap union pre-filter: unions can only over-report, so a miss
+            // here is a real miss and the per-fragment pass below never runs.
+            if (
+              Math.min(a.x1, b.x1) - Math.max(a.x0, b.x0) <= tolerance ||
+              Math.min(a.y1, b.y1) - Math.max(a.y0, b.y0) <= tolerance
+            ) {
+              continue;
+            }
+            let ox = 0;
+            let oy = 0;
+            for (const ab of a.boxes) {
+              for (const bb of b.boxes) {
+                const fx = Math.min(ab.x1, bb.x1) - Math.max(ab.x0, bb.x0);
+                const fy = Math.min(ab.y1, bb.y1) - Math.max(ab.y0, bb.y0);
+                if (fx <= tolerance || fy <= tolerance) continue;
+                if (fx * fy > ox * oy) {
+                  ox = fx;
+                  oy = fy;
+                }
+              }
+            }
+            if (ox === 0) continue;
             const label = [a, b].map((k) => {
               const tag = k.el.tagName.toLowerCase();
               const text = (k.el.textContent ?? "").replace(/\s+/g, " ").trim();
@@ -760,8 +791,9 @@ async function proveOverlapDetectorWorks(page: Page): Promise<void> {
     box.id = "overlap-detector-selfcheck";
     // Every planted element carries an id, and the id is what the detector's
     // report names. Text alone was not enough: SVG groups have none, so the
-    // `quiet-svg` arm silently matched nothing and passed while the detector
-    // reported 402 SVG overlaps across the real widgets.
+    // `quiet-svg` arm silently matched nothing and passed while the detector was
+    // reporting 402 SVG overlaps across navball's renders alone.
+    //
     // The layered-SVG case sits in a FLEX container, matching every real one: a
     // flex item is blockified, so an svg's default inline display becomes block
     // and the element looks like a stack. In a plain block parent it stays
@@ -824,9 +856,8 @@ async function proveOverlapDetectorWorks(page: Page): Promise<void> {
  *
  * Collected rather than thrown on the spot, and `mounts` is why that matters
  * beyond tidiness: one stale interaction selector used to abort the whole
- * session, so `astronaut-complex` failing its Fire click meant the 26 widgets
- * after it in the list were never rendered, never gated and never compared to a
- * baseline. In the `visual` job, which is red on purpose, that is invisible. A
+ * session, so `astronaut-complex` failing its Fire click meant 17 of 45 widget
+ * configs rendered and the other 28 were never gated or compared to a baseline. In the `visual` job, which is red on purpose, that is invisible. A
  * run now surveys the WHOLE set and fails at the end holding all of it.
  */
 interface RenderFindings {
