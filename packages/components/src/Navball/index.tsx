@@ -31,6 +31,7 @@ import {
   FieldHint,
   FieldLabel,
   formatDuration,
+  MARKER_ICONS,
   NULL_DISPLAY,
   Panel,
   ReadoutCaption,
@@ -131,6 +132,25 @@ const SAS_MODES: readonly Exclude<SasModeName, "Unknown">[] = [
   "Maneuver",
 ];
 type SasMode = (typeof SAS_MODES)[number];
+
+/**
+ * The navball glyph for each SAS mode that names a DIRECTION.
+ *
+ * `StabilityAssist` is absent on purpose rather than by omission: it holds the
+ * attitude you already have, so there is no marker on the ball it corresponds
+ * to and inventing one would say the craft is being pointed somewhere.
+ */
+const SAS_MODE_MARKERS: Partial<Record<SasMode, keyof typeof MARKER_ICONS>> = {
+  Prograde: "prograde",
+  Retrograde: "retrograde",
+  Normal: "normal",
+  Antinormal: "antiNormal",
+  RadialIn: "radialIn",
+  RadialOut: "radialOut",
+  Target: "target",
+  AntiTarget: "antiTarget",
+  Maneuver: "maneuver",
+};
 
 /**
  * The wire ordinal for one SAS mode, read off the generated enum itself rather
@@ -996,6 +1016,14 @@ function ControlSurface({
                 }
                 disabled={disabled}
               >
+                {(() => {
+                  const markerId = SAS_MODE_MARKERS[mode];
+                  if (!markerId) return null;
+                  const Marker = MARKER_ICONS[markerId];
+                  // Decorative: the short label beside it already names the
+                  // mode, and the button carries its own accessible name.
+                  return <Marker size={14} />;
+                })()}
                 {modeShort(mode)}
               </ToggleButton>
             );
