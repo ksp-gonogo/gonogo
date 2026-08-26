@@ -6,14 +6,14 @@ namespace Sitrep.Host
 {
     /// <summary>
     /// KSP-free mapping logic for the Breaking Ground uplink's <c>robotics.*</c>
-    /// + <c>deployed.*</c> channels, split out of <see cref="PartsViewProvider"/>
-    /// (robotics) and <see cref="ScienceViewProvider"/> (deployed science) so
-    /// the DLC-specific surface no longer co-mingles with vanilla power/
-    /// science mapping. Same "primitives-dict pass-through is fine for now"
-    /// posture as the providers it was split from.
+    /// + <c>deployed.*</c> channels, held here rather than in
+    /// <see cref="PartsViewProvider"/> (robotics) or
+    /// <see cref="ScienceViewProvider"/> (deployed science) so the DLC-specific
+    /// surface does not co-mingle with vanilla power/science mapping. Same
+    /// "primitives-dict pass-through is fine for now" posture as those two.
     ///
-    /// <para><b>Raw snapshot encoding is UNCHANGED by the split</b> (only which
-    /// provider/uplink reads it moved): robotics still reads
+    /// <para><b>The raw snapshot encoding is shared, not private to this
+    /// provider</b>: robotics reads
     /// <c>Values["parts"]["robotics"]</c>/<c>Values["parts"]["roboticsAvailable"]</c>
     /// (<c>Gonogo.KSP.KspHost.BuildParts</c>'s raw dict, shared with
     /// <see cref="PartsViewProvider.BuildPower"/>'s <c>Values["parts"]["power"]</c>

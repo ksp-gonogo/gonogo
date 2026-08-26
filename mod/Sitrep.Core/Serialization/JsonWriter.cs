@@ -198,24 +198,21 @@ namespace Sitrep.Core.Serialization
                     // Same "producer owns the flatten" boundary as CommandResult
                     // above: comms.delay's payload is a CommsDelay POCO (see
                     // Gonogo.KSP.CommsCoreUplink.HandleOnCourier, which publishes
-                    // the raw value), which JsonWriter otherwise cannot serialize,
-                    // before this case it fail-softed at the wire boundary,
-                    // meaning a client that subscribed comms.delay got nothing.
-                    // Flattened to { oneWaySeconds, source, meta:{ source,
-                    // quality } } with enum ordinals + camelCase keys, matching
-                    // every other enum/field in this codec. Additive: no wire
-                    // fixture serialized a CommsDelay successfully before this,
-                    // so nothing existing changes shape.
+                    // the raw value), which JsonWriter otherwise cannot
+                    // serialize: WITHOUT this case it fail-softs at the wire
+                    // boundary and a client that subscribed comms.delay gets
+                    // nothing at all. Flattened to { oneWaySeconds, source,
+                    // meta:{ source, quality } } with enum ordinals +
+                    // camelCase keys, matching every other enum/field in this
+                    // codec.
                     AppendCommsDelay(sb, commsDelay);
                     break;
-                // KosProcessorInfo / KosTerminalFrame / KosRunResult: kOS's
-                // three raw-POCO wire types (kos.processors / kos.terminal.
-                // <coreId> / kos.run.<coreId>), used to have their own cases
-                // here, same "producer owns the flatten" shape as CommsDelay
-                // above. As of the kos migration (2026-07-18) all three
-                // self-flatten producer-side via Gonogo.KosUplink.
-                // Kos*Builder.Build(), so JsonWriter never sees the raw POCO
-                // any more: see WirePayloadCoverageTests.FlattenedByProducer.
+                // There is deliberately no case for kOS's three raw-POCO wire
+                // types (kos.processors / kos.terminal.<coreId> /
+                // kos.run.<coreId>). All three self-flatten producer-side via
+                // Gonogo.KosUplink.Kos*Builder.Build(), so JsonWriter never
+                // sees the raw POCO: see
+                // WirePayloadCoverageTests.FlattenedByProducer.
                 case Sitrep.Contract.GateVerdict verdict:
                     // A declared command gate's answer: the refusal payload, and
                     // the per-command entry of the addressability set. Flattened
@@ -294,16 +291,15 @@ namespace Sitrep.Core.Serialization
                     // AppendValue flattens rather than throwing, same as CommsHop.
                     AppendCommsOcclusionBody(sb, occlusionBody);
                     break;
-                // The three provider-private comms payloads (comms.linkQuality /
-                // comms.dataRate / comms.linkMargin) had a case each right here.
-                // Their types left this assembly's reach for
-                // GonogoRealAntennasUplink.Contract, and a core serializer may not
-                // reference an Uplink's assembly, so their producer now flattens
-                // them to a Dictionary<string, object?> before Publish (RaWire)
-                // and they arrive through the IDictionary case below. That is the
-                // same self-flattening producer boundary every other relocated
-                // Uplink already used; this one was the last publisher in the mod
-                // still handing a raw POCO to a hand-written case.
+                // There is deliberately no case for the three provider-private
+                // comms payloads (comms.linkQuality / comms.dataRate /
+                // comms.linkMargin). Their types live in
+                // GonogoRealAntennasUplink.Contract, and a core serializer may
+                // not reference an Uplink's assembly, so their producer
+                // flattens them to a Dictionary<string, object?> before Publish
+                // (RaWire) and they arrive through the IDictionary case below.
+                // That is the self-flattening producer boundary every
+                // Uplink-owned payload uses.
                 case Sitrep.Contract.FlightCurrent flightCurrent:
                     // Same "producer owns the flatten" boundary as CommsDelay
                     // above: flight.current publishes a FlightCurrent POCO
@@ -1458,15 +1454,12 @@ namespace Sitrep.Core.Serialization
             sb.Append('}');
         }
 
-        // AppendCommsLinkQuality / AppendCommsDataRate / AppendCommsLinkMargin
-        // stood here. They wrote { value, meta }, { upBitsPerSec, downBitsPerSec,
-        // meta } and { decibelMargin, closesLink, meta } respectively, and their
-        // types have since moved out of core into
-        // GonogoRealAntennasUplink.Contract. Their producer builds those exact
-        // objects itself now (RaWire, beside the Uplink that publishes them), so
-        // the bytes are unchanged and this file no longer needs to name a type it
-        // cannot reference. AppendPayloadMeta above is what RaWire mirrors for the
-        // nested meta object, quality as its integer ordinal included.
+        // RaWire (beside the Uplink that publishes comms.linkQuality /
+        // comms.dataRate / comms.linkMargin) builds those payload objects
+        // itself, because their types live in GonogoRealAntennasUplink.Contract
+        // and this file cannot reference them. AppendPayloadMeta above is what
+        // RaWire mirrors for the nested meta object, quality as its integer
+        // ordinal included: the two must agree.
 
         private static void AppendObject(StringBuilder sb, IDictionary<string, object?> obj)
         {

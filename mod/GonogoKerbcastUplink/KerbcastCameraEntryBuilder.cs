@@ -5,8 +5,7 @@ namespace Gonogo.KerbcastUplink
     /// <summary>
     /// Builds the <c>kerbcast.cameras</c> wire shape: one
     /// <see cref="GonogoKerbcastUplink.KerbcastCameraEntry"/>-shaped dictionary
-    /// per camera (relocated out of Sitrep.Contract into
-    /// GonogoKerbcastUplink.Contract: uplink-types-out-of-core plan).
+    /// per camera.
     ///
     /// <para>Hand-built (rather than serialising the contract POCO) to match how
     /// every other uplink sources its channels: the contract type is the TYPING

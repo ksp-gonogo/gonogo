@@ -171,8 +171,7 @@ const CONNECTING: DelayedPlayoutResult = { kind: "connecting" };
  * Route a raw `MediaStream` through the real per-frame delay pipeline,
  * sharing the app's telemetry delay clock. Without `delay`
  * (the default) this is a strict passthrough, it returns `{kind: "raw",
- * stream: raw}` unchanged, so the LAN case is bit-for-bit the old
- * behaviour, with NO pipeline spun up.
+ * stream: raw}` unchanged, so the LAN case spins up no pipeline at all.
  *
  * With `delay`, THREE backends are tried in order:
  *
@@ -193,10 +192,10 @@ const CONNECTING: DelayedPlayoutResult = { kind: "connecting" };
  *     support this, which is what puts it behind (1) rather than ahead.
  *
  * If NO backend can build a pipeline, resolves `{kind: "unavailable",
- * reason}`: **never** the raw stream. The old silent
- * `setDelayedStream(raw)` fallback (and its one-time warning) is deleted;
- * "can't delay" is now a first-class, visible state the caller renders
- * explicitly (decision 5).
+ * reason}`: **never** the raw stream. Falling back to `raw` would hand the
+ * operator UNDELAYED video while the telemetry beside it is delayed, and a
+ * one-time console warning is not something they will see. "Can't delay" is a
+ * first-class, visible state the caller renders explicitly.
  */
 export function useDelayedPlayout(
   raw: MediaStream | null,
@@ -297,9 +296,9 @@ export function useDelayedPlayout(
  *
  * NOT `async`: the sync backends (encoded, main-thread Breakout Box, and the
  * "unavailable" outcomes) return a `BuiltDelayedStream` synchronously so the
- * shared cache settles in the same tick, no spurious extra "connecting" frame,
- * matching the old direct-`setResult` timing. ONLY the worker backend returns a
- * Promise (it genuinely awaits `createWorkerFrameDelayStream`).
+ * shared cache settles in the same tick, with no spurious extra "connecting"
+ * frame. ONLY the worker backend returns a Promise (it genuinely awaits
+ * `createWorkerFrameDelayStream`).
  */
 function buildDelayedPipeline(
   raw: MediaStream,

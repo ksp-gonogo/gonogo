@@ -33,8 +33,8 @@
  * What it deliberately does NOT handle:
  *   - kOS's raw REPL error-dump format (`At interpreter`, `Message:`,
  *     `VERBOSE DESCRIPTION`, ...), that parsing (`kosComputeSession.ts`'s
- *     `parseKosError`) is telnet-REPL-text-specific and, since executeScript
- *     no longer talks to telnet, is unreachable production code. The mod
+ *     `parseKosError`) is telnet-REPL-text-specific, and since executeScript
+ *     does not talk to telnet it is unreachable in production. The mod
  *     does its own equivalent extraction server-side and hands back an
  *     already-clean message, which is what registered script handlers
  *     should return directly for an implicit/runtime error.

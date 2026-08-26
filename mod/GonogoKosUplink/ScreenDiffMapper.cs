@@ -19,8 +19,9 @@ namespace Gonogo.KosUplink
     /// <c>kOS.Module</c>/<c>kOS.Screen</c>/UnityEngine type, that KSP shell
     /// stays in <see cref="KosProcessorScreen"/>.
     ///
-    /// <para>The logic mirrors the diff+map half that used to live inline in
-    /// <c>KosProcessorScreen.ReadChunk</c>: a reseed (forced, or a changed
+    /// <para>The diff+map half, held here rather than inline in
+    /// <c>KosProcessorScreen.ReadChunk</c> so it can be tested without KSP: a
+    /// reseed (forced, or a changed
     /// <see cref="IScreenBuffer"/> reference from a reboot/rebind, or the very
     /// first frame) produces a self-contained absolute-positioned full repaint
     /// (diff from an empty-buffer baseline: a cleared

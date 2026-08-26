@@ -64,8 +64,8 @@ import { KERBALISM } from "../uplink";
 //
 // Colour: always the shared yellow token (`--color-tag-yellow-fg`, the same
 // one `ThermalStatus`'s "warm" state and `ShipMap`'s highlight already use),
-// distinct from the muted warning tokens this used to carry and from the
-// accent green SystemView reserves for selection. `stormState` still
+// deliberately distinct from the muted warning tokens and from the accent
+// green SystemView reserves for selection. `stormState`
 // distinguishes inbound (faint) from arrived (normal emphasis, the same
 // yellow) so the pulse shows the storm progressing between those two real,
 // known states without changing hue.
@@ -92,13 +92,11 @@ function stormStateLabel(state: number): string {
  * or degenerate (a zero vector): the caller treats that the same as any other
  * missing datum, no draw rather than a fabricated bearing.
  *
- * <b>All three components, where this used to drop one.</b> It kept x and z and
- * threw the out-of-plane component away, on the stated grounds that SystemView
- * flattened every orbit onto one plane anyway. That diagram's arithmetic is
- * three-dimensional now, so the component this had been discarding is one it can
- * draw, and a bearing missing it would put an interplanetary front in the
- * ecliptic when the storm is not. The game's `y` is out of the ecliptic and the
- * diagram's third component is too.
+ * <b>All three components, never just x and z.</b> SystemView's arithmetic is
+ * three-dimensional, so the out-of-plane component is one it can draw, and a
+ * bearing missing it puts an interplanetary front in the ecliptic when the
+ * storm is not. The game's `y` is out of the ecliptic and the diagram's third
+ * component is too.
  */
 function bearingMetres(
   direction: KerbalismStarInfo["direction"] | undefined,

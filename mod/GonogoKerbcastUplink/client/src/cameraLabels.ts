@@ -1,11 +1,9 @@
-// Re-exports from the shared @ksp-gonogo/kerbcast-react package.
-// gonogo consumers (CameraFeed picker, Targeting docking HUD) import
-// from this module; the implementation now lives in the shared package.
+// Re-exports from the shared @ksp-gonogo/kerbcast-react package, where the
+// implementation lives. gonogo consumers (CameraFeed picker, Targeting docking
+// HUD) import from this module.
 //
-// Separator change: the shared buildCameraLabeler uses " - " (hyphen-space)
-// where the old gonogo version used an em-dash. Camera labels across the UI
-// now read "NavCam - Clamp-O-Tron Docking Port Jr." instead of "NavCam,
-// Clamp-O-Tron Docking Port Jr.".
+// The shared buildCameraLabeler joins with " - " (hyphen-space, never an
+// em-dash), so a camera label reads "NavCam - Clamp-O-Tron Docking Port Jr.".
 export {
   buildCameraLabeler,
   type LabelableCamera,

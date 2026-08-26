@@ -95,11 +95,10 @@ public sealed class CapturedOrbit
     /// How close in and how far out this craft gets, as the propagator reports it, or
     /// null when it declines.
     ///
-    /// <para>Asked for the same reason <see cref="PeriodSeconds"/> is, and it used to
-    /// be the counterexample sitting next to it: these were <c>sma * (1 +/- ecc)</c>
-    /// written out here, so this class reported one number the mod would act on and one
-    /// it had derived for itself under an assumption the mod no longer makes anywhere
-    /// else.</para>
+    /// <para>Asked of the propagator for the same reason <see cref="PeriodSeconds"/>
+    /// is. Writing <c>sma * (1 +/- ecc)</c> out here instead would have this class
+    /// report one number the mod would act on beside one it had derived itself,
+    /// under a two-body assumption the mod makes nowhere else.</para>
     /// </summary>
     public RadiusExtremes? RadiusExtremes => Propagator.RadiusExtremesOf(Target);
 

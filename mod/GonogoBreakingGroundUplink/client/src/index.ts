@@ -4,9 +4,9 @@
 // Gonogo.KSP.BreakingGroundUplink ([SitrepUplink("breakingGround")], shipped
 // IN the core mod DLL alongside PartsUplink/VesselUplink, see
 // mod/Gonogo.KSP/BreakingGroundUplink.cs): this package holds the CLIENT
-// half, the three widgets that used to live in @ksp-gonogo/components before
-// robotics + deployed science were split out of the vanilla-comingled
-// PartsUplink/ScienceUplink. Importing this package's entry point
+// half, the three widgets for robotics and deployed science. They live here
+// rather than in @ksp-gonogo/components because both are DLC surfaces, and the
+// base library carries no DLC. Importing this package's entry point
 // side-effects the widget registration into @ksp-gonogo/core's global
 // component registry:
 //

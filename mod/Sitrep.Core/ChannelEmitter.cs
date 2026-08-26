@@ -94,11 +94,10 @@ namespace Sitrep.Core
             var policy = _policyFor(channelId);
 
             // Keyframe cadence is the correctness baseline -- it must fire on
-            // its own schedule regardless of MinSampleIntervalUt, so it's
-            // evaluated before that gate (previously this was inverted: a
-            // MinSampleIntervalUt >= KeyframeIntervalUt would silently starve
-            // every due keyframe). The min-sample gate below now only
-            // throttles the CHANGE path.
+            // its own schedule regardless of MinSampleIntervalUt, so it is
+            // evaluated BEFORE that gate. Inverted, a MinSampleIntervalUt >=
+            // KeyframeIntervalUt would silently starve every due keyframe. The
+            // min-sample gate below throttles only the CHANGE path.
             var keyframeDue = !state.LastKeyframeUt.HasValue || ut - state.LastKeyframeUt.Value >= policy.KeyframeIntervalUt;
             if (keyframeDue)
             {

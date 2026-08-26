@@ -6,11 +6,9 @@ using Sitrep.Contract;
 namespace Gonogo.KosUplink;
 
 /// <summary>
-/// One kOS CPU as it appears on the <c>kos.processors</c> channel, the
-/// in-process replacement for the old telnet CPU-menu scrape
-/// (<c>CPU_ROW_RE</c>/<c>MENU_HEADER</c>/<c>LIST_CHANGED</c>). Every field
-/// is read off the public <c>kOSProcessor</c> members
-/// (<c>kos-migration-spec.md</c> §5): <see cref="CoreId"/> = <c>KOSCoreId</c>
+/// One kOS CPU as it appears on the <c>kos.processors</c> channel. Every field
+/// is read in-process off the public <c>kOSProcessor</c> members, never
+/// scraped from a rendered terminal: <see cref="CoreId"/> = <c>KOSCoreId</c>
 /// (stable-per-run), <see cref="Tag"/> = the <c>KOSNameTag</c> tag,
 /// <see cref="HasBooted"/> = <c>HasBooted</c>, <see cref="BootFilePath"/> =
 /// <c>BootFilePath</c> (stringified), <see cref="ProcessorMode"/> =

@@ -10,12 +10,12 @@ namespace Gonogo.KosUplink
 {
     /// <summary>
     /// The ONE Harmony patch this Uplink ships, an OBSERVE-ONLY postfix on
-    /// <c>kOS.Safe.Screen.ScreenBuffer.Print(string, bool)</c>
-    /// (<c>kos-migration-spec.md</c> §4(b)/§4.1, <c>ScreenBuffer.cs:167</c>).
+    /// <c>kOS.Safe.Screen.ScreenBuffer.Print(string, bool)</c>.
     /// Every kerboscript <c>PRINT</c> flows through this one method BEFORE it
     /// is line-wrapped into the grid, so the postfix sees the clean,
-    /// un-wrapped, un-ANSI'd source text: the strictly-better input for
-    /// <c>[KOSDATA]</c> capture than the old rendered-grid scrape.
+    /// un-wrapped, un-ANSI'd source text. That is the whole reason to patch
+    /// here rather than read the rendered grid, which would have to be
+    /// un-wrapped and un-ANSI'd back again.
     ///
     /// <para>The postfix runs on the KSP main thread (inside <c>PRINT</c>) and
     /// MUST NOT block: it only forwards <c>(screen, text)</c> to
