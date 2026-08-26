@@ -22,6 +22,22 @@ namespace GonogoRp1Uplink
         public List<Rp1ProgramRaw> Programs = new List<Rp1ProgramRaw>();
 
         public Rp1ProgramSlotsRaw Slots = new Rp1ProgramSlotsRaw();
+
+        /// <summary>
+        /// RP-1's whole funding-curve table, read once per tick rather than per
+        /// Program: a Program names a curve and thirty-seven of them share
+        /// twelve curves between them.
+        /// </summary>
+        public List<Rp1FundingCurveRaw> Curves = new List<Rp1FundingCurveRaw>();
+
+        /// <summary>
+        /// The curve RP-1 falls back to, from <c>defaultFundingCurve</c>. Needed
+        /// rather than decorative: <c>ProgramHandlerSettings.FundingCurve</c>
+        /// returns it for a name it does not hold as well as for an empty one, so
+        /// resolving a Program's curve without it gets the wrong answer on every
+        /// Program that names none.
+        /// </summary>
+        public string? DefaultCurve;
     }
 
     /// <summary>
@@ -75,6 +91,76 @@ namespace GonogoRp1Uplink
 
         public string? RequirementsText;
         public string? ObjectivesText;
+
+        /// <summary>
+        /// The whole per-speed Confidence table, keyed by speed NAME. Carried
+        /// alongside the single price at the selected speed because the operator
+        /// is choosing between the three, and a modifier can override any of
+        /// them independently.
+        /// </summary>
+        public Dictionary<string, double> ConfidenceCostBySpeed = new Dictionary<string, double>();
+
+        /// <summary>Programs this one closes off on accept, by RP-1's internal name.</summary>
+        public List<string> ProgramsToDisableOnAccept = new List<string>();
+
+        /// <summary>
+        /// The duration in force, in seconds, derived from the persisted deadline
+        /// on an accepted Program. Absent on a Program not yet accepted and on
+        /// one already past its deadline, both of which leave the derivation
+        /// nothing to read; the mapper falls back to the speed-scaled catalogue
+        /// duration and the wire field says which it got.
+        /// </summary>
+        public double? DerivedDurationSeconds;
+
+        /// <summary>Accepted and not yet completed, which decides where the payment schedule starts.</summary>
+        public bool IsActive;
+
+        /// <summary>Completed, which is why RP-1 shows no payment schedule at all.</summary>
+        public bool IsComplete;
+    }
+
+    /// <summary>
+    /// One named funding curve as RP-1 holds it: a Hermite curve's keys, read
+    /// through the curve's own enumerator so the tangents are the ones it
+    /// compiled rather than the ones the config file spelled.
+    /// </summary>
+    /// <remarks>
+    /// Reading them post-compile matters for a curve whose config gives two or
+    /// three values per key instead of four: RP-1 then derives the tangents
+    /// itself, and the derived values are what it evaluates. The shipped table
+    /// spells all four everywhere, so this is insurance rather than a
+    /// correction, but it is insurance against a difference no test of ours
+    /// would otherwise see.
+    /// </remarks>
+    public sealed class Rp1FundingCurveRaw
+    {
+        public string? Name;
+
+        public List<Rp1FundingCurveKeyRaw> Keys = new List<Rp1FundingCurveKeyRaw>();
+    }
+
+    public sealed class Rp1FundingCurveKeyRaw
+    {
+        public double Frac;
+        public double PaidFraction;
+        public double InTangent;
+        public double OutTangent;
+    }
+
+    /// <summary>The speed names RP-1's <c>Program.Speed</c> enum declares, in its own order.</summary>
+    /// <remarks>
+    /// Spelled here so the reader, the mapper and the tests share one
+    /// vocabulary. The enum carries a fourth member, <c>MAX</c>, which is a count
+    /// sentinel rather than a speed: RP-1's own accept loop runs <c>i &lt; 3</c>
+    /// over it, and a row offering "MAX" as a choice would be offering nothing.
+    /// </remarks>
+    public static class Rp1ProgramSpeeds
+    {
+        public const string Slow = "Slow";
+        public const string Normal = "Normal";
+        public const string Fast = "Fast";
+
+        public static readonly string[] All = { Slow, Normal, Fast };
     }
 
     public sealed class Rp1ProgramSlotsRaw

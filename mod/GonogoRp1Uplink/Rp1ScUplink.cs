@@ -47,6 +47,7 @@ namespace GonogoRp1Uplink
         public const string ConfidenceTopic = "rp1.confidence";
         public const string ProgramsTopic = "rp1.programs";
         public const string ProgramSlotsTopic = "rp1.programSlots";
+        public const string ProgramFundingCurvesTopic = "rp1.programFundingCurves";
 
         /// <summary>
         /// Rows published per second across every rp1.* channel. One capture per
@@ -96,6 +97,7 @@ namespace GonogoRp1Uplink
         private IChannelPublisher? _confidence;
         private IChannelPublisher? _programList;
         private IChannelPublisher? _programSlots;
+        private IChannelPublisher? _programCurves;
 
         /// <summary>
         /// Whether RP-1 is managing this save, asked fresh rather than remembered
@@ -144,6 +146,7 @@ namespace GonogoRp1Uplink
                 // career rather than about the install.
                 Ground(ProgramsTopic, absenceIsData: true),
                 Ground(ProgramSlotsTopic, absenceIsData: true),
+                Ground(ProgramFundingCurvesTopic, absenceIsData: true),
             },
         };
 
@@ -204,6 +207,7 @@ namespace GonogoRp1Uplink
             _confidence = host.Publisher(ConfidenceTopic);
             _programList = host.Publisher(ProgramsTopic);
             _programSlots = host.Publisher(ProgramSlotsTopic);
+            _programCurves = host.Publisher(ProgramFundingCurvesTopic);
 
             host.AddSampledSource(
                 CaptureOnMain,
@@ -226,7 +230,8 @@ namespace GonogoRp1Uplink
                 CaptureProgramsOnMain,
                 HandleProgramsOnCourier,
                 ProgramsTopic,
-                ProgramSlotsTopic);
+                ProgramSlotsTopic,
+                ProgramFundingCurvesTopic);
         }
 
         /// <summary>
@@ -290,9 +295,11 @@ namespace GonogoRp1Uplink
         {
             var raw = captured as Rp1ProgramsRaw;
             var rows = Rp1ProgramsCapture.BuildPrograms(raw);
-            Rp1RowBudget.Record(rows?.Count ?? 0, raw?.Ut ?? 0.0);
+            var curves = Rp1ProgramsCapture.BuildFundingCurves(raw);
+            Rp1RowBudget.Record((rows?.Count ?? 0) + (curves?.Count ?? 0), raw?.Ut ?? 0.0);
             _programList?.Publish(rows, raw?.Ut ?? 0.0);
             _programSlots?.Publish(Rp1ProgramsCapture.BuildSlots(raw), raw?.Ut ?? 0.0);
+            _programCurves?.Publish(curves, raw?.Ut ?? 0.0);
         }
 
         /// <summary>
