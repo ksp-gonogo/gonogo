@@ -104,6 +104,8 @@ const LOCAL_DOCS = resolve(HERE, "../../../local_docs");
 // @ksp-gonogo/theme build` having run first (its `dist/tokens.css` is a
 // gitignored build artifact; this script only ever reads plain text).
 const THEME_TOKENS_CSS = resolve(HERE, "../../theme/src/tokens.css");
+/** What the app serves at its base URL: the body textures MapView asks for. */
+const PUBLIC_ASSETS = resolve(HERE, "../../app/public");
 const ARTIFACT_EXTS = new Set([".png"]);
 
 // Dashboard grid constants: mirrors packages/app/src/components/Dashboard/
@@ -859,7 +861,18 @@ export async function prepareProbePage(opts: PreparePageOpts): Promise<string> {
   // string form interprets `$&`, `$1`, etc. as backreferences, which would
   // corrupt the bundle (React's sanitisation helpers use `$&` extensively).
   const escapedBundle = bundleJs.replace(/<\/script/gi, "<\\/script");
+  /*
+   * Resolve relative asset URLs against the app's public/ directory.
+   *
+   * The page is written to the system tmpdir, so `bodies/Kerbin_Color.png` (what
+   * `registerStockBodies()` hands MapView) resolved to a tmpdir path and 404'd.
+   * MapView's `img.onerror` degrades to a colour wash by design, so every map
+   * render came out textureless and looked deliberate, with the failure visible
+   * only as console-error lines the harness prints and does not fail on.
+   */
+  const assetBase = `<base href="${pathToFileURL(join(PUBLIC_ASSETS, "/")).toString()}" />`;
   const htmlWithBundle = htmlTemplate
+    .replace("<head>", () => `<head>\n    ${assetBase}`)
     .replace(
       /<style id="probe-theme">[\s\S]*?<\/style>/,
       () => `<style id="probe-theme">${fontFace}${themeCss}</style>`,
