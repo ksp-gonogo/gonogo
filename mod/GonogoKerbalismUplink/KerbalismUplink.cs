@@ -258,6 +258,16 @@ namespace Gonogo.KerbalismUplink
         /// Called only inside the <c>if (_k.IsAvailable)</c> guard in
         /// <see cref="Register"/>, after <see cref="RegisterScience"/> has
         /// already wired the capture that feeds that snapshot.
+        ///
+        /// <para><b>Every verb here depends on a <c>science.</c> subscription
+        /// existing</b>, because the capture feeding the pre-filter is gated on that
+        /// prefix and a gated capture is skipped entirely while nothing under it is
+        /// watched. With no such subscription the pre-filter reads an unmodelled
+        /// bundle and refuses with ModeUnavailable, which says Kerbalism is not
+        /// modelling science about an install that is.
+        /// <see cref="KerbalismScienceBackend.Latest"/> states the whole dependency,
+        /// why it is left standing, and what to do if a caller that does not
+        /// subscribe ever needs these.</para>
         /// </summary>
         private void RegisterFileManagerCommands(IUplinkHost host)
         {

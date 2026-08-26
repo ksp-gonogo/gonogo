@@ -94,6 +94,40 @@ public class Rp1ScUplinkTests : IDisposable
     }
 
     [Fact]
+    public void A_managed_save_reads_as_healthy_before_any_capture_has_run()
+    {
+        // The roster is polled whether or not a client has subscribed to anything
+        // of this Uplink's, and every rp1.* reading is subscription-gated: the
+        // capture is skipped entirely on any tick where nobody is watching one of
+        // those topics. Answering the save question out of what that capture last
+        // wrote meant an unwatched RP-1 career reported itself Degraded, with
+        // "RP-1 is loaded but not enabled for this save", about a save RP-1 was
+        // managing the whole time.
+        var uplink = new Rp1ScUplink();
+        SpaceCenterManagement.Instance = new SpaceCenterManagement();
+
+        var health = uplink.Health();
+
+        Assert.Equal(UplinkHealthState.Healthy, health.State);
+        Assert.Contains(health.Facts, f => f.Label == "save mode" && f.Value == "enabled");
+    }
+
+    [Fact]
+    public void An_unmanaged_save_still_reads_as_degraded_before_any_capture_has_run()
+    {
+        // The contrast: reading the save state live must not turn every save into
+        // a managed one. Without this, answering "enabled" unconditionally would
+        // pass the case above and lose the distinction it exists to draw.
+        var uplink = new Rp1ScUplink();
+        SpaceCenterManagement.Instance = new SpaceCenterManagement { enabledForSave = false };
+
+        var health = uplink.Health();
+
+        Assert.Equal(UplinkHealthState.Degraded, health.State);
+        Assert.Contains(health.Facts, f => f.Label == "save mode" && f.Value == "not enabled for this save");
+    }
+
+    [Fact]
     public void The_courier_half_ignores_a_capture_it_did_not_produce()
     {
         // Fail-soft, because a throw here takes the whole Uplink inert from the
