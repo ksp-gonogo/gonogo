@@ -13,7 +13,11 @@
     "emits": [
       {
         "channel": "career.status",
-        "value": { "economy": { "funds": 289848 } }
+        "value": {
+          "economy": {
+            "funds": 289848
+          }
+        }
       },
       {
         "channel": "spaceCenter.astronautComplex",
@@ -40,6 +44,7 @@
             "trait": "Engineer",
             "experienceLevel": 2,
             "situation": "Available",
+            "situationOrdinal": 0,
             "available": true,
             "unavailableReason": "",
             "courage": 0.5,
@@ -53,6 +58,7 @@
             "trait": "Pilot",
             "experienceLevel": 3,
             "situation": "Assigned",
+            "situationOrdinal": 1,
             "available": false,
             "unavailableReason": "On mission",
             "courage": 0.9,
@@ -64,6 +70,7 @@
             "trait": "Pilot",
             "experienceLevel": 1,
             "situation": "Dead",
+            "situationOrdinal": 2,
             "available": false,
             "unavailableReason": "Dead",
             "courage": 0.6,
@@ -75,6 +82,7 @@
             "trait": "Scientist",
             "experienceLevel": 5,
             "situation": "Missing",
+            "situationOrdinal": 3,
             "available": false,
             "unavailableReason": "Missing",
             "courage": 0.7,
@@ -86,6 +94,7 @@
             "trait": "Pilot",
             "experienceLevel": 4,
             "situation": "Retired",
+            "situationOrdinal": null,
             "available": true,
             "unavailableReason": "",
             "courage": 0.55,

@@ -298,8 +298,7 @@ export async function renderWidgets(
     });
     const page = await context.newPage();
     const pageErrors: string[] = [];
-    const crushedGraphics: string[] = [];
-    const overlaps: string[] = [];
+    const findings = noFindings();
     page.on("pageerror", (err) => {
       console.error("  [page error]", err.message);
       pageErrors.push(err.message);
@@ -322,6 +321,8 @@ export async function renderWidgets(
       { timeout: 10_000 },
     );
 
+    await proveOverlapDetectorWorks(page);
+
     for (const config of configs) {
       // A config can force full-content capture for itself (e.g. LandingStatus,
       // whose composed instrument scrolls in a real cell) even when the caller
@@ -332,16 +333,28 @@ export async function renderWidgets(
         outSuffix,
         outBase,
         config.fullContent ?? fullContent,
-        crushedGraphics,
-        overlaps,
+        findings,
       );
     }
 
-    if (overlaps.length > 0) {
+    // Before the gates, because a gate's verdict only covers what rendered: a
+    // clean overlap report over 16 of 42 widgets is not a clean tree.
+    if (findings.mounts.length > 0) {
+      throw new Error(
+        `${findings.mounts.length} render(s) never happened, so nothing was ` +
+          "gated or captured for them:\n  " +
+          findings.mounts.join("\n  ") +
+          "\n(A missing click selector is the usual cause: an interaction mode " +
+          "whose control has been renamed, moved behind a condition the fixture " +
+          "no longer meets, or dropped.)",
+      );
+    }
+
+    if (findings.overlaps.length > 0) {
       const message =
-        `${overlaps.length} pair(s) of stacked siblings painting into the same ` +
+        `${findings.overlaps.length} pair(s) of stacked siblings painting into the same ` +
         "pixels, so two sections of the widget are on top of each other:\n  " +
-        overlaps.join("\n  ");
+        findings.overlaps.join("\n  ");
       if (process.env.PROBE_ALLOW_OVERLAP === "1") {
         console.warn(`\n[warn] ${message}`);
       } else {
@@ -354,11 +367,11 @@ export async function renderWidgets(
       }
     }
 
-    if (crushedGraphics.length > 0) {
+    if (findings.crushedGraphics.length > 0) {
       const message =
-        `${crushedGraphics.length} graphic(s) laid out at zero width or height, ` +
+        `${findings.crushedGraphics.length} graphic(s) laid out at zero width or height, ` +
         "so they are in the DOM and paint nothing:\n  " +
-        crushedGraphics.join("\n  ");
+        findings.crushedGraphics.join("\n  ");
       if (process.env.PROBE_ALLOW_CRUSHED_GRAPHICS === "1") {
         console.warn(`\n[warn] ${message}`);
       } else {
@@ -702,7 +715,11 @@ async function findOverlappingSections(page: Page): Promise<string[]> {
             const label = [a, b].map((k) => {
               const tag = k.el.tagName.toLowerCase();
               const text = (k.el.textContent ?? "").replace(/\s+/g, " ").trim();
-              return `<${tag}> "${text.slice(0, 32)}"`;
+              // The id when there is one: a pair of unlabelled wrapper divs, or
+              // two SVG groups, reports as `<div> "" x <div> ""` and names
+              // nothing an author could go and look at.
+              const id = k.el.id ? `#${k.el.id}` : "";
+              return `<${tag}${id}> "${text.slice(0, 32)}"`;
             });
             out.push(
               `${label[0]} ⨯ ${label[1]} overlap ` +
@@ -718,14 +735,120 @@ async function findOverlappingSections(page: Page): Promise<string[]> {
   );
 }
 
+/**
+ * Plants known layouts in the probe page and checks the overlap detector's
+ * verdict on each one, before a single widget is rendered.
+ *
+ * A detector that cannot see its own failure reports zero and zero reads as a
+ * pass, which is the shape of every instrument this project has been burned by.
+ * So the run refuses to start unless the detector both FIRES on a deliberately
+ * broken stack and STAYS QUIET on each kind of overlap that is somebody's
+ * design: an absolutely-positioned badge hung over the section below it, a
+ * relatively-offset element shifted onto its neighbour, a grid stacking two
+ * children in one cell, and layered SVG shapes.
+ *
+ * Every case sits in its own absolutely-positioned wrapper. Out-of-flow siblings
+ * are never compared to each other, so the case that is SUPPOSED to overflow
+ * cannot leak a finding onto the case below it, while the children inside each
+ * wrapper are still scanned normally.
+ */
+async function proveOverlapDetectorWorks(page: Page): Promise<void> {
+  await page.evaluate(() => {
+    const host = document.getElementById("root");
+    if (!host) throw new Error("Probe: #root missing before the overlap check");
+    const box = document.createElement("div");
+    box.id = "overlap-detector-selfcheck";
+    // Every planted element carries an id, and the id is what the detector's
+    // report names. Text alone was not enough: SVG groups have none, so the
+    // `quiet-svg` arm silently matched nothing and passed while the detector
+    // reported 402 SVG overlaps across the real widgets.
+    // The layered-SVG case sits in a FLEX container, matching every real one: a
+    // flex item is blockified, so an svg's default inline display becomes block
+    // and the element looks like a stack. In a plain block parent it stays
+    // inline, is skipped for THAT reason, and the namespace guard goes untested.
+    box.innerHTML = `
+      <div style="position:absolute;top:0;left:0;width:200px">
+        <div id="fires-overflow" style="height:20px"><div style="height:60px">block</div></div>
+        <div id="fires-victim" style="height:40px">below</div>
+      </div>
+      <div style="position:absolute;top:200px;left:0;width:200px">
+        <div id="quiet-badge-host" style="height:20px;position:relative">
+          <div style="position:absolute;top:0;height:60px">badge</div>
+        </div>
+        <div id="quiet-badge-neighbour" style="height:40px">below</div>
+      </div>
+      <div style="position:absolute;top:400px;left:0;width:200px">
+        <div id="quiet-offset" style="height:20px;position:relative;top:40px">shifted</div>
+        <div id="quiet-offset-neighbour" style="height:40px">below</div>
+      </div>
+      <div style="position:absolute;top:600px;left:0;width:200px;display:grid">
+        <div id="quiet-grid-a" style="grid-area:1/1;height:40px">a</div>
+        <div id="quiet-grid-b" style="grid-area:1/1;height:40px">b</div>
+      </div>
+      <div style="position:absolute;top:800px;left:0;display:flex">
+        <svg width="40" height="40" viewBox="0 0 40 40" aria-label="layered">
+          <g id="quiet-svg-under"><rect width="40" height="40" fill="#111"></rect></g>
+          <g id="quiet-svg-over"><circle cx="20" cy="20" r="18" fill="#222"></circle></g>
+        </svg>
+      </div>`;
+    host.appendChild(box);
+  });
+  const found = await findOverlappingSections(page);
+  await page.evaluate(() =>
+    document.getElementById("overlap-detector-selfcheck")?.remove(),
+  );
+
+  const fired = found.some(
+    (f) => f.includes("fires-overflow") && f.includes("fires-victim"),
+  );
+  const misfired = found.filter((f) => f.includes("quiet-"));
+  if (!fired) {
+    throw new Error(
+      "The stacked-overlap detector is BLIND: a deliberately broken stack " +
+        "(a 60px block inside a 20px box, painting onto the section below it) " +
+        "was not reported, so a clean run proves nothing about the widgets.\n" +
+        `What it did report: ${found.length === 0 ? "nothing" : found.join("; ")}`,
+    );
+  }
+  if (misfired.length > 0) {
+    throw new Error(
+      "The stacked-overlap detector reported overlap that is somebody's " +
+        "design, so its verdict on a widget cannot be trusted either:\n  " +
+        misfired.join("\n  "),
+    );
+  }
+}
+
+/**
+ * Everything a run collects across every widget and reports once at the end.
+ *
+ * Collected rather than thrown on the spot, and `mounts` is why that matters
+ * beyond tidiness: one stale interaction selector used to abort the whole
+ * session, so `astronaut-complex` failing its Fire click meant the 26 widgets
+ * after it in the list were never rendered, never gated and never compared to a
+ * baseline. In the `visual` job, which is red on purpose, that is invisible. A
+ * run now surveys the WHOLE set and fails at the end holding all of it.
+ */
+interface RenderFindings {
+  /** Graphics laid out at zero width or height (the paint gate). */
+  crushedGraphics: string[];
+  /** Stacked siblings painting into the same pixels. */
+  overlaps: string[];
+  /** Renders that never happened: a throw out of `__renderProbe`. */
+  mounts: string[];
+}
+
+function noFindings(): RenderFindings {
+  return { crushedGraphics: [], overlaps: [], mounts: [] };
+}
+
 async function renderOneWidget(
   page: Page,
   config: WidgetRenderConfig,
   outSuffix = "",
   outBase: string = LOCAL_DOCS,
   fullContent = false,
-  crushedGraphics: string[] = [],
-  overlaps: string[] = [],
+  findings: RenderFindings = noFindings(),
 ): Promise<void> {
   const fixturesDir = resolve(COMPONENTS_SRC, config.fixturesPath);
   const outDir = resolve(outBase, config.outPath);
@@ -779,15 +902,27 @@ async function renderOneWidget(
         series: seriesData,
         clicks: mode.clicks,
       };
-      await page.evaluate(
-        (p) =>
-          (
-            window as unknown as {
-              __renderProbe: (payload: ProbePayload) => Promise<void>;
-            }
-          ).__renderProbe(p),
-        payload as unknown as Record<string, unknown>,
-      );
+      try {
+        await page.evaluate(
+          (p) =>
+            (
+              window as unknown as {
+                __renderProbe: (payload: ProbePayload) => Promise<void>;
+              }
+            ).__renderProbe(p),
+          payload as unknown as Record<string, unknown>,
+        );
+      } catch (err) {
+        // Record and move to the next mode. A mount that threw produced no
+        // widget, so every step below it (the gates, the screenshot) would be
+        // measuring the previous render's DOM and reporting it under this
+        // mode's name.
+        findings.mounts.push(
+          `${config.widgetId} @ ${mode.name} (${fixture.name}): ` +
+            (err instanceof Error ? err.message.split("\n")[0] : String(err)),
+        );
+        continue;
+      }
       // Full-content capture (review path): grow `#root` until nothing is
       // clipped, so the PNG shows the WHOLE widget, not a tile-height crop.
       // Content can hide in two places, behind the Panel's `overflow:hidden`,
@@ -891,12 +1026,12 @@ async function renderOneWidget(
         }
       }
       for (const crushed of await findCrushedGraphics(page)) {
-        crushedGraphics.push(
+        findings.crushedGraphics.push(
           `${config.widgetId} @ ${mode.name} (${fixture.name}): ${crushed}`,
         );
       }
       for (const overlap of await findOverlappingSections(page)) {
-        overlaps.push(
+        findings.overlaps.push(
           `${config.widgetId} @ ${mode.name} (${fixture.name}): ${overlap}`,
         );
       }

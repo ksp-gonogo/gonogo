@@ -356,6 +356,7 @@ function NavballComponent({
   const control = lastObserved(useTelemetry("vessel.control"));
   const vesselState = useStream<VesselState>("vessel.state");
   const sasMode = vesselState?.sasModeName ?? undefined;
+  const sasBadgeMode = sasMode ? badgeSasMode(sasMode) : "";
   const sasOn = control?.sas === true;
   const rcsOn = control?.rcs === true;
   const precisionOn = control?.precisionControl === true;
@@ -815,7 +816,7 @@ function NavballComponent({
         showModeBadges ? (
           <div style={MODE_BADGE_ROW}>
             <span style={modeBadgeStyle(sasOn)}>
-              SAS{sasMode ? `: ${badgeSasMode(sasMode)}` : ""}
+              SAS{sasBadgeMode && `: ${sasBadgeMode}`}
             </span>
             <span style={modeBadgeStyle(rcsOn)}>RCS</span>
             {precisionOn && <span style={modeBadgeStyle(true)}>PRECISION</span>}
@@ -1168,11 +1169,15 @@ function modeShort(mode: SasMode): string {
  * letters, and the grid directly below already spells the active mode out in
  * full behind its lit button.
  *
+ * `StabilityAssist` returns nothing, so the badge reads a bare "SAS": its own
+ * token IS "SAS" and the suffixed form says "SAS: SAS".
+ *
  * `Unknown` keeps its own name rather than becoming a symbol: it is the
  * contract's fallback for a mode this build cannot name, and a "?" would leave
  * an operator unable to tell it from a rendering fault.
  */
 function badgeSasMode(mode: SasModeName): string {
+  if (mode === "StabilityAssist") return "";
   return mode === "Unknown" ? mode : modeShort(mode);
 }
 
