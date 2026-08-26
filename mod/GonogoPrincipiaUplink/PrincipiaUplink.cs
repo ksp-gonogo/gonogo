@@ -77,6 +77,15 @@ namespace GonogoPrincipiaUplink
         public const string PlanTopic = "principia.plan";
 
         private IFlightPlanObserver? _observer;
+
+        /// <summary>
+        /// The host, kept so a Courier-thread handle can ask what is subscribed
+        /// before publishing. Written once in <see cref="Register"/> and only read
+        /// afterward; the query it is used for reads the engine's thread-safe
+        /// subscribed-topics mirror and is documented callable from any thread.
+        /// </summary>
+        private IUplinkHost? _host;
+
         private ISettingsSource? _settings;
         private readonly SettingsReflection _settingsReader = new SettingsReflection();
         private readonly NativeSettingsReader _nativeSettingsReader = new NativeSettingsReader();
@@ -205,6 +214,7 @@ namespace GonogoPrincipiaUplink
                 return;
             }
 
+            _host = host;
             RegisterPropagation(host);
             RegisterGravityModel(host);
             RegisterControlFrame(host);
@@ -215,24 +225,30 @@ namespace GonogoPrincipiaUplink
             _flightPlan = host.Publisher(FlightPlanTopic);
             host.AddSampledSource(CaptureOnMain, HandleOnCourier, FlightPlanTopic);
             _settingsPublisher = host.Publisher(SettingsTopic);
-            host.AddSampledSource(CaptureSettingsOnMain, HandleSettingsOnCourier, SettingsTopic);
-            // Keeps the plotting frame readable whether or not anyone subscribes
-            // principia.settings.
+            // Read on EVERY tick, whatever is subscribed, because the control frame
+            // is derived from this same observation rather than from the settings
+            // topic. A subscription-gated source is skipped entirely while nothing
+            // under its prefixes is watched, which would make system.frame a dead
+            // channel for a client that subscribes it alone: this uplink holds the
+            // controlFrame capability exclusively, so answering null does not fall
+            // through to the vanilla, and the topic emits nothing with no exception
+            // and no log line to say why.
             //
-            // A sampled source runs only while its own topic has a subscriber,
-            // and the control frame is read out of the same observation. Without
-            // an ungated refresh, system.frame is a DEAD channel for any client
-            // that subscribes to it alone: this uplink holds the controlFrame
-            // capability exclusively, so answering null does not fall through to
-            // the vanilla, and the topic emits nothing with no exception and no
-            // log line to say why.
+            // Falling back to stock's answer would be worse than the silence. Stock
+            // reports body-centred inertial, so a player sitting in a pulsating
+            // frame would be told they were somewhere else.
             //
-            // Falling back to stock's answer would be worse than the silence.
-            // Stock reports body-centred inertial, so a player sitting in a
-            // pulsating frame would be told they were somewhere else.
-            host.AddSampler(new SettingsRefresh(this));
+            // The subscription check moves to the PUBLISH, where it costs nothing
+            // that anything else depends on. Gating the reading is what was unsafe.
+            host.AddSampledSource(CaptureSettingsOnMain, HandleSettingsOnCourier);
             _planPublisher = host.Publisher(PlanTopic);
-            host.AddSampledSource(CapturePlanOnMain, HandlePlanOnCourier, PlanTopic);
+            // Ungated for the same reason and with the same publish check: the
+            // maneuver-plan capability answers vessel.maneuver out of this
+            // observation, that election is exclusive too, and a null plan there
+            // does not read as silence. The payload still goes out, with its planner
+            // field absent, and an absent planner means "there is no planner": an
+            // operator whose craft has a plan is told positively that it has none.
+            host.AddSampledSource(CapturePlanOnMain, HandlePlanOnCourier);
             // No topic prefixes, so the engine never skips it. What this source
             // feeds is the uplink's own health, which the roster polls whether or
             // not a client has subscribed to anything of ours; gating it on a
@@ -452,7 +468,7 @@ namespace GonogoPrincipiaUplink
 
         internal void HandlePlanOnCourier(object? captured)
         {
-            if (captured is not PlanObservation observation)
+            if (captured is not PlanObservation observation || !IsSubscribed(PlanTopic))
             {
                 return;
             }
@@ -555,28 +571,6 @@ namespace GonogoPrincipiaUplink
         /// </summary>
         private volatile SettingsObservation? _lastSettings;
 
-        /// <summary>
-        /// Reads the producer's settings every tick, so whatever is derived from
-        /// them can be answered without their own topic being subscribed.
-        ///
-        /// <para>A sampler rather than a second sampled source, because that is
-        /// the seam that runs unconditionally. The settings channel still takes
-        /// its own reading when it is subscribed: that is one extra reflective
-        /// read per tick in that case, and the alternative was routing a
-        /// subscribed channel's payload through a field written by something
-        /// else, which makes the channel's freshness depend on the sampler's
-        /// order rather than on its own.</para>
-        /// </summary>
-        private sealed class SettingsRefresh : ISnapshotSampler
-        {
-            private readonly PrincipiaUplink _uplink;
-
-            internal SettingsRefresh(PrincipiaUplink uplink) => _uplink = uplink;
-
-            public void Sample(KspSnapshot snapshot) =>
-                _uplink.CaptureSettingsOnMain(snapshot);
-        }
-
         /// <summary>What an operator is told while we have stopped reading, and the
         /// one action that resumes it.</summary>
         internal const string JournalSuspensionReason =
@@ -587,13 +581,31 @@ namespace GonogoPrincipiaUplink
 
         internal void HandleSettingsOnCourier(object? captured)
         {
-            if (captured is not SettingsObservation observation)
+            if (captured is not SettingsObservation observation
+                || !IsSubscribed(SettingsTopic))
             {
                 return;
             }
             _settingsPublisher?.Publish(
                 SettingsBuilder.Build(observation), observation.SampledAtUt);
         }
+
+        /// <summary>
+        /// Is anyone watching <paramref name="topic"/>?
+        ///
+        /// <para>Asked on the PUBLISH rather than on the reading. The reading feeds
+        /// an election as well as a channel, so skipping it starves the election;
+        /// skipping the publish starves nothing, because a late subscriber is given
+        /// the current value by the emitter's keyframe-on-subscribe. That is the
+        /// division the gate should have had: an early-out is safe exactly where
+        /// nothing else reads what it skips.</para>
+        ///
+        /// <para>True when there is no host to ask, which is the state in a test
+        /// that drives a capture directly: refusing to publish because nobody
+        /// answered would make every such test assert silence.</para>
+        /// </summary>
+        private bool IsSubscribed(string topic) =>
+            _host == null || _host.IsAnyTopicSubscribed(topic);
 
         /// <summary>
         /// Unavailable is the ORDINARY answer, not a fault: Principia is optional
