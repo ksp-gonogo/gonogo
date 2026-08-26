@@ -69,6 +69,22 @@ const PRINCIPIA_LIVE = {
     secondaryBodies: [],
     targetFrameSelected: false,
   },
+  burnFrames: [
+    {
+      type: 6000,
+      centreBody: "Kerbin",
+    },
+    {
+      type: 6002,
+      primaryBody: "Kerbol",
+      secondaryBody: "Kerbin",
+    },
+  ],
+  selectingTargetVessel: false,
+  targetVesselId: "88888888-4444-4444-4444-121212121212",
+  targetVesselName: "Ares IV",
+  selectingTargetCelestial: false,
+  targetCelestialBody: undefined,
   displayPatchedConics: true,
   predictionVesselId: "Ares-IV",
   predictionToleranceMetres: q("m", 1),
@@ -82,8 +98,22 @@ const PRINCIPIA_LIVE = {
   stabilityGridMinEccentricityMaxInclination: false,
   showElementGraphs: true,
   historyLengthSeconds: q("s", 3 * 3600),
+  unpinnedMarkersHiddenHere: true,
   framesHidingUnpinnedMarkers: q("count", 2),
+  unpinnedCelestialsHiddenHere: false,
   framesHidingUnpinnedCelestials: q("count", 0),
+  pinnedCelestials: ["Mun", "Minmus"],
+  targetPinned: false,
+  showManoeuvreOnNavball: true,
+  planToleranceMetres: q("m", 10),
+  planMaxSteps: q("count", 1_048_576),
+  planInitialTimeUt: q("ut", VIEW_UT + 600),
+  planDesiredFinalTimeUt: q("ut", VIEW_UT + 30 * KSP_DAY),
+  planActualFinalTimeUt: q("ut", VIEW_UT + 12 * KSP_DAY),
+  flightPlanCount: q("count", 2),
+  selectedFlightPlan: q("count", 0),
+  optimiserTargetAltitudeMetres: q("m", 250_000),
+  optimiserTargetInclinationDegrees: q("°", 51.6),
   verboseLevel: q("count", 0),
   logThreshold: q("count", 0),
   stderrThreshold: q("count", 2),
@@ -127,6 +157,26 @@ const SCENES: Scene[] = [
     pxW: 900,
     pxH: 700,
     scrollToLabel: "Prediction step limit",
+  },
+  {
+    // The Flight plan group: a step limit next to a tolerance, both of them the
+    // plugin's own, and the plan reaching short of where it was asked to.
+    name: "principia-flight-plan",
+    emit: { [TOPIC]: PRINCIPIA_LIVE },
+    pxW: 900,
+    pxH: 700,
+    scrollToLabel: "In-game plan step limit",
+  },
+  {
+    // Two groups that were widget-only until the settings surface became the
+    // floor: the pin exemptions that make the hide settings falsifiable, and
+    // the in-game navball guidance toggle, which is about the PLAYER's navball
+    // and not ours.
+    name: "principia-drawing-and-navball",
+    emit: { [TOPIC]: PRINCIPIA_LIVE },
+    pxW: 900,
+    pxH: 700,
+    scrollToLabel: "Guidance shown on the in-game navball",
   },
   {
     // The Diagnostics group: the three sink thresholds by NAME, and the two

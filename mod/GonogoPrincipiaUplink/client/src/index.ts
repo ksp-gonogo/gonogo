@@ -10,12 +10,15 @@
 //     planner an operator is already reading, and that slot exists for exactly
 //     this case.
 //
-//   - `./settings/registerPrincipiaSettings` → 37 declarative settings rows in
-//     one "Principia" category, every one of them stream-backed off
-//     `principia.settings` and therefore read-only. That is what the plugin's
-//     configuration IS: a plotting frame and an integration tolerance decide
-//     what every other number means, and none of them is something a console
-//     may write.
+//   - `./settings/registerPrincipiaSettings` → a declarative row for every
+//     field `principia.settings` carries, in one "Principia" category, every
+//     one of them stream-backed and therefore read-only. That is what the
+//     plugin's configuration IS: a plotting frame and an integration tolerance
+//     decide what every other number means, and none of them is something a
+//     console may write. The surface is the FLOOR, so no field is held back on
+//     the grounds that a widget would suit it better; whether a row ALSO earns
+//     a place beside the readout it qualifies is a separate question, and
+//     answering it yes takes nothing away from there.
 //
 // It also declares both Topics and hydrates their units (`./topics`), including
 // `principia.settings`, which has no widget of its own and is not meant to.
@@ -24,10 +27,16 @@
 // should never meet the word "propagator", and which model produced a number and
 // how far ahead it is good for belongs ON that number rather than in a panel of
 // its own. The channel, the payload, the decode and the unit hydration all stay:
-// the data is still wanted, the panel was not. That is the shape the whole
-// settings group takes. A setting there is a qualifier on some other readout, so
-// it belongs beside the number it qualifies, and `principia.settings` exists to
-// put all of them within one subscription of wherever that is.
+// the data is still wanted, the panel was not. A setting is also a qualifier on
+// some other readout, so it is worth repeating beside the number it qualifies,
+// and `principia.settings` exists to put all of them within one subscription of
+// wherever that is.
+//
+// One row was a candidate for the navball and is deliberately not there. The
+// in-game guidance toggle says whether the PLUGIN is drawing a stock-shaped node
+// on the player's navball; our navball reads the guidance directly, so on our
+// navball the row would read as a control over the widget carrying it. It is
+// also chosen once and left, which is what the settings surface is for.
 //
 // The frame-naming table lives in `./plottingFrame`, because that table is what
 // stops the next author reaching for the producer's own namer, which aborts the

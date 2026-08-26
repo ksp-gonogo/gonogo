@@ -78,10 +78,13 @@ describe("Principia settings rows", () => {
     ];
     expect(groups).toEqual([
       "Plotting frame",
+      "Target",
       "KSP features",
       "Prediction",
+      "Flight plan",
       "Analysis",
       "Drawing",
+      "In-game navball",
       "Diagnostics",
     ]);
   });
