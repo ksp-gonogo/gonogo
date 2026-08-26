@@ -1,5 +1,5 @@
-import type { ComponentProps, Reading } from "@ksp-gonogo/sitrep-sdk";
-import { registerComponent, useTelemetry } from "@ksp-gonogo/sitrep-sdk";
+import type { ComponentProps, Reading, Value } from "@ksp-gonogo/sitrep-sdk";
+import { registerComponent, useTelemetry, value } from "@ksp-gonogo/sitrep-sdk";
 import {
   BigReadout,
   Cluster,
@@ -65,10 +65,23 @@ function Q({
  * fraction is wing area weighted, so a small non-zero reading is a control
  * surface at its limit and is worth noticing, while anything approaching a half
  * is most of the wing gone and the aircraft is departing.
+ *
+ * Compared through the algebra rather than against a bare number, so the
+ * thresholds are stated in the same unit the reading arrives in.
  */
-function stallBand(fraction: number): { label: string; tone: ReadoutTone } {
-  if (fraction >= 0.5) return { label: "STALLED", tone: "alert" };
-  if (fraction > 0.02) return { label: "PARTIAL STALL", tone: "warning" };
+const DEPARTING = value("ratio", 0.5);
+const NOTICEABLE = value("ratio", 0.02);
+
+function stallBand(fraction: Value<"ratio">): {
+  label: string;
+  tone: ReadoutTone;
+} {
+  if (fraction.greaterThanOrEqual(DEPARTING)) {
+    return { label: "STALLED", tone: "alert" };
+  }
+  if (fraction.greaterThan(NOTICEABLE)) {
+    return { label: "PARTIAL STALL", tone: "warning" };
+  }
   return { label: "ATTACHED", tone: "go" };
 }
 
@@ -88,7 +101,7 @@ function stallBand(fraction: number): { label: string; tone: ReadoutTone } {
 export function AeroStateComponent(_props: ComponentProps<AeroConfig>) {
   const s = judgeable(useTelemetry("aero.state"));
   const stall = s?.stallFraction;
-  const band = stall == null ? null : stallBand(stall.magnitude);
+  const band = stall == null ? null : stallBand(stall);
   const modelValid = s?.aeroModelValid ?? false;
 
   return (
