@@ -194,9 +194,10 @@ namespace Gonogo.RealAntennasUplink
             // Typed absence over a sentinel: only publish comms.dataRate when
             // BOTH directions read. CommsDataRate's Up/DownBitsPerSec are
             // non-nullable doubles (a per-field null would be a wire-shape change
-            // and a contract Major/Minor bump), so a half-read used to fill the
-            // missing side with `?? 0.0`: a false "no throughput" reading
-            // indistinguishable from a genuinely idle link. Emitting nothing
+            // and a contract Major/Minor bump), so a half-read has no way to say
+            // "this side is missing" in the payload: filling it with `?? 0.0`
+            // gives a false "no throughput" reading indistinguishable from a
+            // genuinely idle link. Emitting nothing
             // (payload-level typed absence) when either side is missing is the
             // honest choice: the channel simply reports no value that tick rather
             // than a fabricated zero.
@@ -205,11 +206,12 @@ namespace Gonogo.RealAntennasUplink
             // stored a->b direction, and RA assigns a/b by NODE INDEX, not by
             // vessel-vs-home role (Precompute's MakeLink is called with a=Nodes[x],
             // b=Nodes[y], x<=y). So a fixed "Down = Fwd" is a coin-flip per link,
-            // which is exactly what the old in-code note flagged as possibly
-            // swapped. RaLinkDirection resolves it the way RA's own
-            // MaxDataRateToHome does: Fwd is the downlink (vessel->home) only when
-            // link.a is the active vessel's own comm node. Falls back to the old
-            // Down=Fwd mapping when the vessel node cannot be identified.
+            // so it is swapped for roughly half of them. RaLinkDirection resolves
+            // it the way RA's own MaxDataRateToHome does: Fwd is the downlink
+            // (vessel->home) only when link.a is the active vessel's own comm
+            // node. Falls back to the Down=Fwd mapping when the vessel node
+            // cannot be identified, which is the coin-flip again but only for
+            // the cases nothing can resolve.
             if (fwd != null && rev != null)
             {
                 var (up, down) = RaLinkDirection.Resolve(ForwardIsDownlink(link), fwd.Value, rev.Value);
@@ -288,10 +290,10 @@ namespace Gonogo.RealAntennasUplink
         /// absence otherwise), each flattened to its wire dictionary on the way out.
         ///
         /// <para>The flatten is what lets these three types live in this Uplink's own
-        /// contract slice rather than in core: core's serializer no longer carries a
-        /// case per type, so <see cref="RaWire"/> writes the same object it used to.
-        /// Publishing the POCO raw from here would reach the serializer's default
-        /// branch and drop the frame.</para>
+        /// contract slice rather than in core. Core's serializer carries no case per
+        /// type, so <see cref="RaWire"/> writes the wire dictionary itself;
+        /// publishing the POCO raw from here reaches the serializer's default branch
+        /// and drops the frame.</para>
         /// </summary>
         internal void HandleOnCourier(object? captured)
         {
@@ -366,9 +368,9 @@ namespace Gonogo.RealAntennasUplink
         /// Whether a link's FORWARD direction (its stored <c>a -&gt; b</c>) is the
         /// operator's DOWNLINK (vessel -&gt; home). True when <c>link.a</c> is the
         /// active vessel's own comm node, so <c>a -&gt; b</c> runs away from the
-        /// vessel toward home. Falls back to true (the pre-fix Down=Fwd mapping)
-        /// when the vessel node cannot be identified, so an unresolvable case is no
-        /// worse than before rather than a confident swap.
+        /// vessel toward home. Falls back to true, the plain Down=Fwd mapping,
+        /// when the vessel node cannot be identified: a coin-flip for that link
+        /// rather than a confident swap.
         /// </summary>
         private static bool ForwardIsDownlink(CommLink link)
         {

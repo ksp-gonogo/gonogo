@@ -376,7 +376,7 @@ function scriptOptionsFor(
 
 /**
  * Basename of a kOS volume-qualified path: `"0:/widget_scripts/foo.ks"` →
- * `"foo.ks"`. Used to name the local (`1:`) copy `copyLocal` lands.
+ * `"foo.ks"`. Names the local (`1:`) copy `copyLocal` lands.
  */
 function scriptBasename(path: string): string {
   const slash = path.lastIndexOf("/");
@@ -758,9 +758,8 @@ function KosTerminalScreen({
   // useLatestValue reads its most-recent arrived frame (the link edge at the
   // light-time horizon) directly. `oneWaySeconds` is nullable, null when
   // there is no measurable ControlPath, as opposed to 0 for the delay-
-  // feature-disabled-but-connected case (comms-delay-nullable-when-no-path
-  // fix). Both read as "nothing to show" below, same as the pre-fix 0
-  // sentinel did.
+  // feature-disabled-but-connected case. Both read as "nothing to show"
+  // below, so the distinction matters upstream rather than here.
   const commsDelay = useLatestValue<{ oneWaySeconds: number | null }>(
     "comms.delay",
   );
@@ -769,9 +768,9 @@ function KosTerminalScreen({
   // own CPU (`terminalTopic`): the shared delayed-command-ux primitive
   // (`@ksp-gonogo/sitrep-sdk`'s `useRouteCommands`), which reads
   // `system.uplink.pending`/the real-time view clock the same
-  // delay-consistent way this terminal always has, plus the judder-latch
-  // (`kos-terminal-arrow-judder` fix) this terminal's own `isPastReach`
-  // used to hand-roll. Nothing here is ever read for anything
+  // delay-consistent way this terminal reads it elsewhere, plus the
+  // judder-latch, which is the whole reason not to hand-roll the reach test
+  // locally off `isPastReach`. Nothing here is ever read for anything
   // execution/result-shaped: the payload has no such field, and a row
   // disappears only because the engine pruned it from a later snapshot,
   // never because this widget decided a command "completed".
@@ -824,11 +823,11 @@ function KosTerminalScreen({
   // beyond what the server already echoed back onto the pending-queue entry.
   //
   // Blocks the dispatch outright when `noPath` (a confirmed
-  // `comms.connectivity.connected === false`): the server used to silently
-  // drop a command sent with no line of sight; blocking client-side instead
-  // means the operator sees why nothing happened (the "No path" warning
-  // below) rather than a command vanishing into a queue that will never
-  // move. Char-mode keystrokes are blocked the same way as a line-mode
+  // `comms.connectivity.connected === false`), because the server drops a
+  // command sent with no line of sight without saying so. Blocking
+  // client-side means the operator sees why nothing happened (the "No path"
+  // warning below) rather than a command vanishing into a queue that will
+  // never move. Char-mode keystrokes are blocked the same way as a line-mode
   // Enter: the CPU is equally unreachable either way.
   const sendKeystrokeRef = useRef<(chars: string, label?: string) => void>(
     () => {},
@@ -1148,8 +1147,8 @@ function KosTerminalScreen({
     (commsDelay.oneWaySeconds ?? 0) > 0 &&
     (!lineMode || (commsDelay.oneWaySeconds ?? 0) <= 1);
   // `routeMode === "staged"` is exactly the `oneWaySeconds != null && > 1`
-  // threshold `currentMode` applies, equivalent to the old raw check, minus
-  // the redundant `commsDelay !== undefined` (folded into "staged" itself).
+  // threshold `currentMode` applies, with the `commsDelay !== undefined` check
+  // folded into "staged" itself rather than repeated here.
   const showStrip = lineMode && !readOnly && routeMode === "staged";
   // Narrowed, non-optional local for the JSX below, `showBadge` is a plain
   // boolean, so TS can't carry its truthiness back onto `commsDelay` at the
@@ -1417,9 +1416,9 @@ const TerminalShell = styled.div`
 // Wraps the terminal pane so the delay badge can be pinned INSIDE its
 // bordered box (an absolutely-positioned corner overlay) instead of floating
 // below it as a separate flex sibling, a badge floating past the pane's own
-// border reads as rendering outside the widget's visual bounds. Carries the
-// flex-sizing props `Container` used to own directly; `Container` itself is
-// now a plain 100%-of-frame box so xterm's own mount target is unaffected.
+// border reads as rendering outside the widget's visual bounds. This carries
+// the flex sizing, leaving `Container` a plain 100%-of-frame box so xterm's own
+// mount target is unaffected.
 const TerminalFrame = styled.div`
   position: relative;
   flex: 1 1 auto;
@@ -1449,10 +1448,10 @@ const Container = styled.div<{ $readOnly?: boolean }>`
 `;
 
 // Positioning context for `CompositionBar__NoPathFlag` below, pinned to the
-// bar itself rather than floating as its own flex row, takes over the
-// `flex: 0 0 auto` sizing `CompositionBar` used to own directly as a
-// `TerminalShell` child, so the bar's own height/width is unaffected by the
-// wrap (a plain block box hugs its sole child's size).
+// bar itself rather than floating as its own flex row. This holds the
+// `flex: 0 0 auto` sizing as the `TerminalShell` child, so the bar's own
+// height and width are unaffected by the wrap: a plain block box hugs its sole
+// child's size.
 const CompositionBarWrap = styled.div`
   position: relative;
   flex: 0 0 auto;

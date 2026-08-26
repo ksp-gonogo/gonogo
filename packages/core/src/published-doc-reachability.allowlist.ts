@@ -273,7 +273,7 @@ export const DOC_DEBT: Record<string, Partial<Record<Tier, number>>> = {
   "mod/sitrep-sdk/src/spine/timeline-store.ts": { T2: 4 },
   "mod/sitrep-sdk/src/spine/uplink-health.ts": { T2: 1 },
   "mod/sitrep-sdk/src/spine/use-stream.ts": { T2: 1 },
-  "mod/sitrep-sdk/src/spine/vessel-state.ts": { T2: 4 },
+  "mod/sitrep-sdk/src/spine/vessel-state.ts": { T2: 3 },
   "mod/sitrep-sdk/src/testing/install-real-test-host.ts": { T1a: 1 },
   "mod/sitrep-sdk/src/testing/memory-storage.ts": { T1a: 1 },
   "mod/sitrep-sdk/src/testing/mock-data-source.ts": { T1a: 1 },

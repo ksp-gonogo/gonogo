@@ -48,9 +48,8 @@ import { KERBALISM } from "../uplink";
 // Side-effect import: registers the `ship-systems.life-support` augment filler
 // (the Greenhouse section) and the SlotRegistry declaration merge for that
 // slot id, see that file's own doc comment. Life support is a Kerbalism
-// concept, so this augment lives here in the Uplink (not
-// `@ksp-gonogo/components`), replacing the deleted `LifeSupportSystems`
-// widget that used to own it.
+// concept, so this augment lives here in the Uplink rather than in
+// `@ksp-gonogo/components`.
 import "./GreenhouseSection";
 import { radiationTooHigh } from "./GreenhouseSection";
 import { RadiationSection } from "./RadiationSection";
@@ -342,8 +341,8 @@ function ShipSystemsBody({
 
   // The power footer: ElectricCharge is universal across every Kerbalism
   // profile (stock and RO both declare it), so it is worth a permanently
-  // visible readout the way the old widget's hardcoded Power meter was,
-  // even though it is ALSO just another row in `summary.supplies` above.
+  // visible readout, even though it is ALSO just another row in
+  // `summary.supplies` above.
   // Duplicating the reading rather than special-casing its layout only
   // matches the "spending funds: always show the balance" duplication
   // convention elsewhere in this codebase: the operator should not have to
@@ -429,9 +428,9 @@ function ShipSystemsBody({
         )}
 
         {summary.causes.length > 0 && (
-          // Card, matching every other container in this widget now
-          // (operator feedback: the widget used to hand-stitch `Box`
-          // inconsistently, some rows boxed, some not).
+          // Card, the same container every other section in this widget uses:
+          // hand-stitching `Box` per section is how some rows end up boxed and
+          // some not.
           <Card role="status" aria-live="polite">
             <Stack gap="xs">
               <Text tone="nogo" weight="semibold" size="sm">
@@ -766,12 +765,10 @@ function LedgerBody({ ledger }: { ledger: Ledger }) {
     ...ledger.terms.map((t) => Math.abs(t.ratePerSecond)),
   );
   return (
-    // No `minWidth`: a fixed floor here is exactly what used to force this
-    // panel wider than the row that hosts it (see this component's own
-    // history), spilling the ledger past the widget's right edge at any
-    // width narrower than the floor. `width: 100%` lets it size to whatever
-    // the accordion panel actually has, at every panel width down to
-    // minSize.
+    // No `minWidth`: a fixed floor forces this panel wider than the row that
+    // hosts it, spilling the ledger past the widget's right edge at any width
+    // narrower than the floor. `width: 100%` sizes it to whatever the accordion
+    // panel actually has, at every panel width down to minSize.
     <Stack gap="xs" style={{ width: "100%", minWidth: 0 }}>
       {ledger.terms.length === 0 ? (
         <Text tone="muted" size="xs">
@@ -784,9 +781,9 @@ function LedgerBody({ ledger }: { ledger: Ledger }) {
           // NAME has shrunk as far as ITS wrapping allows, the rate has
           // nowhere left to shrink to. Flex-wrapping the row lets the
           // trailing group drop to a line of its own at the narrowest panel
-          // widths instead of forcing the row (and everything above it)
-          // wider than the panel, which is exactly the overflow this
-          // component used to have (see this function's own doc comment).
+          // widths instead of forcing the row, and everything above it, wider
+          // than the panel: the overflow this function's own doc comment
+          // describes.
           <Cluster
             key={`${term.kind}-${term.name}-${term.flightId ?? ""}`}
             justify="between"
@@ -840,11 +837,11 @@ function LedgerBody({ ledger }: { ledger: Ledger }) {
         // Same near-black-on-dark landmine as the row footnote above: the
         // `-fg-muted` override keeps this readable on the panel surface.
         // Every term above is already scaled by Kerbalism's own live modifier
-        // product (envModifier/ruleEnvModifiers, option a'), so this residual
-        // is no longer "modifiers we didn't model" -- it is a genuine
-        // model-vs-reality gap (timewarp catch-up between samples, a consumer
-        // this ledger doesn't enumerate) and is worth keeping visible as
-        // exactly that, never hidden.
+        // product (envModifier/ruleEnvModifiers), so this residual is not
+        // "modifiers we didn't model": it is a genuine model-vs-reality gap
+        // (timewarp catch-up between samples, a consumer this ledger does not
+        // enumerate) and is worth keeping visible as exactly that, never
+        // hidden.
         <Text
           tone="warn"
           size="xs"

@@ -1586,6 +1586,13 @@ export const ALLOWLIST: Record<ModToken, ModAllowlist> = {
       // after where it was seen (a death-clock badge reading "~4M" for four
       // minutes). Provenance for a general unit-symbol rule.
       "packages/ui-kit/src/unit-symbol-collision.test.ts",
+      // widgetDeclarations.test.ts: names `kerbalism.spaceweather` and the
+      // Kerbalism client in prose, as the worked example of why this gate
+      // cannot classify `channels` from inside `packages/components`. A
+      // built-in widget mounting on an Uplink-owned channel is the case, and
+      // naming a different Uplink's channel would make the comment a lie.
+      // Text-only; the assertion itself reads the registry and imports nothing.
+      "packages/components/src/test/widgetDeclarations.test.ts",
     ],
   },
   // === testflight: owning dir mod/GonogoTestFlightUplink/. Had an owning
