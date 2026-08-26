@@ -38,6 +38,23 @@ import { describe, expect, it } from "vitest";
 // magnitude. `?.foo?.magnitude` and a plain `foo.magnitude` are both fine.
 const HALF_GUARDED = String.raw`\?\.[A-Za-z_$][A-Za-z0-9_$]*\.magnitude`;
 
+/**
+ * The SAFE spelling, `?.foo?.magnitude`, which differs from the violation by one
+ * character and exercises the same `\?\.`, the same character classes and the
+ * same `\.magnitude`.
+ *
+ * Zero is this check's pass condition, so zero is also what a pattern the local
+ * grep does not accept produces, and the two are indistinguishable from the
+ * outside. A `\b` that POSIX ERE does not support matched nothing on macOS for
+ * weeks elsewhere in this tree. Running a needle KNOWN to be present through the
+ * same pipeline is what separates "looked and found nothing" from "did not
+ * look".
+ */
+const FULLY_GUARDED = String.raw`\?\.[A-Za-z_$][A-Za-z0-9_$]*\?\.magnitude`;
+
+/** Well under the 47 present when this was written, so ordinary edits do not trip it. */
+const MIN_FULLY_GUARDED = 20;
+
 const SEARCH_ROOTS = ["packages", "mod"];
 
 function repoRoot(startDir: string): string {
@@ -47,7 +64,7 @@ function repoRoot(startDir: string): string {
   }).trim();
 }
 
-function offenders(root: string): string[] {
+function grepFor(root: string, pattern: string): string[] {
   let out: string;
   try {
     out = execFileSync(
@@ -57,7 +74,7 @@ function offenders(root: string): string[] {
       // invisible to this scan until the moment it is staged, and a local
       // run before `git add` reports success while not looking at it. It
       // still honours .gitignore, so build output stays out.
-      ["grep", "--untracked", "-nE", HALF_GUARDED, "--", ...SEARCH_ROOTS],
+      ["grep", "--untracked", "-nE", pattern, "--", ...SEARCH_ROOTS],
       { cwd: root, encoding: "utf8", maxBuffer: 1024 * 1024 * 16 },
     );
   } catch (err) {
@@ -80,8 +97,18 @@ function offenders(root: string): string[] {
 const root = repoRoot(dirname(fileURLToPath(import.meta.url)));
 
 describe("an optional chain to a magnitude stays optional", () => {
+  it("can still see a chain of this shape, so a clean result means something", () => {
+    const guarded = grepFor(root, FULLY_GUARDED);
+    expect(
+      guarded.length,
+      `Found ${guarded.length} correctly-guarded \`?.x?.magnitude\` chains, expected at least ` +
+        `${MIN_FULLY_GUARDED}. The scan below reports a violation count of zero when it is ` +
+        "working and when its pattern matches nothing, and this is what tells those apart.",
+    ).toBeGreaterThanOrEqual(MIN_FULLY_GUARDED);
+  });
+
   it("has no read that guards the parent but not the quantity", () => {
-    const found = offenders(root);
+    const found = grepFor(root, HALF_GUARDED);
     if (found.length > 0) {
       throw new Error(
         "An optional chain stops one link short of `.magnitude`. The wire " +

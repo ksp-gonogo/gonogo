@@ -44,9 +44,19 @@ function sdkSubpaths(): string[] {
   );
 }
 
-/** Every vitest/vite config in the repo that aliases the sdk at all. */
-function configsAliasingTheSdk(): { path: string; source: string }[] {
-  const found: { path: string; source: string }[] = [];
+/**
+ * Every vitest/vite config in the repo, with the two ways of spotting an sdk
+ * alias in it.
+ *
+ * A config is included here if it names the specifier at all; `aliases` records
+ * whether it does so in the exact spelling the subpath check keys off. A config
+ * that aliases the sdk with single quotes, through a shared helper, or behind a
+ * computed key is one and not the other, and would drop out of the scan
+ * silently: the gate below would then iterate an empty list and report no
+ * missing subpaths.
+ */
+function sdkConfigs(): { path: string; source: string; aliases: boolean }[] {
+  const found: { path: string; source: string; aliases: boolean }[] = [];
   const walk = (dir: string): void => {
     for (const entry of readdirSync(dir, { withFileTypes: true })) {
       if (entry.name === "node_modules" || entry.name === "dist") continue;
@@ -58,14 +68,21 @@ function configsAliasingTheSdk(): { path: string; source: string }[] {
       }
       if (!/^vitest?\.config\.(ts|mts|js|mjs)$/.test(entry.name)) continue;
       const source = readFileSync(full, "utf8");
-      if (source.includes('"@ksp-gonogo/sitrep-sdk":')) {
-        found.push({ path: full.slice(REPO_ROOT.length + 1), source });
-      }
+      if (!source.includes("@ksp-gonogo/sitrep-sdk")) continue;
+      found.push({
+        path: full.slice(REPO_ROOT.length + 1),
+        source,
+        aliases: source.includes('"@ksp-gonogo/sitrep-sdk":'),
+      });
     }
   };
   walk(join(REPO_ROOT, "mod"));
   walk(join(REPO_ROOT, "packages"));
   return found;
+}
+
+function configsAliasingTheSdk(): { path: string; source: string }[] {
+  return sdkConfigs().filter((config) => config.aliases);
 }
 
 /**
@@ -144,6 +161,24 @@ describe("sdk subpath aliases", () => {
 
   it("finds at least one config to check, so a green result means something", () => {
     expect(configsAliasingTheSdk().length).toBeGreaterThan(0);
+  });
+
+  it("recognises the alias in every config that names the sdk at all", () => {
+    /*
+     * The count alone cannot carry this: one config names the sdk today, so a
+     * floor is satisfied by the same single file whose respelling would empty
+     * the scan. Comparing the two ways of finding it is a different kind of
+     * check, and it is the one that notices.
+     */
+    const unrecognised = sdkConfigs()
+      .filter((config) => !config.aliases)
+      .map((config) => config.path);
+    expect(
+      unrecognised,
+      'These configs name @ksp-gonogo/sitrep-sdk but not in the exact `"@ksp-gonogo/sitrep-sdk":` ' +
+        "spelling the subpath check looks for, so they are aliasing it in a form this scan " +
+        "cannot see and their subpath aliases are ungated.",
+    ).toEqual([]);
   });
 
   it("aliases every sdk subpath wherever the bare specifier is aliased", () => {

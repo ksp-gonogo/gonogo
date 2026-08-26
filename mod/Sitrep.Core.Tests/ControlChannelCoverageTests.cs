@@ -141,6 +141,34 @@ namespace Sitrep.Core.Tests
             }
         }
 
+        /// <summary>
+        /// <para>The metadata scan reaches the declarations, so a clean sweep means
+        /// something.</para>
+        /// <para>Every gate below is a <c>foreach</c> over
+        /// <see cref="DeclaredChannels"/> that reports no violation when the list is
+        /// empty. <see cref="ControlChannelPropertiesFromMetadata"/> matches the
+        /// attribute by its SIMPLE NAME as a string, so renaming
+        /// <c>SitrepControlChannelAttribute</c>, or any change to the
+        /// <c>MetadataReader</c> walk, returns nothing and all of them pass having
+        /// checked no channel at all.</para>
+        /// <para><see cref="ThrottleChannelIsDeclaredWithBothHalves"/> looks like the
+        /// control and is not: it reaches the attribute through ordinary reflection,
+        /// a path the metadata scan never touches, so it proves the declaration
+        /// exists and not that the scanner can see it.</para>
+        /// </summary>
+        [Fact]
+        public void TheMetadataScanReachesTheDeclaredChannels()
+        {
+            var channels = DeclaredChannels().ToList();
+            Assert.True(
+                channels.Count >= 14,
+                "Control-channel discovery collapsed to " + channels.Count
+                    + " channels, so every sweep in this file is passing over an empty list. Found: "
+                    + string.Join(", ", channels.Select(c => c.Attr.ChannelId).OrderBy(x => x)));
+
+            Assert.Contains("vessel.control.throttle", channels.Select(c => c.Attr.ChannelId));
+        }
+
         [Fact]
         public void ThrottleChannelIsDeclaredWithBothHalves()
         {

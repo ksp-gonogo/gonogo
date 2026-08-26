@@ -143,7 +143,20 @@ namespace Sitrep.Core.Tests
             var contractDir = ResolveSitrepContractSourceDir();
             var violations = new List<string>();
 
-            foreach (var file in Directory.EnumerateFiles(contractDir, "*.cs", SearchOption.TopDirectoryOnly))
+            // AllDirectories, not TopDirectoryOnly: Sitrep.Contract is flat today,
+            // so the moment anyone groups it into Wire/ or Commands/ those files
+            // leave the scan and the tokens below are enforced over nothing.
+            var files = Directory.EnumerateFiles(contractDir, "*.cs", SearchOption.AllDirectories).ToList();
+
+            // A scan that reads no file reports no violation, which is this test's
+            // pass condition. ResolveSitrepContractSourceDir throws on a MOVED
+            // directory; nothing covered an emptied or restructured one.
+            Assert.True(
+                files.Count >= 80,
+                $"Only {files.Count} .cs file(s) found under {contractDir}, expected at least 80. "
+                + "An empty scan finds the same zero relocated-Uplink tokens as a clean contract.");
+
+            foreach (var file in files)
             {
                 var fileName = Path.GetFileName(file);
                 var lines = File.ReadAllLines(file);

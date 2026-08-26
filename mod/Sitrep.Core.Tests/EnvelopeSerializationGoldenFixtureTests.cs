@@ -47,6 +47,26 @@ namespace Sitrep.Core.Tests
             return vectors;
         }
 
+        /// <summary>
+        /// The fixture still carries its vectors, so a green Theory means something.
+        ///
+        /// <para>A Theory over a SHRUNKEN <see cref="Vectors"/> simply runs fewer cases
+        /// and reports the same success as one that checked every byte. Measured: 13
+        /// vectors cut to 3 still passes every case it runs. Nothing else here counts
+        /// them, so a generator regression that drops a whole family goes unremarked
+        /// except where a named vector happens to be looked up by hand.</para>
+        /// </summary>
+        [Fact]
+        public void TheFixtureCarriesItsVectors()
+        {
+            var count = new List<object[]>(Vectors()).Count;
+            Assert.True(
+                count >= 12,
+                $"serialization.json yielded {count} vector(s), expected at least 12. "
+                + "xUnit flags a fixture emptied ENTIRELY; a fixture that merely loses a family of "
+                + "vectors just runs fewer cases and still reports success.");
+        }
+
         [Theory]
         [MemberData(nameof(Vectors))]
         public void RoundTripsToTheExactSameWireShapeAsTs(JsonElement vector)
