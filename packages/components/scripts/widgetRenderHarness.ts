@@ -299,6 +299,7 @@ export async function renderWidgets(
     });
     const page = await context.newPage();
     const pageErrors: string[] = [];
+    const crushedGraphics: string[] = [];
     page.on("pageerror", (err) => {
       console.error("  [page error]", err.message);
       pageErrors.push(err.message);
@@ -331,7 +332,25 @@ export async function renderWidgets(
         outSuffix,
         outBase,
         config.fullContent ?? fullContent,
+        crushedGraphics,
       );
+    }
+
+    if (crushedGraphics.length > 0) {
+      const message =
+        `${crushedGraphics.length} graphic(s) laid out at zero width or height, ` +
+        "so they are in the DOM and paint nothing:\n  " +
+        crushedGraphics.join("\n  ");
+      if (process.env.PROBE_ALLOW_CRUSHED_GRAPHICS === "1") {
+        console.warn(`\n[warn] ${message}`);
+      } else {
+        throw new Error(
+          `${message}\n(Set PROBE_ALLOW_CRUSHED_GRAPHICS=1 to render anyway. ` +
+            "A crushed graphic is usually a flex row too narrow for an icon plus " +
+            "its label: the icon's automatic minimum size is zero, so it is what " +
+            "gives way.)",
+        );
+      }
     }
 
     // An uncaught exception during a render means the widget did not render.
@@ -456,12 +475,70 @@ async function renderOneScreen(
   console.log(`Rendered ${count} screen shots → ${outDir}`);
 }
 
+/** Fraction the rendered aspect may drift from the authored one before it counts. */
+const ASPECT_TOLERANCE = 0.02;
+
+/**
+ * Every `<svg>` under `#root` whose rendered box has lost the aspect ratio its
+ * own width/height attributes asked for, reported as
+ * `<id> asked W×H (aspect A), got W×H (aspect B) inside <parent> "text"`.
+ *
+ * This is the failure a screenshot cannot describe and a jsdom snapshot cannot
+ * see. An `<svg>` carries the UA's `overflow: hidden`, which by CSS makes its
+ * automatic minimum size ZERO, so as a flex item it is the first thing a
+ * too-narrow row gives up: it shrinks towards `width: 0` while the sibling text
+ * keeps every pixel it asked for. The element stays in the DOM, `visibility:
+ * visible`, opacity 1, and paints a sliver or nothing. Both instruments this
+ * project approves work with call that a pass, one because it has no layout
+ * engine, one because a missing glyph on a dark panel is a handful of pixels.
+ *
+ * ASPECT is the signal rather than absolute size, because a stylesheet is
+ * entitled to override an icon's attributes (`width: 1em`) and does so in both
+ * axes: the box changes, the ratio does not. Flex shrink acts on one axis only,
+ * so distortion is specific to it. A graphic measuring 0×0 is genuinely hidden,
+ * which is a legitimate render, not a defect.
+ */
+async function findCrushedGraphics(page: Page): Promise<string[]> {
+  return page.evaluate((tolerance) => {
+    const host = document.getElementById("root");
+    if (!host) return [] as string[];
+    const out: string[] = [];
+    for (const el of Array.from(host.querySelectorAll("svg[width][height]"))) {
+      const asked = {
+        w: Number.parseFloat(el.getAttribute("width") ?? ""),
+        h: Number.parseFloat(el.getAttribute("height") ?? ""),
+      };
+      if (!(asked.w > 0) || !(asked.h > 0)) continue;
+      const box = el.getBoundingClientRect();
+      if (box.width === 0 && box.height === 0) continue;
+      const wanted = asked.w / asked.h;
+      const got =
+        box.height === 0 ? Number.POSITIVE_INFINITY : box.width / box.height;
+      if (Math.abs(got - wanted) <= wanted * tolerance) continue;
+      const id =
+        el.getAttribute("data-marker") ??
+        el.getAttribute("data-icon") ??
+        el.getAttribute("aria-label") ??
+        "svg";
+      const parent = el.parentElement;
+      const near = (parent?.textContent ?? "").trim().slice(0, 24);
+      out.push(
+        `${id} asked ${asked.w}×${asked.h} (aspect ${wanted.toFixed(2)}), ` +
+          `got ${box.width.toFixed(2)}×${box.height.toFixed(2)} (aspect ${got.toFixed(2)}) ` +
+          `inside <${parent?.tagName.toLowerCase() ?? "?"}> "${near}"`,
+      );
+    }
+    return out;
+  }, ASPECT_TOLERANCE);
+}
+
 async function renderOneWidget(
   page: Page,
   config: WidgetRenderConfig,
   outSuffix = "",
   outBase: string = LOCAL_DOCS,
   fullContent = false,
+  crushedGraphics: string[] = [],
 ): Promise<void> {
   const fixturesDir = resolve(COMPONENTS_SRC, config.fixturesPath);
   const outDir = resolve(outBase, config.outPath);
@@ -626,10 +703,59 @@ async function renderOneWidget(
           );
         }
       }
+      for (const crushed of await findCrushedGraphics(page)) {
+        crushedGraphics.push(
+          `${config.widgetId} @ ${mode.name} (${fixture.name}): ${crushed}`,
+        );
+      }
       const root = await page.$("#root");
       if (!root) throw new Error("Probe: #root missing after render");
       const outName = `${fixture.name}--${mode.name}${outSuffix}.png`;
       const outPath = join(outDir, outName);
+      /*
+       * `PROBE_DUMP_DOM=<css selector>` writes each match's outerHTML, and the
+       * computed value of every property named in `PROBE_DUMP_STYLE`, beside
+       * the PNG.
+       *
+       * A screenshot cannot tell DOM that is absent from DOM that is painted
+       * invisibly, and those two have unrelated causes. The dump is the
+       * instrument that separates them.
+       */
+      const dumpSelector = process.env.PROBE_DUMP_DOM;
+      if (dumpSelector) {
+        const dumped = await page.evaluate(
+          ([selector, styleProps]) => {
+            const props = styleProps ? styleProps.split(",") : [];
+            return Array.from(document.querySelectorAll(selector)).map((el) => {
+              const computed = getComputedStyle(el);
+              const box = el.getBoundingClientRect();
+              return {
+                html: el.outerHTML,
+                box: `${box.width}x${box.height} @ ${box.left},${box.top} scroll=${el.scrollWidth}x${el.scrollHeight} client=${el.clientWidth}x${el.clientHeight}`,
+                style: props
+                  .map(
+                    (p) => `${p.trim()}=${computed.getPropertyValue(p.trim())}`,
+                  )
+                  .join(" "),
+              };
+            });
+          },
+          [dumpSelector, process.env.PROBE_DUMP_STYLE ?? ""] as const,
+        );
+        const dumpPath = outPath.replace(/\.png$/, ".dom.txt");
+        await writeFile(
+          dumpPath,
+          `selector: ${dumpSelector}\nmatches: ${dumped.length}\n\n` +
+            dumped
+              .map(
+                (d, i) =>
+                  `── match ${i} ──\nbox: ${d.box}\nstyle: ${d.style}\n${d.html}\n`,
+              )
+              .join("\n"),
+          "utf8",
+        );
+        console.log(`  dom dump → ${dumpPath} (${dumped.length} matches)`);
+      }
       // animations:"disabled" cancels any still-running CSS animation to its
       // initial state and fast-forwards finite transitions, so the capture is
       // deterministic even for anything not covered by reducedMotion.
