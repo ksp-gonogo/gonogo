@@ -1,7 +1,8 @@
 # Licensing
 
-**gonogo is MIT. `GonogoKosUplink` is GPL-3.0-only, because it links kOS and kOS is GPL-3.0. If you
-don't touch `GonogoKosUplink`, MIT is all you need to know.**
+**gonogo is MIT. Three uplinks are GPL-3.0-only, because each compile-time links a GPL or
+unresolved-licence mod: `GonogoKosUplink`, `GonogoScansatUplink`, `GonogoMechJebUplink`. If you
+don't touch those three, MIT is all you need to know.**
 
 That's the whole rule. The rest of this file is the detail behind it.
 
@@ -22,10 +23,11 @@ able to write an Uplink too.
 |---|---|---|
 | `mod/GonogoKosUplink` (+ `.Tests`, + `@ksp-gonogo/gonogo-kos-uplink`) | GPL-3.0-only | **Permanent.** Compile-time links kOS (`kOS.dll` / `kOS.Safe.dll`), which is GPL-3.0-only. |
 | `mod/GonogoScansatUplink` (+ `@ksp-gonogo/gonogo-scansat-uplink`) | GPL-3.0-only | **Provisional, on hold.** See below. |
+| `mod/GonogoMechJebUplink` | GPL-3.0-only | **Avoidable, and should be avoided.** See below. |
 | Everything else | MIT | Nothing else links anything copyleft. |
 
-Both exceptions are **dependency leaves**, nothing in the repository references either one, so
-their copyleft propagates nowhere. A GPL work linking MIT works is fine and imposes nothing on
+All three exceptions are **dependency leaves**, nothing in the repository references any of them,
+so their copyleft propagates nowhere. A GPL work linking MIT works is fine and imposes nothing on
 those MIT works. Each ships as its own CKAN package in its own GameData folder.
 
 The full GPLv3 text is at `LICENSE-GPL-3.0.txt`, and beside each GPL component as its own `LICENSE`.
@@ -50,6 +52,21 @@ conservative option and it costs nothing: like `GonogoKosUplink` it is a leaf.
 Do not relicense it to MIT on the strength of the BSD text alone. If the `restricted` tag turns out
 to govern, the problem is bigger than a licence field, because we link the DLL. Full rationale in
 `mod/GonogoScansatUplink/NOTICE-SCANSAT.txt`.
+
+### GonogoMechJebUplink (avoidable: this row should stop existing)
+
+MechJeb2 is GPL-3.0 and this uplink compile-time links `MechJeb2.dll`, so the assembly is
+GPL-3.0-only. Unlike the two rows above, nothing forces that. It is the only uplink in the
+repository that binds its mod's types directly instead of reaching them by runtime reflection,
+and the ten MuMech members it touches are already resolved reflectively by its own version guard.
+`GonogoActionGroupsExtendedUplink` reaches AGExt, also GPL-3.0, at arm's length and stays MIT for
+precisely this reason.
+
+The same deviation is why CI cannot compile this assembly and `publish-mods.yml` has no leg for
+it: `MechJeb2.dll` is not in the private reference set, and unlike kOS and SCANsat there is no
+reason to put it there. Scope for the rewrite is in
+`local_docs/design/mechjeb-reflection-rewrite-scope.md`. Until it lands, see
+`mod/GonogoMechJebUplink/NOTICE-MECHJEB.txt`.
 
 ## The kerbcast caveat: read this before relying on the SPA's MIT
 

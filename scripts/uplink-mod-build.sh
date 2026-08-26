@@ -65,7 +65,7 @@ fi
 # this script fails as STALE and the exemption has to be deleted. A debt that
 # cannot outlive its cause is the only kind worth writing down.
 EXEMPT=(
-  "GonogoMechJebUplink|MechJeb2/Plugins/MechJeb2.dll|MechJeb2.dll is not vendored in ksp-gonogo/ksp-managed. The Uplink binds MuMech types directly (MechJebController.cs, MechJebUplink.Ksp.cs) rather than by reflection, so it cannot compile without it. Vendor the DLL with the same redistribution care as the existing SCANsat and kOS entries, then delete this line."
+  "GonogoMechJebUplink|MechJeb2/Plugins/MechJeb2.dll|MechJeb2.dll is not vendored in ksp-gonogo/ksp-managed. This Uplink is the only one that binds its mod's types at compile time (MechJebController.cs, MechJebUplink.Ksp.cs bind MuMech directly) rather than by runtime reflection, so it cannot compile without the dll. Vendoring it would work and is licensable, but the RECOMMENDED fix is to bring the Uplink onto the reflection pattern every other one follows: it returns the assembly to MIT, and the ten MuMech members it touches are already resolved reflectively by MechJebVersionGuard.cs. Scope: local_docs/design/mechjeb-reflection-rewrite-scope.md. Either resolution deletes this line."
 )
 
 exempt_reason() {
