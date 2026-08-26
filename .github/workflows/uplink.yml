@@ -93,7 +93,7 @@ jobs:
             exit 1
           fi
           if [ '${{ matrix.uplink.client }}' != 'true' ]; then
-            echo "::notice::${{ matrix.uplink.id }} is C#-only. Its plugin assembly is compiled by scripts/uplink-mod-build.sh in ci.yml's mod job; nothing further applies here."
+            echo "::notice::${{ matrix.uplink.id }} is C#-only, so the client steps below do not apply. Its plugin assembly is compiled by scripts/uplink-mod-build.sh in ci.yml's mod job, and the C# extraction probe still runs here."
           fi
 
       - uses: actions/setup-node@v6
@@ -146,6 +146,20 @@ jobs:
       - name: Lint
         if: matrix.uplink.client
         run: pnpm exec biome check 'mod/${{ matrix.uplink.id }}'
+
+      # `gonogo-uplink docs --check` renders the page through the harness, which
+      # launches chromium. A runner has no browser until something installs one,
+      # so both `docsCheck` legs failed here from the day this workflow landed,
+      # with "Executable doesn't exist at .../chrome-headless-shell". `ci.yml`
+      # never hit it because its `e2e` job installs browsers for its own reasons.
+      #
+      # A step that CANNOT pass is the mirror of one that cannot fail: it reports
+      # the same red whatever the tree does, so it stops carrying information and
+      # the leg gets read as noise. Chromium alone, because the harness launches
+      # nothing else.
+      - name: Install the browser the page harness renders in
+        if: matrix.uplink.client && matrix.uplink.docsCheck
+        run: pnpm exec playwright install --with-deps chromium
 
       - name: Pages are not stale
         if: matrix.uplink.client && matrix.uplink.docsCheck
