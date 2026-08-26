@@ -272,6 +272,54 @@ public class StockCurrencyStateMachineTests
         Assert.Equal("lab-B", claimForB.OriginVesselId);
     }
 
+    // The exact event order a caller drives when it names a lab vessel and then
+    // awards through AddScience: OnTriggeredDataTransmission first, the science
+    // change second. OnScienceReceived plays no part - it is the ordinary
+    // transmission path, a sibling of this one, not a prerequisite for it. Pinned
+    // because a rig run whose science was never neutralised was read as evidence
+    // that the lab push does not attribute without OnScienceReceived, and the
+    // attribution half of that question is answerable headlessly.
+    [Fact]
+    public void a_lab_push_followed_by_a_science_change_resolves_Away_with_no_OnScienceReceived_involved()
+    {
+        var state = Seeded(science: 2.0);
+
+        var push = state.PushLabVessel("V-2", ut: 100.0);
+        Assert.Equal(ScienceChangeOutcome.Deferred, push.Outcome);
+
+        var earn = state.OnScienceChanged(StockTransactionReason.ScienceTransmission, newTotal: 27.0, baseAmount: 25.0, ut: 100.0);
+
+        Assert.Equal(ScienceChangeOutcome.Away, earn.Outcome);
+        Assert.Equal("V-2", earn.OriginVesselId);
+        Assert.Equal(25.0, earn.BaseAmount);
+
+        // The interceptor neutralises to this, so a live run that leaves the
+        // balance at 27 did not take this branch at all.
+        Assert.Equal(2.0, earn.ShadowToRestore);
+        Assert.Equal(2.0, state.ShadowScience);
+    }
+
+    // The counterfactual, and the signature to look for when a run does not
+    // delay: with no vessel named, the change DEFERS rather than resolving Away,
+    // so the interceptor never neutralises and the live balance keeps the whole
+    // award. Once the attribution window passes, it settles HOME and the shadow
+    // catches up to the balance - which is what a run showing "science landed at
+    // once, shadow equals live, nothing pending" actually means.
+    [Fact]
+    public void a_science_change_with_no_vessel_named_defers_then_settles_home_with_the_award_still_on_the_balance()
+    {
+        var state = Seeded(science: 2.0);
+
+        var earn = state.OnScienceChanged(StockTransactionReason.ScienceTransmission, newTotal: 27.0, baseAmount: 25.0, ut: 100.0);
+        Assert.Equal(ScienceChangeOutcome.Deferred, earn.Outcome);
+
+        // Deferred leaves the shadow alone: nothing has been neutralised yet.
+        Assert.Equal(2.0, state.ShadowScience);
+
+        state.SettleStaleScienceDefers(ut: 103.0, currentLiveScience: 27.0);
+        Assert.Equal(27.0, state.ShadowScience);
+    }
+
     // A lab-vessel push names an origin for science and nothing else. It
     // matters because the lab push is the only origin a caller can supply
     // without firing a destructive vessel-lifecycle event (recovery,

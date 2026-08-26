@@ -59,6 +59,18 @@ namespace Gonogo.DevTools
     /// <c>watch</c>, each with funds / science / reputation and, when RP-1 is
     /// loaded, confidence and confidenceEarned.</para>
     ///
+    /// <para><b>Every sample also reports what the delay subsystem itself did</b>,
+    /// read off the live <c>CurrencyDelayScenario</c> by reflection: whether the
+    /// subsystem is in the loaded Gonogo assembly at all, whether the interceptor
+    /// subscribed, how many rows the pending-credit ledger holds, and the
+    /// interceptor's shadow science. Balances alone cannot tell a delay that did
+    /// not engage from a delay that engaged and revealed instantly, and both look
+    /// like "the science landed at once" - the first run of this tool produced
+    /// exactly that ambiguity. A neutralised award shows shadowScience below the
+    /// live balance and a non-zero pendingRows; an award the interceptor classed
+    /// HOME shows shadowScience tracking the live balance and pendingRows at
+    /// zero.</para>
+    ///
     /// <para><b>Not production behaviour.</b> Lives in the Deck-only
     /// GonogoDevTools assembly and is never shipped. With no request file (the
     /// production default), this addon does nothing at all.</para>
@@ -111,18 +123,51 @@ namespace Gonogo.DevTools
 
         private readonly struct Sample
         {
-            public Sample(string label, double sinceAwardSeconds, double ut, Balances balances)
+            public Sample(string label, double sinceAwardSeconds, double ut, Balances balances, DelaySubsystem delay)
             {
                 Label = label;
                 SinceAwardSeconds = sinceAwardSeconds;
                 Ut = ut;
                 Balances = balances;
+                Delay = delay;
             }
 
             public string Label { get; }
             public double SinceAwardSeconds { get; }
             public double Ut { get; }
             public Balances Balances { get; }
+            public DelaySubsystem Delay { get; }
+        }
+
+        /// <summary>
+        /// What the currency-delay subsystem itself is doing, read off the live
+        /// <c>CurrencyDelayScenario</c>. <see cref="Fault"/> names the first thing
+        /// that could not be read rather than leaving a zero to be misread as a
+        /// measurement.
+        /// </summary>
+        private readonly struct DelaySubsystem
+        {
+            public DelaySubsystem(bool present, bool scenarioLive, bool subscribed, int pendingRows, double shadowScience, string firstPending, string fault)
+            {
+                Present = present;
+                ScenarioLive = scenarioLive;
+                Subscribed = subscribed;
+                PendingRows = pendingRows;
+                ShadowScience = shadowScience;
+                FirstPending = firstPending ?? "";
+                Fault = fault ?? "";
+            }
+
+            public bool Present { get; }
+            public bool ScenarioLive { get; }
+            public bool Subscribed { get; }
+            public int PendingRows { get; }
+            public double ShadowScience { get; }
+            public string FirstPending { get; }
+            public string Fault { get; }
+
+            public static DelaySubsystem Absent(string fault) =>
+                new DelaySubsystem(false, false, false, 0, 0.0, "", fault);
         }
 
         /// <summary>Every balance the delay model can move, plus RP-1's two
@@ -217,7 +262,7 @@ namespace Gonogo.DevTools
             }
 
             watch.NextSampleRealtime = now + (float)watch.IntervalSeconds;
-            watch.Samples.Add(new Sample("watch", RoundSeconds(now - watch.StartRealtime), CurrentUt(), ReadBalances()));
+            watch.Samples.Add(new Sample("watch", RoundSeconds(now - watch.StartRealtime), CurrentUt(), ReadBalances(), ReadDelaySubsystem()));
             WriteResult(watch);
 
             if (now >= watch.EndRealtime)
@@ -323,7 +368,7 @@ namespace Gonogo.DevTools
                     : DefaultWatchIntervalSeconds;
 
                 var before = ReadBalances();
-                watch.Samples.Add(new Sample("before", 0.0, CurrentUt(), before));
+                watch.Samples.Add(new Sample("before", 0.0, CurrentUt(), before, ReadDelaySubsystem()));
 
                 if (origin != null)
                 {
@@ -333,7 +378,7 @@ namespace Gonogo.DevTools
                 Award(currency, amount, reason);
 
                 var after = ReadBalances();
-                watch.Samples.Add(new Sample("after", 0.0, CurrentUt(), after));
+                watch.Samples.Add(new Sample("after", 0.0, CurrentUt(), after, ReadDelaySubsystem()));
 
                 var summary = string.Format(CultureInfo.InvariantCulture,
                     "awarded {0:+0.###;-0.###} {1} reason={2} attribute={3} origin={4}",
@@ -519,6 +564,120 @@ namespace Gonogo.DevTools
             }
         }
 
+        /// <summary>
+        /// Reads the live <c>CurrencyDelayScenario</c>'s own state by reflection:
+        /// the interceptor's subscription flag and shadow science, and the
+        /// pending-credit ledger's depth. GonogoDevTools references only
+        /// KSP/Unity, so Gonogo.dll cannot be a compile-time dependency, and on a
+        /// build without the subsystem the type simply is not there.
+        ///
+        /// <para>Field names are private implementation detail of the production
+        /// assembly, so each miss is reported in <c>Fault</c> rather than
+        /// degrading to a zero. A renamed field must read as "could not measure",
+        /// never as "measured nothing pending".</para>
+        /// </summary>
+        private static DelaySubsystem ReadDelaySubsystem()
+        {
+            try
+            {
+                var scenarioType = ResolveType("Gonogo.KSP.CurrencyDelay.CurrencyDelayScenario");
+                if (scenarioType == null)
+                {
+                    return DelaySubsystem.Absent("CurrencyDelayScenario not in any loaded assembly");
+                }
+
+                var scenario = UnityEngine.Object.FindObjectOfType(scenarioType);
+                if (scenario == null)
+                {
+                    return new DelaySubsystem(true, false, false, 0, 0.0, "", "scenario type present but no live instance");
+                }
+
+                const BindingFlags Instance = BindingFlags.NonPublic | BindingFlags.Instance;
+
+                var subscribed = false;
+                var shadowScience = 0.0;
+                var fault = "";
+
+                var interceptor = scenarioType.GetField("_interceptor", Instance)?.GetValue(scenario);
+                if (interceptor == null)
+                {
+                    fault = "could not read _interceptor";
+                }
+                else
+                {
+                    var interceptorType = interceptor.GetType();
+                    var subscribedField = interceptorType.GetField("_subscribed", Instance);
+                    if (subscribedField == null)
+                    {
+                        fault = "could not read _subscribed";
+                    }
+                    else
+                    {
+                        subscribed = (bool)subscribedField.GetValue(interceptor);
+                    }
+
+                    var state = interceptorType.GetField("_state", Instance)?.GetValue(interceptor);
+                    var shadow = state?.GetType().GetProperty("ShadowScience", BindingFlags.Public | BindingFlags.Instance);
+                    if (shadow == null)
+                    {
+                        fault = Append(fault, "could not read ShadowScience");
+                    }
+                    else
+                    {
+                        shadowScience = Convert.ToDouble(shadow.GetValue(state, null), CultureInfo.InvariantCulture);
+                    }
+                }
+
+                var pendingRows = -1;
+                var firstPending = "";
+                var ledger = scenarioType.GetField("_ledger", Instance)?.GetValue(scenario);
+                var pending = ledger?.GetType().GetProperty("Pending", BindingFlags.Public | BindingFlags.Instance)?.GetValue(ledger, null);
+                if (pending is System.Collections.IEnumerable rows)
+                {
+                    pendingRows = 0;
+                    foreach (var row in rows)
+                    {
+                        pendingRows++;
+                        if (firstPending.Length == 0)
+                        {
+                            firstPending = DescribePendingRow(row);
+                        }
+                    }
+                }
+                else
+                {
+                    fault = Append(fault, "could not read the pending ledger");
+                }
+
+                return new DelaySubsystem(true, true, subscribed, pendingRows, shadowScience, firstPending, fault);
+            }
+            catch (Exception ex)
+            {
+                return DelaySubsystem.Absent("probe threw: " + ex.Message);
+            }
+        }
+
+        private static string DescribePendingRow(object row)
+        {
+            try
+            {
+                var type = row.GetType();
+                var currency = type.GetProperty("Currency")?.GetValue(row, null);
+                var amount = type.GetProperty("BaseAmount")?.GetValue(row, null);
+                var revealUt = type.GetProperty("RevealUt")?.GetValue(row, null);
+                var origin = type.GetProperty("OriginVesselId")?.GetValue(row, null);
+                return string.Format(CultureInfo.InvariantCulture,
+                    "{0} {1} revealUt={2} origin={3}", currency, amount, revealUt, origin);
+            }
+            catch (Exception ex)
+            {
+                return "unreadable row: " + ex.Message;
+            }
+        }
+
+        private static string Append(string existing, string addition) =>
+            existing.Length == 0 ? addition : existing + "; " + addition;
+
         private static Type? ResolveType(string fullName)
         {
             foreach (var asm in AppDomain.CurrentDomain.GetAssemblies())
@@ -644,7 +803,30 @@ namespace Gonogo.DevTools
             {
                 sb.AppendLine("\t\tconfidence = (RP-1 not loaded)");
             }
+            AppendDelaySubsystem(sb, sample.Delay);
             sb.AppendLine("\t}");
+        }
+
+        private static void AppendDelaySubsystem(StringBuilder sb, DelaySubsystem delay)
+        {
+            sb.AppendLine("\t\tDELAY");
+            sb.AppendLine("\t\t{");
+            sb.AppendLine("\t\t\tsubsystemPresent = " + (delay.Present ? "True" : "False"));
+            sb.AppendLine("\t\t\tscenarioLive = " + (delay.ScenarioLive ? "True" : "False"));
+            sb.AppendLine("\t\t\tinterceptorSubscribed = " + (delay.Subscribed ? "True" : "False"));
+            // -1 means the ledger could not be read; a plain 0 would read as
+            // "measured, nothing pending", which is the opposite conclusion.
+            sb.AppendLine("\t\t\tpendingRows = " + (delay.PendingRows < 0 ? "(unreadable)" : delay.PendingRows.ToString(CultureInfo.InvariantCulture)));
+            sb.AppendLine("\t\t\tshadowScience = " + delay.ShadowScience.ToString("F3", CultureInfo.InvariantCulture));
+            if (delay.FirstPending.Length > 0)
+            {
+                sb.AppendLine("\t\t\tfirstPending = " + delay.FirstPending);
+            }
+            if (delay.Fault.Length > 0)
+            {
+                sb.AppendLine("\t\t\tfault = " + delay.Fault);
+            }
+            sb.AppendLine("\t\t}");
         }
     }
 }
