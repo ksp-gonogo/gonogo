@@ -300,7 +300,7 @@ export async function renderWidgets(
     });
     const page = await context.newPage();
     const pageErrors: string[] = [];
-    const crushedGraphics: string[] = [];
+    const findings = noFindings();
     page.on("pageerror", (err) => {
       console.error("  [page error]", err.message);
       pageErrors.push(err.message);
@@ -323,6 +323,8 @@ export async function renderWidgets(
       { timeout: 10_000 },
     );
 
+    await proveOverlapDetectorWorks(page);
+
     for (const config of configs) {
       // A config can force full-content capture for itself (e.g. LandingStatus,
       // whose composed instrument scrolls in a real cell) even when the caller
@@ -333,15 +335,45 @@ export async function renderWidgets(
         outSuffix,
         outBase,
         config.fullContent ?? fullContent,
-        crushedGraphics,
+        findings,
       );
     }
 
-    if (crushedGraphics.length > 0) {
+    // Before the gates, because a gate's verdict only covers what rendered: a
+    // clean overlap report over 16 of 42 widgets is not a clean tree.
+    if (findings.mounts.length > 0) {
+      throw new Error(
+        `${findings.mounts.length} render(s) never happened, so nothing was ` +
+          "gated or captured for them:\n  " +
+          findings.mounts.join("\n  ") +
+          "\n(A missing click selector is the usual cause: an interaction mode " +
+          "whose control has been renamed, moved behind a condition the fixture " +
+          "no longer meets, or dropped.)",
+      );
+    }
+
+    if (findings.overlaps.length > 0) {
       const message =
-        `${crushedGraphics.length} graphic(s) laid out at zero width or height, ` +
+        `${findings.overlaps.length} pair(s) of stacked siblings painting into the same ` +
+        "pixels, so two sections of the widget are on top of each other:\n  " +
+        findings.overlaps.join("\n  ");
+      if (process.env.PROBE_ALLOW_OVERLAP === "1") {
+        console.warn(`\n[warn] ${message}`);
+      } else {
+        throw new Error(
+          `${message}\n(Set PROBE_ALLOW_OVERLAP=1 to render anyway. A stacked ` +
+            "sibling overlap is usually a flex item with min-height:0 that was " +
+            "shrunk below its content: it keeps painting at its natural size and " +
+            "the content lands on whatever follows it.)",
+        );
+      }
+    }
+
+    if (findings.crushedGraphics.length > 0) {
+      const message =
+        `${findings.crushedGraphics.length} graphic(s) laid out at zero width or height, ` +
         "so they are in the DOM and paint nothing:\n  " +
-        crushedGraphics.join("\n  ");
+        findings.crushedGraphics.join("\n  ");
       if (process.env.PROBE_ALLOW_CRUSHED_GRAPHICS === "1") {
         console.warn(`\n[warn] ${message}`);
       } else {
@@ -544,13 +576,312 @@ async function findCrushedGraphics(page: Page): Promise<string[]> {
   }, ASPECT_TOLERANCE);
 }
 
+/**
+ * Pixels two stacked siblings may share before it counts as a collision, big
+ * enough to absorb sub-pixel layout rounding and a 1px border sitting on a
+ * neighbour's edge, small enough that a line of text landing on a button is
+ * always over it.
+ */
+const OVERLAP_TOLERANCE_PX = 2;
+
+/**
+ * Every pair of stacked siblings under `#root` that paint into the same pixels,
+ * reported as `<a> "text" ⨯ <b> "text" overlap WxH inside <container>`.
+ *
+ * Normal flow is a stack: a block container's children, and a column flex
+ * container's items, occupy disjoint bands down the page. Two of them sharing
+ * pixels means one has painted outside its own box, and the widget is showing
+ * an operator two sections at once. That is not a thing a screenshot diff
+ * notices on a dark panel, and a jsdom snapshot cannot see it at all, because
+ * both sections are present and correct in the markup: only the boxes collide.
+ *
+ * A container is measured by its PAINTED extent, not its own border box, since
+ * the whole failure mode is content escaping a box that was sized too small for
+ * it. The walk unions in every descendant's rect and stops descending at any
+ * element whose `overflow` clips (`hidden`/`clip`/`auto`/`scroll`), because a
+ * clipping ancestor is exactly the promise that its content stays inside.
+ *
+ * Three kinds of overlap are DELIBERATE and are left out rather than allowed
+ * back in one by one:
+ *
+ * - Out-of-flow children: anything `absolute`/`fixed`/`sticky`, or `relative`
+ *   with a real offset, has been told to leave the stack. A badge hung over a
+ *   corner and a marker over a dial are both this.
+ * - Out-of-flow descendants, for the same reason: a marker drawn over its own
+ *   dial must not make the dial overlap the section below it.
+ * - Grid and row-flex containers, which are entitled to place two children in
+ *   one cell or one column.
+ *
+ * SVG is skipped outright, container and child alike. Its children are placed
+ * by coordinate and layered by document order, so overlap is the medium rather
+ * than a defect: the navball's bezel sits over its own horizon ribbon and every
+ * marker glyph stacks a dozen shapes. Chromium reports `display: block` for
+ * those elements, which is what made them look like a stack.
+ */
+const HTML_NS = "http://www.w3.org/1999/xhtml";
+async function findOverlappingSections(page: Page): Promise<string[]> {
+  return page.evaluate(
+    ([tolerance, htmlNs]) => {
+      const host = document.getElementById("root");
+      if (!host) return [] as string[];
+      const out: string[] = [];
+      const containers: Element[] = [
+        host,
+        ...Array.from(host.querySelectorAll("*")),
+      ];
+
+      for (const container of containers) {
+        if (container.namespaceURI !== htmlNs) continue;
+        const cs = getComputedStyle(container);
+        const stacks =
+          cs.display === "block" ||
+          cs.display === "flow-root" ||
+          cs.display === "list-item" ||
+          ((cs.display === "flex" || cs.display === "inline-flex") &&
+            cs.flexDirection.startsWith("column"));
+        if (!stacks) continue;
+
+        type Box = { x0: number; y0: number; x1: number; y1: number };
+        const kids: (Box & { el: Element; boxes: Box[] })[] = [];
+        for (const child of Array.from(container.children)) {
+          if (child.namespaceURI !== htmlNs) continue;
+          const s = getComputedStyle(child);
+          if (s.display === "none" || s.visibility === "hidden") continue;
+          if (s.float !== "none") continue;
+          if (s.position !== "static" && s.position !== "relative") continue;
+          if (
+            s.position === "relative" &&
+            [s.top, s.right, s.bottom, s.left].some(
+              (v) => v !== "auto" && v !== "0px",
+            )
+          ) {
+            continue;
+          }
+
+          // Painted extent: this element unioned with every in-flow descendant
+          // that is not sealed behind a clipping ancestor. An explicit stack
+          // rather than recursion, and no named helpers: tsx's keepNames wraps a
+          // named function in a `__name(…)` call that exists only in module
+          // scope, and this body is serialized into the page without it.
+          let x0 = Number.POSITIVE_INFINITY;
+          let y0 = Number.POSITIVE_INFINITY;
+          let x1 = Number.NEGATIVE_INFINITY;
+          let y1 = Number.NEGATIVE_INFINITY;
+          const stack: Element[] = [child];
+          while (stack.length > 0) {
+            const node = stack.pop();
+            if (!node) continue;
+            const ns = getComputedStyle(node);
+            if (ns.display === "none" || ns.visibility === "hidden") continue;
+            if (ns.opacity === "0") continue;
+            if (
+              node !== child &&
+              (ns.position === "absolute" ||
+                ns.position === "fixed" ||
+                ns.position === "sticky")
+            ) {
+              continue;
+            }
+            const b = node.getBoundingClientRect();
+            if (b.width > 0 && b.height > 0) {
+              if (b.left < x0) x0 = b.left;
+              if (b.top < y0) y0 = b.top;
+              if (b.right > x1) x1 = b.right;
+              if (b.bottom > y1) y1 = b.bottom;
+            }
+            if (
+              /hidden|clip|auto|scroll/.test(`${ns.overflowX} ${ns.overflowY}`)
+            ) {
+              continue;
+            }
+            for (const grandchild of Array.from(node.children)) {
+              stack.push(grandchild);
+            }
+          }
+          if (x1 <= x0 || y1 <= y0) continue;
+          // An inline box that has WRAPPED occupies one fragment per line, and
+          // `getBoundingClientRect` returns their union: a rectangle covering
+          // every line it touches, full container width, describing no area it
+          // actually paints. Two such phrases sitting side by side on one line
+          // then read as a collision. Where the child is fragmented, compare its
+          // fragments instead of that union. Everything else (the overwhelming
+          // majority) keeps the one box and the cheap single comparison.
+          const fragments = child.getClientRects();
+          const boxes =
+            fragments.length > 1
+              ? Array.from(fragments).map((r) => ({
+                  x0: r.left,
+                  y0: r.top,
+                  x1: r.right,
+                  y1: r.bottom,
+                }))
+              : [{ x0, y0, x1, y1 }];
+          kids.push({ el: child, x0, y0, x1, y1, boxes });
+        }
+
+        for (let i = 0; i < kids.length; i++) {
+          for (let j = i + 1; j < kids.length; j++) {
+            const a = kids[i];
+            const b = kids[j];
+            // Cheap union pre-filter: unions can only over-report, so a miss
+            // here is a real miss and the per-fragment pass below never runs.
+            if (
+              Math.min(a.x1, b.x1) - Math.max(a.x0, b.x0) <= tolerance ||
+              Math.min(a.y1, b.y1) - Math.max(a.y0, b.y0) <= tolerance
+            ) {
+              continue;
+            }
+            let ox = 0;
+            let oy = 0;
+            for (const ab of a.boxes) {
+              for (const bb of b.boxes) {
+                const fx = Math.min(ab.x1, bb.x1) - Math.max(ab.x0, bb.x0);
+                const fy = Math.min(ab.y1, bb.y1) - Math.max(ab.y0, bb.y0);
+                if (fx <= tolerance || fy <= tolerance) continue;
+                if (fx * fy > ox * oy) {
+                  ox = fx;
+                  oy = fy;
+                }
+              }
+            }
+            if (ox === 0) continue;
+            const label = [a, b].map((k) => {
+              const tag = k.el.tagName.toLowerCase();
+              const text = (k.el.textContent ?? "").replace(/\s+/g, " ").trim();
+              // The id when there is one: a pair of unlabelled wrapper divs, or
+              // two SVG groups, reports as `<div> "" x <div> ""` and names
+              // nothing an author could go and look at.
+              const id = k.el.id ? `#${k.el.id}` : "";
+              return `<${tag}${id}> "${text.slice(0, 32)}"`;
+            });
+            out.push(
+              `${label[0]} ⨯ ${label[1]} overlap ` +
+                `${ox.toFixed(1)}×${oy.toFixed(1)}px inside ` +
+                `<${container.tagName.toLowerCase()}>`,
+            );
+          }
+        }
+      }
+      return out;
+    },
+    [OVERLAP_TOLERANCE_PX, HTML_NS] as const,
+  );
+}
+
+/**
+ * Plants known layouts in the probe page and checks the overlap detector's
+ * verdict on each one, before a single widget is rendered.
+ *
+ * A detector that cannot see its own failure reports zero and zero reads as a
+ * pass, which is the shape of every instrument this project has been burned by.
+ * So the run refuses to start unless the detector both FIRES on a deliberately
+ * broken stack and STAYS QUIET on each kind of overlap that is somebody's
+ * design: an absolutely-positioned badge hung over the section below it, a
+ * relatively-offset element shifted onto its neighbour, a grid stacking two
+ * children in one cell, and layered SVG shapes.
+ *
+ * Every case sits in its own absolutely-positioned wrapper. Out-of-flow siblings
+ * are never compared to each other, so the case that is SUPPOSED to overflow
+ * cannot leak a finding onto the case below it, while the children inside each
+ * wrapper are still scanned normally.
+ */
+async function proveOverlapDetectorWorks(page: Page): Promise<void> {
+  await page.evaluate(() => {
+    const host = document.getElementById("root");
+    if (!host) throw new Error("Probe: #root missing before the overlap check");
+    const box = document.createElement("div");
+    box.id = "overlap-detector-selfcheck";
+    // Every planted element carries an id, and the id is what the detector's
+    // report names. Text alone was not enough: SVG groups have none, so the
+    // `quiet-svg` arm silently matched nothing and passed while the detector was
+    // reporting 402 SVG overlaps across navball's renders alone.
+    //
+    // The layered-SVG case sits in a FLEX container, matching every real one: a
+    // flex item is blockified, so an svg's default inline display becomes block
+    // and the element looks like a stack. In a plain block parent it stays
+    // inline, is skipped for THAT reason, and the namespace guard goes untested.
+    box.innerHTML = `
+      <div style="position:absolute;top:0;left:0;width:200px">
+        <div id="fires-overflow" style="height:20px"><div style="height:60px">block</div></div>
+        <div id="fires-victim" style="height:40px">below</div>
+      </div>
+      <div style="position:absolute;top:200px;left:0;width:200px">
+        <div id="quiet-badge-host" style="height:20px;position:relative">
+          <div style="position:absolute;top:0;height:60px">badge</div>
+        </div>
+        <div id="quiet-badge-neighbour" style="height:40px">below</div>
+      </div>
+      <div style="position:absolute;top:400px;left:0;width:200px">
+        <div id="quiet-offset" style="height:20px;position:relative;top:40px">shifted</div>
+        <div id="quiet-offset-neighbour" style="height:40px">below</div>
+      </div>
+      <div style="position:absolute;top:600px;left:0;width:200px;display:grid">
+        <div id="quiet-grid-a" style="grid-area:1/1;height:40px">a</div>
+        <div id="quiet-grid-b" style="grid-area:1/1;height:40px">b</div>
+      </div>
+      <div style="position:absolute;top:800px;left:0;display:flex">
+        <svg width="40" height="40" viewBox="0 0 40 40" aria-label="layered">
+          <g id="quiet-svg-under"><rect width="40" height="40" fill="#111"></rect></g>
+          <g id="quiet-svg-over"><circle cx="20" cy="20" r="18" fill="#222"></circle></g>
+        </svg>
+      </div>`;
+    host.appendChild(box);
+  });
+  const found = await findOverlappingSections(page);
+  await page.evaluate(() =>
+    document.getElementById("overlap-detector-selfcheck")?.remove(),
+  );
+
+  const fired = found.some(
+    (f) => f.includes("fires-overflow") && f.includes("fires-victim"),
+  );
+  const misfired = found.filter((f) => f.includes("quiet-"));
+  if (!fired) {
+    throw new Error(
+      "The stacked-overlap detector is BLIND: a deliberately broken stack " +
+        "(a 60px block inside a 20px box, painting onto the section below it) " +
+        "was not reported, so a clean run proves nothing about the widgets.\n" +
+        `What it did report: ${found.length === 0 ? "nothing" : found.join("; ")}`,
+    );
+  }
+  if (misfired.length > 0) {
+    throw new Error(
+      "The stacked-overlap detector reported overlap that is somebody's " +
+        "design, so its verdict on a widget cannot be trusted either:\n  " +
+        misfired.join("\n  "),
+    );
+  }
+}
+
+/**
+ * Everything a run collects across every widget and reports once at the end.
+ *
+ * Collected rather than thrown on the spot, and `mounts` is why that matters
+ * beyond tidiness: one stale interaction selector used to abort the whole
+ * session, so `astronaut-complex` failing its Fire click meant 17 of 45 widget
+ * configs rendered and the other 28 were never gated or compared to a baseline. In the `visual` job, which is red on purpose, that is invisible. A
+ * run now surveys the WHOLE set and fails at the end holding all of it.
+ */
+interface RenderFindings {
+  /** Graphics laid out at zero width or height (the paint gate). */
+  crushedGraphics: string[];
+  /** Stacked siblings painting into the same pixels. */
+  overlaps: string[];
+  /** Renders that never happened: a throw out of `__renderProbe`. */
+  mounts: string[];
+}
+
+function noFindings(): RenderFindings {
+  return { crushedGraphics: [], overlaps: [], mounts: [] };
+}
+
 async function renderOneWidget(
   page: Page,
   config: WidgetRenderConfig,
   outSuffix = "",
   outBase: string = LOCAL_DOCS,
   fullContent = false,
-  crushedGraphics: string[] = [],
+  findings: RenderFindings = noFindings(),
 ): Promise<void> {
   const fixturesDir = resolve(COMPONENTS_SRC, config.fixturesPath);
   const outDir = resolve(outBase, config.outPath);
@@ -604,15 +935,27 @@ async function renderOneWidget(
         series: seriesData,
         clicks: mode.clicks,
       };
-      await page.evaluate(
-        (p) =>
-          (
-            window as unknown as {
-              __renderProbe: (payload: ProbePayload) => Promise<void>;
-            }
-          ).__renderProbe(p),
-        payload as unknown as Record<string, unknown>,
-      );
+      try {
+        await page.evaluate(
+          (p) =>
+            (
+              window as unknown as {
+                __renderProbe: (payload: ProbePayload) => Promise<void>;
+              }
+            ).__renderProbe(p),
+          payload as unknown as Record<string, unknown>,
+        );
+      } catch (err) {
+        // Record and move to the next mode. A mount that threw produced no
+        // widget, so every step below it (the gates, the screenshot) would be
+        // measuring the previous render's DOM and reporting it under this
+        // mode's name.
+        findings.mounts.push(
+          `${config.widgetId} @ ${mode.name} (${fixture.name}): ` +
+            (err instanceof Error ? err.message.split("\n")[0] : String(err)),
+        );
+        continue;
+      }
       // Full-content capture (review path): grow `#root` until nothing is
       // clipped, so the PNG shows the WHOLE widget, not a tile-height crop.
       // Content can hide in two places, behind the Panel's `overflow:hidden`,
@@ -716,8 +1059,13 @@ async function renderOneWidget(
         }
       }
       for (const crushed of await findCrushedGraphics(page)) {
-        crushedGraphics.push(
+        findings.crushedGraphics.push(
           `${config.widgetId} @ ${mode.name} (${fixture.name}): ${crushed}`,
+        );
+      }
+      for (const overlap of await findOverlappingSections(page)) {
+        findings.overlaps.push(
+          `${config.widgetId} @ ${mode.name} (${fixture.name}): ${overlap}`,
         );
       }
       const root = await page.$("#root");

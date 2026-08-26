@@ -81,16 +81,16 @@ describe("Navball: stream render golden (delay=0)", () => {
 
     // sasModeName resolves only off the derived vessel.state record, which is
     // fed purely by the stream here: so its presence proves the stream leg
-    // landed (and the attitude readouts have left their NULL_DISPLAY placeholder).
+    // landed (and the attitude readouts have left their NULL_DISPLAY
+    // placeholder). The caption is the only observable for it at this size,
+    // 8x11 being below the control surface's rows>=18 threshold, so there is no
+    // lit mode button to read instead.
     await waitFor(() => {
       const attitudeResolved = !visibleText(container).includes(NULL_DISPLAY);
-      if (
-        !attitudeResolved ||
-        !visibleText(container).includes("StabilityAssist")
-      ) {
+      if (!attitudeResolved || !visibleText(container).includes("SAS: SAS")) {
         throw new Error("stream leg has not rendered the attitude state yet");
       }
     });
-    expect(visibleText(container)).toContain("SAS: StabilityAssist");
+    expect(visibleText(container)).toContain("SAS: SAS");
   });
 });

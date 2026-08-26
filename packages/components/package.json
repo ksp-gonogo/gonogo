@@ -12,6 +12,7 @@
     "test": "vitest run",
     "unfed-snapshot-gate": "TSX_TSCONFIG_PATH=tsconfig.json tsx scripts/unfed-snapshot-gate.ts",
     "probe-render-smoke": "TSX_TSCONFIG_PATH=tsconfig.json tsx scripts/probe-render-smoke.ts",
+    "overlap-gate": "TSX_TSCONFIG_PATH=tsconfig.json tsx scripts/overlap-gate.ts",
     "test:coverage": "vitest run --coverage",
     "typecheck": "tsc --noEmit && tsc -p tsconfig.test-d.json",
     "render-ship-map": "TSX_TSCONFIG_PATH=tsconfig.json tsx scripts/render-fixtures.ts",
