@@ -23,6 +23,7 @@ import type {
   Rp1CentreEntry,
   Rp1ComplexEntry,
   Rp1Confidence,
+  Rp1FundingCurveEntry,
   Rp1OperationEntry,
   Rp1PadEntry,
   Rp1Personnel,
@@ -84,6 +85,18 @@ export const RP1_PROGRAMS_TOPIC = "rp1.programs";
 /** How much Program capacity the Administration building allows, and how much is committed. */
 export const RP1_PROGRAM_SLOTS_TOPIC = "rp1.programSlots";
 
+/**
+ * RP-1's whole funding-curve table, which is what turns a Program's curve NAME
+ * into a shape. A career-wide catalogue of twelve Hermite curves rather than a
+ * per-Program field: thirty-seven Programs share them, and repeating twelve
+ * keys on every row would be the same table thirty-seven times.
+ *
+ * <para>Absent rather than empty when RP-1's handler is not live, for the same
+ * reason `rp1.programs` is: RP-1 ships twelve curves and pays every Program on
+ * one of them, so an empty table could only be a claim that it pays on none.</para>
+ */
+export const RP1_PROGRAM_FUNDING_CURVES_TOPIC = "rp1.programFundingCurves";
+
 declare module "@ksp-gonogo/sitrep-sdk" {
   interface TopicPayloadMap {
     "rp1.available": boolean;
@@ -98,6 +111,7 @@ declare module "@ksp-gonogo/sitrep-sdk" {
     "rp1.confidence": Rp1Confidence;
     "rp1.programs": Rp1ProgramEntry[];
     "rp1.programSlots": Rp1ProgramSlots;
+    "rp1.programFundingCurves": Rp1FundingCurveEntry[];
   }
 }
 
@@ -113,6 +127,7 @@ registerBarePrimitiveTopic(RP1_PERSONNEL_TOPIC);
 registerBarePrimitiveTopic(RP1_CONFIDENCE_TOPIC);
 registerBarePrimitiveTopic(RP1_PROGRAMS_TOPIC);
 registerBarePrimitiveTopic(RP1_PROGRAM_SLOTS_TOPIC);
+registerBarePrimitiveTopic(RP1_PROGRAM_FUNDING_CURVES_TOPIC);
 
 // Driven by looping the generated maps rather than naming each entry, so a
 // Topic added to this Uplink's contract later needs no new call site. Both
@@ -172,4 +187,7 @@ export type _ResolvesRp1Programs = Expect<
 >;
 export type _ResolvesRp1ProgramSlots = Expect<
   Equal<TopicPayload<"rp1.programSlots">, Rp1ProgramSlots>
+>;
+export type _ResolvesRp1ProgramFundingCurves = Expect<
+  Equal<TopicPayload<"rp1.programFundingCurves">, Rp1FundingCurveEntry[]>
 >;

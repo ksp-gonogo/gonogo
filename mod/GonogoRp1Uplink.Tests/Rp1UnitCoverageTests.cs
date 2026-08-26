@@ -24,7 +24,7 @@ namespace GonogoRp1Uplink.Tests
                 "Units.BuildPoints");
 
         [Fact]
-        public void TheContractTypesAreExactlyTheElevenTopicPayloads() =>
+        public void TheContractTypesAreExactlyTheFifteenWirePayloads() =>
             UnitCoverageAssertion.AssertContractTypesAreExactly(
                 typeof(Rp1CentreEntry).Assembly,
                 nameof(Rp1CentreEntry),
@@ -37,6 +37,10 @@ namespace GonogoRp1Uplink.Tests
                 nameof(Rp1Personnel),
                 nameof(Rp1Confidence),
                 nameof(Rp1ProgramEntry),
-                nameof(Rp1ProgramSlots));
+                nameof(Rp1ProgramSlots),
+                nameof(Rp1ProgramSpeedOption),
+                nameof(Rp1ProgramPaymentEntry),
+                nameof(Rp1FundingCurveEntry),
+                nameof(Rp1FundingCurveKey));
     }
 }

@@ -25,6 +25,7 @@ import {
   RP1_OPERATIONS_TOPIC,
   RP1_PADS_TOPIC,
   RP1_PERSONNEL_TOPIC,
+  RP1_PROGRAM_FUNDING_CURVES_TOPIC,
   RP1_PROGRAM_SLOTS_TOPIC,
   RP1_PROGRAMS_TOPIC,
   RP1_RESEARCH_TOPIC,
@@ -72,6 +73,9 @@ describe("the rp1.* Topic registrations", () => {
     expect(RP1_CONFIDENCE_TOPIC).toBe(csTopic("ConfidenceTopic"));
     expect(RP1_PROGRAMS_TOPIC).toBe(csTopic("ProgramsTopic"));
     expect(RP1_PROGRAM_SLOTS_TOPIC).toBe(csTopic("ProgramSlotsTopic"));
+    expect(RP1_PROGRAM_FUNDING_CURVES_TOPIC).toBe(
+      csTopic("ProgramFundingCurvesTopic"),
+    );
   });
 
   it("are known TopicIds once this client's topics module has loaded", () => {
@@ -88,6 +92,7 @@ describe("the rp1.* Topic registrations", () => {
       RP1_CONFIDENCE_TOPIC,
       RP1_PROGRAMS_TOPIC,
       RP1_PROGRAM_SLOTS_TOPIC,
+      RP1_PROGRAM_FUNDING_CURVES_TOPIC,
     ]) {
       expect(isTopicId(topic)).toBe(true);
       expect(getAllKnownTopicIds()).toContain(topic);
@@ -397,6 +402,55 @@ describe("the programs channel", () => {
     expect(result.current?.completedCount).toMatchObject({
       magnitude: 4,
       unit: "count",
+    });
+  });
+
+  it("hydrates the funding curve's NESTED keys, not just its name", async () => {
+    // The one shape on this Uplink's wire that nests a list of typed entries
+    // inside another entry. `registerTypeUnits` resolves a nested shape through
+    // its own type-keyed registry, so a key arriving as a bare number here would
+    // mean the nesting never reached that registry: the chart would then be handed
+    // plain numbers while its type still said `Value<"ratio">`, and `<Unit>` would
+    // render every axis label as absent.
+    const fixture = setupStreamFixture({
+      carriedChannels: [RP1_PROGRAM_FUNDING_CURVES_TOPIC],
+    });
+    const { result } = renderHook(
+      () => judgeable(useTelemetry(RP1_PROGRAM_FUNDING_CURVES_TOPIC)),
+      { wrapper: fixture.Provider },
+    );
+
+    fixture.emit(RP1_PROGRAM_FUNDING_CURVES_TOPIC, [
+      {
+        name: "Flat",
+        isDefault: true,
+        keys: [
+          { frac: 0, paidFraction: 0, inTangent: 1, outTangent: 1 },
+          { frac: 1, paidFraction: 1, inTangent: 1, outTangent: 0.8 },
+        ],
+      },
+    ]);
+
+    await waitFor(() => {
+      expect(result.current?.[0]?.keys?.[0]?.paidFraction).toBeDefined();
+    });
+
+    const curve = result.current?.[0];
+    expect(curve?.name).toBe("Flat");
+    expect(curve?.isDefault).toBe(true);
+    // The origin key. Zero at zero is the reading that says a Program starts
+    // paid nothing, so it has to survive as a zero rather than fall out absent.
+    expect(curve?.keys?.[0]?.frac).toMatchObject({
+      magnitude: 0,
+      unit: "ratio",
+    });
+    expect(curve?.keys?.[0]?.paidFraction).toMatchObject({
+      magnitude: 0,
+      unit: "ratio",
+    });
+    expect(curve?.keys?.[1]?.outTangent).toMatchObject({
+      magnitude: 0.8,
+      unit: "1",
     });
   });
 });

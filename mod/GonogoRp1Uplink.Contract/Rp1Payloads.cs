@@ -1,6 +1,7 @@
 #if SITREP_CODEGEN
 using Reinforced.Typings.Attributes;
 #endif
+using System.Collections.Generic;
 using Sitrep.Contract;
 
 namespace GonogoRp1Uplink;
@@ -691,6 +692,58 @@ public sealed class Rp1ProgramEntry
     /// </summary>
     [SitrepUnit(Units.Text)]
     public string? ObjectivesText { get; set; }
+
+    /// <summary>
+    /// The duration actually in force, which is what the deadline, the funding
+    /// curve and the payment schedule are all measured against.
+    ///
+    /// <para>TWO PROVENANCES, and the difference is worth knowing. On an
+    /// accepted Program this is derived exactly from the state RP-1 persists:
+    /// its own funding tick leaves <c>deadlineUT</c>, <c>lastPaymentUT</c> and
+    /// <c>fracElapsed</c> consistent with each other, so the duration falls out
+    /// of the three and carries every modifier a leader has applied. On a
+    /// Program not yet accepted there is no persisted deadline to read, so this
+    /// is <see cref="NominalDurationSeconds"/> scaled by the selected speed and
+    /// rounded to RP-1's own quarter year: right on the shipped catalogue, and
+    /// short of the truth by whatever a leader would shift it, because RP-1
+    /// computes that pass by broadcasting a query to every modifier in the save
+    /// and that is a thing to run rather than a thing to read.</para>
+    ///
+    /// <para>Absent when neither route is open: an accepted Program already past
+    /// its deadline, where RP-1 stops recomputing the deadline once
+    /// <c>fracElapsed</c> reaches 1 and the derivation has nothing left to
+    /// divide by, and a catalogue row that declares no duration at all.</para>
+    /// </summary>
+    [SitrepUnit(Units.Seconds)]
+    public double? DurationSeconds { get; set; }
+
+    /// <summary>
+    /// Every speed this Program could be accepted at, with the price and the
+    /// commitment each one carries. Present on an accepted row too, where it is
+    /// the table the choice was made from rather than a choice still open: RP-1
+    /// fixes speed at accept and <c>SetSpeed</c> refuses to move it afterwards.
+    /// </summary>
+    public List<Rp1ProgramSpeedOption>? SpeedOptions { get; set; }
+
+    /// <summary>
+    /// Programs accepting this one closes off, by RP-1's internal name. This is
+    /// the cost that appears in neither currency: a rival Program taken off the
+    /// table is funding the career can no longer ever draw. Absent rather than
+    /// empty when the Program closes nothing off.
+    /// </summary>
+    [SitrepUnit(Units.Id)]
+    public List<string>? ProgramsToDisableOnAccept { get; set; }
+
+    /// <summary>
+    /// The per-year funding schedule, as RP-1's own Administration building
+    /// tabulates it: the funding curve sampled at each year boundary of
+    /// <see cref="DurationSeconds"/> and differenced.
+    ///
+    /// <para>Absent on a completed Program, which is RP-1's own rule rather than
+    /// a gap here: a Program that has finished paying has no schedule left, and
+    /// a table of what it once would have paid reads as money still coming.</para>
+    /// </summary>
+    public List<Rp1ProgramPaymentEntry>? FundingPayments { get; set; }
 }
 
 /// <summary>
@@ -731,4 +784,171 @@ public sealed class Rp1ProgramSlots
     /// <summary>Programs finished over the whole career.</summary>
     [SitrepUnit(Units.Count)]
     public int? CompletedCount { get; set; }
+}
+
+/// <summary>
+/// One speed a Program can be accepted at, with what that choice costs and how
+/// long it commits the career for.
+/// </summary>
+/// <remarks>
+/// RP-1's speed enum is <c>Slow, Normal, Fast</c> and the choice is made once,
+/// at accept time. It is a genuine trade rather than a difficulty setting:
+/// <c>Slow</c> stretches the duration by half again and is free under the
+/// shipped catalogue (no <c>Slow</c> key in any CONFIDENCECOSTS node, so it
+/// loads as zero), <c>Fast</c> compresses it to three quarters and charges
+/// roughly double <c>Normal</c>, and running late costs reputation at a rate
+/// that is itself half again higher on <c>Fast</c>. An operator choosing a
+/// speed is choosing between Confidence now and calendar later, which is not a
+/// decision that can be made from one row's worth of the table.
+/// </remarks>
+[SitrepContract]
+#if SITREP_CODEGEN
+[TsInterface]
+#endif
+public sealed class Rp1ProgramSpeedOption
+{
+    /// <summary>RP-1's <c>Program.Speed</c> name: "Slow", "Normal" or "Fast".</summary>
+    [SitrepUnit(Units.Enumeration)]
+    public string? Speed { get; set; }
+
+    /// <summary>
+    /// Confidence this speed costs, straight out of RP-1's per-speed table.
+    /// Zero is a real price and the shipped catalogue charges it for
+    /// <c>Slow</c>; absent means the table could not be read.
+    /// </summary>
+    [SitrepUnit(Contract.Units.Confidence)]
+    public double? ConfidenceCost { get; set; }
+
+    /// <summary>
+    /// How long the Program would run at this speed: the catalogue duration
+    /// scaled by the speed factor and rounded to RP-1's own quarter year. It
+    /// omits the currency-modifier pass a leader can shift the deadline with,
+    /// for the reason given on <see cref="Rp1ProgramEntry.DurationSeconds"/>.
+    /// </summary>
+    [SitrepUnit(Units.Seconds)]
+    public double? DurationSeconds { get; set; }
+}
+
+/// <summary>
+/// One nominal year's funding on a Program, as RP-1's own Administration
+/// building tabulates it.
+/// </summary>
+/// <remarks>
+/// The schedule is not a property of the Program alone: it is the funding curve
+/// sampled at year boundaries and differenced, so it moves with the duration in
+/// force and, on a running Program, starts from the year the career has already
+/// reached rather than from year one. Carried as data because it is a figure
+/// the game itself displays, and rebuilding it in each client is how two
+/// clients come to disagree about what a career is owed.
+/// </remarks>
+[SitrepContract]
+#if SITREP_CODEGEN
+[TsInterface]
+#endif
+public sealed class Rp1ProgramPaymentEntry
+{
+    /// <summary>
+    /// The nominal year this payment lands in, counted from 1 at accept. The
+    /// last year of a Program whose duration is not a whole number is short,
+    /// and pays proportionally less.
+    /// </summary>
+    [SitrepUnit(Units.Count)]
+    public int? Year { get; set; }
+
+    /// <summary>What this one year pays.</summary>
+    [SitrepUnit(Units.Funds)]
+    public double? Funds { get; set; }
+
+    /// <summary>
+    /// Cumulative funding through the end of this year, which is the curve's own
+    /// reading rather than a running sum of the rows above: on a Program already
+    /// part paid, the first row's <see cref="Funds"/> is measured from what has
+    /// actually been paid out, so the two only agree from the second row on.
+    /// </summary>
+    [SitrepUnit(Units.Funds)]
+    public double? CumulativeFunds { get; set; }
+}
+
+/// <summary>
+/// One key of one named funding curve, as RP-1 stores it.
+/// </summary>
+/// <remarks>
+/// A Hermite key, not a sample: <see cref="Frac"/> and <see cref="PaidFraction"/>
+/// with the two tangents that decide the shape between this key and its
+/// neighbours. Twelve keys describe a whole curve, which is why the catalogue
+/// travels as keys rather than as a sampled series: a resampling is a rendering
+/// choice, and baking one into the wire fixes the resolution of every chart
+/// drawn from it forever.
+/// </remarks>
+[SitrepContract]
+#if SITREP_CODEGEN
+[TsInterface]
+#endif
+public sealed class Rp1FundingCurveKey
+{
+    /// <summary>
+    /// How far through the Program's duration this key sits. The shipped curves
+    /// run from 0 to 2, because RP-1 keeps paying past the deadline: the key at
+    /// 1 is where the nominal duration ends and the key at 2 is where the curve
+    /// stops, typically around 1.4 of the total.
+    /// </summary>
+    [SitrepUnit(Units.Ratio)]
+    public double? Frac { get; set; }
+
+    /// <summary>
+    /// The fraction of total funding paid out by this point. Cumulative, so it
+    /// only ever climbs, and it is what RP-1 multiplies by the Program's total
+    /// to get funds.
+    /// </summary>
+    [SitrepUnit(Units.Ratio)]
+    public double? PaidFraction { get; set; }
+
+    /// <summary>Slope arriving at this key, in paid fraction per unit of elapsed fraction.</summary>
+    [SitrepUnit(Units.Dimensionless)]
+    public double? InTangent { get; set; }
+
+    /// <summary>Slope leaving this key, in the same units.</summary>
+    [SitrepUnit(Units.Dimensionless)]
+    public double? OutTangent { get; set; }
+}
+
+/// <summary>
+/// One of RP-1's named funding curves, keys and all.
+/// </summary>
+/// <remarks>
+/// The catalogue is a career-wide table of twelve curves that a Program
+/// references by name, so it travels once on its own Topic rather than repeated
+/// on every one of thirty-seven Program rows. It changes only when the install
+/// changes, which is the same cadence as the Program catalogue itself.
+/// </remarks>
+[SitrepContract]
+[SitrepTopic("rp1.programFundingCurves", isArray: true)]
+#if SITREP_CODEGEN
+[TsInterface]
+#endif
+public sealed class Rp1FundingCurveEntry
+{
+    /// <summary>
+    /// The curve's name, which is what <see cref="Rp1ProgramEntry.FundingCurve"/>
+    /// names, e.g. "Flat" or "BimodalBackloaded".
+    /// </summary>
+    [SitrepUnit(Units.Id)]
+    public string? Name { get; set; }
+
+    /// <summary>
+    /// This is the curve RP-1 falls back to. It matters because the fallback is
+    /// not an error path: <c>ProgramHandlerSettings.FundingCurve</c> returns it
+    /// for an empty name AND for a name it does not hold, so a Program whose
+    /// <see cref="Rp1ProgramEntry.FundingCurve"/> is absent is genuinely paid on
+    /// this curve rather than on none.
+    /// </summary>
+    [SitrepUnit(Units.Flag)]
+    public bool? IsDefault { get; set; }
+
+    /// <summary>
+    /// The keys, ascending by <see cref="Rp1FundingCurveKey.Frac"/>. Absent
+    /// rather than empty when the curve could not be read: a curve with no keys
+    /// pays nothing at all, which no Program in the catalogue does.
+    /// </summary>
+    public List<Rp1FundingCurveKey>? Keys { get; set; }
 }

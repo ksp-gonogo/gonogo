@@ -7,11 +7,13 @@ import "./uplink";
 import "./units";
 import "./topics";
 import "./LaunchComplexStatus";
+import "./ProgramDetail";
 import "./ProgramStatus";
 import "./ResearchQueue";
 import "./SpaceCentrePersonnel";
 
 export { LaunchComplexStatus } from "./LaunchComplexStatus";
+export { ProgramDetail } from "./ProgramDetail";
 export { ProgramStatus } from "./ProgramStatus";
 export { ResearchQueue } from "./ResearchQueue";
 export { SpaceCentrePersonnel } from "./SpaceCentrePersonnel";
@@ -24,6 +26,7 @@ export {
   RP1_OPERATIONS_TOPIC,
   RP1_PADS_TOPIC,
   RP1_PERSONNEL_TOPIC,
+  RP1_PROGRAM_FUNDING_CURVES_TOPIC,
   RP1_PROGRAM_SLOTS_TOPIC,
   RP1_PROGRAMS_TOPIC,
   RP1_RESEARCH_TOPIC,

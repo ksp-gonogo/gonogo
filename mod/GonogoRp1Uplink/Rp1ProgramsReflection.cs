@@ -28,6 +28,29 @@
 //       GameVariables.GetActiveStrategyLimit over the Administration building's
 //       level. A read, and the one member here that is absent rather than wrong
 //       outside a loaded career.
+//   ProgramHandler.Settings.paymentCurves
+//       a plain PersistentDictionaryValueTypeKey<string, HermiteCurve>, walked
+//       as an IDictionary and never cast. Each curve is enumerated through its
+//       own IEnumerable<Key>, whose MoveNext hands back the compiled key array;
+//       no evaluation, no compilation, nothing that mutates the curve.
+//
+// THE FUNDING CURVE, and why it travels as keys. Program.GetFundsAtFrac is
+// ProgramHandler.Settings.FundingCurve(fundingCurve).Evaluate(frac) *
+// TotalFunding, so a Program's funding is entirely described by a curve NAME
+// plus that shared table: twelve Hermite curves in ProgramHandlerSettings.cfg,
+// each keyed on fraction-of-duration and valued in cumulative fraction of the
+// total, running past 1 because RP-1 keeps paying past the deadline. The table
+// is read once per tick onto its own Topic and the per-Program arithmetic is
+// reproduced in Rp1ProgramsMath from HermiteCurve.EvaluateBetweenKeys, which is
+// a pure basis-function evaluation with no game state in it at all.
+//
+//   Program.DurationYearsCalc
+//       the one member here reproduced rather than called, because its LAST act
+//       is CurrencyUtils.Time. Everything before that is arithmetic (1.5 for
+//       Slow, 0.75 for Fast, rounded to a quarter year) and is reproduced
+//       exactly; the modifier pass is instead recovered from the persisted
+//       deadline, which RP-1 rewrites on every funding tick and which therefore
+//       already carries it. See Rp1ProgramsMath.DerivedDurationSeconds.
 //
 // MEMBERS DELIBERATELY NOT CALLED, and why. RP-1 routes a family of display
 // figures through CurrencyModifierQueryRP0.RunQuery, whose body FIRES
@@ -147,6 +170,10 @@ namespace GonogoRp1Uplink
                 raw.Programs.Add(row);
             }
 
+            var settings = Rp1Types.StaticValue(_handler, "Settings");
+            raw.DefaultCurve = EmptyAsAbsent(ReadString(settings, "defaultFundingCurve"));
+            raw.Curves = ReadCurves(settings);
+
             raw.Slots = new Rp1ProgramSlotsRaw
             {
                 MaxSlots = ReadInt(instance, "MaxProgramSlots"),
@@ -194,7 +221,14 @@ namespace GonogoRp1Uplink
                 CanComplete = ReadBool(program, "CanComplete") == true,
                 RequirementsText = EmptyAsAbsent(ReadString(program, "requirementsPrettyText")),
                 ObjectivesText = EmptyAsAbsent(ReadString(program, "objectivesPrettyText")),
+                ConfidenceCostBySpeed = ReadConfidenceCosts(program),
+                ProgramsToDisableOnAccept = NameList(
+                    Rp1Types.Member(program, "programsToDisableOnAccept")),
+                IsActive = acceptedState == Rp1ProgramStates.Active,
+                IsComplete = acceptedState == Rp1ProgramStates.Completed,
             };
+            row.DerivedDurationSeconds = Rp1ProgramsMath.DerivedDurationSeconds(
+                row.DeadlineUt, row.LastPaymentUt, row.FracElapsed);
 
             // Baked here rather than left to the mapper because a template's
             // baseFunding is one of the fields a program modifier overwrites, so
@@ -269,13 +303,15 @@ namespace GonogoRp1Uplink
         }
 
         /// <summary>
-        /// A modifier's per-speed Confidence overrides, keyed by speed NAME so
-        /// the pure overlay never has to hold an RP-1 enum.
+        /// A per-speed Confidence table, keyed by speed NAME so nothing
+        /// downstream has to hold an RP-1 enum. Reads the same
+        /// <c>confidenceCosts</c> field off either a Program, where it is the
+        /// catalogue price, or a modifier, where it is an override.
         /// </summary>
-        private static Dictionary<string, double> ReadConfidenceCosts(object modifier)
+        private static Dictionary<string, double> ReadConfidenceCosts(object owner)
         {
             var byName = new Dictionary<string, double>(StringComparer.Ordinal);
-            if (!(Rp1Types.Member(modifier, "confidenceCosts") is IDictionary costs))
+            if (!(Rp1Types.Member(owner, "confidenceCosts") is IDictionary costs))
             {
                 return byName;
             }
@@ -296,6 +332,75 @@ namespace GonogoRp1Uplink
                 // fail-soft: an unreadable table leaves the catalogue price standing
             }
             return byName;
+        }
+
+        /// <summary>
+        /// RP-1's whole funding-curve table from <c>ProgramHandlerSettings</c>,
+        /// each curve's keys taken through the curve's own
+        /// <c>IEnumerable&lt;Key&gt;</c>.
+        /// </summary>
+        /// <remarks>
+        /// Enumerated rather than indexed on purpose: the enumerator yields the
+        /// key array a <c>HermiteCurve</c> holds AFTER it compiles itself, so a
+        /// curve whose config spelled two values per key instead of four hands
+        /// over the tangents RP-1 derived and evaluates against, not the blanks
+        /// the file carried. Nothing in the shipped table takes that path today.
+        ///
+        /// <para>Nothing here casts to <c>HermiteCurve</c> or to RP-1's
+        /// persistent-dictionary type. Both live in assemblies this Uplink does
+        /// not reference, and their identity is not the fact being read: a
+        /// dictionary of name to something-enumerable-of-keys is.</para>
+        /// </remarks>
+        private static List<Rp1FundingCurveRaw> ReadCurves(object? settings)
+        {
+            var curves = new List<Rp1FundingCurveRaw>();
+            if (!(Rp1Types.Member(settings, "paymentCurves") is IDictionary table))
+            {
+                return curves;
+            }
+            try
+            {
+                foreach (DictionaryEntry entry in table)
+                {
+                    var name = entry.Key as string;
+                    if (name == null)
+                    {
+                        continue;
+                    }
+                    curves.Add(new Rp1FundingCurveRaw
+                    {
+                        Name = name,
+                        Keys = ReadCurveKeys(entry.Value),
+                    });
+                }
+            }
+            catch (Exception)
+            {
+                // fail-soft: an unreadable table costs the curve Topic, never the Program rows
+            }
+            return curves;
+        }
+
+        private static List<Rp1FundingCurveKeyRaw> ReadCurveKeys(object? curve)
+        {
+            var keys = new List<Rp1FundingCurveKeyRaw>();
+            foreach (var key in Materialise(curve))
+            {
+                var frac = ReadDouble(key, "time");
+                var value = ReadDouble(key, "value");
+                if (frac == null || value == null)
+                {
+                    continue;
+                }
+                keys.Add(new Rp1FundingCurveKeyRaw
+                {
+                    Frac = frac.Value,
+                    PaidFraction = value.Value,
+                    InTangent = ReadDouble(key, "inTangent") ?? 0.0,
+                    OutTangent = ReadDouble(key, "outTangent") ?? 0.0,
+                });
+            }
+            return keys;
         }
 
         // ── Reflection primitives ────────────────────────────────────────────
@@ -357,6 +462,29 @@ namespace GonogoRp1Uplink
             foreach (var item in e)
             {
                 if (item is string s)
+                {
+                    names.Add(s);
+                }
+            }
+            return names;
+        }
+
+        /// <summary>
+        /// The names in one of RP-1's ordered string collections, keeping the
+        /// order RP-1 declared them in. Distinct from <see cref="NameSet"/>
+        /// because a disable list is shown to an operator and a set would reorder
+        /// it arbitrarily between runs.
+        /// </summary>
+        private static List<string> NameList(object? collection)
+        {
+            var names = new List<string>();
+            if (!(collection is IEnumerable e) || collection is string)
+            {
+                return names;
+            }
+            foreach (var item in e)
+            {
+                if (item is string s && s.Length > 0)
                 {
                     names.Add(s);
                 }

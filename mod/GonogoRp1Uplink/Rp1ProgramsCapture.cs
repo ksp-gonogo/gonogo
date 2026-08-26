@@ -29,6 +29,12 @@ namespace GonogoRp1Uplink
             var list = new List<object?>();
             foreach (var p in raw.Programs)
             {
+                var duration = p.DerivedDurationSeconds
+                    ?? Rp1ProgramsMath.SpeedDurationSeconds(p.Speed, p.NominalDurationSeconds);
+                var curve = ResolveCurve(raw, p.FundingCurve);
+                var schedule = Rp1ProgramsMath.FundingSchedule(
+                    curve, duration, p.TotalFunding, p.FracElapsed, p.FundsPaidOut,
+                    p.IsActive, p.IsComplete);
                 list.Add(new Dictionary<string, object?>
                 {
                     ["name"] = p.Name,
@@ -58,7 +64,139 @@ namespace GonogoRp1Uplink
                     ["canComplete"] = p.CanComplete,
                     ["requirementsText"] = p.RequirementsText,
                     ["objectivesText"] = p.ObjectivesText,
+                    ["durationSeconds"] = duration,
+                    ["speedOptions"] = BuildSpeedOptions(p),
+                    ["programsToDisableOnAccept"] = AbsentWhenEmpty(p.ProgramsToDisableOnAccept),
+                    ["fundingPayments"] = BuildPayments(schedule),
                 });
+            }
+            return list;
+        }
+
+        /// <summary>
+        /// Every named funding curve RP-1 holds. Null for the same reason the
+        /// Program list is: no handler means no catalogue, and an empty table
+        /// would say RP-1 pays nothing on any curve.
+        /// </summary>
+        public static List<object?>? BuildFundingCurves(Rp1ProgramsRaw? raw)
+        {
+            if (raw == null)
+            {
+                return null;
+            }
+            var list = new List<object?>();
+            foreach (var curve in raw.Curves)
+            {
+                var keys = new List<object?>();
+                foreach (var key in curve.Keys)
+                {
+                    keys.Add(new Dictionary<string, object?>
+                    {
+                        ["frac"] = key.Frac,
+                        ["paidFraction"] = key.PaidFraction,
+                        ["inTangent"] = key.InTangent,
+                        ["outTangent"] = key.OutTangent,
+                    });
+                }
+                list.Add(new Dictionary<string, object?>
+                {
+                    ["name"] = curve.Name,
+                    ["isDefault"] = curve.Name != null && curve.Name == raw.DefaultCurve,
+                    ["keys"] = keys.Count == 0 ? null : keys,
+                });
+            }
+            return list;
+        }
+
+        /// <summary>
+        /// The curve a Program is actually paid on, resolving RP-1's own
+        /// fallback: <c>ProgramHandlerSettings.FundingCurve</c> returns the
+        /// default for a name it does not hold as well as for an empty one, so a
+        /// Program naming nothing is paid on the default rather than on nothing.
+        /// </summary>
+        private static List<Rp1FundingCurveKeyRaw>? ResolveCurve(Rp1ProgramsRaw raw, string? name)
+        {
+            var named = FindCurve(raw, name);
+            return named ?? FindCurve(raw, raw.DefaultCurve);
+        }
+
+        private static List<Rp1FundingCurveKeyRaw>? FindCurve(Rp1ProgramsRaw raw, string? name)
+        {
+            if (name == null)
+            {
+                return null;
+            }
+            foreach (var curve in raw.Curves)
+            {
+                if (curve.Name == name && curve.Keys.Count > 0)
+                {
+                    return curve.Keys;
+                }
+            }
+            return null;
+        }
+
+        /// <summary>
+        /// The three speeds with their prices and durations, in RP-1's own enum
+        /// order rather than the order a dictionary happens to enumerate in: the
+        /// operator is reading a ladder from cheapest-and-slowest upward, and a
+        /// ladder in an arbitrary order is not one.
+        /// </summary>
+        private static List<object?> BuildSpeedOptions(Rp1ProgramRaw p)
+        {
+            var options = new List<object?>();
+            foreach (var speed in Rp1ProgramSpeeds.All)
+            {
+                options.Add(new Dictionary<string, object?>
+                {
+                    ["speed"] = speed,
+                    // Absent when the table has no row for this speed, which is
+                    // not the same as free: RP-1 loads a missing CONFIDENCECOSTS
+                    // key as zero itself, so a real zero arrives as one.
+                    ["confidenceCost"] = p.ConfidenceCostBySpeed.TryGetValue(speed, out var cost)
+                        ? cost
+                        : (double?)null,
+                    ["durationSeconds"] = Rp1ProgramsMath.SpeedDurationSeconds(
+                        speed, p.NominalDurationSeconds),
+                });
+            }
+            return options;
+        }
+
+        private static List<object?>? BuildPayments(List<Rp1ProgramPaymentRaw> schedule)
+        {
+            if (schedule.Count == 0)
+            {
+                return null;
+            }
+            var rows = new List<object?>();
+            foreach (var payment in schedule)
+            {
+                rows.Add(new Dictionary<string, object?>
+                {
+                    ["year"] = payment.Year,
+                    ["funds"] = payment.Funds,
+                    ["cumulativeFunds"] = payment.CumulativeFunds,
+                });
+            }
+            return rows;
+        }
+
+        /// <summary>
+        /// A list that is empty because there is nothing to list, published as
+        /// absent. An empty array and "this Program closes nothing off" read the
+        /// same to a client, and the second is the fact.
+        /// </summary>
+        private static List<object?>? AbsentWhenEmpty(List<string> names)
+        {
+            if (names.Count == 0)
+            {
+                return null;
+            }
+            var list = new List<object?>();
+            foreach (var name in names)
+            {
+                list.Add(name);
             }
             return list;
         }

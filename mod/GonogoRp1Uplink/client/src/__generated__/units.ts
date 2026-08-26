@@ -130,6 +130,16 @@ export const GENERATED_TYPE_UNITS: Readonly<Record<string, UnitsByField>> = {
     confidence: "confidence",
     earned: "confidence",
   },
+  "Rp1FundingCurveEntry": {
+    isDefault: "flag",
+    name: "id",
+  },
+  "Rp1FundingCurveKey": {
+    frac: "ratio",
+    inTangent: "1",
+    outTangent: "1",
+    paidFraction: "ratio",
+  },
   "Rp1OperationEntry": {
     associatedVesselId: "id",
     blockingPeers: "count",
@@ -167,6 +177,7 @@ export const GENERATED_TYPE_UNITS: Readonly<Record<string, UnitsByField>> = {
     completedUt: "ut",
     confidenceCost: "confidence",
     deadlineUt: "ut",
+    durationSeconds: "s",
     fracElapsed: "ratio",
     fundingCurve: "text",
     fundsPaidOut: "funds",
@@ -178,6 +189,7 @@ export const GENERATED_TYPE_UNITS: Readonly<Record<string, UnitsByField>> = {
     objectivesCompletedUt: "ut",
     objectivesMet: "flag",
     objectivesText: "text",
+    programsToDisableOnAccept: "id",
     repDeltaOnCompletePerYearEarly: "rep",
     repPenaltyAssessed: "rep",
     repPenaltyPerYearLate: "rep",
@@ -189,12 +201,22 @@ export const GENERATED_TYPE_UNITS: Readonly<Record<string, UnitsByField>> = {
     title: "text",
     totalFunding: "funds",
   },
+  "Rp1ProgramPaymentEntry": {
+    cumulativeFunds: "funds",
+    funds: "funds",
+    year: "count",
+  },
   "Rp1ProgramSlots": {
     activeCount: "count",
     completedCount: "count",
     freeSlots: "count",
     maxSlots: "count",
     usedSlots: "count",
+  },
+  "Rp1ProgramSpeedOption": {
+    confidenceCost: "confidence",
+    durationSeconds: "s",
+    speed: "enum",
   },
   "Rp1ResearchEntry": {
     endYear: "count",
@@ -301,6 +323,10 @@ export const GENERATED_TOPIC_UNITS: Readonly<Record<string, UnitsByField>> = {
     researchers: "count",
     totalEngineers: "count",
   },
+  "rp1.programFundingCurves": {
+    isDefault: "flag",
+    name: "id",
+  },
   "rp1.programSlots": {
     activeCount: "count",
     completedCount: "count",
@@ -315,6 +341,7 @@ export const GENERATED_TOPIC_UNITS: Readonly<Record<string, UnitsByField>> = {
     completedUt: "ut",
     confidenceCost: "confidence",
     deadlineUt: "ut",
+    durationSeconds: "s",
     fracElapsed: "ratio",
     fundingCurve: "text",
     fundsPaidOut: "funds",
@@ -326,6 +353,7 @@ export const GENERATED_TOPIC_UNITS: Readonly<Record<string, UnitsByField>> = {
     objectivesCompletedUt: "ut",
     objectivesMet: "flag",
     objectivesText: "text",
+    programsToDisableOnAccept: "id",
     repDeltaOnCompletePerYearEarly: "rep",
     repPenaltyAssessed: "rep",
     repPenaltyPerYearLate: "rep",
@@ -387,8 +415,22 @@ export type ShapesByField = Readonly<Record<string, string>>;
  * sample reaches an `agent` under it.
  */
 export const GENERATED_TYPE_SHAPES: Readonly<Record<string, ShapesByField>> = {
+  "Rp1FundingCurveEntry": {
+    keys: "Rp1FundingCurveKey[]",
+  },
+  "Rp1ProgramEntry": {
+    fundingPayments: "Rp1ProgramPaymentEntry[]",
+    speedOptions: "Rp1ProgramSpeedOption[]",
+  },
 };
 
 /** The same, keyed by Topic id. */
 export const GENERATED_TOPIC_SHAPES: Readonly<Record<string, ShapesByField>> = {
+  "rp1.programFundingCurves": {
+    keys: "Rp1FundingCurveKey[]",
+  },
+  "rp1.programs": {
+    fundingPayments: "Rp1ProgramPaymentEntry[]",
+    speedOptions: "Rp1ProgramSpeedOption[]",
+  },
 };

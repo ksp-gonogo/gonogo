@@ -1,0 +1,293 @@
+{
+  "_meta": {
+    "notes": "Figures from a live RP-1 career's Sounding Rocket Development program (252,000 funds over 7 nominal years) with the shipped StrongBackloaded curve's own keys. The schedule is computed by the same loop the Uplink's mapper runs, so the table and the curve cannot disagree."
+  },
+  "_scene": {
+    "widget": "rp1-program-detail",
+    "caption": "A running Program part paid, on a strongly back-loaded curve: the chart is why the total alone cannot be planned against, almost none of this money arrives before the fourth year",
+    "size": {
+      "w": 8,
+      "h": 16
+    }
+  },
+  "_stream": {
+    "pinnedUt": 27000000,
+    "emits": [
+      {
+        "topic": "rp1.available",
+        "payload": true
+      },
+      {
+        "topic": "rp1.programs",
+        "payload": [
+          {
+            "name": "SuborbRocketDev",
+            "title": "Sounding Rocket Development",
+            "state": "active",
+            "speed": "Normal",
+            "slots": 1,
+            "isHumanSpaceflight": false,
+            "nominalDurationSeconds": 220903200.0,
+            "durationSeconds": 220903200.0,
+            "acceptedUt": 5184000,
+            "deadlineUt": 164234304.0,
+            "objectivesCompletedUt": null,
+            "completedUt": null,
+            "lastPaymentUt": 5184000,
+            "fracElapsed": 0.28,
+            "totalFunding": 252000.0,
+            "fundsPaidOut": 30000.0,
+            "fundsRemaining": 222000.0,
+            "fundingCurve": "StrongBackloaded",
+            "confidenceCost": 150,
+            "repDeltaOnCompletePerYearEarly": 40,
+            "repPenaltyPerYearLate": 40,
+            "repPenaltyAssessed": 0,
+            "requirementsMet": true,
+            "objectivesMet": false,
+            "canAccept": false,
+            "canComplete": false,
+            "requirementsText": null,
+            "objectivesText": "Complete Karman Line, Reach a Suborbital Trajectory & Return (uncrewed), and Downrange Milestone (5000 km) contracts.",
+            "speedOptions": [
+              {
+                "speed": "Slow",
+                "confidenceCost": 0.0,
+                "durationSeconds": 331354800.0
+              },
+              {
+                "speed": "Normal",
+                "confidenceCost": 150.0,
+                "durationSeconds": 220903200.0
+              },
+              {
+                "speed": "Fast",
+                "confidenceCost": 300.0,
+                "durationSeconds": 165677400.0
+              }
+            ],
+            "programsToDisableOnAccept": null,
+            "fundingPayments": [
+              {
+                "year": 2,
+                "funds": 14522.450743,
+                "cumulativeFunds": 44522.450743
+              },
+              {
+                "year": 3,
+                "funds": 24509.387314,
+                "cumulativeFunds": 69031.838057
+              },
+              {
+                "year": 4,
+                "funds": 30592.651592,
+                "cumulativeFunds": 99624.489649
+              },
+              {
+                "year": 5,
+                "funds": 58533.061371,
+                "cumulativeFunds": 158157.55102
+              },
+              {
+                "year": 6,
+                "funds": 64146.122449,
+                "cumulativeFunds": 222303.673469
+              },
+              {
+                "year": 7,
+                "funds": 29696.326531,
+                "cumulativeFunds": 252000.0
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "topic": "rp1.programSlots",
+        "payload": {
+          "maxSlots": 3,
+          "usedSlots": 1,
+          "freeSlots": 2,
+          "activeCount": 1,
+          "completedCount": 2
+        }
+      },
+      {
+        "topic": "rp1.programFundingCurves",
+        "payload": [
+          {
+            "name": "Flat",
+            "isDefault": true,
+            "keys": [
+              {
+                "frac": 0.0,
+                "paidFraction": 0.0,
+                "inTangent": 1.0,
+                "outTangent": 1.0
+              },
+              {
+                "frac": 1.0,
+                "paidFraction": 1.0,
+                "inTangent": 1.0,
+                "outTangent": 0.8
+              },
+              {
+                "frac": 2.0,
+                "paidFraction": 1.4,
+                "inTangent": 0.25,
+                "outTangent": 0.25
+              }
+            ]
+          },
+          {
+            "name": "StrongBackloaded",
+            "isDefault": false,
+            "keys": [
+              {
+                "frac": 0.0,
+                "paidFraction": 0.0,
+                "inTangent": 0.66,
+                "outTangent": 0.66
+              },
+              {
+                "frac": 0.5,
+                "paidFraction": 0.33,
+                "inTangent": 0.8299999,
+                "outTangent": 0.8299999
+              },
+              {
+                "frac": 0.6,
+                "paidFraction": 0.43,
+                "inTangent": 1.35,
+                "outTangent": 1.35
+              },
+              {
+                "frac": 0.7,
+                "paidFraction": 0.6,
+                "inTangent": 1.85,
+                "outTangent": 1.85
+              },
+              {
+                "frac": 0.8,
+                "paidFraction": 0.8,
+                "inTangent": 1.65,
+                "outTangent": 1.65
+              },
+              {
+                "frac": 0.9,
+                "paidFraction": 0.93,
+                "inTangent": 1.0,
+                "outTangent": 1.0
+              },
+              {
+                "frac": 1.0,
+                "paidFraction": 1.0,
+                "inTangent": 0.5499998,
+                "outTangent": 0.5499998
+              },
+              {
+                "frac": 2.0,
+                "paidFraction": 1.4,
+                "inTangent": 0.4,
+                "outTangent": 0.4
+              }
+            ]
+          },
+          {
+            "name": "StrongFrontloaded",
+            "isDefault": false,
+            "keys": [
+              {
+                "frac": 0.0,
+                "paidFraction": 0.0,
+                "inTangent": 0.2575197,
+                "outTangent": 0.2575197
+              },
+              {
+                "frac": 0.1,
+                "paidFraction": 0.04241252,
+                "inTangent": 0.644084,
+                "outTangent": 0.644084
+              },
+              {
+                "frac": 0.2,
+                "paidFraction": 0.1551579,
+                "inTangent": 1.508536,
+                "outTangent": 1.508536
+              },
+              {
+                "frac": 0.3,
+                "paidFraction": 0.3142093,
+                "inTangent": 1.654377,
+                "outTangent": 1.654377
+              },
+              {
+                "frac": 0.4,
+                "paidFraction": 0.4824604,
+                "inTangent": 1.695143,
+                "outTangent": 1.695143
+              },
+              {
+                "frac": 0.5,
+                "paidFraction": 0.6445014,
+                "inTangent": 1.505206,
+                "outTangent": 1.505206
+              },
+              {
+                "frac": 0.6,
+                "paidFraction": 0.7790177,
+                "inTangent": 1.163504,
+                "outTangent": 1.163504
+              },
+              {
+                "frac": 0.7,
+                "paidFraction": 0.8753952,
+                "inTangent": 0.7533766,
+                "outTangent": 0.7533766
+              },
+              {
+                "frac": 0.8,
+                "paidFraction": 0.9343295,
+                "inTangent": 0.4680698,
+                "outTangent": 0.4680698
+              },
+              {
+                "frac": 0.9,
+                "paidFraction": 0.9713384,
+                "inTangent": 0.3030235,
+                "outTangent": 0.3030235
+              },
+              {
+                "frac": 1.0,
+                "paidFraction": 1.0,
+                "inTangent": 0.2820196,
+                "outTangent": 0.2820196
+              },
+              {
+                "frac": 2.0,
+                "paidFraction": 1.2,
+                "inTangent": 0.2,
+                "outTangent": 0.2
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "topic": "rp1.confidence",
+        "payload": {
+          "confidence": 212,
+          "earned": 640
+        }
+      },
+      {
+        "topic": "career.status",
+        "payload": {
+          "economy": {
+            "funds": 289848
+          }
+        }
+      }
+    ]
+  }
+}
