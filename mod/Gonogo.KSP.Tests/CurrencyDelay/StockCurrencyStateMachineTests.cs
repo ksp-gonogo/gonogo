@@ -272,6 +272,34 @@ public class StockCurrencyStateMachineTests
         Assert.Equal("lab-B", claimForB.OriginVesselId);
     }
 
+    // A lab-vessel push names an origin for science and nothing else. It
+    // matters because the lab push is the only origin a caller can supply
+    // without firing a destructive vessel-lifecycle event (recovery,
+    // destruction), so it bounds what can be attributed to a place at all:
+    // funds and reputation stay HOME no matter which vessel is in hand.
+    [Fact]
+    public void a_pushed_lab_vessel_attributes_science_and_leaves_funds_and_reputation_home()
+    {
+        var state = Seeded(funds: 1000.0, science: 100.0, reputation: 50.0);
+        state.PushLabVessel("lab-A", ut: 0.0);
+
+        var funds = state.OnFundsChanged(StockTransactionReason.ScienceTransmission, newTotal: 1200.0, baseAmount: 200.0, ut: 0.1);
+        Assert.Equal(CurrencyChangeOutcome.Home, funds.Outcome);
+        Assert.Equal(1200.0, state.ShadowFunds);
+
+        var reputation = state.OnReputationChanged(StockTransactionReason.ScienceTransmission, newTotal: 55.0, baseAmount: 5.0, ut: 0.2);
+        Assert.Equal(CurrencyChangeOutcome.Home, reputation.Outcome);
+        Assert.Equal(55.0, state.ShadowReputation);
+
+        // The push is still unclaimed and still names the vessel for the one
+        // currency it covers.
+        var science = state.OnScienceChanged(StockTransactionReason.ScienceTransmission, newTotal: 125.0, baseAmount: 25.0, ut: 0.3);
+        Assert.Equal(ScienceChangeOutcome.Away, science.Outcome);
+        Assert.Equal("lab-A", science.OriginVesselId);
+        Assert.Equal(25.0, science.BaseAmount);
+        Assert.Equal(100.0, science.ShadowToRestore);
+    }
+
     [Fact]
     public void a_stale_deferred_science_change_settles_as_home_and_resyncs_the_shadow()
     {

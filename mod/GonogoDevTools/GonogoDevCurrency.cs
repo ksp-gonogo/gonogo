@@ -38,6 +38,27 @@ namespace Gonogo.DevTools
     /// currency that can be attributed to a place - see the report in
     /// <c>local_docs/inbox/</c> for what that means for funds and reputation.</para>
     ///
+    /// <para>Request format (mirrors <see cref="GonogoDevTeleport"/>'s TELEPORT node):
+    /// <code>
+    /// CURRENCY
+    /// {
+    ///     id = 2026-08-26-sci-away-1   // unique per request; a repeat is ignored
+    ///     currency = Science           // Funds | Science | Reputation
+    ///     amount = 25                  // signed; a penalty is negative
+    ///     reason = ScienceTransmission // any TransactionReasons member name
+    ///     attribute = lab              // none | lab (lab is science-only)
+    ///     origin = active              // active | ksc | vessel name | vessel GUID
+    ///     watchSeconds = 600           // 0 (default) writes one before/after pair
+    ///     watchIntervalSeconds = 5
+    /// }
+    /// </code>
+    /// The reason is what decides whether the award delays at all: the
+    /// interceptor's away set is ScienceTransmission, VesselRecovery and
+    /// VesselLoss, and everything else reveals instantly. The result cfg carries
+    /// one SAMPLE node per reading, labelled <c>before</c>, <c>after</c>, then
+    /// <c>watch</c>, each with funds / science / reputation and, when RP-1 is
+    /// loaded, confidence and confidenceEarned.</para>
+    ///
     /// <para><b>Not production behaviour.</b> Lives in the Deck-only
     /// GonogoDevTools assembly and is never shipped. With no request file (the
     /// production default), this addon does nothing at all.</para>
