@@ -13,14 +13,22 @@
 import { renderScreens, renderWidgets } from "./widgetRenderHarness";
 import { getScreen, getWidget, listScreens, listWidgets } from "./widgets";
 
+/**
+ * The name `getWidget` actually accepts. Five configs share the widgetId
+ * `landing-status` and two each share `crew-status` and `science-data`, so a
+ * listing keyed on widgetId names nine widgets the CLI then rejects, and the
+ * only way left to render them is `--all`.
+ */
+function cliKey(w: { widgetId: string; label?: string }): string {
+  return w.label ?? w.widgetId;
+}
+
 function usage(): never {
   console.error(
     "Usage: render-widget <widget-id> | --all | --list [--engine chromium|firefox|webkit]\n" +
       "       render-widget --screen <screen-id> | --screens\n" +
       "       Known widget ids: " +
-      listWidgets()
-        .map((w) => w.widgetId)
-        .join(", ") +
+      listWidgets().map(cliKey).join(", ") +
       "\n       Known screen ids: " +
       listScreens()
         .map((s) => s.screenId)
@@ -52,7 +60,7 @@ async function main(): Promise<void> {
   if (args.includes("--list")) {
     for (const w of listWidgets()) {
       console.log(
-        `${w.widgetId.padEnd(24)} ${w.modes.length} modes → local_docs/${w.outPath}/`,
+        `${cliKey(w).padEnd(34)} ${w.modes.length} modes → local_docs/${w.outPath}/`,
       );
     }
     for (const s of listScreens()) {

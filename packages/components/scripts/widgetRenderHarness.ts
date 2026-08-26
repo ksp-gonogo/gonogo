@@ -97,9 +97,8 @@ const COMPONENTS_SRC = resolve(HERE, "../src");
 const LOCAL_DOCS = resolve(HERE, "../../../local_docs");
 // The design tokens themselves. `packages/app/src/styles/global.css` only
 // `@import`s `@ksp-gonogo/theme/tokens.css` (see that file's header comment),
-// so reading it here would find no `:root` block for `extractRootBlock` to
-// match and every probe render would silently lose its colours (or throw,
-// depending on how the match failed). Read the theme package's *source*
+// so reading it here would find no token declarations at all and every probe
+// render would silently lose its colours. Read the theme package's *source*
 // tokens.css directly:
 // no bundler resolution needed, and no dependency on `pnpm --filter
 // @ksp-gonogo/theme build` having run first (its `dist/tokens.css` is a
@@ -839,7 +838,7 @@ export async function prepareProbePage(opts: PreparePageOpts): Promise<string> {
   const bundleJs = bundleResult.outputFiles[0].text;
 
   const htmlTemplate = await readFile(opts.htmlTemplate, "utf8");
-  const themeCss = extractRootBlock(await readFile(THEME_TOKENS_CSS, "utf8"));
+  const themeCss = themeTokens(await readFile(THEME_TOKENS_CSS, "utf8"));
   const fontFace = await jetbrainsMonoFontFace();
 
   // Inline-script payload may contain `</script>` (rare but possible in
@@ -886,12 +885,20 @@ async function jetbrainsMonoFontFace(): Promise<string> {
   `;
 }
 
-function extractRootBlock(css: string): string {
-  const match = css.match(/:root\s*\{[\s\S]*?\}/);
-  if (!match) {
-    throw new Error("tokens.css: no :root block found");
+/**
+ * tokens.css verbatim, checked to actually declare tokens.
+ *
+ * The whole file rather than its first `:root` block, because the file's
+ * `@media (pointer: coarse)` overrides live outside that block and
+ * `renderScreens` emulates touch per breakpoint precisely so coarse-pointer
+ * rules engage: injecting one block silently rendered every touch breakpoint at
+ * desktop font sizes, which is the one thing the emulation exists to exercise.
+ */
+function themeTokens(css: string): string {
+  if (!/--[a-z0-9-]+\s*:/.test(css)) {
+    throw new Error("tokens.css: no custom properties found");
   }
-  return match[0];
+  return css;
 }
 
 /** Wipe stale artifacts from the output dir before regenerating. Only
