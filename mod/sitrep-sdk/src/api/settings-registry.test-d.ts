@@ -133,21 +133,26 @@ registerSetting({
 
 // --- What the compiler refuses ----------------------------------------------
 
+// The two mismatched defaults are refused at the CALL rather than at the
+// property, because `registerSetting` is overloaded: neither the generic form
+// nor the already-typed forwarding form matches, and TypeScript reports an
+// exhausted overload set at the argument.
+
+// @ts-expect-error a number row's default is a number, not a flag
 registerSetting({
   id: "wrong.numberDefault",
   type: "number",
   label: "Tolerance",
   category: "Test",
-  // @ts-expect-error a number row's default is a number, not a flag
   defaultValue: true,
 });
 
+// @ts-expect-error a text row's default is a string
 registerSetting({
   id: "wrong.textDefault",
   type: "text",
   label: "Frame",
   category: "Test",
-  // @ts-expect-error a text row's default is a string
   defaultValue: 3,
 });
 
@@ -180,6 +185,35 @@ registerSetting({
   category: "Test",
   readOnly: false,
 });
+
+// --- Rows declared as a list, registered in a loop ---------------------------
+
+// What a client with dozens of rows writes. Mixed types collapse to the union
+// the moment they share an array, and the generic form cannot take that back
+// (a source-backed row's `write` is contravariant in the row's own type), so
+// the forwarding overload is what makes the loop compile.
+const rows: SettingDefinition[] = [
+  {
+    id: "list.frame",
+    backing: "stream-backed",
+    type: "text",
+    topic: "example.settings",
+    select: (p) => (p as PredictionSettings).frameName,
+    label: "Frame",
+    category: "Example",
+  },
+  {
+    id: "list.tolerance",
+    backing: "stream-backed",
+    type: "number",
+    topic: "example.settings",
+    select: (p) => (p as PredictionSettings).tolerance,
+    label: "Tolerance",
+    category: "Example",
+  },
+];
+
+for (const def of rows) registerSetting(def);
 
 // --- The read side ----------------------------------------------------------
 

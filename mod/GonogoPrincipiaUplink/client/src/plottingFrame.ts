@@ -49,6 +49,35 @@ const FRAME_NAMES: Readonly<Record<number, string>> = {
   [FRAME_TYPE.rotatingPulsating]: "<primary>-<secondary> Lagrange",
 };
 
+/**
+ * Each kind's own name, undeclined. A settings row wants the KIND ("Body-centred
+ * inertial") beside the declined instance ("Kerbin-Centred Inertial"), because
+ * the two answer different questions: which frame am I in, and what sort of
+ * frame is that. Keyed the same way {@link FRAME_NAMES} is, off the producer's
+ * declared enum values.
+ */
+const FRAME_KINDS: Readonly<Record<number, string>> = {
+  [FRAME_TYPE.bodyCentredInertial]: "Body-centred inertial",
+  [FRAME_TYPE.barycentricRotating]: "Barycentric rotating",
+  [FRAME_TYPE.parentDirection]: "Body-centred parent direction",
+  [FRAME_TYPE.bodySurface]: "Body surface",
+  [FRAME_TYPE.rotatingPulsating]: "Rotating pulsating",
+};
+
+/**
+ * A frame kind's name, or the null display when there is no ordinal.
+ *
+ * An unrecognised ordinal reads as "Frame 6007" for the same reason
+ * {@link plottingFrameLabel}'s does: a kind added in a later build must look
+ * incomplete rather than be rounded to a neighbour.
+ */
+export function plottingFrameKindLabel(
+  ordinal: number | null | undefined,
+): string {
+  if (ordinal === null || ordinal === undefined) return NULL_DISPLAY;
+  return FRAME_KINDS[ordinal] ?? `Frame ${ordinal}`;
+}
+
 /** The bodies a frame's name is declined with, all optional. */
 export interface FrameBodies {
   centre?: string | null;

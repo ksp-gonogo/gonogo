@@ -355,13 +355,27 @@ export const registerSettingsTab = (def: SettingsTabDefinition): void =>
  * `true` is a compile error at the call site rather than a `Switch` rendering
  * a tolerance.
  */
-export const registerSetting = <T extends SettingType = "boolean">(
+export function registerSetting<T extends SettingType = "boolean">(
   def: SettingDefinitionOf<T>,
-): void =>
+): void;
+/**
+ * Register an ALREADY-TYPED definition, for a client that built its rows as a
+ * list and registers them in a loop.
+ *
+ * The spine's own `registerSetting` has carried this overload since the
+ * registry grew past one type; the author-facing facade did not, so a client
+ * with enough rows to want a list could declare them and then not register
+ * them. Mixed rows collapse to `SettingDefinition` the moment they share an
+ * array, and `write`'s parameter is contravariant, so the generic form rejects
+ * exactly the shape a list has.
+ */
+export function registerSetting(def: SettingDefinition): void;
+export function registerSetting(def: SettingDefinition): void {
   // The cast collapses an unresolved T to the union the host takes. Every
   // instantiation of T IS a member of that union, but TypeScript will not
   // prove it while T is still a parameter.
   getHost().registerSetting(def as SettingDefinition);
+}
 
 /**
  * Whether a registered row is one the operator can change. The renderer's own
