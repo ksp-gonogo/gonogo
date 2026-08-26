@@ -125,10 +125,9 @@ public class SpaceCenterScene
 /// <para>LaunchDirector reads <see cref="Name"/>/<see cref="Trait"/>/
 /// <see cref="ExperienceLevel"/>/<see cref="Available"/>/
 /// <see cref="UnavailableReason"/> (the original, folded pair); the Astronaut
-/// Complex additionally reads <see cref="Situation"/>, the RAW roster
-/// standing (<c>Applicant</c>/<c>Available</c>/<c>Assigned</c>/<c>Dead</c>/
-/// <c>Missing</c>, deliberately not folded so a client can auto-derive one tab
-/// per distinct value) plus the full stat set
+/// Complex additionally reads <see cref="Standing"/>, the authoritative
+/// standing it groups by, and <see cref="Situation"/>, its label, plus the
+/// full stat set
 /// (<see cref="Courage"/>/<see cref="Stupidity"/>/<see cref="Experience"/>/
 /// <see cref="ExperienceLevelDelta"/>) and the role tooltip text
 /// (<see cref="RoleDescription"/>/<see cref="DescriptionEffects"/>). A TS-shape-only
@@ -156,48 +155,92 @@ public class CrewRosterEntry
     [SitrepUnit(Units.Count)]
     public int? ExperienceLevel { get; set; }
 
-    /// <summary>Whether the kerbal is free to fly, <c>true</c> when the roster status is <c>Available</c> (also <c>true</c> for an applicant, who isn't assigned to anything yet), <c>false</c> otherwise.</summary>
+    /// <summary>Whether the kerbal is free to fly, derived from <see cref="Standing"/> (<c>true</c> for <c>Available</c>, and for an applicant, who isn't assigned to anything yet), <c>false</c> otherwise.</summary>
     [SitrepUnit(Units.Flag)]
     public bool? Available { get; set; }
 
-    /// <summary>Why the kerbal can't fly, derived from the roster status (<c>Assigned</c>→"On mission", <c>Dead</c>/<c>Missing</c>→the status name); empty string when <see cref="Available"/> is true.</summary>
+    /// <summary>Why the kerbal can't fly, derived from <see cref="Standing"/> (<c>Assigned</c>→"On mission", every other blocking standing→its own name, so a retiree reads "Retired" and not "Dead"); empty string when <see cref="Available"/> is true. A backend may override the wording.</summary>
     [SitrepUnit(Units.Text)]
     public string? UnavailableReason { get; set; }
 
     /// <summary>
-    /// The kerbal's raw standing: <c>"Applicant"</c> for a hireable candidate
-    /// (<c>ProtoCrewMember.type == KerbalType.Applicant</c>), otherwise the
-    /// bare <c>ProtoCrewMember.RosterStatus</c> enum name (<c>Available</c>/
-    /// <c>Assigned</c>/<c>Dead</c>/<c>Missing</c>). Unlike
-    /// <see cref="Available"/>/<see cref="UnavailableReason"/> above, this is
-    /// NOT folded: Dead and Missing stay distinct so a client can auto-derive
-    /// one tab per situation present, and a mod introducing a new situation
-    /// (e.g. RO/RP-1 "Retired") gets a tab for free.
+    /// The kerbal's standing, as the dashboard means it: the field to BRANCH on.
+    /// The elected <see cref="ICrewStandingBackend"/>'s answer where it has one,
+    /// otherwise derived from KSP's roster status by the stock backend.
+    ///
+    /// <para>This exists because the roster status alone is NOT the answer under
+    /// a career overhaul. RP-1 retires a kerbal by writing stock's <c>Dead</c>
+    /// into the roster status, so <see cref="SituationOrdinal"/> below reads
+    /// <c>Dead</c> for a living retiree and no reading of it can recover the
+    /// difference. See <see cref="CrewStanding"/> for the whole account.</para>
+    /// </summary>
+    [SitrepUnit(Units.Enumeration)]
+    public CrewStanding? Standing { get; set; }
+
+    /// <summary>
+    /// Which provider decided <see cref="Standing"/>: the elected backend's
+    /// <c>ProviderId</c>, e.g. <c>"stock"</c> or <c>"rp1"</c>. Absent when no
+    /// backend was reachable at capture time.
+    ///
+    /// <para>Carried so a surface can attribute a correction rather than merely
+    /// apply it. A retiree shown as retired is a claim about a save that stock
+    /// KSP would report as a fatality, and an operator is entitled to see which
+    /// mod is making it.</para>
+    /// </summary>
+    [SitrepUnit(Units.Id)]
+    public string? StandingSource { get; set; }
+
+    /// <summary>
+    /// <see cref="Standing"/>'s display LABEL: its enum name, or
+    /// <c>"Applicant"</c> for a hireable candidate. Text for an operator, never
+    /// a branch: compare <see cref="Standing"/> instead.
     /// </summary>
     [SitrepUnit(Units.Text)]
     public string? Situation { get; set; }
 
     /// <summary>
-    /// <see cref="Situation"/>'s KSP ORDINAL: <c>(int)ProtoCrewMember.
-    /// rosterStatus</c>, typed to <see cref="KspRosterStatus"/>, whose members
-    /// mirror KSP's own numbering.
+    /// KSP's OWN ordinal: <c>(int)ProtoCrewMember.rosterStatus</c>, typed to
+    /// <see cref="KspRosterStatus"/>, whose members mirror KSP's numbering.
     ///
-    /// <para>This is the field to BRANCH on. <see cref="Situation"/> is a
-    /// display label and nothing more: it is the enum's spelling, so a
-    /// comparison against it is a comparison against a string KSP is free to
-    /// change, and the failure is silent and in the "everything is fine"
-    /// direction. Before this field existed, whether a kerbal could be FIRED
-    /// was decided by <c>situation === "Available"</c>.</para>
+    /// <para>A truthful read of the game field and nothing more, kept because
+    /// what KSP itself holds is worth knowing and because a command core
+    /// dispatches is arbitrated against this value. It is NOT the field to
+    /// branch on: under RP-1 it reads <c>Dead</c> for a living retiree.
+    /// <see cref="Standing"/> is the answer.</para>
     ///
     /// <para><c>null</c> for an APPLICANT, and that is a real distinction
     /// rather than a missing value: an applicant is not in the roster, so it
-    /// has no <c>RosterStatus</c> at all and <see cref="Situation"/> carries
-    /// our own <c>"Applicant"</c> sentinel instead. Use
-    /// <see cref="IsApplicant"/> to tell the two apart rather than comparing
-    /// that sentinel. Also <c>null</c> when the capture carried no status.</para>
+    /// has no <c>RosterStatus</c> at all, and <see cref="Standing"/> carries
+    /// <see cref="CrewStanding.Applicant"/> instead. Use
+    /// <see cref="IsApplicant"/> to tell the two apart. Also <c>null</c> when
+    /// the capture carried no status.</para>
     /// </summary>
     [SitrepUnit(Units.Enumeration)]
     public KspRosterStatus? SituationOrdinal { get; set; }
+
+    /// <summary>
+    /// Whether the kerbal is standing down rather than on duty
+    /// (<c>ProtoCrewMember.inactive</c>). A STOCK field, and a separate axis
+    /// from <see cref="Standing"/>: a resting kerbal's roster status is
+    /// <c>Available</c> throughout, so nothing in the standing says they cannot
+    /// be assigned today.
+    ///
+    /// <para>Stock leaves it false. RP-1's post-flight R&amp;R is what actually
+    /// sets it, which is why it goes on the wire whether or not RP-1 is
+    /// installed: the field is KSP's, so reading it costs a stock install
+    /// nothing and needs no capability.</para>
+    /// </summary>
+    [SitrepUnit(Units.Flag)]
+    public bool? Inactive { get; set; }
+
+    /// <summary>
+    /// When the stand-down ends (<c>ProtoCrewMember.inactiveTimeEnd</c>), as
+    /// universal time. Absent when <see cref="Inactive"/> is false: KSP leaves
+    /// the field at whatever the last rest period set, so quoting it for a
+    /// kerbal on duty would date a rest that is already over.
+    /// </summary>
+    [SitrepUnit(Units.UniversalTime)]
+    public double? InactiveUntilUt { get; set; }
 
     /// <summary>
     /// Whether this entry is a hireable candidate

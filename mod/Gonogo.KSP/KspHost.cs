@@ -148,6 +148,26 @@ namespace Gonogo.KSP
         }
 
         /// <summary>
+        /// The elected <see cref="ICrewStandingBackend"/> resolver: what this
+        /// install makes of a kerbal whose roster status alone is not the answer.
+        /// Same late-bound install shape and the same reason as
+        /// <see cref="_actionGroupsBackend"/>, and read on the same main-thread
+        /// sample, because a career overhaul's crew bookkeeping lives on its own
+        /// live scenario module.
+        ///
+        /// <para>Null before the addon wires it, and in a bare-host unit test,
+        /// which degrades to the stock mapping the view provider falls back to,
+        /// so a stock install is unaffected either way.</para>
+        /// </summary>
+        private Func<ICrewStandingBackend?>? _crewStandingBackend;
+
+        /// <summary>Installs the elected crew-standing resolver; see <see cref="_crewStandingBackend"/>.</summary>
+        public void SetCrewStandingBackendSource(Func<ICrewStandingBackend?> resolver)
+        {
+            _crewStandingBackend = resolver;
+        }
+
+        /// <summary>
         /// The elected <see cref="IPropagationProvider"/> resolver. Same
         /// late-bound install shape as <see cref="_actionGroupsBackend"/>: read on
         /// the main-thread sample to stamp <c>vessel.target</c>'s
@@ -2913,9 +2933,87 @@ namespace Gonogo.KSP
         /// null before a kerbal's stats have loaded, so its description fields
         /// are read defensively rather than assumed present.
         /// </summary>
-        private static Dictionary<string, object?> BuildCrewEntry(ProtoCrewMember pcm, bool isApplicant)
+        /// <summary>
+        /// One kerbal's standing, plus who decided it: the elected backend's
+        /// answer where it has one, otherwise the contract's own map of KSP's
+        /// roster status.
+        ///
+        /// <para>The elected capability is EXCLUSIVE, so under a career overhaul
+        /// the mod's backend is the only one reachable, and it is handed every
+        /// kerbal rather than only the ones it knows about. A backend that
+        /// declines (null, or a null standing) is not a failure: it is the
+        /// ordinary answer for the majority of a roster, and the default has to
+        /// stand for it here rather than leave a hole. The SOURCE follows the
+        /// answer rather than the election, so a kerbal RP-1 has nothing to say
+        /// about is attributed to <c>"stock"</c> and one it corrected is
+        /// attributed to <c>"rp1"</c>: which mod is making the claim is the
+        /// operator's question, not which mod won a vote.</para>
+        ///
+        /// <para>Fail-soft: a backend that throws costs this kerbal its
+        /// correction and nothing else. A crew roster must not be able to take
+        /// the whole space-centre capture down.</para>
+        /// </summary>
+        private CrewStandingStamp ReadCrewStanding(string name, int ordinal, bool isApplicant)
+        {
+            var fallback = CrewStandings.FromRosterStatus(ordinal, isApplicant);
+            ICrewStandingBackend? backend;
+            try
+            {
+                backend = _crewStandingBackend?.Invoke();
+            }
+            catch (Exception)
+            {
+                backend = null;
+            }
+            if (backend == null)
+            {
+                return new CrewStandingStamp(fallback, "stock", null, null);
+            }
+
+            CrewStandingReading? reading;
+            try
+            {
+                reading = backend.Read(name, isApplicant ? (int?)null : ordinal, isApplicant);
+            }
+            catch (Exception ex)
+            {
+                Debug.LogWarning("[Gonogo] crew-standing backend threw for " + name + ", falling back to the roster status: " + ex);
+                reading = null;
+            }
+
+            if (reading?.Standing == null)
+            {
+                return new CrewStandingStamp(fallback, "stock", reading?.Available, reading?.UnavailableReason);
+            }
+            return new CrewStandingStamp(
+                reading.Standing.Value,
+                backend.ProviderId,
+                reading.Available,
+                reading.UnavailableReason);
+        }
+
+        /// <summary>What <see cref="ReadCrewStanding"/> resolved, ready to stamp onto a raw crew dict.</summary>
+        private readonly struct CrewStandingStamp
+        {
+            public CrewStandingStamp(CrewStanding standing, string? source, bool? available, string? unavailableReason)
+            {
+                Standing = standing;
+                Source = source;
+                Available = available;
+                UnavailableReason = unavailableReason;
+            }
+
+            public CrewStanding Standing { get; }
+            public string? Source { get; }
+            public bool? Available { get; }
+            public string? UnavailableReason { get; }
+        }
+
+        private Dictionary<string, object?> BuildCrewEntry(ProtoCrewMember pcm, bool isApplicant)
         {
             var trait = pcm.experienceTrait;
+            var ordinal = (int)pcm.rosterStatus;
+            var standing = ReadCrewStanding(pcm.name, ordinal, isApplicant);
 
             return new Dictionary<string, object?>
             {
@@ -2923,10 +3021,17 @@ namespace Gonogo.KSP
                 ["trait"] = pcm.trait,
                 ["experienceLevel"] = pcm.experienceLevel,
                 ["rosterStatus"] = pcm.rosterStatus.ToString(),
-                // The ordinal is what the client branches on; the name above is
-                // its display label. See Sitrep.Contract/KspEnums.cs.
-                ["rosterStatusOrdinal"] = (int)pcm.rosterStatus,
+                // KSP's own answer, published beside the standing rather than
+                // instead of it: under a career overhaul the two disagree, and a
+                // retiree reads Dead here. See Sitrep.Contract/CrewStanding.cs.
+                ["rosterStatusOrdinal"] = ordinal,
+                ["standing"] = (int)standing.Standing,
+                ["standingSource"] = standing.Source,
+                ["standingAvailable"] = standing.Available,
+                ["standingUnavailableReason"] = standing.UnavailableReason,
                 ["isApplicant"] = isApplicant,
+                ["inactive"] = pcm.inactive,
+                ["inactiveUntilUt"] = pcm.inactiveTimeEnd,
                 ["courage"] = (double)pcm.courage,
                 ["stupidity"] = (double)pcm.stupidity,
                 ["experience"] = (double)pcm.experience,
@@ -2938,13 +3043,17 @@ namespace Gonogo.KSP
 
         /// <summary>
         /// Primitives-only snapshot of the hired-crew roster -
-        /// <c>HighLogic.CurrentGame.CrewRoster.Crew</c> (owned crew that is
-        /// available or assigned; tourists/applicants excluded). Each entry is
-        /// built by <see cref="BuildCrewEntry"/>. Returns <c>null</c> - the
-        /// whole list - when no game is loaded (main menu) so the provider
-        /// distinguishes "no data yet" from "zero crew."
+        /// <c>HighLogic.CurrentGame.CrewRoster.Crew</c>, which filters on
+        /// <c>type == KerbalType.Crew</c> and NOTHING else (verified in the
+        /// disassembly): tourists and applicants are excluded, but a kerbal whose
+        /// roster status is Dead or Missing is still owned crew and still here.
+        /// That is why the standing matters: an RP-1 retiree carries stock's Dead
+        /// and arrives on this list. Each entry is built by
+        /// <see cref="BuildCrewEntry"/>. Returns <c>null</c> - the whole list -
+        /// when no game is loaded (main menu) so the provider distinguishes "no
+        /// data yet" from "zero crew."
         /// </summary>
-        private static List<object?>? BuildCrewRoster()
+        private List<object?>? BuildCrewRoster()
         {
             var game = HighLogic.CurrentGame;
             var roster = game?.CrewRoster;
@@ -2985,7 +3094,7 @@ namespace Gonogo.KSP
         /// in career" from "career with an empty pool." The cost/cap numbers are
         /// captured raw; the KSP-free provider owns any presentation fold.
         /// </summary>
-        private static Dictionary<string, object?>? BuildAstronautComplex()
+        private Dictionary<string, object?>? BuildAstronautComplex()
         {
             var roster = HighLogic.CurrentGame?.CrewRoster;
             if (roster == null || Funding.Instance == null)

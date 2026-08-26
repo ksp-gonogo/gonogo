@@ -462,6 +462,11 @@ public static class RtConfig
                 typeof(FlightEndReason),
                 typeof(RosterCommsControlSource),
                 typeof(DeployedPowerState),
+                // A kerbal's standing (CrewStanding.cs). Sitrep's OWN
+                // vocabulary, so it sits above the mirrors rather than among
+                // them: it deliberately does not share KSP's numbering, and it
+                // grows when a mod models a standing KSP has no word for.
+                typeof(CrewStanding),
                 // KSP's own enums (KspEnums.cs), exported so the client's
                 // ordinal→name tables and closed unions are DERIVED from the
                 // same declaration the mirror test holds to KSP's.

@@ -357,12 +357,17 @@ namespace Sitrep.Host.Tests
             var bob = Assert.IsType<Dictionary<string, object?>>(list[2]);
             Assert.Equal(false, bob["available"]);
             Assert.Equal("Missing", bob["unavailableReason"]);
-            // Situation is RAW, not folded: Dead and Missing stay distinct so a
-            // client can auto-derive one tab per situation present.
+            // Dead and Missing stay distinct: the standing is not folded onto a
+            // single "cannot fly".
             Assert.Equal("Missing", bob["situation"]);
 
-            // The ordinal rides beside the name, and it is what the client
-            // branches on.
+            // The standing is what the client branches on, and with no backend
+            // wired it is the contract's own map of KSP's roster status.
+            Assert.Equal((int)CrewStanding.Available, jeb["standing"]);
+            Assert.Equal((int)CrewStanding.Assigned, bill["standing"]);
+            Assert.Equal((int)CrewStanding.Missing, bob["standing"]);
+
+            // KSP's own ordinal rides beside it, unfolded.
             Assert.Equal(0, jeb["situationOrdinal"]);
             Assert.Equal(1, bill["situationOrdinal"]);
             Assert.Equal(3, bob["situationOrdinal"]);
@@ -378,7 +383,9 @@ namespace Sitrep.Host.Tests
         /// reason "whatever KSP now calls being free to fly", and nothing throws.
         ///
         /// <para>Here the ordinal says <c>Available</c> and the name is a
-        /// spelling this build has never seen. The kerbal is available.</para>
+        /// spelling this build has never seen. The kerbal is available, and the
+        /// LABEL is this contract's word rather than KSP's, so a Squad rename
+        /// cannot reach an operator's screen either.</para>
         /// </summary>
         [Fact]
         public void BuildCrewRosterReadsAvailabilityFromTheOrdinalNotTheName()
@@ -407,18 +414,24 @@ namespace Sitrep.Host.Tests
             Assert.Equal(true, val["available"]);
             Assert.Equal("", val["unavailableReason"]);
             Assert.Equal(0, val["situationOrdinal"]);
-            // The label is still the game's own word for it, because a label is
-            // all it is.
-            Assert.Equal("Ready", val["situation"]);
+            Assert.Equal((int)CrewStanding.Available, val["standing"]);
+            Assert.Equal("Available", val["situation"]);
         }
 
         /// <summary>
-        /// A status this build has never heard of - a mod appending to
-        /// <c>RosterStatus</c>, RP-1's "Retired" being the standing example - is
-        /// an UNKNOWN state. Unknown is not available, because we cannot promise
-        /// the kerbal can fly; it is also not folded onto Dead or Missing, because
-        /// we do not know that either. The ordinal reaches the client intact so
-        /// the client can say so.
+        /// A roster ordinal this build has never heard of is an UNKNOWN standing.
+        /// Unknown is not available, because we cannot promise the kerbal can
+        /// fly; it is also not folded onto Dead or Missing, because we do not
+        /// know that either, and it does not become the WORD "Unknown" in the
+        /// reason field, because that reads as a diagnosis where the truth is
+        /// silence. The raw ordinal reaches the client intact.
+        ///
+        /// <para>This case is NOT how RP-1's retirement arrives, and the comment
+        /// here used to say it was. RP-1 appends no member to
+        /// <c>RosterStatus</c>: it writes stock's <c>Dead</c>, ordinal 2, and a
+        /// retiree therefore arrives at the recognised-status path above looking
+        /// exactly like a fatality. That is what the crew-standing capability is
+        /// for; see <see cref="CrewStandingElectionTests"/>.</para>
         /// </summary>
         [Fact]
         public void BuildCrewRosterCarriesAnUnrecognisedStatusThroughRatherThanGuessing()
@@ -435,8 +448,8 @@ namespace Sitrep.Host.Tests
                             new Dictionary<string, object?>
                             {
                                 ["name"] = "Gene Kerman",
-                                ["rosterStatus"] = "Retired",
-                                ["rosterStatusOrdinal"] = 4,
+                                ["rosterStatus"] = "Furloughed",
+                                ["rosterStatusOrdinal"] = 9,
                             },
                         },
                     },
@@ -445,9 +458,10 @@ namespace Sitrep.Host.Tests
 
             var gene = Assert.IsType<Dictionary<string, object?>>(list[0]);
             Assert.Equal(false, gene["available"]);
-            Assert.Equal(4, gene["situationOrdinal"]);
-            Assert.Equal("Retired", gene["situation"]);
-            Assert.Equal("Retired", gene["unavailableReason"]);
+            Assert.Equal(9, gene["situationOrdinal"]);
+            Assert.Equal((int)CrewStanding.Unknown, gene["standing"]);
+            Assert.Equal("Unknown", gene["situation"]);
+            Assert.Equal("", gene["unavailableReason"]);
         }
 
         /// <summary>
@@ -482,9 +496,147 @@ namespace Sitrep.Host.Tests
 
             var dilsby = Assert.IsType<Dictionary<string, object?>>(list[0]);
             Assert.Equal("Applicant", dilsby["situation"]);
+            Assert.Equal((int)CrewStanding.Applicant, dilsby["standing"]);
             Assert.Null(dilsby["situationOrdinal"]);
             Assert.Equal(true, dilsby["isApplicant"]);
             Assert.Equal(true, dilsby["available"]);
+        }
+
+        /// <summary>
+        /// THE defect, at the provider. An RP-1 retiree arrives with stock's
+        /// <c>Dead</c> in the roster ordinal, because that is literally what RP-1
+        /// wrote there, and the elected backend's corrected standing is what the
+        /// provider must derive every operator-facing field from.
+        ///
+        /// <para>The three fields that mattered: <c>situation</c>, which the
+        /// Astronaut Complex groups by, and <c>unavailableReason</c>, which
+        /// LaunchDirector shows in the tooltip of a greyed-out crew chip. Before
+        /// the capability both read "Dead" about a kerbal drawing a pension.</para>
+        /// </summary>
+        [Fact]
+        public void BuildCrewRosterPrefersTheStampedStandingOverKspsOwnDeadOrdinal()
+        {
+            var list = Assert.IsType<List<object?>>(SpaceCenterViewProvider.BuildCrewRoster(new KspSnapshot
+            {
+                Ut = 0.0,
+                Values = new Dictionary<string, object?>
+                {
+                    ["spaceCenter"] = new Dictionary<string, object?>
+                    {
+                        ["crewRoster"] = new List<object?>
+                        {
+                            new Dictionary<string, object?>
+                            {
+                                ["name"] = "Wernher Kerman",
+                                ["rosterStatus"] = "Dead",
+                                ["rosterStatusOrdinal"] = (int)KspRosterStatus.Dead,
+                                ["standing"] = (int)CrewStanding.Retired,
+                                ["standingSource"] = "rp1",
+                            },
+                        },
+                    },
+                },
+            }));
+
+            var wernher = Assert.IsType<Dictionary<string, object?>>(list[0]);
+            Assert.Equal((int)CrewStanding.Retired, wernher["standing"]);
+            Assert.Equal("Retired", wernher["situation"]);
+            Assert.Equal("Retired", wernher["unavailableReason"]);
+            Assert.Equal(false, wernher["available"]);
+            Assert.Equal("rp1", wernher["standingSource"]);
+
+            // And KSP's own answer is still on the wire, unfolded, because what
+            // the game holds is worth knowing even when it is not the answer.
+            Assert.Equal((int)KspRosterStatus.Dead, wernher["situationOrdinal"]);
+        }
+
+        /// <summary>
+        /// A backend may override the availability wording in its own words, and
+        /// a null override leaves the derivation from the standing standing. Both
+        /// halves matter: the second is the ordinary case for a backend that only
+        /// corrects a handful of names.
+        /// </summary>
+        [Fact]
+        public void BuildCrewRosterHonoursABackendsOwnAvailabilityWording()
+        {
+            var list = Assert.IsType<List<object?>>(SpaceCenterViewProvider.BuildCrewRoster(new KspSnapshot
+            {
+                Ut = 0.0,
+                Values = new Dictionary<string, object?>
+                {
+                    ["spaceCenter"] = new Dictionary<string, object?>
+                    {
+                        ["crewRoster"] = new List<object?>
+                        {
+                            new Dictionary<string, object?>
+                            {
+                                ["name"] = "Gus Kerman",
+                                ["rosterStatusOrdinal"] = (int)KspRosterStatus.Available,
+                                ["standing"] = (int)CrewStanding.Available,
+                                ["standingAvailable"] = false,
+                                ["standingUnavailableReason"] = "Grounded pending training",
+                            },
+                        },
+                    },
+                },
+            }));
+
+            var gus = Assert.IsType<Dictionary<string, object?>>(list[0]);
+            Assert.Equal(false, gus["available"]);
+            Assert.Equal("Grounded pending training", gus["unavailableReason"]);
+            // The standing is untouched: the override is about flying today, not
+            // about where the kerbal sits on the books.
+            Assert.Equal((int)CrewStanding.Available, gus["standing"]);
+            Assert.Equal("Available", gus["situation"]);
+        }
+
+        /// <summary>
+        /// The stand-down pair. <c>inactive</c> is a STOCK field on a separate
+        /// axis from the standing, so a resting kerbal is still
+        /// <c>Available</c>; and the end time is withheld once the rest is over,
+        /// because KSP leaves the field at whatever the last rest period set and
+        /// quoting it would date a rest that has already finished.
+        /// </summary>
+        [Fact]
+        public void BuildCrewRosterQuotesTheStandDownEndOnlyWhileStandingDown()
+        {
+            var list = Assert.IsType<List<object?>>(SpaceCenterViewProvider.BuildCrewRoster(new KspSnapshot
+            {
+                Ut = 0.0,
+                Values = new Dictionary<string, object?>
+                {
+                    ["spaceCenter"] = new Dictionary<string, object?>
+                    {
+                        ["crewRoster"] = new List<object?>
+                        {
+                            new Dictionary<string, object?>
+                            {
+                                ["name"] = "Resting Kerman",
+                                ["rosterStatusOrdinal"] = (int)KspRosterStatus.Available,
+                                ["inactive"] = true,
+                                ["inactiveUntilUt"] = 12345.0,
+                            },
+                            new Dictionary<string, object?>
+                            {
+                                ["name"] = "Rested Kerman",
+                                ["rosterStatusOrdinal"] = (int)KspRosterStatus.Available,
+                                ["inactive"] = false,
+                                ["inactiveUntilUt"] = 999.0,
+                            },
+                        },
+                    },
+                },
+            }));
+
+            var resting = Assert.IsType<Dictionary<string, object?>>(list[0]);
+            Assert.Equal(true, resting["inactive"]);
+            Assert.Equal(12345.0, resting["inactiveUntilUt"]);
+            Assert.Equal(true, resting["available"]);
+            Assert.Equal((int)CrewStanding.Available, resting["standing"]);
+
+            var rested = Assert.IsType<Dictionary<string, object?>>(list[1]);
+            Assert.Equal(false, rested["inactive"]);
+            Assert.Null(rested["inactiveUntilUt"]);
         }
 
         [Fact]
