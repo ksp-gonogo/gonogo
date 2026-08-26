@@ -26,6 +26,8 @@ import type {
   Rp1OperationEntry,
   Rp1PadEntry,
   Rp1Personnel,
+  Rp1ProgramEntry,
+  Rp1ProgramSlots,
   Rp1ResearchEntry,
   Rp1WarehouseItemEntry,
 } from "./__generated__/contract";
@@ -66,6 +68,16 @@ export const RP1_PERSONNEL_TOPIC = "rp1.personnel";
 /** RP-1's own currency, absent rather than zero when the module is not live. */
 export const RP1_CONFIDENCE_TOPIC = "rp1.confidence";
 
+/**
+ * Every Program RP-1 knows about, running, finished or on offer, discriminated
+ * by `state`. Absent rather than empty when RP-1's handler is not live: its
+ * catalogue is never empty, so an empty list would be a claim about the career.
+ */
+export const RP1_PROGRAMS_TOPIC = "rp1.programs";
+
+/** How much Program capacity the Administration building allows, and how much is committed. */
+export const RP1_PROGRAM_SLOTS_TOPIC = "rp1.programSlots";
+
 declare module "@ksp-gonogo/sitrep-sdk" {
   interface TopicPayloadMap {
     "rp1.available": boolean;
@@ -78,6 +90,8 @@ declare module "@ksp-gonogo/sitrep-sdk" {
     "rp1.research": Rp1ResearchEntry[];
     "rp1.personnel": Rp1Personnel;
     "rp1.confidence": Rp1Confidence;
+    "rp1.programs": Rp1ProgramEntry[];
+    "rp1.programSlots": Rp1ProgramSlots;
   }
 }
 
@@ -91,6 +105,8 @@ registerBarePrimitiveTopic(RP1_OPERATIONS_TOPIC);
 registerBarePrimitiveTopic(RP1_RESEARCH_TOPIC);
 registerBarePrimitiveTopic(RP1_PERSONNEL_TOPIC);
 registerBarePrimitiveTopic(RP1_CONFIDENCE_TOPIC);
+registerBarePrimitiveTopic(RP1_PROGRAMS_TOPIC);
+registerBarePrimitiveTopic(RP1_PROGRAM_SLOTS_TOPIC);
 
 // Driven by looping the generated maps rather than naming each entry, so a
 // Topic added to this Uplink's contract later needs no new call site. Both
@@ -144,4 +160,10 @@ export type _ResolvesRp1Personnel = Expect<
 >;
 export type _ResolvesRp1Confidence = Expect<
   Equal<TopicPayload<"rp1.confidence">, Rp1Confidence>
+>;
+export type _ResolvesRp1Programs = Expect<
+  Equal<TopicPayload<"rp1.programs">, Rp1ProgramEntry[]>
+>;
+export type _ResolvesRp1ProgramSlots = Expect<
+  Equal<TopicPayload<"rp1.programSlots">, Rp1ProgramSlots>
 >;

@@ -111,3 +111,41 @@ export interface Rp1Confidence
 	confidence?: Value<"confidence">;
 	earned?: Value<"confidence">;
 }
+export interface Rp1ProgramEntry
+{
+	name?: string;
+	title?: string;
+	state?: string;
+	speed?: string;
+	slots?: Value<"count">;
+	isHumanSpaceflight?: boolean;
+	nominalDurationSeconds?: Value<"s">;
+	acceptedUt?: Value<"ut">;
+	deadlineUt?: Value<"ut">;
+	objectivesCompletedUt?: Value<"ut">;
+	completedUt?: Value<"ut">;
+	lastPaymentUt?: Value<"ut">;
+	fracElapsed?: Value<"ratio">;
+	totalFunding?: Value<"funds">;
+	fundsPaidOut?: Value<"funds">;
+	fundsRemaining?: Value<"funds">;
+	fundingCurve?: string;
+	confidenceCost?: Value<"confidence">;
+	repDeltaOnCompletePerYearEarly?: Value<"rep">;
+	repPenaltyPerYearLate?: Value<"rep">;
+	repPenaltyAssessed?: Value<"rep">;
+	requirementsMet?: boolean;
+	objectivesMet?: boolean;
+	canAccept?: boolean;
+	canComplete?: boolean;
+	requirementsText?: string;
+	objectivesText?: string;
+}
+export interface Rp1ProgramSlots
+{
+	maxSlots?: Value<"count">;
+	usedSlots?: Value<"count">;
+	freeSlots?: Value<"count">;
+	activeCount?: Value<"count">;
+	completedCount?: Value<"count">;
+}
