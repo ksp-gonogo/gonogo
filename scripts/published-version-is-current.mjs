@@ -78,7 +78,22 @@ try {
         stdio: ["ignore", "ignore", "pipe"],
       },
     );
-  } catch {
+  } catch (err) {
+    /*
+     * Only a 404 means "this version was never published". A registry outage,
+     * a proxy, an expired token or an offline runner fails here too, and
+     * reporting any of those as unpublished sends the release flow on to
+     * publish against a registry it could not read.
+     */
+    const stderr = String(err?.stderr ?? "");
+    if (!/E404|404 Not Found/.test(stderr)) {
+      console.error(
+        `\ncould not ask npm about ${name}@${version}, so whether it is published is UNKNOWN.\n` +
+          "Refusing to report it as unpublished, which is what this used to do for a network\n" +
+          `failure as readily as for a missing version.\n${stderr.trim()}`,
+      );
+      process.exit(2);
+    }
     console.log(`${name}@${version} is not on npm: publish it.`);
     process.exit(3);
   }
@@ -90,6 +105,19 @@ try {
     ),
   );
   const local = distDigest(packed);
+
+  /*
+   * Two empty digests compare equal, so a tarball carrying no `dist` at all
+   * would report a clean match and wave the release through: exactly the case
+   * this check exists to catch, answered with the same words as success.
+   */
+  if (local.size === 0) {
+    console.error(
+      `\n${packed} contains no dist/ members, so there is nothing to compare and a match here\n` +
+        "would mean only that both sides are empty. Build the package before packing it.",
+    );
+    process.exit(2);
+  }
 
   const differences = [];
   for (const [member, hash] of local) {

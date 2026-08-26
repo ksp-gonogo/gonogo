@@ -409,6 +409,16 @@ try {
       (uplink) => !only || uplink.id.toLowerCase().includes(only.toLowerCase()),
     );
 
+  // A filter that selects nothing runs the loop zero times and reports success.
+  if (uplinks.length === 0) {
+    console.error(
+      only
+        ? `✖ --only ${only} matched no Uplink with a csproj, so nothing was probed.`
+        : "✖ BLIND: the matrix reported no Uplink with a csproj, so nothing was probed.",
+    );
+    process.exit(1);
+  }
+
   const measured = {};
   for (const uplink of uplinks) {
     const excused = MISSING_REFERENCE_OK[uplink.id];

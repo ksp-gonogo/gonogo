@@ -201,6 +201,19 @@ function probe(clientDir, tarballs, workRoot, label) {
   });
   const output = `${tsc.stdout}${tsc.stderr}`;
   const errors = (output.match(/error TS\d+/g) ?? []).length;
+  /*
+   * A non-zero exit with nothing that looks like a diagnostic means tsc failed
+   * to RUN rather than failing to typecheck: no compiler installed, a tsconfig
+   * it could not read, a crash. Counting occurrences alone reads all of those
+   * as zero errors, which is this probe's own pass condition.
+   */
+  if (tsc.status !== 0 && errors === 0) {
+    return {
+      errors: 0,
+      blocked:
+        `tsc did not run outside the workspace. ${(output || "").trim().split("\n").slice(-3).join(" ")}`.trim(),
+    };
+  }
   return { errors, blocked: null, output };
 }
 
@@ -367,6 +380,16 @@ try {
   )
     .filter((u) => u.client)
     .filter((u) => !only || u.id.toLowerCase().includes(only.toLowerCase()));
+
+  // A filter that selects nothing runs the loop zero times and reports success.
+  if (uplinks.length === 0) {
+    console.error(
+      only
+        ? `✖ --only ${only} matched no Uplink with a client, so nothing was probed.`
+        : "✖ BLIND: the matrix reported no Uplink with a client, so nothing was probed.",
+    );
+    process.exit(1);
+  }
 
   const measured = {};
   for (const uplink of uplinks) {
