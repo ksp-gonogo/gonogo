@@ -19,10 +19,8 @@ export interface WarpObserverContext {
  * doesn't have to special-case its own warp-to commands.
  *
  * Warp state comes off the stream via the non-hook `getWarpState()`
- * accessor (`@ksp-gonogo/sitrep-client`, the whole `time.warp` `WarpState`
- * record) rather than the legacy `t.timeWarp`/`t.currentRateIndex`/
- * `t.currentRate`/`t.warpMode` per-field reads this used to make against the
- * `"data"` `DataSource`.
+ * accessor (`@ksp-gonogo/sitrep-client`), which carries the whole `time.warp`
+ * `WarpState` record in one read.
  */
 export class WarpObserver {
   private observedWarp: AlarmWarpState = {

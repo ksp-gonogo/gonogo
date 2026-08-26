@@ -79,9 +79,7 @@ const pkg = JSON.parse(
  * module graph, not this config's own top-level imports), and `dist` is
  * gitignored: absent on a fresh checkout until `pnpm build` runs. Reading
  * the source as text keeps the "no build step needed before `pnpm dev`"
- * property the workspace-alias comment above already establishes. Same
- * rationale as the old `readPkgVersion` this replaces, just pointed at the
- * canonical exported constant instead of the package's own version field.
+ * property the workspace-alias comment above already establishes.
  */
 function readExportedStringConst(filePath: string, exportName: string): string {
   const src = readFileSync(filePath, "utf-8");
@@ -111,16 +109,15 @@ function readExportedNumberConst(filePath: string, exportName: string): number {
 }
 
 // The app's compat identity: the values a runtime-loaded Uplink is gated
-// against BEFORE `import()` (design §5 step 3 / §6.3). Single-sourced here and
-// exposed to the app via `define` below AND written into the local registry
-// fixture by the uplink-bundle plugin, so the host and the descriptor can never
-// drift in Phase A. See src/uplinks/hostCompat.ts.
+// against BEFORE `import()`. Single-sourced here and exposed to the app via
+// `define` below AND written into the local registry fixture by the
+// uplink-bundle plugin, so the host and the descriptor cannot drift. See
+// src/uplinks/hostCompat.ts.
 //   • apiVersion: core's `EXTENSION_API_VERSION`
 //     (packages/core/src/uplinkVersionCompat.ts), the dedicated hand-managed
-//     API-surface gate. Previously this was a stand-in read off sitrep-sdk's
-//     package.json version ("0.0.1", unrelated to the gate's "1.0.0"), now
-//     single-sourced from the same constant hostCompat.ts gates on, so the
-//     two can never drift.
+//     API-surface gate. Single-sourced from the same constant hostCompat.ts
+//     gates on, so the two can never drift. NOT sitrep-sdk's package.json
+//     version, which is unrelated to that gate's numbering.
 //   • uiKitVersion: @ksp-gonogo/ui-kit's `UI_KIT_VERSION` (src/version.ts).
 //   • contractMajor / contractMinor: mirror the C# `ContractVersion.Major`/
 //     `.Minor` stamp (Sitrep.Contract's `ContractVersion`, currently 4.7).
@@ -296,10 +293,10 @@ const uplinkBundles = (): PluginOption => ({
             // registry seam already treats bundleUrl as opaque.
             bundleUrl: `${base}uplinks/${target.id}.client.js`,
             integrity,
-            // H_mod half of the three-way check (design §3.3). Baked once the mod
-            // ships expectedClientHash on system.uplinks (Phase B); until then the
-            // loader enforces the two-way index==bytes check and records the
-            // mod-hash arm as pending. Mirror it here so review can reconcile.
+            // H_mod half of the three-way check. It stays null until the mod
+            // ships expectedClientHash on system.uplinks; meanwhile the loader
+            // enforces the two-way index==bytes check and records the mod-hash
+            // arm as pending. Mirrored here so review can reconcile.
             expectedClientHash: null,
           },
         ],
@@ -401,7 +398,7 @@ export default defineConfig({
       preserveEntrySignatures: "strict",
       // Emit the app entry PLUS one external-entry chunk per shared package. Rollup
       // keeps each shared module in a single chunk, so these re-export the app's
-      // singletons rather than duplicating them (design §2.2 / §2.3).
+      // singletons rather than duplicating them.
       input: {
         index: resolve(__dirname, "index.html"),
         ...Object.fromEntries(

@@ -60,15 +60,13 @@ export interface AlarmDraftPrefill {
  * Control is a read-only indicator), since offering them would be a no-op the
  * operator could not tell from a working choice.
  *
- * Asks whether the group has a COMMAND rather than whether it has a legacy key:
- * that key was a name for the command, and the command is the thing that has to
- * exist for the pick to do anything.
+ * The filter asks whether the group has a COMMAND, because a command is the
+ * thing that has to exist for the pick to do anything.
  *
- * A HOOK rather than the module-scope constant this used to be: the action-group
- * registry is no longer a hardcoded literal, it derives its custom half from
- * live telemetry (`useActionGroups`), so the list can't be computed at module
- * load. Under a future AGX backend this is what makes the player's own named
- * groups appear in the alarm picker for free.
+ * A HOOK rather than a module-scope constant: the action-group registry derives
+ * its custom half from live telemetry (`useActionGroups`), so the list cannot
+ * be computed at module load. Under a future AGX backend this is what makes the
+ * player's own named groups appear in the alarm picker for free.
  */
 function useFirableActions(): ActionGroup[] {
   const groups = useActionGroups();
@@ -583,9 +581,8 @@ function RecommendedPresets({
 }) {
   // `timeToAp` / `timeToPe` are seconds-from-now; the maneuver node UT
   // is absolute. We read them live so a preset reflects the current orbit
-  // at the moment of the click. Both are derived `vessel.state.*` fields now
-  // (the old `o.timeToAp`/`o.timeToPe` legacy keys, mapped in
-  // `map-topic.ts`), read off the canonical stream.
+  // at the moment of the click. Both are derived `vessel.state.*` fields,
+  // read off the canonical stream.
   const vesselState = useStream<VesselState>("vessel.state");
   const timeToAp = vesselState?.timeToAp ?? undefined;
   const timeToPe = vesselState?.timeToPe ?? undefined;
@@ -854,10 +851,10 @@ function useActionGroupBindings(): AgBinding[] | null {
     for (const part of parts.parts) {
       for (const binding of part.actionBindings ?? []) {
         // One entry per ACTION, not per (action, group) pair: the mask already
-        // carries every group the action fires with, and the name list it used
-        // to be flattened from is built by intersecting that mask against the
-        // groups the mod's capture knows about, so a group KSP added was dropped
-        // before the wire.
+        // carries every group the action fires with. Flattening it into a name
+        // list on the mod side would mean intersecting the mask against the
+        // groups that capture knows about, so a group KSP added would be
+        // dropped before the wire.
         out.push({
           groupsMask: binding.groupsMask ?? 0,
           partName: part.name,

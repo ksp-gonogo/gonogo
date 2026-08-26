@@ -25,7 +25,7 @@ export type TemplatingResolver = (key: string) => unknown;
 export interface RenderOptions {
   /** Set of keys present in the data source schema. Used to distinguish
    *  "unknown key" from "value not yet arrived". When omitted, every key
-   *  is treated as known (legacy behaviour). */
+   *  is treated as known. */
   knownKeys?: ReadonlySet<string>;
 }
 

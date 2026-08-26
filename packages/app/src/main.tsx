@@ -74,14 +74,13 @@ function renderApp(): void {
 }
 
 // Uplink registration happens before first render so widgets are in the
-// registry when the dashboard mounts. Two paths, unconditional (D4 step 2,
-// the loader is no longer flag-gated for the first-party 3):
+// registry when the dashboard mounts. Two paths, both unconditional, neither
+// behind a flag:
 //
 //  - kerbalism + avionics + mechjeb + breakingGround have no runtime-loader
 //    bundle/registry entry (breakingGround is bundled IN the core mod DLL,
-//    same as parts/vessel; the other three are out of the loader's scope this
-//    step), so all four stay plain static imports, each self-registering on
-//    import.
+//    same as parts/vessel; the other three are outside the loader's scope), so
+//    all four are plain static imports, each self-registering on import.
 //  - scansat + kos + kerbcast (`LOADER_UPLINK_IDS`) ALWAYS go through the
 //    runtime loader: it fetches + verifies + import()s each standalone
 //    bundle, its externals resolving through the baked import map to the
@@ -137,9 +136,8 @@ async function registerScansatAndRender(): Promise<void> {
     import("@ksp-gonogo/gonogo-breaking-ground-uplink"),
     // Types and three Topic registrations, no widget and no component
     // registration: the smallest client in the app. It is here because its
-    // three channels used to be static members of the SDK's own Topic union
-    // (their payload types lived in the core contract), and are now runtime
-    // registrations from this package. Without this import
+    // three channels are runtime registrations from this package rather than
+    // static members of the SDK's Topic union. Without this import
     // `isTopicId("comms.linkMargin")` goes false and the replay recorder drops
     // three channels, with nothing else going red. Same "no runtime-loader
     // entry, plain static import" path as the four above, and the cheapest of

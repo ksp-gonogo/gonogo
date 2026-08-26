@@ -45,8 +45,8 @@ export function AugmentAvailabilityFeeder(): ReactElement | null {
 /**
  * Subscribes to one Domain's `<domain>.available` Topic and mirrors its
  * presence into the store. Presence, not payload: a Domain is available while
- * ANY value has arrived (`!== undefined`), matching the Topic's own semantics
- * and the exact answer the old telemetry gate gave. Isolated per Domain so its
+ * ANY value has arrived (`!== undefined`), matching the Topic's own semantics.
+ * Isolated per Domain so its
  * `useTelemetry` hook has a stable position as the watched set changes.
  */
 function DomainAvailabilityWatch({

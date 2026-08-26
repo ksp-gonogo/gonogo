@@ -54,13 +54,12 @@ export function subscribeUplinkOutcomes(listener: Listener): () => void {
  * loaded-outcome set (read by the Settings › Uplinks list and the Hub
  * wizard's gap computation) isn't left empty for it.
  *
- * D4 step 2 (2026-07-25): main.tsx no longer calls this. The three loader-
- * covered first-party Uplinks (`flag.ts`'s `LOADER_UPLINK_IDS`) now always go
- * through the runtime loader, which records its own outcomes via
- * `setUplinkOutcome`; the two Uplinks still statically bundled outside the
- * loader's scope never had a Settings-visible outcome and still don't. Kept
- * as a general-purpose helper for a future statically-bundled Uplink that
- * wants one, and for its own unit coverage below.
+ * Nothing in the app calls this. The loader-covered first-party Uplinks
+ * (`flag.ts`'s `LOADER_UPLINK_IDS`) go through the runtime loader, which
+ * records its own outcomes via `setUplinkOutcome`, and the statically bundled
+ * ones outside the loader's scope have no Settings-visible outcome. It stays
+ * as a general-purpose helper for a statically-bundled Uplink that wants one,
+ * covered by its own unit tests below.
  */
 export function recordBundledOutcomes(ids: readonly string[]): void {
   for (const id of ids) {
