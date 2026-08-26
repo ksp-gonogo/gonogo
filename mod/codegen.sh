@@ -300,9 +300,9 @@ echo "codegen -> $principia_out_dir/topic-map.ts"
 echo "codegen -> $principia_out_dir/units.ts"
 echo "codegen -> $principia_out_dir/units.json"
 
-# RP-1: the space-centre slice. Nine types, nine [SitrepTopic]s, and two unit
-# tokens core has never heard of (bp and confidence), declared in this slice's
-# own Units class. The catalog check judges the slice against core's tokens PLUS
+# RP-1: the space-centre and Programs slice. Eleven types, eleven
+# [SitrepTopic]s, and two unit tokens core has never heard of (bp and
+# confidence), declared in this slice's own Units class. The catalog check judges the slice against core's tokens PLUS
 # that class, so an undeclared token stops the build here rather than reaching
 # the client as an opaque symbol with no ladder.
 rp1_proj="$ROOT/mod/GonogoRp1Uplink.Contract.Codegen"

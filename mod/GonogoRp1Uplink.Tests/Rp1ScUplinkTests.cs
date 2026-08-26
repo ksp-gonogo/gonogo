@@ -52,6 +52,36 @@ public class Rp1ScUplinkTests : IDisposable
     }
 
     [Fact]
+    public void Both_Program_channels_treat_absence_as_data()
+    {
+        // The one place on this Uplink where an empty ARRAY would be a lie:
+        // RP-1's Program catalogue is never empty, so "[]" could only mean this
+        // career has been offered nothing. Declared so the client is told there
+        // is no answer rather than handed a wrong one.
+        var manifest = new Rp1ScUplink().Manifest;
+        var programChannels = manifest.Channels
+            .Where(c => c.Topic == Rp1ScUplink.ProgramsTopic || c.Topic == Rp1ScUplink.ProgramSlotsTopic)
+            .ToList();
+
+        Assert.Equal(2, programChannels.Count);
+        Assert.All(programChannels, c => Assert.True(c.AbsenceIsData));
+    }
+
+    [Fact]
+    public void The_Program_capture_publishes_nothing_when_RP1s_handler_is_absent()
+    {
+        // The end-to-end of the same rule: capture to publish, with no handler
+        // live. A bag of empty lists here would reach a client as a catalogue.
+        RP0.Programs.ProgramHandler.Instance = null;
+        var uplink = new Rp1ScUplink();
+        var captured = uplink.CaptureProgramsOnMain(null);
+
+        Assert.Null(captured);
+        Assert.Null(Rp1ProgramsCapture.BuildPrograms(captured as Rp1ProgramsRaw));
+        Assert.Null(Rp1ProgramsCapture.BuildSlots(captured as Rp1ProgramsRaw));
+    }
+
+    [Fact]
     public void Health_names_which_RP1_it_was_read_against()
     {
         // The version caveat made operable: RP-1 ships monthly, this Uplink is

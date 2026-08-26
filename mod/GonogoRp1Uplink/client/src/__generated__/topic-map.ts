@@ -27,6 +27,8 @@ import type {
   Rp1OperationEntry,
   Rp1PadEntry,
   Rp1Personnel,
+  Rp1ProgramEntry,
+  Rp1ProgramSlots,
   Rp1ResearchEntry,
   Rp1WarehouseItemEntry,
 } from "./contract";
@@ -39,6 +41,8 @@ export interface GeneratedTopicPayloadMap {
   "rp1.operations": Rp1OperationEntry[];
   "rp1.pads": Rp1PadEntry[];
   "rp1.personnel": Rp1Personnel;
+  "rp1.programSlots": Rp1ProgramSlots;
+  "rp1.programs": Rp1ProgramEntry[];
   "rp1.research": Rp1ResearchEntry[];
   "rp1.warehouse": Rp1WarehouseItemEntry[];
 }
@@ -51,6 +55,8 @@ export const GENERATED_TOPIC_IDS = [
   "rp1.operations",
   "rp1.pads",
   "rp1.personnel",
+  "rp1.programSlots",
+  "rp1.programs",
   "rp1.research",
   "rp1.warehouse",
 ] as const;

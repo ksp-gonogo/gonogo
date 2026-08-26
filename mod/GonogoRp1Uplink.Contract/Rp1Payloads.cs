@@ -486,3 +486,249 @@ public sealed class Rp1Confidence
     [SitrepUnit(Contract.Units.Confidence)]
     public double? Earned { get; set; }
 }
+
+/// <summary>
+/// One RP-1 Program, whether it is running, finished, or merely on offer.
+///
+/// <para>Programs are RP-1's commitment mechanic and the largest single source
+/// of career funding: accepting one draws down a fixed total over a fixed
+/// duration, on a curve, against a deadline that costs reputation once it
+/// passes. They are a DIFFERENT mechanic from the reputation subsidy core
+/// already publishes as <c>career.status.economy.subsidyPerDay</c>: the subsidy
+/// is a floor that grows with the calendar and is lerped up by reputation, and
+/// it arrives whether or not any Program is running. An operator reading only
+/// the subsidy sees the smaller half of their income and none of the obligation
+/// attached to the larger half.</para>
+///
+/// <para>ONE ROW SHAPE FOR EVERY STATE, discriminated by <see cref="State"/>,
+/// rather than one Topic per state. RP-1's own Administration building shows
+/// one list; the fields that only an accepted Program has are absent on the
+/// others, which is the same distinction <see cref="Rp1WarehouseItemEntry"/>
+/// already draws against a build-queue row.</para>
+/// </summary>
+[SitrepContract]
+[SitrepTopic("rp1.programs", isArray: true)]
+#if SITREP_CODEGEN
+[TsInterface]
+#endif
+public sealed class Rp1ProgramEntry
+{
+    /// <summary>RP-1's internal program name, stable across releases and the join key for this row.</summary>
+    [SitrepUnit(Units.Id)]
+    public string? Name { get; set; }
+
+    /// <summary>The name RP-1 shows an operator, e.g. "X-Plane Research".</summary>
+    [SitrepUnit(Units.Text)]
+    public string? Title { get; set; }
+
+    /// <summary>
+    /// Where this Program sits: <c>active</c>, <c>completed</c>,
+    /// <c>offerable</c> (requirements met, could be accepted now),
+    /// <c>locked</c> (requirements not met) or <c>disabled</c> (RP-1 has ruled
+    /// it out, usually because accepting a rival Program closed it off).
+    /// </summary>
+    [SitrepUnit(Units.Enumeration)]
+    public string? State { get; set; }
+
+    /// <summary>
+    /// RP-1's <c>Program.Speed</c> name: "Slow", "Normal" or "Fast". Speed is
+    /// chosen at accept time and fixes both the duration and the Confidence
+    /// price, so on an offerable row this is the speed currently selected in the
+    /// Administration building rather than a commitment.
+    /// </summary>
+    [SitrepUnit(Units.Enumeration)]
+    public string? Speed { get; set; }
+
+    /// <summary>Program slots this occupies, against the ceiling in <see cref="Rp1ProgramSlots"/>.</summary>
+    [SitrepUnit(Units.Count)]
+    public int? Slots { get; set; }
+
+    /// <summary>A crewed-spaceflight Program, which is RP-1's <c>isHSF</c> flag.</summary>
+    [SitrepUnit(Units.Flag)]
+    public bool? IsHumanSpaceflight { get; set; }
+
+    /// <summary>
+    /// The catalogue duration BEFORE the speed multiplier and before the
+    /// currency-modifier pass RP-1 runs over it. The duration actually in force
+    /// is only observable through <see cref="DeadlineUt"/>, and only once a
+    /// Program has been accepted, because RP-1 computes it by broadcasting a
+    /// query to every modifier in the save and that is a thing to run rather
+    /// than a thing to read.
+    /// </summary>
+    [SitrepUnit(Units.Seconds)]
+    public double? NominalDurationSeconds { get; set; }
+
+    /// <summary>When this Program was accepted. Absent on anything not yet accepted.</summary>
+    [SitrepUnit(Units.UniversalTime)]
+    public double? AcceptedUt { get; set; }
+
+    /// <summary>
+    /// When the funding runs out and the reputation penalty starts. RP-1
+    /// recomputes this on every funding tick, so it tracks a Program that has
+    /// been slowed or sped by a leader rather than staying at the accept-time
+    /// estimate. Absent on anything not yet accepted.
+    /// </summary>
+    [SitrepUnit(Units.UniversalTime)]
+    public double? DeadlineUt { get; set; }
+
+    /// <summary>
+    /// When the objectives were met, which is when the Program becomes
+    /// completable in the Administration building. Absent while they are not.
+    /// </summary>
+    [SitrepUnit(Units.UniversalTime)]
+    public double? ObjectivesCompletedUt { get; set; }
+
+    /// <summary>When the Program was completed. Absent unless it was.</summary>
+    [SitrepUnit(Units.UniversalTime)]
+    public double? CompletedUt { get; set; }
+
+    /// <summary>The last funding tick. Absent on anything not yet accepted.</summary>
+    [SitrepUnit(Units.UniversalTime)]
+    public double? LastPaymentUt { get; set; }
+
+    /// <summary>
+    /// How far through the funding curve this Program is, which is the fraction
+    /// RP-1 advances rather than elapsed wall time: warping past the deadline
+    /// carries it above 1. Absent on anything not yet accepted, where RP-1's own
+    /// field holds -1 as its "never funded" sentinel.
+    /// </summary>
+    [SitrepUnit(Units.Ratio)]
+    public double? FracElapsed { get; set; }
+
+    /// <summary>
+    /// Everything this Program will pay over its whole life, at the career's
+    /// funds multiplier. On a row not yet accepted this is the catalogue figure
+    /// with any RP0_PROGRAM_MODIFIER already applied, matching what the
+    /// Administration building offers.
+    /// </summary>
+    [SitrepUnit(Units.Funds)]
+    public double? TotalFunding { get; set; }
+
+    /// <summary>Paid so far. Absent on anything not yet accepted.</summary>
+    [SitrepUnit(Units.Funds)]
+    public double? FundsPaidOut { get; set; }
+
+    /// <summary>
+    /// Still to come on this Program. Absent on anything not yet accepted rather
+    /// than equal to the total, because an offer is not money owed.
+    /// </summary>
+    [SitrepUnit(Units.Funds)]
+    public double? FundsRemaining { get; set; }
+
+    /// <summary>
+    /// The named curve funding follows over the duration, e.g. "Flat" or
+    /// "BimodalBackloaded". It decides whether the money arrives evenly or in
+    /// the back half, which is what a payload schedule has to be planned
+    /// around.
+    /// </summary>
+    [SitrepUnit(Units.Text)]
+    public string? FundingCurve { get; set; }
+
+    /// <summary>
+    /// Confidence this Program costs at <see cref="Speed"/>, read from RP-1's
+    /// own per-speed table. This is the RAW cost: RP-1's Administration building
+    /// shows it after a currency-modifier pass that a leader can shift, and that
+    /// pass broadcasts to the whole save, so it is not run here.
+    /// </summary>
+    [SitrepUnit(Contract.Units.Confidence)]
+    public double? ConfidenceCost { get; set; }
+
+    /// <summary>Reputation gained per year this Program is completed early.</summary>
+    [SitrepUnit(Units.Reputation)]
+    public double? RepDeltaOnCompletePerYearEarly { get; set; }
+
+    /// <summary>
+    /// Reputation lost per year past the deadline, already scaled by speed:
+    /// RP-1 charges a Fast Program half again as much for running late.
+    /// </summary>
+    [SitrepUnit(Units.Reputation)]
+    public double? RepPenaltyPerYearLate { get; set; }
+
+    /// <summary>
+    /// Reputation this Program has already cost by overrunning. Absent on
+    /// anything not yet accepted; zero on an accepted Program still inside its
+    /// deadline, which is a real reading and not the same fact.
+    /// </summary>
+    [SitrepUnit(Units.Reputation)]
+    public double? RepPenaltyAssessed { get; set; }
+
+    /// <summary>
+    /// The requirements to accept this Program are satisfied now. Evaluated
+    /// against live game state (tech unlocked, contracts completed, facility
+    /// levels, other Programs), so it moves without the row otherwise changing.
+    /// </summary>
+    [SitrepUnit(Units.Flag)]
+    public bool? RequirementsMet { get; set; }
+
+    /// <summary>The objectives are satisfied, whether or not the Program is running.</summary>
+    [SitrepUnit(Units.Flag)]
+    public bool? ObjectivesMet { get; set; }
+
+    /// <summary>
+    /// Accepting is possible right now on RP-1's own reading: not already
+    /// active, not completed, not disabled, requirements met. It does NOT
+    /// include the Confidence check, which RP-1 makes with a broadcast query;
+    /// compare <see cref="ConfidenceCost"/> against <c>rp1.confidence</c> for
+    /// that half.
+    /// </summary>
+    [SitrepUnit(Units.Flag)]
+    public bool? CanAccept { get; set; }
+
+    /// <summary>Active, and its objectives are done, so it can be cashed in.</summary>
+    [SitrepUnit(Units.Flag)]
+    public bool? CanComplete { get; set; }
+
+    /// <summary>
+    /// RP-1's own prose for what this Program needs before it can be accepted.
+    /// Absent when the Program declares none. May carry KSP rich-text markup.
+    /// </summary>
+    [SitrepUnit(Units.Text)]
+    public string? RequirementsText { get; set; }
+
+    /// <summary>
+    /// RP-1's own prose for what this Program asks you to achieve. May carry KSP
+    /// rich-text markup.
+    /// </summary>
+    [SitrepUnit(Units.Text)]
+    public string? ObjectivesText { get; set; }
+}
+
+/// <summary>
+/// How much Program capacity the career has and how much of it is committed.
+/// A singleton rather than a field on every row: the ceiling is a property of
+/// the Administration building, not of any one Program.
+/// </summary>
+[SitrepContract]
+[SitrepTopic("rp1.programSlots")]
+#if SITREP_CODEGEN
+[TsInterface]
+#endif
+public sealed class Rp1ProgramSlots
+{
+    /// <summary>
+    /// Slots the Administration building's current level allows. Absent when
+    /// RP-1 cannot answer, which it cannot outside a loaded career.
+    /// </summary>
+    [SitrepUnit(Units.Count)]
+    public int? MaxSlots { get; set; }
+
+    /// <summary>Slots the active Programs occupy, summed over their own slot costs.</summary>
+    [SitrepUnit(Units.Count)]
+    public int? UsedSlots { get; set; }
+
+    /// <summary>
+    /// Slots left to commit. Absent when the ceiling is unknown, because a free
+    /// count derived from an assumed ceiling is a fabrication about what the
+    /// operator can afford to start.
+    /// </summary>
+    [SitrepUnit(Units.Count)]
+    public int? FreeSlots { get; set; }
+
+    /// <summary>Programs currently running.</summary>
+    [SitrepUnit(Units.Count)]
+    public int? ActiveCount { get; set; }
+
+    /// <summary>Programs finished over the whole career.</summary>
+    [SitrepUnit(Units.Count)]
+    public int? CompletedCount { get; set; }
+}

@@ -65,6 +65,7 @@
     <Compile Include="..\Gonogo.KSP\WarpRateOutcome.cs" />
     <!-- What stock's own space bar checks before it stages. -->
     <Compile Include="..\Gonogo.KSP\StageRule.cs" />
+    <Compile Include="..\Gonogo.KSP\StrategyEligibility.cs" />
   </ItemGroup>
 
   <!-- PendingCreditRow.cs was split out of PendingCreditLedger.cs specifically so this row/enum

@@ -7,7 +7,8 @@ namespace GonogoRp1Uplink
     /// <summary>
     /// GonogoRp1Uplink: RP-1's space centre on the wire. The build queue, the
     /// launch complexes and their pads, the rollout and reconditioning
-    /// operations, the research queue, the payroll, and Confidence.
+    /// operations, the research queue, the payroll, Confidence, and the
+    /// Programs the career's funding is committed against.
     ///
     /// <para><b>A sibling of GonogoAvionicsUplink, never merged into it.</b> Both
     /// read RP-1 by reflection, and one probe and one health row would be
@@ -44,19 +45,34 @@ namespace GonogoRp1Uplink
         public const string ResearchTopic = "rp1.research";
         public const string PersonnelTopic = "rp1.personnel";
         public const string ConfidenceTopic = "rp1.confidence";
+        public const string ProgramsTopic = "rp1.programs";
+        public const string ProgramSlotsTopic = "rp1.programSlots";
 
         /// <summary>
         /// Rows published per second across every rp1.* channel. One capture per
-        /// tick emits one row per centre, complex, queued vehicle, pad, operation
-        /// and research node, so this counts the thing that actually grows: a
-        /// mature RP-1 career with several centres and a full tech queue is a few
-        /// hundred rows a tick, and a runaway means the subscription gate stopped
-        /// gating rather than that the career got big.
+        /// tick emits one row per centre, complex, queued vehicle, pad, operation,
+        /// research node and Program, so this counts the thing that actually
+        /// grows: a mature RP-1 career with several centres, a full tech queue and
+        /// the whole thirty-seven Program catalogue is a few hundred rows a tick, and
+        /// a runaway means the subscription gate stopped gating rather than that
+        /// the career got big.
         /// </summary>
         private static readonly PerfBudget Rp1RowBudget = new PerfBudget(
             "Rp1ScUplink rows published", threshold: 5000, windowSec: 1.0, unit: "rows");
 
         private readonly Rp1ScReflection _rp1 = new Rp1ScReflection();
+
+        /// <summary>
+        /// RP-1's Programs, on their own reader and their own sampled source.
+        /// Separate from the space-centre walk because the two answer unrelated
+        /// questions at unrelated rates and share no object: the space centre is
+        /// read per launch complex every tick, the Program catalogue is a
+        /// thirty-seven row list that changes when an operator visits the
+        /// Administration building. Kept apart, a dashboard watching only the
+        /// build queue never pays for the Program walk, which is what the
+        /// subscription gate is for.
+        /// </summary>
+        private readonly Rp1ProgramsReflection _programs = new Rp1ProgramsReflection();
 
         /// <summary>
         /// RP-1's answer to what a career's money is doing, offered to the
@@ -78,6 +94,8 @@ namespace GonogoRp1Uplink
         private IChannelPublisher? _research;
         private IChannelPublisher? _personnel;
         private IChannelPublisher? _confidence;
+        private IChannelPublisher? _programList;
+        private IChannelPublisher? _programSlots;
 
         /// <summary>
         /// Whether RP-1 is managing this save, asked fresh rather than remembered
@@ -118,6 +136,14 @@ namespace GonogoRp1Uplink
                 // coming instead of being told there is none.
                 Ground(PersonnelTopic, absenceIsData: true),
                 Ground(ConfidenceTopic, absenceIsData: true),
+                // Both Program channels publish NOTHING rather than an empty
+                // list when RP-1's ProgramHandler is not live. The distinction
+                // matters more here than anywhere else on this Uplink: RP-1's
+                // catalogue is never empty, so an empty list can only mean "this
+                // career has been offered nothing", which is a claim about the
+                // career rather than about the install.
+                Ground(ProgramsTopic, absenceIsData: true),
+                Ground(ProgramSlotsTopic, absenceIsData: true),
             },
         };
 
@@ -176,6 +202,8 @@ namespace GonogoRp1Uplink
             _research = host.Publisher(ResearchTopic);
             _personnel = host.Publisher(PersonnelTopic);
             _confidence = host.Publisher(ConfidenceTopic);
+            _programList = host.Publisher(ProgramsTopic);
+            _programSlots = host.Publisher(ProgramSlotsTopic);
 
             host.AddSampledSource(
                 CaptureOnMain,
@@ -189,6 +217,16 @@ namespace GonogoRp1Uplink
                 ResearchTopic,
                 PersonnelTopic,
                 ConfidenceTopic);
+
+            // Gated, and safe to gate: this capture's ENTIRE effect is its
+            // return value. It stashes nothing, elects nothing, and no command
+            // pre-filter reads it, so a tick nobody is watching skips a walk over
+            // thirty-seven Programs and starves nothing downstream.
+            host.AddSampledSource(
+                CaptureProgramsOnMain,
+                HandleProgramsOnCourier,
+                ProgramsTopic,
+                ProgramSlotsTopic);
         }
 
         /// <summary>
@@ -238,6 +276,26 @@ namespace GonogoRp1Uplink
         }
 
         /// <summary>
+        /// MAIN-THREAD capture of RP-1's Programs. On the main thread because
+        /// the requirement and objective predicates it evaluates reach KSP's own
+        /// tech, contract and facility state; see
+        /// <see cref="Rp1ProgramsReflection"/>'s header for the audit of every
+        /// one of them.
+        /// </summary>
+        internal object? CaptureProgramsOnMain(KspSnapshot? snapshot) =>
+            _programs.IsAvailable ? _programs.Read(snapshot?.Ut ?? 0.0) : null;
+
+        /// <summary>COURIER-THREAD handle: map to wire dicts and publish. No game API.</summary>
+        internal void HandleProgramsOnCourier(object? captured)
+        {
+            var raw = captured as Rp1ProgramsRaw;
+            var rows = Rp1ProgramsCapture.BuildPrograms(raw);
+            Rp1RowBudget.Record(rows?.Count ?? 0, raw?.Ut ?? 0.0);
+            _programList?.Publish(rows, raw?.Ut ?? 0.0);
+            _programSlots?.Publish(Rp1ProgramsCapture.BuildSlots(raw), raw?.Ut ?? 0.0);
+        }
+
+        /// <summary>
         /// Health, and WHICH RP-1. The version caveat at the top of
         /// <see cref="Rp1ScReflection"/> is why these facts are load-bearing
         /// rather than decorative: RP-1 ships roughly monthly, this Uplink is
@@ -251,6 +309,7 @@ namespace GonogoRp1Uplink
                 new UplinkHealthFact("RP0 assembly", _rp1.AssemblyIdentity),
                 new UplinkHealthFact("SpaceCenterManagement", _rp1.IsAvailable ? "resolved" : "type not found"),
                 new UplinkHealthFact("Confidence", _rp1.ConfidenceTypeResolved ? "present" : "absent"),
+                new UplinkHealthFact("ProgramHandler", _programs.IsAvailable ? "resolved" : "type not found"),
                 new UplinkHealthFact("save mode", EnabledForSave ? "enabled" : "not enabled for this save"),
                 new UplinkHealthFact("read against", "RP-1 v4.6.0.0"),
                 new UplinkHealthFact(

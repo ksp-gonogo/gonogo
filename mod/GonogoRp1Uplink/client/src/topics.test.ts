@@ -25,6 +25,8 @@ import {
   RP1_OPERATIONS_TOPIC,
   RP1_PADS_TOPIC,
   RP1_PERSONNEL_TOPIC,
+  RP1_PROGRAM_SLOTS_TOPIC,
+  RP1_PROGRAMS_TOPIC,
   RP1_RESEARCH_TOPIC,
   RP1_WAREHOUSE_TOPIC,
 } from "./topics";
@@ -68,6 +70,8 @@ describe("the rp1.* Topic registrations", () => {
     expect(RP1_RESEARCH_TOPIC).toBe(csTopic("ResearchTopic"));
     expect(RP1_PERSONNEL_TOPIC).toBe(csTopic("PersonnelTopic"));
     expect(RP1_CONFIDENCE_TOPIC).toBe(csTopic("ConfidenceTopic"));
+    expect(RP1_PROGRAMS_TOPIC).toBe(csTopic("ProgramsTopic"));
+    expect(RP1_PROGRAM_SLOTS_TOPIC).toBe(csTopic("ProgramSlotsTopic"));
   });
 
   it("are known TopicIds once this client's topics module has loaded", () => {
@@ -82,6 +86,8 @@ describe("the rp1.* Topic registrations", () => {
       RP1_RESEARCH_TOPIC,
       RP1_PERSONNEL_TOPIC,
       RP1_CONFIDENCE_TOPIC,
+      RP1_PROGRAMS_TOPIC,
+      RP1_PROGRAM_SLOTS_TOPIC,
     ]) {
       expect(isTopicId(topic)).toBe(true);
       expect(getAllKnownTopicIds()).toContain(topic);
@@ -209,5 +215,188 @@ describe("decode-time unit hydration", () => {
     // A present zero on the same row still wraps, which is what makes the
     // absence above meaningful rather than incidental.
     expect(row?.progress).toMatchObject({ magnitude: 0, unit: "bp" });
+  });
+});
+
+describe("the programs channel", () => {
+  it("hydrates the money and the dates, and leaves state and speed bare", async () => {
+    const fixture = setupStreamFixture({
+      carriedChannels: [RP1_PROGRAMS_TOPIC],
+    });
+    const { result } = renderHook(
+      () => judgeable(useTelemetry(RP1_PROGRAMS_TOPIC)),
+      { wrapper: fixture.Provider },
+    );
+
+    fixture.emit(RP1_PROGRAMS_TOPIC, [
+      {
+        name: "EarlyXPlanes",
+        title: "X-Plane Research",
+        state: "active",
+        speed: "Normal",
+        slots: 2,
+        isHumanSpaceflight: true,
+        nominalDurationSeconds: 283_1184_00,
+        acceptedUt: 1000,
+        deadlineUt: 284_1184_00,
+        objectivesCompletedUt: null,
+        completedUt: null,
+        lastPaymentUt: 5000,
+        fracElapsed: 0.25,
+        totalFunding: 800_000,
+        fundsPaidOut: 120_000,
+        fundsRemaining: 680_000,
+        fundingCurve: "BimodalBackloaded",
+        confidenceCost: 350,
+        repDeltaOnCompletePerYearEarly: 130,
+        repPenaltyPerYearLate: 130,
+        repPenaltyAssessed: 0,
+        requirementsMet: true,
+        objectivesMet: false,
+        canAccept: false,
+        canComplete: false,
+        requirementsText: null,
+        objectivesText: "Complete X-Planes contracts.",
+      },
+    ]);
+
+    await waitFor(() => {
+      expect(result.current?.[0]?.name).toBe("EarlyXPlanes");
+    });
+
+    const row = result.current?.[0];
+    expect(row?.totalFunding).toMatchObject({
+      magnitude: 800_000,
+      unit: "funds",
+    });
+    expect(row?.confidenceCost).toMatchObject({
+      magnitude: 350,
+      unit: "confidence",
+    });
+    expect(row?.repPenaltyPerYearLate).toMatchObject({
+      magnitude: 130,
+      unit: "rep",
+    });
+    expect(row?.deadlineUt).toMatchObject({
+      magnitude: 284_1184_00,
+      unit: "ut",
+    });
+    expect(row?.fracElapsed).toMatchObject({ magnitude: 0.25, unit: "ratio" });
+    // An interval, so seconds, against the instants above: a Program's duration
+    // is not a date and must not decode as one.
+    expect(row?.nominalDurationSeconds).toMatchObject({
+      magnitude: 283_1184_00,
+      unit: "s",
+    });
+    // Enumerations and text are non-quantity tokens: bare, never wrapped.
+    expect(row?.state).toBe("active");
+    expect(row?.speed).toBe("Normal");
+    expect(row?.fundingCurve).toBe("BimodalBackloaded");
+    // A Program inside its deadline has genuinely lost nothing, and that zero
+    // is a reading rather than an absence.
+    expect(row?.repPenaltyAssessed).toMatchObject({
+      magnitude: 0,
+      unit: "rep",
+    });
+    // An offer that has never paid is absent here rather than zero.
+    expect(row?.objectivesCompletedUt ?? null).toBeNull();
+  });
+
+  it("carries the offer's absences through as absences", async () => {
+    const fixture = setupStreamFixture({
+      carriedChannels: [RP1_PROGRAMS_TOPIC],
+    });
+    const { result } = renderHook(
+      () => judgeable(useTelemetry(RP1_PROGRAMS_TOPIC)),
+      { wrapper: fixture.Provider },
+    );
+
+    fixture.emit(RP1_PROGRAMS_TOPIC, [
+      {
+        name: "CrewedOrbit",
+        title: "Crewed Orbit",
+        state: "locked",
+        speed: "Normal",
+        slots: 3,
+        isHumanSpaceflight: true,
+        nominalDurationSeconds: 189_3456_00,
+        acceptedUt: null,
+        deadlineUt: null,
+        objectivesCompletedUt: null,
+        completedUt: null,
+        lastPaymentUt: null,
+        fracElapsed: null,
+        totalFunding: 2_000_000,
+        fundsPaidOut: null,
+        fundsRemaining: null,
+        fundingCurve: "Flat",
+        confidenceCost: 600,
+        repDeltaOnCompletePerYearEarly: 200,
+        repPenaltyPerYearLate: 200,
+        repPenaltyAssessed: null,
+        requirementsMet: false,
+        objectivesMet: false,
+        canAccept: false,
+        canComplete: false,
+        requirementsText: "Complete the Early Satellites program.",
+        objectivesText: "Put a crew in orbit and recover them.",
+      },
+    ]);
+
+    await waitFor(() => {
+      expect(result.current?.[0]?.name).toBe("CrewedOrbit");
+    });
+
+    const row = result.current?.[0];
+    // Money that MIGHT be earned is not money outstanding: an offer's total is
+    // present and its paid-out and remaining are not, which is the distinction
+    // a "0 of 2,000,000 paid" readout would erase.
+    expect(row?.totalFunding).toMatchObject({
+      magnitude: 2_000_000,
+      unit: "funds",
+    });
+    expect(row?.fundsPaidOut ?? null).toBeNull();
+    expect(row?.fundsRemaining ?? null).toBeNull();
+    expect(row?.acceptedUt ?? null).toBeNull();
+    expect(row?.deadlineUt ?? null).toBeNull();
+    expect(row?.fracElapsed ?? null).toBeNull();
+    expect(row?.repPenaltyAssessed ?? null).toBeNull();
+  });
+
+  it("hydrates the slot ceiling and keeps a real zero of free slots", async () => {
+    const fixture = setupStreamFixture({
+      carriedChannels: [RP1_PROGRAM_SLOTS_TOPIC],
+    });
+    const { result } = renderHook(
+      () => judgeable(useTelemetry(RP1_PROGRAM_SLOTS_TOPIC)),
+      { wrapper: fixture.Provider },
+    );
+
+    fixture.emit(RP1_PROGRAM_SLOTS_TOPIC, {
+      maxSlots: 3,
+      usedSlots: 3,
+      freeSlots: 0,
+      activeCount: 2,
+      completedCount: 4,
+    });
+
+    await waitFor(() => {
+      expect(result.current?.maxSlots).toBeDefined();
+    });
+
+    expect(result.current?.maxSlots).toMatchObject({
+      magnitude: 3,
+      unit: "count",
+    });
+    // Full is a reading, and it is the one that decides whether an operator can
+    // start anything. It has to survive the decode as a zero.
+    expect(result.current?.freeSlots).toMatchObject({
+      magnitude: 0,
+      unit: "count",
+    });
+    expect(result.current?.completedCount).toMatchObject({
+      magnitude: 4,
+      unit: "count",
+    });
   });
 });
