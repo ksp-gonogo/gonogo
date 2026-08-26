@@ -144,8 +144,18 @@ const Unit__Span = styled.span<{ $attached: boolean; $icon: boolean }>`
   /* A unit is not a word: it must survive a parent that uppercases its text,
      because m and M are metre and mega. This already bit the Graph header. */
   text-transform: none;
-  /* Keeps a glyph on the number's baseline rather than on the line box's. */
-  ${({ $icon }) => ($icon ? "display: inline-flex; align-items: center;" : "")}
+  /* A glyph is centred on the DIGITS beside it, not sat on their baseline.
+     An inline-flex box holding a replaced element has no baseline of its own,
+     so the box's bottom edge becomes one and the icon sits from the baseline
+     upwards: its own centre lands half a glyph-box above, where the digits'
+     centre is only half a cap-height above, and the star read as floating.
+     Measured on the Strategies rep chip at 12px: cap height 17 device px,
+     glyph box 21.6, the star's centre 3 px high. That is the offset below, in
+     em so it holds at every readout size. */
+  ${({ $icon }) =>
+    $icon
+      ? "display: inline-flex; align-items: center; vertical-align: -0.12em;"
+      : ""}
 `;
 
 /* Wraps a number and its unit so neither the thin space between them nor a
