@@ -31,9 +31,13 @@ namespace Gonogo.MechJebUplink
     /// <summary>
     /// Probes a MechJeb2 assembly for the public members the engage surface
     /// binds, locked against the installed 2.15.3.0 dll (see
-    /// <c>local_docs/design/mechjeb-decompile-lock.md</c>): the entry path
-    /// (<c>VesselExtensions.GetMasterMechJeb</c>, <c>MechJebCore.GetComputerModule</c>,
-    /// <c>MechJebCore.Target</c>), the ascent engage handshake
+    /// <c>local_docs/design/mechjeb-provider-and-vendoring.md</c> and
+    /// <c>local_docs/design/mechjeb-decompile-lock.md</c>): the entry point
+    /// (<c>VesselExtensions.GetMasterMechJeb</c>), the module members the
+    /// controller reads off the core (<c>Ascent</c>, <c>AscentSettings</c>,
+    /// <c>Node</c>, <c>Landing</c>, <c>Target</c>) with
+    /// <c>MechJebModuleAscentSettings.AscentAutopilot</c> behind <c>Ascent</c>,
+    /// the ascent engage handshake
     /// (<c>MechJebModuleAscentSettings.DesiredOrbitAltitude</c>,
     /// <c>EditableDoubleMult.Val</c>, <c>ComputerModule.Users</c>, <c>UserPool.Add</c>),
     /// the node executor (<c>MechJebModuleNodeExecutor.ExecuteOneNode</c>), and
@@ -114,8 +118,18 @@ namespace Gonogo.MechJebUplink
 
             var missing = new List<string>();
             RequireMethod(vesselExtensions!, "GetMasterMechJeb", missing);
-            RequireMethod(mechJebCore!, "GetComputerModule", missing);
+            // The five cached module members MechJebController reads, plus the
+            // ascent-path indirection behind Ascent. Probing the module registry
+            // instead would assert a route the controller does not take, so a
+            // release that moved any of these would pass the guard and then null
+            // out at engage time; see MechJebController's own doc comment for
+            // why Ascent in particular is the member most likely to move.
+            RequireMember(mechJebCore!, "Ascent", missing);
+            RequireMember(mechJebCore!, "AscentSettings", missing);
+            RequireMember(mechJebCore!, "Node", missing);
+            RequireMember(mechJebCore!, "Landing", missing);
             RequireMember(mechJebCore!, "Target", missing);
+            RequireMember(ascentSettings!, "AscentAutopilot", missing);
             RequireMember(ascentSettings!, "DesiredOrbitAltitude", missing);
             RequireMember(editableDoubleMult!, "Val", missing);
             RequireMember(computerModule!, "Users", missing);
