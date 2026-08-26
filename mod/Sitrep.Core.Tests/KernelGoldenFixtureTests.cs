@@ -62,6 +62,22 @@ namespace Sitrep.Core.Tests
             return scenarios;
         }
 
+        /// <summary>
+        /// The fixture still carries its scenarios, so a green Theory means something.
+        /// A Theory over a SHRUNKEN <see cref="Scenarios"/> simply runs fewer cases and reports the
+        /// same success as one that checked the lot, so the count is what the parity claim rests on.
+        /// </summary>
+        [Fact]
+        public void TheFixtureCarriesItsScenarios()
+        {
+            var count = new List<object[]>(Scenarios()).Count;
+            Assert.True(
+                count >= 18,
+                $"kernel.json yielded {count} scenario(s), expected at least 18. "
+                + "xUnit flags a fixture emptied ENTIRELY; a fixture that merely loses a family of "
+                + "vectors just runs fewer cases and still reports success.");
+        }
+
         [Theory]
         [MemberData(nameof(Scenarios))]
         public void MatchesTsReference(JsonElement scenario)
