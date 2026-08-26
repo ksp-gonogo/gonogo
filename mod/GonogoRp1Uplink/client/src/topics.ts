@@ -37,6 +37,12 @@ import {
   GENERATED_TYPE_SHAPES,
   GENERATED_TYPE_UNITS,
 } from "./__generated__/units";
+// Side-effect import, and load-bearing rather than tidiness: the unit maps
+// below name `bp` and `confidence`, and `wrapTopicPayload` skips a field whose
+// token has no model entry. Without this a widget imported on its own decodes
+// those fields as bare numbers and renders them as absent, which is how a live
+// Confidence price reached a test as a dash.
+import "./units";
 
 /** RP-1 is installed AND managing this save. Its value must match `Rp1ScUplink.AvailableTopic`. */
 export const RP1_AVAILABLE_TOPIC = "rp1.available";

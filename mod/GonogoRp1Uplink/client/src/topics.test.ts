@@ -265,7 +265,10 @@ describe("the programs channel", () => {
     });
 
     const row = result.current?.[0];
-    expect(row?.totalFunding).toMatchObject({ magnitude: 800_000, unit: "funds" });
+    expect(row?.totalFunding).toMatchObject({
+      magnitude: 800_000,
+      unit: "funds",
+    });
     expect(row?.confidenceCost).toMatchObject({
       magnitude: 350,
       unit: "confidence",
@@ -274,7 +277,10 @@ describe("the programs channel", () => {
       magnitude: 130,
       unit: "rep",
     });
-    expect(row?.deadlineUt).toMatchObject({ magnitude: 284_1184_00, unit: "ut" });
+    expect(row?.deadlineUt).toMatchObject({
+      magnitude: 284_1184_00,
+      unit: "ut",
+    });
     expect(row?.fracElapsed).toMatchObject({ magnitude: 0.25, unit: "ratio" });
     // An interval, so seconds, against the instants above: a Program's duration
     // is not a date and must not decode as one.
@@ -288,7 +294,10 @@ describe("the programs channel", () => {
     expect(row?.fundingCurve).toBe("BimodalBackloaded");
     // A Program inside its deadline has genuinely lost nothing, and that zero
     // is a reading rather than an absence.
-    expect(row?.repPenaltyAssessed).toMatchObject({ magnitude: 0, unit: "rep" });
+    expect(row?.repPenaltyAssessed).toMatchObject({
+      magnitude: 0,
+      unit: "rep",
+    });
     // An offer that has never paid is absent here rather than zero.
     expect(row?.objectivesCompletedUt ?? null).toBeNull();
   });
@@ -375,7 +384,10 @@ describe("the programs channel", () => {
       expect(result.current?.maxSlots).toBeDefined();
     });
 
-    expect(result.current?.maxSlots).toMatchObject({ magnitude: 3, unit: "count" });
+    expect(result.current?.maxSlots).toMatchObject({
+      magnitude: 3,
+      unit: "count",
+    });
     // Full is a reading, and it is the one that decides whether an operator can
     // start anything. It has to survive the decode as a zero.
     expect(result.current?.freeSlots).toMatchObject({
