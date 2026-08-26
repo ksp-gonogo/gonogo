@@ -24,7 +24,8 @@
     "release:minor": "node scripts/release.mjs minor",
     "release:major": "node scripts/release.mjs major",
     "uplink-matrix": "node scripts/uplink-matrix.mjs",
-    "uplink-extraction-probe": "node scripts/uplink-extraction-probe.mjs"
+    "uplink-extraction-probe": "node scripts/uplink-extraction-probe.mjs",
+    "uplink-csharp-extraction-probe": "node scripts/uplink-csharp-extraction-probe.mjs"
   },
   "devDependencies": {
     "@biomejs/biome": "2.4.12",

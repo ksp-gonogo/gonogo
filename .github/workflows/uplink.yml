@@ -6,9 +6,12 @@ name: Uplinks
 #
 #   1. can each Uplink still BUILD AND TEST on its own, rather than as one cell
 #      of a turbo run where a failure names the whole graph
-#   2. can each Uplink LEAVE: does it compile against the PUBLISHED
-#      `@ksp-gonogo/sitrep-sdk` and `@ksp-gonogo/ui-kit` rather than the
-#      workspace copies pnpm links in
+#   2. can each Uplink LEAVE. On the client side: does it compile against the
+#      PUBLISHED `@ksp-gonogo/sitrep-sdk` and `@ksp-gonogo/ui-kit` rather than
+#      the workspace copies pnpm links in. On the C# side: does its plugin
+#      assembly compile OUTSIDE `mod/`, against the one `Sitrep.Contract.dll`
+#      GonogoCore installs, rather than against contract source with
+#      `Directory.Build.props` overhead
 #
 # The second is the reason this file exists. The isolation ratchets
 # (`packages/core/src/uplink-isolation.test.ts`, `UplinkIsolationTests.cs`) check
@@ -33,8 +36,10 @@ name: Uplinks
 #   - the isolation ratchets and every other check that reads a debt list at a
 #     base git ref. That is the rule: if it reads a debt list at a base ref, it
 #     stays repo-wide
-#   - the Uplink plugin assemblies, compiled by `scripts/uplink-mod-build.sh` as
-#     a step of ci.yml's `mod` job. One dotnet setup for all eleven beats twelve
+#   - COMPILING the Uplink plugin assemblies, which `scripts/uplink-mod-build.sh`
+#     still does once for all eleven as a step of ci.yml's `mod` job. The C#
+#     extraction probe below is a different question, not that one moved: it asks
+#     whether each assembly compiles ALONE, which only has an answer per Uplink
 
 on:
   push:
@@ -157,6 +162,59 @@ jobs:
       - name: Can this Uplink leave
         if: matrix.uplink.client
         run: node scripts/uplink-extraction-probe.mjs --only '${{ matrix.uplink.id }}'
+
+      # The C# half of the same question. The reference gate
+      # (`UplinkIsolationTests.cs`) reads what a csproj NAMES and the closure of
+      # what it names, so it cannot see what arrives unnamed: `Directory.Build.props`
+      # supplying `KspManaged` to everything under `mod/`, the difference between
+      # compiling against contract SOURCE and the one shipped assembly an author
+      # installs, or a `<Compile Include>` reaching sideways into a private project.
+      #
+      # That last one is not hypothetical. Planted on 2026-08-26, a
+      # `<Compile Include="..\Sitrep.Host\ControlFrameElection.cs" />` in an Uplink
+      # left the reference gate at 4 of 4 passing and failed the probe below.
+      #
+      # This is the per-leg cost of treating an Uplink as its own repository: a
+      # dotnet setup and a reference-set checkout on each C# leg rather than one
+      # for all eleven. The plugin assemblies are still compiled once, together,
+      # by `scripts/uplink-mod-build.sh` in ci.yml's `mod` job; this asks the
+      # different question of whether each one still compiles ALONE.
+      - uses: actions/setup-dotnet@v5
+        if: matrix.uplink.csproj
+        with:
+          dotnet-version: '10.0.x'
+
+      - name: Checkout KSP reference assemblies
+        id: kspmanaged
+        if: matrix.uplink.csproj
+        continue-on-error: true
+        uses: actions/checkout@v5
+        with:
+          repository: ksp-gonogo/ksp-managed
+          token: ${{ secrets.KSP_MANAGED_TOKEN }}
+          path: ksp-managed
+
+      # A leg that cannot compile anything must not report that it compiled.
+      # The probe itself refuses without a reference set; this says so where the
+      # reason is legible, and keeps the fork soft-degrade ci.yml already grants,
+      # since a fork PR never had `KSP_MANAGED_TOKEN` to begin with.
+      - name: Can this Uplink's plugin assembly leave
+        if: matrix.uplink.csproj
+        env:
+          KSP_GAMEDATA: ${{ github.workspace }}/ksp-managed/GameData
+          KSP_MANAGED: ${{ github.workspace }}/ksp-managed/KSP_Data/Managed
+        run: |
+          set -euo pipefail
+          if [ ! -f "$KSP_MANAGED/Assembly-CSharp.dll" ]; then
+            if [ '${{ github.event_name }}' = 'pull_request' ] \
+               && [ '${{ github.event.pull_request.head.repo.full_name }}' != '${{ github.repository }}' ]; then
+              echo "::warning::KSP reference assemblies absent on a fork PR: the C# extraction probe for ${{ matrix.uplink.id }} did NOT run."
+              exit 0
+            fi
+            echo "::error::KSP reference assemblies absent, so the C# extraction probe for ${{ matrix.uplink.id }} cannot compile anything. Check the ksp-gonogo/ksp-managed checkout and the KSP_MANAGED_TOKEN secret."
+            exit 1
+          fi
+          node scripts/uplink-csharp-extraction-probe.mjs --only '${{ matrix.uplink.id }}'
 
   # Branch protection cannot require a matrix leg: the legs vary in number and
   # name with the tree, which is the point of discovering them. It also cannot

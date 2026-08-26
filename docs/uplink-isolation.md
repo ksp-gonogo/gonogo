@@ -15,7 +15,10 @@ An Uplink client (`mod/Gonogo*Uplink/client/src/**`) may import:
   - `@ksp-gonogo/sitrep-sdk/testing`, the host, the spine and the stream fixture
 - **`@ksp-gonogo/ui-kit`**, the published design system, and its subpaths:
   - `@ksp-gonogo/ui-kit/testing`, the widget provider stack and the readout helpers
+  - `@ksp-gonogo/ui-kit/guards`, the render-time invariants a widget asserts against
   - `@ksp-gonogo/ui-kit/render-probe` and `/render`, the render harness
+  - `@ksp-gonogo/ui-kit/page-check`, the assertions the render harness reads back
+  - `@ksp-gonogo/ui-kit/tokens.css`, the design-system custom properties
 - `react`, `styled-components`, and third-party packages
 
 Nothing else from this repo. `core`, `ui`, `components`, `data`, `logger`,
@@ -29,6 +32,16 @@ NOT author surfaces. `/spine` is where the client half is implemented (the read
 semantics of a topic, the timeline store, every hook the root barrel shims) and
 `/registry` is dashboard orchestration; publishing either would freeze evolving
 internals as third-party API, and both barrels say so in their own headers.
+
+Until 2026-08-26 that list said so only here. Every gate in the tree permitted
+`@ksp-gonogo/sitrep-sdk/spine` in a widget: the import ratchet is a denylist of
+package NAMES and the sdk is permitted at any depth, and the extraction probe
+found a tarball that genuinely contains `/spine`, so it resolved and typechecked
+standing alone. Planted in a production Uplink file, the isolation suite reported
+12 of 12 passing and the probe reported zero errors. `AUTHOR_SUBPATHS` and
+`NON_AUTHOR_SUBPATHS` in `uplink-isolation.allowlist.ts` now classify every
+published subpath, and an unclassified one fails rather than defaulting to
+permitted.
 
 `/spine` does resolve at runtime, deliberately, because first-party code needs it
 to. Read nothing into that: an import-map entry is not permission (below), and
@@ -237,6 +250,21 @@ the next breach fails on its own rather than waiting to be noticed.
 It lives in `core` because core is what Uplinks must not depend on, so core owns
 the rule; when the Uplinks move to their own repos the guard stops having
 subjects rather than needing to move with them.
+
+Both reference gates read what an Uplink NAMES, so neither can see what arrives
+unnamed. `scripts/uplink-extraction-probe.mjs` and
+`scripts/uplink-csharp-extraction-probe.mjs` ask the other question, one leg per
+Uplink in `.github/workflows/uplink.yml`: does this Uplink still build with the
+rest of the repository out of reach. The client half installs from tarballs packed
+as a release would publish them, outside the pnpm workspace. The C# half copies
+the Uplink and its own contract slice out of `mod/`, brings no
+`Directory.Build.props`, and repoints the contract reference at the
+`Sitrep.Contract.dll` GonogoCore installs.
+
+What that catches and the reference gates cannot: a `<Compile Include>` reaching
+sideways into a private project names no reference at all. Planted on 2026-08-26,
+one pointing at `Sitrep.Host` left `UplinkIsolationTests` at 4 of 4 passing and
+failed the probe.
 
 Its sibling `uplink-boundary.test.ts` guards the opposite direction: the app must
 not name a mod. Neither implies the other. The inward direction went unguarded
