@@ -225,6 +225,13 @@ export const UNIT_DEFINITIONS = {
   // reading as a torque.
   // `alias` because J was registered first and is what a computed
   // {kg:1,m:2,s:-2} renders as; see the flag's own doc on UnitDefinition.
+  /*
+   * U+00B7 is an identifier character only from ES2015 on, so how this name is
+   * spelled in the emitted declarations decides whether a consumer on a lower
+   * target can parse them. Quoting it here does not carry: this table's type is
+   * synthesised, so tsc regenerates the name, and the formatter unquotes it
+   * again. `scripts/quote-downlevel-declaration-names.mjs` is what settles it.
+   */
   N·m: {
     dim: { kg: 1, m: 2, s: -2 },
     ratio: 1,
