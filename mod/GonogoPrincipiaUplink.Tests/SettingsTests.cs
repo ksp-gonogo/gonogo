@@ -127,6 +127,37 @@ namespace GonogoPrincipiaUplink.Tests
             Assert.Equal("Munar Relay", observation.TargetVesselName);
         }
 
+        /// <summary>
+        /// The producer names and describes the target frame with the body the
+        /// TARGET orbits, not with the celestial its own selector is sitting on.
+        /// Those differ here on purpose: the selector holds Kerbin and the target
+        /// orbits the Mun, so a reader that took the selected celestial would name
+        /// a frame the player is not in and nothing would say so.
+        /// </summary>
+        [Fact]
+        public void CarriesTheBodyTheTargetOrbitsRatherThanTheSelectedCelestial()
+        {
+            var frame = Read(new FakeSettingsSource()).PlottingFrame!;
+
+            Assert.Equal("Mun", frame.TargetPrimaryBody);
+            Assert.Equal("Kerbin", frame.SecondaryBody);
+        }
+
+        /// <summary>A vessel with no orbit costs the primary and nothing else: a
+        /// name invented for it would be a claim about which plane every number on
+        /// the board is measured in.</summary>
+        [Fact]
+        public void LeavesTheTargetsPrimaryUnreadWhenThereIsNoOrbit()
+        {
+            var source = new FakeSettingsSource();
+            source.Selector.SetTarget(new FakeVessel());
+
+            var frame = Read(source).PlottingFrame!;
+
+            Assert.Null(frame.TargetPrimaryBody);
+            Assert.Equal("Munar Relay", frame.TargetVesselName);
+        }
+
         [Fact]
         public void CarriesThePinnedExemptionsAndNotTheUnpinnedOnes()
         {
@@ -670,6 +701,17 @@ namespace GonogoPrincipiaUplink.Tests
 #pragma warning restore IDE1006
     }
 
+    /// <summary>A vessel's orbit, carrying only the one member the target frame's
+    /// name is declined with.</summary>
+    public class FakeVesselOrbit
+    {
+        public FakeVesselOrbit(FakeCelestial primary) => referenceBody = primary;
+
+#pragma warning disable IDE1006
+        public FakeCelestial referenceBody;
+#pragma warning restore IDE1006
+    }
+
     /// <summary>The plotting frame's descriptor: arrays, and empty for "no
     /// body".</summary>
     public class FakeFrameParameters
@@ -753,12 +795,17 @@ namespace GonogoPrincipiaUplink.Tests
 
         public void SetSelectedCelestial(FakeCelestial body) => selected_celestial = body;
 
+        public void SetTarget(object vessel) => target = vessel;
+
 #pragma warning disable CS0414, IDE0044, IDE1006
         private FakeFrameType frame_type = FakeFrameType.RotatingPulsating;
         private object selected_celestial =
             new FakeCelestial("Kerbin", 1, new FakeCelestial("Kerbol", 0, null));
         private bool target_frame_selected = false;
-        private object target = new FakeVessel();
+        private object target = new FakeVessel
+        {
+            orbit = new FakeVesselOrbit(new FakeCelestial("Mun", 2, null)),
+        };
         private bool target_pinned_ = true;
 
         public readonly Dictionary<FakeCelestial, bool> pinned = new Dictionary<FakeCelestial, bool>

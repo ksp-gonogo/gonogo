@@ -18,6 +18,14 @@ import {
 /*
  * Principia's session configuration, as settings rows.
  *
+ * <b>Whose numbers these are.</b> Every one of them is the in-game plugin's,
+ * read off the plugin itself. None of them describes how this console renders
+ * anything, and none can be changed from here. That matters most for the four
+ * rows naming an integration tolerance or a step limit, because our own n-body
+ * propagator has a step budget of the same name: those four say "in-game" in the
+ * LABEL rather than only in a comment, since a step limit read in isolation is
+ * otherwise indistinguishable from a drawing budget an operator could raise.
+ *
  * Every row here is `stream-backed` and therefore read-only: the values arrive
  * on `principia.settings`, a `DelayRole.TrueNow` Topic, and the console has no
  * writer for any of them. That is not a limitation being worked around, it is
@@ -30,13 +38,16 @@ import {
  * producer's own plugin rather than off its sliders, so they are what that
  * vessel's prediction ACTUALLY used, not what a control was last set to.
  *
- * Rows this payload carries and this file deliberately does NOT register:
- * target vessel and target celestial belong on `target-picker`, the per-frame
- * declutter flags and the pin exemption list belong on `map-view.sections`, the
- * navball guidance toggle belongs on `navball`, and the four per-plan settings
- * travel with the plan into `maneuver-planner`. A setting is a qualifier on
- * some other readout, so it goes where that readout is; what is left here is
- * what qualifies the session rather than one widget.
+ * Every field the payload carries has a row here. The settings surface is the
+ * FLOOR: a setting that exists is reachable from it, and a row is never left
+ * out on the grounds that some widget is a better home for it. Whether a
+ * setting also earns a place beside the readout it qualifies is a separate
+ * question, decided per row and answered in a widget, and answering it "yes"
+ * takes nothing away from here.
+ *
+ * The exceptions are the two vessel GUIDs, which are keys rather than settings
+ * and whose names are carried by rows of their own. `settings-coverage.test.ts`
+ * holds that list and fails on any other field with no row.
  *
  * Side-effect module: importing it runs every registration once, the same
  * lifecycle as this package's other module-load registrations.
@@ -46,10 +57,13 @@ const CATEGORY = "Principia";
 
 const GROUP = {
   frame: "Plotting frame",
+  target: "Target",
   ksp: "KSP features",
   prediction: "Prediction",
+  plan: "Flight plan",
   analysis: "Analysis",
   drawing: "Drawing",
+  navball: "In-game navball",
   diagnostics: "Diagnostics",
 } as const;
 
@@ -79,6 +93,50 @@ function frame(payload: unknown): PrincipiaReferenceFrame | undefined {
 function bodyList(names: string[] | undefined): string | undefined {
   if (names === undefined || names.length === 0) return undefined;
   return names.join(", ");
+}
+
+/**
+ * Each burn's frame as one line, in plan order, or `undefined` for a plan with
+ * no burns.
+ *
+ * The frames are NAMED rather than counted because the fact an operator needs is
+ * which frame a given burn's delta-v is quoted in, and a count of three says
+ * nothing about that. An absent list and an empty one both read as absence, the
+ * same rule {@link bodyList} follows.
+ */
+function burnFrameLabels(
+  frames: PrincipiaReferenceFrame[] | undefined,
+): string | undefined {
+  if (frames === undefined || frames.length === 0) return undefined;
+  return frames
+    .map((f) =>
+      plottingFrameLabel(f.type, {
+        centre: f.centreBody,
+        primary: f.primaryBody,
+        secondary: f.secondaryBody,
+      }),
+    )
+    .join(", ");
+}
+
+/**
+ * Whether two frames are the same frame.
+ *
+ * By kind and by the bodies it is declined with, which is the same identity the
+ * mod's own frame key uses. Comparing the rendered labels instead would call two
+ * frames equal whenever a body name was missing from both, and a missing body is
+ * exactly the state a warning has to survive.
+ */
+function sameFrame(
+  a: PrincipiaReferenceFrame,
+  b: PrincipiaReferenceFrame,
+): boolean {
+  return (
+    a.type === b.type &&
+    a.centreBody === b.centreBody &&
+    a.primaryBody === b.primaryBody &&
+    a.secondaryBody === b.secondaryBody
+  );
 }
 
 /**
@@ -202,13 +260,15 @@ export const PRINCIPIA_SETTINGS: readonly SettingDefinition[] = [
         centre: f.centreBody,
         primary: f.primaryBody,
         secondary: f.secondaryBody,
+        targetPrimary: f.targetPrimaryBody,
+        targetSelected: f.targetFrameSelected,
       });
     },
     category: CATEGORY,
     group: GROUP.frame,
     label: "Frame",
     description:
-      "The frame every trajectory, node and apsis on this board is expressed in. The same vessel reads as a different orbit in a different frame.",
+      "The frame every trajectory, node and apsis on this board is expressed in, under the name the game gives it. The same vessel reads as a different orbit in a different frame.",
     screens: ["main"],
   }),
 
@@ -219,7 +279,9 @@ export const PRINCIPIA_SETTINGS: readonly SettingDefinition[] = [
     topic: "principia.settings",
     select: (p) => {
       const f = frame(p);
-      return f === undefined ? undefined : plottingFrameKindLabel(f.type);
+      return f === undefined
+        ? undefined
+        : plottingFrameKindLabel(f.type, f.targetFrameSelected);
     },
     category: CATEGORY,
     group: GROUP.frame,
@@ -334,6 +396,20 @@ export const PRINCIPIA_SETTINGS: readonly SettingDefinition[] = [
   }),
 
   row({
+    id: "principia.settings.frameTargetPrimary",
+    backing: "stream-backed",
+    type: "text",
+    topic: "principia.settings",
+    select: (p) => frame(p)?.targetPrimaryBody,
+    category: CATEGORY,
+    group: GROUP.frame,
+    label: "Frame target primary",
+    description:
+      "The body that vessel orbits. It is what the target frame's plane is taken from, and what the game declines the frame's name with, so it is a different body from the centre above.",
+    screens: ["main"],
+  }),
+
+  row({
     id: "principia.settings.frameHasApsides",
     backing: "stream-backed",
     type: "boolean",
@@ -366,6 +442,63 @@ export const PRINCIPIA_SETTINGS: readonly SettingDefinition[] = [
     label: "Lengths pulsate in this frame",
     description:
       "On means the frame's length unit varies with time, so an absolute distance quoted in it is not a distance.",
+    screens: ["main"],
+  }),
+
+  // ---- Target ----
+
+  row({
+    id: "principia.settings.targetVessel",
+    backing: "stream-backed",
+    type: "text",
+    topic: "principia.settings",
+    select: (p) => settings(p)?.targetVesselName,
+    category: CATEGORY,
+    group: GROUP.target,
+    label: "Target vessel",
+    description:
+      "Not informational. It gates the target frame and every closest-approach number, and clearing it force-unsets that frame, which silently changes the plotted curve.",
+    screens: ["main"],
+  }),
+
+  row({
+    id: "principia.settings.targetCelestial",
+    backing: "stream-backed",
+    type: "text",
+    topic: "principia.settings",
+    select: (p) => settings(p)?.targetCelestialBody,
+    category: CATEGORY,
+    group: GROUP.target,
+    label: "Target celestial",
+    description: "Set instead of a target vessel when the target is a body.",
+    screens: ["main"],
+  }),
+
+  row({
+    id: "principia.settings.selectingTargetVessel",
+    backing: "stream-backed",
+    type: "boolean",
+    topic: "principia.settings",
+    select: (p) => settings(p)?.selectingTargetVessel,
+    category: CATEGORY,
+    group: GROUP.target,
+    label: "Picking a target vessel in game",
+    description:
+      "On means the player's map is waiting for a click. The next target change comes from the map rather than from anything on this board.",
+    screens: ["main"],
+  }),
+
+  row({
+    id: "principia.settings.selectingTargetCelestial",
+    backing: "stream-backed",
+    type: "boolean",
+    topic: "principia.settings",
+    select: (p) => settings(p)?.selectingTargetCelestial,
+    category: CATEGORY,
+    group: GROUP.target,
+    label: "Picking a target celestial in game",
+    description:
+      "Arming either picker disarms the other, so both on is a state the game cannot be in.",
     screens: ["main"],
   }),
 
@@ -409,9 +542,9 @@ export const PRINCIPIA_SETTINGS: readonly SettingDefinition[] = [
     select: (p) => settings(p)?.predictionToleranceMetres,
     category: CATEGORY,
     group: GROUP.prediction,
-    label: "Prediction tolerance",
+    label: "In-game prediction tolerance",
     description:
-      "Read from that vessel's own integrator parameters, so it is what the prediction actually held to rather than what the slider says.",
+      "Principia's own position tolerance for that vessel's prediction, read off the plugin's per-vessel integrator parameters rather than off its slider, so it is what the prediction actually held to. It bounds the curve the PLAYER sees; nothing this console draws is bounded by it.",
     screens: ["main"],
   }),
 
@@ -423,9 +556,172 @@ export const PRINCIPIA_SETTINGS: readonly SettingDefinition[] = [
     select: (p) => settings(p)?.predictionMaxSteps,
     category: CATEGORY,
     group: GROUP.prediction,
-    label: "Prediction step limit",
+    label: "In-game prediction step limit",
     description:
-      "A prediction that stopped short looks exactly like a trajectory that ended, and this is the only number separating them.",
+      "Principia's own step limit for that vessel's prediction, read off the plugin. A prediction that stopped short looks exactly like a trajectory that ended, and this is the only number separating them. It is the game's limit, not a drawing budget of ours, and it can only be changed in game.",
+    screens: ["main"],
+  }),
+
+  // ---- Flight plan ----
+
+  row({
+    id: "principia.settings.flightPlanCount",
+    backing: "stream-backed",
+    type: "number",
+    topic: "principia.settings",
+    select: (p) => settings(p)?.flightPlanCount,
+    category: CATEGORY,
+    group: GROUP.plan,
+    label: "Flight plans held",
+    description:
+      "How many the vessel is carrying, up to the plugin's ten. Every number in this group belongs to whichever of them is selected.",
+    screens: ["main"],
+  }),
+
+  row({
+    id: "principia.settings.selectedFlightPlan",
+    backing: "stream-backed",
+    type: "number",
+    topic: "principia.settings",
+    select: (p) => settings(p)?.selectedFlightPlan,
+    category: CATEGORY,
+    group: GROUP.plan,
+    label: "Selected flight plan",
+    description:
+      "Counted from zero, and minus one means none is selected. That is a state rather than a low index: with none selected the rows below describe nothing.",
+    screens: ["main"],
+  }),
+
+  row({
+    id: "principia.settings.planInitialTime",
+    backing: "stream-backed",
+    type: "number",
+    topic: "principia.settings",
+    select: (p) => settings(p)?.planInitialTimeUt,
+    category: CATEGORY,
+    group: GROUP.plan,
+    label: "Plan begins",
+    screens: ["main"],
+  }),
+
+  row({
+    id: "principia.settings.planDesiredFinalTime",
+    backing: "stream-backed",
+    type: "number",
+    topic: "principia.settings",
+    select: (p) => settings(p)?.planDesiredFinalTimeUt,
+    category: CATEGORY,
+    group: GROUP.plan,
+    label: "Plan asked to end",
+    description:
+      "Shortening it makes later burns vanish, and a burn that disappeared reads as a burn somebody deleted.",
+    screens: ["main"],
+  }),
+
+  row({
+    id: "principia.settings.planActualFinalTime",
+    backing: "stream-backed",
+    type: "number",
+    topic: "principia.settings",
+    select: (p) => settings(p)?.planActualFinalTimeUt,
+    category: CATEGORY,
+    group: GROUP.plan,
+    label: "Plan reached",
+    description:
+      "Short of the row above exactly when the plan is in trouble, and the step limit below is the usual remedy.",
+    screens: ["main"],
+  }),
+
+  row({
+    id: "principia.settings.planTolerance",
+    backing: "stream-backed",
+    type: "number",
+    topic: "principia.settings",
+    select: (p) => settings(p)?.planToleranceMetres,
+    category: CATEGORY,
+    group: GROUP.plan,
+    label: "In-game plan tolerance",
+    description:
+      "Principia's own integration tolerance for the flight plan, read off the plugin. A different setting from the prediction's despite sharing a label in game, and nothing this console draws is bounded by it.",
+    screens: ["main"],
+  }),
+
+  row({
+    id: "principia.settings.planMaxSteps",
+    backing: "stream-backed",
+    type: "number",
+    topic: "principia.settings",
+    select: (p) => settings(p)?.planMaxSteps,
+    category: CATEGORY,
+    group: GROUP.plan,
+    label: "In-game plan step limit",
+    description:
+      "Principia's own step limit per plan segment, read off the plugin. Raising it in game is the remedy for the commonest reason a plan could not be drawn; nothing on this board changes it or is bounded by it.",
+    screens: ["main"],
+  }),
+
+  row({
+    id: "principia.settings.optimiserAltitude",
+    backing: "stream-backed",
+    type: "number",
+    topic: "principia.settings",
+    select: (p) => settings(p)?.optimiserTargetAltitudeMetres,
+    category: CATEGORY,
+    group: GROUP.plan,
+    label: "Optimiser target altitude",
+    description:
+      "What the in-game plan optimiser is solving for. The body it is solving about is not a setting of its own: it comes from the plotting frame.",
+    screens: ["main"],
+  }),
+
+  row({
+    id: "principia.settings.optimiserInclination",
+    backing: "stream-backed",
+    type: "number",
+    topic: "principia.settings",
+    select: (p) => settings(p)?.optimiserTargetInclinationDegrees,
+    category: CATEGORY,
+    group: GROUP.plan,
+    label: "Optimiser target inclination",
+    description:
+      "Absent when inclination is not an objective at all, which is a different instruction from zero: shown as zero it would read as an equatorial target nobody asked for.",
+    screens: ["main"],
+  }),
+
+  row({
+    id: "principia.settings.burnFrames",
+    backing: "stream-backed",
+    type: "text",
+    topic: "principia.settings",
+    select: (p) => burnFrameLabels(settings(p)?.burnFrames),
+    category: CATEGORY,
+    group: GROUP.plan,
+    label: "Manœuvring frames",
+    description:
+      "Each burn's own frame, in plan order, so the delta-v triple beside it can be read.",
+    screens: ["main"],
+  }),
+
+  row({
+    id: "principia.settings.burnFrameDiffers",
+    backing: "stream-backed",
+    type: "boolean",
+    topic: "principia.settings",
+    select: (p) => {
+      const s = settings(p);
+      const frames = s?.burnFrames;
+      if (s === undefined || frames === undefined || frames.length === 0) {
+        return undefined;
+      }
+      const plotting = s.plottingFrame;
+      if (plotting === undefined) return undefined;
+      return frames.some((f) => !sameFrame(f, plotting));
+    },
+    category: CATEGORY,
+    group: GROUP.plan,
+    label: "A burn is planned in another frame",
+    description:
+      "The only in-game cue for this is suppressed while the burn editor is minimised, so on this board it is the operator's one reliable warning that a delta-v is quoted in a frame the map is not drawn in.",
     screens: ["main"],
   }),
 
@@ -556,6 +852,20 @@ export const PRINCIPIA_SETTINGS: readonly SettingDefinition[] = [
   }),
 
   row({
+    id: "principia.settings.markersHiddenHere",
+    backing: "stream-backed",
+    type: "boolean",
+    topic: "principia.settings",
+    select: (p) => settings(p)?.unpinnedMarkersHiddenHere,
+    category: CATEGORY,
+    group: GROUP.drawing,
+    label: "Markers hidden in this frame",
+    description:
+      "Apsis, node and approach markers, in the frame now selected. A marker missing in game reads as one that does not exist, which sends an operator after a physics problem that is a view setting.",
+    screens: ["main"],
+  }),
+
+  row({
     id: "principia.settings.framesHidingMarkers",
     backing: "stream-backed",
     type: "number",
@@ -570,6 +880,18 @@ export const PRINCIPIA_SETTINGS: readonly SettingDefinition[] = [
   }),
 
   row({
+    id: "principia.settings.celestialsHiddenHere",
+    backing: "stream-backed",
+    type: "boolean",
+    topic: "principia.settings",
+    select: (p) => settings(p)?.unpinnedCelestialsHiddenHere,
+    category: CATEGORY,
+    group: GROUP.drawing,
+    label: "Celestial trajectories hidden in this frame",
+    screens: ["main"],
+  }),
+
+  row({
     id: "principia.settings.framesHidingCelestials",
     backing: "stream-backed",
     type: "number",
@@ -578,6 +900,49 @@ export const PRINCIPIA_SETTINGS: readonly SettingDefinition[] = [
     category: CATEGORY,
     group: GROUP.drawing,
     label: "Frames hiding unpinned celestials",
+    screens: ["main"],
+  }),
+
+  row({
+    id: "principia.settings.pinnedCelestials",
+    backing: "stream-backed",
+    type: "text",
+    topic: "principia.settings",
+    select: (p) => bodyList(settings(p)?.pinnedCelestials),
+    category: CATEGORY,
+    group: GROUP.drawing,
+    label: "Pinned celestials",
+    description:
+      "The bodies pinned exempt from the two hide settings. Without them those settings are unfalsifiable: from outside, a hidden marker and an exempt one look the same.",
+    screens: ["main"],
+  }),
+
+  row({
+    id: "principia.settings.targetPinned",
+    backing: "stream-backed",
+    type: "boolean",
+    topic: "principia.settings",
+    select: (p) => settings(p)?.targetPinned,
+    category: CATEGORY,
+    group: GROUP.drawing,
+    label: "Target pinned",
+    description: "Whether the target is exempt from hiding as well.",
+    screens: ["main"],
+  }),
+
+  // ---- In-game navball ----
+
+  row({
+    id: "principia.settings.showManoeuvreOnNavball",
+    backing: "stream-backed",
+    type: "boolean",
+    topic: "principia.settings",
+    select: (p) => settings(p)?.showManoeuvreOnNavball,
+    category: CATEGORY,
+    group: GROUP.navball,
+    label: "Guidance shown on the in-game navball",
+    description:
+      "Whether the plugin is synthesising a stock-shaped manoeuvre node on the PLAYER's navball. It says nothing about this console's navball, which reads the guidance directly, and it is not a control: the plugin owns it and there is no writer.",
     screens: ["main"],
   }),
 

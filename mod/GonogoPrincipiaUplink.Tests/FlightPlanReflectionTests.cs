@@ -260,6 +260,12 @@ namespace GonogoPrincipiaUplink.Tests
 #pragma warning disable IDE1006
         public object id = "vessel-guid";
         public string vesselName = "Munar Relay";
+
+        /// <summary>The vessel's orbit, whose reference body is what the target
+        /// frame is named and described with. A field holding an object, as the
+        /// game's own does, so the two-hop read is exercised rather than
+        /// short-circuited by a convenience member no production read takes.</summary>
+        public object? orbit;
 #pragma warning restore IDE1006
     }
 

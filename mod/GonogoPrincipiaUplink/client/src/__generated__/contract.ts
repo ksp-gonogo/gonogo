@@ -45,6 +45,7 @@ export interface PrincipiaReferenceFrame
 	targetFrameSelected?: boolean;
 	targetVesselId?: string;
 	targetVesselName?: string;
+	targetPrimaryBody?: string;
 }
 export interface PrincipiaSettings
 {

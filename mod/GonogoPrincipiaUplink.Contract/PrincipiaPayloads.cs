@@ -268,6 +268,13 @@ public sealed class PrincipiaReferenceFrame
     /// <summary>That vessel's name, so a readout need not resolve the guid.</summary>
     [SitrepUnit(Units.Text)]
     public string? TargetVesselName { get; set; }
+
+    /// <summary>The body the target vessel orbits. The producer declines the
+    /// target frame's NAME and its description with this body rather than with
+    /// the selected celestial, so a console without it cannot call the frame by
+    /// the name the game is calling it.</summary>
+    [SitrepUnit(Units.Text)]
+    public string? TargetPrimaryBody { get; set; }
 }
 
 /// <summary>

@@ -115,6 +115,7 @@ namespace GonogoPrincipiaUplink
                     ["targetFrameSelected"] = frame.TargetFrameSelected,
                     ["targetVesselId"] = frame.TargetVesselId,
                     ["targetVesselName"] = frame.TargetVesselName,
+                    ["targetPrimaryBody"] = frame.TargetPrimaryBody,
                 };
 
         /// <summary>One side's bodies, or null when the side is the single body the
