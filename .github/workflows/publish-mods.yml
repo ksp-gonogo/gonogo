@@ -1,26 +1,28 @@
 name: Publish mod zips
 
-# OUTSTANDING PREREQS: this workflow is inert (or partially inert) until
-# both of these land:
+# WHAT BOUNDS THIS MATRIX: an Uplink gets a leg here when it declares a CKAN
+# identity (its own .netkan) AND its plugin assembly compiles against the
+# reference set vendored in ksp-gonogo/ksp-managed. Seven Uplinks carry a
+# .netkan; six of them compile, so six have legs, alongside Gonogo core.
 #
-#   1. ksp-gonogo/ksp-managed is MISSING GameData/SCANsat/Plugins/{SCANsat.dll,
-#      SCANsat.Unity.dll} and GameData/kOS/Plugins/{kOS.dll,kOS.Safe.dll}.
-#      The GonogoScansatUplink and GonogoKosUplink matrix legs WILL FAIL to build
-#      until someone with push access to that private repo vendors those
-#      assemblies in (same redistribution-safe care as the existing
-#      HullCameraVDS entry: see kerbcam's ksp-managed usage). Gonogo core,
-#      GonogoRealAntennasUplink and GonogoKerbcastUplink only need the base
-#      UnityEngine/Assembly-CSharp set already present there, so those three
-#      build fine today. (GonogoKerbcastUplink needs NO Kerbcast.dll vendored
-#      at all: it reaches kerbcast purely by reflection, for licence reasons;
-#      see its NOTICE-KERBCAST.txt.)
-#   2. SpaceDock publish needs five repo VARIABLES that do not exist yet:
-#      vars.SPACEDOCK_MOD_ID_GONOGO, vars.SPACEDOCK_MOD_ID_GONOGOSCANSATUPLINK,
-#      vars.SPACEDOCK_MOD_ID_GONOGOREALANTENNASUPLINK,
-#      vars.SPACEDOCK_MOD_ID_GONOGOKERBCASTUPLINK, and
-#      vars.SPACEDOCK_MOD_ID_GONOGOKOSUPLINK. Until each is set, that mod's
-#      SpaceDock upload step no-ops with a `::warning::` (same pattern as
-#      kerbcam's release.yml) rather than failing the run.
+# The seventh is GonogoMechJebUplink, and it is the only Uplink in the repo
+# that binds its mod's types at compile time instead of by runtime reflection
+# (MechJebController.cs, MechJebUplink.Ksp.cs bind MuMech directly). MechJeb2.dll
+# is not in ksp-managed, so it cannot be built or published here. It is exempt in
+# scripts/uplink-mod-build.sh for the same reason, and that exemption expires by
+# itself the moment the dll lands. The recommended resolution is to bring the
+# Uplink onto the reflection pattern every other one follows rather than to
+# vendor: see local_docs/design/mechjeb-reflection-rewrite-scope.md.
+#
+# The Uplinks with no .netkan (Avionics, Kerbalism, Rp1, TestFlight) are not
+# omitted for a build reason: all four compile. They have declared no CKAN
+# identity yet, so there is nothing to publish them AS. Give one a .netkan and
+# it earns a leg here.
+#
+# OUTSTANDING PREREQ: SpaceDock publish needs a repo VARIABLE per mod that does
+# not exist yet (vars.SPACEDOCK_MOD_ID_*, one per matrix entry below). Until
+# each is set, that mod's SpaceDock upload step no-ops with a `::warning::`
+# (same pattern as kerbcam's release.yml) rather than failing the run.
 #
 # Two publish channels, mirroring publish-images.yml:
 #
@@ -109,37 +111,53 @@ jobs:
             csproj: mod/Gonogo.KSP/Gonogo.KSP.csproj
             dll: Gonogo.dll
             gamedata: Gonogo
-            extra_dlls: "Sitrep.Host.dll Sitrep.Contract.dll Sitrep.Transport.dll Sitrep.Core.dll"
+            extra_dlls: "Sitrep.Host.dll Sitrep.Contract.dll Sitrep.Transport.dll Sitrep.Core.dll Sitrep.Propagation.dll"
             notice: ""
             mod_id_var: SPACEDOCK_MOD_ID_GONOGO
           - id: GonogoScansatUplink
             csproj: mod/GonogoScansatUplink/GonogoScansatUplink.csproj
             dll: GonogoScansatUplink.dll
             gamedata: GonogoScansatUplink
-            extra_dlls: ""
+            extra_dlls: "GonogoScansatUplink.Contract.dll"
             notice: mod/GonogoScansatUplink/NOTICE-SCANSAT.txt
             mod_id_var: SPACEDOCK_MOD_ID_GONOGOSCANSATUPLINK
           - id: GonogoRealAntennasUplink
             csproj: mod/GonogoRealAntennasUplink/GonogoRealAntennasUplink.csproj
             dll: GonogoRealAntennasUplink.dll
             gamedata: GonogoRealAntennasUplink
-            extra_dlls: ""
+            extra_dlls: "GonogoRealAntennasUplink.Contract.dll"
             notice: mod/GonogoRealAntennasUplink/NOTICE-REALANTENNAS.txt
             mod_id_var: SPACEDOCK_MOD_ID_GONOGOREALANTENNASUPLINK
           - id: GonogoKerbcastUplink
             csproj: mod/GonogoKerbcastUplink/GonogoKerbcastUplink.csproj
             dll: GonogoKerbcastUplink.dll
             gamedata: GonogoKerbcastUplink
-            extra_dlls: ""
+            extra_dlls: "GonogoKerbcastUplink.Contract.dll"
             notice: mod/GonogoKerbcastUplink/NOTICE-KERBCAST.txt
             mod_id_var: SPACEDOCK_MOD_ID_GONOGOKERBCASTUPLINK
           - id: GonogoKosUplink
             csproj: mod/GonogoKosUplink/GonogoKosUplink.csproj
             dll: GonogoKosUplink.dll
             gamedata: GonogoKosUplink
-            extra_dlls: ""
+            extra_dlls: "GonogoKosUplink.Contract.dll"
             notice: mod/GonogoKosUplink/NOTICE-KOS.txt
             mod_id_var: SPACEDOCK_MOD_ID_GONOGOKOSUPLINK
+          - id: GonogoPrincipiaUplink
+            csproj: mod/GonogoPrincipiaUplink/GonogoPrincipiaUplink.csproj
+            dll: GonogoPrincipiaUplink.dll
+            gamedata: GonogoPrincipiaUplink
+            extra_dlls: "GonogoPrincipiaUplink.Contract.dll"
+            notice: mod/GonogoPrincipiaUplink/NOTICE-PRINCIPIA.txt
+            mod_id_var: SPACEDOCK_MOD_ID_GONOGOPRINCIPIAUPLINK
+          - id: GonogoActionGroupsExtendedUplink
+            csproj: mod/GonogoActionGroupsExtendedUplink/GonogoActionGroupsExtendedUplink.csproj
+            dll: GonogoActionGroupsExtendedUplink.dll
+            gamedata: GonogoActionGroupsExtendedUplink
+            # No .Contract slice: this Uplink carries no command-arg DTOs, it
+            # elects a backend and publishes through Sitrep.Contract's own types.
+            extra_dlls: ""
+            notice: mod/GonogoActionGroupsExtendedUplink/NOTICE-AGEXT.txt
+            mod_id_var: SPACEDOCK_MOD_ID_GONOGOACTIONGROUPSEXTENDEDUPLINK
     uses: ./.github/workflows/_build-uplink-mod.yml
     with:
       id: ${{ matrix.id }}

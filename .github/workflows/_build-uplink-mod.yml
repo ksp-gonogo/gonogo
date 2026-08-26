@@ -34,7 +34,7 @@ on:
         required: true
         type: string
       extra_dlls:
-        description: "Space-separated extra DLLs to bundle alongside dll"
+        description: "Space-separated DLLs to ASSERT are in the built zip (everything in bin/Release ships regardless)"
         required: false
         type: string
         default: ""
@@ -116,14 +116,41 @@ jobs:
             echo "::error::${{ inputs.dll }} not produced at $out_dir"
             exit 1
           fi
-          cp "$out_dir/${{ inputs.dll }}" "$plugins_dir/"
 
+          # Ship EVERY dll MSBuild copied into bin/Release, not a hand-written
+          # subset. What lands there is precisely the runtime closure: a
+          # reference-only dependency carries Private="false" (kOS, SCANsat,
+          # MechJeb2, Harmony, Sitrep.Contract, the KSP/Unity set) and never
+          # copies, while a dependency the assembly needs at load time does.
+          #
+          # The hand-written list was wrong in both directions and neither
+          # showed up as a failure. Four Uplink legs passed extra_dlls: "" while
+          # every one of them ProjectReferences its own <Uplink>.Contract slice,
+          # which holds the command-arg DTOs its handlers are typed on: those
+          # zips shipped a dll that cannot load. Core named four Sitrep dlls and
+          # omitted Sitrep.Propagation.dll, which Sitrep.Host links for the
+          # orbital-period solve. The live install carries all of them, because
+          # the local deploy helper globs instead of listing.
+          shipped=0
+          for dll in "$out_dir"/*.dll; do
+            [ -f "$dll" ] || continue
+            cp "$dll" "$plugins_dir/"
+            shipped=$((shipped + 1))
+          done
+          if [ "$shipped" -eq 0 ]; then
+            echo "::error::no dlls found in $out_dir: the build produced nothing to ship"
+            exit 1
+          fi
+
+          # extra_dlls is now an ASSERTION rather than the shipping list: name a
+          # dll here and this leg fails if the build stops producing it. A glob
+          # that silently narrows ships a smaller zip and reports success, so
+          # the legs whose bundled set is load-bearing say so out loud.
           for extra in ${{ inputs.extra_dlls }}; do
-            if [ ! -f "$out_dir/$extra" ]; then
-              echo "::error::expected bundled dependency $extra not found at $out_dir"
+            if [ ! -f "$plugins_dir/$extra" ]; then
+              echo "::error::expected bundled dependency $extra was not produced at $out_dir"
               exit 1
             fi
-            cp "$out_dir/$extra" "$plugins_dir/"
           done
 
           # Licensing gap fix (design doc §6): ship each Uplink's
