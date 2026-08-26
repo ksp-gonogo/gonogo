@@ -1,3 +1,4 @@
+import { kspCalendar, setKspCalendar } from "@ksp-gonogo/sitrep-sdk";
 import {
   render,
   screen,
@@ -306,6 +307,44 @@ describe("ProgramDetail", () => {
       expect(screen.getByText("CrewedOrbit")).toBeInTheDocument();
     });
     expect(screen.getByText("Munar")).toBeInTheDocument();
+  });
+
+  it("measures a Program's term on the calendar the game is running", async () => {
+    // RP-1 declares a duration in Julian years and the kit's `s` ladder
+    // measures a year on whatever calendar the running game published. Under
+    // RSS, which is what RP-1 ships on, that is an Earth year and a seven-year
+    // Program reads as seven years.
+    //
+    // Worth a test rather than an assumption because the two calendars differ
+    // by a factor of twenty-four: on stock Kerbin's 426 six-hour days the same
+    // duration renders as "24y", and a render harness with no calendar emit
+    // shows exactly that. This is the fact that says the harness is on its
+    // default rather than the widget being wrong.
+    const original = kspCalendar();
+    try {
+      setKspCalendar({
+        minute: 60,
+        hour: 3_600,
+        day: 86_400,
+        year: 365 * 86_400,
+      });
+      const { fixture } = mount();
+      await feed(fixture, [
+        program({
+          durationSeconds: 7 * YEAR,
+          nominalDurationSeconds: 7 * YEAR,
+          speedOptions: null,
+          fundingPayments: null,
+        }),
+      ]);
+
+      await waitFor(() => {
+        expect(visibleText()).toMatch(/7y/);
+      });
+      expect(visibleText()).not.toMatch(/24y/);
+    } finally {
+      setKspCalendar(original);
+    }
   });
 
   it("says so plainly before any catalogue has arrived", async () => {

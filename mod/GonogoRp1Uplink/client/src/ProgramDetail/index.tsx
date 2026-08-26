@@ -114,7 +114,10 @@ export function ProgramDetail({ config }: ComponentProps<ProgramDetailConfig>) {
               </Select>
             </Field>
 
-            <Cluster gap="md">
+            {/* Wrapping, because three readouts do not fit across a narrow
+                panel and a Cluster that cannot wrap pushes the third one past
+                the panel's edge with no scroller to recover it. */}
+            <Cluster gap="md" wrap>
               <Readout>
                 <ReadoutCaption>Funds</ReadoutCaption>
                 <Unit value={career?.economy?.funds} />
@@ -632,7 +635,10 @@ registerComponent<ProgramDetailConfig>({
     "paid, its deadline, the Confidence price and term at each speed, the " +
     "per-year funding summary, and the funding curve those payments follow.",
   tags: ["rp1", "career", "programs"],
-  defaultSize: { w: 6, h: 14 },
+  // Wider than most widgets here on purpose: this one carries three tables
+  // and a chart, and at six columns the tables spend their width scrolling
+  // rather than showing the figures they exist to line up.
+  defaultSize: { w: 8, h: 16 },
   minSize: { w: 4, h: 8 },
   component: ProgramDetail,
   openConfigOnAdd: false,

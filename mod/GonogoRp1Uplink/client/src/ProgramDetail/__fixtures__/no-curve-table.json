@@ -1,0 +1,132 @@
+{
+  "_meta": {
+    "notes": "The distinction the chart exists to protect. RP-1's handler is live and its Program list arrived, but the curve table did not, so there is a Program with a total and no shape. Drawing a flat line along the bottom of a funds axis here would say the Program pays nothing."
+  },
+  "_scene": {
+    "widget": "rp1-program-detail",
+    "caption": "A Program whose funding curve RP-1 has not published: the chart refuses to draw and says so, rather than drawing zero",
+    "size": {
+      "w": 8,
+      "h": 16
+    }
+  },
+  "_stream": {
+    "pinnedUt": 27000000,
+    "emits": [
+      {
+        "topic": "rp1.available",
+        "payload": true
+      },
+      {
+        "topic": "rp1.programs",
+        "payload": [
+          {
+            "name": "SuborbRocketDev",
+            "title": "Sounding Rocket Development",
+            "state": "active",
+            "speed": "Normal",
+            "slots": 1,
+            "isHumanSpaceflight": false,
+            "nominalDurationSeconds": 220903200.0,
+            "durationSeconds": 220903200.0,
+            "acceptedUt": 5184000,
+            "deadlineUt": 164234304.0,
+            "objectivesCompletedUt": null,
+            "completedUt": null,
+            "lastPaymentUt": 5184000,
+            "fracElapsed": 0.28,
+            "totalFunding": 252000.0,
+            "fundsPaidOut": 30000.0,
+            "fundsRemaining": 222000.0,
+            "fundingCurve": "StrongBackloaded",
+            "confidenceCost": 150,
+            "repDeltaOnCompletePerYearEarly": 40,
+            "repPenaltyPerYearLate": 40,
+            "repPenaltyAssessed": 0,
+            "requirementsMet": true,
+            "objectivesMet": false,
+            "canAccept": false,
+            "canComplete": false,
+            "requirementsText": null,
+            "objectivesText": "Complete Karman Line, Reach a Suborbital Trajectory & Return (uncrewed), and Downrange Milestone (5000 km) contracts.",
+            "speedOptions": [
+              {
+                "speed": "Slow",
+                "confidenceCost": 0.0,
+                "durationSeconds": 331354800.0
+              },
+              {
+                "speed": "Normal",
+                "confidenceCost": 150.0,
+                "durationSeconds": 220903200.0
+              },
+              {
+                "speed": "Fast",
+                "confidenceCost": 300.0,
+                "durationSeconds": 165677400.0
+              }
+            ],
+            "programsToDisableOnAccept": null,
+            "fundingPayments": [
+              {
+                "year": 2,
+                "funds": 14522.450743,
+                "cumulativeFunds": 44522.450743
+              },
+              {
+                "year": 3,
+                "funds": 24509.387314,
+                "cumulativeFunds": 69031.838057
+              },
+              {
+                "year": 4,
+                "funds": 30592.651592,
+                "cumulativeFunds": 99624.489649
+              },
+              {
+                "year": 5,
+                "funds": 58533.061371,
+                "cumulativeFunds": 158157.55102
+              },
+              {
+                "year": 6,
+                "funds": 64146.122449,
+                "cumulativeFunds": 222303.673469
+              },
+              {
+                "year": 7,
+                "funds": 29696.326531,
+                "cumulativeFunds": 252000.0
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "topic": "rp1.programSlots",
+        "payload": {
+          "maxSlots": 3,
+          "usedSlots": 1,
+          "freeSlots": 2,
+          "activeCount": 1,
+          "completedCount": 2
+        }
+      },
+      {
+        "topic": "rp1.confidence",
+        "payload": {
+          "confidence": 212,
+          "earned": 640
+        }
+      },
+      {
+        "topic": "career.status",
+        "payload": {
+          "economy": {
+            "funds": 289848
+          }
+        }
+      }
+    ]
+  }
+}

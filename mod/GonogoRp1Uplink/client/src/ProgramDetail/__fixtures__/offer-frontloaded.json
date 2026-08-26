@@ -1,0 +1,283 @@
+{
+  "_meta": {
+    "notes": "An acceptable Program on the shipped StrongFrontloaded curve, priced at all three speeds against 212 Confidence held: Slow is free, Normal is out of reach at 300 and Fast at 600, which is the SHORT badge doing the work the balance readout alone cannot."
+  },
+  "_scene": {
+    "widget": "rp1-program-detail",
+    "caption": "An offer the career cannot yet afford at any paid speed, with the front-loaded curve that would fund its first two years",
+    "size": {
+      "w": 8,
+      "h": 16
+    }
+  },
+  "_stream": {
+    "pinnedUt": 27000000,
+    "emits": [
+      {
+        "topic": "rp1.available",
+        "payload": true
+      },
+      {
+        "topic": "rp1.programs",
+        "payload": [
+          {
+            "name": "EarlyXPlanes",
+            "title": "Early X-Planes",
+            "state": "offerable",
+            "speed": "Normal",
+            "slots": 2,
+            "isHumanSpaceflight": false,
+            "nominalDurationSeconds": 126230400.0,
+            "durationSeconds": 126230400.0,
+            "acceptedUt": null,
+            "deadlineUt": null,
+            "objectivesCompletedUt": null,
+            "completedUt": null,
+            "lastPaymentUt": null,
+            "fracElapsed": null,
+            "totalFunding": 400000.0,
+            "fundsPaidOut": null,
+            "fundsRemaining": null,
+            "fundingCurve": "StrongFrontloaded",
+            "confidenceCost": 300,
+            "repDeltaOnCompletePerYearEarly": 40,
+            "repPenaltyPerYearLate": 40,
+            "repPenaltyAssessed": 0,
+            "requirementsMet": true,
+            "objectivesMet": false,
+            "canAccept": true,
+            "canComplete": false,
+            "requirementsText": "Reach an altitude of 18,000 m with a crewed aircraft.",
+            "objectivesText": "Complete the X-Plane High Altitude and X-Plane Level Flight Speed Record contracts.",
+            "speedOptions": [
+              {
+                "speed": "Slow",
+                "confidenceCost": 0.0,
+                "durationSeconds": 189345600.0
+              },
+              {
+                "speed": "Normal",
+                "confidenceCost": 300.0,
+                "durationSeconds": 126230400.0
+              },
+              {
+                "speed": "Fast",
+                "confidenceCost": 600.0,
+                "durationSeconds": 94672800.0
+              }
+            ],
+            "programsToDisableOnAccept": ["EarlyXPlanesHeavy"],
+            "fundingPayments": [
+              {
+                "year": 1,
+                "funds": 93144.235,
+                "cumulativeFunds": 93144.235
+              },
+              {
+                "year": 2,
+                "funds": 164656.325,
+                "cumulativeFunds": 257800.56
+              },
+              {
+                "year": 3,
+                "funds": 105570.914,
+                "cumulativeFunds": 363371.474
+              },
+              {
+                "year": 4,
+                "funds": 36628.526,
+                "cumulativeFunds": 400000.0
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "topic": "rp1.programSlots",
+        "payload": {
+          "maxSlots": 3,
+          "usedSlots": 1,
+          "freeSlots": 2,
+          "activeCount": 1,
+          "completedCount": 2
+        }
+      },
+      {
+        "topic": "rp1.programFundingCurves",
+        "payload": [
+          {
+            "name": "Flat",
+            "isDefault": true,
+            "keys": [
+              {
+                "frac": 0.0,
+                "paidFraction": 0.0,
+                "inTangent": 1.0,
+                "outTangent": 1.0
+              },
+              {
+                "frac": 1.0,
+                "paidFraction": 1.0,
+                "inTangent": 1.0,
+                "outTangent": 0.8
+              },
+              {
+                "frac": 2.0,
+                "paidFraction": 1.4,
+                "inTangent": 0.25,
+                "outTangent": 0.25
+              }
+            ]
+          },
+          {
+            "name": "StrongBackloaded",
+            "isDefault": false,
+            "keys": [
+              {
+                "frac": 0.0,
+                "paidFraction": 0.0,
+                "inTangent": 0.66,
+                "outTangent": 0.66
+              },
+              {
+                "frac": 0.5,
+                "paidFraction": 0.33,
+                "inTangent": 0.8299999,
+                "outTangent": 0.8299999
+              },
+              {
+                "frac": 0.6,
+                "paidFraction": 0.43,
+                "inTangent": 1.35,
+                "outTangent": 1.35
+              },
+              {
+                "frac": 0.7,
+                "paidFraction": 0.6,
+                "inTangent": 1.85,
+                "outTangent": 1.85
+              },
+              {
+                "frac": 0.8,
+                "paidFraction": 0.8,
+                "inTangent": 1.65,
+                "outTangent": 1.65
+              },
+              {
+                "frac": 0.9,
+                "paidFraction": 0.93,
+                "inTangent": 1.0,
+                "outTangent": 1.0
+              },
+              {
+                "frac": 1.0,
+                "paidFraction": 1.0,
+                "inTangent": 0.5499998,
+                "outTangent": 0.5499998
+              },
+              {
+                "frac": 2.0,
+                "paidFraction": 1.4,
+                "inTangent": 0.4,
+                "outTangent": 0.4
+              }
+            ]
+          },
+          {
+            "name": "StrongFrontloaded",
+            "isDefault": false,
+            "keys": [
+              {
+                "frac": 0.0,
+                "paidFraction": 0.0,
+                "inTangent": 0.2575197,
+                "outTangent": 0.2575197
+              },
+              {
+                "frac": 0.1,
+                "paidFraction": 0.04241252,
+                "inTangent": 0.644084,
+                "outTangent": 0.644084
+              },
+              {
+                "frac": 0.2,
+                "paidFraction": 0.1551579,
+                "inTangent": 1.508536,
+                "outTangent": 1.508536
+              },
+              {
+                "frac": 0.3,
+                "paidFraction": 0.3142093,
+                "inTangent": 1.654377,
+                "outTangent": 1.654377
+              },
+              {
+                "frac": 0.4,
+                "paidFraction": 0.4824604,
+                "inTangent": 1.695143,
+                "outTangent": 1.695143
+              },
+              {
+                "frac": 0.5,
+                "paidFraction": 0.6445014,
+                "inTangent": 1.505206,
+                "outTangent": 1.505206
+              },
+              {
+                "frac": 0.6,
+                "paidFraction": 0.7790177,
+                "inTangent": 1.163504,
+                "outTangent": 1.163504
+              },
+              {
+                "frac": 0.7,
+                "paidFraction": 0.8753952,
+                "inTangent": 0.7533766,
+                "outTangent": 0.7533766
+              },
+              {
+                "frac": 0.8,
+                "paidFraction": 0.9343295,
+                "inTangent": 0.4680698,
+                "outTangent": 0.4680698
+              },
+              {
+                "frac": 0.9,
+                "paidFraction": 0.9713384,
+                "inTangent": 0.3030235,
+                "outTangent": 0.3030235
+              },
+              {
+                "frac": 1.0,
+                "paidFraction": 1.0,
+                "inTangent": 0.2820196,
+                "outTangent": 0.2820196
+              },
+              {
+                "frac": 2.0,
+                "paidFraction": 1.2,
+                "inTangent": 0.2,
+                "outTangent": 0.2
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "topic": "rp1.confidence",
+        "payload": {
+          "confidence": 212,
+          "earned": 640
+        }
+      },
+      {
+        "topic": "career.status",
+        "payload": {
+          "economy": {
+            "funds": 289848
+          }
+        }
+      }
+    ]
+  }
+}
