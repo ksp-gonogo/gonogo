@@ -3,7 +3,7 @@
     "scenario": "engine-off-empty",
     "notes": "No engine data available (NaN / undefined TWR). Widget should show the EmptyState panel, 'No engine data'."
   },
-  "dv.currentTWR": null,
+  "vessel.state.twr": null,
   "_stream": {
     "carriedChannels": [
       "vessel.orbit",

@@ -6,7 +6,7 @@
   "v.name": "tester",
   "v.missionTime": 114,
   "_series": {
-    "v.altitude": [
+    "vessel.state.altitudeAsl": [
       {
         "t": -305925,
         "v": 77.6330160072539
@@ -624,7 +624,7 @@
         "v": 67265.269987853
       }
     ],
-    "v.horizontalVelocity": [
+    "vessel.state.horizontalSpeed": [
       {
         "t": -305925,
         "v": 174.96351125175843
@@ -1242,7 +1242,7 @@
         "v": 909.2489059461765
       }
     ],
-    "v.verticalSpeed": [
+    "vessel.state.verticalSpeed": [
       {
         "t": -305925,
         "v": 0.0003215923509714

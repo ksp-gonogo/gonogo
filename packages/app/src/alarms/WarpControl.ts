@@ -1,5 +1,5 @@
 import { logger } from "@ksp-gonogo/logger";
-import { dispatchActiveCommand } from "@ksp-gonogo/sitrep-client";
+import { dispatchActiveCommandTopic } from "@ksp-gonogo/sitrep-client";
 import type { AlarmStateMachine } from "./AlarmStateMachine";
 import type { Alarm, AlarmWarpState } from "./types";
 
@@ -148,13 +148,14 @@ export class WarpControl {
   }
 
   /**
-   * Dispatches through the stream via the non-hook `dispatchActiveCommand`
-   * (`@ksp-gonogo/sitrep-client`): `t.timeWarp[<i>]` is mapped to
-   * `time.setWarpIndex` (`map-command.ts`), a command every production
-   * `TelemetryProvider` mount carries.
+   * Dispatches `time.setWarpIndex` through the stream, a command every
+   * production `TelemetryProvider` mount carries. The index goes as an
+   * argument: it used to be formatted into a key for a table to parse back
+   * out, which is a round trip that only made sense while the key was the
+   * name the caller had.
    */
   private commandWarp(index: number): void {
-    const outcome = dispatchActiveCommand("data", `t.timeWarp[${index}]`);
+    const outcome = dispatchActiveCommandTopic("time.setWarpIndex", { index });
     if (!outcome.routed) {
       logger.warn("alarm-host: warp command not routed", { index });
       return;

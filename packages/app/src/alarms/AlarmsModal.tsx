@@ -1,5 +1,10 @@
-import type { ActionGroup } from "@ksp-gonogo/core";
-import { useActionGroups, useTelemetry } from "@ksp-gonogo/core";
+import {
+  type ActionGroup,
+  actionGroupIdOf,
+  toggleCommandFor,
+  useActionGroups,
+  useTelemetry,
+} from "@ksp-gonogo/core";
 import { useManeuverNodes, useValueKeys } from "@ksp-gonogo/data";
 import { useStream, type VesselState } from "@ksp-gonogo/sitrep-client";
 import {
@@ -51,9 +56,13 @@ export interface AlarmDraftPrefill {
 }
 
 /**
- * Pickable telemetry actions for `onFire`. Filters out the synthetic entries
- * without a `toggle` key (e.g. Precision Control), since dispatching them would
- * be a no-op.
+ * Pickable groups for `onFire`. Filters out the ones that fire nothing (Precision
+ * Control is a read-only indicator), since offering them would be a no-op the
+ * operator could not tell from a working choice.
+ *
+ * Asks whether the group has a COMMAND rather than whether it has a legacy key:
+ * that key was a name for the command, and the command is the thing that has to
+ * exist for the pick to do anything.
  *
  * A HOOK rather than the module-scope constant this used to be: the action-group
  * registry is no longer a hardcoded literal, it derives its custom half from
@@ -61,14 +70,10 @@ export interface AlarmDraftPrefill {
  * load. Under a future AGX backend this is what makes the player's own named
  * groups appear in the alarm picker for free.
  */
-function useFirableActions(): (ActionGroup & { toggle: string })[] {
+function useFirableActions(): ActionGroup[] {
   const groups = useActionGroups();
   return useMemo(
-    () =>
-      groups.filter(
-        (g): g is ActionGroup & { toggle: string } =>
-          typeof g.toggle === "string",
-      ),
+    () => groups.filter((g) => toggleCommandFor(g) !== null),
     [groups],
   );
 }
@@ -163,7 +168,7 @@ export function AlarmsModal({
   // first render, so this is never empty in practice, the `?? ""` is belt and
   // braces, matching the previous module-scope behaviour.
   const [pickerAction, setPickerAction] = useState<string>(
-    firableActions[0]?.toggle ?? "",
+    firableActions[0] ? actionGroupIdOf(firableActions[0]) : "",
   );
 
   const [pendingDeleteId, setPendingDeleteId] = useState<string | null>(null);
@@ -771,41 +776,44 @@ interface OnFireEditorProps {
 }
 
 /**
- * Translate a gonogo ACTION_GROUPS toggle key (e.g. `f.ag1`, `f.sas`,
- * `f.brake`) into the matching KSPActionGroup enum name carried in the parts
- * tree's `actionBindings[].groups` (`Custom01`, `SAS`, `Brakes`).
- * Returns null for toggle keys with no KSP equivalent.
+ * Translate one action group into the matching KSPActionGroup enum bit carried
+ * in the parts tree's `actionBindings[].groups` (`Custom01`, `SAS`, `Brakes`).
+ * Returns null for a group with no KSP equivalent.
+ *
+ * Keyed off the GROUP rather than off a name for it. A custom answers by its
+ * own index, which is what KSP numbers them by, and a stock singleton by its
+ * name: the same split `actionGroupIdOf` makes, for the same reason.
  */
-function kspActionGroupBit(toggle: string | null): number | null {
-  if (!toggle) return null;
-  switch (toggle) {
-    case "f.sas":
-      return KspActionGroup.SAS;
-    case "f.rcs":
-      return KspActionGroup.RCS;
-    case "f.light":
-      return KspActionGroup.Light;
-    case "f.gear":
-      return KspActionGroup.Gear;
-    // KSP plural: toggle key is singular for ergonomic reasons.
-    case "f.brake":
-      return KspActionGroup.Brakes;
-    case "f.abort":
-      return KspActionGroup.Abort;
-    case "f.stage":
-      return KspActionGroup.Stage;
-    default: {
-      const m = toggle.match(/^f\.ag(\d+)$/);
-      if (!m) return null;
-      const name = `Custom${m[1].padStart(2, "0")}`;
-      // Looked up in the derived value→name table rather than against a
-      // Custom01..Custom10 list, so a custom group KSP adds resolves here with
-      // the next codegen and needs no edit.
-      for (const [bit, memberName] of KSP_ACTION_GROUP_NAMES) {
-        if (memberName === name) return bit;
-      }
-      return null;
+function kspActionGroupBit(group: ActionGroup | null): number | null {
+  if (!group) return null;
+  if (group.index !== undefined) {
+    // Looked up in the derived value-to-name table rather than against a
+    // Custom01..Custom10 list, so a custom group KSP adds resolves here with
+    // the next codegen and needs no edit.
+    const name = `Custom${String(group.index).padStart(2, "0")}`;
+    for (const [bit, memberName] of KSP_ACTION_GROUP_NAMES) {
+      if (memberName === name) return bit;
     }
+    return null;
+  }
+  switch (group.name) {
+    case "SAS":
+      return KspActionGroup.SAS;
+    case "RCS":
+      return KspActionGroup.RCS;
+    case "Light":
+      return KspActionGroup.Light;
+    case "Gear":
+      return KspActionGroup.Gear;
+    // KSP spells it plural; the group is singular for ergonomic reasons.
+    case "Brake":
+      return KspActionGroup.Brakes;
+    case "Abort":
+      return KspActionGroup.Abort;
+    case "Stage":
+      return KspActionGroup.Stage;
+    default:
+      return null;
   }
 }
 
@@ -863,11 +871,11 @@ function useActionGroupBindings(): AgBinding[] | null {
 }
 
 function captionForAg(
-  toggle: string | null,
+  group: ActionGroup | null,
   bindings: AgBinding[] | null,
 ): string {
   if (!bindings) return "";
-  const bit = kspActionGroupBit(toggle);
+  const bit = kspActionGroupBit(group);
   if (bit === null) return "";
   const matches = bindings.filter((b) => (b.groupsMask & bit) === bit);
   if (matches.length === 0) return "";
@@ -895,7 +903,9 @@ function OnFireEditor({
       {value.length > 0 && (
         <FireList>
           {value.map((fx, i) => {
-            const meta = firableActions.find((g) => g.toggle === fx.action);
+            const meta = firableActions.find(
+              (g) => actionGroupIdOf(g) === fx.action,
+            );
             return (
               // biome-ignore lint/suspicious/noArrayIndexKey: action keys can repeat; position is the only stable identity
               <FireChip key={`${fx.action}-${i}`}>
@@ -920,8 +930,8 @@ function OnFireEditor({
           onChange={(e) => onPickerChange(e.target.value)}
         >
           {firableActions.map((g) => (
-            <option key={g.toggle} value={g.toggle}>
-              {g.name} ({g.toggle}){captionForAg(g.toggle, bindings)}
+            <option key={actionGroupIdOf(g)} value={actionGroupIdOf(g)}>
+              {g.name} ({actionGroupIdOf(g)}){captionForAg(g, bindings)}
             </option>
           ))}
         </PickerSelect>

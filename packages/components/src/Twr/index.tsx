@@ -51,12 +51,11 @@ function TwrComponent({ w, h }: Readonly<ComponentProps<TwrConfig>>) {
   // headline value reads straight off the stream; no legacy read remains
   // for this widget's live value.
   const twr = useStream<VesselState>("vessel.state")?.twr ?? undefined;
-  // The sparkline history stays on `useDataSeries` (its own stream shim).
-  // A DERIVED topic has a live value but no buffered history, so this series
-  // resolves off the legacy path until a raw-input-backed history exists,
-  // see `useDataSeries`'s doc comment; the headline value above never
-  // touches the legacy path regardless.
-  const series = useDataSeries("data", "dv.currentTWR", SPARK_WINDOW_SEC);
+  // The sparkline history reads the same derived field the headline does.
+  // A derived topic has a live value but no buffered history of its own, so
+  // `useDataSeries` replays the channel's `derive()` across the window off the
+  // buffered history of its RAW inputs; see that hook's doc comment.
+  const series = useDataSeries("data", "vessel.state.twr", SPARK_WINDOW_SEC);
   const sparkValues = series.v as number[];
 
   // Three layouts driven by widget size:
@@ -240,7 +239,7 @@ registerComponent<TwrConfig>({
   defaultSize: { w: 4, h: 5 },
   minSize: { w: 2, h: 2 },
   component: TwrComponent,
-  dataRequirements: ["dv.currentTWR"],
+  dataRequirements: ["vessel.state.twr"],
   defaultConfig: {},
   actions: [],
   pushable: true,

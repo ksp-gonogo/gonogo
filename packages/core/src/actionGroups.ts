@@ -1,4 +1,5 @@
 import type { ActionGroupStatePayload } from "@ksp-gonogo/sitrep-client";
+import type { VesselControl, VesselStructure } from "@ksp-gonogo/sitrep-sdk";
 import { useMemo } from "react";
 import { useTelemetry } from "./hooks/useTelemetry";
 import type { ActionGroup } from "./types";
@@ -161,15 +162,24 @@ export function useActionGroupsFrom(
   control: { actionGroups?: ActionGroupStatePayload[] | null } | undefined,
 ): ActionGroup[] {
   const named = control?.actionGroups;
-  return useMemo(
-    () => [
-      ...STOCK_ACTION_GROUPS,
-      ...(named ?? []).map((g) =>
-        customActionGroup(g.index, g.name, "reported"),
-      ),
-    ],
-    [named],
-  );
+  return useMemo(() => actionGroupsFrom(named), [named]);
+}
+
+/**
+ * The registry as a plain function, for a caller with no render tree: an alarm
+ * resolving its saved `onFire` group at fire time reads `vessel.control` off the
+ * store directly and has nowhere to hang a hook.
+ *
+ * The hook above is a memo over this, so both see one registry rather than two
+ * that agree by inspection.
+ */
+export function actionGroupsFrom(
+  named: ActionGroupStatePayload[] | null | undefined,
+): ActionGroup[] {
+  return [
+    ...STOCK_ACTION_GROUPS,
+    ...(named ?? []).map((g) => customActionGroup(g.index, g.name, "reported")),
+  ];
 }
 
 /**
@@ -273,4 +283,125 @@ function resolveActionGroup(
   const found = groups.find((g) => g.name === id);
   if (found) return found;
   return { name: id, toggle: null, description: id, provenance: "assumed" };
+}
+
+// ---------------------------------------------------------------------------
+// The toggle-to-absolute bridge.
+//
+// A group's pill, and an alarm's `onFire`, both want the same thing: the
+// command that sets this group, and the arguments that flip it. Both key off
+// the group's own identity rather than off a name for it, which is what lets a
+// headless caller resolve one from a saved `ActionGroupId` without a widget
+// mounted. It lives here, beside the registry it keys into, because it was
+// written inside the widget and the alarm host needed the same answer.
+// ---------------------------------------------------------------------------
+
+export const TOGGLE_INVALID: unique symbol = Symbol(
+  "action-group-toggle-invalid",
+);
+
+/**
+ * The mapped absolute-set command for one group's toggle, or `null` when the
+ * group has no toggle (Precision Control) or is not recognised. Every toggle
+ * this widget fires actuates the vessel, so all of them ride `useCommand` and
+ * are subject to signal delay.
+ *
+ * An AGX custom (`group.index !== undefined`) always
+ * resolves to the shared `setActionGroup` command regardless of name, Stage has
+ * its own unconditional non-invert command, and the remaining stock singletons
+ * each have a dedicated absolute-set command.
+ *
+ * The toggle-to-absolute bridge itself is built here off the group's already
+ * known live `value`, which this widget reads anyway for the state pill, so no
+ * separate current-value sample is needed.
+ */
+export function toggleCommandFor(group: ActionGroup): string | null {
+  if (group.index !== undefined) return "vessel.control.setActionGroup";
+  if (group.name === "Stage") return "vessel.control.stage";
+  switch (group.name) {
+    case "SAS":
+      return "vessel.control.setSas";
+    case "RCS":
+      return "vessel.control.setRcs";
+    case "Light":
+      return "vessel.control.setLights";
+    case "Gear":
+      return "vessel.control.setGear";
+    case "Brake":
+      return "vessel.control.setBrakes";
+    case "Abort":
+      return "vessel.control.setAbort";
+    default:
+      return null; // Precision Control (read-only) or an unrecognized group.
+  }
+}
+
+/**
+ * Builds the wire args for `toggleCommandFor(group)`'s command, inverting
+ * the group's own live `value`. Stage takes no args (its handler ignores
+ * them, matching `map-command.ts`'s `f.stage` home) and needs no invert.
+ * Every other group is `TOGGLE_INVALID` unless `value` is a real boolean:
+ * an unresolved/stale read must never be blindly inverted.
+ */
+export function buildToggleArgs(
+  group: ActionGroup,
+  value: unknown,
+): unknown | typeof TOGGLE_INVALID {
+  if (group.index !== undefined) {
+    if (typeof value !== "boolean") return TOGGLE_INVALID;
+    return { group: group.index, state: !value };
+  }
+  if (group.name === "Stage") return null;
+  if (typeof value !== "boolean") return TOGGLE_INVALID;
+  return { enabled: !value };
+}
+
+/**
+ * Resolves one group's live value off the canonical payloads.
+ *
+ * A CUSTOM group carries an `index` and is found in `control.actionGroups` by
+ * that index: never by array position (position stopped implying identity when
+ * the wire shape became a named list) and never by name (two AGX groups may
+ * share a display name).
+ *
+ * A STOCK singleton has no `index` and reads its own typed field. `Stage` is
+ * the odd one out: it isn't a control input at all, so it comes off
+ * `vessel.structure.currentStage` and is the only NUMERIC readout here.
+ */
+export function resolveGroupValue(
+  group: ActionGroup | undefined,
+  payload: VesselControl | VesselStructure | undefined,
+): unknown {
+  if (!group) return undefined;
+  const control = payload as VesselControl | undefined;
+  // The INDEX is asked before any name, here and in every other decider below.
+  // A group carrying one is a custom group whatever the player called it, and
+  // a name test that runs first hands "Stage" to the staging branch.
+  if (group.index !== undefined) {
+    return control?.actionGroups?.find((g) => g.index === group.index)?.state;
+  }
+  // Stage reads the OTHER topic; see ActionGroupComponent.
+  if (group.name === "Stage") {
+    return (payload as VesselStructure | undefined)?.currentStage;
+  }
+  switch (group.name) {
+    case "SAS":
+      return control?.sas;
+    case "RCS":
+      return control?.rcs;
+    case "Light":
+      return control?.lights;
+    case "Gear":
+      return control?.gear;
+    case "Brake":
+      return control?.brakes;
+    case "Abort":
+      return control?.abort;
+    case "Precision Control":
+      return control?.precisionControl;
+    default:
+      // A configured id that no longer exists, e.g. a saved AGX group after
+      // AGX was uninstalled. Unknown, not false: the pill shows NULL_DISPLAY.
+      return undefined;
+  }
 }

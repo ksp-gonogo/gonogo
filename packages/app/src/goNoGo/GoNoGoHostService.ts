@@ -17,7 +17,7 @@ import type { DataSource } from "@ksp-gonogo/core";
 import { getDataSource } from "@ksp-gonogo/core";
 import { logger } from "@ksp-gonogo/logger";
 import {
-  dispatchActiveCommand,
+  dispatchActiveCommandTopic,
   getVesselState,
   onActiveTimelineFrame,
 } from "@ksp-gonogo/sitrep-client";
@@ -158,7 +158,7 @@ export class GoNoGoHostService {
         // and this tone: inherited f.abort behaviour, not introduced here.
         // Internally gated by isSoundEnabled(); main-only.
         playAbortTone();
-        void this.dispatchCommand("f.abort");
+        void this.dispatchCommand("vessel.control.setAbort", { enabled: true });
         this.host.broadcast({
           type: "gonogo-abort-notify",
           stationName,
@@ -219,20 +219,22 @@ export class GoNoGoHostService {
   }
 
   /**
-   * Fire a command through the new stream when it's mapped + carried
-   * (`dispatchActiveCommand`, the non-hook `useCommand` equivalent), else
-   * the legacy `DataSource.execute(action)`: same two-tier contract every
-   * other migrated read/write in the app follows. The routing decision
-   * itself is synchronous (see `dispatchActiveCommand`'s doc comment), so
-   * the legacy fallback fires in the same tick as before this migration.
+   * Fire a command through the stream, naming it and its arguments directly.
+   *
+   * Both commands this service sends used to go through a widget-facing action
+   * string, and the string form cost the abort twice over. `f.abort` resolved
+   * to a TOGGLE bridge: it read `vessel.control.abort` and sent the negation, so
+   * an abort raised while one was already engaged would have CLEARED it, and an
+   * abort raised while nothing had subscribed to `vessel.control` resolved to
+   * nothing at all and dispatched silently nowhere. Neither is a thing an abort
+   * vote can be allowed to do.
+   *
+   * Naming `setAbort` with an absolute `true` says what the operator meant, and
+   * needs no current value to say it.
    */
-  private dispatchCommand(action: string): void {
-    const outcome = dispatchActiveCommand("data", action);
-    if (outcome.routed) {
-      void outcome.settled;
-    } else {
-      void this.dataSource?.execute(action);
-    }
+  private dispatchCommand(command: string, args: unknown): void {
+    const outcome = dispatchActiveCommandTopic(command, args);
+    if (outcome.routed) void outcome.settled;
   }
 
   // ───────────────────────────────────────────────────────────────────────
@@ -322,7 +324,7 @@ export class GoNoGoHostService {
     // is instantiated only on MainScreen.
     playCountdownTone(true);
     if (this.config.triggerStageAtZero) {
-      void this.dispatchCommand("f.stage");
+      void this.dispatchCommand("vessel.control.stage", null);
     }
     this.emit();
   }

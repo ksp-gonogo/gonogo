@@ -214,14 +214,36 @@ export const TOPIC_IDS = [
 const TOPIC_ID_SET: ReadonlySet<string> = new Set(TOPIC_IDS);
 
 /**
- * Runtime registry of bare-primitive Uplink Topic ids, the ids that carry a naked JSON
- * boolean, so they have no named C# payload type and are owned by a single Uplink rather
- * than the shared SDK. Each owning Uplink's client package calls
- * `registerBarePrimitiveTopic` at module load (mirrors the `registerComponent`
+ * Runtime registry of bare-primitive Topic ids, the ids that carry a naked JSON
+ * boolean and so have no named C# payload type for the codegen to reflect. Most are owned
+ * by a single Uplink rather than the shared SDK, and each owning Uplink's client package
+ * calls `registerBarePrimitiveTopic` at module load (mirrors the `registerComponent`
  * self-registration idiom), so the SDK can narrow/enumerate them without ever naming the
  * mod token in this file. See the file header's "Bare-primitive Uplink Topics" note.
+ *
+ * The first-party ones below are the exception, and they are named here because they
+ * belong to no Uplink: core publishes them itself.
  */
 const barePrimitiveTopicIds = new Set<string>();
+
+/**
+ * First-party Topics whose payload is a naked boolean.
+ *
+ * `Sitrep.Host` publishes both beside the structured record they summarise
+ * (`crash.lastCrash`, `recovery.lastSummary`), and a bare bool has no payload class, so
+ * neither appears in the generated Topic list however real it is. Until now the only thing
+ * vouching for them was an identity entry in the retiring migration table, which made a
+ * genuine wire Topic classify as a legacy key and would have left a widget declaring one
+ * with nothing to resolve against once that table went.
+ */
+const FIRST_PARTY_BARE_PRIMITIVE_TOPICS = [
+  "crash.hasRecent",
+  "recovery.hasRecent",
+] as const;
+
+for (const id of FIRST_PARTY_BARE_PRIMITIVE_TOPICS) {
+  barePrimitiveTopicIds.add(id);
+}
 
 /**
  * Self-register an Uplink-owned Topic id absent from this SDK's own generated

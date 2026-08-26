@@ -8,14 +8,27 @@ import type {
 import {
   AugmentSlot,
   actionGroupIdOf,
+  buildToggleArgs,
   getSizeBucket,
   registerComponent,
+  resolveGroupValue,
+  TOGGLE_INVALID,
+  toggleCommandFor,
   useActionGroupFrom,
   useActionGroups,
   useActionInput,
   useTelemetry,
 } from "@ksp-gonogo/core";
 import { type Reading, useCommand } from "@ksp-gonogo/sitrep-client";
+
+// Re-exported: these moved to core beside the registry they key into, and this
+// widget was where they were written.
+export {
+  buildToggleArgs,
+  TOGGLE_INVALID,
+  toggleCommandFor,
+} from "@ksp-gonogo/core";
+
 import type { VesselControl, VesselStructure } from "@ksp-gonogo/sitrep-sdk";
 import {
   BellIcon,
@@ -136,120 +149,11 @@ function stillTrue<T, A>(
 }
 
 /**
- * Resolves one group's live value off the canonical payloads.
- *
- * A CUSTOM group carries an `index` and is found in `control.actionGroups` by
- * that index: never by array position (position stopped implying identity when
- * the wire shape became a named list) and never by name (two AGX groups may
- * share a display name).
- *
- * A STOCK singleton has no `index` and reads its own typed field. `Stage` is
- * the odd one out: it isn't a control input at all, so it comes off
- * `vessel.structure.currentStage` and is the only NUMERIC readout here.
- */
-function resolveGroupValue(
-  group: ActionGroup | undefined,
-  payload: VesselControl | VesselStructure | undefined,
-): unknown {
-  if (!group) return undefined;
-  const control = payload as VesselControl | undefined;
-  // The INDEX is asked before any name, here and in every other decider below.
-  // A group carrying one is a custom group whatever the player called it, and
-  // a name test that runs first hands "Stage" to the staging branch.
-  if (group.index !== undefined) {
-    return control?.actionGroups?.find((g) => g.index === group.index)?.state;
-  }
-  // Stage reads the OTHER topic; see ActionGroupComponent.
-  if (group.name === "Stage") {
-    return (payload as VesselStructure | undefined)?.currentStage;
-  }
-  switch (group.name) {
-    case "SAS":
-      return control?.sas;
-    case "RCS":
-      return control?.rcs;
-    case "Light":
-      return control?.lights;
-    case "Gear":
-      return control?.gear;
-    case "Brake":
-      return control?.brakes;
-    case "Abort":
-      return control?.abort;
-    case "Precision Control":
-      return control?.precisionControl;
-    default:
-      // A configured id that no longer exists, e.g. a saved AGX group after
-      // AGX was uninstalled. Unknown, not false: the pill shows NULL_DISPLAY.
-      return undefined;
-  }
-}
-
-/**
  * Sentinel: the current value isn't a boolean yet (unknown, or a numeric Stage
  * read through the wrong branch), so a toggle cannot safely be inverted.
  * Mirrors `map-command`'s own `INVALID` contract: never dispatch an ambiguous
  * toggle as a blind set.
  */
-const TOGGLE_INVALID: unique symbol = Symbol("action-group-toggle-invalid");
-
-/**
- * The mapped absolute-set command for one group's toggle, or `null` when the
- * group has no toggle (Precision Control) or is not recognised. Every toggle
- * this widget fires actuates the vessel, so all of them ride `useCommand` and
- * are subject to signal delay.
- *
- * Keyed the same way `map-command`'s `LEGACY_COMMAND_HOMES` and
- * `actionGroupHome` are: an AGX custom (`group.index !== undefined`) always
- * resolves to the shared `setActionGroup` command regardless of name, Stage has
- * its own unconditional non-invert command, and the remaining stock singletons
- * each have a dedicated absolute-set command.
- *
- * The toggle-to-absolute bridge itself is built here off the group's already
- * known live `value`, which this widget reads anyway for the state pill, so no
- * separate current-value sample is needed.
- */
-export function toggleCommandFor(group: ActionGroup): string | null {
-  if (group.index !== undefined) return "vessel.control.setActionGroup";
-  if (group.name === "Stage") return "vessel.control.stage";
-  switch (group.name) {
-    case "SAS":
-      return "vessel.control.setSas";
-    case "RCS":
-      return "vessel.control.setRcs";
-    case "Light":
-      return "vessel.control.setLights";
-    case "Gear":
-      return "vessel.control.setGear";
-    case "Brake":
-      return "vessel.control.setBrakes";
-    case "Abort":
-      return "vessel.control.setAbort";
-    default:
-      return null; // Precision Control (read-only) or an unrecognized group.
-  }
-}
-
-/**
- * Builds the wire args for `toggleCommandFor(group)`'s command, inverting
- * the group's own live `value`. Stage takes no args (its handler ignores
- * them, matching `map-command.ts`'s `f.stage` home) and needs no invert.
- * Every other group is `TOGGLE_INVALID` unless `value` is a real boolean:
- * an unresolved/stale read must never be blindly inverted.
- */
-export function buildToggleArgs(
-  group: ActionGroup,
-  value: unknown,
-): unknown | typeof TOGGLE_INVALID {
-  if (group.index !== undefined) {
-    if (typeof value !== "boolean") return TOGGLE_INVALID;
-    return { group: group.index, state: !value };
-  }
-  if (group.name === "Stage") return null;
-  if (typeof value !== "boolean") return TOGGLE_INVALID;
-  return { enabled: !value };
-}
-
 // ---------------------------------------------------------------------------
 // Main component
 // ---------------------------------------------------------------------------

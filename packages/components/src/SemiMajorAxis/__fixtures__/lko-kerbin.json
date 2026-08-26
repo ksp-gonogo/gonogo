@@ -4,7 +4,7 @@
     "notes": "Low Kerbin Orbit. Kerbin radius 600 km + ~80 km altitude = 680 km SMA. Sparkline shows the last 5 minutes of station-keeping nudging the SMA up by ~600 m."
   },
   "_series": {
-    "o.sma": [
+    "vessel.orbit.sma": [
       {
         "t": -300000,
         "v": 679400
@@ -35,7 +35,7 @@
       }
     ]
   },
-  "o.sma": 680000,
+  "vessel.orbit.sma": 680000,
   "o.referenceBody": "Kerbin",
   "_stream": {
     "carriedChannels": [

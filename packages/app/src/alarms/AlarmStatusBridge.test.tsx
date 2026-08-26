@@ -107,9 +107,24 @@ describe("alarmSubjectKey / alarmMatchesWidget", () => {
  * what surfaced that; reading it did not.
  */
 describe("alarm attribution survives the vocabulary migration", () => {
-  const funds = makeAlarm("f", "FUNDS", "firing", threshold("career.funds"));
-  const bodies = makeAlarm("b", "BODIES", "firing", threshold("b.number"));
-  const apoapsis = makeAlarm("o", "AP", "firing", threshold("o.ApA"));
+  const funds = makeAlarm(
+    "f",
+    "FUNDS",
+    "firing",
+    threshold("career.status.economy.funds"),
+  );
+  const bodies = makeAlarm(
+    "b",
+    "BODIES",
+    "firing",
+    threshold("system.state.bodyCount"),
+  );
+  const apoapsis = makeAlarm(
+    "o",
+    "AP",
+    "firing",
+    threshold("vessel.state.apoapsisAlt"),
+  );
 
   it("matches a widget declaring the field subtopic the key maps to", () => {
     expect(alarmMatchesWidget(funds, ["career.status.economy.funds"])).toBe(
@@ -138,11 +153,6 @@ describe("alarm attribution survives the vocabulary migration", () => {
     expect(alarmMatchesWidget(apoapsis, ["vessel.comms"])).toBe(false);
   });
 
-  it("keeps matching a widget that has not migrated yet", () => {
-    expect(alarmMatchesWidget(funds, ["career.funds"])).toBe(true);
-    expect(alarmMatchesWidget(bodies, ["b.number"])).toBe(true);
-  });
-
   it("attributes a contract-parameter alarm without a legacy key", () => {
     const contract = makeAlarm("c", "CONTRACT", "firing", {
       kind: "contract-parameter",
@@ -158,8 +168,6 @@ describe("alarm attribution survives the vocabulary migration", () => {
       alarmMatchesWidget(contract, ["career.status.contracts.active"]),
     ).toBe(true);
     expect(alarmMatchesWidget(contract, ["career.status"])).toBe(true);
-    // and the widgets that have not migrated off the legacy key yet
-    expect(alarmMatchesWidget(contract, ["contracts.active"])).toBe(true);
   });
 
   it("attributes an alarm to LandingStatus, which no alarm could reach", () => {
@@ -186,7 +194,7 @@ describe("alarm attribution survives the vocabulary migration", () => {
       "i",
       "IMPACT",
       "firing",
-      threshold("land.timeToImpact"),
+      threshold("vessel.state.landingTimeToImpact"),
     );
     expect(alarmMatchesWidget(impact, landingStatus)).toBe(true);
   });
@@ -247,7 +255,7 @@ describe("AlarmStatusBridge", () => {
           makeAlarm("a", "IMPACT", "firing", threshold("vessel.altitude")),
         ]),
         <>
-          <AlarmStatusBridge declaredTopics={["career.funds"]} />
+          <AlarmStatusBridge declaredTopics={["career.status.economy.funds"]} />
           <SummaryProbe />
         </>,
       ),

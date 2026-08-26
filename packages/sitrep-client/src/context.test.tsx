@@ -3,7 +3,7 @@ import { act, render } from "@ksp-gonogo/test-utils";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { TelemetryClient } from "./client";
 import {
-  dispatchActiveCommand,
+  dispatchActiveCommandTopic,
   getActiveCarriedChannels,
   getActiveTelemetryClient,
   TelemetryProvider,
@@ -451,16 +451,16 @@ describe("useViewUt: reactive view-UT surface (R6 t.universalTime DROP → view-
   });
 });
 
-describe("dispatchActiveCommand / getActiveTelemetryClient / getActiveCarriedChannels: non-hook command dispatch", () => {
+describe("dispatchActiveCommandTopic / getActiveTelemetryClient / getActiveCarriedChannels: non-hook command dispatch", () => {
   it("reports unrouted when no TelemetryProvider is mounted", () => {
     expect(getActiveTelemetryClient()).toBeUndefined();
     expect(getActiveCarriedChannels()).toBeUndefined();
-    expect(dispatchActiveCommand("data", "f.stage")).toEqual({
+    expect(dispatchActiveCommandTopic("vessel.control.stage", null)).toEqual({
       routed: false,
     });
   });
 
-  it("routes a mapped + carried command through TelemetryClient.dispatch, and settles without rejecting", async () => {
+  it("routes a carried command through TelemetryClient.dispatch, and settles without rejecting", async () => {
     const transport = new StubTransport();
     const client = new TelemetryClient(transport);
     let receivedCommand: string | undefined;
@@ -481,7 +481,7 @@ describe("dispatchActiveCommand / getActiveTelemetryClient / getActiveCarriedCha
     expect(getActiveTelemetryClient()).toBe(client);
     expect(getActiveCarriedChannels()?.has("vessel.control.stage")).toBe(true);
 
-    const outcome = dispatchActiveCommand("data", "f.stage");
+    const outcome = dispatchActiveCommandTopic("vessel.control.stage", null);
     expect(outcome.routed).toBe(true);
     if (outcome.routed) await outcome.settled;
     expect(receivedCommand).toBe("vessel.control.stage");
@@ -490,7 +490,7 @@ describe("dispatchActiveCommand / getActiveTelemetryClient / getActiveCarriedCha
     client.dispose();
   });
 
-  it("falls back to unrouted when the mapped command's topic isn't carried", () => {
+  it("reports unrouted when the command's topic isn't carried", () => {
     const transport = new StubTransport();
     const client = new TelemetryClient(transport);
 
@@ -500,7 +500,7 @@ describe("dispatchActiveCommand / getActiveTelemetryClient / getActiveCarriedCha
       </TelemetryProvider>,
     );
 
-    expect(dispatchActiveCommand("data", "f.stage")).toEqual({
+    expect(dispatchActiveCommandTopic("vessel.control.stage", null)).toEqual({
       routed: false,
     });
 

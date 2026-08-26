@@ -103,11 +103,10 @@ export type AlarmTrigger =
   | EventTrigger;
 
 /**
- * Side-effect to dispatch when the alarm fires. Currently action-group
- * only: the operator picks an existing action key (`f.ag1`,
- * `f.stage`, etc.) and the host calls `dataSource.execute()` at fire
- * time. Lives alongside the visual fire event so the central alarm
- * pipeline (warp dewarp ramp, cross-screen acknowledge) covers the
+ * Side-effect to dispatch when the alarm fires. Currently action-group only:
+ * the operator picks a group and the host resolves it to that group's own
+ * command at fire time. Lives alongside the visual fire event so the central
+ * alarm pipeline (warp dewarp ramp, cross-screen acknowledge) covers the
  * action-group dispatch automatically: see
  * `project_central_alarm_pipeline.md`.
  *
@@ -117,7 +116,15 @@ export type AlarmTrigger =
  */
 export type AlarmFireAction = {
   kind: "action-group";
-  /** Action key, e.g. `f.ag1`, `f.abort`, `f.stage`. */
+  /**
+   * Which group to fire, as `actionGroupIdOf` spells it: a stock singleton's
+   * name (`"SAS"`, `"Stage"`) or `AG<index>` for a custom.
+   *
+   * The index rather than the name on the custom half, for the reason that
+   * function's own doc gives: two AGX groups can share a display name, and a
+   * player naming one "Stage" would otherwise resolve to the stock Stage and
+   * drop a stage off the vessel.
+   */
   action: string;
 };
 

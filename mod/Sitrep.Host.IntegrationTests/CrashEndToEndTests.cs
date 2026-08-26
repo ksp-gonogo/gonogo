@@ -67,7 +67,7 @@ namespace Sitrep.Host.IntegrationTests
             {
                 await using var client = await TestClient.ConnectAsync(engine.BoundPort, Timeout);
                 await SubscribeAsync(client, CrashTopics.LastCrashTopic, Timeout);
-                await SubscribeAsync(client, CrashTopics.HasRecent, Timeout);
+                await SubscribeAsync(client, CrashTopics.HasRecentTopic, Timeout);
 
                 const double ut = 41486.3595;
                 uplink.LastCrash!.Publish(SampleCrash("vessel-a", "CrashSplashdown", ut), ut);
@@ -82,8 +82,8 @@ namespace Sitrep.Host.IntegrationTests
                 }
 
                 Assert.True(byTopic.ContainsKey(CrashTopics.LastCrashTopic));
-                Assert.True(byTopic.ContainsKey(CrashTopics.HasRecent));
-                Assert.Equal(true, byTopic[CrashTopics.HasRecent].Payload);
+                Assert.True(byTopic.ContainsKey(CrashTopics.HasRecentTopic));
+                Assert.Equal(true, byTopic[CrashTopics.HasRecentTopic].Payload);
 
                 var payload = Assert.IsType<Dictionary<string, object?>>(byTopic[CrashTopics.LastCrashTopic].Payload);
                 Assert.Equal("CrashSplashdown", payload["eventKind"]);
@@ -164,7 +164,7 @@ namespace Sitrep.Host.IntegrationTests
                 Channels = new List<ChannelDeclaration>
                 {
                     Channel(CrashTopics.LastCrashTopic),
-                    Channel(CrashTopics.HasRecent),
+                    Channel(CrashTopics.HasRecentTopic),
                 },
             };
 
@@ -179,7 +179,7 @@ namespace Sitrep.Host.IntegrationTests
             public void Register(IUplinkHost host)
             {
                 LastCrash = host.Publisher(CrashTopics.LastCrashTopic);
-                HasRecent = host.Publisher(CrashTopics.HasRecent);
+                HasRecent = host.Publisher(CrashTopics.HasRecentTopic);
             }
         }
     }

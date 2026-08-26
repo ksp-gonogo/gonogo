@@ -3,7 +3,7 @@
     "scenario": "escape-kerbin",
     "notes": "Hyperbolic escape trajectory around Kerbin. SMA is negative for hyperbolic orbits. Exercises the formatDistance function with a negative value."
   },
-  "o.sma": -5000000,
+  "vessel.orbit.sma": -5000000,
   "o.referenceBody": "Kerbin",
   "_stream": {
     "carriedChannels": [

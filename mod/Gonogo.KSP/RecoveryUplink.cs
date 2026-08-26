@@ -78,7 +78,7 @@ namespace Gonogo.KSP
             Channels = new List<ChannelDeclaration>
             {
                 Channel(RecoveryTopics.LastSummaryTopic, Delivery.ReliableOrdered),
-                Channel(RecoveryTopics.HasRecent, Delivery.ReliableOrdered),
+                Channel(RecoveryTopics.HasRecentTopic, Delivery.ReliableOrdered),
             },
         };
 
@@ -89,7 +89,7 @@ namespace Gonogo.KSP
         public void Register(IUplinkHost host)
         {
             _lastSummary = host.Publisher(RecoveryTopics.LastSummaryTopic);
-            _hasRecent = host.Publisher(RecoveryTopics.HasRecent);
+            _hasRecent = host.Publisher(RecoveryTopics.HasRecentTopic);
 
             HookGameEvents();
         }

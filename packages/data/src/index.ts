@@ -88,7 +88,6 @@ export * from "./replaySession/ReplaySessionBanner";
 export * from "./replaySession/ReplaySessionController";
 export * from "./replaySession/ReplaySessionProvider";
 export { registerBuiltinDerivedKeys } from "./schema/builtinDerivedKeys";
-export { enrichKey, LEGACY_KEY_META } from "./schema/legacyKeyMeta";
 export {
   humaniseFieldPath,
   isThresholdSubject,

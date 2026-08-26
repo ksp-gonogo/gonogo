@@ -1,11 +1,11 @@
 import { Quality } from "@ksp-gonogo/sitrep-sdk";
 import { describe, expect, it } from "vitest";
-import { LEGACY_KEY_HOMES } from "./map-topic";
 import { makeMeta } from "./stub-transport";
 import type { TimelinePoint } from "./timeline";
 import type { DerivedGet } from "./timeline-store";
 import {
   deriveVesselState,
+  VESSEL_STATE_FIELDS,
   type VesselFlightPayload,
   type VesselOrbitPayload,
 } from "./vessel-state";
@@ -102,22 +102,28 @@ function producedVesselStateFields(): Set<string> {
   return fields;
 }
 
-describe("mapTopic vessel.state.* targets stay in sync with deriveVesselState's real output (Fix 2 phantom-field guard)", () => {
+describe("vessel.state's declared fields stay in sync with deriveVesselState's real output (phantom-field guard)", () => {
   const produced = producedVesselStateFields();
+  const declared = new Set(Object.keys(VESSEL_STATE_FIELDS));
 
   it("sanity: the derivation actually produced a non-trivial field set", () => {
     expect(produced.size).toBeGreaterThan(3);
   });
 
-  it("every mapTopic target under the vessel.state.* namespace names a field deriveVesselState actually produces", () => {
-    const vesselStateTargets = Object.values(LEGACY_KEY_HOMES).filter(
-      (target) => target.startsWith("vessel.state."),
-    );
-
-    const phantoms = vesselStateTargets
-      .map((target) => target.slice("vessel.state.".length))
-      .filter((field) => !produced.has(field));
-
+  it("declares no field the derivation never produces", () => {
+    // A declared field the derivation does not produce reads as a permanent
+    // `undefined`, which `sampleDerived` cannot tell from "not whole yet". It
+    // would sit in every picker looking like a value that has not arrived.
+    const phantoms = [...declared].filter((field) => !produced.has(field));
     expect(phantoms).toEqual([]);
+  });
+
+  it("declares every field the derivation does produce", () => {
+    // The other direction, which the check this replaces could not ask: it
+    // read the migration table, so a field no legacy key ever named was
+    // invisible to it. An undeclared field is absent from the catalogue, so
+    // nothing can pick it and nothing says why.
+    const undeclared = [...produced].filter((field) => !declared.has(field));
+    expect(undeclared).toEqual([]);
   });
 });

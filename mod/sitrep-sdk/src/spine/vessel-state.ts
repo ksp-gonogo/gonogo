@@ -2101,7 +2101,7 @@ type VesselStateFieldShape =
  * decoded WIRE frames). So this records what a field means, which is what an
  * enumeration and a display need, and does not claim the field arrives wrapped.
  */
-const VESSEL_STATE_FIELDS: Readonly<
+export const VESSEL_STATE_FIELDS: Readonly<
   Record<keyof VesselState, VesselStateFieldShape>
 > = {
   altitudeAsl: { unit: "m" },

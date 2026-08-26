@@ -1,6 +1,6 @@
 import { getBody, safeRandomUuid } from "@ksp-gonogo/core";
 import {
-  dispatchActiveCommand,
+  dispatchActiveCommandTopic,
   getValue,
   getVesselIdentity,
   getVesselOrbit,
@@ -146,8 +146,16 @@ export class LocalManeuverTriggerService implements ManeuverTriggerService {
     if (!plan) return;
     const burns = isSequence(plan) ? plan.burns : [plan];
     for (const b of burns) {
-      const action = `o.addManeuverNode[${b.ut.toFixed(3)},${b.radial.toFixed(3)},${b.normal.toFixed(3)},${b.prograde.toFixed(3)}]`;
-      const outcome = dispatchActiveCommand(this.sourceId, action);
+      // Named directly, with the burn's own numbers as arguments. They used to
+      // be formatted to three decimals into a key so a table could parse them
+      // back out, which lost precision on the way through for no reason but the
+      // key's shape.
+      const outcome = dispatchActiveCommandTopic("vessel.maneuver.add", {
+        ut: b.ut,
+        prograde: b.prograde,
+        normal: b.normal,
+        radialOut: b.radial,
+      });
       if (outcome.routed) void outcome.settled;
     }
   }

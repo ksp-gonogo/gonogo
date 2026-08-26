@@ -70,7 +70,7 @@ function makeSnapshot(alarms: Alarm[] = []): AlarmSnapshot {
 /**
  * The onFire picker lists the action-group registry, whose CUSTOM half
  * (`AG1`..`AG10`) is derived from live `vessel.control` telemetry rather than
- * hardcoded: so a bare `render()` shows only the stock singletons and `f.ag1`
+ * hardcoded: so a bare `render()` shows only the stock singletons and `AG1`
  * isn't a selectable option at all. Mount the minimal real stream carrying the
  * ten stock customs, exactly as the mod sends them.
  */
@@ -130,15 +130,15 @@ describe("AlarmsModal onFire editor", () => {
     await user.type(screen.getByLabelText(/^name$/i), "Stage");
 
     const picker = await screen.findByLabelText(/action group to fire/i);
-    await screen.findByRole("option", { name: /^AG1 \(f\.ag1\)/ });
-    await user.selectOptions(picker, "f.ag1");
+    await screen.findByRole("option", { name: /^AG1 \(AG1\)/ });
+    await user.selectOptions(picker, "AG1");
     await user.click(screen.getByRole("button", { name: /\+ add action/i }));
 
     await user.click(screen.getByRole("button", { name: /^add alarm$/i }));
 
     expect(onAdd).toHaveBeenCalledTimes(1);
     expect(onAdd.mock.calls[0][0].onFire).toEqual([
-      { kind: "action-group", action: "f.ag1" },
+      { kind: "action-group", action: "AG1" },
     ]);
   });
 
@@ -150,7 +150,7 @@ describe("AlarmsModal onFire editor", () => {
         onUpdate={() => {}}
         onDelete={() => {}}
       />,
-      // One part with an action bound to Custom01 (== the f.ag1 toggle), the
+      // One part with an action bound to Custom01 (== the AG1 group), the
       // caption now derives from this, not the retired f.ag.bindings shim.
       {
         parts: [
@@ -175,7 +175,7 @@ describe("AlarmsModal onFire editor", () => {
     // (Custom01 -> "Toggle Solar Panel"), proving the shim replacement works.
     await screen.findByLabelText(/action group to fire/i);
     await screen.findByRole("option", {
-      name: /AG1 \(f\.ag1\): Toggle Solar Panel/,
+      name: /AG1 \(AG1\): Toggle Solar Panel/,
     });
   });
 
@@ -189,7 +189,7 @@ describe("AlarmsModal onFire editor", () => {
       state: "pending",
       createdBy: "main",
       createdAt: 1_700_000_000_000,
-      onFire: [{ kind: "action-group", action: "f.stage" }],
+      onFire: [{ kind: "action-group", action: "Stage" }],
     };
     render(
       <AlarmsModal
@@ -201,7 +201,7 @@ describe("AlarmsModal onFire editor", () => {
     );
 
     const removeButton = await screen.findByRole("button", {
-      name: /remove f\.stage from existing/i,
+      name: /remove Stage from existing/i,
     });
     await user.click(removeButton);
 

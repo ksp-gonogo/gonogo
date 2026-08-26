@@ -47,7 +47,7 @@ describe("SemiMajorAxis: renders off the stream alone (R6 Wave 1)", () => {
 
     act(() => {
       fixture.emit("vessel.orbit", {
-        sma: lkoKerbin["o.sma"],
+        sma: lkoKerbin["vessel.orbit.sma"],
         referenceBodyIndex: 1,
       });
       fixture.emit("system.bodies", {

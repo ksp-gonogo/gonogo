@@ -95,7 +95,7 @@ function buildOrbitStoreFixture(pinnedUt: number) {
  * pinnedUt` puts the vessel at periapsis exactly at the pinned view-UT.
  * `sma`/`ecc` also drive `vessel.state.apoapsisRadius` (`sma·(1+ecc)`,
  * body-radius-independent: see `vessel-state.ts`), which is what this
- * file's `dataKey: "o.ApR"` triggers threshold against: 700_000 · 1.01 =
+ * file's `dataKey: "vessel.state.apoapsisRadius"` triggers threshold against: 700_000 · 1.01 =
  * 707_000 at the defaults below.
  */
 function kerbinOrbitPayload(pinnedUt: number, sma = 700_000) {
@@ -164,10 +164,15 @@ describe("ManeuverTriggerHostService", () => {
     seedKerbinOrbit();
     const svc = makeService();
     // 707_000 (baseline apoapsisRadius) stays below 800_000: pending, not fired.
-    svc.arm({ dataKey: "o.ApR", op: ">=", value: 800_000, inputs: FROZEN });
+    svc.arm({
+      dataKey: "vessel.state.apoapsisRadius",
+      op: ">=",
+      value: 800_000,
+      inputs: FROZEN,
+    });
     const snap = svc.snapshot();
     expect(snap.triggers).toHaveLength(1);
-    expect(snap.triggers[0].dataKey).toBe("o.ApR");
+    expect(snap.triggers[0].dataKey).toBe("vessel.state.apoapsisRadius");
     expect(snap.triggers[0].vesselName).toBe("Test Vessel");
   });
 
@@ -175,7 +180,12 @@ describe("ManeuverTriggerHostService", () => {
     seedKerbinOrbit();
     const svc = makeService();
     // 707_000 (baseline apoapsisRadius) already clears 700_000.
-    svc.arm({ dataKey: "o.ApR", op: ">=", value: 700_000, inputs: FROZEN });
+    svc.arm({
+      dataKey: "vessel.state.apoapsisRadius",
+      op: ">=",
+      value: 700_000,
+      inputs: FROZEN,
+    });
     expect(svc.snapshot().triggers).toHaveLength(0);
   });
 
@@ -183,7 +193,12 @@ describe("ManeuverTriggerHostService", () => {
     const storeFixture = seedKerbinOrbit();
     const svc = makeService();
     // 707_000 stays below 750_000: pending until the orbit changes.
-    svc.arm({ dataKey: "o.ApR", op: ">=", value: 750_000, inputs: FROZEN });
+    svc.arm({
+      dataKey: "vessel.state.apoapsisRadius",
+      op: ">=",
+      value: 750_000,
+      inputs: FROZEN,
+    });
     expect(storeFixture.calls).toEqual([]);
     // Bump sma so apoapsisRadius (sma·1.01) clears 750_000.
     storeFixture.emitOrbit(kerbinOrbitPayload(1_000_000, 800_000));
@@ -199,7 +214,12 @@ describe("ManeuverTriggerHostService", () => {
   it("auto-clears triggers when the active vessel changes", () => {
     const storeFixture = seedKerbinOrbit();
     const svc = makeService();
-    svc.arm({ dataKey: "o.ApR", op: ">=", value: 800_000, inputs: FROZEN });
+    svc.arm({
+      dataKey: "vessel.state.apoapsisRadius",
+      op: ">=",
+      value: 800_000,
+      inputs: FROZEN,
+    });
     expect(svc.snapshot().triggers).toHaveLength(1);
     storeFixture.emitIdentity({
       vesselId: "different-vessel",
@@ -213,20 +233,32 @@ describe("ManeuverTriggerHostService", () => {
   it("persists triggers across construction and restores them on load", () => {
     seedKerbinOrbit();
     const svc1 = makeService();
-    svc1.arm({ dataKey: "o.ApR", op: ">=", value: 999_999, inputs: FROZEN });
+    svc1.arm({
+      dataKey: "vessel.state.apoapsisRadius",
+      op: ">=",
+      value: 999_999,
+      inputs: FROZEN,
+    });
     expect(svc1.snapshot().triggers).toHaveLength(1);
     svc1.dispose();
     // New service over the same storage: same vessel name (still seeded)
     // so the persisted trigger isn't auto-cleared on load.
     const svc2 = makeService();
     expect(svc2.snapshot().triggers).toHaveLength(1);
-    expect(svc2.snapshot().triggers[0].dataKey).toBe("o.ApR");
+    expect(svc2.snapshot().triggers[0].dataKey).toBe(
+      "vessel.state.apoapsisRadius",
+    );
   });
 
   it("cancel() removes a pending trigger and emits a snapshot", () => {
     const storeFixture = seedKerbinOrbit();
     const svc = makeService();
-    svc.arm({ dataKey: "o.ApR", op: ">=", value: 999_999, inputs: FROZEN });
+    svc.arm({
+      dataKey: "vessel.state.apoapsisRadius",
+      op: ">=",
+      value: 999_999,
+      inputs: FROZEN,
+    });
     const id = svc.snapshot().triggers[0].id;
     let lastSize = -1;
     svc.subscribe((s) => {

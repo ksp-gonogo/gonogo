@@ -269,7 +269,6 @@ export const DOC_DEBT: Record<string, Partial<Record<Tier, number>>> = {
   "mod/sitrep-sdk/src/reading.ts": { T2: 1 },
   "mod/sitrep-sdk/src/spine/client.ts": { T2: 1 },
   "mod/sitrep-sdk/src/spine/context.tsx": { T1a: 1, T2: 5 },
-  "mod/sitrep-sdk/src/spine/map-topic.ts": { T1a: 1 },
   "mod/sitrep-sdk/src/spine/orbit-patches.ts": { T2: 1 },
   "mod/sitrep-sdk/src/spine/timeline-store.ts": { T2: 4 },
   "mod/sitrep-sdk/src/spine/uplink-health.ts": { T2: 1 },

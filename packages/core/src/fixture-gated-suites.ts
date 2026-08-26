@@ -54,13 +54,6 @@ export const FIXTURE_GATED_SUITES: readonly FixtureGatedSuite[] = [
       "the full TS SDK replayed against genuine engine output: derived channels, epoch/ghost handling, staleness and certainty, the ViewClock estimator",
   },
   {
-    file: "packages/sitrep-client/src/map-topic.rawFieldResolution.fixture.test.ts",
-    fixture: "local_docs/telemetry-mod/recordings/reference-wire-fixture.json",
-    tests: 4,
-    covers:
-      "every CLEAN_HOMES raw-field path resolving against a real captured payload shape rather than a hand-built one",
-  },
-  {
     file: "packages/components/src/WarpControl/dual-run.test.tsx",
     fixture: "local_docs/telemetry-mod/recordings/reference-wire-fixture.json",
     tests: 1,

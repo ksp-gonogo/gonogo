@@ -1,6 +1,36 @@
+import { readdirSync, readFileSync, statSync } from "node:fs";
+import { dirname, join } from "node:path";
+import { fileURLToPath } from "node:url";
 import { classifyRequirement, getComponents } from "@ksp-gonogo/core";
 import { describe, expect, it } from "vitest";
 import "../index";
+
+const COMPONENTS_SRC = join(dirname(fileURLToPath(import.meta.url)), "..");
+
+function collectComponentSources(): Array<{ file: string; text: string }> {
+  const out: Array<{ file: string; text: string }> = [];
+  const walk = (dir: string) => {
+    for (const entry of readdirSync(dir)) {
+      const full = join(dir, entry);
+      if (statSync(full).isDirectory()) {
+        if (entry === "__fixtures__" || entry === "node_modules") continue;
+        walk(full);
+      } else if (/\.tsx?$/.test(entry) && !/\.test\.tsx?$/.test(entry)) {
+        out.push({ file: full, text: readFileSync(full, "utf8") });
+      }
+    }
+  };
+  walk(COMPONENTS_SRC);
+  return out;
+}
+
+/**
+ * Comments mention the retired read form to record that it is gone, so a scan
+ * that read them would report every such note as an offender.
+ */
+function stripComments(text: string): string {
+  return text.replace(/\/\*[\s\S]*?\*\//g, "").replace(/\/\/[^\n]*/g, "");
+}
 
 /**
  * Every `dataRequirements` entry every built-in widget declares must be
@@ -74,6 +104,38 @@ describe("widget dataRequirements resolve to something real", () => {
     );
     expect(classifyRequirement("career.status")).toBe("wire-topic");
     expect(classifyRequirement("vessel.state")).toBe("derived-channel");
-    expect(classifyRequirement("career.funds")).toBe("legacy-key");
+    // A key from the retired flat vocabulary. It resolved once, through a
+    // migration table that no longer exists, and a declaration naming one now
+    // has nothing to resolve against: exactly the answer a name nothing
+    // publishes should get.
+    expect(classifyRequirement("career.funds")).toBeUndefined();
+  });
+});
+
+describe("no built-in widget reads through the retired key vocabulary", () => {
+  // The registry check above sees what a widget DECLARES. This sees what it
+  // READS, which is a separate way to name a retired key: the two-arg
+  // `useTelemetry("data", key)` overload takes a string the type system never
+  // checks, so a key that resolves to nothing there is a permanent `undefined`
+  // with nothing to say so.
+  //
+  // Already at zero when this landed, and that is the point: the guarantee the
+  // retired migration table's coverage gate carried was that every such read
+  // resolved. With the table gone the only keys that form can still resolve are
+  // an Uplink's dynamic namespaces, which live outside this package, so for
+  // built-in widgets the honest rule is that the form is not used at all.
+  const LEGACY_READ = /useTelemetry\(\s*"data"\s*,/g;
+
+  const sources = collectComponentSources();
+
+  it("finds the sources it claims to scan, so an empty result is not a pass", () => {
+    expect(sources.length).toBeGreaterThan(50);
+  });
+
+  it("uses no two-arg useTelemetry read", () => {
+    const offenders = sources
+      .filter(({ text }) => stripComments(text).match(LEGACY_READ))
+      .map(({ file }) => file);
+    expect(offenders).toEqual([]);
   });
 });

@@ -3,8 +3,11 @@
 // `vessel.state`'s is what registers its hand-declared field metadata. Without
 // that side effect the largest channel in the vocabulary enumerates as empty.
 import {
+  isTopicCarried,
   PRODUCTION_DERIVED_CHANNELS,
   redirectKinematicSubtopic,
+  TimelineStore,
+  ViewClock,
 } from "@ksp-gonogo/sitrep-client";
 import {
   DEFAULT_SITREP_CARRIED_TOPICS,
@@ -106,12 +109,42 @@ interface BuiltCatalog {
   undescribed: string[];
 }
 
-function buildTopicFieldCatalog(): BuiltCatalog {
-  const derivedTopics = new Set(
-    PRODUCTION_DERIVED_CHANNELS.map((c) => c.topic),
+/**
+ * Whether a derived channel's own inputs are actually promoted to the stream.
+ *
+ * A derived channel's NAME never appears in the carried list; only the raw
+ * Topics it computes from do. So a channel can be registered, enumerate a full
+ * field set, and still resolve to nothing forever because one of its inputs was
+ * never promoted. Offering its fields would put keys in front of an operator
+ * that can never carry a value, which is the failure the retired catalogue's
+ * mapped-AND-carried gate existed to prevent. That gate read the migration
+ * table, so it retired with it; the failure it caught did not.
+ *
+ * The store exists only to run that judgement, exactly as the retired
+ * catalogue's did: nothing is ever ingested into it.
+ */
+function carriedDerivedTopics(): ReadonlySet<string> {
+  const store = new TimelineStore(
+    new ViewClock({ delaySeconds: () => 0, warpRate: () => 1 }),
   );
+  for (const channel of PRODUCTION_DERIVED_CHANNELS) {
+    store.registerDerivedChannel(channel);
+  }
+  const carried = new Set(DEFAULT_SITREP_CARRIED_TOPICS);
+  const out = new Set<string>();
+  for (const channel of PRODUCTION_DERIVED_CHANNELS) {
+    if (isTopicCarried(store, carried, channel.topic)) out.add(channel.topic);
+  }
+  return out;
+}
+
+function buildTopicFieldCatalog(): BuiltCatalog {
+  const derivedTopics = carriedDerivedTopics();
   const topics = [
-    ...new Set([...DEFAULT_SITREP_CARRIED_TOPICS, ...derivedTopics]),
+    ...new Set([
+      ...DEFAULT_SITREP_CARRIED_TOPICS,
+      ...PRODUCTION_DERIVED_CHANNELS.map((c) => c.topic),
+    ]),
   ].sort();
 
   const keys: TopicFieldKey[] = [];

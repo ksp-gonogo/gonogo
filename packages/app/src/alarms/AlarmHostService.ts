@@ -1,6 +1,20 @@
-import { safeRandomUuid } from "@ksp-gonogo/core";
+import {
+  actionGroupIdOf,
+  actionGroupsFrom,
+  buildToggleArgs,
+  resolveGroupValue,
+  safeRandomUuid,
+  TOGGLE_INVALID,
+  toggleCommandFor,
+} from "@ksp-gonogo/core";
 import { LocalStorageStore } from "@ksp-gonogo/data";
-import { dispatchActiveCommand, getViewUt } from "@ksp-gonogo/sitrep-client";
+import {
+  type DispatchActiveCommandResult,
+  dispatchActiveCommandTopic,
+  getViewUt,
+  sampleActiveTopic,
+} from "@ksp-gonogo/sitrep-client";
+import type { VesselControl } from "@ksp-gonogo/sitrep-sdk";
 import type { PeerHostService } from "../peer/PeerHostService";
 import { AlarmPeerBridge } from "./AlarmPeerBridge";
 import {
@@ -71,6 +85,35 @@ export interface AlarmHostOptions {
    * the main screen passes one wired to the kerbcast Uplink's producer.
    */
   getRevealedEvents?: RevealedEventsReader;
+}
+
+/**
+ * Fire one action group, named by the id a save spells it with.
+ *
+ * Resolves the id against the LIVE registry, because the custom half of it is
+ * whatever the elected backend reports: an id naming a group this vessel does
+ * not have resolves to nothing and dispatches nothing, which is the honest
+ * answer for a saved action whose group is gone.
+ *
+ * The toggle-to-absolute bridge needs the group's current state to invert, and
+ * this is a headless caller with no widget of its own, so it samples
+ * `vessel.control` directly. A group whose state has not arrived yields
+ * `TOGGLE_INVALID` and dispatches nothing rather than a blind set: an alarm
+ * that guesses which way to flip a group is worse than one that does not fire.
+ */
+function dispatchActionGroup(
+  actionGroupId: string,
+): DispatchActiveCommandResult {
+  const control = sampleActiveTopic<VesselControl>("vessel.control");
+  const group = actionGroupsFrom(control?.actionGroups).find(
+    (g) => actionGroupIdOf(g) === actionGroupId,
+  );
+  if (!group) return { routed: false };
+  const command = toggleCommandFor(group);
+  if (command === null) return { routed: false };
+  const args = buildToggleArgs(group, resolveGroupValue(group, control));
+  if (args === TOGGLE_INVALID) return { routed: false };
+  return dispatchActiveCommandTopic(command, args);
 }
 
 export class AlarmHostService {
@@ -385,7 +428,7 @@ export class AlarmHostService {
     for (const fx of alarm.onFire) {
       switch (fx.kind) {
         case "action-group": {
-          const outcome = dispatchActiveCommand("data", fx.action);
+          const outcome = dispatchActionGroup(fx.action);
           if (outcome.routed) {
             try {
               await outcome.settled;

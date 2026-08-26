@@ -339,7 +339,7 @@ function PowerSystemsComponent({
   // (sum-of-parts) and is already buffered, so 120s of history is
   // available without extra subscriptions. Reading numeric values out
   // of the SeriesRange is the standard pattern.
-  const seriesKey = `r.resource[${resource}]`;
+  const seriesKey = `vessel.resources.resources.${resource}.current`;
   const series = useDataSeries("data", seriesKey, SPARKLINE_WINDOW_SEC);
   const sparkValues = useMemo(
     () =>
@@ -953,13 +953,11 @@ registerComponent<PowerSystemsConfig>({
   // useTopology reads `vessel.parts` directly (stream-native, bypasses
   // mapTopic); usePartsLive derives per-part thermal, resources, and
   // module state off that SAME payload: no per-flightId subscriptions.
-  // The sparkline reads r.resource[<defaultResource>]
-  // from the vessel-wide reservoir.
-  dataRequirements: [
-    "vessel.parts",
-    "r.resource[ElectricCharge]",
-    "parts.power",
-  ],
+  // The sparkline reads the vessel-wide reservoir for whichever resource is
+  // selected, off `vessel.resources`. The Topic is what it declares: the
+  // reservoir is keyed BY RESOURCE NAME, so the field path underneath it names
+  // a key the contract never does and only the Topic can be declared.
+  dataRequirements: ["vessel.parts", "vessel.resources", "parts.power"],
   defaultConfig: { defaultResource: "ElectricCharge" },
   actions: powerSystemsActions,
   // Augment slot. `sections`: body table/section below the stock readout

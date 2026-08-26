@@ -74,7 +74,7 @@ function makeLegacySource(id = "data") {
 
 function Throttle() {
   // @ts-expect-error two-arg form is type-banned; runtime shim still under test
-  const throttle = useTelemetry("data", "f.throttle");
+  const throttle = useTelemetry("data", "vessel.control.throttle");
   return (
     <div>
       throttle:{throttle === undefined ? NULL_DISPLAY : probeText(throttle)}
@@ -88,7 +88,7 @@ describe("SitrepTelemetryProvider: enabled-prop stream mount", () => {
     const legacy = makeLegacySource();
     registerDataSource(legacy);
 
-    // "f.throttle" maps to the raw-field subtopic "vessel.control.throttle",
+    // "vessel.control.throttle" maps to the raw-field subtopic "vessel.control.throttle",
     // which resolves down to the real wire topic "vessel.control".
     render(
       <SitrepTelemetryProvider
@@ -104,7 +104,7 @@ describe("SitrepTelemetryProvider: enabled-prop stream mount", () => {
 
     // A legacy emit must NOT surface, the topic is carried, so it routes to
     // the stream and bypasses legacy entirely.
-    act(() => legacy.emit("f.throttle", 0.4));
+    act(() => legacy.emit("vessel.control.throttle", 0.4));
     expect(screen.getByText(`throttle:${NULL_DISPLAY}`)).toBeTruthy();
 
     // The value that DOES surface comes off the stream.
@@ -123,7 +123,7 @@ describe("SitrepTelemetryProvider: enabled-prop stream mount", () => {
     );
 
     expect(screen.getByText(`throttle:${NULL_DISPLAY}`)).toBeTruthy();
-    act(() => legacy.emit("f.throttle", 0.4));
+    act(() => legacy.emit("vessel.control.throttle", 0.4));
     expect(screen.getByText("throttle:0.4")).toBeTruthy();
   });
 });

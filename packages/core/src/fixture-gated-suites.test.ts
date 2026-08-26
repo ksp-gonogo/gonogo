@@ -183,6 +183,6 @@ describe("suites that cannot run in CI are declared, not merely skipped", () => 
    * gutted.
    */
   it("reports how much coverage the absent fixtures cost", () => {
-    expect(fixtureGatedTestCount()).toBe(7);
+    expect(fixtureGatedTestCount()).toBe(3);
   });
 });

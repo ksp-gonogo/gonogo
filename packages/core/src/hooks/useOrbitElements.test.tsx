@@ -16,7 +16,7 @@ import { useOrbitElements } from "./useOrbitElements";
  * (`@ksp-gonogo/sitrep-client`'s `deriveVesselState`) via `useStream`, the
  * same channel `Targeting`/`TargetPicker`/`ManeuverPlanner`/
  * `CurrentOrbit` read for their own `vessel.state.*` fields, no more legacy
- * `useTelemetry("data", "o.ApR")`-style two-arg reads, no more `dataSourceId`
+ * `useTelemetry("data", "vessel.state.apoapsisRadius")`-style two-arg reads, no more `dataSourceId`
  * parameter (there is exactly one `vessel.state` channel to read).
  *
  * `apoapsisRadius`/`periapsisRadius`/`timeToAp`/`timeToPe` only populate in
