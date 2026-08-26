@@ -299,6 +299,7 @@ export async function renderWidgets(
     const page = await context.newPage();
     const pageErrors: string[] = [];
     const crushedGraphics: string[] = [];
+    const overlaps: string[] = [];
     page.on("pageerror", (err) => {
       console.error("  [page error]", err.message);
       pageErrors.push(err.message);
@@ -332,7 +333,25 @@ export async function renderWidgets(
         outBase,
         config.fullContent ?? fullContent,
         crushedGraphics,
+        overlaps,
       );
+    }
+
+    if (overlaps.length > 0) {
+      const message =
+        `${overlaps.length} pair(s) of stacked siblings painting into the same ` +
+        "pixels, so two sections of the widget are on top of each other:\n  " +
+        overlaps.join("\n  ");
+      if (process.env.PROBE_ALLOW_OVERLAP === "1") {
+        console.warn(`\n[warn] ${message}`);
+      } else {
+        throw new Error(
+          `${message}\n(Set PROBE_ALLOW_OVERLAP=1 to render anyway. A stacked ` +
+            "sibling overlap is usually a flex item with min-height:0 that was " +
+            "shrunk below its content: it keeps painting at its natural size and " +
+            "the content lands on whatever follows it.)",
+        );
+      }
     }
 
     if (crushedGraphics.length > 0) {
@@ -542,6 +561,163 @@ async function findCrushedGraphics(page: Page): Promise<string[]> {
   }, ASPECT_TOLERANCE);
 }
 
+/**
+ * Pixels two stacked siblings may share before it counts as a collision, big
+ * enough to absorb sub-pixel layout rounding and a 1px border sitting on a
+ * neighbour's edge, small enough that a line of text landing on a button is
+ * always over it.
+ */
+const OVERLAP_TOLERANCE_PX = 2;
+
+/**
+ * Every pair of stacked siblings under `#root` that paint into the same pixels,
+ * reported as `<a> "text" ⨯ <b> "text" overlap WxH inside <container>`.
+ *
+ * Normal flow is a stack: a block container's children, and a column flex
+ * container's items, occupy disjoint bands down the page. Two of them sharing
+ * pixels means one has painted outside its own box, and the widget is showing
+ * an operator two sections at once. That is not a thing a screenshot diff
+ * notices on a dark panel, and a jsdom snapshot cannot see it at all, because
+ * both sections are present and correct in the markup: only the boxes collide.
+ *
+ * A container is measured by its PAINTED extent, not its own border box, since
+ * the whole failure mode is content escaping a box that was sized too small for
+ * it. The walk unions in every descendant's rect and stops descending at any
+ * element whose `overflow` clips (`hidden`/`clip`/`auto`/`scroll`), because a
+ * clipping ancestor is exactly the promise that its content stays inside.
+ *
+ * Three kinds of overlap are DELIBERATE and are left out rather than allowed
+ * back in one by one:
+ *
+ * - Out-of-flow children: anything `absolute`/`fixed`/`sticky`, or `relative`
+ *   with a real offset, has been told to leave the stack. A badge hung over a
+ *   corner and a marker over a dial are both this.
+ * - Out-of-flow descendants, for the same reason: a marker drawn over its own
+ *   dial must not make the dial overlap the section below it.
+ * - Grid and row-flex containers, which are entitled to place two children in
+ *   one cell or one column.
+ *
+ * SVG is skipped outright, container and child alike. Its children are placed
+ * by coordinate and layered by document order, so overlap is the medium rather
+ * than a defect: the navball's bezel sits over its own horizon ribbon and every
+ * marker glyph stacks a dozen shapes. Chromium reports `display: block` for
+ * those elements, which is what made them look like a stack.
+ */
+const HTML_NS = "http://www.w3.org/1999/xhtml";
+async function findOverlappingSections(page: Page): Promise<string[]> {
+  return page.evaluate(
+    ([tolerance, htmlNs]) => {
+      const host = document.getElementById("root");
+      if (!host) return [] as string[];
+      const out: string[] = [];
+      const containers: Element[] = [
+        host,
+        ...Array.from(host.querySelectorAll("*")),
+      ];
+
+      for (const container of containers) {
+        if (container.namespaceURI !== htmlNs) continue;
+        const cs = getComputedStyle(container);
+        const stacks =
+          cs.display === "block" ||
+          cs.display === "flow-root" ||
+          cs.display === "list-item" ||
+          ((cs.display === "flex" || cs.display === "inline-flex") &&
+            cs.flexDirection.startsWith("column"));
+        if (!stacks) continue;
+
+        const kids: {
+          el: Element;
+          x0: number;
+          y0: number;
+          x1: number;
+          y1: number;
+        }[] = [];
+        for (const child of Array.from(container.children)) {
+          if (child.namespaceURI !== htmlNs) continue;
+          const s = getComputedStyle(child);
+          if (s.display === "none" || s.visibility === "hidden") continue;
+          if (s.float !== "none") continue;
+          if (s.position !== "static" && s.position !== "relative") continue;
+          if (
+            s.position === "relative" &&
+            [s.top, s.right, s.bottom, s.left].some(
+              (v) => v !== "auto" && v !== "0px",
+            )
+          ) {
+            continue;
+          }
+
+          // Painted extent: this element unioned with every in-flow descendant
+          // that is not sealed behind a clipping ancestor. An explicit stack
+          // rather than recursion, and no named helpers: tsx's keepNames wraps a
+          // named function in a `__name(…)` call that exists only in module
+          // scope, and this body is serialized into the page without it.
+          let x0 = Number.POSITIVE_INFINITY;
+          let y0 = Number.POSITIVE_INFINITY;
+          let x1 = Number.NEGATIVE_INFINITY;
+          let y1 = Number.NEGATIVE_INFINITY;
+          const stack: Element[] = [child];
+          while (stack.length > 0) {
+            const node = stack.pop();
+            if (!node) continue;
+            const ns = getComputedStyle(node);
+            if (ns.display === "none" || ns.visibility === "hidden") continue;
+            if (ns.opacity === "0") continue;
+            if (
+              node !== child &&
+              (ns.position === "absolute" ||
+                ns.position === "fixed" ||
+                ns.position === "sticky")
+            ) {
+              continue;
+            }
+            const b = node.getBoundingClientRect();
+            if (b.width > 0 && b.height > 0) {
+              if (b.left < x0) x0 = b.left;
+              if (b.top < y0) y0 = b.top;
+              if (b.right > x1) x1 = b.right;
+              if (b.bottom > y1) y1 = b.bottom;
+            }
+            if (
+              /hidden|clip|auto|scroll/.test(`${ns.overflowX} ${ns.overflowY}`)
+            ) {
+              continue;
+            }
+            for (const grandchild of Array.from(node.children)) {
+              stack.push(grandchild);
+            }
+          }
+          if (x1 <= x0 || y1 <= y0) continue;
+          kids.push({ el: child, x0, y0, x1, y1 });
+        }
+
+        for (let i = 0; i < kids.length; i++) {
+          for (let j = i + 1; j < kids.length; j++) {
+            const a = kids[i];
+            const b = kids[j];
+            const ox = Math.min(a.x1, b.x1) - Math.max(a.x0, b.x0);
+            const oy = Math.min(a.y1, b.y1) - Math.max(a.y0, b.y0);
+            if (ox <= tolerance || oy <= tolerance) continue;
+            const label = [a, b].map((k) => {
+              const tag = k.el.tagName.toLowerCase();
+              const text = (k.el.textContent ?? "").replace(/\s+/g, " ").trim();
+              return `<${tag}> "${text.slice(0, 32)}"`;
+            });
+            out.push(
+              `${label[0]} ⨯ ${label[1]} overlap ` +
+                `${ox.toFixed(1)}×${oy.toFixed(1)}px inside ` +
+                `<${container.tagName.toLowerCase()}>`,
+            );
+          }
+        }
+      }
+      return out;
+    },
+    [OVERLAP_TOLERANCE_PX, HTML_NS] as const,
+  );
+}
+
 async function renderOneWidget(
   page: Page,
   config: WidgetRenderConfig,
@@ -549,6 +725,7 @@ async function renderOneWidget(
   outBase: string = LOCAL_DOCS,
   fullContent = false,
   crushedGraphics: string[] = [],
+  overlaps: string[] = [],
 ): Promise<void> {
   const fixturesDir = resolve(COMPONENTS_SRC, config.fixturesPath);
   const outDir = resolve(outBase, config.outPath);
@@ -716,6 +893,11 @@ async function renderOneWidget(
       for (const crushed of await findCrushedGraphics(page)) {
         crushedGraphics.push(
           `${config.widgetId} @ ${mode.name} (${fixture.name}): ${crushed}`,
+        );
+      }
+      for (const overlap of await findOverlappingSections(page)) {
+        overlaps.push(
+          `${config.widgetId} @ ${mode.name} (${fixture.name}): ${overlap}`,
         );
       }
       const root = await page.$("#root");
