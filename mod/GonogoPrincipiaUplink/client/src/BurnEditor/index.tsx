@@ -8,10 +8,12 @@ import {
 } from "@ksp-gonogo/sitrep-sdk";
 import {
   Badge,
+  BinormalIcon,
   Cluster,
   CommandButton,
   Countdown,
   FieldLabel,
+  FrenetNormalIcon,
   Input,
   MissionDate,
   MissionDateField,
@@ -23,6 +25,7 @@ import {
   SectionTitle,
   SelectableRow,
   Stack,
+  TangentIcon,
   Text,
   ToggleButton,
   Unit,
@@ -178,6 +181,7 @@ function draftOf(burn: PrincipiaPlannedBurn): Draft {
  */
 function DeltaVRow({
   id,
+  icon: Icon,
   label,
   hint,
   value,
@@ -186,6 +190,12 @@ function DeltaVRow({
   onChange,
 }: {
   id: string;
+  /**
+   * The navball glyph for this axis. Decorative on purpose: it carries no
+   * `label`, so it is hidden from assistive technology and the row is announced
+   * once, by the text beside it, rather than twice.
+   */
+  icon: typeof TangentIcon;
   label: string;
   hint?: string;
   value: number;
@@ -202,6 +212,7 @@ function DeltaVRow({
   return (
     <Cluster gap="sm" justify="start">
       <FieldLabel htmlFor={id}>
+        <Icon size={14} />
         {label}
         {hint ? ` / ${hint}` : ""}
       </FieldLabel>
@@ -584,6 +595,7 @@ export function BurnEditor() {
               )}
               <DeltaVRow
                 id="burn-dv-tangent"
+                icon={TangentIcon}
                 label="TANGENT"
                 hint="prograde"
                 value={draft.tangent}
@@ -593,6 +605,7 @@ export function BurnEditor() {
               />
               <DeltaVRow
                 id="burn-dv-normal"
+                icon={FrenetNormalIcon}
                 label="NORMAL"
                 value={draft.normal}
                 disabled={frozen}
@@ -601,6 +614,7 @@ export function BurnEditor() {
               />
               <DeltaVRow
                 id="burn-dv-binormal"
+                icon={BinormalIcon}
                 label="BINORMAL"
                 value={draft.binormal}
                 disabled={frozen}
