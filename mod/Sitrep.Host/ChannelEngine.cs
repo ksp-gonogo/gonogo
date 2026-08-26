@@ -4740,11 +4740,13 @@ namespace Sitrep.Host
                                         // PendingCommand, so this callback
                                         // could not still be about to fire
                                         // for an abandoned-timeline
-                                        // dispatch). Previously this Meta was
-                                        // hand-rolled here with no epoch at
-                                        // all -- always the wire default (0),
-                                        // even after a rewind had already
-                                        // bumped the Courier forward.
+                                        // dispatch). Reading the epoch off the
+                                        // Courier rather than hand-rolling this
+                                        // Meta is what keeps it off the wire
+                                        // default of 0, which is what a
+                                        // hand-rolled one carries even after a
+                                        // rewind has bumped the Courier
+                                        // forward.
                                         TimelineEpoch = _courier.CurrentEpoch,
                                     },
                                 };

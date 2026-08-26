@@ -588,11 +588,8 @@ function ShipSystemsBody({
           </Stack>
         </Section>
 
-        {/* The built-in Greenhouse readout (this package's own
-            GreenhouseSection, moved here alongside the Ship Systems rebuild
-            when the old LifeSupportSystems widget was deleted) fills this
-            slot: it self-registers into `ship-systems.life-support` via the
-            side-effect import above. */}
+        {/* This package's own GreenhouseSection fills this slot, self-registering
+            into `ship-systems.life-support` via the side-effect import above. */}
         <AugmentSlot
           name="ship-systems.life-support"
           props={{ greenhouses, ambientRadiationRadPerSecond }}
