@@ -37,9 +37,9 @@ namespace Gonogo.KSP.Gates
 
             // Every career-write command needs a career save. That is a
             // permanent property of the game rather than a state that changes,
-            // and it used to arrive as the same ModeUnavailable as "the crew cap
-            // is full", so an operator could not tell a control that will never
-            // work here from one that might in a minute.
+            // and undeclared it arrives as the same ModeUnavailable as "the
+            // crew cap is full", leaving an operator unable to tell a control
+            // that will never work here from one that might in a minute.
             foreach (var command in new[]
             {
                 CareerCommandProvider.ActivateStrategyCommand,

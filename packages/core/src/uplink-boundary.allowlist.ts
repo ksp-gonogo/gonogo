@@ -1566,12 +1566,11 @@ export const ALLOWLIST: Record<ModToken, ModAllowlist> = {
       "mod/GonogoMechJebUplink/client/src/index.ts",
 
       /*
-       * -- sitrep-sdk's own registration mechanism, naming its first
-       * relocated-Uplink caller in a doc comment (registerTopicUnits /
-       * registerBarePrimitiveTopic in topics.ts), plus the test that records
-       * avionics.status no longer being the SDK's own codegen output --
+       * -- The test that records avionics.status coming from the Uplink's own
+       * contract slice rather than the SDK's codegen. topics.ts itself no
+       * longer names the Uplink: its doc comment describes the registration
+       * mechanism without citing a caller --
        */
-      "mod/sitrep-sdk/src/topics.ts",
       "mod/sitrep-sdk/src/topics.test.ts",
 
       /*
