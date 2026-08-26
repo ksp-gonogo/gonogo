@@ -16,6 +16,7 @@ import {
 import { createElement, type ReactNode } from "react";
 import { createRoot, type Root } from "react-dom/client";
 import { ThemeProvider } from "styled-components";
+import { RSS_CALENDAR } from "./rssCalendar";
 
 /**
  * Browser entry for this Uplink's render harness. esbuild bundles it into
@@ -55,17 +56,9 @@ installRealTestHost({
 // same on every machine.
 setQuantityLocale("en-GB");
 
-// The calendar an RP-1 career is actually flown on. RP-1 requires RSS, which
-// replaces KSP's date formatter with an Earth one, so a day is 86,400 seconds
-// and a year is 365.25 of them.
-//
-// Set here rather than derived from a `time.calendar` emit because the component
-// that adopts that channel lives in the app, in a package an Uplink may not
-// import. Without this the kit keeps its stock Kerbin fallback and every
-// duration in a render comes out FOUR TIMES too many days, which is a picture of
-// a game nobody running this Uplink is playing. Measured, not assumed: the first
-// renders showed a ninety-day construction as 360d.
-setKspCalendar({ minute: 60, hour: 3_600, day: 86_400, year: 31_557_600 });
+// The calendar an RP-1 career is flown on, and why the harness has to set it
+// itself: see `rssCalendar.ts`.
+setKspCalendar({ ...RSS_CALENDAR });
 
 /** Loaded once, after the host is in place. */
 const registered = import("../../src");

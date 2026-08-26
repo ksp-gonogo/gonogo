@@ -174,6 +174,11 @@
     "reason": "Dimensional degeneracy, the same case as CareerStrategy.dateActivated: `divide({s:1},{s:1})` is `{}`, so EVERY dimensionless field is the dimensional rate of EVERY time field in its own type. A fraction complete is not the rate of an ETA, and neither is a research throttle. The real rate on each of these payloads is `rate`, which carries RP-1's own `bp/s` token and is therefore invisible to this scan (see the opaque-token list). Integrating it would be wrong anyway: the ETA is already derived from the rate server-side, efficiency-ramped and, for a blocking operation, sequenced against its peers, so a client re-integrating it would be second-guessing arithmetic that mirrors RP-1's own.",
     "verdict": "coincidence"
   },
+  "Rp1ConstructionEntry.timeLeftSeconds": {
+    "rates": ["progressRatio", "workRate"],
+    "reason": "Dimensional degeneracy, the same case as the sibling RP-1 payloads above: `divide({s:1},{s:1})` is `{}`, so every dimensionless field is the dimensional rate of every time field in its own type, and this one carries two. Neither is the rate. A fraction complete is a position, and `workRate` is the operator's own throttle, a MULTIPLIER on the rate rather than the rate itself: RP-1 computes progress as `_buildRate * workRate`, so integrating the multiplier would advance a construction at somewhere between nought and one and a half build points a second regardless of what the project actually costs. The real rate is `rate`, which carries RP-1's `bp/s` token and is invisible to this scan. Integrating any of it client-side would also duplicate arithmetic the capture already mirrors from RP-1's own IncrementProgress.",
+    "verdict": "coincidence"
+  },
   "Rp1OperationEntry.timeLeftSeconds": {
     "rates": ["progressRatio"],
     "reason": "Dimensional degeneracy, the same case as CareerStrategy.dateActivated: `divide({s:1},{s:1})` is `{}`, so EVERY dimensionless field is the dimensional rate of EVERY time field in its own type. A fraction complete is not the rate of an ETA, and neither is a research throttle. The real rate on each of these payloads is `rate`, which carries RP-1's own `bp/s` token and is therefore invisible to this scan (see the opaque-token list). Integrating it would be wrong anyway: the ETA is already derived from the rate server-side, efficiency-ramped and, for a blocking operation, sequenced against its peers, so a client re-integrating it would be second-guessing arithmetic that mirrors RP-1's own.",
@@ -367,6 +372,11 @@
   "rp1.buildQueue.timeLeftSeconds": {
     "rates": ["progressRatio"],
     "reason": "Dimensional degeneracy, the same case as CareerStrategy.dateActivated: `divide({s:1},{s:1})` is `{}`, so EVERY dimensionless field is the dimensional rate of EVERY time field in its own type. A fraction complete is not the rate of an ETA, and neither is a research throttle. The real rate on each of these payloads is `rate`, which carries RP-1's own `bp/s` token and is therefore invisible to this scan (see the opaque-token list). Integrating it would be wrong anyway: the ETA is already derived from the rate server-side, efficiency-ramped and, for a blocking operation, sequenced against its peers, so a client re-integrating it would be second-guessing arithmetic that mirrors RP-1's own.",
+    "verdict": "coincidence"
+  },
+  "rp1.constructions.timeLeftSeconds": {
+    "rates": ["progressRatio", "workRate"],
+    "reason": "Dimensional degeneracy, the same case as the sibling RP-1 payloads above: `divide({s:1},{s:1})` is `{}`, so every dimensionless field is the dimensional rate of every time field in its own type, and this one carries two. Neither is the rate. A fraction complete is a position, and `workRate` is the operator's own throttle, a MULTIPLIER on the rate rather than the rate itself: RP-1 computes progress as `_buildRate * workRate`, so integrating the multiplier would advance a construction at somewhere between nought and one and a half build points a second regardless of what the project actually costs. The real rate is `rate`, which carries RP-1's `bp/s` token and is invisible to this scan. Integrating any of it client-side would also duplicate arithmetic the capture already mirrors from RP-1's own IncrementProgress.",
     "verdict": "coincidence"
   },
   "rp1.operations.timeLeftSeconds": {

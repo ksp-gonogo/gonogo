@@ -21,6 +21,7 @@ import { dirname, join, resolve } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
 import { build } from "esbuild";
 import { chromium } from "playwright";
+import { RSS_CALENDAR } from "./probe/rssCalendar";
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 const PROBE_DIR = resolve(HERE, "probe");
@@ -46,7 +47,8 @@ const OUT_DIR =
   process.env.RP1_RENDER_OUT ??
   resolve(HERE, "../../../../local_docs/renders/rp1");
 
-const DAY = 86_400;
+/** The same day the probe renders in, so a fixture cannot disagree with its picture. */
+const DAY = RSS_CALENDAR.day;
 
 const CENTRES = [
   {

@@ -151,6 +151,19 @@ const WALL_CLOCK_EXEMPT: Array<{ file: string; why: string }> = [
       "constant rather than a day.",
   },
   {
+    file: "mod/GonogoRp1Uplink/client/scripts/probe/rssCalendar.ts",
+    why:
+      "THE definition site for the calendar an RP-1 career is flown on, and " +
+      "the only file in that Uplink's render harness that writes a day length " +
+      "down. RP-1 requires RSS, which replaces KSP's date formatter outright, " +
+      "so 86,400 is the right number and 21,600 is the wrong one. The app " +
+      "reaches it through `time.calendar` and `KspCalendarObserver`, which " +
+      "lives in a package an Uplink may not import, so a probe that does not " +
+      "set it renders every duration four times too many days. That is not a " +
+      "hypothetical: the first renders of the construction section showed a " +
+      "ninety-day build as 360d, and this is where the fix lives.",
+  },
+  {
     file: "mod/sitrep-sdk/src/unit-system/definitions.ts",
     why:
       "The declared unit model: `d` has a ratio, and the stock ratio is one " +
