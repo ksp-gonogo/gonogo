@@ -4,6 +4,7 @@ import {
   FRAME_TYPE,
   frameHasApsides,
   frameLengthsPulsate,
+  plottingFrameKindLabel,
   plottingFrameLabel,
 } from "./plottingFrame";
 
@@ -32,6 +33,14 @@ describe("plottingFrameLabel", () => {
     });
   });
 
+  /*
+   * The expected strings are the installed build's own, from
+   * `GameData/Principia/localization/en-us.cfg`, and the separators are asserted
+   * as escapes rather than as literal characters. An en dash and a hyphen are one
+   * pixel apart in this file and identical in a diff read quickly, which is how
+   * the two body-pair names came to be spelt with hyphens while this suite said
+   * they were "the producer's own wording".
+   */
   it("names each frame in the producer's own wording", () => {
     expect(
       plottingFrameLabel(FRAME_TYPE.bodyCentredInertial, { centre: "Kerbin" }),
@@ -44,13 +53,52 @@ describe("plottingFrameLabel", () => {
         primary: "Kerbol",
         secondary: "Kerbin",
       }),
-    ).toBe("Kerbin-Kerbol-Orbit");
+    ).toBe("Kerbin\u2013Kerbol\u2013Orbit");
     expect(
       plottingFrameLabel(FRAME_TYPE.rotatingPulsating, {
         primary: "Kerbin",
         secondary: "Mun",
       }),
-    ).toBe("Kerbin-Mun Lagrange");
+    ).toBe("Kerbin\u2013Mun Lagrange");
+  });
+
+  /*
+   * The target frame replaces the kind's name rather than qualifying it. Named
+   * with the body the TARGET orbits, which is a different body from the one the
+   * selector is sitting on, so the ordinal beside it is no help at all.
+   */
+  it("names the target frame the way the producer does", () => {
+    expect(
+      plottingFrameLabel(FRAME_TYPE.bodyCentredInertial, {
+        centre: "Kerbin",
+        targetSelected: true,
+        targetPrimary: "Mun",
+      }),
+    ).toBe("Target\u2013Mun\u2013Orbit");
+  });
+
+  it("names the target frame with no ordinal to go on", () => {
+    expect(
+      plottingFrameLabel(undefined, {
+        targetSelected: true,
+        targetPrimary: "Duna",
+      }),
+    ).toBe("Target\u2013Duna\u2013Orbit");
+  });
+
+  it("leaves the target's primary visible as a gap when it was not carried", () => {
+    expect(
+      plottingFrameLabel(FRAME_TYPE.bodySurface, { targetSelected: true }),
+    ).toBe("Target\u2013<targetPrimary>\u2013Orbit");
+  });
+
+  it("calls the target frame's kind by a name of ours, having none of theirs", () => {
+    expect(plottingFrameKindLabel(FRAME_TYPE.bodyCentredInertial, true)).toBe(
+      "Target frame",
+    );
+    expect(plottingFrameKindLabel(FRAME_TYPE.bodyCentredInertial, false)).toBe(
+      "Body-centred inertial",
+    );
   });
 
   /** A bare string still means the centre body, which is what most callers have. */

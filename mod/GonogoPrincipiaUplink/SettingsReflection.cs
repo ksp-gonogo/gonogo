@@ -61,6 +61,7 @@ namespace GonogoPrincipiaUplink
         private const string OrbitingBodiesMember = "orbitingBodies";
         private const string VesselIdMember = "id";
         private const string VesselNameMember = "vesselName";
+        private const string VesselOrbitMember = "orbit";
 
         private const string FrameExtensionMember = "extension";
         private const string FrameCentreIndexMember = "centre_index";
@@ -139,6 +140,7 @@ namespace GonogoPrincipiaUplink
                 TargetFrameSelected = targetFrame,
                 TargetVesselId = target == null ? null : _m.Value(target, VesselIdMember)?.ToString(),
                 TargetVesselName = target == null ? null : _m.ReadString(target, VesselNameMember),
+                TargetPrimaryBody = TargetPrimary(target),
             };
             NameFrameBodies(centre, frame);
             into.PlottingFrame = frame;
@@ -151,6 +153,29 @@ namespace GonogoPrincipiaUplink
 
             into.TargetPinned = _m.ReadBool(selector, TargetPinnedMember);
             ReadPinned(_m.Value(selector, PinnedMember), into);
+        }
+
+        /// <summary>
+        /// The body the target vessel orbits, or null when there is no target.
+        ///
+        /// <para>Two hops rather than one because the producer names and describes
+        /// the target frame with the target's PRIMARY, not with the celestial its
+        /// own selector is sitting on. Reading it from the vessel's orbit is the
+        /// same route the producer takes.</para>
+        /// </summary>
+        private string? TargetPrimary(object? target)
+        {
+            if (target == null)
+            {
+                return null;
+            }
+            var orbit = _m.Value(target, VesselOrbitMember);
+            if (orbit == null)
+            {
+                return null;
+            }
+            var primary = _m.Value(orbit, ReferenceBodyMember);
+            return primary == null ? null : BodyName(primary);
         }
 
         /// <summary>

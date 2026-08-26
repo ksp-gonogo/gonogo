@@ -60,6 +60,16 @@ namespace GonogoPrincipiaUplink
         public bool? TargetFrameSelected;
         public string? TargetVesselId;
         public string? TargetVesselName;
+
+        /// <summary>
+        /// The body the target vessel orbits.
+        ///
+        /// <para>The target frame's name and its description are both declined
+        /// with this rather than with the selected celestial, so without it the
+        /// frame an operator is reading cannot be called by the name the game
+        /// calls it.</para>
+        /// </summary>
+        public string? TargetPrimaryBody;
     }
 
     /// <summary>

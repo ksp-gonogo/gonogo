@@ -36,18 +36,42 @@ export const FRAME_TYPE = {
 } as const;
 
 /**
- * Each kind's label, in the producer's own English wording, with the placeholders
- * it uses. `<centre>` is the frame's centre body, `<primary>` the body the frame
+ * Each kind's label, and it is the producer's OWN string rather than a paraphrase
+ * of one. `<centre>` is the frame's centre body, `<primary>` the body the frame
  * rotates about and `<secondary>` the one it is anchored to, which are the same
  * two the producer passes to its own format strings.
+ *
+ * <para><b>Taken from the installed build's `localization/en-us.cfg`</b>, key by
+ * key, so an operator reading a frame name here and the same frame in game is not
+ * translating between two vocabularies. That includes the punctuation: the
+ * producer separates two BODIES with an en dash and joins a body to a word with a
+ * hyphen, and it does the two differently on purpose. Ours were hyphens
+ * throughout, which is a different string from the one on the player's screen.</para>
+ *
+ * <para>`barycentricRotating` is the one entry with no counterpart. The producer
+ * has no name string for it and describes it as "DEPRECATED": its own selector
+ * cannot reach it, so the wording here is ours and is only reachable by a save
+ * that already held the frame.</para>
  */
 const FRAME_NAMES: Readonly<Record<number, string>> = {
   [FRAME_TYPE.bodyCentredInertial]: "<centre>-Centred Inertial",
   [FRAME_TYPE.barycentricRotating]: "Barycentric rotating",
-  [FRAME_TYPE.parentDirection]: "<secondary>-<primary>-Orbit",
+  [FRAME_TYPE.parentDirection]: "<secondary>\u2013<primary>\u2013Orbit",
   [FRAME_TYPE.bodySurface]: "<centre>-Centred <centre>-Fixed",
-  [FRAME_TYPE.rotatingPulsating]: "<primary>-<secondary> Lagrange",
+  [FRAME_TYPE.rotatingPulsating]: "<primary>\u2013<secondary> Lagrange",
 };
+
+/**
+ * The target frame's name, which sits OUTSIDE the kind table for the same reason
+ * the flag does: the producer keeps the frame kind and the target selection as
+ * two independent pieces of state, and while a target frame is selected its name
+ * replaces the kind's entirely.
+ *
+ * Declined with the body the TARGET vessel orbits, not with the celestial the
+ * selector happens to be sitting on. Those are different bodies, and using the
+ * wrong one names a frame the player is not in.
+ */
+const TARGET_FRAME_NAME = "Target\u2013<targetPrimary>\u2013Orbit";
 
 /**
  * Each kind's own name, undeclined. A settings row wants the KIND ("Body-centred
@@ -70,10 +94,17 @@ const FRAME_KINDS: Readonly<Record<number, string>> = {
  * An unrecognised ordinal reads as "Frame 6007" for the same reason
  * {@link plottingFrameLabel}'s does: a kind added in a later build must look
  * incomplete rather than be rounded to a neighbour.
+ *
+ * The target frame answers this too, and has to: with the target selected the
+ * ordinal describes a frame the player is not in, so a kind read off it would
+ * contradict the frame named beside it. The producer has no kind word for the
+ * target frame, since it is not in the kind enum at all, so this one is ours.
  */
 export function plottingFrameKindLabel(
   ordinal: number | null | undefined,
+  targetFrameSelected?: boolean | null,
 ): string {
+  if (targetFrameSelected) return "Target frame";
   if (ordinal === null || ordinal === undefined) return NULL_DISPLAY;
   return FRAME_KINDS[ordinal] ?? `Frame ${ordinal}`;
 }
@@ -83,6 +114,17 @@ export interface FrameBodies {
   centre?: string | null;
   primary?: string | null;
   secondary?: string | null;
+  /**
+   * The body the target vessel orbits, which is what the target frame's name is
+   * declined with.
+   */
+  targetPrimary?: string | null;
+  /**
+   * Whether the target frame is selected, which OVERRIDES the kind: the producer
+   * shows its own target-frame name and ignores the frame type entirely, so a
+   * caller passing the type alone gets the name of a frame nobody is in.
+   */
+  targetSelected?: boolean | null;
 }
 
 /**
@@ -101,9 +143,18 @@ export function plottingFrameLabel(
   ordinal: number | null | undefined,
   bodies?: FrameBodies | string | null,
 ): string {
-  if (ordinal === null || ordinal === undefined) return NULL_DISPLAY;
   const named: FrameBodies =
     typeof bodies === "string" ? { centre: bodies } : (bodies ?? {});
+  // The target frame is named before the ordinal is even consulted, because a
+  // target frame HAS no kind: the producer returns its own name for one and
+  // never reaches the kind table. A missing ordinal is no obstacle to naming it.
+  if (named.targetSelected === true) {
+    return TARGET_FRAME_NAME.replace(
+      /<targetPrimary>/g,
+      named.targetPrimary ?? "<targetPrimary>",
+    );
+  }
+  if (ordinal === null || ordinal === undefined) return NULL_DISPLAY;
   const template = FRAME_NAMES[ordinal];
   if (template === undefined) {
     const centre = named.centre;

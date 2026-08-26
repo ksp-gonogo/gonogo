@@ -214,6 +214,7 @@ export const GENERATED_TYPE_UNITS: Readonly<Record<string, UnitsByField>> = {
     secondaryBody: "text",
     selector: "text",
     targetFrameSelected: "flag",
+    targetPrimaryBody: "text",
     targetVesselId: "id",
     targetVesselName: "text",
     type: "enum",

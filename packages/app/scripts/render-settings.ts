@@ -234,6 +234,29 @@ const SCENES: Scene[] = [
     scrollToLabel: "Lengths pulsate in this frame",
   },
   {
+    // The target frame, whose name replaces the kind's rather than qualifying
+    // it. The selector is still sitting on Kerbin and the frame is named with
+    // the body the TARGET orbits, which is the divergence from the game's own
+    // wording this scene exists to show.
+    name: "principia-target-frame",
+    emit: {
+      [TOPIC]: {
+        ...PRINCIPIA_LIVE,
+        plottingFrame: {
+          selector: "Plotting frame",
+          type: 6000,
+          centreBody: "Kerbin",
+          targetFrameSelected: true,
+          targetVesselName: "Ares IV",
+          targetPrimaryBody: "Duna",
+        },
+      },
+    },
+    pxW: 900,
+    pxH: 700,
+    scrollToLabel: "Frame kind",
+  },
+  {
     // `dependsOn`, both ways. The parent is on: the two children are live
     // switches an operator can reach.
     name: "dependson-parent-on",

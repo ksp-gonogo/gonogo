@@ -63,6 +63,7 @@ const EVERY_FRAME_FIELD: Required<PrincipiaReferenceFrame> = {
   targetFrameSelected: true,
   targetVesselId: "88888888-4444-4444-4444-121212121212",
   targetVesselName: "Ares IV",
+  targetPrimaryBody: "Duna",
 };
 
 const EVERY_FIELD: Required<PrincipiaSettings> = {

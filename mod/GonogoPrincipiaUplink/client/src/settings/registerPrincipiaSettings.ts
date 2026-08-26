@@ -260,13 +260,15 @@ export const PRINCIPIA_SETTINGS: readonly SettingDefinition[] = [
         centre: f.centreBody,
         primary: f.primaryBody,
         secondary: f.secondaryBody,
+        targetPrimary: f.targetPrimaryBody,
+        targetSelected: f.targetFrameSelected,
       });
     },
     category: CATEGORY,
     group: GROUP.frame,
     label: "Frame",
     description:
-      "The frame every trajectory, node and apsis on this board is expressed in. The same vessel reads as a different orbit in a different frame.",
+      "The frame every trajectory, node and apsis on this board is expressed in, under the name the game gives it. The same vessel reads as a different orbit in a different frame.",
     screens: ["main"],
   }),
 
@@ -277,7 +279,9 @@ export const PRINCIPIA_SETTINGS: readonly SettingDefinition[] = [
     topic: "principia.settings",
     select: (p) => {
       const f = frame(p);
-      return f === undefined ? undefined : plottingFrameKindLabel(f.type);
+      return f === undefined
+        ? undefined
+        : plottingFrameKindLabel(f.type, f.targetFrameSelected);
     },
     category: CATEGORY,
     group: GROUP.frame,
@@ -388,6 +392,20 @@ export const PRINCIPIA_SETTINGS: readonly SettingDefinition[] = [
     group: GROUP.frame,
     label: "Frame target vessel",
     description: "Which vessel the target frame is anchored to.",
+    screens: ["main"],
+  }),
+
+  row({
+    id: "principia.settings.frameTargetPrimary",
+    backing: "stream-backed",
+    type: "text",
+    topic: "principia.settings",
+    select: (p) => frame(p)?.targetPrimaryBody,
+    category: CATEGORY,
+    group: GROUP.frame,
+    label: "Frame target primary",
+    description:
+      "The body that vessel orbits. It is what the target frame's plane is taken from, and what the game declines the frame's name with, so it is a different body from the centre above.",
     screens: ["main"],
   }),
 
