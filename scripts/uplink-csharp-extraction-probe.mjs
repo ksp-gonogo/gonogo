@@ -272,6 +272,30 @@ function probe(uplink, contractDll, workRoot) {
 
   const built = dotnetBuild(csprojPath);
   const output = `${built.stdout}${built.stderr}`;
+
+  // MSB3245 is a WARNING: a reference whose HintPath does not exist drops off
+  // the compile surface and the build carries on. For the two references
+  // extraction rewires, that would mean compiling with no contract at all and
+  // exiting 0 on an Uplink whose source happens not to name a contract type.
+  const rewired = new Set(["Sitrep.Contract", slice]);
+  const lost = [
+    ...new Set(
+      [...output.matchAll(/MSB3245.*?Could not locate the assembly "([^"]*)"/g)]
+        .map((match) => match[1])
+        .filter((assembly) => rewired.has(assembly)),
+    ),
+  ];
+  if (lost.length > 0) {
+    return {
+      errors: 0,
+      blocked:
+        `the extracted build could not locate ${lost.join(", ")}, which is what this probe rewires. ` +
+        "MSB3245 is a warning, so the compile would have proceeded without it and any zero below " +
+        "would mean the contract was never on the reference list.",
+      output,
+    };
+  }
+
   return { errors: built.status === 0 ? 0 : countErrors(output), output };
 }
 
