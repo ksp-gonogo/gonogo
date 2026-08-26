@@ -41,8 +41,7 @@ namespace GonogoKerbcastUplink;
 // KerbcastCameraEntry's nine Units.Degrees properties retype to Value<"deg">
 // below (see KerbcastRtConfig.Configure); the two "Args" command
 // types (KerbcastSetFieldOfViewArgs/KerbcastSetPanArgs) stay bare numbers,
-// same as MechJeb's, since ApplyUnitValueTypes deliberately skips inbound-only
-// command args.
+// since ApplyUnitValueTypes deliberately skips inbound-only command args.
 // ─────────────────────────────────────────────────────────────────────────────
 
 /// <summary>

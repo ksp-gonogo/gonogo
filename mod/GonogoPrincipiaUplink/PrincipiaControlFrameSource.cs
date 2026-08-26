@@ -8,11 +8,11 @@ namespace GonogoPrincipiaUplink
     /// generalised <see cref="ControlFrame"/> rather than as a producer-shaped
     /// payload.
     ///
-    /// <para><b>Why this exists at all.</b> The frame used to reach clients only
-    /// inside this Uplink's own settings channel, carrying the producer's own enum
-    /// ordinal, which made a fact every frame-aware reader needs available solely
-    /// when one specific mod was installed and readable only by something that
-    /// knew that mod's numbering. Registered as a source for the
+    /// <para><b>Why this exists at all.</b> Carried only inside this Uplink's own
+    /// settings channel, as the producer's own enum ordinal, the frame would be a
+    /// fact every frame-aware reader needs that is available solely when one
+    /// specific mod is installed, and readable only by something that knows that
+    /// mod's numbering. Registered as a source for the
     /// <c>controlFrame</c> capability, it answers the same channel stock answers,
     /// and nothing downstream learns which of the two replied.</para>
     ///

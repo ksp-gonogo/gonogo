@@ -29,9 +29,9 @@ namespace GonogoPrincipiaUplink
     /// <para><b>The ids say where they came from.</b> The producer addresses its
     /// burns by index and has no stable per-burn id to offer, so an id here is
     /// built from that index. It is prefixed rather than published bare so it can
-    /// never be mistaken for a stock node's guid: a bare "0" is exactly the
-    /// positional id that used to be sent to the stock actuator, which resolves
-    /// only an exact guid match and answered NotFound to it every time.</para>
+    /// never be mistaken for a stock node's guid. A bare "0" reaching the stock
+    /// actuator, which resolves only an exact guid match, answers NotFound every
+    /// time.</para>
     /// </summary>
     internal sealed class PrincipiaManeuverPlanSource : IManeuverPlanSource
     {

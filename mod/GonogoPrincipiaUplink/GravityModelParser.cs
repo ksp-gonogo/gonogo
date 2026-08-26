@@ -119,8 +119,8 @@ namespace GonogoPrincipiaUplink
         /// <para><b>Why a fallback is right here and a stock vanilla is not.</b> The
         /// producer ships its gravity-model config guarded on the planet pack it
         /// belongs to, so an install running the producer against the stock system
-        /// has no such node at all: the config read returns nothing and this used to
-        /// be the end of it. What the producer does in that case is not "give up",
+        /// has no such node at all: the config read returns nothing, and stopping
+        /// there would be wrong. What the producer does in that case is not "give up",
         /// it is build a model per body out of the game's own gravitational
         /// parameters and integrate that, treating every body as a point mass. So
         /// the game's bodies are not a substitute for the model here, they ARE the
