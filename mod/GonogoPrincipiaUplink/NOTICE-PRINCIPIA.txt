@@ -1,0 +1,30 @@
+GonogoPrincipiaUplink integrates with Principia
+(https://github.com/mockingbirdnest/Principia) entirely at ARM'S LENGTH: it
+reads Principia's managed flight-plan and settings state through runtime
+reflection (FlightPlanReflection.cs, NativeSettingsReader.cs) and reads the
+export table of the native plugin binary the game has already loaded
+(NativeExportReader.cs, PrincipiaBinaryDiscovery.cs) to establish which build
+is live and which plugin-interface calls it exposes. It does NOT link
+ksp_plugin_adapter.dll or any Principia assembly at build time, does NOT derive
+from Principia types, and bundles NO Principia source, binaries or assets.
+
+Principia is distributed under the MIT licence:
+
+  https://github.com/mockingbirdnest/Principia/blob/master/LICENSE.txt
+
+MIT imposes no conditions on a work that merely observes a running Principia
+install, so GonogoPrincipiaUplink is licensed MIT, in line with the rest of
+gonogo. This notice is retained to attribute Principia and its authors for the
+n-body integrator, flight-plan model and plugin interface this uplink reads.
+
+Note for maintainers: the reflection in FlightPlanReflection.cs and the
+export-table read in NativeExportReader.cs are the INTEGRATION BOUNDARY, and
+they are load-bearing for safety as well as licensing. PrincipiaCalls.cs holds
+the register of which plugin-interface calls this assembly may bind and which
+it must never bind, because several of the forbidden ones end in abort() and
+take the player's game with them. Adding a compile-time reference to Principia
+would not make those calls any safer, and it would put this assembly's fate in
+the hands of a native ABI that changes per build. Do not.
+
+Principia authors: the Mockingbird Nest contributors. See the project's
+repository and CKAN metadata for the full author list.
