@@ -30,7 +30,13 @@ const OUT_DIR = resolve(
   HERE,
   "../../../local_docs/renders/descent-envelope-drag",
 );
-const GLOBAL_CSS = resolve(HERE, "../../app/src/styles/global.css");
+/*
+ * The theme package's SOURCE tokens.css, which is plain text, needs no bundler
+ * resolution and does not depend on `@ksp-gonogo/theme` having been built.
+ * `global.css` only `@import`s the theme, so it carries no `:root` block for
+ * `extractRootBlock` to match and this driver threw on every run.
+ */
+const THEME_TOKENS_CSS = resolve(HERE, "../../theme/src/tokens.css");
 
 // DescentEnvelope is a fixed 160×160 square (see SIZE in the component);
 // pad the viewport a little so the panel doesn't touch the frame edge.
@@ -67,7 +73,7 @@ async function main(): Promise<void> {
   const bundleJs = bundleResult.outputFiles[0].text;
 
   const htmlTemplate = await readFile(PROBE_HTML_TEMPLATE, "utf8");
-  const themeCss = extractRootBlock(await readFile(GLOBAL_CSS, "utf8"));
+  const themeCss = extractRootBlock(await readFile(THEME_TOKENS_CSS, "utf8"));
   // Same `$&` / `</script>` escaping as the widget harness, bundled
   // React code contains literal `$&` (sanitisation helpers) and
   // string-form .replace would treat that as a backreference.
@@ -145,7 +151,7 @@ async function main(): Promise<void> {
 
 function extractRootBlock(css: string): string {
   const m = css.match(/:root\s*\{[\s\S]*?\}/);
-  if (!m) throw new Error("global.css: no :root block found");
+  if (!m) throw new Error("tokens.css: no :root block found");
   return m[0];
 }
 

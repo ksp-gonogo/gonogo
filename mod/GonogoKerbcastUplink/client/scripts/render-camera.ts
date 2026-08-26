@@ -24,9 +24,15 @@ const HERE = dirname(fileURLToPath(import.meta.url));
 const PROBE_DIR = resolve(HERE, "probe");
 const PROBE_ENTRY = join(PROBE_DIR, "probe-entry.tsx");
 const PROBE_HTML = join(PROBE_DIR, "probe.html");
-const GLOBAL_CSS = resolve(
+/*
+ * The theme package's SOURCE tokens.css, which is plain text, needs no bundler
+ * resolution and does not depend on `@ksp-gonogo/theme` having been built.
+ * `global.css` only `@import`s the theme, so it carries no `:root` block for
+ * `extractRootBlock` to match and this driver threw on every run.
+ */
+const THEME_TOKENS_CSS = resolve(
   HERE,
-  "../../../../packages/app/src/styles/global.css",
+  "../../../../packages/theme/src/tokens.css",
 );
 const OUT_DIR = resolve(HERE, "../../../../local_docs/renders/camera-feed");
 
@@ -109,7 +115,7 @@ const SCENES: Scene[] = [
 
 function extractRootBlock(css: string): string {
   const match = css.match(/:root\s*\{[\s\S]*?\}/);
-  if (!match) throw new Error("global.css: no :root block found");
+  if (!match) throw new Error("tokens.css: no :root block found");
   return match[0];
 }
 
@@ -129,7 +135,7 @@ async function prepareProbePage(): Promise<string> {
   });
   const bundleJs = result.outputFiles[0].text;
   const html = await readFile(PROBE_HTML, "utf8");
-  const themeCss = extractRootBlock(await readFile(GLOBAL_CSS, "utf8"));
+  const themeCss = extractRootBlock(await readFile(THEME_TOKENS_CSS, "utf8"));
   const escaped = bundleJs.replace(/<\/script/gi, "<\\/script");
   const out = html
     .replace(
