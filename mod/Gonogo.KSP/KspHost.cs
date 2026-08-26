@@ -3644,24 +3644,40 @@ namespace Gonogo.KSP
         /// </summary>
         private static Dictionary<string, object?> BuildStrategyEntry(Strategy strategy)
         {
-            // CanBeActivated/CanBeDeactivated are documented above as pure
-            // eligibility checks, but in practice KSP can throw a
-            // NullReferenceException *inside* Strategy.CanBeActivated for some
-            // strategies in some saves (observed live; related to the strategy
-            // over-cap quirk). An unguarded throw here propagates up through
-            // BuildCareerStrategies and makes TryBuildGroup drop the ENTIRE
-            // vessel.strategies channel every tick. Guard per-strategy so a
-            // single bad strategy degrades to canActivate=false + a reason,
-            // and the rest of the strategies still serve.
-            bool canActivate = false;
-            string? activateBlockedReason = null;
-            try
+            // Whether a strategy can be activated is a question KSP answers only
+            // while the Administration Building is open, and that is structural
+            // rather than occasional: CanBeActivated's first three arms read the
+            // active-strategy count, the concurrent cap and the commit-level
+            // ceiling straight off Administration.Instance, a UI MonoBehaviour
+            // that exists only while the player has that screen up. With it
+            // closed the very first arm throws, for EVERY strategy, on EVERY
+            // tick. KspCareerActuator.ActivateStrategy already refuses on the
+            // same ground; this is the reading half of the same rule.
+            //
+            // So canActivate is ABSENT rather than false when the answer cannot
+            // be had. A false with "eligibility check failed" beside it is a
+            // fabricated no: it reads as a strategy that was judged and refused,
+            // it reads as intermittent, and neither is true. CanBeDeactivated
+            // touches none of that and is asked unconditionally, which is why an
+            // RP-1 Program reports a real deactivate reason beside an unanswered
+            // activate one.
+            //
+            // The try/catch stays under the guard. A throw from anywhere else in
+            // the eligibility walk must not propagate: BuildCareerStrategies
+            // would lose the ENTIRE strategies channel for every tick one bad
+            // strategy is in the roster.
+            var eligibility = StrategyEligibility.AdministrationClosed();
+            if (Administration.Instance != null)
             {
-                canActivate = strategy.CanBeActivated(out activateBlockedReason);
-            }
-            catch (Exception ex)
-            {
-                activateBlockedReason = "eligibility check failed: " + ex.GetType().Name;
+                try
+                {
+                    var answer = strategy.CanBeActivated(out var reason);
+                    eligibility = StrategyEligibility.Answered(answer, reason);
+                }
+                catch (Exception ex)
+                {
+                    eligibility = StrategyEligibility.Threw(ex.GetType().Name);
+                }
             }
 
             bool canDeactivate = false;
@@ -3691,8 +3707,8 @@ namespace Gonogo.KSP
                 ["hasFactorSlider"] = strategy.HasFactorSlider,
                 ["factorSliderDefault"] = (double)strategy.FactorSliderDefault,
                 ["factorSliderSteps"] = strategy.FactorSliderSteps,
-                ["canActivate"] = canActivate,
-                ["activateBlockedReason"] = activateBlockedReason,
+                ["canActivate"] = eligibility.CanActivate,
+                ["activateBlockedReason"] = eligibility.BlockedReason,
                 ["canDeactivate"] = canDeactivate,
                 ["deactivateBlockedReason"] = deactivateBlockedReason,
                 ["effect"] = strategy.Effect,
