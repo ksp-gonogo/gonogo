@@ -32,9 +32,9 @@ export interface ReplayFixture {
 export interface ReplayTransportOptions {
   /**
    * Drives WHEN each frame is delivered. Never real wall time, this is the
-   * whole point of `ReplayTransport` as the no-KSP iteration engine
-   * (see `m3-migration-plan.md`): a test (or a headless replay
-   * screen) injects a deterministic clock so "replay this recorded flight"
+   * whole point of `ReplayTransport` as the no-KSP iteration engine: a test
+   * (or a headless replay screen) injects a deterministic clock so "replay
+   * this recorded flight"
    * never races a real timer. `schedule`'s time domain must match the
    * fixture's own `meta.deliveredAt` units (UT seconds, same convention as
    * `TelemetryClient`'s own `Clock`: see `./clock.ts`'s domain note).
@@ -55,7 +55,7 @@ interface ScheduledFrame {
   message: ServerMessage;
 }
 
-/** `true` for the two frame types a captured wire recording ever carries, `command-response`/`error` frames never appear in a `ChannelEngine` capture (`m3-migration-plan.md`'s own description: "StreamData/EventMsg frames"). */
+/** `true` for the two frame types a captured wire recording ever carries: a `ChannelEngine` capture holds StreamData and EventMsg frames, never `command-response`/`error`. */
 function isDataOrEventFrame(
   message: ServerMessage,
 ): message is StreamData<unknown> | EventMsg {
@@ -65,13 +65,12 @@ function isDataOrEventFrame(
 /**
  * A `Transport` that replays a captured wire recording (the
  * `reference-wire-fixture.json` shape) into a `TelemetryClient`, honoring
- * each frame's own `meta.deliveredAt` cadence under an INJECTED clock, the
- * no-KSP iteration engine (see `m3-migration-plan.md`):
- * "lets the whole dashboard run off the recording headlessly... with no KSP
- * restarts and no deployed mod: the recording is the iteration engine."
+ * each frame's own `meta.deliveredAt` cadence under an INJECTED clock. This is
+ * the no-KSP iteration engine: it lets the whole dashboard run off a recording
+ * headlessly, with no KSP restarts and no deployed mod.
  *
- * Promotes the test-only `FixtureTransport` pattern
- * (`reference-wire-fixture.test.ts`) to a reusable, production-shaped class:
+ * A reusable, production-shaped class rather than the test-only
+ * `FixtureTransport` shape in `reference-wire-fixture.test.ts`:
  * - **Delivery order** always follows `meta.deliveredAt` ascending, even if
  *   `fixture.frames` itself isn't sorted that way (a defensive sort at
  *   construction: never trust caller ordering for the one invariant this

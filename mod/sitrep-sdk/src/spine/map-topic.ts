@@ -192,10 +192,10 @@ function isEmpty(record: Readonly<Record<string, unknown>>): boolean {
  * Read entirely off the contract's own generated metadata, through
  * `unitsForTopic`/`shapesForTopic` rather than the generated maps directly. That
  * indirection is what lets it see a Topic registered at module load: an Uplink's
- * relocated payload type, and every client-derived channel, which is computed
- * here and appears in no contract type at all. Reading the maps directly was
- * blind to both, and `vessel.state.*` only resolved because a migration table
- * happened to list those paths.
+ * own payload type, and every client-derived channel, which is computed here
+ * and appears in no contract type at all. Reading the maps directly is blind to
+ * both, and would resolve `vessel.state.*` only for the paths a migration table
+ * happens to list.
  */
 export function isKnownFieldPath(path: string): boolean {
   // Topic ids contain dots, so the split point is found rather than assumed:

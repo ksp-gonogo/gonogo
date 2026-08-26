@@ -20,11 +20,11 @@
 
 const DB_NAME = "gonogo-fog";
 /**
- * DB version bumped from 1 → 2 to drop the old single-mask-per-body
- * schema. onupgradeneeded recreates the object store, which wipes any
- * pre-existing keys. A reveal source regenerates the underlying coverage
- * cheaply from whatever it persists of its own, so the wipe is recoverable
- * by flying over already-scanned regions again.
+ * The IDB store version. Every upgrade step so far drops the object store
+ * rather than migrating it (see `onupgradeneeded`), because each changed the
+ * KEY shape and the missing part cannot be invented. That wipes any
+ * pre-existing keys, which is recoverable: a reveal source regenerates the
+ * underlying coverage cheaply from whatever it persists of its own.
  */
 const DB_VERSION = 3;
 const STORE = "masks";

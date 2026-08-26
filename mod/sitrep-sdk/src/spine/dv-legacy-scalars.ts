@@ -15,13 +15,11 @@ interface VesselStructureWirePayload {
 }
 
 /**
- * The four vessel-wide/current-stage ΔV & mass scalars the old
- * `@ksp-gonogo/data` `registerBuiltinDerivedKeys()` projected out of
- * `dv.stages` for the generic Graph widget's key picker (old keys
- * `dv.total`/`dv.current`/`dv.currentFuelMass`/`dv.totalMass`: see that
- * file's own doc comment). Those legacy derived keys never got a stream
- * home in `map-topic.ts` at all: this channel is that home, computed the
- * same way, off the same two already-carried raw topics.
+ * The four vessel-wide / current-stage ΔV and mass scalars the generic Graph
+ * widget's key picker offers as `dv.total` / `dv.current` /
+ * `dv.currentFuelMass` / `dv.totalMass`. This channel is their stream home,
+ * computed off the same two already-carried raw topics rather than projected
+ * out of `dv.stages` by a client-side derived-key registration.
  */
 export interface DvLegacyScalars {
   /** Sum of every stage's `deltaVActual`: vessel-total ΔV at the current situation (m/s). */
@@ -31,11 +29,9 @@ export interface DvLegacyScalars {
   /** The active stage's own `fuelMass`, or `null` when no stage matches. */
   currentFuelMass: number | null;
   /**
-   * Sum of every stage's `dryMass + fuelMass`. `StageDeltaVEntry` never
-   * carries a `stageMass` field at all (`useVesselDeltaV.ts`'s own doc
-   * comment): dry + fuel per stage is the same total the old
-   * legacy `stageMass` sum represented, reconstructed from the two
-   * fields the wire actually carries.
+   * Sum of every stage's `dryMass + fuelMass`. `StageDeltaVEntry` carries no
+   * `stageMass` field at all (`useVesselDeltaV.ts`'s own doc comment), so the
+   * per-stage total is reconstructed from the two fields the wire does carry.
    */
   totalMass: number;
 }

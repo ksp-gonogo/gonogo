@@ -191,15 +191,12 @@ export interface MissionMeta {
    */
   starred?: boolean;
   /**
-   * User-authored chapters / markers, ported from the old
-   * `FlightRecord.chapters`. Reuses `FlightChapterRecord` as-is, its
-   * `startMs`/`endMs` fields keep their literal millisecond semantics,
-   * elapsed since `firstFrameUt` (converted from the mission's UT-second
-   * delta: `(ut - firstFrameUt) * 1000`) rather than since the old
-   * wall-clock-ms `launchedAt`. Keeping the unit as ms means
-   * `ChaptersEditor`'s `formatElapsed`/`parseElapsed` (which do real ms
-   * math, dividing/multiplying by 1000) need no changes, only the anchor
-   * point moves. Optional: missions start with none.
+   * User-authored chapters / markers, as `FlightChapterRecord`. Its
+   * `startMs`/`endMs` are literal milliseconds elapsed since `firstFrameUt`,
+   * converted from the mission's UT-second delta as
+   * `(ut - firstFrameUt) * 1000`. The unit stays ms so `ChaptersEditor`'s
+   * `formatElapsed`/`parseElapsed`, which do real ms math, need nothing
+   * special: only the anchor is a UT. Optional: missions start with none.
    */
   chapters?: FlightChapterRecord[];
 }

@@ -29,11 +29,8 @@
 //     payload IS a real reflected contract type (`PendingUplinkQueue`), but `ChannelEngine`
 //     (not any one Uplink's contract) declares the Topic, so it is hand-mapped here.
 // Both are owned by the engine, not by any single Uplink, so they belong in the shared SDK.
-// (A formerly-untyped array Topic that once sat in this tail as `unknown[]` while its
-// element shape was deferred now carries its wire-typed element contract and is
-// codegen-derived like every other array Topic.)
-// It does not resolve to `unknown`, the registry has no `unknown` Topics (proven at
-// compile time by `_AssertNoTopicResolvesToUnknown` below).
+// Neither resolves to `unknown`: the registry has no `unknown` Topics at all, proven at
+// compile time by `_AssertNoTopicResolvesToUnknown` below.
 //
 // ── Bare-primitive Uplink Topics (NOT in the shared SDK) ─────────────────────────────
 // A few Topics carry a bare JSON primitive (`true`/`false`), so they have no named C#
@@ -251,11 +248,11 @@ for (const id of FIRST_PARTY_BARE_PRIMITIVE_TOPICS) {
  * alongside its `declare module` augmentation of `TopicPayloadMap`.
  * Idempotent (a `Set`), so a double import is harmless.
  *
- * Named for the original case (a bare boolean with no C# payload type to
- * reflect), but the runtime registry itself does not care about payload
- * shape: a relocated Uplink's own STRUCTURED Topic (uplink-types-out-of-core
- * plan; `avionics.status` is the first) registers here too, pairing this call
- * with `registerTopicUnits` (`units.ts`) for the numeric half of the same
+ * Named for the commonest case (a bare boolean with no C# payload type to
+ * reflect), but the runtime registry itself does not care about payload shape:
+ * an Uplink's own STRUCTURED Topic, whose type lives in its contract slice
+ * rather than in `Sitrep.Contract`, registers here too. Such a Topic pairs this
+ * call with `registerTopicUnits` (`units.ts`) for the numeric half of the same
  * problem.
  */
 export function registerBarePrimitiveTopic(id: string): void {
@@ -266,8 +263,8 @@ export function registerBarePrimitiveTopic(id: string): void {
  * Every Topic id currently known at runtime, the SDK's own `TOPIC_IDS` plus every
  * bare-primitive Uplink Topic registered so far. The completeness-oriented counterpart to
  * `TOPIC_IDS`: consumers that want "subscribe to / iterate over EVERYTHING" (e.g. the
- * replay recorder's full-archive mode) read this, since the two bare topics are no longer
- * static members of `TOPIC_IDS`. Reflects only Uplinks whose client package has loaded.
+ * replay recorder's full-archive mode) read this, since a bare-primitive Topic is not a
+ * static member of `TOPIC_IDS`. Reflects only Uplinks whose client package has loaded.
  */
 export function getAllKnownTopicIds(): readonly string[] {
   return [...TOPIC_IDS, ...barePrimitiveTopicIds];

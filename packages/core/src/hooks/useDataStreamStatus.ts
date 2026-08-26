@@ -35,10 +35,8 @@ function legacyToStreamStatus(status: DataSourceStatus): StreamStatusValue {
 }
 
 /**
- * The staleness/absence surface for a legacy `(dataSourceId, key)` pair,
- * the M3 "adopt staleness/certainty" shim (`m3-migration-plan.md` §2 item 3,
- * §Build 1), sibling to `useDataValue` (read). Same allowlist-gated,
- * legacy-fallback contract:
+ * The staleness/absence surface for a `(dataSourceId, key)` pair, sibling to
+ * `useDataValue` (read). Same allowlist-gated, fallback contract:
  *
  * - **Mapped key + a `TelemetryProvider` is mounted + the resolved topic is
  *   CARRIED** -> the real `StreamStatusValue` off the `TimelineStore`

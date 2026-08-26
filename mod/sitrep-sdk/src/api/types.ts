@@ -393,8 +393,8 @@ export type ContributionDep =
 
 /**
  * Registration descriptor for a contribution: the data a client feeds into
- * another widget's slot. No longer a mirror of anything: `spine/contributions.ts`
- * is the registry, and this is the type it registers.
+ * another widget's slot. Not a mirror of anything: `spine/contributions.ts` is
+ * the registry, and this is the type it registers.
  *
  * Both halves of `compute` are typed precisely, against the same
  * declaration-merged `ContributionEntry<S>` a slot owner declares in

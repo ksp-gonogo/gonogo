@@ -1,10 +1,9 @@
 /**
  * Client-side orbit-derivation helpers built on top of the analytic Kepler
  * propagator (`kepler.ts`). These are the "orbit Uplink SDK" pieces: the
- * mod streams sparse orbital ELEMENTS (plus the next SOI
- * `encounter`), and the SDK reconstructs everything a widget used to read as a
- * precomputed legacy scalar: a post-burn maneuver preview and the
- * patched-conic chain: client-side.
+ * mod streams sparse orbital ELEMENTS (plus the next SOI `encounter`), and the
+ * SDK reconstructs the rest client-side rather than the mod precomputing it: a
+ * post-burn maneuver preview, and the patched-conic chain.
  *
  * Everything here is deterministic and side-effect-free (no wall-clock, no
  * RNG), the same discipline as `kepler.ts`: it all bottoms out in `solve`/
@@ -293,10 +292,9 @@ export interface BuildPatchesOptions {
 }
 
 /**
- * Reconstruct the patched-conic chain client-side from streamed elements +
- * the next `encounter`: replacing the old `o.orbitPatches` capture (stream
- * elements + encounter, SDK reconstructs the chain; no mod capture of the
- * full chain).
+ * Reconstruct the patched-conic chain client-side from streamed elements + the
+ * next `encounter`. The mod never captures the full chain: it streams the
+ * elements and the encounter, and this rebuilds the rest.
  *
  * With only the CURRENT orbit's elements and the NEXT transition on the
  * wire, the honestly-reconstructable chain is a single conic segment: the

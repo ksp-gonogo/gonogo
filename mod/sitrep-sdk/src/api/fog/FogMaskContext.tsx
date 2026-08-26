@@ -6,9 +6,9 @@ import type { FogMaskStore } from "./FogMaskStore";
 const FogMaskCacheContext = createContext<FogMaskCache | null>(null);
 const FogMaskStoreContext = createContext<FogMaskStore | null>(null);
 
-/** Shared bucket id used everywhere fog masks are stored or fanned out
- *  over peers. Save-profile scoping was removed; the storage layer still
- *  has a slot for it because the IndexedDB key shape encodes it. */
+/** Shared bucket id used everywhere fog masks are stored or fanned out over
+ *  peers. There is no per-save-profile scoping; the storage layer keeps a slot
+ *  for one only because the IndexedDB key shape encodes it. */
 export const DEFAULT_PROFILE_ID = "default";
 
 /**

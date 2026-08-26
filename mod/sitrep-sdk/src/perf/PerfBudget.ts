@@ -183,10 +183,10 @@ export class PerfBudget {
    * mechanism, same reason, as `GONOGO_HOST_KEY`.
    *
    * This is why `GonogoHost.createPerfBudget` exists, and it stays: it is the
-   * documented author-facing route and costs nothing. The difference is that
-   * reaching the class directly is no longer a silent trap, which matters because
-   * a budget is constructed at MODULE SCOPE (`const B = new PerfBudget(...)`) and
-   * so cannot go through a host that may not be installed yet.
+   * documented author-facing route and costs nothing. Reaching the class
+   * directly is safe too, which matters because a budget is constructed at
+   * MODULE SCOPE (`const B = new PerfBudget(...)`) and so cannot go through a
+   * host that may not be installed yet.
    */
   private static get registry(): Set<PerfBudget> {
     const g = globalThis as unknown as {

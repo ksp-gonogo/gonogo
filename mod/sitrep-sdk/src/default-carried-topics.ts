@@ -1,6 +1,6 @@
 /**
- * Default dev-first per-topic promotion list (browser-transport brief §2/§3,
- * `m3-migration-plan.md` §5.1 carried-channels gate). These are the RAW wire
+ * Default dev-first per-topic promotion list, feeding the carried-channels
+ * gate in `carried-channels.ts`. These are the RAW wire
  * topics the mod's `VesselViewProvider`/`SystemViewProvider`/`TimeViewProvider`
  * are known to serve, the `useDataValue` shim resolves each mapped/derived
  * topic down to its raw wire inputs and only routes to the stream when EVERY
@@ -86,16 +86,12 @@ export const DEFAULT_SITREP_CARRIED_TOPICS: readonly string[] = [
   // it to label its readout with the real centre instead of assuming KSC;
   // must be carried or that read silently stays undefined.
   "comms.commandCentre",
-  // System View / Fleet-Comms augment (Phase 1 spine,
-  // local_docs/design/specs/2026-07-15-system-view-fleet-comms-design.md):
-  // active-vessel comms-path highlight + command-traffic (pending-uplink)
-  // overlay, read via `useLatestValue` (dispatch-time bookkeeping, TrueNow).
-  // Connectivity styling now reads the `comms.link` MetaTopic already listed
-  // above (migrated off the `comms.connectivity` TrueNow bootstrap per
-  // `local_docs/Wednesday Work/2026-07-16-fleetcomms-use-comms-link.md`), so
-  // `comms.connectivity` itself is no longer carried here: no client reads
-  // it, completing the comms work's "de-publicise the TrueNow comms.*
-  // observation channels" intent.
+  // System View / Fleet-Comms augment: active-vessel comms-path highlight +
+  // command-traffic (pending-uplink) overlay, read via `useLatestValue`
+  // (dispatch-time bookkeeping, TrueNow). Connectivity styling reads the
+  // `comms.link` MetaTopic listed above, so `comms.connectivity` is
+  // deliberately absent from this list: no client reads it, and the TrueNow
+  // `comms.*` observation channels stay un-publicised.
   "comms.path",
   // CommNet relay graph: the `system-view-vessel-orbits` contribution reads
   // it to draw the relay network as faint connection-line entities. That

@@ -23,9 +23,9 @@ import type {
  * Soft cap on samples flowing into the buffered layer. A polling telemetry
  * source runs at 4 Hz across ~170 keys (worst-case 680/sec when every key
  * changes each tick), plus a handful of derived keys and a brief replay burst
- * on subscribe. Mid-flight refreshes routinely flirted with the old
- * 1500 limit; 3000 still catches a true regression (e.g. duplicated
- * samples or a runaway WS rate) without false-alarming on normal load.
+ * on subscribe. A mid-flight refresh routinely comes close to 1500, so the cap
+ * sits at 3000: still tight enough to catch a true regression (duplicated
+ * samples, a runaway WS rate) without false-alarming on normal load.
  */
 const BUFFERED_SAMPLE_BUDGET = new PerfBudget({
   name: "BufferedDataSource samples in/sec",

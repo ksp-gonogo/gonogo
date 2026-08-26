@@ -6,15 +6,13 @@ import type { SystemBodiesPayload } from "./vessel-state";
  * `vessel.state`, for display maps that resolve a `system.*` raw channel to a
  * widget-facing shape but have nothing to do with any one vessel.
  *
- * Today it carries a single field, `bodyCount`, the count behind the old
- * legacy `b.number` scalar. `system.bodies` on the wire is the raw ARRAY
- * of bodies (`SystemViewProvider.BuildSystemBodies`), whereas
+ * Today it carries a single field, `bodyCount`. `system.bodies` on the wire is
+ * the raw ARRAY of bodies (`SystemViewProvider.BuildSystemBodies`), whereas
  * SystemView/useCelestialBodies.ts reads a plain `number` (how many bodies
- * exist, so it can fan out per-index subscribes). Deriving the count here,
- * rather than forcing it onto `vessel.state`, which only exists while a vessel
- * is loaded and would leave `b.number` stuck when there's no active vessel,
- * keeps it available whenever `system.bodies` is, matching the legacy scalar's
- * vessel-independent lifetime.
+ * exist, so it can fan out per-index subscribes). The count is derived here
+ * rather than onto `vessel.state`, which only exists while a vessel is loaded:
+ * a body count does not depend on anything flying, so it stays available
+ * whenever `system.bodies` is.
  */
 export interface SystemState {
   /** Number of bodies in `system.bodies`. */

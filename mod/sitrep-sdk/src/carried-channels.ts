@@ -1,13 +1,12 @@
 /**
- * The carried-channels allowlist gate (see `m3-migration-plan.md`): the
- * safety mechanism that prevents the "big-bang blank-out": mounting a
- * `TelemetryProvider` used to make `@ksp-gonogo/core`'s
- * `useDataValue` shim stop falling back to legacy for every MAPPED topic,
- * even when the mounted transport never actually delivers it. This module is
- * the single place that decides "is `topic` actually carried right now",
- * both `TelemetryProvider` (to build the allowlist) and the `useDataValue`
- * shim (to consult it) go through this file rather than duplicating the
- * derived-topic resolution logic.
+ * The carried-channels allowlist gate: the safety mechanism against a
+ * "big-bang blank-out". Without it, mounting a `TelemetryProvider` stops
+ * `@ksp-gonogo/core`'s `useDataValue` shim falling back for every MAPPED
+ * topic, including the ones the mounted transport never actually delivers.
+ * This module is the single place that decides "is `topic` actually carried
+ * right now": both `TelemetryProvider` (to build the allowlist) and the
+ * `useDataValue` shim (to consult it) go through this file rather than
+ * duplicating the derived-topic resolution logic.
  *
  * A topic is carried iff EVERY raw wire topic it transitively depends on is
  * carried:
@@ -15,9 +14,8 @@
  *   identity fallback): carried iff it's directly in the set (or under a
  *   carried namespace prefix, see below).
  * - A DERIVED topic (`vessel.state.*`) depends on its declared `inputs`,
- *   resolved recursively: carried iff ALL of them are (see
- *   `m3-migration-plan.md`: "for a DERIVED topic, it's carried iff all its
- *   declared inputs are carried"). A derived channel with even one uncarried
+ *   resolved recursively: carried iff ALL of them are. A derived channel with
+ *   even one uncarried
  *   input can never produce a whole record, so treating it as carried would reintroduce
  *   exactly the permanent-`undefined`-blank-out this gate exists to prevent.
  *

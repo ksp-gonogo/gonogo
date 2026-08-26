@@ -1,12 +1,11 @@
 /// <reference path="./webcodecs-track-io.d.ts" />
 /**
- * The per-frame video delay pipeline (Wednesday Work,
- * `2026-07-15-per-frame-video-delay.md`).
+ * The per-frame video delay pipeline.
  *
- * `useDelayedPlayout` (the camera Uplink's stream hook) used to push ONE
- * keyframe per raw `MediaStream` *reference*: i.e. only on a camera switch
- * / reconnect: so only *when a feed became visible* was delayed; ongoing
- * motion inside that stream played live. This module reads the real video
+ * Delaying at the `MediaStream` *reference* level, one keyframe per stream, is
+ * not enough: a reference changes only on a camera switch or reconnect, so only
+ * *when a feed became visible* is delayed, while ongoing motion inside that
+ * stream plays live. This module reads the real video
  * track frame-by-frame (WebCodecs "Breakout Box": `MediaStreamTrackProcessor`
  * / `MediaStreamTrackGenerator`, see `webcodecs-track-io.d.ts`), stamps EACH
  * frame with the live interpolated capture UT, and gates release through
@@ -78,7 +77,7 @@ export interface FrameDelayPipelineOptions<T extends FrameLike> {
   /** THE delay clock: the same instance telemetry reads. */
   view: DelayClockLike;
   /** Capture-UT to stamp EACH incoming frame with, called once per frame
-   *  read off `source`, not once per stream (contrast the old design). */
+   *  read off `source`, never once per stream. */
   captureUt(): number;
   source: FrameSource<T>;
   sink: FrameSink<T>;

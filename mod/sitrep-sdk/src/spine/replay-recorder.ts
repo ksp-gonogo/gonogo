@@ -96,10 +96,10 @@ export class StreamRecorder {
     });
 
     if (this.recordAllTopics) {
-      // The full live set: the SDK's own Topics PLUS every bare-primitive Uplink
-      // Topic registered by a loaded client. Those are no longer static members of
-      // `TOPIC_IDS`, so iterating the runtime registry keeps the full-archive
-      // recording complete.
+      // The full live set: the SDK's own Topics PLUS every bare-primitive
+      // Uplink Topic registered by a loaded client. Those are not static
+      // members of `TOPIC_IDS`, so only iterating the runtime registry keeps
+      // the full-archive recording complete.
       for (const topic of getAllKnownTopicIds()) {
         this.extraSubscriptions.push(this.client.subscribe(topic, () => {}));
       }
