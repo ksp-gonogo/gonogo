@@ -109,6 +109,11 @@ namespace GonogoRp1Uplink
                     ["humanRated"] = v.HumanRated,
                     ["launchSite"] = v.LaunchSite,
                     ["projectType"] = v.ProjectType,
+                    // Absent when there are none, which is the eligible case, so
+                    // a client reads "no key" as "RP-1 has no objection". An
+                    // empty ARRAY would say the same thing and cost a wire
+                    // allocation per vehicle per tick to say it.
+                    ["rolloutRefusals"] = v.RolloutRefusals,
                 });
             }
             return list;
@@ -129,6 +134,8 @@ namespace GonogoRp1Uplink
                     ["level"] = p.Level,
                     ["fractionalLevel"] = p.FractionalLevel,
                     ["state"] = p.State,
+                    ["hasVesselWaiting"] = p.HasVesselWaiting,
+                    ["waitingVesselName"] = p.WaitingVesselName,
                 });
             }
             return list;

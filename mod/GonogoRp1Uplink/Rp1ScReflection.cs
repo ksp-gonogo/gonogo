@@ -319,7 +319,13 @@ namespace GonogoRp1Uplink
 
             foreach (var vp in Enumerate(Member(lc, "Warehouse")))
             {
-                raw.Warehouse.Add(ReadBuildItem(kscName, lcId, vp, efficiency, rushRate, canIntegrate, ramp, withProgress: false));
+                var item = ReadBuildItem(kscName, lcId, vp, efficiency, rushRate, canIntegrate, ramp, withProgress: false);
+                // Warehouse only. A vehicle still being integrated cannot roll
+                // out for a reason that has nothing to do with its envelope, so
+                // publishing envelope refusals against one would answer a
+                // question nobody asked and read as the reason it cannot move.
+                item.RolloutRefusals = RolloutRefusals(lc, vp);
+                raw.Warehouse.Add(item);
             }
 
             // Pads under construction hang off the COMPLEX, unlike the other two
@@ -337,6 +343,7 @@ namespace GonogoRp1Uplink
 
             foreach (var pad in Enumerate(Member(lc, "LaunchPads")))
             {
+                var waiting = PadWaitingVessel(pad, out var waitingName);
                 raw.Pads.Add(new Rp1PadRaw
                 {
                     KscName = kscName,
@@ -347,6 +354,8 @@ namespace GonogoRp1Uplink
                     Level = ReadInt(pad, "level") ?? 0,
                     FractionalLevel = NegativeAsAbsent(ReadDouble(pad, "fractionalLevel")),
                     State = ReadEnumName(pad, "State"),
+                    HasVesselWaiting = waiting,
+                    WaitingVesselName = waitingName,
                 });
             }
 
@@ -889,5 +898,160 @@ namespace GonogoRp1Uplink
         private static string? EmptyAsAbsent(string? value) =>
             string.IsNullOrEmpty(value) ? null : value;
 
+        /// <summary>
+        /// Whether a craft is standing on this pad in <c>PRELAUNCH</c>, and its
+        /// name. Null when the question could not be asked, which is a different
+        /// answer from false and is why this is a <c>bool?</c>.
+        /// </summary>
+        /// <remarks>
+        /// The one member this capture INVOKES rather than reads, and it is worth
+        /// saying why that is safe here when the file header forbids it generally.
+        /// The rule the header sets is that a sampled read must not write to the
+        /// player's save, and the objection to RP-1's display helpers is precise:
+        /// they reach <c>LaunchComplex.Efficiency</c>, whose getter CONSTRUCTS and
+        /// PERSISTS an <c>LCEfficiency</c> on a cache miss.
+        ///
+        /// <para><c>HasVesselWaitingToBeLaunched</c> has no such arm. Its whole
+        /// body reads <c>lastLoadedVesselId</c>, asks
+        /// <c>FlightGlobals.FindVessel</c> for it, and compares
+        /// <c>vessel.situation</c> to <c>PRELAUNCH</c>. No memoisation, no
+        /// construction, no assignment, so it is a read that happens to be spelled
+        /// as a method.</para>
+        ///
+        /// <para>It cannot be reproduced from fields instead, which is why it is
+        /// invoked at all: the answer lives on a <c>Vessel</c> in
+        /// <c>FlightGlobals</c> rather than anywhere on the pad, and
+        /// <c>LCLaunchPad.State</c> deliberately does not consult it. That is the
+        /// gap this field exists to close.</para>
+        /// </remarks>
+        /// <summary>
+        /// RP-1's own reasons this vehicle cannot leave its complex, or null when
+        /// it has none.
+        ///
+        /// <para>REPRODUCED from fields, never invoked, and that is not a
+        /// preference. <c>VesselProject.MeetsFacilityRequirements</c> calls
+        /// <c>GetTotalMass</c>, <c>GetShipSize</c> and <c>HasClamps</c>, and each
+        /// of those MEMOISES its answer onto the vehicle when the stored value is
+        /// zero or untested. Those are <c>[Persistent]</c> fields, so invoking it
+        /// from a sampled capture would have a telemetry read edit the player's
+        /// save, which the file header forbids outright. The command invokes it
+        /// instead, because a command runs at the moment of a press and is exactly
+        /// where RP-1's own button calls it.</para>
+        ///
+        /// <para><b>This is the SECOND reproduction of RP-1's envelope in this
+        /// assembly</b>, after <see cref="Rp1LaunchGate"/>'s, and the duplication
+        /// is deliberate for now rather than unnoticed: collapsing them means
+        /// refactoring a launch gate that is load-bearing for every launch, and
+        /// that is not a change to make in the same commit as a new wire field.
+        /// The mitigation is a test that runs one fixture through both and asserts
+        /// they agree, so the copies cannot drift silently; see
+        /// <c>Rp1RolloutEligibilityTests</c>.</para>
+        ///
+        /// <para>A zero mass or a zero size axis is a figure nobody wrote down
+        /// rather than a vehicle of no extent, and the getter that would compute
+        /// one is the memoising one above. No figure, no comparison: an invented
+        /// one would refuse a real vehicle.</para>
+        /// </summary>
+        private string[]? RolloutRefusals(object lc, object vp)
+        {
+            var reasons = new List<string>();
+
+            if (ReadBool(vp, "AllPartsValid") == false)
+            {
+                // RP-1 omits the whole row for such a vehicle, so an operator
+                // gets no explanation from the game's own window either.
+                reasons.Add("some of its parts are not present in this install");
+            }
+
+            var mass = ReadDouble(vp, "mass");
+            var massMax = UnlimitedAsAbsent(ReadDouble(lc, "MassMax"));
+            var massMin = ReadDouble(lc, "MassMin");
+            if (mass != null && mass > 0.0 && massMax != null && mass > massMax)
+            {
+                reasons.Add("too heavy for the complex at "
+                    + mass.Value.ToString("N1", CultureInfo.InvariantCulture) + " t, limit "
+                    + massMax.Value.ToString("N1", CultureInfo.InvariantCulture) + " t");
+            }
+            if (mass != null && mass > 0.0 && massMin != null && mass < massMin)
+            {
+                // RP-1's floor, which stock has no concept of: a complex rated
+                // for a Saturn V cannot usefully integrate a sounding rocket.
+                reasons.Add("too light for the complex at "
+                    + mass.Value.ToString("N1", CultureInfo.InvariantCulture) + " t, minimum "
+                    + massMin.Value.ToString("N1", CultureInfo.InvariantCulture) + " t");
+            }
+
+            var axis = ExceededSizeAxis(lc, vp);
+            if (axis != null)
+            {
+                reasons.Add("too large for the complex on its " + axis + " axis");
+            }
+
+            if (ReadBool(vp, "humanRated") == true && ReadBool(lc, "IsHumanRated") != true)
+            {
+                reasons.Add("human-rated, and the complex is not");
+            }
+
+            return reasons.Count == 0 ? null : reasons.ToArray();
+        }
+
+        /// <summary>
+        /// The first axis on which the vehicle exceeds its complex, or null.
+        /// Named rather than counted because "too large" does not tell an
+        /// operator whether the problem is height or width.
+        /// </summary>
+        private string? ExceededSizeAxis(object lc, object vp)
+        {
+            var ship = Member(vp, "ShipSize");
+            var limit = Member(lc, "SizeMax");
+            if (ship == null || limit == null)
+            {
+                return null;
+            }
+            foreach (var name in new[] { "x", "y", "z" })
+            {
+                var extent = ReadDouble(ship, name);
+                var allowed = UnlimitedAsAbsent(ReadDouble(limit, name));
+                if (extent == null || extent <= 0.0 || allowed == null)
+                {
+                    continue;
+                }
+                if (extent > allowed)
+                {
+                    return name;
+                }
+            }
+            return null;
+        }
+
+        private bool? PadWaitingVessel(object pad, out string? vesselName)
+        {
+            vesselName = null;
+            try
+            {
+                var check = Rp1Types.InstanceMethod(pad, "HasVesselWaitingToBeLaunched", 1);
+                if (check == null)
+                {
+                    return null;
+                }
+                var arguments = new object?[1];
+                if (!(check.Invoke(pad, arguments) is bool waiting))
+                {
+                    return null;
+                }
+                if (waiting)
+                {
+                    vesselName = EmptyAsAbsent(ReadString(arguments[0], "vesselName"));
+                }
+                return waiting;
+            }
+            catch (Exception)
+            {
+                // Absent rather than false: an unreadable answer must not read as
+                // "the pad is clear", because the client would then offer a pad
+                // the command can only refuse.
+                return null;
+            }
+        }
     }
 }

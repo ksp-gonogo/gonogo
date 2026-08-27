@@ -57,16 +57,28 @@ public class Rp1RolloutArgs
 
     /// <summary>
     /// Which pad, by the name RP-1 gives it and <c>rp1.pads[].name</c>
-    /// publishes. Optional, and what happens when it is omitted is the whole
-    /// reason it is a field.
+    /// publishes. <b>REQUIRED</b>: the command refuses when it is absent, even
+    /// when only one pad could possibly have been meant.
     ///
-    /// <para>RP-1's own rollout asks with a popup whenever more than one pad is
-    /// free, and there is nobody to answer a popup on a command dispatched from
-    /// another machine. So: named, and that pad is used; omitted with exactly
-    /// one pad free, and that one is used; omitted with SEVERAL free, and the
-    /// command REFUSES and names them. A complex with one pad, which is most of
-    /// them for most of a career, stays a single press, and the mod never picks
-    /// a destination on the operator's behalf.</para>
+    /// <para>Nullable in the type only because every field on this wire is, so
+    /// that a client sending an older shape fails as a refusal rather than a
+    /// deserialisation error. An absent pad is never a default.</para>
+    ///
+    /// <para><b>Operator ruling, 2026-08-27.</b> An earlier draft let this be
+    /// omitted and used the single free pad when there was exactly one. That was
+    /// rejected, and the reason is worth keeping: choosing a launch site is a
+    /// decision an operator makes, and a mod that silently picks when the choice
+    /// looks obvious has taken the decision anyway. Requiring it also means the
+    /// wire RECORDS what was chosen, so a dispatch log says which pad an operator
+    /// sent a vehicle to rather than leaving it to be inferred from whichever pad
+    /// happened to be free at the time.</para>
+    ///
+    /// <para>The client is where the convenience belongs: it may PRESELECT the
+    /// only eligible pad so a one-pad complex is still a single press, but the
+    /// command it sends carries the name explicitly. Eligibility is on the wire
+    /// for it to do that with, as <c>rp1.pads[].state</c> plus
+    /// <c>rp1.pads[].hasVesselWaiting</c> for the pad half and
+    /// <c>rp1.warehouse[].rolloutRefusals</c> for the vehicle half.</para>
     /// </summary>
     [SitrepUnit(Units.Id)]
     public string? Pad { get; set; }

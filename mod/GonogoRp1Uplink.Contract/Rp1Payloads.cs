@@ -299,6 +299,37 @@ public sealed class Rp1WarehouseItemEntry
     [SitrepUnit(Units.Id)]
     public string? ShipId { get; set; }
 
+    /// <summary>
+    /// RP-1's own reasons this vehicle cannot be rolled out of the complex
+    /// holding it, in its own words. Null when it has none, which is the
+    /// eligible case.
+    ///
+    /// <para><b>Why this is on the wire rather than computed by the client.</b>
+    /// Eligibility has two halves and they live at different levels. The pad half
+    /// is per-pad and is <see cref="Rp1PadEntry.State"/> plus
+    /// <see cref="Rp1PadEntry.HasVesselWaiting"/>. This is the VEHICLE half, and
+    /// it is per-COMPLEX rather than per-pad: the same answer for every pad the
+    /// complex owns, because what it measures is the vehicle against the
+    /// complex's envelope. Publishing it per (vehicle, pad) pair would be an
+    /// N-by-M matrix restating one fact.</para>
+    ///
+    /// <para>It could ALMOST be derived client-side, and that is the trap. Mass,
+    /// the complex's ceiling and floor and its human rating are all already
+    /// published, but the vehicle's SIZE is not, so an axis check is impossible
+    /// there; and a client that reproduced the rest would be the third
+    /// independent copy of RP-1's envelope rule in this repo, after the launch
+    /// gate and the command. Copies of a rule drift, and a client copy would
+    /// drift where nothing tests it.</para>
+    ///
+    /// <para>Null carries the same meaning an unreadable envelope has everywhere
+    /// else here: OFFER the control and let the command refuse. The command
+    /// re-checks at the moment of the press against the live object, so the worst
+    /// case is a refusal one step later, against the certainty of hiding a
+    /// control that would have worked.</para>
+    /// </summary>
+    [SitrepUnit(Units.Text)]
+    public string[]? RolloutRefusals { get; set; }
+
     [SitrepUnit(Units.Id)]
     public string? KscName { get; set; }
 
@@ -365,6 +396,35 @@ public sealed class Rp1PadEntry
     /// </summary>
     [SitrepUnit(Units.Enumeration)]
     public string? State { get; set; }
+
+    /// <summary>
+    /// A craft is already standing on this pad in <c>PRELAUNCH</c>, so nothing
+    /// else may be rolled out to it.
+    ///
+    /// <para><b>The one condition <see cref="State"/> cannot express, and the
+    /// reason this field had to exist.</b> That property derives its answer from
+    /// the OPERATIONS on the pad, and a vehicle already sent to the launch site
+    /// has no operation left: it simply sits there. So a pad in exactly this
+    /// state reports "Free" and refuses a rollout, and a client choosing from
+    /// state alone would offer a pad the mod can only reject. RP-1 asks the same
+    /// question separately, through
+    /// <c>LCLaunchPad.HasVesselWaitingToBeLaunched</c>.</para>
+    ///
+    /// <para>Null when the question could not be answered, which is not the same
+    /// as false: an unreadable answer means the client should still offer the pad
+    /// and let the command decide, because the mod re-checks it at the moment of
+    /// the press.</para>
+    /// </summary>
+    [SitrepUnit(Units.Flag)]
+    public bool? HasVesselWaiting { get; set; }
+
+    /// <summary>
+    /// The vessel already standing on the pad, by name, for a client that wants
+    /// to say WHICH craft is in the way. Null whenever
+    /// <see cref="HasVesselWaiting"/> is not true.
+    /// </summary>
+    [SitrepUnit(Units.Text)]
+    public string? WaitingVesselName { get; set; }
 }
 
 /// <summary>

@@ -40,9 +40,24 @@ namespace GonogoRp1Uplink.Tests
             "Rp1EconomyBackend.cs",
             "Rp1LaunchGate.cs",
             "Rp1BuildCommands.cs",
+            "Rp1VehicleCommands.cs",
             "Rp1DerivedCurrencyWithholder.cs",
             "Rp1SimulationBackend.cs",
         };
+
+        /// <summary>
+        /// Every production file in the Uplink that could reach RP-1 by string,
+        /// so a file ADDED to the Uplink and not to
+        /// <see cref="ReflectionSources"/> fails here rather than going unwatched.
+        ///
+        /// <para>Written because that is exactly what happened: the list above was
+        /// correct when it was made and then <c>Rp1VehicleCommands.cs</c> was
+        /// added with four handlers' worth of reflection in it. The sweep went on
+        /// reporting success, because a check cannot see a file it was never told
+        /// to open. The list of files to scan is itself a thing that can drift,
+        /// and only a DIFFERENT kind of check catches that.</para>
+        /// </summary>
+        private const string ReflectionMarker = "Rp1Types.";
 
         /// <summary>
         /// The calls that reach RP-1 by name. <c>Find</c> is here too: it takes a
@@ -228,6 +243,44 @@ namespace GonogoRp1Uplink.Tests
         {
             var flat = Regex.Replace(statement, @"\s+", " ").Trim();
             return flat.Length <= 120 ? flat : flat.Substring(0, 117) + "...";
+        }
+
+        [Fact]
+        public void No_production_file_reaches_RP1_by_string_without_being_swept()
+        {
+            var unwatched = new List<string>();
+            foreach (var path in Directory.GetFiles(UplinkDirectory(), "*.cs"))
+            {
+                var name = Path.GetFileName(path);
+                if (ReflectionSources.Contains(name))
+                {
+                    continue;
+                }
+                if (File.ReadAllText(path).Contains(ReflectionMarker))
+                {
+                    unwatched.Add(name);
+                }
+            }
+
+            Assert.True(
+                unwatched.Count == 0,
+                "These files reach RP-1 through Rp1Types and are not in ReflectionSources, so every name they "
+                + "use is guarded by nothing and the manifest sweep reports success without looking at them: "
+                + string.Join(", ", unwatched));
+        }
+
+        private static string UplinkDirectory()
+        {
+            for (var dir = new DirectoryInfo(AppContext.BaseDirectory); dir != null; dir = dir.Parent)
+            {
+                var candidate = Path.Combine(dir.FullName, "mod", "GonogoRp1Uplink");
+                if (Directory.Exists(candidate))
+                {
+                    return candidate;
+                }
+            }
+            throw new DirectoryNotFoundException(
+                "Could not find mod/GonogoRp1Uplink from " + AppContext.BaseDirectory);
         }
 
         private static string ReadUplinkSource(string fileName)

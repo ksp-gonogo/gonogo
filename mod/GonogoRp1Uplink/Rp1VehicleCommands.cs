@@ -270,11 +270,20 @@ namespace GonogoRp1Uplink
                 return Resume(complex, existing, existingType);
             }
 
-            // An empty string is an omission and not a pad called "". A client
-            // that renders a text field will send one the first time an operator
-            // clears it, and "no pad called """ is not an answer.
-            var wantedPad = string.IsNullOrWhiteSpace(args?.Pad) ? null : args!.Pad!.Trim();
-            if (!TryPad(complex, complexName, wantedPad, out var pad, out var padName, out var padRefusal))
+            // REQUIRED, and an empty string counts as absent: a client rendering
+            // a text field sends one the first time an operator clears it, and
+            // "no pad called """ is not an answer. Refused rather than defaulted
+            // even when the complex has exactly one pad, per the operator's
+            // ruling recorded on Rp1RolloutArgs.Pad: a mod that picks when the
+            // choice looks obvious has still taken the decision.
+            if (string.IsNullOrWhiteSpace(args?.Pad))
+            {
+                return CommandResult.Fail(
+                    CommandErrorCode.NotFound,
+                    "the command named no pad, and a rollout has to say which pad it is rolling out to");
+            }
+
+            if (!TryPad(complex, complexName, args!.Pad!.Trim(), out var pad, out var padName, out var padRefusal))
             {
                 return padRefusal!;
             }
@@ -293,6 +302,29 @@ namespace GonogoRp1Uplink
                     "RP-1 will not put this vehicle on " + padName + ": " + failedChecks);
             }
 
+            // THERE IS NO AFFORDABILITY CHECK HERE AND ADDING ONE WOULD BE A BUG.
+            //
+            // This is the line somebody comparing against Rp1BuildCommands.Repeat
+            // will reach for, because that handler runs
+            // CurrencyModifierQueryRP0 at exactly this point and refuses on an
+            // unreadable price. The two are not the same kind of act.
+            //
+            // A repeat build is a PURCHASE: KCTUtilities.SpendFunds has no
+            // affordability test of its own (its body is an AddFunds of the
+            // negative amount), so nothing but that query stands between a press
+            // and a career in negative funds.
+            //
+            // A rollout is a SUBSCRIPTION. ReconRolloutProject's constructor
+            // computes cost and touches Funding not at all; the charge is taken
+            // per tick in LCOpsProject.IncrementProgress, which runs its OWN
+            // CurrencyModifierQueryRP0 for that tick's slice and, when the career
+            // cannot cover it, throttles progress to
+            // CurrencyUtils.GetAffordableFundsFraction and spends only that.
+            //
+            // So RP-1 already cannot overdraw a career on a rollout, and a check
+            // here would refuse rollouts RP-1 itself starts and runs slowly. The
+            // operator confirmed this reading on 2026-08-27. Verified against the
+            // INSTALLED v4.6.0.0 RP0.dll, not upstream source.
             object project;
             try
             {
@@ -428,6 +460,13 @@ namespace GonogoRp1Uplink
                 }
             }
 
+            // No affordability check here either, and for the opposite reason to
+            // the rollout's: a scrap PAYS the career. KCTUtilities.ScrapVessel
+            // ends in AddFunds(GetTotalCost(), VesselPurchase), a full refund
+            // whether the vehicle was finished or still integrating, so there is
+            // no amount an operator can be short of. What it needs instead is the
+            // arm-then-confirm the client gives it, because the vehicle is gone
+            // and getting it back means paying for the integration time again.
             try
             {
                 var scrap = Rp1Types.StaticMethod(_utilities!, "ScrapVessel", 1);
@@ -822,18 +861,25 @@ namespace GonogoRp1Uplink
         }
 
         /// <summary>
-        /// The pad to roll out to, by name where the command gave one and by
-        /// elimination where it did not.
+        /// The pad the command named, resolved against the complex's own list.
         ///
-        /// <para>An ambiguous omission REFUSES and names the candidates, which is
-        /// the closest a headless command can come to RP-1's own pad-picker
-        /// popup. The alternative, taking the first free pad, would have the mod
-        /// choose a destination the operator never saw.</para>
+        /// <para>By name and ONLY by name. There is no fall back to "the only
+        /// free one": see <see cref="Rp1RolloutArgs.Pad"/> for the operator
+        /// ruling, and note what the alternative costs even when it looks safe.
+        /// A complex can gain a pad between the frame the operator read and the
+        /// press, so "the only free one" is not a stable referent, and a rollout
+        /// that resolved it at dispatch time could send a vehicle to a pad that
+        /// was not on screen when the decision was made.</para>
+        ///
+        /// <para>A pad that exists and is not free refuses with the reason,
+        /// through <see cref="PadUnusable"/>, rather than with a bare "not
+        /// available": the four states behind it want four different next moves
+        /// from an operator.</para>
         /// </summary>
         private static bool TryPad(
             object complex,
             string complexName,
-            string? wanted,
+            string wanted,
             out object? pad,
             out string padName,
             out CommandResult? refusal)
@@ -841,77 +887,33 @@ namespace GonogoRp1Uplink
             pad = null;
             padName = "";
 
-            var free = new List<object>();
-            var freeNames = new List<string>();
-            object? named = null;
-            string? namedState = null;
-            var best = "";
-
             foreach (var candidate in Rp1Types.Enumerate(Rp1Types.Member(complex, "LaunchPads")))
             {
                 var name = Rp1Types.ReadString(candidate, "name") ?? "";
-                // Read ONCE per pad: State walks the complex's operations and
-                // its own destruction node, so a second read per refusal arm
-                // would multiply that walk for no new information.
+                if (!string.Equals(name, wanted, StringComparison.OrdinalIgnoreCase))
+                {
+                    continue;
+                }
+                // Read once, after the name has matched: State walks the
+                // complex's operations and the pad's own destruction node, so
+                // reading it for every candidate would pay that walk per pad to
+                // answer a question about one.
                 var state = Rp1Types.ReadEnumName(candidate, "State") ?? "";
-                if (wanted != null && string.Equals(name, wanted, StringComparison.OrdinalIgnoreCase))
+                if (state != PadFree)
                 {
-                    named = candidate;
-                    namedState = state;
-                }
-                if (state == PadFree)
-                {
-                    free.Add(candidate);
-                    freeNames.Add(name);
-                }
-                if (Ranked(state) > Ranked(best))
-                {
-                    best = state;
-                }
-            }
-
-            if (wanted != null)
-            {
-                if (named == null)
-                {
-                    refusal = CommandResult.Fail(
-                        CommandErrorCode.NotFound,
-                        complexName + " has no pad called \"" + wanted + "\"");
+                    refusal = PadUnusable(name, state);
                     return false;
                 }
-                if (namedState != PadFree)
-                {
-                    refusal = PadUnusable(wanted, namedState);
-                    return false;
-                }
-                pad = named;
-                padName = wanted;
+                pad = candidate;
+                padName = name;
                 refusal = null;
                 return true;
             }
 
-            if (free.Count == 0)
-            {
-                refusal = PadUnusable("any pad at " + complexName, best);
-                return false;
-            }
-
-            if (free.Count > 1)
-            {
-                // Named rather than counted: an operator who has to choose needs
-                // the names to choose from, and they are not otherwise on the
-                // refusal.
-                refusal = CommandResult.Fail(
-                    CommandErrorCode.NotFound,
-                    complexName + " has more than one free pad (" + string.Join(", ", freeNames.ToArray())
-                    + "), so the command has to say which");
-                return false;
-            }
-
-            pad = free[0];
-            padName = freeNames[0];
-            refusal = null;
-            return true;
+            refusal = CommandResult.Fail(
+                CommandErrorCode.NotFound,
+                complexName + " has no pad called \"" + wanted + "\"");
+            return false;
         }
 
         /// <summary>
@@ -1081,26 +1083,5 @@ namespace GonogoRp1Uplink
             }
         }
 
-        /// <summary>
-        /// RP-1's own ordering over pad states, reproduced so the least-bad
-        /// reason survives when several pads are unusable for different reasons.
-        /// Its <c>GetBestLaunchPadState</c> compares the ENUM's ordinals, which
-        /// this Uplink deliberately never reads, so the order is written out
-        /// here instead: a rename makes this wrong in a way a test can see, an
-        /// ordinal shift would not.
-        /// </summary>
-        private static int Ranked(string state)
-        {
-            switch (state)
-            {
-                case "Destroyed": return 1;
-                case "Nonoperational": return 2;
-                case RolloutState: return 3;
-                case RollbackState: return 4;
-                case "Reconditioning": return 5;
-                case PadFree: return 6;
-                default: return 0;
-            }
-        }
     }
 }

@@ -135,7 +135,7 @@ export function KscVehicles() {
               <VehicleRow
                 complexName={complexName(complexList, item.lcId, nameComplex)}
                 finished
-                freePads={freePads(pads, item.lcId)}
+                pads={padsAt(pads, item.lcId)}
                 handles={handles}
                 item={item}
                 key={rowKey(item)}
@@ -146,7 +146,7 @@ export function KscVehicles() {
               <VehicleRow
                 complexName={complexName(complexList, item.lcId, nameComplex)}
                 finished={false}
-                freePads={freePads(pads, item.lcId)}
+                pads={padsAt(pads, item.lcId)}
                 handles={handles}
                 item={item}
                 key={rowKey(item)}
@@ -196,14 +196,14 @@ function VehicleRow({
   item,
   complexName: complex,
   finished,
-  freePads: free,
+  pads,
   operation,
   handles,
 }: Readonly<{
   item: Rp1BuildItemEntry | Rp1WarehouseItemEntry;
   complexName: string | null;
   finished: boolean;
-  freePads: readonly string[];
+  pads: readonly Rp1PadEntry[];
   operation: Rp1OperationEntry | undefined;
   handles: VehicleHandles;
 }>) {
@@ -248,12 +248,13 @@ function VehicleRow({
               <VehicleActions
                 cost={item.cost}
                 finished={finished}
-                freePads={free}
                 handles={handles}
                 id={id}
                 label={label}
                 name={name}
                 operation={operation}
+                pads={pads}
+                refusals={rolloutRefusalsOf(item)}
               />
             )}
           </Text>
@@ -277,7 +278,8 @@ function VehicleActions({
   label,
   cost,
   finished,
-  freePads: free,
+  pads,
+  refusals,
   operation,
   handles,
 }: Readonly<{
@@ -286,7 +288,8 @@ function VehicleActions({
   label: string;
   cost: Rp1WarehouseItemEntry["cost"];
   finished: boolean;
-  freePads: readonly string[];
+  pads: readonly Rp1PadEntry[];
+  refusals: readonly string[] | undefined;
   operation: Rp1OperationEntry | undefined;
   handles: VehicleHandles;
 }>) {
@@ -305,13 +308,23 @@ function VehicleActions({
         size="sm"
       />
       {finished && !moving ? (
-        <RolloutControls
-          freePads={free}
-          handle={handles.rollout}
-          id={id}
-          label={label}
-          name={name}
-        />
+        refusals === undefined ? (
+          <RolloutControls
+            handle={handles.rollout}
+            id={id}
+            label={label}
+            name={name}
+            pads={pads}
+          />
+        ) : (
+          // RP-1's own reasons, in RP-1's own words. The VEHICLE half of
+          // eligibility, and it outranks the pads entirely: no pad at this
+          // complex can take a vehicle its complex will not release, so offering
+          // a pad button would offer a press that can only be refused.
+          <Text>
+            {NULL_DISPLAY} {refusals.join("; ")}
+          </Text>
+        )
       ) : null}
       {operation?.type === "Rollback" ? (
         <CommandButton
@@ -356,66 +369,129 @@ function VehicleActions({
 }
 
 /**
- * The rollout control, or one per free pad when the operator has a choice to
- * make.
+ * One rollout control per ELIGIBLE pad, and a plain sentence when there are
+ * none.
  *
- * <para>The mod takes the pad by name and REFUSES an ambiguous omission rather
- * than picking one, because RP-1's own rollout asks with a popup and there is
- * nobody to answer a popup on a command from another machine. So a complex with
- * one usable pad gets one button and no decision, and a complex with several
- * gets the decision made here, where the operator can see the names, instead of
- * as a refusal they have to read and retry.</para>
+ * <para><b>The pad is always named.</b> The command requires it, per the
+ * operator's ruling: choosing a launch site is a decision an operator makes, so
+ * the mod refuses rather than picking even when only one pad could have been
+ * meant. The convenience belongs here instead, and this is what it looks like:
+ * one pad means one button, and pressing it commits to that pad by name.</para>
  *
- * <para>No free pad at all still draws ONE button. The refusal says which of
- * four things is wrong with the pads (destroyed, unbuilt, reconditioning, or a
- * vehicle already there), and those are four different next moves; a control
- * that simply vanished would say none of them.</para>
+ * <para><b>Eligibility comes off the wire, not from a rule reproduced here.</b>
+ * A pad is offerable when RP-1 says its state is Free AND that no craft is
+ * standing on it, and those are two separate facts because
+ * <c>state</c> cannot see the second: a vehicle already sent to the launch site
+ * has no operation left on the pad, so the pad still reads Free. The vehicle's
+ * own half arrives as <c>rolloutRefusals</c> and is handled by the caller,
+ * because it is the same answer for every pad the complex owns.</para>
+ *
+ * <para>No eligible pad draws a SENTENCE rather than a disabled button, and says
+ * which pad is in the way where the wire named it. A control that simply
+ * vanished would leave an operator with nothing to act on, and "the pad is
+ * taken" without the name leaves them looking.</para>
  */
 function RolloutControls({
   id,
   name,
   label,
-  freePads,
+  pads,
   handle,
 }: Readonly<{
   id: string;
   name: string;
   label: string;
-  freePads: readonly string[];
+  pads: readonly Rp1PadEntry[];
   handle: Parameters<typeof CommandButton>[0]["handle"];
 }>) {
-  if (freePads.length > 1) {
+  const eligible = eligiblePadNames(pads);
+
+  if (eligible.length === 0) {
     return (
-      <>
-        {freePads.map((pad) => (
-          <CommandButton
-            args={{ id, pad }}
-            aria-label={`Roll ${label} out to ${pad}`}
-            commandLabel={`Roll ${name} out to ${pad}`}
-            confirmAriaLabel={`Confirm rolling ${label} out to ${pad}`}
-            confirmLabel="Confirm"
-            handle={handle}
-            key={pad}
-            label={`Roll out to ${pad}`}
-            size="sm"
-          />
-        ))}
-      </>
+      <Text>
+        {NULL_DISPLAY} {noPadReason(pads)}
+      </Text>
     );
   }
 
+  // One pad needs no name on the button: an operator with no choice does not
+  // need it repeated, and the aria-label carries it for anyone who cannot see
+  // the row. The ARGS name it either way, because the command requires it.
+  const short = eligible.length === 1;
+
   return (
-    <CommandButton
-      args={{ id }}
-      aria-label={`Roll ${label} out to the pad`}
-      commandLabel={`Roll out ${name}`}
-      confirmAriaLabel={`Confirm rolling ${label} out to the pad`}
-      confirmLabel="Confirm"
-      handle={handle}
-      label="Roll out"
-      size="sm"
-    />
+    <>
+      {eligible.map((padName) => (
+        <CommandButton
+          args={{ id, pad: padName }}
+          aria-label={`Roll ${label} out to ${padName}`}
+          commandLabel={`Roll ${name} out to ${padName}`}
+          confirmAriaLabel={`Confirm rolling ${label} out to ${padName}`}
+          confirmLabel="Confirm"
+          handle={handle}
+          key={padName}
+          label={short ? "Roll out" : `Roll out to ${padName}`}
+          size="sm"
+        />
+      ))}
+    </>
   );
+}
+
+/**
+ * The names of the pads a rollout could actually go to: RP-1 calls them Free and
+ * nothing is standing on them.
+ *
+ * <para><c>hasVesselWaiting</c> is checked for TRUE rather than for falsiness.
+ * Null means the mod could not answer, and treating that as "occupied" would
+ * hide a working control; the command re-checks at the press, so the worst case
+ * of offering it is a refusal one step later.</para>
+ *
+ * <para>Returns NAMES rather than pads because the name is the whole of what a
+ * rollout needs, and reading it here is what lets the caller pass it without an
+ * assertion: a pad RP-1 gave no name to cannot be commanded at all.</para>
+ */
+function eligiblePadNames(pads: readonly Rp1PadEntry[]): readonly string[] {
+  const names: string[] = [];
+  for (const pad of pads) {
+    const name = pad.name;
+    if (
+      name !== undefined &&
+      name !== null &&
+      name !== "" &&
+      pad.state === "Free" &&
+      pad.hasVesselWaiting !== true
+    ) {
+      names.push(name);
+    }
+  }
+  return names;
+}
+
+/**
+ * Why no pad can take this vehicle, in the terms an operator acts on. Four
+ * different next moves hide behind RP-1's pad states: repair it, build it, wait
+ * for reconditioning, or move the vehicle already there.
+ */
+function noPadReason(pads: readonly Rp1PadEntry[]): string {
+  if (pads.length === 0) {
+    return "this complex has no pads";
+  }
+  const occupied = pads.find((p) => p.hasVesselWaiting === true);
+  if (occupied !== undefined) {
+    const who = occupied.waitingVesselName ?? "another vessel";
+    return `${who} is on ${occupied.name ?? "the pad"}, waiting to launch`;
+  }
+  if (pads.some((p) => p.state === "Reconditioning")) {
+    return "the pad is being reconditioned after a launch";
+  }
+  if (pads.some((p) => p.state === "Destroyed")) {
+    return "the pad is destroyed and needs repairing";
+  }
+  if (pads.some((p) => p.state === "Nonoperational")) {
+    return "the pad has not been built yet";
+  }
+  return "no pad is free";
 }
 
 /**
@@ -624,26 +700,38 @@ function atPad(operation: Rp1OperationEntry): boolean {
 }
 
 /**
- * The pads at this complex an operator could roll out to, by name.
+ * Every pad at this complex, eligible or not.
  *
- * <para>"Free" and nothing else, which is RP-1's own rule: any other state means
- * a launch aimed there will not work. The names go on the buttons, so this is
- * the whole of what the widget needs from the pad Topic.</para>
+ * <para>All of them rather than only the usable ones, because the UNUSABLE ones
+ * carry the reason. A widget handed only the free pads can draw the buttons and
+ * cannot say why there are none.</para>
  */
-function freePads(
+function padsAt(
   pads: readonly Rp1PadEntry[] | undefined,
   lcId: string | undefined | null,
-): readonly string[] {
+): readonly Rp1PadEntry[] {
   if (lcId === undefined || lcId === null) {
     return [];
   }
-  const names: string[] = [];
-  for (const pad of pads ?? []) {
-    if (pad.lcId === lcId && pad.state === "Free" && pad.name) {
-      names.push(pad.name);
-    }
-  }
-  return names;
+  return (pads ?? []).filter((pad) => pad.lcId === lcId);
+}
+
+/**
+ * RP-1's reasons this vehicle cannot leave its complex, or undefined when it has
+ * none.
+ *
+ * <para>Only the warehouse carries them: a vehicle still integrating cannot roll
+ * out for a reason that has nothing to do with its envelope, so the mod
+ * deliberately publishes none for it, and `in` rather than a cast is what
+ * distinguishes "no objection" from "not that kind of row".</para>
+ */
+function rolloutRefusalsOf(
+  item: Rp1BuildItemEntry | Rp1WarehouseItemEntry,
+): readonly string[] | undefined {
+  const refusals = (item as Rp1WarehouseItemEntry).rolloutRefusals;
+  return refusals === undefined || refusals === null || refusals.length === 0
+    ? undefined
+    : refusals;
 }
 
 /** The complex's own name, or null when there is only one and naming it says nothing. */

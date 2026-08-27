@@ -107,6 +107,14 @@ namespace GonogoRp1Uplink
         public bool HumanRated;
         public string? LaunchSite;
         public string? ProjectType;
+
+        /// <summary>
+        /// RP-1's reasons this vehicle cannot leave its complex, or null when it
+        /// has none. Only ever populated for a WAREHOUSE row: a vehicle still
+        /// being integrated cannot roll out for a reason that has nothing to do
+        /// with its envelope.
+        /// </summary>
+        public string[]? RolloutRefusals;
     }
 
     public sealed class Rp1PadRaw
@@ -119,6 +127,15 @@ namespace GonogoRp1Uplink
         public int Level;
         public double? FractionalLevel;
         public string? State;
+
+        /// <summary>
+        /// A craft is standing on the pad in PRELAUNCH. Nullable because the
+        /// three answers are distinct: true, false, and "the question could not
+        /// be asked", and only the first should stop a client offering the pad.
+        /// </summary>
+        public bool? HasVesselWaiting;
+
+        public string? WaitingVesselName;
     }
 
     public sealed class Rp1OperationRaw

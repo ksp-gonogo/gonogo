@@ -53,6 +53,7 @@ const PADS = [
     name: "LaunchPad",
     launchSiteName: "LaunchPad",
     state: "Free",
+    hasVesselWaiting: false,
   },
 ];
 
@@ -311,9 +312,13 @@ describe("KscVehicles", () => {
     const user = userEvent.setup();
     const { fixture } = withOneBuiltVehicle();
 
-    await user.click(
-      await screen.findByRole("button", { name: "Roll Atlas out to the pad" }),
-    );
+    // One free pad, so one button, and it still reads "Roll out" rather than
+    // repeating a name the operator has no choice about.
+    const control = await screen.findByRole("button", {
+      name: "Roll Atlas out to LaunchPad",
+    });
+    expect(control).toHaveTextContent("Roll out");
+    await user.click(control);
     // Armed, not sent. A rollout commits the career to a bill it pays as the
     // vehicle moves, so one press must not start it.
     expect(
@@ -324,16 +329,17 @@ describe("KscVehicles", () => {
 
     await user.click(
       screen.getByRole("button", {
-        name: "Confirm rolling Atlas out to the pad",
+        name: "Confirm rolling Atlas out to LaunchPad",
       }),
     );
 
     const sent = fixture.transport.sentCommands.find(
       (c) => c.command === RP1_ROLLOUT_COMMAND,
     );
-    // No pad named, because there is only one to name. The mod picks the single
-    // free pad and refuses only when the choice is ambiguous.
-    expect(sent?.args).toEqual({ id: "vp-atlas-1" });
+    // The pad is on the wire even though there was only one to choose. The mod
+    // REQUIRES it, so the dispatch records where the vehicle was sent rather
+    // than leaving it to be inferred from whichever pad was free at the time.
+    expect(sent?.args).toEqual({ id: "vp-atlas-1", pad: "LaunchPad" });
   });
 
   it("makes the operator choose when the complex has more than one free pad", async () => {
@@ -352,6 +358,7 @@ describe("KscVehicles", () => {
           name: "LaunchPad 2",
           launchSiteName: "LaunchPad 2",
           state: "Free",
+          hasVesselWaiting: false,
         },
       ]);
       fixture.emit("rp1.operations", []);
@@ -545,12 +552,13 @@ describe("KscVehicles", () => {
     await waitFor(() => {
       expect(screen.getByText("BUILT")).toBeInTheDocument();
     });
-    // The rollout control is still drawn even with no free pad: the refusal
-    // names which of four things is wrong with the pads, and those are four
-    // different next moves a vanished control would say nothing about.
+    // No offerable pad, so a SENTENCE rather than a button that could only be
+    // refused, and it says which of four things is wrong: repair it, build it,
+    // wait for reconditioning, or move the vehicle already there.
     expect(
-      screen.getByRole("button", { name: "Roll Atlas out to the pad" }),
-    ).toBeInTheDocument();
+      screen.queryByRole("button", { name: /^Roll Atlas out/ }),
+    ).not.toBeInTheDocument();
+    expect(visibleText()).toContain("reconditioned");
   });
 
   it("scraps a vehicle for its refund, after arm-then-confirm", async () => {
@@ -704,6 +712,100 @@ describe("KscVehicles", () => {
       expect(screen.getByText("ROLLING OUT")).toBeInTheDocument();
     });
     await expectNoA11yViolations(view.container);
+  });
+
+  it("will not offer a pad that reads free with a craft standing on it", async () => {
+    const { fixture } = mount();
+    act(() => {
+      fixture.emit("rp1.available", true);
+      fixture.emit("career.status", CAREER);
+      fixture.emit("rp1.complexes", COMPLEXES);
+      // Free AND occupied at once, which is a real RP-1 state and the reason
+      // hasVesselWaiting had to go on the wire: State derives from the pad's
+      // OPERATIONS, and a craft already sent to the launch site has none left.
+      fixture.emit("rp1.pads", [
+        {
+          ...PADS[0],
+          state: "Free",
+          hasVesselWaiting: true,
+          waitingVesselName: "Vanguard",
+        },
+      ]);
+      fixture.emit("rp1.operations", []);
+      fixture.emit("rp1.warehouse", [built()]);
+      fixture.emit("rp1.buildQueue", []);
+    });
+
+    await waitFor(() => {
+      expect(screen.getByText("BUILT")).toBeInTheDocument();
+    });
+    // A client reading `state` alone would draw this button and be refused.
+    expect(
+      screen.queryByRole("button", { name: /^Roll Atlas out/ }),
+    ).not.toBeInTheDocument();
+    // Named, because "the pad is taken" leaves an operator looking and
+    // "Vanguard is on it" tells them what to move.
+    expect(visibleText()).toContain("Vanguard");
+  });
+
+  it("still offers a pad whose occupancy the mod could not determine", async () => {
+    const { fixture } = mount();
+    act(() => {
+      fixture.emit("rp1.available", true);
+      fixture.emit("career.status", CAREER);
+      fixture.emit("rp1.complexes", COMPLEXES);
+      // Null, not false: the mod could not answer. Treating that as occupied
+      // would hide a control that works, and the command re-checks at the press,
+      // so the worst case of offering it is a refusal one step later.
+      fixture.emit("rp1.pads", [{ ...PADS[0], hasVesselWaiting: null }]);
+      fixture.emit("rp1.operations", []);
+      fixture.emit("rp1.warehouse", [built()]);
+      fixture.emit("rp1.buildQueue", []);
+    });
+
+    expect(
+      await screen.findByRole("button", {
+        name: "Roll Atlas out to LaunchPad",
+      }),
+    ).toBeInTheDocument();
+  });
+
+  it("quotes RP-1's own reasons when the complex will not release the vehicle", async () => {
+    const { fixture } = mount();
+    act(() => {
+      fixture.emit("rp1.available", true);
+      fixture.emit("career.status", CAREER);
+      fixture.emit("rp1.complexes", COMPLEXES);
+      fixture.emit("rp1.pads", PADS);
+      fixture.emit("rp1.operations", []);
+      fixture.emit("rp1.warehouse", [
+        built({
+          rolloutRefusals: [
+            "too heavy for the complex at 120.0 t, limit 40.0 t",
+            "human-rated, and the complex is not",
+          ],
+        }),
+      ]);
+      fixture.emit("rp1.buildQueue", []);
+    });
+
+    await waitFor(() => {
+      expect(visibleText()).toContain("too heavy for the complex");
+    });
+    // EVERY reason, not just the first: an operator who fixes one and is handed
+    // the next has been made to iterate, and RP-1's own popup lists them at once.
+    expect(visibleText()).toContain("human-rated");
+    // The VEHICLE half outranks the pads: a free pad is on the wire and no
+    // rollout is offered, because no pad can take a vehicle its complex will not
+    // release.
+    expect(
+      screen.queryByRole("button", { name: /^Roll Atlas out/ }),
+    ).not.toBeInTheDocument();
+    // Scrap is still offered. Correcting the queue is exactly what an operator
+    // does about a vehicle its complex will never fly.
+    expect(
+      screen.getByRole("button", { name: "Scrap Atlas" }),
+    ).toBeInTheDocument();
   });
 
   it("registers itself into the space centre's section slot", () => {

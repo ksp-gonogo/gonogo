@@ -181,13 +181,15 @@
     },
     "Rp1PadEntry": {
       "fractionalLevel": "ratio",
+      "hasVesselWaiting": "flag",
       "kscName": "id",
       "launchSiteName": "id",
       "lcId": "id",
       "level": "count",
       "name": "text",
       "padId": "id",
-      "state": "enum"
+      "state": "enum",
+      "waitingVesselName": "text"
     },
     "Rp1Personnel": {
       "applicants": "count",
@@ -271,6 +273,7 @@
       "lcId": "id",
       "mass": "t",
       "projectType": "enum",
+      "rolloutRefusals": "text",
       "shipId": "id",
       "shipName": "text"
     }
@@ -389,13 +392,15 @@
     },
     "rp1.pads": {
       "fractionalLevel": "ratio",
+      "hasVesselWaiting": "flag",
       "kscName": "id",
       "launchSiteName": "id",
       "lcId": "id",
       "level": "count",
       "name": "text",
       "padId": "id",
-      "state": "enum"
+      "state": "enum",
+      "waitingVesselName": "text"
     },
     "rp1.personnel": {
       "applicants": "count",
@@ -466,6 +471,7 @@
       "lcId": "id",
       "mass": "t",
       "projectType": "enum",
+      "rolloutRefusals": "text",
       "shipId": "id",
       "shipName": "text"
     }

@@ -144,6 +144,10 @@ function vehicle(overrides: Record<string, unknown> = {}) {
     humanRated: false,
     launchSite: "LaunchPad",
     projectType: "VAB",
+    // Absent means RP-1 has no objection, which is the eligible case. Present
+    // and non-empty is what suppresses the rollout controls, so a scene that
+    // wants that state sets it explicitly.
+    rolloutRefusals: null,
     ...overrides,
   };
 }
@@ -159,6 +163,8 @@ const PADS = [
     level: 2,
     fractionalLevel: 2,
     state: "Free",
+    hasVesselWaiting: false,
+    waitingVesselName: null,
   },
   {
     kscName: "Cape",
@@ -169,6 +175,8 @@ const PADS = [
     level: 1,
     fractionalLevel: 1,
     state: "Reconditioning",
+    hasVesselWaiting: false,
+    waitingVesselName: null,
   },
 ];
 

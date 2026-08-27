@@ -103,7 +103,9 @@ namespace GonogoRp1Uplink.Tests
             new Rp1TypeTarget(Rp0, "RP0.MaintenanceHandler", "Rp1EconomyBackend"),
             new Rp1TypeTarget(Rp0, "RP0.MaintenanceHandler+SubsidyDetails", "Rp1EconomyBackend"),
             new Rp1TypeTarget(Rp0, "RP0.UnlockCreditHandler", "Rp1EconomyBackend"),
-            new Rp1TypeTarget(Rp0, "RP0.KCTUtilities", "Rp1BuildCommands"),
+            new Rp1TypeTarget(Rp0, "RP0.KCTUtilities", "Rp1BuildCommands, Rp1VehicleCommands"),
+            new Rp1TypeTarget(Rp0, "RP0.ReconRolloutProject", "Rp1VehicleCommands"),
+            new Rp1TypeTarget(Rp0, "RP0.LaunchComplex", "Rp1VehicleCommands"),
             new Rp1TypeTarget(Rp0, "RP0.CurrencyModifierQueryRP0", "Rp1BuildCommands"),
             new Rp1TypeTarget(Rp0, "RP0.TransactionReasonsRP0", "Rp1BuildCommands"),
             new Rp1TypeTarget(Rp0, "RP0.CurrencyRP0", "Rp1BuildCommands"),
@@ -128,6 +130,13 @@ namespace GonogoRp1Uplink.Tests
             new Rp1MethodTarget(Rp0, "RP0.VesselProject", "CreateCopy", 0, false, "Rp1BuildCommands"),
             new Rp1MethodTarget(Rp0, "RP0.VesselProject", "MeetsFacilityRequirements", 1, false, "Rp1BuildCommands"),
             new Rp1MethodTarget(Rp0, "RP0.VesselProject", "GetTotalCost", 0, false, "Rp1BuildCommands"),
+            // One out parameter, so arity ONE. The only way to learn that a pad
+            // reading Free has a craft standing on it in PRELAUNCH, because
+            // LCLaunchPad.State deliberately does not consult FlightGlobals.
+            new Rp1MethodTarget(Rp0, "RP0.LCLaunchPad", "HasVesselWaitingToBeLaunched", 1, false, "Rp1ScReflection, Rp1VehicleCommands"),
+            new Rp1MethodTarget(Rp0, "RP0.ReconRolloutProject", "SwitchDirection", 0, false, "Rp1VehicleCommands"),
+            new Rp1MethodTarget(Rp0, "RP0.KCTUtilities", "ScrapVessel", 1, true, "Rp1VehicleCommands"),
+            new Rp1MethodTarget(Rp0, "RP0.KCTUtilities", "ChangeEngineers", 2, true, "Rp1VehicleCommands"),
         };
 
         public static IReadOnlyList<Rp1MemberTarget> Members { get; } = BuildMembers();
@@ -143,6 +152,8 @@ namespace GonogoRp1Uplink.Tests
             ["Funds"] = "KSP's Funding.Funds, read only to put a balance beside a refusal (and also the name of RP0.CurrencyRP0.Funds, which IS checked)",
             ["Instance"] = "checked on every RP-1 handler that has one; ALSO KSP's Funding.Instance, which is not RP-1's to guard",
             ["Funding"] = "KSP's own career balance type, resolved by the same Find as RP-1's types but belonging to Assembly-CSharp",
+            ["vesselName"] = "KSP's Vessel.vesselName, read off the craft LCLaunchPad.HasVesselWaitingToBeLaunched hands back so a refusal can name it",
+            ["Add"] = "the list's own Add, on ROUtils.DataTypes.PersistentObservableList<T> from a separate assembly, resolved by arity on whatever collection LaunchComplex.Recon_Rollout hands back rather than named on an RP-1 type",
             ["name"] = "checked on RP-1's own types; ALSO KSP's ProtoCrewMember.name, read off the students in a training course",
             ["x"] = "UnityEngine.Vector3, read off LaunchComplex.SizeMax and VesselProject.ShipSize",
             ["y"] = "UnityEngine.Vector3, read off LaunchComplex.SizeMax and VesselProject.ShipSize",
@@ -182,6 +193,7 @@ namespace GonogoRp1Uplink.Tests
             const string Sc = "Rp1ScReflection";
             const string Gate = "Rp1LaunchGate";
             const string Build = "Rp1BuildCommands";
+            const string Vehicles = "Rp1VehicleCommands";
             const string Withhold = "Rp1DerivedCurrencyWithholder";
             const string Economy = "Rp1EconomyBackend";
             const string Crew = "Rp1CrewReflection";
@@ -247,6 +259,11 @@ namespace GonogoRp1Uplink.Tests
 
             // ── Vehicles ────────────────────────────────────────────────────
             Add("RP0.VesselProject", "KCTPersistentID", Rp1Reader.Text, Sc + ", " + Build);
+            // A memoising PROPERTY over AreAllPartsValid, and pure to READ: the
+            // memoisation happens on the first read, which RP-1's own window has
+            // already done for any vehicle it has drawn. Read rather than
+            // reproduced because the part list it walks is not reachable here.
+            Add("RP0.VesselProject", "AllPartsValid", Rp1Reader.Bool, Sc + ", " + Vehicles);
             Add("RP0.VesselProject", "shipName", Rp1Reader.Text, Sc + ", " + Gate);
             Add("RP0.VesselProject", "shipID", Rp1Reader.GuidText, Gate);
             Add("RP0.VesselProject", "launchSite", Rp1Reader.Text, Sc);

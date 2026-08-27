@@ -105,7 +105,13 @@ namespace GonogoRp1Uplink.Tests
             return op;
         }
 
-        private CommandResult Rollout(string? id, string? pad = null) =>
+        /// <summary>
+        /// A rollout. The pad defaults to the fixture's first pad HERE, in the
+        /// test helper, rather than in the command: the command requires it (see
+        /// <see cref="Refuses_a_rollout_that_names_no_pad"/>), and a helper
+        /// default keeps every case that is not about pad choice readable.
+        /// </summary>
+        private CommandResult Rollout(string? id, string? pad = "LaunchPad") =>
             _commands.Rollout(new Rp1RolloutArgs { Id = id, Pad = pad });
 
         private CommandResult Rollback(string? id) =>
@@ -161,32 +167,48 @@ namespace GonogoRp1Uplink.Tests
         }
 
         [Fact]
-        public void Uses_the_only_free_pad_without_being_told_which()
+        public void Rolls_out_to_the_pad_the_command_named_and_not_another_free_one()
         {
-            var lc = Centre(pads: 2);
-            lc.LaunchPads[0].StateValue = LaunchPadState.Reconditioning;
+            var lc = Centre(pads: 3);
             var vessel = Built(lc);
 
-            var result = Rollout(vessel.KCTPersistentID);
+            var result = Rollout(vessel.KCTPersistentID, "LaunchPad 2");
 
             Assert.True(result.Success);
             Assert.Equal("LaunchPad 2", Assert.Single(lc.Recon_Rollout).launchPadID);
+            Assert.Equal(1, vessel.launchSiteIndex);
         }
 
         [Fact]
-        public void Refuses_to_choose_between_free_pads_and_names_them()
+        public void Refuses_a_rollout_that_names_no_pad()
         {
-            var lc = Centre(pads: 2);
+            var lc = Centre();
             var vessel = Built(lc);
 
-            var result = Rollout(vessel.KCTPersistentID);
+            var result = Rollout(vessel.KCTPersistentID, pad: null);
 
             Assert.False(result.Success);
             Assert.Equal(CommandErrorCode.NotFound, result.ErrorCode);
             Assert.Empty(lc.Recon_Rollout);
-            // Named, not counted: an operator told to choose needs the options.
-            Assert.Contains("LaunchPad", result.Detail);
-            Assert.Contains("LaunchPad 2", result.Detail);
+        }
+
+        [Fact]
+        public void Refuses_a_rollout_with_no_pad_even_when_only_one_could_be_meant()
+        {
+            // OPERATOR RULING, 2026-08-27. An earlier draft used the single free
+            // pad here and that was rejected: choosing a launch site is a
+            // decision an operator makes, and a mod that picks when the choice
+            // looks obvious has taken the decision anyway. Requiring it also puts
+            // the chosen pad on the wire, so a dispatch log records where a
+            // vehicle was sent rather than leaving it to be inferred.
+            var lc = Centre(pads: 1);
+            var vessel = Built(lc);
+
+            var result = Rollout(vessel.KCTPersistentID, pad: null);
+
+            Assert.False(result.Success);
+            Assert.Equal(CommandErrorCode.NotFound, result.ErrorCode);
+            Assert.Empty(lc.Recon_Rollout);
         }
 
         [Theory]
@@ -370,17 +392,21 @@ namespace GonogoRp1Uplink.Tests
         }
 
         [Fact]
-        public void Treats_an_empty_pad_name_as_no_pad_named()
+        public void Treats_a_blank_pad_name_as_no_pad_named_rather_than_as_a_pad_called_nothing()
         {
             var lc = Centre();
             var vessel = Built(lc);
 
             // A client rendering a text field sends one the first time an
-            // operator clears it, and "no pad called """ is not an answer.
+            // operator clears it. Refused as "named no pad", which is what
+            // happened, rather than as "no pad called """, which reads as a
+            // missing pad and sends an operator looking for one.
             var result = Rollout(vessel.KCTPersistentID, "  ");
 
-            Assert.True(result.Success);
-            Assert.Equal("LaunchPad", Assert.Single(lc.Recon_Rollout).launchPadID);
+            Assert.False(result.Success);
+            Assert.Equal(CommandErrorCode.NotFound, result.ErrorCode);
+            Assert.Contains("named no pad", result.Detail);
+            Assert.Empty(lc.Recon_Rollout);
         }
 
         // ── Roll back ───────────────────────────────────────────────────────────
@@ -700,7 +726,10 @@ namespace GonogoRp1Uplink.Tests
             SpaceCenterManagement.Instance!.KSCs.Add(other);
             var vessel = Built(otherLc);
 
-            var result = Rollout(vessel.KCTPersistentID);
+            // The other centre's pad has its own name, so this also pins that the
+            // pad is resolved against the complex holding the VEHICLE rather than
+            // against the active centre's complex.
+            var result = Rollout(vessel.KCTPersistentID, "Site 1/5");
 
             Assert.True(result.Success);
             // RP-1 supports several centres (KSCSwitcher), so a walk that stopped

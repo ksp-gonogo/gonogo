@@ -72,6 +72,7 @@ export interface Rp1WarehouseItemEntry
 {
 	id?: string;
 	shipId?: string;
+	rolloutRefusals?: string[];
 	kscName?: string;
 	lcId?: string;
 	shipName?: string;
@@ -91,6 +92,8 @@ export interface Rp1PadEntry
 	level?: Value<"count">;
 	fractionalLevel?: Value<"ratio">;
 	state?: string;
+	hasVesselWaiting?: boolean;
+	waitingVesselName?: string;
 }
 export interface Rp1OperationEntry
 {

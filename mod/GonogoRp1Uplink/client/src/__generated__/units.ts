@@ -215,6 +215,7 @@ export const GENERATED_TYPE_UNITS: Readonly<Record<string, UnitsByField>> = {
   },
   "Rp1PadEntry": {
     fractionalLevel: "ratio",
+    hasVesselWaiting: "flag",
     kscName: "id",
     launchSiteName: "id",
     lcId: "id",
@@ -222,6 +223,7 @@ export const GENERATED_TYPE_UNITS: Readonly<Record<string, UnitsByField>> = {
     name: "text",
     padId: "id",
     state: "enum",
+    waitingVesselName: "text",
   },
   "Rp1Personnel": {
     applicants: "count",
@@ -305,6 +307,7 @@ export const GENERATED_TYPE_UNITS: Readonly<Record<string, UnitsByField>> = {
     lcId: "id",
     mass: "t",
     projectType: "enum",
+    rolloutRefusals: "text",
     shipId: "id",
     shipName: "text",
   },
@@ -428,6 +431,7 @@ export const GENERATED_TOPIC_UNITS: Readonly<Record<string, UnitsByField>> = {
   },
   "rp1.pads": {
     fractionalLevel: "ratio",
+    hasVesselWaiting: "flag",
     kscName: "id",
     launchSiteName: "id",
     lcId: "id",
@@ -435,6 +439,7 @@ export const GENERATED_TOPIC_UNITS: Readonly<Record<string, UnitsByField>> = {
     name: "text",
     padId: "id",
     state: "enum",
+    waitingVesselName: "text",
   },
   "rp1.personnel": {
     applicants: "count",
@@ -505,6 +510,7 @@ export const GENERATED_TOPIC_UNITS: Readonly<Record<string, UnitsByField>> = {
     lcId: "id",
     mass: "t",
     projectType: "enum",
+    rolloutRefusals: "text",
     shipId: "id",
     shipName: "text",
   },
