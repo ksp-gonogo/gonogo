@@ -109,6 +109,22 @@ export const RUNTIME_IMPORT_EXEMPT = {
     "shares tsup's chunk with the kit's root barrel, so it evaluates the same styled.span",
   "@ksp-gonogo/ui-kit/page-check":
     "shares tsup's chunk with the kit's root barrel, so it evaluates the same styled.span",
-  "@ksp-gonogo/ui-kit/render":
-    "needs the `playwright` optional peer, whose postinstall downloads browsers; too heavy for this probe to install to answer a resolution question",
+  /*
+   * Peer-CONDITIONAL, and that distinction is not pedantry. Every entry above
+   * is a property of the package: the kit evaluates `styled.span` wherever it is
+   * loaded from, so the exemption holds for any consumer. This one is a property
+   * of the CONSUMER, and `uplinkindep` measured the difference on 2026-08-27:
+   * `/render` loads fine in the Uplink client that installs `playwright` and
+   * cannot in the one that does not, so a flat entry is load-bearing in one tree
+   * and STALE in the next while reading identically in both.
+   *
+   * So it declares the peer it is conditional on, and the probe honours it only
+   * while that peer is genuinely absent. With `playwright` installed, a failure
+   * here is a real finding again.
+   */
+  "@ksp-gonogo/ui-kit/render": {
+    reason:
+      "needs the `playwright` optional peer, whose postinstall downloads browsers; too heavy for this probe to install to answer a resolution question",
+    whileMissingPeer: "playwright",
+  },
 };

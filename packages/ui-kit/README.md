@@ -61,6 +61,30 @@ and it is the reason `expectNoA11yViolations` will otherwise appear not to exist
 performs the module-extension search Node refuses to, so it hides an unloadable emit rather than
 reporting it. That is a real bug this project shipped for six weeks.
 
+### The same defect has a compiler half, and inlining does nothing for it
+
+`deps.inline` is a bundler setting. `tsc` is not a bundler, so under
+`moduleResolution: "nodenext"` the missing `exports` map bites again at the type level:
+
+```
+error TS2339: Property 'div' does not exist on type
+  'typeof import(".../styled-components/dist/index")'
+```
+
+That is two lines of code with no `@ksp-gonogo` package involved:
+`import styled from "styled-components"` followed by `styled.div`. Nothing in this kit can fix it
+for you, and no shim in your own source fixes it cleanly either (unwrapping `.default` satisfies
+`nodenext` and then breaks `bundler`, which resolves the ESM half where the default IS the factory).
+
+So: **build against `moduleResolution: "bundler"`**, which is what
+`@ksp-gonogo/sitrep-sdk/tsconfig.base.json` sets and why it sets it. An Uplink whose widgets use
+`styled` cannot pass a `nodenext` typecheck until styled-components ships an `exports` map, and that
+is a statement about styled-components rather than about your code.
+
+The kit's own declarations are unaffected in practice because the shipped baseline sets
+`skipLibCheck: true`, which suppresses errors inside `.d.ts` files. Turning it off surfaces roughly
+sixty of them, none actionable from a consumer's side.
+
 ## Use it
 
 The host app mounts the tokens and the theme once. Inside a Gonogo dashboard that's already

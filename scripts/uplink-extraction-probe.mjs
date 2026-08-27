@@ -614,15 +614,44 @@ function runtimeImports(specs, work) {
     process.exit(1);
   }
 
+  /**
+   * The exemption in force for a specifier, or null.
+   *
+   * An entry is either a bare reason string, which is a property of the package
+   * and holds anywhere, or `{ reason, whileMissingPeer }`, which is a property
+   * of THIS consumer and holds only while that peer really is absent. Resolving
+   * the peer rather than trusting the note is the point: an exemption that
+   * asserts its own premise is indistinguishable from a stale one.
+   */
+  const exemptionFor = (spec) => {
+    const entry = RUNTIME_IMPORT_EXEMPT[spec];
+    if (!entry) return null;
+    if (typeof entry === "string") return entry;
+    const probe = run(
+      "node",
+      [
+        "--input-type=module",
+        "-e",
+        `import.meta.resolve(${JSON.stringify(entry.whileMissingPeer)});`,
+      ],
+      { cwd: work },
+    );
+    // Peer present, so the recorded excuse does not apply here any more.
+    if (probe.status === 0) return null;
+    return `${entry.reason} (peer \`${entry.whileMissingPeer}\` confirmed absent)`;
+  };
+
   const failed = [];
   const exemptButLoading = [];
+  const exempt = [];
   let loaded = 0;
   for (const spec of specs) {
     const failure = importOnce(spec);
-    const exemption = RUNTIME_IMPORT_EXEMPT[spec];
+    const exemption = exemptionFor(spec);
     if (!failure) loaded += 1;
     if (failure && !exemption) failed.push(`${spec}: ${failure}`);
-    else if (!failure && exemption) exemptButLoading.push(spec);
+    else if (failure) exempt.push(spec);
+    else if (exemption) exemptButLoading.push(spec);
   }
 
   if (failed.length > 0) {
@@ -636,12 +665,29 @@ function runtimeImports(specs, work) {
     process.exit(1);
   }
 
-  // Counted from what actually loaded, not as `specs.length - exemptions`: a
-  // misspelled exemption key would make the subtraction agree with itself while
-  // the specifier it was meant to excuse went unmeasured.
+  /*
+   * Both numbers counted from what actually happened, then required to close.
+   * Reporting one as `total - other` makes the line agree with itself whatever
+   * it failed to measure: `uplinkindep`'s equivalent check printed 7 loaded and
+   * 4 exempt against 12 entry points, and nothing about the sentence looked
+   * wrong.
+   *
+   * The loop above cannot currently break this, since every specifier lands in
+   * exactly one of loaded / exempt / failed-and-exited. It is here as an
+   * invariant on the accounting rather than a live bug: the summary is the only
+   * thing anyone reads, and a fourth branch added later would otherwise go
+   * missing from it silently.
+   */
+  if (loaded + exempt.length !== specs.length) {
+    console.error(
+      `✖ BLIND: ${loaded} loaded + ${exempt.length} exempt does not account for ${specs.length} ` +
+        "published entry point(s), so this run measured something it is not reporting.",
+    );
+    process.exit(1);
+  }
   console.log(
     `runtime: ${loaded} of ${specs.length} published entry point(s) loaded under a bare node ` +
-      `import; the other ${specs.length - loaded} are exempt with a recorded reason.`,
+      `import; the other ${exempt.length} are exempt with a recorded reason.`,
   );
   if (exemptButLoading.length > 0) {
     console.log(
