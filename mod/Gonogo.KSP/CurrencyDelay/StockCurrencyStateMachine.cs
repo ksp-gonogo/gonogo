@@ -305,11 +305,6 @@ namespace Gonogo.KSP.CurrencyDelay
         }
 
         /// <summary>
-        /// A deferred science change nothing has claimed within the attribution window is
-        /// accepted as HOME rather than stranding the shadow out of sync with the real balance
-        /// forever.
-        /// </summary>
-        /// <summary>
         /// Catches the shadows up on every defer the attribution window has run out
         /// on. The ONLY way a defer settles, and deliberately the only public one:
         /// settling resyncs a shadow to a live total, and the only moment a live
@@ -328,6 +323,11 @@ namespace Gonogo.KSP.CurrencyDelay
             SettleStaleReputationDefers(nowUt, liveReputation);
         }
 
+        /// <summary>
+        /// A deferred science change nothing has claimed within the attribution window is
+        /// accepted as HOME rather than stranding the shadow out of sync with the real balance
+        /// forever.
+        /// </summary>
         private void SettleStaleScienceDefers(double ut, double currentLiveScience)
         {
             var removed = _scienceDefers.RemoveAll(d => ut - d.Ut > AttributionWindowUt);
