@@ -84,8 +84,14 @@ namespace Gonogo.KSP.CurrencyDelay
         /// <c>FlightGlobals</c>. Unroutable when it is not loaded: there is no
         /// second way to measure, and guessing from a saved position is the
         /// straight line this subsystem refuses.
+        ///
+        /// <para>Shared with <see cref="StockCurrencyInterceptor"/> rather than
+        /// copied: its away-science arm holds a guid too (ordinary transmitted
+        /// science arrives with a ProtoVessel and nothing else), and when this
+        /// lookup lived only here that arm answered "unroutable" for craft this
+        /// one would have measured.</para>
         /// </summary>
-        private static KscDelay ResolveLiveDelay(string vesselId, Sitrep.Host.Comms.SignalDelayConfig config)
+        internal static KscDelay ResolveLiveDelay(string vesselId, Sitrep.Host.Comms.SignalDelayConfig config)
         {
             var all = FlightGlobals.Vessels;
             if (all == null)

@@ -824,23 +824,23 @@ public class StockCurrencyStateMachineTests
     {
         var state = Seeded(science: 2.0);
 
-        // The interceptor's own glue order: settle stale defers against the new
-        // total, then classify. No vessel is ever named, so each change defers
-        // and the one after it settles that defer HOME.
-        state.SettleStaleScienceDefers(ut: 100.0, currentLiveScience: 27.0);
+        // The shipped order: the scenario tick settles stale defers against the
+        // live totals, then the next change classifies. No vessel is ever named,
+        // so each change defers and the tick before the next one settles it HOME.
+        state.SettleStaleDefers(nowUt: 100.0, liveScience: 27.0, liveReputation: 50.0);
         Assert.Equal(ScienceChangeOutcome.Deferred,
             state.OnScienceChanged(StockTransactionReason.ScienceTransmission, newTotal: 27.0, baseAmount: 25.0, ut: 100.0).Outcome);
         Assert.Equal(2.0, state.ShadowScience);
 
-        state.SettleStaleScienceDefers(ut: 200.0, currentLiveScience: 52.0);
+        state.SettleStaleDefers(nowUt: 200.0, liveScience: 52.0, liveReputation: 50.0);
         Assert.Equal(ScienceChangeOutcome.Deferred,
             state.OnScienceChanged(StockTransactionReason.ScienceTransmission, newTotal: 52.0, baseAmount: 25.0, ut: 200.0).Outcome);
 
-        // The second change is what makes the seed unreachable: its stale-defer
-        // settle catches up to the live balance before anything else happens.
+        // The second change is what makes the seed unreachable: the settle ahead
+        // of it catches up to the live balance before anything else happens.
         Assert.Equal(52.0, state.ShadowScience);
 
-        state.SettleStaleScienceDefers(ut: 300.0, currentLiveScience: 82.0);
+        state.SettleStaleDefers(nowUt: 300.0, liveScience: 82.0, liveReputation: 50.0);
         state.OnScienceChanged(StockTransactionReason.ScienceTransmission, newTotal: 82.0, baseAmount: 30.0, ut: 300.0);
         Assert.Equal(82.0, state.ShadowScience);
     }
