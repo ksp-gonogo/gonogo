@@ -306,7 +306,7 @@ describe("fixtures become scenes", () => {
     ).toThrow(/--with/);
   });
 
-  it("refuses a host on a scene that is not an augment", () => {
+  it("refuses a host on a WIDGET scene, which is its own host", () => {
     expect(() =>
       buildScenes(
         resolveUplinkPackage(
@@ -314,7 +314,7 @@ describe("fixtures become scenes", () => {
         ),
         INVENTORY,
       ),
-    ).toThrow(/only meaningful for an augment scene/);
+    ).toThrow(/which IS the host/);
   });
 
   it("carries _scene.paints through, and refuses one that asserts nothing", () => {
