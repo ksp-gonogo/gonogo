@@ -125,7 +125,9 @@
             "launchSiteName": "LaunchPad",
             "level": 2,
             "fractionalLevel": 2,
-            "state": "Rollout"
+            "state": "Rollout",
+            "hasVesselWaiting": false,
+            "waitingVesselName": null
           },
           {
             "kscName": "Cape",
@@ -135,7 +137,9 @@
             "launchSiteName": "LaunchPad 2",
             "level": 1,
             "fractionalLevel": 1,
-            "state": "Reconditioning"
+            "state": "Reconditioning",
+            "hasVesselWaiting": false,
+            "waitingVesselName": null
           }
         ]
       },
@@ -172,7 +176,8 @@
             "mass": 120,
             "humanRated": false,
             "launchSite": "LaunchPad",
-            "projectType": "VAB"
+            "projectType": "VAB",
+            "rolloutRefusals": null
           }
         ]
       },

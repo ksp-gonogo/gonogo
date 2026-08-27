@@ -6,8 +6,12 @@
       "w": 12,
       "h": 14
     },
-    "caption": "The repeat-build surface in the state it is used in: two vehicles of the SAME design, one flown-ready and one still integrating",
-    "paints": ["289,848f", "Atlas", "BUILT", "INTEGRATING", "Build"]
+    "caption": "A vehicle RP-1 will not roll out, and why in its own words: the controls are absent and the refusals are the one thing a missing button cannot say for itself",
+    "paints": [
+      "Atlas",
+      "the vehicle is not fully integrated",
+      "its mass exceeds what LC-1 is rated for"
+    ]
   },
   "_stream": {
     "pinnedUt": 1000000,
@@ -115,10 +119,44 @@
         ]
       },
       {
+        "topic": "rp1.pads",
+        "payload": [
+          {
+            "kscName": "Cape",
+            "lcId": "lc-1",
+            "padId": "pad-1",
+            "name": "LaunchPad",
+            "launchSiteName": "LaunchPad",
+            "level": 2,
+            "fractionalLevel": 2,
+            "state": "Free",
+            "hasVesselWaiting": false,
+            "waitingVesselName": null
+          },
+          {
+            "kscName": "Cape",
+            "lcId": "lc-1",
+            "padId": "pad-2",
+            "name": "LaunchPad 2",
+            "launchSiteName": "LaunchPad 2",
+            "level": 1,
+            "fractionalLevel": 1,
+            "state": "Reconditioning",
+            "hasVesselWaiting": false,
+            "waitingVesselName": null
+          }
+        ]
+      },
+      {
+        "topic": "rp1.operations",
+        "payload": []
+      },
+      {
         "topic": "rp1.warehouse",
         "payload": [
           {
             "id": "vp-atlas-1",
+            "shipId": "ship-atlas-1",
             "kscName": "Cape",
             "lcId": "lc-1",
             "shipName": "Atlas",
@@ -127,32 +165,16 @@
             "humanRated": false,
             "launchSite": "LaunchPad",
             "projectType": "VAB",
-            "rolloutRefusals": null
+            "rolloutRefusals": [
+              "the vehicle is not fully integrated",
+              "its mass exceeds what LC-1 is rated for"
+            ]
           }
         ]
       },
       {
         "topic": "rp1.buildQueue",
-        "payload": [
-          {
-            "id": "vp-atlas-2",
-            "kscName": "Cape",
-            "lcId": "lc-1",
-            "shipName": "Atlas",
-            "cost": 40000,
-            "mass": 120,
-            "humanRated": false,
-            "launchSite": "LaunchPad",
-            "projectType": "VAB",
-            "progress": 250,
-            "totalPoints": 1000,
-            "progressRatio": 0.25,
-            "rate": 0.00019290123456790122,
-            "timeLeftSeconds": 3888000,
-            "stalled": false,
-            "rolloutRefusals": null
-          }
-        ]
+        "payload": []
       }
     ]
   }
