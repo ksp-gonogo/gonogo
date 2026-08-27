@@ -82,6 +82,8 @@ namespace GonogoRp1Uplink
     /// </summary>
     public sealed class Rp1BuildItemRaw
     {
+        /// <summary>RP-1's KCTPersistentID: what a command addresses, since names repeat by design.</summary>
+        public string? Id;
         public string? KscName;
         public string? LcId;
         public string? ShipName;

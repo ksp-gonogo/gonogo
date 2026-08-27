@@ -54,6 +54,7 @@
     "Rp1BuildItemEntry": {
       "cost": "funds",
       "humanRated": "flag",
+      "id": "id",
       "kscName": "id",
       "launchSite": "id",
       "lcId": "id",
@@ -66,6 +67,9 @@
       "stalled": "flag",
       "timeLeftSeconds": "s",
       "totalPoints": "bp"
+    },
+    "Rp1BuildRepeatArgs": {
+      "id": "id"
     },
     "Rp1CentreEntry": {
       "anyOperational": "flag",
@@ -222,6 +226,7 @@
     "Rp1WarehouseItemEntry": {
       "cost": "funds",
       "humanRated": "flag",
+      "id": "id",
       "kscName": "id",
       "launchSite": "id",
       "lcId": "id",
@@ -234,6 +239,7 @@
     "rp1.buildQueue": {
       "cost": "funds",
       "humanRated": "flag",
+      "id": "id",
       "kscName": "id",
       "launchSite": "id",
       "lcId": "id",
@@ -386,6 +392,7 @@
     "rp1.warehouse": {
       "cost": "funds",
       "humanRated": "flag",
+      "id": "id",
       "kscName": "id",
       "launchSite": "id",
       "lcId": "id",

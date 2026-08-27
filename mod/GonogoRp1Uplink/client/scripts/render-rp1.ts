@@ -93,6 +93,57 @@ function construction(overrides: Record<string, unknown> = {}) {
   };
 }
 
+const COMPLEXES = [
+  {
+    kscName: "Cape",
+    lcId: "lc-1",
+    name: "LC-1",
+    lcType: "Pad",
+    isOperational: true,
+    isRushing: false,
+    engineers: 18,
+    maxEngineers: 60,
+    efficiency: 0.72,
+    canIntegrate: true,
+    rate: 1_000 / (60 * DAY),
+    humanRated: false,
+    massMin: 6,
+    massMax: 180,
+  },
+  {
+    kscName: "Cape",
+    lcId: "lc-2",
+    name: "LC-2",
+    lcType: "Pad",
+    isOperational: true,
+    isRushing: false,
+    engineers: 6,
+    maxEngineers: 40,
+    efficiency: 0.4,
+    canIntegrate: true,
+    rate: 0,
+    humanRated: false,
+    massMin: 3,
+    massMax: 90,
+  },
+];
+
+/** One vehicle the space centre holds, with every key the wire carries. */
+function vehicle(overrides: Record<string, unknown> = {}) {
+  return {
+    id: "vp-atlas-1",
+    kscName: "Cape",
+    lcId: "lc-1",
+    shipName: "Atlas",
+    cost: 40_000,
+    mass: 120,
+    humanRated: false,
+    launchSite: "LaunchPad",
+    projectType: "VAB",
+    ...overrides,
+  };
+}
+
 interface Scene {
   name: string;
   scene: Record<string, unknown>;
@@ -291,6 +342,61 @@ const SCENES: Scene[] = [
             }),
           ],
         ],
+      ],
+    },
+  },
+  {
+    // The repeat-build surface, in the state it is used in: two vehicles of the
+    // SAME design, one flown-ready and one still integrating. Worth a picture
+    // rather than only assertions, because the whole control is a per-row button
+    // sharing a row with a name, and a name long enough to wrap takes the width
+    // and leaves the control at nothing.
+    name: "vehicles-repeat-build",
+    paints: ["289,848f", "Atlas · LC-1", "BUILT", "INTEGRATING", "Build"],
+    scene: {
+      surface: "KscVehicles",
+      hostTitle: "SPACE CENTRE",
+      pxW: 460,
+      pxH: 480,
+      emits: [
+        ["rp1.available", true],
+        ["career.status", CAREER],
+        ["rp1.complexes", COMPLEXES],
+        ["rp1.warehouse", [vehicle()]],
+        [
+          "rp1.buildQueue",
+          [
+            vehicle({
+              id: "vp-atlas-2",
+              progress: 250,
+              totalPoints: 1_000,
+              progressRatio: 0.25,
+              rate: 1_000 / (60 * DAY),
+              timeLeftSeconds: 45 * DAY,
+              stalled: false,
+            }),
+          ],
+        ],
+      ],
+    },
+  },
+  {
+    // Nothing built and nothing on order, which is where a career starts. Same
+    // reason the empty construction scene is here: it has to read as an answer
+    // rather than as a section that failed to draw.
+    name: "vehicles-empty",
+    paints: ["Funds", "none built and none on order"],
+    scene: {
+      surface: "KscVehicles",
+      hostTitle: "SPACE CENTRE",
+      pxW: 460,
+      pxH: 200,
+      emits: [
+        ["rp1.available", true],
+        ["career.status", CAREER],
+        ["rp1.complexes", COMPLEXES],
+        ["rp1.warehouse", []],
+        ["rp1.buildQueue", []],
       ],
     },
   },

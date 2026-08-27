@@ -169,6 +169,24 @@ public sealed class Rp1ComplexEntry
 #endif
 public sealed class Rp1BuildItemEntry
 {
+    /// <summary>
+    /// RP-1's own stable identity for this vehicle (<c>KCTPersistentID</c>), and
+    /// the ONLY thing a command may address it by.
+    ///
+    /// <para>A name cannot do the job. The repeat-build loop that this Uplink's
+    /// commands exist for produces several vehicles of the SAME name at the same
+    /// complex on purpose, which is what building another one of a design means,
+    /// so <see cref="ShipName"/> plus <see cref="LcId"/> stops identifying a row
+    /// the moment the feature is used once.</para>
+    ///
+    /// <para>Null on a vehicle RP-1 has not stamped, which a save carried across
+    /// an old KCT version can be. A row with no id is readable and not
+    /// commandable, and the client must render it that way rather than guessing
+    /// a target.</para>
+    /// </summary>
+    [SitrepUnit(Units.Id)]
+    public string? Id { get; set; }
+
     [SitrepUnit(Units.Id)]
     public string? KscName { get; set; }
 
@@ -242,6 +260,15 @@ public sealed class Rp1BuildItemEntry
 #endif
 public sealed class Rp1WarehouseItemEntry
 {
+    /// <summary>
+    /// RP-1's <c>KCTPersistentID</c>. See <see cref="Rp1BuildItemEntry.Id"/> for
+    /// why a command addresses this and never a name; the warehouse is where the
+    /// duplicate names pile up fastest, because a design flown twice was built
+    /// twice.
+    /// </summary>
+    [SitrepUnit(Units.Id)]
+    public string? Id { get; set; }
+
     [SitrepUnit(Units.Id)]
     public string? KscName { get; set; }
 

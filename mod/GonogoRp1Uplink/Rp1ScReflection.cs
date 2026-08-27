@@ -428,6 +428,7 @@ namespace GonogoRp1Uplink
         {
             var item = new Rp1BuildItemRaw
             {
+                Id = ReadString(vp, "KCTPersistentID"),
                 KscName = kscName,
                 LcId = lcId,
                 ShipName = ReadString(vp, "shipName"),

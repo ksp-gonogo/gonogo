@@ -88,6 +88,7 @@ export const GENERATED_TYPE_UNITS: Readonly<Record<string, UnitsByField>> = {
   "Rp1BuildItemEntry": {
     cost: "funds",
     humanRated: "flag",
+    id: "id",
     kscName: "id",
     launchSite: "id",
     lcId: "id",
@@ -100,6 +101,9 @@ export const GENERATED_TYPE_UNITS: Readonly<Record<string, UnitsByField>> = {
     stalled: "flag",
     timeLeftSeconds: "s",
     totalPoints: "bp",
+  },
+  "Rp1BuildRepeatArgs": {
+    id: "id",
   },
   "Rp1CentreEntry": {
     anyOperational: "flag",
@@ -256,6 +260,7 @@ export const GENERATED_TYPE_UNITS: Readonly<Record<string, UnitsByField>> = {
   "Rp1WarehouseItemEntry": {
     cost: "funds",
     humanRated: "flag",
+    id: "id",
     kscName: "id",
     launchSite: "id",
     lcId: "id",
@@ -273,6 +278,7 @@ export const GENERATED_TOPIC_UNITS: Readonly<Record<string, UnitsByField>> = {
   "rp1.buildQueue": {
     cost: "funds",
     humanRated: "flag",
+    id: "id",
     kscName: "id",
     launchSite: "id",
     lcId: "id",
@@ -425,6 +431,7 @@ export const GENERATED_TOPIC_UNITS: Readonly<Record<string, UnitsByField>> = {
   "rp1.warehouse": {
     cost: "funds",
     humanRated: "flag",
+    id: "id",
     kscName: "id",
     launchSite: "id",
     lcId: "id",
