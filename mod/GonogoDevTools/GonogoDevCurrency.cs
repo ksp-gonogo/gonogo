@@ -35,42 +35,78 @@ namespace Gonogo.DevTools
     /// wherever Kerbalism is installed; this tool remains the one for funds,
     /// reputation, and stock-path science.</para>
     ///
-    /// <para><b>Attribution.</b> <c>Gonogo.KSP.CurrencyDelay.StockCurrencyInterceptor</c>
-    /// only delays a change whose <c>TransactionReasons</c> is
-    /// ScienceTransmission, VesselRecovery or VesselLoss AND for which a vessel
-    /// was resolved from a separate KSP event. Of the three vessel-bearing
-    /// events, only <c>OnTriggeredDataTransmission</c> (the stock-lab
-    /// transmission path) can be fired as a pure notification, naming a vessel
-    /// and nothing else - see <see cref="NameLabTransmissionOrigin"/> for the two
-    /// fields that make it one, and what it did before they were set. The origin
-    /// needs no lab: the event names a vessel, it does not simulate a
-    /// transmission. The other two, <c>onVesselRecoveryProcessing</c> and
-    /// <c>onVesselWillDestroy</c>, are lifecycle events that other mods act on
-    /// destructively, so this tool does not fire them. That leaves
-    /// <c>attribute = lab</c> as the one origin mode, and science as the one
-    /// currency that can be attributed to a place - see the report in
-    /// <c>local_docs/inbox/</c> for what that means for funds and reputation.</para>
+    /// <para><b>Attribution: two kinds of mode.</b>
+    /// <c>Gonogo.KSP.CurrencyDelay.StockCurrencyInterceptor</c> only delays a change
+    /// whose <c>TransactionReasons</c> is ScienceTransmission, VesselRecovery or
+    /// VesselLoss AND for which a vessel was resolved from a separate KSP event.</para>
+    ///
+    /// <para>The <b>award modes</b> (<c>none</c>, <c>lab</c>) credit the currency
+    /// themselves. Of the three vessel-bearing events, only
+    /// <c>OnTriggeredDataTransmission</c> (the stock-lab transmission path) can be
+    /// fired as a pure notification, naming a vessel and nothing else - see
+    /// <see cref="NameLabTransmissionOrigin"/> for the two fields that make it one, and
+    /// what it did before they were set. The origin needs no lab: the event names a
+    /// vessel, it does not simulate a transmission. So <c>attribute = lab</c> is the one
+    /// award mode that can attribute anything to a place, and science is the one
+    /// currency it can carry.</para>
+    ///
+    /// <para>The <b>trigger modes</b> (<c>recover</c>, <c>destroy</c>, <c>crewdeath</c>)
+    /// credit nothing at all. They call the public, non-UI producer of the real event
+    /// and let the game do the crediting under its own reason with its own base
+    /// amounts - see <see cref="Trigger"/>. That is how funds and reputation become
+    /// measurable without firing a lifecycle event other mods act on destructively: the
+    /// event is not fired, it is caused, so every reaction to it is correct. Each of the
+    /// three is irreversible, so each is gated by
+    /// <see cref="CurrencyProbeVerdicts.RefuseTrigger"/>.</para>
+    ///
+    /// <para><b>A funds light-time cannot be validated by any of this, because there is
+    /// not one.</b> <c>OnFundsChanged</c> gates away purely on a recovery correlation and
+    /// then passes <c>KscDelay.Instant</c> unconditionally, so funds has exactly one away
+    /// trigger and that trigger is defined to be instant. <c>recover</c> validates the
+    /// away classification, the neutralise and the same-frame instant reveal round trip,
+    /// which is worth validating because a bug there double-credits or erases funds.
+    /// Reputation is the currency with a genuinely delayable away path, and
+    /// <c>destroy</c> is its only trigger.</para>
     ///
     /// <para>Request format (mirrors <see cref="GonogoDevTeleport"/>'s TELEPORT node):
     /// <code>
     /// CURRENCY
     /// {
     ///     id = 2026-08-26-sci-away-1   // unique per request; a repeat is ignored
-    ///     currency = Science           // Funds | Science | Reputation
-    ///     amount = 25                  // signed; a penalty is negative
-    ///     reason = ScienceTransmission // any TransactionReasons member name
-    ///     attribute = lab              // none | lab (lab is science-only)
+    ///     attribute = lab              // none | lab | recover | destroy | crewdeath
     ///     origin = active              // active | ksc | vessel name | vessel GUID
     ///     watchSeconds = 600           // 0 (default) writes one before/after pair
     ///     watchIntervalSeconds = 5
+    ///
+    ///     // award modes (none, lab) only; a trigger mode REFUSES these three
+    ///     currency = Science           // Funds | Science | Reputation
+    ///     amount = 25                  // signed; a penalty is negative
+    ///     reason = ScienceTransmission // any TransactionReasons member name
+    ///
+    ///     // trigger modes only
+    ///     confirm = Probe Odyssey 3    // must repeat the resolved vessel's exact name
+    ///     crew = Jebediah Kerman       // crewdeath only; default is the first aboard
     /// }
     /// </code>
-    /// The reason is what decides whether the award delays at all: the
-    /// interceptor's away set is ScienceTransmission, VesselRecovery and
-    /// VesselLoss, and everything else reveals instantly. The result cfg carries
-    /// one SAMPLE node per reading, labelled <c>before</c>, <c>after</c>, then
-    /// <c>watch</c>, each with funds / science / reputation and, when RP-1 is
-    /// loaded, confidence and confidenceEarned.</para>
+    /// In an award mode the reason is what decides whether the award delays at all: the
+    /// interceptor's away set is ScienceTransmission, VesselRecovery and VesselLoss, and
+    /// everything else reveals instantly.</para>
+    ///
+    /// <para>The result cfg carries one SAMPLE node per reading, labelled
+    /// <c>before</c>, <c>after</c>, then <c>watch</c>. Each carries all three balances
+    /// with a per-currency MOVEMENT verdict beside them (WITHHELD / LANDED / LANDED AND
+    /// STILL PENDING / no movement), because a raw balance column cannot tell a withheld
+    /// credit from an award that never happened, and cannot tell a credit that landed
+    /// from one that landed and is queued to land again.</para>
+    ///
+    /// <para><b>And each sample reports whether the delay LEAKED.</b> Measured on
+    /// 2026-08-27: 25 science was withheld with one pending row while RP-1's confidence
+    /// went 700 to 800 and confidenceEarned 200 to 300, both at earn time. An operator
+    /// watching confidence therefore knows the science arrived before it does, and in
+    /// RP-1 confidence gates real career decisions. The leak lines report that
+    /// co-occurrence per derived quantity; the causal reading is left as an inference,
+    /// since RP-1 crediting confidence off a science award is a belief about RP0.dll and
+    /// not something this probe reads.</para>
     ///
     /// <para><b>An id fires once, ever.</b> Applying a request writes its id to
     /// <c>PluginData/currency-applied.cfg</c>, and a request whose id matches that
@@ -208,6 +244,27 @@ namespace Gonogo.DevTools
             public readonly List<object> PreAwardRows = new List<object>();
 
             public bool PreAwardRowsCaptured;
+
+            /// <summary>The <c>attribute</c> mode this request ran in, so the result file
+            /// says whether the tool awarded the currency or the game did.</summary>
+            public string Mode = "none";
+
+            /// <summary>What a trigger mode was expected to produce, recorded before the
+            /// trigger fired. A run that produced nothing and a run that could never have
+            /// produced anything read identically without it.</summary>
+            public string TriggerForecast = "";
+
+            /// <summary>What the trigger call itself reported, which is not the same as
+            /// what the game then did with it.</summary>
+            public string TriggerOutcome = "";
+
+            /// <summary>-1 until read, so an unread crew count never renders as an empty
+            /// craft.</summary>
+            public int OriginCrewCount = -1;
+
+            /// <summary>Which crew member <c>attribute = crewdeath</c> names, empty for
+            /// the first one aboard.</summary>
+            public string CrewName = "";
         }
 
         private readonly struct Sample
@@ -236,16 +293,17 @@ namespace Gonogo.DevTools
         /// </summary>
         private readonly struct DelaySubsystem
         {
-            public DelaySubsystem(bool present, bool scenarioLive, int scenarioInstances, bool subscribed, int pendingRows, double shadowScience, int labVessels, int scienceDefers, List<LedgerRowReading>? rows, RouteProbe route, string fault)
+            public DelaySubsystem(bool present, bool scenarioLive, int scenarioInstances, bool subscribed, int pendingRows, Shadows shadows, int labVessels, int scienceDefers, Correlations correlations, List<LedgerRowReading>? rows, RouteProbe route, string fault)
             {
                 Present = present;
                 ScenarioLive = scenarioLive;
                 ScenarioInstances = scenarioInstances;
                 Subscribed = subscribed;
                 PendingRows = pendingRows;
-                ShadowScience = shadowScience;
+                Shadows = shadows;
                 LabVessels = labVessels;
                 ScienceDefers = scienceDefers;
+                Correlations = correlations;
                 Rows = rows ?? new List<LedgerRowReading>();
                 Route = route;
                 Fault = fault ?? "";
@@ -261,7 +319,12 @@ namespace Gonogo.DevTools
 
             public bool Subscribed { get; }
             public int PendingRows { get; }
-            public double ShadowScience { get; }
+
+            /// <summary>All three shadow balances, not just science. Funds and
+            /// reputation have shadows of their own and neither was being read, which
+            /// is why an unmoved funds balance could not be told from a neutralised
+            /// one.</summary>
+            public Shadows Shadows { get; }
 
             /// <summary>Unclaimed lab-vessel pushes, and science changes still
             /// waiting for one. Together they say which half of the
@@ -270,6 +333,11 @@ namespace Gonogo.DevTools
             /// means it arrived and was not claimed.</summary>
             public int LabVessels { get; }
             public int ScienceDefers { get; }
+
+            /// <summary>The recovery and death correlation state, which is the same
+            /// which-half-failed reading as LabVessels/ScienceDefers, for the two
+            /// currencies that had none.</summary>
+            public Correlations Correlations { get; }
 
             /// <summary>EVERY row in the ledger, not the first one. See
             /// <see cref="WatchState.PreAwardRows"/> for why one was never enough.</summary>
@@ -280,7 +348,8 @@ namespace Gonogo.DevTools
             public string Fault { get; }
 
             public static DelaySubsystem Absent(string fault) =>
-                new DelaySubsystem(false, false, 0, false, -1, 0.0, -1, -1, null, RouteProbe.NotAttempted("delay subsystem absent"), fault);
+                new DelaySubsystem(false, false, 0, false, -1, Shadows.Unreadable, -1, -1, Correlations.Unreadable, null,
+                    RouteProbe.NotAttempted("delay subsystem absent"), fault);
 
             /// <summary>How many rows this run's own award put in the ledger.</summary>
             public int NewRows
@@ -298,6 +367,100 @@ namespace Gonogo.DevTools
                     return count;
                 }
             }
+
+            /// <summary>
+            /// How many rows this run put in the ledger for one currency, or -1 when the
+            /// ledger itself could not be read.
+            ///
+            /// <para>Per currency, because that is what makes a matrix cell. A run that
+            /// triggers a real recovery moves all three balances at once, so a single
+            /// total says nothing about which of the three was actually withheld.</para>
+            /// </summary>
+            public int NewRowsFor(string currency)
+            {
+                if (PendingRows < 0)
+                {
+                    return -1;
+                }
+
+                var count = 0;
+                foreach (var row in Rows)
+                {
+                    if (row.IsNew && string.Equals(row.Currency, currency, StringComparison.Ordinal))
+                    {
+                        count++;
+                    }
+                }
+                return count;
+            }
+        }
+
+        /// <summary>The interceptor's three shadow balances. NaN where a read failed, so
+        /// a shadow that could not be reached never renders as a shadow sitting at
+        /// zero.</summary>
+        private readonly struct Shadows
+        {
+            public Shadows(double funds, double science, double reputation)
+            {
+                Funds = funds;
+                Science = science;
+                Reputation = reputation;
+            }
+
+            public double Funds { get; }
+            public double Science { get; }
+            public double Reputation { get; }
+
+            public static Shadows Unreadable =>
+                new Shadows(double.NaN, double.NaN, double.NaN);
+        }
+
+        /// <summary>
+        /// The interceptor's recovery and death correlation state, which is what tells
+        /// a push that never arrived from one that arrived in the wrong order.
+        ///
+        /// <para>Both matter and the second is not hypothetical. Stock <c>Funding</c>,
+        /// <c>ResearchAndDevelopment</c> and <c>Reputation</c> all credit recovery
+        /// currency from <c>onVesselRecoveryProcessing</c>, the same event the
+        /// interceptor pushes its recovery vessel from, so whether the away path
+        /// engages depends on GameEvents dispatch order. If stock runs first, the
+        /// change is classed HOME and lands instantly, which is indistinguishable
+        /// from the recovery arms' by-design instant reveal unless these counters are
+        /// read: a vessel HELD with no row made says the push landed and nothing
+        /// claimed it, and a vessel never held says the push came too late.</para>
+        /// </summary>
+        private readonly struct Correlations
+        {
+            public Correlations(int recoveryVesselsHeld, int deathLightTimesHeld, int recoveryPushesPending, int deathPushesPending, int reputationDefersPending)
+            {
+                RecoveryVesselsHeld = recoveryVesselsHeld;
+                DeathLightTimesHeld = deathLightTimesHeld;
+                RecoveryPushesPending = recoveryPushesPending;
+                DeathPushesPending = deathPushesPending;
+                ReputationDefersPending = reputationDefersPending;
+            }
+
+            /// <summary>Entries in the interceptor's <c>_recoveryVesselsById</c>. Never
+            /// pruned by design, so this only ever grows: what matters is whether it
+            /// grew across the trigger.</summary>
+            public int RecoveryVesselsHeld { get; }
+
+            /// <summary>Entries in <c>_deathLightTimesById</c>, captured at the instant of
+            /// destruction. Also never pruned.</summary>
+            public int DeathLightTimesHeld { get; }
+
+            /// <summary>Unclaimed pushes still inside the state machine's attribution
+            /// window.</summary>
+            public int RecoveryPushesPending { get; }
+            public int DeathPushesPending { get; }
+
+            /// <summary>VesselLoss reputation changes waiting for a destruction to
+            /// explain them. Non-zero with no death push is the crew-died-but-the-craft-
+            /// survived case, which settles HOME and lands the penalty instantly.</summary>
+            public int ReputationDefersPending { get; }
+
+            public static Correlations Unreadable =>
+                new Correlations(-1, -1, -1, -1, -1);
         }
 
         /// <summary>
@@ -442,29 +605,101 @@ namespace Gonogo.DevTools
                 new DelayConfigReadout(false, false, 0.0, 0.0, false, false, fault);
         }
 
-        /// <summary>Every balance the delay model can move, plus RP-1's two
-        /// confidence readings, which are the ones the double-credit question
-        /// turns on. <see cref="HasConfidence"/> is false on a career with no
-        /// RP-1 loaded rather than reporting a fabricated zero.</summary>
+        /// <summary>
+        /// Every balance the delay model can move, plus RP-1's two confidence
+        /// readings, which are the ones the double-credit question turns on.
+        ///
+        /// <para><b>Each currency carries its own readable flag.</b> The three stock
+        /// balances live on separate ScenarioModules and any of them can be absent
+        /// (a sandbox save has no Funding, a no-science career has no
+        /// ResearchAndDevelopment). This used to read a missing instance as
+        /// <c>0.0</c>, which is also what an unmoved balance reads, so "reputation
+        /// did not move" and "there is no Reputation instance to ask" arrived in the
+        /// result file as the same line.</para>
+        /// </summary>
         private readonly struct Balances
         {
-            public Balances(double funds, double science, double reputation, bool hasConfidence, double confidence, double confidenceEarned)
+            public Balances(
+                double funds, bool hasFunds,
+                double science, bool hasScience,
+                double reputation, bool hasReputation,
+                bool hasConfidence, double confidence, double confidenceEarned, string confidenceFault)
             {
                 Funds = funds;
+                HasFunds = hasFunds;
                 Science = science;
+                HasScience = hasScience;
                 Reputation = reputation;
+                HasReputation = hasReputation;
                 HasConfidence = hasConfidence;
                 Confidence = confidence;
                 ConfidenceEarned = confidenceEarned;
+                ConfidenceFault = confidenceFault ?? "";
             }
 
             public double Funds { get; }
+            public bool HasFunds { get; }
             public double Science { get; }
+            public bool HasScience { get; }
             public double Reputation { get; }
+            public bool HasReputation { get; }
             public bool HasConfidence { get; }
             public double Confidence { get; }
             public double ConfidenceEarned { get; }
+
+            /// <summary>Why confidence is unreadable, so "RP-1 is not installed" and
+            /// "RP-1 is installed and a property this probe names has moved" stop
+            /// sharing an answer. The second is a broken instrument and the first is
+            /// not, and the leak verdict must not report either as a clean run.</summary>
+            public string ConfidenceFault { get; }
+
+            public bool Has(CurrencyKindRead kind)
+            {
+                switch (kind)
+                {
+                    case CurrencyKindRead.Funds: return HasFunds;
+                    case CurrencyKindRead.Science: return HasScience;
+                    default: return HasReputation;
+                }
+            }
+
+            public double Of(CurrencyKindRead kind)
+            {
+                switch (kind)
+                {
+                    case CurrencyKindRead.Funds: return Funds;
+                    case CurrencyKindRead.Science: return Science;
+                    default: return Reputation;
+                }
+            }
+
+            public static string FaultFor(CurrencyKindRead kind)
+            {
+                switch (kind)
+                {
+                    case CurrencyKindRead.Funds: return "no Funding instance on this save";
+                    case CurrencyKindRead.Science: return "no ResearchAndDevelopment instance on this save";
+                    default: return "no Reputation instance on this save";
+                }
+            }
         }
+
+        /// <summary>The three stock balances, as something iterable, so the movement
+        /// verdict and the withheld-set are computed once per currency instead of
+        /// written out three times with one of the three quietly wrong.</summary>
+        private enum CurrencyKindRead
+        {
+            Funds,
+            Science,
+            Reputation,
+        }
+
+        private static readonly CurrencyKindRead[] AllCurrencies =
+        {
+            CurrencyKindRead.Funds,
+            CurrencyKindRead.Science,
+            CurrencyKindRead.Reputation,
+        };
 
         private void Start()
         {
@@ -647,49 +882,91 @@ namespace Gonogo.DevTools
 
             try
             {
-                var currencyRaw = node.GetValue("currency");
-                if (!TryParseCurrency(currencyRaw, out var currency))
-                {
-                    Finish(watch, ok: false, "unrecognised 'currency' " + Describe(currencyRaw) + " (want Funds|Science|Reputation)");
-                    return;
-                }
-
-                if (!TryGetDouble(node, "amount", out var amount) || amount == 0.0)
-                {
-                    Finish(watch, ok: false, "missing/zero 'amount'");
-                    return;
-                }
-
-                var reasonRaw = node.GetValue("reason");
-                if (!TryParseReason(reasonRaw, out var reason))
-                {
-                    Finish(watch, ok: false, "unrecognised 'reason' " + Describe(reasonRaw) + " (want a TransactionReasons member name, e.g. ScienceTransmission)");
-                    return;
-                }
-
                 var attribute = (node.GetValue("attribute") ?? "none").Trim().ToLowerInvariant();
-                if (attribute != "none" && attribute != "lab")
+                if (Array.IndexOf(KnownAttributes, attribute) < 0)
                 {
-                    Finish(watch, ok: false, "unrecognised 'attribute' '" + attribute + "' (want none|lab)");
+                    Finish(watch, ok: false, "unrecognised 'attribute' '" + attribute + "' (want "
+                        + string.Join("|", KnownAttributes) + ")");
                     return;
                 }
+                watch.Mode = attribute;
 
-                Vessel? origin = null;
                 var originRaw = node.GetValue("origin");
-                if (attribute == "lab")
+                var isTrigger = Array.IndexOf(TriggerAttributes, attribute) >= 0;
+
+                // The award modes' three fields, parsed only where an award happens. In
+                // a trigger mode the game decides all three, so naming them is a
+                // refusal (see CurrencyProbeVerdicts.RefuseTrigger) rather than
+                // something to parse and ignore.
+                var currency = Currency.Science;
+                var amount = 0.0;
+                var reason = TransactionReasons.None;
+                Vessel? origin = null;
+
+                if (isTrigger)
                 {
-                    if (currency != Currency.Science)
+                    origin = ResolveVessel(originRaw);
+                    var refusal = CurrencyProbeVerdicts.RefuseTrigger(
+                        attribute,
+                        originResolved: origin != null,
+                        originSelector: originRaw ?? "",
+                        originIsActiveVessel: origin != null && ReferenceEquals(origin, FlightGlobals.ActiveVessel),
+                        originName: origin != null ? origin.vesselName ?? "" : "",
+                        confirm: node.GetValue("confirm"),
+                        currencyGiven: node.HasValue("currency"),
+                        amountGiven: node.HasValue("amount"),
+                        reasonGiven: node.HasValue("reason"));
+                    if (refusal != null)
                     {
-                        Finish(watch, ok: false, "attribute=lab attributes a science transmission and cannot carry " + currency
-                            + "; the interceptor's lab correlation is science-only");
+                        Finish(watch, ok: false, refusal);
                         return;
                     }
 
-                    origin = ResolveVessel(originRaw);
-                    if (origin == null)
+                    watch.OriginCrewCount = CountCrew(origin!);
+                    watch.TriggerForecast = CurrencyProbeVerdicts.ForecastTrigger(attribute, watch.OriginCrewCount);
+
+                    if (attribute == "crewdeath")
                     {
-                        Finish(watch, ok: false, "attribute=lab needs a resolvable 'origin' vessel; " + Describe(originRaw) + " matched nothing");
+                        watch.CrewName = (node.GetValue("crew") ?? "").Trim();
+                    }
+                }
+                else
+                {
+                    var currencyRaw = node.GetValue("currency");
+                    if (!TryParseCurrency(currencyRaw, out currency))
+                    {
+                        Finish(watch, ok: false, "unrecognised 'currency' " + Describe(currencyRaw) + " (want Funds|Science|Reputation)");
                         return;
+                    }
+
+                    if (!TryGetDouble(node, "amount", out amount) || amount == 0.0)
+                    {
+                        Finish(watch, ok: false, "missing/zero 'amount'");
+                        return;
+                    }
+
+                    var reasonRaw = node.GetValue("reason");
+                    if (!TryParseReason(reasonRaw, out reason))
+                    {
+                        Finish(watch, ok: false, "unrecognised 'reason' " + Describe(reasonRaw) + " (want a TransactionReasons member name, e.g. ScienceTransmission)");
+                        return;
+                    }
+
+                    if (attribute == "lab")
+                    {
+                        if (currency != Currency.Science)
+                        {
+                            Finish(watch, ok: false, "attribute=lab attributes a science transmission and cannot carry " + currency
+                                + "; the interceptor's lab correlation is science-only");
+                            return;
+                        }
+
+                        origin = ResolveVessel(originRaw);
+                        if (origin == null)
+                        {
+                            Finish(watch, ok: false, "attribute=lab needs a resolvable 'origin' vessel; " + Describe(originRaw) + " matched nothing");
+                            return;
+                        }
                     }
                 }
 
@@ -717,20 +994,38 @@ namespace Gonogo.DevTools
                 var before = ReadBalances();
                 watch.Samples.Add(new Sample("before", 0.0, watch.AwardUt, before, ReadDelaySubsystem(watch)));
 
-                if (origin != null)
+                string summary;
+                if (isTrigger)
                 {
-                    NameLabTransmissionOrigin(origin);
-                }
+                    // Logged BEFORE the trigger, because the trigger destroys a craft or
+                    // kills a kerbal and a run that then throws must still leave behind
+                    // what it was about to do.
+                    Debug.LogWarning(LogPrefix + "request id=" + id + ": attribute=" + attribute
+                        + " is about to trigger a REAL game event on " + origin!.vesselName
+                        + " [" + origin.id + "], " + watch.TriggerForecast);
 
-                Award(currency, amount, reason);
+                    watch.TriggerOutcome = Trigger(attribute, origin!, watch.CrewName);
+                    summary = "triggered " + attribute + " on " + origin.vesselName + " [" + origin.id + "]: "
+                        + watch.TriggerOutcome;
+                }
+                else
+                {
+                    if (origin != null)
+                    {
+                        NameLabTransmissionOrigin(origin);
+                    }
+
+                    Award(currency, amount, reason);
+
+                    summary = string.Format(CultureInfo.InvariantCulture,
+                        "awarded {0:+0.###;-0.###} {1} reason={2} attribute={3} origin={4}",
+                        amount, currency, reason, attribute,
+                        origin != null ? origin.vesselName + " [" + origin.id + "]" : "(none)");
+                }
 
                 var after = ReadBalances();
                 watch.Samples.Add(new Sample("after", 0.0, CurrentUt(), after, ReadDelaySubsystem(watch)));
 
-                var summary = string.Format(CultureInfo.InvariantCulture,
-                    "awarded {0:+0.###;-0.###} {1} reason={2} attribute={3} origin={4}",
-                    amount, currency, reason, attribute,
-                    origin != null ? origin.vesselName + " [" + origin.id + "]" : "(none)");
                 Debug.Log(LogPrefix + "request id=" + id + ": " + summary);
 
                 watch.Summary = summary;
@@ -827,6 +1122,180 @@ namespace Gonogo.DevTools
         /// </summary>
         private const uint NoSuchPartFlightId = uint.MaxValue;
 
+        /// <summary>Every accepted <c>attribute</c> value, listed once so the refusal
+        /// message and the parse cannot drift apart.</summary>
+        private static readonly string[] KnownAttributes = { "none", "lab", "recover", "destroy", "crewdeath" };
+
+        /// <summary>The modes that award nothing and cause a real game event instead.</summary>
+        private static readonly string[] TriggerAttributes = { "recover", "destroy", "crewdeath" };
+
+        /// <summary>
+        /// Causes the real game event whose currency changes attribute to a place, and
+        /// awards nothing itself.
+        ///
+        /// <para><b>Why a real event rather than a fired one.</b> The interceptor's away
+        /// set is ScienceTransmission, VesselRecovery and VesselLoss. Only the first can
+        /// be attributed by a pure notification (<see cref="NameLabTransmissionOrigin"/>),
+        /// and it is science-only, which is why funds and reputation were unmeasurable.
+        /// The other two are lifecycle events other mods act on destructively, so firing
+        /// them by hand is out. But both have a public, non-UI producer, and calling that
+        /// makes the event fire from inside stock's own code with every consequence
+        /// intact - which is the only way to exercise what the game exercises.</para>
+        ///
+        /// <para><b>And a fired event could not have found the ordering bug.</b> Stock
+        /// <c>Funding</c>, <c>ResearchAndDevelopment</c> and <c>Reputation</c> all credit
+        /// recovery currency from <c>onVesselRecoveryProcessing</c>, the same event the
+        /// interceptor pushes its recovery vessel from, so whether the away path engages
+        /// at all depends on GameEvents dispatch order. A test seam that pushed the
+        /// vessel directly would be in the right order by construction and could never
+        /// see it. The correlation counters in <see cref="Correlations"/> are what make
+        /// it visible.</para>
+        ///
+        /// <para><b>None of these is undoable</b>, which is why every guard on them lives
+        /// in <see cref="CurrencyProbeVerdicts.RefuseTrigger"/> and runs before this is
+        /// called: a resolvable non-active origin, no award fields, and a <c>confirm</c>
+        /// repeating the resolved vessel's own name.</para>
+        /// </summary>
+        private static string Trigger(string mode, Vessel origin, string crewName)
+        {
+            switch (mode)
+            {
+                case "recover":
+                    return TriggerRecovery(origin);
+                case "destroy":
+                    return TriggerDestruction(origin);
+                default:
+                    return TriggerCrewDeath(origin, crewName);
+            }
+        }
+
+        /// <summary>
+        /// <c>ShipConstruction.RecoverVesselFromFlight</c>, whose whole body is: fire
+        /// <c>onVesselRecovered</c>, drop the protovessel from the flight state, then
+        /// unload and destroy the vessel object. The first step reaches stock
+        /// <c>VesselRecovery.OnVesselRecovered</c>, which computes the real great-circle
+        /// recovery factor, recovers the crew, and fires
+        /// <c>onVesselRecoveryProcessing</c> - the event the interceptor keys its
+        /// recovery correlation on, and the event stock's own three currency modules
+        /// credit from.
+        ///
+        /// <para>A null <c>protoVessel</c> is reported rather than worked around. Every
+        /// vessel KSP tracks has one, so its absence means the handle this resolved is
+        /// not a vessel in the state it looks like being in, and inventing a ProtoVessel
+        /// to recover would be fabricating the input the whole run measures.</para>
+        /// </summary>
+        private static string TriggerRecovery(Vessel origin)
+        {
+            var proto = origin.protoVessel;
+            if (proto == null)
+            {
+                return "REFUSED at the call: this vessel has no protoVessel, and ShipConstruction.RecoverVesselFromFlight"
+                    + " takes one; nothing was triggered";
+            }
+
+            var flightState = HighLogic.CurrentGame?.flightState;
+            if (flightState == null)
+            {
+                return "REFUSED at the call: no HighLogic.CurrentGame.flightState to recover out of; nothing was triggered";
+            }
+
+            ShipConstruction.RecoverVesselFromFlight(proto, flightState);
+            return "called ShipConstruction.RecoverVesselFromFlight; stock fired onVesselRecovered, and whether the"
+                + " away path engaged is the correlation counters' answer, not this one";
+        }
+
+        /// <summary>
+        /// <c>Vessel.Die()</c>, which fires <c>onVesselWillDestroy</c> itself at the very
+        /// start of its own teardown, while the vessel is still intact - which is exactly
+        /// the moment the interceptor captures its light-time. Its <c>MurderCrew()</c>
+        /// then kills every crew member, each firing <c>onCrewKilled</c> and so one
+        /// <c>VesselLoss</c> reputation penalty.
+        /// </summary>
+        private static string TriggerDestruction(Vessel origin)
+        {
+            var crew = CountCrew(origin);
+            origin.Die();
+            return "called Vessel.Die(); stock fired onVesselWillDestroy and killed "
+                + (crew < 0 ? "an unreadable number of" : crew.ToString(CultureInfo.InvariantCulture))
+                + " crew";
+        }
+
+        /// <summary>
+        /// <c>ProtoCrewMember.Die()</c> on ONE crew member, leaving the vessel alive.
+        ///
+        /// <para><b>This mode exists to show a gap, not to pass.</b>
+        /// <c>Reputation.OnCrewKilled</c> is the only site in the stock assembly that
+        /// uses <c>TransactionReasons.VesselLoss</c>, and it fires off
+        /// <c>GameEvents.onCrewKilled</c>, whose only producer is
+        /// <c>ProtoCrewMember.Die()</c>. So a crew death is the whole cause of that
+        /// penalty - and a crew death does NOT require the vessel to die.
+        /// <c>Part.Die()</c> kills the crew in its own part while the rest of the stack
+        /// flies on, which is what an overheat, a structural failure or a collision that
+        /// takes the pod off a surviving craft all do, and life support, G-force and
+        /// drowning deaths take the same path.</para>
+        ///
+        /// <para>In every one of those <c>onVesselWillDestroy</c> never fires, so the
+        /// interceptor has nothing to correlate the penalty against, defers it, and
+        /// settles it HOME once the attribution window passes. The reputation hit lands
+        /// immediately, however far out of contact the kerbal died. This mode reproduces
+        /// that against the real path.</para>
+        /// </summary>
+        private static string TriggerCrewDeath(Vessel origin, string crewName)
+        {
+            var crew = origin.GetVesselCrew();
+            if (crew == null || crew.Count == 0)
+            {
+                return "REFUSED at the call: this craft has no crew, and a crew death is the only producer of a"
+                    + " VesselLoss reputation change; nothing was triggered";
+            }
+
+            ProtoCrewMember? victim = null;
+            if (crewName.Length == 0)
+            {
+                victim = crew[0];
+            }
+            else
+            {
+                foreach (var member in crew)
+                {
+                    if (member != null && string.Equals(member.name, crewName, StringComparison.OrdinalIgnoreCase))
+                    {
+                        victim = member;
+                        break;
+                    }
+                }
+            }
+
+            if (victim == null)
+            {
+                return "REFUSED at the call: no crew member named '" + crewName + "' aboard; nothing was triggered";
+            }
+
+            victim.Die();
+            return "called ProtoCrewMember.Die() on " + victim.name + ", leaving the vessel alive, so no"
+                + " onVesselWillDestroy fires and the interceptor has nothing to attribute the penalty to";
+        }
+
+        /// <summary>
+        /// Crew aboard, loaded or not, or -1 when it cannot be read.
+        /// <c>Vessel.GetVesselCrew()</c> rather than <c>GetCrewCount()</c>: the latter
+        /// returns the cached <c>crew</c> list, which is empty on an unloaded vessel, so
+        /// a crewed craft out on a mission would have forecast as an empty one.
+        /// </summary>
+        private static int CountCrew(Vessel vessel)
+        {
+            try
+            {
+                var crew = vessel.GetVesselCrew();
+                return crew != null ? crew.Count : -1;
+            }
+            catch (Exception ex)
+            {
+                Debug.LogWarning(LogPrefix + "could not read the crew of " + vessel.vesselName + ": " + ex.Message);
+                return -1;
+            }
+        }
+
         private static void Award(Currency currency, double amount, TransactionReasons reason)
         {
             switch (currency)
@@ -899,11 +1368,15 @@ namespace Gonogo.DevTools
 
         private static Balances ReadBalances()
         {
-            var funds = Funding.Instance != null ? Funding.Instance.Funds : 0.0;
-            var science = ResearchAndDevelopment.Instance != null ? ResearchAndDevelopment.Instance.Science : 0.0;
-            var reputation = Reputation.Instance != null ? Reputation.Instance.reputation : 0.0;
-            var (hasConfidence, confidence, earned) = ReadRp1Confidence();
-            return new Balances(funds, science, reputation, hasConfidence, confidence, earned);
+            var funding = Funding.Instance;
+            var rnd = ResearchAndDevelopment.Instance;
+            var reputation = Reputation.Instance;
+            var (hasConfidence, confidence, earned, confidenceFault) = ReadRp1Confidence();
+            return new Balances(
+                funding != null ? funding.Funds : double.NaN, funding != null,
+                rnd != null ? rnd.Science : double.NaN, rnd != null,
+                reputation != null ? reputation.reputation : double.NaN, reputation != null,
+                hasConfidence, confidence, earned, confidenceFault);
         }
 
         /// <summary>
@@ -912,31 +1385,41 @@ namespace Gonogo.DevTools
         /// only KSP/Unity, so RP0.dll cannot be a compile-time dependency, and
         /// on a career without RP-1 the type simply is not there.
         /// </summary>
-        private static (bool has, double confidence, double earned) ReadRp1Confidence()
+        private static (bool has, double confidence, double earned, string fault) ReadRp1Confidence()
         {
             try
             {
                 var type = ResolveType("RP0.Confidence");
                 if (type == null)
                 {
-                    return (false, 0.0, 0.0);
+                    return (false, double.NaN, double.NaN, "RP0.Confidence is not in any loaded assembly (RP-1 not installed)");
                 }
 
                 var confidence = type.GetProperty("CurrentConfidence", BindingFlags.Public | BindingFlags.Static);
                 var earned = type.GetProperty("AllConfidenceEarned", BindingFlags.Public | BindingFlags.Static);
                 if (confidence == null || earned == null)
                 {
-                    return (false, 0.0, 0.0);
+                    // RP-1 IS loaded and a property this probe names by string has
+                    // moved. That is a broken instrument, not an absent one, and it
+                    // must not arrive in the result file as the same "(RP-1 not
+                    // loaded)" line an uninstalled RP-1 produces.
+                    var missing = confidence == null
+                        ? (earned == null ? "CurrentConfidence and AllConfidenceEarned" : "CurrentConfidence")
+                        : "AllConfidenceEarned";
+                    return (false, double.NaN, double.NaN,
+                        "RP0.Confidence is loaded but " + missing + " could not be found on it, so this probe's"
+                        + " confidence reads are broken rather than inapplicable");
                 }
 
                 return (true,
                     Convert.ToDouble(confidence.GetValue(null, null), CultureInfo.InvariantCulture),
-                    Convert.ToDouble(earned.GetValue(null, null), CultureInfo.InvariantCulture));
+                    Convert.ToDouble(earned.GetValue(null, null), CultureInfo.InvariantCulture),
+                    "");
             }
             catch (Exception ex)
             {
                 Debug.LogWarning(LogPrefix + "could not read RP-1 confidence: " + ex.Message);
-                return (false, 0.0, 0.0);
+                return (false, double.NaN, double.NaN, "reading RP0.Confidence threw: " + ex.Message);
             }
         }
 
@@ -976,7 +1459,7 @@ namespace Gonogo.DevTools
                 var scenario = instances > 0 ? all![0] : null;
                 if (scenario == null)
                 {
-                    return new DelaySubsystem(true, false, 0, false, -1, 0.0, -1, -1, null,
+                    return new DelaySubsystem(true, false, 0, false, -1, Shadows.Unreadable, -1, -1, Correlations.Unreadable, null,
                         RouteProbe.NotAttempted("no live CurrencyDelayScenario to read a route for"),
                         "scenario type present but no live instance");
                 }
@@ -988,9 +1471,10 @@ namespace Gonogo.DevTools
                 const BindingFlags Instance = BindingFlags.NonPublic | BindingFlags.Instance;
 
                 var subscribed = false;
-                var shadowScience = 0.0;
+                var shadows = Shadows.Unreadable;
                 var labVessels = -1;
                 var scienceDefers = -1;
+                var correlations = Correlations.Unreadable;
                 var fault = instanceFault;
 
                 var interceptor = scenarioType.GetField("_interceptor", Instance)?.GetValue(scenario);
@@ -1012,21 +1496,34 @@ namespace Gonogo.DevTools
                     }
 
                     var state = interceptorType.GetField("_state", Instance)?.GetValue(interceptor);
-                    var shadow = state?.GetType().GetProperty("ShadowScience", BindingFlags.Public | BindingFlags.Instance);
-                    if (shadow == null)
+                    var missingShadows = "";
+                    shadows = new Shadows(
+                        ReadShadow(state, "ShadowFunds", ref missingShadows),
+                        ReadShadow(state, "ShadowScience", ref missingShadows),
+                        ReadShadow(state, "ShadowReputation", ref missingShadows));
+                    if (missingShadows.Length > 0)
                     {
-                        fault = Append(fault, "could not read ShadowScience");
-                    }
-                    else
-                    {
-                        shadowScience = Convert.ToDouble(shadow.GetValue(state, null), CultureInfo.InvariantCulture);
+                        fault = Append(fault, "could not read " + missingShadows);
                     }
 
                     labVessels = CountPrivateList(state, "_labVessels");
                     scienceDefers = CountPrivateList(state, "_scienceDefers");
                     if (labVessels < 0 || scienceDefers < 0)
                     {
-                        fault = Append(fault, "could not read the correlation lists");
+                        fault = Append(fault, "could not read the science correlation lists");
+                    }
+
+                    correlations = new Correlations(
+                        CountPrivateList(interceptor, "_recoveryVesselsById"),
+                        CountPrivateList(interceptor, "_deathLightTimesById"),
+                        CountPrivateList(state, "_recoveryVessels"),
+                        CountPrivateList(state, "_deathVessels"),
+                        CountPrivateList(state, "_reputationDefers"));
+                    if (correlations.RecoveryVesselsHeld < 0 || correlations.DeathLightTimesHeld < 0
+                        || correlations.RecoveryPushesPending < 0 || correlations.DeathPushesPending < 0
+                        || correlations.ReputationDefersPending < 0)
+                    {
+                        fault = Append(fault, "could not read the funds/reputation correlation state");
                     }
                 }
 
@@ -1074,7 +1571,7 @@ namespace Gonogo.DevTools
                     fault = Append(fault, "route probe: " + route.Fault);
                 }
 
-                return new DelaySubsystem(true, true, instances, subscribed, pendingRows, shadowScience, labVessels, scienceDefers, readings, route, fault);
+                return new DelaySubsystem(true, true, instances, subscribed, pendingRows, shadows, labVessels, scienceDefers, correlations, readings, route, fault);
             }
             catch (Exception ex)
             {
@@ -1104,7 +1601,33 @@ namespace Gonogo.DevTools
             return true;
         }
 
-        /// <summary>Element count of a private List field, or -1 when it cannot be read.</summary>
+        /// <summary>
+        /// One public shadow-balance property off the state machine, NaN when it cannot
+        /// be read, appending the property's name to <paramref name="missing"/> so the
+        /// fault says which of the three went unread rather than that one did.
+        /// </summary>
+        private static double ReadShadow(object? state, string propertyName, ref string missing)
+        {
+            var property = state?.GetType().GetProperty(propertyName, BindingFlags.Public | BindingFlags.Instance);
+            if (property == null)
+            {
+                missing = missing.Length == 0 ? propertyName : missing + ", " + propertyName;
+                return double.NaN;
+            }
+
+            try
+            {
+                return Convert.ToDouble(property.GetValue(state, null), CultureInfo.InvariantCulture);
+            }
+            catch (Exception ex)
+            {
+                missing = (missing.Length == 0 ? propertyName : missing + ", " + propertyName) + " (" + ex.Message + ")";
+                return double.NaN;
+            }
+        }
+
+        /// <summary>Element count of a private List or Dictionary field, or -1 when it
+        /// cannot be read.</summary>
         private static int CountPrivateList(object? owner, string fieldName)
         {
             if (owner == null)
@@ -1624,9 +2147,18 @@ namespace Gonogo.DevTools
                 sb.AppendLine("\tprobeVessel = " + (watch.ProbeVesselId.Length > 0
                     ? watch.ProbeVesselName + " [" + watch.ProbeVesselId + "]"
                     : "(none resolved)"));
+                sb.AppendLine("\tmode = " + watch.Mode);
+                AppendTrigger(sb, watch);
+
+                // The FIRST sample is the pre-award baseline every movement verdict is
+                // measured against. It exists whenever a request got as far as awarding
+                // or triggering anything; a refused request has no samples at all, and
+                // then there is nothing to measure a movement from and the verdicts say
+                // so rather than measuring against a fabricated zero.
+                var baseline = watch.Samples.Count > 0 ? watch.Samples[0].Balances : (Balances?)null;
                 foreach (var sample in watch.Samples)
                 {
-                    AppendSample(sb, sample);
+                    AppendSample(sb, sample, baseline);
                 }
                 sb.AppendLine("}");
                 File.WriteAllText(_resultPath, sb.ToString());
@@ -1637,7 +2169,37 @@ namespace Gonogo.DevTools
             }
         }
 
-        private static void AppendSample(StringBuilder sb, Sample sample)
+        /// <summary>
+        /// The TRIGGER node, present only in a trigger mode. The forecast is written
+        /// down first and separately from the outcome, because "the run produced no
+        /// reputation change" and "this craft had no crew, so there was never a
+        /// reputation change to produce" are opposite readings that used to arrive as
+        /// the same empty result.
+        /// </summary>
+        private static void AppendTrigger(StringBuilder sb, WatchState watch)
+        {
+            if (watch.TriggerForecast.Length == 0 && watch.TriggerOutcome.Length == 0)
+            {
+                return;
+            }
+
+            sb.AppendLine("\tTRIGGER");
+            sb.AppendLine("\t{");
+            sb.AppendLine("\t\tmode = " + watch.Mode);
+            sb.AppendLine("\t\tawardedByThisTool = False (the game credits, under its own reason and its own base amounts)");
+            sb.AppendLine("\t\toriginCrew = " + Countable(watch.OriginCrewCount));
+            if (watch.CrewName.Length > 0)
+            {
+                sb.AppendLine("\t\tcrewNamed = " + watch.CrewName);
+            }
+            sb.AppendLine("\t\tforecast = " + watch.TriggerForecast);
+            sb.AppendLine("\t\toutcome = " + (watch.TriggerOutcome.Length > 0
+                ? watch.TriggerOutcome
+                : "(the trigger did not run: the request was refused before it, see message)"));
+            sb.AppendLine("\t}");
+        }
+
+        private static void AppendSample(StringBuilder sb, Sample sample, Balances? baseline)
         {
             var b = sample.Balances;
             sb.AppendLine("\tSAMPLE");
@@ -1645,9 +2207,14 @@ namespace Gonogo.DevTools
             sb.AppendLine("\t\tat = " + sample.Label);
             sb.AppendLine("\t\tsinceAwardSeconds = " + sample.SinceAwardSeconds.ToString("F1", CultureInfo.InvariantCulture));
             sb.AppendLine("\t\tut = " + sample.Ut.ToString("F3", CultureInfo.InvariantCulture));
-            sb.AppendLine("\t\tfunds = " + b.Funds.ToString("F3", CultureInfo.InvariantCulture));
-            sb.AppendLine("\t\tscience = " + b.Science.ToString("F3", CultureInfo.InvariantCulture));
-            sb.AppendLine("\t\treputation = " + b.Reputation.ToString("F3", CultureInfo.InvariantCulture));
+
+            foreach (var kind in AllCurrencies)
+            {
+                var name = kind.ToString().ToLowerInvariant();
+                sb.AppendLine("\t\t" + name + " = " + Balance(b, kind));
+                sb.AppendLine("\t\t" + name + "Movement = " + MovementVerdict(b, baseline, kind, sample.Delay));
+            }
+
             if (b.HasConfidence)
             {
                 sb.AppendLine("\t\tconfidence = " + b.Confidence.ToString("F3", CultureInfo.InvariantCulture));
@@ -1655,15 +2222,125 @@ namespace Gonogo.DevTools
             }
             else
             {
-                sb.AppendLine("\t\tconfidence = (RP-1 not loaded)");
+                sb.AppendLine("\t\tconfidence = (unreadable: " + b.ConfidenceFault + ")");
             }
+            AppendLeaks(sb, b, baseline, sample.Delay);
+
             AppendDelaySubsystem(sb, sample.Delay);
             sb.AppendLine("\t}");
+        }
+
+        /// <summary>One balance, or why it could not be read. Never a zero standing in
+        /// for an absent ScenarioModule.</summary>
+        private static string Balance(Balances b, CurrencyKindRead kind) =>
+            b.Has(kind)
+                ? b.Of(kind).ToString("F3", CultureInfo.InvariantCulture)
+                : "(unreadable: " + Balances.FaultFor(kind) + ")";
+
+        /// <summary>
+        /// Tolerance for calling a balance moved. Reputation is curve-normalised and
+        /// funds are doubles that stock rounds at several points, so an exact compare
+        /// would report a movement on a balance nothing touched.
+        /// </summary>
+        private const double MovementTolerance = 0.0005;
+
+        private static string MovementVerdict(Balances now, Balances? baseline, CurrencyKindRead kind, DelaySubsystem delay)
+        {
+            if (!baseline.HasValue)
+            {
+                return "(indeterminate: no pre-award baseline was taken, so there is nothing to measure against)";
+            }
+
+            var readable = now.Has(kind) && baseline.Value.Has(kind);
+            var fault = now.Has(kind)
+                ? "the pre-award baseline could not read it: " + Balances.FaultFor(kind)
+                : Balances.FaultFor(kind);
+
+            return CurrencyProbeVerdicts.JudgeCurrencyMovement(
+                readable,
+                fault,
+                readable ? now.Of(kind) - baseline.Value.Of(kind) : 0.0,
+                delay.NewRowsFor(kind.ToString()),
+                MovementTolerance);
+        }
+
+        /// <summary>
+        /// The LEAK lines: whether a quantity DERIVED from a delayed currency moved while
+        /// that currency was being withheld.
+        ///
+        /// <para>Measured on 2026-08-27 with 25 science withheld: RP-1's confidence went
+        /// 700 to 800 and confidenceEarned 200 to 300, both at earn time. So an operator
+        /// watching confidence learns the science arrived before the science does, and in
+        /// RP-1 confidence gates real career decisions. That is the delay leaking through
+        /// a channel the subsystem never modelled, and it is the shape of thing the
+        /// validation matrix exists to catch.</para>
+        ///
+        /// <para>RP-1 confidence is the only such quantity this probe can reach today. It
+        /// is reported as a co-occurrence rather than a cause: that RP-1 credits
+        /// confidence off a science award is a belief about RP0.dll, not something read
+        /// here.</para>
+        /// </summary>
+        private static void AppendLeaks(StringBuilder sb, Balances now, Balances? baseline, DelaySubsystem delay)
+        {
+            var withheld = WithheldCurrencies(now, baseline, delay);
+            sb.AppendLine("\t\twithheldAtThisSample = " + (withheld.Length > 0 ? withheld : "(none)"));
+
+            if (!baseline.HasValue)
+            {
+                sb.AppendLine("\t\tconfidenceLeak = (indeterminate: no pre-award baseline was taken)");
+                return;
+            }
+
+            sb.AppendLine("\t\tconfidenceLeak = " + CurrencyProbeVerdicts.JudgeDerivedLeak(
+                "confidence", now.HasConfidence && baseline.Value.HasConfidence, now.ConfidenceFault,
+                baseline.Value.Confidence, now.Confidence, withheld, MovementTolerance));
+            sb.AppendLine("\t\tconfidenceEarnedLeak = " + CurrencyProbeVerdicts.JudgeDerivedLeak(
+                "confidenceEarned", now.HasConfidence && baseline.Value.HasConfidence, now.ConfidenceFault,
+                baseline.Value.ConfidenceEarned, now.ConfidenceEarned, withheld, MovementTolerance));
+        }
+
+        /// <summary>
+        /// Which currencies are withheld at this sample: this run put a row in the
+        /// ledger for them and the balance has not moved. An unreadable balance is left
+        /// OUT rather than assumed either way, because a leak verdict that named a
+        /// currency it could not measure would be asserting the thing it is meant to
+        /// test.
+        /// </summary>
+        private static string WithheldCurrencies(Balances now, Balances? baseline, DelaySubsystem delay)
+        {
+            if (!baseline.HasValue)
+            {
+                return "";
+            }
+
+            var withheld = "";
+            foreach (var kind in AllCurrencies)
+            {
+                if (!now.Has(kind) || !baseline.Value.Has(kind))
+                {
+                    continue;
+                }
+                if (delay.NewRowsFor(kind.ToString()) <= 0)
+                {
+                    continue;
+                }
+                if (Math.Abs(now.Of(kind) - baseline.Value.Of(kind)) > MovementTolerance)
+                {
+                    continue;
+                }
+                withheld = withheld.Length == 0 ? kind.ToString() : withheld + " and " + kind;
+            }
+            return withheld;
         }
 
         /// <summary>A negative count means the read failed, which must never render as a measured zero.</summary>
         private static string Countable(int count) =>
             count < 0 ? "(unreadable)" : count.ToString(CultureInfo.InvariantCulture);
+
+        /// <summary>A NaN shadow means the property behind it could not be reached, and a
+        /// shadow reported as 0.000 would read as a subsystem holding a zero balance.</summary>
+        private static string Shadow(double value) =>
+            double.IsNaN(value) ? "(unreadable)" : value.ToString("F3", CultureInfo.InvariantCulture);
 
         private static void AppendDelaySubsystem(StringBuilder sb, DelaySubsystem delay)
         {
@@ -1680,9 +2357,23 @@ namespace Gonogo.DevTools
             // a pre-award snapshot. The ledger persists, so without this a run reports
             // somebody else's award and reads as a failure that never happened.
             sb.AppendLine("\t\t\tnewRowsThisRun = " + delay.NewRows.ToString(CultureInfo.InvariantCulture));
-            sb.AppendLine("\t\t\tshadowScience = " + delay.ShadowScience.ToString("F3", CultureInfo.InvariantCulture));
+            sb.AppendLine("\t\t\tshadowFunds = " + Shadow(delay.Shadows.Funds));
+            sb.AppendLine("\t\t\tshadowScience = " + Shadow(delay.Shadows.Science));
+            sb.AppendLine("\t\t\tshadowReputation = " + Shadow(delay.Shadows.Reputation));
             sb.AppendLine("\t\t\tlabVesselsPending = " + Countable(delay.LabVessels));
             sb.AppendLine("\t\t\tscienceDefersPending = " + Countable(delay.ScienceDefers));
+            // The recovery/death half of the correlation, which had no readout at all
+            // and is the only thing that tells a push that never arrived from one that
+            // arrived after stock had already credited the change. Stock's Funding,
+            // ResearchAndDevelopment and Reputation modules all credit recovery currency
+            // from the same onVesselRecoveryProcessing the interceptor pushes from, so
+            // dispatch order decides whether the away path engages, and both outcomes
+            // look like an instant reveal from the balances alone.
+            sb.AppendLine("\t\t\trecoveryVesselsHeld = " + Countable(delay.Correlations.RecoveryVesselsHeld));
+            sb.AppendLine("\t\t\tdeathLightTimesHeld = " + Countable(delay.Correlations.DeathLightTimesHeld));
+            sb.AppendLine("\t\t\trecoveryPushesPending = " + Countable(delay.Correlations.RecoveryPushesPending));
+            sb.AppendLine("\t\t\tdeathPushesPending = " + Countable(delay.Correlations.DeathPushesPending));
+            sb.AppendLine("\t\t\treputationDefersPending = " + Countable(delay.Correlations.ReputationDefersPending));
             AppendRoute(sb, delay.Route);
             foreach (var row in delay.Rows)
             {
