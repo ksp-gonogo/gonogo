@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Globalization;
 using System.IO;
 using System.Reflection;
@@ -45,6 +46,15 @@ namespace Gonogo.DevTools
         /// matches this are ignored, so writing the same file twice (or a scene
         /// reload re-reading it) never re-teleports.</summary>
         private static string? _lastAppliedId;
+
+        /// <summary>Keys a TELEPORT node may carry. Anything else is a refusal:
+        /// this addon used to ignore a name it did not recognise, so a request
+        /// saying <c>periKm</c> instead of <c>periapsisKm</c> silently placed the
+        /// craft somewhere else entirely and read as a successful setup.</summary>
+        private static readonly string[] KnownKeys =
+        {
+            "id", "body", "periapsisKm", "apoapsisKm", "inclinationDeg",
+        };
 
         private const float PollIntervalSeconds = 1f;
         private float _sinceLastPoll;
@@ -134,6 +144,16 @@ namespace Gonogo.DevTools
 
             try
             {
+                var unknown = UnknownKeys(node);
+                if (unknown.Length > 0)
+                {
+                    Debug.LogError("[Gonogo] dev-teleport: request id=" + id
+                        + " names unknown field(s) " + unknown + "; nothing was applied");
+                    WriteResult(id, ok: false, "unknown field name(s) " + unknown
+                        + "; this addon accepts only " + string.Join(", ", KnownKeys) + ". Nothing was applied.");
+                    return;
+                }
+
                 var vessel = FlightGlobals.ActiveVessel;
                 if (vessel == null)
                 {
@@ -256,6 +276,31 @@ namespace Gonogo.DevTools
                 }
             }
             return null;
+        }
+
+        /// <summary>The names in this TELEPORT node that mean nothing here, comma
+        /// separated, or an empty string when every name is one we act on.</summary>
+        private static string UnknownKeys(ConfigNode node)
+        {
+            var unknown = new List<string>();
+            for (var i = 0; i < node.values.Count; i++)
+            {
+                var name = node.values[i].name;
+                var known = false;
+                foreach (var candidate in KnownKeys)
+                {
+                    if (string.Equals(candidate, name, StringComparison.Ordinal))
+                    {
+                        known = true;
+                        break;
+                    }
+                }
+                if (!known)
+                {
+                    unknown.Add(name);
+                }
+            }
+            return string.Join(", ", unknown.ToArray());
         }
 
         private static bool TryGetDouble(ConfigNode node, string key, out double value)
