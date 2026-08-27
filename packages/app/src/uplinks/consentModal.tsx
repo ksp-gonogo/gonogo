@@ -101,13 +101,8 @@ function ConsentDialog({ info, onResolve }: Readonly<ConsentDialogProps>) {
           {info.author ? ` · by ${info.author}` : ""}
         </p>
         <p id={descId}>
-          This loads a client extension into mission control. It runs with the
-          same access as the rest of the app.
-        </p>
-        <p className="UplinkConsent__limit">
-          The running mod vouches for this client, but a compromised mod could
-          vouch for a compromised client: mod trust comes from CKAN, not from
-          us. Load only Uplinks you installed on purpose.
+          This runs with the same access as the rest of the app. Only install
+          Uplink clients you trust.
         </p>
         <div className="UplinkConsent__actions">
           <GhostButton type="button" onClick={() => onResolve(false)}>

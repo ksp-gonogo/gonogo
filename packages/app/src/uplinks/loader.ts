@@ -371,9 +371,9 @@ export function resolveClientBundleUrl(clientSource: {
  *     the compat-gate shape only). Rather than fabricate a plausible-looking
  *     name/author, this uses the id as the name (matching the existing
  *     "not found in the registry index" quarantine's same fallback) and an
- *     explicit "unknown (third-party: no local registry entry)" author, so
- *     the consent modal (which surfaces `descriptor.author`) never claims
- *     authorship data the loader doesn't actually have.
+ *     "unknown" author, so the consent modal (which surfaces
+ *     `descriptor.author`) never claims authorship data the loader does not
+ *     actually have.
  *   - the compat fields (apiVersion/uiKitVersion/contractMajor/
  *     contractMinor/minAppVersion) come straight from the parsed manifest,
  *     this is the whole point of the manifest-fetch seam: it's the one place
@@ -399,7 +399,7 @@ export function descriptorFromClientSource(
   return {
     id: roster.id,
     name: roster.id,
-    author: "unknown (third-party: no local registry entry)",
+    author: "unknown",
     repo: "",
     versions: [
       {
