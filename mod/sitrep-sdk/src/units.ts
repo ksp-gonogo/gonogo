@@ -44,6 +44,7 @@ import {
   GENERATED_TYPE_SHAPES,
   GENERATED_TYPE_UNITS,
 } from "./__generated__/units";
+import { noteRuntimeTopicMetadata } from "./runtime-topic-registry";
 import type { TopicId } from "./topics";
 
 export type { KnownSitrepUnit, ShapesByField, SitrepUnit, UnitsByField };
@@ -122,6 +123,11 @@ export function registerTopicUnits(
 ): void {
   registeredTopicUnits.set(topic, units);
   registeredTopicShapes.set(topic, shapes);
+  // Changes what the Topic ENUMERATES without vouching that anything sends it:
+  // a client-derived channel declares its fields here too, and nothing puts one
+  // on the wire. Which Topics are real is `registerBarePrimitiveTopic`'s
+  // answer; see `runtime-topic-registry.ts`.
+  noteRuntimeTopicMetadata();
 }
 
 /**
@@ -168,6 +174,9 @@ export function registerTypeUnits(
 ): void {
   registeredTypeUnits.set(typeName, units);
   registeredTypeShapes.set(typeName, shapes);
+  // Names no Topic, but changes what one enumerates: a nested shape's fields
+  // are unreachable until the type it resolves through is registered.
+  noteRuntimeTopicMetadata();
 }
 
 /**

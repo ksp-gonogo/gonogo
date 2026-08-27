@@ -12,6 +12,7 @@ import {
 import {
   DEFAULT_SITREP_CARRIED_TOPICS,
   enumerateTopicFields,
+  getRuntimeRegisteredTopicIds,
   type TopicField,
   type TopicFieldKind,
 } from "@ksp-gonogo/sitrep-sdk";
@@ -123,14 +124,15 @@ interface BuiltCatalog {
  * The store exists only to run that judgement, exactly as the retired
  * catalogue's did: nothing is ever ingested into it.
  */
-function carriedDerivedTopics(): ReadonlySet<string> {
+function carriedDerivedTopics(
+  carried: ReadonlySet<string>,
+): ReadonlySet<string> {
   const store = new TimelineStore(
     new ViewClock({ delaySeconds: () => 0, warpRate: () => 1 }),
   );
   for (const channel of PRODUCTION_DERIVED_CHANNELS) {
     store.registerDerivedChannel(channel);
   }
-  const carried = new Set(DEFAULT_SITREP_CARRIED_TOPICS);
   const out = new Set<string>();
   for (const channel of PRODUCTION_DERIVED_CHANNELS) {
     if (isTopicCarried(store, carried, channel.topic)) out.add(channel.topic);
@@ -138,11 +140,22 @@ function carriedDerivedTopics(): ReadonlySet<string> {
   return out;
 }
 
-function buildTopicFieldCatalog(): BuiltCatalog {
-  const derivedTopics = carriedDerivedTopics();
+function buildTopicFieldCatalog(
+  carried: ReadonlySet<string>,
+  registered: readonly string[],
+): BuiltCatalog {
+  const derivedTopics = carriedDerivedTopics(carried);
   const topics = [
     ...new Set([
-      ...DEFAULT_SITREP_CARRIED_TOPICS,
+      // A trailing dot is a carried NAMESPACE rather than a Topic (see
+      // `carried-channels.ts`), and the members under it are keyed by
+      // something the contract never names, so there is nothing to enumerate.
+      ...[...carried].filter((topic) => !topic.endsWith(".")),
+      // Every Topic a client package registered at runtime. This is the whole
+      // of an Uplink's vocabulary, and the only way it can reach a picker: the
+      // carried set above is seeded from a list written in this repo, which an
+      // Uplink shipping on its own schedule can never appear on.
+      ...registered,
       ...PRODUCTION_DERIVED_CHANNELS.map((c) => c.topic),
     ]),
   ].sort();
@@ -174,23 +187,70 @@ function buildTopicFieldCatalog(): BuiltCatalog {
   return { keys, undescribed };
 }
 
-const BUILT = buildTopicFieldCatalog();
+/**
+ * The catalogue is a pure function of (what is carried, what has registered),
+ * and both move: an Uplink registers when its bundle loads, and the carried set
+ * grows as the provider folds those registrations in. So it is built on demand
+ * and cached against the pair, rather than being a module-load constant.
+ *
+ * One entry per carried set, keyed weakly so a set the provider has replaced is
+ * collectable. The registration snapshot's identity is what invalidates an
+ * entry when an Uplink registers without the carried set itself changing.
+ */
+const DEFAULT_CARRIED: ReadonlySet<string> = new Set(
+  DEFAULT_SITREP_CARRIED_TOPICS,
+);
+const cache = new WeakMap<
+  ReadonlySet<string>,
+  { registered: readonly string[]; built: BuiltCatalog }
+>();
+
+function builtFor(
+  carried: ReadonlySet<string> | undefined,
+  registered: readonly string[],
+): BuiltCatalog {
+  const key = carried ?? DEFAULT_CARRIED;
+  const cached = cache.get(key);
+  if (cached !== undefined && cached.registered === registered) {
+    return cached.built;
+  }
+  const built = buildTopicFieldCatalog(key, registered);
+  cache.set(key, { registered, built });
+  return built;
+}
 
 /**
- * The vocabulary an operator picks from: every field of every carried Topic and
- * client-derived channel, keyed by the path a read actually samples.
+ * The vocabulary an operator picks from: every field of every carried Topic,
+ * every Topic an Uplink has registered, and every client-derived channel, keyed
+ * by the path a read actually samples.
  *
- * Built at module load from the contract's own generated unit and shape
- * metadata, so a field added to the contract appears here on the next codegen
- * with no table to update. That is the whole point: the catalogue this replaced
- * was hand-written, and it drifted.
+ * Read from the contract's own generated unit and shape metadata plus the SDK's
+ * runtime registry, so a field appears here because it EXISTS rather than
+ * because somebody listed it: a first-party field on the next codegen, an
+ * Uplink's field the moment its client package loads. That is the whole point:
+ * the catalogue this replaced was hand-written, and it drifted, and the list it
+ * was rebuilt on could not name a third party's Topic at all.
+ *
+ * `carried` is the live allowlist from the mounted `TelemetryProvider`. Omit it
+ * and the first-party default stands in, which is the honest answer for a
+ * caller with no provider in reach. `registered` is the SDK's registration
+ * snapshot, taken as an argument so a React caller can hold it as a dependency
+ * rather than re-reading a moving global inside a memo.
+ *
+ * The returned array is shared and must not be mutated. Its identity is stable
+ * while the answer is, so it can be a `useMemo` dependency.
  *
  * Grouped by Topic rather than by an editorial category. An operator choosing a
  * threshold subject is better served knowing which Topic a value comes from
  * (whether it is a measurement, a derivation, or a career fact) than by a
  * grouping that hides it.
  */
-export const TOPIC_FIELD_CATALOG: TopicFieldKey[] = BUILT.keys;
+export function getTopicFieldCatalog(
+  carried?: ReadonlySet<string>,
+  registered: readonly string[] = getRuntimeRegisteredTopicIds(),
+): TopicFieldKey[] {
+  return builtFor(carried, registered).keys;
+}
 
 /**
  * Whether a catalogue entry names something a threshold, a graph axis or any
@@ -235,4 +295,9 @@ const NON_ORDERABLE_UNIT_HINTS: ReadonlySet<string> = new Set([
  * by a test, so a Topic that arrives unannotated is a failure rather than a
  * silent absence from every picker in the app.
  */
-export const UNDESCRIBED_CARRIED_TOPICS: readonly string[] = BUILT.undescribed;
+export function getUndescribedCarriedTopics(
+  carried?: ReadonlySet<string>,
+  registered: readonly string[] = getRuntimeRegisteredTopicIds(),
+): readonly string[] {
+  return builtFor(carried, registered).undescribed;
+}

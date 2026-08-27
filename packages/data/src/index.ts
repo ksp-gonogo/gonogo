@@ -89,11 +89,11 @@ export * from "./replaySession/ReplaySessionController";
 export * from "./replaySession/ReplaySessionProvider";
 export { registerBuiltinDerivedKeys } from "./schema/builtinDerivedKeys";
 export {
+  getTopicFieldCatalog,
+  getUndescribedCarriedTopics,
   humaniseFieldPath,
   isThresholdSubject,
-  TOPIC_FIELD_CATALOG,
   type TopicFieldKey,
-  UNDESCRIBED_CARRIED_TOPICS,
 } from "./schema/topicFieldCatalog";
 export { IndexedDbStore } from "./storage/IndexedDbStore";
 export type {

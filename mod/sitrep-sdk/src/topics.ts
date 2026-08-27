@@ -52,6 +52,7 @@ import type {
 } from "./__generated__/contract";
 import type { GeneratedTopicPayloadMap } from "./__generated__/topic-map";
 import { GENERATED_TOPIC_IDS } from "./__generated__/topic-map";
+import { noteRuntimeTopic } from "./runtime-topic-registry";
 
 /**
  * `system.uplinks`: the engine-aggregated Uplink roster/health channel. `ChannelEngine`
@@ -257,6 +258,10 @@ for (const id of FIRST_PARTY_BARE_PRIMITIVE_TOPICS) {
  */
 export function registerBarePrimitiveTopic(id: string): void {
   barePrimitiveTopicIds.add(id);
+  // The runtime registry is what the field catalogue and the carried-channels
+  // allowlist read, so this call is also what makes an Uplink's Topic pickable
+  // and promotable. See `runtime-topic-registry.ts`.
+  noteRuntimeTopic(id);
 }
 
 /**

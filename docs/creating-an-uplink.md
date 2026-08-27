@@ -225,6 +225,37 @@ const reading = useTelemetry("my-uplink.reading");
 const reset = useCommand("my-uplink.reset");
 ```
 
+### Register your Topics, and the generic surfaces follow
+
+Your client tells the SDK which Topics you own, at module load, beside the `declare module`
+augmentation that types them:
+
+```ts
+// client/src/topics.ts
+registerBarePrimitiveTopic("my-uplink.reading");
+
+// loop your own generated maps, so a Topic you add later needs no new call site
+for (const [topic, units] of Object.entries(GENERATED_TOPIC_UNITS)) {
+  registerTopicUnits(topic, units, GENERATED_TOPIC_SHAPES[topic] ?? {});
+}
+for (const [name, units] of Object.entries(GENERATED_TYPE_UNITS)) {
+  registerTypeUnits(name, units, GENERATED_TYPE_SHAPES[name] ?? {});
+}
+```
+
+You already need both calls: the first is what narrows your Topic ids at runtime, the second is what
+turns a bare number on the wire into the `Value` your type promises.
+
+They buy more than that, and you do nothing further to collect it. Registration is the only statement
+your Topics exist that reaches a running app, so it is what the app's generic surfaces read. Your Topics
+are promoted to the stream on the same footing as a first-party one, and every field you declared a unit
+for turns up, labelled and dimensioned, in the pickers the graph widget, the threshold alarms and the
+note tags are all built from. There is no list in the gonogo repo to get your Topic added to, and asking
+for one would be the wrong fix: it could only ever name an Uplink that shipped before it was written.
+
+The one field that will not appear is one with no declared unit. A field the walk cannot dimension is a
+field a picker cannot order or render, so annotate the whole payload rather than the interesting half.
+
 ### Sharing a derivation with other Uplinks
 
 A **Processor** is a declared pure function of Topics, evaluated once per Sitrep frame however many

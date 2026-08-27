@@ -1,4 +1,4 @@
-import { TOPIC_FIELD_CATALOG } from "@ksp-gonogo/data";
+import { useTopicFieldCatalog } from "@ksp-gonogo/data";
 import {
   type ChangeEvent,
   forwardRef,
@@ -240,21 +240,22 @@ function useKeyOptions(): KeyOption[] {
   //
   // A collection is excluded: `{{career.status.contracts.active}}` would
   // interpolate a whole array into a sentence.
+  const catalog = useTopicFieldCatalog();
   return useMemo<KeyOption[]>(() => {
-    const options: KeyOption[] = TOPIC_FIELD_CATALOG.filter(
-      (entry) => entry.kind !== "collection",
-    ).map((entry) => ({
-      key: entry.key,
-      label: entry.label,
-      group: entry.group ?? "Other",
-      unit: entry.unit,
-    }));
+    const options: KeyOption[] = catalog
+      .filter((entry) => entry.kind !== "collection")
+      .map((entry) => ({
+        key: entry.key,
+        label: entry.label,
+        group: entry.group ?? "Other",
+        unit: entry.unit,
+      }));
     return options.sort((a, b) => {
       if (a.group !== b.group)
         return (a.group ?? "").localeCompare(b.group ?? "");
       return (a.label ?? "").localeCompare(b.label ?? "");
     });
-  }, []);
+  }, [catalog]);
 }
 
 // ── Styles ──────────────────────────────────────────────────────────────

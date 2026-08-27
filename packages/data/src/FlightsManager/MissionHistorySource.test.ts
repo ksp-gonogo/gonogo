@@ -2,7 +2,7 @@ import type { ReplayFixture } from "@ksp-gonogo/sitrep-client";
 import type { ServerMessage } from "@ksp-gonogo/sitrep-sdk";
 import { Quality, Staleness } from "@ksp-gonogo/sitrep-sdk";
 import { describe, expect, it } from "vitest";
-import { TOPIC_FIELD_CATALOG } from "../schema/topicFieldCatalog";
+import { getTopicFieldCatalog } from "../schema/topicFieldCatalog";
 import type { MissionMeta, MissionRecord } from "../storage/MissionStore";
 import { MissionStore } from "../storage/MissionStore";
 import { MissionHistorySource } from "./MissionHistorySource";
@@ -120,7 +120,7 @@ describe("MissionHistorySource", () => {
       // catalogue of its own would be a second thing to keep in step with the
       // wire. That drift is what the retired hand-written table did.
       const { source } = freshSource();
-      expect(source.schema()).toBe(TOPIC_FIELD_CATALOG);
+      expect(source.schema()).toBe(getTopicFieldCatalog());
     });
   });
 
