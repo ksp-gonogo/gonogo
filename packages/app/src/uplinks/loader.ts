@@ -63,25 +63,12 @@ export interface LoaderContext {
   /** Where to read the registry index (Phase A: local fixture; Phase D: the Hub). */
   registrySource: RegistrySource;
   /**
-   * The DEFAULT Uplink ids to load via the runtime path (first-party;
-   * unconditional as of D4 step 2, 2026-07-25, no flag gates this anymore).
-   * Operator decision 2026-07-24: the installed-mod roster is
-   * the source of truth for what loads, when `roster` is present,
-   * `loadEnabledUplinks` derives the enabled set from it instead (see
-   * `deriveEnabledIds`) and this field is IGNORED. `enabledIds` only takes
-   * effect as the degraded-boot fallback, when `roster` is `undefined` (no
-   * mod talking, dev / e2e / offline first boot): the client half still
-   * loads on the shipped default rather than loading nothing. An explicit
-   * `override` (below) wins over BOTH this and the roster.
-   */
-  enabledIds: string[];
-  /**
-   * The explicit `?uplinkLoaderIds=` override (dev/test), if the param is
-   * present. Takes PRECEDENCE over the roster and `enabledIds`, a deliberate
-   * override is intent, so it must win even when a roster is talking (e.g. the
-   * Hub wizard e2e boots with `?uplinkLoaderIds=` to keep an installed Uplink
-   * UNloaded and prove the gap surface). `[]` (empty param) means "load
-   * nothing"; `undefined` (no param) defers to roster/`enabledIds`.
+   * The explicit `?uplinkLoaderIds=` override, if the param is present. Takes
+   * PRECEDENCE over the roster: a deliberate override is intent, so it must win
+   * even when a roster is talking (e.g. the Hub wizard e2e boots with
+   * `?uplinkLoaderIds=` to keep an installed Uplink UNloaded and prove the gap
+   * surface). `[]` (empty param) means "load nothing"; `undefined` (no param)
+   * defers to the roster, and with no roster nothing is attempted.
    */
   override?: readonly string[];
   /** The app's compat identity: gated against each descriptor's declared versions. */
@@ -89,10 +76,10 @@ export interface LoaderContext {
   /** The app's own version, for the advisory minAppVersion check. */
   appVersion: string;
   /**
-   * The live `system.uplinks` roster, if a stream is mounted. Optional: with no
-   * KSP connected (dev / e2e / offline first boot) the client half still loads,
-   * the mod-only-without-client degraded shape is a legitimate state, and refusing
-   * to load a client just because no mod is talking yet would be the wrong default.
+   * The live `system.uplinks` roster, if a stream is mounted. Optional, and the
+   * only thing that says what to load: absent (dev / e2e / offline first boot)
+   * nothing has told us what is installed, so nothing is attempted unless
+   * `override` names ids by hand.
    */
   roster?: RosterEntry[];
   /**
@@ -568,11 +555,12 @@ async function loadOne(
 }
 
 /**
- * Load a single Uplink by id via the runtime loader path (design §5), independent
- * of `ctx.enabledIds`: the seam the Hub-wizard setup-assist step uses to load just
- * the one Uplink an operator picked. Runs the same gate → consent → fetch → hash →
- * import sequence as `loadEnabledUplinks`, reusing the same `LoaderContext` DI seam
- * (so `ensureConsent`/`fetchBytes`/`importBundle` overrides work identically).
+ * Load a single Uplink by id via the runtime loader path (design §5), ignoring
+ * the roster-driven derivation and `ctx.override` entirely: the seam the
+ * Hub-wizard setup-assist step uses to load just the one Uplink an operator
+ * picked. Runs the same gate → consent → fetch → hash → import sequence as
+ * `loadEnabledUplinks`, reusing the same `LoaderContext` DI seam (so
+ * `ensureConsent`/`fetchBytes`/`importBundle` overrides work identically).
  */
 export async function loadUplinkById(
   id: string,
@@ -644,10 +632,11 @@ export async function loadUplinkById(
  *     would silently drop it with no outcome at all, which is strictly less
  *     visible than a "quarantined: mod reports Uplink unavailable" row.
  *   - `roster` ABSENT (`undefined`, no mod talking: dev / e2e / offline
- *     first boot) → fall back to `fallback` (`ctx.enabledIds`, i.e. the
- *     shipped `LOADER_UPLINK_IDS` default at the real boot call site). This
- *     preserves the degraded-boot rule on `LoaderContext.roster`: the client
- *     half still loads when no mod is talking yet.
+ *     first boot) → nothing. There is deliberately no shipped fallback list:
+ *     one would have to name ids, and a first-party name loading here is a
+ *     path a fourth author's Uplink could never reach. Nothing has said what
+ *     is installed, so nothing is attempted, and the roster or an explicit
+ *     `override` is what says otherwise.
  *
  * Reuses `computeUplinkGapEntries`: the SAME join the wizard's
  * `useUplinkGap` classifies `installed-no-client` gaps from (`../wizard/
@@ -662,15 +651,14 @@ export async function loadUplinkById(
 function deriveEnabledIds(
   roster: RosterEntry[] | undefined,
   index: RegistryIndex,
-  fallback: readonly string[],
   override?: readonly string[],
 ): string[] {
-  // An EXPLICIT `?uplinkLoaderIds=` override is a deliberate dev/test intent and
-  // wins outright: over the roster AND the default fallback. `[]` (empty
-  // `?uplinkLoaderIds=`) is a meaningful "load nothing" and is honoured too; only
-  // `undefined` (no override param) defers to the roster/fallback below.
+  // An EXPLICIT `?uplinkLoaderIds=` override is a deliberate intent and wins
+  // outright over the roster. `[]` (empty `?uplinkLoaderIds=`) is a meaningful
+  // "load nothing" and is honoured too; only `undefined` (no override param)
+  // defers to the roster below.
   if (override !== undefined) return [...override];
-  if (!roster) return [...fallback];
+  if (!roster) return [];
   const gapEntries = computeUplinkGapEntries(
     roster.map((r) => ({ id: r.id, available: r.available, reason: r.reason })),
     [],
@@ -705,15 +693,17 @@ export async function loadEnabledUplinks(
     index = await fetchRegistry(ctx.registrySource);
   } catch (err) {
     // A registry we can't read means we also can't derive the roster-driven
-    // enabled set (that join needs `index`), so this falls back to whatever
-    // `ctx.enabledIds` was given rather than attempting the derivation with
-    // no registry: quarantining every one of those ids with the reason, so
-    // the failure is visible rather than a blank dashboard.
+    // enabled set (that join needs `index`), so quarantine the ids we WOULD
+    // have attempted with the reason attached: a dead registry has to be
+    // visible rather than a silently blank dashboard. An override names them
+    // outright; otherwise every roster id counts, including ones the join
+    // might have excluded, because without the index we cannot tell which.
     const reason = `registry unavailable: ${
       err instanceof Error ? err.message : String(err)
     }`;
     logger.warn(`[uplink-loader] ${reason}`);
-    return ctx.enabledIds.map((id) => {
+    const attempted = ctx.override ?? ctx.roster?.map((r) => r.id) ?? [];
+    return attempted.map((id) => {
       const outcome: UplinkLoadOutcome = {
         id,
         name: id,
@@ -725,12 +715,7 @@ export async function loadEnabledUplinks(
     });
   }
 
-  const effectiveIds = deriveEnabledIds(
-    ctx.roster,
-    index,
-    ctx.enabledIds,
-    ctx.override,
-  );
+  const effectiveIds = deriveEnabledIds(ctx.roster, index, ctx.override);
   const outcomes: UplinkLoadOutcome[] = [];
   for (const id of effectiveIds) {
     const descriptor = index.uplinks.find((u) => u.id === id);
@@ -743,8 +728,8 @@ export async function loadEnabledUplinks(
     // for it (D5-loader follow-on), so build+load via that path instead.
     // The plain "not found in the registry index" quarantine below is now
     // unreachable via the roster-driven path (kept as a defensive fallback
-    // for a caller that hand-supplies `enabledIds`/`override` naming an id
-    // that's in neither the index nor the roster at all).
+    // for a caller that hand-supplies an `override` naming an id that's in
+    // neither the index nor the roster at all).
     const rosterEntry = ctx.roster?.find((r) => r.id === id);
     if (rosterEntry?.clientSource) {
       outcomes.push(await loadThirdParty(id, rosterEntry, ctx));

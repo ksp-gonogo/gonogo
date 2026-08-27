@@ -12,11 +12,9 @@
  *
  * Generic fixture ids ("alpha") on purpose, same reasoning as
  * `rosterProbe.test.ts`'s own header comment: this file must reference no
- * mod token so the uplink-boundary ratchet stays clean. The one place a real
- * first-party id set necessarily comes into play is the roster-ABSENT
- * fallback test, which exercises `runStationUplinkLoad`'s hard-coded
- * `LOADER_UPLINK_IDS`, that test imports the constant and asserts against
- * it rather than typing any of its members as a literal.
+ * mod token so the uplink-boundary ratchet stays clean. Nothing here needs a
+ * real first-party id any more: a roster-ABSENT station boot attempts nothing
+ * at all, there is no shipped id list for it to fall back to.
  *
  * The whole point of D6/#6 is that a station never fetches a bundle
  * directly: `stubFetch` below throws on any URL that isn't the registry
@@ -37,7 +35,6 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { PeerClientProvider } from "../peer/PeerClientContext";
 import type { PeerClientService } from "../peer/PeerClientService";
 import { setConsentPrompt } from "./consent";
-import { LOADER_UPLINK_IDS } from "./flag";
 import { hostCompat } from "./hostCompat";
 import { __resetUplinkOutcomes, getUplinkOutcomes } from "./loaderState";
 import type { RegistryIndex } from "./registry";
@@ -136,12 +133,10 @@ afterEach(() => {
 });
 
 describe("runStationUplinkLoad", () => {
-  it("with no roster sample (timeout), falls back to LOADER_UPLINK_IDS and never makes a direct bundle fetch", async () => {
-    // No registry entries match the real first-party ids in this fixture, so
-    // every one of them quarantines "not found in the registry index", the
-    // point of this test is the ID SET attempted and the total absence of
-    // any direct network call, not a successful load.
-    const directBundleFetches = stubFetch({ uplinks: [] });
+  it("with no roster sample (timeout), attempts nothing and never makes a direct bundle fetch", async () => {
+    // The station's host never told it what is installed, so there is nothing
+    // to attempt: no shipped id list stands behind an absent roster.
+    const directBundleFetches = stubFetch(registryWith(goodHash));
     const stub = new StubTransport();
     const client = new TelemetryClient(stub);
     const sendBundleFetch = vi.fn(async () => BUNDLE_BYTES);
@@ -152,10 +147,8 @@ describe("runStationUplinkLoad", () => {
       20,
     );
 
-    expect(outcomes.map((o) => o.id).sort()).toEqual(
-      [...LOADER_UPLINK_IDS].sort(),
-    );
-    expect(outcomes.every((o) => o.status === "quarantined")).toBe(true);
+    expect(outcomes).toEqual([]);
+    expect(getUplinkOutcomes()).toHaveLength(0);
     expect(sendBundleFetch).not.toHaveBeenCalled();
     expect(directBundleFetches).toEqual([]);
   });
@@ -271,11 +264,10 @@ describe("StationUplinkLoader", () => {
     await waitFor(() => {
       expect(screen.getByTestId("dashboard-widgets")).not.toBeNull();
     });
-    // No roster ever arrives here (timeout at 20ms), falls back to
-    // LOADER_UPLINK_IDS, none of which match the "alpha" fixture, so the
-    // conduit is never actually called. This test is about the GATE, not
-    // the load outcome: see the runStationUplinkLoad describe block above
-    // for the load-outcome assertions.
+    // No roster ever arrives here (timeout at 20ms), so nothing is attempted
+    // and the conduit is never called. This test is about the GATE, not the
+    // load outcome: see the runStationUplinkLoad describe block above for the
+    // load-outcome assertions.
     expect(sendBundleFetch).not.toHaveBeenCalled();
   });
 

@@ -53,7 +53,6 @@ export function ResultsStep() {
 
     const ctx: LoaderContext = {
       registrySource: hubRegistrySource(),
-      enabledIds: [id],
       hostCompat,
       appVersion: VERSION,
     };

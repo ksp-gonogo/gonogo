@@ -16,6 +16,7 @@ import {
   UPLINK_EXTERNAL_ENTRIES,
   UPLINK_EXTERNAL_NO_CHUNK,
 } from "./src/uplinks/externals/entries";
+import { UPLINK_BUNDLE_TARGETS } from "./uplink-bundle-targets";
 
 // Resolve every @ksp-gonogo/* workspace package to its TypeScript source so
 // Vite compiles it on-the-fly rather than serving pre-built dist files.
@@ -151,44 +152,6 @@ const HOST_CONTRACT_MINOR = readExportedNumberConst(
   SDK_COMPAT_VERSIONS,
   "CONTRACT_MINOR",
 );
-
-// The first-party Uplink clients built as standalone, runtime-loadable ESM
-// bundles. Each is emitted to public/uplinks/<id>.client.js and recorded in the
-// local registry fixture. Adding another Uplink here is the whole change.
-//
-// `runtimeLink.test.ts` builds the same entry points to check they still link
-// against the import map. It derives them from `flag.ts`'s ids rather than
-// sharing this list, because a list of mod names inside `src/` is what the
-// mod-ownership boundary guard exists to stop.
-const UPLINK_BUNDLE_TARGETS: {
-  id: string;
-  name: string;
-  author: string;
-  repo: string;
-  clientDir: string;
-}[] = [
-  {
-    id: "scansat",
-    name: "SCANsat",
-    author: "jonpepler",
-    repo: "ksp-gonogo/GonogoScansatUplink",
-    clientDir: resolve(modDir, "GonogoScansatUplink/client"),
-  },
-  {
-    id: "kos",
-    name: "kOS",
-    author: "jonpepler",
-    repo: "ksp-gonogo/GonogoKosUplink",
-    clientDir: resolve(modDir, "GonogoKosUplink/client"),
-  },
-  {
-    id: "kerbcast",
-    name: "Kerbcast",
-    author: "jonpepler",
-    repo: "ksp-gonogo/GonogoKerbcastUplink",
-    clientDir: resolve(modDir, "GonogoKerbcastUplink/client"),
-  },
-];
 
 // The app emits one standalone ESM "external-entry" chunk per shared package
 // (src/uplinks/externals/*.ts). Each re-exports the app's OWN module, and; because

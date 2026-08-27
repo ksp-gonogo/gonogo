@@ -1,23 +1,20 @@
-// There is no flag gating the runtime loader: it is the unconditional path for
-// the first-party three below. `?uplinkLoaderIds=` is not that kind of switch,
-// it is a dev-only override of *which* ids the boot call attempts, used by the
-// Hub-wizard dogfood e2e (tests/playwright/uplink-hub-wizard.spec.ts) to boot
-// with an id deliberately left unloaded.
-
-/** The first-party Uplinks routed through the runtime loader at boot. */
-export const LOADER_UPLINK_IDS = ["scansat", "kos", "kerbcast"] as const;
+// There is no flag gating the runtime loader, and no shipped list of ids for it
+// to load either. What loads comes from the live `system.uplinks` roster, or
+// from the explicit `?uplinkLoaderIds=` override below; with neither, nothing
+// is attempted.
 
 /**
- * Test-only override for the boot-time enabled-id set. `?uplinkLoaderIds=a,b`
- * (comma-separated, an empty string is valid and means "load nothing at
- * boot") replaces `LOADER_UPLINK_IDS` for that page load only, the shipped
- * constant itself is never mutated.
- * `undefined` (param absent, the default) means "use the shipped default".
+ * Explicit override for the boot-time enabled-id set. `?uplinkLoaderIds=a,b`
+ * (comma-separated, an empty string is valid and means "load nothing at boot")
+ * wins over the live roster for that page load only.
  *
- * Exists so the Hub wizard's dogfood e2e can boot with an Uplink deliberately
- * left unloaded, then prove the wizard detects it as an
- * installed-but-unloaded gap and loads it live through the Hub load flow,
- * with no page reload.
+ * `undefined` (param absent, the default) means "let the roster decide", and
+ * with no roster talking that resolves to loading nothing: since the hardcoded
+ * first-party default was deleted, this is the only way to name ids by hand.
+ * Two callers need it: the Hub wizard's dogfood e2e boots with an Uplink
+ * deliberately left unloaded, then proves the wizard detects the
+ * installed-but-unloaded gap and loads it live with no page reload; and dev or
+ * e2e work with no mod talking uses it to boot the client half at all.
  */
 export function loaderBootIdsOverride(): string[] | undefined {
   try {

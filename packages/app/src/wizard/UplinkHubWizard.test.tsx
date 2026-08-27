@@ -346,7 +346,6 @@ describe("UplinkHubWizard: Load action", () => {
     expect(mockLoadUplinkById).toHaveBeenCalledWith(
       "widget-hub",
       expect.objectContaining({
-        enabledIds: ["widget-hub"],
         hostCompat,
         appVersion: VERSION,
         registrySource: expect.objectContaining({

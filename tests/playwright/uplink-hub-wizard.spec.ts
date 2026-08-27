@@ -7,7 +7,7 @@ import { PORTS } from "../../playwright.config";
  * point 5: Task D's "smallest dogfood milestone"). Boots the runtime loader
  * with scansat deliberately left OUT of the boot-time load call
  * (`?uplinkLoaderIds=`: `uplinks/flag.ts`'s `loaderBootIdsOverride`, added
- * by this task; the shipped `LOADER_UPLINK_IDS` constant stays untouched),
+ * by this task),
  * opens the wizard from the persistent Settings entry point (Task C), and
  * drives Results -> Load -> consent -> loaded, asserting the widget's
  * component id lands in the app's live registry with NO navigation event,
