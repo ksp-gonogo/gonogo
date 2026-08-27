@@ -60,4 +60,56 @@
     <ProjectReference Include="..\Sitrep.Contract.TestSupport\Sitrep.Contract.TestSupport.csproj" />
   </ItemGroup>
 
+  <!-- THE INSTALLED-RP-1 COMPATIBILITY GUARD, and why it is gated rather than
+       always on. This Uplink reaches RP-1 entirely by reflection, private fields
+       included, so nothing in the compiler and nothing in the rest of this suite
+       notices a future RP-1 release renaming what the walk reads. Rp0Fixture
+       cannot notice either: it carries RP-1's names in RP-1's namespaces, so a
+       rename on RP-1's side makes it wrong in the same direction it makes
+       production wrong and every test stays green.
+
+       Rp1InstalledCompatibilityTests opens the SHIPPED RP0.dll and checks the
+       manifest against it, which needs an install. There is none in CI and none
+       in a git worktree (local_docs is gitignored, so it lives only in the main
+       checkout). A test that PASSED when it could not find the assembly would
+       report compatibility it never looked at, so the file is not compiled at
+       all in that case and the Warning below fires on every build instead: a
+       build warning is printed at normal verbosity and shows up as a CI
+       annotation, where a passing test's console output does not. Same
+       soft-degrade contract as Gonogo.KSP.Tests' KspManaged gate.
+
+       Rp1ReflectionManifestTests is NOT gated: it holds the manifest to the
+       production walk, needs no install, and fails a run that declared
+       GONOGO_RP1_COMPAT_REQUIRED without the guard compiled. -->
+  <PropertyGroup>
+    <Rp1PluginsDefault>$(MSBuildThisFileDirectory)../../local_docs/syncthing/kspdata/GameData/RP-1/Plugins</Rp1PluginsDefault>
+    <Rp1Plugins Condition="'$(Rp1Plugins)' == '' And '$(GONOGO_RP1_PLUGINS)' != ''">$(GONOGO_RP1_PLUGINS)</Rp1Plugins>
+    <Rp1Plugins Condition="'$(Rp1Plugins)' == '' And '$(KSP_GAMEDATA)' != '' And Exists('$(KSP_GAMEDATA)/RP-1/Plugins/RP0.dll')">$(KSP_GAMEDATA)/RP-1/Plugins</Rp1Plugins>
+    <Rp1Plugins Condition="'$(Rp1Plugins)' == '' And Exists('$(Rp1PluginsDefault)/RP0.dll')">$(Rp1PluginsDefault)</Rp1Plugins>
+    <Rp1PluginsAvailable Condition="'$(Rp1Plugins)' != '' And Exists('$(Rp1Plugins)/RP0.dll')">true</Rp1PluginsAvailable>
+  </PropertyGroup>
+
+  <ItemGroup Condition="'$(Rp1PluginsAvailable)' != 'true'">
+    <Compile Remove="InstalledAssembly.cs" />
+    <Compile Remove="Rp1InstalledCompatibilityTests.cs" />
+  </ItemGroup>
+
+  <!-- The directory is baked in rather than read from the environment at run
+       time, so the binary that ran cannot disagree with the build that decided
+       the check was possible. -->
+  <ItemGroup Condition="'$(Rp1PluginsAvailable)' == 'true'">
+    <AssemblyAttribute Include="System.Reflection.AssemblyMetadataAttribute">
+      <_Parameter1>Rp1Plugins</_Parameter1>
+      <_Parameter2>$(Rp1Plugins)</_Parameter2>
+    </AssemblyAttribute>
+  </ItemGroup>
+
+  <PropertyGroup Condition="'$(Rp1PluginsAvailable)' == 'true'">
+    <DefineConstants>$(DefineConstants);RP1_COMPAT_GUARD</DefineConstants>
+  </PropertyGroup>
+
+  <Target Name="WarnIfRp1PluginsMissing" BeforeTargets="Build" Condition="'$(Rp1PluginsAvailable)' != 'true'">
+    <Warning Text="RP0.dll not found (Rp1Plugins=$(Rp1Plugins)): RP-1 COMPATIBILITY NOT VERIFIED. Rp1InstalledCompatibilityTests is not compiled, so nothing in this run checked that the installed RP-1 still carries the members this Uplink reaches by reflection - a rename on RP-1's side would leave every other test green. Pass /p:Rp1Plugins=&lt;dir containing RP0.dll&gt;, or set GONOGO_RP1_PLUGINS or KSP_GAMEDATA, to compile and run it." />
+  </Target>
+
 </Project>
