@@ -688,4 +688,56 @@ public class StockCurrencyStateMachineTests
         state.SyncShadowReputation(20.0);
         Assert.Equal(20.0, state.ShadowReputation);
     }
+
+    // Three rig runs read the shadow as 2.000 at every sample while the live
+    // balance walked 2 -> 27 -> 52 -> 82, with the interceptor reporting itself
+    // subscribed. These two tests say that reading cannot be produced by a
+    // machine that saw those events, whichever way it classified them, so it is
+    // a measurement of an object that did NOT see them.
+    //
+    // ResearchAndDevelopment.AddScience fires OnScienceChanged unconditionally
+    // (decompile-confirmed against the installed Assembly-CSharp: it mutates
+    // science, fires OnCurrencyModifierQuery, OnCurrencyModified, then
+    // OnScienceChanged), so a subscribed interceptor's handler necessarily ran
+    // three times.
+    [Fact]
+    public void three_away_reason_science_changes_a_window_apart_never_leave_the_shadow_at_its_seed()
+    {
+        var state = Seeded(science: 2.0);
+
+        // The interceptor's own glue order: settle stale defers against the new
+        // total, then classify. No vessel is ever named, so each change defers
+        // and the one after it settles that defer HOME.
+        state.SettleStaleScienceDefers(ut: 100.0, currentLiveScience: 27.0);
+        Assert.Equal(ScienceChangeOutcome.Deferred,
+            state.OnScienceChanged(StockTransactionReason.ScienceTransmission, newTotal: 27.0, baseAmount: 25.0, ut: 100.0).Outcome);
+        Assert.Equal(2.0, state.ShadowScience);
+
+        state.SettleStaleScienceDefers(ut: 200.0, currentLiveScience: 52.0);
+        Assert.Equal(ScienceChangeOutcome.Deferred,
+            state.OnScienceChanged(StockTransactionReason.ScienceTransmission, newTotal: 52.0, baseAmount: 25.0, ut: 200.0).Outcome);
+
+        // The second change is what makes the seed unreachable: its stale-defer
+        // settle catches up to the live balance before anything else happens.
+        Assert.Equal(52.0, state.ShadowScience);
+
+        state.SettleStaleScienceDefers(ut: 300.0, currentLiveScience: 82.0);
+        state.OnScienceChanged(StockTransactionReason.ScienceTransmission, newTotal: 82.0, baseAmount: 30.0, ut: 300.0);
+        Assert.Equal(82.0, state.ShadowScience);
+    }
+
+    // The other branch, for completeness: a reason outside the away set resolves
+    // HOME immediately and writes the shadow on the very first change. Between
+    // this and the test above, every classification an AddScience award can land
+    // in moves the shadow off its seed, so no run of three awards can report it
+    // unmoved.
+    [Fact]
+    public void a_home_reason_science_change_writes_the_shadow_on_the_first_change()
+    {
+        var state = Seeded(science: 2.0);
+
+        Assert.Equal(ScienceChangeOutcome.Home,
+            state.OnScienceChanged(StockTransactionReason.None, newTotal: 27.0, baseAmount: 25.0, ut: 100.0).Outcome);
+        Assert.Equal(27.0, state.ShadowScience);
+    }
 }
