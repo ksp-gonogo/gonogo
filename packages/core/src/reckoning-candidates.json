@@ -54,6 +54,39 @@
     "reason": "An immutable accident report. Every field is a recorded peak or total from a flight that has ended, so there is nothing left to integrate, and a peak speed is not the rate of a peak altitude in any case.",
     "verdict": "coincidence"
   },
+  "CrewRosterEntry.retiresAtUt": {
+    "rates": [
+      "courage",
+      "experience",
+      "experienceLevel",
+      "experienceLevelDelta",
+      "stupidity"
+    ],
+    "reason": "Dimensional degeneracy, the same case as the standing's own end date beside it, with one difference worth stating: this one is not integrated from anything at all. A career overhaul reads a retirement date out of its own settings when the kerbal is hired and pushes it back in discrete steps as they fly, so there is no rate to find, let alone one of these. Courage and stupidity in particular are personality stats that never change.",
+    "verdict": "coincidence"
+  },
+  "CrewRosterEntry.standingEndsAtUt": {
+    "rates": [
+      "courage",
+      "experience",
+      "experienceLevel",
+      "experienceLevelDelta",
+      "stupidity"
+    ],
+    "reason": "Dimensional degeneracy, and worth writing down rather than waving away because of what it lands next to. `divide({s:1},{s:1})` is `{}`, so every dimensionless field on the roster is offered as the derivative of every date on it, and a kerbal's courage is not the rate at which their training finishes. What makes it more than noise is that one of the standings behind this date genuinely IS integrable and this rule still cannot reach it: a training course's ETA is remaining build points over a build rate, both in a career overhaul's own `bp`/`bp/s` vocabulary, which core cannot dimension. The producer already derives the date from them, so there is nothing left for a client to integrate.",
+    "verdict": "coincidence"
+  },
+  "CrewRosterEntry.inactiveUntilUt": {
+    "rates": [
+      "courage",
+      "experience",
+      "experienceLevel",
+      "experienceLevelDelta",
+      "stupidity"
+    ],
+    "reason": "Dimensional degeneracy, the same shape as CareerStrategy.dateActivated: an instant's dimensional rate is the dimensionless quantity, so every ratio and count in the type qualifies. A kerbal's courage is not the rate of the instant their rest ends. The instant itself is also not integrable in any sense: it is set once when KSP puts the kerbal on stand-down and does not move until the next flight sets a new one.",
+    "verdict": "coincidence"
+  },
   "DockAlignment.distance": {
     "rates": ["relativeVelocity.x", "relativeVelocity.y", "relativeVelocity.z"],
     "reason": "A magnitude, `|relativePosition|`, so no single velocity COMPONENT is its rate. The honest derivative is the range rate, which the contract already carries separately.",
@@ -187,6 +220,42 @@
   "Rp1ConstructionEntry.timeLeftSeconds": {
     "rates": ["progressRatio", "workRate"],
     "reason": "Dimensional degeneracy, the same case as the sibling RP-1 payloads above: `divide({s:1},{s:1})` is `{}`, so every dimensionless field is the dimensional rate of every time field in its own type, and this one carries two. Neither is the rate. A fraction complete is a position, and `workRate` is the operator's own throttle, a MULTIPLIER on the rate rather than the rate itself: RP-1 computes progress as `_buildRate * workRate`, so integrating the multiplier would advance a construction at somewhere between nought and one and a half build points a second regardless of what the project actually costs. The real rate is `rate`, which carries RP-1's `bp/s` token and is invisible to this scan. Integrating any of it client-side would also duplicate arithmetic the capture already mirrors from RP-1's own IncrementProgress.",
+    "verdict": "coincidence"
+  },
+  "Rp1CrewEntry.latestRetiresAtUt": {
+    "rates": ["trainingExpiryCount", "trainingFractionComplete"],
+    "reason": "Dimensional degeneracy again, and the pairing is nonsense on its face: a count of lapsing trainings is not the rate of a retirement date. What makes it worth writing down rather than dismissing is that ONE of RP-1's crew dates genuinely is integrable and this rule still cannot reach it: a training course's finish date is remaining build points over a build rate, and both of those live in RP-1's own `bp`/`bp/s` vocabulary, which core cannot dimension. The mod side already derives the date from them, so there is nothing for a client to integrate.",
+    "verdict": "coincidence"
+  },
+  "Rp1CrewEntry.nextTrainingExpiryUt": {
+    "rates": ["trainingExpiryCount", "trainingFractionComplete"],
+    "reason": "Dimensional degeneracy again, and the pairing is nonsense on its face: a count of lapsing trainings is not the rate of a retirement date. What makes it worth writing down rather than dismissing is that ONE of RP-1's crew dates genuinely is integrable and this rule still cannot reach it: a training course's finish date is remaining build points over a build rate, and both of those live in RP-1's own `bp`/`bp/s` vocabulary, which core cannot dimension. The mod side already derives the date from them, so there is nothing for a client to integrate.",
+    "verdict": "coincidence"
+  },
+  "Rp1CrewEntry.retirementExtensionUsedSeconds": {
+    "rates": ["trainingExpiryCount", "trainingFractionComplete"],
+    "reason": "Dimensional degeneracy again, and the pairing is nonsense on its face: a count of lapsing trainings is not the rate of a retirement date. What makes it worth writing down rather than dismissing is that ONE of RP-1's crew dates genuinely is integrable and this rule still cannot reach it: a training course's finish date is remaining build points over a build rate, and both of those live in RP-1's own `bp`/`bp/s` vocabulary, which core cannot dimension. The mod side already derives the date from them, so there is nothing for a client to integrate.",
+    "verdict": "coincidence"
+  },
+  "Rp1CrewEntry.retiresAtUt": {
+    "rates": ["trainingExpiryCount", "trainingFractionComplete"],
+    "reason": "Dimensional degeneracy again, and the pairing is nonsense on its face: a count of lapsing trainings is not the rate of a retirement date. What makes it worth writing down rather than dismissing is that ONE of RP-1's crew dates genuinely is integrable and this rule still cannot reach it: a training course's finish date is remaining build points over a build rate, and both of those live in RP-1's own `bp`/`bp/s` vocabulary, which core cannot dimension. The mod side already derives the date from them, so there is nothing for a client to integrate.",
+    "verdict": "coincidence"
+  },
+  "Rp1CrewEntry.trainingFinishesAtUt": {
+    "rates": ["trainingExpiryCount", "trainingFractionComplete"],
+    "reason": "Dimensional degeneracy again, and the pairing is nonsense on its face: a count of lapsing trainings is not the rate of a retirement date. What makes it worth writing down rather than dismissing is that ONE of RP-1's crew dates genuinely is integrable and this rule still cannot reach it: a training course's finish date is remaining build points over a build rate, and both of those live in RP-1's own `bp`/`bp/s` vocabulary, which core cannot dimension. The mod side already derives the date from them, so there is nothing for a client to integrate.",
+    "verdict": "coincidence"
+  },
+  "Rp1CrewProgram.retirementExtensionCapSeconds": {
+    "rates": [
+      "courses",
+      "coursesStarted",
+      "crewInTraining",
+      "missionTrainingRate",
+      "proficiencyTrainingRate"
+    ],
+    "reason": "Dimensional degeneracy, with a trap in the names. `proficiencyTrainingRate` and `missionTrainingRate` are called rates and are dimensionless, so the algebra offers them as the derivative of the extension cap. They are career MULTIPLIERS on training speed, not per-second anything, and the cap is a constant ceiling RP-1 reads from its own settings: there is nothing here that moves, let alone at one of these.",
     "verdict": "coincidence"
   },
   "Rp1OperationEntry.timeLeftSeconds": {
@@ -394,6 +463,42 @@
     "reason": "Dimensional degeneracy, the same case as the sibling RP-1 payloads above: `divide({s:1},{s:1})` is `{}`, so every dimensionless field is the dimensional rate of every time field in its own type, and this one carries two. Neither is the rate. A fraction complete is a position, and `workRate` is the operator's own throttle, a MULTIPLIER on the rate rather than the rate itself: RP-1 computes progress as `_buildRate * workRate`, so integrating the multiplier would advance a construction at somewhere between nought and one and a half build points a second regardless of what the project actually costs. The real rate is `rate`, which carries RP-1's `bp/s` token and is invisible to this scan. Integrating any of it client-side would also duplicate arithmetic the capture already mirrors from RP-1's own IncrementProgress.",
     "verdict": "coincidence"
   },
+  "rp1.crew.latestRetiresAtUt": {
+    "rates": ["trainingExpiryCount", "trainingFractionComplete"],
+    "reason": "Dimensional degeneracy again, and the pairing is nonsense on its face: a count of lapsing trainings is not the rate of a retirement date. What makes it worth writing down rather than dismissing is that ONE of RP-1's crew dates genuinely is integrable and this rule still cannot reach it: a training course's finish date is remaining build points over a build rate, and both of those live in RP-1's own `bp`/`bp/s` vocabulary, which core cannot dimension. The mod side already derives the date from them, so there is nothing for a client to integrate.",
+    "verdict": "coincidence"
+  },
+  "rp1.crew.nextTrainingExpiryUt": {
+    "rates": ["trainingExpiryCount", "trainingFractionComplete"],
+    "reason": "Dimensional degeneracy again, and the pairing is nonsense on its face: a count of lapsing trainings is not the rate of a retirement date. What makes it worth writing down rather than dismissing is that ONE of RP-1's crew dates genuinely is integrable and this rule still cannot reach it: a training course's finish date is remaining build points over a build rate, and both of those live in RP-1's own `bp`/`bp/s` vocabulary, which core cannot dimension. The mod side already derives the date from them, so there is nothing for a client to integrate.",
+    "verdict": "coincidence"
+  },
+  "rp1.crew.retirementExtensionUsedSeconds": {
+    "rates": ["trainingExpiryCount", "trainingFractionComplete"],
+    "reason": "Dimensional degeneracy again, and the pairing is nonsense on its face: a count of lapsing trainings is not the rate of a retirement date. What makes it worth writing down rather than dismissing is that ONE of RP-1's crew dates genuinely is integrable and this rule still cannot reach it: a training course's finish date is remaining build points over a build rate, and both of those live in RP-1's own `bp`/`bp/s` vocabulary, which core cannot dimension. The mod side already derives the date from them, so there is nothing for a client to integrate.",
+    "verdict": "coincidence"
+  },
+  "rp1.crew.retiresAtUt": {
+    "rates": ["trainingExpiryCount", "trainingFractionComplete"],
+    "reason": "Dimensional degeneracy again, and the pairing is nonsense on its face: a count of lapsing trainings is not the rate of a retirement date. What makes it worth writing down rather than dismissing is that ONE of RP-1's crew dates genuinely is integrable and this rule still cannot reach it: a training course's finish date is remaining build points over a build rate, and both of those live in RP-1's own `bp`/`bp/s` vocabulary, which core cannot dimension. The mod side already derives the date from them, so there is nothing for a client to integrate.",
+    "verdict": "coincidence"
+  },
+  "rp1.crew.trainingFinishesAtUt": {
+    "rates": ["trainingExpiryCount", "trainingFractionComplete"],
+    "reason": "Dimensional degeneracy again, and the pairing is nonsense on its face: a count of lapsing trainings is not the rate of a retirement date. What makes it worth writing down rather than dismissing is that ONE of RP-1's crew dates genuinely is integrable and this rule still cannot reach it: a training course's finish date is remaining build points over a build rate, and both of those live in RP-1's own `bp`/`bp/s` vocabulary, which core cannot dimension. The mod side already derives the date from them, so there is nothing for a client to integrate.",
+    "verdict": "coincidence"
+  },
+  "rp1.crewProgram.retirementExtensionCapSeconds": {
+    "rates": [
+      "courses",
+      "coursesStarted",
+      "crewInTraining",
+      "missionTrainingRate",
+      "proficiencyTrainingRate"
+    ],
+    "reason": "Dimensional degeneracy, with a trap in the names. `proficiencyTrainingRate` and `missionTrainingRate` are called rates and are dimensionless, so the algebra offers them as the derivative of the extension cap. They are career MULTIPLIERS on training speed, not per-second anything, and the cap is a constant ceiling RP-1 reads from its own settings: there is nothing here that moves, let alone at one of these.",
+    "verdict": "coincidence"
+  },
   "rp1.operations.timeLeftSeconds": {
     "rates": ["progressRatio"],
     "reason": "Dimensional degeneracy, the same case as CareerStrategy.dateActivated: `divide({s:1},{s:1})` is `{}`, so EVERY dimensionless field is the dimensional rate of EVERY time field in its own type. A fraction complete is not the rate of an ETA, and neither is a research throttle. The real rate on each of these payloads is `rate`, which carries RP-1's own `bp/s` token and is therefore invisible to this scan (see the opaque-token list). Integrating it would be wrong anyway: the ETA is already derived from the rate server-side, efficiency-ramped and, for a blocking operation, sequenced against its peers, so a client re-integrating it would be second-guessing arithmetic that mirrors RP-1's own.",
@@ -443,6 +548,39 @@
     "rates": ["scienceRate"],
     "reason": "`scienceRate` is the rate of `storedScience`. Conditional: a non-stock provider produces no science itself, leaves `scienceRate` null and carries its own rate in `Extensions`, so a model must gate on the value model rather than assume the field is populated.",
     "verdict": "real-but-unmodelled"
+  },
+  "spaceCenter.crewRoster.retiresAtUt": {
+    "rates": [
+      "courage",
+      "experience",
+      "experienceLevel",
+      "experienceLevelDelta",
+      "stupidity"
+    ],
+    "reason": "Dimensional degeneracy, the same case as the standing's own end date beside it, with one difference worth stating: this one is not integrated from anything at all. A career overhaul reads a retirement date out of its own settings when the kerbal is hired and pushes it back in discrete steps as they fly, so there is no rate to find, let alone one of these. Courage and stupidity in particular are personality stats that never change.",
+    "verdict": "coincidence"
+  },
+  "spaceCenter.crewRoster.standingEndsAtUt": {
+    "rates": [
+      "courage",
+      "experience",
+      "experienceLevel",
+      "experienceLevelDelta",
+      "stupidity"
+    ],
+    "reason": "Dimensional degeneracy, and worth writing down rather than waving away because of what it lands next to. `divide({s:1},{s:1})` is `{}`, so every dimensionless field on the roster is offered as the derivative of every date on it, and a kerbal's courage is not the rate at which their training finishes. What makes it more than noise is that one of the standings behind this date genuinely IS integrable and this rule still cannot reach it: a training course's ETA is remaining build points over a build rate, both in a career overhaul's own `bp`/`bp/s` vocabulary, which core cannot dimension. The producer already derives the date from them, so there is nothing left for a client to integrate.",
+    "verdict": "coincidence"
+  },
+  "spaceCenter.crewRoster.inactiveUntilUt": {
+    "rates": [
+      "courage",
+      "experience",
+      "experienceLevel",
+      "experienceLevelDelta",
+      "stupidity"
+    ],
+    "reason": "Dimensional degeneracy, the same shape as CareerStrategy.dateActivated: an instant's dimensional rate is the dimensionless quantity, so every ratio and count in the type qualifies. A kerbal's courage is not the rate of the instant their rest ends. The instant itself is also not integrable in any sense: it is set once when KSP puts the kerbal on stand-down and does not move until the next flight sets a new one.",
+    "verdict": "coincidence"
   },
   "vessel.dock.distance": {
     "rates": ["relativeVelocity.x", "relativeVelocity.y", "relativeVelocity.z"],

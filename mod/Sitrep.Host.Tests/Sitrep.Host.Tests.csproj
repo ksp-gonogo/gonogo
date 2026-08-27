@@ -16,6 +16,7 @@
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="../Sitrep.Host/Sitrep.Host.csproj" />
+    <ProjectReference Include="../Sitrep.Contract.TestSupport/Sitrep.Contract.TestSupport.csproj" />
   </ItemGroup>
   <!-- The two electable comms backends' OCCLUSION declarations. Each is a
        deliberately KSP-free, reflection-free file carved out of its backend

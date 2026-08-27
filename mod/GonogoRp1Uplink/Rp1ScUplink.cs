@@ -8,7 +8,9 @@ namespace GonogoRp1Uplink
     /// GonogoRp1Uplink: RP-1's space centre on the wire. The build queue, the
     /// launch complexes and their pads, the rollout and reconditioning
     /// operations, the construction queue, the research queue, the payroll,
-    /// Confidence, and the Programs the career's funding is committed against.
+    /// Confidence, the Programs the career's funding is committed against, and
+    /// the crew schedule: retirement dates, training courses and the training an
+    /// operator is about to lose.
     ///
     /// <para><b>A sibling of GonogoAvionicsUplink, never merged into it.</b> Both
     /// read RP-1 by reflection, and one probe and one health row would be
@@ -49,6 +51,8 @@ namespace GonogoRp1Uplink
         public const string ProgramsTopic = "rp1.programs";
         public const string ProgramSlotsTopic = "rp1.programSlots";
         public const string ProgramFundingCurvesTopic = "rp1.programFundingCurves";
+        public const string CrewTopic = "rp1.crew";
+        public const string CrewProgramTopic = "rp1.crewProgram";
 
         /// <summary>
         /// Rows published per second across every rp1.* channel. One capture per
@@ -75,6 +79,28 @@ namespace GonogoRp1Uplink
         /// subscription gate is for.
         /// </summary>
         private readonly Rp1ProgramsReflection _programs = new Rp1ProgramsReflection();
+
+        /// <summary>
+        /// RP-1's crew bookkeeping, on its own reader for the same reason Programs
+        /// are: it answers an unrelated question off an unrelated object, at the
+        /// cadence an operator visits the Astronaut Complex rather than the cadence
+        /// a launch complex is watched.
+        ///
+        /// <para>It is ALSO the reader behind the crew-standing backend below, and
+        /// that half is not sampled at all: it is asked one name at a time by
+        /// core's own space-centre capture. That is deliberate, and the whole
+        /// reason the reader is shared rather than duplicated: the retiree set both
+        /// halves consult must be the same set.</para>
+        /// </summary>
+        private readonly Rp1CrewReflection _crew = new Rp1CrewReflection();
+
+        /// <summary>
+        /// RP-1's answer to whether a kerbal off the flight roster is dead, offered
+        /// to the exclusive <c>"crewStanding"</c> capability. Its own provider, like
+        /// the economy backend, because its consumer is core's own crew roster
+        /// rather than any channel of ours.
+        /// </summary>
+        private readonly Rp1CrewStandingBackend _crewStanding;
 
         /// <summary>
         /// RP-1's answer to what a career's money is doing, offered to the
@@ -121,6 +147,9 @@ namespace GonogoRp1Uplink
         /// <summary>The same, for the simulation provider. Separate field because the two register independently.</summary>
         private string? _simulationRegistrationError;
 
+        /// <summary>Set when the crew-standing provider registration threw; see <see cref="_economyRegistrationError"/>.</summary>
+        private string? _crewStandingRegistrationError;
+
         private IChannelPublisher? _centres;
         private IChannelPublisher? _complexes;
         private IChannelPublisher? _buildQueue;
@@ -134,6 +163,8 @@ namespace GonogoRp1Uplink
         private IChannelPublisher? _programList;
         private IChannelPublisher? _programSlots;
         private IChannelPublisher? _programCurves;
+        private IChannelPublisher? _crewList;
+        private IChannelPublisher? _crewProgram;
 
         /// <summary>
         /// Whether RP-1 is managing this save, asked fresh rather than remembered
@@ -169,6 +200,7 @@ namespace GonogoRp1Uplink
         public Rp1ScUplink()
         {
             Manifest = BuildManifest(_build.IsAvailable);
+            _crewStanding = new Rp1CrewStandingBackend(_crew);
         }
 
         private static UplinkManifest BuildManifest(bool buildModelResolved) => new UplinkManifest
@@ -204,6 +236,13 @@ namespace GonogoRp1Uplink
                 Ground(ProgramsTopic, absenceIsData: true),
                 Ground(ProgramSlotsTopic, absenceIsData: true),
                 Ground(ProgramFundingCurvesTopic, absenceIsData: true),
+                // Both crew channels publish NOTHING rather than an empty list or
+                // a bag of falses when RP-1's CrewHandler is not live. An empty
+                // crew list would say "RP-1 is scheduling nobody" and a false
+                // retirementEnabled would say retirement is switched OFF, and both
+                // are claims about a career on a save RP-1 is not managing at all.
+                Ground(CrewTopic, absenceIsData: true),
+                Ground(CrewProgramTopic, absenceIsData: true),
             },
             // Delayed: false, the same disposition every ground-side career write
             // takes and for the same reason core's own nine give: light-time is
@@ -345,6 +384,28 @@ namespace GonogoRp1Uplink
                 _simulationRegistrationError = ex.Message;
             }
 
+            // The crew standing: whether a kerbal off the flight roster is dead or
+            // retired. Registered separately from the economy provider and from the
+            // channels for the same reason they are separate from each other, and
+            // with a sharper edge here: this correction is the difference between
+            // telling an operator their astronaut retired and telling them their
+            // astronaut was killed, and it must not be lost because a build-queue
+            // reader or an economy provider failed.
+            try
+            {
+                host.Kernel.RegisterProvider(new ProviderRegistration
+                {
+                    Capability = CrewStandingCapability.Id,
+                    Id = "rp1",
+                    Priority = 10.0,
+                    Factory = _ => _crewStanding,
+                });
+            }
+            catch (Exception ex)
+            {
+                _crewStandingRegistrationError = ex.Message;
+            }
+
             _centres = host.Publisher(CentresTopic);
             _complexes = host.Publisher(ComplexesTopic);
             _buildQueue = host.Publisher(BuildQueueTopic);
@@ -358,6 +419,8 @@ namespace GonogoRp1Uplink
             _programList = host.Publisher(ProgramsTopic);
             _programSlots = host.Publisher(ProgramSlotsTopic);
             _programCurves = host.Publisher(ProgramFundingCurvesTopic);
+            _crewList = host.Publisher(CrewTopic);
+            _crewProgram = host.Publisher(CrewProgramTopic);
 
             host.AddSampledSource(
                 CaptureOnMain,
@@ -383,6 +446,23 @@ namespace GonogoRp1Uplink
                 ProgramsTopic,
                 ProgramSlotsTopic,
                 ProgramFundingCurvesTopic);
+
+            // Gated, and safe to gate, on the same test the Programs capture
+            // passes: this capture's ENTIRE effect is its return value. It stashes
+            // nothing and elects nothing.
+            //
+            // The crew-standing correction is NOT fed by it, which is the point
+            // worth being explicit about. The backend registered above reads RP-1's
+            // retiree set itself, one name at a time, from core's space-centre
+            // capture. If it read state this capture stashed, a dashboard watching
+            // the roster but no rp1.* topic would skip the capture and go on
+            // reporting retirees as fatalities: the gated-capture starvation shape
+            // three channels have already shipped with.
+            host.AddSampledSource(
+                CaptureCrewOnMain,
+                HandleCrewOnCourier,
+                CrewTopic,
+                CrewProgramTopic);
         }
 
         /// <summary>
@@ -456,6 +536,25 @@ namespace GonogoRp1Uplink
         }
 
         /// <summary>
+        /// MAIN-THREAD capture of RP-1's crew schedule. On the main thread because
+        /// it walks live scenario-module state; see
+        /// <see cref="Rp1CrewReflection"/>'s header for the audit of every member
+        /// it reads and the four it refuses to call.
+        /// </summary>
+        internal object? CaptureCrewOnMain(KspSnapshot? snapshot) =>
+            _crew.IsAvailable ? _crew.Read(snapshot?.Ut ?? 0.0) : null;
+
+        /// <summary>COURIER-THREAD handle: map to wire dicts and publish. No game API.</summary>
+        internal void HandleCrewOnCourier(object? captured)
+        {
+            var raw = captured as Rp1CrewRaw;
+            var rows = Rp1CrewCapture.BuildCrew(raw);
+            Rp1RowBudget.Record(rows?.Count ?? 0, raw?.Ut ?? 0.0);
+            _crewList?.Publish(rows, raw?.Ut ?? 0.0);
+            _crewProgram?.Publish(Rp1CrewCapture.BuildProgram(raw), raw?.Ut ?? 0.0);
+        }
+
+        /// <summary>
         /// Health, and WHICH RP-1. The version caveat at the top of
         /// <see cref="Rp1ScReflection"/> is why these facts are load-bearing
         /// rather than decorative: RP-1 ships roughly monthly, this Uplink is
@@ -470,6 +569,7 @@ namespace GonogoRp1Uplink
                 new UplinkHealthFact("SpaceCenterManagement", _rp1.IsAvailable ? "resolved" : "type not found"),
                 new UplinkHealthFact("Confidence", _rp1.ConfidenceTypeResolved ? "present" : "absent"),
                 new UplinkHealthFact("ProgramHandler", _programs.IsAvailable ? "resolved" : "type not found"),
+                new UplinkHealthFact("CrewHandler", _crew.IsAvailable ? "resolved" : "type not found"),
                 new UplinkHealthFact("save mode", EnabledForSave ? "enabled" : "not enabled for this save"),
                 new UplinkHealthFact("read against", "RP-1 v4.6.0.0"),
                 new UplinkHealthFact(
@@ -507,6 +607,14 @@ namespace GonogoRp1Uplink
                         false => "no",
                         _ => "cannot say",
                     }),
+                // Named on the roster because a failure here is invisible in the
+                // data: the roster keeps publishing, with stock's answer, and
+                // stock's answer about an RP-1 retiree is "killed".
+                new UplinkHealthFact(
+                    "crew-standing provider",
+                    _crewStandingRegistrationError != null
+                        ? "registration failed: " + _crewStandingRegistrationError
+                        : _crewStanding.IsAvailable ? "registered" : "CrewHandler type not found"),
             };
 
             if (!_rp1.IsAvailable)

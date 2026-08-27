@@ -395,6 +395,17 @@ export interface CrashFlightStats
 	groundDistance: Value<"m">;
 	liftOff: boolean;
 }
+export enum CrewStanding {
+	Unknown = 0,
+	Applicant = 1,
+	Available = 2,
+	Assigned = 3,
+	Training = 4,
+	Resting = 5,
+	Retired = 6,
+	Dead = 7,
+	Missing = 8
+}
 export interface ScienceCreditEvent
 {
 	vesselId: string;
@@ -1056,8 +1067,14 @@ export interface CrewRosterEntry
 	experienceLevel?: Value<"count">;
 	available?: boolean;
 	unavailableReason?: string;
+	standing?: CrewStanding;
+	standingSource?: string;
+	standingEndsAtUt?: Value<"ut">;
+	retiresAtUt?: Value<"ut">;
 	situation?: string;
 	situationOrdinal?: KspRosterStatus;
+	inactive?: boolean;
+	inactiveUntilUt?: Value<"ut">;
 	isApplicant?: boolean;
 	courage?: Value<"ratio">;
 	stupidity?: Value<"ratio">;

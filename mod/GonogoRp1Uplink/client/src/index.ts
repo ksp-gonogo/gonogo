@@ -7,6 +7,8 @@ import "./uplink";
 import "./units";
 import "./topics";
 import "./settings/rp1SimulationSettings";
+import "./CrewSchedule";
+import "./CrewSchedule/programme";
 import "./KscConstruction";
 import "./KscVehicles";
 import "./LaunchComplexStatus";
@@ -15,6 +17,8 @@ import "./ProgramStatus";
 import "./ResearchQueue";
 import "./SpaceCentrePersonnel";
 
+export { CrewSchedule } from "./CrewSchedule";
+export { CrewProgramme } from "./CrewSchedule/programme";
 export { KscConstruction } from "./KscConstruction";
 export { KscVehicles, RP1_BUILD_REPEAT_COMMAND } from "./KscVehicles";
 export { LaunchComplexStatus } from "./LaunchComplexStatus";
@@ -30,6 +34,8 @@ export {
   RP1_COMPLEXES_TOPIC,
   RP1_CONFIDENCE_TOPIC,
   RP1_CONSTRUCTIONS_TOPIC,
+  RP1_CREW_PROGRAM_TOPIC,
+  RP1_CREW_TOPIC,
   RP1_OPERATIONS_TOPIC,
   RP1_PADS_TOPIC,
   RP1_PERSONNEL_TOPIC,

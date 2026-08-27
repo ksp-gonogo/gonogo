@@ -52,6 +52,20 @@ export {
   controlChannelIds,
   getControlChannel,
 } from "./control-channels";
+// The contract's own crew standing, and the reason it is not a KSP mirror: see
+// crew-standing.ts. Published because a crew surface in an Uplink reads the same
+// roster and must not report a retiree as a fatality either.
+export {
+  CREW_STANDING_NAMES,
+  CREW_STANDING_ORDER,
+  type CrewStandingName,
+  canBeSacked,
+  crewStandingFromRosterStatus,
+  crewStandingLabel,
+  crewUnavailableSentence,
+  isFatality,
+  isOffTheBooks,
+} from "./crew-standing";
 export {
   DEFAULT_SITREP_CARRIED_TOPICS,
   DYNAMIC_CARRIED_TOPIC_PREFIXES,

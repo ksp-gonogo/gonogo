@@ -1,6 +1,7 @@
 using System;
 using System.IO;
 using Sitrep.Host;
+using Sitrep.Host.Crew;
 using Sitrep.Host.Economy;
 using Sitrep.Host.Maneuver;
 using Sitrep.Host.ActionGroups;
@@ -212,6 +213,14 @@ namespace Gonogo.KSP
                 // own live scenario modules.
                 _host.SetEconomyBackendSource(
                     () => EconomyElection.Elected(engine.Kernel));
+
+                // Same late-bound install for the crew standing: whatever crew
+                // model won the election decides whether a kerbal off the flight
+                // roster is dead or retired, and the capture stamps that answer
+                // onto the roster entries rather than deriving it from KSP's
+                // roster status, which a career overhaul overwrites.
+                _host.SetCrewStandingBackendSource(
+                    () => CrewStandingElection.Elected(engine.Kernel));
 
                 // The planning half of the same physics. The election above answers
                 // where a craft goes from where the game says it IS; this answers

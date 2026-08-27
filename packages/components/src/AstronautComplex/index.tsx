@@ -1,5 +1,6 @@
 import type { ActionDefinition, ComponentProps } from "@ksp-gonogo/core";
 import {
+  AugmentSlot,
   defineTopicManifest,
   registerComponent,
   useActionInput,
@@ -10,8 +11,11 @@ import {
   useCommand,
 } from "@ksp-gonogo/sitrep-client";
 import {
-  KSP_ROSTER_STATUS_NAMES,
-  KspRosterStatus,
+  CREW_STANDING_ORDER,
+  CrewStanding,
+  canBeSacked,
+  crewStandingFromRosterStatus,
+  crewStandingLabel,
   value,
 } from "@ksp-gonogo/sitrep-sdk";
 import {
@@ -51,6 +55,43 @@ const topics = defineTopicManifest({
 });
 
 type AstronautComplexConfig = Record<string, never>;
+
+/**
+ * The `astronaut-complex.crew` slot contract: a per-kerbal cell rendered under
+ * the name, in both the Applicants and the Active lists.
+ *
+ * <p>Its reason for existing is what stock does NOT have. Under stock a kerbal's
+ * whole state is their standing and their stats, both of which this widget
+ * already renders. Under a career overhaul they also have a retirement date, a
+ * training course with an ETA, and training about to lapse, and none of that is
+ * core's to model or to name. So the host renders the roster and passes down
+ * the identity; whichever Uplink manages the career renders the schedule.</p>
+ *
+ * <p>The identity is the NAME, because that is the key every career-overhaul
+ * mod on record uses for its own crew bookkeeping and it is the join key on
+ * `spaceCenter.crewRoster`. The standing rides along so an augment can render
+ * differently for a retiree without joining back to the roster itself.</p>
+ */
+export interface AstronautComplexCrewContext {
+  /** `ProtoCrewMember.name`: the join key to the augment's own crew channel. */
+  kerbalName: string;
+  /** `CrewStanding`, or null when the producer sent none. */
+  standing: number | null;
+  /** Whether this row is a hireable candidate rather than owned crew. */
+  isApplicant: boolean;
+}
+
+// Declaration-merge the slot id onto its props type in core's `SlotRegistry`.
+// Co-located here (not a shared central file) so parallel slot work on other
+// widgets can't collide. Makes `registerAugment({ augments:
+// "astronaut-complex.crew" })` and `<AugmentSlot name="astronaut-complex.crew"
+// props={...} />` type-check against `AstronautComplexCrewContext` rather than
+// the loose fallback.
+declare module "@ksp-gonogo/core" {
+  interface SlotRegistry {
+    "astronaut-complex.crew": AstronautComplexCrewContext;
+  }
+}
 
 /**
  * KSP's `int.MaxValue`, the literal sentinel `GameVariables.GetActiveCrewLimit`
@@ -161,6 +202,7 @@ function applicantStats(a: Applicant): KerbalStatFields {
     // never feeds the severity derivation; kept as the applicant pool's
     // implicit standing rather than left undefined.
     situation: "Applicant",
+    standing: CrewStanding.Applicant,
     // An applicant is not in the roster, so it has no RosterStatus. Null is
     // the fact, not a missing read.
     situationOrdinal: null,
@@ -242,10 +284,7 @@ function AstronautComplexComponent(
   usePanelDelay(fireCmd);
 
   const availableCrew = useMemo(
-    () =>
-      crewRoster.filter(
-        (c) => c.situationOrdinal === KspRosterStatus.Available,
-      ),
+    () => crewRoster.filter((c) => c.standing === CrewStanding.Available),
     [crewRoster],
   );
   const [highlightedFireIndex, setHighlightedFireIndex] = useState(0);
@@ -446,6 +485,18 @@ function ApplicantsPanel({
               showTraits
               showInfo
             />
+            {/* An applicant has a schedule too under a career overhaul: RP-1
+                gives an applicant a retirement date and retires them out of the
+                pool. Same slot as the Active rows, flagged so an augment can
+                tell which list it is in. */}
+            <AugmentSlot
+              name="astronaut-complex.crew"
+              props={{
+                kerbalName: a.name,
+                standing: CrewStanding.Applicant,
+                isApplicant: true,
+              }}
+            />
           </Who>
           <HireButton
             applicantName={a.name}
@@ -467,15 +518,21 @@ function ApplicantsPanel({
 }
 
 /**
- * The Active tab: itself tabbed, one sub-tab per distinct `situation` string
- * actually present on the hired-crew roster (Available/Assigned/Dead/Missing,
- * and any mod value for free, e.g. RO/RP-1 "Retired"). A situation with zero
- * members simply has no bucket, so it never produces an empty tab.
+ * The Active tab: itself tabbed, one sub-tab per `CrewStanding` actually present
+ * on the hired-crew roster. A standing with zero members has no bucket, so it
+ * never produces an empty tab, and a standing added to the contract gets a tab
+ * with no edit here.
  *
- * Composition: ONE underlying `crew` array, sliced per situation for each
+ * <p>It groups by the STANDING rather than by KSP's roster status, which is the
+ * fix for the defect this widget shipped with: RP-1 retires a kerbal by writing
+ * stock's `Dead` into the roster status, so every RP-1 retiree sat in the Dead
+ * tab wearing a red fatality badge. Retired is its own tab now because it is its
+ * own fact.</p>
+ *
+ * Composition: ONE underlying `crew` array, sliced per standing for each
  * tab's content, rather than a `FilterBar` toggle group layered over a single
  * flat list. The shared `Tabs` primitive already IS the mutually-exclusive
- * filter switch here, so the situations read as tabs, matching the top-level
+ * filter switch here, so the standings read as tabs, matching the top-level
  * Applicants|Active split one level up rather than introducing a second
  * filtering idiom for the same shape of decision.
  */
@@ -501,53 +558,71 @@ function ActivePanel({
     return <Empty>No active crew</Empty>;
   }
 
-  const groups = groupBySituation(active);
-  const situations = orderSituations(groups.keys());
-  const tabs: TabDescriptor[] = situations.map((situation) => {
-    const members = groups.get(situation) ?? [];
-    const keys = crewRowKeys(members);
-    // KerbalRoster.SackAvailable only ever accepts an Available crew member
-    // (see FireCrew's mod-side doc comment), so the Fire control renders on
-    // this situation's rows alone; Assigned/Dead/Missing never get one.
-    // Read off the rows rather than the tab LABEL: the label is a display
-    // string, and this decides whether a Fire control appears at all.
-    const fireable =
-      members.length > 0 &&
-      members.every((m) => m.situationOrdinal === KspRosterStatus.Available);
-    return {
-      // The tab set is built dynamically from whatever situations are
-      // present, so each id is the raw situation string itself, never the
-      // array-index fallback: an index can collide across re-renders once
-      // the set of present situations changes, a stable id can't.
-      id: situation,
-      label: `${situation} (${members.length})`,
-      content: (
-        <List>
-          {members.map((m, i) => (
-            <Applicant__Row
-              key={keys[i]}
-              aria-current={
-                fireable && i === highlightedFireIndex % members.length
-                  ? "true"
-                  : undefined
-              }
-            >
-              <Who>
-                <KerbalStats
-                  kerbal={crewRowStats(m)}
-                  showRank
-                  showTraits
-                  showExperienceProgress
-                  showInfo
-                />
-              </Who>
-              {fireable && <FireButton kerbalName={m.name} fireCmd={fireCmd} />}
-            </Applicant__Row>
-          ))}
-        </List>
-      ),
-    };
-  });
+  const groups = groupByStanding(active);
+  const tabs: TabDescriptor[] = orderStandings(groups.keys()).map(
+    (standing) => {
+      const members = groups.get(standing) ?? [];
+      const keys = crewRowKeys(members);
+      // Whether the roster will accept a sacking, which is NOT whether the
+      // kerbal can fly. This used to read `standing === Available`, and the two
+      // questions only looked like one while a stand-down and a training course
+      // were invisible to the standing: once they became standings, that
+      // expression quietly took the Fire control away from every kerbal resting
+      // after a flight, which is a normal daily state and a perfectly legitimate
+      // thing to fire someone out of. The rule lives in the SDK so the widget
+      // does not carry a second copy of it.
+      const fireable = canBeSacked(standing);
+      const label = crewStandingLabel(standing) ?? members[0]?.situation ?? "";
+      return {
+        // The tab set is built from whatever standings are present, so each id is
+        // the standing's own name, never the array-index fallback: an index can
+        // collide across re-renders once the set of present standings changes, a
+        // stable id can't. Named rather than numbered so a tab id stays legible
+        // in a test failure and in the DOM.
+        id: `standing-${standing}`,
+        label: `${label} (${members.length})`,
+        content: (
+          <List>
+            {members.map((m, i) => (
+              <Applicant__Row
+                key={keys[i]}
+                aria-current={
+                  fireable && i === highlightedFireIndex % members.length
+                    ? "true"
+                    : undefined
+                }
+              >
+                <Who>
+                  <KerbalStats
+                    kerbal={crewRowStats(m)}
+                    showRank
+                    showTraits
+                    showExperienceProgress
+                    showInfo
+                  />
+                  {/* This kerbal's schedule, contributed by whichever Uplink
+                    manages their career: a retirement date, a training ETA,
+                    the mission training about to lapse. Nothing renders under
+                    stock, which has none of those concepts. */}
+                  <AugmentSlot
+                    name="astronaut-complex.crew"
+                    props={{
+                      kerbalName: m.name,
+                      standing: m.standing,
+                      isApplicant: false,
+                    }}
+                  />
+                </Who>
+                {fireable && (
+                  <FireButton kerbalName={m.name} fireCmd={fireCmd} />
+                )}
+              </Applicant__Row>
+            ))}
+          </List>
+        ),
+      };
+    },
+  );
 
   return <Tabs tabs={tabs} />;
 }
@@ -643,15 +718,32 @@ interface CrewRosterRow {
   name: string;
   trait: string;
   experienceLevel: number;
-  /** Display label only: KSP's own word for the standing, or `Applicant`.
-   *  Also the Active tab's grouping key, which is legitimate - a tab per
-   *  distinct label is exactly what an operator wants to read. */
+  /** Display label only, and only for a row whose {@link standing} this build
+   *  cannot name; every tab label comes from the standing instead. */
   situation: string;
-  /** KSP's `RosterStatus` ordinal, the field every DECISION here reads.
-   *  `null` for an applicant (no roster standing) and also for a producer that
-   *  did not send it, which is why the applicant test below reads
-   *  {@link isApplicant} instead of this. */
+  /** `CrewStanding`: the field every DECISION here reads, and the Active tab's
+   *  grouping key. `null` for a producer that sent none, which is why the
+   *  applicant test below reads {@link isApplicant} instead of this. */
+  standing: number | null;
+  /** Which provider decided {@link standing} (`"stock"`, `"rp1"`, …); `null`
+   *  when the capture named none. Shown on a corrected row, so an operator can
+   *  see which mod is claiming their astronaut retired rather than died. */
+  standingSource: string | null;
+  /** KSP's own `RosterStatus` ordinal. Carried, never branched on: under RP-1 it
+   *  reads `Dead` for a living retiree. */
   situationOrdinal: number | null;
+  /** Standing down for rest (`ProtoCrewMember.inactive`): KSP's own field,
+   *  carried like {@link situationOrdinal} and branched on no more than it is.
+   *  It is an INPUT to the producer's derivation, which turns it into a
+   *  `Resting` {@link standing} with {@link available} false. */
+  inactive: boolean;
+  inactiveUntilUt: number | null;
+  /** When {@link standing} lapses, as universal time: a course's ETA, a rest
+   *  period's end. Absent for a standing with no scheduled end. */
+  standingEndsAtUt: number | null;
+  /** When this kerbal is scheduled to retire, as universal time. Absent under
+   *  any backend that does not schedule retirements, stock included. */
+  retiresAtUt: number | null;
   /** Whether the row is a hireable candidate rather than owned crew. */
   isApplicant: boolean;
   available: boolean;
@@ -677,8 +769,10 @@ function crewRowStats(c: CrewRosterRow): KerbalStatFields {
     careerFlights: 0,
     available: c.available,
     unavailableReason: c.unavailableReason,
-    situation: c.situation,
+    situation: standingLabelOf(c),
+    standing: c.standing,
     situationOrdinal: c.situationOrdinal,
+    standingEndsAtUt: c.standingEndsAtUt,
     currentVesselName: "",
     courage: c.courage,
     stupidity: c.stupidity,
@@ -688,45 +782,62 @@ function crewRowStats(c: CrewRosterRow): KerbalStatFields {
   };
 }
 
-// The tab order, DERIVED from KSP's own RosterStatus rather than transcribed:
-// a member appended in a future KSP reaches this list with the generated enum.
-// Written out, it was a list of four that would have kept its four. Any label
-// not in it (a mod's RP-1 "Retired", or our own "Applicant") is a situation this
-// build has never heard of, so it sorts after the known ones, alphabetically,
-// rather than being dropped.
-const KNOWN_SITUATION_ORDER: readonly string[] = [
-  ...KSP_ROSTER_STATUS_NAMES.entries(),
-]
-  .sort(([a], [b]) => a - b)
-  .map(([, name]) => name);
-
-function orderSituations(situations: Iterable<string>): string[] {
-  const present = new Set(situations);
-  const known = KNOWN_SITUATION_ORDER.filter((s) => present.has(s));
-  const unknown = [...present]
-    .filter((s) => !KNOWN_SITUATION_ORDER.includes(s))
-    .sort();
+/**
+ * The tab order, taken from `CREW_STANDING_ORDER` in the SDK, which derives it
+ * from the contract enum's own numbering. A standing added to the contract takes
+ * a place here with no edit.
+ *
+ * The predecessor derived the same list from KSP's `RosterStatus` and carried a
+ * comment promising a mod's "Retired" a tab for free. It never got one: RP-1
+ * appends no roster status, it writes stock's `Dead`, so the mechanism was
+ * sound and the premise was false. Ordering off the STANDING is what actually
+ * delivers what that comment claimed.
+ */
+function orderStandings(present: Iterable<number>): number[] {
+  const seen = new Set(present);
+  const known = CREW_STANDING_ORDER.filter((standing) => seen.has(standing));
+  // A standing this build cannot name is still a bucket of real kerbals, so it
+  // sorts after the known ones rather than being dropped.
+  const unknown = [...seen]
+    .filter((standing) => !CREW_STANDING_ORDER.includes(standing))
+    .sort((a, b) => a - b);
   return [...known, ...unknown];
 }
 
-/** Groups active crew by their raw `situation` string, one bucket per
- *  distinct value actually present. No hardcoded tab list: a mod introducing
- *  a new situation gets a bucket for free, and a known situation with zero
- *  members simply produces no bucket (so it never renders an empty tab). */
-function groupBySituation(
+/** Groups active crew by `standing`, one bucket per value actually present, so
+ *  a standing with zero members produces no bucket and never renders an empty
+ *  tab. A row whose standing did not arrive is bucketed as `Unknown`, which is
+ *  the standing the producer would have sent for it. */
+function groupByStanding(
   crew: readonly CrewRosterRow[],
-): Map<string, CrewRosterRow[]> {
-  const groups = new Map<string, CrewRosterRow[]>();
+): Map<number, CrewRosterRow[]> {
+  const groups = new Map<number, CrewRosterRow[]>();
   for (const row of crew) {
-    const bucket = groups.get(row.situation);
+    const key = row.standing ?? CrewStanding.Unknown;
+    const bucket = groups.get(key);
     if (bucket) bucket.push(row);
-    else groups.set(row.situation, [row]);
+    else groups.set(key, [row]);
   }
   return groups;
 }
 
-/** Stable per-row keys for a situation's member list. Kerbal names aren't
- *  guaranteed unique within a situation (a re-hired duplicate is legal), so
+/**
+ * A standing's label: the contract's own word for it, falling back to whatever
+ * label the producer sent and then to a dash.
+ *
+ * The fallback order matters. A standing this build cannot name is a number, and
+ * a number is not something to show an operator; the producer's own label is the
+ * next best answer, and where there is neither, nothing is said.
+ */
+function standingLabelOf(row: {
+  standing: number | null;
+  situation: string;
+}): string {
+  return crewStandingLabel(row.standing) ?? row.situation ?? "";
+}
+
+/** Stable per-row keys for a standing's member list. Kerbal names aren't
+ *  guaranteed unique within a standing (a re-hired duplicate is legal), so
  *  each key is name + an occurrence count rather than the array index. */
 function crewRowKeys(members: readonly CrewRosterRow[]): string[] {
   const seen = new Map<string, number>();
@@ -748,8 +859,32 @@ function readCrewRoster(raw: unknown): CrewRosterRow[] {
       trait: typeof e.trait === "string" ? e.trait : "",
       experienceLevel: magnitudeOf(e.experienceLevel as Quantityish) ?? 0,
       situation: typeof e.situation === "string" ? e.situation : "",
+      // Absent only from a mod build older than the crew-standing capability.
+      // Falling back to KSP's roster status keeps that case reading exactly as
+      // it did before the capability existed, rather than bucketing the whole
+      // roster as Unknown; see `crewStandingFromRosterStatus` for why the
+      // fallback invents no retirement.
+      standing:
+        typeof e.standing === "number"
+          ? e.standing
+          : typeof e.situationOrdinal === "number" || e.isApplicant === true
+            ? crewStandingFromRosterStatus(
+                typeof e.situationOrdinal === "number"
+                  ? e.situationOrdinal
+                  : null,
+                e.isApplicant === true,
+              )
+            : null,
+      standingSource:
+        typeof e.standingSource === "string" && e.standingSource !== ""
+          ? e.standingSource
+          : null,
       situationOrdinal:
         typeof e.situationOrdinal === "number" ? e.situationOrdinal : null,
+      inactive: e.inactive === true,
+      inactiveUntilUt: magnitudeOf(e.inactiveUntilUt as Quantityish),
+      standingEndsAtUt: magnitudeOf(e.standingEndsAtUt as Quantityish),
+      retiresAtUt: magnitudeOf(e.retiresAtUt as Quantityish),
       isApplicant: e.isApplicant === true,
       available: e.available === true,
       unavailableReason:
@@ -893,7 +1028,7 @@ registerComponent<AstronautComplexConfig>({
   id: "astronaut-complex",
   name: "Astronaut Complex",
   description:
-    "Astronaut Complex: funds, single next-hire cost and the active/max crew cap (unlimited-aware) in the header, then Applicants and Active tabs. Applicants shows each candidate through the shared crew-stat row (trait, courage, stupidity) with a per-row arm-then-confirm Hire action disabled when funds are short or the roster is at the facility cap. Active is itself tabbed, one sub-tab per distinct situation (Available/Assigned/Dead/Missing, plus any mod value) auto-derived from the hired-crew roster, each showing name/role/courage/stupidity/rank/experience-toward-next-rank via the shared crew-stat row. The Available sub-tab additionally carries a per-row arm-then-confirm Fire action (no cost, reversible).",
+    "Astronaut Complex: funds, single next-hire cost and the active/max crew cap (unlimited-aware) in the header, then Applicants and Active tabs. Applicants shows each candidate through the shared crew-stat row (trait, courage, stupidity) with a per-row arm-then-confirm Hire action disabled when funds are short or the roster is at the facility cap. Active is itself tabbed, one sub-tab per CrewStanding present on the roster (Available/Assigned/Retired/Dead/Missing), each showing name/role/courage/stupidity/rank/experience-toward-next-rank via the shared crew-stat row, plus a RESTING badge for a kerbal standing down after a flight. The Available sub-tab additionally carries a per-row arm-then-confirm Fire action (no cost, reversible). Every row exposes an astronaut-complex.crew augment slot so a career-overhaul Uplink can render that kerbal's retirement date, training ETA and lapsing training.",
   tags: ["career", "crew", "kc"],
   defaultSize: { w: 6, h: 8 },
   minSize: { w: 3, h: 4 },
@@ -902,6 +1037,7 @@ registerComponent<AstronautComplexConfig>({
   fields: topics.fields,
   defaultConfig: {},
   actions: astronautComplexActions,
+  augmentSlots: ["astronaut-complex.crew"],
   pushable: true,
 });
 

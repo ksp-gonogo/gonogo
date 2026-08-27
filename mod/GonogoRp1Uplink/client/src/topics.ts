@@ -24,6 +24,8 @@ import type {
   Rp1ComplexEntry,
   Rp1Confidence,
   Rp1ConstructionEntry,
+  Rp1CrewEntry,
+  Rp1CrewProgram,
   Rp1FundingCurveEntry,
   Rp1OperationEntry,
   Rp1PadEntry,
@@ -105,6 +107,21 @@ export const RP1_PROGRAM_SLOTS_TOPIC = "rp1.programSlots";
  */
 export const RP1_PROGRAM_FUNDING_CURVES_TOPIC = "rp1.programFundingCurves";
 
+/**
+ * Each kerbal RP-1 schedules: when their career ends, what they are training on,
+ * and what training is about to lapse. Joined to `spaceCenter.crewRoster` by
+ * name. Absent rather than empty when RP-1's CrewHandler is not live, because an
+ * empty list would say RP-1 is scheduling nobody.
+ *
+ * Deliberately carries no standing: whether a kerbal is RETIRED rides the stock
+ * roster's own `standing` field through the crewStanding capability, so a widget
+ * that has never heard of RP-1 does not report a retiree as a fatality.
+ */
+export const RP1_CREW_TOPIC = "rp1.crew";
+
+/** The career-wide rules the crew schedule runs under: retirement and R&R switches, training rates, the extension cap. */
+export const RP1_CREW_PROGRAM_TOPIC = "rp1.crewProgram";
+
 declare module "@ksp-gonogo/sitrep-sdk" {
   interface TopicPayloadMap {
     "rp1.available": boolean;
@@ -121,6 +138,8 @@ declare module "@ksp-gonogo/sitrep-sdk" {
     "rp1.programs": Rp1ProgramEntry[];
     "rp1.programSlots": Rp1ProgramSlots;
     "rp1.programFundingCurves": Rp1FundingCurveEntry[];
+    "rp1.crew": Rp1CrewEntry[];
+    "rp1.crewProgram": Rp1CrewProgram;
   }
 }
 
@@ -138,6 +157,8 @@ registerBarePrimitiveTopic(RP1_CONFIDENCE_TOPIC);
 registerBarePrimitiveTopic(RP1_PROGRAMS_TOPIC);
 registerBarePrimitiveTopic(RP1_PROGRAM_SLOTS_TOPIC);
 registerBarePrimitiveTopic(RP1_PROGRAM_FUNDING_CURVES_TOPIC);
+registerBarePrimitiveTopic(RP1_CREW_TOPIC);
+registerBarePrimitiveTopic(RP1_CREW_PROGRAM_TOPIC);
 
 // Driven by looping the generated maps rather than naming each entry, so a
 // Topic added to this Uplink's contract later needs no new call site. Both
@@ -203,4 +224,10 @@ export type _ResolvesRp1ProgramSlots = Expect<
 >;
 export type _ResolvesRp1ProgramFundingCurves = Expect<
   Equal<TopicPayload<"rp1.programFundingCurves">, Rp1FundingCurveEntry[]>
+>;
+export type _ResolvesRp1Crew = Expect<
+  Equal<TopicPayload<"rp1.crew">, Rp1CrewEntry[]>
+>;
+export type _ResolvesRp1CrewProgram = Expect<
+  Equal<TopicPayload<"rp1.crewProgram">, Rp1CrewProgram>
 >;

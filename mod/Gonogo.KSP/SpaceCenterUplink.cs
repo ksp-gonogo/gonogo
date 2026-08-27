@@ -2,6 +2,7 @@ using System.Collections.Generic;
 using Sitrep.Contract;
 using Sitrep.Core;
 using Sitrep.Host;
+using Sitrep.Host.Crew;
 
 namespace Gonogo.KSP
 {
@@ -94,6 +95,25 @@ namespace Gonogo.KSP
         /// <summary>Mandatory health self-report (see <see cref="ISitrepUplink.Health"/>): a plain
         /// channel uplink is Healthy once it has registered without error.</summary>
         public UplinkHealth Health() => UplinkHealth.Healthy;
+
+        /// <summary>
+        /// Declares the exclusive <c>"crewStanding"</c> capability: what this
+        /// install makes of a kerbal whose roster status alone is not the answer.
+        ///
+        /// <para>Declared HERE, in the pre-Register capability pass, for the same
+        /// two-pass reason the economy capability is declared in
+        /// <see cref="CareerUplink"/>: a provider uplink's
+        /// <c>RegisterProvider</c> throws if the capability does not exist yet,
+        /// and assembly-scan discovery fixes no order between uplinks.</para>
+        ///
+        /// <para>Owned by THIS uplink because it owns
+        /// <c>spaceCenter.crewRoster</c>, whose entries carry the elected
+        /// backend's answer. That is the shared-namespace-single-declaration
+        /// rule: a provider adds an interpretation, never a channel of its
+        /// own.</para>
+        /// </summary>
+        public void DeclareCapabilities(Kernel kernel) =>
+            CrewStandingElection.RegisterCapability(kernel);
 
         public void Register(IUplinkHost host)
         {

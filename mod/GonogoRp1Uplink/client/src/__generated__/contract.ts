@@ -207,3 +207,32 @@ export interface Rp1FundingCurveEntry
 	isDefault?: boolean;
 	keys?: Rp1FundingCurveKey[];
 }
+export interface Rp1CrewEntry
+{
+	name?: string;
+	retired?: boolean;
+	retiresAtUt?: Value<"ut">;
+	latestRetiresAtUt?: Value<"ut">;
+	retirementExtensionUsedSeconds?: Value<"s">;
+	trainingCourse?: string;
+	trainingType?: string;
+	trainingTarget?: string;
+	trainingStarted?: boolean;
+	trainingFractionComplete?: Value<"ratio">;
+	trainingFinishesAtUt?: Value<"ut">;
+	nextTrainingExpiryUt?: Value<"ut">;
+	nextTrainingExpiryTarget?: string;
+	trainingExpiryCount?: Value<"count">;
+}
+export interface Rp1CrewProgram
+{
+	retirementEnabled?: boolean;
+	crewRnREnabled?: boolean;
+	missionTrainingEnabled?: boolean;
+	proficiencyTrainingRate?: Value<"1">;
+	missionTrainingRate?: Value<"1">;
+	retirementExtensionCapSeconds?: Value<"s">;
+	courses?: Value<"count">;
+	coursesStarted?: Value<"count">;
+	crewInTraining?: Value<"count">;
+}

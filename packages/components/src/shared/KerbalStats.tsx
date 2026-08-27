@@ -1,4 +1,8 @@
-import { KspRosterStatus, value } from "@ksp-gonogo/sitrep-sdk";
+import {
+  crewUnavailableSentence,
+  isFatality,
+  value,
+} from "@ksp-gonogo/sitrep-sdk";
 import {
   Badge,
   NULL_DISPLAY,
@@ -35,15 +39,23 @@ export interface KerbalStatFields {
   careerFlights: number;
   available: boolean;
   unavailableReason: string;
-  /** Roster standing as a DISPLAY LABEL: KSP's own word for it, plus
-   *  `Applicant` for a candidate and whatever a mod calls a status of its own.
-   *  Shown, never compared. {@link situationOrdinal} is the field that decides
-   *  anything. */
+  /** Standing as a DISPLAY LABEL. Shown, never compared: {@link standing} is
+   *  the field that decides anything. */
   situation: string;
-  /** KSP's `RosterStatus` ORDINAL (`KspRosterStatus`), driving the unavailable
-   *  badge's severity. `null` for an applicant, which has no roster standing at
-   *  all, and `undefined` for a caller that carries no roster status. */
+  /** `CrewStanding`, the contract's own answer, driving the unavailable badge's
+   *  severity. This is the field that tells a retiree from a fatality, and the
+   *  reason the badge no longer reads the KSP ordinal: under RP-1 that ordinal
+   *  is `Dead` for a living retiree. `undefined` for a caller that carries no
+   *  standing. */
+  standing?: number | null;
+  /** KSP's OWN `RosterStatus` ordinal, carried for a caller that needs to know
+   *  what the game holds. Nothing here branches on it. */
   situationOrdinal?: number | null;
+  /** When the current {@link standing} lapses, as universal time: a course's
+   *  ETA, a rest period's end. Absent for a standing with no scheduled end.
+   *  Joined onto {@link unavailableReason} for the badge's title, so the date is
+   *  formatted in the client's calendar and never on the wire. */
+  standingEndsAtUt?: number | null;
   currentVesselName: string;
   /** Ratio 0-1. Carried as non-optional (defaulted via `magnitudeOr(…, 0)`),
    *  so presence alone can't gate the chips: a caller must opt in with
@@ -69,25 +81,48 @@ export interface KerbalStatFields {
 const MAX_EXPERIENCE_LEVEL = 5;
 
 /**
- * Severity for the unavailable badge. `Dead`/`Missing` are the only situations
+ * Severity for the unavailable badge. `Dead`/`Missing` are the only standings
  * worth alarming an operator over; `Assigned` ("on mission") is the expected,
- * healthy state for a crewed vessel, and an unrecognised situation (a mod value
- * this list has never heard of, or an applicant with no roster standing at all)
- * stays neutral rather than crying wolf. Undefined renders Badge's decorative
- * grey, the same "just busy" chip the career-flights count uses.
+ * healthy state for a crewed vessel, `Retired` is a career that ended well, and
+ * a standing this build does not declare stays neutral rather than crying wolf.
+ * Undefined renders Badge's decorative grey, the same "just busy" chip the
+ * career-flights count uses.
  *
- * Reads the ORDINAL, never the situation NAME. `"Dead"` and `"Missing"` are
- * KSP's spellings to change: matched by name, a rename of either sends a dead
- * kerbal's badge quietly grey. Failing toward "nothing to see" is the
- * worst available direction for the one badge whose whole job is to be alarming.
+ * Reads the STANDING, and this is where the RP-1 retiree defect surfaced. It
+ * used to read KSP's own roster ordinal, which RP-1 sets to `Dead` when it
+ * retires a kerbal, so every retiree on the board wore a red fatality badge.
+ * The standing is the contract's own answer and tells the two apart.
+ *
+ * Still an enum comparison rather than a label one: matched by name, a rename
+ * on either side sends a dead kerbal's badge quietly grey, and failing toward
+ * "nothing to see" is the worst available direction for the one badge whose
+ * whole job is to be alarming.
  */
 function unavailableSeverity(
-  situationOrdinal: number | null | undefined,
+  standing: number | null | undefined,
 ): Severity | undefined {
-  return situationOrdinal === KspRosterStatus.Dead ||
-    situationOrdinal === KspRosterStatus.Missing
-    ? "critical"
-    : undefined;
+  return isFatality(standing) ? "critical" : undefined;
+}
+
+/**
+ * The badge's title: why the kerbal cannot fly, until when, and aboard what.
+ *
+ * The date is joined on HERE rather than read off the wire, through the SDK's
+ * `crewUnavailableSentence`, because the producer deliberately sends
+ * `unavailableReason` as prose and the when as a `ut` value: a date formatted in
+ * the mod would be formatted in the mod's idea of a calendar. `speakQuantity` is
+ * the client's own renderer, so an RSS save reads in RSS years.
+ */
+function unavailableTitle(kerbal: KerbalStatFields): string {
+  const sentence =
+    crewUnavailableSentence(
+      kerbal.unavailableReason,
+      kerbal.standingEndsAtUt,
+      (ut) => speakQuantity(value("ut", ut)),
+    ) ?? "Unavailable";
+  return kerbal.currentVesselName
+    ? `${sentence} (${kerbal.currentVesselName})`
+    : sentence;
 }
 
 export function KerbalStats({
@@ -202,15 +237,18 @@ export function KerbalStats({
             {kerbal.careerFlights}F
           </Badge>
         )}
+        {/* ONE badge for every way a kerbal cannot fly, driven by the derived
+          `available` / `unavailableReason` pair rather than by a per-axis flag.
+          There used to be a bespoke RESTING badge beside this reading
+          `inactive`, from when a stand-down was not a standing: it showed
+          alongside this one the moment the derivation started producing
+          `Resting`, saying the same thing twice. A new axis needs no badge of
+          its own, which is the whole point of the producer deriving the pair. */}
         {!kerbal.available && (
           <Badge
-            severity={unavailableSeverity(kerbal.situationOrdinal)}
+            severity={unavailableSeverity(kerbal.standing)}
             size="sm"
-            title={
-              kerbal.currentVesselName
-                ? `${kerbal.unavailableReason || "Unavailable"} (${kerbal.currentVesselName})`
-                : kerbal.unavailableReason || "Unavailable"
-            }
+            title={unavailableTitle(kerbal)}
           >
             {kerbal.unavailableReason || "Unavailable"}
           </Badge>

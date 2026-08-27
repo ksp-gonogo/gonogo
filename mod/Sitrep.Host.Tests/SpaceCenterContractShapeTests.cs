@@ -103,7 +103,10 @@ namespace Sitrep.Host.Tests
                                 ["trait"] = "Pilot",
                                 ["experienceLevel"] = 3,
                                 ["rosterStatus"] = "Available",
+                                ["rosterStatusOrdinal"] = (int)KspRosterStatus.Available,
                                 ["isApplicant"] = false,
+                                ["inactive"] = true,
+                                ["inactiveUntilUt"] = 4321.0,
                                 ["courage"] = 0.5,
                                 ["stupidity"] = 0.2,
                                 ["experience"] = 12.0,
@@ -413,6 +416,22 @@ namespace Sitrep.Host.Tests
                         Assert.True(
                             value is System.Collections.IEnumerable,
                             $"{entryType.Name}.{prop.Name} is a collection but the provider emitted a non-enumerable {value.GetType().Name} for \"{key}\".");
+                        continue;
+                    }
+
+                    // An enum-typed POCO field mirrors the ORDINAL on the wire:
+                    // the provider emits an int and the type names it, which is
+                    // the whole convention behind every *Ordinal field and
+                    // behind `standing`. Asserted as "an int of the enum's
+                    // underlying type" rather than skipped, because this branch
+                    // used to be unreachable: every enum-typed field in these
+                    // fixtures was null, so `value is not null` short-circuited
+                    // and the check reported success without ever running.
+                    if (expected.IsEnum)
+                    {
+                        Assert.True(
+                            value.GetType() == Enum.GetUnderlyingType(expected),
+                            $"{entryType.Name}.{prop.Name} is the enum {expected.Name} but the provider emitted {value.GetType().Name} for \"{key}\"; the wire carries its ordinal.");
                         continue;
                     }
 

@@ -122,6 +122,33 @@
       "totalPoints": "bp",
       "workRate": "ratio"
     },
+    "Rp1CrewEntry": {
+      "latestRetiresAtUt": "ut",
+      "name": "id",
+      "nextTrainingExpiryTarget": "text",
+      "nextTrainingExpiryUt": "ut",
+      "retired": "flag",
+      "retirementExtensionUsedSeconds": "s",
+      "retiresAtUt": "ut",
+      "trainingCourse": "text",
+      "trainingExpiryCount": "count",
+      "trainingFinishesAtUt": "ut",
+      "trainingFractionComplete": "ratio",
+      "trainingStarted": "flag",
+      "trainingTarget": "text",
+      "trainingType": "text"
+    },
+    "Rp1CrewProgram": {
+      "courses": "count",
+      "coursesStarted": "count",
+      "crewInTraining": "count",
+      "crewRnREnabled": "flag",
+      "missionTrainingEnabled": "flag",
+      "missionTrainingRate": "1",
+      "proficiencyTrainingRate": "1",
+      "retirementEnabled": "flag",
+      "retirementExtensionCapSeconds": "s"
+    },
     "Rp1FundingCurveEntry": {
       "isDefault": "flag",
       "name": "id"
@@ -303,6 +330,33 @@
       "timeLeftSeconds": "s",
       "totalPoints": "bp",
       "workRate": "ratio"
+    },
+    "rp1.crew": {
+      "latestRetiresAtUt": "ut",
+      "name": "id",
+      "nextTrainingExpiryTarget": "text",
+      "nextTrainingExpiryUt": "ut",
+      "retired": "flag",
+      "retirementExtensionUsedSeconds": "s",
+      "retiresAtUt": "ut",
+      "trainingCourse": "text",
+      "trainingExpiryCount": "count",
+      "trainingFinishesAtUt": "ut",
+      "trainingFractionComplete": "ratio",
+      "trainingStarted": "flag",
+      "trainingTarget": "text",
+      "trainingType": "text"
+    },
+    "rp1.crewProgram": {
+      "courses": "count",
+      "coursesStarted": "count",
+      "crewInTraining": "count",
+      "crewRnREnabled": "flag",
+      "missionTrainingEnabled": "flag",
+      "missionTrainingRate": "1",
+      "proficiencyTrainingRate": "1",
+      "retirementEnabled": "flag",
+      "retirementExtensionCapSeconds": "s"
     },
     "rp1.operations": {
       "associatedVesselId": "id",

@@ -67,8 +67,14 @@ namespace Sitrep.Host
     ///       "trait":           string  : ProtoCrewMember.trait
     ///       "experienceLevel": int     : ProtoCrewMember.experienceLevel
     ///       "rosterStatus":    string  : RAW RosterStatus enum name (a DISPLAY LABEL only)
-    ///       "rosterStatusOrdinal": int? : (int)RosterStatus, what the provider BRANCHES on
+    ///       "rosterStatusOrdinal": int? : (int)RosterStatus, KSP's own answer
+    ///       "standing":        int?    : (int)CrewStanding from the elected backend, what the provider BRANCHES on
+    ///       "standingSource":  string? : that backend's ProviderId
+    ///       "standingAvailable": bool? : the backend's own free-to-fly override, null to derive
+    ///       "standingUnavailableReason": string? : the backend's own wording, null to derive
     ///       "isApplicant":     bool?   : a hireable candidate rather than owned crew
+    ///       "inactive":        bool?   : ProtoCrewMember.inactive (standing down)
+    ///       "inactiveUntilUt": double? : ProtoCrewMember.inactiveTimeEnd
     ///     }
     ///   "savedShips": List&lt;object?&gt;   // one entry per .craft file
     ///     each entry = Dictionary {
@@ -229,35 +235,51 @@ namespace Sitrep.Host
         /// <summary>
         /// Maps one raw kerbal dict (KspHost's <c>BuildCrewEntry</c> shape) to
         /// the <c>CrewRosterEntry</c> wire shape shared by the hired-crew
-        /// roster and the Astronaut Complex applicant pool. The raw
-        /// <c>rosterStatus</c> string and <c>isApplicant</c> flag fold here,
-        /// the same capture→provider split <see cref="BuildScene"/> uses:
-        /// <c>situation</c> is <c>"Applicant"</c> for an applicant, otherwise
-        /// the bare <c>RosterStatus</c> name passed straight through -
-        /// deliberately NOT folded (Dead and Missing stay distinct so a client
-        /// can auto-derive one tab per situation). <c>available</c>/
-        /// <c>unavailableReason</c> stay the older folded pair for existing
-        /// consumers: an applicant reads as available with no reason, since
-        /// nothing blocks hiring one.
+        /// roster and the Astronaut Complex applicant pool.
+        ///
+        /// <para>The STANDING is the elected <see cref="ICrewStandingBackend"/>'s
+        /// answer, stamped into the raw dict at capture time (the same
+        /// capture→provider split <see cref="BuildScene"/> uses), and
+        /// <c>situation</c> / <c>available</c> / <c>unavailableReason</c> are all
+        /// derived from it here. That is the point of the capability: KSP's own
+        /// roster status is NOT the answer under a career overhaul, so the
+        /// derivation has to hang off the corrected standing rather than off the
+        /// ordinal, or a retiree reaches the wire as a fatality. The raw ordinal
+        /// still goes out beside it as <c>situationOrdinal</c>, because what KSP
+        /// itself holds is worth knowing.</para>
+        ///
+        /// <para>The backend may override <c>available</c> and
+        /// <c>unavailableReason</c> in its own words; absent an override the
+        /// derivation from the standing stands. An applicant reads as available
+        /// with no reason, since nothing blocks hiring one.</para>
         /// </summary>
         private static Dictionary<string, object?> BuildCrewEntryPayload(IDictionary<string, object?> raw)
         {
-            var status = SnapshotDict.GetString(raw, "rosterStatus");
             var ordinal = SnapshotDict.GetInt(raw, "rosterStatusOrdinal");
             var isApplicant = SnapshotDict.GetBool(raw, "isApplicant") == true;
+            var inactive = SnapshotDict.GetBool(raw, "inactive");
+            var resolution = ReadResolution(raw, ordinal, isApplicant, inactive);
 
             return new Dictionary<string, object?>
             {
                 ["name"] = SnapshotDict.GetString(raw, "name"),
                 ["trait"] = SnapshotDict.GetString(raw, "trait"),
                 ["experienceLevel"] = SnapshotDict.GetInt(raw, "experienceLevel"),
-                ["available"] = isApplicant || ordinal == (int)KspRosterStatus.Available,
-                ["unavailableReason"] = isApplicant ? "" : MapUnavailableReason(ordinal, status),
-                ["situation"] = isApplicant ? "Applicant" : status,
+                ["available"] = resolution.Available,
+                ["unavailableReason"] = resolution.UnavailableReason,
+                ["standing"] = (int)resolution.Standing,
+                ["standingSource"] = resolution.Source,
+                ["standingEndsAtUt"] = resolution.StandingEndsAtUt,
+                ["retiresAtUt"] = resolution.RetiresAtUt,
+                ["situation"] = resolution.Standing.ToString(),
                 // An applicant is not in the roster, so it has no RosterStatus
                 // to report - a real distinction, not a missing value.
                 ["situationOrdinal"] = isApplicant ? null : ordinal,
                 ["isApplicant"] = isApplicant,
+                ["inactive"] = inactive,
+                // A kerbal on duty carries whatever the last rest period left
+                // in the field, so quoting it would date a rest already over.
+                ["inactiveUntilUt"] = inactive == true ? SnapshotDict.GetDouble(raw, "inactiveUntilUt") : null,
                 ["courage"] = SnapshotDict.GetDouble(raw, "courage"),
                 ["stupidity"] = SnapshotDict.GetDouble(raw, "stupidity"),
                 ["experience"] = SnapshotDict.GetDouble(raw, "experience"),
@@ -265,6 +287,58 @@ namespace Sitrep.Host
                 ["roleDescription"] = SnapshotDict.GetString(raw, "roleDescription"),
                 ["descriptionEffects"] = SnapshotDict.GetString(raw, "descriptionEffects"),
             };
+        }
+
+        /// <summary>
+        /// The standing the capture stamped, falling back to the stock mapping
+        /// when no backend was reachable.
+        ///
+        /// <para>The fallback is the contract's own
+        /// <see cref="CrewStandings.Resolve"/> with no reading, called rather than
+        /// copied, so a bare host with no Kernel wired (a unit test, or the window
+        /// before capabilities resolve) publishes exactly what a stock install
+        /// publishes and never a hole. Going through <c>Resolve</c> rather than
+        /// re-deriving here is the point: the availability and the wording used to
+        /// be computed in this file from the standing alone, so a kerbal standing
+        /// down reached the wire free to fly. There is now one derivation and this
+        /// is a caller of it. What the fallback does NOT do is invent a
+        /// correction: without a backend there is no retiree set to consult.</para>
+        /// </summary>
+        private static CrewStandingResolution ReadResolution(
+            IDictionary<string, object?> raw,
+            int? ordinal,
+            bool isApplicant,
+            bool? inactive)
+        {
+            var stamped = SnapshotDict.GetInt(raw, "standing");
+            var query = new CrewStandingQuery
+            {
+                KerbalName = SnapshotDict.GetString(raw, "name") ?? "",
+                RosterStatusOrdinal = isApplicant ? null : ordinal,
+                IsApplicant = isApplicant,
+                Inactive = inactive == true,
+                InactiveUntilUt = SnapshotDict.GetDouble(raw, "inactiveUntilUt"),
+            };
+            if (stamped == null)
+            {
+                return CrewStandings.Resolve(query, null, null);
+            }
+
+            // The capture already ran the derivation against a live backend, so
+            // its answers are authoritative and are read as a reading rather than
+            // recomputed: recomputing would discard a backend's own wording and,
+            // for a Training standing, the course ETA this side cannot see.
+            return CrewStandings.Resolve(
+                query,
+                new CrewStandingReading
+                {
+                    Standing = (CrewStanding)stamped.Value,
+                    Available = SnapshotDict.GetBool(raw, "standingAvailable"),
+                    UnavailableReason = SnapshotDict.GetString(raw, "standingUnavailableReason"),
+                    StandingEndsAtUt = SnapshotDict.GetDouble(raw, "standingEndsAtUt"),
+                    RetiresAtUt = SnapshotDict.GetDouble(raw, "retiresAtUt"),
+                },
+                SnapshotDict.GetString(raw, "standingSource"));
         }
 
         /// <summary>
@@ -350,40 +424,6 @@ namespace Sitrep.Host
                 ["crewCapacity"] = SnapshotDict.GetInt(raw, "crewCapacity"),
                 ["nextHireCost"] = SnapshotDict.GetDouble(raw, "nextHireCost"),
             };
-        }
-
-        /// <summary>
-        /// Folds a <c>ProtoCrewMember.RosterStatus</c> onto the human reason a
-        /// kerbal can't fly. <c>Available</c> → empty string (the kerbal IS
-        /// free), <c>Assigned</c> → "On mission", and anything else passes
-        /// through as its own name, which is the right answer for
-        /// <c>Dead</c>/<c>Missing</c> and the only honest one for a status this
-        /// build has never heard of.
-        ///
-        /// <para>Branches on <paramref name="ordinal"/>, not on
-        /// <paramref name="statusName"/>. The two arms that mean something here
-        /// used to be string comparisons, so a renamed member would have made
-        /// every kerbal read as unavailable-for-reason-"Available" while an
-        /// assigned one lost its "On mission" wording. The name is still taken,
-        /// because the pass-through arm is a LABEL and the game's own spelling is
-        /// the best label available.</para>
-        ///
-        /// <para>Kept internal-static so the provider test can assert the
-        /// mapping without a KSP reference.</para>
-        /// </summary>
-        internal static string MapUnavailableReason(int? ordinal, string? statusName)
-        {
-            if (ordinal == (int)KspRosterStatus.Available)
-            {
-                return "";
-            }
-
-            if (ordinal == (int)KspRosterStatus.Assigned)
-            {
-                return "On mission";
-            }
-
-            return statusName ?? "";
         }
 
         /// <summary>

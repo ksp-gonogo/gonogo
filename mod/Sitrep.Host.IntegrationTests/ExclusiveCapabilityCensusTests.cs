@@ -72,9 +72,9 @@ namespace Sitrep.Host.IntegrationTests
             string WhyNoBehaviouralCase = "");
 
         /// <summary>
-        /// Every exclusive capability in the tree, as of 2026-08-26. Eleven are
-        /// declared; ten have a provider registered from an Uplink, which this file
-        /// discovers rather than restates.
+        /// Every exclusive capability in the tree, as of 2026-08-26. Twelve are
+        /// declared; eleven have a provider registered from an Uplink, which this
+        /// file discovers rather than restates.
         /// </summary>
         private static readonly Entry[] Census =
         {
@@ -84,6 +84,7 @@ namespace Sitrep.Host.IntegrationTests
             new Entry("gravityModel", "Sitrep.Host/Propagation/GravityModelElection.cs", FedByGatedCapture: false),
             new Entry("economy", "Sitrep.Host/Economy/EconomyElection.cs", FedByGatedCapture: false),
             new Entry("actionGroups", "Sitrep.Host/ActionGroups/ActionGroupsElection.cs", FedByGatedCapture: false),
+            new Entry("crewStanding", "Sitrep.Host/Crew/CrewStandingElection.cs", FedByGatedCapture: false),
             new Entry(
                 "simulation",
                 "Sitrep.Host/Comms/SimulationElection.cs",

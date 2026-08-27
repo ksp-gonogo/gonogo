@@ -1155,3 +1155,208 @@ public sealed class Rp1FundingCurveEntry
     /// </summary>
     public List<Rp1FundingCurveKey>? Keys { get; set; }
 }
+
+
+// ─────────────────────────────────────────────────────────────────────────────
+// RP-1's crew bookkeeping: the personnel-scheduling game an RP-1 career largely
+// IS, and which reached an operator not at all.
+//
+// The two channels below are joined to the stock roster by NAME
+// (spaceCenter.crewRoster[].name). They deliberately do NOT restate a kerbal's
+// trait, rank, courage or standing: core already publishes all of that, RP-1
+// does not own any of it, and a second copy is a second thing to disagree.
+//
+// The one place RP-1 does own an answer core cannot reach is whether a kerbal is
+// RETIRED, and that does not appear here either. It rides the stock roster's own
+// `standing` field, through the crewStanding capability, because a retiree must
+// not read as a fatality to a widget that has never heard of RP-1. See
+// Sitrep.Contract/CrewStanding.cs.
+//
+// SENTINELS. RP-1's crew getters answer 0 for "no record" (GetRetireTime,
+// GetRetireIncreaseTime) and -1 for "not in a course" (GetTrainingFinishTime).
+// A kerbal whose retirement date is unknown is not a kerbal retiring at UT
+// zero, so every one of those becomes absent here.
+// ─────────────────────────────────────────────────────────────────────────────
+
+/// <summary>
+/// One kerbal's RP-1 schedule: when their career ends, what they are training on
+/// now, and what training they are about to lose.
+///
+/// <para>The channel is a BARE ARRAY of these entries, one per kerbal RP-1 has
+/// any record of, keyed by <see cref="Name"/>. That is deliberately NOT the
+/// whole roster: RP-1 tracks a retirement date for crew it manages, and a kerbal
+/// with no row is a kerbal RP-1 is not scheduling, which is a different answer
+/// from one whose dates are all absent.</para>
+///
+/// <para>The whole payload is <c>null</c> when RP-1's CrewHandler is not live
+/// (the main menu, and any save RP-1 does not manage). An empty array would say
+/// "RP-1 is scheduling nobody", which is a claim about the career.</para>
+/// </summary>
+[SitrepContract]
+[SitrepTopic("rp1.crew", isArray: true)]
+#if SITREP_CODEGEN
+[TsInterface]
+#endif
+public sealed class Rp1CrewEntry
+{
+    /// <summary>The kerbal's <c>ProtoCrewMember.name</c>: the join key to <c>spaceCenter.crewRoster</c>.</summary>
+    [SitrepUnit(Units.Id)]
+    public string? Name { get; set; }
+
+    /// <summary>
+    /// Whether RP-1 counts this kerbal as a retiree. The SAME fact the
+    /// crewStanding capability puts on the stock roster, carried here as well
+    /// because this channel is read by a surface that is already looking at RP-1
+    /// rows and should not have to join back to answer "did this schedule
+    /// complete".
+    /// </summary>
+    [SitrepUnit(Units.Flag)]
+    public bool? Retired { get; set; }
+
+    /// <summary>
+    /// When this kerbal retires, as universal time. Absent when RP-1 holds no
+    /// retirement date for them, which is a real state (a kerbal hired this tick,
+    /// or a save where retirement is switched off) and NOT a retirement due now:
+    /// RP-1's own getter answers 0 there, and 0 is a date.
+    /// </summary>
+    [SitrepUnit(Units.UniversalTime)]
+    public double? RetiresAtUt { get; set; }
+
+    /// <summary>
+    /// The furthest that date could still be pushed: the current date plus the
+    /// extension this kerbal has not yet spent. RP-1 caps the total extension a
+    /// career can earn per kerbal, so this is a CEILING rather than a forecast,
+    /// and it is what makes <see cref="RetiresAtUt"/> actionable: a date three
+    /// years out that can be pushed to fifteen is a different planning problem
+    /// from one that cannot move.
+    /// </summary>
+    [SitrepUnit(Units.UniversalTime)]
+    public double? LatestRetiresAtUt { get; set; }
+
+    /// <summary>
+    /// Extension already earned and spent against the cap, in seconds. Zero is a
+    /// truthful reading (a kerbal who has flown nothing interesting has earned
+    /// nothing), so it is NOT folded to absent; absent means RP-1 has no
+    /// retirement record for the kerbal at all.
+    /// </summary>
+    [SitrepUnit(Units.Seconds)]
+    public double? RetirementExtensionUsedSeconds { get; set; }
+
+    /// <summary>Name of the training course this kerbal is enrolled on; absent when they are not training.</summary>
+    [SitrepUnit(Units.Text)]
+    public string? TrainingCourse { get; set; }
+
+    /// <summary>
+    /// Which kind of training: <c>"Proficiency"</c> (permanent, on a part) or
+    /// <c>"Mission"</c> (perishable, and the reason
+    /// <see cref="NextTrainingExpiryUt"/> exists). Absent when not training.
+    /// </summary>
+    [SitrepUnit(Units.Text)]
+    public string? TrainingType { get; set; }
+
+    /// <summary>What the course trains on, RP-1's own target string (a part, or a mission profile). Absent when not training.</summary>
+    [SitrepUnit(Units.Text)]
+    public string? TrainingTarget { get; set; }
+
+    /// <summary>
+    /// Whether the course has actually begun. A course a kerbal is enrolled on
+    /// but which has not started makes no progress and has no finish date, and an
+    /// operator who reads enrolment as progress will plan a mission around a crew
+    /// that is not getting trained.
+    /// </summary>
+    [SitrepUnit(Units.Flag)]
+    public bool? TrainingStarted { get; set; }
+
+    /// <summary>
+    /// Progress through the course, 0-1. Absent when RP-1 has costed the course
+    /// at zero points, which makes its own fraction a NaN: a NaN is not a
+    /// progress and must not reach a bar.
+    /// </summary>
+    [SitrepUnit(Units.Ratio)]
+    public double? TrainingFractionComplete { get; set; }
+
+    /// <summary>
+    /// When the course finishes, as universal time. Absent while RP-1 has not
+    /// rated the course's build rate, which is the state a freshly queued course
+    /// sits in for a tick: dividing by an unrated rate is how RP-1's own helper
+    /// produces an infinite time-left, and an infinity is not a date.
+    /// </summary>
+    [SitrepUnit(Units.UniversalTime)]
+    public double? TrainingFinishesAtUt { get; set; }
+
+    /// <summary>
+    /// When this kerbal's SOONEST mission training lapses, as universal time.
+    /// Absent when nothing they hold is perishable.
+    ///
+    /// <para>The soonest rather than the whole list, because that is the one an
+    /// operator acts on: mission training expiring is what turns a qualified crew
+    /// into an unqualified one while the vehicle is still being integrated.
+    /// <see cref="TrainingExpiryCount"/> says how many more are behind it.</para>
+    /// </summary>
+    [SitrepUnit(Units.UniversalTime)]
+    public double? NextTrainingExpiryUt { get; set; }
+
+    /// <summary>What lapses at <see cref="NextTrainingExpiryUt"/>: RP-1's own target string for that training.</summary>
+    [SitrepUnit(Units.Text)]
+    public string? NextTrainingExpiryTarget { get; set; }
+
+    /// <summary>How many perishable trainings this kerbal holds. Zero when none, so a client can say "none" rather than infer it from an absent date.</summary>
+    [SitrepUnit(Units.Count)]
+    public int? TrainingExpiryCount { get; set; }
+}
+
+/// <summary>
+/// The <c>rp1.crewProgram</c> channel payload: the RULES this career's personnel
+/// schedule runs under, as opposed to any one kerbal's place in it.
+///
+/// <para>A wrapper object, not an array: these are career-wide switches and
+/// rates. They matter because every date on <see cref="Rp1CrewEntry"/> is
+/// meaningless without them. A retirement date on a save with retirement
+/// switched off is a date nothing will act on, and a training ETA is a function
+/// of a rate an operator can see here and nowhere else.</para>
+///
+/// <para>The whole payload is <c>null</c> when RP-1's CrewHandler is not live.</para>
+/// </summary>
+[SitrepContract]
+[SitrepTopic("rp1.crewProgram")]
+#if SITREP_CODEGEN
+[TsInterface]
+#endif
+public sealed class Rp1CrewProgram
+{
+    /// <summary>Whether crew retire at all on this save. False makes every retirement date inert rather than absent, which is why it is a field and not an omission.</summary>
+    [SitrepUnit(Units.Flag)]
+    public bool? RetirementEnabled { get; set; }
+
+    /// <summary>Whether crew stand down for rest after a flight. The switch behind the stock roster's <c>inactive</c> pair being populated at all.</summary>
+    [SitrepUnit(Units.Flag)]
+    public bool? CrewRnREnabled { get; set; }
+
+    /// <summary>Whether mission-specific training is required on this save. False leaves proficiency training as the only kind, and no training can lapse.</summary>
+    [SitrepUnit(Units.Flag)]
+    public bool? MissionTrainingEnabled { get; set; }
+
+    /// <summary>Career-wide multiplier on proficiency-training speed. A multiplier, not a rate: 1 is nominal.</summary>
+    [SitrepUnit(Units.Dimensionless)]
+    public double? ProficiencyTrainingRate { get; set; }
+
+    /// <summary>Career-wide multiplier on mission-training speed.</summary>
+    [SitrepUnit(Units.Dimensionless)]
+    public double? MissionTrainingRate { get; set; }
+
+    /// <summary>The most any one kerbal's retirement can ever be pushed back, in seconds. The cap behind <see cref="Rp1CrewEntry.LatestRetiresAtUt"/>.</summary>
+    [SitrepUnit(Units.Seconds)]
+    public double? RetirementExtensionCapSeconds { get; set; }
+
+    /// <summary>Training courses RP-1 currently holds, started or not.</summary>
+    [SitrepUnit(Units.Count)]
+    public int? Courses { get; set; }
+
+    /// <summary>Courses that have actually begun. Below <see cref="Courses"/> means somebody is enrolled and waiting.</summary>
+    [SitrepUnit(Units.Count)]
+    public int? CoursesStarted { get; set; }
+
+    /// <summary>Kerbals enrolled on a course. The crew a mission cannot draw on today.</summary>
+    [SitrepUnit(Units.Count)]
+    public int? CrewInTraining { get; set; }
+}
