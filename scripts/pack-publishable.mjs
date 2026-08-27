@@ -119,7 +119,18 @@ try {
 
   execFileSync("mkdir", ["-p", resolve(outDir)]);
   const out = join(resolve(outDir), packed[0]);
-  execFileSync("tar", ["-czf", out, "-C", extracted, "package"]);
+  /*
+   * `COPYFILE_DISABLE` because macOS `tar` writes an AppleDouble `._<name>`
+   * sidecar for every file carrying extended attributes, INTO the archive.
+   * Measured by another agent on 2026-08-27: 958 of them in one packed sdk,
+   * `._store.test.ts` among them, which a consumer's vitest then collected as a
+   * test file. CI is Linux and never produces them, so this only ever bit a
+   * local run of the extraction probe, which is exactly the run someone reaches
+   * for when they are trying to reproduce a consumer's problem.
+   */
+  execFileSync("tar", ["-czf", out, "-C", extracted, "package"], {
+    env: { ...process.env, COPYFILE_DISABLE: "1" },
+  });
 
   console.error(
     applied.length > 0
