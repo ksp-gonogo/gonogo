@@ -91,6 +91,8 @@ export * from "./runtime";
 // Side-effect registrations happen at the module-load points below.
 // The imports stay un-aliased so the package's `dist/index.js` keeps
 // them as bare imports tsc / bundlers won't tree-shake away.
+export { KERBCAST } from "./uplink";
+
 import "./CameraFeed";
 import "./CrewAvatarGate"; // registerAugment("kerbcast-crew-avatar" -> crew-status.avatar)
 import "./DockingCameraAugment";

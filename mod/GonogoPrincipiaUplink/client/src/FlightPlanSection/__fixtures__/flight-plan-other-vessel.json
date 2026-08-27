@@ -1,0 +1,63 @@
+{
+  "_scene": {
+    "augment": "principia-flight-plan",
+    "caption": "The plan belongs to another craft: the attribution guard, on screen",
+    "size": {
+      "w": 12,
+      "h": 10
+    }
+  },
+  "_stream": {
+    "pinnedUt": 1000000,
+    "emits": [
+      {
+        "topic": "vessel.identity",
+        "payload": {
+          "vesselId": "Kerbin-Station",
+          "name": "Kerbin Station",
+          "vesselType": 0,
+          "situation": 0
+        }
+      },
+      {
+        "topic": "principia.flightPlan",
+        "payload": {
+          "vesselId": "Ares-IV",
+          "observedAtUt": 1000000,
+          "planExists": true,
+          "reachedDeadline": false,
+          "planIntegrated": true,
+          "anomalousBurnCount": 0,
+          "firstFutureBurnIndex": 1,
+          "finalTimeUt": 1144000,
+          "burns": [
+            {
+              "index": 0,
+              "ignitionUt": 992800,
+              "cutoffUt": 992896,
+              "durationSeconds": 96,
+              "deltaV": 842.7,
+              "anomalous": false
+            },
+            {
+              "index": 1,
+              "ignitionUt": 1001320,
+              "cutoffUt": 1001463,
+              "durationSeconds": 143,
+              "deltaV": 1204.3,
+              "anomalous": false
+            },
+            {
+              "index": 2,
+              "ignitionUt": 1111600,
+              "cutoffUt": 1111638,
+              "durationSeconds": 38,
+              "deltaV": 61.9,
+              "anomalous": false
+            }
+          ]
+        }
+      }
+    ]
+  }
+}

@@ -1,0 +1,123 @@
+{
+  "_scene": {
+    "augment": "rp1-ksc-construction",
+    "host": "space-center-status",
+    "size": {
+      "w": 12,
+      "h": 14
+    },
+    "caption": "A construction RP-1 has not priced yet, a real state on a freshly loaded save, proving it does not read as stalled",
+    "paints": ["Runway", "not costed yet"]
+  },
+  "_stream": {
+    "pinnedUt": 1000000,
+    "emits": [
+      {
+        "topic": "career.status",
+        "payload": {
+          "economy": {
+            "funds": 289848,
+            "reputation": 62,
+            "science": 340
+          },
+          "facilities": {
+            "LaunchPad": {
+              "level": 1,
+              "max": 2
+            },
+            "Runway": {
+              "level": 0,
+              "max": 2
+            },
+            "VehicleAssemblyBuilding": {
+              "level": 1,
+              "max": 2
+            },
+            "SpaceplaneHangar": {
+              "level": 0,
+              "max": 2
+            },
+            "MissionControl": {
+              "level": 1,
+              "max": 2
+            },
+            "TrackingStation": {
+              "level": 1,
+              "max": 2
+            },
+            "Administration": {
+              "level": 0,
+              "max": 2
+            },
+            "ResearchAndDevelopment": {
+              "level": 1,
+              "max": 2
+            },
+            "AstronautComplex": {
+              "level": 0,
+              "max": 2
+            }
+          }
+        }
+      },
+      {
+        "topic": "spaceCenter.scene",
+        "payload": {
+          "scene": "SpaceCenter",
+          "launchSite": "LaunchPad"
+        }
+      },
+      {
+        "topic": "spaceCenter.partsAvailable",
+        "payload": {
+          "count": 142
+        }
+      },
+      {
+        "topic": "rp1.available",
+        "payload": true
+      },
+      {
+        "topic": "rp1.centres",
+        "payload": [
+          {
+            "kscName": "Cape",
+            "isActive": true,
+            "engineers": 24,
+            "unassignedEngineers": 6,
+            "launchComplexCount": 2,
+            "anyOperational": true,
+            "groundStation": "us_cape_canaveral"
+          }
+        ]
+      },
+      {
+        "topic": "rp1.constructions",
+        "payload": [
+          {
+            "kscName": "Cape",
+            "lcId": null,
+            "kind": "FacilityUpgrade",
+            "name": "Runway",
+            "facilityType": "Runway",
+            "currentLevel": 2,
+            "targetLevel": 3,
+            "isModify": null,
+            "engineersToReadd": null,
+            "padId": null,
+            "progress": 250,
+            "totalPoints": 1000,
+            "progressRatio": 0.25,
+            "workRate": 1,
+            "rate": null,
+            "timeLeftSeconds": null,
+            "stalled": false,
+            "cost": 40000,
+            "spentCost": 10000,
+            "spentRushCost": 0
+          }
+        ]
+      }
+    ]
+  }
+}

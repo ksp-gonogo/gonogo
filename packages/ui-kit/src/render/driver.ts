@@ -1,7 +1,7 @@
 import { mkdir, readdir, rm, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 import { pathToFileURL } from "node:url";
-import { chromium, firefox, type Page, webkit } from "playwright";
+import { chromium, firefox, type Locator, type Page, webkit } from "playwright";
 import type {
   RenderProbeApi,
   ScenePayload,
@@ -85,8 +85,9 @@ export interface RenderOptions {
   /** Keep the numbered PNG frames of a motion scene beside its GIF. */
   frames: boolean;
   uplinkId?: string;
-  /** Extra modules bundled into the page, so a scene naming a first-party host
-   *  has one to mount. See `ScenePayload.host`. */
+  /** Extra modules bundled into the page ON TOP of the package's own
+   *  `gonogo.renderWith`, so a one-off run can name a host the package does not
+   *  declare. See `ScenePayload.host`. */
   withModules?: readonly string[];
 }
 
@@ -114,7 +115,10 @@ export async function renderUplink(
   pkg: UplinkPackage,
   opts: RenderOptions,
 ): Promise<RenderResult> {
-  const page = await buildProbePage(pkg, opts.withModules ?? []);
+  const page = await buildProbePage(pkg, [
+    ...pkg.renderWith,
+    ...(opts.withModules ?? []),
+  ]);
   const browser = await ENGINES[opts.engine].launch();
   const pageErrors: string[] = [];
   const assets: RenderedAsset[] = [];
@@ -128,6 +132,7 @@ export async function renderUplink(
     });
     const tab = await context.newPage();
     tab.on("pageerror", (err) => {
+      if (isUnmountPlayAbort(err.message)) return;
       console.error(`  [page error] ${err.message}`);
       pageErrors.push(err.message);
     });
@@ -194,6 +199,26 @@ export async function renderUplink(
   }
 }
 
+/**
+ * The one page error a render is allowed to survive.
+ *
+ * A `<video>` element unmounted while a `play()` promise is still pending
+ * rejects, and every scene after the first unmounts one. It says nothing about
+ * the render: the frame that was captured was captured before the unmount, and
+ * the element being torn down is the harness moving on. Nothing else is
+ * forgiven, because a page error is otherwise a widget that threw and a PNG
+ * that looks like a widget that did not.
+ *
+ * Matched on both halves of the sentence rather than on "play", so a genuine
+ * playback failure still fails the run.
+ */
+function isUnmountPlayAbort(message: string): boolean {
+  return (
+    message.includes("play() request was interrupted") &&
+    message.includes("new load request")
+  );
+}
+
 async function renderOneScene(
   tab: Page,
   scene: Scene,
@@ -216,6 +241,9 @@ async function renderOneScene(
       continue;
     }
     const file = `${scene.name}--${mode.name}.png`;
+    await performActs(tab, scene);
+    await growToFullContent(tab);
+    await assertEveryPaintVisible(tab, scene, mode.name);
     await shoot(tab, join(opts.outDir, file));
     assets.push({ scene, mode: mode.name, file, kind: "still" });
     // The visible text is printed because a picture is the one output a
@@ -260,12 +288,194 @@ async function mount(tab: Page, payload: ScenePayload): Promise<SceneReport> {
   return report;
 }
 
+/**
+ * Every string `_scene.paints` names is on screen and READABLE.
+ *
+ * Measured through the real layout, which is the whole point: a jsdom suite
+ * computes none, so text squeezed to zero width by a neighbour that wrapped
+ * satisfies every `toBeInTheDocument` while being unreadable in a browser.
+ *
+ * Two ways a label loses. Zero width is the one that motivated the check: a
+ * launch complex's own name rendered at nothing beside a detail sentence that
+ * took the whole row. CLIPPING is the other, and it is the one a bounding box
+ * alone cannot see, because `text-overflow: ellipsis` leaves a box of perfectly
+ * respectable size showing "V…". Both are the same failure to a reader, so both
+ * fail here.
+ *
+ * Collected across the whole list before throwing, so an author fixing a scene
+ * sees all of it rather than one label per run. Grown to full content first, so
+ * a label below the tile's fold is a visible label and not a failure.
+ */
+async function assertEveryPaintVisible(
+  tab: Page,
+  scene: Scene,
+  mode: string,
+): Promise<void> {
+  const failures: string[] = [];
+  for (const text of scene.paints) {
+    const matches = tab.locator("#root").getByText(text, { exact: false });
+    const count = await matches.count().catch(() => 0);
+    if (count === 0) {
+      failures.push(`"${text}" is not on the page at all`);
+      continue;
+    }
+    // ANY readable instance passes, rather than the first. A hosted scene mounts
+    // every augment registered on the host's slot, so a common label like
+    // "Funds" legitimately appears several times, and asking only the first
+    // whether it survived is asking about an arbitrary one of them.
+    const verdicts: string[] = [];
+    for (let i = 0; i < count; i++) {
+      const verdict = await readable(matches.nth(i));
+      if (verdict === null) {
+        verdicts.length = 0;
+        break;
+      }
+      verdicts.push(verdict);
+    }
+    if (verdicts.length > 0) {
+      failures.push(
+        `"${text}" appears ${count === 1 ? "once" : `${count} times`} and is ` +
+          `readable nowhere: ${[...new Set(verdicts)].join("; ")}`,
+      );
+    }
+  }
+  if (failures.length === 0) return;
+  throw new Error(
+    `${scene.name} (${scene.target.kind} ${scene.target.id}) at ${mode}: ` +
+      `${failures.length} of ${scene.paints.length} "_scene.paints" ` +
+      `entries did not survive the layout:\n  ${failures.join("\n  ")}\n` +
+      "Either the render is wrong, or this shape genuinely cannot carry the " +
+      'text, in which case narrow the scene with "_scene": { "modes": [...] }.',
+  );
+}
+
+/**
+ * `_scene.before`, through real input events.
+ *
+ * A press goes through the accessible NAME rather than a selector, because that
+ * is the handle an operator has and a class name is not: a control renamed out
+ * from under a scene should fail here rather than quietly photograph the state
+ * before the press.
+ */
+async function performActs(tab: Page, scene: Scene): Promise<void> {
+  for (const act of scene.before) {
+    if (act.press !== undefined) {
+      const button = tab.getByRole("button", { name: act.press }).first();
+      if ((await button.count()) === 0) {
+        throw new Error(
+          `${scene.name}: "_scene.before" presses "${act.press}", which is ` +
+            "not a button on screen at that point. Presses run in order, so a " +
+            "control that only appears after an earlier press has to come " +
+            "after it.",
+        );
+      }
+      await button.click();
+    } else if (act.hover !== undefined) {
+      const target = tab.locator(act.hover).first();
+      await target.scrollIntoViewIfNeeded().catch(() => {});
+      const box = await target.boundingBox().catch(() => null);
+      if (box === null) {
+        throw new Error(
+          `${scene.name}: "_scene.before" hovers "${act.hover}", which matched ` +
+            "nothing that is laid out.",
+        );
+      }
+      // A plain pointer move, not `locator.hover()`. That one refuses when
+      // something is painted over the target, which is the normal case for a
+      // hover-gated overlay: the chrome sits on top of the video it is gating.
+      // What a hover-gate reads is where the pointer IS, so that is what this
+      // sets.
+      await tab.mouse.move(box.x + box.width / 2, box.y + box.height / 2);
+    } else {
+      await restPointer(tab);
+    }
+    await settle(tab);
+  }
+}
+
+/**
+ * Put the pointer somewhere the widget is not.
+ *
+ * Past the tile's own bottom-right corner rather than at negative coordinates:
+ * the browser clamps those back into the viewport, whose origin is INSIDE the
+ * tile, so a hover-gated control asked to rest was hovered instead and both
+ * halves of a resting/hovered pair came out identical.
+ */
+async function restPointer(tab: Page): Promise<void> {
+  const viewport = tab.viewportSize() ?? { width: 900, height: 900 };
+  const rect = await tab.evaluate(() => {
+    const el = document.getElementById("root");
+    if (!el) return null;
+    const box = el.getBoundingClientRect();
+    return { right: box.right, bottom: box.bottom };
+  });
+  await tab.mouse.move(
+    Math.min(viewport.width - 1, (rect?.right ?? 0) + 20),
+    Math.min(viewport.height - 1, (rect?.bottom ?? 0) + 20),
+  );
+}
+
+/** Two frames, which is what a React state change plus its layout costs. */
+async function settle(tab: Page): Promise<void> {
+  await tab.evaluate(
+    () =>
+      new Promise<void>((resolve) => {
+        requestAnimationFrame(() => requestAnimationFrame(() => resolve()));
+      }),
+  );
+}
+
+/** `null` when this element carries the text readably, otherwise why it does not. */
+async function readable(at: Locator): Promise<string | null> {
+  const box = await at.boundingBox().catch(() => null);
+  if (box === null) return "not laid out at all";
+  if (box.width <= 0 || box.height <= 0) {
+    return `painted at ${box.width}x${box.height}`;
+  }
+  // Its own overflow, not an ancestor's: `text-overflow: ellipsis` needs the
+  // clip on the element carrying the text, so this is where the idiom lives. An
+  // element overflowing VISIBLY is still readable and is not a failure.
+  return at
+    .evaluate((el) => {
+      if (getComputedStyle(el).overflowX === "visible") return null;
+      const over = el.scrollWidth - el.clientWidth;
+      return over > 1
+        ? `clipped, ${over}px of it outside the ${el.clientWidth}px it is given`
+        : null;
+    })
+    .catch(() => null);
+}
+
 async function shoot(tab: Page, path: string): Promise<Buffer> {
-  await growToFullContent(tab);
+  await fitViewportToRoot(tab);
   const root = await tab.$("#root");
   if (!root) throw new Error("render: #root vanished after mount");
   return root.screenshot({ path, animations: "disabled" });
 }
+
+/**
+ * Make the viewport tall enough to hold the whole widget in one go.
+ *
+ * An element screenshot taller than the viewport is captured by SCROLLING and
+ * stitching, and scrolling the page also scrolls anything under it that still
+ * has an overflow of its own. A `Panel` whose body did not quite grow to fit
+ * therefore scrolled between two captures and the stitched image showed the
+ * same rows twice, which reads as a widget that renders its contents twice.
+ * Fitting the viewport first means nothing ever scrolls.
+ */
+async function fitViewportToRoot(tab: Page): Promise<void> {
+  const height = await tab.evaluate(
+    () => document.getElementById("root")?.getBoundingClientRect().height ?? 0,
+  );
+  const wanted = Math.ceil(height) + VIEWPORT_MARGIN_PX;
+  const current = tab.viewportSize();
+  if (!current || wanted <= current.height) return;
+  await tab.setViewportSize({ width: current.width, height: wanted });
+  await settle(tab);
+}
+
+/** Room for the tile's own outer inset, so nothing sits on the viewport edge. */
+const VIEWPORT_MARGIN_PX = 64;
 
 /**
  * Grow `#root` until nothing is clipped, so the image shows the WHOLE widget.
@@ -288,14 +498,22 @@ async function growToFullContent(tab: Page): Promise<void> {
     if (!el) return;
     el.style.overflow = "visible";
     for (let i = 0; i < 8; i++) {
-      const nodes = [
-        el,
-        el.firstElementChild,
-        ...document.querySelectorAll("[data-scroll-area-inner]"),
-      ];
       let need = 0;
-      for (const node of nodes) {
-        if (node) need = Math.max(need, node.scrollHeight - node.clientHeight);
+      // Every clipping box under the root, found rather than listed. The list
+      // this replaces named `#root`, its first child and `ScrollArea`'s marker,
+      // and a `Panel`'s BODY is the scroller in this kit and carries no marker
+      // at all: a widget mounted in its real host had its last rows cropped,
+      // and the crop was invisible because the picture still looked like a
+      // widget. A hand-kept list of the ways content hides is exactly the shape
+      // that goes stale silently.
+      const boxes: Element[] = [el, ...el.querySelectorAll("*")];
+      for (const node of boxes) {
+        const over = node.scrollHeight - node.clientHeight;
+        if (over <= need) continue;
+        if (node !== el && getComputedStyle(node).overflowY === "visible") {
+          continue;
+        }
+        need = over;
       }
       if (need <= 1) break;
       el.style.height = `${el.clientHeight + need}px`;
@@ -406,15 +624,35 @@ async function captureMotion(
   const frames: Buffer[] = [];
   const framesDir = join(opts.outDir, `${scene.name}.frames`);
   if (opts.frames) await mkdir(framesDir, { recursive: true });
+  await performActs(tab, scene);
+  // Before the first frame, and once: a step that drives a control has to be
+  // able to REACH it, and `page.mouse` works in viewport coordinates. A control
+  // below the fold of a scrolling tile is at a y nothing is under, so the press
+  // landed on the page and the film came out thirty-four identical frames.
+  // Doing it here rather than per frame also keeps the framing fixed, which a
+  // scroll between two frames would not.
+  await growToFullContent(tab);
+  await fitViewportToRoot(tab);
   // The state before the first step is a frame in its own right: the reader has
   // to see what changed FROM.
   frames.push(await shootFrame(tab, opts, framesDir, frames.length));
+  let holding = false;
   for (const step of scene.steps ?? []) {
     const count = Math.max(1, step.frames ?? 1);
     const delta = (step.advanceUt ?? 0) / count;
+    const wait = (step.waitMs ?? 0) / count;
     for (let i = 0; i < count; i++) {
-      // The emit and the click belong to the step's FIRST frame only; repeating
-      // them would re-emit once per frame and mean something else.
+      // The emit, the click and the pointer belong to the step's FIRST frame
+      // only; repeating them would re-emit once per frame and mean something
+      // else. `waitMs` is the exception, being an amount rather than an event.
+      if (i === 0 && step.hold) {
+        await holdPointer(tab, scene, step.hold);
+        holding = true;
+      }
+      if (i === 0 && step.release) {
+        await tab.mouse.up();
+        holding = false;
+      }
       const perFrame: SceneStep =
         i === 0 ? { ...step, frames: 1 } : { frames: 1 };
       await tab.evaluate(
@@ -424,14 +662,69 @@ async function captureMotion(
           ].stepScene(s as SceneStep, d as number),
         [RENDER_PROBE_GLOBAL, perFrame, delta] as const,
       );
+      if (wait > 0) await tab.waitForTimeout(wait);
       frames.push(await shootFrame(tab, opts, framesDir, frames.length));
     }
   }
+  // A pointer left down outlives the scene and lands on whatever mounts next.
+  if (holding) await tab.mouse.up();
+  assertMotionMoved(scene, frames);
   const gif = encodeGif(frames, scene.motion);
   const file = `${scene.name}--${mode.name}.gif`;
   await writeFile(join(opts.outDir, file), gif);
   assets.push({ scene, mode: mode.name, file, kind: "motion" });
   console.log(`   ${file} (${frames.length} frames @ ${scene.motion.fps}fps)`);
+}
+
+/**
+ * A motion scene whose frames are all the same byte-for-byte is a film of
+ * nothing.
+ *
+ * The still path has the fed-versus-starved comparison and a motion scene had
+ * no equivalent, so a GIF announcing thirty-four frames was indistinguishable
+ * from one where every step missed. That is not hypothetical: it is how a
+ * `hold` step reaching a control the page had scrolled past was found, having
+ * produced a perfectly well-formed film of a widget sitting still.
+ */
+function assertMotionMoved(scene: Scene, frames: readonly Buffer[]): void {
+  const first = frames[0];
+  if (!first || frames.every((frame) => frame.equals(first))) {
+    throw new Error(
+      `${scene.name} (${scene.target.kind} ${scene.target.id}): all ` +
+        `${frames.length} frames of this motion scene are IDENTICAL, so the ` +
+        "film shows nothing happening. Either the steps did not reach what " +
+        "they name, or this scene has no motion in it and wants to be a still.",
+    );
+  }
+}
+
+/** Presses the pointer on a named control and drags it, without letting go. */
+async function holdPointer(
+  tab: Page,
+  scene: Scene,
+  hold: NonNullable<SceneStep["hold"]>,
+): Promise<void> {
+  const control = tab
+    .getByRole((hold.role ?? "slider") as Parameters<Page["getByRole"]>[0], {
+      name: hold.name,
+    })
+    .first();
+  await control.scrollIntoViewIfNeeded().catch(() => {});
+  const box = await control.boundingBox().catch(() => null);
+  if (box === null) {
+    throw new Error(
+      `${scene.name}: a "hold" step names "${hold.name}", which is not laid ` +
+        "out. A control that is not on screen cannot be dragged, and the frames " +
+        "after this step would be a film of nothing happening.",
+    );
+  }
+  const x = box.x + box.width / 2;
+  const y = box.y + box.height / 2;
+  await tab.mouse.move(x, y);
+  await tab.mouse.down();
+  // Stepped rather than jumped: a drag handler reading movement per event sees
+  // one enormous delta from a teleport and nothing resembling a drag.
+  await tab.mouse.move(x + (hold.dx ?? 0), y + (hold.dy ?? 0), { steps: 8 });
 }
 
 async function shootFrame(

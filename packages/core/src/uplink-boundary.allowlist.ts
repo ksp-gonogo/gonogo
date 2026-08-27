@@ -85,6 +85,14 @@ export const ALLOWLIST: Record<ModToken, ModAllowlist> = {
     ],
     permanent: [
       /*
+       * The one-render-process ratchet, which names this Uplink's
+       * encoded-transform latency spikes as the one directory allowed to drive
+       * a browser without rendering a widget. A ratchet inventory naming a PATH
+       * and a reason, holding no code coupling: the point of writing the
+       * exemption down is that someone can check the reason in a year.
+       */
+      "packages/core/src/one-render-process.test.ts",
+      /*
        * -- CATALOGUE ABSENCE INVENTORY (2026-08-25): the pinned list of carried
        * Topics the topic-field catalogue can describe nothing about names each
        * Uplink Topic that has none, so a Topic arriving unannotated is a test

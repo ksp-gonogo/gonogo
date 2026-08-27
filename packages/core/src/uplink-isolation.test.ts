@@ -217,8 +217,15 @@ describe("uplink isolation", () => {
    * because the script sorted by symbol and not by who was importing.
    */
   it("no PRODUCTION Uplink file imports a test-only entry", () => {
+    // `gonogo-render.setup.ts` is test-only code that does not live under a
+    // test path: it is the render harness's own glue, the sanctioned successor
+    // to the `client/scripts/` probes this pattern already covers, and it
+    // exists to stand up the fakes a scene needs. It never reaches a runtime
+    // bundle, being named only by the generated browser entry.
     const isTest = (f: string) =>
-      /\.test\.|\.test-d\.|\/test\/|__fixtures__|\/scripts\//.test(f);
+      /\.test\.|\.test-d\.|\/test\/|__fixtures__|\/scripts\/|\/gonogo-render\.setup\.tsx?$/.test(
+        f,
+      );
     const testOnlyEntry =
       /from\s*["']@ksp-gonogo\/(?:sitrep-sdk|ui-kit)\/testing["']/;
     const offenders = uplinkSourceFiles()

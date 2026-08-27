@@ -1,0 +1,85 @@
+{
+  "_scene": {
+    "augment": "principia-plan-composer",
+    "caption": "The rate wheel, which a still cannot show at all: displacement sets a SPEED, so the instant keeps running while the handle is held off centre and stops dead on release",
+    "before": [
+      {
+        "press": "Draft plan"
+      },
+      {
+        "press": "Add burn"
+      }
+    ],
+    "steps": [
+      {
+        "hold": {
+          "name": "Ignition rate",
+          "dx": 30
+        },
+        "waitMs": 1200,
+        "frames": 8
+      },
+      {
+        "hold": {
+          "name": "Ignition rate",
+          "dx": 78
+        },
+        "waitMs": 1500,
+        "frames": 10
+      },
+      {
+        "release": true,
+        "waitMs": 600,
+        "frames": 4
+      },
+      {
+        "hold": {
+          "name": "Ignition rate",
+          "dx": -60
+        },
+        "waitMs": 1200,
+        "frames": 8
+      },
+      {
+        "release": true,
+        "waitMs": 400,
+        "frames": 3
+      }
+    ],
+    "motion": {
+      "fps": 10
+    },
+    "size": {
+      "w": 12,
+      "h": 10
+    }
+  },
+  "_stream": {
+    "pinnedUt": 1000000,
+    "emits": [
+      {
+        "topic": "vessel.identity",
+        "payload": {
+          "vesselId": "Ares-IV",
+          "name": "Ares IV",
+          "vesselType": 0,
+          "situation": 0
+        }
+      },
+      {
+        "topic": "vessel.orbit",
+        "payload": {
+          "referenceBodyIndex": 1,
+          "sma": 850000,
+          "ecc": 0.01,
+          "inc": 0,
+          "lan": 0,
+          "argPe": 0,
+          "meanAnomalyAtEpoch": 0,
+          "epoch": 0,
+          "mu": 3531600000000.0
+        }
+      }
+    ]
+  }
+}

@@ -3,6 +3,5 @@
   "compilerOptions": {
     "noEmit": true
   },
-  "_comment": "scripts is in scope because the render harness is the one check that can see a widget paint at zero pixels, and a driver nothing typechecks is a check that stops running without saying so. tsconfig.build.json still emits from src alone.",
-  "include": ["src", "scripts"]
+  "include": ["src"]
 }

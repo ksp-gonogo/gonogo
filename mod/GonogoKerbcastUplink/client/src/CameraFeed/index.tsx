@@ -1,4 +1,5 @@
 import { registerComponent } from "@ksp-gonogo/sitrep-sdk";
+import { KERBCAST } from "../uplink";
 import {
   CameraFeed,
   type CameraFeedConfig,
@@ -39,6 +40,7 @@ registerComponent<CameraFeedConfig>({
   },
   actions: cameraFeedActions,
   pushable: true,
+  owner: KERBCAST,
 });
 
 export type { CameraFeedConfig };

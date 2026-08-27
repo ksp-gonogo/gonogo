@@ -34,6 +34,8 @@ export interface UplinkPackage {
   prose?: string;
   /** Fixture files, sorted, `<dir>/src/**\/__fixtures__/*.json`. */
   fixtures: string[];
+  /** Resolved `gonogo.renderWith` paths. See `resolveRenderWith`. */
+  renderWith: string[];
 }
 
 export function readJson<T>(file: string): T {
@@ -98,6 +100,52 @@ function findFixtures(root: string): string[] {
   return out.sort();
 }
 
+/**
+ * Extra modules whose registrations belong in the page, declared once.
+ *
+ * A scene naming `_scene.host` needs that host widget in the bundle, and a
+ * host widget ships with the APP, in a package no Uplink may import. `--with`
+ * can name one per run, but a render that only works when someone remembers a
+ * flag is a render nobody runs: the FIRST Uplink to use `_scene.host` shipped a
+ * plain `gonogo-uplink render` script beside a fixture naming a host, which
+ * cannot succeed. So the modules are a fact about the package, beside
+ * `minAppVersion` in the same `gonogo` block:
+ *
+ *     "gonogo": { "renderWith": ["../../../packages/components/src/index.ts"] }
+ *
+ * Paths, not specifiers, and relative to the client directory: a specifier would
+ * need a dependency the isolation rules forbid. In-repo only for the same
+ * reason, which is why a missing file is an error naming the declaration rather
+ * than a silent skip.
+ */
+function resolveRenderWith(dir: string, gonogo: unknown): string[] {
+  const declared = (gonogo as { renderWith?: unknown } | undefined)?.renderWith;
+  if (declared === undefined) return [];
+  if (!Array.isArray(declared)) {
+    throw new Error(
+      `gonogo-uplink: "gonogo.renderWith" in ${join(dir, "package.json")} must ` +
+        `be an array of module paths, got ${typeof declared}.`,
+    );
+  }
+  return declared.map((entry) => {
+    if (typeof entry !== "string") {
+      throw new Error(
+        `gonogo-uplink: every "gonogo.renderWith" entry must be a path ` +
+          `string, got ${JSON.stringify(entry)}.`,
+      );
+    }
+    const full = resolve(dir, entry);
+    if (!exists(full)) {
+      throw new Error(
+        `gonogo-uplink: "gonogo.renderWith" names "${entry}", which resolves ` +
+          `to ${full} and does not exist. It is a path relative to the client ` +
+          "package, not a module specifier.",
+      );
+    }
+    return full;
+  });
+}
+
 export function resolveUplinkPackage(
   dir: string,
   opts: { entry?: string } = {},
@@ -109,9 +157,12 @@ export function resolveUplinkPackage(
         "client package directory, or pass --root <dir>.",
     );
   }
-  const pkg = readJson<{ name: string; version: string; main?: string }>(
-    manifestPath,
-  );
+  const pkg = readJson<{
+    name: string;
+    version: string;
+    main?: string;
+    gonogo?: unknown;
+  }>(manifestPath);
   const setup = ["gonogo-render.setup.ts", "gonogo-render.setup.tsx"]
     .map((f) => join(dir, f))
     .find(exists);
@@ -124,6 +175,7 @@ export function resolveUplinkPackage(
     setup,
     prose,
     fixtures: findFixtures(dir),
+    renderWith: resolveRenderWith(dir, pkg.gonogo),
   };
 }
 

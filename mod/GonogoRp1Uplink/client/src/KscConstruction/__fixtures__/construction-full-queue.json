@@ -1,0 +1,175 @@
+{
+  "_scene": {
+    "augment": "rp1-ksc-construction",
+    "host": "space-center-status",
+    "size": {
+      "w": 12,
+      "h": 14
+    },
+    "caption": "The state a first-decade RP-1 career sits in: a VAB upgrade, a second launch complex and a pad all building at once, appended under the space centre's own facility list",
+    "paints": [
+      "Vehicle Assembly Building",
+      "LC-2",
+      "Pad B",
+      "289,848f",
+      "90d",
+      "310d",
+      "11d"
+    ]
+  },
+  "_stream": {
+    "pinnedUt": 1000000,
+    "emits": [
+      {
+        "topic": "career.status",
+        "payload": {
+          "economy": {
+            "funds": 289848,
+            "reputation": 62,
+            "science": 340
+          },
+          "facilities": {
+            "LaunchPad": {
+              "level": 1,
+              "max": 2
+            },
+            "Runway": {
+              "level": 0,
+              "max": 2
+            },
+            "VehicleAssemblyBuilding": {
+              "level": 1,
+              "max": 2
+            },
+            "SpaceplaneHangar": {
+              "level": 0,
+              "max": 2
+            },
+            "MissionControl": {
+              "level": 1,
+              "max": 2
+            },
+            "TrackingStation": {
+              "level": 1,
+              "max": 2
+            },
+            "Administration": {
+              "level": 0,
+              "max": 2
+            },
+            "ResearchAndDevelopment": {
+              "level": 1,
+              "max": 2
+            },
+            "AstronautComplex": {
+              "level": 0,
+              "max": 2
+            }
+          }
+        }
+      },
+      {
+        "topic": "spaceCenter.scene",
+        "payload": {
+          "scene": "SpaceCenter",
+          "launchSite": "LaunchPad"
+        }
+      },
+      {
+        "topic": "spaceCenter.partsAvailable",
+        "payload": {
+          "count": 142
+        }
+      },
+      {
+        "topic": "rp1.available",
+        "payload": true
+      },
+      {
+        "topic": "rp1.centres",
+        "payload": [
+          {
+            "kscName": "Cape",
+            "isActive": true,
+            "engineers": 24,
+            "unassignedEngineers": 6,
+            "launchComplexCount": 2,
+            "anyOperational": true,
+            "groundStation": "us_cape_canaveral"
+          }
+        ]
+      },
+      {
+        "topic": "rp1.constructions",
+        "payload": [
+          {
+            "kscName": "Cape",
+            "lcId": null,
+            "kind": "FacilityUpgrade",
+            "name": "VehicleAssemblyBuilding",
+            "facilityType": "VehicleAssemblyBuilding",
+            "currentLevel": 2,
+            "targetLevel": 3,
+            "isModify": null,
+            "engineersToReadd": null,
+            "padId": null,
+            "progress": 250,
+            "totalPoints": 1000,
+            "progressRatio": 0.25,
+            "workRate": 1,
+            "rate": 9.645061728395061e-5,
+            "timeLeftSeconds": 7776000,
+            "stalled": false,
+            "cost": 40000,
+            "spentCost": 10000,
+            "spentRushCost": 0
+          },
+          {
+            "kscName": "Cape",
+            "lcId": "lc-2",
+            "kind": "LaunchComplex",
+            "name": "LC-2",
+            "facilityType": null,
+            "currentLevel": null,
+            "targetLevel": null,
+            "isModify": false,
+            "engineersToReadd": 0,
+            "padId": null,
+            "progress": 40,
+            "totalPoints": 2400,
+            "progressRatio": 0.016666666666666666,
+            "workRate": 1,
+            "rate": 9.645061728395061e-5,
+            "timeLeftSeconds": 26784000,
+            "stalled": false,
+            "cost": 128000,
+            "spentCost": 2100,
+            "spentRushCost": 0
+          },
+          {
+            "kscName": "Cape",
+            "lcId": "lc-1",
+            "kind": "Pad",
+            "name": "Pad B",
+            "facilityType": null,
+            "currentLevel": null,
+            "targetLevel": null,
+            "isModify": null,
+            "engineersToReadd": null,
+            "padId": "pad-b",
+            "progress": 700,
+            "totalPoints": 800,
+            "progressRatio": 0.875,
+            "workRate": 1,
+            "rate": 9.645061728395061e-5,
+            "timeLeftSeconds": 950400,
+            "stalled": false,
+            "cost": 21400,
+            "spentCost": 18700,
+            "spentRushCost": 0
+          }
+        ]
+      }
+    ]
+  }
+}

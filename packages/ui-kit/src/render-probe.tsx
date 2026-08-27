@@ -32,6 +32,7 @@ import {
   AugmentSlot,
   clearAugments,
   DomainAvailabilityProvider,
+  FRAMEWORK_AUGMENT_SEGMENTS,
   getAugments,
   getAugmentsForSlot,
   gridToPixels,
@@ -122,6 +123,26 @@ export interface SceneStep {
   advanceUt?: number;
   /** Click the first element matching this selector. Missing throws. */
   click?: string;
+  /**
+   * Press the pointer on the control with this accessible name and drag it.
+   *
+   * Driver-side, so it never reaches this module: a synthetic `click()` cannot
+   * express a HELD pointer, and a control whose displacement sets a rate rather
+   * than a value does nothing at all until one is held. Released by a later
+   * `release` step, or when the scene ends.
+   */
+  hold?: { name: string; role?: string; dx?: number; dy?: number };
+  /** Let go of whatever `hold` took. Driver-side. */
+  release?: true;
+  /**
+   * Real milliseconds to let pass, spread over `frames`. Driver-side.
+   *
+   * The counterpart to `advanceUt` and not a substitute for it: that one steps
+   * the PINNED clock, which is what keeps a countdown reproducible. This one
+   * waits, which is the only thing a control ticking on its own `setInterval`
+   * responds to.
+   */
+  waitMs?: number;
   /** How many frames this step spans. Defaults to 1. */
   frames?: number;
 }
@@ -432,6 +453,19 @@ export interface RenderSetup {
     scene: ScenePayload;
     starve: boolean;
   }) => void | Promise<void>;
+  /**
+   * Run once the tree is mounted and fed, before the shot is taken.
+   *
+   * The place for anything that has to reach the mounted DOM. A `<video>` in
+   * headless Chromium does not paint a `captureStream`, so the one harness with
+   * a live feed puts a canvas behind the chrome here: it needs the video
+   * element to exist to find its stage, which `beforeScene` is too early for and
+   * `afterScene` is too late for.
+   */
+  afterMount?: (ctx: {
+    scene: ScenePayload;
+    starve: boolean;
+  }) => void | Promise<void>;
   /** Run after each capture. Unregister and dispose. */
   afterScene?: (ctx: { scene: ScenePayload }) => void | Promise<void>;
   /** Wrap the scene's tree in extra providers, inside the theme and stream. */
@@ -528,6 +562,13 @@ let activeSourceIds: string[] = [];
 let currentScene: ScenePayload | null = null;
 
 function teardown(): void {
+  // Media first. A `<video>` removed from the document while a `play()` is
+  // still pending rejects with "the play() request was interrupted by a new
+  // load request", which arrives as an uncaught page error and fails every
+  // render in the run, including the ones already taken.
+  for (const video of document.querySelectorAll("video")) {
+    video.pause();
+  }
   if (activeRoot) {
     activeRoot.unmount();
     activeRoot = null;
@@ -649,6 +690,9 @@ async function renderScene(scene: ScenePayload): Promise<SceneReport> {
   const unsubscribed = await feedInRounds(fixture, scene);
   const uncarried = unsubscribed.filter((t) => !isCarried(t, carried));
 
+  await activeSetup.afterMount?.({ scene, starve: scene.starve });
+  await frame();
+
   return {
     ...measure(el),
     uncarriedTopics: uncarried,
@@ -724,6 +768,17 @@ function mountWidget(id: string, scene: ScenePayload): ReactNode {
   );
 }
 
+/**
+ * Whether `Panel` already mounts this slot for every widget it wraps.
+ *
+ * The two universal segments are `Panel`'s own, so a stand-in host binding one
+ * again renders every augment on it twice.
+ */
+function mountedByPanel(slot: string): boolean {
+  const segment = slot.slice(slot.indexOf(".") + 1);
+  return (FRAMEWORK_AUGMENT_SEGMENTS as readonly string[]).includes(segment);
+}
+
 function buildTree(scene: ScenePayload): ReactNode {
   if (scene.target.kind === "widget")
     return mountWidget(scene.target.id, scene);
@@ -736,8 +791,9 @@ function buildTree(scene: ScenePayload): ReactNode {
     if (!getComponent(scene.host)) {
       throw new Error(
         `render probe: "_scene.host" names "${scene.host}", which is not a ` +
-          "registered widget in this bundle. A first-party host has to be " +
-          "supplied to the run with --with <module that registers it>; " +
+          "registered widget in this bundle. A host that ships with the app " +
+          "has to be supplied to the run with --with <module that registers " +
+          "it>, or declared once in package.json's gonogo.renderWith; " +
           `registered widgets are: ${getComponents()
             .map((c) => c.id)
             .sort()
@@ -765,15 +821,22 @@ function buildTree(scene: ScenePayload): ReactNode {
       def={standInHost(hostWidgetId, slot, scene.target.kind)}
       instanceId="probe"
     >
+      {/* No `PanelBody` of our own: `Panel` wraps its children in one, so a
+          second was a second content inset.
+
+          And nothing bound here for the two segments `Panel` mounts on every
+          widget's behalf. Binding `sections` HERE as well fired both mounts and
+          every augment on one rendered TWICE, once per body at its own inset,
+          which reads as a widget that draws its contents twice rather than as a
+          harness fault. The panel's own mount is the one to keep, being where
+          the augment lands in a real host. */}
       <Panel panelTitle={`${hostLabelFor(slot)} (stand-in host)`}>
-        <PanelBody>
-          {/* The real slot, not the augment's component reached for directly:
-              a misspelled slot id renders nothing HERE rather than in someone's
-              dashboard, and the `requires` gate is exercised on the way. */}
-          {scene.target.kind === "augment" ? (
-            <Slot name={slot} props={scene.slotProps} />
-          ) : null}
-        </PanelBody>
+        {/* The real slot, not the augment's component reached for directly: a
+            misspelled slot id renders nothing HERE rather than in someone's
+            dashboard, and the `requires` gate is exercised on the way. */}
+        {scene.target.kind === "augment" && !mountedByPanel(slot) ? (
+          <Slot name={slot} props={scene.slotProps} />
+        ) : null}
       </Panel>
     </WidgetHostFor>
   );

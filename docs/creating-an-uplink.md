@@ -571,6 +571,13 @@ your registrations into a page, and `docs --check` keeps that page from going
 stale. See **[docs/uplink-rendering.md](./uplink-rendering.md)**: it is the same
 harness your unit tests use, driven through a real browser.
 
+There is exactly one of it. If it cannot photograph something your Uplink does,
+that is a gap in the tool and it gets filled there rather than in a driver of
+your own: a fixture nothing renders and a harness only you can run are the two
+ways a widget ends up shipping with no picture of it. Enforced by
+`packages/core/src/one-render-process.test.ts`, which fails a client that imports
+a browser driver and a client whose scene fixtures no script renders.
+
 ---
 
 ## Showing a quantity, and testing that you did

@@ -73,11 +73,37 @@ const INVENTORY: UplinkInventory = {
       ],
     },
   ],
-  augments: [],
+  augments: [
+    {
+      id: "reactor-badge",
+      augments: "console.header",
+      channels: ["example.reactor"],
+      suppressesVanillaBase: false,
+      settings: [],
+    },
+  ],
   contributions: [],
   processors: [],
   reckonedTopics: [],
   derivedChannels: [],
+  hosts: [
+    {
+      id: "console",
+      name: "Console",
+      description: "A host this Uplink does not own.",
+      tags: [],
+      channels: ["host.status"],
+      optionalChannels: [],
+      dataRequirements: [],
+      actions: [],
+      augmentSlots: ["console.header"],
+      contributionSlots: [],
+      requires: [],
+      pushable: false,
+      behaviors: [],
+      modes: [{ name: "default", w: 9, h: 4, pxW: 352, pxH: 124 }],
+    },
+  ],
 };
 
 describe("the generated browser entry", () => {
@@ -109,6 +135,48 @@ describe("the generated browser entry", () => {
   it("prefers source over a built main, so a render is never of a stale build", () => {
     const dir = fakePackage({ "dist/index.js": "export {};\n" });
     expect(resolveUplinkPackage(dir).entry).toMatch(/src\/index\.ts$/);
+  });
+
+  it("bundles the hosts a package declares, before its own client", () => {
+    const dir = fakePackage({
+      "hosts.ts": "export {};\n",
+      "package.json": JSON.stringify({
+        name: "@example/uplink",
+        version: "1.2.3",
+        gonogo: { renderWith: ["./hosts.ts"] },
+      }),
+    });
+    const pkg = resolveUplinkPackage(dir);
+    expect(pkg.renderWith).toHaveLength(1);
+
+    // Order is the property: a host has to be registered before the augment
+    // that names it, or `AugmentSlot` mounts against nothing.
+    const entry = generateEntry(pkg, pkg.renderWith);
+    expect(entry.indexOf("hosts.ts")).toBeLessThan(
+      entry.indexOf("src/index.ts"),
+    );
+  });
+
+  it("names the declaration when a declared host module is missing", () => {
+    const dir = fakePackage({
+      "package.json": JSON.stringify({
+        name: "@example/uplink",
+        version: "1.2.3",
+        gonogo: { renderWith: ["./gone.ts"] },
+      }),
+    });
+    expect(() => resolveUplinkPackage(dir)).toThrow(/renderWith.*gone\.ts/s);
+  });
+
+  it("refuses a module SPECIFIER, which needs a dependency the rules forbid", () => {
+    const dir = fakePackage({
+      "package.json": JSON.stringify({
+        name: "@example/uplink",
+        version: "1.2.3",
+        gonogo: { renderWith: ["@ksp-gonogo/components"] },
+      }),
+    });
+    expect(() => resolveUplinkPackage(dir)).toThrow(/not a module specifier/);
   });
 });
 
@@ -188,6 +256,135 @@ describe("fixtures become scenes", () => {
     );
     const [scene] = buildScenes(pkg, INVENTORY);
     expect(scene.dataSources).toEqual({ data: { "v.altitude": 1200 } });
+  });
+
+  it("sizes and feeds a hosted augment scene as its HOST", () => {
+    const pkg = resolveUplinkPackage(
+      fixture({
+        _scene: { augment: "reactor-badge", host: "console" },
+        _stream: { emits: [{ topic: "example.reactor", payload: {} }] },
+      }),
+    );
+    const [scene] = buildScenes(pkg, INVENTORY);
+    // The host is what is on screen, so its tile and its topics are the scene's.
+    // A stand-in size would render the real widget at a shape nobody sees.
+    expect(scene.modes.map((m) => m.name)).toEqual(["default"]);
+    expect(scene.modes[0]).toMatchObject({ w: 9, h: 4 });
+    expect(scene.carriedChannels).toContain("host.status");
+    expect(scene.carriedChannels).toContain("example.reactor");
+  });
+
+  it("lets a hosted scene name the tile the host is actually run at", () => {
+    // The host's `defaultSize` is chosen for the host alone. An operator who
+    // has added three sections to it has resized it, and the render of that
+    // widget at its bare default is a picture of a tile nobody is using.
+    const [scene] = buildScenes(
+      resolveUplinkPackage(
+        fixture({
+          _scene: {
+            augment: "reactor-badge",
+            host: "console",
+            size: { w: 13, h: 14 },
+          },
+        }),
+      ),
+      INVENTORY,
+    );
+    expect(scene.modes).toHaveLength(1);
+    expect(scene.modes[0]).toMatchObject({ w: 13, h: 14 });
+    expect(scene.modes[0].pxW).toBeGreaterThan(352);
+  });
+
+  it("names --with when a scene's host is not in the bundle", () => {
+    expect(() =>
+      buildScenes(
+        resolveUplinkPackage(
+          fixture({ _scene: { augment: "reactor-badge", host: "dashboard" } }),
+        ),
+        INVENTORY,
+      ),
+    ).toThrow(/--with/);
+  });
+
+  it("refuses a host on a WIDGET scene, which is its own host", () => {
+    expect(() =>
+      buildScenes(
+        resolveUplinkPackage(
+          fixture({ _scene: { widget: "reactor", host: "console" } }),
+        ),
+        INVENTORY,
+      ),
+    ).toThrow(/which IS the host/);
+  });
+
+  it("carries _scene.paints through, and refuses one that asserts nothing", () => {
+    const [scene] = buildScenes(
+      resolveUplinkPackage(
+        fixture({ _scene: { widget: "reactor", paints: ["CRITICAL", "80%"] } }),
+      ),
+      INVENTORY,
+    );
+    expect(scene.paints).toEqual(["CRITICAL", "80%"]);
+
+    // An empty string matches every element, so accepting one would be a check
+    // that reads as written and asserts nothing.
+    expect(() =>
+      buildScenes(
+        resolveUplinkPackage(
+          fixture({ _scene: { widget: "reactor", paints: [""] } }),
+        ),
+        INVENTORY,
+      ),
+    ).toThrow(/matches every element/);
+  });
+
+  it("carries _scene.before in order, and refuses an act naming nothing", () => {
+    const [scene] = buildScenes(
+      resolveUplinkPackage(
+        fixture({
+          _scene: {
+            widget: "reactor",
+            before: [
+              { press: "Draft plan" },
+              { hover: "video" },
+              { rest: true },
+            ],
+          },
+        }),
+      ),
+      INVENTORY,
+    );
+    expect(scene.before).toEqual([
+      { press: "Draft plan" },
+      { hover: "video" },
+      { rest: true },
+    ]);
+
+    expect(() =>
+      buildScenes(
+        resolveUplinkPackage(
+          fixture({ _scene: { widget: "reactor", before: [{ click: "x" }] } }),
+        ),
+        INVENTORY,
+      ),
+    ).toThrow(/exactly one of press \/ hover \/ rest/);
+  });
+
+  it("refuses paints on a motion scene, which has no one moment to check", () => {
+    expect(() =>
+      buildScenes(
+        resolveUplinkPackage(
+          fixture({
+            _scene: {
+              widget: "reactor",
+              paints: ["CRITICAL"],
+              steps: [{ advanceUt: 60, frames: 4 }],
+            },
+          }),
+        ),
+        INVENTORY,
+      ),
+    ).toThrow(/cannot both be set/);
   });
 
   it("defaults every emission's instant to the pinned clock", () => {

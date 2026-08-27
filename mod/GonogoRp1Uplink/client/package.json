@@ -15,7 +15,7 @@
   "scripts": {
     "build": "tsc -p tsconfig.build.json",
     "dev": "tsc -p tsconfig.build.json --watch",
-    "render": "TSX_TSCONFIG_PATH=tsconfig.json tsx scripts/render-rp1.ts",
+    "render": "gonogo-uplink render",
     "test": "vitest run",
     "test:coverage": "vitest run --coverage",
     "typecheck": "tsc -p tsconfig.json"
@@ -39,11 +39,15 @@
     "playwright": "^1.60.0",
     "react": "^18.0.0",
     "react-dom": "^18.0.0",
-    "tsx": "^4.0.0",
     "typescript": "^5.0.0",
     "vitest": "^4.1.4"
   },
   "peerDependencies": {
     "react": "^18.0.0"
+  },
+  "gonogo": {
+    "renderWith": [
+      "../../../packages/components/src/index.ts"
+    ]
   }
 }

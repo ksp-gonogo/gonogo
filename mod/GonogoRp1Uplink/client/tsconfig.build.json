@@ -5,7 +5,5 @@
     "outDir": "./dist",
     "rootDir": "./src"
   },
-  "_comment": "include is restated rather than inherited: the base config widens to `scripts` so the render harness is typechecked, and the shipped bundle is src alone.",
-  "include": ["src"],
   "exclude": ["src/**/*.test.ts", "src/**/*.test.tsx"]
 }
