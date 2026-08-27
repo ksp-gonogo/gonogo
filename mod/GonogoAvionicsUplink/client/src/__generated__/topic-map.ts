@@ -21,7 +21,7 @@
 
 import type {
   AvionicsStatus,
-} from "./contract";
+} from "./contract.js";
 
 export interface GeneratedTopicPayloadMap {
   "avionics.status": AvionicsStatus;

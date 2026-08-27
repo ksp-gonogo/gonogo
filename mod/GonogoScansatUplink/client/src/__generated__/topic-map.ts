@@ -22,7 +22,7 @@
 import type {
   ScanScienceEntry,
   ScanningVesselEntry,
-} from "./contract";
+} from "./contract.js";
 
 export interface GeneratedTopicPayloadMap {
   "scansat.scanningVessels": ScanningVesselEntry[];

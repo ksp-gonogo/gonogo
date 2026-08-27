@@ -35,7 +35,7 @@ import type {
   Rp1ProgramSlots,
   Rp1ResearchEntry,
   Rp1WarehouseItemEntry,
-} from "./contract";
+} from "./contract.js";
 
 export interface GeneratedTopicPayloadMap {
   "rp1.buildQueue": Rp1BuildItemEntry[];

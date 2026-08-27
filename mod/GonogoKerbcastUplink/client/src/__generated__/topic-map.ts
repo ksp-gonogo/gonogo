@@ -21,7 +21,7 @@
 
 import type {
   KerbcastCameraEntry,
-} from "./contract";
+} from "./contract.js";
 
 export interface GeneratedTopicPayloadMap {
   "kerbcast.cameras": KerbcastCameraEntry[];
