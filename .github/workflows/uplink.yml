@@ -171,8 +171,15 @@ jobs:
       # a filtered `pnpm install`, however scoped, still resolves `workspace:*` to
       # the directory next door, which is what hid this for the life of the repo.
       #
-      # It proves its own instrument first, planting an import of an export the
-      # sdk does not have and exiting BLIND if that typechecks cleanly.
+      # It also EXECUTES an import of every published entry point, and asserts
+      # that the types it typechecked against came out of `dist` rather than the
+      # `src` the sdk also ships. Neither is a stricter typecheck; both are a
+      # different kind of check, and the reason is that the sdk shipped six weeks
+      # of unloadable ESM while a typecheck-only probe reported zero errors.
+      #
+      # It proves its own instrument first: an import of an export the sdk does
+      # not have must fail to typecheck, and an import of a subpath it does not
+      # publish must fail to load. Either one succeeding exits BLIND.
       - name: Can this Uplink leave
         if: matrix.uplink.client
         run: node scripts/uplink-extraction-probe.mjs --only '${{ matrix.uplink.id }}'

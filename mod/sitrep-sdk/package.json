@@ -25,6 +25,9 @@
     "biome.shared.json",
     "dist",
     "src",
+    "!src/**/*.test.ts",
+    "!src/**/*.test.tsx",
+    "!src/**/*.test-d.ts",
     "tsconfig.base.json"
   ],
   "publishConfig": {
@@ -56,11 +59,12 @@
         "types": "./dist/testing/index.d.ts",
         "import": "./dist/testing/index.js"
       },
+      "./biome": "./biome.shared.json",
       "./tsconfig.base.json": "./tsconfig.base.json"
     }
   },
   "scripts": {
-    "build": "node ../../scripts/gen-version.mjs SDK_VERSION && tsc -p tsconfig.json && node scripts/quote-downlevel-declaration-names.mjs && node scripts/bundle-delay-worker.mjs",
+    "build": "node ../../scripts/gen-version.mjs SDK_VERSION && tsc -p tsconfig.json && node scripts/quote-downlevel-declaration-names.mjs && node scripts/bundle-delay-worker.mjs && node scripts/extend-relative-specifiers.mjs",
     "test": "vitest run",
     "typecheck": "tsc -p tsconfig.json --noEmit && tsc -p tsconfig.test-d.json"
   },

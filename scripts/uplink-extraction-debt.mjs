@@ -55,3 +55,60 @@
  */
 
 export const EXTRACTION_DEBT = {};
+
+/**
+ * Published entry points that are NOT expected to load under a bare `node`
+ * import, and the reason each one is not.
+ *
+ * The probe's runtime leg EXECUTES an import of every subpath the two packages
+ * publish, because the typecheck leg above cannot: TypeScript resolves a
+ * relative `./api` under `moduleResolution: "bundler"` and Node's ESM resolver
+ * does not, so a package whose emit carries no file extensions typechecks
+ * perfectly and throws ERR_MODULE_NOT_FOUND on its first line. That is what
+ * `@ksp-gonogo/sitrep-sdk@0.0.1` did for every consumer that is not a bundler,
+ * for as long as it was on npm, with every gate in this repo green.
+ *
+ * Bare `node` is the gate deliberately, and not vitest, which is what an author
+ * actually runs. Measured on 2026-08-27: with
+ * `server: { deps: { inline: [/@ksp-gonogo/] } }` in the consumer's
+ * `vitest.config.ts`, Vite transforms the dependency and its own resolver
+ * performs the extension search Node refuses to, so the extensionless emit
+ * PASSED under vitest. The one configuration nothing can paper over is the one
+ * with no bundler in it at all.
+ *
+ * ## Why anything is exempt
+ *
+ * `@ksp-gonogo/ui-kit` is a React component library and its bundle evaluates
+ * `styled.span` at module scope. `styled-components@6` ships no `exports` map,
+ * only `main` (CJS) and `module` (ESM), so bare Node loads the CJS half and its
+ * interop makes the default export the module namespace rather than the factory:
+ * `styled.span is not a function`, before any of our code has a say. A bundler,
+ * and vitest with the kit inlined, honour `module` and get the factory. Nothing
+ * in this repo can fix that from the kit's side, and no author imports a React
+ * component library in bare Node.
+ *
+ * So the kit's entries are exempt and the sdk's are not. The sdk is the half an
+ * author's tests, scripts and tooling reach without a bundler, and it must load
+ * as-is.
+ *
+ * ## A named list rather than a count
+ *
+ * `EXTRACTION_DEBT` counts because its population is hundreds of typecheck
+ * errors. This population is a handful of named specifiers, so naming them is
+ * strictly stronger: a NEW specifier that fails is a failure rather than a
+ * number that grew, and the reason is recorded next to the thing it excuses
+ * instead of in a commit message. An entry that starts loading is reported for
+ * tightening and does not fail, the same ceiling rule as above.
+ */
+export const RUNTIME_IMPORT_EXEMPT = {
+  "@ksp-gonogo/ui-kit":
+    "evaluates styled.span at module scope; styled-components@6 has no exports map, so bare Node loads its CJS half and the default export is the namespace, not the factory",
+  "@ksp-gonogo/ui-kit/testing":
+    "shares tsup's chunk with the kit's root barrel, so it evaluates the same styled.span",
+  "@ksp-gonogo/ui-kit/render-probe":
+    "shares tsup's chunk with the kit's root barrel, so it evaluates the same styled.span",
+  "@ksp-gonogo/ui-kit/page-check":
+    "shares tsup's chunk with the kit's root barrel, so it evaluates the same styled.span",
+  "@ksp-gonogo/ui-kit/render":
+    "needs the `playwright` optional peer, whose postinstall downloads browsers; too heavy for this probe to install to answer a resolution question",
+};

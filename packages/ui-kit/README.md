@@ -26,6 +26,41 @@ give your components a different context than the host's `ThemeProvider` populat
 `theme` would come back empty. React has the same problem one layer down. As peers, they
 resolve to whatever the host already installed.
 
+### Testing with vitest: the kit must be inlined
+
+Add this to your `vitest.config.ts`, or every test file that touches the kit dies on import
+before a single assertion runs:
+
+```ts
+export default defineConfig({
+  test: {
+    server: { deps: { inline: [/@ksp-gonogo/] } },
+  },
+});
+```
+
+Vitest hands `node_modules` dependencies to Node's ESM loader rather than transforming them, and
+`styled-components@6` publishes no `exports` map, only `main` (CommonJS) and `module` (ESM).
+Node therefore loads the CommonJS half, and its interop makes the default export the module
+namespace object rather than the `styled` factory. The kit evaluates `styled.span` at module
+scope, so you get:
+
+```
+TypeError: styled.span is not a function
+```
+
+before any of your code runs. Inlining makes Vite process the kit itself, which honours `module`
+and resolves the factory. This is not specific to this kit, it is what any styled-components
+library needs from vitest, and it is why you will not see the problem in a monorepo where the kit
+is a workspace symlink: Vite never pre-bundles a linked dependency.
+
+The same setting is what `@ksp-gonogo/ui-kit/testing`, `/render-probe` and `/page-check` need,
+and it is the reason `expectNoA11yViolations` will otherwise appear not to exist.
+
+**Do not read a green vitest run as proof a `@ksp-gonogo` package is loadable.** Inlining also
+performs the module-extension search Node refuses to, so it hides an unloadable emit rather than
+reporting it. That is a real bug this project shipped for six weeks.
+
 ## Use it
 
 The host app mounts the tokens and the theme once. Inside a Gonogo dashboard that's already
