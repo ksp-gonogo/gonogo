@@ -409,6 +409,45 @@ export interface ScienceDataAboardRowContext {
   subjectId: string;
 }
 
+// --- LandingStatus (packages/components/src/LandingStatus) ------------------
+
+/** Mirrors `DescentProjection` (LandingStatus/DescentEnvelope.tsx). */
+export interface DescentProjection {
+  /** Sampled (speed, height-above-ground) pairs, vessel first, ground last. */
+  points: readonly { speed: number; altitude: number }[];
+  /** Height the descent settles onto the terminal curve at, when it does so
+   *  before the ground. Null means it never settles. */
+  settleAltitude: number | null;
+  /** Speed the projection reaches the ground at. */
+  touchdownSpeed: number;
+}
+
+/** Mirrors `DescentEnvelopeOverlayContext` (LandingStatus/DescentEnvelope.tsx),
+ *  the descent envelope's velocity-height plot as an overlay drawing surface. */
+export interface DescentEnvelopeOverlayContext {
+  /** Side of the square user space the plot draws in. */
+  size: number;
+  /** A speed and a height above ground, to a point in that user space. */
+  project(speedMps: number, altitudeM: number): { x: number; y: number };
+  /** The vessel's current speed, null when the stream carries no reading. */
+  currentSpeed: number | null;
+  /** The vessel's current height above ground, metres. */
+  currentAltitude: number;
+  /** The plot's own terminal-velocity curve, metres per second at a height. */
+  terminalVelocityAt(altitudeM: number): number;
+  /** Air density relative to the ground, from the same model as the curve. */
+  relativeDensity(altitudeM: number): number;
+  /** Re-run the descent against a terminal-velocity model of the caller's own.
+   *  Null when the body's surface gravity is unknown. */
+  projectDescent(
+    terminalVelocityAt: (altitudeM: number) => number,
+  ): DescentProjection | null;
+  /** The action-urgency colour the vessel mark carries. */
+  urgencyColor: string;
+  /** True airspeed as a Mach number, when the stream carries one. */
+  mach: number | null;
+}
+
 // --- OrbitView (packages/components/src/OrbitView) --------------------------
 
 /** Mirrors `OrbitOverlayContext` (OrbitView/index.tsx). */
@@ -569,6 +608,11 @@ declare module "./types" {
     "science-data.aboard-row": ScienceDataAboardRowContext;
 
     "orbit-view.overlay": OrbitOverlayContext;
+
+    "landing-status.envelope": DescentEnvelopeOverlayContext;
+    // Mounted by `Panel`'s universal segments, not by the widget.
+    "landing-status.sections": Record<string, never>;
+    "landing-status.actions": Record<string, never>;
 
     "experiments.instrument": ExperimentsInstrumentSlotContext;
     // Mounted by `Panel`'s universal `actions` segment, not by the widget.

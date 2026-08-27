@@ -39,6 +39,7 @@ interface Args {
   bundle?: string;
   frames: boolean;
   check: boolean;
+  withModules: string[];
 }
 
 function parseArgs(argv: readonly string[]): Args {
@@ -49,6 +50,7 @@ function parseArgs(argv: readonly string[]): Args {
     assetDir: "docs/assets",
     frames: false,
     check: false,
+    withModules: [],
   };
   for (let i = 1; i < argv.length; i++) {
     const flag = argv[i];
@@ -89,6 +91,9 @@ function parseArgs(argv: readonly string[]): Args {
       case "--bundle":
         args.bundle = value();
         break;
+      case "--with":
+        args.withModules.push(resolve(process.cwd(), value()));
+        break;
       case "--frames":
         args.frames = true;
         break;
@@ -117,6 +122,10 @@ const USAGE = `gonogo-uplink <render|docs> [options]
   --assets <dir>         docs asset output (default: docs/assets)
   --bundle <file>        the file you distribute, hashed into integrity
   --frames               keep the numbered PNGs of a motion scene
+  --with <module>        also bundle this module's registrations, so a scene
+                         naming "_scene.host" has a real host to mount inside.
+                         Repeatable. In-repo only: a first-party host widget
+                         lives in a package a third party cannot install
 `;
 
 async function loadProse(file: string | undefined): Promise<Prose> {
@@ -156,6 +165,7 @@ async function main(argv: readonly string[]): Promise<void> {
       scene: args.scene,
       frames: args.frames,
       uplinkId: args.uplink,
+      withModules: args.withModules,
     });
     reportFont(result.fontMode, result.fontAdvice);
     console.log(`\n${result.assets.length} render(s) → ${outDir}`);
@@ -175,6 +185,7 @@ async function main(argv: readonly string[]): Promise<void> {
     outDir: assetOut,
     frames: false,
     uplinkId: args.uplink,
+    withModules: args.withModules,
   });
   reportFont(result.fontMode, result.fontAdvice);
   assertProseTargetsExist(prose, result.inventory);

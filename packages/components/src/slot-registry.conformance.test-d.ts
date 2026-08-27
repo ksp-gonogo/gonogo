@@ -26,6 +26,7 @@ import type {
 import type { ActionGroupSlotContext } from "./ActionGroup";
 import type { CrewAvatarContext, CrewBadgeContext } from "./CrewStatus";
 import type { ExperimentsInstrumentSlotContext } from "./Experiments";
+import type { DescentEnvelopeOverlayContext } from "./LandingStatus/DescentEnvelope";
 import type { LaunchDirectorSlotContext } from "./LaunchDirector";
 import type {
   MapBaseLayerContext,
@@ -183,6 +184,18 @@ type _OrbitOverlay = Expect<
 type _OrbitOverlayBack = Expect<
   Assignable<OrbitOverlayContext, SdkSlotProps<"orbit-view.overlay">>
 >;
+type _DescentEnvelope = Expect<
+  Assignable<
+    SdkSlotProps<"landing-status.envelope">,
+    DescentEnvelopeOverlayContext
+  >
+>;
+type _DescentEnvelopeBack = Expect<
+  Assignable<
+    DescentEnvelopeOverlayContext,
+    SdkSlotProps<"landing-status.envelope">
+  >
+>;
 
 type _ExperimentsSections = Expect<
   Assignable<
@@ -266,6 +279,8 @@ export type _SlotRegistryConformance = [
   _MapBaseBack,
   _OrbitOverlay,
   _OrbitOverlayBack,
+  _DescentEnvelope,
+  _DescentEnvelopeBack,
   _ExperimentsSections,
   _ExperimentsSectionsBack,
   _ScienceDataAboardRow,

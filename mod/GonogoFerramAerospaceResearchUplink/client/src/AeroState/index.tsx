@@ -1,4 +1,4 @@
-import type { ComponentProps, Reading, Value } from "@ksp-gonogo/sitrep-sdk";
+import type { ComponentProps, Value } from "@ksp-gonogo/sitrep-sdk";
 import { registerComponent, useTelemetry, value } from "@ksp-gonogo/sitrep-sdk";
 import {
   BigReadout,
@@ -19,20 +19,10 @@ import {
 // the consumer of that decode-time wrap, so it pulls the registration itself
 // rather than relying on the package entry point's import order.
 import "../topics";
+import { judgeable } from "../judgeable";
 import { AERO } from "../uplink";
 
 type AeroConfig = Record<string, never>;
-
-/**
- * The value a judgement may be drawn from: current, or modelled forward to the
- * frame. A stale reading gives nothing, because an attitude to the airflow
- * cannot be dated: an operator reads a stall band as the situation NOW.
- */
-function judgeable<T>(reading: Reading<T>): T | undefined {
-  if (reading.state === "observed") return reading.value;
-  if (reading.state === "reckonable") return reading.reckoned.value;
-  return undefined;
-}
 
 /**
  * A quantity readout, the way an Uplink is meant to write one: the value carries

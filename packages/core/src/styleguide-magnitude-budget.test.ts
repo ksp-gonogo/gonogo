@@ -43,6 +43,13 @@ const MAGNITUDE_BUDGET: Record<string, number> = {
   "mod/GonogoKerbalismUplink/client/src/resourceProjection.ts": 4,
   "mod/GonogoKerbalismUplink/client/src/ScienceFileManager/index.tsx": 1,
   "mod/GonogoKerbcastUplink/client/src/CameraFeed/CameraFeed.tsx": 4,
+  // 4: an overlay drawing on a host plot's axes. Alpha becomes an SVG rotation,
+  // stall fraction the amplitude of a torn edge, terminal velocity the anchor of
+  // a curve sampled through a square root, and the ballistic coefficient the one
+  // reading of the four that reaches a reader as text. Geometry is arithmetic on
+  // numbers and there is no term for it in the algebra; the numbers a READER
+  // sees still go out through `speakQuantity` / `writeQuantity`.
+  "mod/GonogoFerramAerospaceResearchUplink/client/src/DescentEnvelope/index.tsx": 4,
   // 1: the contribution entry carries a BARE bits/sec so CommSignal can compare
   // legs to find the bottleneck. A comparison across a slot boundary cannot
   // carry a Value, because the entry crosses the published contract as JSON.
@@ -107,7 +114,11 @@ const MAGNITUDE_BUDGET: Record<string, number> = {
   "packages/components/src/FleetComms/index.tsx": 15,
   "packages/components/src/FleetRoster/index.tsx": 3,
   "packages/components/src/FuelStatus/index.tsx": 1,
-  "packages/components/src/LandingStatus/index.tsx": 35,
+  // 36: the thirty-sixth is the Mach number, handed to the descent envelope so
+  // the part of its projection that has yet to cross the transonic drag rise is
+  // drawn as the estimate it is. It reaches an SVG stroke pattern rather than a
+  // reader, so there is nothing for a Value to carry.
+  "packages/components/src/LandingStatus/index.tsx": 36,
   "packages/components/src/LaunchDirector/index.tsx": 1,
   // 1: the view instant, unwrapped to bucket it and to hand it to the frame
   // arithmetic. Every function that solves a body's position takes a bare UT,

@@ -2169,6 +2169,13 @@ export const ALLOWLIST: Record<ModToken, ModAllowlist> = {
        */
       "packages/app/src/main.tsx",
       "packages/app/src/__tests__/topic-cs-sync.test.ts",
+      /*
+       * A path-keyed budget over every file in the tree that reaches for
+       * `.magnitude`, so it names this Uplink's overlay the same way it names
+       * five other Uplinks' files. A ratchet inventory, not a dependency:
+       * nothing in it imports anything.
+       */
+      "packages/core/src/styleguide-magnitude-budget.test.ts",
     ],
   },
 };
