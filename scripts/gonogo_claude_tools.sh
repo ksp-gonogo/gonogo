@@ -1301,10 +1301,11 @@ case "${1:-help}" in
       gonogokerbalismuplink) build_gonogokerbalismuplink ;;
       gonogoprincipiauplink) build_gonogoprincipiauplink ;;
       gonogoferramaerospaceresearchuplink) build_gonogoferramaerospaceresearchuplink ;;
+      gonogorp1uplink) build_gonogorp1uplink ;;
       devtools) build_devtools ;;
       *)
         echo "usage: gonogo_claude_tools.sh build <target>"
-        echo "  targets: ocisly [--baseline], kerbcast, gonogo, gonogoscansatuplink, gonogorealantennasuplink, gonogokosuplink, gonogomechjebuplink, gonogoavionicsuplink, gonogokerbcastuplink, gonogokerbalismuplink, gonogoprincipiauplink, gonogoferramaerospaceresearchuplink, devtools"
+        echo "  targets: ocisly [--baseline], kerbcast, gonogo, gonogoscansatuplink, gonogorealantennasuplink, gonogokosuplink, gonogomechjebuplink, gonogoavionicsuplink, gonogokerbcastuplink, gonogokerbalismuplink, gonogoprincipiauplink, gonogoferramaerospaceresearchuplink, gonogorp1uplink, devtools"
         exit 2
         ;;
     esac
