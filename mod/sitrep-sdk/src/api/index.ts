@@ -95,6 +95,7 @@ export type {
   PlotMarkerLayer,
   PlotPoint,
   PlotRegionLayer,
+  PlotReliefLayer,
   PlotRuleLayer,
   PlotSeriesLayer,
   PlotTone,

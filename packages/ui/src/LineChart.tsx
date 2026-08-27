@@ -102,6 +102,19 @@ export interface LineChartProps {
    */
   legend?: "overlay" | "none";
   /**
+   * Drop the X tick ladder and its vertical gridlines.
+   *
+   * For a ONE-DIMENSIONAL plot: an altitude scale has a height and nothing
+   * across it, so the marks sit at a nominal mid-span and the axis under them
+   * measures nothing. A ladder reading 0 / 0.50 / 1 under a chevron is worse
+   * than no ladder, because it is a scale and a reader is entitled to think it
+   * means something.
+   *
+   * The domain is still needed and still used: layers are placed against it.
+   * Only the reader-facing axis goes.
+   */
+  hideXAxis?: boolean;
+  /**
    * Everything drawn beyond the series, in the plot's own data space (see the
    * `PlotLayer` vocabulary in `@ksp-gonogo/sitrep-sdk`). A plot contributed to
    * the app-wide `plots` slot hands its own `layers` down here, so a chart
@@ -179,6 +192,7 @@ export function LineChart({
   yScaleSecondary = "linear",
   thresholds,
   legend = "overlay",
+  hideXAxis = false,
   layers,
   ariaLabel,
   width,
@@ -588,33 +602,35 @@ export function LineChart({
       )}
 
       {/* Vertical grid lines (every tick) */}
-      {xTicks.map((tick, idx) => (
-        <line
-          // biome-ignore lint/suspicious/noArrayIndexKey: tick position IS identity; niceTicks may emit duplicate values for zero-span domains
-          key={`xg-${idx}`}
-          x1={scaleX(tick)}
-          y1={plotY0}
-          x2={scaleX(tick)}
-          y2={plotY1}
-          stroke="var(--color-border-subtle)"
-          strokeWidth={1}
-        />
-      ))}
+      {!hideXAxis &&
+        xTicks.map((tick, idx) => (
+          <line
+            // biome-ignore lint/suspicious/noArrayIndexKey: tick position IS identity; niceTicks may emit duplicate values for zero-span domains
+            key={`xg-${idx}`}
+            x1={scaleX(tick)}
+            y1={plotY0}
+            x2={scaleX(tick)}
+            y2={plotY1}
+            stroke="var(--color-border-subtle)"
+            strokeWidth={1}
+          />
+        ))}
 
       {/* X-axis tick labels (thinned + edge-anchored to avoid overlap/clip) */}
-      {xTickLabels.map((lbl, idx) => (
-        <text
-          // biome-ignore lint/suspicious/noArrayIndexKey: label position IS identity
-          key={`xl-${idx}`}
-          x={lbl.x}
-          y={plotY1 + 14}
-          textAnchor={lbl.anchor}
-          fill="var(--color-text-faint)"
-          fontSize={11}
-        >
-          {lbl.text}
-        </text>
-      ))}
+      {!hideXAxis &&
+        xTickLabels.map((lbl, idx) => (
+          <text
+            // biome-ignore lint/suspicious/noArrayIndexKey: label position IS identity
+            key={`xl-${idx}`}
+            x={lbl.x}
+            y={plotY1 + 14}
+            textAnchor={lbl.anchor}
+            fill="var(--color-text-faint)"
+            fontSize={11}
+          >
+            {lbl.text}
+          </text>
+        ))}
 
       {/* Axis borders */}
       <line

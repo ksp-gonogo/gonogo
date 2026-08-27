@@ -189,6 +189,40 @@ export interface PlotCaptionLayer extends PlotLayerBase {
   caption?: string;
 }
 
+/**
+ * A 2D scalar field sampled over a rectangle of the plot's own data space: the
+ * terrain under a landing site, a scan's coverage over a region, a flux map.
+ *
+ * The one layer that carries a GRID rather than a curve or a point, and it
+ * exists because a top-down plot's subject IS a surface: without it such a plot
+ * can draw where things are and not what the ground under them does, which is
+ * the reading an operator is actually taking. `PlotFieldLayer` is the
+ * one-dimensional cousin (a wash varying along a single axis) and cannot
+ * express this: a haze gradient has no shape.
+ *
+ * `values` are RAW, in whatever unit the field is measured in, and the renderer
+ * normalises across the grid's own range. That is the same tone-not-colour rule
+ * a step further: an author states elevations, not a ramp, so the palette and
+ * the banding stay the renderer's and one plot's relief reads like every
+ * other's. Band edges are drawn as iso-lines, which is what makes slope legible
+ * (close bands are steep, a bullseye is a crater or a peak).
+ *
+ * A grid whose values are all equal is flat, and draws flat. A grid with a
+ * non-finite sample in it is not a field and must not be contributed: normalise
+ * over a hole and every other cell moves.
+ */
+export interface PlotReliefLayer extends PlotLayerBase {
+  kind: "relief";
+  /** Row-major, exactly `size * size` finite samples. */
+  values: readonly number[];
+  /** The N of the NxN grid. */
+  size: number;
+  /** The data-space rectangle the grid spans, corner to corner. */
+  bounds: { x0: number; y0: number; x1: number; y1: number };
+  /** Discrete elevation bands. Defaults to 6. */
+  bands?: number;
+}
+
 export type PlotLayer =
   | PlotSeriesLayer
   | PlotRuleLayer
@@ -196,4 +230,5 @@ export type PlotLayer =
   | PlotFieldLayer
   | PlotMarkerLayer
   | PlotAnnotationLayer
-  | PlotCaptionLayer;
+  | PlotCaptionLayer
+  | PlotReliefLayer;

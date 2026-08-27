@@ -1,10 +1,18 @@
-import { DashboardItemContext, registerStockBodies } from "@ksp-gonogo/core";
+import {
+  DashboardItemContext,
+  PerfBudget,
+  registerStockBodies,
+} from "@ksp-gonogo/core";
 import { Quality } from "@ksp-gonogo/sitrep-sdk";
 import { act, render, screen, waitFor } from "@ksp-gonogo/test-utils";
 import { NULL_DISPLAY } from "@ksp-gonogo/ui-kit";
 import { visibleText } from "@ksp-gonogo/ui-kit/testing";
-import { beforeEach, describe, expect, it } from "vitest";
+import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { setupStreamFixture } from "../test/setupStreamFixture";
+import {
+  installSizedResizeObserver,
+  WidgetContributions,
+} from "../test/widgetDomSnapshot";
 import { LandingStatusComponent } from "./index";
 
 /**
@@ -47,9 +55,32 @@ const CARRIED = [
 const MUN = { index: 3, name: "Mun", radius: 200_000, mu: 6.5138398e10 };
 
 describe("LandingStatus: what undefined means today", () => {
+  /**
+   * The contribution budgets, reset between tests.
+   *
+   * `Contributions "<slot>" entries recomputed/sec` is capped at 30, which is
+   * ~7x a real 4 Hz stream. A spec emits its whole scenario in a handful of
+   * milliseconds, so the thirty-odd frames this file replays land inside one
+   * rolling second and every slot on the widget trips its cap at 31. The same
+   * thirty-one frames take eight seconds in the app.
+   *
+   * Reset rather than raised: the threshold is right for the load it is
+   * measuring, and widening it to fit a test's clock is how a budget stops
+   * being able to see the regression it exists for.
+   */
+
+  // A chart in an unmeasured box draws nothing but "Chart too small to render",
+  // and every plot on this widget is a chart now. jsdom lays nothing out, so the
+  // observer has to be told a size. Same helper the snapshot harness uses.
+  let restoreResizeObserver: () => void;
+  afterEach(() => {
+    restoreResizeObserver();
+  });
   let stream: ReturnType<typeof setupStreamFixture>;
 
   beforeEach(() => {
+    for (const b of PerfBudget.getAll()) b.reset();
+    restoreResizeObserver = installSizedResizeObserver({ w: 720, h: 640 });
     registerStockBodies();
     stream = setupStreamFixture({ carriedChannels: CARRIED, pinnedUt: 10 });
   });
@@ -58,11 +89,13 @@ describe("LandingStatus: what undefined means today", () => {
     return render(
       <stream.Provider>
         <DashboardItemContext.Provider value={{ instanceId: "land-undef" }}>
-          <LandingStatusComponent
-            id="land-undef"
-            w={size?.w ?? 8}
-            h={size?.h ?? 12}
-          />
+          <WidgetContributions Widget={LandingStatusComponent}>
+            <LandingStatusComponent
+              id="land-undef"
+              w={size?.w ?? 8}
+              h={size?.h ?? 12}
+            />
+          </WidgetContributions>
         </DashboardItemContext.Provider>
       </stream.Provider>,
     );
@@ -318,12 +351,14 @@ describe("LandingStatus: what undefined means today", () => {
         { validAt: 9 },
       );
     });
-    // The rail carries the lowest-point datum while the channel is live, which
-    // is what proves the tombstone below actually replaced something.
+    // The altitude plot carries the lowest-point datum while the channel is
+    // live, which is what proves the tombstone below actually replaced
+    // something. It reads the height out of the plot's accessible name now
+    // rather than a `Tape`'s `aria-valuenow`; same datum, same test.
     await waitFor(() =>
       expect(
-        screen.getByRole("meter", { name: /altitude above terrain/i }),
-      ).toHaveAttribute("aria-valuenow", "4800"),
+        screen.getByRole("img", { name: /4\.8 km above terrain/ }),
+      ).toBeInTheDocument(),
     );
     expect(
       screen.queryByText(
@@ -342,11 +377,13 @@ describe("LandingStatus: what undefined means today", () => {
         ),
       ).toBeInTheDocument(),
     );
-    // And the rail silently swaps to the centre-of-mass altitude off
+    // And the plot silently swaps to the centre-of-mass altitude off
     // `vessel.flight`: a different measurement at the same scale.
-    expect(
-      screen.getByRole("meter", { name: /altitude above terrain/i }),
-    ).toHaveAttribute("aria-valuenow", "5000");
+    await waitFor(() =>
+      expect(
+        screen.getByRole("img", { name: /5\.0 km above terrain/ }),
+      ).toBeInTheDocument(),
+    );
   });
 
   it("withholds the affordability verdict rather than answering it when dv.summary is absent", async () => {

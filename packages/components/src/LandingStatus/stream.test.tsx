@@ -1,6 +1,7 @@
 import {
   DashboardItemContext,
   getComponent,
+  PerfBudget,
   registerStockBodies,
   useWidgetStreamStatus,
 } from "@ksp-gonogo/core";
@@ -9,8 +10,12 @@ import { act, render, screen, waitFor } from "@ksp-gonogo/test-utils";
 import { PanelStatusProvider } from "@ksp-gonogo/ui-kit";
 import { visibleText } from "@ksp-gonogo/ui-kit/testing";
 import type { ReactNode } from "react";
-import { beforeEach, describe, expect, it } from "vitest";
+import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { setupStreamFixture } from "../test/setupStreamFixture";
+import {
+  installSizedResizeObserver,
+  WidgetContributions,
+} from "../test/widgetDomSnapshot";
 import { LandingStatusComponent } from "./index";
 
 /**
@@ -48,9 +53,32 @@ const CARRIED = [
 const MUN = { index: 3, name: "Mun", radius: 200_000, mu: 6.5138398e10 };
 
 describe("LandingStatus: full-vector solve genuinely runs off the stream", () => {
+  /**
+   * The contribution budgets, reset between tests.
+   *
+   * `Contributions "<slot>" entries recomputed/sec` is capped at 30, which is
+   * ~7x a real 4 Hz stream. A spec emits its whole scenario in a handful of
+   * milliseconds, so the thirty-odd frames this file replays land inside one
+   * rolling second and every slot on the widget trips its cap at 31. The same
+   * thirty-one frames take eight seconds in the app.
+   *
+   * Reset rather than raised: the threshold is right for the load it is
+   * measuring, and widening it to fit a test's clock is how a budget stops
+   * being able to see the regression it exists for.
+   */
+
+  // A chart in an unmeasured box draws nothing but "Chart too small to render",
+  // and every plot on this widget is a chart now. jsdom lays nothing out, so the
+  // observer has to be told a size. Same helper the snapshot harness uses.
+  let restoreResizeObserver: () => void;
+  afterEach(() => {
+    restoreResizeObserver();
+  });
   let stream: ReturnType<typeof setupStreamFixture>;
 
   beforeEach(() => {
+    for (const b of PerfBudget.getAll()) b.reset();
+    restoreResizeObserver = installSizedResizeObserver({ w: 720, h: 640 });
     registerStockBodies();
     stream = setupStreamFixture({ carriedChannels: CARRIED, pinnedUt: 10 });
   });
@@ -59,11 +87,13 @@ describe("LandingStatus: full-vector solve genuinely runs off the stream", () =>
     return render(
       <stream.Provider>
         <DashboardItemContext.Provider value={{ instanceId: "landing-stream" }}>
-          <LandingStatusComponent
-            id="landing-stream"
-            w={size?.w ?? 8}
-            h={size?.h ?? 10}
-          />
+          <WidgetContributions Widget={LandingStatusComponent}>
+            <LandingStatusComponent
+              id="landing-stream"
+              w={size?.w ?? 8}
+              h={size?.h ?? 10}
+            />
+          </WidgetContributions>
         </DashboardItemContext.Provider>
       </stream.Provider>,
     );
@@ -138,17 +168,17 @@ describe("LandingStatus: full-vector solve genuinely runs off the stream", () =>
       emitMunDescent();
     });
 
-    // The velocity split renders off the stream as the DescentScope vector,
-    // its label carrying both components (horizontal ≈538 m/s dominating).
+    // The altitude plot surfaces the streamed AGL datum (5000 m) in its own
+    // accessible name. It replaced a `Tape` whose `aria-valuenow` carried the
+    // same number; the plot is a chart, so the reading is a clause rather than
+    // an attribute, and it is the plot's whole subject either way.
     expect(
-      await screen.findByRole("img", {
-        name: /descent 50 m\/s, ground speed 538 m\/s/i,
-      }),
+      await screen.findByRole("img", { name: /5\.0 km above terrain/ }),
     ).toBeInTheDocument();
-    // The altitude ladder surfaces the streamed AGL datum (5000 m).
-    expect(
-      screen.getByRole("meter", { name: /altitude above terrain/i }),
-    ).toHaveAttribute("aria-valuenow", "5000");
+    // The velocity split is a readout, not a plot label: this scenario carries
+    // no terrain patch, so the cross-section has no ground to slice and
+    // contributes nothing rather than an empty box with the numbers on it.
+    expect(container.textContent).toMatch(/538/);
     // The subtitle resolves the body off the derived vessel.state channel.
     expect(screen.getByText(/mun · vacuum/i)).toBeInTheDocument();
     // Empty state is gone once the descent is streaming.

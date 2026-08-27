@@ -1,12 +1,21 @@
-import { DashboardItemContext, registerStockBodies } from "@ksp-gonogo/core";
+import {
+  DashboardItemContext,
+  PerfBudget,
+  registerStockBodies,
+} from "@ksp-gonogo/core";
 import { Quality } from "@ksp-gonogo/sitrep-sdk";
 import { act, render, screen } from "@ksp-gonogo/test-utils";
 import {
   expectNoA11yViolations,
   visibleText,
 } from "@ksp-gonogo/ui-kit/testing";
-import { beforeEach, describe, expect, it } from "vitest";
+import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { setupStreamFixture } from "../test/setupStreamFixture";
+import {
+  flushResizeObservers,
+  installSizedResizeObserver,
+  WidgetContributions,
+} from "../test/widgetDomSnapshot";
 import { LandingStatusComponent } from "./index";
 
 /**
@@ -108,23 +117,50 @@ function emitVessel(
 }
 
 describe("LandingStatusComponent", () => {
+  /**
+   * The contribution budgets, reset between tests.
+   *
+   * `Contributions "<slot>" entries recomputed/sec` is capped at 30, which is
+   * ~7x a real 4 Hz stream. A spec emits its whole scenario in a handful of
+   * milliseconds, so the thirty-odd frames this file replays land inside one
+   * rolling second and every slot on the widget trips its cap at 31. The same
+   * thirty-one frames take eight seconds in the app.
+   *
+   * Reset rather than raised: the threshold is right for the load it is
+   * measuring, and widening it to fit a test's clock is how a budget stops
+   * being able to see the regression it exists for.
+   */
   let stream: ReturnType<typeof setupStreamFixture>;
 
+  // A chart in an unmeasured box draws nothing but "Chart too small to render",
+  // and every plot on this widget is a chart now. jsdom lays nothing out, so
+  // the observer has to be told a size or the assertions below are all made
+  // against an empty frame. Same helper the snapshot harness uses.
+  let restoreResizeObserver: () => void;
+
   beforeEach(() => {
+    for (const b of PerfBudget.getAll()) b.reset();
     registerStockBodies();
     stream = setupStreamFixture({ carriedChannels: CARRIED, pinnedUt: 10 });
+    restoreResizeObserver = installSizedResizeObserver({ w: 720, h: 640 });
+  });
+
+  afterEach(() => {
+    restoreResizeObserver();
   });
 
   function renderWidget(size?: { w: number; h: number }) {
     return render(
       <stream.Provider>
         <DashboardItemContext.Provider value={{ instanceId: "land" }}>
-          <LandingStatusComponent
-            config={{}}
-            id="land"
-            w={size?.w}
-            h={size?.h}
-          />
+          <WidgetContributions Widget={LandingStatusComponent}>
+            <LandingStatusComponent
+              config={{}}
+              id="land"
+              w={size?.w}
+              h={size?.h}
+            />
+          </WidgetContributions>
         </DashboardItemContext.Provider>
       </stream.Provider>,
     );
@@ -161,9 +197,12 @@ describe("LandingStatusComponent", () => {
 
     // The horizontal component the old vertical-only model ignored is surfaced
     // in the velocity vector's accessible label.
-    expect(
-      await screen.findByRole("img", { name: /ground speed 538 m\/s/i }),
-    ).toBeInTheDocument();
+    expect(await screen.findByText("UNAVOIDABLE IMPACT")).toBeInTheDocument();
+    // The horizontal component, which used to be read off the cross-section's
+    // accessible name. This scenario ships no terrain patch, so there is no
+    // ground to slice and that plot contributes nothing at all; the split is
+    // the Velocity readout's, which is where a number belongs anyway.
+    expect(visibleText()).toMatch(/538/);
     // Burn-now touchdown is a large nonzero speed (the fatal-direction fix),
     // and it's LED as the killer fact under the hero (UNAVOIDABLE IMPACT), as
     // well as detailed in the readout grid.
@@ -187,13 +226,14 @@ describe("LandingStatusComponent", () => {
         availableThrust: 20,
       });
     });
-    // At a wide size the split is the DescentScope velocity vector; its label
-    // carries both components, horizontal (538) dominating the 50 m/s descent.
-    expect(
-      await screen.findByRole("img", {
-        name: /descent 50 m\/s, ground speed 538 m\/s/i,
-      }),
-    ).toBeInTheDocument();
+    // The split is a readout pair now, not a plot label. The cross-section used
+    // to carry it in its accessible name and cannot any more: without a terrain
+    // patch it has no ground to slice and contributes NO plot rather than an
+    // empty box with two numbers written on it. Horizontal (538) dominates the
+    // 50 m/s descent either way, which is the fact under test.
+    await screen.findByText(/UNAVOIDABLE IMPACT|SUICIDE BURN|BURN GO IN/);
+    expect(visibleText()).toMatch(/538/);
+    expect(visibleText()).toMatch(/50\.0/);
   });
 
   it("shows the plain vertical/horizontal split at a small size", async () => {
@@ -456,12 +496,15 @@ describe("LandingStatusComponent", () => {
     // Confident touchdown confirmation, not a blank panel.
     expect(await screen.findByText("LANDED")).toBeInTheDocument();
     expect(screen.getByText(/touchdown confirmed/i)).toBeInTheDocument();
-    // Spatial context is KEPT: both altimetry plots still render.
+    // Spatial context is KEPT: the site plot and the altitude plot both still
+    // render, showing the vessel now AT the site rather than a blank panel.
+    // `findBy`, not `getBy`: the chart only paints once the resize observer has
+    // reported, and that lands a macrotask after the text above.
     expect(
-      screen.getByRole("img", { name: /touchdown site/i }),
+      await screen.findByRole("img", { name: /^Touchdown site;/ }),
     ).toBeInTheDocument();
     expect(
-      screen.getByRole("img", { name: /ground speed/i }),
+      await screen.findByRole("img", { name: /^Altitude;/ }),
     ).toBeInTheDocument();
     // The now-void in-flight countdowns are gone.
     expect(screen.queryByText(/Blind in/i)).toBeNull();
@@ -545,7 +588,9 @@ describe("LandingStatusComponent", () => {
       });
       stream.emit("vessel.control", { gear: false, brakes: false });
     });
-    await screen.findByRole("img", { name: /descent/i });
+    // The altitude plot is the one every descent contributes, whatever else is
+    // or is not known: a height above terrain is all it needs.
+    await screen.findByRole("img", { name: /^Altitude;/ });
     await expectNoA11yViolations(container);
   });
 });

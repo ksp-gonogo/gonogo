@@ -363,8 +363,15 @@ interface SnapshotOpts<Cfg> {
  * forgotten one produces is exactly the silent empty frame above. A component
  * that is not registered (a sub-component photographed directly) mounts
  * untouched.
+ *
+ * Exported because the drift is not the snapshot harness's alone. Any spec that
+ * hand-rolls a `render(<Widget ... />)` mounts the same widget off the same
+ * path, and once a widget's plots arrive through `plots` those specs go quiet
+ * in exactly the same way: every query for a mark's accessible name fails, and
+ * it reads like the widget stopped drawing rather than like the harness stopped
+ * mounting the seam.
  */
-function WidgetContributions({
+export function WidgetContributions({
   Widget,
   children,
 }: {
@@ -639,8 +646,14 @@ function modePixels(mode: WidgetSnapshotMode): { w: number; h: number } {
  * Restored afterwards so a test file that renders something else is unaffected.
  * Already-constructed observers keep working, which is what the widget mounted
  * during this render needs.
+ *
+ * Exported for the same reason `WidgetContributions` is: a hand-rolled
+ * `render(<Widget />)` in a widget's own spec hits the identical wall. A chart
+ * in an unmeasured box renders `role="img" aria-label="Chart too small to
+ * render"` and nothing else, so every assertion on a mark's accessible name
+ * fails, and the transcript makes it look like the widget stopped drawing.
  */
-function installSizedResizeObserver(size: {
+export function installSizedResizeObserver(size: {
   w: number;
   h: number;
 }): () => void {
@@ -690,7 +703,7 @@ function installSizedResizeObserver(size: {
  * second covers an observer a re-render only then attached (Graph re-binds its
  * observer when the chart/readout variant flips).
  */
-async function flushResizeObservers(): Promise<void> {
+export async function flushResizeObservers(): Promise<void> {
   await act(async () => {
     await new Promise<void>((resolve) => setTimeout(resolve, 0));
     await new Promise<void>((resolve) => setTimeout(resolve, 0));

@@ -59,6 +59,18 @@ export interface PlotFrame {
   ySecondaryUnit?: string;
   /** Linear (default) or log10 on the primary Y axis. */
   yScale?: "linear" | "log";
+  /**
+   * Drop the X tick ladder, for a ONE-DIMENSIONAL plot.
+   *
+   * An altitude scale has a height and nothing across it: the marks sit at a
+   * nominal mid-span and the axis under them measures nothing. Say so, rather
+   * than shipping a ladder reading 0 / 0.50 / 1, which is worse than no ladder
+   * because a reader is entitled to think a scale means something.
+   *
+   * `xDomain` is still required and still used, because layers are placed
+   * against it. Only the reader-facing axis goes.
+   */
+  hideXAxis?: boolean;
 }
 
 /**

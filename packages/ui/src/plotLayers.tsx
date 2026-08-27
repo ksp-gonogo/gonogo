@@ -1,4 +1,5 @@
 import type { PlotEmphasis, PlotLayer, PlotTone } from "@ksp-gonogo/sitrep-sdk";
+import type { ReactElement } from "react";
 
 /**
  * Draws the `PlotLayer` vocabulary inside `LineChart`'s own plot rect.
@@ -113,8 +114,9 @@ export function plotLayerExtent(layer: PlotLayer): {
     case "marker":
     case "annotation":
       return { xs: [layer.at.x], ys: [layer.at.y], axis };
-    // A field is a wash over whatever the plot already spans: letting it pull
-    // the domain would let context decide the scale the readings are drawn at.
+    // A field and a relief are context over whatever the plot already spans:
+    // letting either pull the domain would let context decide the scale the
+    // readings are drawn at.
     default:
       return { xs: [], ys: [], axis };
   }
@@ -297,6 +299,159 @@ function FieldLayer({
         filter={layer.blur !== undefined ? `url(#${blurId})` : undefined}
       />
     </>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Relief: the one layer that carries a surface.
+//
+// Hypsometric colour IS the reading (colour means altitude, nothing else), and
+// the band edges are the iso-lines that make slope legible. No lighting model
+// anywhere: a shaded relief invents a sun, and a sun's direction is a bias in
+// which slopes look steep.
+//
+// Drawn as one `<rect>` per grid cell rather than a rasterised canvas. A canvas
+// would be sharper and would also make this renderer stateful (a ref, an
+// effect, a `document` it cannot have in every host) and non-deterministic for
+// the visual gate, which diffs pixels per engine. A 32x32 patch is 1024 rects,
+// which SVG handles without complaint at the sizes a plot is drawn at.
+// ---------------------------------------------------------------------------
+
+const DEFAULT_RELIEF_BANDS = 6;
+
+/** Dimmed, desaturated low-to-high ramp. Low-key on purpose: this is context
+ *  under the marks, and a harsh top band would out-shout them. */
+const HYPSO: ReadonlyArray<
+  readonly [number, readonly [number, number, number]]
+> = [
+  [0.0, [26, 32, 40]],
+  [0.35, [36, 52, 56]],
+  [0.6, [58, 70, 66]],
+  [0.8, [90, 90, 74]],
+  [1.0, [132, 130, 116]],
+];
+
+function hypso(t: number): readonly [number, number, number] {
+  const x = Math.max(0, Math.min(1, t));
+  for (let i = 1; i < HYPSO.length; i++) {
+    if (x <= HYPSO[i][0]) {
+      const [t0, c0] = HYPSO[i - 1];
+      const [t1, c1] = HYPSO[i];
+      const f = t1 > t0 ? (x - t0) / (t1 - t0) : 0;
+      return [
+        Math.round(c0[0] + (c1[0] - c0[0]) * f),
+        Math.round(c0[1] + (c1[1] - c0[1]) * f),
+        Math.round(c0[2] + (c1[2] - c0[2]) * f),
+      ];
+    }
+  }
+  return HYPSO[HYPSO.length - 1][1];
+}
+
+function ReliefLayer({
+  layer,
+  frame,
+}: {
+  layer: Extract<PlotLayer, { kind: "relief" }>;
+  frame: PlotLayerFrame;
+}) {
+  const { size, values, bounds } = layer;
+  if (size < 2 || values.length < size * size) return null;
+
+  let lo = Number.POSITIVE_INFINITY;
+  let hi = Number.NEGATIVE_INFINITY;
+  for (let i = 0; i < size * size; i++) {
+    const v = values[i];
+    // A hole would move every other cell when the range is taken across it, so
+    // a grid with one is not a field and draws nothing rather than a field with
+    // a plausible-looking wrong range.
+    if (!Number.isFinite(v)) return null;
+    if (v < lo) lo = v;
+    if (v > hi) hi = v;
+  }
+  const range = hi - lo;
+  const bands = Math.max(2, layer.bands ?? DEFAULT_RELIEF_BANDS);
+  const scaleY = scaleYOf(frame, layer);
+
+  // The grid's own corners in screen space. `bounds` need not be given
+  // min-first, and a plot's Y axis runs the other way from the screen's, so
+  // both are normalised here rather than assumed.
+  const sx0 = frame.scaleX(bounds.x0);
+  const sx1 = frame.scaleX(bounds.x1);
+  const sy0 = scaleY(bounds.y0);
+  const sy1 = scaleY(bounds.y1);
+  const left = Math.min(sx0, sx1);
+  const top = Math.min(sy0, sy1);
+  const cellW = Math.abs(sx1 - sx0) / size;
+  const cellH = Math.abs(sy1 - sy0) / size;
+  if (!(cellW > 0) || !(cellH > 0)) return null;
+  // Row 0 of a row-major grid is the FIRST row in the data, which sits at
+  // `y0`. Whether that is the top of the screen depends on which way the plot's
+  // Y axis runs, and `sy0 > sy1` is that question asked rather than assumed.
+  const flipRows = sy0 < sy1;
+
+  const cells: ReactElement[] = [];
+  for (let row = 0; row < size; row++) {
+    for (let col = 0; col < size; col++) {
+      const t = range > 0 ? (values[row * size + col] - lo) / range : 0.5;
+      const band = Math.max(0, Math.min(bands - 1, Math.floor(t * bands)));
+      const [r, g, b] = hypso(band / (bands - 1));
+      // The iso-line: darken a cell whose band differs from the neighbour above
+      // or to the left of it, which draws the band boundary without a second
+      // pass over the grid.
+      const leftBand =
+        col > 0
+          ? Math.max(
+              0,
+              Math.min(
+                bands - 1,
+                Math.floor(
+                  (range > 0
+                    ? (values[row * size + col - 1] - lo) / range
+                    : 0.5) * bands,
+                ),
+              ),
+            )
+          : band;
+      const upBand =
+        row > 0
+          ? Math.max(
+              0,
+              Math.min(
+                bands - 1,
+                Math.floor(
+                  (range > 0
+                    ? (values[(row - 1) * size + col] - lo) / range
+                    : 0.5) * bands,
+                ),
+              ),
+            )
+          : band;
+      const edge = leftBand !== band || upBand !== band ? 0.5 : 1;
+      const screenRow = flipRows ? row : size - 1 - row;
+      cells.push(
+        <rect
+          key={`${row}-${col}`}
+          x={left + col * cellW}
+          y={top + screenRow * cellH}
+          // A hairline overlap, so neighbouring cells do not leave seams the
+          // rasteriser paints the background through.
+          width={cellW + 0.5}
+          height={cellH + 0.5}
+          fill={`rgb(${Math.round(r * edge)}, ${Math.round(g * edge)}, ${Math.round(b * edge)})`}
+        />,
+      );
+    }
+  }
+
+  return (
+    <g
+      data-plot-layer={layer.id}
+      data-plot-layer-kind="relief"
+      opacity={toneOpacity(layer)}
+    >
+      {cells}
+    </g>
   );
 }
 
@@ -666,6 +821,9 @@ function CaptionLayer({
 }
 
 const KIND_ORDER: Record<PlotLayer["kind"], number> = {
+  // Under everything, the field included: a relief is the ground the rest of
+  // the plot is drawn over.
+  relief: -1,
   field: 0,
   region: 1,
   series: 2,
@@ -687,6 +845,7 @@ const KIND_ORDER: Record<PlotLayer["kind"], number> = {
 export type PlotLayerPass = "background" | "foreground" | "caption";
 
 const KIND_PASS: Record<PlotLayer["kind"], PlotLayerPass> = {
+  relief: "background",
   field: "background",
   region: "background",
   series: "foreground",
@@ -741,6 +900,8 @@ export function PlotLayers({
       {ordered.map(({ layer, index }) => {
         const key = `${layer.id}-${index}`;
         switch (layer.kind) {
+          case "relief":
+            return <ReliefLayer key={key} layer={layer} frame={frame} />;
           case "field":
             return <FieldLayer key={key} layer={layer} frame={frame} />;
           case "region":

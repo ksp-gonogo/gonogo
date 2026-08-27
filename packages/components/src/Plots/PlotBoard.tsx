@@ -31,6 +31,17 @@ import { GraphView } from "../Graph";
 
 /** A plot narrower than this is unreadable, so wrapping beats shrinking. */
 const MIN_PLOT_WIDTH_PX = 200;
+/**
+ * The tallest a plot is allowed to be, whatever shape it asked for.
+ *
+ * `aspect` is a proportion, and a proportion in a column narrower than the
+ * arranger expected turns into a height. A plot asking to be three times as
+ * tall as it is wide got 600 px in a 200 px column and filled the widget with
+ * one marker on an empty scale, which is a plot that has been honoured into
+ * uselessness. The cap is the arranger doing the one job it has: a plot states
+ * its shape and the arranger decides how much room that is worth here.
+ */
+const MAX_PLOT_HEIGHT_PX = 300;
 
 export interface PlotBoardProps {
   /**
@@ -116,6 +127,7 @@ function Plot({ plot }: { plot: PlotEntry }) {
           display: "flex",
           flexDirection: "column",
           aspectRatio: `${aspect}`,
+          maxHeight: MAX_PLOT_HEIGHT_PX,
           minHeight: 0,
         }}
       >
@@ -128,6 +140,7 @@ function Plot({ plot }: { plot: PlotEntry }) {
             windowSec: 0,
             xDomain: plot.frame.xDomain,
             xUnit: plot.frame.xUnit,
+            hideXAxis: plot.frame.hideXAxis,
             yDomainPrimary: plot.frame.yDomain,
             yUnit: plot.frame.yUnit,
             yDomainSecondary: plot.frame.ySecondaryDomain,

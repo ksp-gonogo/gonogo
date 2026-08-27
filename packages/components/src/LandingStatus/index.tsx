@@ -18,7 +18,6 @@ import {
   Badge,
   Countdown,
   EmptyState,
-  FramedDisplay,
   Grid,
   magnitudeOf,
   NULL_DISPLAY,
@@ -33,22 +32,22 @@ import {
   Unit,
   writeQuantity,
 } from "@ksp-gonogo/ui-kit";
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { PlotBoard } from "../Plots/PlotBoard";
-import { AltitudeRail } from "./AltitudeRail";
 import { deriveBoard } from "./board";
 import { CommitLayer, REGIME_LABEL, REGIME_TONE } from "./CommitLayer";
-import { CrossSection } from "./CrossSection";
 import { deriveDelayClocks } from "./clocks";
 // Side-effect import: the widget's OWN plots, registered into `plots` the same
 // way any Uplink's would be. Pulled in here rather than left to the package
 // entry's import order, because a widget that lost its own plot to a
 // module-ordering accident would look like a telemetry outage.
 import "./descentLayers";
+import "./altitudeRailPlot";
+import "./crossSectionPlot";
+import "./touchdownReticlePlot";
 import { greatCircle } from "./geo";
 import { deriveHazardVerdict } from "./hazardVerdict";
 import { solveSuicideBurn } from "./solveLanding";
-import { TouchdownReticle } from "./TouchdownReticle";
 
 // No config of its own; the empty type names the slot so adding one later
 // doesn't change the registration's shape.
@@ -323,22 +322,12 @@ const DESCENT_HISTORY_MAX = 60;
 const PREDICTION_STABLE_M = 250; // predicted point moves < this per tick ⇒ settled
 const ATMO_PLOTS_ALT_GATE = 10_000; // metres AGL, the base unit a bare operand takes
 
-// Landing-ZONE heuristic (no dispersion on the wire, so derived): the touchdown
-// point could drift by ~this fraction of the remaining horizontal travel; floored
-// at the terrain-sample footprint so it never reads tighter than we actually know.
-const LANDING_ZONE_DISPERSION = 0.12;
-const LANDING_ZONE_FLOOR_M = 30;
 /**
  * Air thin enough that the descent is effectively a vacuum one: below this,
  * drag does nothing a lander can plan around and the readout says so rather
  * than quoting four zeroes.
  */
 const NEGLIGIBLE_DENSITY = 0.001; // kg/m³, the base unit a bare operand takes
-// The reticle / cross-section SLIDING scale: the spatial full-scale zooms to
-// contain the drift + the zone (so a close approach fills the plot instead of
-// sitting as a dot at a fixed 3 km scale), clamped to a sane window.
-const RETICLE_SPAN_MIN_M = 300;
-const RETICLE_SPAN_MAX_M = 6000;
 
 /**
  * Whether the vessel is on the ground, and so has no descent left to evaluate.
@@ -370,7 +359,7 @@ export function isGroundedSituation(
 function LandingStatusComponent({
   w,
 }: Readonly<ComponentProps<LandingStatusConfig>>) {
-  const [measureScroller, scrollerHeight] = useScrollerHeight();
+  const [measureScroller] = useScrollerHeight();
 
   const vs = useStream<VesselState>("vessel.state");
   const bodyName = vs?.parentBodyName ?? undefined;
@@ -585,7 +574,14 @@ function LandingStatusComponent({
   // The flight instruments (velocity vector + TWR) and the full-height altitude
   // rail come in together at a comfortable width; below that, plain readouts.
   const showScope = width >= 6;
-  const showRail = showScope;
+  /**
+   * Whether this widget lays plots out at all, which is the ONLY plot decision
+   * left to it: below this width a plot is narrower than it is legible and the
+   * readouts are the better use of the space. It says nothing about WHICH plots
+   * exist, and cannot: each decides that for itself and the board arranges what
+   * comes back.
+   */
+  const showPlots = width >= 8;
   // The reticle is the centerpiece, shown once terrain was sampled (predicted
   // point or the sub-vessel fallback) and there's width to make it prominent.
   // The two-plot row FLEX-WRAPS (see below), so from ~8 wide it degrades by
@@ -603,8 +599,14 @@ function LandingStatusComponent({
     atmospheric &&
     landing?.sampleSource != null &&
     (predictionStable || lowApproach);
-  const showReticle =
-    width >= 8 &&
+  /**
+   * Whether the SITE readouts beside the plots have a site to describe. Not a
+   * plot gate any more: the reticle decides for itself whether it is relevant,
+   * and this is the verdict banner and the biome/terrain line, which are text
+   * this widget owns.
+   */
+  const siteReadoutsShown =
+    showPlots &&
     landing?.sampleSource != null &&
     (!atmospheric || atmosphericPlotsShown);
   const hazardVerdict = deriveHazardVerdict({
@@ -640,62 +642,6 @@ function LandingStatusComponent({
           body.radius,
         )
       : null;
-  const driftBearingDeg = siteDrift?.bearingDeg ?? null;
-
-  // Landing ZONE (a circle of possible touchdown, not a pinpoint). No dispersion
-  // on the wire, so derived: a fraction of the remaining horizontal travel
-  // (shrinks as the descent closes), floored at the terrain-sample footprint so
-  // it never reads tighter than the terrain we actually sampled. Only when a
-  // site was sampled at all.
-  const timeToImpactForZone = atmospheric
-    ? (landing?.atmosphericTimeToImpact?.magnitude ?? null)
-    : solution.timeToImpact;
-  const landingZoneRadiusM =
-    landing?.sampleSource != null
-      ? Math.max(
-          landing?.roughnessFootprintMeters?.magnitude ?? 0,
-          LANDING_ZONE_FLOOR_M,
-          solution.horizontalSpeed != null && timeToImpactForZone != null
-            ? LANDING_ZONE_DISPERSION *
-                solution.horizontalSpeed *
-                timeToImpactForZone
-            : 0,
-        )
-      : null;
-
-  // Sliding spatial scale: zoom the reticle / cross-section to contain the drift
-  // and the zone, so a close approach fills the plot (was a fixed 3 km scale).
-  const reticleSpanMeters = Math.min(
-    RETICLE_SPAN_MAX_M,
-    Math.max(
-      RETICLE_SPAN_MIN_M,
-      (siteDrift?.distanceMeters ?? 0) * 1.4,
-      (landingZoneRadiusM ?? 0) * 2.4,
-    ),
-  );
-
-  // The terrain profile as bare metres. Both plots sample it into a polyline,
-  // so the unit comes off once here rather than per point per frame: the patch
-  // runs to a few hundred readings and both plots redraw on every tick.
-  const terrainPatchMeters = useMemo(
-    () => landing?.terrainPatch?.map((h) => h.magnitude) ?? null,
-    [landing?.terrainPatch],
-  );
-
-  // The side-on cross-section plot (terrain profile along the ground track +
-  // the velocity vector in the vertical plane), paired with the top-down reticle.
-  const crossSectionEl = scopeShown ? (
-    <CrossSection
-      patch={terrainPatchMeters}
-      patchSize={landing?.terrainPatchSize?.magnitude ?? null}
-      bearingDeg={driftBearingDeg}
-      verticalSpeed={solution.verticalSpeed}
-      horizontalSpeed={solution.horizontalSpeed}
-      aglMeters={heightFromTerrain?.magnitude ?? null}
-      driftMeters={siteDrift?.distanceMeters ?? null}
-      spanMeters={reticleSpanMeters}
-    />
-  ) : null;
 
   // TWR is its own widget. It was here because a descent wants it, but a
   // dashboard that wants it can place the TWR widget beside this one, and
@@ -873,9 +819,15 @@ function LandingStatusComponent({
   const velocityEl =
     // The atmospheric-estimate board carries its own velocity split, so don't
     // repeat it in the standalone Velocity section.
-    !scopeShown &&
-    board !== "atmospheric-estimate" &&
-    solution.horizontalSpeed != null ? (
+    //
+    // It used to be suppressed whenever the spatial plots were up, on the
+    // grounds that the cross-section's own label carried the split. That was
+    // only ever true when a terrain patch had shipped: without one the
+    // cross-section now contributes no plot at all, and the split was left
+    // being reported by nothing. A readout is this widget's own text, so
+    // whether some plot happens to restate it is not a question it should be
+    // answering, and answering it is how the number went missing.
+    board !== "atmospheric-estimate" && solution.horizontalSpeed != null ? (
       <Section>
         <SectionTitle>Velocity</SectionTitle>
         <Grid cols="auto 1fr" gap="xs">
@@ -891,7 +843,7 @@ function LandingStatusComponent({
 
   // Plain AGL readout only when there's no altitude rail (small size). The rail
   // is the altitude carrier everywhere else.
-  const heightEl = !showRail ? (
+  const heightEl = !showScope ? (
     <Section>
       <SectionTitle>Height</SectionTitle>
       <Grid cols="auto 1fr" gap="xs">
@@ -933,12 +885,11 @@ function LandingStatusComponent({
     />
   );
 
-  // Everything that isn't the reticle: the cross-section, envelope, numbers +
-  // notes, in the order they matter. Non-relevant fragments are null and drop
-  // out. Used at sizes without the reticle (below the wide-size plots layout).
+  // Everything that isn't a plot: the numbers + notes, in the order they
+  // matter. Non-relevant fragments are null and drop out. Used at sizes below
+  // the wide-size plots layout.
   const detailStack = (
     <Stack gap="sm">
-      {crossSectionEl}
       {contributedPlots}
       {boardEl}
       {velocityEl}
@@ -948,25 +899,6 @@ function LandingStatusComponent({
       {divertEl}
     </Stack>
   );
-
-  // The reticle is svg-only so it aligns with the cross-section square; the
-  // verdict banner + biome/terrain readout are composed here, below the plots.
-  const reticleSquare = showReticle ? (
-    <TouchdownReticle
-      siteLat={landing?.predictedLatitude?.magnitude ?? null}
-      siteLon={landing?.predictedLongitude?.magnitude ?? null}
-      vesselLat={flight?.latitude?.magnitude ?? null}
-      vesselLon={flight?.longitude?.magnitude ?? null}
-      bodyRadius={body?.radius ?? null}
-      slopeDeg={landing?.predictedSlopeAngle?.magnitude ?? null}
-      biome={landing?.predictedBiome ?? null}
-      sampleSource={landing?.sampleSource ?? null}
-      terrainPatch={terrainPatchMeters}
-      terrainPatchSize={landing?.terrainPatchSize?.magnitude ?? null}
-      spanMeters={reticleSpanMeters}
-      zoneRadiusMeters={landingZoneRadiusM}
-    />
-  ) : null;
 
   // Site-hazard verdict (slope / roughness). When there's NO LANDING VECTOR the
   // site verdict is moot (you can't reach a safe touchdown ANYWHERE), so the
@@ -982,7 +914,7 @@ function LandingStatusComponent({
         : hazard === "SAFE"
           ? "go"
           : "default";
-  const verdictBannerEl = showReticle ? (
+  const verdictBannerEl = siteReadoutsShown ? (
     <div role="status" aria-live="polite">
       <StatusPill $tone={bannerTone}>{bannerLabel}</StatusPill>
     </div>
@@ -1008,7 +940,7 @@ function LandingStatusComponent({
       : landing?.sampleSource === "sub-vessel"
         ? "sub-vessel (est.)"
         : null;
-  const terrainReadoutEl = showReticle ? (
+  const terrainReadoutEl = siteReadoutsShown ? (
     <Text tone="muted" size="xs">
       {landing?.predictedBiome ? `${landing.predictedBiome} · ` : ""}
       {landing?.predictedSlopeAngle != null ? (
@@ -1110,73 +1042,15 @@ function LandingStatusComponent({
             gap: "var(--space-12)",
           }}
         >
-          {showRail && (
-            // Sticky, not scrolling. The rail is the instrument's spatial
-            // spine: an altitude scale that slides out of view while the
-            // readouts it indexes stay put is worse than useless. It sits in
-            // the scrolling body (so it takes the panel inset like everything
-            // else) but pins itself to the top of it. `align-self: flex-start`
-            // is what lets sticky engage: a stretched flex child is already as
-            // tall as the container and has nothing to stick within.
-            <div
-              style={{
-                flex: "0 0 auto",
-                // An instrument dimension, not a spacing rung: the width the
-                // scale's labels and track need.
-                width: 64,
-
-                position: "sticky",
-                top: 0,
-                alignSelf: "flex-start",
-                // The scroller's visible height, measured. Full display height
-                // of the widget, so the scale spans what the operator can see
-                // however far the readouts below it have scrolled.
-                height: scrollerHeight > 0 ? scrollerHeight : undefined,
-              }}
-            >
-              <AltitudeRail
-                aglMeters={heightFromTerrain?.magnitude ?? null}
-                ignitionAltitude={landed ? null : solution.ignitionAltitude}
-                suicideBurnCountdown={
-                  landed ? null : solution.suicideBurnCountdown
-                }
-              />
-            </div>
-          )}
           <div style={{ flex: 1, minWidth: 0 }}>
-            {showReticle ? (
+            {showPlots ? (
               <div style={{ display: "flex", flexDirection: "column" }}>
-                {/* The plots in a shared FLEX-WRAP row: touchdown-site,
-                    cross-section, and (on an atmospheric-aware board) the descent
-                    envelope. Equal flex bases, so they lay out LANDSCAPE 3-across
-                    when wide and degrade gracefully to 2-over-1 then a single
-                    stacked column as width drops, no plot ever dropped. */}
-                <div
-                  style={{
-                    display: "flex",
-                    flexWrap: "wrap",
-                    gap: "var(--space-6)",
-                    padding: "var(--space-8) 0",
-                  }}
-                >
-                  <div style={{ flex: "1 1 200px", minWidth: 200 }}>
-                    <SectionTitle>Touchdown site</SectionTitle>
-                    {/* Flush: each plot SVG already insets its content by 4,
-                        so the frame supplies the edge and lets that inset be
-                        the gutter rather than stacking a second one. */}
-                    <FramedDisplay>{reticleSquare}</FramedDisplay>
-                  </div>
-                  {crossSectionEl && (
-                    <div style={{ flex: "1 1 200px", minWidth: 200 }}>
-                      <SectionTitle>Cross-section</SectionTitle>
-                      <FramedDisplay>{crossSectionEl}</FramedDisplay>
-                    </div>
-                  )}
+                {/* Every plot on this widget, arranged and nothing more. No
+                    `FramedDisplay` around it: a contributed plot's chart owns
+                    its own frame and a second one reads as a double border. */}
+                <div style={{ padding: "var(--space-8) 0" }}>
+                  {contributedPlots}
                 </div>
-                {/* No `FramedDisplay` around these: a contributed plot's chart
-                    owns its own frame, and a second one reads as a double
-                    border. */}
-                {contributedPlots}
                 {/* Readouts UNDERNEATH the plots (inset text): verdict banner,
                     terrain readout, then the numeric readout grid full-width. */}
                 <div
@@ -1189,6 +1063,7 @@ function LandingStatusComponent({
                   {verdictBannerEl}
                   {terrainReadoutEl}
                   {boardEl}
+                  {velocityEl}
                   {readoutsStack}
                   {comDatumNote}
                   {divertEl}

@@ -70,6 +70,9 @@ export interface GraphConfig {
   /** Unit symbol for the X tick labels while `xDomain` is pinned; there is no
    *  schema entry to read one from. */
   xUnit?: string;
+  /** Drop the X tick ladder entirely, for a one-dimensional plot whose X axis
+   *  is a nominal span rather than a measurement. See `PlotFrame.hideXAxis`. */
+  hideXAxis?: boolean;
   /** Unit token for the primary Y tick labels, written through the unit
    *  registry's ladder. Without it a metre axis reads "30.0k". */
   yUnit?: string;

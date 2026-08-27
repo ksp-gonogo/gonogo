@@ -543,6 +543,7 @@ export function GraphView({
               yTickFormat={yTickFormat}
               thresholds={config?.thresholds as ThresholdRule[] | undefined}
               layers={layers}
+              hideXAxis={config?.hideXAxis}
               ariaLabel={ariaLabel}
               width={size.w}
               height={size.h}
