@@ -220,6 +220,7 @@ async function renderOneScene(
       continue;
     }
     const file = `${scene.name}--${mode.name}.png`;
+    await performActs(tab, scene);
     await growToFullContent(tab);
     await assertEveryPaintVisible(tab, scene, mode.name);
     await shoot(tab, join(opts.outDir, file));
@@ -327,6 +328,56 @@ async function assertEveryPaintVisible(
   );
 }
 
+/**
+ * `_scene.before`, through real input events.
+ *
+ * A press goes through the accessible NAME rather than a selector, because that
+ * is the handle an operator has and a class name is not: a control renamed out
+ * from under a scene should fail here rather than quietly photograph the state
+ * before the press.
+ */
+async function performActs(tab: Page, scene: Scene): Promise<void> {
+  for (const act of scene.before) {
+    if (act.press !== undefined) {
+      const button = tab.getByRole("button", { name: act.press }).first();
+      if ((await button.count()) === 0) {
+        throw new Error(
+          `${scene.name}: "_scene.before" presses "${act.press}", which is ` +
+            "not a button on screen at that point. Presses run in order, so a " +
+            "control that only appears after an earlier press has to come " +
+            "after it.",
+        );
+      }
+      await button.click();
+    } else if (act.hover !== undefined) {
+      const target = tab.locator(act.hover).first();
+      if ((await target.count()) === 0) {
+        throw new Error(
+          `${scene.name}: "_scene.before" hovers "${act.hover}", which matched ` +
+            "nothing.",
+        );
+      }
+      await target.hover();
+    } else {
+      // Off the widget entirely rather than to a corner of it: a hover-gated
+      // control must be photographed with nothing hovered, and the viewport
+      // origin is inside the tile.
+      await tab.mouse.move(-50, -50);
+    }
+    await settle(tab);
+  }
+}
+
+/** Two frames, which is what a React state change plus its layout costs. */
+async function settle(tab: Page): Promise<void> {
+  await tab.evaluate(
+    () =>
+      new Promise<void>((resolve) => {
+        requestAnimationFrame(() => requestAnimationFrame(() => resolve()));
+      }),
+  );
+}
+
 /** `null` when this element carries the text readably, otherwise why it does not. */
 async function readable(at: Locator): Promise<string | null> {
   const box = await at.boundingBox().catch(() => null);
@@ -349,10 +400,35 @@ async function readable(at: Locator): Promise<string | null> {
 }
 
 async function shoot(tab: Page, path: string): Promise<Buffer> {
+  await fitViewportToRoot(tab);
   const root = await tab.$("#root");
   if (!root) throw new Error("render: #root vanished after mount");
   return root.screenshot({ path, animations: "disabled" });
 }
+
+/**
+ * Make the viewport tall enough to hold the whole widget in one go.
+ *
+ * An element screenshot taller than the viewport is captured by SCROLLING and
+ * stitching, and scrolling the page also scrolls anything under it that still
+ * has an overflow of its own. A `Panel` whose body did not quite grow to fit
+ * therefore scrolled between two captures and the stitched image showed the
+ * same rows twice, which reads as a widget that renders its contents twice.
+ * Fitting the viewport first means nothing ever scrolls.
+ */
+async function fitViewportToRoot(tab: Page): Promise<void> {
+  const height = await tab.evaluate(
+    () => document.getElementById("root")?.getBoundingClientRect().height ?? 0,
+  );
+  const wanted = Math.ceil(height) + VIEWPORT_MARGIN_PX;
+  const current = tab.viewportSize();
+  if (!current || wanted <= current.height) return;
+  await tab.setViewportSize({ width: current.width, height: wanted });
+  await settle(tab);
+}
+
+/** Room for the tile's own outer inset, so nothing sits on the viewport edge. */
+const VIEWPORT_MARGIN_PX = 64;
 
 /**
  * Grow `#root` until nothing is clipped, so the image shows the WHOLE widget.
@@ -501,15 +577,35 @@ async function captureMotion(
   const frames: Buffer[] = [];
   const framesDir = join(opts.outDir, `${scene.name}.frames`);
   if (opts.frames) await mkdir(framesDir, { recursive: true });
+  await performActs(tab, scene);
+  // Before the first frame, and once: a step that drives a control has to be
+  // able to REACH it, and `page.mouse` works in viewport coordinates. A control
+  // below the fold of a scrolling tile is at a y nothing is under, so the press
+  // landed on the page and the film came out thirty-four identical frames.
+  // Doing it here rather than per frame also keeps the framing fixed, which a
+  // scroll between two frames would not.
+  await growToFullContent(tab);
+  await fitViewportToRoot(tab);
   // The state before the first step is a frame in its own right: the reader has
   // to see what changed FROM.
   frames.push(await shootFrame(tab, opts, framesDir, frames.length));
+  let holding = false;
   for (const step of scene.steps ?? []) {
     const count = Math.max(1, step.frames ?? 1);
     const delta = (step.advanceUt ?? 0) / count;
+    const wait = (step.waitMs ?? 0) / count;
     for (let i = 0; i < count; i++) {
-      // The emit and the click belong to the step's FIRST frame only; repeating
-      // them would re-emit once per frame and mean something else.
+      // The emit, the click and the pointer belong to the step's FIRST frame
+      // only; repeating them would re-emit once per frame and mean something
+      // else. `waitMs` is the exception, being an amount rather than an event.
+      if (i === 0 && step.hold) {
+        await holdPointer(tab, scene, step.hold);
+        holding = true;
+      }
+      if (i === 0 && step.release) {
+        await tab.mouse.up();
+        holding = false;
+      }
       const perFrame: SceneStep =
         i === 0 ? { ...step, frames: 1 } : { frames: 1 };
       await tab.evaluate(
@@ -519,14 +615,69 @@ async function captureMotion(
           ].stepScene(s as SceneStep, d as number),
         [RENDER_PROBE_GLOBAL, perFrame, delta] as const,
       );
+      if (wait > 0) await tab.waitForTimeout(wait);
       frames.push(await shootFrame(tab, opts, framesDir, frames.length));
     }
   }
+  // A pointer left down outlives the scene and lands on whatever mounts next.
+  if (holding) await tab.mouse.up();
+  assertMotionMoved(scene, frames);
   const gif = encodeGif(frames, scene.motion);
   const file = `${scene.name}--${mode.name}.gif`;
   await writeFile(join(opts.outDir, file), gif);
   assets.push({ scene, mode: mode.name, file, kind: "motion" });
   console.log(`   ${file} (${frames.length} frames @ ${scene.motion.fps}fps)`);
+}
+
+/**
+ * A motion scene whose frames are all the same byte-for-byte is a film of
+ * nothing.
+ *
+ * The still path has the fed-versus-starved comparison and a motion scene had
+ * no equivalent, so a GIF announcing thirty-four frames was indistinguishable
+ * from one where every step missed. That is not hypothetical: it is how a
+ * `hold` step reaching a control the page had scrolled past was found, having
+ * produced a perfectly well-formed film of a widget sitting still.
+ */
+function assertMotionMoved(scene: Scene, frames: readonly Buffer[]): void {
+  const first = frames[0];
+  if (!first || frames.every((frame) => frame.equals(first))) {
+    throw new Error(
+      `${scene.name} (${scene.target.kind} ${scene.target.id}): all ` +
+        `${frames.length} frames of this motion scene are IDENTICAL, so the ` +
+        "film shows nothing happening. Either the steps did not reach what " +
+        "they name, or this scene has no motion in it and wants to be a still.",
+    );
+  }
+}
+
+/** Presses the pointer on a named control and drags it, without letting go. */
+async function holdPointer(
+  tab: Page,
+  scene: Scene,
+  hold: NonNullable<SceneStep["hold"]>,
+): Promise<void> {
+  const control = tab
+    .getByRole((hold.role ?? "slider") as Parameters<Page["getByRole"]>[0], {
+      name: hold.name,
+    })
+    .first();
+  await control.scrollIntoViewIfNeeded().catch(() => {});
+  const box = await control.boundingBox().catch(() => null);
+  if (box === null) {
+    throw new Error(
+      `${scene.name}: a "hold" step names "${hold.name}", which is not laid ` +
+        "out. A control that is not on screen cannot be dragged, and the frames " +
+        "after this step would be a film of nothing happening.",
+    );
+  }
+  const x = box.x + box.width / 2;
+  const y = box.y + box.height / 2;
+  await tab.mouse.move(x, y);
+  await tab.mouse.down();
+  // Stepped rather than jumped: a drag handler reading movement per event sees
+  // one enormous delta from a teleport and nothing resembling a drag.
+  await tab.mouse.move(x + (hold.dx ?? 0), y + (hold.dy ?? 0), { steps: 8 });
 }
 
 async function shootFrame(

@@ -32,6 +32,7 @@ import {
   AugmentSlot,
   clearAugments,
   DomainAvailabilityProvider,
+  FRAMEWORK_AUGMENT_SEGMENTS,
   getAugments,
   getAugmentsForSlot,
   gridToPixels,
@@ -122,6 +123,26 @@ export interface SceneStep {
   advanceUt?: number;
   /** Click the first element matching this selector. Missing throws. */
   click?: string;
+  /**
+   * Press the pointer on the control with this accessible name and drag it.
+   *
+   * Driver-side, so it never reaches this module: a synthetic `click()` cannot
+   * express a HELD pointer, and a control whose displacement sets a rate rather
+   * than a value does nothing at all until one is held. Released by a later
+   * `release` step, or when the scene ends.
+   */
+  hold?: { name: string; role?: string; dx?: number; dy?: number };
+  /** Let go of whatever `hold` took. Driver-side. */
+  release?: true;
+  /**
+   * Real milliseconds to let pass, spread over `frames`. Driver-side.
+   *
+   * The counterpart to `advanceUt` and not a substitute for it: that one steps
+   * the PINNED clock, which is what keeps a countdown reproducible. This one
+   * waits, which is the only thing a control ticking on its own `setInterval`
+   * responds to.
+   */
+  waitMs?: number;
   /** How many frames this step spans. Defaults to 1. */
   frames?: number;
 }
@@ -724,6 +745,17 @@ function mountWidget(id: string, scene: ScenePayload): ReactNode {
   );
 }
 
+/**
+ * Whether `Panel` already mounts this slot for every widget it wraps.
+ *
+ * The two universal segments are `Panel`'s own, so a stand-in host binding one
+ * again renders every augment on it twice.
+ */
+function mountedByPanel(slot: string): boolean {
+  const segment = slot.slice(slot.indexOf(".") + 1);
+  return (FRAMEWORK_AUGMENT_SEGMENTS as readonly string[]).includes(segment);
+}
+
 function buildTree(scene: ScenePayload): ReactNode {
   if (scene.target.kind === "widget")
     return mountWidget(scene.target.id, scene);
@@ -765,15 +797,22 @@ function buildTree(scene: ScenePayload): ReactNode {
       def={standInHost(hostWidgetId, slot, scene.target.kind)}
       instanceId="probe"
     >
+      {/* No `PanelBody` of our own: `Panel` wraps its children in one, so a
+          second was a second content inset.
+
+          And nothing bound here for the two segments `Panel` mounts on every
+          widget's behalf. Binding `sections` HERE as well fired both mounts and
+          every augment on one rendered TWICE, once per body at its own inset,
+          which reads as a widget that draws its contents twice rather than as a
+          harness fault. The panel's own mount is the one to keep, being where
+          the augment lands in a real host. */}
       <Panel panelTitle={`${hostLabelFor(slot)} (stand-in host)`}>
-        <PanelBody>
-          {/* The real slot, not the augment's component reached for directly:
-              a misspelled slot id renders nothing HERE rather than in someone's
-              dashboard, and the `requires` gate is exercised on the way. */}
-          {scene.target.kind === "augment" ? (
-            <Slot name={slot} props={scene.slotProps} />
-          ) : null}
-        </PanelBody>
+        {/* The real slot, not the augment's component reached for directly: a
+            misspelled slot id renders nothing HERE rather than in someone's
+            dashboard, and the `requires` gate is exercised on the way. */}
+        {scene.target.kind === "augment" && !mountedByPanel(slot) ? (
+          <Slot name={slot} props={scene.slotProps} />
+        ) : null}
       </Panel>
     </WidgetHostFor>
   );

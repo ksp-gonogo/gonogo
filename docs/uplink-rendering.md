@@ -72,6 +72,25 @@ responsive shapes every widget is rendered at (`mobile-9x8`, `portrait-5x18`,
 or contribution has no `defaultSize` to derive one from, so it takes
 `_scene.size: { "w": 13, "h": 12 }` and defaults to that.
 
+### Using the widget before the shot
+
+Some surfaces have nothing to show until they are used: a plan composer with no
+plan in it is a button, and a video feed's controls are hover-gated and invisible
+at rest. `_scene.before` is an ordered list of things done to the mounted widget,
+through real input events, before it is photographed.
+
+```jsonc
+"_scene": {
+  "before": [{ "press": "Draft plan" }, { "press": "Add burn" }]
+}
+```
+
+`press` takes an accessible NAME, because that is the handle an operator has;
+`hover` takes a CSS selector; `rest` moves the pointer off everything, for the
+resting half of a hover pair. Feeding the same state in through the fixture would
+render a composer that had never composed anything, and the difference between
+those two is most of what a render of a composer is for.
+
 ### Motion
 
 A still already answers "what does this look like". Motion earns its place only
@@ -93,6 +112,22 @@ failing to integrate, an arm-then-confirm, a needle sweeping.
 this and a screen recording: the clock is an input, so the same fixture produces
 the same frames on any machine. The output is a GIF, because that is what embeds
 in a README on GitHub; `--frames` also keeps the numbered PNGs.
+
+A control whose behaviour is a HELD pointer needs two more steps. `hold` presses
+on a named control and drags it without letting go, `release` lets go, and
+`waitMs` lets real milliseconds pass, spread over the step's frames:
+
+```jsonc
+"steps": [
+  { "hold": { "name": "Ignition rate", "dx": 30 }, "waitMs": 1200, "frames": 10 },
+  { "release": true, "waitMs": 400, "frames": 4 }
+]
+```
+
+`waitMs` is not a substitute for `advanceUt`: that one steps the pinned clock,
+which is what keeps a countdown reproducible, and this one waits, which is the
+only thing a control ticking on its own `setInterval` responds to. Reach for it
+only when the control genuinely runs on elapsed time.
 
 ## Naming text that has to be readable
 

@@ -81,8 +81,30 @@ interface RawScene {
    * size narrows `_scene.modes`.
    */
   paints?: string[];
+  before?: SceneAct[];
   steps?: SceneStep[];
   motion?: { fps?: number; pingPong?: boolean };
+}
+
+/**
+ * One thing done to the mounted widget before it is photographed.
+ *
+ * <p>Some surfaces have nothing to show until they are used. A plan composer
+ * with no plan in it is a button; a video feed's controls are hover-gated and
+ * invisible at rest. Feeding state in through the fixture instead would render a
+ * composer that had never composed anything, which is the difference between a
+ * picture of the mechanism and a picture of a shape.</p>
+ *
+ * <p>Driver-side, through real input events, because that is the only way a
+ * hover reaches CSS and a click reaches a handler that reads the event.</p>
+ */
+export interface SceneAct {
+  /** Click the control with this accessible name. */
+  press?: string;
+  /** Move the pointer over the first element matching this CSS selector. */
+  hover?: string;
+  /** Move the pointer off everything, for the resting half of a hover pair. */
+  rest?: true;
 }
 
 interface RawStream {
@@ -98,6 +120,7 @@ export interface Scene {
   caption?: string;
   expectsEmpty?: string;
   paints: string[];
+  before: SceneAct[];
   pinnedUt: number;
   emits: SceneEmit[];
   config: Record<string, unknown>;
@@ -206,6 +229,7 @@ function oneScene(
     caption: scene.caption,
     expectsEmpty: scene.expectsEmpty,
     paints: paintsFor(where, scene),
+    before: beforeFor(where, scene),
     pinnedUt,
     emits,
     config: scene.config ?? {},
@@ -257,6 +281,28 @@ function paintsFor(where: string, scene: RawScene): string[] {
     );
   }
   return [...paints];
+}
+
+/** `_scene.before`, validated at parse time so a typo is not a silent no-op. */
+function beforeFor(where: string, scene: RawScene): SceneAct[] {
+  const acts = scene.before ?? [];
+  if (!Array.isArray(acts)) {
+    throw new Error(
+      `${where}: "_scene.before" must be an array of acts, got ${typeof acts}.`,
+    );
+  }
+  for (const act of acts) {
+    const named = (["press", "hover", "rest"] as const).filter(
+      (k) => act?.[k] !== undefined,
+    );
+    if (named.length !== 1) {
+      throw new Error(
+        `${where}: every "_scene.before" act names exactly one of press / ` +
+          `hover / rest; got ${JSON.stringify(act)}.`,
+      );
+    }
+  }
+  return [...acts];
 }
 
 /**

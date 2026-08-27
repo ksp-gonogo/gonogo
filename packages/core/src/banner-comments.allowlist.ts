@@ -70,7 +70,6 @@ export const BANNER_COMMENT_DEBT: Record<string, number> = {
   "mod/GonogoKosUplink.Tests/KosTerminalManagerTests.cs": 2,
   "mod/GonogoKosUplink/KosTerminalManager.cs": 2,
   "mod/GonogoPrincipiaUplink.Tests/SettingsTests.cs": 1,
-  "mod/GonogoPrincipiaUplink/client/scripts/render-principia.ts": 2,
   "mod/Sitrep.Host.IntegrationTests/ReplayToWebSocketEndToEndTests.cs": 1,
   "mod/Sitrep.Host.IntegrationTests/TestUplinks.cs": 1,
   "mod/Sitrep.Host.Tests/FakeCareerActuator.cs": 2,

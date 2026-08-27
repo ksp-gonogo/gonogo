@@ -338,6 +338,38 @@ describe("fixtures become scenes", () => {
     ).toThrow(/matches every element/);
   });
 
+  it("carries _scene.before in order, and refuses an act naming nothing", () => {
+    const [scene] = buildScenes(
+      resolveUplinkPackage(
+        fixture({
+          _scene: {
+            widget: "reactor",
+            before: [
+              { press: "Draft plan" },
+              { hover: "video" },
+              { rest: true },
+            ],
+          },
+        }),
+      ),
+      INVENTORY,
+    );
+    expect(scene.before).toEqual([
+      { press: "Draft plan" },
+      { hover: "video" },
+      { rest: true },
+    ]);
+
+    expect(() =>
+      buildScenes(
+        resolveUplinkPackage(
+          fixture({ _scene: { widget: "reactor", before: [{ click: "x" }] } }),
+        ),
+        INVENTORY,
+      ),
+    ).toThrow(/exactly one of press \/ hover \/ rest/);
+  });
+
   it("refuses paints on a motion scene, which has no one moment to check", () => {
     expect(() =>
       buildScenes(
