@@ -169,6 +169,28 @@ namespace Gonogo.KSP.Tests.DevTools
         }
 
         [Fact]
+        public void The_ledger_rows_currency_names_are_still_the_three_the_probe_matches_on()
+        {
+            // The per-currency movement verdicts match a row to a currency by comparing
+            // the row's currency name against the probe's own enum. A rename on either
+            // side would match nothing, and every verdict would then read "LANDED,
+            // nothing queued", which is a clean run on a subsystem withholding
+            // everything. The probe counts the rows both ways and prints a PROBE FAULT
+            // on a disagreement, but that only fires on a run that has rows; this
+            // catches the divergence at build time.
+            var names = Enum.GetNames(typeof(DelayedCurrency));
+
+            Assert.Equal(3, names.Length);
+            Assert.Contains("Funds", names);
+            Assert.Contains("Science", names);
+            Assert.Contains("Reputation", names);
+
+            var probe = Probe();
+            Assert.Contains("UnattributedNewRows", probe, StringComparison.Ordinal);
+            Assert.Contains("PROBE FAULT", probe, StringComparison.Ordinal);
+        }
+
+        [Fact]
         public void All_three_shadow_balances_the_readout_names_are_still_public_on_the_state_machine()
         {
             Assert.NotNull(typeof(StockCurrencyStateMachine).GetProperty("ShadowFunds"));

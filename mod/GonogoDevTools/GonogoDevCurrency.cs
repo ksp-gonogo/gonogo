@@ -2215,6 +2215,19 @@ namespace Gonogo.DevTools
                 sb.AppendLine("\t\t" + name + "Movement = " + MovementVerdict(b, baseline, kind, sample.Delay));
             }
 
+            var unattributed = UnattributedNewRows(sample.Delay);
+            if (unattributed != 0)
+            {
+                // Every movement verdict above matches a ledger row to a currency by
+                // comparing the row's currency name against this enum's, so a rename on
+                // either side would silently match nothing: every verdict would read
+                // "LANDED, nothing queued", which is a clean run. The rows are counted
+                // both ways and the disagreement is said out loud.
+                sb.AppendLine("\t\tPROBE FAULT = " + unattributed.ToString(CultureInfo.InvariantCulture)
+                    + " of this run's ledger rows matched no currency this probe knows, so every movement verdict"
+                    + " above is understating what is queued. The row currency names and this probe's have diverged");
+            }
+
             if (b.HasConfidence)
             {
                 sb.AppendLine("\t\tconfidence = " + b.Confidence.ToString("F3", CultureInfo.InvariantCulture));
@@ -2228,6 +2241,31 @@ namespace Gonogo.DevTools
 
             AppendDelaySubsystem(sb, sample.Delay);
             sb.AppendLine("\t}");
+        }
+
+        /// <summary>
+        /// How many of this run's ledger rows the three per-currency counts between them
+        /// failed to account for. Anything but zero means the row currency names and this
+        /// probe's have diverged, which would otherwise render as every currency having
+        /// nothing queued.
+        /// </summary>
+        private static int UnattributedNewRows(DelaySubsystem delay)
+        {
+            if (delay.PendingRows < 0)
+            {
+                return 0;
+            }
+
+            var attributed = 0;
+            foreach (var kind in AllCurrencies)
+            {
+                var count = delay.NewRowsFor(kind.ToString());
+                if (count > 0)
+                {
+                    attributed += count;
+                }
+            }
+            return delay.NewRows - attributed;
         }
 
         /// <summary>One balance, or why it could not be read. Never a zero standing in
