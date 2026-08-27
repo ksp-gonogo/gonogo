@@ -332,7 +332,18 @@ export function ContributionsProvider({
 // second instance, both completed the same `${componentId}.${segment}` way. A
 // widget that also lists one of these in `contributionSlots` is harmlessly
 // deduped below.
-const FRAMEWORK_SEGMENTS = ["badges", "filters", "meters"] as const;
+//
+// `plot-layers` is the fourth, and it is what makes "contribute a layer to a
+// plot" universal rather than a favour each chart widget grants: a layer is
+// stated in the plot's own data space and means the same thing in any chart, so
+// the seam belongs to the framework and every widget built on the shared chart
+// gets it without writing a line.
+const FRAMEWORK_SEGMENTS = [
+  "badges",
+  "filters",
+  "meters",
+  "plot-layers",
+] as const;
 
 function ContributionsAggregation({ children }: { children?: ReactNode }) {
   const meta = useWidgetMeta();

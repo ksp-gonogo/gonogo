@@ -60,6 +60,19 @@ export interface GraphConfig {
    * time. Legacy configs without this field default to time.
    */
   xKey?: string;
+  /**
+   * Pin the X domain, which also makes X a plain numeric axis fed by NOTHING:
+   * no data key, no wall clock. That is what a plot whose content is reference
+   * curves or contributed layers needs, and without it such a plot silently
+   * fell back to the 300-second time window and drew its marks at the far left.
+   */
+  xDomain?: [number, number];
+  /** Unit symbol for the X tick labels while `xDomain` is pinned; there is no
+   *  schema entry to read one from. */
+  xUnit?: string;
+  /** Unit token for the primary Y tick labels, written through the unit
+   *  registry's ladder. Without it a metre axis reads "30.0k". */
+  yUnit?: string;
   /** Optional pin for primary-axis domain. Falls back to data range when absent. */
   yDomainPrimary?: [number, number];
   /** Optional pin for secondary-axis domain. Falls back to data range when absent. */

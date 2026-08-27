@@ -1,9 +1,11 @@
 import type { VesselTopology } from "@ksp-gonogo/core";
 import {
+  ContributionsProvider,
   DashboardItemContext,
   getComponents,
   type MockDataSource,
   registerStockBodies,
+  WidgetMetaContext,
 } from "@ksp-gonogo/core";
 import type { Meta } from "@ksp-gonogo/sitrep-sdk";
 import { act, render, waitFor } from "@ksp-gonogo/test-utils";
@@ -342,6 +344,45 @@ interface SnapshotOpts<Cfg> {
   defaultConfig?: Cfg;
   /** Forwarded to `setupMockDataSource`: see its own doc comment. Default `false`, matching every existing widget's snapshot behavior. */
   connectSource?: boolean;
+}
+
+/**
+ * The widget's own contribution stack, mirroring the app's `WidgetContributions`
+ * (`GridItemContent.tsx`) and the shared render probe's `renderWidget`.
+ *
+ * Without it `useContributions` silently returns empty, and a widget whose
+ * content comes through a contribution slot photographs as an empty frame while
+ * the snapshot goes on claiming to cover it. That is not hypothetical: this
+ * harness's own doc comment promises "the same mount path" as the probe, and it
+ * had drifted off it. LandingStatus's descent envelope, whose every mark is a
+ * self-contribution, is what surfaced it.
+ *
+ * The definition is found by matching the mounted COMPONENT against the
+ * registry rather than by a new caller-supplied id, because an id every
+ * snapshot file has to pass is an id somebody will forget, and the thing a
+ * forgotten one produces is exactly the silent empty frame above. A component
+ * that is not registered (a sub-component photographed directly) mounts
+ * untouched.
+ */
+function WidgetContributions({
+  Widget,
+  children,
+}: {
+  Widget: unknown;
+  children: React.ReactNode;
+}) {
+  const def = getComponents().find((d) => d.component === Widget);
+  if (!def) return <>{children}</>;
+  return (
+    <WidgetMetaContext.Provider
+      value={{
+        componentId: def.id,
+        contributionSlots: def.contributionSlots ?? [],
+      }}
+    >
+      <ContributionsProvider>{children}</ContributionsProvider>
+    </WidgetMetaContext.Provider>
+  );
 }
 
 /** Built once per snapshot render; see {@link buildStreamWrap}. */
@@ -705,12 +746,14 @@ export async function snapshotWidgetMode<
     const { container } = render(
       <Wrap>
         <DashboardItemContext.Provider value={{ instanceId }}>
-          <opts.Widget
-            config={config}
-            id={instanceId}
-            w={opts.mode.w}
-            h={opts.mode.h}
-          />
+          <WidgetContributions Widget={opts.Widget}>
+            <opts.Widget
+              config={config}
+              id={instanceId}
+              w={opts.mode.w}
+              h={opts.mode.h}
+            />
+          </WidgetContributions>
         </DashboardItemContext.Provider>
       </Wrap>,
     );
@@ -806,12 +849,14 @@ export async function renderWidgetMode<
   const { container } = render(
     <Wrap>
       <DashboardItemContext.Provider value={{ instanceId }}>
-        <opts.Widget
-          config={config}
-          id={instanceId}
-          w={opts.mode.w}
-          h={opts.mode.h}
-        />
+        <WidgetContributions Widget={opts.Widget}>
+          <opts.Widget
+            config={config}
+            id={instanceId}
+            w={opts.mode.w}
+            h={opts.mode.h}
+          />
+        </WidgetContributions>
       </DashboardItemContext.Provider>
     </Wrap>,
   );

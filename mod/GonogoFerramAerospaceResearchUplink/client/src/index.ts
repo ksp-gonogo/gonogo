@@ -10,6 +10,6 @@ import "./AeroState";
 import "./DescentEnvelope";
 
 export { AeroStateComponent } from "./AeroState";
-export { DescentEnvelopeAeroOverlay } from "./DescentEnvelope";
+export { aeroBadges, aeroDescentLayers } from "./DescentEnvelope";
 export { AERO_AVAILABLE_TOPIC, AERO_STATE_TOPIC } from "./topics";
 export { AERO } from "./uplink";

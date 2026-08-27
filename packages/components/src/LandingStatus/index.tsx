@@ -40,6 +40,12 @@ import { CommitLayer, REGIME_LABEL, REGIME_TONE } from "./CommitLayer";
 import { CrossSection } from "./CrossSection";
 import { deriveDelayClocks } from "./clocks";
 import { DescentEnvelope } from "./DescentEnvelope";
+// Side-effect import: the widget's OWN plot layers, registered into
+// `landing-status.plot-layers` the same way any Uplink's would be. Pulled in
+// here rather than left to the package entry's import order, because a widget
+// that lost its own curve to a module-ordering accident would look like a
+// telemetry outage.
+import "./descentLayers";
 import { greatCircle } from "./geo";
 import { deriveHazardVerdict } from "./hazardVerdict";
 import { solveSuicideBurn } from "./solveLanding";
@@ -51,8 +57,7 @@ type LandingStatusConfig = Record<string, never>;
 
 // Mounted by `Panel`'s universal segments rather than by this widget. The ids
 // stay declared so a binder's component types against the propless contract
-// rather than the loose fallback. `landing-status.envelope` is declared beside
-// its own props type in `DescentEnvelope.tsx`, which is where it is mounted.
+// rather than the loose fallback.
 declare module "@ksp-gonogo/core" {
   interface SlotRegistry {
     "landing-status.sections": Record<string, never>;
@@ -710,15 +715,6 @@ function LandingStatusComponent({
         projectedTouchdownSpeed={
           landing?.projectedTouchdownSpeed?.magnitude ?? null
         }
-        atmosphereColor={body?.atmosphereColor ?? null}
-        dragToWeight={landing?.dragToWeightRatio?.magnitude ?? null}
-        dragDisplay="arrow"
-        surfaceGravity={
-          body?.gm != null && body.radius > 0
-            ? body.gm / (body.radius * body.radius)
-            : null
-        }
-        mach={flight?.mach?.magnitude ?? null}
       />
     ) : null;
 
@@ -1191,10 +1187,12 @@ function LandingStatusComponent({
                       <FramedDisplay>{crossSectionEl}</FramedDisplay>
                     </div>
                   )}
+                  {/* No `FramedDisplay` around this one: the shared chart owns
+                      its own frame, and a second read as a double border. */}
                   {envelopeEl && (
                     <div style={{ flex: "1 1 200px", minWidth: 200 }}>
                       <SectionTitle>Descent envelope</SectionTitle>
-                      <FramedDisplay>{envelopeEl}</FramedDisplay>
+                      {envelopeEl}
                     </div>
                   )}
                 </div>
@@ -1259,9 +1257,9 @@ registerComponent<LandingStatusConfig>({
     "comms.delay",
   ],
   defaultConfig: {},
-  // The descent envelope's overlay seam. See the `SlotRegistry` merge above for
-  // what an augment bound to it is handed.
-  augmentSlots: ["landing-status.envelope"],
+  // No augment slot. The descent envelope's seam is `landing-status.plot-layers`,
+  // a contribution slot the framework completes for every widget, and this
+  // widget's own marks go through it too (see `descentLayers.ts`).
   pushable: true,
   requires: ["flight"],
 });

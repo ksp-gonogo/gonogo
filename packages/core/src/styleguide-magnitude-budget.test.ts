@@ -43,13 +43,16 @@ const MAGNITUDE_BUDGET: Record<string, number> = {
   "mod/GonogoKerbalismUplink/client/src/resourceProjection.ts": 4,
   "mod/GonogoKerbalismUplink/client/src/ScienceFileManager/index.tsx": 1,
   "mod/GonogoKerbcastUplink/client/src/CameraFeed/CameraFeed.tsx": 4,
-  // 4: an overlay drawing on a host plot's axes. Alpha becomes an SVG rotation,
-  // stall fraction the amplitude of a torn edge, terminal velocity the anchor of
-  // a curve sampled through a square root, and the ballistic coefficient the one
-  // reading of the four that reaches a reader as text. Geometry is arithmetic on
-  // numbers and there is no term for it in the algebra; the numbers a READER
-  // sees still go out through `speakQuantity` / `writeQuantity`.
-  "mod/GonogoFerramAerospaceResearchUplink/client/src/DescentEnvelope/index.tsx": 4,
+  // 11, up from the 4 this file used while it was a React overlay drawing on a
+  // host plot's axes, and the rise is the price of the overlay slot going away.
+  // A CONTRIBUTION is handed raw Topic payloads rather than a host context, so
+  // where it used to be given `ctx.terminalVelocityAt` and `ctx.projectDescent`
+  // already built, it now unwraps the two terminal anchors, the height, the
+  // speed and the body's radius and gravitational parameter to build them
+  // itself. Every one of those feeds an integration or a square root, which is
+  // arithmetic the algebra has no term for; the numbers a READER sees still go
+  // out through `writeQuantity`.
+  "mod/GonogoFerramAerospaceResearchUplink/client/src/DescentEnvelope/index.ts": 11,
   // 1: the contribution entry carries a BARE bits/sec so CommSignal can compare
   // legs to find the bottleneck. A comparison across a slot boundary cannot
   // carry a Value, because the entry crosses the published contract as JSON.
@@ -114,11 +117,17 @@ const MAGNITUDE_BUDGET: Record<string, number> = {
   "packages/components/src/FleetComms/index.tsx": 15,
   "packages/components/src/FleetRoster/index.tsx": 3,
   "packages/components/src/FuelStatus/index.tsx": 1,
-  // 36: the thirty-sixth is the Mach number, handed to the descent envelope so
-  // the part of its projection that has yet to cross the transonic drag rise is
-  // drawn as the estimate it is. It reaches an SVG stroke pattern rather than a
-  // reader, so there is nothing for a Value to carry.
-  "packages/components/src/LandingStatus/index.tsx": 36,
+  // 34, down from 36: the descent envelope stopped taking the Mach number and
+  // the drag ratio as props when its marks became contributed layers, and its
+  // own contribution reads them off the Topic instead.
+  "packages/components/src/LandingStatus/index.tsx": 34,
+  // 7: the descent envelope's own layers, in the plot's own axes. The two
+  // terminal anchors, the height and the speed set the frame and feed the
+  // integration; the drag ratio scales a mark and the Mach number decides
+  // whether the projection is drawn as an estimate. All arithmetic, none of it
+  // a term the algebra has, and every number a READER sees still goes out
+  // through `writeQuantity`.
+  "packages/components/src/LandingStatus/descentLayers.ts": 7,
   "packages/components/src/LaunchDirector/index.tsx": 1,
   // 1: the view instant, unwrapped to bucket it and to hand it to the frame
   // arithmetic. Every function that solves a body's position takes a bare UT,

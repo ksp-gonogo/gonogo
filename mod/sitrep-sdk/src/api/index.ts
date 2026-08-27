@@ -55,6 +55,10 @@ import "./slots";
 // slots.ts's own header). Same reasoning as the `./slots` import above, one
 // merge target per declaration-merge seam.
 import "./contribution-slots";
+// Side-effect only: carries the `ComponentSlotRegistry` declaration-merge for
+// the framework-universal `plot-layers` segment. Same reasoning as the two
+// imports above, one merge target per declaration-merge seam.
+import "./plot-layers";
 import type {
   ActionDefinition,
   ActionHandlers,
@@ -78,6 +82,22 @@ import type {
 export type { GonogoHost } from "./host";
 export { GONOGO_HOST_KEY, hasHost } from "./host";
 export type { LogContext, Logger, TaggedLogger } from "./logger-contract";
+// The plot-layer vocabulary. Its own module rather than a line in `./types`,
+// because the union is the whole surface a contributor writes against and it
+// carries the reasoning for the data-space and tone-not-colour rules.
+export type {
+  PlotAnnotationLayer,
+  PlotCaptionLayer,
+  PlotEmphasis,
+  PlotFieldLayer,
+  PlotLayer,
+  PlotMarkerLayer,
+  PlotPoint,
+  PlotRegionLayer,
+  PlotRuleLayer,
+  PlotSeriesLayer,
+  PlotTone,
+} from "./plot-layers";
 // The message-pipe contract. Defined entirely in terms of this package's own
 // wire messages, so it belongs here rather than in `sitrep-client`, and living
 // here is what lets the transport double ship from `/testing`.
