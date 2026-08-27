@@ -1871,6 +1871,23 @@ export const ALLOWLIST: Record<ModToken, ModAllowlist> = {
        */
       "mod/GonogoDevTools/GonogoDevKerbalismDump.cs",
       /*
+       * GonogoDevKerbalismScience.cs: the same case as the dump above, one step
+       * further. It is DEV-ONLY, never shipped, and reaches Kerbalism purely by
+       * reflection with no compile-time reference. It drives
+       * SubjectData.RetrieveScience, which is the choke point this Uplink's own
+       * Harmony postfix patches, because with preventScienceCrediting set that
+       * is the ONLY path science can be credited through, so there is no way to
+       * observe currency delay on a Kerbalism install without naming it.
+       * Permanent rather than debt for the dump's reason: a dev-only probe does
+       * not belong inside a shipped Uplink.
+       *
+       * GonogoDevCurrency.cs names Kerbalism in prose only, to say why its own
+       * AddScience path cannot answer the science question here and to point at
+       * the tool above.
+       */
+      "mod/GonogoDevTools/GonogoDevKerbalismScience.cs",
+      "mod/GonogoDevTools/GonogoDevCurrency.cs",
+      /*
        * Sibling Uplink clients noting that a Kerbalism-shaped filler for one of
        * their own slots is expected later, or recording that they share this
        * Uplink's "no runtime-loader entry, plain static import" bootstrap path.

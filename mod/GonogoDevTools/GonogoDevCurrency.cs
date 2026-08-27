@@ -25,6 +25,15 @@ namespace Gonogo.DevTools
     /// entry points the game uses, so the delay subsystem, RP-1's currency
     /// handlers, and anything else on those events all see an ordinary award.</para>
     ///
+    /// <para><b>It cannot answer the science question on a Kerbalism install.</b>
+    /// <c>ResearchAndDevelopment.AddScience</c> is the stock path, and
+    /// GonogoKerbalismUplink sets <c>KERBALISM.API.preventScienceCrediting</c>,
+    /// which makes its own Harmony postfix on
+    /// <c>KERBALISM.SubjectData.RetrieveScience</c> the only thing that credits
+    /// science at all. Use <see cref="GonogoDevKerbalismScience"/> for science
+    /// wherever Kerbalism is installed; this tool remains the one for funds,
+    /// reputation, and stock-path science.</para>
+    ///
     /// <para><b>Attribution.</b> <c>Gonogo.KSP.CurrencyDelay.StockCurrencyInterceptor</c>
     /// only delays a change whose <c>TransactionReasons</c> is
     /// ScienceTransmission, VesselRecovery or VesselLoss AND for which a vessel
@@ -147,10 +156,11 @@ namespace Gonogo.DevTools
         /// </summary>
         private readonly struct DelaySubsystem
         {
-            public DelaySubsystem(bool present, bool scenarioLive, bool subscribed, int pendingRows, double shadowScience, int labVessels, int scienceDefers, string firstPending, string fault)
+            public DelaySubsystem(bool present, bool scenarioLive, int scenarioInstances, bool subscribed, int pendingRows, double shadowScience, int labVessels, int scienceDefers, string firstPending, string fault)
             {
                 Present = present;
                 ScenarioLive = scenarioLive;
+                ScenarioInstances = scenarioInstances;
                 Subscribed = subscribed;
                 PendingRows = pendingRows;
                 ShadowScience = shadowScience;
@@ -162,6 +172,12 @@ namespace Gonogo.DevTools
 
             public bool Present { get; }
             public bool ScenarioLive { get; }
+
+            /// <summary>How many live CurrencyDelayScenario objects exist. Anything but 1
+            /// makes every other figure here a reading of one arbitrary instance, so the
+            /// count is reported rather than assumed.</summary>
+            public int ScenarioInstances { get; }
+
             public bool Subscribed { get; }
             public int PendingRows { get; }
             public double ShadowScience { get; }
@@ -178,7 +194,7 @@ namespace Gonogo.DevTools
             public string Fault { get; }
 
             public static DelaySubsystem Absent(string fault) =>
-                new DelaySubsystem(false, false, false, -1, 0.0, -1, -1, "", fault);
+                new DelaySubsystem(false, false, 0, false, -1, 0.0, -1, -1, "", fault);
         }
 
         /// <summary>Every balance the delay model can move, plus RP-1's two
@@ -586,6 +602,15 @@ namespace Gonogo.DevTools
         /// assembly, so each miss is reported in <c>Fault</c> rather than
         /// degrading to a zero. A renamed field must read as "could not measure",
         /// never as "measured nothing pending".</para>
+        ///
+        /// <para><b>One instance is assumed and no longer taken on trust.</b> All the
+        /// figures below come off ONE scenario object, so a second live one makes them a
+        /// reading of whichever happened to come first, indistinguishable from a subsystem
+        /// that did nothing. The count is reported and a count other than 1 is a fault.
+        /// <c>Resources.FindObjectsOfTypeAll</c>, not <c>FindObjectOfType</c>, because the
+        /// latter returns one arbitrary match and skips an inactive object entirely.
+        /// <see cref="GonogoDevKerbalismScience"/> carries the fuller version of this,
+        /// including which instance the crediting path actually talks to.</para>
         /// </summary>
         private static DelaySubsystem ReadDelaySubsystem()
         {
@@ -597,11 +622,17 @@ namespace Gonogo.DevTools
                     return DelaySubsystem.Absent("CurrencyDelayScenario not in any loaded assembly");
                 }
 
-                var scenario = UnityEngine.Object.FindObjectOfType(scenarioType);
+                var all = UnityEngine.Resources.FindObjectsOfTypeAll(scenarioType);
+                var instances = all != null ? all.Length : 0;
+                var scenario = instances > 0 ? all![0] : null;
                 if (scenario == null)
                 {
-                    return new DelaySubsystem(true, false, false, -1, 0.0, -1, -1, "", "scenario type present but no live instance");
+                    return new DelaySubsystem(true, false, 0, false, -1, 0.0, -1, -1, "", "scenario type present but no live instance");
                 }
+
+                var instanceFault = instances == 1
+                    ? ""
+                    : instances + " live CurrencyDelayScenario instances - every figure below is from one of them";
 
                 const BindingFlags Instance = BindingFlags.NonPublic | BindingFlags.Instance;
 
@@ -609,12 +640,12 @@ namespace Gonogo.DevTools
                 var shadowScience = 0.0;
                 var labVessels = -1;
                 var scienceDefers = -1;
-                var fault = "";
+                var fault = instanceFault;
 
                 var interceptor = scenarioType.GetField("_interceptor", Instance)?.GetValue(scenario);
                 if (interceptor == null)
                 {
-                    fault = "could not read _interceptor";
+                    fault = Append(fault, "could not read _interceptor");
                 }
                 else
                 {
@@ -622,7 +653,7 @@ namespace Gonogo.DevTools
                     var subscribedField = interceptorType.GetField("_subscribed", Instance);
                     if (subscribedField == null)
                     {
-                        fault = "could not read _subscribed";
+                        fault = Append(fault, "could not read _subscribed");
                     }
                     else
                     {
@@ -669,7 +700,7 @@ namespace Gonogo.DevTools
                     fault = Append(fault, "could not read the pending ledger");
                 }
 
-                return new DelaySubsystem(true, true, subscribed, pendingRows, shadowScience, labVessels, scienceDefers, firstPending, fault);
+                return new DelaySubsystem(true, true, instances, subscribed, pendingRows, shadowScience, labVessels, scienceDefers, firstPending, fault);
             }
             catch (Exception ex)
             {
@@ -853,6 +884,7 @@ namespace Gonogo.DevTools
             sb.AppendLine("\t\t{");
             sb.AppendLine("\t\t\tsubsystemPresent = " + (delay.Present ? "True" : "False"));
             sb.AppendLine("\t\t\tscenarioLive = " + (delay.ScenarioLive ? "True" : "False"));
+            sb.AppendLine("\t\t\tscenarioInstances = " + delay.ScenarioInstances.ToString(CultureInfo.InvariantCulture));
             sb.AppendLine("\t\t\tinterceptorSubscribed = " + (delay.Subscribed ? "True" : "False"));
             // -1 means the ledger could not be read; a plain 0 would read as
             // "measured, nothing pending", which is the opposite conclusion.
