@@ -13,8 +13,8 @@
  * Generic fixture ids ("alpha") on purpose, same reasoning as
  * `rosterProbe.test.ts`'s own header comment: this file must reference no
  * mod token so the uplink-boundary ratchet stays clean. Nothing here needs a
- * real first-party id any more: since queue item 19 a roster-ABSENT station
- * boot attempts nothing at all rather than falling back to a shipped id list.
+ * real first-party id any more: a roster-ABSENT station boot attempts nothing
+ * at all, there is no shipped id list for it to fall back to.
  *
  * The whole point of D6/#6 is that a station never fetches a bundle
  * directly: `stubFetch` below throws on any URL that isn't the registry
@@ -135,8 +135,7 @@ afterEach(() => {
 describe("runStationUplinkLoad", () => {
   it("with no roster sample (timeout), attempts nothing and never makes a direct bundle fetch", async () => {
     // The station's host never told it what is installed, so there is nothing
-    // to attempt. Before queue item 19 this fell back to a shipped
-    // first-party id list and quarantined all three.
+    // to attempt: no shipped id list stands behind an absent roster.
     const directBundleFetches = stubFetch(registryWith(goodHash));
     const stub = new StubTransport();
     const client = new TelemetryClient(stub);

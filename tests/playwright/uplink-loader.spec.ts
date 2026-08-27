@@ -42,9 +42,9 @@ import { dashboardWithWidget } from "./helpers";
  * A second test proves the `?uplinkLoaderIds=` override (`flag.ts`'s
  * `loaderBootIdsOverride`) actually narrows which ids the boot call attempts:
  * restricting the boot set to just `scansat` fetches only the scansat bundle
- * and leaves kos/kerbcast unloaded. Since queue item 19 (2026-08-27) that
- * override is the only way to name ids with no mod talking, so both tests here
- * pass it and the pair now differ only in the ids.
+ * and leaves kos/kerbcast unloaded. That override is the only way to name ids
+ * with no mod talking, so both tests here pass it and the pair differ only in
+ * the ids.
  *
  * Consent: the loader gates each first load at a new id@version behind operator
  * consent (design §3.5). Both tests seed a remembered grant in localStorage so
@@ -135,9 +135,8 @@ test.describe("Uplink loader (default path)", () => {
     );
 
     // The ids come in through `?uplinkLoaderIds=` because there is no mod
-    // talking here and, since queue item 19 deleted the shipped first-party
-    // default, nothing else can name them. That is what dev and e2e boots do
-    // now; a real boot gets its ids from the live roster.
+    // talking here and no shipped default to name them, which is how dev and
+    // e2e boot; a real boot gets its ids from the live roster.
     await page.goto(`${PREVIEW}/?uplinkLoaderIds=scansat,kos,kerbcast`, {
       waitUntil: "load",
     });

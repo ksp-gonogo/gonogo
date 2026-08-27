@@ -632,12 +632,11 @@ export async function loadUplinkById(
  *     would silently drop it with no outcome at all, which is strictly less
  *     visible than a "quarantined: mod reports Uplink unavailable" row.
  *   - `roster` ABSENT (`undefined`, no mod talking: dev / e2e / offline
- *     first boot) → nothing. There used to be a shipped three-id first-party
- *     fallback here, so a no-mod boot loaded those; the operator deleted it
- *     (queue item 19, 2026-08-27) because it made three first-party names load
- *     on a path a fourth author's Uplink could never reach. Nothing has said
- *     what is installed, so the honest answer is to attempt nothing and let the
- *     roster, or an explicit `override`, say.
+ *     first boot) → nothing. There is deliberately no shipped fallback list:
+ *     one would have to name ids, and a first-party name loading here is a
+ *     path a fourth author's Uplink could never reach. Nothing has said what
+ *     is installed, so nothing is attempted, and the roster or an explicit
+ *     `override` is what says otherwise.
  *
  * Reuses `computeUplinkGapEntries`: the SAME join the wizard's
  * `useUplinkGap` classifies `installed-no-client` gaps from (`../wizard/

@@ -468,13 +468,11 @@ describe("loadEnabledUplinks: installed-mod-roster drives the enabled set (2026-
     expect(getUplinkOutcomes()).toHaveLength(0);
   });
 
-  // Queue item 19 (2026-08-27, operator: "I want to delete the hardcoded load
-  // source. It is against principle."). There used to be a shipped three-id
-  // first-party fallback that this path used, so a no-mod boot loaded those
-  // three. It made three first-party names load on a path a fourth author's
-  // Uplink could never reach, which contradicts the decentralised model.
-  // Nothing has told us what is installed, so the honest answer is to attempt
-  // nothing and let the roster (or an explicit override) say.
+  // No shipped fallback list stands behind an absent roster, deliberately: a
+  // list would have to name ids, and a first-party name loading on this path is
+  // one a fourth author's Uplink could never reach. Nothing has told us what is
+  // installed, so nothing is attempted and the roster, or an explicit override,
+  // is what says otherwise.
   it("roster ABSENT and no override attempts nothing, no bundle fetched", async () => {
     const importBundle = vi.fn<(url: string) => Promise<unknown>>(
       async () => ({}),
@@ -498,9 +496,9 @@ describe("loadEnabledUplinks: installed-mod-roster drives the enabled set (2026-
     expect(importBundle).not.toHaveBeenCalled();
   });
 
-  // The registry-failure arm used to quarantine `ctx.enabledIds` so a dead
-  // registry was visible rather than a blank dashboard. With that field gone the
-  // ids it reports come from the same two inputs everything else does, and a
+  // A dead registry has to be visible rather than a blank dashboard, so this arm
+  // quarantines the ids it WOULD have attempted, drawn from the same two inputs
+  // everything else reads: an override outright, otherwise every roster id. A
   // roster-driven boot is the case that would otherwise have gone silent.
   it("quarantines the roster's ids when the registry is unreadable", async () => {
     const importBundle = vi.fn<(url: string) => Promise<unknown>>(

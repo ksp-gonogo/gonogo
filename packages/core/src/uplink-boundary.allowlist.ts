@@ -142,9 +142,9 @@ export const ALLOWLIST: Record<ModToken, ModAllowlist> = {
       /*
        * flag.ts / flag.test.ts / main.tsx were here (the loader's shipped
        * first-party enabled-id list, its test, and main.tsx's prose naming the
-       * three ids it booted). Queue item 19 (2026-08-27) deleted the list: the
-       * loader derives what to attempt from the live roster, so no app source
-       * names kerbcast at all now, stale, ratcheted off.
+       * three ids it booted). The list was deleted on 2026-08-27: the loader
+       * derives what to attempt from the live roster, so no app source names
+       * kerbcast at all now, stale, ratcheted off.
        */
 
       // -- sitrep-client / contract layer, comment or string-literal only --
@@ -500,8 +500,8 @@ export const ALLOWLIST: Record<ModToken, ModAllowlist> = {
        * main.tsx was here: first for a static `@ksp-gonogo/gonogo-scansat-uplink`
        * import (dropped D4 step 2, 2026-07-25), then for a
        * `registerScansatAndRender` function name and doc comments naming the
-       * three ids it booted. Queue item 19 (2026-08-27) renamed that function
-       * `bootUplinksAndRender` and dropped the prose along with the id list it
+       * three ids it booted. On 2026-08-27 that function became
+       * `bootUplinksAndRender` and the prose went with the id list it
        * described, stale, ratcheted off.
        */
       /*
@@ -531,8 +531,7 @@ export const ALLOWLIST: Record<ModToken, ModAllowlist> = {
        * scansat as its example Uplink (TEST-only). The loader module itself
        * (loader.ts) is generic and names no mod. flag.ts and flag.test.ts were
        * here for the shipped enabled-id list and the test asserting its
-       * contents; queue item 19 (2026-08-27) deleted the list, stale, ratcheted
-       * off.
+       * contents; the list was deleted on 2026-08-27, stale, ratcheted off.
        */
       "packages/app/src/uplinks/loader.test.ts",
       /*
@@ -904,7 +903,7 @@ export const ALLOWLIST: Record<ModToken, ModAllowlist> = {
        * main.tsx was here (`import "@ksp-gonogo/gonogo-kos-uplink"`, a sanctioned self-
        * registration import). D4 step 2 (2026-07-25) removed the static
        * import: kos now always loads through the runtime loader, and since
-       * queue item 19 (2026-08-27) not even a shipped id list names it (no
+       * 2026-08-27 not even a shipped id list names it (no
        * "kOS"/"Kos*"/"kos.*" distinctive-form text left in main.tsx itself):
        * stale, ratcheted off.
        * CrewStatus/index.tsx was here (a doc-comment aside claiming gonogo
