@@ -54,6 +54,28 @@
     "reason": "An immutable accident report. Every field is a recorded peak or total from a flight that has ended, so there is nothing left to integrate, and a peak speed is not the rate of a peak altitude in any case.",
     "verdict": "coincidence"
   },
+  "CrewRosterEntry.retiresAtUt": {
+    "rates": [
+      "courage",
+      "experience",
+      "experienceLevel",
+      "experienceLevelDelta",
+      "stupidity"
+    ],
+    "reason": "Dimensional degeneracy, the same case as the standing's own end date beside it, with one difference worth stating: this one is not integrated from anything at all. A career overhaul reads a retirement date out of its own settings when the kerbal is hired and pushes it back in discrete steps as they fly, so there is no rate to find, let alone one of these. Courage and stupidity in particular are personality stats that never change.",
+    "verdict": "coincidence"
+  },
+  "CrewRosterEntry.standingEndsAtUt": {
+    "rates": [
+      "courage",
+      "experience",
+      "experienceLevel",
+      "experienceLevelDelta",
+      "stupidity"
+    ],
+    "reason": "Dimensional degeneracy, and worth writing down rather than waving away because of what it lands next to. `divide({s:1},{s:1})` is `{}`, so every dimensionless field on the roster is offered as the derivative of every date on it, and a kerbal's courage is not the rate at which their training finishes. What makes it more than noise is that one of the standings behind this date genuinely IS integrable and this rule still cannot reach it: a training course's ETA is remaining build points over a build rate, both in a career overhaul's own `bp`/`bp/s` vocabulary, which core cannot dimension. The producer already derives the date from them, so there is nothing left for a client to integrate.",
+    "verdict": "coincidence"
+  },
   "CrewRosterEntry.inactiveUntilUt": {
     "rates": [
       "courage",
@@ -526,6 +548,28 @@
     "rates": ["scienceRate"],
     "reason": "`scienceRate` is the rate of `storedScience`. Conditional: a non-stock provider produces no science itself, leaves `scienceRate` null and carries its own rate in `Extensions`, so a model must gate on the value model rather than assume the field is populated.",
     "verdict": "real-but-unmodelled"
+  },
+  "spaceCenter.crewRoster.retiresAtUt": {
+    "rates": [
+      "courage",
+      "experience",
+      "experienceLevel",
+      "experienceLevelDelta",
+      "stupidity"
+    ],
+    "reason": "Dimensional degeneracy, the same case as the standing's own end date beside it, with one difference worth stating: this one is not integrated from anything at all. A career overhaul reads a retirement date out of its own settings when the kerbal is hired and pushes it back in discrete steps as they fly, so there is no rate to find, let alone one of these. Courage and stupidity in particular are personality stats that never change.",
+    "verdict": "coincidence"
+  },
+  "spaceCenter.crewRoster.standingEndsAtUt": {
+    "rates": [
+      "courage",
+      "experience",
+      "experienceLevel",
+      "experienceLevelDelta",
+      "stupidity"
+    ],
+    "reason": "Dimensional degeneracy, and worth writing down rather than waving away because of what it lands next to. `divide({s:1},{s:1})` is `{}`, so every dimensionless field on the roster is offered as the derivative of every date on it, and a kerbal's courage is not the rate at which their training finishes. What makes it more than noise is that one of the standings behind this date genuinely IS integrable and this rule still cannot reach it: a training course's ETA is remaining build points over a build rate, both in a career overhaul's own `bp`/`bp/s` vocabulary, which core cannot dimension. The producer already derives the date from them, so there is nothing left for a client to integrate.",
+    "verdict": "coincidence"
   },
   "spaceCenter.crewRoster.inactiveUntilUt": {
     "rates": [

@@ -1,4 +1,8 @@
-import { isFatality, value } from "@ksp-gonogo/sitrep-sdk";
+import {
+  crewUnavailableSentence,
+  isFatality,
+  value,
+} from "@ksp-gonogo/sitrep-sdk";
 import {
   Badge,
   NULL_DISPLAY,
@@ -47,12 +51,11 @@ export interface KerbalStatFields {
   /** KSP's OWN `RosterStatus` ordinal, carried for a caller that needs to know
    *  what the game holds. Nothing here branches on it. */
   situationOrdinal?: number | null;
-  /** Whether the kerbal is standing down rather than on duty
-   *  (`ProtoCrewMember.inactive`). A separate axis from {@link standing}: a
-   *  resting kerbal's standing is `Available` throughout. */
-  inactive?: boolean;
-  /** When the stand-down ends, as universal time; absent while on duty. */
-  inactiveUntilUt?: number | null;
+  /** When the current {@link standing} lapses, as universal time: a course's
+   *  ETA, a rest period's end. Absent for a standing with no scheduled end.
+   *  Joined onto {@link unavailableReason} for the badge's title, so the date is
+   *  formatted in the client's calendar and never on the wire. */
+  standingEndsAtUt?: number | null;
   currentVesselName: string;
   /** Ratio 0-1. Carried as non-optional (defaulted via `magnitudeOr(…, 0)`),
    *  so presence alone can't gate the chips: a caller must opt in with
@@ -99,6 +102,27 @@ function unavailableSeverity(
   standing: number | null | undefined,
 ): Severity | undefined {
   return isFatality(standing) ? "critical" : undefined;
+}
+
+/**
+ * The badge's title: why the kerbal cannot fly, until when, and aboard what.
+ *
+ * The date is joined on HERE rather than read off the wire, through the SDK's
+ * `crewUnavailableSentence`, because the producer deliberately sends
+ * `unavailableReason` as prose and the when as a `ut` value: a date formatted in
+ * the mod would be formatted in the mod's idea of a calendar. `speakQuantity` is
+ * the client's own renderer, so an RSS save reads in RSS years.
+ */
+function unavailableTitle(kerbal: KerbalStatFields): string {
+  const sentence =
+    crewUnavailableSentence(
+      kerbal.unavailableReason,
+      kerbal.standingEndsAtUt,
+      (ut) => speakQuantity(value("ut", ut)),
+    ) ?? "Unavailable";
+  return kerbal.currentVesselName
+    ? `${sentence} (${kerbal.currentVesselName})`
+    : sentence;
 }
 
 export function KerbalStats({
@@ -213,30 +237,18 @@ export function KerbalStats({
             {kerbal.careerFlights}F
           </Badge>
         )}
-        {kerbal.inactive === true && (
-          <Badge
-            severity="caution"
-            size="sm"
-            aria-label="standing down"
-            title={
-              kerbal.inactiveUntilUt !== null &&
-              kerbal.inactiveUntilUt !== undefined
-                ? `Standing down for rest until ${speakQuantity(value("ut", kerbal.inactiveUntilUt))}`
-                : "Standing down for rest"
-            }
-          >
-            RESTING
-          </Badge>
-        )}
+        {/* ONE badge for every way a kerbal cannot fly, driven by the derived
+          `available` / `unavailableReason` pair rather than by a per-axis flag.
+          There used to be a bespoke RESTING badge beside this reading
+          `inactive`, from when a stand-down was not a standing: it showed
+          alongside this one the moment the derivation started producing
+          `Resting`, saying the same thing twice. A new axis needs no badge of
+          its own, which is the whole point of the producer deriving the pair. */}
         {!kerbal.available && (
           <Badge
             severity={unavailableSeverity(kerbal.standing)}
             size="sm"
-            title={
-              kerbal.currentVesselName
-                ? `${kerbal.unavailableReason || "Unavailable"} (${kerbal.currentVesselName})`
-                : kerbal.unavailableReason || "Unavailable"
-            }
+            title={unavailableTitle(kerbal)}
           >
             {kerbal.unavailableReason || "Unavailable"}
           </Badge>

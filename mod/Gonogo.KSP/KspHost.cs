@@ -480,8 +480,8 @@ namespace Gonogo.KSP
                 // a null or failure in one never drops the others or launchSites.
                 // The saved-ships disk walk is throttled to the keyframe cadence
                 // inside its builder; the rest are in-memory reads.
-                AttachSpaceCenterGroup(values, "crewRoster", BuildCrewRoster);
-                AttachSpaceCenterGroup(values, "astronautComplex", BuildAstronautComplex);
+                AttachSpaceCenterGroup(values, "crewRoster", () => BuildCrewRoster(ut));
+                AttachSpaceCenterGroup(values, "astronautComplex", () => BuildAstronautComplex(ut));
                 AttachSpaceCenterGroup(values, "savedShips", () => BuildSavedShips(ut));
                 AttachSpaceCenterGroup(values, "partsAvailable", () => BuildPartsAvailable());
                 AttachSpaceCenterGroup(values, "contractTargets", BuildContractTargets);
@@ -2953,9 +2953,8 @@ namespace Gonogo.KSP
         /// correction and nothing else. A crew roster must not be able to take
         /// the whole space-centre capture down.</para>
         /// </summary>
-        private CrewStandingStamp ReadCrewStanding(string name, int ordinal, bool isApplicant)
+        private CrewStandingResolution ReadCrewStanding(CrewStandingQuery query)
         {
-            var fallback = CrewStandings.FromRosterStatus(ordinal, isApplicant);
             ICrewStandingBackend? backend;
             try
             {
@@ -2967,53 +2966,39 @@ namespace Gonogo.KSP
             }
             if (backend == null)
             {
-                return new CrewStandingStamp(fallback, "stock", null, null);
+                return CrewStandings.Resolve(query, null, null);
             }
 
             CrewStandingReading? reading;
             try
             {
-                reading = backend.Read(name, isApplicant ? (int?)null : ordinal, isApplicant);
+                reading = backend.Read(query);
             }
             catch (Exception ex)
             {
-                Debug.LogWarning("[Gonogo] crew-standing backend threw for " + name + ", falling back to the roster status: " + ex);
+                Debug.LogWarning("[Gonogo] crew-standing backend threw for " + query.KerbalName + ", falling back to the roster status: " + ex);
                 reading = null;
             }
 
-            if (reading?.Standing == null)
-            {
-                return new CrewStandingStamp(fallback, "stock", reading?.Available, reading?.UnavailableReason);
-            }
-            return new CrewStandingStamp(
-                reading.Standing.Value,
-                backend.ProviderId,
-                reading.Available,
-                reading.UnavailableReason);
+            return CrewStandings.Resolve(query, reading, backend.ProviderId);
         }
 
-        /// <summary>What <see cref="ReadCrewStanding"/> resolved, ready to stamp onto a raw crew dict.</summary>
-        private readonly struct CrewStandingStamp
-        {
-            public CrewStandingStamp(CrewStanding standing, string? source, bool? available, string? unavailableReason)
-            {
-                Standing = standing;
-                Source = source;
-                Available = available;
-                UnavailableReason = unavailableReason;
-            }
-
-            public CrewStanding Standing { get; }
-            public string? Source { get; }
-            public bool? Available { get; }
-            public string? UnavailableReason { get; }
-        }
-
-        private Dictionary<string, object?> BuildCrewEntry(ProtoCrewMember pcm, bool isApplicant)
+        private Dictionary<string, object?> BuildCrewEntry(ProtoCrewMember pcm, bool isApplicant, double ut)
         {
             var trait = pcm.experienceTrait;
             var ordinal = (int)pcm.rosterStatus;
-            var standing = ReadCrewStanding(pcm.name, ordinal, isApplicant);
+            var standing = ReadCrewStanding(new CrewStandingQuery
+            {
+                KerbalName = pcm.name,
+                // An applicant is not in the roster and has no RosterStatus at
+                // all, so it is withheld rather than defaulted: a backend that
+                // saw a zero here would read it as stock's Available.
+                RosterStatusOrdinal = isApplicant ? (int?)null : ordinal,
+                IsApplicant = isApplicant,
+                Inactive = pcm.inactive,
+                InactiveUntilUt = pcm.inactiveTimeEnd,
+                Ut = ut,
+            });
 
             return new Dictionary<string, object?>
             {
@@ -3029,6 +3014,8 @@ namespace Gonogo.KSP
                 ["standingSource"] = standing.Source,
                 ["standingAvailable"] = standing.Available,
                 ["standingUnavailableReason"] = standing.UnavailableReason,
+                ["standingEndsAtUt"] = standing.StandingEndsAtUt,
+                ["retiresAtUt"] = standing.RetiresAtUt,
                 ["isApplicant"] = isApplicant,
                 ["inactive"] = pcm.inactive,
                 ["inactiveUntilUt"] = pcm.inactiveTimeEnd,
@@ -3053,7 +3040,7 @@ namespace Gonogo.KSP
         /// when no game is loaded (main menu) so the provider distinguishes "no
         /// data yet" from "zero crew."
         /// </summary>
-        private List<object?>? BuildCrewRoster()
+        private List<object?>? BuildCrewRoster(double ut)
         {
             var game = HighLogic.CurrentGame;
             var roster = game?.CrewRoster;
@@ -3070,7 +3057,7 @@ namespace Gonogo.KSP
                     continue;
                 }
 
-                crew.Add(BuildCrewEntry(pcm, isApplicant: false));
+                crew.Add(BuildCrewEntry(pcm, isApplicant: false, ut));
             }
 
             return crew;
@@ -3094,7 +3081,7 @@ namespace Gonogo.KSP
         /// in career" from "career with an empty pool." The cost/cap numbers are
         /// captured raw; the KSP-free provider owns any presentation fold.
         /// </summary>
-        private Dictionary<string, object?>? BuildAstronautComplex()
+        private Dictionary<string, object?>? BuildAstronautComplex(double ut)
         {
             var roster = HighLogic.CurrentGame?.CrewRoster;
             if (roster == null || Funding.Instance == null)
@@ -3121,7 +3108,7 @@ namespace Gonogo.KSP
                     continue;
                 }
 
-                applicants.Add(BuildCrewEntry(pcm, isApplicant: true));
+                applicants.Add(BuildCrewEntry(pcm, isApplicant: true, ut));
             }
 
             return new Dictionary<string, object?>

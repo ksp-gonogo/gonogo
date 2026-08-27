@@ -59,7 +59,7 @@ public class CrewStandingStarvationTests : IDisposable
         Assert.Equal("rp1", backend!.ProviderId);
         Assert.Equal(
             CrewStanding.Retired,
-            backend.Read(Retiree, (int)KspRosterStatus.Dead, isApplicant: false)?.Standing);
+            backend.Read(CrewStandingQueries.Crew(Retiree, KspRosterStatus.Dead))?.Standing);
     }
 
     /// <summary>
@@ -77,7 +77,7 @@ public class CrewStandingStarvationTests : IDisposable
         host.DriveTicks(3, new KspSnapshot(), Rp1ScUplink.CrewTopic);
 
         var watched = CrewStandingElection.Elected(host.Kernel)
-            ?.Read(Retiree, (int)KspRosterStatus.Dead, isApplicant: false);
+            ?.Read(CrewStandingQueries.Crew(Retiree, KspRosterStatus.Dead));
         Assert.Equal(CrewStanding.Retired, watched?.Standing);
     }
 
@@ -95,7 +95,7 @@ public class CrewStandingStarvationTests : IDisposable
 
         Assert.Equal(
             CrewStanding.Retired,
-            CrewStandingElection.Elected(host.Kernel)?.Read(Retiree, (int)KspRosterStatus.Dead, isApplicant: false)?.Standing);
+            CrewStandingElection.Elected(host.Kernel)?.Read(CrewStandingQueries.Crew(Retiree, KspRosterStatus.Dead))?.Standing);
     }
 
     /// <summary>
@@ -114,13 +114,13 @@ public class CrewStandingStarvationTests : IDisposable
         host.DriveTicks(2, new KspSnapshot());
         var backend = CrewStandingElection.Elected(host.Kernel);
 
-        Assert.Null(backend!.Read(Retiree, (int)KspRosterStatus.Dead, isApplicant: false));
+        Assert.Null(backend!.Read(CrewStandingQueries.Crew(Retiree, KspRosterStatus.Dead)));
 
         handler.Retired(Retiree);
 
         Assert.Equal(
             CrewStanding.Retired,
-            backend.Read(Retiree, (int)KspRosterStatus.Dead, isApplicant: false)?.Standing);
+            backend.Read(CrewStandingQueries.Crew(Retiree, KspRosterStatus.Dead))?.Standing);
     }
 
     /// <summary>

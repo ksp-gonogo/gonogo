@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using Sitrep.Contract;
+using Sitrep.Contract.TestSupport;
 using Sitrep.Host.Crew;
 using Xunit;
 
@@ -27,6 +28,19 @@ namespace Sitrep.Host.Tests
         private const double ProviderPriority = 10.0;
 
         /// <summary>
+        /// The stock backend's standing for one ordinal. A helper because a dozen
+        /// cases here vary ONLY by the ordinal, and an applicant is expressed by
+        /// withholding the ordinal rather than by passing a value beside a flag.
+        /// </summary>
+        private static CrewStanding StockStanding(int? ordinal, bool isApplicant) =>
+            new StockCrewStandingBackend().Read(new CrewStandingQuery
+            {
+                KerbalName = "Anybody Kerman",
+                RosterStatusOrdinal = isApplicant ? null : ordinal,
+                IsApplicant = isApplicant,
+            })!.Standing!.Value;
+
+        /// <summary>
         /// A career overhaul's backend, standing in for RP-1: one named retiree,
         /// silence about everyone else.
         /// </summary>
@@ -34,8 +48,8 @@ namespace Sitrep.Host.Tests
         {
             public string ProviderId => "fake-overhaul";
 
-            public CrewStandingReading? Read(string kerbalName, int? rosterStatusOrdinal, bool isApplicant) =>
-                kerbalName == "Wernher Kerman"
+            public CrewStandingReading? Read(CrewStandingQuery query) =>
+                query.KerbalName == "Wernher Kerman"
                     ? new CrewStandingReading { Standing = CrewStanding.Retired }
                     : null;
         }
@@ -150,8 +164,10 @@ namespace Sitrep.Host.Tests
         {
             var backend = new FakeOverhaulBackend();
 
-            Assert.Equal(CrewStanding.Retired, backend.Read("Wernher Kerman", (int)KspRosterStatus.Dead, false)!.Standing);
-            Assert.Null(backend.Read("Jebediah Kerman", (int)KspRosterStatus.Available, false));
+            Assert.Equal(
+                CrewStanding.Retired,
+                backend.Read(CrewStandingQueries.Crew("Wernher Kerman", KspRosterStatus.Dead))!.Standing);
+            Assert.Null(backend.Read(CrewStandingQueries.Crew("Jebediah Kerman", KspRosterStatus.Available)));
         }
 
         /// <summary>
@@ -166,7 +182,7 @@ namespace Sitrep.Host.Tests
         [InlineData((int)KspRosterStatus.Missing, CrewStanding.Missing)]
         public void StockMapsEveryRosterStatusItHas(int ordinal, CrewStanding expected)
         {
-            Assert.Equal(expected, new StockCrewStandingBackend().Read("Anybody Kerman", ordinal, false)!.Standing);
+            Assert.Equal(expected, StockStanding(ordinal, isApplicant: false));
         }
 
         /// <summary>
@@ -179,7 +195,7 @@ namespace Sitrep.Host.Tests
         {
             Assert.Equal(
                 CrewStanding.Applicant,
-                new StockCrewStandingBackend().Read("Dilsby Kerman", null, isApplicant: true)!.Standing);
+                new StockCrewStandingBackend().Read(CrewStandingQueries.Applicant("Dilsby Kerman"))!.Standing);
         }
 
         /// <summary>
@@ -191,10 +207,8 @@ namespace Sitrep.Host.Tests
         [Fact]
         public void StockRefusesToGuessAtAnOrdinalItDoesNotDeclare()
         {
-            var backend = new StockCrewStandingBackend();
-
-            Assert.Equal(CrewStanding.Unknown, backend.Read("Anybody Kerman", 9, false)!.Standing);
-            Assert.Equal(CrewStanding.Unknown, backend.Read("Anybody Kerman", null, false)!.Standing);
+            Assert.Equal(CrewStanding.Unknown, StockStanding(9, isApplicant: false));
+            Assert.Equal(CrewStanding.Unknown, StockStanding(null, isApplicant: false));
         }
 
         /// <summary>
@@ -206,12 +220,10 @@ namespace Sitrep.Host.Tests
         [Fact]
         public void StockNeverReportsARetirementItHasNoConceptOf()
         {
-            var backend = new StockCrewStandingBackend();
-
             for (var ordinal = -1; ordinal <= 6; ordinal++)
             {
-                Assert.NotEqual(CrewStanding.Retired, backend.Read("Anybody Kerman", ordinal, false)!.Standing);
-                Assert.NotEqual(CrewStanding.Retired, backend.Read("Anybody Kerman", ordinal, true)!.Standing);
+                Assert.NotEqual(CrewStanding.Retired, StockStanding(ordinal, isApplicant: false));
+                Assert.NotEqual(CrewStanding.Retired, StockStanding(ordinal, isApplicant: true));
             }
         }
 
@@ -224,17 +236,155 @@ namespace Sitrep.Host.Tests
         [Fact]
         public void TheStockBackendAndTheContractDefaultAreTheSameMap()
         {
-            var backend = new StockCrewStandingBackend();
-
             for (var ordinal = -1; ordinal <= 6; ordinal++)
             {
                 foreach (var isApplicant in new[] { false, true })
                 {
                     Assert.Equal(
                         CrewStandings.FromRosterStatus(ordinal, isApplicant),
-                        backend.Read("Anybody Kerman", ordinal, isApplicant)!.Standing);
+                        StockStanding(ordinal, isApplicant));
                 }
             }
+        }
+
+        /// <summary>
+        /// EVERY standing except the two that mean "free" is unavailable, and
+        /// this is driven off <c>Enum.GetValues</c> rather than a list, so a
+        /// member added to the contract is covered without anybody editing it.
+        /// </summary>
+        /// <remarks>
+        /// The property under test is the DIRECTION of the rule.
+        /// <see cref="CrewStandings.CanFly"/> is a whitelist, so a standing
+        /// nobody has thought about yet fails closed. Written as a blocklist the
+        /// same code would pass today and quietly hand a flight to whatever
+        /// committed-but-idle standing gets added next, which is exactly how a
+        /// kerbal mid-course reached the wire free to fly.
+        /// </remarks>
+        [Fact]
+        public void OnlyTheTwoFreeStandingsCanFly()
+        {
+            foreach (CrewStanding standing in System.Enum.GetValues(typeof(CrewStanding)))
+            {
+                var free = standing == CrewStanding.Available || standing == CrewStanding.Applicant;
+                Assert.Equal(free, CrewStandings.CanFly(standing));
+
+                // The reason is empty exactly when there is nothing to say: the
+                // kerbal is free, or the standing is one nobody could read.
+                // "Unknown" in a tooltip beside a disabled control reads as a
+                // diagnosis rather than as an absence.
+                var reason = CrewStandings.UnavailableReason(standing);
+                Assert.Equal(
+                    free || standing == CrewStanding.Unknown,
+                    string.IsNullOrEmpty(reason));
+            }
+        }
+
+        /// <summary>
+        /// The derivation folds every axis, not just the roster status: a kerbal
+        /// whose status is <c>Available</c> but who is standing down is
+        /// <see cref="CrewStanding.Resting"/>, unavailable, and dated.
+        /// </summary>
+        /// <remarks>
+        /// The case the split derivation could not express. The standing was
+        /// decided in the capture and availability in the view provider, and
+        /// <c>inactive</c> was visible to neither, so this kerbal published
+        /// <c>available: true</c> with an empty reason for a release.
+        /// </remarks>
+        [Fact]
+        public void AStandDownIsAStandingAndNotJustAFlagBesideOne()
+        {
+            var resolution = CrewStandings.Resolve(
+                CrewStandingQueries.Crew(
+                    "Bill Kerman",
+                    KspRosterStatus.Available,
+                    inactive: true,
+                    inactiveUntilUt: 8_000_000.0),
+                new StockCrewStandingBackend().Read(CrewStandingQueries.Crew(
+                    "Bill Kerman",
+                    KspRosterStatus.Available,
+                    inactive: true,
+                    inactiveUntilUt: 8_000_000.0)),
+                CrewStandings.StockSource);
+
+            Assert.Equal(CrewStanding.Resting, resolution.Standing);
+            Assert.False(resolution.Available);
+            Assert.Equal("Standing down", resolution.UnavailableReason);
+            Assert.Equal(8_000_000.0, resolution.StandingEndsAtUt);
+        }
+
+        /// <summary>
+        /// A kerbal crewing a vessel is <see cref="CrewStanding.Assigned"/>
+        /// whatever the stand-down flag says. The more specific answer wins, and
+        /// KSP leaves the flag set from the last rest period, so reading it here
+        /// would relabel half the crew in flight.
+        /// </summary>
+        [Fact]
+        public void BeingOnAMissionOutranksALeftoverStandDownFlag()
+        {
+            var query = CrewStandingQueries.Crew(
+                "Jeb Kerman",
+                KspRosterStatus.Assigned,
+                inactive: true,
+                inactiveUntilUt: 8_000_000.0);
+
+            Assert.Equal(CrewStanding.Assigned, CrewStandings.FromQuery(query));
+            Assert.Null(CrewStandings.Resolve(query, null, null).StandingEndsAtUt);
+        }
+
+        /// <summary>
+        /// A backend that answers ONLY a scheduled retirement leaves the standing
+        /// to the stock derivation and is not credited with it.
+        /// </summary>
+        /// <remarks>
+        /// This is how a kerbal reads <c>Resting</c>, from stock's own reading of
+        /// stock's own field, while carrying a career overhaul's retirement date.
+        /// A backend having something to add about one axis must not cost the
+        /// others their answer, or a mod would have to restate core's whole map
+        /// to contribute one date.
+        /// </remarks>
+        [Fact]
+        public void ADateWithNoStandingLeavesTheStandingAloneAndTheSourceStock()
+        {
+            var resolution = CrewStandings.Resolve(
+                CrewStandingQueries.Crew(
+                    "Bill Kerman",
+                    KspRosterStatus.Available,
+                    inactive: true,
+                    inactiveUntilUt: 8_000_000.0),
+                new CrewStandingReading { RetiresAtUt = 9_000_000.0 },
+                "fake-overhaul");
+
+            Assert.Equal(CrewStanding.Resting, resolution.Standing);
+            Assert.Equal(CrewStandings.StockSource, resolution.Source);
+            Assert.Equal(8_000_000.0, resolution.StandingEndsAtUt);
+            Assert.Equal(9_000_000.0, resolution.RetiresAtUt);
+        }
+
+        /// <summary>
+        /// The two whens are separate fields because they are live at once: a
+        /// kerbal is on a course that ends in a month and retires in a decade.
+        /// Folded together, an operator planning around a crew's remaining career
+        /// would read a course ETA as the end of it.
+        /// </summary>
+        [Fact]
+        public void ACourseEtaAndARetirementDateAreBothCarried()
+        {
+            var resolution = CrewStandings.Resolve(
+                CrewStandingQueries.Crew("Bill Kerman", KspRosterStatus.Available),
+                new CrewStandingReading
+                {
+                    Standing = CrewStanding.Training,
+                    StandingEndsAtUt = 1_000.0,
+                    RetiresAtUt = 500_000.0,
+                },
+                "fake-overhaul");
+
+            Assert.Equal(CrewStanding.Training, resolution.Standing);
+            Assert.Equal("fake-overhaul", resolution.Source);
+            Assert.False(resolution.Available);
+            Assert.Equal("In training", resolution.UnavailableReason);
+            Assert.Equal(1_000.0, resolution.StandingEndsAtUt);
+            Assert.Equal(500_000.0, resolution.RetiresAtUt);
         }
 
         /// <summary>

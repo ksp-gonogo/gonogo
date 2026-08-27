@@ -597,8 +597,28 @@ namespace Sitrep.Host.Tests
         /// because KSP leaves the field at whatever the last rest period set and
         /// quoting it would date a rest that has already finished.
         /// </summary>
+        /// <summary>
+        /// A kerbal standing down is <see cref="CrewStanding.Resting"/>,
+        /// unavailable, and dated, and one who has finished resting is neither.
+        /// </summary>
+        /// <remarks>
+        /// This case used to assert the opposite, and it is worth saying so
+        /// plainly: it pinned <c>available: true</c> and <c>standing: Available</c>
+        /// for a kerbal mid-stand-down, because <c>inactive</c> reached the wire
+        /// with nothing deriving from it and the test recorded what the code did.
+        /// The premise had a comment on the payload agreeing with it, so a reader
+        /// found two things saying a resting kerbal was free to fly and nothing
+        /// saying otherwise.
+        ///
+        /// <para>The stand-down's END is still quoted only while the stand-down is
+        /// live, which is the part the original case was right about: KSP leaves
+        /// <c>inactiveTimeEnd</c> at whatever the last rest period wrote, so
+        /// quoting it for a kerbal back on duty would date a rest already over.
+        /// It is now asserted on <c>standingEndsAtUt</c> as well, which is the
+        /// field a client reads it from.</para>
+        /// </remarks>
         [Fact]
-        public void BuildCrewRosterQuotesTheStandDownEndOnlyWhileStandingDown()
+        public void BuildCrewRosterMakesAStandDownAStandingAndDatesItOnlyWhileItLasts()
         {
             var list = Assert.IsType<List<object?>>(SpaceCenterViewProvider.BuildCrewRoster(new KspSnapshot
             {
@@ -631,12 +651,17 @@ namespace Sitrep.Host.Tests
             var resting = Assert.IsType<Dictionary<string, object?>>(list[0]);
             Assert.Equal(true, resting["inactive"]);
             Assert.Equal(12345.0, resting["inactiveUntilUt"]);
-            Assert.Equal(true, resting["available"]);
-            Assert.Equal((int)CrewStanding.Available, resting["standing"]);
+            Assert.Equal((int)CrewStanding.Resting, resting["standing"]);
+            Assert.Equal(false, resting["available"]);
+            Assert.Equal("Standing down", resting["unavailableReason"]);
+            Assert.Equal(12345.0, resting["standingEndsAtUt"]);
 
             var rested = Assert.IsType<Dictionary<string, object?>>(list[1]);
             Assert.Equal(false, rested["inactive"]);
             Assert.Null(rested["inactiveUntilUt"]);
+            Assert.Equal((int)CrewStanding.Available, rested["standing"]);
+            Assert.Equal(true, rested["available"]);
+            Assert.Null(rested["standingEndsAtUt"]);
         }
 
         [Fact]

@@ -13,6 +13,7 @@ import {
 import {
   CREW_STANDING_ORDER,
   CrewStanding,
+  canBeSacked,
   crewStandingFromRosterStatus,
   crewStandingLabel,
   value,
@@ -562,14 +563,15 @@ function ActivePanel({
     (standing) => {
       const members = groups.get(standing) ?? [];
       const keys = crewRowKeys(members);
-      // KerbalRoster.SackAvailable only ever accepts an Available crew member
-      // (see FireCrew's mod-side doc comment), so the Fire control renders on
-      // the Available rows alone. Decided on the STANDING rather than KSP's own
-      // ordinal, which is the safe direction of the two: where a backend has
-      // corrected a kerbal off Available the game may still accept the fire, and
-      // refusing to offer it is better than offering an action the operator did
-      // not mean.
-      const fireable = standing === CrewStanding.Available;
+      // Whether the roster will accept a sacking, which is NOT whether the
+      // kerbal can fly. This used to read `standing === Available`, and the two
+      // questions only looked like one while a stand-down and a training course
+      // were invisible to the standing: once they became standings, that
+      // expression quietly took the Fire control away from every kerbal resting
+      // after a flight, which is a normal daily state and a perfectly legitimate
+      // thing to fire someone out of. The rule lives in the SDK so the widget
+      // does not carry a second copy of it.
+      const fireable = canBeSacked(standing);
       const label = crewStandingLabel(standing) ?? members[0]?.situation ?? "";
       return {
         // The tab set is built from whatever standings are present, so each id is
@@ -730,10 +732,18 @@ interface CrewRosterRow {
   /** KSP's own `RosterStatus` ordinal. Carried, never branched on: under RP-1 it
    *  reads `Dead` for a living retiree. */
   situationOrdinal: number | null;
-  /** Standing down for rest (`ProtoCrewMember.inactive`). A separate axis from
-   *  {@link standing}: a resting kerbal is `Available` throughout. */
+  /** Standing down for rest (`ProtoCrewMember.inactive`): KSP's own field,
+   *  carried like {@link situationOrdinal} and branched on no more than it is.
+   *  It is an INPUT to the producer's derivation, which turns it into a
+   *  `Resting` {@link standing} with {@link available} false. */
   inactive: boolean;
   inactiveUntilUt: number | null;
+  /** When {@link standing} lapses, as universal time: a course's ETA, a rest
+   *  period's end. Absent for a standing with no scheduled end. */
+  standingEndsAtUt: number | null;
+  /** When this kerbal is scheduled to retire, as universal time. Absent under
+   *  any backend that does not schedule retirements, stock included. */
+  retiresAtUt: number | null;
   /** Whether the row is a hireable candidate rather than owned crew. */
   isApplicant: boolean;
   available: boolean;
@@ -762,8 +772,7 @@ function crewRowStats(c: CrewRosterRow): KerbalStatFields {
     situation: standingLabelOf(c),
     standing: c.standing,
     situationOrdinal: c.situationOrdinal,
-    inactive: c.inactive,
-    inactiveUntilUt: c.inactiveUntilUt,
+    standingEndsAtUt: c.standingEndsAtUt,
     currentVesselName: "",
     courage: c.courage,
     stupidity: c.stupidity,
@@ -874,6 +883,8 @@ function readCrewRoster(raw: unknown): CrewRosterRow[] {
         typeof e.situationOrdinal === "number" ? e.situationOrdinal : null,
       inactive: e.inactive === true,
       inactiveUntilUt: magnitudeOf(e.inactiveUntilUt as Quantityish),
+      standingEndsAtUt: magnitudeOf(e.standingEndsAtUt as Quantityish),
+      retiresAtUt: magnitudeOf(e.retiresAtUt as Quantityish),
       isApplicant: e.isApplicant === true,
       available: e.available === true,
       unavailableReason:

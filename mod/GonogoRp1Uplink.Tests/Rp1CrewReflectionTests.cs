@@ -3,6 +3,7 @@ using System.Linq;
 using GonogoRp1Uplink;
 using RP0.Crew;
 using Sitrep.Contract;
+using Sitrep.Contract.TestSupport;
 using Xunit;
 
 /// <summary>
@@ -324,12 +325,12 @@ public class Rp1CrewReflectionTests : System.IDisposable
         CrewHandler.Instance = new CrewHandler().Retired("Wernher Kerman");
         var backend = new Rp1CrewStandingBackend(new Rp1CrewReflection());
 
-        var retiree = backend.Read("Wernher Kerman", (int)KspRosterStatus.Dead, isApplicant: false);
+        var retiree = backend.Read(CrewStandingQueries.Crew("Wernher Kerman", KspRosterStatus.Dead));
         Assert.NotNull(retiree);
         Assert.Equal(CrewStanding.Retired, retiree!.Standing);
 
-        Assert.Null(backend.Read("Jebediah Kerman", (int)KspRosterStatus.Available, isApplicant: false));
-        Assert.Null(backend.Read("", null, isApplicant: true));
+        Assert.Null(backend.Read(CrewStandingQueries.Crew("Jebediah Kerman", KspRosterStatus.Available)));
+        Assert.Null(backend.Read(CrewStandingQueries.Applicant("")));
         Assert.Equal("rp1", backend.ProviderId);
     }
 
@@ -344,8 +345,134 @@ public class Rp1CrewReflectionTests : System.IDisposable
         CrewHandler.Instance = new CrewHandler().Retired("Wernher Kerman").Retires("Jebediah Kerman", 100.0);
         var backend = new Rp1CrewStandingBackend(new Rp1CrewReflection());
 
-        Assert.Null(backend.Read("Jebediah Kerman", (int)KspRosterStatus.Dead, isApplicant: false));
+        Assert.Null(backend.Read(CrewStandingQueries.Crew("Jebediah Kerman", KspRosterStatus.Dead)));
     }
+
+    /// <summary>
+    /// A kerbal on a STARTED course is <see cref="CrewStanding.Training"/>, dated
+    /// by the course's own ETA, and carries their retirement date beside it.
+    /// </summary>
+    /// <remarks>
+    /// The defect this fixes is the retiree's, one axis over. KSP's roster status
+    /// for a kerbal mid-course is <c>Available</c>, so without this the trainee
+    /// reached the wire free to fly and a widget would have offered them for a
+    /// mission RP-1 will refuse to crew.
+    ///
+    /// <para>Both dates, because both are live: the course ends long before the
+    /// career does.</para>
+    /// </remarks>
+    [Fact]
+    public void TheBackendMakesAStartedCourseAStandingWithItsOwnEta()
+    {
+        CrewHandler.Instance = new CrewHandler { TrainingCourses = { StartedCourse("Valentina Kerman") } }
+            .Retires("Valentina Kerman", 500_000.0);
+        var backend = new Rp1CrewStandingBackend(new Rp1CrewReflection());
+
+        var reading = backend.Read(CrewStandingQueries.Crew(
+            "Valentina Kerman", KspRosterStatus.Available, ut: 1000.0));
+
+        Assert.NotNull(reading);
+        Assert.Equal(CrewStanding.Training, reading!.Standing);
+        // 75 points left at 0.5/s is 150s from now.
+        Assert.Equal(1150.0, reading.StandingEndsAtUt);
+        Assert.Equal(500_000.0, reading.RetiresAtUt);
+    }
+
+    /// <summary>
+    /// Enrolment is not training. A course RP-1 has not STARTED makes no progress
+    /// and has no finish date, so the kerbal keeps whatever standing stock gives
+    /// them and this backend adds only the retirement date.
+    /// </summary>
+    /// <remarks>
+    /// Reporting an unstarted enrolment as a standing would tell an operator a
+    /// crew is being trained when it is queued behind something, and would date
+    /// it with nothing.
+    /// </remarks>
+    [Fact]
+    public void TheBackendDoesNotCallAnEnrolmentTraining()
+    {
+        var queued = StartedCourse("Valentina Kerman");
+        queued.Started = false;
+        CrewHandler.Instance = new CrewHandler { TrainingCourses = { queued } }
+            .Retires("Valentina Kerman", 500_000.0);
+        var backend = new Rp1CrewStandingBackend(new Rp1CrewReflection());
+
+        var reading = backend.Read(CrewStandingQueries.Crew("Valentina Kerman", KspRosterStatus.Available));
+
+        Assert.NotNull(reading);
+        Assert.Null(reading!.Standing);
+        Assert.Null(reading.StandingEndsAtUt);
+        Assert.Equal(500_000.0, reading.RetiresAtUt);
+    }
+
+    /// <summary>
+    /// Retirement outranks a course. RP-1 can hold both for one name, and a course
+    /// a retiree is enrolled on is a course nobody will finish.
+    /// </summary>
+    [Fact]
+    public void ARetirementOutranksACourseAndCarriesNoScheduleOfItsOwn()
+    {
+        CrewHandler.Instance = new CrewHandler { TrainingCourses = { StartedCourse("Wernher Kerman") } }
+            .Retired("Wernher Kerman")
+            .Retires("Wernher Kerman", 500_000.0);
+        var backend = new Rp1CrewStandingBackend(new Rp1CrewReflection());
+
+        var reading = backend.Read(CrewStandingQueries.Crew("Wernher Kerman", KspRosterStatus.Dead));
+
+        Assert.NotNull(reading);
+        Assert.Equal(CrewStanding.Retired, reading!.Standing);
+        Assert.Null(reading.StandingEndsAtUt);
+        // The date has passed. Quoting it reads as one still to come.
+        Assert.Null(reading.RetiresAtUt);
+    }
+
+    /// <summary>
+    /// A genuine casualty gets no schedule. RP-1 keeps a dead kerbal's row in its
+    /// retirement dictionary, so without this the backend would date the
+    /// retirement of a career that ended in an explosion.
+    /// </summary>
+    [Fact]
+    public void TheBackendDatesNoRetirementForAKerbalWhoIsAlreadyOffTheBooks()
+    {
+        CrewHandler.Instance = new CrewHandler().Retires("Jebediah Kerman", 500_000.0);
+        var backend = new Rp1CrewStandingBackend(new Rp1CrewReflection());
+
+        Assert.Null(backend.Read(CrewStandingQueries.Crew("Jebediah Kerman", KspRosterStatus.Dead)));
+        Assert.Null(backend.Read(CrewStandingQueries.Crew("Jebediah Kerman", KspRosterStatus.Missing)));
+    }
+
+    /// <summary>
+    /// R&amp;R is NOT this backend's answer. RP-1's post-flight rest sets KSP's own
+    /// <c>ProtoCrewMember.inactive</c>, which core reads into
+    /// <see cref="CrewStanding.Resting"/>, so this backend declines the standing
+    /// and contributes only the date it owns.
+    /// </summary>
+    /// <remarks>
+    /// Correcting it here would be a second derivation of a value core already
+    /// has, which is the mistake the whole capability exists to undo.
+    /// </remarks>
+    [Fact]
+    public void TheBackendLeavesAStandDownToCore()
+    {
+        CrewHandler.Instance = new CrewHandler().Retires("Bill Kerman", 500_000.0);
+        var backend = new Rp1CrewStandingBackend(new Rp1CrewReflection());
+
+        var reading = backend.Read(CrewStandingQueries.Crew(
+            "Bill Kerman", KspRosterStatus.Available, inactive: true, inactiveUntilUt: 8_000.0));
+
+        Assert.NotNull(reading);
+        Assert.Null(reading!.Standing);
+        Assert.Equal(500_000.0, reading.RetiresAtUt);
+    }
+
+    /// <summary>One started, costed course with a single student, so the cases above name only the axis they are about.</summary>
+    private static TrainingCourse StartedCourse(string student) =>
+        new TrainingCourse
+        {
+            id = "course-1",
+            Started = true,
+            Students = { new ProtoCrewMember(student) },
+        }.Costed(progress: 25.0, totalPoints: 100.0, buildRate: 0.5);
 
     /// <summary>
     /// With no handler live the backend declines for everybody, so a stock install
@@ -357,8 +484,8 @@ public class Rp1CrewReflectionTests : System.IDisposable
     {
         var backend = new Rp1CrewStandingBackend(new Rp1CrewReflection());
 
-        Assert.Null(backend.Read("Wernher Kerman", (int)KspRosterStatus.Dead, isApplicant: false));
-        Assert.Null(backend.Read("Jebediah Kerman", (int)KspRosterStatus.Available, isApplicant: false));
+        Assert.Null(backend.Read(CrewStandingQueries.Crew("Wernher Kerman", KspRosterStatus.Dead)));
+        Assert.Null(backend.Read(CrewStandingQueries.Crew("Jebediah Kerman", KspRosterStatus.Available)));
     }
 
     private static Rp1CrewMemberRaw Single(Rp1CrewRaw? raw)

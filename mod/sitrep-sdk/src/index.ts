@@ -59,8 +59,10 @@ export {
   CREW_STANDING_NAMES,
   CREW_STANDING_ORDER,
   type CrewStandingName,
+  canBeSacked,
   crewStandingFromRosterStatus,
   crewStandingLabel,
+  crewUnavailableSentence,
   isFatality,
   isOffTheBooks,
 } from "./crew-standing";

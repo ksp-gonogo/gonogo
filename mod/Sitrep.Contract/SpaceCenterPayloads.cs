@@ -155,11 +155,35 @@ public class CrewRosterEntry
     [SitrepUnit(Units.Count)]
     public int? ExperienceLevel { get; set; }
 
-    /// <summary>Whether the kerbal is free to fly, derived from <see cref="Standing"/> (<c>true</c> for <c>Available</c>, and for an applicant, who isn't assigned to anything yet), <c>false</c> otherwise.</summary>
+    /// <summary>
+    /// Whether the kerbal can be assigned to a flight today.
+    ///
+    /// <para><b>The field an old client should branch on.</b> It is derived from
+    /// EVERY axis the derivation knows about, by
+    /// <see cref="CrewStandings.CanFly"/>, which is a whitelist: only
+    /// <c>Available</c> and <c>Applicant</c> are free, so a standing added to
+    /// <see cref="CrewStanding"/> later reads as unavailable here without anybody
+    /// editing a consumer. A widget that has never heard of training therefore
+    /// still refuses to crew a kerbal who is mid-course.</para>
+    ///
+    /// <para>A backend may override it outright.</para>
+    /// </summary>
     [SitrepUnit(Units.Flag)]
     public bool? Available { get; set; }
 
-    /// <summary>Why the kerbal can't fly, derived from <see cref="Standing"/> (<c>Assigned</c>→"On mission", every other blocking standing→its own name, so a retiree reads "Retired" and not "Dead"); empty string when <see cref="Available"/> is true. A backend may override the wording.</summary>
+    /// <summary>
+    /// Why the kerbal can't fly, in prose: <c>Assigned</c> reads "On mission",
+    /// <c>Training</c> reads "In training", <c>Resting</c> reads "Standing down",
+    /// and every other blocking standing reads its own name, so a retiree reads
+    /// "Retired" and not "Dead". Empty string when <see cref="Available"/> is
+    /// true. A backend may override the wording.
+    ///
+    /// <para><b>No date, ever.</b> The when rides <see cref="StandingEndsAtUt"/>
+    /// and <see cref="RetiresAtUt"/> as <c>ut</c> values, because a date
+    /// formatted here would be formatted in the mod's idea of a calendar and an
+    /// RSS save does not count years the way a stock one does. This is the only
+    /// string on the payload a client could not re-render.</para>
+    /// </summary>
     [SitrepUnit(Units.Text)]
     public string? UnavailableReason { get; set; }
 
@@ -191,6 +215,32 @@ public class CrewRosterEntry
     public string? StandingSource { get; set; }
 
     /// <summary>
+    /// When the CURRENT <see cref="Standing"/> lapses, as universal time: the
+    /// course ETA for <c>Training</c>, the rest period's end for <c>Resting</c>.
+    /// Absent for a standing with no scheduled end, which is most of them.
+    ///
+    /// <para>Read with <see cref="UnavailableReason"/> to say why a kerbal cannot
+    /// fly AND until when. The two are separate fields so the client formats the
+    /// date in its own calendar.</para>
+    /// </summary>
+    [SitrepUnit(Units.UniversalTime)]
+    public double? StandingEndsAtUt { get; set; }
+
+    /// <summary>
+    /// When this kerbal is scheduled to become <c>Retired</c>, as universal time.
+    /// Absent under any backend that does not schedule retirements, stock
+    /// included, and absent rather than zero when a backend holds no date for
+    /// this kerbal: a career overhaul's own getter answers 0 for "no record", and
+    /// 0 would retire the whole roster at the epoch.
+    ///
+    /// <para>Live at the same time as <see cref="StandingEndsAtUt"/> and not a
+    /// substitute for it: a kerbal is Available or Training for years while a
+    /// retirement date sits in the future.</para>
+    /// </summary>
+    [SitrepUnit(Units.UniversalTime)]
+    public double? RetiresAtUt { get; set; }
+
+    /// <summary>
     /// <see cref="Standing"/>'s display LABEL: its enum name, or
     /// <c>"Applicant"</c> for a hireable candidate. Text for an operator, never
     /// a branch: compare <see cref="Standing"/> instead.
@@ -220,15 +270,19 @@ public class CrewRosterEntry
 
     /// <summary>
     /// Whether the kerbal is standing down rather than on duty
-    /// (<c>ProtoCrewMember.inactive</c>). A STOCK field, and a separate axis
-    /// from <see cref="Standing"/>: a resting kerbal's roster status is
-    /// <c>Available</c> throughout, so nothing in the standing says they cannot
-    /// be assigned today.
+    /// (<c>ProtoCrewMember.inactive</c>): KSP's own field, published beside the
+    /// derived answer the way <see cref="SituationOrdinal"/> is.
     ///
-    /// <para>Stock leaves it false. RP-1's post-flight R&amp;R is what actually
-    /// sets it, which is why it goes on the wire whether or not RP-1 is
+    /// <para><b>Not the field to branch on.</b> It is an INPUT to the derivation:
+    /// a kerbal standing down has roster status <c>Available</c>, and this flag is
+    /// what turns that into <see cref="CrewStanding.Resting"/> with
+    /// <see cref="Available"/> false. It reached the wire with nothing deriving
+    /// from it, and a resting kerbal read as free to fly the whole time.</para>
+    ///
+    /// <para>Stock leaves it false. A career overhaul's post-flight R&amp;R is
+    /// what actually sets it, and it goes on the wire whether or not one is
     /// installed: the field is KSP's, so reading it costs a stock install
-    /// nothing and needs no capability.</para>
+    /// nothing.</para>
     /// </summary>
     [SitrepUnit(Units.Flag)]
     public bool? Inactive { get; set; }

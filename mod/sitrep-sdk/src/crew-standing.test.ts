@@ -3,8 +3,10 @@ import { CrewStanding, KspRosterStatus } from "./__generated__/contract";
 import {
   CREW_STANDING_NAMES,
   CREW_STANDING_ORDER,
+  canBeSacked,
   crewStandingFromRosterStatus,
   crewStandingLabel,
+  crewUnavailableSentence,
   isFatality,
   isOffTheBooks,
 } from "./crew-standing";
@@ -134,5 +136,89 @@ describe("isFatality / isOffTheBooks", () => {
       expect(isOffTheBooks(standing)).toBe(false);
       expect(isFatality(standing)).toBe(false);
     }
+  });
+});
+
+describe("canBeSacked", () => {
+  /**
+   * Firing is not flying, and this is the case that says why the two are
+   * separate questions. A kerbal standing down after a flight or part-way
+   * through a course cannot be assigned to a mission and can perfectly well be
+   * let go: KSP's own `SackAvailable` is gated on `rosterStatus == Available`,
+   * which is what the game holds for both of them.
+   */
+  it("lets a resting or training kerbal be fired, the same as an idle one", () => {
+    for (const standing of [
+      CrewStanding.Available,
+      CrewStanding.Resting,
+      CrewStanding.Training,
+    ]) {
+      expect(canBeSacked(standing)).toBe(true);
+    }
+  });
+
+  it("refuses for a kerbal on a mission or off the books", () => {
+    for (const standing of [
+      CrewStanding.Assigned,
+      CrewStanding.Retired,
+      CrewStanding.Dead,
+      CrewStanding.Missing,
+      CrewStanding.Applicant,
+      CrewStanding.Unknown,
+      null,
+      undefined,
+    ]) {
+      expect(canBeSacked(standing)).toBe(false);
+    }
+  });
+
+  /**
+   * The DIRECTION of the rule, which is the property worth pinning. It is a
+   * whitelist, so a standing added to the contract later is not sackable until
+   * somebody writes down that it is. A number no build declares stands in for
+   * that future member.
+   */
+  it("refuses a standing it has never heard of, rather than allowing it", () => {
+    expect(canBeSacked(9999)).toBe(false);
+  });
+});
+
+describe("crewUnavailableSentence", () => {
+  it("joins the reason to the when, formatted by the caller", () => {
+    expect(
+      crewUnavailableSentence("In training", 9_000_000, () => "Y2 D14"),
+    ).toBe("In training until Y2 D14");
+  });
+
+  /**
+   * The reason alone is a complete sentence, which is what makes the prose-only
+   * wire field workable: a consumer that has no formatter, or a standing with no
+   * scheduled end, still gets something true to show.
+   */
+  it("gives the reason alone with no when and with no formatter", () => {
+    expect(crewUnavailableSentence("Retired", null, () => "Y2 D14")).toBe(
+      "Retired",
+    );
+    expect(crewUnavailableSentence("Retired", 9_000_000)).toBe("Retired");
+  });
+
+  /**
+   * An infinity is what a divide-by-an-unrated-rate produces upstream, and it is
+   * not a date. Rendered, it would read as a deadline an operator could plan
+   * against.
+   */
+  it("refuses a non-finite when rather than rendering it", () => {
+    expect(
+      crewUnavailableSentence(
+        "In training",
+        Number.POSITIVE_INFINITY,
+        () => "never",
+      ),
+    ).toBe("In training");
+  });
+
+  it("says nothing at all for a kerbal who can fly", () => {
+    expect(crewUnavailableSentence("", null)).toBeNull();
+    expect(crewUnavailableSentence(null, 9_000_000, () => "Y2 D14")).toBeNull();
   });
 });

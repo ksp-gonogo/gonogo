@@ -5,6 +5,7 @@ import {
   dispatchAction,
   registerAugment,
 } from "@ksp-gonogo/core";
+import { CrewStanding } from "@ksp-gonogo/sitrep-sdk";
 import {
   act,
   render as rtlRender,
@@ -73,6 +74,8 @@ function emitCrewRoster(
     situationOrdinal?: number;
     inactive?: boolean;
     inactiveUntilUt?: number;
+    standingEndsAtUt?: number;
+    retiresAtUt?: number;
     isApplicant?: boolean;
     available?: boolean;
     unavailableReason?: string;
@@ -149,7 +152,7 @@ const CREW_ROSTER = [
     trait: "Engineer",
     experienceLevel: 2,
     situation: "Available",
-    standing: 2,
+    standing: CrewStanding.Available,
     situationOrdinal: 0,
     available: true,
     unavailableReason: "",
@@ -166,7 +169,7 @@ const CREW_ROSTER = [
     trait: "Pilot",
     experienceLevel: 3,
     situation: "Assigned",
-    standing: 3,
+    standing: CrewStanding.Assigned,
     situationOrdinal: 1,
     available: false,
     unavailableReason: "On mission",
@@ -179,7 +182,7 @@ const CREW_ROSTER = [
     trait: "Pilot",
     experienceLevel: 1,
     situation: "Dead",
-    standing: 5,
+    standing: CrewStanding.Dead,
     situationOrdinal: 2,
     available: false,
     unavailableReason: "Dead",
@@ -192,7 +195,7 @@ const CREW_ROSTER = [
     trait: "Scientist",
     experienceLevel: 5,
     situation: "Missing",
-    standing: 6,
+    standing: CrewStanding.Missing,
     situationOrdinal: 3,
     available: false,
     unavailableReason: "Missing",
@@ -206,7 +209,7 @@ const CREW_ROSTER = [
     experienceLevel: 4,
     // KSP's OWN ordinal is Dead, because that is what RP-1 wrote into it.
     situation: "Retired",
-    standing: 4,
+    standing: CrewStanding.Retired,
     standingSource: "rp1",
     situationOrdinal: 2,
     available: false,
@@ -542,7 +545,7 @@ describe("AstronautComplexComponent", () => {
           experienceLevel: 1,
           // A word this build has never seen, with Available underneath.
           situation: "Ready",
-          standing: 2,
+          standing: CrewStanding.Available,
           situationOrdinal: 0,
           available: true,
           unavailableReason: "",
@@ -553,7 +556,7 @@ describe("AstronautComplexComponent", () => {
           experienceLevel: 1,
           // And one with Dead underneath.
           situation: "Deceased",
-          standing: 5,
+          standing: CrewStanding.Dead,
           situationOrdinal: 2,
           available: false,
           unavailableReason: "Deceased",
@@ -566,7 +569,7 @@ describe("AstronautComplexComponent", () => {
           trait: "Pilot",
           experienceLevel: 3,
           situation: "Assigned",
-          standing: 3,
+          standing: CrewStanding.Assigned,
           situationOrdinal: 1,
           available: false,
           unavailableReason: "On mission",
@@ -738,11 +741,18 @@ describe("AstronautComplexComponent", () => {
   });
 
   /**
-   * The stand-down is a SEPARATE axis from the standing: a resting kerbal's
-   * standing is Available throughout, so nothing in the standing says they
-   * cannot be assigned today. The badge is the only thing that does.
+   * A kerbal standing down gets their own tab, is not offered for a flight, and
+   * IS still fireable.
+   *
+   * This case used to assert the opposite, and the comment above it argued for
+   * it: "resting is not a standing", so the kerbal stayed in the Available tab
+   * wearing a bespoke RESTING badge. That was the third place the same false
+   * premise was written down, after a doc comment on the wire type and a
+   * provider test, all three green. The producer now derives the standing, so
+   * the tab and the unavailability come for free and this widget needed no
+   * knowledge of what a stand-down is.
    */
-  it("badges a kerbal standing down for rest, without moving them out of Available", async () => {
+  it("gives a kerbal standing down their own tab and no flight, but still lets them be fired", async () => {
     const user = userEvent.setup();
     renderWidget();
     act(() => {
@@ -756,32 +766,51 @@ describe("AstronautComplexComponent", () => {
       emitCrewRoster(fixture, [
         {
           ...CREW_ROSTER[0],
+          standing: CrewStanding.Resting,
+          situation: "Resting",
+          available: false,
+          unavailableReason: "Standing down",
           inactive: true,
           inactiveUntilUt: 8_000_000,
+          standingEndsAtUt: 8_000_000,
         },
       ]);
     });
     await user.click(await screen.findByRole("tab", { name: "Active" }));
 
-    // Still Available, still fireable: resting is not a standing.
     expect(
-      await screen.findByRole("tab", { name: "Available (1)" }),
+      await screen.findByRole("tab", { name: "Resting (1)" }),
     ).toBeInTheDocument();
+    expect(
+      screen.queryByRole("tab", { name: /^Available/ }),
+    ).not.toBeInTheDocument();
+
     const row = (await screen.findByText("Bill Kerman")).closest(
       "li",
     ) as HTMLElement;
-    expect(within(row).getByText("RESTING")).toBeInTheDocument();
+    // The one badge for every way a kerbal cannot fly, not a per-axis badge.
+    expect(within(row).getByText("Standing down")).toBeInTheDocument();
+    // Firing is not flying: the roster accepts a sacking here, so the control
+    // must still be offered.
     expect(
       within(row).getByRole("button", { name: /^Fire Bill Kerman/ }),
     ).toBeInTheDocument();
   });
 
   /**
-   * A resting kerbal on duty again carries whatever end time the last rest
-   * period left in KSP's field, so the producer withholds it. The widget must
-   * not badge on the leftover date either.
+   * THE case for the whole capability, stated as an operator would hit it: this
+   * widget contains no reference to RP-1, no notion of a training course, and no
+   * knowledge of the `Training` standing beyond the enum it imports. Fed a kerbal
+   * mid-course, it must refuse to offer them for a flight and say why.
+   *
+   * <p>That works because the producer sends a DERIVED `available` /
+   * `unavailableReason` pair beside the raw standing, and because `available` is
+   * a whitelist: a standing this widget had never heard of would still read as
+   * unavailable. The failure this replaces is the one the branch shipped with,
+   * where a trainee reached the wire `available: true` and this widget would have
+   * cheerfully offered them.</p>
    */
-  it("does not badge a kerbal who is back on duty", async () => {
+  it("refuses to fly a kerbal in training it knows nothing about, and says why", async () => {
     const user = userEvent.setup();
     renderWidget();
     act(() => {
@@ -792,12 +821,69 @@ describe("AstronautComplexComponent", () => {
         crewCapacity: 13,
         nextHireCost: NEXT_HIRE_COST,
       });
-      emitCrewRoster(fixture, [{ ...CREW_ROSTER[0], inactive: false }]);
+      emitCrewRoster(fixture, [
+        {
+          ...CREW_ROSTER[0],
+          standing: CrewStanding.Training,
+          situation: "Training",
+          standingSource: "rp1",
+          // KSP's own ordinal is Available throughout a course: the game field
+          // is not the answer, which is the premise of the whole capability.
+          situationOrdinal: 0,
+          available: false,
+          unavailableReason: "In training",
+          standingEndsAtUt: 9_000_000,
+        },
+      ]);
     });
     await user.click(await screen.findByRole("tab", { name: "Active" }));
-    await screen.findByText("Bill Kerman");
 
-    expect(screen.queryByText("RESTING")).not.toBeInTheDocument();
+    expect(
+      await screen.findByRole("tab", { name: "Training (1)" }),
+    ).toBeInTheDocument();
+    const row = (await screen.findByText("Bill Kerman")).closest(
+      "li",
+    ) as HTMLElement;
+    expect(within(row).getByText("In training")).toBeInTheDocument();
+    // Not a fatality badge: an unavailable trainee is not an alarming state.
+    expect(within(row).queryByText("Dead")).not.toBeInTheDocument();
+  });
+
+  /**
+   * A standing with a scheduled end reads its WHEN off `standingEndsAtUt`, and
+   * the client formats the date. The producer never sends a formatted one: it
+   * would be formatted in the mod's calendar, and an RSS save does not count
+   * years the way a stock one does.
+   */
+  it("puts the when in the unavailable badge's title, formatted client-side", async () => {
+    const user = userEvent.setup();
+    renderWidget();
+    act(() => {
+      emitFunds(fixture, 500000);
+      emitComplex(fixture, {
+        applicants: [],
+        activeCrew: 1,
+        crewCapacity: 13,
+        nextHireCost: NEXT_HIRE_COST,
+      });
+      emitCrewRoster(fixture, [
+        {
+          ...CREW_ROSTER[0],
+          standing: CrewStanding.Training,
+          situation: "Training",
+          available: false,
+          unavailableReason: "In training",
+          standingEndsAtUt: 9_000_000,
+        },
+      ]);
+    });
+    await user.click(await screen.findByRole("tab", { name: "Active" }));
+
+    const badge = await screen.findByText("In training");
+    const title = badge.getAttribute("title") ?? "";
+    expect(title).toContain("In training until ");
+    // A rendered date rather than the raw UT the wire carried.
+    expect(title).not.toContain("9000000");
   });
 
   it("renders a bound crew augment per row, carrying that kerbal's identity and standing", async () => {
@@ -831,15 +917,21 @@ describe("AstronautComplexComponent", () => {
     // The Applicants list gets one too: RP-1 gives an applicant a retirement
     // date and retires them out of the pool.
     expect(
-      await screen.findByText("Desdin Kerman:1:applicant"),
+      await screen.findByText(
+        `Desdin Kerman:${CrewStanding.Applicant}:applicant`,
+      ),
     ).toBeInTheDocument();
 
     await user.click(await screen.findByRole("tab", { name: "Active" }));
     await user.click(await screen.findByRole("tab", { name: "Retired (1)" }));
 
-    // 4 is CrewStanding.Retired: the augment is handed the CORRECTED standing,
-    // not KSP's Dead ordinal, so it never has to undo the conflation itself.
-    expect(await screen.findByText("Gus Kerman:4:crew")).toBeInTheDocument();
+    // The augment is handed the CORRECTED standing, not KSP's Dead ordinal, so
+    // it never has to undo the conflation itself. Composed from the enum rather
+    // than spelled as a number: the ordinal written out here went stale the
+    // moment the contract inserted a member.
+    expect(
+      await screen.findByText(`Gus Kerman:${CrewStanding.Retired}:crew`),
+    ).toBeInTheDocument();
   });
 
   /**

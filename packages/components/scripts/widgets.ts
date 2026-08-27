@@ -382,9 +382,9 @@ const WIDGETS: WidgetRenderConfig[] = [
         ],
       },
       // Active tab, default sub-tab (Available, the first standing present),
-      // derived from active-crew-multi-situation's roster. Bill is standing
-      // down for R&R here, so this is also the RESTING badge beside a kerbal
-      // who is still Available and still fireable.
+      // derived from active-crew-multi-situation's roster. Ludrey is the only
+      // kerbal free to fly; Bill is standing down and Lodan is mid-course, and
+      // both sit in tabs of their own with a reason and a date.
       {
         name: "active-tab-available-6x12",
         w: 6,
@@ -398,9 +398,10 @@ const WIDGETS: WidgetRenderConfig[] = [
         ],
       },
       // Same Available sub-tab, Fire armed: proves the arm-then-confirm
-      // sequence flips the row's control to the go-toned Confirm state
-      // (career.crew.fire is only valid on this situation, so Fire never
-      // appears on the other sub-tabs).
+      // sequence flips the row's control to the go-toned Confirm state.
+      // Fire also renders on the Resting and Training tabs, because the roster
+      // accepts a sacking there and firing is not flying; it never renders on
+      // Assigned or on a kerbal off the books.
       {
         name: "active-tab-available-fire-armed-6x12",
         w: 6,
@@ -435,6 +436,45 @@ const WIDGETS: WidgetRenderConfig[] = [
           },
         ],
       },
+      // Active tab, Training sub-tab: the standing KSP has no field for at all.
+      // Lodan's roster status is Available throughout his course, so this tab
+      // exists only because the producer derives the standing, and the row shows
+      // the reason and a date the client formatted.
+      {
+        name: "active-tab-training-6x12",
+        w: 6,
+        h: 12,
+        forFixtures: ["active-crew-multi-situation"],
+        clicks: [
+          {
+            selector: 'button[aria-controls$="active-panel"]',
+            awaitMs: 100,
+          },
+          {
+            selector: 'button[aria-controls$="standing-4-panel"]',
+            awaitMs: 100,
+          },
+        ],
+      },
+      // Active tab, Resting sub-tab: Bill after a flight. Available to KSP,
+      // unavailable here, and STILL fireable, because the roster accepts a
+      // sacking from a stand-down and firing is not flying.
+      {
+        name: "active-tab-resting-6x12",
+        w: 6,
+        h: 12,
+        forFixtures: ["active-crew-multi-situation"],
+        clicks: [
+          {
+            selector: 'button[aria-controls$="active-panel"]',
+            awaitMs: 100,
+          },
+          {
+            selector: 'button[aria-controls$="standing-5-panel"]',
+            awaitMs: 100,
+          },
+        ],
+      },
       // Active tab, Dead sub-tab: proves Dead/Missing get their own tabs rather
       // than folding into a stock-style "Lost" tab, and that the RP-1 retiree
       // is NOT in here despite carrying KSP's Dead ordinal.
@@ -449,7 +489,7 @@ const WIDGETS: WidgetRenderConfig[] = [
             awaitMs: 100,
           },
           {
-            selector: 'button[aria-controls$="standing-5-panel"]',
+            selector: 'button[aria-controls$="standing-7-panel"]',
             awaitMs: 100,
           },
         ],
@@ -469,7 +509,7 @@ const WIDGETS: WidgetRenderConfig[] = [
             awaitMs: 100,
           },
           {
-            selector: 'button[aria-controls$="standing-4-panel"]',
+            selector: 'button[aria-controls$="standing-6-panel"]',
             awaitMs: 100,
           },
         ],
@@ -487,12 +527,12 @@ const WIDGETS: WidgetRenderConfig[] = [
             awaitMs: 100,
           },
           {
-            selector: 'button[aria-controls$="standing-6-panel"]',
+            selector: 'button[aria-controls$="standing-8-panel"]',
             awaitMs: 100,
           },
         ],
       },
-      // Active tab, Available sub-tab, with Bill Kerman's per-row info
+      // Active tab, Available sub-tab, with Ludrey Kerman's per-row info
       // popover open: the stock role description + current-rank effects
       // (ExperienceTrait.Description/DescriptionEffects), portalled so the
       // ScrollArea around the row can't clip it.
@@ -507,7 +547,7 @@ const WIDGETS: WidgetRenderConfig[] = [
             awaitMs: 100,
           },
           {
-            selector: 'button[aria-label="Role info for Bill Kerman"]',
+            selector: 'button[aria-label="Role info for Ludrey Kerman"]',
             awaitMs: 150,
           },
         ],

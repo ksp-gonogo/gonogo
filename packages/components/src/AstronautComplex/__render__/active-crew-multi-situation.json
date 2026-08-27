@@ -40,21 +40,37 @@
         "channel": "spaceCenter.crewRoster",
         "value": [
           {
-            "name": "Bill Kerman",
+            "name": "Ludrey Kerman",
             "trait": "Engineer",
-            "experienceLevel": 2,
+            "experienceLevel": 1,
             "situation": "Available",
             "situationOrdinal": 0,
             "available": true,
             "unavailableReason": "",
+            "courage": 0.45,
+            "stupidity": 0.4,
+            "experienceLevelDelta": 0.15,
+            "standing": 2,
+            "roleDescription": "Engineers can repair the wheels and landing gear of a vessel, as well as fixing parts that have broken due to fatigue.",
+            "descriptionEffects": "Level 1: Can repair wheels and landing gear."
+          },
+          {
+            "name": "Bill Kerman",
+            "trait": "Engineer",
+            "experienceLevel": 2,
+            "situation": "Resting",
+            "situationOrdinal": 0,
+            "available": false,
+            "unavailableReason": "Standing down",
             "courage": 0.5,
             "stupidity": 0.3,
             "experienceLevelDelta": 0.4,
             "roleDescription": "Engineers can repair the wheels and landing gear of a vessel, as well as fixing parts that have broken due to fatigue.",
             "descriptionEffects": "Level 2: Can repair broken parts and fix wheels/landing gear.",
-            "standing": 2,
+            "standing": 5,
             "inactive": true,
-            "inactiveUntilUt": 8000000
+            "inactiveUntilUt": 8000000,
+            "standingEndsAtUt": 8000000
           },
           {
             "name": "Jeb Kerman",
@@ -70,6 +86,21 @@
             "standing": 3
           },
           {
+            "name": "Lodan Kerman",
+            "trait": "Pilot",
+            "experienceLevel": 1,
+            "situation": "Training",
+            "situationOrdinal": 0,
+            "available": false,
+            "unavailableReason": "In training",
+            "courage": 0.6,
+            "stupidity": 0.2,
+            "experienceLevelDelta": 0.6,
+            "standing": 4,
+            "standingSource": "rp1",
+            "standingEndsAtUt": 9000000
+          },
+          {
             "name": "Val Kerman",
             "trait": "Pilot",
             "experienceLevel": 1,
@@ -80,7 +111,7 @@
             "courage": 0.6,
             "stupidity": 0.2,
             "experienceLevelDelta": 0.6,
-            "standing": 5
+            "standing": 7
           },
           {
             "name": "Bob Kerman",
@@ -93,7 +124,7 @@
             "courage": 0.7,
             "stupidity": 0.25,
             "experienceLevelDelta": 1,
-            "standing": 6
+            "standing": 8
           },
           {
             "name": "Gus Kerman",
@@ -106,11 +137,12 @@
             "courage": 0.55,
             "stupidity": 0.35,
             "experienceLevelDelta": 0.9,
-            "standing": 4,
+            "standing": 6,
             "standingSource": "rp1"
           }
         ]
       }
     ]
-  }
+  },
+  "notes": "Active tab, one sub-tab per CrewStanding present: six hired kerbals spanning every stock standing plus the two a career overhaul contributes, a real RP-1 retiree and a kerbal mid-course. Each row shows name/role/courage/stupidity/rank/experience-toward-next-rank via the shared crew-stat row; Bob Kerman (L5) is at max rank, so his chip reads MAX instead of a redundant 100%. GUS IS THE ROW THAT MATTERS, and this fixture used to get him wrong: it gave him no situationOrdinal at all, with a note saying a mod status has no stock ordinal. RP-1 appends no RosterStatus. It writes stock's Dead, ordinal 2, and remembers the retiree in a private set of its own, which is why every RP-1 retiree used to reach the Dead tab wearing a red fatality badge. So he carries KSP's Dead ordinal AND a Retired standing attributed to the backend that corrected it. BILL AND LODAN ARE THE SECOND HALF OF THE SAME LESSON. Bill's roster status is Available and he is standing down after a flight; Lodan's is Available and he is part-way through a course. This fixture used to show Bill as Available and free to fly, because the flag reached the wire with nothing deriving from it. Both now carry a derived standing, available:false and a standingEndsAtUt the client formats, which is what a widget that has never heard of RP-1 renders from. Every row carries `standing` because the producer stamps it on every crew entry; the roster-status fallback for an older mod build is exercised by the unit tests, not here."
 }

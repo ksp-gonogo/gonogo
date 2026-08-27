@@ -129,3 +129,66 @@ export function isOffTheBooks(standing: number | null | undefined): boolean {
 export function isFatality(standing: number | null | undefined): boolean {
   return standing === CrewStanding.Dead || standing === CrewStanding.Missing;
 }
+
+/**
+ * Whether a standing means the kerbal is ON THE BOOKS and idle, so the roster
+ * will accept a sacking: `Available`, `Resting` or `Training`.
+ *
+ * <p>Its own question, deliberately not `available`. Firing is not flying, and
+ * conflating them costs an operator a legitimate everyday action: a kerbal
+ * standing down after a flight, or one part-way through a course, cannot be
+ * assigned to a mission and can perfectly well be let go. The mod's own
+ * authority agrees, and is what this mirrors: `KerbalRoster.SackAvailable` is
+ * gated on `rosterStatus == Available`, which is what KSP holds for a resting
+ * kerbal and for a trainee alike.</p>
+ *
+ * <p>A WHITELIST, for the reason the contract's `CanFly` is one: a standing
+ * added later is not sackable until somebody writes down that it is. The
+ * direction matters here too, because the failure is offering a control that
+ * will be refused, or worse one the operator did not mean for a kerbal who is
+ * off the books.</p>
+ */
+export function canBeSacked(standing: number | null | undefined): boolean {
+  return (
+    standing === CrewStanding.Available ||
+    standing === CrewStanding.Resting ||
+    standing === CrewStanding.Training
+  );
+}
+
+/**
+ * The whole sentence for why a kerbal cannot fly, WITH the when: "In training",
+ * or "In training until Y2 D14".
+ *
+ * <p>Composed here rather than on the wire, and that is the point of it. The
+ * producer sends `unavailableReason` as prose and `standingEndsAtUt` as a `ut`
+ * value, because a date baked into a string would be baked in the mod's idea of
+ * a calendar and an RSS save does not count years the way a stock one does. The
+ * joining belongs on the side that owns the calendar, and doing it once here
+ * means no widget re-derives it.</p>
+ *
+ * @param reason the payload's `unavailableReason`; an empty or absent one means
+ *   the kerbal can fly and this returns `null`
+ * @param endsAtUt the payload's `standingEndsAtUt`, or null when the standing
+ *   has no scheduled end
+ * @param formatUt the caller's own UT formatter, so the date is rendered in the
+ *   client's calendar. Omit it to get the reason alone
+ */
+export function crewUnavailableSentence(
+  reason: string | null | undefined,
+  endsAtUt: number | null | undefined,
+  formatUt?: (ut: number) => string,
+): string | null {
+  if (!reason) {
+    return null;
+  }
+  if (
+    endsAtUt === null ||
+    endsAtUt === undefined ||
+    !Number.isFinite(endsAtUt) ||
+    formatUt === undefined
+  ) {
+    return reason;
+  }
+  return `${reason} until ${formatUt(endsAtUt)}`;
+}

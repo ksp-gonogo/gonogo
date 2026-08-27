@@ -119,6 +119,143 @@ namespace GonogoRp1Uplink
         }
 
         /// <summary>
+        /// One kerbal's LIVE standing facts, for the crew-standing backend: the
+        /// course they are on and its ETA, and the date their career ends.
+        ///
+        /// <para>Its own read for the reason <see cref="IsRetired"/> is its own
+        /// read. The backend is asked for every kerbal on every space-centre
+        /// capture, and that capture is core's, which runs whether or not anything
+        /// of ours is subscribed. Answering from state <see cref="Read"/> stashed
+        /// would starve the whole correction on a dashboard watching the roster and
+        /// no <c>rp1.*</c> topic: the gated-capture starvation shape three channels
+        /// have already shipped with.</para>
+        ///
+        /// <para>Costed for that call pattern rather than for elegance. The
+        /// retirement date is one dictionary probe. The course walk is over
+        /// <c>TrainingCourses</c>, which holds COURSES and not kerbals, so a
+        /// roster of thirty against a handful of live courses is a low hundreds of
+        /// iterations per capture, and it stops at the first course this kerbal is
+        /// enrolled on.</para>
+        ///
+        /// <para>Every field absent when RP-1 is absent, the handler is not live,
+        /// or RP-1 holds no record for the name: a save RP-1 does not manage
+        /// schedules nobody, which is an answer rather than a guess.</para>
+        /// </summary>
+        public Rp1StandingFacts StandingFacts(string name, double ut)
+        {
+            var instance = Instance();
+            if (instance == null || string.IsNullOrEmpty(name))
+            {
+                return default;
+            }
+
+            var course = CourseFor(instance, name, ut);
+            return new Rp1StandingFacts(
+                retiresAtUt: Rp1CrewMath.ZeroAsAbsent(RetireTime(instance, name)),
+                trainingStarted: course?.Started ?? false,
+                trainingFinishesAtUt: course?.FinishesAtUt);
+        }
+
+        /// <summary>
+        /// What RP-1 schedules for one kerbal, as plain data: the two facts the
+        /// crew-standing capability needs and nothing else.
+        /// </summary>
+        /// <remarks>
+        /// A struct with no <c>Standing</c> on it, deliberately. Deciding that an
+        /// enrolled kerbal is <c>Training</c> is the BACKEND's job; this type's job
+        /// is to say what RP-1 holds. Reflection that decides a standing is
+        /// reflection a headless test cannot exercise without also asserting the
+        /// policy.
+        /// </remarks>
+        public readonly struct Rp1StandingFacts
+        {
+            public Rp1StandingFacts(double? retiresAtUt, bool trainingStarted, double? trainingFinishesAtUt)
+            {
+                RetiresAtUt = retiresAtUt;
+                TrainingStarted = trainingStarted;
+                TrainingFinishesAtUt = trainingFinishesAtUt;
+            }
+
+            /// <summary>When RP-1 retires this kerbal, or null when it holds no date.</summary>
+            public double? RetiresAtUt { get; }
+
+            /// <summary>
+            /// The kerbal is enrolled on a course that has STARTED. Enrolment
+            /// alone is not this: a course RP-1 has not begun makes no progress
+            /// and has no finish date, and reporting an unstarted enrolment as a
+            /// standing would tell an operator a crew is being trained when it is
+            /// queued behind something.
+            /// </summary>
+            public bool TrainingStarted { get; }
+
+            /// <summary>The course's ETA, or null when RP-1 has not rated its build rate yet.</summary>
+            public double? TrainingFinishesAtUt { get; }
+        }
+
+        /// <summary>RP-1's own retirement date for one name: a probe of <c>_retireTimes</c>, not a materialised copy of it.</summary>
+        private static double? RetireTime(object instance, string name)
+        {
+            var times = Rp1Types.Member(instance, "_retireTimes");
+            if (times is IDictionary<string, double> typed)
+            {
+                return typed.TryGetValue(name, out var value) ? value : (double?)null;
+            }
+            if (times is IDictionary loose)
+            {
+                foreach (DictionaryEntry entry in loose)
+                {
+                    if (entry.Key is string key && string.Equals(key, name, StringComparison.Ordinal))
+                    {
+                        return Rp1Types.ToDouble(entry.Value);
+                    }
+                }
+            }
+            return null;
+        }
+
+        /// <summary>
+        /// The live course this kerbal is enrolled on, or null. Stops at the first
+        /// match: a kerbal on two courses at once is a state RP-1 refuses to
+        /// produce (<c>MeetsStudentReqs</c>), so a second would be a state neither
+        /// side has a policy for.
+        /// </summary>
+        private static CourseRaw? CourseFor(object instance, string name, double ut)
+        {
+            foreach (var course in Materialise(Rp1Types.Member(instance, "TrainingCourses")))
+            {
+                if (ReadBool(course, "Completed") == true || !HasStudent(course, name))
+                {
+                    continue;
+                }
+                var started = ReadBool(course, "Started") == true;
+                var progress = Rp1Types.ReadDouble(course, "progress");
+                var totalPoints = Rp1Types.ReadDouble(course, "BP");
+                return new CourseRaw(
+                    course: ReadString(course, "id"),
+                    type: EnumName(Rp1Types.Member(course, "Type")),
+                    target: EmptyAsAbsent(ReadString(course, "Target")),
+                    started: started,
+                    fractionComplete: Rp1CrewMath.FractionComplete(progress, totalPoints),
+                    finishesAtUt: Rp1CrewMath.FinishesAtUt(
+                        ut, started, progress, totalPoints, Rp1Types.ReadDouble(course, "_buildRate")));
+            }
+            return null;
+        }
+
+        /// <summary>Whether one course's student list holds this name.</summary>
+        private static bool HasStudent(object? course, string name)
+        {
+            foreach (var student in Materialise(Rp1Types.Member(course, "Students")))
+            {
+                if (string.Equals(ReadString(student, "name"), name, StringComparison.Ordinal))
+                {
+                    return true;
+                }
+            }
+            return false;
+        }
+
+        /// <summary>
         /// Reads one tick, or nothing. Null when RP-1's crew handler is not live,
         /// which is the main menu and any save RP-1 does not manage: publishing an
         /// empty crew list there would say "RP-1 is scheduling nobody" about a

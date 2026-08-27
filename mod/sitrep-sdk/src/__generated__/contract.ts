@@ -400,9 +400,11 @@ export enum CrewStanding {
 	Applicant = 1,
 	Available = 2,
 	Assigned = 3,
-	Retired = 4,
-	Dead = 5,
-	Missing = 6
+	Training = 4,
+	Resting = 5,
+	Retired = 6,
+	Dead = 7,
+	Missing = 8
 }
 export interface ScienceCreditEvent
 {
@@ -1067,6 +1069,8 @@ export interface CrewRosterEntry
 	unavailableReason?: string;
 	standing?: CrewStanding;
 	standingSource?: string;
+	standingEndsAtUt?: Value<"ut">;
+	retiresAtUt?: Value<"ut">;
 	situation?: string;
 	situationOrdinal?: KspRosterStatus;
 	inactive?: boolean;

@@ -257,21 +257,21 @@ namespace Sitrep.Host
         {
             var ordinal = SnapshotDict.GetInt(raw, "rosterStatusOrdinal");
             var isApplicant = SnapshotDict.GetBool(raw, "isApplicant") == true;
-            var standing = ReadStanding(raw, ordinal, isApplicant);
             var inactive = SnapshotDict.GetBool(raw, "inactive");
+            var resolution = ReadResolution(raw, ordinal, isApplicant, inactive);
 
             return new Dictionary<string, object?>
             {
                 ["name"] = SnapshotDict.GetString(raw, "name"),
                 ["trait"] = SnapshotDict.GetString(raw, "trait"),
                 ["experienceLevel"] = SnapshotDict.GetInt(raw, "experienceLevel"),
-                ["available"] = SnapshotDict.GetBool(raw, "standingAvailable")
-                    ?? (standing == CrewStanding.Available || standing == CrewStanding.Applicant),
-                ["unavailableReason"] = SnapshotDict.GetString(raw, "standingUnavailableReason")
-                    ?? MapUnavailableReason(standing),
-                ["standing"] = (int)standing,
-                ["standingSource"] = SnapshotDict.GetString(raw, "standingSource"),
-                ["situation"] = standing.ToString(),
+                ["available"] = resolution.Available,
+                ["unavailableReason"] = resolution.UnavailableReason,
+                ["standing"] = (int)resolution.Standing,
+                ["standingSource"] = resolution.Source,
+                ["standingEndsAtUt"] = resolution.StandingEndsAtUt,
+                ["retiresAtUt"] = resolution.RetiresAtUt,
+                ["situation"] = resolution.Standing.ToString(),
                 // An applicant is not in the roster, so it has no RosterStatus
                 // to report - a real distinction, not a missing value.
                 ["situationOrdinal"] = isApplicant ? null : ordinal,
@@ -294,21 +294,51 @@ namespace Sitrep.Host
         /// when no backend was reachable.
         ///
         /// <para>The fallback is the contract's own
-        /// <see cref="CrewStandings.FromRosterStatus"/>, called rather than
-        /// copied, so a bare host with no Kernel wired
-        /// (a unit test, or the window before capabilities resolve) publishes
-        /// exactly what a stock install publishes and never a hole. What it does
-        /// NOT do is invent a correction: without a backend there is no retiree
-        /// set to consult, so a stock read is the only honest answer available.</para>
+        /// <see cref="CrewStandings.Resolve"/> with no reading, called rather than
+        /// copied, so a bare host with no Kernel wired (a unit test, or the window
+        /// before capabilities resolve) publishes exactly what a stock install
+        /// publishes and never a hole. Going through <c>Resolve</c> rather than
+        /// re-deriving here is the point: the availability and the wording used to
+        /// be computed in this file from the standing alone, so a kerbal standing
+        /// down reached the wire free to fly. There is now one derivation and this
+        /// is a caller of it. What the fallback does NOT do is invent a
+        /// correction: without a backend there is no retiree set to consult.</para>
         /// </summary>
-        private static CrewStanding ReadStanding(IDictionary<string, object?> raw, int? ordinal, bool isApplicant)
+        private static CrewStandingResolution ReadResolution(
+            IDictionary<string, object?> raw,
+            int? ordinal,
+            bool isApplicant,
+            bool? inactive)
         {
             var stamped = SnapshotDict.GetInt(raw, "standing");
+            var query = new CrewStandingQuery
+            {
+                KerbalName = SnapshotDict.GetString(raw, "name") ?? "",
+                RosterStatusOrdinal = isApplicant ? null : ordinal,
+                IsApplicant = isApplicant,
+                Inactive = inactive == true,
+                InactiveUntilUt = SnapshotDict.GetDouble(raw, "inactiveUntilUt"),
+            };
             if (stamped == null)
             {
-                return CrewStandings.FromRosterStatus(ordinal, isApplicant);
+                return CrewStandings.Resolve(query, null, null);
             }
-            return (CrewStanding)stamped.Value;
+
+            // The capture already ran the derivation against a live backend, so
+            // its answers are authoritative and are read as a reading rather than
+            // recomputed: recomputing would discard a backend's own wording and,
+            // for a Training standing, the course ETA this side cannot see.
+            return CrewStandings.Resolve(
+                query,
+                new CrewStandingReading
+                {
+                    Standing = (CrewStanding)stamped.Value,
+                    Available = SnapshotDict.GetBool(raw, "standingAvailable"),
+                    UnavailableReason = SnapshotDict.GetString(raw, "standingUnavailableReason"),
+                    StandingEndsAtUt = SnapshotDict.GetDouble(raw, "standingEndsAtUt"),
+                    RetiresAtUt = SnapshotDict.GetDouble(raw, "retiresAtUt"),
+                },
+                SnapshotDict.GetString(raw, "standingSource"));
         }
 
         /// <summary>
@@ -394,40 +424,6 @@ namespace Sitrep.Host
                 ["crewCapacity"] = SnapshotDict.GetInt(raw, "crewCapacity"),
                 ["nextHireCost"] = SnapshotDict.GetDouble(raw, "nextHireCost"),
             };
-        }
-
-        /// <summary>
-        /// Folds a <see cref="CrewStanding"/> onto the human reason a kerbal
-        /// can't fly. <c>Available</c> / <c>Applicant</c> → empty string (the
-        /// kerbal IS free), <c>Assigned</c> → "On mission", and every other
-        /// blocking standing → its own name, so a retiree reads "Retired".
-        ///
-        /// <para><c>Unknown</c> is empty rather than the word "Unknown": the
-        /// reason field sits in a tooltip beside a disabled control, and
-        /// "Unknown" there reads as a diagnosis. A standing nobody could read is
-        /// a standing this field has nothing to say about.</para>
-        ///
-        /// <para>Folded from the STANDING rather than the roster ordinal, which
-        /// is the whole point: the ordinal is <c>Dead</c> for an RP-1 retiree,
-        /// and this string is what LaunchDirector shows the operator.</para>
-        ///
-        /// <para>Kept internal-static so the provider test can assert the
-        /// mapping without a KSP reference.</para>
-        /// </summary>
-        internal static string MapUnavailableReason(CrewStanding standing)
-        {
-            switch (standing)
-            {
-                case CrewStanding.Available:
-                case CrewStanding.Applicant:
-                    return "";
-                case CrewStanding.Assigned:
-                    return "On mission";
-                case CrewStanding.Unknown:
-                    return "";
-                default:
-                    return standing.ToString();
-            }
         }
 
         /// <summary>
