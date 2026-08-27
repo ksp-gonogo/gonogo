@@ -82,10 +82,16 @@ namespace Gonogo.KSP.CurrencyDelay
         }
 
         /// <summary>
-        /// Once per frame: flush any vessel science window that has gone quiet past its cadence,
-        /// then replay every matured credit onto the live balances. Warp-safe: both DrainAggregator
-        /// and ApplyMatured already handle a UT jump past several windows/reveals in one call, so a
-        /// plain per-frame Update - no separate warp handling - is enough.
+        /// Once per frame: settle any currency change still deferred past its attribution window,
+        /// flush any vessel science window that has gone quiet past its cadence, then replay every
+        /// matured credit onto the live balances. Warp-safe: the settle, DrainAggregator and
+        /// ApplyMatured all handle a UT jump past several windows/reveals in one call, so a plain
+        /// per-frame Update - no separate warp handling - is enough.
+        ///
+        /// <para>The settle is here, and only here, because a change that defers waiting for a
+        /// vessel event that never fires is followed by nothing that could settle it - see
+        /// StockCurrencyInterceptor.SettleStaleDefers for what a stranded shadow then does to the
+        /// next neutralise, and why a currency handler is the wrong place to do this.</para>
         /// </summary>
         private void Update()
         {
@@ -97,6 +103,7 @@ namespace Gonogo.KSP.CurrencyDelay
             try
             {
                 var nowUt = Planetarium.GetUniversalTime();
+                _interceptor?.SettleStaleDefers(nowUt);
                 _reveal.DrainAggregator(nowUt);
                 _reveal.ApplyMatured(nowUt);
             }

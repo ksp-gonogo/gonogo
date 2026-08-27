@@ -152,6 +152,30 @@ namespace Gonogo.KSP.CurrencyDelay
             GameEvents.OnReputationChanged.Remove(OnReputationChanged);
         }
 
+        /// <summary>
+        /// Per-frame pump for the state machine's deferred science and reputation
+        /// changes, driven by the owning scenario's tick. A change that defers
+        /// waiting for a vessel event that never fires is followed by nothing at
+        /// all, so the passage of time is the only thing left to settle it, and
+        /// until it settles the shadow sits behind the live balance while every
+        /// neutralise aims at it.
+        ///
+        /// <para>The tick, rather than the change handlers this used to hang off,
+        /// because settling resyncs a shadow to a live total and inside an
+        /// <c>On*Changed</c> that total has already moved to the change being
+        /// classified. Handed the post-change total, the very change that triggered
+        /// the settle then resolves AWAY against a neutralise target the balance
+        /// already holds: nothing is clawed back, a credit is enqueued anyway, and
+        /// the reveal pays it twice.</para>
+        /// </summary>
+        public void SettleStaleDefers(double nowUt)
+        {
+            _state.SettleStaleDefers(
+                nowUt,
+                ResearchAndDevelopment.Instance != null ? ResearchAndDevelopment.Instance.Science : _state.ShadowScience,
+                Reputation.Instance != null ? Reputation.Instance.reputation : _state.ShadowReputation);
+        }
+
         private void SeedShadowFromLiveBalances()
         {
             _state.SeedShadow(
@@ -271,11 +295,12 @@ namespace Gonogo.KSP.CurrencyDelay
             {
                 var currentLiveScience = ResearchAndDevelopment.Instance != null ? ResearchAndDevelopment.Instance.Science : _state.ShadowScience;
                 var vesselId = source != null ? source.vesselID.ToString() : "";
+                var ut = Planetarium.GetUniversalTime();
 
-                var decision = _state.OnScienceReceived(amount, source != null, reverseEngineered, vesselId, currentLiveScience);
+                var decision = _state.OnScienceReceived(amount, source != null, reverseEngineered, vesselId, ut, currentLiveScience);
                 if (decision.Outcome == ScienceChangeOutcome.Away)
                 {
-                    ResolveScienceAway(decision.OriginVesselId, decision.BaseAmount, Planetarium.GetUniversalTime(), decision.ShadowToRestore, protoOrigin: source);
+                    ResolveScienceAway(decision.OriginVesselId, decision.BaseAmount, ut, decision.ShadowToRestore, protoOrigin: source);
                 }
             }
             catch (Exception ex)
@@ -299,8 +324,6 @@ namespace Gonogo.KSP.CurrencyDelay
             try
             {
                 var ut = Planetarium.GetUniversalTime();
-                _state.SettleStaleScienceDefers(ut, newTotal);
-
                 var baseAmount = ConsumeQueryBase(reason, Currency.Science, fallback: newTotal - _state.ShadowScience);
                 var decision = _state.OnScienceChanged(ToStockReason(reason), newTotal, baseAmount, ut);
 
@@ -434,7 +457,6 @@ namespace Gonogo.KSP.CurrencyDelay
             try
             {
                 var ut = Planetarium.GetUniversalTime();
-                _state.SettleStaleReputationDefers(ut, newTotal);
                 var baseAmount = ConsumeQueryBase(reason, Currency.Reputation, fallback: newTotal - _state.ShadowReputation);
 
                 // VesselLoss (the crew-death reputation penalty) resolves

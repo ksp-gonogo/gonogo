@@ -39,8 +39,11 @@ namespace Gonogo.DevTools
     /// ScienceTransmission, VesselRecovery or VesselLoss AND for which a vessel
     /// was resolved from a separate KSP event. Of the three vessel-bearing
     /// events, only <c>OnTriggeredDataTransmission</c> (the stock-lab
-    /// transmission path) is a pure notification: firing it names a vessel and
-    /// nothing else. The other two, <c>onVesselRecoveryProcessing</c> and
+    /// transmission path) can be fired as a pure notification, naming a vessel
+    /// and nothing else - see <see cref="NameLabTransmissionOrigin"/> for the two
+    /// fields that make it one, and what it did before they were set. The origin
+    /// needs no lab: the event names a vessel, it does not simulate a
+    /// transmission. The other two, <c>onVesselRecoveryProcessing</c> and
     /// <c>onVesselWillDestroy</c>, are lifecycle events that other mods act on
     /// destructively, so this tool does not fire them. That leaves
     /// <c>attribute = lab</c> as the one origin mode, and science as the one
@@ -462,9 +465,28 @@ namespace Gonogo.DevTools
         /// all), and the first two bail on <c>dataAmount &lt;= 0f</c> before
         /// completing anything, while the surveyor additionally requires a
         /// <c>survey@</c> subject in its own part's container and the comet
-        /// parameter matches its subject id exactly. A zero-data transmission
-        /// with a marker subject therefore reaches the interceptor and nothing
-        /// else.</para>
+        /// parameter matches its subject id exactly.</para>
+        ///
+        /// <para><b>So is the unmatchable <c>container</c>, and that list missed
+        /// the subscriber it mattered for.</b> <c>ModuleScienceLab.OnAwake</c>
+        /// subscribes to this event and <c>OnDestroy</c> unsubscribes, so every
+        /// lab PART PREFAB in the game is a permanent subscriber with no vessel
+        /// and no crew behind it. Its handler opens with
+        /// <c>if (data.container != part.flightID) return;</c>, a prefab's
+        /// flightID is 0, and <c>ScienceData</c>'s container defaults to 0 - so a
+        /// marker fired without one passed that gate on every lab prefab at once,
+        /// matched the <c>sciencelab@</c> prefix check on the next line, and
+        /// died in <c>updateModuleUI()</c> dereferencing a UI event the prefab
+        /// never started. That is the NRE storm that blocked the whole away arm.
+        /// A container no part can hold turns the first line of that handler back
+        /// into the early return it is there to be.</para>
+        ///
+        /// <para>It also stops something worse than a log full of NREs. Past
+        /// <c>updateModuleUI</c>, the same handler calls
+        /// <c>AddScience(storedScience, ScienceTransmission)</c>: a REAL loaded
+        /// lab whose flightID this marker happened to name would empty its whole
+        /// stored science into the balance mid-measurement, under the very reason
+        /// the tool is measuring.</para>
         /// </summary>
         private static void NameLabTransmissionOrigin(Vessel origin)
         {
@@ -473,10 +495,20 @@ namespace Gonogo.DevTools
                 xmitValue: 1f,
                 xmitBonus: 0f,
                 id: "sciencelab@GonogoDevCurrencyProbe",
-                dataName: "Gonogo dev currency award");
+                dataName: "Gonogo dev currency award",
+                triggered: false,
+                container: NoSuchPartFlightId);
 
             GameEvents.OnTriggeredDataTransmission.Fire(data, origin, false);
         }
+
+        /// <summary>
+        /// A part flightID no part holds. KSP hands them out from a counter
+        /// (<c>FlightGlobals.CheckFlightID</c>), so the top of the range is
+        /// unreachable, and a prefab's is 0 - which is what makes 0 the one value
+        /// this marker must never carry.
+        /// </summary>
+        private const uint NoSuchPartFlightId = uint.MaxValue;
 
         private static void Award(Currency currency, double amount, TransactionReasons reason)
         {
