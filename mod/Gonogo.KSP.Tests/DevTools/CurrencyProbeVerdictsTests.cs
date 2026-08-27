@@ -155,8 +155,6 @@ namespace Gonogo.KSP.Tests.DevTools
                 requestId: "", processLastApplied: null, diskLastApplied: null));
         }
 
-        // ---- Per-currency movement ----
-
         private const double Tolerance = 0.0005;
 
         [Fact]
@@ -230,8 +228,6 @@ namespace Gonogo.KSP.Tests.DevTools
             Assert.Contains("WITHHELD", verdict);
         }
 
-        // ---- The confidence leak ----
-
         [Fact]
         public void A_derived_quantity_that_moved_while_a_currency_was_withheld_is_named_a_leak()
         {
@@ -297,8 +293,6 @@ namespace Gonogo.KSP.Tests.DevTools
 
             Assert.Contains("itself a fault", verdict);
         }
-
-        // ---- The trigger-mode guards, which gate three irreversible acts ----
 
         private static string? Refuse(
             string mode = "destroy",
@@ -381,8 +375,6 @@ namespace Gonogo.KSP.Tests.DevTools
 
             Assert.Contains("resolvable 'origin'", refusal!);
         }
-
-        // ---- The forecast, which is what stops an empty result reading as a failure ----
 
         [Fact]
         public void Destroying_a_crewless_craft_forecasts_nothing_and_says_that_is_correct()

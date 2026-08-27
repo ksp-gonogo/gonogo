@@ -1045,6 +1045,18 @@ export const ALLOWLIST: Record<ModToken, ModAllowlist> = {
        * belong inside a shipped Uplink.
        */
       "mod/GonogoDevTools/GonogoDevAntenna.cs",
+      /*
+       * AntennaProbeVerdictsTests.cs covers that same dev tool's report of
+       * whether its boost is still standing: the boost is a set of KSPField
+       * writes on a live module, so a vessel reload silently reverts it, and a
+       * lapsed boost is indistinguishable from one that never worked. The
+       * assertions are over plain strings and the tool's own shipped source
+       * text; RealAntennas is named only in comments explaining WHY the check
+       * compares the recalculated object and not just the module fields, since
+       * that library's Precompute reads the former. Comment-only, no coupling,
+       * and permanent for the same reason as the tool it covers.
+       */
+      "mod/Gonogo.KSP.Tests/DevTools/AntennaProbeVerdictsTests.cs",
       "mod/Sitrep.Contract/UplinkContract.cs",
       "mod/Sitrep.Host/ChannelEngine.cs",
       "mod/Sitrep.Host/Comms/CommsElection.cs",

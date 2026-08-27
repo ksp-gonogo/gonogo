@@ -79,8 +79,6 @@ namespace Gonogo.KSP.Tests.DevTools
             Assert.DoesNotContain("every 0s", state);
         }
 
-        // ---- The mechanism behind the verdict, pinned against the shipped source ----
-
         private static string Addon() => ReadModSource(Path.Combine("GonogoDevTools", "GonogoDevAntenna.cs"));
 
         [Fact]
