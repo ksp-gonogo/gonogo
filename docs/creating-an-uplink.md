@@ -433,6 +433,12 @@ Decentralised by design: you own the repo and you host the bundle. There is no c
   alongside the mod
 - The app's registry descriptor for your Uplink carries the `bundleUrl` and the `integrity` hash
 
+**What decides which Uplinks load:** the live `system.uplinks` roster the running mod publishes, and
+nothing else. The app carries no list of Uplink names, not even for the ones that ship with it, so your
+Uplink reaches the loader on exactly the same path a first-party one does. With no mod talking (an app
+opened before KSP, or a dev session with no game running) nothing is attempted, because nothing has said
+what is installed; `?uplinkLoaderIds=a,b` names ids by hand for that case.
+
 The load sequence the app runs for each Uplink (`packages/app/src/uplinks/loader.ts`):
 
 1. resolve the version to load from the registry descriptor
@@ -460,7 +466,7 @@ in place of the published `bundleUrl`, so an edit-refresh loop is instant.
 That mod-side local-URL / dev-directory mechanism is not built yet (it is gated behind on-device Deck
 work). The dev path is a promise this guide is making, not a button that exists today. Until it lands, the
 first-party workflow is to develop your client as a workspace package imported into the app build (the
-`import "@ksp-gonogo/gonogo-scansat-uplink"` line in `packages/app/src/main.tsx` is exactly this): the widget registers
+`import "@ksp-gonogo/gonogo-kerbalism-uplink"` line in `packages/app/src/main.tsx` is exactly this): the widget registers
 and renders in `pnpm dev` with a normal HMR loop, and you switch to the fetch-and-verify loader path only
 when you package for distribution. When the local-URL mechanism lands, this section will describe pointing
 the loader at your local build directly.

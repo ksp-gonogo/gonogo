@@ -140,18 +140,12 @@ export const ALLOWLIST: Record<ModToken, ModAllowlist> = {
        */
       "packages/app/src/wizard/steps/WelcomeStep.tsx",
       /*
-       * -- Uplink LOADER (Phase A, 2026-07-17; kerbcast migration, 2026-07-18):
-       * the runtime client loader names kerbcast as a first-party Uplink it
-       * loads via import(), same as the pre-existing scansat/kos entries.
-       * flag.ts's LOADER_UPLINK_IDS names "kerbcast"; flag.test.ts asserts all
-       * three ids are present, sanctioned loader-config, not a boundary hole.
-       * main.tsx (D4 step 2, 2026-07-25): its `registerScansatAndRender`
-       * function name and doc comments name "kerbcast" as one of the loader-
-       * covered first-party 3: no static import left, prose only.
+       * flag.ts / flag.test.ts / main.tsx were here (the loader's shipped
+       * first-party enabled-id list, its test, and main.tsx's prose naming the
+       * three ids it booted). Queue item 19 (2026-08-27) deleted the list: the
+       * loader derives what to attempt from the live roster, so no app source
+       * names kerbcast at all now, stale, ratcheted off.
        */
-      "packages/app/src/main.tsx",
-      "packages/app/src/uplinks/flag.test.ts",
-      "packages/app/src/uplinks/flag.ts",
 
       // -- sitrep-client / contract layer, comment or string-literal only --
       "mod/Sitrep.Contract/UplinkContract.cs",
@@ -503,12 +497,13 @@ export const ALLOWLIST: Record<ModToken, ModAllowlist> = {
       "mod/GonogoDevTools/GonogoDevAutoLoad.cs",
       "mod/Sitrep.Host/ChannelEngine.cs",
       /*
-       * main.tsx (D4 step 2, 2026-07-25): no more static `@ksp-gonogo/gonogo-scansat-uplink`
-       * import: scansat now always loads through the runtime loader. Its
-       * `registerScansatAndRender` function name and doc comments still name
-       * "scansat" as one of the loader-covered first-party 3, prose only.
+       * main.tsx was here: first for a static `@ksp-gonogo/gonogo-scansat-uplink`
+       * import (dropped D4 step 2, 2026-07-25), then for a
+       * `registerScansatAndRender` function name and doc comments naming the
+       * three ids it booted. Queue item 19 (2026-08-27) renamed that function
+       * `bootUplinksAndRender` and dropped the prose along with the id list it
+       * described, stale, ratcheted off.
        */
-      "packages/app/src/main.tsx",
       /*
        * `FogMaskStore.ts` was here, and is gone entirely rather than moved: the
        * store went into `@ksp-gonogo/sitrep-sdk` on 2026-08-19, and the sdk is
@@ -532,21 +527,14 @@ export const ALLOWLIST: Record<ModToken, ModAllowlist> = {
       // truenow-allowlist.test.ts above; nothing is imported.
       "packages/core/src/styleguide.test.ts",
       /*
-       * -- Uplink LOADER (Phase A, 2026-07-17): the runtime client loader names
-       * scansat as the first-party Uplink it loads via import() behind a flag,
-       * sanctioned loader-config, the concrete shape of the "P7 retires" debt the
-       * kerbcast header above anticipates. flag.ts holds the enabled-id list; the
-       * loader's unit test uses scansat as its example Uplink (TEST-only). The
-       * loader module itself (loader.ts) is generic and names no mod.
+       * -- Uplink LOADER (Phase A, 2026-07-17): the loader's unit test uses
+       * scansat as its example Uplink (TEST-only). The loader module itself
+       * (loader.ts) is generic and names no mod. flag.ts and flag.test.ts were
+       * here for the shipped enabled-id list and the test asserting its
+       * contents; queue item 19 (2026-08-27) deleted the list, stale, ratcheted
+       * off.
        */
-      "packages/app/src/uplinks/flag.ts",
       "packages/app/src/uplinks/loader.test.ts",
-      /*
-       * flag.test.ts (kerbcast migration, 2026-07-18): asserts LOADER_UPLINK_IDS
-       * contains all three first-party loader ids (scansat/kos/kerbcast),
-       * TEST-only, same shape as loader.test.ts above.
-       */
-      "packages/app/src/uplinks/flag.test.ts",
       /*
        * useLateTelemetrySubscribe (2026-07-19): scansat's fog-sync is the
        * motivating call site for the new hook (a runtime-templated topic,
@@ -915,9 +903,10 @@ export const ALLOWLIST: Record<ModToken, ModAllowlist> = {
       /*
        * main.tsx was here (`import "@ksp-gonogo/gonogo-kos-uplink"`, a sanctioned self-
        * registration import). D4 step 2 (2026-07-25) removed the static
-       * import: kos now always loads through the runtime loader, referenced
-       * only via flag.ts's `LOADER_UPLINK_IDS` (no "kOS"/"Kos*"/"kos.*"
-       * distinctive-form text left in main.tsx itself): stale, ratcheted off.
+       * import: kos now always loads through the runtime loader, and since
+       * queue item 19 (2026-08-27) not even a shipped id list names it (no
+       * "kOS"/"Kos*"/"kos.*" distinctive-form text left in main.tsx itself):
+       * stale, ratcheted off.
        * CrewStatus/index.tsx was here (a doc-comment aside claiming gonogo
        * "doesn't support Kerbalism because of the known kOS sensor
        * incompatibility"). Kerbalism-fixture-truth's crew-rules verification

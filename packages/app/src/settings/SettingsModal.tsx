@@ -245,9 +245,9 @@ function DataSourcesPanel() {
  * reports whether each runtime-loaded client bundle passed the compat gates +
  * integrity check and registered, or was quarantined with a reason (design §2.4:
  * every refusal is legible, never a silent load). The store is empty, and this
- * renders nothing, only where the loader never ran: a station before its
- * deferred `StationUplinkLoader` pass, or a boot that took the
- * `?uplinkLoaderIds=` override with an empty list.
+ * renders nothing, wherever the loader attempted nothing: a station before its
+ * deferred `StationUplinkLoader` pass, a boot with no mod talking and no
+ * `?uplinkLoaderIds=` naming ids by hand, or that override with an empty list.
  */
 function UplinkLoaderSection() {
   const outcomes = useSyncExternalStore(

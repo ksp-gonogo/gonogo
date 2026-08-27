@@ -101,7 +101,10 @@ function ctx(extra: {
   stubRegistryFetch(extra.index);
   return {
     registrySource: { url: "/uplinks/registry.local.json" },
-    enabledIds: ["scansat"],
+    // With a roster, the roster drives and no override is wanted. With no
+    // roster the loader attempts nothing on its own, so a test that wants a
+    // load has to name what it is attempting: that is what the override is.
+    override: extra.roster ? undefined : ["scansat"],
     hostCompat: HOST,
     appVersion: "1.0.0",
     roster: extra.roster,
@@ -165,7 +168,7 @@ describe("loadEnabledUplinks", () => {
     stubRegistryFetch(indexWith(goodHash, { apiVersion: "2.0.0" }));
     const outcomes = await loadEnabledUplinks({
       registrySource: { url: "/uplinks/registry.local.json" },
-      enabledIds: ["scansat"],
+      override: ["scansat"],
       hostCompat: HOST,
       appVersion: "1.0.0",
       ensureConsent: async () => true,
@@ -332,7 +335,7 @@ describe("loadEnabledUplinks", () => {
     stubRegistryFetch({ uplinks: [] });
     const outcomes = await loadEnabledUplinks({
       registrySource: { url: "/uplinks/registry.local.json" },
-      enabledIds: ["scansat"],
+      override: ["scansat"],
       hostCompat: HOST,
       appVersion: "1.0.0",
       ensureConsent: async () => true,
@@ -346,7 +349,7 @@ describe("loadEnabledUplinks", () => {
 });
 
 describe("loadEnabledUplinks: installed-mod-roster drives the enabled set (2026-07-24)", () => {
-  it("enables an installed first-party id absent from ctx.enabledIds", async () => {
+  it("enables an installed first-party id from the roster alone", async () => {
     const importBundle = vi.fn<(url: string) => Promise<unknown>>(
       async () => ({}),
     );
@@ -356,7 +359,6 @@ describe("loadEnabledUplinks: installed-mod-roster drives the enabled set (2026-
     ];
     const outcomes = await loadEnabledUplinks({
       registrySource: { url: "/uplinks/registry.local.json" },
-      enabledIds: [], // empty: the roster alone drives enabling
       hostCompat: HOST,
       appVersion: "1.0.0",
       roster,
@@ -383,7 +385,6 @@ describe("loadEnabledUplinks: installed-mod-roster drives the enabled set (2026-
     ];
     const outcomes = await loadEnabledUplinks({
       registrySource: { url: "/uplinks/registry.local.json" },
-      enabledIds: ["scansat"],
       override: [], // explicit "load nothing": must beat the roster's scansat
       hostCompat: HOST,
       appVersion: "1.0.0",
@@ -403,7 +404,6 @@ describe("loadEnabledUplinks: installed-mod-roster drives the enabled set (2026-
     stubRegistryFetch(indexWith(goodHash));
     const outcomes = await loadEnabledUplinks({
       registrySource: { url: "/uplinks/registry.local.json" },
-      enabledIds: [],
       override: ["scansat"], // explicit: must win over the roster's "nothing installed"
       hostCompat: HOST,
       appVersion: "1.0.0",
@@ -417,14 +417,13 @@ describe("loadEnabledUplinks: installed-mod-roster drives the enabled set (2026-
     expect(outcomes[0].status).toBe("loaded");
   });
 
-  it("does NOT enable a static ctx.enabledIds entry the roster omits (installed-drives, not a static allowlist)", async () => {
+  it("loads nothing when the roster reports nothing installed", async () => {
     const importBundle = vi.fn<(url: string) => Promise<unknown>>(
       async () => ({}),
     );
     stubRegistryFetch(indexWith(goodHash));
     const outcomes = await loadEnabledUplinks({
       registrySource: { url: "/uplinks/registry.local.json" },
-      enabledIds: ["scansat"], // the OLD static default, must be ignored
       hostCompat: HOST,
       appVersion: "1.0.0",
       roster: [], // mod answered: nothing installed
@@ -449,7 +448,6 @@ describe("loadEnabledUplinks: installed-mod-roster drives the enabled set (2026-
     ];
     const outcomes = await loadEnabledUplinks({
       registrySource: { url: "/uplinks/registry.local.json" },
-      enabledIds: [],
       hostCompat: HOST,
       appVersion: "1.0.0",
       roster,
@@ -470,18 +468,61 @@ describe("loadEnabledUplinks: installed-mod-roster drives the enabled set (2026-
     expect(getUplinkOutcomes()).toHaveLength(0);
   });
 
-  it("roster ABSENT (undefined) falls back to ctx.enabledIds unchanged, degraded boot preserved", async () => {
+  // Queue item 19 (2026-08-27, operator: "I want to delete the hardcoded load
+  // source. It is against principle."). There used to be a shipped three-id
+  // first-party fallback that this path used, so a no-mod boot loaded those
+  // three. It made three first-party names load on a path a fourth author's
+  // Uplink could never reach, which contradicts the decentralised model.
+  // Nothing has told us what is installed, so the honest answer is to attempt
+  // nothing and let the roster (or an explicit override) say.
+  it("roster ABSENT and no override attempts nothing, no bundle fetched", async () => {
     const importBundle = vi.fn<(url: string) => Promise<unknown>>(
       async () => ({}),
     );
-    const outcomes = await loadEnabledUplinks(
-      // No `roster` key at all: the real "no mod talking yet" shape.
-      ctx({ index: indexWith(goodHash), importBundle }),
+    const fetchBytes = vi.fn<(url: string) => Promise<ArrayBuffer>>(
+      async () => BUNDLE_BYTES,
     );
+    stubRegistryFetch(indexWith(goodHash));
+    const outcomes = await loadEnabledUplinks({
+      registrySource: { url: "/uplinks/registry.local.json" },
+      hostCompat: HOST,
+      appVersion: "1.0.0",
+      // No `roster` key at all: the real "no mod talking yet" shape.
+      ensureConsent: async () => true,
+      fetchBytes,
+      importBundle,
+    });
+    expect(outcomes).toEqual([]);
+    expect(getUplinkOutcomes()).toHaveLength(0);
+    expect(fetchBytes).not.toHaveBeenCalled();
+    expect(importBundle).not.toHaveBeenCalled();
+  });
+
+  // The registry-failure arm used to quarantine `ctx.enabledIds` so a dead
+  // registry was visible rather than a blank dashboard. With that field gone the
+  // ids it reports come from the same two inputs everything else does, and a
+  // roster-driven boot is the case that would otherwise have gone silent.
+  it("quarantines the roster's ids when the registry is unreadable", async () => {
+    const importBundle = vi.fn<(url: string) => Promise<unknown>>(
+      async () => ({}),
+    );
+    stubRegistryFetch("fail");
+    const outcomes = await loadEnabledUplinks({
+      registrySource: { url: "/uplinks/registry.local.json" },
+      hostCompat: HOST,
+      appVersion: "1.0.0",
+      roster: [
+        { id: "scansat", version: "1.0.0", available: true, reason: null },
+      ],
+      ensureConsent: async () => true,
+      fetchBytes: async () => BUNDLE_BYTES,
+      importBundle,
+    });
     expect(outcomes).toHaveLength(1);
     expect(outcomes[0].id).toBe("scansat");
-    expect(outcomes[0].status).toBe("loaded");
-    expect(importBundle).toHaveBeenCalledWith("/uplinks/scansat.client.js");
+    expect(outcomes[0].status).toBe("quarantined");
+    expect(outcomes[0].reason).toMatch(/registry unavailable/);
+    expect(importBundle).not.toHaveBeenCalled();
   });
 
   it("a mod-reported-unavailable installed id is still ENABLED (attempted) so checkCompat's veto can quarantine it with a reason", async () => {
@@ -499,7 +540,6 @@ describe("loadEnabledUplinks: installed-mod-roster drives the enabled set (2026-
     ];
     const outcomes = await loadEnabledUplinks({
       registrySource: { url: "/uplinks/registry.local.json" },
-      enabledIds: [],
       hostCompat: HOST,
       appVersion: "1.0.0",
       roster,
@@ -551,7 +591,6 @@ describe("loadUplinkById", () => {
     stubRegistryFetch(indexWith(goodHash));
     const outcome = await loadUplinkById("kos", {
       registrySource: { url: "/uplinks/registry.local.json" },
-      enabledIds: [],
       hostCompat: HOST,
       appVersion: "1.0.0",
       ensureConsent: async () => true,
@@ -613,7 +652,6 @@ describe("loadUplinkById", () => {
     });
     const outcome = await loadUplinkById("widget-y", {
       registrySource: { url: "/uplinks/registry.local.json" },
-      enabledIds: [],
       hostCompat: HOST,
       appVersion: "1.0.0",
       roster,
@@ -637,7 +675,6 @@ describe("loadUplinkById", () => {
     stubRegistryFetch(indexWith(goodHash));
     const outcome = await loadUplinkById("widget-z", {
       registrySource: { url: "/uplinks/registry.local.json" },
-      enabledIds: [],
       hostCompat: HOST,
       appVersion: "1.0.0",
       // roster has widget-z installed but with NO clientSource → not loadable
@@ -816,7 +853,6 @@ describe("loadEnabledUplinks: third-party clientSource path (D5-loader follow-on
     });
     const outcomes = await loadEnabledUplinks({
       registrySource: { url: "/uplinks/registry.local.json" },
-      enabledIds: [],
       hostCompat: HOST,
       appVersion: "1.0.0",
       roster,
@@ -858,7 +894,6 @@ describe("loadEnabledUplinks: third-party clientSource path (D5-loader follow-on
     });
     const outcomes = await loadEnabledUplinks({
       registrySource: { url: "/uplinks/registry.local.json" },
-      enabledIds: [],
       hostCompat: HOST,
       appVersion: "1.0.0",
       roster,
@@ -895,7 +930,6 @@ describe("loadEnabledUplinks: third-party clientSource path (D5-loader follow-on
     const fetchBytes = vi.fn(async () => THIRD_PARTY_BYTES);
     const outcomes = await loadEnabledUplinks({
       registrySource: { url: "/uplinks/registry.local.json" },
-      enabledIds: [],
       hostCompat: HOST,
       appVersion: "1.0.0",
       roster,
@@ -931,7 +965,6 @@ describe("loadEnabledUplinks: third-party clientSource path (D5-loader follow-on
     ];
     const outcomes = await loadEnabledUplinks({
       registrySource: { url: "/uplinks/registry.local.json" },
-      enabledIds: [],
       hostCompat: HOST,
       appVersion: "1.0.0",
       roster,
@@ -969,7 +1002,6 @@ describe("loadEnabledUplinks: third-party clientSource path (D5-loader follow-on
     ];
     const outcomes = await loadEnabledUplinks({
       registrySource: { url: "/uplinks/registry.local.json" },
-      enabledIds: [],
       hostCompat: HOST,
       appVersion: "1.0.0",
       roster,
@@ -1004,7 +1036,6 @@ describe("loadEnabledUplinks: third-party clientSource path (D5-loader follow-on
     const fetchBytes = vi.fn(async () => THIRD_PARTY_BYTES);
     const outcomes = await loadEnabledUplinks({
       registrySource: { url: "/uplinks/registry.local.json" },
-      enabledIds: [],
       hostCompat: HOST,
       appVersion: "1.0.0",
       roster,
@@ -1043,7 +1074,6 @@ describe("loadEnabledUplinks: third-party clientSource path (D5-loader follow-on
     const fetchBytes = vi.fn(async () => THIRD_PARTY_BYTES);
     const outcomes = await loadEnabledUplinks({
       registrySource: { url: "/uplinks/registry.local.json" },
-      enabledIds: [],
       hostCompat: HOST,
       appVersion: "1.0.0",
       roster,
@@ -1084,7 +1114,6 @@ describe("loadEnabledUplinks: third-party clientSource path (D5-loader follow-on
     ];
     const outcomes = await loadEnabledUplinks({
       registrySource: { url: "/uplinks/registry.local.json" },
-      enabledIds: [],
       hostCompat: HOST,
       appVersion: "1.0.0",
       roster,
@@ -1120,7 +1149,6 @@ describe("loadEnabledUplinks: third-party clientSource path (D5-loader follow-on
     ];
     const outcomes = await loadEnabledUplinks({
       registrySource: { url: "/uplinks/registry.local.json" },
-      enabledIds: [],
       hostCompat: HOST,
       appVersion: "1.0.0",
       roster,
@@ -1157,7 +1185,6 @@ describe("loadEnabledUplinks: third-party clientSource path (D5-loader follow-on
     ];
     const outcomes = await loadEnabledUplinks({
       registrySource: { url: "/uplinks/registry.local.json" },
-      enabledIds: [],
       hostCompat: HOST,
       appVersion: "1.0.0",
       roster,

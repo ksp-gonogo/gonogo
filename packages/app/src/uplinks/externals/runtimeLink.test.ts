@@ -6,7 +6,7 @@ import { existsSync, readdirSync } from "node:fs";
 import { createRequire } from "node:module";
 import { join, resolve } from "node:path";
 import { describe, expect, it } from "vitest";
-import { LOADER_UPLINK_IDS } from "../flag";
+import { firstPartyUplinkIds } from "../../test/firstPartyUplinkIds";
 import {
   UPLINK_EXTERNAL_ENTRIES,
   UPLINK_EXTERNAL_NO_CHUNK,
@@ -43,15 +43,17 @@ const APP_DIR = resolve(import.meta.dirname, "..", "..", "..");
 const MOD_DIR = resolve(APP_DIR, "..", "..", "mod");
 
 /**
- * The client directory of every Uplink the loader boots, matched from
- * `LOADER_UPLINK_IDS` to the `Gonogo<Mod>Uplink` directory naming it.
+ * The client directory of every Uplink this repo builds a runtime-loadable
+ * bundle for, matched from the build's own target ids to the `Gonogo<Mod>Uplink`
+ * directory naming each one.
  *
  * Derived rather than listed because a hardcoded id -> directory table would put
  * mod names in `src/`, which the mod-ownership boundary guard exists to stop.
- * The ids come from `flag.ts`, which already owns them, and the directory names
- * come off disk. A descriptor id would be tidier but not every loader client
- * ships a `gonogo-uplink.json`, so keying on one silently drops a client, and a
- * dropped client is a check that passes while covering less than it claims.
+ * The ids come from `uplink-bundle-targets.ts`, the list the build itself
+ * resolves these same entry points from, and the directory names come off disk.
+ * A descriptor id would be tidier but not every loader client ships a
+ * `gonogo-uplink.json`, so keying on one silently drops a client, and a dropped
+ * client is a check that passes while covering less than it claims.
  *
  * Ambiguity throws rather than picking: two directories matching one id means
  * the naming assumption has stopped holding.
@@ -60,7 +62,7 @@ function loaderClientDirs(): { id: string; dir: string }[] {
   const uplinkDirs = readdirSync(MOD_DIR).filter((entry) =>
     /^Gonogo.*Uplink$/.test(entry),
   );
-  return LOADER_UPLINK_IDS.map((id) => {
+  return firstPartyUplinkIds().map((id) => {
     const matches = uplinkDirs.filter(
       (entry) =>
         entry.toLowerCase().includes(id.toLowerCase()) &&
@@ -250,9 +252,9 @@ describe("runtime-loaded Uplink link surface", () => {
   const clients = loaderClientDirs();
   const esbuild = loadEsbuild(clients);
 
-  it("finds a client for every id the loader boots", () => {
+  it("finds a client for every id the build targets", () => {
     expect(clients.map((c) => c.id).sort()).toEqual(
-      [...LOADER_UPLINK_IDS].sort(),
+      firstPartyUplinkIds().sort(),
     );
   });
 

@@ -24,7 +24,7 @@ import App from "./App";
 import { isStationRoute } from "./screens/isStationRoute";
 import { setConsentPrompt } from "./uplinks/consent";
 import { promptForConsent } from "./uplinks/consentModal";
-import { LOADER_UPLINK_IDS, loaderBootIdsOverride } from "./uplinks/flag";
+import { loaderBootIdsOverride } from "./uplinks/flag";
 import { hostCompat } from "./uplinks/hostCompat";
 import { loadEnabledUplinks } from "./uplinks/loader";
 import { localRegistrySource } from "./uplinks/registry";
@@ -81,14 +81,13 @@ function renderApp(): void {
 //    bundle/registry entry (breakingGround is bundled IN the core mod DLL,
 //    same as parts/vessel; the other three are outside the loader's scope), so
 //    all four are plain static imports, each self-registering on import.
-//  - scansat + kos + kerbcast (`LOADER_UPLINK_IDS`) ALWAYS go through the
-//    runtime loader: it fetches + verifies + import()s each standalone
-//    bundle, its externals resolving through the baked import map to the
-//    app's singletons. With no live roster (dev / e2e / offline first boot)
-//    `loadEnabledUplinks` still loads this default set: see
-//    `deriveEnabledIds` in loader.ts. `?uplinkLoaderIds=` remains a dev-only
-//    override of which ids that boot call attempts (e.g. the Hub-wizard
-//    dogfood e2e, which deliberately boots with one id left out).
+//  - every Uplink the live `system.uplinks` roster reports installed goes
+//    through the runtime loader: it fetches + verifies + import()s each
+//    standalone bundle, its externals resolving through the baked import map
+//    to the app's singletons. No id is named here, which is the point: a
+//    third party's Uplink loads on exactly this path. With no live roster
+//    (dev / e2e / offline first boot) nothing is attempted, `?uplinkLoaderIds=`
+//    is how you name ids by hand (see `deriveEnabledIds` in loader.ts).
 //
 // Either way render proceeds, a quarantined Uplink degrades to "widget not
 // loaded (reason)" in Settings, never a blank dashboard.
@@ -110,15 +109,15 @@ function renderApp(): void {
 // station→KSP / station→author-host paths the peer architecture forbids. So
 // on `/station` this function skips both calls entirely: the static
 // (kerbalism/avionics/mechjeb) imports are in-app self-registering imports
-// with no network involved, so they stay; the fetch-based loader for
-// scansat/kos/kerbcast instead runs LATER, inside `StationUplinkLoader`
+// with no network involved, so they stay; the fetch-based runtime loader instead
+// runs LATER, inside `StationUplinkLoader`
 // (`./uplinks/StationUplinkLoader.tsx`), mounted by `StationScreen` once the
 // station is connected to a host and has its own peer-backed
 // `TelemetryClient` to read `system.uplinks` off and its own
 // `PeerClientService` to route bundle-byte fetches through
 // (`createPeerBundleFetcher`, D6). `renderApp()` still runs unconditionally
 // here: it mounts `<App>`, which is what renders `StationScreen` at all.
-async function registerScansatAndRender(): Promise<void> {
+async function bootUplinksAndRender(): Promise<void> {
   const staticImports = Promise.all([
     import("@ksp-gonogo/gonogo-kerbalism-uplink"),
     import("@ksp-gonogo/gonogo-avionics-uplink"),
@@ -184,9 +183,9 @@ async function registerScansatAndRender(): Promise<void> {
       const roster = await probeUplinkRoster();
       await loadEnabledUplinks({
         registrySource: localRegistrySource(),
-        enabledIds: [...LOADER_UPLINK_IDS],
-        // Explicit `?uplinkLoaderIds=` override wins over the roster + the
-        // default above (see LoaderContext.override): undefined when unset.
+        // The roster is the only thing that says what to load; an explicit
+        // `?uplinkLoaderIds=` wins over it (see LoaderContext.override), and
+        // is undefined when unset.
         override: loaderBootIdsOverride(),
         hostCompat,
         appVersion: VERSION,
@@ -204,4 +203,4 @@ async function registerScansatAndRender(): Promise<void> {
   renderApp();
 }
 
-void registerScansatAndRender();
+void bootUplinksAndRender();

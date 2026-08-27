@@ -26,7 +26,7 @@ import { useEffect, useRef, useState } from "react";
 import styled from "styled-components";
 import { usePeerClient } from "../peer/PeerClientContext";
 import { VERSION } from "../version";
-import { LOADER_UPLINK_IDS, loaderBootIdsOverride } from "./flag";
+import { loaderBootIdsOverride } from "./flag";
 import { hostCompat } from "./hostCompat";
 import { loadEnabledUplinks } from "./loader";
 import type { UplinkLoadOutcome } from "./loaderState";
@@ -63,9 +63,8 @@ export async function runStationUplinkLoad(
   );
   return loadEnabledUplinks({
     registrySource: localRegistrySource(),
-    enabledIds: [...LOADER_UPLINK_IDS],
-    // Explicit `?uplinkLoaderIds=` override wins over the roster + the
-    // default above (same precedence rule as the main-screen boot call).
+    // Explicit `?uplinkLoaderIds=` override wins over the roster (same
+    // precedence rule as the main-screen boot call).
     override: loaderBootIdsOverride(),
     hostCompat,
     appVersion: VERSION,
