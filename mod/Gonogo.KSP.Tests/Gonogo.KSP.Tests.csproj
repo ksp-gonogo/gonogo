@@ -161,6 +161,11 @@
     <Compile Include="CurrencyDelay\CurrencyDelayGuardTests.cs" />
     <Compile Include="CurrencyDelay\RevealDecisionTests.cs" />
     <Compile Include="CurrencyDelay\ScienceChunkCreditTests.cs" />
+    <!-- Reads the shipped source of the two KSP-only files below rather than
+         loading them, so it needs KspManaged no more than the rest of this
+         group does - and it is precisely the files this project cannot compile
+         that it exists to check. -->
+    <Compile Include="CurrencyDelay\CurrencyDelaySettlePumpIsWiredTests.cs" />
   </ItemGroup>
 
   <ItemGroup Condition="'$(KspManagedAvailable)' == 'true'">
@@ -293,7 +298,7 @@
     <!-- The maneuver WRITE-path ownership guard: KspVesselActuator + stock's own
          plan backend, so the refusal can be exercised against a real election.
          Gated because both touch KSP types. -->
-    <Compile Include="CurrencyDelay\**\*.cs" Exclude="CurrencyDelay\KscLightTimeTests.cs;CurrencyDelay\VesselScienceAggregatorTests.cs;CurrencyDelay\StockCurrencyDecisionTests.cs;CurrencyDelay\StockCurrencyStateMachineTests.cs;CurrencyDelay\CurrencyDelayGuardTests.cs;CurrencyDelay\RevealDecisionTests.cs;CurrencyDelay\ScienceChunkCreditTests.cs" />
+    <Compile Include="CurrencyDelay\**\*.cs" Exclude="CurrencyDelay\KscLightTimeTests.cs;CurrencyDelay\VesselScienceAggregatorTests.cs;CurrencyDelay\StockCurrencyDecisionTests.cs;CurrencyDelay\StockCurrencyStateMachineTests.cs;CurrencyDelay\CurrencyDelayGuardTests.cs;CurrencyDelay\RevealDecisionTests.cs;CurrencyDelay\ScienceChunkCreditTests.cs;CurrencyDelay\CurrencyDelaySettlePumpIsWiredTests.cs" />
   </ItemGroup>
 
   <!-- ServoCapture.cs is the robotics capture's kind-NAMING rule, carved out of

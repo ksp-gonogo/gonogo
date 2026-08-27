@@ -295,7 +295,7 @@ namespace Gonogo.KSP.CurrencyDelay
         /// death path outside the two decompile-confirmed ones) is accepted as HOME rather than
         /// stranding the shadow, mirroring SettleStaleScienceDefers.
         /// </summary>
-        public void SettleStaleReputationDefers(double ut, double currentLiveReputation)
+        private void SettleStaleReputationDefers(double ut, double currentLiveReputation)
         {
             var removed = _reputationDefers.RemoveAll(d => ut - d.Ut > AttributionWindowUt);
             if (removed > 0)
@@ -307,11 +307,28 @@ namespace Gonogo.KSP.CurrencyDelay
         /// <summary>
         /// A deferred science change nothing has claimed within the attribution window is
         /// accepted as HOME rather than stranding the shadow out of sync with the real balance
-        /// forever. Callers must settle stale defers (with the live total OnScienceChanged is
-        /// about to process) before evaluating that same change - mirrors the ordering the
-        /// interceptor has always used.
+        /// forever.
         /// </summary>
-        public void SettleStaleScienceDefers(double ut, double currentLiveScience)
+        /// <summary>
+        /// Catches the shadows up on every defer the attribution window has run out
+        /// on. The ONLY way a defer settles, and deliberately the only public one:
+        /// settling resyncs a shadow to a live total, and the only moment a live
+        /// total means anything is one with no currency change in flight.
+        ///
+        /// <para>Called every frame from the owning scenario's tick rather than from
+        /// a currency handler, because a defer nothing ever explains is followed by
+        /// nothing at all. Reachable only from inside the next change of the same
+        /// currency, it never ran: a science change under an away-set reason with no
+        /// vessel to claim it left the shadow stranded for the rest of the session,
+        /// and every later neutralise restored the balance to that stranded value.</para>
+        /// </summary>
+        public void SettleStaleDefers(double nowUt, double liveScience, double liveReputation)
+        {
+            SettleStaleScienceDefers(nowUt, liveScience);
+            SettleStaleReputationDefers(nowUt, liveReputation);
+        }
+
+        private void SettleStaleScienceDefers(double ut, double currentLiveScience)
         {
             var removed = _scienceDefers.RemoveAll(d => ut - d.Ut > AttributionWindowUt);
             if (removed > 0)
@@ -354,18 +371,45 @@ namespace Gonogo.KSP.CurrencyDelay
         /// <summary>
         /// Ordinary experiment transmission and recovered (non-lab) science both fire this with
         /// the exact credited value and the source vessel - self-contained, no correlation
-        /// needed for the base amount. Both HOME paths (no usable amount/source, or a
-        /// vessel-less degrade like a mod award or reverse-engineered recovery credit) resync
-        /// the shadow to the live post-change total before returning, same as every other
-        /// resolution path. Skipping that resync is what let a later AWAY neutralise silently
-        /// erase a HOME earn that landed in between (the shadow stayed stale, so "restore to
-        /// shadow" wiped out real currency the live balance already held).
+        /// needed for the base amount. Every HOME path (nothing deferred behind the receipt, no
+        /// usable amount/source, or a vessel-less degrade like a mod award or reverse-engineered
+        /// recovery credit) resyncs the shadow to the live post-change total before returning,
+        /// same as every other resolution path. Skipping that resync is what let a later AWAY
+        /// neutralise silently erase a HOME earn that landed in between (the shadow stayed
+        /// stale, so "restore to shadow" wiped out real currency the live balance already held).
         /// </summary>
-        public ScienceChangeDecision OnScienceReceived(double amount, bool hasSourceVessel, bool reverseEngineered, string vesselId, double currentLiveScience)
+        public ScienceChangeDecision OnScienceReceived(double amount, bool hasSourceVessel, bool reverseEngineered, string vesselId, double ut, double currentLiveScience)
         {
-            // Whatever OnScienceChanged deferred has now been fully explained by this event,
-            // whether or not it ends up attributable.
-            ClaimOldestScienceDefer();
+            // This event NARRATES a balance change; it never is one. Stock fires it from
+            // SubmitScienceData fourteen lines after the AddScience it describes, so the receipt
+            // that means something always finds that change already sitting in _scienceDefers,
+            // and claiming it is what earns the right to attribute, neutralise and credit.
+            //
+            // A fire with nothing deferred behind it moved no balance, so treating it as an earn
+            // manufactures a credit out of a notification AND neutralises against a shadow that
+            // was never the point - which, if the shadow has been left behind, does not claw
+            // anything back, it rewrites the career's science down to that stale number. Two
+            // live sources fire exactly that: a science mod announcing a subject's first
+            // completion, which credits incrementally under an unrelated reason and fires this
+            // event as a bare notification carrying either a token 0.01 or the subject's whole
+            // max value, with no AddScience behind either; and a vessel recovery, whose science
+            // change OnScienceChanged already resolved AWAY off the recovery push, leaving no
+            // defer for the receipt that follows to claim.
+            if (!TryClaimOldestScienceDefer(ut, amount))
+            {
+                // The shadow is only meant to trail the balance while a change is deferred, so
+                // with none in flight the two are supposed to agree and resyncing heals a shadow
+                // something else stranded. With one in flight the gap is real and load-bearing:
+                // it is the value that change's own neutralise will restore to, and closing it
+                // here would leave that neutralise pointing at a balance already holding the
+                // credit, which claws back nothing and reveals it a second time.
+                if (!HasScienceDeferInFlight(ut))
+                {
+                    ShadowScience = currentLiveScience;
+                }
+
+                return ScienceChangeDecision.Home();
+            }
 
             if (amount <= 0.0 || double.IsNaN(amount) || double.IsInfinity(amount) || !hasSourceVessel)
             {
@@ -529,12 +573,59 @@ namespace Gonogo.KSP.CurrencyDelay
             return false;
         }
 
-        private void ClaimOldestScienceDefer()
+        /// <summary>
+        /// Claims the oldest science defer still inside the attribution window whose base amount
+        /// this receipt's amount matches, whatever its reason - unlike
+        /// <see cref="TryClaimScienceDefer"/>, an OnScienceRecieved carries its own amount and
+        /// vessel and needs the defer only as proof that a balance actually moved. Defers are
+        /// appended in UT order, so the first match is the oldest claimable.
+        ///
+        /// <para>Matching on the AMOUNT is what stops a notification-only fire from claiming a
+        /// real change that happens to be in flight beside it. Stock passes the same
+        /// <c>scienceValue</c> to <c>AddScience</c> and to the <c>OnScienceRecieved</c> it fires
+        /// fourteen lines later, and the interceptor records the first as the defer's base off
+        /// <c>OnCurrencyModifierQuery.GetInput</c>, so a genuine pair agrees exactly. Without
+        /// this, a token 0.01 subject-completion fire landing inside a stock lab's two-second
+        /// attribution window would claim the lab's deferred change, resolve AWAY against the
+        /// lab's pre-change shadow, and neutralise the lab's whole credit away in exchange for a
+        /// pending 0.01. The tolerance only absorbs a float round trip; it is far tighter than
+        /// any two real credits are close.</para>
+        ///
+        /// <para>A stale defer is left where it is rather than consumed here: it is
+        /// <see cref="SettleStaleDefers"/>'s to remove, and only that path also catches the
+        /// shadow up to what the balance kept.</para>
+        /// </summary>
+        private bool TryClaimOldestScienceDefer(double ut, double amount)
         {
-            if (_scienceDefers.Count > 0)
+            for (var i = 0; i < _scienceDefers.Count; i++)
             {
-                _scienceDefers.RemoveAt(0);
+                var defer = _scienceDefers[i];
+                if (ut - defer.Ut > AttributionWindowUt || !SameCredit(defer.BaseAmount, amount))
+                {
+                    continue;
+                }
+
+                _scienceDefers.RemoveAt(i);
+                return true;
             }
+
+            return false;
         }
+
+        private bool HasScienceDeferInFlight(double ut)
+        {
+            foreach (var defer in _scienceDefers)
+            {
+                if (ut - defer.Ut <= AttributionWindowUt)
+                {
+                    return true;
+                }
+            }
+
+            return false;
+        }
+
+        private static bool SameCredit(double deferredBase, double receiptAmount) =>
+            Math.Abs(deferredBase - receiptAmount) <= 1e-3 * Math.Max(1.0, Math.Abs(receiptAmount));
     }
 }

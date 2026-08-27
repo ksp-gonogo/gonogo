@@ -29,7 +29,7 @@ public class StockCurrencyStateMachineTests
         //    it AWAY using its own vessel + amount. Shadow stays at 100 -
         //    the interceptor would neutralise the live balance back to it.
         state.OnScienceChanged(StockTransactionReason.ScienceTransmission, newTotal: 105.0, baseAmount: 5.0, ut: 0.0);
-        var away1 = state.OnScienceReceived(amount: 5.0, hasSourceVessel: true, reverseEngineered: false, vesselId: "vessel-A", currentLiveScience: 105.0);
+        var away1 = state.OnScienceReceived(amount: 5.0, hasSourceVessel: true, reverseEngineered: false, vesselId: "vessel-A", ut: 0.0, currentLiveScience: 105.0);
         Assert.Equal(ScienceChangeOutcome.Away, away1.Outcome);
         Assert.Equal(100.0, away1.ShadowToRestore);
         Assert.Equal(100.0, state.ShadowScience);
@@ -38,7 +38,7 @@ public class StockCurrencyStateMachineTests
         //    resolvable vessel) adds +8 science directly to the live
         //    balance (100 -> 108, post-neutralise from step 1).
         state.OnScienceChanged(StockTransactionReason.VesselRecovery, newTotal: 108.0, baseAmount: 8.0, ut: 1.0);
-        var home = state.OnScienceReceived(amount: 8.0, hasSourceVessel: true, reverseEngineered: true, vesselId: "", currentLiveScience: 108.0);
+        var home = state.OnScienceReceived(amount: 8.0, hasSourceVessel: true, reverseEngineered: true, vesselId: "", ut: 1.0, currentLiveScience: 108.0);
         Assert.Equal(ScienceChangeOutcome.Home, home.Outcome);
 
         // The shadow MUST now reflect the home earn (108), not the stale
@@ -47,7 +47,7 @@ public class StockCurrencyStateMachineTests
 
         // 3. A second AWAY transmission: +3 lands on top (108 -> 111).
         state.OnScienceChanged(StockTransactionReason.ScienceTransmission, newTotal: 111.0, baseAmount: 3.0, ut: 2.0);
-        var away2 = state.OnScienceReceived(amount: 3.0, hasSourceVessel: true, reverseEngineered: false, vesselId: "vessel-C", currentLiveScience: 111.0);
+        var away2 = state.OnScienceReceived(amount: 3.0, hasSourceVessel: true, reverseEngineered: false, vesselId: "vessel-C", ut: 2.0, currentLiveScience: 111.0);
 
         Assert.Equal(ScienceChangeOutcome.Away, away2.Outcome);
         Assert.Equal("vessel-C", away2.OriginVesselId);
@@ -64,7 +64,7 @@ public class StockCurrencyStateMachineTests
     {
         var state = Seeded(science: 50.0);
 
-        var decision = state.OnScienceReceived(amount: 4.0, hasSourceVessel: false, reverseEngineered: false, vesselId: "", currentLiveScience: 54.0);
+        var decision = state.OnScienceReceived(amount: 4.0, hasSourceVessel: false, reverseEngineered: false, vesselId: "", ut: 0.0, currentLiveScience: 54.0);
 
         Assert.Equal(ScienceChangeOutcome.Home, decision.Outcome);
         Assert.Equal(54.0, state.ShadowScience);
@@ -75,7 +75,7 @@ public class StockCurrencyStateMachineTests
     {
         var state = Seeded(science: 20.0);
 
-        var decision = state.OnScienceReceived(amount: 0.0, hasSourceVessel: true, reverseEngineered: false, vesselId: "vessel-x", currentLiveScience: 20.0);
+        var decision = state.OnScienceReceived(amount: 0.0, hasSourceVessel: true, reverseEngineered: false, vesselId: "vessel-x", ut: 0.0, currentLiveScience: 20.0);
 
         Assert.Equal(ScienceChangeOutcome.Home, decision.Outcome);
         Assert.Equal(20.0, state.ShadowScience);
@@ -316,7 +316,7 @@ public class StockCurrencyStateMachineTests
         // Deferred leaves the shadow alone: nothing has been neutralised yet.
         Assert.Equal(2.0, state.ShadowScience);
 
-        state.SettleStaleScienceDefers(ut: 103.0, currentLiveScience: 27.0);
+        state.SettleStaleDefers(nowUt: 103.0, liveScience: 27.0, liveReputation: 50.0);
         Assert.Equal(27.0, state.ShadowScience);
     }
 
@@ -358,7 +358,7 @@ public class StockCurrencyStateMachineTests
 
         // Nothing claims it within the attribution window; the next
         // science change (any reason) settles it stale first.
-        state.SettleStaleScienceDefers(ut: 3.0, currentLiveScience: 13.0);
+        state.SettleStaleDefers(nowUt: 3.0, liveScience: 13.0, liveReputation: 50.0);
 
         Assert.Equal(13.0, state.ShadowScience);
     }
@@ -368,9 +368,128 @@ public class StockCurrencyStateMachineTests
     {
         var state = Seeded(science: 10.0);
 
-        state.SettleStaleScienceDefers(ut: 3.0, currentLiveScience: 999.0);
+        state.SettleStaleDefers(nowUt: 3.0, liveScience: 999.0, liveReputation: 999.0);
 
         Assert.Equal(10.0, state.ShadowScience);
+    }
+
+    // A science RECEIPT is a notification, not an earn. Stock only ever fires it
+    // to narrate a balance change it has already made (SubmitScienceData calls
+    // AddScience, then fires OnScienceRecieved fourteen lines later), so the
+    // receipt that matters always finds the change it explains already deferred.
+    // A science mod that credits incrementally under an unrelated reason fires
+    // the same event to ANNOUNCE a subject's first completion, with no matching
+    // AddScience at all: a token 0.01 where our science hook is attached, the
+    // subject's whole max value where it is not. Read as a real away earn, that
+    // becomes a neutralise the balance never asked for.
+    [Fact]
+    public void a_science_receipt_explaining_no_balance_change_is_home_and_never_neutralises()
+    {
+        var state = Seeded(science: 63.0);
+
+        var decision = state.OnScienceReceived(
+            amount: 0.01, hasSourceVessel: true, reverseEngineered: false,
+            vesselId: "probe", ut: 500.0, currentLiveScience: 63.0);
+
+        Assert.Equal(ScienceChangeOutcome.Home, decision.Outcome);
+        Assert.Equal(63.0, state.ShadowScience);
+    }
+
+    // The damage that receipt does when the shadow has been left behind: the
+    // interceptor's answer to an AWAY decision is SetScience(ShadowToRestore),
+    // so a receipt resolving Away against a stale shadow does not neutralise
+    // anything, it rewrites the career's science down to whatever the shadow
+    // last happened to hold.
+    [Fact]
+    public void a_science_receipt_cannot_rewrite_the_balance_down_to_a_stranded_shadow()
+    {
+        var state = Seeded(science: 38.0);
+
+        // A mod credits 25 under an away-set reason with no vessel anywhere:
+        // deferred, so the shadow stays at 38 while the balance holds 63.
+        state.OnScienceChanged(StockTransactionReason.ScienceTransmission, newTotal: 63.0, baseAmount: 25.0, ut: 100.0);
+        Assert.Equal(38.0, state.ShadowScience);
+
+        var decision = state.OnScienceReceived(
+            amount: 0.01, hasSourceVessel: true, reverseEngineered: false,
+            vesselId: "probe", ut: 500.0, currentLiveScience: 63.0);
+
+        Assert.Equal(ScienceChangeOutcome.Home, decision.Outcome);
+        Assert.Equal(63.0, state.ShadowScience);
+    }
+
+    // The narrow way a notification-only fire could still do damage: land inside
+    // a real change's attribution window and claim ITS defer. The lab path holds
+    // one open for up to two UT-seconds, so the collision is reachable, and the
+    // consequence would be the worst outcome in this subsystem - the lab's whole
+    // credit neutralised away against its own pre-change shadow, in exchange for
+    // a pending 0.01.
+    [Fact]
+    public void a_notification_sized_receipt_cannot_claim_a_real_change_deferred_beside_it()
+    {
+        var state = Seeded(science: 100.0);
+
+        // A stock lab transmits 25: deferred, waiting on its lab push.
+        state.OnScienceChanged(StockTransactionReason.ScienceTransmission, newTotal: 125.0, baseAmount: 25.0, ut: 500.0);
+
+        var decision = state.OnScienceReceived(
+            amount: 0.01, hasSourceVessel: true, reverseEngineered: false,
+            vesselId: "probe", ut: 500.5, currentLiveScience: 125.0);
+
+        Assert.Equal(ScienceChangeOutcome.Home, decision.Outcome);
+
+        // The gap between shadow and balance belongs to the lab's deferred change,
+        // so the receipt must not close it either.
+        Assert.Equal(100.0, state.ShadowScience);
+
+        // And the defer is untouched, so the lab's own push still claims it, still
+        // against the pre-change shadow its neutralise has to restore.
+        var claim = state.PushLabVessel("lab-A", ut: 501.0);
+        Assert.Equal(ScienceChangeOutcome.Away, claim.Outcome);
+        Assert.Equal(25.0, claim.BaseAmount);
+        Assert.Equal(100.0, claim.ShadowToRestore);
+    }
+
+    // A recovery's science change is attributed by OnScienceChanged itself, off
+    // the recovery push, and resolves AWAY there. The OnScienceRecieved that
+    // follows narrates that same credit, and must not neutralise and enqueue it
+    // a second time.
+    [Fact]
+    public void the_receipt_following_an_already_attributed_recovery_does_not_resolve_away_twice()
+    {
+        var state = Seeded(science: 10.0);
+        state.PushRecoveryVessel("recovered-1", ut: 0.0);
+
+        var change = state.OnScienceChanged(StockTransactionReason.VesselRecovery, newTotal: 16.0, baseAmount: 6.0, ut: 0.1);
+        Assert.Equal(ScienceChangeOutcome.Away, change.Outcome);
+
+        var receipt = state.OnScienceReceived(
+            amount: 6.0, hasSourceVessel: true, reverseEngineered: false,
+            vesselId: "recovered-1", ut: 0.2, currentLiveScience: 16.0);
+
+        Assert.Equal(ScienceChangeOutcome.Home, receipt.Outcome);
+    }
+
+    // The defect the rig isolated. Two runs differing only in reason: Progression
+    // tracked the shadow 2 -> 38, ScienceTransmission left it at 38 while the
+    // balance went to 63. ScienceTransmission is an away-set reason, so the
+    // change defers waiting for a vessel that never arrives, and NOTHING ELSE
+    // HAPPENS - no receipt, no lab push, no second currency event. The settle
+    // has to be pumped by the passage of time on its own, or the shadow stays
+    // stranded for the rest of the session and every later neutralise restores
+    // to it.
+    [Fact]
+    public void a_deferred_science_change_nothing_ever_explains_settles_on_time_alone()
+    {
+        var state = Seeded(science: 38.0, reputation: 50.0);
+
+        var earn = state.OnScienceChanged(StockTransactionReason.ScienceTransmission, newTotal: 63.0, baseAmount: 25.0, ut: 100.0);
+        Assert.Equal(ScienceChangeOutcome.Deferred, earn.Outcome);
+        Assert.Equal(38.0, state.ShadowScience);
+
+        state.SettleStaleDefers(nowUt: 103.0, liveScience: 63.0, liveReputation: 50.0);
+
+        Assert.Equal(63.0, state.ShadowScience);
     }
 
     [Fact]
@@ -381,7 +500,7 @@ public class StockCurrencyStateMachineTests
         var deferred = state.OnScienceChanged(StockTransactionReason.ScienceTransmission, newTotal: 14.0, baseAmount: 4.0, ut: 0.0);
         Assert.Equal(ScienceChangeOutcome.Deferred, deferred.Outcome);
 
-        var resolved = state.OnScienceReceived(amount: 4.0, hasSourceVessel: true, reverseEngineered: false, vesselId: "vessel-ordinary", currentLiveScience: 14.0);
+        var resolved = state.OnScienceReceived(amount: 4.0, hasSourceVessel: true, reverseEngineered: false, vesselId: "vessel-ordinary", ut: 0.0, currentLiveScience: 14.0);
 
         Assert.Equal(ScienceChangeOutcome.Away, resolved.Outcome);
         Assert.Equal("vessel-ordinary", resolved.OriginVesselId);
@@ -489,7 +608,7 @@ public class StockCurrencyStateMachineTests
         Assert.Equal(CurrencyChangeOutcome.Deferred, deferred.Outcome);
         Assert.False(deferred.IsAway);
 
-        state.SettleStaleReputationDefers(ut: 3.0, currentLiveReputation: 35.0);
+        state.SettleStaleDefers(nowUt: 3.0, liveScience: 100.0, liveReputation: 35.0);
 
         Assert.Equal(35.0, state.ShadowReputation);
     }
@@ -499,7 +618,7 @@ public class StockCurrencyStateMachineTests
     {
         var state = Seeded(reputation: 40.0);
 
-        state.SettleStaleReputationDefers(ut: 3.0, currentLiveReputation: 999.0);
+        state.SettleStaleDefers(nowUt: 3.0, liveScience: 999.0, liveReputation: 999.0);
 
         Assert.Equal(40.0, state.ShadowReputation);
     }
@@ -608,7 +727,7 @@ public class StockCurrencyStateMachineTests
         // exp1 transmits +10: OnScienceChanged defers, OnScienceReceived resolves it Away
         // against the current shadow (0).
         state.OnScienceChanged(StockTransactionReason.ScienceTransmission, newTotal: 10.0, baseAmount: 10.0, ut: 0.0);
-        var away1 = state.OnScienceReceived(amount: 10.0, hasSourceVessel: true, reverseEngineered: false, vesselId: "exp1", currentLiveScience: 10.0);
+        var away1 = state.OnScienceReceived(amount: 10.0, hasSourceVessel: true, reverseEngineered: false, vesselId: "exp1", ut: 0.0, currentLiveScience: 10.0);
         Assert.Equal(ScienceChangeOutcome.Away, away1.Outcome);
         Assert.Equal(0.0, away1.ShadowToRestore);
 
@@ -624,7 +743,7 @@ public class StockCurrencyStateMachineTests
 
         // exp2 transmits +10 on top of the revealed exp1 (live 10 -> 20).
         state.OnScienceChanged(StockTransactionReason.ScienceTransmission, newTotal: 20.0, baseAmount: 10.0, ut: 5.0);
-        var away2 = state.OnScienceReceived(amount: 10.0, hasSourceVessel: true, reverseEngineered: false, vesselId: "exp2", currentLiveScience: 20.0);
+        var away2 = state.OnScienceReceived(amount: 10.0, hasSourceVessel: true, reverseEngineered: false, vesselId: "exp2", ut: 5.0, currentLiveScience: 20.0);
         Assert.Equal(ScienceChangeOutcome.Away, away2.Outcome);
 
         // The neutralise target MUST be 10 (preserving exp1's revealed credit), never 0 (which
