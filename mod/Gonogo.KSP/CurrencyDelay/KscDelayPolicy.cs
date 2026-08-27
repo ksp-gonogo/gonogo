@@ -23,6 +23,27 @@ namespace Gonogo.KSP.CurrencyDelay
     /// </summary>
     internal static class KscDelayPolicy
     {
+        /// <summary>
+        /// How long an unroutable event waits before the books are reconciled
+        /// anyway, when no config says otherwise. One stock game day.
+        ///
+        /// <para>The consensus this subsystem was built from writes the number as
+        /// 86,400 and the prose beside it as "a day", which cannot both be true:
+        /// 86,400 s is a day on a real-scale homeworld, and four of them on a
+        /// stock one. <see cref="GameDayDefaults"/> exists because three separate
+        /// policy defaults had made that same substitution. The intent was right
+        /// and the literal was habit, so the constant wins and the doc is
+        /// corrected, not the other way round.</para>
+        ///
+        /// <para>It stays a stock CONSTANT rather than a live read of the
+        /// homeworld's rotation, which is what a real-scale install would want.
+        /// A shorter deadline is a more forgiving policy, not a wrong
+        /// measurement; <c>SilenceDeclarationSeconds</c> is already an authored
+        /// knob a player can set, and a live-derived seed would have to lose to
+        /// an authored value, which is wiring nothing here can test. Above all,
+        /// only an origin the roster cannot produce reaches this number at all,
+        /// so it governs craft nothing can reach and nothing else.</para>
+        /// </summary>
         internal const double DefaultSilenceDeclarationSeconds =
             GameDayDefaults.StockDaySeconds;
 

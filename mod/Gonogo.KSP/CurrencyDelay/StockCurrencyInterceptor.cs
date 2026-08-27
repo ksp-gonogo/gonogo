@@ -86,14 +86,19 @@ namespace Gonogo.KSP.CurrencyDelay
         // which currency is a rule of its own - see CurrencyQueryBases.
         private readonly CurrencyQueryBases _queryBases = new CurrencyQueryBases();
 
-        // Live object references for vessel ids the state machine has
-        // pushed, so a decision naming a vesselId string can still resolve
-        // the actual ProtoVessel/Vessel for KscLightTime lookups. Populated
-        // in lockstep with every push into the state machine; never pruned
-        // (recoveries/lab transmissions are infrequent enough per session
-        // that unbounded growth here isn't a practical concern).
+        // Recovery ProtoVessels for vessel ids the state machine has pushed, so a
+        // decision naming a vesselId string can still tell a recovered craft from
+        // one that is still out there - a routing question this does not answer
+        // and does not need to (see ResolveScienceAway). Populated in lockstep
+        // with every recovery push; never pruned (recoveries are infrequent
+        // enough per session that unbounded growth here isn't a practical
+        // concern).
+        //
+        // There is no live-Vessel twin of this. Caching one for the single entry
+        // point that had a live handle is what let the other two go unmeasured:
+        // the delay comes off the roster by id now, so a handle cached here would
+        // be a second answer to a question with one.
         private readonly Dictionary<string, ProtoVessel> _recoveryVesselsById = new Dictionary<string, ProtoVessel>();
-        private readonly Dictionary<string, Vessel> _labVesselsById = new Dictionary<string, Vessel>();
 
         // Light-time captured AT PUSH TIME (onVesselWillDestroy, while the
         // vessel is still fully intact), keyed by vessel id - unlike the
@@ -221,13 +226,11 @@ namespace Gonogo.KSP.CurrencyDelay
             }
 
             var vesselId = origin.id.ToString();
-            _labVesselsById[vesselId] = origin;
-
             var ut = Planetarium.GetUniversalTime();
             var decision = _state.PushLabVessel(vesselId, ut);
             if (decision.Outcome == ScienceChangeOutcome.Away)
             {
-                ResolveScienceAway(decision.OriginVesselId, decision.BaseAmount, ut, decision.ShadowToRestore, liveOrigin: origin);
+                ResolveScienceAway(decision.OriginVesselId, decision.BaseAmount, ut, decision.ShadowToRestore);
             }
         }
 
@@ -314,8 +317,7 @@ namespace Gonogo.KSP.CurrencyDelay
                 if (decision.Outcome == ScienceChangeOutcome.Away)
                 {
                     var protoOrigin = _recoveryVesselsById.TryGetValue(decision.OriginVesselId, out var pv) ? pv : null;
-                    var liveOrigin = protoOrigin == null && _labVesselsById.TryGetValue(decision.OriginVesselId, out var v) ? v : null;
-                    ResolveScienceAway(decision.OriginVesselId, decision.BaseAmount, ut, decision.ShadowToRestore, protoOrigin: protoOrigin, liveOrigin: liveOrigin);
+                    ResolveScienceAway(decision.OriginVesselId, decision.BaseAmount, ut, decision.ShadowToRestore, protoOrigin: protoOrigin);
                 }
             }
             catch (Exception ex)
@@ -325,7 +327,7 @@ namespace Gonogo.KSP.CurrencyDelay
         }
 
         /// <summary>Neutralises the live science balance back to the given shadow value and, via the aggregator, enqueues a pending credit once its window flushes. Called once per AWAY science increment regardless of whether this call happens to flush a chunk.</summary>
-        private void ResolveScienceAway(string vesselId, double baseAmount, double ut, double shadowToRestore, ProtoVessel? protoOrigin = null, Vessel? liveOrigin = null)
+        private void ResolveScienceAway(string vesselId, double baseAmount, double ut, double shadowToRestore, ProtoVessel? protoOrigin = null)
         {
             if (string.IsNullOrEmpty(vesselId))
             {
@@ -345,14 +347,19 @@ namespace Gonogo.KSP.CurrencyDelay
             }
 
             var config = CommsCoreUplink.SignalDelayConfig;
-            // Live vessel only. A ProtoVessel has no CommNet connection, so the
-            // deleted ForProtoVessel could only ever have measured a straight
-            // line; an origin that is not loaded is unroutable until it loads and
-            // proves otherwise. When the caller has no live vessel in hand, the
-            // guid is still worth resolving: ordinary transmitted science arrives
-            // carrying only a ProtoVessel, and concluding "unroutable" from that
-            // alone declared a perfectly linked craft unreachable and held its
-            // science for a silence deadline instead of a light-time.
+            // The origin is resolved from its ID against the live roster, never
+            // from whatever handle the call site happened to be holding. Only one
+            // of the three entry points here ever had a live vessel to hand in;
+            // the rest carry a ProtoVessel or nothing, and a ProtoVessel has no
+            // CommNet connection to read. Measuring only what was handed in meant
+            // answering the other two from an unroutable literal, which held a
+            // craft in a stable orbit with a working link for the whole silence
+            // deadline instead of its light-time - while its live counterpart sat
+            // in the roster the entire time.
+            //
+            // One path, not a handed-in fast path plus a lookup behind it. Two
+            // ways to answer this is how the arm and the per-increment sink came
+            // to disagree in the first place.
             //
             // Recovery is the exception, and it is not a routing question at
             // all: Vessel.IsRecoverable is LandedOrSplashed && isHomeWorld, so a
@@ -363,11 +370,7 @@ namespace Gonogo.KSP.CurrencyDelay
             // arriving a Kerbin day after the craft was on the pad.
             var recovered = protoOrigin != null
                 && _recoveryVesselsById.ContainsKey(vesselId ?? string.Empty);
-            var delay = recovered
-                ? KscDelay.Instant
-                : liveOrigin != null
-                    ? KscLightTime.ForVessel(liveOrigin, config)
-                    : DelayedScienceSink.ResolveLiveDelay(vesselId, config);
+            var delay = recovered ? KscDelay.Instant : KscLightTime.ForVesselId(vesselId, config);
 
             NeutraliseScience(shadowToRestore);
 

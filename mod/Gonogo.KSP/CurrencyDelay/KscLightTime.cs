@@ -68,5 +68,38 @@ namespace Gonogo.KSP.CurrencyDelay
             }
         }
 
+        /// <summary>
+        /// The routed one-way light-time for a vessel named only by its id, found
+        /// among the vessels the game currently holds.
+        ///
+        /// <para>This is how an away currency event resolves an origin it was
+        /// handed no live handle for, which is most of them: a science
+        /// transmission arrives with a ProtoVessel, and a ProtoVessel has no
+        /// CommNet connection to read. Its live counterpart does, and is in the
+        /// roster whether it is loaded or on rails, so the id is enough. Only an
+        /// origin nothing in the roster carries is
+        /// <see cref="KscDelay.Unroutable"/>.</para>
+        /// </summary>
+        internal static KscDelay ForVesselId(string vesselId, SignalDelayConfig? config)
+        {
+            try
+            {
+                return LiveOriginDelay.Resolve(
+                    vesselId,
+                    FlightGlobals.Vessels,
+                    // The Unity equality overload, deliberately: a destroyed vessel
+                    // still in the list answers null here rather than throwing on
+                    // its torn-down id.
+                    vessel => vessel != null ? vessel.id.ToString() : null,
+                    vessel => ForVessel(vessel, config));
+            }
+            catch (Exception ex)
+            {
+                // Fail toward silence, same as ForVessel above: a roster read that
+                // threw is not evidence of a reachable craft.
+                Debug.LogWarning("[Gonogo] KscLightTime.ForVesselId failed (treating as unroutable): " + ex.Message);
+                return KscDelay.Unroutable;
+            }
+        }
     }
 }

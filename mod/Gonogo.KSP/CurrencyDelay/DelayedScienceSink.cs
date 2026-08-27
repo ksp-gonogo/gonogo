@@ -40,10 +40,11 @@ namespace Gonogo.KSP.CurrencyDelay
 
         /// <summary>
         /// Records one science increment earned by a vessel. The KSC-anchored one-way light-time is
-        /// derived here, from the vessel <see cref="ResolveLiveDelay"/> finds live for
-        /// <paramref name="vesselId"/>, so a delayed credit's reveal-UT is computed the same way for
-        /// every source: the caller supplies only the vessel identity, the raw amount, the earn-UT,
-        /// and an opaque origin label. No-op while unbound, or for a non-positive amount.
+        /// derived here, from the vessel <see cref="KscLightTime.ForVesselId"/> finds in the live
+        /// roster for <paramref name="vesselId"/>, so a delayed credit's reveal-UT is computed the
+        /// same way for every source: the caller supplies only the vessel identity, the raw amount,
+        /// the earn-UT, and an opaque origin label. No-op while unbound, or for a non-positive
+        /// amount.
         /// </summary>
         public static void RecordDelayedScienceIncrement(
             string vesselId, double amount, double ut, string originDescription = "")
@@ -57,15 +58,15 @@ namespace Gonogo.KSP.CurrencyDelay
 
             try
             {
-                // Resolve the origin to a LIVE vessel: only a live vessel has a
-                // CommNet connection to route through, and a route is now the
-                // only thing that produces a delay. An origin that is not
-                // loaded is unroutable, and an unroutable increment waits out
-                // the silence-declaration deadline rather than landing free -
-                // the zero here was the hole this subsystem's whole rule exists
-                // to close.
+                // Resolve the origin against the live roster: only a vessel the
+                // game still holds has a CommNet connection to route through,
+                // and a route is now the only thing that produces a delay. An
+                // origin nothing carries is unroutable, and an unroutable
+                // increment waits out the silence-declaration deadline rather
+                // than landing free - the zero here was the hole this
+                // subsystem's whole rule exists to close.
                 var config = CommsCoreUplink.SignalDelayConfig;
-                var lightTime = KscDelayPolicy.DelaySeconds(ResolveLiveDelay(vesselId, config), config);
+                var lightTime = KscDelayPolicy.DelaySeconds(KscLightTime.ForVesselId(vesselId, config), config);
 
                 var chunk = aggregator.Accept(vesselId, amount, ut, lightTime);
                 if (chunk.HasValue)
@@ -77,35 +78,6 @@ namespace Gonogo.KSP.CurrencyDelay
             {
                 Debug.LogWarning("[Gonogo] DelayedScienceSink.RecordDelayedScienceIncrement failed: " + ex.Message);
             }
-        }
-
-        /// <summary>
-        /// The routed delay for a vessel guid, by finding it live in
-        /// <c>FlightGlobals</c>. Unroutable when it is not loaded: there is no
-        /// second way to measure, and guessing from a saved position is the
-        /// straight line this subsystem refuses.
-        ///
-        /// <para>Shared with <see cref="StockCurrencyInterceptor"/> rather than
-        /// copied: its away-science arm holds a guid too (ordinary transmitted
-        /// science arrives with a ProtoVessel and nothing else), and when this
-        /// lookup lived only here that arm answered "unroutable" for craft this
-        /// one would have measured.</para>
-        /// </summary>
-        internal static KscDelay ResolveLiveDelay(string vesselId, Sitrep.Host.Comms.SignalDelayConfig config)
-        {
-            var all = FlightGlobals.Vessels;
-            if (all == null)
-            {
-                return KscDelay.Unroutable;
-            }
-            foreach (var vessel in all)
-            {
-                if (vessel != null && vessel.id.ToString() == vesselId)
-                {
-                    return KscLightTime.ForVessel(vessel, config);
-                }
-            }
-            return KscDelay.Unroutable;
         }
 
     }

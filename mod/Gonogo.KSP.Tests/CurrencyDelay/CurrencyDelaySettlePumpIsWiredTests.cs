@@ -1,5 +1,4 @@
 using System;
-using System.IO;
 using Xunit;
 
 namespace Gonogo.KSP.Tests.CurrencyDelay
@@ -39,7 +38,8 @@ namespace Gonogo.KSP.Tests.CurrencyDelay
         [Fact]
         public void the_scenario_tick_pumps_the_stale_defer_settle()
         {
-            var update = MethodBody(ReadCurrencyDelaySource("CurrencyDelayScenario.cs"), "private void Update()");
+            var update = CurrencyDelaySourceText.MethodBody(
+                CurrencyDelaySourceText.Read("CurrencyDelayScenario.cs"), "private void Update()");
 
             Assert.Contains("SettleStaleDefers", update, StringComparison.Ordinal);
         }
@@ -47,7 +47,7 @@ namespace Gonogo.KSP.Tests.CurrencyDelay
         [Fact]
         public void the_interceptor_settles_only_through_the_combined_pump()
         {
-            var interceptor = ReadCurrencyDelaySource("StockCurrencyInterceptor.cs");
+            var interceptor = CurrencyDelaySourceText.Read("StockCurrencyInterceptor.cs");
 
             Assert.Contains("SettleStaleDefers", interceptor, StringComparison.Ordinal);
 
@@ -56,48 +56,6 @@ namespace Gonogo.KSP.Tests.CurrencyDelay
             // above; only the tick knows a settled total.
             Assert.DoesNotContain("SettleStaleScienceDefers", interceptor, StringComparison.Ordinal);
             Assert.DoesNotContain("SettleStaleReputationDefers", interceptor, StringComparison.Ordinal);
-        }
-
-        /// <summary>Returns the brace-matched body of the method whose declaration starts with <paramref name="declaration"/>.</summary>
-        private static string MethodBody(string source, string declaration)
-        {
-            var declarationAt = source.IndexOf(declaration, StringComparison.Ordinal);
-            Assert.True(declarationAt >= 0, "No '" + declaration + "' declaration found");
-
-            var open = source.IndexOf('{', declarationAt);
-            Assert.True(open >= 0, "No body found for '" + declaration + "'");
-
-            var depth = 0;
-            for (var i = open; i < source.Length; i++)
-            {
-                if (source[i] == '{')
-                {
-                    depth++;
-                }
-                else if (source[i] == '}' && --depth == 0)
-                {
-                    return source.Substring(open, i - open + 1);
-                }
-            }
-
-            throw new InvalidOperationException("Unbalanced braces after '" + declaration + "'");
-        }
-
-        private static string ReadCurrencyDelaySource(string fileName)
-        {
-            var dir = new DirectoryInfo(AppContext.BaseDirectory);
-            while (dir != null)
-            {
-                var candidate = Path.Combine(dir.FullName, "mod", "Gonogo.KSP", "CurrencyDelay", fileName);
-                if (File.Exists(candidate))
-                {
-                    return File.ReadAllText(candidate);
-                }
-                dir = dir.Parent;
-            }
-
-            throw new FileNotFoundException(
-                "Could not locate mod/Gonogo.KSP/CurrencyDelay/" + fileName + " from " + AppContext.BaseDirectory);
         }
     }
 }

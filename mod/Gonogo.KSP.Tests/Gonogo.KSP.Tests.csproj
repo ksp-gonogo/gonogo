@@ -32,6 +32,13 @@
     <Compile Include="..\Gonogo.KSP\CurrencyDelay\KscDelay.cs" />
     <Compile Include="..\Gonogo.KSP\CurrencyDelay\KscDelayPolicy.cs" />
     <Compile Include="..\Gonogo.KSP\CurrencyDelay\KscLightTimeMath.cs" />
+    <!-- LiveOriginDelay.cs is the roster WALK an away currency event uses to find
+         the vessel it came from. The roster and the route read are both live-scene
+         reads and stay in KscLightTime.cs under the gate below; the walk is generic
+         over the vessel type precisely so it carries no KSP dependency and is
+         exercised on every checkout. It was the missing step behind a craft with a
+         working link home being held for the silence deadline. -->
+    <Compile Include="..\Gonogo.KSP\CurrencyDelay\LiveOriginDelay.cs" />
     <Compile Include="..\Gonogo.KSP\CurrencyDelay\VesselScienceAggregator.cs" />
     <!-- RoutedPathDelay.cs is the light-time arithmetic behind every routed
          comms read, deliberately written against measured distances rather
@@ -174,7 +181,13 @@
          that it exists to check. -->
     <Compile Include="CurrencyDelay\CurrencyDelaySettlePumpIsWiredTests.cs" />
     <Compile Include="CurrencyDelay\AwayScienceArmIsWiredTests.cs" />
+    <Compile Include="CurrencyDelay\AwayScienceOriginIsResolvedTests.cs" />
+    <!-- The shipped-source reader all three of those share. It was copied into
+         each of them first, which is three brace matchers to keep in step and
+         the fiddliest code here to get wrong. -->
+    <Compile Include="CurrencyDelay\CurrencyDelaySourceText.cs" />
     <Compile Include="CurrencyDelay\CurrencyQueryBasesTests.cs" />
+    <Compile Include="CurrencyDelay\LiveOriginDelayTests.cs" />
   </ItemGroup>
 
   <ItemGroup Condition="'$(KspManagedAvailable)' == 'true'">
@@ -307,7 +320,7 @@
     <!-- The maneuver WRITE-path ownership guard: KspVesselActuator + stock's own
          plan backend, so the refusal can be exercised against a real election.
          Gated because both touch KSP types. -->
-    <Compile Include="CurrencyDelay\**\*.cs" Exclude="CurrencyDelay\KscLightTimeTests.cs;CurrencyDelay\VesselScienceAggregatorTests.cs;CurrencyDelay\StockCurrencyDecisionTests.cs;CurrencyDelay\StockCurrencyStateMachineTests.cs;CurrencyDelay\CurrencyDelayGuardTests.cs;CurrencyDelay\RevealDecisionTests.cs;CurrencyDelay\ScienceChunkCreditTests.cs;CurrencyDelay\CurrencyDelaySettlePumpIsWiredTests.cs;CurrencyDelay\AwayScienceArmIsWiredTests.cs;CurrencyDelay\CurrencyQueryBasesTests.cs" />
+    <Compile Include="CurrencyDelay\**\*.cs" Exclude="CurrencyDelay\KscLightTimeTests.cs;CurrencyDelay\VesselScienceAggregatorTests.cs;CurrencyDelay\StockCurrencyDecisionTests.cs;CurrencyDelay\StockCurrencyStateMachineTests.cs;CurrencyDelay\CurrencyDelayGuardTests.cs;CurrencyDelay\RevealDecisionTests.cs;CurrencyDelay\ScienceChunkCreditTests.cs;CurrencyDelay\CurrencyDelaySettlePumpIsWiredTests.cs;CurrencyDelay\AwayScienceArmIsWiredTests.cs;CurrencyDelay\AwayScienceOriginIsResolvedTests.cs;CurrencyDelay\CurrencyDelaySourceText.cs;CurrencyDelay\CurrencyQueryBasesTests.cs;CurrencyDelay\LiveOriginDelayTests.cs" />
   </ItemGroup>
 
   <!-- ServoCapture.cs is the robotics capture's kind-NAMING rule, carved out of
