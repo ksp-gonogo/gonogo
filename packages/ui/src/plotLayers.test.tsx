@@ -5,7 +5,7 @@ import { LineChart } from "./LineChart";
 import { closeHalfPlane, type PlotLayerFrame } from "./plotLayers";
 
 /**
- * The `plot-layers` renderer: what a contributed layer becomes once the host
+ * The `PlotLayer` renderer: what a contributed layer becomes once the host
  * has scaled it.
  *
  * The point of every assertion here is that the contributor supplied DATA and

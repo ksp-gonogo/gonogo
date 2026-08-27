@@ -1,7 +1,7 @@
 import type { PlotEmphasis, PlotLayer, PlotTone } from "@ksp-gonogo/sitrep-sdk";
 
 /**
- * Draws the `plot-layers` vocabulary inside `LineChart`'s own plot rect.
+ * Draws the `PlotLayer` vocabulary inside `LineChart`'s own plot rect.
  *
  * Every layer arrives in the plot's DATA SPACE and is scaled here, so a
  * contributor never learns the plot's pixels, its margins, its clip or its

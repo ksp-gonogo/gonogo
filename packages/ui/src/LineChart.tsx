@@ -102,10 +102,11 @@ export interface LineChartProps {
    */
   legend?: "overlay" | "none";
   /**
-   * Contributed plot layers, in the plot's own data space (see the
-   * `plot-layers` vocabulary in `@ksp-gonogo/sitrep-sdk`). The host widget's
-   * OWN marks come through here too, so there is no geometry a first-party
-   * plot can reach that a contributor cannot.
+   * Everything drawn beyond the series, in the plot's own data space (see the
+   * `PlotLayer` vocabulary in `@ksp-gonogo/sitrep-sdk`). A plot contributed to
+   * the app-wide `plots` slot hands its own `layers` down here, so a chart
+   * built from a contribution and one a widget builds by hand reach this
+   * renderer identically.
    *
    * Layers participate in an auto Y domain exactly as series do, and are
    * ignored by a pinned one: whether a guest may rescale the axes is a policy
