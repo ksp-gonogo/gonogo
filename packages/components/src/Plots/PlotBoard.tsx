@@ -1,6 +1,7 @@
 import { useContributions } from "@ksp-gonogo/core";
 import type { PlotEntry } from "@ksp-gonogo/sitrep-sdk";
 import { SectionTitle } from "@ksp-gonogo/ui-kit";
+import { useMemo } from "react";
 import { GraphView } from "../Graph";
 
 /**
@@ -11,8 +12,8 @@ import { GraphView } from "../Graph";
  * the width it has, the gutters between them, the heading over each one, and
  * whether the plots region exists at all. What it may not decide is anything a
  * plot said about itself: no domain is rescaled, no layer is dropped, no tone is
- * reinterpreted, no plot is filtered out and none is re-ordered beyond the
- * `priority` the registry already sorted by.
+ * reinterpreted, no plot with a mark on it is withheld, and none is re-ordered
+ * beyond the `priority` the registry already sorted by.
  *
  * That split is what makes the seam a capability rather than a favour. A plot
  * arrives here having already decided that it is RELEVANT, by the only route a
@@ -20,7 +21,10 @@ import { GraphView } from "../Graph";
  * arranger that could second-guess that would be deciding what the operator
  * sees, from a widget that knows nothing about the plot's subject.
  *
- * Zero contributed plots renders nothing at all, not an empty frame and not a
+ * The one exception is an entry with NO layers, dropped below, and it is not an
+ * exception to that rule so much as the enforcement of it.
+ *
+ * Zero drawable plots renders nothing at all, not an empty frame and not a
  * heading over a gap. A widget with no plot to show this frame has no plots
  * region, which is the same absence discipline every plot follows internally.
  */
@@ -37,7 +41,22 @@ export interface PlotBoardProps {
 }
 
 export function PlotBoard({ title }: Readonly<PlotBoardProps>) {
-  const plots = useContributions("plots");
+  const contributed = useContributions("plots");
+  // An entry carrying no layers is not a plot, it is a plot's absence spelled a
+  // second way, and it has to be treated as the first. `GraphView` renders a
+  // framed box with the axes pinned and "Configure series to begin graphing."
+  // across it, so a plot that had nothing to say this frame would come out as
+  // an empty instrument: an operator reads that as "nothing is happening" when
+  // it means "nothing is known", which is the absent-drawn-as-zero failure with
+  // a frame around it.
+  //
+  // Skipping it is not the arranger judging content. It is the one thing it
+  // must do to keep absence absent, and it decides nothing about a plot that
+  // has any: a single mark is enough to be drawn, and which mark is never asked.
+  const plots = useMemo(
+    () => contributed.filter((plot) => plot.layers.length > 0),
+    [contributed],
+  );
   if (plots.length === 0) return null;
 
   return (

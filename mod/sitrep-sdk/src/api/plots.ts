@@ -64,12 +64,40 @@ export interface PlotFrame {
 /**
  * One contributed plot: a whole GraphView, stated as data.
  *
- * There is no `relevant` predicate, and its absence is a design decision rather
- * than an omission. A contribution already says "not now" by returning `null`
- * or `[]` from `compute`, and that route is the only one that cannot go stale:
- * a separate predicate lets a plot claim relevance while producing nothing to
- * draw, which is precisely the absent-renders-as-zero failure the framework
- * exists to prevent. Relevance IS producing a plot.
+ * ## Where relevance lives
+ *
+ * There is no `relevant` predicate on this type, and its absence is a decision
+ * rather than an omission. **`compute` returning `null` IS the relevance
+ * predicate**, and it is an arbitrary one: it sees every Topic, so a plot can
+ * decline for any reason it likes, not merely because a reading is missing.
+ *
+ * ```ts
+ * compute: (topics) => {
+ *   // Relevance. Nothing to do with absent data: the ascent is over, the
+ *   // numbers are all still arriving, and this plot has stopped meaning
+ *   // anything. An ascent plot that kept drawing through cruise would be a
+ *   // true picture of an irrelevant thing.
+ *   if (topics["vessel.identity"]?.situation !== Situation.Flying) return null;
+ *   ...
+ * }
+ * ```
+ *
+ * Sharing the return channel with the data is the point, not a shortcut. A
+ * separate predicate is free to disagree with the marks: it can say a plot is
+ * relevant in a frame where `compute` produces nothing, and what that renders
+ * is an empty instrument with its axes pinned, which an operator reads as
+ * "nothing is happening" when it means "nothing is known". One channel makes
+ * that state unreachable, because deciding to be relevant and producing the
+ * plot are the same act.
+ *
+ * The same reasoning is why an entry with an EMPTY `layers` is not drawn: it is
+ * the second spelling of the state the single channel exists to abolish, and
+ * the arranger treats it as the plot not having been contributed. Return `null`
+ * rather than a plot with nothing on it.
+ *
+ * A domain-wide "this Uplink's model is not installed" gate is `requires` on
+ * the contribution, which the aggregation applies before `compute` is called at
+ * all. Relevance WITHIN an installed domain is this function.
  */
 export interface PlotEntry {
   /** Stable id, unique within the contributing client. Becomes the React key. */
