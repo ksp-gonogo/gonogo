@@ -41,6 +41,14 @@ interface RawScene {
   config?: Record<string, unknown>;
   slotProps?: Record<string, unknown>;
   modes?: string[];
+  /**
+   * The tile to render in, overriding what would be derived.
+   *
+   * For a stand-in augment or contribution scene it IS the size, since a slot
+   * has no size of its own. For a HOSTED one it overrides the host's, because a
+   * host sized for itself alone is not the shape an operator who has added
+   * sections to it is running.
+   */
   size?: { w: number; h: number };
   /** Legacy `DataSource` id the bare top-level keys feed. */
   dataSourceId?: string;
@@ -54,6 +62,25 @@ interface RawScene {
    * so it cannot be used to wave through a blank frame.
    */
   expectsEmpty?: string;
+  /**
+   * Text this scene must actually PAINT, each in a box wider and taller than
+   * nothing.
+   *
+   * The fed-versus-starved check asks whether the render depends on the fixture
+   * at all, which is a question about the whole picture. This asks whether one
+   * NAMED thing survived the layout, which is a question about one element, and
+   * neither answers the other. A label squeezed to zero width by a neighbour
+   * that wrapped satisfies every `toBeInTheDocument` in a jsdom suite, passes
+   * the starve check because the rest of the picture still moved, and is
+   * invisible on screen. That is not hypothetical: it is the bug the check was
+   * first written for, a launch complex's own name rendered at nothing beside a
+   * detail sentence that took the whole row.
+   *
+   * Checked at every mode the scene renders, because the narrow shapes are
+   * where a neighbour wraps. A widget that legitimately drops a label at one
+   * size narrows `_scene.modes`.
+   */
+  paints?: string[];
   steps?: SceneStep[];
   motion?: { fps?: number; pingPong?: boolean };
 }
@@ -70,6 +97,7 @@ export interface Scene {
   host?: string;
   caption?: string;
   expectsEmpty?: string;
+  paints: string[];
   pinnedUt: number;
   emits: SceneEmit[];
   config: Record<string, unknown>;
@@ -177,6 +205,7 @@ function oneScene(
     host: scene.host,
     caption: scene.caption,
     expectsEmpty: scene.expectsEmpty,
+    paints: paintsFor(where, scene),
     pinnedUt,
     emits,
     config: scene.config ?? {},
@@ -190,6 +219,44 @@ function oneScene(
       pingPong: scene.motion?.pingPong ?? false,
     },
   };
+}
+
+/**
+ * `_scene.paints`, validated at parse time rather than at render time.
+ *
+ * An empty string matches every element, so a stray one in the list would pass
+ * silently and read as a check nobody wrote. Refusing it here means the author
+ * finds out before Chromium starts.
+ */
+function paintsFor(where: string, scene: RawScene): string[] {
+  const paints = scene.paints ?? [];
+  if (!Array.isArray(paints)) {
+    throw new Error(
+      `${where}: "_scene.paints" must be an array of strings, got ` +
+        `${typeof paints}.`,
+    );
+  }
+  for (const text of paints) {
+    if (typeof text !== "string" || text.trim() === "") {
+      throw new Error(
+        `${where}: every "_scene.paints" entry must be non-blank text the ` +
+          `render has to show; got ${JSON.stringify(text)}. An empty string ` +
+          "matches every element on the page, so it would assert nothing.",
+      );
+    }
+  }
+  // A motion scene has no one moment for "is this on screen" to be about: what
+  // it exists to show is text arriving and leaving. Refused rather than checked
+  // at an arbitrary frame, which would fail scenes that are working.
+  if (paints.length > 0 && scene.steps && scene.steps.length > 0) {
+    throw new Error(
+      `${where}: "_scene.paints" and "_scene.steps" cannot both be set. A ` +
+        "motion scene's content changes frame to frame, so there is no single " +
+        "moment the text has to be on screen in. Assert the paint on a still " +
+        "scene of the same state.",
+    );
+  }
+  return [...paints];
 }
 
 /**
@@ -317,9 +384,26 @@ function modesFor(
     if (!def) throw unknownTarget(where, target, inventory);
     all = def.modes;
   } else if (scene.host) {
+    const host = hostWidget(where, scene.host, inventory);
     // The host's own sizes, because the host is what is on screen. A stand-in
     // tile would render the real widget at a shape nobody ever sees it in.
-    all = hostWidget(where, scene.host, inventory).modes;
+    //
+    // Unless the scene names a size, which is not the stand-in escape returning
+    // by the back door. A host's `defaultSize` is chosen for the host ALONE,
+    // and an operator who has added three sections to it has resized it: the
+    // first section rendered this way came out at the host's 6-column default
+    // with its facility names ellipsised to "V…", a picture of a tile nobody
+    // running that Uplink is using. The host still mounts and still supplies
+    // the layout; only the tile it is given is the scene's.
+    all = scene.size
+      ? [
+          {
+            ...host.modes[0],
+            ...scene.size,
+            ...gridToPixels(scene.size.w, scene.size.h),
+          },
+        ]
+      : host.modes;
   } else {
     const size = scene.size ?? STANDIN_SIZE;
     all = [{ name: "default", ...size, ...gridToPixels(size.w, size.h) }];

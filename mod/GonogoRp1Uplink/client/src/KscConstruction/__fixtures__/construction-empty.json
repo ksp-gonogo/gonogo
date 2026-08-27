@@ -1,0 +1,101 @@
+{
+  "_scene": {
+    "augment": "rp1-ksc-construction",
+    "host": "space-center-status",
+    "size": {
+      "w": 12,
+      "h": 14
+    },
+    "caption": "Nothing queued, which is where a career starts: the section has to read as an answer rather than as one that failed to draw",
+    "paints": ["Under construction", "nothing", "289,848f"],
+    "expectsEmpty": "a fresh career has nothing under construction, and this is the picture of that state reading as an answer"
+  },
+  "_stream": {
+    "pinnedUt": 1000000,
+    "emits": [
+      {
+        "topic": "career.status",
+        "payload": {
+          "economy": {
+            "funds": 289848,
+            "reputation": 62,
+            "science": 340
+          },
+          "facilities": {
+            "LaunchPad": {
+              "level": 1,
+              "max": 2
+            },
+            "Runway": {
+              "level": 0,
+              "max": 2
+            },
+            "VehicleAssemblyBuilding": {
+              "level": 1,
+              "max": 2
+            },
+            "SpaceplaneHangar": {
+              "level": 0,
+              "max": 2
+            },
+            "MissionControl": {
+              "level": 1,
+              "max": 2
+            },
+            "TrackingStation": {
+              "level": 1,
+              "max": 2
+            },
+            "Administration": {
+              "level": 0,
+              "max": 2
+            },
+            "ResearchAndDevelopment": {
+              "level": 1,
+              "max": 2
+            },
+            "AstronautComplex": {
+              "level": 0,
+              "max": 2
+            }
+          }
+        }
+      },
+      {
+        "topic": "spaceCenter.scene",
+        "payload": {
+          "scene": "SpaceCenter",
+          "launchSite": "LaunchPad"
+        }
+      },
+      {
+        "topic": "spaceCenter.partsAvailable",
+        "payload": {
+          "count": 142
+        }
+      },
+      {
+        "topic": "rp1.available",
+        "payload": true
+      },
+      {
+        "topic": "rp1.centres",
+        "payload": [
+          {
+            "kscName": "Cape",
+            "isActive": true,
+            "engineers": 24,
+            "unassignedEngineers": 6,
+            "launchComplexCount": 2,
+            "anyOperational": true,
+            "groundStation": "us_cape_canaveral"
+          }
+        ]
+      },
+      {
+        "topic": "rp1.constructions",
+        "payload": []
+      }
+    ]
+  }
+}

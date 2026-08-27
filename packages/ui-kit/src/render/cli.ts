@@ -122,10 +122,9 @@ const USAGE = `gonogo-uplink <render|docs> [options]
   --assets <dir>         docs asset output (default: docs/assets)
   --bundle <file>        the file you distribute, hashed into integrity
   --frames               keep the numbered PNGs of a motion scene
-  --with <module>        also bundle this module's registrations, so a scene
-                         naming "_scene.host" has a real host to mount inside.
-                         Repeatable. In-repo only: a first-party host widget
-                         lives in a package a third party cannot install
+  --with <module>        also bundle this module's registrations, on top of
+                         package.json's "gonogo.renderWith". For a one-off run;
+                         declare the ones a fixture needs every time. Repeatable
 `;
 
 async function loadProse(file: string | undefined): Promise<Prose> {
@@ -156,6 +155,11 @@ async function main(argv: readonly string[]): Promise<void> {
     `  setup   ${pkg.setup ? display(pkg.dir, pkg.setup) : "(none)"}`,
   );
   console.log(`  fixtures ${pkg.fixtures.length}`);
+  if (pkg.renderWith.length > 0) {
+    console.log(
+      `  hosts   ${pkg.renderWith.map((m) => display(pkg.dir, m)).join(", ")}`,
+    );
+  }
 
   if (args.verb === "render") {
     const outDir = resolve(pkg.dir, args.out ?? "renders");

@@ -1,7 +1,7 @@
 import { mkdir, readdir, rm, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 import { pathToFileURL } from "node:url";
-import { chromium, firefox, type Page, webkit } from "playwright";
+import { chromium, firefox, type Locator, type Page, webkit } from "playwright";
 import type {
   RenderProbeApi,
   ScenePayload,
@@ -85,8 +85,9 @@ export interface RenderOptions {
   /** Keep the numbered PNG frames of a motion scene beside its GIF. */
   frames: boolean;
   uplinkId?: string;
-  /** Extra modules bundled into the page, so a scene naming a first-party host
-   *  has one to mount. See `ScenePayload.host`. */
+  /** Extra modules bundled into the page ON TOP of the package's own
+   *  `gonogo.renderWith`, so a one-off run can name a host the package does not
+   *  declare. See `ScenePayload.host`. */
   withModules?: readonly string[];
 }
 
@@ -114,7 +115,10 @@ export async function renderUplink(
   pkg: UplinkPackage,
   opts: RenderOptions,
 ): Promise<RenderResult> {
-  const page = await buildProbePage(pkg, opts.withModules ?? []);
+  const page = await buildProbePage(pkg, [
+    ...pkg.renderWith,
+    ...(opts.withModules ?? []),
+  ]);
   const browser = await ENGINES[opts.engine].launch();
   const pageErrors: string[] = [];
   const assets: RenderedAsset[] = [];
@@ -216,6 +220,8 @@ async function renderOneScene(
       continue;
     }
     const file = `${scene.name}--${mode.name}.png`;
+    await growToFullContent(tab);
+    await assertEveryPaintVisible(tab, scene, mode.name);
     await shoot(tab, join(opts.outDir, file));
     assets.push({ scene, mode: mode.name, file, kind: "still" });
     // The visible text is printed because a picture is the one output a
@@ -260,8 +266,89 @@ async function mount(tab: Page, payload: ScenePayload): Promise<SceneReport> {
   return report;
 }
 
+/**
+ * Every string `_scene.paints` names is on screen and READABLE.
+ *
+ * Measured through the real layout, which is the whole point: a jsdom suite
+ * computes none, so text squeezed to zero width by a neighbour that wrapped
+ * satisfies every `toBeInTheDocument` while being unreadable in a browser.
+ *
+ * Two ways a label loses. Zero width is the one that motivated the check: a
+ * launch complex's own name rendered at nothing beside a detail sentence that
+ * took the whole row. CLIPPING is the other, and it is the one a bounding box
+ * alone cannot see, because `text-overflow: ellipsis` leaves a box of perfectly
+ * respectable size showing "V…". Both are the same failure to a reader, so both
+ * fail here.
+ *
+ * Collected across the whole list before throwing, so an author fixing a scene
+ * sees all of it rather than one label per run. Grown to full content first, so
+ * a label below the tile's fold is a visible label and not a failure.
+ */
+async function assertEveryPaintVisible(
+  tab: Page,
+  scene: Scene,
+  mode: string,
+): Promise<void> {
+  const failures: string[] = [];
+  for (const text of scene.paints) {
+    const matches = tab.locator("#root").getByText(text, { exact: false });
+    const count = await matches.count().catch(() => 0);
+    if (count === 0) {
+      failures.push(`"${text}" is not on the page at all`);
+      continue;
+    }
+    // ANY readable instance passes, rather than the first. A hosted scene mounts
+    // every augment registered on the host's slot, so a common label like
+    // "Funds" legitimately appears several times, and asking only the first
+    // whether it survived is asking about an arbitrary one of them.
+    const verdicts: string[] = [];
+    for (let i = 0; i < count; i++) {
+      const verdict = await readable(matches.nth(i));
+      if (verdict === null) {
+        verdicts.length = 0;
+        break;
+      }
+      verdicts.push(verdict);
+    }
+    if (verdicts.length > 0) {
+      failures.push(
+        `"${text}" appears ${count === 1 ? "once" : `${count} times`} and is ` +
+          `readable nowhere: ${[...new Set(verdicts)].join("; ")}`,
+      );
+    }
+  }
+  if (failures.length === 0) return;
+  throw new Error(
+    `${scene.name} (${scene.target.kind} ${scene.target.id}) at ${mode}: ` +
+      `${failures.length} of ${scene.paints.length} "_scene.paints" ` +
+      `entries did not survive the layout:\n  ${failures.join("\n  ")}\n` +
+      "Either the render is wrong, or this shape genuinely cannot carry the " +
+      'text, in which case narrow the scene with "_scene": { "modes": [...] }.',
+  );
+}
+
+/** `null` when this element carries the text readably, otherwise why it does not. */
+async function readable(at: Locator): Promise<string | null> {
+  const box = await at.boundingBox().catch(() => null);
+  if (box === null) return "not laid out at all";
+  if (box.width <= 0 || box.height <= 0) {
+    return `painted at ${box.width}x${box.height}`;
+  }
+  // Its own overflow, not an ancestor's: `text-overflow: ellipsis` needs the
+  // clip on the element carrying the text, so this is where the idiom lives. An
+  // element overflowing VISIBLY is still readable and is not a failure.
+  return at
+    .evaluate((el) => {
+      if (getComputedStyle(el).overflowX === "visible") return null;
+      const over = el.scrollWidth - el.clientWidth;
+      return over > 1
+        ? `clipped, ${over}px of it outside the ${el.clientWidth}px it is given`
+        : null;
+    })
+    .catch(() => null);
+}
+
 async function shoot(tab: Page, path: string): Promise<Buffer> {
-  await growToFullContent(tab);
   const root = await tab.$("#root");
   if (!root) throw new Error("render: #root vanished after mount");
   return root.screenshot({ path, animations: "disabled" });
@@ -288,14 +375,22 @@ async function growToFullContent(tab: Page): Promise<void> {
     if (!el) return;
     el.style.overflow = "visible";
     for (let i = 0; i < 8; i++) {
-      const nodes = [
-        el,
-        el.firstElementChild,
-        ...document.querySelectorAll("[data-scroll-area-inner]"),
-      ];
       let need = 0;
-      for (const node of nodes) {
-        if (node) need = Math.max(need, node.scrollHeight - node.clientHeight);
+      // Every clipping box under the root, found rather than listed. The list
+      // this replaces named `#root`, its first child and `ScrollArea`'s marker,
+      // and a `Panel`'s BODY is the scroller in this kit and carries no marker
+      // at all: a widget mounted in its real host had its last rows cropped,
+      // and the crop was invisible because the picture still looked like a
+      // widget. A hand-kept list of the ways content hides is exactly the shape
+      // that goes stale silently.
+      const boxes: Element[] = [el, ...el.querySelectorAll("*")];
+      for (const node of boxes) {
+        const over = node.scrollHeight - node.clientHeight;
+        if (over <= need) continue;
+        if (node !== el && getComputedStyle(node).overflowY === "visible") {
+          continue;
+        }
+        need = over;
       }
       if (need <= 1) break;
       el.style.height = `${el.clientHeight + need}px`;

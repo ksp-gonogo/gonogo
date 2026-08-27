@@ -47,6 +47,7 @@ so there is no registry file to keep up to date.
     "caption": "A reactor at 80% output with one coolant loop offline",
     "config": { "compact": true },      // per-instance config overlay
     "modes": ["default", "min"],        // optional; narrows the derived set
+    "paints": ["REACTOR", "80%"],       // text that must be readable; see below
     "expectsEmpty": "why this scene has nothing to draw"  // see below
   },
   "_stream": {
@@ -92,6 +93,29 @@ failing to integrate, an arm-then-confirm, a needle sweeping.
 this and a screen recording: the clock is an input, so the same fixture produces
 the same frames on any machine. The output is a GIF, because that is what embeds
 in a README on GitHub; `--frames` also keeps the numbered PNGs.
+
+## Naming text that has to be readable
+
+`_scene.paints` is a list of strings the render must actually show, each in a box
+bigger than nothing and not clipped by its own overflow.
+
+```jsonc
+"_scene": { "widget": "reactor-status", "paints": ["Coolant loop B", "OFFLINE"] }
+```
+
+It is not a duplicate of your test suite's assertions, and it is worth having
+because of what those cannot see. jsdom computes no layout, so a label squeezed
+to zero width by a neighbour that wrapped is present in the DOM, findable by role
+and name, and invisible on screen. `text-overflow: ellipsis` is the same failure
+with a respectable bounding box: what the reader gets is "V…". Both fail here.
+
+Checked at every mode the scene renders, because the narrow shapes are where a
+neighbour wraps. When a widget legitimately drops a label at one size, narrow the
+scene with `_scene.modes`. Any readable instance passes, so a label that appears
+more than once (a "Funds" row in each of three sections) is fine.
+
+Not available on a motion scene: what one exists to show is text arriving and
+leaving, so there is no single moment the assertion could be about.
 
 ## The two things a run refuses to do
 
@@ -219,15 +243,44 @@ export default defineRenderSetup({
 });
 ```
 
-## What it cannot show you
+## Mounting an augment in its real host
 
-An augment renders inside a STAND-IN panel, not inside its real host widget. Host
-widgets ship with the app and an Uplink may not import them, so the section's own
-layout is faithful and how it sits under the host's own rows is not shown. Every
-image on the page says which of those it is, and so does the render's own title
-bar: you should never have to guess whether you are looking at the real host.
+By default an augment renders inside a STAND-IN panel. The section's own layout is
+faithful; how it sits under the host's own rows is not shown, and an augment that
+draws in its host's coordinate space (a map projection, an SVG transform) has
+nothing to draw against at all. Every image on the page says which it is, and so
+does the render's own title bar, so you never have to guess.
 
-An augment that draws in its host's coordinate space (a map projection, an SVG
-transform) has nothing to draw against in a stand-in and cannot be honestly
-previewed at all. Those are listed on the page without a picture, with the reason,
-rather than shown as a blank frame.
+A scene can name the real host instead:
+
+```jsonc
+"_scene": {
+  "augment": "rp1-ksc-construction",
+  "host": "space-center-status",
+  "size": { "w": 12, "h": 14 }
+}
+```
+
+The host mounts for real, the augment reaches its slot the way it does in the
+dashboard, and the scene is sized and fed AS the host, because the host is what is
+on screen. `_scene.size` is optional and overrides the host's own tile: a host's
+`defaultSize` is chosen for the host alone, and an operator who has added three
+sections to it has made it bigger.
+
+**This is an in-repo affordance, not an author surface.** A first-party host
+widget lives in a package a third party cannot install, so the run has to be told
+which module registers it. Declare that once, beside `minAppVersion`:
+
+```jsonc
+"gonogo": {
+  "renderWith": ["../../../packages/components/src/index.ts"]
+}
+```
+
+Paths relative to your client package, not module specifiers. `--with <module>`
+does the same thing for a single run. Without either, a scene naming a host fails
+with the host it could not find and the list of what was in the bundle.
+
+Every augment registered on that slot mounts, not only the one the scene is of,
+which is the honest picture and is worth knowing when you read one: a section
+below yours in the same slot is really there.
