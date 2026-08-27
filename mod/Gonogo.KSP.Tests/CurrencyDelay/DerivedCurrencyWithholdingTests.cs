@@ -20,16 +20,22 @@ namespace Gonogo.KSP.Tests.CurrencyDelay
     {
         public DerivedCurrencyWithholdingTests()
         {
-            DerivedCurrencyWithholding.Unbind();
+            // Sinks first, then the teardown: Unbind announces itself now, so clearing
+            // in the other order posts one case's teardown into the previous case's
+            // collected list.
             DerivedCurrencyWithholding.Report = _ => { };
             DerivedCurrencyWithholding.Note = _ => { };
+            DerivedCurrencyWithholding.Unbind("test setup");
         }
 
         public void Dispose()
         {
-            DerivedCurrencyWithholding.Unbind();
+            // Sinks first, then the teardown: Unbind announces itself now, so clearing
+            // in the other order posts one case's teardown into the previous case's
+            // collected list.
             DerivedCurrencyWithholding.Report = _ => { };
             DerivedCurrencyWithholding.Note = _ => { };
+            DerivedCurrencyWithholding.Unbind("test setup");
         }
 
         private static Kernel KernelWith(params IDerivedCurrencyWithholder[] arms)
@@ -184,9 +190,9 @@ namespace Gonogo.KSP.Tests.CurrencyDelay
         {
             var warned = new List<string>();
             var noted = new List<string>();
+            DerivedCurrencyWithholding.Bind(KernelWith());
             DerivedCurrencyWithholding.Report = warned.Add;
             DerivedCurrencyWithholding.Note = noted.Add;
-            DerivedCurrencyWithholding.Bind(KernelWith());
 
             DerivedCurrencyWithholding.WithholdDerived(DerivedCurrencyCapability.Science, 25.0, 100.0);
 
@@ -204,8 +210,8 @@ namespace Gonogo.KSP.Tests.CurrencyDelay
         public void a_fan_out_that_reached_its_arms_names_them()
         {
             var noted = new List<string>();
-            DerivedCurrencyWithholding.Note = noted.Add;
             DerivedCurrencyWithholding.Bind(KernelWith(new RecordingArm("rp1"), new RecordingArm("other")));
+            DerivedCurrencyWithholding.Note = noted.Add;
 
             DerivedCurrencyWithholding.WithholdDerived(DerivedCurrencyCapability.Science, 25.0, 100.0);
 
@@ -247,6 +253,80 @@ namespace Gonogo.KSP.Tests.CurrencyDelay
             arm.Diagnostic("could not read RP-1's confidence");
 
             Assert.Contains("could not read RP-1's confidence", said);
+        }
+
+        /// <summary>
+        /// A bind says so, names what caused it, and states the arm count. "bound, 1
+        /// arm" and "bound, 0 arms" are different worlds and must not read the same,
+        /// and neither may read the same as no bind at all.
+        /// </summary>
+        [Fact]
+        public void a_bind_names_its_cause_and_counts_the_arms()
+        {
+            var noted = new List<string>();
+            DerivedCurrencyWithholding.Note = noted.Add;
+
+            DerivedCurrencyWithholding.Bind(KernelWith(new RecordingArm("rp1")), "scene load SPACECENTER");
+
+            Assert.Single(noted);
+            Assert.Contains("BOUND on scene load SPACECENTER", noted[0], StringComparison.Ordinal);
+            Assert.Contains("1 arm(s) active: rp1", noted[0], StringComparison.Ordinal);
+        }
+
+        /// <summary>
+        /// A teardown is a WARNING, not a note, and it names the bind it undid. From
+        /// there until something binds again nothing is withheld, so a teardown with
+        /// no bind after it is the state that shipped rather than a tidy shutdown.
+        /// </summary>
+        [Fact]
+        public void a_teardown_is_loud_and_names_the_bind_it_undid()
+        {
+            var warned = new List<string>();
+            DerivedCurrencyWithholding.Note = _ => { };
+            DerivedCurrencyWithholding.Report = warned.Add;
+            DerivedCurrencyWithholding.Bind(KernelWith(), "uplink Register");
+
+            DerivedCurrencyWithholding.Unbind("scene load MAINMENU");
+
+            Assert.Single(warned);
+            Assert.Contains("TORN DOWN on scene load MAINMENU", warned[0], StringComparison.Ordinal);
+            Assert.Contains("was bound on uplink Register", warned[0], StringComparison.Ordinal);
+        }
+
+        /// <summary>
+        /// Tearing down what was already torn down says nothing. An extra scene change
+        /// is not a finding, and a warning that fires on a no-op is one nobody reads.
+        /// </summary>
+        [Fact]
+        public void a_teardown_of_nothing_is_silent()
+        {
+            var warned = new List<string>();
+            DerivedCurrencyWithholding.Report = warned.Add;
+
+            DerivedCurrencyWithholding.Unbind("scene load MAINMENU");
+
+            Assert.Empty(warned);
+        }
+
+        /// <summary>
+        /// And the credit that goes unwithheld names the teardown that caused it, so
+        /// the failure explains itself rather than being reconstructed from scene
+        /// transitions in a 124,000-line log afterwards.
+        /// </summary>
+        [Fact]
+        public void an_unwithheld_credit_names_the_teardown_that_caused_it()
+        {
+            var warned = new List<string>();
+            DerivedCurrencyWithholding.Note = _ => { };
+            DerivedCurrencyWithholding.Bind(KernelWith(new RecordingArm("rp1")), "uplink Register");
+            DerivedCurrencyWithholding.Unbind("scene load MAINMENU");
+            DerivedCurrencyWithholding.Report = warned.Add;
+
+            DerivedCurrencyWithholding.WithholdDerived(DerivedCurrencyCapability.Science, 25.0, 100.0);
+
+            Assert.Single(warned);
+            Assert.Contains("NO KERNEL BOUND", warned[0], StringComparison.Ordinal);
+            Assert.Contains("Torn down on scene load MAINMENU", warned[0], StringComparison.Ordinal);
         }
 
         private sealed class RecordingArm : IDerivedCurrencyWithholder

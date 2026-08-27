@@ -34,9 +34,73 @@ namespace Gonogo.KSP.CurrencyDelay
         /// <summary>Whether the capability was reachable the last time an arm was asked for, so a caller can tell "no mod derives anything" from "nobody bound a kernel".</summary>
         public static bool Bound => _kernel != null;
 
-        public static void Bind(Kernel? kernel) => _kernel = kernel;
+        /// <summary>Why the pointer was last bound, so a teardown can name the bind it undid.</summary>
+        private static string _lastBindReason = "";
 
-        public static void Unbind() => _kernel = null;
+        /// <summary>Why the pointer was last torn down, so an unwithheld credit can name the cause instead of leaving it to be reconstructed from scene logs.</summary>
+        private static string _lastTeardownReason = "";
+
+        /// <summary>
+        /// Points this at a kernel and SAYS SO, naming what caused it and how many
+        /// arms are active at that moment.
+        ///
+        /// <para>The announcement is the point. A bind and a teardown that both say
+        /// nothing leave silence meaning "bound fine" and "nobody home" at once, and
+        /// that ambiguity is what let a torn-down fan-out ship: the fix was deployed,
+        /// watched to fail, and there was no way to tell which of the two it was.
+        /// A count of zero and a count of one are different worlds and must not read
+        /// the same, so both are stated.</para>
+        ///
+        /// <para><paramref name="reason"/> is the caller's, because only the caller
+        /// knows: this file cannot see a scene transition, and it cannot tell "before
+        /// capability resolution" from "resolved and nothing registered" either, since
+        /// both answer zero.</para>
+        /// </summary>
+        public static void Bind(Kernel? kernel, string reason = "")
+        {
+            _kernel = kernel;
+            _lastBindReason = Describe(reason);
+
+            if (kernel == null)
+            {
+                // Bind(null) is a teardown spelled differently, and it used to be a
+                // silent one.
+                Unbind(reason);
+                return;
+            }
+
+            var arms = ActiveArmIds();
+            Note("[Gonogo] derived-currency: BOUND on " + _lastBindReason + ", "
+                + arms.Count + " arm(s) active"
+                + (arms.Count == 0 ? "" : ": " + string.Join(", ", arms)));
+        }
+
+        /// <summary>
+        /// Clears the pointer, LOUDLY. A warning rather than a note, because from
+        /// here until something binds again nothing derived from a delayed currency
+        /// change is withheld, and a teardown with no BOUND line after it is exactly
+        /// the state that shipped: torn down 99 seconds into boot by a main-menu
+        /// transition, under a comment asserting a re-Register that a once-per-process
+        /// addon makes impossible.
+        /// </summary>
+        public static void Unbind(string reason = "")
+        {
+            var wasBound = _kernel != null;
+            _kernel = null;
+            _lastTeardownReason = Describe(reason);
+
+            if (!wasBound)
+            {
+                return;
+            }
+
+            Report("[Gonogo] derived-currency: TORN DOWN on " + _lastTeardownReason
+                + " (was bound on " + _lastBindReason + "). Nothing derived from a delayed currency "
+                + "change will be withheld until something binds a kernel again");
+        }
+
+        private static string Describe(string reason) =>
+            string.IsNullOrEmpty(reason) ? "an unnamed caller" : reason;
 
         /// <summary>
         /// A change to <paramref name="primaryCurrency"/> has been asked for.
@@ -111,7 +175,8 @@ namespace Gonogo.KSP.CurrencyDelay
                     + baseAmount.ToString("0.###", CultureInfo.InvariantCulture) + " at UT "
                     + ut.ToString("0.###", CultureInfo.InvariantCulture)
                     + " was neutralised with NO KERNEL BOUND, so no arm was asked and whatever any "
-                    + "installed mod derived from it is STILL credited");
+                    + "installed mod derived from it is STILL credited. Torn down on "
+                    + _lastTeardownReason + " and never bound again");
                 return;
             }
 

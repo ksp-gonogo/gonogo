@@ -139,7 +139,11 @@ namespace Gonogo.KSP
         {
             _host = host;
 
-            BindWithholding();
+            // Zero arms here is expected rather than a fault, and the reason says so
+            // on the line itself: ResolveCapabilities runs after the last uplink's
+            // Register, so no provider is active yet. The roster line GonogoAddon
+            // prints after that resolution is the authoritative one.
+            BindWithholding("uplink Register, before capability resolution");
             _events = host.RegisterDynamicNamespace(ChannelEngine.CurrencyEventPrefix, new ChannelDeclaration
             {
                 // A discrete one-shot record, not a sampled state: the reliable lane
@@ -195,8 +199,11 @@ namespace Gonogo.KSP
         ///
         /// <para>Its own method because it has to be callable again: see
         /// <see cref="OnSceneLoadRequested"/>.</para>
+        ///
+        /// <para>The sinks go in BEFORE the bind, or the bind's own announcement is
+        /// the one line that lands in the no-op default and says nothing.</para>
         /// </summary>
-        private void BindWithholding()
+        private void BindWithholding(string reason)
         {
             var host = _host;
             if (host == null)
@@ -204,9 +211,9 @@ namespace Gonogo.KSP
                 return;
             }
 
-            CurrencyDelay.DerivedCurrencyWithholding.Bind(host.Kernel);
             CurrencyDelay.DerivedCurrencyWithholding.Report = message => Debug.LogWarning(message);
             CurrencyDelay.DerivedCurrencyWithholding.Note = message => Debug.Log(message);
+            CurrencyDelay.DerivedCurrencyWithholding.Bind(host.Kernel, reason);
         }
 
         private void HookGameEvents()
@@ -257,12 +264,12 @@ namespace Gonogo.KSP
                 // The kernel this pointed at belongs to the engine that registered
                 // us; there is no game to withhold anything for once we are back at
                 // the menu.
-                CurrencyDelay.DerivedCurrencyWithholding.Unbind();
+                CurrencyDelay.DerivedCurrencyWithholding.Unbind("scene load MAINMENU");
                 return;
             }
 
             HookGameEvents();
-            BindWithholding();
+            BindWithholding("scene load " + scene);
         }
 
         private void UnhookGameEvents()

@@ -141,7 +141,46 @@ namespace Gonogo.KSP.Tests.CurrencyDelay
                 uplink, "private void OnSceneLoadRequested(GameScenes scene)");
 
             Assert.Contains("HookGameEvents()", handler, StringComparison.Ordinal);
-            Assert.Contains("BindWithholding()", handler, StringComparison.Ordinal);
+            Assert.Contains("BindWithholding(", handler, StringComparison.Ordinal);
+        }
+
+        /// <summary>
+        /// Both transitions name the scene that caused them, because the pair is what
+        /// makes the state readable: a BOUND line with no TORN DOWN after it is a live
+        /// fan-out, and a TORN DOWN with no BOUND after it is the leak. Without the
+        /// cause on the line, that has to be reconstructed by lining the timestamps up
+        /// against KSP's own scene-change log, which is how a whole cycle was spent.
+        /// </summary>
+        [Fact]
+        public void both_transitions_name_the_scene_that_caused_them()
+        {
+            var uplink = CurrencyDelaySourceText.ReadRelative("CurrencyEventUplink.cs");
+            var handler = CurrencyDelaySourceText.MethodBody(
+                uplink, "private void OnSceneLoadRequested(GameScenes scene)");
+
+            Assert.Contains("Unbind(\"scene load MAINMENU\")", handler, StringComparison.Ordinal);
+            Assert.Contains("BindWithholding(\"scene load \" + scene)", handler, StringComparison.Ordinal);
+        }
+
+        /// <summary>
+        /// And the log sinks are installed BEFORE the bind, or the bind's own
+        /// announcement is the single line that lands in the no-op default: the one
+        /// transition nobody can see is the one that says the rest are visible.
+        /// </summary>
+        [Fact]
+        public void the_sinks_are_installed_before_the_bind_announces_itself()
+        {
+            var uplink = CurrencyDelaySourceText.ReadRelative("CurrencyEventUplink.cs");
+            var binder = CurrencyDelaySourceText.MethodBody(
+                uplink, "private void BindWithholding(string reason)");
+
+            var noteAt = binder.IndexOf("DerivedCurrencyWithholding.Note", StringComparison.Ordinal);
+            var reportAt = binder.IndexOf("DerivedCurrencyWithholding.Report", StringComparison.Ordinal);
+            var bindAt = binder.IndexOf("DerivedCurrencyWithholding.Bind(", StringComparison.Ordinal);
+
+            Assert.True(noteAt >= 0 && reportAt >= 0 && bindAt >= 0, "BindWithholding no longer wires all three");
+            Assert.True(noteAt < bindAt, "the Note sink is installed after the bind announces itself");
+            Assert.True(reportAt < bindAt, "the Report sink is installed after the bind announces itself");
         }
 
         /// <summary>
