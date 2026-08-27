@@ -97,6 +97,17 @@
     <Compile Include="..\Gonogo.KSP\CurrencyDelay\ScienceChunkCredit.cs" />
   </ItemGroup>
 
+  <!-- The Deck-only currency probe's three READINGS, carved out of the
+       GonogoDevCurrency addon (a MonoBehaviour polling live balances and the
+       live CommNet graph, not one line of which runs headlessly) for the same
+       reason CommNetOcclusion.cs and PlanOwner.cs above were carved out of
+       their own callers. This is the half a reader of the result file actually
+       reasons from, and the half that is quietly wrong when the file says
+       nothing useful. No KSP/Unity type, so no KspManaged gating. -->
+  <ItemGroup>
+    <Compile Include="..\GonogoDevTools\CurrencyProbeVerdicts.cs" />
+  </ItemGroup>
+
   <!-- StockCurrencyDecision.cs mirrors TransactionReasons as its own plain
        enum specifically so it carries no KSP/Unity dependency either - same
        reasoning again. StockCurrencyStateMachine.cs (the shadow-tracking,
