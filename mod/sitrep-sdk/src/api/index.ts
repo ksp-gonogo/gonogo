@@ -55,10 +55,11 @@ import "./slots";
 // slots.ts's own header). Same reasoning as the `./slots` import above, one
 // merge target per declaration-merge seam.
 import "./contribution-slots";
-// Side-effect only: carries the `ComponentSlotRegistry` declaration-merge for
-// the framework-universal `plot-layers` segment. Same reasoning as the two
-// imports above, one merge target per declaration-merge seam.
-import "./plot-layers";
+// Side-effect only: carries the `ContributionRegistry` declaration-merge for
+// the `plots` slot. Same reasoning as the two imports above, one merge target
+// per declaration-merge seam. `./plot-layers` needs no such import: it is
+// `PlotEntry`'s contents rather than a slot of its own, so it merges nothing.
+import "./plots";
 import type {
   ActionDefinition,
   ActionHandlers,
@@ -98,6 +99,9 @@ export type {
   PlotSeriesLayer,
   PlotTone,
 } from "./plot-layers";
+// The `plots` contribution slot's own types: the frame a plot pins and the
+// entry it contributes. Its own module for the reason `./plot-layers` is one.
+export type { PlotEntry, PlotFrame } from "./plots";
 // The message-pipe contract. Defined entirely in terms of this package's own
 // wire messages, so it belongs here rather than in `sitrep-client`, and living
 // here is what lets the transport double ship from `/testing`.

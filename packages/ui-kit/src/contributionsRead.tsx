@@ -32,6 +32,34 @@ export interface ContributionSlotEntry {
 
 const EMPTY_ENTRIES: readonly unknown[] = Object.freeze([]);
 
+/**
+ * The host-invariant segments, at RUNTIME, so both halves of the seam agree on
+ * which bare names get completed to `${componentId}.<segment>`.
+ *
+ * It has to be a value and not just `ComponentSlotSegment`, because completion
+ * is a runtime decision, and it has to be the same value the aggregation walks,
+ * because a name one half completes and the other does not is a slot written
+ * under one key and read under another with nothing to say so.
+ *
+ * The `satisfies` is the ratchet: adding a segment to `ComponentSlotRegistry`
+ * without adding it here fails to typecheck, which is what stops the two lists
+ * drifting. It runs both ways round on purpose, the tuple against the segment
+ * union and the union against the tuple, since either alone catches only one
+ * direction of the drift.
+ */
+export const COMPONENT_SLOT_SEGMENTS = [
+  "badges",
+  "filters",
+  "meters",
+] as const satisfies readonly ComponentSlotSegment[];
+
+type _EverySegmentListed =
+  ComponentSlotSegment extends (typeof COMPONENT_SLOT_SEGMENTS)[number]
+    ? true
+    : never;
+const _everySegmentListed: _EverySegmentListed = true;
+void _everySegmentListed;
+
 // Stable empty snapshot for the no-store case (a bare widget or a test
 // rendered without a `ContributionsProvider`). Same referential-stability
 // requirement as `EMPTY_ENTRIES` above, just typed for the whole-slot-array
@@ -92,14 +120,21 @@ export function useContributions(
 ): unknown {
   const meta = useWidgetMeta();
   const snapshot = useAllContributionSlots();
-  // A bare SEGMENT (no dot, what a reusable component writes) is completed to
+  // A declared SEGMENT (what a reusable component writes) is completed to
   // `${componentId}.${segment}` from the mounting widget's meta: the runtime
-  // half of the segment entry point. A full slot id (dotted, what every
-  // existing caller passes) is used as-is, so those callers stay byte-
-  // unchanged. Outside a widget context there is nothing to complete against,
-  // so a bare segment resolves to nothing (stable empty pass-through).
+  // half of the segment entry point. Anything else is used as-is.
+  //
+  // The test is membership of `COMPONENT_SLOT_SEGMENTS`, not the absence of a
+  // dot. A dot is a spelling, and reading it as the whole distinction meant an
+  // undotted slot id could only ever be per-widget: `plots` is one slot for the
+  // app, and under the old rule the arranger asking for it inside a widget was
+  // silently handed `landing-status.plots`, a key nothing writes. Outside a
+  // widget context there is nothing to complete against, so a segment resolves
+  // to nothing (stable empty pass-through).
+  const isSegment = (slot: string): boolean =>
+    (COMPONENT_SLOT_SEGMENTS as readonly string[]).includes(slot);
   const complete = (slot: string): string =>
-    meta && !slot.includes(".") ? `${meta.componentId}.${slot}` : slot;
+    meta && isSegment(slot) ? `${meta.componentId}.${slot}` : slot;
   const read = (slot: string): readonly unknown[] =>
     snapshot.find((e) => e.id === complete(slot))?.entries ?? EMPTY_ENTRIES;
 

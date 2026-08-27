@@ -4,10 +4,10 @@
     "notes": "SYNTHETIC. The same Kerbin entry as winged-entry-high-alpha with NO aerodynamics model present at all: `aero.available` never arrives, so the slot's presence gate stays shut and the overlay draws nothing. This is what most operators see, and it is the render that has to prove the first-party plot stands on its own: the decelerating wash, the predicted trace and the settle tick are all drawn from the mod's own two terminal-velocity anchors plus the body's gravity."
   },
   "_scene": {
-    "contribution": "aero:descent-envelope-layers",
+    "contribution": "aero:descent-envelope",
     "host": "landing-status",
     "modes": ["default"],
-    "caption": "No aerodynamics model installed: the presence gate stays shut, this Uplink contributes no layers, and the plot stands on its own contributed shape"
+    "caption": "No aerodynamics model installed: the presence gate stays shut, this Uplink contributes no plot at all, and the landing widget arranges only its own"
   },
   "_stream": {
     "pinnedUt": 1000000,

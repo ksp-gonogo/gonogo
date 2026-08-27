@@ -34,17 +34,16 @@ import {
   writeQuantity,
 } from "@ksp-gonogo/ui-kit";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { PlotBoard } from "../Plots/PlotBoard";
 import { AltitudeRail } from "./AltitudeRail";
 import { deriveBoard } from "./board";
 import { CommitLayer, REGIME_LABEL, REGIME_TONE } from "./CommitLayer";
 import { CrossSection } from "./CrossSection";
 import { deriveDelayClocks } from "./clocks";
-import { DescentEnvelope } from "./DescentEnvelope";
-// Side-effect import: the widget's OWN plot layers, registered into
-// `landing-status.plot-layers` the same way any Uplink's would be. Pulled in
-// here rather than left to the package entry's import order, because a widget
-// that lost its own curve to a module-ordering accident would look like a
-// telemetry outage.
+// Side-effect import: the widget's OWN plots, registered into `plots` the same
+// way any Uplink's would be. Pulled in here rather than left to the package
+// entry's import order, because a widget that lost its own plot to a
+// module-ordering accident would look like a telemetry outage.
 import "./descentLayers";
 import { greatCircle } from "./geo";
 import { deriveHazardVerdict } from "./hazardVerdict";
@@ -703,20 +702,11 @@ function LandingStatusComponent({
   // carrying a second copy cost this panel a whole band of vertical space it
   // needs for the plots.
 
-  // The velocity-altitude envelope: a square plot, shown whenever the mod's
-  // terminal-velocity model is present (atmospheric-aware board). Composed as a
-  // plot alongside the reticle + cross-section (see the plots row / detail stack).
-  const envelopeEl =
-    board === "atmospheric-aware" ? (
-      <DescentEnvelope
-        currentSpeed={flight?.surfaceSpeed?.magnitude ?? null}
-        currentAltitude={heightFromTerrain?.magnitude ?? null}
-        terminalVelocity={landing?.terminalVelocity?.magnitude ?? null}
-        projectedTouchdownSpeed={
-          landing?.projectedTouchdownSpeed?.magnitude ?? null
-        }
-      />
-    ) : null;
+  // Contributed plots. This widget names none of them and derives nothing for
+  // them: each decides for itself whether it has anything to say this frame and
+  // what to say it against, and the board lays out whatever comes back. The
+  // descent envelope that used to be composed here by hand is one of them now.
+  const contributedPlots = <PlotBoard />;
 
   const comDatumNote = usingComDatum ? (
     <Text tone="muted" size="xs">
@@ -949,12 +939,7 @@ function LandingStatusComponent({
   const detailStack = (
     <Stack gap="sm">
       {crossSectionEl}
-      {envelopeEl && (
-        <div style={{ maxWidth: 240 }}>
-          <SectionTitle>Descent envelope</SectionTitle>
-          {envelopeEl}
-        </div>
-      )}
+      {contributedPlots}
       {boardEl}
       {velocityEl}
       {readoutsStack}
@@ -1187,15 +1172,11 @@ function LandingStatusComponent({
                       <FramedDisplay>{crossSectionEl}</FramedDisplay>
                     </div>
                   )}
-                  {/* No `FramedDisplay` around this one: the shared chart owns
-                      its own frame, and a second read as a double border. */}
-                  {envelopeEl && (
-                    <div style={{ flex: "1 1 200px", minWidth: 200 }}>
-                      <SectionTitle>Descent envelope</SectionTitle>
-                      {envelopeEl}
-                    </div>
-                  )}
                 </div>
+                {/* No `FramedDisplay` around these: a contributed plot's chart
+                    owns its own frame, and a second one reads as a double
+                    border. */}
+                {contributedPlots}
                 {/* Readouts UNDERNEATH the plots (inset text): verdict banner,
                     terrain readout, then the numeric readout grid full-width. */}
                 <div
@@ -1257,9 +1238,11 @@ registerComponent<LandingStatusConfig>({
     "comms.delay",
   ],
   defaultConfig: {},
-  // No augment slot. The descent envelope's seam is `landing-status.plot-layers`,
-  // a contribution slot the framework completes for every widget, and this
-  // widget's own marks go through it too (see `descentLayers.ts`).
+  // This widget HOSTS plots. Declaring the slot is the whole of the opt-in, and
+  // it is an opt-in rather than a framework universal because a plot is not
+  // something every widget has room for. Its own descent envelope arrives
+  // through here like anyone else's (see `descentLayers.ts`); no augment slot.
+  contributionSlots: ["plots"],
   pushable: true,
   requires: ["flight"],
 });

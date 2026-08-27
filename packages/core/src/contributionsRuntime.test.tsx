@@ -50,6 +50,9 @@ declare module "./contributions" {
     "fixture.slot7": { entry: { id: string; label: string }; topics: never };
     "fixture.slot8": { entry: { id: string; label: string }; topics: never };
     "fixture.slot9": { entry: { id: string; label: string }; topics: never };
+    /** Undotted on purpose: the shape `plots` has, and the one the old
+     *  dot-means-segment rule could not read. */
+    "fixture-global": { entry: { id: string; label: string }; topics: never };
   }
 }
 
@@ -398,7 +401,49 @@ describe("useContributions segment mode", () => {
 
     expect(screen.queryByText("term:Scrubber")).toBeNull();
   });
+
+  /**
+   * An UNDOTTED slot id is not automatically a segment, and this is the case
+   * that says so. `plots` is one slot for the whole app: a contributor names it
+   * and nothing else, and a widget hosting it declares it. While completion was
+   * decided by "does the name contain a dot", the widget's read was silently
+   * rewritten to `${componentId}.plots`, a key nothing writes, so the arranger
+   * read an empty slot with no error anywhere.
+   */
+  it("does NOT complete an undotted slot id that is not a declared segment", async () => {
+    registerContribution({
+      id: "global-row",
+      contributes: "fixture-global",
+      compute: () => [{ id: "g", label: "global row" }],
+    });
+
+    render(
+      <WidgetMetaContext.Provider
+        value={{
+          componentId: "seg-widget",
+          contributionSlots: ["fixture-global"],
+        }}
+      >
+        <ContributionsProvider>
+          <GlobalRows />
+        </ContributionsProvider>
+      </WidgetMetaContext.Provider>,
+    );
+
+    await waitFor(() => expect(screen.getByText("global row")).toBeTruthy());
+  });
 });
+
+function GlobalRows() {
+  const rows = useContributions("fixture-global");
+  return (
+    <ul>
+      {rows.map((r) => (
+        <li key={r.contributionId}>{r.label}</li>
+      ))}
+    </ul>
+  );
+}
 
 describe("a contribution depping on a DERIVED channel", () => {
   it("subscribes the channel's inputs, not the literal derived topic", async () => {

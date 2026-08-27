@@ -779,6 +779,11 @@ function mountedByPanel(slot: string): boolean {
   return (FRAMEWORK_AUGMENT_SEGMENTS as readonly string[]).includes(segment);
 }
 
+/** A dotted slot id names its owning widget; an undotted one is global. */
+function isWidgetOwnedSlot(slot: string): boolean {
+  return slot.includes(".");
+}
+
 function buildTree(scene: ScenePayload): ReactNode {
   if (scene.target.kind === "widget")
     return mountWidget(scene.target.id, scene);
@@ -800,7 +805,11 @@ function buildTree(scene: ScenePayload): ReactNode {
             .join(", ")}`,
       );
     }
-    if (!slot.startsWith(`${scene.host}.`)) {
+    // A GLOBAL slot (no dot, e.g. `plots`) belongs to no widget: any widget
+    // that declares it hosts it, and which one a scene picks is the author's
+    // choice rather than something derivable from the id. Only a widget-owned
+    // slot has an owner to check the host against.
+    if (isWidgetOwnedSlot(slot) && !slot.startsWith(`${scene.host}.`)) {
       throw new Error(
         `render probe: "_scene.host" names "${scene.host}" but this target's ` +
           `slot is "${slot}", which belongs to "${slot.split(".")[0]}". A ` +
@@ -809,6 +818,18 @@ function buildTree(scene: ScenePayload): ReactNode {
       );
     }
     return mountWidget(scene.host, scene);
+  }
+
+  // A global slot has no widget in its id to stand a host in for, and no
+  // stand-in would render it anyway: whatever draws the slot lives inside a
+  // real widget. Saying so is the difference between a scene that fails here
+  // and a scene that renders an empty panel nobody reads as broken.
+  if (!isWidgetOwnedSlot(slot)) {
+    throw new Error(
+      `render probe: this target's slot is "${slot}", which belongs to no ` +
+        "widget, so `_scene.host` must name one that declares it (and the " +
+        "run must supply that widget with --with <module that registers it>).",
+    );
   }
 
   const hostWidgetId = slot.split(".")[0];

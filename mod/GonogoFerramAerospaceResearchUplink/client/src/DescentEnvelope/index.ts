@@ -1,5 +1,6 @@
 import type {
   BadgeEntry,
+  PlotFrame,
   PlotLayer,
   TopicPayload,
 } from "@ksp-gonogo/sitrep-sdk";
@@ -18,22 +19,28 @@ import "../topics";
 import { AERO } from "../uplink";
 
 /**
- * The aerodynamic half of the landing plot, as CONTRIBUTED LAYERS.
+ * The aero model's own descent envelope, as a CONTRIBUTED PLOT.
  *
- * `landing-status`'s descent envelope is a velocity-height instrument: speed
- * across, height above ground up, the ground at the bottom edge. Every
- * statement a full-fidelity aerodynamics model makes about a descent is a
- * statement about a point or a curve in exactly that plane, which is why this
- * adds to the operator's existing landing plot rather than standing up a second
- * plot competing with it for a glance.
+ * A velocity-height instrument: speed across, height above ground up, the
+ * ground at the bottom edge. Every statement a full-fidelity aerodynamics model
+ * makes about a descent is a statement about a point or a curve in exactly that
+ * plane, which is why the model's reading belongs on a plot at all rather than
+ * in another row of numbers.
  *
- * It used to be a React overlay bound to a `landing-status.envelope` augment
- * slot, drawing its own `<svg>` in a coordinate space the host handed it. That
- * slot is gone. The plot is a `GraphView` now and everything on it, the host's
- * own curve included, arrives through `landing-status.plot-layers` as data. The
- * practical difference is that nothing here knows a pixel: this file states
- * metres and metres per second, and the host owns every scale, the clip, the
- * paint order and the palette.
+ * It has been three things. It was a React overlay bound to a
+ * `landing-status.envelope` augment slot, drawing its own `<svg>` in a
+ * coordinate space the host handed it. Then it was a set of marks contributed
+ * INTO the host's plot. It is now a plot of its own, contributed to `plots`,
+ * because drawing into somebody else's instrument is not something the
+ * framework offers: an author contributes a whole plot or nothing.
+ *
+ * The visible cost of that is honest and worth stating: the model's curve and
+ * the back-out curve it disagrees with are on THIS plot now, beside the host's
+ * own envelope rather than on it, so an operator with FAR installed sees two
+ * envelopes. What it buys is that the two models are never silently blended
+ * into one picture whose provenance you cannot read, and that nothing here
+ * knows a pixel or a host: this file states metres and metres per second
+ * against a frame it declared itself.
  *
  * Two marks, and each answers a question the first-party plot cannot:
  *
@@ -210,6 +217,22 @@ export function aeroDescentLayers(
     Math.abs(modelGround - plotGround) / plotGround > CURVE_DISAGREEMENT;
 
   if (disagree) {
+    // The back-out curve, faint, on THIS plot. It used to be the host's own
+    // mark and this contribution rode alongside it; a plot cannot draw into
+    // another plot any more, so the reference has to be here or the parting
+    // this whole mark exists to show has nothing to part from.
+    layers.push({
+      kind: "series",
+      id: "reference-terminal",
+      points: Array.from({ length: MODEL_CURVE_STEPS + 1 }, (_, i) => {
+        const y = (altitude * i) / MODEL_CURVE_STEPS;
+        return { x: plotTerminalAt(y), y };
+      }),
+      tone: "neutral",
+      emphasis: "faint",
+      description:
+        "terminal velocity backed out of measured drag, for comparison",
+    });
     layers.push({
       kind: "series",
       id: "model-terminal",
@@ -340,9 +363,46 @@ function surfaceGravityOf(topics: Readonly<Record<string, unknown>>) {
     : null;
 }
 
+/** Headroom above the fastest thing on the plot and above the vessel, so the
+ *  marks that matter are not pinned to the frame's own edges. Chosen here
+ *  rather than read from anywhere: an author contributing a plot owns its
+ *  frame, and there is no first-party route to one they cannot write. */
+const SPEED_HEADROOM = 1.15;
+const ALTITUDE_HEADROOM = 1.1;
+
+/**
+ * The frame this plot is drawn in, or null when it cannot be drawn honestly.
+ *
+ * Built from the same three anchors the marks are, so a plot that has a frame
+ * always has something to put in it. Null is how this contribution says it is
+ * NOT RELEVANT this frame: `compute` returns nothing, no plot is contributed,
+ * and the arranger has one fewer plot rather than an empty square.
+ */
+function aeroFrame(inputs: Readonly<AeroDescentInputs>): PlotFrame | null {
+  const { plotTerminal, plotTouchdown, altitude, speed, modelTerminal } =
+    inputs;
+  const ok = (v: number | null): v is number =>
+    v != null && Number.isFinite(v) && v > 0;
+  if (!ok(plotTerminal) || !ok(plotTouchdown) || !ok(altitude)) return null;
+  return {
+    xDomain: [
+      0,
+      Math.max(
+        plotTerminal,
+        plotTouchdown,
+        ok(speed) ? speed : 0,
+        ok(modelTerminal) ? modelTerminal : 0,
+      ) * SPEED_HEADROOM,
+    ],
+    xUnit: "m/s",
+    yDomain: [0, altitude * ALTITUDE_HEADROOM],
+    yUnit: "m",
+  };
+}
+
 AERO.registerContribution({
-  id: "descent-envelope-layers",
-  contributes: "landing-status.plot-layers",
+  id: "descent-envelope",
+  contributes: "plots",
   requires: "aero",
   deps: [
     "aero.state",
@@ -365,7 +425,7 @@ AERO.registerContribution({
     const alpha = state?.angleOfAttack?.magnitude ?? null;
     const stall = state?.stallFraction?.magnitude ?? null;
     const modelTerminal = state?.terminalVelocity?.magnitude ?? null;
-    return aeroDescentLayers({
+    const inputs: AeroDescentInputs = {
       alpha,
       stall,
       modelTerminal,
@@ -379,7 +439,19 @@ AERO.registerContribution({
       altitude: heightAboveTerrain(topics),
       speed: flight?.surfaceSpeed?.magnitude ?? null,
       surfaceGravity: surfaceGravityOf(topics),
-    });
+    };
+    const frame = aeroFrame(inputs);
+    if (!frame) return null;
+    const layers = aeroDescentLayers(inputs);
+    if (layers.length === 0) return null;
+    return [
+      {
+        id: "descent-envelope",
+        title: "Descent envelope (FAR)",
+        frame,
+        layers,
+      },
+    ];
   },
 });
 

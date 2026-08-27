@@ -1,28 +1,30 @@
 /**
- * The PLOT LAYER vocabulary: what a contributor may add to any chart in the app.
+ * The PLOT LAYER vocabulary: everything a plot may draw inside its own frame.
  *
- * `plot-layers` is a framework-universal SEGMENT (declared into
- * `ComponentSlotRegistry` at the foot of this file, beside `badges`, `filters`
- * and `meters`), so every widget built on the shared chart gets the seam
- * completed as `${componentId}.plot-layers` with no per-widget registration.
- * A contributor names the widget it is drawing into and nothing else.
+ * This is the CONTENTS of a `PlotEntry` (see `./plots.ts`), reachable only by
+ * the contributor who owns the plot. It was briefly a framework-universal
+ * segment, `${componentId}.plot-layers`, completed for every widget in the app
+ * so that anyone could draw into anyone's chart. That was the wrong altitude
+ * twice over: it gave a plot-layer seam to the sixty widgets that have no plot,
+ * and it made a mark something you add to somebody else's instrument rather
+ * than something your own instrument is made of. Drawing into a plot you do not
+ * own is a real capability and a lower layer than this one; it is not this
+ * vocabulary's job and there is no slot for it.
  *
- * Two rules hold the whole design up, and both exist because a guest that can
- * do more than the host's own marks is a guest the host has to be trusted not
- * to out-draw:
+ * Two rules hold the whole design up:
  *
- * 1. **A layer is stated in the plot's own DATA SPACE, never in pixels.** A
- *    contributor writes metres and metres per second; the host owns every
- *    scale, every axis, the clip and the paint order. That is what lets one
- *    vocabulary serve a velocity-height plot, a pressure-altitude plot and a
- *    wall-clock trace without a contributor knowing which it landed in.
+ * 1. **A layer is stated in the plot's own DATA SPACE, never in pixels.** An
+ *    author writes metres and metres per second against the `PlotFrame` their
+ *    own plot declared; the renderer owns every scale, the clip and the paint
+ *    order. That is what lets one vocabulary serve a velocity-height plot, a
+ *    pressure-altitude plot and a wall-clock trace, and it is what lets an
+ *    arranger resize a plot without any mark on it moving relative to another.
  * 2. **A layer names a TONE, never a colour.** The same split
- *    `SystemEntityStyle` already draws for `system-view.entities`: a
- *    contributor says how alarming a thing is and the host resolves the token,
- *    so one widget's palette change cannot leave a guest's marks behind. The
- *    single exception is `PlotFieldLayer.tint`, and for the reason ShipMap's
- *    resource meters carry a fill colour: a body's own sky is an IDENTITY
- *    colour, not a status.
+ *    `SystemEntityStyle` already draws for `system-view.entities`: an author
+ *    says how alarming a thing is and the renderer resolves the token, so a
+ *    palette change cannot leave a plot's marks behind. The single exception is
+ *    `PlotFieldLayer.tint`, and for the reason ShipMap's resource meters carry
+ *    a fill colour: a body's own sky is an IDENTITY colour, not a status.
  *
  * Absence is drawn as absence by construction: a layer that is not contributed
  * draws nothing and, because `description` is the only route into the plot's
@@ -195,9 +197,3 @@ export type PlotLayer =
   | PlotMarkerLayer
   | PlotAnnotationLayer
   | PlotCaptionLayer;
-
-declare module "./types" {
-  interface ComponentSlotRegistry {
-    "plot-layers": PlotLayer;
-  }
-}

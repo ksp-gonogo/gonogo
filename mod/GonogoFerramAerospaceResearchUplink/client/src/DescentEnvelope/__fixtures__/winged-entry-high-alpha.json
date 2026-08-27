@@ -4,10 +4,10 @@
     "notes": "SYNTHETIC. A 90-tonne lifting body holding 40 degrees alpha through a Kerbin entry at 28 km and Mach 7, still far above terminal so it is decelerating hard. The aerodynamics model's own terminal velocity (180 m/s at this attitude) is well below the plot's constant-drag-coefficient back-out (300 m/s), because holding high alpha buys drag the back-out cannot see: that gap is the whole reason the model's curve and settle tick are worth drawing."
   },
   "_scene": {
-    "contribution": "aero:descent-envelope-layers",
+    "contribution": "aero:descent-envelope",
     "host": "landing-status",
     "modes": ["default"],
-    "caption": "Winged entry at 40 degrees alpha: the model's own terminal curve parts from the plot's back-out and settles the descent higher, with the ballistic coefficient on its tick and STALL up the left edge"
+    "caption": "Winged entry at 40 degrees alpha: the model's own terminal curve parts from the drag back-out it draws beside it, settling the descent higher, with the ballistic coefficient on its tick and STALL up the left edge"
   },
   "_stream": {
     "pinnedUt": 1000000,

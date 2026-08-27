@@ -119,11 +119,13 @@ describe("aero descent layers", () => {
 
   it("adds nothing beyond the words when the body's gravity is unknown", () => {
     // The integration cannot run without it, so there is no settle tick rather
-    // than a tick placed against a guessed body.
+    // than a tick placed against a guessed body. The two curves stay: the
+    // parting they show needs no gravity, and the reference one is drawn here
+    // now rather than by the host, since a plot cannot draw into another plot.
     const layers = aeroDescentLayers(
       entryReading({ surfaceGravity: null, stall: null }),
     );
-    expect(kinds(layers)).toEqual(["series"]);
+    expect(kinds(layers)).toEqual(["series", "series"]);
   });
 });
 
@@ -148,24 +150,21 @@ describe("aero badges", () => {
 // The registrations run at module load, off this file's own import of
 // `./index` above, exactly as they do in the app.
 describe("registration", () => {
-  it("feeds the landing plot's layer slot and the widget's badge slot", () => {
+  it("contributes a whole plot to `plots`, and the widget's badge slot", () => {
     const ids = (slot: string) =>
       getContributionsForSlot(slot).map((c: AnyContribution) => c.id);
     // Namespaced by the client handle, which is what stops two Uplinks
-    // colliding on an id somebody picked independently.
-    expect(ids("landing-status.plot-layers")).toContain(
-      "aero:descent-envelope-layers",
-    );
+    // colliding on an id somebody picked independently. Note the plot names no
+    // host: `plots` is one slot for the app, and this Uplink could not name
+    // `landing-status` here even if it wanted to.
+    expect(ids("plots")).toContain("aero:descent-envelope");
     expect(ids("landing-status.badges")).toContain(
       "aero:descent-envelope-badges",
     );
   });
 
   it("gates both on the aerodynamics Domain being present", () => {
-    for (const slot of [
-      "landing-status.plot-layers",
-      "landing-status.badges",
-    ]) {
+    for (const slot of ["plots", "landing-status.badges"]) {
       for (const c of getContributionsForSlot(slot)) {
         if (c.id.startsWith("aero:")) expect(c.requires).toBe("aero");
       }

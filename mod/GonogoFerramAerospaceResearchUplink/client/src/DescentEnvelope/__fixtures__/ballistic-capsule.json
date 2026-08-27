@@ -4,10 +4,10 @@
     "notes": "SYNTHETIC. A 4-tonne capsule at 12 km and Mach 4, trimmed near zero alpha with no wings at all: stall fraction is ABSENT rather than zero, which is what makes the wedge render open. A high ballistic coefficient (1240 kg/m²) is the point of the scene: it drives the deceleration deep, so the descent does not settle onto the terminal curve until low down, and the operator's read is that the capsule is still fast when it gets there."
   },
   "_scene": {
-    "contribution": "aero:descent-envelope-layers",
+    "contribution": "aero:descent-envelope",
     "host": "landing-status",
     "modes": ["default"],
-    "caption": "Ballistic capsule, no wings: no STALL word at all because there is no stall fraction to read, and a high ballistic coefficient that puts the settle deep"
+    "caption": "Ballistic capsule, no wings: no STALL word at all because there is no stall fraction to read, and a high ballistic coefficient that puts the settle deep. The plot is the Uplink's own, contributed to `plots`, beside the landing widget's"
   },
   "_stream": {
     "pinnedUt": 1000000,

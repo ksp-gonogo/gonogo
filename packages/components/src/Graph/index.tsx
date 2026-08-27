@@ -3,7 +3,6 @@ import {
   getSizeBucket,
   registerComponent,
   safeRandomUuid,
-  useContributions,
 } from "@ksp-gonogo/core";
 import type { DataKeyMeta, SeriesRange } from "@ksp-gonogo/data";
 import { isThresholdSubject, useDataSchema } from "@ksp-gonogo/data";
@@ -212,10 +211,10 @@ interface GraphViewProps {
    */
   headerActions?: ReactNode;
   /**
-   * Plot layers this widget contributes to ITSELF, merged with whatever else
-   * has been contributed to `${componentId}.plot-layers`. A widget's own marks
-   * take the same route a guest's do, so there is no geometry a first-party
-   * plot can reach that a contributor cannot: see `plot-layers` in the SDK.
+   * Everything drawn on the plot beyond its series, in the plot's own data
+   * space. A `PlotEntry` contributed to the `plots` slot hands its `layers`
+   * straight through here, so a chart the arranger builds out of a contribution
+   * and a chart a widget builds by hand reach the renderer identically.
    */
   layers?: readonly PlotLayer[];
   /**
@@ -231,6 +230,10 @@ interface GraphViewProps {
   w?: number;
   h?: number;
 }
+
+/** Referentially stable, so an unlayered chart does not remount its layer
+ *  renderer on every parent render. */
+const EMPTY_LAYERS: readonly PlotLayer[] = Object.freeze([]);
 
 export function GraphView({
   config,
@@ -248,15 +251,7 @@ export function GraphView({
     () => (config?.series ?? []).map(withDefaults),
     [config?.series],
   );
-  // Contributed layers, from the framework-universal `plot-layers` segment,
-  // completed to `${componentId}.plot-layers` from the mounting widget's own
-  // meta. Merged with the widget's own so the paint order in `PlotLayers` is
-  // the only thing that separates a host mark from a guest's.
-  const contributed = useContributions("plot-layers");
-  const layers = useMemo(
-    () => [...(ownLayers ?? []), ...contributed],
-    [ownLayers, contributed],
-  );
+  const layers = ownLayers ?? EMPTY_LAYERS;
 
   const windowSec = config?.windowSec ?? 300;
   const xKey = config?.xKey ?? TIME_AXIS;

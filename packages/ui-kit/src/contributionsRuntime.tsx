@@ -26,6 +26,7 @@ import {
   useSyncExternalStore,
 } from "react";
 import {
+  COMPONENT_SLOT_SEGMENTS,
   type ContributionSlotEntry,
   ContributionsPanelStore,
   useContributions,
@@ -333,17 +334,14 @@ export function ContributionsProvider({
 // widget that also lists one of these in `contributionSlots` is harmlessly
 // deduped below.
 //
-// `plot-layers` is the fourth, and it is what makes "contribute a layer to a
-// plot" universal rather than a favour each chart widget grants: a layer is
-// stated in the plot's own data space and means the same thing in any chart, so
-// the seam belongs to the framework and every widget built on the shared chart
-// gets it without writing a line.
-const FRAMEWORK_SEGMENTS = [
-  "badges",
-  "filters",
-  "meters",
-  "plot-layers",
-] as const;
+// The list is `COMPONENT_SLOT_SEGMENTS`, shared with the read half rather than
+// written out again here: a name one half completes and the other does not is a
+// slot written under one key and read under another, with nothing to say so.
+//
+// A universal segment is the right shape for something EVERY widget has, which
+// is why the three left are a header, a search box and a meter stack. `plots`
+// is not one of them and is deliberately not here: a widget hosts plots by
+// declaring the slot, so the sixty widgets that have none aggregate nothing.
 
 function ContributionsAggregation({ children }: { children?: ReactNode }) {
   const meta = useWidgetMeta();
@@ -352,7 +350,7 @@ function ContributionsAggregation({ children }: { children?: ReactNode }) {
     const declared = meta?.contributionSlots ?? [];
     if (!meta) return declared;
     const merged = [...declared];
-    for (const segment of FRAMEWORK_SEGMENTS) {
+    for (const segment of COMPONENT_SLOT_SEGMENTS) {
       const slot = `${meta.componentId}.${segment}`;
       if (!merged.includes(slot as never)) merged.push(slot as never);
     }

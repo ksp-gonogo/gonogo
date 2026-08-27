@@ -1,4 +1,4 @@
-import { getBody, registerContribution } from "@ksp-gonogo/core";
+import { CORE_UPLINK_CLIENT, getBody } from "@ksp-gonogo/core";
 import type { PlotLayer, PlotTone, TopicPayload } from "@ksp-gonogo/sitrep-sdk";
 import {
   projectDescent,
@@ -9,23 +9,21 @@ import {
 import { writeQuantity } from "@ksp-gonogo/ui-kit";
 
 /**
- * The descent envelope's own marks, as CONTRIBUTED PLOT LAYERS.
+ * The descent envelope, as a CONTRIBUTED PLOT.
  *
- * The plot is a velocity-height instrument: speed on X, height above ground on
- * Y, the ground at the bottom edge. Everything drawn on it, including every
- * mark this widget draws itself, arrives through `landing-status.plot-layers`.
+ * A velocity-height instrument: speed on X, height above ground on Y, the
+ * ground at the bottom edge, so the plot's bottom edge IS the ground and there
+ * is no touchdown marker. The bold curve is the terminal-velocity line, the
+ * equilibrium glide the vessel settles onto, which is the canonical reentry
+ * corridor view.
  *
- * That is the point of the file existing. While the widget owned private
- * geometry and a guest got an overlay slot, the host could draw things through
- * a projection no third party could reach, so the guest API was never proven
- * adequate: it was only ever proven adequate for the three marks somebody
- * happened to try. With the host holding no privilege beyond the axes, the API
- * is adequate BY CONSTRUCTION, because the plot would lose its own curve the
- * moment it stopped being.
- *
- * The AXES stay the host's, and that is a policy rather than a privilege: this
- * widget states once that the plot spans the ground to a little above the
- * vessel, and every layer, its own included, is drawn against that.
+ * The whole thing is a contribution to the `plots` slot: its axes, its marks
+ * and the decision that it is worth drawing at all. LandingStatus mounts the
+ * slot and arranges what comes back; it does not know this plot exists, cannot
+ * name it, and holds no route to a projection an outside author lacks. That is
+ * what makes the seam adequate BY CONSTRUCTION rather than adequate for the
+ * marks somebody happened to try: the widget would lose its own envelope the
+ * moment the seam stopped carrying one.
  */
 
 // --- Action-urgency thresholds ----------------------------------------------
@@ -471,9 +469,25 @@ function parentBody(topics: Readonly<Record<string, unknown>>) {
   return name ? getBody(name) : undefined;
 }
 
-registerContribution({
-  id: "landing-status.descent-envelope",
-  contributes: "landing-status.plot-layers",
+/**
+ * The descent envelope, contributed as a WHOLE PLOT.
+ *
+ * Registered through `CORE_UPLINK_CLIENT` because that is the only route there
+ * is. A third party writes `defineUplinkClient({...}).registerContribution` and
+ * gets `<their-id>:descent-envelope`; this writes the framework's own handle and
+ * gets `core:descent-envelope`. The owner stamp is the entire difference, and it
+ * is used for blame rather than for privilege.
+ *
+ * Relevance is the `null` return and nothing else. There is no atmosphere check
+ * here and no board-state check: `descentFrame` already declines to produce a
+ * frame unless the mod's terminal-velocity model has shipped a reading, which is
+ * exactly the condition under which this plot has something true to say. A
+ * separate predicate would be a second copy of that judgement, free to disagree
+ * with the one the marks are actually built from.
+ */
+CORE_UPLINK_CLIENT.registerContribution({
+  id: "descent-envelope",
+  contributes: "plots",
   deps: [
     "vessel.identity",
     "system.bodies",
@@ -499,7 +513,7 @@ registerContribution({
       surface?.heightFromTerrain?.magnitude ??
       flight?.altitudeTerrain?.magnitude ??
       null;
-    return buildDescentLayers({
+    const inputs: DescentEnvelopeInputs = {
       currentSpeed: flight?.surfaceSpeed?.magnitude ?? null,
       currentAltitude: height,
       terminalVelocity: landing?.terminalVelocity?.magnitude ?? null,
@@ -512,6 +526,21 @@ registerContribution({
           ? body.gm / (body.radius * body.radius)
           : null,
       mach: flight?.mach?.magnitude ?? null,
-    });
+    };
+    const frame = descentFrame(inputs);
+    if (!frame) return null;
+    return [
+      {
+        id: "descent-envelope",
+        title: "Descent envelope",
+        frame: {
+          xDomain: frame.xDomain,
+          xUnit: "m/s",
+          yDomain: frame.yDomain,
+          yUnit: "m",
+        },
+        layers: buildDescentLayers(inputs),
+      },
+    ];
   },
 });

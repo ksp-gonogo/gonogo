@@ -4,7 +4,7 @@
     "notes": "SYNTHETIC. A winged craft on final at 900 m and Mach 0.31, dragged back to 41 percent stall fraction by an approach flown too slow and too nose-high. Subsonic matters to the picture: the transonic drag rise is behind the vehicle, so the plot's projection is trustworthy and its trace is drawn solid rather than dashed. The frayed trailing edge is the whole point of the scene, the number to act on is a shape rather than a readout."
   },
   "_scene": {
-    "contribution": "aero:descent-envelope-layers",
+    "contribution": "aero:descent-envelope",
     "host": "landing-status",
     "modes": ["default"],
     "caption": "Subsonic final approach with the wing departing: a solid trace because the transonic region is behind, and STALL up the left edge in the nogo tone"
