@@ -89,12 +89,13 @@ namespace GonogoRp1Uplink
         public string ProviderId => "rp1";
 
         /// <summary>
-        /// Where a report goes, on top of the counters below. Assignable so the
-        /// headless suite can read what was said; this file references no Unity
-        /// assembly and <c>IUplinkHost</c> carries no logger, so the counters are
-        /// the destination that actually reaches an operator.
+        /// Where a report goes, on top of the counters below. The core installs a
+        /// sink that reaches <c>KSP.log</c> before it calls either half of this arm:
+        /// this file references no Unity assembly and <c>IUplinkHost</c> carries no
+        /// logger, so without that the counters were the only destination, and the
+        /// health fact carrying them is a surface only a connected client can read.
         /// </summary>
-        public Action<string> Report { get; set; } = _ => { };
+        public Action<string> Diagnostic { get; set; } = _ => { };
 
         /// <summary>
         /// How many times a withhold could not be carried out, and what the last one
@@ -234,6 +235,16 @@ namespace GonogoRp1Uplink
             var live = Rp1Types.ReadDouble(instance, "confidence");
             if (!live.HasValue || live.Value <= _preConfidence)
             {
+                // Nothing to put back. Either RP-1 priced no award for this credit
+                // (its handler only awards on three reasons) or the reading was taken
+                // AFTER the award and putting it back is a no-op that looks exactly
+                // like a working withhold. Said out loud for that second case: it is
+                // the failure mode this arm's shape has, and it writes nothing and
+                // raises nothing, so it is otherwise indistinguishable from success.
+                Diagnostic("[Gonogo] RP-1's confidence sits at "
+                    + Describe(live) + " against a pre-derivation reading of "
+                    + _preConfidence.ToString("0.###") + ", so nothing was withheld. Correct if RP-1 "
+                    + "priced no award for this credit; a reading taken too late if it did");
                 return;
             }
 
@@ -328,7 +339,7 @@ namespace GonogoRp1Uplink
         {
             WithholdFailures++;
             LastWithholdFailure = message;
-            Report(message);
+            Diagnostic(message);
         }
 
         private static bool IsScience(string primaryCurrency) =>

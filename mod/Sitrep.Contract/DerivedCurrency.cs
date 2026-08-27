@@ -1,3 +1,5 @@
+using System;
+
 namespace Sitrep.Contract;
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -51,6 +53,26 @@ namespace Sitrep.Contract;
 /// </summary>
 public interface IDerivedCurrencyWithholder : ISitrepProvider
 {
+    /// <summary>
+    /// Where this arm says what it could not do. The core installs a sink that
+    /// reaches the game log before it makes either call below, so an arm that
+    /// refuses to withhold something says why somewhere the person running the
+    /// game can read it.
+    ///
+    /// <para><b>On the interface rather than left to each arm.</b> An arm lives
+    /// in its own Uplink assembly, and an Uplink references no game or engine
+    /// assembly at all, so it has no log of its own to write to: the first
+    /// version of this seam counted its failures into a health fact on
+    /// <c>system.uplinks</c> and nothing else, which is a surface only a
+    /// connected client can read. A diagnostic that exists only where the
+    /// diagnostician cannot reach is not a diagnostic, and the outcome it was
+    /// meant to report was unreadable for the whole of the first rig run.</para>
+    ///
+    /// <para>Defaults to a no-op in every implementation, so an arm reached
+    /// through some other host still runs.</para>
+    /// </summary>
+    Action<string> Diagnostic { get; set; }
+
     /// <summary>
     /// A change to <paramref name="primaryCurrency"/> has been ASKED for and
     /// nothing has derived from it yet: record whatever derived quantities this

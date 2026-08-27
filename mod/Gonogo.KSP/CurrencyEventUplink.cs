@@ -52,6 +52,7 @@ namespace Gonogo.KSP
         private IDynamicChannelSource? _events;
         private IUplinkHost? _host;
         private bool _subscribed;
+        private bool _sceneHookInstalled;
 
         // The vessel a destruction detector saw most recently, used to attribute a crew
         // death whose EventReport carries no part (ProtoCrewMember.Die's null origin).
@@ -138,13 +139,7 @@ namespace Gonogo.KSP
         {
             _host = host;
 
-            // The interceptor lives on a ScenarioModule, which has no host and so no
-            // kernel of its own; this is the half of the subsystem holding one. The
-            // pointer is bound rather than the arm list, because ResolveCapabilities
-            // runs after the last uplink's Register and a list captured here would be
-            // empty for the whole session.
-            CurrencyDelay.DerivedCurrencyWithholding.Bind(host.Kernel);
-            CurrencyDelay.DerivedCurrencyWithholding.Report = message => Debug.LogWarning(message);
+            BindWithholding();
             _events = host.RegisterDynamicNamespace(ChannelEngine.CurrencyEventPrefix, new ChannelDeclaration
             {
                 // A discrete one-shot record, not a sampled state: the reliable lane
@@ -172,7 +167,46 @@ namespace Gonogo.KSP
             // nothing rides the tick path itself.
             host.AddSampledSource(DrainPendingLosses, _ => { });
 
+            // Subscribed here and never removed, unlike everything HookGameEvents
+            // owns: this is the handler that re-arms the rest, so tearing it down at
+            // the main menu is the one teardown nothing can undo. It is what
+            // happened. Guarded rather than trusted to be called once, because
+            // EventData.Add appends without checking for a delegate it already holds
+            // (decompile-confirmed), so a second Register would fire it twice.
+            if (!_sceneHookInstalled)
+            {
+                _sceneHookInstalled = true;
+                GameEvents.onGameSceneLoadRequested.Add(OnSceneLoadRequested);
+            }
+
             HookGameEvents();
+        }
+
+        /// <summary>
+        /// Points the derived-currency fan-out at this engine's kernel and at a log
+        /// an operator can read.
+        ///
+        /// <para>The interceptor lives on a <c>ScenarioModule</c>, which has no host
+        /// and so no kernel of its own; this is the half of the subsystem holding
+        /// one. The POINTER is bound rather than the arm list, because
+        /// <c>ResolveCapabilities</c> runs after the last uplink's <c>Register</c>
+        /// and a list captured at that point would be empty for the whole
+        /// session.</para>
+        ///
+        /// <para>Its own method because it has to be callable again: see
+        /// <see cref="OnSceneLoadRequested"/>.</para>
+        /// </summary>
+        private void BindWithholding()
+        {
+            var host = _host;
+            if (host == null)
+            {
+                return;
+            }
+
+            CurrencyDelay.DerivedCurrencyWithholding.Bind(host.Kernel);
+            CurrencyDelay.DerivedCurrencyWithholding.Report = message => Debug.LogWarning(message);
+            CurrencyDelay.DerivedCurrencyWithholding.Note = message => Debug.Log(message);
         }
 
         private void HookGameEvents()
@@ -192,23 +226,43 @@ namespace Gonogo.KSP
             GameEvents.onCrash.Add(OnCrash);
             GameEvents.onCrashSplashdown.Add(OnCrash);
             GameEvents.onVesselWillDestroy.Add(OnVesselWillDestroy);
-            // The addon hosting this uplink is KSPAddon(once) + DontDestroyOnLoad, so
-            // Register runs once per process and these handlers are meant to live
-            // process-wide (a credit can land in any scene). Unsubscribe on return to
-            // the main menu anyway so a hypothetical re-Register cannot double-hook.
-            GameEvents.onGameSceneLoadRequested.Add(OnSceneUnload);
         }
 
-        private void OnSceneUnload(GameScenes scene)
+        /// <summary>
+        /// Arms this uplink on the way into a game and stands it down on the way back
+        /// to the main menu.
+        ///
+        /// <para><b>The re-arm is the fix for rig run <c>conf-fixed-1</c>.</b> The
+        /// stand-down half used to be all there was, on the stated assumption that a
+        /// re-<c>Register</c> would arm it again. There is no re-<c>Register</c>: the
+        /// host addon is <c>KSPAddon(Instantly, once)</c>, so <c>Register</c> runs
+        /// once for the whole process, and it runs during LOADING. KSP fires
+        /// <c>onGameSceneLoadRequested(MAINMENU)</c> out of
+        /// <c>HighLogic.SetLoadSceneEventsAndFlags</c> on the LOADING -> MAINMENU
+        /// transition that follows, so the stand-down was reached at BOOT, before the
+        /// player had loaded anything, and nothing ever undid it. Measured: the addon
+        /// logged its build at 11:34:14 and the scene change came at 11:35:53, 99
+        /// seconds later, in the same session whose science was withheld correctly
+        /// while RP-1's confidence moved anyway.</para>
+        ///
+        /// <para>Both halves are idempotent, so an extra scene change costs nothing.
+        /// The stand-down is kept rather than deleted because a currency handler at
+        /// the main menu has no career to attribute anything to.</para>
+        /// </summary>
+        private void OnSceneLoadRequested(GameScenes scene)
         {
             if (scene == GameScenes.MAINMENU)
             {
                 UnhookGameEvents();
                 // The kernel this pointed at belongs to the engine that registered
                 // us; there is no game to withhold anything for once we are back at
-                // the menu, and a re-Register binds it again.
+                // the menu.
                 CurrencyDelay.DerivedCurrencyWithholding.Unbind();
+                return;
             }
+
+            HookGameEvents();
+            BindWithholding();
         }
 
         private void UnhookGameEvents()
@@ -225,7 +279,6 @@ namespace Gonogo.KSP
             GameEvents.onCrash.Remove(OnCrash);
             GameEvents.onCrashSplashdown.Remove(OnCrash);
             GameEvents.onVesselWillDestroy.Remove(OnVesselWillDestroy);
-            GameEvents.onGameSceneLoadRequested.Remove(OnSceneUnload);
         }
 
         /// <summary>

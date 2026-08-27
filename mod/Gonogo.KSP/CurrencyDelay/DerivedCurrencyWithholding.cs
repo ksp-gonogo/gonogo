@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Globalization;
 using Sitrep.Contract;
 
 namespace Gonogo.KSP.CurrencyDelay
@@ -50,16 +51,83 @@ namespace Gonogo.KSP.CurrencyDelay
         }
 
         /// <summary>
+        /// The provider ids of the arms this would fan out to right now, for the
+        /// one line at startup that says whether an arm registered at all.
+        ///
+        /// <para>Its own reader rather than a count off <see cref="Arms"/>,
+        /// because "which arms" is the whole question: an empty roster and a
+        /// roster with <c>rp1</c> in it are the difference between a leak that is
+        /// open and a leak that is closed, and until this existed neither of them
+        /// said anything.</para>
+        /// </summary>
+        public static IReadOnlyList<string> ActiveArmIds()
+        {
+            var ids = new List<string>();
+            foreach (var arm in Arms())
+            {
+                ids.Add(SafeId(arm));
+            }
+            return ids;
+        }
+
+        /// <summary>
         /// The interceptor has just neutralised a <paramref name="primaryCurrency"/>
         /// change of <paramref name="baseAmount"/>. Fans out to every arm so each
         /// can put back what its mod derived from it.
         /// </summary>
         public static void WithholdDerived(string primaryCurrency, double baseAmount, double ut)
         {
+            var reached = new List<string>();
             foreach (var arm in Arms())
             {
+                reached.Add(SafeId(arm));
                 Safely(arm, "WithholdDerived", () => arm.WithholdDerived(primaryCurrency, baseAmount, ut));
             }
+
+            AnnounceFanOut(primaryCurrency, baseAmount, ut, reached);
+        }
+
+        /// <summary>
+        /// Says, every time a neutralise happens, how many arms it reached. This is
+        /// the line that would have ended rig run <c>conf-fixed-1</c> in a minute
+        /// instead of a session: the science was withheld correctly, the derived
+        /// confidence moved anyway, and the whole fan-out was unreachable with
+        /// nothing said about it either way. A no-op that cannot be told from a
+        /// success is not a fail-soft, it is a silence.
+        ///
+        /// <para>Three outcomes, three levels, because they are three different
+        /// facts. NOTHING BOUND is a warning: the interceptor is neutralising, so a
+        /// game is running, so the pointer should be there and something took it
+        /// away. NO ARMS is a note: on a stock install nothing derives anything and
+        /// that is simply the truth. REACHED is a note naming the arms, so a
+        /// following report from one of them has something to attach to.</para>
+        /// </summary>
+        private static void AnnounceFanOut(
+            string primaryCurrency, double baseAmount, double ut, IReadOnlyList<string> reached)
+        {
+            if (!Bound)
+            {
+                Report("[Gonogo] derived-currency: a delayed " + primaryCurrency + " credit of "
+                    + baseAmount.ToString("0.###", CultureInfo.InvariantCulture) + " at UT "
+                    + ut.ToString("0.###", CultureInfo.InvariantCulture)
+                    + " was neutralised with NO KERNEL BOUND, so no arm was asked and whatever any "
+                    + "installed mod derived from it is STILL credited");
+                return;
+            }
+
+            if (reached.Count == 0)
+            {
+                Note("[Gonogo] derived-currency: a delayed " + primaryCurrency + " credit of "
+                    + baseAmount.ToString("0.###", CultureInfo.InvariantCulture)
+                    + " was neutralised and no installed mod has an arm registered, so nothing "
+                    + "derived from it needed withholding");
+                return;
+            }
+
+            Note("[Gonogo] derived-currency: asked " + string.Join(", ", reached)
+                + " to withhold what it derived from a delayed " + primaryCurrency + " credit of "
+                + baseAmount.ToString("0.###", CultureInfo.InvariantCulture) + " at UT "
+                + ut.ToString("0.###", CultureInfo.InvariantCulture));
         }
 
         /// <summary>
@@ -91,10 +159,40 @@ namespace Gonogo.KSP.CurrencyDelay
             {
                 if (instance is IDerivedCurrencyWithholder arm)
                 {
+                    // An arm's own assembly references no game or engine assembly, so
+                    // it has nowhere to write; without this its refusals reached only
+                    // a health fact on system.uplinks, and an operator at the rig
+                    // cannot read one. Assigned here rather than once at resolution
+                    // time because nothing tells this file when resolution happened,
+                    // and the assignment is idempotent.
+                    TrySetDiagnostic(arm);
                     yield return arm;
                 }
             }
         }
+
+        private static void TrySetDiagnostic(IDerivedCurrencyWithholder arm)
+        {
+            try
+            {
+                arm.Diagnostic = ArmDiagnostic;
+            }
+            catch (Exception ex)
+            {
+                Report("[Gonogo] derived-currency arm \"" + SafeId(arm)
+                    + "\" would not take a diagnostic sink, so whatever it refuses to withhold will "
+                    + "say so nowhere: " + ex.Message);
+            }
+        }
+
+        /// <summary>
+        /// One delegate for every arm, allocated once: <see cref="Arms"/> runs on
+        /// every neutralise and a fresh closure per call would be per-earn garbage
+        /// for nothing. Indirects through <see cref="Report"/> rather than capturing
+        /// it, so installing a real sink after an arm has already been handed this
+        /// one still reaches the log.
+        /// </summary>
+        private static readonly Action<string> ArmDiagnostic = message => Report?.Invoke(message);
 
         /// <summary>
         /// Runs one arm's call, reporting a throw rather than letting it reach the
@@ -138,5 +236,14 @@ namespace Gonogo.KSP.CurrencyDelay
         /// deleted by the next person who cannot see it firing.
         /// </summary>
         public static Action<string> Report { get; set; } = _ => { };
+
+        /// <summary>
+        /// Where the ROUTINE outcome goes, separately from <see cref="Report"/>: a
+        /// fan-out that reached its arms is not a warning, and a subsystem that
+        /// only ever speaks up when something breaks cannot be told from one that
+        /// is not running at all. That indistinguishability is the whole of rig run
+        /// <c>conf-fixed-1</c>.
+        /// </summary>
+        public static Action<string> Note { get; set; } = _ => { };
     }
 }

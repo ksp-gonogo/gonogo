@@ -177,6 +177,7 @@ namespace Gonogo.KSP
                 // and BEFORE Start(), so the shared comms.* channel closures that
                 // Query the elected backend at Tick time see a resolved kernel.
                 _engine.ResolveCapabilities();
+                LogDerivedCurrencyArms();
 
                 // Install the READ-side elected-action-groups-backend resolver
                 // now the Kernel has resolved (VesselUplink declared the
@@ -334,6 +335,40 @@ namespace Gonogo.KSP
             catch (Exception ex)
             {
                 Debug.LogWarning("[Gonogo] could not read build identity: " + ex.Message);
+            }
+        }
+
+        /// <summary>
+        /// Names, in <c>KSP.log</c>, which mods have an arm keeping a quantity they
+        /// DERIVE from a currency change withheld for as long as the change is.
+        ///
+        /// <para>Here because this is the only place that can say it: an arm lives in
+        /// its own Uplink assembly, which references no game assembly and so has no
+        /// log to write to, and the outcome was previously carried only as a health
+        /// fact on <c>system.uplinks</c>. A rig operator cannot read that, so
+        /// "registered" and "never registered" were the same silence, and a rig run
+        /// with the leak still wide open could not be told from a deployment
+        /// problem.</para>
+        ///
+        /// <para>After <c>ResolveCapabilities</c> and not before: a provider is
+        /// registered during an uplink's <c>Register</c> and only becomes active when
+        /// the kernel resolves, so asked any earlier this would truthfully report
+        /// nothing on a perfectly working install.</para>
+        /// </summary>
+        private static void LogDerivedCurrencyArms()
+        {
+            try
+            {
+                var arms = CurrencyDelay.DerivedCurrencyWithholding.ActiveArmIds();
+                Debug.Log("[Gonogo] derived-currency arms: "
+                    + (arms.Count == 0
+                        ? "none. No installed mod registered one, or its Uplink refused to; nothing "
+                          + "derived from a delayed currency change will be withheld"
+                        : string.Join(", ", arms)));
+            }
+            catch (Exception ex)
+            {
+                Debug.LogWarning("[Gonogo] could not read the derived-currency arms: " + ex.Message);
             }
         }
 

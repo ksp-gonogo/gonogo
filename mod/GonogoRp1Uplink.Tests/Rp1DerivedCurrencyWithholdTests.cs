@@ -181,7 +181,7 @@ namespace GonogoRp1Uplink.Tests
         public void a_withhold_with_no_observation_behind_it_restores_nothing_and_says_so()
         {
             var said = new System.Collections.Generic.List<string>();
-            var withholder = new Rp1DerivedCurrencyWithholder { Report = said.Add };
+            var withholder = new Rp1DerivedCurrencyWithholder { Diagnostic = said.Add };
 
             withholder.ObserveBeforeDerivation(Sitrep.Contract.DerivedCurrencyCapability.Science, EarnUt);
             Confidence.Instance!.AwardForScience(AwardFor25Science);

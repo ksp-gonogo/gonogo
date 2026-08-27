@@ -107,9 +107,8 @@ namespace Gonogo.KSP.Tests.CurrencyDelay
         /// The arms are found through the capability kernel, and the only half of
         /// this subsystem holding one is the uplink: a <c>ScenarioModule</c> has no
         /// <c>IUplinkHost</c>. So the same uplink that DECLARES the capability binds
-        /// the kernel the interceptor resolves it through, and clears it on the way
-        /// back to the main menu. Unbound, every arm is skipped and the leak is open
-        /// with nothing said about it.
+        /// the kernel the interceptor resolves it through. Unbound, every arm is
+        /// skipped and the leak is open with nothing said about it.
         /// </summary>
         [Fact]
         public void the_uplink_that_declares_the_capability_binds_the_kernel_too()
@@ -118,7 +117,45 @@ namespace Gonogo.KSP.Tests.CurrencyDelay
 
             Assert.Contains("DerivedCurrencyCapability.CapabilityId", uplink, StringComparison.Ordinal);
             Assert.Contains("DerivedCurrencyWithholding.Bind", uplink, StringComparison.Ordinal);
-            Assert.Contains("DerivedCurrencyWithholding.Unbind", uplink, StringComparison.Ordinal);
+        }
+
+        /// <summary>
+        /// And it binds it again on the way BACK INTO a game, which is the whole of
+        /// rig run <c>conf-fixed-1</c>: the science was withheld correctly and RP-1's
+        /// confidence moved anyway, with nothing in <c>KSP.log</c> either way.
+        ///
+        /// <para><c>Register</c> runs once for the whole process (the host addon is
+        /// <c>KSPAddon(Instantly, once)</c>) and it runs during LOADING, which is
+        /// BEFORE the first LOADING -> MAINMENU transition. KSP fires
+        /// <c>onGameSceneLoadRequested(MAINMENU)</c> from
+        /// <c>HighLogic.SetLoadSceneEventsAndFlags</c>, immediately before the
+        /// "Scene Change : From LOADING to MAINMENU" line, so the main-menu teardown
+        /// is reached at boot and nothing ever undid it. The kernel pointer and every
+        /// game-event hook were gone for the rest of the session.</para>
+        /// </summary>
+        [Fact]
+        public void the_kernel_and_the_hooks_are_re_armed_on_the_way_back_into_a_game()
+        {
+            var uplink = CurrencyDelaySourceText.ReadRelative("CurrencyEventUplink.cs");
+            var handler = CurrencyDelaySourceText.MethodBody(
+                uplink, "private void OnSceneLoadRequested(GameScenes scene)");
+
+            Assert.Contains("HookGameEvents()", handler, StringComparison.Ordinal);
+            Assert.Contains("BindWithholding()", handler, StringComparison.Ordinal);
+        }
+
+        /// <summary>
+        /// The scene-request subscription itself is never torn down, because it is the
+        /// handler that re-arms everything else: removing it is the one teardown
+        /// nothing could undo, and removing it is exactly what happened.
+        /// </summary>
+        [Fact]
+        public void the_scene_request_subscription_outlives_the_main_menu()
+        {
+            var uplink = CurrencyDelaySourceText.ReadRelative("CurrencyEventUplink.cs");
+            var unhook = CurrencyDelaySourceText.MethodBody(uplink, "private void UnhookGameEvents()");
+
+            Assert.DoesNotContain("onGameSceneLoadRequested", unhook, StringComparison.Ordinal);
         }
 
         /// <summary>

@@ -22,12 +22,14 @@ namespace Gonogo.KSP.Tests.CurrencyDelay
         {
             DerivedCurrencyWithholding.Unbind();
             DerivedCurrencyWithholding.Report = _ => { };
+            DerivedCurrencyWithholding.Note = _ => { };
         }
 
         public void Dispose()
         {
             DerivedCurrencyWithholding.Unbind();
             DerivedCurrencyWithholding.Report = _ => { };
+            DerivedCurrencyWithholding.Note = _ => { };
         }
 
         private static Kernel KernelWith(params IDerivedCurrencyWithholder[] arms)
@@ -151,6 +153,102 @@ namespace Gonogo.KSP.Tests.CurrencyDelay
             Assert.Contains("WithholdDerived", said[0], StringComparison.Ordinal);
         }
 
+        /// <summary>
+        /// A neutralise with NO KERNEL BOUND is not a quiet no-op, it is the leak
+        /// wide open, and it must say so. Rig run <c>conf-fixed-1</c> is exactly this
+        /// state: the science was withheld correctly, the derived confidence moved
+        /// anyway, and the whole fan-out was unreachable with nothing said either
+        /// way, so a working install and a dead one read identically.
+        /// </summary>
+        [Fact]
+        public void a_neutralise_with_no_kernel_bound_says_the_leak_is_open()
+        {
+            var said = new List<string>();
+            DerivedCurrencyWithholding.Report = said.Add;
+            Assert.False(DerivedCurrencyWithholding.Bound);
+
+            DerivedCurrencyWithholding.WithholdDerived(DerivedCurrencyCapability.Science, 25.0, 100.0);
+
+            Assert.Single(said);
+            Assert.Contains("NO KERNEL BOUND", said[0], StringComparison.Ordinal);
+            Assert.Contains("STILL credited", said[0], StringComparison.Ordinal);
+        }
+
+        /// <summary>
+        /// A stock install derives nothing, so a bound kernel with no arm registered
+        /// is the truth rather than a fault: it is noted, not warned about. The two
+        /// have to be distinguishable, which is the whole point of saying anything.
+        /// </summary>
+        [Fact]
+        public void a_bound_kernel_with_no_arms_is_noted_rather_than_warned_about()
+        {
+            var warned = new List<string>();
+            var noted = new List<string>();
+            DerivedCurrencyWithholding.Report = warned.Add;
+            DerivedCurrencyWithholding.Note = noted.Add;
+            DerivedCurrencyWithholding.Bind(KernelWith());
+
+            DerivedCurrencyWithholding.WithholdDerived(DerivedCurrencyCapability.Science, 25.0, 100.0);
+
+            Assert.Empty(warned);
+            Assert.Single(noted);
+            Assert.Contains("no installed mod has an arm registered", noted[0], StringComparison.Ordinal);
+        }
+
+        /// <summary>
+        /// And a fan-out that reached its arms NAMES them, so a report from one of
+        /// them afterwards has something to attach to, and so "reached and withheld"
+        /// can be told from "never asked".
+        /// </summary>
+        [Fact]
+        public void a_fan_out_that_reached_its_arms_names_them()
+        {
+            var noted = new List<string>();
+            DerivedCurrencyWithholding.Note = noted.Add;
+            DerivedCurrencyWithholding.Bind(KernelWith(new RecordingArm("rp1"), new RecordingArm("other")));
+
+            DerivedCurrencyWithholding.WithholdDerived(DerivedCurrencyCapability.Science, 25.0, 100.0);
+
+            Assert.Single(noted);
+            Assert.Contains("rp1", noted[0], StringComparison.Ordinal);
+            Assert.Contains("other", noted[0], StringComparison.Ordinal);
+        }
+
+        /// <summary>
+        /// The arm ids the startup line reports are the ACTIVE ones, so a line that
+        /// names <c>rp1</c> is evidence the arm registered and a line that names none
+        /// is evidence it did not. Absent that, both were the same silence.
+        /// </summary>
+        [Fact]
+        public void the_active_arm_ids_are_readable_without_a_neutralise()
+        {
+            Assert.Empty(DerivedCurrencyWithholding.ActiveArmIds());
+
+            DerivedCurrencyWithholding.Bind(KernelWith(new RecordingArm("rp1")));
+
+            Assert.Equal(new[] { "rp1" }, DerivedCurrencyWithholding.ActiveArmIds());
+        }
+
+        /// <summary>
+        /// An arm's own refusals reach the same log. Its assembly references no game
+        /// assembly and therefore has no log of its own, so before the core installed
+        /// this sink an arm that refused every credit counted it into a health fact on
+        /// <c>system.uplinks</c> and said nothing anywhere a rig operator can read.
+        /// </summary>
+        [Fact]
+        public void an_arms_own_refusal_reaches_the_log_the_core_installed()
+        {
+            var said = new List<string>();
+            DerivedCurrencyWithholding.Report = said.Add;
+            var arm = new RecordingArm("rp1");
+            DerivedCurrencyWithholding.Bind(KernelWith(arm));
+
+            DerivedCurrencyWithholding.WithholdDerived(DerivedCurrencyCapability.Science, 25.0, 100.0);
+            arm.Diagnostic("could not read RP-1's confidence");
+
+            Assert.Contains("could not read RP-1's confidence", said);
+        }
+
         private sealed class RecordingArm : IDerivedCurrencyWithholder
         {
             public RecordingArm(string id)
@@ -159,6 +257,8 @@ namespace Gonogo.KSP.Tests.CurrencyDelay
             }
 
             public string ProviderId { get; }
+
+            public Action<string> Diagnostic { get; set; } = _ => { };
 
             public List<string> Calls { get; } = new List<string>();
 
@@ -172,6 +272,8 @@ namespace Gonogo.KSP.Tests.CurrencyDelay
         private sealed class ThrowingArm : IDerivedCurrencyWithholder
         {
             public string ProviderId => "throwing-arm";
+
+            public Action<string> Diagnostic { get; set; } = _ => { };
 
             public void ObserveBeforeDerivation(string primaryCurrency, double ut) =>
                 throw new InvalidOperationException("no confidence model");
