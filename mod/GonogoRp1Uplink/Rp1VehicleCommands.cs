@@ -169,18 +169,29 @@ namespace GonogoRp1Uplink
         /// Scrap and rush can run: RP-1's space centre and its static helpers
         /// resolved.
         ///
-        /// <para><see cref="RushChangeEngineers"/> is part of the test rather
-        /// than left to the handler, and deliberately: a rush that set the flag
-        /// and could not make RP-1 recalculate would confirm to the operator and
-        /// leave the complex's cached build rates on the old multiplier. Better
-        /// the control is absent than confirms something that did not fully
-        /// happen.</para>
+        /// <para><b>TYPES ONLY, and that is a correction rather than a
+        /// simplification.</b> An earlier version also required that
+        /// <c>ScrapVessel</c> and <c>ChangeEngineers</c> resolve as METHODS, and
+        /// on the first rig run with RP-1 installed all four commands were absent
+        /// from the manifest with <c>health: 0</c> and no reason anywhere. A
+        /// method-level gate on the MANIFEST cannot say why it fired, because a
+        /// command that was never declared is indistinguishable from one that was
+        /// never written.</para>
+        ///
+        /// <para>The gate belongs where <see cref="Rp1BuildCommands.IsAvailable"/>
+        /// puts it: on the types, with the method lookups done at the press and
+        /// refused with a typed <see cref="CommandErrorCode.ModeUnavailable"/> and
+        /// a sentence naming what was not recognised. Every handler here already
+        /// did that, so nothing was gained by refusing to declare the command as
+        /// well, and an operator lost the reason. A control that says "this RP-1
+        /// build has no scrap this Uplink recognises" beats a control that is not
+        /// there.</para>
+        ///
+        /// <para><see cref="MethodDiagnosis"/> keeps the method-level answer and
+        /// puts it on Health, so the fact the old gate was trying to express is
+        /// still reported, just not by silently shortening a manifest.</para>
         /// </summary>
-        public bool IsAvailable =>
-            _scm != null
-            && _utilities != null
-            && Rp1Types.StaticMethod(_utilities, "ScrapVessel", 1) != null
-            && RushChangeEngineers() != null;
+        public bool IsAvailable => _scm != null && _utilities != null;
 
         /// <summary>
         /// Roll out and roll back can run: the above, plus the operation type
@@ -189,10 +200,74 @@ namespace GonogoRp1Uplink
         /// <para>Separate from <see cref="IsAvailable"/> because the dependency
         /// genuinely is: correcting a queue needs nothing of
         /// <c>ReconRolloutProject</c>, so a release that moved that type should
-        /// cost the two commands that need it and not the two that do not.</para>
+        /// cost the two commands that need it and not the two that do not. Types
+        /// only, for the reason above.</para>
         /// </summary>
         public bool IsMoveAvailable =>
             IsAvailable && _reconRollout != null && _rolloutReconType != null;
+
+        /// <summary>
+        /// Which of the RP-1 members these commands invoke actually resolved, as
+        /// one sentence for a health fact.
+        ///
+        /// <para>This is the fact the manifest gate used to express by omission.
+        /// A withheld command and an absent one look identical from outside; a
+        /// health fact that names the member is the difference between "nobody
+        /// wrote this" and "RP-1 v4.7 renamed ScrapVessel".</para>
+        ///
+        /// <para>Reports a THROW separately from a miss, because they have
+        /// different causes: a miss is a rename, a throw is a signature this
+        /// runtime could not resolve, and the second is invisible to a metadata
+        /// check run on a developer's machine.</para>
+        /// </summary>
+        public string MethodDiagnosis()
+        {
+            if (_scm == null || _utilities == null)
+            {
+                return "RP-1 space-centre types not found";
+            }
+
+            var missing = new List<string>();
+            Probe(missing, "KCTUtilities.ScrapVessel", () => Rp1Types.StaticMethod(_utilities, "ScrapVessel", 1));
+            Probe(missing, "KCTUtilities.ChangeEngineers(LaunchComplex, int)", RushChangeEngineers);
+            if (_reconRollout == null)
+            {
+                missing.Add("ReconRolloutProject type not found");
+            }
+            else
+            {
+                Probe(missing, "ReconRolloutProject..ctor(4)", () => Rp1Types.Constructor(_reconRollout, 4));
+                if (_rolloutReconType == null)
+                {
+                    missing.Add("ReconRolloutProject.RolloutReconType not found");
+                }
+            }
+
+            return missing.Count == 0
+                ? "every invoked member resolved"
+                : "commands will refuse at the press: " + string.Join("; ", missing.ToArray());
+        }
+
+        /// <summary>
+        /// Records a lookup that came back empty, and one that THREW, as
+        /// different things. A throw here must never escape: this runs from
+        /// Health, on the Courier thread, and a diagnostic that takes the health
+        /// surface down with it is worse than no diagnostic.
+        /// </summary>
+        private static void Probe(List<string> missing, string what, Func<object?> lookup)
+        {
+            try
+            {
+                if (lookup() == null)
+                {
+                    missing.Add(what + " not found");
+                }
+            }
+            catch (Exception ex)
+            {
+                missing.Add(what + " could not be resolved: " + Rp1Types.ExceptionReason(ex));
+            }
+        }
 
         /// <summary>
         /// Rolls a finished vehicle out to a launch pad.

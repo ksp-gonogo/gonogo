@@ -747,5 +747,33 @@ namespace GonogoRp1Uplink.Tests
             Assert.True(_commands.IsAvailable);
             Assert.True(_commands.IsMoveAvailable);
         }
+
+        [Fact]
+        public void Availability_turns_on_TYPES_and_never_on_a_method_lookup()
+        {
+            // THE FIRST RIG RUN'S DEFECT, pinned. An earlier version also
+            // required ScrapVessel and ChangeEngineers to resolve as METHODS
+            // before it would DECLARE the commands, and on a live rig with RP-1
+            // installed all four vanished from the manifest with health 0 and no
+            // reason anywhere: indistinguishable from never having been written.
+            //
+            // A method that will not resolve is a refusal at the press, with a
+            // sentence, which every handler here already produces. It is not a
+            // reason to withhold the command.
+            Assert.True(_commands.IsAvailable);
+            Assert.Contains("resolved", _commands.MethodDiagnosis());
+        }
+
+        [Fact]
+        public void The_diagnosis_names_the_member_that_did_not_resolve()
+        {
+            // The stand-in HAS every member, so this asserts the shape of the
+            // sentence rather than a miss: it has to name members, because
+            // "unavailable" tells an operator nothing they can report.
+            var diagnosis = _commands.MethodDiagnosis();
+
+            Assert.False(string.IsNullOrWhiteSpace(diagnosis));
+            Assert.DoesNotContain("not found", diagnosis);
+        }
     }
 }

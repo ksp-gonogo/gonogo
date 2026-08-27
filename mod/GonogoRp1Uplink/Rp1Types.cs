@@ -297,12 +297,31 @@ namespace GonogoRp1Uplink
         /// need the compile-time reference this assembly deliberately does not
         /// have.
         /// </summary>
-        public static MethodInfo? InstanceMethod(object target, string name, int parameterCount) =>
-            MatchArity(target.GetType().GetMethods(BindingFlags.Public | BindingFlags.Instance), name, parameterCount);
+        public static MethodInfo? InstanceMethod(object target, string name, int parameterCount)
+        {
+            try
+            {
+                return MatchArity(
+                    target.GetType().GetMethods(BindingFlags.Public | BindingFlags.Instance), name, parameterCount);
+            }
+            catch (Exception)
+            {
+                return null;
+            }
+        }
 
         /// <summary>A public static method by name and arity; see <see cref="InstanceMethod"/> for why arity.</summary>
-        public static MethodInfo? StaticMethod(Type type, string name, int parameterCount) =>
-            MatchArity(type.GetMethods(BindingFlags.Public | BindingFlags.Static), name, parameterCount);
+        public static MethodInfo? StaticMethod(Type type, string name, int parameterCount)
+        {
+            try
+            {
+                return MatchArity(type.GetMethods(BindingFlags.Public | BindingFlags.Static), name, parameterCount);
+            }
+            catch (Exception)
+            {
+                return null;
+            }
+        }
 
         /// <summary>
         /// A public static method by name, arity AND the full name of its first
@@ -318,18 +337,38 @@ namespace GonogoRp1Uplink
         /// </summary>
         public static MethodInfo? StaticMethodOn(Type type, string name, string firstParameterTypeFullName, int parameterCount)
         {
-            foreach (var m in type.GetMethods(BindingFlags.Public | BindingFlags.Static))
+            MethodInfo[] candidates;
+            try
+            {
+                candidates = type.GetMethods(BindingFlags.Public | BindingFlags.Static);
+            }
+            catch (Exception)
+            {
+                return null;
+            }
+
+            foreach (var m in candidates)
             {
                 if (m.Name != name)
                 {
                     continue;
                 }
-                var parameters = m.GetParameters();
-                if (parameters.Length == parameterCount
-                    && parameters.Length > 0
-                    && parameters[0].ParameterType.FullName == firstParameterTypeFullName)
+                try
                 {
-                    return m;
+                    var parameters = m.GetParameters();
+                    if (parameters.Length == parameterCount
+                        && parameters.Length > 0
+                        && parameters[0].ParameterType.FullName == firstParameterTypeFullName)
+                    {
+                        return m;
+                    }
+                }
+                catch (Exception)
+                {
+                    // One overload whose signature this runtime cannot resolve
+                    // must not hide the others. Reading a parameter TYPE loads
+                    // that type, so an overload referencing an absent assembly
+                    // throws here and only here.
                 }
             }
             return null;
@@ -395,12 +434,19 @@ namespace GonogoRp1Uplink
         /// </summary>
         public static ConstructorInfo? Constructor(Type type, int parameterCount)
         {
-            foreach (var c in type.GetConstructors(BindingFlags.Public | BindingFlags.Instance))
+            try
             {
-                if (c.GetParameters().Length == parameterCount)
+                foreach (var c in type.GetConstructors(BindingFlags.Public | BindingFlags.Instance))
                 {
-                    return c;
+                    if (c.GetParameters().Length == parameterCount)
+                    {
+                        return c;
+                    }
                 }
+            }
+            catch (Exception)
+            {
+                return null;
             }
             return null;
         }
@@ -414,13 +460,37 @@ namespace GonogoRp1Uplink
         public static string ExceptionReason(Exception ex) =>
             (ex is TargetInvocationException tie && tie.InnerException != null ? tie.InnerException : ex).Message;
 
+        /// <summary>
+        /// The first method of this name with this arity, skipping any overload
+        /// whose signature this runtime cannot resolve.
+        /// </summary>
+        /// <remarks>
+        /// The per-candidate try is not defensive padding. <c>GetParameters</c>
+        /// LOADS each parameter's type, so one overload referencing a type from an
+        /// absent assembly throws, and an unguarded loop would lose every later
+        /// overload with it. RP-1's <c>KCTUtilities</c> is a hundred-method static
+        /// class reaching KSP, ROUtils and its own types, which is exactly the
+        /// shape where that bites.
+        /// </remarks>
         private static MethodInfo? MatchArity(IEnumerable<MethodInfo> methods, string name, int parameterCount)
         {
             foreach (var m in methods)
             {
-                if (m.Name == name && m.GetParameters().Length == parameterCount)
+                if (m.Name != name)
                 {
-                    return m;
+                    continue;
+                }
+                try
+                {
+                    if (m.GetParameters().Length == parameterCount)
+                    {
+                        return m;
+                    }
+                }
+                catch (Exception)
+                {
+                    // see the remarks: a signature this runtime cannot resolve is
+                    // not this overload, and must not cost us the rest
                 }
             }
             return null;

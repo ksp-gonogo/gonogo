@@ -710,6 +710,21 @@ namespace GonogoRp1Uplink
                         : _build.IsAvailable
                             ? "rp1.build.repeat registered"
                             : "build or currency types not found"),
+                // The fact the first rig run could not get at. Four commands were
+                // absent from the manifest with health 0 and no reason anywhere,
+                // which is indistinguishable from their never having been
+                // written. Says which commands are declared AND which invoked
+                // members resolved, because those are different questions and the
+                // second is the one that explains a refusal at the press.
+                new UplinkHealthFact(
+                    "vehicle commands",
+                    !_vehicles.IsAvailable
+                        ? "not registered: RP-1 space-centre types not found"
+                        : (_vehicles.IsMoveAvailable
+                            ? "rollout, rollback, scrap and complex rush registered"
+                            : "scrap and complex rush registered; rollout and rollback withheld, "
+                              + "ReconRolloutProject not resolved")
+                          + " (" + _vehicles.MethodDiagnosis() + ")"),
                 new UplinkHealthFact(
                     "simulation provider",
                     _simulationRegistrationError != null
