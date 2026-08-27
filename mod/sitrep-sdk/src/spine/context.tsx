@@ -16,6 +16,10 @@ import type {
   WarpState,
 } from "../__generated__/contract";
 import { DYNAMIC_CARRIED_TOPIC_PREFIXES } from "../default-carried-topics";
+import {
+  getRuntimeRegisteredTopicIds,
+  subscribeRuntimeTopicRegistry,
+} from "../runtime-topic-registry";
 import { value } from "../unit-system/value";
 import type { Value } from "../value";
 import type { TelemetryClient } from "./client";
@@ -236,7 +240,24 @@ export function TelemetryProvider({
   // to): a fresh session, matching the auto-built store's own
   // client-identity reset above; a client swap starts a new allowlist rather
   // than carrying stale entries from a transport that's no longer attached.
+  //
+  // The Topics a client package registered at runtime are folded in on the same
+  // footing. A promotion list written in the gonogo repo can never name an
+  // Uplink's Topic, so without this an Uplink's data is reachable only through
+  // the canonical Topic read (which skips this gate) and is invisible to
+  // everything routed through it: the graph series, the note tags, the alarm
+  // subjects. The gate exists to keep a MAPPED key on its working legacy
+  // fallback rather than blanking it, and an Uplink Topic has no legacy
+  // fallback to protect, so withholding promotion buys nothing and costs the
+  // whole surface.
   const carriedClientRef = useRef<TelemetryClient | null>(null);
+  // Registration happens when an Uplink's bundle loads, which is after this
+  // provider mounts, so the fold has to be live rather than read once.
+  const registeredTopics = useSyncExternalStore(
+    subscribeRuntimeTopicRegistry,
+    getRuntimeRegisteredTopicIds,
+    getRuntimeRegisteredTopicIds,
+  );
   const [carriedChannels, setCarriedChannels] = useState<ReadonlySet<string>>(
     () => {
       carriedClientRef.current = client;
@@ -248,6 +269,7 @@ export function TelemetryProvider({
         // prop) so any TelemetryProvider carries them, matching the store's
         // `dynamicWholeTopicPrefixes` resolution above.
         ...DYNAMIC_CARRIED_TOPIC_PREFIXES,
+        ...registeredTopics,
       ]);
     },
   );
@@ -257,6 +279,7 @@ export function TelemetryProvider({
       ...client.declaredChannels,
       ...(carriedChannelsProp ?? []),
       ...DYNAMIC_CARRIED_TOPIC_PREFIXES,
+      ...registeredTopics,
     ];
     if (carriedClientRef.current !== client) {
       carriedClientRef.current = client;
@@ -264,7 +287,7 @@ export function TelemetryProvider({
       return;
     }
     setCarriedChannels((previous) => unionGrow(previous, additions));
-  }, [client, carriedChannelsProp]);
+  }, [client, carriedChannelsProp, registeredTopics]);
 
   // A store is built with the channels contributed so far, which on a station
   // is none of them: its Uplink bundles cannot load until there is a

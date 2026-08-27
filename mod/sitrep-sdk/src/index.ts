@@ -173,6 +173,14 @@ export {
 // requirement only ever applied to code inside this repo.
 export { PerfBudget } from "./perf/PerfBudget";
 export * from "./reading";
+// Which Topics a client package has registered at runtime, and a subscription
+// to that answer changing. Read by the app's field catalogue and by
+// `TelemetryProvider`'s carried-channels allowlist; an Uplink author registers
+// the way they already do and never calls these.
+export {
+  getRuntimeRegisteredTopicIds,
+  subscribeRuntimeTopicRegistry,
+} from "./runtime-topic-registry";
 // ---------------------------------------------------------------------------
 // SHARED PROCESSORS: the handles, their result types, and the pure derivations
 // behind them.

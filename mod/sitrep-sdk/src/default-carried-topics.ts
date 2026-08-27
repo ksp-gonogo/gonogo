@@ -27,8 +27,16 @@
  * a widget mounted on it subscribed, which reaches the mod through
  * `SitrepPeerRelay`'s refcounted sink; a topic missing from here is as
  * reachable from a station as one on it. Adding an entry to help a station is
- * always the wrong fix, and a topic an Uplink installed this morning could
- * never be on a list written here anyway.
+ * always the wrong fix.
+ *
+ * A topic an Uplink installed this morning could never be on a list written
+ * here, and no longer needs to be: `TelemetryProvider` folds in every Topic a
+ * client package registered at runtime
+ * (`registerBarePrimitiveTopic`/`runtime-topic-registry.ts`) on top of this
+ * list. So this is the FIRST-PARTY floor, not the whole answer. The Uplink
+ * entries still below it are first-party Uplinks whose Topics come through
+ * codegen into this SDK; they are harmless duplicates of what registration now
+ * promotes, and adding a new one here is never how an Uplink gets carried.
  */
 export const DEFAULT_SITREP_CARRIED_TOPICS: readonly string[] = [
   "vessel.orbit",

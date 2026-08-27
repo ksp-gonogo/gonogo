@@ -1,33 +1,33 @@
 import { describe, expect, it } from "vitest";
 import {
+  getTopicFieldCatalog,
+  getUndescribedCarriedTopics,
   humaniseFieldPath,
-  TOPIC_FIELD_CATALOG,
-  UNDESCRIBED_CARRIED_TOPICS,
 } from "./topicFieldCatalog";
 
-describe("TOPIC_FIELD_CATALOG", () => {
+describe("getTopicFieldCatalog()", () => {
   it("offers a key for every field of a carried Topic", () => {
-    const keys = new Set(TOPIC_FIELD_CATALOG.map((k) => k.key));
+    const keys = new Set(getTopicFieldCatalog().map((k) => k.key));
     expect(keys.has("career.status.economy.funds")).toBe(true);
     expect(keys.has("vessel.orbit.sma")).toBe(true);
   });
 
   it("includes the client-derived channels, which no generated map describes", () => {
-    const keys = new Set(TOPIC_FIELD_CATALOG.map((k) => k.key));
+    const keys = new Set(getTopicFieldCatalog().map((k) => k.key));
     expect(keys.has("vessel.state.altitudeAsl")).toBe(true);
     expect(keys.has("vessel.state.twr")).toBe(true);
     // The single largest block of the vocabulary. A regression that stopped
     // registering the declaration would leave the catalogue looking merely
     // shorter rather than broken, so the count is asserted rather than a
     // sample of it.
-    const vesselState = TOPIC_FIELD_CATALOG.filter(
+    const vesselState = getTopicFieldCatalog().filter(
       (k) => k.topic === "vessel.state",
     );
     expect(vesselState.length).toBeGreaterThan(50);
   });
 
   it("keys every entry by the path a read actually samples", () => {
-    const funds = TOPIC_FIELD_CATALOG.find(
+    const funds = getTopicFieldCatalog().find(
       (k) => k.key === "career.status.economy.funds",
     );
     expect(funds).toMatchObject({
@@ -40,7 +40,7 @@ describe("TOPIC_FIELD_CATALOG", () => {
   });
 
   it("never offers a path under a collection, which no sample can reach", () => {
-    const dead = TOPIC_FIELD_CATALOG.filter(
+    const dead = getTopicFieldCatalog().filter(
       (k) =>
         k.key.startsWith("career.status.contracts.active.") ||
         k.key.startsWith("career.status.facilities."),
@@ -49,7 +49,7 @@ describe("TOPIC_FIELD_CATALOG", () => {
   });
 
   it("names the collections themselves, so the field is not simply missing", () => {
-    const contracts = TOPIC_FIELD_CATALOG.find(
+    const contracts = getTopicFieldCatalog().find(
       (k) => k.key === "career.status.contracts.active",
     );
     expect(contracts?.kind).toBe("collection");
@@ -60,14 +60,14 @@ describe("TOPIC_FIELD_CATALOG", () => {
     // A raw field subtopic splits after the second segment, so a deeper Topic
     // would resolve, and subscribe, against a parent no channel publishes.
     const derived = new Set(["vessel.state", "spaceCenter.state"]);
-    const offenders = TOPIC_FIELD_CATALOG.filter(
+    const offenders = getTopicFieldCatalog().filter(
       (k) => !derived.has(k.topic) && k.topic.split(".").length !== 2,
     );
     expect(offenders.map((k) => k.key)).toEqual([]);
   });
 
   it("carries a unit on every quantity, so a reading can be rendered", () => {
-    const bare = TOPIC_FIELD_CATALOG.filter(
+    const bare = getTopicFieldCatalog().filter(
       (k) => k.kind === "quantity" && k.unit === undefined,
     );
     expect(bare.map((k) => k.key)).toEqual([]);
@@ -78,11 +78,11 @@ describe("TOPIC_FIELD_CATALOG", () => {
     // the VOCABULARY, so a walk that quietly stopped resolving fails here
     // rather than reporting a shorter list. Never lower this to make it pass:
     // teach the walk instead.
-    expect(TOPIC_FIELD_CATALOG.length).toBeGreaterThan(500);
+    expect(getTopicFieldCatalog().length).toBeGreaterThan(500);
   });
 });
 
-describe("UNDESCRIBED_CARRIED_TOPICS", () => {
+describe("getUndescribedCarriedTopics()", () => {
   it("names exactly the carried Topics nothing has annotated", () => {
     // Pinned rather than counted. A Topic that arrives with no unit metadata
     // would otherwise be absent from every picker in the app with nothing to
@@ -93,7 +93,7 @@ describe("UNDESCRIBED_CARRIED_TOPICS", () => {
     // The Uplink Topics are here because their client packages register their
     // units at module load and this package does not import them. They are
     // described once an app that loads the Uplink builds the catalogue.
-    expect([...UNDESCRIBED_CARRIED_TOPICS].sort()).toEqual(
+    expect([...getUndescribedCarriedTopics()].sort()).toEqual(
       [
         // The three dv.* channels key their fields by RESOURCE NAME, so there is
         // no fixed field set for a declaration to enumerate.
@@ -125,8 +125,8 @@ describe("UNDESCRIBED_CARRIED_TOPICS", () => {
   });
 
   it("does not overlap the catalogue it excludes from", () => {
-    const described = new Set(TOPIC_FIELD_CATALOG.map((k) => k.topic));
-    for (const topic of UNDESCRIBED_CARRIED_TOPICS) {
+    const described = new Set(getTopicFieldCatalog().map((k) => k.topic));
+    for (const topic of getUndescribedCarriedTopics()) {
       expect(described.has(topic)).toBe(false);
     }
   });
@@ -163,7 +163,7 @@ describe("every catalogue key is readable", () => {
     // This caught sixteen vector-component keys whose unit lives on a dotted
     // leaf, which the path judgement could not match while the read could.
     const { resolveValueTopic } = await import("@ksp-gonogo/sitrep-client");
-    const unresolvable = TOPIC_FIELD_CATALOG.filter(
+    const unresolvable = getTopicFieldCatalog().filter(
       (entry) => resolveValueTopic("data", entry.key) === undefined,
     );
     expect(unresolvable.map((entry) => entry.key)).toEqual([]);
@@ -175,14 +175,14 @@ describe("one name per value", () => {
     const { redirectKinematicSubtopic } = await import(
       "@ksp-gonogo/sitrep-client"
     );
-    const keys = new Set(TOPIC_FIELD_CATALOG.map((entry) => entry.key));
+    const keys = new Set(getTopicFieldCatalog().map((entry) => entry.key));
     expect(keys.has("vessel.state.altitudeAsl")).toBe(true);
     // Real on the wire, and redirected on read. Offering both would put two
     // names for one altitude in front of the operator.
     expect(keys.has("vessel.flight.altitudeAsl")).toBe(false);
     expect(keys.has("vessel.flight.orbitalSpeed")).toBe(false);
 
-    const redirected = TOPIC_FIELD_CATALOG.filter(
+    const redirected = getTopicFieldCatalog().filter(
       (entry) => redirectKinematicSubtopic(entry.key) !== entry.key,
     );
     expect(redirected.map((entry) => entry.key)).toEqual([]);
@@ -191,14 +191,14 @@ describe("one name per value", () => {
   it("leaves a non-kinematic field of the same Topic alone", () => {
     // Nothing derives a twin for these, so there is no duplication to collapse
     // and dropping them would lose real vocabulary.
-    const keys = new Set(TOPIC_FIELD_CATALOG.map((entry) => entry.key));
+    const keys = new Set(getTopicFieldCatalog().map((entry) => entry.key));
     expect(keys.has("vessel.flight.mach")).toBe(true);
   });
 });
 
 describe("a derived channel is offered only when its inputs are carried", () => {
   it("offers vessel.state, whose inputs are promoted", () => {
-    const topics = new Set(TOPIC_FIELD_CATALOG.map((entry) => entry.topic));
+    const topics = new Set(getTopicFieldCatalog().map((entry) => entry.topic));
     expect(topics.has("vessel.state")).toBe(true);
   });
 
