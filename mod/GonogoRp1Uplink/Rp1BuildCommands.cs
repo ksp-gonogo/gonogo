@@ -67,6 +67,13 @@
 //                                    which is why the node is tested first
 //   VesselProject.GetTotalCost()     computes and memoises cost/emptyCost from
 //                                    the craft node when they are zero
+//   VesselProject.MeetsFacilityRequirements(List<string>)
+//                                    measures the vehicle against its complex's
+//                                    envelope. Reproduced from fields in
+//                                    Rp1LaunchGate and INVOKED here, because that
+//                                    file is a gate and this is a command; see
+//                                    FacilityRefusals for the whole of that
+//                                    argument
 //   CurrencyModifierQueryRP0.RunQuery / .CanAfford / .GetTotal
 //   KCTUtilities.AddVesselToBuildList(vp, spendFunds)
 //                                    spends, sets the launch site, appends to
@@ -78,6 +85,11 @@
 // three off (skipPartChecks) because a copy of an integrated vehicle has already
 // passed them, and the fourth is a popup that offers to drain batteries. None of
 // them can refuse a duplicate that RP-1's own button would accept.
+//
+// Its facility arm IS reproduced, and is the one arm of the four that had to be:
+// the button leaves CheckFacilityRequirements on, and it is the only check whose
+// answer can CHANGE after a vehicle is integrated, because modifying a complex
+// moves the envelope it will accept.
 //
 // THE REST OF THE SURFACE, and what RP-1 does and does not allow for each. Read
 // out of the same disassembly; none of it is implemented here, and this is what
@@ -309,6 +321,16 @@ namespace GonogoRp1Uplink
                     "RP-1 holds no stored craft for this vehicle, so there is nothing to copy");
             }
 
+            var failedChecks = FacilityRefusals(vessel);
+            if (failedChecks != null)
+            {
+                // Asked BEFORE the price, the order RP-1's own validator uses:
+                // there is no sense pricing a vehicle the complex will not take.
+                return CommandResult.Fail(
+                    CommandErrorCode.NotReady,
+                    "RP-1 will not integrate this vehicle at " + complexName + ": " + failedChecks);
+            }
+
             var price = TryPrice(vessel, out var affordable, out var priceFailure);
             if (priceFailure != null)
             {
@@ -416,6 +438,56 @@ namespace GonogoRp1Uplink
             }
             vessel = null!;
             return false;
+        }
+
+        /// <summary>
+        /// RP-1's own reasons for refusing to integrate this vehicle at its
+        /// complex, joined into a sentence, or null when it has none.
+        ///
+        /// <para>Asked because a copy is built at the ORIGINAL's complex and a
+        /// complex's limits move: a modification changes its mass and size
+        /// envelope, so a vehicle it accepted last year is not one it accepts
+        /// today. Without this the build starts, the funds go, and the vehicle is
+        /// refused at the pad by the launch gate that already applies the same
+        /// rules.</para>
+        ///
+        /// <para>Invoked rather than reproduced, unlike <see cref="Rp1LaunchGate"/>
+        /// which reproduces these rules from fields. That file is a GATE, and a
+        /// gate must not write to the player's save; this is a command, running on
+        /// the main thread at the moment of an operator's press, which is exactly
+        /// where RP-1's own button calls it.</para>
+        ///
+        /// <para>An unanswerable check PROCEEDS rather than refuses, the opposite
+        /// of the price check above, and the asymmetry is deliberate. Refusing on
+        /// an unreadable price protects a career from being overdrawn with nothing
+        /// to show; refusing on an unreadable envelope would kill the whole
+        /// feature the first time RP-1 renames a member, for a check whose worst
+        /// case is a vehicle built at a complex that will not fly it, which the
+        /// launch gate still catches before it can matter.</para>
+        /// </summary>
+        private static string? FacilityRefusals(object vessel)
+        {
+            try
+            {
+                var meets = InstanceMethod(vessel, "MeetsFacilityRequirements", 1);
+                if (meets == null)
+                {
+                    return null;
+                }
+                var reasons = new List<string>();
+                if (meets.Invoke(vessel, new object[] { reasons }) is bool ok && ok)
+                {
+                    return null;
+                }
+                return reasons.Count == 0
+                    ? "it is outside the complex's limits"
+                    : string.Join("; ", reasons.ToArray());
+            }
+            catch (Exception)
+            {
+                // See the doc comment: unanswerable means proceed here.
+                return null;
+            }
         }
 
         /// <summary>

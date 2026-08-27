@@ -197,6 +197,26 @@ namespace GonogoRp1Uplink.Tests
         }
 
         [Fact]
+        public void Refuses_in_rp1s_own_words_when_the_complex_will_not_take_the_vehicle()
+        {
+            // The check that can change AFTER a vehicle is integrated: modifying
+            // a complex moves the envelope it accepts, so a design it built last
+            // year is not one it will build today. Without this the build starts,
+            // the funds go, and the launch gate refuses the article at the pad.
+            var lc = Centre();
+            var original = Built(lc);
+            original.FacilityRefusals.Add("Mass limit exceeded, currently at 120.00 tons, max 90.00");
+
+            var result = Repeat(original.KCTPersistentID);
+
+            Assert.False(result.Success);
+            Assert.Equal(CommandErrorCode.NotReady, result.ErrorCode);
+            Assert.Contains("Mass limit exceeded", result.Detail);
+            Assert.Empty(lc.BuildList);
+            Assert.Equal(1_000_000.0, Funding.Instance!.Funds);
+        }
+
+        [Fact]
         public void Refuses_a_vehicle_rp1_has_no_stored_craft_for()
         {
             var lc = Centre();

@@ -231,6 +231,21 @@ namespace RP0
         /// stored figure is zero; the stored figure is what a test sets.
         /// </summary>
         public double GetTotalCost() => cost;
+
+        /// <summary>What the complex would refuse this vehicle for, set per test.</summary>
+        public List<string> FacilityRefusals = new List<string>();
+
+        /// <summary>
+        /// The real one measures mass, size, human-rating, clamps and stocked
+        /// resources against the complex's stats and APPENDS a sentence per
+        /// failure. The append is the part the reading depends on: a caller that
+        /// only took the bool would have nothing to tell an operator.
+        /// </summary>
+        public bool MeetsFacilityRequirements(List<string> failedReasons)
+        {
+            failedReasons?.AddRange(FacilityRefusals);
+            return FacilityRefusals.Count == 0;
+        }
     }
 
     /// <summary>
