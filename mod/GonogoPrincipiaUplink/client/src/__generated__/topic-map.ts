@@ -23,7 +23,7 @@ import type {
   PrincipiaFlightPlan,
   PrincipiaPlan,
   PrincipiaSettings,
-} from "./contract";
+} from "./contract.js";
 
 export interface GeneratedTopicPayloadMap {
   "principia.flightPlan": PrincipiaFlightPlan;

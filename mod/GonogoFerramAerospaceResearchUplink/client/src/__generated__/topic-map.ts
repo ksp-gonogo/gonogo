@@ -21,7 +21,7 @@
 
 import type {
   AeroState,
-} from "./contract";
+} from "./contract.js";
 
 export interface GeneratedTopicPayloadMap {
   "aero.state": AeroState;

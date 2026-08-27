@@ -24,7 +24,7 @@ import type {
   CommsLinkMargin,
   CommsLinkQuality,
   RealAntennasHopRate,
-} from "./contract";
+} from "./contract.js";
 
 export interface GeneratedTopicPayloadMap {
   "comms.dataRate": CommsDataRate;

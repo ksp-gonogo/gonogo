@@ -25,7 +25,7 @@ import type {
   KerbalismLifeSupport,
   KerbalismProfile,
   KerbalismSpaceWeather,
-} from "./contract";
+} from "./contract.js";
 
 export interface GeneratedTopicPayloadMap {
   "kerbalism.crew": KerbalismCrewEntry[];

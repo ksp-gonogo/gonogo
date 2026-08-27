@@ -21,7 +21,7 @@
 
 import type {
   KosProcessorInfo,
-} from "./contract";
+} from "./contract.js";
 
 export interface GeneratedTopicPayloadMap {
   "kos.processors": KosProcessorInfo[];

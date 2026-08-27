@@ -90,7 +90,7 @@ import type {
   VesselTarget,
   VesselThermal,
   WarpState,
-} from "./contract";
+} from "./contract.js";
 
 export interface GeneratedTopicPayloadMap {
   "career.mode": CareerMode;
