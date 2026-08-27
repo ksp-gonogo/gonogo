@@ -32,11 +32,6 @@ namespace Gonogo.KSP
     /// change tick-to-tick).</para>
     /// </summary>
     [SitrepUplink("spaceCenter")]
-    // IUplinkCapabilityDeclarer is what makes the host CALL DeclareCapabilities below.
-    // Without it the method still compiles, still reads correctly, and is never invoked:
-    // the capability goes undeclared and RP-1's provider fails with
-    // "unknown capability crewStanding". Found on the rig 2026-08-27, invisible to the
-    // suite because a test that calls DeclareCapabilities directly passes either way.
     public sealed class SpaceCenterUplink : ISitrepUplink, IUplinkCapabilityDeclarer
     {
         public UplinkManifest Manifest { get; } = new UplinkManifest
