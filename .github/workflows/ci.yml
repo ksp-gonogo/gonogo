@@ -283,6 +283,13 @@ jobs:
       - name: Every generated artifact is in sync with its source
         run: bash scripts/codegen-check.sh
 
+      # An empty ExpectedClientHash silently degrades the loader's three-way
+      # bundle check to two-way while the author docs promise a check that fires.
+      # Shrink-only: the nine currently-unarmed Uplinks are grandfathered, a new
+      # one is held to armed.
+      - name: Uplink client hashes are armed
+        run: node scripts/client-hash-armed.mjs
+
       # The headless kOS terminal harness (GonogoKosUplink.Tests/Headless) needs
       # kOS.Safe.dll + kOS.dll, and Gonogo.KSP.Tests' ConfigNode-backed ledger
       # suite needs Assembly-CSharp.dll; both live in the private ksp-managed
