@@ -133,6 +133,15 @@ namespace GonogoRp1Uplink
         /// </summary>
         private readonly Rp1BuildCommands _build = new Rp1BuildCommands();
 
+        /// <summary>
+        /// The rest of that write half: roll out, roll back, scrap, and a
+        /// complex's rush mode. A second reader for the same reason
+        /// <see cref="_build"/> is one, and it borrows that one's gate rather
+        /// than declaring a second kind, because all five commands turn on the
+        /// same single question.
+        /// </summary>
+        private readonly Rp1VehicleCommands _vehicles = new Rp1VehicleCommands();
+
         /// <summary>Set when the command registration threw, so Health can say so rather than nothing.</summary>
         private string? _buildCommandRegistrationError;
 
@@ -210,11 +219,14 @@ namespace GonogoRp1Uplink
 
         public Rp1ScUplink()
         {
-            Manifest = BuildManifest(_build.IsAvailable);
+            Manifest = BuildManifest(_build.IsAvailable, _vehicles.IsAvailable, _vehicles.IsMoveAvailable);
             _crewStanding = new Rp1CrewStandingBackend(_crew);
         }
 
-        private static UplinkManifest BuildManifest(bool buildModelResolved) => new UplinkManifest
+        private static UplinkManifest BuildManifest(
+            bool buildModelResolved,
+            bool queueModelResolved,
+            bool moveModelResolved) => new UplinkManifest
         {
             Id = "rp1",
             Version = "1.0.0",
@@ -265,17 +277,52 @@ namespace GonogoRp1Uplink
             // is what makes that answer visible rather than assumed: an operator
             // sees a command that confirms at once, not a control that quietly
             // has no delay UX.
-            Commands = buildModelResolved
-                ? new List<CommandDeclaration>
-                {
-                    new CommandDeclaration
-                    {
-                        Command = Rp1BuildCommands.RepeatCommand,
-                        Delayed = false,
-                        Requires = Rp1BuildCommands.Requirements(),
-                    },
-                }
-                : (IReadOnlyList<CommandDeclaration>)Array.Empty<CommandDeclaration>(),
+            Commands = DeclareCommands(buildModelResolved, queueModelResolved, moveModelResolved),
+        };
+
+        /// <summary>
+        /// The five write commands, each declared only when the types its own
+        /// handler needs resolved.
+        ///
+        /// <para>Three conditions rather than one, because the dependencies
+        /// genuinely differ: the repeat build needs RP-1's currency query,
+        /// correcting a queue needs none of it, and moving a vehicle needs the
+        /// rollout type neither of the others touches. Declaring all five off one
+        /// flag would cost four commands for a rename that broke one.</para>
+        ///
+        /// <para>Every one of them declares the SAME requirement, which is why
+        /// there is one gate evaluator between them: the only condition
+        /// evaluable before the press is that RP-1 is managing the save, and each
+        /// command's own conditions are about a vehicle nobody has named yet.</para>
+        /// </summary>
+        private static IReadOnlyList<CommandDeclaration> DeclareCommands(
+            bool buildModelResolved,
+            bool queueModelResolved,
+            bool moveModelResolved)
+        {
+            var commands = new List<CommandDeclaration>();
+            if (buildModelResolved)
+            {
+                commands.Add(Declare(Rp1BuildCommands.RepeatCommand));
+            }
+            if (moveModelResolved)
+            {
+                commands.Add(Declare(Rp1VehicleCommands.RolloutCommand));
+                commands.Add(Declare(Rp1VehicleCommands.RollbackCommand));
+            }
+            if (queueModelResolved)
+            {
+                commands.Add(Declare(Rp1VehicleCommands.ScrapCommand));
+                commands.Add(Declare(Rp1VehicleCommands.RushCommand));
+            }
+            return commands;
+        }
+
+        private static CommandDeclaration Declare(string command) => new CommandDeclaration
+        {
+            Command = command,
+            Delayed = false,
+            Requires = Rp1BuildCommands.Requirements(),
         };
 
         private static ChannelDeclaration Ground(string topic, bool absenceIsData = false) => new ChannelDeclaration
@@ -362,11 +409,32 @@ namespace GonogoRp1Uplink
             // a read surface that fails must not leave a command half-registered.
             try
             {
-                if (_build.IsAvailable)
+                // The evaluator goes up when ANY of the five commands is
+                // declared, not when the repeat build is: it answers the one
+                // requirement they all declare, and a declaration without its
+                // evaluator is a startup failure.
+                if (_build.IsAvailable || _vehicles.IsAvailable)
                 {
                     host.AddGateEvaluator(_build);
+                }
+                if (_build.IsAvailable)
+                {
                     host.AddCommandHandler<Rp1BuildRepeatArgs, CommandResult>(
                         Rp1BuildCommands.RepeatCommand, _build.Repeat);
+                }
+                if (_vehicles.IsMoveAvailable)
+                {
+                    host.AddCommandHandler<Rp1RolloutArgs, CommandResult>(
+                        Rp1VehicleCommands.RolloutCommand, _vehicles.Rollout);
+                    host.AddCommandHandler<Rp1VehicleArgs, CommandResult>(
+                        Rp1VehicleCommands.RollbackCommand, _vehicles.Rollback);
+                }
+                if (_vehicles.IsAvailable)
+                {
+                    host.AddCommandHandler<Rp1VehicleArgs, CommandResult>(
+                        Rp1VehicleCommands.ScrapCommand, _vehicles.Scrap);
+                    host.AddCommandHandler<Rp1ComplexRushArgs, CommandResult>(
+                        Rp1VehicleCommands.RushCommand, _vehicles.Rush);
                 }
             }
             catch (Exception ex)

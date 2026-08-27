@@ -164,8 +164,8 @@ namespace GonogoRp1Uplink
         /// value; never throws.
         /// </summary>
         /// <remarks>
-        /// The only write in an otherwise read-only file, and it earns its place
-        /// rather than opening a door: <see cref="Rp1DerivedCurrencyWithholder"/>
+        /// One of the two writes in an otherwise read-only file, and it earns its
+        /// place rather than opening a door: <see cref="Rp1DerivedCurrencyWithholder"/>
         /// has to put RP-1's confidence balance back after RP-1 has derived it from
         /// a science credit the currency-delay subsystem is withholding, and both
         /// halves of that balance (<c>confidence</c> and <c>confidenceEarned</c>)
@@ -289,6 +289,141 @@ namespace GonogoRp1Uplink
                 case long l: return l;
                 default: return null;
             }
+        }
+
+        /// <summary>
+        /// A public instance method by name and arity. Arity rather than the
+        /// parameter TYPES because those are RP-1's own and naming them would
+        /// need the compile-time reference this assembly deliberately does not
+        /// have.
+        /// </summary>
+        public static MethodInfo? InstanceMethod(object target, string name, int parameterCount) =>
+            MatchArity(target.GetType().GetMethods(BindingFlags.Public | BindingFlags.Instance), name, parameterCount);
+
+        /// <summary>A public static method by name and arity; see <see cref="InstanceMethod"/> for why arity.</summary>
+        public static MethodInfo? StaticMethod(Type type, string name, int parameterCount) =>
+            MatchArity(type.GetMethods(BindingFlags.Public | BindingFlags.Static), name, parameterCount);
+
+        /// <summary>
+        /// A public static method by name, arity AND the full name of its first
+        /// parameter's type, for the overloads arity alone cannot tell apart.
+        ///
+        /// <para>Needed because RP-1 declares
+        /// <c>ChangeEngineers(LaunchComplex, int)</c> and
+        /// <c>ChangeEngineers(LCSpaceCenter, int)</c>, so a name-and-arity match
+        /// picks whichever the runtime lists first and would move a CENTRE's
+        /// engineer pool when a complex was meant. The type is named as a string
+        /// for the same reason everything else here is: this assembly holds no
+        /// reference to RP-1 and cannot name the type any other way.</para>
+        /// </summary>
+        public static MethodInfo? StaticMethodOn(Type type, string name, string firstParameterTypeFullName, int parameterCount)
+        {
+            foreach (var m in type.GetMethods(BindingFlags.Public | BindingFlags.Static))
+            {
+                if (m.Name != name)
+                {
+                    continue;
+                }
+                var parameters = m.GetParameters();
+                if (parameters.Length == parameterCount
+                    && parameters.Length > 0
+                    && parameters[0].ParameterType.FullName == firstParameterTypeFullName)
+                {
+                    return m;
+                }
+            }
+            return null;
+        }
+
+        /// <summary>
+        /// Writes a named field or settable property, walking the base chain the
+        /// same way <see cref="Member"/> reads it. False when the member is
+        /// absent, read-only or the write threw, and a false is never treated as
+        /// a write that happened.
+        /// </summary>
+        /// <remarks>
+        /// The second of this file's two writers, and it exists for the two RP-1
+        /// fields a command has to set that no RP-1 method sets for it:
+        /// <c>LaunchComplex.IsRushing</c> and
+        /// <c>VesselProject.launchSiteIndex</c>. Uncached, unlike the reads:
+        /// a write happens once per operator press, so the lookup cost is not
+        /// worth a second cache to keep correct.
+        ///
+        /// <para>Separate from <see cref="WriteDouble"/> rather than folded into
+        /// it, because the two do different work: that one converts a double to
+        /// whatever numeric width RP-1 declared the field at, which is the whole
+        /// of its job and is meaningless for a bool or an int index. Folding them
+        /// would give the numeric conversion a path where it silently does
+        /// nothing.</para>
+        /// </remarks>
+        public static bool WriteMember(object? target, string name, object? value)
+        {
+            if (target == null)
+            {
+                return false;
+            }
+            const BindingFlags flags = BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance | BindingFlags.DeclaredOnly;
+            for (var t = target.GetType(); t != null; t = t.BaseType)
+            {
+                try
+                {
+                    var pi = t.GetProperty(name, flags);
+                    if (pi != null && pi.CanWrite)
+                    {
+                        pi.SetValue(target, value);
+                        return true;
+                    }
+                    var fi = t.GetField(name, flags);
+                    if (fi != null)
+                    {
+                        fi.SetValue(target, value);
+                        return true;
+                    }
+                }
+                catch (Exception)
+                {
+                    return false;
+                }
+            }
+            return false;
+        }
+
+        /// <summary>
+        /// A public constructor by arity. Optional parameters COUNT, because
+        /// reflection does not apply defaults: RP-1's rollout constructor takes
+        /// four with the last defaulted, and an invoke has to pass all four.
+        /// </summary>
+        public static ConstructorInfo? Constructor(Type type, int parameterCount)
+        {
+            foreach (var c in type.GetConstructors(BindingFlags.Public | BindingFlags.Instance))
+            {
+                if (c.GetParameters().Length == parameterCount)
+                {
+                    return c;
+                }
+            }
+            return null;
+        }
+
+        /// <summary>
+        /// What to quote from a throw. Reflection wraps a handler's own
+        /// exception in a <see cref="TargetInvocationException"/> whose message
+        /// says only that an exception was thrown, which tells an operator
+        /// nothing at all.
+        /// </summary>
+        public static string ExceptionReason(Exception ex) =>
+            (ex is TargetInvocationException tie && tie.InnerException != null ? tie.InnerException : ex).Message;
+
+        private static MethodInfo? MatchArity(IEnumerable<MethodInfo> methods, string name, int parameterCount)
+        {
+            foreach (var m in methods)
+            {
+                if (m.Name == name && m.GetParameters().Length == parameterCount)
+                {
+                    return m;
+                }
+            }
+            return null;
         }
 
         private static MemberInfo? Resolve(Type type, string name)

@@ -328,18 +328,32 @@ namespace GonogoRp1Uplink.Tests
         // ── The manifest ──────────────────────────────────────────────────────
 
         [Fact]
-        public void Declares_the_command_undelayed_and_gated()
+        public void Declares_every_write_command_undelayed_and_gated()
         {
-            var declaration = Assert.Single(new Rp1ScUplink().Manifest.Commands);
+            var declarations = new Rp1ScUplink().Manifest.Commands;
 
-            Assert.Equal(Rp1BuildCommands.RepeatCommand, declaration.Command);
-            // Ground-side KSC bookkeeping, like core's own nine career writes:
-            // light-time separates a command centre from a CRAFT, and there is no
-            // craft in this one.
-            Assert.False(declaration.Delayed);
             Assert.Equal(
-                Rp1BuildCommands.GateKind,
-                Assert.Single(declaration.Requires).Kind);
+                new[]
+                {
+                    Rp1BuildCommands.RepeatCommand,
+                    Rp1VehicleCommands.RolloutCommand,
+                    Rp1VehicleCommands.RollbackCommand,
+                    Rp1VehicleCommands.ScrapCommand,
+                    Rp1VehicleCommands.RushCommand,
+                },
+                declarations.Select(d => d.Command).ToArray());
+            Assert.All(declarations, declaration =>
+            {
+                // Ground-side KSC bookkeeping, like core's own nine career writes:
+                // light-time separates a command centre from a CRAFT, and there is
+                // no craft in any of these.
+                Assert.False(declaration.Delayed);
+                // One gate kind between all five, because the only condition
+                // evaluable before the press is the same one for each of them.
+                Assert.Equal(
+                    Rp1BuildCommands.GateKind,
+                    Assert.Single(declaration.Requires).Kind);
+            });
         }
 
         [Fact]

@@ -132,6 +132,10 @@ const COMPLEXES = [
 function vehicle(overrides: Record<string, unknown> = {}) {
   return {
     id: "vp-atlas-1",
+    // The id an OPERATION joins on, which is not the id a command addresses.
+    // Absent here and the rollout controls draw against a vehicle that can never
+    // be found to be moving, which paints a plausible scene of a wrong state.
+    shipId: "ship-atlas-1",
     kscName: "Cape",
     lcId: "lc-1",
     shipName: "Atlas",
@@ -140,6 +144,50 @@ function vehicle(overrides: Record<string, unknown> = {}) {
     humanRated: false,
     launchSite: "LaunchPad",
     projectType: "VAB",
+    ...overrides,
+  };
+}
+
+/** Two pads at LC-1, one usable. The state decides which controls draw. */
+const PADS = [
+  {
+    kscName: "Cape",
+    lcId: "lc-1",
+    padId: "pad-1",
+    name: "LaunchPad",
+    launchSiteName: "LaunchPad",
+    level: 2,
+    fractionalLevel: 2,
+    state: "Free",
+  },
+  {
+    kscName: "Cape",
+    lcId: "lc-1",
+    padId: "pad-2",
+    name: "LaunchPad 2",
+    launchSiteName: "LaunchPad 2",
+    level: 1,
+    fractionalLevel: 1,
+    state: "Reconditioning",
+  },
+];
+
+/** One rollout, attached the way RP-1 attaches one: by shipID. */
+function rollout(overrides: Record<string, unknown> = {}) {
+  return {
+    kscName: "Cape",
+    lcId: "lc-1",
+    launchPadId: "LaunchPad",
+    type: "Rollout",
+    progress: 300,
+    totalPoints: 1_000,
+    progressRatio: 0.3,
+    rate: 1_000 / (14 * DAY),
+    timeLeftSeconds: 10 * DAY,
+    stalled: false,
+    blockingPeers: 0,
+    cost: 4_200,
+    associatedVesselId: "ship-atlas-1",
     ...overrides,
   };
 }
@@ -178,7 +226,7 @@ const SCENES: Scene[] = [
       surface: "KscConstruction",
       hostTitle: "SPACE CENTRE",
       pxW: 460,
-      pxH: 620,
+      pxH: 560,
       emits: [
         ["rp1.available", true],
         ["rp1.centres", CENTRES],
@@ -352,22 +400,34 @@ const SCENES: Scene[] = [
     // sharing a row with a name, and a name long enough to wrap takes the width
     // and leaves the control at nothing.
     name: "vehicles-repeat-build",
-    paints: ["289,848f", "Atlas · LC-1", "BUILT", "INTEGRATING", "Build"],
+    paints: [
+      "289,848f",
+      "Atlas · LC-1",
+      "BUILT",
+      "INTEGRATING",
+      "Build",
+      "Roll out",
+      "Scrap",
+      "LC-1 rush",
+    ],
     scene: {
       surface: "KscVehicles",
       hostTitle: "SPACE CENTRE",
       pxW: 460,
-      pxH: 480,
+      pxH: 560,
       emits: [
         ["rp1.available", true],
         ["career.status", CAREER],
         ["rp1.complexes", COMPLEXES],
+        ["rp1.pads", PADS],
+        ["rp1.operations", []],
         ["rp1.warehouse", [vehicle()]],
         [
           "rp1.buildQueue",
           [
             vehicle({
               id: "vp-atlas-2",
+              shipId: "ship-atlas-2",
               progress: 250,
               totalPoints: 1_000,
               progressRatio: 0.25,
@@ -381,6 +441,29 @@ const SCENES: Scene[] = [
     },
   },
   {
+    // A vehicle mid-rollout, which is the state the whole rollout/rollback pair
+    // exists for and the one a screenshot settles: four controls plus a badge
+    // and an ETA share one row, and the row is the first place that runs out of
+    // width.
+    name: "vehicles-rolling-out",
+    paints: ["Atlas · LC-1", "ROLLING OUT", "Roll back", "LC-1 rush"],
+    scene: {
+      surface: "KscVehicles",
+      hostTitle: "SPACE CENTRE",
+      pxW: 460,
+      pxH: 400,
+      emits: [
+        ["rp1.available", true],
+        ["career.status", CAREER],
+        ["rp1.complexes", COMPLEXES],
+        ["rp1.pads", [{ ...PADS[0], state: "Rollout" }, PADS[1]]],
+        ["rp1.operations", [rollout()]],
+        ["rp1.warehouse", [vehicle()]],
+        ["rp1.buildQueue", []],
+      ],
+    },
+  },
+  {
     // Nothing built and nothing on order, which is where a career starts. Same
     // reason the empty construction scene is here: it has to read as an answer
     // rather than as a section that failed to draw.
@@ -390,11 +473,13 @@ const SCENES: Scene[] = [
       surface: "KscVehicles",
       hostTitle: "SPACE CENTRE",
       pxW: 460,
-      pxH: 200,
+      pxH: 260,
       emits: [
         ["rp1.available", true],
         ["career.status", CAREER],
         ["rp1.complexes", COMPLEXES],
+        ["rp1.pads", PADS],
+        ["rp1.operations", []],
         ["rp1.warehouse", []],
         ["rp1.buildQueue", []],
       ],

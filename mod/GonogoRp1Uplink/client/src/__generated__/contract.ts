@@ -8,6 +8,20 @@ export interface Rp1BuildRepeatArgs
 {
 	id?: string;
 }
+export interface Rp1RolloutArgs
+{
+	id?: string;
+	pad?: string;
+}
+export interface Rp1VehicleArgs
+{
+	id?: string;
+}
+export interface Rp1ComplexRushArgs
+{
+	lcId?: string;
+	rushing?: boolean;
+}
 export interface Rp1CentreEntry
 {
 	kscName?: string;
@@ -38,6 +52,7 @@ export interface Rp1ComplexEntry
 export interface Rp1BuildItemEntry
 {
 	id?: string;
+	shipId?: string;
 	kscName?: string;
 	lcId?: string;
 	shipName?: string;
@@ -56,6 +71,7 @@ export interface Rp1BuildItemEntry
 export interface Rp1WarehouseItemEntry
 {
 	id?: string;
+	shipId?: string;
 	kscName?: string;
 	lcId?: string;
 	shipName?: string;

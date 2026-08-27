@@ -429,6 +429,10 @@ namespace GonogoRp1Uplink
             var item = new Rp1BuildItemRaw
             {
                 Id = ReadString(vp, "KCTPersistentID"),
+                // A Guid on the vehicle and its ToString() on the operation
+                // referencing it, which is why this goes through the reader that
+                // answers both rather than ReadString.
+                ShipId = ReadGuidString(vp, "shipID"),
                 KscName = kscName,
                 LcId = lcId,
                 ShipName = ReadString(vp, "shipName"),

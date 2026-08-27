@@ -150,6 +150,62 @@ namespace RP0
 
         public override bool IsReversed =>
             RRType == RolloutReconType.Rollback || RRType == RolloutReconType.AirlaunchUnmount;
+
+        /// <summary>How many times a maintenance reschedule was asked for, which is the observable half of a reversal.</summary>
+        public static int Reschedules;
+
+        public ReconRolloutProject()
+        {
+        }
+
+        /// <summary>
+        /// FOUR parameters with the last defaulted, exactly as the shipped one
+        /// declares them, because a reflected invoke applies no defaults and a
+        /// three-parameter stand-in would let a three-argument call pass here and
+        /// fail in the game.
+        ///
+        /// <para>The real one prices the rollout through <c>Formula</c> and
+        /// spends NOTHING, which is the property the whole no-affordability-check
+        /// argument rests on. Reproduced: a cost is set and no funds move.</para>
+        /// </summary>
+        public ReconRolloutProject(VesselProject vessel, RolloutReconType type, string id, string launchSite = "")
+        {
+            RRType = type;
+            associatedID = id;
+            launchPadID = string.IsNullOrEmpty(launchSite) ? vessel.launchSite : launchSite;
+            BP = vessel.buildPoints;
+            cost = vessel.GetTotalCost() * 0.1;
+            if (type == RolloutReconType.Rollback || type == RolloutReconType.AirlaunchUnmount)
+            {
+                progress = BP;
+            }
+        }
+
+        /// <summary>
+        /// The shipped body: flip the direction and reschedule maintenance. Both
+        /// halves are here because the reschedule is the only thing a caller can
+        /// observe besides the flip, and a stand-in that only flipped would let a
+        /// handler that never reached RP-1 look identical.
+        /// </summary>
+        public void SwitchDirection()
+        {
+            switch (RRType)
+            {
+                case RolloutReconType.Rollout:
+                    RRType = RolloutReconType.Rollback;
+                    break;
+                case RolloutReconType.Rollback:
+                    RRType = RolloutReconType.Rollout;
+                    break;
+                case RolloutReconType.AirlaunchMount:
+                    RRType = RolloutReconType.AirlaunchUnmount;
+                    break;
+                case RolloutReconType.AirlaunchUnmount:
+                    RRType = RolloutReconType.AirlaunchMount;
+                    break;
+            }
+            Reschedules++;
+        }
     }
 
     public class VesselProject
@@ -249,6 +305,48 @@ namespace RP0
             failedReasons?.AddRange(FacilityRefusals);
             return FacilityRefusals.Count == 0;
         }
+
+        /// <summary>
+        /// A memoising property over a part scan on the real type. A vehicle
+        /// whose parts an install no longer has is one RP-1 omits from its window
+        /// entirely, so a command has to answer for it where the game does not.
+        /// </summary>
+        public bool AllPartsValid { get; set; } = true;
+
+        /// <summary>
+        /// Finished when progress has reached the build points, which is RP-1's
+        /// own definition and the difference between a warehouse vehicle and a
+        /// queued one.
+        /// </summary>
+        public bool IsFinished => progress >= buildPoints;
+
+        /// <summary>
+        /// Takes the vehicle off whichever list holds it. Returns the index it
+        /// was at, as the shipped one does, and false when it was on neither.
+        /// </summary>
+        public bool RemoveFromBuildList(out int oldIndex)
+        {
+            oldIndex = _lc?.Warehouse.IndexOf(this) ?? -1;
+            if (oldIndex >= 0)
+            {
+                _lc!.Warehouse.RemoveAt(oldIndex);
+                return true;
+            }
+            oldIndex = _lc?.BuildList.IndexOf(this) ?? -1;
+            if (oldIndex >= 0)
+            {
+                _lc!.BuildList.RemoveAt(oldIndex);
+                return true;
+            }
+            return false;
+        }
+
+        /// <summary>
+        /// Which pad the vehicle is bound for, by index into its complex's pads.
+        /// A rollout WRITES this, and -1 is the unset value the real constructor
+        /// starts it at.
+        /// </summary>
+        public int launchSiteIndex = -1;
     }
 
     /// <summary>
@@ -262,7 +360,24 @@ namespace RP0
         /// <summary>Made to throw part-way, to pin what an operator is told when it does.</summary>
         public static bool ThrowOnAdd;
 
-        public static void Reset() => ThrowOnAdd = false;
+        /// <summary>The same, for the scrap path, whose refund is the LAST thing it does.</summary>
+        public static bool ThrowOnScrap;
+
+        /// <summary>
+        /// Every <c>ChangeEngineers</c> call, in order, as (subject, delta).
+        /// Recorded rather than counted because the SUBJECT is the point: RP-1
+        /// declares a same-arity overload taking a space CENTRE, and a handler
+        /// that resolved by arity alone would move a centre's engineer pool while
+        /// looking, from a counter, exactly correct.
+        /// </summary>
+        public static readonly List<KeyValuePair<object, int>> EngineerChanges = new List<KeyValuePair<object, int>>();
+
+        public static void Reset()
+        {
+            ThrowOnAdd = false;
+            ThrowOnScrap = false;
+            EngineerChanges.Clear();
+        }
 
         public static void AddVesselToBuildList(VesselProject vp, bool spendFunds)
         {
@@ -275,6 +390,39 @@ namespace RP0
                 throw new InvalidOperationException("the complex rejected the vehicle");
             }
             vp.LC.BuildList.Add(vp);
+        }
+
+        /// <summary>
+        /// The shipped body: remove, THEN refund in full. Order reproduced,
+        /// because a throw between the two is the one way an operator can lose a
+        /// vehicle and not be paid for it, and a handler has to say so.
+        /// </summary>
+        public static void ScrapVessel(VesselProject b)
+        {
+            b.RemoveFromBuildList(out _);
+            if (ThrowOnScrap)
+            {
+                throw new InvalidOperationException("the refund could not be posted");
+            }
+            Funding.Instance?.AddFunds(b.GetTotalCost());
+        }
+
+        public static void ChangeEngineers(LaunchComplex currentLC, int delta)
+        {
+            EngineerChanges.Add(new KeyValuePair<object, int>(currentLC, delta));
+            currentLC.Engineers += delta;
+        }
+
+        /// <summary>
+        /// The overload that makes the first one findable-by-accident. Same name,
+        /// same arity, entirely different subject; present here so a resolver
+        /// that ignores parameter types fails in this assembly the way it would
+        /// fail in the game.
+        /// </summary>
+        public static void ChangeEngineers(LCSpaceCenter ksc, int delta)
+        {
+            EngineerChanges.Add(new KeyValuePair<object, int>(ksc, delta));
+            ksc.Engineers += delta;
         }
     }
 
@@ -363,6 +511,22 @@ namespace RP0
         public LaunchPadState State => StateValue;
 
         public bool IsDestroyed => DestroyedValue;
+
+        /// <summary>The craft sitting on this pad in PRELAUNCH, if a test put one there.</summary>
+        public Vessel? Waiting;
+
+        /// <summary>
+        /// The one condition <see cref="State"/> cannot see: a pad with no
+        /// OPERATION on it reads Free even when a craft has already been sent to
+        /// the launch site and is sitting there. The out parameter is what carries
+        /// the craft's name into the refusal, and is typed here because a reader
+        /// that passed the wrong arity would find nothing.
+        /// </summary>
+        public bool HasVesselWaitingToBeLaunched(out Vessel? v)
+        {
+            v = Waiting;
+            return Waiting != null;
+        }
     }
 
     /// <summary>
@@ -677,6 +841,16 @@ public class Funding
     public double Funds { get; set; }
 
     public void AddFunds(double delta) => Funds += delta;
+}
+
+// KSP's craft. Global-namespaced because that is where KSP declares it, and
+// present here for one member: a pad hands back the vessel already sitting on it
+// so a refusal can name it, and a refusal that said "a vessel" where it could
+// have said "Atlas" is the difference between an operator knowing what to move
+// and going to look.
+public class Vessel
+{
+    public string vesselName = "";
 }
 
 // The craft node RP-1 stores a design in, from ROUtils. Only IsEmpty is here,

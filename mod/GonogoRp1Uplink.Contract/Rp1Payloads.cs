@@ -187,6 +187,27 @@ public sealed class Rp1BuildItemEntry
     [SitrepUnit(Units.Id)]
     public string? Id { get; set; }
 
+    /// <summary>
+    /// RP-1's <c>shipID</c>, and the ONLY key that joins this vehicle to the
+    /// rollout, rollback or recovery moving it.
+    ///
+    /// <para>A second id, and it has to be. <see cref="Id"/> is
+    /// <c>KCTPersistentID</c>, which is what a command addresses; RP-1 stamps
+    /// an operation's <c>associatedID</c> from <c>shipID</c> instead
+    /// (<c>ReconRolloutProject.associatedID</c>, published here as
+    /// <see cref="Rp1OperationEntry.AssociatedVesselId"/>). Without this field
+    /// on the wire a client can read that a rollout is happening and cannot say
+    /// WHICH vehicle it is happening to, which is precisely the fact that
+    /// decides whether a row offers Roll Out or Roll Back.</para>
+    ///
+    /// <para>Not solved by making the operation carry the persistent id
+    /// instead: <c>associatedID</c> is RP-1's own field, a reconditioning has
+    /// no vehicle at all, and reporting something else under that name would be
+    /// a lie about what RP-1 stores.</para>
+    /// </summary>
+    [SitrepUnit(Units.Id)]
+    public string? ShipId { get; set; }
+
     [SitrepUnit(Units.Id)]
     public string? KscName { get; set; }
 
@@ -268,6 +289,15 @@ public sealed class Rp1WarehouseItemEntry
     /// </summary>
     [SitrepUnit(Units.Id)]
     public string? Id { get; set; }
+
+    /// <summary>
+    /// RP-1's <c>shipID</c>. See <see cref="Rp1BuildItemEntry.ShipId"/> for why
+    /// a vehicle carries two ids; this is the list where it matters, because a
+    /// rollout only ever moves a FINISHED vehicle and so every rollout on the
+    /// wire joins to a row here.
+    /// </summary>
+    [SitrepUnit(Units.Id)]
+    public string? ShipId { get; set; }
 
     [SitrepUnit(Units.Id)]
     public string? KscName { get; set; }

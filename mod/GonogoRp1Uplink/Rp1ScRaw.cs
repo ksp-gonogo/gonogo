@@ -84,6 +84,15 @@ namespace GonogoRp1Uplink
     {
         /// <summary>RP-1's KCTPersistentID: what a command addresses, since names repeat by design.</summary>
         public string? Id;
+
+        /// <summary>
+        /// RP-1's shipID, which is a DIFFERENT id from <see cref="Id"/> and the
+        /// one <see cref="Rp1OperationRaw.AssociatedVesselId"/> carries. Both are
+        /// on the wire because both are needed: one addresses a vehicle, the
+        /// other joins it to the rollout moving it.
+        /// </summary>
+        public string? ShipId;
+
         public string? KscName;
         public string? LcId;
         public string? ShipName;

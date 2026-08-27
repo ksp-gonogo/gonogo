@@ -63,6 +63,7 @@
       "progressRatio": "ratio",
       "projectType": "enum",
       "rate": "bp/s",
+      "shipId": "id",
       "shipName": "text",
       "stalled": "flag",
       "timeLeftSeconds": "s",
@@ -95,6 +96,10 @@
       "maxEngineers": "count",
       "name": "text",
       "rate": "bp/s"
+    },
+    "Rp1ComplexRushArgs": {
+      "lcId": "id",
+      "rushing": "flag"
     },
     "Rp1Confidence": {
       "confidence": "confidence",
@@ -250,6 +255,13 @@
       "timeLeftSeconds": "s",
       "workRate": "ratio"
     },
+    "Rp1RolloutArgs": {
+      "id": "id",
+      "pad": "id"
+    },
+    "Rp1VehicleArgs": {
+      "id": "id"
+    },
     "Rp1WarehouseItemEntry": {
       "cost": "funds",
       "humanRated": "flag",
@@ -259,6 +271,7 @@
       "lcId": "id",
       "mass": "t",
       "projectType": "enum",
+      "shipId": "id",
       "shipName": "text"
     }
   },
@@ -275,6 +288,7 @@
       "progressRatio": "ratio",
       "projectType": "enum",
       "rate": "bp/s",
+      "shipId": "id",
       "shipName": "text",
       "stalled": "flag",
       "timeLeftSeconds": "s",
@@ -452,6 +466,7 @@
       "lcId": "id",
       "mass": "t",
       "projectType": "enum",
+      "shipId": "id",
       "shipName": "text"
     }
   },

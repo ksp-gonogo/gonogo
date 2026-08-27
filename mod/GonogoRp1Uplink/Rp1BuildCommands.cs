@@ -91,42 +91,17 @@
 // answer can CHANGE after a vehicle is integrated, because modifying a complex
 // moves the envelope it will accept.
 //
-// THE REST OF THE SURFACE, and what RP-1 does and does not allow for each. Read
-// out of the same disassembly; none of it is implemented here, and this is what
-// the next command would be built against rather than a wish list.
+// THE REST OF THE SURFACE now lives in Rp1VehicleCommands: roll out, roll back,
+// scrap, and a complex's rush mode. Its header carries the same
+// what-is-read/what-is-invoked accounting for those, and the two files share
+// this one's gate evaluator, because all four commands turn on the same single
+// static quantity (RP-1 is managing this save).
 //
-//   ROLL OUT. `new ReconRolloutProject(vp, Rollout, vp.shipID.ToString(), pad)`,
-//   then set `vp.launchSiteIndex` to the pad's index in `lc.LaunchPads` and add
-//   the project to `lc.Recon_Rollout`. Needs an `LCLaunchPad` whose `State` is
-//   Free and whose `HasVesselWaitingToBeLaunched` is false. NO up-front
-//   affordability check is needed and this is the one place that differs from a
-//   build: the constructor computes `cost` but spends nothing, because a rollout
-//   is billed AS it progresses, the way a construction is. RP-1's own pad picker
-//   is a popup, so a command must take the pad by name and refuse rather than
-//   ask.
-//
-//   ROLL BACK. `rollout.SwitchDirection()` on the vehicle's existing Rollout
-//   project, which is a two-line state flip plus a maintenance reschedule. The
-//   same call reverses a Rollback, so the command is one verb, not two.
-//
-//   RUSH. Not per-vehicle at all, and that is a finding rather than a gap:
-//   `IsRushing` is a bool on the LAUNCH COMPLEX, so rushing is a mode the whole
-//   complex is in and every vehicle in it is rushed together. Its effect is a
-//   rate multiplier and a salary multiplier from `Database.SettingsSC`, and on a
-//   pad complex it also stops the complex gaining efficiency. A command shaped
-//   like "rush this build" would be a lie about what the game does; the honest
-//   one is `rp1.complex.rush` taking a complex id and a flag.
-//
-//   CANCEL / SCRAP. `KCTUtilities.ScrapVessel(vp)` removes the vehicle from
-//   whichever list holds it and REFUNDS `GetTotalCost()` in full, integrating or
-//   finished alike. One verb covers both, and the refund is why it wants the
-//   same arm-then-confirm a build gets: it is reversible only by paying again.
-//
-//   RECOVER. `KCTUtilities.RecoverActiveVesselToStorage(ProjectType)` acts on
-//   `FlightGlobals.ActiveVessel`, so it is a FLIGHT-scene action about the craft
-//   on screen rather than a space-centre one, and it takes no id. It belongs
-//   with the flight surface, not with this list, and it is the one item of the
-//   five that is not addressable from the KSC at all.
+// RECOVER is the one item of the surface that is NOT anywhere, and deliberately:
+// KCTUtilities.RecoverActiveVesselToStorage(ProjectType) acts on
+// FlightGlobals.ActiveVessel and takes no id, so it is a FLIGHT-scene action
+// about the craft on screen rather than a space-centre one. It is not
+// addressable from the KSC at all and belongs with the flight surface.
 //
 // PROVENANCE. Every member named above was read out of an ilspycmd disassembly
 // of the INSTALLED RP-1 v4.6.0.0 RP0.dll and, for IsEmpty, ROUtils.dll. The
@@ -135,7 +110,6 @@
 // refuses the command rather than guessing at it.
 using System;
 using System.Collections.Generic;
-using System.Reflection;
 using Sitrep.Contract;
 
 namespace GonogoRp1Uplink
@@ -353,7 +327,7 @@ namespace GonogoRp1Uplink
             object copy;
             try
             {
-                var createCopy = InstanceMethod(vessel, "CreateCopy", 0);
+                var createCopy = Rp1Types.InstanceMethod(vessel, "CreateCopy", 0);
                 if (createCopy == null)
                 {
                     return CommandResult.Fail(
@@ -366,12 +340,12 @@ namespace GonogoRp1Uplink
             {
                 return CommandResult.Fail(
                     CommandErrorCode.ModeUnavailable,
-                    "RP-1 could not copy this vehicle: " + Reason(ex));
+                    "RP-1 could not copy this vehicle: " + Rp1Types.ExceptionReason(ex));
             }
 
             try
             {
-                var add = StaticMethod(_utilities!, "AddVesselToBuildList", 2);
+                var add = Rp1Types.StaticMethod(_utilities!, "AddVesselToBuildList", 2);
                 if (add == null)
                 {
                     return CommandResult.Fail(
@@ -389,7 +363,7 @@ namespace GonogoRp1Uplink
                 return CommandResult.Fail(
                     CommandErrorCode.ModeUnavailable,
                     "RP-1 failed part-way through starting this build, so check the queue and the balance before retrying: "
-                    + Reason(ex));
+                    + Rp1Types.ExceptionReason(ex));
             }
 
             return CommandResult.Ok();
@@ -469,7 +443,7 @@ namespace GonogoRp1Uplink
         {
             try
             {
-                var meets = InstanceMethod(vessel, "MeetsFacilityRequirements", 1);
+                var meets = Rp1Types.InstanceMethod(vessel, "MeetsFacilityRequirements", 1);
                 if (meets == null)
                 {
                     return null;
@@ -516,8 +490,8 @@ namespace GonogoRp1Uplink
             failure = null;
             try
             {
-                var totalCost = InstanceMethod(vessel, "GetTotalCost", 0);
-                var runQuery = StaticMethod(_currencyQuery!, "RunQuery", 4);
+                var totalCost = Rp1Types.InstanceMethod(vessel, "GetTotalCost", 0);
+                var runQuery = Rp1Types.StaticMethod(_currencyQuery!, "RunQuery", 4);
                 var reason = Enum.Parse(_transactionReasons!, VesselPurchaseReason);
                 var funds = Enum.Parse(_currency!, FundsCurrency);
                 if (totalCost == null || runQuery == null)
@@ -563,7 +537,7 @@ namespace GonogoRp1Uplink
         private static CommandResult PriceUnreadable(Exception? ex) => CommandResult.Fail(
             CommandErrorCode.ModeUnavailable,
             "RP-1's own price for this vehicle could not be read, so the build was not started"
-            + (ex == null ? "" : ": " + Reason(ex)));
+            + (ex == null ? "" : ": " + Rp1Types.ExceptionReason(ex)));
 
         /// <summary>
         /// The career's funds, for the number beside a refusal only. Read off
@@ -582,36 +556,5 @@ namespace GonogoRp1Uplink
         }
 
         private object? ScmInstance() => _scm == null ? null : Rp1Types.StaticValue(_scm, "Instance");
-
-        /// <summary>
-        /// A public instance method by name and arity. Arity rather than the
-        /// parameter TYPES because those are RP-1's own and naming them would need
-        /// the compile-time reference this assembly deliberately does not have.
-        /// </summary>
-        private static MethodInfo? InstanceMethod(object target, string name, int parameterCount) =>
-            Match(target.GetType().GetMethods(BindingFlags.Public | BindingFlags.Instance), name, parameterCount);
-
-        private static MethodInfo? StaticMethod(Type type, string name, int parameterCount) =>
-            Match(type.GetMethods(BindingFlags.Public | BindingFlags.Static), name, parameterCount);
-
-        private static MethodInfo? Match(IEnumerable<MethodInfo> methods, string name, int parameterCount)
-        {
-            foreach (var m in methods)
-            {
-                if (m.Name == name && m.GetParameters().Length == parameterCount)
-                {
-                    return m;
-                }
-            }
-            return null;
-        }
-
-        /// <summary>
-        /// What to quote from a throw. Reflection wraps a handler's own exception
-        /// in a TargetInvocationException whose message says only that an
-        /// exception was thrown, which tells an operator nothing at all.
-        /// </summary>
-        private static string Reason(Exception ex) =>
-            (ex is TargetInvocationException tie && tie.InnerException != null ? tie.InnerException : ex).Message;
     }
 }

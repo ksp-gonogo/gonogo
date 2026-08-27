@@ -97,6 +97,7 @@ export const GENERATED_TYPE_UNITS: Readonly<Record<string, UnitsByField>> = {
     progressRatio: "ratio",
     projectType: "enum",
     rate: "bp/s",
+    shipId: "id",
     shipName: "text",
     stalled: "flag",
     timeLeftSeconds: "s",
@@ -129,6 +130,10 @@ export const GENERATED_TYPE_UNITS: Readonly<Record<string, UnitsByField>> = {
     maxEngineers: "count",
     name: "text",
     rate: "bp/s",
+  },
+  "Rp1ComplexRushArgs": {
+    lcId: "id",
+    rushing: "flag",
   },
   "Rp1Confidence": {
     confidence: "confidence",
@@ -284,6 +289,13 @@ export const GENERATED_TYPE_UNITS: Readonly<Record<string, UnitsByField>> = {
     timeLeftSeconds: "s",
     workRate: "ratio",
   },
+  "Rp1RolloutArgs": {
+    id: "id",
+    pad: "id",
+  },
+  "Rp1VehicleArgs": {
+    id: "id",
+  },
   "Rp1WarehouseItemEntry": {
     cost: "funds",
     humanRated: "flag",
@@ -293,6 +305,7 @@ export const GENERATED_TYPE_UNITS: Readonly<Record<string, UnitsByField>> = {
     lcId: "id",
     mass: "t",
     projectType: "enum",
+    shipId: "id",
     shipName: "text",
   },
 };
@@ -314,6 +327,7 @@ export const GENERATED_TOPIC_UNITS: Readonly<Record<string, UnitsByField>> = {
     progressRatio: "ratio",
     projectType: "enum",
     rate: "bp/s",
+    shipId: "id",
     shipName: "text",
     stalled: "flag",
     timeLeftSeconds: "s",
@@ -491,6 +505,7 @@ export const GENERATED_TOPIC_UNITS: Readonly<Record<string, UnitsByField>> = {
     lcId: "id",
     mass: "t",
     projectType: "enum",
+    shipId: "id",
     shipName: "text",
   },
 };
