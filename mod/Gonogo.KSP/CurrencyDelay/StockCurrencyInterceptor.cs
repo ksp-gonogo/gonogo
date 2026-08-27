@@ -209,16 +209,27 @@ namespace Gonogo.KSP.CurrencyDelay
             // time we know the change is delayed, the derived currency has moved and
             // there is no pre-derivation reading left to take.
             //
-            // Only for a POSITIVE science ask, which is what keeps an interleaved
-            // query from overwriting the reading: RP-1's own confidence pricing runs
-            // a second query, same reason and zero science, from inside the handler
-            // that banks the award. That interleaving already erased a science base
-            // once (see CurrencyQueryBases), and a reading taken on it would be a
-            // post-award one that made the withhold a silent no-op.
-            if (scienceAsked > 0.0)
+            // Only for a POSITIVE ask, which is what keeps an interleaved query from
+            // overwriting the reading: RP-1's own confidence pricing runs a second
+            // query, same reason and zero science, from inside the handler that banks
+            // the award. That interleaving already erased a science base once (see
+            // CurrencyQueryBases), and a reading taken on it would be a post-award one
+            // that made the withhold a silent no-op.
+            //
+            // All three currencies, not only the one a leak was measured on. Which
+            // quantity a given mod derives from which currency is the mod's business,
+            // and the arm is told the primary currency so it can ignore the ones it
+            // does not care about. RP-1's own arm answers only to science.
+            ObserveIfAsked(Sitrep.Contract.DerivedCurrencyCapability.Funds, query.GetInput(Currency.Funds), ut);
+            ObserveIfAsked(Sitrep.Contract.DerivedCurrencyCapability.Science, scienceAsked, ut);
+            ObserveIfAsked(Sitrep.Contract.DerivedCurrencyCapability.Reputation, query.GetInput(Currency.Reputation), ut);
+        }
+
+        private static void ObserveIfAsked(string primaryCurrency, double asked, double ut)
+        {
+            if (asked > 0.0)
             {
-                DerivedCurrencyWithholding.ObserveBeforeDerivation(
-                    Sitrep.Contract.DerivedCurrencyCapability.Science, ut);
+                DerivedCurrencyWithholding.ObserveBeforeDerivation(primaryCurrency, ut);
             }
         }
 
@@ -457,6 +468,15 @@ namespace Gonogo.KSP.CurrencyDelay
 
                 _guard.RunGuarded(() => Funding.Instance?.SetFunds(decision.ShadowToRestore, TransactionReasons.None));
 
+                // Same rule as the science arm: the funds are withheld, so anything
+                // another mod derived from them goes back too. No installed mod is
+                // known to derive from funds today (RP-1 prices its confidence award
+                // off the science input alone), which is exactly why this is here: a
+                // seam wired on one currency only is a fix for one instance, and the
+                // next mod would be a second investigation.
+                DerivedCurrencyWithholding.WithholdDerived(
+                    Sitrep.Contract.DerivedCurrencyCapability.Funds, decision.BaseAmount, ut);
+
                 // Recovery is INSTANT, not unroutable and not distance-timed.
                 // Vessel.IsRecoverable is LandedOrSplashed &&
                 // mainBody.isHomeWorld (decompile-confirmed), so a recovered
@@ -549,6 +569,11 @@ namespace Gonogo.KSP.CurrencyDelay
             }
 
             _guard.RunGuarded(() => Reputation.Instance?.SetReputation((float)decision.ShadowToRestore, TransactionReasons.None));
+
+            // Same rule again, and see the funds arm above for why it is wired with
+            // no mod currently deriving anything from reputation.
+            DerivedCurrencyWithholding.WithholdDerived(
+                Sitrep.Contract.DerivedCurrencyCapability.Reputation, decision.BaseAmount, ut);
 
             var credit = StockCurrencyDecision.BuildCredit(
                 CurrencyKind.Reputation, decision.BaseAmount, decision.ShadowToRestore, decision.OriginVesselId,

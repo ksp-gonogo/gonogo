@@ -34,7 +34,18 @@ namespace Gonogo.KSP.Tests.CurrencyDelay
             var handler = CurrencyDelaySourceText.MethodBody(
                 interceptor, "private void OnCurrencyModifierQuery(CurrencyModifierQuery query)");
 
-            Assert.Contains("DerivedCurrencyWithholding.ObserveBeforeDerivation", handler, StringComparison.Ordinal);
+            // One hop, followed rather than assumed: the handler calls the per-currency
+            // helper and the helper is what observes. Asserting only on the handler
+            // would go green on a helper that had stopped observing anything.
+            Assert.Contains("ObserveIfAsked(", handler, StringComparison.Ordinal);
+
+            var helper = CurrencyDelaySourceText.MethodBody(
+                interceptor, "private static void ObserveIfAsked(string primaryCurrency, double asked, double ut)");
+            Assert.Contains("DerivedCurrencyWithholding.ObserveBeforeDerivation", helper, StringComparison.Ordinal);
+
+            // And a zero ask takes no reading, which is what stops RP-1's own
+            // zero-science confidence-pricing query from overwriting a live one.
+            Assert.Contains("asked > 0.0", helper, StringComparison.Ordinal);
         }
 
         /// <summary>
@@ -60,6 +71,36 @@ namespace Gonogo.KSP.Tests.CurrencyDelay
                 "The derived-currency withhold must run AFTER the neutralise: RP-1 banks its confidence "
                 + "award before the interceptor is told the science moved, so there is nothing to put "
                 + "back until the science has actually been withheld");
+        }
+
+        /// <summary>
+        /// All three primary currencies, not only the one a leak was measured on.
+        /// Confidence was the instance; the class is any quantity a mod computes from
+        /// a neutralised change, and a seam wired on one currency is a fix for one
+        /// instance with the next mod queued behind it as a second investigation.
+        /// </summary>
+        [Fact]
+        public void all_three_away_paths_withhold_what_was_derived_from_them()
+        {
+            var interceptor = CurrencyDelaySourceText.Read("StockCurrencyInterceptor.cs");
+
+            foreach (var currency in new[] { "Funds", "Science", "Reputation" })
+            {
+                Assert.Contains(
+                    "DerivedCurrencyCapability." + currency,
+                    interceptor,
+                    StringComparison.Ordinal);
+            }
+
+            // The reputation arm is shared between its two away reasons, and the funds
+            // arm sits inline in its handler, so each is checked where it actually is.
+            var reputationArm = CurrencyDelaySourceText.MethodBody(
+                interceptor, "private void ResolveReputationAway(CurrencyChangeDecision decision, double ut)");
+            Assert.Contains("DerivedCurrencyWithholding.WithholdDerived", reputationArm, StringComparison.Ordinal);
+
+            var fundsHandler = CurrencyDelaySourceText.MethodBody(
+                interceptor, "private void OnFundsChanged(double newTotal, TransactionReasons reason)");
+            Assert.Contains("DerivedCurrencyWithholding.WithholdDerived", fundsHandler, StringComparison.Ordinal);
         }
 
         /// <summary>
