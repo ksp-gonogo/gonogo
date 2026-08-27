@@ -151,10 +151,22 @@ function oneScene(
     dataSources[scene.dataSourceId ?? "data"] = legacy;
   }
 
-  if (scene.host !== undefined && kind !== "augment") {
+  if (scene.host !== undefined && kind === "widget") {
     throw new Error(
-      `${where}: "_scene.host" is only meaningful for an augment scene; this ` +
-        `one names a ${kind}.`,
+      `${where}: "_scene.host" is only meaningful for an augment or a ` +
+        "contribution scene; this one names a widget, which IS the host.",
+    );
+  }
+  // A contribution is DATA its host renders, so with no host there is nothing
+  // to render it: the stand-in mounts an empty `Panel` and the scene
+  // photographs a blank frame with no error anywhere. That is the exact
+  // failure the host field exists to close for an overlay augment, and it is
+  // worse here, because an augment at least draws itself.
+  if (scene.host === undefined && kind === "contribution") {
+    throw new Error(
+      `${where}: a contribution scene must name "_scene.host". A contribution ` +
+        "is data its host draws, so without one the render is a blank frame " +
+        "that reports success.",
     );
   }
 

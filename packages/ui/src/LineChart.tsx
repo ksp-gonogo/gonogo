@@ -1,4 +1,5 @@
-import React, { useMemo } from "react";
+import type { PlotLayer } from "@ksp-gonogo/sitrep-sdk";
+import React, { useId, useMemo } from "react";
 import {
   buildBandPath,
   buildPath,
@@ -9,6 +10,12 @@ import {
   niceLogTicks,
   niceTicks,
 } from "./lineChartMath";
+import {
+  type PlotLayerFrame,
+  PlotLayers,
+  plotLayerDescriptions,
+  plotLayerExtent,
+} from "./plotLayers";
 
 /**
  * Columnar pairs of numeric values to plot. `x` and `y` are parallel arrays
@@ -94,11 +101,56 @@ export interface LineChartProps {
    * threshold label already names the series.
    */
   legend?: "overlay" | "none";
+  /**
+   * Contributed plot layers, in the plot's own data space (see the
+   * `plot-layers` vocabulary in `@ksp-gonogo/sitrep-sdk`). The host widget's
+   * OWN marks come through here too, so there is no geometry a first-party
+   * plot can reach that a contributor cannot.
+   *
+   * Layers participate in an auto Y domain exactly as series do, and are
+   * ignored by a pinned one: whether a guest may rescale the axes is a policy
+   * the host states once, not a privilege it keeps.
+   */
+  layers?: readonly PlotLayer[];
+  /** Names what the chart is, before the layers add their own clauses. */
+  ariaLabel?: string;
   width: number;
   height: number;
 }
 
 const MARGIN = { top: 10, right: 50, bottom: 28, left: 50 };
+/**
+ * The margins, fitted to the chart actually being drawn.
+ *
+ * The constants above are sized for a full-width graph widget, and on a small
+ * square plot they eat it: 100 px of left+right gutter out of a 200 px column
+ * leaves half the tile for the data. Two adjustments, both of which only ever
+ * GIVE space back:
+ *
+ * - the right gutter is 50 px to hold a SECOND y axis, so without one it keeps
+ *   just enough for the right-anchored last x tick label
+ * - the left gutter and the bottom band scale down on a small plot, to a floor
+ *   that still holds a `-12.3k` label and an 11 px line of type
+ */
+function fitMargins(
+  width: number,
+  height: number,
+  hasSecondary: boolean,
+): { top: number; right: number; bottom: number; left: number } {
+  const clamp = (lo: number, v: number, hi: number) =>
+    Math.max(lo, Math.min(hi, v));
+  const left = clamp(30, Math.round(width * 0.18), MARGIN.left);
+  return {
+    top: MARGIN.top,
+    right: hasSecondary ? left : clamp(14, Math.round(width * 0.07), 20),
+    bottom: height < 150 ? 20 : MARGIN.bottom,
+    left,
+  };
+}
+/** Below either, a corner readout is smaller than the words in it: the layer's
+ *  own `description` still carries the reading to a screen reader. */
+const CAPTION_MIN_PLOT_W = 120;
+const CAPTION_MIN_PLOT_H = 90;
 // Approximate pixels per tick label: used to scale tick count with plot
 // dimensions so narrow charts don't stamp 5 labels into 100 px of x-axis
 // (collides) and short charts don't stamp 5 labels into 80 px of y-axis.
@@ -126,17 +178,14 @@ export function LineChart({
   yScaleSecondary = "linear",
   thresholds,
   legend = "overlay",
+  layers,
+  ariaLabel,
   width,
   height,
 }: Readonly<LineChartProps>) {
+  const uid = useId();
   const w = width;
   const h = height;
-  const plotX0 = MARGIN.left;
-  const plotX1 = w - MARGIN.right;
-  const plotY0 = MARGIN.top;
-  const plotY1 = h - MARGIN.bottom;
-  const plotW = plotX1 - plotX0;
-  const plotH = plotY1 - plotY0;
 
   const primarySeries = series.filter(
     (s) => s.axis === "primary" && s.data.x.length > 0,
@@ -146,16 +195,48 @@ export function LineChart({
   );
   const hasSecondary = secondarySeries.length > 0;
 
+  const margin = fitMargins(w, h, hasSecondary);
+  const plotX0 = margin.left;
+  const plotX1 = w - margin.right;
+  const plotY0 = margin.top;
+  const plotY1 = h - margin.bottom;
+  const plotW = plotX1 - plotX0;
+  const plotH = plotY1 - plotY0;
+  const captionsFit =
+    plotW >= CAPTION_MIN_PLOT_W && plotH >= CAPTION_MIN_PLOT_H;
+
+  // Layer geometry joins the auto domain on the same terms as a series: a plot
+  // that scaled only to its own marks would clip a contributor's curve off the
+  // top and show nothing to say it had.
+  const layerYs = useMemo(() => {
+    const out = { primary: [] as number[], secondary: [] as number[] };
+    for (const layer of layers ?? []) {
+      const extent = plotLayerExtent(layer);
+      out[extent.axis].push(...extent.ys);
+    }
+    return out;
+  }, [layers]);
+
   const primaryDomain = useMemo(
     (): [number, number] =>
-      computeYDomain(primarySeries, yDomainPrimary, yScalePrimary),
-    [primarySeries, yDomainPrimary, yScalePrimary],
+      computeYDomain(
+        primarySeries,
+        yDomainPrimary,
+        yScalePrimary,
+        layerYs.primary,
+      ),
+    [primarySeries, yDomainPrimary, yScalePrimary, layerYs],
   );
 
   const secondaryDomain = useMemo(
     (): [number, number] =>
-      computeYDomain(secondarySeries, yDomainSecondary, yScaleSecondary),
-    [secondarySeries, yDomainSecondary, yScaleSecondary],
+      computeYDomain(
+        secondarySeries,
+        yDomainSecondary,
+        yScaleSecondary,
+        layerYs.secondary,
+      ),
+    [secondarySeries, yDomainSecondary, yScaleSecondary, layerYs],
   );
 
   const scaleX = makeScale(xDomain[0], xDomain[1], plotX0, plotX1);
@@ -199,7 +280,13 @@ export function LineChart({
       kind === "log" ? niceLogTicks(lo, hi, n) : niceTicks(lo, hi, n);
     for (let n = count; n <= 64; n *= 2) {
       const inView = gen(n).filter(inDomain);
-      if (inView.length < 1) continue;
+      // TWO, not one. A single tick is not a scale: it is one number floating
+      // against an axis with nothing to measure it by, and on a narrow plot it
+      // is the COMMON case rather than the edge one. At `count` 2 (any plot
+      // under ~175 px of width) the nice step lands the upper tick outside the
+      // domain, the filter drops it, and the axis reads "0" and nothing else.
+      // A finer retry forces a smaller step that does land inside.
+      if (inView.length < 2) continue;
       // A finer retry can land many ticks at once; on a short axis rendering
       // them all smears the labels into an illegible column. Keep ~count of
       // them, evenly spaced (endpoints included), so density tracks the plot.
@@ -369,6 +456,28 @@ export function LineChart({
     }));
   }, [thresholds, scaleYPrimary, scaleYSecondary]);
 
+  // Shape carries a layer's reading, and shape is not a channel a screen
+  // reader has (WCAG 1.4.1), so every layer's own clause joins the chart's
+  // accessible name. A layer with nothing to say adds nothing, which is what
+  // stops an absent reading from being spoken as a zero.
+  const chartLabel = [
+    ariaLabel ?? "Telemetry line chart",
+    ...plotLayerDescriptions(layers ?? []),
+  ].join("; ");
+
+  const layerFrame: PlotLayerFrame = {
+    scaleX,
+    scaleYPrimary,
+    scaleYSecondary,
+    plotX0,
+    plotX1,
+    plotY0,
+    plotY1,
+    uid,
+    labels: captionsFit,
+  };
+  const layerClipId = `plot-layer-clip-${uid}`;
+
   // Container is narrower/shorter than the margins, nothing meaningful to
   // draw, and negative <rect> dimensions spam the console. Render an empty
   // svg until the ResizeObserver reports a usable size.
@@ -391,7 +500,7 @@ export function LineChart({
       width={w}
       height={h}
       role="img"
-      aria-label="Telemetry line chart"
+      aria-label={chartLabel}
       // `display: block` removes the inline-baseline whitespace that an SVG
       // otherwise carries below itself. With a flex `min-height:0` ancestor
       // (ChartArea) the baseline gap pushes contentRect a few px past the
@@ -400,7 +509,16 @@ export function LineChart({
       // on graphs the user keeps open through a long flight.
       style={{ fontFamily: "monospace", overflow: "visible", display: "block" }}
     >
-      <title>Telemetry line chart</title>
+      <title>{chartLabel}</title>
+      {/* Only when something needs it: a chart with no layers should not carry
+          a `<defs>` block and a generated id it never references. */}
+      {layers && layers.length > 0 && (
+        <defs>
+          <clipPath id={layerClipId}>
+            <rect x={plotX0} y={plotY0} width={plotW} height={plotH} />
+          </clipPath>
+        </defs>
+      )}
       {/* Background */}
       <rect
         x={plotX0}
@@ -409,6 +527,14 @@ export function LineChart({
         height={plotH}
         fill="var(--color-surface-panel)"
       />
+
+      {/* Contributed context: fields and regions, under the gridlines so a
+          guest's wash can never bury the axes. */}
+      {layers && layers.length > 0 && (
+        <g clipPath={`url(#${layerClipId})`}>
+          <PlotLayers layers={layers} frame={layerFrame} pass="background" />
+        </g>
+      )}
 
       {/* Horizontal grid lines + left y-axis ticks. Keyed by index rather
           than value because niceTicks returns duplicate ticks when the domain
@@ -570,6 +696,14 @@ export function LineChart({
           )),
         )}
 
+      {/* Contributed readings: series, rules, ticks and point marks, over the
+          gridlines with the live traces. */}
+      {layers && layers.length > 0 && (
+        <g clipPath={`url(#${layerClipId})`}>
+          <PlotLayers layers={layers} frame={layerFrame} pass="foreground" />
+        </g>
+      )}
+
       {/* Threshold rules (horizontal reference lines). */}
       {thresholdLines.map((t) => (
         <React.Fragment key={t.id}>
@@ -638,6 +772,11 @@ export function LineChart({
             </React.Fragment>
           );
         })}
+
+      {/* Corner and edge readouts, last and outside the clip. */}
+      {layers && layers.length > 0 && captionsFit && (
+        <PlotLayers layers={layers} frame={layerFrame} pass="caption" />
+      )}
     </svg>
   );
 }
@@ -652,10 +791,12 @@ function computeYDomain(
   axisSeries: ChartSeries[],
   pinned: [number, number] | undefined,
   scale: AxisScale,
+  layerYs: readonly number[] = [],
 ): [number, number] {
   if (pinned) return pinned;
-  if (axisSeries.length === 0) return scale === "log" ? [1, 10] : [0, 1];
-  let all: number[] = axisSeries.flatMap(seriesYValues);
+  if (axisSeries.length === 0 && layerYs.length === 0)
+    return scale === "log" ? [1, 10] : [0, 1];
+  let all: number[] = [...axisSeries.flatMap(seriesYValues), ...layerYs];
   if (scale === "log") all = all.filter((v) => v > 0);
   if (all.length === 0) return scale === "log" ? [1, 10] : [0, 1];
   return [Math.min(...all), Math.max(...all)];

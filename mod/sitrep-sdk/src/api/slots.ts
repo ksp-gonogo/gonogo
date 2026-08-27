@@ -410,43 +410,15 @@ export interface ScienceDataAboardRowContext {
 }
 
 // --- LandingStatus (packages/components/src/LandingStatus) ------------------
-
-/** Mirrors `DescentProjection` (LandingStatus/DescentEnvelope.tsx). */
-export interface DescentProjection {
-  /** Sampled (speed, height-above-ground) pairs, vessel first, ground last. */
-  points: readonly { speed: number; altitude: number }[];
-  /** Height the descent settles onto the terminal curve at, when it does so
-   *  before the ground. Null means it never settles. */
-  settleAltitude: number | null;
-  /** Speed the projection reaches the ground at. */
-  touchdownSpeed: number;
-}
-
-/** Mirrors `DescentEnvelopeOverlayContext` (LandingStatus/DescentEnvelope.tsx),
- *  the descent envelope's velocity-height plot as an overlay drawing surface. */
-export interface DescentEnvelopeOverlayContext {
-  /** Side of the square user space the plot draws in. */
-  size: number;
-  /** A speed and a height above ground, to a point in that user space. */
-  project(speedMps: number, altitudeM: number): { x: number; y: number };
-  /** The vessel's current speed, null when the stream carries no reading. */
-  currentSpeed: number | null;
-  /** The vessel's current height above ground, metres. */
-  currentAltitude: number;
-  /** The plot's own terminal-velocity curve, metres per second at a height. */
-  terminalVelocityAt(altitudeM: number): number;
-  /** Air density relative to the ground, from the same model as the curve. */
-  relativeDensity(altitudeM: number): number;
-  /** Re-run the descent against a terminal-velocity model of the caller's own.
-   *  Null when the body's surface gravity is unknown. */
-  projectDescent(
-    terminalVelocityAt: (altitudeM: number) => number,
-  ): DescentProjection | null;
-  /** The action-urgency colour the vessel mark carries. */
-  urgencyColor: string;
-  /** True airspeed as a Mach number, when the stream carries one. */
-  mach: number | null;
-}
+//
+// `landing-status.envelope` is GONE, and it is worth saying why rather than
+// leaving a hole. It was an overlay slot handing a guest a projection function,
+// a coordinate space and the host's own descent integrator, and the host drew
+// its curve, its wash and its marks through geometry that slot could not reach.
+// The plot is a `GraphView` now and everything on it, the widget's own marks
+// included, arrives through `landing-status.plot-layers` (see the `plot-layers`
+// vocabulary in `./plot-layers.ts`). What the guest lost was pixels; what it
+// gained is that the host has no privilege left to out-draw it with.
 
 // --- OrbitView (packages/components/src/OrbitView) --------------------------
 
@@ -609,7 +581,6 @@ declare module "./types" {
 
     "orbit-view.overlay": OrbitOverlayContext;
 
-    "landing-status.envelope": DescentEnvelopeOverlayContext;
     // Mounted by `Panel`'s universal segments, not by the widget.
     "landing-status.sections": Record<string, never>;
     "landing-status.actions": Record<string, never>;

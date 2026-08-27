@@ -70,6 +70,18 @@ export {
   DEFAULT_SITREP_CARRIED_TOPICS,
   DYNAMIC_CARRIED_TOPIC_PREFIXES,
 } from "./default-carried-topics";
+// The atmospheric-descent maths a velocity-height plot is drawn from. Published
+// because it is the only input a contributor to that plot cannot rebuild from
+// the wire, and two independently written integrators on one plot disagree for
+// reasons no operator can see. See descent.ts.
+export type { DescentProjection, ProjectDescentOptions } from "./descent";
+export {
+  DESCENT_SETTLE_TOLERANCE,
+  DESCENT_TRACE_STEPS,
+  projectDescent,
+  relativeDensityCurve,
+  terminalVelocityCurve,
+} from "./descent";
 // Ordinal->name tables and closed name unions for the contract's enums. On the
 // root barrel rather than in the spine because an Uplink needs them as much as
 // the app does: KSP's ResourceFlowMode reaches the Kerbalism Uplink and its

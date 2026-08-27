@@ -1,197 +1,174 @@
-import type { SlotProps } from "@ksp-gonogo/sitrep-sdk";
-import {
-  render,
-  setupStreamFixture,
-  waitFor,
-} from "@ksp-gonogo/sitrep-sdk/testing";
+import type { AnyContribution, PlotLayer } from "@ksp-gonogo/sitrep-sdk";
+import { getContributionsForSlot } from "@ksp-gonogo/sitrep-sdk";
 import { describe, expect, it } from "vitest";
-import { DescentEnvelopeAeroOverlay } from "./index";
-
-const TOPIC = "aero.state";
+import { aeroBadges, aeroDescentLayers } from "./index";
 
 /**
- * A stand-in for the host plot's own geometry.
- *
- * Deliberately the real contract rather than a loose bag: the whole point of
- * the slot is that the host hands over its axes and its integrator, so an
- * overlay test that invented its own projection would be testing the invention.
- * The numbers describe a Kerbin entry at 28 km with the plot's terminal-velocity
- * curve anchored at 300 m/s and touching down at 95.
+ * The plot's own anchors, describing a Kerbin entry at 28 km whose
+ * constant-drag-coefficient back-out puts terminal at 300 m/s now and 95 m/s at
+ * the ground. Both curves are derived from these, so the ONLY thing that can
+ * separate them is the physics, which is what the second curve exists to show.
  */
-function hostContext(
-  overrides: Partial<SlotProps<"landing-status.envelope">> = {},
-): SlotProps<"landing-status.envelope"> {
-  const size = 160;
-  const alt0 = 28_000;
-  const vtNow = 300;
-  const vtGround = 95;
-  const altTop = alt0 * 1.12;
-  const maxSpeed = 2200 * 1.12;
-  const terminalVelocityAt = (alt: number) =>
-    vtGround * (vtNow / vtGround) ** (alt / alt0);
-  return {
-    size,
-    project: (speed, alt) => ({
-      x: (speed / maxSpeed) * size,
-      y: (1 - alt / altTop) * size,
-    }),
-    currentSpeed: 2200,
-    currentAltitude: alt0,
-    terminalVelocityAt,
-    relativeDensity: (alt) => {
-      const vt = terminalVelocityAt(alt);
-      return vt > 0 ? Math.min(1, (vtGround / vt) ** 2) : 0;
-    },
-    projectDescent: () => ({
-      points: [
-        { speed: 2200, altitude: alt0 },
-        { speed: 320, altitude: 17_000 },
-        { speed: 95, altitude: 0 },
-      ],
-      settleAltitude: 17_000,
-      touchdownSpeed: 95,
-    }),
-    urgencyColor: "var(--color-status-warning-bg)",
-    mach: 7.1,
-    ...overrides,
-  };
-}
+const PLOT = {
+  plotTerminal: 300,
+  plotTouchdown: 95,
+  altitude: 28_000,
+  speed: 2200,
+  surfaceGravity: 9.81,
+};
 
 /** A reading from a lifting entry: high alpha, a wing partly separated. */
-function entryReading(overrides: Record<string, unknown> = {}) {
+function entryReading(
+  overrides: Partial<Parameters<typeof aeroDescentLayers>[0]> = {},
+) {
   return {
-    angleOfAttack: 40.2,
-    sideslip: 0.3,
-    stallFraction: 0.18,
-    liftToDragRatio: 0.91,
-    terminalVelocity: 180,
-    ballisticCoefficient: 391,
-    aeroModelValid: true,
+    ...PLOT,
+    alpha: 40.2,
+    stall: 0.18,
+    modelTerminal: 180,
+    ballistic: 391,
+    stale: false,
+    noReading: false,
     ...overrides,
   };
 }
 
-function mount(ctx = hostContext()) {
-  const fixture = setupStreamFixture({ carriedChannels: [TOPIC] });
-  const view = render(
-    <fixture.Provider>
-      <DescentEnvelopeAeroOverlay {...ctx} />
-    </fixture.Provider>,
-  );
-  return { fixture, view };
-}
-
-function paths(container: HTMLElement): string[] {
-  return Array.from(container.querySelectorAll("path")).map(
-    (p) => p.getAttribute("d") ?? "",
-  );
-}
-
-function words(container: HTMLElement): string {
-  return Array.from(container.querySelectorAll("text"))
-    .map((t) => t.textContent ?? "")
+const kinds = (layers: PlotLayer[]) => layers.map((l) => l.kind);
+const byId = (layers: PlotLayer[], id: string) =>
+  layers.find((l) => l.id === id);
+const spoken = (layers: PlotLayer[]) =>
+  layers
+    .map((l) => l.description ?? "")
+    .filter(Boolean)
     .join(" | ");
-}
 
-describe("DescentEnvelope aero overlay", () => {
-  it("tilts the vessel wedge by the angle of attack", async () => {
-    const { fixture, view } = mount();
-    fixture.emit(TOPIC, entryReading());
-
-    await waitFor(() => {
-      expect(view.container.querySelectorAll("path").length).toBeGreaterThan(0);
-    });
-    const group = view.container.querySelector("g[transform]");
-    // Negated, because the plot's height grows upward while SVG's grows down,
-    // so a nose-up alpha has to rotate the other way to read as nose-up.
-    expect(group?.getAttribute("transform")).toContain("rotate(-40.2)");
-  });
-
-  it("frays the trailing edge in proportion to the stall fraction", async () => {
-    const clean = mount();
-    clean.fixture.emit(TOPIC, entryReading({ stallFraction: 0 }));
-    const torn = mount();
-    torn.fixture.emit(TOPIC, entryReading({ stallFraction: 0.45 }));
-
-    await waitFor(() => {
-      expect(paths(torn.view.container).length).toBe(2);
-    });
-    const spread = (container: HTMLElement) => {
-      const edge = paths(container)[1];
-      const xs = [...edge.matchAll(/-?\d+(?:\.\d+)?(?=\s+-?\d)/g)].map(Number);
-      return Math.max(...xs) - Math.min(...xs);
-    };
-    // At zero stall the trailing edge is a straight line, so its points share
-    // one x; as the fraction rises the teeth open up.
-    expect(spread(clean.view.container)).toBeCloseTo(0, 5);
-    expect(spread(torn.view.container)).toBeGreaterThan(2);
-  });
-
-  it("draws an OPEN wedge on a craft with no stall fraction at all", async () => {
-    // A rocket has no wing to separate, and that is not a stall reading of
-    // nought: the trailing edge simply is not drawn.
-    const { fixture, view } = mount();
-    fixture.emit(TOPIC, entryReading({ stallFraction: undefined }));
-
-    await waitFor(() => {
-      expect(paths(view.container).length).toBeGreaterThan(0);
-    });
-    expect(paths(view.container)).toHaveLength(1);
-  });
-
-  it("says NO AERO DATA rather than drawing marks, with no reading", async () => {
-    const { view } = mount();
-    await waitFor(() => {
-      expect(words(view.container)).toContain("NO AERO DATA");
-    });
-    expect(paths(view.container)).toHaveLength(0);
-  });
-
-  it("ghosts every mark and says MODEL STALE when the model is invalid", async () => {
-    const { fixture, view } = mount();
-    fixture.emit(TOPIC, entryReading({ aeroModelValid: false }));
-
-    await waitFor(() => {
-      expect(words(view.container)).toContain("MODEL STALE");
-    });
-    const group = view.container.querySelector("g[transform]");
-    expect(Number(group?.getAttribute("opacity"))).toBeLessThan(1);
-  });
-
-  it("draws its own terminal curve only where it disagrees with the plot's", async () => {
-    const agreeing = mount();
+describe("aero descent layers", () => {
+  it("draws its own terminal curve only where it disagrees with the plot's", () => {
     // Scaled from the plot's own curve, so the two land on the same line.
-    agreeing.fixture.emit(TOPIC, entryReading({ terminalVelocity: 300 }));
-    const disagreeing = mount();
-    disagreeing.fixture.emit(TOPIC, entryReading({ terminalVelocity: 180 }));
+    const agreeing = aeroDescentLayers(entryReading({ modelTerminal: 300 }));
+    const disagreeing = aeroDescentLayers(entryReading());
 
-    await waitFor(() => {
-      expect(
-        disagreeing.view.container.querySelectorAll("polyline"),
-      ).toHaveLength(1);
-    });
-    expect(agreeing.view.container.querySelectorAll("polyline")).toHaveLength(
-      0,
-    );
+    expect(byId(agreeing, "model-terminal")).toBeUndefined();
+    expect(byId(disagreeing, "model-terminal")).toBeDefined();
   });
 
-  it("names the ballistic coefficient on its own settle tick", async () => {
-    const { fixture, view } = mount(
-      hostContext({
-        // The plot settles low; the model, with more drag, settles far higher,
-        // which is the disagreement worth a second tick.
-        projectDescent: (terminalVelocityAt) => ({
-          points: [],
-          settleAltitude: terminalVelocityAt(0) < 70 ? 2_000 : 20_000,
-          touchdownSpeed: 95,
-        }),
+  it("states the curve in metres per second and metres, never in pixels", () => {
+    const curve = byId(aeroDescentLayers(entryReading()), "model-terminal");
+    expect(curve?.kind).toBe("series");
+    const points = (curve as Extract<PlotLayer, { kind: "series" }>).points;
+    // The ground end of the model's curve is its terminal velocity at ground
+    // density, which for a craft holding alpha is well under the plot's 95.
+    expect(points[0].y).toBe(0);
+    expect(points[0].x).toBeGreaterThan(0);
+    expect(points[0].x).toBeLessThan(PLOT.plotTouchdown);
+    expect(points[points.length - 1].y).toBe(PLOT.altitude);
+  });
+
+  it("names the ballistic coefficient on its own settle tick", () => {
+    const layers = aeroDescentLayers(entryReading());
+    const tick = byId(layers, "model-settle");
+    expect(tick?.kind).toBe("annotation");
+    expect(
+      (tick as Extract<PlotLayer, { kind: "annotation" }>).label,
+    ).toContain("391");
+    expect(spoken(layers)).toContain("ballistic coefficient");
+  });
+
+  it("says NO AERO DATA and adds no marks at all, with no reading", () => {
+    const layers = aeroDescentLayers(
+      entryReading({
+        noReading: true,
+        alpha: null,
+        stall: null,
+        modelTerminal: null,
+        ballistic: null,
       }),
     );
-    fixture.emit(TOPIC, entryReading());
+    expect(kinds(layers)).toEqual(["caption"]);
+    expect((layers[0] as Extract<PlotLayer, { kind: "caption" }>).text).toBe(
+      "NO AERO DATA",
+    );
+  });
 
-    await waitFor(() => {
-      expect(words(view.container)).toContain("391");
-    });
-    expect(words(view.container)).toContain("kg/m²");
+  it("says MODEL STALE and draws every mark it still adds faintly", () => {
+    const layers = aeroDescentLayers(entryReading({ stale: true }));
+    expect(
+      layers.some((l) => l.kind === "caption" && l.text === "MODEL STALE"),
+    ).toBe(true);
+    expect(byId(layers, "model-terminal")?.emphasis).toBe("faint");
+    expect(byId(layers, "model-settle")?.emphasis).toBe("faint");
+  });
+
+  it("has no STALL word at all on a craft with no stall fraction", () => {
+    // A rocket has no wing to separate, and that is not a stall reading of
+    // nought: the word simply is not contributed.
+    const rocket = aeroDescentLayers(entryReading({ stall: null }));
+    const winged = aeroDescentLayers(entryReading({ stall: 0.45 }));
+    expect(byId(rocket, "stall")).toBeUndefined();
+    expect(byId(winged, "stall")?.tone).toBe("nogo");
+  });
+
+  it("keeps a wing working hard clear of the wing departing", () => {
+    expect(
+      byId(aeroDescentLayers(entryReading({ stall: 0.02 })), "stall"),
+    ).toBe(undefined);
+    expect(
+      byId(aeroDescentLayers(entryReading({ stall: 0.2 })), "stall")?.tone,
+    ).toBe("warn");
+  });
+
+  it("adds nothing beyond the words when the body's gravity is unknown", () => {
+    // The integration cannot run without it, so there is no settle tick rather
+    // than a tick placed against a guessed body.
+    const layers = aeroDescentLayers(
+      entryReading({ surfaceGravity: null, stall: null }),
+    );
+    expect(kinds(layers)).toEqual(["series"]);
+  });
+});
+
+describe("aero badges", () => {
+  it("carries alpha and stall as numbers, with the tone escalating", () => {
+    const badges = aeroBadges({
+      angleOfAttack: { magnitude: 40.2, unit: "°" },
+      stallFraction: { magnitude: 0.45, unit: "ratio" },
+      aeroModelValid: true,
+    } as never);
+    expect(badges?.map((b) => b.id)).toEqual(["alpha", "stall"]);
+    expect(badges?.[0].label).toContain("40");
+    expect(badges?.[1].tone).toBe("nogo");
+  });
+
+  it("reports nothing at all rather than a zero, with no reading", () => {
+    expect(aeroBadges(undefined)).toBeNull();
+    expect(aeroBadges({ aeroModelValid: true } as never)).toBeNull();
+  });
+});
+
+// The registrations run at module load, off this file's own import of
+// `./index` above, exactly as they do in the app.
+describe("registration", () => {
+  it("feeds the landing plot's layer slot and the widget's badge slot", () => {
+    const ids = (slot: string) =>
+      getContributionsForSlot(slot).map((c: AnyContribution) => c.id);
+    // Namespaced by the client handle, which is what stops two Uplinks
+    // colliding on an id somebody picked independently.
+    expect(ids("landing-status.plot-layers")).toContain(
+      "aero:descent-envelope-layers",
+    );
+    expect(ids("landing-status.badges")).toContain(
+      "aero:descent-envelope-badges",
+    );
+  });
+
+  it("gates both on the aerodynamics Domain being present", () => {
+    for (const slot of [
+      "landing-status.plot-layers",
+      "landing-status.badges",
+    ]) {
+      for (const c of getContributionsForSlot(slot)) {
+        if (c.id.startsWith("aero:")) expect(c.requires).toBe("aero");
+      }
+    }
   });
 });

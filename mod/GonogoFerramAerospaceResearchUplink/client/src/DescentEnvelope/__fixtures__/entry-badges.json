@@ -1,13 +1,13 @@
 {
   "_meta": {
     "synthetic": true,
-    "notes": "SYNTHETIC. A 90-tonne lifting body holding 40 degrees alpha through a Kerbin entry at 28 km and Mach 7, still far above terminal so it is decelerating hard. The aerodynamics model's own terminal velocity (180 m/s at this attitude) is well below the plot's constant-drag-coefficient back-out (300 m/s), because holding high alpha buys drag the back-out cannot see: that gap is the whole reason the model's curve and settle tick are worth drawing."
+    "notes": "SYNTHETIC. The same lifting-body entry as winged-entry-high-alpha, photographed for the BADGES rather than the plot layers: angle of attack and stall fraction are numbers, and a number belongs in a fixed place rather than rotated into a plot whose screen directions are already spent on delta-v and delta-h."
   },
   "_scene": {
-    "contribution": "aero:descent-envelope-layers",
+    "contribution": "aero:descent-envelope-badges",
     "host": "landing-status",
     "modes": ["default"],
-    "caption": "Winged entry at 40 degrees alpha: the model's own terminal curve parts from the plot's back-out and settles the descent higher, with the ballistic coefficient on its tick and STALL up the left edge"
+    "caption": "Angle of attack and stall fraction as panel badges: the framework mounts the badge slot for every widget, so this needs nothing added to the landing widget"
   },
   "_stream": {
     "pinnedUt": 1000000,
@@ -53,7 +53,10 @@
           "meanAnomalyAtEpoch": 0,
           "epoch": 1000000,
           "mu": 3531600000000,
-          "horizon": { "kind": 1, "trajectoryKind": 1 }
+          "horizon": {
+            "kind": 1,
+            "trajectoryKind": 1
+          }
         }
       },
       {
@@ -93,11 +96,17 @@
       },
       {
         "topic": "dv.summary",
-        "payload": { "totalDvActual": 120, "totalDvVac": 130 }
+        "payload": {
+          "totalDvActual": 120,
+          "totalDvVac": 130
+        }
       },
       {
         "topic": "comms.delay",
-        "payload": { "source": 1, "oneWaySeconds": 1.2 }
+        "payload": {
+          "source": 1,
+          "oneWaySeconds": 1.2
+        }
       },
       {
         "topic": "vessel.landing",

@@ -3,9 +3,12 @@ import {
   getSizeBucket,
   registerComponent,
   safeRandomUuid,
+  useContributions,
 } from "@ksp-gonogo/core";
 import type { DataKeyMeta, SeriesRange } from "@ksp-gonogo/data";
 import { isThresholdSubject, useDataSchema } from "@ksp-gonogo/data";
+import type { PlotLayer } from "@ksp-gonogo/sitrep-sdk";
+import { value } from "@ksp-gonogo/sitrep-sdk";
 import type {
   ChartSeries,
   ChartSeriesData,
@@ -20,6 +23,7 @@ import {
   FieldLabel,
   Input,
   LineChart,
+  plotLayerExtent,
   ReadoutCaption,
   Select,
   Sparkline,
@@ -31,6 +35,7 @@ import {
   IconButton,
   NULL_DISPLAY,
   Panel,
+  writeQuantity,
 } from "@ksp-gonogo/ui-kit";
 import {
   type CSSProperties,
@@ -77,9 +82,14 @@ function computeValueDomain(values: readonly number[]): [number, number] {
 function computeXDomain(
   liveXs: readonly number[],
   overlays: readonly ChartSeries[],
+  layers: readonly PlotLayer[],
 ): [number, number] {
   const all = [...liveXs];
   for (const o of overlays) all.push(...o.data.x);
+  // Contributed layers join the X domain on the same terms a reference curve
+  // does, for the same reason: a plot scaled only to its own marks clips a
+  // guest's curve off the edge and shows nothing to say it had.
+  for (const layer of layers) all.push(...plotLayerExtent(layer).xs);
   return computeValueDomain(all);
 }
 
@@ -92,6 +102,23 @@ function formatReadoutValue(value: number): string {
   if (abs >= 10) return value.toFixed(1);
   if (Number.isInteger(value)) return String(value);
   return value.toFixed(2);
+}
+
+/**
+ * An axis tick on a KNOWN unit, written by the unit registry rather than by the
+ * k/M suffixer below.
+ *
+ * The suffixer concatenates: 2000 on an `m/s` axis came out "2.0km/s", which
+ * reads as kilometres per second and is a different quantity. Its own prefix
+ * and a unit symbol cannot both be in one string, so where the axis knows its
+ * unit token, the ladder does the work and the axis says "2000 m/s".
+ *
+ * `writeQuantity` rather than `<Unit>` for the reason every SVG readout in this
+ * repo takes that route: a `<text>` element cannot contain a `<span>`. The
+ * symbol and the ladder still come from the registry.
+ */
+function unitTick(unit: string, magnitude: number): string {
+  return writeQuantity(value(unit as never, magnitude), { decimals: 0 });
 }
 
 function formatNumericTick(value: number, unit?: string): string {
@@ -184,6 +211,22 @@ interface GraphViewProps {
    * that one rather than instead of it.
    */
   headerActions?: ReactNode;
+  /**
+   * Plot layers this widget contributes to ITSELF, merged with whatever else
+   * has been contributed to `${componentId}.plot-layers`. A widget's own marks
+   * take the same route a guest's do, so there is no geometry a first-party
+   * plot can reach that a contributor cannot: see `plot-layers` in the SDK.
+   */
+  layers?: readonly PlotLayer[];
+  /**
+   * Drop the panel chrome and render the framed chart alone, for a plot
+   * composed inside another widget's own layout. The title and header actions
+   * are then that widget's business rather than this one's.
+   */
+  chrome?: "panel" | "bare";
+  /** Names what the chart IS, before its layers add their own clauses. Only
+   *  consulted while `chrome` is `"bare"`; a panel names itself. */
+  ariaLabel?: string;
   /** Current widget grid size: used to resolve the `"auto"` display variant. */
   w?: number;
   h?: number;
@@ -195,6 +238,9 @@ export function GraphView({
   title,
   emptyState = "Configure series to begin graphing.",
   headerActions,
+  layers: ownLayers,
+  chrome = "panel",
+  ariaLabel,
   w,
   h,
 }: GraphViewProps) {
@@ -202,9 +248,22 @@ export function GraphView({
     () => (config?.series ?? []).map(withDefaults),
     [config?.series],
   );
+  // Contributed layers, from the framework-universal `plot-layers` segment,
+  // completed to `${componentId}.plot-layers` from the mounting widget's own
+  // meta. Merged with the widget's own so the paint order in `PlotLayers` is
+  // the only thing that separates a host mark from a guest's.
+  const contributed = useContributions("plot-layers");
+  const layers = useMemo(
+    () => [...(ownLayers ?? []), ...contributed],
+    [ownLayers, contributed],
+  );
+
   const windowSec = config?.windowSec ?? 300;
   const xKey = config?.xKey ?? TIME_AXIS;
-  const xIsTime = xKey === TIME_AXIS;
+  // A pinned X domain means the axis is fed by NOTHING: no data key, no wall
+  // clock, just the numbers the curves and layers are stated in.
+  const xPinned = config?.xDomain !== undefined;
+  const xIsTime = !xPinned && xKey === TIME_AXIS;
 
   const schema = useDataSchema("data");
   // Schema is ~150 entries today; rebuilding the lookup map every render
@@ -215,7 +274,7 @@ export function GraphView({
     () => new Map(schema.map((k) => [k.key, k])),
     [schema],
   );
-  const xMeta = xIsTime ? null : (metaMap.get(xKey) ?? null);
+  const xMeta = xIsTime || xPinned ? null : (metaMap.get(xKey) ?? null);
 
   /**
    * A header that names what the chart MEASURES: "GRAPH m x m/s". "GRAPH"
@@ -279,7 +338,8 @@ export function GraphView({
   const requestedVariant: GraphVariant = config?.variant ?? "auto";
   const hasReferenceCurves = !!referenceCurves && referenceCurves.length > 0;
   const sizeBucket = getSizeBucket(w, h);
-  const canReadout = series.length === 1 && !hasReferenceCurves;
+  const canReadout =
+    series.length === 1 && !hasReferenceCurves && layers.length === 0;
   // Auto downgrades to readout for both `tiny` and `small`, at "small" the
   // chart axes/legend get squashed enough that a number + sparkline reads
   // better. Mobile half-width cells land in `tiny`, mobile full-width and
@@ -400,16 +460,24 @@ export function GraphView({
 
   const chartSeries: ChartSeries[] = [...liveSeries, ...overlaySeries];
 
-  const xDomain: [number, number] = xIsTime
-    ? (() => {
-        const now = Date.now();
-        return [now - windowSec * 1000, now];
-      })()
-    : computeXDomain(xData.v as number[], overlaySeries);
+  const xDomain: [number, number] = xPinned
+    ? (config?.xDomain as [number, number])
+    : xIsTime
+      ? (() => {
+          const now = Date.now();
+          return [now - windowSec * 1000, now];
+        })()
+      : computeXDomain(xData.v as number[], overlaySeries, layers);
 
   const xTickFormat = xIsTime
     ? undefined
-    : (value: number) => formatNumericTick(value, xMeta?.unit);
+    : xPinned && config?.xUnit
+      ? (v: number) => unitTick(config.xUnit as string, v)
+      : (v: number) => formatNumericTick(v, xMeta?.unit);
+
+  const yTickFormat = config?.yUnit
+    ? (v: number) => unitTick(config.yUnit as string, v)
+    : undefined;
 
   if (resolvedVariant === "readout") {
     const cfg = series[0];
@@ -460,6 +528,71 @@ export function GraphView({
     );
   }
 
+  const chartBody = (
+    <>
+      {/* ChartArea is always rendered so the ResizeObserver effect (deps:
+          []) attaches once and never has to re-attach when the chart's
+          data state flips. The empty-state text overlays when there's no
+          data to plot. */}
+      <FramedDisplay style={CHART_FRAME}>
+        <div ref={containerRef} style={CHART_AREA}>
+          {size && (
+            <LineChart
+              series={chartSeries}
+              xDomain={xDomain}
+              xTickFormat={xTickFormat}
+              yDomainPrimary={config?.yDomainPrimary}
+              yDomainSecondary={config?.yDomainSecondary}
+              yScalePrimary={config?.yScalePrimary}
+              yScaleSecondary={config?.yScaleSecondary}
+              yTickFormat={yTickFormat}
+              thresholds={config?.thresholds as ThresholdRule[] | undefined}
+              layers={layers}
+              ariaLabel={ariaLabel}
+              width={size.w}
+              height={size.h}
+            />
+          )}
+          {hasThirdUnit && (
+            <div style={AXIS_WARNING}>Add explicit axes to plot 3+ units</div>
+          )}
+          {series.length === 0 &&
+            overlaySeries.length === 0 &&
+            layers.length === 0 && (
+              <div style={EMPTY_STATE_OVERLAY}>{emptyState}</div>
+            )}
+        </div>
+      </FramedDisplay>
+      {/* Invisible data-fetcher components, one per series + one for X when non-time */}
+      {series.map((cfg) => (
+        <GraphSeries
+          key={cfg.id}
+          dataKey={cfg.key}
+          windowSec={windowSec}
+          onData={handleData}
+        />
+      ))}
+      {extraFetchKeys.map((k) => (
+        <GraphSeries
+          key={`extra-${k}`}
+          dataKey={k}
+          windowSec={windowSec}
+          onData={handleData}
+        />
+      ))}
+      {!xIsTime && !xPinned && (
+        <GraphSeries
+          key={`x-${xKey}`}
+          dataKey={xKey}
+          windowSec={windowSec}
+          onData={handleXData}
+        />
+      )}
+    </>
+  );
+
+  if (chrome === "bare") return chartBody;
+
   return (
     <Panel
       // PanelTitle uppercases, which is right for a word and WRONG for a unit
@@ -482,59 +615,7 @@ export function GraphView({
       }
       panelAside={headerActions}
     >
-      {/* ChartArea is always rendered so the ResizeObserver effect (deps:
-          []) attaches once and never has to re-attach when the chart's
-          data state flips. The empty-state text overlays when there's no
-          data to plot. */}
-      <FramedDisplay style={CHART_FRAME}>
-        <div ref={containerRef} style={CHART_AREA}>
-          {size && (
-            <LineChart
-              series={chartSeries}
-              xDomain={xDomain}
-              xTickFormat={xTickFormat}
-              yDomainPrimary={config?.yDomainPrimary}
-              yDomainSecondary={config?.yDomainSecondary}
-              yScalePrimary={config?.yScalePrimary}
-              yScaleSecondary={config?.yScaleSecondary}
-              thresholds={config?.thresholds as ThresholdRule[] | undefined}
-              width={size.w}
-              height={size.h}
-            />
-          )}
-          {hasThirdUnit && (
-            <div style={AXIS_WARNING}>Add explicit axes to plot 3+ units</div>
-          )}
-          {series.length === 0 && overlaySeries.length === 0 && (
-            <div style={EMPTY_STATE_OVERLAY}>{emptyState}</div>
-          )}
-        </div>
-      </FramedDisplay>
-      {/* Invisible data-fetcher components, one per series + one for X when non-time */}
-      {series.map((cfg) => (
-        <GraphSeries
-          key={cfg.id}
-          dataKey={cfg.key}
-          windowSec={windowSec}
-          onData={handleData}
-        />
-      ))}
-      {extraFetchKeys.map((k) => (
-        <GraphSeries
-          key={`extra-${k}`}
-          dataKey={k}
-          windowSec={windowSec}
-          onData={handleData}
-        />
-      ))}
-      {!xIsTime && (
-        <GraphSeries
-          key={`x-${xKey}`}
-          dataKey={xKey}
-          windowSec={windowSec}
-          onData={handleXData}
-        />
-      )}
+      {chartBody}
     </Panel>
   );
 }
