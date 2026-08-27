@@ -59,6 +59,7 @@ export {
   CREW_STANDING_NAMES,
   CREW_STANDING_ORDER,
   type CrewStandingName,
+  crewStandingFromRosterStatus,
   crewStandingLabel,
   isFatality,
   isOffTheBooks,

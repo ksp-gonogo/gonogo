@@ -13,6 +13,7 @@ import {
 import {
   CREW_STANDING_ORDER,
   CrewStanding,
+  crewStandingFromRosterStatus,
   crewStandingLabel,
   value,
 } from "@ksp-gonogo/sitrep-sdk";
@@ -849,7 +850,22 @@ function readCrewRoster(raw: unknown): CrewRosterRow[] {
       trait: typeof e.trait === "string" ? e.trait : "",
       experienceLevel: magnitudeOf(e.experienceLevel as Quantityish) ?? 0,
       situation: typeof e.situation === "string" ? e.situation : "",
-      standing: typeof e.standing === "number" ? e.standing : null,
+      // Absent only from a mod build older than the crew-standing capability.
+      // Falling back to KSP's roster status keeps that case reading exactly as
+      // it did before the capability existed, rather than bucketing the whole
+      // roster as Unknown; see `crewStandingFromRosterStatus` for why the
+      // fallback invents no retirement.
+      standing:
+        typeof e.standing === "number"
+          ? e.standing
+          : typeof e.situationOrdinal === "number" || e.isApplicant === true
+            ? crewStandingFromRosterStatus(
+                typeof e.situationOrdinal === "number"
+                  ? e.situationOrdinal
+                  : null,
+                e.isApplicant === true,
+              )
+            : null,
       standingSource:
         typeof e.standingSource === "string" && e.standingSource !== ""
           ? e.standingSource

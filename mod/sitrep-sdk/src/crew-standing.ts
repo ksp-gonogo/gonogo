@@ -1,4 +1,4 @@
-import { CrewStanding } from "./__generated__/contract";
+import { CrewStanding, KspRosterStatus } from "./__generated__/contract";
 import { namesByValue } from "./enum-names";
 
 /**
@@ -41,6 +41,50 @@ export const CREW_STANDING_ORDER: readonly CrewStanding[] = [
   .sort((a, b) => a - b)
   .filter((standing) => standing !== CrewStanding.Unknown)
   .concat(CrewStanding.Unknown);
+
+/**
+ * KSP's roster status as a `CrewStanding`, the client-side twin of the
+ * contract's `CrewStandings.FromRosterStatus`.
+ *
+ * <p>Its job is VERSION SKEW, and it is worth being precise about which
+ * direction. The producer stamps `standing` on every crew entry, so a client
+ * talking to a current mod build never reaches this. A client talking to a mod
+ * build from before the crew-standing capability gets no `standing` at all, and
+ * without this every kerbal on the roster would bucket as `Unknown`: a wall of
+ * "we do not know where any of your crew stands" about a save that is fine. The
+ * roster status is still on the wire in that case and still means what stock
+ * means by it, so it is read.</p>
+ *
+ * <p>What this deliberately does NOT do is invent a retirement. An old mod build
+ * has no retiree set to consult, so an RP-1 retiree still reads as a fatality
+ * against one, which is the truth about that pairing and the reason to upgrade
+ * the mod rather than to guess here.</p>
+ *
+ * <p>An applicant answers {@link CrewStanding.Applicant} without the ordinal
+ * being consulted, because an applicant has none; an unrecognised or absent
+ * ordinal answers {@link CrewStanding.Unknown} rather than the friendliest
+ * guess.</p>
+ */
+export function crewStandingFromRosterStatus(
+  rosterStatusOrdinal: number | null | undefined,
+  isApplicant: boolean,
+): CrewStanding {
+  if (isApplicant) {
+    return CrewStanding.Applicant;
+  }
+  switch (rosterStatusOrdinal) {
+    case KspRosterStatus.Available:
+      return CrewStanding.Available;
+    case KspRosterStatus.Assigned:
+      return CrewStanding.Assigned;
+    case KspRosterStatus.Dead:
+      return CrewStanding.Dead;
+    case KspRosterStatus.Missing:
+      return CrewStanding.Missing;
+    default:
+      return CrewStanding.Unknown;
+  }
+}
 
 /**
  * A standing's display label: the enum's own name, or `null` when the value is

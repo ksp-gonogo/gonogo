@@ -381,8 +381,10 @@ const WIDGETS: WidgetRenderConfig[] = [
           },
         ],
       },
-      // Active tab, default sub-tab (Available, the first situation present):
-      // auto-derived from active-crew-multi-situation's roster.
+      // Active tab, default sub-tab (Available, the first standing present),
+      // derived from active-crew-multi-situation's roster. Bill is standing
+      // down for R&R here, so this is also the RESTING badge beside a kerbal
+      // who is still Available and still fireable.
       {
         name: "active-tab-available-6x12",
         w: 6,
@@ -428,13 +430,14 @@ const WIDGETS: WidgetRenderConfig[] = [
             awaitMs: 100,
           },
           {
-            selector: 'button[aria-controls$="Assigned-panel"]',
+            selector: 'button[aria-controls$="standing-3-panel"]',
             awaitMs: 100,
           },
         ],
       },
-      // Active tab, Dead sub-tab: proves Dead/Missing get their own tabs
-      // rather than folding into a stock-style "Lost" tab.
+      // Active tab, Dead sub-tab: proves Dead/Missing get their own tabs rather
+      // than folding into a stock-style "Lost" tab, and that the RP-1 retiree
+      // is NOT in here despite carrying KSP's Dead ordinal.
       {
         name: "active-tab-dead-6x12",
         w: 6,
@@ -446,13 +449,15 @@ const WIDGETS: WidgetRenderConfig[] = [
             awaitMs: 100,
           },
           {
-            selector: 'button[aria-controls$="Dead-panel"]',
+            selector: 'button[aria-controls$="standing-5-panel"]',
             awaitMs: 100,
           },
         ],
       },
-      // Active tab, Retired sub-tab: the mod-introduced situation (RO/RP-1)
-      // getting its own tab with no per-mod registration.
+      // Active tab, Retired sub-tab: THE render this widget exists to get right.
+      // Gus carries KSP's Dead ordinal because that is what RP-1 wrote into it,
+      // and the standing is what puts him here instead, with a badge that is
+      // not the red one Val's fatality wears.
       {
         name: "active-tab-retired-6x12",
         w: 6,
@@ -464,7 +469,7 @@ const WIDGETS: WidgetRenderConfig[] = [
             awaitMs: 100,
           },
           {
-            selector: 'button[aria-controls$="Retired-panel"]',
+            selector: 'button[aria-controls$="standing-4-panel"]',
             awaitMs: 100,
           },
         ],
@@ -482,7 +487,7 @@ const WIDGETS: WidgetRenderConfig[] = [
             awaitMs: 100,
           },
           {
-            selector: 'button[aria-controls$="Missing-panel"]',
+            selector: 'button[aria-controls$="standing-6-panel"]',
             awaitMs: 100,
           },
         ],
