@@ -147,13 +147,15 @@ namespace Gonogo.DevTools
         /// </summary>
         private readonly struct DelaySubsystem
         {
-            public DelaySubsystem(bool present, bool scenarioLive, bool subscribed, int pendingRows, double shadowScience, string firstPending, string fault)
+            public DelaySubsystem(bool present, bool scenarioLive, bool subscribed, int pendingRows, double shadowScience, int labVessels, int scienceDefers, string firstPending, string fault)
             {
                 Present = present;
                 ScenarioLive = scenarioLive;
                 Subscribed = subscribed;
                 PendingRows = pendingRows;
                 ShadowScience = shadowScience;
+                LabVessels = labVessels;
+                ScienceDefers = scienceDefers;
                 FirstPending = firstPending ?? "";
                 Fault = fault ?? "";
             }
@@ -163,11 +165,20 @@ namespace Gonogo.DevTools
             public bool Subscribed { get; }
             public int PendingRows { get; }
             public double ShadowScience { get; }
+
+            /// <summary>Unclaimed lab-vessel pushes, and science changes still
+            /// waiting for one. Together they say which half of the
+            /// correlation failed: a change deferred with no lab vessel means
+            /// the push never reached the interceptor, whereas both non-zero
+            /// means it arrived and was not claimed.</summary>
+            public int LabVessels { get; }
+            public int ScienceDefers { get; }
+
             public string FirstPending { get; }
             public string Fault { get; }
 
             public static DelaySubsystem Absent(string fault) =>
-                new DelaySubsystem(false, false, false, 0, 0.0, "", fault);
+                new DelaySubsystem(false, false, false, -1, 0.0, -1, -1, "", fault);
         }
 
         /// <summary>Every balance the delay model can move, plus RP-1's two
@@ -589,13 +600,15 @@ namespace Gonogo.DevTools
                 var scenario = UnityEngine.Object.FindObjectOfType(scenarioType);
                 if (scenario == null)
                 {
-                    return new DelaySubsystem(true, false, false, 0, 0.0, "", "scenario type present but no live instance");
+                    return new DelaySubsystem(true, false, false, -1, 0.0, -1, -1, "", "scenario type present but no live instance");
                 }
 
                 const BindingFlags Instance = BindingFlags.NonPublic | BindingFlags.Instance;
 
                 var subscribed = false;
                 var shadowScience = 0.0;
+                var labVessels = -1;
+                var scienceDefers = -1;
                 var fault = "";
 
                 var interceptor = scenarioType.GetField("_interceptor", Instance)?.GetValue(scenario);
@@ -626,6 +639,13 @@ namespace Gonogo.DevTools
                     {
                         shadowScience = Convert.ToDouble(shadow.GetValue(state, null), CultureInfo.InvariantCulture);
                     }
+
+                    labVessels = CountPrivateList(state, "_labVessels");
+                    scienceDefers = CountPrivateList(state, "_scienceDefers");
+                    if (labVessels < 0 || scienceDefers < 0)
+                    {
+                        fault = Append(fault, "could not read the correlation lists");
+                    }
                 }
 
                 var pendingRows = -1;
@@ -649,12 +669,28 @@ namespace Gonogo.DevTools
                     fault = Append(fault, "could not read the pending ledger");
                 }
 
-                return new DelaySubsystem(true, true, subscribed, pendingRows, shadowScience, firstPending, fault);
+                return new DelaySubsystem(true, true, subscribed, pendingRows, shadowScience, labVessels, scienceDefers, firstPending, fault);
             }
             catch (Exception ex)
             {
                 return DelaySubsystem.Absent("probe threw: " + ex.Message);
             }
+        }
+
+        /// <summary>Element count of a private List field, or -1 when it cannot be read.</summary>
+        private static int CountPrivateList(object? owner, string fieldName)
+        {
+            if (owner == null)
+            {
+                return -1;
+            }
+
+            var value = owner.GetType().GetField(fieldName, BindingFlags.NonPublic | BindingFlags.Instance)?.GetValue(owner);
+            if (!(value is System.Collections.ICollection collection))
+            {
+                return -1;
+            }
+            return collection.Count;
         }
 
         private static string DescribePendingRow(object row)
@@ -807,6 +843,10 @@ namespace Gonogo.DevTools
             sb.AppendLine("\t}");
         }
 
+        /// <summary>A negative count means the read failed, which must never render as a measured zero.</summary>
+        private static string Countable(int count) =>
+            count < 0 ? "(unreadable)" : count.ToString(CultureInfo.InvariantCulture);
+
         private static void AppendDelaySubsystem(StringBuilder sb, DelaySubsystem delay)
         {
             sb.AppendLine("\t\tDELAY");
@@ -816,8 +856,10 @@ namespace Gonogo.DevTools
             sb.AppendLine("\t\t\tinterceptorSubscribed = " + (delay.Subscribed ? "True" : "False"));
             // -1 means the ledger could not be read; a plain 0 would read as
             // "measured, nothing pending", which is the opposite conclusion.
-            sb.AppendLine("\t\t\tpendingRows = " + (delay.PendingRows < 0 ? "(unreadable)" : delay.PendingRows.ToString(CultureInfo.InvariantCulture)));
+            sb.AppendLine("\t\t\tpendingRows = " + Countable(delay.PendingRows));
             sb.AppendLine("\t\t\tshadowScience = " + delay.ShadowScience.ToString("F3", CultureInfo.InvariantCulture));
+            sb.AppendLine("\t\t\tlabVesselsPending = " + Countable(delay.LabVessels));
+            sb.AppendLine("\t\t\tscienceDefersPending = " + Countable(delay.ScienceDefers));
             if (delay.FirstPending.Length > 0)
             {
                 sb.AppendLine("\t\t\tfirstPending = " + delay.FirstPending);
