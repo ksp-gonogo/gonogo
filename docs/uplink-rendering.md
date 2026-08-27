@@ -302,9 +302,9 @@ on screen. `_scene.size` is optional and overrides the host's own tile: a host's
 `defaultSize` is chosen for the host alone, and an operator who has added three
 sections to it has made it bigger.
 
-**This is an in-repo affordance, not an author surface.** A first-party host
-widget lives in a package a third party cannot install, so the run has to be told
-which module registers it. Declare that once, beside `minAppVersion`:
+**This is an in-repo affordance, not an author surface.** A host widget ships
+with the APP, in a package nobody outside this repo can install, so the run has
+to be told which module registers it. Declare that once, beside `minAppVersion`:
 
 ```jsonc
 "gonogo": {

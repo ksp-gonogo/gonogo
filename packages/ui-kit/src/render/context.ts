@@ -104,12 +104,12 @@ function findFixtures(root: string): string[] {
  * Extra modules whose registrations belong in the page, declared once.
  *
  * A scene naming `_scene.host` needs that host widget in the bundle, and a
- * first-party host lives in a package no Uplink may import. `--with` can name
- * one per run, but a render that only works when someone remembers a flag is a
- * render nobody runs: the FIRST Uplink to use `_scene.host` shipped a plain
- * `gonogo-uplink render` script beside a fixture naming a host, which cannot
- * succeed. So the modules are a fact about the package, beside `minAppVersion`
- * in the same `gonogo` block:
+ * host widget ships with the APP, in a package no Uplink may import. `--with`
+ * can name one per run, but a render that only works when someone remembers a
+ * flag is a render nobody runs: the FIRST Uplink to use `_scene.host` shipped a
+ * plain `gonogo-uplink render` script beside a fixture naming a host, which
+ * cannot succeed. So the modules are a fact about the package, beside
+ * `minAppVersion` in the same `gonogo` block:
  *
  *     "gonogo": { "renderWith": ["../../../packages/components/src/index.ts"] }
  *
