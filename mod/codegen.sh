@@ -148,8 +148,6 @@ echo "codegen -> $kerbcast_out_dir/topic-map.ts"
 echo "codegen -> $kerbcast_out_dir/units.ts"
 echo "codegen -> $kerbcast_out_dir/units.json"
 
-# SCANsat: the fourth relocation, and the largest. FIVE types, TWO
-# [SitrepTopic]-tagged roots (scansat.scanningVessels and scansat.science, both
 # isArray), so SITREP_SCANSAT_TOPICMAP_OUT is set here the same as Avionics's
 # and Kerbcast's. It is also the first relocation with NESTED payload types
 # (ScanningVesselEntry.sensors/trackColor), which is why the emitted units.ts

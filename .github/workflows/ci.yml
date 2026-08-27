@@ -166,7 +166,6 @@ jobs:
       - name: Uplink pages are not stale
         run: |
           pnpm --filter @ksp-gonogo/ui-kit... build
-          pnpm --filter @ksp-gonogo/gonogo-scansat-uplink docs:check
           pnpm --filter @ksp-gonogo/gonogo-kos-uplink docs:check
 
   # act() warning ratchet: per-file counts held against scripts/act-warning-debt.mjs.
@@ -440,7 +439,6 @@ jobs:
             Sitrep.Skeleton.Tests
             Sitrep.Host.Tests
             Sitrep.Host.IntegrationTests
-            GonogoScansatUplink.Tests
             GonogoRealAntennasUplink.Tests
             GonogoKerbcastUplink.Tests
             GonogoActionGroupsExtendedUplink.Tests

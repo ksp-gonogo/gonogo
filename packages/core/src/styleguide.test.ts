@@ -67,7 +67,6 @@ const ALLOWED_PATHS = [
   // canvas 2D `fillStyle` constraint as the packages/ copy above. Two of its
   // three literals are fillStyle assignments; the third is the background
   // colour quoted inside the comment that explains them.
-  "mod/GonogoScansatUplink/client/src/Scanning/Minimap.tsx",
 ];
 
 // Source roots to scan, shared with the token ratchet so the two can

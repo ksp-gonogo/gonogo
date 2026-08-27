@@ -319,17 +319,6 @@ export const ALLOWLIST: Record<ModToken, ModAllowlist> = {
        */
       "packages/data/src/schema/topicFieldCatalog.test.ts",
       /*
-       * -- UPLINK WIDGET-DECLARATION gate: the app-side check that every Uplink
-       * widget's declarations resolve to something real has to LOAD every
-       * Uplink client to read the registries they register into, so it names
-       * all ten by construction. Permanent, not debt: it cannot clear when the
-       * runtime loader lands, because a gate over every Uplink's declarations
-       * will always have to load every Uplink. It lives outside them for the
-       * reason BLOCKED_FILENAMES records, that a gate inside an Uplink is one a
-       * third-party author cannot run.
-       */
-      "packages/app/src/__tests__/uplink-widget-declarations.test.ts",
-      /*
        * -- UPLINK-DISCOVERABILITY scan (2026-08-22): the check that every
        * uplink is registered must WALK every uplink project to find them, so
        * it necessarily names each directory. It was previously blind to
@@ -338,31 +327,11 @@ export const ALLOWLIST: Record<ModToken, ModAllowlist> = {
        */
       "mod/Gonogo.KSP.Tests/UplinkDiscoverabilityTests.cs",
       /*
-       * -- MAGNITUDE budget ratchet (2026-08-19): the per-file `.magnitude`
-       * budget is keyed by file path, so it names every Uplink that unwraps a
-       * Value. Ratchet-inventory file, the case this bucket documents.
-       */
-      "packages/core/src/styleguide-magnitude-budget.test.ts",
-      /*
-       * -- FIRE-AND-FORGET command budget (2026-08-20): the per-file budget
-       * for dispatches that discard their outcome is keyed by file path, so it
-       * names every Uplink with a blind dispatch. Ratchet-inventory file, the
-       * case this bucket documents.
-       */
-      "packages/core/src/styleguide-fire-and-forget-commands.test.ts",
-      /*
        * -- Uplink ISOLATION ratchet inventory (2026-08-18): the inward guard's
        * debt list is keyed by file path, so it necessarily names every Uplink
        * directory. Ratchet-inventory file, the case this bucket documents.
        */
       "packages/core/src/uplink-isolation.allowlist.ts",
-      /*
-       * -- TYPECHECK-COVERAGE ratchet inventory (2026-08-21): the debt list
-       * of packages whose `typecheck` does not yet cover their own test files
-       * is keyed by package directory, so it names every Uplink client.
-       * Ratchet-inventory file, the case this bucket documents.
-       */
-      "packages/core/src/typecheck-coverage.allowlist.ts",
       /*
        * -- Kerbalism's own SCANsat bridge --
        * Kerbalism ships a `KerbalismScansat` PartModule and a config patch that
@@ -425,14 +394,6 @@ export const ALLOWLIST: Record<ModToken, ModAllowlist> = {
        * scansat-specific is imported.
        */
       "mod/sitrep-sdk/src/units.ts",
-      /*
-       * topic-cs-sync.test.ts: the relocated C#↔runtime-registry sync gate
-       * (2026-07-20): statically imports the Uplink clients (incl. scansat) so
-       * their `registerBarePrimitiveTopic` calls fire, then asserts the registry
-       * union matches the C#-declared Topics. A new test importing the clients for
-       * registration; no product-code coupling.
-       */
-      "packages/app/src/__tests__/topic-cs-sync.test.ts",
       /*
        * scansat-coverage-roundtrip.test.tsx: the app-level MSW acceptance gate
        * (2026-07-20) for the dynamic-topic fix: drives the real client stack and

@@ -27,7 +27,6 @@ import "@ksp-gonogo/gonogo-mechjeb-uplink";
 import "@ksp-gonogo/gonogo-principia-uplink";
 import "@ksp-gonogo/gonogo-realantennas-uplink";
 import "@ksp-gonogo/gonogo-rp1-uplink";
-import "@ksp-gonogo/gonogo-scansat-uplink";
 
 /**
  * The Uplink half of `packages/components/src/test/widgetDeclarations.test.ts`.
@@ -156,7 +155,6 @@ describe("widget and augment declarations resolve to something real", () => {
       "camera-feed",
       "kos-terminal",
       "mechjeb",
-      "scanning",
     ];
     const missing = fromUplinks.filter((id) => !ids.has(id));
     expect(missing).toEqual([]);
@@ -188,7 +186,6 @@ describe("widget and augment declarations resolve to something real", () => {
       "kerbcast-docking-camera",
       "realantennas-comm-signal-badge",
       "realantennas-comm-signal-section",
-      "scansat-science",
       "rp1-research-queue",
     ];
     const missing = fromUplinks.filter((id) => !ids.has(id));

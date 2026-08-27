@@ -26,13 +26,6 @@ export interface UplinkBundleTarget {
  */
 export const UPLINK_BUNDLE_TARGETS: UplinkBundleTarget[] = [
   {
-    id: "scansat",
-    name: "SCANsat",
-    author: "jonpepler",
-    repo: "ksp-gonogo/GonogoScansatUplink",
-    clientDir: resolve(modDir, "GonogoScansatUplink/client"),
-  },
-  {
     id: "kos",
     name: "kOS",
     author: "jonpepler",

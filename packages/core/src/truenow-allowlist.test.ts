@@ -156,7 +156,6 @@ const ALLOWED_TRUENOW: Record<string, number> = {
   // SCANsat scan-coverage availability: ground-side (the map data the
   // centre already has), not a live vessel reading. 1 explicit
   // declaration.
-  "mod/GonogoScansatUplink/ScansatUplink.cs": 1,
 
   // kerbalism.available (whether the Kerbalism mod is INSTALLED, same
   // install-fact class as scansat/kerbcast .available) + kerbalism.features
