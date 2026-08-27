@@ -791,8 +791,9 @@ function buildTree(scene: ScenePayload): ReactNode {
     if (!getComponent(scene.host)) {
       throw new Error(
         `render probe: "_scene.host" names "${scene.host}", which is not a ` +
-          "registered widget in this bundle. A first-party host has to be " +
-          "supplied to the run with --with <module that registers it>; " +
+          "registered widget in this bundle. A host that ships with the app " +
+          "has to be supplied to the run with --with <module that registers " +
+          "it>, or declared once in package.json's gonogo.renderWith; " +
           `registered widgets are: ${getComponents()
             .map((c) => c.id)
             .sort()

@@ -43,5 +43,10 @@
   },
   "peerDependencies": {
     "react": "^18.0.0"
+  },
+  "gonogo": {
+    "renderWith": [
+      "../../../packages/components/src/index.ts"
+    ]
   }
 }

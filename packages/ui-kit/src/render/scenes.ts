@@ -385,7 +385,8 @@ function hostWidget(
   if (!found) {
     throw new Error(
       `${where}: "_scene.host" names "${host}", which no widget in this ` +
-        "bundle registers. A first-party host has to be supplied to the run " +
+        "bundle registers. A host that ships with the app has to be supplied " +
+        "to the run " +
         "with --with <module that registers it>. Widgets in the bundle: " +
         `${
           [...inventory.hosts, ...inventory.widgets]
