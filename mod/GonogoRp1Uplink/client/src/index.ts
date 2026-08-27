@@ -8,6 +8,7 @@ import "./units";
 import "./topics";
 import "./settings/rp1SimulationSettings";
 import "./KscConstruction";
+import "./KscVehicles";
 import "./LaunchComplexStatus";
 import "./ProgramDetail";
 import "./ProgramStatus";
@@ -15,6 +16,7 @@ import "./ResearchQueue";
 import "./SpaceCentrePersonnel";
 
 export { KscConstruction } from "./KscConstruction";
+export { KscVehicles, RP1_BUILD_REPEAT_COMMAND } from "./KscVehicles";
 export { LaunchComplexStatus } from "./LaunchComplexStatus";
 export { ProgramDetail } from "./ProgramDetail";
 export { ProgramStatus } from "./ProgramStatus";

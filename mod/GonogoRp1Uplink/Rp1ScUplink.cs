@@ -99,6 +99,18 @@ namespace GonogoRp1Uplink
         private string? _launchGateRegistrationError;
 
         /// <summary>
+        /// The write half of RP-1's build queue: the repeat-build command and the
+        /// gate that darkens it. Its own reader, like the launch gate beside it
+        /// and for the same reason: a command answers from the model as it stands
+        /// at the moment of the dispatch, and the space-centre capture is
+        /// subscription-gated and one tick stale.
+        /// </summary>
+        private readonly Rp1BuildCommands _build = new Rp1BuildCommands();
+
+        /// <summary>Set when the command registration threw, so Health can say so rather than nothing.</summary>
+        private string? _buildCommandRegistrationError;
+
+        /// <summary>
         /// The command RP-1's launch rules are contributed to. Spelled out rather
         /// than referenced: <c>FlightOpsCommandProvider</c> lives in
         /// <c>Sitrep.Host</c>, which an Uplink may not reference, and a
@@ -142,7 +154,24 @@ namespace GonogoRp1Uplink
         /// </summary>
         private bool EnabledForSave => _rp1.IsEnabledForSave();
 
-        public UplinkManifest Manifest { get; } = new UplinkManifest
+        /// <summary>
+        /// Assigned from a constructor rather than a field initialiser because
+        /// the command list is CONDITIONAL on RP-1's build model resolving, and a
+        /// field initialiser may not read another instance field.
+        ///
+        /// <para>Conditional because a declared requirement whose evaluator never
+        /// registers is a startup failure by design, and the evaluator registers
+        /// only when RP-1 is present. A stock install would otherwise declare a
+        /// command it cannot gate and take the whole mod down at load.</para>
+        /// </summary>
+        public UplinkManifest Manifest { get; }
+
+        public Rp1ScUplink()
+        {
+            Manifest = BuildManifest(_build.IsAvailable);
+        }
+
+        private static UplinkManifest BuildManifest(bool buildModelResolved) => new UplinkManifest
         {
             Id = "rp1",
             Version = "1.0.0",
@@ -176,6 +205,27 @@ namespace GonogoRp1Uplink
                 Ground(ProgramSlotsTopic, absenceIsData: true),
                 Ground(ProgramFundingCurvesTopic, absenceIsData: true),
             },
+            // Delayed: false, the same disposition every ground-side career write
+            // takes and for the same reason core's own nine give: light-time is
+            // what separates a command centre from a CRAFT, and there is no craft
+            // in this one. Telling a launch complex to integrate another vehicle
+            // is KSC bookkeeping that happens where the KSC is, so a delayed
+            // dispatch would invent a lag the model does not claim exists. The
+            // client still routes it through the delay-aware command hooks, which
+            // is what makes that answer visible rather than assumed: an operator
+            // sees a command that confirms at once, not a control that quietly
+            // has no delay UX.
+            Commands = buildModelResolved
+                ? new List<CommandDeclaration>
+                {
+                    new CommandDeclaration
+                    {
+                        Command = Rp1BuildCommands.RepeatCommand,
+                        Delayed = false,
+                        Requires = Rp1BuildCommands.Requirements(),
+                    },
+                }
+                : (IReadOnlyList<CommandDeclaration>)Array.Empty<CommandDeclaration>(),
         };
 
         private static ChannelDeclaration Ground(string topic, bool absenceIsData = false) => new ChannelDeclaration
@@ -248,6 +298,30 @@ namespace GonogoRp1Uplink
             catch (Exception ex)
             {
                 _launchGateRegistrationError = ex.Message;
+            }
+
+            // The build queue's write half. Registered on the SAME condition the
+            // manifest declared the command on, and that pairing is the whole
+            // reason both are conditional: the engine validates once, after every
+            // Uplink has registered, that a declared requirement has an evaluator,
+            // so declaring the command without registering this would be a
+            // startup failure rather than a missing button.
+            //
+            // Fail-softed separately, like the two registrations above: a command
+            // that cannot register must not cost this Uplink its read surface, and
+            // a read surface that fails must not leave a command half-registered.
+            try
+            {
+                if (_build.IsAvailable)
+                {
+                    host.AddGateEvaluator(_build);
+                    host.AddCommandHandler<Rp1BuildRepeatArgs, CommandResult>(
+                        Rp1BuildCommands.RepeatCommand, _build.Repeat);
+                }
+            }
+            catch (Exception ex)
+            {
+                _buildCommandRegistrationError = ex.Message;
             }
 
             // The simulation provider: whether the flight on screen is one of
@@ -410,6 +484,13 @@ namespace GonogoRp1Uplink
                         : _launch.IsAvailable
                             ? "contributed to ksp.launch"
                             : "space centre types not found"),
+                new UplinkHealthFact(
+                    "build commands",
+                    _buildCommandRegistrationError != null
+                        ? "not registered: " + _buildCommandRegistrationError
+                        : _build.IsAvailable
+                            ? "rp1.build.repeat registered"
+                            : "build or currency types not found"),
                 new UplinkHealthFact(
                     "simulation provider",
                     _simulationRegistrationError != null

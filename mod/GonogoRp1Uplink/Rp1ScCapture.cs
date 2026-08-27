@@ -66,6 +66,7 @@ namespace GonogoRp1Uplink
             {
                 list.Add(new Dictionary<string, object?>
                 {
+                    ["id"] = v.Id,
                     ["kscName"] = v.KscName,
                     ["lcId"] = v.LcId,
                     ["shipName"] = v.ShipName,
@@ -97,6 +98,7 @@ namespace GonogoRp1Uplink
             {
                 list.Add(new Dictionary<string, object?>
                 {
+                    ["id"] = v.Id,
                     ["kscName"] = v.KscName,
                     ["lcId"] = v.LcId,
                     ["shipName"] = v.ShipName,

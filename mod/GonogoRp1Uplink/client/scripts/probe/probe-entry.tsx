@@ -64,7 +64,7 @@ setKspCalendar({ ...RSS_CALENDAR });
 const registered = import("../../src");
 
 /** The sections this harness can mount, by the export name they ship under. */
-type SurfaceName = "KscConstruction";
+type SurfaceName = "KscConstruction" | "KscVehicles";
 
 /**
  * One section, and the stream it is driven by.

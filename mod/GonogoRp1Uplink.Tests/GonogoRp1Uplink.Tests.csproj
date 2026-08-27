@@ -34,6 +34,7 @@
     <Compile Include="..\GonogoRp1Uplink\Rp1ScUplink.cs" />
     <Compile Include="..\GonogoRp1Uplink\Rp1EconomyBackend.cs" />
     <Compile Include="..\GonogoRp1Uplink\Rp1LaunchGate.cs" />
+    <Compile Include="..\GonogoRp1Uplink\Rp1BuildCommands.cs" />
     <Compile Include="..\GonogoRp1Uplink\Rp1SimulationBackend.cs" />
   </ItemGroup>
 

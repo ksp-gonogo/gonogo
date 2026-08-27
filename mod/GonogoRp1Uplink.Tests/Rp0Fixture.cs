@@ -177,9 +177,165 @@ namespace RP0
 
         public ClampsState clampState = ClampsState.NoClamps;
 
+        /// <summary>
+        /// RP-1's stable per-vehicle id, and the only thing a command addresses.
+        /// A fresh one per instance, exactly as the real constructors do, so two
+        /// vehicles built from the same design are distinguishable here for the
+        /// same reason they are in a save.
+        /// </summary>
+        public string KCTPersistentID = Guid.NewGuid().ToString("N");
+
+        /// <summary>
+        /// PRIVATE on the real type, and private here on purpose: a reader that
+        /// only looked at public members would find nothing, and would find
+        /// nothing in the game either.
+        /// </summary>
+        private ROUtils.DataTypes.PersistentCompressedCraftNode ShipNodeCompressed =
+            new ROUtils.DataTypes.PersistentCompressedCraftNode(empty: false);
+
         private double _buildRate = -1.0;
 
+        private LaunchComplex? _lc;
+
+        /// <summary>The complex holding this vehicle, which is where a copy of it is built.</summary>
+        public LaunchComplex LC => _lc!;
+
         public void SetBuildRate(double rate) => _buildRate = rate;
+
+        /// <summary>Puts this vehicle in a complex, the way RP-1's own add does.</summary>
+        public void SetComplex(LaunchComplex lc) => _lc = lc;
+
+        /// <summary>Empties the stored craft node, the state that makes a copy impossible.</summary>
+        public void ClearStoredDesign() =>
+            ShipNodeCompressed = new ROUtils.DataTypes.PersistentCompressedCraftNode(empty: true);
+
+        /// <summary>
+        /// A fresh vehicle carrying the same design, same complex, and a new
+        /// identity. The real one copies a great deal more; what it must NOT do,
+        /// and what a test needs to be able to see, is reuse the id.
+        /// </summary>
+        public VesselProject CreateCopy() => new VesselProject
+        {
+            shipName = shipName,
+            launchSite = launchSite,
+            Type = Type,
+            humanRated = humanRated,
+            cost = cost,
+            mass = mass,
+            buildPoints = buildPoints,
+            _lc = _lc,
+        };
+
+        /// <summary>
+        /// The list price. The real one computes it off the craft node when the
+        /// stored figure is zero; the stored figure is what a test sets.
+        /// </summary>
+        public double GetTotalCost() => cost;
+
+        /// <summary>What the complex would refuse this vehicle for, set per test.</summary>
+        public List<string> FacilityRefusals = new List<string>();
+
+        /// <summary>
+        /// The real one measures mass, size, human-rating, clamps and stocked
+        /// resources against the complex's stats and APPENDS a sentence per
+        /// failure. The append is the part the reading depends on: a caller that
+        /// only took the bool would have nothing to tell an operator.
+        /// </summary>
+        public bool MeetsFacilityRequirements(List<string> failedReasons)
+        {
+            failedReasons?.AddRange(FacilityRefusals);
+            return FacilityRefusals.Count == 0;
+        }
+    }
+
+    /// <summary>
+    /// RP-1's static helpers, of which the build-list add is the one this
+    /// Uplink invokes. Its shipped body spends BEFORE it appends and performs no
+    /// affordability test of its own, and both halves of that are reproduced,
+    /// because the second is the reason the handler has a currency query at all.
+    /// </summary>
+    public static class KCTUtilities
+    {
+        /// <summary>Made to throw part-way, to pin what an operator is told when it does.</summary>
+        public static bool ThrowOnAdd;
+
+        public static void Reset() => ThrowOnAdd = false;
+
+        public static void AddVesselToBuildList(VesselProject vp, bool spendFunds)
+        {
+            if (spendFunds)
+            {
+                Funding.Instance?.AddFunds(0.0 - vp.GetTotalCost());
+            }
+            if (ThrowOnAdd)
+            {
+                throw new InvalidOperationException("the complex rejected the vehicle");
+            }
+            vp.LC.BuildList.Add(vp);
+        }
+    }
+
+    public enum CurrencyRP0
+    {
+        Funds,
+        Science,
+        Reputation,
+        Confidence,
+        Time,
+    }
+
+    [Flags]
+    public enum TransactionReasonsRP0 : long
+    {
+        None = 0L,
+        VesselPurchase = 0x10L,
+    }
+
+    /// <summary>
+    /// RP-1's priced-transaction query: what a purchase will ACTUALLY cost once
+    /// leaders and strategies have had their say, which is why the handler asks
+    /// this rather than reading the vehicle's stored cost.
+    /// </summary>
+    public class CurrencyModifierQueryRP0
+    {
+        /// <summary>
+        /// What the career's modifiers do to a price. Not 1.0 in the test that
+        /// matters: a handler quoting the list price instead of the charge passes
+        /// every assertion at 1.0 and none at 0.5.
+        /// </summary>
+        public static double Multiplier = 1.0;
+
+        /// <summary>Made to throw, to pin that an unpriceable build is refused rather than started.</summary>
+        public static bool ThrowOnQuery;
+
+        public static void Reset()
+        {
+            Multiplier = 1.0;
+            ThrowOnQuery = false;
+        }
+
+        private readonly double _funds;
+
+        private CurrencyModifierQueryRP0(double funds)
+        {
+            _funds = funds;
+        }
+
+        public static CurrencyModifierQueryRP0 RunQuery(TransactionReasonsRP0 reason, double f0, double s0, double r0)
+        {
+            if (ThrowOnQuery)
+            {
+                throw new InvalidOperationException("no currency model");
+            }
+            return new CurrencyModifierQueryRP0(f0 * Multiplier);
+        }
+
+        /// <summary>The delta, so a charge is NEGATIVE. The handler negates it back.</summary>
+        public double GetTotal(CurrencyRP0 c, bool includeHidden = false) =>
+            c == CurrencyRP0.Funds ? _funds : 0.0;
+
+        public bool CanAfford(CurrencyRP0 c) =>
+            c != CurrencyRP0.Funds || 0.0 - _funds <= (Funding.Instance?.Funds ?? 0.0);
     }
 
     public class LCLaunchPad
@@ -442,6 +598,46 @@ public enum SpaceCenterFacility
 // with a different shape would prove the walk works against something RP-1 does
 // not have. This assembly references no Unity assembly, so there is nothing for
 // this to collide with.
+// KSP's career balance. Global-namespaced because that is where KSP declares
+// it, and present here at all for one reason: the build handler reads it ONLY to
+// put the balance beside a refusal it has already decided on, so a stand-in that
+// merely holds a number proves the sentence carries both figures.
+public class Funding
+{
+    public static Funding? Instance { get; set; }
+
+    public double Funds { get; set; }
+
+    public void AddFunds(double delta) => Funds += delta;
+}
+
+// The craft node RP-1 stores a design in, from ROUtils. Only IsEmpty is here,
+// because that is the only member read: RP-1's own copy step reaches the editor
+// for a ship when the node is empty, and outside the editor there is not one, so
+// emptiness is what separates a vehicle that can be copied from one that cannot.
+namespace ROUtils.DataTypes
+{
+    public class PersistentCompressedConfigNode
+    {
+        private readonly bool _empty;
+
+        public PersistentCompressedConfigNode(bool empty)
+        {
+            _empty = empty;
+        }
+
+        public bool IsEmpty => _empty;
+    }
+
+    public class PersistentCompressedCraftNode : PersistentCompressedConfigNode
+    {
+        public PersistentCompressedCraftNode(bool empty)
+            : base(empty)
+        {
+        }
+    }
+}
+
 namespace UnityEngine
 {
     public struct Vector3

@@ -4,6 +4,10 @@
 
 import { Value, Vec3Of } from '@ksp-gonogo/sitrep-sdk';
 
+export interface Rp1BuildRepeatArgs
+{
+	id?: string;
+}
 export interface Rp1CentreEntry
 {
 	kscName?: string;
@@ -33,6 +37,7 @@ export interface Rp1ComplexEntry
 }
 export interface Rp1BuildItemEntry
 {
+	id?: string;
 	kscName?: string;
 	lcId?: string;
 	shipName?: string;
@@ -50,6 +55,7 @@ export interface Rp1BuildItemEntry
 }
 export interface Rp1WarehouseItemEntry
 {
+	id?: string;
 	kscName?: string;
 	lcId?: string;
 	shipName?: string;
