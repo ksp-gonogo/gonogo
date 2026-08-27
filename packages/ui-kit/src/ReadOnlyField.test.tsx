@@ -18,6 +18,29 @@ describe("ReadOnlyField", () => {
     expect(term.closest("dl")).toBe(definition.closest("dl"));
   });
 
+  it("lets a sentence wrap and holds a quantity on one line", () => {
+    // A read-only row's value is a health reason or a build string as often as
+    // it is a number. `nowrap` is right for the second (a quantity must never
+    // break between its number and its symbol) and squeezes the label beside
+    // the first into a ribbon two words wide, which is what this render showed.
+    const { container: prose } = render(
+      <ReadOnlyField
+        label="Why reading stopped"
+        value="The mod is recording a journal; reading it would write us into the recording"
+      />,
+    );
+    const proseValue = prose.querySelector("dd");
+    if (proseValue === null) throw new Error("no dd");
+    expect(getComputedStyle(proseValue).whiteSpace).toBe("normal");
+
+    const { container: quantity } = render(
+      <ReadOnlyField label="Prediction tolerance" value={value("m", 1)} />,
+    );
+    const quantityValue = quantity.querySelector("dd");
+    if (quantityValue === null) throw new Error("no dd");
+    expect(getComputedStyle(quantityValue).whiteSpace).toBe("nowrap");
+  });
+
   it("renders no control at all, disabled or otherwise", () => {
     const { container } = render(
       <ReadOnlyField label="Prediction tolerance" value={value("m", 1)} />,
