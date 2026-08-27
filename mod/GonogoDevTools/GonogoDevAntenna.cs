@@ -85,11 +85,35 @@ namespace Gonogo.DevTools
     /// however much power it has. The result reports how many home antennas share the
     /// boosted band, so "boost too small" and "nothing to talk to" stay distinguishable.</para>
     ///
+    /// <para><b>The boost is TRANSIENT, and this addon now says so and fixes it.</b>
+    /// Everything it writes is a KSPField on a live <c>ModuleRealAntenna</c>, and
+    /// reloading the vessel re-instantiates that module from the save, whose fields
+    /// still hold the craft's real antenna parameters. The boost is then gone with no
+    /// announcement of any kind: on 2026-08-27 that silently returned a craft to
+    /// unroutable mid-session and made a whole delay run unreadable, because a lapsed
+    /// boost and a boost that never worked produce the same unroutable craft.</para>
+    ///
+    /// <para>So a successful request now STANDS on its vessel, and every
+    /// <see cref="StandingVerifySeconds"/> the standing boosts are checked against what
+    /// their antennas actually hold and re-asserted where they have reverted. Both
+    /// halves matter. Re-asserting alone would be an instrument that cannot express its
+    /// own failure, working or silently not with the result file reading the same
+    /// either way; detecting alone would leave an accurate account of a craft that is
+    /// once again out of contact. The result file therefore carries
+    /// <c>boostState</c> - HOLDING, LAPSED AND RE-ASSERTED n times, or NOT WATCHED -
+    /// plus one LAPSE node per occasion, and the file keeps being rewritten after the
+    /// settle window closes, which is exactly when a lapse happens.</para>
+    ///
     /// <para><c>once: false</c> re-instantiates this every flight-scene load, and
     /// <see cref="_lastAppliedId"/> is deliberately an INSTANCE field, unlike
     /// <see cref="GonogoDevTeleport"/>'s static one: applying the same absolute
     /// parameters twice is idempotent, and a boost wants re-asserting after a revert
-    /// or a scene change rather than lasting exactly one scene per KSP process.</para>
+    /// or a scene change rather than lasting exactly one scene per KSP process. That
+    /// same field is why nothing needs persisting to disk for a KSP RESTART either -
+    /// the request cfg survives, so a new process re-applies it on its first flight
+    /// scene. <see cref="StandingBoosts"/> is static to survive the scene reloads
+    /// WITHIN a process, which the request cfg cannot help with because the id has
+    /// already been claimed.</para>
     /// </summary>
     [KSPAddon(KSPAddon.Startup.Flight, once: false)]
     public sealed class GonogoDevAntenna : MonoBehaviour
@@ -124,11 +148,55 @@ namespace Gonogo.DevTools
 
         private string? _lastAppliedId;
         private float _sinceLastPoll;
+        private float _sinceLastVerify;
 
         private string? _requestPath;
         private string? _resultPath;
 
         private WatchState? _watch;
+
+        /// <summary>
+        /// The last applied watch, kept after its settle window closes so a boost that
+        /// lapses later still has a result file to say so in. Without this the result
+        /// stops being rewritten the moment the watch ends, which is precisely when the
+        /// interesting thing happens.
+        /// </summary>
+        private WatchState? _lastWatch;
+
+        /// <summary>
+        /// The boost standing on each vessel guid, so it can be re-asserted after a
+        /// revert.
+        ///
+        /// <para><b>Why any of this is needed.</b> The boost is a set of KSPField writes
+        /// on a live <c>ModuleRealAntenna</c>. Reloading the vessel re-instantiates its
+        /// part modules from the save, whose fields still hold the craft's real antenna
+        /// parameters, so the boost is gone with no announcement of any kind. On
+        /// 2026-08-27 that silently returned a craft to unroutable mid-session and made
+        /// a whole delay run unreadable, because a lapsed boost and a boost that never
+        /// worked read identically.</para>
+        ///
+        /// <para>Static, so it survives the flight-scene reloads this addon is
+        /// re-instantiated by. Across a KSP RESTART nothing is needed: the request cfg
+        /// persists and <see cref="_lastAppliedId"/> is an instance field, so a new
+        /// process re-applies the standing request on its first flight scene anyway,
+        /// which is what that field is an instance field for.</para>
+        /// </summary>
+        private static readonly Dictionary<string, BoostRequest> StandingBoosts =
+            new Dictionary<string, BoostRequest>(StringComparer.Ordinal);
+
+        /// <summary>How many times each standing boost has had to be re-asserted. A
+        /// count above zero is the measurement that the transience is real on this
+        /// install, and it is reported rather than silently absorbed.</summary>
+        private static readonly Dictionary<string, int> Reapplications =
+            new Dictionary<string, int>(StringComparer.Ordinal);
+
+        /// <summary>
+        /// How often a standing boost is checked against what the antenna actually
+        /// holds. Frequent enough that a lapse is caught before it costs a reading,
+        /// slow enough that it is not doing reflection every frame - the same
+        /// reasoning as <see cref="PollIntervalSeconds"/>.
+        /// </summary>
+        private const float StandingVerifySeconds = 5f;
 
         /// <summary>What one antenna looked like at one moment: the module's own
         /// KSPFields on the left, and what the <c>RealAntenna</c> behind them ended up
@@ -201,6 +269,28 @@ namespace Gonogo.DevTools
             public double SettleSeconds;
             public float StartRealtime;
             public float NextSampleRealtime;
+
+            /// <summary>Every time this craft's boost was found reverted and re-asserted,
+            /// including after the settle window closed. Empty is a real answer here and
+            /// says the boost held, which is why the result also prints how long it has
+            /// been checked for.</summary>
+            public List<LapseRecord> Lapses = new List<LapseRecord>();
+        }
+
+        /// <summary>One occasion a standing boost was found reverted, with what was done
+        /// about it. The re-assertion index is what makes a boost that lapses repeatedly
+        /// distinguishable from one that lapsed once on a scene change.</summary>
+        private sealed class LapseRecord
+        {
+            public float AtRealtime;
+            public string RequestId = "";
+            public int RevertedAntennas;
+            public int TotalAntennas;
+            public int Reassertion;
+            public string Fault = "";
+            public string RecalculateFields = "";
+            public string DiscoverAntennas = "";
+            public string InvalidateCache = "";
         }
 
         /// <summary>The values one request asks for, each one absent unless the
@@ -270,6 +360,181 @@ namespace Gonogo.DevTools
                 // Never throw out of the poll.
                 Debug.LogError(LogPrefix + "poll failed: " + ex.Message);
             }
+
+            _sinceLastVerify += Time.unscaledDeltaTime;
+            if (_sinceLastVerify < StandingVerifySeconds)
+            {
+                return;
+            }
+            _sinceLastVerify = 0f;
+
+            try
+            {
+                VerifyStandingBoosts();
+            }
+            catch (Exception ex)
+            {
+                Debug.LogError(LogPrefix + "standing-boost verify failed: " + ex.Message);
+            }
+        }
+
+        /// <summary>
+        /// Checks every standing boost against what its antennas actually hold, and
+        /// re-asserts any that have reverted.
+        ///
+        /// <para><b>Both halves are load-bearing.</b> Re-asserting alone would be an
+        /// instrument that cannot express its own failure: it would go on working, or
+        /// silently stop, and a result file would read the same either way. Detecting
+        /// alone would leave the operator with an accurate account of a craft that is
+        /// once again unroutable. So it says LAPSED, loudly, in the log and in the
+        /// result file, and then fixes it, and reports the count of times it has had
+        /// to.</para>
+        ///
+        /// <para>An unloaded vessel is SKIPPED rather than called lapsed. Its
+        /// <c>ModuleRealAntenna</c> instances do not exist to check, so there is nothing
+        /// to compare against and nothing to write to; the boost re-lands when it loads
+        /// and this pass next runs.</para>
+        /// </summary>
+        private void VerifyStandingBoosts()
+        {
+            if (StandingBoosts.Count == 0)
+            {
+                return;
+            }
+
+            // Copied, because a re-apply touches the network and the underlying
+            // dictionary is static shared state across scene reloads.
+            var vesselIds = new List<string>(StandingBoosts.Keys);
+            foreach (var vesselId in vesselIds)
+            {
+                var request = StandingBoosts[vesselId];
+                var vessel = FindVessel(vesselId);
+                if (vessel == null || !vessel.loaded)
+                {
+                    continue;
+                }
+
+                var modules = FindAntennaModules(vessel, out var moduleFault);
+                if (moduleFault.Length > 0 || modules.Count == 0)
+                {
+                    continue;
+                }
+
+                var reverted = new List<PartModule>();
+                foreach (var module in modules)
+                {
+                    var snapshot = ReadSnapshot(module);
+                    if (snapshot.Fault.Length > 0)
+                    {
+                        continue;
+                    }
+                    if (!SnapshotHoldsRequest(snapshot, request))
+                    {
+                        reverted.Add(module);
+                    }
+                }
+
+                if (reverted.Count == 0)
+                {
+                    continue;
+                }
+
+                var count = Reapplications.TryGetValue(vesselId, out var seen) ? seen + 1 : 1;
+                Reapplications[vesselId] = count;
+
+                Debug.LogWarning(LogPrefix + "boost LAPSED on '" + (vessel.vesselName ?? vesselId) + "': "
+                    + reverted.Count + " of " + modules.Count + " antenna(s) no longer hold request id="
+                    + request.Id + ", almost certainly a vessel reload re-reading the save's own antenna"
+                    + " parameters. Re-asserting (re-assertion " + count.ToString(CultureInfo.InvariantCulture)
+                    + " for this craft).");
+
+                var fault = "";
+                foreach (var module in reverted)
+                {
+                    fault = Append(fault, WriteFields(module, request));
+                    fault = Append(fault, InvokeRecalculateFields(module));
+                }
+
+                var refreshWatch = new WatchState { Id = request.Id, VesselId = vesselId };
+                RefreshNetwork(vessel, refreshWatch);
+
+                RecordLapse(vesselId, request.Id, reverted.Count, modules.Count, count, fault, refreshWatch);
+            }
+        }
+
+        /// <summary>
+        /// Whether an antenna still holds every value the request asked for. Only the
+        /// asked-for fields are compared: an absent field in the request means "leave
+        /// what the antenna already has", so comparing it would report a lapse on a
+        /// value nothing ever set.
+        ///
+        /// <para>The <c>Ra*</c> side is checked too, not just the module fields. A
+        /// module field that survived while the <c>RealAntenna</c> behind it reverted is
+        /// still a lapsed boost, because Precompute reads the latter - that asymmetry is
+        /// the whole reason the recalculation call exists.</para>
+        /// </summary>
+        private static bool SnapshotHoldsRequest(AntennaSnapshot snapshot, BoostRequest request)
+        {
+            if (request.TxPower.HasValue
+                && (!Same(snapshot.TxPower, request.TxPower.Value) || !Same(snapshot.RaTxPower, request.TxPower.Value)))
+            {
+                return false;
+            }
+            if (request.TechLevel.HasValue && !Same(snapshot.TechLevel, request.TechLevel.Value))
+            {
+                return false;
+            }
+            if (request.ReferenceGain.HasValue && !Same(snapshot.ReferenceGain, request.ReferenceGain.Value))
+            {
+                return false;
+            }
+            if (request.ReferenceFrequencyMHz.HasValue && !Same(snapshot.ReferenceFrequencyMHz, request.ReferenceFrequencyMHz.Value))
+            {
+                return false;
+            }
+            if (request.AntennaDiameter.HasValue && !Same(snapshot.AntennaDiameter, request.AntennaDiameter.Value))
+            {
+                return false;
+            }
+            if (request.RfBand != null
+                && !string.Equals(snapshot.RfBand, request.RfBand, StringComparison.Ordinal))
+            {
+                return false;
+            }
+            return true;
+        }
+
+        /// <summary>
+        /// Writes a lapse into the result file, and into the LIVE watch if one is
+        /// running so a lapse mid-settle is visible in the same reading it corrupted.
+        /// A lapse on a craft the last request was not about is still logged and still
+        /// counted, but is not written into that request's result, because it did not
+        /// happen to that request.
+        /// </summary>
+        private void RecordLapse(
+            string vesselId, string requestId, int revertedAntennas, int totalAntennas, int reassertion,
+            string fault, WatchState refreshWatch)
+        {
+            var target = _watch ?? _lastWatch;
+            if (target == null || !string.Equals(target.VesselId, vesselId, StringComparison.Ordinal))
+            {
+                return;
+            }
+
+            target.Lapses.Add(new LapseRecord
+            {
+                AtRealtime = Time.realtimeSinceStartup,
+                RequestId = requestId,
+                RevertedAntennas = revertedAntennas,
+                TotalAntennas = totalAntennas,
+                Reassertion = reassertion,
+                Fault = fault,
+                RecalculateFields = fault.Length == 0 ? "invoked on all reverted antenna(s)" : "FAILED: " + fault,
+                DiscoverAntennas = refreshWatch.DiscoverAntennas,
+                InvalidateCache = refreshWatch.InvalidateCache,
+            });
+
+            WriteResult(target);
         }
 
         /// <summary>
@@ -482,8 +747,18 @@ namespace Gonogo.DevTools
             Debug.Log(LogPrefix + "id=" + id + " " + watch.Summary
                 + "; watching the control path for " + watch.SettleSeconds.ToString("F0", CultureInfo.InvariantCulture) + "s");
 
+            if (watch.Ok)
+            {
+                // The boost now stands on this craft, and the verify pass re-asserts it
+                // after any revert. A refused or ineffective request deliberately does
+                // NOT stand: re-asserting values that changed nothing would turn one
+                // silent no-op into a recurring one.
+                StandingBoosts[watch.VesselId] = request;
+            }
+
             WriteResult(watch);
             _watch = watch;
+            _lastWatch = watch;
         }
 
         private void Fail(WatchState watch, string message)
@@ -1360,6 +1635,8 @@ namespace Gonogo.DevTools
                     ? "(never within the watch)"
                     : watch.RouteAppearedAfterSeconds.ToString("F1", CultureInfo.InvariantCulture)));
 
+                AppendBoostState(sb, watch);
+
                 foreach (var report in watch.Antennas)
                 {
                     AppendAntenna(sb, report);
@@ -1375,6 +1652,51 @@ namespace Gonogo.DevTools
             catch (Exception ex)
             {
                 Debug.LogError(LogPrefix + "failed writing result: " + ex.Message);
+            }
+        }
+
+        /// <summary>
+        /// Whether the boost is still standing, and every time it was not.
+        ///
+        /// <para><b>This is the half that had to exist.</b> The boost writes KSPFields on
+        /// a live module, and a vessel reload re-instantiates that module from the save,
+        /// so the boost vanishes with no announcement. A lapsed boost and a boost that
+        /// never worked produce the same unroutable craft, and telling them apart by hand
+        /// cost a run. So the state is named: HOLDING, or LAPSED with how many times and
+        /// what was done each time.</para>
+        ///
+        /// <para><c>NOT WATCHED</c> is its own answer rather than HOLDING. A request that
+        /// changed nothing does not stand, so nothing is checking it, and reporting that
+        /// as "holding" would be the tool claiming to guard something it is not.</para>
+        /// </summary>
+        private static void AppendBoostState(StringBuilder sb, WatchState watch)
+        {
+            var standing = watch.VesselId.Length > 0 && StandingBoosts.ContainsKey(watch.VesselId);
+            var reassertions = watch.VesselId.Length > 0 && Reapplications.TryGetValue(watch.VesselId, out var n) ? n : 0;
+
+            sb.AppendLine("\tboostStanding = " + (standing ? "True" : "False"));
+            sb.AppendLine("\tboostState = " + AntennaProbeVerdicts.BoostState(
+                standing, watch.Lapses.Count, reassertions, StandingVerifySeconds));
+            sb.AppendLine("\tboostVerifyIntervalSeconds = " + StandingVerifySeconds.ToString("F0", CultureInfo.InvariantCulture));
+            sb.AppendLine("\tboostReassertions = " + reassertions.ToString(CultureInfo.InvariantCulture));
+
+            foreach (var lapse in watch.Lapses)
+            {
+                sb.AppendLine("\tLAPSE");
+                sb.AppendLine("\t{");
+                sb.AppendLine("\t\tatRealtime = " + lapse.AtRealtime.ToString("F1", CultureInfo.InvariantCulture));
+                sb.AppendLine("\t\trequestId = " + lapse.RequestId);
+                sb.AppendLine("\t\treassertion = " + lapse.Reassertion.ToString(CultureInfo.InvariantCulture));
+                sb.AppendLine("\t\trevertedAntennas = " + lapse.RevertedAntennas.ToString(CultureInfo.InvariantCulture)
+                    + " of " + lapse.TotalAntennas.ToString(CultureInfo.InvariantCulture));
+                sb.AppendLine("\t\trecalculateFields = " + lapse.RecalculateFields);
+                sb.AppendLine("\t\tdiscoverAntennas = " + lapse.DiscoverAntennas);
+                sb.AppendLine("\t\tinvalidateCache = " + lapse.InvalidateCache);
+                if (lapse.Fault.Length > 0)
+                {
+                    sb.AppendLine("\t\tfault = " + lapse.Fault);
+                }
+                sb.AppendLine("\t}");
             }
         }
 
