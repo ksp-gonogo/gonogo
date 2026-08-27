@@ -132,6 +132,7 @@ export async function renderUplink(
     });
     const tab = await context.newPage();
     tab.on("pageerror", (err) => {
+      if (isUnmountPlayAbort(err.message)) return;
       console.error(`  [page error] ${err.message}`);
       pageErrors.push(err.message);
     });
@@ -196,6 +197,26 @@ export async function renderUplink(
   } finally {
     await browser.close();
   }
+}
+
+/**
+ * The one page error a render is allowed to survive.
+ *
+ * A `<video>` element unmounted while a `play()` promise is still pending
+ * rejects, and every scene after the first unmounts one. It says nothing about
+ * the render: the frame that was captured was captured before the unmount, and
+ * the element being torn down is the harness moving on. Nothing else is
+ * forgiven, because a page error is otherwise a widget that threw and a PNG
+ * that looks like a widget that did not.
+ *
+ * Matched on both halves of the sentence rather than on "play", so a genuine
+ * playback failure still fails the run.
+ */
+function isUnmountPlayAbort(message: string): boolean {
+  return (
+    message.includes("play() request was interrupted") &&
+    message.includes("new load request")
+  );
 }
 
 async function renderOneScene(
@@ -351,21 +372,47 @@ async function performActs(tab: Page, scene: Scene): Promise<void> {
       await button.click();
     } else if (act.hover !== undefined) {
       const target = tab.locator(act.hover).first();
-      if ((await target.count()) === 0) {
+      await target.scrollIntoViewIfNeeded().catch(() => {});
+      const box = await target.boundingBox().catch(() => null);
+      if (box === null) {
         throw new Error(
           `${scene.name}: "_scene.before" hovers "${act.hover}", which matched ` +
-            "nothing.",
+            "nothing that is laid out.",
         );
       }
-      await target.hover();
+      // A plain pointer move, not `locator.hover()`. That one refuses when
+      // something is painted over the target, which is the normal case for a
+      // hover-gated overlay: the chrome sits on top of the video it is gating.
+      // What a hover-gate reads is where the pointer IS, so that is what this
+      // sets.
+      await tab.mouse.move(box.x + box.width / 2, box.y + box.height / 2);
     } else {
-      // Off the widget entirely rather than to a corner of it: a hover-gated
-      // control must be photographed with nothing hovered, and the viewport
-      // origin is inside the tile.
-      await tab.mouse.move(-50, -50);
+      await restPointer(tab);
     }
     await settle(tab);
   }
+}
+
+/**
+ * Put the pointer somewhere the widget is not.
+ *
+ * Past the tile's own bottom-right corner rather than at negative coordinates:
+ * the browser clamps those back into the viewport, whose origin is INSIDE the
+ * tile, so a hover-gated control asked to rest was hovered instead and both
+ * halves of a resting/hovered pair came out identical.
+ */
+async function restPointer(tab: Page): Promise<void> {
+  const viewport = tab.viewportSize() ?? { width: 900, height: 900 };
+  const rect = await tab.evaluate(() => {
+    const el = document.getElementById("root");
+    if (!el) return null;
+    const box = el.getBoundingClientRect();
+    return { right: box.right, bottom: box.bottom };
+  });
+  await tab.mouse.move(
+    Math.min(viewport.width - 1, (rect?.right ?? 0) + 20),
+    Math.min(viewport.height - 1, (rect?.bottom ?? 0) + 20),
+  );
 }
 
 /** Two frames, which is what a React state change plus its layout costs. */

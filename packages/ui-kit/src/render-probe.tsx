@@ -453,6 +453,19 @@ export interface RenderSetup {
     scene: ScenePayload;
     starve: boolean;
   }) => void | Promise<void>;
+  /**
+   * Run once the tree is mounted and fed, before the shot is taken.
+   *
+   * The place for anything that has to reach the mounted DOM. A `<video>` in
+   * headless Chromium does not paint a `captureStream`, so the one harness with
+   * a live feed puts a canvas behind the chrome here: it needs the video
+   * element to exist to find its stage, which `beforeScene` is too early for and
+   * `afterScene` is too late for.
+   */
+  afterMount?: (ctx: {
+    scene: ScenePayload;
+    starve: boolean;
+  }) => void | Promise<void>;
   /** Run after each capture. Unregister and dispose. */
   afterScene?: (ctx: { scene: ScenePayload }) => void | Promise<void>;
   /** Wrap the scene's tree in extra providers, inside the theme and stream. */
@@ -549,6 +562,13 @@ let activeSourceIds: string[] = [];
 let currentScene: ScenePayload | null = null;
 
 function teardown(): void {
+  // Media first. A `<video>` removed from the document while a `play()` is
+  // still pending rejects with "the play() request was interrupted by a new
+  // load request", which arrives as an uncaught page error and fails every
+  // render in the run, including the ones already taken.
+  for (const video of document.querySelectorAll("video")) {
+    video.pause();
+  }
   if (activeRoot) {
     activeRoot.unmount();
     activeRoot = null;
@@ -669,6 +689,9 @@ async function renderScene(scene: ScenePayload): Promise<SceneReport> {
 
   const unsubscribed = await feedInRounds(fixture, scene);
   const uncarried = unsubscribed.filter((t) => !isCarried(t, carried));
+
+  await activeSetup.afterMount?.({ scene, starve: scene.starve });
+  await frame();
 
   return {
     ...measure(el),

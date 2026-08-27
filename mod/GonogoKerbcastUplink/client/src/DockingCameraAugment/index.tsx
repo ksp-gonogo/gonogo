@@ -31,6 +31,7 @@ import {
 import { useEffect, useMemo, useRef } from "react";
 import { useDelayedKerbcastStream } from "../CameraFeed/useDelayedKerbcastStream";
 import type { KerbcastDataSource } from "../KerbcastDataSource";
+import { KERBCAST } from "../uplink";
 // Side-effect import: registers kerbcast.cameras's unit map into the SDK's
 // runtime hydration registry (registerTopicUnits) and augments
 // TopicPayloadMap for the type. This augment is the one production consumer
@@ -159,6 +160,7 @@ registerAugment({
   requires: "kerbcast",
   channels: ["kerbcast.cameras"],
   component: DockingCameraAugment,
+  owner: KERBCAST,
 });
 
 export { selectDockingCamera };

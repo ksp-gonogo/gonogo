@@ -19,7 +19,7 @@
     "test": "vitest run",
     "test:coverage": "vitest run --coverage",
     "typecheck": "tsc --noEmit",
-    "render-camera": "TSX_TSCONFIG_PATH=tsconfig.json tsx scripts/render-camera.ts"
+    "render": "gonogo-uplink render"
   },
   "dependencies": {
     "@ksp-gonogo/kerbcast": "^1.8.1",
@@ -39,7 +39,6 @@
     "playwright": "^1.60.0",
     "react": "^18.0.0",
     "react-dom": "^18.0.0",
-    "tsx": "^4.0.0",
     "typescript": "^5.0.0",
     "vitest": "^4.1.4"
   },

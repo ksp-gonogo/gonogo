@@ -18,6 +18,7 @@ import type { CSSProperties } from "react";
 import { useEffect, useMemo } from "react";
 import { useKerbcastCameras } from "../hooks/useKerbcastCameras";
 import type { KerbcastDataSource } from "../KerbcastDataSource";
+import { KERBCAST } from "../uplink";
 import { selectKerbalCamera } from "./selectKerbalCamera";
 
 /**
@@ -168,6 +169,7 @@ registerAugment({
   augments: "crew-status.avatar",
   requires: "kerbcast",
   component: KerbcastAvatarAugment,
+  owner: KERBCAST,
 });
 
 export { selectKerbalCamera };
