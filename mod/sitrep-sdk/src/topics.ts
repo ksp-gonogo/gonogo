@@ -88,6 +88,15 @@ export interface SystemUplinksTopicPayloadMap {
        */
       clientSource: { url: string; devPath: string | null } | null;
       /**
+       * Provenance the mod declares, for the consent dialog: an operator being
+       * asked to execute a bundle from a URL they did not choose is told who
+       * wrote it and where to look. `null` when the Uplink does not say, which
+       * includes every mod built before the fields existed.
+       */
+      name: string | null;
+      author: string | null;
+      repo: string | null;
+      /**
        * `state` is the integer ordinal of `UplinkHealthState`; `detail` the
        * Uplink's own sentence about it. `facts` is the identity of whatever the
        * Uplink depends on, labelled by the Uplink and read by nothing: a client

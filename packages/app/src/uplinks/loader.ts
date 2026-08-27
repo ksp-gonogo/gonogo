@@ -35,6 +35,14 @@ export interface RosterEntry {
   available: boolean;
   reason: string | null;
   /**
+   * Provenance the mod declares, for the consent dialog. Absent for a mod that
+   * predates the fields, which is why every arm below falls back rather than
+   * asserting.
+   */
+  name?: string | null;
+  author?: string | null;
+  repo?: string | null;
+  /**
    * H_mod: the client hash the running mod vouches for. Absent in Phase A (the
    * mod does not yet bake/emit it); when present the loader enforces the full
    * three-way agreement, otherwise it enforces the two-way index==bytes check and
@@ -398,9 +406,16 @@ export function descriptorFromClientSource(
   const { url: bundleUrl } = resolveClientBundleUrl(roster.clientSource);
   return {
     id: roster.id,
-    name: roster.id,
-    author: "unknown (third-party: no local registry entry)",
-    repo: "",
+    // The declared name when there is one; the id is a fallback, not a name.
+    name: roster.name ?? roster.id,
+    /*
+     * The mod's own declaration when it makes one. The fallback is not a
+     * placeholder: an Uplink that names no author IS unknown, and saying so is
+     * the honest thing to put in front of an operator deciding whether to
+     * execute it. Silently omitting the line would read as "no author needed".
+     */
+    author: roster.author ?? "unknown (third-party: no local registry entry)",
+    repo: roster.repo ?? "",
     versions: [
       {
         version: manifest.version,

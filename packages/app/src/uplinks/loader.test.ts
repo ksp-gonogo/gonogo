@@ -1,5 +1,6 @@
 import type { GonogoUplinkManifest } from "@ksp-gonogo/core";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import type { ConsentInfo } from "./consent";
 import type { HostCompat } from "./hostCompat";
 import {
   descriptorFromClientSource,
@@ -881,6 +882,89 @@ describe("loadEnabledUplinks: third-party clientSource path (D5-loader follow-on
       ...overrides,
     };
   }
+
+  /*
+   * The consent dialog is the one place provenance matters: an operator is being
+   * asked to execute a bundle fetched from a URL they did not choose, so it
+   * should say who wrote it. Until the mod emitted these it said `by unknown`
+   * for everything, because the roster carried nothing else.
+   *
+   * Asserted on what reaches `ensureConsent`, not on the modal, because the modal
+   * has always rendered `info.author` and was never the missing half.
+   */
+  it("hands the consent gate the author the mod declared", async () => {
+    const importBundle = vi.fn<
+      (bytes: ArrayBuffer, url: string) => Promise<unknown>
+    >(async () => ({}));
+    stubRegistryFetch(indexWith(goodHash));
+    const thirdPartyHash = await sha256Of(THIRD_PARTY_BYTES);
+    const seen: ConsentInfo[] = [];
+    await loadEnabledUplinks({
+      registrySource: { url: "/uplinks/registry.local.json" },
+      hostCompat: HOST,
+      appVersion: "1.0.0",
+      roster: [
+        {
+          id: "widget-y",
+          version: "2.0.0",
+          available: true,
+          reason: null,
+          expectedClientHash: thirdPartyHash,
+          name: "Widget Y",
+          author: "A Stranger",
+          repo: "https://github.com/stranger/widget-y",
+          clientSource: {
+            url: "https://cdn.example/widget-y.client.js",
+            devPath: null,
+          },
+        },
+      ],
+      ensureConsent: async (info) => {
+        seen.push(info);
+        return true;
+      },
+      fetchManifest: async () => manifestFor({ integrity: thirdPartyHash }),
+      fetchBytes: async () => THIRD_PARTY_BYTES,
+      importBundle,
+    });
+
+    expect(seen).toHaveLength(1);
+    expect(seen[0].author).toBe("A Stranger");
+    // The declared name, not the id. An id is not a name.
+    expect(seen[0].name).toBe("Widget Y");
+  });
+
+  it("says unknown, rather than nothing, when the mod declares no author", async () => {
+    stubRegistryFetch(indexWith(goodHash));
+    const thirdPartyHash = await sha256Of(THIRD_PARTY_BYTES);
+    const seen: ConsentInfo[] = [];
+    await loadEnabledUplinks({
+      registrySource: { url: "/uplinks/registry.local.json" },
+      hostCompat: HOST,
+      appVersion: "1.0.0",
+      roster: [
+        {
+          id: "widget-z",
+          version: "1.0.0",
+          available: true,
+          reason: null,
+          expectedClientHash: thirdPartyHash,
+          clientSource: { url: "https://cdn.example/z.js", devPath: null },
+        },
+      ],
+      ensureConsent: async (info) => {
+        seen.push(info);
+        return false;
+      },
+      fetchManifest: async () => manifestFor({ integrity: thirdPartyHash }),
+      fetchBytes: async () => THIRD_PARTY_BYTES,
+      importBundle: async () => ({}),
+    });
+
+    // An Uplink naming no author IS unknown, and telling the operator so is the
+    // point. Omitting the line would read as "no author needed".
+    expect(seen[0].author).toContain("unknown");
+  });
 
   it("loads a third-party id via clientSource + a fetched manifest, preferring devPath", async () => {
     const importBundle = vi.fn<
