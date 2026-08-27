@@ -1032,6 +1032,19 @@ export const ALLOWLIST: Record<ModToken, ModAllowlist> = {
       "mod/Gonogo.KSP/FleetCommsReader.cs",
       "mod/Gonogo.KSP/GonogoAddon.cs",
       "mod/GonogoDevTools/GonogoDevForceComms.cs",
+      /*
+       * GonogoDevAntenna.cs upgrades a test craft's antenna at runtime so that
+       * CommNet genuinely solves a route home, which is the only way to observe
+       * the currency-delay REVEAL: an early-career probe's 1 W UHF antenna
+       * closes no link, and the currency arm reads vessel.connection.ControlPath
+       * directly, so a faked route would measure nothing. It is DEV-ONLY, never
+       * shipped, and reaches RealAntennas purely by reflection with no
+       * compile-time reference or Uplink dependency, exactly as
+       * GonogoDevKerbalismScience.cs does for Kerbalism. Permanent rather than
+       * debt for the same reason as that one: a dev-only rig tool does not
+       * belong inside a shipped Uplink.
+       */
+      "mod/GonogoDevTools/GonogoDevAntenna.cs",
       "mod/Sitrep.Contract/UplinkContract.cs",
       "mod/Sitrep.Host/ChannelEngine.cs",
       "mod/Sitrep.Host/Comms/CommsElection.cs",
