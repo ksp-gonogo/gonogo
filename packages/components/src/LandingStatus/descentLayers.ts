@@ -531,7 +531,7 @@ CORE_UPLINK_CLIENT.registerContribution({
     if (!frame) return null;
     return [
       {
-        id: "descent-envelope",
+        subject: "descent-envelope",
         title: "Descent envelope",
         frame: {
           xDomain: frame.xDomain,

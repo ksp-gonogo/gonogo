@@ -1,6 +1,5 @@
 import type {
   BadgeEntry,
-  PlotFrame,
   PlotLayer,
   TopicPayload,
 } from "@ksp-gonogo/sitrep-sdk";
@@ -363,43 +362,6 @@ function surfaceGravityOf(topics: Readonly<Record<string, unknown>>) {
     : null;
 }
 
-/** Headroom above the fastest thing on the plot and above the vessel, so the
- *  marks that matter are not pinned to the frame's own edges. Chosen here
- *  rather than read from anywhere: an author contributing a plot owns its
- *  frame, and there is no first-party route to one they cannot write. */
-const SPEED_HEADROOM = 1.15;
-const ALTITUDE_HEADROOM = 1.1;
-
-/**
- * The frame this plot is drawn in, or null when it cannot be drawn honestly.
- *
- * Built from the same three anchors the marks are, so a plot that has a frame
- * always has something to put in it. Null is how this contribution says it is
- * NOT RELEVANT this frame: `compute` returns nothing, no plot is contributed,
- * and the arranger has one fewer plot rather than an empty square.
- */
-function aeroFrame(inputs: Readonly<AeroDescentInputs>): PlotFrame | null {
-  const { plotTerminal, plotTouchdown, altitude, speed, modelTerminal } =
-    inputs;
-  const ok = (v: number | null): v is number =>
-    v != null && Number.isFinite(v) && v > 0;
-  if (!ok(plotTerminal) || !ok(plotTouchdown) || !ok(altitude)) return null;
-  return {
-    xDomain: [
-      0,
-      Math.max(
-        plotTerminal,
-        plotTouchdown,
-        ok(speed) ? speed : 0,
-        ok(modelTerminal) ? modelTerminal : 0,
-      ) * SPEED_HEADROOM,
-    ],
-    xUnit: "m/s",
-    yDomain: [0, altitude * ALTITUDE_HEADROOM],
-    yUnit: "m",
-  };
-}
-
 AERO.registerContribution({
   id: "descent-envelope",
   contributes: "plots",
@@ -440,18 +402,14 @@ AERO.registerContribution({
       speed: flight?.surfaceSpeed?.magnitude ?? null,
       surfaceGravity: surfaceGravityOf(topics),
     };
-    const frame = aeroFrame(inputs);
-    if (!frame) return null;
     const layers = aeroDescentLayers(inputs);
     if (layers.length === 0) return null;
-    return [
-      {
-        id: "descent-envelope",
-        title: "Descent envelope (FAR)",
-        frame,
-        layers,
-      },
-    ];
+    // NO FRAME. This contribution names the subject and nothing else, which is
+    // how the seam says "layers into the plot of this subject, whoever draws
+    // it". The model's curve exists to part from the drag back-out, so with no
+    // envelope on the board it has nothing to part from and correctly draws
+    // nothing rather than standing up a rival corridor beside the real one.
+    return [{ subject: "descent-envelope", layers }];
   },
 });
 

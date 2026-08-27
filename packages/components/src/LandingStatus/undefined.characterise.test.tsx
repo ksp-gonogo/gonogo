@@ -351,14 +351,12 @@ describe("LandingStatus: what undefined means today", () => {
         { validAt: 9 },
       );
     });
-    // The altitude plot carries the lowest-point datum while the channel is
-    // live, which is what proves the tombstone below actually replaced
-    // something. It reads the height out of the plot's accessible name now
-    // rather than a `Tape`'s `aria-valuenow`; same datum, same test.
+    // The rail carries the lowest-point datum while the channel is live, which
+    // is what proves the tombstone below actually replaced something.
     await waitFor(() =>
       expect(
-        screen.getByRole("img", { name: /4\.8 km above terrain/ }),
-      ).toBeInTheDocument(),
+        screen.getByRole("meter", { name: /altitude above terrain/i }),
+      ).toHaveAttribute("aria-valuenow", "4800"),
     );
     expect(
       screen.queryByText(
@@ -377,13 +375,11 @@ describe("LandingStatus: what undefined means today", () => {
         ),
       ).toBeInTheDocument(),
     );
-    // And the plot silently swaps to the centre-of-mass altitude off
+    // And the rail silently swaps to the centre-of-mass altitude off
     // `vessel.flight`: a different measurement at the same scale.
-    await waitFor(() =>
-      expect(
-        screen.getByRole("img", { name: /5\.0 km above terrain/ }),
-      ).toBeInTheDocument(),
-    );
+    expect(
+      screen.getByRole("meter", { name: /altitude above terrain/i }),
+    ).toHaveAttribute("aria-valuenow", "5000");
   });
 
   it("withholds the affordability verdict rather than answering it when dv.summary is absent", async () => {

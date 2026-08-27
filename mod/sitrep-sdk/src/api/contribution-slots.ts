@@ -185,6 +185,23 @@ export interface CrewRowToneEntry {
   severity: SystemEntitySeverity;
 }
 
+// The plot SUBJECTS `packages/components` draws, declared so a contributor
+// enriching one gets it as a completion and a typo fails to compile rather than
+// quietly making a second plot. Same reasoning as the slot ids below, one
+// registry per declaration-merge seam.
+declare module "./plots" {
+  interface PlotSubjectRegistry {
+    /** LandingStatus's velocity-height descent corridor: speed across, height
+     *  above ground up. The suicide-burn band and any better terminal-velocity
+     *  model belong on this one rather than beside it. */
+    "descent-envelope": true;
+    /** The terrain slice along the ground track through the predicted site. */
+    "landing-cross-section": true;
+    /** The top-down view around the predicted touchdown point. */
+    "touchdown-site": true;
+  }
+}
+
 declare module "./types" {
   interface ContributionRegistry {
     "ship-map.part-meters": {

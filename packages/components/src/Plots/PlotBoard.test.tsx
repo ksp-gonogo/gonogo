@@ -57,7 +57,12 @@ describe("PlotBoard", () => {
       id: "guest-plot",
       contributes: "plots",
       compute: () => [
-        { id: "guest", title: "Guest plot", frame: FRAME, layers: ONE_MARK },
+        {
+          subject: "guest",
+          title: "Guest plot",
+          frame: FRAME,
+          layers: ONE_MARK,
+        },
       ],
     });
 
@@ -82,7 +87,7 @@ describe("PlotBoard", () => {
       id: "silent-plot",
       contributes: "plots",
       compute: () => [
-        { id: "silent", title: "Silent plot", frame: FRAME, layers: [] },
+        { subject: "silent", title: "Silent plot", frame: FRAME, layers: [] },
       ],
     });
 
@@ -98,14 +103,14 @@ describe("PlotBoard", () => {
       id: "silent-plot",
       contributes: "plots",
       compute: () => [
-        { id: "silent", title: "Silent plot", frame: FRAME, layers: [] },
+        { subject: "silent", title: "Silent plot", frame: FRAME, layers: [] },
       ],
     });
     registerContribution({
       id: "loud-plot",
       contributes: "plots",
       compute: () => [
-        { id: "loud", title: "Loud plot", frame: FRAME, layers: ONE_MARK },
+        { subject: "loud", title: "Loud plot", frame: FRAME, layers: ONE_MARK },
       ],
     });
 

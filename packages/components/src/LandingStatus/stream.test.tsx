@@ -168,13 +168,14 @@ describe("LandingStatus: full-vector solve genuinely runs off the stream", () =>
       emitMunDescent();
     });
 
-    // The altitude plot surfaces the streamed AGL datum (5000 m) in its own
-    // accessible name. It replaced a `Tape` whose `aria-valuenow` carried the
-    // same number; the plot is a chart, so the reading is a clause rather than
-    // an attribute, and it is the plot's whole subject either way.
-    expect(
-      await screen.findByRole("img", { name: /5\.0 km above terrain/ }),
-    ).toBeInTheDocument();
+    // The altitude rail surfaces the streamed AGL datum (5000 m). It is a gauge
+    // rather than a plot, so the reading is an `aria-valuenow` on a meter, and
+    // nothing on the plots board draws height against a scale beside it.
+    await waitFor(() =>
+      expect(
+        screen.getByRole("meter", { name: /altitude above terrain/i }),
+      ).toHaveAttribute("aria-valuenow", "5000"),
+    );
     // The velocity split is a readout, not a plot label: this scenario carries
     // no terrain patch, so the cross-section has no ground to slice and
     // contributes nothing rather than an empty box with the numbers on it.

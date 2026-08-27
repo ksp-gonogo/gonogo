@@ -34,6 +34,7 @@ import {
 } from "@ksp-gonogo/ui-kit";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { PlotBoard } from "../Plots/PlotBoard";
+import { AltitudeRail } from "./AltitudeRail";
 import { deriveBoard } from "./board";
 import { CommitLayer, REGIME_LABEL, REGIME_TONE } from "./CommitLayer";
 import { deriveDelayClocks } from "./clocks";
@@ -42,7 +43,6 @@ import { deriveDelayClocks } from "./clocks";
 // entry's import order, because a widget that lost its own plot to a
 // module-ordering accident would look like a telemetry outage.
 import "./descentLayers";
-import "./altitudeRailPlot";
 import "./crossSectionPlot";
 import "./touchdownReticlePlot";
 import { greatCircle } from "./geo";
@@ -359,7 +359,7 @@ export function isGroundedSituation(
 function LandingStatusComponent({
   w,
 }: Readonly<ComponentProps<LandingStatusConfig>>) {
-  const [measureScroller] = useScrollerHeight();
+  const [measureScroller, scrollerHeight] = useScrollerHeight();
 
   const vs = useStream<VesselState>("vessel.state");
   const bodyName = vs?.parentBodyName ?? undefined;
@@ -582,6 +582,17 @@ function LandingStatusComponent({
    * comes back.
    */
   const showPlots = width >= 8;
+  /**
+   * The altitude RAIL, which is not a plot and is deliberately not one.
+   *
+   * It was briefly a contribution to `plots`, and that was wrong twice over: a
+   * chart of a single scalar is one chevron on a ladder, and the widget already
+   * states the same height a few pixels away. It is a gauge, so it is chrome,
+   * and the rule was that every PLOT goes through the slot rather than every
+   * instrument. Nothing else on the board draws height against a scale, so it
+   * duplicates nothing.
+   */
+  const showRail = showScope;
   // The reticle is the centerpiece, shown once terrain was sampled (predicted
   // point or the sub-vessel fallback) and there's width to make it prominent.
   // The two-plot row FLEX-WRAPS (see below), so from ~8 wide it degrades by
@@ -843,7 +854,7 @@ function LandingStatusComponent({
 
   // Plain AGL readout only when there's no altitude rail (small size). The rail
   // is the altitude carrier everywhere else.
-  const heightEl = !showScope ? (
+  const heightEl = !showRail ? (
     <Section>
       <SectionTitle>Height</SectionTitle>
       <Grid cols="auto 1fr" gap="xs">
@@ -1042,6 +1053,38 @@ function LandingStatusComponent({
             gap: "var(--space-12)",
           }}
         >
+          {showRail && (
+            // Sticky, not scrolling. The rail is the instrument's spatial
+            // spine: an altitude scale that slides out of view while the
+            // readouts it indexes stay put is worse than useless. It sits in
+            // the scrolling body (so it takes the panel inset like everything
+            // else) but pins itself to the top of it. `align-self: flex-start`
+            // is what lets sticky engage: a stretched flex child is already as
+            // tall as the container and has nothing to stick within.
+            <div
+              style={{
+                flex: "0 0 auto",
+                // An instrument dimension, not a spacing rung: the width the
+                // scale's labels and track need.
+                width: 64,
+                position: "sticky",
+                top: 0,
+                alignSelf: "flex-start",
+                // The scroller's visible height, measured. Full display height
+                // of the widget, so the scale spans what the operator can see
+                // however far the readouts below it have scrolled.
+                height: scrollerHeight > 0 ? scrollerHeight : undefined,
+              }}
+            >
+              <AltitudeRail
+                aglMeters={heightFromTerrain?.magnitude ?? null}
+                ignitionAltitude={landed ? null : solution.ignitionAltitude}
+                suicideBurnCountdown={
+                  landed ? null : solution.suicideBurnCountdown
+                }
+              />
+            </div>
+          )}
           <div style={{ flex: 1, minWidth: 0 }}>
             {showPlots ? (
               <div style={{ display: "flex", flexDirection: "column" }}>

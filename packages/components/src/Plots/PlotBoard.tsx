@@ -1,8 +1,8 @@
 import { useContributions } from "@ksp-gonogo/core";
-import type { PlotEntry } from "@ksp-gonogo/sitrep-sdk";
 import { SectionTitle } from "@ksp-gonogo/ui-kit";
 import { useMemo } from "react";
 import { GraphView } from "../Graph";
+import { type MergedPlot, mergePlots } from "./mergePlots";
 
 /**
  * The `plots` arranger: it lays out whatever plots are contributed and decides
@@ -21,8 +21,10 @@ import { GraphView } from "../Graph";
  * arranger that could second-guess that would be deciding what the operator
  * sees, from a widget that knows nothing about the plot's subject.
  *
- * The one exception is an entry with NO layers, dropped below, and it is not an
- * exception to that rule so much as the enforcement of it.
+ * The two exceptions are enforcement of that rule rather than departures from
+ * it: an entry with NO layers is dropped, and entries sharing a SUBJECT are
+ * merged onto one frame. Both live in `mergePlots`, which carries the
+ * reasoning.
  *
  * Zero drawable plots renders nothing at all, not an empty frame and not a
  * heading over a gap. A widget with no plot to show this frame has no plots
@@ -53,21 +55,11 @@ export interface PlotBoardProps {
 
 export function PlotBoard({ title }: Readonly<PlotBoardProps>) {
   const contributed = useContributions("plots");
-  // An entry carrying no layers is not a plot, it is a plot's absence spelled a
-  // second way, and it has to be treated as the first. `GraphView` renders a
-  // framed box with the axes pinned and "Configure series to begin graphing."
-  // across it, so a plot that had nothing to say this frame would come out as
-  // an empty instrument: an operator reads that as "nothing is happening" when
-  // it means "nothing is known", which is the absent-drawn-as-zero failure with
-  // a frame around it.
-  //
-  // Skipping it is not the arranger judging content. It is the one thing it
-  // must do to keep absence absent, and it decides nothing about a plot that
-  // has any: a single mark is enough to be drawn, and which mark is never asked.
-  const plots = useMemo(
-    () => contributed.filter((plot) => plot.layers.length > 0),
-    [contributed],
-  );
+  // Grouped by SUBJECT, so two contributions describing one plot come out as
+  // one plot rather than as two drawings of the same corridor. `mergePlots`
+  // also drops a subject nobody framed and a plot with no marks on it; see its
+  // own file for why each of those is an absence rather than a filter.
+  const plots = useMemo(() => mergePlots(contributed), [contributed]);
   if (plots.length === 0) return null;
 
   return (
@@ -87,7 +79,7 @@ export function PlotBoard({ title }: Readonly<PlotBoardProps>) {
         }}
       >
         {plots.map((plot) => (
-          <Plot key={plot.contributionId} plot={plot} />
+          <Plot key={plot.key} plot={plot} />
         ))}
       </div>
     </div>
@@ -103,7 +95,7 @@ export function PlotBoard({ title }: Readonly<PlotBoardProps>) {
  * one that wants to be square (a touchdown reticle) share the row without
  * either being told what its shape is worth.
  */
-function Plot({ plot }: { plot: PlotEntry }) {
+function Plot({ plot }: { plot: MergedPlot }) {
   const aspect = plot.aspect && plot.aspect > 0 ? plot.aspect : 1;
   // A wide plot earns proportionally more of the row, so three squares and one
   // 3:1 panorama do not come out the same width. Clamped below at the minimum

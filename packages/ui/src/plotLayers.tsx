@@ -310,14 +310,45 @@ function FieldLayer({
 // anywhere: a shaded relief invents a sun, and a sun's direction is a bias in
 // which slopes look steep.
 //
-// Drawn as one `<rect>` per grid cell rather than a rasterised canvas. A canvas
-// would be sharper and would also make this renderer stateful (a ref, an
-// effect, a `document` it cannot have in every host) and non-deterministic for
-// the visual gate, which diffs pixels per engine. A 32x32 patch is 1024 rects,
-// which SVG handles without complaint at the sizes a plot is drawn at.
+// Drawn as one `<rect>` per CELL OF A FIXED SAMPLING GRID rather than per cell
+// of the contributed data, and that indirection is the whole legibility of it:
+// a terrain patch ships nine or sixteen samples a side, and painting those
+// directly gives hard squares an operator reads as a mosaic rather than as
+// ground. The values are bilinearly resampled up to `RELIEF_RESOLUTION` first,
+// so the bands follow the shape of the terrain and the iso-lines between them
+// are curves.
+//
+// Not a canvas. A canvas would be sharper and would also make this renderer
+// stateful (a ref, an effect, a `document` it cannot have in every host) and
+// non-deterministic for the visual gate, which diffs pixels per engine.
 // ---------------------------------------------------------------------------
 
 const DEFAULT_RELIEF_BANDS = 6;
+/** Cells a side the grid is resampled to before banding. Fine enough that the
+ *  band edges read as contours, coarse enough to stay a few thousand rects. */
+const RELIEF_RESOLUTION = 32;
+
+/** Bilinear sample of a row-major grid at continuous (col, row). */
+function sampleGrid(
+  values: readonly number[],
+  size: number,
+  col: number,
+  row: number,
+): number {
+  const x0 = Math.max(0, Math.min(size - 1, Math.floor(col)));
+  const y0 = Math.max(0, Math.min(size - 1, Math.floor(row)));
+  const x1 = Math.min(size - 1, x0 + 1);
+  const y1 = Math.min(size - 1, y0 + 1);
+  const fx = Math.max(0, Math.min(1, col - x0));
+  const fy = Math.max(0, Math.min(1, row - y0));
+  const top =
+    values[y0 * size + x0] +
+    (values[y0 * size + x1] - values[y0 * size + x0]) * fx;
+  const bottom =
+    values[y1 * size + x0] +
+    (values[y1 * size + x1] - values[y1 * size + x0]) * fx;
+  return top + (bottom - top) * fy;
+}
 
 /** Dimmed, desaturated low-to-high ramp. Low-key on purpose: this is context
  *  under the marks, and a harsh top band would out-shout them. */
@@ -382,53 +413,46 @@ function ReliefLayer({
   const sy1 = scaleY(bounds.y1);
   const left = Math.min(sx0, sx1);
   const top = Math.min(sy0, sy1);
-  const cellW = Math.abs(sx1 - sx0) / size;
-  const cellH = Math.abs(sy1 - sy0) / size;
+  const grid = RELIEF_RESOLUTION;
+  const cellW = Math.abs(sx1 - sx0) / grid;
+  const cellH = Math.abs(sy1 - sy0) / grid;
   if (!(cellW > 0) || !(cellH > 0)) return null;
   // Row 0 of a row-major grid is the FIRST row in the data, which sits at
   // `y0`. Whether that is the top of the screen depends on which way the plot's
   // Y axis runs, and `sy0 > sy1` is that question asked rather than assumed.
   const flipRows = sy0 < sy1;
 
+  // Resampled once, then banded, so the iso-lines below compare RESAMPLED
+  // neighbours and follow the terrain rather than the data grid's own seams.
+  const bandAt = new Int16Array(grid * grid);
+  for (let row = 0; row < grid; row++) {
+    for (let col = 0; col < grid; col++) {
+      const v = sampleGrid(
+        values,
+        size,
+        (col / (grid - 1)) * (size - 1),
+        (row / (grid - 1)) * (size - 1),
+      );
+      const t = range > 0 ? (v - lo) / range : 0.5;
+      bandAt[row * grid + col] = Math.max(
+        0,
+        Math.min(bands - 1, Math.floor(t * bands)),
+      );
+    }
+  }
+
   const cells: ReactElement[] = [];
-  for (let row = 0; row < size; row++) {
-    for (let col = 0; col < size; col++) {
-      const t = range > 0 ? (values[row * size + col] - lo) / range : 0.5;
-      const band = Math.max(0, Math.min(bands - 1, Math.floor(t * bands)));
+  for (let row = 0; row < grid; row++) {
+    for (let col = 0; col < grid; col++) {
+      const band = bandAt[row * grid + col];
       const [r, g, b] = hypso(band / (bands - 1));
       // The iso-line: darken a cell whose band differs from the neighbour above
       // or to the left of it, which draws the band boundary without a second
       // pass over the grid.
-      const leftBand =
-        col > 0
-          ? Math.max(
-              0,
-              Math.min(
-                bands - 1,
-                Math.floor(
-                  (range > 0
-                    ? (values[row * size + col - 1] - lo) / range
-                    : 0.5) * bands,
-                ),
-              ),
-            )
-          : band;
-      const upBand =
-        row > 0
-          ? Math.max(
-              0,
-              Math.min(
-                bands - 1,
-                Math.floor(
-                  (range > 0
-                    ? (values[(row - 1) * size + col] - lo) / range
-                    : 0.5) * bands,
-                ),
-              ),
-            )
-          : band;
+      const leftBand = col > 0 ? bandAt[row * grid + col - 1] : band;
+      const upBand = row > 0 ? bandAt[(row - 1) * grid + col] : band;
       const edge = leftBand !== band || upBand !== band ? 0.5 : 1;
-      const screenRow = flipRows ? row : size - 1 - row;
+      const screenRow = flipRows ? row : grid - 1 - row;
       cells.push(
         <rect
           key={`${row}-${col}`}
@@ -445,10 +469,17 @@ function ReliefLayer({
   }
 
   return (
+    // biome-ignore lint/a11y/noAriaHiddenOnFocusable: an SVG <g> with no tabindex and no interactive descendant is not focusable; the rule treats every <g> as one
     <g
       data-plot-layer={layer.id}
       data-plot-layer-kind="relief"
       opacity={toneOpacity(layer)}
+      // A thousand cells of ground, and not one of them is a node a screen
+      // reader should walk: the relief's MEANING is its `description`, which the
+      // plot's accessible name already carries as a clause. Hiding it is the
+      // decorative-SVG rule, and it also keeps an accessibility sweep from
+      // crawling a grid per plot per fixture, which is what it was doing.
+      aria-hidden="true"
     >
       {cells}
     </g>

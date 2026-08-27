@@ -117,10 +117,12 @@ const MAGNITUDE_BUDGET: Record<string, number> = {
   "packages/components/src/FleetComms/index.tsx": 15,
   "packages/components/src/FleetRoster/index.tsx": 3,
   "packages/components/src/FuelStatus/index.tsx": 1,
-  // 18, down from 34: every plot on this widget is a contribution now, and each
+  // 19, down from 34: every plot on this widget is a contribution now, and each
   // reads its own Topics. What the widget used to unwrap once and hand down as
-  // props (the terrain patch, the drift, the speeds, the burn solve's inputs)
-  // it no longer unwraps at all.
+  // props (the terrain patch, the drift, the speeds) it no longer unwraps at
+  // all. The nineteenth is the altitude RAIL's own AGL: the rail is a gauge
+  // rather than a plot, so it stayed the widget's and reads its one number
+  // here.
   //
   // The three entries below are where those reads went, and they add up to more
   // than the sixteen that left. That is the cost of the model rather than a
@@ -128,7 +130,7 @@ const MAGNITUDE_BUDGET: Record<string, number> = {
   // host's derivation, because a host with a derivation to share is a host with
   // a privilege an outside author does not have. Three plots reading the same
   // four Topics unwrap them three times, on purpose.
-  "packages/components/src/LandingStatus/index.tsx": 18,
+  "packages/components/src/LandingStatus/index.tsx": 19,
   // 7: the descent envelope's own layers, in the plot's own axes. The two
   // terminal anchors, the height and the speed set the frame and feed the
   // integration; the drag ratio scales a mark and the Mach number decides
@@ -136,11 +138,6 @@ const MAGNITUDE_BUDGET: Record<string, number> = {
   // a term the algebra has, and every number a READER sees still goes out
   // through `writeQuantity`.
   "packages/components/src/LandingStatus/descentLayers.ts": 7,
-  // 8: the altitude plot. The height above terrain and the burn solve's five
-  // inputs (altitude, vertical speed, surface speed, mu, thrust and mass), all
-  // arithmetic feeding `solveSuicideBurn`, which takes bare numbers because a
-  // ballistic root is trigonometry rather than an operation the algebra has.
-  "packages/components/src/LandingStatus/altitudeRailPlot.ts": 8,
   // 11: the cross-section. The terrain patch is a list of elevations that
   // becomes a polyline in the plot's own space, and the drift, the height and
   // the two speed components set its frame and its vector. Every number a

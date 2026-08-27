@@ -297,7 +297,7 @@ export function buildCrossSectionPlot(
   const yPad = (yHi - yLo) * RELIEF_PADDING || 1;
 
   return {
-    id: "cross-section",
+    subject: "landing-cross-section",
     title: "Cross-section",
     frame: {
       xDomain: [xLo - xPad, xHi + xPad],

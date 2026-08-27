@@ -105,21 +105,27 @@ export function buildTouchdownReticlePlot(
   }
 
   if (zoneRadiusMeters != null && zoneRadiusMeters > 0) {
+    // A RING, not a filled disc. The zone sits over the terrain relief, and a
+    // shaded disc, however faint, muddies the very hypsometric bands an
+    // operator is reading the ground's shape out of. An outline states the same
+    // boundary and hides nothing behind it.
+    //
+    // Drawn as a polygon rather than a circle because the vocabulary has no
+    // circle and should not: a ring in DATA space is an ellipse the moment the
+    // axes differ, and a polygon of the plot's own coordinates gets that right
+    // without anyone thinking about it.
     layers.push({
-      kind: "region",
+      kind: "series",
       id: "landing-zone",
-      boundary: Array.from({ length: ZONE_STEPS + 1 }, (_, i) => {
+      points: Array.from({ length: ZONE_STEPS + 1 }, (_, i) => {
         const a = (i / ZONE_STEPS) * 2 * Math.PI;
         return {
           x: zoneRadiusMeters * Math.sin(a),
           y: zoneRadiusMeters * Math.cos(a),
         };
       }),
-      side: "between",
-      boundaryHigh: [],
       tone: "warn",
-      emphasis: "faint",
-      label: "zone",
+      dashed: true,
       description: `touchdown dispersion ${writeQuantity(
         value("m", zoneRadiusMeters),
         { decimals: 0 },
@@ -169,7 +175,7 @@ export function buildTouchdownReticlePlot(
   const halfSpan =
     Math.max(MIN_HALF_SPAN_M, Math.max(...reaches)) * (1 + SPAN_PADDING);
   return {
-    id: "touchdown-reticle",
+    subject: "touchdown-site",
     title: "Touchdown site",
     frame: {
       xDomain: [-halfSpan, halfSpan],

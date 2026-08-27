@@ -17,6 +17,25 @@
 // declared here, and a widget opts INTO hosting it by listing it in its own
 // `contributionSlots`.
 //
+// TWO CONTRIBUTIONS, ONE SUBJECT, BOTH WITH A FRAME. A subject names one plot,
+// and a frame is that plot's axes, so a contributor supplying one is claiming to
+// BE the plot. Two such claims are a conflict rather than a collaboration, and
+// there is no way to tell an honest one (two authors who really do draw the same
+// corridor) from an accidental collision (two authors who picked the same word)
+// from the data alone. So the arranger does not try:
+//
+//   * exactly one frame is used, chosen by `priority` then registration order,
+//   * the loser's LAYERS still merge, because it plainly has something to say
+//     about this subject,
+//   * and the conflict is LOGGED, naming both owners and which frame won.
+//
+// Deliberately NOT a union of the two frames. A union manufactures a third
+// frame neither author asked for and draws both sets of marks on it, which is
+// the one outcome that looks fine and is wrong. Deliberately not last-one-wins
+// either: that is the same silence with worse determinism. A guest's mark
+// outside the winning frame is clipped, which is already this vocabulary's
+// stated policy for every mark.
+//
 // The `topics` union is `TopicId`, the whole of it, and that is the point
 // rather than laziness: every other declared slot names the two or three topics
 // its entries can be built from, because the host knows what its slot is about.
@@ -28,6 +47,30 @@
 
 import type { TopicId } from "../topics";
 import type { PlotLayer } from "./plot-layers";
+
+/**
+ * Declaration-merging seam for WELL-KNOWN plot subjects.
+ *
+ * A subject is an open string, because a plot nobody has drawn before cannot be
+ * in a registry. But the subjects that already exist are exactly the ones a
+ * contributor most needs to spell correctly, since a typo does not fail: it
+ * quietly makes a second plot instead of joining the first. Merging a key in
+ * here gives those autocomplete and makes the typo a type error.
+ *
+ * An Uplink declaring a plot other Uplinks might want to enrich should merge
+ * its subject in, the same way it merges a Topic id.
+ */
+// biome-ignore lint/suspicious/noEmptyInterface: declaration-merging seam
+export interface PlotSubjectRegistry {}
+
+/**
+ * What a plot is of: a known subject, or any string for one nobody has drawn.
+ *
+ * The `string & {}` tail is what keeps the union open while still offering the
+ * known keys as completions; a bare `string` would collapse the whole union and
+ * offer nothing.
+ */
+export type PlotSubject = keyof PlotSubjectRegistry | (string & {});
 
 /**
  * A plot's coordinate frame: the axes it is drawn against, pinned by the plot
@@ -112,24 +155,56 @@ export interface PlotFrame {
  * all. Relevance WITHIN an installed domain is this function.
  */
 export interface PlotEntry {
-  /** Stable id, unique within the contributing client. Becomes the React key. */
-  id: string;
   /**
-   * The plot's own name, shown by the arranger above it and used as the
-   * plot's accessible name, ahead of whatever clauses its layers add.
+   * What this plot is OF, and therefore its identity. Two contributions naming
+   * the same subject are drawing the SAME plot: their layers are merged onto
+   * one frame and the arranger shows one plot, not two.
+   *
+   * A subject rather than an owned id, and this is the whole of the addressing
+   * design. An author who wanted to enrich an existing plot would otherwise
+   * have to NAME the contribution that draws it, which is a guest naming a
+   * host: the asymmetry this slot exists to remove. Naming the SUBJECT is
+   * symmetric. Neither party names the other, both name the thing, and it
+   * stays correct when the host is the one that arrives second.
+   *
+   * Two plots that share axes and are not the same plot (two vessels' descent
+   * envelopes) take two subjects. Merging is declared, never inferred from
+   * matching units, because inferring it would fuse them.
    */
-  title: string;
-  frame: PlotFrame;
+  subject: PlotSubject;
   /**
-   * Everything drawn, in the plot's own data space. The `plot-layers`
-   * vocabulary, now reachable only as the CONTENTS of a plot its contributor
-   * owns rather than as a seam into somebody else's.
+   * The axes this plot is drawn against.
+   *
+   * OPTIONAL, and its absence is the second half of the addressing. A
+   * contribution with a subject and NO frame says "layers into the plot of
+   * this subject, whoever draws it": it enriches a plot it does not own and
+   * cannot stand alone. If nothing supplies a frame for that subject, it draws
+   * nothing at all, which is the correct outcome rather than a missing one. A
+   * model that exists to be compared against another has nothing to say when
+   * the other is absent.
+   *
+   * Supply a frame to establish a plot. See {@link PlotEntry.subject} for what
+   * happens when two contributions both do.
+   */
+  frame?: PlotFrame;
+  /**
+   * The plot's own name, shown by the arranger above it and used as the plot's
+   * accessible name, ahead of whatever clauses its layers add.
+   *
+   * Read only from the contribution whose frame won, because the plot is one
+   * thing and has one name. A merging contributor's provenance rides its owner
+   * stamp and its layers' own descriptions, not a second title.
+   */
+  title?: string;
+  /**
+   * Everything drawn, in the plot's own data space. The `PlotLayer` vocabulary.
    */
   layers: readonly PlotLayer[];
   /**
    * Width divided by height, the shape the plot wants. Defaults to 1 (square).
    * A hint: the arranger honours it where its own width allows and is free not
-   * to, which is the whole of the licence it has over a plot.
+   * to, which is the whole of the licence it has over a plot. Read from the
+   * frame-supplying contribution, like `title`.
    */
   aspect?: number;
 }

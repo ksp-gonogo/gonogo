@@ -504,7 +504,7 @@ describe("LandingStatusComponent", () => {
       await screen.findByRole("img", { name: /^Touchdown site;/ }),
     ).toBeInTheDocument();
     expect(
-      await screen.findByRole("img", { name: /^Altitude;/ }),
+      screen.getByRole("meter", { name: /altitude above terrain/i }),
     ).toBeInTheDocument();
     // The now-void in-flight countdowns are gone.
     expect(screen.queryByText(/Blind in/i)).toBeNull();
@@ -588,9 +588,9 @@ describe("LandingStatusComponent", () => {
       });
       stream.emit("vessel.control", { gear: false, brakes: false });
     });
-    // The altitude plot is the one every descent contributes, whatever else is
-    // or is not known: a height above terrain is all it needs.
-    await screen.findByRole("img", { name: /^Altitude;/ });
+    // The rail is up on every descent, whatever else is or is not known: a
+    // height above terrain is all it needs.
+    await screen.findByRole("meter", { name: /altitude above terrain/i });
     await expectNoA11yViolations(container);
   });
 });

@@ -102,7 +102,12 @@ export type {
 } from "./plot-layers";
 // The `plots` contribution slot's own types: the frame a plot pins and the
 // entry it contributes. Its own module for the reason `./plot-layers` is one.
-export type { PlotEntry, PlotFrame } from "./plots";
+export type {
+  PlotEntry,
+  PlotFrame,
+  PlotSubject,
+  PlotSubjectRegistry,
+} from "./plots";
 // The message-pipe contract. Defined entirely in terms of this package's own
 // wire messages, so it belongs here rather than in `sitrep-client`, and living
 // here is what lets the transport double ship from `/testing`.

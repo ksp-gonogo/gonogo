@@ -1,5 +1,4 @@
 import { describe, expect, it } from "vitest";
-import { buildAltitudeRailPlot } from "./altitudeRailPlot";
 import {
   buildCrossSectionPlot,
   type CrossSectionInputs,
@@ -10,7 +9,12 @@ import {
 } from "./touchdownReticlePlot";
 
 /**
- * The three migrated plots, as the pure functions they now are.
+ * The two site plots, as the pure functions they now are.
+ *
+ * The altitude rail is not here because it is not a plot. It was one for a day,
+ * and a chart of a single scalar came out as one chevron on a ladder next to a
+ * widget that already stated the same height. It is a `Tape` again; its own
+ * spec is `AltitudeRail.test.tsx`.
  *
  * This spec exists because the migration moved these readings OUT of a rendered
  * SVG and into data, and a reading stated as data can be checked without a DOM,
@@ -146,8 +150,10 @@ describe("touchdown reticle plot", () => {
   it("draws the landing zone at its stated radius, as a ring in data space", () => {
     const plot = buildTouchdownReticlePlot(reticle({ zoneRadiusMeters: 50 }));
     const zone = plot?.layers.find((l) => l.id === "landing-zone");
-    if (zone?.kind !== "region") throw new Error("expected a region");
-    for (const p of zone.boundary) {
+    // An outline, never a filled disc: the zone sits over the terrain relief
+    // and a shaded one hides the bands the ground's shape is read from.
+    if (zone?.kind !== "series") throw new Error("expected a series");
+    for (const p of zone.points) {
       expect(Math.hypot(p.x, p.y)).toBeCloseTo(50, 6);
     }
   });
@@ -192,57 +198,5 @@ describe("touchdown reticle plot", () => {
     const bareSite = unknown?.layers.find((l) => l.id === "site");
     // An absent slope is NOT a flat site, so nothing is said about one.
     expect(bareSite?.description).toBe("predicted touchdown site");
-  });
-});
-
-describe("altitude rail plot", () => {
-  it("spans the vessel and the ignition band on one metre scale", () => {
-    const plot = buildAltitudeRailPlot({
-      aglMeters: 180,
-      ignitionAltitude: 162,
-      suicideBurnCountdown: 2,
-      landed: false,
-    });
-    expect(plot?.frame.yUnit).toBe("m");
-    expect(plot?.frame.yDomain[1]).toBeGreaterThan(180);
-    expect(plot?.layers.some((l) => l.id === "burn-band")).toBe(true);
-  });
-
-  it("contributes NOTHING with no altitude, rather than an empty ladder", () => {
-    // The `Tape` it replaced drew a "safe empty scale": tick labels around no
-    // reading at all.
-    expect(
-      buildAltitudeRailPlot({
-        aglMeters: null,
-        ignitionAltitude: 500,
-        suicideBurnCountdown: 3,
-        landed: false,
-      }),
-    ).toBeNull();
-  });
-
-  it("drops the burn cues once landed, because they describe a burn that will not happen", () => {
-    const plot = buildAltitudeRailPlot({
-      aglMeters: 0.4,
-      ignitionAltitude: 162,
-      suicideBurnCountdown: -8,
-      landed: true,
-    });
-    expect(plot).not.toBeNull();
-    expect(plot?.layers.some((l) => l.id === "burn-band")).toBe(false);
-    expect(plot?.layers.some((l) => l.id === "ignition-cue")).toBe(false);
-  });
-
-  it("says PAST rather than nothing once the ignition point has gone by", () => {
-    const plot = buildAltitudeRailPlot({
-      aglMeters: 100,
-      ignitionAltitude: 300,
-      suicideBurnCountdown: -2,
-      landed: false,
-    });
-    const cue = plot?.layers.find((l) => l.id === "ignition-cue");
-    if (cue?.kind !== "caption") throw new Error("expected a caption");
-    expect(cue.text).toBe("PAST");
-    expect(cue.tone).toBe("nogo");
   });
 });
