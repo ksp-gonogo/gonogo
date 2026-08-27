@@ -113,11 +113,38 @@ namespace Gonogo.KSP
                 SpineCritical = false,
                 Vanilla = _ => new CurrencyDelay.DelayedScienceSinkBackend(),
             });
+
+            // The other half of the same subsystem, and the reason it is declared
+            // here beside the sink: a delay is only an information barrier if
+            // everything DERIVED from the delayed change waits with it. A mod that
+            // computes its own currency off the same game event computes it before
+            // the interceptor has neutralised anything, and the neutralise is a
+            // balance write, which fires no currency query, so the mod is never told
+            // to revisit its answer.
+            //
+            // SHARED, not exclusive: two installed mods can each derive something
+            // from one change and every one of them has to be told, where an
+            // election would tell exactly one. No vanilla: a stock install derives
+            // nothing, so there is nothing for a fallback to fall back to.
+            kernel.RegisterCapability(new CapabilityDescriptor
+            {
+                Id = DerivedCurrencyCapability.CapabilityId,
+                Exclusive = false,
+                SpineCritical = false,
+            });
         }
 
         public void Register(IUplinkHost host)
         {
             _host = host;
+
+            // The interceptor lives on a ScenarioModule, which has no host and so no
+            // kernel of its own; this is the half of the subsystem holding one. The
+            // pointer is bound rather than the arm list, because ResolveCapabilities
+            // runs after the last uplink's Register and a list captured here would be
+            // empty for the whole session.
+            CurrencyDelay.DerivedCurrencyWithholding.Bind(host.Kernel);
+            CurrencyDelay.DerivedCurrencyWithholding.Report = message => Debug.LogWarning(message);
             _events = host.RegisterDynamicNamespace(ChannelEngine.CurrencyEventPrefix, new ChannelDeclaration
             {
                 // A discrete one-shot record, not a sampled state: the reliable lane
@@ -177,6 +204,10 @@ namespace Gonogo.KSP
             if (scene == GameScenes.MAINMENU)
             {
                 UnhookGameEvents();
+                // The kernel this pointed at belongs to the engine that registered
+                // us; there is no game to withhold anything for once we are back at
+                // the menu, and a re-Register binds it again.
+                CurrencyDelay.DerivedCurrencyWithholding.Unbind();
             }
         }
 

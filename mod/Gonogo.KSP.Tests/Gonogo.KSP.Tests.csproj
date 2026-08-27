@@ -95,6 +95,13 @@
     <Compile Include="..\Gonogo.KSP\CurrencyDelay\CurrencyDelayGuard.cs" />
     <Compile Include="..\Gonogo.KSP\CurrencyDelay\RevealDecision.cs" />
     <Compile Include="..\Gonogo.KSP\CurrencyDelay\ScienceChunkCredit.cs" />
+    <!-- DerivedCurrencyWithholding.cs is the core's fan-out to the arms that keep a
+         quantity some other mod DERIVES from a delayed currency change withheld for
+         as long as the change is. It names Sitrep.Contract's Kernel and nothing of
+         KSP's, so it gets the same unconditional treatment - and it needs it: the
+         confidence leak was never a wrong piece, it was no piece at all, so the
+         fan-out and the wiring that reaches it are the two halves worth checking. -->
+    <Compile Include="..\Gonogo.KSP\CurrencyDelay\DerivedCurrencyWithholding.cs" />
   </ItemGroup>
 
   <!-- The Deck-only currency probe's three READINGS, carved out of the
@@ -199,6 +206,8 @@
     <Compile Include="CurrencyDelay\CurrencyDelaySourceText.cs" />
     <Compile Include="CurrencyDelay\CurrencyQueryBasesTests.cs" />
     <Compile Include="CurrencyDelay\LiveOriginDelayTests.cs" />
+    <Compile Include="CurrencyDelay\DerivedCurrencyWithholdingTests.cs" />
+    <Compile Include="CurrencyDelay\DerivedCurrencyArmIsWiredTests.cs" />
   </ItemGroup>
 
   <ItemGroup Condition="'$(KspManagedAvailable)' == 'true'">
@@ -331,7 +340,7 @@
     <!-- The maneuver WRITE-path ownership guard: KspVesselActuator + stock's own
          plan backend, so the refusal can be exercised against a real election.
          Gated because both touch KSP types. -->
-    <Compile Include="CurrencyDelay\**\*.cs" Exclude="CurrencyDelay\KscLightTimeTests.cs;CurrencyDelay\VesselScienceAggregatorTests.cs;CurrencyDelay\StockCurrencyDecisionTests.cs;CurrencyDelay\StockCurrencyStateMachineTests.cs;CurrencyDelay\CurrencyDelayGuardTests.cs;CurrencyDelay\RevealDecisionTests.cs;CurrencyDelay\ScienceChunkCreditTests.cs;CurrencyDelay\CurrencyDelaySettlePumpIsWiredTests.cs;CurrencyDelay\AwayScienceArmIsWiredTests.cs;CurrencyDelay\AwayScienceOriginIsResolvedTests.cs;CurrencyDelay\CurrencyDelaySourceText.cs;CurrencyDelay\CurrencyQueryBasesTests.cs;CurrencyDelay\LiveOriginDelayTests.cs" />
+    <Compile Include="CurrencyDelay\**\*.cs" Exclude="CurrencyDelay\DerivedCurrencyWithholdingTests.cs;CurrencyDelay\DerivedCurrencyArmIsWiredTests.cs;CurrencyDelay\KscLightTimeTests.cs;CurrencyDelay\VesselScienceAggregatorTests.cs;CurrencyDelay\StockCurrencyDecisionTests.cs;CurrencyDelay\StockCurrencyStateMachineTests.cs;CurrencyDelay\CurrencyDelayGuardTests.cs;CurrencyDelay\RevealDecisionTests.cs;CurrencyDelay\ScienceChunkCreditTests.cs;CurrencyDelay\CurrencyDelaySettlePumpIsWiredTests.cs;CurrencyDelay\AwayScienceArmIsWiredTests.cs;CurrencyDelay\AwayScienceOriginIsResolvedTests.cs;CurrencyDelay\CurrencyDelaySourceText.cs;CurrencyDelay\CurrencyQueryBasesTests.cs;CurrencyDelay\LiveOriginDelayTests.cs" />
   </ItemGroup>
 
   <!-- ServoCapture.cs is the robotics capture's kind-NAMING rule, carved out of

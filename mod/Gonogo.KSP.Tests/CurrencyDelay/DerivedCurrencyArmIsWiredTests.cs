@@ -1,0 +1,125 @@
+using System;
+using Xunit;
+
+namespace Gonogo.KSP.Tests.CurrencyDelay
+{
+    /// <summary>
+    /// That the derived-currency arms are actually REACHED, which no unit test can
+    /// establish: <c>StockCurrencyInterceptor.cs</c> and
+    /// <c>CurrencyDelayScenario.cs</c> both need a live scene and are not compiled
+    /// into this project at all.
+    ///
+    /// <para><b>Source text, not behaviour</b>, for the reason
+    /// <c>CurrencyDelaySettlePumpIsWiredTests</c> spells out: a test that calls the
+    /// fan-out proves the fan-out works and says nothing about whether the shipped
+    /// game reaches it. <c>DerivedCurrencyWithholdingTests</c> is the behavioural
+    /// half; this is the half that would have caught the confidence leak, because
+    /// the leak was never that the pieces were wrong. There were no pieces.</para>
+    /// </summary>
+    public class DerivedCurrencyArmIsWiredTests
+    {
+        /// <summary>
+        /// The observation has to come off the MODIFIER QUERY, not off the
+        /// <c>On*Changed</c> that follows it. <c>PatchRnD.Prefix_AddScience</c> fires
+        /// query, then <c>OnCurrencyModified</c> (where RP-1 banks its confidence
+        /// award), then <c>OnScienceChanged</c> (where the interceptor neutralises).
+        /// By the time the interceptor is told the science moved, the derived
+        /// currency has already moved with it, so the query is the last moment a
+        /// pre-derivation reading exists.
+        /// </summary>
+        [Fact]
+        public void the_pre_derivation_reading_is_taken_off_the_modifier_query()
+        {
+            var interceptor = CurrencyDelaySourceText.Read("StockCurrencyInterceptor.cs");
+            var handler = CurrencyDelaySourceText.MethodBody(
+                interceptor, "private void OnCurrencyModifierQuery(CurrencyModifierQuery query)");
+
+            Assert.Contains("DerivedCurrencyWithholding.ObserveBeforeDerivation", handler, StringComparison.Ordinal);
+        }
+
+        /// <summary>
+        /// And the withhold has to come off the away-science arm, immediately after
+        /// the neutralise. Anywhere earlier and the derived currency has not moved
+        /// yet; anywhere else entirely and a change that resolved HOME would have
+        /// its derived currency taken away, which is the operator's to keep.
+        /// </summary>
+        [Fact]
+        public void the_withhold_is_taken_off_the_away_arm_beside_the_neutralise()
+        {
+            var interceptor = CurrencyDelaySourceText.Read("StockCurrencyInterceptor.cs");
+            var arm = CurrencyDelaySourceText.MethodBody(
+                interceptor,
+                "private void ResolveScienceAway(string vesselId, double baseAmount, double ut, double shadowToRestore");
+
+            var neutraliseAt = arm.IndexOf("NeutraliseScience(", StringComparison.Ordinal);
+            var withholdAt = arm.IndexOf("DerivedCurrencyWithholding.WithholdDerived", StringComparison.Ordinal);
+
+            Assert.True(neutraliseAt >= 0, "ResolveScienceAway no longer neutralises");
+            Assert.True(
+                withholdAt > neutraliseAt,
+                "The derived-currency withhold must run AFTER the neutralise: RP-1 banks its confidence "
+                + "award before the interceptor is told the science moved, so there is nothing to put "
+                + "back until the science has actually been withheld");
+        }
+
+        /// <summary>
+        /// The arms are found through the capability kernel, and the only half of
+        /// this subsystem holding one is the uplink: a <c>ScenarioModule</c> has no
+        /// <c>IUplinkHost</c>. So the same uplink that DECLARES the capability binds
+        /// the kernel the interceptor resolves it through, and clears it on the way
+        /// back to the main menu. Unbound, every arm is skipped and the leak is open
+        /// with nothing said about it.
+        /// </summary>
+        [Fact]
+        public void the_uplink_that_declares_the_capability_binds_the_kernel_too()
+        {
+            var uplink = CurrencyDelaySourceText.ReadRelative("CurrencyEventUplink.cs");
+
+            Assert.Contains("DerivedCurrencyCapability.CapabilityId", uplink, StringComparison.Ordinal);
+            Assert.Contains("DerivedCurrencyWithholding.Bind", uplink, StringComparison.Ordinal);
+            Assert.Contains("DerivedCurrencyWithholding.Unbind", uplink, StringComparison.Ordinal);
+        }
+
+        /// <summary>
+        /// The capability is SHARED, and that is the general-case half of the fix
+        /// rather than a detail: an exclusive one would elect a single winner, so on
+        /// an install where two mods each derive something from the same change only
+        /// one of them would ever be told and the other would keep leaking. It also
+        /// declares no vanilla, because a stock install derives nothing.
+        /// </summary>
+        [Fact]
+        public void the_capability_is_shared_so_every_deriving_mod_is_told()
+        {
+            var uplink = CurrencyDelaySourceText.ReadRelative("CurrencyEventUplink.cs");
+            var declaration = CurrencyDelaySourceText.MethodBody(
+                uplink, "public void DeclareCapabilities(Kernel kernel)");
+
+            var idAt = declaration.IndexOf("DerivedCurrencyCapability.CapabilityId", StringComparison.Ordinal);
+            Assert.True(idAt >= 0, "DeclareCapabilities no longer declares the derived-currency capability");
+
+            var descriptor = declaration.Substring(idAt);
+            var closeAt = descriptor.IndexOf("});", StringComparison.Ordinal);
+            descriptor = closeAt >= 0 ? descriptor.Substring(0, closeAt) : descriptor;
+
+            Assert.Contains("Exclusive = false", descriptor, StringComparison.Ordinal);
+            Assert.DoesNotContain("Vanilla", descriptor, StringComparison.Ordinal);
+        }
+
+        /// <summary>
+        /// And the reports have somewhere to go. The fan-out's destination defaults
+        /// to a no-op because its own file cannot reference
+        /// <c>UnityEngine.Debug</c>, so a real one has to be installed by something
+        /// that can. Left at the default, an arm that throws on every credit says
+        /// nothing at all, and a leak that reports itself fixed is what this whole
+        /// subsystem's history is made of.
+        /// </summary>
+        [Fact]
+        public void the_reports_are_pointed_at_a_log_the_operator_can_see()
+        {
+            var uplink = CurrencyDelaySourceText.ReadRelative("CurrencyEventUplink.cs");
+
+            Assert.Contains("DerivedCurrencyWithholding.Report", uplink, StringComparison.Ordinal);
+            Assert.Contains("Debug.LogWarning", uplink, StringComparison.Ordinal);
+        }
+    }
+}

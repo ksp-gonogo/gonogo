@@ -192,12 +192,34 @@ namespace Gonogo.KSP.CurrencyDelay
             {
                 return;
             }
+            var ut = Planetarium.GetUniversalTime();
+            var scienceAsked = query.GetInput(Currency.Science);
             _queryBases.Capture(
                 ToStockReason(query.reason),
                 query.GetInput(Currency.Funds),
-                query.GetInput(Currency.Science),
+                scienceAsked,
                 query.GetInput(Currency.Reputation),
-                Planetarium.GetUniversalTime());
+                ut);
+
+            // The last moment before anything can have DERIVED a currency of its
+            // own from this change. RP-1 prices its confidence award off the very
+            // next event (OnCurrencyModified, which PatchRnD.Prefix_AddScience fires
+            // between this query and the OnScienceChanged we neutralise on), and a
+            // neutralise is a SetScience, which fires no query at all - so by the
+            // time we know the change is delayed, the derived currency has moved and
+            // there is no pre-derivation reading left to take.
+            //
+            // Only for a POSITIVE science ask, which is what keeps an interleaved
+            // query from overwriting the reading: RP-1's own confidence pricing runs
+            // a second query, same reason and zero science, from inside the handler
+            // that banks the award. That interleaving already erased a science base
+            // once (see CurrencyQueryBases), and a reading taken on it would be a
+            // post-award one that made the withhold a silent no-op.
+            if (scienceAsked > 0.0)
+            {
+                DerivedCurrencyWithholding.ObserveBeforeDerivation(
+                    Sitrep.Contract.DerivedCurrencyCapability.Science, ut);
+            }
         }
 
         /// <summary>Reads and clears the query-captured base for the given reason+currency, falling back to a shadow diff when no fresh query said anything about it.</summary>
@@ -373,6 +395,19 @@ namespace Gonogo.KSP.CurrencyDelay
             var delay = recovered ? KscDelay.Instant : KscLightTime.ForVesselId(vesselId, config);
 
             NeutraliseScience(shadowToRestore);
+
+            // The science is withheld, so anything another mod derived from it in
+            // the last two events has to go back too, or the operator reads the
+            // arrival off the derived currency instead. Measured on the rig as run
+            // conf-leak-1: 25 science correctly held for its whole silence deadline
+            // while RP-1's confidence moved 700 -> 800 at earn.
+            //
+            // Nothing is enqueued for the reveal. The reveal re-applies the science
+            // through AddScience, which fires the same events the earn did, so each
+            // arm's mod derives again by itself - once, and priced against the career
+            // the operator actually has when the news lands.
+            DerivedCurrencyWithholding.WithholdDerived(
+                Sitrep.Contract.DerivedCurrencyCapability.Science, baseAmount, ut);
 
             var chunk = _scienceAggregator.Accept(
                 vesselId, baseAmount, ut, KscDelayPolicy.DelaySeconds(delay, config));

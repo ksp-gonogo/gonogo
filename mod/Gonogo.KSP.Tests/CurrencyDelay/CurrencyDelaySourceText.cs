@@ -15,12 +15,21 @@ namespace Gonogo.KSP.Tests.CurrencyDelay
     internal static class CurrencyDelaySourceText
     {
         /// <summary>The whole of one file under <c>mod/Gonogo.KSP/CurrencyDelay/</c>.</summary>
-        internal static string Read(string fileName)
+        internal static string Read(string fileName) =>
+            ReadRelative(Path.Combine("CurrencyDelay", fileName));
+
+        /// <summary>
+        /// The whole of one file under <c>mod/Gonogo.KSP/</c>, for the parts of this
+        /// subsystem that do not live in its own folder: the capability declaration
+        /// and the kernel binding sit on <c>CurrencyEventUplink</c>, because that is
+        /// the half of the subsystem holding an <c>IUplinkHost</c>.
+        /// </summary>
+        internal static string ReadRelative(string relativePath)
         {
             var dir = new DirectoryInfo(AppContext.BaseDirectory);
             while (dir != null)
             {
-                var candidate = Path.Combine(dir.FullName, "mod", "Gonogo.KSP", "CurrencyDelay", fileName);
+                var candidate = Path.Combine(dir.FullName, "mod", "Gonogo.KSP", relativePath);
                 if (File.Exists(candidate))
                 {
                     return File.ReadAllText(candidate);
@@ -29,7 +38,7 @@ namespace Gonogo.KSP.Tests.CurrencyDelay
             }
 
             throw new FileNotFoundException(
-                "Could not locate mod/Gonogo.KSP/CurrencyDelay/" + fileName + " from " + AppContext.BaseDirectory);
+                "Could not locate mod/Gonogo.KSP/" + relativePath + " from " + AppContext.BaseDirectory);
         }
 
         /// <summary>
