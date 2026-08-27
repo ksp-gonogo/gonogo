@@ -49,9 +49,11 @@ namespace Gonogo.KSP.CurrencyDelay
     /// call, synchronously and immediately before the matching
     /// <c>On*Changed</c>, carrying the pre-clamp base input for whichever one
     /// currency that call touches. This is the base <see cref="StockCurrencyDecision.BuildCredit"/>
-    /// stores; the query is consumed by name+reason match in the following
-    /// <c>On*Changed</c>, single-slot, since the pairing is always 1:1 within
-    /// one mutator call. <c>OnScienceRecieved</c> is used as the base instead
+    /// stores; the query is consumed by reason match in the following
+    /// <c>On*Changed</c>, held per currency by <see cref="CurrencyQueryBases"/>
+    /// because the mutator also fires <c>OnCurrencyModified</c> in between and a
+    /// subscriber to that can run a query of its own.
+    /// <c>OnScienceRecieved</c> is used as the base instead
     /// for ordinary transmission/recovery science, since it carries the
     /// exact credited value directly alongside the vessel, with no need to
     /// correlate a separate query.</para>
@@ -78,16 +80,11 @@ namespace Gonogo.KSP.CurrencyDelay
 
         private bool _subscribed;
 
-        // Single-slot capture of the most recent OnCurrencyModifierQuery,
-        // consumed by the On*Changed call it immediately precedes. Safe as
-        // a single slot (unlike the vessel-correlation state below) because
-        // the query and its matching On*Changed fire synchronously back to
-        // back within one mutator call, with nothing else able to interleave.
-        private bool _haveQuery;
-        private TransactionReasons _queryReason;
-        private double _queryFunds;
-        private double _queryScience;
-        private double _queryRep;
+        // What each OnCurrencyModifierQuery says a change was asked for, held
+        // per currency until the On*Changed it precedes claims it. Something
+        // DOES interleave between the two, so which query is evidence about
+        // which currency is a rule of its own - see CurrencyQueryBases.
+        private readonly CurrencyQueryBases _queryBases = new CurrencyQueryBases();
 
         // Live object references for vessel ids the state machine has
         // pushed, so a decision naming a vesselId string can still resolve
@@ -190,30 +187,17 @@ namespace Gonogo.KSP.CurrencyDelay
             {
                 return;
             }
-            _haveQuery = true;
-            _queryReason = query.reason;
-            _queryFunds = query.GetInput(Currency.Funds);
-            _queryScience = query.GetInput(Currency.Science);
-            _queryRep = query.GetInput(Currency.Reputation);
+            _queryBases.Capture(
+                ToStockReason(query.reason),
+                query.GetInput(Currency.Funds),
+                query.GetInput(Currency.Science),
+                query.GetInput(Currency.Reputation),
+                Planetarium.GetUniversalTime());
         }
 
-        /// <summary>Reads and clears the query-captured base for the given reason+currency, falling back to a shadow diff if no matching query was seen (should not happen in practice - the query always immediately precedes its On*Changed).</summary>
-        private double ConsumeQueryBase(TransactionReasons reason, Currency currency, double fallback)
-        {
-            if (!_haveQuery || _queryReason != reason)
-            {
-                return fallback;
-            }
-
-            _haveQuery = false;
-            switch (currency)
-            {
-                case Currency.Funds: return _queryFunds;
-                case Currency.Science: return _queryScience;
-                case Currency.Reputation: return _queryRep;
-                default: return fallback;
-            }
-        }
+        /// <summary>Reads and clears the query-captured base for the given reason+currency, falling back to a shadow diff when no fresh query said anything about it.</summary>
+        private double ConsumeQueryBase(TransactionReasons reason, CurrencyKind currency, double ut, double fallback) =>
+            _queryBases.Consume(ToStockReason(reason), currency, ut, fallback);
 
         private void OnVesselRecoveryProcessing(ProtoVessel pv, MissionRecoveryDialog dialog, float recoveryScore)
         {
@@ -324,7 +308,7 @@ namespace Gonogo.KSP.CurrencyDelay
             try
             {
                 var ut = Planetarium.GetUniversalTime();
-                var baseAmount = ConsumeQueryBase(reason, Currency.Science, fallback: newTotal - _state.ShadowScience);
+                var baseAmount = ConsumeQueryBase(reason, CurrencyKind.Science, ut, fallback: newTotal - _state.ShadowScience);
                 var decision = _state.OnScienceChanged(ToStockReason(reason), newTotal, baseAmount, ut);
 
                 if (decision.Outcome == ScienceChangeOutcome.Away)
@@ -343,16 +327,32 @@ namespace Gonogo.KSP.CurrencyDelay
         /// <summary>Neutralises the live science balance back to the given shadow value and, via the aggregator, enqueues a pending credit once its window flushes. Called once per AWAY science increment regardless of whether this call happens to flush a chunk.</summary>
         private void ResolveScienceAway(string vesselId, double baseAmount, double ut, double shadowToRestore, ProtoVessel? protoOrigin = null, Vessel? liveOrigin = null)
         {
-            if (string.IsNullOrEmpty(vesselId) || baseAmount == 0.0)
+            if (string.IsNullOrEmpty(vesselId))
             {
+                return;
+            }
+
+            if (baseAmount == 0.0)
+            {
+                // A change that resolved AWAY, named its vessel, and then moved
+                // nothing. Nothing below would run, and every figure the delay
+                // probe reads would say the subsystem was never involved - which
+                // is exactly how a base erased by an interleaved modifier query
+                // stayed invisible for a night. Say so instead.
+                Debug.LogWarning("[Gonogo] StockCurrencyInterceptor: an away science change attributed to "
+                    + vesselId + " carried a zero base, so nothing was neutralised or credited");
                 return;
             }
 
             var config = CommsCoreUplink.SignalDelayConfig;
             // Live vessel only. A ProtoVessel has no CommNet connection, so the
             // deleted ForProtoVessel could only ever have measured a straight
-            // line; an unloaded origin is unroutable until it loads and proves
-            // otherwise.
+            // line; an origin that is not loaded is unroutable until it loads and
+            // proves otherwise. When the caller has no live vessel in hand, the
+            // guid is still worth resolving: ordinary transmitted science arrives
+            // carrying only a ProtoVessel, and concluding "unroutable" from that
+            // alone declared a perfectly linked craft unreachable and held its
+            // science for a silence deadline instead of a light-time.
             //
             // Recovery is the exception, and it is not a routing question at
             // all: Vessel.IsRecoverable is LandedOrSplashed && isHomeWorld, so a
@@ -365,7 +365,9 @@ namespace Gonogo.KSP.CurrencyDelay
                 && _recoveryVesselsById.ContainsKey(vesselId ?? string.Empty);
             var delay = recovered
                 ? KscDelay.Instant
-                : liveOrigin != null ? KscLightTime.ForVessel(liveOrigin, config) : KscDelay.Unroutable;
+                : liveOrigin != null
+                    ? KscLightTime.ForVessel(liveOrigin, config)
+                    : DelayedScienceSink.ResolveLiveDelay(vesselId, config);
 
             NeutraliseScience(shadowToRestore);
 
@@ -407,7 +409,7 @@ namespace Gonogo.KSP.CurrencyDelay
             try
             {
                 var ut = Planetarium.GetUniversalTime();
-                var baseAmount = ConsumeQueryBase(reason, Currency.Funds, fallback: newTotal - _state.ShadowFunds);
+                var baseAmount = ConsumeQueryBase(reason, CurrencyKind.Funds, ut, fallback: newTotal - _state.ShadowFunds);
                 var decision = _state.OnFundsChanged(ToStockReason(reason), newTotal, baseAmount, ut);
 
                 if (!decision.IsAway || !_recoveryVesselsById.ContainsKey(decision.OriginVesselId))
@@ -457,7 +459,7 @@ namespace Gonogo.KSP.CurrencyDelay
             try
             {
                 var ut = Planetarium.GetUniversalTime();
-                var baseAmount = ConsumeQueryBase(reason, Currency.Reputation, fallback: newTotal - _state.ShadowReputation);
+                var baseAmount = ConsumeQueryBase(reason, CurrencyKind.Reputation, ut, fallback: newTotal - _state.ShadowReputation);
 
                 // VesselLoss (the crew-death reputation penalty) resolves
                 // AWAY when OnVesselWillDestroy already claimed/pushed a
