@@ -71,6 +71,9 @@
  * having nothing to do with it. Under the shipped baseline the same plant
  * produces one.
  *
+ * The load leg is separate and later, because a typecheck cannot express
+ * whether a module LOADS: see `LOAD_EXEMPT` below.
+ *
  * Usage:
  *   node scripts/uplink-extraction-probe.mjs                  every Uplink
  *   node scripts/uplink-extraction-probe.mjs --only Scansat   substring filter
@@ -105,6 +108,37 @@ const run = (cmd, cmdArgs, opts = {}) =>
     maxBuffer: 64 * 1024 * 1024,
     ...opts,
   });
+
+/**
+ * Published entry points the load leg below does not attempt, with why.
+ *
+ * Each entry EXPIRES BY ITSELF: the probe fails as STALE the moment an exempted
+ * specifier loads, so the line has to be deleted rather than outliving what
+ * justified it. Same contract as `MISSING_REFERENCE_OK` in the C# probe.
+ *
+ * This is not a debt CEILING like `EXTRACTION_DEBT`. A count can move for reasons
+ * that have nothing to do with the branch under test; whether a module loads
+ * cannot, so there is no number to grade and nothing to tighten gradually.
+ */
+const LOAD_EXEMPT = {
+  "@ksp-gonogo/ui-kit":
+    "TypeError: styled.span is not a function, at module scope in dist. The bundle does `import styled from \"styled-components\"`, and styled-components 6.x publishes no `exports` field, so Node's ESM resolver takes its CJS `main` and the default import arrives as the namespace object. Pinning a different styled-components does not help: 6.4.0 and 6.5.3 both lack `exports`. Fix is in ui-kit's tsup build, resolving the default defensively.",
+  "@ksp-gonogo/ui-kit/testing":
+    "SyntaxError: Named export 'toHaveNoViolations' not found. `jest-axe` is CommonJS and a named import of a CJS module is not something Node's ESM loader can do. This one matters most of the three: `expectNoA11yViolations` is the helper CLAUDE.md tells every widget test to call, so the mandated a11y assertion is the part an outside author cannot load. Fix is a default import plus a property read, in ui-kit.",
+  "@ksp-gonogo/ui-kit/render-probe":
+    "Same `jest-axe` named-import cause as ./testing, reached through it.",
+  "@ksp-gonogo/ui-kit/page-check":
+    "Same `jest-axe` named-import cause as ./testing, reached through it.",
+};
+
+/** The line of a Node stack that says what went wrong, rather than where. */
+const firstMeaningfulLine = (stderr) =>
+  (stderr || "")
+    .split("\n")
+    .map((line) => line.trim())
+    .find((line) => /^(\w*Error|TypeError|SyntaxError)\b/.test(line)) ??
+  (stderr || "").trim().split("\n").slice(-1)[0] ??
+  "no diagnostic";
 
 /** The two published packages, packed exactly as a release would publish them. */
 function packPermittedPackages(into) {
@@ -266,6 +300,20 @@ function selfTest(tarballs, workRoot) {
         devDependencies: {
           "@ksp-gonogo/sitrep-sdk": `file:${tarballs["@ksp-gonogo/sitrep-sdk"]}`,
           "@ksp-gonogo/ui-kit": `file:${tarballs["@ksp-gonogo/ui-kit"]}`,
+          // The peers an Uplink client declares. A typecheck never needed any of
+          // them; the load leg below does, and so does every real consumer,
+          // which is why they are installed rather than stubbed. Keep this in
+          // step with what an Uplink client's own manifest carries: a peer
+          // missing here makes the load leg report the ABSENCE as the package
+          // being unloadable.
+          "@testing-library/react": "^16.3.2",
+          esbuild: "^0.28.0",
+          "jest-axe": "^10.0.0",
+          jsdom: "^29.0.2",
+          playwright: "^1.60.0",
+          react: "^18.0.0",
+          "react-dom": "^18.0.0",
+          "styled-components": "^6.0.0",
           typescript: "^5.0.0",
         },
       },
@@ -364,6 +412,80 @@ function selfTest(tarballs, workRoot) {
   console.log(
     `self-test: ${specs.length} published entry point(s) resolved from the tarballs and the control ` +
       `typechecked clean; the planted violation produced ${violated.errors} error(s).`,
+  );
+
+  /*
+   * Typechecking is not loading, and this probe used to do only the first.
+   *
+   * `moduleResolution: "bundler"`, which the shipped baseline sets and which is
+   * right for an Uplink client, resolves an extensionless relative specifier.
+   * Node's ESM resolver does not. So the sdk emitted
+   * `export * from "./__generated__/contract"` into its own `dist`, every
+   * typecheck above passed, and `import "@ksp-gonogo/sitrep-sdk"` threw
+   * ERR_MODULE_NOT_FOUND for every consumer outside a bundler. Measured on an
+   * extracted Uplink client: all 18 of its test files failed to load before one
+   * assertion ran, while this probe reported zero errors.
+   *
+   * Nothing else in the tree could see it either. Inside the workspace the
+   * manifest points at `src`, so the app and every first-party test resolve
+   * TypeScript and never read `dist` at all.
+   *
+   * A second KIND of check, then, rather than a stricter version of the first
+   * one: actually import every published entry point in a Node process. A
+   * typecheck cannot express this failure class and no amount of tightening it
+   * will.
+   */
+  const attempted = specs.filter((spec) => !(spec in LOAD_EXEMPT));
+  const failures = [];
+  for (const spec of attempted) {
+    const loaded = run(
+      process.execPath,
+      ["--input-type=module", "-e", `await import(${JSON.stringify(spec)});`],
+      { cwd: work },
+    );
+    if (loaded.status !== 0) {
+      failures.push([spec, firstMeaningfulLine(loaded.stderr)]);
+    }
+  }
+  if (failures.length > 0) {
+    console.error(
+      "✖ BLIND: a published entry point typechecked and then failed to LOAD in Node.\n" +
+        "  Every count below is measured by a typecheck, which cannot see this, so they would all\n" +
+        "  read as clean for a package no consumer can import.\n" +
+        failures.map(([spec, why]) => `    ${spec}: ${why}`).join("\n"),
+    );
+    process.exit(1);
+  }
+
+  /*
+   * An exemption expires BY ITSELF. The same contract `MISSING_REFERENCE_OK` uses
+   * in the C# probe: the entry has to be deleted when the defect is fixed, rather
+   * than quietly outliving what justified it and exempting the next one.
+   */
+  const stale = [];
+  for (const spec of Object.keys(LOAD_EXEMPT)) {
+    if (!specs.includes(spec)) {
+      stale.push(`${spec} is no longer a published entry point`);
+      continue;
+    }
+    const loaded = run(
+      process.execPath,
+      ["--input-type=module", "-e", `await import(${JSON.stringify(spec)});`],
+      { cwd: work },
+    );
+    if (loaded.status === 0) stale.push(`${spec} now loads`);
+  }
+  if (stale.length > 0) {
+    console.error(
+      `✖ STALE load exemption(s): ${stale.join(", ")}. Delete the entry from LOAD_EXEMPT in this\n` +
+        "  file. An exemption nobody prunes stops describing anything and starts hiding the next one.",
+    );
+    process.exit(1);
+  }
+
+  console.log(
+    `self-test: ${attempted.length} of ${specs.length} entry point(s) also LOADED in Node, not only ` +
+      `typechecked${Object.keys(LOAD_EXEMPT).length > 0 ? `; ${Object.keys(LOAD_EXEMPT).length} exempt, see LOAD_EXEMPT` : ""}.`,
   );
 }
 
