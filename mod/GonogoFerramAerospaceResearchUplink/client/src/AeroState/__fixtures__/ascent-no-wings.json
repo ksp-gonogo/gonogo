@@ -1,0 +1,36 @@
+{
+  "_meta": {
+    "notes": "SYNTHETIC, hand-built from Atlas-class ascent numbers: a 28-tonne launch vehicle through max q, 3.7 m core so 10.75 m² of reference area. A rocket has no wing area for a stall fraction to be a fraction of and no lift the model reports, so four fields are genuinely absent, and the tick shown is the one just after a separation with the aerodynamics model not yet rebuilt.",
+    "sources": "Reference area is the frontal disc of a 3.7 m core; ballistic coefficient is m/(Cd·A) for the same mass, area and Cd 0.31."
+  },
+  "_scene": {
+    "widget": "aero-state",
+    "caption": "Launch vehicle through max q, one tick after separation: no wing, so no stall fraction or lift, and the model is flagged stale",
+    "modes": ["default"]
+  },
+  "_stream": {
+    "pinnedUt": 1000000,
+    "emits": [
+      {
+        "topic": "aero.state",
+        "payload": {
+          "angleOfAttack": 2.4,
+          "sideslip": 0.1,
+          "stallFraction": null,
+          "liftCoefficient": null,
+          "dragCoefficient": 0.312,
+          "liftToDragRatio": null,
+          "referenceArea": 10.75,
+          "liftForce": null,
+          "dragForce": 148.6,
+          "indicatedAirspeed": 320,
+          "equivalentAirspeed": 318,
+          "terminalVelocity": null,
+          "ballisticCoefficient": 8351,
+          "specificExcessPower": 941.2,
+          "aeroModelValid": false
+        }
+      }
+    ]
+  }
+}

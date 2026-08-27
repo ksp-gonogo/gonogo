@@ -1,0 +1,36 @@
+{
+  "_meta": {
+    "notes": "The state a vessel the aerodynamics model holds no reading for sits in: on the pad before physics, in vacuum, or with no full-fidelity aerodynamics mod installed at all. Every field on the Topic is null, so the whole widget draws absence."
+  },
+  "_scene": {
+    "widget": "aero-state",
+    "caption": "No aerodynamic reading at all: every field absent, and absence drawn as absence rather than as a run of zeroes",
+    "expectsEmpty": "This scene IS the absent case, so it renders the same fed and starved by construction: a payload of nothing but nulls and no payload at all are the same picture, and that identity is the property being photographed. What must be visible is that the widget says NO AERO DATA and leaves eleven dashes rather than eleven zeroes, which a reader can check in the image.",
+    "modes": ["default"]
+  },
+  "_stream": {
+    "pinnedUt": 1000000,
+    "emits": [
+      {
+        "topic": "aero.state",
+        "payload": {
+          "angleOfAttack": null,
+          "sideslip": null,
+          "stallFraction": null,
+          "liftCoefficient": null,
+          "dragCoefficient": null,
+          "liftToDragRatio": null,
+          "referenceArea": null,
+          "liftForce": null,
+          "dragForce": null,
+          "indicatedAirspeed": null,
+          "equivalentAirspeed": null,
+          "terminalVelocity": null,
+          "ballisticCoefficient": null,
+          "specificExcessPower": null,
+          "aeroModelValid": false
+        }
+      }
+    ]
+  }
+}

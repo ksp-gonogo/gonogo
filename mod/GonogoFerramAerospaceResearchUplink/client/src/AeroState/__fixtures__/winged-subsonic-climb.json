@@ -1,0 +1,36 @@
+{
+  "_meta": {
+    "notes": "SYNTHETIC, hand-built from real airframe numbers rather than a live capture: an 11-tonne winged vehicle in a clean subsonic climb through 6 km, wing area and coefficients in the range a trainer-sized aeroplane actually flies at. The only scenario in which every field on the Topic has a value, which is why it is the one that shows the widget at full stretch.",
+    "sources": "Weight 108 kN and lift 108 kN balance at 1 g; L/D 9.3 and Cd 0.041 are clean-configuration subsonic figures; ballistic coefficient is m/(Cd·A) for the same mass and area."
+  },
+  "_scene": {
+    "widget": "aero-state",
+    "caption": "Winged vehicle in a clean subsonic climb: attached flow, every field on the Topic populated",
+    "modes": ["default", "min", "landscape-18x5"]
+  },
+  "_stream": {
+    "pinnedUt": 1000000,
+    "emits": [
+      {
+        "topic": "aero.state",
+        "payload": {
+          "angleOfAttack": 5.2,
+          "sideslip": -0.4,
+          "stallFraction": 0.0,
+          "liftCoefficient": 0.381,
+          "dragCoefficient": 0.041,
+          "liftToDragRatio": 9.29,
+          "referenceArea": 18.6,
+          "liftForce": 108.4,
+          "dragForce": 11.7,
+          "indicatedAirspeed": 178,
+          "equivalentAirspeed": 176,
+          "terminalVelocity": 421,
+          "ballisticCoefficient": 14424,
+          "specificExcessPower": 138.5,
+          "aeroModelValid": true
+        }
+      }
+    ]
+  }
+}

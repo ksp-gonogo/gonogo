@@ -1,0 +1,36 @@
+{
+  "_meta": {
+    "notes": "SYNTHETIC, hand-built from Shuttle-class entry figures: a 90-tonne lifting body holding 40° alpha through the high-heating band around 60 km. Wing area 250 m², entry ballistic coefficient just under 400 kg/m², L/D about 1. Indicated airspeed is small despite Mach 20 because the air is thin, which is the pairing this widget exists to show.",
+    "sources": "Orbiter reference wing area 249.9 m²; entry alpha 40°; hypersonic L/D near 1; specific excess power is -D·V/m with D 204 kN, V 6 km/s, m 90 t."
+  },
+  "_scene": {
+    "widget": "aero-state",
+    "caption": "Re-entry at 40° alpha: partial stall, lift and drag near parity, indicated airspeed far below true",
+    "modes": ["default"]
+  },
+  "_stream": {
+    "pinnedUt": 1000000,
+    "emits": [
+      {
+        "topic": "aero.state",
+        "payload": {
+          "angleOfAttack": 40.2,
+          "sideslip": 0.3,
+          "stallFraction": 0.18,
+          "liftCoefficient": 0.837,
+          "dragCoefficient": 0.918,
+          "liftToDragRatio": 0.91,
+          "referenceArea": 249.9,
+          "liftForce": 186.1,
+          "dragForce": 204.3,
+          "indicatedAirspeed": 118,
+          "equivalentAirspeed": 116,
+          "terminalVelocity": 243,
+          "ballisticCoefficient": 391,
+          "specificExcessPower": -13620,
+          "aeroModelValid": true
+        }
+      }
+    ]
+  }
+}
