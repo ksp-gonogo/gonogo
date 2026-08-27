@@ -11,6 +11,21 @@ import {
 import { __resetUplinkOutcomes, getUplinkOutcomes } from "./loaderState";
 import type { RegistryIndex } from "./registry";
 
+/*
+ * The bundle argument, for the assertions below that are about WHICH URL was
+ * imported rather than about the buffer.
+ *
+ * `expect.anything()` and not `expect.any(ArrayBuffer)`, which looks stricter and
+ * does not work: under jsdom the test realm's `ArrayBuffer` is a different
+ * constructor from the one `TextEncoder().encode().buffer` returns, so the
+ * instanceof check fails on a value the diff prints as `ArrayBuffer []`.
+ *
+ * Nothing is lost by relaxing it here. That the executed buffer is the VERIFIED
+ * one is a single property with a single owner, asserted by identity in
+ * "executes the same buffer it verified".
+ */
+const IMPORTED_BYTES = expect.anything();
+
 const BUNDLE_BYTES = new TextEncoder().encode(
   "export const marker = 'scansat client bytes';",
 ).buffer as ArrayBuffer;
@@ -94,7 +109,7 @@ afterEach(() => {
 function ctx(extra: {
   index: RegistryIndex | "fail";
   roster?: RosterEntry[];
-  importBundle: (url: string) => Promise<unknown>;
+  importBundle: (bytes: ArrayBuffer, url: string) => Promise<unknown>;
   ensureConsent?: (info: { id: string }) => Promise<boolean>;
   fetchBytes?: (url: string, expectedHash?: string) => Promise<ArrayBuffer>;
 }) {
@@ -117,22 +132,60 @@ function ctx(extra: {
 }
 
 describe("loadEnabledUplinks", () => {
-  it("loads a verified, compatible Uplink and imports its bundle", async () => {
-    const importBundle = vi.fn<(url: string) => Promise<unknown>>(
-      async () => ({}),
+  /*
+   * The bytes that are HASHED must be the bytes that are EXECUTED.
+   *
+   * The loader used to `fetchBytes(url)`, hash that, and then `import(url)`
+   * again, so the verified download was thrown away and a second, unverified one
+   * was run. Over a same-origin fixture that reads as a caching detail. Over the
+   * remote release URL an Uplink declares, a host can serve verified bytes to the
+   * first request and anything at all to the second while every arm of the
+   * three-way integrity check reports green.
+   *
+   * This holds the property by IDENTITY rather than by counting fetches: the
+   * buffer handed to `importBundle` has to be the very one `fetchBytes` returned.
+   * A reintroduced second download cannot satisfy that no matter how it is
+   * spelled, which a call-count assertion would not catch (a cached refetch is
+   * still one network request and still a different buffer).
+   */
+  it("executes the same buffer it verified, not a second download", async () => {
+    const fetched = BUNDLE_BYTES;
+    const importBundle = vi.fn<
+      (bytes: ArrayBuffer, url: string) => Promise<unknown>
+    >(async () => ({}));
+
+    const outcomes = await loadEnabledUplinks(
+      ctx({
+        index: indexWith(goodHash),
+        importBundle,
+        fetchBytes: async () => fetched,
+      }),
     );
+
+    expect(outcomes[0].status).toBe("loaded");
+    // `toBe`, not `toEqual`: an equal-but-distinct buffer is exactly the bug.
+    expect(importBundle.mock.calls[0][0]).toBe(fetched);
+  });
+
+  it("loads a verified, compatible Uplink and imports its bundle", async () => {
+    const importBundle = vi.fn<
+      (bytes: ArrayBuffer, url: string) => Promise<unknown>
+    >(async () => ({}));
     const outcomes = await loadEnabledUplinks(
       ctx({ index: indexWith(goodHash), importBundle }),
     );
     expect(outcomes[0].status).toBe("loaded");
-    expect(importBundle).toHaveBeenCalledWith("/uplinks/scansat.client.js");
+    expect(importBundle).toHaveBeenCalledWith(
+      IMPORTED_BYTES,
+      "/uplinks/scansat.client.js",
+    );
     expect(getUplinkOutcomes()[0].status).toBe("loaded");
   });
 
   it("calls fetchBytes with (bundleUrl, expectedHash): the D6 seam a peer-backed fetchBytes needs", async () => {
-    const importBundle = vi.fn<(url: string) => Promise<unknown>>(
-      async () => ({}),
-    );
+    const importBundle = vi.fn<
+      (bytes: ArrayBuffer, url: string) => Promise<unknown>
+    >(async () => ({}));
     const fetchBytes = vi.fn<
       (url: string, expectedHash?: string) => Promise<ArrayBuffer>
     >(async () => BUNDLE_BYTES);
@@ -147,9 +200,9 @@ describe("loadEnabledUplinks", () => {
   });
 
   it("quarantines on a bundle-hash mismatch and never imports", async () => {
-    const importBundle = vi.fn<(url: string) => Promise<unknown>>(
-      async () => ({}),
-    );
+    const importBundle = vi.fn<
+      (bytes: ArrayBuffer, url: string) => Promise<unknown>
+    >(async () => ({}));
     const outcomes = await loadEnabledUplinks(
       ctx({ index: indexWith("sha256-deadbeef"), importBundle }),
     );
@@ -159,9 +212,9 @@ describe("loadEnabledUplinks", () => {
   });
 
   it("refuses an apiVersion major mismatch BEFORE fetching bytes", async () => {
-    const importBundle = vi.fn<(url: string) => Promise<unknown>>(
-      async () => ({}),
-    );
+    const importBundle = vi.fn<
+      (bytes: ArrayBuffer, url: string) => Promise<unknown>
+    >(async () => ({}));
     const fetchBytes = vi.fn<(url: string) => Promise<ArrayBuffer>>(
       async () => BUNDLE_BYTES,
     );
@@ -182,9 +235,9 @@ describe("loadEnabledUplinks", () => {
   });
 
   it("refuses a contractMajor mismatch", async () => {
-    const importBundle = vi.fn<(url: string) => Promise<unknown>>(
-      async () => ({}),
-    );
+    const importBundle = vi.fn<
+      (bytes: ArrayBuffer, url: string) => Promise<unknown>
+    >(async () => ({}));
     const outcomes = await loadEnabledUplinks(
       ctx({ index: indexWith(goodHash, { contractMajor: 2 }), importBundle }),
     );
@@ -193,9 +246,9 @@ describe("loadEnabledUplinks", () => {
   });
 
   it("refuses a contractMinor that's newer than the host's", async () => {
-    const importBundle = vi.fn<(url: string) => Promise<unknown>>(
-      async () => ({}),
-    );
+    const importBundle = vi.fn<
+      (bytes: ArrayBuffer, url: string) => Promise<unknown>
+    >(async () => ({}));
     const outcomes = await loadEnabledUplinks(
       ctx({ index: indexWith(goodHash, { contractMinor: 6 }), importBundle }),
     );
@@ -204,9 +257,9 @@ describe("loadEnabledUplinks", () => {
   });
 
   it("refuses when the live mod reports the Uplink unavailable", async () => {
-    const importBundle = vi.fn<(url: string) => Promise<unknown>>(
-      async () => ({}),
-    );
+    const importBundle = vi.fn<
+      (bytes: ArrayBuffer, url: string) => Promise<unknown>
+    >(async () => ({}));
     const roster: RosterEntry[] = [
       {
         id: "scansat",
@@ -223,9 +276,9 @@ describe("loadEnabledUplinks", () => {
   });
 
   it("enforces the three-way check when the mod emits expectedClientHash", async () => {
-    const importBundle = vi.fn<(url: string) => Promise<unknown>>(
-      async () => ({}),
-    );
+    const importBundle = vi.fn<
+      (bytes: ArrayBuffer, url: string) => Promise<unknown>
+    >(async () => ({}));
     const roster: RosterEntry[] = [
       {
         id: "scansat",
@@ -244,9 +297,9 @@ describe("loadEnabledUplinks", () => {
   });
 
   it("loads when mod, index, and bytes all agree (three-way pass)", async () => {
-    const importBundle = vi.fn<(url: string) => Promise<unknown>>(
-      async () => ({}),
-    );
+    const importBundle = vi.fn<
+      (bytes: ArrayBuffer, url: string) => Promise<unknown>
+    >(async () => ({}));
     const roster: RosterEntry[] = [
       {
         id: "scansat",
@@ -264,9 +317,9 @@ describe("loadEnabledUplinks", () => {
   });
 
   it("quarantines with 'consent declined' and never fetches when consent is refused", async () => {
-    const importBundle = vi.fn<(url: string) => Promise<unknown>>(
-      async () => ({}),
-    );
+    const importBundle = vi.fn<
+      (bytes: ArrayBuffer, url: string) => Promise<unknown>
+    >(async () => ({}));
     const fetchBytes = vi.fn<(url: string) => Promise<ArrayBuffer>>(
       async () => BUNDLE_BYTES,
     );
@@ -285,9 +338,9 @@ describe("loadEnabledUplinks", () => {
   });
 
   it("loads when consent is granted", async () => {
-    const importBundle = vi.fn<(url: string) => Promise<unknown>>(
-      async () => ({}),
-    );
+    const importBundle = vi.fn<
+      (bytes: ArrayBuffer, url: string) => Promise<unknown>
+    >(async () => ({}));
     const outcomes = await loadEnabledUplinks(
       ctx({
         index: indexWith(goodHash),
@@ -300,9 +353,9 @@ describe("loadEnabledUplinks", () => {
   });
 
   it("passes id, name, and version to the consent prompt", async () => {
-    const importBundle = vi.fn<(url: string) => Promise<unknown>>(
-      async () => ({}),
-    );
+    const importBundle = vi.fn<
+      (bytes: ArrayBuffer, url: string) => Promise<unknown>
+    >(async () => ({}));
     const ensureConsent = vi.fn(async () => true);
     await loadEnabledUplinks(
       ctx({ index: indexWith(goodHash), importBundle, ensureConsent }),
@@ -317,9 +370,9 @@ describe("loadEnabledUplinks", () => {
   });
 
   it("quarantines every enabled id when the registry is unreadable", async () => {
-    const importBundle = vi.fn<(url: string) => Promise<unknown>>(
-      async () => ({}),
-    );
+    const importBundle = vi.fn<
+      (bytes: ArrayBuffer, url: string) => Promise<unknown>
+    >(async () => ({}));
     const outcomes = await loadEnabledUplinks(
       ctx({ index: "fail", importBundle }),
     );
@@ -329,9 +382,9 @@ describe("loadEnabledUplinks", () => {
   });
 
   it("quarantines an enabled id absent from the index", async () => {
-    const importBundle = vi.fn<(url: string) => Promise<unknown>>(
-      async () => ({}),
-    );
+    const importBundle = vi.fn<
+      (bytes: ArrayBuffer, url: string) => Promise<unknown>
+    >(async () => ({}));
     stubRegistryFetch({ uplinks: [] });
     const outcomes = await loadEnabledUplinks({
       registrySource: { url: "/uplinks/registry.local.json" },
@@ -350,9 +403,9 @@ describe("loadEnabledUplinks", () => {
 
 describe("loadEnabledUplinks: installed-mod-roster drives the enabled set (2026-07-24)", () => {
   it("enables an installed first-party id from the roster alone", async () => {
-    const importBundle = vi.fn<(url: string) => Promise<unknown>>(
-      async () => ({}),
-    );
+    const importBundle = vi.fn<
+      (bytes: ArrayBuffer, url: string) => Promise<unknown>
+    >(async () => ({}));
     stubRegistryFetch(indexWith(goodHash));
     const roster: RosterEntry[] = [
       { id: "scansat", version: "1.0.0", available: true, reason: null },
@@ -369,16 +422,19 @@ describe("loadEnabledUplinks: installed-mod-roster drives the enabled set (2026-
     expect(outcomes).toHaveLength(1);
     expect(outcomes[0].id).toBe("scansat");
     expect(outcomes[0].status).toBe("loaded");
-    expect(importBundle).toHaveBeenCalledWith("/uplinks/scansat.client.js");
+    expect(importBundle).toHaveBeenCalledWith(
+      IMPORTED_BYTES,
+      "/uplinks/scansat.client.js",
+    );
   });
 
   // Override-precedence: an explicit `?uplinkLoaderIds=` is a deliberate dev/test
   // intent and must WIN over the roster (regression for the Hub-wizard e2e, whose
   // fixture always supplies a roster: the override was silently ignored before).
   it("an explicit override (even empty) wins over the roster, loads nothing", async () => {
-    const importBundle = vi.fn<(url: string) => Promise<unknown>>(
-      async () => ({}),
-    );
+    const importBundle = vi.fn<
+      (bytes: ArrayBuffer, url: string) => Promise<unknown>
+    >(async () => ({}));
     stubRegistryFetch(indexWith(goodHash));
     const roster: RosterEntry[] = [
       { id: "scansat", version: "1.0.0", available: true, reason: null },
@@ -398,9 +454,9 @@ describe("loadEnabledUplinks: installed-mod-roster drives the enabled set (2026-
   });
 
   it("an explicit override loads its ids even when the roster omits them", async () => {
-    const importBundle = vi.fn<(url: string) => Promise<unknown>>(
-      async () => ({}),
-    );
+    const importBundle = vi.fn<
+      (bytes: ArrayBuffer, url: string) => Promise<unknown>
+    >(async () => ({}));
     stubRegistryFetch(indexWith(goodHash));
     const outcomes = await loadEnabledUplinks({
       registrySource: { url: "/uplinks/registry.local.json" },
@@ -418,9 +474,9 @@ describe("loadEnabledUplinks: installed-mod-roster drives the enabled set (2026-
   });
 
   it("loads nothing when the roster reports nothing installed", async () => {
-    const importBundle = vi.fn<(url: string) => Promise<unknown>>(
-      async () => ({}),
-    );
+    const importBundle = vi.fn<
+      (bytes: ArrayBuffer, url: string) => Promise<unknown>
+    >(async () => ({}));
     stubRegistryFetch(indexWith(goodHash));
     const outcomes = await loadEnabledUplinks({
       registrySource: { url: "/uplinks/registry.local.json" },
@@ -437,9 +493,9 @@ describe("loadEnabledUplinks: installed-mod-roster drives the enabled set (2026-
   });
 
   it("does not attempt an installed roster id that has no first-party descriptor in the local registry (installed-no-client, a gap, not an auto-load)", async () => {
-    const importBundle = vi.fn<(url: string) => Promise<unknown>>(
-      async () => ({}),
-    );
+    const importBundle = vi.fn<
+      (bytes: ArrayBuffer, url: string) => Promise<unknown>
+    >(async () => ({}));
     // The local registry only ships "scansat": "widget-y" is a mod the
     // roster reports installed with no published client at all.
     stubRegistryFetch(indexWith(goodHash));
@@ -474,9 +530,9 @@ describe("loadEnabledUplinks: installed-mod-roster drives the enabled set (2026-
   // installed, so nothing is attempted and the roster, or an explicit override,
   // is what says otherwise.
   it("roster ABSENT and no override attempts nothing, no bundle fetched", async () => {
-    const importBundle = vi.fn<(url: string) => Promise<unknown>>(
-      async () => ({}),
-    );
+    const importBundle = vi.fn<
+      (bytes: ArrayBuffer, url: string) => Promise<unknown>
+    >(async () => ({}));
     const fetchBytes = vi.fn<(url: string) => Promise<ArrayBuffer>>(
       async () => BUNDLE_BYTES,
     );
@@ -501,9 +557,9 @@ describe("loadEnabledUplinks: installed-mod-roster drives the enabled set (2026-
   // everything else reads: an override outright, otherwise every roster id. A
   // roster-driven boot is the case that would otherwise have gone silent.
   it("quarantines the roster's ids when the registry is unreadable", async () => {
-    const importBundle = vi.fn<(url: string) => Promise<unknown>>(
-      async () => ({}),
-    );
+    const importBundle = vi.fn<
+      (bytes: ArrayBuffer, url: string) => Promise<unknown>
+    >(async () => ({}));
     stubRegistryFetch("fail");
     const outcomes = await loadEnabledUplinks({
       registrySource: { url: "/uplinks/registry.local.json" },
@@ -524,9 +580,9 @@ describe("loadEnabledUplinks: installed-mod-roster drives the enabled set (2026-
   });
 
   it("a mod-reported-unavailable installed id is still ENABLED (attempted) so checkCompat's veto can quarantine it with a reason", async () => {
-    const importBundle = vi.fn<(url: string) => Promise<unknown>>(
-      async () => ({}),
-    );
+    const importBundle = vi.fn<
+      (bytes: ArrayBuffer, url: string) => Promise<unknown>
+    >(async () => ({}));
     stubRegistryFetch(indexWith(goodHash));
     const roster: RosterEntry[] = [
       {
@@ -554,23 +610,26 @@ describe("loadEnabledUplinks: installed-mod-roster drives the enabled set (2026-
 
 describe("loadUplinkById", () => {
   it("fetches the registry and loads only the requested id", async () => {
-    const importBundle = vi.fn<(url: string) => Promise<unknown>>(
-      async () => ({}),
-    );
+    const importBundle = vi.fn<
+      (bytes: ArrayBuffer, url: string) => Promise<unknown>
+    >(async () => ({}));
     const outcome = await loadUplinkById(
       "scansat",
       ctx({ index: indexWith(goodHash), importBundle }),
     );
     expect(outcome.status).toBe("loaded");
     expect(outcome.id).toBe("scansat");
-    expect(importBundle).toHaveBeenCalledWith("/uplinks/scansat.client.js");
+    expect(importBundle).toHaveBeenCalledWith(
+      IMPORTED_BYTES,
+      "/uplinks/scansat.client.js",
+    );
     expect(getUplinkOutcomes()[0].status).toBe("loaded");
   });
 
   it("reuses the ensureConsent/fetchBytes/importBundle DI seam", async () => {
-    const importBundle = vi.fn<(url: string) => Promise<unknown>>(
-      async () => ({}),
-    );
+    const importBundle = vi.fn<
+      (bytes: ArrayBuffer, url: string) => Promise<unknown>
+    >(async () => ({}));
     const ensureConsent = vi.fn(async () => false);
     const outcome = await loadUplinkById(
       "scansat",
@@ -583,9 +642,9 @@ describe("loadUplinkById", () => {
   });
 
   it("quarantines when the id isn't in the registry index", async () => {
-    const importBundle = vi.fn<(url: string) => Promise<unknown>>(
-      async () => ({}),
-    );
+    const importBundle = vi.fn<
+      (bytes: ArrayBuffer, url: string) => Promise<unknown>
+    >(async () => ({}));
     stubRegistryFetch(indexWith(goodHash));
     const outcome = await loadUplinkById("kos", {
       registrySource: { url: "/uplinks/registry.local.json" },
@@ -601,9 +660,9 @@ describe("loadUplinkById", () => {
   });
 
   it("quarantines when the registry is unreadable", async () => {
-    const importBundle = vi.fn<(url: string) => Promise<unknown>>(
-      async () => ({}),
-    );
+    const importBundle = vi.fn<
+      (bytes: ArrayBuffer, url: string) => Promise<unknown>
+    >(async () => ({}));
     const outcome = await loadUplinkById(
       "scansat",
       ctx({ index: "fail", importBundle }),
@@ -614,9 +673,9 @@ describe("loadUplinkById", () => {
   });
 
   it("single-picks a third-party id via clientSource when it's absent from the local index (follow-on #5)", async () => {
-    const importBundle = vi.fn<(url: string) => Promise<unknown>>(
-      async () => ({}),
-    );
+    const importBundle = vi.fn<
+      (bytes: ArrayBuffer, url: string) => Promise<unknown>
+    >(async () => ({}));
     stubRegistryFetch(indexWith(goodHash)); // local index only ever ships "scansat"
     const bytes = new TextEncoder().encode("export const marker = 'widget-y';")
       .buffer as ArrayBuffer;
@@ -662,14 +721,15 @@ describe("loadUplinkById", () => {
     expect(outcome.id).toBe("widget-y");
     expect(fetchManifest).toHaveBeenCalled();
     expect(importBundle).toHaveBeenCalledWith(
+      IMPORTED_BYTES,
       "https://cdn.example/widget-y.client.js",
     );
   });
 
   it("still quarantines an id absent from BOTH the local index and the roster's clientSource (follow-on #5 negative)", async () => {
-    const importBundle = vi.fn<(url: string) => Promise<unknown>>(
-      async () => ({}),
-    );
+    const importBundle = vi.fn<
+      (bytes: ArrayBuffer, url: string) => Promise<unknown>
+    >(async () => ({}));
     stubRegistryFetch(indexWith(goodHash));
     const outcome = await loadUplinkById("widget-z", {
       registrySource: { url: "/uplinks/registry.local.json" },
@@ -823,9 +883,9 @@ describe("loadEnabledUplinks: third-party clientSource path (D5-loader follow-on
   }
 
   it("loads a third-party id via clientSource + a fetched manifest, preferring devPath", async () => {
-    const importBundle = vi.fn<(url: string) => Promise<unknown>>(
-      async () => ({}),
-    );
+    const importBundle = vi.fn<
+      (bytes: ArrayBuffer, url: string) => Promise<unknown>
+    >(async () => ({}));
     stubRegistryFetch(indexWith(goodHash)); // local index only ever ships "scansat"
     const thirdPartyHash = await sha256Of(THIRD_PARTY_BYTES);
     const roster: RosterEntry[] = [
@@ -863,14 +923,15 @@ describe("loadEnabledUplinks: third-party clientSource path (D5-loader follow-on
     expect(outcomes[0].id).toBe("widget-y");
     expect(outcomes[0].status).toBe("loaded");
     expect(importBundle).toHaveBeenCalledWith(
+      IMPORTED_BYTES,
       "http://localhost:5173/widget-y.client.js",
     );
   });
 
   it("uses clientSource.url when devPath is absent", async () => {
-    const importBundle = vi.fn<(url: string) => Promise<unknown>>(
-      async () => ({}),
-    );
+    const importBundle = vi.fn<
+      (bytes: ArrayBuffer, url: string) => Promise<unknown>
+    >(async () => ({}));
     stubRegistryFetch(indexWith(goodHash));
     const thirdPartyHash = await sha256Of(THIRD_PARTY_BYTES);
     const roster: RosterEntry[] = [
@@ -902,14 +963,15 @@ describe("loadEnabledUplinks: third-party clientSource path (D5-loader follow-on
     });
     expect(outcomes[0].status).toBe("loaded");
     expect(importBundle).toHaveBeenCalledWith(
+      IMPORTED_BYTES,
       "https://cdn.example/widget-y.client.js",
     );
   });
 
   it("refuses hash-blind BEFORE any fetch when the mod hasn't vouched a hash", async () => {
-    const importBundle = vi.fn<(url: string) => Promise<unknown>>(
-      async () => ({}),
-    );
+    const importBundle = vi.fn<
+      (bytes: ArrayBuffer, url: string) => Promise<unknown>
+    >(async () => ({}));
     stubRegistryFetch(indexWith(goodHash));
     const roster: RosterEntry[] = [
       {
@@ -944,9 +1006,9 @@ describe("loadEnabledUplinks: third-party clientSource path (D5-loader follow-on
   });
 
   it("quarantines with a legible reason when the manifest fetch fails", async () => {
-    const importBundle = vi.fn<(url: string) => Promise<unknown>>(
-      async () => ({}),
-    );
+    const importBundle = vi.fn<
+      (bytes: ArrayBuffer, url: string) => Promise<unknown>
+    >(async () => ({}));
     stubRegistryFetch(indexWith(goodHash));
     const roster: RosterEntry[] = [
       {
@@ -981,9 +1043,9 @@ describe("loadEnabledUplinks: third-party clientSource path (D5-loader follow-on
   });
 
   it("quarantines with a legible reason when the fetched manifest is malformed", async () => {
-    const importBundle = vi.fn<(url: string) => Promise<unknown>>(
-      async () => ({}),
-    );
+    const importBundle = vi.fn<
+      (bytes: ArrayBuffer, url: string) => Promise<unknown>
+    >(async () => ({}));
     stubRegistryFetch(indexWith(goodHash));
     const roster: RosterEntry[] = [
       {
@@ -1014,9 +1076,9 @@ describe("loadEnabledUplinks: third-party clientSource path (D5-loader follow-on
   });
 
   it("quarantines a compat-incompatible third-party manifest BEFORE fetching bundle bytes", async () => {
-    const importBundle = vi.fn<(url: string) => Promise<unknown>>(
-      async () => ({}),
-    );
+    const importBundle = vi.fn<
+      (bytes: ArrayBuffer, url: string) => Promise<unknown>
+    >(async () => ({}));
     stubRegistryFetch(indexWith(goodHash));
     const roster: RosterEntry[] = [
       {
@@ -1052,9 +1114,9 @@ describe("loadEnabledUplinks: third-party clientSource path (D5-loader follow-on
   });
 
   it("hard-refuses BEFORE fetching bytes when the manifest integrity disagrees with the mod-vouched hash (follow-on #4)", async () => {
-    const importBundle = vi.fn<(url: string) => Promise<unknown>>(
-      async () => ({}),
-    );
+    const importBundle = vi.fn<
+      (bytes: ArrayBuffer, url: string) => Promise<unknown>
+    >(async () => ({}));
     stubRegistryFetch(indexWith(goodHash));
     const roster: RosterEntry[] = [
       {
@@ -1093,9 +1155,9 @@ describe("loadEnabledUplinks: third-party clientSource path (D5-loader follow-on
   });
 
   it("quarantines on a bundle-hash mismatch and never imports", async () => {
-    const importBundle = vi.fn<(url: string) => Promise<unknown>>(
-      async () => ({}),
-    );
+    const importBundle = vi.fn<
+      (bytes: ArrayBuffer, url: string) => Promise<unknown>
+    >(async () => ({}));
     stubRegistryFetch(indexWith(goodHash));
     const roster: RosterEntry[] = [
       {
@@ -1127,9 +1189,9 @@ describe("loadEnabledUplinks: third-party clientSource path (D5-loader follow-on
   });
 
   it("quarantines with 'unavailable' when the mod reports the third-party Uplink unavailable", async () => {
-    const importBundle = vi.fn<(url: string) => Promise<unknown>>(
-      async () => ({}),
-    );
+    const importBundle = vi.fn<
+      (bytes: ArrayBuffer, url: string) => Promise<unknown>
+    >(async () => ({}));
     stubRegistryFetch(indexWith(goodHash));
     const thirdPartyHash = await sha256Of(THIRD_PARTY_BYTES);
     const roster: RosterEntry[] = [
@@ -1161,9 +1223,9 @@ describe("loadEnabledUplinks: third-party clientSource path (D5-loader follow-on
   });
 
   it("prefers the local first-party descriptor when BOTH it and a clientSource exist for the same id", async () => {
-    const importBundle = vi.fn<(url: string) => Promise<unknown>>(
-      async () => ({}),
-    );
+    const importBundle = vi.fn<
+      (bytes: ArrayBuffer, url: string) => Promise<unknown>
+    >(async () => ({}));
     stubRegistryFetch(indexWith(goodHash)); // "scansat" has a first-party descriptor
     const fetchManifest = vi.fn(async () => manifestFor());
     const roster: RosterEntry[] = [
@@ -1192,7 +1254,10 @@ describe("loadEnabledUplinks: third-party clientSource path (D5-loader follow-on
       importBundle,
     });
     expect(outcomes[0].status).toBe("loaded");
-    expect(importBundle).toHaveBeenCalledWith("/uplinks/scansat.client.js");
+    expect(importBundle).toHaveBeenCalledWith(
+      IMPORTED_BYTES,
+      "/uplinks/scansat.client.js",
+    );
     expect(fetchManifest).not.toHaveBeenCalled();
   });
 });

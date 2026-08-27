@@ -882,7 +882,11 @@ public static class RtConfig
         {
             sb.Append("  ").Append(name).Append(",\n");
         }
-        sb.Append("} from \"./contract\";\n\n");
+        // `./contract.js`, with the extension. Type-only and beside contract.ts in
+        // the same directory, so `.js` resolves under `bundler` as well, but
+        // WITHOUT it a consumer on moduleResolution node16/nodenext gets TS2835
+        // and cannot typecheck generated code it did not write.
+        sb.Append("} from \"./contract.js\";\n\n");
 
         sb.Append("export interface GeneratedTopicPayloadMap {\n");
         foreach (var entry in entries)

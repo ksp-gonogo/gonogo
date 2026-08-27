@@ -90,10 +90,26 @@ export interface LoaderContext {
    */
   ensureConsent?: (info: ConsentInfo) => Promise<boolean>;
   /**
-   * Import a bundle URL. Injected so tests can drive the loader without a real
-   * network `import()`. Defaults to a `@vite-ignore` dynamic import of the URL.
+   * Import an already-fetched, already-VERIFIED bundle. Injected so tests can
+   * drive the loader without a real `import()`.
+   *
+   * Takes the bytes, not just the URL, and that is the whole point: the default
+   * used to re-`import(url)` after `fetchBytes` had downloaded and hashed the
+   * same URL separately, so **the bytes that were verified were not the bytes
+   * that were executed**. Two downloads, one integrity check. Over a
+   * same-origin fixture that reads as a caching detail; over the remote release
+   * URL an Uplink now declares, a host can serve verified bytes to the first
+   * request and anything at all to the second while every arm of the three-way
+   * check reports green.
+   *
+   * The URL is still passed, for diagnostics only. Nothing may fetch it again.
+   *
+   * The station path needs this regardless of the tampering argument: a station
+   * fetches through the PeerJS conduit (`./peerBundleFetch.ts`) because it has
+   * no HTTP route to the author's host at all, so it cannot re-fetch by URL even
+   * in principle.
    */
-  importBundle?: (url: string) => Promise<unknown>;
+  importBundle?: (bytes: ArrayBuffer, url: string) => Promise<unknown>;
   /**
    * Fetch bundle bytes. Injected for tests; defaults to `defaultFetchBytes`
    * (a direct `fetch`). `expectedHash` is the SAME value `loadOne` is about
@@ -240,10 +256,42 @@ async function defaultFetchBytes(url: string): Promise<ArrayBuffer> {
   return res.arrayBuffer();
 }
 
-function defaultImportBundle(url: string): Promise<unknown> {
-  // @vite-ignore: a runtime URL, NOT an app-graph module. The browser fetches it
-  // and resolves its bare imports through the page's baked import map.
-  return import(/* @vite-ignore */ url);
+async function defaultImportBundle(
+  bytes: ArrayBuffer,
+  url: string,
+): Promise<unknown> {
+  /*
+   * Import the VERIFIED bytes, never the URL again.
+   *
+   * A blob URL addresses the exact buffer `loadOne` hashed, so the module that
+   * executes is the module that passed the integrity check. Re-importing `url`
+   * would be a second download nothing verifies, which is what this replaces.
+   *
+   * `type: "text/javascript"` is required, not decoration: the browser refuses
+   * to import a blob whose MIME type is not a JavaScript one, and the default
+   * for a typeless Blob is the empty string.
+   *
+   * Bare imports inside the bundle still resolve through the page's baked import
+   * map, exactly as they did from an https URL: an import map is keyed by
+   * specifier and does not care what the importing module's own URL scheme is.
+   */
+  const blobUrl = URL.createObjectURL(
+    new Blob([bytes], { type: "text/javascript" }),
+  );
+  try {
+    // @vite-ignore: a runtime URL, NOT an app-graph module.
+    return await import(/* @vite-ignore */ blobUrl);
+  } catch (err) {
+    // The blob URL is meaningless to a reader, so name the source it came from.
+    throw new Error(
+      `import of ${url} failed: ${err instanceof Error ? err.message : String(err)}`,
+    );
+  } finally {
+    // The module stays live in the realm's module map once evaluated; only the
+    // URL->blob entry is released. Skipping it leaks one blob per Uplink load,
+    // permanently.
+    URL.revokeObjectURL(blobUrl);
+  }
 }
 
 async function defaultFetchManifest(url: string): Promise<unknown> {
@@ -515,9 +563,12 @@ async function loadOne(
     // Verified. import() runs the bundle's module-load registerComponent(...),
     // registration is a side effect of import, so nothing before this line may be
     // skipped.
+    // `bytes`, the buffer just hashed above, NOT `version.bundleUrl`. Handing
+    // the URL here would let the executed module be a different download from
+    // the verified one, which is the hole this closes.
     const importBundle = ctx.importBundle ?? defaultImportBundle;
     const start = performance.now();
-    await importBundle(version.bundleUrl);
+    await importBundle(bytes, version.bundleUrl);
     const ms = Math.round(performance.now() - start);
 
     const modHashNote =

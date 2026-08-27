@@ -56,6 +56,18 @@ export async function runStationUplinkLoad(
   telemetryClient: TelemetryClient,
   bundleFetchConduit: BundleFetchConduit,
   rosterTimeoutMs?: number,
+  /**
+   * Overrides `LoaderContext.importBundle`, same seam and same default.
+   *
+   * A test has to supply one. The default builds a blob URL from the verified
+   * bytes and imports that, which is what a browser does and what jsdom cannot
+   * do, so a test reaching the default gets a quarantined outcome for a reason
+   * that has nothing to do with what it is asserting. Before the loader stopped
+   * re-fetching by URL these tests reached the default and passed, because
+   * vitest's module runner resolved the fixture URL: that was never the
+   * browser's behaviour and the pass was measuring the test runner.
+   */
+  importBundle?: (bytes: ArrayBuffer, url: string) => Promise<unknown>,
 ): Promise<UplinkLoadOutcome[]> {
   const roster = await readRosterFromTelemetryClient(
     telemetryClient,
@@ -75,6 +87,7 @@ export async function runStationUplinkLoad(
     // whole function station-safe: no direct `fetch` for bundle bytes ever
     // happens here.
     fetchBytes: createPeerBundleFetcher(bundleFetchConduit),
+    importBundle,
   });
 }
 
