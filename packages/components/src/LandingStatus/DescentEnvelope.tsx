@@ -1,5 +1,9 @@
+// The `SlotRegistry` merge below targets this specifier, as every in-tree
+// widget's does, and a module augmentation only applies from a file that also
+// imports the module it augments, hence the type-only import.
+import type { SlotProps as _SlotProps } from "@ksp-gonogo/core";
 import { value } from "@ksp-gonogo/sitrep-sdk";
-import { writeQuantity } from "@ksp-gonogo/ui-kit";
+import { AugmentSlot, writeQuantity } from "@ksp-gonogo/ui-kit";
 import { useId } from "react";
 
 /**
@@ -38,6 +42,19 @@ import { useId } from "react";
  * right) so they generally sit clear of the curve/dot by POSITION rather
  * than a backdrop; a very faint drop-shadow (not a solid halo block) is the
  * fallback for the rare case a corner still crosses the curve.
+ *
+ * A PREDICTED TRACE leaves the vessel dot and runs to the bottom edge: where
+ * the descent is going, which is the operator's actual question and the one
+ * thing the plot used to be silent about. It is an integration of the same
+ * model the curve is drawn from, so the two can never disagree, and it needs
+ * the body's surface gravity, which is the only input it cannot do without.
+ * Speed relaxes toward the terminal curve at a rate set by the air, so the
+ * trace hooks left as drag bites and rides the curve down. Where it settles
+ * onto the curve is marked with a tick and an altitude: an entry that settles
+ * below the height it has left arrives fast, and that is the read the whole
+ * plot exists for. The half-plane RIGHT of the curve, where the vessel is
+ * faster than terminal and therefore slowing, carries a faint wash, so the
+ * most useful thing already on screen stops being invisible.
  *
  * The curve is drawn CLIENT-SIDE from the mod's two authoritative anchors,
  * `terminalVelocity` (at the current air density) and `projectedTouchdownSpeed`
@@ -192,9 +209,115 @@ const DRAG_ARROW_STROKE_WIDTH = 1.25; // thin so the open shape reads cleanly at
 const DRAG_ARROW_COLOR = "var(--color-text-faint)";
 const DRAG_ARROW_OPACITY = 0.55;
 
+// --- Decelerating half-plane + predicted trace -------------------------------
+// The terminal curve already divides the plot: right of it the vessel is faster
+// than terminal, so drag exceeds weight and it is slowing. A flat, neutral
+// lightening marks that side. Neutral rather than a status hue on purpose,
+// colour on this plot is spoken for by action urgency, and a second coloured
+// region would read as a second signal.
+const DECEL_WASH_COLOR = "var(--color-text-primary)";
+// Set from the render where it is hardest to see, a low subsonic approach: down
+// there the density haze runs at its peak and swallows anything fainter, and a
+// region cue that is only legible high up is one an operator learns to ignore.
+const DECEL_WASH_OPACITY = 0.1;
+
+// How many altitude steps the descent is integrated in. The per-step solution
+// is exact for a constant terminal velocity (see `projectDescent`), so this
+// only has to be fine enough that the curve's own shape is followed.
+const TRACE_STEPS = 48;
+// Within this fraction of the terminal curve the descent has settled: drag and
+// weight are in balance to the eye and the remaining fall is the curve itself.
+const SETTLE_TOLERANCE = 0.12;
+const TRACE_STROKE_WIDTH = 2.25;
+const TRACE_OPACITY = 0.85;
+// Dashes mark the part of a projection that crosses the transonic drag rise,
+// where the constant-drag-coefficient assumption behind the curve is at its
+// worst. Below Mach 1 that region is behind the vehicle and the trace is solid.
+const TRACE_ESTIMATE_DASH = "5 3.5";
+// The settle tick: a short horizontal bar across the trace with the altitude
+// beside it. Deliberately the trace's own colour, it is a fact about the trace.
+const SETTLE_TICK_HALF_WIDTH = 7;
+const SETTLE_TICK_STROKE_WIDTH = 1.75;
+/** Height of the bottom strip the urgency word and the touchdown readout own,
+ *  which the settle label steps above rather than into. */
+const BOTTOM_READOUT_BAND = 26;
+
 /** Which drag-to-weight treatment to render, if any. `'none'` is the default so
  * every existing caller renders exactly as before. */
 export type DragDisplay = "arrow" | "none";
+
+/** One integrated descent, in the plot's own axes. */
+export interface DescentProjection {
+  /** Sampled (speed, height-above-ground) pairs, vessel first, ground last. */
+  points: readonly { speed: number; altitude: number }[];
+  /** Height the descent settles onto the terminal curve at, when it does so
+   *  before the ground. Null means it never settles, which is the honest read
+   *  of an entry that is still slowing when it arrives. */
+  settleAltitude: number | null;
+  /** Speed the projection reaches the ground at. */
+  touchdownSpeed: number;
+}
+
+/**
+ * What an overlay augment bound to `landing-status.envelope` is handed.
+ *
+ * Coordinates are the plot's OWN square user space rather than pixels, so an
+ * overlay draws in an `<svg viewBox="0 0 size size">` of its own and lands on
+ * the plot's marks at any rendered scale, with no measurement and nothing to
+ * keep in step.
+ *
+ * `projectDescent` is the part worth explaining. A fuller aerodynamics model
+ * knows a better terminal velocity than the plot's constant-drag-coefficient
+ * back-out does, and the useful thing to do with a better terminal velocity is
+ * to re-run the descent against it. Rather than publishing gravity and asking
+ * every augment to reimplement the integration, the host keeps the integration
+ * and takes the model: an augment passes a terminal-velocity function and gets
+ * back exactly what the plot would draw for it.
+ */
+export interface DescentEnvelopeOverlayContext {
+  /** Side of the square user space the plot draws in. */
+  size: number;
+  /** A speed and a height above ground, to a point in that user space. */
+  project(speedMps: number, altitudeM: number): { x: number; y: number };
+  /** The vessel's current speed, null when the stream carries no reading. */
+  currentSpeed: number | null;
+  /** The vessel's current height above ground, metres. */
+  currentAltitude: number;
+  /** The plot's own terminal-velocity curve, metres per second at a height. */
+  terminalVelocityAt(altitudeM: number): number;
+  /** Air density relative to the ground, from the same model as the curve. */
+  relativeDensity(altitudeM: number): number;
+  /** Re-run the descent against a terminal-velocity model of the caller's own.
+   *  Null when the body's surface gravity is unknown. */
+  projectDescent(
+    terminalVelocityAt: (altitudeM: number) => number,
+  ): DescentProjection | null;
+  /** The action-urgency colour the vessel mark carries. */
+  urgencyColor: string;
+  /** True airspeed as a Mach number, when the stream carries one. */
+  mach: number | null;
+}
+
+/**
+ * Co-located declaration-merge of this slot's id to its props, beside the props
+ * type and the mount rather than in a central file, so parallel slot work on
+ * another widget never collides on this seam.
+ *
+ * `augment-slot-map.md` gave `landing-status` no slot at all, on the reasoning
+ * that the suicide-burn maths is self-contained and no cross-Domain contributor
+ * was plausible. That was written before a full-fidelity aerodynamics model
+ * existed as a Domain, and this plot's axes are speed and height: every
+ * statement such a model makes about a descent is a statement about a point or
+ * a curve in exactly that plane. The seam has to be opened here rather than
+ * reached for from the augment's side, because an Uplink may import the sdk and
+ * ui-kit and nothing of this package.
+ *
+ */
+declare module "@ksp-gonogo/core" {
+  interface SlotRegistry {
+    "landing-status.envelope": DescentEnvelopeOverlayContext;
+  }
+}
 
 export interface DescentEnvelopeProps {
   /** Current surface speed, m/s. */
@@ -222,6 +345,81 @@ export interface DescentEnvelopeProps {
   /** Which drag treatment to render, if any. Defaults to `'none'` so every
    * existing caller/render/test is unaffected. */
   dragDisplay?: DragDisplay;
+  /**
+   * Surface gravity of the body being landed on, m/s², from
+   * `BodyDefinition.gm / radius²`. The predicted trace is an integration of the
+   * descent and this sets its rate, so without it there is no trace at all
+   * rather than a trace drawn against a guessed body.
+   */
+  surfaceGravity?: number | null;
+  /**
+   * True airspeed as a Mach number (`vessel.flight.mach`). Above Mach 1 the
+   * projection still has the transonic drag rise to cross, so the part of the
+   * trace above the settle point is dashed to say it is an estimate.
+   */
+  mach?: number | null;
+}
+
+/**
+ * Integrate a descent from a starting speed down to the ground, against a
+ * terminal-velocity model.
+ *
+ * The step is the exact solution of the equation rather than an Euler step, and
+ * that is what makes it usable: writing the motion in terms of u = v² turns
+ * `dv/dh = -g(1 - (v/v_t)²)/v` into `du/dh = -2g(1 - u/v_t²)`, which is linear,
+ * so over a step with v_t held constant `u' = v_t² + (u - v_t²)·e^(2g·Δh/v_t²)`.
+ * A plain forward step is violently unstable at the top of an entry, where the
+ * vessel is many times terminal velocity and the derivative is enormous; this
+ * form relaxes toward the curve however large the step or the excess is, which
+ * is also the physical behaviour.
+ *
+ * Exported for its own tests: the shape of the trace is the whole addition, and
+ * reading it back out of rendered SVG path data is not a test of the physics.
+ */
+export function projectDescent(opts: {
+  startSpeed: number;
+  startAltitude: number;
+  surfaceGravity: number;
+  terminalVelocityAt: (altitudeM: number) => number;
+  steps?: number;
+}): DescentProjection {
+  const { startSpeed, startAltitude, surfaceGravity } = opts;
+  const steps = opts.steps ?? TRACE_STEPS;
+  const dh = -startAltitude / steps;
+  const points: { speed: number; altitude: number }[] = [
+    { speed: startSpeed, altitude: startAltitude },
+  ];
+  let u = startSpeed * startSpeed;
+  let settleAltitude: number | null = null;
+  // A vessel already riding the curve has nothing to settle onto; a tick at its
+  // own altitude would be a mark pointing at the mark beside it.
+  const vtStart = opts.terminalVelocityAt(startAltitude);
+  const startedSettled =
+    vtStart > 0 && Math.abs(startSpeed - vtStart) / vtStart <= SETTLE_TOLERANCE;
+  for (let i = 0; i < steps; i++) {
+    const alt = startAltitude + dh * i;
+    const vt = opts.terminalVelocityAt(alt);
+    if (vt > 0 && Number.isFinite(vt)) {
+      const vtSq = vt * vt;
+      u = vtSq + (u - vtSq) * Math.exp((2 * surfaceGravity * dh) / vtSq);
+    }
+    const nextAlt = Math.max(0, startAltitude + dh * (i + 1));
+    const speed = Math.sqrt(Math.max(0, u));
+    points.push({ speed, altitude: nextAlt });
+    const vtHere = opts.terminalVelocityAt(nextAlt);
+    if (
+      settleAltitude === null &&
+      vtHere > 0 &&
+      Math.abs(speed - vtHere) / vtHere <= SETTLE_TOLERANCE
+    ) {
+      settleAltitude = nextAlt;
+    }
+  }
+  return {
+    points,
+    settleAltitude: startedSettled ? null : settleAltitude,
+    touchdownSpeed: points[points.length - 1].speed,
+  };
 }
 
 // `writeQuantity`, not a hand-written suffix: these land in SVG `<text>`,
@@ -263,6 +461,8 @@ export function DescentEnvelope(props: Readonly<DescentEnvelopeProps>) {
     atmosphereColor,
     dragToWeight,
     dragDisplay = "none",
+    surfaceGravity,
+    mach,
   } = props;
   const hazeColor =
     atmosphereColor != null && atmosphereColor.length > 0
@@ -349,6 +549,60 @@ export function DescentEnvelope(props: Readonly<DescentEnvelopeProps>) {
   const urgency = classifyUrgency(vtGround, alt0);
   const dotColor = URGENCY_COLOR[urgency];
 
+  // The decelerating half-plane: everything right of the curve, closed along the
+  // plot's right edge. Reuses the curve's own sampling so the boundary is the
+  // stroke's own centre line rather than a second approximation of it.
+  // Wound so the ring never crosses itself: the curve is sampled ground-first,
+  // so the return leg has to come back down the right edge, top corner before
+  // bottom. The other order draws a bow tie, which fills two triangles that
+  // mean nothing.
+  const decelWashPts = `${curvePts} ${SIZE},0 ${SIZE},${SIZE}`;
+
+  // Surface gravity is the one input the integration cannot do without, so its
+  // absence removes the trace rather than substituting a body.
+  const gravity =
+    surfaceGravity != null &&
+    Number.isFinite(surfaceGravity) &&
+    surfaceGravity > 0
+      ? surfaceGravity
+      : null;
+  const runProjection = (terminalVelocityAt: (alt: number) => number) =>
+    gravity == null || speedNow == null
+      ? null
+      : projectDescent({
+          startSpeed: speedNow,
+          startAltitude: alt0,
+          surfaceGravity: gravity,
+          terminalVelocityAt,
+        });
+  const projection = runProjection(envelopeAt);
+
+  const traceXY = (p: { speed: number; altitude: number }) =>
+    `${px(p.speed).toFixed(1)},${py(p.altitude).toFixed(1)}`;
+  // Above Mach 1 the projection has the transonic drag rise still to cross, and
+  // the constant-drag-coefficient assumption behind the curve is at its worst
+  // there. Split at the settle point so the estimate and the settled part read
+  // differently; with no settle point the whole trace carries the doubt.
+  const supersonic = mach != null && Number.isFinite(mach) && mach > 1;
+  const settleAlt = projection?.settleAltitude ?? null;
+  const splitIndex =
+    projection && settleAlt != null
+      ? projection.points.findIndex((p) => p.altitude <= settleAlt)
+      : -1;
+  const traceUpper =
+    projection && splitIndex > 0
+      ? projection.points
+          .slice(0, splitIndex + 1)
+          .map(traceXY)
+          .join(" ")
+      : (projection?.points.map(traceXY).join(" ") ?? "");
+  const traceLower =
+    projection && splitIndex > 0
+      ? projection.points.slice(splitIndex).map(traceXY).join(" ")
+      : "";
+  const settlePoint =
+    projection && splitIndex > 0 ? projection.points[splitIndex] : null;
+
   // Drag-to-weight arrowhead geometry. Sits just above the dot's TOP edge,
   // centred on the dot's x, apex pointing up/away. SIZE (not length) scales
   // with the ratio, clamped at `DRAG_ARROW_MAX_RATIO` so a big reading never
@@ -384,9 +638,33 @@ export function DescentEnvelope(props: Readonly<DescentEnvelopeProps>) {
     // ratio also reads in the accessible label whenever the arrow is shown.
     (showDragArrow
       ? `; drag ${(dragToWeight as number).toFixed(1)}× weight`
-      : "");
+      : "") +
+    // The trace and its settle tick are shape, so the same reading is written
+    // out here (WCAG 1.4.1): an altitude the descent settles at, or the fact
+    // that it never does before the ground.
+    (projection == null
+      ? ""
+      : settleAlt != null
+        ? `; projected descent settles onto the terminal curve at ${fmtAlt(
+            settleAlt,
+          )}, reaching the ground at ${fmtSpeed(projection.touchdownSpeed)}`
+        : `; projected descent never settles onto the terminal curve, reaching the ground at ${fmtSpeed(
+            projection.touchdownSpeed,
+          )}`);
 
-  return (
+  const overlayContext: DescentEnvelopeOverlayContext = {
+    size: SIZE,
+    project: (speed, alt) => ({ x: px(speed), y: py(alt) }),
+    currentSpeed: speedNow,
+    currentAltitude: alt0,
+    terminalVelocityAt: envelopeAt,
+    relativeDensity,
+    projectDescent: runProjection,
+    urgencyColor: dotColor,
+    mach: mach != null && Number.isFinite(mach) ? mach : null,
+  };
+
+  const plot = (
     <svg
       width={SIZE}
       height={SIZE}
@@ -461,6 +739,16 @@ export function DescentEnvelope(props: Readonly<DescentEnvelopeProps>) {
           filter={`url(#${bandBlurId})`}
         />
 
+        {/* The DECELERATING half-plane, right of the terminal curve: faster
+            than terminal, so drag exceeds weight. Flat and neutral, under the
+            curve and the trace, so it reads as a region rather than a mark. */}
+        <polygon
+          data-envelope-region="decelerating"
+          points={decelWashPts}
+          fill={DECEL_WASH_COLOR}
+          fillOpacity={DECEL_WASH_OPACITY}
+        />
+
         {/* The terminal-velocity line (equilibrium glide), a neutral
             reference tone (NOT the accent green, which is reserved for the
             SAFE urgency dot, an accent-green curve would make a safe dot
@@ -474,6 +762,55 @@ export function DescentEnvelope(props: Readonly<DescentEnvelopeProps>) {
           strokeLinecap="round"
           strokeLinejoin="round"
         />
+
+        {/* The PREDICTED TRACE: the descent integrated down the density column
+            from where the vessel is now. It leaves the dot, hooks left as drag
+            bites, and rides the terminal curve to the ground. Drawn in the
+            action-urgency colour, so where it ends and what the dot says about
+            the outcome are one signal rather than two. */}
+        {traceUpper.length > 0 && (
+          <polyline
+            data-envelope-mark="trace-estimate"
+            points={traceUpper}
+            fill="none"
+            stroke={dotColor}
+            strokeOpacity={TRACE_OPACITY}
+            strokeWidth={TRACE_STROKE_WIDTH}
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            strokeDasharray={supersonic ? TRACE_ESTIMATE_DASH : undefined}
+          />
+        )}
+        {traceLower.length > 0 && (
+          <polyline
+            data-envelope-mark="trace-settled"
+            points={traceLower}
+            fill="none"
+            stroke={dotColor}
+            strokeOpacity={TRACE_OPACITY}
+            strokeWidth={TRACE_STROKE_WIDTH}
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          />
+        )}
+
+        {/* Where the descent settles onto the terminal curve: a short bar
+            across the trace. Below this height the vessel is riding the curve;
+            above it, it is still slowing. A bar that sits under the altitude
+            the vessel has left is a vehicle that arrives fast. */}
+        {settlePoint && (
+          <line
+            data-envelope-mark="settle-tick"
+            x1={px(settlePoint.speed) - SETTLE_TICK_HALF_WIDTH}
+            x2={px(settlePoint.speed) + SETTLE_TICK_HALF_WIDTH}
+            y1={py(settlePoint.altitude)}
+            y2={py(settlePoint.altitude)}
+            stroke={dotColor}
+            strokeOpacity={TRACE_OPACITY}
+            strokeWidth={SETTLE_TICK_STROKE_WIDTH}
+            strokeLinecap="round"
+          />
+        )}
 
         {/* The vessel now, a single dot. Its POSITION is the speed/altitude
             reading; its COLOUR is the do-nothing action urgency (see
@@ -569,6 +906,72 @@ export function DescentEnvelope(props: Readonly<DescentEnvelopeProps>) {
       >
         {fmtSpeed(vtGround)}
       </text>
+
+      {/* The settle tick's altitude, beside the bar rather than in a corner:
+          the reading IS the height, so it belongs at the height. It dodges the
+          two corner readouts rather than overprinting them: leftward when the
+          bar sits too far right to fit the label, and clamped to the top of the
+          bottom band the urgency word and the touchdown speed own. A deep
+          settle is exactly the reading worth having, so it must not be the one
+          that gets buried. */}
+      {settlePoint && settleAlt != null && (
+        <text
+          x={
+            px(settlePoint.speed) + SETTLE_TICK_HALF_WIDTH + 3 > SIZE - 58
+              ? px(settlePoint.speed) - SETTLE_TICK_HALF_WIDTH - 3
+              : px(settlePoint.speed) + SETTLE_TICK_HALF_WIDTH + 3
+          }
+          y={Math.min(py(settlePoint.altitude) + 3, SIZE - BOTTOM_READOUT_BAND)}
+          textAnchor={
+            px(settlePoint.speed) + SETTLE_TICK_HALF_WIDTH + 3 > SIZE - 58
+              ? "end"
+              : "start"
+          }
+          fontSize={7}
+          letterSpacing="0.05em"
+          fontFamily="monospace"
+          fill="var(--color-text-muted)"
+          filter={`url(#${shadowId})`}
+        >
+          SETTLES {fmtAlt(settleAlt)}
+        </text>
+      )}
+
+      {/* Names the wash, running up the right edge in the plot's one reliably
+          empty strip. Without it the shaded half-plane is an unexplained tone;
+          with it, it is the boundary the whole plot is built around. */}
+      <text
+        x={SIZE - 4}
+        y={SIZE - 34}
+        transform={`rotate(-90 ${SIZE - 4} ${SIZE - 34})`}
+        fontSize={7}
+        letterSpacing="0.14em"
+        fontFamily="monospace"
+        fill="var(--color-text-muted)"
+        filter={`url(#${shadowId})`}
+      >
+        DECELERATING
+      </text>
     </svg>
+  );
+
+  // The overlay draws in the plot's OWN square user space, not in pixels: an
+  // augment sizes its `<svg>` to this layer and uses the same viewBox, so its
+  // marks land on the plot's marks at whatever scale the tile happens to be.
+  // `pointer-events: none` because the plot is an instrument, not a control,
+  // and an overlay must not become the thing that makes it clickable.
+  return (
+    <div style={{ position: "relative" }}>
+      {plot}
+      <div
+        style={{
+          position: "absolute",
+          inset: 0,
+          pointerEvents: "none",
+        }}
+      >
+        <AugmentSlot name="landing-status.envelope" props={overlayContext} />
+      </div>
+    </div>
   );
 }

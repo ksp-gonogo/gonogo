@@ -137,6 +137,23 @@ export interface ScenePayload {
   config: Record<string, unknown>;
   /** Props handed to `<AugmentSlot>` for an augment scene. */
   slotProps: Record<string, unknown>;
+  /**
+   * A REGISTERED widget id to mount an augment scene inside, instead of the
+   * stand-in `Panel`.
+   *
+   * An overlay augment draws in its host's projection: a map's camera, an SVG
+   * transform, a plot's axes. Mounted in a stand-in host it has nothing to draw
+   * against and produces a blank frame, which is why overlay augments have
+   * never had a render at all. Naming the real host closes that: the host
+   * widget mounts, computes its own geometry, passes it through the real slot,
+   * and the picture is of the augment where it actually lives.
+   *
+   * The host has to be in the bundle, which for a first-party host means the
+   * run supplied it with `--with`. That is an in-repo affordance and not an
+   * author surface: a third-party author cannot import a private package, so a
+   * scene of theirs naming a first-party host has nothing to mount.
+   */
+  host?: string;
   /** Legacy `DataSource` keys, by source id. */
   dataSources: Record<string, Record<string, unknown>>;
   w: number;
@@ -246,6 +263,12 @@ export interface UplinkInventory {
   derivedChannels: string[];
   /** Every declared client id in the bundle, `core` included. Diagnostic. */
   declaredClients: string[];
+  /**
+   * Registered widgets this client does NOT own, the ones a scene may name as
+   * its `_scene.host`. Never part of the generated page: it describes what the
+   * run happened to have in the bundle, not what the Uplink is.
+   */
+  hosts: InventoryWidget[];
 }
 
 /**
@@ -316,6 +339,28 @@ export function readInventory(uplinkId?: string): UplinkInventory {
     );
   }
   const owned = (owner: { id: string } | undefined) => owner?.id === client.id;
+  const widgetInventory = (def: ComponentDefinition): InventoryWidget => ({
+    id: def.id,
+    name: def.name,
+    description: def.description,
+    tags: [...def.tags],
+    channels: [...(def.channels ?? [])],
+    optionalChannels: [...(def.optionalChannels ?? [])],
+    dataRequirements: (def.dataRequirements ?? []).map((r) =>
+      typeof r === "string" ? r : String(r),
+    ),
+    actions: (def.actions ?? []).map((a) => ({
+      id: a.id,
+      label: (a as { label?: string }).label,
+    })),
+    augmentSlots: [...(def.augmentSlots ?? [])],
+    contributionSlots: [...(def.contributionSlots ?? [])],
+    requires: (def.requires ?? []).map((r) => String(r)),
+    replaces: def.replaces,
+    pushable: def.pushable === true,
+    behaviors: (def.behaviors ?? []).map((b) => String(b)),
+    modes: modesFor(def),
+  });
   return {
     id: client.id,
     name: client.name,
@@ -329,28 +374,10 @@ export function readInventory(uplinkId?: string): UplinkInventory {
     declaredClients: declared,
     widgets: getComponents()
       .filter((def) => owned(def.owner))
-      .map((def) => ({
-        id: def.id,
-        name: def.name,
-        description: def.description,
-        tags: [...def.tags],
-        channels: [...(def.channels ?? [])],
-        optionalChannels: [...(def.optionalChannels ?? [])],
-        dataRequirements: (def.dataRequirements ?? []).map((r) =>
-          typeof r === "string" ? r : String(r),
-        ),
-        actions: (def.actions ?? []).map((a) => ({
-          id: a.id,
-          label: (a as { label?: string }).label,
-        })),
-        augmentSlots: [...(def.augmentSlots ?? [])],
-        contributionSlots: [...(def.contributionSlots ?? [])],
-        requires: (def.requires ?? []).map((r) => String(r)),
-        replaces: def.replaces,
-        pushable: def.pushable === true,
-        behaviors: (def.behaviors ?? []).map((b) => String(b)),
-        modes: modesFor(def),
-      })),
+      .map(widgetInventory),
+    hosts: getComponents()
+      .filter((def) => !owned(def.owner))
+      .map(widgetInventory),
     augments: getAugments()
       .filter((def) => owned(def.owner))
       .map((def) => ({
@@ -672,33 +699,62 @@ async function feedInRounds(
   return pending.map((e) => e.topic);
 }
 
+function mountWidget(id: string, scene: ScenePayload): ReactNode {
+  const def = getComponent(id);
+  if (!def) {
+    throw new Error(
+      `render probe: no widget registered under "${id}". ` +
+        `Registered: ${getComponents()
+          .map((c) => c.id)
+          .sort()
+          .join(", ")}`,
+    );
+  }
+  const Widget = def.component;
+  return (
+    <WidgetHost widgetId={def.id} instanceId="probe">
+      <Widget
+        id="probe"
+        config={{ ...(def.defaultConfig ?? {}), ...scene.config }}
+        w={scene.w}
+        h={scene.h}
+        onConfigChange={() => {}}
+      />
+    </WidgetHost>
+  );
+}
+
 function buildTree(scene: ScenePayload): ReactNode {
-  if (scene.target.kind === "widget") {
-    const def = getComponent(scene.target.id);
-    if (!def) {
+  if (scene.target.kind === "widget")
+    return mountWidget(scene.target.id, scene);
+
+  const slot = slotForTarget(scene.target);
+  // The real host, when the scene names one: the augment reaches its slot the
+  // same way it does in the dashboard, so nothing here has to know the slot's
+  // props or hand them over.
+  if (scene.host) {
+    if (!getComponent(scene.host)) {
       throw new Error(
-        `render probe: no widget registered under "${scene.target.id}". ` +
-          `Registered: ${getComponents()
+        `render probe: "_scene.host" names "${scene.host}", which is not a ` +
+          "registered widget in this bundle. A first-party host has to be " +
+          "supplied to the run with --with <module that registers it>; " +
+          `registered widgets are: ${getComponents()
             .map((c) => c.id)
             .sort()
             .join(", ")}`,
       );
     }
-    const Widget = def.component;
-    return (
-      <WidgetHost widgetId={def.id} instanceId="probe">
-        <Widget
-          id="probe"
-          config={{ ...(def.defaultConfig ?? {}), ...scene.config }}
-          w={scene.w}
-          h={scene.h}
-          onConfigChange={() => {}}
-        />
-      </WidgetHost>
-    );
+    if (!slot.startsWith(`${scene.host}.`)) {
+      throw new Error(
+        `render probe: "_scene.host" names "${scene.host}" but this target's ` +
+          `slot is "${slot}", which belongs to "${slot.split(".")[0]}". A ` +
+          "host that does not own the slot would mount and never render the " +
+          "augment, which is a blank picture with no error.",
+      );
+    }
+    return mountWidget(scene.host, scene);
   }
 
-  const slot = slotForTarget(scene.target);
   const hostWidgetId = slot.split(".")[0];
   const Slot = AugmentSlot as unknown as (props: {
     name: string;

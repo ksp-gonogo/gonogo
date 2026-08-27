@@ -38,8 +38,22 @@ async function pinTheClock(page: Page): Promise<void> {
     // the gap the first-party harness's own comment named and left open. Only
     // the NO-ARGUMENT form is the nondeterministic one, so every other overload
     // is forwarded untouched.
-    const PinnedDate = (...args: unknown[]) =>
-      Reflect.construct(RealDate, args.length === 0 ? [fixed] : args);
+    //
+    // A function DECLARATION, not the arrow this used to be: an arrow has no
+    // [[Construct]], so `new Date(x)` threw "Date is not a constructor" and took
+    // the whole page down before a single module ran. Nothing in the page had
+    // constructed a date until a first-party widget was mounted in it, so the
+    // stand-in-host renders never reached the line. A declaration also keeps its
+    // own name without the `__name` helper an anonymous function assigned to a
+    // const picks up, which does not exist in the serialised page context.
+    function PinnedDate(this: unknown, ...args: unknown[]) {
+      if (!new.target) return RealDate();
+      return Reflect.construct(
+        RealDate,
+        args.length === 0 ? [fixed] : args,
+        new.target,
+      );
+    }
     PinnedDate.prototype = RealDate.prototype;
     PinnedDate.now = () => fixed;
     PinnedDate.parse = RealDate.parse;
@@ -71,6 +85,9 @@ export interface RenderOptions {
   /** Keep the numbered PNG frames of a motion scene beside its GIF. */
   frames: boolean;
   uplinkId?: string;
+  /** Extra modules bundled into the page, so a scene naming a first-party host
+   *  has one to mount. See `ScenePayload.host`. */
+  withModules?: readonly string[];
 }
 
 export interface RenderedAsset {
@@ -97,7 +114,7 @@ export async function renderUplink(
   pkg: UplinkPackage,
   opts: RenderOptions,
 ): Promise<RenderResult> {
-  const page = await buildProbePage(pkg);
+  const page = await buildProbePage(pkg, opts.withModules ?? []);
   const browser = await ENGINES[opts.engine].launch();
   const pageErrors: string[] = [];
   const assets: RenderedAsset[] = [];
@@ -221,6 +238,7 @@ function payloadFor(
     emits: scene.emits,
     config: scene.config,
     slotProps: scene.slotProps,
+    host: scene.host,
     dataSources: scene.dataSources,
     w: mode.w,
     h: mode.h,

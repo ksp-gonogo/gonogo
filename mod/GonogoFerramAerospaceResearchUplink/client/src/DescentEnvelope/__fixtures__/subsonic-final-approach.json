@@ -1,0 +1,137 @@
+{
+  "_meta": {
+    "synthetic": true,
+    "notes": "SYNTHETIC. A winged craft on final at 900 m and Mach 0.31, dragged back to 41 percent stall fraction by an approach flown too slow and too nose-high. Subsonic matters to the picture: the transonic drag rise is behind the vehicle, so the plot's projection is trustworthy and its trace is drawn solid rather than dashed. The frayed trailing edge is the whole point of the scene, the number to act on is a shape rather than a readout."
+  },
+  "_scene": {
+    "augment": "aero-descent-envelope",
+    "host": "landing-status",
+    "modes": ["default"],
+    "caption": "Subsonic final approach with the wing departing: a solid trace because the transonic region is behind, and a trailing edge torn open by stall"
+  },
+  "_stream": {
+    "pinnedUt": 1000000,
+    "emits": [
+      {
+        "topic": "aero.available",
+        "payload": true
+      },
+      {
+        "topic": "system.bodies",
+        "payload": {
+          "bodies": [
+            {
+              "name": "Kerbin",
+              "index": 1,
+              "parentIndex": 0,
+              "radius": 600000,
+              "orbit": null
+            }
+          ]
+        }
+      },
+      {
+        "topic": "vessel.identity",
+        "payload": {
+          "vesselId": "far-approach",
+          "name": "Spaceplane",
+          "vesselType": 1,
+          "situation": 6,
+          "parentBodyIndex": 1,
+          "launchUt": null
+        }
+      },
+      {
+        "topic": "vessel.orbit",
+        "payload": {
+          "referenceBodyIndex": 1,
+          "sma": 600900,
+          "ecc": 0.001,
+          "inc": 0,
+          "lan": 0,
+          "argPe": 0,
+          "meanAnomalyAtEpoch": 0,
+          "epoch": 1000000,
+          "mu": 3531600000000,
+          "horizon": { "kind": 1, "trajectoryKind": 1 }
+        }
+      },
+      {
+        "topic": "vessel.flight",
+        "payload": {
+          "latitude": -0.05,
+          "longitude": -74.6,
+          "altitudeAsl": 900,
+          "altitudeTerrain": 900,
+          "verticalSpeed": -14,
+          "surfaceSpeed": 105,
+          "orbitalSpeed": 105,
+          "gForce": 1.05,
+          "dynamicPressureKPa": 6.3,
+          "mach": 0.31,
+          "atmDensity": 1.15,
+          "atmosphericTemperature": 282.15,
+          "externalTemperature": 288
+        }
+      },
+      {
+        "topic": "vessel.surface",
+        "payload": {
+          "biome": "Shores",
+          "landedAt": null,
+          "heightFromTerrain": 900
+        }
+      },
+      {
+        "topic": "vessel.propulsion",
+        "payload": {
+          "totalMass": 22,
+          "dryMass": 20,
+          "currentThrust": 0,
+          "availableThrust": 180
+        }
+      },
+      {
+        "topic": "dv.summary",
+        "payload": { "totalDvActual": 340, "totalDvVac": 400 }
+      },
+      {
+        "topic": "comms.delay",
+        "payload": { "source": 1, "oneWaySeconds": 0.2 }
+      },
+      {
+        "topic": "vessel.landing",
+        "payload": {
+          "outcome": "atmosphere-modelled",
+          "sampleSource": null,
+          "terminalVelocity": 88,
+          "projectedTouchdownSpeed": 84,
+          "atmosphericTimeToImpact": 62,
+          "descentRegime": "decelerating",
+          "dragToWeightRatio": 1.4,
+          "parachuteState": "none"
+        }
+      },
+      {
+        "topic": "aero.state",
+        "payload": {
+          "angleOfAttack": 14.8,
+          "sideslip": 1.4,
+          "stallFraction": 0.41,
+          "liftCoefficient": 1.32,
+          "dragCoefficient": 0.31,
+          "liftToDragRatio": 4.26,
+          "referenceArea": 48,
+          "liftForce": 199.4,
+          "dragForce": 46.8,
+          "indicatedAirspeed": 112,
+          "equivalentAirspeed": 110,
+          "terminalVelocity": 62,
+          "ballisticCoefficient": 210,
+          "specificExcessPower": -22.1,
+          "aeroModelValid": true
+        }
+      }
+    ]
+  }
+}

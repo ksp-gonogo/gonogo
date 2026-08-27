@@ -354,8 +354,10 @@ describe("DescentEnvelope", () => {
     // always paint on top (SVG paints in document order).
     const clippedGroup = container.querySelector("g[clip-path]");
     expect(clippedGroup?.querySelector("text")).toBeNull();
-    // altitude, urgency word, TOUCHDOWN label, touchdown value.
-    expect(container.querySelectorAll("svg > text")).toHaveLength(4);
+    // Altitude, urgency word, TOUCHDOWN label, touchdown value, and the word
+    // naming the decelerating half-plane. No settle tick here: this fixture
+    // carries no surface gravity, so there is no projected trace to settle.
+    expect(container.querySelectorAll("svg > text")).toHaveLength(5);
   });
 
   it("makes the atmosphere haze actually visible at the ground, not near-invisible", () => {
@@ -521,9 +523,13 @@ describe("DescentEnvelope", () => {
     const { container } = render(
       <DescentEnvelope {...dragBase} dragDisplay="arrow" dragToWeight={1.2} />,
     );
-    // No filled polygon anywhere in the SVG (the old filled-triangle mark
-    // is gone), and the chevron itself is explicitly unfilled.
-    expect(container.querySelectorAll("svg polygon")).toHaveLength(0);
+    // The old filled-triangle mark is gone: the only filled polygon left is the
+    // decelerating half-plane's wash, which is a REGION rather than a mark, and
+    // the chevron itself is explicitly unfilled.
+    const polygons = Array.from(container.querySelectorAll("svg polygon"));
+    expect(polygons.map((p) => p.getAttribute("data-envelope-region"))).toEqual(
+      ["decelerating"],
+    );
     const head = arrowHead(container) as SVGPolylineElement;
     expect(head.getAttribute("fill")).toBe("none");
   });

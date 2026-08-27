@@ -29,6 +29,14 @@ interface RawScene {
   widget?: string;
   augment?: string;
   contribution?: string;
+  /**
+   * A registered widget to mount this augment INSIDE, rather than the stand-in
+   * `Panel`. The only way an overlay augment gets an honest picture: it draws
+   * in its host's projection, so with no host there is nothing to draw against.
+   * The scene is then sized and fed as the host, since that is what is on
+   * screen.
+   */
+  host?: string;
   caption?: string;
   config?: Record<string, unknown>;
   slotProps?: Record<string, unknown>;
@@ -59,6 +67,7 @@ export interface Scene {
   file: string;
   name: string;
   target: SceneTarget;
+  host?: string;
   caption?: string;
   expectsEmpty?: string;
   pinnedUt: number;
@@ -142,10 +151,18 @@ function oneScene(
     dataSources[scene.dataSourceId ?? "data"] = legacy;
   }
 
+  if (scene.host !== undefined && kind !== "augment") {
+    throw new Error(
+      `${where}: "_scene.host" is only meaningful for an augment scene; this ` +
+        `one names a ${kind}.`,
+    );
+  }
+
   return {
     file,
     name: basename(file, ".json"),
     target,
+    host: scene.host,
     caption: scene.caption,
     expectsEmpty: scene.expectsEmpty,
     pinnedUt,
@@ -153,7 +170,7 @@ function oneScene(
     config: scene.config ?? {},
     slotProps: scene.slotProps ?? {},
     dataSources,
-    carriedChannels: carriedFor(where, target, inventory),
+    carriedChannels: carriedFor(where, target, inventory, scene.host),
     modes: modesFor(where, scene, target, inventory),
     steps: scene.steps,
     motion: {
@@ -175,8 +192,22 @@ function carriedFor(
   where: string,
   target: SceneTarget,
   inventory: UplinkInventory,
+  host?: string,
 ): string[] {
   const carried = new Set<string>();
+  // A hosted augment scene is a picture of the HOST with the augment on it, so
+  // the host's own topics have to reach it too or the augment is drawn over a
+  // widget with nothing in it.
+  if (host) {
+    const def = hostWidget(where, host, inventory);
+    for (const topic of [
+      ...def.channels,
+      ...def.optionalChannels,
+      ...def.dataRequirements,
+    ]) {
+      carried.add(topic);
+    }
+  }
   const addAvailability = () => {
     for (const augment of inventory.augments) {
       if (augment.requires) carried.add(`${augment.requires}.available`);
@@ -213,6 +244,35 @@ function carriedFor(
   return [...carried].sort();
 }
 
+/**
+ * The registration of a widget this Uplink does not own, named as a scene's
+ * host. Absent means it is not in the bundle at all, which for a first-party
+ * host means the run did not supply it with `--with`.
+ */
+function hostWidget(
+  where: string,
+  host: string,
+  inventory: UplinkInventory,
+): (typeof inventory.hosts)[number] {
+  const found =
+    inventory.hosts.find((w) => w.id === host) ??
+    inventory.widgets.find((w) => w.id === host);
+  if (!found) {
+    throw new Error(
+      `${where}: "_scene.host" names "${host}", which no widget in this ` +
+        "bundle registers. A first-party host has to be supplied to the run " +
+        "with --with <module that registers it>. Widgets in the bundle: " +
+        `${
+          [...inventory.hosts, ...inventory.widgets]
+            .map((w) => w.id)
+            .sort()
+            .join(", ") || "(none)"
+        }.`,
+    );
+  }
+  return found;
+}
+
 function unknownTarget(
   where: string,
   target: SceneTarget,
@@ -244,6 +304,10 @@ function modesFor(
     const def = inventory.widgets.find((w) => w.id === target.id);
     if (!def) throw unknownTarget(where, target, inventory);
     all = def.modes;
+  } else if (scene.host) {
+    // The host's own sizes, because the host is what is on screen. A stand-in
+    // tile would render the real widget at a shape nobody ever sees it in.
+    all = hostWidget(where, scene.host, inventory).modes;
   } else {
     const size = scene.size ?? STANDIN_SIZE;
     all = [{ name: "default", ...size, ...gridToPixels(size.w, size.h) }];

@@ -49,6 +49,17 @@ import { TouchdownReticle } from "./TouchdownReticle";
 // doesn't change the registration's shape.
 type LandingStatusConfig = Record<string, never>;
 
+// Mounted by `Panel`'s universal segments rather than by this widget. The ids
+// stay declared so a binder's component types against the propless contract
+// rather than the loose fallback. `landing-status.envelope` is declared beside
+// its own props type in `DescentEnvelope.tsx`, which is where it is mounted.
+declare module "@ksp-gonogo/core" {
+  interface SlotRegistry {
+    "landing-status.sections": Record<string, never>;
+    "landing-status.actions": Record<string, never>;
+  }
+}
+
 // ── Readouts ─────────────────────────────────────────────────────────────────
 //
 // Three of them, and each is `Unit` with this widget's precision on it, never
@@ -702,6 +713,12 @@ function LandingStatusComponent({
         atmosphereColor={body?.atmosphereColor ?? null}
         dragToWeight={landing?.dragToWeightRatio?.magnitude ?? null}
         dragDisplay="arrow"
+        surfaceGravity={
+          body?.gm != null && body.radius > 0
+            ? body.gm / (body.radius * body.radius)
+            : null
+        }
+        mach={flight?.mach?.magnitude ?? null}
       />
     ) : null;
 
@@ -1242,6 +1259,9 @@ registerComponent<LandingStatusConfig>({
     "comms.delay",
   ],
   defaultConfig: {},
+  // The descent envelope's overlay seam. See the `SlotRegistry` merge above for
+  // what an augment bound to it is handed.
+  augmentSlots: ["landing-status.envelope"],
   pushable: true,
   requires: ["flight"],
 });
