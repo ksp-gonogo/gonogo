@@ -158,6 +158,64 @@ namespace GonogoRp1Uplink
         /// <summary>The member as a double, or null when it is absent or not a number.</summary>
         public static double? ReadDouble(object? target, string name) => ToDouble(Member(target, name));
 
+        /// <summary>
+        /// Writes a numeric member, converting to whatever width RP-1 declared it
+        /// at. False when the member is absent, is not a number, or will not take a
+        /// value; never throws.
+        /// </summary>
+        /// <remarks>
+        /// The only write in an otherwise read-only file, and it earns its place
+        /// rather than opening a door: <see cref="Rp1DerivedCurrencyWithholder"/>
+        /// has to put RP-1's confidence balance back after RP-1 has derived it from
+        /// a science credit the currency-delay subsystem is withholding, and both
+        /// halves of that balance (<c>confidence</c> and <c>confidenceEarned</c>)
+        /// are private doubles with no public setter that can lower them. Reading
+        /// them and putting the same numbers back is the narrowest possible write,
+        /// and it is still a write, so it lives beside the reads where the same
+        /// null-safety and provenance rules apply to it.
+        ///
+        /// <para>A telemetry READ must never write to the player's save (see
+        /// <see cref="Rp1ScReflection"/>'s header). This is not one: it is the
+        /// delay model's own correction, and the value it writes is a value RP-1
+        /// itself held one event earlier.</para>
+        /// </remarks>
+        public static bool WriteDouble(object? target, string name, double value)
+        {
+            if (target == null)
+            {
+                return false;
+            }
+            var type = target.GetType();
+            var key = type.FullName + "." + name;
+            MemberInfo? member;
+            lock (Members)
+            {
+                if (!Members.TryGetValue(key, out member))
+                {
+                    member = Resolve(type, name);
+                    Members[key] = member;
+                }
+            }
+            try
+            {
+                switch (member)
+                {
+                    case FieldInfo fi:
+                        fi.SetValue(target, Convert.ChangeType(value, fi.FieldType, CultureInfo.InvariantCulture));
+                        return true;
+                    case PropertyInfo pi when pi.CanWrite:
+                        pi.SetValue(target, Convert.ChangeType(value, pi.PropertyType, CultureInfo.InvariantCulture));
+                        return true;
+                    default:
+                        return false;
+                }
+            }
+            catch (Exception)
+            {
+                return false;
+            }
+        }
+
         /// <summary>The member as a bool, or null when it is absent or not one.</summary>
         public static bool? ReadBool(object? target, string name) => Member(target, name) is bool b ? b : (bool?)null;
 

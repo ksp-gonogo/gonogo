@@ -486,11 +486,38 @@ namespace RP0
         public List<LCSpaceCenter> KSCs = new List<LCSpaceCenter>();
         public List<ResearchProject> TechList = new List<ResearchProject>();
         public Dictionary<LaunchComplex, LCEfficiency> LCToEfficiency = new Dictionary<LaunchComplex, LCEfficiency>();
+
+        /// <summary>
+        /// Lifetime science points, the input RP-1 prices a confidence award
+        /// from (<c>scienceToConfidence.Evaluate(Math.Max(0, SciPointsTotal))</c>).
+        /// A public double field on the real type, and moved at earn time by
+        /// <c>KCTUtilities.ProcessSciPointTotalChange</c> off an
+        /// <c>OnCurrencyModified</c> handler with no reason filter at all, which
+        /// makes it the second quantity derived from a neutralised science change.
+        /// </summary>
+        public double SciPointsTotal;
     }
 
+    /// <summary>
+    /// RP-1's confidence balance. The two fields are private doubles on the real
+    /// type, both <c>[KSPField(isPersistant = true)]</c>, and there is no public
+    /// way to lower <c>confidenceEarned</c> at all: <c>AddConfidence</c> ratchets
+    /// it on a positive delta only and <c>SetConfidence</c> does not touch it.
+    /// That is why the withholder writes both by reflection.
+    /// </summary>
     public class Confidence
     {
         public static Confidence? Instance { get; set; }
+
+        /// <summary>
+        /// The real type's push channel to its own UI. Static, and its ONLY
+        /// subscriber in the shipped assembly is <c>ConfidenceWidget</c>, whose
+        /// handler assigns the number straight into a text label. So the label
+        /// changes on this event and on nothing else, and a balance put back
+        /// without firing it leaves the leaked figure on the operator's screen.
+        /// </summary>
+        public static EventData<double, TransactionReasons> OnConfidenceChanged =
+            new EventData<double, TransactionReasons>("OnConfidenceChanged");
 
         private double confidence;
         private double confidenceEarned;
@@ -499,6 +526,44 @@ namespace RP0
         {
             confidence = current;
             confidenceEarned = earned;
+        }
+
+        public double Current => confidence;
+
+        public double Earned => confidenceEarned;
+
+        /// <summary>
+        /// <c>OnCurrenciesModified</c>'s arithmetic, verbatim from the shipped
+        /// assembly: bank the award, fire the widget's event when the number
+        /// moved, and ratchet the lifetime total on an increase only. This is the
+        /// step that happens BEFORE the interceptor's neutralise gets a look in,
+        /// which is the whole defect.
+        /// </summary>
+        public void AwardForScience(double award)
+        {
+            var before = confidence;
+            confidence += award;
+            if (confidence < 0.0)
+            {
+                confidence = 0.0;
+            }
+            if (confidence == before)
+            {
+                return;
+            }
+            var delta = confidence - before;
+            OnConfidenceChanged.Fire(confidence, TransactionReasons.None);
+            if (delta > 0.0)
+            {
+                confidenceEarned += delta;
+            }
+        }
+
+        /// <summary>A career spend, so a test can put a real withdrawal between an observation and a withhold.</summary>
+        public void Spend(double amount)
+        {
+            confidence -= amount;
+            OnConfidenceChanged.Fire(confidence, TransactionReasons.None);
         }
     }
 
@@ -654,6 +719,49 @@ namespace UnityEngine
             this.x = x;
             this.y = y;
             this.z = z;
+        }
+    }
+}
+
+// KSP's own event primitive and transaction-reason enum, global-namespaced
+// because that is where KSP declares them, and present for one reason: RP-1
+// pushes its confidence balance to its own UI through
+// Confidence.OnConfidenceChanged, so putting a balance back without firing that
+// event leaves the leaked figure on screen. The withholder reaches Fire by
+// reflection off whatever object the static field holds, so a stand-in with the
+// same member shape exercises the real call path. This assembly references no
+// KSP assembly, so there is nothing for these to collide with.
+public enum TransactionReasons
+{
+    None = 0,
+    ScienceTransmission = 1024,
+    VesselRecovery = 32,
+}
+
+public class EventData<T1, T2>
+{
+    private readonly List<Action<T1, T2>> _handlers = new List<Action<T1, T2>>();
+
+    public EventData(string name)
+    {
+        Name = name;
+    }
+
+    public string Name { get; }
+
+    /// <summary>Every (value, reason) pair this event has carried, so a test can pin that the UI was told and told once.</summary>
+    public List<(T1 Value, T2 Reason)> Fired { get; } = new List<(T1, T2)>();
+
+    public void Add(Action<T1, T2> handler) => _handlers.Add(handler);
+
+    public void Remove(Action<T1, T2> handler) => _handlers.Remove(handler);
+
+    public void Fire(T1 value, T2 reason)
+    {
+        Fired.Add((value, reason));
+        foreach (var handler in _handlers.ToArray())
+        {
+            handler(value, reason);
         }
     }
 }

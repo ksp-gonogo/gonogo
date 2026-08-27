@@ -150,6 +150,17 @@ namespace GonogoRp1Uplink
         /// <summary>Set when the crew-standing provider registration threw; see <see cref="_economyRegistrationError"/>.</summary>
         private string? _crewStandingRegistrationError;
 
+        /// <summary>
+        /// RP-1's arm of the derived-currency capability: keeps confidence (and the
+        /// science-points total its price is read off) withheld for as long as the
+        /// science credit they were derived from is. Held as a field rather than
+        /// built in the factory closure because its failure counters are read back
+        /// out on <see cref="Health"/>.
+        /// </summary>
+        private readonly Rp1DerivedCurrencyWithholder _confidenceWithhold = new Rp1DerivedCurrencyWithholder();
+
+        private string? _derivedCurrencyRegistrationError;
+
         private IChannelPublisher? _centres;
         private IChannelPublisher? _complexes;
         private IChannelPublisher? _buildQueue;
@@ -406,6 +417,35 @@ namespace GonogoRp1Uplink
                 _crewStandingRegistrationError = ex.Message;
             }
 
+            // Confidence is DERIVED from a science credit, and the currency-delay
+            // subsystem withholds the credit by writing the balance back, which
+            // fires no currency event, so RP-1 is never told to revisit the award it
+            // has already banked. Without this arm the confidence moves at earn
+            // while the science waits out its light-time, and an operator watching a
+            // currency that gates real career decisions knows the science arrived
+            // before the model says they can (rig run conf-leak-1, 2026-08-27).
+            //
+            // Registering IS the gate, same discipline as the three providers above,
+            // and fail-softed separately for the same reason: an arm that fails to
+            // register must not cost this Uplink its read surface, and a read surface
+            // that fails must not silently reopen the leak.
+            try
+            {
+                if (_confidenceWithhold.Available)
+                {
+                    host.Kernel.RegisterProvider(new ProviderRegistration
+                    {
+                        Capability = DerivedCurrencyCapability.CapabilityId,
+                        Id = "rp1",
+                        Factory = _ => _confidenceWithhold,
+                    });
+                }
+            }
+            catch (Exception ex)
+            {
+                _derivedCurrencyRegistrationError = ex.Message;
+            }
+
             _centres = host.Publisher(CentresTopic);
             _complexes = host.Publisher(ComplexesTopic);
             _buildQueue = host.Publisher(BuildQueueTopic);
@@ -577,6 +617,17 @@ namespace GonogoRp1Uplink
                     _economyRegistrationError != null
                         ? "registration failed: " + _economyRegistrationError
                         : _economy.IsAvailable ? "registered" : "maintenance types not found"),
+                new UplinkHealthFact(
+                    "confidence withholding",
+                    _derivedCurrencyRegistrationError != null
+                        ? "not registered: " + _derivedCurrencyRegistrationError
+                        : !_confidenceWithhold.Available
+                            ? "Confidence type not found"
+                            : _confidenceWithhold.WithholdFailures == 0
+                                ? "registered"
+                                : _confidenceWithhold.WithholdFailures
+                                  + " delayed credit(s) left their derived confidence credited: "
+                                  + _confidenceWithhold.LastWithholdFailure),
                 new UplinkHealthFact(
                     "launch rules",
                     _launchGateRegistrationError != null
