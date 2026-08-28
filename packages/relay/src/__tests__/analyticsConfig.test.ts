@@ -81,9 +81,9 @@ describe("analytics-config SSE stream (real listen)", () => {
 
   // Real Fastify listen + SSE fetch + app.close(): fast locally, but on a
   // slow/loaded CI runner the round-trips and the server close can crawl past
-  // vitest's 5s test / 10s hook defaults. Give both generous headroom (the
-  // cleanup itself is correct; see the disconnect test below) so this doesn't
-  // flake on runner-speed roulette.
+  // vitest's 5s test / 10s hook defaults, so both carry headroom. Headroom only:
+  // the one thing this actually did flake on was a race, and it is waited for
+  // rather than slept through below.
   afterEach(async () => {
     await app?.close();
     app = null;
@@ -126,6 +126,16 @@ describe("analytics-config SSE stream (real listen)", () => {
     return out;
   }
 
+  /** Poll `predicate` until it holds, so a wait is on the event and not a clock. */
+  async function until(predicate: () => boolean, what: string): Promise<void> {
+    const deadline = Date.now() + 10_000;
+    while (!predicate()) {
+      if (Date.now() > deadline)
+        throw new Error(`timed out waiting for ${what}`);
+      await new Promise((r) => setTimeout(r, 10));
+    }
+  }
+
   it("pushes the current value on subscribe and on every change", async () => {
     app = Fastify();
     const controller = registerAnalyticsConfigRoutes(app);
@@ -140,8 +150,12 @@ describe("analytics-config SSE stream (real listen)", () => {
       ac.signal,
     );
 
-    // Let the subscribe land (first frame = current value), then flip.
-    await new Promise((r) => setTimeout(r, 50));
+    // Flip only once the subscriber is actually on the controller. A fixed
+    // 50ms pause raced the connection: set before the subscribe landed, the
+    // second frame is never sent, `readFrames` waits for a frame that will not
+    // come, and the open request takes `app.close()` down with it, so the test
+    // and its cleanup hook both time out together.
+    await until(() => controller.subscriberCount() === 1, "the SSE subscriber");
     controller.set(true);
 
     const frames = await framesPromise;
