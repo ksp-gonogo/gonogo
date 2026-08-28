@@ -1,4 +1,5 @@
 import { defineConfig } from "vitest/config";
+import { scanTestFiles } from "./scan-tests.mjs";
 
 export default defineConfig({
   test: {
@@ -12,7 +13,11 @@ export default defineConfig({
     // process spawn to fail.
     pool: "threads",
     setupFiles: ["./src/test/setup.ts"],
-    exclude: ["dist/**", "node_modules/**"],
+    // The cross-package scans run as their OWN task (`test:scans`). They are the
+    // only reason core's turbo cache key covered the whole repo, and keying the
+    // WHOLE suite that way re-ran 134 files (85.7s) on any change anywhere, which
+    // is also what grew a 17 GB turbo cache. Derived, never listed: scan-tests.mjs.
+    exclude: ["dist/**", "node_modules/**", ...scanTestFiles()],
     // The styleguide.*.test.ts guards each walk the whole source tree
     // synchronously (an FS read plus regex over every ts/tsx/css file). They
     // pass in a few seconds when run alone, but the parallel pre-push suite's

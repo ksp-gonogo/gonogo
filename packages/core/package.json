@@ -21,7 +21,8 @@
     "dev": "tsc -p tsconfig.build.json --watch",
     "test": "vitest run",
     "test:coverage": "vitest run --coverage",
-    "typecheck": "tsc -p tsconfig.json && tsc -p tsconfig.test-d.json"
+    "typecheck": "tsc -p tsconfig.json && tsc -p tsconfig.test-d.json",
+    "test:scans": "vitest run --config vitest.scans.config.ts"
   },
   "dependencies": {
     "@ksp-gonogo/logger": "workspace:*",

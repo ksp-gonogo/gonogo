@@ -15,10 +15,12 @@
 #
 # What runs locally:
 #   - biome (format + lint)
-#   - `turbo run test`, cached + affected-only. NOT --force: core#test now
-#     keys its cache on the whole workspace src (packages/core/turbo.json), so
-#     the cross-package design-system hex-scan re-runs on any src change without
-#     forcing every package fresh. CI=true makes vitest treat snapshots as
+#   - `turbo run test test:scans`, cached + affected-only. NOT --force.
+#     core's cross-package ratchets live in `test:scans`, which alone keys its
+#     cache on the whole repo, so they re-run on any change while core's other
+#     ~107 test files cache on core's own sources. Keying the WHOLE core suite
+#     that way re-ran 134 files (85.7s) on every push whatever was touched, and
+#     grew a 17 GB turbo cache doing it. CI=true makes vitest treat snapshots as
 #     read-only (a mismatch fails instead of being silently rewritten).
 #   - Playwright e2e ONLY for changed specs, chromium only. The full matrix
 #     (chromium/firefox/webkit) + visual gate run in CI.
@@ -36,7 +38,11 @@ fi
 # suites starting at once each spawn a worker pool, oversubscribe the CPU, and
 # trip vitest's per-test timeout even though each is green run alone. With
 # caching (no --force) only the affected packages run, so serial is still fast.
-if ! CI=true pnpm exec turbo run test --concurrency=1; then
+# `test:scans` is core's cross-package ratchet family, split from `test` so it
+# alone carries a cache key over the whole repo. Both run here: the split is
+# about CACHING, not coverage, and dropping the scans locally would put the
+# em-dash / raw-hex / boundary guards back to CI-only.
+if ! CI=true pnpm exec turbo run test test:scans --concurrency=1; then
   echo "✖ pre-push: tests failed (this is what CI would have caught)."
   exit 1
 fi

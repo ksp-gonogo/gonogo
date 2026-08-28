@@ -18,6 +18,12 @@
     "test": {
       "dependsOn": ["^build"]
     },
+    // core's cross-package ratchets, split from `test` so they alone carry a
+    // cache key over the whole repo. See packages/core/turbo.json.
+    "test:scans": {
+      "dependsOn": ["^build"],
+      "outputs": []
+    },
     "lint": {
       "dependsOn": ["^build"],
       "outputs": []
