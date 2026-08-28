@@ -256,11 +256,11 @@ async function main(): Promise<void> {
           .__minsizeCanaryId,
     );
 
-    // ---- the gate proves it can still see -------------------------------
+    // The planted canary must fail, or the sweep below proves nothing.
     const canary = all.find((w) => w.id === canaryId);
     if (!canary?.minSize) {
       throw new Error(
-        "minsize-gate: BLIND — the planted canary widget did not register, so " +
+        "minsize-gate: BLIND. The planted canary widget did not register, so " +
           "nothing proves the audit still works. Fix minsize-probe.tsx rather " +
           "than skipping this.",
       );
@@ -275,7 +275,7 @@ async function main(): Promise<void> {
     const WANTED = "escapes-tile, text-cut-off, title-clipped";
     if (canaryKinds !== WANTED) {
       throw new Error(
-        `minsize-gate: BLIND — the planted canary is broken in three ways and ` +
+        `minsize-gate: BLIND. The planted canary is broken in three ways and ` +
           `the audit reported "${canaryKinds || "(nothing)"}" instead of ` +
           `"${WANTED}". A check that cannot see a violation it planted itself ` +
           `reports zero, and zero reads as success. No result from this run is ` +
@@ -283,7 +283,6 @@ async function main(): Promise<void> {
       );
     }
 
-    // ---- the real sweep --------------------------------------------------
     const subjects = all
       .filter((w) => w.id !== canaryId)
       .filter((w) => (args.widget ? w.id === args.widget : true))
