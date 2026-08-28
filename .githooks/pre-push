@@ -29,10 +29,21 @@
 # Bypass the whole hook:      git push --no-verify
 echo "pre-push: lint + affected test gate (CI runs the full matrix)…"
 
-if ! pnpm exec biome check .; then
+# Output is captured and only shown on FAILURE. A successful run of this hook
+# printed 5178 lines, so everyone piped it to `tail` to read the verdict, and a
+# pipe replaces the push's own exit status with the pipe's. Four separate silent
+# non-pushes came from that on 2026-08-28 alone: the hook reported "all checks
+# passed", the command exited 0, and nothing reached the remote. Quiet on
+# success is what removes the reason to pipe.
+GONOGO_HOOK_LOG="$(mktemp -t gonogo-prepush)"
+trap 'rm -f "$GONOGO_HOOK_LOG"' EXIT
+
+if ! pnpm exec biome check . > "$GONOGO_HOOK_LOG" 2>&1; then
+  cat "$GONOGO_HOOK_LOG"
   echo "✖ pre-push: biome found issues, run 'pnpm lint' to auto-fix, then re-push."
   exit 1
 fi
+echo "pre-push: lint clean."
 
 # --concurrency=1 keeps the run reliable on a loaded machine: several jsdom
 # suites starting at once each spawn a worker pool, oversubscribe the CPU, and
@@ -42,10 +53,12 @@ fi
 # alone carries a cache key over the whole repo. Both run here: the split is
 # about CACHING, not coverage, and dropping the scans locally would put the
 # em-dash / raw-hex / boundary guards back to CI-only.
-if ! CI=true pnpm exec turbo run test test:scans --concurrency=1; then
+if ! CI=true pnpm exec turbo run test test:scans --concurrency=1 > "$GONOGO_HOOK_LOG" 2>&1; then
+  cat "$GONOGO_HOOK_LOG"
   echo "✖ pre-push: tests failed (this is what CI would have caught)."
   exit 1
 fi
+echo "pre-push: tests green ($(grep -cE "^ *Tasks:" "$GONOGO_HOOK_LOG" >/dev/null 2>&1 && grep -E "^ *Tasks:" "$GONOGO_HOOK_LOG" | tail -1 | tr -s " " || echo "turbo run complete"))."
 
 # E2E: only the specs affected by this push, on chromium. CI runs the full
 # cross-browser matrix as the gate of record. Playwright's --only-changed
