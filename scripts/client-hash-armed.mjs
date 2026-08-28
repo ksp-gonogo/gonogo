@@ -71,6 +71,24 @@ const UNARMED_DEBT = new Set([
   "GonogoPrincipiaUplink",
   "GonogoRealAntennasUplink",
   "GonogoRp1Uplink",
+  /*
+   * Added 2026-08-28 with the Uplink, which is what this list says never to do,
+   * so the reason has to stand on its own.
+   *
+   * The hash vouches for a bundle a consumer FETCHES, and this Uplink ships no
+   * such bundle: like the seven bundled Uplinks above it, its client reaches the
+   * app as a static import in `main.tsx`, so the loader's three-way check has no
+   * fetched bytes to be the third witness over. Baking a hash now would mean
+   * hashing something that is not the artifact anyone loads, and a wrong hash is
+   * worse than an absent one: it makes the loader reject the real bundle.
+   *
+   * The bake is a RELEASE step by construction (see mod/scripts/bake-client-hash.mjs:
+   * the bundle must exist and be hashed before the DLL compiles), and no workflow
+   * in this repo runs it, which is why all ten entries here are unarmed rather
+   * than eight. The entry clears when this Uplink is distributed as a fetched
+   * bundle and the release path bakes the hash, not before.
+   */
+  "GonogoRealFuelsUplink",
 ]);
 
 /**

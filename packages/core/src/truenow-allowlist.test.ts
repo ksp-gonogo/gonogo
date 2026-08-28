@@ -183,6 +183,11 @@ const ALLOWED_TRUENOW: Record<string, number> = {
   // sibling avionics.status is the per-vessel controllable-mass reading and is
   // correctly Delayed.) 1 explicit declaration.
   "mod/GonogoAvionicsUplink/AvionicsUplink.cs": 1,
+  // realfuels.available: whether the RealFuels assembly is INSTALLED, the same
+  // install-fact class as avionics.available above. (Its two siblings,
+  // realfuels.engines and realfuels.boiloff, are per-vessel readings and are
+  // correctly Delayed.) 1 explicit declaration.
+  "mod/GonogoRealFuelsUplink/RealFuelsUplink.cs": 1,
   // aero.available: whether a full-fidelity aerodynamics model is INSTALLED and
   // readable, a fact about the player's install the command centre knows
   // independent of any vessel's comms link, same class as avionics.available

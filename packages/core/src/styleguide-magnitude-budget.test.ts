@@ -57,6 +57,16 @@ const MAGNITUDE_BUDGET: Record<string, number> = {
   // legs to find the bottleneck. A comparison across a slot boundary cannot
   // carry a Value, because the entry crosses the published contract as JSON.
   "mod/GonogoRealAntennasUplink/client/src/CommSignal/hopRates.ts": 1,
+  /*
+   * Three THRESHOLD reads, none of them arithmetic on a quantity. RealFuels'
+   * ullage bands are its own cascade of six fixed cut-offs, so the section
+   * compares the stability against literals rather than deriving anything; one
+   * ignition left rather than several picks the badge severity; and a tank
+   * count decides whether the boiloff row exists at all and whether its label
+   * is singular. There is no `.minus`/`.in` form of "which of six bands is this
+   * in", and the two counts are cardinalities rather than measurements.
+   */
+  "mod/GonogoRealFuelsUplink/client/src/EngineRealism/index.tsx": 3,
   "mod/GonogoKosUplink/client/src/KosTerminal/index.tsx": 1,
   "mod/sitrep-sdk/src/command-delay.ts": 5,
   // 1, in `frameVector`, and this file exists so that number stays 1. The frame

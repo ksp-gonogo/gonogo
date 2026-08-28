@@ -1,0 +1,128 @@
+{
+  "_meta": {
+    "synthetic": true,
+    "notes": "SYNTHETIC. The other end of the ignition budget. A hypergolic pressure-fed service engine relights without limit, which RealFuels stores as the sentinel -1 rather than as a large count, and the section says UNLIMITED rather than showing the raw number (a '-1 LEFT' readout would be the exact failure the derived flags exist to prevent). It is also NOT SUBJECT to ullage: hypergolics settle themselves, so there is no stability to report and the row says so. A settled reading here would be a claim the Uplink cannot support, and it would look identical to a good one."
+  },
+  "_scene": {
+    "augment": "realfuels-fuel-status-section",
+    "host": "fuel-status",
+    "caption": "A hypergolic service engine: relights without limit and is not subject to ullage, so neither reading is a number",
+    "modes": ["default"],
+    "paints": ["Ignition & ullage", "UNLIMITED", "not subject"]
+  },
+  "_stream": {
+    "pinnedUt": 1000000,
+    "emits": [
+      {
+        "topic": "vessel.structure",
+        "payload": {
+          "currentStage": 1
+        }
+      },
+      {
+        "topic": "dv.summary",
+        "payload": {
+          "stageCount": 2,
+          "totalDvVac": 3120.0,
+          "totalDvAsl": 2640.0,
+          "totalDvActual": 2640.0,
+          "totalBurnTime": 411.0
+        }
+      },
+      {
+        "topic": "dv.stages",
+        "payload": [
+          {
+            "stage": 1,
+            "dryMass": 3.9,
+            "fuelMass": 21.4,
+            "startMass": 25.3,
+            "endMass": 3.9,
+            "burnTime": 155.0,
+            "dvVac": 1980.0,
+            "dvAsl": 1720.0,
+            "dvActual": 1720.0,
+            "twrVac": 1.9,
+            "twrAsl": 1.6,
+            "twrActual": 1.6,
+            "thrustVac": 471.0,
+            "thrustAsl": 402.0,
+            "thrustActual": 402.0
+          },
+          {
+            "stage": 0,
+            "dryMass": 1.1,
+            "fuelMass": 4.6,
+            "startMass": 5.7,
+            "endMass": 1.1,
+            "burnTime": 256.0,
+            "dvVac": 1140.0,
+            "dvAsl": 920.0,
+            "dvActual": 920.0,
+            "twrVac": 0.7,
+            "twrAsl": 0.6,
+            "twrActual": 0.6,
+            "thrustVac": 39.0,
+            "thrustAsl": 33.0,
+            "thrustActual": 33.0
+          }
+        ]
+      },
+      {
+        "topic": "vessel.resources",
+        "payload": {
+          "resources": {
+            "Kerosene": {
+              "current": 9800.0,
+              "max": 12400.0,
+              "active": true
+            },
+            "LqdOxygen": {
+              "current": 15200.0,
+              "max": 19800.0,
+              "active": true
+            },
+            "ElectricCharge": {
+              "current": 340.0,
+              "max": 400.0,
+              "active": true
+            }
+          }
+        }
+      },
+      {
+        "topic": "realfuels.available",
+        "payload": true
+      },
+      {
+        "topic": "realfuels.engines",
+        "payload": {
+          "ignitionsLimited": true,
+          "ullageSimulated": true,
+          "engines": [
+            {
+              "partId": 5104,
+              "partName": "AJ10-137",
+              "ignitionsRemaining": -1,
+              "ignitionsUnlimited": true,
+              "groundIgnitionOnly": false,
+              "literalZeroIgnitions": false,
+              "ullageModelled": false,
+              "pressureFed": true,
+              "feedPressureOk": true,
+              "ratedBurnTimeSeconds": 750.0,
+              "predictedMaximumResiduals": 0.0185
+            }
+          ]
+        }
+      },
+      {
+        "topic": "realfuels.boiloff",
+        "payload": {
+          "boiloffRate": null,
+          "cryogenicTankCount": 0
+        }
+      }
+    ]
+  }
+}

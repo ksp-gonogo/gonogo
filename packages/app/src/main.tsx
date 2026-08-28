@@ -156,6 +156,13 @@ async function bootUplinksAndRender(): Promise<void> {
     // read it off the host at all. Its channel publishes an explicit absence on
     // any install without the model, which is every stock one.
     import("@ksp-gonogo/gonogo-ferram-aerospace-research-uplink"),
+    // Engine realism under RealFuels: one augment inside the base Fuel & DeltaV
+    // widget, three Topic registrations, no widget of its own. Static like the
+    // seven above because this Uplink ships with the mod, and unconditional
+    // because a station has to know `realfuels.engines` is a Topic to read it
+    // off the host at all. Its channels publish an explicit absence on any
+    // install without RealFuels, which is every stock one.
+    import("@ksp-gonogo/gonogo-real-fuels-uplink"),
   ]);
 
   // Wire the real modal-backed consent prompt before the loader runs (the

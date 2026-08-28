@@ -1,0 +1,130 @@
+{
+  "_meta": {
+    "synthetic": true,
+    "notes": "SYNTHETIC. The ordinary RO upper-stage state, and the one the other three are read against. A restartable second stage with TWO lights left against a plan that needs two (circularise, then deorbit the stage), and settling in RealFuels' RISKY band after a long ballistic coast: 0.82 stability, so roughly a 99.4% chance the light takes. Both numbers are the burn's actual risk and neither is visible anywhere else in the app. The cryogenic upper stage is losing 0.31 kg/s, which is what bounds how long the coast may be."
+  },
+  "_scene": {
+    "augment": "realfuels-fuel-status-section",
+    "host": "fuel-status",
+    "caption": "A restartable upper stage with two lights left, its propellant settling in the risky band after a coast",
+    "modes": ["default"],
+    "paints": ["Ignition & ullage", "LEFT", "RISKY", "Boiloff"]
+  },
+  "_stream": {
+    "pinnedUt": 1000000,
+    "emits": [
+      {
+        "topic": "vessel.structure",
+        "payload": {
+          "currentStage": 1
+        }
+      },
+      {
+        "topic": "dv.summary",
+        "payload": {
+          "stageCount": 2,
+          "totalDvVac": 3120.0,
+          "totalDvAsl": 2640.0,
+          "totalDvActual": 2640.0,
+          "totalBurnTime": 411.0
+        }
+      },
+      {
+        "topic": "dv.stages",
+        "payload": [
+          {
+            "stage": 1,
+            "dryMass": 3.9,
+            "fuelMass": 21.4,
+            "startMass": 25.3,
+            "endMass": 3.9,
+            "burnTime": 155.0,
+            "dvVac": 1980.0,
+            "dvAsl": 1720.0,
+            "dvActual": 1720.0,
+            "twrVac": 1.9,
+            "twrAsl": 1.6,
+            "twrActual": 1.6,
+            "thrustVac": 471.0,
+            "thrustAsl": 402.0,
+            "thrustActual": 402.0
+          },
+          {
+            "stage": 0,
+            "dryMass": 1.1,
+            "fuelMass": 4.6,
+            "startMass": 5.7,
+            "endMass": 1.1,
+            "burnTime": 256.0,
+            "dvVac": 1140.0,
+            "dvAsl": 920.0,
+            "dvActual": 920.0,
+            "twrVac": 0.7,
+            "twrAsl": 0.6,
+            "twrActual": 0.6,
+            "thrustVac": 39.0,
+            "thrustAsl": 33.0,
+            "thrustActual": 33.0
+          }
+        ]
+      },
+      {
+        "topic": "vessel.resources",
+        "payload": {
+          "resources": {
+            "Kerosene": {
+              "current": 9800.0,
+              "max": 12400.0,
+              "active": true
+            },
+            "LqdOxygen": {
+              "current": 15200.0,
+              "max": 19800.0,
+              "active": true
+            },
+            "ElectricCharge": {
+              "current": 340.0,
+              "max": 400.0,
+              "active": true
+            }
+          }
+        }
+      },
+      {
+        "topic": "realfuels.available",
+        "payload": true
+      },
+      {
+        "topic": "realfuels.engines",
+        "payload": {
+          "ignitionsLimited": true,
+          "ullageSimulated": true,
+          "engines": [
+            {
+              "partId": 3417,
+              "partName": "RD-58",
+              "ignitionsRemaining": 2,
+              "ignitionsUnlimited": false,
+              "groundIgnitionOnly": false,
+              "literalZeroIgnitions": false,
+              "ullageModelled": true,
+              "ullageStability": 0.82,
+              "ignitionProbability": 0.9941,
+              "pressureFed": false,
+              "feedPressureOk": true,
+              "ratedBurnTimeSeconds": 680.0,
+              "predictedMaximumResiduals": 0.0212
+            }
+          ]
+        }
+      },
+      {
+        "topic": "realfuels.boiloff",
+        "payload": {
+          "boiloffRate": 0.31,
+          "cryogenicTankCount": 2
+        }
+      }
+    ]
+  }
+}

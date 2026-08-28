@@ -504,6 +504,7 @@ jobs:
             GonogoPrincipiaUplink.Tests
             GonogoRp1Uplink.Tests
             GonogoFerramAerospaceResearchUplink.Tests
+            GonogoRealFuelsUplink.Tests
             Gonogo.KSP.Tests
           )
           # THE OMISSION MODE HERE IS SILENT, so read this before adding a test

@@ -29,6 +29,7 @@
     "@ksp-gonogo/gonogo-kos-uplink": "workspace:*",
     "@ksp-gonogo/gonogo-mechjeb-uplink": "workspace:*",
     "@ksp-gonogo/gonogo-realantennas-uplink": "workspace:*",
+    "@ksp-gonogo/gonogo-real-fuels-uplink": "workspace:*",
     "@ksp-gonogo/logger": "workspace:*",
     "@ksp-gonogo/serial": "workspace:*",
     "@ksp-gonogo/sitrep-client": "workspace:*",

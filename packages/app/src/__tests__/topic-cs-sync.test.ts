@@ -14,6 +14,7 @@ import "@ksp-gonogo/gonogo-kos-uplink";
 import "@ksp-gonogo/gonogo-realantennas-uplink";
 import "@ksp-gonogo/gonogo-ferram-aerospace-research-uplink";
 import "@ksp-gonogo/gonogo-rp1-uplink";
+import "@ksp-gonogo/gonogo-real-fuels-uplink";
 import { getAllKnownTopicIds } from "@ksp-gonogo/sitrep-sdk";
 import { describe, expect, it } from "vitest";
 

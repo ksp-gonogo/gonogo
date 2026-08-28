@@ -1,0 +1,7 @@
+{
+  "extends": "@ksp-gonogo/sitrep-sdk/tsconfig.base.json",
+  "compilerOptions": {
+    "noEmit": true
+  },
+  "include": ["src"]
+}
