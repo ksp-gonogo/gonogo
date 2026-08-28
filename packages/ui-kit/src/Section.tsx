@@ -1,6 +1,6 @@
 import type { ElementType, HTMLAttributes, ReactNode } from "react";
 import styled from "styled-components";
-import { Stack } from "./Stack";
+import { type SpaceToken, Stack } from "./Stack";
 
 export interface SectionProps extends HTMLAttributes<HTMLDivElement> {
   /**
@@ -11,16 +11,27 @@ export interface SectionProps extends HTMLAttributes<HTMLDivElement> {
    * this, which worked and was invisible to a caller reading the type.
    */
   as?: ElementType;
+  /**
+   * Gap between the section's children. Defaults to the tightest step, which is
+   * right for a section whose children are rows.
+   *
+   * A section whose children are themselves GROUPS wants more than that: its
+   * title, each group's own heading and each group's rows all sat one step
+   * apart, so the title read as a third heading in the same run rather than as
+   * the thing the groups belong to. Declared here rather than as a margin at
+   * the call site, so the spacing stays on the kit's scale.
+   */
+  gap?: SpaceToken;
   children?: ReactNode;
 }
 
 /**
- * A named group of rows within a panel, `Stack` pinned to the tightest gap.
+ * A named group of rows within a panel, a `Stack` at the tightest gap.
  * Extracted from ScienceOfficer's `Group` (`flex-direction:column;gap:2px`).
  */
-export function Section({ children, ...rest }: SectionProps) {
+export function Section({ children, gap = "xs", ...rest }: SectionProps) {
   return (
-    <Stack gap="xs" {...rest}>
+    <Stack gap={gap} {...rest}>
       {children}
     </Stack>
   );
