@@ -6,7 +6,7 @@
     "augment": "rp1-ksc-complexes",
     "host": "space-center-status",
     "size": { "w": 12, "h": 18 },
-    "caption": "A payroll mid-career with six engineers assigned to nothing, beside the two complexes they could be moved to",
+    "caption": "A payroll mid-career with six engineers assigned to nothing, the daily charge that pool carries, and the stepped controls that would move them onto either complex",
     "paints": [
       "SPACE CENTRES",
       "Engineers",
@@ -14,8 +14,11 @@
       "Applicants",
       "Cape",
       "IDLE",
+      "Per day",
       "LC-1",
-      "Assign"
+      "free at Cape",
+      "room here",
+      "ALL"
     ]
   },
   "_stream": {
@@ -71,6 +74,7 @@
             "anyOperational": true,
             "groundStation": "us_cape_canaveral",
             "salaryPerDay": 53.4,
+            "idleSalaryPerDay": 4.1,
             "upkeepPerDay": 75
           }
         ]

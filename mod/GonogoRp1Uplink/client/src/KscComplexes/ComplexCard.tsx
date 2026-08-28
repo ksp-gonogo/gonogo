@@ -10,11 +10,15 @@ import {
   ProgressBar,
   Stack,
   Text,
+  ToggleButton,
   Unit,
-  UnitInput,
 } from "@ksp-gonogo/ui-kit";
 import { useState } from "react";
-import type { Rp1ComplexEntry, Rp1PadEntry } from "../__generated__/contract";
+import type {
+  Rp1ComplexEntry,
+  Rp1PadEntry,
+  Rp1RushTerms,
+} from "../__generated__/contract";
 
 /**
  * ONE launch complex, drawn as the thing an operator administers.
@@ -38,6 +42,7 @@ export function ComplexCard({
   centreName,
   unassigned,
   pads,
+  terms,
   assign,
   rush,
 }: Readonly<{
@@ -46,6 +51,7 @@ export function ComplexCard({
   /** The centre's free pool, which is the ceiling on what this crew can grow by. */
   unassigned: number | null;
   pads: readonly Rp1PadEntry[];
+  terms: Rp1RushTerms | undefined;
   assign: Parameters<typeof CommandButton>[0]["handle"];
   rush: Parameters<typeof CommandButton>[0]["handle"];
 }>) {
@@ -53,20 +59,19 @@ export function ComplexCard({
   const engineers = magnitudeOf(complex.engineers);
   const maxEngineers = magnitudeOf(complex.maxEngineers);
   const operational = complex.isOperational === true;
+  const rushing = complex.isRushing === true;
   const unstaffed = operational && engineers === 0;
 
   return (
     <Card as="li" tone={unstaffed ? "warning" : operational ? "go" : "default"}>
-      <Stack gap="sm">
+      <Stack gap="lg">
         <Cluster gap="xs" wrap>
           <Text weight="semibold">{name}</Text>
           <Inline gap="xs">
             {complex.humanRated === true && (
               <Badge severity="info">HUMAN-RATED</Badge>
             )}
-            {complex.isRushing === true && (
-              <Badge severity="caution">RUSHING</Badge>
-            )}
+            {rushing && <Badge severity="caution">RUSHING</Badge>}
             {operational ? null : (
               <Badge severity="offline">NOT YET BUILT</Badge>
             )}
@@ -89,6 +94,7 @@ export function ComplexCard({
 
         {operational && (
           <AssignControl
+            centreName={centreName}
             complex={complex}
             engineers={engineers}
             handle={assign}
@@ -97,6 +103,8 @@ export function ComplexCard({
             unassigned={unassigned}
           />
         )}
+
+        {rushing && <RushStatus terms={terms} />}
 
         <Envelope complex={complex} />
         <Costs complex={complex} />
@@ -172,14 +180,28 @@ function Crew({
 }
 
 /**
- * The one control that changes who works here.
+ * How many engineers one press moves. RP-1's own four, and the fourth is its
+ * <c>int.MaxValue</c> drawn as the word it means.
+ */
+const STEPS = [1, 10, 100, "all"] as const;
+type Step = (typeof STEPS)[number];
+
+/**
+ * The control that changes who works here: RP-1's own shape, stepped.
  *
- * <para>A TARGET rather than a step, sent as a set: an operator commanding from
- * a remote vantage is reading a crew count as it was, and "+5" applied to a
- * count that has since moved lands somewhere nobody chose. The field is bounded
- * by what RP-1 would actually accept, which is the complex's own ceiling and
- * what the centre has free, so the control offers no number the command would
- * refuse.</para>
+ * <para><b>Two ceilings, drawn as two figures.</b> A press is refused for one of
+ * two unrelated reasons, and RP-1 clamps against both: the centre may have
+ * nobody free to move (<c>KSC.UnassignedEngineers</c>) and this complex may
+ * already be full (<c>MaxEngineers - Engineers</c>). A single range would render
+ * them as the same end of the same track, so an operator who cannot press could
+ * not tell which of the two to go and fix. They are separate readouts, each
+ * turning to warning tone at zero, and the press itself carries the number it
+ * would actually move rather than the step that was picked.</para>
+ *
+ * <para><b>A step in the hand, a TARGET on the wire.</b> The command carries the
+ * absolute headcount the press works out to, not a delta: an operator commanding
+ * from a remote vantage is reading a crew count as it was, and "+10" applied to
+ * a count that has since moved lands somewhere nobody chose.</para>
  *
  * <para>No arm-then-confirm, because this spends nothing at the moment it lands:
  * the engineers are already hired and already drawing salary. What it changes is
@@ -190,6 +212,7 @@ function AssignControl({
   engineers,
   maxEngineers,
   unassigned,
+  centreName,
   name,
   handle,
 }: Readonly<{
@@ -197,10 +220,11 @@ function AssignControl({
   engineers: number | null;
   maxEngineers: number | null;
   unassigned: number | null;
+  centreName: string;
   name: string;
   handle: Parameters<typeof CommandButton>[0]["handle"];
 }>) {
-  const [target, setTarget] = useState<number | null>(null);
+  const [step, setStep] = useState<Step>(1);
   const lcId = complex.lcId;
 
   if (
@@ -219,30 +243,111 @@ function AssignControl({
     );
   }
 
-  const ceiling =
-    unassigned === null
-      ? maxEngineers
-      : Math.min(maxEngineers, engineers + Math.max(0, unassigned));
-  const wanted = target ?? engineers;
+  const room = Math.max(0, maxEngineers - engineers);
+  // A centre that has not answered for its pool imposes no limit of its own, so
+  // the complex's ceiling is the only one left standing.
+  const free = unassigned === null ? room : Math.max(0, unassigned);
+  const size = step === "all" ? Number.POSITIVE_INFINITY : step;
+  const grow = Math.min(size, free, room);
+  const shrink = Math.min(size, engineers);
 
   return (
-    <Cluster align="start" gap="xs" wrap>
-      <UnitInput
-        label={`Crew for ${name}`}
-        onChange={(next) => setTarget(magnitudeOf(next))}
-        range={{ max: ceiling, min: 0, step: 1 }}
-        unit="count"
-        value={value("count", wanted)}
-      />
-      <CommandButton
-        args={{ engineers: wanted, lcId }}
-        aria-label={`Leave ${wanted} engineers at ${name}`}
-        commandLabel={`Assign ${wanted} engineers to ${name}`}
-        disabled={wanted === engineers}
-        handle={handle}
-        label="Assign"
-        size="sm"
-      />
+    <Stack gap="xs">
+      <Cluster align="start" gap="sm" wrap>
+        <Inline
+          aria-label={`Engineers moved per press at ${name}`}
+          gap="xs"
+          role="group"
+        >
+          {STEPS.map((option) => (
+            <ToggleButton
+              active={step === option}
+              key={String(option)}
+              onClick={() => setStep(option)}
+              size="sm"
+            >
+              {option === "all" ? "ALL" : option}
+            </ToggleButton>
+          ))}
+        </Inline>
+        <Inline gap="xs">
+          <CommandButton
+            args={{ engineers: engineers - shrink, lcId }}
+            aria-label={
+              shrink === 0
+                ? `Nobody is assigned to ${name}`
+                : `Return ${shrink} engineers from ${name} to ${centreName}, leaving ${engineers - shrink}`
+            }
+            commandLabel={`Assign ${engineers - shrink} engineers to ${name}`}
+            disabled={shrink === 0}
+            handle={handle}
+            label={shrink === 0 ? "−" : `−${shrink}`}
+            size="sm"
+          />
+          <CommandButton
+            args={{ engineers: engineers + grow, lcId }}
+            aria-label={
+              grow === 0
+                ? room === 0
+                  ? `${name} is full`
+                  : `No engineers free at ${centreName} to assign to ${name}`
+                : `Assign ${grow} more engineers to ${name}, ${engineers + grow} in all`
+            }
+            commandLabel={`Assign ${engineers + grow} engineers to ${name}`}
+            disabled={grow === 0}
+            handle={handle}
+            label={grow === 0 ? "+" : `+${grow}`}
+            size="sm"
+          />
+        </Inline>
+      </Cluster>
+
+      {/* The two limits, at opposite ends of the card, because they are two
+          different things to go and fix: free somebody at the centre, or build
+          this complex up. Read as one line they would be one ceiling. */}
+      <Cluster gap="md" wrap>
+        <Text size="xs" tone={free === 0 ? "warn" : "muted"}>
+          free at {centreName}{" "}
+          <Unit
+            value={unassigned === null ? undefined : value("count", unassigned)}
+          />
+        </Text>
+        <Text size="xs" tone={room === 0 ? "warn" : "muted"}>
+          room here <Unit value={value("count", room)} />
+        </Text>
+      </Cluster>
+    </Stack>
+  );
+}
+
+/**
+ * What rushing is doing to this complex, while it is doing it.
+ *
+ * <para>On the card rather than once for the section, and only on a complex that
+ * is actually rushing: these are the terms in force here now, which is a reading
+ * rather than a note about how RP-1 works. A quiet complex shows none of it, so
+ * the figures never repeat across the career's complexes.</para>
+ *
+ * <para>The efficiency line is the term RP-1's own tooltip leaves out, and the
+ * one that costs the most over a career: a rushing complex's crew gains no
+ * efficiency for the whole time it runs.</para>
+ */
+function RushStatus({ terms }: Readonly<{ terms: Rp1RushTerms | undefined }>) {
+  return (
+    <Cluster gap="xs" wrap>
+      <Text size="xs" tone="muted">
+        rushing
+      </Text>
+      <Text size="xs">
+        {terms === undefined ? (
+          <>{NULL_DISPLAY} RP-1 has not said what rushing costs</>
+        ) : (
+          <>
+            <Unit value={terms.rateMult} /> rate ·{" "}
+            <Unit value={terms.salaryMult} /> salary · efficiency held
+          </>
+        )}
+      </Text>
     </Cluster>
   );
 }
@@ -347,10 +452,9 @@ function Pads({ pads }: Readonly<{ pads: readonly Rp1PadEntry[] }>) {
  * together, integrations and rollouts and reconditionings alike, so a control
  * shaped like "rush this build" would be a lie about what the game does.</para>
  *
- * <para>What it COSTS is stated once for the section rather than on every card.
- * The terms are career-wide settings, so a copy per complex was the same
- * sentence four times over and read as a defect rather than as care; the same
- * correction the funds balance already got in this widget.</para>
+ * <para>What it does to a complex is read off {@link RushStatus} once it is
+ * running. The press itself names the salary in its accessible name, so a
+ * screen-reader user is not asked to commit to a price they cannot see.</para>
  */
 function RushControl({
   complex,

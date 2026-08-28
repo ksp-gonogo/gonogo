@@ -37,6 +37,7 @@ export interface Rp1CentreEntry
 	anyOperational?: boolean;
 	groundStation?: string;
 	salaryPerDay?: Value<"f/day">;
+	idleSalaryPerDay?: Value<"f/day">;
 	upkeepPerDay?: Value<"f/day">;
 }
 export interface Rp1ComplexEntry

@@ -16,7 +16,9 @@
       "pad complex at Vandenberg",
       "NOBODY ASSIGNED",
       "IDLE",
-      "ACTIVE"
+      "ACTIVE",
+      "free at Vandenberg",
+      "room here"
     ]
   },
   "_stream": {
@@ -72,6 +74,7 @@
             "anyOperational": true,
             "groundStation": "us_cape_canaveral",
             "salaryPerDay": 69.8,
+            "idleSalaryPerDay": 4.1,
             "upkeepPerDay": 45
           },
           {
@@ -83,6 +86,7 @@
             "anyOperational": true,
             "groundStation": "us_vandenberg",
             "salaryPerDay": 8.2,
+            "idleSalaryPerDay": 8.2,
             "upkeepPerDay": 30
           }
         ]

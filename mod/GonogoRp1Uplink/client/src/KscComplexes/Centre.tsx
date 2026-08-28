@@ -1,3 +1,4 @@
+import { value } from "@ksp-gonogo/sitrep-sdk";
 import {
   Badge,
   Cluster,
@@ -5,6 +6,8 @@ import {
   Inline,
   magnitudeOf,
   NULL_DISPLAY,
+  Row,
+  RowName,
   Stack,
   Text,
   Unit,
@@ -13,6 +16,7 @@ import type {
   Rp1CentreEntry,
   Rp1ComplexEntry,
   Rp1PadEntry,
+  Rp1RushTerms,
 } from "../__generated__/contract";
 import { ComplexCard } from "./ComplexCard";
 
@@ -26,29 +30,35 @@ import { ComplexCard } from "./ComplexCard";
  * the middle one visible: a heading naming the place, the pool of engineers it
  * holds that no complex has claimed, and its complexes nested under it.</para>
  *
- * <para>The unassigned pool is called out when anybody is in it. RP-1 pays an
- * unassigned engineer a fraction of their salary for no work at all, so an idle
- * pool is a standing cost rather than a reserve, and it is also the exact number
- * a complex's crew can grow by.</para>
+ * <para>The idle pool gets a cost of its own beside the centre's total. RP-1
+ * pays an unassigned engineer a fraction of full salary for no work, so the pool
+ * is a standing charge rather than a reserve, and the figure is the one an
+ * operator weighs an assignment against. It is also exactly the number a
+ * complex's crew here can grow by.</para>
  */
 export function Centre({
   centre,
   complexes,
   pads,
+  terms,
   assign,
   rush,
 }: Readonly<{
   centre: Rp1CentreEntry;
   complexes: readonly Rp1ComplexEntry[];
   pads: readonly Rp1PadEntry[];
+  terms: Rp1RushTerms | undefined;
   assign: Parameters<typeof CommandButton>[0]["handle"];
   rush: Parameters<typeof CommandButton>[0]["handle"];
 }>) {
   const name = centre.kscName ?? NULL_DISPLAY;
+  const hired = magnitudeOf(centre.engineers);
   const unassigned = magnitudeOf(centre.unassignedEngineers);
+  const assigned =
+    hired === null || unassigned === null ? null : hired - unassigned;
 
   return (
-    <Stack as="li" gap="xs">
+    <Stack as="li" gap="md">
       <Cluster gap="xs" wrap>
         <Text weight="semibold">{name}</Text>
         <Inline gap="xs">
@@ -59,15 +69,26 @@ export function Centre({
         </Inline>
       </Cluster>
 
-      <Text size="xs" tone="muted">
-        space centre · <Unit value={centre.engineers} /> engineers hired here,{" "}
-        <Unit value={centre.unassignedEngineers} /> assigned to nothing
-      </Text>
-
-      <Text size="xs" tone="muted">
-        crews <Unit value={centre.salaryPerDay} /> · complexes{" "}
-        <Unit value={centre.upkeepPerDay} />
-      </Text>
+      <Stack as="ul" gap="xs" style={LIST_STYLE}>
+        <Row>
+          <RowName>Engineers</RowName>
+          <Text size="xs">
+            <Unit value={centre.engineers} /> hired ·{" "}
+            <Unit
+              value={assigned === null ? undefined : value("count", assigned)}
+            />{" "}
+            assigned · <Unit value={centre.unassignedEngineers} /> idle
+          </Text>
+        </Row>
+        <Row>
+          <RowName>Per day</RowName>
+          <Text size="xs">
+            crews <Unit value={centre.salaryPerDay} /> · complexes{" "}
+            <Unit value={centre.upkeepPerDay} /> · idle{" "}
+            <Unit value={centre.idleSalaryPerDay} />
+          </Text>
+        </Row>
+      </Stack>
 
       {complexes.length === 0 ? (
         // A real state, and one worth a sentence: RP-1 starts a career with a
@@ -77,7 +98,7 @@ export function Centre({
           No launch complexes at {name} yet.
         </Text>
       ) : (
-        <Stack as="ul" gap="xs" style={LIST_STYLE}>
+        <Stack as="ul" gap="lg" style={LIST_STYLE}>
           {complexes.map((complex) => (
             <ComplexCard
               assign={assign}
@@ -86,6 +107,7 @@ export function Centre({
               key={complex.lcId ?? complex.name ?? ""}
               pads={pads.filter((pad) => pad.lcId === complex.lcId)}
               rush={rush}
+              terms={terms}
               unassigned={unassigned}
             />
           ))}
