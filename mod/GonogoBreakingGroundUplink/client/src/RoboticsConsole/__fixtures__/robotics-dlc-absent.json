@@ -1,0 +1,30 @@
+{
+  "_meta": {
+    "scenario": "unavailable",
+    "notes": "Breaking Ground not installed: empty state."
+  },
+  "_scene": {
+    "widget": "robotics-console",
+    "caption": "Breaking Ground not installed: the console names the missing DLC rather than reporting a craft with no joints on it",
+    "modes": ["default"],
+    "expectsEmpty": "There are no robotic parts without the DLC. The subject of the scene is the sentence the console shows in their place, which must not read as 'this craft has no servos'.",
+    "paints": ["ROBOTICS"]
+  },
+  "robotics.available": false,
+  "robotics.servos": [],
+  "_stream": {
+    "pinnedUt": 1000000,
+    "emits": [
+      {
+        "topic": "robotics.servos",
+        "payload": []
+      },
+      {
+        "topic": "robotics.available",
+        "payload": {
+          "available": false
+        }
+      }
+    ]
+  }
+}

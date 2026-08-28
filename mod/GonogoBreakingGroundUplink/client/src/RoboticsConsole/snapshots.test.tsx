@@ -7,8 +7,8 @@ import { renderWidget } from "@ksp-gonogo/ui-kit/testing";
 import { describe, expect, it } from "vitest";
 import { getWidget } from "../../scripts/widgets";
 import { stripVolatile } from "../test/widgetDomSnapshot";
+import unavailable from "./__fixtures__/robotics-dlc-absent.json";
 import servos from "./__fixtures__/servos.json";
-import unavailable from "./__fixtures__/unavailable.json";
 // Side-effect import: the widget self-registers on module load, and
 // `renderWidget` looks it up by id rather than importing the component.
 import "./index";

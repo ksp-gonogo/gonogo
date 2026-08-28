@@ -168,6 +168,9 @@ importers:
       jsdom:
         specifier: ^29.0.2
         version: 29.0.2
+      playwright:
+        specifier: ^1.60.0
+        version: 1.60.0
       react:
         specifier: ^18.0.0
         version: 18.3.1

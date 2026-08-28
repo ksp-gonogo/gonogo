@@ -1,0 +1,30 @@
+{
+  "_meta": {
+    "scenario": "unavailable",
+    "notes": "Breaking Ground not installed: muted empty state, no rotors."
+  },
+  "_scene": {
+    "widget": "rotor-tachometer",
+    "caption": "Breaking Ground not installed: the dial is withheld entirely rather than drawn at zero RPM",
+    "modes": ["default"],
+    "expectsEmpty": "There are no rotors without the DLC. A dial parked at 0 RPM would read as a rotor that is stopped, which is a reading; this scene exists to show that none is drawn.",
+    "paints": ["ROTOR"]
+  },
+  "robotics.available": false,
+  "robotics.servos": [],
+  "_stream": {
+    "pinnedUt": 1000000,
+    "emits": [
+      {
+        "topic": "robotics.servos",
+        "payload": []
+      },
+      {
+        "topic": "robotics.available",
+        "payload": {
+          "available": false
+        }
+      }
+    ]
+  }
+}

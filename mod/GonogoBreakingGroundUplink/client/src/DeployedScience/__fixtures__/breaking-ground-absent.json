@@ -1,0 +1,23 @@
+{
+  "_meta": {
+    "synthetic": true,
+    "notes": "SYNTHETIC. Breaking Ground is not installed, so there are no deployed bases and never will be. The widget has to say that rather than 'No deployed bases', which is what a player WITH the DLC and nothing planted sees: the two look identical on the wire (an empty roster) and read completely differently to an operator."
+  },
+  "_scene": {
+    "widget": "deployed-science",
+    "caption": "Breaking Ground not installed: the empty state names the missing DLC rather than reporting an empty roster",
+    "modes": ["default"],
+    "expectsEmpty": "There is no deployed science without the DLC. The whole subject of the scene is the sentence the widget shows in its place, and it must not read as 'nothing planted yet'.",
+    "paints": ["DEPLOYED SCIENCE", "Breaking Ground not installed"]
+  },
+  "_stream": {
+    "pinnedUt": 1000000,
+    "emits": [
+      {
+        "topic": "game.dlc",
+        "payload": { "breakingGround": false, "makingHistory": true }
+      },
+      { "topic": "deployed.bases", "payload": [] }
+    ]
+  }
+}
