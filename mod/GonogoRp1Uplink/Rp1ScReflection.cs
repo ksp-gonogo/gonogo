@@ -259,6 +259,7 @@ namespace GonogoRp1Uplink
                     AnyOperational = anyOperationalBeyondHangar,
                     GroundStation = GroundStationFor(ksc, kscName),
                     SalaryPerDay = SalaryPerDay(payroll, payroll.CentreSalary, ksc),
+                    IdleSalaryPerDay = IdleSalaryPerDay(payroll, kscEngineers - assignedEngineers),
                     UpkeepPerDay = UpkeepFrom(raw.Complexes, firstComplex),
                 });
             }
@@ -274,7 +275,7 @@ namespace GonogoRp1Uplink
                 ResearcherSalaryPerDay = ReadDouble(payroll.Maintenance, "ResearchSalaryPerDay"),
                 EngineerSalaryPerYear = payroll.EngineerSalaryPerYear,
                 ResearcherSalaryPerYear = ReadDouble(payroll.Settings, "salaryResearchers"),
-                IdleSalaryMult = ReadDouble(payroll.Settings, "EngineerIdleSalaryMult"),
+                IdleSalaryMult = payroll.EngineerIdleSalaryMult,
             };
 
             raw.RushTerms = ReadRushTerms(payroll.Settings);
@@ -800,6 +801,9 @@ namespace GonogoRp1Uplink
             /// <summary>One engineer's full year, the rate both salary figures scale.</summary>
             public double? EngineerSalaryPerYear;
 
+            /// <summary>The fraction of full salary an engineer assigned to nothing draws.</summary>
+            public double? EngineerIdleSalaryMult;
+
             /// <summary><c>GetEffectiveEngineersForSalary(LaunchComplex)</c>, by first-parameter type.</summary>
             public MethodInfo? ComplexSalary;
 
@@ -826,6 +830,7 @@ namespace GonogoRp1Uplink
                 Maintenance = maintenance,
                 Settings = settings,
                 EngineerSalaryPerYear = ReadDouble(settings, "salaryEngineers"),
+                EngineerIdleSalaryMult = ReadDouble(settings, "EngineerIdleSalaryMult"),
                 ComplexSalary = Rp1Types.InstanceMethodOn(
                     scm, "GetEffectiveEngineersForSalary", LaunchComplexTypeName, 1),
                 CentreSalary = Rp1Types.InstanceMethod(
@@ -860,6 +865,27 @@ namespace GonogoRp1Uplink
                 ? (double?)null
                 : heads.Value * payroll.EngineerSalaryPerYear.Value / DaysPerYear;
         }
+
+        /// <summary>
+        /// The part of a centre's salary bill that buys no work: its unassigned
+        /// engineers, at RP-1's idle fraction.
+        ///
+        /// <para>The one salary figure that is arithmetic here rather than an
+        /// RP-1 call, because RP-1 has no method for it: it folds the idle pool
+        /// into the centre total (<c>GetEffectiveIntegrationEngineersForSalary</c>
+        /// adds <c>UnassignedEngineers * EngineerIdleSalaryMult</c> to the sum of
+        /// its complexes) and never answers for the term on its own. The term is
+        /// a product of two numbers RP-1 does publish, so it is reproduced rather
+        /// than left to a client that would have to write RP-1's year length
+        /// down.</para>
+        /// </summary>
+        private static double? IdleSalaryPerDay(Payroll payroll, int unassigned) =>
+            payroll.EngineerIdleSalaryMult == null || payroll.EngineerSalaryPerYear == null
+                ? (double?)null
+                : unassigned
+                    * payroll.EngineerIdleSalaryMult.Value
+                    * payroll.EngineerSalaryPerYear.Value
+                    / DaysPerYear;
 
         /// <summary>What the complex itself costs per day, crew aside.</summary>
         private double? ComplexUpkeep(Payroll payroll, object lc) =>

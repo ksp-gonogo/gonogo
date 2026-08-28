@@ -523,6 +523,12 @@ public class Rp1ScReflectionTests : IDisposable
         Assert.Equal((10 * 2 + 4 + 6 * 0.25) * 1000 / 365.25, centre.SalaryPerDay!.Value, 6);
         Assert.Equal(75.0, centre.UpkeepPerDay);
 
+        // And that idle term on its own, which is the only part of the bill that
+        // buys nothing. RP-1 answers for the total and never for this, so it is
+        // published rather than left to a client that would need RP-1's year
+        // length to work it out.
+        Assert.Equal(6 * 0.25 * 1000 / 365.25, centre.IdleSalaryPerDay!.Value, 6);
+
         Assert.Equal(61.6, raw.Personnel!.EngineerSalaryPerDay);
         Assert.Equal(20.0, raw.Personnel!.ResearcherSalaryPerDay);
         Assert.Equal(1000.0, raw.Personnel!.EngineerSalaryPerYear);

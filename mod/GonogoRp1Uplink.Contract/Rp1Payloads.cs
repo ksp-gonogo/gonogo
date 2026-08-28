@@ -94,6 +94,14 @@ public sealed class Rp1CentreEntry
     public double? SalaryPerDay { get; set; }
 
     /// <summary>
+    /// The part of <see cref="SalaryPerDay"/> that buys no work: what this
+    /// centre's unassigned engineers draw, at RP-1's idle fraction (see
+    /// <see cref="Rp1Personnel.IdleSalaryMult"/>).
+    /// </summary>
+    [SitrepUnit(Units.FundsPerDay)]
+    public double? IdleSalaryPerDay { get; set; }
+
+    /// <summary>
     /// What this centre's launch complexes cost per day to keep, the sum of
     /// <see cref="Rp1ComplexEntry.UpkeepPerDay"/> across them. The facilities'
     /// own upkeep is not in it: those are one set per career rather than per

@@ -66,6 +66,7 @@ namespace GonogoRp1Uplink
         public bool AnyOperational;
         public string? GroundStation;
         public double? SalaryPerDay;
+        public double? IdleSalaryPerDay;
         public double? UpkeepPerDay;
     }
 

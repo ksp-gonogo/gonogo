@@ -29,6 +29,7 @@ namespace GonogoRp1Uplink
                     ["anyOperational"] = c.AnyOperational,
                     ["groundStation"] = c.GroundStation,
                     ["salaryPerDay"] = c.SalaryPerDay,
+                    ["idleSalaryPerDay"] = c.IdleSalaryPerDay,
                     ["upkeepPerDay"] = c.UpkeepPerDay,
                 });
             }

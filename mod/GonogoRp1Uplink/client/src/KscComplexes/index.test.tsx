@@ -5,6 +5,7 @@ import {
   screen,
   setupStreamFixture,
   waitFor,
+  within,
 } from "@ksp-gonogo/sitrep-sdk/testing";
 import { expectNoA11yViolations } from "@ksp-gonogo/ui-kit/testing";
 import userEvent from "@testing-library/user-event";
@@ -29,6 +30,7 @@ const TOPICS = [
 const CAPE = {
   anyOperational: true,
   engineers: 30,
+  idleSalaryPerDay: 4.1,
   isActive: true,
   kscName: "Cape",
   launchComplexCount: 2,
@@ -127,10 +129,6 @@ describe("KscComplexes", () => {
     expect(screen.getByText("Cape")).toBeInTheDocument();
     expect(screen.getByText("LC-1")).toBeInTheDocument();
     expect(screen.getAllByText(/pad complex at Cape/)).toHaveLength(2);
-    // And the layer above, which is the host widget's and not a centre's.
-    expect(
-      screen.getByText(/facilities above are one set for the whole career/i),
-    ).toBeInTheDocument();
     await expectNoA11yViolations(view.container);
   });
 
@@ -185,45 +183,96 @@ describe("KscComplexes", () => {
     ).toBeInTheDocument();
   });
 
-  it("sends a crew TARGET, not a step", async () => {
+  it("steps the crew, RP-1's own way, and sends a TARGET", async () => {
     const user = userEvent.setup();
     const { fixture } = withCentre();
 
-    const field = await screen.findByLabelText("Crew for LC-1");
-    await user.clear(field);
-    await user.type(field, "24");
+    // The step multiplier RP-1 itself offers (1 / 10 / 100 / all), not a range:
+    // the act is moving some of the free pool onto this complex, and a range
+    // would say "pick a number" about something with two separate ceilings.
+    const steps = await screen.findByRole("group", {
+      name: "Engineers moved per press at LC-1",
+    });
+    await user.click(within(steps).getByRole("button", { name: "10" }));
     await user.click(
-      screen.getByRole("button", { name: /Leave 24 engineers at LC-1/ }),
+      screen.getByRole("button", {
+        name: "Assign 6 more engineers to LC-1, 24 in all",
+      }),
     );
 
     const sent = fixture.transport.sentCommands.find(
       (c) => c.command === RP1_PERSONNEL_ASSIGN_COMMAND,
     );
-    // A set rather than a delta: an operator commanding from a remote vantage is
-    // reading a count as it was, and a step applied to a count that has since
-    // moved lands somewhere nobody chose.
+    // A set rather than a delta, whatever the control looks like: an operator
+    // commanding from a remote vantage is reading a count as it was, and "+10"
+    // applied to a count that has since moved lands somewhere nobody chose.
     expect(sent?.args).toEqual({ engineers: 24, lcId: "lc-1" });
   });
 
-  it("offers no crew above what the centre has free", async () => {
+  it("presses only what it can move, not the step that was picked", async () => {
+    const user = userEvent.setup();
     withCentre();
 
-    // 18 assigned, 6 unassigned at Cape, so 24 is the most this complex could
-    // hold today even though it can hold 60. The control offers no number the
-    // command would refuse.
-    const field = await screen.findByLabelText("Crew for LC-1");
-    expect(field).toHaveAttribute("max", "24");
+    // Cape has six free and LC-1 has room for forty-two, so a step of 100 moves
+    // six. RP-1 clamps the same way, and the press says so before it is pressed
+    // rather than quietly doing something else.
+    const steps = await screen.findByRole("group", {
+      name: "Engineers moved per press at LC-1",
+    });
+    await user.click(within(steps).getByRole("button", { name: "100" }));
+
+    expect(screen.getByText("+6")).toBeInTheDocument();
+    expect(screen.getByText("−18")).toBeInTheDocument();
   });
 
-  it("rushes a whole complex on one press, and prices it first", async () => {
+  it("says a complex is full, rather than that a press is unavailable", async () => {
+    // The first of the two ceilings a range control flattens into one end of one
+    // track. Nothing is wrong with the centre here: LC-1 simply holds no more.
+    withCentre([{ ...COMPLEXES[0], engineers: 60 }, COMPLEXES[1]]);
+
+    await waitFor(() => {
+      expect(screen.getAllByText("room here").length).toBeGreaterThan(0);
+    });
+    expect(screen.getByRole("button", { name: "LC-1 is full" })).toBeDisabled();
+  });
+
+  it("says the centre has nobody free, which is the other ceiling", async () => {
+    // The second, and a different thing to go and fix: hire, or take somebody
+    // off another complex. LC-1 has room for forty-two and still cannot grow.
+    withCentre(COMPLEXES, [{ ...CAPE, unassignedEngineers: 0 }]);
+
+    await waitFor(() => {
+      expect(screen.getAllByText("free at Cape").length).toBeGreaterThan(0);
+    });
+    expect(
+      screen.getByRole("button", {
+        name: "No engineers free at Cape to assign to LC-1",
+      }),
+    ).toBeDisabled();
+  });
+
+  it("prices the idle pool on the centre that holds it", async () => {
+    // The one figure on this surface that buys nothing. A sentence about the
+    // fraction RP-1 pays an idle engineer taught the mod; the daily charge is
+    // the number an operator weighs an assignment against.
+    const { view } = withCentre();
+
+    await waitFor(() => {
+      expect(screen.getByText("Per day")).toBeInTheDocument();
+    });
+    expect(view.container.textContent).toContain("idle 4.1");
+  });
+
+  it("rushes a whole complex on one press", async () => {
     const user = userEvent.setup();
     const { fixture } = withCentre();
 
+    // Nothing is rushing, so nothing here states rushing's terms: they are a
+    // reading of a complex that is doing it, not a note about how RP-1 works.
     await waitFor(() => {
-      expect(
-        screen.getAllByText(/earns no efficiency while it runs/).length,
-      ).toBeGreaterThan(0);
+      expect(screen.getByText("LC-1")).toBeInTheDocument();
     });
+    expect(screen.queryByText(/efficiency held/)).not.toBeInTheDocument();
 
     // One press, unlike the vehicle controls in Vehicle Assembly, and the
     // difference is real: rushing spends nothing when it lands. It raises the
@@ -242,7 +291,7 @@ describe("KscComplexes", () => {
     expect(sent?.args).toEqual({ lcId: "lc-1", rushing: true });
   });
 
-  it("offers the way out of rush mode to a complex already in it", async () => {
+  it("offers the way out of rush mode, and states its terms while it runs", async () => {
     const user = userEvent.setup();
     const { fixture } = withCentre([
       { ...COMPLEXES[0], isRushing: true },
@@ -252,6 +301,15 @@ describe("KscComplexes", () => {
     await waitFor(() => {
       expect(screen.getByText("RUSHING")).toBeInTheDocument();
     });
+    // On the one complex it applies to, as figures. The efficiency term is the
+    // one RP-1's own tooltip leaves out and the one that costs most over a
+    // career.
+    const terms = screen.getByText("rushing").closest("div");
+    const termsText = (terms?.textContent ?? "").replace(/\s+/g, " ");
+    expect(termsText).toMatch(/150.*rate/);
+    expect(termsText).toMatch(/200.*salary/);
+    expect(termsText).toContain("efficiency held");
+
     await user.click(
       screen.getByRole("button", { name: "Stop rushing work at LC-1" }),
     );
@@ -305,13 +363,26 @@ describe("KscComplexes", () => {
     withCentre();
 
     await waitFor(() => {
-      expect(screen.getByText("Engineers")).toBeInTheDocument();
+      expect(screen.getByText("PAYROLL")).toBeInTheDocument();
     });
+    expect(screen.getAllByText("Engineers").length).toBeGreaterThan(0);
     expect(screen.getByText("Researchers")).toBeInTheDocument();
     expect(screen.getByText("Applicants")).toBeInTheDocument();
-    expect(
-      screen.getByText(/assigned to nothing still draws/),
-    ).toBeInTheDocument();
+  });
+
+  it("teaches nobody the mod", async () => {
+    // The operator's ruling on this surface: state what IS, in data. An operator
+    // who wants the mechanic reads RP-1's docs; an operator at the console wants
+    // the number, and prose between the figures is what they scroll past.
+    const { view } = withCentre();
+
+    await waitFor(() => {
+      expect(screen.getByText("SPACE CENTRES")).toBeInTheDocument();
+    });
+    const text = view.container.textContent ?? "";
+    expect(text).not.toContain("still draws");
+    expect(text).not.toContain("one set for the whole career");
+    expect(text).not.toContain("earns no efficiency while it runs");
   });
 
   it("names the pads under the complex that owns them", async () => {

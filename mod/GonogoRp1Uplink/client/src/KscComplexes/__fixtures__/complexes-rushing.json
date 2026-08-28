@@ -6,7 +6,7 @@
     "augment": "rp1-ksc-complexes",
     "host": "space-center-status",
     "size": { "w": 12, "h": 20 },
-    "caption": "Cape and its two launch complexes, each with its crew, its envelope, its daily cost and the rush control: LC-1 already rushing and offered the way out, LC-2 offered the way in",
+    "caption": "Cape and its two launch complexes, each with its crew, its envelope, its daily cost and the rush control: LC-1 already rushing and carrying the terms in force on it, LC-2 quiet and offered the way in",
     "paints": [
       "SPACE CENTRES",
       "Cape",
@@ -14,9 +14,10 @@
       "LC-2",
       "pad complex at Cape",
       "RUSHING",
+      "efficiency held",
       "Stop rushing",
       "Rush",
-      "Assign",
+      "free at Cape",
       "Engineers"
     ]
   },
@@ -73,6 +74,7 @@
             "anyOperational": true,
             "groundStation": "us_cape_canaveral",
             "salaryPerDay": 150.3,
+            "idleSalaryPerDay": 0,
             "upkeepPerDay": 75
           }
         ]

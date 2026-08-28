@@ -4,8 +4,6 @@ import {
   useTelemetry,
 } from "@ksp-gonogo/sitrep-sdk";
 import {
-  magnitudeOf,
-  NULL_DISPLAY,
   Row,
   RowName,
   Section,
@@ -15,7 +13,7 @@ import {
   Unit,
   usePanelDelay,
 } from "@ksp-gonogo/ui-kit";
-import type { Rp1Personnel, Rp1RushTerms } from "../__generated__/contract";
+import type { Rp1Personnel } from "../__generated__/contract";
 import { current } from "../shared/current";
 import { RP1 } from "../uplink";
 // Side-effect import: hydrates these Topics' units at decode time. Here rather
@@ -55,6 +53,12 @@ export const RP1_PERSONNEL_ASSIGN_COMMAND = "rp1.personnel.assign";
  * engineer assigned to nothing draws salary for no work. Neither is visible
  * anywhere else on the dashboard, and both are changed from here.</para>
  *
+ * <para><b>Everything here is a reading.</b> The mechanics behind these figures
+ * are RP-1's to document; what an operator at the console needs is the number,
+ * so the idle pool arrives as a cost per day on the centre that holds it and
+ * rushing arrives as terms on the complex that is rushing. Nothing on this
+ * surface explains how the mod works.</para>
+ *
  * <para><b>The payroll used to be a widget of its own</b> and is a section here
  * now, on the operator's ruling: staffing a complex IS complex management, and a
  * standalone payroll panel left the hiring totals in one place and the
@@ -90,18 +94,15 @@ export function KscComplexes() {
   const padRows = pads ?? [];
 
   return (
-    <Section gap="sm">
+    <Section gap="lg">
       <SectionTitle>SPACE CENTRES</SectionTitle>
 
-      {/* Said once, at the top, because it is the distinction the rest of the
-          section depends on and the one an operator loses. */}
-      <Text size="xs" tone="muted">
-        The facilities above are one set for the whole career. Everything below
-        belongs to a centre.
-      </Text>
-
-      <Payroll personnel={personnel} />
-      <RushTerms terms={terms} />
+      {/* The career's books, named so the counts under a centre's own heading
+          below are read as that centre's and not as these again. */}
+      <Stack gap="xs">
+        <SectionTitle>PAYROLL</SectionTitle>
+        <Payroll personnel={personnel} />
+      </Stack>
 
       {centreRows.length === 0 ? (
         // A real answer rather than an empty stack: RP-1 present and answering
@@ -111,7 +112,7 @@ export function KscComplexes() {
           RP-1 has not reported a space centre.
         </Text>
       ) : (
-        <Stack as="ul" gap="md" style={LIST_STYLE}>
+        <Stack as="ul" gap="xl" style={LIST_STYLE}>
           {centreRows.map((centre) => (
             <Centre
               assign={assign}
@@ -122,6 +123,7 @@ export function KscComplexes() {
               key={centre.kscName ?? ""}
               pads={padRows}
               rush={rush}
+              terms={terms}
             />
           ))}
         </Stack>
@@ -138,6 +140,10 @@ export function KscComplexes() {
  * act from assignment and one this widget deliberately does not perform: hiring
  * spends funds up front, and belongs with the other spend controls.</para>
  *
+ * <para>What the idle engineers cost is NOT here: the pool belongs to a centre
+ * rather than to the career, so it is drawn on the centre holding it. A total
+ * here as well would be the same figure twice on a one-centre career.</para>
+ *
  * <para>Counts and costs go to `Unit` exactly as they are read. A figure RP-1
  * has not answered for prints the null token, which distinguishes a payroll
  * still waiting from a payroll of zero.</para>
@@ -145,8 +151,6 @@ export function KscComplexes() {
 function Payroll({
   personnel,
 }: Readonly<{ personnel: Rp1Personnel | undefined }>) {
-  const idle = magnitudeOf(personnel?.idleSalaryMult);
-
   return (
     <Stack as="ul" gap="xs" style={LIST_STYLE}>
       <Row>
@@ -169,48 +173,7 @@ function Payroll({
           <Unit value={personnel?.applicants} />
         </Text>
       </Row>
-      {idle !== null && (
-        // The term that makes an idle pool a cost rather than a reserve. Beside
-        // the totals because it applies to all of them, not to one centre.
-        <Stack as="li" gap="xs">
-          <Text size="xs" tone="muted">
-            An engineer assigned to nothing still draws{" "}
-            <Unit value={personnel?.idleSalaryMult} /> of full salary
-          </Text>
-        </Stack>
-      )}
     </Stack>
-  );
-}
-
-/**
- * What rushing costs, once for the whole section.
- *
- * <para>Career-wide settings rather than a property of any one complex, so a
- * copy per card was the same sentence as many times as the career has complexes.
- * The same correction the funds balance already got in this widget, and for the
- * same reason: repetition inside one panel reads as a defect.</para>
- *
- * <para>Stated whether or not anything is currently rushing, because the moment
- * an operator needs the price is the moment nothing is. Three terms, and the
- * third is the one RP-1's own tooltip does not mention: a rushing complex earns
- * NO efficiency while it runs, and efficiency is what makes a crew cheaper over
- * a career. The multipliers come off the wire rather than being written in,
- * because a career may change them.</para>
- */
-function RushTerms({ terms }: Readonly<{ terms: Rp1RushTerms | undefined }>) {
-  return (
-    <Text size="xs" tone="muted">
-      {terms === undefined ? (
-        <>{NULL_DISPLAY} RP-1 has not said what rushing costs on this install</>
-      ) : (
-        <>
-          Rushing a complex works at <Unit value={terms.rateMult} />, pays{" "}
-          <Unit value={terms.salaryMult} />, and earns no efficiency while it
-          runs
-        </>
-      )}
-    </Text>
   );
 }
 
