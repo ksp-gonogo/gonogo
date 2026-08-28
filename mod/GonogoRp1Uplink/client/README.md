@@ -84,6 +84,36 @@ One RP-1 Program in full: its objectives, the funds it pays and has paid, its de
 
 ![The same widget at 18 × 5](docs/assets/running-backloaded--landscape-18x5.png)
 
+### RP-1 Personnel
+
+RP-1's payroll: engineers, researchers and applicants on the books, each centre's unassigned engineers, and the crew, efficiency and rush state of every launch complex they are assigned to.
+
+| | |
+| --- | --- |
+| Widget id | `rp1-space-centre-personnel` |
+| Reads | `rp1.available`, `rp1.personnel`, `rp1.centres`, `rp1.complexes` |
+| Default size | 6 × 9 |
+
+![A payroll mid-career, with engineers on the books that nobody has assigned: the idle count is the one number here that costs money for nothing, and it is why the per-complex split is drawn rather than only the totals](docs/assets/personnel-staffed--default.png)
+
+![The same widget at its minimum size](docs/assets/personnel-staffed--min.png)
+
+![The same widget at 9 × 8](docs/assets/personnel-staffed--mobile-9x8.png)
+
+![The same widget at 5 × 18](docs/assets/personnel-staffed--portrait-5x18.png)
+
+![The same widget at 18 × 5](docs/assets/personnel-staffed--landscape-18x5.png)
+
+![RP-1 is present but has not answered for the payroll: every count reads as the null token, which is the picture this scene exists to hold, because the same state used to render three labels with blank space beside them and looked like a finished layout](docs/assets/personnel-unanswered--default.png)
+
+![The same widget at its minimum size](docs/assets/personnel-unanswered--min.png)
+
+![The same widget at 9 × 8](docs/assets/personnel-unanswered--mobile-9x8.png)
+
+![The same widget at 5 × 18](docs/assets/personnel-unanswered--portrait-5x18.png)
+
+![The same widget at 18 × 5](docs/assets/personnel-unanswered--landscape-18x5.png)
+
 ## Augments
 
 | Augment | Into | Reads | Presence | Notes |
@@ -95,7 +125,6 @@ One RP-1 Program in full: its objectives, the funds it pays and has paid, its de
 | `rp1-launch-complex-status` | `launch-director.preflight` | – |  |  |
 | `rp1-program-status` | `career-economy.sections` | – |  |  |
 | `rp1-research-queue` | `tech-tree.sections` | – |  |  |
-| `rp1-space-centre-personnel` | `space-center-status.sections` | – |  |  |
 
 ![A modification, which takes the complex out of service and idles its engineers: the one row whose detail line is a warning rather than a label](docs/assets/construction-complex-modify--default.png)
 
@@ -109,9 +138,9 @@ One RP-1 Program in full: its objectives, the funds it pays and has paid, its de
 
 ![Nothing built and nothing on order, which is where a career starts](docs/assets/vehicles-empty--default.png)
 
-![The repeat-build surface in the state it is used in: two vehicles of the SAME design, one flown-ready and one still integrating](docs/assets/vehicles-repeat-build--default.png)
+![The repeat-build surface in the state it is used in: two vehicles of the SAME design, one flown-ready and one still integrating, the two lists drawn apart so neither card has to carry the other's state, and one repeat control naming the design both copies are of](docs/assets/vehicles-repeat-build--default.png)
 
-![A vehicle mid-rollout, the state the whole rollout and rollback pair exists for: four controls plus a badge and an ETA share one row, and that row is the first place this section runs out of width](docs/assets/vehicles-rolling-out--default.png)
+![A vehicle mid-rollout, the state the whole rollout and rollback pair exists for: the card carries how far the move has got and what its clock is counting down TO, neither of which the old single-row form had room for](docs/assets/vehicles-rolling-out--default.png)
 
 ![A vehicle RP-1 will not roll out, and why in its own words: the controls are absent and the refusals are the one thing a missing button cannot say for itself](docs/assets/vehicles-rollout-refused--default.png)
 

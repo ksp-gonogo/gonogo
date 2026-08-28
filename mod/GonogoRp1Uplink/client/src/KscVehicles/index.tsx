@@ -52,8 +52,9 @@ export const RP1_SCRAP_COMMAND = "rp1.vehicle.scrap";
 export const RP1_COMPLEX_RUSH_COMMAND = "rp1.complex.rush";
 
 /**
- * Every vehicle RP-1's space centre holds, and every action an operator takes on
- * one: build another, move it to a pad, bring it back, or scrap it.
+ * Every vehicle RP-1's space centre holds, and every action an operator takes
+ * here: move one to a pad, bring it back, scrap it, or order another copy of a
+ * design the centre already holds.
  *
  * <para><b>Why these are the actions worth controls.</b> Under RP-1 a rocket is
  * a DESIGN that a launch complex integrates into an article, and the career loop
