@@ -66,6 +66,33 @@ export interface LaunchDirectorSlotContext {
   funds: number | undefined;
 }
 
+/**
+ * One pad, as the row that draws it sees it. An Uplink that models launch
+ * complexes joins its own pad record on {@link siteName} and says what it knows
+ * about THIS pad: which complex owns it, whether it is being reconditioned, what
+ * is rolling out to it and when that arrives.
+ *
+ * The context is per-row rather than per-selection because the list is
+ * prioritised by what is standing on each pad, and a pad an Uplink knows is
+ * busy has to be able to say so from the row rather than only once opened.
+ */
+export interface LaunchDirectorPadContext {
+  /** The site's internal `LaunchSite.name`: the stable key an Uplink joins on. */
+  siteName: string;
+  /** The site's human-facing name, as the row shows it. */
+  displayName: string;
+  /** KSP's `EditorFacility` name for this site: a `VAB` site is a pad, an `SPH` site a runway. */
+  editorFacility: string;
+  /** Whether a vessel is standing on this pad; `null` when this site reports no occupancy. */
+  occupied: boolean | null;
+  /** The occupying vessel's name, `null` when none is reported. */
+  occupantName: string | null;
+  /** Whether this is the pad the operator has opened, so an augment can spend more room on it. */
+  expanded: boolean;
+  /** Career funds balance; undefined in sandbox/science or before telemetry. */
+  funds: number | undefined;
+}
+
 // Declaration-merge the slot ids onto their props type in core's `SlotRegistry`.
 // Co-located here (not a shared central file) so parallel slot work on
 // other widgets can't collide. This makes `registerAugment` and
@@ -74,6 +101,7 @@ export interface LaunchDirectorSlotContext {
 declare module "@ksp-gonogo/core" {
   interface SlotRegistry {
     "launch-director.preflight": LaunchDirectorSlotContext;
+    "launch-director.pad": LaunchDirectorPadContext;
   }
 }
 
@@ -108,6 +136,17 @@ export interface LaunchSiteEntry {
   body: string;
   ready: boolean;
   unlocked: boolean;
+  /**
+   * Whether a vessel is standing on this pad, `null` when this site reports no
+   * occupancy at all. The two are different answers and the row says so
+   * differently: the mod derives occupancy from the active vessel being at
+   * PRELAUNCH and replicates it onto the stock VAB pad ALONE, so the runway and
+   * every Making History / Kerbal Konstructs site carries `null` rather than a
+   * claim that they are clear.
+   */
+  occupied: boolean | null;
+  /** The occupying vessel's name; `null` whenever {@link occupied} is not true. */
+  occupantName: string | null;
 }
 
 /**
@@ -242,9 +281,42 @@ export function parseLaunchSites(raw: unknown): LaunchSiteEntry[] | null {
       body: typeof e.body === "string" ? e.body : "",
       ready: e.ready === true,
       unlocked: isNewShape ? true : e.unlocked === true,
+      // Only a real boolean is an answer. Anything else is a site that reported
+      // no occupancy, which the row states rather than rendering as clear.
+      occupied: typeof e.padOccupied === "boolean" ? e.padOccupied : null,
+      occupantName:
+        typeof e.padVesselTitle === "string" && e.padVesselTitle
+          ? e.padVesselTitle
+          : null,
     });
   }
   return out;
+}
+
+/**
+ * The pads, with the ones holding a vessel first.
+ *
+ * Only a REPORTED occupant promotes a pad. A pad whose occupancy nobody reported
+ * keeps its place rather than being floated above one reported clear: "might be
+ * holding something" is not a reason to rank it over a pad the operator can act
+ * on, and floating it would sink the stock KSC pad (the one site that answers
+ * the question at all) below every site that stays silent.
+ *
+ * Stable otherwise, so the rest keep the order the space centre listed them in.
+ */
+export function orderPads(
+  sites: readonly LaunchSiteEntry[],
+): LaunchSiteEntry[] {
+  return [...sites].sort(
+    (a, b) => (a.occupied === true ? 0 : 1) - (b.occupied === true ? 0 : 1),
+  );
+}
+
+/** What a site's `EditorFacility` makes it, in the operator's words. */
+function padKindLabel(facility: string): string {
+  if (facility === "VAB") return "Pad";
+  if (facility === "SPH") return "Runway";
+  return facility || NULL_DISPLAY;
 }
 
 export function parseSavedShips(raw: unknown): SavedShip[] | null {
@@ -315,20 +387,6 @@ function LaunchDirectorComponent({
     undefined,
   );
   /**
-   * One read of the record, both fields off it: two subscriptions to the same
-   * derived channel cannot disagree usefully, and a cast on each
-   * (`as boolean | undefined`, `as string | undefined`) erases a `null` the
-   * channel genuinely reports, collapsing an unreported pad and a pad reported
-   * clear into one value.
-   *
-   * Only `true` makes a pad claim below. `null`/`undefined` fall through to
-   * the saved-craft list, which describes what we do have without asserting
-   * the pad is clear.
-   */
-  const spaceCentre = useStream<SpaceCenterState>("spaceCenter.state");
-  const padOccupied = spaceCentre?.padOccupied;
-  const padVesselTitle = spaceCentre?.padVesselTitle;
-  /**
    * One read of the record; `launchSite` here and `scene` below are two fields of
    * the same payload, so nothing about them can differ in how current it is.
    *
@@ -340,6 +398,15 @@ function LaunchDirectorComponent({
    */
   const sceneRecord = stillTrue(useTelemetry("spaceCenter.scene"), undefined);
   const launchSite = sceneRecord?.launchSite as string | undefined;
+  /**
+   * The pads themselves, this widget's subject.
+   *
+   * Read as the raw per-site array rather than through the `spaceCenter.state`
+   * derived channel, which collapses the whole list down to the one entry that
+   * carries occupancy. That collapse answers "is the pad busy" for a widget with
+   * a single pad in mind; a widget whose subject is every pad across every
+   * complex needs each site's own answer, occupancy included.
+   */
   const launchSitesRaw = stillTrue(
     useTelemetry("spaceCenter.launchSites"),
     undefined,
@@ -473,18 +540,22 @@ function LaunchDirectorComponent({
   const ships = parseSavedShips(savedShipsRaw);
   const crew = parseCrew(crewRosterRaw);
   const launchSites = parseLaunchSites(launchSitesRaw);
-  // Only sites the save can actually launch from; a single option is no
-  // choice, so the picker collapses below.
-  const selectableSites = (launchSites ?? []).filter((s) => s.unlocked);
+  // Only sites the save can actually launch from, in the order the operator
+  // should read them: something on it first.
+  const pads = useMemo(
+    () => orderPads((launchSites ?? []).filter((s) => s.unlocked)),
+    [launchSites],
+  );
 
   const [selectedShip, setSelectedShip] = useState<string | null>(null);
-  // Launch destination site; defaults to the stock pad to preserve prior
-  // behaviour. Per-launch context, deliberately not persisted in config.
-  const [selectedSite, setSelectedSite] = useState<string>("LaunchPad");
+  // Which pad row is open. Null means none has been picked yet, and the first
+  // pad in the prioritised order stands in: the pad worth looking at is the one
+  // the operator would have opened. Derived rather than seeded through an
+  // effect, so a pad that leaves the list cannot leave a dead selection behind.
+  const [pickedPad, setPickedPad] = useState<string | null>(null);
   const [selectedCrew, setSelectedCrew] = useState<Set<string>>(new Set());
-  const selectedSiteLabel =
-    (launchSites ?? []).find((s) => s.name === selectedSite)?.displayName ??
-    selectedSite;
+  const activePad = pads.find((p) => p.name === pickedPad) ?? pads[0];
+  const selectedSite = activePad?.name ?? "";
   const scene = sceneRecord?.scene;
 
   const ship = useMemo(
@@ -499,10 +570,25 @@ function LaunchDirectorComponent({
   const fundsAvailable = chargesFunds
     ? (careerFunds ?? 0)
     : Number.POSITIVE_INFINITY;
-  const launchableShips =
-    ships?.filter(
-      (s) => s.missingParts.length === 0 && s.requiresFunds <= fundsAvailable,
-    ) ?? [];
+  /**
+   * The craft this pad can take, which is the stock half of "what can go from
+   * here": KSP launches a VAB craft from a pad and an SPH craft from a runway,
+   * and the site says which it is.
+   *
+   * Matched on the editor RESOLVED FROM THE ORDINAL, the same fact
+   * {@link launchFacilityArg} dispatches, so a craft KSP has renamed still lands
+   * under the right site. A site whose facility is neither editor offers every
+   * craft rather than none: hiding the fleet on a name we did not recognise
+   * states that nothing can launch from here, which is a claim we cannot make.
+   */
+  const padCraft =
+    activePad === undefined || ships === null
+      ? (ships ?? [])
+      : activePad.facility === "VAB" || activePad.facility === "SPH"
+        ? ships.filter((s) => launchFacilityArg(s) === activePad.facility)
+        : ships;
+  const occupiedPads = pads.filter((p) => p.occupied === true).length;
+  const unreportedPads = pads.filter((p) => p.occupied === null).length;
 
   const rows = h ?? 9;
   const showSubtitle = rows >= 4;
@@ -520,7 +606,12 @@ function LaunchDirectorComponent({
     funds: careerFunds ?? undefined,
   };
 
-  if (ships === null) {
+  const inFlight = scene === "Flight";
+
+  // The pads are the subject, so their absence is what empties the panel. Not
+  // gated on the craft list any more: a craft list is what one pad can take,
+  // and a widget that blanks over it says nothing about the pads it does know.
+  if (launchSites === null && !inFlight) {
     return (
       <Panel
         panelTitle="LAUNCH & RECOVERY"
@@ -543,8 +634,7 @@ function LaunchDirectorComponent({
     );
   }
 
-  const inFlight = scene === "Flight";
-  const activeName = vesselName ?? padVesselTitle ?? "(unnamed)";
+  const activeName = vesselName ?? activePad?.occupantName ?? "(unnamed)";
   // Only treat recovery as "crash-blocked" when the most recent crash is
   // for the active vessel: otherwise a debris crash from earlier in the
   // session would stop the operator recovering a successful landing.
@@ -587,9 +677,11 @@ function LaunchDirectorComponent({
           >
             {inFlight
               ? `In flight: ${activeName}${launchSite && (w ?? 7) >= 6 ? ` · from ${launchSite}` : ""}`
-              : padOccupied
-                ? `On pad: ${activeName}`
-                : `${launchableShips.length}/${ships.length} ready · ${selectedSiteLabel}`}
+              : padSummary({
+                  pads: pads.length,
+                  occupied: occupiedPads,
+                  unreported: unreportedPads,
+                })}
             {typeof careerFunds === "number" && (
               <FundsReadout title="Available funds">
                 · <Unit value={value("funds", careerFunds)} />
@@ -640,182 +732,353 @@ function LaunchDirectorComponent({
             toTrackingCmd={toTrackingCmd}
             switchCmd={switchCmd}
           />
-        ) : padOccupied ? (
-          <PadActions>
-            <ArmedButton
-              kind="recover"
-              handle={recoverCmd}
-              commandLabel="Recover"
-              label="Recover"
-              confirmLabel="Confirm recover"
-              pendingLabel="Recovering..."
-            />
-            {/* Revert always to VAB by default; the mod's revertToEditor
-                command accepts vab|sph but the widget cannot tell which editor
-                the original craft came from from flight state alone. */}
-            <ArmedButton
-              kind="revert"
-              handle={revertEditorCmd}
-              args={{ editor: "vab" }}
-              commandLabel="Revert to VAB"
-              label="Revert to VAB"
-              confirmLabel="Confirm revert"
-              pendingLabel="Reverting..."
-            />
-          </PadActions>
         ) : (
-          <>
-            <SectionLabel>Saved craft</SectionLabel>
-            <ShipList>
-              {ships.map((s) => {
-                const blocked =
-                  s.missingParts.length > 0 || s.requiresFunds > fundsAvailable;
-                return (
-                  <ShipRow
-                    key={`${s.facility}/${s.name}`}
-                    type="button"
-                    data-ship-row
-                    $selected={selectedShip === s.name}
-                    $blocked={blocked}
-                    aria-pressed={selectedShip === s.name}
-                    aria-disabled={blocked}
-                    onClick={() => {
-                      if (blocked) return;
-                      if (selectedShip === s.name) {
-                        setSelectedShip(null);
-                        setSelectedCrew(new Set());
-                        return;
-                      }
-                      setSelectedShip(s.name);
-                      setSelectedCrew(new Set());
-                    }}
-                  >
-                    <ShipMeta>
-                      <ShipName>{s.name}</ShipName>
-                      <ShipDetails>
-                        {s.facility} · {s.partCount} parts ·{" "}
-                        <Unit value={value("t", s.totalMass)} decimals={1} />
-                      </ShipDetails>
-                    </ShipMeta>
-                    <ShipCost>
-                      {s.requiresFunds > fundsAvailable && (
-                        <BlockedTag title="Insufficient funds">
-                          {s.requiresFunds.toFixed(0)}
-                          <Unit>funds</Unit>
-                        </BlockedTag>
-                      )}
-                      {s.requiresFunds <= fundsAvailable &&
-                        s.requiresFunds > 0 && (
-                          <CostTag>
-                            {s.requiresFunds.toFixed(0)}
-                            <Unit>funds</Unit>
-                          </CostTag>
-                        )}
-                      {s.missingParts.length > 0 && (
-                        <BlockedTag
-                          title={`Missing: ${s.missingParts.join(", ")}`}
-                        >
-                          {s.missingParts.length} locked
-                        </BlockedTag>
-                      )}
-                    </ShipCost>
-                  </ShipRow>
-                );
-              })}
-            </ShipList>
-
-            {ship && crew && (
-              <>
-                <SectionLabel>Crew</SectionLabel>
-                <CrewGrid>
-                  {crew.map((k) => (
-                    <CrewChip
-                      key={k.name}
-                      type="button"
-                      $selected={selectedCrew.has(k.name)}
-                      $disabled={!k.available}
-                      title={
-                        k.available
-                          ? `${k.trait} · L${k.experienceLevel}`
-                          : k.unavailableReason
-                      }
-                      onClick={() => {
-                        if (!k.available) return;
-                        setSelectedCrew((prev) => {
-                          const next = new Set(prev);
-                          if (next.has(k.name)) next.delete(k.name);
-                          else next.add(k.name);
-                          return next;
-                        });
-                      }}
-                    >
-                      <CrewName>{k.name}</CrewName>
-                      <CrewTrait>
-                        {k.trait || NULL_DISPLAY}
-                        {k.available ? ` L${k.experienceLevel}` : ""}
-                      </CrewTrait>
-                    </CrewChip>
-                  ))}
-                </CrewGrid>
-
-                {selectableSites.length > 1 && (
-                  <>
-                    <SectionLabel>Launch site</SectionLabel>
-                    <SiteList>
-                      {selectableSites.map((s) => (
-                        <SiteChip
-                          key={s.name}
-                          type="button"
-                          $selected={selectedSite === s.name}
-                          aria-pressed={selectedSite === s.name}
-                          onClick={() => setSelectedSite(s.name)}
-                        >
-                          <SiteName>{s.displayName}</SiteName>
-                          <SiteMeta>
-                            {s.facility}
-                            {s.body && s.body !== "Kerbin"
-                              ? ` · ${s.body}`
-                              : ""}
-                          </SiteMeta>
-                        </SiteChip>
-                      ))}
-                    </SiteList>
-                  </>
-                )}
-
-                <LaunchControls>
-                  <ArmedButton
-                    kind="launch"
-                    handle={launchCmd}
-                    args={{
-                      shipName: ship.name,
-                      facility: launchFacilityArg(ship),
-                      site: selectedSite,
-                      crew: Array.from(selectedCrew),
-                    }}
-                    commandLabel={`Launch ${ship.name}`}
-                    label={
-                      selectedCrew.size > 0
-                        ? `Launch ${ship.name} (${selectedCrew.size} crew)`
-                        : `Launch ${ship.name} unmanned`
-                    }
-                    confirmLabel="Confirm launch"
-                    pendingLabel="Launching..."
-                  />
-                </LaunchControls>
-              </>
-            )}
-            {/* Pre-launch checklist augments: a life-support / logistics Uplink
-                appends a checklist item here. Empty until bound; the
-                funds readout and existing controls above are untouched. */}
-            <AugmentSlot name="launch-director.preflight" props={slotContext} />
-          </>
+          <PadSection
+            pads={pads}
+            activePad={activePad}
+            onPickPad={(name) => {
+              setPickedPad(name);
+              setSelectedShip(null);
+              setSelectedCrew(new Set());
+            }}
+            padCraft={padCraft}
+            craftKnown={ships !== null}
+            crew={crew}
+            selectedShip={selectedShip}
+            onSelectShip={(name) => {
+              setSelectedShip(name);
+              setSelectedCrew(new Set());
+            }}
+            selectedCrew={selectedCrew}
+            onToggleCrew={(name) =>
+              setSelectedCrew((prev) => {
+                const next = new Set(prev);
+                if (next.has(name)) next.delete(name);
+                else next.add(name);
+                return next;
+              })
+            }
+            fundsAvailable={fundsAvailable}
+            funds={careerFunds ?? undefined}
+            launchCmd={launchCmd}
+            recoverCmd={recoverCmd}
+            revertEditorCmd={revertEditorCmd}
+            slotContext={slotContext}
+          />
         )}
       </Body>
     </Panel>
   );
 }
 
+/**
+ * The subtitle's account of the pads. Every pad silent about occupancy is not
+ * every pad clear, so an all-unreported list says exactly that rather than
+ * claiming the space centre is empty.
+ */
+function padSummary({
+  pads,
+  occupied,
+  unreported,
+}: {
+  pads: number;
+  occupied: number;
+  unreported: number;
+}): string {
+  if (pads === 0) return "No pads";
+  const label = `${pads} pad${pads === 1 ? "" : "s"}`;
+  if (unreported === pads) return `${label} · occupancy unreported`;
+  // "all clear" is a claim about EVERY pad, so it is only available when every
+  // pad answered. With some silent it becomes a count of the ones that did.
+  const parts = [label];
+  if (occupied > 0) parts.push(`${occupied} occupied`);
+  else if (unreported === 0) parts.push("all clear");
+  else parts.push(`${pads - unreported} clear`);
+  if (unreported > 0) parts.push(`${unreported} unreported`);
+  return parts.join(" · ");
+}
+
+/** What is standing on this pad, including the case where nobody said. */
+function occupancyText(site: LaunchSiteEntry): string {
+  if (site.occupied === true)
+    return `On pad: ${site.occupantName ?? NULL_DISPLAY}`;
+  if (site.occupied === false) return "Clear";
+  return "Occupancy unreported";
+}
+
+/**
+ * The pads, and what the operator can do with the one they have opened.
+ *
+ * The list is the subject: what is standing on a pad is a fact of the pad and is
+ * read straight off the row, rather than being a join between a craft list and a
+ * separate occupancy flag that a reader has to remember to make.
+ *
+ * A pad an Uplink knows more about says so through `launch-director.pad`, which
+ * every row carries. What can launch from an open pad is the stock capability:
+ * KSP will take any saved craft from the matching editor, so the picker is the
+ * craft list narrowed to this site's own.
+ */
+function PadSection({
+  pads,
+  activePad,
+  onPickPad,
+  padCraft,
+  craftKnown,
+  crew,
+  selectedShip,
+  onSelectShip,
+  selectedCrew,
+  onToggleCrew,
+  fundsAvailable,
+  funds,
+  launchCmd,
+  recoverCmd,
+  revertEditorCmd,
+  slotContext,
+}: {
+  pads: readonly LaunchSiteEntry[];
+  activePad: LaunchSiteEntry | undefined;
+  onPickPad: (name: string) => void;
+  padCraft: readonly SavedShip[];
+  /** False while the saved-craft list has never arrived, which is not an empty pad. */
+  craftKnown: boolean;
+  crew: CrewMember[] | null;
+  selectedShip: string | null;
+  onSelectShip: (name: string | null) => void;
+  selectedCrew: ReadonlySet<string>;
+  onToggleCrew: (name: string) => void;
+  fundsAvailable: number;
+  funds: number | undefined;
+  launchCmd: CommandButtonHandle;
+  recoverCmd: CommandButtonHandle;
+  revertEditorCmd: CommandButtonHandle;
+  slotContext: LaunchDirectorSlotContext;
+}) {
+  const ship = selectedShip
+    ? padCraft.find((s) => s.name === selectedShip)
+    : undefined;
+
+  return (
+    <>
+      <SectionLabel>Pads</SectionLabel>
+      {pads.length === 0 ? (
+        <EmptyNote>No launch sites reported</EmptyNote>
+      ) : (
+        <PadList>
+          {pads.map((site) => {
+            const expanded = site.name === activePad?.name;
+            return (
+              <PadCard key={site.name}>
+                <PadRowButton
+                  type="button"
+                  data-pad-row
+                  $selected={expanded}
+                  aria-pressed={expanded}
+                  onClick={() => onPickPad(site.name)}
+                >
+                  <PadMeta>
+                    <PadName>{site.displayName}</PadName>
+                    <PadDetails>
+                      {padKindLabel(site.facility)}
+                      {site.body && site.body !== "Kerbin"
+                        ? ` · ${site.body}`
+                        : ""}
+                    </PadDetails>
+                  </PadMeta>
+                  <PadOccupancy $occupied={site.occupied}>
+                    {occupancyText(site)}
+                  </PadOccupancy>
+                </PadRowButton>
+                <PadAside>
+                  <AugmentSlot
+                    name="launch-director.pad"
+                    props={{
+                      siteName: site.name,
+                      displayName: site.displayName,
+                      editorFacility: site.facility,
+                      occupied: site.occupied,
+                      occupantName: site.occupantName,
+                      expanded,
+                      funds,
+                    }}
+                  />
+                </PadAside>
+                {expanded && (
+                  <PadDetail>
+                    {site.occupied === true ? (
+                      /* The pad's occupant is the vessel KSP has at PRELAUNCH,
+                         which is the one both commands act on; neither takes a
+                         site argument because there is only ever one such
+                         vessel. */
+                      <PadActions>
+                        <ArmedButton
+                          kind="recover"
+                          handle={recoverCmd}
+                          commandLabel="Recover"
+                          label="Recover"
+                          confirmLabel="Confirm recover"
+                          pendingLabel="Recovering..."
+                        />
+                        {/* Revert always to VAB by default; the mod's
+                            revertToEditor command accepts vab|sph but the widget
+                            cannot tell which editor the craft on the pad came
+                            from. */}
+                        <ArmedButton
+                          kind="revert"
+                          handle={revertEditorCmd}
+                          args={{ editor: "vab" }}
+                          commandLabel="Revert to VAB"
+                          label="Revert to VAB"
+                          confirmLabel="Confirm revert"
+                          pendingLabel="Reverting..."
+                        />
+                      </PadActions>
+                    ) : !craftKnown ? (
+                      <EmptyNote>Awaiting saved-craft telemetry</EmptyNote>
+                    ) : padCraft.length === 0 ? (
+                      <EmptyNote>
+                        No saved craft for this{" "}
+                        {padKindLabel(site.facility).toLowerCase()}
+                      </EmptyNote>
+                    ) : (
+                      <>
+                        <SectionLabel>
+                          Craft ·{" "}
+                          {
+                            padCraft.filter(
+                              (s) =>
+                                s.missingParts.length === 0 &&
+                                s.requiresFunds <= fundsAvailable,
+                            ).length
+                          }
+                          /{padCraft.length} ready
+                        </SectionLabel>
+                        <ShipList>
+                          {padCraft.map((s) => {
+                            const blocked =
+                              s.missingParts.length > 0 ||
+                              s.requiresFunds > fundsAvailable;
+                            return (
+                              <ShipRow
+                                key={`${s.facility}/${s.name}`}
+                                type="button"
+                                data-ship-row
+                                $selected={selectedShip === s.name}
+                                $blocked={blocked}
+                                aria-pressed={selectedShip === s.name}
+                                aria-disabled={blocked}
+                                onClick={() => {
+                                  if (blocked) return;
+                                  onSelectShip(
+                                    selectedShip === s.name ? null : s.name,
+                                  );
+                                }}
+                              >
+                                <ShipMeta>
+                                  <ShipName>{s.name}</ShipName>
+                                  <ShipDetails>
+                                    {s.partCount} parts ·{" "}
+                                    <Unit
+                                      value={value("t", s.totalMass)}
+                                      decimals={1}
+                                    />
+                                  </ShipDetails>
+                                </ShipMeta>
+                                <ShipCost>
+                                  {s.requiresFunds > fundsAvailable && (
+                                    <BlockedTag title="Insufficient funds">
+                                      {s.requiresFunds.toFixed(0)}
+                                      <Unit>funds</Unit>
+                                    </BlockedTag>
+                                  )}
+                                  {s.requiresFunds <= fundsAvailable &&
+                                    s.requiresFunds > 0 && (
+                                      <CostTag>
+                                        {s.requiresFunds.toFixed(0)}
+                                        <Unit>funds</Unit>
+                                      </CostTag>
+                                    )}
+                                  {s.missingParts.length > 0 && (
+                                    <BlockedTag
+                                      title={`Missing: ${s.missingParts.join(", ")}`}
+                                    >
+                                      {s.missingParts.length} locked
+                                    </BlockedTag>
+                                  )}
+                                </ShipCost>
+                              </ShipRow>
+                            );
+                          })}
+                        </ShipList>
+
+                        {ship && crew && (
+                          <>
+                            <SectionLabel>Crew</SectionLabel>
+                            <CrewGrid>
+                              {crew.map((k) => (
+                                <CrewChip
+                                  key={k.name}
+                                  type="button"
+                                  $selected={selectedCrew.has(k.name)}
+                                  $disabled={!k.available}
+                                  title={
+                                    k.available
+                                      ? `${k.trait} · L${k.experienceLevel}`
+                                      : k.unavailableReason
+                                  }
+                                  onClick={() => {
+                                    if (!k.available) return;
+                                    onToggleCrew(k.name);
+                                  }}
+                                >
+                                  <CrewName>{k.name}</CrewName>
+                                  <CrewTrait>
+                                    {k.trait || NULL_DISPLAY}
+                                    {k.available
+                                      ? ` L${k.experienceLevel}`
+                                      : ""}
+                                  </CrewTrait>
+                                </CrewChip>
+                              ))}
+                            </CrewGrid>
+                            <LaunchControls>
+                              <ArmedButton
+                                kind="launch"
+                                handle={launchCmd}
+                                args={{
+                                  shipName: ship.name,
+                                  facility: launchFacilityArg(ship),
+                                  site: site.name,
+                                  crew: Array.from(selectedCrew),
+                                }}
+                                commandLabel={`Launch ${ship.name}`}
+                                label={
+                                  selectedCrew.size > 0
+                                    ? `Launch ${ship.name} (${selectedCrew.size} crew)`
+                                    : `Launch ${ship.name} unmanned`
+                                }
+                                confirmLabel="Confirm launch"
+                                pendingLabel="Launching..."
+                              />
+                            </LaunchControls>
+                          </>
+                        )}
+                      </>
+                    )}
+                  </PadDetail>
+                )}
+              </PadCard>
+            );
+          })}
+        </PadList>
+      )}
+      {/* Pre-launch checklist augments: a life-support / logistics Uplink
+          appends a checklist item here. Empty until bound; the funds readout and
+          the pad list above are untouched. */}
+      <AugmentSlot name="launch-director.preflight" props={slotContext} />
+    </>
+  );
+}
 function InFlightPanel({
   missionTime,
   altitudeMeters,
@@ -1131,6 +1394,95 @@ const SectionLabel = styled.div`
   margin-top: var(--space-2);
 `;
 
+const PadList = styled.div`
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+`;
+
+const PadCard = styled.div`
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+`;
+
+const PadRowButton = styled.button<{ $selected: boolean }>`
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: var(--space-8);
+  padding: var(--space-6) var(--space-8);
+  background: ${(p) =>
+    p.$selected ? "var(--color-surface-raised)" : "var(--color-surface-panel)"};
+  border: 1px solid
+    ${(p) =>
+      p.$selected ? "var(--color-accent-fg)" : "var(--color-surface-raised)"};
+  border-radius: var(--radius-xs);
+  cursor: pointer;
+  text-align: left;
+  font-family: inherit;
+  &:focus-visible {
+    outline: 2px solid var(--color-accent-fg);
+    outline-offset: 2px;
+  }
+`;
+
+const PadMeta = styled.span`
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  flex: 1;
+  min-width: 0;
+`;
+
+const PadName = styled.span`
+  font-size: var(--font-size-sm);
+  font-weight: 600;
+  color: var(--color-text-primary);
+`;
+
+const PadDetails = styled.span`
+  font-size: var(--font-size-2xs);
+  color: var(--color-text-faint);
+`;
+
+/* Occupied reads as the live state, unreported as a caution: an operator who
+   skims the colour must not read silence as an empty pad. */
+const PadOccupancy = styled.span<{ $occupied: boolean | null }>`
+  font-size: var(--font-size-2xs);
+  flex-shrink: 0;
+  text-align: right;
+  color: ${(p) =>
+    p.$occupied === true
+      ? "var(--color-status-go-fg)"
+      : p.$occupied === null
+        ? "var(--color-text-muted)"
+        : "var(--color-text-faint)"};
+`;
+
+/* What an Uplink adds to a pad, indented under the row it belongs to and one
+   step down in size, so a space centre with six pads still reads as a list. */
+const PadAside = styled.div`
+  padding-left: var(--space-8);
+  font-size: var(--font-size-2xs);
+  &:empty {
+    display: none;
+  }
+`;
+
+const PadDetail = styled.div`
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-8);
+  padding-left: var(--space-8);
+  border-left: 2px solid var(--color-surface-raised);
+`;
+
+const EmptyNote = styled.div`
+  font-size: var(--font-size-2xs);
+  color: var(--color-text-faint);
+  line-height: var(--line-height-body);
+`;
 /* Was `styled.ul` but `<button>` is not a valid child of `<ul>` (only
    `<li>` is). The list-of-buttons UI doesn't benefit from list
    semantics here: screen readers don't typically need a length count
@@ -1554,21 +1906,22 @@ registerComponent<LaunchDirectorConfig>({
   id: "launch-director",
   name: "Launch & Recovery",
   description:
-    "Pick a saved craft and crew, launch from a pad, or recover/revert the current flight. Greyed-out craft are blocked by funds or missing tech; greyed-out kerbals are off-duty. Buttons that fire a launch or recovery always confirm before sending the action.",
+    "Every launch pad across the space centre, the ones with something standing on them first, and what you can do from the one you open: launch a craft and crew from it, or recover and revert what is already there. Greyed-out craft are blocked by funds or missing tech; greyed-out kerbals are off-duty. Buttons that fire a launch or recovery always confirm before sending the action.",
   tags: ["career", "launch"],
   defaultSize: { w: 7, h: 10 },
   minSize: { w: 4, h: 6 },
   component: LaunchDirectorComponent,
-  // A pre-launch checklist section, unfilled until a life-support or logistics Uplink binds; the launch flow renders unchanged either way.
-  augmentSlots: ["launch-director.preflight"],
+  // A per-pad section, so an Uplink that models launch complexes says what it
+  // knows about each pad, and a pre-launch checklist section for a life-support
+  // or logistics Uplink. Both unfilled until one binds; the launch flow renders
+  // unchanged either way.
+  augmentSlots: ["launch-director.pad", "launch-director.preflight"],
   dataRequirements: [
     "spaceCenter.savedShips",
     "spaceCenter.crewRoster",
     "spaceCenter.launchSites",
     "spaceCenter.scene.scene",
     "spaceCenter.scene.launchSite",
-    "spaceCenter.state.padOccupied",
-    "spaceCenter.state.padVesselTitle",
     "career.status.economy.funds",
     "career.status.economy.subsidyPerDay",
     "career.status.economy.upkeepPerDay",

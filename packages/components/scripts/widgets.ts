@@ -633,11 +633,11 @@ const WIDGETS: WidgetRenderConfig[] = [
     fixturesPath: "LaunchDirector/__fixtures__",
     outPath: "renders/launch-director-widget",
     modes: [
-      // Minimum registered size: subtitle visible (h>=4), compact ship list.
+      // Minimum registered size: subtitle visible (h>=4), compact pad list.
       { name: "min-4x6", w: 4, h: 6 },
-      // Default registered size: comfortable ship list + crew grid.
+      // Default registered size: pad list plus the open pad's craft and crew.
       { name: "default-7x10", w: 7, h: 10 },
-      // Tall narrow: long ship list, crew grid stacks tight.
+      // Tall narrow: the whole pad list plus a long craft list under the open one.
       { name: "tall-5x14", w: 5, h: 14 },
       // Wide landscape: buttons and rows have horizontal breathing room.
       { name: "wide-10x7", w: 10, h: 7 },
@@ -661,14 +661,23 @@ const WIDGETS: WidgetRenderConfig[] = [
         clicks: [{ selector: '[data-launch-action="arm-revert"]' }],
         forFixtures: ["in-flight-ascent", "pad-occupied"],
       },
-      // Launch-site picker: only renders after a ship is selected, so
-      // click the first (affordable) ship row to reveal it. Scoped to the
-      // pre-launch fixture that carries multi-site kc.launchSites.
+      // The crew grid and the launch control only render once a craft is
+      // picked, so click the first craft row under the open pad to reveal
+      // them. Scoped to the multi-pad pre-launch fixture.
       {
-        name: "site-picker-7x18",
+        name: "craft-picked-7x18",
         w: 7,
         h: 18,
         clicks: [{ selector: "[data-ship-row]" }],
+        forFixtures: ["pre-launch-mixed"],
+      },
+      // A second pad opened: the runway, whose craft are the spaceplanes the
+      // VAB pad above does not offer.
+      {
+        name: "runway-opened-7x14",
+        w: 7,
+        h: 14,
+        clicks: [{ selector: '[data-pad-row][aria-pressed="false"]' }],
         forFixtures: ["pre-launch-mixed"],
       },
     ],

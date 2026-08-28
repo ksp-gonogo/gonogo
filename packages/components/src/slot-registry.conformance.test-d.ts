@@ -26,7 +26,10 @@ import type {
 import type { ActionGroupSlotContext } from "./ActionGroup";
 import type { CrewAvatarContext, CrewBadgeContext } from "./CrewStatus";
 import type { ExperimentsInstrumentSlotContext } from "./Experiments";
-import type { LaunchDirectorSlotContext } from "./LaunchDirector";
+import type {
+  LaunchDirectorPadContext,
+  LaunchDirectorSlotContext,
+} from "./LaunchDirector";
 import type {
   MapBaseLayerContext,
   MapOverlayContext,
@@ -135,6 +138,13 @@ type _LaunchBack = Expect<
     LaunchDirectorSlotContext,
     SdkSlotProps<"launch-director.preflight">
   >
+>;
+
+type _LaunchPad = Expect<
+  Assignable<SdkSlotProps<"launch-director.pad">, LaunchDirectorPadContext>
+>;
+type _LaunchPadBack = Expect<
+  Assignable<LaunchDirectorPadContext, SdkSlotProps<"launch-director.pad">>
 >;
 
 // "objectives.source" is deliberately NOT bidirectionally checked here.

@@ -80,6 +80,17 @@ describe("LaunchDirector when its telemetry is no longer current", () => {
         scene: "SpaceCenter",
         launchSite: "LaunchPad",
       });
+      stream.emit("spaceCenter.launchSites", [
+        {
+          name: "LaunchPad",
+          displayName: "KSC Launch Pad",
+          editorFacility: "VAB",
+          body: "Kerbin",
+          isStock: true,
+          padOccupied: false,
+          padVesselTitle: null,
+        },
+      ]);
       stream.emit("spaceCenter.savedShips", [KERBAL_X]);
       stream.emit("spaceCenter.crewRoster", [JEB]);
       stream.emit("career.status", {
@@ -146,7 +157,9 @@ describe("LaunchDirector when its telemetry is no longer current", () => {
     await waitFor(() =>
       expect(screen.getByTitle("Available funds")).toBeTruthy(),
     );
-    expect(screen.getByRole("status").textContent).toContain("1/1 ready");
+    // The count belongs to the pad the operator opened, not to the panel: it is
+    // what THIS pad can take.
+    expect(screen.getByText(/Craft · 1\/1 ready/)).toBeTruthy();
     expect(
       screen
         .getByRole("button", { name: /Kerbal X/ })
@@ -200,6 +213,17 @@ describe("LaunchDirector when its telemetry is no longer current", () => {
     // the link of dropping on first paint.
     const { container } = renderWidget();
     act(() => {
+      stream.emit("spaceCenter.launchSites", [
+        {
+          name: "LaunchPad",
+          displayName: "KSC Launch Pad",
+          editorFacility: "VAB",
+          body: "Kerbin",
+          isStock: true,
+          padOccupied: false,
+          padVesselTitle: null,
+        },
+      ]);
       stream.emit("spaceCenter.savedShips", [KERBAL_X]);
     });
 
@@ -231,7 +255,7 @@ describe("LaunchDirector when its telemetry is no longer current", () => {
           .getAttribute("aria-disabled"),
       ).toBe("true"),
     );
-    expect(screen.getByRole("status").textContent).toContain("0/1 ready");
+    expect(screen.getByText(/Craft · 0\/1 ready/)).toBeTruthy();
   });
 
   it("keeps the craft shelf and the crew roster, rather than falling back to a wait message", async () => {

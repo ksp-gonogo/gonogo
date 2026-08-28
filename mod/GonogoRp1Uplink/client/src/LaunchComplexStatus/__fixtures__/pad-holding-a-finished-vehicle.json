@@ -1,0 +1,186 @@
+{
+  "_meta": {
+    "notes": "The scene the pad section was rekeyed for. Vanguard has FINISHED rolling out to LC-1 and is standing on the pad: RP-1 has taken the rollout operation away and left the vehicle in the warehouse list, which is why a section reading the warehouse alone called it 'BUILT, in the warehouse, ready to roll out'. LC-5 is being reconditioned after its last launch, and the runway is not an RP-1 complex at all."
+  },
+  "_scene": {
+    "augment": "rp1-launch-complex-status",
+    "host": "launch-director",
+    "size": { "w": 8, "h": 14 },
+    "caption": "Three pads across two RP-1 complexes: one holding a vehicle that has finished rolling out, one being reconditioned, and a stock runway RP-1 does not model",
+    "paints": ["Cape Canaveral LC-1", "AT PAD", "RECONDITIONING"]
+  },
+  "_stream": {
+    "pinnedUt": 1000000,
+    "emits": [
+      { "topic": "rp1.available", "payload": true },
+      {
+        "topic": "spaceCenter.scene",
+        "payload": {
+          "scene": "SpaceCenter",
+          "launchSite": "Cape_Canaveral_LC1"
+        }
+      },
+      {
+        "topic": "spaceCenter.launchSites",
+        "payload": [
+          {
+            "name": "Cape_Canaveral_LC1",
+            "displayName": "Cape Canaveral LC-1",
+            "editorFacility": "VAB",
+            "bodyIndex": 3,
+            "isStock": false,
+            "padOccupied": null,
+            "padVesselTitle": null
+          },
+          {
+            "name": "Cape_Canaveral_LC5",
+            "displayName": "Cape Canaveral LC-5",
+            "editorFacility": "VAB",
+            "bodyIndex": 3,
+            "isStock": false,
+            "padOccupied": null,
+            "padVesselTitle": null
+          },
+          {
+            "name": "Runway",
+            "displayName": "KSC Runway",
+            "editorFacility": "SPH",
+            "bodyIndex": 3,
+            "isStock": true,
+            "padOccupied": null,
+            "padVesselTitle": null
+          }
+        ]
+      },
+      {
+        "topic": "career.status",
+        "payload": {
+          "economy": { "funds": 289848, "reputation": null, "science": null },
+          "facilities": null,
+          "contracts": null,
+          "strategies": null,
+          "tech": null
+        }
+      },
+      {
+        "topic": "spaceCenter.savedShips",
+        "payload": [
+          {
+            "name": "Vanguard",
+            "partCount": 31,
+            "totalMass": 10.1,
+            "facility": "VAB",
+            "facilityOrdinal": 1,
+            "requiresFunds": 0,
+            "missingParts": []
+          }
+        ]
+      },
+      { "topic": "spaceCenter.crewRoster", "payload": [] },
+      {
+        "topic": "rp1.complexes",
+        "payload": [
+          {
+            "kscName": "Cape Canaveral",
+            "lcId": "lc-1",
+            "name": "LC-1",
+            "lcType": "Pad",
+            "isOperational": true,
+            "isRushing": false,
+            "engineers": 42,
+            "maxEngineers": 120,
+            "efficiency": 0.71,
+            "canIntegrate": true,
+            "rate": 4.2,
+            "humanRated": false,
+            "massMin": 0,
+            "massMax": 60
+          },
+          {
+            "kscName": "Cape Canaveral",
+            "lcId": "lc-5",
+            "name": "LC-5",
+            "lcType": "Pad",
+            "isOperational": true,
+            "isRushing": false,
+            "engineers": 18,
+            "maxEngineers": 60,
+            "efficiency": 0.44,
+            "canIntegrate": true,
+            "rate": 1.8,
+            "humanRated": true,
+            "massMin": 0,
+            "massMax": 25
+          }
+        ]
+      },
+      {
+        "topic": "rp1.pads",
+        "payload": [
+          {
+            "kscName": "Cape Canaveral",
+            "lcId": "lc-1",
+            "padId": "pad-lc1",
+            "name": "Cape_Canaveral_LC1",
+            "launchSiteName": "Cape_Canaveral_LC1",
+            "level": 2,
+            "fractionalLevel": 0.5,
+            "state": "Free",
+            "hasVesselWaiting": true,
+            "waitingVesselName": "Vanguard"
+          },
+          {
+            "kscName": "Cape Canaveral",
+            "lcId": "lc-5",
+            "padId": "pad-lc5",
+            "name": "Cape_Canaveral_LC5",
+            "launchSiteName": "Cape_Canaveral_LC5",
+            "level": 1,
+            "fractionalLevel": 0.25,
+            "state": "Reconditioning",
+            "hasVesselWaiting": false,
+            "waitingVesselName": null
+          }
+        ]
+      },
+      {
+        "topic": "rp1.operations",
+        "payload": [
+          {
+            "kscName": "Cape Canaveral",
+            "lcId": "lc-5",
+            "launchPadId": "Cape_Canaveral_LC5",
+            "type": "Reconditioning",
+            "progress": 1400,
+            "totalPoints": 4000,
+            "progressRatio": 0.35,
+            "rate": 1.8,
+            "timeLeftSeconds": 234000,
+            "stalled": false,
+            "blockingPeers": 0,
+            "cost": null,
+            "associatedVesselId": null
+          }
+        ]
+      },
+      {
+        "topic": "rp1.warehouse",
+        "payload": [
+          {
+            "id": "proj-vanguard",
+            "shipId": "ship-vanguard",
+            "rolloutRefusals": null,
+            "kscName": "Cape Canaveral",
+            "lcId": "lc-1",
+            "shipName": "Vanguard",
+            "cost": 41200,
+            "mass": 10.1,
+            "humanRated": false,
+            "launchSite": "Cape_Canaveral_LC1",
+            "projectType": "VAB"
+          }
+        ]
+      }
+    ]
+  }
+}

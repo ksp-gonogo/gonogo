@@ -1985,6 +1985,7 @@ export const ALLOWLIST: Record<ModToken, ModAllowlist> = {
       "packages/components/src/test/installProfile.ts",
       "packages/components/src/test/installProfile.test.ts",
       "packages/components/src/FleetReliability/install-profiles.test.tsx",
+      "packages/components/src/LaunchDirector/install-profiles.test.tsx",
       /*
        * Every entry is a doc-mention naming TestFlight as the OTHER backend that
        * competes for the shared "reliability" capability, which is how the

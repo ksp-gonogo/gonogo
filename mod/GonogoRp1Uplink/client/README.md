@@ -122,7 +122,7 @@ RP-1's payroll: engineers, researchers and applicants on the books, each centre'
 | `rp1-crew-programme` | `astronaut-complex.sections` | – |  |  |
 | `rp1-ksc-construction` | `space-center-status.sections` | – |  |  |
 | `rp1-ksc-vehicles` | `space-center-status.sections` | – |  |  |
-| `rp1-launch-complex-status` | `launch-director.preflight` | – |  |  |
+| `rp1-launch-complex-status` | `launch-director.pad` | – |  |  |
 | `rp1-program-status` | `career-economy.sections` | – |  |  |
 | `rp1-research-queue` | `tech-tree.sections` | – |  |  |
 
@@ -143,4 +143,6 @@ RP-1's payroll: engineers, researchers and applicants on the books, each centre'
 ![A vehicle mid-rollout, the state the whole rollout and rollback pair exists for: the card carries how far the move has got and what its clock is counting down TO, neither of which the old single-row form had room for](docs/assets/vehicles-rolling-out--default.png)
 
 ![A vehicle RP-1 will not roll out, and why in its own words: the controls are absent and the refusals are the one thing a missing button cannot say for itself](docs/assets/vehicles-rollout-refused--default.png)
+
+![Three pads across two RP-1 complexes: one holding a vehicle that has finished rolling out, one being reconditioned, and a stock runway RP-1 does not model](docs/assets/pad-holding-a-finished-vehicle--default.png)
 
