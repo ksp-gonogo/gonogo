@@ -183,7 +183,7 @@ Every craft RP-1 is integrating or holding, across every launch complex at every
 | `rp1-crew-programme` | `astronaut-complex.sections` | – |  |  |
 | `rp1-ksc-complexes` | `space-center-status.sections` | – |  |  |
 | `rp1-ksc-construction` | `space-center-status.sections` | – |  |  |
-| `rp1-launch-complex-status` | `launch-director.preflight` | – |  |  |
+| `rp1-launch-complex-status` | `launch-director.pad` | – |  |  |
 | `rp1-program-status` | `career-economy.sections` | – |  |  |
 | `rp1-research-queue` | `tech-tree.sections` | – |  |  |
 | `rp1-vehicle-assembly-building` | `rp1-vehicle-assembly.sections` | – |  |  |
@@ -200,4 +200,6 @@ Every craft RP-1 is integrating or holding, across every launch complex at every
 ![A construction RP-1 has not priced yet, a real state on a freshly loaded save, proving it does not read as stalled](docs/assets/construction-not-costed--default.png)
 
 ![The two clock states that are not an ETA, side by side: money being spent faster on purpose, and a throttle wound shut](docs/assets/construction-rushing-and-stalled--default.png)
+
+![Three pads across two RP-1 complexes: one holding a vehicle that has finished rolling out, one being reconditioned, and a stock runway RP-1 does not model](docs/assets/pad-holding-a-finished-vehicle--default.png)
 
