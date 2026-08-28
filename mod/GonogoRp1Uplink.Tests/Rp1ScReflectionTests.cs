@@ -19,6 +19,10 @@ public class Rp1ScReflectionTests : IDisposable
     {
         SpaceCenterManagement.Instance = null;
         Confidence.Instance = null;
+        // Cleared as well as set, because the walk reads it for the money
+        // figures: a handler another file in this collection left standing would
+        // put that file's costs on this file's rows.
+        MaintenanceHandler.Instance = null;
         LCEfficiency.MaxEfficiency = 1.0;
     }
 
@@ -26,6 +30,7 @@ public class Rp1ScReflectionTests : IDisposable
     {
         SpaceCenterManagement.Instance = null;
         Confidence.Instance = null;
+        MaintenanceHandler.Instance = null;
     }
 
     [Fact]
@@ -430,6 +435,128 @@ public class Rp1ScReflectionTests : IDisposable
             scm.LCToEfficiency[lc] = new LCEfficiency(efficiency.Value);
         }
         SpaceCenterManagement.Instance = scm;
+    }
+
+    [Fact]
+    public void A_complex_publishes_the_envelope_that_decides_what_can_be_built_there()
+    {
+        var pad = new LaunchComplex
+        {
+            Name = "LC-1",
+            MassMinValue = 6f,
+            MassMaxValue = 180f,
+            SizeMaxValue = new UnityEngine.Vector3(9f, 40f, 12f),
+        };
+        pad.ResourcesHandledValue["LqdOxygen"] = 20_000.0;
+        pad.ResourcesHandledValue["Kerosene"] = 8_000.0;
+        Install(pad, efficiency: 0.5);
+
+        var complex = Single(new Rp1ScReflection().Read(1.0).Complexes);
+
+        Assert.Equal(6.0, complex.MassMin);
+        Assert.Equal(180.0, complex.MassMax);
+        // y is the vertical limit, and the three axes are separate because RP-1
+        // keeps them separate and they are free to differ.
+        Assert.Equal(40.0, complex.SizeMaxHeight);
+        Assert.Equal(9.0, complex.SizeMaxWidth);
+        Assert.Equal(12.0, complex.SizeMaxDepth);
+        // Sorted, so a client's rendering does not move when the dictionary
+        // rehashes.
+        Assert.Equal(new[] { "Kerosene", "LqdOxygen" }, complex.ResourcesHandled);
+    }
+
+    [Fact]
+    public void An_unlimited_complex_publishes_no_size_limit_rather_than_a_sentinel()
+    {
+        // float.MaxValue is RP-1's "no limit", and a client handed 3.4e38 metres
+        // would render a number instead of the absence it means.
+        var hangar = new LaunchComplex
+        {
+            Name = "Hangar",
+            LcTypeValue = LaunchComplexType.Hangar,
+            MassMaxValue = float.MaxValue,
+            SizeMaxValue = new UnityEngine.Vector3(float.MaxValue, float.MaxValue, float.MaxValue),
+        };
+        Install(hangar, efficiency: null);
+
+        var complex = Single(new Rp1ScReflection().Read(1.0).Complexes);
+
+        Assert.Null(complex.MassMax);
+        Assert.Null(complex.SizeMaxHeight);
+        Assert.Null(complex.SizeMaxWidth);
+        Assert.Null(complex.SizeMaxDepth);
+    }
+
+    [Fact]
+    public void The_costs_are_published_at_all_three_layers_off_RP1s_own_figures()
+    {
+        var rushing = new LaunchComplex { Name = "LC-1", Engineers = 10, IsRushing = true };
+        var quiet = new LaunchComplex { Name = "LC-2", Engineers = 4 };
+        var ksc = new LCSpaceCenter
+        {
+            KSCName = "Cape",
+            Engineers = 20,
+            LaunchComplexes = { rushing, quiet },
+        };
+        SpaceCenterManagement.Instance = new SpaceCenterManagement { KSCs = { ksc }, ActiveSC = ksc };
+        MaintenanceHandler.Instance = new MaintenanceHandler
+        {
+            IntegrationSalaryValue = 61.6,
+            ResearchSalaryPerDay = 20.0,
+            LcUpkeepValues = { [rushing] = 45.0, [quiet] = 30.0 },
+        };
+
+        var raw = new Rp1ScReflection().Read(1.0);
+        var first = raw.Complexes[0];
+        var second = raw.Complexes[1];
+        var centre = Single(raw.Centres);
+
+        // 1,000 a year each, 365.25 days: a rushing complex's ten draw double.
+        Assert.Equal(10 * 2 * 1000 / 365.25, first.SalaryPerDay!.Value, 6);
+        Assert.Equal(4 * 1000 / 365.25, second.SalaryPerDay!.Value, 6);
+        Assert.Equal(45.0, first.UpkeepPerDay);
+        Assert.Equal(30.0, second.UpkeepPerDay);
+
+        // The centre's is NOT the sum of its complexes': the six engineers
+        // assigned to nothing draw a quarter each, which is the fact an idle pool
+        // exists to make visible.
+        Assert.Equal((10 * 2 + 4 + 6 * 0.25) * 1000 / 365.25, centre.SalaryPerDay!.Value, 6);
+        Assert.Equal(75.0, centre.UpkeepPerDay);
+
+        Assert.Equal(61.6, raw.Personnel!.EngineerSalaryPerDay);
+        Assert.Equal(20.0, raw.Personnel!.ResearcherSalaryPerDay);
+        Assert.Equal(1000.0, raw.Personnel!.EngineerSalaryPerYear);
+        Assert.Equal(0.25, raw.Personnel!.IdleSalaryMult);
+    }
+
+    [Fact]
+    public void No_maintenance_handler_publishes_absent_costs_rather_than_free_ones()
+    {
+        // The main-menu and early-load state for RP-1's own upkeep module. A zero
+        // here would tell an operator their complexes cost nothing to run.
+        var pad = new LaunchComplex { Name = "LC-1", Engineers = 5 };
+        Install(pad, efficiency: 0.5);
+        MaintenanceHandler.Instance = null;
+
+        var raw = new Rp1ScReflection().Read(1.0);
+
+        Assert.Null(Single(raw.Complexes).UpkeepPerDay);
+        Assert.Null(Single(raw.Centres).UpkeepPerDay);
+        Assert.Null(raw.Personnel!.EngineerSalaryPerDay);
+        // The salary figures do NOT come off the maintenance handler, so they
+        // survive its absence: they are the space centre's own arithmetic.
+        Assert.NotNull(Single(raw.Complexes).SalaryPerDay);
+    }
+
+    [Fact]
+    public void The_rush_terms_come_off_RP1s_settings_rather_than_a_default()
+    {
+        Install(new LaunchComplex { Name = "LC-1" }, efficiency: 0.5);
+
+        var terms = new Rp1ScReflection().Read(1.0).RushTerms;
+
+        Assert.Equal(1.5, terms!.RateMult);
+        Assert.Equal(2.0, terms!.SalaryMult);
     }
 
     private static T Single<T>(List<T> list) => Assert.Single(list.AsEnumerable());

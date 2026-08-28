@@ -52,7 +52,14 @@ namespace RP0
     public sealed class SpaceCenterSettings
     {
         public double RushRateMult = 1.5;
+        public double RushSalaryMult = 2.0;
         public double repPortionLostPerDay = 0.02;
+
+        /// <summary>Ints on the real type, not doubles: a full year's pay per head.</summary>
+        public int salaryEngineers = 1000;
+        public int salaryResearchers = 1000;
+
+        public double EngineerIdleSalaryMult = 0.25;
     }
 
     public static class Database
@@ -616,6 +623,16 @@ namespace RP0
         public float MassMaxValue = 100f;
         public UnityEngine.Vector3 SizeMaxValue = new UnityEngine.Vector3(100f, 100f, 100f);
 
+        /// <summary>
+        /// The owning centre. A private <c>_ksc</c> behind a public property on
+        /// the real type, set by RP-1's own constructor; a fixture that puts a
+        /// complex in a centre's list has to set it too, and the assignment
+        /// command is what reads it (it needs the centre's unassigned pool).
+        /// </summary>
+        public LCSpaceCenter? Ksc;
+
+        public Dictionary<string, double> ResourcesHandledValue = new Dictionary<string, double>();
+
         public Guid ID => _id;
         public LaunchComplexType LCType => LcTypeValue;
         public double Rate => RateValue;
@@ -624,6 +641,11 @@ namespace RP0
         public float MassMin => MassMinValue;
         public float MassMax => MassMaxValue;
         public UnityEngine.Vector3 SizeMax => SizeMaxValue;
+        public LCSpaceCenter? KSC => Ksc;
+        public Dictionary<string, double> ResourcesHandled => ResourcesHandledValue;
+
+        /// <summary>Mirrors the real property, which returns 1.0 unless the complex is rushing.</summary>
+        public double RushSalary => IsRushing ? Database.SettingsSC.RushSalaryMult : 1.0;
     }
 
     public class LCSpaceCenter
@@ -637,7 +659,27 @@ namespace RP0
         public string? GroundStation;
 
         public string? AssociatedGroundStation => GroundStation;
+
+        /// <summary>
+        /// DERIVED on the real type, exactly as here: hired minus the sum of what
+        /// the complexes hold. So assigning a complex a crew moves this without
+        /// anything writing to it, which is why the assignment command reads it
+        /// again after every change rather than tracking a pool of its own.
+        /// </summary>
+        public int UnassignedEngineers
+        {
+            get
+            {
+                var assigned = 0;
+                foreach (var lc in LaunchComplexes)
+                {
+                    assigned += lc.Engineers;
+                }
+                return Engineers - assigned;
+            }
+        }
     }
+
 
     public class SpaceCenterManagement
     {
@@ -660,6 +702,39 @@ namespace RP0
         /// makes it the second quantity derived from a neutralised science change.
         /// </summary>
         public double SciPointsTotal;
+
+        /// <summary>
+        /// A complex's effective engineer count for salary: assigned heads at the
+        /// rush multiplier. The real body has three more branches (an idle
+        /// complex, a hangar, a human-rated complex building an uncrewed vehicle),
+        /// and none of them is what this fixture is for: what the walk has to get
+        /// right is which OVERLOAD it called.
+        /// </summary>
+        public double GetEffectiveEngineersForSalary(LaunchComplex lc) =>
+            lc.Engineers * lc.RushSalary;
+
+        /// <summary>
+        /// A centre's: its complexes' effective counts, plus its unassigned pool
+        /// at the idle fraction. That last term is the one an operator cannot
+        /// derive from the complexes, and the reason an idle pool is a cost.
+        /// </summary>
+        public double GetEffectiveIntegrationEngineersForSalary(LCSpaceCenter ksc)
+        {
+            var total = 0.0;
+            foreach (var lc in ksc.LaunchComplexes)
+            {
+                total += GetEffectiveEngineersForSalary(lc);
+            }
+            return total + ksc.UnassignedEngineers * Database.SettingsSC.EngineerIdleSalaryMult;
+        }
+
+        /// <summary>
+        /// The overload that makes the complex one findable by accident: same
+        /// name, same arity, a whole centre's payroll instead of one complex's.
+        /// Present so a resolver ignoring parameter types is wrong HERE too.
+        /// </summary>
+        public double GetEffectiveEngineersForSalary(LCSpaceCenter ksc) =>
+            GetEffectiveIntegrationEngineersForSalary(ksc);
     }
 
     /// <summary>
@@ -790,6 +865,22 @@ namespace RP0
 
         public double FacilityUpkeepPerDay => FacilityUpkeepValue;
         public double IntegrationSalaryPerDay => IntegrationSalaryValue;
+
+        /// <summary>Keyed by complex, so a test can price two complexes differently.</summary>
+        public readonly Dictionary<LaunchComplex, double> LcUpkeepValues = new Dictionary<LaunchComplex, double>();
+
+        /// <summary>What a complex the test did not price costs.</summary>
+        public double DefaultLcUpkeep;
+
+        public double LCUpkeep(LaunchComplex lc) =>
+            LcUpkeepValues.TryGetValue(lc, out var cost) ? cost : DefaultLcUpkeep;
+
+        /// <summary>
+        /// The arity-2 overload, PRIVATE on the real type as it is here, so a
+        /// lookup by public name and arity finds the one above and only the one
+        /// above.
+        /// </summary>
+        private double LCUpkeep(LaunchComplex lc, int padCount) => 0.0;
 
         /// <summary>Yearly figures the stand-in hands back, so the /365.25 conversion is observable.</summary>
         public static double MinSubsidyPerYear = 3652.5;

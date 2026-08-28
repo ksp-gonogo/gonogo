@@ -100,12 +100,12 @@ namespace GonogoRp1Uplink.Tests
             new Rp1TypeTarget(Rp0, "RP0.Confidence", "Rp1ScReflection, Rp1DerivedCurrencyWithholder"),
             new Rp1TypeTarget(Rp0, "RP0.LCEfficiency", "Rp1ScReflection"),
             new Rp1TypeTarget(Rp0, "RP0.Database", "Rp1ScReflection, Rp1CrewReflection, Rp1EconomyBackend"),
-            new Rp1TypeTarget(Rp0, "RP0.MaintenanceHandler", "Rp1EconomyBackend"),
+            new Rp1TypeTarget(Rp0, "RP0.MaintenanceHandler", "Rp1EconomyBackend, Rp1ScReflection"),
             new Rp1TypeTarget(Rp0, "RP0.MaintenanceHandler+SubsidyDetails", "Rp1EconomyBackend"),
             new Rp1TypeTarget(Rp0, "RP0.UnlockCreditHandler", "Rp1EconomyBackend"),
-            new Rp1TypeTarget(Rp0, "RP0.KCTUtilities", "Rp1BuildCommands, Rp1VehicleCommands"),
+            new Rp1TypeTarget(Rp0, "RP0.KCTUtilities", "Rp1BuildCommands, Rp1VehicleCommands, Rp1PersonnelCommands"),
             new Rp1TypeTarget(Rp0, "RP0.ReconRolloutProject", "Rp1VehicleCommands"),
-            new Rp1TypeTarget(Rp0, "RP0.LaunchComplex", "Rp1VehicleCommands"),
+            new Rp1TypeTarget(Rp0, "RP0.LaunchComplex", "Rp1VehicleCommands, Rp1PersonnelCommands"),
             new Rp1TypeTarget(Rp0, "RP0.CurrencyModifierQueryRP0", "Rp1BuildCommands"),
             new Rp1TypeTarget(Rp0, "RP0.TransactionReasonsRP0", "Rp1BuildCommands"),
             new Rp1TypeTarget(Rp0, "RP0.CurrencyRP0", "Rp1BuildCommands"),
@@ -136,7 +136,14 @@ namespace GonogoRp1Uplink.Tests
             new Rp1MethodTarget(Rp0, "RP0.LCLaunchPad", "HasVesselWaitingToBeLaunched", 1, false, "Rp1ScReflection, Rp1VehicleCommands"),
             new Rp1MethodTarget(Rp0, "RP0.ReconRolloutProject", "SwitchDirection", 0, false, "Rp1VehicleCommands"),
             new Rp1MethodTarget(Rp0, "RP0.KCTUtilities", "ScrapVessel", 1, true, "Rp1VehicleCommands"),
-            new Rp1MethodTarget(Rp0, "RP0.KCTUtilities", "ChangeEngineers", 2, true, "Rp1VehicleCommands"),
+            new Rp1MethodTarget(Rp0, "RP0.KCTUtilities", "ChangeEngineers", 2, true, "Rp1VehicleCommands, Rp1PersonnelCommands"),
+            // The money calls. All three are read-only on the shipped assembly
+            // and are CALLED rather than mirrored for that reason: they return a
+            // figure RP-1 actually bills, and the salary ladder behind them has
+            // four branches nothing here could keep in step.
+            new Rp1MethodTarget(Rp0, "RP0.MaintenanceHandler", "LCUpkeep", 1, false, "Rp1ScReflection"),
+            new Rp1MethodTarget(Rp0, "RP0.SpaceCenterManagement", "GetEffectiveEngineersForSalary", 1, false, "Rp1ScReflection"),
+            new Rp1MethodTarget(Rp0, "RP0.SpaceCenterManagement", "GetEffectiveIntegrationEngineersForSalary", 1, false, "Rp1ScReflection"),
         };
 
         public static IReadOnlyList<Rp1MemberTarget> Members { get; } = BuildMembers();
@@ -199,6 +206,7 @@ namespace GonogoRp1Uplink.Tests
             const string Economy = "Rp1EconomyBackend";
             const string Crew = "Rp1CrewReflection";
             const string Programs = "Rp1ProgramsReflection";
+            const string Staffing = "Rp1PersonnelCommands";
 
             // ── The space centre ────────────────────────────────────────────
             Add("RP0.SpaceCenterManagement", "Instance", Rp1Reader.Presence, Sc + ", " + Gate + ", " + Projects + ", " + Build + ", " + Withhold, @static: true);
@@ -215,25 +223,32 @@ namespace GonogoRp1Uplink.Tests
             // reason it is written as well as read.
             Add("RP0.SpaceCenterManagement", "SciPointsTotal", Rp1Reader.NumericWrite, Withhold);
 
-            Add("RP0.LCSpaceCenter", "KSCName", Rp1Reader.Text, Sc);
+            Add("RP0.LCSpaceCenter", "KSCName", Rp1Reader.Text, Sc + ", " + Staffing);
             Add("RP0.LCSpaceCenter", "Engineers", Rp1Reader.Numeric, Sc);
+            // DERIVED on RP-1's side: hired minus what the complexes hold. Read
+            // rather than reproduced because it is the pool an assignment has to
+            // fit inside, and a stale copy of it would let a write overdraw.
+            Add("RP0.LCSpaceCenter", "UnassignedEngineers", Rp1Reader.Numeric, Staffing);
             Add("RP0.LCSpaceCenter", "LaunchComplexes", Rp1Reader.Presence, Sc + ", " + Gate + ", " + Build);
             Add("RP0.LCSpaceCenter", "FacilityUpgrades", Rp1Reader.Presence, Sc);
             Add("RP0.LCSpaceCenter", "LCConstructions", Rp1Reader.Presence, Sc);
             Add("RP0.LCSpaceCenter", "AssociatedGroundStation", Rp1Reader.Text, Sc);
 
             Add("RP0.LaunchComplex", "ID", Rp1Reader.GuidText, Sc);
-            Add("RP0.LaunchComplex", "Name", Rp1Reader.Text, Sc + ", " + Gate + ", " + Build);
+            Add("RP0.LaunchComplex", "Name", Rp1Reader.Text, Sc + ", " + Gate + ", " + Build + ", " + Staffing);
             Add("RP0.LaunchComplex", "LCType", Rp1Reader.EnumText, Sc + ", " + Gate);
-            Add("RP0.LaunchComplex", "Engineers", Rp1Reader.Numeric, Sc);
-            Add("RP0.LaunchComplex", "MaxEngineers", Rp1Reader.Numeric, Sc);
+            Add("RP0.LaunchComplex", "Engineers", Rp1Reader.Numeric, Sc + ", " + Staffing);
+            Add("RP0.LaunchComplex", "MaxEngineers", Rp1Reader.Numeric, Sc + ", " + Staffing);
             Add("RP0.LaunchComplex", "IsRushing", Rp1Reader.Bool, Sc);
-            Add("RP0.LaunchComplex", "IsOperational", Rp1Reader.Bool, Sc + ", " + Gate + ", " + Build);
+            Add("RP0.LaunchComplex", "IsOperational", Rp1Reader.Bool, Sc + ", " + Gate + ", " + Build + ", " + Staffing);
+            // The owning centre, so an assignment can ask the pool it draws from.
+            Add("RP0.LaunchComplex", "KSC", Rp1Reader.Presence, Staffing);
+            Add("RP0.LaunchComplex", "ResourcesHandled", Rp1Reader.Presence, Sc);
             Add("RP0.LaunchComplex", "IsHumanRated", Rp1Reader.Bool, Sc + ", " + Gate);
             Add("RP0.LaunchComplex", "Rate", Rp1Reader.Numeric, Sc);
             Add("RP0.LaunchComplex", "MassMin", Rp1Reader.Numeric, Sc + ", " + Gate);
             Add("RP0.LaunchComplex", "MassMax", Rp1Reader.Numeric, Sc + ", " + Gate);
-            Add("RP0.LaunchComplex", "SizeMax", Rp1Reader.Presence, Gate);
+            Add("RP0.LaunchComplex", "SizeMax", Rp1Reader.Presence, Sc + ", " + Gate);
             Add("RP0.LaunchComplex", "LaunchPads", Rp1Reader.Presence, Sc + ", " + Gate);
             Add("RP0.LaunchComplex", "BuildList", Rp1Reader.Presence, Sc + ", " + Gate + ", " + Build);
             Add("RP0.LaunchComplex", "Warehouse", Rp1Reader.Presence, Sc + ", " + Gate + ", " + Build);
@@ -256,6 +271,11 @@ namespace GonogoRp1Uplink.Tests
             Add("RP0.Database", "SettingsSC", Rp1Reader.Presence, Sc + ", " + Economy, @static: true);
             Add("RP0.Database", "SettingsCrew", Rp1Reader.Presence, Crew, @static: true);
             Add("RP0.SpaceCenterSettings", "RushRateMult", Rp1Reader.Numeric, Sc);
+            Add("RP0.SpaceCenterSettings", "RushSalaryMult", Rp1Reader.Numeric, Sc);
+            // Ints on RP-1's side, which Numeric accepts: a full year per head.
+            Add("RP0.SpaceCenterSettings", "salaryEngineers", Rp1Reader.Numeric, Sc);
+            Add("RP0.SpaceCenterSettings", "salaryResearchers", Rp1Reader.Numeric, Sc);
+            Add("RP0.SpaceCenterSettings", "EngineerIdleSalaryMult", Rp1Reader.Numeric, Sc);
             Add("RP0.SpaceCenterSettings", "repPortionLostPerDay", Rp1Reader.Numeric, Economy);
 
             // ── Vehicles ────────────────────────────────────────────────────
@@ -353,15 +373,15 @@ namespace GonogoRp1Uplink.Tests
             Add("RP0.Confidence", "OnConfidenceChanged", Rp1Reader.Presence, Withhold, @static: true);
 
             // ── The money model ────────────────────────────────────────────
-            Add("RP0.MaintenanceHandler", "Instance", Rp1Reader.Presence, Economy, @static: true);
+            Add("RP0.MaintenanceHandler", "Instance", Rp1Reader.Presence, Economy + ", " + Sc, @static: true);
             Add("RP0.MaintenanceHandler", "UpkeepPerDayForDisplay", Rp1Reader.Numeric, Economy);
             Add("RP0.MaintenanceHandler", "FacilityUpkeepPerDay", Rp1Reader.Numeric, Economy);
             Add("RP0.MaintenanceHandler", "LCsCostPerDay", Rp1Reader.Numeric, Economy);
-            Add("RP0.MaintenanceHandler", "ResearchSalaryPerDay", Rp1Reader.Numeric, Economy);
+            Add("RP0.MaintenanceHandler", "ResearchSalaryPerDay", Rp1Reader.Numeric, Economy + ", " + Sc);
             Add("RP0.MaintenanceHandler", "TrainingUpkeepPerDay", Rp1Reader.Numeric, Economy);
             Add("RP0.MaintenanceHandler", "NautBaseUpkeepPerDay", Rp1Reader.Numeric, Economy);
             Add("RP0.MaintenanceHandler", "NautInFlightUpkeepPerDay", Rp1Reader.Numeric, Economy);
-            Add("RP0.MaintenanceHandler", "IntegrationSalaryPerDay", Rp1Reader.Numeric, Economy);
+            Add("RP0.MaintenanceHandler", "IntegrationSalaryPerDay", Rp1Reader.Numeric, Economy + ", " + Sc);
             Add("RP0.MaintenanceHandler+SubsidyDetails", "subsidy", Rp1Reader.Numeric, Economy);
             Add("RP0.MaintenanceHandler+SubsidyDetails", "minSubsidy", Rp1Reader.Numeric, Economy);
             Add("RP0.MaintenanceHandler+SubsidyDetails", "maxSubsidy", Rp1Reader.Numeric, Economy);

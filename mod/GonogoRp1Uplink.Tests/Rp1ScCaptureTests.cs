@@ -50,6 +50,18 @@ public class Rp1ScCaptureTests
         AssertKeys<Rp1Personnel>(Rp1ScCapture.BuildPersonnel(Populated())!);
 
     [Fact]
+    public void Rush_terms_carry_exactly_the_declared_shape() =>
+        AssertKeys<Rp1RushTerms>(Rp1ScCapture.BuildRushTerms(Populated())!);
+
+    [Fact]
+    public void Unreadable_rush_settings_publish_nothing_rather_than_the_shipped_defaults()
+    {
+        // A client that received 1.5 and 2.0 here would quote a price to an
+        // operator whose career may charge another one.
+        Assert.Null(Rp1ScCapture.BuildRushTerms(new Rp1ScRaw { Available = true }));
+    }
+
+    [Fact]
     public void Confidence_carries_exactly_the_declared_shape() =>
         AssertKeys<Rp1Confidence>(Rp1ScCapture.BuildConfidence(Populated())!);
 
@@ -118,6 +130,7 @@ public class Rp1ScCaptureTests
         Operations = { new Rp1OperationRaw { KscName = "Cape", Type = "Rollout" } },
         Research = { new Rp1ResearchRaw { TechId = "start" } },
         Personnel = new Rp1PersonnelRaw(),
+        RushTerms = new Rp1RushTermsRaw(),
         Confidence = new Rp1ConfidenceRaw(),
     };
 

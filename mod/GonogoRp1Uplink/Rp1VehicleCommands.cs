@@ -778,22 +778,8 @@ namespace GonogoRp1Uplink
         }
 
         /// <summary>The complex with this id, searched across every centre.</summary>
-        private static bool TryFindComplex(object scm, string lcId, out object complex)
-        {
-            foreach (var centre in Rp1Types.Enumerate(Rp1Types.Member(scm, "KSCs")))
-            {
-                foreach (var lc in Rp1Types.Enumerate(Rp1Types.Member(centre, "LaunchComplexes")))
-                {
-                    if (string.Equals(Rp1Types.ReadGuidString(lc, "ID"), lcId, StringComparison.OrdinalIgnoreCase))
-                    {
-                        complex = lc;
-                        return true;
-                    }
-                }
-            }
-            complex = null!;
-            return false;
-        }
+        private static bool TryFindComplex(object scm, string lcId, out object complex) =>
+            Rp1ComplexWrites.TryFind(scm, lcId, out complex);
 
         /// <summary>
         /// The operation already moving this vehicle, and what it is, or null.
@@ -1115,14 +1101,11 @@ namespace GonogoRp1Uplink
         }
 
         /// <summary>
-        /// The rush recalculation, resolved by first-parameter TYPE. RP-1 has a
-        /// same-arity <c>ChangeEngineers(LCSpaceCenter, int)</c>, and picking it
-        /// by accident would move a whole centre's engineer pool.
+        /// The rush recalculation. Shared with <c>rp1.personnel.assign</c>, which
+        /// needs the same overload for the same reason; see
+        /// <see cref="Rp1ComplexWrites.ChangeEngineers"/>.
         /// </summary>
-        private MethodInfo? RushChangeEngineers() =>
-            _utilities == null
-                ? null
-                : Rp1Types.StaticMethodOn(_utilities, "ChangeEngineers", LaunchComplexTypeName, 2);
+        private MethodInfo? RushChangeEngineers() => Rp1ComplexWrites.ChangeEngineers(_utilities);
 
         /// <summary>The nested enum on <c>ReconRolloutProject</c>, or null.</summary>
         private static Type? NestedRolloutType(Type? reconRollout)

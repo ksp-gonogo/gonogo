@@ -1,0 +1,44 @@
+{
+  "_meta": {
+    "notes": "Carried over from the standalone payroll panel this section absorbed. Worth keeping because the state it holds is the one that used to look finished and was not: three labels with blank space beside them read as a rendered layout rather than as an Uplink that has not answered."
+  },
+  "_scene": {
+    "augment": "rp1-ksc-complexes",
+    "host": "space-center-status",
+    "size": { "w": 12, "h": 12 },
+    "caption": "RP-1 is present and has answered for nothing: every count reads as the null token and the missing centre is stated rather than left as a gap",
+    "paints": [
+      "SPACE CENTRES",
+      "Engineers",
+      "Researchers",
+      "Applicants",
+      "RP-1 has not reported a space centre."
+    ]
+  },
+  "_stream": {
+    "pinnedUt": 1000000,
+    "emits": [
+      {
+        "topic": "career.status",
+        "payload": {
+          "economy": { "funds": 289848, "reputation": 62, "science": 340 },
+          "facilities": {
+            "LaunchPad": { "level": 1, "max": 2 },
+            "VehicleAssemblyBuilding": { "level": 1, "max": 2 }
+          }
+        }
+      },
+      {
+        "topic": "spaceCenter.scene",
+        "payload": { "scene": "SpaceCenter", "launchSite": "LaunchPad" }
+      },
+      {
+        "topic": "spaceCenter.launchSites",
+        "payload": [
+          { "name": "LaunchPad", "padOccupied": false, "padVesselTitle": null }
+        ]
+      },
+      { "topic": "rp1.available", "payload": true }
+    ]
+  }
+}

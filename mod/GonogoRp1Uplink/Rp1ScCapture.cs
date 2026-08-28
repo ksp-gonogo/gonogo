@@ -28,6 +28,8 @@ namespace GonogoRp1Uplink
                     ["launchComplexCount"] = c.LaunchComplexCount,
                     ["anyOperational"] = c.AnyOperational,
                     ["groundStation"] = c.GroundStation,
+                    ["salaryPerDay"] = c.SalaryPerDay,
+                    ["upkeepPerDay"] = c.UpkeepPerDay,
                 });
             }
             return list;
@@ -54,6 +56,16 @@ namespace GonogoRp1Uplink
                     ["humanRated"] = c.HumanRated,
                     ["massMin"] = c.MassMin,
                     ["massMax"] = c.MassMax,
+                    ["sizeMaxHeight"] = c.SizeMaxHeight,
+                    ["sizeMaxWidth"] = c.SizeMaxWidth,
+                    ["sizeMaxDepth"] = c.SizeMaxDepth,
+                    // Emitted even when empty, unlike the warehouse's refusals: a
+                    // complex that handles no resources is a real limit an
+                    // operator has to read, where an absent refusal means there
+                    // was nothing to object to.
+                    ["resourcesHandled"] = c.ResourcesHandled,
+                    ["salaryPerDay"] = c.SalaryPerDay,
+                    ["upkeepPerDay"] = c.UpkeepPerDay,
                 });
             }
             return list;
@@ -240,6 +252,29 @@ namespace GonogoRp1Uplink
                 ["totalEngineers"] = raw.Personnel.TotalEngineers,
                 ["researchers"] = raw.Personnel.Researchers,
                 ["applicants"] = raw.Personnel.Applicants,
+                ["engineerSalaryPerDay"] = raw.Personnel.EngineerSalaryPerDay,
+                ["researcherSalaryPerDay"] = raw.Personnel.ResearcherSalaryPerDay,
+                ["engineerSalaryPerYear"] = raw.Personnel.EngineerSalaryPerYear,
+                ["researcherSalaryPerYear"] = raw.Personnel.ResearcherSalaryPerYear,
+                ["idleSalaryMult"] = raw.Personnel.IdleSalaryMult,
+            };
+        }
+
+        /// <summary>
+        /// Null when RP-1's settings could not be read, so a client says nothing
+        /// about what rushing costs rather than quoting the shipped default at an
+        /// operator whose career may not use it.
+        /// </summary>
+        public static Dictionary<string, object?>? BuildRushTerms(Rp1ScRaw raw)
+        {
+            if (raw.RushTerms == null)
+            {
+                return null;
+            }
+            return new Dictionary<string, object?>
+            {
+                ["rateMult"] = raw.RushTerms.RateMult,
+                ["salaryMult"] = raw.RushTerms.SalaryMult,
             };
         }
 

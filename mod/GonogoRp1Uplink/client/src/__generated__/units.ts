@@ -113,7 +113,9 @@ export const GENERATED_TYPE_UNITS: Readonly<Record<string, UnitsByField>> = {
     isActive: "flag",
     kscName: "id",
     launchComplexCount: "count",
+    salaryPerDay: "f/day",
     unassignedEngineers: "count",
+    upkeepPerDay: "f/day",
   },
   "Rp1ComplexEntry": {
     canIntegrate: "flag",
@@ -130,6 +132,12 @@ export const GENERATED_TYPE_UNITS: Readonly<Record<string, UnitsByField>> = {
     maxEngineers: "count",
     name: "text",
     rate: "bp/s",
+    resourcesHandled: "id",
+    salaryPerDay: "f/day",
+    sizeMaxDepth: "m",
+    sizeMaxHeight: "m",
+    sizeMaxWidth: "m",
+    upkeepPerDay: "f/day",
   },
   "Rp1ComplexRushArgs": {
     lcId: "id",
@@ -227,8 +235,17 @@ export const GENERATED_TYPE_UNITS: Readonly<Record<string, UnitsByField>> = {
   },
   "Rp1Personnel": {
     applicants: "count",
+    engineerSalaryPerDay: "f/day",
+    engineerSalaryPerYear: "funds",
+    idleSalaryMult: "ratio",
+    researcherSalaryPerDay: "f/day",
+    researcherSalaryPerYear: "funds",
     researchers: "count",
     totalEngineers: "count",
+  },
+  "Rp1PersonnelAssignArgs": {
+    engineers: "count",
+    lcId: "id",
   },
   "Rp1ProgramEntry": {
     acceptedUt: "ut",
@@ -295,6 +312,10 @@ export const GENERATED_TYPE_UNITS: Readonly<Record<string, UnitsByField>> = {
     id: "id",
     pad: "id",
   },
+  "Rp1RushTerms": {
+    rateMult: "ratio",
+    salaryMult: "ratio",
+  },
   "Rp1VehicleArgs": {
     id: "id",
   },
@@ -343,7 +364,9 @@ export const GENERATED_TOPIC_UNITS: Readonly<Record<string, UnitsByField>> = {
     isActive: "flag",
     kscName: "id",
     launchComplexCount: "count",
+    salaryPerDay: "f/day",
     unassignedEngineers: "count",
+    upkeepPerDay: "f/day",
   },
   "rp1.complexes": {
     canIntegrate: "flag",
@@ -360,6 +383,12 @@ export const GENERATED_TOPIC_UNITS: Readonly<Record<string, UnitsByField>> = {
     maxEngineers: "count",
     name: "text",
     rate: "bp/s",
+    resourcesHandled: "id",
+    salaryPerDay: "f/day",
+    sizeMaxDepth: "m",
+    sizeMaxHeight: "m",
+    sizeMaxWidth: "m",
+    upkeepPerDay: "f/day",
   },
   "rp1.confidence": {
     confidence: "confidence",
@@ -443,6 +472,11 @@ export const GENERATED_TOPIC_UNITS: Readonly<Record<string, UnitsByField>> = {
   },
   "rp1.personnel": {
     applicants: "count",
+    engineerSalaryPerDay: "f/day",
+    engineerSalaryPerYear: "funds",
+    idleSalaryMult: "ratio",
+    researcherSalaryPerDay: "f/day",
+    researcherSalaryPerYear: "funds",
     researchers: "count",
     totalEngineers: "count",
   },
@@ -500,6 +534,10 @@ export const GENERATED_TOPIC_UNITS: Readonly<Record<string, UnitsByField>> = {
     techName: "text",
     timeLeftSeconds: "s",
     workRate: "ratio",
+  },
+  "rp1.rushTerms": {
+    rateMult: "ratio",
+    salaryMult: "ratio",
   },
   "rp1.warehouse": {
     cost: "funds",

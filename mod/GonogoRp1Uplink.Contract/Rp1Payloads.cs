@@ -83,6 +83,24 @@ public sealed class Rp1CentreEntry
     /// </summary>
     [SitrepUnit(Units.Id)]
     public string? GroundStation { get; set; }
+
+    /// <summary>
+    /// What this centre's engineers draw per day, RP-1's own effective figure:
+    /// an unassigned engineer counts at a fraction (see
+    /// <see cref="Rp1Personnel.IdleSalaryMult"/>) and a rushing complex's crew
+    /// counts double, so this is not headcount times a rate.
+    /// </summary>
+    [SitrepUnit(Units.FundsPerDay)]
+    public double? SalaryPerDay { get; set; }
+
+    /// <summary>
+    /// What this centre's launch complexes cost per day to keep, the sum of
+    /// <see cref="Rp1ComplexEntry.UpkeepPerDay"/> across them. The facilities'
+    /// own upkeep is not in it: those are one set per career rather than per
+    /// centre.
+    /// </summary>
+    [SitrepUnit(Units.FundsPerDay)]
+    public double? UpkeepPerDay { get; set; }
 }
 
 /// <summary>
@@ -155,6 +173,54 @@ public sealed class Rp1ComplexEntry
     /// <summary>Upper mass limit, or null for a complex with no limit (the hangar).</summary>
     [SitrepUnit(Units.Tonnes)]
     public double? MassMax { get; set; }
+
+    /// <summary>
+    /// The tallest vehicle this complex will take, RP-1's <c>sizeMax.y</c>. Null
+    /// for an unlimited complex, on the same rule <see cref="MassMax"/> follows.
+    /// </summary>
+    [SitrepUnit(Units.Metres)]
+    public double? SizeMaxHeight { get; set; }
+
+    /// <summary>The complex's footprint limit across, RP-1's <c>sizeMax.x</c>.</summary>
+    [SitrepUnit(Units.Metres)]
+    public double? SizeMaxWidth { get; set; }
+
+    /// <summary>
+    /// The complex's footprint limit the other way, RP-1's <c>sizeMax.z</c>.
+    ///
+    /// <para>Three fields rather than one, because RP-1 keeps three and they are
+    /// free to differ. Its own tooltip prints them depth, width, height.</para>
+    /// </summary>
+    [SitrepUnit(Units.Metres)]
+    public double? SizeMaxDepth { get; set; }
+
+    /// <summary>
+    /// The resources this complex can load, by RP-1's own resource names, sorted.
+    ///
+    /// <para>An ELIGIBILITY fact and not a capacity: a vehicle needing a
+    /// resource absent from this list cannot be built here at all, however the
+    /// complex is staffed. Empty is a real answer for a complex that handles
+    /// none, and null is RP-1 not having said.</para>
+    /// </summary>
+    [SitrepUnit(Units.Id)]
+    public List<string>? ResourcesHandled { get; set; }
+
+    /// <summary>
+    /// What this complex's crew draws per day, at RP-1's own effective count: a
+    /// rushing complex pays double, and a complex nothing is active in pays its
+    /// crew at the idle fraction.
+    /// </summary>
+    [SitrepUnit(Units.FundsPerDay)]
+    public double? SalaryPerDay { get; set; }
+
+    /// <summary>
+    /// What the complex itself costs per day, crew aside: RP-1's launch-complex
+    /// maintenance, scaled by the number of pads it has. A complex still being
+    /// built pays it in proportion to how far the construction has got, which is
+    /// RP-1's own rule and not a smoothing applied here.
+    /// </summary>
+    [SitrepUnit(Units.FundsPerDay)]
+    public double? UpkeepPerDay { get; set; }
 }
 
 /// <summary>
@@ -757,6 +823,67 @@ public sealed class Rp1Personnel
     /// <summary>Applicants waiting to be hired.</summary>
     [SitrepUnit(Units.Count)]
     public int? Applicants { get; set; }
+
+    /// <summary>
+    /// What every engineer on the books draws per day, across all centres, at
+    /// RP-1's own effective count. Higher than the sum of the assigned crews
+    /// whenever engineers sit unassigned, and higher again while a complex
+    /// rushes.
+    /// </summary>
+    [SitrepUnit(Units.FundsPerDay)]
+    public double? EngineerSalaryPerDay { get; set; }
+
+    /// <summary>
+    /// What the researchers draw per day. Paid at the idle fraction while the
+    /// research queue is empty, which is RP-1's rule and the reason this is not
+    /// headcount times the yearly rate.
+    /// </summary>
+    [SitrepUnit(Units.FundsPerDay)]
+    public double? ResearcherSalaryPerDay { get; set; }
+
+    /// <summary>One engineer's full salary for a year, before any multiplier.</summary>
+    [SitrepUnit(Units.Funds)]
+    public double? EngineerSalaryPerYear { get; set; }
+
+    /// <summary>One researcher's full salary for a year, before any multiplier.</summary>
+    [SitrepUnit(Units.Funds)]
+    public double? ResearcherSalaryPerYear { get; set; }
+
+    /// <summary>
+    /// The fraction of a full salary an engineer draws while assigned to nothing.
+    /// The number that makes an idle pool a standing cost rather than a free
+    /// reserve, so it is published even though a client could not derive it.
+    /// </summary>
+    [SitrepUnit(Units.Ratio)]
+    public double? IdleSalaryMult { get; set; }
+}
+
+/// <summary>
+/// What rushing a launch complex costs, career-wide.
+///
+/// <para>Published whether or not anything is currently rushing, and that is the
+/// point: the operator decides at the moment nothing is, so the terms have to be
+/// readable then. RP-1 takes them from its own settings, so they are not
+/// constants a client may carry.</para>
+///
+/// <para>A third term is not a number and so is not here: a complex earns no
+/// efficiency at all while it rushes, and efficiency is what makes a crew
+/// cheaper over a career. That one is stated by the client.</para>
+/// </summary>
+[SitrepContract]
+[SitrepTopic("rp1.rushTerms")]
+#if SITREP_CODEGEN
+[TsInterface]
+#endif
+public sealed class Rp1RushTerms
+{
+    /// <summary>How much faster a rushing complex works.</summary>
+    [SitrepUnit(Units.Ratio)]
+    public double? RateMult { get; set; }
+
+    /// <summary>How much more a rushing complex's crew draws.</summary>
+    [SitrepUnit(Units.Ratio)]
+    public double? SalaryMult { get; set; }
 }
 
 /// <summary>

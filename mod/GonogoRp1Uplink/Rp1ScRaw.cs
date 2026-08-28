@@ -44,6 +44,8 @@ namespace GonogoRp1Uplink
         /// near, so the two must never arrive looking the same.
         /// </summary>
         public Rp1ConfidenceRaw? Confidence;
+
+        public Rp1RushTermsRaw? RushTerms;
     }
 
     public sealed class Rp1CentreRaw
@@ -55,6 +57,8 @@ namespace GonogoRp1Uplink
         public int LaunchComplexCount;
         public bool AnyOperational;
         public string? GroundStation;
+        public double? SalaryPerDay;
+        public double? UpkeepPerDay;
     }
 
     public sealed class Rp1ComplexRaw
@@ -73,6 +77,12 @@ namespace GonogoRp1Uplink
         public bool HumanRated;
         public double? MassMin;
         public double? MassMax;
+        public double? SizeMaxHeight;
+        public double? SizeMaxWidth;
+        public double? SizeMaxDepth;
+        public List<string>? ResourcesHandled;
+        public double? SalaryPerDay;
+        public double? UpkeepPerDay;
     }
 
     /// <summary>
@@ -204,6 +214,22 @@ namespace GonogoRp1Uplink
         public int TotalEngineers;
         public int Researchers;
         public int Applicants;
+        public double? EngineerSalaryPerDay;
+        public double? ResearcherSalaryPerDay;
+        public double? EngineerSalaryPerYear;
+        public double? ResearcherSalaryPerYear;
+        public double? IdleSalaryMult;
+    }
+
+    /// <summary>
+    /// What rushing costs, read from RP-1's settings rather than assumed. Null
+    /// when the settings could not be read, which is how a client learns to say
+    /// nothing about the price instead of quoting a default.
+    /// </summary>
+    public sealed class Rp1RushTermsRaw
+    {
+        public double? RateMult;
+        public double? SalaryMult;
     }
 
     public sealed class Rp1ConfidenceRaw

@@ -340,6 +340,7 @@ namespace GonogoRp1Uplink.Tests
                     Rp1VehicleCommands.RollbackCommand,
                     Rp1VehicleCommands.ScrapCommand,
                     Rp1VehicleCommands.RushCommand,
+                    Rp1PersonnelCommands.AssignCommand,
                 },
                 declarations.Select(d => d.Command).ToArray());
             Assert.All(declarations, declaration =>
@@ -348,7 +349,7 @@ namespace GonogoRp1Uplink.Tests
                 // light-time separates a command centre from a CRAFT, and there is
                 // no craft in any of these.
                 Assert.False(declaration.Delayed);
-                // One gate kind between all five, because the only condition
+                // One gate kind between all six, because the only condition
                 // evaluable before the press is the same one for each of them.
                 Assert.Equal(
                     Rp1BuildCommands.GateKind,

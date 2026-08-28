@@ -15,18 +15,20 @@ import "./LaunchComplexStatus";
 import "./ProgramDetail";
 import "./ProgramStatus";
 import "./ResearchQueue";
-import "./SpaceCentrePersonnel";
 import "./VehicleAssembly";
 
 export { CrewSchedule } from "./CrewSchedule";
 export { CrewProgramme } from "./CrewSchedule/programme";
-export { KscComplexes, RP1_COMPLEX_RUSH_COMMAND } from "./KscComplexes";
+export {
+  KscComplexes,
+  RP1_COMPLEX_RUSH_COMMAND,
+  RP1_PERSONNEL_ASSIGN_COMMAND,
+} from "./KscComplexes";
 export { KscConstruction } from "./KscConstruction";
 export { LaunchComplexStatus } from "./LaunchComplexStatus";
 export { ProgramDetail } from "./ProgramDetail";
 export { ProgramStatus } from "./ProgramStatus";
 export { ResearchQueue } from "./ResearchQueue";
-export { SpaceCentrePersonnel } from "./SpaceCentrePersonnel";
 export { RP1_DELAY_IN_SIMULATION_SETTING } from "./settings/rp1SimulationSettings";
 export {
   RP1_AVAILABLE_TOPIC,
@@ -44,6 +46,7 @@ export {
   RP1_PROGRAM_SLOTS_TOPIC,
   RP1_PROGRAMS_TOPIC,
   RP1_RESEARCH_TOPIC,
+  RP1_RUSH_TERMS_TOPIC,
   RP1_WAREHOUSE_TOPIC,
 } from "./topics";
 export { RP1 } from "./uplink";

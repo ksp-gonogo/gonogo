@@ -29,6 +29,7 @@ Brings RP-1's career layer to the dashboard: Programs with their objectives, dea
 | `rp1.programSlots` | `Rp1ProgramSlots` | lossy-latest | true-now |
 | `rp1.programs` | `Rp1ProgramEntry[]` | lossy-latest | true-now |
 | `rp1.research` | `Rp1ResearchEntry[]` | lossy-latest | true-now |
+| `rp1.rushTerms` | `Rp1RushTerms` | lossy-latest | true-now |
 | `rp1.warehouse` | `Rp1WarehouseItemEntry[]` | lossy-latest | true-now |
 | `rp1.available` | – | lossy-latest | true-now |
 
@@ -37,6 +38,7 @@ Brings RP-1's career layer to the dashboard: Programs with their objectives, dea
 | `Rp1BuildRepeatArgs` | `id` id |
 | `Rp1ComplexRushArgs` | `lcId` id, `rushing` flag |
 | `Rp1FundingCurveKey` | `frac` ratio, `inTangent` 1, `outTangent` 1, `paidFraction` ratio |
+| `Rp1PersonnelAssignArgs` | `engineers` count, `lcId` id |
 | `Rp1ProgramPaymentEntry` | `cumulativeFunds` funds, `funds` funds, `year` count |
 | `Rp1ProgramSpeedOption` | `confidenceCost` confidence, `durationSeconds` s, `speed` enum |
 | `Rp1RolloutArgs` | `id` id, `pad` id |
@@ -83,36 +85,6 @@ One RP-1 Program in full: its objectives, the funds it pays and has paid, its de
 ![The same widget at 5 × 18](docs/assets/running-backloaded--portrait-5x18.png)
 
 ![The same widget at 18 × 5](docs/assets/running-backloaded--landscape-18x5.png)
-
-### RP-1 Personnel
-
-RP-1's payroll: engineers, researchers and applicants on the books, each centre's unassigned engineers, and the crew, efficiency and rush state of every launch complex they are assigned to.
-
-| | |
-| --- | --- |
-| Widget id | `rp1-space-centre-personnel` |
-| Reads | `rp1.available`, `rp1.personnel`, `rp1.centres`, `rp1.complexes` |
-| Default size | 6 × 9 |
-
-![A payroll mid-career, with engineers on the books that nobody has assigned: the idle count is the one number here that costs money for nothing, and it is why the per-complex split is drawn rather than only the totals](docs/assets/personnel-staffed--default.png)
-
-![The same widget at its minimum size](docs/assets/personnel-staffed--min.png)
-
-![The same widget at 9 × 8](docs/assets/personnel-staffed--mobile-9x8.png)
-
-![The same widget at 5 × 18](docs/assets/personnel-staffed--portrait-5x18.png)
-
-![The same widget at 18 × 5](docs/assets/personnel-staffed--landscape-18x5.png)
-
-![RP-1 is present but has not answered for the payroll: every count reads as the null token, which is the picture this scene exists to hold, because the same state used to render three labels with blank space beside them and looked like a finished layout](docs/assets/personnel-unanswered--default.png)
-
-![The same widget at its minimum size](docs/assets/personnel-unanswered--min.png)
-
-![The same widget at 9 × 8](docs/assets/personnel-unanswered--mobile-9x8.png)
-
-![The same widget at 5 × 18](docs/assets/personnel-unanswered--portrait-5x18.png)
-
-![The same widget at 18 × 5](docs/assets/personnel-unanswered--landscape-18x5.png)
 
 ### Vehicle Assembly
 
@@ -189,7 +161,13 @@ Every craft RP-1 is integrating or holding, across every launch complex at every
 | `rp1-vehicle-assembly-building` | `rp1-vehicle-assembly.sections` | – |  |  |
 | `rp1-vehicle-assembly-warehouse` | `rp1-vehicle-assembly.sections` | – |  |  |
 
-![The launch complexes as infrastructure, with the one control that changes how fast they work: LC-1 already rushing and offered the way out, LC-2 offered the way in](docs/assets/complexes-rushing--default.png)
+![Cape and its two launch complexes, each with its crew, its envelope, its daily cost and the rush control: LC-1 already rushing and offered the way out, LC-2 offered the way in](docs/assets/complexes-rushing--default.png)
+
+![A payroll mid-career with six engineers assigned to nothing, beside the two complexes they could be moved to](docs/assets/personnel-staffed--default.png)
+
+![RP-1 is present and has answered for nothing: every count reads as the null token and the missing centre is stated rather than left as a gap](docs/assets/personnel-unanswered--default.png)
+
+![Two space centres with their launch complexes nested under each, and SLC-3 staffed by nobody while Vandenberg's whole pool sits idle](docs/assets/two-centres-unstaffed--default.png)
 
 ![A modification, which takes the complex out of service and idles its engineers: the one row whose detail line is a warning rather than a label](docs/assets/construction-complex-modify--default.png)
 
