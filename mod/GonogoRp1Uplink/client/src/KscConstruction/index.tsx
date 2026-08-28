@@ -2,6 +2,8 @@ import type { Reading } from "@ksp-gonogo/sitrep-sdk";
 import { registerAugment, useTelemetry } from "@ksp-gonogo/sitrep-sdk";
 import {
   Badge,
+  Card,
+  Cluster,
   Countdown,
   magnitudeOf,
   NULL_DISPLAY,
@@ -32,10 +34,9 @@ import "../topics";
  * upgrade control answers none of that, so the money already committed to work
  * in flight is not visible anywhere else.</para>
  *
- * <para>The funds balance sits at the top for the same reason the host widget
- * carries one: every row here is money leaving, and an operator deciding
- * whether to start another should not have to look at a different widget to see
- * what is left.</para>
+ * <para>The balance every row here is spending against is the host widget's,
+ * drawn once in its header. A copy in this section was the same rule satisfied a
+ * second time inside one widget, and read as a defect rather than as care.</para>
  *
  * <para><b>Constructions run at once; the build and research queues do not.</b>
  * RP-1 zeroes a vehicle's rate and a research node's at any queue position but
@@ -47,7 +48,6 @@ export function KscConstruction() {
   const available = current(useTelemetry("rp1.available"));
   const constructions = current(useTelemetry("rp1.constructions"));
   const centres = current(useTelemetry("rp1.centres"));
-  const career = current(useTelemetry("career.status"));
 
   // Invisible on every install without RP-1, which is most of them.
   if (available !== true) {
@@ -61,15 +61,8 @@ export function KscConstruction() {
 
   return (
     <Section>
-      <SectionTitle>RP-1 KSC CONSTRUCTION</SectionTitle>
+      <SectionTitle>CONSTRUCTION</SectionTitle>
       <Stack as="ul" gap="sm" style={LIST_STYLE}>
-        <Row>
-          <RowName>Funds</RowName>
-          <Text>
-            <Unit value={career?.economy?.funds} />
-          </Text>
-        </Row>
-
         {rows.length === 0 ? (
           <Row>
             <RowName>Under construction</RowName>
@@ -96,6 +89,13 @@ export function KscConstruction() {
  * One thing being built. The kind decides only what the detail line says: the
  * progress, the clock and the money are the same three facts for all three, and
  * an operator comparing a pad against a VAB upgrade is comparing exactly those.
+ *
+ * <para><b>A card, matching the vehicle cards below it.</b> As four label/value
+ * rows and a bar, three constructions ran together into twelve rows with
+ * "Remaining" and "Paid" repeating down them, and telling one item from the next
+ * meant counting. The two sections show the same SHAPE of thing (a named piece
+ * of work with a clock, a bar and a bill), so drawing them two different ways
+ * inside one panel made them look like two unrelated surfaces.</para>
  */
 function ConstructionRow({
   row,
@@ -103,68 +103,61 @@ function ConstructionRow({
 }: Readonly<{ row: Rp1ConstructionEntry; nameCentre: boolean }>) {
   const ratio = magnitudeOf(row.progressRatio);
   const label = rowLabel(row);
+  const centre =
+    nameCentre && row.kscName !== undefined && row.kscName !== null
+      ? row.kscName
+      : null;
 
   return (
-    <Stack as="li" gap="xs">
-      <Stack as="ul" gap="xs" style={LIST_STYLE}>
-        <Row>
-          <RowName>
-            {label}
-            {nameCentre && row.kscName !== undefined && row.kscName !== null
-              ? ` · ${row.kscName}`
-              : ""}
-          </RowName>
-          <Text>
-            <Badge severity="info">
-              {KIND_BADGE[row.kind ?? ""] ?? "WORK"}
-            </Badge>{" "}
-            <Detail row={row} />
-          </Text>
-        </Row>
-        <Row>
-          <RowName>Remaining</RowName>
-          <Text>
-            <TimeLeft row={row} />
-          </Text>
-        </Row>
-        {row.isModify === true && (
-          <Row>
-            {/* Its own row rather than appended to the detail above. A sentence
-                long enough to wrap takes the whole width of a Row and squeezes
-                the name out of it entirely, which a markup assertion cannot
-                see and a render can. */}
-            <RowName>Engineers</RowName>
-            <Text>
-              <Unit value={row.engineersToReadd} /> off it until it finishes
-            </Text>
-          </Row>
+    // Amber only for work that is going nowhere. Every card here is unfinished
+    // by definition, so painting them all as caution would leave the colour
+    // saying nothing at the moment it is needed.
+    <Card as="li" tone={row.stalled === true ? "warning" : "go"}>
+      <Stack gap="xs">
+        <Cluster gap="sm">
+          <RowName>{label}</RowName>
+          <Badge severity="info">{KIND_BADGE[row.kind ?? ""] ?? "WORK"}</Badge>
+        </Cluster>
+
+        <Text size="xs" tone="muted">
+          <Detail row={row} />
+          {centre === null ? null : <> · {centre}</>}
+        </Text>
+
+        {ratio !== null && (
+          <ProgressBar
+            ariaLabel={`Construction progress, ${label}`}
+            value={ratio * 100}
+          />
         )}
-        <Row>
-          <RowName>Paid</RowName>
-          <Text>
-            {/* Both figures, never a difference: RP-1's own outstanding balance
-                runs through a currency query this Uplink will not evaluate, so a
-                subtraction here would look like that number and not be it. */}
-            <Unit value={row.spentCost} /> of <Unit value={row.cost} />
+
+        <Text size="xs" tone="muted">
+          <TimeLeft row={row} />
+        </Text>
+
+        <Text size="xs" tone="muted">
+          {/* Both figures, never a difference: RP-1's own outstanding balance
+              runs through a currency query this Uplink will not evaluate, so a
+              subtraction here would look like that number and not be it. */}
+          paid <Unit value={row.spentCost} /> of <Unit value={row.cost} />
+        </Text>
+
+        {row.isModify === true && (
+          <Text size="xs" tone="muted">
+            <Unit value={row.engineersToReadd} /> engineers off it until it
+            finishes
           </Text>
-        </Row>
+        )}
       </Stack>
-      {/* Outside the list: a progressbar is not a list item. */}
-      {ratio !== null && (
-        <ProgressBar
-          ariaLabel={`Construction progress, ${label}`}
-          value={ratio * 100}
-        />
-      )}
-    </Stack>
+    </Card>
   );
 }
 
 /**
- * The one phrase that differs by kind, and it is kept SHORT on purpose: it
- * shares a row with the name, and a phrase long enough to wrap takes the whole
- * width and leaves the name with none. Anything that needs a sentence gets a row
- * of its own.
+ * The one phrase that differs by kind. Short because it is a detail line and not
+ * a sentence: what a facility upgrade, a new complex and a new pad have in
+ * common is everything else on the card, and this is only the word that says
+ * which of the three it is.
  */
 function Detail({ row }: Readonly<{ row: Rp1ConstructionEntry }>) {
   if (row.kind === "FacilityUpgrade") {
@@ -186,13 +179,18 @@ function Detail({ row }: Readonly<{ row: Rp1ConstructionEntry }>) {
  * throttle wound to zero, and a project RP-1 has not costed yet. The last is not
  * a stall, and telling an operator their construction has stopped when RP-1
  * simply has not priced it yet would send them looking for a fault.
+ *
+ * <para>The duration names its own end. "Remaining 90d" beside "Paid" and
+ * "Engineers" was one unlabelled number among three labelled ones, and a reader
+ * scanning the card had nothing saying whether 90 days was the work left, the
+ * work done, or the booking.</para>
  */
 function TimeLeft({ row }: Readonly<{ row: Rp1ConstructionEntry }>) {
   if (row.timeLeftSeconds !== undefined && row.timeLeftSeconds !== null) {
     const throttle = magnitudeOf(row.workRate);
     return (
       <>
-        <Countdown value={row.timeLeftSeconds} />
+        <Countdown value={row.timeLeftSeconds} /> until it is finished
         {throttle !== null && throttle > 1 && (
           <>
             {" "}
@@ -201,7 +199,7 @@ function TimeLeft({ row }: Readonly<{ row: Rp1ConstructionEntry }>) {
         )}
         {throttle !== null && throttle > 0 && throttle < 1 && (
           <>
-            {" at "}
+            {", at "}
             <Unit value={row.workRate} />
           </>
         )}
@@ -209,9 +207,14 @@ function TimeLeft({ row }: Readonly<{ row: Rp1ConstructionEntry }>) {
     );
   }
   if (row.stalled === true) {
-    return <Badge severity="caution">STALLED</Badge>;
+    return (
+      <>
+        <Badge severity="caution">STALLED</Badge> no end date while work is
+        stopped
+      </>
+    );
   }
-  return <>{NULL_DISPLAY} not costed yet</>;
+  return <>{NULL_DISPLAY} RP-1 has not costed this yet</>;
 }
 
 /** What each RP-1 construction kind is, in a word an operator scans for. */

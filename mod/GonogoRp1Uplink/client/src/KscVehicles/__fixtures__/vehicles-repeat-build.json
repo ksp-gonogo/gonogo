@@ -6,8 +6,17 @@
       "w": 12,
       "h": 14
     },
-    "caption": "The repeat-build surface in the state it is used in: two vehicles of the SAME design, one flown-ready and one still integrating",
-    "paints": ["289,848f", "Atlas", "BUILT", "INTEGRATING", "Build"]
+    "caption": "The repeat-build surface in the state it is used in: two vehicles of the SAME design, one flown-ready and one still integrating, and the two lists drawn apart so neither card has to carry the other's state",
+    "paints": [
+      "289,848f",
+      "In the warehouse",
+      "On the build list",
+      "Atlas",
+      "BUILT",
+      "INTEGRATING",
+      "Build another",
+      "until integration finishes"
+    ]
   },
   "_stream": {
     "pinnedUt": 1000000,
@@ -66,6 +75,16 @@
           "scene": "SpaceCenter",
           "launchSite": "LaunchPad"
         }
+      },
+      {
+        "topic": "spaceCenter.launchSites",
+        "payload": [
+          {
+            "name": "LaunchPad",
+            "padOccupied": false,
+            "padVesselTitle": null
+          }
+        ]
       },
       {
         "topic": "spaceCenter.partsAvailable",

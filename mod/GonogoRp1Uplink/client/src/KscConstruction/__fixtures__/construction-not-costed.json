@@ -7,7 +7,7 @@
       "h": 14
     },
     "caption": "A construction RP-1 has not priced yet, a real state on a freshly loaded save, proving it does not read as stalled",
-    "paints": ["Runway", "not costed yet"]
+    "paints": ["Runway", "RP-1 has not costed this yet"]
   },
   "_stream": {
     "pinnedUt": 1000000,
@@ -66,6 +66,16 @@
           "scene": "SpaceCenter",
           "launchSite": "LaunchPad"
         }
+      },
+      {
+        "topic": "spaceCenter.launchSites",
+        "payload": [
+          {
+            "name": "LaunchPad",
+            "padOccupied": false,
+            "padVesselTitle": null
+          }
+        ]
       },
       {
         "topic": "spaceCenter.partsAvailable",

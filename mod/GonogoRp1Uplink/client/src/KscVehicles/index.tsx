@@ -6,11 +6,14 @@ import {
 } from "@ksp-gonogo/sitrep-sdk";
 import {
   Badge,
+  Card,
+  Cluster,
   CommandButton,
   Countdown,
   Inline,
   magnitudeOf,
   NULL_DISPLAY,
+  ProgressBar,
   Row,
   RowName,
   Section,
@@ -61,19 +64,25 @@ export const RP1_COMPLEX_RUSH_COMMAND = "rp1.complex.rush";
  * could watch a complex integrate and could not ask it to start, move or cancel
  * anything.</para>
  *
- * <para><b>Both lists, one section.</b> A finished vehicle in the warehouse and
- * one still integrating are different states of the same question, and RP-1's
- * own window draws the same Duplicate button on both. The warehouse comes first
- * because a design worth repeating is usually one that finished, and because
- * only a finished vehicle can be rolled out.</para>
+ * <para><b>Two lists, drawn as two.</b> RP-1 holds a vehicle in the warehouse or
+ * on the build list, never both, and the two answer different questions: what
+ * can fly, and what is being made. Interleaving them left every vehicle carrying
+ * the same set of controls with only a badge to say which of them could actually
+ * be pressed. Split, the section a card sits in already says most of that, and
+ * the badge only has to carry what is left.</para>
  *
- * <para>The funds balance sits at the top because most controls below it spend:
- * an operator deciding whether to start another should not have to look at a
- * different widget to see what is left. It is the balance the mod's own
- * affordability check will be run against, so a refusal here quotes the same
- * number the operator is reading. A rollout is the one spend that is billed as
- * it progresses rather than up front, and a scrap PAYS the career, but the
- * balance is what an operator judges all three against.</para>
+ * <para><b>A card per vehicle, not a run of rows.</b> A vehicle is a name, a
+ * complex, a state, a cost and up to four controls, and as label/value rows
+ * those five facts read as five unrelated rows with nothing tying them to the
+ * vehicle above or below. Two vehicles of the same design at the same complex is
+ * the case this widget exists for and the case a flat list cannot express at
+ * all.</para>
+ *
+ * <para><b>No funds row here.</b> Every control below spends or refunds, and the
+ * balance an operator judges them against is the host widget's, drawn once in
+ * its header. Three augments each carrying their own copy is the same rule
+ * satisfied three times in one widget, which reads as a defect rather than as
+ * care.</para>
  */
 export function KscVehicles() {
   const available = current(useTelemetry("rp1.available"));
@@ -82,7 +91,6 @@ export function KscVehicles() {
   const complexes = current(useTelemetry("rp1.complexes"));
   const pads = current(useTelemetry("rp1.pads"));
   const operations = current(useTelemetry("rp1.operations"));
-  const career = current(useTelemetry("career.status"));
 
   // Unconditional, and above the early return on purpose: a hook after it would
   // change count on the first frame RP-1 answers.
@@ -105,71 +113,66 @@ export function KscVehicles() {
   const built = warehouse ?? [];
   const building = queue ?? [];
   const complexList = complexes ?? [];
-  // Only worth naming a complex when the centre has more than one, the same rule
-  // KscConstruction applies to centres.
+  // Only worth naming a complex on a vehicle when the centre has more than one,
+  // the same rule KscConstruction applies to centres. The complex list below
+  // names them either way, because there the name is the row.
   const nameComplex = complexList.length > 1;
   const handles = { repeat, rollout, rollback, scrap };
 
   return (
     <Section>
-      <SectionTitle>RP-1 VEHICLES</SectionTitle>
-      <Stack as="ul" gap="sm" style={LIST_STYLE}>
-        <Row>
-          <RowName>Funds</RowName>
-          <Text>
-            <Unit value={career?.economy?.funds} />
-          </Text>
-        </Row>
+      <SectionTitle>VEHICLES</SectionTitle>
 
-        {built.length === 0 && building.length === 0 ? (
-          <Row>
-            <RowName>Vehicles</RowName>
-            {/* A real answer, and one worth stating: an empty space centre and
-                an Uplink that is not reporting look identical if this row is
-                simply left out. */}
-            <Text>none built and none on order</Text>
-          </Row>
-        ) : (
-          <>
-            {built.map((item) => (
-              <VehicleRow
-                complexName={complexName(complexList, item.lcId, nameComplex)}
-                finished
-                pads={padsAt(pads, item.lcId)}
-                handles={handles}
-                item={item}
-                key={rowKey(item)}
-                operation={operationFor(operations, item)}
-              />
-            ))}
-            {building.map((item) => (
-              <VehicleRow
-                complexName={complexName(complexList, item.lcId, nameComplex)}
-                finished={false}
-                pads={padsAt(pads, item.lcId)}
-                handles={handles}
-                item={item}
-                key={rowKey(item)}
-                operation={operationFor(operations, item)}
-              />
-            ))}
-          </>
-        )}
-
-        {complexList.map((complex) => (
-          <ComplexRush
-            complex={complex}
-            handle={rush}
-            key={complex.lcId ?? complex.name ?? ""}
-            named={nameComplex}
+      {built.length === 0 && building.length === 0 ? (
+        // A real answer, and one worth stating: an empty space centre and an
+        // Uplink that is not reporting look identical if this is left out.
+        <Text size="sm" tone="muted">
+          None built and none on order.
+        </Text>
+      ) : (
+        <>
+          <VehicleGroup
+            complexes={complexList}
+            handles={handles}
+            items={built}
+            nameComplex={nameComplex}
+            operations={operations}
+            pads={pads}
+            title="In the warehouse"
+            waiting={false}
           />
-        ))}
-      </Stack>
+          <VehicleGroup
+            complexes={complexList}
+            handles={handles}
+            items={building}
+            nameComplex={nameComplex}
+            operations={operations}
+            pads={pads}
+            title="On the build list"
+            waiting
+          />
+        </>
+      )}
+
+      {complexList.length > 0 && (
+        <>
+          <SectionTitle>Launch complexes</SectionTitle>
+          <Stack as="ul" gap="xs" style={LIST_STYLE}>
+            {complexList.map((complex) => (
+              <ComplexRush
+                complex={complex}
+                handle={rush}
+                key={complex.lcId ?? complex.name ?? ""}
+              />
+            ))}
+          </Stack>
+        </>
+      )}
     </Section>
   );
 }
 
-/** The four command handles a vehicle row can dispatch. */
+/** The four command handles a vehicle card can dispatch. */
 type VehicleHandles = Readonly<{
   repeat: Parameters<typeof CommandButton>[0]["handle"];
   rollout: Parameters<typeof CommandButton>[0]["handle"];
@@ -178,7 +181,66 @@ type VehicleHandles = Readonly<{
 }>;
 
 /**
- * One vehicle, its state, and every action available to it right now.
+ * One of RP-1's two vehicle lists, headed by what it is.
+ *
+ * <para>The heading is deliberately QUIETER than the section's own: a
+ * second full-weight title stacked directly under "Vehicles" reads as two
+ * sections rather than as one split in two, which is the opposite of what the
+ * split is for.</para>
+ *
+ * <para>An empty list draws nothing at all rather than an empty heading: the
+ * other list's heading already tells an operator which of the two they are
+ * looking at, and a career with nothing on order should not be handed a
+ * paragraph saying so twice.</para>
+ */
+function VehicleGroup({
+  title,
+  items,
+  waiting,
+  complexes,
+  pads,
+  operations,
+  nameComplex,
+  handles,
+}: Readonly<{
+  title: string;
+  items: readonly (Rp1BuildItemEntry | Rp1WarehouseItemEntry)[];
+  waiting: boolean;
+  complexes: readonly Rp1ComplexEntry[];
+  pads: readonly Rp1PadEntry[] | undefined;
+  operations: readonly Rp1OperationEntry[] | undefined;
+  nameComplex: boolean;
+  handles: VehicleHandles;
+}>) {
+  if (items.length === 0) {
+    return null;
+  }
+
+  return (
+    <>
+      <Text size="xs" tone="muted">
+        {title}
+      </Text>
+      <Stack as="ul" gap="xs" style={LIST_STYLE}>
+        {items.map((item) => (
+          <VehicleCard
+            complexName={complexName(complexes, item.lcId, nameComplex)}
+            handles={handles}
+            item={item}
+            key={rowKey(item)}
+            operation={operationFor(operations, item)}
+            pads={padsAt(pads, item.lcId)}
+            waiting={waiting}
+          />
+        ))}
+      </Stack>
+    </>
+  );
+}
+
+/**
+ * One vehicle: what it is, where it has got to, what it cost, and every action
+ * available to it right now.
  *
  * <para>Every control ARMS before it dispatches. Three of the four move career
  * funds and the fourth throws away a rollout that has been part-paid for, and
@@ -189,95 +251,99 @@ type VehicleHandles = Readonly<{
  *
  * <para>Which controls appear is decided by the vehicle's OPERATION, not by
  * guesswork: RP-1 refuses a rollout for a vehicle already moving and refuses a
- * scrap for one on its way to a pad, so a row that offered those would be
+ * scrap for one on its way to a pad, so a card that offered those would be
  * offering a press that can only be refused.</para>
  */
-function VehicleRow({
+function VehicleCard({
   item,
   complexName: complex,
-  finished,
+  waiting,
   pads,
   operation,
   handles,
 }: Readonly<{
   item: Rp1BuildItemEntry | Rp1WarehouseItemEntry;
   complexName: string | null;
-  finished: boolean;
+  waiting: boolean;
   pads: readonly Rp1PadEntry[];
   operation: Rp1OperationEntry | undefined;
   handles: VehicleHandles;
 }>) {
   const name = item.shipName ?? NULL_DISPLAY;
   const label = complex === null ? name : `${name} · ${complex}`;
-  // Narrowed to a string here rather than asserted at each control: a row with
+  // Narrowed to a string here rather than asserted at each control: a card with
   // no id draws none of them, and that is the only difference between the two
   // branches below.
   const id = item.id ?? null;
 
   return (
-    <Stack as="li" gap="xs">
-      {/* A Row renders an <li>, so these need their own list around them or a
-          screen reader is handed orphan list items inside this one. */}
-      <Stack as="ul" gap="xs" style={LIST_STYLE}>
-        <Row>
-          <RowName>{label}</RowName>
-          <Text>
-            <VehicleState
-              finished={finished}
-              item={item}
-              operation={operation}
-            />
+    // The accent rule repeats the badge as colour, so a card's state survives a
+    // glance that never reaches the badge, and it is read off the same state the
+    // badge is: driving it from the LIST would paint a vehicle mid-rollout as
+    // settled, because a rolled-out vehicle is still a warehouse one.
+    <Card as="li" tone={settled(item, waiting, operation) ? "go" : "warning"}>
+      <Stack gap="xs">
+        <Cluster gap="sm">
+          <RowName>{name}</RowName>
+          <VehicleState item={item} operation={operation} waiting={waiting} />
+        </Cluster>
+
+        <Text size="xs" tone="muted">
+          {complex === null ? null : <>{complex} · </>}
+          {/* "costs", because an unqualified number on a card is the defect this
+              surface is being fixed for. It is one figure doing two jobs and
+              both are true of a vehicle in either list: what another copy is
+              priced at, and what a scrap of this one pays back. */}
+          costs <Unit value={item.cost} />
+        </Text>
+
+        <VehicleProgress item={item} label={name} operation={operation} />
+
+        {id === null ? (
+          // Readable and not commandable, and it says which. RP-1 stamps an
+          // id on every vehicle it creates, so a card without one came out of
+          // a save written before it did; guessing a target from the name
+          // would pick the wrong one of two vehicles that share it.
+          <Text size="xs" tone="muted">
+            {NULL_DISPLAY} RP-1 has no id for this vehicle
           </Text>
-        </Row>
-        <Row>
-          <RowName>Cost</RowName>
-          <Text>
-            <Unit value={item.cost} />
-          </Text>
-        </Row>
-        <Row>
-          <RowName>Actions</RowName>
-          <Text>
-            {id === null ? (
-              // Readable and not commandable, and it says which. RP-1 stamps an
-              // id on every vehicle it creates, so a row without one came out of
-              // a save written before it did; guessing a target from the name
-              // would pick the wrong one of two vehicles that share it.
-              <>{NULL_DISPLAY} RP-1 has no id for this vehicle</>
-            ) : (
-              <VehicleActions
-                cost={item.cost}
-                finished={finished}
-                handles={handles}
-                id={id}
-                label={label}
-                name={name}
-                operation={operation}
-                pads={pads}
-                refusals={rolloutRefusalsOf(item)}
-              />
-            )}
-          </Text>
-        </Row>
+        ) : (
+          <VehicleActions
+            cost={item.cost}
+            handles={handles}
+            id={id}
+            label={label}
+            name={name}
+            operation={operation}
+            pads={pads}
+            refusals={rolloutRefusalsOf(item)}
+            waiting={waiting}
+          />
+        )}
       </Stack>
-    </Stack>
+    </Card>
   );
 }
 
 /**
- * Every action available to one vehicle right NOW.
+ * Every action available to one vehicle right NOW, as a wrapping strip of
+ * buttons.
  *
- * <para>Which controls appear is decided by the vehicle's OPERATION, not by
- * guesswork: RP-1 refuses a rollout for a vehicle already moving and refuses a
- * scrap for one on its way to a pad, so a row that offered those would be
- * offering a press that can only be refused.</para>
+ * <para>No "Actions" label in front of them. A row of arm-then-confirm buttons
+ * is self-evidently the things an operator can do, and the label was taking a
+ * third of the width off the controls it named.</para>
+ *
+ * <para><b>Nothing but buttons on the button line.</b> Every sentence explaining
+ * why a control is ABSENT goes underneath, on its own line. Interleaved, a
+ * refusal read as a caption belonging to the button beside it, which is the one
+ * reading that is never true: it explains the button that is not there.</para>
  */
 function VehicleActions({
   id,
   name,
   label,
   cost,
-  finished,
+  waiting,
   pads,
   refusals,
   operation,
@@ -287,90 +353,140 @@ function VehicleActions({
   name: string;
   label: string;
   cost: Rp1WarehouseItemEntry["cost"];
-  finished: boolean;
+  waiting: boolean;
   pads: readonly Rp1PadEntry[];
   refusals: readonly string[] | undefined;
   operation: Rp1OperationEntry | undefined;
   handles: VehicleHandles;
 }>) {
   const moving = operation !== undefined;
+  // Rollout is offerable only to a finished vehicle that is standing still, and
+  // then only if RP-1 raises no objection to the vehicle itself. Resolved once
+  // here so the buttons and the sentence that replaces them cannot disagree
+  // about which case this card is in.
+  const rolloutOffered = !waiting && !moving && refusals === undefined;
+  const eligiblePads = rolloutOffered ? eligiblePadNames(pads) : [];
+  const withheld = withheldRolloutReason({
+    eligiblePads,
+    pads,
+    refusals,
+    rolloutOffered,
+    waiting,
+    moving,
+  });
 
   return (
-    <Inline gap="xs">
-      <CommandButton
-        args={{ id }}
-        aria-label={`Build another ${label}`}
-        commandLabel={`Build another ${name}`}
-        confirmAriaLabel={`Confirm building another ${label}`}
-        confirmLabel={<SpendWording cost={cost} />}
-        handle={handles.repeat}
-        label="Build"
-        size="sm"
-      />
-      {finished && !moving ? (
-        refusals === undefined ? (
-          <RolloutControls
-            handle={handles.rollout}
-            id={id}
-            label={label}
-            name={name}
-            pads={pads}
-          />
-        ) : (
-          // RP-1's own reasons, in RP-1's own words. The VEHICLE half of
-          // eligibility, and it outranks the pads entirely: no pad at this
-          // complex can take a vehicle its complex will not release, so offering
-          // a pad button would offer a press that can only be refused.
-          <Text>
-            {NULL_DISPLAY} {refusals.join("; ")}
-          </Text>
-        )
-      ) : null}
-      {operation?.type === "Rollback" ? (
+    <Stack gap="xs">
+      <Cluster gap="xs" justify="start" wrap>
         <CommandButton
           args={{ id }}
-          aria-label={`Send ${label} back out to the pad`}
-          commandLabel={`Roll out ${name}`}
-          confirmAriaLabel={`Confirm sending ${label} back out to the pad`}
-          confirmLabel="Confirm"
+          aria-label={`Build another ${label}`}
+          commandLabel={`Build another ${name}`}
+          confirmAriaLabel={`Confirm building another ${label}`}
+          confirmLabel={<SpendWording cost={cost} />}
+          handle={handles.repeat}
+          label="Build another"
+          size="sm"
+        />
+        <RolloutControls
           handle={handles.rollout}
-          label="Roll out again"
-          size="sm"
+          id={id}
+          label={label}
+          name={name}
+          padNames={eligiblePads}
         />
-      ) : null}
-      {operation?.type === "Rollout" ? (
-        <CommandButton
-          args={{ id }}
-          aria-label={`Roll ${label} back off the pad`}
-          commandLabel={`Roll back ${name}`}
-          confirmAriaLabel={`Confirm rolling ${label} back off the pad`}
-          confirmLabel="Confirm"
-          handle={handles.rollback}
-          label="Roll back"
-          size="sm"
-          tone="warn"
-        />
-      ) : null}
-      {moving ? null : (
-        <CommandButton
-          args={{ id }}
-          aria-label={`Scrap ${label}`}
-          commandLabel={`Scrap ${name}`}
-          confirmAriaLabel={`Confirm scrapping ${label}`}
-          confirmLabel={<RefundWording cost={cost} />}
-          handle={handles.scrap}
-          label="Scrap"
-          size="sm"
-          tone="nogo"
-        />
+        {operation?.type === "Rollback" ? (
+          <CommandButton
+            args={{ id }}
+            aria-label={`Send ${label} back out to the pad`}
+            commandLabel={`Roll out ${name}`}
+            confirmAriaLabel={`Confirm sending ${label} back out to the pad`}
+            confirmLabel="Confirm"
+            handle={handles.rollout}
+            label="Roll out again"
+            size="sm"
+          />
+        ) : null}
+        {operation?.type === "Rollout" ? (
+          <CommandButton
+            args={{ id }}
+            aria-label={`Roll ${label} back off the pad`}
+            commandLabel={`Roll back ${name}`}
+            confirmAriaLabel={`Confirm rolling ${label} back off the pad`}
+            confirmLabel="Confirm"
+            handle={handles.rollback}
+            label="Roll back"
+            size="sm"
+            tone="warn"
+          />
+        ) : null}
+        {moving ? null : (
+          <CommandButton
+            args={{ id }}
+            aria-label={`Scrap ${label}`}
+            commandLabel={`Scrap ${name}`}
+            confirmAriaLabel={`Confirm scrapping ${label}`}
+            confirmLabel={<RefundWording cost={cost} />}
+            handle={handles.scrap}
+            label="Scrap"
+            size="sm"
+            tone="nogo"
+          />
+        )}
+      </Cluster>
+
+      {withheld !== null && (
+        <Text size="xs" tone="muted">
+          {NULL_DISPLAY} cannot roll out: {withheld}
+        </Text>
       )}
-    </Inline>
+    </Stack>
   );
 }
 
 /**
- * One rollout control per ELIGIBLE pad, and a plain sentence when there are
- * none.
+ * Why this vehicle has no rollout button, in one sentence, or null when it has
+ * one or when the question does not arise.
+ *
+ * <para>Two separate refusals collapse into one line here because an operator
+ * only ever has one next move. RP-1's own reasons come first and OUTRANK the
+ * pads entirely: no pad at this complex can take a vehicle its complex will not
+ * release, so naming a busy pad as well would send an operator to clear
+ * something that was never in the way.</para>
+ *
+ * <para>Silent for a vehicle still integrating and for one already moving. The
+ * card's badge and its progress bar have both already said so, and a third
+ * sentence repeating it is what turns a card into a paragraph.</para>
+ */
+function withheldRolloutReason({
+  rolloutOffered,
+  eligiblePads,
+  pads,
+  refusals,
+  waiting,
+  moving,
+}: Readonly<{
+  rolloutOffered: boolean;
+  eligiblePads: readonly string[];
+  pads: readonly Rp1PadEntry[];
+  refusals: readonly string[] | undefined;
+  waiting: boolean;
+  moving: boolean;
+}>): string | null {
+  if (waiting || moving) {
+    return null;
+  }
+  if (refusals !== undefined) {
+    return refusals.join("; ");
+  }
+  if (rolloutOffered && eligiblePads.length === 0) {
+    return noPadReason(pads);
+  }
+  return null;
+}
+
+/**
+ * One rollout control per ELIGIBLE pad.
  *
  * <para><b>The pad is always named.</b> The command requires it, per the
  * operator's ruling: choosing a launch site is a decision an operator makes, so
@@ -378,50 +494,32 @@ function VehicleActions({
  * meant. The convenience belongs here instead, and this is what it looks like:
  * one pad means one button, and pressing it commits to that pad by name.</para>
  *
- * <para><b>Eligibility comes off the wire, not from a rule reproduced here.</b>
- * A pad is offerable when RP-1 says its state is Free AND that no craft is
- * standing on it, and those are two separate facts because
- * <c>state</c> cannot see the second: a vehicle already sent to the launch site
- * has no operation left on the pad, so the pad still reads Free. The vehicle's
- * own half arrives as <c>rolloutRefusals</c> and is handled by the caller,
- * because it is the same answer for every pad the complex owns.</para>
- *
- * <para>No eligible pad draws a SENTENCE rather than a disabled button, and says
- * which pad is in the way where the wire named it. A control that simply
- * vanished would leave an operator with nothing to act on, and "the pad is
- * taken" without the name leaves them looking.</para>
+ * <para>Draws NOTHING when the list is empty, rather than the sentence saying
+ * why. The caller owns that sentence, because it also owns the vehicle's own
+ * refusals and only one of the two is worth printing; see
+ * <c>withheldRolloutReason</c>.</para>
  */
 function RolloutControls({
   id,
   name,
   label,
-  pads,
+  padNames,
   handle,
 }: Readonly<{
   id: string;
   name: string;
   label: string;
-  pads: readonly Rp1PadEntry[];
+  padNames: readonly string[];
   handle: Parameters<typeof CommandButton>[0]["handle"];
 }>) {
-  const eligible = eligiblePadNames(pads);
-
-  if (eligible.length === 0) {
-    return (
-      <Text>
-        {NULL_DISPLAY} {noPadReason(pads)}
-      </Text>
-    );
-  }
-
   // One pad needs no name on the button: an operator with no choice does not
   // need it repeated, and the aria-label carries it for anyone who cannot see
-  // the row. The ARGS name it either way, because the command requires it.
-  const short = eligible.length === 1;
+  // the card. The ARGS name it either way, because the command requires it.
+  const short = padNames.length === 1;
 
   return (
     <>
-      {eligible.map((padName) => (
+      {padNames.map((padName) => (
         <CommandButton
           args={{ id, pad: padName }}
           aria-label={`Roll ${label} out to ${padName}`}
@@ -441,6 +539,14 @@ function RolloutControls({
 /**
  * The names of the pads a rollout could actually go to: RP-1 calls them Free and
  * nothing is standing on them.
+ *
+ * <para><b>Eligibility comes off the wire, not from a rule reproduced here.</b>
+ * A pad is offerable when RP-1 says its state is Free AND that no craft is
+ * standing on it, and those are two separate facts because <c>state</c> cannot
+ * see the second: a vehicle already sent to the launch site has no operation
+ * left on the pad, so the pad still reads Free. The VEHICLE's own half arrives
+ * as <c>rolloutRefusals</c> and is weighed separately, because it is the same
+ * answer for every pad the complex owns.</para>
  *
  * <para><c>hasVesselWaiting</c> is checked for TRUE rather than for falsiness.
  * Null means the mod could not answer, and treating that as "occupied" would
@@ -501,48 +607,128 @@ function noPadReason(pads: readonly Rp1PadEntry[]): string {
  */
 function VehicleState({
   item,
-  finished,
+  waiting,
   operation,
 }: Readonly<{
   item: Rp1BuildItemEntry | Rp1WarehouseItemEntry;
-  finished: boolean;
+  waiting: boolean;
   operation: Rp1OperationEntry | undefined;
 }>) {
   if (operation?.type === "Rollout") {
     return atPad(operation) ? (
       <Badge severity="nominal">AT PAD</Badge>
     ) : (
-      <>
-        <Badge severity="caution">ROLLING OUT</Badge>{" "}
-        <OperationEta operation={operation} />
-      </>
+      <Badge severity="caution">ROLLING OUT</Badge>
     );
   }
   if (operation?.type === "Rollback") {
-    return (
-      <>
-        <Badge severity="caution">ROLLING BACK</Badge>{" "}
-        <OperationEta operation={operation} />
-      </>
-    );
+    return <Badge severity="caution">ROLLING BACK</Badge>;
   }
-  if (finished) {
+  if (!waiting) {
     return <Badge severity="nominal">BUILT</Badge>;
   }
-  return <Integrating item={item as Rp1BuildItemEntry} />;
+  if ((item as Rp1BuildItemEntry).stalled === true) {
+    return <Badge severity="caution">STALLED</Badge>;
+  }
+  return <Badge severity="caution">INTEGRATING</Badge>;
 }
 
-/** An operation's ETA where it has one, and nothing where RP-1 has not costed it. */
-function OperationEta({
+/**
+ * How far along the work on this vehicle is, and what the clock beside it is
+ * counting DOWN TO.
+ *
+ * <para>A bare "45d" is the defect this replaces: it was the only number on the
+ * card with no noun, so it could equally have been how long the vehicle has been
+ * queued, how long it took to build, or how long the pad is booked for. Every
+ * duration here names its own end.</para>
+ *
+ * <para>Three states rather than two, the same split LaunchComplexStatus draws:
+ * an ETA, a rate RP-1 resolved at zero, and a project RP-1 has not costed yet.
+ * The last is not a stall, and telling an operator their build has stopped when
+ * RP-1 simply has not priced it yet would send them looking for a fault.</para>
+ */
+function VehicleProgress({
+  item,
+  label,
   operation,
-}: Readonly<{ operation: Rp1OperationEntry }>) {
+}: Readonly<{
+  item: Rp1BuildItemEntry | Rp1WarehouseItemEntry;
+  label: string;
+  operation: Rp1OperationEntry | undefined;
+}>) {
+  if (operation !== undefined) {
+    if (atPad(operation)) {
+      return null;
+    }
+    const ending =
+      operation.type === "Rollback"
+        ? "until it is back in the warehouse"
+        : "until it reaches the pad";
+    return (
+      <WorkProgress
+        ariaLabel={`${operation.type === "Rollback" ? "Rollback" : "Rollout"} progress, ${label}`}
+        ending={ending}
+        ratio={magnitudeOf(operation.progressRatio)}
+        timeLeftSeconds={operation.timeLeftSeconds}
+      />
+    );
+  }
+
+  const build = item as Rp1BuildItemEntry;
+  // The warehouse carries neither field, so a built vehicle falls out here with
+  // nothing to draw, which is right: there is no work left on it to report.
   if (
-    operation.timeLeftSeconds === undefined ||
-    operation.timeLeftSeconds === null
+    build.progressRatio === undefined &&
+    build.timeLeftSeconds === undefined
   ) {
     return null;
   }
-  return <Countdown value={operation.timeLeftSeconds} />;
+  if (build.timeLeftSeconds === undefined || build.timeLeftSeconds === null) {
+    return (
+      <Text size="xs" tone="muted">
+        {build.stalled === true
+          ? "Integration is stalled and has no end date."
+          : `${NULL_DISPLAY} RP-1 has not costed this build yet.`}
+      </Text>
+    );
+  }
+  return (
+    <WorkProgress
+      ariaLabel={`Integration progress, ${label}`}
+      ending="until integration finishes"
+      ratio={magnitudeOf(build.progressRatio)}
+      timeLeftSeconds={build.timeLeftSeconds}
+    />
+  );
+}
+
+/**
+ * A bar and the clock that goes with it. The clock always carries the phrase
+ * saying what it ends at, and the bar is omitted rather than drawn at zero when
+ * RP-1 reports no fraction: a full-width empty track says "no progress made",
+ * which is a different claim from "we cannot see the progress".
+ */
+function WorkProgress({
+  ratio,
+  timeLeftSeconds,
+  ending,
+  ariaLabel,
+}: Readonly<{
+  ratio: number | null;
+  timeLeftSeconds: Rp1BuildItemEntry["timeLeftSeconds"];
+  ending: string;
+  ariaLabel: string;
+}>) {
+  return (
+    <Stack gap="xs">
+      {ratio !== null && (
+        <ProgressBar ariaLabel={ariaLabel} value={ratio * 100} />
+      )}
+      <Text size="xs" tone="muted">
+        <Countdown value={timeLeftSeconds} /> {ending}
+      </Text>
+    </Stack>
+  );
 }
 
 /**
@@ -583,7 +769,13 @@ function RefundWording({
  * <para>Per COMPLEX and not per vehicle, which is a fact about RP-1 rather than
  * a simplification here: <c>IsRushing</c> is a bool on the launch complex, so
  * every project inside it is rushed together. A control shaped like "rush this
- * build" would be a lie about what the game does.</para>
+ * build" would be a lie about what the game does. That is also why the complexes
+ * get a list of their own below the vehicles rather than a control tucked into
+ * one vehicle's card.</para>
+ *
+ * <para>The row is named for the COMPLEX, because that is what it is: a row
+ * called "LC-1 rush" reads as a second thing called LC-1 rush that also happens
+ * to have a rush button. What the press does is the button's job to say.</para>
  *
  * <para>One press, unlike every control above it, and the difference is real:
  * this spends nothing at the moment it lands. It raises the rate and the SALARY
@@ -594,11 +786,9 @@ function RefundWording({
  */
 function ComplexRush({
   complex,
-  named,
   handle,
 }: Readonly<{
   complex: Rp1ComplexEntry;
-  named: boolean;
   handle: Parameters<typeof CommandButton>[0]["handle"];
 }>) {
   const lcId = complex.lcId;
@@ -610,52 +800,25 @@ function ComplexRush({
 
   return (
     <Row>
-      <RowName>{named ? `${name} rush` : "Rush integration"}</RowName>
-      <Text>
-        <Inline gap="xs">
-          {rushing ? <Badge severity="caution">RUSHING</Badge> : null}
-          <CommandButton
-            active={rushing}
-            args={{ lcId, rushing: !rushing }}
-            aria-label={
-              rushing
-                ? `Stop rushing work at ${name}`
-                : `Rush work at ${name}, at a higher salary`
-            }
-            commandLabel={rushing ? `Stop rushing ${name}` : `Rush ${name}`}
-            handle={handle}
-            label={rushing ? "Stop rushing" : "Rush"}
-            size="sm"
-            tone={rushing ? "warn" : "neutral"}
-          />
-        </Inline>
-      </Text>
+      <RowName>{complex.name ?? NULL_DISPLAY}</RowName>
+      <Inline gap="xs">
+        {rushing ? <Badge severity="caution">RUSHING</Badge> : null}
+        <CommandButton
+          active={rushing}
+          args={{ lcId, rushing: !rushing }}
+          aria-label={
+            rushing
+              ? `Stop rushing work at ${name}`
+              : `Rush work at ${name}, at a higher salary`
+          }
+          commandLabel={rushing ? `Stop rushing ${name}` : `Rush ${name}`}
+          handle={handle}
+          label={rushing ? "Stop rushing" : "Rush"}
+          size="sm"
+          tone={rushing ? "warn" : "neutral"}
+        />
+      </Inline>
     </Row>
-  );
-}
-
-/**
- * How far along a vehicle still on the build list is. Three states rather than
- * two, the same split LaunchComplexStatus draws: an ETA, a rate RP-1 resolved at
- * zero, and a project RP-1 has not costed yet. The last is not a stall.
- */
-function Integrating({ item }: Readonly<{ item: Rp1BuildItemEntry }>) {
-  if (item.timeLeftSeconds !== undefined && item.timeLeftSeconds !== null) {
-    return (
-      <>
-        <Badge severity="caution">INTEGRATING</Badge>{" "}
-        <Countdown value={item.timeLeftSeconds} />
-      </>
-    );
-  }
-  if (item.stalled === true) {
-    return <Badge severity="caution">STALLED</Badge>;
-  }
-  return (
-    <>
-      <Badge severity="caution">INTEGRATING</Badge> {NULL_DISPLAY} not costed
-      yet
-    </>
   );
 }
 
@@ -697,6 +860,23 @@ function operationFor(
  */
 function atPad(operation: Rp1OperationEntry): boolean {
   return (magnitudeOf(operation.progressRatio) ?? 0) >= 1;
+}
+
+/**
+ * Whether the vehicle is somewhere an operator can leave it: finished and
+ * standing in the warehouse, or finished and standing on the pad. Everything
+ * else is work in flight, which is the same split the badge draws and is read
+ * off the same three inputs so the two cannot disagree.
+ */
+function settled(
+  item: Rp1BuildItemEntry | Rp1WarehouseItemEntry,
+  waiting: boolean,
+  operation: Rp1OperationEntry | undefined,
+): boolean {
+  if (operation !== undefined) {
+    return operation.type === "Rollout" && atPad(operation);
+  }
+  return !waiting && (item as Rp1BuildItemEntry).stalled !== true;
 }
 
 /**
@@ -756,8 +936,8 @@ function rowKey(item: Rp1BuildItemEntry | Rp1WarehouseItemEntry): string {
 }
 
 /**
- * A Row renders an `<li>`, so its rows need list semantics around them; see
- * LaunchComplexStatus for the same reset and why it is inline.
+ * A `Card as="li"` and a `Row` are both list items, so they need list semantics
+ * around them; see LaunchComplexStatus for the same reset and why it is inline.
  */
 const LIST_STYLE = { listStyle: "none", margin: 0, padding: 0 } as const;
 

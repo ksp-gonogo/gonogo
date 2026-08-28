@@ -146,16 +146,19 @@ describe("KscVehicles", () => {
     expect(view.container).toBeEmptyDOMElement();
   });
 
-  it("shows the funds balance the build it offers will be spent from", async () => {
-    // The repo rule for any widget with a fund-spending control, and it is not
-    // decoration: the mod prices the build against this balance, so an operator
-    // reading a refusal is reading the same number the refusal compared against.
+  it("draws no balance of its own: the host widget carries the one", async () => {
+    // The repo rule is per WIDGET, and this section is not one: three augments
+    // land in the same panel and two of them used to print the balance, so the
+    // widget stated it twice under two different headings. The rule is met once,
+    // in the host's chrome, and covered by `SpaceCenterStatus`'s own test that
+    // the balance is on screen wherever the sections slot renders.
     const { view } = withOneBuiltVehicle();
 
     await waitFor(() => {
-      expect(screen.getByText("Funds")).toBeInTheDocument();
+      expect(screen.getByText("BUILT")).toBeInTheDocument();
     });
-    expect(visibleText()).toContain("289,848");
+    expect(visibleText()).not.toContain("289,848");
+    expect(screen.queryByText("Funds")).not.toBeInTheDocument();
     await expectNoA11yViolations(view.container);
   });
 
@@ -175,7 +178,7 @@ describe("KscVehicles", () => {
 
     await waitFor(() => {
       expect(
-        screen.getByText("none built and none on order"),
+        screen.getByText("None built and none on order."),
       ).toBeInTheDocument();
     });
   });
@@ -275,9 +278,10 @@ describe("KscVehicles", () => {
     });
 
     await waitFor(() => {
-      expect(screen.getByText("Actions")).toBeInTheDocument();
+      expect(
+        screen.getByText(/RP-1 has no id for this vehicle/),
+      ).toBeInTheDocument();
     });
-    expect(visibleText()).toContain("RP-1 has no id for this vehicle");
     // EVERY control, not just the build: none of the four can name a target
     // without the id, and guessing from the name would pick the wrong one of two
     // vehicles that share it.
@@ -305,7 +309,11 @@ describe("KscVehicles", () => {
     await waitFor(() => {
       expect(screen.getByText("BUILT")).toBeInTheDocument();
     });
-    expect(visibleText()).toContain("Atlas · LC-1");
+    // On the card's own detail line rather than appended to the name: the name
+    // is the heading of a card and reads as one, and hanging a second identifier
+    // off it was what made a run of rows hard to tell apart in the first place.
+    expect(visibleText()).toContain("Atlas");
+    expect(visibleText()).toContain("LC-1 · costs");
   });
 
   it("rolls a built vehicle out to the pad, after arm-then-confirm", async () => {
@@ -686,11 +694,22 @@ describe("KscVehicles", () => {
     });
 
     await waitFor(() => {
-      expect(screen.getByText("LC-1 rush")).toBeInTheDocument();
+      // The row is named for the COMPLEX. "LC-1 rush" read as a second thing
+      // called LC-1 rush that happened to have a rush button beside it; what
+      // the press does is the button's own job to say.
+      expect(
+        screen.getByRole("button", { name: /Rush work at LC-1/ }),
+      ).toBeInTheDocument();
     });
+    expect(screen.getByText("LC-1")).toBeInTheDocument();
+    expect(screen.queryByText("LC-1 rush")).not.toBeInTheDocument();
     // An idle complex is exactly the one worth taking OUT of rush mode, so a
-    // control drawn only beside vehicles would hide the useful half.
-    expect(screen.getByText("LC-2 rush")).toBeInTheDocument();
+    // control drawn only beside vehicles would hide the useful half. LC-2 holds
+    // no vehicle in this state, so its row is the whole of what proves it.
+    expect(screen.getByText("LC-2")).toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: /Rush work at LC-2/ }),
+    ).toBeInTheDocument();
   });
 
   it("stays accessible with every control on screen at once", async () => {

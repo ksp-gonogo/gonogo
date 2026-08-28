@@ -1,14 +1,21 @@
 {
   "_scene": {
-    "augment": "rp1-ksc-vehicles",
+    "augment": "rp1-space-centre-personnel",
     "host": "space-center-status",
     "size": {
       "w": 12,
       "h": 14
     },
-    "caption": "Nothing built and nothing on order, which is where a career starts",
-    "paints": ["None built and none on order"],
-    "expectsEmpty": "a fresh career has no vehicles built and none ordered, and this is the picture of that state reading as an answer"
+    "caption": "A payroll mid-career, with engineers on the books that nobody has assigned: the idle count is the one number here that costs money for nothing, and it is why the per-complex split is drawn rather than only the totals",
+    "paints": [
+      "Engineers",
+      "Researchers",
+      "Applicants",
+      "Cape",
+      "Unassigned",
+      "IDLE",
+      "LC-1"
+    ]
   },
   "_stream": {
     "pinnedUt": 1000000,
@@ -22,42 +29,15 @@
             "science": 340
           },
           "facilities": {
-            "LaunchPad": {
-              "level": 1,
-              "max": 2
-            },
-            "Runway": {
-              "level": 0,
-              "max": 2
-            },
-            "VehicleAssemblyBuilding": {
-              "level": 1,
-              "max": 2
-            },
-            "SpaceplaneHangar": {
-              "level": 0,
-              "max": 2
-            },
-            "MissionControl": {
-              "level": 1,
-              "max": 2
-            },
-            "TrackingStation": {
-              "level": 1,
-              "max": 2
-            },
-            "Administration": {
-              "level": 0,
-              "max": 2
-            },
-            "ResearchAndDevelopment": {
-              "level": 1,
-              "max": 2
-            },
-            "AstronautComplex": {
-              "level": 0,
-              "max": 2
-            }
+            "LaunchPad": { "level": 1, "max": 2 },
+            "Runway": { "level": 0, "max": 2 },
+            "VehicleAssemblyBuilding": { "level": 1, "max": 2 },
+            "SpaceplaneHangar": { "level": 0, "max": 2 },
+            "MissionControl": { "level": 1, "max": 2 },
+            "TrackingStation": { "level": 1, "max": 2 },
+            "Administration": { "level": 0, "max": 2 },
+            "ResearchAndDevelopment": { "level": 1, "max": 2 },
+            "AstronautComplex": { "level": 0, "max": 2 }
           }
         }
       },
@@ -89,6 +69,28 @@
         "payload": true
       },
       {
+        "topic": "rp1.personnel",
+        "payload": {
+          "totalEngineers": 24,
+          "researchers": 31,
+          "applicants": 7
+        }
+      },
+      {
+        "topic": "rp1.centres",
+        "payload": [
+          {
+            "kscName": "Cape",
+            "isActive": true,
+            "engineers": 24,
+            "unassignedEngineers": 6,
+            "launchComplexCount": 2,
+            "anyOperational": true,
+            "groundStation": "us_cape_canaveral"
+          }
+        ]
+      },
+      {
         "topic": "rp1.complexes",
         "payload": [
           {
@@ -98,11 +100,11 @@
             "lcType": "Pad",
             "isOperational": true,
             "isRushing": false,
-            "engineers": 18,
+            "engineers": 12,
             "maxEngineers": 60,
             "efficiency": 0.72,
             "canIntegrate": true,
-            "rate": 0.00019290123456790122,
+            "rate": 0.0001929012345679,
             "humanRated": false,
             "massMin": 6,
             "massMax": 180
@@ -113,25 +115,17 @@
             "name": "LC-2",
             "lcType": "Pad",
             "isOperational": true,
-            "isRushing": false,
+            "isRushing": true,
             "engineers": 6,
             "maxEngineers": 40,
             "efficiency": 0.4,
             "canIntegrate": true,
-            "rate": 0,
+            "rate": 0.0004,
             "humanRated": false,
             "massMin": 3,
             "massMax": 90
           }
         ]
-      },
-      {
-        "topic": "rp1.warehouse",
-        "payload": []
-      },
-      {
-        "topic": "rp1.buildQueue",
-        "payload": []
       }
     ]
   }

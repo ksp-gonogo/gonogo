@@ -357,6 +357,12 @@ function SpaceCenterStatusComponent({
   usePanelDelay(upgradeCmd);
 
   const facilities = parseFacilityLevels(facilitiesRaw);
+  // Displayed tiers, matching the facility grid's own `level + 1` / `max + 1`
+  // convention: the count in the footer is the one the operator reads beside
+  // the R&D cell, so the two must not disagree by one.
+  const rd = facilities.rd;
+  const rdTier =
+    rd && rd.max > 0 ? { level: rd.level + 1, max: rd.max + 1 } : null;
 
   /**
    * Upgrades work in the Space Center scene only, KSP's upgrade pipeline isn't
@@ -622,6 +628,17 @@ function SpaceCenterStatusComponent({
           <FooterCell title="Parts unlocked by current R&D tier">
             <FooterLabel>Parts unlocked</FooterLabel>
             <FooterValue>{partsAvailable ?? NULL_DISPLAY}</FooterValue>
+            {/* What the count is a count OF. Standing alone it was a number an
+                operator could confirm was accurate and could not act on; named
+                against the tier that produced it, it is the answer to what the
+                R&D upgrade two rows above actually buys. The qualifier is
+                dropped rather than guessed when the tier is unreadable: "at R&D
+                tier ? of ?" would make the number look broken. */}
+            {rdTier !== null && (
+              <FooterQualifier>
+                {`at R&D tier ${rdTier.level} of ${rdTier.max}`}
+              </FooterQualifier>
+            )}
           </FooterCell>
         </Footer>
       </Body>
@@ -949,6 +966,11 @@ const FooterValue = styled.span`
   font-weight: 600;
   color: var(--color-text-primary);
   font-variant-numeric: tabular-nums;
+`;
+
+const FooterQualifier = styled.span`
+  font-size: var(--font-size-2xs);
+  color: var(--color-text-faint);
 `;
 
 const PadStatusLine = styled.span`
