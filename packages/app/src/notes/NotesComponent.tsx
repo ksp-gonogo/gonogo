@@ -1,9 +1,7 @@
 import type { ComponentProps, DataKey } from "@ksp-gonogo/core";
 import { registerComponent, useScreen } from "@ksp-gonogo/core";
 import {
-  isTopicCarried,
   resolveValueTopic,
-  useCarriedChannelsOptional,
   useTelemetryClientOptional,
   useTelemetryStoreOptional,
 } from "@ksp-gonogo/sitrep-client";
@@ -273,16 +271,26 @@ function useKnownDataKeys(): ReadonlySet<string> {
  * Reads the latest value of every tag, one Topic per note-body placeholder
  * (`{{v.altitude}}`-style). Forces a re-render whenever any of them change.
  *
- * Mirrors `useTelemetry`'s own per-key migration-shim decision (`@ksp-gonogo/core`),
- * mapped + a `TelemetryProvider` mounted + carried -> the `TimelineStore`;
- * otherwise the legacy `DataSource`: but resolved imperatively for a
- * DYNAMIC tag list instead of one fixed hook call, since a `useTelemetry`
- * loop would change hook count as the tag list grows/shrinks mid-edit.
+ * Resolved imperatively for a DYNAMIC tag list rather than as one fixed hook
+ * call, since a `useTelemetry` loop would change hook count as the tag list
+ * grows and shrinks mid-edit.
+ *
+ * This is `useTelemetry`'s CANONICAL shape, not its migration shim: there is no
+ * legacy `DataSource` here to fall back to, as `LEGACY_DATA_SOURCE_ID`'s own
+ * doc above says. It carried the shim's carried-channels gate anyway, which
+ * with no fallback to pick could only ever suppress: a tag on an uncarried
+ * topic never subscribed, so it rendered nothing for ever, and
+ * `installUnownedTopicWarning` could not report it because it only hears about
+ * topics something subscribed to. The gate is gone; a tag resolves whenever its
+ * topic does, and one that nothing publishes is now named by that warning.
+ *
+ * Exported for its own test: this resolution is where the silence lived, and
+ * reaching it through the component costs a notes-host and screen fixture that
+ * would test neither.
  */
-function useTagValues(tags: readonly string[]): Map<string, unknown> {
+export function useTagValues(tags: readonly string[]): Map<string, unknown> {
   const client = useTelemetryClientOptional();
   const store = useTelemetryStoreOptional();
-  const carriedChannels = useCarriedChannelsOptional();
   const [snapshot, setSnapshot] = useState<Map<string, unknown>>(
     () => new Map(),
   );
@@ -305,13 +313,8 @@ function useTagValues(tags: readonly string[]): Map<string, unknown> {
 
     for (const tag of tags) {
       const topic = resolveValueTopic(LEGACY_DATA_SOURCE_ID, tag);
-      const carried =
-        store !== undefined &&
-        topic !== undefined &&
-        carriedChannels !== undefined &&
-        isTopicCarried(store, carriedChannels, topic);
 
-      if (client && store && topic !== undefined && carried) {
+      if (client && store && topic !== undefined) {
         const inputTopics = store.resolveSubscriptionTopics(topic);
         const unsubscribeInputs = inputTopics.map((inputTopic) =>
           client.subscribe(inputTopic, () => {}),
@@ -326,14 +329,14 @@ function useTagValues(tags: readonly string[]): Map<string, unknown> {
           for (const unsubscribe of unsubscribeInputs) unsubscribe();
         });
       }
-      // No `else` branch, and no fallback source for un-carried tags. An
-      // un-mapped or un-carried tag simply never resolves (stays `undefined`),
-      // same as any other never-arrived value.
+      // No `else` branch, because there is no fallback source. A tag naming no
+      // topic at all simply never resolves (stays `undefined`), same as any
+      // other never-arrived value.
     }
     return () => {
       for (const u of unsubs) u();
     };
-  }, [tags, client, store, carriedChannels]);
+  }, [tags, client, store]);
   return snapshot;
 }
 

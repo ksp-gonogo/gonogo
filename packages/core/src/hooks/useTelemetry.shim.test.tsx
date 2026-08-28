@@ -7,6 +7,8 @@ import {
   type WireOf,
 } from "@ksp-gonogo/sitrep-client";
 import { Quality } from "@ksp-gonogo/sitrep-sdk";
+import { resetGatedReadWarnings } from "@ksp-gonogo/sitrep-sdk/spine";
+import { installTestHost } from "@ksp-gonogo/sitrep-sdk/testing";
 import {
   act,
   render,
@@ -15,7 +17,7 @@ import {
   waitFor,
 } from "@ksp-gonogo/test-utils";
 import { NULL_DISPLAY } from "@ksp-gonogo/ui-kit";
-import { beforeEach, describe, expect, it } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { clearRegistry, registerDataSource } from "../registry";
 import { useLegacyTelemetry } from "../test/legacyTelemetry";
 import type { DataSource, DataSourceStatus } from "../types";
@@ -524,4 +526,198 @@ describe("useTelemetry gate: M3 Wave 0 carried-channels allowlist (the big-bang 
       expect(screen.getByText("alt:71234")).toBeTruthy();
     },
   );
+});
+
+/**
+ * The gate's precondition, which nothing in the block above tests.
+ *
+ * Every case up there registers a legacy `DataSource` before rendering, so
+ * "not carried" always has somewhere to land. Production registers no source
+ * with id `"data"` at all: the flat-key source the gate was written to protect
+ * is deleted. So on the two-arg surface the gate was choosing between the
+ * stream and silence, and the canonical one-arg read of the same topic was
+ * unaffected because it skips the gate.
+ */
+describe("useTelemetry gate: it prefers the legacy read, it does not exclude the stream", () => {
+  it("serves the streamed value for an uncarried topic when NO legacy DataSource is registered, matching what the canonical read of the same topic sees", async () => {
+    const transport = new StubTransport();
+    const client = new TelemetryClient(transport);
+    // Deliberately no registerDataSource: this is what the app looks like.
+
+    function Probe() {
+      const legacy = useLegacyTelemetry("data", "vessel.control.throttle");
+      const canonical = useTelemetry("vessel.control");
+      const streamed =
+        canonical.state === "observed" ? canonical.value.throttle : undefined;
+      return (
+        <div>
+          <div>
+            legacy:{legacy === undefined ? NULL_DISPLAY : plain(legacy)}
+          </div>
+          <div>
+            canonical:
+            {streamed === undefined ? NULL_DISPLAY : plain(streamed)}
+          </div>
+        </div>
+      );
+    }
+
+    // "vessel.control" is deliberately absent from the allowlist: a topic the
+    // wire genuinely delivers can be missing from it, because the list is
+    // seeded from declarations and a promotion list, not from what arrives.
+    render(
+      <TelemetryProvider client={client}>
+        <Probe />
+      </TelemetryProvider>,
+    );
+
+    act(() => transport.emit("vessel.control", { throttle: 0.75 }));
+
+    await waitFor(() =>
+      expect(screen.getByText("canonical:0.75")).toBeTruthy(),
+    );
+    // RED before the fix: the gate short-circuited the subscription, so this
+    // rendered the null display for ever while the canonical read beside it,
+    // on the same topic in the same component, showed the value.
+    expect(screen.getByText("legacy:0.75")).toBeTruthy();
+  });
+
+  it("still prefers the LEGACY value for an uncarried topic when the legacy source has one, even though the stream also does", async () => {
+    const transport = new StubTransport();
+    const client = new TelemetryClient(transport);
+    const legacySource = makeLegacySource();
+    registerDataSource(legacySource);
+
+    function Throttle() {
+      const throttle = useLegacyTelemetry("data", "vessel.control.throttle");
+      return (
+        <div>
+          throttle:{throttle === undefined ? NULL_DISPLAY : plain(throttle)}
+        </div>
+      );
+    }
+
+    render(
+      <TelemetryProvider client={client}>
+        <Throttle />
+      </TelemetryProvider>,
+    );
+
+    act(() => transport.emit("vessel.control", { throttle: 0.75 }));
+    act(() => legacySource.emit("vessel.control.throttle", 0.4));
+
+    // The gate's whole point, unchanged: an uncarried topic reads the working
+    // legacy value. The streamed one is the tie-break for when there is none,
+    // never a replacement for one that exists.
+    await waitFor(() => expect(screen.getByText("throttle:0.4")).toBeTruthy());
+  });
+
+  /**
+   * Why the silence was undetectable, and why it now is not.
+   *
+   * `installUnownedTopicWarning` is the diagnostic built for a read that will
+   * never resolve, and it is mounted on every `TelemetryProvider`. It hears
+   * only about topics something subscribed to, so a gate that returned before
+   * `client.subscribe` made its own failure mode invisible to the one
+   * instrument that would have named it.
+   */
+  it("subscribes an uncarried two-arg read, so the unowned-topic diagnostic can see it", () => {
+    const transport = new StubTransport();
+    const client = new TelemetryClient(transport);
+
+    function Throttle() {
+      useLegacyTelemetry("data", "vessel.control.throttle");
+      return <div>probe</div>;
+    }
+
+    render(
+      <TelemetryProvider client={client}>
+        <Throttle />
+      </TelemetryProvider>,
+    );
+
+    expect(transport.isSubscribed("vessel.control")).toBe(true);
+  });
+});
+
+/**
+ * The rescue is not meant to be a place a call site quietly lives. The one
+ * moment it is observable is the one where both candidate values are in hand,
+ * so the report is raised from the read itself, and this is the wiring test
+ * that says the read raises it. `gated-read-warning.test.ts` covers the
+ * message and the once-per-key gate.
+ */
+describe("useTelemetry gate: a rescued read reports itself", () => {
+  const warn = vi.fn();
+  let uninstall = () => {};
+
+  beforeEach(() => {
+    warn.mockClear();
+    resetGatedReadWarnings();
+    uninstall = installTestHost({ logger: { warn } as never });
+  });
+  afterEach(() => uninstall());
+
+  it("logs the call site, the topic that served it, and the canonical form to move to", async () => {
+    const transport = new StubTransport();
+    const client = new TelemetryClient(transport);
+
+    function Throttle() {
+      const throttle = useLegacyTelemetry("data", "vessel.control.throttle");
+      return (
+        <div>
+          throttle:{throttle === undefined ? NULL_DISPLAY : plain(throttle)}
+        </div>
+      );
+    }
+
+    render(
+      <TelemetryProvider client={client}>
+        <Throttle />
+      </TelemetryProvider>,
+    );
+
+    expect(warn).not.toHaveBeenCalled();
+
+    act(() => transport.emit("vessel.control", { throttle: 0.75 }));
+
+    await waitFor(() => expect(warn).toHaveBeenCalledTimes(1));
+    expect(String(warn.mock.calls[0]?.[0])).toContain(
+      'useTelemetry("data", "vessel.control.throttle")',
+    );
+    expect(String(warn.mock.calls[0]?.[0])).toContain(
+      'useTelemetry("vessel.control")',
+    );
+  });
+
+  /**
+   * A registered source that has not emitted yet is rescued too, and must not
+   * be accused: the report fires once per read for the whole session, so a
+   * line raised for a transient would outlive its own cause.
+   */
+  it("says nothing when a legacy source is registered but has yet to emit", async () => {
+    const transport = new StubTransport();
+    const client = new TelemetryClient(transport);
+    registerDataSource(makeLegacySource());
+
+    function Throttle() {
+      const throttle = useLegacyTelemetry("data", "vessel.control.throttle");
+      return (
+        <div>
+          throttle:{throttle === undefined ? NULL_DISPLAY : plain(throttle)}
+        </div>
+      );
+    }
+
+    render(
+      <TelemetryProvider client={client}>
+        <Throttle />
+      </TelemetryProvider>,
+    );
+
+    act(() => transport.emit("vessel.control", { throttle: 0.75 }));
+
+    await waitFor(() => expect(screen.getByText("throttle:0.75")).toBeTruthy());
+    expect(warn).not.toHaveBeenCalled();
+  });
 });
