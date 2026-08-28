@@ -5,7 +5,7 @@
 import { defineUplinkClient } from "@ksp-gonogo/sitrep-sdk";
 
 // TODO(version): build-inject this from gonogo-uplink.json.
-const UPLINK_VERSION = "0.0.0-dev";
+const UPLINK_VERSION = "0.0.1";
 
 export const PRINCIPIA = defineUplinkClient({
   id: "principia",

@@ -76,16 +76,35 @@ describe("readWireSurface", () => {
     });
   });
 
-  it("lists the shapes no channel names, and never repeats a channel's own payload", () => {
+  /**
+   * The split is the accuracy fix that made this worth separating: with one
+   * bucket the page told a reader that a provider-extension shape was a
+   * command's arguments, which is a specific claim and was wrong.
+   */
+  it("separates a shape another payload HOLDS from one with no route it can name", () => {
     const surface = readWireSurface(
       slice({ "units.json": UNITS, "topic-map.ts": TOPIC_MAP }),
     );
-    // ScanCoverage rides scan.coverage, so it is described by the channel row.
-    // ScanArgs and ScanVessel are not carried by any static channel.
-    expect(surface.payloads.map((p) => p.name)).toEqual([
-      "ScanArgs",
-      "ScanVessel",
-    ]);
+    // ScanCoverage rides scan.coverage, so the channel row describes it and it
+    // is in neither bucket.
+    expect(surface.nested.map((p) => p.name)).toEqual(["ScanVessel"]);
+    expect(surface.payloads.map((p) => p.name)).toEqual(["ScanArgs"]);
+  });
+
+  it("strips the plural markers, so a list or dictionary of a shape still counts as held", () => {
+    const surface = readWireSurface(
+      slice({
+        "units.json": JSON.stringify({
+          types: { Held: { x: "m" }, Dict: { y: "m" }, Loose: { z: "m" } },
+          topics: {},
+          typeShapes: { Held: { many: "Dict" } },
+          topicShapes: { "a.b": { some: "Held[]" } },
+        }),
+        "topic-map.ts": "export interface M {}\n",
+      }),
+    );
+    expect(surface.nested.map((p) => p.name)).toEqual(["Dict", "Held"]);
+    expect(surface.payloads.map((p) => p.name)).toEqual(["Loose"]);
   });
 
   it("reports absent, not empty, for an Uplink with no contract slice", () => {
@@ -137,7 +156,9 @@ describe("wireSection", () => {
     expect(md).toContain(
       "| `scan.coverage` | `ScanCoverage` | `body` id, `covered` %, `vessels` ScanVessel[] |",
     );
-    expect(md).toContain("### Command and dynamic-channel payloads");
+    expect(md).toContain("### Payloads held inside another payload");
+    expect(md).toContain("| `ScanVessel` | `altitude` m |");
+    expect(md).toContain("### Command args, dynamic channels and extensions");
     expect(md).toContain("| `ScanArgs` | `body` id |");
   });
 

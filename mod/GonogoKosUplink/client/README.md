@@ -32,9 +32,9 @@ Reflected out of this Uplink's own contract assembly by the codegen that writes 
 | --- | --- | --- |
 | `kos.processors` | `KosProcessorInfo[]` | `bootFilePath` text, `coreId` id, `hasBooted` flag, `partName` text, `processorMode` text, `tag` text |
 
-### Command and dynamic-channel payloads
+### Command args, dynamic channels and extensions
 
-Wire shapes that no fixed channel name carries: a command's arguments, and the payload of a dynamic namespace whose topic string is composed at runtime (per vessel, per part, per CPU). A runtime-composed name cannot be declared as an attribute, so nothing can reflect it and these are listed by shape.
+Wire shapes whose route onto the wire is not in the generated slice, so the honest description is all three things one of these can be: a command's arguments, the payload of a dynamic namespace whose topic string is composed at runtime (per vessel, per part, per CPU), or a namespace this Uplink adds inside another channel's extensions bag. None of the three is a fixed name an attribute could declare, which is why they are listed by shape.
 
 | Payload | Fields |
 | --- | --- |
@@ -115,11 +115,11 @@ Every widget above carries the framework's universal segments (`badges`, `filter
 
 ## What this page cannot tell you
 
-- the TOPIC STRING each of the 10 payload(s) under
-  "Command and dynamic-channel payloads" rides. A dynamic namespace
-  composes its topic per subject at runtime, so there is no attribute for
-  the codegen to reflect; the mod's own channel constants are where those
-  strings live
+- which topic each of the 10 shapes under
+  "Command args, dynamic channels and extensions" travels on. A dynamic
+  namespace composes its topic per subject at runtime and an extensions
+  bag has no topic of its own, so there is no fixed name for the codegen
+  to reflect; the mod's own channel constants are where those strings live
 - which commands the Uplink accepts, and each one's DELAY ROLE. Both are
   declared where the mod registers them rather than as an attribute on a
   payload, and the client sends a command by naming it at the call site,

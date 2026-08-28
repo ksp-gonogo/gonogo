@@ -1,0 +1,11 @@
+{
+  "id": "breakingGround",
+  "version": "0.0.1",
+  "description": "Puts the Breaking Ground DLC's two mechanical systems on the dashboard: the robotic joints you drive, and the deployed surface bases that keep working after you have flown somewhere else.",
+  "minAppVersion": "0.0.0",
+  "apiVersion": "1.0.0",
+  "uiKitVersion": "0.2.0",
+  "contractMajor": 13,
+  "contractMinor": 2,
+  "integrity": ""
+}

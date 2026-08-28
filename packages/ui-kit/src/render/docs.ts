@@ -440,12 +440,13 @@ export function buildReadme(
 
   out.push("## What this page cannot tell you", "");
   if (wire.payloads.length > 0) {
+    const n = wire.payloads.length;
     out.push(
-      `- the TOPIC STRING each of the ${wire.payloads.length} payload(s) under`,
-      '  "Command and dynamic-channel payloads" rides. A dynamic namespace',
-      "  composes its topic per subject at runtime, so there is no attribute for",
-      "  the codegen to reflect; the mod's own channel constants are where those",
-      "  strings live",
+      `- which topic ${n === 1 ? "the shape" : `each of the ${n} shapes`} under`,
+      '  "Command args, dynamic channels and extensions" travels on. A dynamic',
+      "  namespace composes its topic per subject at runtime and an extensions",
+      "  bag has no topic of its own, so there is no fixed name for the codegen",
+      "  to reflect; the mod's own channel constants are where those strings live",
     );
   }
   if (wire.present) {

@@ -55,13 +55,28 @@ export interface WireSurface {
   present: boolean;
   channels: WireChannel[];
   /**
-   * Wire shapes no static channel names: command args, and the payloads of
-   * dynamic namespaces whose topic string is computed at runtime.
+   * Shapes another payload's field holds, so a reader reaches them THROUGH a
+   * channel rather than by subscribing to one. Separated from `payloads` because
+   * they are the one group whose route onto the wire is visible here, and
+   * lumping them in with the command args made the page claim a `*Ext`
+   * provider-extension shape was a command's arguments.
+   */
+  nested: WirePayload[];
+  /**
+   * Wire shapes nothing on this page can route: a command's args, a dynamic
+   * namespace's payload, or a namespace added inside another channel's
+   * extensions bag. The distinction between those three is not in the generated
+   * slice, so the page names all three rather than picking one.
    */
   payloads: WirePayload[];
 }
 
-const EMPTY: WireSurface = { present: false, channels: [], payloads: [] };
+const EMPTY: WireSurface = {
+  present: false,
+  channels: [],
+  nested: [],
+  payloads: [],
+};
 
 interface UnitsJson {
   types?: Record<string, Record<string, string>>;
@@ -137,18 +152,41 @@ export function readWireSurface(pkgDir: string): WireSurface {
   }
 
   // A type a static channel carries is already described by its channel row, so
-  // it is not repeated here. Everything left is a command's args or a dynamic
-  // namespace's payload, which is exactly the distinction the section draws.
+  // it is not repeated. What is left splits in two, and the split matters: a
+  // shape some field HOLDS is reachable from a channel and can be said to be,
+  // while the rest have no route this page can name.
   const named = new Set(channels.map((c) => c.payload));
-  const payloads: WirePayload[] = Object.keys(units.types ?? {})
-    .filter((name) => !named.has(name))
-    .sort()
-    .map((name) => ({
-      name,
-      fields: fields(units.types?.[name], units.typeShapes?.[name]),
-    }));
+  const held = new Set(
+    [
+      ...Object.values(units.typeShapes ?? {}),
+      ...Object.values(units.topicShapes ?? {}),
+    ].flatMap((byField) => Object.values(byField).map(shapeElementName)),
+  );
 
-  return { present: true, channels, payloads };
+  const describe = (name: string): WirePayload => ({
+    name,
+    fields: fields(units.types?.[name], units.typeShapes?.[name]),
+  });
+  const rest = Object.keys(units.types ?? {})
+    .filter((name) => !named.has(name))
+    .sort();
+
+  return {
+    present: true,
+    channels,
+    nested: rest.filter((name) => held.has(name)).map(describe),
+    payloads: rest.filter((name) => !held.has(name)).map(describe),
+  };
+}
+
+/**
+ * The ELEMENT type of a shape entry, dropping the generated plural markers: a
+ * leading `*` is a string-keyed dictionary of it and a trailing `[]` a list. The
+ * element is what a consumer indexes into either way, so it is the name that has
+ * to match a `types` key.
+ */
+function shapeElementName(entry: string): string {
+  return entry.replace(/^\*/, "").replace(/\[\]$/, "");
 }
 
 function fieldList(list: WireField[]): string {
@@ -201,22 +239,40 @@ export function wireSection(surface: WireSurface): string[] {
     );
   }
 
+  const table = (payloads: WirePayload[]) => [
+    "| Payload | Fields |",
+    "| --- | --- |",
+    ...payloads.map((p) => `| \`${p.name}\` | ${fieldList(p.fields)} |`),
+    "",
+  ];
+
+  if (surface.nested.length > 0) {
+    out.push(
+      "### Payloads held inside another payload",
+      "",
+      "Reached through a channel above rather than by subscribing to one: a " +
+        "field named in the tables so far holds one of these, either singly, as " +
+        "a list (`[]`) or as a string-keyed dictionary (`*`). Their own fields " +
+        "carry declared units too, which is the reason they are listed: a " +
+        "quantity nested two deep is still a quantity.",
+      "",
+      ...table(surface.nested),
+    );
+  }
+
   if (surface.payloads.length > 0) {
     out.push(
-      "### Command and dynamic-channel payloads",
+      "### Command args, dynamic channels and extensions",
       "",
-      "Wire shapes that no fixed channel name carries: a command's arguments, " +
-        "and the payload of a dynamic namespace whose topic string is composed " +
-        "at runtime (per vessel, per part, per CPU). A runtime-composed name " +
-        "cannot be declared as an attribute, so nothing can reflect it and " +
-        "these are listed by shape.",
+      "Wire shapes whose route onto the wire is not in the generated slice, so " +
+        "the honest description is all three things one of these can be: a " +
+        "command's arguments, the payload of a dynamic namespace whose topic " +
+        "string is composed at runtime (per vessel, per part, per CPU), or a " +
+        "namespace this Uplink adds inside another channel's extensions bag. " +
+        "None of the three is a fixed name an attribute could declare, which is " +
+        "why they are listed by shape.",
       "",
-      "| Payload | Fields |",
-      "| --- | --- |",
-      ...surface.payloads.map(
-        (p) => `| \`${p.name}\` | ${fieldList(p.fields)} |`,
-      ),
-      "",
+      ...table(surface.payloads),
     );
   }
   return out;
