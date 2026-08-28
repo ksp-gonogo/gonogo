@@ -81,12 +81,11 @@ describe("mergePlots", () => {
         subject: "touchdown-site",
         title: "Touchdown site",
         frame: FRAME,
-        aspect: 1,
       }),
     ]);
     expect(merged).toHaveLength(1);
     expect(merged[0].frame).toEqual(FRAME);
-    expect(merged[0].aspect).toBe(1);
+    expect(merged[0].title).toBe("Touchdown site");
     expect(warn).not.toHaveBeenCalled();
   });
 

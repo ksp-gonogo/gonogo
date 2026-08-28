@@ -173,6 +173,28 @@ function fitMargins(
     left,
   };
 }
+/** Screen pixels between a spatial plot's grid dots, both ways. Even by
+ *  construction, so the lattice never reads as an axis. */
+const SPATIAL_GRID_PITCH_PX = 26;
+
+/** The dot lattice for a spatial plot, inset half a pitch so no dot sits on the
+ *  frame's own edge. */
+function spatialGrid(
+  x0: number,
+  x1: number,
+  y0: number,
+  y1: number,
+): Array<{ key: string; x: number; y: number }> {
+  const dots: Array<{ key: string; x: number; y: number }> = [];
+  const p = SPATIAL_GRID_PITCH_PX;
+  for (let x = x0 + p / 2; x < x1; x += p) {
+    for (let y = y0 + p / 2; y < y1; y += p) {
+      dots.push({ key: `sg-${Math.round(x)}-${Math.round(y)}`, x, y });
+    }
+  }
+  return dots;
+}
+
 /** Below either, a corner readout is smaller than the words in it: the layer's
  *  own `description` still carries the reading to a screen reader. */
 const CAPTION_MIN_PLOT_W = 120;
@@ -654,25 +676,25 @@ export function LineChart({
           </text>
         ))}
 
-      {/* A spatial plot's scale reference: a dot grid on the tick positions the
-          ladders would have used, so the spacing of the dots IS the scale and a
-          reader can see distance across the picture without a gutter of
-          numbers. Drawn under everything, and never over a chart, where the
-          gridlines already do this job with lines. */}
+      {/* A spatial plot's only grid: an even dot LATTICE, at a fixed screen
+          pitch on both axes.
+          
+          Not on the tick positions the ladders would have used. Those are
+          sparse and unequal between the axes, so the dots came out as a few
+          widely spaced columns, which at plot size read as dashed vertical
+          rules: exactly the "graph hiding behind it" a map must not have. A
+          regular lattice reads as a map's grid because that is what it is. */}
       {spatial &&
-        xTicks.map((xTick, xi) =>
-          yTicksPrimary.map((yTick, yi) => (
-            <circle
-              // biome-ignore lint/suspicious/noArrayIndexKey: a dot's grid position IS its identity
-              key={`sg-${xi}-${yi}`}
-              cx={scaleX(xTick)}
-              cy={scaleYPrimary(yTick)}
-              r={1}
-              fill="var(--color-text-faint)"
-              opacity={0.45}
-            />
-          )),
-        )}
+        spatialGrid(plotX0, plotX1, plotY0, plotY1).map((dot) => (
+          <circle
+            key={dot.key}
+            cx={dot.x}
+            cy={dot.y}
+            r={1}
+            fill="var(--color-text-faint)"
+            opacity={0.35}
+          />
+        ))}
 
       {/* Axis borders. A spatial plot has none: its own frame is the border,
           and a second rule inside it reads as a box drawn round a map. */}

@@ -224,13 +224,6 @@ export interface PlotEntry {
    * Everything drawn, in the plot's own data space. The `PlotLayer` vocabulary.
    */
   layers: readonly PlotLayer[];
-  /**
-   * Width divided by height, the shape the plot wants. Defaults to 1 (square).
-   * A hint: the arranger honours it where its own width allows and is free not
-   * to, which is the whole of the licence it has over a plot. Read from the
-   * frame-supplying contribution, like `title`.
-   */
-  aspect?: number;
 }
 
 declare module "./types" {

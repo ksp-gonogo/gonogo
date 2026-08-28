@@ -339,16 +339,25 @@ export function buildCrossSectionPlot(
   // Equal SCALE survives either branch: the arranger derives the box's shape
   // from these two spans, so the pixels stay square however tall the window is.
   const reach = (vesselY - floor) * VESSEL_HEADROOM;
-  const up = reach <= across * MAX_TALLNESS ? Math.max(across, reach) : across;
+  // ONE span, used both ways, because the plot is drawn in a square and equal
+  // scale has to survive that: a window taller than it is wide inside a square
+  // box stretches the picture, and a stretched slope is not the slope.
+  const span =
+    reach <= across * MAX_TALLNESS ? Math.max(across, reach) : across;
+  const halfWide = span / 2;
 
   return {
     subject: "landing-cross-section",
     title: "Cross-section",
     frame: {
       kind: "spatial",
-      xDomain: [-slice.halfSpan, slice.halfSpan],
+      // Centred on the site across, the ground at the bottom up. The patch may
+      // be narrower than the span when the window stretched to reach the craft,
+      // which shows as terrain that stops short of the edges: the honest
+      // picture of ground we sampled less of than we are looking at.
+      xDomain: [-halfWide, halfWide],
       xUnit: "m",
-      yDomain: [floor, floor + up],
+      yDomain: [floor, floor + span],
       yUnit: "m",
     },
     layers,

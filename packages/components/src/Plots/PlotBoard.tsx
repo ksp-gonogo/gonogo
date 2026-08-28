@@ -32,40 +32,22 @@ import { type MergedPlot, mergePlots } from "./mergePlots";
  */
 
 /**
- * The shape to draw a plot in.
+ * A plot narrower than this is unreadable, so wrapping beats shrinking.
  *
- * A SPATIAL plot's shape is not a preference, it is a fact about the picture:
- * X and Y are the same quantity, so the box has to hold them at the same scale
- * or a dispersion circle comes out an ellipse and a nine-degree slope draws at
- * whatever angle the tile happens to be. Its aspect is therefore derived from
- * its own domains and a stated `aspect` is ignored, which is the one place a
- * hint is overruled rather than honoured.
+ * It is also the only dimension in this file, because EVERY plot on a board is
+ * the same square. Not similar, not whatever the content wants: one size, one
+ * shape, for the chart and the maps alike. A row of boxes that are each a
+ * slightly different height reads as a layout accident rather than as a set of
+ * instruments, and the operator sees the difference before they see anything
+ * drawn in them. Being a chart changes what goes INSIDE the square, never the
+ * square.
  *
- * A cartesian plot's axes are different quantities with no ratio between them,
- * so there is nothing to derive and the contributor's hint stands.
+ * A spatial frame therefore has to be square in its own DATA units too, or the
+ * equal scale it depends on is lost. That is the frame's job rather than the
+ * arranger's, and both spatial contributions do it (see `crossSectionPlot` and
+ * `touchdownReticlePlot`).
  */
-function aspectOf(plot: MergedPlot): number {
-  if (plot.frame.kind === "spatial") {
-    const xSpan = Math.abs(plot.frame.xDomain[1] - plot.frame.xDomain[0]);
-    const ySpan = Math.abs(plot.frame.yDomain[1] - plot.frame.yDomain[0]);
-    if (xSpan > 0 && ySpan > 0) return xSpan / ySpan;
-  }
-  return plot.aspect && plot.aspect > 0 ? plot.aspect : 1;
-}
-
-/** A plot narrower than this is unreadable, so wrapping beats shrinking. */
-const MIN_PLOT_WIDTH_PX = 200;
-/**
- * The tallest a plot is allowed to be, whatever shape it asked for.
- *
- * `aspect` is a proportion, and a proportion in a column narrower than the
- * arranger expected turns into a height. A plot asking to be three times as
- * tall as it is wide got 600 px in a 200 px column and filled the widget with
- * one marker on an empty scale, which is a plot that has been honoured into
- * uselessness. The cap is the arranger doing the one job it has: a plot states
- * its shape and the arranger decides how much room that is worth here.
- */
-const MAX_PLOT_HEIGHT_PX = 300;
+const PLOT_SIZE_PX = 200;
 
 export interface PlotBoardProps {
   /**
@@ -111,25 +93,17 @@ export function PlotBoard({ title }: Readonly<PlotBoardProps>) {
 /**
  * One contributed plot, in a box the shape it asked for.
  *
- * `aspect` is honoured through `aspect-ratio` on a flex-basis box rather than a
- * fixed height, so a plot keeps its proportions as the row wraps and the column
- * widths change. A plot that wants to be tall and narrow (an altitude rail) and
- * one that wants to be square (a touchdown reticle) share the row without
- * either being told what its shape is worth.
+ * One square, the same as every other plot's. The shape is not the plot's to
+ * choose: a board of identical squares is the format, and it is what lets an
+ * operator compare three instruments at a glance instead of reading three
+ * differently-shaped boxes.
  */
 function Plot({ plot }: { plot: MergedPlot }) {
-  const aspect = aspectOf(plot);
-  // A wide plot earns proportionally more of the row, so three squares and one
-  // 3:1 panorama do not come out the same width. Clamped below at the minimum
-  // legible width rather than at the basis, so the shape drives the share and
-  // the floor drives the wrap.
-  const basisPx = Math.max(MIN_PLOT_WIDTH_PX, MIN_PLOT_WIDTH_PX * aspect);
-
   return (
     <div
       style={{
-        flex: `1 1 ${basisPx}px`,
-        minWidth: MIN_PLOT_WIDTH_PX,
+        flex: `1 1 ${PLOT_SIZE_PX}px`,
+        minWidth: PLOT_SIZE_PX,
         display: "flex",
         flexDirection: "column",
         gap: "var(--space-4)",
@@ -140,8 +114,8 @@ function Plot({ plot }: { plot: MergedPlot }) {
         style={{
           display: "flex",
           flexDirection: "column",
-          aspectRatio: `${aspect}`,
-          maxHeight: MAX_PLOT_HEIGHT_PX,
+          // Square, every one of them, and the only shape any plot gets.
+          aspectRatio: "1",
           minHeight: 0,
         }}
       >

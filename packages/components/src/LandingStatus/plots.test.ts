@@ -78,22 +78,25 @@ describe("cross-section plot", () => {
     expect(yLo).toBeLessThan(100);
   });
 
-  it("is a SPATIAL frame, anchored on the ground rather than on the vessel", () => {
-    // 200 m of patch across, and a vessel 300 m up. The window is the ground's,
-    // so it does not stretch to 300: past the tallness limit the craft is off
-    // the top and the picture stays a terrain profile.
+  it("is a SPATIAL frame, SQUARE in data units, anchored on the ground", () => {
+    // Square both ways, because the box it is drawn in is square and equal
+    // scale has to survive that: a window taller than it is wide inside a
+    // square box stretches the picture, and a stretched slope is not the slope.
     const plot = buildCrossSectionPlot(crossSection({ aglMeters: 300 }));
     expect(plot?.frame.kind).toBe("spatial");
+    const [xLo, xHi] = plot?.frame.xDomain ?? [0, 0];
     const [yLo, yHi] = plot?.frame.yDomain ?? [0, 0];
+    expect(xHi - xLo).toBeCloseTo(yHi - yLo, 6);
+    // 200 m of patch across and a craft 300 m up: past the tallness limit, so
+    // the window stays the ground's and the craft is off the top.
     expect(yHi - yLo).toBe(200);
   });
 
-  it("stretches up to hold the vessel when it fits within the limit", () => {
-    // 60 m up over a 200 m patch: comfortably inside, so the craft is drawn in
-    // the picture and "you, above that ground" stays true.
+  it("opens up to hold the vessel when it fits, staying square", () => {
     const plot = buildCrossSectionPlot(crossSection({ aglMeters: 60 }));
+    const [xLo, xHi] = plot?.frame.xDomain ?? [0, 0];
     const [yLo, yHi] = plot?.frame.yDomain ?? [0, 0];
-    expect(yHi - yLo).toBe(200);
+    expect(xHi - xLo).toBeCloseTo(yHi - yLo, 6);
     expect(yHi).toBeGreaterThan(160);
   });
 
@@ -182,6 +185,15 @@ describe("touchdown reticle plot", () => {
     for (const p of zone.points) {
       expect(Math.hypot(p.x, p.y)).toBeCloseTo(50, 6);
     }
+  });
+
+  it("is a SPATIAL frame that BLEEDS: the relief fills it edge to edge", () => {
+    // No inset ring of empty ground around the map. The patch footprint IS the
+    // window, which is what makes this plot look like the one beside it.
+    const plot = buildTouchdownReticlePlot(reticle({ patchExtentMeters: 200 }));
+    expect(plot?.frame.kind).toBe("spatial");
+    expect(plot?.frame.xDomain).toEqual([-100, 100]);
+    expect(plot?.frame.yDomain).toEqual([-100, 100]);
   });
 
   it("carries the terrain as a relief over its real footprint", () => {

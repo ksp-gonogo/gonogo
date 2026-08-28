@@ -50,7 +50,6 @@ export interface MergedPlot {
   key: string;
   title: string;
   frame: NonNullable<PlotEntry["frame"]>;
-  aspect?: number;
   layers: readonly PlotLayer[];
 }
 
@@ -119,7 +118,6 @@ export function mergePlots(entries: readonly Entry[]): MergedPlot[] {
       key: framer.contributionId,
       title: framer.title ?? subject,
       frame: widenToFit(framer.frame, group.layers),
-      aspect: framer.aspect,
       layers: group.layers,
     });
   }

@@ -181,8 +181,14 @@ export function buildTouchdownReticlePlot(
     description: "current sub-vessel point",
   });
 
-  const halfSpan =
-    Math.max(MIN_HALF_SPAN_M, Math.max(...reaches)) * (1 + SPAN_PADDING);
+  // No padding when the terrain patch is what fills the picture: the relief
+  // BLEEDS to the frame's edges, the way a map does, and an inset ring of empty
+  // ground around it is the internal padding that made this plot look unlike
+  // the one beside it. Padding only when there is no patch to bleed, where the
+  // span comes from the drift and a mark on the edge would be clipped.
+  const halfSpan = relief
+    ? Math.max(MIN_HALF_SPAN_M, relief.halfSpan)
+    : Math.max(MIN_HALF_SPAN_M, Math.max(...reaches)) * (1 + SPAN_PADDING);
   return {
     subject: "touchdown-site",
     title: "Touchdown site",
