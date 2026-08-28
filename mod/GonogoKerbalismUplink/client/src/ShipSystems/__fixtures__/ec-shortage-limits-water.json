@@ -1,0 +1,133 @@
+{
+  "_meta": {
+    "synthetic": true,
+    "notes": "SYNTHETIC, built from the same profile the unit tests use. A two-kerbal craft where Electric Charge is the ROOT cause and Water is only the symptom: Water's one producer, the recycler, drinks the charge that has run short. This is the scene the whole widget exists for, because the shortage an operator notices first is the downstream one and the panel's job is to name the upstream one above it."
+  },
+  "_scene": {
+    "widget": "ship-systems",
+    "caption": "Electric Charge short and named as the limiting factor, with the Water shortage it explains sorted underneath it",
+    "modes": ["default", "min"],
+    "paints": ["Electric Charge", "Water"]
+  },
+  "_stream": {
+    "pinnedUt": 1000000,
+    "emits": [
+      {
+        "topic": "kerbalism.profile",
+        "payload": {
+          "name": "Default",
+          "resources": {
+            "Water": {
+              "flowMode": "ALL_VESSEL",
+              "flowModeOrdinal": 1,
+              "displayName": "Water",
+              "isSupply": true,
+              "lowThreshold": 0.15
+            },
+            "ElectricCharge": {
+              "flowMode": "ALL_VESSEL_BALANCE",
+              "flowModeOrdinal": 4,
+              "displayName": "Electric Charge",
+              "isSupply": true,
+              "lowThreshold": 0.15
+            },
+            "Oxygen": {
+              "flowMode": "ALL_VESSEL",
+              "flowModeOrdinal": 1,
+              "displayName": "Oxygen",
+              "isSupply": true
+            },
+            "WasteWater": {
+              "flowMode": "ALL_VESSEL",
+              "flowModeOrdinal": 1,
+              "displayName": "Waste Water",
+              "isSupply": false
+            },
+            "_NonRegenScrubber": {
+              "flowMode": "",
+              "displayName": "Scrubber Cartridge",
+              "isSupply": false
+            }
+          },
+          "rules": [
+            {
+              "name": "drinking",
+              "input": "Water",
+              "output": "WasteWater",
+              "ratePerSecond": 0.00001
+            }
+          ],
+          "processes": [
+            {
+              "name": "Water Recycler",
+              "modifiers": ["_WaterRecycler"],
+              "inputs": { "WasteWater": 0.0002, "ElectricCharge": 0.01 },
+              "outputs": { "Water": 0.00018 }
+            },
+            {
+              "name": "CO2 Scrubber",
+              "modifiers": ["_Scrubber"],
+              "inputs": { "_NonRegenScrubber": 0.00002 },
+              "outputs": {}
+            }
+          ]
+        }
+      },
+      {
+        "topic": "kerbalism.lifesupport",
+        "payload": {
+          "rates": { "Water": -0.0005, "ElectricCharge": -0.05 },
+          "habitat": {
+            "pressure": 0.9,
+            "poisoning": 0.05,
+            "comfort": 0.6,
+            "livingSpace": 0.7
+          },
+          "processes": [
+            {
+              "resource": "_WaterRecycler",
+              "title": "Water Recycler",
+              "capacity": 1,
+              "running": true,
+              "broken": false
+            },
+            {
+              "resource": "_Scrubber",
+              "title": "CO2 Scrubber",
+              "capacity": 1,
+              "running": true,
+              "broken": false
+            }
+          ],
+          "greenhouses": [],
+          "asOfUt": 1000000
+        }
+      },
+      {
+        "topic": "vessel.resources",
+        "payload": {
+          "resources": {
+            "Water": { "current": 50, "max": 500, "active": true },
+            "ElectricCharge": { "current": 20, "max": 400, "active": true },
+            "Oxygen": { "current": 380, "max": 400, "active": true },
+            "WasteWater": { "current": 10, "max": 200, "active": true },
+            "_NonRegenScrubber": { "current": 30, "max": 100, "active": true }
+          },
+          "meta": { "source": "vessel:1", "quality": 1 }
+        }
+      },
+      {
+        "topic": "vessel.crew",
+        "payload": {
+          "count": 2,
+          "capacity": 4,
+          "crew": [
+            { "name": "Jebediah Kerman", "trait": "Pilot" },
+            { "name": "Bill Kerman", "trait": "Engineer" }
+          ],
+          "meta": { "source": "vessel:1", "quality": 1 }
+        }
+      }
+    ]
+  }
+}
