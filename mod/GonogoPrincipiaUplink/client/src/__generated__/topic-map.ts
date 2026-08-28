@@ -20,18 +20,21 @@
 // dynamic half, grep the mod for `RegisterDynamicNamespace` instead.
 
 import type {
+  PrincipiaAnalysis,
   PrincipiaFlightPlan,
   PrincipiaPlan,
   PrincipiaSettings,
 } from "./contract.js";
 
 export interface GeneratedTopicPayloadMap {
+  "principia.analysis": PrincipiaAnalysis;
   "principia.flightPlan": PrincipiaFlightPlan;
   "principia.plan": PrincipiaPlan;
   "principia.settings": PrincipiaSettings;
 }
 
 export const GENERATED_TOPIC_IDS = [
+  "principia.analysis",
   "principia.flightPlan",
   "principia.plan",
   "principia.settings",

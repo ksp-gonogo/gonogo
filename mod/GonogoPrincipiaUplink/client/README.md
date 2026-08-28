@@ -15,16 +15,21 @@ Publishes Principia's n-body state: trajectory arcs, the flight plan and its bur
 
 | Topic | Payload | Delivery | Delay |
 | --- | --- | --- | --- |
+| `principia.analysis` | `PrincipiaAnalysis` | lossy-latest | delayed |
 | `principia.flightPlan` | `PrincipiaFlightPlan` | lossy-latest | delayed |
 | `principia.plan` | `PrincipiaPlan` | lossy-latest | delayed |
 | `principia.settings` | `PrincipiaSettings` | lossy-latest | true-now |
 
 | Payload | Fields |
 | --- | --- |
+| `PrincipiaAngleInterval` | `max` °, `min` ° |
 | `PrincipiaBurnEditArgs` | `burnIndex` count, `deltaVBinormal` m/s, `deltaVNormal` m/s, `deltaVTangent` m/s, `ignitionUt` ut, `inertiallyFixed` flag, `requestId` id, `vesselId` id |
 | `PrincipiaBurnRemoveArgs` | `burnIndex` count, `requestId` id, `vesselId` id |
+| `PrincipiaCoastAnalysis` | `analysis` PrincipiaOrbitAnalysis, `endsAtUt` ut, `index` count, `startsAtUt` ut |
 | `PrincipiaComposedBurn` | `deltaVBinormal` m/s, `deltaVNormal` m/s, `deltaVTangent` m/s, `ignitionUt` ut, `inertiallyFixed` flag |
 | `PrincipiaFlightPlanBurn` | `anomalous` flag, `coordinateSystem` enum, `cutoffUt` ut, `deltaV` m/s, `durationSeconds` s, `ignitionUt` ut, `index` count, `inertiallyFixed` flag, `initialMassTons` t, `specificImpulseSeconds` isp, `thrustKilonewtons` kN |
+| `PrincipiaLengthInterval` | `max` m, `min` m |
+| `PrincipiaOrbitAnalysis` | `anomalisticPeriodSeconds` s, `elementsEpochUt` ut, `elementsPresent` flag, `firstCollisionRiskUt` ut, `firstCollisionUt` ut, `firstReentryUt` ut, `gravitationallyBound` flag, `lowestAltitudeMetres` m, `meanApoapsisAltitudeMetres` PrincipiaLengthInterval, `meanArgumentOfPeriapsisDegrees` PrincipiaAngleInterval, `meanEccentricity` PrincipiaRatioInterval, `meanInclinationDegrees` PrincipiaAngleInterval, `meanLongitudeOfAscendingNodeDegrees` PrincipiaAngleInterval, `meanPeriapsisAltitudeMetres` PrincipiaLengthInterval, `meanSemimajorAxisMetres` PrincipiaLengthInterval, `missionDurationSeconds` s, `nodalPeriodSeconds` s, `nodalPrecessionDegreesPerHour` °/h, `primaryBody` text, `primaryIndex` count, `progressOfNextAnalysis` ratio, `siderealPeriodSeconds` s |
 | `PrincipiaPlanArmArgs` | `requestId` id, `vesselId` id |
 | `PrincipiaPlanHorizonArgs` | `desiredFinalTimeUt` ut, `requestId` id, `vesselId` id |
 | `PrincipiaPlanIntegrator` | `generalizedIntegratorKind` enum, `integratorKind` enum, `lengthToleranceMetres` m, `maxSteps` count, `speedToleranceMetresPerSecond` m/s |
@@ -33,6 +38,7 @@ Publishes Principia's n-body state: trajectory arcs, the flight plan and its bur
 | `PrincipiaPlanSendArgs` | `burns` PrincipiaComposedBurn[], `composedAtViewUt` ut, `desiredFinalTimeUt` ut, `observedAtUt` ut, `requestId` id, `vesselId` id |
 | `PrincipiaPlanSlotArgs` | `finalTimeUt` ut, `requestId` id, `vesselId` id |
 | `PrincipiaPlanWriteReceipt` | `plan` PrincipiaPlan, `refusalDetail` text, `replayed` flag, `requestId` id, `statusError` enum, `statusMessage` text |
+| `PrincipiaRatioInterval` | `max` 1, `min` 1 |
 | `PrincipiaReferenceFrame` | `centreBody` text, `primaryBodies` text, `primaryBody` text, `secondaryBodies` text, `secondaryBody` text, `selector` text, `targetFrameSelected` flag, `targetPrimaryBody` text, `targetVesselId` id, `targetVesselName` text, `type` enum |
 | `PrincipiaWriteSurface` | `analysedVersion` text, `armed` flag, `available` flag, `detectedVersion` text, `reason` text |
 
@@ -41,6 +47,8 @@ Publishes Principia's n-body state: trajectory arcs, the flight plan and its bur
 | Augment | Into | Reads | Presence | Notes |
 | --- | --- | --- | --- | --- |
 | `principia-flight-plan` | `maneuver-planner.sections` | – |  |  |
+| `principia-orbit-analysis` | `current-orbit.sections` | – |  |  |
+| `principia-coast-analysis` | `maneuver-planner.sections` | – |  |  |
 | `principia-burn-editor` | `maneuver-planner.sections` | – |  |  |
 | `principia-plan-composer` | `maneuver-planner.sections` | – |  |  |
 
@@ -52,7 +60,23 @@ Publishes Principia's n-body state: trajectory arcs, the flight plan and its bur
 
 ![Observed six hours ago, so the imminent-looking burn is long past: whether the age reads clearly enough to stop someone trusting the countdown](docs/assets/flight-plan-stale-observation--default.png)
 
+![The step limit sitting beside the failure it causes: the plan stopped fourteen hours short of its requested end, and the control that fixes it is on the same line](docs/assets/flight-plan-steps-exhausted--default.png)
+
 ![Never observed. The one that must not read as no flight plan](docs/assets/flight-plan-unobserved--default.png)
+
+![A near-circular polar orbit as Principia's own analyser sees it: mean elements as bands, three periods that differ, and the node drift that makes them differ](docs/assets/orbit-analysis-live--default.png)
+
+![An analysis that ran and determined nothing, which is its own state: the span does not yet cover one revolution, and no amount of looking will change that](docs/assets/orbit-analysis-no-elements--default.png)
+
+![The ordinary state: Principia knows this craft and is running no analysis of it. A positive observation of absence, with the one action that ends it](docs/assets/orbit-analysis-not-analysing--default.png)
+
+![Nothing has arrived for this craft. Distinct from Principia not analysing it, because one of the two is fixed by opening a window and the other is not](docs/assets/orbit-analysis-unobserved--default.png)
+
+![The final coast opened: the orbit the plan ends in, every mean element as a band, and the instant those elements are measured from](docs/assets/coast-analysis-expanded--default.png)
+
+![A craft with no flight plan: a stated absence rather than an empty list, because an operator told nothing assumes there is nothing to see](docs/assets/coast-analysis-no-plan--default.png)
+
+![What each stretch of the plan leaves the craft flying: a parking orbit, a transfer the integrator could not analyse, and the capture the plan ends in](docs/assets/coast-analysis-plan--default.png)
 
 ![A plan being composed, driven through the composer's own buttons: two burns seeded at instants the craft can still act on](docs/assets/composer-composing--default.png)
 

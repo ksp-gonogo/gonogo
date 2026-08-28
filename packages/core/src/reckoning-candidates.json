@@ -9,6 +9,11 @@
     "reason": "Funds really do integrate under a career overhaul, and none of these four is the derivative on its own. The balance moves at subsidy MINUS upkeep, so a reckoning wants a composed expression rather than a field pairing; the min and max are the envelope the subsidy sits in and are not rates in effect at all; and the impulses that actually dominate the balance (a contract award, a launch, a facility upgrade) are described by none of them. Also conditional on the elected model: stock answers all four as zero, so a reckoning fitted to them would hold the balance still through every purchase.",
     "verdict": "real-but-unmodelled"
   },
+  "CareerEconomy.reputation": {
+    "rates": ["reputationDecayPerDay"],
+    "reason": "A true derivative and the sign is the trap: reputation FALLS by this, so integrating it forward adds where it should subtract. It is also state-dependent rather than constant, being a fixed portion of the current reputation applied daily, which makes the honest model an exponential decay and not a linear ramp. Zero on stock, which has no decay at all.",
+    "verdict": "real-but-unmodelled"
+  },
   "CareerEconomy.unlockCredit": {
     "rates": [
       "subsidyMaxPerDay",
@@ -17,11 +22,6 @@
       "upkeepPerDay"
     ],
     "reason": "The allowance genuinely does accrue continuously, and its rate is not on the wire and is not any of these four. RP-1 grows it as a fraction of the researcher salary bill, a band that falls from 0.6 to 0.1 as the research department grows, and ONLY while a tech node is actually progressing in the research queue: an idle queue accrues nothing however large the payroll. So the nearest true rate is a slice of upkeep.researchSalary gated on a condition no field expresses, and upkeepPerDay is the whole outgoing bill rather than that slice. Spending is impulsive too, drawn at a part, upgrade or tooling purchase and at nothing else. Absent entirely under stock, so a reckoning fitted here would be describing one install's mod.",
-    "verdict": "real-but-unmodelled"
-  },
-  "CareerEconomy.reputation": {
-    "rates": ["reputationDecayPerDay"],
-    "reason": "A true derivative and the sign is the trap: reputation FALLS by this, so integrating it forward adds where it should subtract. It is also state-dependent rather than constant, being a fixed portion of the current reputation applied daily, which makes the honest model an exponential decay and not a linear ramp. Zero on stock, which has no decay at all.",
     "verdict": "real-but-unmodelled"
   },
   "CareerStrategy.dateActivated": {
@@ -54,6 +54,17 @@
     "reason": "An immutable accident report. Every field is a recorded peak or total from a flight that has ended, so there is nothing left to integrate, and a peak speed is not the rate of a peak altitude in any case.",
     "verdict": "coincidence"
   },
+  "CrewRosterEntry.inactiveUntilUt": {
+    "rates": [
+      "courage",
+      "experience",
+      "experienceLevel",
+      "experienceLevelDelta",
+      "stupidity"
+    ],
+    "reason": "Dimensional degeneracy, the same shape as CareerStrategy.dateActivated: an instant's dimensional rate is the dimensionless quantity, so every ratio and count in the type qualifies. A kerbal's courage is not the rate of the instant their rest ends. The instant itself is also not integrable in any sense: it is set once when KSP puts the kerbal on stand-down and does not move until the next flight sets a new one.",
+    "verdict": "coincidence"
+  },
   "CrewRosterEntry.retiresAtUt": {
     "rates": [
       "courage",
@@ -74,17 +85,6 @@
       "stupidity"
     ],
     "reason": "Dimensional degeneracy, and worth writing down rather than waving away because of what it lands next to. `divide({s:1},{s:1})` is `{}`, so every dimensionless field on the roster is offered as the derivative of every date on it, and a kerbal's courage is not the rate at which their training finishes. What makes it more than noise is that one of the standings behind this date genuinely IS integrable and this rule still cannot reach it: a training course's ETA is remaining build points over a build rate, both in a career overhaul's own `bp`/`bp/s` vocabulary, which core cannot dimension. The producer already derives the date from them, so there is nothing left for a client to integrate.",
-    "verdict": "coincidence"
-  },
-  "CrewRosterEntry.inactiveUntilUt": {
-    "rates": [
-      "courage",
-      "experience",
-      "experienceLevel",
-      "experienceLevelDelta",
-      "stupidity"
-    ],
-    "reason": "Dimensional degeneracy, the same shape as CareerStrategy.dateActivated: an instant's dimensional rate is the dimensionless quantity, so every ratio and count in the type qualifies. A kerbal's courage is not the rate of the instant their rest ends. The instant itself is also not integrable in any sense: it is set once when KSP puts the kerbal on stand-down and does not move until the next flight sets a new one.",
     "verdict": "coincidence"
   },
   "DockAlignment.distance": {
@@ -180,6 +180,46 @@
   "PartResourceFlow.maxAmount": {
     "rates": ["flow", "nominalFlow"],
     "reason": "A CAPACITY, not a level. The rule proposes draining the tank itself: the flow beside it is the rate of the amount, never of the amount the tank can hold.",
+    "verdict": "coincidence"
+  },
+  "PrincipiaOrbitAnalysis.anomalisticPeriodSeconds": {
+    "rates": ["progressOfNextAnalysis"],
+    "reason": "As the sidereal period beside it: a measurement, not an accumulation. The only sibling in dimensionless units is progressOfNextAnalysis, which is how far along the NEXT analysis is, from zero to one. It is not the derivative of anything here: it describes a computation running on the producer's own worker thread, and the pairing is the dimensional artefact this scan's own header names, where every dimensionless field is the rate of every time field beside it.",
+    "verdict": "coincidence"
+  },
+  "PrincipiaOrbitAnalysis.elementsEpochUt": {
+    "rates": ["progressOfNextAnalysis"],
+    "reason": "An instant, and an instant advances with the clock rather than integrating a rate. The only sibling in dimensionless units is progressOfNextAnalysis, which is how far along the NEXT analysis is, from zero to one. It is not the derivative of anything here: it describes a computation running on the producer's own worker thread, and the pairing is the dimensional artefact this scan's own header names, where every dimensionless field is the rate of every time field beside it.",
+    "verdict": "coincidence"
+  },
+  "PrincipiaOrbitAnalysis.firstCollisionRiskUt": {
+    "rates": ["progressOfNextAnalysis"],
+    "reason": "As the collision instant beside it. The only sibling in dimensionless units is progressOfNextAnalysis, which is how far along the NEXT analysis is, from zero to one. It is not the derivative of anything here: it describes a computation running on the producer's own worker thread, and the pairing is the dimensional artefact this scan's own header names, where every dimensionless field is the rate of every time field beside it.",
+    "verdict": "coincidence"
+  },
+  "PrincipiaOrbitAnalysis.firstCollisionUt": {
+    "rates": ["progressOfNextAnalysis"],
+    "reason": "An instant the producer's own integration found, which moves only when the analysis is redone. The only sibling in dimensionless units is progressOfNextAnalysis, which is how far along the NEXT analysis is, from zero to one. It is not the derivative of anything here: it describes a computation running on the producer's own worker thread, and the pairing is the dimensional artefact this scan's own header names, where every dimensionless field is the rate of every time field beside it.",
+    "verdict": "coincidence"
+  },
+  "PrincipiaOrbitAnalysis.firstReentryUt": {
+    "rates": ["progressOfNextAnalysis"],
+    "reason": "As the collision instant beside it. The only sibling in dimensionless units is progressOfNextAnalysis, which is how far along the NEXT analysis is, from zero to one. It is not the derivative of anything here: it describes a computation running on the producer's own worker thread, and the pairing is the dimensional artefact this scan's own header names, where every dimensionless field is the rate of every time field beside it.",
+    "verdict": "coincidence"
+  },
+  "PrincipiaOrbitAnalysis.missionDurationSeconds": {
+    "rates": ["progressOfNextAnalysis"],
+    "reason": "The span the analysis covers, chosen by the player and fixed for the run. The only sibling in dimensionless units is progressOfNextAnalysis, which is how far along the NEXT analysis is, from zero to one. It is not the derivative of anything here: it describes a computation running on the producer's own worker thread, and the pairing is the dimensional artefact this scan's own header names, where every dimensionless field is the rate of every time field beside it.",
+    "verdict": "coincidence"
+  },
+  "PrincipiaOrbitAnalysis.nodalPeriodSeconds": {
+    "rates": ["progressOfNextAnalysis"],
+    "reason": "As the sidereal period beside it: a measurement, not an accumulation. The only sibling in dimensionless units is progressOfNextAnalysis, which is how far along the NEXT analysis is, from zero to one. It is not the derivative of anything here: it describes a computation running on the producer's own worker thread, and the pairing is the dimensional artefact this scan's own header names, where every dimensionless field is the rate of every time field beside it.",
+    "verdict": "coincidence"
+  },
+  "PrincipiaOrbitAnalysis.siderealPeriodSeconds": {
+    "rates": ["progressOfNextAnalysis"],
+    "reason": "A period the producer measured over the analysed span, not a quantity that accumulates. The only sibling in dimensionless units is progressOfNextAnalysis, which is how far along the NEXT analysis is, from zero to one. It is not the derivative of anything here: it describes a computation running on the producer's own worker thread, and the pairing is the dimensional artefact this scan's own header names, where every dimensionless field is the rate of every time field beside it.",
     "verdict": "coincidence"
   },
   "PrincipiaPlanIntegrator.lengthToleranceMetres": {
@@ -549,6 +589,17 @@
     "reason": "`scienceRate` is the rate of `storedScience`. Conditional: a non-stock provider produces no science itself, leaves `scienceRate` null and carries its own rate in `Extensions`, so a model must gate on the value model rather than assume the field is populated.",
     "verdict": "real-but-unmodelled"
   },
+  "spaceCenter.crewRoster.inactiveUntilUt": {
+    "rates": [
+      "courage",
+      "experience",
+      "experienceLevel",
+      "experienceLevelDelta",
+      "stupidity"
+    ],
+    "reason": "Dimensional degeneracy, the same shape as CareerStrategy.dateActivated: an instant's dimensional rate is the dimensionless quantity, so every ratio and count in the type qualifies. A kerbal's courage is not the rate of the instant their rest ends. The instant itself is also not integrable in any sense: it is set once when KSP puts the kerbal on stand-down and does not move until the next flight sets a new one.",
+    "verdict": "coincidence"
+  },
   "spaceCenter.crewRoster.retiresAtUt": {
     "rates": [
       "courage",
@@ -569,17 +620,6 @@
       "stupidity"
     ],
     "reason": "Dimensional degeneracy, and worth writing down rather than waving away because of what it lands next to. `divide({s:1},{s:1})` is `{}`, so every dimensionless field on the roster is offered as the derivative of every date on it, and a kerbal's courage is not the rate at which their training finishes. What makes it more than noise is that one of the standings behind this date genuinely IS integrable and this rule still cannot reach it: a training course's ETA is remaining build points over a build rate, both in a career overhaul's own `bp`/`bp/s` vocabulary, which core cannot dimension. The producer already derives the date from them, so there is nothing left for a client to integrate.",
-    "verdict": "coincidence"
-  },
-  "spaceCenter.crewRoster.inactiveUntilUt": {
-    "rates": [
-      "courage",
-      "experience",
-      "experienceLevel",
-      "experienceLevelDelta",
-      "stupidity"
-    ],
-    "reason": "Dimensional degeneracy, the same shape as CareerStrategy.dateActivated: an instant's dimensional rate is the dimensionless quantity, so every ratio and count in the type qualifies. A kerbal's courage is not the rate of the instant their rest ends. The instant itself is also not integrable in any sense: it is set once when KSP puts the kerbal on stand-down and does not move until the next flight sets a new one.",
     "verdict": "coincidence"
   },
   "vessel.dock.distance": {

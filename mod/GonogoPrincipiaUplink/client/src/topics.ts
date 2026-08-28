@@ -4,6 +4,7 @@ import {
   registerTypeUnits,
 } from "@ksp-gonogo/sitrep-sdk";
 import type {
+  PrincipiaAnalysis,
   PrincipiaFlightPlan,
   PrincipiaPlan,
   PrincipiaSettings,
@@ -20,12 +21,14 @@ declare module "@ksp-gonogo/sitrep-sdk" {
     "principia.flightPlan": PrincipiaFlightPlan;
     "principia.plan": PrincipiaPlan;
     "principia.settings": PrincipiaSettings;
+    "principia.analysis": PrincipiaAnalysis;
   }
 }
 
 registerBarePrimitiveTopic("principia.flightPlan");
 registerBarePrimitiveTopic("principia.plan");
 registerBarePrimitiveTopic("principia.settings");
+registerBarePrimitiveTopic("principia.analysis");
 
 // The runtime half of the type above: `ApplyUnitValueTypes` fixes the
 // codegen-time TYPE, and this fixes the decode-time VALUE. Without it every
@@ -35,6 +38,7 @@ for (const topic of [
   "principia.flightPlan",
   "principia.plan",
   "principia.settings",
+  "principia.analysis",
 ] as const) {
   registerTopicUnits(
     topic,

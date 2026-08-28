@@ -127,7 +127,7 @@ namespace GonogoPrincipiaUplink.Tests
     public class PrincipiaUplinkTests
     {
         [Fact]
-        public void DeclaresItsThreeChannelsAndNoAvailabilityTopic()
+        public void DeclaresItsFourChannelsAndNoAvailabilityTopic()
         {
             var manifest = new PrincipiaUplink().Manifest;
 
@@ -138,6 +138,7 @@ namespace GonogoPrincipiaUplink.Tests
                     "principia.flightPlan",
                     "principia.settings",
                     "principia.plan",
+                    "principia.analysis",
                 },
                 manifest.Channels.Select(c => c.Topic).ToArray());
 

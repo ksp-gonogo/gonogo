@@ -323,7 +323,7 @@ function WarpControlComponent({
           )}
 
           {showStepper && (
-            <Stepper role="group" aria-label="Time warp controls">
+            <StepLadder role="group" aria-label="Time warp controls">
               <WarpButton
                 type="button"
                 $active={false}
@@ -351,7 +351,7 @@ function WarpControlComponent({
               >
                 +
               </WarpButton>
-            </Stepper>
+            </StepLadder>
           )}
 
           {/* Contributed-actions slot: an Uplink adds a warp-target action
@@ -437,7 +437,9 @@ const FullLadder = styled.div`
   align-content: center;
 `;
 
-const Stepper = styled.div`
+// Named for what it is rather than for the shape it takes: the kit's `Stepper`
+// is a spinbutton over a closed set, and this is three warp buttons in a row.
+const StepLadder = styled.div`
   flex: 1 1 100px;
   min-width: 0;
   display: grid;

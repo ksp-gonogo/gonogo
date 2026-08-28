@@ -31,7 +31,9 @@ import type { ReactNode } from "react";
 import type {
   PrincipiaFlightPlan,
   PrincipiaFlightPlanBurn,
+  PrincipiaPlan,
 } from "../__generated__/contract";
+import { PlanIntegrationBlock } from "../PlanIntegration";
 import { PRINCIPIA } from "../uplink";
 // Side-effect import: hydrates this Topic's units at decode time and augments
 // the payload map for the type. Pulled in here rather than left to the entry
@@ -331,6 +333,11 @@ function VantageTrajectoryRow({ viewUt }: { viewUt: number | null }) {
 export function FlightPlanSection() {
   const view = planView(useTelemetry("principia.flightPlan"));
   const identity = useTelemetry("vessel.identity");
+  // A second reading, and a different KIND of one. The section above is the
+  // planner window as last seen; the integration bounds come from the plugin
+  // itself, because the window carries no step limit and the step limit is the
+  // remedy for the failure the badges report.
+  const integrator = pluginPlan(useTelemetry("principia.plan"));
   const buildHealth = useStream<SystemUplinkHealth>("system.uplinkHealth");
   const viewUt = magnitudeOf(useViewUt());
 
@@ -406,6 +413,11 @@ export function FlightPlanSection() {
           <Text>This plan belongs to another vessel, not the active one.</Text>
         )}
 
+        {/* Immediately under the badge that says whether the plan integrated,
+            because the commonest cause of a failure there is the step limit and
+            the remedy is the control in this block. */}
+        <PlanIntegrationBlock plan={integrator} />
+
         {plan.planExists === false ? (
           // A POSITIVE observation of no plan: the planner rendered and drew
           // none. Distinct from the unobserved case above, and safe to state.
@@ -455,6 +467,20 @@ function isNextBurn(
   const index = magnitudeOf(burn.index);
   const next = magnitudeOf(plan.firstFutureBurnIndex);
   return index !== null && next !== null && index === next;
+}
+
+/** The plugin's own reading of the plan, or null before one has arrived. Only
+ *  the integration block reads it, and a stale one is still the right basis for
+ *  a bound the operator is about to change. */
+function pluginPlan(reading: Reading<PrincipiaPlan>): PrincipiaPlan | null {
+  switch (reading.state) {
+    case "pending":
+    case "absent":
+    case "unowned":
+      return null;
+    default:
+      return reading.value;
+  }
 }
 
 /** The active vessel's guid, or null when identity has not arrived. A stale

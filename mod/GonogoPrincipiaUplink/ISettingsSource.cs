@@ -15,6 +15,17 @@ namespace GonogoPrincipiaUplink
         string? NameOf(int index);
 
         /// <summary>
+        /// The body's radius in metres, or null when the index names none.
+        ///
+        /// <para>Needed because the producer's orbit analysis reports apsis
+        /// DISTANCES from the primary's centre, while every apsis an operator reads
+        /// is an ALTITUDE. The offset is the radius, the producer applies it in its
+        /// own formatter, and a distance published under an altitude's name is
+        /// wrong by a planet.</para>
+        /// </summary>
+        double? RadiusOf(int index);
+
+        /// <summary>
         /// Every body index this game has, in the order the game holds them.
         ///
         /// <para>A write that names a body needs this and <see cref="NameOf"/>

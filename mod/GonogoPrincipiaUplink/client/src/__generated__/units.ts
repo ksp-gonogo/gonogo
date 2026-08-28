@@ -56,6 +56,7 @@ export type KnownSitrepUnit =
   | "units/s"
   | "ut"
   | "°"
+  | "°/h"
 ;
 
 /**
@@ -82,6 +83,14 @@ export type UnitsByField = Readonly<Record<string, SitrepUnit>>;
  * payload shapes that no Topic names directly.
  */
 export const GENERATED_TYPE_UNITS: Readonly<Record<string, UnitsByField>> = {
+  "PrincipiaAnalysis": {
+    sampledAtUt: "ut",
+    vesselId: "id",
+  },
+  "PrincipiaAngleInterval": {
+    max: "°",
+    min: "°",
+  },
   "PrincipiaBurnEditArgs": {
     burnIndex: "count",
     deltaVBinormal: "m/s",
@@ -96,6 +105,11 @@ export const GENERATED_TYPE_UNITS: Readonly<Record<string, UnitsByField>> = {
     burnIndex: "count",
     requestId: "id",
     vesselId: "id",
+  },
+  "PrincipiaCoastAnalysis": {
+    endsAtUt: "ut",
+    index: "count",
+    startsAtUt: "ut",
   },
   "PrincipiaComposedBurn": {
     deltaVBinormal: "m/s",
@@ -129,6 +143,27 @@ export const GENERATED_TYPE_UNITS: Readonly<Record<string, UnitsByField>> = {
     initialMassTons: "t",
     specificImpulseSeconds: "isp",
     thrustKilonewtons: "kN",
+  },
+  "PrincipiaLengthInterval": {
+    max: "m",
+    min: "m",
+  },
+  "PrincipiaOrbitAnalysis": {
+    anomalisticPeriodSeconds: "s",
+    elementsEpochUt: "ut",
+    elementsPresent: "flag",
+    firstCollisionRiskUt: "ut",
+    firstCollisionUt: "ut",
+    firstReentryUt: "ut",
+    gravitationallyBound: "flag",
+    lowestAltitudeMetres: "m",
+    missionDurationSeconds: "s",
+    nodalPeriodSeconds: "s",
+    nodalPrecessionDegreesPerHour: "°/h",
+    primaryBody: "text",
+    primaryIndex: "count",
+    progressOfNextAnalysis: "ratio",
+    siderealPeriodSeconds: "s",
   },
   "PrincipiaPlan": {
     actualFinalTimeUt: "ut",
@@ -206,6 +241,10 @@ export const GENERATED_TYPE_UNITS: Readonly<Record<string, UnitsByField>> = {
     thrustKilonewtons: "kN",
     timeToHalfDeltaVSeconds: "s",
   },
+  "PrincipiaRatioInterval": {
+    max: "1",
+    min: "1",
+  },
   "PrincipiaReferenceFrame": {
     centreBody: "text",
     primaryBodies: "text",
@@ -279,6 +318,10 @@ export const GENERATED_TYPE_UNITS: Readonly<Record<string, UnitsByField>> = {
  * fields, which is what a consumer indexes into.
  */
 export const GENERATED_TOPIC_UNITS: Readonly<Record<string, UnitsByField>> = {
+  "principia.analysis": {
+    sampledAtUt: "ut",
+    vesselId: "id",
+  },
   "principia.flightPlan": {
     anomalousBurnCount: "count",
     finalTimeUt: "ut",
@@ -377,8 +420,24 @@ export type ShapesByField = Readonly<Record<string, string>>;
  * sample reaches an `agent` under it.
  */
 export const GENERATED_TYPE_SHAPES: Readonly<Record<string, ShapesByField>> = {
+  "PrincipiaAnalysis": {
+    coasts: "PrincipiaCoastAnalysis[]",
+    orbit: "PrincipiaOrbitAnalysis",
+  },
+  "PrincipiaCoastAnalysis": {
+    analysis: "PrincipiaOrbitAnalysis",
+  },
   "PrincipiaFlightPlan": {
     burns: "PrincipiaFlightPlanBurn[]",
+  },
+  "PrincipiaOrbitAnalysis": {
+    meanApoapsisAltitudeMetres: "PrincipiaLengthInterval",
+    meanArgumentOfPeriapsisDegrees: "PrincipiaAngleInterval",
+    meanEccentricity: "PrincipiaRatioInterval",
+    meanInclinationDegrees: "PrincipiaAngleInterval",
+    meanLongitudeOfAscendingNodeDegrees: "PrincipiaAngleInterval",
+    meanPeriapsisAltitudeMetres: "PrincipiaLengthInterval",
+    meanSemimajorAxisMetres: "PrincipiaLengthInterval",
   },
   "PrincipiaPlan": {
     burns: "PrincipiaPlannedBurn[]",
@@ -399,6 +458,10 @@ export const GENERATED_TYPE_SHAPES: Readonly<Record<string, ShapesByField>> = {
 
 /** The same, keyed by Topic id. */
 export const GENERATED_TOPIC_SHAPES: Readonly<Record<string, ShapesByField>> = {
+  "principia.analysis": {
+    coasts: "PrincipiaCoastAnalysis[]",
+    orbit: "PrincipiaOrbitAnalysis",
+  },
   "principia.flightPlan": {
     burns: "PrincipiaFlightPlanBurn[]",
   },

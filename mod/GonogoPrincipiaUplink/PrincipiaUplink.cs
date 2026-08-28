@@ -75,6 +75,7 @@ namespace GonogoPrincipiaUplink
         public const string FlightPlanTopic = "principia.flightPlan";
         public const string SettingsTopic = "principia.settings";
         public const string PlanTopic = "principia.plan";
+        public const string AnalysisTopic = "principia.analysis";
 
         private IFlightPlanObserver? _observer;
 
@@ -92,6 +93,8 @@ namespace GonogoPrincipiaUplink
         private IChannelPublisher? _flightPlan;
         private IChannelPublisher? _settingsPublisher;
         private IChannelPublisher? _planPublisher;
+        private IChannelPublisher? _analysisPublisher;
+        private readonly AnalysisReader _analysisReader = new AnalysisReader();
 
         /// <summary>
         /// Whether the gate has already answered, read and written on the MAIN
@@ -165,6 +168,16 @@ namespace GonogoPrincipiaUplink
                 new ChannelDeclaration
                 {
                     Topic = PlanTopic,
+                    Delivery = Delivery.LossyLatest,
+                    Delay = DelayRole.Delayed,
+                    Emission = new EmissionPolicy(keyframeIntervalUt: 30, quantum: EmissionQuantum.Absolute(0)),
+                },
+                // Delayed, like the plan: mean elements are a statement about where
+                // a craft has been and is going, so a distant command centre must
+                // not have them before the light does.
+                new ChannelDeclaration
+                {
+                    Topic = AnalysisTopic,
                     Delivery = Delivery.LossyLatest,
                     Delay = DelayRole.Delayed,
                     Emission = new EmissionPolicy(keyframeIntervalUt: 30, quantum: EmissionQuantum.Absolute(0)),
@@ -249,6 +262,12 @@ namespace GonogoPrincipiaUplink
             // field absent, and an absent planner means "there is no planner": an
             // operator whose craft has a plan is told positively that it has none.
             host.AddSampledSource(CapturePlanOnMain, HandlePlanOnCourier);
+            _analysisPublisher = host.Publisher(AnalysisTopic);
+            // Subscription-gated, unlike the two sources above, and the difference
+            // is that nothing else reads this one. No election is answered from it,
+            // so skipping the reading starves nothing, and skipping it is worth
+            // real work: the coast reading is one native call per coast per tick.
+            host.AddSampledSource(CaptureAnalysisOnMain, HandleAnalysisOnCourier, AnalysisTopic);
             // No topic prefixes, so the engine never skips it. What this source
             // feeds is the uplink's own health, which the roster polls whether or
             // not a client has subscribed to anything of ours; gating it on a
@@ -473,6 +492,48 @@ namespace GonogoPrincipiaUplink
                 return;
             }
             _planPublisher?.Publish(PlanBuilder.Build(observation), observation.SampledAtUt);
+        }
+
+        /// <summary>
+        /// MAIN-THREAD capture: the producer's own orbit analyses, for the vessel
+        /// and for each coast of its plan.
+        ///
+        /// <para>Main thread because the producer's analysis slot is documented as
+        /// read and cleared there, and the read this makes publishes into it.</para>
+        ///
+        /// <para>Null when there is nothing to say: no settings source, no session,
+        /// or a vessel the producer has forgotten. A vessel the producer knows and
+        /// is not analysing arrives as a sample with an absent orbit, which is a
+        /// different fact and the one an operator needs.</para>
+        /// </summary>
+        internal object? CaptureAnalysisOnMain(KspSnapshot? snapshot)
+        {
+            var settings = _settings;
+            var session = settings?.Session;
+            var guid = settings?.ActiveVesselGuid;
+            if (settings == null || session == null || string.IsNullOrEmpty(guid))
+            {
+                return null;
+            }
+            if (!session.TryBeginFrame(out var frame))
+            {
+                return null;
+            }
+            using (frame)
+            {
+                return _analysisReader.ReadInFrame(
+                    frame, settings.Celestials, guid!, snapshot?.Ut ?? 0.0);
+            }
+        }
+
+        internal void HandleAnalysisOnCourier(object? captured)
+        {
+            if (captured is not AnalysisObservation observation || !IsSubscribed(AnalysisTopic))
+            {
+                return;
+            }
+            _analysisPublisher?.Publish(
+                AnalysisBuilder.Build(observation), observation.SampledAtUt);
         }
 
         /// <summary>

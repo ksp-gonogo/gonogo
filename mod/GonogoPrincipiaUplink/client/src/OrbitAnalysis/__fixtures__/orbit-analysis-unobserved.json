@@ -1,0 +1,16 @@
+{
+  "_scene": {
+    "augment": "principia-orbit-analysis",
+    "caption": "Nothing has arrived for this craft. Distinct from Principia not analysing it, because one of the two is fixed by opening a window and the other is not",
+    "size": {
+      "w": 12,
+      "h": 8
+    },
+    "paints": ["ANALYSIS NOT OBSERVED"],
+    "expectsEmpty": "Nothing at all on the stream is the state under test: the section must say it has not been told rather than draw an orbit of zeros."
+  },
+  "_stream": {
+    "pinnedUt": 1000000,
+    "emits": []
+  }
+}
