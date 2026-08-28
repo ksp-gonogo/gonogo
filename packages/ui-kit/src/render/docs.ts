@@ -1,5 +1,5 @@
 import { createHash } from "node:crypto";
-import { readFileSync, statSync } from "node:fs";
+import { existsSync, readFileSync, statSync } from "node:fs";
 import { join, resolve } from "node:path";
 import type {
   InventoryAugment,
@@ -23,10 +23,34 @@ import { readWireSurface, wireSection } from "./wire";
  * from that file.
  *
  * So the manifest is the primary output and the README is that manifest plus the
- * author's prose. Build it the other way round, as a doc generator that happens
- * to emit a manifest, and it drifts: a wrong manifest is parsed by the loader at
- * install time and fails visibly, whereas a wrong paragraph fails silently
- * forever.
+ * Uplink's own declared description. Build it the other way round, as a doc
+ * generator that happens to emit a manifest, and it drifts: a wrong manifest is
+ * parsed by the loader at install time and fails visibly, whereas a wrong
+ * paragraph fails silently forever.
+ *
+ * ## What the page contains, and why it is so short
+ *
+ * The Uplink's description, each widget's own registered description, DATA in
+ * tables, and the screenshots. Nothing else.
+ *
+ * That is a ruling, not a style preference, and it replaced a page roughly twice
+ * the length. What came out: a rationale paragraph per widget on top of the
+ * description its registration already carries (two answers to one question, the
+ * second longer); the rules of Uplinks restated as if specific to one of them
+ * (presence-gating, the universal `badges`/`filters`/`meters` segments every
+ * widget has) which belong in the Uplink documentation once and never per Uplink;
+ * a 45-word explanation of why an augment had no preview, repeated verbatim five
+ * times, where an empty table cell says the same thing; a closing section listing
+ * what the page could not tell the reader, which is not information; and every
+ * image's alt text repeated as an italic caption directly beneath it, so each
+ * screenshot stated its sentence twice.
+ *
+ * The test to apply to anything added here: a reader should skim the whole page
+ * in under a minute and come away with what the Uplink does, what its widgets
+ * show, and what it puts on the wire. And: **if a thing repeats per item, it is a
+ * table, not a section.** The augments went from five headed six-line sections to
+ * one five-row table, which is the same information and comparable at a glance,
+ * which the sections never were.
  */
 
 export interface UplinkManifestJson {
@@ -39,71 +63,6 @@ export interface UplinkManifestJson {
   contractMajor: number;
   contractMinor: number;
   integrity: string;
-}
-
-/** The one authored file, split into a lede and per-registration sections. */
-export interface Prose {
-  lede: string;
-  /** Keyed `widget:<id>` / `augment:<id>` / `contribution:<id>`. */
-  sections: Map<string, string>;
-}
-
-const SECTION_RE = /^##\s+(widget|augment|contribution):(\S+)\s*$/;
-
-export function parseProse(source: string): Prose {
-  const lede: string[] = [];
-  const sections = new Map<string, string>();
-  let current: { key: string; lines: string[] } | undefined;
-  const flush = () => {
-    if (current) sections.set(current.key, current.lines.join("\n").trim());
-    current = undefined;
-  };
-  for (const line of source.split(/\r?\n/)) {
-    const match = SECTION_RE.exec(line);
-    if (match) {
-      flush();
-      current = { key: `${match[1]}:${match[2]}`, lines: [] };
-      continue;
-    }
-    if (current) current.lines.push(line);
-    else lede.push(line);
-  }
-  flush();
-  return { lede: lede.join("\n").trim(), sections };
-}
-
-/**
- * A section naming an id nothing registered fails the build.
- *
- * Prose about a widget that no longer exists is the drift this whole tool is
- * against, and it is the half a generator cannot notice on its own: the page just
- * stops carrying the paragraph and nobody looks for it.
- */
-export function assertProseTargetsExist(
-  prose: Prose,
-  inventory: UplinkInventory,
-): void {
-  const known = new Set<string>([
-    ...inventory.widgets.map((w) => `widget:${w.id}`),
-    ...inventory.augments.map((a) => `augment:${a.id}`),
-    ...inventory.contributions.map((c) => `contribution:${c.id}`),
-  ]);
-  const unknown = [...prose.sections.keys()].filter((k) => !known.has(k));
-  if (unknown.length > 0) {
-    throw new Error(
-      `uplink.md: ${unknown.length} section(s) name a registration that does ` +
-        `not exist:\n  ${unknown.map((k) => `## ${k}`).join("\n  ")}\n` +
-        `Registered: ${[...known].sort().join(", ")}`,
-    );
-  }
-}
-
-/** The lede's first paragraph, which is the Uplink's one-line description. */
-function ledeSentence(lede: string): string | undefined {
-  const body = lede.replace(/^#[^\n]*\n/, "").trim();
-  if (body.length === 0) return undefined;
-  const paragraph = body.split(/\n\s*\n/)[0];
-  return paragraph.replace(/\s+/g, " ").trim();
 }
 
 /**
@@ -157,13 +116,39 @@ export interface DocsInputs {
   inventory: UplinkInventory;
   scenes: Scene[];
   assets: RenderedAsset[];
-  prose: Prose;
   /** Path, relative to the package, of the file distributed to users. */
   bundle?: string;
   /** Where assets live, relative to the package. */
   assetDir: string;
-  /** `augment:<id>` / `contribution:<id>` with no scene, named on the page. */
-  unpreviewed: string[];
+}
+
+/** What the Uplink wraps, from `uplink.json`'s `mod` block when it has one. */
+interface DeclaredMod {
+  name?: string;
+  builtAgainst?: string;
+  tier?: string;
+}
+
+/**
+ * `uplink.json`, searched from the client upwards.
+ *
+ * It sits beside BOTH halves of an Uplink, so it is one level up from a flat
+ * layout's client and two from a monorepo's, exactly as `gonogo-uplink bundle`
+ * searches for it. Absent is normal: an Uplink bundled inside the app's own repo
+ * has no separate declaration, and the page simply omits the row it would have
+ * filled rather than inventing one.
+ */
+function declaredUplink(pkgDir: string): { mod?: DeclaredMod } {
+  let dir = pkgDir;
+  for (let up = 0; up < 3; up++) {
+    const file = join(dir, "uplink.json");
+    if (existsSync(file)) {
+      const found = readJson<{ mod?: DeclaredMod | null }>(file);
+      if (found.mod) return { mod: found.mod };
+    }
+    dir = resolve(dir, "..");
+  }
+  return {};
 }
 
 export function buildManifest(inputs: DocsInputs): {
@@ -196,7 +181,7 @@ export function buildManifest(inputs: DocsInputs): {
     manifest: {
       id: inputs.inventory.id,
       version: inputs.inventory.version,
-      description: ledeSentence(inputs.prose.lede),
+      description: inputs.inventory.description,
       // The one gate field nothing can derive: it is a claim about the APP, and
       // only the author knows which app feature their Uplink needs. Declared in
       // package.json under `gonogo.minAppVersion`; "0.0.0" means no floor.
@@ -211,8 +196,74 @@ export function buildManifest(inputs: DocsInputs): {
   };
 }
 
+/** Backticked, comma-joined, or an en dash for a table cell with nothing in it. */
 function list(items: readonly string[]): string {
-  return items.length > 0 ? items.map((i) => `\`${i}\``).join(", ") : "none";
+  return items.length > 0 ? items.map((i) => `\`${i}\``).join(", ") : "–";
+}
+
+/** A two-column fact table, skipping every row whose value is empty. */
+function facts(rows: ReadonlyArray<[string, string | undefined]>): string[] {
+  const present = rows.filter(
+    ([, value]) => value !== undefined && value !== "",
+  );
+  if (present.length === 0) return [];
+  return [
+    "| | |",
+    "| --- | --- |",
+    ...present.map(([label, value]) => `| ${label} | ${value} |`),
+    "",
+  ];
+}
+
+/** A headed table, or nothing at all when it would have no rows. */
+function table(
+  headers: readonly string[],
+  rows: readonly string[][],
+): string[] {
+  if (rows.length === 0) return [];
+  return [
+    `| ${headers.join(" | ")} |`,
+    `| ${headers.map(() => "---").join(" | ")} |`,
+    ...rows.map((cells) => `| ${cells.join(" | ")} |`),
+    "",
+  ];
+}
+
+/**
+ * The images for one registration: alt text and nothing else.
+ *
+ * The alt text was previously repeated verbatim as an italic caption directly
+ * underneath every image, so each screenshot stated its sentence twice. The
+ * scene's caption goes in the alt, where a screen reader and a broken-image
+ * placeholder both find it.
+ *
+ * A scene rendered at several sizes gets ONE caption, on the first, and a short
+ * size phrase on the others: five images captioned with the same sentence is the
+ * repetition this page is against, and "the same widget at its minimum size" is
+ * the only thing the extra renders actually add.
+ */
+function images(inputs: DocsInputs, assets: RenderedAsset[]): string[] {
+  const out: string[] = [];
+  const captioned = new Set<string>();
+  for (const asset of assets) {
+    const path = `${inputs.assetDir}/${asset.file}`;
+    const first = !captioned.has(asset.scene.name);
+    captioned.add(asset.scene.name);
+    out.push("", `![${first ? altFor(asset) : sizePhrase(asset)}](${path})`);
+  }
+  return out;
+}
+
+function altFor(asset: RenderedAsset): string {
+  return asset.scene.caption ?? asset.scene.name;
+}
+
+function sizePhrase(asset: RenderedAsset): string {
+  if (asset.mode === "min") return "The same widget at its minimum size";
+  const mode = asset.scene.modes.find((m) => m.name === asset.mode);
+  return mode
+    ? `The same widget at ${mode.w} × ${mode.h}`
+    : `The same widget, ${asset.mode}`;
 }
 
 function assetsFor(
@@ -225,148 +276,166 @@ function assetsFor(
   );
 }
 
-/**
- * The image block for one registration.
- *
- * Every image says which TIER produced it. A widget is mounted in the real
- * dashboard provider stack; an augment or contribution is mounted in a stand-in
- * `Panel`, because its host widget lives in a package an Uplink may not import. A
- * reader must never have to guess which of those they are looking at, and the
- * stand-in is visible in the render's own title bar as well as here.
- */
-function images(inputs: DocsInputs, assets: RenderedAsset[]): string[] {
-  const out: string[] = [];
-  for (const asset of assets) {
-    const caption = asset.scene.caption ?? asset.scene.name;
-    const path = `${inputs.assetDir}/${asset.file}`;
-    out.push("", `![${caption}](${path})`, "", `*${caption}*`);
-    if (asset.scene.expectsEmpty) {
-      out.push("", `> Empty by design: ${asset.scene.expectsEmpty}`);
-    }
-  }
-  return out;
-}
-
 function widgetSection(inputs: DocsInputs, widget: InventoryWidget): string[] {
   const out = [`### ${widget.name}`, "", widget.description, ""];
-  out.push(`- Widget id: \`${widget.id}\``);
   // `channels` when the widget declares them, `dataRequirements` otherwise: they
   // are two generations of the same declaration and a widget on the older one
-  // still reads something, so quoting an empty `channels` would print "none"
+  // still reads something, so quoting an empty `channels` would print nothing
   // about a widget with five topics.
+  const reads =
+    widget.channels.length > 0 ? widget.channels : widget.dataRequirements;
+  const slots = [...widget.augmentSlots, ...widget.contributionSlots];
   out.push(
-    `- Needs: ${list(widget.channels.length > 0 ? widget.channels : widget.dataRequirements)}`,
+    ...facts([
+      ["Widget id", `\`${widget.id}\``],
+      ["Reads", reads.length > 0 ? list(reads) : undefined],
+      [
+        "Uses if present",
+        widget.optionalChannels.length > 0
+          ? list(widget.optionalChannels)
+          : undefined,
+      ],
+      [
+        "Actions",
+        widget.actions.length > 0
+          ? list(widget.actions.map((a) => a.id))
+          : undefined,
+      ],
+      ["Slots", slots.length > 0 ? list(slots) : undefined],
+      [
+        "Only while present",
+        widget.requires.length > 0 ? list(widget.requires) : undefined,
+      ],
+      ["Replaces", widget.replaces ? `\`${widget.replaces}\`` : undefined],
+      ["Default size", `${widget.modes[0].w} × ${widget.modes[0].h}`],
+    ]),
   );
-  if (widget.optionalChannels.length > 0) {
-    out.push(`- Uses if present: ${list(widget.optionalChannels)}`);
-  }
-  if (widget.actions.length > 0) {
-    out.push(
-      `- Can be driven by: ${list(widget.actions.map((a) => a.id))} (serial input)`,
-    );
-  }
-  if (widget.augmentSlots.length > 0) {
-    out.push(`- Other mods may render into: ${list(widget.augmentSlots)}`);
-  }
-  if (widget.contributionSlots.length > 0) {
-    out.push(
-      `- Other mods may contribute data to: ${list(widget.contributionSlots)}`,
-    );
-  }
-  if (widget.requires.length > 0) {
-    out.push(`- Only live while present: ${list(widget.requires)}`);
-  }
-  if (widget.replaces) out.push(`- Replaces: \`${widget.replaces}\``);
-  out.push(
-    `- Default size: ${widget.modes[0].w} x ${widget.modes[0].h} grid units`,
-  );
-  const extra = inputs.prose.sections.get(`widget:${widget.id}`);
-  if (extra) out.push("", extra);
   out.push(...images(inputs, assetsFor(inputs, "widget", widget.id)));
   return out;
 }
 
-function augmentSection(
-  inputs: DocsInputs,
-  augment: InventoryAugment,
-): string[] {
-  const out = [`### \`${augment.id}\` into \`${augment.augments}\``, ""];
-  out.push(`- Reads: ${list(augment.channels)}`);
-  if (augment.requires)
-    out.push(`- Only while present: \`${augment.requires}\``);
-  if (augment.suppressesVanillaBase) {
-    out.push("- Suppresses the host's own default surface for that slot");
-  }
-  if (augment.settings.length > 0) {
-    out.push(
-      `- Adds settings to its host: ${list(augment.settings.map((s) => `${s.key} (${s.type})`))}`,
-    );
-  }
-  const extra = inputs.prose.sections.get(`augment:${augment.id}`);
-  if (extra) out.push("", extra);
-  const shots = assetsFor(inputs, "augment", augment.id);
-  out.push(
+/**
+ * Every augment in ONE table, with its images after it.
+ *
+ * A section per augment was six lines each and five of them repeated the same
+ * paragraph about previews. As a table the five are comparable at a glance,
+ * which is what a reader is actually doing: seeing which host widgets this
+ * Uplink reaches into.
+ */
+function augmentTable(inputs: DocsInputs): string[] {
+  const rows = inputs.inventory.augments.map((augment: InventoryAugment) => {
+    const notes: string[] = [];
+    if (augment.suppressesVanillaBase) notes.push("replaces the host surface");
+    if (augment.settings.length > 0) {
+      notes.push(
+        `adds ${augment.settings.map((s) => `\`${s.key}\` (${s.type})`).join(", ")}`,
+      );
+    }
+    return [
+      `\`${augment.id}\``,
+      `\`${augment.augments}\``,
+      list(augment.channels),
+      augment.requires ? `only while \`${augment.requires}\`` : "",
+      notes.join("; "),
+    ];
+  });
+  if (rows.length === 0) return [];
+  return [
+    "## Augments",
     "",
-    shots.length > 0
-      ? "> Rendered in a STAND-IN host panel: the real host widget ships with " +
-          "the app and an Uplink may not import it, so the section's own layout " +
-          "is faithful and how it sits under the host's rows is not shown."
-      : "> No preview: no fixture names this augment. An augment that draws in " +
-          "its host's own coordinate space (a map projection, an SVG transform) " +
-          "cannot honestly be shown in a stand-in panel, which has nothing to " +
-          "draw against; one that renders ordinary content can gain a preview " +
-          "by adding a fixture.",
-  );
-  out.push(...images(inputs, shots));
-  return out;
-}
-
-function contributionSection(
-  inputs: DocsInputs,
-  contribution: InventoryContribution,
-): string[] {
-  const out = [
-    `### \`${contribution.id}\` into \`${contribution.contributes}\``,
+    ...table(["Augment", "Into", "Reads", "Presence", "Notes"], rows),
+    ...inputs.inventory.augments.flatMap((augment) =>
+      images(inputs, assetsFor(inputs, "augment", augment.id)),
+    ),
     "",
   ];
-  out.push(`- Computed from: ${list(contribution.deps)}`);
-  if (contribution.requires) {
-    out.push(`- Only while present: \`${contribution.requires}\``);
-  }
-  const extra = inputs.prose.sections.get(`contribution:${contribution.id}`);
-  if (extra) out.push("", extra);
-  out.push(
-    ...images(inputs, assetsFor(inputs, "contribution", contribution.id)),
+}
+
+function contributionTable(inputs: DocsInputs): string[] {
+  const rows = inputs.inventory.contributions.map(
+    (contribution: InventoryContribution) => [
+      `\`${contribution.id}\``,
+      `\`${contribution.contributes}\``,
+      list(contribution.deps),
+      contribution.requires ? `only while \`${contribution.requires}\`` : "",
+    ],
   );
-  return out;
+  if (rows.length === 0) return [];
+  return [
+    "## Contributions",
+    "",
+    ...table(["Contribution", "Into", "Computed from", "Presence"], rows),
+    ...inputs.inventory.contributions.flatMap((contribution) =>
+      images(inputs, assetsFor(inputs, "contribution", contribution.id)),
+    ),
+    "",
+  ];
+}
+
+function modelTable(inputs: DocsInputs): string[] {
+  const rows = [
+    ...inputs.inventory.processors.map((id) => ["processor", `\`${id}\``]),
+    ...inputs.inventory.reckonedTopics.map((id) => [
+      "forward model",
+      `\`${id}\``,
+    ]),
+    ...inputs.inventory.derivedChannels.map((id) => [
+      "derived channel",
+      `\`${id}\``,
+    ]),
+  ];
+  if (rows.length === 0) return [];
+  return ["## Models", "", ...table(["Kind", "Id"], rows)];
 }
 
 export function buildReadme(
   inputs: DocsInputs,
   manifest: UplinkManifestJson,
 ): string {
-  const { inventory, prose } = inputs;
+  const { inventory } = inputs;
+  if (!inventory.description?.trim()) {
+    throw new Error(
+      "gonogo-uplink docs: this client declares no `description`, and the page " +
+        "opens with it.\n\n" +
+        "Add one to `defineUplinkClient` in client/src/uplink.ts, in one or two " +
+        "sentences saying what the Uplink does:\n" +
+        '  defineUplinkClient({ id, version, name, description: "…" })\n\n' +
+        "It is a field rather than a prose file on purpose. Everything else on " +
+        "the page comes from your registrations, your contract slice and your " +
+        "fixtures, so this is the only sentence anyone writes.",
+    );
+  }
+
+  const wire = readWireSurface(inputs.pkg.dir);
+  const mod = declaredUplink(inputs.pkg.dir).mod;
   const out: string[] = [
-    "<!-- Generated by `gonogo-uplink docs`. Do not edit this file: edit",
-    "     `uplink.md` for the prose, and the registrations for everything else. -->",
+    "<!-- Generated by `gonogo-uplink docs`. Do not edit this file: it is written",
+    "     from the registrations, the contract slice and the fixtures. -->",
     "",
     `# ${inventory.name}`,
     "",
-  ];
-  if (prose.lede) out.push(prose.lede, "");
-  out.push(
-    "| | |",
-    "| --- | --- |",
-    `| Uplink id | \`${inventory.id}\` |`,
-    `| Version | \`${inventory.version}\` |`,
-    `| Built against | contract ${manifest.contractMajor}.${manifest.contractMinor}, api ${manifest.apiVersion}, ui-kit ${manifest.uiKitVersion} |`,
+    // Whitespace collapsed, not just trimmed. A description written across source
+    // lines arrives carrying the newline and the source indent, and four spaces at
+    // the start of a markdown line is a CODE BLOCK: the Uplink's one sentence
+    // would render as monospace with a scrollbar.
+    inventory.description.replace(/\s+/g, " ").trim(),
     "",
-  );
-
-  // Before the widgets, because the wire surface is what the Uplink IS. A widget
-  // is one way of looking at it, and another mod may build a different one.
-  const wire = readWireSurface(inputs.pkg.dir);
-  out.push(...wireSection(wire));
+    ...facts([
+      ["Uplink id", `\`${inventory.id}\``],
+      ["Version", `\`${inventory.version}\``],
+      [
+        "Wraps",
+        mod?.name
+          ? `${mod.name}${mod.builtAgainst ? ` ${mod.builtAgainst}` : ""}${mod.tier ? ` (${mod.tier})` : ""}`
+          : undefined,
+      ],
+      [
+        "Built against",
+        `contract ${manifest.contractMajor}.${manifest.contractMinor}, api ${manifest.apiVersion}, ui-kit ${manifest.uiKitVersion}`,
+      ],
+    ]),
+    ...wireSection(wire),
+  ];
 
   if (inventory.widgets.length > 0) {
     out.push("## Widgets", "");
@@ -374,95 +443,9 @@ export function buildReadme(
       out.push(...widgetSection(inputs, widget), "");
     }
   }
-  if (inventory.augments.length > 0) {
-    out.push("## Sections added to other widgets", "");
-    for (const augment of inventory.augments) {
-      out.push(...augmentSection(inputs, augment), "");
-    }
-  }
-  if (inventory.contributions.length > 0) {
-    out.push("## Data contributed to other widgets", "");
-    for (const contribution of inventory.contributions) {
-      out.push(...contributionSection(inputs, contribution), "");
-    }
-  }
+  out.push(...augmentTable(inputs));
+  out.push(...contributionTable(inputs));
+  out.push(...modelTable(inputs));
 
-  const slots = inventory.widgets.flatMap((w) => [
-    ...w.augmentSlots.map((s) => ({ slot: s, kind: "section", host: w.name })),
-    ...w.contributionSlots.map((s) => ({
-      slot: s,
-      kind: "data",
-      host: w.name,
-    })),
-  ]);
-  // Printed even when the table is empty, and that is the point. Every widget
-  // gets the framework segments whether it asks for them or not, so a page that
-  // showed nothing here would let a reader conclude that a widget declaring no
-  // bespoke slot cannot be extended at all. They are named as UNIVERSAL rather
-  // than listed per widget, because listing them would count generic surface as
-  // this Uplink's own design.
-  if (inventory.widgets.length > 0) {
-    out.push("## What other mods can extend in this Uplink", "");
-    if (slots.length > 0) {
-      out.push(
-        "Slots these widgets declare:",
-        "",
-        "| Slot | Kind | In |",
-        "| --- | --- | --- |",
-        ...slots.map((s) => `| \`${s.slot}\` | ${s.kind} | ${s.host} |`),
-        "",
-      );
-    }
-    out.push(
-      `${slots.length > 0 ? "On top of those, every" : "Every"} widget above ` +
-        "carries the framework's universal segments (`badges`, `filters`, " +
-        "`meters`), so another mod can add a badge, a filter or a meter to any " +
-        "of them without this Uplink declaring anything. They are not listed " +
-        "per widget: they are the floor every widget stands on, not this " +
-        "Uplink's own extension surface.",
-      "",
-    );
-  }
-
-  const models = [
-    ...inventory.processors.map((id) => ({ what: "processor", id })),
-    ...inventory.reckonedTopics.map((id) => ({ what: "forward model", id })),
-    ...inventory.derivedChannels.map((id) => ({ what: "derived channel", id })),
-  ];
-  if (models.length > 0) {
-    out.push(
-      "## Models and derived data",
-      "",
-      ...models.map((m) => `- ${m.what}: \`${m.id}\``),
-      "",
-    );
-  }
-
-  out.push("## What this page cannot tell you", "");
-  if (wire.payloads.length > 0) {
-    const n = wire.payloads.length;
-    out.push(
-      `- which topic ${n === 1 ? "the shape" : `each of the ${n} shapes`} under`,
-      '  "Command args, dynamic channels and extensions" travels on. A dynamic',
-      "  namespace composes its topic per subject at runtime and an extensions",
-      "  bag has no topic of its own, so there is no fixed name for the codegen",
-      "  to reflect; the mod's own channel constants are where those strings live",
-    );
-  }
-  if (wire.present) {
-    out.push(
-      "- which commands the Uplink accepts, and each one's DELAY ROLE. Both are",
-      "  declared where the mod registers them rather than as an attribute on a",
-      "  payload, and the client sends a command by naming it at the call site,",
-      "  so neither half of the build can enumerate them",
-    );
-  }
-  out.push(
-    "- capabilities the mod half declares, which are registered imperatively",
-    "  rather than as a field, so nothing can enumerate them",
-    "- what a widget DOES, as opposed to what it reads. That is the one thing",
-    "  only its author can write, and `uplink.md` is where it goes",
-    "",
-  );
   return `${out.join("\n").replace(/\n{3,}/g, "\n\n")}\n`;
 }

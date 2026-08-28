@@ -11,4 +11,7 @@ export const PRINCIPIA = defineUplinkClient({
   id: "principia",
   version: UPLINK_VERSION,
   name: "Principia",
+  description:
+    "Publishes Principia's n-body state: trajectory arcs, the flight plan and its " +
+    "burns, the reference frame they are expressed in, and the integrator settings.",
 });

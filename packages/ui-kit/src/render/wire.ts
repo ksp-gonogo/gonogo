@@ -1,5 +1,6 @@
 import { existsSync, readFileSync } from "node:fs";
 import { join } from "node:path";
+import { type ChannelDisposition, readChannelDispositions } from "./channels";
 
 /**
  * The wire surface an Uplink ADDS, read out of its own generated contract slice.
@@ -38,11 +39,13 @@ export interface WireField {
 
 export interface WireChannel {
   id: string;
-  /** The payload interface name, as generated into `contract.ts`. */
-  payload: string;
+  /** The payload interface name, or undefined for one the slice does not type. */
+  payload?: string;
   /** The channel carries a bare JSON array of the payload type. */
   array: boolean;
   fields: WireField[];
+  /** From the C# declaration site. See `./channels`. */
+  disposition: ChannelDisposition;
 }
 
 export interface WirePayload {
@@ -126,6 +129,7 @@ export function readWireSurface(pkgDir: string): WireSurface {
     }
   }
 
+  const dispositions = readChannelDispositions(pkgDir);
   const channels: WireChannel[] = [];
   for (const id of Object.keys(units.topics ?? {}).sort()) {
     const entry = mapped.get(id);
@@ -143,11 +147,49 @@ export function readWireSurface(pkgDir: string): WireSurface {
           "generator exists to prevent.",
       );
     }
+    /*
+     * The cross-check that makes the C# scan safe to be a scan.
+     *
+     * This topic is declared in the generated slice, so it EXISTS, so a
+     * `ChannelDeclaration` for it exists too and the scan should have found one.
+     * Coming back empty means the scan missed a shape (a factory, a helper, a
+     * layout it did not look in), and a scanner that quietly finds nothing is the
+     * failure this project keeps meeting. So it fails here instead, naming the
+     * topic, rather than printing a row with two blank columns.
+     */
+    if (dispositions.size > 0 && !dispositions.has(id)) {
+      throw new Error(
+        `gonogo-uplink docs: the channel "${id}" is declared in the generated ` +
+          "contract slice, and no `ChannelDeclaration` for it was found in this " +
+          "Uplink's C#.\n" +
+          "The scan reads plain object initialisers and single-expression " +
+          "factories (see packages/ui-kit/src/render/channels.ts). A declaration " +
+          "built some other way needs that scan to grow, and this fails rather " +
+          "than printing a row with no delivery and no delay, because a scanner " +
+          "that silently finds nothing reports a clean pass.",
+      );
+    }
     channels.push({
       id,
       payload: entry.payload,
       array: entry.array,
       fields: fields(units.topics?.[id], units.topicShapes?.[id]),
+      disposition: dispositions.get(id) ?? {},
+    });
+  }
+
+  /*
+   * Channels the C# declares that the generated slice does not type: a topic
+   * whose payload lives in `Sitrep.Contract` rather than in this Uplink's own
+   * slice, most often. Still this Uplink's wire surface, so still on the page.
+   */
+  for (const id of [...dispositions.keys()].sort()) {
+    if (channels.some((channel) => channel.id === id)) continue;
+    channels.push({
+      id,
+      array: false,
+      fields: [],
+      disposition: dispositions.get(id) ?? {},
     });
   }
 
@@ -190,7 +232,7 @@ function shapeElementName(entry: string): string {
 }
 
 function fieldList(list: WireField[]): string {
-  if (list.length === 0) return "none declared";
+  if (list.length === 0) return "–";
   return list
     .map((f) =>
       f.shape ? `\`${f.name}\` ${f.shape}` : `\`${f.name}\` ${f.unit ?? "?"}`,
@@ -199,80 +241,51 @@ function fieldList(list: WireField[]): string {
 }
 
 /**
- * The section, or nothing.
+ * `## Wire`: two tables and no sentences.
  *
- * An Uplink with no contract assembly (a client-only one, extending widgets that
- * already exist) adds nothing to the wire, and a heading saying so would be
- * noise. An Uplink WITH one that somehow generated no channel and no payload is
- * a different thing and still prints, because an empty table under a real
- * heading is information.
+ * Channels with their payload, delivery and delay, then every payload shape with
+ * its fields and each field's declared unit. A reader comparing Uplinks is
+ * scanning for a topic name and a unit, and a paragraph between them is in the
+ * way: this section carried four explanatory paragraphs and they said the same
+ * things the tables' own headers do.
+ *
+ * The second table folds together shapes that reach the wire three different
+ * ways: a nested payload another field holds, a command's arguments, and a
+ * namespace inside another channel's extensions bag. The distinction is not in
+ * the generated slice, and a `Kind` column that could only ever say "one of
+ * three" is not a fact. Every one of them is a shape this Uplink puts on the
+ * wire, which is what the table claims.
+ *
+ * Nothing at all when the Uplink has no contract slice: a client-only Uplink
+ * extending widgets that already exist adds no wire values, and a heading saying
+ * so is the kind of line this page does not carry.
  */
 export function wireSection(surface: WireSurface): string[] {
   if (!surface.present) return [];
-  const out = [
-    "## What it puts on the wire",
-    "",
-    "Reflected out of this Uplink's own contract assembly by the codegen that " +
-      "writes `src/__generated__/`, so it describes the C# declaration itself " +
-      "rather than a second copy of it. Each field is followed by its declared " +
-      "unit (a lowercase token from the wire vocabulary) or, where it holds " +
-      "another payload, that payload's name.",
-    "",
-  ];
+  const out = ["## Wire", ""];
 
-  out.push("### Channels", "");
   if (surface.channels.length > 0) {
     out.push(
-      "| Channel | Payload | Fields |",
-      "| --- | --- | --- |",
+      "| Topic | Payload | Delivery | Delay |",
+      "| --- | --- | --- | --- |",
       ...surface.channels.map(
         (c) =>
-          `| \`${c.id}\` | \`${c.payload}${c.array ? "[]" : ""}\` | ${fieldList(c.fields)} |`,
+          `| \`${c.id}\` | ${c.payload ? `\`${c.payload}${c.array ? "[]" : ""}\`` : "–"} | ` +
+          `${c.disposition.delivery ?? "–"} | ${c.disposition.delay ?? "–"} |`,
       ),
       "",
     );
-  } else {
-    out.push(
-      "This Uplink declares no statically-named channel. Everything it " +
-        "publishes rides a dynamic namespace, whose payloads are below.",
-      "",
-    );
   }
 
-  const table = (payloads: WirePayload[]) => [
-    "| Payload | Fields |",
-    "| --- | --- |",
-    ...payloads.map((p) => `| \`${p.name}\` | ${fieldList(p.fields)} |`),
-    "",
-  ];
-
-  if (surface.nested.length > 0) {
+  const shapes = [...surface.nested, ...surface.payloads].sort((a, b) =>
+    a.name.localeCompare(b.name),
+  );
+  if (shapes.length > 0) {
     out.push(
-      "### Payloads held inside another payload",
+      "| Payload | Fields |",
+      "| --- | --- |",
+      ...shapes.map((p) => `| \`${p.name}\` | ${fieldList(p.fields)} |`),
       "",
-      "Reached through a channel above rather than by subscribing to one: a " +
-        "field named in the tables so far holds one of these, either singly, as " +
-        "a list (`[]`) or as a string-keyed dictionary (`*`). Their own fields " +
-        "carry declared units too, which is the reason they are listed: a " +
-        "quantity nested two deep is still a quantity.",
-      "",
-      ...table(surface.nested),
-    );
-  }
-
-  if (surface.payloads.length > 0) {
-    out.push(
-      "### Command args, dynamic channels and extensions",
-      "",
-      "Wire shapes whose route onto the wire is not in the generated slice, so " +
-        "the honest description is all three things one of these can be: a " +
-        "command's arguments, the payload of a dynamic namespace whose topic " +
-        "string is composed at runtime (per vessel, per part, per CPU), or a " +
-        "namespace this Uplink adds inside another channel's extensions bag. " +
-        "None of the three is a fixed name an attribute could declare, which is " +
-        "why they are listed by shape.",
-      "",
-      ...table(surface.payloads),
     );
   }
   return out;

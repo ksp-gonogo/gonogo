@@ -11,7 +11,6 @@ import { deflateSync } from "node:zlib";
 import { afterEach, describe, expect, it } from "vitest";
 import type { UplinkInventory } from "../render-probe";
 import { resolveUplinkPackage } from "./context";
-import { assertProseTargetsExist, parseProse } from "./docs";
 import { encodeGif } from "./gif";
 import { generateEntry } from "./page";
 import { decodePng } from "./png";
@@ -434,28 +433,17 @@ describe("coverage of the registrations", () => {
   });
 });
 
-describe("the one authored file", () => {
-  it("splits a lede from per-registration sections", () => {
-    const prose = parseProse(
-      [
-        "What this is for.",
-        "",
-        "## widget:reactor",
-        "",
-        "Why it matters.",
-      ].join("\n"),
-    );
-    expect(prose.lede).toBe("What this is for.");
-    expect(prose.sections.get("widget:reactor")).toBe("Why it matters.");
-  });
-
-  it("fails on a section naming a registration that does not exist", () => {
-    const prose = parseProse("Lede.\n\n## widget:turbine\n\nGone.");
-    expect(() => assertProseTargetsExist(prose, INVENTORY)).toThrow(
-      /## widget:turbine/,
-    );
-  });
-});
+/**
+ * There is no authored prose file any more, and the cases that covered one are
+ * gone with it.
+ *
+ * `uplink.md` was the one file an author wrote, and its per-registration
+ * `## widget:<id>` sections were a second, longer answer to a question the
+ * registration's own description already answers. The whole prose surface was
+ * removed: what the page needs from an author is one FIELD, `description` on
+ * `defineUplinkClient`, and `buildReadme` refuses a page without it. A field has
+ * a shape; a markdown file has whatever someone types.
+ */
 
 describe("frames become an animation", () => {
   /** A minimal 2x2 RGBA PNG, encoded here so the decoder is tested against

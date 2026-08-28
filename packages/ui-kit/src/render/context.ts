@@ -30,8 +30,6 @@ export interface UplinkPackage {
   entry: string;
   /** `gonogo-render.setup.ts`, when the author wrote one. */
   setup?: string;
-  /** `uplink.md`, the one authored file. */
-  prose?: string;
   /** Fixture files, sorted, `<dir>/src/**\/__fixtures__/*.json`. */
   fixtures: string[];
   /** Resolved `gonogo.renderWith` paths. See `resolveRenderWith`. */
@@ -166,14 +164,12 @@ export function resolveUplinkPackage(
   const setup = ["gonogo-render.setup.ts", "gonogo-render.setup.tsx"]
     .map((f) => join(dir, f))
     .find(exists);
-  const prose = [join(dir, "uplink.md")].find(exists);
   return {
     dir,
     name: pkg.name,
     version: pkg.version,
     entry: resolveEntry(dir, pkg, opts.entry),
     setup,
-    prose,
     fixtures: findFixtures(dir),
     renderWith: resolveRenderWith(dir, pkg.gonogo),
   };

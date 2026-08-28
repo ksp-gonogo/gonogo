@@ -2,12 +2,7 @@ import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { readInventory } from "@ksp-gonogo/ui-kit/render-probe";
 import { display, resolveUplinkPackage } from "./render/context";
-import {
-  assertProseTargetsExist,
-  buildManifest,
-  buildReadme,
-  parseProse,
-} from "./render/docs";
+import { buildManifest, buildReadme } from "./render/docs";
 import { assertEveryWidgetCovered, buildScenes } from "./render/scenes";
 
 /**
@@ -73,20 +68,10 @@ export function checkUplinkPage(
   options: PageCheckOptions = {},
 ): PageCheckResult {
   const pkg = resolveUplinkPackage(options.root ?? process.cwd());
-  if (!pkg.prose) {
-    return {
-      differences: [
-        "there is no uplink.md beside package.json, so the page has no lede. " +
-          "It is the one file you write; everything else is derived.",
-      ],
-    };
-  }
-  const prose = parseProse(readFileSync(pkg.prose, "utf8"));
   const inventory = readInventory(options.uplink);
-  assertProseTargetsExist(prose, inventory);
 
   const scenes = buildScenes(pkg, inventory);
-  const { unpreviewed } = assertEveryWidgetCovered(scenes, inventory);
+  assertEveryWidgetCovered(scenes, inventory);
 
   // Assets are the browser half's business, so the scene list is passed with no
   // rendered files behind it. That means the page's image blocks are compared as
@@ -109,9 +94,7 @@ export function checkUplinkPage(
           | "still",
       })),
     ),
-    prose,
     assetDir: "docs/assets",
-    unpreviewed,
   };
   const { manifest } = buildManifest(inputs);
   const readme = buildReadme(inputs, manifest);

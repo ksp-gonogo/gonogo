@@ -1,7 +1,7 @@
 {
   "id": "kerbcast",
   "version": "0.0.1",
-  "description": "Puts live in-flight camera views on the dashboard, fed by [kerbcast](https://github.com/jonpepler/kerbcast), the KSP camera-streaming sidecar. Cameras come from Hullcam VDS parts on the flying vessel, with a picker and Next/Previous switching in the widget, and crew faces can be shown in the CrewStatus avatars.",
+  "description": "Live in-flight camera views from Hullcam VDS parts, fed by the kerbcast sidecar. Aim and zoom ride the Uplink; the video stays on kerbcast's own WebRTC path.",
   "minAppVersion": "0.0.0",
   "apiVersion": "1.0.0",
   "uiKitVersion": "0.2.0",

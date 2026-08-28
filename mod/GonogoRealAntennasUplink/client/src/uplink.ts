@@ -16,4 +16,7 @@ export const REALANTENNAS = defineUplinkClient({
   id: "realantennas",
   version: UPLINK_VERSION,
   name: "RealAntennas",
+  description:
+    "Elects RealAntennas as the comms backend when it is installed, so the comms " +
+    "readouts carry RF link geometry, data rate and a re-derived link margin.",
 });

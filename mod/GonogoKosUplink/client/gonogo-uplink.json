@@ -1,7 +1,7 @@
 {
   "id": "kos",
   "version": "0.0.1",
-  "description": "Puts a [kOS](https://github.com/KSP-KOS/KOS) CPU's terminal on the mission-control dashboard, streamed in process over the Uplink with no proxy to run.",
+  "description": "Puts a kOS CPU's real terminal on the dashboard, streamed in process with no proxy to run, and dispatches kerboscripts to a chosen CPU.",
   "minAppVersion": "0.0.0",
   "apiVersion": "1.0.0",
   "uiKitVersion": "0.2.0",

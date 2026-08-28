@@ -3,14 +3,7 @@ import { mkdtemp, readdir, readFile, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
 import { display, resolveUplinkPackage } from "./context";
-import {
-  assertProseTargetsExist,
-  buildManifest,
-  buildReadme,
-  type DocsInputs,
-  type Prose,
-  parseProse,
-} from "./docs";
+import { buildManifest, buildReadme, type DocsInputs } from "./docs";
 import { type Engine, renderUplink } from "./driver";
 
 /**
@@ -127,21 +120,6 @@ const USAGE = `gonogo-uplink <render|docs> [options]
                          declare the ones a fixture needs every time. Repeatable
 `;
 
-async function loadProse(file: string | undefined): Promise<Prose> {
-  if (!file) {
-    throw new Error(
-      "gonogo-uplink docs: no uplink.md beside package.json.\n\n" +
-        "It is the ONE file you write, and the page needs it: everything else " +
-        "on the page is derived from your registrations, and a page with no " +
-        "sentence saying what the Uplink is for is a page nobody reads.\n\n" +
-        "Create uplink.md with a lede (what this Uplink is for, which mod it " +
-        "integrates, install notes), and optional `## widget:<id>` sections " +
-        "adding prose to one registration.",
-    );
-  }
-  return parseProse(await readFile(file, "utf8"));
-}
-
 async function main(argv: readonly string[]): Promise<void> {
   if (argv.length === 0 || argv[0] === "--help" || argv[0] === "-h") {
     console.log(USAGE);
@@ -180,7 +158,6 @@ async function main(argv: readonly string[]): Promise<void> {
     throw new Error(`unknown verb "${args.verb}"\n\n${USAGE}`);
   }
 
-  const prose = await loadProse(pkg.prose);
   const assetOut = args.check
     ? await mkdtemp(join(tmpdir(), "gonogo-uplink-docs-"))
     : resolve(pkg.dir, args.assetDir);
@@ -192,22 +169,22 @@ async function main(argv: readonly string[]): Promise<void> {
     withModules: args.withModules,
   });
   reportFont(result.fontMode, result.fontAdvice);
-  assertProseTargetsExist(prose, result.inventory);
 
   const inputs: DocsInputs = {
     pkg,
     inventory: result.inventory,
     scenes: result.scenes,
     assets: result.assets,
-    prose,
     bundle: args.bundle,
     assetDir: args.assetDir,
-    unpreviewed: result.unpreviewed,
   };
+  // Reported here rather than on the page. A registration with no fixture gets
+  // no image, which the page shows by having none: an explanation of why belongs
+  // where the author can act on it, not in the document a reader skims.
   if (result.unpreviewed.length > 0) {
     console.log(
-      `  ${result.unpreviewed.length} registration(s) listed without a ` +
-        `preview: ${result.unpreviewed.join(", ")}`,
+      `  ${result.unpreviewed.length} registration(s) have no fixture, so the ` +
+        `page shows no picture of them: ${result.unpreviewed.join(", ")}`,
     );
   }
   const { manifest, warning } = buildManifest(inputs);

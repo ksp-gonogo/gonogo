@@ -243,6 +243,8 @@ export interface GonogoHost {
     id: string;
     version: string;
     name: string;
+    /** What the Uplink does, in one or two sentences. See `UplinkClientHandle`. */
+    description?: string;
   }): UplinkClientHandle;
 
   /** Register (or replace) a full custom Settings-modal tab. */

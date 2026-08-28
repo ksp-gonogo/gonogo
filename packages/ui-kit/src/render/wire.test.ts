@@ -59,6 +59,8 @@ describe("readWireSurface", () => {
           { name: "covered", unit: "%", shape: undefined },
           { name: "vessels", unit: undefined, shape: "ScanVessel[]" },
         ],
+        // No C# beside a temp directory, so nothing to scan and nothing claimed.
+        disposition: {},
       },
     ]);
   });
@@ -145,24 +147,26 @@ describe("readWireSurface", () => {
 });
 
 describe("wireSection", () => {
-  it("renders the channels table with units, and names the dynamic gap", () => {
+  it("renders two tables and no sentences", () => {
     const md = wireSection(
       readWireSurface(
         slice({ "units.json": UNITS, "topic-map.ts": TOPIC_MAP }),
       ),
     ).join("\n");
 
-    expect(md).toContain("## What it puts on the wire");
-    expect(md).toContain(
-      "| `scan.coverage` | `ScanCoverage` | `body` id, `covered` %, `vessels` ScanVessel[] |",
-    );
-    expect(md).toContain("### Payloads held inside another payload");
-    expect(md).toContain("| `ScanVessel` | `altitude` m |");
-    expect(md).toContain("### Command args, dynamic channels and extensions");
+    expect(md).toContain("## Wire");
+    // Delivery and delay come from the C# declaration site, and there is no C#
+    // beside a temp directory, so both read as an en dash rather than as a guess.
+    expect(md).toContain("| `scan.coverage` | `ScanCoverage` | – | – |");
+    // ONE payload table, holding the nested shape and the command args alike:
+    // three routes onto the wire, and the generated slice does not say which.
     expect(md).toContain("| `ScanArgs` | `body` id |");
+    expect(md).toContain("| `ScanVessel` | `altitude` m |");
+    // No prose between the tables, and no headings under `## Wire`.
+    expect(md).not.toContain("###");
   });
 
-  it("says so plainly when every channel is dynamic, instead of printing an empty table", () => {
+  it("prints no channel table at all when there is no statically-named channel", () => {
     const md = wireSection(
       readWireSurface(
         slice({
@@ -175,7 +179,9 @@ describe("wireSection", () => {
       ),
     ).join("\n");
 
-    expect(md).toContain("declares no statically-named channel");
-    expect(md).not.toContain("| Channel |");
+    // A sentence saying the table is empty is the kind of line this page does
+    // not carry: the payload table below is the whole statement.
+    expect(md).toContain("| `OnlyArgs` | `x` id |");
+    expect(md).not.toContain("| Topic |");
   });
 });

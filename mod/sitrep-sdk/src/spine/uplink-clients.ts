@@ -51,6 +51,27 @@ export interface UplinkClientHandle {
   /** Human label for management/health surfaces. */
   name: string;
   /**
+   * What this Uplink does, in one or two sentences.
+   *
+   * A FIELD rather than a prose file, and the distinction is the whole point. It
+   * was a `uplink.md` beside the client, and a markdown file is an invitation to
+   * write markdown: the ten in this repo grew install notes, per-widget
+   * rationale, and restatements of rules true of every Uplink, none of which
+   * belongs on a generated page. A field has a shape and one job.
+   *
+   * Read by `gonogo-uplink docs` as the page's opening line, and by any
+   * management surface listing what is installed. Keep it to what the Uplink
+   * does; each widget's own description is on its registration.
+   *
+   * Optional in the TYPE and required in PRACTICE: `gonogo-uplink docs` refuses
+   * to write a page without one. Optional because this interface ships in a
+   * published package and a new required field is a breaking change for every
+   * consumer already on the old one, and because the enforcement belongs where
+   * the field is consumed rather than where a probe harness happens to construct
+   * a throwaway handle.
+   */
+  description?: string;
+  /**
    * Register a contribution auto-namespaced to this client (contribution-
    * slots-spec §14): `def.id` is stamped `${this.id}:${def.id}` before it
    * reaches the flat ContributionRegistry, so two Uplinks can never collide
@@ -133,11 +154,13 @@ export function defineUplinkClient(cfg: {
   id: string;
   version: string;
   name: string;
+  description?: string;
 }): UplinkClientHandle {
   const handle: UplinkClientHandle = Object.freeze({
     id: cfg.id,
     version: cfg.version,
     name: cfg.name,
+    description: cfg.description,
     registerContribution<S extends string>(
       def: Omit<ContributionDefinition<S>, "owner">,
     ): void {

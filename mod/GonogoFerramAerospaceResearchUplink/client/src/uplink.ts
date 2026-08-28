@@ -13,4 +13,7 @@ export const AERO = defineUplinkClient({
   id: "aero",
   version: UPLINK_VERSION,
   name: "Aerodynamics",
+  description:
+    "Puts a full-fidelity aerodynamic model's own numbers on the flight board: angle " +
+    "of attack, sideslip, stall, lift and drag, as FAR computes them.",
 });

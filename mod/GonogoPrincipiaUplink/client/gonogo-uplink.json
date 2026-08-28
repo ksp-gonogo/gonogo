@@ -1,7 +1,7 @@
 {
   "id": "principia",
   "version": "0.0.1",
-  "description": "Publishes [Principia](https://github.com/mockingbirdnest/Principia)'s n-body state to the dashboard: the trajectory arcs it integrates, the flight plan and its burns, the reference frame everything is expressed in, and the integrator settings the session is running. It also accepts flight-plan edits from the console.",
+  "description": "Publishes Principia's n-body state: trajectory arcs, the flight plan and its burns, the reference frame they are expressed in, and the integrator settings.",
   "minAppVersion": "0.0.0",
   "apiVersion": "1.0.0",
   "uiKitVersion": "0.2.0",

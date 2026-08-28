@@ -1,7 +1,7 @@
 {
   "id": "aero",
   "version": "0.0.1",
-  "description": "Brings a full-fidelity aerodynamic model's own numbers to the flight board: angle of attack, sideslip, stall fraction, lift and drag, as [Ferram Aerospace Research](https://github.com/dkavolis/Ferram-Aerospace-Research) computes them rather than as stock KSP approximates them.",
+  "description": "Puts a full-fidelity aerodynamic model's own numbers on the flight board: angle of attack, sideslip, stall, lift and drag, as FAR computes them.",
   "minAppVersion": "0.0.0",
   "apiVersion": "1.0.0",
   "uiKitVersion": "0.2.0",

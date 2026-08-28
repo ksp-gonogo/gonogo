@@ -23,6 +23,10 @@
 /** The grid geometry a harness needs to size its mount box, re-exported here so
  *  a Node-side driver never has to import the browser half of the kit for it. */
 export { COL_WIDTH, GRID_MARGIN, gridToPixels, ROW_HEIGHT } from "./gridUnits";
+export {
+  type ChannelDisposition,
+  readChannelDispositions,
+} from "./render/channels";
 export { run } from "./render/cli";
 export {
   display,
@@ -34,12 +38,9 @@ export {
   type UplinkPackage,
 } from "./render/context";
 export {
-  assertProseTargetsExist,
   buildManifest,
   buildReadme,
   type DocsInputs,
-  type Prose,
-  parseProse,
   type UplinkManifestJson,
 } from "./render/docs";
 export {

@@ -1,7 +1,7 @@
 {
   "id": "realantennas",
   "version": "0.0.1",
-  "description": "Elects [RealAntennas](https://github.com/KSP-RO/RealAntennas) as the comms backend when it is installed, so the comms readouts describe the RF link the game is actually simulating: the link geometry, the data rate, and a re-derived link margin.",
+  "description": "Elects RealAntennas as the comms backend when it is installed, so the comms readouts carry RF link geometry, data rate and a re-derived link margin.",
   "minAppVersion": "0.0.0",
   "apiVersion": "1.0.0",
   "uiKitVersion": "0.2.0",

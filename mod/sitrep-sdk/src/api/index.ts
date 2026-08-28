@@ -366,6 +366,8 @@ export const defineUplinkClient = (cfg: {
   id: string;
   version: string;
   name: string;
+  /** What the Uplink does, in one or two sentences. See `UplinkClientHandle`. */
+  description?: string;
 }): UplinkClientHandle => getHost().defineUplinkClient(cfg);
 
 export const registerSettingsTab = (def: SettingsTabDefinition): void =>

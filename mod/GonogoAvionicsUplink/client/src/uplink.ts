@@ -15,4 +15,7 @@ export const AVIONICS = defineUplinkClient({
   id: "avionics",
   version: UPLINK_VERSION,
   name: "Avionics",
+  description:
+    "Answers the question an RP-1 launch turns on: is the vessel within the " +
+    "active avionics unit's controllable-mass limit.",
 });

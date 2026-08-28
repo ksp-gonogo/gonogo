@@ -12,4 +12,7 @@ export const BREAKING_GROUND = defineUplinkClient({
   id: "breakingGround",
   version: UPLINK_VERSION,
   name: "Breaking Ground",
+  description:
+    "Drives Breaking Ground robotic joints and rotors from the console, and reports " +
+    "deployed surface bases on every body while you fly something else.",
 });

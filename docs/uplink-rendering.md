@@ -5,7 +5,8 @@ maintaining a list of your own widgets, their data, their extension points and a
 folder of screenshots, and every one of those goes stale quietly.
 
 So gonogo ships the renderer and the page as one tool, `gonogo-uplink`. You write
-fixtures and one prose file; everything else is read off your registrations.
+fixtures and one declared `description`; everything else is read off your
+registrations.
 
 ```
 pnpm exec gonogo-uplink render          # every fixture, to ./renders/
@@ -182,24 +183,47 @@ rather than a blank panel.
   your bundle
 - `docs/assets/*.png` and `*.gif`
 
-You write ONE file, `uplink.md`. A lede saying what the Uplink is for and which
-mod it integrates, install notes, and optional `## widget:<id>` /
-`## augment:<id>` / `## contribution:<id>` sections adding prose to one
-registration. Nothing in it should repeat a derived fact, and two guards make that
-structural: a section naming an id you did not register fails the build, and a
-registered widget with no fixture fails the build, because a page that quietly
-lists three of your four widgets reads exactly like an Uplink with three widgets.
+You write ONE FIELD, and it is not a file: `description` on
+`defineUplinkClient`, one or two sentences saying what the Uplink does. The tool
+refuses to write a page without one.
 
-Per-widget descriptions do NOT go in `uplink.md`. `ComponentDefinition.description`
-is required, so every widget already has one place for its one line, and a second
+```ts
+export const MY_UPLINK = defineUplinkClient({
+  id: "my-uplink",
+  version: "0.0.1",
+  name: "My Uplink",
+  description: "What it does, in a sentence or two.",
+});
+```
+
+There was a prose file (`uplink.md`) with a lede, install notes and optional
+`## widget:<id>` sections. It is gone, and the reason is what happened to it: a
+markdown file beside your client is an invitation to write markdown, and the ten
+in the app's own repo grew per-widget rationale on top of the descriptions their
+registrations already carried, install notes, and restatements of rules true of
+every Uplink. A field has a shape and one job; a file has whatever someone types.
+
+**A generated page contains exactly four things**: your description, each
+widget's own registered description, DATA in tables, and the screenshots. If
+something you want to say is not one of those, it is documentation about Uplinks
+rather than about yours, and it belongs here rather than on your page. The test
+to apply: a reader should skim the whole page in under a minute and come away with
+what your Uplink does, what its widgets show, and what it puts on the wire.
+
+Per-widget descriptions come from `ComponentDefinition.description`, which is
+required, so every widget already has one place for its one line and a second
 place is how two of them start disagreeing.
+
+One guard is structural: a registered widget with no fixture is reported, because
+a page that quietly lists three of your four widgets reads exactly like an Uplink
+with three widgets.
 
 ### `gonogo-uplink.json`
 
 Almost every field is derived. `id`, `version`, `apiVersion`, `uiKitVersion`,
 `contractMajor` and `contractMinor` come from the bundle the tool just loaded, so
-they describe the code they were read out of. `description` is your lede's first
-paragraph. `integrity` is the sha256 of the file you distribute, so pass
+they describe the code they were read out of. `description` is the field you
+declared on `defineUplinkClient`. `integrity` is the sha256 of the file you distribute, so pass
 `--bundle <path>` when you generate for a release; without it the field is empty
 and the app will quarantine your Uplink with an integrity mismatch, and the run
 warns you.
@@ -220,7 +244,7 @@ what it reads in the manifest against what your loaded bundle declares.
 Keeping the page current is two different questions, and it is worth knowing
 which is which because they cost very different amounts.
 
-**Does the prose still match the registrations?** That is a registry read, and
+**Does the page's text still match the registrations?** That is a registry read, and
 your test suite has already loaded your client with a host installed. So it runs
 as a test, with no browser:
 

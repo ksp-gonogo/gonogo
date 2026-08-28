@@ -278,6 +278,13 @@ export interface UplinkInventory {
   id: string;
   name: string;
   version: string;
+  /**
+   * What the Uplink does, from `defineUplinkClient`. The page's opening line.
+   *
+   * Optional here because the SDK's field is, and `buildReadme` refuses a page
+   * without one: the enforcement belongs where the value is consumed.
+   */
+  description?: string;
   compat: UplinkCompat;
   widgets: InventoryWidget[];
   augments: InventoryAugment[];
@@ -401,6 +408,7 @@ export function readInventory(uplinkId?: string): UplinkInventory {
     id: client.id,
     name: client.name,
     version: client.version,
+    description: client.description,
     compat: {
       apiVersion: EXTENSION_API_VERSION,
       uiKitVersion: UI_KIT_VERSION,

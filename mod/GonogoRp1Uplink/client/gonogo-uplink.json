@@ -1,7 +1,7 @@
 {
   "id": "rp1",
   "version": "0.0.1",
-  "description": "Brings [RP-1](https://github.com/KSP-RO/RP-0)'s career layer to the dashboard: Programs with their objectives, deadlines and funding curves, the Confidence price and term at each speed, and the per-year funding summary those payments follow.",
+  "description": "Brings RP-1's career layer to the dashboard: Programs with their objectives, deadlines, funding curves and the Confidence price at each speed.",
   "minAppVersion": "0.0.0",
   "apiVersion": "1.0.0",
   "uiKitVersion": "0.2.0",
