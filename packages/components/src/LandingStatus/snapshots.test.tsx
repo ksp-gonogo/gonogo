@@ -1,4 +1,5 @@
-import { describe, expect, it } from "vitest";
+import { PerfBudget } from "@ksp-gonogo/core";
+import { beforeEach, describe, expect, it } from "vitest";
 import { getWidget } from "../../scripts/widgets";
 import { snapshotWidgetMode } from "../test/widgetDomSnapshot";
 import finalApproach from "./__fixtures__/final-approach-mun.json";
@@ -37,6 +38,24 @@ if (!config)
   throw new Error("landing-status/descent-gif missing from widgets.ts");
 
 describe("LandingStatus DOM snapshots", () => {
+  /**
+   * The contribution budgets, reset between tests, for the reason the three
+   * sibling specs already document.
+   *
+   * `Contributions "<slot>" entries recomputed/sec` is capped at 30, which is
+   * ~7x a real 4 Hz stream. A spec replays its whole scenario in a handful of
+   * milliseconds, so every frame lands inside one rolling second and each slot
+   * trips the cap. The same frames take seconds in the app.
+   *
+   * Reset rather than raised: the threshold is right for the load it measures,
+   * and widening it to fit a test's clock is how a budget stops being able to
+   * see the regression it exists for. This file was the only one of the four
+   * without the reset, so it passed alone and failed under a loaded CI run.
+   */
+  beforeEach(() => {
+    for (const b of PerfBudget.getAll()) b.reset();
+  });
+
   for (const [name, fixture] of Object.entries(FIXTURES)) {
     for (const mode of config.modes) {
       it(`${name} @ ${mode.name}`, async () => {
