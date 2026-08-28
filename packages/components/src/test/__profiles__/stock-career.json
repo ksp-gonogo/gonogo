@@ -1,0 +1,89 @@
+{
+  "id": "stock-career",
+  "name": "Stock career",
+  "description": "Stock KSP career with Gonogo and nothing else. The Uplinks that ship inside the mod are all registered and all report their target assembly missing, so their channels stay declared but never carry a value; TestFlight's Uplink ships with TestFlight, so it is not registered at all. Every exclusive capability falls back to its vanilla, which for reliability is the None backend.",
+  "uplinks": [
+    {
+      "id": "reliability",
+      "available": true,
+      "ownedPrefixes": ["reliability.summary", "reliability.parts"],
+      "detail": "Reliability channels are live."
+    },
+    {
+      "id": "kerbalism",
+      "available": false,
+      "reason": "Kerbalism assembly not loaded",
+      "ownedPrefixes": [
+        "kerbalism.available",
+        "kerbalism.features",
+        "kerbalism.spaceweather",
+        "kerbalism.lifesupport",
+        "kerbalism.crew",
+        "kerbalism.profile"
+      ],
+      "state": "unavailable",
+      "detail": "Kerbalism assembly not loaded"
+    },
+    {
+      "id": "rp1",
+      "available": false,
+      "reason": "RP-1 assembly not loaded",
+      "ownedPrefixes": [
+        "rp1.available",
+        "rp1.centres",
+        "rp1.complexes",
+        "rp1.buildQueue",
+        "rp1.warehouse",
+        "rp1.pads",
+        "rp1.operations",
+        "rp1.constructions",
+        "rp1.research",
+        "rp1.personnel",
+        "rp1.confidence",
+        "rp1.programs",
+        "rp1.programSlots",
+        "rp1.programFundingCurves",
+        "rp1.crew",
+        "rp1.crewProgram"
+      ],
+      "state": "unavailable",
+      "detail": "RP-1 assembly not loaded"
+    },
+    {
+      "id": "realantennas",
+      "available": false,
+      "reason": "RealAntennas assembly not loaded",
+      "ownedPrefixes": [
+        "realantennas.available",
+        "realantennas.hopRates",
+        "comms.linkQuality",
+        "comms.dataRate",
+        "comms.linkMargin"
+      ],
+      "state": "unavailable",
+      "detail": "RealAntennas assembly not loaded"
+    }
+  ],
+  "elections": {
+    "reliability": "none",
+    "comms": "commnet"
+  },
+  "wire": {
+    "reliability.summary": {
+      "unmodeled": true,
+      "malfunction": null,
+      "critical": null,
+      "source": "none",
+      "worstReliabilityFraction": null
+    },
+    "reliability.parts": []
+  },
+  "absentChannels": [
+    "rp1.available",
+    "kerbalism.available",
+    "realantennas.available",
+    "comms.linkMargin",
+    "comms.dataRate",
+    "comms.linkQuality"
+  ]
+}

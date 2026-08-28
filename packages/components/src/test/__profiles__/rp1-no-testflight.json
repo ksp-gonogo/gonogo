@@ -1,0 +1,77 @@
+{
+  "id": "rp1-no-testflight",
+  "name": "RP-1 without TestFlight",
+  "description": "The same career install with TestFlight not installed. Its Uplink DLL ships with TestFlight rather than with Gonogo, so the whole entry leaves the roster and Kerbalism's provider wins the reliability election by default. Kerbalism's reliability feature is off, so the elected backend reports that it models nothing.",
+  "uplinks": [
+    {
+      "id": "reliability",
+      "available": true,
+      "ownedPrefixes": ["reliability.summary", "reliability.parts"],
+      "detail": "Reliability channels are live."
+    },
+    {
+      "id": "kerbalism",
+      "available": true,
+      "ownedPrefixes": [
+        "kerbalism.available",
+        "kerbalism.features",
+        "kerbalism.spaceweather",
+        "kerbalism.lifesupport",
+        "kerbalism.crew",
+        "kerbalism.profile"
+      ],
+      "detail": "Kerbalism loaded; reliability feature off."
+    },
+    {
+      "id": "rp1",
+      "available": true,
+      "ownedPrefixes": [
+        "rp1.available",
+        "rp1.centres",
+        "rp1.complexes",
+        "rp1.buildQueue",
+        "rp1.warehouse",
+        "rp1.pads",
+        "rp1.operations",
+        "rp1.constructions",
+        "rp1.research",
+        "rp1.personnel",
+        "rp1.confidence",
+        "rp1.programs",
+        "rp1.programSlots",
+        "rp1.programFundingCurves",
+        "rp1.crew",
+        "rp1.crewProgram"
+      ],
+      "detail": "RP-1 loaded."
+    },
+    {
+      "id": "realantennas",
+      "available": true,
+      "ownedPrefixes": [
+        "realantennas.available",
+        "realantennas.hopRates",
+        "comms.linkQuality",
+        "comms.dataRate",
+        "comms.linkMargin"
+      ],
+      "detail": "RealAntennas loaded."
+    }
+  ],
+  "elections": {
+    "reliability": "kerbalism"
+  },
+  "wire": {
+    "rp1.available": {},
+    "kerbalism.available": {},
+    "realantennas.available": {},
+    "reliability.summary": {
+      "unmodeled": true,
+      "malfunction": null,
+      "critical": null,
+      "source": "kerbalism",
+      "worstReliabilityFraction": null
+    },
+    "reliability.parts": []
+  }
+}

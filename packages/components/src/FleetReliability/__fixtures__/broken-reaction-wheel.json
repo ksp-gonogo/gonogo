@@ -1,0 +1,62 @@
+{
+  "_meta": {
+    "scenario": "A two-craft fleet with a broken reaction wheel on the active craft.",
+    "notes": "Rendered under three declared installs. Only the install changes: the fleet, the active craft and the failing part are the same in all three, so any difference in what the roster row shows is the reliability election and nothing else."
+  },
+  "_stream": {
+    "profiles": ["rp1-testflight", "rp1-no-testflight", "stock-career"],
+    "carriedChannels": [
+      "system.vessels",
+      "system.bodies",
+      "vessel.identity",
+      "reliability.summary",
+      "reliability.parts"
+    ],
+    "emits": [
+      {
+        "channel": "system.bodies",
+        "value": { "bodies": [{ "index": 0, "name": "Kerbin" }] }
+      },
+      {
+        "channel": "system.vessels",
+        "value": {
+          "vessels": [
+            {
+              "vesselId": "v-active",
+              "name": "Active Craft",
+              "vesselType": 0,
+              "situation": 3,
+              "bodyIndex": 0,
+              "crewCount": 1,
+              "crewCapacity": 1,
+              "commsControlSource": 2
+            },
+            {
+              "vesselId": "v-other",
+              "name": "Other Craft",
+              "vesselType": 0,
+              "situation": 3,
+              "bodyIndex": 0,
+              "crewCount": 0,
+              "crewCapacity": 0,
+              "commsControlSource": 2
+            }
+          ]
+        }
+      },
+      {
+        "channel": "vessel.identity",
+        "value": {
+          "vesselId": "v-active",
+          "name": "Active Craft",
+          "vesselType": 0,
+          "situation": 3
+        }
+      },
+      {
+        "channel": "reliability.parts",
+        "value": [{ "partId": "p1", "title": "Reaction Wheel", "broken": true }]
+      }
+    ]
+  }
+}

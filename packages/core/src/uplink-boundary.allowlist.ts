@@ -935,6 +935,13 @@ export const ALLOWLIST: Record<ModToken, ModAllowlist> = {
     domainDebt: [],
     permanent: [
       /*
+       * The install-profile harness names RealAntennas as a roster entry, because
+       * an Uplink that is installed while the mod it wraps is not is what gives
+       * `RequiresGuard` a named empty state to show. A wire value off
+       * `system.uplinks`; see the matching entries under `testflight`.
+       */
+      "packages/components/src/FleetReliability/install-profiles.test.tsx",
+      /*
        * -- UPLINK WIDGET-DECLARATION gate: the app-side check that every Uplink
        * widget's declarations resolve to something real has to LOAD every
        * Uplink client to read the registries they register into, so it names
@@ -1698,6 +1705,13 @@ export const ALLOWLIST: Record<ModToken, ModAllowlist> = {
        */
       "packages/components/src/FleetReliability/undefined.characterise.test.tsx",
       /*
+       * The install-profile harness names Kerbalism as a roster entry and as the
+       * `reliability.summary.source` its backend produces, both wire values. See
+       * the matching entries under `testflight` for the whole rationale.
+       */
+      "packages/components/src/test/installProfile.test.ts",
+      "packages/components/src/FleetReliability/install-profiles.test.tsx",
+      /*
        * -- ratchet inventory --
        * The rate-integration candidate scan reads EVERY generated unit
        * descriptor, core's and each Uplink's, because a rate-bearing field
@@ -1958,6 +1972,19 @@ export const ALLOWLIST: Record<ModToken, ModAllowlist> = {
       "packages/components/src/FleetReliability/undefined.characterise.test.tsx",
       // Same wire-value reference in the widget's stale-branch test.
       "packages/components/src/FleetReliability/stale.test.tsx",
+      /*
+       * The install-profile harness: a checked-in declaration of which Uplinks a
+       * machine has, so a widget can be rendered under an install other than the
+       * one every fixture in this repo was captured on. The names it carries are
+       * Uplink ids off the `system.uplinks` roster and `source` values off
+       * `reliability.summary`, both already on the wire, and it is where the
+       * TestFlight-versus-Kerbalism election is stated as data. It imports and
+       * derives from nothing in the owning dir; the reference is a wire value and
+       * a file name, which is the case this bucket exists for.
+       */
+      "packages/components/src/test/installProfile.ts",
+      "packages/components/src/test/installProfile.test.ts",
+      "packages/components/src/FleetReliability/install-profiles.test.tsx",
       /*
        * Every entry is a doc-mention naming TestFlight as the OTHER backend that
        * competes for the shared "reliability" capability, which is how the

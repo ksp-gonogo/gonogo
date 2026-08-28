@@ -11,6 +11,7 @@ import type { Meta } from "@ksp-gonogo/sitrep-sdk";
 import { act, render, waitFor } from "@ksp-gonogo/test-utils";
 import type React from "react";
 import { Fragment } from "react";
+import { applyInstallProfile, getInstallProfile } from "./installProfile";
 import {
   setupMockDataSource,
   teardownMockDataSource,
@@ -314,6 +315,16 @@ interface StreamFixtureBlock {
   delaySeconds?: number;
   /** Replayed in order, one `StubTransport.emit` per entry, post-mount. */
   emits: Array<{ channel: string; value: unknown; meta?: Partial<Meta> }>;
+  /**
+   * The install profiles this scene is interesting under
+   * (`test/installProfile.ts`), by id. The scene names them so the matrix stays
+   * a scene's own decision: a crew widget cares about the crew-standing
+   * election and nothing else, and has no business rendering under twelve
+   * installs to prove it. A caller passes one of these as
+   * {@link SnapshotOpts.profile}; a fixture that names none renders under the
+   * wire it declares, unchanged.
+   */
+  profiles?: string[];
 }
 
 /** Extracts and narrows the optional `_stream` block off a fixture. */
@@ -344,6 +355,13 @@ interface SnapshotOpts<Cfg> {
   defaultConfig?: Cfg;
   /** Forwarded to `setupMockDataSource`: see its own doc comment. Default `false`, matching every existing widget's snapshot behavior. */
   connectSource?: boolean;
+  /**
+   * Render under a declared install (`test/installProfile.ts`), by id: the
+   * fixture's `_stream` block is rewritten into the wire that install would
+   * produce, roster included. Only applies to a fixture that HAS a `_stream`
+   * block, since a legacy flat-key fixture has no wire to rewrite.
+   */
+  profile?: string;
 }
 
 /**
@@ -443,7 +461,7 @@ async function waitForSubscription(
  * `DataSource`. Returns a pass-through `Wrap` (no provider at all) when
  * neither is needed, matching every widget that touches neither key.
  */
-function buildStreamWrap(fixture: Fixture): StreamWrap {
+function buildStreamWrap(fixture: Fixture, profileId?: string): StreamWrap {
   // A fixture that declares its own wire wins outright, and the legacy
   // reshapes below are skipped entirely for it.
   //
@@ -458,7 +476,17 @@ function buildStreamWrap(fixture: Fixture): StreamWrap {
   // a channel the block already emits would overwrite the fixture's own,
   // more-complete payload with one derived from a handful of `v.*` mirrors, and
   // which of the two survived would come down to emit order.
-  const streamBlock = resolveStreamBlock(fixture);
+  const declared = resolveStreamBlock(fixture);
+  // An install profile rewrites the fixture's own wire rather than sitting
+  // beside it, so everything downstream (carried allowlist, emit order, the
+  // subscription gating) stays one code path with one block to read.
+  const streamBlock =
+    declared !== undefined && profileId !== undefined
+      ? (applyInstallProfile(
+          getInstallProfile(profileId),
+          declared,
+        ) as StreamFixtureBlock)
+      : declared;
   if (streamBlock !== undefined) {
     const stream = setupStreamFixture({
       carriedChannels: streamBlock.carriedChannels,
@@ -755,7 +783,7 @@ export async function snapshotWidgetMode<
       emitVesselControl,
       emitKerbalism,
       replayStreamBlock,
-    } = buildStreamWrap(opts.fixture);
+    } = buildStreamWrap(opts.fixture, opts.profile);
     const { container } = render(
       <Wrap>
         <DashboardItemContext.Provider value={{ instanceId }}>
@@ -858,7 +886,7 @@ export async function renderWidgetMode<
     emitVesselControl,
     emitKerbalism,
     replayStreamBlock,
-  } = buildStreamWrap(opts.fixture);
+  } = buildStreamWrap(opts.fixture, opts.profile);
   const { container } = render(
     <Wrap>
       <DashboardItemContext.Provider value={{ instanceId }}>
