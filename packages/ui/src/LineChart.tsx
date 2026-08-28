@@ -115,6 +115,18 @@ export interface LineChartProps {
    */
   hideXAxis?: boolean;
   /**
+   * A view of a PLACE rather than a chart (see `PlotFrame.kind`): the content
+   * runs to the frame's own edges, there are no tick ladders down the side or
+   * along the bottom, and the two axes are held at the SAME scale so a circle
+   * is a circle and a slope is the slope.
+   *
+   * The scale is not lost with the ladders. It rides the content, the way it
+   * does on a map: the terrain patch is a known width, the dispersion ring is
+   * labelled, and every reading the plot carries is a caption inside the frame
+   * rather than a number in a gutter.
+   */
+  spatial?: boolean;
+  /**
    * Everything drawn beyond the series, in the plot's own data space (see the
    * `PlotLayer` vocabulary in `@ksp-gonogo/sitrep-sdk`). A plot contributed to
    * the app-wide `plots` slot hands its own `layers` down here, so a chart
@@ -161,6 +173,28 @@ function fitMargins(
     left,
   };
 }
+/** Screen pixels between a spatial plot's grid dots, both ways. Even by
+ *  construction, so the lattice never reads as an axis. */
+const SPATIAL_GRID_PITCH_PX = 26;
+
+/** The dot lattice for a spatial plot, inset half a pitch so no dot sits on the
+ *  frame's own edge. */
+function spatialGrid(
+  x0: number,
+  x1: number,
+  y0: number,
+  y1: number,
+): Array<{ key: string; x: number; y: number }> {
+  const dots: Array<{ key: string; x: number; y: number }> = [];
+  const p = SPATIAL_GRID_PITCH_PX;
+  for (let x = x0 + p / 2; x < x1; x += p) {
+    for (let y = y0 + p / 2; y < y1; y += p) {
+      dots.push({ key: `sg-${Math.round(x)}-${Math.round(y)}`, x, y });
+    }
+  }
+  return dots;
+}
+
 /** Below either, a corner readout is smaller than the words in it: the layer's
  *  own `description` still carries the reading to a screen reader. */
 const CAPTION_MIN_PLOT_W = 120;
@@ -193,6 +227,7 @@ export function LineChart({
   thresholds,
   legend = "overlay",
   hideXAxis = false,
+  spatial = false,
   layers,
   ariaLabel,
   width,
@@ -210,7 +245,12 @@ export function LineChart({
   );
   const hasSecondary = secondarySeries.length > 0;
 
-  const margin = fitMargins(w, h, hasSecondary);
+  // A spatial plot has no gutters to reserve: nothing is written outside the
+  // picture, so the picture is the whole box. One pixel of inset keeps the
+  // outermost stroke from being clipped in half by the frame's own edge.
+  const margin = spatial
+    ? { top: 1, right: 1, bottom: 1, left: 1 }
+    : fitMargins(w, h, hasSecondary);
   const plotX0 = margin.left;
   const plotX1 = w - margin.right;
   const plotY0 = margin.top;
@@ -554,55 +594,58 @@ export function LineChart({
       {/* Horizontal grid lines + left y-axis ticks. Keyed by index rather
           than value because niceTicks returns duplicate ticks when the domain
           has zero span (single-sample or pinned-equal-bounds data). */}
-      {yTicksPrimary.map((tick, idx) => {
-        const y = scaleYPrimary(tick);
-        return (
-          // biome-ignore lint/suspicious/noArrayIndexKey: tick position IS identity; niceTicks may emit duplicate values for zero-span domains
-          <React.Fragment key={`py-${idx}`}>
-            <line
-              x1={plotX0}
-              y1={y}
-              x2={plotX1}
-              y2={y}
-              stroke="var(--color-border-subtle)"
-              strokeWidth={1}
-            />
-            {yKeepPrimary.has(idx) && (
-              <text
-                x={plotX0 - 4}
-                y={y}
-                textAnchor="end"
-                dominantBaseline="middle"
-                fill="var(--color-text-faint)"
-                fontSize={11}
-              >
-                {yTickFormat(tick)}
-              </text>
-            )}
-          </React.Fragment>
-        );
-      })}
+      {!spatial &&
+        yTicksPrimary.map((tick, idx) => {
+          const y = scaleYPrimary(tick);
+          return (
+            // biome-ignore lint/suspicious/noArrayIndexKey: tick position IS identity; niceTicks may emit duplicate values for zero-span domains
+            <React.Fragment key={`py-${idx}`}>
+              <line
+                x1={plotX0}
+                y1={y}
+                x2={plotX1}
+                y2={y}
+                stroke="var(--color-border-subtle)"
+                strokeWidth={1}
+              />
+              {yKeepPrimary.has(idx) && (
+                <text
+                  x={plotX0 - 4}
+                  y={y}
+                  textAnchor="end"
+                  dominantBaseline="middle"
+                  fill="var(--color-text-faint)"
+                  fontSize={11}
+                >
+                  {yTickFormat(tick)}
+                </text>
+              )}
+            </React.Fragment>
+          );
+        })}
 
       {/* Right y-axis ticks (secondary) */}
-      {yTicksSecondary.map((tick, idx) =>
-        yKeepSecondary.has(idx) ? (
-          <text
-            // biome-ignore lint/suspicious/noArrayIndexKey: tick position IS identity; niceTicks may emit duplicate values for zero-span domains
-            key={`sy-${idx}`}
-            x={plotX1 + 4}
-            y={scaleYSecondary(tick)}
-            textAnchor="start"
-            dominantBaseline="middle"
-            fill="var(--color-text-faint)"
-            fontSize={11}
-          >
-            {yTickFormat(tick)}
-          </text>
-        ) : null,
-      )}
+      {!spatial &&
+        yTicksSecondary.map((tick, idx) =>
+          yKeepSecondary.has(idx) ? (
+            <text
+              // biome-ignore lint/suspicious/noArrayIndexKey: tick position IS identity; niceTicks may emit duplicate values for zero-span domains
+              key={`sy-${idx}`}
+              x={plotX1 + 4}
+              y={scaleYSecondary(tick)}
+              textAnchor="start"
+              dominantBaseline="middle"
+              fill="var(--color-text-faint)"
+              fontSize={11}
+            >
+              {yTickFormat(tick)}
+            </text>
+          ) : null,
+        )}
 
       {/* Vertical grid lines (every tick) */}
       {!hideXAxis &&
+        !spatial &&
         xTicks.map((tick, idx) => (
           <line
             // biome-ignore lint/suspicious/noArrayIndexKey: tick position IS identity; niceTicks may emit duplicate values for zero-span domains
@@ -618,6 +661,7 @@ export function LineChart({
 
       {/* X-axis tick labels (thinned + edge-anchored to avoid overlap/clip) */}
       {!hideXAxis &&
+        !spatial &&
         xTickLabels.map((lbl, idx) => (
           <text
             // biome-ignore lint/suspicious/noArrayIndexKey: label position IS identity
@@ -632,32 +676,57 @@ export function LineChart({
           </text>
         ))}
 
-      {/* Axis borders */}
-      <line
-        x1={plotX0}
-        y1={plotY0}
-        x2={plotX0}
-        y2={plotY1}
-        stroke="var(--color-border-strong)"
-        strokeWidth={1}
-      />
-      <line
-        x1={plotX0}
-        y1={plotY1}
-        x2={plotX1}
-        y2={plotY1}
-        stroke="var(--color-border-strong)"
-        strokeWidth={1}
-      />
-      {hasSecondary && (
-        <line
-          x1={plotX1}
-          y1={plotY0}
-          x2={plotX1}
-          y2={plotY1}
-          stroke="var(--color-border-strong)"
-          strokeWidth={1}
-        />
+      {/* A spatial plot's only grid: an even dot LATTICE, at a fixed screen
+          pitch on both axes.
+          
+          Not on the tick positions the ladders would have used. Those are
+          sparse and unequal between the axes, so the dots came out as a few
+          widely spaced columns, which at plot size read as dashed vertical
+          rules: exactly the "graph hiding behind it" a map must not have. A
+          regular lattice reads as a map's grid because that is what it is. */}
+      {spatial &&
+        spatialGrid(plotX0, plotX1, plotY0, plotY1).map((dot) => (
+          <circle
+            key={dot.key}
+            cx={dot.x}
+            cy={dot.y}
+            r={1}
+            fill="var(--color-text-faint)"
+            opacity={0.35}
+          />
+        ))}
+
+      {/* Axis borders. A spatial plot has none: its own frame is the border,
+          and a second rule inside it reads as a box drawn round a map. */}
+      {!spatial && (
+        <>
+          <line
+            x1={plotX0}
+            y1={plotY0}
+            x2={plotX0}
+            y2={plotY1}
+            stroke="var(--color-border-strong)"
+            strokeWidth={1}
+          />
+          <line
+            x1={plotX0}
+            y1={plotY1}
+            x2={plotX1}
+            y2={plotY1}
+            stroke="var(--color-border-strong)"
+            strokeWidth={1}
+          />
+          {hasSecondary && (
+            <line
+              x1={plotX1}
+              y1={plotY0}
+              x2={plotX1}
+              y2={plotY1}
+              stroke="var(--color-border-strong)"
+              strokeWidth={1}
+            />
+          )}
+        </>
       )}
 
       {/* Bands first (filled, behind everything else). */}

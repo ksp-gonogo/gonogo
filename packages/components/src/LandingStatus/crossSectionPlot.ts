@@ -43,9 +43,16 @@ import { greatCircle } from "./geo";
  *  seconds if nothing changes. */
 const VELOCITY_LOOKAHEAD_S = 10;
 
-/** Vertical breathing room above the highest thing on the plot and below the
- *  lowest, as a fraction of what the plot spans. */
-const RELIEF_PADDING = 0.08;
+/** How far below the terrain's lowest point the frame's floor sits, as a
+ *  fraction of its span: enough that the ground reads as filled rather than as
+ *  a line balanced on the edge. */
+const GROUND_INSET = 0.06;
+/** How much taller than it is wide the window may get while reaching for the
+ *  vessel. Past this the craft is off the top: a terrain view with a 5% band of
+ *  terrain in it has stopped being one. */
+const MAX_TALLNESS = 1.6;
+/** Sky above the vessel, so it is not drawn on the frame's own edge. */
+const VESSEL_HEADROOM = 1.12;
 
 /** Samples taken along the slice. The patch is bilinear-interpolated, so this
  *  is a drawing resolution rather than a data one. */
@@ -221,7 +228,11 @@ export function buildCrossSectionPlot(
       boundary: slice.points,
       side: "below",
       tone: "neutral",
-      emphasis: "faint",
+      // Solid, not faint. The ground is the subject of this picture and it
+      // reads as ground by being FILLED: a profile line with nothing under it
+      // is a graph of a number, and which side of it you are standing on is
+      // exactly what the plot is for.
+      opacity: 0.3,
       description: "terrain below the ground track",
     },
     {
@@ -279,30 +290,74 @@ export function buildCrossSectionPlot(
     });
   }
 
-  const xs = [-slice.halfSpan, slice.halfSpan, vesselX];
-  const ys = [...slice.points.map((p) => p.y), vesselY];
-  for (const layer of layers) {
-    if (layer.kind === "series" && layer.id === "velocity") {
-      for (const p of layer.points) {
-        xs.push(p.x);
-        ys.push(p.y);
-      }
-    }
+  // The two speeds, in the corners INSIDE the frame, which is where a reading
+  // goes on a picture of a place: there is no gutter to put a number in and no
+  // axis to read one off. They are the plot's headline facts, so they are said
+  // rather than left to be inferred from the vector's angle.
+  if (vDown > 0 || vHor > 0) {
+    layers.push({
+      kind: "caption",
+      id: "descent-rate",
+      anchor: "top-left",
+      text: `↓ ${fmtSpeed(vDown)}`,
+      tone: "go",
+    });
+    layers.push({
+      kind: "caption",
+      id: "ground-speed",
+      anchor: "top-right",
+      text: `→ ${fmtSpeed(vHor)}`,
+      tone: "go",
+    });
   }
-  const xLo = Math.min(...xs);
-  const xHi = Math.max(...xs);
-  const yLo = Math.min(...ys);
-  const yHi = Math.max(...ys);
-  const xPad = (xHi - xLo) * RELIEF_PADDING || 1;
-  const yPad = (yHi - yLo) * RELIEF_PADDING || 1;
+
+  // The frame is anchored on the GROUND, and this is the whole difference
+  // between a terrain view and an altitude chart.
+  //
+  // It spans the terrain patch across, the same distance up, and sits with the
+  // ground near its bottom edge. A vessel three kilometres above a fifty-metre
+  // relief is simply not in the picture, and that is correct: this plot is OF
+  // the ground near the site. Letting the window grow to reach the vessel is
+  // what turned a terrain profile into an altitude chart with the terrain as a
+  // sliver along the bottom, at which point neither reading survived.
+  //
+  // Equal spans both ways because the frame is spatial: a slope drawn here is
+  // the slope, at any tile size.
+  const across = slice.halfSpan * 2;
+  const groundLo = Math.min(...slice.points.map((p) => p.y));
+  const floor = groundLo - across * GROUND_INSET;
+  // Tall enough to hold the vessel WHEN IT FITS, and otherwise not tall at all.
+  //
+  // The window is anchored on the ground and stretches upward to reach the
+  // craft, which keeps "you, above that" true on an approach. Past the limit it
+  // does not stretch part of the way, it stops: a window opened to its cap for
+  // a craft that is still nowhere near it is all sky and a smear of ground,
+  // which is the same sliver as before wearing a different number. Beyond the
+  // cap the craft is off the top and the picture is a terrain profile, which is
+  // what it is a picture OF.
+  //
+  // Equal SCALE survives either branch: the arranger derives the box's shape
+  // from these two spans, so the pixels stay square however tall the window is.
+  const reach = (vesselY - floor) * VESSEL_HEADROOM;
+  // ONE span, used both ways, because the plot is drawn in a square and equal
+  // scale has to survive that: a window taller than it is wide inside a square
+  // box stretches the picture, and a stretched slope is not the slope.
+  const span =
+    reach <= across * MAX_TALLNESS ? Math.max(across, reach) : across;
+  const halfWide = span / 2;
 
   return {
     subject: "landing-cross-section",
     title: "Cross-section",
     frame: {
-      xDomain: [xLo - xPad, xHi + xPad],
+      kind: "spatial",
+      // Centred on the site across, the ground at the bottom up. The patch may
+      // be narrower than the span when the window stretched to reach the craft,
+      // which shows as terrain that stops short of the edges: the honest
+      // picture of ground we sampled less of than we are looking at.
+      xDomain: [-halfWide, halfWide],
       xUnit: "m",
-      yDomain: [yLo - yPad, yHi + yPad],
+      yDomain: [floor, floor + span],
       yUnit: "m",
     },
     layers,

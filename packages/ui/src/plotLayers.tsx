@@ -326,7 +326,7 @@ function FieldLayer({
 const DEFAULT_RELIEF_BANDS = 6;
 /** Cells a side the grid is resampled to before banding. Fine enough that the
  *  band edges read as contours, coarse enough to stay a few thousand rects. */
-const RELIEF_RESOLUTION = 32;
+const RELIEF_RESOLUTION = 56;
 
 /** Bilinear sample of a row-major grid at continuous (col, row). */
 function sampleGrid(
@@ -377,6 +377,26 @@ function hypso(t: number): readonly [number, number, number] {
     }
   }
   return HYPSO[HYPSO.length - 1][1];
+}
+
+/**
+ * A resampled cell's colour: its band's hypsometric tone, darkened where the
+ * band differs from the neighbour above or to the left, which draws the band
+ * boundary as an iso-line without a second pass over the grid.
+ */
+function fillFor(
+  bandAt: Int16Array,
+  grid: number,
+  bands: number,
+  row: number,
+  col: number,
+): string {
+  const band = bandAt[row * grid + col];
+  const [r, g, b] = hypso(band / (bands - 1));
+  const leftBand = col > 0 ? bandAt[row * grid + col - 1] : band;
+  const upBand = row > 0 ? bandAt[(row - 1) * grid + col] : band;
+  const edge = leftBand !== band || upBand !== band ? 0.5 : 1;
+  return `rgb(${Math.round(r * edge)}, ${Math.round(g * edge)}, ${Math.round(b * edge)})`;
 }
 
 function ReliefLayer({
@@ -441,30 +461,41 @@ function ReliefLayer({
     }
   }
 
+  // One rect per RUN of same-looking cells along a row, not per cell.
+  //
+  // A terrain patch bands into a handful of regions, so a row of 56 cells is
+  // usually eight or ten stretches of one colour, and emitting a node per cell
+  // put three thousand of them in the document per plot. That is not a
+  // rendering cost, it is a RE-rendering one: the layer array is rebuilt every
+  // frame, so React reconciled the lot four times a second and an accessibility
+  // sweep timed out at thirty seconds on a widget that draws two of these.
+  // Merging runs is visually identical and cuts it by an order of magnitude.
   const cells: ReactElement[] = [];
   for (let row = 0; row < grid; row++) {
-    for (let col = 0; col < grid; col++) {
-      const band = bandAt[row * grid + col];
-      const [r, g, b] = hypso(band / (bands - 1));
-      // The iso-line: darken a cell whose band differs from the neighbour above
-      // or to the left of it, which draws the band boundary without a second
-      // pass over the grid.
-      const leftBand = col > 0 ? bandAt[row * grid + col - 1] : band;
-      const upBand = row > 0 ? bandAt[(row - 1) * grid + col] : band;
-      const edge = leftBand !== band || upBand !== band ? 0.5 : 1;
-      const screenRow = flipRows ? row : grid - 1 - row;
+    const screenRow = flipRows ? row : grid - 1 - row;
+    let runStart = 0;
+    let runFill = "";
+    for (let col = 0; col <= grid; col++) {
+      const fill = col < grid ? fillFor(bandAt, grid, bands, row, col) : "";
+      if (col === 0) {
+        runFill = fill;
+        continue;
+      }
+      if (fill === runFill && col < grid) continue;
       cells.push(
         <rect
-          key={`${row}-${col}`}
-          x={left + col * cellW}
+          key={`${row}-${runStart}`}
+          x={left + runStart * cellW}
           y={top + screenRow * cellH}
-          // A hairline overlap, so neighbouring cells do not leave seams the
-          // rasteriser paints the background through.
-          width={cellW + 0.5}
+          // A hairline overlap, so neighbouring runs and rows do not leave
+          // seams the rasteriser paints the background through.
+          width={(col - runStart) * cellW + 0.5}
           height={cellH + 0.5}
-          fill={`rgb(${Math.round(r * edge)}, ${Math.round(g * edge)}, ${Math.round(b * edge)})`}
+          fill={runFill}
         />,
       );
+      runStart = col;
+      runFill = fill;
     }
   }
 

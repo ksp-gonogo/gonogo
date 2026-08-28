@@ -31,19 +31,23 @@ import { type MergedPlot, mergePlots } from "./mergePlots";
  * region, which is the same absence discipline every plot follows internally.
  */
 
-/** A plot narrower than this is unreadable, so wrapping beats shrinking. */
-const MIN_PLOT_WIDTH_PX = 200;
 /**
- * The tallest a plot is allowed to be, whatever shape it asked for.
+ * A plot narrower than this is unreadable, so wrapping beats shrinking.
  *
- * `aspect` is a proportion, and a proportion in a column narrower than the
- * arranger expected turns into a height. A plot asking to be three times as
- * tall as it is wide got 600 px in a 200 px column and filled the widget with
- * one marker on an empty scale, which is a plot that has been honoured into
- * uselessness. The cap is the arranger doing the one job it has: a plot states
- * its shape and the arranger decides how much room that is worth here.
+ * It is also the only dimension in this file, because EVERY plot on a board is
+ * the same square. Not similar, not whatever the content wants: one size, one
+ * shape, for the chart and the maps alike. A row of boxes that are each a
+ * slightly different height reads as a layout accident rather than as a set of
+ * instruments, and the operator sees the difference before they see anything
+ * drawn in them. Being a chart changes what goes INSIDE the square, never the
+ * square.
+ *
+ * A spatial frame therefore has to be square in its own DATA units too, or the
+ * equal scale it depends on is lost. That is the frame's job rather than the
+ * arranger's, and both spatial contributions do it (see `crossSectionPlot` and
+ * `touchdownReticlePlot`).
  */
-const MAX_PLOT_HEIGHT_PX = 300;
+const PLOT_SIZE_PX = 200;
 
 export interface PlotBoardProps {
   /**
@@ -89,25 +93,17 @@ export function PlotBoard({ title }: Readonly<PlotBoardProps>) {
 /**
  * One contributed plot, in a box the shape it asked for.
  *
- * `aspect` is honoured through `aspect-ratio` on a flex-basis box rather than a
- * fixed height, so a plot keeps its proportions as the row wraps and the column
- * widths change. A plot that wants to be tall and narrow (an altitude rail) and
- * one that wants to be square (a touchdown reticle) share the row without
- * either being told what its shape is worth.
+ * One square, the same as every other plot's. The shape is not the plot's to
+ * choose: a board of identical squares is the format, and it is what lets an
+ * operator compare three instruments at a glance instead of reading three
+ * differently-shaped boxes.
  */
 function Plot({ plot }: { plot: MergedPlot }) {
-  const aspect = plot.aspect && plot.aspect > 0 ? plot.aspect : 1;
-  // A wide plot earns proportionally more of the row, so three squares and one
-  // 3:1 panorama do not come out the same width. Clamped below at the minimum
-  // legible width rather than at the basis, so the shape drives the share and
-  // the floor drives the wrap.
-  const basisPx = Math.max(MIN_PLOT_WIDTH_PX, MIN_PLOT_WIDTH_PX * aspect);
-
   return (
     <div
       style={{
-        flex: `1 1 ${basisPx}px`,
-        minWidth: MIN_PLOT_WIDTH_PX,
+        flex: `1 1 ${PLOT_SIZE_PX}px`,
+        minWidth: PLOT_SIZE_PX,
         display: "flex",
         flexDirection: "column",
         gap: "var(--space-4)",
@@ -118,8 +114,8 @@ function Plot({ plot }: { plot: MergedPlot }) {
         style={{
           display: "flex",
           flexDirection: "column",
-          aspectRatio: `${aspect}`,
-          maxHeight: MAX_PLOT_HEIGHT_PX,
+          // Square, every one of them, and the only shape any plot gets.
+          aspectRatio: "1",
           minHeight: 0,
         }}
       >
@@ -133,6 +129,7 @@ function Plot({ plot }: { plot: MergedPlot }) {
             xDomain: plot.frame.xDomain,
             xUnit: plot.frame.xUnit,
             hideXAxis: plot.frame.hideXAxis,
+            spatial: plot.frame.kind === "spatial",
             yDomainPrimary: plot.frame.yDomain,
             yUnit: plot.frame.yUnit,
             yDomainSecondary: plot.frame.ySecondaryDomain,

@@ -85,6 +85,30 @@ export type PlotSubject = keyof PlotSubjectRegistry | (string & {});
  * contribute itself this frame, never a plot drawn against invented anchors.
  */
 export interface PlotFrame {
+  /**
+   * What KIND of picture this is, which decides whether it gets axes at all.
+   *
+   *  - `"cartesian"` (default): X and Y are DIFFERENT quantities and the axes
+   *    carry meaning. Tick ladders, gridlines, labelled units. A descent
+   *    envelope is this: speed against height, and the reading is where a curve
+   *    sits between the two.
+   *  - `"spatial"`: X and Y are the SAME quantity and the plot is a view of a
+   *    PLACE. Equal scale on both axes so a circle is a circle and a slope is
+   *    the slope, drawn full-bleed with no tick ladders, and any reading it
+   *    carries goes INSIDE the frame as a caption. A terrain cross-section and
+   *    a touchdown map are this.
+   *
+   * The distinction is not decoration. A metre ladder down the side of a map is
+   * a scale nobody reads off a map, and reserving the gutter for it squeezes
+   * the picture that IS the reading into the middle of a box. Worse, an axis
+   * box has no reason to keep X and Y at the same scale, so a dispersion circle
+   * comes out an ellipse and a 9 degree slope draws at whatever angle the tile
+   * happens to be shaped.
+   *
+   * Two contributions naming one subject with different kinds is an author
+   * error: the frame-supplier's kind stands and the disagreement is logged.
+   */
+  kind?: "cartesian" | "spatial";
   /** `[min, max]` on the X axis, in `xUnit`'s units. */
   xDomain: [number, number];
   /** `[min, max]` on the primary Y axis, in `yUnit`'s units. */
@@ -200,13 +224,6 @@ export interface PlotEntry {
    * Everything drawn, in the plot's own data space. The `PlotLayer` vocabulary.
    */
   layers: readonly PlotLayer[];
-  /**
-   * Width divided by height, the shape the plot wants. Defaults to 1 (square).
-   * A hint: the arranger honours it where its own width allows and is free not
-   * to, which is the whole of the licence it has over a plot. Read from the
-   * frame-supplying contribution, like `title`.
-   */
-  aspect?: number;
 }
 
 declare module "./types" {

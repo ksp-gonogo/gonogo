@@ -50,7 +50,6 @@ export interface MergedPlot {
   key: string;
   title: string;
   frame: NonNullable<PlotEntry["frame"]>;
-  aspect?: number;
   layers: readonly PlotLayer[];
 }
 
@@ -87,7 +86,9 @@ export function mergePlots(entries: readonly Entry[]): MergedPlot[] {
         // else and drawing them here would place them wrongly rather than
         // merely clip them. That is the one case where a contribution's layers
         // are dropped, and it is dropped loudly.
-        const comparable = sameMeasure(group.framer.frame, entry.frame);
+        const comparable =
+          sameMeasure(group.framer.frame, entry.frame) &&
+          sameKind(group.framer.frame, entry.frame);
         reportFrameConflict(subject, group.framer, entry, comparable);
         if (!comparable) continue;
       } else {
@@ -117,7 +118,6 @@ export function mergePlots(entries: readonly Entry[]): MergedPlot[] {
       key: framer.contributionId,
       title: framer.title ?? subject,
       frame: widenToFit(framer.frame, group.layers),
-      aspect: framer.aspect,
       layers: group.layers,
     });
   }
@@ -134,6 +134,18 @@ export function mergePlots(entries: readonly Entry[]): MergedPlot[] {
  * bare number axis and another bare number axis are as comparable as two that
  * both say metres.
  */
+/**
+ * Whether two frames are the same KIND of picture.
+ *
+ * A map and a chart are not two views of one plot: one holds its axes at equal
+ * scale and draws no ladders, the other does neither, and marks meant for one
+ * placed on the other are placed wrongly. The frame-supplier's kind stands and
+ * the disagreement is reported, like any other measure mismatch.
+ */
+function sameKind(a: PlotEntry["frame"], b: PlotEntry["frame"]): boolean {
+  return (a?.kind ?? "cartesian") === (b?.kind ?? "cartesian");
+}
+
 function sameMeasure(a: PlotEntry["frame"], b: PlotEntry["frame"]): boolean {
   return (
     a?.xUnit === b?.xUnit &&
@@ -159,6 +171,11 @@ function widenToFit(
   frame: NonNullable<PlotEntry["frame"]>,
   layers: readonly PlotLayer[],
 ): NonNullable<PlotEntry["frame"]> {
+  // Never a SPATIAL frame. Its two axes are held at the same scale on purpose,
+  // and widening one to reach a mark breaks that: the map stretches, a circle
+  // becomes an ellipse and the slope stops being the slope. A mark outside a
+  // map's window is off the map, which is a thing maps do and charts do not.
+  if (frame.kind === "spatial") return frame;
   let [x0, x1] = frame.xDomain;
   let [y0, y1] = frame.yDomain;
   for (const layer of layers) {

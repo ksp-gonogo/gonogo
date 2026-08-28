@@ -73,11 +73,40 @@ describe("cross-section plot", () => {
     expect(plot).not.toBeNull();
     expect(plot?.frame.xUnit).toBe("m");
     expect(plot?.frame.yUnit).toBe("m");
-    // The Y domain spans the real elevations (100..120) plus the vessel at
-    // 300 above the ground under it, not a 0..1 amplitude scaled to the box.
-    const [yLo, yHi] = plot?.frame.yDomain ?? [0, 0];
+    // Real elevations (100..120), not a 0..1 amplitude scaled to the box.
+    const [yLo] = plot?.frame.yDomain ?? [0, 0];
     expect(yLo).toBeLessThan(100);
-    expect(yHi).toBeGreaterThan(400);
+  });
+
+  it("is a SPATIAL frame, SQUARE in data units, anchored on the ground", () => {
+    // Square both ways, because the box it is drawn in is square and equal
+    // scale has to survive that: a window taller than it is wide inside a
+    // square box stretches the picture, and a stretched slope is not the slope.
+    const plot = buildCrossSectionPlot(crossSection({ aglMeters: 300 }));
+    expect(plot?.frame.kind).toBe("spatial");
+    const [xLo, xHi] = plot?.frame.xDomain ?? [0, 0];
+    const [yLo, yHi] = plot?.frame.yDomain ?? [0, 0];
+    expect(xHi - xLo).toBeCloseTo(yHi - yLo, 6);
+    // 200 m of patch across and a craft 300 m up: past the tallness limit, so
+    // the window stays the ground's and the craft is off the top.
+    expect(yHi - yLo).toBe(200);
+  });
+
+  it("opens up to hold the vessel when it fits, staying square", () => {
+    const plot = buildCrossSectionPlot(crossSection({ aglMeters: 60 }));
+    const [xLo, xHi] = plot?.frame.xDomain ?? [0, 0];
+    const [yLo, yHi] = plot?.frame.yDomain ?? [0, 0];
+    expect(xHi - xLo).toBeCloseTo(yHi - yLo, 6);
+    expect(yHi).toBeGreaterThan(160);
+  });
+
+  it("says both speeds inside the frame, because a map has no gutter", () => {
+    const plot = buildCrossSectionPlot(crossSection());
+    const captions = plot?.layers.filter((l) => l.kind === "caption") ?? [];
+    expect(captions.map((c) => c.id).sort()).toEqual([
+      "descent-rate",
+      "ground-speed",
+    ]);
   });
 
   it("puts the vessel at its real downrange displacement, upwind of the site", () => {
@@ -156,6 +185,15 @@ describe("touchdown reticle plot", () => {
     for (const p of zone.points) {
       expect(Math.hypot(p.x, p.y)).toBeCloseTo(50, 6);
     }
+  });
+
+  it("is a SPATIAL frame that BLEEDS: the relief fills it edge to edge", () => {
+    // No inset ring of empty ground around the map. The patch footprint IS the
+    // window, which is what makes this plot look like the one beside it.
+    const plot = buildTouchdownReticlePlot(reticle({ patchExtentMeters: 200 }));
+    expect(plot?.frame.kind).toBe("spatial");
+    expect(plot?.frame.xDomain).toEqual([-100, 100]);
+    expect(plot?.frame.yDomain).toEqual([-100, 100]);
   });
 
   it("carries the terrain as a relief over its real footprint", () => {

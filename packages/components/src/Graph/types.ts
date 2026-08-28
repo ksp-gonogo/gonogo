@@ -73,6 +73,9 @@ export interface GraphConfig {
   /** Drop the X tick ladder entirely, for a one-dimensional plot whose X axis
    *  is a nominal span rather than a measurement. See `PlotFrame.hideXAxis`. */
   hideXAxis?: boolean;
+  /** A view of a PLACE rather than a chart: full-bleed, no tick ladders, equal
+   *  scale on both axes. See `PlotFrame.kind`. */
+  spatial?: boolean;
   /** Unit token for the primary Y tick labels, written through the unit
    *  registry's ladder. Without it a metre axis reads "30.0k". */
   yUnit?: string;
