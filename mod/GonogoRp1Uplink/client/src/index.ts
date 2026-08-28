@@ -9,18 +9,19 @@ import "./topics";
 import "./settings/rp1SimulationSettings";
 import "./CrewSchedule";
 import "./CrewSchedule/programme";
+import "./KscComplexes";
 import "./KscConstruction";
-import "./KscVehicles";
 import "./LaunchComplexStatus";
 import "./ProgramDetail";
 import "./ProgramStatus";
 import "./ResearchQueue";
 import "./SpaceCentrePersonnel";
+import "./VehicleAssembly";
 
 export { CrewSchedule } from "./CrewSchedule";
 export { CrewProgramme } from "./CrewSchedule/programme";
+export { KscComplexes, RP1_COMPLEX_RUSH_COMMAND } from "./KscComplexes";
 export { KscConstruction } from "./KscConstruction";
-export { KscVehicles, RP1_BUILD_REPEAT_COMMAND } from "./KscVehicles";
 export { LaunchComplexStatus } from "./LaunchComplexStatus";
 export { ProgramDetail } from "./ProgramDetail";
 export { ProgramStatus } from "./ProgramStatus";
@@ -46,3 +47,15 @@ export {
   RP1_WAREHOUSE_TOPIC,
 } from "./topics";
 export { RP1 } from "./uplink";
+export {
+  RP1_BUILD_REPEAT_COMMAND,
+  VehicleAssembly,
+} from "./VehicleAssembly";
+export { BuildingSection } from "./VehicleAssembly/Building";
+export { VEHICLE_ASSEMBLY_SECTIONS } from "./VehicleAssembly/slot";
+export {
+  RP1_ROLLBACK_COMMAND,
+  RP1_ROLLOUT_COMMAND,
+  RP1_SCRAP_COMMAND,
+} from "./VehicleAssembly/VehicleSection";
+export { WarehouseSection } from "./VehicleAssembly/Warehouse";

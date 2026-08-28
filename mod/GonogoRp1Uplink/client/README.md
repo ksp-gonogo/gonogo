@@ -114,17 +114,82 @@ RP-1's payroll: engineers, researchers and applicants on the books, each centre'
 
 ![The same widget at 18 × 5](docs/assets/personnel-unanswered--landscape-18x5.png)
 
+### Vehicle Assembly
+
+Every craft RP-1 is integrating or holding, across every launch complex at every space centre: what it costs, how far along it is, why its clock reads what it reads, and the controls to roll one out, bring it back or scrap it.
+
+| | |
+| --- | --- |
+| Widget id | `rp1-vehicle-assembly` |
+| Reads | `rp1.available`, `rp1.warehouse`, `rp1.buildQueue`, `rp1.complexes`, `rp1.pads`, `rp1.operations`, `career.status` |
+| Slots | `rp1-vehicle-assembly.sections` |
+| Default size | 7 × 16 |
+
+![Nothing built and nothing on order, which is where a career starts](docs/assets/assembly-empty--default.png)
+
+![The same widget at its minimum size](docs/assets/assembly-empty--min.png)
+
+![The same widget at 9 × 8](docs/assets/assembly-empty--mobile-9x8.png)
+
+![The same widget at 5 × 18](docs/assets/assembly-empty--portrait-5x18.png)
+
+![The same widget at 18 × 5](docs/assets/assembly-empty--landscape-18x5.png)
+
+![A vehicle its complex will not release: every one of RP-1's reasons at once rather than the first, no rollout offered against a pad that is standing free, and the scrap that is the operator's actual next move](docs/assets/assembly-rollout-refused--default.png)
+
+![The same widget at its minimum size](docs/assets/assembly-rollout-refused--min.png)
+
+![The same widget at 9 × 8](docs/assets/assembly-rollout-refused--mobile-9x8.png)
+
+![The same widget at 5 × 18](docs/assets/assembly-rollout-refused--portrait-5x18.png)
+
+![The same widget at 18 × 5](docs/assets/assembly-rollout-refused--landscape-18x5.png)
+
+![A rushing launch complex: both its cards carry the status, the rollout as well as the integration, because RP-1 rushes a complex rather than a build](docs/assets/assembly-rushing--default.png)
+
+![The same widget at its minimum size](docs/assets/assembly-rushing--min.png)
+
+![The same widget at 9 × 8](docs/assets/assembly-rushing--mobile-9x8.png)
+
+![The same widget at 5 × 18](docs/assets/assembly-rushing--portrait-5x18.png)
+
+![The same widget at 18 × 5](docs/assets/assembly-rushing--landscape-18x5.png)
+
+![Four craft across two launch complexes: one flying-ready and one still integrating at each, the key line at the top saying what LC-1 and LC-2 are and where they stand, and every card naming its complex and the staffing that sets its rate](docs/assets/assembly-two-complexes--default.png)
+
+![The same widget at its minimum size](docs/assets/assembly-two-complexes--min.png)
+
+![The same widget at 9 × 8](docs/assets/assembly-two-complexes--mobile-9x8.png)
+
+![The same widget at 5 × 18](docs/assets/assembly-two-complexes--portrait-5x18.png)
+
+![The same widget at 18 × 5](docs/assets/assembly-two-complexes--landscape-18x5.png)
+
+![A launch complex with nobody assigned to it: the build has no end date, and the card says which of the two reasons that is, rather than reporting a stall an operator would go hunting behind](docs/assets/assembly-unstaffed--default.png)
+
+![The same widget at its minimum size](docs/assets/assembly-unstaffed--min.png)
+
+![The same widget at 9 × 8](docs/assets/assembly-unstaffed--mobile-9x8.png)
+
+![The same widget at 5 × 18](docs/assets/assembly-unstaffed--portrait-5x18.png)
+
+![The same widget at 18 × 5](docs/assets/assembly-unstaffed--landscape-18x5.png)
+
 ## Augments
 
 | Augment | Into | Reads | Presence | Notes |
 | --- | --- | --- | --- | --- |
 | `rp1-crew-schedule` | `astronaut-complex.crew` | – |  |  |
 | `rp1-crew-programme` | `astronaut-complex.sections` | – |  |  |
+| `rp1-ksc-complexes` | `space-center-status.sections` | – |  |  |
 | `rp1-ksc-construction` | `space-center-status.sections` | – |  |  |
-| `rp1-ksc-vehicles` | `space-center-status.sections` | – |  |  |
-| `rp1-launch-complex-status` | `launch-director.preflight` | – |  |  |
+| `rp1-launch-complex-status` | `launch-director.pad` | – |  |  |
 | `rp1-program-status` | `career-economy.sections` | – |  |  |
 | `rp1-research-queue` | `tech-tree.sections` | – |  |  |
+| `rp1-vehicle-assembly-building` | `rp1-vehicle-assembly.sections` | – |  |  |
+| `rp1-vehicle-assembly-warehouse` | `rp1-vehicle-assembly.sections` | – |  |  |
+
+![The launch complexes as infrastructure, with the one control that changes how fast they work: LC-1 already rushing and offered the way out, LC-2 offered the way in](docs/assets/complexes-rushing--default.png)
 
 ![A modification, which takes the complex out of service and idles its engineers: the one row whose detail line is a warning rather than a label](docs/assets/construction-complex-modify--default.png)
 
@@ -136,11 +201,5 @@ RP-1's payroll: engineers, researchers and applicants on the books, each centre'
 
 ![The two clock states that are not an ETA, side by side: money being spent faster on purpose, and a throttle wound shut](docs/assets/construction-rushing-and-stalled--default.png)
 
-![Nothing built and nothing on order, which is where a career starts](docs/assets/vehicles-empty--default.png)
-
-![The repeat-build surface in the state it is used in: two vehicles of the SAME design, one flown-ready and one still integrating, the two lists drawn apart so neither card has to carry the other's state, and one repeat control naming the design both copies are of](docs/assets/vehicles-repeat-build--default.png)
-
-![A vehicle mid-rollout, the state the whole rollout and rollback pair exists for: the card carries how far the move has got and what its clock is counting down TO, neither of which the old single-row form had room for](docs/assets/vehicles-rolling-out--default.png)
-
-![A vehicle RP-1 will not roll out, and why in its own words: the controls are absent and the refusals are the one thing a missing button cannot say for itself](docs/assets/vehicles-rollout-refused--default.png)
+![Three pads across two RP-1 complexes: one holding a vehicle that has finished rolling out, one being reconditioned, and a stock runway RP-1 does not model](docs/assets/pad-holding-a-finished-vehicle--default.png)
 

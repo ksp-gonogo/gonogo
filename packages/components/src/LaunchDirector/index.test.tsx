@@ -125,6 +125,28 @@ function emitInFlightVessel(
   });
 }
 
+/**
+ * One `spaceCenter.launchSites` entry in the mod's own shape: `editorFacility`
+ * rather than a `facility`/`unlocked` pair, and occupancy absent unless the
+ * scenario is about it, which is what every site but the stock pad reports.
+ */
+function padSite(
+  name: string,
+  displayName: string,
+  overrides: Record<string, unknown> = {},
+): Record<string, unknown> {
+  return {
+    name,
+    displayName,
+    editorFacility: "VAB",
+    body: "Kerbin",
+    isStock: true,
+    padOccupied: null,
+    padVesselTitle: null,
+    ...overrides,
+  };
+}
+
 /** Every `ksp.launch` this render dispatched onto the stream, newest last. */
 function sentLaunches(stream: ReturnType<typeof setupStreamFixture>) {
   return stream.transport.sentCommands.filter(
@@ -166,6 +188,7 @@ describe("LaunchDirectorComponent", () => {
     renderWidget();
     act(() => {
       emitFunds(stream, 5000);
+      stream.emit("spaceCenter.launchSites", [padSite("LaunchPad", "KSC Pad")]);
       stream.emit("spaceCenter.savedShips", [
         {
           name: "Cheap Probe",
@@ -193,8 +216,68 @@ describe("LaunchDirectorComponent", () => {
         },
       ]);
     });
-    await waitFor(() => expect(visibleText()).toMatch(/1\/3 ready/i));
-    expect(visibleText()).toMatch(/1 locked/i);
+    // Two of the three craft come out of the VAB, so those are the two this
+    // pad can take; the spaceplane belongs to the runway and is not counted
+    // against a pad that could never launch it.
+    await waitFor(() => expect(visibleText()).toMatch(/1\/2 ready/i));
+    expect(visibleText()).toMatch(/Expensive Lander/);
+    expect(visibleText()).not.toMatch(/Tech-Locked Plane/);
+  });
+
+  it("lists the pads with an occupied one first, and says which are unreported", async () => {
+    renderWidget();
+    act(() => {
+      stream.emit("spaceCenter.savedShips", []);
+      stream.emit("spaceCenter.launchSites", [
+        padSite("Runway", "KSC Runway", { editorFacility: "SPH" }),
+        padSite("Woomerang_Launch_Site", "Woomerang"),
+        padSite("LaunchPad", "KSC Pad", {
+          padOccupied: true,
+          padVesselTitle: "Kerbal X",
+        }),
+      ]);
+    });
+
+    const rows = await screen.findAllByRole("button", { pressed: false });
+    expect(
+      screen
+        .getAllByRole("button")
+        .filter((b) => b.hasAttribute("data-pad-row"))
+        .map((b) => b.textContent),
+    ).toEqual([
+      expect.stringContaining("KSC Pad"),
+      expect.stringContaining("KSC Runway"),
+      expect.stringContaining("Woomerang"),
+    ]);
+    expect(rows.length).toBeGreaterThan(0);
+    expect(screen.getByText("On pad: Kerbal X")).toBeInTheDocument();
+    // A site that reported no occupancy says so rather than rendering as clear.
+    expect(screen.getAllByText("Occupancy unreported")).toHaveLength(2);
+  });
+
+  it("says it is waiting rather than offering a launch it cannot aim", async () => {
+    // The saved craft have arrived and the pads have not. The old widget
+    // launched those craft at a hardcoded "LaunchPad" regardless; a widget whose
+    // subject is the pads has nothing to show and says so.
+    renderWidget();
+    act(() => {
+      emitFunds(stream, 100_000);
+      stream.emit("spaceCenter.savedShips", [
+        {
+          name: "Mun Hopper",
+          partCount: 12,
+          totalMass: 5.5,
+          facility: "VAB",
+          requiresFunds: 8000,
+          missingParts: [],
+        },
+      ]);
+    });
+
+    expect(
+      await screen.findByText(/Awaiting launch-pad telemetry/i),
+    ).toBeInTheDocument();
+    expect(screen.queryByText("Mun Hopper")).not.toBeInTheDocument();
   });
 
   it("requires arm-then-confirm before firing ksp.launch", async () => {
@@ -203,7 +286,7 @@ describe("LaunchDirectorComponent", () => {
     act(() => {
       emitFunds(stream, 100_000);
       emitScene(stream, "SpaceCenter", "LaunchPad");
-      stream.emit("spaceCenter.launchSites", []);
+      stream.emit("spaceCenter.launchSites", [padSite("LaunchPad", "KSC Pad")]);
       stream.emit("spaceCenter.savedShips", [
         {
           name: "Mun Hopper",
@@ -262,8 +345,10 @@ describe("LaunchDirectorComponent", () => {
     renderWidget();
     act(() => {
       emitFunds(stream, 100_000);
-      emitScene(stream, "SpaceCenter", "LaunchPad");
-      stream.emit("spaceCenter.launchSites", []);
+      emitScene(stream, "SpaceCenter", "Runway");
+      stream.emit("spaceCenter.launchSites", [
+        padSite("Runway", "KSC Runway", { editorFacility: "SPH" }),
+      ]);
       stream.emit("spaceCenter.savedShips", [
         {
           name: "Spaceplane",
@@ -302,8 +387,13 @@ describe("LaunchDirectorComponent", () => {
     renderWidget();
     act(() => {
       emitFunds(stream, 100_000);
-      emitScene(stream, "SpaceCenter", "LaunchPad");
-      stream.emit("spaceCenter.launchSites", []);
+      emitScene(stream, "SpaceCenter", "Foundry_Site");
+      // A site whose own editor this build does not recognise offers every
+      // craft: narrowing on a name we cannot read would state that nothing can
+      // launch from here, which is not something we know.
+      stream.emit("spaceCenter.launchSites", [
+        padSite("Foundry_Site", "The Foundry", { editorFacility: "Foundry" }),
+      ]);
       stream.emit("spaceCenter.savedShips", [
         {
           name: "Mystery Craft",
@@ -337,7 +427,10 @@ describe("LaunchDirectorComponent", () => {
       // present so awaiting placeholder clears
       stream.emit("spaceCenter.savedShips", []);
       stream.emit("spaceCenter.launchSites", [
-        { name: "LaunchPad", padOccupied: true, padVesselTitle: "Kerbal X" },
+        padSite("LaunchPad", "KSC Pad", {
+          padOccupied: true,
+          padVesselTitle: "Kerbal X",
+        }),
       ]);
     });
 
@@ -625,6 +718,7 @@ describe("LaunchDirectorComponent", () => {
     renderWidget();
     act(() => {
       emitFunds(stream, 100_000);
+      stream.emit("spaceCenter.launchSites", [padSite("LaunchPad", "KSC Pad")]);
       stream.emit("spaceCenter.savedShips", [
         {
           name: "Probe",
@@ -656,7 +750,7 @@ describe("LaunchDirectorComponent", () => {
     renderWidget();
     act(() => {
       emitFunds(stream, 100_000);
-      if (sites !== undefined) stream.emit("spaceCenter.launchSites", sites);
+      stream.emit("spaceCenter.launchSites", sites);
       stream.emit("spaceCenter.savedShips", [
         {
           name: "Mun Hopper",
@@ -679,7 +773,7 @@ describe("LaunchDirectorComponent", () => {
     });
   }
 
-  const site = (
+  const legacySite = (
     name: string,
     displayName: string,
     unlocked: boolean,
@@ -692,19 +786,20 @@ describe("LaunchDirectorComponent", () => {
     unlocked,
   });
 
-  it("offers a picker and launches from the chosen unlocked site", async () => {
+  it("launches from the pad the operator opened, not the first in the list", async () => {
     const user = userEvent.setup();
     await setupForLaunch([
-      site("LaunchPad", "KSC Launch Pad", true),
-      site("Woomerang_Launch_Site", "Woomerang", true),
-      site("Desert_Launch_Site", "Desert Site", false),
+      legacySite("LaunchPad", "KSC Launch Pad", true),
+      legacySite("Woomerang_Launch_Site", "Woomerang", true),
+      legacySite("Desert_Launch_Site", "Desert Site", false),
     ]);
 
-    await user.click(await screen.findByText("Mun Hopper"));
-    // Locked site is not offered.
+    // A site the save has not unlocked is not a pad the operator has.
+    expect(await screen.findByText("KSC Launch Pad")).toBeInTheDocument();
     expect(screen.queryByText("Desert Site")).not.toBeInTheDocument();
 
     await user.click(screen.getByText("Woomerang"));
+    await user.click(await screen.findByText("Mun Hopper"));
     await user.click(screen.getByText(/Launch Mun Hopper unmanned/i));
     await user.click(screen.getByText(/Confirm launch/i));
     await waitFor(() =>
@@ -714,13 +809,11 @@ describe("LaunchDirectorComponent", () => {
     );
   });
 
-  it("hides the picker when only one site is unlocked (DLC absent)", async () => {
+  it("opens the first pad on its own, so a single-pad save is still two clicks", async () => {
     const user = userEvent.setup();
-    await setupForLaunch([site("LaunchPad", "KSC Launch Pad", true)]);
+    await setupForLaunch([legacySite("LaunchPad", "KSC Launch Pad", true)]);
 
     await user.click(await screen.findByText("Mun Hopper"));
-    expect(screen.queryByText("Launch site")).not.toBeInTheDocument();
-
     await user.click(screen.getByText(/Launch Mun Hopper unmanned/i));
     await user.click(screen.getByText(/Confirm launch/i));
     await waitFor(() =>
@@ -730,20 +823,13 @@ describe("LaunchDirectorComponent", () => {
     );
   });
 
-  it("hides the picker and defaults to LaunchPad when the key is absent", async () => {
-    const user = userEvent.setup();
-    await setupForLaunch(undefined);
+  it("says a save with no launch sites has none, rather than rendering an empty list", async () => {
+    await setupForLaunch([]);
 
-    await user.click(await screen.findByText("Mun Hopper"));
-    expect(screen.queryByText("Launch site")).not.toBeInTheDocument();
-
-    await user.click(screen.getByText(/Launch Mun Hopper unmanned/i));
-    await user.click(screen.getByText(/Confirm launch/i));
-    await waitFor(() =>
-      expect(sentLaunches(stream)[0]).toMatchObject({
-        args: { site: "LaunchPad", crew: [] },
-      }),
-    );
+    expect(
+      await screen.findByText("No launch sites reported"),
+    ).toBeInTheDocument();
+    expect(screen.queryByText("Mun Hopper")).not.toBeInTheDocument();
   });
 });
 
@@ -861,6 +947,7 @@ describe("LaunchDirectorComponent augment slots", () => {
     act(() => {
       emitFunds(stream, 100_000);
       emitScene(stream, "SpaceCenter", "LaunchPad");
+      stream.emit("spaceCenter.launchSites", [padSite("LaunchPad", "KSC Pad")]);
       stream.emit("spaceCenter.savedShips", [
         {
           name: "Mun Hopper",

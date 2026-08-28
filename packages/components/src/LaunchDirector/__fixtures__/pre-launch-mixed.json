@@ -1,88 +1,8 @@
 {
   "_meta": {
     "scenario": "pre-launch-mixed",
-    "notes": "Pad is empty. 3 ships listed: one affordable/launchable, one funds-blocked, one parts-locked. Funds readout visible in subtitle. Legacy keys drive snapshots.test.tsx (emitLegacyFixture); `_stream` drives the probe render harness, same translation, keep in sync. The __pad_occupancy__ entry is appended AFTER the real launch sites so the site picker still sees the 3 real sites and the pad-occupancy derivation still finds a padOccupied flag."
+    "notes": "Three pads, none holding anything the space centre will admit to: the stock KSC pad reports itself clear, and the runway and Woomerang report no occupancy at all, which is what the mod does off the stock pad. Craft: one affordable, one funds-blocked, one parts-locked spaceplane that only the runway offers. Funds readout visible in the subtitle. The `_stream` block drives both snapshots.test.tsx and the probe render harness."
   },
-  "kc.savedShips": [
-    {
-      "name": "Mun Hopper I",
-      "partCount": 18,
-      "totalMass": 8.4,
-      "facility": "VAB",
-      "requiresFunds": 12000,
-      "missingParts": []
-    },
-    {
-      "name": "Duna Transfer Stage",
-      "partCount": 42,
-      "totalMass": 35.2,
-      "facility": "VAB",
-      "requiresFunds": 180000,
-      "missingParts": []
-    },
-    {
-      "name": "SSTO Spaceplane",
-      "partCount": 24,
-      "totalMass": 11.6,
-      "facility": "SPH",
-      "requiresFunds": 8500,
-      "missingParts": ["rapierEngine", "precooler"]
-    }
-  ],
-  "kc.crewRoster": [
-    {
-      "name": "Jebediah Kerman",
-      "trait": "Pilot",
-      "experienceLevel": 5,
-      "available": true,
-      "unavailableReason": ""
-    },
-    {
-      "name": "Bill Kerman",
-      "trait": "Engineer",
-      "experienceLevel": 3,
-      "available": true,
-      "unavailableReason": ""
-    },
-    {
-      "name": "Valentina Kerman",
-      "trait": "Pilot",
-      "experienceLevel": 4,
-      "available": false,
-      "unavailableReason": "On EVA"
-    }
-  ],
-  "kc.padOccupied": false,
-  "kc.padVesselTitle": null,
-  "kc.launchSite": "LaunchPad",
-  "kc.launchSites": [
-    {
-      "name": "LaunchPad",
-      "displayName": "KSC Launch Pad",
-      "facility": "VAB",
-      "body": "Kerbin",
-      "ready": true,
-      "unlocked": true
-    },
-    {
-      "name": "Woomerang_Launch_Site",
-      "displayName": "Woomerang",
-      "facility": "VAB",
-      "body": "Kerbin",
-      "ready": true,
-      "unlocked": true
-    },
-    {
-      "name": "Desert_Launch_Site",
-      "displayName": "Desert Launch Site",
-      "facility": "VAB",
-      "body": "Kerbin",
-      "ready": true,
-      "unlocked": false
-    }
-  ],
-  "kc.scene": "SpaceCenter",
-  "career.funds": 42500,
   "_stream": {
     "carriedChannels": [
       "career.status",
@@ -106,7 +26,10 @@
     "emits": [
       {
         "channel": "spaceCenter.scene",
-        "value": { "scene": "SpaceCenter", "launchSite": "LaunchPad" }
+        "value": {
+          "scene": "SpaceCenter",
+          "launchSite": "LaunchPad"
+        }
       },
       {
         "channel": "spaceCenter.launchSites",
@@ -114,30 +37,28 @@
           {
             "name": "LaunchPad",
             "displayName": "KSC Launch Pad",
-            "facility": "VAB",
+            "editorFacility": "VAB",
             "body": "Kerbin",
-            "ready": true,
-            "unlocked": true
+            "isStock": true,
+            "padOccupied": false,
+            "padVesselTitle": null
+          },
+          {
+            "name": "Runway",
+            "displayName": "KSC Runway",
+            "editorFacility": "SPH",
+            "body": "Kerbin",
+            "isStock": true,
+            "padOccupied": null,
+            "padVesselTitle": null
           },
           {
             "name": "Woomerang_Launch_Site",
             "displayName": "Woomerang",
-            "facility": "VAB",
+            "editorFacility": "VAB",
             "body": "Kerbin",
-            "ready": true,
-            "unlocked": true
-          },
-          {
-            "name": "Desert_Launch_Site",
-            "displayName": "Desert Launch Site",
-            "facility": "VAB",
-            "body": "Kerbin",
-            "ready": true,
-            "unlocked": false
-          },
-          {
-            "name": "__pad_occupancy__",
-            "padOccupied": false,
+            "isStock": false,
+            "padOccupied": null,
             "padVesselTitle": null
           }
         ]
@@ -145,7 +66,11 @@
       {
         "channel": "career.status",
         "value": {
-          "economy": { "funds": 42500, "reputation": null, "science": null },
+          "economy": {
+            "funds": 42500,
+            "reputation": null,
+            "science": null
+          },
           "facilities": null,
           "contracts": null,
           "strategies": null,
@@ -207,6 +132,7 @@
           }
         ]
       }
-    ]
+    ],
+    "profiles": ["stock-career", "rp1-testflight"]
   }
 }

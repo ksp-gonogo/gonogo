@@ -66,7 +66,17 @@ describe("LaunchDirector: genuinely runs off the stream", () => {
         scene: "SpaceCenter",
         launchSite: "LaunchPad",
       });
-      fixture.emit("spaceCenter.launchSites", []);
+      fixture.emit("spaceCenter.launchSites", [
+        {
+          name: "LaunchPad",
+          displayName: "KSC Launch Pad",
+          editorFacility: "VAB",
+          body: "Kerbin",
+          isStock: true,
+          padOccupied: false,
+          padVesselTitle: null,
+        },
+      ]);
       fixture.emit("career.status", {
         economy: { funds: 42500, reputation: 200, science: 100 },
         facilities: null,

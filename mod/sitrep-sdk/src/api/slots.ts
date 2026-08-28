@@ -217,6 +217,24 @@ export interface LaunchDirectorSlotContext {
   funds: number | undefined;
 }
 
+/** Mirrors `LaunchDirectorPadContext` (LaunchDirector/index.tsx). */
+export interface LaunchDirectorPadContext {
+  /** The site's internal `LaunchSite.name`: the stable key an Uplink joins on. */
+  siteName: string;
+  /** The site's human-facing name, as the row shows it. */
+  displayName: string;
+  /** KSP's `EditorFacility` name for this site: a `VAB` site is a pad, an `SPH` site a runway. */
+  editorFacility: string;
+  /** Whether a vessel is standing on this pad; `null` when this site reports no occupancy. */
+  occupied: boolean | null;
+  /** The occupying vessel's name, `null` when none is reported. */
+  occupantName: string | null;
+  /** Whether this is the pad the operator has opened, so an augment can spend more room on it. */
+  expanded: boolean;
+  /** Career funds balance; undefined in sandbox/science or before telemetry. */
+  funds: number | undefined;
+}
+
 // --- Objectives (packages/components/src/Objectives) -----------------------
 
 /** Mirrors `ObjectiveState` (Objectives/index.tsx). */
@@ -555,6 +573,7 @@ declare module "./types" {
     "crew-status.summary": Record<string, never>;
 
     "launch-director.preflight": LaunchDirectorSlotContext;
+    "launch-director.pad": LaunchDirectorPadContext;
 
     "objectives.source": ObjectiveSourceContext;
 

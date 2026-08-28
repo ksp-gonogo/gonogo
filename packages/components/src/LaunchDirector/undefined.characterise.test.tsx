@@ -58,6 +58,17 @@ const KERBAL_X = {
   missingParts: [],
 };
 
+/** The one stock pad, in the mod's own shape: this widget's subject. */
+const PAD = {
+  name: "LaunchPad",
+  displayName: "KSC Launch Pad",
+  editorFacility: "VAB",
+  body: "Kerbin",
+  isStock: true,
+  padOccupied: false,
+  padVesselTitle: null,
+};
+
 function mount(
   fixture: ReturnType<typeof setupStreamFixture>,
   instanceId: string,
@@ -79,18 +90,17 @@ describe("LaunchDirector: what undefined telemetry renders today", () => {
     });
     mount(fixture, "ld-cold");
 
-    // `parseSavedShips(undefined)` is null, and `if (ships === null)` returns
+    // `parseLaunchSites(undefined)` is null, and the pre-flight body returns
     // early. This is the one absence gate in the file that decides whether the
-    // widget exists at all.
+    // widget exists at all, and it reads the PADS, which are the subject.
     await waitFor(() =>
       expect(screen.getByText("Awaiting launch-pad telemetry")).toBeTruthy(),
     );
 
     // Named absences rather than an empty container: none of the widget's
     // sections, controls or readouts exist behind that one line.
-    expect(screen.queryByText("Saved craft")).toBeNull();
+    expect(screen.queryByText("Pads")).toBeNull();
     expect(screen.queryByText("Crew")).toBeNull();
-    expect(screen.queryByText("Launch site")).toBeNull();
     expect(screen.queryByTitle("Available funds")).toBeNull();
     expect(screen.queryAllByRole("button")).toHaveLength(0);
     expect(visibleText()).toBe(
@@ -98,7 +108,7 @@ describe("LaunchDirector: what undefined telemetry renders today", () => {
     );
   });
 
-  it("hides funds and crew that HAVE arrived, because savedShips has not", async () => {
+  it("keeps the balance and the pads when the saved-craft list has not arrived", async () => {
     const fixture = setupStreamFixture({
       carriedChannels: ALL_READS,
       pinnedUt: 10,
@@ -106,12 +116,12 @@ describe("LaunchDirector: what undefined telemetry renders today", () => {
     mount(fixture, "ld-ships-gate");
 
     act(() => {
-      // Everything except the one topic the early-return gate reads.
+      // Everything except the saved-craft list.
       fixture.emit("spaceCenter.scene", {
         scene: "SpaceCenter",
         launchSite: "LaunchPad",
       });
-      fixture.emit("spaceCenter.launchSites", []);
+      fixture.emit("spaceCenter.launchSites", [PAD]);
       fixture.emit("career.status", {
         economy: { funds: 42500, reputation: 200, science: 100 },
         facilities: null,
@@ -119,25 +129,18 @@ describe("LaunchDirector: what undefined telemetry renders today", () => {
         strategies: null,
         tech: null,
       });
-      fixture.emit("spaceCenter.crewRoster", [
-        {
-          name: "Jebediah Kerman",
-          trait: "Pilot",
-          experienceLevel: 3,
-          available: true,
-          unavailableReason: "",
-        },
-      ]);
     });
 
-    // The funds readout and the crew roster both sit AFTER the early return, so
-    // one absent topic suppresses data the widget is already holding. The
-    // "always show the balance" rule cannot hold through this gate.
+    // The craft list is what ONE pad can take, so its absence narrows the open
+    // pad and nothing else: the pads are still listed, the balance is still
+    // beside the spend control, and the missing list says it is missing rather
+    // than reading as a pad with no craft.
     await waitFor(() =>
-      expect(screen.getByText("Awaiting launch-pad telemetry")).toBeTruthy(),
+      expect(screen.getByText("KSC Launch Pad")).toBeTruthy(),
     );
-    expect(visibleText()).not.toContain("42,500");
-    expect(screen.queryByText("Jebediah Kerman")).toBeNull();
+    expect(visibleText()).toContain("42,500");
+    expect(screen.getByText("Awaiting saved-craft telemetry")).toBeTruthy();
+    expect(screen.queryByText("Awaiting launch-pad telemetry")).toBeNull();
   });
 
   it("renders a confirmed savedShips tombstone exactly as it renders a never-arrived one", async () => {
@@ -148,14 +151,14 @@ describe("LaunchDirector: what undefined telemetry renders today", () => {
     mount(fixture, "ld-tombstone");
 
     act(() => {
-      // A tombstone: the subject confirms there is no saved-craft list.
+      // A tombstone: the subject confirms there is no launch-site list.
       // `useTelemetry` hands back `null` here, not `undefined`, and
-      // `parseSavedShips` collapses both to null on its first line.
-      fixture.emit("spaceCenter.savedShips", null);
+      // `parseLaunchSites` collapses both to null on its first line.
+      fixture.emit("spaceCenter.launchSites", null);
     });
 
     // Identical render to the cold case above: nothing in this widget can tell
-    // "confirmed no craft" from "nothing has arrived yet".
+    // "confirmed no launch sites" from "nothing has arrived yet".
     await waitFor(() =>
       expect(screen.getByText("Awaiting launch-pad telemetry")).toBeTruthy(),
     );
@@ -164,27 +167,25 @@ describe("LaunchDirector: what undefined telemetry renders today", () => {
     );
   });
 
-  it("crosses the early-return gate on an EMPTY savedShips array, unlike an absent one", async () => {
+  it("crosses the early-return gate on an EMPTY launchSites array, unlike an absent one", async () => {
     const fixture = setupStreamFixture({
       carriedChannels: ALL_READS,
       pinnedUt: 10,
     });
-    mount(fixture, "ld-empty-ships");
+    mount(fixture, "ld-empty-sites");
 
     act(() => {
-      fixture.emit("spaceCenter.savedShips", []);
+      fixture.emit("spaceCenter.launchSites", []);
     });
 
     // `[]` parses to `[]`, not null, so the gate passes and the widget renders
     // its real body: an arrived-and-empty list is the ONLY thing today that
-    // distinguishes "we know there are no craft" from "we do not know yet".
-    await waitFor(() => expect(screen.getByText("Saved craft")).toBeTruthy());
-    expect(screen.queryByText("Awaiting launch-pad telemetry")).toBeNull();
-    // Site label falls back to the raw state default because launchSites is
-    // absent, so no displayName can be looked up.
-    expect(screen.getByRole("status").textContent).toContain(
-      "0/0 ready · LaunchPad",
+    // distinguishes "we know there are no pads" from "we do not know yet".
+    await waitFor(() =>
+      expect(screen.getByText("No launch sites reported")).toBeTruthy(),
     );
+    expect(screen.queryByText("Awaiting launch-pad telemetry")).toBeNull();
+    expect(screen.getByRole("status").textContent).toContain("No pads");
   });
 
   /**
@@ -204,6 +205,7 @@ describe("LaunchDirector: what undefined telemetry renders today", () => {
     mount(fixture, "ld-funds-gate");
 
     act(() => {
+      fixture.emit("spaceCenter.launchSites", [PAD]);
       fixture.emit("spaceCenter.savedShips", [
         { ...KERBAL_X, requiresFunds: 999_999 },
       ]);
@@ -216,7 +218,7 @@ describe("LaunchDirector: what undefined telemetry renders today", () => {
     );
     expect(row.getAttribute("aria-disabled")).toBe("true");
     expect(screen.getByTitle("Insufficient funds")).toBeTruthy();
-    expect(screen.getByRole("status").textContent).toContain("0/1 ready");
+    expect(screen.getByText(/Craft · 0\/1 ready/)).toBeTruthy();
     // And the refusal is explained: the readout stays on screen saying the
     // balance is the thing missing, rather than vanishing and leaving a
     // disabled button with no stated cause.
@@ -246,7 +248,7 @@ describe("LaunchDirector: what undefined telemetry renders today", () => {
         .getAttribute("aria-disabled"),
     ).toBe("true");
     expect(screen.getByTitle("Insufficient funds")).toBeTruthy();
-    expect(screen.getByRole("status").textContent).toContain("0/1 ready");
+    expect(screen.getByText(/Craft · 0\/1 ready/)).toBeTruthy();
     // The unknown-balance notice gives way to the balance itself.
     expect(screen.queryByTitle("No funds balance has arrived")).toBeNull();
   });
@@ -260,6 +262,7 @@ describe("LaunchDirector: what undefined telemetry renders today", () => {
     mount(fixture, "ld-crew-gate");
 
     act(() => {
+      fixture.emit("spaceCenter.launchSites", [PAD]);
       fixture.emit("spaceCenter.savedShips", [KERBAL_X]);
     });
 
@@ -267,16 +270,14 @@ describe("LaunchDirector: what undefined telemetry renders today", () => {
     await user.click(screen.getByRole("button", { name: /Kerbal X/ }));
 
     // `{ship && crew && (...)}`: `parseCrew(undefined)` is null, so selecting a
-    // craft produces no Crew section, no Launch site picker and no Launch
-    // button. The operator sees a selected craft and no way to fly it, with
-    // nothing on screen saying why.
+    // craft produces no Crew section and no Launch button. The operator sees a
+    // selected craft and no way to fly it, with nothing on screen saying why.
     expect(
       screen
         .getByRole("button", { name: /Kerbal X/ })
         .getAttribute("aria-pressed"),
     ).toBe("true");
     expect(screen.queryByText("Crew")).toBeNull();
-    expect(screen.queryByText("Launch site")).toBeNull();
     expect(screen.queryByRole("button", { name: /^Launch / })).toBeNull();
 
     // Contrast: an EMPTY roster is enough to unlock the launch control, so the
@@ -289,10 +290,6 @@ describe("LaunchDirector: what undefined telemetry renders today", () => {
         screen.getByRole("button", { name: "Launch Kerbal X unmanned" }),
       ).toBeTruthy(),
     );
-    // Still no Launch site picker: `selectableSites` came from
-    // `parseLaunchSites(undefined) ?? []`, so absence collapses the picker
-    // exactly as a single-site save would.
-    expect(screen.queryByText("Launch site")).toBeNull();
   });
 
   it("does not block recovery when crash.hasRecent is absent, but does block it when only crash.lastCrash is", async () => {

@@ -77,6 +77,35 @@
       "critical": false,
       "source": "testflight",
       "worstReliabilityFraction": 0.82
-    }
+    },
+    "spaceCenter.launchSites": [
+      {
+        "name": "Cape_Canaveral_LC1",
+        "displayName": "Cape Canaveral LC-1",
+        "editorFacility": "VAB",
+        "bodyIndex": 3,
+        "isStock": false,
+        "padOccupied": null,
+        "padVesselTitle": null
+      },
+      {
+        "name": "Cape_Canaveral_LC5",
+        "displayName": "Cape Canaveral LC-5",
+        "editorFacility": "VAB",
+        "bodyIndex": 3,
+        "isStock": false,
+        "padOccupied": null,
+        "padVesselTitle": null
+      },
+      {
+        "name": "Runway",
+        "displayName": "KSC Runway",
+        "editorFacility": "SPH",
+        "bodyIndex": 3,
+        "isStock": true,
+        "padOccupied": null,
+        "padVesselTitle": null
+      }
+    ]
   }
 }

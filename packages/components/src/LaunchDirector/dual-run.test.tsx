@@ -1,6 +1,7 @@
 import { DashboardItemContext } from "@ksp-gonogo/core";
-import { act, render, waitFor, within } from "@ksp-gonogo/test-utils";
+import { act, render, screen, waitFor, within } from "@ksp-gonogo/test-utils";
 import { visibleText } from "@ksp-gonogo/ui-kit/testing";
+import userEvent from "@testing-library/user-event";
 import { describe, expect, it } from "vitest";
 import { setupStreamFixture } from "../test/setupStreamFixture";
 import preLaunch from "./__fixtures__/pre-launch-mixed.json";
@@ -18,21 +19,20 @@ import { LaunchDirectorComponent } from "./index";
  * `WarpControl/dual-run.test.tsx`'s own doc comment. What remains proves the
  * widget renders the full pre-launch state correctly off the real stream
  * pipeline (`TelemetryProvider` + `TelemetryClient`/`TimelineStore`), using
- * the SAME `pre-launch-mixed` fixture the DOM-snapshot suite covers.
+ * the SAME `pre-launch-mixed` fixture the DOM-snapshot suite covers, driven off
+ * that fixture's own `_stream` block so the two specs cannot disagree about
+ * what the fixture says.
  */
+const STREAM = preLaunch._stream;
+
 describe("LaunchDirector: stream render golden (delay=0)", () => {
   it("renders the full pre-launch state off the stream pipeline", async () => {
+    const user = userEvent.setup();
     const mode = { name: "default-7x10", w: 7, h: 10 };
 
     const streamFixture = setupStreamFixture({
-      carriedChannels: [
-        "career.status",
-        "spaceCenter.savedShips",
-        "spaceCenter.crewRoster",
-        "spaceCenter.scene",
-        "spaceCenter.launchSites",
-      ],
-      pinnedUt: 10,
+      carriedChannels: STREAM.carriedChannels,
+      pinnedUt: STREAM.pinnedUt,
     });
 
     const { container } = render(
@@ -44,27 +44,9 @@ describe("LaunchDirector: stream render golden (delay=0)", () => {
     );
 
     act(() => {
-      streamFixture.emit("spaceCenter.scene", {
-        scene: preLaunch["kc.scene"],
-        launchSite: preLaunch["kc.launchSite"],
-      });
-      streamFixture.emit(
-        "spaceCenter.launchSites",
-        preLaunch["kc.launchSites"],
-      );
-      streamFixture.emit("career.status", {
-        economy: {
-          funds: preLaunch["career.funds"],
-          reputation: null,
-          science: null,
-        },
-        facilities: null,
-        contracts: null,
-        strategies: null,
-        tech: null,
-      });
-      streamFixture.emit("spaceCenter.savedShips", preLaunch["kc.savedShips"]);
-      streamFixture.emit("spaceCenter.crewRoster", preLaunch["kc.crewRoster"]);
+      for (const emit of STREAM.emits) {
+        streamFixture.emit(emit.channel, emit.value);
+      }
     });
 
     await waitFor(() => {
@@ -74,18 +56,27 @@ describe("LaunchDirector: stream render golden (delay=0)", () => {
     });
 
     const scope = within(container);
-    // Every saved ship from the fixture is on screen ...
+    // Every pad the fixture carries is on screen, none of them holding
+    // anything, and the two that report no occupancy say so.
+    expect(scope.getByText("KSC Launch Pad")).toBeTruthy();
+    expect(scope.getByText("KSC Runway")).toBeTruthy();
+    expect(scope.getByText("Woomerang")).toBeTruthy();
+    expect(scope.getAllByText("Occupancy unreported")).toHaveLength(2);
+
+    // The first pad opens on its own, and offers the craft that come out of the
+    // VAB: the funds-blocked one is tagged, and its value and funds marker are
+    // separate elements now, so this matches the bare number and asserts the
+    // announced text on the element itself.
     expect(scope.getByText("Mun Hopper I")).toBeTruthy();
-    expect(scope.getByText("Duna Transfer Stage")).toBeTruthy();
-    expect(scope.getByText("SSTO Spaceplane")).toBeTruthy();
-    // ... the funds-blocked one is tagged ...
-    // The value and its funds marker are separate elements now, and
-    // `getByText` sees only an element's direct text nodes, so this matches
-    // the bare number and asserts the announced text on the element itself.
     expect(scope.getByText("180000").textContent).toBe("180000f funds");
-    // ... and the parts-locked one's missing part shows in its title.
+    expect(scope.getByText(/Craft · 1\/2 ready/)).toBeTruthy();
+
+    // The spaceplane belongs to the runway, and is offered there rather than on
+    // a pad that could never launch it.
+    expect(scope.queryByText("SSTO Spaceplane")).toBeNull();
+    await user.click(screen.getByText("KSC Runway"));
+    expect(await screen.findByText("SSTO Spaceplane")).toBeTruthy();
     expect(scope.getByText("2 locked")).toBeTruthy();
-    // Subtitle reflects the launchable/total count for the fixture's mix.
-    expect(scope.getByText(/1\/3 ready/i)).toBeTruthy();
+    expect(scope.getByText(/Craft · 0\/1 ready/)).toBeTruthy();
   });
 });

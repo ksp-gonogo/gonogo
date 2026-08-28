@@ -1,21 +1,24 @@
 {
+  "_meta": {
+    "notes": "The state the widget exists for: work in flight at two launch complexes at once, which no per-complex view can show and which the Space Center had no room to draw."
+  },
   "_scene": {
-    "augment": "rp1-ksc-vehicles",
-    "host": "space-center-status",
-    "size": {
-      "w": 12,
-      "h": 14
-    },
-    "caption": "The repeat-build surface in the state it is used in: two vehicles of the SAME design, one flown-ready and one still integrating, the two lists drawn apart so neither card has to carry the other's state, and one repeat control naming the design both copies are of",
+    "widget": "rp1-vehicle-assembly",
+    "size": { "w": 8, "h": 20 },
+    "caption": "Four craft across two launch complexes: one flying-ready and one still integrating at each, the key line at the top saying what LC-1 and LC-2 are and where they stand, and every card naming its complex and the staffing that sets its rate",
     "paints": [
+      "ASSEMBLY",
       "289,848f",
-      "Warehouse",
-      "Building",
+      "IN THE WAREHOUSE",
+      "UNDER INTEGRATION",
       "Atlas",
+      "Vanguard",
       "BUILT",
       "INTEGRATING",
-      "Repeat a build",
-      "Build another Atlas",
+      "LC-1 · costs",
+      "LC-2 · costs",
+      "engineers",
+      "Launch complexes:",
       "until integration finishes"
     ]
   },
@@ -25,72 +28,10 @@
       {
         "topic": "career.status",
         "payload": {
-          "economy": {
-            "funds": 289848,
-            "reputation": 62,
-            "science": 340
-          },
-          "facilities": {
-            "LaunchPad": {
-              "level": 1,
-              "max": 2
-            },
-            "Runway": {
-              "level": 0,
-              "max": 2
-            },
-            "VehicleAssemblyBuilding": {
-              "level": 1,
-              "max": 2
-            },
-            "SpaceplaneHangar": {
-              "level": 0,
-              "max": 2
-            },
-            "MissionControl": {
-              "level": 1,
-              "max": 2
-            },
-            "TrackingStation": {
-              "level": 1,
-              "max": 2
-            },
-            "Administration": {
-              "level": 0,
-              "max": 2
-            },
-            "ResearchAndDevelopment": {
-              "level": 1,
-              "max": 2
-            },
-            "AstronautComplex": {
-              "level": 0,
-              "max": 2
-            }
-          }
+          "economy": { "funds": 289848, "reputation": 62, "science": 340 }
         }
       },
-      {
-        "topic": "spaceCenter.scene",
-        "payload": {
-          "scene": "SpaceCenter",
-          "launchSite": "LaunchPad"
-        }
-      },
-      {
-        "topic": "spaceCenter.launchSites",
-        "payload": [
-          {
-            "name": "LaunchPad",
-            "padOccupied": false,
-            "padVesselTitle": null
-          }
-        ]
-      },
-      {
-        "topic": "rp1.available",
-        "payload": true
-      },
+      { "topic": "rp1.available", "payload": true },
       {
         "topic": "rp1.complexes",
         "payload": [
@@ -121,7 +62,7 @@
             "maxEngineers": 40,
             "efficiency": 0.4,
             "canIntegrate": true,
-            "rate": 0,
+            "rate": 0.00006430041152263374,
             "humanRated": false,
             "massMin": 3,
             "massMax": 90
@@ -157,11 +98,13 @@
           }
         ]
       },
+      { "topic": "rp1.operations", "payload": [] },
       {
         "topic": "rp1.warehouse",
         "payload": [
           {
             "id": "vp-atlas-1",
+            "shipId": "ship-atlas-1",
             "kscName": "Cape",
             "lcId": "lc-1",
             "shipName": "Atlas",
@@ -169,6 +112,19 @@
             "mass": 120,
             "humanRated": false,
             "launchSite": "LaunchPad",
+            "projectType": "VAB",
+            "rolloutRefusals": null
+          },
+          {
+            "id": "vp-vanguard-1",
+            "shipId": "ship-vanguard-1",
+            "kscName": "Cape",
+            "lcId": "lc-2",
+            "shipName": "Vanguard",
+            "cost": 18500,
+            "mass": 62,
+            "humanRated": false,
+            "launchSite": "LaunchPad 2",
             "projectType": "VAB",
             "rolloutRefusals": null
           }
@@ -179,6 +135,7 @@
         "payload": [
           {
             "id": "vp-atlas-2",
+            "shipId": "ship-atlas-2",
             "kscName": "Cape",
             "lcId": "lc-1",
             "shipName": "Atlas",
@@ -192,6 +149,25 @@
             "progressRatio": 0.25,
             "rate": 0.00019290123456790122,
             "timeLeftSeconds": 3888000,
+            "stalled": false,
+            "rolloutRefusals": null
+          },
+          {
+            "id": "vp-redstone-1",
+            "shipId": "ship-redstone-1",
+            "kscName": "Cape",
+            "lcId": "lc-2",
+            "shipName": "Redstone",
+            "cost": 12400,
+            "mass": 30,
+            "humanRated": false,
+            "launchSite": "LaunchPad 2",
+            "projectType": "VAB",
+            "progress": 820,
+            "totalPoints": 1000,
+            "progressRatio": 0.82,
+            "rate": 0.00006430041152263374,
+            "timeLeftSeconds": 691200,
             "stalled": false,
             "rolloutRefusals": null
           }
