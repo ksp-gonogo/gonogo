@@ -11,6 +11,8 @@ import { GhostButton, PrimaryButton } from "@ksp-gonogo/ui";
 import { useEffect, useId, useRef } from "react";
 import { createRoot } from "react-dom/client";
 import styled, { type DefaultTheme, ThemeProvider } from "styled-components";
+import { isolateModal } from "../a11y/modalIsolation";
+import { useFocusTrap } from "../a11y/useFocusTrap";
 import type { ConsentInfo } from "./consent";
 
 // The rem sizes below are root-relative on purpose: this is a pre-render
@@ -73,11 +75,14 @@ interface ConsentDialogProps {
 function ConsentDialog({ info, onResolve }: Readonly<ConsentDialogProps>) {
   const titleId = useId();
   const descId = useId();
+  const dialogRef = useRef<HTMLDivElement>(null);
   const loadRef = useRef<HTMLButtonElement>(null);
 
-  useEffect(() => {
-    loadRef.current?.focus();
-  }, []);
+  // Focus starts on Load, the choice an operator who opened the Hub and clicked
+  // Load is already committed to. Tab then stays in here; without the trap it
+  // walked out into whatever sits behind, which for the boot-time call is the
+  // dashboard.
+  useFocusTrap(dialogRef, loadRef);
 
   useEffect(() => {
     function onKey(e: KeyboardEvent) {
@@ -90,10 +95,12 @@ function ConsentDialog({ info, onResolve }: Readonly<ConsentDialogProps>) {
   return (
     <Backdrop>
       <Dialog
+        ref={dialogRef}
         role="dialog"
         aria-modal="true"
         aria-labelledby={titleId}
         aria-describedby={descId}
+        tabIndex={-1}
       >
         <h2 id={titleId}>Load Uplink “{info.name}”?</h2>
         <p className="UplinkConsent__meta">
@@ -136,32 +143,18 @@ export function promptForConsent(
     document.body.appendChild(container);
     const root = createRoot(container);
 
-    // Nested-modal guard: this can now fire while another modal (e.g. the
-    // Settings > Uplink Hub wizard's Load button) is already open behind it,
-    // both portal as siblings under document.body (this one via its own
-    // createRoot, per the doc comment above; the Settings modal via
-    // `@ksp-gonogo/ui`'s Modal.tsx), so without this, two role="dialog"
-    // elements sit in the accessibility tree at once. Only one modal should
-    // ever be reachable at a time (WCAG dialog pattern), so mark every other
-    // document.body child both `inert` (real focus/pointer-event exclusion)
-    // and `aria-hidden` (belt-and-braces: some engines' accessible-name
-    // computation keys off aria-hidden rather than inert) for as long as
-    // this one is open; both restored on close. Harmless when this is the
-    // boot-time, nothing-else-open call: there are simply no siblings to
-    // mark.
-    const siblings = Array.from(document.body.children).filter(
-      (el) => el !== container,
-    );
-    for (const el of siblings) {
-      el.setAttribute("inert", "");
-      el.setAttribute("aria-hidden", "true");
-    }
+    // Nested-modal guard: this can fire while another modal (e.g. the Settings
+    // > Uplink Hub wizard's Load button) is already open behind it, both
+    // siblings under document.body (this one via its own createRoot, per the
+    // doc comment above; the Settings modal via `@ksp-gonogo/ui`'s Modal.tsx),
+    // so without this, two role="dialog" elements sit in the accessibility tree
+    // at once. Only one modal should ever be reachable at a time (WCAG dialog
+    // pattern). Harmless when this is the boot-time, nothing-else-open call:
+    // there are simply no siblings to isolate.
+    const release = isolateModal(container);
 
     const finish = (granted: boolean): void => {
-      for (const el of siblings) {
-        el.removeAttribute("inert");
-        el.removeAttribute("aria-hidden");
-      }
+      release();
       root.unmount();
       container.remove();
       resolve(granted);

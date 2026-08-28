@@ -1,11 +1,12 @@
 import { SerialDeviceService } from "@ksp-gonogo/serial";
-import { render, screen, waitFor, within } from "@ksp-gonogo/test-utils";
+import { act, render, screen, waitFor, within } from "@ksp-gonogo/test-utils";
 import { ModalProvider } from "@ksp-gonogo/ui";
 import { expectNoA11yViolations } from "@ksp-gonogo/ui-kit/testing";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import userEvent from "@testing-library/user-event";
 import { HttpResponse, http } from "msw";
 import { setupServer } from "msw/node";
+import { useEffect, useState } from "react";
 import {
   afterAll,
   afterEach,
@@ -15,6 +16,8 @@ import {
   expect,
   it,
 } from "vitest";
+import { AnalyticsConsentModal } from "../analytics/AnalyticsConsentModal";
+import { AnalyticsConsentService } from "../analytics/AnalyticsConsentService";
 import { SettingsService } from "../settings/SettingsService";
 import { UplinkHubWizardHost } from "./UplinkHubWizardHost";
 import {
@@ -58,9 +61,12 @@ function memoryStorage(): Storage {
 // async fetch in flight that can resolve after a test's synchronous
 // assertions/unmount and trip an act() warning, same reasoning as
 // SettingsModal.test.tsx's own `makeInertQueryClient()`.
-function renderHost() {
+function renderHost(analyticsConsent?: AnalyticsConsentService) {
   const settingsService = new SettingsService(memoryStorage());
   const serialService = new SerialDeviceService({ screenKey: "test" });
+  // Answered by default: these cases are about the first-run flag, not the
+  // consent gate, and an unanswered gate deliberately holds the auto-open.
+  const consent = analyticsConsent ?? answeredConsent();
   const queryClient = new QueryClient({
     defaultOptions: { queries: { enabled: false, retry: false } },
   });
@@ -70,10 +76,17 @@ function renderHost() {
         <UplinkHubWizardHost
           settingsService={settingsService}
           serialService={serialService}
+          analyticsConsent={consent}
         />
       </ModalProvider>
     </QueryClientProvider>,
   );
+}
+
+function answeredConsent(): AnalyticsConsentService {
+  const svc = new AnalyticsConsentService(memoryStorage());
+  svc.set("disabled");
+  return svc;
 }
 
 beforeEach(() => {
@@ -126,4 +139,91 @@ describe("UplinkHubWizardHost", () => {
     // uses `createPortal`.
     await expectNoA11yViolations(document.body);
   });
+
+  it("holds the auto-open while the analytics consent gate is unanswered", async () => {
+    const consent = new AnalyticsConsentService(memoryStorage());
+    renderHost(consent);
+    // Nothing opens, and crucially the one first-run auto-open is not spent
+    // on a modal the operator never got to see.
+    await waitFor(() =>
+      expect(screen.queryByRole("dialog")).not.toBeInTheDocument(),
+    );
+    expect(hasSeenUplinkHubWizard()).toBe(false);
+  });
+
+  it("opens as soon as the operator answers the consent gate", async () => {
+    const consent = new AnalyticsConsentService(memoryStorage());
+    renderHost(consent);
+    expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+
+    await act(async () => {
+      consent.set("disabled");
+    });
+
+    expect(await screen.findByRole("dialog")).toBeInTheDocument();
+    expect(hasSeenUplinkHubWizard()).toBe(true);
+  });
+
+  it("never leaves two aria-modal dialogs reachable at once on first boot", async () => {
+    const consent = new AnalyticsConsentService(memoryStorage());
+    const { container } = render(<ConsentThenWizard consent={consent} />);
+    expect(container).toBeTruthy();
+
+    // Boot: the consent gate is the only modal in the tree.
+    await screen.findByRole("dialog", { name: /improve gonogo/i });
+    expect(document.querySelectorAll('[aria-modal="true"]')).toHaveLength(1);
+
+    await userEvent
+      .setup()
+      .click(screen.getByRole("button", { name: "Decline" }));
+
+    // Consent answered: the wizard takes its place, still exactly one.
+    await waitFor(() =>
+      expect(document.querySelectorAll('[aria-modal="true"]')).toHaveLength(1),
+    );
+    expect(
+      screen.getByRole("tab", { name: "Uplink Hub", selected: true }),
+    ).toBeInTheDocument();
+  });
 });
+
+/**
+ * The first-boot pairing as `MainScreen` mounts it: the analytics gate and the
+ * wizard host as siblings, both live at once. `AnalyticsConsentHost` itself
+ * needs a `PeerHostService`, which has nothing to do with the modal ordering
+ * under test, so this stands in with the modal and the same "render while
+ * unanswered" rule.
+ */
+function ConsentThenWizard({
+  consent,
+}: Readonly<{ consent: AnalyticsConsentService }>) {
+  const settingsService = new SettingsService(memoryStorage());
+  const serialService = new SerialDeviceService({ screenKey: "test" });
+  const queryClient = new QueryClient({
+    defaultOptions: { queries: { enabled: false, retry: false } },
+  });
+  return (
+    <QueryClientProvider client={queryClient}>
+      <ModalProvider>
+        <ConsentGate service={consent} />
+        <UplinkHubWizardHost
+          settingsService={settingsService}
+          serialService={serialService}
+          analyticsConsent={consent}
+        />
+      </ModalProvider>
+    </QueryClientProvider>
+  );
+}
+
+function ConsentGate({
+  service,
+}: Readonly<{ service: AnalyticsConsentService }>) {
+  const [answered, setAnswered] = useState(() => service.hasAnswered());
+  useEffect(
+    () => service.subscribe(() => setAnswered(service.hasAnswered())),
+    [service],
+  );
+  if (answered) return null;
+  return <AnalyticsConsentModal service={service} />;
+}
