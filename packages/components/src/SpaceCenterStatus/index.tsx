@@ -22,8 +22,11 @@ import {
   FitLabelButton,
   NULL_DISPLAY,
   Panel,
+  Row,
   Spinner,
+  Stack,
   speakQuantity,
+  Text,
   Unit,
   useCommandButton,
   usePanelDelay,
@@ -40,6 +43,7 @@ import {
   magnitudeOr,
   type Quantityish,
 } from "../shared/magnitude";
+import { parseLevelText } from "./levelText";
 
 const topics = defineTopicManifest({
   channels: ["career.status", "spaceCenter.scene", "spaceCenter.state"],
@@ -377,15 +381,33 @@ function SpaceCenterStatusComponent({
   const rows = h ?? 8;
   const showSubtitle = rows >= 4;
   // 3-col grid only when the widget is wide enough for each cell to hold a
-  // facility name + tier + the multi-line tier text without clipping. At
-  // width 5 (e.g. the tall-narrow portrait aspect) three columns squeeze
-  // each cell to ~115px and the full-text bodies overflow horizontally
-  // ("* Max Size: Unlimit...", "Maneuve nodes"). Reflow those to 2 columns
-  // and drop the verbose tier text: the same affordance `compact` already
-  // gives the (tiny-bucketed) narrow grid. cols>=6 keeps the reviewed
-  // default-6x7 / wide / mobile layouts unchanged.
+  // facility name, its tier and its upgrade cost without clipping. At width 5
+  // (e.g. the tall-narrow portrait aspect) three columns squeeze each cell to
+  // ~115px and the facility names wrap into ribbons; two columns hold them.
   const compactGrid = cols < 6;
+  /**
+   * The tier lists need more width than the grid does. Three columns of a
+   * 6-wide widget are about 60px of usable cell, and "Unlimited" is one
+   * unbreakable word wider than that: the list lands on top of the facility
+   * beside it. Nine columns give roughly 90px, where a property and its
+   * setting sit on one line. Below that the cell keeps the tier and the cost,
+   * which is what the upgrade decision turns on, and the descriptions stay
+   * reachable through the cell's hover tooltip.
+   */
+  const tierSpecsFit = cols >= 9;
   const sizeBucket = getSizeBucket(w, h);
+  /**
+   * Whether ANY facility described its tiers. A producer either emits these
+   * for every facility or for none, so nothing tells the operator apart the
+   * two silences at cell level: a facility that happens to have nothing to say
+   * and a build that never says anything. Answering it once for the grid lets
+   * a whole-grid silence be stated as one line, and leaves a lone empty cell
+   * inside an otherwise-populated grid to show its own explicit absence.
+   */
+  const anyTierText = FACILITIES.some(({ key }) => {
+    const f = facilities[key];
+    return !!f && (f.currentLevelText !== "" || f.nextLevelText !== "");
+  });
 
   /**
    * "No vehicle on pad" is a claim about the pad, and this line is announced
@@ -498,6 +520,14 @@ function SpaceCenterStatusComponent({
             {`Upgrades held: ${heldUpgradeInputs.join(" and ")} no longer current`}
           </UpgradesHeld>
         )}
+        {tierSpecsFit && !anyTierText && (
+          /* Said once for the grid, because it is one fact about the producer
+             rather than nine about the facilities. Nine dashes down the cells
+             would report the same silence nine times and bury the tiers. */
+          <TierSpecsAbsent>
+            No tier descriptions on this telemetry
+          </TierSpecsAbsent>
+        )}
         <FacilityGrid $compact={compactGrid}>
           {FACILITIES.map(({ key, label }) => {
             const f = facilities[key];
@@ -531,10 +561,14 @@ function SpaceCenterStatusComponent({
             // attribute renders them with native multi-line wrapping in
             // the OS-level tooltip on every major platform.
             const tooltip = buildFacilityTooltip(label, f);
-            const showFullTextBody =
-              !compactGrid &&
-              !!f &&
-              (f.currentLevelText !== "" || f.nextLevelText !== "");
+            // Gated on the whole grid rather than this one facility: a cell
+            // whose own description is empty still has to say so, and it can
+            // only say so inside a section that is on screen.
+            const showTierSpecs = tierSpecsFit && anyTierText && !!f;
+            // A tier the operator has already bought past is not missing, so
+            // only a facility with somewhere left to go owes a NEXT block. An
+            // unknown ceiling (`max === 0`) is not a claim that one exists.
+            const hasNextTier = !!f && f.max > 0 && !atMax;
             return (
               <FacilityCell key={key} title={tooltip || undefined}>
                 <FacilityLabel>{label}</FacilityLabel>
@@ -572,28 +606,20 @@ function SpaceCenterStatusComponent({
                       facilityLabel={label}
                       titleOverride={
                         f.nextLevelText
-                          ? `Upgrade to tier ${displayLevel + 1}:\n${f.nextLevelText}`
+                          ? `Upgrade to tier ${displayLevel + 1}:\n${plainTierSpecs(f.nextLevelText)}`
                           : undefined
                       }
                     />
                   </UpgradeRow>
                 )}
                 {atMax && <MaxBadge>MAX</MaxBadge>}
-                {showFullTextBody && f && (
-                  <FullText>
-                    {f.currentLevelText && (
-                      <FullTextBlock>
-                        <FullTextLabel>Now</FullTextLabel>
-                        <FullTextBody>{f.currentLevelText}</FullTextBody>
-                      </FullTextBlock>
+                {showTierSpecs && f && (
+                  <TierSpecs>
+                    <TierBlock heading="Now" text={f.currentLevelText} />
+                    {hasNextTier && (
+                      <TierBlock heading="Next" text={f.nextLevelText} />
                     )}
-                    {f.nextLevelText && (
-                      <FullTextBlock>
-                        <FullTextLabel>Next</FullTextLabel>
-                        <FullTextBody>{f.nextLevelText}</FullTextBody>
-                      </FullTextBlock>
-                    )}
-                  </FullText>
+                  </TierSpecs>
                 )}
               </FacilityCell>
             );
@@ -607,6 +633,46 @@ function SpaceCenterStatusComponent({
         <WidgetSections />
       </Body>
     </Panel>
+  );
+}
+
+/**
+ * One tier's description, as a list rather than as the game's own bulleted
+ * blob. A property line becomes a label and a value; anything else becomes a
+ * plain line carrying exactly what arrived.
+ *
+ * The value stays a string. It is game copy, so "140t" and "Unlimited" are
+ * both legitimate settings of the same property, and reading a magnitude out
+ * of the first would leave the second with nowhere to go.
+ */
+function TierBlock({ heading, text }: { heading: string; text: string }) {
+  const specs = parseLevelText(text);
+  return (
+    <TierBlock__Root>
+      <TierBlock__Heading>{heading}</TierBlock__Heading>
+      {specs.length === 0 ? (
+        <TierBlock__Absent>{NULL_DISPLAY}</TierBlock__Absent>
+      ) : (
+        <Stack gap="xs" as="ul" style={TIER_SPEC_LIST}>
+          {specs.map((spec) =>
+            spec.kind === "pair" ? (
+              <Row key={spec.id}>
+                <TierBlock__Label>{spec.label}</TierBlock__Label>
+                <TierBlock__Value size="xs" tone="default">
+                  {spec.value}
+                </TierBlock__Value>
+              </Row>
+            ) : (
+              <Row key={spec.id}>
+                <TierBlock__Value size="xs" tone="default">
+                  {spec.text}
+                </TierBlock__Value>
+              </Row>
+            ),
+          )}
+        </Stack>
+      )}
+    </TierBlock__Root>
   );
 }
 
@@ -692,12 +758,26 @@ function buildFacilityTooltip(label: string, f?: FacilityLevel): string {
   }
   const parts: string[] = [`${label}: tier ${f.level + 1} of ${f.max + 1}`];
   if (f.currentLevelText) {
-    parts.push("", "NOW", f.currentLevelText);
+    parts.push("", "NOW", plainTierSpecs(f.currentLevelText));
   }
   if (f.nextLevelText) {
-    parts.push("", "NEXT", f.nextLevelText);
+    parts.push("", "NEXT", plainTierSpecs(f.nextLevelText));
   }
   return parts.join("\n");
+}
+
+/**
+ * The same lines the cell lays out, flattened for a `title` attribute, which
+ * gets plain text and one newline per line and nothing else. A property line
+ * keeps its colon because that is what makes it read as a pair without the
+ * column the cell can give it.
+ */
+function plainTierSpecs(text: string): string {
+  return parseLevelText(text)
+    .map((spec) =>
+      spec.kind === "pair" ? `${spec.label}: ${spec.value}` : spec.text,
+    )
+    .join("\n");
 }
 
 // Compact funds for the tiny (2x3) bucket where the box is only ~2 grid
@@ -815,7 +895,7 @@ const MaxBadge = styled.span`
   margin-top: var(--space-2);
 `;
 
-const FullText = styled.div`
+const TierSpecs = styled.div`
   display: flex;
   flex-direction: column;
   gap: var(--space-6);
@@ -824,27 +904,45 @@ const FullText = styled.div`
   border-top: 1px dashed var(--color-surface-raised);
 `;
 
-const FullTextBlock = styled.div`
+const TierBlock__Root = styled.div`
   display: flex;
   flex-direction: column;
   gap: var(--space-2);
 `;
 
-const FullTextLabel = styled.span`
+const TierBlock__Heading = styled.span`
   font-size: var(--font-size-2xs);
   letter-spacing: 0.12em;
   text-transform: uppercase;
   color: var(--color-text-faint);
 `;
 
-const FullTextBody = styled.pre`
-  margin: 0;
-  font-family: inherit;
-  font-size: var(--font-size-2xs);
-  line-height: var(--line-height-body);
-  color: var(--color-text-muted);
-  white-space: pre-wrap;
+const TierBlock__Absent = styled.span`
+  font-size: var(--font-size-xs);
+  color: var(--color-text-faint);
 `;
+
+/* Wraps rather than ellipsising, which is why this is not `RowName`: a facility
+   cell is under 100px wide at the widget's own default size, and "Max Active
+   Strategies" fits one line of it at no size worth reading. A rung below the
+   value it names, so the setting is the half that carries. */
+const TierBlock__Label = styled.span`
+  flex: 1;
+  min-width: 0;
+  font-size: var(--font-size-2xs);
+  color: var(--color-text-muted);
+`;
+
+/* "Unlimited" is one unbreakable word and a facility cell is narrow, so the
+   last resort is to break inside it. Spilling past the cell edge puts the
+   value on top of the facility beside it, which is the one outcome worse than
+   an ugly break. */
+const TierBlock__Value = styled(Text)`
+  min-width: 0;
+  overflow-wrap: anywhere;
+`;
+
+const TIER_SPEC_LIST = { listStyle: "none", margin: 0, padding: 0 } as const;
 
 const UpgradeButtonStyled = styled(FitLabelButton)`
   font-size: var(--font-size-2xs);
@@ -920,6 +1018,12 @@ const UpgradesHeld = styled.span`
      reads as ordinary light copy standing alone on the panel. */
   color: var(--color-status-nogo-bg);
   font-weight: 600;
+`;
+
+const TierSpecsAbsent = styled.span`
+  font-size: var(--font-size-2xs);
+  letter-spacing: 0.04em;
+  color: var(--color-text-faint);
 `;
 
 const FundsReadout = styled.span`
