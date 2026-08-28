@@ -17,7 +17,6 @@ import {
   FormActions,
   Input,
   Panel,
-  PanelTitle,
   PrimaryButton,
   Select,
   Spinner,
@@ -163,8 +162,7 @@ function KosScriptTriggerComponent({
   };
 
   return (
-    <Panel>
-      <PanelTitle>kOS SCRIPT TRIGGER</PanelTitle>
+    <Panel panelTitle="kOS SCRIPT TRIGGER">
       <Body>
         <Field>
           <FieldLabel htmlFor={cpuId}>CPU</FieldLabel>
