@@ -1,11 +1,4 @@
-import {
-  Card,
-  Cluster,
-  ProgressBar,
-  RowName,
-  Stack,
-  Text,
-} from "@ksp-gonogo/ui-kit";
+import { Card, Cluster, ProgressBar, Stack, Text } from "@ksp-gonogo/ui-kit";
 import type { ReactNode } from "react";
 
 /**
@@ -63,8 +56,16 @@ export function ProjectCard({
   return (
     <Card as="li" tone={tone}>
       <Stack gap="xs">
-        <Cluster gap="sm">
-          <RowName>{name}</RowName>
+        {/* The name WRAPS rather than truncating, which is what separates a
+            card's heading from a row's label. `RowName` ellipsises and flexes
+            to fill, so at the minimum width a widget promises "Atlas" rendered
+            as "Atl…" and a build-list card rendered its badge with no name at
+            all beside it. The name is the only part of a card that says WHICH
+            piece of work it is, so it is the last thing that may go. The
+            cluster wraps for the same reason: a badge that will not fit beside
+            a long name drops under it instead of squeezing it. */}
+        <Cluster align="start" gap="sm" wrap>
+          <Text tone="default">{name}</Text>
           {badge}
         </Cluster>
 
