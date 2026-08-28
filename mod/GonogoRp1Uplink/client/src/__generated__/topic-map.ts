@@ -21,6 +21,7 @@
 
 import type {
   Rp1BuildItemEntry,
+  Rp1BuildableCraftEntry,
   Rp1CentreEntry,
   Rp1ComplexEntry,
   Rp1Confidence,
@@ -39,6 +40,7 @@ import type {
 
 export interface GeneratedTopicPayloadMap {
   "rp1.buildQueue": Rp1BuildItemEntry[];
+  "rp1.buildable": Rp1BuildableCraftEntry[];
   "rp1.centres": Rp1CentreEntry[];
   "rp1.complexes": Rp1ComplexEntry[];
   "rp1.confidence": Rp1Confidence;
@@ -57,6 +59,7 @@ export interface GeneratedTopicPayloadMap {
 
 export const GENERATED_TOPIC_IDS = [
   "rp1.buildQueue",
+  "rp1.buildable",
   "rp1.centres",
   "rp1.complexes",
   "rp1.confidence",

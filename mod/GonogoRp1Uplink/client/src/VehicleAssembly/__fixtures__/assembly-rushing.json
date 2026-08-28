@@ -4,7 +4,10 @@
   },
   "_scene": {
     "widget": "rp1-vehicle-assembly",
-    "size": { "w": 8, "h": 17 },
+    "size": {
+      "w": 8,
+      "h": 17
+    },
     "caption": "A rushing launch complex: both its cards carry the status, the rollout as well as the integration, because RP-1 rushes a complex rather than a build",
     "paints": [
       "ASSEMBLY",
@@ -13,7 +16,8 @@
       "INTEGRATING",
       "until it reaches the pad",
       "until integration finishes",
-      "Roll back"
+      "Roll back",
+      "No craft saved"
     ]
   },
   "_stream": {
@@ -22,10 +26,17 @@
       {
         "topic": "career.status",
         "payload": {
-          "economy": { "funds": 148200, "reputation": 62, "science": 340 }
+          "economy": {
+            "funds": 148200,
+            "reputation": 62,
+            "science": 340
+          }
         }
       },
-      { "topic": "rp1.available", "payload": true },
+      {
+        "topic": "rp1.available",
+        "payload": true
+      },
       {
         "topic": "rp1.complexes",
         "payload": [
@@ -125,6 +136,10 @@
             "rolloutRefusals": null
           }
         ]
+      },
+      {
+        "topic": "rp1.buildable",
+        "payload": []
       }
     ]
   }

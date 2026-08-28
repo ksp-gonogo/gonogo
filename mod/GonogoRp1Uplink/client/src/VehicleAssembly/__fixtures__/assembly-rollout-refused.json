@@ -4,14 +4,18 @@
   },
   "_scene": {
     "widget": "rp1-vehicle-assembly",
-    "size": { "w": 8, "h": 12 },
+    "size": {
+      "w": 8,
+      "h": 12
+    },
     "caption": "A vehicle its complex will not release: every one of RP-1's reasons at once rather than the first, no rollout offered against a pad that is standing free, and the scrap that is the operator's actual next move",
     "paints": [
       "ASSEMBLY",
       "cannot roll out",
       "too heavy for the complex",
       "human-rated",
-      "Scrap"
+      "Scrap",
+      "No craft saved"
     ]
   },
   "_stream": {
@@ -20,10 +24,17 @@
       {
         "topic": "career.status",
         "payload": {
-          "economy": { "funds": 289848, "reputation": 62, "science": 340 }
+          "economy": {
+            "funds": 289848,
+            "reputation": 62,
+            "science": 340
+          }
         }
       },
-      { "topic": "rp1.available", "payload": true },
+      {
+        "topic": "rp1.available",
+        "payload": true
+      },
       {
         "topic": "rp1.complexes",
         "payload": [
@@ -62,7 +73,10 @@
           }
         ]
       },
-      { "topic": "rp1.operations", "payload": [] },
+      {
+        "topic": "rp1.operations",
+        "payload": []
+      },
       {
         "topic": "rp1.warehouse",
         "payload": [
@@ -84,7 +98,14 @@
           }
         ]
       },
-      { "topic": "rp1.buildQueue", "payload": [] }
+      {
+        "topic": "rp1.buildQueue",
+        "payload": []
+      },
+      {
+        "topic": "rp1.buildable",
+        "payload": []
+      }
     ]
   }
 }

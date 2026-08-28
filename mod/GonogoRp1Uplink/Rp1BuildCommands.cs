@@ -146,29 +146,21 @@ namespace GonogoRp1Uplink
 
         private const string ScmTypeName = "RP0.SpaceCenterManagement";
         private const string UtilitiesTypeName = "RP0.KCTUtilities";
-        private const string CurrencyQueryTypeName = "RP0.CurrencyModifierQueryRP0";
-        private const string TransactionReasonsTypeName = "RP0.TransactionReasonsRP0";
-        private const string CurrencyTypeName = "RP0.CurrencyRP0";
-
-        /// <summary>RP-1's transaction reason for buying a vehicle, the one its own validator prices against.</summary>
-        private const string VesselPurchaseReason = "VesselPurchase";
-
-        /// <summary>The currency a vessel purchase is denominated in.</summary>
-        private const string FundsCurrency = "Funds";
 
         private readonly Type? _scm;
         private readonly Type? _utilities;
-        private readonly Type? _currencyQuery;
-        private readonly Type? _transactionReasons;
-        private readonly Type? _currency;
+
+        /// <summary>
+        /// The money step, shared with <see cref="Rp1BuildStartCommands"/>
+        /// rather than written twice. Its own header says why: a second copy that
+        /// drifted would not fail a build, it would overdraw a career silently.
+        /// </summary>
+        private readonly Rp1Pricing _pricing = new Rp1Pricing();
 
         public Rp1BuildCommands()
         {
             _scm = Rp1Types.Find(ScmTypeName);
             _utilities = Rp1Types.Find(UtilitiesTypeName);
-            _currencyQuery = Rp1Types.Find(CurrencyQueryTypeName);
-            _transactionReasons = Rp1Types.Find(TransactionReasonsTypeName);
-            _currency = Rp1Types.Find(CurrencyTypeName);
         }
 
         /// <summary>
@@ -180,9 +172,7 @@ namespace GonogoRp1Uplink
         public bool IsAvailable =>
             _scm != null
             && _utilities != null
-            && _currencyQuery != null
-            && _transactionReasons != null
-            && _currency != null;
+            && _pricing.IsAvailable;
 
         /// <summary>
         /// The requirements <c>rp1.build.repeat</c> declares. One, and static; see
@@ -305,7 +295,7 @@ namespace GonogoRp1Uplink
                     "RP-1 will not integrate this vehicle at " + complexName + ": " + failedChecks);
             }
 
-            var price = TryPrice(vessel, out var affordable, out var priceFailure);
+            var price = _pricing.Price(vessel, out var affordable, out var priceFailure);
             if (priceFailure != null)
             {
                 return priceFailure;
@@ -319,7 +309,7 @@ namespace GonogoRp1Uplink
                     FacilityName = complexName,
                     Quantity = "funds",
                     Actual = price,
-                    Limit = ReadFundsBalance(),
+                    Limit = Rp1Pricing.FundsBalance(),
                     Unit = Units.Funds,
                 });
             }
@@ -473,86 +463,6 @@ namespace GonogoRp1Uplink
         {
             var node = Rp1Types.Member(vessel, "ShipNodeCompressed");
             return node != null && Rp1Types.ReadBool(node, "IsEmpty") == true;
-        }
-
-        /// <summary>
-        /// What RP-1 would actually charge for this vehicle, and whether the
-        /// career can cover it.
-        ///
-        /// <para>A refusal comes back through <paramref name="failure"/> rather
-        /// than as an unaffordable verdict, because "the price could not be
-        /// computed" and "the price is too high" are different things to tell an
-        /// operator, and only the second is about their money.</para>
-        /// </summary>
-        private double TryPrice(object vessel, out bool affordable, out CommandResult? failure)
-        {
-            affordable = false;
-            failure = null;
-            try
-            {
-                var totalCost = Rp1Types.InstanceMethod(vessel, "GetTotalCost", 0);
-                var runQuery = Rp1Types.StaticMethod(_currencyQuery!, "RunQuery", 4);
-                var reason = Enum.Parse(_transactionReasons!, VesselPurchaseReason);
-                var funds = Enum.Parse(_currency!, FundsCurrency);
-                if (totalCost == null || runQuery == null)
-                {
-                    failure = PriceUnreadable(null);
-                    return 0.0;
-                }
-
-                var listPrice = Rp1Types.ToDouble(totalCost.Invoke(vessel, null)) ?? 0.0;
-                var query = runQuery.Invoke(null, new object[] { reason, -listPrice, 0.0, 0.0 });
-                var canAfford = query?.GetType().GetMethod("CanAfford", new[] { _currency! });
-                var getTotal = query?.GetType().GetMethod("GetTotal", new[] { _currency!, typeof(bool) });
-                if (query == null || canAfford == null)
-                {
-                    failure = PriceUnreadable(null);
-                    return 0.0;
-                }
-
-                affordable = canAfford.Invoke(query, new[] { funds }) is bool ok && ok;
-
-                // The charge RP-1 arrived at, not the list price: leaders and
-                // strategies move it, and a refusal that quoted the wrong number
-                // would send an operator looking for funds they already have. The
-                // query states it as a negative delta, so it is negated back.
-                var charged = getTotal == null
-                    ? (double?)null
-                    : Rp1Types.ToDouble(getTotal.Invoke(query, new object[] { funds, true }));
-                return charged.HasValue ? -charged.Value : listPrice;
-            }
-            catch (Exception ex)
-            {
-                failure = PriceUnreadable(ex);
-                return 0.0;
-            }
-        }
-
-        /// <summary>
-        /// The refusal for a price this Uplink could not compute. It REFUSES, and
-        /// that direction is the whole point: RP-1's SpendFunds does no
-        /// affordability test of its own, so proceeding on an unreadable price is
-        /// how a career ends up in negative funds with nothing to show for it.
-        /// </summary>
-        private static CommandResult PriceUnreadable(Exception? ex) => CommandResult.Fail(
-            CommandErrorCode.ModeUnavailable,
-            "RP-1's own price for this vehicle could not be read, so the build was not started"
-            + (ex == null ? "" : ": " + Rp1Types.ExceptionReason(ex)));
-
-        /// <summary>
-        /// The career's funds, for the number beside a refusal only. Read off
-        /// KSP's own Funding rather than anything of RP-1's, because RP-1 keeps
-        /// no balance of its own; absent when it cannot be read, which costs a
-        /// refusal its second number and nothing else.
-        /// </summary>
-        private static double? ReadFundsBalance()
-        {
-            var funding = Rp1Types.Find("Funding");
-            if (funding == null)
-            {
-                return null;
-            }
-            return Rp1Types.ReadDouble(Rp1Types.StaticValue(funding, "Instance"), "Funds");
         }
 
         private object? ScmInstance() => _scm == null ? null : Rp1Types.StaticValue(_scm, "Instance");

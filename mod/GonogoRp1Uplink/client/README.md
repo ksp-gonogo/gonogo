@@ -16,6 +16,7 @@ Brings RP-1's career layer to the dashboard: Programs with their objectives, dea
 | Topic | Payload | Delivery | Delay |
 | --- | --- | --- | --- |
 | `rp1.buildQueue` | `Rp1BuildItemEntry[]` | lossy-latest | true-now |
+| `rp1.buildable` | `Rp1BuildableCraftEntry[]` | lossy-latest | true-now |
 | `rp1.centres` | `Rp1CentreEntry[]` | lossy-latest | true-now |
 | `rp1.complexes` | `Rp1ComplexEntry[]` | lossy-latest | true-now |
 | `rp1.confidence` | `Rp1Confidence` | lossy-latest | true-now |
@@ -34,7 +35,9 @@ Brings RP-1's career layer to the dashboard: Programs with their objectives, dea
 
 | Payload | Fields |
 | --- | --- |
+| `Rp1BuildableComplex` | `eligible` flag, `kscName` id, `lcId` id, `name` text, `refusals` text |
 | `Rp1BuildRepeatArgs` | `id` id |
+| `Rp1BuildStartArgs` | `craftFile` id, `facility` enum, `lcId` id |
 | `Rp1ComplexRushArgs` | `lcId` id, `rushing` flag |
 | `Rp1FundingCurveKey` | `frac` ratio, `inTangent` 1, `outTangent` 1, `paidFraction` ratio |
 | `Rp1ProgramPaymentEntry` | `cumulativeFunds` funds, `funds` funds, `year` count |
@@ -116,12 +119,12 @@ RP-1's payroll: engineers, researchers and applicants on the books, each centre'
 
 ### Vehicle Assembly
 
-Every craft RP-1 is integrating or holding, across every launch complex at every space centre: what it costs, how far along it is, why its clock reads what it reads, and the controls to roll one out, bring it back or scrap it.
+Every craft RP-1 is integrating, holding or could start, across every launch complex at every space centre: what it costs, how far along it is, why its clock reads what it reads, and the controls to start a build, roll one out, bring it back or scrap it.
 
 | | |
 | --- | --- |
 | Widget id | `rp1-vehicle-assembly` |
-| Reads | `rp1.available`, `rp1.warehouse`, `rp1.buildQueue`, `rp1.complexes`, `rp1.pads`, `rp1.operations`, `career.status` |
+| Reads | `rp1.available`, `rp1.warehouse`, `rp1.buildQueue`, `rp1.buildable`, `rp1.complexes`, `rp1.pads`, `rp1.operations`, `career.status` |
 | Slots | `rp1-vehicle-assembly.sections` |
 | Default size | 7 × 16 |
 
@@ -155,6 +158,16 @@ Every craft RP-1 is integrating or holding, across every launch complex at every
 
 ![The same widget at 18 × 5](docs/assets/assembly-rushing--landscape-18x5.png)
 
+![A career with nothing built and three saved craft: Atlas buildable at either complex, Redstone at LC-2 only with LC-1's mass floor spelled out, and Saturn I too heavy for both with each complex's limit named, every button confirming a price against the balance drawn at the top](docs/assets/assembly-start-a-build--default.png)
+
+![The same widget at its minimum size](docs/assets/assembly-start-a-build--min.png)
+
+![The same widget at 9 × 8](docs/assets/assembly-start-a-build--mobile-9x8.png)
+
+![The same widget at 5 × 18](docs/assets/assembly-start-a-build--portrait-5x18.png)
+
+![The same widget at 18 × 5](docs/assets/assembly-start-a-build--landscape-18x5.png)
+
 ![Four craft across two launch complexes: one flying-ready and one still integrating at each, the key line at the top saying what LC-1 and LC-2 are and where they stand, and every card naming its complex and the staffing that sets its rate](docs/assets/assembly-two-complexes--default.png)
 
 ![The same widget at its minimum size](docs/assets/assembly-two-complexes--min.png)
@@ -187,6 +200,7 @@ Every craft RP-1 is integrating or holding, across every launch complex at every
 | `rp1-program-status` | `career-economy.sections` | – |  |  |
 | `rp1-research-queue` | `tech-tree.sections` | – |  |  |
 | `rp1-vehicle-assembly-building` | `rp1-vehicle-assembly.sections` | – |  |  |
+| `rp1-vehicle-assembly-buildable` | `rp1-vehicle-assembly.sections` | – |  |  |
 | `rp1-vehicle-assembly-warehouse` | `rp1-vehicle-assembly.sections` | – |  |  |
 
 ![The launch complexes as infrastructure, with the one control that changes how fast they work: LC-1 already rushing and offered the way out, LC-2 offered the way in](docs/assets/complexes-rushing--default.png)

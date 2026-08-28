@@ -193,6 +193,35 @@ namespace GonogoRp1Uplink.Tests
         }
 
         [Fact]
+        public void Every_constructor_the_uplink_invokes_is_present_with_the_arity_it_matches_on()
+        {
+            var failures = new List<string>();
+            foreach (var target in Rp1ReflectionTargets.Constructors)
+            {
+                var assembly = AssemblyFor(target.Assembly);
+                if (assembly == null)
+                {
+                    failures.Add(Missing(target.Assembly, target.Type + "..ctor", target.CallSite));
+                    continue;
+                }
+
+                var overloads = assembly.FindMethods(target.Type, ".ctor");
+                var match = overloads.FirstOrDefault(m =>
+                    m.ParameterTypes.Length == target.Arity && m.IsPublic);
+
+                if (match == null)
+                {
+                    failures.Add(
+                        target.Type + " has no public constructor taking " + target.Arity
+                        + " parameter(s), which is how " + target.CallSite + " finds it. Present instead: "
+                        + string.Join(" | ", overloads.Select(Describe)));
+                }
+            }
+
+            AssertNone(failures, "constructors");
+        }
+
+        [Fact]
         public void Every_method_the_uplink_invokes_is_present_with_the_arity_it_matches_on()
         {
             var failures = new List<string>();
@@ -342,6 +371,17 @@ namespace GonogoRp1Uplink.Tests
                         ? null
                         : "cannot be written (" + facts.Shape
                           + " with no setter), and the withholder has to put a balance back through it";
+
+                case Rp1Reader.GuidWrite:
+                    if (facts.TypeName is not ("System.Guid" or "System.String"))
+                    {
+                        return "is declared " + facts.TypeName
+                            + ", and the value written to it is another member's Guid";
+                    }
+                    return facts.IsWritable
+                        ? null
+                        : "cannot be written (" + facts.Shape
+                          + " with no setter), so a build would land at whichever complex was active";
 
                 case Rp1Reader.Bool:
                     return facts.TypeName == "System.Boolean"

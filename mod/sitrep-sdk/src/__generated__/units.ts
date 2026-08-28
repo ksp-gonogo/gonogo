@@ -1943,6 +1943,9 @@ export const GENERATED_TYPE_SHAPES: Readonly<Record<string, ShapesByField>> = {
   "CommsSignalStrength": {
     meta: "PayloadMeta",
   },
+  "CraftLoad": {
+    measured: "CraftFileRecord",
+  },
   "CrashReport": {
     flightStats: "CrashFlightStats",
     partsLost: "CrashPartLost[]",

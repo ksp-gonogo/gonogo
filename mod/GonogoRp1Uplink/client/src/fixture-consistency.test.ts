@@ -65,7 +65,7 @@ interface PadRow {
  * Hangar complexes are exempt because they genuinely have no pads: an SPH
  * complex rolls its craft to a runway.
  */
-function inconsistencies(emits: readonly Emit[]): string[] {
+function inconsistencies(emits: readonly Emit[], widget = ""): string[] {
   const complexes = payloadRows<ComplexRow>(emits, "rp1.complexes");
   if (complexes === undefined || !aboutVehicles(emits)) {
     return [];
@@ -91,8 +91,34 @@ function inconsistencies(emits: readonly Emit[]): string[] {
       );
     }
   }
+
+  // The vehicles surface offers to START a build, and reads the craft listing
+  // to know what could be started and where. A fixture that describes a whole
+  // space centre and omits it photographs "waiting for the craft listing" over
+  // a career that is fully described, which is the same shape as the three
+  // defects above: a state the widget is right to draw, about a save the
+  // fixture never meant to be in.
+  //
+  // Scoped to the WIDGET rather than to the topics emitted, unlike the pad rule
+  // above. Only one widget reads the craft listing, and the render harness
+  // refuses a topic the mounted tree does not read, so asking this of a launch
+  // complex's own scene would demand an emit that scene cannot carry.
+  if (
+    widget === VEHICLES_WIDGET &&
+    !emits.some((emit) => emit.topic === "rp1.buildable")
+  ) {
+    problems.push(
+      'the fixture emits no "rp1.buildable" at all, so the widget says it is ' +
+        "still waiting for the craft listing. An empty array is the right " +
+        "answer for a career with no craft saved",
+    );
+  }
+
   return problems;
 }
+
+/** The one widget that reads the craft listing, and offers to start a build. */
+const VEHICLES_WIDGET = "rp1-vehicle-assembly";
 
 /**
  * Whether this fixture's subject is the vehicles: it emits one of the lists a
@@ -123,6 +149,8 @@ function payloadRows<T>(
 interface Fixture {
   where: string;
   emits: Emit[];
+  /** The widget the scene mounts, which decides which rules can apply to it. */
+  widget: string;
 }
 
 function fixtures(): Fixture[] {
@@ -140,10 +168,11 @@ function fixtures(): Fixture[] {
       if (!entry.endsWith(".json")) continue;
       const parsed = JSON.parse(
         readFileSync(join(fixturesDir, entry), "utf8"),
-      ) as { _stream?: { emits?: Emit[] } };
+      ) as { _scene?: { widget?: string }; _stream?: { emits?: Emit[] } };
       found.push({
         emits: parsed._stream?.emits ?? [],
         where: `${dir}/__fixtures__/${entry}`,
+        widget: parsed._scene?.widget ?? "",
       });
     }
   }
@@ -164,7 +193,28 @@ describe("RP-1 fixture consistency", () => {
   it.each(
     all.map((f) => [f.where, f] as const),
   )("%s describes a space centre RP-1 could produce", (_where, fixture) => {
-    expect(inconsistencies(fixture.emits)).toEqual([]);
+    expect(inconsistencies(fixture.emits, fixture.widget)).toEqual([]);
+  });
+
+  it("catches a vehicles fixture that never emits the craft listing", () => {
+    // The second planted violation, and a DIFFERENT shape from the first: the
+    // pad rule fails on a contradiction between two topics, this one on a topic
+    // that is absent entirely, and a checker that could only see the first
+    // would report a clean sweep over every fixture missing the second.
+    const problems = inconsistencies(
+      [
+        { payload: [], topic: "rp1.warehouse" },
+        {
+          payload: [
+            { isOperational: false, lcId: "lc-1", lcType: "Pad", name: "LC-1" },
+          ],
+          topic: "rp1.complexes",
+        },
+      ],
+      "rp1-vehicle-assembly",
+    );
+    expect(problems).toHaveLength(1);
+    expect(problems[0]).toContain("rp1.buildable");
   });
 
   it("catches an operational pad complex whose fixture emits no pads", () => {
@@ -179,6 +229,7 @@ describe("RP-1 fixture consistency", () => {
         topic: "rp1.complexes",
       },
       { payload: [], topic: "rp1.warehouse" },
+      { payload: [], topic: "rp1.buildable" },
     ]);
 
     expect(problems).toHaveLength(1);
@@ -197,6 +248,7 @@ describe("RP-1 fixture consistency", () => {
         topic: "rp1.complexes",
       },
       { payload: [{ lcId: "lc-1" }], topic: "rp1.pads" },
+      { payload: [], topic: "rp1.buildable" },
     ]);
 
     expect(problems).toHaveLength(1);
@@ -221,6 +273,7 @@ describe("RP-1 fixture consistency", () => {
           topic: "rp1.complexes",
         },
         { payload: [], topic: "rp1.warehouse" },
+        { payload: [], topic: "rp1.buildable" },
       ]),
     ).toEqual([]);
   });

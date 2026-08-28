@@ -256,8 +256,64 @@ namespace RP0
 
         private LaunchComplex? _lc;
 
+        private Guid _lcID;
+
         /// <summary>The complex holding this vehicle, which is where a copy of it is built.</summary>
         public LaunchComplex LC => _lc!;
+
+        /// <summary>
+        /// The complex a vehicle is bound to, by id, and the ONLY way RP-1's own
+        /// code retargets one: its build-list add takes an override complex and
+        /// assigns this, so the setter's resolve-through-the-manager step is the
+        /// behaviour a caller depends on rather than an implementation detail.
+        /// </summary>
+        public Guid LCID
+        {
+            get => _lcID;
+            set
+            {
+                _lcID = value;
+                _lc = value == Guid.Empty ? null : SpaceCenterManagement.Instance?.LC(value);
+            }
+        }
+
+        /// <summary>
+        /// The constructor that MEASURES a craft: the only one RP-1 has that
+        /// turns a loaded ship into a vehicle it will integrate, and the reason a
+        /// build cannot be started from a craft file without live parts.
+        ///
+        /// <para>The shipped one computes mass, size, cost, effective cost, build
+        /// points, part names, human rating and stage counts off the parts, and
+        /// stores the craft node. Reproduced here down to the two fields a test
+        /// can see: the name comes off the ship, and so does whether this is a
+        /// VAB or an SPH project, which is what decides the kind of complex it
+        /// can go to.</para>
+        /// </summary>
+        public VesselProject(ShipConstruct ship, string ls, string flagURL, bool storeConstruct)
+        {
+            shipName = ship?.shipName ?? "";
+            launchSite = ls;
+            Type = ship?.shipFacility == EditorFacility.SPH ? ProjectType.SPH : ProjectType.VAB;
+            cost = ship?.totalCost ?? 0f;
+            mass = ship?.totalMass ?? 0f;
+            Stored = storeConstruct;
+            Flag = flagURL;
+            if (NextFacilityRefusals != null)
+            {
+                FacilityRefusals = NextFacilityRefusals;
+                NextFacilityRefusals = null;
+            }
+        }
+
+        public VesselProject()
+        {
+        }
+
+        /// <summary>Whether the craft node was stored, which a vehicle with no design cannot be copied without.</summary>
+        public bool Stored;
+
+        /// <summary>The flag the vehicle was started under, kept so a test can see it was passed at all.</summary>
+        public string? Flag;
 
         public void SetBuildRate(double rate) => _buildRate = rate;
 
@@ -293,6 +349,13 @@ namespace RP0
 
         /// <summary>What the complex would refuse this vehicle for, set per test.</summary>
         public List<string> FacilityRefusals = new List<string>();
+
+        /// <summary>
+        /// The refusals the NEXT measured vehicle is born with. Static because a
+        /// build started from a craft file constructs the vehicle inside the
+        /// handler, so a test has nowhere to set them on the instance.
+        /// </summary>
+        public static List<string>? NextFacilityRefusals;
 
         /// <summary>
         /// The real one measures mass, size, human-rating, clamps and stocked
@@ -660,6 +723,26 @@ namespace RP0
         /// makes it the second quantity derived from a neutralised science change.
         /// </summary>
         public double SciPointsTotal;
+
+        /// <summary>
+        /// The complex with this id, across every centre, or null. RP-1's own
+        /// lookup and the one its <c>LCID</c> setter resolves through, which is
+        /// why binding a vehicle to a complex needs the manager to be live.
+        /// </summary>
+        public LaunchComplex? LC(Guid id)
+        {
+            foreach (var centre in KSCs)
+            {
+                foreach (var lc in centre.LaunchComplexes)
+                {
+                    if (lc.ID == id)
+                    {
+                        return lc;
+                    }
+                }
+            }
+            return null;
+        }
     }
 
     /// <summary>
@@ -851,6 +934,41 @@ public class Funding
 public class Vessel
 {
     public string vesselName = "";
+}
+
+// KSP's loaded craft, which the craft catalogue hands an Uplink as an opaque
+// handle. Global-namespaced for the same reason the rest are, and present with
+// the two fields RP-1's own vehicle constructor reads off it: the ship's name
+// and which editor drew it, the second of which decides whether the vehicle is
+// integrated at a launch complex or at the hangar.
+//
+// The Uplink never names this type. It appears here because the stand-in
+// VesselProject constructor has to read the same two fields the shipped one
+// reads, or a test would prove a constructor call that carries nothing.
+public class ShipConstruct
+{
+    public string shipName = "";
+
+    public EditorFacility shipFacility = EditorFacility.VAB;
+
+    // The measurements RP-1's constructor takes off the parts, standing in for
+    // the part walk itself. Here as plain numbers because what a test needs to
+    // see is that the vehicle CARRIES a cost and a mass it did not have before
+    // the craft was loaded: a build priced at zero is the shape of a handler
+    // that built its vehicle from nothing and charged the career accordingly.
+    public float totalCost;
+
+    public float totalMass;
+}
+
+// KSP's editor enum, as the craft file records it. Global-namespaced like the
+// rest; the ordinals are KSP's own, because the catalogue's wire form is the
+// ordinal and a renumbering here would make a test agree with nothing.
+public enum EditorFacility
+{
+    None = 0,
+    VAB = 1,
+    SPH = 2,
 }
 
 // The craft node RP-1 stores a design in, from ROUtils. Only IsEmpty is here,

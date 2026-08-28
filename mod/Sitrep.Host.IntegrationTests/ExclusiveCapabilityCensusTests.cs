@@ -86,6 +86,19 @@ namespace Sitrep.Host.IntegrationTests
             new Entry("actionGroups", "Sitrep.Host/ActionGroups/ActionGroupsElection.cs", FedByGatedCapture: false),
             new Entry("crewStanding", "Sitrep.Host/Crew/CrewStandingElection.cs", FedByGatedCapture: false),
             new Entry(
+                "craftCatalogue",
+                "Gonogo.KSP/SpaceCenterUplink.cs",
+                FedByGatedCapture: false,
+                WhyNoBehaviouralCase: "No Uplink registers a provider: core ships the only one, as "
+                    + "the capability's Vanilla, because a craft folder is a fact about the save's "
+                    + "directory rather than a model a mod could hold a rival opinion about. It is "
+                    + "a capability at all only because that is the one route an Uplink has into "
+                    + "core, and opening a craft file instantiates Unity parts an Uplink may not "
+                    + "name. No capture feeds it either: its answer is a folder walk made at the "
+                    + "moment it is asked, so there is no gated path that could starve it, and its "
+                    + "consumers treat an absent catalogue as data (GonogoRp1Uplink.Tests covers "
+                    + "both, as a refusal and as a control dark with its reason)."),
+            new Entry(
                 "simulation",
                 "Sitrep.Host/Comms/SimulationElection.cs",
                 FedByGatedCapture: false,

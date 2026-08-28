@@ -1,0 +1,198 @@
+{
+  "_meta": {
+    "notes": "The state the widget could not answer before: an empty space centre with saved craft and nothing built. Two complexes, three designs, and one of the three too heavy for either."
+  },
+  "_scene": {
+    "widget": "rp1-vehicle-assembly",
+    "size": { "w": 8, "h": 20 },
+    "caption": "A career with nothing built and three saved craft: Atlas buildable at either complex, Redstone at LC-2 only with LC-1's mass floor spelled out, and Saturn I too heavy for both with each complex's limit named, every button confirming a price against the balance drawn at the top",
+    "paints": [
+      "ASSEMBLY",
+      "289,848f",
+      "START A BUILD",
+      "Atlas LV-3B",
+      "Redstone",
+      "Saturn I",
+      "Build at LC-1",
+      "Build at LC-2",
+      "too heavy for the complex",
+      "too light for the complex",
+      "costs about",
+      "None built and none on order.",
+      "Launch complexes:"
+    ]
+  },
+  "_stream": {
+    "pinnedUt": 1000000,
+    "emits": [
+      {
+        "topic": "career.status",
+        "payload": {
+          "economy": { "funds": 289848, "reputation": 62, "science": 340 }
+        }
+      },
+      { "topic": "rp1.available", "payload": true },
+      {
+        "topic": "rp1.complexes",
+        "payload": [
+          {
+            "kscName": "Cape",
+            "lcId": "lc-1",
+            "name": "LC-1",
+            "lcType": "Pad",
+            "isOperational": true,
+            "isRushing": false,
+            "engineers": 18,
+            "maxEngineers": 60,
+            "efficiency": 0.72,
+            "canIntegrate": true,
+            "rate": 0.00019290123456790122,
+            "humanRated": false,
+            "massMin": 40,
+            "massMax": 180
+          },
+          {
+            "kscName": "Cape",
+            "lcId": "lc-2",
+            "name": "LC-2",
+            "lcType": "Pad",
+            "isOperational": true,
+            "isRushing": false,
+            "engineers": 6,
+            "maxEngineers": 40,
+            "efficiency": 0.4,
+            "canIntegrate": true,
+            "rate": 0.00006430041152263374,
+            "humanRated": false,
+            "massMin": 3,
+            "massMax": 130
+          }
+        ]
+      },
+      {
+        "topic": "rp1.pads",
+        "payload": [
+          {
+            "kscName": "Cape",
+            "lcId": "lc-1",
+            "padId": "pad-1",
+            "name": "LaunchPad",
+            "launchSiteName": "LaunchPad",
+            "level": 2,
+            "fractionalLevel": 2,
+            "state": "Free",
+            "hasVesselWaiting": false,
+            "waitingVesselName": null
+          },
+          {
+            "kscName": "Cape",
+            "lcId": "lc-2",
+            "padId": "pad-2",
+            "name": "LaunchPad 2",
+            "launchSiteName": "LaunchPad 2",
+            "level": 1,
+            "fractionalLevel": 1,
+            "state": "Free",
+            "hasVesselWaiting": false,
+            "waitingVesselName": null
+          }
+        ]
+      },
+      { "topic": "rp1.operations", "payload": [] },
+      { "topic": "rp1.warehouse", "payload": [] },
+      { "topic": "rp1.buildQueue", "payload": [] },
+      {
+        "topic": "rp1.buildable",
+        "payload": [
+          {
+            "craftFile": "Atlas LV-3B",
+            "shipName": "Atlas LV-3B",
+            "facility": 1,
+            "partCount": 42,
+            "mass": 120,
+            "cost": 40000,
+            "missingParts": [],
+            "lockedParts": [],
+            "unpurchasedParts": [],
+            "complexes": [
+              {
+                "lcId": "lc-1",
+                "name": "LC-1",
+                "kscName": "Cape",
+                "eligible": true,
+                "refusals": []
+              },
+              {
+                "lcId": "lc-2",
+                "name": "LC-2",
+                "kscName": "Cape",
+                "eligible": true,
+                "refusals": []
+              }
+            ]
+          },
+          {
+            "craftFile": "Redstone",
+            "shipName": "Redstone",
+            "facility": 1,
+            "partCount": 21,
+            "mass": 30,
+            "cost": 12400,
+            "missingParts": [],
+            "lockedParts": [],
+            "unpurchasedParts": [],
+            "complexes": [
+              {
+                "lcId": "lc-1",
+                "name": "LC-1",
+                "kscName": "Cape",
+                "eligible": false,
+                "refusals": [
+                  "too light for the complex at 30.0 t, minimum 40.0 t"
+                ]
+              },
+              {
+                "lcId": "lc-2",
+                "name": "LC-2",
+                "kscName": "Cape",
+                "eligible": true,
+                "refusals": []
+              }
+            ]
+          },
+          {
+            "craftFile": "Saturn I",
+            "shipName": "Saturn I",
+            "facility": 1,
+            "partCount": 96,
+            "mass": 512,
+            "cost": 214000,
+            "missingParts": [],
+            "lockedParts": [],
+            "unpurchasedParts": [],
+            "complexes": [
+              {
+                "lcId": "lc-1",
+                "name": "LC-1",
+                "kscName": "Cape",
+                "eligible": false,
+                "refusals": [
+                  "too heavy for the complex at 512.0 t, limit 180.0 t"
+                ]
+              },
+              {
+                "lcId": "lc-2",
+                "name": "LC-2",
+                "kscName": "Cape",
+                "eligible": false,
+                "refusals": [
+                  "too heavy for the complex at 512.0 t, limit 130.0 t"
+                ]
+              }
+            ]
+          }
+        ]
+      }
+    ]
+  }
+}

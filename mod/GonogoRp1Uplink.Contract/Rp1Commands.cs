@@ -134,3 +134,66 @@ public class Rp1ComplexRushArgs
     [SitrepUnit(Units.Flag)]
     public bool? Rushing { get; set; }
 }
+
+/// <summary>
+/// Args for <c>rp1.build.start</c>: begin integrating a design RP-1 has never
+/// held, from one of the save's own craft files.
+///
+/// <para><b>Why this exists beside <see cref="Rp1BuildRepeatArgs"/>.</b> The
+/// repeat command copies a vehicle RP-1 already has, at the complex that holds
+/// it. It can order a second Atlas and can never order a first one, which left
+/// an operator able to watch a career and unable to start anything in it. This
+/// is the general case, and the two share no argument: one addresses a vehicle
+/// in the model, the other a file on disk.</para>
+/// </summary>
+[SitrepContract]
+#if SITREP_CODEGEN
+[TsInterface]
+#endif
+public class Rp1BuildStartArgs
+{
+    /// <summary>
+    /// The craft FILE's own name, without its <c>.craft</c> extension, as
+    /// <c>rp1.buildable[].craftFile</c> publishes it.
+    ///
+    /// <para>Not the ship name an operator reads. KSP keeps the ship's name
+    /// inside the file and lets the two differ, so two files can carry one ship
+    /// name and a command addressing that would build whichever the directory
+    /// happened to list first. A file name is unique inside its folder by
+    /// construction, which is what makes it an address.</para>
+    /// </summary>
+    [SitrepUnit(Units.Id)]
+    public string? CraftFile { get; set; }
+
+    /// <summary>
+    /// Which editor's folder holds the file, as the KSP ordinal
+    /// <c>rp1.buildable[].facility</c> publishes.
+    ///
+    /// <para><b>REQUIRED</b>, and not a hint: the VAB and SPH folders are
+    /// separate and may each hold a file of the same name. It also decides
+    /// which kind of complex the vehicle belongs at, so a substituted default
+    /// would order a spaceplane integrated at a launch pad.</para>
+    /// </summary>
+    [SitrepUnit(Units.Enumeration)]
+    public KspEditorFacility? Facility { get; set; }
+
+    /// <summary>
+    /// Which launch complex integrates it, by the GUID
+    /// <c>rp1.complexes[].lcId</c> publishes.
+    ///
+    /// <para><b>REQUIRED</b>: the command refuses when it is absent, even when
+    /// only one complex could possibly have been meant. The same operator
+    /// ruling that governs <see cref="Rp1RolloutArgs.Pad"/> applies unchanged,
+    /// and applies harder here: a complex decides the mass and size envelope,
+    /// the human rating and the build rate, so choosing one is the whole of the
+    /// decision an operator is making. Requiring it also means the wire RECORDS
+    /// which complex was chosen rather than leaving it to be inferred.</para>
+    ///
+    /// <para>The client is where the convenience belongs: it may PRESELECT the
+    /// only complex that would take the craft, so a one-complex career is still
+    /// a single press, and eligibility is on the wire for it to do that with as
+    /// <c>rp1.buildable[].complexes[].refusals</c>.</para>
+    /// </summary>
+    [SitrepUnit(Units.Id)]
+    public string? LcId { get; set; }
+}

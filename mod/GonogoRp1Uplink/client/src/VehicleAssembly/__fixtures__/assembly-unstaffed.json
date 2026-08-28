@@ -4,14 +4,18 @@
   },
   "_scene": {
     "widget": "rp1-vehicle-assembly",
-    "size": { "w": 8, "h": 12 },
+    "size": {
+      "w": 8,
+      "h": 12
+    },
     "caption": "A launch complex with nobody assigned to it: the build has no end date, and the card says which of the two reasons that is, rather than reporting a stall an operator would go hunting behind",
     "paints": [
       "ASSEMBLY",
       "STALLED",
       "nobody is assigned to LC-2",
       "0 / 40",
-      "engineers"
+      "engineers",
+      "No craft saved"
     ]
   },
   "_stream": {
@@ -20,10 +24,17 @@
       {
         "topic": "career.status",
         "payload": {
-          "economy": { "funds": 61400, "reputation": 62, "science": 340 }
+          "economy": {
+            "funds": 61400,
+            "reputation": 62,
+            "science": 340
+          }
         }
       },
-      { "topic": "rp1.available", "payload": true },
+      {
+        "topic": "rp1.available",
+        "payload": true
+      },
       {
         "topic": "rp1.complexes",
         "payload": [
@@ -62,8 +73,14 @@
           }
         ]
       },
-      { "topic": "rp1.operations", "payload": [] },
-      { "topic": "rp1.warehouse", "payload": [] },
+      {
+        "topic": "rp1.operations",
+        "payload": []
+      },
+      {
+        "topic": "rp1.warehouse",
+        "payload": []
+      },
       {
         "topic": "rp1.buildQueue",
         "payload": [
@@ -87,6 +104,10 @@
             "rolloutRefusals": null
           }
         ]
+      },
+      {
+        "topic": "rp1.buildable",
+        "payload": []
       }
     ]
   }

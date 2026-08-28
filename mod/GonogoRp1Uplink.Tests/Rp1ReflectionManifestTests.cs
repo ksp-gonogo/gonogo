@@ -41,6 +41,8 @@ namespace GonogoRp1Uplink.Tests
             "Rp1LaunchGate.cs",
             "Rp1CareerProjectGate.cs",
             "Rp1BuildCommands.cs",
+            "Rp1BuildStartCommands.cs",
+            "Rp1Pricing.cs",
             "Rp1VehicleCommands.cs",
             "Rp1DerivedCurrencyWithholder.cs",
             "Rp1SimulationBackend.cs",
