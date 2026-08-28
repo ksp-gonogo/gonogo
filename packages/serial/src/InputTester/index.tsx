@@ -217,8 +217,11 @@ registerComponent<InputTesterConfig>({
   description:
     "Live read-out of every button and axis on the selected serial device, straight off the transport, no action mapping required. Pick a device from the dropdown, press a button or move an axis, and watch its row light up. Useful for verifying wiring, offsets, and parser min/max before you start mapping inputs to actions.",
   tags: ["input", "debug"],
-  defaultSize: { w: 4, h: 6 },
-  minSize: { w: 3, h: 3 },
+  defaultSize: { w: 5, h: 6 },
+  // An axis row is a fixed instrument: an 80px name, a track wide enough to
+  // read a deflection off, and a 48px value. Five columns is the narrowest
+  // tile all three fit in.
+  minSize: { w: 5, h: 3 },
   component: InputTesterComponent,
   dataRequirements: [],
   defaultConfig: {},
@@ -241,8 +244,11 @@ const STATUS_TONE: Record<string, ReadoutTone> = {
 
 // ── Styles ───────────────────────────────────────────────────────────────────
 
+/* The counts sit on their own line when the status pill has already used the
+   width, rather than running off the side of a narrow tile. */
 const StatusRow = styled.div`
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
   gap: var(--space-8);
   font-size: var(--font-size-xs);
