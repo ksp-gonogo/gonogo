@@ -85,6 +85,7 @@ const REGISTRATIONS = [
   "@ksp-gonogo/gonogo-kos-uplink",
   "@ksp-gonogo/gonogo-mechjeb-uplink",
   "@ksp-gonogo/gonogo-principia-uplink",
+  "@ksp-gonogo/gonogo-real-fuels-uplink",
   "@ksp-gonogo/gonogo-realantennas-uplink",
   "@ksp-gonogo/gonogo-rp1-uplink",
   // The app's own two widgets, by path: they are not a package of their own,

@@ -1,0 +1,22 @@
+GonogoRealFuelsUplink integrates with RealFuels
+(https://github.com/KSP-RO/RealFuels) entirely at ARM'S LENGTH: it reads
+RealFuels' runtime state (ModuleEnginesRF ignition budget, UllageSet propellant
+settling, ModuleFuelTanks boiloff) through reflection ONLY. It does NOT link
+the RealFuels assembly at build time, does NOT derive from RealFuels types, and
+bundles NO RealFuels source or assets.
+
+RealFuels is distributed under the Creative Commons Attribution-ShareAlike
+licence (CC-BY-SA), as modified by ialdabaoth:
+
+  https://creativecommons.org/licenses/by-sa/4.0/
+
+Its ullage simulation is based on HoneyFox's EngineIgnitor, reused by RealFuels
+under the MIT licence.
+
+Because this uplink incorporates none of RealFuels' code (arm's-length
+reflection over the running plugin's members), the ShareAlike obligation is not
+triggered, and GonogoRealFuelsUplink is licensed MIT, in line with the rest of
+gonogo. This notice is retained to attribute RealFuels and its authors for the
+engine-realism model this uplink reads.
+
+RealFuels contributors: https://github.com/KSP-RO/RealFuels/graphs/contributors

@@ -1,0 +1,46 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <!--
+    GonogoRealFuelsUplink's OWN contract slice: the three wire payload types
+    (RealFuelsEngines, RealFuelsEngineEntry, RealFuelsBoiloff). No
+    uplink-specific wire type may live in Sitrep.Contract, even for an
+    in-monorepo Uplink.
+
+    Its own small project rather than a second TFM leg on
+    GonogoRealFuelsUplink.csproj, same reasoning as every other slice: these
+    POCOs have no RealFuels or UnityEngine dependency at all, so splitting them
+    out keeps the netstandard2.0 codegen leg clear of the KSP HintPath
+    references the uplink assembly carries.
+
+    MIT, not RealFuels' CC-BY-SA terms: unlike GonogoRealFuelsUplink.csproj
+    (which reaches ModuleEnginesRF purely by reflection and never links
+    RealFuels.dll), this slice declares only plain DTOs against Sitrep.Contract,
+    no RealFuels code or types at all. A third party could write an alternative
+    client against this exact wire shape without touching RealFuels' licence.
+  -->
+  <PropertyGroup>
+    <TargetFrameworks>netstandard2.0;net48</TargetFrameworks>
+    <Nullable>enable</Nullable>
+    <LangVersion>latest</LangVersion>
+    <PackageLicenseExpression>MIT</PackageLicenseExpression>
+    <AssemblyName>GonogoRealFuelsUplink.Contract</AssemblyName>
+    <RootNamespace>GonogoRealFuelsUplink</RootNamespace>
+  </PropertyGroup>
+
+  <!-- Reinforced.Typings is a compile-time-only codegen dependency and must NOT
+       flow to net48 (the runtime TFM GonogoRealFuelsUplink.csproj bundles): a
+       Kopernicus-loaded net48 assembly must never try to resolve
+       Reinforced.Typings.dll. The codegen twin recompiles these same sources
+       with SITREP_CODEGEN defined instead, see ..\CodegenTwin.props. -->
+  <ItemGroup>
+  </ItemGroup>
+
+  <!-- Sitrep.Contract only, Private="false": SitrepContractAttribute /
+       SitrepTopicAttribute / SitrepUnitAttribute / Units are core's
+       cross-package surface, provided by the core mod at runtime, never copied
+       here. -->
+  <ItemGroup>
+    <ProjectReference Include="..\Sitrep.Contract\Sitrep.Contract.csproj">
+      <Private>false</Private>
+    </ProjectReference>
+  </ItemGroup>
+</Project>

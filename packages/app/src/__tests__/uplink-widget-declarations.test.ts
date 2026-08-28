@@ -25,6 +25,7 @@ import "@ksp-gonogo/gonogo-kerbcast-uplink";
 import "@ksp-gonogo/gonogo-kos-uplink";
 import "@ksp-gonogo/gonogo-mechjeb-uplink";
 import "@ksp-gonogo/gonogo-principia-uplink";
+import "@ksp-gonogo/gonogo-real-fuels-uplink";
 import "@ksp-gonogo/gonogo-realantennas-uplink";
 import "@ksp-gonogo/gonogo-rp1-uplink";
 

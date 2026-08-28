@@ -323,6 +323,32 @@ echo "codegen -> $aero_out_dir/topic-map.ts"
 echo "codegen -> $aero_out_dir/units.ts"
 echo "codegen -> $aero_out_dir/units.json"
 
+# RealFuels: the engine-realism slice. Three types and TWO [SitrepTopic]s
+# (realfuels.engines, realfuels.boiloff), so SITREP_REALFUELS_TOPICMAP_OUT names
+# two entries. The third type, RealFuelsEngineEntry, is exported without a topic
+# of its own: it is the element type of RealFuelsEngines.Engines, the first
+# nested LIST element a slice has carried, and it is what the client's generated
+# array points at.
+realfuels_proj="$ROOT/mod/GonogoRealFuelsUplink.Contract.Codegen"
+realfuels_out_dir="$ROOT/mod/GonogoRealFuelsUplink/client/src/__generated__"
+realfuels_bin="$realfuels_proj/bin/Debug/netstandard2.0"
+
+dotnet build "$realfuels_proj/GonogoRealFuelsUplink.Contract.Codegen.csproj" -v minimal
+mkdir -p "$realfuels_out_dir"
+
+DOTNET_ROLL_FORWARD=LatestMajor \
+  SITREP_REALFUELS_TOPICMAP_OUT="$realfuels_out_dir/topic-map.ts" \
+  SITREP_REALFUELS_UNITMAP_OUT="$realfuels_out_dir/units.ts" \
+  SITREP_REALFUELS_UNITJSON_OUT="$realfuels_out_dir/units.json" \
+  dotnet "$RTCLI" \
+  SourceAssemblies="$realfuels_bin/GonogoRealFuelsUplink.Contract.dll" \
+  TargetFile="$realfuels_out_dir/contract.ts" \
+  ConfigurationMethod="GonogoRealFuelsUplink.RealFuelsRtConfig.Configure"
+echo "codegen -> $realfuels_out_dir/contract.ts"
+echo "codegen -> $realfuels_out_dir/topic-map.ts"
+echo "codegen -> $realfuels_out_dir/units.ts"
+echo "codegen -> $realfuels_out_dir/units.json"
+
 # ui-kit's symbol -> kind table is generated FROM the SDK's unit model rather
 # than hand-maintained beside it. It is a separate step because its input is
 # TypeScript rather than the C# assembly: see scripts/gen-unit-kinds.mjs. Run
