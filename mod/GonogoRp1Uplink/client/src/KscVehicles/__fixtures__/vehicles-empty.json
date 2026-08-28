@@ -79,12 +79,6 @@
         ]
       },
       {
-        "topic": "spaceCenter.partsAvailable",
-        "payload": {
-          "count": 142
-        }
-      },
-      {
         "topic": "rp1.available",
         "payload": true
       },
@@ -122,6 +116,35 @@
             "humanRated": false,
             "massMin": 3,
             "massMax": 90
+          }
+        ]
+      },
+      {
+        "topic": "rp1.pads",
+        "payload": [
+          {
+            "kscName": "Cape",
+            "lcId": "lc-1",
+            "padId": "pad-1",
+            "name": "LaunchPad",
+            "launchSiteName": "LaunchPad",
+            "level": 2,
+            "fractionalLevel": 2,
+            "state": "Free",
+            "hasVesselWaiting": false,
+            "waitingVesselName": null
+          },
+          {
+            "kscName": "Cape",
+            "lcId": "lc-2",
+            "padId": "pad-2",
+            "name": "LaunchPad 2",
+            "launchSiteName": "LaunchPad 2",
+            "level": 1,
+            "fractionalLevel": 1,
+            "state": "Free",
+            "hasVesselWaiting": false,
+            "waitingVesselName": null
           }
         ]
       },

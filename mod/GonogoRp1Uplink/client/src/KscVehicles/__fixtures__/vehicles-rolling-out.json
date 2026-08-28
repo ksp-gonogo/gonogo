@@ -78,12 +78,6 @@
         ]
       },
       {
-        "topic": "spaceCenter.partsAvailable",
-        "payload": {
-          "count": 142
-        }
-      },
-      {
         "topic": "rp1.available",
         "payload": true
       },
@@ -148,6 +142,18 @@
             "level": 1,
             "fractionalLevel": 1,
             "state": "Reconditioning",
+            "hasVesselWaiting": false,
+            "waitingVesselName": null
+          },
+          {
+            "kscName": "Cape",
+            "lcId": "lc-2",
+            "padId": "pad-3",
+            "name": "LC-2 Pad",
+            "launchSiteName": "LC-2 Pad",
+            "level": 1,
+            "fractionalLevel": 1,
+            "state": "Free",
             "hasVesselWaiting": false,
             "waitingVesselName": null
           }

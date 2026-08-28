@@ -42,18 +42,12 @@ import {
 } from "../shared/magnitude";
 
 const topics = defineTopicManifest({
-  channels: [
-    "career.status",
-    "spaceCenter.partsAvailable",
-    "spaceCenter.scene",
-    "spaceCenter.state",
-  ],
+  channels: ["career.status", "spaceCenter.scene", "spaceCenter.state"],
   fields: [
     "career.status.facilities",
     "career.status.economy.funds",
     "career.status.economy.subsidyPerDay",
     "career.status.economy.upkeepPerDay",
-    "spaceCenter.partsAvailable.count",
     "spaceCenter.scene.launchSite",
     "spaceCenter.scene.scene",
     "spaceCenter.state.padOccupied",
@@ -291,7 +285,6 @@ function SpaceCenterStatusComponent({
   //    career.status Topic read).
   //  - kc.scene / kc.launchSite -> spaceCenter.scene.{scene,launchSite}
   //    (plain fields on the one SpaceCenterScene Topic).
-  //  - kc.partsAvailable -> spaceCenter.partsAvailable.count.
   //  - kc.padOccupied / kc.padVesselTitle -> the DERIVED spaceCenter.state
   //    channel (space-center-state.ts, off spaceCenter.launchSites): read
   //    via useStream, not a canonical one-arg Topic read.
@@ -334,11 +327,6 @@ function SpaceCenterStatusComponent({
     fundsNotCurrent &&
     magnitudeOf(stillTrue(careerReading, undefined)?.economy?.funds) !== null;
   const { chargesFunds } = useGameContext();
-  // The parts count moves when R&D unlocks a part, an event, and it is a footer
-  // readout rather than an input to any verdict here.
-  const partsAvailable = magnitudeOf(
-    stillTrue(useTelemetry("spaceCenter.partsAvailable"), undefined)?.count,
-  );
   const sceneReading = useTelemetry("spaceCenter.scene");
   // "Last site" is a claim about the past by construction: the site changes when
   // a vessel launches from it, so the last one reported is still the answer.
@@ -357,12 +345,6 @@ function SpaceCenterStatusComponent({
   usePanelDelay(upgradeCmd);
 
   const facilities = parseFacilityLevels(facilitiesRaw);
-  // Displayed tiers, matching the facility grid's own `level + 1` / `max + 1`
-  // convention: the count in the footer is the one the operator reads beside
-  // the R&D cell, so the two must not disagree by one.
-  const rd = facilities.rd;
-  const rdTier =
-    rd && rd.max > 0 ? { level: rd.level + 1, max: rd.max + 1 } : null;
 
   /**
    * Upgrades work in the Space Center scene only, KSP's upgrade pipeline isn't
@@ -620,27 +602,9 @@ function SpaceCenterStatusComponent({
 
         {/* Appended to the facility-level list: a KSC-expansion Uplink can
             render extra facility rows here. Placed rather than left to
-            `Panel`'s end-of-body default because the parts-unlocked footer
-            below is in-body, and extra facilities belong above it. */}
+            `Panel`'s end-of-body default so the sections sit under the
+            facilities they extend rather than under the body's own padding. */}
         <WidgetSections />
-
-        <Footer>
-          <FooterCell title="Parts unlocked by current R&D tier">
-            <FooterLabel>Parts unlocked</FooterLabel>
-            <FooterValue>{partsAvailable ?? NULL_DISPLAY}</FooterValue>
-            {/* What the count is a count OF. Standing alone it was a number an
-                operator could confirm was accurate and could not act on; named
-                against the tier that produced it, it is the answer to what the
-                R&D upgrade two rows above actually buys. The qualifier is
-                dropped rather than guessed when the tier is unreadable: "at R&D
-                tier ? of ?" would make the number look broken. */}
-            {rdTier !== null && (
-              <FooterQualifier>
-                {`at R&D tier ${rdTier.level} of ${rdTier.max}`}
-              </FooterQualifier>
-            )}
-          </FooterCell>
-        </Footer>
       </Body>
     </Panel>
   );
@@ -941,37 +905,6 @@ const ConfirmUpgradeButton = styled(UpgradeButtonStyled)`
   }
 `;
 
-const Footer = styled.div`
-  display: flex;
-  gap: var(--space-16);
-  margin-top: var(--space-6);
-  padding-top: var(--space-8);
-  border-top: 1px solid var(--color-surface-raised);
-`;
-
-const FooterCell = styled.div`
-  display: flex;
-  flex-direction: column;
-`;
-
-const FooterLabel = styled.span`
-  font-size: var(--font-size-2xs);
-  letter-spacing: 0.12em;
-  color: var(--color-text-faint);
-`;
-
-const FooterValue = styled.span`
-  font-size: var(--font-size-sm);
-  font-weight: 600;
-  color: var(--color-text-primary);
-  font-variant-numeric: tabular-nums;
-`;
-
-const FooterQualifier = styled.span`
-  font-size: var(--font-size-2xs);
-  color: var(--color-text-faint);
-`;
-
 const PadStatusLine = styled.span`
   font-size: var(--font-size-xs);
   color: var(--color-text-muted);
@@ -1046,7 +979,7 @@ registerComponent<SpaceCenterStatusConfig>({
   id: "space-center-status",
   name: "Space Center Status",
   description:
-    "KSC overview: facility levels (VAB, SPH, R&D, ...), parts unlocked under current tech, launch-pad state, and arm-then-confirm upgrade buttons per facility (only enabled in the Space Center scene; disabled when funds are short or the facility is at max).",
+    "KSC overview: facility levels (VAB, SPH, R&D, ...), launch-pad state, and arm-then-confirm upgrade buttons per facility (only enabled in the Space Center scene; disabled when funds are short or the facility is at max).",
   tags: ["career", "kc"],
   defaultSize: { w: 6, h: 7 },
   minSize: { w: 2, h: 3 },

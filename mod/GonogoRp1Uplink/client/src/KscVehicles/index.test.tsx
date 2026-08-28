@@ -183,7 +183,7 @@ describe("KscVehicles", () => {
     });
   });
 
-  it("offers a repeat build for a finished vehicle and for one still integrating", async () => {
+  it("offers ONE repeat control for a design that is both built and building", async () => {
     const { fixture } = mount();
     act(() => {
       fixture.emit("rp1.available", true);
@@ -199,11 +199,28 @@ describe("KscVehicles", () => {
       expect(screen.getByText("BUILT")).toBeInTheDocument();
     });
     expect(screen.getByText("INTEGRATING")).toBeInTheDocument();
-    // Two rows of the SAME design name, which is the ordinary case this widget
-    // exists to serve, so both controls have to be reachable and distinct.
+    // Two copies of one design, and one control: a button per copy asked an
+    // operator to choose between two presses that do the same thing.
     expect(
       screen.getAllByRole("button", { name: /^Build another/ }),
-    ).toHaveLength(2);
+    ).toHaveLength(1);
+  });
+
+  it("keeps the repeat off the cards, where it read as building anything", async () => {
+    // The defect this placement is for: on a card the control read as "build",
+    // which this surface cannot do. RP-1 has no command for building a design
+    // the centre has never held, so the only honest control names the design it
+    // copies and stands apart from the copies themselves.
+    withOneBuiltVehicle();
+
+    const repeat = await screen.findByRole("button", {
+      name: "Build another Atlas",
+    });
+    const card = screen.getByText("Atlas").closest("li");
+
+    expect(card).not.toBeNull();
+    expect(card?.contains(repeat)).toBe(false);
+    expect(screen.getByText("Repeat a build")).toBeInTheDocument();
   });
 
   it("dispatches rp1.build.repeat with the vehicle id only after arm-then-confirm", async () => {
@@ -233,7 +250,7 @@ describe("KscVehicles", () => {
     expect(sent?.args).toEqual({ id: "vp-atlas-1" });
   });
 
-  it("addresses the right one of two vehicles that share a name", async () => {
+  it("collapses two copies of a design into one repeat, addressed to a real copy", async () => {
     const user = userEvent.setup();
     const { fixture } = mount();
     act(() => {
@@ -252,17 +269,48 @@ describe("KscVehicles", () => {
     const controls = await screen.findAllByRole("button", {
       name: "Build another Atlas",
     });
-    await user.click(controls[1]);
+    expect(controls).toHaveLength(1);
+    await user.click(controls[0]);
     await user.click(
-      screen.getAllByRole("button", {
-        name: "Confirm building another Atlas",
-      })[0],
+      screen.getByRole("button", { name: "Confirm building another Atlas" }),
     );
 
     const sent = fixture.transport.sentCommands.find(
       (c) => c.command === RP1_BUILD_REPEAT_COMMAND,
     );
-    expect(sent?.args).toEqual({ id: "vp-atlas-2" });
+    // An id and not a name, still: the command copies one existing project, so
+    // it has to name which, even where the two are the same design.
+    expect(sent?.args).toEqual({ id: "vp-atlas-1" });
+  });
+
+  it("names the complex on the repeat where the centre has more than one", async () => {
+    // Two centres can hold designs of the same name, and then "Build another
+    // Atlas" twice is two buttons an operator cannot tell apart.
+    const { fixture } = mount();
+    act(() => {
+      fixture.emit("rp1.available", true);
+      fixture.emit("career.status", CAREER);
+      fixture.emit("rp1.complexes", [
+        ...COMPLEXES,
+        { kscName: "Cape", lcId: "lc-2", name: "LC-2", isOperational: true },
+      ]);
+      fixture.emit("rp1.pads", PADS);
+      fixture.emit("rp1.operations", []);
+      fixture.emit("rp1.warehouse", [
+        built(),
+        built({ id: "vp-atlas-3", lcId: "lc-2", shipId: "ship-atlas-3" }),
+      ]);
+      fixture.emit("rp1.buildQueue", []);
+    });
+
+    await waitFor(() => {
+      expect(
+        screen.getByRole("button", { name: "Build another Atlas · LC-1" }),
+      ).toBeInTheDocument();
+    });
+    expect(
+      screen.getByRole("button", { name: "Build another Atlas · LC-2" }),
+    ).toBeInTheDocument();
   });
 
   it("says a vehicle RP-1 gave no id to cannot be repeated, rather than offering to guess", async () => {

@@ -38,13 +38,9 @@ afterEach(() => {
 });
 
 describe("SpaceCenterStatus: genuinely runs off the stream", () => {
-  it("renders the funds readout and parts-available count both off the stream", async () => {
+  it("renders the funds readout off the stream", async () => {
     const fixture = setupStreamFixture({
-      carriedChannels: [
-        "career.status",
-        "spaceCenter.scene",
-        "spaceCenter.partsAvailable",
-      ],
+      carriedChannels: ["career.status", "spaceCenter.scene"],
       pinnedUt: 10,
     });
     const legacyAux = await setupMockDataSource({
@@ -67,13 +63,9 @@ describe("SpaceCenterStatus: genuinely runs off the stream", () => {
     renderedTrees.push(unmount);
 
     expect(fixture.transport.isSubscribed("career.status")).toBe(true);
-    expect(fixture.transport.isSubscribed("spaceCenter.partsAvailable")).toBe(
-      true,
-    );
 
     act(() => {
       fixture.emit("spaceCenter.scene", { scene: "SpaceCenter" });
-      fixture.emit("spaceCenter.partsAvailable", { count: 214 });
       legacyAux.source.emit("kc.padOccupied", false);
       legacyAux.source.emit("kc.launchSite", "KSC");
       fixture.emit("career.status", {
@@ -88,7 +80,6 @@ describe("SpaceCenterStatus: genuinely runs off the stream", () => {
     // The whole readout is now <Unit>, so the number, its glyph and the
     // spoken word are three elements and no single node holds "· 78,401f".
     await waitFor(() => expect(visibleText()).toContain("· 78,401f"));
-    expect(visibleText()).toContain("214");
 
     teardownMockDataSource(legacyAux);
   });

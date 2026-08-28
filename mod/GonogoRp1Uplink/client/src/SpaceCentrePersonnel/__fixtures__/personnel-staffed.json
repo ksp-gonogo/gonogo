@@ -1,11 +1,6 @@
 {
   "_scene": {
-    "augment": "rp1-space-centre-personnel",
-    "host": "space-center-status",
-    "size": {
-      "w": 12,
-      "h": 14
-    },
+    "widget": "rp1-space-centre-personnel",
     "caption": "A payroll mid-career, with engineers on the books that nobody has assigned: the idle count is the one number here that costs money for nothing, and it is why the per-complex split is drawn rather than only the totals",
     "paints": [
       "Engineers",
@@ -20,50 +15,6 @@
   "_stream": {
     "pinnedUt": 1000000,
     "emits": [
-      {
-        "topic": "career.status",
-        "payload": {
-          "economy": {
-            "funds": 289848,
-            "reputation": 62,
-            "science": 340
-          },
-          "facilities": {
-            "LaunchPad": { "level": 1, "max": 2 },
-            "Runway": { "level": 0, "max": 2 },
-            "VehicleAssemblyBuilding": { "level": 1, "max": 2 },
-            "SpaceplaneHangar": { "level": 0, "max": 2 },
-            "MissionControl": { "level": 1, "max": 2 },
-            "TrackingStation": { "level": 1, "max": 2 },
-            "Administration": { "level": 0, "max": 2 },
-            "ResearchAndDevelopment": { "level": 1, "max": 2 },
-            "AstronautComplex": { "level": 0, "max": 2 }
-          }
-        }
-      },
-      {
-        "topic": "spaceCenter.scene",
-        "payload": {
-          "scene": "SpaceCenter",
-          "launchSite": "LaunchPad"
-        }
-      },
-      {
-        "topic": "spaceCenter.launchSites",
-        "payload": [
-          {
-            "name": "LaunchPad",
-            "padOccupied": false,
-            "padVesselTitle": null
-          }
-        ]
-      },
-      {
-        "topic": "spaceCenter.partsAvailable",
-        "payload": {
-          "count": 142
-        }
-      },
       {
         "topic": "rp1.available",
         "payload": true

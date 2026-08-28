@@ -1,61 +1,12 @@
 {
   "_scene": {
-    "augment": "rp1-space-centre-personnel",
-    "host": "space-center-status",
-    "size": {
-      "w": 12,
-      "h": 14
-    },
+    "widget": "rp1-space-centre-personnel",
     "caption": "RP-1 is present but has not answered for the payroll: every count reads as the null token, which is the picture this scene exists to hold, because the same state used to render three labels with blank space beside them and looked like a finished layout",
     "paints": ["Engineers", "Researchers", "Applicants"]
   },
   "_stream": {
     "pinnedUt": 1000000,
     "emits": [
-      {
-        "topic": "career.status",
-        "payload": {
-          "economy": {
-            "funds": 289848,
-            "reputation": 62,
-            "science": 340
-          },
-          "facilities": {
-            "LaunchPad": { "level": 1, "max": 2 },
-            "Runway": { "level": 0, "max": 2 },
-            "VehicleAssemblyBuilding": { "level": 1, "max": 2 },
-            "SpaceplaneHangar": { "level": 0, "max": 2 },
-            "MissionControl": { "level": 1, "max": 2 },
-            "TrackingStation": { "level": 1, "max": 2 },
-            "Administration": { "level": 0, "max": 2 },
-            "ResearchAndDevelopment": { "level": 1, "max": 2 },
-            "AstronautComplex": { "level": 0, "max": 2 }
-          }
-        }
-      },
-      {
-        "topic": "spaceCenter.scene",
-        "payload": {
-          "scene": "SpaceCenter",
-          "launchSite": "LaunchPad"
-        }
-      },
-      {
-        "topic": "spaceCenter.launchSites",
-        "payload": [
-          {
-            "name": "LaunchPad",
-            "padOccupied": false,
-            "padVesselTitle": null
-          }
-        ]
-      },
-      {
-        "topic": "spaceCenter.partsAvailable",
-        "payload": {
-          "count": 142
-        }
-      },
       {
         "topic": "rp1.available",
         "payload": true

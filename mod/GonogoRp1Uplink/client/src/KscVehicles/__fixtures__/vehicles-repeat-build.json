@@ -6,15 +6,16 @@
       "w": 12,
       "h": 14
     },
-    "caption": "The repeat-build surface in the state it is used in: two vehicles of the SAME design, one flown-ready and one still integrating, and the two lists drawn apart so neither card has to carry the other's state",
+    "caption": "The repeat-build surface in the state it is used in: two vehicles of the SAME design, one flown-ready and one still integrating, the two lists drawn apart so neither card has to carry the other's state, and one repeat control naming the design both copies are of",
     "paints": [
       "289,848f",
-      "In the warehouse",
-      "On the build list",
+      "Warehouse",
+      "Building",
       "Atlas",
       "BUILT",
       "INTEGRATING",
-      "Build another",
+      "Repeat a build",
+      "Build another Atlas",
       "until integration finishes"
     ]
   },
@@ -87,12 +88,6 @@
         ]
       },
       {
-        "topic": "spaceCenter.partsAvailable",
-        "payload": {
-          "count": 142
-        }
-      },
-      {
         "topic": "rp1.available",
         "payload": true
       },
@@ -130,6 +125,35 @@
             "humanRated": false,
             "massMin": 3,
             "massMax": 90
+          }
+        ]
+      },
+      {
+        "topic": "rp1.pads",
+        "payload": [
+          {
+            "kscName": "Cape",
+            "lcId": "lc-1",
+            "padId": "pad-1",
+            "name": "LaunchPad",
+            "launchSiteName": "LaunchPad",
+            "level": 2,
+            "fractionalLevel": 2,
+            "state": "Free",
+            "hasVesselWaiting": false,
+            "waitingVesselName": null
+          },
+          {
+            "kscName": "Cape",
+            "lcId": "lc-2",
+            "padId": "pad-2",
+            "name": "LaunchPad 2",
+            "launchSiteName": "LaunchPad 2",
+            "level": 1,
+            "fractionalLevel": 1,
+            "state": "Free",
+            "hasVesselWaiting": false,
+            "waitingVesselName": null
           }
         ]
       },

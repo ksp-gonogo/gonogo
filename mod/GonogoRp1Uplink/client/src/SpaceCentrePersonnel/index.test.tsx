@@ -1,3 +1,4 @@
+import { getComponent } from "@ksp-gonogo/sitrep-sdk";
 import {
   getAugmentsForSlot,
   render,
@@ -142,8 +143,12 @@ describe("SpaceCentrePersonnel", () => {
     });
   });
 
-  it("registers itself into the space centre's sections slot", () => {
-    const augments = getAugmentsForSlot("space-center-status.sections");
-    expect(augments.map((a) => a.id)).toContain("rp1-space-centre-personnel");
+  it("registers as a widget of its own and not into the space centre", () => {
+    // Both halves asserted, because the move is the point: hiring is not a
+    // Space Center overview subject, and the section is not to come back.
+    expect(getComponent("rp1-space-centre-personnel")).toBeDefined();
+    expect(
+      getAugmentsForSlot("space-center-status.sections").map((a) => a.id),
+    ).not.toContain("rp1-space-centre-personnel");
   });
 });

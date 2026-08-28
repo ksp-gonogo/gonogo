@@ -14,9 +14,8 @@ import { SpaceCenterStatusComponent } from "./index";
  * `_stream` block.
  *
  * This spec used to build the stream itself, emitting `career.status`,
- * `spaceCenter.scene`, `spaceCenter.launchSites` and
- * `spaceCenter.partsAvailable` reassembled from the fixtures' flat keys. Every
- * fixture declares all four, so the reassembly is gone.
+ * `spaceCenter.scene` and `spaceCenter.launchSites` reassembled from the
+ * fixtures' flat keys. Every fixture declares them, so the reassembly is gone.
  *
  * These are the 48 baselines whose every facility level was an em dash, the
  * second half of the pair that put `unfed-snapshot-gate.ts` there. That

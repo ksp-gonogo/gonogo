@@ -27,7 +27,7 @@ import {
 /**
  * Every value this widget reads is canonical now, `career.status`
  * (`?.economy?.funds` + `?.facilities`), `spaceCenter.scene`
- * (`?.scene`/`?.launchSite`), `spaceCenter.partsAvailable` (`?.count`) and the
+ * (`?.scene`/`?.launchSite`) and the
  * derived `spaceCenter.state` channel (pad occupancy off
  * `spaceCenter.launchSites`): so every assertion drives real stream emits
  * through `setupStreamFixture`. The one thing still on the legacy path is the
@@ -39,7 +39,6 @@ import {
 const CARRIED = [
   "career.status",
   "spaceCenter.scene",
-  "spaceCenter.partsAvailable",
   "spaceCenter.launchSites",
 ];
 
@@ -138,14 +137,6 @@ describe("SpaceCenterStatusComponent", () => {
     expect(
       await screen.findByText(/Last site: LaunchPad/i),
     ).toBeInTheDocument();
-  });
-
-  it("shows the parts-available count", async () => {
-    renderWidget();
-    act(() => {
-      stream.emit("spaceCenter.partsAvailable", { count: 47 });
-    });
-    await waitFor(() => expect(visibleText()).toContain("47"));
   });
 
   it("fires kc.upgradeFacility on arm-then-confirm in the SC scene", async () => {
