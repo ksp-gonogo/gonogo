@@ -20,6 +20,9 @@
  * named message rather than a resolution error.
  */
 
+/** The grid geometry a harness needs to size its mount box, re-exported here so
+ *  a Node-side driver never has to import the browser half of the kit for it. */
+export { COL_WIDTH, GRID_MARGIN, gridToPixels, ROW_HEIGHT } from "./gridUnits";
 export { run } from "./render/cli";
 export {
   display,
@@ -47,7 +50,11 @@ export {
   renderUplink,
 } from "./render/driver";
 export { encodeGif } from "./render/gif";
+export type { MinFitFinding } from "./render/minFit";
 export { buildProbePage, generateEntry } from "./render/page";
+/** The `globalThis` key the probe installs itself under. A driver that drives
+ *  the probe from Node needs the name and nothing else from that module. */
+export { RENDER_PROBE_GLOBAL } from "./render/probe-global";
 export {
   assertEveryWidgetCovered,
   buildScenes,

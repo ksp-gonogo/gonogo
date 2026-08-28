@@ -168,6 +168,35 @@ jobs:
           pnpm --filter @ksp-gonogo/ui-kit... build
           pnpm --filter @ksp-gonogo/gonogo-kos-uplink docs:check
 
+      # Min-size gate: mounts EVERY registered widget at the `minSize` it itself
+      # declares and fails when its title ellipsises, its content is clipped with
+      # nothing to scroll, or text paints outside the tile.
+      #
+      # A `minSize` is a promise: react-grid-layout refuses to drag a tile below
+      # it and clamps a smaller saved layout up, so it is the smallest shape an
+      # operator can ever put the widget in, and the shipped default layout
+      # places six widgets AT theirs. Nothing checked the promise, and the first
+      # sweep found 19 of 55 failing it, the worst two Uplink-authored.
+      #
+      # In `test` for the same reason as the three steps above, and it asks a
+      # question none of them can: not whether the pixels drifted or whether the
+      # harness rendered anything, but whether the widget is usable at the size
+      # it says it can live at. Every widget in the app is in the bundle, which
+      # is why it runs from `packages/app`: it is the one package that depends on
+      # the component library, the serial platform and all ten Uplink clients.
+      #
+      # It refuses rather than passing when it can see nothing: a canary widget
+      # broken in all three ways is mounted first, and a run where the audit does
+      # not report it fails as BLIND.
+      #
+      # GREEN on landing and it must stay that way. The 19 already failing are
+      # recorded in `packages/app/scripts/minsize-debt.ts`, which is shrink-only
+      # and enforced from both sides.
+      - name: Widgets fit the minSize they declare
+        run: |
+          pnpm --filter "@ksp-gonogo/app^..." build
+          pnpm --filter @ksp-gonogo/app minsize-gate
+
   # act() warning ratchet: per-file counts held against scripts/act-warning-debt.mjs.
   #
   # Its OWN job rather than a step in `test`, because it re-runs every suite with
