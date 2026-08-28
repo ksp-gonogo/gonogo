@@ -303,6 +303,16 @@
     "reason": "Dimensional degeneracy, the same case as CareerStrategy.dateActivated: `divide({s:1},{s:1})` is `{}`, so EVERY dimensionless field is the dimensional rate of EVERY time field in its own type. A fraction complete is not the rate of an ETA, and neither is a research throttle. The real rate on each of these payloads is `rate`, which carries RP-1's own `bp/s` token and is therefore invisible to this scan (see the opaque-token list). Integrating it would be wrong anyway: the ETA is already derived from the rate server-side, efficiency-ramped and, for a blocking operation, sequenced against its peers, so a client re-integrating it would be second-guessing arithmetic that mirrors RP-1's own.",
     "verdict": "coincidence"
   },
+  "Rp1Personnel.engineerSalaryPerYear": {
+    "rates": ["engineerSalaryPerDay", "researcherSalaryPerDay"],
+    "reason": "Two different quantities that happen to share a dimension. The yearly figure is ONE engineer's full salary before any multiplier, a quoted price RP-1 reads from its settings and holds still; the daily figures are the WHOLE workforce's bill at the effective headcount, with the idle fraction and any rush already in them. So the per-day is not the derivative of the per-year, it is a different population over a different period, and integrating one into the other would have a single engineer's contract rate climb as the payroll runs. Neither side accumulates: both are standing prices, and the balance they are paid out of is graded separately at CareerEconomy.funds.",
+    "verdict": "coincidence"
+  },
+  "Rp1Personnel.researcherSalaryPerYear": {
+    "rates": ["engineerSalaryPerDay", "researcherSalaryPerDay"],
+    "reason": "The engineer's case with the mismatch one step wider: a researcher's yearly contract rate sits beside the engineers' daily bill as readily as the researchers' own, because both carry `f/day` and the rule cannot tell whose payroll is whose. The researcher day-rate is paid at `idleSalaryMult` while the research queue is empty, so it is not a fixed fraction of the yearly figure either.",
+    "verdict": "coincidence"
+  },
   "Rp1ProgramEntry.acceptedUt": {
     "rates": ["fracElapsed"],
     "reason": "Dimensional degeneracy, the same case as CareerStrategy.dateActivated: `divide({s:1},{s:1})` is `{}`, so EVERY dimensionless field is the dimensional rate of EVERY time field in its own type, and this payload carries a `ratio` beside five UT instants and a duration. A fraction of the funding curve drawn down is not the rate of the date a Program was accepted, and four of those instants are records of something that already happened and cannot move at all. The one that does move, `deadlineUt`, moves because RP-1 recomputes it on its own funding tick rather than because anything integrates toward it: a client advancing it would push the deadline away from the operator exactly when it matters.",
@@ -542,6 +552,16 @@
   "rp1.operations.timeLeftSeconds": {
     "rates": ["progressRatio"],
     "reason": "Dimensional degeneracy, the same case as CareerStrategy.dateActivated: `divide({s:1},{s:1})` is `{}`, so EVERY dimensionless field is the dimensional rate of EVERY time field in its own type. A fraction complete is not the rate of an ETA, and neither is a research throttle. The real rate on each of these payloads is `rate`, which carries RP-1's own `bp/s` token and is therefore invisible to this scan (see the opaque-token list). Integrating it would be wrong anyway: the ETA is already derived from the rate server-side, efficiency-ramped and, for a blocking operation, sequenced against its peers, so a client re-integrating it would be second-guessing arithmetic that mirrors RP-1's own.",
+    "verdict": "coincidence"
+  },
+  "rp1.personnel.engineerSalaryPerYear": {
+    "rates": ["engineerSalaryPerDay", "researcherSalaryPerDay"],
+    "reason": "The topic side of Rp1Personnel.engineerSalaryPerYear, same payload and same answer: a per-head yearly contract rate beside a whole-workforce daily bill.",
+    "verdict": "coincidence"
+  },
+  "rp1.personnel.researcherSalaryPerYear": {
+    "rates": ["engineerSalaryPerDay", "researcherSalaryPerDay"],
+    "reason": "The topic side of Rp1Personnel.researcherSalaryPerYear, same payload and same answer.",
     "verdict": "coincidence"
   },
   "rp1.programs.acceptedUt": {
