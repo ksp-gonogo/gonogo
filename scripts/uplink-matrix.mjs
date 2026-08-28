@@ -16,10 +16,19 @@
  *
  * The Uplinks are RAGGED. Twelve directories: ten have a client, eleven have a
  * plugin csproj, nine have a contract slice, `GonogoBreakingGroundUplink` is
- * client-only, `GonogoActionGroupsExtendedUplink` and `GonogoTestFlightUplink`
- * are C#-only, and two have `docs:check`. A uniform matrix running the same
- * steps everywhere would no-op on roughly a third of its cells and report green,
- * which is the failure this whole exercise exists to stop.
+ * client-only, and `GonogoActionGroupsExtendedUplink` and
+ * `GonogoTestFlightUplink` are C#-only. A uniform matrix running the same steps
+ * everywhere would no-op on roughly a third of its cells and report green, which
+ * is the failure this whole exercise exists to stop.
+ *
+ * What is NOT a capability fact: whether an Uplink has a generated page. That
+ * used to be emitted as `docsCheck`, derived from a `docs:check` script the
+ * Uplink either had or did not, and exactly one of ten had it. It read like
+ * raggedness and was not: every client-bearing Uplink is expected to have a
+ * page, so the answer is always `client` and a separate field could only ever
+ * excuse an Uplink from the check. `gonogo-uplink docs` needs no script line, so
+ * the leg runs the CLI directly and `scripts/uplink-docs-gate.mjs` holds the
+ * repo-wide floor.
  *
  * So the facts are computed HERE, from disk, and emitted per leg. They are not
  * inferred in YAML: a GitHub Actions `if:` is a string comparison against a
@@ -81,7 +90,6 @@ const uplinks = readdirSync(MOD, { withFileTypes: true })
       // Emitted as strings because a matrix value has to survive `toJSON` into
       // a shell `if:`; an array of one reads as its element and an empty array
       // as nothing at all, which is how a step silently stops running.
-      docsCheck: scripts.includes("docs:check"),
       render: scripts.includes("render"),
       typecheck: scripts.includes("typecheck"),
     };
