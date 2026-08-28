@@ -849,5 +849,9 @@ describe("uplink boundary: domain-debt allowlist entries only ever shrink", () =
           `don't add it to .domainDebt.`,
       );
     }
-  }, 30_000);
+    // No explicit timeout: the package default is 90s and this test is the
+    // reason it is (vitest.config.ts's own note measures this scan at 40.4s
+    // cold). A local 30s undercut it, and it started timing out once two more
+    // shrink-only gates joined this project and competed for the pool.
+  });
 });
