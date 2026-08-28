@@ -142,4 +142,45 @@ describe("useDataSeries", () => {
 
     expect(renders[renders.length - 1]).toEqual({ t: [], v: [] });
   });
+
+  /**
+   * The backfill's window closes the moment the hook mounts, so a live sample
+   * is always newer than its upper bound and can never appear in its answer.
+   * Whichever of the two lands second used to win outright, which made the
+   * series depend on how long the store took to reply: fast enough and the
+   * sample survived, slow enough and it was erased with nothing to say so.
+   */
+  it("keeps a live sample that arrived while the backfill query was in flight", async () => {
+    let releaseBackfill: (() => void) | undefined;
+    const query = buffered.queryRange.bind(buffered);
+    buffered.queryRange = (
+      key: string,
+      tStart: number,
+      tEnd: number,
+      flightId?: string,
+    ) =>
+      new Promise((resolve) => {
+        releaseBackfill = () => {
+          resolve(query(key, tStart, tEnd, flightId));
+        };
+      });
+
+    const renders: SeriesRange[] = [];
+    view = render(<Probe onRender={(r) => renders.push(r)} />);
+
+    await act(async () => {
+      // Past the backfill's upper bound (the real Date.now at mount), where
+      // every live sample after mount sits.
+      clock += 20_000;
+      mock.emit("v.altitude", 100);
+    });
+    expect(renders[renders.length - 1].v).toContain(100);
+
+    await act(async () => {
+      releaseBackfill?.();
+      await Promise.resolve();
+    });
+
+    expect(renders[renders.length - 1].v).toContain(100);
+  });
 });

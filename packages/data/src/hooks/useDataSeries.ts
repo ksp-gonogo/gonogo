@@ -125,7 +125,23 @@ export function useDataSeries(
         .queryRange(key, now - windowMs, now)
         .then((range) => {
           if (cancelled) return;
-          dataRef.current = { t: [...range.t], v: [...range.v] };
+          // The query's window closed at `now`, so a sample that arrived while
+          // it was in flight is newer than its upper bound and cannot be in the
+          // answer. Splice the history in FRONT of whatever is already buffered
+          // rather than replacing it: replacing made the series depend on which
+          // of the two landed second, so a slow store silently erased live
+          // samples and an empty answer emptied the whole plot.
+          const live = dataRef.current;
+          const oldestLive = live.t.length > 0 ? (live.t[0] as number) : null;
+          const head =
+            oldestLive === null
+              ? range.t.length
+              : range.t.findIndex((t) => t >= oldestLive);
+          const kept = head === -1 ? range.t.length : head;
+          dataRef.current = {
+            t: [...range.t.slice(0, kept), ...live.t],
+            v: [...range.v.slice(0, kept), ...live.v],
+          };
           snapshotRef.current = {
             t: dataRef.current.t,
             v: dataRef.current.v,
