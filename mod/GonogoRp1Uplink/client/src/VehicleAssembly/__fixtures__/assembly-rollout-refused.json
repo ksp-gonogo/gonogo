@@ -1,0 +1,90 @@
+{
+  "_meta": {
+    "notes": "The complex decides what may be built and flown there at all, and no amount of staffing gets past a mass limit. RP-1's own reasons outrank the pads entirely: a free pad is on the wire and no rollout is offered, because no pad can take a vehicle its complex will not release."
+  },
+  "_scene": {
+    "widget": "rp1-vehicle-assembly",
+    "size": { "w": 8, "h": 12 },
+    "caption": "A vehicle its complex will not release: every one of RP-1's reasons at once rather than the first, no rollout offered against a pad that is standing free, and the scrap that is the operator's actual next move",
+    "paints": [
+      "ASSEMBLY",
+      "cannot roll out",
+      "too heavy for the complex",
+      "human-rated",
+      "Scrap"
+    ]
+  },
+  "_stream": {
+    "pinnedUt": 1000000,
+    "emits": [
+      {
+        "topic": "career.status",
+        "payload": {
+          "economy": { "funds": 289848, "reputation": 62, "science": 340 }
+        }
+      },
+      { "topic": "rp1.available", "payload": true },
+      {
+        "topic": "rp1.complexes",
+        "payload": [
+          {
+            "kscName": "Cape",
+            "lcId": "lc-1",
+            "name": "LC-1",
+            "lcType": "Pad",
+            "isOperational": true,
+            "isRushing": false,
+            "engineers": 18,
+            "maxEngineers": 60,
+            "efficiency": 0.72,
+            "canIntegrate": true,
+            "rate": 0.00019290123456790122,
+            "humanRated": false,
+            "massMin": 6,
+            "massMax": 40
+          }
+        ]
+      },
+      {
+        "topic": "rp1.pads",
+        "payload": [
+          {
+            "kscName": "Cape",
+            "lcId": "lc-1",
+            "padId": "pad-1",
+            "name": "LaunchPad",
+            "launchSiteName": "LaunchPad",
+            "level": 2,
+            "fractionalLevel": 2,
+            "state": "Free",
+            "hasVesselWaiting": false,
+            "waitingVesselName": null
+          }
+        ]
+      },
+      { "topic": "rp1.operations", "payload": [] },
+      {
+        "topic": "rp1.warehouse",
+        "payload": [
+          {
+            "id": "vp-atlas-1",
+            "shipId": "ship-atlas-1",
+            "kscName": "Cape",
+            "lcId": "lc-1",
+            "shipName": "Atlas",
+            "cost": 40000,
+            "mass": 120,
+            "humanRated": true,
+            "launchSite": "LaunchPad",
+            "projectType": "VAB",
+            "rolloutRefusals": [
+              "too heavy for the complex at 120.0 t, limit 40.0 t",
+              "human-rated, and the complex is not"
+            ]
+          }
+        ]
+      },
+      { "topic": "rp1.buildQueue", "payload": [] }
+    ]
+  }
+}

@@ -1,0 +1,62 @@
+{
+  "_scene": {
+    "widget": "rp1-vehicle-assembly",
+    "size": { "w": 6, "h": 9 },
+    "caption": "Nothing built and nothing on order, which is where a career starts",
+    "paints": ["ASSEMBLY", "None built and none on order"],
+    "expectsEmpty": "a fresh career has no vehicles built and none ordered, and this is the picture of that state reading as an answer rather than as an Uplink that is not reporting"
+  },
+  "_stream": {
+    "pinnedUt": 1000000,
+    "emits": [
+      {
+        "topic": "career.status",
+        "payload": {
+          "economy": { "funds": 289848, "reputation": 62, "science": 340 }
+        }
+      },
+      { "topic": "rp1.available", "payload": true },
+      {
+        "topic": "rp1.complexes",
+        "payload": [
+          {
+            "kscName": "Cape",
+            "lcId": "lc-1",
+            "name": "LC-1",
+            "lcType": "Pad",
+            "isOperational": true,
+            "isRushing": false,
+            "engineers": 0,
+            "maxEngineers": 20,
+            "efficiency": 0.1,
+            "canIntegrate": true,
+            "rate": 0,
+            "humanRated": false,
+            "massMin": 0,
+            "massMax": 40
+          }
+        ]
+      },
+      {
+        "topic": "rp1.pads",
+        "payload": [
+          {
+            "kscName": "Cape",
+            "lcId": "lc-1",
+            "padId": "pad-1",
+            "name": "LaunchPad",
+            "launchSiteName": "LaunchPad",
+            "level": 1,
+            "fractionalLevel": 1,
+            "state": "Free",
+            "hasVesselWaiting": false,
+            "waitingVesselName": null
+          }
+        ]
+      },
+      { "topic": "rp1.operations", "payload": [] },
+      { "topic": "rp1.warehouse", "payload": [] },
+      { "topic": "rp1.buildQueue", "payload": [] }
+    ]
+  }
+}

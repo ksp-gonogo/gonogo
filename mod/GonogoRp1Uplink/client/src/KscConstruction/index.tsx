@@ -1,22 +1,19 @@
-import type { Reading } from "@ksp-gonogo/sitrep-sdk";
 import { registerAugment, useTelemetry } from "@ksp-gonogo/sitrep-sdk";
 import {
   Badge,
-  Card,
-  Cluster,
   Countdown,
   magnitudeOf,
   NULL_DISPLAY,
-  ProgressBar,
   Row,
   RowName,
   Section,
   SectionTitle,
-  Stack,
   Text,
   Unit,
 } from "@ksp-gonogo/ui-kit";
 import type { Rp1ConstructionEntry } from "../__generated__/contract";
+import { current } from "../shared/current";
+import { ProjectCard, ProjectCardList } from "../shared/ProjectCard";
 import { RP1 } from "../uplink";
 // Side-effect import: hydrates these Topics' units at decode time. Here rather
 // than left to the entry point's import order, because this file is the consumer
@@ -60,27 +57,33 @@ export function KscConstruction() {
   const nameCentres = (centres ?? []).length > 1;
 
   return (
-    <Section>
-      <SectionTitle>CONSTRUCTION</SectionTitle>
-      <Stack as="ul" gap="sm" style={LIST_STYLE}>
-        {rows.length === 0 ? (
-          <Row>
-            <RowName>Under construction</RowName>
-            {/* A real answer, and one worth stating: an empty construction
-                queue and an Uplink that is not reporting look identical if this
-                row is simply left out. */}
-            <Text>nothing</Text>
-          </Row>
-        ) : (
-          rows.map((row) => (
+    <Section gap="sm">
+      {/* SITE, because this section builds the ground: facilities, launch
+          complexes and pads. Headed plain CONSTRUCTION it fought with the
+          vehicles being integrated elsewhere in the career for the same word,
+          and an operator read "Construction: nothing" while watching a rocket
+          be built. Nothing here is a vehicle and nothing that is a vehicle
+          reaches here. */}
+      <SectionTitle>SITE CONSTRUCTION</SectionTitle>
+      {rows.length === 0 ? (
+        // A real answer, and one worth stating: an empty construction queue and
+        // an Uplink that is not reporting look identical if this is left out.
+        // A sentence rather than a "nothing" hanging off a label, because the
+        // label was the same word as the heading above it.
+        <Text size="sm" tone="muted">
+          No facility, complex or pad is being built.
+        </Text>
+      ) : (
+        <ProjectCardList>
+          {rows.map((row) => (
             <ConstructionRow
               key={rowKey(row)}
               nameCentre={nameCentres}
               row={row}
             />
-          ))
-        )}
-      </Stack>
+          ))}
+        </ProjectCardList>
+      )}
     </Section>
   );
 }
@@ -90,12 +93,13 @@ export function KscConstruction() {
  * progress, the clock and the money are the same three facts for all three, and
  * an operator comparing a pad against a VAB upgrade is comparing exactly those.
  *
- * <para><b>A card, matching the vehicle cards below it.</b> As four label/value
- * rows and a bar, three constructions ran together into twelve rows with
- * "Remaining" and "Paid" repeating down them, and telling one item from the next
- * meant counting. The two sections show the same SHAPE of thing (a named piece
- * of work with a clock, a bar and a bill), so drawing them two different ways
- * inside one panel made them look like two unrelated surfaces.</para>
+ * <para><b>The shared card, the same one Vehicle Assembly draws a rocket
+ * with.</b> As four label/value rows and a bar, three constructions ran
+ * together into twelve rows with "Remaining" and "Paid" repeating down them,
+ * and telling one item from the next meant counting. A facility upgrade and a
+ * rocket under integration are the same shape of thing to an operator, so
+ * drawing them two different ways would make one career's work look like two
+ * unrelated surfaces.</para>
  */
 function ConstructionRow({
   row,
@@ -112,44 +116,38 @@ function ConstructionRow({
     // Amber only for work that is going nowhere. Every card here is unfinished
     // by definition, so painting them all as caution would leave the colour
     // saying nothing at the moment it is needed.
-    <Card as="li" tone={row.stalled === true ? "warning" : "go"}>
-      <Stack gap="xs">
-        <Cluster gap="sm">
-          <RowName>{label}</RowName>
-          <Badge severity="info">{KIND_BADGE[row.kind ?? ""] ?? "WORK"}</Badge>
-        </Cluster>
-
-        <Text size="xs" tone="muted">
+    <ProjectCard
+      badge={
+        <Badge severity="info">{KIND_BADGE[row.kind ?? ""] ?? "WORK"}</Badge>
+      }
+      detail={
+        <>
           <Detail row={row} />
           {centre === null ? null : <> · {centre}</>}
-        </Text>
+        </>
+      }
+      name={label}
+      progress={{ label: `Construction progress, ${label}`, ratio }}
+      tone={row.stalled === true ? "warning" : "go"}
+    >
+      <Text size="xs" tone="muted">
+        <TimeLeft row={row} />
+      </Text>
 
-        {ratio !== null && (
-          <ProgressBar
-            ariaLabel={`Construction progress, ${label}`}
-            value={ratio * 100}
-          />
-        )}
+      <Text size="xs" tone="muted">
+        {/* Both figures, never a difference: RP-1's own outstanding balance
+            runs through a currency query this Uplink will not evaluate, so a
+            subtraction here would look like that number and not be it. */}
+        paid <Unit value={row.spentCost} /> of <Unit value={row.cost} />
+      </Text>
 
+      {row.isModify === true && (
         <Text size="xs" tone="muted">
-          <TimeLeft row={row} />
+          <Unit value={row.engineersToReadd} /> engineers off it until it
+          finishes
         </Text>
-
-        <Text size="xs" tone="muted">
-          {/* Both figures, never a difference: RP-1's own outstanding balance
-              runs through a currency query this Uplink will not evaluate, so a
-              subtraction here would look like that number and not be it. */}
-          paid <Unit value={row.spentCost} /> of <Unit value={row.cost} />
-        </Text>
-
-        {row.isModify === true && (
-          <Text size="xs" tone="muted">
-            <Unit value={row.engineersToReadd} /> engineers off it until it
-            finishes
-          </Text>
-        )}
-      </Stack>
-    </Card>
+      )}
+    </ProjectCard>
   );
 }
 
@@ -257,27 +255,19 @@ function rowLabel(row: Rp1ConstructionEntry): string {
   return row.name ?? NULL_DISPLAY;
 }
 
-/**
- * A Row renders an `<li>`, so its rows need list semantics around them; see
- * LaunchComplexStatus for the same reset and why it is inline.
- */
-const LIST_STYLE = { listStyle: "none", margin: 0, padding: 0 } as const;
-
 /** A stable key without inventing an identity the wire does not carry. */
 function rowKey(row: Rp1ConstructionEntry): string {
   return `${row.kind ?? ""}:${row.kscName ?? ""}:${row.lcId ?? ""}:${row.padId ?? ""}:${row.name ?? ""}`;
-}
-
-/** The value where one is current; see LaunchComplexStatus for why reckonable counts. */
-function current<T>(reading: Reading<T>): T | undefined {
-  if (reading.state === "observed") return reading.value;
-  if (reading.state === "reckonable") return reading.reckoned.value;
-  return undefined;
 }
 
 registerAugment({
   id: "rp1-ksc-construction",
   augments: "space-center-status.sections",
   component: KscConstruction,
+  // Ahead of the launch complexes, rather than left to whichever module the
+  // bundler happened to evaluate first: a construction is work the career has
+  // already committed money to, and a complex's rush mode is a setting. An
+  // order that depends on import order is one a formatter can reverse.
+  priority: 0,
   owner: RP1,
 });

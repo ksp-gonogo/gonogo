@@ -1,0 +1,93 @@
+{
+  "_meta": {
+    "notes": "Staffing is a rate control and not a capability one: RP-1 scales a complex's work by the portion of its engineer places that are filled, so a complex nobody is on makes no progress however many engineers the centre has hired. A card that reported that as a plain stall would send an operator looking for a fault instead of to the staffing screen."
+  },
+  "_scene": {
+    "widget": "rp1-vehicle-assembly",
+    "size": { "w": 8, "h": 12 },
+    "caption": "A launch complex with nobody assigned to it: the build has no end date, and the card says which of the two reasons that is, rather than reporting a stall an operator would go hunting behind",
+    "paints": [
+      "ASSEMBLY",
+      "STALLED",
+      "nobody is assigned to LC-2",
+      "0 / 40",
+      "engineers"
+    ]
+  },
+  "_stream": {
+    "pinnedUt": 1000000,
+    "emits": [
+      {
+        "topic": "career.status",
+        "payload": {
+          "economy": { "funds": 61400, "reputation": 62, "science": 340 }
+        }
+      },
+      { "topic": "rp1.available", "payload": true },
+      {
+        "topic": "rp1.complexes",
+        "payload": [
+          {
+            "kscName": "Cape",
+            "lcId": "lc-2",
+            "name": "LC-2",
+            "lcType": "Pad",
+            "isOperational": true,
+            "isRushing": false,
+            "engineers": 0,
+            "maxEngineers": 40,
+            "efficiency": 0.4,
+            "canIntegrate": true,
+            "rate": 0,
+            "humanRated": false,
+            "massMin": 3,
+            "massMax": 90
+          }
+        ]
+      },
+      {
+        "topic": "rp1.pads",
+        "payload": [
+          {
+            "kscName": "Cape",
+            "lcId": "lc-2",
+            "padId": "pad-2",
+            "name": "LaunchPad 2",
+            "launchSiteName": "LaunchPad 2",
+            "level": 1,
+            "fractionalLevel": 1,
+            "state": "Free",
+            "hasVesselWaiting": false,
+            "waitingVesselName": null
+          }
+        ]
+      },
+      { "topic": "rp1.operations", "payload": [] },
+      { "topic": "rp1.warehouse", "payload": [] },
+      {
+        "topic": "rp1.buildQueue",
+        "payload": [
+          {
+            "id": "vp-redstone-1",
+            "shipId": "ship-redstone-1",
+            "kscName": "Cape",
+            "lcId": "lc-2",
+            "shipName": "Redstone",
+            "cost": 12400,
+            "mass": 30,
+            "humanRated": false,
+            "launchSite": "LaunchPad 2",
+            "projectType": "VAB",
+            "progress": 90,
+            "totalPoints": 1000,
+            "progressRatio": 0.09,
+            "rate": 0,
+            "timeLeftSeconds": null,
+            "stalled": true,
+            "rolloutRefusals": null
+          }
+        ]
+      }
+    ]
+  }
+}
