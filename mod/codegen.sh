@@ -148,32 +148,6 @@ echo "codegen -> $kerbcast_out_dir/topic-map.ts"
 echo "codegen -> $kerbcast_out_dir/units.ts"
 echo "codegen -> $kerbcast_out_dir/units.json"
 
-# isArray), so SITREP_SCANSAT_TOPICMAP_OUT is set here the same as Avionics's
-# and Kerbcast's. It is also the first relocation with NESTED payload types
-# (ScanningVesselEntry.sensors/trackColor), which is why the emitted units.ts
-# matters twice over: EmitUnitMap writes the field->unit map AND the
-# field->nested-type SHAPE map from the same pass, and this Uplink's client
-# has to register both (see ScansatRtConfig.Configure's doc comment).
-scansat_proj="$ROOT/mod/GonogoScansatUplink.Contract.Codegen"
-scansat_out_dir="$ROOT/mod/GonogoScansatUplink/client/src/__generated__"
-scansat_bin="$scansat_proj/bin/Debug/netstandard2.0"
-
-dotnet build "$scansat_proj/GonogoScansatUplink.Contract.Codegen.csproj" -v minimal
-mkdir -p "$scansat_out_dir"
-
-DOTNET_ROLL_FORWARD=LatestMajor \
-  SITREP_SCANSAT_TOPICMAP_OUT="$scansat_out_dir/topic-map.ts" \
-  SITREP_SCANSAT_UNITMAP_OUT="$scansat_out_dir/units.ts" \
-  SITREP_SCANSAT_UNITJSON_OUT="$scansat_out_dir/units.json" \
-  dotnet "$RTCLI" \
-  SourceAssemblies="$scansat_bin/GonogoScansatUplink.Contract.dll" \
-  TargetFile="$scansat_out_dir/contract.ts" \
-  ConfigurationMethod="GonogoScansatUplink.ScansatRtConfig.Configure"
-echo "codegen -> $scansat_out_dir/contract.ts"
-echo "codegen -> $scansat_out_dir/topic-map.ts"
-echo "codegen -> $scansat_out_dir/units.ts"
-echo "codegen -> $scansat_out_dir/units.json"
-
 # Kerbalism: the fifth relocation, and the largest by every measure. FIFTEEN
 # types and FIVE [SitrepTopic]-tagged roots (kerbalism.spaceweather / .profile /
 # .lifesupport / .crew (isArray) / .features), so SITREP_KERBALISM_TOPICMAP_OUT
