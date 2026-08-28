@@ -143,10 +143,10 @@ describe("KscComplexes", () => {
     await waitFor(() => {
       expect(screen.getByText("LAUNCH COMPLEXES")).toBeInTheDocument();
     });
-    expect(screen.queryByText("WAREHOUSE")).not.toBeInTheDocument();
-    expect(screen.queryByText("BUILD LIST")).not.toBeInTheDocument();
+    expect(screen.queryByText("IN THE WAREHOUSE")).not.toBeInTheDocument();
+    expect(screen.queryByText("UNDER INTEGRATION")).not.toBeInTheDocument();
     expect(
-      screen.queryByRole("button", { name: /^Build another/ }),
+      screen.queryByRole("button", { name: /[Bb]uild/ }),
     ).not.toBeInTheDocument();
   });
 

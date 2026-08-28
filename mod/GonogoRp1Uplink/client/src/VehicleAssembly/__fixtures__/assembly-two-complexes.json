@@ -5,12 +5,12 @@
   "_scene": {
     "widget": "rp1-vehicle-assembly",
     "size": { "w": 8, "h": 20 },
-    "caption": "Four craft across two launch complexes: one flying-ready and one still integrating at each, every card naming the complex it belongs to and the staffing that sets its rate, with one repeat control per design",
+    "caption": "Four craft across two launch complexes: one flying-ready and one still integrating at each, the key line at the top saying what LC-1 and LC-2 are and where they stand, and every card naming its complex and the staffing that sets its rate",
     "paints": [
       "ASSEMBLY",
       "289,848f",
-      "WAREHOUSE",
-      "BUILD LIST",
+      "IN THE WAREHOUSE",
+      "UNDER INTEGRATION",
       "Atlas",
       "Vanguard",
       "BUILT",
@@ -18,8 +18,8 @@
       "LC-1 · costs",
       "LC-2 · costs",
       "engineers",
-      "until integration finishes",
-      "Repeat a build"
+      "Launch complexes:",
+      "until integration finishes"
     ]
   },
   "_stream": {

@@ -119,9 +119,14 @@ describe("KscConstruction", () => {
     fixture.emit("rp1.constructions", []);
 
     await waitFor(() => {
-      expect(screen.getByText("Under construction")).toBeInTheDocument();
+      expect(
+        screen.getByText("No facility, complex or pad is being built."),
+      ).toBeInTheDocument();
     });
-    expect(screen.getByText("nothing")).toBeInTheDocument();
+    // Named for the three things this section builds, none of which is a
+    // vehicle: "Construction: nothing" sat above a rocket that was visibly
+    // being built and read as a contradiction.
+    expect(screen.getByText("SITE CONSTRUCTION")).toBeInTheDocument();
   });
 
   it("distinguishes a complex being modified from a new one", async () => {

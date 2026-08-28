@@ -61,7 +61,7 @@ export function KscComplexes() {
   }
 
   return (
-    <Section>
+    <Section gap="sm">
       <SectionTitle>LAUNCH COMPLEXES</SectionTitle>
       <Stack as="ul" gap="xs" style={LIST_STYLE}>
         {rows.map((complex) => (

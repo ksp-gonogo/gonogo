@@ -357,8 +357,8 @@ function VehicleActions({
   });
 
   return (
-    <Stack gap="xs">
-      <Cluster gap="xs" justify="start" wrap>
+    <Stack gap="sm">
+      <Cluster gap="sm" justify="start" wrap>
         <RolloutControls
           handle={handles.rollout}
           id={id}

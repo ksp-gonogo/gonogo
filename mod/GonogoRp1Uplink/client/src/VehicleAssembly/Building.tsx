@@ -7,6 +7,13 @@ import { VehicleSection } from "./VehicleSection";
 /**
  * Every vehicle a launch complex is still integrating.
  *
+ * <para>Headed UNDER INTEGRATION, which is RP-1's own word for what a launch
+ * complex does to a craft file. It was BUILD LIST, and "building" is the word
+ * the Space Center's own section uses for the VAB and the pads: an operator
+ * reading "Construction: nothing" above a vehicle that was visibly being built
+ * had two sections claiming the same word for two different things. Nothing
+ * integrates a building, so the two can now be read in one column.</para>
+ *
  * <para>The half of the space centre's vehicle stock that cannot fly yet. Its
  * cards carry a clock and a bar where a warehouse card carries a rollout, and
  * the only action any of them offers is a scrap, because there is nothing else
@@ -26,7 +33,9 @@ export function BuildingSection() {
     return null;
   }
 
-  return <VehicleSection items={queue ?? []} title="BUILD LIST" waiting />;
+  return (
+    <VehicleSection items={queue ?? []} title="UNDER INTEGRATION" waiting />
+  );
 }
 
 registerAugment({

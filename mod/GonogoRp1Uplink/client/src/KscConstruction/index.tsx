@@ -57,27 +57,33 @@ export function KscConstruction() {
   const nameCentres = (centres ?? []).length > 1;
 
   return (
-    <Section>
-      <SectionTitle>CONSTRUCTION</SectionTitle>
-      <ProjectCardList>
-        {rows.length === 0 ? (
-          <Row>
-            <RowName>Under construction</RowName>
-            {/* A real answer, and one worth stating: an empty construction
-                queue and an Uplink that is not reporting look identical if this
-                row is simply left out. */}
-            <Text>nothing</Text>
-          </Row>
-        ) : (
-          rows.map((row) => (
+    <Section gap="sm">
+      {/* SITE, because this section builds the ground: facilities, launch
+          complexes and pads. Headed plain CONSTRUCTION it fought with the
+          vehicles being integrated elsewhere in the career for the same word,
+          and an operator read "Construction: nothing" while watching a rocket
+          be built. Nothing here is a vehicle and nothing that is a vehicle
+          reaches here. */}
+      <SectionTitle>SITE CONSTRUCTION</SectionTitle>
+      {rows.length === 0 ? (
+        // A real answer, and one worth stating: an empty construction queue and
+        // an Uplink that is not reporting look identical if this is left out.
+        // A sentence rather than a "nothing" hanging off a label, because the
+        // label was the same word as the heading above it.
+        <Text size="sm" tone="muted">
+          No facility, complex or pad is being built.
+        </Text>
+      ) : (
+        <ProjectCardList>
+          {rows.map((row) => (
             <ConstructionRow
               key={rowKey(row)}
               nameCentre={nameCentres}
               row={row}
             />
-          ))
-        )}
-      </ProjectCardList>
+          ))}
+        </ProjectCardList>
+      )}
     </Section>
   );
 }

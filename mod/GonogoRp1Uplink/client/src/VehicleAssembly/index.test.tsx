@@ -245,8 +245,8 @@ describe("VehicleAssembly", () => {
         screen.getByText("None built and none on order."),
       ).toBeInTheDocument();
     });
-    expect(screen.queryByText("WAREHOUSE")).not.toBeInTheDocument();
-    expect(screen.queryByText("BUILD LIST")).not.toBeInTheDocument();
+    expect(screen.queryByText("IN THE WAREHOUSE")).not.toBeInTheDocument();
+    expect(screen.queryByText("UNDER INTEGRATION")).not.toBeInTheDocument();
   });
 
   it("draws every craft across every complex in one flat list", async () => {
@@ -276,6 +276,76 @@ describe("VehicleAssembly", () => {
     expect(screen.getByText("Vanguard")).toBeInTheDocument();
     expect(visibleText()).toContain("LC-1 · costs");
     expect(visibleText()).toContain("LC-2 · costs");
+  });
+
+  it("says what a launch complex is and which space centre it stands at", async () => {
+    // The operator's own question about these renders: "I'm still so lost on
+    // what Cape is. Is that the Space Center? A KSC? And LC-1 and LC-2 are
+    // seemingly complexes within Cape?" Nothing on the wire says one contains
+    // the other, and a card tagged LC-1 cannot say it on its own, so the
+    // widget states it once at the top and every tag below stays a tag.
+    const { fixture } = mount();
+    await rp1IsPresent(fixture);
+    act(() => {
+      fixture.emit("career.status", CAREER);
+      fixture.emit("rp1.complexes", [...COMPLEXES, LC2]);
+      fixture.emit("rp1.pads", PADS);
+      fixture.emit("rp1.operations", []);
+      fixture.emit("rp1.warehouse", [built()]);
+      fixture.emit("rp1.buildQueue", []);
+    });
+
+    await waitFor(() => {
+      expect(visibleText()).toContain("Launch complexes: LC-1, LC-2 at Cape");
+    });
+  });
+
+  it("gathers the complexes under the centre each one stands at", async () => {
+    // Two centres is what makes the sentence do work rather than read as a
+    // list: RP-1 supports several through KSCSwitcher, and a flat "LC-1, LC-2,
+    // LC-3" would say nothing about which card belongs where.
+    const { fixture } = mount();
+    await rp1IsPresent(fixture);
+    act(() => {
+      fixture.emit("career.status", CAREER);
+      fixture.emit("rp1.complexes", [
+        ...COMPLEXES,
+        LC2,
+        { ...LC2, kscName: "Vandenberg", lcId: "lc-3", name: "SLC-3" },
+      ]);
+      fixture.emit("rp1.pads", PADS);
+      fixture.emit("rp1.operations", []);
+      fixture.emit("rp1.warehouse", [built()]);
+      fixture.emit("rp1.buildQueue", []);
+    });
+
+    await waitFor(() => {
+      expect(visibleText()).toContain(
+        "LC-1, LC-2 at Cape; SLC-3 at Vandenberg",
+      );
+    });
+  });
+
+  it("says nothing about the hierarchy before RP-1 has named a complex", async () => {
+    // A heading over nothing says less than no heading, and this line is only
+    // worth drawing when there is a tag below it to match.
+    const { fixture } = mount();
+    await rp1IsPresent(fixture);
+    act(() => {
+      fixture.emit("career.status", CAREER);
+      fixture.emit("rp1.complexes", []);
+      fixture.emit("rp1.pads", []);
+      fixture.emit("rp1.operations", []);
+      fixture.emit("rp1.warehouse", []);
+      fixture.emit("rp1.buildQueue", []);
+    });
+
+    await waitFor(() => {
+      expect(
+        screen.getByText("None built and none on order."),
+      ).toBeInTheDocument();
+    });
+    expect(visibleText()).not.toContain("Launch complexes:");
   });
 
   it("names the complex even where the centre has only one of them", async () => {
@@ -404,7 +474,13 @@ describe("VehicleAssembly", () => {
     expect(visibleText()).not.toContain("nobody is assigned");
   });
 
-  it("offers ONE repeat control for a design that is both built and building", async () => {
+  it("offers no way to start a build at all, rather than only the copy", async () => {
+    // The one build command RP-1 exposes COPIES a design the centre already
+    // holds. A control for it can order a second Atlas and can never order a
+    // first one, so it read as the general case while doing the special one:
+    // an operator was offered "Build another Atlas" and had no way anywhere to
+    // order the Atlas. An honest absence is the answer until a start command
+    // exists.
     const { fixture } = mount();
     await rp1IsPresent(fixture);
     act(() => {
@@ -420,86 +496,27 @@ describe("VehicleAssembly", () => {
       expect(screen.getByText("BUILT")).toBeInTheDocument();
     });
     expect(screen.getByText("INTEGRATING")).toBeInTheDocument();
-    // Two copies of one design, and one control: a button per copy asked an
-    // operator to choose between two presses that do the same thing. The two
-    // copies are in DIFFERENT contributed sections here, which is what would
-    // break a design list either section could own.
     expect(
-      screen.getAllByRole("button", { name: /^Build another/ }),
-    ).toHaveLength(1);
+      screen.queryByRole("button", { name: /[Bb]uild/ }),
+    ).not.toBeInTheDocument();
+    expect(screen.queryByText(/[Rr]epeat/)).not.toBeInTheDocument();
   });
 
-  it("keeps the repeat off the cards, where it read as building anything", async () => {
-    // The defect this placement is for: on a card the control read as "build",
-    // which this surface cannot do. RP-1 has no command for building a design
-    // the centre has never held, so the only honest control names the design it
-    // copies and stands apart from the copies themselves.
-    await withOneBuiltVehicle();
-
-    const repeat = await screen.findByRole("button", {
-      name: "Build another Atlas · LC-1",
-    });
-    const card = screen.getByText("Atlas").closest("li");
-
-    expect(card).not.toBeNull();
-    expect(card?.contains(repeat)).toBe(false);
-    expect(screen.getByText("Repeat a build")).toBeInTheDocument();
-  });
-
-  it("dispatches rp1.build.repeat with the vehicle id only after arm-then-confirm", async () => {
-    const user = userEvent.setup();
+  it("never dispatches the repeat command, however the widget is driven", async () => {
+    // The command stays live on the mod side and this widget stays silent on
+    // it. Asserted on the WIRE rather than on the absence of a button, because
+    // those are different claims and the one that matters is that nothing here
+    // can spend by that route.
     const { fixture } = await withOneBuiltVehicle();
 
-    await user.click(
-      await screen.findByRole("button", { name: "Build another Atlas · LC-1" }),
-    );
-    // Arm first: this spends career funds, and one press must not commit it.
+    await waitFor(() => {
+      expect(screen.getByText("BUILT")).toBeInTheDocument();
+    });
     expect(
-      fixture.transport.sentCommands.find(
+      fixture.transport.sentCommands.some(
         (c) => c.command === RP1_BUILD_REPEAT_COMMAND,
       ),
-    ).toBeUndefined();
-
-    await user.click(
-      screen.getByRole("button", {
-        name: "Confirm building another Atlas · LC-1",
-      }),
-    );
-
-    const sent = fixture.transport.sentCommands.find(
-      (c) => c.command === RP1_BUILD_REPEAT_COMMAND,
-    );
-    expect(sent).toBeDefined();
-    // The id, never the name: two vehicles of this design would answer to the
-    // name and the mod would have to guess which.
-    expect(sent?.args).toEqual({ id: "vp-atlas-1" });
-  });
-
-  it("keeps the same design at two complexes as two repeat controls", async () => {
-    // The complex decides how fast the copy is built and what it may weigh, so
-    // "another Atlas" is a different order at LC-1 from at LC-2.
-    const { fixture } = mount();
-    await rp1IsPresent(fixture);
-    act(() => {
-      fixture.emit("career.status", CAREER);
-      fixture.emit("rp1.complexes", [...COMPLEXES, LC2]);
-      fixture.emit("rp1.pads", PADS);
-      fixture.emit("rp1.operations", []);
-      fixture.emit("rp1.warehouse", [
-        built(),
-        built({ id: "vp-atlas-3", lcId: "lc-2", shipId: "ship-atlas-3" }),
-      ]);
-      fixture.emit("rp1.buildQueue", []);
-    });
-
-    await waitFor(() => {
-      expect(
-        screen.getByRole("button", { name: "Build another Atlas · LC-1" }),
-      ).toBeInTheDocument();
-    });
-    expect(
-      screen.getByRole("button", { name: "Build another Atlas · LC-2" }),
-    ).toBeInTheDocument();
+    ).toBe(false);
   });
 
   it("says a vehicle RP-1 gave no id to cannot be commanded, rather than offering to guess", async () => {
@@ -519,9 +536,9 @@ describe("VehicleAssembly", () => {
         screen.getByText(/RP-1 has no id for this vehicle/),
       ).toBeInTheDocument();
     });
-    // EVERY control, the repeat included: none of them can name a target
-    // without the id, and guessing from the name would pick the wrong one of
-    // two vehicles that share it.
+    // EVERY control: none of them can name a target without the id, and
+    // guessing from the name would pick the wrong one of two vehicles that
+    // share it.
     expect(screen.queryAllByRole("button")).toHaveLength(0);
   });
 

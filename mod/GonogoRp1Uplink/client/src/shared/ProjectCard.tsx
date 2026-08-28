@@ -55,7 +55,12 @@ export function ProjectCard({
 }: Readonly<ProjectCardProps>) {
   return (
     <Card as="li" tone={tone}>
-      <Stack gap="xs">
+      {/* A step wider than the tightest gap. A card here carries five or six
+          lines of its own, and at `xs` the name, the detail, the bar, the clock
+          and the controls read as one block of text with a button in it: the
+          operator's word for it was bunched. The card's own padding is the
+          kit's and is not a knob, so the air has to come from here. */}
+      <Stack gap="sm">
         {/* The name WRAPS rather than truncating, which is what separates a
             card's heading from a row's label. `RowName` ellipsises and flexes
             to fill, so at the minimum width a widget promises "Atlas" rendered
@@ -97,15 +102,16 @@ export function ProjectCard({
  * its own copy of that reset, which is one copy per widget of a rule that
  * belongs to the card.</para>
  *
- * <para>Cards sit a step further apart than the heading above them sits from
- * the first of them, so a group of cards reads as belonging to its heading
- * rather than as one more thing spaced the same as everything else.</para>
+ * <para>Cards sit further apart than the lines inside one of them, and further
+ * apart again than the heading above them sits from the first of them. Two
+ * cards a hair's breadth apart read as one long card, which is the whole
+ * failure a card is supposed to fix.</para>
  */
 export function ProjectCardList({
   children,
 }: Readonly<{ children: ReactNode }>) {
   return (
-    <Stack as="ul" gap="sm" style={LIST_STYLE}>
+    <Stack as="ul" gap="md" style={LIST_STYLE}>
       {children}
     </Stack>
   );

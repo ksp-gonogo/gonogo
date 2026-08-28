@@ -75,7 +75,7 @@ export function VehicleSection({
   const handles = { rollback, rollout, scrap };
 
   return (
-    <Section>
+    <Section gap="sm">
       <SectionTitle>{title}</SectionTitle>
       <ProjectCardList>
         {items.map((item) => (

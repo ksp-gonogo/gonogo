@@ -31,7 +31,11 @@ export function WarehouseSection() {
   }
 
   return (
-    <VehicleSection items={warehouse ?? []} title="WAREHOUSE" waiting={false} />
+    <VehicleSection
+      items={warehouse ?? []}
+      title="IN THE WAREHOUSE"
+      waiting={false}
+    />
   );
 }
 

@@ -116,7 +116,7 @@ RP-1's payroll: engineers, researchers and applicants on the books, each centre'
 
 ### Vehicle Assembly
 
-Every craft RP-1 is integrating or holding, across every launch complex: what it costs, how far along it is, why its clock reads what it reads, and the controls to roll one out, bring it back, scrap it or order another copy.
+Every craft RP-1 is integrating or holding, across every launch complex at every space centre: what it costs, how far along it is, why its clock reads what it reads, and the controls to roll one out, bring it back or scrap it.
 
 | | |
 | --- | --- |
@@ -155,7 +155,7 @@ Every craft RP-1 is integrating or holding, across every launch complex: what it
 
 ![The same widget at 18 × 5](docs/assets/assembly-rushing--landscape-18x5.png)
 
-![Four craft across two launch complexes: one flying-ready and one still integrating at each, every card naming the complex it belongs to and the staffing that sets its rate, with one repeat control per design](docs/assets/assembly-two-complexes--default.png)
+![Four craft across two launch complexes: one flying-ready and one still integrating at each, the key line at the top saying what LC-1 and LC-2 are and where they stand, and every card naming its complex and the staffing that sets its rate](docs/assets/assembly-two-complexes--default.png)
 
 ![The same widget at its minimum size](docs/assets/assembly-two-complexes--min.png)
 

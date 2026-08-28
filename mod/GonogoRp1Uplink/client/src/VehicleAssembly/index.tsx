@@ -1,22 +1,6 @@
-import {
-  registerComponent,
-  useCommand,
-  useTelemetry,
-} from "@ksp-gonogo/sitrep-sdk";
-import {
-  Cluster,
-  CommandButton,
-  Panel,
-  Stack,
-  Text,
-  Unit,
-  usePanelDelay,
-  WidgetSections,
-} from "@ksp-gonogo/ui-kit";
-import type {
-  Rp1ComplexEntry,
-  Rp1WarehouseItemEntry,
-} from "../__generated__/contract";
+import { registerComponent, useTelemetry } from "@ksp-gonogo/sitrep-sdk";
+import { Panel, Stack, Text, Unit, WidgetSections } from "@ksp-gonogo/ui-kit";
+import type { Rp1ComplexEntry } from "../__generated__/contract";
 import { current } from "../shared/current";
 import { RP1 } from "../uplink";
 // Side-effect import: hydrates these Topics' units at decode time. Here rather
@@ -30,9 +14,21 @@ import "../topics";
 import "./Building";
 import "./Warehouse";
 import { VEHICLE_ASSEMBLY_SECTIONS } from "./slot";
-import type { Vehicle } from "./vehicles";
 
-/** Build another copy of a design. Must match `Rp1BuildCommands.RepeatCommand`. */
+/**
+ * Build another copy of a design RP-1 already holds. Must match
+ * `Rp1BuildCommands.RepeatCommand`.
+ *
+ * <para><b>Exported and deliberately without a control.</b> RP-1's only build
+ * command COPIES something the centre already has, so a button for it can order
+ * a second Atlas and can never order a first one, and a surface offering only
+ * the special case reads as offering the general one. Starting a design the
+ * centre has never built needs a command that does not exist yet; until it
+ * does, this widget shows what is built and what is being built and offers no
+ * way to begin one. An honest absence beats a control that does the special
+ * case. The name stays because the command stays live on the mod side, and the
+ * surface that eventually starts a build should not re-derive the string.</para>
+ */
 export const RP1_BUILD_REPEAT_COMMAND = "rp1.build.repeat";
 
 type VehicleAssemblyConfig = Record<string, never>;
@@ -69,6 +65,10 @@ type VehicleAssemblyConfig = Record<string, never>;
  * host is what lets each contributed section carry none: three sections each
  * with their own copy is the same rule satisfied three times in one widget,
  * which reads as a defect rather than as care.</para>
+ *
+ * <para><b>Nothing here starts a build.</b> See
+ * {@link RP1_BUILD_REPEAT_COMMAND} for why the one build command RP-1 exposes
+ * gets no control.</para>
  */
 export function VehicleAssembly() {
   const available = current(useTelemetry("rp1.available"));
@@ -76,11 +76,6 @@ export function VehicleAssembly() {
   const queue = current(useTelemetry("rp1.buildQueue"));
   const complexes = current(useTelemetry("rp1.complexes"));
   const career = current(useTelemetry("career.status"));
-
-  // Unconditional and above the early return on purpose: a hook after it would
-  // change count on the first frame RP-1 answers.
-  const repeat = useCommand(RP1_BUILD_REPEAT_COMMAND);
-  usePanelDelay(repeat);
 
   // Invisible on every install without RP-1, which is most of them.
   if (available !== true) {
@@ -107,6 +102,8 @@ export function VehicleAssembly() {
           Funds <Unit value={career?.economy?.funds} />
         </Text>
 
+        <ComplexKey complexes={complexes ?? []} />
+
         {built.length === 0 && building.length === 0 && (
           // A real answer, and one worth stating: an empty space centre and an
           // Uplink that is not reporting look identical if this is left out.
@@ -115,146 +112,82 @@ export function VehicleAssembly() {
           </Text>
         )}
 
-        {/* Placed rather than left to `Panel`'s end-of-body default so the
-            sections sit above the design-level control that acts on them. */}
         <WidgetSections />
-
-        <RepeatBuilds
-          designs={repeatableDesigns([built, building], complexes)}
-          handle={repeat}
-        />
       </Stack>
     </Panel>
   );
 }
 
-/** One design RP-1 can be asked for another copy of. */
-type RepeatableDesign = Readonly<{
-  /** The vehicle the command is addressed to, one existing copy of the design. */
-  id: string;
-  name: string;
-  /** The name, with the complex the copy would be built at. */
-  label: string;
-  cost: Rp1WarehouseItemEntry["cost"];
-}>;
-
 /**
- * The repeat controls, one per design, under both lists.
+ * What a launch complex IS, and which space centre it belongs to.
  *
- * <para>On the host rather than in either section, because a design is not in
- * one list or the other: two Atlases, one flying-ready and one still
- * integrating, are one design and one control. A section that owned the buttons
- * for its own list would offer that design twice.</para>
+ * <para>The cards below are tagged `LC-1`, and an operator who has not read
+ * RP-1's own documentation has no way to know from that tag whether LC-1 is a
+ * building, a pad, a site or a queue. RP-1's own words for the hierarchy are
+ * nowhere on the wire: `kscName` and `name` are two strings and nothing says
+ * one contains the other. This line says it once, at the top, so every tag
+ * below it can stay a tag.</para>
  *
- * <para>Named for the design each one copies, because the name is the whole of
- * what distinguishes them and a strip of buttons all reading "Build another"
- * would be four presses an operator cannot tell apart.</para>
+ * <para>The nesting is: a career has ONE set of facilities (the VAB, the SPH,
+ * Mission Control), several space centres, and each centre holds launch
+ * complexes, each of which holds pads. This names the middle two, because those
+ * are the two the cards are tagged with; the pads name themselves on the
+ * rollout controls that send a vehicle to one.</para>
  *
- * <para>The heading says REPEAT rather than build. RP-1 has no command for
- * building a design the centre has never held, so a heading saying "build"
- * would promise the one thing this surface cannot do.</para>
+ * <para>Drawn as a sentence rather than as a tree, because it is one fact and a
+ * tree of two levels is a diagram of nothing. Absent entirely when RP-1 has not
+ * sent the complexes: a heading over nothing says less than no heading.</para>
  */
-function RepeatBuilds({
-  designs,
-  handle,
-}: Readonly<{
-  designs: readonly RepeatableDesign[];
-  handle: Parameters<typeof CommandButton>[0]["handle"];
-}>) {
-  if (designs.length === 0) {
+function ComplexKey({
+  complexes,
+}: Readonly<{ complexes: readonly Rp1ComplexEntry[] }>) {
+  const centres = groupByCentre(complexes);
+  if (centres.length === 0) {
     return null;
   }
 
   return (
-    <Stack gap="xs">
-      <Text size="xs" tone="muted">
-        Repeat a build
-      </Text>
-      <Cluster gap="xs" justify="start" wrap>
-        {designs.map((design) => (
-          <CommandButton
-            args={{ id: design.id }}
-            aria-label={`Build another ${design.label}`}
-            commandLabel={`Build another ${design.name}`}
-            confirmAriaLabel={`Confirm building another ${design.label}`}
-            confirmLabel={<SpendWording cost={design.cost} />}
-            handle={handle}
-            key={design.id}
-            label={`Build another ${design.name}`}
-            size="sm"
-          />
-        ))}
-      </Cluster>
-    </Stack>
+    <Text size="xs" tone="muted">
+      Launch complexes:{" "}
+      {centres.map((centre, index) => (
+        <span key={centre.name}>
+          {index > 0 ? "; " : null}
+          {centre.complexes.join(", ")} at {centre.name}
+        </span>
+      ))}
+    </Text>
   );
 }
 
+/** One space centre and the launch complexes standing at it. */
+type Centre = Readonly<{ name: string; complexes: readonly string[] }>;
+
 /**
- * Every design the centre could be asked for another copy of, once each.
+ * The complexes gathered under the centre each one stands at, in the order RP-1
+ * listed them.
  *
- * <para>Collapsed by complex and name, because that pair IS the design here:
- * two Atlases at LC-1 are the same craft file built twice, and offering a
- * control per copy asked an operator to choose between two presses that do the
- * same thing. The same craft at two complexes stays two controls, because the
- * complex decides how fast the copy is built and what it may weigh. The command
- * is still addressed to a vehicle id, so one existing copy is carried as the
- * target, and a finished one is preferred over a queued one only because the
- * warehouse list is read first.</para>
- *
- * <para>A vehicle RP-1 gave no id to is skipped, for the reason its card gives:
- * the name would have to be guessed back into an id. One with no NAME is
- * skipped too, because a button reading "Build another" naming nothing is not
- * something an operator could choose between.</para>
+ * <para>A complex RP-1 gave no name to is skipped rather than drawn as a dash:
+ * this line exists to let an operator match a card's tag to a place, and a dash
+ * matches no tag. A complex with no CENTRE is gathered under a centre named for
+ * what is known about it, because dropping it would leave a tag on a card with
+ * nothing up here to match.</para>
  */
-function repeatableDesigns(
-  lists: readonly (readonly Vehicle[])[],
-  complexes: readonly Rp1ComplexEntry[] | undefined,
-): readonly RepeatableDesign[] {
-  const designs = new Map<string, RepeatableDesign>();
-  for (const list of lists) {
-    for (const item of list) {
-      const id = item.id;
-      const name = item.shipName;
-      if (
-        id === undefined ||
-        id === null ||
-        name === undefined ||
-        name === null ||
-        name === ""
-      ) {
-        continue;
-      }
-      const key = `${item.lcId ?? ""}:${name}`;
-      if (designs.has(key)) {
-        continue;
-      }
-      const complex = (complexes ?? []).find((c) => c.lcId === item.lcId);
-      const where = complex?.name ?? null;
-      designs.set(key, {
-        cost: item.cost,
-        id,
-        label: where === null ? name : `${name} · ${where}`,
-        name,
-      });
+function groupByCentre(complexes: readonly Rp1ComplexEntry[]): Centre[] {
+  const byCentre = new Map<string, string[]>();
+  for (const complex of complexes) {
+    const name = complex.name;
+    if (name === undefined || name === null || name === "") {
+      continue;
+    }
+    const centre = complex.kscName ?? "an unnamed space centre";
+    const held = byCentre.get(centre);
+    if (held === undefined) {
+      byCentre.set(centre, [name]);
+    } else {
+      held.push(name);
     }
   }
-  return [...designs.values()];
-}
-
-/**
- * What the confirm press commits to. The price is RP-1's stored figure rather
- * than the charge, and the difference is real: leaders and strategies move what
- * a purchase costs and only the mod can evaluate that, so this is an estimate
- * and the refusal that quotes the true charge is authoritative over it.
- */
-function SpendWording({
-  cost,
-}: Readonly<{ cost: Rp1WarehouseItemEntry["cost"] }>) {
-  return (
-    <>
-      Spend <Unit value={cost} />
-    </>
-  );
+  return [...byCentre].map(([name, held]) => ({ complexes: held, name }));
 }
 
 registerComponent<VehicleAssemblyConfig>({
@@ -262,9 +195,9 @@ registerComponent<VehicleAssemblyConfig>({
   name: "Vehicle Assembly",
   description:
     "Every craft RP-1 is integrating or holding, across every launch " +
-    "complex: what it costs, how far along it is, why its clock reads what " +
-    "it reads, and the controls to roll one out, bring it back, scrap it or " +
-    "order another copy.",
+    "complex at every space centre: what it costs, how far along it is, why " +
+    "its clock reads what it reads, and the controls to roll one out, bring " +
+    "it back or scrap it.",
   tags: ["rp1", "career", "vehicles"],
   defaultSize: { w: 7, h: 16 },
   minSize: { w: 4, h: 6 },
@@ -277,8 +210,8 @@ registerComponent<VehicleAssemblyConfig>({
     "rp1.complexes",
     "rp1.pads",
     "rp1.operations",
-    // The spend rule: every control in this widget moves career funds, so the
-    // balance they are judged against has to be in it.
+    // The spend rule: a rollout is billed as the vehicle moves and a scrap
+    // refunds it, so the balance those are judged against has to be in here.
     "career.status",
   ],
   defaultConfig: {},
