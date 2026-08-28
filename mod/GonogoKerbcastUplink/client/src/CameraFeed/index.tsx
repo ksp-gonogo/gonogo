@@ -15,7 +15,13 @@ registerComponent<CameraFeedConfig>({
     "Live camera streams from in-flight Hullcam VDS parts, with an in-widget camera picker and Next/Previous switching.",
   tags: ["camera"],
   defaultSize: { w: 5, h: 5 },
-  minSize: { w: 2, h: 2 },
+  /**
+   * Five columns is what the feed header's own title needs before it
+   * ellipsises, and four rows is what the "no cameras" sentence needs before
+   * the panel edge cuts through it. Both come out of the shared kerbcast feed
+   * rather than this widget, so the tile is the only side that can give.
+   */
+  minSize: { w: 5, h: 4 },
   // On MobileDashboard a widget without this squishes to
   // `defaultSize.h * ROW_HEIGHT` (5 * 25 = 125px), far too short for a
   // 16:9 feed. Give it a proper box (mirrors the other media-ish widgets
