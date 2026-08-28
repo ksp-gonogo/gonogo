@@ -3,6 +3,12 @@
     "scenario": "servos",
     "notes": "Hinge moving, piston at target. A rotor entry rides the same robotics.servos array to prove RoboticsConsole ignores it (Rotor Tachometer's domain). The piston extension values are ILLUSTRATIVE metre-scale numbers, not recorded from KSP: they were 80 apiece, which encoded the same percent misconception the widget label did. Breaking Ground is not installed in CI, so no recorded robotics values exist anywhere in this repo. Do not cite these as measured."
   },
+  "_scene": {
+    "widget": "robotics-console",
+    "caption": "A hinge driving towards its target, a piston already at one, and a locked rotor the console leaves to the tachometer",
+    "modes": ["default", "min"],
+    "paints": ["ROBOTICS", "Target"]
+  },
   "robotics.available": true,
   "robotics.servos": [
     {
@@ -40,11 +46,11 @@
     }
   ],
   "_stream": {
-    "carriedChannels": ["robotics.servos", "robotics.available"],
+    "pinnedUt": 1000000,
     "emits": [
       {
-        "channel": "robotics.servos",
-        "value": [
+        "topic": "robotics.servos",
+        "payload": [
           {
             "partName": "Arm Hinge",
             "partId": "11",
@@ -81,8 +87,8 @@
         ]
       },
       {
-        "channel": "robotics.available",
-        "value": {
+        "topic": "robotics.available",
+        "payload": {
           "available": true
         }
       }

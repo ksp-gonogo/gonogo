@@ -1,0 +1,101 @@
+{
+  "_meta": {
+    "synthetic": true,
+    "notes": "SYNTHETIC. The greenhouse augment in its own host, on a Mun surface base that has gone into night: natural light is nil, the greenhouse is switched ON and blocked, so the crop has stopped growing and the row has to say why. Rendered INSIDE Ship Systems because that is where the seat is, and because the halt has to be legible against the ledger it affects rather than on its own."
+  },
+  "_scene": {
+    "augment": "life-support-greenhouse",
+    "host": "ship-systems",
+    "caption": "Greenhouse halted in shadow: the growth rate stops and the row names the reason, while the reason named underneath rather than left to a stopped rate",
+    "modes": ["default"],
+    "paints": ["Greenhouse", "insufficient lighting"]
+  },
+  "_stream": {
+    "pinnedUt": 1000000,
+    "emits": [
+      {
+        "topic": "kerbalism.profile",
+        "payload": {
+          "name": "Default",
+          "resources": {
+            "ElectricCharge": {
+              "flowMode": "ALL_VESSEL_BALANCE",
+              "flowModeOrdinal": 4,
+              "displayName": "Electric Charge",
+              "isSupply": true,
+              "lowThreshold": 0.15
+            },
+            "Food": {
+              "flowMode": "ALL_VESSEL",
+              "flowModeOrdinal": 1,
+              "displayName": "Food",
+              "isSupply": true,
+              "lowThreshold": 0.15
+            }
+          },
+          "rules": [
+            {
+              "name": "eating",
+              "input": "Food",
+              "output": "",
+              "ratePerSecond": 0.000002
+            }
+          ],
+          "processes": []
+        }
+      },
+      {
+        "topic": "kerbalism.lifesupport",
+        "payload": {
+          "rates": { "Food": -0.000004, "ElectricCharge": -0.02 },
+          "habitat": {
+            "pressure": 1,
+            "poisoning": 0.02,
+            "comfort": 0.55,
+            "livingSpace": 0.8
+          },
+          "processes": [],
+          "greenhouses": [
+            {
+              "cropResource": "Food",
+              "foodRatePerSec": 0,
+              "natural": 0,
+              "artificial": 0,
+              "active": true,
+              "issue": "insufficient lighting",
+              "ecRateMaxPerSec": 0.02,
+              "lampEcDrawPerSec": 0.6,
+              "lightToleranceWm2": 400,
+              "pressureTolerance": 0.9,
+              "radiationToleranceRadPerSec": 0.00001
+            }
+          ],
+          "asOfUt": 1000000
+        }
+      },
+      {
+        "topic": "vessel.resources",
+        "payload": {
+          "resources": {
+            "ElectricCharge": { "current": 45, "max": 900, "active": true },
+            "Food": { "current": 260, "max": 600, "active": true }
+          },
+          "meta": { "source": "vessel:3", "quality": 1 }
+        }
+      },
+      {
+        "topic": "vessel.crew",
+        "payload": {
+          "count": 3,
+          "capacity": 4,
+          "crew": [
+            { "name": "Valentina Kerman", "trait": "Pilot" },
+            { "name": "Bob Kerman", "trait": "Scientist" },
+            { "name": "Bill Kerman", "trait": "Engineer" }
+          ],
+          "meta": { "source": "vessel:3", "quality": 1 }
+        }
+      }
+    ]
+  }
+}

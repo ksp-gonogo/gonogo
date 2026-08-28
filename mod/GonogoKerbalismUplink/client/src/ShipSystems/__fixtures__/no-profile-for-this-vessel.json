@@ -1,0 +1,52 @@
+{
+  "_meta": {
+    "synthetic": true,
+    "notes": "SYNTHETIC. The ABSENCE state, and the one the widget takes care to distinguish: Kerbalism IS reporting, the telemetry has arrived, and this particular vessel simply has no profile behind it. The sentence has to say that rather than the 'Waiting for Kerbalism telemetry...' a starved widget shows, because the two look the same from outside and mean opposite things about whether to keep waiting. Nothing here renders a zeroed meter for a resource that was never declared."
+  },
+  "_scene": {
+    "widget": "ship-systems",
+    "caption": "Telemetry arrived, no profile for this vessel: the panel names that state rather than sitting on the waiting message or drawing empty meters",
+    "modes": ["default"],
+    "expectsEmpty": "There is nothing to meter on a vessel with no Kerbalism profile. The subject IS the sentence in place of the ledger, and the render has to show it is the 'no profile' one rather than the 'still waiting' one.",
+    "paints": ["No Kerbalism profile reported"]
+  },
+  "_stream": {
+    "pinnedUt": 1000000,
+    "emits": [
+      {
+        "topic": "kerbalism.profile",
+        "payload": {
+          "name": "Default",
+          "resources": {},
+          "rules": [],
+          "processes": []
+        }
+      },
+      {
+        "topic": "kerbalism.lifesupport",
+        "payload": {
+          "rates": {},
+          "processes": [],
+          "greenhouses": [],
+          "asOfUt": 1000000
+        }
+      },
+      {
+        "topic": "vessel.resources",
+        "payload": {
+          "resources": {},
+          "meta": { "source": "vessel:2", "quality": 1 }
+        }
+      },
+      {
+        "topic": "vessel.crew",
+        "payload": {
+          "count": 0,
+          "capacity": 0,
+          "crew": [],
+          "meta": { "source": "vessel:2", "quality": 1 }
+        }
+      }
+    ]
+  }
+}

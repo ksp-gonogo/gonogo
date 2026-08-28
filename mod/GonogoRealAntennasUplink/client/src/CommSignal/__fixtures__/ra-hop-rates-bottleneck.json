@@ -1,0 +1,79 @@
+{
+  "_meta": {
+    "synthetic": true,
+    "notes": "SYNTHETIC. A three-leg relay chain where the middle leg is the slow one: 32 kbps between two relays against 262 kbps either side of it. The contribution's whole job is that join, so the scene has to be a route with more than one hop in it, and the rates have to differ or there is no bottleneck to flag. Node ids match `comms.path`'s own `from`/`to`, which is how the schedule joins them."
+  },
+  "_scene": {
+    "contribution": "realantennas:comm-signal-hop-rates",
+    "host": "comm-signal",
+    "caption": "Per-hop bitrates joined onto CommSignal's route, with the slow middle leg flagged as the bottleneck",
+    "modes": ["default"],
+    "size": { "w": 9, "h": 14 },
+    "paints": ["COMMNET", "Route"]
+  },
+  "_stream": {
+    "pinnedUt": 1000000,
+    "emits": [
+      { "topic": "realantennas.available", "payload": true },
+      { "topic": "comms.link", "payload": { "connected": true } },
+      {
+        "topic": "vessel.comms",
+        "payload": {
+          "connected": true,
+          "signalStrength": 0.44,
+          "controlState": 4
+        }
+      },
+      {
+        "topic": "comms.delay",
+        "payload": { "source": 1, "oneWaySeconds": 21.5 }
+      },
+      {
+        "topic": "comms.path",
+        "payload": {
+          "hops": [
+            {
+              "from": "vessel",
+              "to": "Duna Relay 1",
+              "kind": 1,
+              "distanceMeters": 1800000
+            },
+            {
+              "from": "Duna Relay 1",
+              "to": "Kerbin Relay 3",
+              "kind": 1,
+              "distanceMeters": 6400000000
+            },
+            {
+              "from": "Kerbin Relay 3",
+              "to": "home",
+              "kind": 0,
+              "distanceMeters": 2900000
+            }
+          ],
+          "meta": { "source": "vessel:1", "quality": 1 }
+        }
+      },
+      {
+        "topic": "realantennas.hopRates",
+        "payload": [
+          {
+            "fromNodeId": "vessel",
+            "toNodeId": "Duna Relay 1",
+            "bitsPerSec": 262000
+          },
+          {
+            "fromNodeId": "Duna Relay 1",
+            "toNodeId": "Kerbin Relay 3",
+            "bitsPerSec": 32000
+          },
+          {
+            "fromNodeId": "Kerbin Relay 3",
+            "toNodeId": "home",
+            "bitsPerSec": 262000
+          }
+        ]
+      }
+    ]
+  }
+}

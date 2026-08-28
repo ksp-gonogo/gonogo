@@ -1,0 +1,64 @@
+{
+  "_meta": {
+    "synthetic": true,
+    "notes": "SYNTHETIC. A direct X-band link to KSC with RealAntennas elected: 8.4 dB of margin, so the link closes. Rendered INSIDE the base CommSignal widget rather than in a stand-in panel, because that is the only place this augment exists: it is a section at the end of someone else's body, and a picture of it alone would not show whether it sits beside the signal readout or on top of it."
+  },
+  "_scene": {
+    "augment": "realantennas-comm-signal-section",
+    "host": "comm-signal",
+    "caption": "RealAntennas' link budget composed into CommSignal: margin closing, with the negotiated encoder, modulation and tech level under it",
+    "modes": ["default"],
+    "size": { "w": 8, "h": 12 },
+    "paints": ["COMMNET", "Link budget", "Margin", "Encoder"]
+  },
+  "_stream": {
+    "pinnedUt": 1000000,
+    "emits": [
+      { "topic": "realantennas.available", "payload": true },
+      { "topic": "comms.link", "payload": { "connected": true } },
+      {
+        "topic": "vessel.comms",
+        "payload": {
+          "connected": true,
+          "signalStrength": 0.87,
+          "controlState": 4
+        }
+      },
+      {
+        "topic": "comms.delay",
+        "payload": { "source": 1, "oneWaySeconds": 0.0004 }
+      },
+      {
+        "topic": "comms.linkMargin",
+        "payload": { "decibelMargin": 8.4, "closesLink": true }
+      },
+      {
+        "topic": "comms.path",
+        "payload": {
+          "hops": [
+            {
+              "from": "vessel",
+              "to": "home",
+              "kind": 0,
+              "distanceMeters": 1234.5,
+              "extensions": {
+                "realantennas": {
+                  "band": "X",
+                  "techLevel": 7,
+                  "modulationBits": 4,
+                  "encoder": "Reed-Solomon 255/223",
+                  "codingRate": 0.8745,
+                  "requiredEbN0": 6.1,
+                  "beamwidth": 12.5,
+                  "powerDrawEc": 3.25,
+                  "reverseBitsPerSec": 9600
+                }
+              }
+            }
+          ],
+          "meta": { "source": "vessel:1", "quality": 1 }
+        }
+      }
+    ]
+  }
+}

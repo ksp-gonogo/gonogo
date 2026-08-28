@@ -1,0 +1,64 @@
+{
+  "_meta": {
+    "synthetic": true,
+    "notes": "SYNTHETIC. The same craft further out, on a dish that no longer closes: the margin has gone 2.7 dB negative. This is the state the section exists for, because CommSignal's own signal bars can still show a connection while the budget says the link is about to stop working. The verdict is carried by the word '(open)' as well as the tone, so it survives a reader who cannot separate the two colours."
+  },
+  "_scene": {
+    "augment": "realantennas-comm-signal-section",
+    "host": "comm-signal",
+    "caption": "Link budget that does NOT close: a negative margin marked '(open)' rather than left to colour alone",
+    "modes": ["default"],
+    "size": { "w": 8, "h": 12 },
+    "paints": ["COMMNET", "Link budget", "(open)"]
+  },
+  "_stream": {
+    "pinnedUt": 1000000,
+    "emits": [
+      { "topic": "realantennas.available", "payload": true },
+      { "topic": "comms.link", "payload": { "connected": true } },
+      {
+        "topic": "vessel.comms",
+        "payload": {
+          "connected": true,
+          "signalStrength": 0.14,
+          "controlState": 2
+        }
+      },
+      {
+        "topic": "comms.delay",
+        "payload": { "source": 1, "oneWaySeconds": 4.2 }
+      },
+      {
+        "topic": "comms.linkMargin",
+        "payload": { "decibelMargin": -2.7, "closesLink": false }
+      },
+      {
+        "topic": "comms.path",
+        "payload": {
+          "hops": [
+            {
+              "from": "vessel",
+              "to": "home",
+              "kind": 0,
+              "distanceMeters": 1260000000,
+              "extensions": {
+                "realantennas": {
+                  "band": "S",
+                  "techLevel": 4,
+                  "modulationBits": 1,
+                  "encoder": "Convolutional 1/2",
+                  "codingRate": 0.5,
+                  "requiredEbN0": 4.4,
+                  "beamwidth": 42,
+                  "powerDrawEc": 1.1,
+                  "reverseBitsPerSec": 1200
+                }
+              }
+            }
+          ],
+          "meta": { "source": "vessel:1", "quality": 1 }
+        }
+      }
+    ]
+  }
+}

@@ -804,6 +804,14 @@ registerComponent<CommSignalConfig>({
   // importing backend-aware code (locked map: comm-signal). See the
   // `SlotRegistry` declaration-merge above for the slot props contracts.
   augmentSlots: ["comm-signal.sections"],
+  // The per-hop bitrate slot the route reads (`useContributions` above).
+  // `ContributionsAggregation` mounts a runner only for a widget's DECLARED
+  // slots, and the runner is what subscribes a contribution's deps, so leaving
+  // this off meant no contribution to this slot ever computed and the route
+  // rendered without rates in any real app. The stream tests missed it because
+  // they mount the widget under a hand-written meta that declares the slot
+  // itself, so the test supplied the very thing that was absent.
+  contributionSlots: ["comm-signal.hop-rates"],
   // Four Topics, not one: connectivity is the freeze-exempt `comms.link`,
   // the observation is the frozen `vessel.comms` struct, the two control-state
   // shapes are derived off `vessel.state`, and the delay is gonogo's own

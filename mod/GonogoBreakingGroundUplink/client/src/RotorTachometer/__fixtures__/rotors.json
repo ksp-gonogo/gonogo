@@ -3,6 +3,12 @@
     "scenario": "rotors",
     "notes": "Two rotors: a main rotor spinning near its cap, and a stopped, braked, locked tail rotor. Exercises gauge + controls + multi-rotor list."
   },
+  "_scene": {
+    "widget": "rotor-tachometer",
+    "caption": "Main rotor turning near its commanded cap, tail rotor stopped with the brake full on and the servo locked",
+    "modes": ["default", "min"],
+    "paints": ["ROTOR", "Main Rotor"]
+  },
   "robotics.available": true,
   "robotics.servos": [
     {
@@ -37,11 +43,11 @@
     }
   ],
   "_stream": {
-    "carriedChannels": ["robotics.servos", "robotics.available"],
+    "pinnedUt": 1000000,
     "emits": [
       {
-        "channel": "robotics.servos",
-        "value": [
+        "topic": "robotics.servos",
+        "payload": [
           {
             "partName": "Main Rotor",
             "partId": "101",
@@ -75,8 +81,8 @@
         ]
       },
       {
-        "channel": "robotics.available",
-        "value": {
+        "topic": "robotics.available",
+        "payload": {
           "available": true
         }
       }

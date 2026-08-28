@@ -9,8 +9,12 @@
 //     so the RP-1 controllable-mass ascent go/no-go is placeable from the
 //     dashboard widget picker.
 //
+// `./uplink` declares the client identity the widget above stamps as `owner`,
+// so the picker's mod search tags derive "avionics" from the registration.
+//
 // It also declares the bare `avionics.available` presence primitive
 // (`./topics`) so the client type system knows the TrueNow boolean Topic.
+import "./uplink";
 import "./topics";
 import "./AvionicsGoNoGo";
 

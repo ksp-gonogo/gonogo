@@ -280,6 +280,18 @@ export interface UplinkInventory {
   augments: InventoryAugment[];
   contributions: InventoryContribution[];
   processors: string[];
+  /**
+   * Every registered Processor's own TOPIC deps, keyed by processor id.
+   *
+   * A contribution may depend on a Processor rather than on topics, and then
+   * the topics it ultimately needs are named nowhere in its own registration.
+   * A scene fed from that registration alone therefore carried none of them,
+   * the subscription-gated transport dropped every emit, and the render was of
+   * no data: the ONE case where a legitimate scene could not be expressed at
+   * all. Every processor is listed, not just this client's, because a
+   * contribution may reasonably depend on one the app declares.
+   */
+  processorTopicDeps: Record<string, string[]>;
   reckonedTopics: string[];
   derivedChannels: string[];
   /** Every declared client id in the bundle, `core` included. Diagnostic. */
@@ -423,6 +435,14 @@ export function readInventory(uplinkId?: string): UplinkInventory {
     processors: getAllProcessors()
       .filter((p) => (p as { owner?: string }).owner === client.id)
       .map((p) => (p as { id: string }).id),
+    processorTopicDeps: Object.fromEntries(
+      getAllProcessors().map((p) => [
+        (p as { id: string }).id,
+        ((p as { deps?: readonly unknown[] }).deps ?? [])
+          .map(depTopic)
+          .filter((topic) => !topic.startsWith("processor:")),
+      ]),
+    ),
     reckonedTopics: getReckonedTopics()
       .filter((r) => r.owners.includes(client.id))
       .map((r) => r.topic),

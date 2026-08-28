@@ -24,6 +24,7 @@ import {
 } from "@ksp-gonogo/sitrep-sdk";
 import { Badge, Cluster, Grid, Stack, Text, Unit } from "@ksp-gonogo/ui-kit";
 import { readRealAntennasHopExt } from "../hopExt";
+import { REALANTENNAS } from "../uplink";
 // Side-effect import so the RA Topic registrations + the hop-bag hydration
 // registration are alive wherever this augment is bundled.
 import "../hopExt";
@@ -178,12 +179,18 @@ function CommSignalRaSection() {
   );
 }
 
+// Stamped with the client handle, like every other registration this package
+// makes. An unstamped augment belongs to nobody: the picker's mod search tags
+// do not derive "realantennas" from it, and the render/docs tool reads the
+// registries by owner, so it reported this Uplink as registering no augments at
+// all while both were live in the bundle.
 registerAugment({
   id: "realantennas-comm-signal-badge",
   augments: "comm-signal.badges",
   requires: "realantennas",
   channels: ["comms.dataRate", "comms.path"],
   component: CommSignalRaBadges,
+  owner: REALANTENNAS,
 });
 
 registerAugment({
@@ -192,6 +199,7 @@ registerAugment({
   requires: "realantennas",
   channels: ["comms.linkMargin", "comms.path"],
   component: CommSignalRaSection,
+  owner: REALANTENNAS,
 });
 
 export { CommSignalRaBadges, CommSignalRaSection };

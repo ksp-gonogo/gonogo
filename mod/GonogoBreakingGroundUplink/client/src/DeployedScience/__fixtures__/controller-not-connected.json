@@ -1,0 +1,43 @@
+{
+  "_meta": {
+    "synthetic": true,
+    "notes": "SYNTHETIC, current flat wire shape. The base is on the surface and its experiments are part-way through, but the control station cannot be reached, so nothing it has collected is going anywhere. This is the scene for the state where something is WRONG rather than merely absent, and it is worth a picture because the science bars keep their fill: a reader has to be able to tell a base that is working from one that is stranded without reading the bars."
+  },
+  "_scene": {
+    "widget": "deployed-science",
+    "caption": "Duna base with no controller connection: progress bars still carry their fill, so the state has to read off the power indicator. The experiment name is deliberately long enough to reach the `Truncate`, which is what an operator sees for most real Breaking Ground part names at this tile",
+    "modes": ["default", "min"],
+    "paints": ["Duna", "Unpowered"]
+  },
+  "_stream": {
+    "pinnedUt": 1000000,
+    "emits": [
+      {
+        "topic": "game.dlc",
+        "payload": { "breakingGround": true, "makingHistory": true }
+      },
+      {
+        "topic": "deployed.bases",
+        "payload": [
+          {
+            "vesselName": "Duna Outpost",
+            "partName": "Weather Station",
+            "body": "Duna",
+            "situation": "LANDED",
+            "biome": "Midlands",
+            "experimentId": "weather",
+            "scienceCompletedPercentage": 62,
+            "scienceTransmittedPercentage": 0,
+            "scienceValue": 31,
+            "scienceLimit": 50,
+            "powerState": "NotConnected",
+            "connectionState": "NotConnected",
+            "power": 4,
+            "controllerConnected": false,
+            "deployedOnGround": true
+          }
+        ]
+      }
+    ]
+  }
+}

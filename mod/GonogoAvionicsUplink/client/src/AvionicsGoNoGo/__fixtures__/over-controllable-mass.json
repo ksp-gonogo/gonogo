@@ -1,0 +1,26 @@
+{
+  "_meta": {
+    "synthetic": true,
+    "notes": "SYNTHETIC. The same stack after a heavier upper stage: 5.2 t against a 4 t ceiling. The verdict flips to NO-GO and the controllable readout takes the alert tone, so the number that is WRONG is the one carrying the colour rather than the vessel mass beside it."
+  },
+  "_scene": {
+    "widget": "avionics-go-no-go",
+    "caption": "Vessel heavier than the avionics unit can control: NO-GO, with the controllable ceiling carrying the alert tone",
+    "modes": ["default", "min"],
+    "paints": ["NO-GO", "Vessel mass", "Controllable"]
+  },
+  "_stream": {
+    "pinnedUt": 1000000,
+    "emits": [
+      {
+        "topic": "avionics.status",
+        "payload": {
+          "avionicsActive": true,
+          "controllable": false,
+          "controllableMassTons": 4,
+          "vesselMassTons": 5.2
+        }
+      }
+    ]
+  }
+}

@@ -159,13 +159,13 @@ function MechJebComponent({ config }: Readonly<ComponentProps<MechJebConfig>>) {
 
   // The delay sets how long a command takes to arrive, so it is a judgement: a
   // held value would time an uplink against a link that has since changed.
-  const commsDelay = judgeable(useTelemetry("comms.delay"));
-  const oneWay =
-    commsDelay &&
-    typeof commsDelay === "object" &&
-    "oneWaySeconds" in commsDelay
-      ? (commsDelay as { oneWaySeconds?: number }).oneWaySeconds
-      : undefined;
+  //
+  // Read straight off the Topic, with no cast: the payload declares
+  // `oneWaySeconds` as a `Value<"s">`, and it arrives as one. Asserting it was
+  // a bare number and re-wrapping it in `value("s", ...)` built a value whose
+  // magnitude was an object, which every formatter renders as the null dash, so
+  // a Duna-distance link read as no delay model at all.
+  const oneWay = judgeable(useTelemetry("comms.delay"))?.oneWaySeconds;
 
   const [altitudeKm, setAltitudeKm] = useState<number>(
     config?.defaultAscentAltitudeKm ?? DEFAULT_ASCENT_ALTITUDE_KM,
@@ -209,7 +209,7 @@ function MechJebComponent({ config }: Readonly<ComponentProps<MechJebConfig>>) {
         }}
       >
         {oneWay != null
-          ? `Remote autopilot (${writeQuantity(value("s", oneWay), { decimals: 1 })} one-way delay)`
+          ? `Remote autopilot (${writeQuantity(oneWay, { decimals: 1 })} one-way delay)`
           : "Remote autopilot"}
       </div>
       <Section>

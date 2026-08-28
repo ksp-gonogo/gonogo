@@ -113,6 +113,9 @@ importers:
       jsdom:
         specifier: ^29.0.2
         version: 29.0.2
+      playwright:
+        specifier: ^1.60.0
+        version: 1.60.0
       react:
         specifier: ^18.0.0
         version: 18.3.1
@@ -165,6 +168,9 @@ importers:
       jsdom:
         specifier: ^29.0.2
         version: 29.0.2
+      playwright:
+        specifier: ^1.60.0
+        version: 1.60.0
       react:
         specifier: ^18.0.0
         version: 18.3.1
@@ -260,12 +266,18 @@ importers:
       '@types/react':
         specifier: ^18.3.28
         version: 18.3.28
+      esbuild:
+        specifier: ^0.28.0
+        version: 0.28.0
       jest-axe:
         specifier: ^10.0.0
         version: 10.0.0
       jsdom:
         specifier: ^29.0.2
         version: 29.0.2
+      playwright:
+        specifier: ^1.60.0
+        version: 1.60.0
       react:
         specifier: ^18.0.0
         version: 18.3.1
@@ -532,9 +544,15 @@ importers:
       '@vitest/coverage-v8':
         specifier: ^4.1.4
         version: 4.1.4(vitest@4.1.4)
+      esbuild:
+        specifier: ^0.28.0
+        version: 0.28.0
       jsdom:
         specifier: ^29.0.2
         version: 29.0.2
+      playwright:
+        specifier: ^1.60.0
+        version: 1.60.0
       react:
         specifier: ^18.0.0
         version: 18.3.1

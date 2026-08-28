@@ -363,7 +363,18 @@ function carriedFor(
     const def = inventory.contributions.find((c) => c.id === target.id);
     if (!def) throw unknownTarget(where, target, inventory);
     for (const dep of def.deps) {
-      if (!dep.startsWith("processor:")) carried.add(dep);
+      // A Processor dep names no topic of its own, so its OWN topic deps are
+      // what the scene has to carry. Skipping them left a contribution that
+      // derives everything through a Processor with an empty allowlist, and
+      // the transport dropped every emit the fixture made.
+      if (dep.startsWith("processor:")) {
+        const id = dep.slice("processor:".length);
+        for (const topic of inventory.processorTopicDeps[id] ?? []) {
+          carried.add(topic);
+        }
+      } else {
+        carried.add(dep);
+      }
     }
   }
   return [...carried].sort();
