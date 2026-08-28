@@ -13,10 +13,10 @@ import {
   waitFor,
   within,
 } from "@ksp-gonogo/test-utils";
+import { expectNoA11yViolations } from "@ksp-gonogo/ui-kit/testing";
 import userEvent from "@testing-library/user-event";
 import type { ReactElement } from "react";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
-import { axe } from "../test/axe";
 import {
   type StreamFixture,
   setupStreamFixture,
@@ -1121,7 +1121,7 @@ describe("AstronautComplexComponent", () => {
       });
     });
     await screen.findByText("Desdin Kerman");
-    expect(await axe(container)).toHaveNoViolations();
+    await expectNoA11yViolations(container);
   });
 
   it("has no axe violations on the Active tab's empty state", async () => {
@@ -1138,7 +1138,7 @@ describe("AstronautComplexComponent", () => {
     });
     await screen.findByText("Desdin Kerman");
     await user.click(screen.getByRole("tab", { name: "Active" }));
-    expect(await axe(container)).toHaveNoViolations();
+    await expectNoA11yViolations(container);
   });
 
   it("has no axe violations on a populated Active tab with multiple situation sub-tabs", async () => {
@@ -1157,7 +1157,7 @@ describe("AstronautComplexComponent", () => {
     await screen.findByText("Desdin Kerman");
     await user.click(screen.getByRole("tab", { name: "Active" }));
     await screen.findByText("Bill Kerman");
-    expect(await axe(container)).toHaveNoViolations();
+    await expectNoA11yViolations(container);
   });
 
   it("toggles a per-row info popover showing the stock role description and current-rank effects", async () => {
@@ -1242,7 +1242,7 @@ describe("AstronautComplexComponent", () => {
 
   it("has no axe violations with the info popover open (portalled content included)", async () => {
     const user = userEvent.setup();
-    renderWidget();
+    const { container } = renderWidget();
     act(() => {
       emitFunds(fixture, 500000);
       emitComplex(fixture, {
@@ -1258,16 +1258,20 @@ describe("AstronautComplexComponent", () => {
     );
     await screen.findByText(/Scientists can analyze/);
 
-    // The popover portals to `document.body`, outside the render container,
-    // so the scan runs against the whole document to actually cover it.
-    // Scoping to `container` (as the other axe tests here do) implicitly
-    // treats that element as the whole page for landmark purposes; scanning
-    // the real `document.body` instead activates axe's page-level "region"
-    // rule, which flags this test harness's bare render root as content
-    // outside a landmark, a page-chrome concern this component test isn't
-    // exercising.
-    expect(
-      await axe(document.body, { rules: { region: { enabled: false } } }),
-    ).toHaveNoViolations();
+    /**
+     * Two scans, because the popover portals to `document.body` and so sits
+     * outside the render container: the container covers the row and its
+     * trigger, the panel covers the content the portal moved.
+     *
+     * <p>One scan of `document.body` would cover both and brings axe's
+     * page-level "region" rule with it, which flags this harness's bare render
+     * root as content outside a landmark: page chrome this component test does
+     * not own. Two element-scoped scans ask the same question of the same
+     * nodes without arguing about the page.</p>
+     */
+    await expectNoA11yViolations(container);
+    await expectNoA11yViolations(
+      screen.getByRole("group", { name: "Role info for Desdin Kerman" }),
+    );
   });
 });
