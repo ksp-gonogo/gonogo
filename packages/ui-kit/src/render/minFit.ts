@@ -19,9 +19,11 @@
  *   routinely and correctly clipped; a WORD that is cut off is a word the
  *   operator cannot read. Text also happens to be what all three reported
  *   symptoms were: a title, a badge's label, and rows of readouts.
- * - Only the axis its clipping ancestor cannot SCROLL. Content below the fold
- *   of a scroll area is content the operator can reach, and a widget that puts
- *   its overflow behind a scroller at a small size is doing the right thing.
+ * - Only where the operator cannot get to it. Content below the fold of a
+ *   vertical scroll area is content they reach without thinking, and a widget
+ *   that puts its overflow behind a scroller at a small size is doing the right
+ *   thing. A HORIZONTAL scroller is not the same affordance and does not count:
+ *   see `readableBeyond`.
  */
 
 /**
@@ -90,9 +92,27 @@ function clips(style: CSSStyleDeclaration, axis: "x" | "y"): boolean {
   return value !== "visible";
 }
 
-function scrolls(style: CSSStyleDeclaration, axis: "x" | "y"): boolean {
-  const value = axis === "x" ? style.overflowX : style.overflowY;
-  return value === "auto" || value === "scroll";
+/**
+ * Whether being able to scroll this box makes the text beyond its edge
+ * REACHABLE, which is only ever true downwards.
+ *
+ * Vertical scrolling is the universal reading affordance: content below the fold
+ * of a scroll area is content an operator reaches without thinking about it, and
+ * a widget that puts its overflow behind a scroller at a small size is doing the
+ * right thing. Horizontal scrolling is not the same thing and this deliberately
+ * refuses to treat it as one. Text is read left to right, so a word cut off part
+ * way through is unreadable whether or not the box can be dragged sideways, and
+ * nobody drags a 112px tile sideways to finish a sentence.
+ *
+ * The difference is not academic. Migrating two Uplink widgets onto the panel's
+ * scrolling body fixed 264px of unreachable rows and left "MODEL STALE" sliced
+ * by the tile edge exactly as before, because the new scroller technically
+ * scrolls both ways. Counting an x-scroller as an escape hid that, and six more
+ * widgets whose empty-state SENTENCE is clipped mid-word.
+ */
+function readableBeyond(style: CSSStyleDeclaration, axis: "x" | "y"): boolean {
+  if (axis === "x") return false;
+  return style.overflowY === "auto" || style.overflowY === "scroll";
 }
 
 /**
@@ -112,7 +132,7 @@ function clipperFor(
   while (at && at !== tile) {
     const style = getComputedStyle(at);
     if (clips(style, axis)) {
-      return { box: at, scrollable: scrolls(style, axis) };
+      return { box: at, scrollable: readableBeyond(style, axis) };
     }
     at = at.parentElement;
   }

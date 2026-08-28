@@ -429,7 +429,7 @@ function ActionGroupView({
     // passing it through would nest a button and an input in a heading and
     // uppercase the operator's own label into the bargain. It reads as the
     // first line of the body instead, which is where a control belongs.
-    <Panel panelTitle="ACTION GROUP">
+    <Panel panelTitle="ACTION GROUP" compactTitle={["ACTIONS", "AG"]}>
       <Cluster justify="between" align="start" gap="md" wrap>
         {editing ? (
           <Stack gap="xs" style={{ flex: 1, minWidth: 0 }}>

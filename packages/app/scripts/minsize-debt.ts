@@ -5,19 +5,14 @@
  * A `minSize` is a promise: react-grid-layout refuses to drag a tile below it
  * and a saved layout smaller than it is clamped up, so it is the smallest shape
  * an operator can ever put the widget in. Nothing checked the promise until
- * `minsize-gate.ts`, and the first full sweep found NINETEEN of 55 failing it.
- *
- * Seeded 2026-08-28 from that sweep, at the sizes each widget declares:
- *
- *  - 16 ellipsise a HEADING, so the widget cannot name itself. Programme
- *    Funding loses 102px of "PROGRAMME FUNDING", Avionics Control 94px
- *  - 6 clip content with nothing to scroll. Aerodynamics hides 264px of readouts
- *    behind an `overflow: hidden`, which is not reachable by scrolling, by
- *    resizing within the minimum, or by any other means
+ * `minsize-gate.ts`, and the first full sweep found NINETEEN of 55 failing it:
+ * 16 ellipsising a heading, Programme Funding losing 102px of its own name, and
+ * 6 clipping content with nothing to scroll, Aerodynamics hiding 264px of
+ * readouts behind an `overflow: hidden`.
  *
  * The worst two are Uplink-authored (Aerodynamics is the FAR Uplink, Avionics
- * Control the Avionics one), which is the reason the affordance they were
- * missing went into the PUBLISHED `@ksp-gonogo/ui-kit` rather than into the app.
+ * Control the Avionics one), which is why the affordance they were missing went
+ * into the PUBLISHED `@ksp-gonogo/ui-kit` rather than into the app.
  *
  * Seeded rather than left red, because this repo already owns one permanently
  * red job and has twice had a real failure hide behind it. A widget NOT listed
@@ -40,27 +35,21 @@
  * which you pick:
  *
  *  - make the widget fit: `<Panel compactTitle={["RES OPS", "RES"]}>` for a
- *    heading that will not, a scroller for content that overflows
+ *    heading that will not, a scroller for content that overflows, and a line
+ *    that is allowed to WRAP for a sentence
  *  - RAISE its `minSize`, when the honest answer is that the widget cannot be
  *    that small. Say so in the commit
  */
 export const KNOWN_MISFITS: Record<string, string> = {
-  "action-group": "title-clipped",
-  "aero-state": "text-cut-off, title-clipped",
-  "astronaut-complex": "title-clipped",
-  "avionics-go-no-go": "text-cut-off, title-clipped",
+  "aero-state": "text-cut-off",
+  "avionics-go-no-go": "text-cut-off",
   "camera-feed": "text-cut-off, title-clipped",
-  "career-economy": "title-clipped",
-  "contract-manager": "title-clipped",
-  "deployed-science": "title-clipped",
-  experiments: "title-clipped",
-  "input-tester": "title-clipped",
+  "input-tester": "text-cut-off",
   "kos-script-trigger": "text-cut-off",
   "kos-terminal": "text-cut-off",
-  "launch-director": "title-clipped",
-  "power-systems": "title-clipped",
+  "resource-ops": "text-cut-off",
+  "science-data": "text-cut-off",
+  "ship-systems": "text-cut-off",
   "space-center-status": "text-cut-off",
-  "space-weather": "title-clipped",
-  strategies: "title-clipped",
-  "tech-tree": "title-clipped",
+  "space-weather": "text-cut-off",
 };

@@ -5,7 +5,6 @@ import {
   Cluster,
   NULL_DISPLAY,
   Panel,
-  PanelTitle,
   ReadoutCaption,
   type ReadoutTone,
   Row,
@@ -94,8 +93,7 @@ export function AeroStateComponent(_props: ComponentProps<AeroConfig>) {
   const modelValid = s?.aeroModelValid ?? false;
 
   return (
-    <Panel>
-      <PanelTitle>Aerodynamics</PanelTitle>
+    <Panel panelTitle="Aerodynamics" compactTitle={["AERO"]}>
       <Stack role="status" aria-live="polite">
         <Cluster>
           <StatusPill $tone={band?.tone ?? "default"}>

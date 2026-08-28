@@ -928,7 +928,7 @@ function SpaceWeatherComponent({
     // habitat, and the whole point of getting here is that there is nothing to
     // make it from.
     return (
-      <Panel panelTitle="Space Weather">
+      <Panel panelTitle="Space Weather" compactTitle={["SPACE WX", "WX"]}>
         <EmptyState layout="fill" role="status" aria-live="polite">
           {ABSENCE_TEXT[read.absence]}
         </EmptyState>
@@ -960,6 +960,7 @@ function SpaceWeatherComponent({
   return (
     <Panel
       panelTitle="Space Weather"
+      compactTitle={["SPACE WX", "WX"]}
       panelAside={
         <Badge
           role="status"

@@ -352,7 +352,10 @@ function DeployedScienceComponent(
 
   if (bases.length === 0) {
     return (
-      <Panel panelTitle="DEPLOYED SCIENCE">
+      <Panel
+        panelTitle="DEPLOYED SCIENCE"
+        compactTitle={["DEPLOYED SCI", "DEPLOYED"]}
+      >
         <EmptyState role="status">
           {available === false
             ? "Breaking Ground not installed"
@@ -363,7 +366,10 @@ function DeployedScienceComponent(
   }
 
   return (
-    <Panel panelTitle="DEPLOYED SCIENCE">
+    <Panel
+      panelTitle="DEPLOYED SCIENCE"
+      compactTitle={["DEPLOYED SCI", "DEPLOYED"]}
+    >
       <Stack
         gap="md"
         style={{ padding: "var(--space-4) var(--space-8) var(--space-8)" }}

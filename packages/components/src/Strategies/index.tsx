@@ -262,7 +262,7 @@ function StrategiesComponent({
 
   if (strategies === null) {
     return (
-      <Panel panelTitle="Strategies">
+      <Panel panelTitle="Strategies" compactTitle={["ADMIN", "ADM"]}>
         {showSubtitle && <Empty>Awaiting career data...</Empty>}
       </Panel>
     );
@@ -313,6 +313,7 @@ function StrategiesComponent({
     return (
       <Panel
         panelTitle="Strategies"
+        compactTitle={["ADMIN", "ADM"]}
         panelAside={
           <Tally $overCap={overCap}>
             {active.length} active
@@ -369,6 +370,7 @@ function StrategiesComponent({
   return (
     <Panel
       panelTitle="Admin Building"
+      compactTitle={["ADMIN", "ADM"]}
       /* The tallies wrap to a second row at narrow widths, which Panel.Header
          now does for any aside rather than each widget arranging its own.
          Funds must stay visible at every width: Strategies spends career funds

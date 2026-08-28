@@ -411,14 +411,14 @@ function TechTreeComponent({ w, h }: Readonly<ComponentProps<TechTreeConfig>>) {
   // ── Loading / empty states ────────────────────────────────────────────
   if (allNodes === null) {
     return (
-      <Panel panelTitle="TECH TREE">
+      <Panel panelTitle="TECH TREE" compactTitle={["TECH"]}>
         <Empty>Awaiting tech telemetry</Empty>
       </Panel>
     );
   }
   if (allNodes.length === 0) {
     return (
-      <Panel panelTitle="TECH TREE">
+      <Panel panelTitle="TECH TREE" compactTitle={["TECH"]}>
         <Empty>No tech nodes loaded</Empty>
       </Panel>
     );
@@ -521,7 +521,7 @@ function TechTreeComponent({ w, h }: Readonly<ComponentProps<TechTreeConfig>>) {
       n.description.toLowerCase().includes(q);
 
     return (
-      <Panel panelTitle="TECH TREE">
+      <Panel panelTitle="TECH TREE" compactTitle={["TECH"]}>
         {subtitle && <TechMeta>{subtitle}</TechMeta>}
         <GraphToolbar>
           <Legend aria-hidden="true">
@@ -587,7 +587,7 @@ function TechTreeComponent({ w, h }: Readonly<ComponentProps<TechTreeConfig>>) {
   const sorted = sortNodes(filtered, researchable);
 
   return (
-    <Panel panelTitle="TECH TREE">
+    <Panel panelTitle="TECH TREE" compactTitle={["TECH"]}>
       {subtitle && <TechMeta>{subtitle}</TechMeta>}
       <Controls>
         <FilterBar role="group" aria-label="Filter tech nodes">

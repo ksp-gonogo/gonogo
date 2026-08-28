@@ -5,7 +5,6 @@ import {
   Cluster,
   NULL_DISPLAY,
   Panel,
-  PanelTitle,
   ReadoutCaption,
   type ReadoutTone,
   Stack,
@@ -76,8 +75,7 @@ export function AvionicsGoNoGoComponent(
       ? "go"
       : "alert";
   return (
-    <Panel>
-      <PanelTitle>Avionics Control</PanelTitle>
+    <Panel panelTitle="Avionics Control" compactTitle={["AVIONICS", "AVI"]}>
       <Stack role="status" aria-live="polite">
         <StatusPill $tone={tone}>{label}</StatusPill>
         <Cluster>

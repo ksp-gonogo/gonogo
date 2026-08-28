@@ -334,7 +334,10 @@ function AstronautComplexComponent(
   // graceful empty state, still surfacing funds when they are known.
   if (complex === undefined) {
     return (
-      <Panel panelTitle="ASTRONAUT COMPLEX">
+      <Panel
+        panelTitle="ASTRONAUT COMPLEX"
+        compactTitle={["ASTRONAUTS", "CREW"]}
+      >
         <Body>
           <FundsLine role="status">
             <FundsLabel>Funds</FundsLabel>
@@ -367,7 +370,7 @@ function AstronautComplexComponent(
       : null;
 
   return (
-    <Panel panelTitle="ASTRONAUT COMPLEX">
+    <Panel panelTitle="ASTRONAUT COMPLEX" compactTitle={["ASTRONAUTS", "CREW"]}>
       <Body>
         <Header role="status" aria-live="polite">
           <StatBox>
