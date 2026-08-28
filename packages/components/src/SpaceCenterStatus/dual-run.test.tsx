@@ -9,8 +9,7 @@ import { SpaceCenterStatusComponent } from "./index";
 /**
  * SpaceCenterStatus's reads are ALL canonical now, `career.status`
  * (`?.economy?.funds` + `?.facilities`), `spaceCenter.scene`
- * (`?.scene`/`?.launchSite`), `spaceCenter.partsAvailable` (`?.count`) and
- * the derived `spaceCenter.state` channel (pad occupancy): none has a legacy
+ * (`?.scene`/`?.launchSite`) and the derived `spaceCenter.state` channel (pad occupancy): none has a legacy
  * fallback. The original version of this test rendered the SAME career state
  * once off a legacy `DataSource` (`snapshotWidgetMode`, which mounts no
  * `TelemetryProvider`) and once off the stream, asserting byte-identical DOM;
@@ -33,7 +32,6 @@ describe("SpaceCenterStatus: real mid-career fixture render off the stream (dela
       carriedChannels: [
         "career.status",
         "spaceCenter.scene",
-        "spaceCenter.partsAvailable",
         "spaceCenter.launchSites",
       ],
       pinnedUt: 10,
@@ -56,9 +54,6 @@ describe("SpaceCenterStatus: real mid-career fixture render off the stream (dela
       streamFixture.emit("spaceCenter.scene", {
         scene: midCareer["kc.scene"],
         launchSite: midCareer["kc.launchSite"],
-      });
-      streamFixture.emit("spaceCenter.partsAvailable", {
-        count: midCareer["kc.partsAvailable"],
       });
       streamFixture.emit("spaceCenter.launchSites", [
         {
@@ -101,8 +96,5 @@ describe("SpaceCenterStatus: real mid-career fixture render off the stream (dela
     // locale for the answer would agree with a bug that did the same.
     await waitFor(() => expect(visibleText()).toContain("· 78,400f"));
     expect(screen.getByLabelText(/VAB tier \d of \d/)).toBeTruthy();
-    expect(
-      screen.getByText(String(midCareer["kc.partsAvailable"])),
-    ).toBeTruthy();
   });
 });

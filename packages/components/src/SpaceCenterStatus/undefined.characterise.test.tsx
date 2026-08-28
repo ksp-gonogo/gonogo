@@ -11,8 +11,8 @@ import { SpaceCenterStatusComponent } from "./index";
  * telemetry reads come back `undefined`.
  *
  * Every read here is a canonical whole-topic read (`career.status`,
- * `spaceCenter.scene`, `spaceCenter.partsAvailable`) or a derived-channel read
- * (`spaceCenter.state`, off `spaceCenter.launchSites`). All four are carried by
+ * `spaceCenter.scene`) or a derived-channel read (`spaceCenter.state`, off
+ * `spaceCenter.launchSites`). All three are carried by
  * the fixture, so an un-emitted topic reaches the widget as `undefined` through
  * exactly the production route rather than through a missing legacy source.
  *
@@ -38,7 +38,6 @@ afterEach(() => {
 const ALL_READS = [
   "career.status",
   "spaceCenter.scene",
-  "spaceCenter.partsAvailable",
   "spaceCenter.launchSites",
 ];
 
@@ -98,9 +97,6 @@ describe("SpaceCenterStatus: what undefined telemetry renders today", () => {
     // `careerFunds === null` hides the balance readout entirely, so a widget
     // that spends funds shows no balance while its telemetry is cold.
     expect(screen.queryByTitle("Available funds")).toBeNull();
-
-    // `partsAvailable ?? NULL_DISPLAY`.
-    expect(visibleText()).toContain(`Parts unlocked${NULL_DISPLAY}`);
   });
 
   /**

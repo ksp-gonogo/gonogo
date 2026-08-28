@@ -33,7 +33,6 @@ import { SpaceCenterStatusComponent } from "./index";
 const CARRIED = [
   "career.status",
   "spaceCenter.scene",
-  "spaceCenter.partsAvailable",
   "spaceCenter.launchSites",
 ];
 
@@ -87,7 +86,6 @@ function emitCareer(fixture: ReturnType<typeof setupStreamFixture>): void {
       scene: "SpaceCenter",
       launchSite: "LaunchPad",
     });
-    fixture.emit("spaceCenter.partsAvailable", { count: 42 });
     fixture.emit("spaceCenter.launchSites", [
       { name: "__pad_occupancy__", padOccupied: false, padVesselTitle: null },
     ]);

@@ -30,7 +30,6 @@ import { SpaceCenterStatusComponent } from "./index";
 const CARRIED = [
   "career.status",
   "spaceCenter.scene",
-  "spaceCenter.partsAvailable",
   "spaceCenter.launchSites",
 ];
 
@@ -66,7 +65,6 @@ function emitCareer(fixture: ReturnType<typeof setupStreamFixture>): void {
       scene: "SpaceCenter",
       launchSite: "LaunchPad",
     });
-    fixture.emit("spaceCenter.partsAvailable", { count: 42 });
     // Occupancy-only launch-site entry feeding the `spaceCenter.state` derived
     // channel, the same trick `snapshots.test.tsx` documents.
     fixture.emit("spaceCenter.launchSites", [
@@ -188,7 +186,6 @@ describe("SpaceCenterStatus when career telemetry is no longer current", () => {
     expect(screen.getByLabelText("Launch Pad tier 2 of 3")).toBeTruthy();
     expect(screen.queryByLabelText("Launch Pad tier unknown")).toBeNull();
     expect(visibleText(container)).toContain("150.0k");
-    expect(visibleText(container)).toContain("Parts unlocked42");
     // Last site is a claim about a launch that already happened.
     expect(screen.getByRole("status").textContent).toContain(
       "Last site: LaunchPad",
