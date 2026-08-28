@@ -9,10 +9,28 @@
  * mirrors widget values) layer on top of this once we have a way to
  * inject a test data source per page, TODO in a follow-up.
  */
-import { expect, type Page, test } from "@playwright/test";
+import { type BrowserContext, expect, type Page, test } from "@playwright/test";
 
 const MAIN_URL = "/";
 const STATION_URL = "/station";
+
+/**
+ * The same boot seed `helpers.ts`'s bootstrapPair applies, kept local because
+ * this spec builds its two contexts by hand rather than through that helper.
+ * Unanswered analytics consent is a blocking modal that puts the whole
+ * dashboard behind `inert` + `aria-hidden`, so a role query for anything on
+ * the screen behind it correctly finds nothing.
+ */
+async function seedBootGates(context: BrowserContext): Promise<void> {
+  await context.addInitScript(() => {
+    try {
+      localStorage.setItem("gonogo.analytics.consent", "disabled");
+      localStorage.setItem("gonogo.uplinkHubWizard.firstRunSeen", "1");
+    } catch {
+      /* private mode / quota: ignore; the seed just won't apply */
+    }
+  });
+}
 
 /**
  * Read the host's derived broker peer id (`gonogo-host-<code>`) off the
@@ -76,6 +94,8 @@ test.describe("station connects directly via the share code", () => {
   test("connects when handed only the share-code", async ({ browser }) => {
     const mainContext = await browser.newContext();
     const stationContext = await browser.newContext();
+    await seedBootGates(mainContext);
+    await seedBootGates(stationContext);
 
     const main = await mainContext.newPage();
     await main.goto(`${MAIN_URL}?uplinkLoaderIds=`);
@@ -111,6 +131,8 @@ test.describe("main + station co-resident", () => {
   }) => {
     const mainContext = await browser.newContext();
     const stationContext = await browser.newContext();
+    await seedBootGates(mainContext);
+    await seedBootGates(stationContext);
 
     const main = await mainContext.newPage();
     await main.goto(`${MAIN_URL}?uplinkLoaderIds=`);

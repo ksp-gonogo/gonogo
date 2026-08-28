@@ -53,6 +53,13 @@ async function seedContext(
       try {
         localStorage.setItem("gonogo.datasource.sitrep", sitrepCfg);
         localStorage.setItem(dashboardKey, dashboard);
+        // Pre-answer the analytics consent and mark the Hub wizard seen, the
+        // same seed `helpers.ts`'s bootstrapPair applies. Unanswered, the
+        // consent gate is a blocking modal that puts the whole dashboard
+        // behind `inert` + `aria-hidden`, so the widget assertions below would
+        // be reading a page no operator could reach.
+        localStorage.setItem("gonogo.analytics.consent", "disabled");
+        localStorage.setItem("gonogo.uplinkHubWizard.firstRunSeen", "1");
       } catch {
         /* ignore */
       }
