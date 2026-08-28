@@ -163,7 +163,7 @@ const Stepper__Step = styled.button`
   font-family: inherit;
   font-size: var(--font-size-sm);
   font-weight: 600;
-  line-height: 1;
+  line-height: var(--line-height-flush);
   padding: var(--space-4, 4px) var(--space-8, 8px);
   border-radius: var(--radius-sm, 3px);
   cursor: pointer;
