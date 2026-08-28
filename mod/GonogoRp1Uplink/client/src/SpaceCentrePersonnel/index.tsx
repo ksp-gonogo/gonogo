@@ -26,12 +26,9 @@ import "../topics";
  * dashboard, which is why the per-complex assignment is here rather than only
  * the totals.</para>
  *
- * <para><b>Every count is coalesced to null before it reaches `Unit`.</b> An
- * `undefined` value falls through that component's legacy bare-symbol form and
- * renders NOTHING, so a section RP-1 has not answered for came out as three
- * labels with empty space beside them: indistinguishable from a payroll of zero,
- * and from a widget that had simply not finished. Null takes the quantity path
- * and prints the null token, which is a readable answer.</para>
+ * <para>Counts go to `Unit` exactly as they are read. A count RP-1 has not
+ * answered for prints the null token, which distinguishes a section still
+ * waiting from a payroll of zero.</para>
  */
 export function SpaceCentrePersonnel() {
   const available = current(useTelemetry("rp1.available"));
@@ -51,19 +48,19 @@ export function SpaceCentrePersonnel() {
         <Row>
           <RowName>Engineers</RowName>
           <Text>
-            <Unit value={personnel?.totalEngineers ?? null} />
+            <Unit value={personnel?.totalEngineers} />
           </Text>
         </Row>
         <Row>
           <RowName>Researchers</RowName>
           <Text>
-            <Unit value={personnel?.researchers ?? null} />
+            <Unit value={personnel?.researchers} />
           </Text>
         </Row>
         <Row>
           <RowName>Applicants</RowName>
           <Text>
-            <Unit value={personnel?.applicants ?? null} />
+            <Unit value={personnel?.applicants} />
           </Text>
         </Row>
 
@@ -77,7 +74,7 @@ export function SpaceCentrePersonnel() {
               <Row>
                 <RowName>Unassigned</RowName>
                 <Text>
-                  <Unit value={centre.unassignedEngineers ?? null} />
+                  <Unit value={centre.unassignedEngineers} />
                   {isIdle(centre.unassignedEngineers) && (
                     <>
                       {" "}
@@ -110,8 +107,8 @@ function ComplexCrew({ complex }: Readonly<{ complex: Rp1ComplexEntry }>) {
     <Row>
       <RowName>{complex.name ?? NULL_DISPLAY}</RowName>
       <Text>
-        <Unit value={complex.engineers ?? null} /> /{" "}
-        <Unit value={complex.maxEngineers ?? null} />
+        <Unit value={complex.engineers} /> /{" "}
+        <Unit value={complex.maxEngineers} />
         {complex.efficiency !== undefined && complex.efficiency !== null && (
           <>
             {" · "}

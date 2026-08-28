@@ -244,6 +244,38 @@ describe("Unit: a value renders whole", () => {
     expect(visibleText(container)).toBe(NULL_DISPLAY);
   });
 
+  it("shows an absent value as the null token rather than as nothing", () => {
+    // A reading that has not arrived is the commonest absence there is, and it
+    // used to render as empty space: indistinguishable from a row that does
+    // not apply, from a label whose value is still loading, and from a healthy
+    // reading of nothing. It gets the same token as an explicit null, because
+    // what the reader must be told is the same thing, that there is no number
+    // here.
+    const { container } = render(<Unit value={undefined} />);
+    expect(visibleText(container)).toBe(NULL_DISPLAY);
+  });
+
+  it("shows the null token when handed neither a value nor a symbol", () => {
+    const { container } = render(<Unit />);
+    expect(visibleText(container)).toBe(NULL_DISPLAY);
+  });
+
+  it("shows a zero as a zero, since a zero is a reading", () => {
+    // The absence token and the number nought are different answers to
+    // different questions. A tank reading empty has been read.
+    const { container } = render(<Unit value={value("m/s", 0)} />);
+    expect(visibleText(container)).toBe("0.0 m/s");
+  });
+
+  it("still renders a bare symbol from the legacy children form", () => {
+    // The absent-value token must not swallow the transitional form: a call
+    // site handing a token and no value is asking for a symbol, and dashing it
+    // would claim a missing reading where the number sits beside it in the
+    // caller's own markup.
+    const { container } = render(<Unit>km</Unit>);
+    expect(visibleText(container)).toBe("km");
+  });
+
   it("converts to a presentation unit on request", () => {
     // The wire carries kelvin and never Celsius, deliberately: a contract with
     // both tokens is how a channel came to send °C under a K label. Celsius is

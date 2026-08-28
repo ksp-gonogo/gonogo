@@ -29,6 +29,19 @@ import { VisuallyHidden } from "./VisuallyHidden";
  * declaration is the field's TYPE. Nor is this opt-in, which is the
  * inconsistency it exists to end.
  *
+ * ## An absent reading is stated, not left blank
+ *
+ * A value that has not arrived and one that is explicitly inapplicable both
+ * render `NULL_DISPLAY`, so nothing this component is handed comes out as empty
+ * space. Blank is the one output a reader cannot interpret: it reads equally as
+ * a row that does not apply, as a label still waiting, and as a reading of
+ * nothing, and the last of those is the dangerous one. A magnitude of zero is a
+ * reading and keeps its zero.
+ *
+ * This is also why a call site needs no absence gate of its own: handing a read
+ * straight over is correct as written, and coalescing it to `null` first says
+ * the same thing twice.
+ *
  * ## The legacy symbol form
  *
  * Passing a token as CHILDREN still renders a bare symbol, and is
@@ -179,6 +192,10 @@ export interface UnitProps<U extends string = string>
   /**
    * The quantity to show. It carries its own unit, so nothing else needs to be
    * passed and nothing else can disagree with it.
+   *
+   * Absent or null, it renders the null token, so a call site may hand a read
+   * straight over without a gate of its own and still say something true. A
+   * magnitude of zero is a reading and renders as a zero.
    */
   value?: Value<U> | null;
   /**
@@ -276,7 +293,12 @@ export function Unit<U extends string = string>({
   className,
   ...opts
 }: UnitProps<U>) {
-  if (value !== undefined) {
+  // An absent value renders through here too, and comes out as the null token.
+  // A reading that has not arrived and one that is explicitly inapplicable owe
+  // the reader the same statement, that there is no number here, and neither
+  // may be told by leaving the space empty. The only way past this branch is to
+  // hand a bare symbol as children, which a call site does deliberately.
+  if (value !== undefined || children === undefined) {
     // formatted.symbol, NOT formatted.rung. They agree on a laddered value and
     // differ exactly where it matters: a duration comes back with its parts
     // interleaved into the value ("2h 14m") and an EMPTY symbol, while its
