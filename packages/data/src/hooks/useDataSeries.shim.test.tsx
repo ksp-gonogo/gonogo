@@ -5,6 +5,7 @@ import {
 } from "@ksp-gonogo/core";
 import {
   createFakeWallClock,
+  resetGatedReadWarnings,
   StubTransport,
   TelemetryClient,
   TelemetryProvider,
@@ -17,9 +18,10 @@ import {
   MemoryStore,
   Quality,
 } from "@ksp-gonogo/sitrep-sdk";
+import { installTestHost } from "@ksp-gonogo/sitrep-sdk/testing";
 import { act, render, screen, waitFor } from "@ksp-gonogo/test-utils";
 import type { ReactNode } from "react";
-import { beforeEach, describe, expect, it } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { useDataSeries } from "./useDataSeries";
 
 /**
@@ -402,5 +404,124 @@ describe("useDataSeries shim: unmapped/uncarried keys and no-provider behave exa
 
     act(() => legacySource.emit("vessel.orbit.sma", 680_000));
     await waitFor(() => expect(readProbe()).toContain("680000"));
+  });
+});
+
+/**
+ * The gate's precondition, which nothing above it tests.
+ *
+ * Every case up there registers a legacy `"data"` source before rendering, so
+ * "not carried" always has somewhere to land. Nothing in the app registers one:
+ * this hook's own `topic` comment already says so about the mapping half
+ * ("an empty plot, forever, with nothing failing"), and the same is true of the
+ * gate half it sits next to. So on an uncarried topic the gate was choosing
+ * between the stream and a blank chart, and every one of these four widgets
+ * (GraphSeries, SemiMajorAxis, Twr, PowerSystems) calls this hook with the
+ * hard-coded `"data"` id.
+ */
+describe("useDataSeries gate: it prefers the legacy series, it does not exclude the stream", () => {
+  it("plots the streamed series for an uncarried topic when NO legacy DataSource is registered", async () => {
+    // 'vessel.orbit' deliberately absent from the allowlist: a topic the wire
+    // genuinely delivers can be missing from it, because the list is seeded
+    // from declarations and a promotion list, not from what arrives.
+    const fixture = buildStreamFixture({ carriedChannels: [], pinnedUt: 100 });
+    // Deliberately no buildLegacySource: this is what the app looks like.
+
+    render(
+      <fixture.Provider>
+        <Probe dataKey="vessel.orbit.sma" windowSec={60} />
+      </fixture.Provider>,
+    );
+
+    act(() => {
+      fixture.transport.emit("vessel.orbit", { sma: 679_400 }, { validAt: 60 });
+      fixture.transport.emit("vessel.orbit", { sma: 679_800 }, { validAt: 90 });
+    });
+
+    // RED before the fix: the gate short-circuited the subscription, so this
+    // plotted an empty range for ever with nothing anywhere saying why.
+    await waitFor(() => expect(readProbe()).toContain("679400,679800"));
+  });
+
+  it("still prefers the LEGACY series for an uncarried topic when the legacy source has one", async () => {
+    const fixture = buildStreamFixture({ carriedChannels: [], pinnedUt: 100 });
+    const legacySource = await buildLegacySource("vessel.orbit.sma");
+
+    render(
+      <fixture.Provider>
+        <Probe dataKey="vessel.orbit.sma" windowSec={60} />
+      </fixture.Provider>,
+    );
+
+    act(() => {
+      fixture.transport.emit("vessel.orbit", { sma: 679_400 }, { validAt: 60 });
+    });
+    act(() => legacySource.emit("vessel.orbit.sma", 680_000));
+
+    // The gate's whole point, unchanged: an uncarried topic plots the working
+    // legacy series. The streamed one is the tie-break for when there is none.
+    await waitFor(() => expect(readProbe()).toContain("680000"));
+    expect(readProbe()).not.toContain("679400");
+  });
+});
+
+/**
+ * The rescue is not meant to be a place a plot quietly lives. `GraphSeries`,
+ * `SemiMajorAxis`, `Twr` and `PowerSystems` all call this hook with the
+ * hard-coded `"data"` id, so a rescued one has to say so or the allowlist gap
+ * behind it is never closed.
+ */
+describe("useDataSeries gate: a rescued plot reports itself", () => {
+  const warn = vi.fn();
+  let uninstall = () => {};
+
+  beforeEach(() => {
+    warn.mockClear();
+    resetGatedReadWarnings();
+    uninstall = installTestHost({ logger: { warn } as never });
+  });
+  afterEach(() => uninstall());
+
+  it("names the call, the topic that served it, and the promotion that would make it deliberate", async () => {
+    const fixture = buildStreamFixture({ carriedChannels: [], pinnedUt: 100 });
+
+    render(
+      <fixture.Provider>
+        <Probe dataKey="vessel.orbit.sma" windowSec={60} />
+      </fixture.Provider>,
+    );
+
+    expect(warn).not.toHaveBeenCalled();
+
+    act(() => {
+      fixture.transport.emit("vessel.orbit", { sma: 679_400 }, { validAt: 60 });
+    });
+
+    await waitFor(() => expect(warn).toHaveBeenCalledTimes(1));
+    const message = String(warn.mock.calls[0]?.[0]);
+    expect(message).toContain('useDataSeries("data", "vessel.orbit.sma")');
+    expect(message).toContain("DEFAULT_SITREP_CARRIED_TOPICS");
+  });
+
+  /**
+   * A registered source that has not filled its window yet is rescued too, and
+   * must not be accused: the report fires once per read for the whole session.
+   */
+  it("says nothing when a legacy source is registered but has yet to emit", async () => {
+    const fixture = buildStreamFixture({ carriedChannels: [], pinnedUt: 100 });
+    await buildLegacySource("vessel.orbit.sma");
+
+    render(
+      <fixture.Provider>
+        <Probe dataKey="vessel.orbit.sma" windowSec={60} />
+      </fixture.Provider>,
+    );
+
+    act(() => {
+      fixture.transport.emit("vessel.orbit", { sma: 679_400 }, { validAt: 60 });
+    });
+
+    await waitFor(() => expect(readProbe()).toContain("679400"));
+    expect(warn).not.toHaveBeenCalled();
   });
 });

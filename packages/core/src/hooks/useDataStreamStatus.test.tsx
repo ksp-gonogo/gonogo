@@ -1,8 +1,10 @@
 import {
+  resetGatedReadWarnings,
   StubTransport,
   TelemetryClient,
   TelemetryProvider,
 } from "@ksp-gonogo/sitrep-client";
+import { installTestHost } from "@ksp-gonogo/sitrep-sdk/testing";
 import {
   act,
   render,
@@ -10,7 +12,7 @@ import {
   screen,
   waitFor,
 } from "@ksp-gonogo/test-utils";
-import { beforeEach, describe, expect, it } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { clearRegistry, registerDataSource } from "../registry";
 import type { DataSource, DataSourceStatus } from "../types";
 import { useDataStreamStatus } from "./useDataStreamStatus";
@@ -177,5 +179,128 @@ describe("useDataStreamStatus: mapped but NOT carried falls back to legacy statu
     expect(result.current).toBe("live");
     act(() => legacySource.setStatus("disconnected"));
     expect(result.current).toBe("disconnected");
+  });
+});
+
+/**
+ * The gate's precondition, which nothing above it tests.
+ *
+ * Every case up there registers a legacy `DataSource` before rendering, so
+ * "not carried" always has a status to fall back to. Nothing in the app
+ * registers a source under `"data"`, which this hook's own `topic` comment
+ * already says about the mapping half ("no status, forever, with nothing
+ * failing"), and is equally true of the gate half beside it. The unregistered
+ * fallback is `"disconnected"`, so the failure here is not silence but a
+ * confidently wrong answer: a disconnected badge printed beside a value the
+ * same widget is reading live off the stream.
+ */
+describe("useDataStreamStatus gate: it prefers the legacy status, it does not exclude the stream", () => {
+  it("reads the real stream status for an uncarried topic when NO legacy DataSource is registered", async () => {
+    const transport = new StubTransport();
+    const client = new TelemetryClient(transport);
+    // Deliberately no registerDataSource: this is what the app looks like.
+
+    function Probe() {
+      const status = useDataStreamStatus("data", "vessel.control");
+      return <div>status:{status}</div>;
+    }
+
+    render(
+      <TelemetryProvider client={client}>
+        <Probe />
+      </TelemetryProvider>,
+    );
+
+    act(() => transport.emit("vessel.control", { throttle: 0.75 }));
+
+    // RED before the fix: "disconnected" for ever, because the gate handed the
+    // read to a source that was never registered.
+    await waitFor(() => expect(screen.getByText("status:live")).toBeTruthy());
+  });
+
+  it("still prefers the LEGACY status for an uncarried topic when a source is registered", () => {
+    const client = new TelemetryClient(new StubTransport());
+    const source = makeLegacySource();
+    source.status = "reconnecting";
+    registerDataSource(source);
+
+    function Probe() {
+      const status = useDataStreamStatus("data", "vessel.control");
+      return <div>status:{status}</div>;
+    }
+
+    render(
+      <TelemetryProvider client={client}>
+        <Probe />
+      </TelemetryProvider>,
+    );
+
+    // The gate's whole point, unchanged: an uncarried topic reports the legacy
+    // source's own status, which is a real fact about a real source.
+    expect(screen.getByText("status:held-stale")).toBeTruthy();
+  });
+});
+
+/**
+ * `ScienceData` is the one production caller, and a status badge is chrome: no
+ * one notices a wrong one the way they notice a blank value. So the rescue has
+ * to report itself, or the allowlist gap behind it never gets closed.
+ */
+describe("useDataStreamStatus gate: a rescued status reports itself", () => {
+  const warn = vi.fn();
+  let uninstall = () => {};
+
+  beforeEach(() => {
+    warn.mockClear();
+    resetGatedReadWarnings();
+    uninstall = installTestHost({ logger: { warn } as never });
+  });
+  afterEach(() => uninstall());
+
+  it("names the call, the topic that served it, and the promotion that would make it deliberate", async () => {
+    const client = new TelemetryClient(new StubTransport());
+
+    function Probe() {
+      const status = useDataStreamStatus("data", "vessel.control");
+      return <div>status:{status}</div>;
+    }
+
+    render(
+      <TelemetryProvider client={client}>
+        <Probe />
+      </TelemetryProvider>,
+    );
+
+    await waitFor(() => expect(warn).toHaveBeenCalledTimes(1));
+    const message = String(warn.mock.calls[0]?.[0]);
+    expect(message).toContain('useDataStreamStatus("data", "vessel.control")');
+    expect(message).toContain("DEFAULT_SITREP_CARRIED_TOPICS");
+  });
+
+  /**
+   * The registration signal this hook rescues on is only known once
+   * `useDataSourceSubscription`'s subscribe has run, so on the very first
+   * render it reads `undefined` whether or not a source exists. If the report
+   * escaped in that window it would be permanent, because it fires once per
+   * read: an uncarried topic with a perfectly good legacy source would be
+   * accused for the rest of the session.
+   */
+  it("says nothing when the legacy source is registered, however early the first render reads", async () => {
+    const client = new TelemetryClient(new StubTransport());
+    registerDataSource(makeLegacySource());
+
+    function Probe() {
+      const status = useDataStreamStatus("data", "vessel.control");
+      return <div>status:{status}</div>;
+    }
+
+    render(
+      <TelemetryProvider client={client}>
+        <Probe />
+      </TelemetryProvider>,
+    );
+
+    await waitFor(() => expect(screen.getByText("status:live")).toBeTruthy());
+    expect(warn).not.toHaveBeenCalled();
   });
 });

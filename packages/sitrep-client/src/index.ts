@@ -197,6 +197,14 @@ export {
   useFleetVesselResources,
 } from "./fleet-resources";
 export { buildFullHistoryStore, InstantClock } from "./full-history-replay";
+// The carried-channels gate's own diagnostic: the shims that consult the gate
+// report through it when the gate would have hidden a value the stream had.
+export {
+  type GatedReadHook,
+  gatedReadMessage,
+  resetGatedReadWarnings,
+  warnGatedRead,
+} from "./gated-read-warning";
 export type { HeartbeatTrackerOptions } from "./heartbeat-tracker";
 export {
   DEFAULT_KEYFRAME_INTERVAL_UT,

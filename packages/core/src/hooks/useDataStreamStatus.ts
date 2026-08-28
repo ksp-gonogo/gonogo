@@ -5,8 +5,10 @@ import {
   useCarriedChannelsOptional,
   useTelemetryClientOptional,
   useTelemetryStoreOptional,
+  warnGatedRead,
 } from "@ksp-gonogo/sitrep-client";
-import { useCallback, useSyncExternalStore } from "react";
+import { useCallback, useEffect, useSyncExternalStore } from "react";
+import { getDataSource } from "../registry";
 import type { DataSource, DataSourceStatus } from "../types";
 import { useDataSourceSubscription } from "./useDataSourceSubscription";
 
@@ -79,6 +81,14 @@ export function useDataStreamStatus(
     "disconnected",
   );
   const legacyStreamStatus = legacyToStreamStatus(legacyStatus);
+  // Whether there is a legacy read to prefer at all, which the STATUS cannot
+  // answer: the unregistered floor is `"disconnected"`, indistinguishable from
+  // a registered source that genuinely is. Read straight off the registry
+  // rather than inferred from the snapshot, because the snapshot is only set
+  // once `useDataSourceSubscription`'s subscribe has run and reads as absent on
+  // the first render either way. Re-read every render, which is enough: that
+  // same subscription re-renders this hook on every registry mutation.
+  const hasLegacySource = getDataSource(dataSourceId) !== undefined;
 
   const client = useTelemetryClientOptional();
   const store = useTelemetryStoreOptional();
@@ -97,10 +107,32 @@ export function useDataStreamStatus(
     carriedChannels !== undefined &&
     isTopicCarried(store, carriedChannels, topic);
   const routable = client !== undefined && store !== undefined && carried;
+  // Gated off, but with no registered source the legacy status is not a status
+  // at all, it is the floor this hook prints when it has nothing. The gate
+  // picks between two live reads and there is only one here, so the stream's
+  // own status is the honest answer. See `use-telemetry.ts`'s gate comment.
+  const gatedRescue =
+    !routable &&
+    client !== undefined &&
+    store !== undefined &&
+    !hasLegacySource;
+  const streamed = routable || gatedRescue;
+
+  useEffect(() => {
+    if (gatedRescue && store) {
+      warnGatedRead(
+        "useDataStreamStatus",
+        dataSourceId,
+        key,
+        topic,
+        store.resolveSubscriptionTopics(topic),
+      );
+    }
+  }, [gatedRescue, dataSourceId, key, topic, store]);
 
   const subscribe = useCallback(
     (onStoreChange: () => void) => {
-      if (!client || !store || !routable) {
+      if (!client || !store) {
         return () => {};
       }
       // Mirrors `useDataValue`'s `subscribeStream` (and, underneath it,
@@ -120,12 +152,12 @@ export function useDataStreamStatus(
         for (const unsubscribe of unsubscribeInputs) unsubscribe();
       };
     },
-    [client, store, topic, routable],
+    [client, store, topic],
   );
   const getSnapshot = useCallback(() => {
-    if (!store || !routable) return legacyStreamStatus;
+    if (!store || !streamed) return legacyStreamStatus;
     return store.sampleStatus(topic, store.currentFrame());
-  }, [store, topic, routable, legacyStreamStatus]);
+  }, [store, topic, streamed, legacyStreamStatus]);
 
   return useSyncExternalStore(subscribe, getSnapshot);
 }

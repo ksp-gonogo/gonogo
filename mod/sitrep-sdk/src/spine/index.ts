@@ -58,6 +58,7 @@ export * from "./delay-authority";
 export * from "./delta-v-budget";
 export * from "./dv-legacy-scalars";
 export * from "./dv-stage-resources";
+export * from "./gated-read-warning";
 export * from "./heartbeat-tracker";
 export * from "./kepler";
 export * from "./lagrange";

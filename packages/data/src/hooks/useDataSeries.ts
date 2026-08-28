@@ -1,13 +1,18 @@
-import { type DataSource, useDataSourceSubscription } from "@ksp-gonogo/core";
+import {
+  type DataSource,
+  getDataSource,
+  useDataSourceSubscription,
+} from "@ksp-gonogo/core";
 import {
   isTopicCarried,
   mapTopic,
   useCarriedChannelsOptional,
   useTelemetryClientOptional,
   useTelemetryStoreOptional,
+  warnGatedRead,
 } from "@ksp-gonogo/sitrep-client";
 import type { BufferedDataSource } from "@ksp-gonogo/sitrep-sdk";
-import { useCallback, useRef, useSyncExternalStore } from "react";
+import { useCallback, useEffect, useRef, useSyncExternalStore } from "react";
 import type { SeriesRange } from "../types";
 
 const EMPTY: SeriesRange = { t: [], v: [] };
@@ -171,9 +176,19 @@ export function useDataSeries(
     EMPTY,
   );
 
-  // The shim: always subscribed (stable hook order), only consulted when a
-  // `TelemetryProvider` is mounted AND `key` maps to a CARRIED topic, same
-  // gate as `useDataValue`'s streamed branch (`isTopicCarried`/`mapTopic`).
+  // The shim: subscribed whenever a `TelemetryProvider` is mounted, with the
+  // carried-channels gate deciding which of the two SERIES is returned, same
+  // as `useTelemetry`'s streamed branch (`isTopicCarried`/`mapTopic`).
+  //
+  // The gate picks between two live reads; it is not permission to reach the
+  // stream. It used to be both: an uncarried topic short-circuited
+  // `subscribeStream` to a no-op. That is safe only while the legacy series it
+  // diverts to exists, and it does not, for the same reason the `topic` comment
+  // below already gives: nothing registers the `"data"` source in production.
+  // So an uncarried plot drew an empty chart for ever, and drew it silently,
+  // because `installUnownedTopicWarning` can only report topics something
+  // subscribed to. The subscription is now unconditional and the legacy series
+  // simply gets first refusal, which is the behaviour the gate was written for.
   const client = useTelemetryClientOptional();
   const store = useTelemetryStoreOptional();
   const carriedChannels = useCarriedChannelsOptional();
@@ -194,7 +209,7 @@ export function useDataSeries(
 
   const subscribeStream = useCallback(
     (onStoreChange: () => void) => {
-      if (!client || !store || !carried) {
+      if (!client || !store) {
         return () => {};
       }
       // `resolveSubscriptionTopics` already resolves a DERIVED topic to its
@@ -211,11 +226,11 @@ export function useDataSeries(
         for (const unsubscribe of unsubscribeInputs) unsubscribe();
       };
     },
-    [client, store, topic, carried],
+    [client, store, topic],
   );
 
   const getStreamSnapshot = useCallback((): SeriesRange => {
-    if (!store || !carried) {
+    if (!store) {
       return EMPTY;
     }
     const toUt = store.currentFrame().viewUt;
@@ -259,12 +274,40 @@ export function useDataSeries(
 
     lastSnapshotRef.current = { t: nextT, v: nextV };
     return lastSnapshotRef.current;
-  }, [store, topic, carried, windowSec]);
+  }, [store, topic, windowSec]);
 
   const streamedSeries = useSyncExternalStore(
     subscribeStream,
     getStreamSnapshot,
   );
 
-  return routable ? streamedSeries : legacySeries;
+  // Gated off, so the legacy series gets first refusal: that ordering IS the
+  // gate, and it is unchanged. What changed is the tie-break when it declines.
+  // An empty legacy series used to end the matter, and on a `sourceId` no
+  // longer backed by a registered source it was empty for ever.
+  //
+  // Reported only when there is no registered source at all, which is the
+  // unambiguous case. A registered source that has simply not filled its window
+  // yet is rescued too, and is not worth a line that fires once per read for
+  // the whole session.
+  const hasLegacySource = getDataSource(sourceId) !== undefined;
+  const gatedRescue =
+    !routable &&
+    client !== undefined &&
+    store !== undefined &&
+    legacySeries.t.length === 0 &&
+    streamedSeries.t.length > 0;
+  useEffect(() => {
+    if (gatedRescue && !hasLegacySource && store) {
+      warnGatedRead(
+        "useDataSeries",
+        sourceId,
+        key,
+        topic,
+        store.resolveSubscriptionTopics(topic),
+      );
+    }
+  }, [gatedRescue, hasLegacySource, sourceId, key, topic, store]);
+
+  return routable || gatedRescue ? streamedSeries : legacySeries;
 }
