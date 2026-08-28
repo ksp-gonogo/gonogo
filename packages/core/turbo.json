@@ -28,6 +28,15 @@
     // entries the three times above.
     "test:scans": {
       "dependsOn": ["^build"],
+      // The ratchets read their base revision from this. Turbo passes NOTHING
+      // it is not told about, so without this line the tests never saw it and
+      // silently fell back to `origin/staging`. That fallback is a valid
+      // ancestor locally, so it PASSED on a developer machine, and on a staging
+      // push `origin/staging` IS the commit under test, so every shrink-only
+      // ratchet refused and the job was red. Declared as `env` rather than
+      // `passThroughEnv` on purpose: a different base is a different result, so
+      // it must take part in the cache key.
+      "env": ["RATCHET_BASE_REF", "GITHUB_ACTIONS"],
       "inputs": [
         "$TURBO_DEFAULT$",
         "$TURBO_ROOT$/packages/*/src/**",
