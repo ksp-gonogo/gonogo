@@ -87,8 +87,18 @@ const only = onlyIdx >= 0 ? args[onlyIdx + 1] : null;
 const WARNING =
   /not wrapped in act|testing environment is not configured to support act/i;
 const STDERR_HEADER = /^stderr \| (\S+)/;
-/** Vitest's per-test failure line, so a crashed suite can name what broke. */
-const FAILED_TEST = /^\s*FAIL\s+\|/;
+/**
+ * Vitest's per-test failure line, so a crashed suite can name what broke.
+ *
+ * Matched against the line with its colour codes removed. Vitest paints the
+ * package name as a background badge, and the `|components|` pipes a terminal
+ * shows are the codes themselves: matching them found nothing in CI, where the
+ * gate reads a pipe rather than a tty.
+ */
+// Built from a char code rather than written as an escape: an ESC in a regex
+// literal is a lint error, and the codes are what has to be matched.
+const ANSI = new RegExp(`${String.fromCharCode(27)}\\[[0-9;]*m`, "g");
+const FAILED_TEST = /^\s*FAIL\s/;
 const SELF_TEST_FILE = "ZzActGateSelfTest.test.tsx";
 
 /** The package the self-test is planted in: small, first-party, and it renders React. */
@@ -197,7 +207,8 @@ function measure(pkg, onlyFile) {
   const failures = [];
   let current = null;
   for (const line of output.split("\n")) {
-    if (FAILED_TEST.test(line)) failures.push(line.trim());
+    const plain = line.replace(ANSI, "");
+    if (FAILED_TEST.test(plain)) failures.push(plain.trim());
     const header = STDERR_HEADER.exec(line);
     if (header) {
       current = header[1];
