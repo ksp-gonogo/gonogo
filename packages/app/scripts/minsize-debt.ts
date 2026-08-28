@@ -41,6 +41,5 @@
  *    that small. Say so in the commit
  */
 export const KNOWN_MISFITS: Record<string, string> = {
-  "science-data": "text-cut-off",
   "space-center-status": "text-cut-off",
 };

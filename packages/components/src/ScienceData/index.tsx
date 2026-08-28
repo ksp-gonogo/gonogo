@@ -169,7 +169,9 @@ function ScienceDataComponent({
   const archiveGroups = archive ? groupArchiveByExperiment(archive) : [];
 
   const cols = w ?? 8;
-  const compact = cols < 5;
+  // The narrowest tile the widget can be put in, where the record count and
+  // collected total give way to the situation line and the ledger itself.
+  const compact = cols < 6;
 
   const tabs: TabDescriptor[] = [
     {
@@ -264,7 +266,10 @@ registerComponent<ScienceDataConfig>({
     "Science ledger in two tabs: Aboard is the active vessel's onboard record (collected science per subject, remaining potential, and a 'you are here' situation line; requires flight). Archive is the whole career's R&D archive, every subject ever collected or recovered across every mission and body, grouped by body then experiment × situation × biome; it renders at the Space Center with nothing flying. Read-only on its own; the Kerbalism Uplink enriches each Aboard row with File Manager controls (drive capacity, transmit/delete/flag/analyze/move-to-lab) through the science-data.aboard-row augment slot.",
   tags: ["telemetry", "science"],
   defaultSize: { w: 8, h: 10 },
-  minSize: { w: 4, h: 4 },
+  // Five columns is what the Aboard and Archive tabs need side by side. Below
+  // that the second tab sits off the end of a strip nobody thinks to drag
+  // sideways, so half the widget is a widget the operator cannot reach.
+  minSize: { w: 5, h: 4 },
   component: ScienceDataComponent,
   // `career.mode` is gone rather than translated: it appeared only in this
   // list, never in the component. The widget branches on `hasGameSignal` /
