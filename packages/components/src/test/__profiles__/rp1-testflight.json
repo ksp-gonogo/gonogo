@@ -1,0 +1,82 @@
+{
+  "id": "rp1-testflight",
+  "name": "RP-1 with TestFlight",
+  "description": "The Realistic Progression career install: RP-1, Kerbalism with its reliability feature switched off, and TestFlight. TestFlight registers a reliability provider at priority 10 against Kerbalism's 1, so it wins the election and reliability.summary carries engine-authoritative failure data.",
+  "uplinks": [
+    {
+      "id": "reliability",
+      "available": true,
+      "ownedPrefixes": ["reliability.summary", "reliability.parts"],
+      "detail": "Reliability channels are live."
+    },
+    {
+      "id": "testflight",
+      "available": true,
+      "ownedPrefixes": [],
+      "detail": "TestFlight assembly loaded."
+    },
+    {
+      "id": "kerbalism",
+      "available": true,
+      "ownedPrefixes": [
+        "kerbalism.available",
+        "kerbalism.features",
+        "kerbalism.spaceweather",
+        "kerbalism.lifesupport",
+        "kerbalism.crew",
+        "kerbalism.profile"
+      ],
+      "detail": "Kerbalism loaded; reliability feature off."
+    },
+    {
+      "id": "rp1",
+      "available": true,
+      "ownedPrefixes": [
+        "rp1.available",
+        "rp1.centres",
+        "rp1.complexes",
+        "rp1.buildQueue",
+        "rp1.warehouse",
+        "rp1.pads",
+        "rp1.operations",
+        "rp1.constructions",
+        "rp1.research",
+        "rp1.personnel",
+        "rp1.confidence",
+        "rp1.programs",
+        "rp1.programSlots",
+        "rp1.programFundingCurves",
+        "rp1.crew",
+        "rp1.crewProgram"
+      ],
+      "detail": "RP-1 loaded."
+    },
+    {
+      "id": "realantennas",
+      "available": true,
+      "ownedPrefixes": [
+        "realantennas.available",
+        "realantennas.hopRates",
+        "comms.linkQuality",
+        "comms.dataRate",
+        "comms.linkMargin"
+      ],
+      "detail": "RealAntennas loaded."
+    }
+  ],
+  "elections": {
+    "reliability": "testflight"
+  },
+  "wire": {
+    "rp1.available": {},
+    "kerbalism.available": {},
+    "realantennas.available": {},
+    "reliability.summary": {
+      "unmodeled": false,
+      "malfunction": true,
+      "critical": false,
+      "source": "testflight",
+      "worstReliabilityFraction": 0.82
+    }
+  }
+}
