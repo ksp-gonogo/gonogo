@@ -1,6 +1,6 @@
 {
   "_meta": {
-    "notes": "Active tab, one sub-tab per CrewStanding present: five hired kerbals spanning every stock standing plus a real RP-1 retiree, and Bill standing down for post-flight R&R. Each row shows name/role/courage/stupidity/rank/experience-toward-next-rank via the shared crew-stat row; Bob Kerman (L5) is at max rank, so his chip reads MAX instead of a redundant 100%. GUS IS THE ROW THAT MATTERS, and this fixture used to get him wrong: it gave him no situationOrdinal at all, with a note saying a mod status has no stock ordinal. RP-1 appends no RosterStatus. It writes stock's Dead, ordinal 2, and remembers the retiree in a private set of its own, which is why every RP-1 retiree used to reach the Dead tab wearing a red fatality badge. So he carries KSP's Dead ordinal AND a Retired standing attributed to the backend that corrected it, which is exactly what the wire carries on a live RP-1 career. Every row carries `standing` because the producer stamps it on every crew entry; the roster-status fallback for an older mod build is exercised by the unit tests, not here.",
+    "notes": "Active tab, one sub-tab per CrewStanding present: five hired kerbals spanning every stock standing plus a real RP-1 retiree, and Bill standing down for post-flight R&R. Each row shows name/role/courage/stupidity/rank/experience-toward-next-rank via the shared crew-stat row; Bob Kerman (L5) is at max rank, so his chip reads MAX instead of a redundant 100%. GUS IS THE ROW THAT MATTERS, and this fixture used to get him wrong: it gave him no situationOrdinal at all, with a note saying a mod status has no stock ordinal. RP-1 appends no RosterStatus. It writes stock's Dead, ordinal 2, and remembers the retiree in a private set of its own, which is why every RP-1 retiree used to reach the Dead tab wearing a red fatality badge. So he carries KSP's Dead ordinal AND a Retired standing attributed to the backend that corrected it, which is exactly what the wire carries on a live RP-1 career. Every row carries `standing` because the producer stamps it on every crew entry; the roster-status fallback for an older mod build is exercised by the unit tests, not here. Nedcas Kerman stands beside Ludrey in Available carrying no rank, courage, stupidity or progress at all, the shape a capture that read none of them sends: every one of those chips reads as a dash, so a reading nobody has cannot be mistaken for the rookie stats of an L0.",
     "scenario": "active-crew-multi-situation"
   },
   "_stream": {
@@ -31,7 +31,7 @@
               "stupidity": 0.2
             }
           ],
-          "activeCrew": 5,
+          "activeCrew": 6,
           "crewCapacity": 13,
           "nextHireCost": 24000
         }
@@ -53,6 +53,15 @@
             "standing": 2,
             "roleDescription": "Engineers can repair the wheels and landing gear of a vessel, as well as fixing parts that have broken due to fatigue.",
             "descriptionEffects": "Level 1: Can repair wheels and landing gear."
+          },
+          {
+            "name": "Nedcas Kerman",
+            "trait": "Engineer",
+            "situation": "Available",
+            "situationOrdinal": 0,
+            "available": true,
+            "unavailableReason": "",
+            "standing": 2
           },
           {
             "name": "Bill Kerman",

@@ -142,7 +142,9 @@ type AstronautComplexActions = typeof astronautComplexActions;
 interface Applicant {
   name: string;
   trait: string;
-  experienceLevel: number;
+  /** Retained from the wire and withheld from display; `null` when the pool
+   *  quoted none. */
+  experienceLevel: number | null;
   courage: number | null;
   stupidity: number | null;
   roleDescription: string;
@@ -720,7 +722,9 @@ function FireButton({
 interface CrewRosterRow {
   name: string;
   trait: string;
-  experienceLevel: number;
+  /** Rank; `null` when the capture carried none, which is a different fact
+   *  from a rookie at rank zero and renders as a dash rather than as one. */
+  experienceLevel: number | null;
   /** Display label only, and only for a row whose {@link standing} this build
    *  cannot name; every tab label comes from the standing instead. */
   situation: string;
@@ -860,7 +864,7 @@ function readCrewRoster(raw: unknown): CrewRosterRow[] {
     out.push({
       name: typeof e.name === "string" ? e.name : "",
       trait: typeof e.trait === "string" ? e.trait : "",
-      experienceLevel: magnitudeOf(e.experienceLevel as Quantityish) ?? 0,
+      experienceLevel: magnitudeOf(e.experienceLevel as Quantityish),
       situation: typeof e.situation === "string" ? e.situation : "",
       // Absent only from a mod build older than the crew-standing capability.
       // Falling back to KSP's roster status keeps that case reading exactly as
@@ -913,7 +917,7 @@ function readApplicants(raw: unknown): Applicant[] {
     out.push({
       name: typeof e.name === "string" ? e.name : "",
       trait: typeof e.trait === "string" ? e.trait : "",
-      experienceLevel: magnitudeOf(e.experienceLevel as Quantityish) ?? 0,
+      experienceLevel: magnitudeOf(e.experienceLevel as Quantityish),
       courage: magnitudeOf(e.courage as Quantityish),
       stupidity: magnitudeOf(e.stupidity as Quantityish),
       roleDescription:

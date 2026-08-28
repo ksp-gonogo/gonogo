@@ -67,7 +67,8 @@ function emitCrewRoster(
   crew: Array<{
     name: string;
     trait: string;
-    experienceLevel: number;
+    /** Optional so a test can send a row the producer had no rank for. */
+    experienceLevel?: number;
     situation: string;
     standing?: number;
     standingSource?: string;
@@ -95,7 +96,7 @@ function emitComplex(
     applicants: Array<{
       name: string;
       trait: string;
-      experienceLevel: number;
+      experienceLevel?: number;
       courage?: number;
       stupidity?: number;
       roleDescription?: string;
@@ -397,6 +398,80 @@ describe("AstronautComplexComponent", () => {
       "li",
     ) as HTMLElement;
     expect(within(row).getByText("MAX")).toBeInTheDocument();
+  });
+
+  /**
+   * A rank, a courage and a stupidity are all nullable on the wire
+   * (`SnapshotDict.GetInt`/`GetDouble` return nothing when the capture had
+   * nothing), and a chip the operator can read as a real reading is the one
+   * thing they must not become. `L0` is a rookie every save has, so a rank
+   * that never arrived reading as one is indistinguishable from the truth;
+   * a courage chip that simply vanishes is the same claim made by omission.
+   */
+  it("says a rank, a courage and a stupidity it was never sent are missing, rather than passing them off as zero", async () => {
+    const user = userEvent.setup();
+    renderWidget();
+    act(() => {
+      emitFunds(fixture, 500000);
+      emitComplex(fixture, {
+        applicants: [],
+        activeCrew: 1,
+        crewCapacity: 13,
+        nextHireCost: NEXT_HIRE_COST,
+      });
+      emitCrewRoster(fixture, [
+        {
+          name: "Nedcas Kerman",
+          trait: "Engineer",
+          situation: "Available",
+          standing: CrewStanding.Available,
+          situationOrdinal: 0,
+          available: true,
+          unavailableReason: "",
+        },
+      ]);
+    });
+    await user.click(await screen.findByRole("tab", { name: "Active" }));
+
+    const row = (await screen.findByText("Nedcas Kerman")).closest(
+      "li",
+    ) as HTMLElement;
+    expect(
+      within(row).queryByLabelText("Experience level 0"),
+    ).not.toBeInTheDocument();
+    expect(
+      within(row).getByLabelText("Experience level unknown"),
+    ).toBeInTheDocument();
+    expect(within(row).getByLabelText("Courage unknown")).toBeInTheDocument();
+    expect(within(row).getByLabelText("Stupidity unknown")).toBeInTheDocument();
+    expect(
+      within(row).getByLabelText("Experience toward next rank unknown"),
+    ).toBeInTheDocument();
+  });
+
+  /**
+   * The same absence one level up: an applicant's rank is withheld by design,
+   * so only the two trait chips are on show, and neither may read as a real
+   * score the pool never quoted.
+   */
+  it("says an applicant's missing courage and stupidity are missing", async () => {
+    renderWidget();
+    act(() => {
+      emitFunds(fixture, 500000);
+      emitComplex(fixture, {
+        applicants: [{ name: "Nedcas Kerman", trait: "Engineer" }],
+        activeCrew: 1,
+        crewCapacity: 13,
+        nextHireCost: NEXT_HIRE_COST,
+      });
+    });
+
+    const row = (await screen.findByText("Nedcas Kerman")).closest(
+      "li",
+    ) as HTMLElement;
+    expect(within(row).getByLabelText("Courage unknown")).toBeInTheDocument();
+    expect(within(row).getByLabelText("Stupidity unknown")).toBeInTheDocument();
+    expect(within(row).queryByText(/^L/)).not.toBeInTheDocument();
   });
 
   it("gives a standing with zero members no tab (derived, not a fixed list)", async () => {

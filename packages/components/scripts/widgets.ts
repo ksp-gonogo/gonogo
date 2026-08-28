@@ -382,9 +382,12 @@ const WIDGETS: WidgetRenderConfig[] = [
         ],
       },
       // Active tab, default sub-tab (Available, the first standing present),
-      // derived from active-crew-multi-situation's roster. Ludrey is the only
-      // kerbal free to fly; Bill is standing down and Lodan is mid-course, and
-      // both sit in tabs of their own with a reason and a date.
+      // derived from active-crew-multi-situation's roster. Ludrey and Nedcas
+      // are the two kerbals free to fly, and Nedcas is the row whose readings
+      // never arrived: rank, courage, stupidity and progress all read as a
+      // dash rather than as an L0 rookie's stats. Bill is standing down and
+      // Lodan is mid-course, and both sit in tabs of their own with a reason
+      // and a date.
       {
         name: "active-tab-available-6x12",
         w: 6,
