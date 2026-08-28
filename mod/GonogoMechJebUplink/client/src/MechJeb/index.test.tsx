@@ -9,6 +9,7 @@ import {
 import {
   expectNoA11yViolations,
   renderWidget,
+  visibleText,
 } from "@ksp-gonogo/ui-kit/testing";
 import userEvent from "@testing-library/user-event";
 import type { ReactElement } from "react";
@@ -72,6 +73,20 @@ describe("MechJeb command widget", () => {
     expect(
       screen.getByLabelText(/target altitude \(km\)/i),
     ).toBeInTheDocument();
+  });
+
+  it("writes the one-way delay into the subtitle rather than a dash", async () => {
+    const { fixture, view } = renderMechJeb();
+    act(() => {
+      fixture.emit("comms.delay", { source: 1, oneWaySeconds: 750 });
+    });
+    // The NUMBER, not just the sentence around it. `oneWaySeconds` arrives as a
+    // `Value<"s">`, and re-wrapping one in `value("s", ...)` builds a value
+    // whose magnitude is an object, which every formatter renders as the null
+    // dash: a Duna-distance link then reads exactly like no delay model at all.
+    await waitFor(() => {
+      expect(visibleText(view.container)).toContain("12min 30s one-way delay");
+    });
   });
 
   it("dispatches execute-next-node with an empty arg on click", async () => {

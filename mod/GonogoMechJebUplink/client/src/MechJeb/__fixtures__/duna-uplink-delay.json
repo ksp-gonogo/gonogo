@@ -1,0 +1,21 @@
+{
+  "_meta": {
+    "synthetic": true,
+    "notes": "SYNTHETIC. A Duna-distance link: 12.5 minutes one way. The whole reason this widget carries a delay subtitle is that a button press here is not a control input, it is a message, and the operator has to see how long it will be in transit before they press anything."
+  },
+  "_scene": {
+    "widget": "mechjeb",
+    "caption": "Every command idle, with the one-way light time in the subtitle so an operator knows what a press actually costs",
+    "modes": ["default", "min"],
+    "paints": ["MechJeb", "Ascent", "Maneuvers"]
+  },
+  "_stream": {
+    "pinnedUt": 1000000,
+    "emits": [
+      {
+        "topic": "comms.delay",
+        "payload": { "source": 1, "oneWaySeconds": 750 }
+      }
+    ]
+  }
+}

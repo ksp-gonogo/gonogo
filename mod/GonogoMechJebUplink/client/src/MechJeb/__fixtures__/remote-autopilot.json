@@ -1,6 +1,17 @@
 {
   "_meta": {
-    "scenario": "remote-autopilot",
-    "notes": "MechJeb command surface at rest: no command in flight, no comms.delay in the fixture, so the subtitle reads 'Remote autopilot' and every command row is idle (no status chip). Exercises the default chrome + the three command buttons + the ascent-altitude input."
+    "synthetic": true,
+    "notes": "SYNTHETIC. The ABSENCE state for the one thing this widget reads: `comms.delay` arrives with source None and no `oneWaySeconds` at all, which is what a near-Kerbin link with no delay model running looks like on the wire. The subtitle drops back to the bare 'Remote autopilot' rather than claiming a 0.0 s one-way delay, and that is the point of the picture: a zero here would read as an instant link, which is a measurement, not the absence of one."
+  },
+  "_scene": {
+    "widget": "mechjeb",
+    "caption": "No one-way delay reading: the subtitle says nothing about light time rather than reporting 0.0 s",
+    "modes": ["default", "min"],
+    "expectsEmpty": "The subject of this scene is a reading that is not there. Nothing on the wire feeds this widget except `comms.delay`, so with its one number absent the render is identical to an unfed one BY DESIGN: what is worth looking at is that the delay sentence is missing rather than zeroed.",
+    "paints": ["MechJeb", "Remote autopilot"]
+  },
+  "_stream": {
+    "pinnedUt": 1000000,
+    "emits": [{ "topic": "comms.delay", "payload": { "source": 0 } }]
   }
 }

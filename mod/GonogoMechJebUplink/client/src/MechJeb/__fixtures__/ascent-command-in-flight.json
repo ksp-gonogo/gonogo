@@ -1,0 +1,21 @@
+{
+  "_meta": {
+    "synthetic": true,
+    "notes": "SYNTHETIC. The same Duna link, photographed AFTER the ascent command has been pressed, so the row carries its own lifecycle chip rather than sitting idle. Driven through a real click (`_scene.before`) rather than fed from the fixture, because the command lifecycle is state the widget owns and nothing on the wire carries it: a fixture could only fake the chip, and a faked chip is a picture of a shape."
+  },
+  "_scene": {
+    "widget": "mechjeb",
+    "caption": "Ascent autopilot commanded across a 12.5-minute link: the row that was pressed carries a status chip, the two that were not stay idle",
+    "modes": ["default"],
+    "before": [{ "press": "Engage ascent autopilot" }]
+  },
+  "_stream": {
+    "pinnedUt": 1000000,
+    "emits": [
+      {
+        "topic": "comms.delay",
+        "payload": { "source": 1, "oneWaySeconds": 750 }
+      }
+    ]
+  }
+}
