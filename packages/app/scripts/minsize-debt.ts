@@ -41,7 +41,6 @@
  *    that small. Say so in the commit
  */
 export const KNOWN_MISFITS: Record<string, string> = {
-  "aero-state": "text-cut-off",
   "avionics-go-no-go": "text-cut-off",
   "camera-feed": "text-cut-off, title-clipped",
   "input-tester": "text-cut-off",

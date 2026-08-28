@@ -95,13 +95,13 @@ export function AeroStateComponent(_props: ComponentProps<AeroConfig>) {
   return (
     <Panel panelTitle="Aerodynamics" compactTitle={["AERO"]}>
       <Stack role="status" aria-live="polite">
-        <Cluster>
+        <Cluster wrap>
           <StatusPill $tone={band?.tone ?? "default"}>
             {band?.label ?? "NO AERO DATA"}
           </StatusPill>
           {!modelValid && <StatusPill $tone="warning">MODEL STALE</StatusPill>}
         </Cluster>
-        <Cluster>
+        <Cluster wrap>
           <div>
             <BigReadout>
               <Q value={s?.angleOfAttack} decimals={1} />
