@@ -72,6 +72,16 @@
         }
       },
       {
+        "topic": "spaceCenter.launchSites",
+        "payload": [
+          {
+            "name": "LaunchPad",
+            "padOccupied": false,
+            "padVesselTitle": null
+          }
+        ]
+      },
+      {
         "topic": "spaceCenter.partsAvailable",
         "payload": {
           "count": 142

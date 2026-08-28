@@ -6,8 +6,8 @@
       "w": 12,
       "h": 14
     },
-    "caption": "A vehicle mid-rollout, the state the whole rollout and rollback pair exists for: four controls plus a badge and an ETA share one row, and that row is the first place this section runs out of width",
-    "paints": ["Atlas", "ROLLING OUT", "Roll back"]
+    "caption": "A vehicle mid-rollout, the state the whole rollout and rollback pair exists for: the card carries how far the move has got and what its clock is counting down TO, neither of which the old single-row form had room for",
+    "paints": ["Atlas", "ROLLING OUT", "until it reaches the pad", "Roll back"]
   },
   "_stream": {
     "pinnedUt": 1000000,
@@ -66,6 +66,16 @@
           "scene": "SpaceCenter",
           "launchSite": "LaunchPad"
         }
+      },
+      {
+        "topic": "spaceCenter.launchSites",
+        "payload": [
+          {
+            "name": "LaunchPad",
+            "padOccupied": false,
+            "padVesselTitle": null
+          }
+        ]
       },
       {
         "topic": "spaceCenter.partsAvailable",

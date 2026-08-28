@@ -68,6 +68,16 @@
         }
       },
       {
+        "topic": "spaceCenter.launchSites",
+        "payload": [
+          {
+            "name": "LaunchPad",
+            "padOccupied": false,
+            "padVesselTitle": null
+          }
+        ]
+      },
+      {
         "topic": "spaceCenter.partsAvailable",
         "payload": {
           "count": 142
@@ -109,7 +119,7 @@
             "totalPoints": 1000,
             "progressRatio": 0.25,
             "workRate": 1.5,
-            "rate": 9.645061728395061e-5,
+            "rate": 0.00009645061728395061,
             "timeLeftSeconds": 5184000,
             "stalled": false,
             "cost": 40000,

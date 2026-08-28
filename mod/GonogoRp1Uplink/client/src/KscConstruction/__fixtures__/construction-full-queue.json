@@ -76,6 +76,16 @@
         }
       },
       {
+        "topic": "spaceCenter.launchSites",
+        "payload": [
+          {
+            "name": "LaunchPad",
+            "padOccupied": false,
+            "padVesselTitle": null
+          }
+        ]
+      },
+      {
         "topic": "spaceCenter.partsAvailable",
         "payload": {
           "count": 142
@@ -117,7 +127,7 @@
             "totalPoints": 1000,
             "progressRatio": 0.25,
             "workRate": 1,
-            "rate": 9.645061728395061e-5,
+            "rate": 0.00009645061728395061,
             "timeLeftSeconds": 7776000,
             "stalled": false,
             "cost": 40000,
@@ -139,7 +149,7 @@
             "totalPoints": 2400,
             "progressRatio": 0.016666666666666666,
             "workRate": 1,
-            "rate": 9.645061728395061e-5,
+            "rate": 0.00009645061728395061,
             "timeLeftSeconds": 26784000,
             "stalled": false,
             "cost": 128000,
@@ -161,7 +171,7 @@
             "totalPoints": 800,
             "progressRatio": 0.875,
             "workRate": 1,
-            "rate": 9.645061728395061e-5,
+            "rate": 0.00009645061728395061,
             "timeLeftSeconds": 950400,
             "stalled": false,
             "cost": 21400,

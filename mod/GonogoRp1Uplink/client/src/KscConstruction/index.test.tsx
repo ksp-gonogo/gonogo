@@ -101,8 +101,11 @@ describe("KscConstruction", () => {
     // Money already committed, which is the fact a cancellation turns on.
     expect(text).toContain("10,000");
     expect(text).toContain("40,000");
-    // The balance the whole section is spending down.
-    expect(text).toContain("289,848");
+    // Deliberately NO balance here. The host widget draws one for the whole
+    // panel, and a copy per contributed section had this widget stating it
+    // three times over. The rule is covered where the balance now lives:
+    // `SpaceCenterStatus`'s own "funds beside the sections slot" test.
+    expect(text).not.toContain("289,848");
     await expectNoA11yViolations(view.container);
   });
 
@@ -166,7 +169,7 @@ describe("KscConstruction", () => {
     await waitFor(() => {
       expect(screen.getByText(/Runway/)).toBeInTheDocument();
     });
-    expect(visibleText()).toContain("not costed yet");
+    expect(visibleText()).toContain("RP-1 has not costed this yet");
     expect(screen.queryByText("STALLED")).not.toBeInTheDocument();
   });
 
@@ -188,7 +191,7 @@ describe("KscConstruction", () => {
     await waitFor(() => {
       expect(screen.getByText("STALLED")).toBeInTheDocument();
     });
-    expect(visibleText()).not.toContain("not costed yet");
+    expect(visibleText()).not.toContain("RP-1 has not costed this yet");
   });
 
   it("flags a construction being rushed, which costs more per day", async () => {
