@@ -1,0 +1,33 @@
+{
+  "_scene": {
+    "augment": "principia-orbit-analysis",
+    "caption": "An analysis that ran and determined nothing, which is its own state: the span does not yet cover one revolution, and no amount of looking will change that",
+    "size": {
+      "w": 12,
+      "h": 9
+    },
+    "paints": ["ELEMENTS NOT DETERMINED"]
+  },
+  "_stream": {
+    "pinnedUt": 1000000,
+    "emits": [
+      {
+        "topic": "principia.analysis",
+        "payload": {
+          "vesselId": "Ares-IV",
+          "sampledAtUt": 1000000,
+          "coasts": [],
+          "orbit": {
+            "missionDurationSeconds": 604800,
+            "progressOfNextAnalysis": 0.62,
+            "primaryIndex": 1,
+            "primaryBody": "Kerbin",
+            "gravitationallyBound": true,
+            "elementsPresent": false,
+            "elementsEpochUt": null
+          }
+        }
+      }
+    ]
+  }
+}

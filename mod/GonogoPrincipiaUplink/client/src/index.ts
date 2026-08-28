@@ -10,6 +10,14 @@
 //     planner an operator is already reading, and that slot exists for exactly
 //     this case.
 //
+//   - `OrbitAnalysis` -> registerAugment into `current-orbit.sections`, and
+//     `CoastAnalysis` -> `maneuver-planner.sections`. The producer's own n-body
+//     analysis: mean elements as bands, the three periods, the drift of the
+//     node, and what orbit each coast of the plan leaves the craft in. They go
+//     on the widgets that already ask those questions rather than into a widget
+//     of their own, because neither introduces an interaction: an operator asks
+//     "what orbit is this" by looking at the orbit widget.
+//
 //   - `./settings/registerPrincipiaSettings` → a declarative row for every
 //     field `principia.settings` carries, in one "Principia" category, every
 //     one of them stream-backed and therefore read-only. That is what the
@@ -46,12 +54,18 @@
 import "./topics";
 import "./settings/registerPrincipiaSettings";
 import "./FlightPlanSection";
+import "./OrbitAnalysis";
+import "./CoastAnalysis";
 import "./BurnEditor";
 import "./PlanComposer";
 
 export { BurnEditor } from "./BurnEditor";
+export { CoastAnalysisSection } from "./CoastAnalysis";
 export { FlightPlanSection } from "./FlightPlanSection";
+export { OrbitAnalysisRows, OrbitAnalysisSection } from "./OrbitAnalysis";
+export { orbitDescription } from "./orbitDescription";
 export { PlanComposer } from "./PlanComposer";
+export { MAX_STEPS_OPTIONS, PlanIntegrationBlock } from "./PlanIntegration";
 export type { FrameBodies } from "./plottingFrame";
 export {
   FRAME_TYPE,

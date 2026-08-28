@@ -108,6 +108,9 @@
     <Compile Include="..\GonogoPrincipiaUplink\PlanObservation.cs" />
     <Compile Include="..\GonogoPrincipiaUplink\PlanReader.cs" />
     <Compile Include="..\GonogoPrincipiaUplink\PlanBuilder.cs" />
+    <Compile Include="..\GonogoPrincipiaUplink\AnalysisObservation.cs" />
+    <Compile Include="..\GonogoPrincipiaUplink\AnalysisReader.cs" />
+    <Compile Include="..\GonogoPrincipiaUplink\AnalysisBuilder.cs" />
     <Compile Include="..\GonogoPrincipiaUplink\PlanCommands.cs" />
   </ItemGroup>
 

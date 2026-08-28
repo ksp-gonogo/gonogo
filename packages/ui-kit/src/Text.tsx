@@ -55,8 +55,14 @@ const TONE_STYLES = {
   go: css`
     color: var(--color-status-go-fg);
   `,
+  /* The MUTED foreground, unlike its three neighbours, and the difference is
+     that `--color-status-warning-fg` is a near-black: a colour for text sitting
+     ON the amber badge, not beside it. On a panel it renders dark on dark, so
+     every `Text tone="warn"` in the tree was invisible rather than warning
+     anyone. The go, nogo and info foregrounds are already light and stay as
+     they are. */
   warn: css`
-    color: var(--color-status-warning-fg);
+    color: var(--color-status-warning-fg-muted);
   `,
   nogo: css`
     color: var(--color-status-nogo-fg);

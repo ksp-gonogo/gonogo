@@ -218,8 +218,19 @@ namespace GonogoPrincipiaUplink.Tests
         public object? VesselGetAnalysis(IntPtr plugin, string vesselGuid, int groundTrackRevolution)
         {
             Vessel("VesselGetAnalysis", plugin, vesselGuid, groundTrackRevolution);
-            return "orbit-analysis";
+            return VesselAnalysis;
         }
+
+        /// <summary>What the vessel accessor answers. An opaque marker by default,
+        /// because most tests here care that the call was MADE and in what order; a
+        /// test of the mapping sets a shaped stand-in instead. Null is the producer's
+        /// own answer for a vessel it is not analysing.</summary>
+        public object? VesselAnalysis { get; set; } = "orbit-analysis";
+
+        /// <summary>What the coast accessor answers for an index that is in range.
+        /// Out of range still answers null, which is the one thing that accessor
+        /// promises.</summary>
+        public object? CoastAnalysis { get; set; } = "coast-analysis";
 
         public bool FlightPlanExists(IntPtr plugin, string vesselGuid) =>
             Vessel("FlightPlanExists", plugin, vesselGuid).HasFlightPlan;
@@ -281,7 +292,7 @@ namespace GonogoPrincipiaUplink.Tests
             IntPtr plugin, string vesselGuid, int groundTrackRevolution, int coastIndex)
         {
             var vessel = Plan("FlightPlanGetCoastAnalysis", plugin, vesselGuid, coastIndex);
-            return coastIndex >= 0 && coastIndex <= vessel.Manoeuvres ? "coast-analysis" : null;
+            return coastIndex >= 0 && coastIndex <= vessel.Manoeuvres ? CoastAnalysis : null;
         }
 
         /// <summary>

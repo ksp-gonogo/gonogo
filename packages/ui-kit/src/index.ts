@@ -70,6 +70,10 @@ export {
   type BadgeSize,
   type BadgeTone,
 } from "./Badge";
+// `Unit`'s interval twin: a quantity that arrived as a range stays one, because
+// the width of a mean orbital element is the number that says whether the orbit
+// is stable.
+export { Band, type BandProps } from "./Band";
 export {
   Box,
   type BoxPad,
@@ -456,6 +460,10 @@ export {
   type StatusIndicatorProps,
   type StatusTone,
 } from "./StatusIndicator";
+// The third member of the numeric-input vocabulary, beside `UnitInput` (a free
+// quantity) and `JogWheel` (a quantity tuned by feel): one of a small closed
+// set, where a value between two members is not a value at all.
+export { Stepper, type StepperProps } from "./Stepper";
 export {
   formatStreamStatus,
   StreamStatusBadge,

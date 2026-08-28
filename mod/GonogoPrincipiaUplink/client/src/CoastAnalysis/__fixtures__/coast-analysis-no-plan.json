@@ -1,0 +1,34 @@
+{
+  "_scene": {
+    "augment": "principia-coast-analysis",
+    "caption": "A craft with no flight plan: a stated absence rather than an empty list, because an operator told nothing assumes there is nothing to see",
+    "size": {
+      "w": 12,
+      "h": 6
+    },
+    "paints": ["PLANNED ORBITS"]
+  },
+  "_stream": {
+    "pinnedUt": 1000000,
+    "emits": [
+      {
+        "topic": "vessel.identity",
+        "payload": {
+          "vesselId": "Ares-IV",
+          "name": "Ares IV",
+          "vesselType": 0,
+          "situation": 0
+        }
+      },
+      {
+        "topic": "principia.analysis",
+        "payload": {
+          "vesselId": "Ares-IV",
+          "sampledAtUt": 1000000,
+          "orbit": null,
+          "coasts": []
+        }
+      }
+    ]
+  }
+}

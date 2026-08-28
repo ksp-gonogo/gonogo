@@ -866,7 +866,19 @@ namespace GonogoPrincipiaUplink.Tests
             [6] = "Duna",
         };
 
+        private static readonly Dictionary<int, double> Radii = new Dictionary<int, double>
+        {
+            [0] = 261600000,
+            [1] = 600000,
+            [2] = 200000,
+            [3] = 60000,
+            [6] = 320000,
+        };
+
         public string? NameOf(int index) => Names.TryGetValue(index, out var name) ? name : null;
+
+        public double? RadiusOf(int index) =>
+            Radii.TryGetValue(index, out var radius) ? radius : (double?)null;
 
         public IReadOnlyList<int> Indices => new List<int>(Names.Keys);
     }

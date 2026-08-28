@@ -1,0 +1,25 @@
+{
+  "_scene": {
+    "augment": "principia-orbit-analysis",
+    "caption": "The ordinary state: Principia knows this craft and is running no analysis of it. A positive observation of absence, with the one action that ends it",
+    "size": {
+      "w": 12,
+      "h": 8
+    },
+    "paints": ["NOT BEING ANALYSED"]
+  },
+  "_stream": {
+    "pinnedUt": 1000000,
+    "emits": [
+      {
+        "topic": "principia.analysis",
+        "payload": {
+          "vesselId": "Ares-IV",
+          "sampledAtUt": 1000000,
+          "orbit": null,
+          "coasts": []
+        }
+      }
+    ]
+  }
+}

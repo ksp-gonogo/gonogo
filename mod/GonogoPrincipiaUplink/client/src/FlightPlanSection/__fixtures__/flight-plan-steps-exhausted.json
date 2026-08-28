@@ -1,0 +1,83 @@
+{
+  "_scene": {
+    "augment": "principia-flight-plan",
+    "caption": "The step limit sitting beside the failure it causes: the plan stopped fourteen hours short of its requested end, and the control that fixes it is on the same line",
+    "size": {
+      "w": 12,
+      "h": 14
+    },
+    "paints": ["INTEGRATION FAILED", "MAX STEPS"],
+    "before": [{ "press": "Increase Max integration steps per segment" }]
+  },
+  "_stream": {
+    "pinnedUt": 1000000,
+    "emits": [
+      {
+        "topic": "vessel.identity",
+        "payload": {
+          "vesselId": "Ares-IV",
+          "name": "Ares IV",
+          "vesselType": 0,
+          "situation": 0
+        }
+      },
+      {
+        "topic": "principia.flightPlan",
+        "payload": {
+          "vesselId": "Ares-IV",
+          "observedAtUt": 1000000,
+          "planExists": true,
+          "reachedDeadline": false,
+          "planIntegrated": false,
+          "statusError": 8,
+          "statusMessage": "max steps reached",
+          "firstErrorBurnIndex": 1,
+          "anomalousBurnCount": 1,
+          "firstFutureBurnIndex": 1,
+          "finalTimeUt": 1144000,
+          "burns": [
+            {
+              "index": 0,
+              "ignitionUt": 992800,
+              "cutoffUt": 992896,
+              "durationSeconds": 96,
+              "deltaV": 842.7,
+              "anomalous": false
+            },
+            {
+              "index": 1,
+              "ignitionUt": 1001320,
+              "cutoffUt": 1001463,
+              "durationSeconds": 143,
+              "deltaV": 1204.3,
+              "anomalous": true
+            }
+          ]
+        }
+      },
+      {
+        "topic": "principia.plan",
+        "payload": {
+          "vesselId": "Ares-IV",
+          "sampledAtUt": 1000000,
+          "planExists": true,
+          "planCount": 1,
+          "selectedPlan": 0,
+          "initialTimeUt": 986800,
+          "desiredFinalTimeUt": 1144000,
+          "actualFinalTimeUt": 1093600,
+          "anomalousBurnCount": 1,
+          "optimisationRunning": false,
+          "integrator": {
+            "maxSteps": 1024,
+            "lengthToleranceMetres": 1,
+            "speedToleranceMetresPerSecond": 1,
+            "integratorKind": 1,
+            "generalizedIntegratorKind": 2
+          },
+          "burns": []
+        }
+      }
+    ]
+  }
+}

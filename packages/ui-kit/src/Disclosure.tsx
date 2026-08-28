@@ -32,6 +32,14 @@ export interface DisclosureProps {
    */
   variant?: "popover" | "inline";
   /**
+   * How tall an `inline` panel may grow. "cap" (default) stops at a fixed
+   * height and scrolls its own content, which is right for an accordion sitting
+   * in a dashboard row. "auto" lets it grow in flow, for a panel already inside
+   * a scrolling body: nesting a second scroller there hides content behind a
+   * bar the reader has no reason to expect.
+   */
+  panelHeight?: "cap" | "auto";
+  /**
    * Whether the rotating chevron renders for `variant="inline"`. Defaults to
    * `true`. Set `false` when `label` already reads as the affordance (e.g.
    * "Show detail"): the trigger then right-aligns that label to where the
@@ -78,6 +86,7 @@ export function Disclosure({
   ariaLabel,
   className,
   variant = "popover",
+  panelHeight = "cap",
   chevron = true,
   asButton = false,
   buttonSize = "md",
@@ -119,7 +128,12 @@ export function Disclosure({
         )}
       </TriggerTag>
       {open && (
-        <Disclosure__Panel id={panelId} role="group" $variant={variant}>
+        <Disclosure__Panel
+          id={panelId}
+          role="group"
+          $variant={variant}
+          $panelHeight={panelHeight}
+        >
           {children}
         </Disclosure__Panel>
       )}
@@ -221,7 +235,10 @@ const Disclosure__Chevron = styled.span<{ $open: boolean }>`
   transform: rotate(${({ $open }) => ($open ? 90 : 0)}deg);
 `;
 
-const Disclosure__Panel = styled.div<{ $variant: "popover" | "inline" }>`
+const Disclosure__Panel = styled.div<{
+  $variant: "popover" | "inline";
+  $panelHeight: "cap" | "auto";
+}>`
   ${({ $variant }) =>
     $variant === "popover"
       ? css`
@@ -239,12 +256,19 @@ const Disclosure__Panel = styled.div<{ $variant: "popover" | "inline" }>`
           position: static;
           width: 100%;
           margin-top: var(--space-2);
-          /* An accordion body must never overlay or overflow the row below it:
-             it grows in flow up to a cap, then scrolls its own content rather
-             than spilling past the row's edge. */
+        `}
+  /* An accordion body must never overlay or overflow the row below it: it grows
+     in flow up to a cap, then scrolls its own content rather than spilling past
+     the row's edge. Lifted out of the variant block above rather than nested
+     inside it, because an interpolation nested inside an interpolated css block
+     does not carry the outer generic and reads its props as untyped. */
+  ${({ $variant, $panelHeight }) =>
+    $variant === "inline" && $panelHeight === "cap"
+      ? css`
           max-height: 16rem;
           overflow-y: auto;
-        `}
+        `
+      : ""}
   padding: var(--space-6) var(--space-8);
   background: var(--color-surface-panel);
   border: 1px solid var(--color-border-subtle);

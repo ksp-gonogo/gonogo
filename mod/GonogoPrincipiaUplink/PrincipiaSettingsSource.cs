@@ -213,6 +213,22 @@ namespace GonogoPrincipiaUplink
                 return null;
             }
 
+            public double? RadiusOf(int index)
+            {
+                if (index < 0 || FlightGlobals.Bodies == null)
+                {
+                    return null;
+                }
+                foreach (var body in FlightGlobals.Bodies)
+                {
+                    if (body != null && body.flightGlobalsIndex == index)
+                    {
+                        return body.Radius;
+                    }
+                }
+                return null;
+            }
+
             public IReadOnlyList<int> Indices
             {
                 get

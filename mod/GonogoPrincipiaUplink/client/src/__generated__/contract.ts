@@ -4,6 +4,60 @@
 
 import { Value, Vec3Of } from '@ksp-gonogo/sitrep-sdk';
 
+export interface PrincipiaAnalysis
+{
+	vesselId?: string;
+	sampledAtUt?: Value<"ut">;
+	orbit?: PrincipiaOrbitAnalysis;
+	coasts?: PrincipiaCoastAnalysis[];
+}
+export interface PrincipiaCoastAnalysis
+{
+	index?: Value<"count">;
+	startsAtUt?: Value<"ut">;
+	endsAtUt?: Value<"ut">;
+	analysis?: PrincipiaOrbitAnalysis;
+}
+export interface PrincipiaOrbitAnalysis
+{
+	missionDurationSeconds?: Value<"s">;
+	progressOfNextAnalysis?: Value<"ratio">;
+	primaryIndex?: Value<"count">;
+	primaryBody?: string;
+	gravitationallyBound?: boolean;
+	elementsPresent?: boolean;
+	elementsEpochUt?: Value<"ut">;
+	siderealPeriodSeconds?: Value<"s">;
+	nodalPeriodSeconds?: Value<"s">;
+	anomalisticPeriodSeconds?: Value<"s">;
+	nodalPrecessionDegreesPerHour?: Value<"°/h">;
+	meanSemimajorAxisMetres?: PrincipiaLengthInterval;
+	meanEccentricity?: PrincipiaRatioInterval;
+	meanInclinationDegrees?: PrincipiaAngleInterval;
+	meanLongitudeOfAscendingNodeDegrees?: PrincipiaAngleInterval;
+	meanArgumentOfPeriapsisDegrees?: PrincipiaAngleInterval;
+	meanPeriapsisAltitudeMetres?: PrincipiaLengthInterval;
+	meanApoapsisAltitudeMetres?: PrincipiaLengthInterval;
+	lowestAltitudeMetres?: Value<"m">;
+	firstCollisionUt?: Value<"ut">;
+	firstCollisionRiskUt?: Value<"ut">;
+	firstReentryUt?: Value<"ut">;
+}
+export interface PrincipiaLengthInterval
+{
+	min?: Value<"m">;
+	max?: Value<"m">;
+}
+export interface PrincipiaAngleInterval
+{
+	min?: Value<"°">;
+	max?: Value<"°">;
+}
+export interface PrincipiaRatioInterval
+{
+	min?: Value<"1">;
+	max?: Value<"1">;
+}
 export interface PrincipiaFlightPlan
 {
 	vesselId?: string;
