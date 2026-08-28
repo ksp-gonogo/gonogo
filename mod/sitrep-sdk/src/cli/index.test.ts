@@ -1,5 +1,11 @@
 import { execFileSync } from "node:child_process";
-import { mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import {
+  mkdirSync,
+  mkdtempSync,
+  readFileSync,
+  rmSync,
+  writeFileSync,
+} from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
@@ -68,5 +74,100 @@ describe("gonogo-uplink bake-hash", () => {
         { stdio: "pipe" },
       ),
     ).toThrow();
+  });
+});
+
+/**
+ * The browser verbs are forwarded to ui-kit, and WHOSE ui-kit is the whole
+ * question.
+ *
+ * A bare `await import("@ksp-gonogo/ui-kit/render")` inside this package
+ * resolves against THIS package's own directory, and this package deliberately
+ * does not depend on ui-kit (it would be a cycle). Under npm's flat layout an
+ * author gets away with it, because both packages sit side by side at the top of
+ * `node_modules` and Node's walk-up finds one from the other. Under pnpm they
+ * are in separate isolated stores and it can never resolve, so `docs` and
+ * `render` failed for every author on pnpm with the message that says ui-kit is
+ * not installed while it sat installed in their client.
+ *
+ * The fixture builds an author package the way pnpm would: ui-kit reachable from
+ * the AUTHOR and unreachable from the sdk. It also gives its fake ui-kit an
+ * `exports` map with no `require` condition, which is what ui-kit really ships
+ * and what makes `createRequire().resolve` the wrong instrument here.
+ */
+describe("gonogo-uplink forwards a browser verb to the AUTHOR's ui-kit", () => {
+  const author = () => {
+    const dir = workdir();
+    writeFileSync(
+      join(dir, "package.json"),
+      JSON.stringify({ name: "an-uplink-client", private: true }),
+    );
+    const kit = join(dir, "node_modules", "@ksp-gonogo", "ui-kit");
+    mkdirSync(kit, { recursive: true });
+    writeFileSync(
+      join(kit, "package.json"),
+      JSON.stringify({
+        name: "@ksp-gonogo/ui-kit",
+        type: "module",
+        version: "9.9.9",
+        exports: {
+          "./render": {
+            types: "./dist/render.d.ts",
+            import: "./dist/render.js",
+          },
+        },
+      }),
+    );
+    mkdirSync(join(kit, "dist"), { recursive: true });
+    writeFileSync(
+      join(kit, "dist", "render.js"),
+      "export async function run(argv) {\n" +
+        '  console.log("REACHED ui-kit 9.9.9 with " + argv.join(" "));\n' +
+        "  return 0;\n" +
+        "}\n",
+    );
+    return dir;
+  };
+
+  it("resolves it from --root, not from its own module graph", () => {
+    const dir = author();
+    const out = execFileSync(
+      process.execPath,
+      [BIN, "docs", "--root", dir, "--check"],
+      { encoding: "utf8" },
+    );
+    expect(out).toContain("REACHED ui-kit 9.9.9 with docs --root");
+  });
+
+  it("resolves it from the working directory when no --root is given", () => {
+    const dir = author();
+    const out = execFileSync(process.execPath, [BIN, "render"], {
+      cwd: dir,
+      encoding: "utf8",
+    });
+    expect(out).toContain("REACHED ui-kit 9.9.9 with render");
+  });
+
+  it("still says ui-kit is missing when it really is", () => {
+    const dir = workdir();
+    writeFileSync(
+      join(dir, "package.json"),
+      JSON.stringify({ name: "no-kit-here", private: true }),
+    );
+    let combined = "";
+    expect(() => {
+      try {
+        execFileSync(process.execPath, [BIN, "docs"], {
+          cwd: dir,
+          encoding: "utf8",
+          stdio: "pipe",
+        });
+      } catch (err) {
+        combined = String((err as { stderr?: string }).stderr ?? "");
+        throw err;
+      }
+    }).toThrow();
+    expect(combined).toContain("@ksp-gonogo/ui-kit");
+    expect(combined).toContain("npm i -D @ksp-gonogo/ui-kit playwright");
   });
 });
