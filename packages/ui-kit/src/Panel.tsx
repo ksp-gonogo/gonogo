@@ -152,13 +152,18 @@ const PanelHeader__Row = styled.div<{ $overlay?: boolean }>`
   justify-content: space-between;
   gap: var(--space-8, 8px);
   min-width: 0;
-  /* The aside NEVER wraps to a second row. When it stops fitting beside the
-     title the panel COLLAPSES it (to the status dots) via useHeaderAsideFit's
-     measured-fit collapse below, which is the whole point of the redesign, so
-     there is no drop-to-its-own-row fallback: title left, aside top-right, one
-     row, always. The title column (min-width:0) truncates within its own box
-     instead. */
-  flex-wrap: nowrap;
+  /* Wrapping is what gives PanelToolbar its own line: the toolbar asks for a
+     full flex-basis, which only starts a new line in a wrapping row. Under
+     nowrap that request became "100% of the row, BESIDE the title", so the
+     title (min-width:0) was crushed to a few pixels and the toolbar spilled out
+     of the panel. Map View rendered its title as "M." under the Follow toggle.
+
+     The aside still never reaches a second row, and does not need nowrap to
+     stay put: the title column absorbs all the pressure first (min-width:0,
+     while the aside is flex-shrink:0), and useHeaderAsideFit's measured-fit
+     collapse drops the aside to its status dots before it could ever be the
+     item that no longer fits. */
+  flex-wrap: wrap;
   /* Never shrink: at very short widget heights the flex column would squeeze
      the header toward zero and the body would overprint the title. */
   flex-shrink: 0;
@@ -554,6 +559,10 @@ export const PanelToolbar = styled.div<{ $overlay?: boolean }>`
      it float correctly under an overlay header instead of colliding with it. */
   flex-basis: 100%;
   width: 100%;
+  /* The app does not set a global border-box reset, so the 100% width above
+     plus the horizontal inset resolves to 100% PLUS 32px and the toolbar hangs
+     that far past the panel's right edge, at every tile width. */
+  box-sizing: border-box;
   ${({ $overlay }) => ($overlay ? OVERLAY_BOX : "")}
 `;
 

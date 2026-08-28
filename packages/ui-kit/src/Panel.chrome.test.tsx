@@ -165,3 +165,50 @@ describe("Panel panelBadges", () => {
     expect(screen.getByRole("button", { name: "Custom control" })).toBeTruthy();
   });
 });
+
+/**
+ * The toolbar takes a line of its own by asking for a full flex-basis, which
+ * only starts a new line in a WRAPPING row. Both halves of that arrangement
+ * live in different styled components, so each was individually defensible
+ * while the pair rendered Map View's title as "M." with the Follow toggle
+ * sitting on top of it, and hung the toolbar 32px past the panel's edge.
+ *
+ * jsdom does no layout, so these assert the declarations rather than the
+ * geometry they produce: the failure was never one component's rule being
+ * wrong, it was two rules that cannot both hold.
+ */
+describe("Panel toolbar occupies its own header line", () => {
+  it("wraps the header row, so a full-basis toolbar starts a new line instead of competing with the title", () => {
+    render(
+      <Panel
+        panelTitle="MAP VIEW"
+        panelToolbar={<button type="button">Follow</button>}
+      >
+        <p>content</p>
+      </Panel>,
+    );
+    const header = document.querySelector("[data-panel-header]");
+    expect(header).not.toBeNull();
+    expect(getComputedStyle(header as Element).flexWrap).toBe("wrap");
+  });
+
+  it("sizes the toolbar as a border box, so its 100% width plus inset stays inside the panel", () => {
+    render(
+      <Panel
+        panelTitle="MAP VIEW"
+        panelToolbar={<button type="button">Follow</button>}
+      >
+        <p>content</p>
+      </Panel>,
+    );
+    const toolbar = screen
+      .getByRole("button", { name: "Follow" })
+      .closest("div");
+    expect(toolbar).not.toBeNull();
+    const style = getComputedStyle(toolbar as Element);
+    expect(style.flexBasis).toBe("100%");
+    // Without this the horizontal padding is added OUTSIDE the 100%, because
+    // the app sets no global border-box reset.
+    expect(style.boxSizing).toBe("border-box");
+  });
+});

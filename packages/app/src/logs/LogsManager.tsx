@@ -64,7 +64,7 @@ const KNOWN_TAGS: Array<{ id: string; label: string; hint: string }> = [
     label: "kos",
     hint: "kOS script dispatch + raw WS buffer on timeout",
   },
-  { id: "camera", label: "camera", hint: "OCISLY stream source lifecycle" },
+  { id: "camera", label: "camera", hint: "Camera stream source lifecycle" },
   { id: "serial", label: "serial", hint: "Serial device connect / parse" },
   {
     id: "targets",
