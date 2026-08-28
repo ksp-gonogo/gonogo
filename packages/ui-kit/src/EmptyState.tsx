@@ -40,6 +40,10 @@ const LAYOUT_STYLES = {
     padding: var(--space-8, 8px) var(--space-16, 16px);
   `,
   fill: css`
+    /* The padding is inside the 100%, so a fill empty state occupies exactly
+       the box it was given. Without this it is 32px wider than its parent and
+       the sentence is sliced by the panel edge at small tile sizes. */
+    box-sizing: border-box;
     width: 100%;
     height: 100%;
     flex: 1;

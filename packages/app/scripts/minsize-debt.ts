@@ -46,10 +46,6 @@ export const KNOWN_MISFITS: Record<string, string> = {
   "camera-feed": "text-cut-off, title-clipped",
   "input-tester": "text-cut-off",
   "kos-script-trigger": "text-cut-off",
-  "kos-terminal": "text-cut-off",
-  "resource-ops": "text-cut-off",
   "science-data": "text-cut-off",
-  "ship-systems": "text-cut-off",
   "space-center-status": "text-cut-off",
-  "space-weather": "text-cut-off",
 };
