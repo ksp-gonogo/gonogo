@@ -36,9 +36,9 @@ export type VehicleHandles = Readonly<{
 
 /**
  * One vehicle: what it is, where it has got to, what it cost, why its clock
- * reads what it reads, and every action that acts on THIS copy of it. Ordering
- * another copy is not one of them; it is a design-level control and lives under
- * both lists.
+ * reads what it reads, and every action that acts on THIS copy of it. Moving it
+ * to a pad, bringing it back and scrapping it are all of them; nothing here
+ * starts a build, because RP-1 exposes no command that starts one.
  *
  * <para><b>The complex is always named.</b> Vehicle Assembly is multi-complex
  * by nature: it shows every craft the centre holds, wherever it is being built,
@@ -89,9 +89,8 @@ export function VehicleCard({
         <>
           {complexName === null ? null : <>{complexName} · </>}
           {/* "costs", because an unqualified number on a card is the defect
-              this surface is being fixed for. It is one figure doing two jobs
-              and both are true of a vehicle in either list: what another copy
-              is priced at, and what a scrap of this one pays back. */}
+              this surface is being fixed for. It is what RP-1 has committed to
+              this vehicle, which is also what a scrap of it pays back. */}
           costs <Unit value={item.cost} />
         </>
       }

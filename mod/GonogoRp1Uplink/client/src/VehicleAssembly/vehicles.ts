@@ -247,3 +247,36 @@ export function rowKey(item: Vehicle): string {
 export function unstaffed(complex: Rp1ComplexEntry | undefined): boolean {
   return magnitudeOf(complex?.engineers) === 0;
 }
+
+/**
+ * The vehicles, ordered so that everything at one launch complex sits together.
+ *
+ * <para>What makes a flat list read as GROUPED by complex without nesting it
+ * under headings. RP-1's own order for the complexes is kept, so a career's
+ * oldest complex leads, and within a complex the wire order is kept: RP-1 lists
+ * a build queue in the order it will work through it, and re-sorting that would
+ * throw away the one ordering the game has an opinion about.</para>
+ *
+ * <para>A vehicle at a complex the wire never described goes last rather than
+ * first. It cannot be gathered with anything, and leading with the one card
+ * that has no place would make the whole list look unordered.</para>
+ */
+export function byComplex(
+  items: readonly Vehicle[],
+  complexes: readonly Rp1ComplexEntry[] | undefined,
+): readonly Vehicle[] {
+  const order = new Map<string, number>();
+  for (const [index, complex] of (complexes ?? []).entries()) {
+    if (complex.lcId !== undefined && complex.lcId !== null) {
+      order.set(complex.lcId, index);
+    }
+  }
+  const place = (item: Vehicle) =>
+    order.get(item.lcId ?? "") ?? Number.MAX_SAFE_INTEGER;
+  // A COPY, because the array is the decoded payload the stream still holds and
+  // sorting it in place would reorder it for every other reader of that frame.
+  return [...items]
+    .map((item, index) => ({ index, item }))
+    .sort((a, b) => place(a.item) - place(b.item) || a.index - b.index)
+    .map((entry) => entry.item);
+}

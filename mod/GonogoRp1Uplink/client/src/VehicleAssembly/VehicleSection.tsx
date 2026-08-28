@@ -8,6 +8,7 @@ import { ProjectCardList } from "../shared/ProjectCard";
 import "../topics";
 import { VehicleCard } from "./VehicleCard";
 import {
+  byComplex,
   complexOf,
   operationFor,
   padsAt,
@@ -28,12 +29,20 @@ export const RP1_SCRAP_COMMAND = "rp1.vehicle.scrap";
  * One of RP-1's two vehicle lists, headed by what it is, as a flat run of cards
  * across every launch complex.
  *
- * <para>Flat rather than grouped by complex, because a complex is not the
- * subject here: it is a tag on work that is happening in several places at
- * once, and an operator scanning for what is nearly finished should not have to
- * open three groups to find it. Every card names its own complex and carries
- * that complex's staffing and rush state, which is the whole of what the
- * grouping would have told them.</para>
+ * <para><b>Gathered by complex, without being nested under it.</b> The cards
+ * are ORDERED so that everything at one complex sits together, which is what
+ * makes a flat list read as grouped; the complex is not made a heading, because
+ * a complex is not the subject here. It is where work is happening, and an
+ * operator scanning for what is nearly finished should not have to open three
+ * groups to find it. Headings would also repeat "LC-1 at Cape" once per section
+ * per complex, four times over in a two-complex career, for a fact the widget
+ * already states once at the top.</para>
+ *
+ * <para>Every card names its own complex and carries that complex's staffing
+ * and rush state, which is the whole of what a heading would have told them.
+ * Read-only, all of it: this widget is purely vehicle construction and rollout,
+ * and the controls for staffing and rushing live where the complex itself is
+ * administered.</para>
  *
  * <para>The complexes, the pads and the operations are read HERE rather than
  * passed in, because each contributed section is an independent consumer of
@@ -78,7 +87,7 @@ export function VehicleSection({
     <Section gap="sm">
       <SectionTitle>{title}</SectionTitle>
       <ProjectCardList>
-        {items.map((item) => (
+        {byComplex(items, complexes).map((item) => (
           <VehicleCard
             complex={complexOf(complexes, item.lcId)}
             handles={handles}

@@ -37,20 +37,21 @@ type VehicleAssemblyConfig = Record<string, never>;
  * Every craft RP-1's space centre is making or holding, across every launch
  * complex, and the actions that move them.
  *
- * <para><b>Why this is its own widget.</b> A launch complex shows up in three
- * places answering three different questions. The Space Center asks what
- * infrastructure the career has and lets an operator change it, so the rush
- * toggle, the staffing and the complex's own level live there. Launch Director
- * asks what can fly right now. This asks what is being built and how fast, and
- * a complex here is a GROUPING rather than a subject: the widget is
- * multi-complex by nature and shows every craft wherever it is being
- * integrated. None of the three is a view of the other two.</para>
+ * <para><b>Purely construction and rollout for vehicles.</b> A launch complex
+ * shows up in three widgets answering three different questions, and the
+ * division is settled. The Space Center holds the career's INFRASTRUCTURE: the
+ * global buildings and their upgrades, the space centres, the launch complexes
+ * inside each, and the management of those complexes, which is who is assigned
+ * where, what each level costs, and the choice to rush. Launch Director asks
+ * what can fly right now. This asks what is being built and how fast. A complex
+ * here is where work is happening rather than a thing being administered.</para>
  *
- * <para>So this widget shows the CONSEQUENCES of how the complexes are
- * administered and administers none of it. A card whose complex is rushing says
- * so, and one whose complex has nobody assigned says that instead of reporting
- * a stall an operator would go looking for a fault behind. What rushing costs,
- * and where the engineers go, stay next to the controls that decide them.</para>
+ * <para>So this widget administers NOTHING: no rush toggle, no staff
+ * assignment, no complex level, no payroll. It shows the CONSEQUENCES of those
+ * decisions, because they are what its clocks are made of. A card whose complex
+ * is rushing says so, and one whose complex has nobody assigned says that
+ * instead of reporting a stall an operator would go looking for a fault behind.
+ * Both are read-only, and the controls for them are one widget away.</para>
  *
  * <para><b>The body is contributed, all of it.</b> Both lists arrive through
  * `rp1-vehicle-assembly.sections`, the same slot and the same registration call

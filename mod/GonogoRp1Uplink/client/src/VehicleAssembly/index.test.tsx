@@ -858,10 +858,12 @@ describe("VehicleAssembly", () => {
     ).not.toBeInTheDocument();
   });
 
-  it("administers no complex: the rush toggle stays in the Space Center", async () => {
-    // The split this widget exists on the far side of. A complex is the
-    // SUBJECT in the Space Center and a GROUPING here, and a second rush
-    // control would make the two surfaces two views of one thing.
+  it("administers nothing: every complex control stays in the Space Center", async () => {
+    // The settled division, and the half of it that is easy to drift back
+    // across. The Space Center holds the career's infrastructure and its
+    // management, staffing and rushing included; this widget is purely
+    // construction and rollout, and shows both of those as read-only status
+    // because they are what its clocks are made of.
     const { fixture } = mount();
     await rp1IsPresent(fixture);
     act(() => {
@@ -876,7 +878,49 @@ describe("VehicleAssembly", () => {
     await waitFor(() => {
       expect(screen.getByText("RUSHING")).toBeInTheDocument();
     });
+    // The status is on the card and every control for it is absent: rushing,
+    // staffing, the complex's own level and the payroll behind it.
+    expect(visibleText()).toContain("18 / 60 engineers");
     expect(screen.queryByRole("button", { name: /[Rr]ush/ })).toBeNull();
+    expect(screen.queryByRole("button", { name: /[Aa]ssign/ })).toBeNull();
+    expect(screen.queryByRole("button", { name: /[Uu]pgrade/ })).toBeNull();
+    expect(screen.queryByRole("button", { name: /[Hh]ire/ })).toBeNull();
+    // Every control this widget DOES have acts on one vehicle, never on the
+    // complex it stands at.
+    expect(screen.getByRole("button", { name: /^Scrap Atlas/ })).toBeTruthy();
+  });
+
+  it("gathers a complex's craft together in the list", async () => {
+    // What makes a flat list read as grouped by complex without nesting it
+    // under headings that would repeat "LC-1 at Cape" once per section per
+    // complex. Interleaved on the wire, gathered on screen.
+    const { fixture } = mount();
+    await rp1IsPresent(fixture);
+    act(() => {
+      fixture.emit("career.status", CAREER);
+      fixture.emit("rp1.complexes", [...COMPLEXES, LC2]);
+      fixture.emit("rp1.pads", PADS);
+      fixture.emit("rp1.operations", []);
+      fixture.emit("rp1.warehouse", [
+        built({ id: "vp-b", lcId: "lc-2", shipId: "s-b", shipName: "Bravo" }),
+        built({ id: "vp-a", shipName: "Alfa" }),
+        built({ id: "vp-d", lcId: "lc-2", shipId: "s-d", shipName: "Delta" }),
+        built({ id: "vp-c", shipId: "s-c", shipName: "Charlie" }),
+      ]);
+      fixture.emit("rp1.buildQueue", []);
+    });
+
+    await waitFor(() => {
+      expect(screen.getByText("Delta")).toBeInTheDocument();
+    });
+    // LC-1 leads because RP-1 lists it first, and within a complex the wire
+    // order is kept: RP-1 works a queue in the order it publishes it.
+    const cards = screen.getAllByRole("listitem");
+    expect(
+      ["Alfa", "Charlie", "Bravo", "Delta"].map((name, index) =>
+        cards[index]?.textContent?.startsWith(name) === true ? name : "?",
+      ),
+    ).toEqual(["Alfa", "Charlie", "Bravo", "Delta"]);
   });
 
   it("stays accessible with every control on screen at once", async () => {
