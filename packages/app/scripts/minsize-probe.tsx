@@ -11,7 +11,7 @@
  */
 import { getComponents, registerComponent } from "@ksp-gonogo/core";
 import { SerialDeviceProvider, SerialDeviceService } from "@ksp-gonogo/serial";
-import { Panel } from "@ksp-gonogo/ui-kit";
+import { Panel, StatusPill } from "@ksp-gonogo/ui-kit";
 import { defineRenderSetup } from "@ksp-gonogo/ui-kit/render-probe";
 import { NotesHostProvider } from "../src/notes/NotesHostContext";
 import { NotesHostService } from "../src/notes/NotesHostService";
@@ -47,10 +47,24 @@ defineRenderSetup({
  * fits". So the gate mounts this widget too and REFUSES to report on the others
  * unless this one comes back broken.
  *
- * Broken in all three ways the audit can name, so a check that loses one of them
+ * Broken in all five ways the audit can name, so a check that loses one of them
  * fails here rather than going quiet in the field.
+ *
+ * The two pills carry their words in a child span that fits, and are cut only
+ * at their own edges. That is the shape the box checks exist for, and it is the
+ * shape a check that has quietly gone back to judging text alone reports
+ * nothing about.
  */
 const CANARY_ID = "minsize-gate-canary";
+
+/** Pinned rather than left to the pill's own padding, so what the canary proves
+ *  is the audit still seeing a clipped box rather than the kit's spacing scale
+ *  happening to overflow this week. */
+const BARE_PILL = {
+  padding: 0,
+  border: 0,
+  width: 120,
+} as const;
 
 function Canary() {
   return (
@@ -62,15 +76,29 @@ function Canary() {
             nothing to scroll
           </div>
         </div>
+        <div style={{ overflow: "hidden", width: 80 }}>
+          <StatusPill
+            $tone="warning"
+            style={{ ...BARE_PILL, justifyContent: "flex-start" }}
+          >
+            <span style={{ width: 40 }}>FITS</span>
+          </StatusPill>
+        </div>
       </Panel>
-      {/* Outside the panel, so its nearest clipping box is the tile itself and
-          the audit has to call this one `escapes-tile` rather than cut off:
-          the two are different symptoms and a check that collapsed them would
-          stop being able to tell a badge painting over its neighbour from one
-          being trimmed by its own panel. */}
+      {/* Outside the panel, so their nearest clipping box is the tile itself
+          and the audit has to call these two escapes rather than cuts: the two
+          are different symptoms and a check that collapsed them would stop
+          being able to tell a badge painting over its neighbour from one being
+          trimmed by its own panel. */}
       <span style={{ marginLeft: -160, whiteSpace: "nowrap" }}>
         A label pushed clean off the left edge of its tile
       </span>
+      <StatusPill
+        $tone="warning"
+        style={{ ...BARE_PILL, marginLeft: -40, justifyContent: "flex-end" }}
+      >
+        <span style={{ width: 40 }}>FITS</span>
+      </StatusPill>
     </>
   );
 }

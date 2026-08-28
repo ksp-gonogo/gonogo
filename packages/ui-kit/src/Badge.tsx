@@ -1,5 +1,6 @@
 import type { HTMLAttributes, ReactNode } from "react";
 import styled, { css } from "styled-components";
+import { fitBox } from "./fitBox";
 import { type Severity, severityFromBadgeTone } from "./status/severity";
 import { severityDotColor } from "./status/severityDotColor";
 import { useStatusContribution } from "./status/useStatusContribution";
@@ -198,6 +199,7 @@ const Badge__Body = styled.span<{
   $size: BadgeSize;
 }>`
   display: inline-block;
+  ${fitBox("badge")}
   border: 1px solid;
   font-weight: 600;
   letter-spacing: 0.08em;

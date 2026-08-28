@@ -1,4 +1,5 @@
 import styled from "styled-components";
+import { fitBox } from "./fitBox";
 
 export interface FilterChipProps {
   label: string;
@@ -27,6 +28,7 @@ export function FilterChip({
 }
 
 const ChipButton = styled.button<{ $selected: boolean }>`
+  ${fitBox("chip")}
   display: inline-flex;
   align-items: center;
   gap: var(--space-6);
