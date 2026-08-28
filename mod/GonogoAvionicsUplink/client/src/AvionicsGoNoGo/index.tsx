@@ -21,6 +21,7 @@ import type { AvionicsStatus } from "../__generated__/contract";
 // the package entry point's import order (see ../index.ts, which also
 // imports this for the same reason).
 import "../topics";
+import { AVIONICS } from "../uplink";
 
 type AvionicsConfig = Record<string, never>;
 
@@ -111,4 +112,5 @@ registerComponent<AvionicsConfig>({
   defaultConfig: {},
   actions: [],
   requires: ["flight"],
+  owner: AVIONICS,
 });
