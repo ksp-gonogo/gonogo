@@ -327,14 +327,6 @@ export const ALLOWLIST: Record<ModToken, ModAllowlist> = {
        */
       "packages/data/src/schema/topicFieldCatalog.test.ts",
       /*
-       * -- UPLINK-DISCOVERABILITY scan (2026-08-22): the check that every
-       * uplink is registered must WALK every uplink project to find them, so
-       * it necessarily names each directory. It was previously blind to
-       * eleven of twenty-seven uplinks by scanning only Gonogo.KSP for
-       * *Uplink.cs. Ratchet-inventory file, the case this bucket documents.
-       */
-      "mod/Gonogo.KSP.Tests/UplinkDiscoverabilityTests.cs",
-      /*
        * -- Uplink ISOLATION ratchet inventory (2026-08-18): the inward guard's
        * debt list is keyed by file path, so it necessarily names every Uplink
        * directory. Ratchet-inventory file, the case this bucket documents.

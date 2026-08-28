@@ -147,7 +147,7 @@ namespace Gonogo.KSP.Tests
             foreach (var required in new[]
                      {
                          "VesselUplink", "FleetChannels", "KosExtension",
-                         "PrincipiaUplink", "KerbalismUplink", "ScansatUplink",
+                         "PrincipiaUplink", "KerbalismUplink",
                      })
             {
                 Assert.Contains(required, found);

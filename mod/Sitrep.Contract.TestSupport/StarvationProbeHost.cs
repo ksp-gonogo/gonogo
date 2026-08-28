@@ -49,6 +49,28 @@ namespace Sitrep.Contract.TestSupport
 
         public List<string> CommandsRegistered { get; } = new List<string>();
 
+        /// <summary>Every gate evaluator registered, by the kind it answers.</summary>
+        public List<ICommandGateEvaluator> GateEvaluators { get; } = new List<ICommandGateEvaluator>();
+
+        /// <summary>
+        /// Every requirement contributed to a command this Uplink does not own,
+        /// in the order it was contributed.
+        ///
+        /// <para>Recorded rather than discarded because an absent contribution is
+        /// the shape of an unguarded command: a mod that models a stock action
+        /// differently and never says so leaves the stock write reachable, and
+        /// nothing else in a registration test can see that.</para>
+        /// </summary>
+        public List<(string Command, CommandRequirement Requirement)> ContributedRequirements { get; } =
+            new List<(string, CommandRequirement)>();
+
+        /// <summary>What was contributed to <paramref name="command"/>, in order.</summary>
+        public List<CommandRequirement> RequirementsFor(string command) =>
+            ContributedRequirements
+                .Where(r => string.Equals(r.Command, command, StringComparison.Ordinal))
+                .Select(r => r.Requirement)
+                .ToList();
+
         /// <summary>Every payload published, in order, with the topic it went to.</summary>
         public List<(string Topic, object? Payload)> Published { get; } =
             new List<(string, object?)>();
@@ -210,13 +232,10 @@ namespace Sitrep.Contract.TestSupport
         public IDynamicChannelSource RegisterDynamicNamespace(
             string prefix, ChannelDeclaration template) => new ProbeNamespace(this, prefix);
 
-        public void AddGateEvaluator(ICommandGateEvaluator evaluator)
-        {
-        }
+        public void AddGateEvaluator(ICommandGateEvaluator evaluator) => GateEvaluators.Add(evaluator);
 
-        public void AddCommandRequirement(string command, CommandRequirement requirement)
-        {
-        }
+        public void AddCommandRequirement(string command, CommandRequirement requirement) =>
+            ContributedRequirements.Add((command, requirement));
 
         public void SetSignalDelaySource(Func<KspSnapshot?, CommsDelay?> computeOnMainThread)
         {

@@ -125,6 +125,17 @@ namespace GonogoRp1Uplink
         private string? _launchGateRegistrationError;
 
         /// <summary>
+        /// The two stock career purchases RP-1 re-models as queued projects,
+        /// contributed to core's own <c>career.facility.upgrade</c> and
+        /// <c>career.tech.unlock</c>. Its own reader, like the launch gate above
+        /// and for the same reason.
+        /// </summary>
+        private readonly Rp1CareerProjectGate _careerProjects = new Rp1CareerProjectGate();
+
+        /// <summary>Set when that contribution threw, so Health can say so rather than nothing.</summary>
+        private string? _careerProjectGateRegistrationError;
+
+        /// <summary>
         /// The write half of RP-1's build queue: the repeat-build command and the
         /// gate that darkens it. Its own reader, like the launch gate beside it
         /// and for the same reason: a command answers from the model as it stands
@@ -153,6 +164,12 @@ namespace GonogoRp1Uplink
         /// position.
         /// </summary>
         private const string FlightOpsLaunchCommand = "ksp.launch";
+
+        /// <summary>The facility upgrade RP-1 turns into a construction project. Spelled out for the reason above.</summary>
+        private const string CareerFacilityUpgradeCommand = "career.facility.upgrade";
+
+        /// <summary>The tech unlock RP-1 turns into a research project. Spelled out for the reason above.</summary>
+        private const string CareerTechUnlockCommand = "career.tech.unlock";
         /// <summary>The same, for the simulation provider. Separate field because the two register independently.</summary>
         private string? _simulationRegistrationError;
 
@@ -395,6 +412,33 @@ namespace GonogoRp1Uplink
             catch (Exception ex)
             {
                 _launchGateRegistrationError = ex.Message;
+            }
+
+            // The two career purchases RP-1 owns as queued projects, contributed
+            // to the commands core declares for the stock versions. Same
+            // contributed-not-elected discipline as the launch rules above: these
+            // are ADDED to core's career-mode and facility-cap requirements, and
+            // a second installed mod with its own condition adds more rather than
+            // displacing these.
+            //
+            // Fail-softed separately for the same reason the registrations around
+            // it are: a contribution that fails must not cost this Uplink its
+            // read surface, and a read surface that fails must not leave the
+            // stock write silently unguarded.
+            try
+            {
+                if (_careerProjects.IsAvailable)
+                {
+                    host.AddGateEvaluator(_careerProjects);
+                    host.AddCommandRequirement(
+                        CareerFacilityUpgradeCommand, Rp1CareerProjectGate.FacilityRequirement());
+                    host.AddCommandRequirement(
+                        CareerTechUnlockCommand, Rp1CareerProjectGate.TechRequirement());
+                }
+            }
+            catch (Exception ex)
+            {
+                _careerProjectGateRegistrationError = ex.Message;
             }
 
             // The build queue's write half. Registered on the SAME condition the
@@ -702,6 +746,13 @@ namespace GonogoRp1Uplink
                         ? "not contributed: " + _launchGateRegistrationError
                         : _launch.IsAvailable
                             ? "contributed to ksp.launch"
+                            : "space centre types not found"),
+                new UplinkHealthFact(
+                    "career project rules",
+                    _careerProjectGateRegistrationError != null
+                        ? "not contributed: " + _careerProjectGateRegistrationError
+                        : _careerProjects.IsAvailable
+                            ? "contributed to career.facility.upgrade and career.tech.unlock"
                             : "space centre types not found"),
                 new UplinkHealthFact(
                     "build commands",

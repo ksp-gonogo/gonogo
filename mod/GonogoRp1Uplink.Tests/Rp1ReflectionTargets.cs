@@ -96,7 +96,7 @@ namespace GonogoRp1Uplink.Tests
 
         public static IReadOnlyList<Rp1TypeTarget> Types { get; } = new[]
         {
-            new Rp1TypeTarget(Rp0, "RP0.SpaceCenterManagement", "Rp1ScReflection, Rp1LaunchGate, Rp1BuildCommands, Rp1DerivedCurrencyWithholder"),
+            new Rp1TypeTarget(Rp0, "RP0.SpaceCenterManagement", "Rp1ScReflection, Rp1LaunchGate, Rp1CareerProjectGate, Rp1BuildCommands, Rp1DerivedCurrencyWithholder"),
             new Rp1TypeTarget(Rp0, "RP0.Confidence", "Rp1ScReflection, Rp1DerivedCurrencyWithholder"),
             new Rp1TypeTarget(Rp0, "RP0.LCEfficiency", "Rp1ScReflection"),
             new Rp1TypeTarget(Rp0, "RP0.Database", "Rp1ScReflection, Rp1CrewReflection, Rp1EconomyBackend"),
@@ -192,6 +192,7 @@ namespace GonogoRp1Uplink.Tests
 
             const string Sc = "Rp1ScReflection";
             const string Gate = "Rp1LaunchGate";
+            const string Projects = "Rp1CareerProjectGate";
             const string Build = "Rp1BuildCommands";
             const string Vehicles = "Rp1VehicleCommands";
             const string Withhold = "Rp1DerivedCurrencyWithholder";
@@ -200,8 +201,8 @@ namespace GonogoRp1Uplink.Tests
             const string Programs = "Rp1ProgramsReflection";
 
             // ── The space centre ────────────────────────────────────────────
-            Add("RP0.SpaceCenterManagement", "Instance", Rp1Reader.Presence, Sc + ", " + Gate + ", " + Build + ", " + Withhold, @static: true);
-            Add("RP0.SpaceCenterManagement", "enabledForSave", Rp1Reader.Bool, Sc + ", " + Gate + ", " + Build);
+            Add("RP0.SpaceCenterManagement", "Instance", Rp1Reader.Presence, Sc + ", " + Gate + ", " + Projects + ", " + Build + ", " + Withhold, @static: true);
+            Add("RP0.SpaceCenterManagement", "enabledForSave", Rp1Reader.Bool, Sc + ", " + Gate + ", " + Projects + ", " + Build);
             Add("RP0.SpaceCenterManagement", "IsSimulatedFlight", Rp1Reader.Bool, Sc);
             Add("RP0.SpaceCenterManagement", "Researchers", Rp1Reader.Numeric, Sc);
             Add("RP0.SpaceCenterManagement", "Applicants", Rp1Reader.Numeric, Sc);
