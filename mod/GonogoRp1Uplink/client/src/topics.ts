@@ -33,6 +33,7 @@ import type {
   Rp1ProgramEntry,
   Rp1ProgramSlots,
   Rp1ResearchEntry,
+  Rp1RushTerms,
   Rp1WarehouseItemEntry,
 } from "./__generated__/contract";
 import {
@@ -81,6 +82,12 @@ export const RP1_RESEARCH_TOPIC = "rp1.research";
 
 /** Who is on the payroll. */
 export const RP1_PERSONNEL_TOPIC = "rp1.personnel";
+
+/**
+ * What rushing a launch complex costs, career-wide, so the price is readable at
+ * the moment nothing is rushing and the decision is being made.
+ */
+export const RP1_RUSH_TERMS_TOPIC = "rp1.rushTerms";
 
 /** RP-1's own currency, absent rather than zero when the module is not live. */
 export const RP1_CONFIDENCE_TOPIC = "rp1.confidence";
@@ -134,6 +141,7 @@ declare module "@ksp-gonogo/sitrep-sdk" {
     "rp1.constructions": Rp1ConstructionEntry[];
     "rp1.research": Rp1ResearchEntry[];
     "rp1.personnel": Rp1Personnel;
+    "rp1.rushTerms": Rp1RushTerms;
     "rp1.confidence": Rp1Confidence;
     "rp1.programs": Rp1ProgramEntry[];
     "rp1.programSlots": Rp1ProgramSlots;
@@ -153,6 +161,7 @@ registerBarePrimitiveTopic(RP1_OPERATIONS_TOPIC);
 registerBarePrimitiveTopic(RP1_CONSTRUCTIONS_TOPIC);
 registerBarePrimitiveTopic(RP1_RESEARCH_TOPIC);
 registerBarePrimitiveTopic(RP1_PERSONNEL_TOPIC);
+registerBarePrimitiveTopic(RP1_RUSH_TERMS_TOPIC);
 registerBarePrimitiveTopic(RP1_CONFIDENCE_TOPIC);
 registerBarePrimitiveTopic(RP1_PROGRAMS_TOPIC);
 registerBarePrimitiveTopic(RP1_PROGRAM_SLOTS_TOPIC);
@@ -212,6 +221,9 @@ export type _ResolvesRp1Research = Expect<
 >;
 export type _ResolvesRp1Personnel = Expect<
   Equal<TopicPayload<"rp1.personnel">, Rp1Personnel>
+>;
+export type _ResolvesRp1RushTerms = Expect<
+  Equal<TopicPayload<"rp1.rushTerms">, Rp1RushTerms>
 >;
 export type _ResolvesRp1Confidence = Expect<
   Equal<TopicPayload<"rp1.confidence">, Rp1Confidence>

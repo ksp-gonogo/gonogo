@@ -310,6 +310,54 @@ namespace GonogoRp1Uplink
             }
         }
 
+        /// <summary>
+        /// A public instance method by name, arity AND the full name of its first
+        /// parameter's type, for the overloads arity alone cannot tell apart.
+        ///
+        /// <para>The instance twin of <see cref="StaticMethodOn"/>, needed for the
+        /// same shape of hazard: RP-1 declares
+        /// <c>GetEffectiveEngineersForSalary(LaunchComplex)</c> and
+        /// <c>GetEffectiveEngineersForSalary(LCSpaceCenter)</c>, so a
+        /// name-and-arity match picks whichever the runtime lists first and would
+        /// report a whole CENTRE's payroll against one launch complex.</para>
+        /// </summary>
+        public static MethodInfo? InstanceMethodOn(object target, string name, string firstParameterTypeFullName, int parameterCount)
+        {
+            MethodInfo[] candidates;
+            try
+            {
+                candidates = target.GetType().GetMethods(BindingFlags.Public | BindingFlags.Instance);
+            }
+            catch (Exception)
+            {
+                return null;
+            }
+
+            foreach (var m in candidates)
+            {
+                if (m.Name != name)
+                {
+                    continue;
+                }
+                try
+                {
+                    var parameters = m.GetParameters();
+                    if (parameters.Length == parameterCount
+                        && parameters.Length > 0
+                        && parameters[0].ParameterType.FullName == firstParameterTypeFullName)
+                    {
+                        return m;
+                    }
+                }
+                catch (Exception)
+                {
+                    // See StaticMethodOn: one unresolvable overload must not hide
+                    // the rest, and reading a parameter type is what loads it.
+                }
+            }
+            return null;
+        }
+
         /// <summary>A public static method by name and arity; see <see cref="InstanceMethod"/> for why arity.</summary>
         public static MethodInfo? StaticMethod(Type type, string name, int parameterCount)
         {

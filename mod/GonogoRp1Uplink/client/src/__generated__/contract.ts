@@ -22,6 +22,11 @@ export interface Rp1ComplexRushArgs
 	lcId?: string;
 	rushing?: boolean;
 }
+export interface Rp1PersonnelAssignArgs
+{
+	lcId?: string;
+	engineers?: number;
+}
 export interface Rp1CentreEntry
 {
 	kscName?: string;
@@ -31,6 +36,8 @@ export interface Rp1CentreEntry
 	launchComplexCount?: Value<"count">;
 	anyOperational?: boolean;
 	groundStation?: string;
+	salaryPerDay?: Value<"f/day">;
+	upkeepPerDay?: Value<"f/day">;
 }
 export interface Rp1ComplexEntry
 {
@@ -48,6 +55,12 @@ export interface Rp1ComplexEntry
 	humanRated?: boolean;
 	massMin?: Value<"t">;
 	massMax?: Value<"t">;
+	sizeMaxHeight?: Value<"m">;
+	sizeMaxWidth?: Value<"m">;
+	sizeMaxDepth?: Value<"m">;
+	resourcesHandled?: string[];
+	salaryPerDay?: Value<"f/day">;
+	upkeepPerDay?: Value<"f/day">;
 }
 export interface Rp1BuildItemEntry
 {
@@ -153,6 +166,16 @@ export interface Rp1Personnel
 	totalEngineers?: Value<"count">;
 	researchers?: Value<"count">;
 	applicants?: Value<"count">;
+	engineerSalaryPerDay?: Value<"f/day">;
+	researcherSalaryPerDay?: Value<"f/day">;
+	engineerSalaryPerYear?: Value<"funds">;
+	researcherSalaryPerYear?: Value<"funds">;
+	idleSalaryMult?: Value<"ratio">;
+}
+export interface Rp1RushTerms
+{
+	rateMult?: Value<"ratio">;
+	salaryMult?: Value<"ratio">;
 }
 export interface Rp1Confidence
 {

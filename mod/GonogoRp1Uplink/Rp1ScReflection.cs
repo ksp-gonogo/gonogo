@@ -89,11 +89,19 @@ namespace GonogoRp1Uplink
         private const string ConfidenceTypeName = "RP0.Confidence";
         private const string EfficiencyTypeName = "RP0.LCEfficiency";
         private const string DatabaseTypeName = "RP0.Database";
+        private const string MaintenanceTypeName = "RP0.MaintenanceHandler";
+
+        /// <summary>The parameter type that tells the two salary overloads apart.</summary>
+        private const string LaunchComplexTypeName = "RP0.LaunchComplex";
+
+        /// <summary>Days in RP-1's year, the divisor its own salary arithmetic uses.</summary>
+        private const double DaysPerYear = 365.25;
 
         private readonly Type? _scm;
         private readonly Type? _confidence;
         private readonly Type? _lcEfficiency;
         private readonly Type? _database;
+        private readonly Type? _maintenance;
 
         /// <summary>Cached MethodInfo per (type, method): the one member kind read by invoke rather than by value.</summary>
         private readonly Dictionary<string, MemberInfo?> _methods = new Dictionary<string, MemberInfo?>();
@@ -125,6 +133,7 @@ namespace GonogoRp1Uplink
             _confidence = Rp1Types.Find(ConfidenceTypeName);
             _lcEfficiency = Rp1Types.Find(EfficiencyTypeName);
             _database = Rp1Types.Find(DatabaseTypeName);
+            _maintenance = Rp1Types.Find(MaintenanceTypeName);
 
             if (_scm != null)
             {
@@ -198,6 +207,7 @@ namespace GonogoRp1Uplink
             var rushRateMult = ReadRushRateMult();
             var maxEfficiency = ReadMaxEfficiency();
             var lcToEfficiency = Member(scm, "LCToEfficiency") as IDictionary;
+            var payroll = ReadPayroll(scm);
 
             var totalEngineers = 0;
             foreach (var ksc in Enumerate(Member(scm, "KSCs")))
@@ -210,6 +220,10 @@ namespace GonogoRp1Uplink
                 var operationalCount = 0;
                 var anyOperationalBeyondHangar = false;
                 var lcIndex = 0;
+                // Where this centre's complexes start, so its own upkeep can be
+                // totalled off the rows just read rather than by asking RP-1 the
+                // same question a second time.
+                var firstComplex = raw.Complexes.Count;
 
                 foreach (var lc in Enumerate(Member(ksc, "LaunchComplexes")))
                 {
@@ -230,7 +244,7 @@ namespace GonogoRp1Uplink
                     }
                     lcIndex++;
 
-                    ReadComplex(raw, ksc, kscName, lc, lcEngineers, operational, lcToEfficiency, maxEfficiency, rushRateMult);
+                    ReadComplex(raw, ksc, kscName, lc, lcEngineers, operational, lcToEfficiency, maxEfficiency, rushRateMult, payroll);
                 }
 
                 ReadConstructions(raw, kscName, ksc);
@@ -244,6 +258,8 @@ namespace GonogoRp1Uplink
                     LaunchComplexCount = operationalCount,
                     AnyOperational = anyOperationalBeyondHangar,
                     GroundStation = GroundStationFor(ksc, kscName),
+                    SalaryPerDay = SalaryPerDay(payroll, payroll.CentreSalary, ksc),
+                    UpkeepPerDay = UpkeepFrom(raw.Complexes, firstComplex),
                 });
             }
 
@@ -254,8 +270,14 @@ namespace GonogoRp1Uplink
                 TotalEngineers = totalEngineers,
                 Researchers = ReadInt(scm, "Researchers") ?? 0,
                 Applicants = ReadInt(scm, "Applicants") ?? 0,
+                EngineerSalaryPerDay = ReadDouble(payroll.Maintenance, "IntegrationSalaryPerDay"),
+                ResearcherSalaryPerDay = ReadDouble(payroll.Maintenance, "ResearchSalaryPerDay"),
+                EngineerSalaryPerYear = payroll.EngineerSalaryPerYear,
+                ResearcherSalaryPerYear = ReadDouble(payroll.Settings, "salaryResearchers"),
+                IdleSalaryMult = ReadDouble(payroll.Settings, "EngineerIdleSalaryMult"),
             };
 
+            raw.RushTerms = ReadRushTerms(payroll.Settings);
             raw.Confidence = ReadConfidence();
             return raw;
         }
@@ -269,7 +291,8 @@ namespace GonogoRp1Uplink
             bool operational,
             IDictionary? lcToEfficiency,
             double maxEfficiency,
-            double rushRateMult)
+            double rushRateMult,
+            Payroll payroll)
         {
             var lcId = ReadGuidString(lc, "ID");
             var lcType = ReadEnumName(lc, "LCType");
@@ -310,6 +333,12 @@ namespace GonogoRp1Uplink
                 HumanRated = ReadBool(lc, "IsHumanRated") == true,
                 MassMin = ReadDouble(lc, "MassMin"),
                 MassMax = UnlimitedAsAbsent(ReadDouble(lc, "MassMax")),
+                SizeMaxHeight = SizeAxis(lc, "y"),
+                SizeMaxWidth = SizeAxis(lc, "x"),
+                SizeMaxDepth = SizeAxis(lc, "z"),
+                ResourcesHandled = ReadResourcesHandled(lc),
+                SalaryPerDay = SalaryPerDay(payroll, payroll.ComplexSalary, lc),
+                UpkeepPerDay = ComplexUpkeep(payroll, lc),
             });
 
             foreach (var vp in Enumerate(Member(lc, "BuildList")))
@@ -746,6 +775,187 @@ namespace GonogoRp1Uplink
                 return baseSeconds;
             }
             return ramp(baseSeconds.Value);
+        }
+
+        /// <summary>
+        /// The money members, resolved once per tick and carried down to each
+        /// complex.
+        ///
+        /// <para>RP-1 answers what a crew draws and what a complex costs through
+        /// its own methods rather than through fields, so both are a call per
+        /// complex and the four lookups behind them are worth hoisting out of the
+        /// loop. Every field may be null and each one being null costs exactly the
+        /// figure it feeds.</para>
+        /// </summary>
+        private sealed class Payroll
+        {
+            public object? Scm;
+            public object? Maintenance;
+            public object? Settings;
+
+            /// <summary>One engineer's full year, the rate both salary figures scale.</summary>
+            public double? EngineerSalaryPerYear;
+
+            /// <summary><c>GetEffectiveEngineersForSalary(LaunchComplex)</c>, by first-parameter type.</summary>
+            public MethodInfo? ComplexSalary;
+
+            /// <summary><c>GetEffectiveIntegrationEngineersForSalary(LCSpaceCenter)</c>.</summary>
+            public MethodInfo? CentreSalary;
+
+            /// <summary><c>MaintenanceHandler.LCUpkeep(LaunchComplex)</c>.</summary>
+            public MethodInfo? ComplexUpkeep;
+        }
+
+        /// <summary>
+        /// Resolves this tick's money members. The two salary lookups are keyed on
+        /// their first parameter's TYPE and not on arity: RP-1 declares a centre
+        /// overload of the same name and arity, and picking it would report a
+        /// whole centre's payroll against one launch complex.
+        /// </summary>
+        private Payroll ReadPayroll(object scm)
+        {
+            var settings = _database == null ? null : Rp1Types.StaticValue(_database, "SettingsSC");
+            var maintenance = _maintenance == null ? null : Rp1Types.StaticValue(_maintenance, "Instance");
+            return new Payroll
+            {
+                Scm = scm,
+                Maintenance = maintenance,
+                Settings = settings,
+                EngineerSalaryPerYear = ReadDouble(settings, "salaryEngineers"),
+                ComplexSalary = Rp1Types.InstanceMethodOn(
+                    scm, "GetEffectiveEngineersForSalary", LaunchComplexTypeName, 1),
+                CentreSalary = Rp1Types.InstanceMethod(
+                    scm, "GetEffectiveIntegrationEngineersForSalary", 1),
+                ComplexUpkeep = maintenance == null
+                    ? null
+                    : Rp1Types.InstanceMethod(maintenance, "LCUpkeep", 1),
+            };
+        }
+
+        /// <summary>
+        /// What a crew draws per day, from RP-1's own effective headcount.
+        ///
+        /// <para>RP-1's method is CALLED rather than mirrored, unlike the rate
+        /// arithmetic this file reproduces, and the two are different situations
+        /// rather than an inconsistency. The rate helpers had to be gone round
+        /// because they persist an efficiency record on a cache miss; these read
+        /// their own lists and return a number, so calling them is both safe and
+        /// the only way to get a figure that agrees with the one RP-1 bills. The
+        /// ladder behind it is not arithmetic worth copying: an idle complex pays
+        /// at a fraction, a rushing one pays double, and a human-rated complex
+        /// building an uncrewed vehicle pays part of its crew at each rate.</para>
+        /// </summary>
+        private double? SalaryPerDay(Payroll payroll, MethodInfo? method, object subject)
+        {
+            if (method == null || payroll.Scm == null || payroll.EngineerSalaryPerYear == null)
+            {
+                return null;
+            }
+            var heads = InvokeForDouble(method, payroll.Scm, subject);
+            return heads == null
+                ? (double?)null
+                : heads.Value * payroll.EngineerSalaryPerYear.Value / DaysPerYear;
+        }
+
+        /// <summary>What the complex itself costs per day, crew aside.</summary>
+        private double? ComplexUpkeep(Payroll payroll, object lc) =>
+            payroll.ComplexUpkeep == null || payroll.Maintenance == null
+                ? (double?)null
+                : InvokeForDouble(payroll.ComplexUpkeep, payroll.Maintenance, lc);
+
+        /// <summary>
+        /// A one-argument RP-1 call that answers a number, or absent when it
+        /// could not be made. Fenced because these reach RP-1 code across an
+        /// assembly boundary this Uplink holds no reference to, and a capture
+        /// that throws takes the whole tick's reading with it.
+        /// </summary>
+        private static double? InvokeForDouble(MethodInfo method, object target, object argument)
+        {
+            try
+            {
+                return Rp1Types.ToDouble(method.Invoke(target, new object[] { argument }));
+            }
+            catch (Exception)
+            {
+                return null;
+            }
+        }
+
+        /// <summary>
+        /// A centre's own upkeep: its complexes' figures, summed off the rows just
+        /// read. Absent when not one of them answered, rather than zero, because a
+        /// centre whose costs could not be read has not been shown to be free.
+        /// </summary>
+        private static double? UpkeepFrom(List<Rp1ComplexRaw> complexes, int from)
+        {
+            var total = 0.0;
+            var any = false;
+            for (var i = from; i < complexes.Count; i++)
+            {
+                var upkeep = complexes[i].UpkeepPerDay;
+                if (upkeep != null)
+                {
+                    total += upkeep.Value;
+                    any = true;
+                }
+            }
+            return any ? total : (double?)null;
+        }
+
+        /// <summary>
+        /// One axis of a complex's size envelope, off the Vector3 RP-1 keeps it
+        /// in. Unlimited reads as absent on the same rule the mass limit follows.
+        /// </summary>
+        private double? SizeAxis(object lc, string axis) =>
+            UnlimitedAsAbsent(ReadDouble(Member(lc, "SizeMax"), axis));
+
+        /// <summary>
+        /// The resources a complex can load, sorted so a client's rendering does
+        /// not move when RP-1's dictionary rehashes. Absent when RP-1 has no
+        /// dictionary to read, which is a different answer from a complex that
+        /// handles nothing.
+        /// </summary>
+        private static List<string>? ReadResourcesHandled(object lc)
+        {
+            if (!(Member(lc, "ResourcesHandled") is IDictionary handled))
+            {
+                return null;
+            }
+            var names = new List<string>();
+            try
+            {
+                foreach (var key in handled.Keys)
+                {
+                    if (key is string name && name.Length > 0)
+                    {
+                        names.Add(name);
+                    }
+                }
+            }
+            catch (Exception)
+            {
+                return null;
+            }
+            names.Sort(StringComparer.Ordinal);
+            return names;
+        }
+
+        /// <summary>
+        /// What rushing costs, from RP-1's settings. Absent as a whole when the
+        /// settings could not be read: a client that quotes a default multiplier
+        /// is telling an operator a price nobody charged.
+        /// </summary>
+        private static Rp1RushTermsRaw? ReadRushTerms(object? settings)
+        {
+            if (settings == null)
+            {
+                return null;
+            }
+            var rate = Rp1Types.ReadDouble(settings, "RushRateMult");
+            var salary = Rp1Types.ReadDouble(settings, "RushSalaryMult");
+            return rate == null && salary == null
+                ? null
+                : new Rp1RushTermsRaw { RateMult = rate, SalaryMult = salary };
         }
 
         private double ReadRushRateMult()

@@ -47,6 +47,7 @@ namespace GonogoRp1Uplink
         public const string ConstructionsTopic = "rp1.constructions";
         public const string ResearchTopic = "rp1.research";
         public const string PersonnelTopic = "rp1.personnel";
+        public const string RushTermsTopic = "rp1.rushTerms";
         public const string ConfidenceTopic = "rp1.confidence";
         public const string ProgramsTopic = "rp1.programs";
         public const string ProgramSlotsTopic = "rp1.programSlots";
@@ -153,6 +154,14 @@ namespace GonogoRp1Uplink
         /// </summary>
         private readonly Rp1VehicleCommands _vehicles = new Rp1VehicleCommands();
 
+        /// <summary>
+        /// The staffing write. Its own class rather than a sixth vehicle command,
+        /// because it is the one write here that touches no vehicle at all: it
+        /// moves engineers between a centre's pool and a launch complex, and a
+        /// complex is infrastructure.
+        /// </summary>
+        private readonly Rp1PersonnelCommands _staffing = new Rp1PersonnelCommands();
+
         /// <summary>Set when the command registration threw, so Health can say so rather than nothing.</summary>
         private string? _buildCommandRegistrationError;
 
@@ -196,6 +205,7 @@ namespace GonogoRp1Uplink
         private IChannelPublisher? _constructions;
         private IChannelPublisher? _research;
         private IChannelPublisher? _personnel;
+        private IChannelPublisher? _rushTerms;
         private IChannelPublisher? _confidence;
         private IChannelPublisher? _programList;
         private IChannelPublisher? _programSlots;
@@ -236,14 +246,16 @@ namespace GonogoRp1Uplink
 
         public Rp1ScUplink()
         {
-            Manifest = BuildManifest(_build.IsAvailable, _vehicles.IsAvailable, _vehicles.IsMoveAvailable);
+            Manifest = BuildManifest(
+                _build.IsAvailable, _vehicles.IsAvailable, _vehicles.IsMoveAvailable, _staffing.IsAvailable);
             _crewStanding = new Rp1CrewStandingBackend(_crew);
         }
 
         private static UplinkManifest BuildManifest(
             bool buildModelResolved,
             bool queueModelResolved,
-            bool moveModelResolved) => new UplinkManifest
+            bool moveModelResolved,
+            bool staffingModelResolved) => new UplinkManifest
         {
             Id = "rp1",
             Version = "1.0.0",
@@ -263,6 +275,11 @@ namespace GonogoRp1Uplink
                 // without this the client would wait for a value that is never
                 // coming instead of being told there is none.
                 Ground(PersonnelTopic, absenceIsData: true),
+                // The rush terms come out of RP-1's own settings, so an install
+                // whose settings could not be read publishes nothing rather than
+                // the shipped defaults. Quoting a price the career does not
+                // charge is worse than declining to quote one.
+                Ground(RushTermsTopic, absenceIsData: true),
                 Ground(ConfidenceTopic, absenceIsData: true),
                 // All three Program channels publish NOTHING rather than an
                 // empty list when RP-1's ProgramHandler is not live. The
@@ -294,28 +311,32 @@ namespace GonogoRp1Uplink
             // is what makes that answer visible rather than assumed: an operator
             // sees a command that confirms at once, not a control that quietly
             // has no delay UX.
-            Commands = DeclareCommands(buildModelResolved, queueModelResolved, moveModelResolved),
+            Commands = DeclareCommands(
+                buildModelResolved, queueModelResolved, moveModelResolved, staffingModelResolved),
         };
 
         /// <summary>
-        /// The five write commands, each declared only when the types its own
+        /// The six write commands, each declared only when the types its own
         /// handler needs resolved.
         ///
-        /// <para>Three conditions rather than one, because the dependencies
+        /// <para>Four conditions rather than one, because the dependencies
         /// genuinely differ: the repeat build needs RP-1's currency query,
-        /// correcting a queue needs none of it, and moving a vehicle needs the
-        /// rollout type neither of the others touches. Declaring all five off one
-        /// flag would cost four commands for a rename that broke one.</para>
+        /// correcting a queue needs none of it, moving a vehicle needs the
+        /// rollout type neither of the others touches, and staffing a complex
+        /// needs none of the three. Declaring all six off one flag would cost
+        /// five commands for a rename that broke one.</para>
         ///
         /// <para>Every one of them declares the SAME requirement, which is why
         /// there is one gate evaluator between them: the only condition
         /// evaluable before the press is that RP-1 is managing the save, and each
-        /// command's own conditions are about a vehicle nobody has named yet.</para>
+        /// command's own conditions are about a complex or a vehicle nobody has
+        /// named yet.</para>
         /// </summary>
         private static IReadOnlyList<CommandDeclaration> DeclareCommands(
             bool buildModelResolved,
             bool queueModelResolved,
-            bool moveModelResolved)
+            bool moveModelResolved,
+            bool staffingModelResolved)
         {
             var commands = new List<CommandDeclaration>();
             if (buildModelResolved)
@@ -331,6 +352,13 @@ namespace GonogoRp1Uplink
             {
                 commands.Add(Declare(Rp1VehicleCommands.ScrapCommand));
                 commands.Add(Declare(Rp1VehicleCommands.RushCommand));
+            }
+            // Its own flag rather than sharing the queue's, even though today the
+            // two resolve the same two types: a rename that cost one of them
+            // should cost one of them.
+            if (staffingModelResolved)
+            {
+                commands.Add(Declare(Rp1PersonnelCommands.AssignCommand));
             }
             return commands;
         }
@@ -453,11 +481,11 @@ namespace GonogoRp1Uplink
             // a read surface that fails must not leave a command half-registered.
             try
             {
-                // The evaluator goes up when ANY of the five commands is
+                // The evaluator goes up when ANY of the six commands is
                 // declared, not when the repeat build is: it answers the one
                 // requirement they all declare, and a declaration without its
                 // evaluator is a startup failure.
-                if (_build.IsAvailable || _vehicles.IsAvailable)
+                if (_build.IsAvailable || _vehicles.IsAvailable || _staffing.IsAvailable)
                 {
                     host.AddGateEvaluator(_build);
                 }
@@ -479,6 +507,11 @@ namespace GonogoRp1Uplink
                         Rp1VehicleCommands.ScrapCommand, _vehicles.Scrap);
                     host.AddCommandHandler<Rp1ComplexRushArgs, CommandResult>(
                         Rp1VehicleCommands.RushCommand, _vehicles.Rush);
+                }
+                if (_staffing.IsAvailable)
+                {
+                    host.AddCommandHandler<Rp1PersonnelAssignArgs, CommandResult>(
+                        Rp1PersonnelCommands.AssignCommand, _staffing.Assign);
                 }
             }
             catch (Exception ex)
@@ -567,6 +600,7 @@ namespace GonogoRp1Uplink
             _constructions = host.Publisher(ConstructionsTopic);
             _research = host.Publisher(ResearchTopic);
             _personnel = host.Publisher(PersonnelTopic);
+            _rushTerms = host.Publisher(RushTermsTopic);
             _confidence = host.Publisher(ConfidenceTopic);
             _programList = host.Publisher(ProgramsTopic);
             _programSlots = host.Publisher(ProgramSlotsTopic);
@@ -586,6 +620,7 @@ namespace GonogoRp1Uplink
                 ConstructionsTopic,
                 ResearchTopic,
                 PersonnelTopic,
+                RushTermsTopic,
                 ConfidenceTopic);
 
             // Gated, and safe to gate: this capture's ENTIRE effect is its
@@ -662,6 +697,7 @@ namespace GonogoRp1Uplink
             _constructions?.Publish(constructions, raw.Ut);
             _research?.Publish(research, raw.Ut);
             _personnel?.Publish(Rp1ScCapture.BuildPersonnel(raw), raw.Ut);
+            _rushTerms?.Publish(Rp1ScCapture.BuildRushTerms(raw), raw.Ut);
             _confidence?.Publish(Rp1ScCapture.BuildConfidence(raw), raw.Ut);
         }
 
@@ -776,6 +812,15 @@ namespace GonogoRp1Uplink
                             : "scrap and complex rush registered; rollout and rollback withheld, "
                               + "ReconRolloutProject not resolved")
                           + " (" + _vehicles.MethodDiagnosis() + ")"),
+                // Separate from the vehicle commands, because it is the one write
+                // that can leave a career's build rates wrong without touching a
+                // vehicle: a complex whose crew this command could not move
+                // builds at whatever rate its old crew set.
+                new UplinkHealthFact(
+                    "staffing command",
+                    !_staffing.IsAvailable
+                        ? "not registered: RP-1 space-centre types not found"
+                        : "rp1.personnel.assign registered (" + _staffing.MethodDiagnosis() + ")"),
                 new UplinkHealthFact(
                     "simulation provider",
                     _simulationRegistrationError != null

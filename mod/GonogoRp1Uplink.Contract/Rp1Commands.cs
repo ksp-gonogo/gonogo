@@ -134,3 +134,41 @@ public class Rp1ComplexRushArgs
     [SitrepUnit(Units.Flag)]
     public bool? Rushing { get; set; }
 }
+
+/// <summary>
+/// Args for <c>rp1.personnel.assign</c>: move engineers between a centre's
+/// unassigned pool and one of its launch complexes.
+///
+/// <para><b>It hires nobody.</b> Under RP-1 hiring and assigning are two
+/// different acts with two different costs: hiring spends funds up front and
+/// raises the payroll, assigning spends nothing and only decides which complex
+/// the crew already on the books works at. This command is the second, so it can
+/// never grow the headcount and can never take the career's balance down.</para>
+///
+/// <para>A SET rather than a delta, for the reason
+/// <see cref="Rp1ComplexRushArgs"/> gives: an operator commanding from a remote
+/// vantage is reading a crew count as it was, and "+5" applied to a count that
+/// has since moved lands somewhere nobody chose. A target lands where it was
+/// aimed however stale the view was, and re-sending it changes nothing.</para>
+/// </summary>
+[SitrepContract]
+#if SITREP_CODEGEN
+[TsInterface]
+#endif
+public class Rp1PersonnelAssignArgs
+{
+    /// <summary>The complex, by the GUID <c>rp1.complexes[].lcId</c> publishes.</summary>
+    [SitrepUnit(Units.Id)]
+    public string? LcId { get; set; }
+
+    /// <summary>
+    /// How many engineers this complex should end up with.
+    ///
+    /// <para>REQUIRED, and refused when absent: there is no sensible default for
+    /// a crew size. Refused rather than clamped when it is above the complex's
+    /// own maximum or above what the centre's pool can supply, because a clamp
+    /// would report success for a number the operator did not ask for.</para>
+    /// </summary>
+    [SitrepUnit(Units.Count)]
+    public int? Engineers { get; set; }
+}
