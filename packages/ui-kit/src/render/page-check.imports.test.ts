@@ -39,6 +39,20 @@ const FORBIDDEN = ["playwright", "esbuild"];
 const IMPORT_RE =
   /(?:^|[\n;])[ \t]*(?:import|export)[ \t]+(?!type[ \t])[^"';]*["']([^"']+)["']|(?:^|[\n;])[ \t]*import[ \t]*["']([^"']+)["']/g;
 
+/**
+ * A DYNAMIC `import("x")` anywhere in an expression, which the statement form
+ * above cannot see: it anchors to the start of a line or statement, and a lazy
+ * import lives inside a function body after an `=` or an `await`.
+ *
+ * Added when `driver.ts` made its Playwright import lazy, so the driver stopped
+ * naming it statically and this file's positive control went quiet. A walk that
+ * can no longer see the thing it is looking for reports clean, so the reach had
+ * to grow with the change rather than the assertion shrinking to match it.
+ *
+ * `import type` cannot appear in this form, so there is no type case to exclude.
+ */
+const DYNAMIC_IMPORT_RE = /\bimport\s*\(\s*["']([^"']+)["']\s*\)/g;
+
 /** Resolve a relative specifier to a file on disk, trying the usual endings. */
 function resolveLocal(fromFile: string, specifier: string): string | undefined {
   const base = resolve(dirname(fromFile), specifier);
@@ -71,7 +85,10 @@ function walk(entry: string): { files: string[]; bare: Set<string> } {
     if (!file || seen.has(file)) continue;
     seen.add(file);
     const source = readFileSync(file, "utf8");
-    for (const match of source.matchAll(IMPORT_RE)) {
+    for (const match of [
+      ...source.matchAll(IMPORT_RE),
+      ...source.matchAll(DYNAMIC_IMPORT_RE),
+    ]) {
       const specifier = match[1] ?? match[2];
       if (!specifier) continue;
       if (specifier.startsWith(".")) {

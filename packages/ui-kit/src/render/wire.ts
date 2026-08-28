@@ -86,10 +86,10 @@ interface UnitsJson {
 }
 
 /**
- * One entry of the generated payload map: `  "career.status": CareerStatus;` or
- * `  "kos.processors": KosProcessorInfo[];`. Anchored to the interface body's
- * two-space indent so a topic id appearing in the file's header prose cannot
- * match.
+ * One entry of the generated payload map: `  "career.status": CareerStatus;` for
+ * a single payload, or the same with a trailing `[]` for an array channel.
+ * Anchored to the interface body's two-space indent so a topic id appearing in
+ * the file's header prose cannot match, which the real emitted header does.
  */
 const MAP_ENTRY = /^ {2}"([^"]+)": (\w+)(\[\])?;$/;
 
