@@ -5,7 +5,7 @@ import { PORTS } from "../../playwright.config";
  * Dogfood e2e for the Uplink Hub setup wizard (design
  * docs/superpowers/specs/2026-07-18-uplink-hub-wizard-design.md §6 Phase W1
  * point 5: Task D's "smallest dogfood milestone"). Boots the runtime loader
- * with scansat deliberately left OUT of the boot-time load call
+ * with kos deliberately left OUT of the boot-time load call
  * (`?uplinkLoaderIds=`: `uplinks/flag.ts`'s `loaderBootIdsOverride`, added
  * by this task),
  * opens the wizard from the persistent Settings entry point (Task C), and
@@ -21,8 +21,8 @@ import { PORTS } from "../../playwright.config";
  * STUBBED: nothing at the network boundary for the load flow itself, the
  * registry fetch, bundle fetch, sha256 verify, and `import()` all run for
  * real against the actual preview build, exactly like `uplink-loader.spec.ts`
- * already proves for scansat + kos. The only stand-in is the mod itself:
- * `system.uplinks` (reporting scansat installed/available/healthy) comes
+ * already proves for kos + kerbcast. The only stand-in is the mod itself:
+ * `system.uplinks` (reporting kos installed/available/healthy) comes
  * from `tests/playwright/sitrep-stream-server.mjs` (a real WebSocket
  * server, not a live KSP + mod), the same shared fixture every other
  * Sitrep-stream Playwright spec already uses to avoid needing a live game.
@@ -79,14 +79,14 @@ async function seedBrowserState(page: import("@playwright/test").Page) {
   );
 }
 
-test.describe("Uplink Hub wizard: dogfood (scansat gap -> load)", () => {
-  test("surfaces scansat as an installed-but-unloaded gap and loads it live through the Hub", async ({
+test.describe("Uplink Hub wizard: dogfood (kos gap -> load)", () => {
+  test("surfaces kos as an installed-but-unloaded gap and loads it live through the Hub", async ({
     page,
   }) => {
     await seedBrowserState(page);
 
     // Boot with the runtime loader (unconditional as of D4 step 2, 2026-07-25,
-    // no `?uplinkLoader=1` needed anymore) but scansat excluded from the
+    // no `?uplinkLoader=1` needed anymore) but kos excluded from the
     // boot-time load call: installed (mod roster) + available, but NOT
     // loaded, so the wizard has an actionable gap to find.
     const bootUrl = `${PREVIEW}/?uplinkLoaderIds=`;
@@ -105,11 +105,11 @@ test.describe("Uplink Hub wizard: dogfood (scansat gap -> load)", () => {
     await page.getByRole("tab", { name: "Uplink Hub" }).click();
     await page.getByRole("button", { name: /next: check uplinks/i }).click();
 
-    // scansat resolves to "load-from-hub": installed + available (mod
-    // roster) + a Hub descriptor exists (registry.local.json) + not loaded
-    // (boot skipped it via ?uplinkLoaderIds=).
+    // kos resolves to "load-from-hub": installed + available (mod roster) + a
+    // Hub descriptor exists (registry.local.json) + not loaded (boot skipped
+    // it via ?uplinkLoaderIds=).
     const loadButton = page.getByRole("button", {
-      name: "Load SCANsat",
+      name: "Load kOS",
       exact: true,
     });
     await expect(loadButton).toBeVisible({ timeout: 20_000 });
@@ -120,9 +120,7 @@ test.describe("Uplink Hub wizard: dogfood (scansat gap -> load)", () => {
     // id@version, same modal the boot path uses.
     const consentDialog = page.getByRole("dialog");
     await expect(consentDialog).toBeVisible();
-    await expect(
-      consentDialog.getByText(/load uplink .scansat./i),
-    ).toBeVisible();
+    await expect(consentDialog.getByText(/load uplink .kos./i)).toBeVisible();
     await consentDialog
       .getByRole("button", { name: "Load", exact: true })
       .click();
@@ -149,7 +147,7 @@ test.describe("Uplink Hub wizard: dogfood (scansat gap -> load)", () => {
             };
             return core.getComponents().map((c) => c.id);
           });
-          return ids.includes("scanning");
+          return ids.includes("kos-terminal");
         },
         { timeout: 15_000 },
       )
