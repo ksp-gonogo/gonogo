@@ -28,6 +28,7 @@ import { useStatusBreakdown } from "./status/useStatusBreakdown";
 import { useStatusContribution } from "./status/useStatusContribution";
 import { useStatusSummary } from "./status/useStatusSummary";
 import { useElementSize } from "./useElementSize";
+import { useFittedTitle } from "./useFittedTitle";
 import { PanelAsideSizeProvider, useHeaderAsideFit } from "./usePanelAsideSize";
 
 interface PanelContextValue {
@@ -102,7 +103,7 @@ export const PanelContainer = styled.div`
 /* The header IS text, so it carries its own inset rather than relying on the
    container's. Rendered as a direct child by ~every widget, so self-padding
    here keeps all headers readable with no per-widget change. */
-export const PanelTitle = styled.h3`
+const PanelTitle__Box = styled.h3`
   margin: 0;
   /* Halved top inset (--space-6, from --space-12) so the sticky header sits
      close to the panel's true top edge rather than leaving a band of bare
@@ -136,6 +137,71 @@ export const PanelTitle = styled.h3`
   overflow: hidden;
   text-overflow: ellipsis;
 `;
+
+export interface PanelTitleProps
+  extends Omit<ComponentPropsWithoutRef<"h3">, "title"> {
+  /**
+   * Shorter forms of this title, longest first, for tiles the full one will not
+   * fit in.
+   *
+   * The widest form that FITS is the one drawn, measured against the box rather
+   * than guessed from a grid-column count, so a short form is never a permanent
+   * loss the way `SpaceCenterStatus`'s "KSC" was. Ordinary strings, so the
+   * author decides what the abbreviation is: nothing here truncates on their
+   * behalf, and a machine-shortened title is exactly the ellipsis this replaces.
+   *
+   * When a shorter form is showing, the full title stays available as the
+   * accessible name and as the hover tooltip. A screen reader hearing "KSC" has
+   * lost something a sighted operator only gave up because the tile is small.
+   */
+  compact?: string | readonly string[];
+}
+
+/**
+ * A panel's title, in the longest form that fits.
+ *
+ * A component rather than the bare styled `h3` it used to be, so `compact` has
+ * somewhere to live for the six widgets that render `<PanelTitle>` as a child
+ * instead of passing `panelTitle`. Two of those six are the worst offenders in
+ * the whole tree at their own declared minimum size, so an affordance the child
+ * form could not reach would have missed the widgets it was written for.
+ */
+export const PanelTitle = forwardRef<HTMLHeadingElement, PanelTitleProps>(
+  function PanelTitle({ compact, children, ...rest }, forwarded) {
+    const own = useRef<HTMLHeadingElement | null>(null);
+    // Fitting needs the FULL title as text, because every candidate including
+    // that one is measured by substituting its text into a clone. A title that
+    // is markup rather than a string therefore cannot take part, and renders
+    // exactly as it did before: silently, since a widget whose title is an
+    // element has not asked for this.
+    const full = typeof children === "string" ? children : "";
+    const forms =
+      compact === undefined || full === ""
+        ? EMPTY_COMPACT
+        : typeof compact === "string"
+          ? [compact]
+          : compact;
+    const { index, compacted } = useFittedTitle(own, full, forms);
+    return (
+      <PanelTitle__Box
+        {...rest}
+        ref={(node: HTMLHeadingElement | null) => {
+          own.current = node;
+          if (typeof forwarded === "function") forwarded(node);
+          else if (forwarded) forwarded.current = node;
+        }}
+        aria-label={compacted ? full : undefined}
+        title={compacted ? full : undefined}
+      >
+        {index === 0 ? children : forms[index - 1]}
+      </PanelTitle__Box>
+    );
+  },
+);
+
+/** One frozen empty list, so a title with no compact forms does not hand the
+ *  fit hook a fresh array on every render. */
+const EMPTY_COMPACT: readonly string[] = [];
 
 const PanelHeader__Row = styled.div<{ $overlay?: boolean }>`
   display: flex;
@@ -202,6 +268,14 @@ const OVERLAY_BOX = `
 
 const PanelHeader__Titles = styled.div<{ $overlay?: boolean }>`
   min-width: 0;
+  /* Grow into the room the row is not using, as well as shrinking out of the
+     room it does not have. Shrink alone leaves this box hugging its text, and
+     a title box the width of its own text cannot answer "would a longer form
+     fit here": that is the measurement useFittedTitle makes, and the number
+     it needs is the room available rather than the room taken. Nothing moves
+     visually, the title is left-aligned in a box with no background of its
+     own; the aside was already pushed right by the row's space-between. */
+  flex: 1 1 auto;
   ${({ $overlay }) => ($overlay ? OVERLAY_BOX : "")}
 `;
 
@@ -407,12 +481,15 @@ const PanelAsideExpand = styled.details<{ $collapsed?: boolean }>`
  */
 export function PanelHeader({
   title,
+  compactTitle,
   aside,
   toolbar,
   overlay,
   ...rest
 }: Omit<ComponentPropsWithoutRef<"div">, "title"> & {
   title?: ReactNode;
+  /** Shorter forms of `title`, longest first. See {@link PanelTitleProps}. */
+  compactTitle?: string | readonly string[];
   aside?: ReactNode;
   /**
    * A row of controls on its own line below the title. See `Panel.Toolbar`.
@@ -476,7 +553,11 @@ export function PanelHeader({
       {...rest}
     >
       <PanelHeader__Titles $overlay={overlay}>
-        {title !== undefined && <PanelTitle ref={titleRef}>{title}</PanelTitle>}
+        {title !== undefined && (
+          <PanelTitle ref={titleRef} compact={compactTitle}>
+            {title}
+          </PanelTitle>
+        )}
       </PanelHeader__Titles>
       {aside !== undefined && (
         <PanelHeader__Aside $overlay={overlay}>
@@ -1328,6 +1409,15 @@ export interface PanelProps extends ComponentPropsWithoutRef<"div"> {
    */
   panelTitle?: ReactNode;
   /**
+   * Shorter forms of `panelTitle`, longest first, for tiles the full one will
+   * not fit in. See {@link PanelTitleProps.compact}, which this forwards to.
+   *
+   * A widget declares a `minSize`, and the dashboard enforces it as a floor, so
+   * that size is a promise the widget's own title has to keep. Sixteen widgets
+   * were breaking it. This is what they reach for.
+   */
+  compactTitle?: string | readonly string[];
+  /**
    * Content for the right of the header row, beside the stream-status badge:
    * state chips, an `AugmentSlot` for Uplink badges, a small control such as a
    * select or a show/hide button.
@@ -1583,6 +1673,7 @@ const PanelStickyHeader = styled(PanelHeader)`
 
 function PanelRoot({
   panelTitle,
+  compactTitle,
   panelAside,
   panelBadges,
   panelStatus,
@@ -1724,6 +1815,7 @@ function PanelRoot({
   const header = floatingHeader ? (
     <PanelHeader
       title={panelTitle}
+      compactTitle={compactTitle}
       aside={aside}
       toolbar={panelToolbar}
       overlay
@@ -1731,6 +1823,7 @@ function PanelRoot({
   ) : (
     <PanelStickyHeader
       title={panelTitle}
+      compactTitle={compactTitle}
       aside={aside}
       toolbar={panelToolbar}
     />

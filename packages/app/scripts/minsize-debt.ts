@@ -39,8 +39,8 @@
  * The two ways OUT of this list are both legitimate and the gate does not care
  * which you pick:
  *
- *  - make the widget fit: a shorter title at narrow widths, a scroller for
- *    content that overflows
+ *  - make the widget fit: `<Panel compactTitle={["RES OPS", "RES"]}>` for a
+ *    heading that will not, a scroller for content that overflows
  *  - RAISE its `minSize`, when the honest answer is that the widget cannot be
  *    that small. Say so in the commit
  */
@@ -59,7 +59,6 @@ export const KNOWN_MISFITS: Record<string, string> = {
   "kos-terminal": "text-cut-off",
   "launch-director": "title-clipped",
   "power-systems": "title-clipped",
-  "resource-ops": "title-clipped",
   "space-center-status": "text-cut-off",
   "space-weather": "title-clipped",
   strategies: "title-clipped",

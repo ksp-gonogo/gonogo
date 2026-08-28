@@ -384,8 +384,10 @@ async function main(): Promise<void> {
           `they themselves declare they can live at, and are not recorded debt:\n\n` +
           `${regressions.join("\n")}\n\n${detail.join("\n")}\n\n` +
           `Two ways out, both legitimate:\n` +
-          `  - make it fit: a shorter heading at narrow widths, and a scroller\n` +
-          `    rather than an overflow:hidden with nothing to scroll.\n` +
+          `  - make it fit. A heading that will not wants <Panel compactTitle>,\n` +
+          `    which draws the widest of the shorter forms you give it that the\n` +
+          `    box has room for; content that overflows wants a scroller rather\n` +
+          `    than an overflow:hidden with nothing to scroll.\n` +
           `  - RAISE its minSize, when the honest answer is that the widget cannot\n` +
           `    be that small. Say so in the commit.\n\n` +
           `Do NOT add it to minsize-debt.ts: that list is seeded and shrink-only.`,
