@@ -265,7 +265,6 @@ const JogWheel__Root = styled.div<{
 }>`
   position: relative;
   overflow: hidden;
-  box-sizing: border-box;
   display: flex;
   align-items: center;
   justify-content: center;

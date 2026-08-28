@@ -176,11 +176,16 @@ export function resolveUplinkPackage(
 }
 
 /**
- * The design tokens' `:root` block, from the kit's own published `tokens.css`.
+ * The kit's own published `tokens.css`, whole.
  *
  * Resolved through the package specifier so it works from a third party's
  * node_modules, with the dist sibling as the fallback for the in-repo case where
  * the specifier resolves to a `dist/` that the caller is standing in.
+ *
+ * The whole file rather than its first `:root` block: the sheet also carries the
+ * border-box reset the kit's primitives are drawn against, outside that block,
+ * and a probe that injected only the tokens laid every widget out with its
+ * paddings added to widths the app resolves them inside of.
  */
 export function themeTokensCss(): string {
   const candidates = [
@@ -199,8 +204,7 @@ export function themeTokensCss(): string {
     tried.push(file);
     if (!exists(file)) continue;
     const css = readFileSync(file, "utf8");
-    const match = css.match(/:root\s*\{[\s\S]*?\}/);
-    if (!match) {
+    if (!/:root\s*\{/.test(css)) {
       throw new Error(
         `gonogo-uplink: ${file} carries no ":root" block, so a render would ` +
           "have no colours. The kit publishes its tokens from " +
@@ -208,7 +212,7 @@ export function themeTokensCss(): string {
           "wrong file.",
       );
     }
-    return match[0];
+    return css;
   }
   throw new Error(
     "gonogo-uplink: cannot resolve @ksp-gonogo/ui-kit/tokens.css. Tried:\n  " +

@@ -124,13 +124,13 @@ async function main(): Promise<void> {
   const bundleJs = bundleResult.outputFiles[0].text;
 
   const htmlTemplate = await readFile(PROBE_HTML_TEMPLATE, "utf8");
-  const themeCss = extractRootBlock(await readFile(THEME_TOKENS_CSS, "utf8"));
+  const theme = themeCss(await readFile(THEME_TOKENS_CSS, "utf8"));
   const fontFace = await jetbrainsMonoFontFace();
   const escapedBundle = bundleJs.replace(/<\/script/gi, "<\\/script");
   const htmlWithBundle = htmlTemplate
     .replace(
       /<style id="probe-theme">[\s\S]*?<\/style>/,
-      () => `<style id="probe-theme">${fontFace}${themeCss}</style>`,
+      () => `<style id="probe-theme">${fontFace}${theme}</style>`,
     )
     .replace(
       '<script type="module" src="./crew-avatar-probe-entry.bundle.js"></script>',
@@ -263,10 +263,13 @@ async function jetbrainsMonoFontFace(): Promise<string> {
   `;
 }
 
-function extractRootBlock(css: string): string {
-  const m = css.match(/:root\s*\{[\s\S]*?\}/);
-  if (!m) throw new Error("tokens.css: no :root block found");
-  return m[0];
+/** The theme sheet whole, checked to be the tokens file. The border-box reset
+ *  the kit's primitives are drawn against sits outside the `:root` block. */
+function themeCss(css: string): string {
+  if (!/:root\s*\{/.test(css)) {
+    throw new Error("tokens.css: no :root block found");
+  }
+  return css;
 }
 
 async function cleanArtifacts(dir: string): Promise<void> {

@@ -220,7 +220,6 @@ const PickerInput = styled.input<{ $hasValue: boolean; $retired?: boolean }>`
   }};
   font-size: var(--font-size-base);
   padding: var(--space-6, 6px) var(--space-8, 8px);
-  box-sizing: border-box;
   width: 100%;
 
   &:focus {

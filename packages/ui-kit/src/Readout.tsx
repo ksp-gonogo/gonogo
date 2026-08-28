@@ -1,4 +1,5 @@
 import styled, { css } from "styled-components";
+import { fitBox } from "./fitBox";
 
 export type ReadoutTone = "default" | "go" | "warning" | "alert";
 
@@ -72,6 +73,7 @@ export const ReadoutCaption = styled.span`
  * band, landing hazard grade, gonogo state).
  */
 export const StatusPill = styled.div<{ $tone: ReadoutTone }>`
+  ${fitBox("status-pill")}
   display: inline-flex;
   align-items: center;
   justify-content: center;

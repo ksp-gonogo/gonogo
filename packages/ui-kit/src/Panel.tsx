@@ -19,6 +19,7 @@ import { AugmentSlot, useWidgetSegmentBound } from "./AugmentSlot";
 import { Badge } from "./Badge";
 import { PanelDelayRail } from "./CommandDelay/PanelDelayRail";
 import { PanelRailTargetContext } from "./CommandDelay/PanelRailTarget";
+import { fitBox } from "./fitBox";
 import { type BadgeEntry, usePanelBadgesContext } from "./PanelBadges";
 import { formatStreamStatus, StreamStatusBadge } from "./StreamStatusBadge";
 import { PanelStatusDot } from "./status/PanelStatusDot";
@@ -93,7 +94,6 @@ export const PanelContainer = styled.div`
   padding: 0;
   width: 100%;
   height: 100%;
-  box-sizing: border-box;
   display: flex;
   flex-direction: column;
   gap: 0;
@@ -372,7 +372,6 @@ const PanelAsideExpand = styled.details<{ $collapsed?: boolean }>`
     /* A CSS caret, not an icon element: keeps the header out of every widget's
        SVG query surface and keeps the DOM snapshot light. Points down closed. */
     flex: 0 0 auto;
-    box-sizing: border-box;
     width: 6px;
     height: 6px;
     /* On top of summary's own gap (the even spacing between dots), an extra
@@ -622,6 +621,7 @@ export function PanelHeader({
  * for that to hurt, the controls belong behind a disclosure, not in a row.
  */
 export const PanelToolbar = styled.div<{ $overlay?: boolean }>`
+  ${fitBox("panel-toolbar")}
   display: flex;
   align-items: center;
   flex-wrap: wrap;
@@ -640,10 +640,6 @@ export const PanelToolbar = styled.div<{ $overlay?: boolean }>`
      it float correctly under an overlay header instead of colliding with it. */
   flex-basis: 100%;
   width: 100%;
-  /* The app does not set a global border-box reset, so the 100% width above
-     plus the horizontal inset resolves to 100% PLUS 32px and the toolbar hangs
-     that far past the panel's right edge, at every tile width. */
-  box-sizing: border-box;
   ${({ $overlay }) => ($overlay ? OVERLAY_BOX : "")}
 `;
 

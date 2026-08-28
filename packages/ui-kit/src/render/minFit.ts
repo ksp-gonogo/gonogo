@@ -14,11 +14,12 @@
  *
  * Deliberately narrow on two axes, so the answer is a defect and not a taste:
  *
- * - Only TEXT counts as cut off. A decorative box drawn oversized inside a
- *   clipping parent (a gauge arc, a gradient bleed, a graph's plot area) is
- *   routinely and correctly clipped; a WORD that is cut off is a word the
- *   operator cannot read. Text also happens to be what all three reported
- *   symptoms were: a title, a badge's label, and rows of readouts.
+ * - Text counts as cut off, and so does a box that DECLARES its own edges are
+ *   content: see `FIT_BOX`. A box that declares nothing does not, because a
+ *   decorative box drawn oversized inside a clipping parent (a gauge arc, a
+ *   gradient bleed, a graph's plot area) is routinely and correctly clipped.
+ *   Judging boxes by their looks cannot tell those apart from a pill whose
+ *   rounded end is sliced off, so the pill says which it is.
  * - Only where the operator cannot get to it. Content below the fold of a
  *   vertical scroll area is content they reach without thinking, and a widget
  *   that puts its overflow behind a scroller at a small size is doing the right
@@ -45,12 +46,36 @@
  */
 const HEADINGS = 'h1, h2, h3, h4, h5, h6, [role="heading"]';
 
+/**
+ * The custom property a primitive sets on itself to say its own EDGES are
+ * content: a pill, a chip, a toolbar strip. Its value names the primitive, so a
+ * finding can say which box was cut rather than only what it contained.
+ *
+ * A custom property rather than a `data-` attribute, for the same reason the
+ * title check reads headings: an attribute on a kit primitive rewrites the
+ * committed DOM snapshots of every widget that draws one. A computed style is
+ * invisible to them.
+ *
+ * Custom properties inherit, so every descendant of a marked box reports the
+ * same value and `boundedName` credits only the element whose value differs
+ * from its parent's. That misses a marked box nested directly inside another
+ * carrying the SAME name, which no primitive in the kit does, and it errs
+ * towards saying nothing rather than saying it twice.
+ */
+const FIT_BOX = "--fit-box";
+
 /** One thing an operator cannot read at this size. */
 export interface MinFitFinding {
-  kind: "title-clipped" | "text-cut-off" | "escapes-tile";
+  kind:
+    | "title-clipped"
+    | "text-cut-off"
+    | "escapes-tile"
+    | "box-clipped"
+    | "box-escapes-tile";
   /** How many pixels of it are unreachable. */
   px: number;
-  /** The text that is cut off, or the title's own words. */
+  /** The text that is cut off, the title's own words, or the name of the box
+   *  and whatever it carries. */
   text: string;
   /** Which way it is cut: `x`, `y`, or both. */
   axis: string;
@@ -158,8 +183,55 @@ function clientRect(el: Element): {
   };
 }
 
+/** Which primitive this element is, when it says its edges are content. */
+function boundedName(el: Element): string | undefined {
+  const own = getComputedStyle(el).getPropertyValue(FIT_BOX).trim();
+  if (own === "") return undefined;
+  const parent = el.parentElement;
+  const inherited = parent
+    ? getComputedStyle(parent).getPropertyValue(FIT_BOX).trim()
+    : "";
+  return own === inherited ? undefined : own;
+}
+
+/** How far this element reaches past whatever clips it, per axis. */
+function cutBy(
+  el: Element,
+  tile: HTMLElement,
+): { cutX: number; cutY: number; escaping: boolean } {
+  const box = el.getBoundingClientRect();
+  let cutX = 0;
+  let cutY = 0;
+  let escaping = false;
+  for (const axis of ["x", "y"] as const) {
+    const { box: clipper, scrollable } = clipperFor(el, tile, axis);
+    if (scrollable) continue;
+    const limit =
+      clipper === tile ? tile.getBoundingClientRect() : clientRect(clipper);
+    const over =
+      axis === "x"
+        ? Math.max(limit.left - box.left, box.right - limit.right)
+        : Math.max(limit.top - box.top, box.bottom - limit.bottom);
+    if (over <= TOLERANCE_PX) continue;
+    if (clipper === tile) escaping = true;
+    if (axis === "x") cutX = over;
+    else cutY = over;
+  }
+  return { cutX, cutY, escaping };
+}
+
+function axisOf(cutX: number, cutY: number): string {
+  return `${cutX > TOLERANCE_PX ? "x" : ""}${cutY > TOLERANCE_PX ? "y" : ""}`;
+}
+
+/** Big enough to be drawn at all. A collapsed box has no edges to slice. */
+function drawn(el: Element): boolean {
+  const box = el.getBoundingClientRect();
+  return box.width >= 0.5 && box.height >= 0.5;
+}
+
 /**
- * Every way this tile's text is unreachable at the size it is mounted at.
+ * Every way this tile's content is unreachable at the size it is mounted at.
  *
  * `tile` is the mount box, sized to the widget's declared `minSize`. Nothing
  * here mutates the page, so a caller may audit and then go on to screenshot the
@@ -167,6 +239,9 @@ function clientRect(el: Element): {
  */
 export function auditMinFit(tile: HTMLElement): MinFitFinding[] {
   const findings: MinFitFinding[] = [];
+  /** Boxes already named by the text pass, so a pill whose LABEL is sliced is
+   *  one finding rather than two saying the same thing. */
+  const spoken = new Set<Element>();
 
   // A heading is chrome rather than data: it is a fixed string the widget author
   // chose, so unlike a vessel name it can always be made to fit, and an
@@ -187,32 +262,37 @@ export function auditMinFit(tile: HTMLElement): MinFitFinding[] {
     // A title's ellipsis is already reported above, with the reason it is a
     // harsher rule than the one every other string gets.
     if (el.closest(HEADINGS)) continue;
-    const box = el.getBoundingClientRect();
-    if (box.width < 0.5 || box.height < 0.5) continue;
+    if (!drawn(el)) continue;
 
-    let cutX = 0;
-    let cutY = 0;
-    let escaping = false;
-    for (const axis of ["x", "y"] as const) {
-      const { box: clipper, scrollable } = clipperFor(el, tile, axis);
-      if (scrollable) continue;
-      const limit =
-        clipper === tile ? tile.getBoundingClientRect() : clientRect(clipper);
-      const over =
-        axis === "x"
-          ? Math.max(limit.left - box.left, box.right - limit.right)
-          : Math.max(limit.top - box.top, box.bottom - limit.bottom);
-      if (over <= TOLERANCE_PX) continue;
-      if (clipper === tile) escaping = true;
-      if (axis === "x") cutX = over;
-      else cutY = over;
-    }
+    const { cutX, cutY, escaping } = cutBy(el, tile);
     if (cutX <= TOLERANCE_PX && cutY <= TOLERANCE_PX) continue;
+    spoken.add(el);
     findings.push({
       kind: escaping ? "escapes-tile" : "text-cut-off",
       px: Math.round(Math.max(cutX, cutY)),
       text: sample(el),
-      axis: `${cutX > TOLERANCE_PX ? "x" : ""}${cutY > TOLERANCE_PX ? "y" : ""}`,
+      axis: axisOf(cutX, cutY),
+    });
+  }
+
+  // A box whose edges are content is cut off the moment those edges are, even
+  // when everything written inside it still fits: a three-column tile held a
+  // status pill's two words and 15px less than the pill drawn around them, so
+  // the panel edge sliced its rounded ends at the minimum the widget promised.
+  for (const el of Array.from(tile.querySelectorAll("*"))) {
+    if (spoken.has(el)) continue;
+    const name = boundedName(el);
+    if (name === undefined) continue;
+    if (!drawn(el)) continue;
+
+    const { cutX, cutY, escaping } = cutBy(el, tile);
+    if (cutX <= TOLERANCE_PX && cutY <= TOLERANCE_PX) continue;
+    const carried = sample(el);
+    findings.push({
+      kind: escaping ? "box-escapes-tile" : "box-clipped",
+      px: Math.round(Math.max(cutX, cutY)),
+      text: carried === "" ? name : `${name} ${carried}`,
+      axis: axisOf(cutX, cutY),
     });
   }
 

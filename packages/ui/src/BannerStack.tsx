@@ -59,14 +59,12 @@ const ToastStack = styled.div`
   /* Make banners individually clickable while keeping the stack itself
      transparent to interaction (so it doesn't block the dashboard
      underneath in empty corners of the row). Banners are sized to the
-     stack height (border-box so padding + border count toward the
-     48px, otherwise content-box would push the rendered pill ~18px
-     taller and the strip would clip the top and bottom). Each banner
-     is rendered as a pill that doesn't shrink. */
+     stack height, their padding and border counting toward the 48px
+     rather than adding to it. Each banner is rendered as a pill that
+     doesn't shrink. */
   > * {
     pointer-events: auto;
     flex-shrink: 0;
-    box-sizing: border-box;
     height: 100%;
     display: inline-flex;
     align-items: center;

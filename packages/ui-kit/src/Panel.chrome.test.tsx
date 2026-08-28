@@ -173,9 +173,16 @@ describe("Panel panelBadges", () => {
  * while the pair rendered Map View's title as "M." with the Follow toggle
  * sitting on top of it, and hung the toolbar 32px past the panel's edge.
  *
- * jsdom does no layout, so these assert the declarations rather than the
- * geometry they produce: the failure was never one component's rule being
- * wrong, it was two rules that cannot both hold.
+ * jsdom does no layout, so this asserts the declaration rather than the geometry
+ * it produces: the failure was never one component's rule being wrong, it was
+ * two rules that cannot both hold.
+ *
+ * The 32px half is no longer here to assert. It was a local `box-sizing` on the
+ * toolbar, and the document now sets border-box for everything, from a sheet
+ * jsdom never loads. What holds it is the min-size gate: the toolbar declares
+ * its edges are content (`fitBox`), so a toolbar hanging past its panel comes
+ * back as a `box-clipped` finding at a real layout, which is where a geometry
+ * defect is visible in the first place.
  */
 describe("Panel toolbar occupies its own header line", () => {
   it("wraps the header row, so a full-basis toolbar starts a new line instead of competing with the title", () => {
@@ -192,7 +199,7 @@ describe("Panel toolbar occupies its own header line", () => {
     expect(getComputedStyle(header as Element).flexWrap).toBe("wrap");
   });
 
-  it("sizes the toolbar as a border box, so its 100% width plus inset stays inside the panel", () => {
+  it("gives the toolbar a full basis, so it takes the new line rather than sharing the title's", () => {
     render(
       <Panel
         panelTitle="MAP VIEW"
@@ -205,10 +212,6 @@ describe("Panel toolbar occupies its own header line", () => {
       .getByRole("button", { name: "Follow" })
       .closest("div");
     expect(toolbar).not.toBeNull();
-    const style = getComputedStyle(toolbar as Element);
-    expect(style.flexBasis).toBe("100%");
-    // Without this the horizontal padding is added OUTSIDE the 100%, because
-    // the app sets no global border-box reset.
-    expect(style.boxSizing).toBe("border-box");
+    expect(getComputedStyle(toolbar as Element).flexBasis).toBe("100%");
   });
 });

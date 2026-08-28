@@ -29,7 +29,7 @@
  *
  * ## It proves it can still see
  *
- * `minsize-probe.tsx` registers a widget that is broken in all three ways the
+ * `minsize-probe.tsx` registers a widget that is broken in all five ways the
  * audit can name. The gate mounts it too and REFUSES to report on anything else
  * unless it comes back broken, because every way this check can quietly stop
  * working (a bundle that mounts nothing, a probe that throws before the audit, a
@@ -272,10 +272,11 @@ async function main(): Promise<void> {
       canary.minSize.h,
     );
     const canaryKinds = kindsOf(canaryFindings);
-    const WANTED = "escapes-tile, text-cut-off, title-clipped";
+    const WANTED =
+      "box-clipped, box-escapes-tile, escapes-tile, text-cut-off, title-clipped";
     if (canaryKinds !== WANTED) {
       throw new Error(
-        `minsize-gate: BLIND. The planted canary is broken in three ways and ` +
+        `minsize-gate: BLIND. The planted canary is broken in five ways and ` +
           `the audit reported "${canaryKinds || "(nothing)"}" instead of ` +
           `"${WANTED}". A check that cannot see a violation it planted itself ` +
           `reports zero, and zero reads as success. No result from this run is ` +

@@ -223,9 +223,6 @@ const Meter__Value = styled.span`
 
 const Meter__Track = styled.div<{ $size: MeterSize }>`
   width: 100%;
-  /* border-box: width 100% + the 1px borders otherwise overflows the host
-     by 2px, one of the "boxes don't sit inside their card" offenders. */
-  box-sizing: border-box;
   border-radius: var(--radius-pill);
   background: var(--color-surface-raised);
   border: 1px solid var(--color-border-subtle);

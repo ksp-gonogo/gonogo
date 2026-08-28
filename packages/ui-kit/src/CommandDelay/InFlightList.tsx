@@ -584,7 +584,6 @@ const InFlightQueue__Box = styled.div.attrs({ role: "group" })`
   height: calc(
     ${QUEUE_SQUARE}px + ${QUEUE_BAR}px + (var(--queue-tile-inset) * 2)
   );
-  box-sizing: border-box;
   border-radius: var(--queue-panel-radius);
   background: color-mix(in srgb, var(--color-surface-raised) 68%, transparent);
   backdrop-filter: blur(6px);
@@ -629,7 +628,6 @@ const InFlightQueue__Sq = styled.div`
   width: var(--s);
   height: var(--s);
   align-self: center;
-  box-sizing: border-box;
   position: relative;
   display: grid;
   place-items: center;
@@ -694,7 +692,6 @@ const InFlightQueue__Bar = styled.div`
   flex: 0 0 ${QUEUE_BAR}px;
   width: ${QUEUE_BAR}px;
   height: var(--s);
-  box-sizing: border-box;
   overflow: hidden;
   background: var(--color-surface-panel);
   border: 1px solid currentColor;
@@ -748,7 +745,6 @@ const InFlightList__Root = styled.div<{ $row: boolean }>`
   background: var(--color-surface-panel);
   border: 1px solid var(--color-border-subtle);
   border-radius: var(--radius-md, 4px);
-  box-sizing: border-box;
 `;
 
 const PHASE_ROW_STYLES: Record<

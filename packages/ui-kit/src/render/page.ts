@@ -49,7 +49,6 @@ const PAGE_TEMPLATE = `<!doctype html>
         justify-content: center;
         min-height: 100vh;
       }
-      #root { box-sizing: border-box; }
     </style>
   </head>
   <body>

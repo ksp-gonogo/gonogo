@@ -99,7 +99,6 @@ const CommandRefusalList__Box = styled.div`
   align-items: flex-start;
   gap: var(--space-8, 8px);
   padding: var(--space-6, 6px) var(--space-8, 8px);
-  box-sizing: border-box;
   border: 1px solid var(--color-status-warning-bg);
   border-radius: var(--radius-md, 4px);
   background: color-mix(

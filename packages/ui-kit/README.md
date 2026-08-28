@@ -144,6 +144,25 @@ a clipped heading, content behind a box with nothing to scroll, text painting
 outside the tile. `auditMinFit` from `@ksp-gonogo/ui-kit/render-probe` is the
 same check if you want to run it yourself.
 
+It judges text, and boxes only where the box says its own edges are content.
+The kit's pills, badges, chips and toolbars say so; a gauge arc or a gradient
+that bleeds past its parent on purpose does not, and neither does a box of
+yours until you mark it:
+
+```tsx
+import { fitBox } from "@ksp-gonogo/ui-kit";
+
+const StageChip = styled.span`
+  ${fitBox("stage-chip")}
+  padding: 2px 8px;
+  border: 1px solid;
+  border-radius: 999px;
+`;
+```
+
+Then a tile that holds your chip's words but slices the chip around them is a
+finding rather than a thing you have to spot by eye.
+
 If you need a different arrangement, `Panel` is nothing but a composition of
 parts you can reach individually:
 
