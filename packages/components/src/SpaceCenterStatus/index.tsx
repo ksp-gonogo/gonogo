@@ -1028,7 +1028,7 @@ registerComponent<SpaceCenterStatusConfig>({
     "KSC overview: facility levels (VAB, SPH, R&D, ...), parts unlocked under current tech, launch-pad state, and arm-then-confirm upgrade buttons per facility (only enabled in the Space Center scene; disabled when funds are short or the facility is at max).",
   tags: ["career", "kc"],
   defaultSize: { w: 6, h: 7 },
-  minSize: { w: 2, h: 2 },
+  minSize: { w: 2, h: 3 },
   component: SpaceCenterStatusComponent,
   channels: topics.channels,
   fields: topics.fields,

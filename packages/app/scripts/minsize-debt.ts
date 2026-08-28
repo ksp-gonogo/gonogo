@@ -19,6 +19,10 @@
  * here is held to fitting, so anything authored from now on fits from the day it
  * lands and only what was already broken is grandfathered.
  *
+ * **The list is now EMPTY and every widget fits**, so the gate fails on the
+ * first one that stops. There is nothing left to grandfather: an entry added
+ * back is a widget that regressed, not a widget that was always broken.
+ *
  * `minsize-gate.ts` holds the list from both sides:
  *
  *  - a widget that misfits and is NOT listed fails, which is the regression the
@@ -40,6 +44,4 @@
  *  - RAISE its `minSize`, when the honest answer is that the widget cannot be
  *    that small. Say so in the commit
  */
-export const KNOWN_MISFITS: Record<string, string> = {
-  "space-center-status": "text-cut-off",
-};
+export const KNOWN_MISFITS: Record<string, string> = {};
