@@ -9,17 +9,17 @@ import {
 import {
   expectNoA11yViolations,
   visibleText,
+  WidgetHost,
 } from "@ksp-gonogo/ui-kit/testing";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it } from "vitest";
+import { RP1_BUILD_REPEAT_COMMAND, VehicleAssembly } from "./index";
+import { VEHICLE_ASSEMBLY_SECTIONS } from "./slot";
 import {
-  KscVehicles,
-  RP1_BUILD_REPEAT_COMMAND,
-  RP1_COMPLEX_RUSH_COMMAND,
   RP1_ROLLBACK_COMMAND,
   RP1_ROLLOUT_COMMAND,
   RP1_SCRAP_COMMAND,
-} from "./index";
+} from "./VehicleSection";
 
 const TOPICS = [
   "rp1.available",
@@ -33,7 +33,6 @@ const TOPICS = [
   RP1_ROLLOUT_COMMAND,
   RP1_ROLLBACK_COMMAND,
   RP1_SCRAP_COMMAND,
-  RP1_COMPLEX_RUSH_COMMAND,
 ];
 
 const CAREER = {
@@ -41,37 +40,56 @@ const CAREER = {
 };
 
 const COMPLEXES = [
-  { kscName: "Cape", lcId: "lc-1", name: "LC-1", isOperational: true },
+  {
+    engineers: 18,
+    isOperational: true,
+    kscName: "Cape",
+    lcId: "lc-1",
+    lcType: "Pad",
+    maxEngineers: 60,
+    name: "LC-1",
+  },
 ];
+
+/** A second complex, for the multi-complex case this widget exists for. */
+const LC2 = {
+  engineers: 6,
+  isOperational: true,
+  kscName: "Cape",
+  lcId: "lc-2",
+  lcType: "Pad",
+  maxEngineers: 40,
+  name: "LC-2",
+};
 
 /** One free pad, which is the ordinary shape for most of a career. */
 const PADS = [
   {
-    kscName: "Cape",
-    lcId: "lc-1",
-    padId: "pad-1",
-    name: "LaunchPad",
-    launchSiteName: "LaunchPad",
-    state: "Free",
     hasVesselWaiting: false,
+    kscName: "Cape",
+    launchSiteName: "LaunchPad",
+    lcId: "lc-1",
+    name: "LaunchPad",
+    padId: "pad-1",
+    state: "Free",
   },
 ];
 
 /** One finished vehicle, with every key present as the wire carries it. */
 function built(overrides: Record<string, unknown> = {}) {
   return {
+    cost: 40_000,
+    humanRated: false,
     id: "vp-atlas-1",
+    kscName: "Cape",
+    launchSite: "LaunchPad",
+    lcId: "lc-1",
+    mass: 120,
+    projectType: "VAB",
     // A SECOND id, and the one an operation joins on: RP-1 stamps an
     // operation's associatedID from shipID and never from KCTPersistentID.
     shipId: "ship-atlas-1",
-    kscName: "Cape",
-    lcId: "lc-1",
     shipName: "Atlas",
-    cost: 40_000,
-    mass: 120,
-    humanRated: false,
-    launchSite: "LaunchPad",
-    projectType: "VAB",
     ...overrides,
   };
 }
@@ -81,30 +99,86 @@ function integrating(overrides: Record<string, unknown> = {}) {
   return {
     ...built({ id: "vp-atlas-2", shipId: "ship-atlas-2" }),
     progress: 250,
-    totalPoints: 1000,
     progressRatio: 0.25,
     rate: 2,
-    timeLeftSeconds: 375,
     stalled: false,
+    timeLeftSeconds: 375,
+    totalPoints: 1000,
     ...overrides,
   };
 }
 
+/** A rollout or rollback, attached the way RP-1 attaches one: by shipID. */
+function operation(overrides: Record<string, unknown> = {}) {
+  return {
+    associatedVesselId: "ship-atlas-1",
+    blockingPeers: 0,
+    cost: 4_000,
+    kscName: "Cape",
+    launchPadId: "LaunchPad",
+    lcId: "lc-1",
+    progress: 200,
+    progressRatio: 0.2,
+    rate: 1,
+    stalled: false,
+    timeLeftSeconds: 800,
+    totalPoints: 1000,
+    type: "Rollout",
+    ...overrides,
+  };
+}
+
+/**
+ * The widget as the dashboard mounts it.
+ *
+ * <para>Through `WidgetHost` rather than bare, and that is load-bearing rather
+ * than ceremony: both vehicle lists arrive through the widget's own
+ * `sections` slot, and that slot's name is completed from the mounting widget's
+ * meta. Rendered without it the panel opens no slot at all and every assertion
+ * below would be made against an empty body.</para>
+ */
 function mount() {
   const fixture = setupStreamFixture({ carriedChannels: TOPICS });
   const view = render(
     <fixture.Provider>
-      <KscVehicles />
+      <WidgetHost widgetId="rp1-vehicle-assembly">
+        <VehicleAssembly />
+      </WidgetHost>
     </fixture.Provider>,
   );
   return { fixture, view };
 }
 
-/** A centre with one finished Atlas and nothing else. */
-function withOneBuiltVehicle() {
-  const mounted = mount();
+/**
+ * RP-1's presence gate, and the wait for what it mounts to reach the wire.
+ *
+ * <para>Nothing in this widget's body mounts until the gate lands, and the stub
+ * transport is subscription-gated the way production is: a payload emitted
+ * before a subscription is open is dropped. Both contributed sections read the
+ * pads and the operations, and both of them mount behind this gate, so a test
+ * that emits a pad in the same breath as the gate emits it into a tree that has
+ * not asked for it yet and then reads "this complex has no pads".</para>
+ *
+ * <para>Waited on the SUBSCRIPTION rather than on anything drawn: the sections
+ * draw nothing at all until their lists arrive, so there is no mark on screen
+ * that says the subscription is open, and a wait on the panel title passes a
+ * beat too early.</para>
+ */
+async function rp1IsPresent(fixture: ReturnType<typeof setupStreamFixture>) {
   act(() => {
-    mounted.fixture.emit("rp1.available", true);
+    fixture.emit("rp1.available", true);
+  });
+  await waitFor(() => {
+    expect(fixture.transport.isSubscribed("rp1.pads")).toBe(true);
+    expect(fixture.transport.isSubscribed("rp1.operations")).toBe(true);
+  });
+}
+
+/** A centre with one finished Atlas and nothing else. */
+async function withOneBuiltVehicle() {
+  const mounted = mount();
+  await rp1IsPresent(mounted.fixture);
+  act(() => {
     mounted.fixture.emit("career.status", CAREER);
     mounted.fixture.emit("rp1.complexes", COMPLEXES);
     mounted.fixture.emit("rp1.pads", PADS);
@@ -115,27 +189,7 @@ function withOneBuiltVehicle() {
   return mounted;
 }
 
-/** A rollout or rollback, attached the way RP-1 attaches one: by shipID. */
-function operation(overrides: Record<string, unknown> = {}) {
-  return {
-    kscName: "Cape",
-    lcId: "lc-1",
-    launchPadId: "LaunchPad",
-    type: "Rollout",
-    progress: 200,
-    totalPoints: 1000,
-    progressRatio: 0.2,
-    rate: 1,
-    timeLeftSeconds: 800,
-    stalled: false,
-    blockingPeers: 0,
-    cost: 4_000,
-    associatedVesselId: "ship-atlas-1",
-    ...overrides,
-  };
-}
-
-describe("KscVehicles", () => {
+describe("VehicleAssembly", () => {
   it("renders nothing at all until RP-1 says it is there", async () => {
     const { fixture, view } = mount();
     fixture.emit("rp1.available", false);
@@ -146,28 +200,38 @@ describe("KscVehicles", () => {
     expect(view.container).toBeEmptyDOMElement();
   });
 
-  it("draws no balance of its own: the host widget carries the one", async () => {
-    // The repo rule is per WIDGET, and this section is not one: three augments
-    // land in the same panel and two of them used to print the balance, so the
-    // widget stated it twice under two different headings. The rule is met once,
-    // in the host's chrome, and covered by `SpaceCenterStatus`'s own test that
-    // the balance is on screen wherever the sections slot renders.
-    const { view } = withOneBuiltVehicle();
+  it("draws the balance every control in it spends against", async () => {
+    // The repo rule is per WIDGET: this one hosts a scrap, a rollout and a
+    // repeat, so the balance an operator judges them against has to be in it.
+    // Drawn once, by the host, which is what lets both contributed sections
+    // carry none.
+    const { view } = await withOneBuiltVehicle();
 
     await waitFor(() => {
       expect(screen.getByText("BUILT")).toBeInTheDocument();
     });
-    expect(visibleText()).not.toContain("289,848");
-    expect(screen.queryByText("Funds")).not.toBeInTheDocument();
+    expect(screen.getAllByTitle("Available funds")).toHaveLength(1);
+    expect(visibleText()).toContain("289,848");
     await expectNoA11yViolations(view.container);
   });
 
+  it("mounts both lists through the slot an outside Uplink would use", () => {
+    // The whole of the self-contribution claim. If either list were drawn by
+    // the host directly it would not be here, and the slot could be inadequate
+    // without anything failing.
+    const ids = getAugmentsForSlot(VEHICLE_ASSEMBLY_SECTIONS).map((a) => a.id);
+    expect(ids).toEqual([
+      "rp1-vehicle-assembly-warehouse",
+      "rp1-vehicle-assembly-building",
+    ]);
+  });
+
   it("says plainly that the centre holds no vehicles at all", async () => {
-    // A real state on a fresh career, and one an empty section cannot express:
-    // no rows and an Uplink that is not reporting look identical.
+    // A real state on a fresh career, and one two empty sections cannot
+    // express: no cards and an Uplink that is not reporting look identical.
     const { fixture } = mount();
+    await rp1IsPresent(fixture);
     act(() => {
-      fixture.emit("rp1.available", true);
       fixture.emit("career.status", CAREER);
       fixture.emit("rp1.complexes", COMPLEXES);
       fixture.emit("rp1.pads", PADS);
@@ -181,12 +245,169 @@ describe("KscVehicles", () => {
         screen.getByText("None built and none on order."),
       ).toBeInTheDocument();
     });
+    expect(screen.queryByText("WAREHOUSE")).not.toBeInTheDocument();
+    expect(screen.queryByText("BUILD LIST")).not.toBeInTheDocument();
+  });
+
+  it("draws every craft across every complex in one flat list", async () => {
+    // The state the widget exists for, and the one no per-complex view can
+    // show: work in flight at two complexes at once.
+    const { fixture } = mount();
+    await rp1IsPresent(fixture);
+    act(() => {
+      fixture.emit("career.status", CAREER);
+      fixture.emit("rp1.complexes", [...COMPLEXES, LC2]);
+      fixture.emit("rp1.pads", PADS);
+      fixture.emit("rp1.operations", []);
+      fixture.emit("rp1.warehouse", [built()]);
+      fixture.emit("rp1.buildQueue", [
+        integrating({
+          id: "vp-vanguard-1",
+          lcId: "lc-2",
+          shipId: "ship-vanguard-1",
+          shipName: "Vanguard",
+        }),
+      ]);
+    });
+
+    await waitFor(() => {
+      expect(screen.getByText("Atlas")).toBeInTheDocument();
+    });
+    expect(screen.getByText("Vanguard")).toBeInTheDocument();
+    expect(visibleText()).toContain("LC-1 · costs");
+    expect(visibleText()).toContain("LC-2 · costs");
+  });
+
+  it("names the complex even where the centre has only one of them", async () => {
+    // Unlike the Space Center section this replaced, which suppressed it. Here
+    // the complex is what a flat multi-complex list is grouped BY, and a card
+    // that names it only sometimes cannot be scanned for it.
+    await withOneBuiltVehicle();
+
+    await waitFor(() => {
+      expect(screen.getByText("BUILT")).toBeInTheDocument();
+    });
+    // On the card's own detail line rather than appended to the name: the name
+    // is the heading of a card and reads as one.
+    expect(visibleText()).toContain("Atlas");
+    expect(visibleText()).toContain("LC-1 · costs");
+  });
+
+  it("says why the clock reads what it reads, on every card", async () => {
+    // Staffing is a RATE control: RP-1 scales a complex's work by the portion
+    // of its engineer places filled, so this is the answer to "why is this
+    // taking so long" and belongs beside the ETA rather than only on the
+    // staffing screen.
+    await withOneBuiltVehicle();
+
+    await waitFor(() => {
+      expect(screen.getByText("BUILT")).toBeInTheDocument();
+    });
+    expect(visibleText()).toContain("18 / 60 engineers");
+  });
+
+  it("marks EVERY card at a rushing complex, the rollout included", async () => {
+    // RP-1's rush multiplier is applied to a complex's rollouts and rollbacks
+    // as well as its integrations, which its own tooltip does not say. A status
+    // drawn only on an integrating card would repeat that mistake.
+    const { fixture } = mount();
+    await rp1IsPresent(fixture);
+    act(() => {
+      fixture.emit("career.status", CAREER);
+      fixture.emit("rp1.complexes", [{ ...COMPLEXES[0], isRushing: true }]);
+      fixture.emit("rp1.pads", [{ ...PADS[0], state: "Rollout" }]);
+      fixture.emit("rp1.operations", [operation()]);
+      fixture.emit("rp1.warehouse", [built()]);
+      fixture.emit("rp1.buildQueue", [integrating()]);
+    });
+
+    await waitFor(() => {
+      expect(screen.getByText("ROLLING OUT")).toBeInTheDocument();
+    });
+    expect(screen.getByText("INTEGRATING")).toBeInTheDocument();
+    // Two cards, two badges. One would mean the rollout card had been left out.
+    expect(screen.getAllByText("RUSHING")).toHaveLength(2);
+  });
+
+  it("says a stalled build has nobody on it rather than leaving it a mystery", async () => {
+    // The two stalls an operator does different things about. This one is
+    // fixed from the Space Center in a minute; the other needs finding out
+    // about first.
+    const { fixture } = mount();
+    await rp1IsPresent(fixture);
+    act(() => {
+      fixture.emit("career.status", CAREER);
+      fixture.emit("rp1.complexes", [{ ...COMPLEXES[0], engineers: 0 }]);
+      fixture.emit("rp1.pads", PADS);
+      fixture.emit("rp1.operations", []);
+      fixture.emit("rp1.warehouse", []);
+      fixture.emit("rp1.buildQueue", [
+        integrating({ stalled: true, timeLeftSeconds: null }),
+      ]);
+    });
+
+    await waitFor(() => {
+      expect(screen.getByText("STALLED")).toBeInTheDocument();
+    });
+    expect(visibleText()).toContain("nobody is assigned to LC-1");
+    expect(visibleText()).toContain("0 / 60 engineers");
+  });
+
+  it("does not call a stall a staffing problem when the complex is staffed", async () => {
+    // The other half, and the reason the two are separate sentences: sending an
+    // operator to a staffing screen that already reads full is worse than
+    // saying nothing.
+    const { fixture } = mount();
+    await rp1IsPresent(fixture);
+    act(() => {
+      fixture.emit("career.status", CAREER);
+      fixture.emit("rp1.complexes", COMPLEXES);
+      fixture.emit("rp1.pads", PADS);
+      fixture.emit("rp1.operations", []);
+      fixture.emit("rp1.warehouse", []);
+      fixture.emit("rp1.buildQueue", [
+        integrating({ stalled: true, timeLeftSeconds: null }),
+      ]);
+    });
+
+    await waitFor(() => {
+      expect(screen.getByText("STALLED")).toBeInTheDocument();
+    });
+    expect(visibleText()).toContain(
+      "Integration is stalled and has no end date",
+    );
+    expect(visibleText()).not.toContain("nobody is assigned");
+  });
+
+  it("reads an unanswered engineer count as unknown rather than as nobody", async () => {
+    // RP-1 not answering is not RP-1 saying nobody is assigned, and printing
+    // the fixable sentence for it sends an operator somewhere with nothing to
+    // fix.
+    const { fixture } = mount();
+    await rp1IsPresent(fixture);
+    act(() => {
+      fixture.emit("career.status", CAREER);
+      fixture.emit("rp1.complexes", [
+        { isOperational: true, kscName: "Cape", lcId: "lc-1", name: "LC-1" },
+      ]);
+      fixture.emit("rp1.pads", PADS);
+      fixture.emit("rp1.operations", []);
+      fixture.emit("rp1.warehouse", []);
+      fixture.emit("rp1.buildQueue", [
+        integrating({ stalled: true, timeLeftSeconds: null }),
+      ]);
+    });
+
+    await waitFor(() => {
+      expect(screen.getByText("STALLED")).toBeInTheDocument();
+    });
+    expect(visibleText()).not.toContain("nobody is assigned");
   });
 
   it("offers ONE repeat control for a design that is both built and building", async () => {
     const { fixture } = mount();
+    await rp1IsPresent(fixture);
     act(() => {
-      fixture.emit("rp1.available", true);
       fixture.emit("career.status", CAREER);
       fixture.emit("rp1.complexes", COMPLEXES);
       fixture.emit("rp1.pads", PADS);
@@ -200,7 +421,9 @@ describe("KscVehicles", () => {
     });
     expect(screen.getByText("INTEGRATING")).toBeInTheDocument();
     // Two copies of one design, and one control: a button per copy asked an
-    // operator to choose between two presses that do the same thing.
+    // operator to choose between two presses that do the same thing. The two
+    // copies are in DIFFERENT contributed sections here, which is what would
+    // break a design list either section could own.
     expect(
       screen.getAllByRole("button", { name: /^Build another/ }),
     ).toHaveLength(1);
@@ -211,10 +434,10 @@ describe("KscVehicles", () => {
     // which this surface cannot do. RP-1 has no command for building a design
     // the centre has never held, so the only honest control names the design it
     // copies and stands apart from the copies themselves.
-    withOneBuiltVehicle();
+    await withOneBuiltVehicle();
 
     const repeat = await screen.findByRole("button", {
-      name: "Build another Atlas",
+      name: "Build another Atlas · LC-1",
     });
     const card = screen.getByText("Atlas").closest("li");
 
@@ -225,10 +448,10 @@ describe("KscVehicles", () => {
 
   it("dispatches rp1.build.repeat with the vehicle id only after arm-then-confirm", async () => {
     const user = userEvent.setup();
-    const { fixture } = withOneBuiltVehicle();
+    const { fixture } = await withOneBuiltVehicle();
 
     await user.click(
-      await screen.findByRole("button", { name: "Build another Atlas" }),
+      await screen.findByRole("button", { name: "Build another Atlas · LC-1" }),
     );
     // Arm first: this spends career funds, and one press must not commit it.
     expect(
@@ -238,7 +461,9 @@ describe("KscVehicles", () => {
     ).toBeUndefined();
 
     await user.click(
-      screen.getByRole("button", { name: "Confirm building another Atlas" }),
+      screen.getByRole("button", {
+        name: "Confirm building another Atlas · LC-1",
+      }),
     );
 
     const sent = fixture.transport.sentCommands.find(
@@ -250,50 +475,14 @@ describe("KscVehicles", () => {
     expect(sent?.args).toEqual({ id: "vp-atlas-1" });
   });
 
-  it("collapses two copies of a design into one repeat, addressed to a real copy", async () => {
-    const user = userEvent.setup();
+  it("keeps the same design at two complexes as two repeat controls", async () => {
+    // The complex decides how fast the copy is built and what it may weigh, so
+    // "another Atlas" is a different order at LC-1 from at LC-2.
     const { fixture } = mount();
+    await rp1IsPresent(fixture);
     act(() => {
-      fixture.emit("rp1.available", true);
       fixture.emit("career.status", CAREER);
-      fixture.emit("rp1.complexes", COMPLEXES);
-      fixture.emit("rp1.pads", PADS);
-      fixture.emit("rp1.operations", []);
-      fixture.emit("rp1.warehouse", [
-        built({ id: "vp-atlas-1" }),
-        built({ id: "vp-atlas-2" }),
-      ]);
-      fixture.emit("rp1.buildQueue", []);
-    });
-
-    const controls = await screen.findAllByRole("button", {
-      name: "Build another Atlas",
-    });
-    expect(controls).toHaveLength(1);
-    await user.click(controls[0]);
-    await user.click(
-      screen.getByRole("button", { name: "Confirm building another Atlas" }),
-    );
-
-    const sent = fixture.transport.sentCommands.find(
-      (c) => c.command === RP1_BUILD_REPEAT_COMMAND,
-    );
-    // An id and not a name, still: the command copies one existing project, so
-    // it has to name which, even where the two are the same design.
-    expect(sent?.args).toEqual({ id: "vp-atlas-1" });
-  });
-
-  it("names the complex on the repeat where the centre has more than one", async () => {
-    // Two centres can hold designs of the same name, and then "Build another
-    // Atlas" twice is two buttons an operator cannot tell apart.
-    const { fixture } = mount();
-    act(() => {
-      fixture.emit("rp1.available", true);
-      fixture.emit("career.status", CAREER);
-      fixture.emit("rp1.complexes", [
-        ...COMPLEXES,
-        { kscName: "Cape", lcId: "lc-2", name: "LC-2", isOperational: true },
-      ]);
+      fixture.emit("rp1.complexes", [...COMPLEXES, LC2]);
       fixture.emit("rp1.pads", PADS);
       fixture.emit("rp1.operations", []);
       fixture.emit("rp1.warehouse", [
@@ -313,10 +502,10 @@ describe("KscVehicles", () => {
     ).toBeInTheDocument();
   });
 
-  it("says a vehicle RP-1 gave no id to cannot be repeated, rather than offering to guess", async () => {
+  it("says a vehicle RP-1 gave no id to cannot be commanded, rather than offering to guess", async () => {
     const { fixture } = mount();
+    await rp1IsPresent(fixture);
     act(() => {
-      fixture.emit("rp1.available", true);
       fixture.emit("career.status", CAREER);
       fixture.emit("rp1.complexes", COMPLEXES);
       fixture.emit("rp1.pads", PADS);
@@ -330,48 +519,20 @@ describe("KscVehicles", () => {
         screen.getByText(/RP-1 has no id for this vehicle/),
       ).toBeInTheDocument();
     });
-    // EVERY control, not just the build: none of the four can name a target
-    // without the id, and guessing from the name would pick the wrong one of two
-    // vehicles that share it.
-    expect(screen.queryAllByRole("button")).toHaveLength(1);
-    expect(
-      screen.getByRole("button", { name: /^Rush work at/ }),
-    ).toBeInTheDocument();
-  });
-
-  it("names the complex only when the centre has more than one", async () => {
-    const { fixture } = mount();
-    act(() => {
-      fixture.emit("rp1.available", true);
-      fixture.emit("career.status", CAREER);
-      fixture.emit("rp1.complexes", [
-        ...COMPLEXES,
-        { kscName: "Cape", lcId: "lc-2", name: "LC-2", isOperational: true },
-      ]);
-      fixture.emit("rp1.pads", PADS);
-      fixture.emit("rp1.operations", []);
-      fixture.emit("rp1.warehouse", [built()]);
-      fixture.emit("rp1.buildQueue", []);
-    });
-
-    await waitFor(() => {
-      expect(screen.getByText("BUILT")).toBeInTheDocument();
-    });
-    // On the card's own detail line rather than appended to the name: the name
-    // is the heading of a card and reads as one, and hanging a second identifier
-    // off it was what made a run of rows hard to tell apart in the first place.
-    expect(visibleText()).toContain("Atlas");
-    expect(visibleText()).toContain("LC-1 · costs");
+    // EVERY control, the repeat included: none of them can name a target
+    // without the id, and guessing from the name would pick the wrong one of
+    // two vehicles that share it.
+    expect(screen.queryAllByRole("button")).toHaveLength(0);
   });
 
   it("rolls a built vehicle out to the pad, after arm-then-confirm", async () => {
     const user = userEvent.setup();
-    const { fixture } = withOneBuiltVehicle();
+    const { fixture } = await withOneBuiltVehicle();
 
     // One free pad, so one button, and it still reads "Roll out" rather than
     // repeating a name the operator has no choice about.
     const control = await screen.findByRole("button", {
-      name: "Roll Atlas out to LaunchPad",
+      name: "Roll Atlas · LC-1 out to LaunchPad",
     });
     expect(control).toHaveTextContent("Roll out");
     await user.click(control);
@@ -385,7 +546,7 @@ describe("KscVehicles", () => {
 
     await user.click(
       screen.getByRole("button", {
-        name: "Confirm rolling Atlas out to LaunchPad",
+        name: "Confirm rolling Atlas · LC-1 out to LaunchPad",
       }),
     );
 
@@ -401,20 +562,20 @@ describe("KscVehicles", () => {
   it("makes the operator choose when the complex has more than one free pad", async () => {
     const user = userEvent.setup();
     const { fixture } = mount();
+    await rp1IsPresent(fixture);
     act(() => {
-      fixture.emit("rp1.available", true);
       fixture.emit("career.status", CAREER);
       fixture.emit("rp1.complexes", COMPLEXES);
       fixture.emit("rp1.pads", [
         ...PADS,
         {
-          kscName: "Cape",
-          lcId: "lc-1",
-          padId: "pad-2",
-          name: "LaunchPad 2",
-          launchSiteName: "LaunchPad 2",
-          state: "Free",
           hasVesselWaiting: false,
+          kscName: "Cape",
+          launchSiteName: "LaunchPad 2",
+          lcId: "lc-1",
+          name: "LaunchPad 2",
+          padId: "pad-2",
+          state: "Free",
         },
       ]);
       fixture.emit("rp1.operations", []);
@@ -427,12 +588,12 @@ describe("KscVehicles", () => {
     // there is nobody to answer a popup from another machine.
     await user.click(
       await screen.findByRole("button", {
-        name: "Roll Atlas out to LaunchPad 2",
+        name: "Roll Atlas · LC-1 out to LaunchPad 2",
       }),
     );
     await user.click(
       screen.getByRole("button", {
-        name: "Confirm rolling Atlas out to LaunchPad 2",
+        name: "Confirm rolling Atlas · LC-1 out to LaunchPad 2",
       }),
     );
 
@@ -444,8 +605,8 @@ describe("KscVehicles", () => {
 
   it("shows a vehicle on its way to the pad and offers only the way back", async () => {
     const { fixture } = mount();
+    await rp1IsPresent(fixture);
     act(() => {
-      fixture.emit("rp1.available", true);
       fixture.emit("career.status", CAREER);
       fixture.emit("rp1.complexes", COMPLEXES);
       fixture.emit("rp1.pads", [{ ...PADS[0], state: "Rollout" }]);
@@ -457,14 +618,16 @@ describe("KscVehicles", () => {
     await waitFor(() => {
       expect(screen.getByText("ROLLING OUT")).toBeInTheDocument();
     });
-    // The operation OUTRANKS the list: the vehicle is still in the warehouse, so
-    // "BUILT" would be true and would tell an operator nothing they need.
+    // The operation OUTRANKS the list: the vehicle is still in the warehouse,
+    // so "BUILT" would be true and would tell an operator nothing they need.
     expect(screen.queryByText("BUILT")).not.toBeInTheDocument();
     expect(
-      screen.getByRole("button", { name: "Roll Atlas back off the pad" }),
+      screen.getByRole("button", {
+        name: "Roll Atlas · LC-1 back off the pad",
+      }),
     ).toBeInTheDocument();
     expect(
-      screen.queryByRole("button", { name: /^Roll Atlas out/ }),
+      screen.queryByRole("button", { name: /^Roll Atlas · LC-1 out/ }),
     ).not.toBeInTheDocument();
     // RP-1 refuses a scrap for a vehicle mid-move, so offering one would be
     // offering a press that can only be refused.
@@ -475,8 +638,8 @@ describe("KscVehicles", () => {
 
   it("says a completed rollout is AT PAD rather than still rolling out", async () => {
     const { fixture } = mount();
+    await rp1IsPresent(fixture);
     act(() => {
-      fixture.emit("rp1.available", true);
       fixture.emit("career.status", CAREER);
       fixture.emit("rp1.complexes", COMPLEXES);
       fixture.emit("rp1.pads", [{ ...PADS[0], state: "Rollout" }]);
@@ -490,18 +653,20 @@ describe("KscVehicles", () => {
     await waitFor(() => {
       expect(screen.getByText("AT PAD")).toBeInTheDocument();
     });
-    // Still reversible, and that is RP-1's own rule: a rolled-out vehicle can be
-    // rolled back until it launches.
+    // Still reversible, and that is RP-1's own rule: a rolled-out vehicle can
+    // be rolled back until it launches.
     expect(
-      screen.getByRole("button", { name: "Roll Atlas back off the pad" }),
+      screen.getByRole("button", {
+        name: "Roll Atlas · LC-1 back off the pad",
+      }),
     ).toBeInTheDocument();
   });
 
   it("dispatches the rollback with the vehicle id", async () => {
     const user = userEvent.setup();
     const { fixture } = mount();
+    await rp1IsPresent(fixture);
     act(() => {
-      fixture.emit("rp1.available", true);
       fixture.emit("career.status", CAREER);
       fixture.emit("rp1.complexes", COMPLEXES);
       fixture.emit("rp1.pads", [{ ...PADS[0], state: "Rollout" }]);
@@ -512,12 +677,12 @@ describe("KscVehicles", () => {
 
     await user.click(
       await screen.findByRole("button", {
-        name: "Roll Atlas back off the pad",
+        name: "Roll Atlas · LC-1 back off the pad",
       }),
     );
     await user.click(
       screen.getByRole("button", {
-        name: "Confirm rolling Atlas back off the pad",
+        name: "Confirm rolling Atlas · LC-1 back off the pad",
       }),
     );
 
@@ -530,8 +695,8 @@ describe("KscVehicles", () => {
   it("offers a rolling-back vehicle the way back out to the pad", async () => {
     const user = userEvent.setup();
     const { fixture } = mount();
+    await rp1IsPresent(fixture);
     act(() => {
-      fixture.emit("rp1.available", true);
       fixture.emit("career.status", CAREER);
       fixture.emit("rp1.complexes", COMPLEXES);
       fixture.emit("rp1.pads", [{ ...PADS[0], state: "Rollback" }]);
@@ -545,31 +710,31 @@ describe("KscVehicles", () => {
     });
     await user.click(
       screen.getByRole("button", {
-        name: "Send Atlas back out to the pad",
+        name: "Send Atlas · LC-1 back out to the pad",
       }),
     );
     await user.click(
       screen.getByRole("button", {
-        name: "Confirm sending Atlas back out to the pad",
+        name: "Confirm sending Atlas · LC-1 back out to the pad",
       }),
     );
 
-    // The SAME command as a fresh rollout, because the mod reverses the existing
-    // operation rather than starting a second one. That is what keeps rollout a
-    // direction rather than a toggle.
+    // The SAME command as a fresh rollout, because the mod reverses the
+    // existing operation rather than starting a second one. That is what keeps
+    // rollout a direction rather than a toggle.
     const sent = fixture.transport.sentCommands.find(
       (c) => c.command === RP1_ROLLOUT_COMMAND,
     );
     expect(sent?.args).toEqual({ id: "vp-atlas-1" });
     expect(
-      screen.queryByRole("button", { name: /^Roll Atlas back/ }),
+      screen.queryByRole("button", { name: /^Roll Atlas · LC-1 back/ }),
     ).not.toBeInTheDocument();
   });
 
-  it("does not attach another vehicle's rollout to this row", async () => {
+  it("does not attach another vehicle's rollout to this card", async () => {
     const { fixture } = mount();
+    await rp1IsPresent(fixture);
     act(() => {
-      fixture.emit("rp1.available", true);
       fixture.emit("career.status", CAREER);
       fixture.emit("rp1.complexes", COMPLEXES);
       fixture.emit("rp1.pads", PADS);
@@ -590,16 +755,16 @@ describe("KscVehicles", () => {
 
   it("ignores a pad's reconditioning when reading a vehicle's state", async () => {
     const { fixture } = mount();
+    await rp1IsPresent(fixture);
     act(() => {
-      fixture.emit("rp1.available", true);
       fixture.emit("career.status", CAREER);
       fixture.emit("rp1.complexes", COMPLEXES);
       fixture.emit("rp1.pads", [{ ...PADS[0], state: "Reconditioning" }]);
       // Reconditioning belongs to a PAD and carries no vehicle, so RP-1 stamps
-      // it with the pad's id. A row that matched it would report a pad's
+      // it with the pad's id. A card that matched it would report a pad's
       // maintenance as a vehicle moving.
       fixture.emit("rp1.operations", [
-        operation({ type: "Reconditioning", associatedVesselId: null }),
+        operation({ associatedVesselId: null, type: "Reconditioning" }),
       ]);
       fixture.emit("rp1.warehouse", [built()]);
       fixture.emit("rp1.buildQueue", []);
@@ -612,17 +777,17 @@ describe("KscVehicles", () => {
     // refused, and it says which of four things is wrong: repair it, build it,
     // wait for reconditioning, or move the vehicle already there.
     expect(
-      screen.queryByRole("button", { name: /^Roll Atlas out/ }),
+      screen.queryByRole("button", { name: /^Roll Atlas · LC-1 out/ }),
     ).not.toBeInTheDocument();
     expect(visibleText()).toContain("reconditioned");
   });
 
   it("scraps a vehicle for its refund, after arm-then-confirm", async () => {
     const user = userEvent.setup();
-    const { fixture } = withOneBuiltVehicle();
+    const { fixture } = await withOneBuiltVehicle();
 
     await user.click(
-      await screen.findByRole("button", { name: "Scrap Atlas" }),
+      await screen.findByRole("button", { name: "Scrap Atlas · LC-1" }),
     );
     expect(
       fixture.transport.sentCommands.find(
@@ -631,11 +796,11 @@ describe("KscVehicles", () => {
     ).toBeUndefined();
     // The confirm says what comes BACK, because that is the fact an operator
     // weighs: RP-1 refunds the vehicle in full and the loss is the integration
-    // time, which no number on this row can show.
+    // time, which no number on this card can show.
     expect(visibleText()).toContain("Refund");
 
     await user.click(
-      screen.getByRole("button", { name: "Confirm scrapping Atlas" }),
+      screen.getByRole("button", { name: "Confirm scrapping Atlas · LC-1" }),
     );
 
     const sent = fixture.transport.sentCommands.find(
@@ -647,8 +812,8 @@ describe("KscVehicles", () => {
   it("scraps a vehicle that is still integrating, which is how a queue gets corrected", async () => {
     const user = userEvent.setup();
     const { fixture } = mount();
+    await rp1IsPresent(fixture);
     act(() => {
-      fixture.emit("rp1.available", true);
       fixture.emit("career.status", CAREER);
       fixture.emit("rp1.complexes", COMPLEXES);
       fixture.emit("rp1.pads", PADS);
@@ -658,10 +823,10 @@ describe("KscVehicles", () => {
     });
 
     await user.click(
-      await screen.findByRole("button", { name: "Scrap Atlas" }),
+      await screen.findByRole("button", { name: "Scrap Atlas · LC-1" }),
     );
     await user.click(
-      screen.getByRole("button", { name: "Confirm scrapping Atlas" }),
+      screen.getByRole("button", { name: "Confirm scrapping Atlas · LC-1" }),
     );
 
     expect(
@@ -676,32 +841,13 @@ describe("KscVehicles", () => {
     ).not.toBeInTheDocument();
   });
 
-  it("rushes a whole complex on one press, and says the mode is per complex", async () => {
-    const user = userEvent.setup();
-    const { fixture } = withOneBuiltVehicle();
-
-    // One press, unlike every other control here, and the difference is real:
-    // rushing spends nothing when it lands. It raises the rate and the salary
-    // multiplier, so the cost arrives later as payroll.
-    await user.click(
-      await screen.findByRole("button", {
-        name: "Rush work at LC-1, at a higher salary",
-      }),
-    );
-
-    const sent = fixture.transport.sentCommands.find(
-      (c) => c.command === RP1_COMPLEX_RUSH_COMMAND,
-    );
-    // The COMPLEX, never a vehicle: IsRushing is a bool on the launch complex,
-    // so a per-vehicle rush would be a lie about what the game does.
-    expect(sent?.args).toEqual({ lcId: "lc-1", rushing: true });
-  });
-
-  it("offers the way out of rush mode to a complex already in it", async () => {
-    const user = userEvent.setup();
+  it("administers no complex: the rush toggle stays in the Space Center", async () => {
+    // The split this widget exists on the far side of. A complex is the
+    // SUBJECT in the Space Center and a GROUPING here, and a second rush
+    // control would make the two surfaces two views of one thing.
     const { fixture } = mount();
+    await rp1IsPresent(fixture);
     act(() => {
-      fixture.emit("rp1.available", true);
       fixture.emit("career.status", CAREER);
       fixture.emit("rp1.complexes", [{ ...COMPLEXES[0], isRushing: true }]);
       fixture.emit("rp1.pads", PADS);
@@ -713,57 +859,13 @@ describe("KscVehicles", () => {
     await waitFor(() => {
       expect(screen.getByText("RUSHING")).toBeInTheDocument();
     });
-    await user.click(
-      screen.getByRole("button", { name: "Stop rushing work at LC-1" }),
-    );
-
-    // A SET and not a toggle on the wire: the command carries the state asked
-    // for, so it lands on that state however stale the view it was pressed from.
-    expect(
-      fixture.transport.sentCommands.find(
-        (c) => c.command === RP1_COMPLEX_RUSH_COMMAND,
-      )?.args,
-    ).toEqual({ lcId: "lc-1", rushing: false });
-  });
-
-  it("offers a rush control for every complex, not just the one with vehicles", async () => {
-    const { fixture } = mount();
-    act(() => {
-      fixture.emit("rp1.available", true);
-      fixture.emit("career.status", CAREER);
-      fixture.emit("rp1.complexes", [
-        ...COMPLEXES,
-        { kscName: "Cape", lcId: "lc-2", name: "LC-2", isOperational: true },
-      ]);
-      fixture.emit("rp1.pads", PADS);
-      fixture.emit("rp1.operations", []);
-      fixture.emit("rp1.warehouse", [built()]);
-      fixture.emit("rp1.buildQueue", []);
-    });
-
-    await waitFor(() => {
-      // The row is named for the COMPLEX. "LC-1 rush" read as a second thing
-      // called LC-1 rush that happened to have a rush button beside it; what
-      // the press does is the button's own job to say.
-      expect(
-        screen.getByRole("button", { name: /Rush work at LC-1/ }),
-      ).toBeInTheDocument();
-    });
-    expect(screen.getByText("LC-1")).toBeInTheDocument();
-    expect(screen.queryByText("LC-1 rush")).not.toBeInTheDocument();
-    // An idle complex is exactly the one worth taking OUT of rush mode, so a
-    // control drawn only beside vehicles would hide the useful half. LC-2 holds
-    // no vehicle in this state, so its row is the whole of what proves it.
-    expect(screen.getByText("LC-2")).toBeInTheDocument();
-    expect(
-      screen.getByRole("button", { name: /Rush work at LC-2/ }),
-    ).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /[Rr]ush/ })).toBeNull();
   });
 
   it("stays accessible with every control on screen at once", async () => {
     const { fixture, view } = mount();
+    await rp1IsPresent(fixture);
     act(() => {
-      fixture.emit("rp1.available", true);
       fixture.emit("career.status", CAREER);
       fixture.emit("rp1.complexes", COMPLEXES);
       fixture.emit("rp1.pads", PADS);
@@ -783,8 +885,8 @@ describe("KscVehicles", () => {
 
   it("will not offer a pad that reads free with a craft standing on it", async () => {
     const { fixture } = mount();
+    await rp1IsPresent(fixture);
     act(() => {
-      fixture.emit("rp1.available", true);
       fixture.emit("career.status", CAREER);
       fixture.emit("rp1.complexes", COMPLEXES);
       // Free AND occupied at once, which is a real RP-1 state and the reason
@@ -793,8 +895,8 @@ describe("KscVehicles", () => {
       fixture.emit("rp1.pads", [
         {
           ...PADS[0],
-          state: "Free",
           hasVesselWaiting: true,
+          state: "Free",
           waitingVesselName: "Vanguard",
         },
       ]);
@@ -808,7 +910,7 @@ describe("KscVehicles", () => {
     });
     // A client reading `state` alone would draw this button and be refused.
     expect(
-      screen.queryByRole("button", { name: /^Roll Atlas out/ }),
+      screen.queryByRole("button", { name: /^Roll Atlas · LC-1 out/ }),
     ).not.toBeInTheDocument();
     // Named, because "the pad is taken" leaves an operator looking and
     // "Vanguard is on it" tells them what to move.
@@ -817,13 +919,13 @@ describe("KscVehicles", () => {
 
   it("still offers a pad whose occupancy the mod could not determine", async () => {
     const { fixture } = mount();
+    await rp1IsPresent(fixture);
     act(() => {
-      fixture.emit("rp1.available", true);
       fixture.emit("career.status", CAREER);
       fixture.emit("rp1.complexes", COMPLEXES);
       // Null, not false: the mod could not answer. Treating that as occupied
-      // would hide a control that works, and the command re-checks at the press,
-      // so the worst case of offering it is a refusal one step later.
+      // would hide a control that works, and the command re-checks at the
+      // press, so the worst case of offering it is a refusal one step later.
       fixture.emit("rp1.pads", [{ ...PADS[0], hasVesselWaiting: null }]);
       fixture.emit("rp1.operations", []);
       fixture.emit("rp1.warehouse", [built()]);
@@ -832,15 +934,15 @@ describe("KscVehicles", () => {
 
     expect(
       await screen.findByRole("button", {
-        name: "Roll Atlas out to LaunchPad",
+        name: "Roll Atlas · LC-1 out to LaunchPad",
       }),
     ).toBeInTheDocument();
   });
 
   it("quotes RP-1's own reasons when the complex will not release the vehicle", async () => {
     const { fixture } = mount();
+    await rp1IsPresent(fixture);
     act(() => {
-      fixture.emit("rp1.available", true);
       fixture.emit("career.status", CAREER);
       fixture.emit("rp1.complexes", COMPLEXES);
       fixture.emit("rp1.pads", PADS);
@@ -860,25 +962,20 @@ describe("KscVehicles", () => {
       expect(visibleText()).toContain("too heavy for the complex");
     });
     // EVERY reason, not just the first: an operator who fixes one and is handed
-    // the next has been made to iterate, and RP-1's own popup lists them at once.
+    // the next has been made to iterate, and RP-1's own popup lists them at
+    // once.
     expect(visibleText()).toContain("human-rated");
     // The VEHICLE half outranks the pads: a free pad is on the wire and no
-    // rollout is offered, because no pad can take a vehicle its complex will not
-    // release.
+    // rollout is offered, because no pad can take a vehicle its complex will
+    // not release. This is a capability limit and not a staffing one, and no
+    // number of engineers gets past it.
     expect(
-      screen.queryByRole("button", { name: /^Roll Atlas out/ }),
+      screen.queryByRole("button", { name: /^Roll Atlas · LC-1 out/ }),
     ).not.toBeInTheDocument();
     // Scrap is still offered. Correcting the queue is exactly what an operator
     // does about a vehicle its complex will never fly.
     expect(
-      screen.getByRole("button", { name: "Scrap Atlas" }),
+      screen.getByRole("button", { name: "Scrap Atlas · LC-1" }),
     ).toBeInTheDocument();
-  });
-
-  it("registers itself into the space centre's section slot", () => {
-    const ids = getAugmentsForSlot("space-center-status.sections").map(
-      (a) => a.id,
-    );
-    expect(ids).toContain("rp1-ksc-vehicles");
   });
 });
