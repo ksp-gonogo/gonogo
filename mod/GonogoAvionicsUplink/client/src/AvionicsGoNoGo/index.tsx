@@ -78,7 +78,7 @@ export function AvionicsGoNoGoComponent(
     <Panel panelTitle="Avionics Control" compactTitle={["AVIONICS", "AVI"]}>
       <Stack role="status" aria-live="polite">
         <StatusPill $tone={tone}>{label}</StatusPill>
-        <Cluster>
+        <Cluster wrap>
           <div>
             <BigReadout>
               <Tons t={s?.vesselMassTons} />
@@ -104,7 +104,7 @@ registerComponent<AvionicsConfig>({
     "RP-1 ascent controllability: is the vessel mass within the active avionics unit's tonnage limit.",
   tags: ["control", "ro"],
   defaultSize: { w: 4, h: 4 },
-  minSize: { w: 2, h: 3 },
+  minSize: { w: 3, h: 3 },
   component: AvionicsGoNoGoComponent,
   channels: ["avionics.status"],
   defaultConfig: {},
