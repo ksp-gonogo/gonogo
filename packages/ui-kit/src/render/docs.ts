@@ -10,6 +10,7 @@ import type {
 import { readJson, type UplinkPackage } from "./context";
 import type { RenderedAsset } from "./driver";
 import type { Scene } from "./scenes";
+import { readWireSurface, wireSection } from "./wire";
 
 /**
  * The manifest first, the page from it.
@@ -362,6 +363,11 @@ export function buildReadme(
     "",
   );
 
+  // Before the widgets, because the wire surface is what the Uplink IS. A widget
+  // is one way of looking at it, and another mod may build a different one.
+  const wire = readWireSurface(inputs.pkg.dir);
+  out.push(...wireSection(wire));
+
   if (inventory.widgets.length > 0) {
     out.push("## Widgets", "");
     for (const widget of inventory.widgets) {
@@ -432,9 +438,25 @@ export function buildReadme(
     );
   }
 
+  out.push("## What this page cannot tell you", "");
+  if (wire.payloads.length > 0) {
+    out.push(
+      `- the TOPIC STRING each of the ${wire.payloads.length} payload(s) under`,
+      '  "Command and dynamic-channel payloads" rides. A dynamic namespace',
+      "  composes its topic per subject at runtime, so there is no attribute for",
+      "  the codegen to reflect; the mod's own channel constants are where those",
+      "  strings live",
+    );
+  }
+  if (wire.present) {
+    out.push(
+      "- which commands the Uplink accepts, and each one's DELAY ROLE. Both are",
+      "  declared where the mod registers them rather than as an attribute on a",
+      "  payload, and the client sends a command by naming it at the call site,",
+      "  so neither half of the build can enumerate them",
+    );
+  }
   out.push(
-    "## What this page cannot tell you",
-    "",
     "- capabilities the mod half declares, which are registered imperatively",
     "  rather than as a field, so nothing can enumerate them",
     "- what a widget DOES, as opposed to what it reads. That is the one thing",
