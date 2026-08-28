@@ -16,6 +16,7 @@ import { render, screen } from "@ksp-gonogo/test-utils";
 import { ModalProvider } from "@ksp-gonogo/ui";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { ANALYTICS_CONSENT_KEY } from "../analytics/AnalyticsConsentService";
 import { MainScreen } from "../screens/MainScreen";
 import { StationScreen } from "../screens/StationScreen";
 
@@ -49,6 +50,12 @@ describe("MainScreen smoke", () => {
   beforeEach(() => {
     clearRegistry();
     localStorage.clear();
+    // Answer the analytics consent gate. Unanswered, it renders a blocking
+    // modal that puts the whole dashboard behind `inert` + `aria-hidden`, so
+    // every role query below would correctly find nothing. These cases are
+    // about the screen behind the gate; the gate's own behaviour is asserted
+    // in its own case at the bottom of this block.
+    localStorage.setItem(ANALYTICS_CONSENT_KEY, "disabled");
     vi.stubGlobal(
       "ResizeObserver",
       class {
@@ -92,6 +99,18 @@ describe("MainScreen smoke", () => {
     expect(
       screen.getByRole("button", { name: "Command centre vantage: ksc" }),
     ).not.toBeNull();
+  });
+
+  it("hides the dashboard behind the analytics consent gate until it is answered", () => {
+    localStorage.removeItem(ANALYTICS_CONSENT_KEY);
+    renderScreen(<MainScreen />);
+
+    // The gate is the only thing an operator, keyboard or otherwise, can reach.
+    expect(
+      screen.getByRole("dialog", { name: /improve gonogo/i }),
+    ).toBeTruthy();
+    expect(document.querySelectorAll('[aria-modal="true"]')).toHaveLength(1);
+    expect(screen.queryByRole("group", { name: "Mission status" })).toBeNull();
   });
 });
 

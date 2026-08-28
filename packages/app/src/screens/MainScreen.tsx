@@ -237,6 +237,7 @@ export function MainScreen() {
             <UplinkHubWizardHost
               settingsService={settingsService}
               serialService={serialService}
+              analyticsConsent={analyticsConsentService}
             />
             <AutoRecordControllerWithMissionHistory scene={scene} />
             <AlarmHostProvider service={alarmHost}>
