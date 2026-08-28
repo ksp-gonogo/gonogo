@@ -73,11 +73,37 @@ describe("cross-section plot", () => {
     expect(plot).not.toBeNull();
     expect(plot?.frame.xUnit).toBe("m");
     expect(plot?.frame.yUnit).toBe("m");
-    // The Y domain spans the real elevations (100..120) plus the vessel at
-    // 300 above the ground under it, not a 0..1 amplitude scaled to the box.
-    const [yLo, yHi] = plot?.frame.yDomain ?? [0, 0];
+    // Real elevations (100..120), not a 0..1 amplitude scaled to the box.
+    const [yLo] = plot?.frame.yDomain ?? [0, 0];
     expect(yLo).toBeLessThan(100);
-    expect(yHi).toBeGreaterThan(400);
+  });
+
+  it("is a SPATIAL frame, anchored on the ground rather than on the vessel", () => {
+    // 200 m of patch across, and a vessel 300 m up. The window is the ground's,
+    // so it does not stretch to 300: past the tallness limit the craft is off
+    // the top and the picture stays a terrain profile.
+    const plot = buildCrossSectionPlot(crossSection({ aglMeters: 300 }));
+    expect(plot?.frame.kind).toBe("spatial");
+    const [yLo, yHi] = plot?.frame.yDomain ?? [0, 0];
+    expect(yHi - yLo).toBe(200);
+  });
+
+  it("stretches up to hold the vessel when it fits within the limit", () => {
+    // 60 m up over a 200 m patch: comfortably inside, so the craft is drawn in
+    // the picture and "you, above that ground" stays true.
+    const plot = buildCrossSectionPlot(crossSection({ aglMeters: 60 }));
+    const [yLo, yHi] = plot?.frame.yDomain ?? [0, 0];
+    expect(yHi - yLo).toBe(200);
+    expect(yHi).toBeGreaterThan(160);
+  });
+
+  it("says both speeds inside the frame, because a map has no gutter", () => {
+    const plot = buildCrossSectionPlot(crossSection());
+    const captions = plot?.layers.filter((l) => l.kind === "caption") ?? [];
+    expect(captions.map((c) => c.id).sort()).toEqual([
+      "descent-rate",
+      "ground-speed",
+    ]);
   });
 
   it("puts the vessel at its real downrange displacement, upwind of the site", () => {

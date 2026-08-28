@@ -96,6 +96,15 @@ export function buildTouchdownReticlePlot(
   const vesselNorth = -driftMeters * Math.cos(bearing);
 
   const layers: PlotLayer[] = [];
+  // What the window is sized to hold: the ground we actually sampled, and how
+  // far the vessel is from the site. NOT the dispersion ring.
+  //
+  // A ring is a statement about uncertainty, and on a fast approach it is
+  // kilometres across while the terrain patch is two hundred metres. Framing to
+  // it shrinks the only ground anybody has looked at to a stamp in the middle
+  // of an empty circle, which trades the map for its error bar. The ring is
+  // still drawn and simply runs off the edges, which is a map saying the
+  // uncertainty is larger than the view, and is the truer picture of that.
   const reaches: number[] = [Math.abs(driftMeters)];
 
   const relief = reliefGrid(patch, patchSize, patchExtentMeters);
@@ -105,6 +114,7 @@ export function buildTouchdownReticlePlot(
   }
 
   if (zoneRadiusMeters != null && zoneRadiusMeters > 0) {
+    // The ring is drawn but does NOT frame the map. See `reaches` below.
     // A RING, not a filled disc. The zone sits over the terrain relief, and a
     // shaded disc, however faint, muddies the very hypsometric bands an
     // operator is reading the ground's shape out of. An outline states the same
@@ -131,7 +141,6 @@ export function buildTouchdownReticlePlot(
         { decimals: 0 },
       )} across the predicted point`,
     });
-    reaches.push(zoneRadiusMeters);
   }
 
   // The drift itself, as a line the operator reads a direction off. Drawn only
@@ -178,6 +187,12 @@ export function buildTouchdownReticlePlot(
     subject: "touchdown-site",
     title: "Touchdown site",
     frame: {
+      // SPATIAL: this is a map of the ground around the site, not a chart of
+      // one quantity against another. Metres east across, metres north up, the
+      // same scale both ways, and no tick ladder, because nobody reads a
+      // distance off the side of a map. What carries the scale is the picture:
+      // the terrain patch is a known width and the dispersion ring is labelled.
+      kind: "spatial",
       xDomain: [-halfSpan, halfSpan],
       xUnit: "m",
       yDomain: [-halfSpan, halfSpan],

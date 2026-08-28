@@ -263,6 +263,46 @@ describe("mergePlots", () => {
     expect(String(warn.mock.calls[0][0])).not.toContain("DROPPED");
   });
 
+  it("never widens a SPATIAL frame, because its two axes are one scale", () => {
+    // A map's window is the map's window. Stretching one axis to reach a mark
+    // makes a circle an ellipse and a nine-degree slope draw at some other
+    // angle; a mark outside a map is off the map, which is a thing maps do.
+    const map: PlotFrame = {
+      kind: "spatial",
+      xDomain: [-100, 100],
+      yDomain: [-100, 100],
+      xUnit: "m",
+      yUnit: "m",
+    };
+    const merged = mergePlots([
+      entry("core:site", {
+        subject: "touchdown-site",
+        frame: map,
+        layers: [{ kind: "marker", id: "far", at: { x: 9000, y: 9000 } }],
+      }),
+    ]);
+    expect(merged[0].frame).toBe(map);
+  });
+
+  it("treats a map and a chart of one subject as an author error", () => {
+    const merged = mergePlots([
+      entry("core:map", {
+        subject: "s",
+        frame: { kind: "spatial", xDomain: [0, 10], yDomain: [0, 10] },
+        layers: [{ kind: "marker", id: "mine", at: { x: 1, y: 1 } }],
+      }),
+      entry("guest:chart", {
+        subject: "s",
+        frame: { kind: "cartesian", xDomain: [0, 10], yDomain: [0, 10] },
+        layers: [{ kind: "marker", id: "theirs", at: { x: 2, y: 2 } }],
+      }),
+    ]);
+    // Marks meant for a chart, placed on a map, are placed wrongly: they go.
+    expect(merged[0].layers.map((l) => l.id)).toEqual(["mine"]);
+    expect(merged[0].frame.kind).toBe("spatial");
+    expect(String(warn.mock.calls[0][0])).toContain("DROPPED");
+  });
+
   it("does NOT union two frames into a third nobody asked for", () => {
     const merged = mergePlots([
       entry("core:first", {

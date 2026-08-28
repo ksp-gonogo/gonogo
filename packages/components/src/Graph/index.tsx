@@ -544,6 +544,7 @@ export function GraphView({
               thresholds={config?.thresholds as ThresholdRule[] | undefined}
               layers={layers}
               hideXAxis={config?.hideXAxis}
+              spatial={config?.spatial}
               ariaLabel={ariaLabel}
               width={size.w}
               height={size.h}

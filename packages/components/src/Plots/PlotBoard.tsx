@@ -31,6 +31,28 @@ import { type MergedPlot, mergePlots } from "./mergePlots";
  * region, which is the same absence discipline every plot follows internally.
  */
 
+/**
+ * The shape to draw a plot in.
+ *
+ * A SPATIAL plot's shape is not a preference, it is a fact about the picture:
+ * X and Y are the same quantity, so the box has to hold them at the same scale
+ * or a dispersion circle comes out an ellipse and a nine-degree slope draws at
+ * whatever angle the tile happens to be. Its aspect is therefore derived from
+ * its own domains and a stated `aspect` is ignored, which is the one place a
+ * hint is overruled rather than honoured.
+ *
+ * A cartesian plot's axes are different quantities with no ratio between them,
+ * so there is nothing to derive and the contributor's hint stands.
+ */
+function aspectOf(plot: MergedPlot): number {
+  if (plot.frame.kind === "spatial") {
+    const xSpan = Math.abs(plot.frame.xDomain[1] - plot.frame.xDomain[0]);
+    const ySpan = Math.abs(plot.frame.yDomain[1] - plot.frame.yDomain[0]);
+    if (xSpan > 0 && ySpan > 0) return xSpan / ySpan;
+  }
+  return plot.aspect && plot.aspect > 0 ? plot.aspect : 1;
+}
+
 /** A plot narrower than this is unreadable, so wrapping beats shrinking. */
 const MIN_PLOT_WIDTH_PX = 200;
 /**
@@ -96,7 +118,7 @@ export function PlotBoard({ title }: Readonly<PlotBoardProps>) {
  * either being told what its shape is worth.
  */
 function Plot({ plot }: { plot: MergedPlot }) {
-  const aspect = plot.aspect && plot.aspect > 0 ? plot.aspect : 1;
+  const aspect = aspectOf(plot);
   // A wide plot earns proportionally more of the row, so three squares and one
   // 3:1 panorama do not come out the same width. Clamped below at the minimum
   // legible width rather than at the basis, so the shape drives the share and
@@ -133,6 +155,7 @@ function Plot({ plot }: { plot: MergedPlot }) {
             xDomain: plot.frame.xDomain,
             xUnit: plot.frame.xUnit,
             hideXAxis: plot.frame.hideXAxis,
+            spatial: plot.frame.kind === "spatial",
             yDomainPrimary: plot.frame.yDomain,
             yUnit: plot.frame.yUnit,
             yDomainSecondary: plot.frame.ySecondaryDomain,
