@@ -58,7 +58,6 @@ const MAGNITUDE_BUDGET: Record<string, number> = {
   // carry a Value, because the entry crosses the published contract as JSON.
   "mod/GonogoRealAntennasUplink/client/src/CommSignal/hopRates.ts": 1,
   "mod/GonogoKosUplink/client/src/KosTerminal/index.tsx": 1,
-  "mod/GonogoScansatUplink/client/src/Scanning/Minimap.tsx": 2,
   "mod/sitrep-sdk/src/command-delay.ts": 5,
   // 1, in `frameVector`, and this file exists so that number stays 1. The frame
   // arithmetic works in bare metres throughout (a rotation matrix has no unit to

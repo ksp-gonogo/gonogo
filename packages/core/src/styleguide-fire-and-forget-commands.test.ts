@@ -63,7 +63,6 @@ const FIRE_AND_FORGET_BUDGET: Record<string, number> = {
   "mod/GonogoBreakingGroundUplink/client/src/RotorTachometer/index.tsx": 6,
   "mod/GonogoKerbalismUplink/client/src/ScienceFileManager/index.tsx": 5,
   "mod/GonogoMechJebUplink/client/src/MechJeb/index.tsx": 3,
-  "mod/GonogoScansatUplink/client/src/AnomalyOverlay/index.tsx": 1,
   "packages/components/src/ActionGroup/index.tsx": 1,
   "packages/components/src/AstronautComplex/index.tsx": 3,
   "packages/components/src/ContractManager/index.tsx": 3,

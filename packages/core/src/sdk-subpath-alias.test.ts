@@ -112,16 +112,27 @@ const RUNTIME_ABSENT_SUBPATHS: Record<string, string> = {
   // Test-only. No shipped Uplink bundle imports it, so nothing has to resolve it
   // in a browser.
   testing: "test harness, never in a shipped bundle",
+  // Build tooling. `gonogo-uplink bundle` reads it to mark specifiers external,
+  // and the app reads it to bake the import map; both resolve it at BUILD time,
+  // so no shipped bundle carries the specifier and nothing has to resolve it in
+  // a browser.
+  "uplink-externals": "build tooling, resolved before a bundle exists",
 };
 
+/*
+ * The sdk's own copy, not the app's. The list moved to `@ksp-gonogo/sitrep-sdk`
+ * so an Uplink author's bundler and the app's import map read ONE list: it lived
+ * only in the app, which is unpublished, so an author had to hand-copy it and a
+ * copy whose failure mode is a missing entry agrees by omission. The app now
+ * re-exports, so reading the app's file here would parse a re-export and find
+ * nothing, which is a gate that passes by seeing no entries at all.
+ */
 const EXTERNALS_ENTRIES = join(
   REPO_ROOT,
-  "packages",
-  "app",
+  "mod",
+  "sitrep-sdk",
   "src",
-  "uplinks",
-  "externals",
-  "entries.ts",
+  "uplink-externals.ts",
 );
 
 describe("sdk subpath runtime resolution", () => {
@@ -181,8 +192,20 @@ describe("sdk subpath aliases", () => {
     ).toEqual([]);
   });
 
+  /*
+   * BUILD-only subpaths are exempt, and the reason is what the alias is for: a
+   * config aliasing the bare specifier must alias every subpath a module under
+   * test could import, or two subpaths resolve to two copies of the sdk and its
+   * `globalThis`-backed registries stop being shared. A subpath that only build
+   * tooling reads is never imported by a widget under test, so aliasing it in a
+   * vitest config would be ceremony that teaches the next author nothing.
+   */
+  const BUILD_ONLY_SUBPATHS = new Set(["uplink-externals"]);
+
   it("aliases every sdk subpath wherever the bare specifier is aliased", () => {
-    const subpaths = sdkSubpaths();
+    const subpaths = sdkSubpaths().filter(
+      (sub) => !BUILD_ONLY_SUBPATHS.has(sub),
+    );
     const missing: string[] = [];
     for (const { path, source } of configsAliasingTheSdk()) {
       for (const sub of subpaths) {

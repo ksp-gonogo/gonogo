@@ -32,6 +32,9 @@ bin/
 # silently unstageable, with `git add` reporting it as ignored rather than
 # anything explaining why.
 !packages/*/bin/
+# ...and the sdk's, which is a JS package living under mod/. Named exactly, not
+# globbed: every OTHER mod/*/bin is .NET build output and must stay ignored.
+!mod/sitrep-sdk/bin/
 obj/
 *.dll
 *.pdb

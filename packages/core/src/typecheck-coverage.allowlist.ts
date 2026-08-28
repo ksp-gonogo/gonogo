@@ -56,8 +56,6 @@ export const TYPECHECK_COVERAGE_DEBT: Readonly<Record<string, string>> = {
     "Uplink client, 2 test files. Split the emit config out the way packages/core did, then fix what falls out.",
   "mod/GonogoRealAntennasUplink/client":
     "Uplink client, 3 test files. Split the emit config out the way packages/core did, then fix what falls out.",
-  "mod/GonogoScansatUplink/client":
-    "Uplink client, 17 test files. Split the emit config out the way packages/core did, then fix what falls out.",
   "mod/sitrep-kernel":
     "6 test files. Split the emit config out the way packages/core did, then fix what falls out.",
   "mod/sitrep-sdk":

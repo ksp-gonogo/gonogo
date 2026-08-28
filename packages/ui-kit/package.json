@@ -43,12 +43,8 @@
       "import": "./dist/page-check.js"
     }
   },
-  "bin": {
-    "gonogo-uplink": "./bin/gonogo-uplink.mjs"
-  },
   "types": "./dist/index.d.ts",
   "files": [
-    "bin",
     "dist"
   ],
   "scripts": {

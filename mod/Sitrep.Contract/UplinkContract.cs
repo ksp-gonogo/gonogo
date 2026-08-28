@@ -483,6 +483,30 @@ namespace Sitrep.Contract
         public string Id { get; set; } = "";
         public string Version { get; set; } = "";
         /// <summary>
+        /// Human-facing provenance, emitted on <c>system.uplinks</c> so the
+        /// consent dialog can say WHO wrote the thing it is asking to run.
+        ///
+        /// <para>The consent moment is the only place this matters and the only
+        /// reason it is on the wire. An operator being asked to execute a bundle
+        /// fetched from a URL they did not choose should be told the author, and
+        /// until these existed the dialog said <c>by unknown</c> for every
+        /// Uplink, because it had nothing else to say.</para>
+        ///
+        /// <para>Deliberately three fields and not a metadata block: an id is
+        /// not a name, a name is not an author, and a repo is where a suspicious
+        /// operator goes to look. Anything else belongs in the Uplink's own
+        /// documentation rather than on every roster tick.</para>
+        ///
+        /// <para>Empty rather than null for a mod that predates them, so a
+        /// consumer never has to distinguish "old mod" from "author declined to
+        /// say": both render as absent.</para>
+        /// </summary>
+        public string Name { get; set; } = "";
+        /// <inheritdoc cref="Name"/>
+        public string Author { get; set; } = "";
+        /// <inheritdoc cref="Name"/>
+        public string Repo { get; set; } = "";
+        /// <summary>
         /// H_mod: the sha256 of the client bundle this DLL was released with, as
         /// <c>sha256-&lt;hex&gt;</c> (design §3.1). Baked at release build by the two-pass
         /// client-hash generator (see the Uplink build script); <c>null</c> for a mod-only

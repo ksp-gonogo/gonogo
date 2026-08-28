@@ -1118,6 +1118,11 @@ namespace Sitrep.Host
         /// Ignores <paramref name="snapshot"/> entirely: this reads engine
         /// registration state, not KSP telemetry.
         /// </summary>
+        /// <summary>Empty string to null, so an unset field is absent on the wire
+        /// rather than an empty one a consumer has to special-case.</summary>
+        private static string? Blank(string value) =>
+            string.IsNullOrEmpty(value) ? null : value;
+
         private object? BuildSystemUplinksPayload(KspSnapshot? snapshot)
         {
             var entries = new List<object?>();
@@ -1131,6 +1136,12 @@ namespace Sitrep.Host
                 {
                     ["id"] = id,
                     ["version"] = uplink.Manifest.Version,
+                    // Provenance for the consent dialog: who wrote this, and
+                    // where to go and look. Omitted entirely when unset, so an
+                    // Uplink that predates the fields costs nothing on the wire.
+                    ["name"] = Blank(uplink.Manifest.Name),
+                    ["author"] = Blank(uplink.Manifest.Author),
+                    ["repo"] = Blank(uplink.Manifest.Repo),
                     ["expectedClientHash"] = uplink.Manifest.ExpectedClientHash,   // H_mod (null for mod-only / older / dev DLL)
                     // D5: where the client bundle lives, so a third-party Uplink
                     // is self-describing. null for a mod-only Uplink (no client half).

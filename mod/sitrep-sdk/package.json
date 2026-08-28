@@ -13,7 +13,8 @@
     "./spine": "./src/spine/index.ts",
     "./testing": "./src/testing/index.ts",
     "./biome": "./biome.shared.json",
-    "./tsconfig.base.json": "./tsconfig.base.json"
+    "./tsconfig.base.json": "./tsconfig.base.json",
+    "./uplink-externals": "./src/uplink-externals.ts"
   },
   "repository": {
     "type": "git",
@@ -22,6 +23,7 @@
   },
   "homepage": "https://github.com/ksp-gonogo/gonogo/tree/main/mod/sitrep-sdk#readme",
   "files": [
+    "bin",
     "biome.shared.json",
     "dist",
     "src",
@@ -60,7 +62,11 @@
         "import": "./dist/testing/index.js"
       },
       "./biome": "./biome.shared.json",
-      "./tsconfig.base.json": "./tsconfig.base.json"
+      "./tsconfig.base.json": "./tsconfig.base.json",
+      "./uplink-externals": {
+        "types": "./dist/uplink-externals.d.ts",
+        "import": "./dist/uplink-externals.js"
+      }
     }
   },
   "scripts": {
@@ -93,5 +99,8 @@
     "react": "^18.0.0",
     "react-dom": "^18.0.0",
     "styled-components": "^6.0.0"
+  },
+  "bin": {
+    "gonogo-uplink": "./bin/gonogo-uplink.mjs"
   }
 }

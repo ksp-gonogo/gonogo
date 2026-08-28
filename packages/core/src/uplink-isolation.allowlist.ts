@@ -175,6 +175,8 @@ export const NON_AUTHOR_SUBPATHS: Record<
       "the implementation behind every host shim the root barrel publishes. An Uplink calls the shim; the app and an Uplink's test wire into this. Take what you need off the root barrel, or /frames for the arithmetic",
     registry:
       "dashboard orchestration, which widgets a screen renders. The app reaches it through core's re-export and an Uplink has no business calling it",
+    "uplink-externals":
+      "the specifiers a client bundle leaves external, read by BUILD tooling (`gonogo-uplink bundle`) and by the app's import map. Published so an author's bundler and the app cannot drift, which they did while it lived only in the app; nothing in a widget's runtime imports it",
   },
   "@ksp-gonogo/ui-kit": {},
 };
