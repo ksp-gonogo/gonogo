@@ -421,6 +421,7 @@ export {
   PanelSplit,
   type PanelSplitProps,
   PanelTitle,
+  type PanelTitleProps,
   PanelToolbar,
   ScrollArea,
   WidgetSections,

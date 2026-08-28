@@ -637,7 +637,7 @@ function ResourceOpsComponent(
 
   if (!anything) {
     return (
-      <Panel panelTitle="RESOURCE OPS">
+      <Panel panelTitle="RESOURCE OPS" compactTitle={["RES OPS", "RES"]}>
         {/* An empty list is a fact about the vessel, not a missing backend, so
             this says so rather than blaming the connection. */}
         <EmptyState layout="fill">
@@ -648,7 +648,7 @@ function ResourceOpsComponent(
   }
 
   return (
-    <Panel panelTitle="RESOURCE OPS">
+    <Panel panelTitle="RESOURCE OPS" compactTitle={["RES OPS", "RES"]}>
       <ResourceOpsStats
         total={total}
         activeCount={activeCount}

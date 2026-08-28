@@ -522,7 +522,10 @@ function LaunchDirectorComponent({
 
   if (ships === null) {
     return (
-      <Panel panelTitle="LAUNCH & RECOVERY">
+      <Panel
+        panelTitle="LAUNCH & RECOVERY"
+        compactTitle={["LAUNCH & REC", "LAUNCH"]}
+      >
         <Body>
           {showSubtitle && (
             <div
@@ -568,7 +571,10 @@ function LaunchDirectorComponent({
         lastCrash.vesselName === vesselName);
 
   return (
-    <Panel panelTitle="LAUNCH & RECOVERY">
+    <Panel
+      panelTitle="LAUNCH & RECOVERY"
+      compactTitle={["LAUNCH & REC", "LAUNCH"]}
+    >
       <Body>
         {showSubtitle && (
           <div

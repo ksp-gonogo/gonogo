@@ -241,6 +241,7 @@ async function renderOneScene(
       continue;
     }
     const file = `${scene.name}--${mode.name}.png`;
+    await reportFit(tab, scene, mode.name);
     await performActs(tab, scene);
     await growToFullContent(tab);
     await assertEveryPaintVisible(tab, scene, mode.name);
@@ -251,6 +252,47 @@ async function renderOneScene(
     // see that the render carries the words they expected.
     console.log(`   ${file}  ${fed.visibleText.slice(0, 110)}`);
   }
+}
+
+/**
+ * Say, under each render, what the operator cannot read at that size.
+ *
+ * Printed rather than thrown, and that is the only thing about it worth
+ * arguing over. It is an author's own render run, not a gate: failing it would
+ * stop the pictures being produced, which is the one thing the author came here
+ * for, and a check that blocks the tool it rides in is a check people stop
+ * running. The repo's own gate over every widget at once fails; this tells the
+ * author, at the moment they are looking at the widget, which of their own
+ * sizes is unreadable.
+ *
+ * Taken BEFORE `growToFullContent`, which lifts the vertical crop so the
+ * picture shows the whole widget: an audit after that has measured a tile
+ * nobody runs.
+ */
+async function reportFit(tab: Page, scene: Scene, mode: string): Promise<void> {
+  const findings = await tab.evaluate(
+    (key) =>
+      (globalThis as unknown as ProbeWindow)[
+        key as typeof RENDER_PROBE_GLOBAL
+      ].auditMinFit(),
+    RENDER_PROBE_GLOBAL,
+  );
+  if (findings.length === 0) return;
+  console.log(
+    `   ! ${scene.name} @ ${mode}: ${findings.length} thing(s) an operator ` +
+      `cannot read at this size`,
+  );
+  for (const f of findings.slice(0, 4)) {
+    console.log(`     ${f.kind} ${f.px}px [${f.axis}]  "${f.text}"`);
+  }
+  if (findings.length > 4) {
+    console.log(`     … and ${findings.length - 4} more`);
+  }
+  console.log(
+    "     A heading that will not fit wants <Panel compactTitle>; content " +
+      "that overflows wants a scroller. If neither is honest, raise the " +
+      "widget's minSize.",
+  );
 }
 
 function payloadFor(

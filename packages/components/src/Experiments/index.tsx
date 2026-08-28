@@ -277,7 +277,7 @@ function ExperimentsComponent({
 
   if (instruments === null) {
     return (
-      <Panel panelTitle="EXPERIMENTS">
+      <Panel panelTitle="EXPERIMENTS" compactTitle={["EXPTS"]}>
         {showSubtitle && <EmptyState>Awaiting instrument telemetry</EmptyState>}
         {showLab && <LabSection labs={labs} />}
       </Panel>
@@ -286,7 +286,7 @@ function ExperimentsComponent({
 
   if (instruments.length === 0) {
     return (
-      <Panel panelTitle="EXPERIMENTS">
+      <Panel panelTitle="EXPERIMENTS" compactTitle={["EXPTS"]}>
         {showSubtitle && <EmptyState>No instruments aboard</EmptyState>}
         {showLab && <LabSection labs={labs} />}
       </Panel>
@@ -341,7 +341,7 @@ function ExperimentsComponent({
     /* The header escape-hatch slot is `Panel`'s universal `actions` segment,
        so there is nothing to render here: an augment composing next to the
        title binds `experiments.actions` and `Panel` places it. */
-    <Panel panelTitle="EXPERIMENTS">
+    <Panel panelTitle="EXPERIMENTS" compactTitle={["EXPTS"]}>
       {showSubtitle && (
         <Text tone="muted" size="xs" role="status" aria-live="polite">
           {totals.hasData}/{totals.total} with data · {totals.deployed} deployed

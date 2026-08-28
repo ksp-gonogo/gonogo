@@ -87,7 +87,7 @@ function InputTesterComponent({
   };
 
   return (
-    <Panel panelTitle="INPUT TESTER">
+    <Panel panelTitle="INPUT TESTER" compactTitle={["INPUTS", "INPUT"]}>
       <Field>
         <FieldLabel htmlFor="input-tester-device">Device</FieldLabel>
         <Select

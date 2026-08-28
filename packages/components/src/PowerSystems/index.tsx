@@ -375,7 +375,7 @@ function PowerSystemsComponent({
 
   if (!topology) {
     return (
-      <Panel panelTitle="POWER SYSTEMS">
+      <Panel panelTitle="POWER SYSTEMS" compactTitle={["POWER"]}>
         <div style={HINT}>Waiting for vessel topology...</div>
       </Panel>
     );
@@ -383,7 +383,7 @@ function PowerSystemsComponent({
 
   if (resourcesWithFlow.length === 0) {
     return (
-      <Panel panelTitle="POWER SYSTEMS">
+      <Panel panelTitle="POWER SYSTEMS" compactTitle={["POWER"]}>
         {showHeader && (
           <div style={SECTION_EMPTY} role="status">
             No active flow on any resource
@@ -423,6 +423,7 @@ function PowerSystemsComponent({
     <WidgetScopeProvider widget="power-systems" scope={scope}>
       <Panel
         panelTitle="POWER SYSTEMS"
+        compactTitle={["POWER"]}
         panelSections={false}
         panelAside={
           <>

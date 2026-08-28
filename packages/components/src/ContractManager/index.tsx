@@ -358,7 +358,7 @@ function ContractManagerComponent({
 
   if (active === null) {
     return (
-      <Panel panelTitle="CONTRACT MANAGER">
+      <Panel panelTitle="CONTRACT MANAGER" compactTitle={["CONTRACTS"]}>
         {showSubtitle && <Empty>Awaiting contract telemetry</Empty>}
       </Panel>
     );
@@ -369,7 +369,7 @@ function ContractManagerComponent({
   const recentCount = recent?.length ?? 0;
 
   return (
-    <Panel panelTitle="CONTRACT MANAGER">
+    <Panel panelTitle="CONTRACT MANAGER" compactTitle={["CONTRACTS"]}>
       {showSubtitle && (
         <Summary role="status" aria-live="polite">
           {activeCount} active · {offeredCount} offered · {recentCount} recent

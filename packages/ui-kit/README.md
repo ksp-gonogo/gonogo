@@ -111,6 +111,39 @@ export function Altitude({ metres }: { metres: number }) {
 rather than rendering a title yourself; the panel owns its own presentation so
 a change to how titles look is one edit here, not one per widget.
 
+### A title that will not fit
+
+Your widget declares a `minSize`, and the dashboard enforces it as a floor:
+react-grid-layout refuses to drag the tile smaller and clamps a smaller saved
+layout up. So that size is a promise, and a title ellipsised to "AERODYNA…" at
+the widget's own minimum is the widget failing to name itself. Sixteen widgets
+were doing it when the check for it landed.
+
+Give the panel shorter forms, longest first, and it draws the widest one that
+actually fits:
+
+```tsx
+<Panel panelTitle="RESOURCE OPS" compactTitle={["RES OPS", "RES"]}>
+```
+
+Measured against the box, not guessed from a column count, so the full name
+comes back the moment the tile is wide enough. While a short form is showing,
+the full one stays the heading's accessible name and its hover tooltip.
+
+`compactTitle` and `<PanelTitle compact={…}>` are the same thing; use whichever
+form your widget already renders its title in. Write real abbreviations rather
+than truncations: a machine-shortened title is the ellipsis this replaces.
+
+If no abbreviation of your title reads as the widget's name, the honest answer
+is usually that the widget cannot live at that size, and the fix is to raise
+its `minSize`.
+
+`gonogo-uplink render` renders each widget at its `minSize` as well as its
+default, and prints under each one whatever an operator could not read there:
+a clipped heading, content behind a box with nothing to scroll, text painting
+outside the tile. `auditMinFit` from `@ksp-gonogo/ui-kit/render-probe` is the
+same check if you want to run it yourself.
+
 If you need a different arrangement, `Panel` is nothing but a composition of
 parts you can reach individually:
 

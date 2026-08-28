@@ -110,7 +110,10 @@ function CareerEconomyComponent({ w, h }: ComponentProps<CareerEconomyConfig>) {
   const compact = bucket === "tiny" || (w ?? 6) < 4;
 
   return (
-    <Panel panelTitle="PROGRAMME FUNDING">
+    <Panel
+      panelTitle="PROGRAMME FUNDING"
+      compactTitle={["FUNDING", "FUNDS", "FUND"]}
+    >
       <Body>
         <Balances>
           <Balance>

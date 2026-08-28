@@ -54,6 +54,7 @@ import {
 } from "react";
 import { createRoot, type Root } from "react-dom/client";
 import { ThemeProvider } from "styled-components";
+import { auditMinFit, type MinFitFinding } from "./render/minFit";
 import { RENDER_PROBE_GLOBAL } from "./render/probe-global";
 
 /**
@@ -92,6 +93,8 @@ import { RENDER_PROBE_GLOBAL } from "./render/probe-global";
  */
 
 export { RENDER_PROBE_GLOBAL } from "./render/probe-global";
+export type { MinFitFinding };
+export { auditMinFit };
 
 // ---------------------------------------------------------------------------
 // The wire between the two halves
@@ -1027,6 +1030,11 @@ export interface RenderProbeApi {
   readInventory: (uplinkId?: string) => UplinkInventory;
   renderScene: (scene: ScenePayload) => Promise<SceneReport>;
   stepScene: (step: SceneStep, deltaUt: number) => Promise<void>;
+  /** Whether the render just mounted fits its tile. See {@link auditMinFit}.
+   *  Separate from `renderScene`'s report because the driver GROWS the mount
+   *  box before it screenshots, and an audit taken after that grow is an audit
+   *  of a tile nobody is running. */
+  auditMinFit: () => MinFitFinding[];
 }
 
 /**
@@ -1057,6 +1065,11 @@ export async function installRenderProbe(): Promise<RenderProbeApi> {
       return renderScene(scene);
     },
     stepScene,
+    auditMinFit: () => {
+      const el = document.getElementById("root");
+      if (!el) throw new Error("render probe: no #root in the page");
+      return auditMinFit(el);
+    },
   };
   (globalThis as Record<string, unknown>)[RENDER_PROBE_GLOBAL] = api;
   return api;
