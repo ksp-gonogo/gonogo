@@ -15,6 +15,7 @@
   "scripts": {
     "build": "tsc -p tsconfig.json",
     "dev": "tsc -p tsconfig.json --watch",
+    "render": "gonogo-uplink render",
     "test": "vitest run",
     "test:coverage": "vitest run --coverage",
     "typecheck": "tsc --noEmit"
@@ -28,7 +29,9 @@
     "@testing-library/react": "^16.3.2",
     "@types/react": "^18.3.28",
     "@vitest/coverage-v8": "^4.1.4",
+    "esbuild": "^0.28.0",
     "jsdom": "^29.0.2",
+    "playwright": "^1.60.0",
     "react": "^18.0.0",
     "react-dom": "^18.0.0",
     "typescript": "^5.0.0",
@@ -36,5 +39,10 @@
   },
   "peerDependencies": {
     "react": "^18.0.0"
+  },
+  "gonogo": {
+    "renderWith": [
+      "../../../packages/components/src/index.ts"
+    ]
   }
 }

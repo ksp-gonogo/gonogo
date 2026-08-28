@@ -1,0 +1,30 @@
+{
+  "_meta": {
+    "synthetic": true,
+    "notes": "SYNTHETIC. The ABSENCE state, and the one that is easy to get wrong. RealAntennas is installed and the presence gate is open, so both augments MOUNT, but the link itself is dark: no data rate, no margin, no path, so neither augment has a reading. Each returns null rather than drawing a labelled row with a dash in it, which is why the picture is CommSignal exactly as it composes without RealAntennas at all. A 0 dB margin or an empty 'Link budget' heading here would both be claims the Uplink cannot support."
+  },
+  "_scene": {
+    "augment": "realantennas-comm-signal-section",
+    "host": "comm-signal",
+    "caption": "RealAntennas installed but the link is dark: the budget section withholds itself entirely rather than showing a labelled blank",
+    "modes": ["default"],
+    "size": { "w": 8, "h": 10 },
+    "expectsEmpty": "The subject IS what the augment does not draw. With no margin and no path there is nothing RealAntennas knows, and the honest render is the host composing as if the Uplink were not there. The host is fed, so the frame is not blank.",
+    "paints": ["COMMNET"]
+  },
+  "_stream": {
+    "pinnedUt": 1000000,
+    "emits": [
+      { "topic": "realantennas.available", "payload": true },
+      { "topic": "comms.link", "payload": { "connected": false } },
+      {
+        "topic": "vessel.comms",
+        "payload": {
+          "connected": false,
+          "signalStrength": 0,
+          "controlState": 0
+        }
+      }
+    ]
+  }
+}

@@ -12,9 +12,12 @@ import { beforeEach, describe, expect, it } from "vitest";
 import { setupStreamFixture } from "../test/setupStreamFixture";
 import { CommSignalComponent } from "./index";
 
-// CommSignal declares the `comm-signal.hop-rates` slot; `ContributionsProvider`
-// only aggregates a widget's declared slots, so the route-rate tests below mount
-// it under this meta (the same shape ShipMap's contribution tests use).
+// `ContributionsProvider` only aggregates a widget's declared slots, and these
+// tests mount the component directly rather than through its registration, so
+// they supply the meta the dashboard would. Note what that CANNOT prove: for as
+// long as the registration itself was missing `contributionSlots`, this meta was
+// the only place the slot was declared anywhere, and the tests passed on their
+// own fixture while no real app ever aggregated it.
 const HOP_RATE_META = {
   componentId: "comm-signal",
   contributionSlots: ["comm-signal.hop-rates"] as const,
