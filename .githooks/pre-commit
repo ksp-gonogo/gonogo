@@ -29,4 +29,23 @@ for f in $staged_pkgs; do
   fi
 done
 
-pnpm exec biome check . && pnpm typecheck
+# Output captured and shown only on FAILURE, for the same reason the pre-push
+# hook is: a passing run printed thousands of lines, so the habit became piping
+# it to read the verdict, and a pipe replaces the command's exit status with the
+# pipe's. Quiet on success is what removes the reason to pipe.
+GONOGO_HOOK_LOG="$(mktemp -t gonogo-precommit)"
+trap 'rm -f "$GONOGO_HOOK_LOG"' EXIT
+
+if ! pnpm exec biome check . > "$GONOGO_HOOK_LOG" 2>&1; then
+  cat "$GONOGO_HOOK_LOG"
+  echo "✖ pre-commit: biome found issues, run 'pnpm lint' to auto-fix, then re-commit."
+  exit 1
+fi
+echo "pre-commit: lint clean."
+
+if ! pnpm typecheck > "$GONOGO_HOOK_LOG" 2>&1; then
+  cat "$GONOGO_HOOK_LOG"
+  echo "✖ pre-commit: typecheck failed."
+  exit 1
+fi
+echo "pre-commit: typecheck clean."
