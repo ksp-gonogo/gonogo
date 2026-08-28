@@ -33,7 +33,11 @@ import { KerbalInfoPopover } from "./KerbalInfoPopover";
 export interface KerbalStatFields {
   name: string;
   trait: string;
-  experienceLevel: number;
+  /** Rank, `null` when the producer sent none. Nullable rather than defaulted,
+   *  because `L0` is a rank every save has a real kerbal at, so a substituted
+   *  zero here is a rookie the operator cannot tell from a reading that never
+   *  arrived. */
+  experienceLevel: number | null;
   veteran: boolean;
   isBadass: boolean;
   careerFlights: number;
@@ -125,6 +129,36 @@ function unavailableTitle(kerbal: KerbalStatFields): string {
     : sentence;
 }
 
+/**
+ * One ratio-valued stat chip: courage, stupidity, progress toward the next
+ * rank. Rendered whether or not its reading arrived, because the caller asked
+ * for the chip and a chip that quietly disappears reads as a kerbal who has no
+ * such stat. Absent, it says a dash and names itself unknown.
+ */
+function RatioChip({
+  symbol,
+  name,
+  reading,
+}: {
+  symbol: string;
+  name: string;
+  reading: number | null | undefined;
+}) {
+  if (typeof reading !== "number") {
+    return (
+      <Level title={`${name} unknown`} aria-label={`${name} unknown`}>
+        {symbol} {NULL_DISPLAY}
+      </Level>
+    );
+  }
+  const spoken = speakQuantity(value("ratio", reading));
+  return (
+    <Level title={`${name}: ${spoken}`} aria-label={`${name} ${spoken}`}>
+      {symbol} <Unit value={value("ratio", reading)} />
+    </Level>
+  );
+}
+
 export function KerbalStats({
   kerbal,
   showRank = true,
@@ -156,11 +190,11 @@ export function KerbalStats({
   /** Appended at the end of the Meta row (e.g. an augment slot). */
   children?: ReactNode;
 }) {
-  const showCourage = showTraits && typeof kerbal.courage === "number";
-  const showStupidity = showTraits && typeof kerbal.stupidity === "number";
-  const showExperience =
-    showExperienceProgress && typeof kerbal.experienceLevelDelta === "number";
-  const atMaxRank = kerbal.experienceLevel >= MAX_EXPERIENCE_LEVEL;
+  const rankKnown = typeof kerbal.experienceLevel === "number";
+  // Only a rank we have can be the top one. Unknown, the progress chip quotes
+  // whatever ratio arrived rather than claiming a career that cannot progress.
+  const atMaxRank =
+    rankKnown && (kerbal.experienceLevel as number) >= MAX_EXPERIENCE_LEVEL;
   return (
     <>
       <KerbalStats__Name>{kerbal.name || NULL_DISPLAY}</KerbalStats__Name>
@@ -168,45 +202,39 @@ export function KerbalStats({
         <TraitTag title={`Trait: ${kerbal.trait || "Unknown"}`}>
           {kerbal.trait || NULL_DISPLAY}
         </TraitTag>
-        {showRank && (
-          <Level
-            title={`Experience level ${kerbal.experienceLevel}`}
-            aria-label={`Experience level ${kerbal.experienceLevel}`}
-          >
-            L{kerbal.experienceLevel}
-          </Level>
+        {showRank &&
+          (rankKnown ? (
+            <Level
+              title={`Experience level ${kerbal.experienceLevel}`}
+              aria-label={`Experience level ${kerbal.experienceLevel}`}
+            >
+              L{kerbal.experienceLevel}
+            </Level>
+          ) : (
+            <Level
+              title="Experience level unknown"
+              aria-label="Experience level unknown"
+            >
+              L{NULL_DISPLAY}
+            </Level>
+          ))}
+        {showTraits && (
+          <RatioChip symbol="C" name="Courage" reading={kerbal.courage} />
         )}
-        {showCourage && (
-          <Level
-            title={`Courage: ${speakQuantity(value("ratio", kerbal.courage as number))}`}
-            aria-label={`Courage ${speakQuantity(value("ratio", kerbal.courage as number))}`}
-          >
-            C <Unit value={value("ratio", kerbal.courage as number)} />
-          </Level>
+        {showTraits && (
+          <RatioChip symbol="S" name="Stupidity" reading={kerbal.stupidity} />
         )}
-        {showStupidity && (
-          <Level
-            title={`Stupidity: ${speakQuantity(value("ratio", kerbal.stupidity as number))}`}
-            aria-label={`Stupidity ${speakQuantity(value("ratio", kerbal.stupidity as number))}`}
-          >
-            S <Unit value={value("ratio", kerbal.stupidity as number)} />
-          </Level>
-        )}
-        {showExperience &&
+        {showExperienceProgress &&
           (atMaxRank ? (
             <Level title="Max rank" aria-label="Max rank">
               MAX
             </Level>
           ) : (
-            <Level
-              title={`Experience toward next rank: ${speakQuantity(value("ratio", kerbal.experienceLevelDelta as number))}`}
-              aria-label={`Experience toward next rank ${speakQuantity(value("ratio", kerbal.experienceLevelDelta as number))}`}
-            >
-              XP{" "}
-              <Unit
-                value={value("ratio", kerbal.experienceLevelDelta as number)}
-              />
-            </Level>
+            <RatioChip
+              symbol="XP"
+              name="Experience toward next rank"
+              reading={kerbal.experienceLevelDelta}
+            />
           ))}
         {kerbal.veteran && (
           <Badge
