@@ -87,6 +87,8 @@ const only = onlyIdx >= 0 ? args[onlyIdx + 1] : null;
 const WARNING =
   /not wrapped in act|testing environment is not configured to support act/i;
 const STDERR_HEADER = /^stderr \| (\S+)/;
+/** Vitest's per-test failure line, so a crashed suite can name what broke. */
+const FAILED_TEST = /^\s*FAIL\s+\|/;
 const SELF_TEST_FILE = "ZzActGateSelfTest.test.tsx";
 
 /** The package the self-test is planted in: small, first-party, and it renders React. */
@@ -163,8 +165,15 @@ function packagesWithTests() {
 }
 
 /**
- * Run one package's vitest and return `{ counts, failed }`, where `counts` is keyed
- * by the file path vitest itself reports, already relative to the package root.
+ * Run one package's vitest and return `{ counts, failed, failures }`, where
+ * `counts` is keyed by the file path vitest itself reports, already relative to
+ * the package root, and `failures` names the tests that failed.
+ *
+ * `failures` exists because "(SUITE FAILED)" on its own sends the reader to
+ * `pnpm test`, which runs the packages in parallel and so is SLOWER per package
+ * than this gate's one-at-a-time walk. A rate budget breaches when the machine
+ * is fast, so the suite this gate crashed on passed there and the job read as
+ * unreproducible.
  */
 function measure(pkg, onlyFile) {
   const argv = ["--filter", pkg.name, "exec", "vitest", "run"];
@@ -185,8 +194,10 @@ function measure(pkg, onlyFile) {
   const failed = run.status !== 0;
 
   const counts = {};
+  const failures = [];
   let current = null;
   for (const line of output.split("\n")) {
+    if (FAILED_TEST.test(line)) failures.push(line.trim());
     const header = STDERR_HEADER.exec(line);
     if (header) {
       current = header[1];
@@ -196,7 +207,7 @@ function measure(pkg, onlyFile) {
     if (current.includes(SELF_TEST_FILE)) continue;
     counts[current] = (counts[current] ?? 0) + 1;
   }
-  return { counts, failed };
+  return { counts, failed, failures };
 }
 
 function runSelfTest() {
@@ -340,8 +351,8 @@ console.log(
 const measured = {};
 const crashed = [];
 for (const pkg of packages) {
-  const { counts, failed } = measure(pkg);
-  if (failed) crashed.push(pkg.short);
+  const { counts, failed, failures } = measure(pkg);
+  if (failed) crashed.push({ short: pkg.short, failures });
   let total = 0;
   for (const [file, n] of Object.entries(counts)) {
     measured[`${pkg.short}/${file}`] = n;
@@ -350,6 +361,7 @@ for (const pkg of packages) {
   console.log(
     `  ${pkg.short.padEnd(32)} ${String(total).padStart(4)}${failed ? "  (SUITE FAILED)" : ""}`,
   );
+  for (const failure of failures) console.log(`    ${failure}`);
 }
 
 const total = Object.values(measured).reduce((a, b) => a + b, 0);
@@ -404,7 +416,7 @@ if (update) {
 
 if (crashed.length > 0) {
   console.error(
-    `A suite failed in: ${crashed.join(", ")}.\n` +
+    `A suite failed in: ${crashed.map((c) => c.short).join(", ")}.\n` +
       `A crashed suite emits fewer warnings than the tree really has, so this count is ` +
       `an undercount and cannot be compared against the debt. Fix the suite first.`,
   );

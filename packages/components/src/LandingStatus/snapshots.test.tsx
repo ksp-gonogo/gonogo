@@ -1,5 +1,5 @@
 import { PerfBudget } from "@ksp-gonogo/core";
-import { beforeEach, describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it } from "vitest";
 import { getWidget } from "../../scripts/widgets";
 import { snapshotWidgetMode } from "../test/widgetDomSnapshot";
 import finalApproach from "./__fixtures__/final-approach-mun.json";
@@ -39,21 +39,27 @@ if (!config)
 
 describe("LandingStatus DOM snapshots", () => {
   /**
-   * The contribution budgets, reset between tests, for the reason the three
-   * sibling specs already document.
+   * The contribution budgets, reset at the END of each test, which is the
+   * remedy `PerfBudget.installTestGate` itself prescribes for a spec whose
+   * clock is compressed.
    *
-   * `Contributions "<slot>" entries recomputed/sec` is capped at 30, which is
-   * ~7x a real 4 Hz stream. A spec replays its whole scenario in a handful of
-   * milliseconds, so every frame lands inside one rolling second and each slot
-   * trips the cap. The same frames take seconds in the app.
+   * `Contributions "<slot>" entries recomputed/sec` is capped at 30, ~7x a real
+   * 4 Hz stream. Each fixture replays ten frames back-to-back, so its ~31
+   * recomputes all land inside one wall second; the same ten frames take two
+   * and a half seconds in the app and read as 12/sec. Resetting BEFORE the test
+   * does not reach that, because the overflow happens within the single test
+   * the gate is diffing across, which is why this file kept failing whenever it
+   * had the machine to itself and passed under a loaded parallel run.
    *
-   * Reset rather than raised: the threshold is right for the load it measures,
-   * and widening it to fit a test's clock is how a budget stops being able to
-   * see the regression it exists for. This file was the only one of the four
-   * without the reset, so it passed alone and failed under a loaded CI run.
+   * Reset rather than raised: the threshold is right for the load it measures.
+   * The live assertion is not lost, `index.test.tsx`, `stream.test.tsx` and
+   * `undefined.characterise.test.tsx` drive the same slots at a rate the budget
+   * still grades.
    */
-  beforeEach(() => {
-    for (const b of PerfBudget.getAll()) b.reset();
+  afterEach(() => {
+    for (const b of PerfBudget.getAll()) {
+      if (b.name.startsWith('Contributions "')) b.reset();
+    }
   });
 
   for (const [name, fixture] of Object.entries(FIXTURES)) {
