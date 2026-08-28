@@ -1,8 +1,48 @@
 import { act } from "@ksp-gonogo/sitrep-sdk/testing";
-import { axe, toHaveNoViolations } from "jest-axe";
+import type { axe as axeFn, toHaveNoViolations } from "jest-axe";
 import { expect } from "vitest";
 
-expect.extend(toHaveNoViolations);
+/**
+ * jest-axe, loaded the first time the assertion is used and never before.
+ *
+ * It is an OPTIONAL peer of this package, and a module-scope
+ * `import { axe } from "jest-axe"` made it mandatory for anyone who touched
+ * `@ksp-gonogo/ui-kit/testing` for any reason at all. `render-probe` imports
+ * `WidgetHost` from there, so bundling the render harness's probe entry pulled
+ * this file in, and every `gonogo-uplink render` and `docs` run failed with
+ * "Could not resolve jest-axe" on a package that has nothing to do with
+ * rendering. An Uplink author generating a README was being asked to install an
+ * accessibility-testing library.
+ *
+ * `expect.extend` moves in here with it, for the same reason: it ran at module
+ * scope and needed the matcher the import provided.
+ */
+let matchers: Promise<{ axe: typeof axeFn }> | undefined;
+function jestAxe(): Promise<{ axe: typeof axeFn }> {
+  matchers ??= import("jest-axe")
+    .then(
+      (mod: {
+        axe: typeof axeFn;
+        toHaveNoViolations: typeof toHaveNoViolations;
+      }) => {
+        expect.extend(mod.toHaveNoViolations);
+        return { axe: mod.axe };
+      },
+    )
+    .catch((err: unknown) => {
+      if (
+        err instanceof Error &&
+        /Cannot find (module|package)|ERR_MODULE_NOT_FOUND/.test(err.message)
+      ) {
+        throw new Error(
+          "expectNoA11yViolations needs jest-axe, which is not installed. It is " +
+            "your dependency rather than ui-kit's:\n  npm i -D jest-axe",
+        );
+      }
+      throw err;
+    });
+  return matchers;
+}
 
 /**
  * The accessibility smoke assertion every widget test owes, with the `act`
@@ -32,6 +72,7 @@ expect.extend(toHaveNoViolations);
 export async function expectNoA11yViolations(
   container: Element | string,
 ): Promise<void> {
+  const { axe } = await jestAxe();
   let results: Awaited<ReturnType<typeof axe>> | undefined;
   await act(async () => {
     results = await axe(container);

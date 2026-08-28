@@ -36,6 +36,7 @@
 import { createHash } from "node:crypto";
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { dirname, join, resolve } from "node:path";
+import { pathToFileURL } from "node:url";
 // `.js`, explicitly. This package emits unbundled ESM and Node's resolver needs
 // the extension; `moduleResolution: "bundler"` accepts it too, so it is correct
 // in both modes. This CLI is the first thing here RUN from `dist` rather than
@@ -303,36 +304,83 @@ namespace ${namespace}
 }
 
 /**
+ * Where the AUTHOR's `@ksp-gonogo/ui-kit` is, walking up from their package.
+ *
+ * The subpath is resolved out of ui-kit's own `exports` map rather than guessed,
+ * because guessing `dist/render.js` would reach past the map and keep working
+ * right up until ui-kit moved the file.
+ *
+ * `createRequire().resolve` is the wrong instrument and looks like the right one:
+ * it applies the `require` condition, and ui-kit's map declares only `types` and
+ * `import`, so it fails with ERR_PACKAGE_PATH_NOT_EXPORTED on a package that is
+ * installed and fine. `import.meta.resolve`'s two-argument form would do it and
+ * needs a flag. So: fs walk, then read the map.
+ */
+function findAuthorsUiKit(
+  fromDir: string,
+  subpath: string,
+): string | undefined {
+  let dir = resolve(fromDir);
+  for (;;) {
+    const pkgDir = join(dir, "node_modules", "@ksp-gonogo", "ui-kit");
+    const manifest = join(pkgDir, "package.json");
+    if (existsSync(manifest)) {
+      const exports = (
+        JSON.parse(readFileSync(manifest, "utf8")) as {
+          exports?: Record<string, string | Record<string, string>>;
+        }
+      ).exports;
+      const entry = exports?.[subpath];
+      const file =
+        typeof entry === "string" ? entry : (entry?.import ?? entry?.default);
+      if (!file) {
+        throw new Error(
+          `@ksp-gonogo/ui-kit at ${pkgDir} exports no "${subpath}", so this version of it ` +
+            "cannot render. Upgrade it:\n  npm i -D @ksp-gonogo/ui-kit@latest",
+        );
+      }
+      return join(pkgDir, file);
+    }
+    const parent = dirname(dir);
+    if (parent === dir) return undefined;
+    dir = parent;
+  }
+}
+
+/**
  * Forward a browser verb to ui-kit's CLI, imported HERE rather than at module
  * scope so `bundle` and `bake-hash` never load Playwright or a DOM stack.
+ *
+ * Resolved from the AUTHOR's package, never from this one's module graph, and
+ * that distinction is the whole function. A bare
+ * `await import("@ksp-gonogo/ui-kit/render")` resolves against THIS file, and
+ * the sdk deliberately does not depend on ui-kit: ui-kit depends on the sdk, so
+ * declaring it back is a cycle, and declaring it as an optional peer makes pnpm
+ * copy a per-peer instance of a workspace package instead of linking it (see
+ * this module's own header). Under npm's flat layout the bare import gets away
+ * with it, because the walk-up from `node_modules/@ksp-gonogo/sitrep-sdk` finds
+ * the sibling. Under pnpm the two live in separate isolated stores and it can
+ * NEVER resolve, so every author on pnpm was told ui-kit was not installed while
+ * it sat in their own devDependencies. It is also the right question on npm: the
+ * ui-kit whose version the page reports must be the one the author pinned.
  */
 async function forwardToUiKit(argv: readonly string[]): Promise<number> {
-  try {
-    /*
-     * A variable specifier, deliberately. ui-kit is an OPTIONAL peer: it depends
-     * on this package, so a static import would be a cycle, and a literal
-     * specifier would make tsc resolve a module the sdk does not and must not
-     * depend on. Held in a variable, the import is a runtime lookup and the
-     * missing-module case below is the whole error handling it needs.
-     */
-    const uiKitRender = "@ksp-gonogo/ui-kit/render";
-    const { run } = (await import(uiKitRender)) as {
-      run: (argv: readonly string[]) => Promise<number>;
-    };
-    return await run(argv);
-  } catch (err) {
-    if (
-      err instanceof Error &&
-      /Cannot find (module|package)|ERR_MODULE_NOT_FOUND/.test(err.message)
-    ) {
-      throw new Error(
-        `\`${argv[0]}\` renders in a real browser and lives in @ksp-gonogo/ui-kit, which is not ` +
-          "installed:\n  npm i -D @ksp-gonogo/ui-kit playwright\n" +
-          "`bundle` and `bake-hash` need neither, which is why this is not a dependency of the sdk.",
-      );
-    }
-    throw err;
+  // The same `--root` the browser verbs take, so the ui-kit found is the one
+  // belonging to the package being documented rather than to wherever the
+  // command happened to be typed.
+  const root = resolve(flag(argv, "--root") ?? process.cwd());
+  const entry = findAuthorsUiKit(root, "./render");
+  if (!entry) {
+    throw new Error(
+      `\`${argv[0]}\` renders in a real browser and lives in @ksp-gonogo/ui-kit, which is not ` +
+        `installed in ${root} or any directory above it:\n  npm i -D @ksp-gonogo/ui-kit playwright\n` +
+        "`bundle` and `bake-hash` need neither, which is why this is not a dependency of the sdk.",
+    );
   }
+  const { run } = (await import(pathToFileURL(entry).href)) as {
+    run: (argv: readonly string[]) => Promise<number>;
+  };
+  return await run(argv);
 }
 
 export async function run(argv: readonly string[]): Promise<number> {

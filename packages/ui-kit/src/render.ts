@@ -60,3 +60,11 @@ export {
   buildScenes,
   type Scene,
 } from "./render/scenes";
+export {
+  readWireSurface,
+  type WireChannel,
+  type WireField,
+  type WirePayload,
+  type WireSurface,
+  wireSection,
+} from "./render/wire";

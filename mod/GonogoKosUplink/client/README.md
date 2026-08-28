@@ -22,6 +22,33 @@ range the widget says so; it never becomes a hard startup requirement for the ap
 | Version | `0.0.1` |
 | Built against | contract 13.2, api 1.0.0, ui-kit 0.2.0 |
 
+## What it puts on the wire
+
+Reflected out of this Uplink's own contract assembly by the codegen that writes `src/__generated__/`, so it describes the C# declaration itself rather than a second copy of it. Each field is followed by its declared unit (a lowercase token from the wire vocabulary) or, where it holds another payload, that payload's name.
+
+### Channels
+
+| Channel | Payload | Fields |
+| --- | --- | --- |
+| `kos.processors` | `KosProcessorInfo[]` | `bootFilePath` text, `coreId` id, `hasBooted` flag, `partName` text, `processorMode` text, `tag` text |
+
+### Command args, dynamic channels and extensions
+
+Wire shapes whose route onto the wire is not in the generated slice, so the honest description is all three things one of these can be: a command's arguments, the payload of a dynamic namespace whose topic string is composed at runtime (per vessel, per part, per CPU), or a namespace this Uplink adds inside another channel's extensions bag. None of the three is a fixed name an attribute could declare, which is why they are listed by shape.
+
+| Payload | Fields |
+| --- | --- |
+| `KosComputeStatus` | `lastGoodAt` ut, `parseError` text, `paused` flag, `running` flag, `scriptError` text |
+| `KosExecArgs` | `coreId` id, `scriptId` id |
+| `KosKeystrokeArgs` | `chars` text, `coreId` id, `leaseToken` id |
+| `KosReEnableArgs` | `scriptId` id |
+| `KosRunArgs` | `command` text, `coreId` id, `requestId` id |
+| `KosRunResult` | `coreId` id, `error` text, `requestId` id |
+| `KosTerminalCloseArgs` | `coreId` id, `leaseToken` id |
+| `KosTerminalFrame` | `chunk` text, `coreId` id, `fullRepaint` flag |
+| `KosTerminalOpenArgs` | `coreId` id, `leaseToken` id |
+| `KosTerminalResizeArgs` | `cols` count, `coreId` id, `leaseToken` id, `rows` count |
+
 ## Widgets
 
 ### kOS Script Trigger
@@ -88,6 +115,15 @@ Every widget above carries the framework's universal segments (`badges`, `filter
 
 ## What this page cannot tell you
 
+- which topic each of the 10 shapes under
+  "Command args, dynamic channels and extensions" travels on. A dynamic
+  namespace composes its topic per subject at runtime and an extensions
+  bag has no topic of its own, so there is no fixed name for the codegen
+  to reflect; the mod's own channel constants are where those strings live
+- which commands the Uplink accepts, and each one's DELAY ROLE. Both are
+  declared where the mod registers them rather than as an attribute on a
+  payload, and the client sends a command by naming it at the call site,
+  so neither half of the build can enumerate them
 - capabilities the mod half declares, which are registered imperatively
   rather than as a field, so nothing can enumerate them
 - what a widget DOES, as opposed to what it reads. That is the one thing

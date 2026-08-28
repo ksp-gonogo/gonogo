@@ -1,0 +1,11 @@
+{
+  "id": "avionics",
+  "version": "0.0.1",
+  "description": "Answers the one question an RP-1 launch turns on: is this vessel light enough for the avionics unit flying it. The unit has a controllable-mass limit, and a vessel over it does not fly, so the readout is a go/no-go rather than a gauge.",
+  "minAppVersion": "0.0.0",
+  "apiVersion": "1.0.0",
+  "uiKitVersion": "0.2.0",
+  "contractMajor": 13,
+  "contractMinor": 2,
+  "integrity": ""
+}

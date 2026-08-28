@@ -24,6 +24,9 @@
     "release:minor": "node scripts/release.mjs minor",
     "release:major": "node scripts/release.mjs major",
     "uplink-matrix": "node scripts/uplink-matrix.mjs",
+    "uplink-docs": "bash scripts/uplink-docs.sh",
+    "uplink-docs:check": "bash scripts/uplink-docs.sh --check",
+    "uplink-docs-gate": "node scripts/uplink-docs-gate.mjs",
     "uplink-extraction-probe": "node scripts/uplink-extraction-probe.mjs",
     "uplink-csharp-extraction-probe": "node scripts/uplink-csharp-extraction-probe.mjs"
   },

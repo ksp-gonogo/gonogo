@@ -1,7 +1,7 @@
 import { mkdir, readdir, rm, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 import { pathToFileURL } from "node:url";
-import { chromium, firefox, type Locator, type Page, webkit } from "playwright";
+import type { Locator, Page } from "playwright";
 import type {
   RenderProbeApi,
   ScenePayload,
@@ -26,7 +26,42 @@ import { assertEveryWidgetCovered, buildScenes, type Scene } from "./scenes";
  */
 
 export type Engine = "chromium" | "firefox" | "webkit";
-const ENGINES = { chromium, firefox, webkit };
+
+/**
+ * playwright, imported when an engine is actually launched.
+ *
+ * It is an OPTIONAL peer of this package and this module's own header promises
+ * that "a missing one fails with a named message rather than a resolution error".
+ * That promise was false while the import sat at module scope: Node threw
+ * ERR_MODULE_NOT_FOUND out of `dist/render.js` before a line of ours ran, which
+ * is what an author copying the template met when they ran `npm run docs`, naming
+ * a package they had never heard of and a file inside somebody else's dist.
+ *
+ * Only the VALUES move. `Page` and `Locator` stay type-only imports, which erase,
+ * so the signatures throughout this file keep their real types.
+ */
+async function engine(name: Engine) {
+  let playwright: typeof import("playwright");
+  try {
+    playwright = await import("playwright");
+  } catch (err) {
+    if (
+      err instanceof Error &&
+      /Cannot find (module|package)|ERR_MODULE_NOT_FOUND/.test(err.message)
+    ) {
+      throw new Error(
+        "rendering needs playwright, which is not installed. It is your " +
+          "dependency rather than ui-kit's, so an author who pins a version " +
+          "gets the one they pinned:\n" +
+          "  npm i -D playwright && npx playwright install chromium\n" +
+          "Both halves are needed: the package drives a browser and the second " +
+          "command downloads one.",
+      );
+    }
+    throw err;
+  }
+  return playwright[name];
+}
 
 /** Arbitrary, stable: 2023-11-14T22:13:20Z. Only its fixedness matters. */
 const FIXED_EPOCH_MS = 1_700_000_000_000;
@@ -119,7 +154,7 @@ export async function renderUplink(
     ...pkg.renderWith,
     ...(opts.withModules ?? []),
   ]);
-  const browser = await ENGINES[opts.engine].launch();
+  const browser = await (await engine(opts.engine)).launch();
   const pageErrors: string[] = [];
   const assets: RenderedAsset[] = [];
   try {

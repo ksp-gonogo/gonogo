@@ -149,7 +149,18 @@ jobs:
 
       - run: pnpm --filter @ksp-gonogo/components probe-render-smoke
 
-      # Uplink page drift: regenerate each migrated Uplink's README and
+      # Does every client-bearing Uplink HAVE a generated page. A second's worth
+      # of filesystem, and it precedes the drift check below because the two
+      # answer different questions and the cheap one answers first: a missing
+      # page is not a stale page, and until this landed nine of ten Uplinks had
+      # no page at all while the drift check reported green for the tenth.
+      #
+      # It plants three trees and proves it can see a missing page before
+      # reporting on the real ten, and refuses if discovery hands it nothing.
+      - name: Every Uplink has a generated page
+        run: node scripts/uplink-docs-gate.mjs
+
+      # Uplink page drift: regenerate every client-bearing Uplink's README and
       # `gonogo-uplink.json` in memory and fail on any difference.
       #
       # In `test` for the same reason as the two steps above: `visual` is red on
@@ -159,6 +170,13 @@ jobs:
       # still describe the Uplink the code actually is". A page that quietly
       # stops listing a widget reads exactly like an Uplink with fewer widgets.
       #
+      # ALL TEN, where this used to name `gonogo-kos-uplink` alone. It was one
+      # line because the drift check was reached through a `docs:check` script
+      # exactly one Uplink had; the CLI needs no script line, so there is nothing
+      # left to opt into. `uplink-docs.yml` regenerates and commits back on main,
+      # and this stays anyway: a workflow that silently fixes main means nobody
+      # sees a generator that has quietly stopped emitting a section.
+      #
       # Asset BYTES are deliberately not compared, only which assets exist:
       # rasterisation is per-engine and per-OS, so a byte comparison would fail
       # on every machine but the one that generated it, and a gate that cries
@@ -166,7 +184,7 @@ jobs:
       - name: Uplink pages are not stale
         run: |
           pnpm --filter @ksp-gonogo/ui-kit... build
-          pnpm --filter @ksp-gonogo/gonogo-kos-uplink docs:check
+          pnpm uplink-docs:check
 
       # Min-size gate: mounts EVERY registered widget at the `minSize` it itself
       # declares and fails when its title ellipsises, its content is clipped with
