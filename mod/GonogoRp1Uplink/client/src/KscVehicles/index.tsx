@@ -64,6 +64,15 @@ export const RP1_COMPLEX_RUSH_COMMAND = "rp1.complex.rush";
  * could watch a complex integrate and could not ask it to start, move or cancel
  * anything.</para>
  *
+ * <para><b>The repeat is one control per DESIGN, below both lists, and not a
+ * button on every card.</b> On a card it read as "build", which this surface
+ * cannot do: the only build command RP-1 exposes copies something the centre
+ * already holds, so an operator was offered a second Atlas on a card and had no
+ * way to order a first one anywhere. Named for what it repeats and stood apart
+ * from the vehicles it repeats, it stops claiming to be the general case. There
+ * is no control for building a design the centre has never built, because there
+ * is no command for it.</para>
+ *
  * <para><b>Two lists, drawn as two.</b> RP-1 holds a vehicle in the warehouse or
  * on the build list, never both, and the two answer different questions: what
  * can fly, and what is being made. Interleaving them left every vehicle carrying
@@ -117,10 +126,14 @@ export function KscVehicles() {
   // the same rule KscConstruction applies to centres. The complex list below
   // names them either way, because there the name is the row.
   const nameComplex = complexList.length > 1;
-  const handles = { repeat, rollout, rollback, scrap };
+  const handles = { rollout, rollback, scrap };
 
   return (
-    <Section>
+    // A step wider than a section of rows, because this one's children are
+    // GROUPS: at the tightest gap "VEHICLES" sat as close to "Warehouse" as
+    // "Warehouse" sat to its own cards, so nothing said which heading owned
+    // which.
+    <Section gap="lg">
       <SectionTitle>VEHICLES</SectionTitle>
 
       {built.length === 0 && building.length === 0 ? (
@@ -138,7 +151,7 @@ export function KscVehicles() {
             nameComplex={nameComplex}
             operations={operations}
             pads={pads}
-            title="In the warehouse"
+            title="Warehouse"
             waiting={false}
           />
           <VehicleGroup
@@ -148,14 +161,22 @@ export function KscVehicles() {
             nameComplex={nameComplex}
             operations={operations}
             pads={pads}
-            title="On the build list"
+            title="Building"
             waiting
+          />
+          <RepeatBuilds
+            designs={repeatableDesigns(
+              [built, building],
+              complexList,
+              nameComplex,
+            )}
+            handle={repeat}
           />
         </>
       )}
 
       {complexList.length > 0 && (
-        <>
+        <Stack gap="xs">
           <SectionTitle>Launch complexes</SectionTitle>
           <Stack as="ul" gap="xs" style={LIST_STYLE}>
             {complexList.map((complex) => (
@@ -166,15 +187,14 @@ export function KscVehicles() {
               />
             ))}
           </Stack>
-        </>
+        </Stack>
       )}
     </Section>
   );
 }
 
-/** The four command handles a vehicle card can dispatch. */
+/** The three command handles a vehicle card can dispatch. */
 type VehicleHandles = Readonly<{
-  repeat: Parameters<typeof CommandButton>[0]["handle"];
   rollout: Parameters<typeof CommandButton>[0]["handle"];
   rollback: Parameters<typeof CommandButton>[0]["handle"];
   scrap: Parameters<typeof CommandButton>[0]["handle"];
@@ -217,7 +237,9 @@ function VehicleGroup({
   }
 
   return (
-    <>
+    // Its own stack, at the tight gap, so the heading belongs to the cards
+    // under it rather than floating between two groups spaced the same.
+    <Stack gap="xs">
       <Text size="xs" tone="muted">
         {title}
       </Text>
@@ -234,20 +256,127 @@ function VehicleGroup({
           />
         ))}
       </Stack>
-    </>
+    </Stack>
+  );
+}
+
+/** One design RP-1 can be asked for another copy of. */
+type RepeatableDesign = Readonly<{
+  /** The vehicle the command is addressed to, one existing copy of the design. */
+  id: string;
+  name: string;
+  /** The name, with its complex where the centre has more than one. */
+  label: string;
+  cost: Rp1WarehouseItemEntry["cost"];
+}>;
+
+/**
+ * The repeat controls, one per design, under both lists.
+ *
+ * <para>Named for the design each one copies, because the name is the whole of
+ * what distinguishes them and a strip of buttons all reading "Build another"
+ * would be four presses an operator cannot tell apart.</para>
+ *
+ * <para>The heading says REPEAT rather than build. RP-1 has no command for
+ * building a design the centre has never held, so a heading saying "build"
+ * would promise the one thing this surface cannot do.</para>
+ */
+function RepeatBuilds({
+  designs,
+  handle,
+}: Readonly<{
+  designs: readonly RepeatableDesign[];
+  handle: Parameters<typeof CommandButton>[0]["handle"];
+}>) {
+  if (designs.length === 0) {
+    return null;
+  }
+
+  return (
+    <Stack gap="xs">
+      <Text size="xs" tone="muted">
+        Repeat a build
+      </Text>
+      <Cluster gap="xs" justify="start" wrap>
+        {designs.map((design) => (
+          <CommandButton
+            args={{ id: design.id }}
+            aria-label={`Build another ${design.label}`}
+            commandLabel={`Build another ${design.name}`}
+            confirmAriaLabel={`Confirm building another ${design.label}`}
+            confirmLabel={<SpendWording cost={design.cost} />}
+            handle={handle}
+            key={design.id}
+            label={`Build another ${design.name}`}
+            size="sm"
+          />
+        ))}
+      </Cluster>
+    </Stack>
   );
 }
 
 /**
- * One vehicle: what it is, where it has got to, what it cost, and every action
- * available to it right now.
+ * Every design the centre could be asked for another copy of, once each.
  *
- * <para>Every control ARMS before it dispatches. Three of the four move career
- * funds and the fourth throws away a rollout that has been part-paid for, and
- * the ui-kit rule for anything in that class is that one press must not commit
- * it. The price is on the confirm wording rather than the resting one: an
- * operator scanning a list wants the names, and an operator about to spend wants
- * the number.</para>
+ * <para>Collapsed by complex and name, because that pair IS the design here:
+ * two Atlases at LC-1 are the same craft file built twice, and offering a
+ * control per copy asked an operator to choose between two presses that do the
+ * same thing. The command is still addressed to a vehicle id, so one existing
+ * copy is carried as the target, and a finished one is preferred over a queued
+ * one only because the warehouse list is read first.</para>
+ *
+ * <para>A vehicle RP-1 gave no id to is skipped, for the reason its card gives:
+ * the name would have to be guessed back into an id. One with no NAME is
+ * skipped too, because a button reading "Build another {NULL_DISPLAY}" names
+ * nothing an operator could choose between.</para>
+ */
+function repeatableDesigns(
+  lists: readonly (readonly (Rp1BuildItemEntry | Rp1WarehouseItemEntry)[])[],
+  complexes: readonly Rp1ComplexEntry[],
+  nameComplex: boolean,
+): readonly RepeatableDesign[] {
+  const designs = new Map<string, RepeatableDesign>();
+  for (const list of lists) {
+    for (const item of list) {
+      const id = item.id;
+      const name = item.shipName;
+      if (
+        id === undefined ||
+        id === null ||
+        name === undefined ||
+        name === null ||
+        name === ""
+      ) {
+        continue;
+      }
+      const key = `${item.lcId ?? ""}:${name}`;
+      if (designs.has(key)) {
+        continue;
+      }
+      const complex = complexName(complexes, item.lcId, nameComplex);
+      designs.set(key, {
+        cost: item.cost,
+        id,
+        label: complex === null ? name : `${name} · ${complex}`,
+        name,
+      });
+    }
+  }
+  return [...designs.values()];
+}
+
+/**
+ * One vehicle: what it is, where it has got to, what it cost, and every action
+ * that acts on THIS copy of it. Ordering another copy is not one of them; it is
+ * a design-level control and lives under both lists.
+ *
+ * <para>Every control ARMS before it dispatches. A scrap moves career funds and
+ * a rollback throws away a rollout that has been part-paid for, and the ui-kit
+ * rule for anything in that class is that one press must not commit it. The
+ * price is on the confirm wording rather than the resting one: an operator
+ * scanning a list wants the names, and an operator about to spend wants the
+ * number.</para>
  *
  * <para>Which controls appear is decided by the vehicle's OPERATION, not by
  * guesswork: RP-1 refuses a rollout for a vehicle already moving and refuses a
@@ -378,16 +507,6 @@ function VehicleActions({
   return (
     <Stack gap="xs">
       <Cluster gap="xs" justify="start" wrap>
-        <CommandButton
-          args={{ id }}
-          aria-label={`Build another ${label}`}
-          commandLabel={`Build another ${name}`}
-          confirmAriaLabel={`Confirm building another ${label}`}
-          confirmLabel={<SpendWording cost={cost} />}
-          handle={handles.repeat}
-          label="Build another"
-          size="sm"
-        />
         <RolloutControls
           handle={handles.rollout}
           id={id}

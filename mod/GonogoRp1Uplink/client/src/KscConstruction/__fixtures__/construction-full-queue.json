@@ -86,12 +86,6 @@
         ]
       },
       {
-        "topic": "spaceCenter.partsAvailable",
-        "payload": {
-          "count": 142
-        }
-      },
-      {
         "topic": "rp1.available",
         "payload": true
       },
