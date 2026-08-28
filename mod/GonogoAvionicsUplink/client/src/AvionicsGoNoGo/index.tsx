@@ -104,7 +104,7 @@ registerComponent<AvionicsConfig>({
     "RP-1 ascent controllability: is the vessel mass within the active avionics unit's tonnage limit.",
   tags: ["control", "ro"],
   defaultSize: { w: 4, h: 4 },
-  minSize: { w: 3, h: 3 },
+  minSize: { w: 4, h: 3 },
   component: AvionicsGoNoGoComponent,
   channels: ["avionics.status"],
   defaultConfig: {},
