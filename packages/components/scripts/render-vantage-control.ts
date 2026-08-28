@@ -56,10 +56,13 @@ document.head.appendChild(__style);`,
   },
 };
 
-function extractRootBlock(css: string): string {
-  const match = css.match(/:root\s*\{[\s\S]*?\}/);
-  if (!match) throw new Error("tokens.css: no :root block found");
-  return match[0];
+/** The theme sheet whole, checked to be the tokens file. The border-box reset
+ *  the kit's primitives are drawn against sits outside the `:root` block. */
+function themeCss(css: string): string {
+  if (!/:root\s*\{/.test(css)) {
+    throw new Error("tokens.css: no :root block found");
+  }
+  return css;
 }
 
 /** Inline JetBrains Mono as a data-URI @font-face, matching every other
@@ -142,7 +145,7 @@ async function main(): Promise<void> {
   const bundleJs = bundleResult.outputFiles[0].text;
   const escapedBundle = bundleJs.replace(/<\/script/gi, "<\\/script");
 
-  const themeCss = extractRootBlock(await readFile(THEME_TOKENS_CSS, "utf8"));
+  const theme = themeCss(await readFile(THEME_TOKENS_CSS, "utf8"));
   const fontFace = await jetbrainsMonoFontFace();
 
   const html = `<!doctype html>
@@ -150,7 +153,7 @@ async function main(): Promise<void> {
   <head>
     <meta charset="utf-8" />
     <title>Vantage control probe</title>
-    <style id="probe-theme">${fontFace}${themeCss}</style>
+    <style id="probe-theme">${fontFace}${theme}</style>
     <style>
       html, body {
         margin: 0;

@@ -103,14 +103,13 @@ async function main(): Promise<void> {
     define: { "process.env.NODE_ENV": '"production"' },
   });
   const bundleJs = bundleResult.outputFiles[0].text;
-  const themeCss = extractRootBlock(await readFile(THEME_TOKENS_CSS, "utf8"));
+  const theme = themeCss(await readFile(THEME_TOKENS_CSS, "utf8"));
   const escapedBundle = bundleJs.replace(/<\/script/gi, "<\\/script");
 
   const html = `<!doctype html><html lang="en"><head><meta charset="utf-8" />
-<style>${themeCss}</style>
+<style>${theme}</style>
 <style>
   html,body{margin:0;padding:0;background:var(--color-surface-app);color:var(--color-text-primary);font-family:var(--font-family-mono);}
-  #root{box-sizing:border-box;}
 </style></head><body><div id="root"></div>
 <script type="module">${escapedBundle}</script></body></html>`;
 
@@ -139,10 +138,13 @@ async function main(): Promise<void> {
   }
 }
 
-function extractRootBlock(css: string): string {
-  const m = css.match(/:root\s*\{[\s\S]*?\}/);
-  if (!m) throw new Error("tokens.css: no :root block found");
-  return m[0];
+/** The theme sheet whole, checked to be the tokens file. The border-box reset
+ *  the kit's primitives are drawn against sits outside the `:root` block. */
+function themeCss(css: string): string {
+  if (!/:root\s*\{/.test(css)) {
+    throw new Error("tokens.css: no :root block found");
+  }
+  return css;
 }
 
 main().catch((err) => {

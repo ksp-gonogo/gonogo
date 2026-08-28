@@ -34,7 +34,7 @@ const OUT_DIR = resolve(
  * The theme package's SOURCE tokens.css, which is plain text, needs no bundler
  * resolution and does not depend on `@ksp-gonogo/theme` having been built.
  * `global.css` only `@import`s the theme, so it carries no `:root` block for
- * `extractRootBlock` to match and this driver threw on every run.
+ * `themeCss` to check and this driver threw on every run.
  */
 const THEME_TOKENS_CSS = resolve(HERE, "../../theme/src/tokens.css");
 
@@ -73,7 +73,7 @@ async function main(): Promise<void> {
   const bundleJs = bundleResult.outputFiles[0].text;
 
   const htmlTemplate = await readFile(PROBE_HTML_TEMPLATE, "utf8");
-  const themeCss = extractRootBlock(await readFile(THEME_TOKENS_CSS, "utf8"));
+  const theme = themeCss(await readFile(THEME_TOKENS_CSS, "utf8"));
   // Same `$&` / `</script>` escaping as the widget harness, bundled
   // React code contains literal `$&` (sanitisation helpers) and
   // string-form .replace would treat that as a backreference.
@@ -81,7 +81,7 @@ async function main(): Promise<void> {
   const htmlWithBundle = htmlTemplate
     .replace(
       '<style id="probe-theme">/* injected by render-descent-envelope-drag driver from packages/app/src/styles/global.css */</style>',
-      () => `<style id="probe-theme">${themeCss}</style>`,
+      () => `<style id="probe-theme">${theme}</style>`,
     )
     .replace(
       '<script type="module" src="./descent-envelope-probe-entry.bundle.js"></script>',
@@ -149,10 +149,13 @@ async function main(): Promise<void> {
   }
 }
 
-function extractRootBlock(css: string): string {
-  const m = css.match(/:root\s*\{[\s\S]*?\}/);
-  if (!m) throw new Error("tokens.css: no :root block found");
-  return m[0];
+/** The theme sheet whole, checked to be the tokens file. The border-box reset
+ *  the kit's primitives are drawn against sits outside the `:root` block. */
+function themeCss(css: string): string {
+  if (!/:root\s*\{/.test(css)) {
+    throw new Error("tokens.css: no :root block found");
+  }
+  return css;
 }
 
 async function cleanArtifacts(dir: string): Promise<void> {

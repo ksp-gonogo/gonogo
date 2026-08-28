@@ -1433,7 +1433,6 @@ const Container = styled.div<{ $readOnly?: boolean }>`
   border: 1px solid ${({ $readOnly }) => ($readOnly ? "var(--color-status-info-bg)" : "var(--color-border-subtle)")};
   border-radius: var(--radius-md);
   overflow: hidden;
-  box-sizing: border-box;
 
   /* xterm.js mounts a child div: make it fill the container */
   .xterm {
@@ -1490,7 +1489,6 @@ const CompositionBar = styled.div<{ $noPath: boolean }>`
   font-family: monospace;
   /* Locked to xterm's own fontSize option; see TERMINAL_FONT_PX. */
   font-size: ${TERMINAL_FONT_PX}px;
-  box-sizing: border-box;
 `;
 
 // Compact "NO PATH" flag pinned to the top edge of the composition bar

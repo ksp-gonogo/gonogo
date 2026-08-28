@@ -5,7 +5,6 @@
   position: absolute;
   width: 20px;
   height: 20px;
-  box-sizing: border-box;
   /* No glyph: the default react-resizable corner SVG is a black icon that's
      invisible over dark chrome and looks broken where it does show. We keep
      the handles as generous invisible hit zones and let the per-direction

@@ -66,7 +66,6 @@ const inputBase = `
   color: var(--color-text-primary);
   font-size: var(--font-size-base);
   padding: var(--space-6, 6px) var(--space-8, 8px);
-  box-sizing: border-box;
 
   &:focus {
     /* var(--color-accent-fg) on var(--color-surface-raised) ≈ 11.4:1: well clear of WCAG 1.4.11's 3:1 minimum

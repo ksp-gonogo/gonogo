@@ -58,7 +58,6 @@ const PanelStatusDot__Root = styled.span<{
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  box-sizing: border-box;
   /* One fixed diameter whether or not a count is shown. A count rendered as a
      direct text child sits in normal flex-item flow, where it can nudge this
      box's effective cross-size and, with it, the box's centred position in the

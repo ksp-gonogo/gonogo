@@ -1,3 +1,25 @@
+/*
+ * Every box measures its padding and border INSIDE the width it was given.
+ *
+ * Without this, a rule pairing `width: 100%` with horizontal padding resolves
+ * to 100% plus that padding and hangs over its parent's edge by exactly the
+ * inset. The panel toolbar measured 542px inside a 510px row, at every tile
+ * width and in every widget that drew one, and a fill empty state was 32px
+ * wider than the panel it was centred in, so its sentence was sliced by the
+ * border in four widgets at once. Neither is visible from the source: the rule
+ * that overflows reads as if it asks for exactly the space it has.
+ *
+ * It lives here because this file is what a page loads to be a gonogo page:
+ * the app imports it, and every render probe injects it verbatim. A page that
+ * draws kit primitives without it draws them at a size their authors never
+ * measured.
+ */
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
 :root {
   --font-family-mono:
     "JetBrains Mono", ui-monospace, "IBM Plex Mono", Menlo, Consolas, monospace;

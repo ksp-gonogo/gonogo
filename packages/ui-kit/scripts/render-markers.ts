@@ -26,10 +26,13 @@ const THEME_TOKENS_CSS = resolve(HERE, "../../theme/src/tokens.css");
 const OUT_DIR = resolve(HERE, "../../../local_docs/renders/icons");
 const OUT = join(OUT_DIR, "markers.png");
 
-function rootBlock(css: string): string {
-  const match = css.match(/:root\s*\{[\s\S]*?\}/);
-  if (!match) throw new Error(`${THEME_TOKENS_CSS}: no :root block`);
-  return match[0];
+/** The theme sheet whole, checked to be the tokens file. The border-box reset
+ *  the kit's primitives are drawn against sits outside the `:root` block. */
+function themeCss(css: string): string {
+  if (!/:root\s*\{/.test(css)) {
+    throw new Error(`${THEME_TOKENS_CSS}: no :root block`);
+  }
+  return css;
 }
 
 async function main(): Promise<void> {
@@ -44,7 +47,7 @@ async function main(): Promise<void> {
     define: { "process.env.NODE_ENV": '"production"' },
   });
   const js = bundle.outputFiles[0].text.replace(/<\/script/gi, "<\\/script");
-  const tokens = rootBlock(await readFile(THEME_TOKENS_CSS, "utf8"));
+  const tokens = themeCss(await readFile(THEME_TOKENS_CSS, "utf8"));
   const html = `<!doctype html><html><head><meta charset="utf-8">
 <style>${tokens}
 html, body { margin: 0; background: #444; font-family: ui-monospace, Menlo, monospace; }

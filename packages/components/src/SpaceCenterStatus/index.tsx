@@ -876,7 +876,6 @@ const UpgradeButtonStyled = styled(FitLabelButton)`
   color: var(--color-text-muted);
   cursor: pointer;
   font-family: inherit;
-  box-sizing: border-box;
   text-align: center;
   /* At the narrow default-6x7 3-col grid the facility cell interior is
      only ~46px: narrower than "Upgrade" can render on one line. A

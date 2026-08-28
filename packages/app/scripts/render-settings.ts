@@ -275,10 +275,13 @@ const SCENES: Scene[] = [
   },
 ];
 
-function extractRootBlock(css: string): string {
-  const match = css.match(/:root\s*\{[\s\S]*?\}/);
-  if (!match) throw new Error("tokens.css: no :root block found");
-  return match[0];
+/** The theme sheet whole, checked to be the tokens file. The border-box reset
+ *  the kit's primitives are drawn against sits outside the `:root` block. */
+function themeCss(css: string): string {
+  if (!/:root\s*\{/.test(css)) {
+    throw new Error("tokens.css: no :root block found");
+  }
+  return css;
 }
 
 async function prepareProbePage(): Promise<string> {
@@ -302,12 +305,12 @@ async function prepareProbePage(): Promise<string> {
   });
   const bundleJs = result.outputFiles[0].text;
   const html = await readFile(PROBE_HTML, "utf8");
-  const themeCss = extractRootBlock(await readFile(THEME_TOKENS_CSS, "utf8"));
+  const theme = themeCss(await readFile(THEME_TOKENS_CSS, "utf8"));
   const escaped = bundleJs.replace(/<\/script/gi, "<\\/script");
   const out = html
     .replace(
       '<style id="probe-theme">/* injected by the render driver from packages/theme/src/tokens.css */</style>',
-      () => `<style id="probe-theme">${themeCss}</style>`,
+      () => `<style id="probe-theme">${theme}</style>`,
     )
     .replace(
       '<script type="module" src="./settings-probe-entry.bundle.js"></script>',

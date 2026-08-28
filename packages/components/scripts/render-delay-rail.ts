@@ -257,12 +257,12 @@ async function main(): Promise<void> {
   const bundleJs = bundleResult.outputFiles[0].text;
 
   const htmlTemplate = await readFile(PROBE_HTML_TEMPLATE, "utf8");
-  const themeCss = extractRootBlock(await readFile(THEME_TOKENS_CSS, "utf8"));
+  const theme = themeCss(await readFile(THEME_TOKENS_CSS, "utf8"));
   const escapedBundle = bundleJs.replace(/<\/script/gi, "<\\/script");
   const htmlWithBundle = htmlTemplate
     .replace(
       '<style id="probe-theme">/* injected by render-delay-rail driver from packages/theme/src/tokens.css */</style>',
-      () => `<style id="probe-theme">${themeCss}</style>`,
+      () => `<style id="probe-theme">${theme}</style>`,
     )
     .replace(
       '<script type="module" src="./delay-rail-probe-entry.bundle.js"></script>',
@@ -352,10 +352,13 @@ async function main(): Promise<void> {
   }
 }
 
-function extractRootBlock(css: string): string {
-  const m = css.match(/:root\s*\{[\s\S]*?\}/);
-  if (!m) throw new Error("tokens.css: no :root block found");
-  return m[0];
+/** The theme sheet whole, checked to be the tokens file. The border-box reset
+ *  the kit's primitives are drawn against sits outside the `:root` block. */
+function themeCss(css: string): string {
+  if (!/:root\s*\{/.test(css)) {
+    throw new Error("tokens.css: no :root block found");
+  }
+  return css;
 }
 
 async function cleanArtifacts(dir: string): Promise<void> {

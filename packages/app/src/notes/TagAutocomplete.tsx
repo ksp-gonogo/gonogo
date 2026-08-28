@@ -276,7 +276,6 @@ const inputStyles = `
   padding: var(--space-4) var(--space-6);
   border-radius: var(--radius-xs);
   width: 100%;
-  box-sizing: border-box;
   outline: none;
 
   &:focus {

@@ -622,7 +622,6 @@ const MainLayout = styled.div`
   width: 100%;
   height: 100%;
   padding: var(--space-12);
-  box-sizing: border-box;
 `;
 
 const MainHeader = styled.div`

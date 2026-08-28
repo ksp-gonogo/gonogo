@@ -238,12 +238,6 @@ const Disclosure__Panel = styled.div<{ $variant: "popover" | "inline" }>`
       : css`
           position: static;
           width: 100%;
-          /* border-box, because width: 100% + padding + border otherwise
-             overflows the host row by the padding + border on each side:
-             exactly the "ledger spills past its Card" defect operators hit
-             at every width. Scoped here rather than a global reset so no
-             other primitive's baseline moves. */
-          box-sizing: border-box;
           margin-top: var(--space-2);
           /* An accordion body must never overlay or overflow the row below it:
              it grows in flow up to a cap, then scrolls its own content rather
