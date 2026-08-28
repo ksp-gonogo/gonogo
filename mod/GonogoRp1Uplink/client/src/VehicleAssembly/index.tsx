@@ -12,6 +12,7 @@ import "../topics";
 // package entry's import order, because a widget that lost its own sections to
 // a module-ordering accident would look like a telemetry outage.
 import "./Building";
+import "./Buildable";
 import "./Warehouse";
 import { VEHICLE_ASSEMBLY_SECTIONS } from "./slot";
 
@@ -19,23 +20,21 @@ import { VEHICLE_ASSEMBLY_SECTIONS } from "./slot";
  * Build another copy of a design RP-1 already holds. Must match
  * `Rp1BuildCommands.RepeatCommand`.
  *
- * <para><b>Exported and deliberately without a control.</b> RP-1's only build
- * command COPIES something the centre already has, so a button for it can order
- * a second Atlas and can never order a first one, and a surface offering only
- * the special case reads as offering the general one. Starting a design the
- * centre has never built needs a command that does not exist yet; until it
- * does, this widget shows what is built and what is being built and offers no
- * way to begin one. An honest absence beats a control that does the special
- * case. The name stays because the command stays live on the mod side, and the
- * surface that eventually starts a build should not re-derive the string.</para>
+ * <para><b>Exported and still without a control.</b> It COPIES something the
+ * centre already has, so a button for it can order a second Atlas and can never
+ * order a first one. The general case now exists as `rp1.build.start`, which
+ * starts any saved craft at any complex that will take it, and a repeat is that
+ * command run again on the same craft file: a second button doing the same job
+ * from a different address would be two ways to order one thing. The name stays
+ * because the command stays live on the mod side.</para>
  */
 export const RP1_BUILD_REPEAT_COMMAND = "rp1.build.repeat";
 
 type VehicleAssemblyConfig = Record<string, never>;
 
 /**
- * Every craft RP-1's space centre is making or holding, across every launch
- * complex, and the actions that move them.
+ * Every craft RP-1's space centre is making, holding or could start, across
+ * every launch complex, and the actions that move them.
  *
  * <para><b>Purely construction and rollout for vehicles.</b> A launch complex
  * shows up in three widgets answering three different questions, and the
@@ -67,9 +66,11 @@ type VehicleAssemblyConfig = Record<string, never>;
  * with their own copy is the same rule satisfied three times in one widget,
  * which reads as a defect rather than as care.</para>
  *
- * <para><b>Nothing here starts a build.</b> See
- * {@link RP1_BUILD_REPEAT_COMMAND} for why the one build command RP-1 exposes
- * gets no control.</para>
+ * <para><b>Starting a build lives in a section like the others.</b> It reads
+ * `rp1.buildable`, which is the save's craft files measured against every
+ * complex, and dispatches `rp1.build.start`. See
+ * {@link RP1_BUILD_REPEAT_COMMAND} for why RP-1's own repeat command still gets
+ * no control of its own.</para>
  */
 export function VehicleAssembly() {
   const available = current(useTelemetry("rp1.available"));
@@ -195,10 +196,10 @@ registerComponent<VehicleAssemblyConfig>({
   id: "rp1-vehicle-assembly",
   name: "Vehicle Assembly",
   description:
-    "Every craft RP-1 is integrating or holding, across every launch " +
-    "complex at every space centre: what it costs, how far along it is, why " +
-    "its clock reads what it reads, and the controls to roll one out, bring " +
-    "it back or scrap it.",
+    "Every craft RP-1 is integrating, holding or could start, across every " +
+    "launch complex at every space centre: what it costs, how far along it " +
+    "is, why its clock reads what it reads, and the controls to start a " +
+    "build, roll one out, bring it back or scrap it.",
   tags: ["rp1", "career", "vehicles"],
   defaultSize: { w: 7, h: 16 },
   minSize: { w: 4, h: 6 },
@@ -208,11 +209,13 @@ registerComponent<VehicleAssemblyConfig>({
     "rp1.available",
     "rp1.warehouse",
     "rp1.buildQueue",
+    "rp1.buildable",
     "rp1.complexes",
     "rp1.pads",
     "rp1.operations",
-    // The spend rule: a rollout is billed as the vehicle moves and a scrap
-    // refunds it, so the balance those are judged against has to be in here.
+    // The spend rule: a rollout is billed as the vehicle moves, a scrap refunds
+    // it, and starting a build buys the vehicle outright, so the balance those
+    // are judged against has to be in here.
     "career.status",
   ],
   defaultConfig: {},

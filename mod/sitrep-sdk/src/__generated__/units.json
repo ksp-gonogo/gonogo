@@ -1879,6 +1879,9 @@
     "CommsSignalStrength": {
       "meta": "PayloadMeta"
     },
+    "CraftLoad": {
+      "measured": "CraftFileRecord"
+    },
     "CrashReport": {
       "flightStats": "CrashFlightStats",
       "partsLost": "CrashPartLost[]"

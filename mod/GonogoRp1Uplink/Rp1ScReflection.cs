@@ -316,6 +316,7 @@ namespace GonogoRp1Uplink
             var canIntegrate = projectBpTotal == 0.0;
 
             var ramp = RampFor(efficiencySource, isRushing, engineers, maxEngineers, efficiency, maxEfficiency);
+            var sizeMax = Member(lc, "SizeMax");
 
             raw.Complexes.Add(new Rp1ComplexRaw
             {
@@ -339,6 +340,9 @@ namespace GonogoRp1Uplink
                 ResourcesHandled = ReadResourcesHandled(lc),
                 SalaryPerDay = SalaryPerDay(payroll, payroll.ComplexSalary, lc),
                 UpkeepPerDay = ComplexUpkeep(payroll, lc),
+                SizeMaxX = UnlimitedAsAbsent(ReadDouble(sizeMax, "x")),
+                SizeMaxY = UnlimitedAsAbsent(ReadDouble(sizeMax, "y")),
+                SizeMaxZ = UnlimitedAsAbsent(ReadDouble(sizeMax, "z")),
             });
 
             foreach (var vp in Enumerate(Member(lc, "BuildList")))
@@ -1148,13 +1152,14 @@ namespace GonogoRp1Uplink
         /// instead, because a command runs at the moment of a press and is exactly
         /// where RP-1's own button calls it.</para>
         ///
-        /// <para><b>This is the SECOND reproduction of RP-1's envelope in this
-        /// assembly</b>, after <see cref="Rp1LaunchGate"/>'s, and the duplication
-        /// is deliberate for now rather than unnoticed: collapsing them means
-        /// refactoring a launch gate that is load-bearing for every launch, and
-        /// that is not a change to make in the same commit as a new wire field.
-        /// The mitigation is a test that runs one fixture through both and asserts
-        /// they agree, so the copies cannot drift silently; see
+        /// <para><b>The comparison itself is no longer written here.</b> It lives
+        /// in <see cref="Rp1Envelope"/>, which this hands measurements to, because
+        /// a craft FILE needs the same arithmetic against measurements that come
+        /// from a file rather than from a vehicle and a third copy was not worth
+        /// having. <see cref="Rp1LaunchGate"/> still carries its own: it is
+        /// load-bearing for every launch and its inputs are live objects rather
+        /// than numbers, and a test that runs one fixture through both and asserts
+        /// they agree is what keeps the two honest; see
         /// <c>Rp1RolloutEligibilityTests</c>.</para>
         ///
         /// <para>A zero mass or a zero size axis is a figure nobody wrote down
@@ -1173,65 +1178,28 @@ namespace GonogoRp1Uplink
                 reasons.Add("some of its parts are not present in this install");
             }
 
-            var mass = ReadDouble(vp, "mass");
-            var massMax = UnlimitedAsAbsent(ReadDouble(lc, "MassMax"));
-            var massMin = ReadDouble(lc, "MassMin");
-            if (mass != null && mass > 0.0 && massMax != null && mass > massMax)
-            {
-                reasons.Add("too heavy for the complex at "
-                    + mass.Value.ToString("N1", CultureInfo.InvariantCulture) + " t, limit "
-                    + massMax.Value.ToString("N1", CultureInfo.InvariantCulture) + " t");
-            }
-            if (mass != null && mass > 0.0 && massMin != null && mass < massMin)
-            {
-                // RP-1's floor, which stock has no concept of: a complex rated
-                // for a Saturn V cannot usefully integrate a sounding rocket.
-                reasons.Add("too light for the complex at "
-                    + mass.Value.ToString("N1", CultureInfo.InvariantCulture) + " t, minimum "
-                    + massMin.Value.ToString("N1", CultureInfo.InvariantCulture) + " t");
-            }
-
-            var axis = ExceededSizeAxis(lc, vp);
-            if (axis != null)
-            {
-                reasons.Add("too large for the complex on its " + axis + " axis");
-            }
-
-            if (ReadBool(vp, "humanRated") == true && ReadBool(lc, "IsHumanRated") != true)
-            {
-                reasons.Add("human-rated, and the complex is not");
-            }
+            var size = Member(vp, "ShipSize");
+            var limit = Member(lc, "SizeMax");
+            reasons.AddRange(Rp1Envelope.Refusals(
+                mass: ReadDouble(vp, "mass"),
+                sizeX: ReadDouble(size, "x"),
+                sizeY: ReadDouble(size, "y"),
+                sizeZ: ReadDouble(size, "z"),
+                humanRated: ReadBool(vp, "humanRated"),
+                // Not asked, and its absence permits. A vehicle in a warehouse
+                // stands at the complex that integrated it, which already
+                // accepted whatever clamps it has, and the only reading that
+                // would answer memoises onto the save.
+                hasClamps: null,
+                lcMassMin: ReadDouble(lc, "MassMin"),
+                lcMassMax: UnlimitedAsAbsent(ReadDouble(lc, "MassMax")),
+                lcSizeX: UnlimitedAsAbsent(ReadDouble(limit, "x")),
+                lcSizeY: UnlimitedAsAbsent(ReadDouble(limit, "y")),
+                lcSizeZ: UnlimitedAsAbsent(ReadDouble(limit, "z")),
+                lcHumanRated: ReadBool(lc, "IsHumanRated"),
+                lcType: ReadEnumName(lc, "LCType")));
 
             return reasons.Count == 0 ? null : reasons.ToArray();
-        }
-
-        /// <summary>
-        /// The first axis on which the vehicle exceeds its complex, or null.
-        /// Named rather than counted because "too large" does not tell an
-        /// operator whether the problem is height or width.
-        /// </summary>
-        private string? ExceededSizeAxis(object lc, object vp)
-        {
-            var ship = Member(vp, "ShipSize");
-            var limit = Member(lc, "SizeMax");
-            if (ship == null || limit == null)
-            {
-                return null;
-            }
-            foreach (var name in new[] { "x", "y", "z" })
-            {
-                var extent = ReadDouble(ship, name);
-                var allowed = UnlimitedAsAbsent(ReadDouble(limit, name));
-                if (extent == null || extent <= 0.0 || allowed == null)
-                {
-                    continue;
-                }
-                if (extent > allowed)
-                {
-                    return name;
-                }
-            }
-            return null;
         }
 
         private bool? PadWaitingVessel(object pad, out string? vesselName)

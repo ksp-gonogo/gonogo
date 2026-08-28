@@ -19,6 +19,7 @@ import {
   type TopicPayload,
 } from "@ksp-gonogo/sitrep-sdk";
 import type {
+  Rp1BuildableCraftEntry,
   Rp1BuildItemEntry,
   Rp1CentreEntry,
   Rp1ComplexEntry,
@@ -63,6 +64,17 @@ export const RP1_BUILD_QUEUE_TOPIC = "rp1.buildQueue";
 
 /** Finished vehicles: the honest "ready to launch" set under RP-1. */
 export const RP1_WAREHOUSE_TOPIC = "rp1.warehouse";
+
+/**
+ * Every saved craft file, and what each launch complex would make of it: the
+ * only way a widget can offer to START a build rather than repeat one.
+ *
+ * A PREVIEW. Its verdicts are measured from the craft file without loading it,
+ * so two of RP-1's own conditions (human rating and stocked resources) are not
+ * applied and an eligible complex is "nothing visible stops this" rather than a
+ * promise. `rp1.build.start` asks RP-1 itself and is the authority.
+ */
+export const RP1_BUILDABLE_TOPIC = "rp1.buildable";
 
 /** Launch pads, carrying the state that decides whether a launch will work. */
 export const RP1_PADS_TOPIC = "rp1.pads";
@@ -136,6 +148,7 @@ declare module "@ksp-gonogo/sitrep-sdk" {
     "rp1.complexes": Rp1ComplexEntry[];
     "rp1.buildQueue": Rp1BuildItemEntry[];
     "rp1.warehouse": Rp1WarehouseItemEntry[];
+    "rp1.buildable": Rp1BuildableCraftEntry[];
     "rp1.pads": Rp1PadEntry[];
     "rp1.operations": Rp1OperationEntry[];
     "rp1.constructions": Rp1ConstructionEntry[];
@@ -156,6 +169,7 @@ registerBarePrimitiveTopic(RP1_CENTRES_TOPIC);
 registerBarePrimitiveTopic(RP1_COMPLEXES_TOPIC);
 registerBarePrimitiveTopic(RP1_BUILD_QUEUE_TOPIC);
 registerBarePrimitiveTopic(RP1_WAREHOUSE_TOPIC);
+registerBarePrimitiveTopic(RP1_BUILDABLE_TOPIC);
 registerBarePrimitiveTopic(RP1_PADS_TOPIC);
 registerBarePrimitiveTopic(RP1_OPERATIONS_TOPIC);
 registerBarePrimitiveTopic(RP1_CONSTRUCTIONS_TOPIC);
@@ -206,6 +220,9 @@ export type _ResolvesRp1BuildQueue = Expect<
 >;
 export type _ResolvesRp1Warehouse = Expect<
   Equal<TopicPayload<"rp1.warehouse">, Rp1WarehouseItemEntry[]>
+>;
+export type _ResolvesRp1Buildable = Expect<
+  Equal<TopicPayload<"rp1.buildable">, Rp1BuildableCraftEntry[]>
 >;
 export type _ResolvesRp1Pads = Expect<
   Equal<TopicPayload<"rp1.pads">, Rp1PadEntry[]>

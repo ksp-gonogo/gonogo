@@ -72,6 +72,29 @@
     "Rp1BuildRepeatArgs": {
       "id": "id"
     },
+    "Rp1BuildStartArgs": {
+      "craftFile": "id",
+      "facility": "enum",
+      "lcId": "id"
+    },
+    "Rp1BuildableComplex": {
+      "eligible": "flag",
+      "kscName": "id",
+      "lcId": "id",
+      "name": "text",
+      "refusals": "text"
+    },
+    "Rp1BuildableCraftEntry": {
+      "cost": "funds",
+      "craftFile": "id",
+      "facility": "enum",
+      "lockedParts": "text",
+      "mass": "t",
+      "missingParts": "text",
+      "partCount": "count",
+      "shipName": "text",
+      "unpurchasedParts": "text"
+    },
     "Rp1CentreEntry": {
       "anyOperational": "flag",
       "engineers": "count",
@@ -318,6 +341,17 @@
       "timeLeftSeconds": "s",
       "totalPoints": "bp"
     },
+    "rp1.buildable": {
+      "cost": "funds",
+      "craftFile": "id",
+      "facility": "enum",
+      "lockedParts": "text",
+      "mass": "t",
+      "missingParts": "text",
+      "partCount": "count",
+      "shipName": "text",
+      "unpurchasedParts": "text"
+    },
     "rp1.centres": {
       "anyOperational": "flag",
       "engineers": "count",
@@ -515,6 +549,9 @@
     }
   },
   "typeShapes": {
+    "Rp1BuildableCraftEntry": {
+      "complexes": "Rp1BuildableComplex[]"
+    },
     "Rp1FundingCurveEntry": {
       "keys": "Rp1FundingCurveKey[]"
     },
@@ -524,6 +561,9 @@
     }
   },
   "topicShapes": {
+    "rp1.buildable": {
+      "complexes": "Rp1BuildableComplex[]"
+    },
     "rp1.programFundingCurves": {
       "keys": "Rp1FundingCurveKey[]"
     },

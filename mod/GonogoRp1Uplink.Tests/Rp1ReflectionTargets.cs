@@ -31,6 +31,15 @@ namespace GonogoRp1Uplink.Tests
         /// <summary>ReadGuidString: Guid or String, because RP-1 keeps an identity as both.</summary>
         GuidText,
 
+        /// <summary>
+        /// WriteMember with a Guid: settable, and Guid or String, because the
+        /// value handed to it is another RP-1 member's Guid. Its own kind rather
+        /// than <see cref="Presence"/> because settability is the load-bearing
+        /// half: a member that lost its setter would leave a vehicle bound to
+        /// whichever complex happened to be active.
+        /// </summary>
+        GuidWrite,
+
         /// <summary>ReadEnumName: an enum, read as its name rather than its ordinal.</summary>
         EnumText,
     }
@@ -55,6 +64,19 @@ namespace GonogoRp1Uplink.Tests
         int Arity,
         bool Static,
         string CallSite);
+
+    /// <summary>
+    /// A constructor the Uplink invokes, matched by arity the way production
+    /// matches it.
+    /// </summary>
+    /// <remarks>
+    /// Its own record rather than a <see cref="Rp1MethodTarget"/> with the name
+    /// <c>.ctor</c>, because a constructor has no staticness to declare and
+    /// because these were the one reflected shape the guard could not see at all:
+    /// two commands build an RP-1 object by arity, and a reshaped constructor
+    /// would take the whole command out while every other check stayed green.
+    /// </remarks>
+    public sealed record Rp1ConstructorTarget(string Assembly, string Type, int Arity, string CallSite);
 
     /// <summary>An enum member the Uplink names to Enum.Parse, so a rename is an immediate throw.</summary>
     public sealed record Rp1EnumMemberTarget(string Assembly, string Type, string Member, string CallSite);
@@ -109,27 +131,46 @@ namespace GonogoRp1Uplink.Tests
             new Rp1TypeTarget(Rp0, "RP0.CurrencyModifierQueryRP0", "Rp1BuildCommands"),
             new Rp1TypeTarget(Rp0, "RP0.TransactionReasonsRP0", "Rp1BuildCommands"),
             new Rp1TypeTarget(Rp0, "RP0.CurrencyRP0", "Rp1BuildCommands"),
+            new Rp1TypeTarget(Rp0, "RP0.KCTUtilities", "Rp1BuildCommands, Rp1BuildStartCommands, Rp1VehicleCommands"),
+            new Rp1TypeTarget(Rp0, "RP0.VesselProject", "Rp1BuildStartCommands"),
+            new Rp1TypeTarget(Rp0, "RP0.ReconRolloutProject", "Rp1VehicleCommands"),
+            new Rp1TypeTarget(Rp0, "RP0.LaunchComplex", "Rp1VehicleCommands"),
+            new Rp1TypeTarget(Rp0, "RP0.CurrencyModifierQueryRP0", "Rp1Pricing"),
+            new Rp1TypeTarget(Rp0, "RP0.TransactionReasonsRP0", "Rp1Pricing"),
+            new Rp1TypeTarget(Rp0, "RP0.CurrencyRP0", "Rp1Pricing"),
             new Rp1TypeTarget(Rp0, "RP0.Crew.CrewHandler", "Rp1CrewReflection"),
             new Rp1TypeTarget(Rp0, "RP0.Programs.ProgramHandler", "Rp1ProgramsReflection"),
         };
 
         public static IReadOnlyList<Rp1EnumMemberTarget> EnumMembers { get; } = new[]
         {
-            new Rp1EnumMemberTarget(Rp0, "RP0.TransactionReasonsRP0", "VesselPurchase", "Rp1BuildCommands"),
-            new Rp1EnumMemberTarget(Rp0, "RP0.CurrencyRP0", "Funds", "Rp1BuildCommands"),
+            new Rp1EnumMemberTarget(Rp0, "RP0.TransactionReasonsRP0", "VesselPurchase", "Rp1Pricing"),
+            new Rp1EnumMemberTarget(Rp0, "RP0.CurrencyRP0", "Funds", "Rp1Pricing"),
+        };
+
+        public static IReadOnlyList<Rp1ConstructorTarget> Constructors { get; } = new[]
+        {
+            // RP-1's ONLY constructor that measures a craft, and the whole of how
+            // a build is started from a craft file: mass, size, cost, effective
+            // cost, build points, part names and human rating all come off the
+            // live parts inside it.
+            new Rp1ConstructorTarget(Rp0, "RP0.VesselProject", 4, "Rp1BuildStartCommands"),
+            // FOUR parameters with the last defaulted, because a reflected invoke
+            // applies no defaults and has to pass all four.
+            new Rp1ConstructorTarget(Rp0, "RP0.ReconRolloutProject", 4, "Rp1VehicleCommands"),
         };
 
         public static IReadOnlyList<Rp1MethodTarget> Methods { get; } = new[]
         {
             new Rp1MethodTarget(Rp0, "RP0.LCEfficiency", "PredictWeightedEfficiency", 5, false, "Rp1ScReflection"),
             new Rp1MethodTarget(Rp0, "RP0.MaintenanceHandler", "FillSubsidyDetails", 3, true, "Rp1EconomyBackend"),
-            new Rp1MethodTarget(Rp0, "RP0.KCTUtilities", "AddVesselToBuildList", 2, true, "Rp1BuildCommands"),
-            new Rp1MethodTarget(Rp0, "RP0.CurrencyModifierQueryRP0", "RunQuery", 4, true, "Rp1BuildCommands"),
-            new Rp1MethodTarget(Rp0, "RP0.CurrencyModifierQueryRP0", "CanAfford", 1, false, "Rp1BuildCommands"),
-            new Rp1MethodTarget(Rp0, "RP0.CurrencyModifierQueryRP0", "GetTotal", 2, false, "Rp1BuildCommands"),
+            new Rp1MethodTarget(Rp0, "RP0.KCTUtilities", "AddVesselToBuildList", 2, true, "Rp1BuildCommands, Rp1BuildStartCommands"),
+            new Rp1MethodTarget(Rp0, "RP0.CurrencyModifierQueryRP0", "RunQuery", 4, true, "Rp1Pricing"),
+            new Rp1MethodTarget(Rp0, "RP0.CurrencyModifierQueryRP0", "CanAfford", 1, false, "Rp1Pricing"),
+            new Rp1MethodTarget(Rp0, "RP0.CurrencyModifierQueryRP0", "GetTotal", 2, false, "Rp1Pricing"),
             new Rp1MethodTarget(Rp0, "RP0.VesselProject", "CreateCopy", 0, false, "Rp1BuildCommands"),
-            new Rp1MethodTarget(Rp0, "RP0.VesselProject", "MeetsFacilityRequirements", 1, false, "Rp1BuildCommands"),
-            new Rp1MethodTarget(Rp0, "RP0.VesselProject", "GetTotalCost", 0, false, "Rp1BuildCommands"),
+            new Rp1MethodTarget(Rp0, "RP0.VesselProject", "MeetsFacilityRequirements", 1, false, "Rp1BuildCommands, Rp1BuildStartCommands"),
+            new Rp1MethodTarget(Rp0, "RP0.VesselProject", "GetTotalCost", 0, false, "Rp1Pricing"),
             // One out parameter, so arity ONE. The only way to learn that a pad
             // reading Free has a craft standing on it in PRELAUNCH, because
             // LCLaunchPad.State deliberately does not consult FlightGlobals.
@@ -201,6 +242,7 @@ namespace GonogoRp1Uplink.Tests
             const string Gate = "Rp1LaunchGate";
             const string Projects = "Rp1CareerProjectGate";
             const string Build = "Rp1BuildCommands";
+            const string Start = "Rp1BuildStartCommands";
             const string Vehicles = "Rp1VehicleCommands";
             const string Withhold = "Rp1DerivedCurrencyWithholder";
             const string Economy = "Rp1EconomyBackend";
@@ -214,7 +256,11 @@ namespace GonogoRp1Uplink.Tests
             Add("RP0.SpaceCenterManagement", "IsSimulatedFlight", Rp1Reader.Bool, Sc);
             Add("RP0.SpaceCenterManagement", "Researchers", Rp1Reader.Numeric, Sc);
             Add("RP0.SpaceCenterManagement", "Applicants", Rp1Reader.Numeric, Sc);
-            Add("RP0.SpaceCenterManagement", "KSCs", Rp1Reader.Presence, Sc + ", " + Gate + ", " + Build);
+            Add("RP0.SpaceCenterManagement", "KSCs", Rp1Reader.Presence, Sc + ", " + Gate + ", " + Build + ", " + Start);
+            // WRITTEN, and the only write outside the currency withholder: the
+            // same assignment RP-1's own overrideLC argument makes, and the whole
+            // of how a vehicle is built somewhere other than the active complex.
+            Add("RP0.VesselProject", "LCID", Rp1Reader.GuidWrite, Start);
             Add("RP0.SpaceCenterManagement", "ActiveSC", Rp1Reader.Presence, Sc);
             Add("RP0.SpaceCenterManagement", "TechList", Rp1Reader.Presence, Sc);
             Add("RP0.SpaceCenterManagement", "LCToEfficiency", Rp1Reader.Presence, Sc);

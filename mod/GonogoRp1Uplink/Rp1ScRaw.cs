@@ -35,6 +35,14 @@ namespace GonogoRp1Uplink
         public List<Rp1ConstructionRaw> Constructions = new List<Rp1ConstructionRaw>();
         public List<Rp1ResearchRaw> Research = new List<Rp1ResearchRaw>();
 
+        /// <summary>
+        /// The save's craft files and what each complex would make of them. Empty
+        /// when this install has no craft catalogue, which publishes an empty
+        /// channel rather than nothing: an install whose core cannot open craft
+        /// files has genuinely nothing to start a build from, and that is data.
+        /// </summary>
+        public List<Rp1BuildableRaw> Buildable = new List<Rp1BuildableRaw>();
+
         public Rp1PersonnelRaw? Personnel;
 
         /// <summary>
@@ -83,6 +91,53 @@ namespace GonogoRp1Uplink
         public List<string>? ResourcesHandled;
         public double? SalaryPerDay;
         public double? UpkeepPerDay;
+
+        /// <summary>
+        /// The complex's size envelope per axis in metres, or null per axis for
+        /// no limit. Read for the buildable preview: a craft that fits the mass
+        /// limit and not the height is the commonest refusal RP-1 gives, and an
+        /// unread axis makes no comparison rather than a comparison against zero.
+        /// </summary>
+        public double? SizeMaxX;
+
+        public double? SizeMaxY;
+
+        public double? SizeMaxZ;
+    }
+
+    /// <summary>
+    /// One saved craft file measured against every launch complex, as the
+    /// <c>rp1.buildable</c> preview publishes it. Plain data like the rest of
+    /// this file: the craft measurements arrive from core's craft catalogue and
+    /// the complex limits from the walk above, and the comparison between them
+    /// is pure.
+    /// </summary>
+    public sealed class Rp1BuildableRaw
+    {
+        public string? CraftFile;
+        public string? ShipName;
+
+        /// <summary>KSP's EditorFacility ordinal, carried rather than named because the client sends it back.</summary>
+        public int? FacilityOrdinal;
+
+        public int? PartCount;
+        public double? Mass;
+        public double? Cost;
+        public string[]? MissingParts;
+        public string[]? LockedParts;
+        public string[]? UnpurchasedParts;
+
+        public List<Rp1BuildableComplexRaw> Complexes = new List<Rp1BuildableComplexRaw>();
+    }
+
+    /// <summary>One complex's verdict on one craft.</summary>
+    public sealed class Rp1BuildableComplexRaw
+    {
+        public string? LcId;
+        public string? Name;
+        public string? KscName;
+        public bool Eligible;
+        public string[] Refusals = new string[0];
     }
 
     /// <summary>

@@ -1577,3 +1577,140 @@ public sealed class Rp1CrewProgram
     [SitrepUnit(Units.Count)]
     public int? CrewInTraining { get; set; }
 }
+
+/// <summary>
+/// One saved craft file, and what each launch complex would make of it.
+///
+/// <para><b>Why this exists beside <c>spaceCenter.savedShips</c>.</b> That
+/// channel is the stock craft-folder listing and answers a different question:
+/// what could be LAUNCHED. It carries no craft-file address, no notion of a
+/// launch complex, and stock's own cost rather than the one RP-1 charges. Under
+/// RP-1 a craft is not launched from a folder at all: it is integrated at a
+/// complex that decides what it may weigh and how large it may be, and a widget
+/// offering to start a build has to know which complexes would take it BEFORE
+/// the press or it is offering a control that can only refuse.</para>
+///
+/// <para><b>This is a PREVIEW, and the command is the authority.</b> Everything
+/// here is measured from the craft FILE without loading it, because loading one
+/// instantiates a part per PART node and a sampled capture must not do that
+/// every tick. Two of RP-1's own arms cannot be answered that way: whether the
+/// craft is human-rated, which RP-1 derives from part tags, and whether the
+/// complex stocks the resources it needs. Both are therefore NOT applied here,
+/// and the direction is deliberate: an unanswerable arm PERMITS, so the control
+/// stays pressable and <c>rp1.build.start</c> gives RP-1's own refusal. A dark
+/// control with a reason nobody could establish is the dead end this channel
+/// exists to remove.</para>
+/// </summary>
+[SitrepContract]
+[SitrepTopic("rp1.buildable", isArray: true)]
+#if SITREP_CODEGEN
+[TsInterface]
+#endif
+public sealed class Rp1BuildableCraftEntry
+{
+    /// <summary>
+    /// The craft FILE's own name, without its extension, and what
+    /// <c>rp1.build.start</c> is addressed with. See
+    /// <see cref="Rp1BuildStartArgs.CraftFile"/> for why it is not the ship
+    /// name.
+    /// </summary>
+    [SitrepUnit(Units.Id)]
+    public string? CraftFile { get; set; }
+
+    /// <summary>The name inside the file, which is what the game shows and what an operator reads.</summary>
+    [SitrepUnit(Units.Text)]
+    public string? ShipName { get; set; }
+
+    /// <summary>Which editor built it. Sent straight back as the command's <c>facility</c> argument.</summary>
+    [SitrepUnit(Units.Enumeration)]
+    public KspEditorFacility? Facility { get; set; }
+
+    [SitrepUnit(Units.Count)]
+    public int? PartCount { get; set; }
+
+    /// <summary>
+    /// Mass in tonnes with launch clamps left out, which is the figure RP-1
+    /// measures against a complex's limits. Absent when it could not be
+    /// measured, which makes no comparison at all rather than one against zero.
+    /// </summary>
+    [SitrepUnit(Units.Tonnes)]
+    public double? Mass { get; set; }
+
+    /// <summary>
+    /// Stock's price for the craft, in funds.
+    ///
+    /// <para><b>Not what the career will be charged.</b> RP-1 prices a vessel
+    /// purchase through its own currency query, which leaders and strategies
+    /// move, and that query fires a game-wide event: running it once per craft
+    /// per tick would broadcast to every mod listening, so it is asked once, at
+    /// the press, by the command. This is the list price a widget can show
+    /// beside a balance; the charge is settled when the operator commits.</para>
+    /// </summary>
+    [SitrepUnit(Units.Funds)]
+    public double? Cost { get; set; }
+
+    /// <summary>
+    /// Parts the craft names that this install does not have, so nothing can
+    /// build it. An empty array when it is whole.
+    /// </summary>
+    [SitrepUnit(Units.Text)]
+    public string[]? MissingParts { get; set; }
+
+    /// <summary>Parts whose tech node is not researched yet. The remedy is the research queue.</summary>
+    [SitrepUnit(Units.Text)]
+    public string[]? LockedParts { get; set; }
+
+    /// <summary>Parts researched but not bought. The remedy is money, spent at R&amp;D.</summary>
+    [SitrepUnit(Units.Text)]
+    public string[]? UnpurchasedParts { get; set; }
+
+    /// <summary>
+    /// What each launch complex would do with it, one entry per complex at every
+    /// space centre. Empty when RP-1 has no complexes, which is a real state a
+    /// new career starts in and is why a widget must not read an empty list as
+    /// an outage.
+    /// </summary>
+    public Rp1BuildableComplex[]? Complexes { get; set; }
+}
+
+/// <summary>
+/// One launch complex's answer about one craft: whether it would take it, and
+/// what stops it.
+/// </summary>
+[SitrepContract]
+#if SITREP_CODEGEN
+[TsInterface]
+#endif
+public sealed class Rp1BuildableComplex
+{
+    /// <summary>The complex, by the GUID <c>rp1.complexes[].lcId</c> publishes and the command takes.</summary>
+    [SitrepUnit(Units.Id)]
+    public string? LcId { get; set; }
+
+    /// <summary>Its name, so a control can be labelled without joining to another channel.</summary>
+    [SitrepUnit(Units.Text)]
+    public string? Name { get; set; }
+
+    /// <summary>The space centre it stands at, because two centres may each have an LC-1.</summary>
+    [SitrepUnit(Units.Id)]
+    public string? KscName { get; set; }
+
+    /// <summary>
+    /// Nothing this preview can see stops the build.
+    ///
+    /// <para>True is not a promise. It means every arm that COULD be answered
+    /// from the craft file passed, and the two that could not were not applied;
+    /// see the type doc. False is firmer: <see cref="Refusals"/> names a reason
+    /// RP-1 itself would give.</para>
+    /// </summary>
+    [SitrepUnit(Units.Flag)]
+    public bool? Eligible { get; set; }
+
+    /// <summary>
+    /// Why not, in sentences, or an empty array when nothing stops it. Never
+    /// null for a complex that answered: an absent list and an empty one would
+    /// read the same and only one of them means "no objection".
+    /// </summary>
+    [SitrepUnit(Units.Text)]
+    public string[]? Refusals { get; set; }
+}

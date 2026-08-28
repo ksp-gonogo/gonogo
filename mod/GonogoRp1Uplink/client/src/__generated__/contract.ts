@@ -27,6 +27,12 @@ export interface Rp1PersonnelAssignArgs
 	lcId?: string;
 	engineers?: number;
 }
+export interface Rp1BuildStartArgs
+{
+	craftFile?: string;
+	facility?: number;
+	lcId?: string;
+}
 export interface Rp1CentreEntry
 {
 	kscName?: string;
@@ -277,4 +283,25 @@ export interface Rp1CrewProgram
 	courses?: Value<"count">;
 	coursesStarted?: Value<"count">;
 	crewInTraining?: Value<"count">;
+}
+export interface Rp1BuildableCraftEntry
+{
+	craftFile?: string;
+	shipName?: string;
+	facility?: number;
+	partCount?: Value<"count">;
+	mass?: Value<"t">;
+	cost?: Value<"funds">;
+	missingParts?: string[];
+	lockedParts?: string[];
+	unpurchasedParts?: string[];
+	complexes?: Rp1BuildableComplex[];
+}
+export interface Rp1BuildableComplex
+{
+	lcId?: string;
+	name?: string;
+	kscName?: string;
+	eligible?: boolean;
+	refusals?: string[];
 }

@@ -9,6 +9,7 @@ namespace GonogoRp1Uplink;
 /// writing into its own client, never into sitrep-sdk.
 ///
 /// <para>Twenty-four wire types, eleven of which are array Topics, five of which
+/// <para>Twenty-five wire types, twelve of which are array Topics, five of which
 /// are a command's args, and two unit
 /// tokens core has never heard of (<c>bp</c> and <c>confidence</c>, declared in
 /// <see cref="Contract.Units"/>). The catalog check judges this assembly against
@@ -32,6 +33,8 @@ public static class Rp1RtConfig
             typeof(Rp1ComplexEntry),
             typeof(Rp1BuildItemEntry),
             typeof(Rp1WarehouseItemEntry),
+            typeof(Rp1BuildableCraftEntry),
+            typeof(Rp1BuildableComplex),
             typeof(Rp1PadEntry),
             typeof(Rp1OperationEntry),
             typeof(Rp1ConstructionEntry),
@@ -50,6 +53,7 @@ public static class Rp1RtConfig
             typeof(Rp1VehicleArgs),
             typeof(Rp1ComplexRushArgs),
             typeof(Rp1PersonnelAssignArgs),
+            typeof(Rp1BuildStartArgs),
             typeof(Rp1CrewEntry),
             typeof(Rp1CrewProgram),
         };

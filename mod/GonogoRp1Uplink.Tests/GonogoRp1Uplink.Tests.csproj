@@ -40,7 +40,11 @@
     <Compile Include="..\GonogoRp1Uplink\Rp1EconomyBackend.cs" />
     <Compile Include="..\GonogoRp1Uplink\Rp1LaunchGate.cs" />
     <Compile Include="..\GonogoRp1Uplink\Rp1CareerProjectGate.cs" />
+    <Compile Include="..\GonogoRp1Uplink\Rp1Envelope.cs" />
+    <Compile Include="..\GonogoRp1Uplink\Rp1Buildable.cs" />
+    <Compile Include="..\GonogoRp1Uplink\Rp1Pricing.cs" />
     <Compile Include="..\GonogoRp1Uplink\Rp1BuildCommands.cs" />
+    <Compile Include="..\GonogoRp1Uplink\Rp1BuildStartCommands.cs" />
     <Compile Include="..\GonogoRp1Uplink\Rp1VehicleCommands.cs" />
     <Compile Include="..\GonogoRp1Uplink\Rp1ComplexWrites.cs" />
     <Compile Include="..\GonogoRp1Uplink\Rp1PersonnelCommands.cs" />

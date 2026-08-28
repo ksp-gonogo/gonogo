@@ -106,6 +106,29 @@ export const GENERATED_TYPE_UNITS: Readonly<Record<string, UnitsByField>> = {
   "Rp1BuildRepeatArgs": {
     id: "id",
   },
+  "Rp1BuildStartArgs": {
+    craftFile: "id",
+    facility: "enum",
+    lcId: "id",
+  },
+  "Rp1BuildableComplex": {
+    eligible: "flag",
+    kscName: "id",
+    lcId: "id",
+    name: "text",
+    refusals: "text",
+  },
+  "Rp1BuildableCraftEntry": {
+    cost: "funds",
+    craftFile: "id",
+    facility: "enum",
+    lockedParts: "text",
+    mass: "t",
+    missingParts: "text",
+    partCount: "count",
+    shipName: "text",
+    unpurchasedParts: "text",
+  },
   "Rp1CentreEntry": {
     anyOperational: "flag",
     engineers: "count",
@@ -357,6 +380,17 @@ export const GENERATED_TOPIC_UNITS: Readonly<Record<string, UnitsByField>> = {
     timeLeftSeconds: "s",
     totalPoints: "bp",
   },
+  "rp1.buildable": {
+    cost: "funds",
+    craftFile: "id",
+    facility: "enum",
+    lockedParts: "text",
+    mass: "t",
+    missingParts: "text",
+    partCount: "count",
+    shipName: "text",
+    unpurchasedParts: "text",
+  },
   "rp1.centres": {
     anyOperational: "flag",
     engineers: "count",
@@ -579,6 +613,9 @@ export type ShapesByField = Readonly<Record<string, string>>;
  * sample reaches an `agent` under it.
  */
 export const GENERATED_TYPE_SHAPES: Readonly<Record<string, ShapesByField>> = {
+  "Rp1BuildableCraftEntry": {
+    complexes: "Rp1BuildableComplex[]",
+  },
   "Rp1FundingCurveEntry": {
     keys: "Rp1FundingCurveKey[]",
   },
@@ -590,6 +627,9 @@ export const GENERATED_TYPE_SHAPES: Readonly<Record<string, ShapesByField>> = {
 
 /** The same, keyed by Topic id. */
 export const GENERATED_TOPIC_SHAPES: Readonly<Record<string, ShapesByField>> = {
+  "rp1.buildable": {
+    complexes: "Rp1BuildableComplex[]",
+  },
   "rp1.programFundingCurves": {
     keys: "Rp1FundingCurveKey[]",
   },

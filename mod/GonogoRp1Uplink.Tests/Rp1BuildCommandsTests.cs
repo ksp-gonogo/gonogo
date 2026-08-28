@@ -336,6 +336,7 @@ namespace GonogoRp1Uplink.Tests
                 new[]
                 {
                     Rp1BuildCommands.RepeatCommand,
+                    Rp1BuildStartCommands.StartCommand,
                     Rp1VehicleCommands.RolloutCommand,
                     Rp1VehicleCommands.RollbackCommand,
                     Rp1VehicleCommands.ScrapCommand,
@@ -349,12 +350,21 @@ namespace GonogoRp1Uplink.Tests
                 // light-time separates a command centre from a CRAFT, and there is
                 // no craft in any of these.
                 Assert.False(declaration.Delayed);
-                // One gate kind between all six, because the only condition
-                // evaluable before the press is the same one for each of them.
-                Assert.Equal(
+                // Every one of them declares that RP-1 is managing the save, and
+                // that is the only condition evaluable before the press for six
+                // of the seven. Starting a build from a craft file declares a
+                // second, because it also needs an install that can OPEN a craft
+                // file, and that is core's rather than RP-1's.
+                Assert.Contains(
                     Rp1BuildCommands.GateKind,
-                    Assert.Single(declaration.Requires).Kind);
+                    declaration.Requires.Select(r => r.Kind).ToArray());
+                Assert.All(declaration.Requires, requirement => Assert.Empty(requirement.Needs));
             });
+
+            var start = declarations.Single(d => d.Command == Rp1BuildStartCommands.StartCommand);
+            Assert.Equal(
+                new[] { Rp1BuildCommands.GateKind, Rp1BuildStartCommands.GateKind },
+                start.Requires.Select(r => r.Kind).ToArray());
         }
 
         [Fact]
@@ -368,7 +378,9 @@ namespace GonogoRp1Uplink.Tests
                 .Select(r => r.Kind)
                 .Distinct();
 
-            Assert.All(kinds, kind => Assert.Equal(Rp1BuildCommands.GateKind, kind));
+            Assert.Equal(
+                new[] { Rp1BuildCommands.GateKind, Rp1BuildStartCommands.GateKind },
+                kinds.ToArray());
         }
 
         private static readonly IGateArguments NoArgs = new EmptyArguments();

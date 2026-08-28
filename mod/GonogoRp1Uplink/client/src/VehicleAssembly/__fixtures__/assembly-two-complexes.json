@@ -4,7 +4,10 @@
   },
   "_scene": {
     "widget": "rp1-vehicle-assembly",
-    "size": { "w": 8, "h": 20 },
+    "size": {
+      "w": 8,
+      "h": 20
+    },
     "caption": "Four craft across two launch complexes: one flying-ready and one still integrating at each, the key line at the top saying what LC-1 and LC-2 are and where they stand, and every card naming its complex and the staffing that sets its rate",
     "paints": [
       "ASSEMBLY",
@@ -15,11 +18,14 @@
       "Vanguard",
       "BUILT",
       "INTEGRATING",
-      "LC-1 · costs",
-      "LC-2 · costs",
+      "LC-1 \u00b7 costs",
+      "LC-2 \u00b7 costs",
       "engineers",
       "Launch complexes:",
-      "until integration finishes"
+      "until integration finishes",
+      "START A BUILD",
+      "Start build",
+      "too heavy for the complex"
     ]
   },
   "_stream": {
@@ -28,10 +34,17 @@
       {
         "topic": "career.status",
         "payload": {
-          "economy": { "funds": 289848, "reputation": 62, "science": 340 }
+          "economy": {
+            "funds": 289848,
+            "reputation": 62,
+            "science": 340
+          }
         }
       },
-      { "topic": "rp1.available", "payload": true },
+      {
+        "topic": "rp1.available",
+        "payload": true
+      },
       {
         "topic": "rp1.complexes",
         "payload": [
@@ -62,7 +75,7 @@
             "maxEngineers": 40,
             "efficiency": 0.4,
             "canIntegrate": true,
-            "rate": 0.00006430041152263374,
+            "rate": 6.430041152263374e-5,
             "humanRated": false,
             "massMin": 3,
             "massMax": 90
@@ -98,7 +111,10 @@
           }
         ]
       },
-      { "topic": "rp1.operations", "payload": [] },
+      {
+        "topic": "rp1.operations",
+        "payload": []
+      },
       {
         "topic": "rp1.warehouse",
         "payload": [
@@ -166,10 +182,44 @@
             "progress": 820,
             "totalPoints": 1000,
             "progressRatio": 0.82,
-            "rate": 0.00006430041152263374,
+            "rate": 6.430041152263374e-5,
             "timeLeftSeconds": 691200,
             "stalled": false,
             "rolloutRefusals": null
+          }
+        ]
+      },
+      {
+        "topic": "rp1.buildable",
+        "payload": [
+          {
+            "craftFile": "Atlas",
+            "shipName": "Atlas",
+            "facility": 1,
+            "partCount": 42,
+            "mass": 120,
+            "cost": 40000,
+            "missingParts": [],
+            "lockedParts": [],
+            "unpurchasedParts": [],
+            "complexes": [
+              {
+                "lcId": "lc-1",
+                "name": "LC-1",
+                "kscName": "Cape",
+                "eligible": true,
+                "refusals": []
+              },
+              {
+                "lcId": "lc-2",
+                "name": "LC-2",
+                "kscName": "Cape",
+                "eligible": false,
+                "refusals": [
+                  "too heavy for the complex at 120.0 t, limit 90.0 t"
+                ]
+              }
+            ]
           }
         ]
       }

@@ -112,8 +112,29 @@ namespace Gonogo.KSP
         /// rule: a provider adds an interpretation, never a channel of its
         /// own.</para>
         /// </summary>
-        public void DeclareCapabilities(Kernel kernel) =>
+        public void DeclareCapabilities(Kernel kernel)
+        {
             CrewStandingElection.RegisterCapability(kernel);
+
+            // The save's craft folders, offered to any Uplink. Core is the only
+            // provider and there is no election to hold: a craft folder is a fact
+            // about the save's directory rather than a model a mod could have a
+            // rival opinion about. It is a capability all the same because that is
+            // the only route an Uplink has into core, and opening a craft file
+            // instantiates Unity parts, which an Uplink may not name.
+            //
+            // Declared beside the crew standing above for the same two-pass
+            // reason, and NOT SpineCritical: an install without it publishes no
+            // craft listing, and the commands that would use one draw dark with
+            // their reason rather than the stream failing.
+            kernel.RegisterCapability(new CapabilityDescriptor
+            {
+                Id = CraftCatalogueCapability.Id,
+                Exclusive = true,
+                SpineCritical = false,
+                Vanilla = _ => new CraftCatalogueBackend(),
+            });
+        }
 
         public void Register(IUplinkHost host)
         {

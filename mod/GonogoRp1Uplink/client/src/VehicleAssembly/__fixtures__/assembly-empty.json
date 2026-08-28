@@ -1,9 +1,12 @@
 {
   "_scene": {
     "widget": "rp1-vehicle-assembly",
-    "size": { "w": 6, "h": 9 },
+    "size": {
+      "w": 6,
+      "h": 9
+    },
     "caption": "Nothing built and nothing on order, which is where a career starts",
-    "paints": ["ASSEMBLY", "None built and none on order"],
+    "paints": ["ASSEMBLY", "None built and none on order", "No craft saved"],
     "expectsEmpty": "a fresh career has no vehicles built and none ordered, and this is the picture of that state reading as an answer rather than as an Uplink that is not reporting"
   },
   "_stream": {
@@ -12,10 +15,17 @@
       {
         "topic": "career.status",
         "payload": {
-          "economy": { "funds": 289848, "reputation": 62, "science": 340 }
+          "economy": {
+            "funds": 289848,
+            "reputation": 62,
+            "science": 340
+          }
         }
       },
-      { "topic": "rp1.available", "payload": true },
+      {
+        "topic": "rp1.available",
+        "payload": true
+      },
       {
         "topic": "rp1.complexes",
         "payload": [
@@ -54,9 +64,22 @@
           }
         ]
       },
-      { "topic": "rp1.operations", "payload": [] },
-      { "topic": "rp1.warehouse", "payload": [] },
-      { "topic": "rp1.buildQueue", "payload": [] }
+      {
+        "topic": "rp1.operations",
+        "payload": []
+      },
+      {
+        "topic": "rp1.warehouse",
+        "payload": []
+      },
+      {
+        "topic": "rp1.buildQueue",
+        "payload": []
+      },
+      {
+        "topic": "rp1.buildable",
+        "payload": []
+      }
     ]
   }
 }

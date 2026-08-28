@@ -42,6 +42,7 @@ namespace GonogoRp1Uplink
         public const string ComplexesTopic = "rp1.complexes";
         public const string BuildQueueTopic = "rp1.buildQueue";
         public const string WarehouseTopic = "rp1.warehouse";
+        public const string BuildableTopic = "rp1.buildable";
         public const string PadsTopic = "rp1.pads";
         public const string OperationsTopic = "rp1.operations";
         public const string ConstructionsTopic = "rp1.constructions";
@@ -161,6 +162,21 @@ namespace GonogoRp1Uplink
         /// complex is infrastructure.
         /// </summary>
         private readonly Rp1PersonnelCommands _staffing = new Rp1PersonnelCommands();
+        /// The command that starts a design the space centre has never held, from
+        /// one of the save's own craft files. Its own reader for the reason the two
+        /// above are, and it holds a LAZY route to core's craft catalogue rather
+        /// than the catalogue itself: providers register during registration and
+        /// the Kernel elects afterwards, so anything resolved in a constructor
+        /// would be null for the life of the game.
+        /// </summary>
+        private readonly Rp1BuildStartCommands _start;
+
+        /// <summary>
+        /// The Kernel, kept so the craft catalogue can be resolved at the moment
+        /// it is needed. Set in <see cref="Register"/>; null before then, which
+        /// makes the catalogue absent and the start command's gate say so.
+        /// </summary>
+        private Kernel? _kernel;
 
         /// <summary>Set when the command registration threw, so Health can say so rather than nothing.</summary>
         private string? _buildCommandRegistrationError;
@@ -200,6 +216,7 @@ namespace GonogoRp1Uplink
         private IChannelPublisher? _complexes;
         private IChannelPublisher? _buildQueue;
         private IChannelPublisher? _warehouse;
+        private IChannelPublisher? _buildable;
         private IChannelPublisher? _pads;
         private IChannelPublisher? _operations;
         private IChannelPublisher? _constructions;
@@ -246,8 +263,10 @@ namespace GonogoRp1Uplink
 
         public Rp1ScUplink()
         {
+            _start = new Rp1BuildStartCommands(Catalogue);
             Manifest = BuildManifest(
-                _build.IsAvailable, _vehicles.IsAvailable, _vehicles.IsMoveAvailable, _staffing.IsAvailable);
+                _build.IsAvailable, _vehicles.IsAvailable, _vehicles.IsMoveAvailable,
+                _staffing.IsAvailable, _start.IsAvailable);
             _crewStanding = new Rp1CrewStandingBackend(_crew);
         }
 
@@ -255,7 +274,8 @@ namespace GonogoRp1Uplink
             bool buildModelResolved,
             bool queueModelResolved,
             bool moveModelResolved,
-            bool staffingModelResolved) => new UplinkManifest
+            bool staffingModelResolved,
+            bool startModelResolved) => new UplinkManifest
         {
             Id = "rp1",
             Version = "1.0.0",
@@ -266,6 +286,12 @@ namespace GonogoRp1Uplink
                 Ground(ComplexesTopic),
                 Ground(BuildQueueTopic),
                 Ground(WarehouseTopic),
+                // An EMPTY list is a real answer here, unlike the singletons
+                // below: a career with no craft saved has nothing to start,
+                // and so does an install whose core cannot open craft files.
+                // Both are things an operator needs told rather than left to
+                // read as silence.
+                Ground(BuildableTopic),
                 Ground(PadsTopic),
                 Ground(OperationsTopic),
                 Ground(ConstructionsTopic),
@@ -312,7 +338,8 @@ namespace GonogoRp1Uplink
             // sees a command that confirms at once, not a control that quietly
             // has no delay UX.
             Commands = DeclareCommands(
-                buildModelResolved, queueModelResolved, moveModelResolved, staffingModelResolved),
+                buildModelResolved, queueModelResolved, moveModelResolved,
+                staffingModelResolved, startModelResolved),
         };
 
         /// <summary>
@@ -336,12 +363,32 @@ namespace GonogoRp1Uplink
             bool buildModelResolved,
             bool queueModelResolved,
             bool moveModelResolved,
-            bool staffingModelResolved)
+            bool staffingModelResolved,
+            bool startModelResolved)
         {
             var commands = new List<CommandDeclaration>();
             if (buildModelResolved)
             {
                 commands.Add(Declare(Rp1BuildCommands.RepeatCommand));
+            }
+            if (startModelResolved)
+            {
+                // TWO requirements rather than one, and the second is the only
+                // place in this Uplink where a command's addressability turns on
+                // something that is not RP-1's: whether this install can open a
+                // craft file at all. Both are static, so the engine decides both
+                // with an empty argument bag and the control is dark with its
+                // reason before anyone presses it.
+                commands.Add(new CommandDeclaration
+                {
+                    Command = Rp1BuildStartCommands.StartCommand,
+                    Delayed = false,
+                    Requires = new[]
+                    {
+                        Rp1BuildCommands.Requirements()[0],
+                        Rp1BuildStartCommands.Requirement(),
+                    },
+                });
             }
             if (moveModelResolved)
             {
@@ -381,6 +428,8 @@ namespace GonogoRp1Uplink
 
         public void Register(IUplinkHost host)
         {
+            _kernel = host.Kernel;
+
             // Presence is always sourced with the real answer, even when RP-1 is
             // absent, so a client can gate on it definitively rather than
             // inferring absence from silence.
@@ -494,6 +543,12 @@ namespace GonogoRp1Uplink
                     host.AddCommandHandler<Rp1BuildRepeatArgs, CommandResult>(
                         Rp1BuildCommands.RepeatCommand, _build.Repeat);
                 }
+                if (_start.IsAvailable)
+                {
+                    host.AddGateEvaluator(_start);
+                    host.AddCommandHandler<Rp1BuildStartArgs, CommandResult>(
+                        Rp1BuildStartCommands.StartCommand, _start.Start);
+                }
                 if (_vehicles.IsMoveAvailable)
                 {
                     host.AddCommandHandler<Rp1RolloutArgs, CommandResult>(
@@ -595,6 +650,7 @@ namespace GonogoRp1Uplink
             _complexes = host.Publisher(ComplexesTopic);
             _buildQueue = host.Publisher(BuildQueueTopic);
             _warehouse = host.Publisher(WarehouseTopic);
+            _buildable = host.Publisher(BuildableTopic);
             _pads = host.Publisher(PadsTopic);
             _operations = host.Publisher(OperationsTopic);
             _constructions = host.Publisher(ConstructionsTopic);
@@ -615,6 +671,7 @@ namespace GonogoRp1Uplink
                 ComplexesTopic,
                 BuildQueueTopic,
                 WarehouseTopic,
+                BuildableTopic,
                 PadsTopic,
                 OperationsTopic,
                 ConstructionsTopic,
@@ -663,7 +720,50 @@ namespace GonogoRp1Uplink
                 return null;
             }
             var raw = _rp1.Read(snapshot?.Ut ?? 0.0);
+            // The craft listing joins the walk HERE rather than in the reflection
+            // reader, because it is core's rather than RP-1's and the reader holds
+            // no Kernel. Main thread, which is where the catalogue's own contract
+            // says it must be asked: it walks the save's craft folders and reads
+            // part prefabs.
+            raw.Buildable = Rp1Buildable.Rows(CraftListing(), raw.Complexes);
             return raw;
+        }
+
+        /// <summary>
+        /// The save's craft files, or null when this install cannot open them.
+        /// Fail-soft: a catalogue that throws costs the buildable preview and
+        /// nothing else, because every other channel on this Uplink is RP-1's.
+        /// </summary>
+        private IReadOnlyList<CraftFileRecord>? CraftListing()
+        {
+            try
+            {
+                return Catalogue()?.Craft();
+            }
+            catch (Exception)
+            {
+                return null;
+            }
+        }
+
+        /// <summary>
+        /// Core's craft catalogue, elected through the Kernel, or null before
+        /// registration and on an install whose core does not declare it.
+        /// </summary>
+        private ICraftCatalogue? Catalogue()
+        {
+            if (_kernel == null)
+            {
+                return null;
+            }
+            try
+            {
+                return _kernel.Query<ICraftCatalogue>(CraftCatalogueCapability.Id);
+            }
+            catch (Exception)
+            {
+                return null;
+            }
         }
 
         /// <summary>COURIER-THREAD handle: map to wire dicts and publish. No game API.</summary>
@@ -682,10 +782,12 @@ namespace GonogoRp1Uplink
             var operations = Rp1ScCapture.BuildOperations(raw);
             var constructions = Rp1ScCapture.BuildConstructions(raw);
             var research = Rp1ScCapture.BuildResearch(raw);
+            var buildable = Rp1ScCapture.Buildable(raw);
 
             Rp1RowBudget.Record(
                 centres.Count + complexes.Count + buildQueue.Count + warehouse.Count
-                + pads.Count + operations.Count + constructions.Count + research.Count,
+                + pads.Count + operations.Count + constructions.Count + research.Count
+                + buildable.Count,
                 raw.Ut);
 
             _centres?.Publish(centres, raw.Ut);
@@ -696,6 +798,7 @@ namespace GonogoRp1Uplink
             _operations?.Publish(operations, raw.Ut);
             _constructions?.Publish(constructions, raw.Ut);
             _research?.Publish(research, raw.Ut);
+            _buildable?.Publish(buildable, raw.Ut);
             _personnel?.Publish(Rp1ScCapture.BuildPersonnel(raw), raw.Ut);
             _rushTerms?.Publish(Rp1ScCapture.BuildRushTerms(raw), raw.Ut);
             _confidence?.Publish(Rp1ScCapture.BuildConfidence(raw), raw.Ut);

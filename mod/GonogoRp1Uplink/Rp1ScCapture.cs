@@ -71,6 +71,46 @@ namespace GonogoRp1Uplink
             return list;
         }
 
+        /// <summary>
+        /// The buildable preview: one row per craft file, each with one verdict
+        /// per complex. A nested array, because the question is per (craft,
+        /// complex) pair and flattening it would make a client join two channels
+        /// to answer a single control's enabled state.
+        /// </summary>
+        public static List<object?> Buildable(Rp1ScRaw raw)
+        {
+            var list = new List<object?>();
+            foreach (var c in raw.Buildable)
+            {
+                var complexes = new List<object?>();
+                foreach (var lc in c.Complexes)
+                {
+                    complexes.Add(new Dictionary<string, object?>
+                    {
+                        ["lcId"] = lc.LcId,
+                        ["name"] = lc.Name,
+                        ["kscName"] = lc.KscName,
+                        ["eligible"] = lc.Eligible,
+                        ["refusals"] = lc.Refusals,
+                    });
+                }
+                list.Add(new Dictionary<string, object?>
+                {
+                    ["craftFile"] = c.CraftFile,
+                    ["shipName"] = c.ShipName,
+                    ["facility"] = c.FacilityOrdinal,
+                    ["partCount"] = c.PartCount,
+                    ["mass"] = c.Mass,
+                    ["cost"] = c.Cost,
+                    ["missingParts"] = c.MissingParts,
+                    ["lockedParts"] = c.LockedParts,
+                    ["unpurchasedParts"] = c.UnpurchasedParts,
+                    ["complexes"] = complexes,
+                });
+            }
+            return list;
+        }
+
         public static List<object?> BuildQueue(Rp1ScRaw raw)
         {
             var list = new List<object?>();
