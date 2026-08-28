@@ -301,18 +301,18 @@ export const SNAPSHOT = {
 
   // Mod-side Uplink self-report (Sitrep.Contract.IUplinkHealthReporter,
   // aggregated by ChannelEngine: see @ksp-gonogo/sitrep-client's
-  // uplink-health.ts). Reports "scansat" installed + healthy + available so
+  // uplink-health.ts). Reports "kos" installed + healthy + available so
   // the Uplink Hub wizard's dogfood e2e (tests/playwright/uplink-hub-wizard.spec.ts)
-  // can boot with the runtime loader deliberately skipping scansat at boot
+  // can boot with the runtime loader deliberately skipping kos at boot
   // (?uplinkLoaderIds=) and prove the wizard detects it as an
-  // installed-but-unloaded gap. NOT sent for kos/kerbcast: this fixture
+  // installed-but-unloaded gap. NOT sent for kerbcast: this fixture
   // doesn't need to report every Uplink, only the one that spec exercises
   // (same "topics with no snapshot entry are simply never sent" convention
   // as the rest of this file: see the module doc comment).
   "system.uplinks": {
     uplinks: [
       {
-        id: "scansat",
+        id: "kos",
         version: "1.0.0",
         available: true,
         reason: null,

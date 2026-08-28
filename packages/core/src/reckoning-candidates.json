@@ -305,12 +305,12 @@
   },
   "Rp1Personnel.engineerSalaryPerYear": {
     "rates": ["engineerSalaryPerDay", "researcherSalaryPerDay"],
-    "reason": "An annual salary is the SAME standing cost as the per-day one, quoted at a longer horizon, not a total the daily rate accumulates into. RP-1 stores the yearly figure as the headline constant and pays it out daily, so integrating the per-day field would re-derive a number the model already publishes, and the two would disagree the moment a rush multiplier or an idle fraction applied to one and not the other.",
+    "reason": "Two different quantities that happen to share a dimension. The yearly figure is ONE engineer's full salary before any multiplier, a quoted price RP-1 reads from its settings and holds still; the daily figures are the WHOLE workforce's bill at the effective headcount, with the idle fraction and any rush already in them. So the per-day is not the derivative of the per-year, it is a different population over a different period, and integrating one into the other would have a single engineer's contract rate climb as the payroll runs. Neither side accumulates: both are standing prices, and the balance they are paid out of is graded separately at CareerEconomy.funds.",
     "verdict": "coincidence"
   },
   "Rp1Personnel.researcherSalaryPerYear": {
     "rates": ["engineerSalaryPerDay", "researcherSalaryPerDay"],
-    "reason": "An annual salary is the SAME standing cost as the per-day one, quoted at a longer horizon, not a total the daily rate accumulates into. RP-1 stores the yearly figure as the headline constant and pays it out daily, so integrating the per-day field would re-derive a number the model already publishes, and the two would disagree the moment a rush multiplier or an idle fraction applied to one and not the other.",
+    "reason": "The engineer's case with the mismatch one step wider: a researcher's yearly contract rate sits beside the engineers' daily bill as readily as the researchers' own, because both carry `f/day` and the rule cannot tell whose payroll is whose. The researcher day-rate is paid at `idleSalaryMult` while the research queue is empty, so it is not a fixed fraction of the yearly figure either.",
     "verdict": "coincidence"
   },
   "Rp1ProgramEntry.acceptedUt": {
@@ -556,12 +556,12 @@
   },
   "rp1.personnel.engineerSalaryPerYear": {
     "rates": ["engineerSalaryPerDay", "researcherSalaryPerDay"],
-    "reason": "An annual salary is the SAME standing cost as the per-day one, quoted at a longer horizon, not a total the daily rate accumulates into. RP-1 stores the yearly figure as the headline constant and pays it out daily, so integrating the per-day field would re-derive a number the model already publishes, and the two would disagree the moment a rush multiplier or an idle fraction applied to one and not the other.",
+    "reason": "The topic side of Rp1Personnel.engineerSalaryPerYear, same payload and same answer: a per-head yearly contract rate beside a whole-workforce daily bill.",
     "verdict": "coincidence"
   },
   "rp1.personnel.researcherSalaryPerYear": {
     "rates": ["engineerSalaryPerDay", "researcherSalaryPerDay"],
-    "reason": "An annual salary is the SAME standing cost as the per-day one, quoted at a longer horizon, not a total the daily rate accumulates into. RP-1 stores the yearly figure as the headline constant and pays it out daily, so integrating the per-day field would re-derive a number the model already publishes, and the two would disagree the moment a rush multiplier or an idle fraction applied to one and not the other.",
+    "reason": "The topic side of Rp1Personnel.researcherSalaryPerYear, same payload and same answer.",
     "verdict": "coincidence"
   },
   "rp1.programs.acceptedUt": {

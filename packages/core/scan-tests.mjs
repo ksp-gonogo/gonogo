@@ -25,6 +25,13 @@ const REACHES_OUT = [
   /SCAN_ROOTS/, // the shared scan-root convention
   /\.\.\/\.\.\/\.\.\//, // resolved up out of packages/core/src
   /TURBO_ROOT/,
+  // Graded against a base revision, so it shells out to git through a helper
+  // rather than in its own source. `uplink-isolation` and `typecheck-coverage`
+  // read the whole tree that way and matched none of the patterns above: they
+  // ran under `test`, which neither carries the repo-wide cache key nor is
+  // declared to see RATCHET_BASE_REF, so in CI they graded against the commit
+  // under test and refused.
+  /ratchetBaseRef/,
 ];
 
 export function scanTestFiles() {
