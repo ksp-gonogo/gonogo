@@ -604,6 +604,8 @@ namespace Gonogo.KerbalismUplink
                     NeedsService = InvokeBoolMethod(e, "NeedsMaintenance") ?? false,
                     LastInspection = paired?.LastInspection,
                     Quality = paired?.Quality,
+                    RepairTrait = paired?.RepairSpec?.Trait,
+                    RepairLevel = paired?.RepairSpec?.Level,
                 });
             }
             return raw;
@@ -616,6 +618,9 @@ namespace Gonogo.KerbalismUplink
             public string Title = "";
             public double? LastInspection;
             public bool? Quality;
+
+            /// <summary>Kerbalism's own repair crew spec, already elevated for a critical failure. Null means it named no requirement.</summary>
+            public (string Trait, int? Level)? RepairSpec;
         }
 
         /// <summary>
@@ -866,6 +871,44 @@ namespace Gonogo.KerbalismUplink
             catch { return null; }
         }
 
+        /// <summary>
+        /// Who Kerbalism will let touch this part, read from its OWN
+        /// <c>repair_cs</c> rather than guessed at.
+        ///
+        /// <para>Elevated by calling Kerbalism's <c>ElevatedForCritical()</c>
+        /// when the part is critical, instead of reproducing the rule here.
+        /// The rule is simple (same trait, one level higher, capped at five, or
+        /// Engineer where no trait is named) and that is exactly why copying it
+        /// would be a mistake: a second copy of a simple rule is the kind that
+        /// silently stops matching.</para>
+        ///
+        /// <para>Returns null when the spec is disabled, which means anyone may
+        /// do it, and null reads as "no requirement" all the way to the wire.</para>
+        /// </summary>
+        private static (string Trait, int? Level)? RepairSpecOf(PartModule pm)
+        {
+            try
+            {
+                var spec = pm.GetType().GetField("repair_cs")?.GetValue(pm);
+                if (spec == null) return null;
+
+                if (MemberBool(spec, "enabled") == false) return null;
+
+                if (MemberBool(pm, "critical") == true)
+                {
+                    var elevated = spec.GetType()
+                        .GetMethod("ElevatedForCritical")
+                        ?.Invoke(spec, null);
+                    if (elevated != null) spec = elevated;
+                }
+
+                var trait = MemberString(spec, "trait") ?? "";
+                var level = MemberDouble(spec, "level");
+                return (trait, level == null ? null : (int)level.Value);
+            }
+            catch { return null; }
+        }
+
         private static List<ReliabilityModuleRead> ReliabilityModules(Vessel v)
         {
             var found = new List<ReliabilityModuleRead>();
@@ -883,6 +926,7 @@ namespace Gonogo.KerbalismUplink
                             Title = MemberString(pm, "title") ?? "",
                             LastInspection = MemberDouble(pm, "last_inspection"),
                             Quality = MemberBool(pm, "quality"),
+                            RepairSpec = RepairSpecOf(pm),
                         });
                     }
                 }

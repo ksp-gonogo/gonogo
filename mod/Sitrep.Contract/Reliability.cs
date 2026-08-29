@@ -185,6 +185,27 @@ public class ReliabilityPartEntry
     [SitrepUnit(Units.Id)]
     public string? PartId { get; set; }
 
+    /// <summary>
+    /// Which crew trait may act on this part, as the provider states it: a
+    /// single name, or several comma-separated, or empty meaning anyone.
+    ///
+    /// <para>Carried so a console can offer only the crew who could actually do
+    /// it, rather than listing everyone aboard and letting the operator spend a
+    /// round trip discovering that the pilot cannot. This is the PROVIDER's own
+    /// requirement read back, never our guess at one: guessing would put a
+    /// second authority beside the one that actually decides.</para>
+    ///
+    /// <para>Already ELEVATED where the provider elevates it. Kerbalism asks
+    /// more of a critical failure than an ordinary one, so this is the
+    /// requirement for THIS part in THIS condition, not the part's baseline.</para>
+    /// </summary>
+    [SitrepUnit(Units.Text)]
+    public string? RepairTrait { get; set; }
+
+    /// <summary>Minimum experience level the trait must hold, elevated with <see cref="RepairTrait"/>. Null when the provider states none.</summary>
+    [SitrepUnit(Units.Count)]
+    public int? RepairLevel { get; set; }
+
     [SitrepUnit(Units.Text)]
     public string? Title { get; set; }
 

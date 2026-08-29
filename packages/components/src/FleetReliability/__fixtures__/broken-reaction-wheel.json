@@ -79,7 +79,9 @@
             "conditionDetail": "busted",
             "survival": null,
             "survivalHorizonSeconds": null,
-            "budgets": null
+            "budgets": null,
+            "repairTrait": "Engineer",
+            "repairLevel": 2
           },
           {
             "partId": "102:0",
@@ -99,7 +101,9 @@
                 "usedCount": null,
                 "limitCount": null
               }
-            ]
+            ],
+            "repairTrait": "Engineer",
+            "repairLevel": 1
           },
           {
             "partId": "103:0",

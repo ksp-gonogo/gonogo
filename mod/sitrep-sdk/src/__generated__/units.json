@@ -786,6 +786,8 @@
       "condition": "enum",
       "conditionDetail": "text",
       "partId": "id",
+      "repairLevel": "count",
+      "repairTrait": "text",
       "survival": "ratio",
       "survivalHorizonSeconds": "s",
       "title": "text"
@@ -1464,6 +1466,8 @@
       "condition": "enum",
       "conditionDetail": "text",
       "partId": "id",
+      "repairLevel": "count",
+      "repairTrait": "text",
       "survival": "ratio",
       "survivalHorizonSeconds": "s",
       "title": "text"

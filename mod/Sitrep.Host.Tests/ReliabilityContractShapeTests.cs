@@ -82,6 +82,28 @@ namespace Sitrep.Host.Tests
             nameof(ReliabilityPartEntry.Survival),
             nameof(ReliabilityPartEntry.SurvivalHorizonSeconds),
             nameof(ReliabilityPartEntry.Budgets),
+            /*
+             * Added deliberately, on the source-AGNOSTIC exception this guard's
+             * own message names, and the reasoning is recorded here because
+             * adding to this list is the act that records it.
+             *
+             * Every repair mechanic gates on crew. One backend states it as a
+             * trait and a level and elevates both for a critical failure; stock
+             * EVA repair has its own trait rule; a third backend that models
+             * repair at all has to answer the same question. So "who may act on
+             * this part" is not provider-shaped, and putting it in a provider's
+             * extension bag would be worse than useless here: a bag entry is
+             * only readable by a widget that already knows the provider id, and
+             * the thing that needs this is the SHARED roster augment, which by
+             * design never learns which mod answered.
+             *
+             * The alternative was for the console to list every kerbal aboard
+             * and let the operator spend a round trip discovering the pilot
+             * cannot do it, which is the failure the whole delay-aware design
+             * exists to prevent.
+             */
+            nameof(ReliabilityPartEntry.RepairTrait),
+            nameof(ReliabilityPartEntry.RepairLevel),
             nameof(ReliabilityPartEntry.Extensions),
         };
 

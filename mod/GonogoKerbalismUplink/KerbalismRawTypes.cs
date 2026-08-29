@@ -260,6 +260,8 @@ namespace Gonogo.KerbalismUplink
         public double? LastInspection;
         /// <summary>KSPField quality: an editor build choice (a bool), scaling effective MTBF by Settings.QualityScale. Null when unpaired.</summary>
         public bool? Quality;
+        public string? RepairTrait;
+        public int? RepairLevel;
     }
 
     // ── science (the elected "science" capability's Kerbalism provider) ───────

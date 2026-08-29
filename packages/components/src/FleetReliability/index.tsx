@@ -456,6 +456,34 @@ function actionable(condition: string | null | undefined): boolean {
 }
 
 /**
+ * Whether this kerbal is one the provider will accept for this part.
+ *
+ * <p>Reads the requirement the PROVIDER stated, elevated by the provider for a
+ * critical failure, rather than guessing at one. An empty trait means anyone,
+ * which is how the provider says "no requirement", and several comma-separated
+ * traits mean any of them.</p>
+ *
+ * <p>Filtering here is not pre-empting the provider's judgement, it is showing
+ * it. The provider still decides; this only stops the console offering the
+ * operator a choice it already knows will be refused, which under delay costs a
+ * round trip to discover.</p>
+ */
+function mayAct(
+  member: CrewMember,
+  trait: string | null | undefined,
+  level: number | null | undefined,
+): boolean {
+  if (trait) {
+    const accepted = trait.split(",").map((t) => t.trim().toLowerCase());
+    if (!accepted.includes((member.trait ?? "").toLowerCase())) return false;
+  }
+  if (level != null && (magnitudeOf(member.experienceLevel) ?? 0) < level) {
+    return false;
+  }
+  return true;
+}
+
+/**
  * The action for one part: repair a failure, or clear a service.
  *
  * <p><b>Collapsed until asked.</b> A roster row carries several parts and each
@@ -476,11 +504,15 @@ function actionable(condition: string | null | undefined): boolean {
 function RepairControl({
   partId,
   condition,
+  repairTrait,
+  repairLevel,
   crew,
   reserveKits,
 }: {
   partId: string;
   condition: string | null | undefined;
+  repairTrait: string | null | undefined;
+  repairLevel: number | null | undefined;
   crew: CrewMember[];
   reserveKits: number;
 }) {
@@ -498,17 +530,23 @@ function RepairControl({
    * enough needs nothing moved. Offering the first name in the roster instead
    * would hand the operator the worse option by default.
    */
-  const readiest = crew
+  const eligible = crew.filter((c) => mayAct(c, repairTrait, repairLevel));
+  const readiest = eligible
     .slice()
     .sort((a, b) => kitsCarried(b) - kitsCarried(a))[0];
   const performer = chosen ?? readiest?.name ?? null;
-  const carried = crew.find((c) => c.name === performer);
+  const carried = eligible.find((c) => c.name === performer);
   const held = carried ? kitsCarried(carried) : 0;
   const reachable = held + reserveKits;
 
+  const requirement = repairTrait
+    ? `${repairTrait}${repairLevel != null ? ` level ${repairLevel}` : ""}`
+    : null;
   const refusal =
-    crew.length === 0
-      ? "Nobody is aboard to do it"
+    eligible.length === 0
+      ? requirement
+        ? `Needs ${requirement}, and nobody aboard qualifies`
+        : "Nobody is aboard to do it"
       : reachable < needed
         ? `Needs ${needed}, and ${reachable} can be reached`
         : null;
@@ -528,7 +566,7 @@ function RepairControl({
           {`${needed} kit${needed === 1 ? "" : "s"} · ${held} carried · ${reserveKits} aboard`}
         </span>
       )}
-      {crew.map((member) => (
+      {eligible.map((member) => (
         <SelectableRow
           key={member.name ?? "unknown"}
           selected={member.name === performer}
@@ -709,6 +747,8 @@ export function FleetReliabilityUpdates({ vesselId, compact }: UpdatesProps) {
                 <RepairControl
                   partId={part.partId ?? ""}
                   condition={part.condition}
+                  repairTrait={part.repairTrait}
+                  repairLevel={magnitudeOf(part.repairLevel)}
                   crew={crew}
                   reserveKits={reserveKits}
                 />

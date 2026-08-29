@@ -125,6 +125,8 @@ namespace Gonogo.KerbalismUplink
                     // would be inventing data.
                     Survival = null,
                     SurvivalHorizonSeconds = null,
+                    RepairTrait = string.IsNullOrEmpty(p.RepairTrait) ? null : p.RepairTrait,
+                    RepairLevel = p.RepairLevel,
                     Budgets = ServiceBudget(p, raw.Ut),
                     Extensions = PartExtensions(p),
                 });

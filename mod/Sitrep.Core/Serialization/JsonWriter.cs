@@ -877,6 +877,14 @@ namespace Sitrep.Core.Serialization
             sb.Append(':');
             AppendNullableString(sb, p.Condition);
             sb.Append(',');
+            AppendString(sb, "repairTrait");
+            sb.Append(':');
+            AppendNullableString(sb, p.RepairTrait);
+            sb.Append(',');
+            AppendString(sb, "repairLevel");
+            sb.Append(':');
+            AppendNullableNumber(sb, p.RepairLevel);
+            sb.Append(',');
             AppendString(sb, "conditionDetail");
             sb.Append(':');
             AppendNullableString(sb, p.ConditionDetail);

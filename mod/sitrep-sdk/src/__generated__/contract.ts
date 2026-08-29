@@ -897,6 +897,8 @@ export interface ReliabilityBudget
 export interface ReliabilityPartEntry
 {
 	partId?: string;
+	repairTrait?: string;
+	repairLevel?: Value<"count">;
 	title?: string;
 	condition?: string;
 	conditionDetail?: string;

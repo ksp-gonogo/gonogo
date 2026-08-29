@@ -15,7 +15,13 @@ import { FleetReliabilityUpdates } from "./index";
  * asserts they are all DIFFERENT from each other rather than each being null.
  * This file is about the content rows.
  */
-const CARRIED = ["reliability.summary", "reliability.parts", "vessel.identity"];
+const CARRIED = [
+  "reliability.summary",
+  "reliability.parts",
+  "vessel.identity",
+  "vessel.crew",
+  "vessel.inventory",
+];
 
 const ACTIVE_IDENTITY = {
   vesselId: "v-active",
@@ -103,6 +109,118 @@ function emit(
     fixture.emit("reliability.parts", parts);
   });
 }
+
+const ENGINEER = {
+  name: "Bill Kerman",
+  trait: "Engineer",
+  experienceLevel: 2,
+  carrying: [{ name: "evaRepairKit", title: "EVA Repair Kit", quantity: 2 }],
+};
+
+const PILOT = {
+  name: "Jebediah Kerman",
+  trait: "Pilot",
+  experienceLevel: 5,
+  carrying: [{ name: "evaRepairKit", title: "EVA Repair Kit", quantity: 9 }],
+};
+
+/**
+ * Waits for the view clock's frame to carry an emitted sample into the render.
+ *
+ * The fixture applies a sample on the next animation frame, not on the emit, so
+ * a query made straight afterwards reads the widget as it was BEFORE the record
+ * arrived. Learned the hard way in ThermalStatus, where an assertion about an
+ * absence passed on the pre-emit render whatever the widget did.
+ */
+async function settleFrame(): Promise<void> {
+  await act(async () => {
+    await new Promise<void>((resolve) => {
+      requestAnimationFrame(() => requestAnimationFrame(() => resolve()));
+    });
+  });
+}
+
+describe("the repair control offers only crew the provider would accept", () => {
+  /**
+   * Asserted here rather than looked at, because a static render cannot show
+   * it: the crew list only exists once the operator has opened the control.
+   *
+   * The requirement is the PROVIDER's own, already elevated by it for a
+   * critical failure, so filtering on it is showing that judgement rather than
+   * pre-empting it. The point is to stop the console offering a choice it
+   * already knows will be refused, which under delay costs a round trip to find
+   * out.
+   */
+  it("hides a kerbal of the wrong trait, however much they are carrying", async () => {
+    const { fixture } = renderAugment("v-active");
+    act(() => {
+      fixture.emit("vessel.identity", ACTIVE_IDENTITY);
+      fixture.emit("vessel.crew", {
+        count: 2,
+        capacity: 3,
+        crew: [PILOT, ENGINEER],
+      });
+      fixture.emit("reliability.summary", {
+        source: "kerbalism",
+        coverage: "modeled",
+      });
+      fixture.emit("reliability.parts", [
+        {
+          partId: "1:0",
+          title: "Reaction Wheel",
+          condition: "failed",
+          repairTrait: "Engineer",
+          repairLevel: 2,
+        },
+      ]);
+    });
+
+    await settleFrame();
+    await act(async () => {
+      screen.getByRole("button", { name: /repair/i }).click();
+    });
+
+    expect(screen.getByText(/Bill Kerman/)).toBeInTheDocument();
+    // Nine kits and five levels do not make a pilot an engineer.
+    expect(screen.queryByText(/Jebediah Kerman/)).toBeNull();
+    await act(async () => {});
+  });
+
+  it("names the requirement when nobody aboard meets it", async () => {
+    const { fixture } = renderAugment("v-active");
+    act(() => {
+      fixture.emit("vessel.identity", ACTIVE_IDENTITY);
+      fixture.emit("vessel.crew", { count: 1, capacity: 3, crew: [PILOT] });
+      fixture.emit("reliability.summary", {
+        source: "kerbalism",
+        coverage: "modeled",
+      });
+      fixture.emit("reliability.parts", [
+        {
+          partId: "1:0",
+          title: "Reaction Wheel",
+          condition: "failed",
+          repairTrait: "Engineer",
+          repairLevel: 2,
+        },
+      ]);
+    });
+
+    await settleFrame();
+    await act(async () => {
+      screen.getByRole("button", { name: /repair/i }).click();
+    });
+
+    /*
+     * The reason has to be ON the disabled control, not discovered by
+     * dispatching: a refusal costs the same round trip a success does.
+     */
+    const confirm = screen.getByRole("button", { name: /repair/i });
+    expect(confirm).toBeDisabled();
+    expect(confirm.getAttribute("title")).toMatch(/Engineer level 2/);
+    await act(async () => {});
+  });
+});
 
 describe("FleetReliabilityUpdates augment", () => {
   it("lists the parts worth a row, and leaves the untroubled ones off", async () => {
