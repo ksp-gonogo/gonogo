@@ -35,7 +35,7 @@ Live camera streams from in-flight Hullcam VDS parts, with an in-widget camera p
 | Reads | `vessel.comms`, `comms.link`, `comms.delay` |
 | Actions | `nextCamera`, `prevCamera`, `zoomIn`, `zoomOut`, `panYaw`, `panPitch` |
 | Slots | `camera-feed.overlay` |
-| Default size | 5 × 5 |
+| Default size | 6 × 5 |
 
 ![A fixed camera, which most are: no aim to give it, so the feed has the whole tile and the header carries the name and the signal delay](docs/assets/camera-feed-fixed--default.png)
 
