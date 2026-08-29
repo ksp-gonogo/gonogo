@@ -30,7 +30,7 @@ Kerbalism life support as one ledger: every profile resource as a meter with the
 | `KerbalismIsruDrillExtension` | `ecRate` units/s, `harvestType` text, `issue` text, `sourceMassRemaining` t, `sourceMassThreshold` t |
 | `KerbalismProcessDef` | `dumpValves` text, `inputs` units/s, `modifiers` text, `name` text, `outputs` units/s |
 | `KerbalismProcessEntry` | `broken` flag, `capacity` units, `envModifier` 1, `flightId` id, `resource` text, `running` flag, `title` text, `valveIndex` count |
-| `KerbalismReliabilityExt` | `brokenPartCount` count, `maintenanceDueCount` count, `worstMtbfHours` h |
+| `KerbalismReliabilityExt` | `brokenPartCount` count, `criticalChance` ratio, `incentiveRedundancy` flag, `requireRepairKits` flag, `safeModeChance` ratio, `serviceDuePartCount` count, `worstMtbfSeconds` s |
 | `KerbalismResource` | `amount` units, `capacity` units, `rate` units/s |
 | `KerbalismResourceDef` | `density` kg/m³, `displayName` text, `flowMode` text, `flowModeOrdinal` enum, `isSupply` flag, `lowThreshold` ratio |
 | `KerbalismRuleDef` | `breakdown` flag, `degeneration` units/s, `fatalThreshold` units, `input` text, `interval` s, `modifiers` text, `name` text, `output` text, `rate` units, `ratePerSecond` units/s |
