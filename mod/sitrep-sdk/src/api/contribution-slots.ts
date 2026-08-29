@@ -204,13 +204,33 @@ declare module "./plots" {
 
 declare module "./types" {
   interface ContributionRegistry {
+    /*
+     * A slot declares the CORE topics every contributor can rely on, and no
+     * more. It never names a mod's topics.
+     *
+     * These unions used to list them: part-meters named `kerbalism.profile`,
+     * part-meta named only Kerbalism topics, hop-rates named only
+     * `realantennas.hopRates`. That put mod-owned ids in the PUBLISHED SDK and
+     * told an outside author that to fill part-meta they may read Kerbalism and
+     * nothing else, which is the opposite of what a slot is for.
+     *
+     * It was also redundant. A contribution declares its own `deps` at runtime,
+     * and that is what actually feeds `compute`. The union only typed the
+     * argument, `ContributionTopics` keeps an `& Record<string, unknown>` tail
+     * so an undeclared topic is still readable, and the one contributor each
+     * mod-topic was written for casts through it anyway. Nothing consumed the
+     * precision it existed to provide.
+     *
+     * A slot whose contributors bring their own data declares no `topics` at
+     * all, which resolves to `never` and leaves `compute` the open record. That
+     * is the honest statement: the slot does not care who fills it.
+     */
     "ship-map.part-meters": {
       entry: ShipMapPartMeterEntry;
-      topics: "vessel.parts" | "kerbalism.profile";
+      topics: "vessel.parts";
     };
     "ship-map.part-meta": {
       entry: ShipMapPartMetaEntry;
-      topics: "kerbalism.lifesupport" | "kerbalism.profile";
     };
     "system-view.entities": {
       entry: SystemEntity;
@@ -222,7 +242,6 @@ declare module "./types" {
     };
     "comm-signal.hop-rates": {
       entry: CommSignalHopRateEntry;
-      topics: "realantennas.hopRates";
     };
   }
 }

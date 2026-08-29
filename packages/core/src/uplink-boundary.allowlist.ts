@@ -1071,7 +1071,6 @@ export const ALLOWLIST: Record<ModToken, ModAllowlist> = {
        * widget's code knows the slot id and nothing else, and a path with no
        * contribution simply renders no bitrate.
        */
-      "packages/components/src/CommSignal/commsRoute.ts",
       "packages/components/src/SystemView/index.tsx",
       /*
        * G2 TrueNow-allowlist ratchet (task 4) names RealAntennasUplink.cs in

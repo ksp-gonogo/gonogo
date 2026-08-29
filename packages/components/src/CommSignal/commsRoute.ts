@@ -20,16 +20,20 @@ export interface CommSignalHopRateEntry {
 // contributes each hop's forward rate keyed by node id; the route schedule
 // joins it onto the hop it already renders and flags the bottleneck.
 //
-// `topics` names the contributor's SOURCE channel, which is the one place
-// `realantennas.hopRates` is written down: the widget's own code only ever
-// names this slot id, so CommSignal still references no provider. Declared here
-// rather than in `index.tsx` so the contribution-slot conformance test-d can
-// load the augmentation by importing this module's entry type.
+// It declares no `topics`. It used to name the contributor's source channel,
+// which put a single mod's topic id in the one place this widget could still be
+// said to reference a provider. A contribution declares its own `deps` at
+// runtime and that is what feeds `compute`, so the union only typed the
+// argument and the contributor cast through it regardless. Naming nothing is
+// the honest statement: any comms Uplink may fill this, from whatever channel
+// it owns.
+//
+// Declared here rather than in `index.tsx` so the contribution-slot conformance
+// test-d can load the augmentation by importing this module's entry type.
 declare module "@ksp-gonogo/core" {
   interface ContributionRegistry {
     "comm-signal.hop-rates": {
       entry: CommSignalHopRateEntry;
-      topics: "realantennas.hopRates";
     };
   }
 }
