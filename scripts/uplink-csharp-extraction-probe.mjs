@@ -6,9 +6,10 @@
  *
  * `mod/Sitrep.Core.Tests/UplinkIsolationTests.cs` enforces that a
  * `mod/Gonogo*Uplink/*.csproj` reaches nothing but `Sitrep.Contract`, its own
- * contract slice, and third-party assemblies. It is correct and its debt list is
- * empty. It reads what a csproj NAMES, and the closure of what it names, which
- * leaves it blind to everything that arrives without being named:
+ * contract slice, and third-party assemblies. It is correct and its Uplink debt
+ * list is empty (its `<Uplink>.Tests` list is not; see below). It reads what a
+ * csproj NAMES, and the closure of what it names, which leaves it blind to
+ * everything that arrives without being named:
  *
  *  - `mod/Directory.Build.props` supplies `KspManaged` to every project under
  *    `mod/`. It is not part of any csproj and does not travel with an extracted
@@ -34,6 +35,34 @@
  * slice and ships it alongside its plugin. Every OTHER ProjectReference is a hard
  * finding, because a project that was not copied in is one the author does not
  * have.
+ *
+ * ## Why the `<Uplink>.Tests` project is not copied out with it
+ *
+ * A Tests project does travel with its Uplink, and on 2026-08-30 the reference
+ * gate was extended to say so: `TestProjectReferenceDebt` in
+ * `UplinkIsolationTests.cs` now carries ten Uplinks whose tests reach a private
+ * assembly. The obvious next move is to bring the Tests project into this probe,
+ * and it is the wrong one for now, for two reasons.
+ *
+ * The first is that it is not a copy, it is a second design. This probe repoints
+ * the contract reference at `Sitrep.Contract.dll` as GonogoCore installs it: one
+ * build, `net472`. Every Tests project is `net10.0` and consumes the contract's
+ * `netstandard2.0` leg through a ProjectReference. Making them build against the
+ * shipped assembly means choosing which framework's DLL an out-of-repo test suite
+ * is supposed to bind to, and that question has no answer in this repo yet.
+ *
+ * The second is that the result would carry no information. Ten of the twelve
+ * would fail immediately on a missing `Sitrep.Contract.TestSupport`, which the
+ * debt list already names, per Uplink, with the reason. Trading a shrink-only list
+ * of ten entries for ten red builds saying the same thing loses the ratchet and
+ * gains nothing readable.
+ *
+ * The sequencing this implies: the gate holds the line now, and the Tests project
+ * joins the probe once `TestProjectReferenceDebt` is empty. At that point the only
+ * question left is the one a reference scan structurally cannot ask, a
+ * `<Compile Include>` reaching sideways or a property arriving from
+ * `Directory.Build.props`, and the leg can be green on the day it lands rather
+ * than being born red.
  *
  * ## The self-test, which runs first and is not optional
  *

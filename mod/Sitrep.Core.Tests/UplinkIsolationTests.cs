@@ -19,6 +19,19 @@ namespace Sitrep.Core.Tests
     /// There is no first-party exemption; shipping bundled with the mod changes how
     /// an Uplink is distributed, not what it may reference.
     ///
+    /// <para><b>The <c>&lt;Uplink&gt;.Tests</c> siblings are in scope too, since
+    /// 2026-08-30.</b> They were not, and that is how every debt list here read
+    /// zero while ten of the twelve Uplinks were breaching the rule: the walk
+    /// skipped the directory the breach lived in, and a gate told to skip a
+    /// directory reports it clean. A Tests project is part of the Uplink it tests,
+    /// it names that Uplink's types and compiles that Uplink's sources, so it moves
+    /// with the Uplink when the Uplink leaves. An Uplink whose suite only builds
+    /// against this repo's private assemblies has not been made extractable, and
+    /// the author who forks it inherits tests they cannot run. The Tests half has
+    /// its own walk, its own floor, and its own pair of debt lists
+    /// (<see cref="TestProjectReferenceDebt"/>, <see cref="TestProjectImportDebt"/>),
+    /// seeded from measurement rather than assumed empty.</para>
+    ///
     /// <para><b>Why this gates the REACHABLE set and not the declared one.</b>
     /// ProjectReference is transitive and nothing in this graph sets
     /// <c>PrivateAssets</c>, so a csproj naming one internal project gets that
@@ -65,9 +78,19 @@ namespace Sitrep.Core.Tests
             "Sitrep.CaptureAnalysis",
             "Sitrep.Skeleton",
             "Gonogo.KSP",
+
+            // Private despite the name. Sitrep.Contract.TestSupport is
+            // IsPackable=false and net10.0-only, so it is not in the box a
+            // third-party author installs and there is no target framework of it
+            // they could reference if it were. An Uplink's Tests project that
+            // needs it cannot be built outside this repo, which is the whole
+            // question these gates ask.
+            "Sitrep.Contract.TestSupport",
         };
 
         private const int MinimumUplinkProjectCount = 9;
+
+        private const int MinimumUplinkTestProjectCount = 10;
 
         /// <summary>
         /// Private assemblies each Uplink can still REACH, transitively, through the
@@ -97,6 +120,138 @@ namespace Sitrep.Core.Tests
         /// </summary>
         private static readonly Dictionary<string, string[]> ImportDebt = new(StringComparer.Ordinal);
 
+        /// <summary>
+        /// Private assemblies each <c>&lt;Uplink&gt;.Tests</c> project can still
+        /// REACH. Seeded 2026-08-30, when the Tests projects were brought into
+        /// scope for the first time. Shrink only, same rules as
+        /// <see cref="ReferenceDebt"/>.
+        ///
+        /// <para>What an entry costs: that Uplink cannot leave. A Tests project is
+        /// part of the Uplink it tests and moves with it, so an Uplink whose tests
+        /// only compile against this repo's private assemblies has no green suite
+        /// once it is extracted, and an author who forks it inherits a suite they
+        /// cannot run. Every entry below is a real breach being carried, not an
+        /// exemption.</para>
+        ///
+        /// <para><c>Sitrep.Contract.TestSupport</c> dominates the list and is the
+        /// cheapest to clear in principle (it is contract-only code that nothing
+        /// stops from being published) and the most expensive to leave (it is what
+        /// makes ten of the twelve unextractable). The others are genuine reaches
+        /// into host internals and need the capability route instead.</para>
+        /// </summary>
+        private static readonly Dictionary<string, string[]> TestProjectReferenceDebt =
+            new(StringComparer.Ordinal)
+            {
+                // Sitrep.Host for ChannelEngine/UplinkDiscovery and the
+                // Sitrep.Host.ActionGroups seam. Core/Transport/Propagation arrive
+                // behind it and are not named in the csproj at all, which is the
+                // transitive case this gate exists to see.
+                ["GonogoActionGroupsExtendedUplink.Tests"] = new[]
+                {
+                    "Sitrep.Contract.TestSupport",
+                    "Sitrep.Core",
+                    "Sitrep.Host",
+                    "Sitrep.Propagation",
+                    "Sitrep.Transport",
+                },
+
+                // The Unit-coverage assertion only. Clears the day TestSupport
+                // ships, no source change needed here.
+                ["GonogoAvionicsUplink.Tests"] = new[] { "Sitrep.Contract.TestSupport" },
+                ["GonogoFerramAerospaceResearchUplink.Tests"] = new[] { "Sitrep.Contract.TestSupport" },
+                ["GonogoKerbcastUplink.Tests"] = new[] { "Sitrep.Contract.TestSupport" },
+                ["GonogoMechJebUplink.Tests"] = new[] { "Sitrep.Contract.TestSupport" },
+                ["GonogoRealFuelsUplink.Tests"] = new[] { "Sitrep.Contract.TestSupport" },
+
+                // Sitrep.Core for EnvelopeCodec, to assert what an extension puts
+                // on the wire. An author outside this repo has no encoder to
+                // assert against, so these are wire tests that cannot travel.
+                ["GonogoKerbalismUplink.Tests"] = new[]
+                {
+                    "Sitrep.Contract.TestSupport",
+                    "Sitrep.Core",
+                },
+                ["GonogoRealAntennasUplink.Tests"] = new[]
+                {
+                    "Sitrep.Contract.TestSupport",
+                    "Sitrep.Core",
+                },
+
+                // Sitrep.Host for the extension-discovery and headless-terminal
+                // harnesses, Sitrep.Core for the courier/reveal internals, and the
+                // rest transitively behind Host.
+                ["GonogoKosUplink.Tests"] = new[]
+                {
+                    "Sitrep.Contract.TestSupport",
+                    "Sitrep.Core",
+                    "Sitrep.Host",
+                    "Sitrep.Propagation",
+                    "Sitrep.Transport",
+                },
+
+                // Sitrep.Host for the Economy and Crew starvation probes, and the
+                // rest transitively behind it.
+                ["GonogoRp1Uplink.Tests"] = new[]
+                {
+                    "Sitrep.Contract.TestSupport",
+                    "Sitrep.Core",
+                    "Sitrep.Host",
+                    "Sitrep.Propagation",
+                    "Sitrep.Transport",
+                },
+
+                // Absent, and deliberately: GonogoPrincipiaUplink.Tests and
+                // GonogoTestFlightUplink.Tests reach nothing private. They are the
+                // proof this is achievable and the shape the other ten owe.
+            };
+
+        /// <summary>
+        /// Namespaces each <c>&lt;Uplink&gt;.Tests</c> project still IMPORTS from a
+        /// private assembly. Seeded 2026-08-30. Shrink only.
+        ///
+        /// <para>Separate from <see cref="TestProjectReferenceDebt"/> for the same
+        /// reason the Uplink pair is separate: a reference that nothing imports is
+        /// a line to delete, and an import is a type to relocate. They are not the
+        /// same work and they do not clear together.</para>
+        /// </summary>
+        private static readonly Dictionary<string, string[]> TestProjectImportDebt =
+            new(StringComparer.Ordinal)
+            {
+                ["GonogoActionGroupsExtendedUplink.Tests"] = new[]
+                {
+                    "Sitrep.Contract.TestSupport",
+                    "Sitrep.Host",
+                    "Sitrep.Host.ActionGroups",
+                },
+                ["GonogoAvionicsUplink.Tests"] = new[] { "Sitrep.Contract.TestSupport" },
+                ["GonogoFerramAerospaceResearchUplink.Tests"] = new[] { "Sitrep.Contract.TestSupport" },
+                ["GonogoKerbalismUplink.Tests"] = new[]
+                {
+                    "Sitrep.Contract.TestSupport",
+                    "Sitrep.Core.Serialization",
+                },
+                ["GonogoKerbcastUplink.Tests"] = new[] { "Sitrep.Contract.TestSupport" },
+                ["GonogoKosUplink.Tests"] = new[]
+                {
+                    "Sitrep.Contract.TestSupport",
+                    "Sitrep.Core",
+                    "Sitrep.Host",
+                },
+                ["GonogoMechJebUplink.Tests"] = new[] { "Sitrep.Contract.TestSupport" },
+                ["GonogoRealAntennasUplink.Tests"] = new[]
+                {
+                    "Sitrep.Contract.TestSupport",
+                    "Sitrep.Core.Serialization",
+                },
+                ["GonogoRealFuelsUplink.Tests"] = new[] { "Sitrep.Contract.TestSupport" },
+                ["GonogoRp1Uplink.Tests"] = new[]
+                {
+                    "Sitrep.Contract.TestSupport",
+                    "Sitrep.Host.Crew",
+                    "Sitrep.Host.Economy",
+                },
+            };
+
         [Fact]
         public void ScanFindsEveryUplinkProject()
         {
@@ -125,6 +280,143 @@ namespace Sitrep.Core.Tests
                 string.Join(", ", missing) +
                 ". Either the walk is broken or a project was removed from disk but left in the " +
                 "solution.");
+        }
+
+        /// <summary>
+        /// The Tests half of <see cref="ScanFindsEveryUplinkProject"/>, and it
+        /// exists for a sharper reason than symmetry. Every debt list in this file
+        /// read zero for ten days while ten Uplinks were breaching the rule,
+        /// because <see cref="DiscoverUplinkProjects"/> excludes the <c>.Tests</c>
+        /// siblings and nothing else looked at them. A gate told to skip a
+        /// directory reports that directory clean. So the Tests walk is pinned
+        /// against <c>Gonogo.sln</c> too, and a floor keeps a broken walk from
+        /// passing as an empty one.
+        /// </summary>
+        [Fact]
+        public void ScanFindsEveryUplinkTestProject()
+        {
+            var tests = DiscoverUplinkTestProjects();
+
+            Assert.True(
+                tests.Count >= MinimumUplinkTestProjectCount,
+                $"The Uplink Tests scan found {tests.Count} project(s), expected at least " +
+                $"{MinimumUplinkTestProjectCount}. The Tests isolation assertions walk this set, so " +
+                "a walk that finds nothing reports no violations and is indistinguishable from a " +
+                "clean repo. Found: " +
+                string.Join(", ", tests.Keys.OrderBy(k => k, StringComparer.Ordinal)));
+
+            var declared = UplinkTestProjectsDeclaredInSolution();
+            Assert.True(
+                declared.Count >= MinimumUplinkTestProjectCount,
+                $"Gonogo.sln declares only {declared.Count} Uplink Tests project(s). This is the " +
+                "independent source the directory walk is checked against, so if it comes back " +
+                "empty the check below compares nothing to nothing and passes.");
+
+            var missing = declared.Except(tests.Keys).OrderBy(n => n, StringComparer.Ordinal).ToList();
+            Assert.True(
+                missing.Count == 0,
+                "Gonogo.sln declares Uplink Tests projects the directory walk did not find: " +
+                string.Join(", ", missing) +
+                ". Either the walk is broken or a project was removed from disk but left in the " +
+                "solution.");
+        }
+
+        /// <summary>
+        /// An <c>&lt;Uplink&gt;.Tests</c> project is held to its Uplink's rule,
+        /// because it is part of that Uplink: it names that Uplink's types, it
+        /// compiles that Uplink's sources, and it goes with it when the Uplink
+        /// leaves this repo. An Uplink whose suite only builds against
+        /// <c>Sitrep.Host</c> has not been extracted, it has been split.
+        ///
+        /// <para><b>The planted-failure demonstration.</b> Run 2026-08-30, all
+        /// three plants on <c>GonogoTestFlightUplink.Tests</c>, the project this
+        /// file excuses nothing for. Adding
+        /// <c>&lt;ProjectReference Include="..\Sitrep.Core\Sitrep.Core.csproj" /&gt;</c>
+        /// to its csproj, and a one-line
+        /// <c>PlantedIsolationBreach.cs</c> holding <c>using Sitrep.Core.Serialization;</c>,
+        /// turned both Tests gates red and named the project and the site:</para>
+        /// <code>
+        /// GonogoTestFlightUplink.Tests can build against Sitrep.Core, which is private and
+        /// unpublished. ...
+        /// GonogoTestFlightUplink.Tests imports Sitrep.Core.Serialization (at
+        /// PlantedIsolationBreach.cs:1), which lives in a private assembly. ...
+        /// </code>
+        /// <para>The stale half was planted separately, by excusing
+        /// <c>Sitrep.Core</c> for that project while it reached nothing:</para>
+        /// <code>
+        /// GonogoTestFlightUplink.Tests no longer reaches Sitrep.Core, but
+        /// TestProjectReferenceDebt still excuses it. Delete that entry: this list is
+        /// shrink-only.
+        /// </code>
+        /// <para>All three were then removed and the suite went green again. The
+        /// clean run is as much of the demonstration as the red ones: a gate that
+        /// fails at everything proves nothing about its subject.</para>
+        /// </summary>
+        [Fact]
+        public void NoUplinkTestProjectReachesAPrivateProjectOutsideTheDebtList()
+        {
+            var tests = DiscoverUplinkTestProjects();
+            var graph = BuildProjectReferenceGraph();
+            var failures = new List<string>();
+
+            foreach (var (project, _) in tests.OrderBy(t => t.Key, StringComparer.Ordinal))
+            {
+                var reachable = ReachablePrivateProjects(project, graph);
+                var excused = TestProjectReferenceDebt.TryGetValue(project, out var debt)
+                    ? new HashSet<string>(debt, StringComparer.Ordinal)
+                    : new HashSet<string>(StringComparer.Ordinal);
+
+                foreach (var reached in reachable.Except(excused).OrderBy(p => p, StringComparer.Ordinal))
+                {
+                    failures.Add(
+                        $"{project} can build against {reached}, which is private and unpublished. " +
+                        "A Tests project travels with the Uplink it tests, so this is the Uplink " +
+                        "failing to be extractable, not a test-only convenience. Note this may be " +
+                        "TRANSITIVE: check what the projects its csproj names pull in behind them.");
+                }
+
+                foreach (var stale in excused.Except(reachable).OrderBy(p => p, StringComparer.Ordinal))
+                {
+                    failures.Add(
+                        $"{project} no longer reaches {stale}, but TestProjectReferenceDebt still " +
+                        "excuses it. Delete that entry: this list is shrink-only.");
+                }
+            }
+
+            AssertNoFailures(failures, "Tests-project reference");
+        }
+
+        [Fact]
+        public void NoUplinkTestProjectImportsAPrivateNamespaceOutsideTheDebtList()
+        {
+            var tests = DiscoverUplinkTestProjects();
+            var failures = new List<string>();
+
+            foreach (var (project, directory) in tests.OrderBy(t => t.Key, StringComparer.Ordinal))
+            {
+                var found = PrivateNamespaceImports(directory);
+                var excused = TestProjectImportDebt.TryGetValue(project, out var debt)
+                    ? new HashSet<string>(debt, StringComparer.Ordinal)
+                    : new HashSet<string>(StringComparer.Ordinal);
+
+                foreach (var ns in found.Keys.Except(excused).OrderBy(n => n, StringComparer.Ordinal))
+                {
+                    failures.Add(
+                        $"{project} imports {ns} (at {string.Join(", ", found[ns])}), which lives in a " +
+                        "private assembly. If the helper genuinely belongs on the boundary, move it " +
+                        "into Sitrep.Contract; if it is a host internal, the test needs the same " +
+                        "route the Uplink itself would take.");
+                }
+
+                foreach (var stale in excused.Except(found.Keys).OrderBy(n => n, StringComparer.Ordinal))
+                {
+                    failures.Add(
+                        $"{project} no longer imports {stale}, but TestProjectImportDebt still " +
+                        "excuses it. Delete that entry: this list is shrink-only.");
+                }
+            }
+
+            AssertNoFailures(failures, "Tests-project import");
         }
 
         [Fact]
@@ -182,6 +474,11 @@ namespace Sitrep.Core.Tests
         /// allowed to be in <see cref="ReferenceDebt"/> while it works through a
         /// ruling, but it is never allowed to bundle what it reaches. The two gates
         /// fail for different reasons and an Uplink can fail this one alone.</para>
+        ///
+        /// <para>The <c>.Tests</c> siblings have no equivalent of this check and
+        /// want none: a test assembly's <c>bin/</c> is never installed into
+        /// GameData, so there is no shared AppDomain for it to shadow anything in.
+        /// The reference and import gates apply to them, this one does not.</para>
         /// </summary>
         [Fact]
         public void NoUplinkBundlesAnAssemblyItMerelyReaches()
@@ -279,9 +576,37 @@ namespace Sitrep.Core.Tests
             return declared;
         }
 
+        /// <summary>
+        /// The <c>&lt;Uplink&gt;.Tests</c> projects <c>Gonogo.sln</c> declares, the
+        /// independent source <see cref="DiscoverUplinkTestProjects"/> is checked
+        /// against. Same reasoning as
+        /// <see cref="UplinkProjectsDeclaredInSolution"/>, and the two regexes do
+        /// not overlap: that one anchors on <c>Uplink"</c>, this one on
+        /// <c>Uplink.Tests"</c>.
+        /// </summary>
+        private static HashSet<string> UplinkTestProjectsDeclaredInSolution()
+        {
+            var solution = Path.Combine(ResolveModDir(), "Gonogo.sln");
+            var declared = new HashSet<string>(StringComparer.Ordinal);
+            if (!File.Exists(solution))
+            {
+                return declared;
+            }
+
+            var project = new Regex(@"=\s*""([A-Za-z0-9_.]+Uplink\.Tests)""", RegexOptions.Compiled);
+            foreach (Match match in project.Matches(File.ReadAllText(solution)))
+            {
+                declared.Add(match.Groups[1].Value);
+            }
+
+            return declared;
+        }
+
         /// <summary>Uplink project name -> its source directory. An Uplink is a
         /// <c>Gonogo*Uplink</c> directory with a csproj; the <c>.Contract</c> and
-        /// <c>.Tests</c> siblings are not Uplinks and are excluded.</summary>
+        /// <c>.Tests</c> siblings are not Uplinks and are excluded. The Tests
+        /// siblings get their own walk (<see cref="DiscoverUplinkTestProjects"/>)
+        /// and are held to the same rule from there.</summary>
         private static Dictionary<string, string> DiscoverUplinkProjects()
         {
             var modDir = ResolveModDir();
@@ -303,6 +628,35 @@ namespace Sitrep.Core.Tests
             }
 
             return uplinks;
+        }
+
+        /// <summary>
+        /// Uplink Tests project name -> its source directory. A
+        /// <c>Gonogo*Uplink.Tests</c> directory with a csproj. The
+        /// <c>.Contract.Codegen</c> siblings do not match and neither do the plain
+        /// Uplink directories.
+        /// </summary>
+        private static Dictionary<string, string> DiscoverUplinkTestProjects()
+        {
+            var modDir = ResolveModDir();
+            var tests = new Dictionary<string, string>(StringComparer.Ordinal);
+
+            foreach (var directory in Directory.EnumerateDirectories(modDir))
+            {
+                var name = Path.GetFileName(directory);
+                if (!name.StartsWith("Gonogo", StringComparison.Ordinal) ||
+                    !name.EndsWith("Uplink.Tests", StringComparison.Ordinal))
+                {
+                    continue;
+                }
+
+                if (File.Exists(Path.Combine(directory, name + ".csproj")))
+                {
+                    tests[name] = directory;
+                }
+            }
+
+            return tests;
         }
 
         /// <summary>Project name -> the project names its csproj references directly.</summary>

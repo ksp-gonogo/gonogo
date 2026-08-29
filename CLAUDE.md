@@ -412,7 +412,16 @@ interface in `Sitrep.Contract` and resolve the implementation through
 
 Enforced by `packages/core/src/uplink-isolation.test.ts` (client half, shrink-only
 debt list, seeded 2026-08-18) and `mod/Sitrep.Core.Tests/UplinkIsolationTests.cs`
-(C# half; its debt list is EMPTY as of 2026-08-20, keep it that way). Full rules
+(C# half; its Uplink debt list is EMPTY as of 2026-08-20, keep it that way).
+
+**A `<Uplink>.Tests` project is held to the same rule**, because it moves with
+its Uplink: it names that Uplink's types and compiles its sources, so an Uplink
+whose suite only builds against private assemblies has not been made extractable.
+That half was outside the walk until 2026-08-30, which is how every list here
+read zero while ten of the twelve test projects reached one. Its debt lists
+(`TestProjectReferenceDebt`, `TestProjectImportDebt`) are seeded and shrink-only;
+all ten reach `Sitrep.Contract.TestSupport` (unpublished, `IsPackable=false`),
+five of them also reach `Sitrep.Host` or `Sitrep.Core`. Full rules
 and the reasoning: `docs/uplink-isolation.md`.
 
 ---

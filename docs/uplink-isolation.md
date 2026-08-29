@@ -172,9 +172,15 @@ at the language boundary. `mod/Gonogo*Uplink/*.csproj` may reference:
 - KSP/Unity reference assemblies and the third-party mod it integrates
 
 `Sitrep.Host`, `Sitrep.Core`, `Sitrep.Transport`, `Sitrep.Propagation`,
-`Sitrep.CaptureAnalysis`, `Sitrep.Skeleton` and `Gonogo.KSP` are unpublished. An
-outside author has no way to obtain them, so an Uplink that references one cannot
-be built by anyone but us.
+`Sitrep.CaptureAnalysis`, `Sitrep.Skeleton`, `Sitrep.Contract.TestSupport` and
+`Gonogo.KSP` are unpublished. An outside author has no way to obtain them, so an
+Uplink that references one cannot be built by anyone but us.
+
+`Sitrep.Contract.TestSupport` is on that list despite the name: it is
+`IsPackable=false` and `net10.0`-only, so nothing ships and there is no target
+framework of it a consumer could bind to. The same rule and the same list apply
+to the `<Uplink>.Tests` projects, which travel with their Uplink; see Enforcement
+below.
 
 If a type you need is in one of them, **move it into `Sitrep.Contract`**. A
 contract change is free. The test is not where the type currently sits but what
@@ -242,10 +248,42 @@ its own directory walk found every Uplink `Gonogo.sln` declares, because a gate
 whose scan silently returns nothing reports no violations and looks exactly like
 a clean repo.
 
-**Its debt list is empty.** As of 2026-08-20 every Uplink in this repo compiles
-against `Sitrep.Contract` and its own contract slice alone, so the C# gate has
-nothing excused. The list stays, empty, because it is what holds zero at zero:
-the next breach fails on its own rather than waiting to be noticed.
+**Its Uplink debt lists are empty.** As of 2026-08-20 every Uplink plugin in this
+repo compiles against `Sitrep.Contract` and its own contract slice alone, so
+`ReferenceDebt` and `ImportDebt` have nothing excused. They stay, empty, because
+they are what holds zero at zero: the next breach fails on its own rather than
+waiting to be noticed.
+
+**Its `<Uplink>.Tests` debt lists are not, and that zero was never real.** Until
+2026-08-30 the walk excluded the `.Tests` siblings, so every list here read zero
+while ten of the twelve Uplink test projects referenced a private assembly. A
+gate told to skip a directory reports that directory clean.
+
+A `.Tests` project is held to its Uplink's rule, because it is part of that
+Uplink: it names that Uplink's types, it `<Compile Include>`s that Uplink's
+sources, and it moves with the Uplink when the Uplink leaves. An Uplink whose
+suite only builds against private assemblies has not been made extractable, and
+whoever forks it inherits tests they cannot run.
+
+Seeded from measurement on 2026-08-30, shrink-only like the others:
+
+- **All ten reach `Sitrep.Contract.TestSupport`**, which is `IsPackable=false` and
+  `net10.0`-only, so there is no build of it an outside author could reference
+  even if they had it. Six of the ten reach nothing else, and clear the day that
+  project is publishable
+- **`GonogoKerbalismUplink.Tests` and `GonogoRealAntennasUplink.Tests`** also
+  reach `Sitrep.Core`, for `EnvelopeCodec`, to assert what an extension puts on
+  the wire
+- **`GonogoActionGroupsExtendedUplink.Tests`, `GonogoKosUplink.Tests` and
+  `GonogoRp1Uplink.Tests`** also reach `Sitrep.Host`, and `Sitrep.Core`,
+  `Sitrep.Transport` and `Sitrep.Propagation` behind it, none of which their
+  csprojs name. Those are the transitive case, and the widest breaches
+- **`GonogoPrincipiaUplink.Tests` and `GonogoTestFlightUplink.Tests`** are clean,
+  which is the proof the other ten owe
+
+There is no packaging equivalent for a `.Tests` project and there should not be:
+a test assembly's `bin/` is never installed into `GameData`, so there is no
+shared AppDomain for it to shadow anything in.
 
 It lives in `core` because core is what Uplinks must not depend on, so core owns
 the rule; when the Uplinks move to their own repos the guard stops having

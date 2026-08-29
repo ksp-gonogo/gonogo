@@ -84,6 +84,17 @@ export const ALLOWLIST: Record<ModToken, ModAllowlist> = {
     ],
     permanent: [
       /*
+       * The mod-side Uplink isolation ratchet. Its shrink-only debt lists are
+       * keyed by project name, and since 2026-08-30 they cover the
+       * <Uplink>.Tests projects too, ten of which reach a private assembly.
+       * A debt list has to name its subjects, so this is a ratchet-inventory
+       * file and the entry goes when that Uplink's debt does. Nothing else in
+       * the file names a mod: both directory walks are checked against the
+       * project list in Gonogo.sln rather than a hardcoded one, precisely so
+       * these stay the only ones.
+       */
+      "mod/Sitrep.Core.Tests/UplinkIsolationTests.cs",
+      /*
        * The comment-stack ratchet's own inventory: a path-keyed debt list over
        * every hand-written JS/TS file in the repo, so it names this Uplink's paths
        * by construction and there is nowhere else for it to live. Permanent for
@@ -577,6 +588,17 @@ export const ALLOWLIST: Record<ModToken, ModAllowlist> = {
     ],
     permanent: [
       /*
+       * The mod-side Uplink isolation ratchet. Its shrink-only debt lists are
+       * keyed by project name, and since 2026-08-30 they cover the
+       * <Uplink>.Tests projects too, ten of which reach a private assembly.
+       * A debt list has to name its subjects, so this is a ratchet-inventory
+       * file and the entry goes when that Uplink's debt does. Nothing else in
+       * the file names a mod: both directory walks are checked against the
+       * project list in Gonogo.sln rather than a hardcoded one, precisely so
+       * these stay the only ones.
+       */
+      "mod/Sitrep.Core.Tests/UplinkIsolationTests.cs",
+      /*
        * -- DYNAMIC-NAMESPACE ROUTING (2026-08-25): `mapTopic` identity-maps the
        * per-body scansat namespaces and the kOS compute namespace, because both
        * materialise their Topics per subject at runtime and so appear in no
@@ -946,6 +968,17 @@ export const ALLOWLIST: Record<ModToken, ModAllowlist> = {
     domainDebt: [],
     permanent: [
       /*
+       * The mod-side Uplink isolation ratchet. Its shrink-only debt lists are
+       * keyed by project name, and since 2026-08-30 they cover the
+       * <Uplink>.Tests projects too, ten of which reach a private assembly.
+       * A debt list has to name its subjects, so this is a ratchet-inventory
+       * file and the entry goes when that Uplink's debt does. Nothing else in
+       * the file names a mod: both directory walks are checked against the
+       * project list in Gonogo.sln rather than a hardcoded one, precisely so
+       * these stay the only ones.
+       */
+      "mod/Sitrep.Core.Tests/UplinkIsolationTests.cs",
+      /*
        * The comment-stack ratchet's own inventory: a path-keyed debt list over
        * every hand-written JS/TS file in the repo, so it names this Uplink's paths
        * by construction and there is nowhere else for it to live. Permanent for
@@ -1216,6 +1249,17 @@ export const ALLOWLIST: Record<ModToken, ModAllowlist> = {
     domainDebt: [],
     permanent: [
       /*
+       * The mod-side Uplink isolation ratchet. Its shrink-only debt lists are
+       * keyed by project name, and since 2026-08-30 they cover the
+       * <Uplink>.Tests projects too, ten of which reach a private assembly.
+       * A debt list has to name its subjects, so this is a ratchet-inventory
+       * file and the entry goes when that Uplink's debt does. Nothing else in
+       * the file names a mod: both directory walks are checked against the
+       * project list in Gonogo.sln rather than a hardcoded one, precisely so
+       * these stay the only ones.
+       */
+      "mod/Sitrep.Core.Tests/UplinkIsolationTests.cs",
+      /*
        * -- Judgment calls, all doc-mention only (Phase 1's seam commentary) --
        * NOTE: mod/Sitrep.Host/ActionGroups/ActionGroupsElection.cs used to sit
        * here, justified as "constant/method names ... and prose". Naming the API
@@ -1278,6 +1322,17 @@ export const ALLOWLIST: Record<ModToken, ModAllowlist> = {
   mechjeb: {
     domainDebt: [],
     permanent: [
+      /*
+       * The mod-side Uplink isolation ratchet. Its shrink-only debt lists are
+       * keyed by project name, and since 2026-08-30 they cover the
+       * <Uplink>.Tests projects too, ten of which reach a private assembly.
+       * A debt list has to name its subjects, so this is a ratchet-inventory
+       * file and the entry goes when that Uplink's debt does. Nothing else in
+       * the file names a mod: both directory walks are checked against the
+       * project list in Gonogo.sln rather than a hardcoded one, precisely so
+       * these stay the only ones.
+       */
+      "mod/Sitrep.Core.Tests/UplinkIsolationTests.cs",
       /*
        * The comment-stack ratchet's own inventory: a path-keyed debt list over
        * every hand-written JS/TS file in the repo, so it names this Uplink's paths
@@ -1426,6 +1481,17 @@ export const ALLOWLIST: Record<ModToken, ModAllowlist> = {
   avionics: {
     domainDebt: [],
     permanent: [
+      /*
+       * The mod-side Uplink isolation ratchet. Its shrink-only debt lists are
+       * keyed by project name, and since 2026-08-30 they cover the
+       * <Uplink>.Tests projects too, ten of which reach a private assembly.
+       * A debt list has to name its subjects, so this is a ratchet-inventory
+       * file and the entry goes when that Uplink's debt does. Nothing else in
+       * the file names a mod: both directory walks are checked against the
+       * project list in Gonogo.sln rather than a hardcoded one, precisely so
+       * these stay the only ones.
+       */
+      "mod/Sitrep.Core.Tests/UplinkIsolationTests.cs",
       /*
        * The comment-stack ratchet's own inventory: a path-keyed debt list over
        * every hand-written JS/TS file in the repo, so it names this Uplink's paths
@@ -1668,12 +1734,13 @@ export const ALLOWLIST: Record<ModToken, ModAllowlist> = {
       "mod/sitrep-sdk/src/ksp-enum-names.ts",
       /*
        * The mod-side Uplink isolation ratchet, same case as the magnitude budget
-       * below: its shrink-only debt lists are keyed by Uplink project name, so
-       * an Uplink that still reaches a private assembly has to be named in one.
-       * This is now the only such Uplink, and the entry goes when the debt does.
-       * Nothing else in that file names a mod: the directory walk is checked
-       * against the project list in Gonogo.sln rather than a hardcoded one,
-       * precisely so this stays the last one.
+       * below: its shrink-only debt lists are keyed by project name, so a
+       * project that still reaches a private assembly has to be named in one.
+       * This was the last such entry while only the Uplink plugins were in
+       * scope; the 2026-08-30 extension to the <Uplink>.Tests projects put nine
+       * more tokens back on the same file, each with its own copy of this note.
+       * Nothing else in the file names a mod: both directory walks are checked
+       * against the project list in Gonogo.sln rather than a hardcoded one.
        */
       "mod/Sitrep.Core.Tests/UplinkIsolationTests.cs",
       /*
@@ -1976,6 +2043,17 @@ export const ALLOWLIST: Record<ModToken, ModAllowlist> = {
     domainDebt: [],
     permanent: [
       /*
+       * The mod-side Uplink isolation ratchet. Its shrink-only debt lists are
+       * keyed by project name, and since 2026-08-30 they cover the
+       * <Uplink>.Tests projects too, ten of which reach a private assembly.
+       * A debt list has to name its subjects, so this is a ratchet-inventory
+       * file and the entry goes when that Uplink's debt does. Nothing else in
+       * the file names a mod: both directory walks are checked against the
+       * project list in Gonogo.sln rather than a hardcoded one, precisely so
+       * these stay the only ones.
+       */
+      "mod/Sitrep.Core.Tests/UplinkIsolationTests.cs",
+      /*
        * -- CI gating ratchet (2026-08-20): names the four Uplink test
        * projects that were in mod/Gonogo.sln and in no CI job, which is the
        * finding itself: "four projects drifted" without saying which is not
@@ -2090,6 +2168,17 @@ export const ALLOWLIST: Record<ModToken, ModAllowlist> = {
   principia: {
     domainDebt: [],
     permanent: [
+      /*
+       * The mod-side Uplink isolation ratchet. Its shrink-only debt lists are
+       * keyed by project name, and since 2026-08-30 they cover the
+       * <Uplink>.Tests projects too, ten of which reach a private assembly.
+       * A debt list has to name its subjects, so this is a ratchet-inventory
+       * file and the entry goes when that Uplink's debt does. Nothing else in
+       * the file names a mod: both directory walks are checked against the
+       * project list in Gonogo.sln rather than a hardcoded one, precisely so
+       * these stay the only ones.
+       */
+      "mod/Sitrep.Core.Tests/UplinkIsolationTests.cs",
       /*
        * -- RENDER-FIXTURE COVERAGE ratchet (2026-08-29). Two files, for two
        * reasons. The debt list is keyed by widget directory, so it names this
@@ -2213,6 +2302,17 @@ export const ALLOWLIST: Record<ModToken, ModAllowlist> = {
     domainDebt: [],
     permanent: [
       /*
+       * The mod-side Uplink isolation ratchet. Its shrink-only debt lists are
+       * keyed by project name, and since 2026-08-30 they cover the
+       * <Uplink>.Tests projects too, ten of which reach a private assembly.
+       * A debt list has to name its subjects, so this is a ratchet-inventory
+       * file and the entry goes when that Uplink's debt does. Nothing else in
+       * the file names a mod: both directory walks are checked against the
+       * project list in Gonogo.sln rather than a hardcoded one, precisely so
+       * these stay the only ones.
+       */
+      "mod/Sitrep.Core.Tests/UplinkIsolationTests.cs",
+      /*
        * -- RENDER-FIXTURE COVERAGE ratchet inventory (2026-08-29): the debt list
        * of payload fields a widget reads and no fixture feeds is keyed by widget
        * directory, so it names this Uplink's DescentEnvelope by construction.
@@ -2277,9 +2377,11 @@ export const ALLOWLIST: Record<ModToken, ModAllowlist> = {
  * package or reads a mod topic in code. Shrink-only, like the debt list.</p>
  */
 export const SURVIVES_COMMENT_STRIP: Partial<Record<ModToken, string[]>> = {
+  agx: ["mod/Sitrep.Core.Tests/UplinkIsolationTests.cs"],
   avionics: [
     "mod/GonogoDevTools/GonogoDevKerbalismDump.cs",
     "mod/Sitrep.Core.Tests/UplinkContractOwnershipTests.cs",
+    "mod/Sitrep.Core.Tests/UplinkIsolationTests.cs",
     "packages/app/src/__tests__/topic-cs-sync.test.ts",
     "packages/app/src/__tests__/uplink-widget-declarations.test.ts",
     "packages/app/src/main.tsx",
@@ -2289,6 +2391,7 @@ export const SURVIVES_COMMENT_STRIP: Partial<Record<ModToken, string[]>> = {
     "packages/core/src/uplink-isolation.allowlist.ts",
   ],
   ferram: [
+    "mod/Sitrep.Core.Tests/UplinkIsolationTests.cs",
     "packages/app/src/__tests__/topic-cs-sync.test.ts",
     "packages/app/src/__tests__/uplink-widget-declarations.test.ts",
     "packages/app/src/main.tsx",
@@ -2302,6 +2405,7 @@ export const SURVIVES_COMMENT_STRIP: Partial<Record<ModToken, string[]>> = {
     "mod/GonogoDevTools/GonogoDevKerbalismDump.cs",
     "mod/GonogoDevTools/GonogoDevKerbalismScience.cs",
     "mod/Sitrep.Core.Tests/UplinkContractOwnershipTests.cs",
+    "mod/Sitrep.Core.Tests/UplinkIsolationTests.cs",
     "mod/Sitrep.Host.Tests/ReliabilityStateWireTests.cs",
     "packages/app/src/__tests__/topic-cs-sync.test.ts",
     "packages/app/src/__tests__/uplink-widget-declarations.test.ts",
@@ -2326,6 +2430,7 @@ export const SURVIVES_COMMENT_STRIP: Partial<Record<ModToken, string[]>> = {
   ],
   kerbcast: [
     "mod/Sitrep.Core.Tests/UplinkContractOwnershipTests.cs",
+    "mod/Sitrep.Core.Tests/UplinkIsolationTests.cs",
     "mod/sitrep-sdk/src/default-carried-topics.ts",
     "packages/app/src/__tests__/gamehost-repoints-both.test.tsx",
     "packages/app/src/__tests__/topic-cs-sync.test.ts",
@@ -2347,6 +2452,7 @@ export const SURVIVES_COMMENT_STRIP: Partial<Record<ModToken, string[]>> = {
     "mod/Sitrep.Core.Tests/CommandRequestLabelWireTests.cs",
     "mod/Sitrep.Core.Tests/CourierReliableOrderedDeliveryTests.cs",
     "mod/Sitrep.Core.Tests/PendingUplinkQueueWireTests.cs",
+    "mod/Sitrep.Core.Tests/UplinkIsolationTests.cs",
     "mod/Sitrep.Host.IntegrationTests/KosProcessorsWireTests.cs",
     "mod/sitrep-sdk/src/api/api-shape.gate.test.ts",
     "mod/sitrep-sdk/src/command-delay.test.ts",
@@ -2377,6 +2483,7 @@ export const SURVIVES_COMMENT_STRIP: Partial<Record<ModToken, string[]>> = {
   ],
   mechjeb: [
     "mod/Sitrep.Core.Tests/UplinkContractOwnershipTests.cs",
+    "mod/Sitrep.Core.Tests/UplinkIsolationTests.cs",
     "packages/app/src/__tests__/uplink-widget-declarations.test.ts",
     "packages/app/src/main.tsx",
     "packages/core/src/comment-stacks.allowlist.ts",
@@ -2405,6 +2512,7 @@ export const SURVIVES_COMMENT_STRIP: Partial<Record<ModToken, string[]>> = {
     "mod/Sitrep.CaptureAnalysis.Tests/VerdictTests.cs",
     "mod/Sitrep.Core.Tests/KernelFactoryFailureTests.cs",
     "mod/Sitrep.Core.Tests/UplinkContractOwnershipTests.cs",
+    "mod/Sitrep.Core.Tests/UplinkIsolationTests.cs",
     "mod/Sitrep.Host.Tests/CommsElectionTests.cs",
     "mod/Sitrep.Host.Tests/CommsOcclusionTests.cs",
     "mod/sitrep-kernel/src/registry.test.ts",
