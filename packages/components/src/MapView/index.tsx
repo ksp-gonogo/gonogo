@@ -806,10 +806,11 @@ function MapViewComponent({
   }, [containerSize, camera, textureReady, body?.color, baseLayerVersion]);
 
   // ── Fog-of-war: paint-gate, not a drawn overlay ──────────────────────────
-  // The per-vessel painter (paintFogFromBody / paintFogDisc) modelled
-  // gonogo's own imaging FOV from lat/lon/altitude/heading. A mod's own
-  // reveal-source model replaces that wholesale, scanner range gates,
-  // persisted coverage, etc. are that mod's own concern. There is no
+  // A per-vessel painter used to model gonogo's own imaging FOV from
+  // lat/lon/altitude/heading. A mod's own reveal-source model replaced that
+  // wholesale, scanner range gates, persisted coverage, etc. are that mod's
+  // own concern, and the painter has now been deleted rather than left to
+  // read as an alternative that still exists. There is no
   // separate dark overlay canvas drawn on top of the map anymore (settled
   // model): `coverageGate` (T4, above) is handed to whichever
   // `map-view.base` augment is active so IT can gate its own per-tile
