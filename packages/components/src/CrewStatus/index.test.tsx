@@ -201,7 +201,7 @@ describe("CrewStatusComponent", () => {
     );
   });
 
-  it("handles Kerbalism-style object payloads by extracting .name", async () => {
+  it("handles rich object payloads by extracting .name", async () => {
     const fixture = newFixture();
     renderCrew(fixture);
     act(() => {
@@ -441,17 +441,19 @@ describe("CrewStatusComponent, avatar slot", () => {
 });
 
 /**
- * Per-kerbal survival (death clock, worst rule, degen) is a Kerbalism
- * concept, not a vanilla one: it moved wholesale out of this widget into the
- * Kerbalism Uplink's own `crew-status-survival` augment
- * (mod/GonogoKerbalismUplink/client/src/CrewSurvival), which fills the
- * generic `crew-status.survival` slot this widget exposes. This widget
- * itself reads ONLY the vanilla `vessel.crew` roster now, no `kerbalism.*`
- * topic anywhere in index.tsx (grep-verified below), so it must render
- * identically with or without a KerbalismUplink present, and it must NEVER
- * subscribe to a `kerbalism.*` topic even when one is carried on the stream.
+ * Per-kerbal survival (death clock, worst rule, degen) is a life-support
+ * concept, not a vanilla one: it moved wholesale out of this widget into an
+ * Uplink's own `crew-status-survival` augment, which fills the generic
+ * `crew-status.survival` slot this widget exposes. This widget itself reads
+ * ONLY the vanilla `vessel.crew` roster now, no Uplink-owned topic anywhere
+ * in index.tsx, so it must render identically whichever backend is elected,
+ * and it must NEVER subscribe to one even when it is carried on the stream.
+ *
+ * The two checks below pin that against one concrete namespace, `kerbalism.*`,
+ * because an assertion needs a real topic to probe: the rule is the general
+ * one above, this is the instance it is measured on.
  */
-describe("CrewStatusComponent, de-contaminated from Kerbalism", () => {
+describe("CrewStatusComponent, decoupled from the survival backend", () => {
   it("never subscribes to a kerbalism.* topic, even when one is carried", async () => {
     const fixture = setupStreamFixture({
       // Carry a kerbalism.* topic alongside vessel.crew: if the widget ever
@@ -487,8 +489,8 @@ describe("CrewStatusComponent, de-contaminated from Kerbalism", () => {
 
   it("does not import any kerbalism.* topic string in its own source", async () => {
     // Belt-and-braces static check alongside the behavioural one above: the
-    // whole point of the de-contamination is that this file's source never
-    // names a Kerbalism topic. Reads the source file's own text directly.
+    // whole point of the decoupling is that this file's source never names an
+    // Uplink-owned topic. Reads the source file's own text directly.
     const path = await import("node:path");
     const fs = await import("node:fs/promises");
     const source = await fs.readFile(
@@ -574,7 +576,7 @@ describe("CrewStatusComponent, per-row survival meters", () => {
 /**
  * The `crew-status.summary` slot: a WHOLE-WIDGET section, rendered once
  * above the roster rather than once per row, for a status that affects the
- * whole crew together (e.g. a Kerbalism vessel radiation reading). Same
+ * whole crew together (e.g. a vessel-wide radiation reading). Same
  * empty-composes-to-nothing contract as the other slots, just one instance
  * instead of one per kerbal.
  */
