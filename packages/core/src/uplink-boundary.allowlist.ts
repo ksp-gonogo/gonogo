@@ -1829,9 +1829,6 @@ export const ALLOWLIST: Record<ModToken, ModAllowlist> = {
       "packages/components/src/CrewStatus/index.tsx",
       "packages/components/src/FleetReliability/index.tsx",
       "packages/components/src/FleetRoster/index.tsx",
-      "packages/components/src/ShipMap/index.tsx",
-      "packages/components/src/ShipMap/partMetersContribution.ts",
-      "packages/components/src/ShipMap/shipTopology.ts",
       /*
        * systemEntities.ts: the `travelling-pulse` shape's doc comment names
        * Kerbalism's own storm-arrival UT/duration as the realistic EXAMPLE of
