@@ -553,7 +553,6 @@ export const ALLOWLIST: Record<ModToken, ModAllowlist> = {
        * ratchet's scan, not individually named in the audit's kOS table).
        */
       "mod/Sitrep.Core/Serialization/JsonWriter.cs",
-      "packages/app/src/screens/MainScreen.tsx",
 
       /*
        * -- kos migration (2026-07-18), Task 4: CpuRegistryService/
@@ -564,7 +563,6 @@ export const ALLOWLIST: Record<ModToken, ModAllowlist> = {
        * removed" pattern the kerbcast migration's own MainScreen.tsx/
        * StationScreen.tsx entries establish for its Uplink.
        */
-      "packages/app/src/screens/StationScreen.tsx",
       /*
        * Task 5: ComponentOverlay/WidgetGearMenu tests import kos's real
        * kosChromeProvider self-registration (via CpuRegistryProvider/
@@ -757,15 +755,12 @@ export const ALLOWLIST: Record<ModToken, ModAllowlist> = {
        * was rewritten during the comms.link connectivity migration), so it
        * is NOT relisted here: see the 2026-07-29 systemview-overlays branch.
        */
-      "packages/components/src/FleetComms/pendingPulse.ts",
-      "packages/components/src/FleetComms/slot.test.tsx",
       /*
        * commsTraffic.integration.test.tsx exercises the same
        * `system.uplink.pending` -> route pulse wiring, drawn on SystemView:
        * its fixture also uses "kos.run" as a sample pending-command string,
        * no real kOS import or coupling.
        */
-      "packages/components/src/SystemView/commsTraffic.integration.test.tsx",
       "mod/GonogoKerbcastUplink/client/src/CameraFeed/CameraFeed.tsx",
       "mod/GonogoKerbcastUplink/client/src/CameraFeed/CameraFeed.test.tsx",
       "mod/Sitrep.Contract/Comms.cs",
@@ -813,19 +808,16 @@ export const ALLOWLIST: Record<ModToken, ModAllowlist> = {
        * no real kOS import.
        */
       "packages/app/src/telemetry/PeerTransport.test.ts",
-      "packages/components/src/DataSourceStatus/index.test.tsx",
       /*
        * ManeuverPlanner/index.test.tsx tests ManeuverPlanner/index.tsx, whose
        * own kOS mention (below) is doc-comment-only, same subject, same
        * category.
        */
-      "packages/components/src/ManeuverPlanner/index.test.tsx",
       /*
        * widgets.axe.test.tsx's only kOS mention is a doc-comment pointing
        * implementers at Kos*-specific axe-smoke test files elsewhere, no
        * import, no coupling.
        */
-      "packages/components/src/test/widgets.axe.test.tsx",
       /*
        * map-command coverage test exercises map-command.ts (permanent,
        * above): same subject, same category.
@@ -839,7 +831,6 @@ export const ALLOWLIST: Record<ModToken, ModAllowlist> = {
        * framework render-gate, same "topic string, no real kOS import"
        * category as PeerTransport.test.ts above.
        */
-      "packages/components/src/shared/RequiresGuard.test.tsx",
       "packages/core/src/hooks/useUplinkHealthFor.test.tsx",
       "packages/sitrep-client/src/uplink-health.test.ts",
       /*
@@ -896,7 +887,6 @@ export const ALLOWLIST: Record<ModToken, ModAllowlist> = {
        * rewrote the comment to describe the actual Kerbalism integration
        * instead, dropping the only "kOS" text in the file, stale, ratcheted off.
        */
-      "packages/components/src/ManeuverPlanner/index.tsx",
       "packages/core/src/safeRandomUuid.ts",
       "packages/core/src/types.ts",
       /*
@@ -1202,13 +1192,11 @@ export const ALLOWLIST: Record<ModToken, ModAllowlist> = {
       "mod/Sitrep.Core.Tests/CommsWireTests.cs",
       "mod/Sitrep.Host.IntegrationTests/FoundationChannelsEndToEndTests.cs",
       "mod/Sitrep.Host.Tests/CommsElectionTests.cs",
-      "packages/components/src/CommSignal/slot.test.tsx",
       /*
        * stream.test.tsx: the CommSignal route-rate test names "RealAntennas" in
        * prose when standing in a local `comm-signal.hop-rates` contribution for
        * it; no RA import, the widget only knows the slot id. Test doc mention.
        */
-      "packages/components/src/CommSignal/stream.test.tsx",
       // AGX's own election/reflection tests cite CommsElectionTests /
       // RaReflection as the pattern they mirror: doc-mention only.
       "mod/GonogoActionGroupsExtendedUplink.Tests/ActionGroupsExtendedElectionTests.cs",
@@ -1369,7 +1357,6 @@ export const ALLOWLIST: Record<ModToken, ModAllowlist> = {
        * ActionGroup's own doc-comment lists sibling vessel command widgets
        * sharing its pattern, MechJeb among them.
        */
-      "packages/components/src/ActionGroup/stream.test.tsx",
       /*
        * RoboticsConsole/RotorTachometer doc-comments cite MechJeb as a
        * precedent for this widget's shape; no MechJeb import or coupling.
@@ -1827,14 +1814,8 @@ export const ALLOWLIST: Record<ModToken, ModAllowlist> = {
        * and its sibling carry "kerbalism" as a registerComponent search TAG,
        * which is metadata text.
        */
-      "packages/components/src/ActionGroup/index.tsx",
       "packages/components/src/FleetReliability/index.tsx",
       "packages/components/src/FleetRoster/index.tsx",
-      "packages/components/src/PowerSystems/index.tsx",
-      "packages/components/src/ScienceData/index.tsx",
-      "packages/components/src/ShipMap/index.tsx",
-      "packages/components/src/ShipMap/partMetersContribution.ts",
-      "packages/components/src/ShipMap/shipTopology.ts",
       /*
        * systemEntities.ts: the `travelling-pulse` shape's doc comment names
        * Kerbalism's own storm-arrival UT/duration as the realistic EXAMPLE of
@@ -1935,11 +1916,8 @@ export const ALLOWLIST: Record<ModToken, ModAllowlist> = {
        * science-data.aboard-row slot empty, same "base widget does NOT
        * couple to it" shape as CrewStatus's own entry above.
        */
-      "packages/components/src/ScienceData/index.test.tsx",
       "packages/components/src/FleetReliability/index.test.tsx",
       "packages/components/src/FleetRoster/index.test.tsx",
-      "packages/components/src/ShipMap/ShipDiagram.test.tsx",
-      "packages/components/src/ShipMap/contributions.test.tsx",
       /*
        * unit-symbol-collision.test.ts: the guard for a real shipped bug, named
        * after where it was seen (a death-clock badge reading "~4M" for four
@@ -1954,7 +1932,6 @@ export const ALLOWLIST: Record<ModToken, ModAllowlist> = {
        * naming a different Uplink's channel would make the comment a lie.
        * Text-only; the assertion itself reads the registry and imports nothing.
        */
-      "packages/components/src/test/widgetDeclarations.test.ts",
     ],
   },
   /*
