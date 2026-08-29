@@ -85,6 +85,14 @@ export const ALLOWLIST: Record<ModToken, ModAllowlist> = {
     ],
     permanent: [
       /*
+       * The comment-stack ratchet's own inventory: a path-keyed debt list over
+       * every hand-written JS/TS file in the repo, so it names this Uplink's paths
+       * by construction and there is nowhere else for it to live. Permanent for
+       * the reason the other tokens record: a gate placed inside an Uplink is one
+       * a third-party author could not run.
+       */
+      "packages/core/src/comment-stacks.allowlist.ts",
+      /*
        * The one-render-process ratchet, which names this Uplink's
        * encoded-transform latency spikes as the one directory allowed to drive
        * a browser without rendering a widget. A ratchet inventory naming a PATH
@@ -307,6 +315,14 @@ export const ALLOWLIST: Record<ModToken, ModAllowlist> = {
       "packages/components/src/MapView/types.ts",
     ],
     permanent: [
+      /*
+       * The comment-stack ratchet's own inventory: a path-keyed debt list over
+       * every hand-written JS/TS file in the repo, so it names this Uplink's paths
+       * by construction and there is nowhere else for it to live. Permanent for
+       * the reason the other tokens record: a gate placed inside an Uplink is one
+       * a third-party author could not run.
+       */
+      "packages/core/src/comment-stacks.allowlist.ts",
       /*
        * -- DYNAMIC-NAMESPACE ROUTING (2026-08-25): `mapTopic` identity-maps the
        * per-body scansat namespaces and the kOS compute namespace, because both
@@ -610,6 +626,14 @@ export const ALLOWLIST: Record<ModToken, ModAllowlist> = {
        * bucket documents.
        */
       "packages/core/src/banner-comments.allowlist.ts",
+      /*
+       * The comment-stack ratchet's own inventory, for the same reason as the
+       * banner list beside it: a path-keyed debt list over every hand-written
+       * JS/TS file in the repo names Uplink paths by construction, and there is
+       * nowhere else for it to live. A gate placed inside an Uplink is one a
+       * third-party author could not run.
+       */
+      "packages/core/src/comment-stacks.allowlist.ts",
       /*
        * -- MAGNITUDE budget ratchet (2026-08-19): the per-file `.magnitude`
        * budget is keyed by file path, so it names every Uplink that unwraps a
@@ -934,6 +958,14 @@ export const ALLOWLIST: Record<ModToken, ModAllowlist> = {
   realantennas: {
     domainDebt: [],
     permanent: [
+      /*
+       * The comment-stack ratchet's own inventory: a path-keyed debt list over
+       * every hand-written JS/TS file in the repo, so it names this Uplink's paths
+       * by construction and there is nowhere else for it to live. Permanent for
+       * the reason the other tokens record: a gate placed inside an Uplink is one
+       * a third-party author could not run.
+       */
+      "packages/core/src/comment-stacks.allowlist.ts",
       /*
        * The install-profile harness names RealAntennas as a roster entry, because
        * an Uplink that is installed while the mod it wraps is not is what gives
@@ -1265,6 +1297,14 @@ export const ALLOWLIST: Record<ModToken, ModAllowlist> = {
     domainDebt: [],
     permanent: [
       /*
+       * The comment-stack ratchet's own inventory: a path-keyed debt list over
+       * every hand-written JS/TS file in the repo, so it names this Uplink's paths
+       * by construction and there is nowhere else for it to live. Permanent for
+       * the reason the other tokens record: a gate placed inside an Uplink is one
+       * a third-party author could not run.
+       */
+      "packages/core/src/comment-stacks.allowlist.ts",
+      /*
        * -- UPLINK WIDGET-DECLARATION gate: the app-side check that every Uplink
        * widget's declarations resolve to something real has to LOAD every
        * Uplink client to read the registries they register into, so it names
@@ -1405,6 +1445,14 @@ export const ALLOWLIST: Record<ModToken, ModAllowlist> = {
   avionics: {
     domainDebt: [],
     permanent: [
+      /*
+       * The comment-stack ratchet's own inventory: a path-keyed debt list over
+       * every hand-written JS/TS file in the repo, so it names this Uplink's paths
+       * by construction and there is nowhere else for it to live. Permanent for
+       * the reason the other tokens record: a gate placed inside an Uplink is one
+       * a third-party author could not run.
+       */
+      "packages/core/src/comment-stacks.allowlist.ts",
       /*
        * -- UPLINK WIDGET-DECLARATION gate: the app-side check that every Uplink
        * widget's declarations resolve to something real has to LOAD every
@@ -1646,6 +1694,14 @@ export const ALLOWLIST: Record<ModToken, ModAllowlist> = {
        * bucket documents.
        */
       "packages/core/src/banner-comments.allowlist.ts",
+      /*
+       * The comment-stack ratchet's own inventory, for the same reason as the
+       * banner list beside it: a path-keyed debt list over every hand-written
+       * JS/TS file in the repo names Uplink paths by construction, and there is
+       * nowhere else for it to live. A gate placed inside an Uplink is one a
+       * third-party author could not run.
+       */
+      "packages/core/src/comment-stacks.allowlist.ts",
       /*
        * -- KSP's OWN enums (2026-08-21). KspEnums.cs mirrors seven stock KSP
        * enums so their ordinals can cross the wire, and one of them,
@@ -2082,6 +2138,14 @@ export const ALLOWLIST: Record<ModToken, ModAllowlist> = {
        */
       "packages/core/src/banner-comments.allowlist.ts",
       /*
+       * The comment-stack ratchet's own inventory, for the same reason as the
+       * banner list beside it: a path-keyed debt list over every hand-written
+       * JS/TS file in the repo names Uplink paths by construction, and there is
+       * nowhere else for it to live. A gate placed inside an Uplink is one a
+       * third-party author could not run.
+       */
+      "packages/core/src/comment-stacks.allowlist.ts",
+      /*
        * -- CI gating ratchet (2026-08-20): names the four Uplink test
        * projects that were in mod/Gonogo.sln and in no CI job, which is the
        * finding itself: "four projects drifted" without saying which is not
@@ -2157,6 +2221,12 @@ export const ALLOWLIST: Record<ModToken, ModAllowlist> = {
   ferram: {
     domainDebt: [],
     permanent: [
+      /*
+       * The comment-stack ratchet's own inventory: a path-keyed debt list over
+       * every hand-written JS/TS file in the repo names this Uplink's paths by
+       * construction, and there is nowhere else for it to live.
+       */
+      "packages/core/src/comment-stacks.allowlist.ts",
       /*
        * -- UPLINK WIDGET-DECLARATION gate: the app-side check that every Uplink
        * widget's declarations resolve to something real has to LOAD every Uplink
