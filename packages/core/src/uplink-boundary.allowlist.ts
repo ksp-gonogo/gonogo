@@ -1071,7 +1071,6 @@ export const ALLOWLIST: Record<ModToken, ModAllowlist> = {
        * widget's code knows the slot id and nothing else, and a path with no
        * contribution simply renders no bitrate.
        */
-      "packages/components/src/SystemView/index.tsx",
       /*
        * G2 TrueNow-allowlist ratchet (task 4) names RealAntennasUplink.cs in
        * a justification comment while inventorying every TrueNow
@@ -1831,10 +1830,8 @@ export const ALLOWLIST: Record<ModToken, ModAllowlist> = {
       "packages/components/src/ActionGroup/index.tsx",
       "packages/components/src/CrewStatus/badge.ts",
       "packages/components/src/CrewStatus/index.tsx",
-      "packages/components/src/Experiments/index.tsx",
       "packages/components/src/FleetReliability/index.tsx",
       "packages/components/src/FleetRoster/index.tsx",
-      "packages/components/src/LaunchDirector/index.tsx",
       "packages/components/src/PowerSystems/index.tsx",
       "packages/components/src/ScienceData/index.tsx",
       "packages/components/src/ShipMap/index.tsx",
@@ -1848,7 +1845,6 @@ export const ALLOWLIST: Record<ModToken, ModAllowlist> = {
        * Kerbalism's CME entry) implements. No kerbalism Topic, type or import
        * is referenced.
        */
-      "packages/components/src/SystemView/systemEntities.ts",
       /*
        * DivergingBar.tsx: the kit primitive credits the HTML prototype its
        * design was ported from, which happens to be named after the Domain it

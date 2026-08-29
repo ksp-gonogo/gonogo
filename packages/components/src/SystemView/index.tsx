@@ -145,7 +145,7 @@ interface SystemViewConfig {
  * draws parent-centric in SVG user-units: the frame body sits at `center` (the
  * SVG origin) and a distance of `d` metres from it projects to `d · plotScale`
  * user-units, over a `width`×`height` px, origin-centred viewBox. An overlay
- * augment: e.g. a future RealAntennas relay-network / range-ring visualiser,
+ * augment: e.g. a comms Uplink's relay-network or range-ring visualiser,
  * builds a matching viewBox / transform from these to draw in the diagram's
  * coordinate space. The projection describes the diagram's auto-fit view (zoom=1,
  * no pan); live pan/zoom is internal to `SystemDiagram` and not reflected here,

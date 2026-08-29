@@ -151,8 +151,8 @@ export type SystemEntityShape =
    * `arriveUt`/`clearUt` below, so the wave departs the apex once and
    * finishes once, matching one real event (e.g. one CME) rather than
    * decoratively repeating. `arriveUt`/`clearUt` are absolute UT timestamps
-   * a contribution derives from its own Topic data (e.g. Kerbalism's own
-   * storm-arrival UT and post-arrival duration): ordinary arithmetic on
+   * a contribution derives from its own Topic data (e.g. a space-weather
+   * Uplink's storm-arrival UT and post-arrival duration): ordinary arithmetic on
    * values already on the wire, not a wall-clock read, so this still holds
    * the contribution-slots-spec rule that `compute()` is a pure function of
    * Topics/Processors only. `SystemEntitiesLayer` derives the DEPARTURE time

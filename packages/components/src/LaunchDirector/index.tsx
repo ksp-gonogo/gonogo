@@ -49,7 +49,7 @@ type LaunchDirectorConfig = Record<string, never>;
  * The context both LaunchDirector slots pass to their augments. A
  * life-support / logistics Uplink reads the pre-launch selection (which craft,
  * crew and site the operator is about to commit) to append a checklist item or
- * a header badge: e.g. Kerbalism supplies-for-duration, USI-LS habitation.
+ * a header badge: e.g. supplies for the planned duration, or habitation.
  */
 export interface LaunchDirectorSlotContext {
   /** Current KSP scene ("Flight", "Editor", ...); undefined until telemetry arrives. */

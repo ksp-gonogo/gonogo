@@ -47,8 +47,8 @@ export interface Instrument {
  * segment (`sections`, `actions`) cannot express "once per instrument", so
  * this stays a widget-authored slot and must not borrow a segment's name.
  * The row slot passes down the `Instrument` it sits beside so an augment
- * (e.g. an on-vessel-lab Kerbalism experiment table, the locked alternate to
- * `deployed-science`) can render a per-instrument extension scoped to
+ * (e.g. an on-vessel-lab experiment table from a science Uplink, the locked
+ * alternate to `deployed-science`) can render a per-instrument extension scoped to
  * exactly that instrument (a slot-parameterised augment).
  */
 export interface ExperimentsInstrumentSlotContext {
