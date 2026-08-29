@@ -261,6 +261,12 @@ export type {
   UplinkHealthFact,
   UplinkHealthStateName,
 } from "./spine/uplink-health";
+// The shape of `vessel.state`, the derived per-frame flight record. Published
+// for the same reason as the health roster above: an Uplink widget reads the
+// channel with `useStream("vessel.state")` like any other, and a channel whose
+// payload type an author cannot name is one they have to re-describe by hand.
+// Type only, deriving it stays the spine's job.
+export type { VesselState } from "./spine/vessel-state";
 export * from "./timeline";
 export {
   enumerateTopicFields,

@@ -1,0 +1,81 @@
+{
+  "_meta": {
+    "scenario": "binary",
+    "notes": "Two stars, which is the case the per-star diagram exists for: one quiet, one with an inbound CME, so a fused single diagram could not tell them apart. Kopernicus packs are where this shows up; the wire shape is identical for one star or five."
+  },
+  "_scene": {
+    "widget": "space-weather",
+    "caption": "Two stars, one quiet and one with an inbound CME, each on its own activity diagram",
+    "modes": ["default"]
+  },
+  "_stream": {
+    "pinnedUt": 149489,
+    "emits": [
+      {
+        "topic": "kerbalism.spaceweather",
+        "payload": {
+          "radiationRadPerSecond": 8.61111111111111e-5,
+          "habitatRadiationRadPerSecond": 8.61111111111111e-5,
+          "magnetosphere": true,
+          "innerBelt": false,
+          "outerBelt": false,
+          "stormIncoming": true,
+          "stormInProgress": false,
+          "blackout": false,
+          "inSunlight": true,
+          "shieldingAmount": 2.1,
+          "shieldingCapacity": 3.308,
+          "stars": [
+            {
+              "star": "Kerbol",
+              "direction": {
+                "x": 0.31,
+                "y": -0.04,
+                "z": 0.95
+              },
+              "distance": {
+                "magnitude": 13400000000,
+                "unit": "m"
+              }
+            },
+            {
+              "star": "Valentine",
+              "direction": {
+                "x": -0.62,
+                "y": 0.18,
+                "z": 0.76
+              },
+              "distance": {
+                "magnitude": 41200000000,
+                "unit": "m"
+              }
+            }
+          ],
+          "storms": [
+            {
+              "star": "Kerbol",
+              "stormState": 0
+            },
+            {
+              "star": "Valentine",
+              "stormState": 1,
+              "stormTime": 149889,
+              "stormDuration": 420,
+              "dist": 41200000000,
+              "targetKind": 0,
+              "targetName": "Kerbin"
+            }
+          ],
+          "stormEjectionSpeed": 98931511.14
+        }
+      },
+      {
+        "topic": "vessel.flight",
+        "payload": {
+          "altitudeAsl": 250000,
+          "altitudeTerrain": 250000
+        }
+      }
+    ]
+  }
+}

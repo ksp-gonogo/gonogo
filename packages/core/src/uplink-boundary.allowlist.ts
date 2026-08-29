@@ -1560,47 +1560,14 @@ export const ALLOWLIST: Record<ModToken, ModAllowlist> = {
    *       Habitat/Radiation badge, binds here"). Those are words about a
    *       hypothetical contributor, not coupling. Filing them as debt would make
    *       the shrink-only gate demand that the ARCHITECTURE stop being explained.
-   *   (2) The debt bucket is deliberately SMALL and specific: four files, all of
-   *       them a single outstanding piece of work (the SpaceWeather widget still
-   *       living in the base library while every other Kerbalism surface has
-   *       moved into this Uplink), plus the app's bundle-time Uplink import that
-   *       every token already carries.
+   *   (2) The debt bucket is now ONE file: the app's bundle-time Uplink import
+   *       that every token already carries. The SpaceWeather widget, the last
+   *       Kerbalism surface still living in the base library, moved into this
+   *       Uplink's client and took the harness's Kerbalism fixture reshaping
+   *       with it.
    */
   kerbalism: {
     domainDebt: [
-      /*
-       * -- The SpaceWeather widget relocation, the one genuine outstanding
-       * coupling. This widget reads `kerbalism.spaceweather` directly and lives
-       * in the mod-agnostic base library, which is precisely what the Uplink
-       * decoupling exists to end. Every other Kerbalism surface already moved
-       * (Ship Systems, the CrewStatus survival augment and its badge, the
-       * ShipMap part-meters/part-meta contributions, the space-weather panel
-       * badge); this widget is what the Uplink client's own index.ts records as
-       * the remaining follow-up.
-       *
-       * Until the relocation the coupling is at least HONEST: the widget carries
-       * a type-only import of the Uplink client for its TopicPayloadMap
-       * augmentation, because its payload type is no longer core's own codegen
-       * output. Before the fifth relocation it got a Kerbalism type for free out
-       * of @ksp-gonogo/sitrep-sdk and named no mod at all, so the coupling
-       * existed and was invisible.
-       *
-       * Moving the widget deletes these three lines and the ratchet forces that
-       * deletion in the same commit.
-       */
-      "packages/components/src/SpaceWeather/index.tsx",
-      "packages/components/src/SpaceWeather/index.test.tsx",
-      /*
-       * widgetDomSnapshot.tsx: the shared SSR-snapshot harness carries
-       * Kerbalism-specific fixture reshaping (`resolveKerbalismSpaceWeatherWire`
-       * and the kerbalism.lifesupport reshape) so the legacy flat `sw.*`/`ls.*`
-       * fixtures still drive the modern Topics. Real code, and it goes with the
-       * widget: the fixtures stay under packages/components/src because
-       * `fixturesPath` resolves against that directory (the same convention Ship
-       * Systems' own fixtures already follow from inside this Uplink), but the
-       * reshaping belongs beside the widget that needs it.
-       */
-      "packages/components/src/test/widgetDomSnapshot.tsx",
       /*
        * -- Uplink loader: the app's bundle-time import of this Uplink's client.
        * Not this Uplink's own debt so much as the loader's: every token above

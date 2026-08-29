@@ -135,147 +135,6 @@ function resolveCommsLinkWire(fixture: Fixture): unknown {
   return typeof raw === "boolean" ? { connected: raw } : undefined;
 }
 
-const fnum = (fixture: Fixture, key: string): number | undefined =>
-  typeof fixture[key] === "number" ? (fixture[key] as number) : undefined;
-const fbool = (fixture: Fixture, key: string): boolean =>
-  (fnum(fixture, key) ?? 0) > 0.5;
-
-/**
- * `sw.*` -> `kerbalism.spaceweather`: SpaceWeather dropped its legacy
- * `useDataSourceSubscription("data", "sw.*")` reads for the canonical
- * `useTelemetry("kerbalism.spaceweather")` Topic, so a fixture carrying the old
- * `sw.*` keys must reshape them onto the Topic wire or the board renders empty.
- * Radiation is stored rad/h in the fixture but the Topic (and real mod) is
- * rad/s, so it is divided by 3600 here, the widget multiplies it back for the
- * identical readout. Storm state 0/1/2 -> the incoming/inProgress bools.
- *
- * `sw.stars` / `sw.storms` / `sw.stormEjectionSpeed` pass through UNRESHAPED:
- * they are already the Topic's own shape (the sun-vantage half of the payload),
- * and a fixture carrying none simply leaves the star cards and CME tracker on
- * their empty states.
- */
-function resolveKerbalismSpaceWeatherWire(fixture: Fixture): unknown {
-  const hasSw = Object.keys(fixture).some((k) => k.startsWith("sw."));
-  if (!hasSw) return undefined;
-  const rph = fnum(fixture, "sw.radiationRadPerHour") ?? 0;
-  const stormState = Math.round(fnum(fixture, "sw.stormState") ?? 0);
-  return {
-    radiationRadPerSecond: rph / 3600,
-    habitatRadiationRadPerSecond: rph / 3600,
-    magnetosphere: fbool(fixture, "sw.magnetosphere"),
-    innerBelt: fbool(fixture, "sw.innerBelt"),
-    outerBelt: fbool(fixture, "sw.outerBelt"),
-    stormIncoming: stormState === 1,
-    stormInProgress: stormState === 2,
-    blackout: fbool(fixture, "sw.blackout"),
-    inSunlight: true,
-    shieldingAmount: fnum(fixture, "sw.shieldingValue") ?? 0,
-    shieldingCapacity: fnum(fixture, "sw.shieldingCapacity") ?? 0,
-    stars: fixture["sw.stars"] ?? [],
-    storms: fixture["sw.storms"] ?? [],
-    stormEjectionSpeed: fnum(fixture, "sw.stormEjectionSpeed"),
-  };
-}
-
-/** `sw.altitudeM` -> `vessel.flight.altitudeAsl`: SpaceWeather's belt-ring vessel-dot placement. */
-function resolveSpaceWeatherFlightWire(fixture: Fixture): unknown {
-  const alt = fnum(fixture, "sw.altitudeM");
-  return alt !== undefined
-    ? { altitudeAsl: alt, altitudeTerrain: alt }
-    : undefined;
-}
-
-/**
- * `ls.*` -> `kerbalism.lifesupport`: LifeSupportSystems dropped its legacy
- * `useDataSourceSubscription("data", "ls.*")` reads for the canonical
- * `useTelemetry("kerbalism.lifesupport")` Topic. Reshapes the flat consumable
- * (`ls.<res>.amount/capacity/rate`), habitat (`ls.pressure`/`ls.co2Poisoning`/…)
- * and process (`ls.process.<id>` 0=idle/1=running/2=broken) keys onto the Topic
- * payload the widget now reads.
- */
-function resolveKerbalismLifeSupportWire(fixture: Fixture): unknown {
-  const hasLs = Object.keys(fixture).some((k) => k.startsWith("ls."));
-  if (!hasLs) return undefined;
-  const proc = (id: string, resource: string, title: string) => {
-    const state = Math.round(fnum(fixture, `ls.process.${id}`) ?? 0);
-    return {
-      resource,
-      title,
-      capacity: 1.67,
-      running: state === 1,
-      broken: state === 2,
-    };
-  };
-  // `kerbalism.lifesupport` carries RATES only, keyed by resource name; the
-  // levels ride the generic `vessel.resources` (see `lifeSupportLevels` below).
-  // Absent means "no rate reported", so a fixture that names no consumables
-  // emits an empty map rather than a map of zeros.
-  const rates: Record<string, number> = {};
-  for (const [name, prefix] of RESOURCE_FIXTURE_KEYS) {
-    const rate = fnum(fixture, `${prefix}.rate`);
-    if (rate !== null && rate !== undefined) rates[name] = rate;
-  }
-  return {
-    rates,
-    habitat: {
-      pressure: fbool(fixture, "ls.pressure") ? 1 : 0,
-      poisoning: fnum(fixture, "ls.co2Poisoning") ?? 0,
-      shielding: 0,
-      livingSpace: fnum(fixture, "ls.livingSpace") ?? 0,
-      comfort: fnum(fixture, "ls.comfort") ?? 0,
-      volume: 0,
-      surface: 0,
-    },
-    processes: [
-      proc("scrubber", "_Scrubber", "Scrubber"),
-      proc("waterRecycler", "_WaterRecycler", "Water recycler"),
-      proc("wasteProcessor", "_WasteProcessor", "Waste processor"),
-      proc("fuelCell", "_MonopropFuelCell", "Fuel cell"),
-    ],
-  };
-}
-
-/**
- * KSP resource name -> the fixture prefix its levels/rate live under. The
- * fixtures predate the wire carrying resource names, so they still use short
- * keys (`ls.ec`); this is the one place the two vocabularies meet.
- */
-const RESOURCE_FIXTURE_KEYS: ReadonlyArray<readonly [string, string]> = [
-  ["Food", "ls.food"],
-  ["Water", "ls.water"],
-  ["Oxygen", "ls.oxygen"],
-  ["ElectricCharge", "ls.ec"],
-];
-
-/**
- * The `vessel.resources` half of a life-support fixture: amounts and
- * capacities, which were never Kerbalism-specific and now ride the generic
- * name-keyed channel every consumer already has.
- */
-function vesselResourcesFromLifeSupportFixture(
-  fixture: Record<string, unknown>,
-):
-  | {
-      resources: Record<
-        string,
-        { current: number; max: number; active: boolean }
-      >;
-    }
-  | undefined {
-  if (!Object.keys(fixture).some((k) => k.startsWith("ls."))) return undefined;
-  const resources: Record<
-    string,
-    { current: number; max: number; active: boolean }
-  > = {};
-  for (const [name, prefix] of RESOURCE_FIXTURE_KEYS) {
-    const current = fnum(fixture, `${prefix}.amount`);
-    const max = fnum(fixture, `${prefix}.capacity`);
-    if (current === null || current === undefined) continue;
-    resources[name] = { current, max: max ?? 0, active: true };
-  }
-  return { resources };
-}
-
 /**
  * Per-mode size descriptor consumed by the snapshot helper. Mirrors the
  * `SizeMode` shape in `packages/components/scripts/widgets.ts` so the same
@@ -420,8 +279,6 @@ interface StreamWrap {
   emitVesselParts: () => void;
   /** Emits the fixture's legacy control keys (reshaped) onto `vessel.control`/`vessel.structure`, or a no-op when it carries none. Same `act()` block as the other emits. */
   emitVesselControl: () => void;
-  /** Emits the fixture's `sw.*`/`ls.*` keys (reshaped) onto `kerbalism.spaceweather`/`kerbalism.lifesupport` (+ `vessel.orbit`), or a no-op when it carries none. Same `act()` block as the other emits. */
-  emitKerbalism: () => void;
   /**
    * Replays the fixture's own `_stream.emits`, one topic at a time, each
    * gated on that topic having a live subscription. Awaited AFTER the
@@ -498,7 +355,6 @@ function buildStreamWrap(fixture: Fixture, profileId?: string): StreamWrap {
       providerMounted: true,
       emitVesselParts: () => {},
       emitVesselControl: () => {},
-      emitKerbalism: () => {},
       replayStreamBlock: async () => {
         for (const e of streamBlock.emits) {
           await waitForSubscription(stream.transport, e.channel);
@@ -516,26 +372,19 @@ function buildStreamWrap(fixture: Fixture, profileId?: string): StreamWrap {
   const vesselStructureWire = resolveVesselStructureWire(fixture);
   const timeWarpWire = resolveTimeWarpWire(fixture);
   const commsLinkWire = resolveCommsLinkWire(fixture);
-  const kerbalismSpaceWeatherWire = resolveKerbalismSpaceWeatherWire(fixture);
-  const spaceWeatherFlightWire = resolveSpaceWeatherFlightWire(fixture);
-  const kerbalismLifeSupportWire = resolveKerbalismLifeSupportWire(fixture);
-  const lifeSupportLevelsWire = vesselResourcesFromLifeSupportFixture(fixture);
   if (
     pinnedUt === undefined &&
     vesselPartsWire === undefined &&
     vesselControlWire === undefined &&
     vesselStructureWire === undefined &&
     timeWarpWire === undefined &&
-    commsLinkWire === undefined &&
-    kerbalismSpaceWeatherWire === undefined &&
-    kerbalismLifeSupportWire === undefined
+    commsLinkWire === undefined
   ) {
     return {
       Wrap: ({ children }) => <Fragment>{children}</Fragment>,
       providerMounted: false,
       emitVesselParts: () => {},
       emitVesselControl: () => {},
-      emitKerbalism: () => {},
       replayStreamBlock: async () => {},
     };
   }
@@ -566,23 +415,6 @@ function buildStreamWrap(fixture: Fixture, profileId?: string): StreamWrap {
       }
       if (commsLinkWire !== undefined) {
         stream.emit("comms.link", commsLinkWire);
-      }
-    },
-    emitKerbalism: () => {
-      if (kerbalismSpaceWeatherWire !== undefined) {
-        stream.emit("kerbalism.spaceweather", kerbalismSpaceWeatherWire);
-      }
-      if (spaceWeatherFlightWire !== undefined) {
-        stream.emit("vessel.flight", spaceWeatherFlightWire);
-      }
-      if (kerbalismLifeSupportWire !== undefined) {
-        stream.emit("kerbalism.lifesupport", kerbalismLifeSupportWire);
-      }
-      // The levels half. Emitted alongside because a life-support fixture is
-      // only meaningful with both: rates say which way each resource is going,
-      // vessel.resources says how much is left.
-      if (lifeSupportLevelsWire !== undefined) {
-        stream.emit("vessel.resources", lifeSupportLevelsWire);
       }
     },
     replayStreamBlock: async () => {},
@@ -781,7 +613,6 @@ export async function snapshotWidgetMode<
       providerMounted,
       emitVesselParts,
       emitVesselControl,
-      emitKerbalism,
       replayStreamBlock,
     } = buildStreamWrap(opts.fixture, opts.profile);
     const { container } = render(
@@ -811,7 +642,6 @@ export async function snapshotWidgetMode<
       }
       emitVesselParts();
       emitVesselControl();
-      emitKerbalism();
     });
     // Outside the synchronous block above: each entry waits for its topic's
     // subscription, which only lands once frames have run.
@@ -884,7 +714,6 @@ export async function renderWidgetMode<
     providerMounted,
     emitVesselParts,
     emitVesselControl,
-    emitKerbalism,
     replayStreamBlock,
   } = buildStreamWrap(opts.fixture, opts.profile);
   const { container } = render(
@@ -910,9 +739,6 @@ export async function renderWidgetMode<
     }
     emitVesselParts();
     emitVesselControl();
-    // Was missing here while `snapshotWidgetMode` called it, so a Kerbalism
-    // fixture's a11y render was a blank board even when its snapshot was fed.
-    emitKerbalism();
   });
   await act(async () => {
     await replayStreamBlock();

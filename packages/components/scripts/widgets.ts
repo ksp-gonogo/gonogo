@@ -1476,23 +1476,10 @@ const WIDGETS: WidgetRenderConfig[] = [
       },
     ],
   },
-  {
-    // SpaceWeather: Kerbalism radiation/storm/belt board. Fixtures are the
-    // four SpaceWeatherData showcase states (nominal from a real Deck capture;
-    // storm/inner-belt synthesised to real config magnitudes). See
-    // local_docs/spaceweather-widget-SPEC.md + local_docs/kerbalism-fixtures/.
-    widgetId: "space-weather",
-    fixturesPath: "SpaceWeather/__fixtures__",
-    outPath: "renders/space-weather-widget",
-    modes: [
-      // Registered default.
-      { name: "default-8x11", w: 8, h: 11 },
-      // Showcase: the rich-graphics board reads best with room.
-      { name: "showcase-11x11", w: 11, h: 11 },
-      // Compact: sheds the flux chart + env tags, essentials only.
-      { name: "compact-5x6", w: 5, h: 6 },
-    ],
-  },
+  // space-weather moved to
+  // @ksp-gonogo/gonogo-kerbalism-uplink/scripts/widgets.ts with the widget
+  // itself, its fixtures alongside it, the same way deployed-science and
+  // robotics-console left with the Breaking Ground uplink.
   {
     // ShipMap: part diagram + the spec §13.4 self-contribution flagship
     // (`ship-map.part-meters` / `ship-map.part-meta`). A dedicated
