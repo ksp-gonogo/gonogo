@@ -63,9 +63,9 @@ export type { ShipMapPartMetaEntry, ShipMapPartMeterEntry };
 /**
  * Props for `ship-map.overlay`: an OVERLAY slot, rendered in a
  * layer absolutely positioned over the part-diagram canvas. Carries the
- * diagram's base-frame projection so an augment: e.g. a future Kerbalism
- * `Reliability` Uplink badging a malfunctioning/critical part directly on the
- * diagram: can place marks in the diagram's own coordinate space.
+ * diagram's base-frame projection so an augment: e.g. an Uplink backing the
+ * reliability capability, badging a malfunctioning or critical part directly on
+ * the diagram: can place marks in the diagram's own coordinate space.
  *
  * Project a part at metre-space `(lat, axial)` to overlay px with:
  *   x = width / 2 + (lat - bounds.cx) * baseScale
@@ -104,8 +104,8 @@ declare module "@ksp-gonogo/core" {
   // `useWidgetBadges`'s own doc comment). These two are genuinely typed,
   // declared slots: `ship-map.part-meters` (per-part resource meters) and
   // `ship-map.part-meta` (per-part status/metadata rows), each fed by BOTH
-  // the built-in `core` contribution (`./partMetersContribution.ts`) and a
-  // Kerbalism-style Uplink contribution, on equal footing.
+  // the built-in `core` contribution (`./partMetersContribution.ts`) and an
+  // Uplink's contribution, on equal footing.
   interface ContributionRegistry {
     "ship-map.part-meters": {
       entry: ShipMapPartMeterEntry;

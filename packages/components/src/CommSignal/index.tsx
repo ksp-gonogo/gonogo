@@ -53,9 +53,9 @@ type CommSignalConfig = Record<string, never>;
 // this widget ever importing backend-aware code (locked map: comm-signal):
 //
 //  - `comm-signal.sections` (body, below the signal-bars readout): the primary
-//    HIGH-value seat. A RealAntennas Uplink elected via capability contributes a
+//    HIGH-value seat. A comms Uplink elected via capability contributes a
 //    per-antenna breakdown table (which antenna carries the link, its SNR) here,
-//    reading only its OWN RA Topics. CommSignal stays RA-agnostic.
+//    reading only its OWN Topics. CommSignal stays backend-agnostic.
 //
 // The slot passes no parent coordinates/projection (it is not an overlay slot),
 // so the props contract is empty and an augment renders from its own Topics. The

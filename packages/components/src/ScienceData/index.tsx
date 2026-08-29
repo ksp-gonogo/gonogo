@@ -238,8 +238,9 @@ function ScienceDataComponent({
 // A per-subject section slot, directly below each Aboard breakdown row: the
 // generic home for a File Manager-style enrichment (files/samples, drive
 // capacity, transmit/delete/flag controls). This widget carries no drive
-// concept itself, Kerbalism is the only model that has one; a stock save
-// leaves the slot unbound and the row renders exactly as it does today. The
+// concept itself, and only some elected models have one; a save whose model
+// does not leaves the slot unbound and the row renders exactly as it does
+// today. The
 // `subjectId` is identity only, matching `crew-status.row-badges`'s per-row
 // keying: the filling augment reads its own data (`science.experiments`)
 // and joins by this id rather than being handed the row's fields directly.
