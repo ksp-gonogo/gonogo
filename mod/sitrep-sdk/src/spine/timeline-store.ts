@@ -1019,10 +1019,9 @@ export class TimelineStore {
       return this.sample<T>(topic, effectiveToken);
     }
 
-    // Same epoch-fold as `sample()`'s raw path above, a mid-token epoch
-    // bump must invalidate this cache entry too,
-    // rather than replaying a pre-bump interpolation for the rest of the
-    // token's life.
+    // Same epoch-fold as `sample()`'s raw path above. A mid-token epoch bump
+    // must invalidate this cache entry too, rather than replaying a pre-bump
+    // interpolation for the rest of the token's life.
     const epoch = this.clock.getEpoch();
     return this.memoize(
       effectiveToken,
@@ -1102,7 +1101,7 @@ export class TimelineStore {
     return (point, _grade, viewUt) => {
       // A tombstoned record never reaches the reckonable arm (`readingFrom`
       // ranks `absent` above every staleness grade), so this only narrows the
-      // payload type; there is no modelled value for a confirmed absence.
+      // payload type. There is no modelled value for a confirmed absence.
       const modelledValue = point.payload;
       if (modelledValue === null) return undefined;
       const get: DerivedGet = (inputTopic) => this.sample(inputTopic, token);
@@ -1213,10 +1212,10 @@ export class TimelineStore {
     if (resolved) {
       const parentTopic = resolved.def.topic;
       // Fold epoch into the key exactly like the derived-VALUE path in
-      // sample(): a derived status must NOT survive a
-      // mid-frame epoch bump (quickload rewind) for the rest of the frame, or
-      // a status read and a value read for the same topic in the same frame
-      // could disagree about which epoch they describe.
+      // sample(). A derived status must NOT survive a mid-frame epoch bump
+      // (quickload rewind) for the rest of the frame, or a status read and a
+      // value read for the same topic in the same frame could disagree about
+      // which epoch they describe.
       const epoch = this.clock.getEpoch();
       return this.memoize(
         effectiveToken,
@@ -1225,10 +1224,10 @@ export class TimelineStore {
       );
     }
 
-    // Fold epoch into the raw-status key too:
-    // a status memoized before a mid-frame epoch bump must not survive it, or
-    // it would disagree with the (epoch-folded) value read for the same topic
-    // and could report the dead timeline's status for the rest of the frame.
+    // Fold epoch into the raw-status key too. A status memoized before a
+    // mid-frame epoch bump must not survive it, or it would disagree with the
+    // (epoch-folded) value read for the same topic and could report the dead
+    // timeline's status for the rest of the frame.
     const epoch = this.clock.getEpoch();
     const literalStatus = this.memoize(
       effectiveToken,
@@ -1544,9 +1543,7 @@ export class TimelineStore {
     }
 
     if (value === null) {
-      // Confirmed absence (a required input was tombstoned, or the channel
-      // itself returned null): a real point, per the tombstone model:
-      // `payload: null`.
+      // Confirmed absence, a required input tombstoned or the channel itself returning null: a real point carrying `payload: null`, per the tombstone model.
       return {
         validAt: observedAt,
         payload: null as T,

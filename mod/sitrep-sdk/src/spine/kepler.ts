@@ -164,7 +164,7 @@ export function canPropagate(
   if (horizonUt === undefined) {
     return { propagatable: false, reason: "no-horizon-stated" };
   }
-  // Both ends are checked: a window that starts beyond the horizon is no more
+  // Both ends are checked. A window that starts beyond the horizon is no more
   // answerable than one that ends beyond it, and a caller sweeping backwards
   // should not slip through on the `to` end alone.
   if (Math.max(fromUt, toUt) > horizonUt) {
@@ -357,16 +357,15 @@ function solveWrappedEccentricAnomaly(
   ecc: number,
 ): number {
   if (ecc < 1e-12) {
-    // Circular orbit: E = M exactly, and the Newton step below would
-    // converge to this immediately anyway -- short-circuit to avoid doing
-    // pointless work (and to be explicit that the e~=0 case is
-    // intentionally handled, not accidentally fine).
+    // Circular orbit: E = M exactly. The Newton step below would converge to
+    // this immediately anyway, so the short-circuit is here to say the e~=0
+    // case is handled deliberately rather than being accidentally fine.
     return meanAnomaly;
   }
 
-  // Standard high-eccentricity-aware initial guess (Vallado): starting at M
-  // works for low/moderate e, but biases the guess toward periapsis for
-  // higher e so Newton-Raphson doesn't overshoot near e -> 1.
+  // Standard high-eccentricity-aware initial guess (Vallado). Starting at M
+  // works for low and moderate e, but biasing the guess toward periapsis for
+  // higher e stops Newton-Raphson overshooting near e -> 1.
   let eccentricAnomaly = ecc < 0.8 ? meanAnomaly : Math.PI;
 
   for (let i = 0; i < MAX_NEWTON_ITERATIONS; i++) {
@@ -380,9 +379,7 @@ function solveWrappedEccentricAnomaly(
     }
   }
 
-  // If the loop above never satisfies the tolerance, this simply returns
-  // the last iterate rather than throwing -- same non-convergence handling
-  // as the C# side.
+  // Never satisfying the tolerance simply returns the last iterate rather than throwing, the same non-convergence handling as the C# side.
   return eccentricAnomaly;
 }
 

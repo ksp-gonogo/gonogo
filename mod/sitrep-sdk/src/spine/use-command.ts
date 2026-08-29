@@ -235,10 +235,10 @@ export function useCommand(
   },
 ): UseCommandResult {
   const vantage = options?.vantage;
-  // Degrade gracefully with no `TelemetryProvider` mounted (disconnected):
-  // status stays IDLE and `send` is a no-op, you can't dispatch a command
-  // with no link, and the hook must not throw just because the dashboard
-  // rendered before a connection exists.
+  // Degrade gracefully with no `TelemetryProvider` mounted (disconnected).
+  // Status stays IDLE and `send` is a no-op: you can't dispatch a command with
+  // no link, and the hook must not throw just because the dashboard rendered
+  // before a connection exists.
   const client = useTelemetryClientOptional();
   const [requestId, setRequestId] = useState<string | null>(null);
 
@@ -263,7 +263,7 @@ export function useCommand(
   // unbounded over a long session.
   const [dismissedIds, setDismissedIds] = useState<string[]>([]);
   // Refusals this hook has collected, accumulated on the dispatch promise's own
-  // rejection rather than derived from `status`: `status` only ever tracks the
+  // rejection rather than derived from `status`. Status only ever tracks the
   // LATEST requestId, so a widget that fires twice would lose the first
   // refusal, and a refusal is terminal so there is nothing to re-derive it from
   // later.
@@ -276,7 +276,7 @@ export function useCommand(
 
   const queue = useLatestValue<PendingUplinkQueueLike>("system.uplink.pending");
   // Memoised on the report identity so a control does not re-render on every
-  // unrelated render of its widget: the report is republished whole at the
+  // unrelated render of its widget. The report is republished whole at the
   // engine's gate cadence, and every `useCommand` in the tree reads the same one.
   const gateReport = useLatestValue<CommandGateReport>("system.uplink.gates");
   const gate = useMemo(
@@ -321,9 +321,9 @@ export function useCommand(
     [],
   );
 
-  // Latest `nowUt` by ref, read from `send` below, `send` is a stable
-  // `useCallback` (keyed on `[client, command]` only, same as before this
-  // task), so it can't close over the freshly-computed render-scope value.
+  // Latest `nowUt` by ref, read from `send` below. That `send` is a stable
+  // `useCallback` keyed on `[client, command]` alone, so it cannot close over
+  // the freshly-computed render-scope value.
   const nowUtRef = useRef(nowUt);
   nowUtRef.current = nowUt;
 
@@ -372,7 +372,7 @@ export function useCommand(
       );
       if (resolution.kind === "classified") computed.push(resolution.item);
     }
-    // Hide dismissed commands; the underlying `computed` set still drives the
+    // Hide dismissed commands. The underlying `computed` set still drives the
     // dismissed-id prune below, so a dismissed id is dropped from the set once
     // it leaves `computed` on its own.
     const visible =

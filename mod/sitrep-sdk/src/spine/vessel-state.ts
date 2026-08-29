@@ -1112,9 +1112,9 @@ function deriveTargetOrbit(
   }
 
   const elements = buildElements(orbit);
-  // A hyperbolic target (ecc >= 1) is real (an escaping/flyby target vessel
-  // or body): trySolveAnomalies degrades to null instead of throwing;
-  // targetPeriapsisAlt below stays valid regardless (see isHyperbolic doc).
+  // A hyperbolic target (ecc >= 1) is real, an escaping or flyby target vessel
+  // or body. Solving its anomalies degrades to null instead of throwing, and
+  // targetPeriapsisAlt below stays valid regardless (see isHyperbolic's doc).
   const anomalies = trySolveAnomalies(elements, viewUt);
 
   const targetPeriod =
@@ -1428,9 +1428,9 @@ function deriveActionGroups(get: DerivedGet): {
   actionGroup9: boolean | null | undefined;
   actionGroup10: boolean | null | undefined;
 } {
-  // `v` is the value every per-index field takes; `map`/`actionGroupsNamed`
-  // take the same nullity (undefined = not arrived yet, null = tombstone), so
-  // one argument drives all of them.
+  // `v` is the value every per-index field takes, and the `actionGroups` map
+  // and `actionGroupsNamed` list share its nullity, so one argument drives all
+  // of them. Undefined means not arrived yet, null a tombstone.
   const fill = (v: boolean | null | undefined) => ({
     actionGroups: v === null ? null : undefined,
     actionGroupsNamed: v === null ? null : undefined,
@@ -1460,9 +1460,7 @@ function deriveActionGroups(get: DerivedGet): {
   const at = (n: number): boolean | undefined => map[String(n)];
   return {
     actionGroups: map,
-    // The named list, passed through verbatim so the client's ACTION_GROUPS
-    // registry can derive its custom half (labels included) straight from
-    // telemetry rather than hardcoding "AG1".."AG10".
+    // The named list, passed through verbatim so the client's ACTION_GROUPS registry can derive its custom half (labels included) straight from telemetry rather than hardcoding "AG1".."AG10".
     actionGroupsNamed: arr,
     actionGroup1: at(1),
     actionGroup2: at(2),
@@ -1727,9 +1725,8 @@ function deriveMaxAccel(get: DerivedGet): number | null {
 export function deriveVesselState(
   get: DerivedGet,
   viewUt: number,
-  // Defaults to `get` (hold-last) so every pre-existing call site in this
-  // file's own tests, written before `getInterpolated` existed, keeps its
-  // exact prior behavior without passing a third argument.
+  // Defaults to `get`, so a caller that omits it samples hold-last throughout,
+  // which is what every call site written before interpolation existed expects.
   getInterpolated: DerivedGet = get,
 ): VesselState | null | undefined {
   const orbitPoint = get<VesselOrbitPayload>("vessel.orbit");
@@ -1739,9 +1736,9 @@ export function deriveVesselState(
   const quality = orbitPoint.meta.quality;
   const subjectId = orbitPoint.meta.source;
   const orbit = orbitPoint.payload;
-  // Pure reshape of already-solved patches (mod-side, no propagation), safe
-  // to compute once, ahead of the quality branch, and reuse in both
-  // (element 0 is the current orbit; see `orbit-patches.ts`).
+  // Pure reshape of already-solved patches (mod-side, no propagation), so it is
+  // safe to compute once ahead of the quality branch and reuse in both.
+  // Element 0 is the current orbit; see `orbit-patches.ts`.
   const orbitPatchesLegacy = (orbit.patches ?? []).map(mapOrbitPatch);
 
   if (quality === Quality.OnRails) {
@@ -1779,8 +1776,8 @@ export function deriveVesselState(
         : timeToMeanAnomaly(anomalies.meanAnomaly, 0, anomalies.meanMotion);
 
     // A secondary input: its own absence nulls ONLY `met`, not the whole
-    // record (contrast `vessel.orbit`/`vessel.flight` above, whose absence
-    // is a whole-record `undefined`/`null`); see `VesselState.met`'s doc.
+    // record. Contrast `vessel.orbit` and `vessel.flight` above, whose absence
+    // is a whole-record `undefined` or `null`; see `VesselState.met`'s doc.
     const identityPoint = get<VesselIdentityPayload>("vessel.identity");
     const launchUt =
       identityPoint && identityPoint.payload !== null
@@ -1837,9 +1834,7 @@ export function deriveVesselState(
       isControllable: deriveIsControllable(get),
       ...deriveIdentityFlags(get),
       ...deriveActionGroups(get),
-      // Landing scalars are surface-frame MEASURED quantities (read
-      // vessel.flight): null in the propagated basis, like altitudeAsl/
-      // verticalSpeed/surfaceSpeed/horizontalSpeed above.
+      // Landing scalars are surface-frame MEASURED quantities off vessel.flight, so they are null in the propagated basis, like altitudeAsl/verticalSpeed/surfaceSpeed/horizontalSpeed above.
       ...LANDING_NONE,
       orbitPatches: orbitPatchesLegacy,
       basis: "propagated",
@@ -1847,17 +1842,15 @@ export function deriveVesselState(
     };
   }
 
-  // Loaded: orbital elements are osculating garbage here (same reasoning
-  // position/velocity aren't propagated in this basis), so all seven
+  // Loaded: orbital elements are osculating garbage here, the same reasoning
+  // that leaves position and velocity unpropagated in this basis. All seven
   // orbital-derived fields stay null rather than deriving anything from them.
   const flightPoint = getInterpolated<VesselFlightPayload>("vessel.flight");
   if (!flightPoint) return undefined; // not whole yet, no point at all
   if (flightPoint.payload === null) return null; // tombstone, vessel confirmed absent
   const flight = flightPoint.payload;
 
-  // Body-name resolution needs only the index + the body table (no orbital
-  // propagation), so it's populated in the Loaded basis too, unlike the
-  // orbital-derived fields above, which stay null here (osculating garbage).
+  // Body-name resolution needs only the index and the body table, no orbital propagation, so it is populated in the Loaded basis unlike the orbital-derived fields above.
   const identityPoint = get<VesselIdentityPayload>("vessel.identity");
   const parentBodyIndex =
     identityPoint && identityPoint.payload !== null

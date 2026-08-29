@@ -96,7 +96,7 @@ function reportUncomparable(id: string, shape: string): void {
   if (REPORTED_UNCOMPARABLE.has(key)) return;
   REPORTED_UNCOMPARABLE.add(key);
   const message = `[processors] "${id}" returns a result the notify guard cannot compare (${shape}), so every consumer is woken on every frame`;
-  // Host-gated for the reason `PerfBudget.record` gives: the logger shim throws
+  // Host-gated for the reason `PerfBudget.record` gives. The logger shim throws
   // when no host is installed, and a diagnostic that takes down the thing it is
   // observing is worse than no diagnostic.
   if (hasHost()) logger.warn(message, { processorId: id, shape });
@@ -568,8 +568,8 @@ function evaluate(id: string, token: { generation: number }): void {
   const values = def.deps.map((dep) => resolveDep(dep, token));
   // The frame's own frozen view time, so a processor deriving a remaining
   // duration from an instant on the wire has a clock without reaching for a
-  // wall clock. `activeStore` is non-null here: `evaluateAllActive` returns
-  // early without one and is the only caller.
+  // wall clock. Here `activeStore` is always non-null: `evaluateAllActive` is
+  // the only caller and returns early without one.
   const next = def.compute(values as never, {
     viewUt: activeStore?.currentFrame().viewUt ?? 0,
   });
@@ -583,7 +583,7 @@ function evaluate(id: string, token: { generation: number }): void {
   // notification and compares with `Object.is`, so a silenced listener over a
   // fresh identity is still an infinite render loop.
   const comparison = compareResults(entry.value, next);
-  // Reported BEFORE the fan-out, and separately from it: this is the arm where
+  // Reported BEFORE the fan-out, and separately from it. This is the arm where
   // the guard is doing nothing, so it has to be visible as itself rather than
   // as a notification indistinguishable from an earned one.
   if (comparison === "uncomparable") {

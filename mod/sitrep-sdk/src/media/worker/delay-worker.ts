@@ -225,10 +225,10 @@ function buildWriter(): {
 }
 
 function handleInit(msg: InitMessage): void {
-  // `createNowWall` expects `localTimeOrigin - mainTimeOrigin` (see
-  // `time-base.ts`'s worked example): this worker's own
-  // `performance.timeOrigin` IS `localTimeOrigin`, `msg.mainTimeOriginMs` IS
-  // `mainTimeOrigin`.
+  // `createNowWall` expects `localTimeOrigin - mainTimeOrigin`, see
+  // `time-base.ts`'s worked example. This worker's own
+  // `performance.timeOrigin` IS `localTimeOrigin`, and `msg.mainTimeOriginMs`
+  // IS `mainTimeOrigin`.
   const offsetMs = performance.timeOrigin - msg.mainTimeOriginMs;
   nowWall = createNowWall(offsetMs, () => performance.now());
   sharedClock = createWorkerDelayClock({ nowWall });
@@ -244,11 +244,10 @@ function handleCaptureSample(msg: CaptureSampleMessage): void {
 }
 
 function handleCreatePipeline(msg: CreatePipelineMessage): void {
-  // Captured into locals immediately: `sharedClock`/`nowWall` are
-  // module-level `let`s, so TS can't narrow them past the `buildWriter()`
-  // call below; a plain synchronous WebWorker with a single message queue
-  // means neither can actually change between this check and the `try`
-  // block regardless.
+  // Captured into locals immediately: `sharedClock` and `nowWall` are
+  // module-level `let`s, so TS can't narrow them past the `buildWriter()` call
+  // below. Neither can actually change between this check and the `try` block
+  // regardless, a plain synchronous WebWorker having a single message queue.
   const clock = sharedClock;
   const clockNowWall = nowWall;
   if (!clock || !clockNowWall) {
@@ -281,10 +280,11 @@ function handleCreatePipeline(msg: CreatePipelineMessage): void {
   try {
     const processor = new MediaStreamTrackProcessor({ track: msg.track });
     const entry: PipelineEntry = {
-      // `pipeline` is filled in immediately below, TS needs SOME value
-      // here since `captureUt` (passed to `runFrameDelayPipeline` before
-      // `pipeline` exists) closes over `entry`, not the local `pipeline`
-      // const, so it always reads the current sample even mid-construction.
+      // `pipeline` is filled in immediately below, and TS needs SOME value here
+      // in the meantime. The `captureUt` closure is passed to
+      // `runFrameDelayPipeline` before `pipeline` exists, but it closes over
+      // `entry` rather than the local `pipeline` const, so it always reads the
+      // current sample even mid-construction.
       pipeline: null as unknown as FrameDelayPipeline,
       captureSample: DEFAULT_MS,
       stopPacingTicker: () => {},
@@ -293,10 +293,10 @@ function handleCreatePipeline(msg: CreatePipelineMessage): void {
 
     const pipeline = runFrameDelayPipeline<VideoFrame>({
       view: clock,
-      // Same time-origin-corrected wall clock the shared clock itself uses
-      // (see the module-level `nowWall` doc): `sample.atMs` is a raw
-      // main-thread `performance.now()` reading, so the comparison needs
-      // to land on that same basis, not the worker's own uncorrected clock.
+      // Same time-origin-corrected wall clock the shared clock itself uses,
+      // see the module-level `nowWall` doc. Since `sample.atMs` is a raw
+      // main-thread `performance.now()` reading, the comparison has to land on
+      // that same basis and not the worker's own uncorrected clock.
       captureUt: () =>
         interpolateCaptureUt(entry.captureSample, nowWallMs(clockNowWall)) ?? 0,
       maxBufferedFrames: msg.maxBufferedFrames,

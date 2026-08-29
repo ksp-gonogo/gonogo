@@ -44,19 +44,19 @@ export const DEFAULT_SITREP_CARRIED_TOPICS: readonly string[] = [
   "vessel.identity",
   "vessel.control",
   "vessel.comms",
-  // R6 shared-derivations: source of the client-derived `vessel.state.twr`
-  // (old `dv.currentTWR`): a declared input of `vesselStateChannel`, so it
-  // must be carried for ANY `vessel.state.*` field to resolve (the gate is
-  // parent-channel-scoped).
+  // Source of the client-derived `vessel.state.twr` (old `dv.currentTWR`).
+  // Also a declared input of `vesselStateChannel`, and the gate is
+  // parent-channel-scoped, so it must be carried for ANY `vessel.state.*`
+  // field to resolve at all.
   "vessel.propulsion",
   "vessel.attitude",
   "vessel.thermal",
   "vessel.structure",
-  // vessel.parts: the structural part-tree channel `useTopology`/
-  // `usePartsLive`'s thermal join read canonically (`@ksp-gonogo/data`, both
-  // bypass this gate the same way vessel.orbit's OrbitView read does), listed
-  // here anyway for the same "every mod-served raw topic is catalogued"
-  // convention the rest of this list follows.
+  // The structural part-tree channel, read canonically by `useTopology` and by
+  // `usePartsLive`'s thermal join (`@ksp-gonogo/data`). Both bypass this gate
+  // the same way vessel.orbit's OrbitView read does, so the entry is not
+  // load-bearing for them; it is here for the "every mod-served raw topic is
+  // catalogued" convention the rest of this list follows.
   "vessel.parts",
   "vessel.crew",
   "vessel.resources",
@@ -123,18 +123,14 @@ export const DEFAULT_SITREP_CARRIED_TOPICS: readonly string[] = [
   // bypasses this stream carried-channels gate entirely, so it needs no
   // prefix entry here (unlike the scansat dynamic namespaces below).
   "kos.processors",
-  // P4a client-derivations batch: career.mode (D1, useGameContext's career
-  // mode display map) and science.sensors (D2, ScienceBench's whole-topic
-  // sensor-by-type filter).
+  // career.mode feeds useGameContext's career-mode display map.
+  // science.sensors is the whole-topic sensor-by-type roster.
   "career.mode",
   "science.sensors",
-  // P4a shared-map batch: remaining trivial raw-field-walk + whole-topic
-  // reads (map-topic.ts's LEGACY_KEY_HOMES). career.status is also
-  // newly required here: the M3b career-detail batch mapped
-  // kc.facilityLevels/contracts.*/strategies.all/tech.nodes onto it but
-  // never added it to this carried list, so those reads have been silently
-  // falling back to legacy the whole time; contracts.completedRecent (this
-  // batch) needs the same topic.
+  // The remaining trivial raw-field-walk and whole-topic reads. Naming a topic
+  // as some widget-facing key's home without promoting it here leaves every one
+  // of those reads uncarried, which is what career.status did to its facility
+  // levels, contracts, strategies and tech-node fields until it was added.
   "game.dlc",
   "robotics.available",
   "ksp.revertAvailability",
@@ -143,10 +139,11 @@ export const DEFAULT_SITREP_CARRIED_TOPICS: readonly string[] = [
   "science.instruments",
   "dv.stages",
   "dv.summary",
-  // Mod-served topics mapped in LEGACY_KEY_HOMES: they must be promoted
-  // here or `isTopicCarried` routes their reads to the legacy source instead of
-  // the stream. parts.power, robotics.servos and science.lab have no legacy
-  // equivalent, so the stream is their only source of data.
+  // Mod-served topics that back a widget-facing key: they must be promoted here
+  // or `isTopicCarried` refuses the read and it falls back to the legacy source
+  // instead of the stream. Three of them (parts.power, robotics.servos,
+  // science.lab) have no legacy equivalent at all, so the stream is their only
+  // source of data.
   "parts.power",
   "robotics.servos",
   "science.experiments",
@@ -156,27 +153,18 @@ export const DEFAULT_SITREP_CARRIED_TOPICS: readonly string[] = [
   // a new capability with no legacy read, so the stream is its only source.
   "science.archive",
   "deployed.bases",
-  // spaceCenter.crewRoster/savedShips/partsAvailable: AstronautComplex/
-  // LaunchDirector/SpaceCenterStatus's kc.crewRoster/kc.savedShips/
-  // kc.partsAvailable reads are now mapped in LEGACY_KEY_HOMES, same
-  // "must be promoted or it silently stays on the legacy read" rule as
-  // every other mod-served topic above.
+  // The homes of AstronautComplex's, LaunchDirector's and SpaceCenterStatus's kc.crewRoster/kc.savedShips/kc.partsAvailable reads, under the same promotion rule as every mod-served topic above.
   "spaceCenter.crewRoster",
   "spaceCenter.savedShips",
   "spaceCenter.partsAvailable",
-  // spaceCenter.launchSites: LaunchDirector's kc.launchSites picker roster,
-  // plus the input the spaceCenter.state derived channel reads for the
-  // kc.padOccupied/kc.padVesselTitle pair, must be promoted or those reads
-  // silently stay on the legacy source.
+  // LaunchDirector's kc.launchSites picker roster, and the input spaceCenter.state derives kc.padOccupied/kc.padVesselTitle from.
   "spaceCenter.launchSites",
-  // spaceCenter.pois: the map points-of-interest feed (KSC/launch sites +
-  // active/offered contract targets) MapView's vanilla POI provider reads,
-  // a brand-new topic with no legacy equivalent, so the stream is
-  // its only source of data.
-  "spaceCenter.pois",
-  // spaceCenter.astronautComplex: AstronautComplex's applicant pool + roster
-  // cap + active-crew count, a brand-new topic with no legacy
+  // The map points-of-interest feed (KSC, launch sites, and active and offered
+  // contract targets) MapView's vanilla POI provider reads. No legacy
   // equivalent, so the stream is its only source of data.
+  "spaceCenter.pois",
+  // AstronautComplex's applicant pool, roster cap and active-crew count.
+  // No legacy equivalent, so the stream is its only source of data.
   "spaceCenter.astronautComplex",
   // Crash event stream (CrashUplink, ReliableOrdered): the crashed-vessel
   // record and its companion "a notable crash happened recently" flag. Raw
@@ -274,16 +262,17 @@ export const DYNAMIC_CARRIED_TOPIC_PREFIXES: readonly string[] = [
   "scansat.height.",
   "scansat.biome.",
   "scansat.anomalies.",
-  // fleet.<guid>.orbit + fleet.<guid>.delay + fleet.<guid>.contact (Plan 2
-  // per-vessel dynamic namespace, Plan 2c consumer): one prefix carries the
-  // whole per-vessel fleet namespace so the store timelines each vessel's
-  // delayed elements/link/core-contact facts and useStream samples them (a
-  // dead-reckoned fleet position + FleetRoster per-row delay).
+  // fleet.<guid>.orbit, fleet.<guid>.delay and fleet.<guid>.contact. One prefix
+  // carries the whole per-vessel namespace, so the store timelines each
+  // vessel's delayed elements, link and core-contact facts and useStream
+  // samples them into a dead-reckoned fleet position and FleetRoster's per-row
+  // delay.
   "fleet.",
-  // silence.<guid>.state: the comms-owned SilenceTracker reckoning for one
-  // vessel (own dynamic namespace, disjoint from fleet. above: the core
-  // fleet facts and the comms model's opinion of them are separately
-  // owned, see mod/Sitrep.Host/ChannelEngine.cs's SilenceEventPrefix).
+  // silence.<guid>.state, the comms-owned SilenceTracker reckoning for one
+  // vessel. It gets a namespace of its own rather than joining fleet. above
+  // because the core fleet facts and the comms model's opinion of them are
+  // separately owned (see mod/Sitrep.Host/ChannelEngine.cs's
+  // SilenceEventPrefix).
   "silence.",
   // currency.<guid>.science (+ .reputation): source-attributed currency events,
   // revealed at their source vessel's own light-time. One prefix carries the whole

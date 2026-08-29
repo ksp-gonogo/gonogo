@@ -381,9 +381,7 @@ export class BufferedDataSource extends DataSourceWrapper {
     return this.statusSubscribers.add(cb);
   }
 
-  // Conditional getter so `hasExecuteScript(buffered)` reflects whether the
-  // wrapped source actually supports executeScript: matches the
-  // PeerBroadcastingDataSource pattern.
+  // Conditional getter so `hasExecuteScript(buffered)` reflects whether the wrapped source actually supports executeScript, matching the PeerBroadcastingDataSource pattern.
   get executeScript(): ExecuteScriptAware["executeScript"] | undefined {
     if (!hasExecuteScript(this.source)) return undefined;
     return this.source.executeScript.bind(this.source);
@@ -763,9 +761,9 @@ export class BufferedDataSource extends DataSourceWrapper {
       return;
     }
 
-    // Cache the identity inputs regardless: the detector needs both and
-    // they may arrive in separate callbacks within the same WS message.
-    // `v.missionTime` drives the detector directly so we only cache name.
+    // Cache the identity inputs regardless: the detector needs both, and they
+    // may arrive in separate callbacks within the same WS message. Only the
+    // name is cached, since `v.missionTime` drives the detector directly.
     if (key === "v.name" && typeof value === "string") {
       this.latestName = value;
     }
@@ -786,9 +784,9 @@ export class BufferedDataSource extends DataSourceWrapper {
     // Track latest raw sample for the derivation engine.
     this.lastRawSample.set(key, { t, v: value });
 
-    // Run the detector off v.missionTime as the driver, it ticks every
-    // frame with a numeric value, and by the time it arrives in a given
-    // WS message, v.name has already been processed.
+    // Run the detector off v.missionTime as the driver. It ticks every frame
+    // with a numeric value, and by the time it arrives in a given WS message
+    // v.name has already been processed.
     if (key === "v.missionTime" && this.latestName !== null) {
       const before = this.detector.getCurrent();
       const decision = this.detector.observe({
