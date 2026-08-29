@@ -60,7 +60,29 @@
             "firstCollisionUt": null,
             "firstCollisionRiskUt": null,
             "firstReentryUt": null,
-            "nodalPrecessionDegreesPerHour": -0.2061
+            "nodalPrecessionDegreesPerHour": -0.2061,
+            "recurrenceCycleRotations": 7,
+            "recurrenceRevolutionsPerRotation": 16,
+            "recurrenceRevolutions": 111,
+            "recurrenceSubcycleRotations": 3,
+            "recurrenceEquatorialShiftDegrees": -3.21,
+            "recurrenceGridIntervalDegrees": 3.21,
+            "ascendingCrossingDegrees": {
+              "min": 10.2,
+              "max": 10.9
+            },
+            "descendingCrossingDegrees": {
+              "min": 190.2,
+              "max": 190.8
+            },
+            "ascendingNodeSolarTimeDegrees": {
+              "min": 157.4,
+              "max": 157.9
+            },
+            "descendingNodeSolarTimeDegrees": {
+              "min": 337.4,
+              "max": 337.8
+            }
           }
         }
       }
