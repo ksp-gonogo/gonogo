@@ -32,7 +32,9 @@ export interface ResolutionNotice {
     | "superseded"
     | "version-excluded"
     | "vanilla-fallback"
-    | "factory-failed";
+    | "factory-failed"
+    /** A selected provider returned nothing, meaning it cannot serve this capability here. */
+    | "provider-declined";
   detail: string;
 }
 
@@ -400,7 +402,27 @@ export class Kernel {
     const instances: unknown[] = [];
     for (const provider of providers) {
       try {
-        instances.push(provider.factory(ctx));
+        const instance = provider.factory(ctx);
+        if (instance == null) {
+          /*
+           * A DECLINE, not a failure. A provider that cannot serve the
+           * capability on this install must not hold it: an exclusive
+           * capability held by a provider that answers nothing starves every
+           * lower-priority provider that could have served it. The notice kind
+           * is distinct from "factory-failed" on purpose, because a consumer
+           * maps that one to "we are blind", and being blind is not what
+           * happened here.
+           */
+          notices.push({
+            capability: descriptor.id,
+            kind: "provider-declined",
+            detail:
+              `Provider "${provider.id}" for capability "${descriptor.id}" ` +
+              `declined to serve this capability on this install.`,
+          });
+          continue;
+        }
+        instances.push(instance);
       } catch (error) {
         notices.push({
           capability: descriptor.id,
@@ -417,7 +439,7 @@ export class Kernel {
         descriptor,
         ctx,
         notices,
-        "Every selected provider failed to activate",
+        "Every selected provider failed to activate or declined",
       );
     }
     return instances;

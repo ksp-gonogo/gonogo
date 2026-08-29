@@ -533,7 +533,28 @@ namespace Sitrep.Contract
             {
                 try
                 {
-                    instances.Add(provider.Factory(ctx));
+                    var instance = provider.Factory(ctx);
+                    if (instance == null)
+                    {
+                        // A DECLINE, not a failure. A provider that cannot serve
+                        // the capability on this install must not hold it: an
+                        // exclusive capability held by a provider that answers
+                        // nothing starves every lower-priority provider that
+                        // could have served it. The notice kind is distinct from
+                        // factory-failed on purpose, because a consumer maps that
+                        // one to "we are blind" and being blind is not what
+                        // happened here.
+                        notices.Add(new ResolutionNotice
+                        {
+                            Capability = selection.Descriptor.Id,
+                            Kind = "provider-declined",
+                            Detail =
+                                $"Provider \"{provider.Id}\" for capability \"{selection.Descriptor.Id}\" " +
+                                "declined to serve this capability on this install.",
+                        });
+                        continue;
+                    }
+                    instances.Add(instance);
                 }
                 catch (Exception error)
                 {
@@ -551,7 +572,8 @@ namespace Sitrep.Contract
             if (instances.Count == 0)
             {
                 return ActivateVanilla(
-                    selection.Descriptor, ctx, notices, "Every selected provider failed to activate");
+                    selection.Descriptor, ctx, notices,
+                    "Every selected provider failed to activate or declined");
             }
             return instances;
         }

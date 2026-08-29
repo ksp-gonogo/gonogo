@@ -188,7 +188,24 @@ namespace Gonogo.KerbalismUplink
                         Capability = "reliability",
                         Id = "kerbalism",
                         Priority = 1.0,
-                        Factory = _ => new KerbalismReliabilityBackend(_k),
+                        /*
+                         * Asked at ACTIVATION, not at registration. Register runs
+                         * during LOADING, when Kerbalism's own settings may not be
+                         * parsed yet, so a check here would read whatever happened
+                         * to be true that early and pin it for the session. The
+                         * factory runs when the capability resolves, by which time
+                         * the setting is real.
+                         *
+                         * Returning null is a DECLINE: the Kernel skips this
+                         * provider, notices `provider-declined`, and falls through
+                         * to whatever else can serve. Holding an exclusive
+                         * capability while modelling nothing starves every provider
+                         * below it.
+                         */
+                        Factory = _ =>
+                            KerbalismReliabilityBackend.CanServe(_k)
+                                ? new KerbalismReliabilityBackend(_k)
+                                : null,
                     });
                 }
                 catch (Exception ex)

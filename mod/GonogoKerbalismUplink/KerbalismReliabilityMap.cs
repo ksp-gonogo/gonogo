@@ -132,6 +132,34 @@ namespace Gonogo.KerbalismUplink
             return list;
         }
 
+        /// <summary>
+        /// The coverage decision as a PURE function of the two things it reads, so
+        /// it can be tested without standing up reflection into a live Kerbalism.
+        /// </summary>
+        public static string ComputeCoverage(
+            IReadOnlyDictionary<string, bool> features,
+            ReliabilityPreferencesRaw prefs)
+        {
+            if (features.Count == 0) return ReliabilityCoverage.Indeterminate;
+            if (!features.TryGetValue("Reliability", out var on)) return ReliabilityCoverage.Indeterminate;
+            if (!on) return ReliabilityCoverage.Disabled;
+            if (prefs.MtbfFailures == null) return ReliabilityCoverage.Indeterminate;
+            if (prefs.MtbfFailures == false) return ReliabilityCoverage.Disabled;
+            return ReliabilityCoverage.Modeled;
+        }
+
+        /// <summary>
+        /// Whether Kerbalism should TAKE the exclusive "reliability" capability at
+        /// all. Lives here rather than beside the backend because the backend reads
+        /// <c>FlightGlobals</c> and so cannot be compiled into a test assembly,
+        /// and a decision nothing can test is the kind that quietly stops being
+        /// true.
+        /// </summary>
+        public static bool CanServe(
+            IReadOnlyDictionary<string, bool> features,
+            ReliabilityPreferencesRaw prefs) =>
+            ComputeCoverage(features, prefs) != ReliabilityCoverage.Disabled;
+
         private static string ConditionOf(ReliabilityPartRaw p)
         {
             if (p.Broken) return p.Critical ? "failed-critical" : "failed";

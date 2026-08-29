@@ -36,20 +36,32 @@ namespace Gonogo.KerbalismUplink
         /// whenever the Features type resolves the key is present, and a tri-state
         /// cut only there would be cut at a seam nothing crosses.</para>
         /// </summary>
-        public string Coverage
-        {
-            get
-            {
-                var features = _k.Features();
-                if (features.Count == 0) return ReliabilityCoverage.Indeterminate;
-                if (!features.TryGetValue("Reliability", out var on)) return ReliabilityCoverage.Indeterminate;
-                if (!on) return ReliabilityCoverage.Disabled;
-                var prefs = _k.ReliabilityPreferences();
-                if (prefs.MtbfFailures == null) return ReliabilityCoverage.Indeterminate;
-                if (prefs.MtbfFailures == false) return ReliabilityCoverage.Disabled;
-                return ReliabilityCoverage.Modeled;
-            }
-        }
+        public string Coverage =>
+            KerbalismReliabilityMap.ComputeCoverage(
+                _k.Features(), _k.ReliabilityPreferences());
+
+        /// <summary>
+        /// Whether this backend should TAKE the exclusive "reliability" capability
+        /// at all, asked by the factory rather than answered after the fact.
+        ///
+        /// <para>Holding the capability and then reporting <c>Disabled</c> starves
+        /// every lower-priority provider that could actually have modelled
+        /// reliability on this install: an exclusive capability is held by exactly
+        /// one provider, and one that models nothing is still holding it. A
+        /// higher-priority provider currently outranks this backend on the only
+        /// installs anyone runs, so nothing visibly breaks, which is precisely
+        /// why it would have gone unnoticed.</para>
+        ///
+        /// <para>The cut is DEFINITE-off only. <c>Indeterminate</c> still takes the
+        /// capability, because declining hands it to the vanilla fallback, which
+        /// answers "nothing is installed that could model reliability", and that is
+        /// a false statement when Kerbalism is sitting right there unable to say
+        /// which way its own switch is set. Serving and admitting the uncertainty
+        /// is the honest answer; declining would launder it into a clean one.</para>
+        /// </summary>
+        public static bool CanServe(KerbalismReflection k) =>
+            KerbalismReliabilityMap.CanServe(
+                k.Features(), k.ReliabilityPreferences());
 
         public ReliabilitySummary Summary()
         {
