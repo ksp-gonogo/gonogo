@@ -20,7 +20,9 @@
  * off the list is to feed the field in a fixture and look at what it draws, the
  * way commit `a718dd36a` did for Principia's ground-track rows.</p>
  *
- * <p>Seeded 2026-08-29 from a full scan: 18 coincidental, 47 render gaps.</p>
+ * <p>Seeded 2026-08-29 from a full scan: 18 coincidental, 47 render gaps. Paid
+ * down the same day on the `packages/components` half: 19 gaps closed by
+ * fixtures and 3 reclassified, leaving 25.</p>
  */
 
 /**
@@ -38,6 +40,19 @@ export const COINCIDENTAL: readonly string[] = [
   // plot coordinates in crossSectionPlot.ts (`slice.points[0].x`)
   "packages/components/src/LandingStatus#x",
   "packages/components/src/LandingStatus#y",
+  /*
+   * `body.atmosphere`, `body.rotationPeriod`, `inputs.surfaceGravity`: the sdk's
+   * STATIC body registry, not the `system.bodies` payload. `getBody(name)`
+   * returns a `BodyDefinition`, which shares three field names with `BodyEntry`
+   * and is a different record with a different source, so no fixture could
+   * answer any of them. AtmosphereProfile's pressure curve is drawn from that
+   * registry and always has been; LandingStatus never reads a surface gravity
+   * at all, it derives one as `body.gm / radius^2` and names the local input
+   * after it.
+   */
+  "packages/components/src/AtmosphereProfile#atmosphere",
+  "packages/components/src/LandingStatus#surfaceGravity",
+  "packages/components/src/MapView#rotationPeriod",
   // `ctx.arc(...)`, the canvas API
   "packages/components/src/MapView#arc",
   // `const { x, y } = project(poi.lat, poi.lon)`, screen coordinates
@@ -87,44 +102,18 @@ export const RENDER_GAP: readonly string[] = [
    * number here would be inventing a frame the game cannot send.
    */
   "mod/GonogoPrincipiaUplink/client/src/OrbitAnalysis#elementsEpochUt",
-  // `body.atmosphere`: no fixture body carries the sub-object, so the profile
-  // this widget exists to draw has never been drawn from a fixture
-  "packages/components/src/AtmosphereProfile#atmosphere",
   "packages/components/src/CurrentOrbit#period",
   "packages/components/src/CurrentOrbit#points",
-  "packages/components/src/Experiments#dataAmount",
-  "packages/components/src/Experiments#dataIsCollectable",
-  "packages/components/src/Experiments#experimentId",
   "packages/components/src/FleetReliability#limitCount",
   "packages/components/src/FleetReliability#usedCount",
-  "packages/components/src/LandingStatus#dragToWeightRatio",
-  "packages/components/src/LandingStatus#mach",
-  "packages/components/src/LandingStatus#surfaceGravity",
   "packages/components/src/LaunchDirector#facilityOrdinal",
   "packages/components/src/LaunchDirector#unlocked",
   "packages/components/src/LaunchDirector#ut",
   "packages/components/src/ManeuverPlanner#orbit",
   "packages/components/src/ManeuverPlanner#points",
-  "packages/components/src/MapView#bodyIndex",
-  "packages/components/src/MapView#rotationPeriod",
   "packages/components/src/MapView#ut",
   "packages/components/src/Objectives#description",
   "packages/components/src/OrbitView#points",
-  "packages/components/src/ScienceData#partName",
-  "packages/components/src/SpaceCenterStatus#currentTier",
-  "packages/components/src/SpaceCenterStatus#facilityOrdinal",
-  "packages/components/src/SpaceCenterStatus#maxTier",
-  "packages/components/src/SpaceCenterStatus#upgradeCost",
-  "packages/components/src/Strategies#department",
-  // `orbit?.encounter`: no fixture puts the vessel on an intercept, so the
-  // encounter row and its transition instant are unrendered
-  "packages/components/src/SystemView#encounter",
-  "packages/components/src/SystemView#transitionType",
-  "packages/components/src/SystemView#transitionUt",
-  "packages/components/src/TargetPicker#bodyIndex",
-  "packages/components/src/TargetPicker#partId",
-  "packages/components/src/TargetPicker#situation",
-  "packages/components/src/TargetPicker#vesselId",
   "packages/components/src/TechTree#description",
   "packages/components/src/TransferWindow#period",
   "packages/components/src/TransferWindow#referenceBody",

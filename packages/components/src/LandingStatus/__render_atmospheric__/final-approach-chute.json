@@ -77,7 +77,8 @@
           "orbitalSpeed": 11,
           "atmDensity": 1,
           "atmosphericTemperature": 287.15,
-          "externalTemperature": 295
+          "externalTemperature": 295,
+          "mach": 0.032
         }
       },
       {
@@ -155,7 +156,8 @@
           "projectedTouchdownSpeed": 8.2,
           "atmosphericTimeToImpact": 165,
           "descentRegime": "at-terminal",
-          "parachuteState": "deployed"
+          "parachuteState": "deployed",
+          "dragToWeightRatio": 1.341
         }
       }
     ]

@@ -1,0 +1,77 @@
+{
+  "_meta": {
+    "scenario": "instruments-holding-data",
+    "synthetic": true,
+    "notes": "SYNTHETIC. The wire shape InstrumentEntry actually declares (partName / experimentId / dataIsCollectable, partId a string) instead of the legacy partTitle / expId / hasData every other fixture here carries, and the first one where an instrument HOLDS something: two of the three read as collectable, the goo canister has been run and is not rerunnable, and science.experiments is non-empty so the vessel-wide data total in the subtitle has a figure to sum. Both were previously unrenderable from a fixture: the canonical parse branch was never fed, and an empty experiments list made sumExperimentDataAmount return 0, which suppresses the total entirely. science.lab is deliberately absent: this is a probe vessel, so the lab section stays away and the instrument list is the whole picture."
+  },
+  "_stream": {
+    "carriedChannels": ["science.instruments", "science.experiments"],
+    "pinnedUt": 10,
+    "emits": [
+      {
+        "channel": "science.instruments",
+        "value": [
+          {
+            "partId": "3960381880",
+            "partName": "Mk1 Command Pod",
+            "experimentId": "crewReport",
+            "deployed": true,
+            "inoperable": false,
+            "rerunnable": true,
+            "resettable": true,
+            "dataIsCollectable": true
+          },
+          {
+            "partId": "1071315383",
+            "partName": "Mystery Goo™ Containment Unit",
+            "experimentId": "mysteryGoo",
+            "deployed": true,
+            "inoperable": true,
+            "rerunnable": false,
+            "resettable": false,
+            "dataIsCollectable": true
+          },
+          {
+            "partId": "342573834",
+            "partName": "PresMat Barometer",
+            "experimentId": "barometerScan",
+            "deployed": false,
+            "inoperable": false,
+            "rerunnable": true,
+            "resettable": true,
+            "dataIsCollectable": false
+          }
+        ]
+      },
+      {
+        "channel": "science.experiments",
+        "value": [
+          {
+            "partName": "Mk1 Command Pod",
+            "experimentId": "crewReport",
+            "subjectId": "crewReport@KerbinInSpaceLowShores",
+            "title": "Crew Report while in space low over Kerbin's shores",
+            "location": "InSpaceLow",
+            "situation": "Shores",
+            "dataAmount": 5.5,
+            "scienceValueRatio": 1,
+            "baseTransmitValue": 3.2,
+            "transmitBonus": 0
+          },
+          {
+            "partName": "Mystery Goo™ Containment Unit",
+            "experimentId": "mysteryGoo",
+            "subjectId": "mysteryGoo@KerbinInSpaceLowShores",
+            "title": "Mystery Goo Observation while in space low over Kerbin's shores",
+            "location": "InSpaceLow",
+            "situation": "Shores",
+            "dataAmount": 2,
+            "scienceValueRatio": 0.6,
+            "baseTransmitValue": 1.8,
+            "transmitBonus": 0
+          }
+        ]
+      }
+    ]
+  }
+}

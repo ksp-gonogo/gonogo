@@ -4,7 +4,7 @@
     "vessel": "synthetic (Mk1 pod in LKO, station targeted)",
     "body": "Kerbin",
     "situation": "Orbiting ~120km, targeting Kerbin Station I, Mun encounter ahead",
-    "notes": "SYNTHETIC, hand-generated (no live capture): replace from a real flight: orbit Kerbin with another vessel as target, set up a Mun encounter, and paste the tar.* / o.* / tar.availableVessels values. Body data (17 bodies) copied from the SystemView Kerbin-orbit fixture so the default Bodies tab tree renders. tar.availableVessels has three entries at increasing range so the distance-sorted Vessels tab is non-trivial; one SpaceObject exercises the asteroid toggle. The selected target (Kerbin Station I) drives the Current tab + header TARGET chip. Vessels/Current tabs only appear in renders that click the tab buttons. tar.distance and vessel.target.relativePosition both derive from Kerbin Station I's tar.availableVessels[0].position vector (120400, -98300, 64200), magnitude 168168.6356012916m, so the CurrentSummary header distance agrees with the same vessel's row distance in the Vessels list instead of showing two different numbers for one target."
+    "notes": "SYNTHETIC, hand-generated (no live capture): replace from a real flight: orbit Kerbin with another vessel as target, set up a Mun encounter, and paste the tar.* / o.* / tar.availableVessels values. Body data (17 bodies) copied from the SystemView Kerbin-orbit fixture so the default Bodies tab tree renders. tar.availableVessels has three entries at increasing range so the distance-sorted Vessels tab is non-trivial; one SpaceObject exercises the asteroid toggle. The selected target (Kerbin Station I) drives the Current tab + header TARGET chip. Vessels/Current tabs only appear in renders that click the tab buttons. tar.distance and vessel.target.relativePosition both derive from Kerbin Station I's tar.availableVessels[0].position vector (120400, -98300, 64200), magnitude 168168.6356012916m, so the CurrentSummary header distance agrees with the same vessel's row distance in the Vessels list instead of showing two different numbers for one target. The `target.available` entries carry all four kinds of identity the wire declares: three Body rows (`bodyIndex` 1/2/3, matching the b.* body table above), four Vessel rows (`vesselId` + `situation`), and two Part rows (the station's two Clamp-O-Tron Sr. ports, `vesselId` + `partId`). Before those landed every entry was a bare Vessel with a name and a distance, so the BODIES and PARTS sections and the type-dot-situation subtitle had never appeared in a render, and neither had the ids `vessel.target.set` is dispatched with."
   },
   "tar.name": "Kerbin Station I",
   "tar.type": "Station",
@@ -425,31 +425,78 @@
         "value": {
           "entries": [
             {
+              "kind": 1,
+              "name": "Kerbin",
+              "bodyIndex": 1,
+              "distance": 720000,
+              "isCurrent": false
+            },
+            {
+              "kind": 1,
+              "name": "Mun",
+              "bodyIndex": 2,
+              "distance": 11880000,
+              "isCurrent": false
+            },
+            {
+              "kind": 1,
+              "name": "Minmus",
+              "bodyIndex": 3,
+              "distance": 46900000,
+              "isCurrent": false
+            },
+            {
               "kind": 0,
               "name": "Kerbin Station I",
+              "vesselId": "8f3c1d5a-2b47-4e19-9c60-71a4d2e8b035",
               "vesselType": 1,
+              "situation": 3,
               "distance": 168168.6356012916,
               "isCurrent": true
             },
             {
               "kind": 0,
               "name": "Comsat Relay 4",
+              "vesselId": "b21e7f04-9d3a-4c52-8e77-16fa5c930d81",
               "vesselType": 3,
+              "situation": 3,
               "distance": 950263.121456368,
               "isCurrent": false
             },
             {
               "kind": 0,
               "name": "Munar Transfer Stage",
+              "vesselId": "c47a90b6-5e18-4f2d-b3c9-08de6a417f52",
               "vesselType": 0,
+              "situation": 4,
               "distance": 1551805.4001710394,
               "isCurrent": false
             },
             {
               "kind": 0,
               "name": "Ast. UQR-118",
+              "vesselId": "d95b2c73-6a04-41ef-8b15-2c7093ed4a6f",
               "vesselType": 10,
+              "situation": 3,
               "distance": 3107796.6471440825,
+              "isCurrent": false
+            },
+            {
+              "kind": 4,
+              "name": "Clamp-O-Tron Sr. (fore)",
+              "vesselId": "8f3c1d5a-2b47-4e19-9c60-71a4d2e8b035",
+              "partId": 142,
+              "situation": 3,
+              "distance": 168161.2,
+              "isCurrent": false
+            },
+            {
+              "kind": 4,
+              "name": "Clamp-O-Tron Sr. (aft)",
+              "vesselId": "8f3c1d5a-2b47-4e19-9c60-71a4d2e8b035",
+              "partId": 187,
+              "situation": 3,
+              "distance": 168176.9,
               "isCurrent": false
             }
           ]

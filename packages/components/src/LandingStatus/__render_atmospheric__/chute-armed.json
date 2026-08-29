@@ -61,7 +61,9 @@
             "trajectoryKind": 1
           }
         },
-        "meta": { "quality": 1 }
+        "meta": {
+          "quality": 1
+        }
       },
       {
         "channel": "vessel.flight",
@@ -75,7 +77,8 @@
           "orbitalSpeed": 92,
           "atmDensity": 0.7,
           "atmosphericTemperature": 278.15,
-          "externalTemperature": 300
+          "externalTemperature": 300,
+          "mach": 0.275
         }
       },
       {
@@ -97,15 +100,24 @@
       },
       {
         "channel": "vessel.control",
-        "value": { "gear": false, "brakes": false }
+        "value": {
+          "gear": false,
+          "brakes": false
+        }
       },
       {
         "channel": "dv.summary",
-        "value": { "totalDvActual": 400, "totalDvVac": 450 }
+        "value": {
+          "totalDvActual": 400,
+          "totalDvVac": 450
+        }
       },
       {
         "channel": "comms.delay",
-        "value": { "source": 1, "oneWaySeconds": 1.2 }
+        "value": {
+          "source": 1,
+          "oneWaySeconds": 1.2
+        }
       },
       {
         "channel": "vessel.landing",
@@ -116,7 +128,8 @@
           "projectedTouchdownSpeed": 80,
           "atmosphericTimeToImpact": 30,
           "descentRegime": "at-terminal",
-          "parachuteState": "armed"
+          "parachuteState": "armed",
+          "dragToWeightRatio": 0.938
         }
       }
     ]

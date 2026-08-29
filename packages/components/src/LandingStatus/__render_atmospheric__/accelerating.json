@@ -2,7 +2,7 @@
   "_meta": {
     "scenario": "atmospheric-accelerating",
     "synthetic": true,
-    "notes": "SYNTHETIC. High Kerbin reentry (~35 km, 900 m/s down) in thin air: current speed well BELOW terminal at this density, so drag < weight and the vessel is still ACCELERATING. Terminal at ground (dense air) is low, so the projected touchdown is soft."
+    "notes": "SYNTHETIC. High Kerbin reentry (~35 km, 900 m/s down) in thin air: current speed well BELOW terminal at this density, so drag < weight and the vessel is still ACCELERATING. Terminal at ground (dense air) is low, so the projected touchdown is soft. The showcase's SUPERSONIC frame: Mach 3.093 (920 m/s against a 220.15 K speed of sound) dashes the projected trace above the settle point, which is how the plot admits that a constant-drag-coefficient estimate is at its worst through the transonic rise. Drag is 0.432x weight here, so the chevron over the vessel mark is at its smallest; decelerating.json is the same mark at 3.628x for contrast."
   },
   "_stream": {
     "carriedChannels": [
@@ -61,7 +61,9 @@
             "trajectoryKind": 1
           }
         },
-        "meta": { "quality": 1 }
+        "meta": {
+          "quality": 1
+        }
       },
       {
         "channel": "vessel.flight",
@@ -75,7 +77,8 @@
           "orbitalSpeed": 920,
           "atmDensity": 0.02,
           "atmosphericTemperature": 220.15,
-          "externalTemperature": 2600
+          "externalTemperature": 2600,
+          "mach": 3.093
         }
       },
       {
@@ -97,15 +100,24 @@
       },
       {
         "channel": "vessel.control",
-        "value": { "gear": false, "brakes": false }
+        "value": {
+          "gear": false,
+          "brakes": false
+        }
       },
       {
         "channel": "dv.summary",
-        "value": { "totalDvActual": 400, "totalDvVac": 450 }
+        "value": {
+          "totalDvActual": 400,
+          "totalDvVac": 450
+        }
       },
       {
         "channel": "comms.delay",
-        "value": { "source": 1, "oneWaySeconds": 1.2 }
+        "value": {
+          "source": 1,
+          "oneWaySeconds": 1.2
+        }
       },
       {
         "channel": "vessel.landing",
@@ -116,7 +128,8 @@
           "projectedTouchdownSpeed": 7.5,
           "atmosphericTimeToImpact": 55,
           "descentRegime": "accelerating",
-          "parachuteState": "stowed"
+          "parachuteState": "stowed",
+          "dragToWeightRatio": 0.432
         }
       }
     ]

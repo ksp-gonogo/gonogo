@@ -1,0 +1,101 @@
+{
+  "_meta": {
+    "scenario": "enum-keyed-wire-shape",
+    "synthetic": true,
+    "notes": "SYNTHETIC. The shape the mod ACTUALLY sends today: career.status.facilities keyed by the full SpaceCenterFacility enum name, each entry carrying facilityOrdinal / currentTier / maxTier / upgradeCost and none of the legacy level / max / upgradeFunds / *LevelText fields. Every other fixture here is the legacy short-code shape, so the tier and cost rows parseFacilityLevels builds from the new wire had never been rendered. The Spaceplane Hangar entry arrives under an unrecognised key (\"SPH\") and is identified by its facilityOrdinal alone, which is the case that field exists for: before the ordinal, a facility whose key missed the nine-entry table vanished from the grid with nothing said. Funds sit at 148,300 so Tracking, Administration, the Astronaut Complex and the Runway are affordable while the Launch Pad, R&D and the Hangar are not, and the VAB and Mission Control are at max tier with no cost to show."
+  },
+  "_stream": {
+    "carriedChannels": [
+      "career.status",
+      "spaceCenter.scene",
+      "spaceCenter.partsAvailable",
+      "spaceCenter.launchSites"
+    ],
+    "pinnedUt": 10,
+    "emits": [
+      {
+        "channel": "spaceCenter.scene",
+        "value": { "scene": "SpaceCenter", "launchSite": "LaunchPad" }
+      },
+      {
+        "channel": "spaceCenter.partsAvailable",
+        "value": { "count": 178 }
+      },
+      {
+        "channel": "spaceCenter.launchSites",
+        "value": [
+          {
+            "name": "__pad_occupancy__",
+            "padOccupied": true,
+            "padVesselTitle": "Kerbin Survey Probe"
+          }
+        ]
+      },
+      {
+        "channel": "career.status",
+        "value": {
+          "economy": { "funds": 148300, "reputation": 212.5, "science": 640 },
+          "facilities": {
+            "LaunchPad": {
+              "facilityOrdinal": 2,
+              "currentTier": 1,
+              "maxTier": 2,
+              "upgradeCost": 150000
+            },
+            "Runway": {
+              "facilityOrdinal": 5,
+              "currentTier": 0,
+              "maxTier": 2,
+              "upgradeCost": 30000
+            },
+            "VehicleAssemblyBuilding": {
+              "facilityOrdinal": 8,
+              "currentTier": 2,
+              "maxTier": 2,
+              "upgradeCost": null
+            },
+            "SPH": {
+              "facilityOrdinal": 7,
+              "currentTier": 1,
+              "maxTier": 2,
+              "upgradeCost": 175000
+            },
+            "MissionControl": {
+              "facilityOrdinal": 3,
+              "currentTier": 2,
+              "maxTier": 2,
+              "upgradeCost": null
+            },
+            "TrackingStation": {
+              "facilityOrdinal": 6,
+              "currentTier": 1,
+              "maxTier": 2,
+              "upgradeCost": 115000
+            },
+            "Administration": {
+              "facilityOrdinal": 0,
+              "currentTier": 0,
+              "maxTier": 2,
+              "upgradeCost": 55000
+            },
+            "ResearchAndDevelopment": {
+              "facilityOrdinal": 4,
+              "currentTier": 1,
+              "maxTier": 2,
+              "upgradeCost": 225000
+            },
+            "AstronautComplex": {
+              "facilityOrdinal": 1,
+              "currentTier": 1,
+              "maxTier": 2,
+              "upgradeCost": 65000
+            }
+          },
+          "contracts": null,
+          "strategies": null,
+          "tech": null
+        }
+      }
+    ]
+  }
+}

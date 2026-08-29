@@ -2,7 +2,7 @@
   "_meta": {
     "scenario": "atmospheric-decelerating",
     "synthetic": true,
-    "notes": "SYNTHETIC. Low Kerbin descent (~3 km, 195 m/s down) hitting dense air: current speed well ABOVE terminal, so drag > weight and the vessel is DECELERATING toward terminal. A fast, aerobraking final."
+    "notes": "SYNTHETIC. Low Kerbin descent (~3 km, 195 m/s down) hitting dense air: current speed well ABOVE terminal, so drag > weight and the vessel is DECELERATING toward terminal. A fast, aerobraking final. Drag is 3.628x weight, (200 / 105)^2, which is the showcase's biggest chevron over the vessel mark; Mach 0.602 leaves the projected trace solid."
   },
   "_stream": {
     "carriedChannels": [
@@ -61,7 +61,9 @@
             "trajectoryKind": 1
           }
         },
-        "meta": { "quality": 1 }
+        "meta": {
+          "quality": 1
+        }
       },
       {
         "channel": "vessel.flight",
@@ -75,7 +77,8 @@
           "orbitalSpeed": 200,
           "atmDensity": 0.9,
           "atmosphericTemperature": 275.15,
-          "externalTemperature": 520
+          "externalTemperature": 520,
+          "mach": 0.602
         }
       },
       {
@@ -97,15 +100,24 @@
       },
       {
         "channel": "vessel.control",
-        "value": { "gear": false, "brakes": false }
+        "value": {
+          "gear": false,
+          "brakes": false
+        }
       },
       {
         "channel": "dv.summary",
-        "value": { "totalDvActual": 400, "totalDvVac": 450 }
+        "value": {
+          "totalDvActual": 400,
+          "totalDvVac": 450
+        }
       },
       {
         "channel": "comms.delay",
-        "value": { "source": 1, "oneWaySeconds": 1.2 }
+        "value": {
+          "source": 1,
+          "oneWaySeconds": 1.2
+        }
       },
       {
         "channel": "vessel.landing",
@@ -116,7 +128,8 @@
           "projectedTouchdownSpeed": 95,
           "atmosphericTimeToImpact": 22,
           "descentRegime": "decelerating",
-          "parachuteState": "stowed"
+          "parachuteState": "stowed",
+          "dragToWeightRatio": 3.628
         }
       }
     ]

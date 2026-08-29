@@ -17,7 +17,7 @@
   "sci.experiments": [
     {
       "subjectId": "crewReport@KerbinFlyingLowGrasslands",
-      "part": "Mk1 Command Pod",
+      "partName": "Mk1 Command Pod",
       "title": "Crew Report while flying low over Kerbin's grasslands",
       "dataAmount": 5.5,
       "scienceValueBase": 1,
@@ -25,7 +25,7 @@
     },
     {
       "subjectId": "mysteryGoo@KerbinFlyingLowGrasslands",
-      "part": "Mystery Goo Container",
+      "partName": "Mystery Goo Container",
       "title": "Mystery Goo Observation while flying low over Kerbin's grasslands",
       "dataAmount": 2,
       "scienceValueBase": 0.5,
@@ -128,7 +128,7 @@
         "value": [
           {
             "subjectId": "crewReport@KerbinFlyingLowGrasslands",
-            "part": "Mk1 Command Pod",
+            "partName": "Mk1 Command Pod",
             "title": "Crew Report while flying low over Kerbin's grasslands",
             "dataAmount": 5.5,
             "scienceValueBase": 1,
@@ -136,7 +136,7 @@
           },
           {
             "subjectId": "mysteryGoo@KerbinFlyingLowGrasslands",
-            "part": "Mystery Goo Container",
+            "partName": "Mystery Goo Container",
             "title": "Mystery Goo Observation while flying low over Kerbin's grasslands",
             "dataAmount": 2,
             "scienceValueBase": 0.5,

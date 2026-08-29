@@ -60,7 +60,9 @@
             "trajectoryKind": 1
           }
         },
-        "meta": { "quality": 1 }
+        "meta": {
+          "quality": 1
+        }
       },
       {
         "channel": "vessel.flight",
@@ -74,7 +76,8 @@
           "orbitalSpeed": 300,
           "atmDensity": 0.006,
           "atmosphericTemperature": 210.15,
-          "externalTemperature": 900
+          "externalTemperature": 900,
+          "mach": 1.032
         }
       },
       {
@@ -96,15 +99,24 @@
       },
       {
         "channel": "vessel.control",
-        "value": { "gear": false, "brakes": false }
+        "value": {
+          "gear": false,
+          "brakes": false
+        }
       },
       {
         "channel": "dv.summary",
-        "value": { "totalDvActual": 400, "totalDvVac": 450 }
+        "value": {
+          "totalDvActual": 400,
+          "totalDvVac": 450
+        }
       },
       {
         "channel": "comms.delay",
-        "value": { "source": 1, "oneWaySeconds": 1.2 }
+        "value": {
+          "source": 1,
+          "oneWaySeconds": 1.2
+        }
       }
     ]
   }

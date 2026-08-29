@@ -2,7 +2,7 @@
   "_meta": {
     "scenario": "atmospheric-at-terminal",
     "synthetic": true,
-    "notes": "SYNTHETIC. Mid Kerbin descent (~8 km, 118 m/s down): drag ≈ weight, so the vessel is AT TERMINAL, steady descent. Terminal at ground (denser) is lower, so it slows further before touchdown."
+    "notes": "SYNTHETIC. Mid Kerbin descent (~8 km, 118 m/s down): drag \u2248 weight, so the vessel is AT TERMINAL, steady descent. Terminal at ground (denser) is lower, so it slows further before touchdown."
   },
   "_stream": {
     "carriedChannels": [
@@ -61,7 +61,9 @@
             "trajectoryKind": 1
           }
         },
-        "meta": { "quality": 1 }
+        "meta": {
+          "quality": 1
+        }
       },
       {
         "channel": "vessel.flight",
@@ -75,7 +77,8 @@
           "orbitalSpeed": 120,
           "atmDensity": 0.5,
           "atmosphericTemperature": 255.15,
-          "externalTemperature": 340
+          "externalTemperature": 340,
+          "mach": 0.375
         }
       },
       {
@@ -97,15 +100,24 @@
       },
       {
         "channel": "vessel.control",
-        "value": { "gear": false, "brakes": false }
+        "value": {
+          "gear": false,
+          "brakes": false
+        }
       },
       {
         "channel": "dv.summary",
-        "value": { "totalDvActual": 400, "totalDvVac": 450 }
+        "value": {
+          "totalDvActual": 400,
+          "totalDvVac": 450
+        }
       },
       {
         "channel": "comms.delay",
-        "value": { "source": 1, "oneWaySeconds": 1.2 }
+        "value": {
+          "source": 1,
+          "oneWaySeconds": 1.2
+        }
       },
       {
         "channel": "vessel.landing",
@@ -116,7 +128,8 @@
           "projectedTouchdownSpeed": 88,
           "atmosphericTimeToImpact": 68,
           "descentRegime": "at-terminal",
-          "parachuteState": "stowed"
+          "parachuteState": "stowed",
+          "dragToWeightRatio": 1.0
         }
       }
     ]

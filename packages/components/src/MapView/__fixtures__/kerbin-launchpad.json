@@ -2,7 +2,8 @@
   "_meta": {
     "scenario": "kerbin-launchpad",
     "notes": "Pre-launch on the KSC pad. Co-rotating with Kerbin, so the osculating orbit is the degenerate one a landed craft has: apoapsis at the pad's own 80 m and periapsis 598 km inside the planet.",
-    "patchesAbsent": "The only MapView fixture with no patch chain, deliberately: a craft on the pad has no forward ground track, and the empty prediction layer here is the widget answering correctly rather than the fixture starving it. Its sibling fixtures carry a chain so the prediction path is exercised."
+    "patchesAbsent": "The only MapView fixture with no patch chain, deliberately: a craft on the pad has no forward ground track, and the empty prediction layer here is the widget answering correctly rather than the fixture starving it. Its sibling fixtures carry a chain so the prediction path is exercised.",
+    "pois": "The only MapView fixture carrying spaceCenter.pois: the KSC pad and runway plus two surface contract waypoints, one Active and one Offered, so the POI layer draws both its status tones and the contractTarget meta (agent, advance, completion, deadline). Every other fixture leaves the list absent, which the provider correctly renders as nothing at all, and nothing at all is also what a starved fixture looks like."
   },
   "v.body": "Kerbin",
   "v.lat": -0.0972,
@@ -28,7 +29,8 @@
       "vessel.control",
       "vessel.target",
       "vessel.comms",
-      "vessel.propulsion"
+      "vessel.propulsion",
+      "spaceCenter.pois"
     ],
     "emits": [
       {
@@ -92,6 +94,55 @@
             }
           ]
         }
+      },
+      {
+        "channel": "spaceCenter.pois",
+        "value": [
+          {
+            "id": "ksc-launchpad",
+            "kind": "ksc",
+            "bodyIndex": 1,
+            "latitude": -0.0972,
+            "longitude": -74.5577,
+            "label": "Launch Pad",
+            "status": "info"
+          },
+          {
+            "id": "ksc-runway",
+            "kind": "ksc",
+            "bodyIndex": 1,
+            "latitude": -0.0485,
+            "longitude": -74.7248,
+            "label": "Runway",
+            "status": "info"
+          },
+          {
+            "id": "waypoint-survey-alpha",
+            "kind": "contractTarget",
+            "bodyIndex": 1,
+            "latitude": -6.56,
+            "longitude": -70.9,
+            "label": "Survey Site Alpha",
+            "status": "active",
+            "contractAgent": "Kerbin World-Firsts Record-Keeping Society",
+            "contractFundsAdvance": 8200,
+            "contractFundsCompletion": 24600,
+            "contractDateDeadline": 9200000
+          },
+          {
+            "id": "waypoint-crash-site",
+            "kind": "contractTarget",
+            "bodyIndex": 1,
+            "latitude": 4.1,
+            "longitude": -80.3,
+            "label": "Recover Probe Debris",
+            "status": "available",
+            "contractAgent": "Rockomax Conglomerate",
+            "contractFundsAdvance": 3100,
+            "contractFundsCompletion": 12400,
+            "contractDateDeadline": 12960000
+          }
+        ]
       }
     ],
     "pinnedUt": 100
