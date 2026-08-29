@@ -1476,10 +1476,12 @@ const WIDGETS: WidgetRenderConfig[] = [
       },
     ],
   },
-  // space-weather moved to
-  // @ksp-gonogo/gonogo-kerbalism-uplink/scripts/widgets.ts with the widget
-  // itself, its fixtures alongside it, the same way deployed-science and
-  // robotics-console left with the Breaking Ground uplink.
+  /*
+   * space-weather moved to
+   * @ksp-gonogo/gonogo-kerbalism-uplink/scripts/widgets.ts with the widget
+   * itself, its fixtures alongside it, the same way deployed-science and
+   * robotics-console left with the Breaking Ground uplink.
+   */
   {
     // ShipMap: part diagram + the spec §13.4 self-contribution flagship
     // (`ship-map.part-meters` / `ship-map.part-meta`). A dedicated

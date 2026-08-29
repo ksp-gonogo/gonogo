@@ -39,9 +39,11 @@ export interface WidgetRenderConfig {
   modes: SizeMode[];
 }
 
-// The same three auto-appended size modes `@ksp-gonogo/components`'s widgets.ts
-// adds to every entry (mobile/portrait/landscape), kept identical so the moved
-// `__snapshots__/*.snap` keeps its keys.
+/**
+ * The same three auto-appended size modes `@ksp-gonogo/components`'s widgets.ts
+ * adds to every entry (mobile/portrait/landscape), kept identical so the moved
+ * `__snapshots__/*.snap` keeps its keys.
+ */
 const AUTO_MODES: readonly SizeMode[] = [
   { name: "mobile-9x8", w: 9, h: 8 },
   { name: "portrait-5x18", w: 5, h: 18 },

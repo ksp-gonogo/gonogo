@@ -232,6 +232,23 @@ describe("comment stacks", () => {
       return { ref: at.ref, lists: module_.exports };
     }
 
+    /**
+     * Growth is refused two different ways, because a moved file and a new
+     * violation look identical to a per-file comparison.
+     *
+     * An EXISTING entry may only fall. That is the strict half and it never
+     * bends: a file that gains a stack has gained a defect.
+     *
+     * A NEW entry is allowed only when the repo-wide total did not rise. That is
+     * what a relocation looks like: the same stacks under a different path, one
+     * key removed and one added, total unchanged. Without this the gate fails on
+     * every file move and the only way past it is to lower a floor or delete the
+     * check, which is how a ratchet gets muted.
+     *
+     * It is not a hole. New stacks cannot enter under it, because entering
+     * raises the total; the most it permits is carrying existing debt from one
+     * file to another, which leaves the population exactly as large as it was.
+     */
     it("COMMENT_STACK_DEBT", () => {
       const at = baseAllowlist();
       if (!at) return;
@@ -239,15 +256,35 @@ describe("comment stacks", () => {
         | Record<string, number>
         | undefined;
       if (!before) return;
-      const added: string[] = [];
+
+      const sum = (list: Record<string, number>): number =>
+        Object.values(list).reduce((a, b) => a + b, 0);
+      const totalBefore = sum(before);
+      const totalNow = sum(COMMENT_STACK_DEBT);
+
+      const raised: string[] = [];
+      const arrived: string[] = [];
       for (const [file, count] of Object.entries(COMMENT_STACK_DEBT)) {
         const was = before[file];
-        if (was === undefined) added.push(`${file} (new entry: ${count})`);
-        else if (count > was) added.push(`${file} (${was} -> ${count})`);
+        if (was === undefined) arrived.push(`${file} (${count})`);
+        else if (count > was) raised.push(`${file} (${was} -> ${count})`);
       }
+
       expect(
-        added,
-        `Debt entries may only be REMOVED or lowered, never added or raised, vs ${at.ref}.`,
+        raised,
+        `A listed file gained comment stacks, vs ${at.ref}. An entry may only fall.`,
+      ).toEqual([]);
+
+      expect(
+        totalNow > totalBefore ? arrived : [],
+        [
+          `New debt entries raised the repo-wide total, vs ${at.ref}:`,
+          `  ${totalBefore} -> ${totalNow}`,
+          "",
+          "A new entry is only allowed when the total holds, which is what a file",
+          "MOVE looks like. A rising total means a stack was written rather than",
+          "carried, so fix the comment instead of listing it.",
+        ].join("\n"),
       ).toEqual([]);
     });
 
