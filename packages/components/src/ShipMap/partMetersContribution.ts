@@ -41,9 +41,9 @@ const DRAINABLE_RESOURCES = [
 /** Ratio thresholds for the built-in five's status signal (a border tint or
  *  badge, never the fill hue): below this fraction of capacity the meter
  *  reads "low", below `CRITICAL_THRESHOLD` it reads "critical". Mirrors the
- *  low-threshold convention an Uplink's own contribution uses, kept local
- *  rather than shared: the two contributions live in different packages with
- *  no shared "ShipMap contribution helpers" module yet. */
+ *  default-low-threshold convention an Uplink contribution follows, kept
+ *  local rather than shared: the two contributions live in different
+ *  packages with no shared "ShipMap contribution helpers" module yet. */
 const LOW_THRESHOLD = 0.15;
 const CRITICAL_THRESHOLD = 0.05;
 
@@ -61,8 +61,8 @@ function statusFor(
 /**
  * Pure core of the built-in contribution, exported so a test can call it
  * directly against a plain `VesselParts` fixture without going through the
- * contribution registry at all (the same export-the-pure-core pattern an
- * Uplink's own badge contributions use).
+ * contribution registry at all (the same export-the-pure-core pattern the
+ * Uplink-side contributions follow).
  */
 export function computeBuiltinPartMeters(
   wire: VesselParts | undefined,

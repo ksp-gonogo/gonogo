@@ -110,8 +110,8 @@ describe("ShipDiagram", () => {
     // The compact fill bars no longer read `part.resources` directly: they
     // render whatever `ship-map.part-meters` contributed for this part
     // (self-contribution unify), keyed by stringified
-    // flightId. Mirrors the shape the built-in `core` contribution and a
-    // Kerbalism contribution both emit.
+    // flightId. Mirrors the shape the built-in `core` contribution and an
+    // Uplink contribution both emit.
     const partMeters = new Map([
       [
         "2",

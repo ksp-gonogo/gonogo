@@ -74,10 +74,9 @@ describe("widget dataRequirements resolve to something real", () => {
    *
    * `channels` and `optionalChannels` are deliberately NOT here, and the reason
    * is a limit of this package rather than a gap in the idea. A built-in widget
-   * may mount on a channel an Uplink owns: `space-weather` declares
-   * `kerbalism.spaceweather`, whose topic id only becomes resolvable once
-   * `GonogoKerbalismUplink`'s client registers it. Classified from here that
-   * real channel reads as unresolvable, so widening this array would fail on
+   * may mount on a channel an Uplink owns, and that topic id only becomes
+   * resolvable once the owning Uplink's client registers it. Classified from
+   * here that real channel reads as unresolvable, so widening this array would fail on
    * correct code and teach the next person to loosen the classifier. The app
    * gate named in the header does read all four, with every Uplink loaded,
    * which is the context where the answer is meaningful.

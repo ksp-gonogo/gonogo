@@ -17,8 +17,8 @@ import { ShipMapComponent } from "./index";
  * compact fill bars come from the aggregated `ship-map.part-meters` slot,
  * not from a hardcoded resource allowlist inside `ShipDiagramSvg`. The
  * built-in `core` contribution is exercised here (it lives in this
- * package); the Kerbalism contribution's OWN pure-function tests live
- * alongside it in `mod/GonogoKerbalismUplink/client/src/ShipMap/`.
+ * package); an Uplink contribution's OWN pure-function tests live alongside
+ * it in that Uplink.
  *
  * `WidgetMetaContext` + `ContributionsProvider` are mounted explicitly here
  * (mirrors the app's real `WidgetContributions` wrapper,
