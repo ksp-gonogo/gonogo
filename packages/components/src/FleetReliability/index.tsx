@@ -15,6 +15,7 @@ import {
   Card,
   Cluster,
   CommandButton,
+  GhostButton,
   magnitudeOf,
   type ReadoutTone,
   SelectableRow,
@@ -426,9 +427,15 @@ function prefixed(source: string | null | undefined, rest: string): string {
   return source ? `${source} ${rest}` : rest;
 }
 
-/** Kerbalism's own arithmetic: a critical failure costs two kits, anything else one. */
+/**
+ * Kerbalism's own arithmetic, read from its `Repair()`: kits are consumed ONLY
+ * when the part is broken, and a critical failure costs two where anything else
+ * costs one. A part that merely needs service is repaired by the same event and
+ * costs NOTHING, which is why servicing is offered here as freely as it is.
+ */
 function kitsNeeded(condition: string | null | undefined): number {
-  return condition === "failed-critical" ? 2 : 1;
+  if (condition === "failed-critical") return 2;
+  return condition === "failed" ? 1 : 0;
 }
 
 function kitsCarried(member: CrewMember): number {
@@ -439,23 +446,32 @@ function kitsCarried(member: CrewMember): number {
   return held;
 }
 
+/** Everything Kerbalism's Repair event will act on, which is more than the broken ones. */
+function actionable(condition: string | null | undefined): boolean {
+  return (
+    condition === "failed" ||
+    condition === "failed-critical" ||
+    condition === "service-due"
+  );
+}
+
 /**
- * The repair control for one failed part.
+ * The action for one part: repair a failure, or clear a service.
+ *
+ * <p><b>Collapsed until asked.</b> A roster row carries several parts and each
+ * one showing a crew list and a kit ledger turns the row into a form. So the
+ * card offers one verb, and the choice of HOW only appears once the operator
+ * has said they want to do it.</p>
  *
  * <p><b>Every refusal costs a round trip</b>, exactly as a success does, so the
- * mod's refusals are pre-empted here and shown as a DISABLED control with the
- * reason on it. Dispatching a command in order to be told "nobody aboard is
- * carrying a kit" would spend the operator's delay to learn something the
- * console already knew.</p>
+ * mod's refusals are pre-empted here and shown on a disabled control. Spending
+ * the operator's delay to be told "nobody aboard is carrying a kit" is the
+ * failure this design exists to avoid.</p>
  *
  * <p><b>The kit count sits beside the control</b>, which is this repo's funds
  * rule applied to a different currency: a widget offering to spend something
- * scarce shows the balance in the same widget, so nobody has to look elsewhere
- * to find out whether they can afford what they are about to confirm.</p>
- *
- * <p>The performer is CHOSEN rather than inferred. Kerbalism decides whether
- * that kerbal is qualified, and it is not our place to pre-empt that half, but
- * who spends the last kit is the operator's call.</p>
+ * scarce shows the balance in the same widget. A service spends nothing, so it
+ * says nothing about kits.</p>
  */
 function RepairControl({
   partId,
@@ -470,26 +486,25 @@ function RepairControl({
 }) {
   const repair = useCommand("vessel.repair");
   usePanelDelay(repair);
+  const [open, setOpen] = useState(false);
   const [chosen, setChosen] = useState<string | null>(null);
 
   const needed = kitsNeeded(condition);
+  const verb = needed === 0 ? "Service" : "Repair";
+
   /*
    * Default to whoever can act with NO fetch, which is the distinction the
-   * whole split exists for: a kerbal already holding enough kits needs nothing
-   * moved, and picking the first name in the roster instead would offer the
-   * operator the worse option by default.
-   *
-   * Deliberately NOT ranked by trait. Whether a kerbal is qualified is
-   * Kerbalism's own judgement and guessing at it here would be a second
-   * authority that can disagree with the one that decides.
+   * crew-versus-vessel inventory split exists for: a kerbal already holding
+   * enough needs nothing moved. Offering the first name in the roster instead
+   * would hand the operator the worse option by default.
    */
   const readiest = crew
     .slice()
     .sort((a, b) => kitsCarried(b) - kitsCarried(a))[0];
   const performer = chosen ?? readiest?.name ?? null;
-  const held = crew.find((c) => c.name === performer);
-  const carried = held ? kitsCarried(held) : 0;
-  const reachable = carried + reserveKits;
+  const carried = crew.find((c) => c.name === performer);
+  const held = carried ? kitsCarried(carried) : 0;
+  const reachable = held + reserveKits;
 
   const refusal =
     crew.length === 0
@@ -498,32 +513,40 @@ function RepairControl({
         ? `Needs ${needed}, and ${reachable} can be reached`
         : null;
 
+  if (!open) {
+    return (
+      <Cluster justify="start" gap="sm">
+        <GhostButton onClick={() => setOpen(true)}>{verb}</GhostButton>
+      </Cluster>
+    );
+  }
+
   return (
     <Stack gap="xs">
-      <Cluster justify="between" align="baseline" gap="sm" wrap>
-        <span>REPAIR</span>
+      {needed > 0 && (
         <span>
-          {`${needed} kit${needed === 1 ? "" : "s"} · ${carried} carried · ${reserveKits} aboard`}
+          {`${needed} kit${needed === 1 ? "" : "s"} · ${held} carried · ${reserveKits} aboard`}
         </span>
-      </Cluster>
-      {crew.length > 1 &&
-        crew.map((member) => (
-          <SelectableRow
-            key={member.name ?? "unknown"}
-            selected={member.name === performer}
-            onClick={() => setChosen(member.name ?? null)}
-          >
-            {`${member.name ?? "Unknown"} · ${kitsCarried(member)} carried`}
-          </SelectableRow>
-        ))}
+      )}
+      {crew.map((member) => (
+        <SelectableRow
+          key={member.name ?? "unknown"}
+          selected={member.name === performer}
+          onClick={() => setChosen(member.name ?? null)}
+        >
+          {needed > 0
+            ? `${member.name ?? "Unknown"} · ${kitsCarried(member)} carried`
+            : (member.name ?? "Unknown")}
+        </SelectableRow>
+      ))}
       <CommandButton
         handle={repair}
         args={{ partId, crewName: performer ?? "" }}
         size="sm"
-        commandLabel={`Repair with ${performer ?? "nobody"}`}
-        label="Repair"
+        commandLabel={`${verb} with ${performer ?? "nobody"}`}
+        label={verb}
         confirmLabel="Confirm"
-        pendingLabel="Repairing..."
+        pendingLabel={`${verb}...`}
         disabled={refusal !== null}
         title={refusal ?? undefined}
       />
@@ -682,8 +705,7 @@ export function FleetReliabilityUpdates({ vesselId, compact }: UpdatesProps) {
                 <Badge severity={row.severity}>{row.word}</Badge>
               </Cluster>
               {row.clause !== undefined && <span>{row.clause}</span>}
-              {(part.condition === "failed" ||
-                part.condition === "failed-critical") && (
+              {actionable(part.condition) && (
                 <RepairControl
                   partId={part.partId ?? ""}
                   condition={part.condition}
