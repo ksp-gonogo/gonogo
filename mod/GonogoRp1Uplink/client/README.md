@@ -175,9 +175,9 @@ Every craft RP-1 is integrating, holding or could start, across every launch com
 | `rp1-vehicle-assembly-buildable` | `rp1-vehicle-assembly.sections` | – |  |  |
 | `rp1-vehicle-assembly-warehouse` | `rp1-vehicle-assembly.sections` | – |  |  |
 
-![Cape and its two launch complexes, each with its crew, its envelope, its daily cost and the rush control: LC-1 already rushing and offered the way out, LC-2 offered the way in](docs/assets/complexes-rushing--default.png)
+![Cape and its two launch complexes, each with its crew, its envelope, its daily cost and the rush control: LC-1 already rushing and carrying the terms in force on it, LC-2 quiet and offered the way in](docs/assets/complexes-rushing--default.png)
 
-![A payroll mid-career with six engineers assigned to nothing, beside the two complexes they could be moved to](docs/assets/personnel-staffed--default.png)
+![A payroll mid-career with six engineers assigned to nothing, the daily charge that pool carries, and the stepped controls that would move them onto either complex](docs/assets/personnel-staffed--default.png)
 
 ![RP-1 is present and has answered for nothing: every count reads as the null token and the missing centre is stated rather than left as a gap](docs/assets/personnel-unanswered--default.png)
 
