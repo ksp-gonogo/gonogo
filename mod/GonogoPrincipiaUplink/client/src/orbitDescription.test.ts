@@ -225,3 +225,87 @@ describe("orbitDescription synchronicity", () => {
     ).toBe("Kerbin orbit");
   });
 });
+
+/**
+ * Sun-synchronous reads DIFFERENT data from the other three: the local solar
+ * time at the nodes holding steady, not the ground track repeating. An orbit can
+ * repeat its track without holding its lighting and vice versa, so it joins the
+ * other adjectives rather than competing with them.
+ */
+describe("orbitDescription sun-synchronicity", () => {
+  function holdingLighting(
+    over: Partial<PrincipiaOrbitAnalysis> = {},
+  ): PrincipiaOrbitAnalysis {
+    return analysis({
+      missionDurationSeconds: value("s", 216_000),
+      nodalPeriodSeconds: value("s", 21_600),
+      // Ten revolutions; 0.005° total is 0.0005°/rev, inside the 0.001° rule.
+      ascendingNodeSolarTimeDegrees: {
+        min: value("°", 157.44),
+        max: value("°", 157.445),
+      },
+      descendingNodeSolarTimeDegrees: {
+        min: value("°", 337.44),
+        max: value("°", 337.444),
+      },
+      ...over,
+    });
+  }
+
+  it("says sun-synchronous when the nodes hold their local time", () => {
+    expect(orbitDescription(holdingLighting())).toBe(
+      "sun-synchronous Kerbin orbit",
+    );
+  });
+
+  /**
+   * The threshold is two orders tighter than the ground-track one, so a drift
+   * that would still count as a repeating track is not a held lighting angle.
+   */
+  it("says nothing when the local time walks", () => {
+    expect(
+      orbitDescription(
+        holdingLighting({
+          ascendingNodeSolarTimeDegrees: {
+            min: value("°", 157),
+            max: value("°", 175),
+          },
+          descendingNodeSolarTimeDegrees: {
+            min: value("°", 337),
+            max: value("°", 355),
+          },
+        }),
+      ),
+    ).toBe("Kerbin orbit");
+  });
+
+  /** A body with no modelled mean sun has no solar times and so no claim. */
+  it("says nothing without solar times at all", () => {
+    expect(
+      orbitDescription(
+        holdingLighting({
+          ascendingNodeSolarTimeDegrees: undefined,
+          descendingNodeSolarTimeDegrees: undefined,
+        }),
+      ),
+    ).toBe("Kerbin orbit");
+  });
+
+  /** One pass is no evidence of holding, exactly as for the track rules. */
+  it("refuses zero drift", () => {
+    expect(
+      orbitDescription(
+        holdingLighting({
+          ascendingNodeSolarTimeDegrees: {
+            min: value("°", 157.44),
+            max: value("°", 157.44),
+          },
+          descendingNodeSolarTimeDegrees: {
+            min: value("°", 337.44),
+            max: value("°", 337.44),
+          },
+        }),
+      ),
+    ).toBe("Kerbin orbit");
+  });
+});

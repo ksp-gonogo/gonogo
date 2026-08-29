@@ -92,6 +92,12 @@ namespace GonogoPrincipiaUplink
         internal const string AscendingCrossingField = "longitudes_reduced_to_ascending_pass";
         internal const string DescendingCrossingField = "longitudes_reduced_to_descending_pass";
 
+        /// <summary>Fields on the solar times of the nodes, present only when the
+        /// producer had a mean sun.</summary>
+        internal const string SolarTimesField = "solar_times_of_nodes";
+        internal const string AscendingSolarTimeField = "mean_solar_times_of_ascending_nodes";
+        internal const string DescendingSolarTimeField = "mean_solar_times_of_descending_nodes";
+
         private const double DegreesPerRadian = 180.0 / Math.PI;
 
         /// <summary>
@@ -273,6 +279,30 @@ namespace GonogoPrincipiaUplink
                 Interval(crossings, DescendingCrossingField, DegreesPerRadian, 0.0);
         }
 
+        /// <summary>
+        /// Copies the nodes' local mean solar times across, as angles in degrees
+        /// with 180 at noon.
+        ///
+        /// <para>Kept as an angle rather than converted to a clock reading. That
+        /// is the producer's own representation, it is what decides
+        /// sun-synchronicity (the band's WIDTH, not its position), and turning it
+        /// into hours here would put a duration's unit on something that is a time
+        /// of day.</para>
+        /// </summary>
+        private static void ReadSolarTimes(object analysis, OrbitAnalysisObservation observation)
+        {
+            var solar = Fields.Get(analysis, SolarTimesField);
+            if (solar == null)
+            {
+                return;
+            }
+
+            observation.AscendingNodeSolarTimeDegrees =
+                Interval(solar, AscendingSolarTimeField, DegreesPerRadian, 0.0);
+            observation.DescendingNodeSolarTimeDegrees =
+                Interval(solar, DescendingSolarTimeField, DegreesPerRadian, 0.0);
+        }
+
         internal static OrbitAnalysisObservation? Describe(
             object? analysis, ICelestialNames celestials, double? epochUt)
         {
@@ -301,6 +331,7 @@ namespace GonogoPrincipiaUplink
 
             ReadRecurrence(analysis, observation);
             ReadCrossings(analysis, observation);
+            ReadSolarTimes(analysis, observation);
 
             if (elements == null)
             {

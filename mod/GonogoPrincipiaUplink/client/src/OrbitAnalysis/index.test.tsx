@@ -190,15 +190,20 @@ describe("OrbitAnalysisSection", () => {
   });
 
   /**
-   * Four of the producer's adjectives need a ground-track recurrence this
-   * Uplink does not request. Naming them is what stops an operator reading
-   * their absence as a claim that the orbit is not synchronous.
+   * This used to assert the opposite: that the widget NAMED four adjectives it
+   * could not reach, because they were believed to need a ground-track
+   * recurrence this Uplink refused to request.
+   *
+   * <p>All four are reachable and none is disclaimed now, so the caveat renders
+   * nothing. The guard is what makes that silence rather than an empty
+   * accusation, and this is the assertion that would catch it coming back as
+   * "Cannot say ." if the list were ever emptied without it.</p>
    */
-  it("names the adjectives it cannot reach", async () => {
+  it("disclaims no adjective now that none is out of reach", async () => {
     const stream = mount();
     await emit(stream, { vesselId: "v", sampledAtUt: VIEW_UT, orbit: orbit() });
 
-    expect(await visibleText(stream.container)).toContain("sun-synchronous");
+    expect(await visibleText(stream.container)).not.toContain("Cannot say");
   });
 
   /** A hazard row is absent when there is no hazard, not a permanent dash. */

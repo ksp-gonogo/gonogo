@@ -442,20 +442,21 @@ export function OrbitAnalysisSection() {
 
         <OrbitAnalysisRows orbit={orbit} viewUt={viewUt} />
 
-        {/* Named rather than left to inference, so an operator who knows the
-            word is missing will not read its absence as a claim.
+        {/* The list is EMPTY now, so this renders nothing, and the guard is why
+            it renders nothing rather than an empty accusation.
 
-            This used to name four adjectives and blame a ground-track
-            recurrence. Three of them are said now: the recurrence was always
-            arriving, and the equatorial crossings it derives are what decide
-            them. The one left is missing for an unrelated reason, recorded on
-            UNREACHABLE_ADJECTIVES.
+            It named four adjectives and blamed a ground-track recurrence this
+            Uplink would not request. All four were reachable: three off the
+            equatorial crossings, one off the solar times of the nodes, and the
+            producer hands over all of them unasked. Kept rather than deleted so
+            a future unreachable word only has to be listed and the caveat comes
+            back on its own.
 
             Only beside a phrase, though: with no elements there is no phrase for
             it to qualify, and a caveat about words nobody wrote is noise. */}
-        {description !== null && (
+        {description !== null && UNREACHABLE_ADJECTIVES.length > 0 && (
           <Text tone="faint" size="sm">
-            {`Cannot say ${UNREACHABLE_ADJECTIVES.join(", ")}: that needs the solar times of the nodes, which Gonogo does not carry.`}
+            {`Cannot say ${UNREACHABLE_ADJECTIVES.join(", ")}.`}
           </Text>
         )}
       </Stack>

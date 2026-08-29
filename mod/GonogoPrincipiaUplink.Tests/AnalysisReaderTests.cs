@@ -399,6 +399,48 @@ namespace GonogoPrincipiaUplink.Tests
             Assert.Equal(3.24 * (180.0 / Math.PI), orbit.DescendingCrossingDegrees!.Min!.Value, 9);
         }
 
+        /// <summary>
+        /// The nodes' local mean solar times arrive as angles in degrees, 180 at
+        /// noon, which is the producer's own representation.
+        /// </summary>
+        [Fact]
+        public void TheSolarTimesOfTheNodesArriveAsAngles()
+        {
+            var (_, observation) = Read(p =>
+            {
+                p.Add(Guid);
+                p.VesselAnalysis = new FakeOrbitAnalysis();
+            });
+
+            var orbit = observation!.Orbit;
+            Assert.NotNull(orbit);
+            Assert.Equal(
+                2.7480 * (180.0 / Math.PI),
+                orbit!.AscendingNodeSolarTimeDegrees!.Min!.Value,
+                9);
+            Assert.Equal(
+                5.8900 * (180.0 / Math.PI),
+                orbit.DescendingNodeSolarTimeDegrees!.Max!.Value,
+                9);
+        }
+
+        /// <summary>
+        /// A body with no modelled mean sun has no solar times, and that is the
+        /// ordinary state rather than a fault. Absent, not midnight.
+        /// </summary>
+        [Fact]
+        public void WithoutAMeanSunTheSolarTimesAreAbsent()
+        {
+            var (_, observation) = Read(p =>
+            {
+                p.Add(Guid);
+                p.VesselAnalysis = new FakeOrbitAnalysis { solar_times_of_nodes = null };
+            });
+
+            Assert.Null(observation!.Orbit!.AscendingNodeSolarTimeDegrees);
+            Assert.Null(observation.Orbit.DescendingNodeSolarTimeDegrees);
+        }
+
         /// <summary>Crossings the producer could not compute are absent rather
         /// than a zero-width band sitting at longitude nought.</summary>
         [Fact]

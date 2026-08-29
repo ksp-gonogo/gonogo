@@ -41,6 +41,8 @@ export interface PrincipiaOrbitAnalysis
 	recurrenceEquatorialShiftDegrees?: Value<"°">;
 	ascendingCrossingDegrees?: PrincipiaAngleInterval;
 	descendingCrossingDegrees?: PrincipiaAngleInterval;
+	ascendingNodeSolarTimeDegrees?: PrincipiaAngleInterval;
+	descendingNodeSolarTimeDegrees?: PrincipiaAngleInterval;
 	recurrenceGridIntervalDegrees?: Value<"°">;
 	meanLongitudeOfAscendingNodeDegrees?: PrincipiaAngleInterval;
 	meanArgumentOfPeriapsisDegrees?: PrincipiaAngleInterval;

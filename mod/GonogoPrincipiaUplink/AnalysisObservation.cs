@@ -124,6 +124,20 @@ namespace GonogoPrincipiaUplink
         /// <summary>The same band for the southbound crossing.</summary>
         public IntervalObservation? DescendingCrossingDegrees;
 
+        /// <summary>
+        /// The local mean solar time at the northbound node, as a band of angles
+        /// where 180 degrees is local noon.
+        ///
+        /// <para>An angle rather than a clock reading, which is what the producer
+        /// stores and what the question needs: sun-synchronicity is decided by how
+        /// little this band WIDENS, not by where it sits. Absent unless the
+        /// producer had a mean sun to measure against.</para>
+        /// </summary>
+        public IntervalObservation? AscendingNodeSolarTimeDegrees;
+
+        /// <summary>The same band at the southbound node.</summary>
+        public IntervalObservation? DescendingNodeSolarTimeDegrees;
+
         /// <summary>The spacing of the fully-populated grid the cycle lays down,
         /// in degrees of longitude.</summary>
         public double? RecurrenceGridIntervalDegrees;

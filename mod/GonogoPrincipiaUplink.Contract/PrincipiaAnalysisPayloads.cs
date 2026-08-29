@@ -116,10 +116,13 @@ public sealed class PrincipiaCoastAnalysis
 /// hypothesis is given, deriving the crossings on the way, so the only thing a
 /// hypothesis buys is an operator's nominal orbit to compare against.</para>
 ///
-/// <para><b>What is still absent.</b> The solar times of nodes. Not a trade
-/// either: they are an angle with π at noon, a time-of-day rather than a
-/// duration, and this contract has no unit that says so. Publishing them as
-/// plain degrees would be a number nobody could read as a clock.</para>
+/// <para><b>The solar times of the nodes are here too, as ANGLES.</b> They were
+/// held back on the grounds that an angle with π at noon is a time of day rather
+/// than a duration and this contract has no unit that says so. True, and beside
+/// the point: what the reading is FOR is sun-synchronicity, which is decided by
+/// how little the band widens. A drift in degrees answers that exactly, the same
+/// way the crossings do. Rendering the position as a clock is a separate job
+/// needing a unit nothing here has yet.</para>
 /// </summary>
 #if SITREP_CODEGEN
 [TsInterface]
@@ -281,6 +284,23 @@ public sealed class PrincipiaOrbitAnalysis
 
     /// <summary>The same band for the southbound crossing.</summary>
     public PrincipiaAngleInterval? DescendingCrossingDegrees { get; set; }
+
+    /// <summary>
+    /// The local mean solar time at the northbound node, as a band of angles over
+    /// a full turn, where 180 degrees is local noon.
+    ///
+    /// <para>An angle rather than a clock reading, which is both what the producer
+    /// stores and what the question needs: sun-synchronicity is decided by how
+    /// little this band WIDENS, not by where it sits. Rendering it as a time of day
+    /// is a client's job and needs a unit this contract does not have.</para>
+    ///
+    /// <para>Absent unless the producer had a mean sun to measure against, which
+    /// is the ordinary state for a body with no modelled star.</para>
+    /// </summary>
+    public PrincipiaAngleInterval? AscendingNodeSolarTimeDegrees { get; set; }
+
+    /// <summary>The same band at the southbound node.</summary>
+    public PrincipiaAngleInterval? DescendingNodeSolarTimeDegrees { get; set; }
 
     /// <summary>The spacing of the fully-populated longitude grid the whole cycle
     /// lays down.</summary>

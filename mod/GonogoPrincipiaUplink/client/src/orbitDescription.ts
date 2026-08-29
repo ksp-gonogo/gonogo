@@ -22,9 +22,12 @@ import type { PrincipiaOrbitAnalysis } from "./__generated__/contract";
  * producer fits a recurrence itself and derives the equatorial crossings from
  * it, and the crossings' drift is what decides all three.</p>
  *
- * <p>Sun-synchronous is still missing, for an unrelated reason recorded on
- * {@link UNREACHABLE_ADJECTIVES}. The widget names what it cannot reach rather
- * than letting an operator infer that a sun-synchronous orbit is not one.</p>
+ * <p><b>Sun-synchronous is said too, and reads different data.</b> It is decided
+ * by the LOCAL SOLAR TIME at the nodes holding steady, not by the ground track
+ * repeating: an orbit can repeat its track without holding its lighting, and hold
+ * its lighting without repeating its track. So it joins the other adjectives
+ * rather than competing with them, and every one of the four the widget used to
+ * disclaim is now reachable.</p>
  */
 export function orbitDescription(
   analysis: PrincipiaOrbitAnalysis | undefined,
@@ -74,6 +77,8 @@ export function orbitDescription(
   if (inclinationMin !== null && inclinationMin > 90) {
     adjectives.push("retrograde");
   }
+
+  if (isSunSynchronous(analysis)) adjectives.push("sun-synchronous");
 
   const synchronicity = synchronicityOf(analysis, {
     circular: adjectives.includes("circular"),
@@ -177,6 +182,46 @@ function synchronicityOf(
   return null;
 }
 
+/**
+ * The producer's own sun-synchronicity threshold, per REVOLUTION rather than per
+ * rotation of the primary. A different quantity from the synchronicity rule
+ * above and two orders of magnitude tighter.
+ */
+const SUN_SYNCHRONOUS_DRIFT_DEGREES_PER_REVOLUTION = 0.001;
+
+/**
+ * Whether the node crossings hold the same LOCAL SOLAR TIME, which is what makes
+ * an orbit sun-synchronous.
+ *
+ * <p>Independent of the ground-track recurrence: an orbit can repeat its track
+ * without holding its lighting, and can hold its lighting without repeating its
+ * track. This reads the solar-time bands, the others read the longitude bands.</p>
+ *
+ * <p>Zero drift is refused for the same reason as there: it means one pass, and
+ * one pass shows nothing about whether anything holds.</p>
+ */
+function isSunSynchronous(analysis: PrincipiaOrbitAnalysis): boolean {
+  const ascending = analysis.ascendingNodeSolarTimeDegrees;
+  const descending = analysis.descendingNodeSolarTimeDegrees;
+  const missionDuration = magnitudeOf(analysis.missionDurationSeconds);
+  const nodalPeriod = magnitudeOf(analysis.nodalPeriodSeconds);
+  if (missionDuration === null || nodalPeriod === null || nodalPeriod <= 0) {
+    return false;
+  }
+
+  const spans = [
+    span(ascending?.min, ascending?.max),
+    span(descending?.min, descending?.max),
+  ].filter((value): value is number => value !== null);
+  if (spans.length === 0) return false;
+  const drift = Math.max(...spans);
+  if (drift <= 0) return false;
+
+  const revolutions = missionDuration / nodalPeriod;
+  if (revolutions <= 0) return false;
+  return drift / revolutions < SUN_SYNCHRONOUS_DRIFT_DEGREES_PER_REVOLUTION;
+}
+
 /** The width of a band, or null when either end is missing. */
 function span(
   min: Parameters<typeof magnitudeOf>[0],
@@ -188,17 +233,14 @@ function span(
 }
 
 /**
- * The adjectives the producer can reach and this cannot, named for the widget
- * that has to admit to them.
+ * The adjectives the producer can reach and this cannot. Empty, and kept as an
+ * exported constant rather than deleted outright so the widget's caption stays
+ * driven by data: if a future adjective is ever out of reach, listing it here is
+ * all that is needed and the caption reappears.
  *
- * <p>Exported as data rather than written into a sentence, so the reason and the
- * list cannot drift apart: reaching one means deleting it here and the caption
- * follows. Three just did.</p>
- *
- * <p>Sun-synchronous is the one left, and not for want of a recurrence: it is
- * decided by the solar times of the nodes, which this Uplink does not carry
- * because they are an angle with π at noon and the contract has no unit that
- * says "time of day". Publishing them as plain degrees would put a number on
- * screen that no operator could read as a clock.</p>
+ * <p>It held four for most of this Uplink's life, on the belief that all of them
+ * needed a ground-track recurrence this Uplink refused to ask for. Three were
+ * decided by the equatorial crossings and one by the solar times of the nodes,
+ * and the producer hands over all three of those without being asked.</p>
  */
-export const UNREACHABLE_ADJECTIVES = ["sun-synchronous"] as const;
+export const UNREACHABLE_ADJECTIVES: readonly string[] = [];

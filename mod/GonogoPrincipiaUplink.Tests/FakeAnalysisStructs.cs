@@ -40,6 +40,12 @@ namespace GonogoPrincipiaUplink.Tests
         /// a side effect of setting the recurrence above.</summary>
         public FakeEquatorialCrossings? ground_track_equatorial_crossings =
             new FakeEquatorialCrossings();
+
+        /// <summary>
+        /// The local mean solar times at the nodes, present only when the
+        /// producer had a mean sun to compute them against.
+        /// </summary>
+        public FakeSolarTimesOfNodes? solar_times_of_nodes = new FakeSolarTimesOfNodes();
 #pragma warning restore IDE1006
     }
 
@@ -64,6 +70,24 @@ namespace GonogoPrincipiaUplink.Tests
         public double base_interval = 0.3927;
         public double grid_interval = 0.0561;
         public int subcycle = 3;
+#pragma warning restore IDE1006
+    }
+
+    /// <summary>
+    /// Local mean solar times at the nodes, each an interval in RADIANS over
+    /// [0, 2π] with π at noon. An angle, not a duration.
+    ///
+    /// <para>The defaults sit in a narrow band, which is what a sun-synchronous
+    /// orbit looks like: the craft crosses the node at the same local time every
+    /// pass.</para>
+    /// </summary>
+    public sealed class FakeSolarTimesOfNodes
+    {
+#pragma warning disable IDE1006
+        public FakeInterval mean_solar_times_of_ascending_nodes =
+            new FakeInterval(2.7480, 2.7485);
+        public FakeInterval mean_solar_times_of_descending_nodes =
+            new FakeInterval(5.8896, 5.8900);
 #pragma warning restore IDE1006
     }
 

@@ -69,6 +69,10 @@ namespace GonogoPrincipiaUplink
                 ["recurrenceGridIntervalDegrees"] = analysis.RecurrenceGridIntervalDegrees,
                 ["ascendingCrossingDegrees"] = Interval(analysis.AscendingCrossingDegrees),
                 ["descendingCrossingDegrees"] = Interval(analysis.DescendingCrossingDegrees),
+                ["ascendingNodeSolarTimeDegrees"] =
+                    Interval(analysis.AscendingNodeSolarTimeDegrees),
+                ["descendingNodeSolarTimeDegrees"] =
+                    Interval(analysis.DescendingNodeSolarTimeDegrees),
                 ["meanLongitudeOfAscendingNodeDegrees"] =
                     Interval(analysis.MeanLongitudeOfAscendingNodeDegrees),
                 ["meanArgumentOfPeriapsisDegrees"] =

@@ -438,7 +438,9 @@ export const GENERATED_TYPE_SHAPES: Readonly<Record<string, ShapesByField>> = {
   },
   "PrincipiaOrbitAnalysis": {
     ascendingCrossingDegrees: "PrincipiaAngleInterval",
+    ascendingNodeSolarTimeDegrees: "PrincipiaAngleInterval",
     descendingCrossingDegrees: "PrincipiaAngleInterval",
+    descendingNodeSolarTimeDegrees: "PrincipiaAngleInterval",
     meanApoapsisAltitudeMetres: "PrincipiaLengthInterval",
     meanArgumentOfPeriapsisDegrees: "PrincipiaAngleInterval",
     meanEccentricity: "PrincipiaRatioInterval",
