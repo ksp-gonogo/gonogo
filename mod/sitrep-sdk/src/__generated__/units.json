@@ -348,7 +348,10 @@
     "CrewMember": {
       "experienceLevel": "count",
       "name": "text",
+      "packedVolumeLimit": "1",
+      "packedVolumeUsed": "1",
       "rosterStatus": "text",
+      "slots": "count",
       "trait": "text",
       "type": "id"
     },
@@ -531,6 +534,21 @@
       "rerunnable": "flag",
       "resettable": "flag",
       "title": "text"
+    },
+    "InventoryItem": {
+      "name": "id",
+      "packedVolume": "1",
+      "quantity": "count",
+      "title": "text"
+    },
+    "InventoryStore": {
+      "massLimit": "t",
+      "packedVolumeLimit": "1",
+      "packedVolumeUsed": "1",
+      "partId": "id",
+      "partName": "text",
+      "slots": "count",
+      "slotsUsed": "count"
     },
     "InvokePartActionArgs": {
       "eventName": "id",
@@ -1880,6 +1898,9 @@
       "flightStats": "CrashFlightStats",
       "partsLost": "CrashPartLost[]"
     },
+    "CrewMember": {
+      "carrying": "InventoryItem[]"
+    },
     "DelayedObservation": {
       "state": "StateVector"
     },
@@ -1921,6 +1942,9 @@
     },
     "IUplinkHost": {
       "kernel": "Kernel"
+    },
+    "InventoryStore": {
+      "items": "InventoryItem[]"
     },
     "IsruConverterEntry": {
       "inputs": "IsruResourceFlow[]",
@@ -2028,6 +2052,10 @@
     },
     "VesselIdentity": {
       "meta": "PayloadMeta"
+    },
+    "VesselInventory": {
+      "meta": "PayloadMeta",
+      "stores": "InventoryStore[]"
     },
     "VesselLanding": {
       "meta": "PayloadMeta"
@@ -2199,6 +2227,10 @@
     },
     "vessel.identity": {
       "meta": "PayloadMeta"
+    },
+    "vessel.inventory": {
+      "meta": "PayloadMeta",
+      "stores": "InventoryStore[]"
     },
     "vessel.landing": {
       "meta": "PayloadMeta"

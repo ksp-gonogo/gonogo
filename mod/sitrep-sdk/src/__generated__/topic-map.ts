@@ -77,6 +77,7 @@ import type {
   VesselCrew,
   VesselFlight,
   VesselIdentity,
+  VesselInventory,
   VesselLanding,
   VesselManeuver,
   VesselOrbit,
@@ -151,6 +152,7 @@ export interface GeneratedTopicPayloadMap {
   "vessel.dock": DockAlignment;
   "vessel.flight": VesselFlight;
   "vessel.identity": VesselIdentity;
+  "vessel.inventory": VesselInventory;
   "vessel.landing": VesselLanding;
   "vessel.maneuver": VesselManeuver;
   "vessel.orbit": VesselOrbit;
@@ -224,6 +226,7 @@ export const GENERATED_TOPIC_IDS = [
   "vessel.dock",
   "vessel.flight",
   "vessel.identity",
+  "vessel.inventory",
   "vessel.landing",
   "vessel.maneuver",
   "vessel.orbit",

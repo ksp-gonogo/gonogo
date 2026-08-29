@@ -294,6 +294,12 @@ public static class RtConfig
                 // GonogoScansatUplink.Contract).
                 // kerbcast.cameras payload + its command args: see the trailing
                 // comment below (moved OUT of core into GonogoKerbcastUplink.Contract).
+                // vessel.inventory channel payload + nested value shapes: stock
+                // cargo carried on parts AND on kerbals, which share one KSP
+                // module and so share one channel.
+                typeof(VesselInventory),
+                typeof(InventoryStore),
+                typeof(InventoryItem),
                 // vessel.parts channel payload + nested value shapes (P1b)
                 typeof(VesselParts),
                 typeof(VesselPart),

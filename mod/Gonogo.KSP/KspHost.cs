@@ -539,6 +539,7 @@ namespace Gonogo.KSP
             TryBuildGroup(entry, "physics", () => BuildPhysics(vessel));
             TryBuildGroup(entry, "comms", () => BuildComms(vessel));
             TryBuildGroup(entry, "crew", () => BuildCrew(vessel));
+            TryBuildGroup(entry, "inventories", () => BuildInventories(vessel));
             TryBuildGroup(entry, "misc", () => BuildMisc(vessel));
             TryBuildGroup(entry, "propulsion", () => BuildPropulsion(vessel, thrustObserver, ut));
             // ONE Plan() call per capture: it reads live KSP, so asking twice
@@ -1379,6 +1380,41 @@ namespace Gonogo.KSP
         /// <c>Vessel.GetCrewCapacity()</c> (verified: returns <c>int</c>) for the
         /// seat count.
         /// </summary>
+        /// <summary>
+        /// Every part-hosted cargo hold on the vessel.
+        ///
+        /// <para>Parts only. A kerbal's own two slots ride on the crew group
+        /// instead, beside the trait and experience level that decide whether
+        /// they may act, because "what is aboard" and "who can do this now"
+        /// are read at different moments by different surfaces.</para>
+        /// </summary>
+        private static Dictionary<string, object?> BuildInventories(Vessel vessel)
+        {
+            var stores = new List<object?>();
+            var parts = vessel.parts;
+            if (parts != null)
+            {
+                foreach (var part in parts)
+                {
+                    var inventory = part?.FindModuleImplementing<ModuleInventoryPart>();
+                    if (inventory == null)
+                    {
+                        continue;
+                    }
+
+                    var row = new Dictionary<string, object?>
+                    {
+                        ["partId"] = part!.flightID.ToString(),
+                        ["partName"] = part.partInfo?.title,
+                    };
+                    AddInventoryFields(row, inventory);
+                    stores.Add(row);
+                }
+            }
+
+            return new Dictionary<string, object?> { ["stores"] = stores };
+        }
+
         private static Dictionary<string, object?> BuildCrew(Vessel vessel)
         {
             var members = new List<object?>();
@@ -1392,14 +1428,24 @@ namespace Gonogo.KSP
                         continue;
                     }
 
-                    members.Add(new Dictionary<string, object?>
+                    var crewRow = new Dictionary<string, object?>
                     {
                         ["name"] = member.name,
                         ["trait"] = member.trait,
                         ["experienceLevel"] = member.experienceLevel,
                         ["type"] = member.type.ToString(),
                         ["rosterStatus"] = member.rosterStatus.ToString(),
-                    });
+                    };
+                    /*
+                     * What this kerbal is personally carrying, read from their
+                     * own inventory module rather than from an EVA part. A
+                     * SEATED kerbal still has one: KerbalInventoryModule is on
+                     * the ProtoCrewMember itself, so this works in flight
+                     * without anyone going outside, which is the whole point
+                     * for a command centre that cannot send anyone outside.
+                     */
+                    AddInventoryFields(crewRow, member.KerbalInventoryModule);
+                    members.Add(crewRow);
                 }
             }
 
@@ -1408,6 +1454,63 @@ namespace Gonogo.KSP
                 ["capacity"] = vessel.GetCrewCapacity(),
                 ["members"] = members,
             };
+        }
+
+        /// <summary>
+        /// Writes an inventory module's slots, limits and contents onto a raw
+        /// row, or leaves the row untouched when there is no module.
+        ///
+        /// <para>Absent and empty are kept distinct on purpose: a kerbal with
+        /// no inventory module at all reports nothing here, while a kerbal
+        /// carrying nothing reports an empty list. A consumer deciding whether
+        /// someone can act needs to tell "holding none" from "cannot tell".</para>
+        ///
+        /// <para><c>volumeCapacity</c> is KSP's USED volume and
+        /// <c>packedVolumeLimit</c> its ceiling, which read the wrong way round
+        /// from the names alone.</para>
+        /// </summary>
+        internal static void AddInventoryFields(
+            IDictionary<string, object?> row, ModuleInventoryPart? inventory)
+        {
+            if (inventory == null)
+            {
+                return;
+            }
+
+            var items = new List<object?>();
+            var slotsUsed = 0;
+            var stored = inventory.storedParts;
+            if (stored != null)
+            {
+                foreach (var entry in stored.Values)
+                {
+                    if (entry == null || string.IsNullOrEmpty(entry.partName))
+                    {
+                        continue;
+                    }
+
+                    slotsUsed++;
+                    var available = PartLoader.getPartInfoByName(entry.partName);
+                    items.Add(new Dictionary<string, object?>
+                    {
+                        ["name"] = entry.partName,
+                        ["title"] = available?.title,
+                        ["quantity"] = entry.quantity,
+                        ["packedVolume"] = available?.partPrefab
+                            ?.FindModuleImplementing<ModuleCargoPart>()
+                            ?.packedVolume,
+                    });
+                }
+            }
+
+            row["carrying"] = items;
+            row["slots"] = inventory.InventorySlots;
+            row["slotsUsed"] = slotsUsed;
+            row["packedVolumeLimit"] = inventory.HasPackedVolumeLimit
+                ? (object?)inventory.packedVolumeLimit
+                : null;
+            row["packedVolumeUsed"] = inventory.volumeCapacity;
+            row["massLimit"] = inventory.HasMassLimit ? (object?)inventory.massLimit : null;
         }
 
         private static Dictionary<string, object?> BuildMisc(Vessel vessel)

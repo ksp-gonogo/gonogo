@@ -69,6 +69,9 @@ namespace Sitrep.Host
         public const string ManeuverTopic = "vessel.maneuver";
         public const string TargetTopic = "vessel.target";
         public const string CrewTopic = "vessel.crew";
+
+        /// <summary>Stock cargo carried by the vessel's PARTS: the supply aboard, distinct from what each kerbal is holding on <see cref="CrewTopic"/>.</summary>
+        public const string InventoryTopic = "vessel.inventory";
         public const string StructureTopic = "vessel.structure";
         public const string WarpTopic = "time.warp";
         public const string CalendarTopic = "time.calendar";
@@ -1269,7 +1272,48 @@ namespace Sitrep.Host
             ExperienceLevel = GetInt(raw, "experienceLevel"),
             Type = GetString(raw, "type"),
             RosterStatus = GetString(raw, "rosterStatus"),
+            Carrying = BuildInventoryItems(raw),
+            Slots = GetInt(raw, "slots"),
+            PackedVolumeLimit = GetDouble(raw, "packedVolumeLimit"),
+            PackedVolumeUsed = GetDouble(raw, "packedVolumeUsed"),
         };
+
+        /// <summary>
+        /// What a kerbal is carrying, or null when the capture reported no
+        /// inventory module at all.
+        ///
+        /// <para>Null and empty stay distinct all the way to the wire: an
+        /// operator choosing who performs a job needs "holding none" to read
+        /// differently from "could not tell", and collapsing them would make
+        /// the reassuring one the default.</para>
+        /// </summary>
+        private static List<InventoryItem>? BuildInventoryItems(IDictionary<string, object?> raw)
+        {
+            if (!raw.TryGetValue("carrying", out var rawItems)
+                || rawItems is not IEnumerable<object?> entries)
+            {
+                return null;
+            }
+
+            var items = new List<InventoryItem>();
+            foreach (var entry in entries)
+            {
+                if (entry is not IDictionary<string, object?> item)
+                {
+                    continue;
+                }
+
+                items.Add(new InventoryItem
+                {
+                    Name = GetString(item, "name") ?? "",
+                    Title = GetString(item, "title"),
+                    Quantity = GetInt(item, "quantity") ?? 0,
+                    PackedVolume = GetDouble(item, "packedVolume"),
+                });
+            }
+
+            return items;
+        }
 
         public static VesselStructure? BuildStructure(KspSnapshot? snapshot)
         {
@@ -1451,6 +1495,50 @@ namespace Sitrep.Host
 
         public static object? BuildTargetWire(KspSnapshot? snapshot) =>
             BuildTarget(snapshot) is { } target ? ToWire(target) : null;
+
+        /// <summary>
+        /// Part-hosted cargo holds. Absent vessel yields null, an empty list is
+        /// a real answer meaning "nothing carries cargo here".
+        /// </summary>
+        public static VesselInventory? BuildInventory(KspSnapshot? snapshot)
+        {
+            var vessel = GetVesselGroup(snapshot);
+            if (vessel == null)
+            {
+                return null;
+            }
+
+            var result = new VesselInventory();
+            if (TryGetGroup(vessel, "inventories", out var group)
+                && group.TryGetValue("stores", out var rawStores)
+                && rawStores is IEnumerable<object?> stores)
+            {
+                foreach (var rawStore in stores)
+                {
+                    if (rawStore is not IDictionary<string, object?> store)
+                    {
+                        continue;
+                    }
+
+                    result.Stores.Add(new InventoryStore
+                    {
+                        PartId = GetString(store, "partId") ?? "",
+                        PartName = GetString(store, "partName") ?? "",
+                        Items = BuildInventoryItems(store) ?? new List<InventoryItem>(),
+                        Slots = GetInt(store, "slots"),
+                        SlotsUsed = GetInt(store, "slotsUsed"),
+                        PackedVolumeLimit = GetDouble(store, "packedVolumeLimit"),
+                        PackedVolumeUsed = GetDouble(store, "packedVolumeUsed"),
+                        MassLimit = GetDouble(store, "massLimit"),
+                    });
+                }
+            }
+
+            return result;
+        }
+
+        public static object? BuildInventoryWire(KspSnapshot? snapshot) =>
+            BuildInventory(snapshot);
 
         public static object? BuildCrewWire(KspSnapshot? snapshot) =>
             BuildCrew(snapshot) is { } crew ? ToWire(crew) : null;
@@ -1842,6 +1930,18 @@ namespace Sitrep.Host
             ["experienceLevel"] = member.ExperienceLevel,
             ["type"] = member.Type,
             ["rosterStatus"] = member.RosterStatus,
+            ["carrying"] = member.Carrying?.Select(ToWire).ToList(),
+            ["slots"] = member.Slots,
+            ["packedVolumeLimit"] = member.PackedVolumeLimit,
+            ["packedVolumeUsed"] = member.PackedVolumeUsed,
+        };
+
+        private static Dictionary<string, object?> ToWire(InventoryItem item) => new Dictionary<string, object?>
+        {
+            ["name"] = item.Name,
+            ["title"] = item.Title,
+            ["quantity"] = item.Quantity,
+            ["packedVolume"] = item.PackedVolume,
         };
 
         private static Dictionary<string, object?> ToWire(VesselStructure structure) => new Dictionary<string, object?>

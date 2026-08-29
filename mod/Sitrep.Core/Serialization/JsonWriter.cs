@@ -207,6 +207,20 @@ namespace Sitrep.Core.Serialization
                     // codec.
                     AppendCommsDelay(sb, commsDelay);
                     break;
+                case Sitrep.Contract.VesselInventory vesselInventory:
+                    // Stock cargo carried by the vessel's PARTS. Written here
+                    // rather than flattened by a producer for the same reason
+                    // comms.delay is: the channel source hands the POCO
+                    // straight over, so without a case it fail-softs at the
+                    // wire boundary and a client that subscribed gets nothing.
+                    AppendVesselInventory(sb, vesselInventory);
+                    break;
+                case Sitrep.Contract.InventoryStore inventoryStore:
+                    AppendInventoryStore(sb, inventoryStore);
+                    break;
+                case Sitrep.Contract.InventoryItem inventoryItem:
+                    AppendInventoryItem(sb, inventoryItem);
+                    break;
                 case Sitrep.Contract.FlightSimulation flightSimulation:
                     // Whether the flight on screen is a rehearsal, and whether
                     // signal delay is being applied to it. Flattened here rather
@@ -690,6 +704,102 @@ namespace Sitrep.Core.Serialization
         /// <c>NotSupportedException</c> at the wire boundary. See the <c>case</c> in
         /// <see cref="AppendValue"/>.
         /// </summary>
+        /// <summary>
+        /// Writes <c>vessel.inventory</c> as
+        /// <c>{ stores: [...], meta: { source, quality } }</c>.
+        ///
+        /// <para>An empty <c>stores</c> is written, never omitted: "this vessel
+        /// carries nothing" and "nobody looked" are different answers, and a
+        /// missing key would read as the second.</para>
+        /// </summary>
+        private static void AppendVesselInventory(
+            StringBuilder sb, Sitrep.Contract.VesselInventory inv)
+        {
+            sb.Append('{');
+            AppendString(sb, "stores");
+            sb.Append(':');
+            sb.Append('[');
+            for (var i = 0; i < inv.Stores.Count; i++)
+            {
+                if (i > 0) sb.Append(',');
+                AppendInventoryStore(sb, inv.Stores[i]);
+            }
+            sb.Append(']');
+            sb.Append(',');
+            AppendString(sb, "meta");
+            sb.Append(':');
+            AppendPayloadMeta(sb, inv.Meta);
+            sb.Append('}');
+        }
+
+        /// <summary>One part's cargo hold, with its slot and volume limits.</summary>
+        private static void AppendInventoryStore(
+            StringBuilder sb, Sitrep.Contract.InventoryStore store)
+        {
+            sb.Append('{');
+            AppendString(sb, "partId");
+            sb.Append(':');
+            AppendNullableString(sb, store.PartId);
+            sb.Append(',');
+            AppendString(sb, "partName");
+            sb.Append(':');
+            AppendNullableString(sb, store.PartName);
+            sb.Append(',');
+            AppendString(sb, "items");
+            sb.Append(':');
+            sb.Append('[');
+            for (var i = 0; i < store.Items.Count; i++)
+            {
+                if (i > 0) sb.Append(',');
+                AppendInventoryItem(sb, store.Items[i]);
+            }
+            sb.Append(']');
+            sb.Append(',');
+            AppendString(sb, "slots");
+            sb.Append(':');
+            AppendNullableNumber(sb, store.Slots);
+            sb.Append(',');
+            AppendString(sb, "slotsUsed");
+            sb.Append(':');
+            AppendNullableNumber(sb, store.SlotsUsed);
+            sb.Append(',');
+            AppendString(sb, "packedVolumeLimit");
+            sb.Append(':');
+            AppendNullableNumber(sb, store.PackedVolumeLimit);
+            sb.Append(',');
+            AppendString(sb, "packedVolumeUsed");
+            sb.Append(':');
+            AppendNullableNumber(sb, store.PackedVolumeUsed);
+            sb.Append(',');
+            AppendString(sb, "massLimit");
+            sb.Append(':');
+            AppendNullableNumber(sb, store.MassLimit);
+            sb.Append('}');
+        }
+
+        /// <summary>One kind of stored thing, and how many of it.</summary>
+        private static void AppendInventoryItem(
+            StringBuilder sb, Sitrep.Contract.InventoryItem item)
+        {
+            sb.Append('{');
+            AppendString(sb, "name");
+            sb.Append(':');
+            AppendNullableString(sb, item.Name);
+            sb.Append(',');
+            AppendString(sb, "title");
+            sb.Append(':');
+            AppendNullableString(sb, item.Title);
+            sb.Append(',');
+            AppendString(sb, "quantity");
+            sb.Append(':');
+            AppendInteger(sb, item.Quantity);
+            sb.Append(',');
+            AppendString(sb, "packedVolume");
+            sb.Append(':');
+            AppendNullableNumber(sb, item.PackedVolume);
+            sb.Append('}');
+        }
+
         private static void AppendReliabilitySummary(StringBuilder sb, Sitrep.Contract.ReliabilitySummary r)
         {
             sb.Append('{');

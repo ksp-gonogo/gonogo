@@ -1483,6 +1483,10 @@ export interface CrewMember
 	experienceLevel?: Value<"count">;
 	type?: string;
 	rosterStatus?: string;
+	carrying?: InventoryItem[];
+	slots?: Value<"count">;
+	packedVolumeLimit?: Value<"1">;
+	packedVolumeUsed?: Value<"1">;
 }
 export interface VesselCrew
 {
@@ -1567,6 +1571,29 @@ export interface VesselIdentity
 	parentBodyIndex?: number;
 	launchUt?: Value<"ut">;
 	meta: PayloadMeta;
+}
+export interface VesselInventory
+{
+	stores: InventoryStore[];
+	meta: PayloadMeta;
+}
+export interface InventoryStore
+{
+	partId: string;
+	partName: string;
+	items: InventoryItem[];
+	slots?: Value<"count">;
+	slotsUsed?: Value<"count">;
+	packedVolumeLimit?: Value<"1">;
+	packedVolumeUsed?: Value<"1">;
+	massLimit?: Value<"t">;
+}
+export interface InventoryItem
+{
+	name: string;
+	title?: string;
+	quantity: Value<"count">;
+	packedVolume?: Value<"1">;
 }
 export interface VesselLanding
 {

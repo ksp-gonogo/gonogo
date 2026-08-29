@@ -382,7 +382,10 @@ export const GENERATED_TYPE_UNITS: Readonly<Record<string, UnitsByField>> = {
   "CrewMember": {
     experienceLevel: "count",
     name: "text",
+    packedVolumeLimit: "1",
+    packedVolumeUsed: "1",
     rosterStatus: "text",
+    slots: "count",
     trait: "text",
     type: "id",
   },
@@ -565,6 +568,21 @@ export const GENERATED_TYPE_UNITS: Readonly<Record<string, UnitsByField>> = {
     rerunnable: "flag",
     resettable: "flag",
     title: "text",
+  },
+  "InventoryItem": {
+    name: "id",
+    packedVolume: "1",
+    quantity: "count",
+    title: "text",
+  },
+  "InventoryStore": {
+    massLimit: "t",
+    packedVolumeLimit: "1",
+    packedVolumeUsed: "1",
+    partId: "id",
+    partName: "text",
+    slots: "count",
+    slotsUsed: "count",
   },
   "InvokePartActionArgs": {
     eventName: "id",
@@ -1944,6 +1962,9 @@ export const GENERATED_TYPE_SHAPES: Readonly<Record<string, ShapesByField>> = {
     flightStats: "CrashFlightStats",
     partsLost: "CrashPartLost[]",
   },
+  "CrewMember": {
+    carrying: "InventoryItem[]",
+  },
   "DelayedObservation": {
     state: "StateVector",
   },
@@ -1985,6 +2006,9 @@ export const GENERATED_TYPE_SHAPES: Readonly<Record<string, ShapesByField>> = {
   },
   "IUplinkHost": {
     kernel: "Kernel",
+  },
+  "InventoryStore": {
+    items: "InventoryItem[]",
   },
   "IsruConverterEntry": {
     inputs: "IsruResourceFlow[]",
@@ -2092,6 +2116,10 @@ export const GENERATED_TYPE_SHAPES: Readonly<Record<string, ShapesByField>> = {
   },
   "VesselIdentity": {
     meta: "PayloadMeta",
+  },
+  "VesselInventory": {
+    meta: "PayloadMeta",
+    stores: "InventoryStore[]",
   },
   "VesselLanding": {
     meta: "PayloadMeta",
@@ -2265,6 +2293,10 @@ export const GENERATED_TOPIC_SHAPES: Readonly<Record<string, ShapesByField>> = {
   },
   "vessel.identity": {
     meta: "PayloadMeta",
+  },
+  "vessel.inventory": {
+    meta: "PayloadMeta",
+    stores: "InventoryStore[]",
   },
   "vessel.landing": {
     meta: "PayloadMeta",

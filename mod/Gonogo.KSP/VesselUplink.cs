@@ -149,6 +149,8 @@ namespace Gonogo.KSP
                 // array, never a null mapper result.
                 Channel(VesselViewProvider.TargetTopic, absenceIsData: true),
                 Channel(VesselViewProvider.CrewTopic, absenceIsData: true),
+                // Nothing aboard carrying cargo is a real answer, not a gap.
+                Channel(VesselViewProvider.InventoryTopic, absenceIsData: true),
                 Channel(VesselViewProvider.StructureTopic),
                 // time.warp -- see WarpState's doc comment for why this
                 // vessel-gated channel is still declared/registered here
@@ -360,6 +362,7 @@ namespace Gonogo.KSP
             host.AddChannelSource(VesselViewProvider.ManeuverTopic, VesselViewProvider.BuildManeuverWire);
             host.AddChannelSource(VesselViewProvider.TargetTopic, VesselViewProvider.BuildTargetWire);
             host.AddChannelSource(VesselViewProvider.CrewTopic, VesselViewProvider.BuildCrewWire);
+            host.AddChannelSource(VesselViewProvider.InventoryTopic, VesselViewProvider.BuildInventoryWire);
             host.AddChannelSource(VesselViewProvider.StructureTopic, VesselViewProvider.BuildStructureWire);
             host.AddChannelSource(VesselViewProvider.WarpTopic, VesselViewProvider.BuildWarpWire);
             host.AddChannelSource(VesselViewProvider.CalendarTopic, VesselViewProvider.BuildCalendarWire);
