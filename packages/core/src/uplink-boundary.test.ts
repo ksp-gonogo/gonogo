@@ -19,6 +19,7 @@ import {
   ALLOWLIST,
   type ModAllowlist,
   type ModToken,
+  SURVIVES_COMMENT_STRIP,
 } from "./uplink-boundary.allowlist";
 
 /**
@@ -602,6 +603,90 @@ describe("uplink boundary: mod references stay inside their owning Uplink", () =
       expect(staleEntries).toEqual([]);
       // Walks packages/*/src + mod/ once per token; under concurrent
       // core-suite load a single walk can exceed vitest's 5s default.
+    }, 30_000);
+
+    /**
+     * Closes the hole the allowlist has always had: an entry excuses the FILE,
+     * not the line that earned it.
+     *
+     * <p>Almost every entry in `.permanent` was earned by a COMMENT naming a
+     * mod, which `codeOnly` deliberately counts as a real reference for a mod
+     * that is still installed. But the exemption it buys is whole-file and
+     * never expires, so real coupling added to that file later, an import of
+     * the Uplink's package or a `useTelemetry("<mod>.…")` read, is covered
+     * silently. The gate would say nothing, because the file is already
+     * excused.</p>
+     *
+     * <p>So each allowlisted file is re-tested with comments stripped, and the
+     * set that STILL matches is declared. A file that starts matching without
+     * its comments has acquired something that is not prose, and that is the
+     * event worth failing on.</p>
+     *
+     * <p><b>Surviving the strip is not the same as being code.</b> The declared
+     * set is mostly the mod name as DATA: install-profile ids, fixture keys,
+     * and assertions like CrewStatus's "never subscribes to kerbalism.crew",
+     * where the name IS the subject and a string is the honest way to say it.
+     * Measured when this was written: no file under `packages/` imports an
+     * Uplink package or reads a mod topic in code, so the list starts as data
+     * only. It is shrink-only for the same reason the debt list is, and the
+     * point is that anything JOINING it has to be looked at.</p>
+     *
+     * <p>Checked by planting one: a `useTelemetry("kerbalism.power")` added to
+     * `styleguide-magnitude-canonical.test.ts`, whose entry was earned by a
+     * comment, fails THIS check while the boundary test above stays green. That
+     * is the coverage being added, stated as the thing it catches rather than
+     * as an intention.</p>
+     */
+    it(`${token}: no comment-only exemption has quietly acquired code`, () => {
+      const root = findRepoRoot(dirname(fileURLToPath(import.meta.url)));
+      const { patterns, ownedDirs } = MOD_OWNERSHIP[token];
+      const allowed = new Set([
+        ...ALLOWLIST[token].permanent,
+        ...ALLOWLIST[token].domainDebt,
+      ]);
+
+      const survives: string[] = [];
+      for (const file of scanCorpus(root)) {
+        if (!allowed.has(file.rel)) continue;
+        if (isUnderOwnedDir(file.rel, ownedDirs)) continue;
+        if (file.stripped === undefined) {
+          file.stripped = stripCommentsKeepingStrings(file.raw, file.rel);
+        }
+        const stripped = file.stripped;
+        if (patterns.some((re) => re.test(stripped))) survives.push(file.rel);
+      }
+
+      const declared = new Set(SURVIVES_COMMENT_STRIP[token] ?? []);
+      const undeclared = survives.filter((f) => !declared.has(f));
+      const gone = [...declared].filter((f) => !survives.includes(f));
+
+      if (undeclared.length > 0) {
+        throw new Error(
+          `"${token}" reference(s) survive comment-stripping in a file whose ` +
+            `allowlist entry was earned by prose:\n` +
+            undeclared.map((f) => `  ${f}`).join("\n") +
+            `\n\nThe file is already excused, so the boundary gate above stayed ` +
+            `silent. Decide which this is. If the mod name is DATA (a profile ` +
+            `id, a fixture key, an assertion about the name itself) add it to ` +
+            `SURVIVES_COMMENT_STRIP.${token} in ` +
+            `packages/core/src/uplink-boundary.allowlist.ts. If it is real ` +
+            `coupling, an import of the Uplink's package or a read of its ` +
+            `topics, MOVE IT rather than declaring it: that is the thing this ` +
+            `check exists to stop the allowlist absorbing.`,
+        );
+      }
+
+      if (gone.length > 0) {
+        throw new Error(
+          `Stale SURVIVES_COMMENT_STRIP.${token} entries: these no longer match ` +
+            `once comments are stripped, so the file is prose-only again. ` +
+            `Delete the line(s) to ratchet down:\n` +
+            gone.map((f) => `  ${f}`).join("\n"),
+        );
+      }
+
+      expect(undeclared).toEqual([]);
+      expect(gone).toEqual([]);
     }, 30_000);
   }
 });
