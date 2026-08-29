@@ -30,6 +30,16 @@ namespace Gonogo.KSP
         public const string SummaryTopic = "reliability.summary";
         public const string PartsTopic = "reliability.parts";
 
+        /// <summary>
+        /// Repair one part, by one named crew member, in a SINGLE command.
+        ///
+        /// <para>Delayed, like any vessel-directed action: it acts on a craft
+        /// and rides that craft's signal delay. Which is also why it carries
+        /// the whole intent rather than being decomposed into ask-fetch-repair,
+        /// since each step would cost its own round trip.</para>
+        /// </summary>
+        public const string RepairCommand = "vessel.repair";
+
         private IChannelPublisher? _summary;
         private IChannelPublisher? _parts;
         private Kernel? _kernel;
@@ -54,7 +64,14 @@ namespace Gonogo.KSP
                 Delayed(SummaryTopic),
                 Delayed(PartsTopic),
             },
+            Commands = new List<CommandDeclaration>
+            {
+                Command(RepairCommand, delayed: true),
+            },
         };
+
+        private static CommandDeclaration Command(string command, bool delayed) =>
+            new CommandDeclaration { Command = command, Delayed = delayed };
 
         private static ChannelDeclaration Delayed(string topic) => new ChannelDeclaration
         {
@@ -80,6 +97,29 @@ namespace Gonogo.KSP
             _summary = host.Publisher(SummaryTopic);
             _parts = host.Publisher(PartsTopic);
             host.AddSampledSource(CaptureOnMain, HandleOnCourier, SummaryTopic, PartsTopic);
+            /*
+             * Dispatched to whichever backend won the capability, so the
+             * command works on any install and the widget never learns which
+             * mod answered. A backend that cannot repair refuses in its own
+             * words rather than throwing, so this is always answerable.
+             */
+            host.AddCommandHandler<RepairPartArgs, CommandResult<RepairOutcome>>(
+                RepairCommand,
+                args =>
+                {
+                    var backend = _kernel != null ? ReliabilityElection.Elected(_kernel) : null;
+                    if (backend == null)
+                    {
+                        return CommandResult<RepairOutcome>.Ok(new RepairOutcome
+                        {
+                            Repaired = false,
+                            Refusal = "not-modelled",
+                        });
+                    }
+
+                    return CommandResult<RepairOutcome>.Ok(
+                        backend.Repair(args?.PartId ?? "", args?.CrewName ?? ""));
+                });
         }
 
         /// <summary>MAIN-THREAD capture: resolve the elected backend and read its readouts (live KSP, safe here).</summary>
