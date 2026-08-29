@@ -313,11 +313,24 @@ describe("BurnEditor", () => {
     await act(async () => {});
   });
 
-  it("says a plan with no burns cannot have one added from here", async () => {
+  /**
+   * The copy here used to send the operator into the game: "add the first one
+   * in Principia's own planner, the console copies an existing burn rather
+   * than composing one". That stopped being true when PlanComposer gained an
+   * "Add burn" button and `useSendPlan`, and nothing caught it, because the
+   * belief was written down three times over: the copy, this test's name, and
+   * its assertion, all agreeing with each other and none with the code.
+   *
+   * A console that tells an operator to go and use the game is the one thing
+   * this product exists not to do, so it is asserted here rather than left to
+   * a reader to notice.
+   */
+  it("sends a plan with no burns to the composer, not into the game", async () => {
     const stream = mount();
     await emitPlan(stream, { burns: [] });
 
-    expect(screen.getByText(/copies an existing burn/)).toBeInTheDocument();
+    expect(screen.getByText(/Compose one below/)).toBeInTheDocument();
+    expect(screen.queryByText(/Principia's own/)).toBeNull();
     await act(async () => {});
   });
 

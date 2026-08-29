@@ -435,9 +435,8 @@ export function BurnEditor() {
           </Text>
           {burns.length === 0 && (
             <Text>
-              This plan has no burns. Add the first one in Principia's own
-              planner: the console copies an existing burn rather than composing
-              one, because a composed burn is a bet on a struct layout.
+              This plan has no burns. Compose one below and send it: the editor
+              here changes burns that already exist.
             </Text>
           )}
           {burns.map((burn) => {
