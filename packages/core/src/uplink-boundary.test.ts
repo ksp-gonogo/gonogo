@@ -112,7 +112,7 @@ const MOD_OWNERSHIP: Record<ModToken, ModOwnership> = {
       /\bSCAN[A-Z][a-z]/,
       // The SCAN_TYPE const specifically: doesn't match the above pattern
       // (underscore, not an uppercase letter, follows "SCAN"). \b on both
-      // ends so it doesn't match inside "FOG_SCAN_TYPES" or similar.
+      // ends so it doesn't match inside "COVERAGE_SCAN_TYPES" or similar.
       /\bSCAN_TYPE\b/,
     ],
     ownedDirs: [
@@ -615,7 +615,7 @@ describe("scansat token: pattern coverage for the schema-identifier blind spot",
    * by SCANType, etc.) without ever spelling the word "scansat".
    */
   const SCHEMA_IDENTIFIER_SAMPLES = [
-    "export function useBodyFogMask(bodyId: string, scanType: SCANType) { /* ... */ }",
+    "export function useBodyCoverageMask(bodyId: string, scanType: SCANType) { /* ... */ }",
     "const SCAN_TYPE = { AltimetryLoRes: 1, AltimetryHiRes: 2 } as const;",
     "interface BodyMask { readonly scanType: SCANCoverageBitmap; }",
   ];

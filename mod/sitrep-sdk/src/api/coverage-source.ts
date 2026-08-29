@@ -4,22 +4,22 @@
 // before the app installs its host.
 import { getHost, hasHost } from "./host";
 import type {
-  FogRevealSourceDefinition,
+  CoverageSourceDefinition,
   NamespacedAugmentSettings,
 } from "./types";
 
 /**
- * Mod-agnostic registry for fog-of-war reveal sources.
+ * Mod-agnostic registry for coverage sources.
  *
- * A reveal source contributes DATA (coverage bytes for a body under some layer
+ * A coverage source contributes DATA (coverage bytes for a body under some layer
  * id), not a renderable component, which is why it is a registry parallel to the
  * augment one rather than another slot kind. Consumed by MapView's own coverage
- * gate as a PAINT-GATE: there is no fog overlay layer in this design, only surface
- * content whose alpha is modulated per-tile by the composite of every enabled
- * source here.
+ * gate as a PAINT-GATE: there is no darkening overlay layer in this design, only
+ * surface content whose alpha is modulated per-tile by the composite of every
+ * enabled source here.
  *
  * Registering was already published as a host shim, and reading was too, but
- * `clearFogRevealSources` was not, so an Uplink contributing coverage could not
+ * `clearCoverageSources` was not, so an Uplink contributing coverage could not
  * reset the registry between test cases without reaching an unpublished package.
  */
 
@@ -27,32 +27,38 @@ import type {
  * The single global slot the sources live in, keyed by a string rather than a
  * symbol so two different builds of this package still find the same state. See
  * `map-poi.ts` for why a module static is not safe once this can be bundled.
+ *
+ * The key still says FOG because it is a cross-build rendezvous identifier, not a
+ * name: an Uplink bundled against an older copy of this package registers into
+ * whatever string that copy holds, so changing it would split the registry in two
+ * and the sources from one half would never be seen by the other. It can be
+ * renamed once no released Uplink builds against a pre-rename sdk.
  */
-const FOG_REVEAL_REGISTRY_KEY = "__GONOGO_FOG_REVEAL_SOURCES__" as const;
+const COVERAGE_SOURCE_REGISTRY_KEY = "__GONOGO_FOG_REVEAL_SOURCES__" as const;
 
-interface FogRevealRegistry {
-  sources: Map<string, { def: FogRevealSourceDefinition; order: number }>;
+interface CoverageSourceRegistry {
+  sources: Map<string, { def: CoverageSourceDefinition; order: number }>;
   counter: number;
   listeners: Set<() => void>;
 }
 
-function registry(): FogRevealRegistry {
+function registry(): CoverageSourceRegistry {
   const slot = globalThis as typeof globalThis & {
-    [FOG_REVEAL_REGISTRY_KEY]?: FogRevealRegistry;
+    [COVERAGE_SOURCE_REGISTRY_KEY]?: CoverageSourceRegistry;
   };
-  slot[FOG_REVEAL_REGISTRY_KEY] ??= {
+  slot[COVERAGE_SOURCE_REGISTRY_KEY] ??= {
     sources: new Map(),
     counter: 0,
     listeners: new Set(),
   };
-  return slot[FOG_REVEAL_REGISTRY_KEY];
+  return slot[COVERAGE_SOURCE_REGISTRY_KEY];
 }
 
 function notifyChange(): void {
   for (const cb of registry().listeners) cb();
 }
 
-export function onFogRevealSourcesChange(cb: () => void): () => void {
+export function onCoverageSourcesChange(cb: () => void): () => void {
   const { listeners } = registry();
   listeners.add(cb);
   return () => {
@@ -60,21 +66,21 @@ export function onFogRevealSourcesChange(cb: () => void): () => void {
   };
 }
 
-export function registerFogRevealSource(def: FogRevealSourceDefinition): void {
+export function registerCoverageSource(def: CoverageSourceDefinition): void {
   if (hasHost()) {
-    getHost().logger.info(`REGISTERED fog reveal source ${def.id}`);
+    getHost().logger.info(`REGISTERED coverage source ${def.id}`);
   }
   const state = registry();
   state.sources.set(def.id, { def, order: state.counter++ });
   notifyChange();
 }
 
-export function unregisterFogRevealSource(id: string): void {
+export function unregisterCoverageSource(id: string): void {
   if (registry().sources.delete(id)) notifyChange();
 }
 
-/** Every registered reveal source, in registration order. */
-export function getFogRevealSources(): FogRevealSourceDefinition[] {
+/** Every registered coverage source, in registration order. */
+export function getCoverageSources(): CoverageSourceDefinition[] {
   return Array.from(registry().sources.values())
     .sort((a, b) => a.order - b.order)
     .map((entry) => entry.def);
@@ -84,8 +90,8 @@ export function getFogRevealSources(): FogRevealSourceDefinition[] {
  * The settings blocks the host panel renders, one per source that declares any.
  * Namespaced by source id so two sources' identically-named fields cannot collide.
  */
-export function getFogRevealSourceSettings(): NamespacedAugmentSettings[] {
-  return getFogRevealSources()
+export function getCoverageSourceSettings(): NamespacedAugmentSettings[] {
+  return getCoverageSources()
     .filter((def) => def.settings && def.settings.length > 0)
     .map((def) => ({
       augmentId: def.id,
@@ -95,7 +101,7 @@ export function getFogRevealSourceSettings(): NamespacedAugmentSettings[] {
 }
 
 /** Empty the registry. For tests; a running app never calls it. */
-export function clearFogRevealSources(): void {
+export function clearCoverageSources(): void {
   const state = registry();
   state.sources.clear();
   state.counter = 0;

@@ -238,7 +238,7 @@ type _UseRouteCommandsResultBack = Expect<
   Assignable<ClientUseRouteCommandsResult, SdkUseRouteCommandsResult>
 >;
 
-// Late telemetry subscribe SPI (facade-sealing, scansat fog-sync, 2026-07-19):
+// Late telemetry subscribe SPI (facade-sealing, scansat coverage sync, 2026-07-19):
 // LateTelemetrySubscribe is owned by sitrep-client too
 // (use-late-telemetry-subscribe.ts), same visibility as StreamStatusValue/
 // TelemetryClient above. It builds on TopicId/TopicPayload, which are

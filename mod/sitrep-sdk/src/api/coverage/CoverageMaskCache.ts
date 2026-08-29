@@ -1,5 +1,5 @@
 /**
- * In-memory cache of fog-of-war masks, backed by `FogMaskStore`.
+ * In-memory cache of coverage masks, backed by `CoverageMaskStore`.
  *
  * Masks are allocated lazily, a (body, layerId) pair only consumes memory
  * once it actually gets data. First-view loads from IndexedDB are async;
@@ -14,7 +14,7 @@
 
 import { safeRandomUuid } from "../safe-random-uuid";
 import type { BodyMask } from "../types";
-import type { FogMaskStore } from "./FogMaskStore";
+import type { CoverageMaskStore } from "./CoverageMaskStore";
 
 interface CacheEntry {
   mask: BodyMask;
@@ -39,7 +39,7 @@ function makeCacheKey(bodyId: string, layerId: string): string {
   return `${bodyId}:${layerId}`;
 }
 
-export class FogMaskCache {
+export class CoverageMaskCache {
   private entries = new Map<string, CacheEntry>();
   private inflight = new Map<string, Promise<BodyMask>>();
   private flushTimer: ReturnType<typeof setTimeout> | null = null;
@@ -57,15 +57,15 @@ export class FogMaskCache {
   private readonly debounceMs: number;
 
   constructor(
-    private store: FogMaskStore,
+    private store: CoverageMaskStore,
     private profileId: string,
     opts: CacheOptions = {},
   ) {
     this.width = opts.width ?? DEFAULT_MASK_WIDTH;
     this.height = opts.height ?? DEFAULT_MASK_HEIGHT;
     this.debounceMs = opts.flushDebounceMs ?? DEFAULT_DEBOUNCE_MS;
-    // Watch for external writes to the store (e.g. fog-snapshot from
-    // the host arriving via PeerJS, written straight to the store and
+    // Watch for external writes to the store (e.g. the host's coverage snapshot
+    // arriving via PeerJS, written straight to the store and
     // bypassing this cache's own mutate/flush path). Without this hook
     // the in-memory mask stays empty after the snapshot lands and
     // every UI subscriber misses it until a refresh.
@@ -83,7 +83,7 @@ export class FogMaskCache {
    * in-flight promise map.
    *
    * Note: a zeroed stub entry may already exist if `onChange` was called
-   * first (e.g. from `useBodyFogMask` subscribing before kicking off the
+   * first (e.g. from `useBodyCoverageMask` subscribing before kicking off the
    * async load). We must still hit IDB in that case; check `loading`, not
    * just presence.
    */

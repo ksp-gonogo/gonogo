@@ -144,13 +144,13 @@ export type {
   ContributionRegistry,
   ContributionSlotId,
   ContributionTopics,
+  CoverageSourceDefinition,
   DataKey,
   DataRequirement,
   DataSource,
   DataSourceStatus,
   DelayClockLike,
   DelayMode,
-  FogRevealSourceDefinition,
   HostIceServers,
   InFlightCommand,
   LateTelemetrySubscribe,
@@ -313,13 +313,13 @@ export {
   registerBody,
 } from "./bodies";
 export {
-  clearFogRevealSources,
-  getFogRevealSourceSettings,
-  getFogRevealSources,
-  onFogRevealSourcesChange,
-  registerFogRevealSource,
-  unregisterFogRevealSource,
-} from "./fog-reveal";
+  clearCoverageSources,
+  getCoverageSourceSettings,
+  getCoverageSources,
+  onCoverageSourcesChange,
+  registerCoverageSource,
+  unregisterCoverageSource,
+} from "./coverage-source";
 export {
   clearMapPoiProviders,
   getMapPoiProviders,
@@ -863,6 +863,59 @@ export {
   classifyCommandRejection,
   commandRefusalSubject,
 } from "./command-rejection";
+// The coverage mask store, its in-memory cache and the React context that
+// carries them. Owned here for the same reason the settings context is: a second
+// copy of a context is invisible to the other side's provider, and `useCoverageMaskCache`
+// was a shim precisely so an Uplink's hook would read the app's. With one context in
+// one published package there is no second copy, so that shim retires too.
+/**
+ * Every `X as FogY` below is a deprecated alias of the name beside it. There is
+ * no fog of war in this product: a coverage source contributes per-body masks
+ * and a base-layer augment gates its own paint on them, so the fog names
+ * described a model that no longer exists.
+ *
+ * They stay exported because a coverage-contributing Uplink lives in a separate
+ * repository and calls `registerFogRevealSource` and `useFogMaskCache` against a
+ * published sdk. Drop them once that Uplink has shipped a release built on the
+ * coverage names, along with the two `Fog` type aliases at the foot of this file,
+ * the matching entries in `api-shape.gate.test.ts`, and
+ * `deprecated-fog-aliases.test.ts` entire.
+ */
+export {
+  CoverageMaskCache,
+  CoverageMaskCache as FogMaskCache,
+  DEFAULT_MASK_HEIGHT,
+  DEFAULT_MASK_WIDTH,
+} from "./coverage/CoverageMaskCache";
+export {
+  CoverageMaskCacheProvider,
+  CoverageMaskCacheProvider as FogMaskCacheProvider,
+  CoverageMaskStoreProvider,
+  CoverageMaskStoreProvider as FogMaskStoreProvider,
+  DEFAULT_PROFILE_ID,
+  useBodyCoverageMask,
+  useBodyCoverageMask as useBodyFogMask,
+  useCoverageMaskCache,
+  useCoverageMaskCache as useFogMaskCache,
+  useCoverageMaskStore,
+  useCoverageMaskStore as useFogMaskStore,
+} from "./coverage/CoverageMaskContext";
+export {
+  type CoverageMaskChangeListener,
+  type CoverageMaskChangeListener as FogMaskChangeListener,
+  CoverageMaskStore,
+  CoverageMaskStore as FogMaskStore,
+  MASK_SCHEMA_VERSION,
+  type StoredMask,
+} from "./coverage/CoverageMaskStore";
+export {
+  clearCoverageSources as clearFogRevealSources,
+  getCoverageSourceSettings as getFogRevealSourceSettings,
+  getCoverageSources as getFogRevealSources,
+  onCoverageSourcesChange as onFogRevealSourcesChange,
+  registerCoverageSource as registerFogRevealSource,
+  unregisterCoverageSource as unregisterFogRevealSource,
+} from "./coverage-source";
 /*
  * Root providers: how an Uplink mounts a context Provider at the top of a
  * screen's tree without the app importing it to hand-wire one in. Published
@@ -881,30 +934,6 @@ export {
   readRevealedEvents,
   registerRevealedEventSource,
 } from "./event-reveal";
-// The fog-of-war mask store, its in-memory cache and the React context that
-// carries them. Owned here for the same reason the settings context is: a second
-// copy of a context is invisible to the other side's provider, and `useFogMaskCache`
-// was a shim precisely so an Uplink's hook would read the app's. With one context in
-// one published package there is no second copy, so that shim retires too.
-export {
-  DEFAULT_MASK_HEIGHT,
-  DEFAULT_MASK_WIDTH,
-  FogMaskCache,
-} from "./fog/FogMaskCache";
-export {
-  DEFAULT_PROFILE_ID,
-  FogMaskCacheProvider,
-  FogMaskStoreProvider,
-  useBodyFogMask,
-  useFogMaskCache,
-  useFogMaskStore,
-} from "./fog/FogMaskContext";
-export {
-  type FogMaskChangeListener,
-  FogMaskStore,
-  MASK_SCHEMA_VERSION,
-  type StoredMask,
-} from "./fog/FogMaskStore";
 /**
  * A small typed wrapper around `localStorage`. Stateless (no module-global
  * registry): a byte-for-byte port of `@ksp-gonogo/data`'s implementation,
@@ -919,3 +948,8 @@ export {
   registerRootProvider,
 } from "./root-providers";
 export { safeRandomUuid } from "./safe-random-uuid";
+/** The type half of the deprecated fog aliases; see the value half above. */
+export type {
+  CoverageMaskCacheHandle as FogMaskCacheHandle,
+  CoverageSourceDefinition as FogRevealSourceDefinition,
+} from "./types";

@@ -1,16 +1,16 @@
 import {
+  type CoverageMaskStore,
   DEFAULT_PROFILE_ID,
-  type FogMaskStore,
   type StoredMask,
 } from "@ksp-gonogo/data";
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { FogSyncHostService } from "../fog/FogSyncHostService";
+import { CoverageSyncHostService } from "../coverage/CoverageSyncHostService";
 import type { PeerHostService } from "../peer/PeerHostService";
 import type { PeerMessage } from "../peer/protocol";
 
-// Hand-rolled fakes mirror the surface FogSyncHostService actually
+// Hand-rolled fakes mirror the surface CoverageSyncHostService actually
 // touches. The service ignores everything else on PeerHostService and
-// FogMaskStore, so the cast back to the real types is a deliberate
+// CoverageMaskStore, so the cast back to the real types is a deliberate
 // "trust me, this is enough", much cheaper than mocking the full
 // interfaces just to satisfy structural type checks.
 interface FakeHost {
@@ -58,11 +58,11 @@ function makeStoredMask(
   };
 }
 
-interface FakeFogStore {
+interface FakeCoverageStore {
   loadAllForProfile: ReturnType<typeof vi.fn>;
 }
 
-function makeFakeFogStore(masks: StoredMask[] = []): FakeFogStore {
+function makeFakeCoverageStore(masks: StoredMask[] = []): FakeCoverageStore {
   return {
     loadAllForProfile: vi.fn().mockResolvedValue(masks),
   };
@@ -75,17 +75,17 @@ function makeFakeFogStore(masks: StoredMask[] = []): FakeFogStore {
 // macrotask via setTimeout 0 to drain the queue reliably.
 const flushMacrotask = () => new Promise<void>((r) => setTimeout(r, 0));
 
-describe("FogSyncHostService", () => {
+describe("CoverageSyncHostService", () => {
   let host: FakeHost;
-  let fogStore: FakeFogStore;
+  let coverageStore: FakeCoverageStore;
 
   beforeEach(() => {
     host = makeFakeHost();
-    fogStore = makeFakeFogStore();
+    coverageStore = makeFakeCoverageStore();
   });
 
-  it("sends a fog-snapshot routing each per-type mask to its slot", async () => {
-    fogStore = makeFakeFogStore([
+  it("sends a snapshot routing each per-type mask to its slot", async () => {
+    coverageStore = makeFakeCoverageStore([
       makeStoredMask(
         "Kerbin",
         [1, 2, 3, 4],
@@ -103,9 +103,9 @@ describe("FogSyncHostService", () => {
       makeStoredMask("Mun", [5, 6], 2, 1, "example-uplink:Biome"),
     ]);
 
-    const sync = new FogSyncHostService({
+    const sync = new CoverageSyncHostService({
       peerHost: host.service,
-      fogStore: fogStore as unknown as FogMaskStore,
+      coverageStore: coverageStore as unknown as CoverageMaskStore,
     });
     sync.start();
 
@@ -133,13 +133,15 @@ describe("FogSyncHostService", () => {
       9, 9, 9, 9,
     ]);
     expect(byKey.get("Mun:example-uplink:Biome")).toEqual([5, 6]);
-    expect(fogStore.loadAllForProfile).toHaveBeenCalledWith(DEFAULT_PROFILE_ID);
+    expect(coverageStore.loadAllForProfile).toHaveBeenCalledWith(
+      DEFAULT_PROFILE_ID,
+    );
   });
 
   it("sends nothing when the store has no masks", async () => {
-    const sync = new FogSyncHostService({
+    const sync = new CoverageSyncHostService({
       peerHost: host.service,
-      fogStore: fogStore as unknown as FogMaskStore,
+      coverageStore: coverageStore as unknown as CoverageMaskStore,
     });
     sync.start();
 
@@ -150,10 +152,10 @@ describe("FogSyncHostService", () => {
   });
 
   it("targets only the connecting peer, not all connected peers", async () => {
-    fogStore = makeFakeFogStore([makeStoredMask("Kerbin", [1])]);
-    const sync = new FogSyncHostService({
+    coverageStore = makeFakeCoverageStore([makeStoredMask("Kerbin", [1])]);
+    const sync = new CoverageSyncHostService({
       peerHost: host.service,
-      fogStore: fogStore as unknown as FogMaskStore,
+      coverageStore: coverageStore as unknown as CoverageMaskStore,
     });
     sync.start();
 
@@ -168,11 +170,13 @@ describe("FogSyncHostService", () => {
     ]);
   });
 
-  it("swallows fog-store errors so a transient persist failure can't crash the host", async () => {
-    fogStore.loadAllForProfile.mockRejectedValueOnce(new Error("disk full"));
-    const sync = new FogSyncHostService({
+  it("swallows coverage-store errors so a transient persist failure can't crash the host", async () => {
+    coverageStore.loadAllForProfile.mockRejectedValueOnce(
+      new Error("disk full"),
+    );
+    const sync = new CoverageSyncHostService({
       peerHost: host.service,
-      fogStore: fogStore as unknown as FogMaskStore,
+      coverageStore: coverageStore as unknown as CoverageMaskStore,
     });
     sync.start();
 
@@ -182,7 +186,7 @@ describe("FogSyncHostService", () => {
     expect(host.sentMessages).toEqual([]);
     // Still wired up afterwards: a one-off failure shouldn't poison
     // future connects.
-    fogStore.loadAllForProfile.mockResolvedValueOnce([
+    coverageStore.loadAllForProfile.mockResolvedValueOnce([
       makeStoredMask("Kerbin", [1]),
     ]);
     host.firePeerConnect("station-B");
@@ -193,10 +197,10 @@ describe("FogSyncHostService", () => {
   });
 
   it("stop() detaches from the host so later connects don't fire snapshots", async () => {
-    fogStore = makeFakeFogStore([makeStoredMask("Kerbin", [1])]);
-    const sync = new FogSyncHostService({
+    coverageStore = makeFakeCoverageStore([makeStoredMask("Kerbin", [1])]);
+    const sync = new CoverageSyncHostService({
       peerHost: host.service,
-      fogStore: fogStore as unknown as FogMaskStore,
+      coverageStore: coverageStore as unknown as CoverageMaskStore,
     });
     sync.start();
     sync.stop();
@@ -205,14 +209,14 @@ describe("FogSyncHostService", () => {
     await flushMacrotask();
 
     expect(host.sentMessages).toEqual([]);
-    expect(fogStore.loadAllForProfile).not.toHaveBeenCalled();
+    expect(coverageStore.loadAllForProfile).not.toHaveBeenCalled();
   });
 
   it("start() is idempotent, double-start doesn't double-send", async () => {
-    fogStore = makeFakeFogStore([makeStoredMask("Kerbin", [1])]);
-    const sync = new FogSyncHostService({
+    coverageStore = makeFakeCoverageStore([makeStoredMask("Kerbin", [1])]);
+    const sync = new CoverageSyncHostService({
       peerHost: host.service,
-      fogStore: fogStore as unknown as FogMaskStore,
+      coverageStore: coverageStore as unknown as CoverageMaskStore,
     });
     sync.start();
     sync.start();

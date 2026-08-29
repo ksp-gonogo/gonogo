@@ -88,7 +88,7 @@ type ClientEventMap = {
   flightChange: [flight: FlightRecord | null];
   flightListChange: [];
   hostUnavailable: [hostPeerId: string];
-  fogSnapshot: [msg: Extract<PeerMessage, { type: "fog-snapshot" }>];
+  coverageSnapshot: [msg: Extract<PeerMessage, { type: "fog-snapshot" }>];
   // Sitrep telemetry-stream forwarding: see protocol.ts's `sitrep-frame`/
   // `sitrep-command-*` doc comment. `sitrepFrame` carries the host-relayed
   // `ServerMessage` verbatim (unwrapped from its `sitrep-frame` envelope);
@@ -826,14 +826,14 @@ export class PeerClientService {
   }
 
   /**
-   * Fires once per host-connect cycle when the host pushes its fog snapshot.
-   * The station applies the masks to its local FogMaskStore so the map
+   * Fires once per host-connect cycle when the host pushes its coverage snapshot.
+   * The station applies the masks to its local CoverageMaskStore so the map
    * reflects the host's exploration state.
    */
-  onFogSnapshot(
+  onCoverageSnapshot(
     cb: (msg: Extract<PeerMessage, { type: "fog-snapshot" }>) => void,
   ) {
-    return this.events.on("fogSnapshot", cb);
+    return this.events.on("coverageSnapshot", cb);
   }
 
   onGonogoCountdownStart(cb: (t0Ms: number) => void) {
@@ -882,7 +882,7 @@ export class PeerClientService {
       sourceStatus: this.events.size("sourceStatus"),
       connStatus: this.events.size("connStatus"),
       schema: this.events.size("schema"),
-      fogSnapshot: this.events.size("fogSnapshot"),
+      coverageSnapshot: this.events.size("coverageSnapshot"),
     };
   }
 
@@ -991,7 +991,7 @@ export class PeerClientService {
       }
     },
     "fog-snapshot": (msg) => {
-      this.events.emit("fogSnapshot", msg);
+      this.events.emit("coverageSnapshot", msg);
     },
     "gonogo-countdown-start": (msg) => {
       this.lastCountdownT0Ms = msg.t0Ms;

@@ -143,18 +143,24 @@ export type PeerMessage =
   // arrives.
   | { type: "analytics-consent"; enabled: boolean }
   // Host → station, fired once per connection right after schema. Carries
-  // every fog mask the host has stored so a station's map starts populated
+  // every coverage mask the host has stored so a station's map starts populated
   // with whatever the operator has already explored. Stations keep their
   // own copy and continue computing fresh tiles from telemetry afterwards,
   // there's no delta sync, so a station refresh is the way to pick up later
   // host-side discoveries.
+  //
+  // The discriminant still reads "fog" while the concept is coverage: it is an
+  // on-the-wire identifier, and a host and a station on either side of a rename
+  // would stop recognising each other's snapshot. Renaming it is a protocol
+  // migration (accept both spellings for a release, then drop the old one), not
+  // a rename, so it is left alone here.
   | {
       type: "fog-snapshot";
       masks: Array<{
         bodyId: string;
-        // Opaque per-reveal-source id, e.g. "survey:AltimetryHiRes":
-        // matches an id a reveal source registers via
-        // registerFogRevealSource. Each mask routes to its own slot on
+        // Opaque per-coverage-source id, e.g. "survey:AltimetryHiRes":
+        // matches an id a coverage source registers via
+        // registerCoverageSource. Each mask routes to its own slot on
         // the station so the display can apply HiRes-over-LoRes
         // precedence the same way the host does. Pre-rework this field
         // was absent and the station treated every payload as the
@@ -162,8 +168,8 @@ export type PeerMessage =
         layerId: string;
         width: number;
         height: number;
-        // Raw alpha bytes (0 = fogged, 255 = imaged), same shape as the
-        // station's local FogMaskStore record. PeerJS BinaryPack passes
+        // Raw alpha bytes (0 = unimaged, 255 = imaged), same shape as the
+        // station's local CoverageMaskStore record. PeerJS BinaryPack passes
         // Uint8Array through without re-encoding.
         data: Uint8Array;
       }>;

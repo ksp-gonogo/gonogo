@@ -44,7 +44,7 @@ export interface RootProviderDefinition {
  * symbol so two different builds of this package still find the same state. An
  * Uplink's client bundle resolves this package through the app's import map, so
  * it should share this module instance, but "should" is not a thing to stake a
- * silently-missing context on. Same reasoning as `./fog-reveal.ts`.
+ * silently-missing context on. Same reasoning as `./coverage-source.ts`.
  */
 const ROOT_PROVIDER_REGISTRY_KEY = "__GONOGO_ROOT_PROVIDERS__" as const;
 

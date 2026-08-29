@@ -2,7 +2,7 @@ import type { ConfigComponentProps } from "@ksp-gonogo/core";
 import {
   getAllBodies,
   getAugmentSettings,
-  getFogRevealSourceSettings,
+  getCoverageSourceSettings,
 } from "@ksp-gonogo/core";
 import {
   ConfigForm,
@@ -51,7 +51,7 @@ export function MapViewConfigComponent({
       ...getAugmentSettings("map-view.overlay"),
       ...getAugmentSettings("map-view.sections"),
       ...getAugmentSettings("map-view.base"),
-      ...getFogRevealSourceSettings(),
+      ...getCoverageSourceSettings(),
     ],
     [],
   );

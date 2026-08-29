@@ -18,10 +18,10 @@ const EXPECTED_BARREL_VALUE_EXPORTS = [
   "DEFAULT_MASK_HEIGHT",
   "DEFAULT_MASK_WIDTH",
   "DEFAULT_PROFILE_ID",
-  "FogMaskCache",
-  "FogMaskCacheProvider",
-  "FogMaskStore",
-  "FogMaskStoreProvider",
+  "CoverageMaskCache",
+  "CoverageMaskCacheProvider",
+  "CoverageMaskStore",
+  "CoverageMaskStoreProvider",
   "MASK_SCHEMA_VERSION",
   "VANTAGE_TRAJECTORY_COMMAND",
   "SettingsProvider",
@@ -43,7 +43,7 @@ const EXPECTED_BARREL_VALUE_EXPORTS = [
   "clearAugments",
   "clearActionHandlers",
   "clearBodies",
-  "clearFogRevealSources",
+  "clearCoverageSources",
   "clearRegistry",
   "clearContributions",
   "clearMapPoiProviders",
@@ -67,8 +67,8 @@ const EXPECTED_BARREL_VALUE_EXPORTS = [
   "getContributionsForSlot",
   "getDataSource",
   "getDataSources",
-  "getFogRevealSourceSettings",
-  "getFogRevealSources",
+  "getCoverageSourceSettings",
+  "getCoverageSources",
   "getGameHost",
   "getSetting",
   "getImagingWindow",
@@ -83,14 +83,14 @@ const EXPECTED_BARREL_VALUE_EXPORTS = [
   "isReadOnlySetting",
   "logger",
   "onContributionsChange",
-  "onFogRevealSourcesChange",
+  "onCoverageSourcesChange",
   "onMapPoiProvidersChange",
   "registerActionHandler",
   "registerAugment",
   "registerBody",
   "registerComponent",
   "registerDataSource",
-  "registerFogRevealSource",
+  "registerCoverageSource",
   "registerMapPoiProvider",
   "registerSetting",
   "registerSettingsTab",
@@ -105,7 +105,7 @@ const EXPECTED_BARREL_VALUE_EXPORTS = [
   "subscribeSetting",
   "unregisterActionHandler",
   "unregisterDataSource",
-  "unregisterFogRevealSource",
+  "unregisterCoverageSource",
   "refusalFromError",
   "unregisterUplinkHandle",
   "useActionInput",
@@ -128,9 +128,9 @@ const EXPECTED_BARREL_VALUE_EXPORTS = [
   "whyNotSendable",
   "useVantageTrajectory",
   "useDataSources",
-  "useBodyFogMask",
-  "useFogMaskCache",
-  "useFogMaskStore",
+  "useBodyCoverageMask",
+  "useCoverageMaskCache",
+  "useCoverageMaskStore",
   "useHostIceServers",
   "useLateTelemetrySubscribe",
   "useLatestValue",
@@ -149,6 +149,25 @@ const EXPECTED_BARREL_VALUE_EXPORTS = [
   "useViewClock",
   "useViewClockOptional",
   "useViewUt",
+  /*
+   * The pre-rename fog names, kept as deprecated aliases of the coverage ones
+   * for an out-of-repo Uplink. They are listed here rather than exempted so
+   * removing them is as deliberate an edit as adding them was; see the
+   * `as Fog...` aliases in `./index.ts` for when they can go.
+   */
+  "FogMaskCache",
+  "FogMaskCacheProvider",
+  "FogMaskStore",
+  "FogMaskStoreProvider",
+  "clearFogRevealSources",
+  "getFogRevealSourceSettings",
+  "getFogRevealSources",
+  "onFogRevealSourcesChange",
+  "registerFogRevealSource",
+  "unregisterFogRevealSource",
+  "useBodyFogMask",
+  "useFogMaskCache",
+  "useFogMaskStore",
 ].sort();
 
 afterEach(() => {
@@ -218,21 +237,21 @@ describe("sitrep-sdk author-facing barrel: shape gate", () => {
     barrel.clearRegistry();
     expect(barrel.getComponent("gate-gauge")).toBeUndefined();
 
-    // Fog reveal, whose settings read is the reason `NamespacedAugmentSettings`
+    // The coverage-source registry, whose settings read is the reason `NamespacedAugmentSettings`
     // had to come down from ui-kit: the type is the return of a registry read
     // that now lives in this package.
-    barrel.clearFogRevealSources();
+    barrel.clearCoverageSources();
     const source = {
       id: "gate:coverage",
       settings: [{ key: "enabled", type: "boolean" as const }],
     };
-    expect(() => barrel.registerFogRevealSource(source)).not.toThrow();
-    expect(barrel.getFogRevealSources()).toEqual([source]);
-    expect(barrel.getFogRevealSourceSettings()).toEqual([
+    expect(() => barrel.registerCoverageSource(source)).not.toThrow();
+    expect(barrel.getCoverageSources()).toEqual([source]);
+    expect(barrel.getCoverageSourceSettings()).toEqual([
       { augmentId: source.id, namespace: source.id, fields: source.settings },
     ]);
-    barrel.clearFogRevealSources();
-    expect(barrel.getFogRevealSources()).toEqual([]);
+    barrel.clearCoverageSources();
+    expect(barrel.getCoverageSources()).toEqual([]);
   });
 
   it("hasHost reflects installation and never throws", () => {

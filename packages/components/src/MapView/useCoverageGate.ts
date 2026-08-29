@@ -1,15 +1,15 @@
-// MapView's paint-gate. NOT a fog overlay compositor, there is no dark
-// fog layer in this design. A base-layer augment (e.g. an altimetry or
-// biome map) calls useCoverageGate WHILE PAINTING ITS OWN SURFACE and
+// MapView's paint-gate. NOT a darkening-overlay compositor, there is no dark
+// layer drawn on top in this design. A base-layer augment (e.g. an altimetry
+// or biome map) calls useCoverageGate WHILE PAINTING ITS OWN SURFACE and
 // indexes into the returned composite grid to decide each tile's alpha:
 // 0 = fully un-covered (paint nothing / black), 255 = fully covered
 // (paint at full opacity).
 import {
-  type FogRevealSourceDefinition,
-  getFogRevealSources,
-  onFogRevealSourcesChange,
+  type CoverageSourceDefinition,
+  getCoverageSources,
+  onCoverageSourcesChange,
 } from "@ksp-gonogo/core";
-import { type BodyMask, useFogMaskCache } from "@ksp-gonogo/data";
+import { type BodyMask, useCoverageMaskCache } from "@ksp-gonogo/data";
 import { useEffect, useState, useSyncExternalStore } from "react";
 
 export interface CoverageGate {
@@ -20,15 +20,15 @@ export interface CoverageGate {
   version: number;
   width: number;
   height: number;
-  /** True when at least one reveal source is registered AND a
-   *  `FogMaskCacheProvider` is mounted to actually resolve its masks.
-   *  False in either the "no fog system mounted" case (zero reveal sources
+  /** True when at least one coverage source is registered AND a
+   *  `CoverageMaskCacheProvider` is mounted to actually resolve its masks.
+   *  False in either the "no coverage system mounted" case (zero coverage sources
    *  registered) or the "no cache provider" case (sources are registered
    *  but nothing can fetch their masks). A base-layer augment should treat
-   *  false as "paint fully open," NOT "fully fogged", an Uplink that
-   *  registers a base-layer provider but no reveal source at all gets an
+   *  false as "paint fully open," NOT "fully un-covered", an Uplink that
+   *  registers a base-layer provider but no coverage source at all gets an
    *  ungated (always-visible) surface, which is the correct degenerate
-   *  case, not an error state. A missing `FogMaskCacheProvider` must
+   *  case, not an error state. A missing `CoverageMaskCacheProvider` must
    *  degrade the same way: never a blanked map. */
   hasAnySource: boolean;
 }
@@ -37,7 +37,7 @@ const DEFAULT_WEIGHT = 255;
 
 /** Exported for direct unit testing without a canvas, pure per-pixel math. */
 export function compositeCoverage(
-  sources: readonly FogRevealSourceDefinition[],
+  sources: readonly CoverageSourceDefinition[],
   masksByLayer: ReadonlyMap<string, BodyMask>,
   augmentSettings: Record<string, Record<string, unknown>> | undefined,
   pixelIndex: number,
@@ -54,20 +54,20 @@ export function compositeCoverage(
   return reveal;
 }
 
-// Stable-reference snapshot cache: getFogRevealSources() allocates fresh
+// Stable-reference snapshot cache: getCoverageSources() allocates fresh
 // every call, which would infinite-loop useSyncExternalStore directly.
 //
 // Refreshed via an UNCONDITIONAL module-load subscription (mirrors
 // packages/core/src/AugmentSlot.tsx's slotCache/onAugmentsChange pattern),
-// not from inside a component lifecycle: a reveal source can register or
+// not from inside a component lifecycle: a coverage source can register or
 // unregister while zero useCoverageGate instances are mounted (e.g. an
 // Uplink SDK bundle registers a source before the user ever navigates to a
 // MapView layout), and that change must not be missed.
-let cachedSources: FogRevealSourceDefinition[] = getFogRevealSources();
-onFogRevealSourcesChange(() => {
-  cachedSources = getFogRevealSources();
+let cachedSources: CoverageSourceDefinition[] = getCoverageSources();
+onCoverageSourcesChange(() => {
+  cachedSources = getCoverageSources();
 });
-function getSourcesSnapshot(): FogRevealSourceDefinition[] {
+function getSourcesSnapshot(): CoverageSourceDefinition[] {
   return cachedSources;
 }
 
@@ -79,11 +79,11 @@ export function useCoverageGate(
   // changes, cachedSources itself is kept fresh by the module-load
   // subscription above regardless of whether any instance is mounted.
   const sources = useSyncExternalStore(
-    onFogRevealSourcesChange,
+    onCoverageSourcesChange,
     getSourcesSnapshot,
     getSourcesSnapshot,
   );
-  const cache = useFogMaskCache();
+  const cache = useCoverageMaskCache();
   const [gate, setGate] = useState<CoverageGate>({
     data: null,
     version: 0,
@@ -93,7 +93,7 @@ export function useCoverageGate(
   });
 
   useEffect(() => {
-    // No FogMaskCacheProvider mounted: masks can never resolve regardless
+    // No CoverageMaskCacheProvider mounted: masks can never resolve regardless
     // of how many sources are registered. Degrade to fully-open, not a
     // gated state stuck with null data forever.
     if (!cache) {

@@ -1,16 +1,16 @@
 import "fake-indexeddb/auto";
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { FogMaskCache } from "./FogMaskCache";
-import { FogMaskStore } from "./FogMaskStore";
+import { CoverageMaskCache } from "./CoverageMaskCache";
+import { CoverageMaskStore } from "./CoverageMaskStore";
 
 const HI = "altimetry-hi";
 const LO = "altimetry-lo";
 
 function makeCache(opts?: { flushDebounceMs?: number }) {
-  const store = new FogMaskStore({
-    dbName: `gonogo-fog-test-${Math.random()}`,
+  const store = new CoverageMaskStore({
+    dbName: `gonogo-coverage-test-${Math.random()}`,
   });
-  const cache = new FogMaskCache(store, "profile-1", {
+  const cache = new CoverageMaskCache(store, "profile-1", {
     width: 4,
     height: 2,
     flushDebounceMs: opts?.flushDebounceMs ?? 10,
@@ -18,7 +18,7 @@ function makeCache(opts?: { flushDebounceMs?: number }) {
   return { store, cache };
 }
 
-describe("FogMaskCache", () => {
+describe("CoverageMaskCache", () => {
   beforeEach(() => {
     vi.useRealTimers();
   });
@@ -67,7 +67,7 @@ describe("FogMaskCache", () => {
     cache.markDirty("Kerbin", HI);
     await cache.flush();
 
-    const cache2 = new FogMaskCache(store, "profile-1", {
+    const cache2 = new CoverageMaskCache(store, "profile-1", {
       width: 4,
       height: 2,
       flushDebounceMs: 10,
@@ -76,7 +76,7 @@ describe("FogMaskCache", () => {
     expect(Array.from(reloaded.data)).toEqual([200, 0, 0, 0, 0, 0, 0, 255]);
   });
 
-  // Regression: in the real useBodyFogMask hook, onChange (which creates a
+  // Regression: in the real useBodyCoverageMask hook, onChange (which creates a
   // stub shell entry to accept subscribers) runs *before* acquire. A naïve
   // acquire would return that zeroed shell and skip the IDB read entirely.
   it("reloads from IDB even when a subscriber has already registered", async () => {
@@ -86,7 +86,7 @@ describe("FogMaskCache", () => {
     cache.markDirty("Kerbin", HI);
     await cache.flush();
 
-    const cache2 = new FogMaskCache(store, "profile-1", {
+    const cache2 = new CoverageMaskCache(store, "profile-1", {
       width: 4,
       height: 2,
       flushDebounceMs: 10,
@@ -137,7 +137,7 @@ describe("FogMaskCache", () => {
       2,
     );
     // Now create a cache expecting 4×2.
-    const cache = new FogMaskCache(store, "profile-1", {
+    const cache = new CoverageMaskCache(store, "profile-1", {
       width: 4,
       height: 2,
       flushDebounceMs: 10,
@@ -154,7 +154,7 @@ describe("FogMaskCache", () => {
     cache.onChange("Kerbin", HI, spy);
     expect(mask.data[0]).toBe(0);
 
-    // External write: bypasses the cache entirely (this models a fog
+    // External write: bypasses the cache entirely (this models a coverage
     // snapshot landing on a station).
     await store.save(
       "profile-1",

@@ -4,7 +4,7 @@ import * as barrel from "./index";
 
 /**
  * Phase 0.4 additions: stream SPI, data introspection, the game-host SPI,
- * the map/fog SPI, the Uplink-handle SPI, the settings-tab SPI, and the
+ * the map/coverage SPI, the Uplink-handle SPI, the settings-tab SPI, and the
  * telemetry-client SPI. Same injected-host contract as every other stateful
  * member (design §4.3 / D-A): fail loud with no host installed, resolve to
  * the injected host's own implementation once one is.
@@ -162,7 +162,7 @@ describe("sitrep-sdk author-facing barrel: SPI gap shims", () => {
     });
   });
 
-  describe("map/fog SPI", () => {
+  describe("map/coverage SPI", () => {
     // `getBody` was a shim, and its doc argued for this move without taking it: a
     // bundled copy of a module-static map would read its own permanently-empty
     // version. The map is a `globalThis` slot now, so there is no second copy to
@@ -208,49 +208,49 @@ describe("sitrep-sdk author-facing barrel: SPI gap shims", () => {
       barrel.clearBodies();
     });
 
-    // Not a shim any more: the reveal-source registry moved into this package on
+    // Not a shim any more: the coverage-source registry moved into this package on
     // 2026-08-19, alongside the POI one and for the same reason. It went last of
     // the three because it was the one that needed a TYPE to move with it
     // (`NamespacedAugmentSettings`, down from ui-kit).
-    it("the reveal-source registry needs no host, in either direction", () => {
+    it("the coverage-source registry needs no host, in either direction", () => {
       resetTestHost();
-      barrel.clearFogRevealSources();
+      barrel.clearCoverageSources();
       const changed = vi.fn();
-      const unsubscribe = barrel.onFogRevealSourcesChange(changed);
+      const unsubscribe = barrel.onCoverageSourcesChange(changed);
 
       const source = { id: "example-uplink:AltimetryHiRes", weight: 200 };
-      barrel.registerFogRevealSource(source);
+      barrel.registerCoverageSource(source);
       expect(changed).toHaveBeenCalledTimes(1);
-      expect(barrel.getFogRevealSources()).toEqual([source]);
+      expect(barrel.getCoverageSources()).toEqual([source]);
 
-      barrel.unregisterFogRevealSource(source.id);
+      barrel.unregisterCoverageSource(source.id);
       expect(changed).toHaveBeenCalledTimes(2);
-      expect(barrel.getFogRevealSources()).toEqual([]);
+      expect(barrel.getCoverageSources()).toEqual([]);
 
       unsubscribe();
-      barrel.clearFogRevealSources();
+      barrel.clearCoverageSources();
       // Unsubscribed before the clear, so the count has not moved again.
       expect(changed).toHaveBeenCalledTimes(2);
     });
 
     it("namespaces each source's settings by its own id", () => {
       resetTestHost();
-      barrel.clearFogRevealSources();
+      barrel.clearCoverageSources();
       // A source with no settings contributes no block at all, so the panel does
       // not render an empty section for it.
-      barrel.registerFogRevealSource({ id: "a:plain" });
-      barrel.registerFogRevealSource({
+      barrel.registerCoverageSource({ id: "a:plain" });
+      barrel.registerCoverageSource({
         id: "b:tunable",
         settings: [{ key: "enabled", type: "boolean", default: true }],
       });
-      expect(barrel.getFogRevealSourceSettings()).toEqual([
+      expect(barrel.getCoverageSourceSettings()).toEqual([
         {
           augmentId: "b:tunable",
           namespace: "b:tunable",
           fields: [{ key: "enabled", type: "boolean", default: true }],
         },
       ]);
-      barrel.clearFogRevealSources();
+      barrel.clearCoverageSources();
     });
 
     it("getContributionsForSlot fails LOUD with no host, resolves once installed", () => {
@@ -330,9 +330,9 @@ describe("sitrep-sdk author-facing barrel: SPI gap shims", () => {
       barrel.clearMapPoiProviders();
     });
 
-    // `useFogMaskCache` used to be checked here, as a shim that failed loud with
+    // `useCoverageMaskCache` used to be checked here, as a shim that failed loud with
     // no host. It is the real hook now (the context moved into this package), so
-    // it needs a render to exercise and lives in `fog/FogMaskContext.test.tsx`,
+    // it needs a render to exercise and lives in `coverage/CoverageMaskContext.test.tsx`,
     // which sets its own jsdom environment. Converting this file would have
     // changed the environment for forty node-environment assertions to gain one.
   });

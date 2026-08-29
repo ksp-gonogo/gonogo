@@ -439,7 +439,7 @@ export interface AugmentSettingField {
  *
  * Declared here rather than in `@ksp-gonogo/ui-kit`, which re-exports it, for the
  * reason `AugmentSettingField` already moved: it is a shape over that type, and it
- * is the return type of a registry read (`getFogRevealSourceSettings`) that lives
+ * is the return type of a registry read (`getCoverageSourceSettings`) that lives
  * in this package. ui-kit imports the sdk, so the type can only sit at this end if
  * both are to have it.
  */
@@ -484,15 +484,15 @@ export interface AugmentDefinition<S extends string = string> {
  */
 export type { UplinkClientHandle } from "../spine/uplink-clients";
 
-// --- Fog reveal sources ------------------------------------------------------
+// --- Coverage sources --------------------------------------------------------
 
 /**
- * Registration descriptor for a fog-of-war reveal source, a data
- * contributor (coverage bytes for a body under some layerId), not a
- * renderable component. See packages/core/src/fogReveal.ts's own header
- * for why this isn't another AugmentSlot kind.
+ * Registration descriptor for a coverage source, a data contributor (coverage
+ * bytes for a body under some layerId), not a renderable component. See
+ * `./coverage-source.ts`'s own header for why this isn't another AugmentSlot
+ * kind.
  */
-export interface FogRevealSourceDefinition {
+export interface CoverageSourceDefinition {
   id: string;
   label?: string;
   weight?: number;
@@ -648,12 +648,13 @@ export interface BodyDefinition {
   };
 }
 
-// --- Fog mask cache ------------------------------------------------------------
+// --- Coverage mask cache -----------------------------------------------------
 //
-// Same leaf constraint again: `BodyMask` is owned by `@ksp-gonogo/data`
-// (packages/data/src/fog/FogMaskCache.ts), which the sdk cannot depend on
-// either (data itself depends on core, which depends on the sdk, naming
-// data here would form the same turbo `^build` cycle). Mirrored here.
+// Same leaf constraint again: `BodyMask` was owned by `@ksp-gonogo/data`, which
+// the sdk cannot depend on either (data itself depends on core, which depends on
+// the sdk, naming data here would form the same turbo `^build` cycle). Mirrored
+// here for that reason, and the cache itself has since moved to
+// `./coverage/CoverageMaskCache.ts` beside it.
 
 export interface BodyMask {
   readonly bodyId: string;
@@ -665,14 +666,14 @@ export interface BodyMask {
 }
 
 /**
- * The subset of `FogMaskCache`'s (`@ksp-gonogo/data`) public surface an
- * author drives from `useFogMaskCache()`. Not itself part of the barrel's
+ * The subset of `CoverageMaskCache`'s (`@ksp-gonogo/data`) public surface an
+ * author drives from `useCoverageMaskCache()`. Not itself part of the barrel's
  * named export list: every call site so far only ever holds this through
- * the hook's inferred return type (`const cache = useFogMaskCache();`),
+ * the hook's inferred return type (`const cache = useCoverageMaskCache();`),
  * never by importing the type name directly, so there is nothing to add to
  * the export list for it.
  */
-export interface FogMaskCacheHandle {
+export interface CoverageMaskCacheHandle {
   acquire(bodyId: string, layerId: string): Promise<BodyMask>;
   get(bodyId: string, layerId: string): BodyMask | undefined;
   markDirty(bodyId: string, layerId: string): void;
@@ -1035,7 +1036,7 @@ export type StreamStatusValue =
  * The imperative subscribe function `useLateTelemetrySubscribe` returns: a
  * `TopicId` argument infers the payload type from `TopicPayloadMap` (the
  * same canonical typing `useTelemetry(topic)` gives a static topic); a
- * plain `string` argument (a runtime-templated topic, e.g. a per-body fog
+ * plain `string` argument (a runtime-templated topic, e.g. a per-body coverage
  * mask) falls back to an explicit `T` type argument at the call site. Each
  * overload returns an unsubscribe function, safe to call more than once.
  */

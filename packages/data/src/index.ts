@@ -1,8 +1,8 @@
-// The fog-of-war mask store, cache and context moved to `@ksp-gonogo/sitrep-sdk`.
+// The coverage mask store, cache and context moved to `@ksp-gonogo/sitrep-sdk`.
 // The Uplink that contributes coverage is the only consumer, and its own tests
-// build a `FogMaskStore` inside a `FogMaskCacheProvider` to assert what a scan
+// build a `CoverageMaskStore` inside a `CoverageMaskCacheProvider` to assert what a scan
 // revealed; reaching either meant importing this package, which is `private: true`.
-// `useFogMaskCache` was published as a host shim, so the read half was reachable and
+// `useCoverageMaskCache` was published as a host shim, so the read half was reachable and
 // the construction half was not.
 //
 // The CONTEXT is why they had to move rather than staying shimmed: a provider from a
@@ -21,6 +21,11 @@
 export {
   type BodyMask,
   BufferedDataSource,
+  CoverageMaskCache,
+  CoverageMaskCacheProvider,
+  type CoverageMaskChangeListener,
+  CoverageMaskStore,
+  CoverageMaskStoreProvider,
   clearDerivedKeys,
   DataSourceWrapper,
   DEFAULT_KEEP_COUNT,
@@ -39,11 +44,6 @@ export {
   FlightDetector,
   type FlightFixture,
   type FlightStore,
-  FogMaskCache,
-  FogMaskCacheProvider,
-  type FogMaskChangeListener,
-  FogMaskStore,
-  FogMaskStoreProvider,
   fixtureDurationMs,
   getDerivedKeys,
   getKeepCount,
@@ -60,9 +60,9 @@ export {
   type StoredMask,
   setKeepCount,
   subscribeAutoDelete,
-  useBodyFogMask,
-  useFogMaskCache,
-  useFogMaskStore,
+  useBodyCoverageMask,
+  useCoverageMaskCache,
+  useCoverageMaskStore,
 } from "@ksp-gonogo/sitrep-sdk";
 export * from "./FlightsFab";
 export * from "./FlightsManager";

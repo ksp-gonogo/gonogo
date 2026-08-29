@@ -478,14 +478,15 @@ export const ALLOWLIST: Record<ModToken, ModAllowlist> = {
        * described, stale, ratcheted off.
        */
       /*
-       * `FogMaskStore.ts` was here, and is gone entirely rather than moved: the
-       * store went into `@ksp-gonogo/sitrep-sdk` on 2026-08-19, and the sdk is
-       * the leaf every Uplink depends on, so it cannot name one at all, not even
-       * in prose. Its three remaining doc mentions (the historical motivator for
-       * the migration wipe) now say "a reveal source" instead, which is what the
-       * code has actually meant since scanType became an opaque `layerId` at
-       * v2→v3. That also settles the ratchet-hardening design doc's Part 2.3
-       * example, which cited "FogMaskStore.ts's SCANType import" as the textbook
+       * `CoverageMaskStore.ts` was here, and is gone entirely rather than moved:
+       * the store went into `@ksp-gonogo/sitrep-sdk` on 2026-08-19, and the sdk
+       * is the leaf every Uplink depends on, so it cannot name one at all, not
+       * even in prose. Its three remaining doc mentions (the historical motivator
+       * for the migration wipe) now say "a coverage source" instead, which is
+       * what the code has actually meant since scanType became an opaque
+       * `layerId` at v2→v3. That also settles the ratchet-hardening design doc's
+       * Part 2.3 example, which cited "FogMaskStore.ts's SCANType import" (that
+       * file's name before the fog-to-coverage rename) as the textbook
        * domain-debt case: the import had already gone, and now the file has too.
        * G2 TrueNow-allowlist ratchet (task 4) names ScansatUplink.cs in a
        * justification comment while inventorying every TrueNow declaration
@@ -508,7 +509,7 @@ export const ALLOWLIST: Record<ModToken, ModAllowlist> = {
        */
       "packages/app/src/uplinks/loader.test.ts",
       /*
-       * useLateTelemetrySubscribe (2026-07-19): scansat's fog-sync is the
+       * useLateTelemetrySubscribe (2026-07-19): scansat's coverage sync is the
        * motivating call site for the new hook (a runtime-templated topic,
        * `scansat.mask.<body>.<scanType>`, that has no fixed `TopicId` member),
        * so its doc comments and its conformance-gate justification name

@@ -13,7 +13,7 @@ import type { EventOccurrence } from "../event-timeline";
  *
  * <p><b>Why a registry and not an augment slot.</b> A source contributes DATA,
  * not a renderable component, so it is a registry parallel to the augment one,
- * exactly as `./fog-reveal.ts` is for coverage bytes.</p>
+ * exactly as `./coverage-source.ts` is for coverage bytes.</p>
  *
  * <p><b>The view UT is a parameter, and that is the delay model.</b> Sources
  * are asked what has been revealed AS OF the operator's delayed view clock,
@@ -42,7 +42,7 @@ export interface RevealedEventSourceDefinition {
 /**
  * The single global slot the sources live in, keyed by a string rather than a
  * symbol so two different builds of this package still find the same state.
- * Same reasoning as `./fog-reveal.ts`.
+ * Same reasoning as `./coverage-source.ts`.
  */
 const EVENT_REVEAL_REGISTRY_KEY = "__GONOGO_EVENT_REVEAL_SOURCES__" as const;
 

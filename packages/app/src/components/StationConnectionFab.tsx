@@ -108,7 +108,7 @@ function StationConnectionPanel({
         </GhostButton>
         <Hint>
           Clears the saved host and returns to the connect screen. Saved
-          dashboard layout, alarms, and fog data stay on this device.
+          dashboard layout, alarms, and coverage data stay on this device.
         </Hint>
       </SeparatedSection>
     </Wrap>

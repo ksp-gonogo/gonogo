@@ -29,7 +29,7 @@ export interface MapViewConfig {
    * read-back half of `registerAugment({ settings: [...] })`. Populated by
    * `AugmentSettingsPanel` in the config UI, merged from
    * `getAugmentSettings("map-view.overlay"|"map-view.sections"|"map-view.base")`
-   * and `getFogRevealSourceSettings()`. Read back into `MapSectionsContext`/
+   * and `getCoverageSourceSettings()`. Read back into `MapSectionsContext`/
    * `MapBaseLayerContext`'s `augmentSettings` field at render time.
    */
   augmentSettings?: Record<string, Record<string, unknown>>;

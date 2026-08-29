@@ -300,7 +300,7 @@ describe("MapViewComponent", () => {
     ).toBeInTheDocument();
   });
 
-  it("config no longer offers per-scan-type fog layer toggles (moved to the owning Uplink's own settings)", () => {
+  it("config no longer offers per-scan-type coverage layer toggles (moved to the owning Uplink's own settings)", () => {
     render(<MapViewConfigComponent config={{}} onSave={() => {}} />);
     expect(screen.queryByText("Fog layers")).toBeNull();
     expect(screen.queryByText("Altimetry HiRes")).toBeNull();

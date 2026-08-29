@@ -8,7 +8,7 @@ import { Switch } from "./Switch";
 // panel renders straight through.
 
 export interface AugmentSettingsPanelProps {
-  /** Every augment's settings block for the host widget's slot(s); see `getAugmentSettings`/`getFogRevealSourceSettings`. */
+  /** Every augment's settings block for the host widget's slot(s); see `getAugmentSettings`/`getCoverageSourceSettings`. */
   settings: readonly NamespacedAugmentSettings[];
   /** The widget's persisted per-augment values, keyed `[namespace][key]`. `undefined` when nothing has been saved yet, falls back to each field's own `default`. */
   values: Record<string, Record<string, unknown>> | undefined;

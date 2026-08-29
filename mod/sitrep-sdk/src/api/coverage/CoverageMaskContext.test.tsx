@@ -2,10 +2,10 @@
 
 import { describe, expect, it } from "vitest";
 import { renderHook } from "../../testing";
-import { useFogMaskCache, useFogMaskStore } from "./FogMaskContext";
+import { useCoverageMaskCache, useCoverageMaskStore } from "./CoverageMaskContext";
 
 /**
- * `useFogMaskCache` was a host SHIM until 2026-08-19, so an Uplink's hook would
+ * `useCoverageMaskCache` was a host SHIM until 2026-08-19, so an Uplink's hook would
  * read the app's cache rather than a bundled copy of the context. The context lives
  * in this package now, so there is no second copy and the hook is the real one.
  *
@@ -14,17 +14,17 @@ import { useFogMaskCache, useFogMaskStore } from "./FogMaskContext";
  * checked, has forty node-environment assertions that would have had to move with
  * it.
  */
-describe("fog mask context, with no provider mounted", () => {
-  it("answers null rather than throwing, because fog is optional", () => {
-    // The contract the callers rely on: a widget with no fog provider above it
-    // skips the fog pipeline. A throw here would take out every dashboard that
-    // does not use fog at all.
-    const { result } = renderHook(() => useFogMaskCache());
+describe("coverage mask context, with no provider mounted", () => {
+  it("answers null rather than throwing, because coverage is optional", () => {
+    // The contract the callers rely on: a widget with no coverage provider above it
+    // skips the coverage pipeline. A throw here would take out every dashboard that
+    // does not use coverage at all.
+    const { result } = renderHook(() => useCoverageMaskCache());
     expect(result.current).toBeNull();
   });
 
   it("answers null for the store too, on the same contract", () => {
-    const { result } = renderHook(() => useFogMaskStore());
+    const { result } = renderHook(() => useCoverageMaskStore());
     expect(result.current).toBeNull();
   });
 });

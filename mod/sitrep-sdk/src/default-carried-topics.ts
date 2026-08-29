@@ -202,7 +202,7 @@ export const DEFAULT_SITREP_CARRIED_TOPICS: readonly string[] = [
   // so it can't be an exact entry here, it is carried by
   // `DYNAMIC_CARRIED_TOPIC_PREFIXES` (below), which `TelemetryProvider` folds
   // into the carried set and `isTopicCarried` matches by prefix. Before that
-  // landed, those fog-of-war coverage/mask/height/biome/anomaly reads silently
+  // landed, those coverage/mask/height/biome/anomaly reads silently
   // fell back to the removed legacy source even though mapTopic resolved them,
   // the "coverage never surfaces" client half.
   "scansat.available",

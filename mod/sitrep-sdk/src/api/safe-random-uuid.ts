@@ -5,7 +5,7 @@
  * `crypto.getRandomValues` (available regardless of context) and assembles a v4
  * UUID from the 16 random bytes per RFC 4122.
  *
- * Its own module rather than sitting on the barrel, so `./fog/FogMaskCache.ts` can
+ * Its own module rather than sitting on the barrel, so `./coverage/CoverageMaskCache.ts` can
  * name it without importing the barrel that re-exports the cache: that cycle would
  * resolve today (the call is at construction, not module eval) and is not worth
  * relying on.

@@ -67,7 +67,7 @@ export class AlarmPeerBridge {
     // Latecomer's initial snapshot: fire the host's current alarms at
     // every new peer immediately so the station doesn't wait for the
     // next tick to learn what alarms exist. Matches the
-    // FogSyncHostService / GoNoGoHostService / Notes pattern. Reported
+    // CoverageSyncHostService / GoNoGoHostService / Notes pattern. Reported
     // as "Banners not showing for stations" in the 2026-05-17 21:11 BST
     // session: the user set an alarm, refreshed a station, and the
     // station never showed the alarm.

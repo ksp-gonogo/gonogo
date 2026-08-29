@@ -86,7 +86,7 @@ const WIDGETS: WidgetRenderConfig[] = [
     ],
   },
   {
-    // MapView paints to <canvas> (equirectangular body texture + fog
+    // MapView paints to <canvas> (equirectangular body texture + coverage
     // overlay + vessel trail). The playwright harness captures the
     // canvas pixels directly: no parallel SVG renderer needed for
     // visual coverage, just the standard fixture/mode pattern. The DOM

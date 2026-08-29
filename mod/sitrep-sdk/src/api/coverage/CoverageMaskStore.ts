@@ -1,7 +1,7 @@
 /**
- * IndexedDB-backed persistence for fog-of-war masks.
+ * IndexedDB-backed persistence for coverage masks.
  *
- * Masks are raw alpha bytes (0 = fogged, 255 = fully imaged), one per pixel
+ * Masks are raw alpha bytes (0 = unimaged, 255 = fully imaged), one per pixel
  * in an equirectangular projection of the body's surface. Stored verbatim
  * as a Uint8Array: IndexedDB structured-clone handles typed arrays natively,
  * so there's no encode/decode cost on read or write.
@@ -18,12 +18,19 @@
  * routes per-type so stations can render the same layers the host sees.
  */
 
+/**
+ * The database still carries the old "fog" name while the concept is coverage:
+ * it names a store on the user's disk, so changing it orphans every mask an
+ * existing install has already cached rather than renaming anything. Moving to
+ * a coverage-named database is a migration (open the old name, copy the rows,
+ * delete it), not a rename, so it is left alone here.
+ */
 const DB_NAME = "gonogo-fog";
 /**
  * The IDB store version. Every upgrade step so far drops the object store
  * rather than migrating it (see `onupgradeneeded`), because each changed the
  * KEY shape and the missing part cannot be invented. That wipes any
- * pre-existing keys, which is recoverable: a reveal source regenerates the
+ * pre-existing keys, which is recoverable: a coverage source regenerates the
  * underlying coverage cheaply from whatever it persists of its own.
  */
 const DB_VERSION = 3;
@@ -52,7 +59,7 @@ function makeKey(profileId: string, bodyId: string, layerId: string): string {
  * Fires whenever the store's contents change for a specific
  * `(profileId, bodyId, layerId)` triple. The listener is *not* given the
  * new bytes: it should `load(...)` if it needs them. Used by
- * `FogMaskCache` to detect external writes (e.g. a fog snapshot from the
+ * `CoverageMaskCache` to detect external writes (e.g. a coverage snapshot from the
  * host arriving via PeerJS, written straight to the store, bypassing the
  * cache's own mutate-then-flush path).
  *
@@ -61,23 +68,23 @@ function makeKey(profileId: string, bodyId: string, layerId: string): string {
  * tag and the cache short-circuits. Without this, the cache would
  * race-reload its own data over a fresh in-memory mutation.
  */
-export type FogMaskChangeListener = (
+export type CoverageMaskChangeListener = (
   profileId: string,
   bodyId: string,
   layerId: string,
   origin: string | undefined,
 ) => void;
 
-export class FogMaskStore {
+export class CoverageMaskStore {
   private dbPromise: Promise<IDBDatabase> | null = null;
   private readonly dbName: string;
-  private readonly changeListeners = new Set<FogMaskChangeListener>();
+  private readonly changeListeners = new Set<CoverageMaskChangeListener>();
 
   constructor(opts: { dbName?: string } = {}) {
     this.dbName = opts.dbName ?? DB_NAME;
   }
 
-  onChange(listener: FogMaskChangeListener): () => void {
+  onChange(listener: CoverageMaskChangeListener): () => void {
     this.changeListeners.add(listener);
     return () => this.changeListeners.delete(listener);
   }
@@ -151,7 +158,7 @@ export class FogMaskStore {
 
   /**
    * Load every mask for a profile in one transaction. Used by the host
-   * peer service to send a fog snapshot to a newly-connected station so
+   * peer service to send a coverage snapshot to a newly-connected station so
    * the station's map mirrors the host's exploration state. The list is
    * unordered; callers shouldn't depend on insertion order. Each row
    * carries its `layerId` so receivers route to the right per-type slot.
@@ -265,7 +272,7 @@ export class FogMaskStore {
         const oldVersion = event.oldVersion;
         // v1 → v2: schema added layerId to the key shape. Old single-mask-
         // per-body rows can't be migrated to per-type rows without inventing
-        // the type, so drop the store and let the reveal source repopulate from
+        // the type, so drop the store and let the coverage source repopulate from
         // its own persisted coverage.
         if (
           oldVersion > 0 &&
@@ -277,7 +284,7 @@ export class FogMaskStore {
         // v2 → v3: scanType (a closed bit-value enum, one source's own) generalised
         // to layerId (an opaque string): old rows carry a numeric field where a
         // string is now expected, so they're dropped the same way v1→v2 was,
-        // and any registered reveal source repopulates on its own schedule.
+        // and any registered coverage source repopulates on its own schedule.
         if (
           oldVersion > 0 &&
           oldVersion < 3 &&

@@ -8,10 +8,10 @@ import {
   ScreenProvider,
 } from "@ksp-gonogo/core";
 import {
+  CoverageMaskCacheProvider,
+  CoverageMaskStore,
   DEFAULT_PROFILE_ID,
   FlightsFab,
-  FogMaskCacheProvider,
-  FogMaskStore,
 } from "@ksp-gonogo/data";
 import type { KerbcastDataSource } from "@ksp-gonogo/gonogo-kerbcast-uplink";
 import { debugPeer, logger } from "@ksp-gonogo/logger";
@@ -171,7 +171,7 @@ export function StationScreen() {
     },
     [alarmClient],
   );
-  const [fogMaskStore] = useState(() => new FogMaskStore());
+  const [coverageMaskStore] = useState(() => new CoverageMaskStore());
   const unsubsRef = useRef<Array<() => void>>([]);
   const schemaHandledRef = useRef(false);
 
@@ -279,21 +279,23 @@ export function StationScreen() {
     // given code, so a refresh re-derives the same target, no persistence
     // of any ephemeral id is needed here.
 
-    // One-shot fog snapshot from the host. Persist each mask to the
-    // station's local FogMaskStore: the map widget reads through the
+    // One-shot coverage snapshot from the host. Persist each mask to the
+    // station's local CoverageMaskStore: the map widget reads through the
     // same store so a refresh shows the host's exploration state. Both
     // sides bucket under DEFAULT_PROFILE_ID now that save-profile
     // scoping has been removed.
     unsubsRef.current.push(
-      client.onFogSnapshot((msg) => {
-        logger.info(`[fog-sync] snapshot received: masks=${msg.masks.length}`);
+      client.onCoverageSnapshot((msg) => {
+        logger.info(
+          `[coverage-sync] snapshot received: masks=${msg.masks.length}`,
+        );
         for (const m of msg.masks) {
           // Per-type mask routing: each mask carries its layerId (an
-          // opaque per-reveal-source id, e.g. "survey:AltimetryHiRes").
+          // opaque per-coverage-source id, e.g. "survey:AltimetryHiRes").
           // The station persists each into its own per-type slot so the
           // local MapView composes the same per-channel precedence the
           // host renders.
-          fogMaskStore
+          coverageMaskStore
             .save(
               DEFAULT_PROFILE_ID,
               m.bodyId,
@@ -304,7 +306,7 @@ export function StationScreen() {
             )
             .catch((err) => {
               logger.error(
-                `[fog-sync] failed to persist mask: body=${m.bodyId} layerId=${m.layerId}`,
+                `[coverage-sync] failed to persist mask: body=${m.bodyId} layerId=${m.layerId}`,
                 err instanceof Error ? err : undefined,
               );
             });
@@ -400,7 +402,7 @@ export function StationScreen() {
                 <AugmentAvailabilityFeeder />
                 <ManeuverTriggerProvider service={maneuverTriggerClient}>
                   <PushClientProvider>
-                    <FogMaskCacheProvider store={fogMaskStore}>
+                    <CoverageMaskCacheProvider store={coverageMaskStore}>
                       <SerialDeviceProvider service={serialService}>
                         <OverlayProvider
                           addItem={dashboard.addItem}
@@ -526,7 +528,7 @@ export function StationScreen() {
                           </AlarmsLauncherBridge>
                         </OverlayProvider>
                       </SerialDeviceProvider>
-                    </FogMaskCacheProvider>
+                    </CoverageMaskCacheProvider>
                   </PushClientProvider>
                 </ManeuverTriggerProvider>
               </SitrepTelemetryProvider>

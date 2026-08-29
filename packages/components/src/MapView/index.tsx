@@ -805,9 +805,9 @@ function MapViewComponent({
     ctx.setTransform(1, 0, 0, 1, 0, 0);
   }, [containerSize, camera, textureReady, body?.color, baseLayerVersion]);
 
-  // ── Fog-of-war: paint-gate, not a drawn overlay ──────────────────────────
+  // ── Coverage: paint-gate, not a drawn overlay ────────────────────────────
   // A per-vessel painter used to model gonogo's own imaging FOV from
-  // lat/lon/altitude/heading. A mod's own reveal-source model replaced that
+  // lat/lon/altitude/heading. A mod's own coverage-source model replaced that
   // wholesale, scanner range gates, persisted coverage, etc. are that mod's
   // own concern, and the painter has now been deleted rather than left to
   // read as an alternative that still exists. There is no
@@ -1134,7 +1134,7 @@ function MapViewComponent({
 
   // "NO SIGNAL" state lives in the global SignalLossIndicator banner;
   // keeping it off this chip avoids double-reporting (and would be
-  // misleading now that fog still paints during blackout; see useFogPainter).
+  // misleading now that coverage still paints during blackout).
   const imagingStatus = useMemo<{
     label: string;
     variant: "on" | "off" | "warn";

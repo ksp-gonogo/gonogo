@@ -1,18 +1,18 @@
 import type { ReactNode } from "react";
 import { createContext, useContext, useEffect, useMemo, useState } from "react";
-import { FogMaskCache } from "./FogMaskCache";
-import type { FogMaskStore } from "./FogMaskStore";
+import { CoverageMaskCache } from "./CoverageMaskCache";
+import type { CoverageMaskStore } from "./CoverageMaskStore";
 
-const FogMaskCacheContext = createContext<FogMaskCache | null>(null);
-const FogMaskStoreContext = createContext<FogMaskStore | null>(null);
+const CoverageMaskCacheContext = createContext<CoverageMaskCache | null>(null);
+const CoverageMaskStoreContext = createContext<CoverageMaskStore | null>(null);
 
-/** Shared bucket id used everywhere fog masks are stored or fanned out over
+/** Shared bucket id used everywhere coverage masks are stored or fanned out over
  *  peers. There is no per-save-profile scoping; the storage layer keeps a slot
  *  for one only because the IndexedDB key shape encodes it. */
 export const DEFAULT_PROFILE_ID = "default";
 
 /**
- * Constructs a FogMaskCache and exposes it (plus the underlying store) via
+ * Constructs a CoverageMaskCache and exposes it (plus the underlying store) via
  * context. The cache is disposed on unmount and flushed on beforeunload so
  * pending writes aren't lost.
  *
@@ -21,15 +21,15 @@ export const DEFAULT_PROFILE_ID = "default";
  * support multiple save profiles, but that concept has been retired and
  * there's only ever one bucket now.
  */
-export function FogMaskCacheProvider({
+export function CoverageMaskCacheProvider({
   store,
   children,
 }: {
-  store: FogMaskStore;
+  store: CoverageMaskStore;
   children: ReactNode;
 }) {
   const cache = useMemo(
-    () => new FogMaskCache(store, DEFAULT_PROFILE_ID),
+    () => new CoverageMaskCache(store, DEFAULT_PROFILE_ID),
     [store],
   );
 
@@ -48,49 +48,49 @@ export function FogMaskCacheProvider({
   }, [cache]);
 
   return (
-    <FogMaskStoreContext.Provider value={store}>
-      <FogMaskCacheContext.Provider value={cache}>
+    <CoverageMaskStoreContext.Provider value={store}>
+      <CoverageMaskCacheContext.Provider value={cache}>
         {children}
-      </FogMaskCacheContext.Provider>
-    </FogMaskStoreContext.Provider>
+      </CoverageMaskCacheContext.Provider>
+    </CoverageMaskStoreContext.Provider>
   );
 }
 
 /**
- * Returns the underlying FogMaskStore, or null if no provider is mounted.
+ * Returns the underlying CoverageMaskStore, or null if no provider is mounted.
  * Useful for bulk operations that cross profile boundaries (e.g. deleting a
- * profile's fog data).
+ * profile's coverage data).
  */
-export function useFogMaskStore(): FogMaskStore | null {
-  return useContext(FogMaskStoreContext);
+export function useCoverageMaskStore(): CoverageMaskStore | null {
+  return useContext(CoverageMaskStoreContext);
 }
 
 /**
  * Standalone store provider: useful when a modal portal renders outside
- * the `FogMaskCacheProvider` tree but still needs access to the store for
- * bulk operations (e.g. clearing a profile's fog on delete).
+ * the `CoverageMaskCacheProvider` tree but still needs access to the store for
+ * bulk operations (e.g. clearing a profile's coverage on delete).
  */
-export function FogMaskStoreProvider({
+export function CoverageMaskStoreProvider({
   store,
   children,
 }: {
-  store: FogMaskStore;
+  store: CoverageMaskStore;
   children: ReactNode;
 }) {
   return (
-    <FogMaskStoreContext.Provider value={store}>
+    <CoverageMaskStoreContext.Provider value={store}>
       {children}
-    </FogMaskStoreContext.Provider>
+    </CoverageMaskStoreContext.Provider>
   );
 }
 
 /**
- * Returns the current fog mask cache, or null if no provider is mounted
- * above. Fog is an optional dashboard feature, callers should handle null
- * by skipping the fog pipeline rather than erroring.
+ * Returns the current coverage mask cache, or null if no provider is mounted
+ * above. Coverage is an optional dashboard feature, callers should handle null
+ * by skipping the coverage pipeline rather than erroring.
  */
-export function useFogMaskCache(): FogMaskCache | null {
-  return useContext(FogMaskCacheContext);
+export function useCoverageMaskCache(): CoverageMaskCache | null {
+  return useContext(CoverageMaskCacheContext);
 }
 
 /**
@@ -102,14 +102,14 @@ export function useFogMaskCache(): FogMaskCache | null {
  * When there is no provider, no body id, or no scan type, `mask` is
  * undefined.
  */
-export function useBodyFogMask(
+export function useBodyCoverageMask(
   bodyId: string | undefined,
   layerId: string | undefined,
 ): {
   mask: import("../types").BodyMask | undefined;
   version: number;
 } {
-  const cache = useFogMaskCache();
+  const cache = useCoverageMaskCache();
   const [state, setState] = useState<{
     mask: import("../types").BodyMask | undefined;
     version: number;

@@ -240,7 +240,7 @@ describe("PeerClientService", () => {
       sourceStatus: 0,
       connStatus: 0,
       schema: 1,
-      fogSnapshot: 0,
+      coverageSnapshot: 0,
     });
   });
 });

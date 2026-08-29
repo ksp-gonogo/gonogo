@@ -1,18 +1,18 @@
 import "fake-indexeddb/auto";
 import { beforeEach, describe, expect, it } from "vitest";
-import { FogMaskStore } from "./FogMaskStore";
+import { CoverageMaskStore } from "./CoverageMaskStore";
 
-function freshStore(): FogMaskStore {
+function freshStore(): CoverageMaskStore {
   // Unique DB name per test so state never leaks between cases
-  return new FogMaskStore({ dbName: `gonogo-fog-test-${Math.random()}` });
+  return new CoverageMaskStore({ dbName: `gonogo-coverage-test-${Math.random()}` });
 }
 
 const HI = "altimetry-hi";
 const LO = "altimetry-lo";
 const BIOME = "biome";
 
-describe("FogMaskStore", () => {
-  let store: FogMaskStore;
+describe("CoverageMaskStore", () => {
+  let store: CoverageMaskStore;
 
   beforeEach(() => {
     store = freshStore();
@@ -102,7 +102,7 @@ describe("FogMaskStore", () => {
 
     const masks = await store.loadAllForProfile("p1");
     expect(masks).toHaveLength(3);
-    // Each row carries its layerId: used by FogSyncHostService to route
+    // Each row carries its layerId: used by CoverageSyncHostService to route
     // station-bound payloads to the right per-type slot.
     const byKey = new Map(
       masks.map((m) => [

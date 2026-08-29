@@ -37,8 +37,8 @@ export {
   useContributions,
   useContributionsBySlotId,
 } from "./contributionsRuntime";
+export * from "./coverageSource";
 export * from "./declarations";
-export * from "./fogReveal";
 export * from "./hooks/defineTopicManifest";
 export * from "./hooks/useActionInput";
 export * from "./hooks/useDataSourceSubscription";

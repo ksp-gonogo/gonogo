@@ -1,8 +1,8 @@
 /**
- * The fog-of-war reveal-source registry moved to `@ksp-gonogo/sitrep-sdk`.
+ * The coverage-source registry moved to `@ksp-gonogo/sitrep-sdk`.
  *
  * An Uplink is the thing that contributes coverage to it, and registering was
- * already published as a host shim, but `clearFogRevealSources` was not, so an
+ * already published as a host shim, but `clearCoverageSources` was not, so an
  * Uplink's own tests could not reset the registry between cases without reaching
  * this package, which is `private: true`.
  *
@@ -16,11 +16,11 @@
  * Re-exported so this package's importers keep their import site.
  */
 export {
-  clearFogRevealSources,
-  type FogRevealSourceDefinition,
-  getFogRevealSourceSettings,
-  getFogRevealSources,
-  onFogRevealSourcesChange,
-  registerFogRevealSource,
-  unregisterFogRevealSource,
+  type CoverageSourceDefinition,
+  clearCoverageSources,
+  getCoverageSourceSettings,
+  getCoverageSources,
+  onCoverageSourcesChange,
+  registerCoverageSource,
+  unregisterCoverageSource,
 } from "@ksp-gonogo/sitrep-sdk";

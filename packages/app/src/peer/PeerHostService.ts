@@ -1206,7 +1206,7 @@ export class PeerHostService {
   /**
    * Send a message to a single connected peer. Used by services that
    * fire on `onPeerConnect` and need to target the new peer specifically
-   * (e.g. fog snapshot, where broadcasting would re-deliver large mask
+   * (e.g. coverage snapshot, where broadcasting would re-deliver large mask
    * payloads to every existing station). Silently no-ops if the peer
    * isn't connected.
    */

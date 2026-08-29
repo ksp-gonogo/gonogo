@@ -364,8 +364,8 @@ export interface MapCoverageGate {
   version: number;
   width: number;
   height: number;
-  /** True when at least one reveal source is registered AND a
-   *  `FogMaskCacheProvider` is mounted to actually resolve its masks. */
+  /** True when at least one coverage source is registered AND a
+   *  `CoverageMaskCacheProvider` is mounted to actually resolve its masks. */
   hasAnySource: boolean;
 }
 

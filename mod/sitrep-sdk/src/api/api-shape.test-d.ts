@@ -23,13 +23,13 @@ import type {
   ConfigField,
   ContributionEntry,
   ContributionRegistry,
+  CoverageSourceDefinition,
   DataKey,
   DataRequirement,
   DataSource,
   DataSourceStatus,
   DelayClockLike,
   DelayMode,
-  FogRevealSourceDefinition,
   GonogoHost,
   InFlightCommand,
   LateTelemetrySubscribe,
@@ -70,7 +70,7 @@ declare const _actionHandlers: ActionHandlers<
 >;
 declare const _augmentDef: AugmentDefinition<"slot">;
 declare const _augmentSetting: AugmentSettingField;
-declare const _fogRevealSourceDef: FogRevealSourceDefinition;
+declare const _coverageSourceDef: CoverageSourceDefinition;
 declare const _mapPoi: MapPoi;
 declare const _mapPoiProviderDef: MapPoiProviderDefinition;
 declare const _bodyDef: BodyDefinition;
@@ -127,7 +127,7 @@ export type _ApiShapeProbe = [
   typeof _actionHandlers,
   typeof _augmentDef,
   typeof _augmentSetting,
-  typeof _fogRevealSourceDef,
+  typeof _coverageSourceDef,
   typeof _mapPoi,
   typeof _mapPoiProviderDef,
   typeof _bodyDef,

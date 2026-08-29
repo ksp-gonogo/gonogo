@@ -1,11 +1,8 @@
 import "fake-indexeddb/auto";
-import type { FogRevealSourceDefinition } from "@ksp-gonogo/core";
-import {
-  clearFogRevealSources,
-  registerFogRevealSource,
-} from "@ksp-gonogo/core";
+import type { CoverageSourceDefinition } from "@ksp-gonogo/core";
+import { clearCoverageSources, registerCoverageSource } from "@ksp-gonogo/core";
 import type { BodyMask } from "@ksp-gonogo/data";
-import { FogMaskCacheProvider, FogMaskStore } from "@ksp-gonogo/data";
+import { CoverageMaskCacheProvider, CoverageMaskStore } from "@ksp-gonogo/data";
 import { act, renderHook, waitFor } from "@ksp-gonogo/test-utils";
 import type { ReactNode } from "react";
 import { createElement } from "react";
@@ -13,7 +10,7 @@ import { afterEach, describe, expect, it } from "vitest";
 import { compositeCoverage, useCoverageGate } from "./useCoverageGate";
 
 // Rendered hook trees, tracked so afterEach can unmount them BEFORE
-// clearFogRevealSources() notifies the reveal-source registry's subscribers,
+// clearCoverageSources() notifies the coverage-source registry's subscribers,
 // a still-mounted useCoverageGate instance re-rendering off that
 // notification is a state update outside act() (CLAUDE.md -> Testing
 // Philosophy). RTL auto-cleanup runs after this file's afterEach, too late
@@ -23,7 +20,7 @@ const renderedTrees: Array<() => void> = [];
 afterEach(() => {
   for (const unmount of renderedTrees) unmount();
   renderedTrees.length = 0;
-  clearFogRevealSources();
+  clearCoverageSources();
 });
 
 function mask(data: number[]): BodyMask {
@@ -38,7 +35,7 @@ function mask(data: number[]): BodyMask {
 
 describe("compositeCoverage: pure per-pixel math", () => {
   it("takes the MAX of weighted intensities across enabled sources at one pixel", () => {
-    const sources: FogRevealSourceDefinition[] = [
+    const sources: CoverageSourceDefinition[] = [
       { id: "example-uplink:altimetry-lo", weight: 192 },
       { id: "example-uplink:altimetry-hi", weight: 255 },
     ];
@@ -50,7 +47,7 @@ describe("compositeCoverage: pure per-pixel math", () => {
   });
 
   it("excludes a source whose augmentSettings.show is explicitly false", () => {
-    const sources: FogRevealSourceDefinition[] = [
+    const sources: CoverageSourceDefinition[] = [
       { id: "example-uplink:biome", weight: 255 },
     ];
     const masks = new Map([["example-uplink:biome", mask([255])]]);
@@ -64,18 +61,18 @@ describe("compositeCoverage: pure per-pixel math", () => {
     ).toBe(0);
   });
 
-  it("returns 0 (not fully-fogged-black) when zero sources are enabled, no-fog-system case", () => {
+  it("returns 0 (not fully-dark) when zero sources are enabled, no-coverage-system case", () => {
     expect(compositeCoverage([], new Map(), undefined, 0)).toBe(0);
   });
 });
 
 describe("useCoverageGate: hook integration", () => {
   it("hasAnySource is false with nothing registered, true once a source registers", async () => {
-    const store = new FogMaskStore({
-      dbName: `gonogo-fog-test-${Math.random()}`,
+    const store = new CoverageMaskStore({
+      dbName: `gonogo-coverage-test-${Math.random()}`,
     });
     const wrapper = ({ children }: { children: ReactNode }) =>
-      createElement(FogMaskCacheProvider, { store }, children);
+      createElement(CoverageMaskCacheProvider, { store }, children);
     const { result, rerender, unmount } = renderHook(
       () => useCoverageGate("Kerbin", undefined),
       { wrapper },
@@ -84,7 +81,7 @@ describe("useCoverageGate: hook integration", () => {
     expect(result.current.hasAnySource).toBe(false);
 
     act(() => {
-      registerFogRevealSource({
+      registerCoverageSource({
         id: "example-uplink:altimetry-hi",
         weight: 255,
       });
@@ -93,22 +90,22 @@ describe("useCoverageGate: hook integration", () => {
     await waitFor(() => expect(result.current.hasAnySource).toBe(true));
   });
 
-  it("picks up a reveal source registered before ANY hook instance is mounted", () => {
-    // Regression for the stale module-level cache: a reveal source can
+  it("picks up a coverage source registered before ANY hook instance is mounted", () => {
+    // Regression for the stale module-level cache: a coverage source can
     // register (e.g. an Uplink SDK bundle loading) before the user ever
     // navigates to a MapView layout, so no useCoverageGate instance is
     // mounted yet to catch the change. cachedSources must still be fresh
     // by the time the first instance mounts.
-    registerFogRevealSource({
+    registerCoverageSource({
       id: "example-uplink:altimetry-hi",
       weight: 255,
     });
 
-    const store = new FogMaskStore({
-      dbName: `gonogo-fog-test-${Math.random()}`,
+    const store = new CoverageMaskStore({
+      dbName: `gonogo-coverage-test-${Math.random()}`,
     });
     const wrapper = ({ children }: { children: ReactNode }) =>
-      createElement(FogMaskCacheProvider, { store }, children);
+      createElement(CoverageMaskCacheProvider, { store }, children);
     const { result, unmount } = renderHook(
       () => useCoverageGate("Kerbin", undefined),
       { wrapper },
@@ -118,12 +115,12 @@ describe("useCoverageGate: hook integration", () => {
     expect(result.current.hasAnySource).toBe(true);
   });
 
-  it("reports fully-open (hasAnySource false), not a null-data gated state, when no FogMaskCacheProvider is mounted", async () => {
+  it("reports fully-open (hasAnySource false), not a null-data gated state, when no CoverageMaskCacheProvider is mounted", async () => {
     // A missing cache provider must never blank the map. With a source
     // registered but no provider in the tree, cache is null forever, the
     // gate must degrade to vanilla-open, not stay stuck reporting a source
     // is present while data can never arrive.
-    registerFogRevealSource({
+    registerCoverageSource({
       id: "example-uplink:altimetry-hi",
       weight: 255,
     });

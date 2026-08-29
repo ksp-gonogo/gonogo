@@ -134,7 +134,7 @@ export type AugmentSegmentProps<Seg extends string> =
  * One augment's settings block, namespaced for the host panel.
  *
  * The sdk's, re-exported, same as `AugmentSettingField` above and for the same
- * reason: it is a shape over that type, and the fog-reveal registry in the sdk
+ * reason: it is a shape over that type, and the coverage-source registry in the sdk
  * returns it too. Two published declarations of one author-facing type drift
  * without anything saying so.
  */

@@ -67,7 +67,7 @@ const CONSTRUCTORS = [
   "MockDataSource",
   "BufferedDataSource",
   "MemoryStore",
-  "FogMaskStore",
+  "CoverageMaskStore",
   "PerfBudget",
 ] as const;
 
@@ -82,7 +82,7 @@ const FUNCTIONS = [
   "clearAugments",
   "clearActionHandlers",
   "clearUplinkHandles",
-  "clearFogRevealSources",
+  "clearCoverageSources",
   "clearProcessorRuntime",
   "registerDataSource",
   "registerStockBodies",
