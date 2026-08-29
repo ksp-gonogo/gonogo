@@ -38,6 +38,8 @@ const COVERED = [
   "rp1-kerbalism-live",
   "rp1-no-testflight",
   "stock-career",
+  "reliability-unavailable",
+  "testflight-unreadable",
 ];
 
 /**
@@ -111,7 +113,7 @@ function renderScene(profileId: string) {
   return { fixture, block, unmount };
 }
 
-describe("the reliability election, seen from four installs", () => {
+describe("the reliability election, seen from six installs", () => {
   registerAugment({
     id: "fleet-reliability-updates",
     augments: "fleet-roster.updates",
@@ -225,6 +227,40 @@ describe("the reliability election, seen from four installs", () => {
       screen.queryByRole("group", { name: "Reliability updates" }),
     ).toBeNull();
     expect(screen.queryByRole("status")).toBeNull();
+    await act(async () => {});
+  });
+
+  /**
+   * The distinction the whole change exists for, and the one a boolean could
+   * not carry. On the wire this install is byte-identical to a stock career:
+   * source "none", no parts. It is NOT the same situation. A modelling mod is
+   * installed and its provider failed to activate, so the operator is BLIND,
+   * where the stock player simply has nothing watching. Silence is the correct
+   * answer to one and a false reassurance to the other.
+   */
+  it("says it is blind, where a stock career says nothing at all", async () => {
+    const { fixture, block } = renderScene("reliability-unavailable");
+    await replay(fixture, block);
+
+    expect(await screen.findByText("Active Craft")).toBeInTheDocument();
+    expect(await screen.findByText(/unreadable/i)).toBeInTheDocument();
+    await act(async () => {});
+  });
+
+  /**
+   * The provider answered and its per-part reads did not. The craft is not
+   * healthy and is not unmodelled: each part it could not read says so against
+   * its own name, rather than the whole row collapsing to one verdict that
+   * would have to be either falsely calm or falsely alarming.
+   */
+  it("marks the parts it could not read, not the whole craft", async () => {
+    const { fixture, block } = renderScene("testflight-unreadable");
+    await replay(fixture, block);
+
+    expect(await screen.findByText("Active Craft")).toBeInTheDocument();
+    expect((await screen.findAllByText(/unreadable/i)).length).toBeGreaterThan(
+      1,
+    );
     await act(async () => {});
   });
 

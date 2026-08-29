@@ -8,7 +8,9 @@
       "rp1-testflight",
       "rp1-kerbalism-live",
       "rp1-no-testflight",
-      "stock-career"
+      "stock-career",
+      "reliability-unavailable",
+      "testflight-unreadable"
     ],
     "carriedChannels": [
       "system.vessels",
