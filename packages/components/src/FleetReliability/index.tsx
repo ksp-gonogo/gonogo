@@ -3,7 +3,8 @@ import {
   type SlotProps,
   useTelemetry,
 } from "@ksp-gonogo/core";
-import type { Reading } from "@ksp-gonogo/sitrep-client";
+import { type Reading, useCommand } from "@ksp-gonogo/sitrep-client";
+import type { CrewMember } from "@ksp-gonogo/sitrep-sdk";
 import {
   type ReliabilityBudget,
   type ReliabilityPartEntry,
@@ -13,14 +14,18 @@ import {
   Badge,
   Card,
   Cluster,
+  CommandButton,
   magnitudeOf,
   type ReadoutTone,
+  SelectableRow,
   type Severity,
   Stack,
   Unit,
+  usePanelDelay,
   worstSeverity,
 } from "@ksp-gonogo/ui-kit";
 import type { ReactNode } from "react";
+import { useState } from "react";
 import {
   budgetAttention,
   SURVIVAL_ATTENTION,
@@ -421,12 +426,137 @@ function prefixed(source: string | null | undefined, rest: string): string {
   return source ? `${source} ${rest}` : rest;
 }
 
+/** Kerbalism's own arithmetic: a critical failure costs two kits, anything else one. */
+function kitsNeeded(condition: string | null | undefined): number {
+  return condition === "failed-critical" ? 2 : 1;
+}
+
+function kitsCarried(member: CrewMember): number {
+  let held = 0;
+  for (const item of member.carrying ?? []) {
+    if (item.name === "evaRepairKit") held += magnitudeOf(item.quantity) ?? 0;
+  }
+  return held;
+}
+
+/**
+ * The repair control for one failed part.
+ *
+ * <p><b>Every refusal costs a round trip</b>, exactly as a success does, so the
+ * mod's refusals are pre-empted here and shown as a DISABLED control with the
+ * reason on it. Dispatching a command in order to be told "nobody aboard is
+ * carrying a kit" would spend the operator's delay to learn something the
+ * console already knew.</p>
+ *
+ * <p><b>The kit count sits beside the control</b>, which is this repo's funds
+ * rule applied to a different currency: a widget offering to spend something
+ * scarce shows the balance in the same widget, so nobody has to look elsewhere
+ * to find out whether they can afford what they are about to confirm.</p>
+ *
+ * <p>The performer is CHOSEN rather than inferred. Kerbalism decides whether
+ * that kerbal is qualified, and it is not our place to pre-empt that half, but
+ * who spends the last kit is the operator's call.</p>
+ */
+function RepairControl({
+  partId,
+  condition,
+  crew,
+  reserveKits,
+}: {
+  partId: string;
+  condition: string | null | undefined;
+  crew: CrewMember[];
+  reserveKits: number;
+}) {
+  const repair = useCommand("vessel.repair");
+  usePanelDelay(repair);
+  const [chosen, setChosen] = useState<string | null>(null);
+
+  const needed = kitsNeeded(condition);
+  /*
+   * Default to whoever can act with NO fetch, which is the distinction the
+   * whole split exists for: a kerbal already holding enough kits needs nothing
+   * moved, and picking the first name in the roster instead would offer the
+   * operator the worse option by default.
+   *
+   * Deliberately NOT ranked by trait. Whether a kerbal is qualified is
+   * Kerbalism's own judgement and guessing at it here would be a second
+   * authority that can disagree with the one that decides.
+   */
+  const readiest = crew
+    .slice()
+    .sort((a, b) => kitsCarried(b) - kitsCarried(a))[0];
+  const performer = chosen ?? readiest?.name ?? null;
+  const held = crew.find((c) => c.name === performer);
+  const carried = held ? kitsCarried(held) : 0;
+  const reachable = carried + reserveKits;
+
+  const refusal =
+    crew.length === 0
+      ? "Nobody is aboard to do it"
+      : reachable < needed
+        ? `Needs ${needed}, and ${reachable} can be reached`
+        : null;
+
+  return (
+    <Stack gap="xs">
+      <Cluster justify="between" align="baseline" gap="sm" wrap>
+        <span>REPAIR</span>
+        <span>
+          {`${needed} kit${needed === 1 ? "" : "s"} · ${carried} carried · ${reserveKits} aboard`}
+        </span>
+      </Cluster>
+      {crew.length > 1 &&
+        crew.map((member) => (
+          <SelectableRow
+            key={member.name ?? "unknown"}
+            selected={member.name === performer}
+            onClick={() => setChosen(member.name ?? null)}
+          >
+            {`${member.name ?? "Unknown"} · ${kitsCarried(member)} carried`}
+          </SelectableRow>
+        ))}
+      <CommandButton
+        handle={repair}
+        args={{ partId, crewName: performer ?? "" }}
+        size="sm"
+        commandLabel={`Repair with ${performer ?? "nobody"}`}
+        label="Repair"
+        confirmLabel="Confirm"
+        pendingLabel="Repairing..."
+        disabled={refusal !== null}
+        title={refusal ?? undefined}
+      />
+    </Stack>
+  );
+}
+
 export function FleetReliabilityUpdates({ vesselId, compact }: UpdatesProps) {
   const identity = stillTrue(useTelemetry("vessel.identity"), undefined);
   const summaryReading = useTelemetry("reliability.summary");
   const summary = stillTrue(summaryReading, undefined);
   const partsReading = useTelemetry("reliability.parts");
+  const crewReading = useTelemetry("vessel.crew");
+  const inventoryReading = useTelemetry("vessel.inventory");
   const parts = judgeable(partsReading);
+  const crew = judgeable(crewReading)?.crew ?? [];
+  /*
+   * The reserve a fetch could reach. Part-hosted only: a kit in ANOTHER
+   * kerbal's pocket is not reachable, because the mod takes the shortfall from
+   * a cargo hold and never from a colleague.
+   */
+  const reserveKits = (judgeable(inventoryReading)?.stores ?? []).reduce(
+    (total, store) =>
+      total +
+      (store.items ?? []).reduce(
+        (kits: number, item) =>
+          item.name === "evaRepairKit"
+            ? kits + (magnitudeOf(item.quantity) ?? 0)
+            : kits,
+        0,
+      ),
+    0,
+  );
   const notCurrent =
     partsReading.state === "stale" || summaryReading.state === "stale";
 
@@ -552,6 +682,15 @@ export function FleetReliabilityUpdates({ vesselId, compact }: UpdatesProps) {
                 <Badge severity={row.severity}>{row.word}</Badge>
               </Cluster>
               {row.clause !== undefined && <span>{row.clause}</span>}
+              {(part.condition === "failed" ||
+                part.condition === "failed-critical") && (
+                <RepairControl
+                  partId={part.partId ?? ""}
+                  condition={part.condition}
+                  crew={crew}
+                  reserveKits={reserveKits}
+                />
+              )}
             </Stack>
           </Card>
         ))}
@@ -563,5 +702,11 @@ registerAugment({
   id: "fleet-reliability-updates",
   augments: "fleet-roster.updates",
   component: FleetReliabilityUpdates,
-  channels: ["reliability.summary", "reliability.parts", "vessel.identity"],
+  channels: [
+    "reliability.summary",
+    "reliability.parts",
+    "vessel.identity",
+    "vessel.crew",
+    "vessel.inventory",
+  ],
 });

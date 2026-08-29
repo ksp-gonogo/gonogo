@@ -17,12 +17,21 @@
       "system.bodies",
       "vessel.identity",
       "reliability.summary",
-      "reliability.parts"
+      "reliability.parts",
+      "vessel.crew",
+      "vessel.inventory"
     ],
     "emits": [
       {
         "channel": "system.bodies",
-        "value": { "bodies": [{ "index": 0, "name": "Kerbin" }] }
+        "value": {
+          "bodies": [
+            {
+              "index": 0,
+              "name": "Kerbin"
+            }
+          ]
+        }
       },
       {
         "channel": "system.vessels",
@@ -132,6 +141,64 @@
             "budgets": null
           }
         ]
+      },
+      {
+        "channel": "vessel.crew",
+        "value": {
+          "count": 2,
+          "capacity": 3,
+          "crew": [
+            {
+              "name": "Jebediah Kerman",
+              "trait": "Pilot",
+              "experienceLevel": 3,
+              "carrying": [],
+              "slots": 2,
+              "packedVolumeLimit": 40,
+              "packedVolumeUsed": 5
+            },
+            {
+              "name": "Bill Kerman",
+              "trait": "Engineer",
+              "experienceLevel": 2,
+              "carrying": [
+                {
+                  "name": "evaRepairKit",
+                  "title": "EVA Repair Kit",
+                  "quantity": 1,
+                  "packedVolume": 5
+                }
+              ],
+              "slots": 2,
+              "packedVolumeLimit": 40,
+              "packedVolumeUsed": 10
+            }
+          ]
+        }
+      },
+      {
+        "channel": "vessel.inventory",
+        "value": {
+          "stores": [
+            {
+              "partId": "77",
+              "partName": "Service Bay",
+              "items": [
+                {
+                  "name": "evaRepairKit",
+                  "title": "EVA Repair Kit",
+                  "quantity": 3,
+                  "packedVolume": 5
+                }
+              ],
+              "slots": 8,
+              "slotsUsed": 1,
+              "packedVolumeLimit": 300,
+              "packedVolumeUsed": 15,
+              "massLimit": 1.0
+            }
+          ]
+        }
       }
     ]
   }
