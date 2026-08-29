@@ -358,23 +358,20 @@ export function StationScreen() {
     return (
       <ScreenProvider value="station">
         <SettingsProvider service={settingsService}>
-          <RootProviders screen="station">
-            <MissionProfilesProvider service={missionProfiles}>
-              <ScopedStationIdentity>
-                <StationConnectView
-                  hostInput={hostInput}
-                  connStatus={connStatus}
-                  hostNotFound={hostNotFound}
-                  everConnected={everConnected}
-                  onHostInputChange={setHostInput}
-                  onConnect={attemptConnect}
-                  onDownloadLogs={downloadLogs}
-                  nameEditor={<StationNameEditor />}
-                />
-              </ScopedStationIdentity>
-            </MissionProfilesProvider>
-            ,
-          </RootProviders>
+          <MissionProfilesProvider service={missionProfiles}>
+            <ScopedStationIdentity>
+              <StationConnectView
+                hostInput={hostInput}
+                connStatus={connStatus}
+                hostNotFound={hostNotFound}
+                everConnected={everConnected}
+                onHostInputChange={setHostInput}
+                onConnect={attemptConnect}
+                onDownloadLogs={downloadLogs}
+                nameEditor={<StationNameEditor />}
+              />
+            </ScopedStationIdentity>
+          </MissionProfilesProvider>
         </SettingsProvider>
       </ScreenProvider>
     );
@@ -391,36 +388,36 @@ export function StationScreen() {
   return (
     <ScreenProvider value="station">
       <SettingsProvider service={settingsService}>
-        <RootProviders screen="station">
-          <MissionProfilesProvider service={missionProfiles}>
-            <StationWakeLockBridge />
-            <ScopedStationIdentity>
-              <StationInfoBroadcaster client={client} />
-              <PeerClientProvider client={client}>
-                <SitrepTelemetryProvider
-                  transport={peerTransport}
-                  carriedChannels={DEFAULT_SITREP_CARRIED_TOPICS}
-                >
-                  <AugmentAvailabilityFeeder />
-                  <ManeuverTriggerProvider service={maneuverTriggerClient}>
-                    <PushClientProvider>
-                      <FogMaskCacheProvider store={fogMaskStore}>
-                        <SerialDeviceProvider service={serialService}>
-                          <OverlayProvider
-                            addItem={dashboard.addItem}
-                            updateItemConfig={dashboard.updateItemConfig}
+        <MissionProfilesProvider service={missionProfiles}>
+          <StationWakeLockBridge />
+          <ScopedStationIdentity>
+            <StationInfoBroadcaster client={client} />
+            <PeerClientProvider client={client}>
+              <SitrepTelemetryProvider
+                transport={peerTransport}
+                carriedChannels={DEFAULT_SITREP_CARRIED_TOPICS}
+              >
+                <AugmentAvailabilityFeeder />
+                <ManeuverTriggerProvider service={maneuverTriggerClient}>
+                  <PushClientProvider>
+                    <FogMaskCacheProvider store={fogMaskStore}>
+                      <SerialDeviceProvider service={serialService}>
+                        <OverlayProvider
+                          addItem={dashboard.addItem}
+                          updateItemConfig={dashboard.updateItemConfig}
+                        >
+                          <AlarmsLauncherBridge
+                            useSnapshot={useStationAlarmSnapshot}
+                            onAdd={(input) => alarmClient.addAlarm(input)}
+                            onUpdate={(id, patch) =>
+                              alarmClient.updateAlarm(id, patch)
+                            }
+                            onDelete={(id) => alarmClient.deleteAlarm(id)}
                           >
-                            <AlarmsLauncherBridge
-                              useSnapshot={useStationAlarmSnapshot}
-                              onAdd={(input) => alarmClient.addAlarm(input)}
-                              onUpdate={(id, patch) =>
-                                alarmClient.updateAlarm(id, patch)
-                              }
-                              onDelete={(id) => alarmClient.deleteAlarm(id)}
-                            >
-                              <Layout as="main" aria-label="Station dashboard">
-                                <MissionBanner />
-                                <StationUplinkLoader>
+                            <Layout as="main" aria-label="Station dashboard">
+                              <MissionBanner />
+                              <StationUplinkLoader>
+                                <RootProviders screen="station">
                                   <Dashboard
                                     items={dashboard.items}
                                     layouts={dashboard.layouts}
@@ -450,97 +447,93 @@ export function StationScreen() {
                                     lastAddedId={dashboard.lastAddedId}
                                     clearLastAdded={dashboard.clearLastAdded}
                                   />
-                                </StationUplinkLoader>
-                                <FabClusterProvider>
-                                  <ComponentOverlay
-                                    currentLayouts={dashboard.currentLayouts}
-                                  />
-                                  <FlightsFab />
-                                  <SerialPortRecoveryWatcher />
-                                  <StationConnectionFab
-                                    bottom={144}
-                                    hostId={hostInput || null}
-                                    connStatus={connStatus}
-                                    onSwitchHost={(next) => {
-                                      // Hard-navigate so all data sources,
-                                      // listeners, and PeerClient state are
-                                      // dropped cleanly. attemptConnect on
-                                      // the fresh mount re-establishes the
-                                      // connection against the new host.
-                                      globalThis.location.assign(
-                                        `/station?host=${encodeURIComponent(
-                                          next,
-                                        )}`,
-                                      );
-                                    }}
-                                    onDisconnect={() => {
-                                      // Clear the persisted host so the next
-                                      // mount lands on the connect screen
-                                      // rather than auto-reconnecting.
-                                      localStorage.removeItem(HOST_ID_KEY);
-                                      globalThis.location.assign("/station");
-                                    }}
-                                  />
-                                  <FullscreenFab bottom={204} />
-                                  <SettingsFab bottom={264} />
-                                  <MissionProfilesFab
-                                    bottom={324}
-                                    currentItems={dashboard.items}
-                                    currentLayouts={dashboard.layouts}
-                                    onLoad={(p) =>
-                                      dashboard.replaceState(p.items, p.layouts)
-                                    }
-                                  />
-                                  <AlarmsFab
-                                    bottom={384}
-                                    useSnapshot={useStationAlarmSnapshot}
-                                    onAdd={(input) =>
-                                      alarmClient.addAlarm(input)
-                                    }
-                                    onUpdate={(id, patch) =>
-                                      alarmClient.updateAlarm(id, patch)
-                                    }
-                                    onDelete={(id) =>
-                                      alarmClient.deleteAlarm(id)
-                                    }
-                                    ModalComponent={AlarmsModal}
-                                  />
-                                </FabClusterProvider>
-                                <StationNameChip>
-                                  <StationNameEditor compact />
-                                </StationNameChip>
-                                <BannerStack>
-                                  <StationAlarmBanner
-                                    useSnapshot={useStationAlarmSnapshot}
-                                    onAcknowledge={(id) =>
-                                      alarmClient.acknowledgeAlarm(id)
-                                    }
-                                  />
-                                  <HostDisconnectBanner client={client} />
-                                  <SimulationIndicator />
-                                  <SignalLossIndicator />
-                                  <SustainedFailureBanner />
-                                  <HostVersionBanner client={client} />
-                                  <FlightOutcomeBanner />
-                                  <SceneSwitchPrompt
-                                    onLoad={(items, layouts) =>
-                                      dashboard.replaceState(items, layouts)
-                                    }
-                                  />
-                                </BannerStack>
-                              </Layout>
-                            </AlarmsLauncherBridge>
-                          </OverlayProvider>
-                        </SerialDeviceProvider>
-                      </FogMaskCacheProvider>
-                    </PushClientProvider>
-                  </ManeuverTriggerProvider>
-                </SitrepTelemetryProvider>
-              </PeerClientProvider>
-            </ScopedStationIdentity>
-          </MissionProfilesProvider>
-          ,
-        </RootProviders>
+                                </RootProviders>
+                              </StationUplinkLoader>
+                              <FabClusterProvider>
+                                <ComponentOverlay
+                                  currentLayouts={dashboard.currentLayouts}
+                                />
+                                <FlightsFab />
+                                <SerialPortRecoveryWatcher />
+                                <StationConnectionFab
+                                  bottom={144}
+                                  hostId={hostInput || null}
+                                  connStatus={connStatus}
+                                  onSwitchHost={(next) => {
+                                    // Hard-navigate so all data sources,
+                                    // listeners, and PeerClient state are
+                                    // dropped cleanly. attemptConnect on
+                                    // the fresh mount re-establishes the
+                                    // connection against the new host.
+                                    globalThis.location.assign(
+                                      `/station?host=${encodeURIComponent(
+                                        next,
+                                      )}`,
+                                    );
+                                  }}
+                                  onDisconnect={() => {
+                                    // Clear the persisted host so the next
+                                    // mount lands on the connect screen
+                                    // rather than auto-reconnecting.
+                                    localStorage.removeItem(HOST_ID_KEY);
+                                    globalThis.location.assign("/station");
+                                  }}
+                                />
+                                <FullscreenFab bottom={204} />
+                                <SettingsFab bottom={264} />
+                                <MissionProfilesFab
+                                  bottom={324}
+                                  currentItems={dashboard.items}
+                                  currentLayouts={dashboard.layouts}
+                                  onLoad={(p) =>
+                                    dashboard.replaceState(p.items, p.layouts)
+                                  }
+                                />
+                                <AlarmsFab
+                                  bottom={384}
+                                  useSnapshot={useStationAlarmSnapshot}
+                                  onAdd={(input) => alarmClient.addAlarm(input)}
+                                  onUpdate={(id, patch) =>
+                                    alarmClient.updateAlarm(id, patch)
+                                  }
+                                  onDelete={(id) => alarmClient.deleteAlarm(id)}
+                                  ModalComponent={AlarmsModal}
+                                />
+                              </FabClusterProvider>
+                              <StationNameChip>
+                                <StationNameEditor compact />
+                              </StationNameChip>
+                              <BannerStack>
+                                <StationAlarmBanner
+                                  useSnapshot={useStationAlarmSnapshot}
+                                  onAcknowledge={(id) =>
+                                    alarmClient.acknowledgeAlarm(id)
+                                  }
+                                />
+                                <HostDisconnectBanner client={client} />
+                                <SimulationIndicator />
+                                <SignalLossIndicator />
+                                <SustainedFailureBanner />
+                                <HostVersionBanner client={client} />
+                                <FlightOutcomeBanner />
+                                <SceneSwitchPrompt
+                                  onLoad={(items, layouts) =>
+                                    dashboard.replaceState(items, layouts)
+                                  }
+                                />
+                              </BannerStack>
+                            </Layout>
+                          </AlarmsLauncherBridge>
+                        </OverlayProvider>
+                      </SerialDeviceProvider>
+                    </FogMaskCacheProvider>
+                  </PushClientProvider>
+                </ManeuverTriggerProvider>
+              </SitrepTelemetryProvider>
+            </PeerClientProvider>
+          </ScopedStationIdentity>
+        </MissionProfilesProvider>
+        ,
       </SettingsProvider>
     </ScreenProvider>
   );
