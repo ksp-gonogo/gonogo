@@ -116,6 +116,98 @@ function AgeLine({
 }
 
 /**
+ * The ground track: how the orbit repeats over the surface, and how steady its
+ * lighting is.
+ *
+ * <p>Absent in one block rather than as rows of dashes. A trajectory with no
+ * repeating track is the ordinary case for anything on an escape or a transfer,
+ * and five permanent dashes say "broken" where nothing is.</p>
+ *
+ * <p>The bands are the interesting part and the reason these are bands at all.
+ * A crossing band that barely widens is a track that repeats over the same
+ * ground, and a solar-time band that barely widens is an orbit holding its
+ * lighting: both are what the adjectives in the phrase above are read from, so
+ * showing them lets an operator see WHY the phrase says what it says.</p>
+ */
+function GroundTrackRows({ orbit }: { orbit: PrincipiaOrbitAnalysis }) {
+  const hasRecurrence = orbit.recurrenceCycleRotations != null;
+  const hasCrossings = orbit.ascendingCrossingDegrees != null;
+  const hasSolarTimes = orbit.ascendingNodeSolarTimeDegrees != null;
+  if (!hasRecurrence && !hasCrossings && !hasSolarTimes) return null;
+
+  return (
+    <>
+      {hasRecurrence && (
+        <>
+          {/* Turns of the PRIMARY, not days: a stock day is six hours or
+              twenty-four depending on a setting, so the wire counts rotations
+              and the label says so. */}
+          <Row as="div">
+            <RowName>REPEATS IN</RowName>
+            <Cluster>
+              <Unit value={orbit.recurrenceCycleRotations} />
+              <Text tone="faint" size="sm">
+                turns
+              </Text>
+            </Cluster>
+          </Row>
+          <Row as="div">
+            <RowName>REVS/CYCLE</RowName>
+            <Unit value={orbit.recurrenceRevolutions} />
+          </Row>
+          {/* What an operator plans revisits around: the shorter run after which
+              the track very nearly repeats. */}
+          <Row as="div">
+            <RowName>SUBCYCLE</RowName>
+            <Cluster>
+              <Unit value={orbit.recurrenceSubcycleRotations} />
+              <Text tone="faint" size="sm">
+                turns
+              </Text>
+            </Cluster>
+          </Row>
+        </>
+      )}
+      {hasCrossings && (
+        <>
+          <Row as="div">
+            <RowName>ASC NODE</RowName>
+            <Band
+              min={orbit.ascendingCrossingDegrees?.min}
+              max={orbit.ascendingCrossingDegrees?.max}
+              wrapsAt={360}
+            />
+          </Row>
+          <Row as="div">
+            <RowName>DESC NODE</RowName>
+            <Band
+              min={orbit.descendingCrossingDegrees?.min}
+              max={orbit.descendingCrossingDegrees?.max}
+              wrapsAt={360}
+            />
+          </Row>
+        </>
+      )}
+      {hasSolarTimes && (
+        /* An angle over a full turn with 180 degrees at local noon, which is
+           what the producer stores. Shown as the angle rather than as a clock
+           because a clock reading needs a unit this contract does not have, and
+           a number formatted as a time it cannot promise is worse than an
+           honest angle. */
+        <Row as="div">
+          <RowName>SUN ANGLE</RowName>
+          <Band
+            min={orbit.ascendingNodeSolarTimeDegrees?.min}
+            max={orbit.ascendingNodeSolarTimeDegrees?.max}
+            wrapsAt={360}
+          />
+        </Row>
+      )}
+    </>
+  );
+}
+
+/**
  * One analysis, as rows.
  *
  * <p>Exported so a coast can be rendered with the same body as the current
@@ -267,6 +359,8 @@ export function OrbitAnalysisRows({
           <Unit value={orbit.lowestAltitudeMetres} />
         )}
       </Row>
+
+      <GroundTrackRows orbit={orbit} />
 
       <HazardRow
         label="COLLISION"

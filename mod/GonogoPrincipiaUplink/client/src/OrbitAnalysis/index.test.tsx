@@ -74,6 +74,19 @@ function orbit(overrides: Record<string, unknown> = {}) {
     meanPeriapsisAltitudeMetres: { min: 481_200, max: 496_400 },
     meanApoapsisAltitudeMetres: { min: 512_900, max: 528_300 },
     lowestAltitudeMetres: 479_800,
+    // The ground track. Present by default because the producer fits a
+    // recurrence for any closed orbit and derives the crossings from it, so an
+    // analysis WITHOUT these is the exception rather than the norm.
+    recurrenceCycleRotations: 7,
+    recurrenceRevolutionsPerRotation: 16,
+    recurrenceRevolutions: 111,
+    recurrenceSubcycleRotations: 3,
+    recurrenceEquatorialShiftDegrees: -3.21,
+    recurrenceGridIntervalDegrees: 3.21,
+    ascendingCrossingDegrees: { min: 10.2, max: 10.9 },
+    descendingCrossingDegrees: { min: 190.2, max: 190.8 },
+    ascendingNodeSolarTimeDegrees: { min: 157.4, max: 157.9 },
+    descendingNodeSolarTimeDegrees: { min: 337.4, max: 337.8 },
     ...overrides,
   };
 }
@@ -204,6 +217,64 @@ describe("OrbitAnalysisSection", () => {
     await emit(stream, { vesselId: "v", sampledAtUt: VIEW_UT, orbit: orbit() });
 
     expect(await visibleText(stream.container)).not.toContain("Cannot say");
+  });
+
+  /**
+   * The ground track, which is the data the synchronicity adjectives are read
+   * from. Showing it lets an operator see WHY the phrase says what it says
+   * rather than taking the adjective on trust.
+   */
+  it("shows the repeat cycle in turns of the primary, not days", async () => {
+    const stream = mount();
+    await emit(stream, { vesselId: "v", sampledAtUt: VIEW_UT, orbit: orbit() });
+
+    const text = await visibleText(stream.container);
+    expect(text).toContain("REPEATS IN");
+    expect(text).toContain("SUBCYCLE");
+    // "turns", never "days": a stock day is six hours or twenty-four depending
+    // on a setting, so a day here would mean one of two things.
+    expect(text).toContain("turns");
+    expect(text).not.toContain("days");
+  });
+
+  it("shows the crossing and sun-angle bands the adjectives are read from", async () => {
+    const stream = mount();
+    await emit(stream, { vesselId: "v", sampledAtUt: VIEW_UT, orbit: orbit() });
+
+    const text = await visibleText(stream.container);
+    expect(text).toContain("ASC NODE");
+    expect(text).toContain("DESC NODE");
+    expect(text).toContain("SUN ANGLE");
+  });
+
+  /**
+   * A trajectory with no repeating track is ordinary, not broken: anything on an
+   * escape or a transfer has none. Five rows of dashes would say "broken" where
+   * nothing is, so the whole block goes rather than each row emptying.
+   */
+  it("drops the whole ground-track block when there is no track", async () => {
+    const stream = mount();
+    await emit(stream, {
+      vesselId: "v",
+      sampledAtUt: VIEW_UT,
+      orbit: orbit({
+        recurrenceCycleRotations: null,
+        recurrenceRevolutions: null,
+        recurrenceSubcycleRotations: null,
+        ascendingCrossingDegrees: null,
+        descendingCrossingDegrees: null,
+        ascendingNodeSolarTimeDegrees: null,
+        descendingNodeSolarTimeDegrees: null,
+      }),
+    });
+
+    const text = await visibleText(stream.container);
+    expect(text).not.toContain("REPEATS IN");
+    expect(text).not.toContain("ASC NODE");
+    expect(text).not.toContain("SUN ANGLE");
+    // The rest of the analysis still renders: losing a ground track is not
+    // losing the orbit.
+    expect(text).toContain("SMA");
   });
 
   /** A hazard row is absent when there is no hazard, not a permanent dash. */
