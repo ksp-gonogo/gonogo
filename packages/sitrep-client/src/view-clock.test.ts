@@ -238,4 +238,111 @@ describe("ViewClock", () => {
       expect(clock.viewUt()).toBe(4500);
     });
   });
+
+  /**
+   * The frame loop has no stopping condition by design (a quiet link still has
+   * to advance view time), which makes a tree that subscribes to it
+   * unquiescable: React's async `act()` drains its queue and then requires the
+   * queue to be EMPTY, and a frame landing in that window means it never is. A
+   * mount that races the loop settles only on a machine fast enough to win, and
+   * CI is not. These four are the surface that lets a harness stop the loop and
+   * drive it instead.
+   */
+  describe("frame loop", () => {
+    function withStubbedRaf<T>(body: (runFrame: () => void) => T): T {
+      const realRaf = globalThis.requestAnimationFrame;
+      const realCaf = globalThis.cancelAnimationFrame;
+      let pending: FrameRequestCallback | null = null;
+      globalThis.requestAnimationFrame = ((cb: FrameRequestCallback) => {
+        pending = cb;
+        return 1;
+      }) as typeof globalThis.requestAnimationFrame;
+      globalThis.cancelAnimationFrame = (() => {
+        pending = null;
+      }) as typeof globalThis.cancelAnimationFrame;
+      try {
+        return body(() => {
+          const cb = pending;
+          pending = null;
+          cb?.(0);
+        });
+      } finally {
+        globalThis.requestAnimationFrame = realRaf;
+        globalThis.cancelAnimationFrame = realCaf;
+      }
+    }
+
+    it("runs one shared loop for every subscriber, not one loop each", () => {
+      withStubbedRaf((runFrame) => {
+        const clock = new ViewClock({ delaySeconds: () => 0 });
+        const seen: string[] = [];
+        clock.onFrame(() => seen.push("a"));
+        clock.onFrame(() => seen.push("b"));
+
+        // One pending animation frame exists, not two: running it notifies both.
+        runFrame();
+        expect(seen).toEqual(["a", "b"]);
+      });
+    });
+
+    it("suspendFrames stops the loop, and resumeFrames restarts it", () => {
+      withStubbedRaf((runFrame) => {
+        const clock = new ViewClock({ delaySeconds: () => 0 });
+        let ticks = 0;
+        clock.onFrame(() => ticks++);
+
+        clock.suspendFrames();
+        expect(clock.framesAreSuspended).toBe(true);
+        runFrame(); // the pending tick was cancelled, so this is a no-op
+        expect(ticks).toBe(0);
+
+        clock.resumeFrames();
+        runFrame();
+        expect(ticks).toBe(1);
+      });
+    });
+
+    it("a clock suspended before anything subscribes never starts a loop at all", () => {
+      withStubbedRaf((runFrame) => {
+        const clock = new ViewClock({ delaySeconds: () => 0 });
+        clock.suspendFrames();
+        let ticks = 0;
+        clock.onFrame(() => ticks++);
+
+        runFrame();
+        expect(ticks).toBe(0);
+      });
+    });
+
+    it("emitFrame notifies every subscriber with the current viewUt while suspended", () => {
+      withStubbedRaf(() => {
+        const wall = fakeWall();
+        const clock = new ViewClock({
+          nowWall: wall.now,
+          warpRate: () => 1,
+          delaySeconds: () => 0,
+        });
+        clock.observeSample(500, 500);
+        clock.suspendFrames();
+        const seen: number[] = [];
+        clock.onFrame((ut) => seen.push(ut));
+
+        clock.emitFrame();
+        clock.emitFrame();
+        expect(seen).toEqual([500, 500]);
+      });
+    });
+
+    it("stops scheduling once the last subscriber unsubscribes", () => {
+      withStubbedRaf((runFrame) => {
+        const clock = new ViewClock({ delaySeconds: () => 0 });
+        let ticks = 0;
+        const off = clock.onFrame(() => ticks++);
+
+        off();
+        runFrame();
+        expect(ticks).toBe(0);
+      });
+    });
+  });
 });
