@@ -306,6 +306,7 @@ async function waitForSubscription(
     await new Promise<void>((resolve) => {
       requestAnimationFrame(() => resolve());
     });
+    framesWaited++;
   }
   exhaustedTopics.push(topic);
 }
@@ -327,6 +328,7 @@ async function waitForSubscription(
  */
 let currentPhase = "idle";
 let exhaustedTopics: string[] = [];
+let framesWaited = 0;
 
 function beginPhase(name: string): void {
   currentPhase = name;
@@ -338,11 +340,12 @@ function armStallWatchdog(
 ): () => void {
   currentPhase = "start";
   exhaustedTopics = [];
+  framesWaited = 0;
   const timers = [5_000, 15_000, 25_000].map((afterMs) =>
     setTimeout(() => {
       process.stderr.write(
         `[widget-harness] ${label} still in phase "${currentPhase}" after ${afterMs}ms, ` +
-          `pendingQueries=${pendingQueries()}, ` +
+          `pendingQueries=${pendingQueries()}, framesWaited=${framesWaited}, ` +
           `neverSubscribed=[${exhaustedTopics.join(" ")}]\n`,
       );
     }, afterMs),
@@ -399,13 +402,23 @@ function buildStreamWrap(fixture: Fixture, profileId?: string): StreamWrap {
       emitVesselParts: () => {},
       emitVesselControl: () => {},
       replayStreamBlock: async () => {
+        const total = streamBlock.emits.length;
+        let done = 0;
         for (const e of streamBlock.emits) {
+          beginPhase(`replay-stream emit ${++done}/${total} ${e.channel}`);
           await waitForSubscription(stream.transport, e.channel);
           stream.emit(e.channel, e.value, e.meta);
           await new Promise<void>((resolve) => {
             requestAnimationFrame(() => resolve());
           });
         }
+        /*
+         * The caller's `act()` still has to settle after this returns, and
+         * that is a separate thing to be stuck in: without this line the
+         * phase cannot tell a loop still grinding from one that finished
+         * into an `act` which never quiesces.
+         */
+        beginPhase("replay-stream act-settle");
       },
     };
   }
