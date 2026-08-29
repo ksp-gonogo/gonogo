@@ -1064,7 +1064,6 @@ export const ALLOWLIST: Record<ModToken, ModAllowlist> = {
        */
       "mod/Sitrep.Core.Tests/KernelFactoryFailureTests.cs",
       "mod/sitrep-kernel/src/registry.test.ts",
-      "packages/components/src/CommSignal/index.tsx",
       /*
        * CommSignal's `comm-signal.hop-rates` slot declaration, which names the
        * contributor's SOURCE Topic in its `topics` member exactly as ShipMap's
