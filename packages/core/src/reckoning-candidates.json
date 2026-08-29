@@ -217,6 +217,16 @@
     "reason": "As the sidereal period beside it: a measurement, not an accumulation. The only sibling in dimensionless units is progressOfNextAnalysis, which is how far along the NEXT analysis is, from zero to one. It is not the derivative of anything here: it describes a computation running on the producer's own worker thread, and the pairing is the dimensional artefact this scan's own header names, where every dimensionless field is the rate of every time field beside it.",
     "verdict": "coincidence"
   },
+  "PrincipiaOrbitAnalysis.recurrenceEquatorialShiftDegrees": {
+    "rates": ["nodalPrecessionDegreesPerHour"],
+    "reason": "A ground-track recurrence is not a rate integrated over time, and the pairing only exists because both quantities are angles. The equatorial shift is how far the track walks PER REVOLUTION and the grid interval is the spacing the whole cycle lays down, both fixed properties of the fitted recurrence; the precession beside them is the node moving per hour. Integrating the precession gives the node's longitude, which is a different angle about a different thing, so a reckoning built from this pairing would produce a plausible number that answers no question anyone asked.",
+    "verdict": "coincidence"
+  },
+  "PrincipiaOrbitAnalysis.recurrenceGridIntervalDegrees": {
+    "rates": ["nodalPrecessionDegreesPerHour"],
+    "reason": "A ground-track recurrence is not a rate integrated over time, and the pairing only exists because both quantities are angles. The equatorial shift is how far the track walks PER REVOLUTION and the grid interval is the spacing the whole cycle lays down, both fixed properties of the fitted recurrence; the precession beside them is the node moving per hour. Integrating the precession gives the node's longitude, which is a different angle about a different thing, so a reckoning built from this pairing would produce a plausible number that answers no question anyone asked.",
+    "verdict": "coincidence"
+  },
   "PrincipiaOrbitAnalysis.siderealPeriodSeconds": {
     "rates": ["progressOfNextAnalysis"],
     "reason": "A period the producer measured over the analysed span, not a quantity that accumulates. The only sibling in dimensionless units is progressOfNextAnalysis, which is how far along the NEXT analysis is, from zero to one. It is not the derivative of anything here: it describes a computation running on the producer's own worker thread, and the pairing is the dimensional artefact this scan's own header names, where every dimensionless field is the rate of every time field beside it.",
