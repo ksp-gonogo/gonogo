@@ -183,17 +183,33 @@ describe("what the reliability augment says in each coverage state", () => {
     expect(collided).toEqual([]);
     expect(rendered).toHaveLength(CASES.length);
 
-    // The silences are enumerated rather than counted, because WHICH states are
-    // allowed to share one is the whole design decision. Exactly two may, and
-    // both are deliberate: nothing is installed that could be broken, and
-    // everything installed says the craft is fine. Any third state landing in
-    // this list is a state whose absence has become invisible again.
+    /*
+     * The silences are enumerated rather than counted, because WHICH states are
+     * allowed to share one is the whole design decision, and the decision
+     * changed: every state that is not MODELLED is now silent here.
+     *
+     * They are facts about the install, not about this craft, they hold for the
+     * whole session, and none is actionable from a roster row, so each one had
+     * been a permanent badge on every active row. `system.uplinkHealth` carries
+     * them instead, and the settings panel and the Uplink wizard read it.
+     *
+     * What this list still guards is the half that kept its content: among the
+     * states where something IS modelling, no two may read alike, and a
+     * modelled state arriving in this list would be a real finding going
+     * invisible. S9 is the one modelled member, and it is silent because
+     * "nothing is wrong" is the absence of news rather than news.
+     */
     const silent = rendered
       .filter((entry) => entry.text === "")
       .map((entry) => entry.state);
     expect(silent).toEqual([
+      "S2 no summary has arrived",
+      "S3 the elected provider could not be read",
+      "S4 the backend cannot tell whether it is modelling",
+      "S5 the backend is not modelling this save",
       "S6 nothing is installed that could model reliability",
       "S9 modelling, monitored, nothing worth saying",
+      "S11 a coverage value this build has never heard of",
     ]);
 
     await act(async () => {});

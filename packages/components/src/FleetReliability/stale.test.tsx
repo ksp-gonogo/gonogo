@@ -149,16 +149,17 @@ describe("FleetReliability when the reliability read is not current", () => {
     expect(screen.queryByText("not current")).not.toBeInTheDocument();
   });
 
-  it("says it is not REPORTING, not that it went stale, before anything has arrived", async () => {
+  it("does not call a cold start a dropped link", async () => {
     // A cold start is not a dropped link, and conflating them would accuse the
-    // mod of going quiet on every first paint. Both are now spoken states rather
-    // than the same blank, so this asserts which one is on screen.
-    const { fixture } = renderAugment("v-active");
+    // mod of going quiet on every first paint. Currency is the one thing this
+    // slot still speaks, so the assertion that matters is that it does NOT
+    // speak here: nothing has arrived, so there is no reading to call stale.
+    const { fixture, container } = renderAugment("v-active");
     act(() => {
       fixture.emit("vessel.identity", ACTIVE_IDENTITY);
     });
 
-    expect(await screen.findByText("not reporting")).toBeInTheDocument();
+    await waitFor(() => expect(container).toBeEmptyDOMElement());
     expect(screen.queryByText("not current")).not.toBeInTheDocument();
   });
 

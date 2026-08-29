@@ -422,84 +422,40 @@ export function FleetReliabilityUpdates({ vesselId, compact }: UpdatesProps) {
   // every stock player's active row for the whole of every link outage. Coverage
   // is a fact and survives a stale read, so this is safe to read up here; every
   // OTHER state is still gated on currency below.
-  if (coverage === "none") return null;
+  /*
+   * Every coverage that is not "modelled" renders NOTHING on this row.
+   *
+   * They are all facts about the INSTALL rather than about this vessel: nothing
+   * is watching, the backend has failures switched off, its provider failed to
+   * activate, or it cannot tell which. Each is constant for the whole session
+   * and none of them is actionable from a roster row, so a notice for any one
+   * is a permanent badge on every active row, which is the thing that teaches
+   * an operator to stop reading the slot. That argument was already made and
+   * accepted for the vanilla case; it is not weaker for the others, and the
+   * distinction it was drawn to protect is not carried on this row.
+   *
+   * Nor is it lost. `system.uplinkHealth` carries the degraded state and the
+   * reason for it, and both the settings panel and the Uplink wizard read it.
+   * An install-level fact belongs on an install-level surface.
+   *
+   * A missing summary lands here too, and should: the reliability slot has
+   * nothing to say about a craft it has no reading for, and whether that is a
+   * comms problem is the signal status's story to tell, not this widget's.
+   */
+  if (coverage !== "modeled") return null;
 
-  // S1. Above every content row on purpose: a non-zero count rendered over a
-  // possibly-held frame, with the caption suppressed, is worse than saying so.
+  /*
+   * Currency survives, and it is the one thing here that is about the READING
+   * rather than the install: something IS modelling this craft and the frame we
+   * are holding is old, so the numbers below are real but may no longer be
+   * true. That is precisely the case worth a word.
+   */
   if (notCurrent) {
     return (
       <Notice
         severity="offline"
         state="not current"
         label="Reliability not current"
-      />
-    );
-  }
-
-  // S2. The summary itself has not arrived, so we do not know whether anything
-  // is watching. Not the same as knowing nothing is.
-  if (summary === undefined) {
-    return (
-      <Notice
-        severity="offline"
-        state="not reporting"
-        label="Reliability not reporting"
-      />
-    );
-  }
-
-  // S3. A provider was elected and could not be read: its factory threw, or the
-  // capture did. We are blind, and blind is not clean.
-  if (coverage === "unavailable") {
-    return (
-      <Notice
-        severity="offline"
-        state="unreadable"
-        label="Reliability unreadable"
-      />
-    );
-  }
-
-  // S4. The backend cannot determine its OWN modelling state. Distinct from
-  // "off", and it must never collapse into it.
-  if (coverage === "indeterminate") {
-    return (
-      <Notice
-        severity="offline"
-        state={prefixed(source, "state unknown")}
-        label="Reliability state unknown"
-      />
-    );
-  }
-
-  // S5. Names the BACKEND, never the save: under RO this is true whether the
-  // player switched failures off or another mod owns them.
-  if (coverage === "disabled") {
-    return (
-      <Notice
-        severity="info"
-        state={prefixed(source, "not modelling")}
-        label={`Reliability not modelled${source ? ` by ${source}` : ""}`}
-      />
-    );
-  }
-
-  // S6 already returned, above the staleness gate. See there for why.
-
-  /*
-   * S11, hoisted above the modelled path since everything below assumes it: a
-   * coverage value THIS BUILD does not recognise, or a producer that failed to
-   * set one. Worded apart from S4 on purpose. There the backend admits it
-   * cannot tell whether it is modelling; here the backend said something
-   * perfectly definite and we are the ones who do not understand it, which is
-   * what a newer mod against an older app looks like.
-   */
-  if (coverage !== "modeled") {
-    return (
-      <Notice
-        severity="offline"
-        state={prefixed(source, "state unrecognised")}
-        label="Reliability state unrecognised"
       />
     );
   }

@@ -195,7 +195,7 @@ describe("the reliability election, seen from six installs", () => {
    * used to render the same nothing as each other and as a healthy craft. They
    * now say what is actually true of them, and they say different things.
    */
-  it("says Kerbalism is not modelling reliability, rather than nothing", async () => {
+  it("keeps the row silent when the backend is not modelling this save", async () => {
     const { fixture, block } = renderScene("rp1-no-testflight");
     await replay(fixture, block);
 
@@ -204,9 +204,12 @@ describe("the reliability election, seen from six installs", () => {
     });
     expect(roster.textContent).not.toContain("testflight");
     expect(await screen.findByText("Active Craft")).toBeInTheDocument();
-    // The copy names the BACKEND, never the save: under RO this is true whether
-    // the player switched failures off or TestFlight owns them.
-    expect(screen.getByText("kerbalism not modelling")).toBeVisible();
+    // Whether a backend has failures switched off is a fact about the INSTALL:
+    // constant for the session, unactionable from a roster row, and already
+    // carried by `system.uplinkHealth`, which the settings panel and the Uplink
+    // wizard both read. On the row it was a permanent badge that taught the
+    // operator to stop looking at the slot.
+    expect(screen.queryByText(/not modelling/)).toBeNull();
     expect(screen.queryByText(/at risk/)).toBeNull();
     await act(async () => {});
   });
@@ -235,15 +238,26 @@ describe("the reliability election, seen from six installs", () => {
    * not carry. On the wire this install is byte-identical to a stock career:
    * source "none", no parts. It is NOT the same situation. A modelling mod is
    * installed and its provider failed to activate, so the operator is BLIND,
-   * where the stock player simply has nothing watching. Silence is the correct
-   * answer to one and a false reassurance to the other.
+   * where the stock player simply has nothing watching.
+   *
+   * Both are silent ON THE ROW, and the distinction survives where it can be
+   * acted on: the uplink's own health. Putting it on the row said a craft with
+   * a DIRECT link could not be read, which is not what happened and is not a
+   * thing a roster row should ever claim.
    */
-  it("says it is blind, where a stock career says nothing at all", async () => {
+  it("keeps the row silent when the elected provider failed to activate", async () => {
     const { fixture, block } = renderScene("reliability-unavailable");
     await replay(fixture, block);
 
     expect(await screen.findByText("Active Craft")).toBeInTheDocument();
-    expect(await screen.findByText(/unreadable/i)).toBeInTheDocument();
+    expect(screen.queryByText(/unreadable/i)).toBeNull();
+    // The profile still carries the fault, and it is still reachable: the
+    // uplink reports `degraded` with its reason. That is an install-level
+    // surface for an install-level fault, and it does not claim anything about
+    // this craft, which has a direct link and is being read perfectly well.
+    expect(
+      await screen.findByText(/reliability=degraded/, { selector: "p" }),
+    ).toBeInTheDocument();
     await act(async () => {});
   });
 
@@ -271,7 +285,7 @@ describe("the reliability election, seen from six installs", () => {
    * "an unmodelled craft is indistinguishable from a healthy one" was a
    * characterisation of the bug; this is the assertion that it is gone.
    */
-  it("gives each install a different answer, and only stock is silent", async () => {
+  it("speaks only where something is modelling, and never twice alike", async () => {
     const rendered: Record<string, string> = {};
     for (const id of COVERED) {
       const scene = renderScene(id);
@@ -284,12 +298,31 @@ describe("the reliability election, seen from six installs", () => {
       scene.unmount();
     }
 
-    expect(rendered["stock-career"]).toBe("");
-    const spoken = COVERED.filter((id) => id !== "stock-career").map(
+    /*
+     * Named rather than counted, because WHICH installs are silent is the
+     * design decision. Three are, and for one reason between them: nothing is
+     * modelling this craft. Nothing installed, the backend switched off, the
+     * provider failed to activate. Each is a fact about the install, holds for
+     * the session, and cannot be acted on from a roster row; `system.uplinkHealth`
+     * carries all three and the settings panel and Uplink wizard read it.
+     */
+    const SILENT = [
+      "stock-career",
+      "rp1-no-testflight",
+      "reliability-unavailable",
+    ];
+    for (const id of SILENT) expect(rendered[id]).toBe("");
+
+    /*
+     * And the half that kept its content: where something IS modelling, each
+     * install must say something, and no two may say the same thing. This is
+     * the assertion the whole harness was built for, unchanged in substance.
+     */
+    const spoken = COVERED.filter((id) => !SILENT.includes(id)).map(
       (id) => rendered[id],
     );
-    expect(new Set(spoken).size).toBe(spoken.length);
     expect(spoken.every((text) => text.length > 0)).toBe(true);
+    expect(new Set(spoken).size).toBe(spoken.length);
     await act(async () => {});
   });
 });

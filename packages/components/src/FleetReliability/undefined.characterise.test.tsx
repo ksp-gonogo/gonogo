@@ -152,8 +152,12 @@ describe("FleetReliability, what an unread channel renders", () => {
       fixture.emit("reliability.parts", FAILING_PARTS);
     });
 
-    expect(await screen.findByText("not reporting")).toBeInTheDocument();
-    expect(screen.queryByText("LV-909 Terrier")).not.toBeInTheDocument();
+    // The property under test is that it does not ASSERT A FAILURE, and that is
+    // unchanged. What went is the notice: with no summary there is no reading to
+    // qualify, and whether that is a comms problem is the signal status's story.
+    await waitFor(() =>
+      expect(screen.queryByText("LV-909 Terrier")).not.toBeInTheDocument(),
+    );
     expect(
       screen.queryByRole("group", { name: "Reliability updates" }),
     ).not.toBeInTheDocument();
@@ -169,14 +173,16 @@ describe("FleetReliability, what an unread channel renders", () => {
       fixture.emit("reliability.parts", FAILING_PARTS);
     });
 
-    expect(await screen.findByText("not reporting")).toBeInTheDocument();
-    expect(screen.queryByText("LV-909 Terrier")).not.toBeInTheDocument();
+    await waitFor(() =>
+      expect(screen.queryByText("LV-909 Terrier")).not.toBeInTheDocument(),
+    );
   });
 
-  it("says the state is unrecognised when a producer never set a coverage", async () => {
+  it("stays silent when a producer never set a coverage", async () => {
     // A payload with a source and no coverage is a producer bug, and the honest
-    // render is the same as an unrecognised value: we do not know. Silently
-    // reading it as "modelled" would resurrect the boolean this field replaced.
+    // answer is that we do not know. Reading it as "modelled" would resurrect
+    // the boolean this field replaced, so the part list must stay unrendered;
+    // that is the assertion. The notice went with the other install-level ones.
     const { fixture } = renderAugment("v-active");
     act(() => {
       fixture.emit("vessel.identity", ACTIVE_IDENTITY);
@@ -184,10 +190,9 @@ describe("FleetReliability, what an unread channel renders", () => {
       fixture.emit("reliability.parts", FAILING_PARTS);
     });
 
-    expect(
-      await screen.findByText("somemod state unrecognised"),
-    ).toBeInTheDocument();
-    expect(screen.queryByText("LV-909 Terrier")).not.toBeInTheDocument();
+    await waitFor(() =>
+      expect(screen.queryByText("LV-909 Terrier")).not.toBeInTheDocument(),
+    );
   });
 
   it("labels a failing part with an undefined title as 'Unknown part'", async () => {
