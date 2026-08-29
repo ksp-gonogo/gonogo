@@ -296,7 +296,7 @@ export function StationScreen() {
         logger.info(`[fog-sync] snapshot received: masks=${msg.masks.length}`);
         for (const m of msg.masks) {
           // Per-type mask routing: each mask carries its layerId (an
-          // opaque per-reveal-source id, e.g. "scansat:AltimetryHiRes").
+          // opaque per-reveal-source id, e.g. "survey:AltimetryHiRes").
           // The station persists each into its own per-type slot so the
           // local MapView composes the same per-channel precedence the
           // host renders.

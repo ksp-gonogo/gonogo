@@ -310,9 +310,6 @@ export const ALLOWLIST: Record<ModToken, ModAllowlist> = {
   scansat: {
     domainDebt: [
       // -- HARD violations (audit §2) --
-      "packages/app/src/peer/protocol.ts",
-      "packages/app/src/screens/StationScreen.tsx",
-      "packages/components/src/MapView/types.ts",
     ],
     permanent: [
       /*

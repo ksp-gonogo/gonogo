@@ -21,7 +21,7 @@ export interface MapViewConfig {
   /**
    * Renders the shared POI layer (`map-view.overlay`-adjacent, T-POI-7).
    * Default true: vanilla POIs (KSC, contract targets) are always-relevant
-   * reference points, not an opt-in SCANsat-shaped feature.
+   * reference points, not an opt-in survey-coverage feature.
    */
   showPois?: boolean;
   /**

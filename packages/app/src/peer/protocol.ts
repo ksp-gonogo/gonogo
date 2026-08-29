@@ -152,7 +152,7 @@ export type PeerMessage =
       type: "fog-snapshot";
       masks: Array<{
         bodyId: string;
-        // Opaque per-reveal-source id, e.g. "scansat:AltimetryHiRes":
+        // Opaque per-reveal-source id, e.g. "survey:AltimetryHiRes":
         // matches an id a reveal source registers via
         // registerFogRevealSource. Each mask routes to its own slot on
         // the station so the display can apply HiRes-over-LoRes
