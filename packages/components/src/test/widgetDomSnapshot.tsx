@@ -307,6 +307,49 @@ async function waitForSubscription(
       requestAnimationFrame(() => resolve());
     });
   }
+  exhaustedTopics.push(topic);
+}
+
+/**
+ * Diagnostics for a mount that never finishes.
+ *
+ * Vitest's timeout only ever points at the `it()` line, which is equally true
+ * of every hang and says nothing about which of the mount's five awaits failed
+ * to return. These two record the answer from OUTSIDE the awaiting code: the
+ * phase is a plain string the mount updates as it goes, and the watchdog reads
+ * it from a timer, which still fires while React's `act` is draining a tree
+ * that will not settle.
+ *
+ * `exhaustedTopics` is the other half. `waitForSubscription` giving up after 30
+ * frames is a deliberate fail-soft (a topic the widget never reads is meant to
+ * time out and be dropped), but it is silent, so a topic the widget SHOULD have
+ * subscribed to and didn't costs half a second and leaves no trace.
+ */
+let currentPhase = "idle";
+let exhaustedTopics: string[] = [];
+
+function beginPhase(name: string): void {
+  currentPhase = name;
+}
+
+function armStallWatchdog(
+  label: string,
+  pendingQueries: () => number,
+): () => void {
+  currentPhase = "start";
+  exhaustedTopics = [];
+  const timers = [5_000, 15_000, 25_000].map((afterMs) =>
+    setTimeout(() => {
+      process.stderr.write(
+        `[widget-harness] ${label} still in phase "${currentPhase}" after ${afterMs}ms, ` +
+          `pendingQueries=${pendingQueries()}, ` +
+          `neverSubscribed=[${exhaustedTopics.join(" ")}]\n`,
+      );
+    }, afterMs),
+  );
+  return () => {
+    for (const t of timers) clearTimeout(t);
+  };
 }
 
 /**
@@ -601,6 +644,10 @@ export async function snapshotWidgetMode<
   const restoreResizeObserver = installSizedResizeObserver(
     modePixels(opts.mode),
   );
+  const disarm = armStallWatchdog(
+    `snapshot ${opts.mode.name}`,
+    fixture.pendingQueries,
+  );
 
   try {
     const config: Cfg = {
@@ -615,6 +662,7 @@ export async function snapshotWidgetMode<
       emitVesselControl,
       replayStreamBlock,
     } = buildStreamWrap(opts.fixture, opts.profile);
+    beginPhase("render");
     const { container } = render(
       <Wrap>
         <DashboardItemContext.Provider value={{ instanceId }}>
@@ -634,6 +682,7 @@ export async function snapshotWidgetMode<
     // exist before the emits, matches the probe's "mount, then emit"
     // ordering. Without the act() wrapper React batches updates and the
     // snapshot races the commit.
+    beginPhase("seed-emits");
     act(() => {
       if (!fixtureEmitsMuted()) {
         for (const key of fixtureKeys) {
@@ -645,22 +694,28 @@ export async function snapshotWidgetMode<
     });
     // Outside the synchronous block above: each entry waits for its topic's
     // subscription, which only lands once frames have run.
+    beginPhase("replay-stream");
     await act(async () => {
       await replayStreamBlock();
     });
+    beginPhase("provider-frame");
     await flushProviderFrame(providerMounted);
 
     // Drain the async `useDataSeries` backfill (graphs/sparklines) before
     // snapshotting. waitFor wraps act, so the backfill's notify() flushes
     // inside it: no manual act(). Waits on the real pending work, not a
     // bare tick. No-op for widgets that never query a range.
+    beginPhase("backfill-wait");
     await waitFor(() => {
       if (fixture.pendingQueries() !== 0) throw new Error("backfill pending");
     });
+    beginPhase("flush-resize-observers");
     await flushResizeObservers();
 
+    beginPhase("done");
     return stripVolatile(container.innerHTML);
   } finally {
+    disarm();
     restoreResizeObserver();
     teardownMockDataSource(fixture);
     source = null;
@@ -703,6 +758,10 @@ export async function renderWidgetMode<
   const restoreResizeObserver = installSizedResizeObserver(
     modePixels(opts.mode),
   );
+  const disarm = armStallWatchdog(
+    `render ${opts.mode.name}`,
+    fixture.pendingQueries,
+  );
 
   const config: Cfg = {
     ...baselineConfig(opts),
@@ -716,6 +775,7 @@ export async function renderWidgetMode<
     emitVesselControl,
     replayStreamBlock,
   } = buildStreamWrap(opts.fixture, opts.profile);
+  beginPhase("render");
   const { container } = render(
     <Wrap>
       <DashboardItemContext.Provider value={{ instanceId }}>
@@ -731,6 +791,7 @@ export async function renderWidgetMode<
     </Wrap>,
   );
 
+  beginPhase("seed-emits");
   act(() => {
     if (!fixtureEmitsMuted()) {
       for (const key of fixtureKeys) {
@@ -740,17 +801,23 @@ export async function renderWidgetMode<
     emitVesselParts();
     emitVesselControl();
   });
+  beginPhase("replay-stream");
   await act(async () => {
     await replayStreamBlock();
   });
+  beginPhase("provider-frame");
   await flushProviderFrame(providerMounted);
 
   // Drain the async useDataSeries backfill the testing-library way (see
   // snapshotWidgetMode) so a11y assertions run against a settled tree.
+  beginPhase("backfill-wait");
   await waitFor(() => {
     if (fixture.pendingQueries() !== 0) throw new Error("backfill pending");
   });
+  beginPhase("flush-resize-observers");
   await flushResizeObservers();
+  beginPhase("done");
+  disarm();
   restoreResizeObserver();
 
   return { container, teardown: () => teardownMockDataSource(fixture) };
