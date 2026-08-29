@@ -1,3 +1,7 @@
+import {
+  type RootProviderDefinition,
+  registerRootProvider,
+} from "../api/root-providers";
 import type { ContributionDefinition } from "../api/types";
 import type { ReckonerFor } from "../reading";
 import type { DerivedChannelDefinition } from "../timeline";
@@ -78,6 +82,17 @@ export interface UplinkClientHandle {
    * on a local id. Throws synchronously at THIS call site (registerContribution's
    * own collision check) on a genuine id clash within one client's own ids.
    */
+  /**
+   * Mounts a context Provider at the ROOT of every screen's tree, so an
+   * Uplink whose widgets share state can establish it without the app
+   * importing the Uplink to hand-wire it in.
+   *
+   * <p>Auto-namespaced like `registerContribution`. The Provider is handed the
+   * screen it is mounted for and MUST key any persisted state by it, or a
+   * station and the main screen on one machine overwrite each other.</p>
+   */
+  registerRootProvider(def: RootProviderDefinition): void;
+
   registerContribution<S extends string>(
     def: Omit<ContributionDefinition<S>, "owner">,
   ): void;
@@ -161,6 +176,9 @@ export function defineUplinkClient(cfg: {
     version: cfg.version,
     name: cfg.name,
     description: cfg.description,
+    registerRootProvider(def: RootProviderDefinition): void {
+      registerRootProvider({ ...def, id: `${cfg.id}:${def.id}` });
+    },
     registerContribution<S extends string>(
       def: Omit<ContributionDefinition<S>, "owner">,
     ): void {

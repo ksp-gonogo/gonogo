@@ -22,7 +22,7 @@
 // what taught docs/creating-an-uplink.md to tell authors to depend on core.
 // ---------------------------------------------------------------------------
 
-import type { ReactElement, ReactNode } from "react";
+import type { ReactElement } from "react";
 import {
   createElement,
   useCallback,
@@ -893,4 +893,17 @@ export {
  * not a re-export. See `./localStorageStore.ts`'s module header for why.
  */
 export { LocalStorageStore } from "./localStorageStore";
+/*
+ * Root providers: how an Uplink mounts a context Provider at the top of a
+ * screen's tree without the app importing it to hand-wire one in. Published
+ * here rather than in `core` because `core` is not an author surface: an
+ * Uplink may import this package and `ui-kit` and nothing else of the repo.
+ */
+export {
+  clearRootProviders,
+  getRootProviders,
+  type RootProviderDefinition,
+  RootProviders,
+  registerRootProvider,
+} from "./root-providers";
 export { safeRandomUuid } from "./safe-random-uuid";

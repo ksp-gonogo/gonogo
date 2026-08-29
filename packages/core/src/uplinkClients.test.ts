@@ -39,6 +39,7 @@ describe("defineUplinkClient / getUplinkClients / clearUplinkClients", () => {
       registerProcessor: expect.any(Function),
       registerReckoner: expect.any(Function),
       registerDerivedChannel: expect.any(Function),
+      registerRootProvider: expect.any(Function),
     });
   });
 

@@ -553,18 +553,7 @@ export const ALLOWLIST: Record<ModToken, ModAllowlist> = {
        * ratchet's scan, not individually named in the audit's kOS table).
        */
       "mod/Sitrep.Core/Serialization/JsonWriter.cs",
-      "packages/app/src/screens/MainScreen.tsx",
 
-      /*
-       * -- kos migration (2026-07-18), Task 4: CpuRegistryService/
-       * CpuRegistryProvider moved from @ksp-gonogo/data into the kos Uplink.
-       * StationScreen constructs its own CpuRegistryService and wraps
-       * <CpuRegistryProvider> exactly as MainScreen already does (see the
-       * MainScreen.tsx HARD-violation entry above): same "moved, not
-       * removed" pattern the kerbcast migration's own MainScreen.tsx/
-       * StationScreen.tsx entries establish for its Uplink.
-       */
-      "packages/app/src/screens/StationScreen.tsx",
       /*
        * Task 5: ComponentOverlay/WidgetGearMenu tests import kos's real
        * kosChromeProvider self-registration (via CpuRegistryProvider/

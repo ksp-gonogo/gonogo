@@ -14,13 +14,6 @@ import {
   FogMaskStore,
 } from "@ksp-gonogo/data";
 import type { KerbcastDataSource } from "@ksp-gonogo/gonogo-kerbcast-uplink";
-// From the `/runtime` subpath, not the package root, same reason
-// MainScreen.tsx does (see `@ksp-gonogo/gonogo-kos-uplink`'s `runtime.ts` doc comment):
-// avoids evaluating `./KosTerminal`'s widget-registration side effect.
-import {
-  CpuRegistryProvider,
-  CpuRegistryService,
-} from "@ksp-gonogo/gonogo-kos-uplink/runtime";
 import { debugPeer, logger } from "@ksp-gonogo/logger";
 import {
   InputDispatcher,
@@ -28,6 +21,7 @@ import {
   SerialDeviceService,
   SerialPortRecoveryWatcher,
 } from "@ksp-gonogo/serial";
+import { RootProviders } from "@ksp-gonogo/sitrep-sdk";
 import { BannerStack, FabClusterProvider } from "@ksp-gonogo/ui";
 import { useEffect, useMemo, useRef, useState } from "react";
 import styled from "styled-components";
@@ -150,7 +144,6 @@ export function StationScreen() {
   const [missionProfiles] = useState(
     () => new MissionProfilesService("station"),
   );
-  const [cpuRegistry] = useState(() => new CpuRegistryService("station"));
   const [alarmClient] = useState(() => new AlarmClientService(client));
   const [maneuverTriggerClient] = useState(
     () => new ManeuverTriggerClientService(client),
@@ -365,7 +358,7 @@ export function StationScreen() {
     return (
       <ScreenProvider value="station">
         <SettingsProvider service={settingsService}>
-          <CpuRegistryProvider service={cpuRegistry}>
+          <RootProviders screen="station">
             <MissionProfilesProvider service={missionProfiles}>
               <ScopedStationIdentity>
                 <StationConnectView
@@ -380,7 +373,8 @@ export function StationScreen() {
                 />
               </ScopedStationIdentity>
             </MissionProfilesProvider>
-          </CpuRegistryProvider>
+            ,
+          </RootProviders>
         </SettingsProvider>
       </ScreenProvider>
     );
@@ -397,7 +391,7 @@ export function StationScreen() {
   return (
     <ScreenProvider value="station">
       <SettingsProvider service={settingsService}>
-        <CpuRegistryProvider service={cpuRegistry}>
+        <RootProviders screen="station">
           <MissionProfilesProvider service={missionProfiles}>
             <StationWakeLockBridge />
             <ScopedStationIdentity>
@@ -545,7 +539,8 @@ export function StationScreen() {
               </PeerClientProvider>
             </ScopedStationIdentity>
           </MissionProfilesProvider>
-        </CpuRegistryProvider>
+          ,
+        </RootProviders>
       </SettingsProvider>
     </ScreenProvider>
   );

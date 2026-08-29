@@ -35,6 +35,13 @@
 // tags derive "kos" automatically.
 // (Also re-run by `./runtime`, below, idempotent, see that module's doc.)
 import "./uplink";
+/*
+ * Side-effect import: mounts kOS's CPU registry at the root of every screen.
+ * Registered here rather than hand-wired into the app's screens, which is what
+ * made `packages/app` import this Uplink by name and unable to build without
+ * it. See `./shared/rootProvider` for why the service is keyed by screen.
+ */
+import "./shared/rootProvider";
 
 // This Uplink's own wire payload types, now that it declares them rather than
 // core (relocated out of Sitrep.Contract, see ./topics.ts and

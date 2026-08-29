@@ -13,22 +13,18 @@ import {
   ReplaySessionBanner,
   ReplaySessionProvider,
 } from "@ksp-gonogo/data";
-// From the `/runtime` subpaths (not the package roots), MainScreen needs
-// this infra regardless of whether the CameraFeed/KosTerminal WIDGETS are
-// statically bundled or loaded at runtime via the Uplink loader; importing
-// the package root would also evaluate the widget's own module and collide
-// with the loader's registerComponent (see each package's `runtime.ts` doc
-// comment for the full mechanism).
+/*
+ * From the `/runtime` subpath, not the package root: MainScreen needs this
+ * infra whether or not the CameraFeed widget is statically bundled, and
+ * importing the package root would also evaluate the widget's own module and
+ * collide with the loader's registerComponent. That package's `runtime.ts`
+ * doc comment carries the full mechanism.
+ */
 import {
   KERBCAST_EVENTS_TOPIC,
   kerbcastSource,
   useKerbcastMainConnect,
 } from "@ksp-gonogo/gonogo-kerbcast-uplink/runtime";
-import {
-  CpuRegistryProvider,
-  CpuRegistryService,
-  KosCpuDiscovery,
-} from "@ksp-gonogo/gonogo-kos-uplink/runtime";
 import {
   InputDispatcher,
   SerialDeviceProvider,
@@ -36,6 +32,7 @@ import {
   SerialPortRecoveryWatcher,
 } from "@ksp-gonogo/serial";
 import { getViewUt } from "@ksp-gonogo/sitrep-client";
+import { RootProviders } from "@ksp-gonogo/sitrep-sdk";
 import { BannerStack, FabClusterProvider } from "@ksp-gonogo/ui";
 import type { ReactNode } from "react";
 import { useEffect, useMemo, useState } from "react";
@@ -133,7 +130,6 @@ export function MainScreen() {
   );
   const [settingsService] = useState(() => new SettingsService());
   const [missionProfiles] = useState(() => new MissionProfilesService("main"));
-  const [cpuRegistry] = useState(() => new CpuRegistryService("main"));
   const [fogMaskStore] = useState(() => new FogMaskStore());
   // GoNoGoHostService lives for the app's lifetime. Intentionally no dispose
   // cleanup: StrictMode's simulated unmount would run it and leave the
@@ -225,7 +221,6 @@ export function MainScreen() {
   return (
     <SitrepTelemetryProvider>
       <SitrepPeerRelay peerHost={peerHostService} />
-      <KosCpuDiscovery cpuRegistry={cpuRegistry} />
       <AugmentAvailabilityFeeder />
       <ReplaySessionProvider>
         <ScreenProvider value="main">
@@ -243,7 +238,7 @@ export function MainScreen() {
             <AlarmHostProvider service={alarmHost}>
               <NotesHostProvider service={notesHost}>
                 <ManeuverTriggerProvider service={maneuverTriggerHost}>
-                  <CpuRegistryProvider service={cpuRegistry}>
+                  <RootProviders screen="main">
                     <MissionProfilesProvider service={missionProfiles}>
                       <GoNoGoHostProvider service={goNoGoHost}>
                         <PushHostProvider service={pushHost}>
@@ -346,7 +341,8 @@ export function MainScreen() {
                         </PushHostProvider>
                       </GoNoGoHostProvider>
                     </MissionProfilesProvider>
-                  </CpuRegistryProvider>
+                    ,
+                  </RootProviders>
                 </ManeuverTriggerProvider>
               </NotesHostProvider>
             </AlarmHostProvider>
