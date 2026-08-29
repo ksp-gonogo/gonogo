@@ -37,14 +37,14 @@ import {
   Truncate,
   Unit,
 } from "@ksp-gonogo/ui-kit";
-import {
-  Fragment,
-  type ReactNode,
-  useLayoutEffect,
-  useMemo,
-  useRef,
-  useState,
-} from "react";
+import { Fragment, type ReactNode, useMemo } from "react";
+/*
+ * UpdatesRow below keeps styled-components for a load-bearing `&:empty` rule:
+ * an inline style cannot express a pseudo-class, and the JS equivalent it
+ * replaces could only answer the question once (see that component's doc).
+ */
+// biome-ignore lint/style/noRestrictedImports: :empty row collapse, no inline equivalent (see above)
+import styled from "styled-components";
 import { magnitudeOf } from "../shared/magnitude";
 
 const topics = defineTopicManifest({
@@ -521,41 +521,34 @@ function FleetSignalCell({
 /**
  * Wraps the per-vessel `fleet-roster.updates` slot. A bound augment may
  * legitimately render nothing for THIS row (e.g. the reliability augment's
- * active-vessel-only gate): collapse the block's own padding/gap in that
- * case, so it doesn't leave an empty gap under every other row. Mirrors the
- * `&:empty` CSS rule this replaces: `:empty` doesn't survive outside a
- * stylesheet rule, so the same check runs against the committed DOM here
- * instead, via a ref + layout effect.
+ * active-vessel-only gate): collapse the block's own padding/gap in that case,
+ * so it doesn't leave an empty gap under every other row.
+ *
+ * The emptiness has to be asked of the DOM, because whether an augment rendered
+ * anything is not something this widget can know, and `:empty` is the only form
+ * of the question that stays live. The ref + layout effect this replaces asked
+ * it once: a layout effect runs when its OWN component renders, and an augment
+ * filling in from a telemetry frame re-renders the child alone, so a slot that
+ * arrived after mount stayed hidden forever. That is the normal case for
+ * anything riding the stream, and it hid the reliability augment in every
+ * render of it.
  */
-function UpdatesRow({ children }: { children: ReactNode }) {
-  const ref = useRef<HTMLDivElement>(null);
-  const [hasContent, setHasContent] = useState(true);
-  useLayoutEffect(() => {
-    setHasContent((ref.current?.childNodes.length ?? 0) > 0);
-  });
-  return (
-    <div
-      ref={ref}
-      style={
-        hasContent
-          ? {
-              display: "flex",
-              flexDirection: "column",
-              gap: "var(--space-2)",
-              // The 21px left inset is computed, not chosen: NameCell's 6px
-              // padding-left + LinkDot's 8px width + NameCell's 7px gap, so
-              // this block hangs under the vessel name rather than under its
-              // status dot. It stays literal; the other three sides are
-              // ordinary rhythm and do tokenise.
-              padding: "0 var(--space-6) var(--space-6) 21px",
-            }
-          : { display: "none" }
-      }
-    >
-      {children}
-    </div>
-  );
-}
+const UpdatesRow = styled.div`
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  /* The 21px left inset is computed, not chosen: NameCell's 6px padding-left +
+     LinkDot's 8px width + NameCell's 7px gap, so this block hangs under the
+     vessel name rather than under its status dot. It stays literal; the other
+     three sides are ordinary rhythm and do tokenise. */
+  padding: 0 var(--space-6) var(--space-6) 21px;
+
+  /* Nothing contributed to this row: an augment that returns null adds no DOM,
+     so the wrapper is genuinely empty and takes no space at all. */
+  &:empty {
+    display: none;
+  }
+`;
 
 // ---------------------------------------------------------------------------
 // Widget
