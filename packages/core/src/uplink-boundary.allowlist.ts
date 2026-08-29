@@ -1815,26 +1815,17 @@ export const ALLOWLIST: Record<ModToken, ModAllowlist> = {
       "mod/sitrep-sdk/src/event-timeline.ts",
 
       /*
-       * -- base-library widgets: SLOT DOCUMENTATION, not coupling --
-       * Each of these names Kerbalism in prose while documenting a slot,
-       * augment or badge surface it exposes for an Uplink to fill: "an augment
-       * (e.g. a Kerbalism EC-broker breakdown) renders here", "unfilled until a
-       * Kerbalism-style Uplink binds". The named mod is a hypothetical
-       * contributor, and the widget reads no kerbalism Topic and imports no
-       * kerbalism type. ShipMap additionally declares `kerbalism.profile`/
-       * `kerbalism.lifesupport` in its two ContributionRegistry slot entries,
-       * the host half of the same contract sitrep-sdk mirrors above. FleetRoster
-       * and its sibling carry "kerbalism" as a registerComponent search TAG,
-       * which is metadata text.
+       * -- base-library widgets: search-tag METADATA, not coupling --
+       * These two carry "kerbalism" as a registerComponent search TAG, which is
+       * metadata text: the widget reads no kerbalism Topic and imports no
+       * kerbalism type. The widgets that used to sit here alongside them named
+       * the mod in SLOT PROSE instead ("an augment (e.g. a Kerbalism EC-broker
+       * breakdown) renders here"), and that wording has since been rewritten to
+       * name the capability rather than one backend, so their entries ratcheted
+       * off.
        */
-      "packages/components/src/ActionGroup/index.tsx",
       "packages/components/src/FleetReliability/index.tsx",
       "packages/components/src/FleetRoster/index.tsx",
-      "packages/components/src/PowerSystems/index.tsx",
-      "packages/components/src/ScienceData/index.tsx",
-      "packages/components/src/ShipMap/index.tsx",
-      "packages/components/src/ShipMap/partMetersContribution.ts",
-      "packages/components/src/ShipMap/shipTopology.ts",
       /*
        * systemEntities.ts: the `travelling-pulse` shape's doc comment names
        * Kerbalism's own storm-arrival UT/duration as the realistic EXAMPLE of
@@ -1929,32 +1920,14 @@ export const ALLOWLIST: Record<ModToken, ModAllowlist> = {
       "packages/core/src/registry.replacement.test.ts",
       "packages/core/src/truenow-allowlist.test.ts",
       "packages/components/src/CrewStatus/index.test.tsx",
-      /*
-       * ScienceData/index.test.tsx: asserts the stock path (no Kerbalism
-       * client imported anywhere in this package's test tree) renders the
-       * science-data.aboard-row slot empty, same "base widget does NOT
-       * couple to it" shape as CrewStatus's own entry above.
-       */
-      "packages/components/src/ScienceData/index.test.tsx",
       "packages/components/src/FleetReliability/index.test.tsx",
       "packages/components/src/FleetRoster/index.test.tsx",
-      "packages/components/src/ShipMap/ShipDiagram.test.tsx",
-      "packages/components/src/ShipMap/contributions.test.tsx",
       /*
        * unit-symbol-collision.test.ts: the guard for a real shipped bug, named
        * after where it was seen (a death-clock badge reading "~4M" for four
        * minutes). Provenance for a general unit-symbol rule.
        */
       "packages/ui-kit/src/unit-symbol-collision.test.ts",
-      /*
-       * widgetDeclarations.test.ts: names `kerbalism.spaceweather` and the
-       * Kerbalism client in prose, as the worked example of why this gate
-       * cannot classify `channels` from inside `packages/components`. A
-       * built-in widget mounting on an Uplink-owned channel is the case, and
-       * naming a different Uplink's channel would make the comment a lie.
-       * Text-only; the assertion itself reads the registry and imports nothing.
-       */
-      "packages/components/src/test/widgetDeclarations.test.ts",
     ],
   },
   /*

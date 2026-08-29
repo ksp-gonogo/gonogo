@@ -182,7 +182,7 @@ describe("ScienceDataComponent", () => {
     expect(visibleText()).toContain("12.5");
   });
 
-  it("renders the science-data.aboard-row slot empty on the stock path (no Kerbalism augment imported)", async () => {
+  it("renders the science-data.aboard-row slot empty on the stock path (no augment imported)", async () => {
     const fixture = newFixture();
     renderData(fixture);
     act(() => {
@@ -200,7 +200,7 @@ describe("ScienceDataComponent", () => {
     await waitFor(() =>
       expect(screen.getByText(/Mystery Goo Observation/)).toBeInTheDocument(),
     );
-    // No Kerbalism Uplink client is imported anywhere in this package's test
+    // No Uplink client is imported anywhere in this package's test
     // tree, so the slot has nothing bound: the row renders exactly as it
     // did before the slot existed, no Send/Delete/Analyze/Dump control.
     expect(

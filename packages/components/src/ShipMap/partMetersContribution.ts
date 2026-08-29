@@ -5,9 +5,8 @@ import type { ShipMapPartMeterEntry } from "./shipTopology";
 
 // The built-in half of the `ship-map.part-meters` self-contribution, and this
 // repo's flagship demonstration of the pattern: the five classic drainable
-// propellants, on the SAME contribution slot a Kerbalism-style Uplink
-// contributes its own supply tanks to
-// (`mod/GonogoKerbalismUplink/client/src/ShipMap/partMeters.ts`). ShipMap
+// propellants, on the SAME contribution slot an Uplink contributes its own
+// supply tanks to. ShipMap
 // itself does not know which resource deserves a meter; that judgement call
 // lives entirely in contributions, this one included.
 //
@@ -42,8 +41,7 @@ const DRAINABLE_RESOURCES = [
 /** Ratio thresholds for the built-in five's status signal (a border tint or
  *  badge, never the fill hue): below this fraction of capacity the meter
  *  reads "low", below `CRITICAL_THRESHOLD` it reads "critical". Mirrors the
- *  Kerbalism contribution's own `DEFAULT_LOW_THRESHOLD` convention
- *  (`mod/GonogoKerbalismUplink/client/src/ShipMap/partMeters.ts`), kept
+ *  default-low-threshold convention an Uplink contribution follows, kept
  *  local rather than shared: the two contributions live in different
  *  packages with no shared "ShipMap contribution helpers" module yet. */
 const LOW_THRESHOLD = 0.15;
@@ -63,8 +61,8 @@ function statusFor(
 /**
  * Pure core of the built-in contribution, exported so a test can call it
  * directly against a plain `VesselParts` fixture without going through the
- * contribution registry at all (mirrors `spaceWeatherBadges`'s own
- * export-the-pure-core pattern in the Kerbalism Uplink).
+ * contribution registry at all (the same export-the-pure-core pattern the
+ * Uplink-side contributions follow).
  */
 export function computeBuiltinPartMeters(
   wire: VesselParts | undefined,

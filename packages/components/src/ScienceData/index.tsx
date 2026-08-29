@@ -146,8 +146,8 @@ function ScienceDataComponent({
   // already-parsed experiments array.
   const sciCount = experiments ? experiments.length : undefined;
   // Summed only when at least one entry actually carries a figure. A provider
-  // whose model is not mits leaves `dataAmount` null on every entry (Kerbalism
-  // stores megabytes and says so through `valueModel`), and summing those to a
+  // whose model is not mits leaves `dataAmount` null on every entry (a backend
+  // storing megabytes says so through `valueModel`), and summing those to a
   // confident "0.0 mits collected" states something false about a vessel that
   // may be carrying plenty. No figure means the line simply omits it.
   const collected = experiments?.filter((e) => e.dataAmount !== null) ?? [];
@@ -248,8 +248,8 @@ function ScienceDataComponent({
 
 /** Props passed to every `science-data.aboard-row` augment, one per subject. */
 export interface ScienceDataAboardRowContext {
-  /** The subject this Aboard row represents. A Kerbalism augment joins its
-   *  own `science.experiments` read against this id to find the file and/or
+  /** The subject this Aboard row represents. An augment joins its own
+   *  `science.experiments` read against this id to find the file and/or
    *  sample backing it (a subject can hold both at once). */
   subjectId: string;
 }
@@ -264,7 +264,7 @@ registerComponent<ScienceDataConfig>({
   id: "science-data",
   name: "Science Data",
   description:
-    "Science ledger in two tabs: Aboard is the active vessel's onboard record (collected science per subject, remaining potential, and a 'you are here' situation line; requires flight). Archive is the whole career's R&D archive, every subject ever collected or recovered across every mission and body, grouped by body then experiment × situation × biome; it renders at the Space Center with nothing flying. Read-only on its own; the Kerbalism Uplink enriches each Aboard row with File Manager controls (drive capacity, transmit/delete/flag/analyze/move-to-lab) through the science-data.aboard-row augment slot.",
+    "Science ledger in two tabs: Aboard is the active vessel's onboard record (collected science per subject, remaining potential, and a 'you are here' situation line; requires flight). Archive is the whole career's R&D archive, every subject ever collected or recovered across every mission and body, grouped by body then experiment × situation × biome; it renders at the Space Center with nothing flying. Read-only on its own; an installed Uplink can enrich each Aboard row with File Manager controls (drive capacity, transmit/delete/flag/analyze/move-to-lab) through the science-data.aboard-row augment slot.",
   tags: ["telemetry", "science"],
   defaultSize: { w: 8, h: 10 },
   // Five columns is what the Aboard and Archive tabs need side by side. Below
@@ -280,7 +280,7 @@ registerComponent<ScienceDataConfig>({
   defaultConfig: {},
   // Both tabs are read-only on the base widget itself, no dispatchable
   // action of its own (deploy/transmit live on Experiments; File Manager
-  // controls are the Kerbalism augment noted above, dispatched from within
+  // controls are the augment noted above, dispatched from within
   // the slot rather than through this widget's own action list).
   actions: [],
   augmentSlots: ["science-data.aboard-row"],

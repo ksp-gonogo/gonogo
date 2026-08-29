@@ -114,7 +114,7 @@ export interface ShipMapPart {
  * `ship-map.part-meters` contribution slot (the framework's self-
  * contribution flagship). Both the built-in `core` contribution
  * (the five classic drainable propellants, `ShipMap/partMetersContribution.ts`)
- * and a Kerbalism-style Uplink contribution (its supply tanks) emit this SAME
+ * and an Uplink contribution (a life-support backend's supply tanks, say) emit this SAME
  * shape onto the SAME slot, so `ShipDiagramSvg`'s per-part fill bars and
  * `ShipDiagram`'s hover tooltip read one aggregated list regardless of which
  * contributor produced an entry. There is no hardcoded resource allowlist
@@ -141,8 +141,8 @@ export interface ShipMapPartMeterEntry {
    *  colour, see this interface's own doc comment. */
   resource: string;
   /** Human label. Falls back to `resource` when the contributor has no nicer
-   *  name (the built-in five don't; a Kerbalism profile's
-   *  `KerbalismResourceDef.displayName` does). */
+   *  name (the built-in five don't; a mod's own resource definitions
+   *  generally carry one). */
   displayName: string;
   /** Current stored amount, resource units. */
   amount: number;
@@ -153,8 +153,8 @@ export interface ShipMapPartMeterEntry {
    * A SEPARATE status signal, never the fill hue: `"critical"` /
    * `"low"` draw a border tint or badge alongside the identity-coloured
    * fill; `null`/`undefined` means healthy, no status signal drawn. A
-   * contributor decides its own low/critical thresholds (a Kerbalism
-   * profile's `lowThreshold`, or the built-in contribution's own ratio
+   * contributor decides its own low/critical thresholds (a life-support
+   * profile's own configured level, or the built-in contribution's ratio
    * cutoffs); ShipMap only renders whichever of the two levels it's given.
    */
   status?: "low" | "critical" | null;
@@ -162,14 +162,13 @@ export interface ShipMapPartMeterEntry {
 
 /**
  * One per-part status/metadata row for the `ship-map.part-meta` slot: things
- * about a part that aren't a fill-level meter. Today the Kerbalism
- * contribution only has real per-part data for a fitted process's
- * running/broken state (`KerbalismLifeSupport.processes[].flightId`); habitat
- * pressure, radiation dose, and reliability MTBF are NOT yet on the wire with
- * per-part granularity (only vessel-wide aggregates), so no contributor emits
- * a `"ratio"` entry yet. The shape reserves that case rather than leaving it
- * unmodelled, see the Kerbalism contribution's own doc comment for the exact
- * gap.
+ * about a part that aren't a fill-level meter. Today the only contribution
+ * with real per-part data carries a fitted life-support process's
+ * running/broken state, keyed by flight id; habitat pressure, radiation dose,
+ * and reliability MTBF are NOT yet on the wire with per-part granularity (only
+ * vessel-wide aggregates), so no contributor emits a `"ratio"` entry yet. The
+ * shape reserves that case rather than leaving it unmodelled, and each
+ * contribution's own doc comment records the exact gap it still has.
  */
 export interface ShipMapPartMetaEntry {
   /** `ShipMapPart.flightId`, stringified (see `ShipMapPartMeterEntry.partId`). */

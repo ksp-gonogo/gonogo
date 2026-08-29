@@ -89,10 +89,10 @@ interface Contribution {
 //
 // `power-systems.sections`: a Table/section slot in the body, below the
 // net-rate/producer-consumer readout. The canonical first filler is
-// Kerbalism's EC-broker breakdown (Kerbalism re-derives EC production/
-// consumption via its own `ResourceBrokers`), contributed as an augment that
-// reads ONLY Kerbalism's own Topics. Core never references it, the host
-// composes whatever is registered.
+// an EC-broker breakdown from a life-support backend that re-derives EC
+// production and consumption itself, contributed as an augment that reads
+// ONLY that Uplink's own Topics. Core never references it, the host composes
+// whatever is registered.
 //
 // It carries the widget's current resource focus as slot props so an augment
 // renders against the resource the operator is actually looking at,
@@ -597,7 +597,7 @@ function PowerSystemsComponent({
               </div>
             </Section>
           )}
-          {/* Augment sections: e.g. a Kerbalism EC-broker breakdown, composed
+          {/* Augment sections: e.g. an Uplink's EC-broker breakdown, composed
             below the stock producer/consumer/idle readout and INSIDE the same
             scroller, which is why the seam is placed here rather than left to
             `Panel`'s default end-of-body mount. */}
@@ -962,7 +962,7 @@ registerComponent<PowerSystemsConfig>({
   defaultConfig: { defaultResource: "ElectricCharge" },
   actions: powerSystemsActions,
   // Augment slot. `sections`: body table/section below the stock readout
-  // (Kerbalism EC-broker breakdown is the canonical filler). Renders nothing
+  // (an EC-broker breakdown is the canonical filler). Renders nothing
   // until an Uplink registers.
   augmentSlots: ["power-systems.sections"],
   pushable: true,

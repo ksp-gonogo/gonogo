@@ -200,7 +200,7 @@ function ShipMapComponent(_props: Readonly<ComponentProps<ShipMapConfig>>) {
   const liveByFlightId = usePartsLive(flightIds);
 
   // The unified self-contribution path: every per-part meter and
-  // meta row, built-in and Kerbalism alike, arrives through these two typed
+  // meta row, built-in and Uplink-contributed alike, arrives through these two typed
   // slots. Grouped by partId here, once, so `ShipDiagramSvg` (the compact
   // in-body fill bars) and `ShipDiagram` (the hover tooltip) both read the
   // SAME per-part lookup rather than each re-deriving it.
@@ -558,8 +558,8 @@ registerComponent<ShipMapConfig>({
   augmentSlots: ["ship-map.overlay"],
   // The self-contribution slots: per-part resource meters and
   // per-part status/meta rows. The built-in `core` contribution
-  // (./partMetersContribution.ts) always fills the first; a Kerbalism-style
-  // Uplink may fill both.
+  // (./partMetersContribution.ts) always fills the first; an Uplink may
+  // fill both.
   contributionSlots: ["ship-map.part-meters", "ship-map.part-meta"],
   // useTopology reads the `vessel.parts` stream Topic directly (bypassing
   // the mapTopic shim, same as useVesselDeltaV's stream-native reads); the
