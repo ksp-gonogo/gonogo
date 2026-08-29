@@ -95,21 +95,21 @@ describe("RequiresGuard: uplink-health render-gate on REQUIRED channels", () => 
   });
 
   it("renders children through while the owning uplink's health hasn't arrived yet", () => {
-    renderGuard(<div>widget content</div>, { channels: ["kos.terminal.1"] });
+    renderGuard(<div>widget content</div>, { channels: ["demo.gauge.1"] });
     expect(screen.getByText("widget content")).toBeInTheDocument();
   });
 
   it("blocks and shows the owning uplink's health.detail when it's degraded", async () => {
     const { transport } = renderGuard(<div>widget content</div>, {
-      channels: ["kos.terminal.1"],
+      channels: ["demo.gauge.1"],
     });
     act(() =>
       transport.emit(
         "system.uplinks",
         rosterPoint([
           {
-            id: "kos",
-            ownedPrefixes: ["kos."],
+            id: "demo",
+            ownedPrefixes: ["demo."],
             state: 1,
             detail: "no active CPU selected",
           },
@@ -124,13 +124,13 @@ describe("RequiresGuard: uplink-health render-gate on REQUIRED channels", () => 
 
   it("renders children through once the owning uplink reports healthy", async () => {
     const { transport } = renderGuard(<div>widget content</div>, {
-      channels: ["kos.terminal.1"],
+      channels: ["demo.gauge.1"],
     });
     act(() =>
       transport.emit(
         "system.uplinks",
         rosterPoint([
-          { id: "kos", ownedPrefixes: ["kos."], state: 0, detail: null },
+          { id: "demo", ownedPrefixes: ["demo."], state: 0, detail: null },
         ]),
       ),
     );
@@ -141,17 +141,24 @@ describe("RequiresGuard: uplink-health render-gate on REQUIRED channels", () => 
 
   it("has no axe violations while blocked on an unhealthy uplink", async () => {
     const { transport, container } = renderGuard(<div>widget content</div>, {
-      channels: ["kos.terminal.1"],
+      channels: ["demo.gauge.1"],
     });
     act(() =>
       transport.emit(
         "system.uplinks",
         rosterPoint([
-          { id: "kos", ownedPrefixes: ["kos."], state: 2, detail: "no CPU" },
+          {
+            id: "demo",
+            ownedPrefixes: ["demo."],
+            state: 2,
+            detail: "backend down",
+          },
         ]),
       ),
     );
-    await waitFor(() => expect(screen.getByText("no CPU")).toBeInTheDocument());
+    await waitFor(() =>
+      expect(screen.getByText("backend down")).toBeInTheDocument(),
+    );
     await expectNoA11yViolations(container);
   });
 });
@@ -171,7 +178,7 @@ describe("RequiresGuard: merged with the existing game-context requires gate", (
   it("prioritises an unhealthy REQUIRED channel's message over an otherwise-satisfied requires gate", async () => {
     const { transport } = renderGuard(<div>widget content</div>, {
       requires: ["flight"],
-      channels: ["kos.terminal.1"],
+      channels: ["demo.gauge.1"],
     });
     act(() => transport.emit("spaceCenter.scene", { scene: "Flight" }));
     act(() =>
@@ -179,16 +186,16 @@ describe("RequiresGuard: merged with the existing game-context requires gate", (
         "system.uplinks",
         rosterPoint([
           {
-            id: "kos",
-            ownedPrefixes: ["kos."],
+            id: "demo",
+            ownedPrefixes: ["demo."],
             state: 2,
-            detail: "no CPU selected",
+            detail: "backend not selected",
           },
         ]),
       ),
     );
     await waitFor(() =>
-      expect(screen.getByText("no CPU selected")).toBeInTheDocument(),
+      expect(screen.getByText("backend not selected")).toBeInTheDocument(),
     );
     expect(screen.queryByText("widget content")).not.toBeInTheDocument();
     expect(
@@ -201,13 +208,13 @@ describe("RequiresGuard: 'No telemetry host' takes priority when channels are de
   it("shows 'No telemetry host' when the sitrep DataSource is disconnected", () => {
     clearRegistry();
     registerDataSource(makeSitrepFixture("disconnected"));
-    renderGuard(<div>widget content</div>, { channels: ["kos.terminal.1"] });
+    renderGuard(<div>widget content</div>, { channels: ["demo.gauge.1"] });
     expect(screen.getByText("No telemetry host")).toBeInTheDocument();
     expect(screen.queryByText("widget content")).not.toBeInTheDocument();
   });
 
   it("renders children through when the host is connected but the roster hasn't arrived yet (genuine wait)", () => {
-    renderGuard(<div>widget content</div>, { channels: ["kos.terminal.1"] });
+    renderGuard(<div>widget content</div>, { channels: ["demo.gauge.1"] });
     expect(screen.getByText("widget content")).toBeInTheDocument();
   });
 

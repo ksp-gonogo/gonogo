@@ -41,7 +41,8 @@ function unmountAll() {
  *
  * These tests prove the seat exists and composes an augment WITHOUT CommSignal
  * importing any backend-aware code. Only the slot is exposed here; a real
- * filler (e.g. a RealAntennas per-antenna breakdown) is a separate concern.
+ * filler (e.g. a per-antenna breakdown from a comms Uplink) is a separate
+ * concern.
  * So an empty slot rendering nothing is the correct steady state here.
  */
 

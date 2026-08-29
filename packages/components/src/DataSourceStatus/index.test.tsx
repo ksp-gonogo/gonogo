@@ -79,12 +79,12 @@ describe("DataSourceStatus", () => {
 
   it("renders each registered source by name", () => {
     registerDataSource(makeFixtureSource("stream", "Gonogo Stream"));
-    registerDataSource(makeFixtureSource("kos", "kOS"));
+    registerDataSource(makeFixtureSource("serial", "Serial Devices"));
 
     render(<DataSourceStatusComponent />);
 
     expect(screen.getByText("Gonogo Stream")).toBeInTheDocument();
-    expect(screen.getByText("kOS")).toBeInTheDocument();
+    expect(screen.getByText("Serial Devices")).toBeInTheDocument();
   });
 
   it("displays the status label for each source", () => {

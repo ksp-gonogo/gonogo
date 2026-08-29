@@ -545,7 +545,7 @@ describe("CommSignal: genuinely runs off the stream (R6 Wave 1)", () => {
 
   it("joins a `comm-signal.hop-rates` contribution onto the route and flags the bottleneck hop", async () => {
     // Per-hop bitrate is no longer a core hop field: it arrives via the
-    // `comm-signal.hop-rates` slot. A comms Uplink (RealAntennas) fills it off
+    // `comm-signal.hop-rates` slot. A comms Uplink fills it off
     // its own Topic keyed by node id; here a local contribution stands in for
     // that, keyed to the two hops emitted below. CommSignal joins the rates onto
     // the route it already renders and flags the slower hop by colour, plus a
