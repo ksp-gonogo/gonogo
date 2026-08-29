@@ -1,39 +1,15 @@
-import type { ComponentProps } from "@ksp-gonogo/core";
-import { registerComponent, useTelemetry } from "@ksp-gonogo/core";
-// Type-only import of the KerbalismUplink client, for its
-// `declare module "@ksp-gonogo/sitrep-sdk"` TopicPayloadMap augmentation and
-// nothing else: erased at runtime, so it adds no import at all to the bundle.
-//
-// This is where this widget's Kerbalism coupling shows up honestly in its
-// imports. `kerbalism.spaceweather`'s payload type (KerbalismSpaceWeather)
-// lives in the Uplink that owns it rather than in a mod-agnostic package, so
-// this file has to say which Uplink it reads from instead of getting a
-// Kerbalism type for free.
-//
-// The real fix is for this widget to LIVE in that Uplink's client, next to Ship
-// Systems and the CrewStatus survival augment, which is where every other
-// Kerbalism surface already went and what that package's own index.ts records as
-// the outstanding follow-up. This import is what makes the debt visible until
-// then: it is a shrink-only `domainDebt` entry on the frontend uplink-boundary
-// ratchet, so moving the widget deletes the entry and the ratchet forces that
-// deletion in the same commit.
-//
-// The three sun-vantage types are named imports off the same package for the
-// same reason: they are Kerbalism's own wire shapes, and they left core with
-// the rest of that Domain.
 import type {
-  KerbalismStarInfo,
-  KerbalismStormEntry,
-  KerbalismStormTargetKind,
-} from "@ksp-gonogo/gonogo-kerbalism-uplink";
+  ComponentProps,
+  Reading,
+  VesselState,
+} from "@ksp-gonogo/sitrep-sdk";
 import {
-  type Reading,
+  registerComponent,
   useStream,
+  useTelemetry,
   useViewUt,
-  type VesselState,
-} from "@ksp-gonogo/sitrep-client";
-import { value } from "@ksp-gonogo/sitrep-sdk";
-import { Meter } from "@ksp-gonogo/ui";
+  value,
+} from "@ksp-gonogo/sitrep-sdk";
 import {
   Badge,
   Box,
@@ -41,7 +17,10 @@ import {
   Cluster,
   Countdown,
   EmptyState,
+  Meter,
   MissionDate,
+  magnitudeOf,
+  magnitudeOr,
   Panel,
   ProgressBar,
   ReadoutCaption,
@@ -55,19 +34,26 @@ import {
 } from "@ksp-gonogo/ui-kit";
 import type { CSSProperties } from "react";
 import styled, { css, keyframes } from "styled-components";
-import { magnitudeOf, magnitudeOr } from "../shared/magnitude";
+// This Uplink's own wire shapes for the sun-vantage half of the payload, named
+// from the generated contract slice the same way Ship Systems names its own.
+import type {
+  KerbalismStarInfo,
+  KerbalismStormEntry,
+  KerbalismStormTargetKind,
+} from "../__generated__/contract";
+import { KERBALISM } from "../uplink";
 
 type SpaceWeatherConfig = Record<string, never>;
 
 // ---------------------------------------------------------------------------
 // Data read
 //
-// Reads the real KerbalismUplink `kerbalism.spaceweather` Topic (canonical
-// one-arg useTelemetry: streams whenever a provider is mounted). Vessel
-// altitude (belt-ring placement) comes from the `vessel.flight` channel.
-// The presentation below is a pure function of `SpaceWeatherData`, so the
-// offline snapshot harness feeds the same shape (see widgetDomSnapshot's
-// kerbalism reshape). This hook is the only data boundary.
+// Reads this Uplink's `kerbalism.spaceweather` Topic (canonical one-arg
+// useTelemetry: streams whenever a provider is mounted). Vessel altitude
+// (belt-ring placement) comes from the `vessel.flight` channel. The
+// presentation below is a pure function of `SpaceWeatherData`, so the offline
+// snapshot harness feeds the same shape (see this folder's snapshots.test.tsx).
+// This hook is the only data boundary.
 // ---------------------------------------------------------------------------
 
 type StormState = "none" | "incoming" | "inprogress";
@@ -1303,6 +1289,7 @@ registerComponent<SpaceWeatherConfig>({
   defaultConfig: {},
   actions: [],
   requires: ["flight"],
+  owner: KERBALISM,
 });
 
 export { SpaceWeatherComponent };

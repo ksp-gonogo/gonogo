@@ -44,7 +44,6 @@ export * from "./ScienceData";
 export * from "./SemiMajorAxis";
 export * from "./ShipMap";
 export * from "./SpaceCenterStatus";
-export * from "./SpaceWeather";
 export * from "./StationConnectView";
 export * from "./Strategies";
 export * from "./SystemView";

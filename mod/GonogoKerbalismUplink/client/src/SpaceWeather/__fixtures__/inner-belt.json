@@ -1,0 +1,59 @@
+{
+  "_meta": {
+    "scenario": "inner-belt"
+  },
+  "_scene": {
+    "widget": "space-weather",
+    "caption": "The craft inside the inner radiation belt, dose an order of magnitude up and the belt ring lit",
+    "modes": ["default"]
+  },
+  "_stream": {
+    "pinnedUt": 149489,
+    "emits": [
+      {
+        "topic": "kerbalism.spaceweather",
+        "payload": {
+          "radiationRadPerSecond": 0.002882222222222222,
+          "habitatRadiationRadPerSecond": 0.002882222222222222,
+          "magnetosphere": true,
+          "innerBelt": true,
+          "outerBelt": false,
+          "stormIncoming": false,
+          "stormInProgress": false,
+          "blackout": false,
+          "inSunlight": true,
+          "shieldingAmount": 1.2,
+          "shieldingCapacity": 3.308,
+          "stars": [
+            {
+              "star": "Kerbol",
+              "direction": {
+                "x": 0.31,
+                "y": -0.04,
+                "z": 0.95
+              },
+              "distance": {
+                "magnitude": 13400000000,
+                "unit": "m"
+              }
+            }
+          ],
+          "storms": [
+            {
+              "star": "Kerbol",
+              "stormState": 0
+            }
+          ],
+          "stormEjectionSpeed": 98931511.14
+        }
+      },
+      {
+        "topic": "vessel.flight",
+        "payload": {
+          "altitudeAsl": 1300000,
+          "altitudeTerrain": 1300000
+        }
+      }
+    ]
+  }
+}

@@ -215,14 +215,14 @@ const BASELINES: Record<Family, Record<string, number>> = {
     "packages/ui/src/FabPrompt.tsx": 1,
   },
   /**
-   * 6 across 6 files. Values between the four role rungs, each paired with
+   * 6 across 5 buckets. Values between the four role rungs, each paired with
    * a fixed height or an `em` sibling that would drift if they moved:
-   * 1.05 twice, 1.15 twice, 1.3 twice.
+   * 1.05 twice, 1.15 twice, 1.3 twice. Two of them are under `mod/`, which
+   * shares one bucket.
    */
   lineHeight: {
-    "mod/": 1,
+    "mod/": 2,
     "packages/components/src/SpaceCenterStatus/index.tsx": 1,
-    "packages/components/src/SpaceWeather/index.tsx": 1,
     "packages/components/src/TechTree/index.tsx": 1,
     "packages/serial/src/VirtualDevice/index.tsx": 1,
     "packages/ui-kit/src/Readout.tsx": 1,

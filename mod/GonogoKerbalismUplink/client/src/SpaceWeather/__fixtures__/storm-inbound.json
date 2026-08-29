@@ -2,43 +2,17 @@
   "_meta": {
     "scenario": "storm-inbound"
   },
-  "sw.radiationRadPerHour": 0.5,
-  "sw.stormState": 1,
-  "sw.innerBelt": 0,
-  "sw.outerBelt": 0,
-  "sw.magnetosphere": 1,
-  "sw.blackout": 0,
-  "sw.shieldingValue": 2.5,
-  "sw.shieldingCapacity": 3.308,
-  "sw.altitudeM": 120000,
-  "sw.ut": 149489,
-  "t.universalTime": 149489,
-  "sw.stars": [
-    {
-      "star": "Kerbol",
-      "direction": { "x": 0.31, "y": -0.04, "z": 0.95 },
-      "distance": { "magnitude": 13400000000, "unit": "m" }
-    }
-  ],
-  "sw.storms": [
-    {
-      "star": "Kerbol",
-      "stormState": 1,
-      "stormTime": 149569,
-      "stormDuration": 386,
-      "dist": 13400000000,
-      "targetKind": 0,
-      "targetName": "Kerbin"
-    }
-  ],
-  "sw.stormEjectionSpeed": 98931511.14,
+  "_scene": {
+    "widget": "space-weather",
+    "caption": "A CME in transit, the tracker naming its target body, its transit progress and its impact ETA",
+    "modes": ["default"]
+  },
   "_stream": {
-    "carriedChannels": ["kerbalism.spaceweather", "vessel.flight"],
     "pinnedUt": 149489,
     "emits": [
       {
-        "channel": "kerbalism.spaceweather",
-        "value": {
+        "topic": "kerbalism.spaceweather",
+        "payload": {
           "radiationRadPerSecond": 0.0001388888888888889,
           "habitatRadiationRadPerSecond": 0.0001388888888888889,
           "magnetosphere": true,
@@ -53,8 +27,15 @@
           "stars": [
             {
               "star": "Kerbol",
-              "direction": { "x": 0.31, "y": -0.04, "z": 0.95 },
-              "distance": { "magnitude": 13400000000, "unit": "m" }
+              "direction": {
+                "x": 0.31,
+                "y": -0.04,
+                "z": 0.95
+              },
+              "distance": {
+                "magnitude": 13400000000,
+                "unit": "m"
+              }
             }
           ],
           "storms": [
@@ -72,8 +53,8 @@
         }
       },
       {
-        "channel": "vessel.flight",
-        "value": {
+        "topic": "vessel.flight",
+        "payload": {
           "altitudeAsl": 120000,
           "altitudeTerrain": 120000
         }

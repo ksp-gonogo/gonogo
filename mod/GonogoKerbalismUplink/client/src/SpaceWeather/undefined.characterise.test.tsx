@@ -1,9 +1,15 @@
-import { DashboardItemContext, getComponent } from "@ksp-gonogo/core";
-import { act, render, screen, waitFor } from "@ksp-gonogo/test-utils";
-import { visibleText } from "@ksp-gonogo/ui-kit/testing";
+import { getComponent } from "@ksp-gonogo/sitrep-sdk";
+import {
+  act,
+  screen,
+  setupStreamFixture,
+  waitFor,
+} from "@ksp-gonogo/sitrep-sdk/testing";
+import { renderWidget, visibleText } from "@ksp-gonogo/ui-kit/testing";
 import { beforeEach, describe, expect, it } from "vitest";
-import { setupStreamFixture } from "../test/setupStreamFixture";
-import { SpaceWeatherComponent } from "./index";
+// Importing the real module runs its module-load registerComponent(...), which
+// is what the registry lookup below and `renderWidget` both read.
+import "./index";
 
 /**
  * What SpaceWeather DOES today when its telemetry reads are `undefined`,
@@ -47,14 +53,13 @@ const CARRIED = [...(SW.channels ?? []), ...(SW.optionalChannels ?? [])];
 
 let stream: ReturnType<typeof setupStreamFixture>;
 
-function renderWidget() {
-  return render(
-    <stream.Provider>
-      <DashboardItemContext.Provider value={{ instanceId: "sw-undef" }}>
-        <SpaceWeatherComponent config={{}} id="sw-undef" w={8} h={11} />
-      </DashboardItemContext.Provider>
-    </stream.Provider>,
-  );
+function mount() {
+  return renderWidget("space-weather", {
+    instanceId: "sw-undef",
+    w: 8,
+    h: 11,
+    wrapper: stream.Provider,
+  });
 }
 
 /** The "you are here" dot: r=3, the only circle in the rings SVG at that radius. */
@@ -85,7 +90,7 @@ describe("SpaceWeather: what undefined means today", () => {
    * record that has never arrived.
    */
   it("says it is awaiting space weather before anything has arrived", () => {
-    const { container } = renderWidget();
+    const { container } = mount();
 
     expect(visibleText(container)).toContain("Awaiting space weather");
 
@@ -118,7 +123,7 @@ describe("SpaceWeather: what undefined means today", () => {
    * The dot is a positional claim, so it is withheld and the diagram says so.
    */
   it("withholds the vessel dot when the flight record has no altitude", async () => {
-    const { container } = renderWidget();
+    const { container } = mount();
 
     act(() => {
       stream.emit(TOPIC, {
@@ -156,7 +161,7 @@ describe("SpaceWeather: what undefined means today", () => {
   });
 
   it("reports a zero dose rate when the weather record arrives without a radiation field", async () => {
-    const { container } = renderWidget();
+    const { container } = mount();
 
     act(() => {
       // The topic delivered, the field did not. `magnitudeOr(undefined, 0)`
@@ -181,7 +186,7 @@ describe("SpaceWeather: what undefined means today", () => {
   });
 
   it("drives the shielding meter over full when the capacity field is missing", async () => {
-    const { container } = renderWidget();
+    const { container } = mount();
 
     act(() => {
       // `shieldingAmount` present, `shieldingCapacity` absent, so the capacity
@@ -217,7 +222,7 @@ describe("SpaceWeather: what undefined means today", () => {
    * record" and "we are waiting for one" send the operator to different places.
    */
   it("reports a confirmed weather tombstone as no data, not as a quiet vessel", async () => {
-    const { container } = renderWidget();
+    const { container } = mount();
 
     act(() => {
       stream.emit(TOPIC, {

@@ -1,13 +1,19 @@
-import { clearRegistry, DashboardItemContext } from "@ksp-gonogo/core";
 import { value } from "@ksp-gonogo/sitrep-sdk";
-import { act, render, screen, waitFor } from "@ksp-gonogo/test-utils";
+import {
+  act,
+  screen,
+  setupStreamFixture,
+  waitFor,
+} from "@ksp-gonogo/sitrep-sdk/testing";
 import {
   expectNoA11yViolations,
+  renderWidget,
   visibleText,
 } from "@ksp-gonogo/ui-kit/testing";
 import { beforeEach, describe, expect, it } from "vitest";
-import { setupStreamFixture } from "../test/setupStreamFixture";
-import { SpaceWeatherComponent } from "./index";
+// Importing the real module runs its module-load registerComponent(...), which
+// is what `renderWidget` looks the widget up by.
+import "./index";
 
 // SpaceWeather reads the real `kerbalism.spaceweather` Topic (canonical
 // one-arg useTelemetry) plus `vessel.flight` for the belt-ring altitude, so the
@@ -57,26 +63,19 @@ describe("SpaceWeatherComponent", () => {
   let stream: ReturnType<typeof setupStreamFixture>;
 
   beforeEach(() => {
-    clearRegistry();
     stream = setupStreamFixture({
       carriedChannels: ["kerbalism.spaceweather", "vessel.flight"],
       pinnedUt: 149_489,
     });
   });
 
-  function renderWidget(size = { w: 8, h: 11 }) {
-    return render(
-      <stream.Provider>
-        <DashboardItemContext.Provider value={{ instanceId: "sw-test" }}>
-          <SpaceWeatherComponent
-            config={{}}
-            id="sw-test"
-            w={size.w}
-            h={size.h}
-          />
-        </DashboardItemContext.Provider>
-      </stream.Provider>,
-    );
+  function mount(size = { w: 8, h: 11 }) {
+    return renderWidget("space-weather", {
+      instanceId: "sw-test",
+      w: size.w,
+      h: size.h,
+      wrapper: stream.Provider,
+    });
   }
 
   function emit(sw: SwState) {
@@ -102,7 +101,7 @@ describe("SpaceWeatherComponent", () => {
   }
 
   it("shows the habitat dose rate and a Sheltered status when nominal", async () => {
-    renderWidget();
+    mount();
     emit(NOMINAL);
     await waitFor(() => expect(visibleText()).toContain("0.014 rad/h"));
     expect(screen.getByText("Sheltered")).toBeInTheDocument();
@@ -110,7 +109,7 @@ describe("SpaceWeatherComponent", () => {
   });
 
   it("flags the inner belt with a storm-in-progress status and lit belt tag", async () => {
-    renderWidget();
+    mount();
     emit(INNER_BELT);
     await waitFor(() => expect(visibleText()).toContain("10.38 rad/h"));
     expect(screen.getByText("Storm in progress")).toBeInTheDocument();
@@ -122,7 +121,7 @@ describe("SpaceWeatherComponent", () => {
   });
 
   it("surfaces storm-in-progress and comms blackout at storm peak", async () => {
-    renderWidget();
+    mount();
     emit(STORM_PEAK);
     await waitFor(() => expect(visibleText()).toContain("5.00 rad/h"));
     // Both the timeline headline and the status badge read "Storm in
@@ -135,14 +134,14 @@ describe("SpaceWeatherComponent", () => {
   });
 
   it("shows a CME-inbound headline and Exposed status when a storm is incoming", async () => {
-    renderWidget();
+    mount();
     emit({ ...NOMINAL, stormState: 1 });
     expect(await screen.findByText("CME inbound")).toBeInTheDocument();
     expect(screen.getByText("Exposed")).toBeInTheDocument();
   });
 
   it("announces the mission-state via a polite live region", async () => {
-    renderWidget();
+    mount();
     emit(STORM_PEAK);
     // Wait for the storm state to propagate before reading the badge (the
     // pre-emit render shows the default "Unshielded").
@@ -184,7 +183,7 @@ describe("SpaceWeatherComponent", () => {
   }
 
   it("draws a card per star, naming each one and its distance", async () => {
-    renderWidget();
+    mount();
     emitSun({
       stars: [
         { star: "Kerbol", distance: value("m", 13_400_000_000) },
@@ -209,7 +208,7 @@ describe("SpaceWeatherComponent", () => {
   });
 
   it("names the body a CME is aimed at, with its transit and impact ETA", async () => {
-    renderWidget();
+    mount();
     emitSun({
       stars: [{ star: "Kerbol", distance: value("m", 13_400_000_000) }],
       storms: [
@@ -247,7 +246,7 @@ describe("SpaceWeatherComponent", () => {
   });
 
   it("names the VESSEL as the target for a craft in solar orbit", async () => {
-    renderWidget();
+    mount();
     emitSun({
       stars: [{ star: "Kerbol", distance: value("m", 17_500_000_000) }],
       storms: [
@@ -272,7 +271,7 @@ describe("SpaceWeatherComponent", () => {
   });
 
   it("reads an arrived CME as an impact, not as another inbound one", async () => {
-    renderWidget();
+    mount();
     emitSun({
       stars: [{ star: "Kerbol", distance: value("m", 13_400_000_000) }],
       storms: [
@@ -303,7 +302,7 @@ describe("SpaceWeatherComponent", () => {
     // The recovered branch DELETED this half, on the grounds that it had moved
     // to ShipSystems and CrewStatus. It had not. This pins both halves on one
     // render so a future move has to be deliberate.
-    renderWidget();
+    mount();
     emitSun({
       stars: [{ star: "Kerbol", distance: value("m", 13_400_000_000) }],
       storms: [],
@@ -318,7 +317,7 @@ describe("SpaceWeatherComponent", () => {
   });
 
   it("has no axe violations", async () => {
-    const { container } = renderWidget();
+    const { container } = mount();
     emit(INNER_BELT);
     await waitFor(() => expect(visibleText()).toContain("10.38 rad/h"));
     await expectNoA11yViolations(container);

@@ -13,10 +13,11 @@
 // going red here (the same failure mode ui-kit's styledComponentsTheme.ts
 // documents for its own augmentation).
 //
-// NOTE: SpaceWeather still lives in @ksp-gonogo/components; Ship Systems (the
-// rebuilt Life Support) now lives HERE, registered through the Uplink client,
-// since life support is a Kerbalism concept that never belonged in the base
-// library. SpaceWeather's relocation is a follow-up.
+// Every Kerbalism surface now lives HERE, registered through the Uplink client:
+// Ship Systems (the rebuilt Life Support), Space Weather, and the augments and
+// contributions that hang off the base library's slots. Life support and space
+// weather are Kerbalism concepts that never belonged in a mod-agnostic widget
+// library.
 
 // This Uplink's own wire payload types: it declares them, not core. A consumer
 // that reads a kerbalism.* Topic names its shape from HERE.
@@ -124,10 +125,11 @@ import "./CrewSurvival/rowTone";
 // reading off `kerbalism.spaceweather`, distinct from the per-kerbal survival
 // above (a storm affects the whole crew together, not one kerbal at a time).
 import "./CrewSurvival/summary";
-// The Space Weather panel badge: a contribution to the SpaceWeather widget's
-// `space-weather.badges` slot off the `kerbalism.spaceweather` Topic. The
-// widget stays in @ksp-gonogo/components for now (relocation is a later step);
-// only the Kerbalism-derived badge lives here.
+// The Space Weather widget (registerComponent) and its panel badge, a
+// contribution to the widget's own `space-weather.badges` slot off the
+// `kerbalism.spaceweather` Topic. Side-effect imports so both register when the
+// app pulls the package entry in.
+import "./SpaceWeather";
 import "./SpaceWeather/badge";
 // The CME / solar-activity overlay: a contribution to SystemView's
 // `system-view.entities` slot off the same `kerbalism.spaceweather` Topic,

@@ -40,6 +40,7 @@ import { describe, expect, it } from "vitest";
  */
 const MAGNITUDE_BUDGET: Record<string, number> = {
   "mod/GonogoKerbalismUplink/client/src/processor.ts": 1,
+  "mod/GonogoKerbalismUplink/client/src/SpaceWeather/index.tsx": 1,
   "mod/GonogoKerbalismUplink/client/src/resourceProjection.ts": 4,
   "mod/GonogoKerbalismUplink/client/src/ScienceFileManager/index.tsx": 1,
   "mod/GonogoKerbcastUplink/client/src/CameraFeed/CameraFeed.tsx": 4,
@@ -182,7 +183,6 @@ const MAGNITUDE_BUDGET: Record<string, number> = {
   "packages/components/src/shared/usePastTrack.ts": 1,
   "packages/components/src/shared/dockAngles.ts": 1,
   "packages/components/src/shared/OrbitalEventChips.tsx": 1,
-  "packages/components/src/SpaceWeather/index.tsx": 1,
   "packages/components/src/Strategies/index.tsx": 4,
   "packages/components/src/SystemView/index.tsx": 27,
   "packages/components/src/SystemView/useCelestialBodies.ts": 2,

@@ -63,6 +63,32 @@ Vessel-wide Kerbalism resource ledger: root-cause diagnosis, every profile resou
 
 ![Telemetry arrived, no profile for this vessel: the panel names that state rather than sitting on the waiting message or drawing empty meters](docs/assets/no-profile-for-this-vessel--default.png)
 
+### Space Weather
+
+Sun vantage plus vessel exposure: a per-star activity diagram for every star this vessel sees and a CME tracker (departure, transit progress, impact ETA, and the named target, the body below or the vessel itself out in solar orbit), then the craft's own habitat dose rate, belt/magnetopause position rings and shielding.
+
+| | |
+| --- | --- |
+| Widget id | `space-weather` |
+| Reads | `kerbalism.spaceweather` |
+| Uses if present | `vessel.flight` |
+| Only while present | `flight` |
+| Default size | 8 × 11 |
+
+![Two stars, one quiet and one with an inbound CME, each on its own activity diagram](docs/assets/binary--default.png)
+
+![The craft inside the inner radiation belt, dose an order of magnitude up and the belt ring lit](docs/assets/inner-belt--default.png)
+
+![A craft in solar orbit with no SOI, so the CME's named target is the vessel itself](docs/assets/interplanetary--default.png)
+
+![A sheltered craft in low Kerbin orbit: quiet star, no CME, habitat dose inside the magnetosphere](docs/assets/nominal--default.png)
+
+![The same widget at its minimum size](docs/assets/nominal--min.png)
+
+![A CME in transit, the tracker naming its target body, its transit progress and its impact ETA](docs/assets/storm-inbound--default.png)
+
+![A storm in progress: peak dose, comms blackout, and the magnetosphere gone](docs/assets/storm-peak--default.png)
+
 ## Augments
 
 | Augment | Into | Reads | Presence | Notes |
