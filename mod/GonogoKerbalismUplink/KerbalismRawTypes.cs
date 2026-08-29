@@ -199,24 +199,58 @@ namespace Gonogo.KerbalismUplink
         public List<StormEntryRaw> Storms = new();
     }
 
+    /// <summary>
+    /// The KERBALISM.PreferencesReliability difficulty settings that decide whether
+    /// the reliability model is doing anything at all. Nullable per field: a value
+    /// that could not be read is null, never a default, because
+    /// <c>mtbfFailures = false</c> and <c>mtbfFailures</c> unreadable want opposite
+    /// renders, one says "off" and the other says "cannot tell".
+    /// </summary>
+    public sealed class ReliabilityPreferencesRaw
+    {
+        public bool? MtbfFailures;
+        public bool? Highlights;
+        public double? CriticalChance;
+        public double? SafeModeChance;
+        public bool? RequireRepairKits;
+        public bool? IncentiveRedundancy;
+    }
+
+    /// <summary>
+    /// One main-thread reliability capture for a vessel. Carries the UT it was
+    /// taken at because the service budget is a clock difference
+    /// (<c>ut - lastInspection</c>) and the Courier-thread mapper must not reach
+    /// back into Planetarium to find out when "now" was.
+    /// </summary>
     public sealed class ReliabilityRaw
     {
-        public bool Malfunction;
-        public bool Critical;
+        public double Ut;
         public List<ReliabilityPartRaw> Parts = new();
     }
 
+    /// <summary>
+    /// One <c>KERBALISM.ReliabilityInfo</c> entry, joined to the underlying
+    /// <c>KERBALISM.Reliability</c> PartModule for the two fields the projection
+    /// does not expose. Every added field is NULLABLE: a value that could not be
+    /// read is null, never a default, because "no service clock" and "service due
+    /// now" want opposite renders.
+    /// </summary>
     public sealed class ReliabilityPartRaw
     {
         public string PartId = "";
         public string Title = "";
+        /// <summary>ReliabilityInfo.group, which is the part's REDUNDANCY-SET name (module.redundancy), not a category. Empty on most parts.</summary>
         public string Group = "";
         public bool Broken;
         public bool Critical;
-        public double Mtbf;
-        public double IgnitionsConsumed;
-        public double DurationConsumed;
-        public bool NeedsRepair;
+        /// <summary>ReliabilityInfo.mtbf, already EffectiveMTBF(quality, mtbf). SECONDS, despite every previous field name that carried it.</summary>
+        public double? MtbfSeconds;
+        /// <summary>NeedsMaintenance(): Kerbalism's NEEDS-SERVICE state, which is preventive and distinct from its needs-repair (broken and not critical).</summary>
+        public bool NeedsService;
+        /// <summary>KSPField last_inspection on the Reliability module: a UT. Null when the module could not be paired to this entry.</summary>
+        public double? LastInspection;
+        /// <summary>KSPField quality: an editor build choice (a bool), scaling effective MTBF by Settings.QualityScale. Null when unpaired.</summary>
+        public bool? Quality;
     }
 
     // ── science (the elected "science" capability's Kerbalism provider) ───────

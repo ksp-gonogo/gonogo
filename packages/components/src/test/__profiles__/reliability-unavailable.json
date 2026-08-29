@@ -1,0 +1,38 @@
+{
+  "id": "reliability-unavailable",
+  "name": "A reliability provider that failed to activate",
+  "description": "A modelling mod IS installed and its provider won the election, and the provider's factory threw during Kernel activation, so the capability fell through to the vanilla None backend. That fallback reports source 'none' and cannot know why it was reached, so the core uplink overrides its coverage to 'unavailable' from the Kernel's own factory-failed notice. Without that override this install is byte-identical to a stock career on the wire, which is the point of the profile: the operator is blind rather than unmodelled, and those want opposite responses.",
+  "uplinks": [
+    {
+      "id": "reliability",
+      "available": true,
+      "ownedPrefixes": ["reliability.summary", "reliability.parts"],
+      "state": "degraded",
+      "detail": "a reliability provider failed to activate; using the vanilla fallback"
+    },
+    {
+      "id": "kerbalism",
+      "available": true,
+      "ownedPrefixes": [
+        "kerbalism.available",
+        "kerbalism.features",
+        "kerbalism.spaceweather",
+        "kerbalism.lifesupport",
+        "kerbalism.crew",
+        "kerbalism.profile"
+      ],
+      "detail": "Kerbalism loaded."
+    }
+  ],
+  "elections": {
+    "reliability": "none"
+  },
+  "wire": {
+    "kerbalism.available": {},
+    "reliability.summary": {
+      "source": "none",
+      "coverage": "unavailable"
+    },
+    "reliability.parts": []
+  }
+}

@@ -1,7 +1,7 @@
 {
   "id": "rp1-no-testflight",
   "name": "RP-1 without TestFlight",
-  "description": "The same career install with TestFlight not installed. Its Uplink DLL ships with TestFlight rather than with Gonogo, so the whole entry leaves the roster and Kerbalism's provider wins the reliability election by default. Kerbalism's reliability feature is off, so the elected backend reports that it models nothing.",
+  "description": "The same career install with TestFlight not installed. Its Uplink DLL ships with TestFlight rather than with Gonogo, so the whole entry leaves the roster and Kerbalism's provider wins the reliability election by default. Kerbalism's reliability feature is off in this install's own KerbalismConfig/Settings.cfg, so the elected backend reports coverage 'disabled': the copy that renders from it names the BACKEND, never the save, because 'kerbalism is not modelling reliability' is true whether the player switched failures off or another mod owns them under RO.",
   "uplinks": [
     {
       "id": "reliability",
@@ -66,11 +66,8 @@
     "kerbalism.available": {},
     "realantennas.available": {},
     "reliability.summary": {
-      "unmodeled": true,
-      "malfunction": null,
-      "critical": null,
       "source": "kerbalism",
-      "worstReliabilityFraction": null
+      "coverage": "disabled"
     },
     "reliability.parts": []
   }

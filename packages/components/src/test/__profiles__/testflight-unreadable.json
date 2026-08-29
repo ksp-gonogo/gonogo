@@ -1,0 +1,48 @@
+{
+  "id": "testflight-unreadable",
+  "name": "TestFlight elected, conditions unreadable",
+  "description": "TestFlight won the election and the app cannot read a single part's condition from it. This is not hypothetical: it is the state the shipped GonogoTestFlightUplink.dll was permanently in until 2026-08-29, because its reflection layer bound three method names that exist in no TestFlight assembly and substituted a default for each miss. The wire said 'modelled, all nominal, worst engine 100%' for every craft on every install, at a priority that outranked Kerbalism. Coverage stays 'modeled' here on purpose: conditions being unreadable is a per-part fact, not a statement that nothing is being modelled, and the parts say so themselves.",
+  "uplinks": [
+    {
+      "id": "reliability",
+      "available": true,
+      "ownedPrefixes": ["reliability.summary", "reliability.parts"],
+      "detail": "Reliability channels are live."
+    },
+    {
+      "id": "testflight",
+      "available": true,
+      "ownedPrefixes": [],
+      "detail": "TestFlight assembly loaded."
+    }
+  ],
+  "elections": {
+    "reliability": "testflight"
+  },
+  "wire": {
+    "reliability.summary": {
+      "source": "testflight",
+      "coverage": "modeled"
+    },
+    "reliability.parts": [
+      {
+        "partId": "201:0",
+        "title": "RD-180",
+        "condition": "unknown",
+        "conditionDetail": null,
+        "survival": null,
+        "survivalHorizonSeconds": null,
+        "budgets": null
+      },
+      {
+        "partId": "202:0",
+        "title": "AJ10-137",
+        "condition": "unknown",
+        "conditionDetail": null,
+        "survival": null,
+        "survivalHorizonSeconds": null,
+        "budgets": null
+      }
+    ]
+  }
+}

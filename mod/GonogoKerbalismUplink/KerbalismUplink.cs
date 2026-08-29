@@ -193,7 +193,14 @@ namespace Gonogo.KerbalismUplink
                 }
                 catch (Exception ex)
                 {
-                    Console.Error.WriteLine("[KerbalismUplink] could not register reliability provider: " + ex.Message);
+                    // UnityEngine.Debug, not Console.Error: the latter is invisible
+                    // in KSP, which is how a silently-dropped provider looked
+                    // identical to an uninstalled mod. The Kernel emits no notice
+                    // for a provider that never registered, so this uplink's own
+                    // Health() below is the only route by which the two differ.
+                    _reliabilityRegistrationError = ex.Message;
+                    UnityEngine.Debug.LogError(
+                        "[Gonogo] KerbalismUplink could not register reliability provider: " + ex.Message);
                 }
 
                 RegisterScience(host);
@@ -552,10 +559,23 @@ namespace Gonogo.KerbalismUplink
                 KerbalismCapture.BuildCrew(c.Crew, c.RuleConstants, c.AsOfUt, c.DeathClocks()), c.Ut);
         }
 
-        public UplinkHealth Health() =>
-            _k.IsAvailable
-                ? UplinkHealth.Healthy
-                : new UplinkHealth(UplinkHealthState.Unavailable, "Kerbalism assembly not loaded");
+        /// <summary>Why the reliability provider is not registered, when registration itself threw. See the catch that sets it.</summary>
+        private string? _reliabilityRegistrationError;
+
+        public UplinkHealth Health()
+        {
+            if (!_k.IsAvailable)
+            {
+                return new UplinkHealth(UplinkHealthState.Unavailable, "Kerbalism assembly not loaded");
+            }
+            if (_reliabilityRegistrationError != null)
+            {
+                return new UplinkHealth(
+                    UplinkHealthState.Degraded,
+                    "reliability provider registration threw: " + _reliabilityRegistrationError);
+            }
+            return UplinkHealth.Healthy;
+        }
 
         /// <summary>Plain cross-thread bundle: no live KSP references.</summary>
         internal sealed class KerbalismCaptured

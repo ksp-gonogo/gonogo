@@ -442,49 +442,153 @@ public class KerbalismCaptureTests
 
 public class KerbalismReliabilityMapTests
 {
-    [Fact]
-    public void Summary_reports_kerbalism_source_and_modeled_state()
+    private static readonly ReliabilityPreferencesRaw Prefs = new()
     {
-        var raw = new ReliabilityRaw { Malfunction = false, Critical = false };
-        var s = KerbalismReliabilityMap.Summary(raw, modeled: true);
-        Assert.Equal(false, s.Unmodeled);
+        MtbfFailures = true,
+        CriticalChance = 0.25,
+        SafeModeChance = 0.5,
+        RequireRepairKits = true,
+        IncentiveRedundancy = true,
+    };
+
+    private static ReliabilityRaw Captured(params ReliabilityPartRaw[] parts)
+    {
+        var raw = new ReliabilityRaw { Ut = 1_000_000 };
+        raw.Parts.AddRange(parts);
+        return raw;
+    }
+
+    [Fact]
+    public void Summary_names_the_source_and_carries_the_coverage_verbatim()
+    {
+        var s = KerbalismReliabilityMap.Summary(Captured(), Prefs, ReliabilityCoverage.Modeled);
         Assert.Equal("kerbalism", s.Source);
-        Assert.Null(s.WorstReliabilityFraction);   // TestFlight-only field stays null
+        Assert.Equal(ReliabilityCoverage.Modeled, s.Coverage);
+    }
+
+    /// <summary>
+    /// "Off" and "could not tell" reach the wire as different strings. The boolean
+    /// they replace could only ever say the reassuring one.
+    /// </summary>
+    [Theory]
+    [InlineData("disabled")]
+    [InlineData("indeterminate")]
+    public void Summary_carries_a_non_modelling_coverage_and_rolls_up_nothing(string coverage)
+    {
+        var s = KerbalismReliabilityMap.Summary(
+            Captured(new ReliabilityPartRaw { PartId = "7", Broken = true }), Prefs, coverage);
+        Assert.Equal(coverage, s.Coverage);
+        // Nothing is rolled up about a craft nobody is watching.
+        Assert.Null(s.Extensions);
     }
 
     [Fact]
-    public void Summary_reports_unmodeled_when_feature_off()
+    public void Parts_grade_a_broken_critical_part_and_keep_kerbalisms_own_word()
     {
-        var raw = new ReliabilityRaw { Malfunction = true, Critical = true };
-        var s = KerbalismReliabilityMap.Summary(raw, modeled: false);
-        Assert.Equal(true, s.Unmodeled);
-        // unmodeled -> the malfunction/critical bools are suppressed (not authoritative)
-        Assert.Equal(false, s.Malfunction);
-        Assert.Equal(false, s.Critical);
-    }
+        var parts = KerbalismReliabilityMap.Parts(
+            Captured(new ReliabilityPartRaw
+            {
+                PartId = "7", Title = "LV-909", Broken = true, Critical = true,
+            }),
+            ReliabilityCoverage.Modeled);
 
-    [Fact]
-    public void Parts_maps_consumed_fractions_and_leaves_testflight_fields_null()
-    {
-        var raw = new ReliabilityRaw();
-        raw.Parts.Add(new ReliabilityPartRaw
-        {
-            PartId = "7", Title = "LV-909", Group = "engine", Broken = false, Critical = false,
-            Mtbf = 100, IgnitionsConsumed = 0.25, DurationConsumed = 0.4, NeedsRepair = false,
-        });
-        var parts = KerbalismReliabilityMap.Parts(raw, modeled: true);
         Assert.Single(parts);
-        Assert.Equal(0.25, parts[0].IgnitionsConsumed);
-        Assert.Equal(0.4, parts[0].DurationConsumed);
-        Assert.Null(parts[0].ReliabilityFraction);
-        Assert.Null(parts[0].RemainingRatedBurn);
+        Assert.Equal("failed-critical", parts[0].Condition);
+        Assert.Equal("busted", parts[0].ConditionDetail);
+    }
+
+    /// <summary>
+    /// The state Kerbalism calls "needs service": preventive, NOT yet broken. The
+    /// old shape carried it in a field named NeedsRepair, so the roster printed the
+    /// word "repair" for a part that wanted an inspection.
+    /// </summary>
+    [Fact]
+    public void Parts_call_the_preventive_state_service_rather_than_repair()
+    {
+        var parts = KerbalismReliabilityMap.Parts(
+            Captured(new ReliabilityPartRaw { PartId = "7", Title = "Antenna", NeedsService = true }),
+            ReliabilityCoverage.Modeled);
+
+        Assert.Equal("service-due", parts[0].Condition);
+        Assert.Equal("needs service", parts[0].ConditionDetail);
+    }
+
+    /// <summary>
+    /// Kerbalism has no per-part probability of any kind, so filling one would be
+    /// inventing data. The whole numeric contribution is the service clock.
+    /// </summary>
+    [Fact]
+    public void Parts_never_claim_a_survival_probability()
+    {
+        var parts = KerbalismReliabilityMap.Parts(
+            Captured(new ReliabilityPartRaw
+            {
+                PartId = "7", MtbfSeconds = 21_600_000, LastInspection = 400_000,
+            }),
+            ReliabilityCoverage.Modeled);
+
+        Assert.Null(parts[0].Survival);
+        Assert.Null(parts[0].SurvivalHorizonSeconds);
     }
 
     [Fact]
-    public void Parts_are_empty_when_unmodeled()
+    public void Parts_emit_the_service_budget_against_half_an_effective_mtbf()
     {
-        var raw = new ReliabilityRaw();
-        raw.Parts.Add(new ReliabilityPartRaw { PartId = "7", Title = "LV-909" });
-        Assert.Empty(KerbalismReliabilityMap.Parts(raw, modeled: false));
+        var parts = KerbalismReliabilityMap.Parts(
+            Captured(new ReliabilityPartRaw
+            {
+                PartId = "7", MtbfSeconds = 1_000_000, LastInspection = 600_000,
+            }),
+            ReliabilityCoverage.Modeled);
+
+        var budget = Assert.Single(parts[0].Budgets!);
+        Assert.Equal("service", budget.Id);
+        Assert.Equal("schedule", budget.Kind);
+        Assert.Equal(500_000, budget.LimitSeconds);
+        Assert.Equal(400_000, budget.UsedSeconds);
+        Assert.Equal(0.8, budget.Consumed!.Value, 6);
+    }
+
+    /// <summary>
+    /// A service-due part whose clock cannot be read carries NO budget rather than a
+    /// made-up one: NeedsMaintenance() has a second, unrelated source (an EVA
+    /// inspection's wear flag), so a part can be due now with its clock far away.
+    /// </summary>
+    [Fact]
+    public void Parts_omit_the_service_budget_when_either_input_is_missing()
+    {
+        var parts = KerbalismReliabilityMap.Parts(
+            Captured(new ReliabilityPartRaw { PartId = "7", NeedsService = true, MtbfSeconds = 1_000_000 }),
+            ReliabilityCoverage.Modeled);
+
+        Assert.Equal("service-due", parts[0].Condition);
+        Assert.Null(parts[0].Budgets);
+    }
+
+    /// <summary>
+    /// Two entries sharing a raw id is the NORMAL case, not a corner: the proto
+    /// constructor sets partId = 0 for every part on an unloaded vessel, and
+    /// BuildList iterates MODULES, so one probe core with two redundancy blocks
+    /// yields two entries with the same flightID.
+    /// </summary>
+    [Fact]
+    public void Parts_disambiguate_a_repeated_raw_id()
+    {
+        var parts = KerbalismReliabilityMap.Parts(
+            Captured(
+                new ReliabilityPartRaw { PartId = "0", Title = "Communication" },
+                new ReliabilityPartRaw { PartId = "0", Title = "Attitude Control" },
+                new ReliabilityPartRaw { PartId = "0", Title = "Communication" }),
+            ReliabilityCoverage.Modeled);
+
+        Assert.Equal(new[] { "0:0", "0:1", "0:2" }, parts.ConvertAll(p => p.PartId).ToArray());
+    }
+
+    [Fact]
+    public void Parts_are_empty_when_the_backend_is_not_modelling()
+    {
+        var raw = Captured(new ReliabilityPartRaw { PartId = "7", Title = "LV-909" });
+        Assert.Empty(KerbalismReliabilityMap.Parts(raw, ReliabilityCoverage.Disabled));
+        Assert.Empty(KerbalismReliabilityMap.Parts(raw, ReliabilityCoverage.Indeterminate));
     }
 }

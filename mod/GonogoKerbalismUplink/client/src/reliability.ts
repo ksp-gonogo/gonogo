@@ -64,10 +64,11 @@ registerProviderExtensionShape(
 /**
  * Narrow `reliability.summary`'s extension bag to this Uplink's own typed shape.
  *
- * Returns `undefined` when Kerbalism is not the elected backend, when
- * `Features.Reliability` is off, or when the vessel has no modelled parts: all
+ * Returns `undefined` when Kerbalism is not the elected backend, when its coverage
+ * is anything other than `modeled`, or when the vessel has no modelled parts: all
  * three cases omit the namespace at the source rather than sending an empty one, so
- * "absent" is the single answer to "Kerbalism has nothing to say here".
+ * "absent" is the single answer to "Kerbalism has nothing to say here". Which of
+ * the three it is, is on the shared summary's own `coverage` field.
  *
  * The cast at the end is the honest edge of the mechanism, not a gap in it: the
  * shape is owned at BOTH ends by this package (the C# `KerbalismReliabilityExt`

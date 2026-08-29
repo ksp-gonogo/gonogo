@@ -626,13 +626,18 @@ function FleetRosterComponent({
           {vessels.map((v) => {
             const comms = COMMS[v.comms];
             // The per-vessel line-updates block is PURELY the
-            // `fleet-roster.updates` augment slot now, the seam for a
-            // future Reliability/TestFlight uplink to compose real
-            // alarm/health one-liners here. It carries no data of its own
-            // (there is no reliability signal behind this widget; see the
-            // module doc comment), so it renders nothing until an uplink
+            // `fleet-roster.updates` augment slot, where the reliability
+            // augment composes its alarm/health one-liners. It carries no
+            // data of its own, so it renders nothing until an uplink
             // actually registers.
-            const showUpdates = !compact && updatesAugmentPresent;
+            //
+            // Deliberately NOT gated on `compact`. It used to be, which meant
+            // every reliability state including a critical part failure
+            // vanished below six columns, the normal width of a portrait
+            // station panel. The augment sheds its detail rows at that width
+            // instead (it is handed `compact`), so density is traded for
+            // words rather than for the alarm.
+            const showUpdates = updatesAugmentPresent;
             return (
               <Fragment key={v.id}>
                 <Grid cols={gridCols} gap="sm" style={{ height: ROW_HEIGHT }}>
@@ -698,6 +703,7 @@ function FleetRosterComponent({
                         vesselId: v.id,
                         vesselName: v.name,
                         body: v.body ?? "",
+                        compact,
                       }}
                     />
                   </UpdatesRow>
@@ -765,7 +771,7 @@ registerComponent<FleetRosterConfig>({
   id: "fleet-roster",
   name: "Fleet Roster",
   description:
-    "Fleet-wide roster table: one row per known CRAFT (debris, asteroids/comets, flags, EVA kerbals, and deployed science hardware are filtered out, see isRosterCraft) with name, body, crew, and comms link tier (direct/relay/no link), plus a fleet-wide comms-coverage summary. There is no per-vessel reliability/health signal behind this widget (reliability.summary is active-vessel-only) - the fleet-roster.updates augment slot is the seam for a future Reliability/TestFlight uplink to add that. SystemView draws only the ACTIVE vessel spatially: system.vessels carries no per-vessel position, so a whole-fleet spatial view is not something this table's data could feed even if SystemView grew a slot for it.",
+    "Fleet-wide roster table: one row per known CRAFT (debris, asteroids/comets, flags, EVA kerbals, and deployed science hardware are filtered out, see isRosterCraft) with name, body, crew, and comms link tier (direct/relay/no link), plus a fleet-wide comms-coverage summary. Reliability reaches the rows through the fleet-roster.updates augment slot, and only ever on ONE row: reliability.* is active-vessel-only (it carries no vesselId), so every other craft's row shows nothing whatever its condition. SystemView draws only the ACTIVE vessel spatially: system.vessels carries no per-vessel position, so a whole-fleet spatial view is not something this table's data could feed even if SystemView grew a slot for it.",
   tags: ["telemetry", "kerbalism"],
   defaultSize: { w: 8, h: 10 },
   minSize: { w: 4, h: 4 },

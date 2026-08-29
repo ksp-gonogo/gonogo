@@ -24,13 +24,21 @@ namespace Sitrep.Host.Tests
     /// (<c>Sitrep.Contract/ProviderExtensions.cs</c>) is the route that needs no such
     /// PR, and this test is what stops the old route being taken by habit.</para>
     ///
-    /// <para><b>What is pinned, and what is deliberately NOT failed.</b> The frozen
-    /// baselines below are the member sets as they stood when the mechanism landed.
-    /// Every one of them PREDATES the bag and is recorded, not condemned: migrating
-    /// them into it would be a breaking topic change and is a deliberate follow-up,
-    /// not something to smuggle into a guard. So this fails on an ADDITION. Adding a
-    /// member is the anti-pattern; the existing members are the baseline it is
-    /// measured against.</para>
+    /// <para><b>The follow-up landed, and the superset SHRANK.</b> The baselines
+    /// below were once the hand-curated superset this guard merely recorded: one
+    /// modelling mod's consumed-fraction fields beside another's live-probability
+    /// fields, all nullable, each doc-commented with who filled it. That set is
+    /// gone. The summary went from six members to three and the part entry from
+    /// twelve to nine (Major 13 -&gt; 14; see <c>ContractVersion</c>), and what
+    /// replaced the provider-shaped members is the OPEN one: a
+    /// <see cref="ReliabilityBudget"/> list whose dimensions a provider names
+    /// itself, plus the extension bag for anything genuinely provider-shaped. So a
+    /// new consumed dimension now needs no core PR at all, which is what makes this
+    /// guard a redirection rather than a dead end.</para>
+    ///
+    /// <para><b>What is pinned, and what is deliberately NOT failed.</b> This fails
+    /// on an ADDITION. Adding a member is the anti-pattern; the sets below are the
+    /// baseline it is measured against.</para>
     ///
     /// <para><b>Why an exact set rather than a max count.</b> A count would let a
     /// rename through, and a rename of a wire field is the same break as a removal
@@ -46,42 +54,54 @@ namespace Sitrep.Host.Tests
     public class ReliabilityContractShapeTests
     {
         /// <summary>
-        /// <see cref="ReliabilitySummary"/> as frozen when the extension bag landed.
-        /// <c>Extensions</c> is in the set because it IS the bag; every other entry
-        /// is a pre-existing hand-curated member.
+        /// <see cref="ReliabilitySummary"/>: two facts and the bag, and NO
+        /// judgements. A roll-up here would be a second authority for something
+        /// derivable from the part list published in the same capture at the same
+        /// UT, which is how two adjacent numbers come to disagree.
         /// </summary>
         private static readonly string[] FrozenSummaryMembers =
         {
-            nameof(ReliabilitySummary.Unmodeled),
-            nameof(ReliabilitySummary.Malfunction),
-            nameof(ReliabilitySummary.Critical),
             nameof(ReliabilitySummary.Source),
-            nameof(ReliabilitySummary.WorstReliabilityFraction),
+            nameof(ReliabilitySummary.Coverage),
             nameof(ReliabilitySummary.Extensions),
         };
 
         /// <summary>
-        /// <see cref="ReliabilityPartEntry"/> as frozen when the extension bag
-        /// landed. Five of these are provider-specific (the
-        /// <c>MtbfHours</c>/<c>ReliabilityFraction</c>/<c>RemainingRatedBurn</c> trio
-        /// and the <c>IgnitionsConsumed</c>/<c>DurationConsumed</c> pair, one modelling
-        /// mod each, see <see cref="ReliabilityPartEntry"/>'s own doc comments) and are
-        /// exactly the shape of thing that goes in the bag from now on.
+        /// <see cref="ReliabilityPartEntry"/>. Not one of these is
+        /// provider-shaped: a condition and the provider's own word for it, a
+        /// forward probability that MUST carry its horizon, the open budget list,
+        /// and the bag. A new consumed dimension is a
+        /// <see cref="ReliabilityBudget"/> entry, never a member here.
         /// </summary>
         private static readonly string[] FrozenPartEntryMembers =
         {
             nameof(ReliabilityPartEntry.PartId),
             nameof(ReliabilityPartEntry.Title),
-            nameof(ReliabilityPartEntry.Group),
-            nameof(ReliabilityPartEntry.Broken),
-            nameof(ReliabilityPartEntry.Critical),
-            nameof(ReliabilityPartEntry.MtbfHours),
-            nameof(ReliabilityPartEntry.ReliabilityFraction),
-            nameof(ReliabilityPartEntry.RemainingRatedBurn),
-            nameof(ReliabilityPartEntry.IgnitionsConsumed),
-            nameof(ReliabilityPartEntry.DurationConsumed),
-            nameof(ReliabilityPartEntry.NeedsRepair),
+            nameof(ReliabilityPartEntry.Condition),
+            nameof(ReliabilityPartEntry.ConditionDetail),
+            nameof(ReliabilityPartEntry.Survival),
+            nameof(ReliabilityPartEntry.SurvivalHorizonSeconds),
+            nameof(ReliabilityPartEntry.Budgets),
             nameof(ReliabilityPartEntry.Extensions),
+        };
+
+        /// <summary>
+        /// <see cref="ReliabilityBudget"/>: the ONE open member's own shape. It is
+        /// pinned for the same reason the two payloads are, and it is the reason
+        /// their member counts could FALL. A provider with a dimension nobody
+        /// anticipated invents an id and a label and fills whichever typed pair it
+        /// has; it does not add a field here either.
+        /// </summary>
+        private static readonly string[] FrozenBudgetMembers =
+        {
+            nameof(ReliabilityBudget.Id),
+            nameof(ReliabilityBudget.Label),
+            nameof(ReliabilityBudget.Kind),
+            nameof(ReliabilityBudget.Consumed),
+            nameof(ReliabilityBudget.UsedSeconds),
+            nameof(ReliabilityBudget.LimitSeconds),
+            nameof(ReliabilityBudget.UsedCount),
+            nameof(ReliabilityBudget.LimitCount),
         };
 
         [Fact]
@@ -91,6 +111,10 @@ namespace Sitrep.Host.Tests
         [Fact]
         public void ReliabilityPartEntryGainsNoNewHandListedMember() =>
             AssertNoNewMembers(typeof(ReliabilityPartEntry), FrozenPartEntryMembers);
+
+        [Fact]
+        public void ReliabilityBudgetGainsNoNewHandListedMember() =>
+            AssertNoNewMembers(typeof(ReliabilityBudget), FrozenBudgetMembers);
 
         /// <summary>
         /// Both payloads actually carry a bag, so the guard above is offering a real

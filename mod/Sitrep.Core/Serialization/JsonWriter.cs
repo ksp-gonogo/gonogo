@@ -363,6 +363,12 @@ namespace Sitrep.Core.Serialization
                 case Sitrep.Contract.ReliabilityPartEntry reliabilityPartEntry:
                     AppendReliabilityPartEntry(sb, reliabilityPartEntry);
                     break;
+                case Sitrep.Contract.ReliabilityBudget reliabilityBudget:
+                    // A part's Budgets list routes its elements through here one
+                    // by one via the IEnumerable case below, exactly as
+                    // reliability.parts already routes ReliabilityPartEntry.
+                    AppendReliabilityBudget(sb, reliabilityBudget);
+                    break;
                 case Sitrep.Contract.IsruDrillEntry isruDrillEntry:
                     // Same boundary again: isru.drills/isru.converters publish
                     // List<IsruDrillEntry>/List<IsruConverterEntry> raw, whose
@@ -674,11 +680,11 @@ namespace Sitrep.Core.Serialization
 
         /// <summary>
         /// Flattens a <see cref="Sitrep.Contract.ReliabilitySummary"/> to the wire
-        /// object <c>{ unmodeled, malfunction, critical, source,
-        /// worstReliabilityFraction }</c>, plus <c>extensions</c> when a provider
+        /// object <c>{ source, coverage }</c>, plus <c>extensions</c> when a provider
         /// filled its namespace (see <see cref="AppendProviderExtensions"/>, and note
         /// that key is OMITTED rather than null when empty): camelCase keys, JSON
-        /// null for absent nullable fields, matching the generated SDK interface. reliability.summary
+        /// null for absent nullable fields, matching the generated SDK interface.
+        /// reliability.summary
         /// (<c>Gonogo.KSP.ReliabilityCoreUplink.HandleOnCourier</c>) publishes this
         /// POCO raw, so before this existed a populated payload threw
         /// <c>NotSupportedException</c> at the wire boundary. See the <c>case</c> in
@@ -687,25 +693,13 @@ namespace Sitrep.Core.Serialization
         private static void AppendReliabilitySummary(StringBuilder sb, Sitrep.Contract.ReliabilitySummary r)
         {
             sb.Append('{');
-            AppendString(sb, "unmodeled");
-            sb.Append(':');
-            AppendNullableBool(sb, r.Unmodeled);
-            sb.Append(',');
-            AppendString(sb, "malfunction");
-            sb.Append(':');
-            AppendNullableBool(sb, r.Malfunction);
-            sb.Append(',');
-            AppendString(sb, "critical");
-            sb.Append(':');
-            AppendNullableBool(sb, r.Critical);
-            sb.Append(',');
             AppendString(sb, "source");
             sb.Append(':');
             AppendNullableString(sb, r.Source);
             sb.Append(',');
-            AppendString(sb, "worstReliabilityFraction");
+            AppendString(sb, "coverage");
             sb.Append(':');
-            AppendNullableNumber(sb, r.WorstReliabilityFraction);
+            AppendNullableString(sb, r.Coverage);
             AppendProviderExtensions(sb, r.Extensions);
             sb.Append('}');
         }
@@ -744,15 +738,19 @@ namespace Sitrep.Core.Serialization
 
         /// <summary>
         /// Flattens a <see cref="Sitrep.Contract.ReliabilityPartEntry"/> to the wire
-        /// object <c>{ partId, title, group, broken, critical, mtbfHours,
-        /// reliabilityFraction, remainingRatedBurn, ignitionsConsumed,
-        /// durationConsumed, needsRepair }</c>, plus <c>extensions</c> when a
+        /// object <c>{ partId, title, condition, conditionDetail, survival,
+        /// survivalHorizonSeconds, budgets }</c>, plus <c>extensions</c> when a
         /// provider filled its namespace (see
         /// <see cref="AppendProviderExtensions"/>): camelCase keys, JSON null for absent
         /// nullable fields, matching the generated SDK interface. reliability.parts
         /// publishes a <c>List&lt;ReliabilityPartEntry&gt;</c> raw, whose elements
         /// route through here via <see cref="AppendValue"/>'s <c>IEnumerable</c> case.
-        /// See the <c>case</c> in <see cref="AppendValue"/>.
+        ///
+        /// <para><c>budgets</c> is written as JSON <c>null</c> when the list is null
+        /// and <c>[]</c> when it is empty, deliberately NOT following the
+        /// omit-when-empty rule <c>extensions</c> uses: the bag is a mechanism, a
+        /// budget list is a reading, and "this provider models no dimensions" is
+        /// something a reader is entitled to see.</para>
         /// </summary>
         private static void AppendReliabilityPartEntry(StringBuilder sb, Sitrep.Contract.ReliabilityPartEntry p)
         {
@@ -765,42 +763,84 @@ namespace Sitrep.Core.Serialization
             sb.Append(':');
             AppendNullableString(sb, p.Title);
             sb.Append(',');
-            AppendString(sb, "group");
+            AppendString(sb, "condition");
             sb.Append(':');
-            AppendNullableString(sb, p.Group);
+            AppendNullableString(sb, p.Condition);
             sb.Append(',');
-            AppendString(sb, "broken");
+            AppendString(sb, "conditionDetail");
             sb.Append(':');
-            AppendNullableBool(sb, p.Broken);
+            AppendNullableString(sb, p.ConditionDetail);
             sb.Append(',');
-            AppendString(sb, "critical");
+            AppendString(sb, "survival");
             sb.Append(':');
-            AppendNullableBool(sb, p.Critical);
+            AppendNullableNumber(sb, p.Survival);
             sb.Append(',');
-            AppendString(sb, "mtbfHours");
+            AppendString(sb, "survivalHorizonSeconds");
             sb.Append(':');
-            AppendNullableNumber(sb, p.MtbfHours);
+            AppendNullableNumber(sb, p.SurvivalHorizonSeconds);
             sb.Append(',');
-            AppendString(sb, "reliabilityFraction");
+            AppendString(sb, "budgets");
             sb.Append(':');
-            AppendNullableNumber(sb, p.ReliabilityFraction);
-            sb.Append(',');
-            AppendString(sb, "remainingRatedBurn");
-            sb.Append(':');
-            AppendNullableNumber(sb, p.RemainingRatedBurn);
-            sb.Append(',');
-            AppendString(sb, "ignitionsConsumed");
-            sb.Append(':');
-            AppendNullableNumber(sb, p.IgnitionsConsumed);
-            sb.Append(',');
-            AppendString(sb, "durationConsumed");
-            sb.Append(':');
-            AppendNullableNumber(sb, p.DurationConsumed);
-            sb.Append(',');
-            AppendString(sb, "needsRepair");
-            sb.Append(':');
-            AppendNullableBool(sb, p.NeedsRepair);
+            if (p.Budgets == null)
+            {
+                AppendNull(sb);
+            }
+            else
+            {
+                sb.Append('[');
+                var first = true;
+                foreach (var budget in p.Budgets)
+                {
+                    if (!first) sb.Append(',');
+                    first = false;
+                    if (budget == null) AppendNull(sb); else AppendReliabilityBudget(sb, budget);
+                }
+                sb.Append(']');
+            }
             AppendProviderExtensions(sb, p.Extensions);
+            sb.Append('}');
+        }
+
+        /// <summary>
+        /// Flattens a <see cref="Sitrep.Contract.ReliabilityBudget"/> to the wire
+        /// object <c>{ id, label, kind, consumed, usedSeconds, limitSeconds,
+        /// usedCount, limitCount }</c>: camelCase keys, JSON null for absent
+        /// nullable fields, in that order, matching the generated SDK interface.
+        /// </summary>
+        private static void AppendReliabilityBudget(StringBuilder sb, Sitrep.Contract.ReliabilityBudget b)
+        {
+            sb.Append('{');
+            AppendString(sb, "id");
+            sb.Append(':');
+            AppendNullableString(sb, b.Id);
+            sb.Append(',');
+            AppendString(sb, "label");
+            sb.Append(':');
+            AppendNullableString(sb, b.Label);
+            sb.Append(',');
+            AppendString(sb, "kind");
+            sb.Append(':');
+            AppendNullableString(sb, b.Kind);
+            sb.Append(',');
+            AppendString(sb, "consumed");
+            sb.Append(':');
+            AppendNullableNumber(sb, b.Consumed);
+            sb.Append(',');
+            AppendString(sb, "usedSeconds");
+            sb.Append(':');
+            AppendNullableNumber(sb, b.UsedSeconds);
+            sb.Append(',');
+            AppendString(sb, "limitSeconds");
+            sb.Append(':');
+            AppendNullableNumber(sb, b.LimitSeconds);
+            sb.Append(',');
+            AppendString(sb, "usedCount");
+            sb.Append(':');
+            AppendNullableNumber(sb, b.UsedCount);
+            sb.Append(',');
+            AppendString(sb, "limitCount");
+            sb.Append(':');
+            AppendNullableNumber(sb, b.LimitCount);
             sb.Append('}');
         }
 

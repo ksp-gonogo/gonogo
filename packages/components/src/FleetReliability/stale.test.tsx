@@ -4,24 +4,29 @@ import { setupStreamFixture } from "../test/setupStreamFixture";
 import { FleetReliabilityUpdates } from "./index";
 
 /**
- * What the reliability augment does when the part list is no longer current.
+ * What the reliability augment does when the reliability read is no longer
+ * current.
  *
- * The decision: it stops asserting failures and says why, on the row. A
- * "critical" pill next to a part name is a claim about the craft now, and a held
- * part list makes that claim from evidence about the craft some seconds ago: it
- * would keep flagging a part the crew has since repaired, and (the way round that
- * matters) keep a craft that has since failed looking clean.
+ * The decision: it stops asserting conditions and says why, on the row. A
+ * "critical failure" pill next to a part name is a claim about the craft now,
+ * and a held part list makes that claim from evidence about the craft some
+ * seconds ago: it would keep flagging a part the crew has since repaired, and
+ * (the way round that matters) keep a craft that has since failed looking clean.
  *
- * Which is exactly why the withholding has to be VISIBLE here. Every other
- * outcome of this augment is `null`, so a silent refusal is indistinguishable
- * from a healthy craft, from a non-active row, and from an augment that crashed.
- * The assertions below pair "the markers are gone" with "the reason is on screen"
- * for that reason; neither half alone would catch a regression.
+ * Which is exactly why the withholding has to be VISIBLE here. A silent refusal
+ * is indistinguishable from a healthy craft, from a non-active row, and from an
+ * augment that crashed. The assertions below pair "the markers are gone" with
+ * "the reason is on screen" for that reason; neither half alone would catch a
+ * regression.
  *
- * The identity and summary reads are NOT withheld (see the module doc's
- * per-field split), and the third test is the proof: the marker still lands on
- * the correct row after the link drops, which it could not do if the active
- * vessel had been withheld along with the parts.
+ * The identity read is NOT withheld (see the module doc's per-topic split), and
+ * one test is the proof: the notice still lands on the correct row after the
+ * link drops, which it could not do if the active vessel had been withheld along
+ * with the parts.
+ *
+ * Note the staleness gate now watches BOTH reliability topics, not just the
+ * parts. They publish from one capture at one UT and go stale together, so
+ * either one going stale is the same event.
  */
 const CARRIED = ["reliability.summary", "reliability.parts", "vessel.identity"];
 
@@ -34,11 +39,10 @@ const ACTIVE_IDENTITY = {
 
 const FAILING_PARTS = [
   {
-    partId: "p1",
+    partId: "1:0",
     title: "LV-909 Terrier",
-    broken: false,
-    critical: true,
-    needsRepair: false,
+    condition: "failed-critical",
+    conditionDetail: "busted",
   },
 ];
 
@@ -50,6 +54,7 @@ function renderAugment(vesselId: string) {
         vesselId={vesselId}
         vesselName="Row"
         body="Kerbin"
+        compact={false}
       />
     </fixture.Provider>,
   );
@@ -61,8 +66,7 @@ function emitFailure(fixture: ReturnType<typeof setupStreamFixture>): void {
     fixture.emit("vessel.identity", ACTIVE_IDENTITY);
     fixture.emit("reliability.summary", {
       source: "testflight",
-      malfunction: true,
-      critical: true,
+      coverage: "modeled",
     });
     fixture.emit("reliability.parts", FAILING_PARTS);
   });
@@ -75,8 +79,8 @@ function dropTheLink(fixture: ReturnType<typeof setupStreamFixture>): void {
   });
 }
 
-describe("FleetReliability when the part list is not current", () => {
-  it("flags the failing part while the list is current", async () => {
+describe("FleetReliability when the reliability read is not current", () => {
+  it("flags the failing part while the read is current", async () => {
     // The control. Without it every assertion below would also pass on an augment
     // that never renders a failure at all.
     const { fixture } = renderAugment("v-active");
@@ -89,7 +93,7 @@ describe("FleetReliability when the part list is not current", () => {
     ).not.toBeInTheDocument();
   });
 
-  it("withholds the failure markers and SAYS the reliability read is not current", async () => {
+  it("withholds the markers and SAYS the reliability read is not current", async () => {
     const { fixture } = renderAugment("v-active");
     emitFailure(fixture);
     expect(await screen.findByText("LV-909 Terrier")).toBeInTheDocument();
@@ -103,7 +107,7 @@ describe("FleetReliability when the part list is not current", () => {
     );
     // Withheld, not merely reworded: no part name, no severity word, no count.
     expect(screen.queryByText("LV-909 Terrier")).not.toBeInTheDocument();
-    expect(screen.queryByText("critical")).not.toBeInTheDocument();
+    expect(screen.queryByText("critical failure")).not.toBeInTheDocument();
     expect(screen.queryByText(/at risk/)).not.toBeInTheDocument();
     expect(
       screen.queryByRole("group", { name: "Reliability updates" }),
@@ -121,7 +125,7 @@ describe("FleetReliability when the part list is not current", () => {
     dropTheLink(fixture);
 
     await waitFor(() => expect(container).not.toBeEmptyDOMElement());
-    expect(screen.getByText("reliability not current")).toBeInTheDocument();
+    expect(screen.getByText("not current")).toBeInTheDocument();
   });
 
   it("keeps the notice on the ACTIVE row only, because identity is held rather than withheld", async () => {
@@ -133,7 +137,7 @@ describe("FleetReliability when the part list is not current", () => {
     expect(await screen.findByText("LV-909 Terrier")).toBeInTheDocument();
     dropTheLink(active.fixture);
     await waitFor(() =>
-      expect(screen.getByText("reliability not current")).toBeInTheDocument(),
+      expect(screen.getByText("not current")).toBeInTheDocument(),
     );
     active.unmount();
 
@@ -142,25 +146,20 @@ describe("FleetReliability when the part list is not current", () => {
     dropTheLink(other.fixture);
 
     await waitFor(() => expect(other.container).toBeEmptyDOMElement());
-    expect(
-      screen.queryByText("reliability not current"),
-    ).not.toBeInTheDocument();
+    expect(screen.queryByText("not current")).not.toBeInTheDocument();
   });
 
-  it("says nothing about currency before any part list has arrived", async () => {
-    // A cold start is not a dropped link. Conflating them would accuse the mod of
-    // going quiet on every first paint, and the augment's silence here is the
-    // pre-existing "nothing to report yet" blank.
-    const { fixture, container } = renderAugment("v-active");
+  it("says it is not REPORTING, not that it went stale, before anything has arrived", async () => {
+    // A cold start is not a dropped link, and conflating them would accuse the
+    // mod of going quiet on every first paint. Both are now spoken states rather
+    // than the same blank, so this asserts which one is on screen.
+    const { fixture } = renderAugment("v-active");
     act(() => {
       fixture.emit("vessel.identity", ACTIVE_IDENTITY);
-      fixture.emit("reliability.summary", { source: "testflight" });
     });
 
-    await waitFor(() => expect(container).toBeEmptyDOMElement());
-    expect(
-      screen.queryByText("reliability not current"),
-    ).not.toBeInTheDocument();
+    expect(await screen.findByText("not reporting")).toBeInTheDocument();
+    expect(screen.queryByText("not current")).not.toBeInTheDocument();
   });
 
   it("still renders blank for the none backend after the link drops", async () => {
@@ -170,16 +169,14 @@ describe("FleetReliability when the part list is not current", () => {
     const { fixture, container } = renderAugment("v-active");
     act(() => {
       fixture.emit("vessel.identity", ACTIVE_IDENTITY);
-      fixture.emit("reliability.summary", { source: "none" });
-      fixture.emit("reliability.parts", FAILING_PARTS);
+      fixture.emit("reliability.summary", { source: "none", coverage: "none" });
+      fixture.emit("reliability.parts", []);
     });
     await waitFor(() => expect(container).toBeEmptyDOMElement());
 
     dropTheLink(fixture);
 
     await waitFor(() => expect(container).toBeEmptyDOMElement());
-    expect(
-      screen.queryByText("reliability not current"),
-    ).not.toBeInTheDocument();
+    expect(screen.queryByText("not current")).not.toBeInTheDocument();
   });
 });

@@ -1,10 +1,15 @@
 {
   "_meta": {
-    "scenario": "A two-craft fleet with a broken reaction wheel on the active craft.",
-    "notes": "Rendered under three declared installs. Only the install changes: the fleet, the active craft and the failing part are the same in all three, so any difference in what the roster row shows is the reliability election and nothing else."
+    "scenario": "A two-craft fleet whose active craft has a busted reaction wheel, an antenna overdue for service, and an RD-180 well into its continuous burn rating.",
+    "notes": "Rendered under four declared installs. Only the install changes: the fleet, the active craft and its parts are the same in all four, so any difference in what the roster row shows is the reliability election and nothing else. The part list is the TestFlight shape (it survives under rp1-testflight); the Kerbalism-live profile substitutes its own, because Kerbalism models conditions and a service clock and no probability at all, and a scene that gave it a survival figure would be inventing one."
   },
   "_stream": {
-    "profiles": ["rp1-testflight", "rp1-no-testflight", "stock-career"],
+    "profiles": [
+      "rp1-testflight",
+      "rp1-kerbalism-live",
+      "rp1-no-testflight",
+      "stock-career"
+    ],
     "carriedChannels": [
       "system.vessels",
       "system.bodies",
@@ -55,7 +60,76 @@
       },
       {
         "channel": "reliability.parts",
-        "value": [{ "partId": "p1", "title": "Reaction Wheel", "broken": true }]
+        "value": [
+          {
+            "partId": "101:0",
+            "title": "Reaction Wheel",
+            "condition": "failed-critical",
+            "conditionDetail": "busted",
+            "survival": null,
+            "survivalHorizonSeconds": null,
+            "budgets": null
+          },
+          {
+            "partId": "102:0",
+            "title": "Antenna",
+            "condition": "service-due",
+            "conditionDetail": "needs service",
+            "survival": null,
+            "survivalHorizonSeconds": null,
+            "budgets": [
+              {
+                "id": "service",
+                "label": "service",
+                "kind": "schedule",
+                "consumed": 1.4,
+                "usedSeconds": 302400,
+                "limitSeconds": 216000,
+                "usedCount": null,
+                "limitCount": null
+              }
+            ]
+          },
+          {
+            "partId": "103:0",
+            "title": "RD-180",
+            "condition": "nominal",
+            "conditionDetail": null,
+            "survival": 0.82,
+            "survivalHorizonSeconds": 255,
+            "budgets": [
+              {
+                "id": "burn.continuous",
+                "label": "continuous rated burn",
+                "kind": "risk-ramp",
+                "consumed": 0.91,
+                "usedSeconds": 232,
+                "limitSeconds": 255,
+                "usedCount": null,
+                "limitCount": null
+              },
+              {
+                "id": "burn.cumulative",
+                "label": "cumulative rated burn",
+                "kind": "risk-ramp",
+                "consumed": 0.1,
+                "usedSeconds": 26,
+                "limitSeconds": 255,
+                "usedCount": null,
+                "limitCount": null
+              }
+            ]
+          },
+          {
+            "partId": "104:0",
+            "title": "Battery",
+            "condition": "nominal",
+            "conditionDetail": null,
+            "survival": null,
+            "survivalHorizonSeconds": null,
+            "budgets": null
+          }
+        ]
       }
     ]
   }

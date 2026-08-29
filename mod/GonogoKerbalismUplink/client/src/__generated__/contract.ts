@@ -186,9 +186,13 @@ export interface KerbalismFeatures
 }
 export interface KerbalismReliabilityExt
 {
-	worstMtbfHours?: Value<"h">;
+	worstMtbfSeconds?: Value<"s">;
 	brokenPartCount?: Value<"count">;
-	maintenanceDueCount?: Value<"count">;
+	serviceDuePartCount?: Value<"count">;
+	criticalChance?: Value<"ratio">;
+	safeModeChance?: Value<"ratio">;
+	requireRepairKits?: boolean;
+	incentiveRedundancy?: boolean;
 }
 export interface KerbalismScienceExperimentExt
 {

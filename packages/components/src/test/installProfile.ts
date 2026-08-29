@@ -1,7 +1,10 @@
 import { HEALTH_STATE_NAMES } from "@ksp-gonogo/sitrep-sdk/spine";
+import reliabilityUnavailable from "./__profiles__/reliability-unavailable.json";
+import rp1KerbalismLive from "./__profiles__/rp1-kerbalism-live.json";
 import rp1NoTestflight from "./__profiles__/rp1-no-testflight.json";
 import rp1Testflight from "./__profiles__/rp1-testflight.json";
 import stockCareer from "./__profiles__/stock-career.json";
+import testflightUnreadable from "./__profiles__/testflight-unreadable.json";
 
 /**
  * A named, checked-in INSTALL: which Gonogo Uplinks a machine has, which
@@ -113,6 +116,18 @@ export const INSTALL_PROFILES: Record<string, InstallProfile> = Object.freeze({
   [(rp1Testflight as InstallProfile).id]: rp1Testflight as InstallProfile,
   [(rp1NoTestflight as InstallProfile).id]: rp1NoTestflight as InstallProfile,
   [(stockCareer as InstallProfile).id]: stockCareer as InstallProfile,
+  // The three below exist because the matrix above could not REACH three states
+  // the mod really produces: a Kerbalism backend that is modelling (the other
+  // Kerbalism profile empties its part list, so its blank came from the data
+  // rather than from any widget decision), a TestFlight backend whose part
+  // conditions cannot be read (the state the shipped Uplink was permanently in),
+  // and a provider whose factory threw. Each of those renders differently from
+  // every other, and none of them could be rendered at all before.
+  [(rp1KerbalismLive as InstallProfile).id]: rp1KerbalismLive as InstallProfile,
+  [(testflightUnreadable as InstallProfile).id]:
+    testflightUnreadable as InstallProfile,
+  [(reliabilityUnavailable as InstallProfile).id]:
+    reliabilityUnavailable as InstallProfile,
 });
 
 /** Looks a profile up by id, naming the ones that exist when it misses. */

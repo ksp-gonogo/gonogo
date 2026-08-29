@@ -23,6 +23,14 @@ namespace GonogoTestFlightUplink
     {
         private readonly TestFlightReflection _tf = new();
 
+        /// <summary>
+        /// Why the provider is not registered, when registration itself threw. The
+        /// Kernel emits NO notice for a provider that never registered, so this
+        /// uplink's own Health() is the only route by which "registration threw" is
+        /// distinguishable from "the mod is not installed".
+        /// </summary>
+        private string? _registrationError;
+
         public UplinkManifest Manifest { get; } = new UplinkManifest
         {
             Id = "testflight",
@@ -51,14 +59,29 @@ namespace GonogoTestFlightUplink
                 }
                 catch (Exception ex)
                 {
-                    Console.Error.WriteLine("[TestFlightUplink] could not register reliability provider: " + ex.Message);
+                    // UnityEngine.Debug, not Console.Error: the latter is invisible
+                    // in KSP, which is how a silently-dropped provider looked
+                    // identical to an uninstalled mod.
+                    _registrationError = ex.Message;
+                    UnityEngine.Debug.LogError(
+                        "[Gonogo] TestFlightUplink could not register reliability provider: " + ex.Message);
                 }
             }
         }
 
-        public UplinkHealth Health() =>
-            _tf.IsAvailable
-                ? UplinkHealth.Healthy
-                : new UplinkHealth(UplinkHealthState.Unavailable, "TestFlight assembly not loaded");
+        public UplinkHealth Health()
+        {
+            if (!_tf.IsAvailable)
+            {
+                return new UplinkHealth(UplinkHealthState.Unavailable, "TestFlight assembly not loaded");
+            }
+            if (_registrationError != null)
+            {
+                return new UplinkHealth(
+                    UplinkHealthState.Degraded,
+                    "reliability provider registration threw: " + _registrationError);
+            }
+            return UplinkHealth.Healthy;
+        }
     }
 }

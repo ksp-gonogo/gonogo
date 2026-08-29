@@ -122,6 +122,11 @@
     "reason": "The stamp saying WHEN the observation was taken. The rule proposes advancing the anchor that every integration measures its elapsed time from, which would make a model that used it drift against itself.",
     "verdict": "coincidence"
   },
+  "KerbalismReliabilityExt.worstMtbfSeconds": {
+    "rates": ["criticalChance", "safeModeChance"],
+    "reason": "Dimensional degeneracy again, and the two siblings are save-wide DIFFICULTY SETTINGS: given a failure happened, the chance it is the severe class, and given one fell due on an uncrewed craft, the chance it is absorbed as a safe-mode reset. Neither is a rate of anything, least of all of a mean time between failures, which is a nameplate constant per part rather than a countdown.",
+    "verdict": "coincidence"
+  },
   "KerbalismResource.amount": {
     "rates": ["rate"],
     "reason": "`rate` is the rate of `amount`. The integrand and the rate are on ONE type here, but the topic that publishes amounts (`vessel.resources`) is not the topic that publishes Kerbalism's rates, so a model for the live pair is cross-topic and belongs in a derived channel, not a per-topic reckoner.",
@@ -270,14 +275,19 @@
     "reason": "Coincidence, for the same reason as its sibling limit above: three dimensionless ratios stand in as the rate of every duration in the type, and a continuous-burn rating is a fixed figure off the engine config that does not move while the engine runs.",
     "verdict": "coincidence"
   },
-  "ReliabilityPartEntry.mtbfHours": {
-    "rates": ["durationConsumed", "ignitionsConsumed", "reliabilityFraction"],
-    "reason": "A deliberate source-agnostic SUPERSET read as if it were a record: `remainingRatedBurn` is null for one provider and `durationConsumed`/`ignitionsConsumed` are null for the other, an invariant a shape test already pins, so the integrand and its supposed rate are never both present.",
+  "ReliabilityBudget.limitSeconds": {
+    "rates": ["consumed"],
+    "reason": "The same dimensional degeneracy, and the fraction genuinely IS used over limit, so it is derived FROM this pair rather than being its rate: integrating `consumed` to get seconds would recompute an input from an output. There is no clock here either. A budget's seconds are consumed by OPERATION (thrust-weighted, for a rated burn), not by time passing, so nothing advances between frames for a reckoner to integrate.",
     "verdict": "coincidence"
   },
-  "ReliabilityPartEntry.remainingRatedBurn": {
-    "rates": ["durationConsumed", "ignitionsConsumed", "reliabilityFraction"],
-    "reason": "A deliberate source-agnostic SUPERSET read as if it were a record: `remainingRatedBurn` is null for one provider and `durationConsumed`/`ignitionsConsumed` are null for the other, an invariant a shape test already pins, so the integrand and its supposed rate are never both present.",
+  "ReliabilityBudget.usedSeconds": {
+    "rates": ["consumed"],
+    "reason": "The same dimensional degeneracy, and the fraction genuinely IS used over limit, so it is derived FROM this pair rather than being its rate: integrating `consumed` to get seconds would recompute an input from an output. There is no clock here either. A budget's seconds are consumed by OPERATION (thrust-weighted, for a rated burn), not by time passing, so nothing advances between frames for a reckoner to integrate.",
+    "verdict": "coincidence"
+  },
+  "ReliabilityPartEntry.survivalHorizonSeconds": {
+    "rates": ["survival"],
+    "reason": "Dimensional degeneracy plus a category error. `divide({s:1},{s:1})` is `{}`, so every dimensionless field is the dimensional rate of every time field in its own type, and that is the whole of this pairing. A survival PROBABILITY is not the rate at which its own horizon elapses: the horizon is a parameter OF the probability (P(survive t seconds of operation)), which is why the contract makes it mandatory whenever the fraction is set. Integrating one against the other would produce a number with no referent.",
     "verdict": "coincidence"
   },
   "Rp1BuildItemEntry.timeLeftSeconds": {
@@ -511,14 +521,9 @@
     "reason": "The stamp saying WHEN the observation was taken. The rule proposes advancing the anchor that every integration measures its elapsed time from, which would make a model that used it drift against itself.",
     "verdict": "coincidence"
   },
-  "reliability.parts.mtbfHours": {
-    "rates": ["durationConsumed", "ignitionsConsumed", "reliabilityFraction"],
-    "reason": "A deliberate source-agnostic SUPERSET read as if it were a record: `remainingRatedBurn` is null for one provider and `durationConsumed`/`ignitionsConsumed` are null for the other, an invariant a shape test already pins, so the integrand and its supposed rate are never both present.",
-    "verdict": "coincidence"
-  },
-  "reliability.parts.remainingRatedBurn": {
-    "rates": ["durationConsumed", "ignitionsConsumed", "reliabilityFraction"],
-    "reason": "A deliberate source-agnostic SUPERSET read as if it were a record: `remainingRatedBurn` is null for one provider and `durationConsumed`/`ignitionsConsumed` are null for the other, an invariant a shape test already pins, so the integrand and its supposed rate are never both present.",
+  "reliability.parts.survivalHorizonSeconds": {
+    "rates": ["survival"],
+    "reason": "Dimensional degeneracy plus a category error. `divide({s:1},{s:1})` is `{}`, so every dimensionless field is the dimensional rate of every time field in its own type, and that is the whole of this pairing. A survival PROBABILITY is not the rate at which its own horizon elapses: the horizon is a parameter OF the probability (P(survive t seconds of operation)), which is why the contract makes it mandatory whenever the fraction is set. Integrating one against the other would produce a number with no referent.",
     "verdict": "coincidence"
   },
   "robotics.servos.currentAngle": {

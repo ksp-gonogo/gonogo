@@ -754,25 +754,27 @@
       "subjectId": "id",
       "subjectTitle": "text"
     },
+    "ReliabilityBudget": {
+      "consumed": "ratio",
+      "id": "id",
+      "kind": "enum",
+      "label": "text",
+      "limitCount": "count",
+      "limitSeconds": "s",
+      "usedCount": "count",
+      "usedSeconds": "s"
+    },
     "ReliabilityPartEntry": {
-      "broken": "flag",
-      "critical": "flag",
-      "durationConsumed": "ratio",
-      "group": "text",
-      "ignitionsConsumed": "ratio",
-      "mtbfHours": "h",
-      "needsRepair": "flag",
+      "condition": "enum",
+      "conditionDetail": "text",
       "partId": "id",
-      "reliabilityFraction": "ratio",
-      "remainingRatedBurn": "s",
+      "survival": "ratio",
+      "survivalHorizonSeconds": "s",
       "title": "text"
     },
     "ReliabilitySummary": {
-      "critical": "flag",
-      "malfunction": "flag",
-      "source": "id",
-      "unmodeled": "flag",
-      "worstReliabilityFraction": "ratio"
+      "coverage": "enum",
+      "source": "id"
     },
     "RemoveManeuverNodeArgs": {
       "nodeId": "id"
@@ -1431,24 +1433,16 @@
       "vesselName": "text"
     },
     "reliability.parts": {
-      "broken": "flag",
-      "critical": "flag",
-      "durationConsumed": "ratio",
-      "group": "text",
-      "ignitionsConsumed": "ratio",
-      "mtbfHours": "h",
-      "needsRepair": "flag",
+      "condition": "enum",
+      "conditionDetail": "text",
       "partId": "id",
-      "reliabilityFraction": "ratio",
-      "remainingRatedBurn": "s",
+      "survival": "ratio",
+      "survivalHorizonSeconds": "s",
       "title": "text"
     },
     "reliability.summary": {
-      "critical": "flag",
-      "malfunction": "flag",
-      "source": "id",
-      "unmodeled": "flag",
-      "worstReliabilityFraction": "ratio"
+      "coverage": "enum",
+      "source": "id"
     },
     "robotics.available": {
       "available": "flag"
@@ -1932,6 +1926,9 @@
       "inputs": "IsruResourceFlow[]",
       "outputs": "IsruResourceFlow[]"
     },
+    "Kernel": {
+      "lastNotices": "ResolutionNotice[]"
+    },
     "ManeuverNode": {
       "patches": "OrbitPatch[]"
     },
@@ -1962,6 +1959,9 @@
       "partBreakdown": "RecoveryPartEntry[]",
       "resourceBreakdown": "RecoveryResourceEntry[]",
       "scienceBreakdown": "RecoveryScienceEntry[]"
+    },
+    "ReliabilityPartEntry": {
+      "budgets": "ReliabilityBudget[]"
     },
     "ResolveResult": {
       "notices": "ResolutionNotice[]"
@@ -2155,6 +2155,9 @@
       "partBreakdown": "RecoveryPartEntry[]",
       "resourceBreakdown": "RecoveryResourceEntry[]",
       "scienceBreakdown": "RecoveryScienceEntry[]"
+    },
+    "reliability.parts": {
+      "budgets": "ReliabilityBudget[]"
     },
     "spaceCenter.astronautComplex": {
       "applicants": "CrewRosterEntry[]"

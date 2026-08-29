@@ -94,6 +94,15 @@ export class Kernel {
   /** Capabilities whose vanilla factory is part-way through running, so re-entry can be named rather than hanging. */
   private readonly vanillaInFlight = new Set<CapabilityId>();
 
+  /**
+   * Notices from the most recent `resolve()`. Retained because a capability's
+   * consumer has no other way to tell "no provider registered" from "the
+   * selected provider's factory threw and we fell through to vanilla": both
+   * leave the vanilla instance elected, and the second is a fault the operator
+   * must be told about. Mirrors `Kernel.LastNotices` in the C# port.
+   */
+  lastNotices: readonly ResolutionNotice[] = [];
+
   registerCapability<T>(descriptor: CapabilityDescriptor<T>): void {
     this.capabilities.set(descriptor.id, descriptor as CapabilityDescriptor);
     if (!this.providers.has(descriptor.id)) {
@@ -121,6 +130,7 @@ export class Kernel {
     // one would leave a displaced provider talking to a vanilla nothing else is
     // using any more.
     this.vanillaInstances.clear();
+    this.lastNotices = [];
     const ctx: ProviderContext = {
       kernelVersion: opts.kernelVersion,
       query: <T>(capability: CapabilityId) => this.query<T>(capability),
@@ -163,6 +173,7 @@ export class Kernel {
       this.activeInstances.set(capability, instances);
     }
 
+    this.lastNotices = notices;
     return { notices };
   }
 

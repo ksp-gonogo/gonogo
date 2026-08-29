@@ -554,7 +554,7 @@ export const COMMENT_STACK_DEBT: Record<string, number> = {
   "packages/core/src/published-doc-reachability.test.ts": 1,
   "packages/core/src/ratchet-base-ref.test.ts": 2,
   "packages/core/src/ratchetBaseRef.ts": 1,
-  "packages/core/src/reckoning-candidates.test.ts": 2,
+  "packages/core/src/reckoning-candidates.test.ts": 1,
   "packages/core/src/replay-fixture-conformance.test.ts": 2,
   "packages/core/src/sdk-facade.conformance.test-d.ts": 3,
   "packages/core/src/searchTags.test.ts": 1,

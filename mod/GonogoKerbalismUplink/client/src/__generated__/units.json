@@ -144,8 +144,12 @@
     },
     "KerbalismReliabilityExt": {
       "brokenPartCount": "count",
-      "maintenanceDueCount": "count",
-      "worstMtbfHours": "h"
+      "criticalChance": "ratio",
+      "incentiveRedundancy": "flag",
+      "requireRepairKits": "flag",
+      "safeModeChance": "ratio",
+      "serviceDuePartCount": "count",
+      "worstMtbfSeconds": "s"
     },
     "KerbalismResource": {
       "amount": "units",

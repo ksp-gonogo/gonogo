@@ -532,6 +532,31 @@ export interface PowerSystemsScope {
   resource: string;
 }
 
+// --- FleetRoster (packages/components/src/FleetRoster) ---------------------
+
+/**
+ * Mirrors the props `FleetRoster` hands its per-vessel update line: which craft
+ * this row is, and how much room the augment has.
+ */
+export interface FleetRosterUpdatesContext {
+  /** The craft this row is about, so an active-vessel-scoped augment can bind to it. */
+  vesselId: string;
+  vesselName: string;
+  /** The body the craft is at; empty when the roster does not know. */
+  body: string;
+  /**
+   * The roster is too narrow for a per-row detail line, so an augment renders a
+   * BADGE and nothing else.
+   *
+   * <p>It exists because the alternative was worse: the roster used to drop the
+   * whole slot below six columns, which is the normal width of a portrait station
+   * panel, so a critical part failure was invisible on exactly the screens a
+   * station operator watches. Shedding the words is a judgement about density;
+   * shedding the alarm is not.</p>
+   */
+  compact: boolean;
+}
+
 // ---------------------------------------------------------------------------
 // The merge itself: every first-party (packages/components-owned) slot id,
 // enumerated by grepping every `declare module "@ksp-gonogo/core"` /
@@ -616,6 +641,8 @@ declare module "./types" {
     // Mounted by `Panel`'s universal `sections` segment; the resource in focus
     // reaches an augment through `WidgetScopeRegistry` below instead.
     "power-systems.sections": Record<string, never>;
+
+    "fleet-roster.updates": FleetRosterUpdatesContext;
   }
 
   // What each widget publishes about its own current focus, for an augment to

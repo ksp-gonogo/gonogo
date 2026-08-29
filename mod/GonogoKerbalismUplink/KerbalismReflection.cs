@@ -32,6 +32,7 @@ namespace Gonogo.KerbalismUplink
         private readonly Type? _stormType;
         private readonly Type? _modifiersType;
         private readonly Type? _prefsRadiationType;
+        private readonly Type? _prefsReliabilityType;
         private readonly Type? _resourceCacheType;
         private readonly Type? _ruleType;
         private readonly MethodInfo? _ruleVariance;
@@ -78,6 +79,7 @@ namespace Gonogo.KerbalismUplink
             _stormType = FindType("KERBALISM.Storm") ?? FindType("Kerbalism.Storm");
             _modifiersType = FindType("KERBALISM.Modifiers") ?? FindType("Kerbalism.Modifiers");
             _prefsRadiationType = FindType("KERBALISM.PreferencesRadiation") ?? FindType("Kerbalism.PreferencesRadiation");
+            _prefsReliabilityType = FindType("KERBALISM.PreferencesReliability") ?? FindType("Kerbalism.PreferencesReliability");
             _resourceCacheType = FindType("KERBALISM.ResourceCache") ?? FindType("Kerbalism.ResourceCache");
             _ruleType = FindType("KERBALISM.Rule") ?? FindType("Kerbalism.Rule");
             // Rule.Variance(name, crewMember, variance) is private static. Asked
@@ -521,45 +523,181 @@ namespace Gonogo.KerbalismUplink
         }
 
         /// <summary>
-        /// Vessel reliability: API.Malfunction/Critical bools + the per-part list
-        /// from KERBALISM.ReliabilityInfo.BuildList(Vessel) (fields
-        /// title/group/broken/critical/partId/mtbf/rel_duration/rel_ignitions +
-        /// NeedsMaintenance()). [fixture-confirm] the exact ReliabilityInfo shape;
-        /// per-part reads degrade to an empty list when the type moved.
+        /// Reads the save-wide <c>PreferencesReliability.Instance</c> settings. The
+        /// singleton accessor is resolved as a property first and then as a field,
+        /// because Kerbalism's own call sites only prove <c>Instance</c> exists, not
+        /// which of the two it is. Neither binding leaves an all-null bundle, which
+        /// the backend maps to Coverage "indeterminate" rather than to "off".
+        /// </summary>
+        public ReliabilityPreferencesRaw ReliabilityPreferences()
+        {
+            var prefs = new ReliabilityPreferencesRaw();
+            if (_prefsReliabilityType == null) return prefs;
+
+            object? instance = null;
+            try
+            {
+                instance = _prefsReliabilityType
+                    .GetProperty("Instance", BindingFlags.Public | BindingFlags.Static)
+                    ?.GetValue(null);
+            }
+            catch { }
+            if (instance == null)
+            {
+                try
+                {
+                    instance = _prefsReliabilityType
+                        .GetField("Instance", BindingFlags.Public | BindingFlags.Static)
+                        ?.GetValue(null);
+                }
+                catch { }
+            }
+            if (instance == null) return prefs;
+
+            prefs.MtbfFailures = MemberBool(instance, "mtbfFailures");
+            prefs.Highlights = MemberBool(instance, "highlights");
+            prefs.CriticalChance = MemberDouble(instance, "criticalChance");
+            prefs.SafeModeChance = MemberDouble(instance, "safeModeChance");
+            prefs.RequireRepairKits = MemberBool(instance, "requireRepairKits");
+            prefs.IncentiveRedundancy = MemberBool(instance, "incentiveRedundancy");
+            return prefs;
+        }
+
+        /// <summary>
+        /// Per-part reliability for one vessel: the
+        /// <c>KERBALISM.ReliabilityInfo.BuildList(Vessel)</c> projection, joined to
+        /// the underlying <c>KERBALISM.Reliability</c> PartModule for the two
+        /// persisted fields the projection does not expose (<c>last_inspection</c>
+        /// and <c>quality</c>), which are what the service budget needs.
+        ///
+        /// <para>Deliberately absent: any life/wear fraction. <c>(UT - last) /
+        /// (next - last)</c> is available and is not published, because Kerbalism
+        /// itself only ever displays a <c>&gt; 0.35</c> boolean from an EVA
+        /// inspection, its denominator moves in both directions every tick, and
+        /// crossing it is a safe-mode coin flip rather than a deadline.</para>
         /// </summary>
         public ReliabilityRaw Reliability(Vessel v)
         {
-            var raw = new ReliabilityRaw
+            var raw = new ReliabilityRaw { Ut = Planetarium.GetUniversalTime() };
+            if (v == null || _buildReliabilityList == null) return raw;
+
+            var modules = ReliabilityModules(v);
+
+            object? list = null;
+            try { list = _buildReliabilityList.Invoke(null, new object[] { v }); } catch { }
+            if (list is not IEnumerable entries) return raw;
+
+            foreach (var e in entries)
             {
-                Malfunction = ApiBool("Malfunction", v) ?? false,
-                Critical = ApiBool("Critical", v) ?? false,
-            };
-            if (_buildReliabilityList != null && v != null)
-            {
-                object? list = null;
-                try { list = _buildReliabilityList.Invoke(null, new object[] { v }); } catch { }
-                if (list is IEnumerable entries)
+                if (e == null) continue;
+                var partId = MemberString(e, "partId") ?? "";
+                var title = MemberString(e, "title") ?? "";
+                var paired = PairModule(modules, partId, title);
+                raw.Parts.Add(new ReliabilityPartRaw
                 {
-                    foreach (var e in entries)
-                    {
-                        if (e == null) continue;
-                        raw.Parts.Add(new ReliabilityPartRaw
-                        {
-                            PartId = MemberString(e, "partId") ?? "",
-                            Title = MemberString(e, "title") ?? "",
-                            Group = MemberString(e, "group") ?? "",
-                            Broken = MemberBool(e, "broken") ?? false,
-                            Critical = MemberBool(e, "critical") ?? false,
-                            Mtbf = MemberDouble(e, "mtbf") ?? 0,
-                            IgnitionsConsumed = MemberDouble(e, "rel_ignitions") ?? 0,
-                            DurationConsumed = MemberDouble(e, "rel_duration") ?? 0,
-                            NeedsRepair = InvokeBoolMethod(e, "NeedsMaintenance") ?? false,
-                        });
-                    }
-                }
+                    PartId = partId,
+                    Title = title,
+                    Group = MemberString(e, "group") ?? "",
+                    Broken = MemberBool(e, "broken") ?? false,
+                    Critical = MemberBool(e, "critical") ?? false,
+                    MtbfSeconds = MemberDouble(e, "mtbf"),
+                    NeedsService = InvokeBoolMethod(e, "NeedsMaintenance") ?? false,
+                    LastInspection = paired?.LastInspection,
+                    Quality = paired?.Quality,
+                });
             }
             return raw;
         }
+
+        /// <summary>The two persisted Reliability-module fields ReliabilityInfo does not project, keyed for pairing.</summary>
+        private sealed class ReliabilityModuleRead
+        {
+            public string PartId = "";
+            public string Title = "";
+            public double? LastInspection;
+            public bool? Quality;
+        }
+
+        /// <summary>
+        /// Pairs a module read to its ReliabilityInfo entry. Exact (partId, title)
+        /// first; a UNIQUE title is accepted as a fallback because
+        /// <c>ReliabilityInfo</c>'s proto constructor sets <c>partId = 0u</c>
+        /// unconditionally, so on an unloaded vessel the exact key can never match
+        /// and the service budget would be permanently absent there.
+        /// </summary>
+        private static ReliabilityModuleRead? PairModule(
+            List<ReliabilityModuleRead> modules, string partId, string title)
+        {
+            ReliabilityModuleRead? titleOnly = null;
+            var titleMatches = 0;
+            foreach (var m in modules)
+            {
+                if (m.PartId == partId && m.Title == title) return m;
+                if (m.Title == title) { titleOnly = m; titleMatches++; }
+            }
+            return titleMatches == 1 ? titleOnly : null;
+        }
+
+        /// <summary>
+        /// Walks the vessel's <c>KERBALISM.Reliability</c> PartModules, loaded or
+        /// proto, reading only the two persisted fields the projection drops.
+        ///
+        /// <para>On the proto path the field name is <c>needMaintenance</c>, NOT
+        /// <c>need_maintenance</c>: Kerbalism's own proto constructor reads the
+        /// latter and therefore always loses the explicit inspection flag. Nothing
+        /// here reads it today, but the name is recorded so a future read takes
+        /// the key that is actually written.</para>
+        /// </summary>
+        private static List<ReliabilityModuleRead> ReliabilityModules(Vessel v)
+        {
+            var found = new List<ReliabilityModuleRead>();
+            if (v.loaded && v.parts != null)
+            {
+                foreach (var part in v.parts)
+                {
+                    if (part?.Modules == null) continue;
+                    foreach (PartModule pm in part.Modules)
+                    {
+                        if (pm == null || pm.GetType().FullName != "KERBALISM.Reliability") continue;
+                        found.Add(new ReliabilityModuleRead
+                        {
+                            PartId = part.flightID.ToString(),
+                            Title = MemberString(pm, "title") ?? "",
+                            LastInspection = MemberDouble(pm, "last_inspection"),
+                            Quality = MemberBool(pm, "quality"),
+                        });
+                    }
+                }
+                return found;
+            }
+
+            var proto = v.protoVessel;
+            if (proto?.protoPartSnapshots == null) return found;
+            foreach (var protoPart in proto.protoPartSnapshots)
+            {
+                if (protoPart?.modules == null) continue;
+                foreach (var protoModule in protoPart.modules)
+                {
+                    if (protoModule?.moduleName != "Reliability") continue;
+                    var node = protoModule.moduleValues;
+                    if (node == null) continue;
+                    found.Add(new ReliabilityModuleRead
+                    {
+                        PartId = protoPart.flightID.ToString(),
+                        Title = node.GetValue("title") ?? "",
+                        LastInspection = ProtoDouble(node, "last_inspection"),
+                        Quality = ProtoBool(node, "quality"),
+                    });
+                }
+            }
+            return found;
+        }
+
+        private static double? ProtoDouble(ConfigNode node, string key) =>
+            double.TryParse(node.GetValue(key), out var value) ? value : (double?)null;
+
+        private static bool? ProtoBool(ConfigNode node, string key) =>
+            bool.TryParse(node.GetValue(key), out var value) ? value : (bool?)null;
 
         // ── solar vantage / storms (star-agnostic) ──────────────────────────────
 

@@ -879,26 +879,30 @@ export interface RecoveryCrewEntry
 }
 export interface ReliabilitySummary
 {
-	unmodeled?: boolean;
-	malfunction?: boolean;
-	critical?: boolean;
 	source?: string;
-	worstReliabilityFraction?: Value<"ratio">;
+	coverage?: string;
 	extensions?: ProviderExtensions;
+}
+export interface ReliabilityBudget
+{
+	id?: string;
+	label?: string;
+	kind?: string;
+	consumed?: Value<"ratio">;
+	usedSeconds?: Value<"s">;
+	limitSeconds?: Value<"s">;
+	usedCount?: Value<"count">;
+	limitCount?: Value<"count">;
 }
 export interface ReliabilityPartEntry
 {
 	partId?: string;
 	title?: string;
-	group?: string;
-	broken?: boolean;
-	critical?: boolean;
-	mtbfHours?: Value<"h">;
-	reliabilityFraction?: Value<"ratio">;
-	remainingRatedBurn?: Value<"s">;
-	ignitionsConsumed?: Value<"ratio">;
-	durationConsumed?: Value<"ratio">;
-	needsRepair?: boolean;
+	condition?: string;
+	conditionDetail?: string;
+	survival?: Value<"ratio">;
+	survivalHorizonSeconds?: Value<"s">;
+	budgets?: ReliabilityBudget[];
 	extensions?: ProviderExtensions;
 }
 export interface RevertAvailability

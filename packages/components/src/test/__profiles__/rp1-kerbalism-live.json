@@ -1,0 +1,124 @@
+{
+  "id": "rp1-kerbalism-live",
+  "name": "Kerbalism modelling reliability",
+  "description": "A career install where Kerbalism's reliability feature is ON and it won the election, which is stock-Kerbalism's normal state and RP-1's when the player switches failures back on. It exists because without it the Kerbalism half of the model is never rendered by any test at all: rp1-no-testflight's blank comes from an empty part list, not from a widget gate, so a Kerbalism craft with a failed part was a state no render could reach. Kerbalism publishes conditions and a service clock and no probability of any kind, so the rows here carry no survival figure, which is the visible difference from the TestFlight install.",
+  "uplinks": [
+    {
+      "id": "reliability",
+      "available": true,
+      "ownedPrefixes": ["reliability.summary", "reliability.parts"],
+      "detail": "Reliability channels are live."
+    },
+    {
+      "id": "kerbalism",
+      "available": true,
+      "ownedPrefixes": [
+        "kerbalism.available",
+        "kerbalism.features",
+        "kerbalism.spaceweather",
+        "kerbalism.lifesupport",
+        "kerbalism.crew",
+        "kerbalism.profile"
+      ],
+      "detail": "Kerbalism loaded; reliability feature on."
+    },
+    {
+      "id": "rp1",
+      "available": true,
+      "ownedPrefixes": [
+        "rp1.available",
+        "rp1.centres",
+        "rp1.complexes",
+        "rp1.buildQueue",
+        "rp1.warehouse",
+        "rp1.pads",
+        "rp1.operations",
+        "rp1.constructions",
+        "rp1.research",
+        "rp1.personnel",
+        "rp1.confidence",
+        "rp1.programs",
+        "rp1.programSlots",
+        "rp1.programFundingCurves",
+        "rp1.crew",
+        "rp1.crewProgram"
+      ],
+      "detail": "RP-1 loaded."
+    },
+    {
+      "id": "realantennas",
+      "available": true,
+      "ownedPrefixes": [
+        "realantennas.available",
+        "realantennas.hopRates",
+        "comms.linkQuality",
+        "comms.dataRate",
+        "comms.linkMargin"
+      ],
+      "detail": "RealAntennas loaded."
+    }
+  ],
+  "elections": {
+    "reliability": "kerbalism"
+  },
+  "wire": {
+    "rp1.available": {},
+    "kerbalism.available": {},
+    "realantennas.available": {},
+    "reliability.summary": {
+      "source": "kerbalism",
+      "coverage": "modeled",
+      "extensions": {
+        "kerbalism": {
+          "worstMtbfSeconds": 21600000,
+          "brokenPartCount": 1,
+          "serviceDuePartCount": 1,
+          "criticalChance": 0.25,
+          "safeModeChance": 0.5,
+          "requireRepairKits": true,
+          "incentiveRedundancy": true
+        }
+      }
+    },
+    "reliability.parts": [
+      {
+        "partId": "101:0",
+        "title": "Reaction Wheel",
+        "condition": "failed-critical",
+        "conditionDetail": "busted",
+        "survival": null,
+        "survivalHorizonSeconds": null,
+        "budgets": null
+      },
+      {
+        "partId": "102:0",
+        "title": "Antenna",
+        "condition": "service-due",
+        "conditionDetail": "needs service",
+        "survival": null,
+        "survivalHorizonSeconds": null,
+        "budgets": [
+          {
+            "id": "service",
+            "label": "service",
+            "kind": "schedule",
+            "consumed": 1.4,
+            "usedSeconds": 302400,
+            "limitSeconds": 216000,
+            "usedCount": null,
+            "limitCount": null
+          }
+        ]
+      },
+      {
+        "partId": "104:0",
+        "title": "Battery",
+        "condition": "nominal",
+        "conditionDetail": null,
+        "survival": null,
+        "survivalHorizonSeconds": null,
+        "budgets": null
+      }
+    ]
+  }
+}

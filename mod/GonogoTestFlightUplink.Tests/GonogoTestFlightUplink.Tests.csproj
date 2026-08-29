@@ -18,11 +18,17 @@
 
   <!-- Compile only the PURE, KSP-free files from the uplink so the tests never
        need the KSP/reflection-dependent assembly (same selective-Compile pattern
-       the sibling uplink Tests projects use). The pure
-       mapper emits plain dictionaries, so no Sitrep.Contract reference is needed. -->
+       the sibling uplink Tests projects use). -->
   <ItemGroup>
     <Compile Include="..\GonogoTestFlightUplink\EngineReliabilityRaw.cs" />
     <Compile Include="..\GonogoTestFlightUplink\TestFlightReliabilityMap.cs" />
+  </ItemGroup>
+
+  <!-- The mapper builds Sitrep.Contract POCOs directly now, rather than plain
+       dictionaries the backend then rebuilt by hand. Those two copies were a
+       corroborating pair: both green, and only one of them on the wire. -->
+  <ItemGroup>
+    <ProjectReference Include="..\Sitrep.Contract\Sitrep.Contract.csproj" />
   </ItemGroup>
 
 </Project>

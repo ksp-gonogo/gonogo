@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using Sitrep.Contract;
 using Sitrep.Host.Reliability;
 
@@ -17,9 +18,9 @@ namespace Gonogo.KSP
     /// shared-namespace-single-declaration rule (same as comms.*).
     ///
     /// <para>Providers register from their OWN uplink's Register:
-    /// GonogoKerbalismUplink (Priority 1, reports Unmodeled when
-    /// Features.Reliability off) and GonogoTestFlightUplink (Priority 10,
-    /// engine-authoritative: wins under RO). Under RO only TestFlight is live;
+    /// GonogoKerbalismUplink (Priority 1, reports Coverage "disabled" when
+    /// Features.Reliability or mtbfFailures is off) and GonogoTestFlightUplink
+    /// (Priority 10, engine-authoritative: wins under RO). Under RO only TestFlight is live;
     /// in stock Kerbalism only Kerbalism is live; both-registered resolves by
     /// priority in the Kernel, never in the client.</para>
     /// </summary>
@@ -32,6 +33,17 @@ namespace Gonogo.KSP
         private IChannelPublisher? _summary;
         private IChannelPublisher? _parts;
         private Kernel? _kernel;
+
+        /// <summary>
+        /// A selected provider threw during Kernel activation, so the elected
+        /// instance is the vanilla None backend and its "nothing is installed"
+        /// reading is false. Computed once at Register from the Kernel's retained
+        /// notices, by notice KIND rather than by sniffing a Detail string.
+        /// </summary>
+        private bool _activationFailed;
+
+        private bool _lastCaptureFailed;
+        private string _lastCaptureError = "";
 
         public UplinkManifest Manifest { get; } = new UplinkManifest
         {
@@ -63,6 +75,8 @@ namespace Gonogo.KSP
         public void Register(IUplinkHost host)
         {
             _kernel = host.Kernel;
+            _activationFailed = _kernel.LastNotices.Any(n =>
+                n.Capability == ReliabilityElection.CapabilityId && n.Kind == "factory-failed");
             _summary = host.Publisher(SummaryTopic);
             _parts = host.Publisher(PartsTopic);
             host.AddSampledSource(CaptureOnMain, HandleOnCourier, SummaryTopic, PartsTopic);
@@ -74,23 +88,46 @@ namespace Gonogo.KSP
             var backend = _kernel != null ? ReliabilityElection.Elected(_kernel) : null;
             if (backend == null)
             {
-                return null; // election not resolved yet (pre-flight)
+                // Election not resolved yet (pre-flight). Nothing published, and
+                // Health() already reports Unavailable for exactly this window.
+                return null;
             }
             try
             {
+                var summary = backend.Summary();
+                if (_activationFailed)
+                {
+                    // A selected provider threw during Kernel activation, so the
+                    // elected instance is the vanilla None backend and its
+                    // "no reliability model" reading is false. We are blind.
+                    summary.Coverage = ReliabilityCoverage.Unavailable;
+                }
+                _lastCaptureFailed = false;
                 return new ReliabilityCapture
                 {
                     Ut = snapshot?.Ut ?? 0.0,
-                    Summary = backend.Summary(),
+                    Summary = summary,
                     Parts = new List<ReliabilityPartEntry>(backend.Parts()),
                 };
             }
-            catch (Exception)
+            catch (Exception ex)
             {
-                // NULL-SAFE: a backend read that threw on a transient/unloaded vessel
-                // yields no reliability capture THIS tick (last-known stays), retried
-                // next tick: never fail-softs the whole uplink.
-                return null;
+                // A read that threw used to publish NOTHING, which left the client
+                // Reading pending forever while Health() still said Healthy: a
+                // blind channel that looked like a cold start. Publish the blindness.
+                _lastCaptureFailed = true;
+                _lastCaptureError = ex.Message;
+                UnityEngine.Debug.LogError("[Gonogo] reliability capture threw: " + ex.Message);
+                return new ReliabilityCapture
+                {
+                    Ut = snapshot?.Ut ?? 0.0,
+                    Summary = new ReliabilitySummary
+                    {
+                        Source = backend.ProviderId,
+                        Coverage = ReliabilityCoverage.Unavailable,
+                    },
+                    Parts = new List<ReliabilityPartEntry>(),
+                };
             }
         }
 
@@ -105,10 +142,24 @@ namespace Gonogo.KSP
             _parts?.Publish(capture.Parts, capture.Ut);
         }
 
-        public UplinkHealth Health() =>
-            _kernel != null && ReliabilityElection.Elected(_kernel) != null
-                ? UplinkHealth.Healthy
-                : new UplinkHealth(UplinkHealthState.Unavailable, "reliability capability not resolved");
+        public UplinkHealth Health()
+        {
+            if (_kernel == null || ReliabilityElection.Elected(_kernel) == null)
+            {
+                return new UplinkHealth(UplinkHealthState.Unavailable, "reliability capability not resolved");
+            }
+            if (_activationFailed)
+            {
+                return new UplinkHealth(
+                    UplinkHealthState.Degraded,
+                    "a reliability provider failed to activate; using the vanilla fallback");
+            }
+            if (_lastCaptureFailed)
+            {
+                return new UplinkHealth(UplinkHealthState.Degraded, "reliability capture threw: " + _lastCaptureError);
+            }
+            return UplinkHealth.Healthy;
+        }
 
         private sealed class ReliabilityCapture
         {

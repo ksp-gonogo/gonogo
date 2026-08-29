@@ -72,11 +72,8 @@
     "kerbalism.available": {},
     "realantennas.available": {},
     "reliability.summary": {
-      "unmodeled": false,
-      "malfunction": true,
-      "critical": false,
       "source": "testflight",
-      "worstReliabilityFraction": 0.82
+      "coverage": "modeled"
     },
     "spaceCenter.launchSites": [
       {

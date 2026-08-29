@@ -22,15 +22,14 @@ namespace GonogoKerbalismUplink;
 // ReliabilityExtensionWireTests (which serialises the real map through the real
 // EnvelopeCodec) plus the golden fixture the client's own test reads back.
 //
-// WHY THESE THREE, and why at vessel level rather than per part. Every field
-// Kerbalism's per-part ReliabilityInfo exposes (partId/title/group/broken/
-// critical/mtbf/rel_ignitions/rel_duration/NeedsMaintenance) is ALREADY mapped
-// into the core superset, so a per-part extension could only restate what is
-// there. The vessel level is the real gap: the shared summary's only quantity is
-// WorstReliabilityFraction, which TestFlight fills and Kerbalism cannot (Kerbalism
-// models consumption and mean time between failures, not a live probability). So
-// the three below are the at-a-glance numbers a Kerbalism operator actually has,
-// derived from the same per-part list the Uplink already reads.
+// WHY THESE, and why at vessel level. The shared summary carries no roll-ups at
+// all now (two authorities for a derivable count is how two adjacent numbers come
+// to disagree), so the vessel-level at-a-glance figures a Kerbalism operator has
+// belong here, in the namespace only a Kerbalism-aware reader opens. The four
+// difficulty settings ride along because they are what make the per-part
+// condition mean anything: how likely a failure is to be the unrepairable class,
+// how likely one is absorbed as a safe-mode reset, and whether repair needs kits
+// at all. All four are save-wide, none is per part.
 // ─────────────────────────────────────────────────────────────────────────────
 
 /// <summary>
@@ -51,22 +50,50 @@ public class KerbalismReliabilityExt
 {
     /// <summary>
     /// The shortest mean-time-between-failures on the vessel: Kerbalism's
-    /// at-a-glance "what fails first" number, the counterpart to the TestFlight-only
-    /// <c>WorstReliabilityFraction</c> on the shared summary. Null when the vessel
-    /// has no modelled parts.
+    /// at-a-glance "what fails first" number. SECONDS, which is what
+    /// <c>ReliabilityInfo.mtbf</c> has always been; it previously rode a field
+    /// named <c>WorstMtbfHours</c> and was labelled hours by every reader of it, so
+    /// a default part read 21,600,000 h. Null when no part on the vessel is
+    /// modelled as failing over time.
     /// </summary>
-    [SitrepUnit(Units.Hours)]
-    public double? WorstMtbfHours { get; set; }
+    [SitrepUnit(Units.Seconds)]
+    public double? WorstMtbfSeconds { get; set; }
 
     /// <summary>How many modelled parts are currently broken.</summary>
     [SitrepUnit(Units.Count)]
     public int? BrokenPartCount { get; set; }
 
     /// <summary>
-    /// How many modelled parts report <c>NeedsMaintenance</c>: the engineer's
-    /// work list, distinct from <see cref="BrokenPartCount"/> (a part can be due
-    /// maintenance long before it fails).
+    /// How many not-yet-broken parts report <c>NeedsMaintenance</c>: the
+    /// engineer's preventive work list. Kerbalism calls this state "needs
+    /// service" and keeps it distinct from "needs repair" (broken, not critical),
+    /// which is why this counts only parts that have NOT failed.
     /// </summary>
     [SitrepUnit(Units.Count)]
-    public int? MaintenanceDueCount { get; set; }
+    public int? ServiceDuePartCount { get; set; }
+
+    /// <summary>
+    /// Save-wide: given a failure happens, the chance it is the more severe
+    /// class. A difficulty setting (<c>PreferencesReliability.criticalChance</c>),
+    /// never a per-part probability, and there is no per-part probability in
+    /// Kerbalism to confuse it with.
+    /// </summary>
+    [SitrepUnit(Units.Ratio)]
+    public double? CriticalChance { get; set; }
+
+    /// <summary>
+    /// Save-wide: given a failure falls due on an uncrewed vessel, the chance it
+    /// is absorbed as a safe-mode reset instead of a break. This is why crossing a
+    /// Kerbalism maintenance clock is a coin flip rather than a deadline.
+    /// </summary>
+    [SitrepUnit(Units.Ratio)]
+    public double? SafeModeChance { get; set; }
+
+    /// <summary>Whether a repair consumes EVA repair kits, which decides whether a failure is fixable with what is aboard.</summary>
+    [SitrepUnit(Units.Flag)]
+    public bool? RequireRepairKits { get; set; }
+
+    /// <summary>Whether a part's redundancy siblings get their life extended when it breaks. Relevant because it moves the maintenance clock with no event the operator saw.</summary>
+    [SitrepUnit(Units.Flag)]
+    public bool? IncentiveRedundancy { get; set; }
 }

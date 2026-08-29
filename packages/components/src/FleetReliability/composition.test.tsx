@@ -86,10 +86,15 @@ describe("reliability augment composed into FleetRoster", () => {
       });
       fixture.emit("reliability.summary", {
         source: "testflight",
-        malfunction: true,
+        coverage: "modeled",
       });
       fixture.emit("reliability.parts", [
-        { partId: "p1", title: "Reaction Wheel", broken: true },
+        {
+          partId: "101:0",
+          title: "Reaction Wheel",
+          condition: "failed-critical",
+          conditionDetail: "busted",
+        },
       ]);
     });
 

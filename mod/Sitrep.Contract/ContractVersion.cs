@@ -341,8 +341,45 @@ namespace Sitrep.Contract
         /// into the Major-13 floor: they stay additive-over-the-floor exactly as
         /// they were, and any unrelated drift elsewhere is still caught rather than
         /// silently blessed by a re-freeze from HEAD.</para>
+        ///
+        /// <para><b>Bumped 13 -&gt; 14 (Minor reset to 0): reliability.* becomes
+        /// model-first.</b> The two elected reliability payloads shrink, the summary
+        /// from six members to three and the part entry from twelve to nine, and one
+        /// new nested type (<see cref="ReliabilityBudget"/>) is added. Removed:
+        /// <c>ReliabilitySummary.Unmodeled</c> / <c>Malfunction</c> / <c>Critical</c>
+        /// / <c>WorstReliabilityFraction</c>, and
+        /// <c>ReliabilityPartEntry.Group</c> / <c>Broken</c> / <c>Critical</c> /
+        /// <c>MtbfHours</c> / <c>ReliabilityFraction</c> / <c>RemainingRatedBurn</c>
+        /// / <c>IgnitionsConsumed</c> / <c>DurationConsumed</c> /
+        /// <c>NeedsRepair</c>.</para>
+        ///
+        /// <para>Why it was worth one, in three parts. FIRST, several of the removed
+        /// members could not be filled honestly by anyone. A probability with no
+        /// horizon is uninterpretable, so <c>ReliabilityFraction</c> and the
+        /// summary-level minimum over it were uninterpretable; that minimum was also
+        /// a min over probabilities of DIFFERENT events, since under RO the rated
+        /// horizons diverge by two orders of magnitude between engines.
+        /// <c>IgnitionsConsumed</c> and <c>DurationConsumed</c> read from Kerbalism
+        /// fields nothing in the installed assembly ever writes, so both were
+        /// structurally 0.0. SECOND, two members named different things in different
+        /// backends: <c>MtbfHours</c> was fed SECONDS by one provider and a live
+        /// inverse-rate by the other, and <c>Group</c> was a redundancy-SET name in
+        /// one and the literal "engine" in the other, so neither could be rendered
+        /// without knowing who wrote it. THIRD, the boolean <c>Unmodeled</c>
+        /// structurally could not say "I could not tell", so it said the reassuring
+        /// thing; <see cref="ReliabilityCoverage"/> replaces it with five states an
+        /// operator responds to differently.</para>
+        ///
+        /// <para>What replaces them is smaller and open where it needs to be: one
+        /// <c>Condition</c> enum with the provider's own words beside it, a
+        /// <c>Survival</c> fraction that MUST carry its horizon, and a
+        /// <c>Budgets</c> list whose dimensions a provider names itself without a
+        /// core PR. Sanctioned on the same standing grounds as every Major above:
+        /// the mod is still pre-release with NO external Uplinks, and the app and
+        /// mod ship together, so no artifact exists that was built against the old
+        /// shape.</para>
         /// </remarks>
-        public const int Major = 13;
+        public const int Major = 14;
 
         /// <summary>
         /// Reset to 0 alongside the Major 3 -&gt; 4 bump (see <see cref="Major"/>),
@@ -1268,7 +1305,10 @@ namespace Sitrep.Contract
         /// as an unrecognised refusal rather than as the wrong one. No existing
         /// member is removed, renamed or renumbered, so the frozen Major-13 floor
         /// is NOT re-frozen.</para>
+        ///
+        /// <para>Reset to 0 alongside the Major 13 -&gt; 14 bump (the reliability.*
+        /// model-first reshape; see <see cref="Major"/>).</para>
         /// </remarks>
-        public const int Minor = 2;
+        public const int Minor = 0;
     }
 }

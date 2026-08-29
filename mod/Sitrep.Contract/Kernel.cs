@@ -211,6 +211,16 @@ namespace Sitrep.Contract
         private readonly HashSet<string> _vanillaInFlight = new HashSet<string>();
 
         /// <summary>
+        /// Notices from the most recent <see cref="Resolve"/>. Retained because a
+        /// capability's consumer has no other way to tell "no provider registered"
+        /// from "the selected provider's factory threw and we fell through to
+        /// vanilla": both leave the vanilla instance elected, and the second is a
+        /// fault the operator must be told about.
+        /// </summary>
+        public IReadOnlyList<ResolutionNotice> LastNotices { get; private set; } =
+            Array.Empty<ResolutionNotice>();
+
+        /// <summary>
         /// Capability registration order: tracked explicitly (rather than
         /// relying on <see cref="Dictionary{TKey,TValue}"/> enumeration
         /// order) so selection/ordering stays deterministic regardless of
@@ -254,6 +264,7 @@ namespace Sitrep.Contract
             // previous one would leave a displaced provider talking to a vanilla
             // nothing else is using any more.
             _vanillaInstances.Clear();
+            LastNotices = Array.Empty<ResolutionNotice>();
             ProviderContext ctx = null!;
             ctx = new ProviderContext(
                 opts.KernelVersion,
@@ -295,6 +306,7 @@ namespace Sitrep.Contract
                 _activeInstances[capability] = instances;
             }
 
+            LastNotices = notices;
             return new ResolveResult { Notices = notices };
         }
 

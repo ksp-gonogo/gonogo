@@ -70,11 +70,8 @@
   },
   "wire": {
     "reliability.summary": {
-      "unmodeled": true,
-      "malfunction": null,
-      "critical": null,
       "source": "none",
-      "worstReliabilityFraction": null
+      "coverage": "none"
     },
     "reliability.parts": []
   },

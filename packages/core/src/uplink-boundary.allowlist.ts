@@ -1715,6 +1715,38 @@ export const ALLOWLIST: Record<ModToken, ModAllowlist> = {
       "packages/components/src/test/installProfile.test.ts",
       "packages/components/src/FleetReliability/install-profiles.test.tsx",
       /*
+       * The profile REGISTRY, for the same reason as the harness above: it
+       * imports each declared install by file name, and one of the installs is
+       * "Kerbalism modelling reliability". A profile id and a roster entry are
+       * wire values, and this file knows nothing else about the mod.
+       */
+      "packages/components/src/test/installProfile.ts",
+      /*
+       * The MIRROR of the entries the `testflight` token already carries for
+       * Kerbalism's own reliability files: the two backends compete for one
+       * elected capability, so each names the other to say what it does and does
+       * not model. TestFlight's raw type records that its substituted defaults
+       * shipped at a priority outranking Kerbalism's, and its backend records
+       * which priority it beats. Doc-mentions; neither reaches into the owning
+       * dir.
+       */
+      "mod/GonogoTestFlightUplink/EngineReliabilityRaw.cs",
+      "mod/GonogoTestFlightUplink/TestFlightReliabilityBackend.cs",
+      /*
+       * The wire-side distinctness instrument, which names every reliability
+       * situation the mod can produce, both backends included, because the whole
+       * assertion is that no two of them serialise to the same bytes. Wire values
+       * in a ratchet; it imports only the contract and the vanilla backend.
+       */
+      "mod/Sitrep.Host.Tests/ReliabilityStateWireTests.cs",
+      /*
+       * The coverage-state distinctness matrix hands the augment a
+       * `reliability.summary.source` per case, and the vendor strings are the
+       * point: two installs whose backends differ must not render alike. A wire
+       * value, and the widget branches on `coverage`, never on who is speaking.
+       */
+      "packages/components/src/FleetReliability/coverage-matrix.test.tsx",
+      /*
        * -- ratchet inventory --
        * The rate-integration candidate scan reads EVERY generated unit
        * descriptor, core's and each Uplink's, because a rate-bearing field
@@ -1975,21 +2007,27 @@ export const ALLOWLIST: Record<ModToken, ModAllowlist> = {
       "packages/components/src/FleetReliability/install-profiles.test.tsx",
       "packages/components/src/LaunchDirector/install-profiles.test.tsx",
       /*
+       * The coverage-state distinctness matrix hands the augment a
+       * `reliability.summary.source` per case, and the vendor strings are the
+       * point: two installs whose backends differ must not render alike. A wire
+       * value, and the widget branches on `coverage`, never on who is speaking.
+       */
+      "packages/components/src/FleetReliability/coverage-matrix.test.tsx",
+      /*
        * Every entry is a doc-mention naming TestFlight as the OTHER backend that
        * competes for the shared "reliability" capability, which is how the
        * election and the wire shape are explained. None imports, references or
        * derives from anything in the owning dir.
        *
-       * Kerbalism's half of that shared capability: its backend, its map, its
-       * uplink registration and its contract extension all name TestFlight to
-       * say which fields the OTHER provider fills and which it leaves null.
+       * Kerbalism's half of that shared capability: its map and its uplink
+       * registration name TestFlight to say who outranks whom in the election.
+       * The list was four files until the reliability reshape: the payloads no
+       * longer carry a per-provider field, so a doc comment saying "TestFlight
+       * fills this one, Kerbalism leaves it null" no longer has anything to
+       * describe, and three entries left with the sentences.
        */
-      "mod/GonogoKerbalismUplink/KerbalismReliabilityBackend.cs",
       "mod/GonogoKerbalismUplink/KerbalismReliabilityMap.cs",
       "mod/GonogoKerbalismUplink/KerbalismUplink.cs",
-      "mod/GonogoKerbalismUplink.Contract/KerbalismReliabilityExt.cs",
-      "mod/GonogoKerbalismUplink.Tests/KerbalismCaptureTests.cs",
-      "mod/GonogoKerbalismUplink.Tests/ReliabilityExtensionWireTests.cs",
       /*
        * The RealFuels Uplink names TestFlight to say what it deliberately does
        * NOT model. RealFuels has no failure model of its own (its own config
@@ -2019,13 +2057,21 @@ export const ALLOWLIST: Record<ModToken, ModAllowlist> = {
       "mod/Sitrep.Host/Reliability/NoneReliabilityBackend.cs",
       "mod/Sitrep.Host.IntegrationTests/FlightEndToEndTests.cs",
       /*
+       * The wire-side distinctness instrument. It names every reliability
+       * situation the mod can produce, both backends included, because the
+       * whole assertion is that no two of them serialise to the same bytes: a
+       * sweep that could not name them could not report which pair collapsed.
+       * Wire values in a ratchet, and it imports only the contract and the
+       * vanilla backend.
+       */
+      "mod/Sitrep.Host.Tests/ReliabilityStateWireTests.cs",
+      /*
        * Widgets that render the reliability domain and name TestFlight in prose
        * to explain which source a field came from.
        */
       "packages/components/src/FleetReliability/index.tsx",
       "packages/components/src/FleetReliability/index.test.tsx",
       "packages/components/src/FleetReliability/composition.test.tsx",
-      "packages/components/src/FleetRoster/index.tsx",
     ],
   },
 

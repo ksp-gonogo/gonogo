@@ -4,25 +4,28 @@ using Sitrep.Contract;
 namespace Sitrep.Host.Reliability
 {
     /// <summary>
-    /// The always-present Vanilla reliability backend: no modelling mod is
-    /// installed, so reliability is <c>Unmodeled</c> and there is no per-part
+    /// The always-present Vanilla reliability backend: no modelling mod
+    /// registered a provider, so nothing is watching and there is no per-part
     /// data. A stock KSP install (no Kerbalism-Reliability, no TestFlight)
-    /// resolves to this: the client shows "reliability not modelled" rather
-    /// than a missing Topic. KSP-free.
+    /// resolves to this and reports <c>Coverage = "none"</c>: not "healthy", and
+    /// not "off", but "nothing is installed that could model this". KSP-free.
+    ///
+    /// <para>This backend is ALSO the instance a capability falls through to when
+    /// a selected provider's factory threw, and it cannot tell the two apart. The
+    /// <c>Coverage = "unavailable"</c> override for that case is applied by
+    /// <c>Gonogo.KSP.ReliabilityCoreUplink</c>, which can read the Kernel's
+    /// <c>factory-failed</c> notice.</para>
     /// </summary>
     public sealed class NoneReliabilityBackend : IReliabilityBackend
     {
         public string ProviderId => "none";
 
-        public bool IsModeled => false;
+        public string Coverage => ReliabilityCoverage.None;
 
         public ReliabilitySummary Summary() => new()
         {
-            Unmodeled = true,
-            Malfunction = false,
-            Critical = false,
             Source = "none",
-            WorstReliabilityFraction = null,
+            Coverage = ReliabilityCoverage.None,
         };
 
         public IReadOnlyList<ReliabilityPartEntry> Parts() => new List<ReliabilityPartEntry>();

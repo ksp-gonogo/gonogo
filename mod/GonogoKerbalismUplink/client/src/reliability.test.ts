@@ -119,7 +119,7 @@ describe("kerbalism's namespace of reliability.summary's provider extension bag"
   // Driven through the REAL TelemetryClient/StubTransport pipeline, off the frame
   // the REAL C# codec wrote, so the claim is about the shipped decode path rather
   // than about wrapTopicPayload called in isolation.
-  it('hydrates the extension\'s quantity into Value<"h"> at decode time', async () => {
+  it('hydrates the extension\'s quantity into Value<"s"> at decode time', async () => {
     const frame = serverFrame();
     const fixture = setupStreamFixture({
       carriedChannels: [RELIABILITY_SUMMARY_TOPIC],
@@ -137,13 +137,25 @@ describe("kerbalism's namespace of reliability.summary's provider extension bag"
 
     const ext = readKerbalismReliabilityExt(result.current);
     // A bare number fails this (no `.magnitude`/`.unit` own properties), which is
-    // what makes it the non-vacuous half.
-    expect(ext?.worstMtbfHours).toMatchObject({ magnitude: 940.5, unit: "h" });
+    // what makes it the non-vacuous half. Seconds, not hours: ReliabilityInfo.mtbf
+    // always was seconds, and the field that used to carry it said hours.
+    expect(ext?.worstMtbfSeconds).toMatchObject({
+      magnitude: 940.5,
+      unit: "s",
+    });
     expect(ext?.brokenPartCount).toMatchObject({ magnitude: 1, unit: "count" });
-    expect(ext?.maintenanceDueCount).toMatchObject({
+    expect(ext?.serviceDuePartCount).toMatchObject({
       magnitude: 2,
       unit: "count",
     });
+    // The save-wide difficulty settings ride along, because they are what makes a
+    // per-part condition mean anything: how likely a failure is unrepairable, and
+    // whether a repair needs kits that may not be aboard.
+    expect(ext?.criticalChance).toMatchObject({
+      magnitude: 0.25,
+      unit: "ratio",
+    });
+    expect(ext?.requireRepairKits).toBe(true);
   });
 
   it("leaves the payload's own core fields exactly as the wire sent them", async () => {
@@ -162,13 +174,9 @@ describe("kerbalism's namespace of reliability.summary's provider extension bag"
       expect(result.current?.source).toBeDefined();
     });
 
-    // The bag is additive: core's own hand-curated fields decode exactly as they
-    // did before it existed, non-quantity tokens bare and the quantity absent
-    // because Kerbalism cannot fill it.
+    // The bag is additive: the shared shape's own two fields decode exactly as
+    // they would without it, both plain tokens.
     expect(result.current?.source).toBe("kerbalism");
-    expect(result.current?.unmodeled).toBe(false);
-    expect(result.current?.malfunction).toBe(true);
-    expect(result.current?.critical).toBe(false);
-    expect(result.current?.worstReliabilityFraction).toBeNull();
+    expect(result.current?.coverage).toBe("modeled");
   });
 });

@@ -20,19 +20,25 @@ import brokenReactionWheel from "./__fixtures__/broken-reaction-wheel.json";
 import { FleetReliabilityUpdates } from "./index";
 
 /**
- * The same scene rendered under three declared installs, which is the question
+ * The same scene rendered under four declared installs, which is the question
  * neither core nor an Uplink can ask. Core tests the election mechanism with
  * synthetic providers and never sees a widget; an Uplink tests its own provider
  * and cannot see who it displaced. "TestFlight won the reliability election" is
  * a fact about a WORLD, and this is where a world is declared.
  *
- * The scene below is deliberately ONE scene: a two-craft fleet with a broken
- * reaction wheel on the active one. Only the install changes.
+ * The scene below is deliberately ONE scene: a two-craft fleet with a busted
+ * reaction wheel on the active one. Only the install changes, so any difference
+ * in the row is the election and nothing else.
  */
 const SCENE = brokenReactionWheel._stream as InstallProfileStreamBlock;
 
 /** The installs the cases below actually assert against; checked against the scene's own declaration. */
-const COVERED = ["rp1-testflight", "rp1-no-testflight", "stock-career"];
+const COVERED = [
+  "rp1-testflight",
+  "rp1-kerbalism-live",
+  "rp1-no-testflight",
+  "stock-career",
+];
 
 /**
  * Replays a profiled block the way both render harnesses do: one topic at a
@@ -94,7 +100,7 @@ function renderScene(profileId: string) {
   const fixture = setupStreamFixture({
     carriedChannels: block.carriedChannels,
   });
-  render(
+  const { unmount } = render(
     <fixture.Provider>
       <InstallReadout />
       <DashboardItemContext.Provider value={{ instanceId: "fleet-test" }}>
@@ -102,10 +108,10 @@ function renderScene(profileId: string) {
       </DashboardItemContext.Provider>
     </fixture.Provider>,
   );
-  return { fixture, block };
+  return { fixture, block, unmount };
 }
 
-describe("the reliability election, seen from three installs", () => {
+describe("the reliability election, seen from four installs", () => {
   registerAugment({
     id: "fleet-reliability-updates",
     augments: "fleet-roster.updates",
@@ -140,27 +146,70 @@ describe("the reliability election, seen from three installs", () => {
      * cannot see is the same to them as one that was never rendered.
      */
     expect(await screen.findByText("Reaction Wheel")).toBeVisible();
-    expect(screen.getAllByText("1 at risk")).toHaveLength(1);
+    expect(screen.getAllByText("3 at risk")).toHaveLength(1);
+    /*
+     * The engine row is TestFlight's alone: no other backend models a rated
+     * burn, and the SCOPE is in the sentence because the two ratings diverge
+     * tenfold under RO.
+     */
+    expect(screen.getByText("RD-180")).toBeVisible();
+    expect(screen.getByText(/continuous rated burn left/)).toBeVisible();
     await act(async () => {});
   });
 
-  it("renders no failure list when TestFlight is not installed", async () => {
+  /**
+   * The install the old matrix could not reach at all: its Kerbalism profile
+   * emptied the part list, so the blank came from the DATA rather than from any
+   * decision the widget made, and a Kerbalism craft with a failed part was a
+   * state no test could render.
+   */
+  it("renders Kerbalism's own conditions, and no probability, when Kerbalism won", async () => {
+    const { fixture, block } = renderScene("rp1-kerbalism-live");
+    await replay(fixture, block);
+
+    const roster = await screen.findByText(/kerbalism=healthy/, {
+      selector: "p",
+    });
+    expect(roster.textContent).not.toContain("testflight");
+    expect(await screen.findByText("Reaction Wheel")).toBeVisible();
+    expect(screen.getAllByText("2 at risk")).toHaveLength(1);
+    expect(screen.getByText("critical failure")).toBeVisible();
+    // The service clock is the whole of Kerbalism's numeric contribution.
+    expect(screen.getByText(/overdue by/)).toBeVisible();
+    /*
+     * And it is ALL of it: Kerbalism models no forward probability and no rated
+     * burn, so a survival sentence or an engine row here would be a number
+     * nothing in the mod computes.
+     */
+    expect(screen.queryByText(/to survive/)).toBeNull();
+    expect(screen.queryByText(/rated burn/)).toBeNull();
+    expect(screen.queryByText("RD-180")).toBeNull();
+    await act(async () => {});
+  });
+
+  /**
+   * THE DELIVERABLE of this whole change, and the inverse of the
+   * characterisation this file used to lock in. The two absent-provider installs
+   * used to render the same nothing as each other and as a healthy craft. They
+   * now say what is actually true of them, and they say different things.
+   */
+  it("says Kerbalism is not modelling reliability, rather than nothing", async () => {
     const { fixture, block } = renderScene("rp1-no-testflight");
     await replay(fixture, block);
 
-    // The roster proves the install landed: TestFlight is not in it at all,
-    // and the Kerbalism provider that inherited the election models nothing.
     const roster = await screen.findByText(/kerbalism=healthy/, {
       selector: "p",
     });
     expect(roster.textContent).not.toContain("testflight");
     expect(await screen.findByText("Active Craft")).toBeInTheDocument();
-    expect(screen.queryByText("Reaction Wheel")).toBeNull();
+    // The copy names the BACKEND, never the save: under RO this is true whether
+    // the player switched failures off or TestFlight owns them.
+    expect(screen.getByText("kerbalism not modelling")).toBeVisible();
     expect(screen.queryByText(/at risk/)).toBeNull();
     await act(async () => {});
   });
 
-  it("renders no failure list on a stock career either", async () => {
+  it("stays silent on a stock career, which is the one silence it may keep", async () => {
     const { fixture, block } = renderScene("stock-career");
     await replay(fixture, block);
 
@@ -168,33 +217,43 @@ describe("the reliability election, seen from three installs", () => {
       await screen.findByText(/rp1=unavailable/, { selector: "p" }),
     ).toBeInTheDocument();
     expect(await screen.findByText("Active Craft")).toBeInTheDocument();
-    expect(screen.queryByText("Reaction Wheel")).toBeNull();
+    // Nothing is installed that could be silently broken, so silence here cannot
+    // conceal a fault, and a permanent unactionable badge on every stock
+    // player's active row trains them to ignore the slot. The install-level
+    // distinction is on `system.uplinks`, which is an install-level surface.
+    expect(
+      screen.queryByRole("group", { name: "Reliability updates" }),
+    ).toBeNull();
+    expect(screen.queryByRole("status")).toBeNull();
     await act(async () => {});
   });
 
   /**
-   * The finding this harness was built to be able to state. Both absent-provider
-   * installs produce a roster and a `reliability.summary` that differ from the
-   * TestFlight one in every field, and the operator sees the SAME thing in all
-   * three of the non-TestFlight cases: nothing. A craft whose reliability nobody
-   * is modelling reads exactly like a craft with nothing wrong with it.
-   *
-   * Locked in as a characterisation rather than repaired here, because the
-   * repair is a design decision about what the roster row should say when no
-   * backend is elected, not a detail of the profile mechanism.
+   * The finding this harness was built to be able to state, now stated as its
+   * inverse. Three of the four installs put a DIFFERENT thing on the roster row,
+   * and only the stock career is silent. What used to be pinned here as
+   * "an unmodelled craft is indistinguishable from a healthy one" was a
+   * characterisation of the bug; this is the assertion that it is gone.
    */
-  it("makes an unmodelled craft indistinguishable from a healthy one", async () => {
-    const absent = renderScene("stock-career");
-    await replay(absent.fixture, absent.block);
-    expect(await screen.findByText("Active Craft")).toBeInTheDocument();
-    // Every output the augment can produce is absent: no verdict group, and no
-    // withheld-reading caption either.
-    expect(
-      screen.queryByRole("group", { name: "Reliability updates" }),
-    ).toBeNull();
-    expect(
-      screen.queryByRole("status", { name: "Reliability not current" }),
-    ).toBeNull();
+  it("gives each install a different answer, and only stock is silent", async () => {
+    const rendered: Record<string, string> = {};
+    for (const id of COVERED) {
+      const scene = renderScene(id);
+      await replay(scene.fixture, scene.block);
+      await screen.findByText("Active Craft");
+      const slot =
+        document.querySelector('[aria-label="Reliability updates"]') ??
+        document.querySelector('[role="status"]');
+      rendered[id] = (slot?.textContent ?? "").trim();
+      scene.unmount();
+    }
+
+    expect(rendered["stock-career"]).toBe("");
+    const spoken = COVERED.filter((id) => id !== "stock-career").map(
+      (id) => rendered[id],
+    );
+    expect(new Set(spoken).size).toBe(spoken.length);
+    expect(spoken.every((text) => text.length > 0)).toBe(true);
     await act(async () => {});
   });
 });

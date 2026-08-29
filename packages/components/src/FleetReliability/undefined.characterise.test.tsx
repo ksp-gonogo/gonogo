@@ -4,23 +4,23 @@ import { setupStreamFixture } from "../test/setupStreamFixture";
 import { FleetReliabilityUpdates } from "./index";
 
 /**
- * Characterisation, not specification: what the FleetReliability augment DOES
- * today when its `useTelemetry` reads come back `undefined`.
+ * What the augment does when a `useTelemetry` read comes back with nothing.
  *
- * Three absence sites, all of which stop gating the moment the read answers
- * with an always-truthy `Reading`:
+ * This file used to be a CHARACTERISATION of three gates that all failed the
+ * same way: an unread summary fell through an optional chain and was treated as
+ * "some backend other than none", an unread part list became `parts ?? []` and
+ * so a confirmed absence of failures, and an unread identity was the only one
+ * that withheld anything. Two of the three said "everything is fine" about a
+ * craft nobody had heard from.
  *
- *   1. `if (!identity || identity.vesselId !== vesselId) return null`: the
- *      whole-augment gate. A truthy-object read makes `!identity` dead and
- *      sends the comparison straight at `identity.vesselId`
- *   2. `if (summary?.source === "none") return null`, optional-chained, so an
- *      unread summary is read as "some backend other than none"
- *   3. `(parts ?? []).filter(isFailing)`, an unread parts list becomes a
- *      confirmed empty one
+ * It is a SPECIFICATION now. Each absence has its own sentence, and the tests
+ * below name the sentence rather than asserting a blank, because a blank was
+ * exactly what could not be told apart from good news. The identity gate is the
+ * one that still renders nothing, and that is deliberate and stated: an augment
+ * that cannot bind itself to a roster row must not draw on one.
  *
- * Every test here renders the augment on the row it is SUPPOSED to render on
- * (`vesselId` matching the active identity), so a blank result is attributable
- * to the absence under test and not to the row-matching gate.
+ * Every test renders on the row the augment is SUPPOSED to render on, so a blank
+ * is attributable to the absence under test and not to the row-matching gate.
  */
 const CARRIED = ["reliability.summary", "reliability.parts", "vessel.identity"];
 
@@ -33,11 +33,10 @@ const ACTIVE_IDENTITY = {
 
 const FAILING_PARTS = [
   {
-    partId: "p1",
+    partId: "1:0",
     title: "LV-909 Terrier",
-    broken: true,
-    critical: false,
-    needsRepair: false,
+    condition: "failed",
+    conditionDetail: "turbopump failure",
   },
 ];
 
@@ -49,17 +48,17 @@ function renderAugment(vesselId: string) {
         vesselId={vesselId}
         vesselName="Row"
         body="Kerbin"
+        compact={false}
       />
     </fixture.Provider>,
   );
   return { fixture, ...utils };
 }
 
-describe("FleetReliability, what undefined telemetry renders today", () => {
+describe("FleetReliability, what an unread channel renders", () => {
   it("renders nothing at all when no channel has emitted", () => {
-    // The cold case. Asserted against the augment's own named landmarks rather
-    // than an empty container alone, so this cannot be satisfied by a component
-    // that happens to render nothing for a different reason.
+    // The cold case, and the ONE that stays blank: without an identity the
+    // augment does not know which row it is on, so it draws on none of them.
     const { container } = renderAugment("v-active");
 
     expect(
@@ -70,24 +69,20 @@ describe("FleetReliability, what undefined telemetry renders today", () => {
   });
 
   it("SUPPRESSES a fully-known failure list while vessel.identity is undefined", async () => {
-    // Gate 1, proved by contrast within one test: the summary and a broken part
-    // are both present and would render, and the ONLY thing withholding them is
-    // the unread identity. Emitting the identity afterwards makes the same data
-    // appear, which is what makes the suppression attributable to `!identity`
-    // rather than to anything else being missing.
+    // Proved by contrast within one test: the summary and a failed part are both
+    // present and would render, and the ONLY thing withholding them is the unread
+    // identity. Emitting it afterwards makes the same data appear.
     const { fixture, container } = renderAugment("v-active");
     act(() => {
       fixture.emit("reliability.summary", {
         source: "testflight",
-        malfunction: true,
-        critical: false,
+        coverage: "modeled",
       });
       fixture.emit("reliability.parts", FAILING_PARTS);
     });
 
     await waitFor(() => expect(container).toBeEmptyDOMElement());
     expect(screen.queryByText("LV-909 Terrier")).not.toBeInTheDocument();
-    expect(screen.queryByText("1 at risk")).not.toBeInTheDocument();
 
     act(() => {
       fixture.emit("vessel.identity", ACTIVE_IDENTITY);
@@ -98,13 +93,16 @@ describe("FleetReliability, what undefined telemetry renders today", () => {
   });
 
   it("suppresses the same list for a CONFIRMED identity tombstone, same as never-arrived", async () => {
-    // null-vs-undefined: `!identity` is falsy-truthy rather than a strict
-    // undefined test, so a confirmed "this vessel has no identity record"
+    // null-vs-undefined: `!identity` is a falsy test rather than a strict
+    // undefined one, so a confirmed "this vessel has no identity record"
     // tombstone renders exactly the same blank as "we have not heard yet". The
     // widget cannot tell them apart, and says nothing either way.
     const { fixture, container } = renderAugment("v-active");
     act(() => {
-      fixture.emit("reliability.summary", { source: "testflight" });
+      fixture.emit("reliability.summary", {
+        source: "testflight",
+        coverage: "modeled",
+      });
       fixture.emit("reliability.parts", FAILING_PARTS);
       fixture.emit("vessel.identity", null);
     });
@@ -113,23 +111,23 @@ describe("FleetReliability, what undefined telemetry renders today", () => {
     expect(screen.queryByText("LV-909 Terrier")).not.toBeInTheDocument();
   });
 
-  it("reads an undefined reliability.parts as a CONFIRMED absence of failures", async () => {
-    // Gate 3, `parts ?? []`. Identity matches and the elected backend says it is
-    // reporting malfunctions, yet the unread part list renders as zero failing
-    // parts: silence and "everything is fine" are the same picture. Proved
-    // non-vacuous by the parts emission at the end, which makes the marker
-    // appear with nothing else changing.
-    const { fixture, container } = renderAugment("v-active");
+  it("says the parts are not reporting rather than reading them as no failures", async () => {
+    // The gate that used to be `parts ?? []`. A backend that says it IS
+    // modelling, with no part list yet, is not a craft with zero failing parts.
+    // Proved non-vacuous by the emission at the end, which replaces the notice
+    // with the real list and nothing else changes.
+    const { fixture } = renderAugment("v-active");
     act(() => {
       fixture.emit("vessel.identity", ACTIVE_IDENTITY);
       fixture.emit("reliability.summary", {
         source: "testflight",
-        malfunction: true,
-        critical: true,
+        coverage: "modeled",
       });
     });
 
-    await waitFor(() => expect(container).toBeEmptyDOMElement());
+    expect(
+      await screen.findByText("testflight parts not reporting"),
+    ).toBeInTheDocument();
     expect(screen.queryByText(/at risk/)).not.toBeInTheDocument();
 
     act(() => {
@@ -138,33 +136,32 @@ describe("FleetReliability, what undefined telemetry renders today", () => {
     await waitFor(() =>
       expect(screen.getByText("1 at risk")).toBeInTheDocument(),
     );
+    expect(
+      screen.queryByText("testflight parts not reporting"),
+    ).not.toBeInTheDocument();
   });
 
-  it("renders the failure markers with NO summary at all, because the none-backend gate is optional-chained", async () => {
-    // Gate 2, `summary?.source === "none"`. An unread summary is not treated as
-    // "backend unknown, hold off": it falls through to a full render, so the
-    // augment asserts a part is broken without having heard which backend, or
-    // whether any backend, is modelling reliability at all.
+  it("refuses to assert a failure with NO summary at all", async () => {
+    // The gate that used to be `summary?.source === "none"`, optional-chained,
+    // so an unread summary fell through to a full render and the augment
+    // asserted a part was broken without having heard which backend, or whether
+    // any backend, was modelling reliability.
     const { fixture } = renderAugment("v-active");
     act(() => {
       fixture.emit("vessel.identity", ACTIVE_IDENTITY);
       fixture.emit("reliability.parts", FAILING_PARTS);
     });
 
-    await waitFor(() =>
-      expect(screen.getByText("LV-909 Terrier")).toBeInTheDocument(),
-    );
+    expect(await screen.findByText("not reporting")).toBeInTheDocument();
+    expect(screen.queryByText("LV-909 Terrier")).not.toBeInTheDocument();
     expect(
-      screen.getByRole("group", { name: "Reliability updates" }),
-    ).toBeInTheDocument();
-    expect(screen.getByText("1 at risk")).toBeInTheDocument();
-    expect(screen.getByText("broken")).toBeInTheDocument();
+      screen.queryByRole("group", { name: "Reliability updates" }),
+    ).not.toBeInTheDocument();
   });
 
-  it("renders the failure markers for a CONFIRMED summary tombstone too", async () => {
-    // Same gate, the tombstone side: `null?.source` is undefined, so a
-    // confirmed "no reliability summary" is also read as "not the none
-    // backend" and the markers render.
+  it("treats a CONFIRMED summary tombstone the same way", async () => {
+    // Same gate, the tombstone side. A `null` summary is a confirmed "there is
+    // no reliability summary", which is still not a statement about the parts.
     const { fixture } = renderAugment("v-active");
     act(() => {
       fixture.emit("vessel.identity", ACTIVE_IDENTITY);
@@ -172,28 +169,47 @@ describe("FleetReliability, what undefined telemetry renders today", () => {
       fixture.emit("reliability.parts", FAILING_PARTS);
     });
 
-    await waitFor(() =>
-      expect(screen.getByText("LV-909 Terrier")).toBeInTheDocument(),
-    );
+    expect(await screen.findByText("not reporting")).toBeInTheDocument();
+    expect(screen.queryByText("LV-909 Terrier")).not.toBeInTheDocument();
+  });
+
+  it("says the state is unrecognised when a producer never set a coverage", async () => {
+    // A payload with a source and no coverage is a producer bug, and the honest
+    // render is the same as an unrecognised value: we do not know. Silently
+    // reading it as "modelled" would resurrect the boolean this field replaced.
+    const { fixture } = renderAugment("v-active");
+    act(() => {
+      fixture.emit("vessel.identity", ACTIVE_IDENTITY);
+      fixture.emit("reliability.summary", { source: "somemod" });
+      fixture.emit("reliability.parts", FAILING_PARTS);
+    });
+
+    expect(
+      await screen.findByText("somemod state unrecognised"),
+    ).toBeInTheDocument();
+    expect(screen.queryByText("LV-909 Terrier")).not.toBeInTheDocument();
   });
 
   it("labels a failing part with an undefined title as 'Unknown part'", async () => {
-    // Partial payload inside an arrived record: the part is known to be
-    // critical, its title is not. The row still renders, with a placeholder
+    // Partial payload inside an arrived record: the part is known to have failed
+    // critically, its title is not. The row still renders, with a placeholder
     // name and no `title` tooltip attribute.
     const { fixture } = renderAugment("v-active");
     act(() => {
       fixture.emit("vessel.identity", ACTIVE_IDENTITY);
-      fixture.emit("reliability.summary", { source: "kerbalism" });
+      fixture.emit("reliability.summary", {
+        source: "kerbalism",
+        coverage: "modeled",
+      });
       fixture.emit("reliability.parts", [
-        { partId: "p9", broken: false, critical: true, needsRepair: false },
+        { partId: "9:0", condition: "failed-critical" },
       ]);
     });
 
     const unknown = await screen.findByText("Unknown part");
     expect(unknown).not.toHaveAttribute("title");
     // The severity is still asserted off the fields that DID arrive.
-    expect(screen.getByText("critical")).toBeInTheDocument();
+    expect(screen.getByText("critical failure")).toBeInTheDocument();
     expect(screen.getByText("1 at risk")).toBeInTheDocument();
   });
 });
