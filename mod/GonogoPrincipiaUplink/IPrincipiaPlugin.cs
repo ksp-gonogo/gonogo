@@ -51,9 +51,10 @@ namespace GonogoPrincipiaUplink
     /// self-guarding port could not be made to do.</para>
     ///
     /// <para>Two shapes are worth noticing. The analysis calls take no recurrence
-    /// arguments, because both of Principia's must be null and must agree, and a
-    /// parameter that may only ever hold one value is better not offered: the
-    /// implementation passes the nulls and the caller cannot get it wrong. And the
+    /// arguments, because Principia's pair is an optional operator override rather
+    /// than a way of asking for an answer, and nothing here wants to override
+    /// anything: the implementation passes the nulls, Principia falls back to the
+    /// recurrence it fitted itself, and the caller cannot get it wrong. And the
     /// interchange structs come back as <c>object</c> rather than decoded, because
     /// decoding them is the mapping layer's work and this layer's contract is
     /// narrower: the call was legal, it was made in a licensed order, and here is

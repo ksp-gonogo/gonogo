@@ -18,13 +18,18 @@ namespace GonogoPrincipiaUplink
     /// performs writes it. There is no evidence it is safe off the main thread, so
     /// this runs where the plan reading beside it runs.</para>
     ///
-    /// <para><b>The recurrence is deliberately absent.</b> Both accessors take a
-    /// recurrence hypothesis this Uplink refuses to supply, so the analyses come
-    /// back with no ground-track recurrence, no equatorial crossings and no solar
-    /// times of nodes. That costs three rows and removes seven checks that end the
-    /// process when they fail; the trade is made in
-    /// <see cref="PrincipiaFrame"/> and honoured here by not looking for the
-    /// fields.</para>
+    /// <para><b>The recurrence arrives without being asked for.</b> Both accessors
+    /// take an optional recurrence hypothesis this Uplink does not supply, and for
+    /// most of this Uplink's life that was believed to forfeit the ground-track
+    /// recurrence and the equatorial crossings. It does not. The producer fits a
+    /// closest recurrence during the analysis itself, and its no-hypothesis path
+    /// falls BACK to that one rather than clearing it, deriving the crossings on
+    /// the way. Supplying a pair is an operator's manual override for comparing
+    /// against a nominal orbit, not a precondition for getting an answer.</para>
+    ///
+    /// <para>So the recurrence is read here. The solar times of nodes are a
+    /// separate field and are still not read, which is a gap rather than a
+    /// trade.</para>
     /// </summary>
     public sealed class AnalysisReader
     {
@@ -71,6 +76,15 @@ namespace GonogoPrincipiaUplink
         internal const string IntervalMinField = "min";
         internal const string IntervalMaxField = "max";
 
+        /// <summary>Fields on the ground-track recurrence, which arrives on every
+        /// analysis the producer could fit one for.</summary>
+        internal const string RecurrenceField = "recurrence";
+        internal const string RecurrenceCycleRotationsField = "cto";
+        internal const string RecurrenceRevolutionsField = "number_of_revolutions";
+        internal const string RecurrenceSubcycleField = "subcycle";
+        internal const string RecurrenceEquatorialShiftField = "equatorial_shift";
+        internal const string RecurrenceGridIntervalField = "grid_interval";
+
         private const double DegreesPerRadian = 180.0 / Math.PI;
 
         /// <summary>
@@ -112,7 +126,7 @@ namespace GonogoPrincipiaUplink
                 // producer publishes no instant for it. Saying so is the only
                 // honest option, and a client renders it as an unknown age rather
                 // than as a fresh reading.
-                Orbit = Describe(vessel.OrbitAnalysis(NoGroundTrackRevolution), celestials, null),
+                Orbit = Describe(vessel.OrbitAnalysis(FirstGroundTrackRevolution), celestials, null),
             };
 
             if (vessel.TryFlightPlan(out var plan))
@@ -123,14 +137,19 @@ namespace GonogoPrincipiaUplink
         }
 
         /// <summary>
-        /// The revolution the equatorial-crossing longitudes would be reduced to.
+        /// The revolution the equatorial-crossing longitudes are reduced to.
         ///
-        /// <para>Zero, and it does not matter what it is: reducing crossings to a
-        /// revolution needs a recurrence, this Uplink supplies none, and the
-        /// crossings come back absent whatever this says. The producer's own
-        /// planner passes zero here for the same reason.</para>
+        /// <para>One, which is what the producer's own analyser window passes. It
+        /// indexes the two passes as <c>2n - 1</c> and <c>2n</c>, so the first
+        /// revolution is 1 and NOT 0: zero asks for pass -1 and pass 0, which is
+        /// not a revolution anybody flew.</para>
+        ///
+        /// <para>This used to be zero, on the recorded grounds that the value
+        /// "does not matter" because the crossings came back absent regardless.
+        /// They do not: the producer fits a recurrence itself and derives the
+        /// crossings from it, whether or not a hypothesis is supplied.</para>
         /// </summary>
-        private const int NoGroundTrackRevolution = 0;
+        private const int FirstGroundTrackRevolution = 1;
 
         /// <summary>
         /// One analysis per coast, bounded by the burn count read in this frame.
@@ -176,7 +195,7 @@ namespace GonogoPrincipiaUplink
                     StartsAtUt = starts[index],
                     EndsAtUt = ends[index],
                     Analysis = Describe(
-                        plan.CoastAnalysis(index, NoGroundTrackRevolution),
+                        plan.CoastAnalysis(index, FirstGroundTrackRevolution),
                         celestials,
                         starts[index]),
                 });
@@ -190,6 +209,39 @@ namespace GonogoPrincipiaUplink
         /// nothing on the struct carries it: a coast's analysis begins where the
         /// coast begins and only the caller knows that.</para>
         /// </summary>
+        /// <summary>
+        /// Copies the ground-track recurrence across, when the producer fitted one.
+        ///
+        /// <para>Reads a field on the analysis rather than on the elements: the
+        /// recurrence describes the track, not the element set, and it is present
+        /// on analyses whose elements are absent.</para>
+        ///
+        /// <para>Silence when there is no recurrence, and silence field by field:
+        /// a trajectory the producer could not fit a repeating track to gets null
+        /// rather than nought, because a nought-day cycle is a reading and not an
+        /// absence.</para>
+        /// </summary>
+        private static void ReadRecurrence(object analysis, OrbitAnalysisObservation observation)
+        {
+            var recurrence = Fields.Get(analysis, RecurrenceField);
+            if (recurrence == null)
+            {
+                return;
+            }
+
+            observation.RecurrenceCycleRotations = Fields.GetInt(recurrence, RecurrenceCycleRotationsField);
+            observation.RecurrenceRevolutions =
+                Fields.GetInt(recurrence, RecurrenceRevolutionsField);
+            observation.RecurrenceSubcycleRotations =
+                Fields.GetInt(recurrence, RecurrenceSubcycleField);
+            observation.RecurrenceEquatorialShiftDegrees = Scale(
+                Fields.GetDouble(recurrence, RecurrenceEquatorialShiftField),
+                DegreesPerRadian);
+            observation.RecurrenceGridIntervalDegrees = Scale(
+                Fields.GetDouble(recurrence, RecurrenceGridIntervalField),
+                DegreesPerRadian);
+        }
+
         internal static OrbitAnalysisObservation? Describe(
             object? analysis, ICelestialNames celestials, double? epochUt)
         {
@@ -215,6 +267,8 @@ namespace GonogoPrincipiaUplink
                 ElementsPresent = elements != null,
                 ElementsEpochUt = epochUt,
             };
+
+            ReadRecurrence(analysis, observation);
 
             if (elements == null)
             {

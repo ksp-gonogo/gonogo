@@ -68,6 +68,43 @@ namespace GonogoPrincipiaUplink
 
         public bool? ElementsPresent;
 
+        /// <summary>
+        /// How many turns of the PRIMARY the ground track takes to repeat,
+        /// Capderou's Cᴛₒ.
+        ///
+        /// <para>Rotations rather than days, and the distinction is not pedantry:
+        /// the producer counts the primary's own days, a stock Kerbin day is six
+        /// hours or twenty-four depending on a setting, and a planet pack makes it
+        /// something else again. The same reasoning the precession rate is quoted
+        /// per hour for.</para>
+        ///
+        /// <para>Null when the producer could not fit a recurrence, which is the
+        /// honest answer for a trajectory with no repeating track. Never a zero: a
+        /// nought-rotation cycle would read as a very fast repeat rather than as
+        /// the absence of one.</para>
+        /// </summary>
+        public int? RecurrenceCycleRotations;
+
+        /// <summary>How many revolutions the craft makes in one whole cycle.</summary>
+        public int? RecurrenceRevolutions;
+
+        /// <summary>
+        /// The shorter run after which the track very nearly repeats, in turns of
+        /// the primary.
+        ///
+        /// <para>What an operator actually plans around: a seven-rotation cycle
+        /// with a three-rotation subcycle passes near the same ground twice in a
+        /// cycle rather than once.</para>
+        /// </summary>
+        public int? RecurrenceSubcycleRotations;
+
+        /// <summary>How far west the track walks each revolution, in degrees.</summary>
+        public double? RecurrenceEquatorialShiftDegrees;
+
+        /// <summary>The spacing of the fully-populated grid the cycle lays down,
+        /// in degrees of longitude.</summary>
+        public double? RecurrenceGridIntervalDegrees;
+
         /// <summary>The instant the elements are measured from, or null when it is
         /// not knowable. Known for a coast, never for the vessel's own
         /// analysis.</summary>

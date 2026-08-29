@@ -163,6 +163,11 @@ export const GENERATED_TYPE_UNITS: Readonly<Record<string, UnitsByField>> = {
     primaryBody: "text",
     primaryIndex: "count",
     progressOfNextAnalysis: "ratio",
+    recurrenceCycleRotations: "count",
+    recurrenceEquatorialShiftDegrees: "°",
+    recurrenceGridIntervalDegrees: "°",
+    recurrenceRevolutions: "count",
+    recurrenceSubcycleRotations: "count",
     siderealPeriodSeconds: "s",
   },
   "PrincipiaPlan": {

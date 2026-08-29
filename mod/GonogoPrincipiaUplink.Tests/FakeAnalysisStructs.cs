@@ -21,6 +21,61 @@ namespace GonogoPrincipiaUplink.Tests
         /// <summary>Null on an analysis that ran and could not determine elements,
         /// which is a state distinct from having no analysis at all.</summary>
         public FakeOrbitalElements? elements = new FakeOrbitalElements();
+
+        /// <summary>
+        /// The ground-track recurrence, present whenever the producer could fit
+        /// one, which is the ordinary case for a closed orbit around a rotating
+        /// primary.
+        ///
+        /// <para>Populated by default because the producer populates it by
+        /// default: it computes a closest recurrence during the analysis and its
+        /// null-hypothesis path FALLS BACK to that rather than clearing it. A fake
+        /// that left this null would agree with the belief this Uplink used to
+        /// hold and would let the reader go on ignoring a field that is really
+        /// there.</para>
+        /// </summary>
+        public FakeOrbitRecurrence? recurrence = new FakeOrbitRecurrence();
+
+        /// <summary>The equatorial crossing longitudes, derived by the producer as
+        /// a side effect of setting the recurrence above.</summary>
+        public FakeEquatorialCrossings? ground_track_equatorial_crossings =
+            new FakeEquatorialCrossings();
+#pragma warning restore IDE1006
+    }
+
+    /// <summary>
+    /// A ground-track recurrence, in the producer's own spelling.
+    ///
+    /// <para>The triple is Capderou's: <c>nuo</c> revolutions per day, <c>dto</c>
+    /// the drift in revolutions, <c>cto</c> the cycle in days. The defaults here
+    /// describe a repeating sun-synchronous-ish track, 16 revolutions a day over a
+    /// one-day cycle, which is the shape an operator would actually be reading.</para>
+    /// </summary>
+    public sealed class FakeOrbitRecurrence
+    {
+#pragma warning disable IDE1006
+        public int nuo = 16;
+        public int dto = -1;
+        public int cto = 7;
+        public int number_of_revolutions = 111;
+
+        /// <summary>Radians, like every angle the producer hands across.</summary>
+        public double equatorial_shift = -0.0561;
+        public double base_interval = 0.3927;
+        public double grid_interval = 0.0561;
+        public int subcycle = 3;
+#pragma warning restore IDE1006
+    }
+
+    /// <summary>Ascending and descending crossing longitudes, each an interval in
+    /// radians.</summary>
+    public sealed class FakeEquatorialCrossings
+    {
+#pragma warning disable IDE1006
+        public FakeInterval longitudes_reduced_to_ascending_pass =
+            new FakeInterval(0.10, 0.14);
+        public FakeInterval longitudes_reduced_to_descending_pass =
+            new FakeInterval(3.24, 3.28);
 #pragma warning restore IDE1006
     }
 

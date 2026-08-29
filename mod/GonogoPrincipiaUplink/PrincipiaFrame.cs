@@ -163,12 +163,13 @@ namespace GonogoPrincipiaUplink
         /// <summary>
         /// The orbit analyser's latest completed result, as Principia's own struct.
         ///
-        /// <para>There is deliberately no way to ask for a ground-track recurrence.
-        /// Supplying one means Principia constructs an <c>OrbitRecurrence</c> behind
-        /// seven checks we would have to satisfy exactly, and the arithmetic that
-        /// satisfies them was not solved. Passing nothing forfeits the recurrence
-        /// and the equatorial crossings and removes all seven, which is the right
-        /// trade and is made here once rather than at each call site.</para>
+        /// <para>There is deliberately no way to ask for a ground-track recurrence
+        /// HYPOTHESIS, and that costs nothing. Principia fits a closest recurrence
+        /// during the analysis and its no-hypothesis path falls back to that one,
+        /// so the recurrence and the equatorial crossings arrive on this call
+        /// anyway. Supplying a pair would only let an operator override the fit
+        /// with a nominal orbit to compare against, and it is the override, not the
+        /// answer, that this declines to offer.</para>
         ///
         /// <para>Null when the vessel has no analyser running, which is the normal
         /// state outside Principia's own main window.</para>
@@ -342,8 +343,8 @@ namespace GonogoPrincipiaUplink
         ///
         /// <para>Out of range is the one place on this surface that answers null
         /// instead of aborting, so the coast index does not need a cursor of its
-        /// own. The recurrence arguments are withheld for the same reason as on the
-        /// vessel's analysis.</para>
+        /// own. The recurrence hypothesis is withheld for the same reason as on the
+        /// vessel's analysis, and costs nothing for the same reason.</para>
         /// </summary>
         public object? CoastAnalysis(int coastIndex, int groundTrackRevolution)
         {

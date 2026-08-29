@@ -225,6 +225,39 @@ public sealed class PrincipiaOrbitAnalysis
     /// <summary>Tilt against the primary's equator, and its variation.</summary>
     public PrincipiaAngleInterval? MeanInclinationDegrees { get; set; }
 
+    /// <summary>
+    /// How many turns of the PRIMARY the ground track takes to repeat, Capderou's
+    /// Cᴛₒ.
+    ///
+    /// <para>Rotations rather than days: the producer counts the primary's own
+    /// days, and a "day" is six hours or twenty-four under stock depending on a
+    /// setting, and something else again under a planet pack.</para>
+    ///
+    /// <para>Absent when no repeating track could be fitted, which is the honest
+    /// answer for an escape trajectory. Never zero, which would read as a very
+    /// fast repeat rather than as no repeat.</para>
+    /// </summary>
+    [SitrepUnit(Units.Count)]
+    public int? RecurrenceCycleRotations { get; set; }
+
+    /// <summary>How many revolutions the craft makes in one whole cycle.</summary>
+    [SitrepUnit(Units.Count)]
+    public int? RecurrenceRevolutions { get; set; }
+
+    /// <summary>The shorter run after which the track very nearly repeats, in
+    /// turns of the primary. What an operator plans revisits around.</summary>
+    [SitrepUnit(Units.Count)]
+    public int? RecurrenceSubcycleRotations { get; set; }
+
+    /// <summary>How far the track walks along the equator each revolution.</summary>
+    [SitrepUnit(Units.Degrees)]
+    public double? RecurrenceEquatorialShiftDegrees { get; set; }
+
+    /// <summary>The spacing of the fully-populated longitude grid the whole cycle
+    /// lays down.</summary>
+    [SitrepUnit(Units.Degrees)]
+    public double? RecurrenceGridIntervalDegrees { get; set; }
+
     /// <summary>Where the orbit plane cuts the reference plane, and how far it
     /// swings.</summary>
     public PrincipiaAngleInterval? MeanLongitudeOfAscendingNodeDegrees { get; set; }

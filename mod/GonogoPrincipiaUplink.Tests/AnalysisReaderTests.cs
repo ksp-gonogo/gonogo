@@ -345,5 +345,53 @@ namespace GonogoPrincipiaUplink.Tests
             Assert.Empty(observation.Coasts);
             Assert.Empty(Named(plugin, "FlightPlanGetCoastAnalysis"));
         }
+
+        /// <summary>
+        /// The recurrence arrives on the analysis this Uplink already asks for.
+        ///
+        /// <para>This Uplink spent its whole life believing the opposite, in six
+        /// separate comments: that withholding the recurrence hypothesis "forfeits
+        /// the recurrence and the equatorial crossings". It does not. The producer
+        /// fits a closest recurrence during the analysis, and its null-hypothesis
+        /// path falls BACK to that one rather than clearing it, deriving the
+        /// crossings on the way. Verified in the producer's own source at the tag
+        /// matching the installed build.</para>
+        /// </summary>
+        [Fact]
+        public void TheRecurrenceArrivesWithoutBeingAskedFor()
+        {
+            var (_, observation) = Read(p =>
+            {
+                p.Add(Guid);
+                p.VesselAnalysis = new FakeOrbitAnalysis();
+            });
+
+            var orbit = observation!.Orbit;
+            Assert.NotNull(orbit);
+            Assert.Equal(7, orbit!.RecurrenceCycleRotations);
+            Assert.Equal(111, orbit.RecurrenceRevolutions);
+            Assert.Equal(3, orbit.RecurrenceSubcycleRotations);
+        }
+
+        /// <summary>
+        /// An analysis whose recurrence the producer could NOT fit publishes
+        /// silence, not a zero. A craft on an escape trajectory has no repeating
+        /// ground track, and a 0-day cycle would read as a real, wrong answer.
+        /// </summary>
+        [Fact]
+        public void AnAnalysisWithNoRecurrenceSaysNothingRatherThanZero()
+        {
+            var (_, observation) = Read(p =>
+            {
+                p.Add(Guid);
+                p.VesselAnalysis = new FakeOrbitAnalysis { recurrence = null };
+            });
+
+            var orbit = observation!.Orbit;
+            Assert.NotNull(orbit);
+            Assert.Null(orbit!.RecurrenceCycleRotations);
+            Assert.Null(orbit.RecurrenceRevolutions);
+            Assert.Null(orbit.RecurrenceSubcycleRotations);
+        }
     }
 }

@@ -262,10 +262,12 @@ namespace GonogoPrincipiaUplink
         /// The two nulls are the recurrence pointers, and they are written here
         /// rather than taken as parameters.
         ///
-        /// <para>Principia requires them to agree and requires a non-null pair to
-        /// satisfy four more checks inside the recurrence it then constructs. There
-        /// is exactly one safe argument, so offering the choice would only be
-        /// offering the chance to get it wrong.</para>
+        /// <para>Principia requires them to agree, and a non-null pair is an
+        /// operator's nominal orbit to compare the fit against rather than a way of
+        /// asking for the fit. Nothing here wants to compare against a nominal, so
+        /// the pair is written once as null and the caller cannot get it wrong.
+        /// Null does NOT forfeit the recurrence: Principia falls back to the one it
+        /// fitted during the analysis.</para>
         /// </summary>
         public object? VesselGetAnalysis(IntPtr plugin, string vesselGuid, int groundTrackRevolution) =>
             Call("VesselGetAnalysis", plugin, vesselGuid, null, null, groundTrackRevolution);
