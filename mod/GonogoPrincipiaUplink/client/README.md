@@ -64,6 +64,8 @@ Publishes Principia's n-body state: trajectory arcs, the flight plan and its bur
 
 ![Never observed. The one that must not read as no flight plan](docs/assets/flight-plan-unobserved--default.png)
 
+![A low equatorial orbit the analyser has followed down to the ground: reentry within the hour, then terrain risk, then the impact itself, each as a countdown rather than a flag](docs/assets/orbit-analysis-decaying--default.png)
+
 ![A near-circular polar orbit as Principia's own analyser sees it: mean elements as bands, three periods that differ, and the node drift that makes them differ](docs/assets/orbit-analysis-live--default.png)
 
 ![An analysis that ran and determined nothing, which is its own state: the span does not yet cover one revolution, and no amount of looking will change that](docs/assets/orbit-analysis-no-elements--default.png)

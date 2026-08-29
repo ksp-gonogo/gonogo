@@ -58,6 +58,15 @@ export const COINCIDENTAL: readonly string[] = [
   "packages/components/src/TransferWindow#y",
   // `selectedPreset.description`, a locally defined burn preset
   "packages/components/src/ManeuverPlanner#description",
+  /*
+   * `AeroDescentInputs.surfaceGravity`, the widget's own derived input, not the
+   * `BodyEntry.surfaceGravity` the name matched. The widget never reads that
+   * field: `surfaceGravityOf` resolves the parent body's NAME through
+   * `system.bodies` and then takes `gm / radius²` from the sdk's client-side
+   * body registry. The modelled descent it feeds does render, from the fixtures
+   * that are already there, and `ballistic-capsule` is built around it.
+   */
+  "mod/GonogoFerramAerospaceResearchUplink/client/src/DescentEnvelope#surfaceGravity",
 ];
 
 /**
@@ -67,22 +76,17 @@ export const COINCIDENTAL: readonly string[] = [
  * refusing a new one: feed the field in a fixture instead.
  */
 export const RENDER_GAP: readonly string[] = [
-  "mod/GonogoFerramAerospaceResearchUplink/client/src/DescentEnvelope#surfaceGravity",
-  "mod/GonogoKerbalismUplink/client/src/CrewSurvival#deathClockUt",
-  "mod/GonogoKosUplink/client/src/KosTerminal#partName",
   /*
-   * The four rows commit a718dd36a did NOT reach. It gave the ground-track rows
-   * a fixture; the collision, collision-risk and reentry instants and the
-   * elements epoch are still null in every scene, so the rows that announce a
-   * predicted reentry have never been drawn.
+   * Not closeable from a fixture, and the reason is on the producer.
+   * `AnalysisReader` passes `null` for a VESSEL's own analysis and the coast's
+   * start time for a coast, because Principia anchors a vessel analysis
+   * wherever the craft's history ended and publishes no instant for it. So this
+   * topic can only ever carry null here, `AgeLine`'s "Elements of unknown age"
+   * branch is the one every render of this widget shows, and the dated branch
+   * belongs to CoastAnalysis, whose fixtures do carry an epoch. Feeding a
+   * number here would be inventing a frame the game cannot send.
    */
   "mod/GonogoPrincipiaUplink/client/src/OrbitAnalysis#elementsEpochUt",
-  "mod/GonogoPrincipiaUplink/client/src/OrbitAnalysis#firstCollisionRiskUt",
-  "mod/GonogoPrincipiaUplink/client/src/OrbitAnalysis#firstCollisionUt",
-  "mod/GonogoPrincipiaUplink/client/src/OrbitAnalysis#firstReentryUt",
-  "mod/GonogoRp1Uplink/client/src/LaunchComplexStatus#associatedVesselId",
-  "mod/GonogoRp1Uplink/client/src/ProgramDetail#completedUt",
-  "mod/GonogoRp1Uplink/client/src/VehicleAssembly#waitingVesselName",
   // `body.atmosphere`: no fixture body carries the sub-object, so the profile
   // this widget exists to draw has never been drawn from a fixture
   "packages/components/src/AtmosphereProfile#atmosphere",

@@ -1,0 +1,41 @@
+{
+  "_meta": {
+    "notes": "Three booted CPUs and no pinned cpuName, so the widget cannot resolve one and asks. Only the flight computer carries a name-tag; the other two are untagged copies of the same part, which is the case the part-name fallback and its ' (n)' suffix exist for. Nothing is attached yet, so no kos.terminal.<coreId> screen is on the stream."
+  },
+  "_scene": {
+    "widget": "kos-terminal",
+    "caption": "Three CPUs and no pinned tagname: the picker names an untagged processor by its part, and tells two copies of the same part apart",
+    "config": { "lineMode": true },
+    "modes": ["default"],
+    "paints": ["kOS TERMINAL", "lander", "Probe Core (1)", "Probe Core (2)"]
+  },
+  "_stream": {
+    "pinnedUt": 1000000,
+    "emits": [
+      {
+        "topic": "kos.processors",
+        "payload": [
+          {
+            "coreId": 7,
+            "tag": "lander",
+            "hasBooted": true,
+            "processorMode": "READY",
+            "partName": "CX-4181 Scriptable Control System"
+          },
+          {
+            "coreId": 11,
+            "hasBooted": true,
+            "processorMode": "READY",
+            "partName": "Probe Core"
+          },
+          {
+            "coreId": 12,
+            "hasBooted": false,
+            "processorMode": "OFF",
+            "partName": "Probe Core"
+          }
+        ]
+      }
+    ]
+  }
+}

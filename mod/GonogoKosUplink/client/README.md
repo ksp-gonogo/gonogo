@@ -58,5 +58,7 @@ Interactive or read-only terminal for a kOS CPU, streamed in-process over the Up
 
 ![A script running: kOS redraws the screen in chunks and the terminal repaints as they land](docs/assets/boot-then-run--default.gif)
 
+![Three CPUs and no pinned tagname: the picker names an untagged processor by its part, and tells two copies of the same part apart](docs/assets/cpu-picker-untagged--default.png)
+
 ![Attached to the 'lander' CPU with line-mode composition on: what the operator types is held in the bar under the screen until Enter sends it as one command](docs/assets/lander-cpu-attached--default.png)
 

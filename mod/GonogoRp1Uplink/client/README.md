@@ -59,6 +59,16 @@ One RP-1 Program in full: its objectives, the funds it pays and has paid, its de
 | Reads | `rp1.available`, `rp1.programs`, `rp1.programSlots`, `rp1.programFundingCurves`, `rp1.confidence`, `career.status` |
 | Default size | 8 × 16 |
 
+![A Program that has closed: the deadline row becomes the completion date, the funding is paid out in full, and nothing remains to plan against](docs/assets/completed-program--default.png)
+
+![The same widget at its minimum size](docs/assets/completed-program--min.png)
+
+![The same widget at 9 × 8](docs/assets/completed-program--mobile-9x8.png)
+
+![The same widget at 5 × 18](docs/assets/completed-program--portrait-5x18.png)
+
+![The same widget at 18 × 5](docs/assets/completed-program--landscape-18x5.png)
+
 ![A Program whose funding curve RP-1 has not published: the chart refuses to draw and says so, rather than drawing zero](docs/assets/no-curve-table--default.png)
 
 ![The same widget at its minimum size](docs/assets/no-curve-table--min.png)
@@ -109,6 +119,16 @@ Every craft RP-1 is integrating, holding or could start, across every launch com
 ![The same widget at 5 × 18](docs/assets/assembly-empty--portrait-5x18.png)
 
 ![The same widget at 18 × 5](docs/assets/assembly-empty--landscape-18x5.png)
+
+![Two built vehicles and one pad with Vanguard already standing on it: no rollout is offered, and the sentence that replaces the button names the vehicle in the way rather than saying no pad is free](docs/assets/assembly-pad-occupied--default.png)
+
+![The same widget at its minimum size](docs/assets/assembly-pad-occupied--min.png)
+
+![The same widget at 9 × 8](docs/assets/assembly-pad-occupied--mobile-9x8.png)
+
+![The same widget at 5 × 18](docs/assets/assembly-pad-occupied--portrait-5x18.png)
+
+![The same widget at 18 × 5](docs/assets/assembly-pad-occupied--landscape-18x5.png)
 
 ![A vehicle its complex will not release: every one of RP-1's reasons at once rather than the first, no rollout offered against a pad that is standing free, and the scrap that is the operator's actual next move](docs/assets/assembly-rollout-refused--default.png)
 
@@ -194,4 +214,6 @@ Every craft RP-1 is integrating, holding or could start, across every launch com
 ![The two clock states that are not an ETA, side by side: money being spent faster on purpose, and a throttle wound shut](docs/assets/construction-rushing-and-stalled--default.png)
 
 ![Three pads across two RP-1 complexes: one holding a vehicle that has finished rolling out, one being reconditioned, and a stock runway RP-1 does not model](docs/assets/pad-holding-a-finished-vehicle--default.png)
+
+![A rollout in progress: the pad row names the vehicle by joining the operation's vessel id against the warehouse, and counts down what is left of the haul](docs/assets/pad-rolling-out--default.png)
 

@@ -1,0 +1,177 @@
+{
+  "_meta": {
+    "notes": "The half of the rollout the finished-vehicle scene cannot show. Atlas is still on its way to LC-1, so RP-1 still has the operation and the pad has no vehicle waiting: the vehicle's NAME is not on the operation, only its `associatedVesselId`, and the row has to join that against the warehouse to say anything an operator recognises. LC-5 is free and stays collapsed, because only the pad the space centre is aimed at expands."
+  },
+  "_scene": {
+    "augment": "rp1-launch-complex-status",
+    "host": "launch-director",
+    "size": { "w": 8, "h": 13 },
+    "caption": "A rollout in progress: the pad row names the vehicle by joining the operation's vessel id against the warehouse, and counts down what is left of the haul",
+    "paints": ["Cape Canaveral LC-1", "ROLLING OUT", "Atlas is on its way out"]
+  },
+  "_stream": {
+    "pinnedUt": 1000000,
+    "emits": [
+      { "topic": "rp1.available", "payload": true },
+      {
+        "topic": "spaceCenter.scene",
+        "payload": {
+          "scene": "SpaceCenter",
+          "launchSite": "Cape_Canaveral_LC1"
+        }
+      },
+      {
+        "topic": "spaceCenter.launchSites",
+        "payload": [
+          {
+            "name": "Cape_Canaveral_LC1",
+            "displayName": "Cape Canaveral LC-1",
+            "editorFacility": "VAB",
+            "bodyIndex": 3,
+            "isStock": false,
+            "padOccupied": null,
+            "padVesselTitle": null
+          },
+          {
+            "name": "Cape_Canaveral_LC5",
+            "displayName": "Cape Canaveral LC-5",
+            "editorFacility": "VAB",
+            "bodyIndex": 3,
+            "isStock": false,
+            "padOccupied": null,
+            "padVesselTitle": null
+          }
+        ]
+      },
+      {
+        "topic": "career.status",
+        "payload": {
+          "economy": { "funds": 148200, "reputation": null, "science": null },
+          "facilities": null,
+          "contracts": null,
+          "strategies": null,
+          "tech": null
+        }
+      },
+      {
+        "topic": "spaceCenter.savedShips",
+        "payload": [
+          {
+            "name": "Atlas",
+            "partCount": 44,
+            "totalMass": 18.7,
+            "facility": "VAB",
+            "facilityOrdinal": 1,
+            "requiresFunds": 0,
+            "missingParts": []
+          }
+        ]
+      },
+      { "topic": "spaceCenter.crewRoster", "payload": [] },
+      {
+        "topic": "rp1.complexes",
+        "payload": [
+          {
+            "kscName": "Cape Canaveral",
+            "lcId": "lc-1",
+            "name": "LC-1",
+            "lcType": "Pad",
+            "isOperational": true,
+            "isRushing": false,
+            "engineers": 42,
+            "maxEngineers": 120,
+            "efficiency": 0.71,
+            "canIntegrate": true,
+            "rate": 4.2,
+            "humanRated": false,
+            "massMin": 0,
+            "massMax": 60
+          },
+          {
+            "kscName": "Cape Canaveral",
+            "lcId": "lc-5",
+            "name": "LC-5",
+            "lcType": "Pad",
+            "isOperational": true,
+            "isRushing": false,
+            "engineers": 18,
+            "maxEngineers": 60,
+            "efficiency": 0.44,
+            "canIntegrate": true,
+            "rate": 1.8,
+            "humanRated": true,
+            "massMin": 0,
+            "massMax": 25
+          }
+        ]
+      },
+      {
+        "topic": "rp1.pads",
+        "payload": [
+          {
+            "kscName": "Cape Canaveral",
+            "lcId": "lc-1",
+            "padId": "pad-lc1",
+            "name": "Cape_Canaveral_LC1",
+            "launchSiteName": "Cape_Canaveral_LC1",
+            "level": 2,
+            "fractionalLevel": 0.5,
+            "state": "Rollout",
+            "hasVesselWaiting": false,
+            "waitingVesselName": null
+          },
+          {
+            "kscName": "Cape Canaveral",
+            "lcId": "lc-5",
+            "padId": "pad-lc5",
+            "name": "Cape_Canaveral_LC5",
+            "launchSiteName": "Cape_Canaveral_LC5",
+            "level": 1,
+            "fractionalLevel": 0.25,
+            "state": "Free",
+            "hasVesselWaiting": false,
+            "waitingVesselName": null
+          }
+        ]
+      },
+      {
+        "topic": "rp1.operations",
+        "payload": [
+          {
+            "kscName": "Cape Canaveral",
+            "lcId": "lc-1",
+            "launchPadId": "Cape_Canaveral_LC1",
+            "type": "Rollout",
+            "progress": 2600,
+            "totalPoints": 3400,
+            "progressRatio": 0.76,
+            "rate": 2.4,
+            "timeLeftSeconds": 42300,
+            "stalled": false,
+            "blockingPeers": 0,
+            "cost": 4100,
+            "associatedVesselId": "ship-atlas-1"
+          }
+        ]
+      },
+      {
+        "topic": "rp1.warehouse",
+        "payload": [
+          {
+            "id": "proj-atlas",
+            "shipId": "ship-atlas-1",
+            "rolloutRefusals": null,
+            "kscName": "Cape Canaveral",
+            "lcId": "lc-1",
+            "shipName": "Atlas",
+            "cost": 40000,
+            "mass": 18.7,
+            "humanRated": false,
+            "launchSite": "Cape_Canaveral_LC1",
+            "projectType": "VAB"
+          }
+        ]
+      }
+    ]
+  }
+}

@@ -1,7 +1,7 @@
 {
   "_meta": {
     "synthetic": true,
-    "notes": "SYNTHETIC. Three kerbals in the base Crew Status roster, each row carrying the survival meters this Uplink contributes. Jebediah is at 47 of 50 on radiation with several other rules elevated; Bill's own dose is fine but the wire reports a 240-second death clock, which the row has to show INSTEAD of a percentage because a countdown and an accumulator answer different questions; Bob is healthy, and is there so the sorting and the tone have something to be read against."
+    "notes": "SYNTHETIC. Three kerbals in the base Crew Status roster, each row carrying the survival meters this Uplink contributes. Jebediah is at 47 of 50 on radiation with several other rules elevated; Bill's meters are all nominal and the wire carries a death clock landing 240 seconds after this frame, which is the case the row badge exists for, a consequence no accumulator on the row can state; Bob is healthy, and is there so the sorting and the tone have something to be read against. The clock is an INSTANT (`deathClockUt`), so it is `pinnedUt` plus the remaining seconds and never the seconds alone."
   },
   "_scene": {
     "contribution": "kerbalism:crew-survival-meters",
@@ -9,7 +9,7 @@
     "caption": "Per-kerbal survival meters contributed into Crew Status: one kerbal near a fatal radiation dose, one on a death clock, one healthy",
     "modes": ["default"],
     "size": { "w": 8, "h": 12 },
-    "paints": ["CREW", "Jebediah Kerman", "Bill Kerman"]
+    "paints": ["CREW", "Jebediah Kerman", "Bill Kerman", "to fatal"]
   },
   "_stream": {
     "pinnedUt": 1000000,
@@ -48,7 +48,7 @@
             "name": "Bill Kerman",
             "trait": "Engineer",
             "rules": [{ "name": "stress", "value": 0.2, "fatalThreshold": 1 }],
-            "deathClockSec": 240
+            "deathClockUt": 1000240
           },
           {
             "name": "Bob Kerman",

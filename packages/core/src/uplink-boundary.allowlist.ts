@@ -577,13 +577,6 @@ export const ALLOWLIST: Record<ModToken, ModAllowlist> = {
     ],
     permanent: [
       /*
-       * -- RENDER-FIXTURE COVERAGE ratchet inventory (2026-08-29): the debt list
-       * of payload fields a widget reads and no fixture feeds is keyed by widget
-       * directory, so it names every Uplink that has render fixtures.
-       * Ratchet-inventory file, the case this bucket documents.
-       */
-      "packages/core/src/render-fixture-coverage.debt.ts",
-      /*
        * -- DYNAMIC-NAMESPACE ROUTING (2026-08-25): `mapTopic` identity-maps the
        * per-body scansat namespaces and the kOS compute namespace, because both
        * materialise their Topics per subject at runtime and so appear in no
@@ -1615,13 +1608,6 @@ export const ALLOWLIST: Record<ModToken, ModAllowlist> = {
     ],
     permanent: [
       /*
-       * -- RENDER-FIXTURE COVERAGE ratchet inventory (2026-08-29): the debt list
-       * of payload fields a widget reads and no fixture feeds is keyed by widget
-       * directory, so it names every Uplink that has render fixtures.
-       * Ratchet-inventory file, the case this bucket documents.
-       */
-      "packages/core/src/render-fixture-coverage.debt.ts",
-      /*
        * -- UPLINK WIDGET-DECLARATION gate: the app-side check that every Uplink
        * widget's declarations resolve to something real has to LOAD every
        * Uplink client to read the registries they register into, so it names
@@ -2332,7 +2318,6 @@ export const SURVIVES_COMMENT_STRIP: Partial<Record<ModToken, string[]>> = {
     "packages/core/src/comment-stacks.allowlist.ts",
     "packages/core/src/contributionsRuntime.test.tsx",
     "packages/core/src/registry.replacement.test.ts",
-    "packages/core/src/render-fixture-coverage.debt.ts",
     "packages/core/src/styleguide-fire-and-forget-commands.test.ts",
     "packages/core/src/styleguide-magnitude-budget.test.ts",
     "packages/core/src/truenow-allowlist.test.ts",
@@ -2382,7 +2367,6 @@ export const SURVIVES_COMMENT_STRIP: Partial<Record<ModToken, string[]>> = {
     "packages/core/src/banner-comments.allowlist.ts",
     "packages/core/src/comment-stacks.allowlist.ts",
     "packages/core/src/hooks/useUplinkHealthFor.test.tsx",
-    "packages/core/src/render-fixture-coverage.debt.ts",
     "packages/core/src/styleguide-magnitude-budget.test.ts",
     "packages/core/src/typecheck-coverage.allowlist.ts",
     "packages/data/src/hooks/useDataSchema.test.tsx",

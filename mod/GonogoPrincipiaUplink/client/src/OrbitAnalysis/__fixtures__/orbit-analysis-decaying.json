@@ -1,0 +1,91 @@
+{
+  "_scene": {
+    "augment": "principia-orbit-analysis",
+    "caption": "A low equatorial orbit the analyser has followed down to the ground: reentry within the hour, then terrain risk, then the impact itself, each as a countdown rather than a flag",
+    "size": {
+      "w": 12,
+      "h": 15
+    },
+    "paints": ["REENTRY", "COLLISION RISK", "LOWEST"]
+  },
+  "_stream": {
+    "pinnedUt": 1000000,
+    "emits": [
+      {
+        "topic": "principia.analysis",
+        "payload": {
+          "vesselId": "Kerbin-Return-2",
+          "sampledAtUt": 1000000,
+          "coasts": [],
+          "orbit": {
+            "missionDurationSeconds": 43200,
+            "progressOfNextAnalysis": 1,
+            "primaryIndex": 1,
+            "primaryBody": "Kerbin",
+            "gravitationallyBound": true,
+            "elementsPresent": true,
+            "elementsEpochUt": null,
+            "siderealPeriodSeconds": 2017.4,
+            "nodalPeriodSeconds": 2014.9,
+            "anomalisticPeriodSeconds": 2019.8,
+            "meanSemimajorAxisMetres": {
+              "min": 712400,
+              "max": 718600
+            },
+            "meanEccentricity": {
+              "min": 0.0521,
+              "max": 0.0631
+            },
+            "meanInclinationDegrees": {
+              "min": 2.14,
+              "max": 2.38
+            },
+            "meanLongitudeOfAscendingNodeDegrees": {
+              "min": 214.6,
+              "max": 271.3
+            },
+            "meanArgumentOfPeriapsisDegrees": {
+              "min": 100.2,
+              "max": 143.7
+            },
+            "meanPeriapsisAltitudeMetres": {
+              "min": 66200,
+              "max": 78400
+            },
+            "meanApoapsisAltitudeMetres": {
+              "min": 149800,
+              "max": 163100
+            },
+            "lowestAltitudeMetres": 64300,
+            "firstReentryUt": 1004260,
+            "firstCollisionRiskUt": 1012780,
+            "firstCollisionUt": 1015900,
+            "nodalPrecessionDegreesPerHour": -2.3187,
+            "recurrenceCycleRotations": 5,
+            "recurrenceRevolutionsPerRotation": 21,
+            "recurrenceRevolutions": 107,
+            "recurrenceSubcycleRotations": 2,
+            "recurrenceEquatorialShiftDegrees": -17.14,
+            "recurrenceGridIntervalDegrees": 3.43,
+            "ascendingCrossingDegrees": {
+              "min": 74.1,
+              "max": 118.6
+            },
+            "descendingCrossingDegrees": {
+              "min": 254.2,
+              "max": 298.9
+            },
+            "ascendingNodeSolarTimeDegrees": {
+              "min": 42.6,
+              "max": 91.3
+            },
+            "descendingNodeSolarTimeDegrees": {
+              "min": 222.6,
+              "max": 271.2
+            }
+          }
+        }
+      }
+    ]
+  }
+}
