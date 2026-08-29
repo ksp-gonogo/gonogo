@@ -156,13 +156,15 @@ type CrewStatusConfig = Record<string, never>;
 
 // EVA suit resources (additive; only meaningful while the active vessel IS
 // an EVA kerbal). A stock KSP EVA kerbal is a real Vessel with its own
-// resource-carrying Part (Kerbalism source, System/Callbacks.cs's
-// ToEVA/DelayedOnEVA on GameEvents.onCrewOnEva), so the already-existing,
-// already-consumed `vessel.resources` Topic (see FuelStatus) works against
-// it unchanged - no new wire protocol needed. Kerbalism's default profile
-// (GameData/KerbalismConfig/Profiles/Default.cfg) attaches exactly two
-// resources with a nonzero `on_eva`: ElectricCharge and Oxygen. Read here as
-// plain resource-name lookups, no Kerbalism-specific shape.
+// resource-carrying Part (KSP's own `GameEvents.onCrewOnEva` hands over the
+// spawned Vessel), so the already-existing, already-consumed
+// `vessel.resources` Topic (see FuelStatus) works against it unchanged - no
+// new wire protocol needed. Which resources ride along on the suit is decided
+// by the install's own life-support profile, via each resource's `on_eva`
+// transfer amount; the two an unmodified profile carries are ElectricCharge
+// and Oxygen, which is why those are the two looked up. Plain resource-name
+// lookups, no mod-specific shape, and an install whose profile puts neither
+// on the suit simply renders nothing.
 
 interface SuitResourceReadout {
   current: number;
@@ -245,9 +247,9 @@ function EvaSuitReadout({
 
 // The `crew-status.row-badges` slot contract.
 //
-// A per-crew-row inline badges slot: a future Kerbalism `Habitat`/`Radiation`
-// Uplink can badge each kerbal with comfort/radiation-dose without leaving this
-// widget. Because the slot renders once PER ROW, its props MUST carry the crew
+// A per-crew-row inline badges slot: an Uplink backing a life-support or
+// radiation capability can badge each kerbal with comfort/dose without leaving
+// this widget. Because the slot renders once PER ROW, its props MUST carry the crew
 // member's identity so the augment badges the right kerbal, `crewName` is that
 // identity (the only per-kerbal handle exposed here), and
 // `crewIndex` disambiguates in the (legal) case of two kerbals sharing a name.
@@ -255,8 +257,8 @@ function EvaSuitReadout({
 // It was `crew-status.badges` and had to move. That string is also the
 // framework's auto-completed `${componentId}.badges` CONTRIBUTION slot, which
 // exists for every widget whether or not the widget asks for it and is fed by
-// two live contributions (`./badge.ts` and the Kerbalism Uplink's
-// `CrewSurvival/badge.ts`). One name, two registries, two places on screen, and
+// two live contributions (`./badge.ts` and a crew-survival badge contributed
+// from an Uplink). One name, two registries, two places on screen, and
 // nothing to tell an author which one they were binding. The framework segment
 // cannot be renamed for one widget, so this one was.
 
@@ -316,7 +318,7 @@ declare module "@ksp-gonogo/core" {
 // draws whatever is contributed to the framework's universal
 // `crew-status.meters` segment for that kerbal.
 //
-// It WAS an augment slot, filled by a Kerbalism component whose entire render
+// It WAS an augment slot, filled by an Uplink component whose entire render
 // was a `Stack` of `Meter` and nothing else: zero pixels this widget did not
 // already own. That is the definition of a contribution, and as one the host
 // gets back what an augment could never give it, the ability to count what
@@ -324,9 +326,8 @@ declare module "@ksp-gonogo/core" {
 // on each entry's `row`, which is what lets a once-per-widget segment address a
 // per-row extension at all.
 //
-// This widget still carries NO Kerbalism-specific reads: the derivation lives
-// in the Uplink's own Processor (mod/GonogoKerbalismUplink/client/src/
-// CrewSurvival/meters.ts) exactly as it did before.
+// This widget still carries no mod-specific reads: the derivation lives in the
+// contributing Uplink's own Processor exactly as it did before.
 
 // The `crew-status.row-tone` CONTRIBUTION slot (contribution-slots-spec,
 // same "pure data, host renders its own chrome" model as ShipMap's
@@ -337,8 +338,8 @@ declare module "@ksp-gonogo/core" {
 // specifically: the per-row `Card` wraps the WHOLE row (name, badges, meters
 // together), so no single augment's own JSX has a natural place to reach up
 // and colour an ancestor element it doesn't render. A contribution sidesteps
-// that: this widget stays exactly as Kerbalism-agnostic as the meters segment
-// already is, while the Kerbalism Uplink still gets to say which kerbal is
+// that: this widget stays exactly as mod-agnostic as the meters segment
+// already is, while the contributing Uplink still gets to say which kerbal is
 // critical.
 //
 // A contributor names a SEVERITY and never a tone or a colour, because the
@@ -384,7 +385,7 @@ const ROW_TONE_BY_SEVERITY: Record<CrewRowToneEntry["severity"], ReadoutTone> =
 //
 // A WHOLE-WIDGET section slot, rendered once above the roster rather than
 // once per kerbal: the generic home for a status that affects the whole
-// crew together, not any one of them individually (e.g. a Kerbalism vessel
+// crew together, not any one of them individually (e.g. a vessel-wide
 // radiation-environment reading). Unlike `.badges`/`.avatar`/`.survival`
 // above, this carries no per-kerbal identity, there is exactly one instance
 // of it per widget, mirroring `ThermalStatus`'s `thermal-status.badges`
@@ -408,8 +409,8 @@ declare module "@ksp-gonogo/core" {
  * `v.crew` lives on the wire at `vessel.crew.crew`, a `CrewMember[]`
  * (`contract.ts`'s `{name?, trait?, ...}`), read here off the canonical
  * `vessel.crew` Topic. The object-shape branch below (already required for
- * the Kerbalism case) is exactly what parses `CrewMember` entries too, no
- * shape fix needed.
+ * the richer per-kerbal payloads some sources publish) is exactly what parses
+ * `CrewMember` entries too, no shape fix needed.
  *
  * Guard against unknown shapes (e.g. the server returning null before
  * the first sample or a mod replacing the payload), extract strings
@@ -531,17 +532,17 @@ function CrewStatusComponent({
 
   // Headcount ("N/M aboard") moved off this body-level caption entirely, an
   // info-tone `crew-status.badges` self-contribution (`./badge.ts`) now
-  // carries it as a header panel badge instead, the same badge system the
-  // Kerbalism Uplink's nogo-tone crew-critical badge already rides. Only the
+  // carries it as a header panel badge instead, the same badge system an
+  // Uplink's nogo-tone crew-critical badge already rides. Only the
   // EVA marker is left for this line to carry; when the vessel isn't an EVA
   // kerbal there's nothing left to show, and the line drops entirely.
   const crewSummary = known && isEVA === true ? "EVA" : "";
 
   return (
     <Panel panelTitle="CREW">
-      {/* Whole-widget status slot: a vessel-level condition (e.g. the
-          Kerbalism Uplink's radiation-environment reading), never a
-          per-kerbal one. Renders nothing until an Uplink binds it. */}
+      {/* Whole-widget status slot: a vessel-level condition (e.g. an
+          Uplink's radiation-environment reading), never a per-kerbal one.
+          Renders nothing until an Uplink binds it. */}
       <AugmentSlot name="crew-status.summary" props={{}} />
       {crewSummary && <ReadoutCaption>{crewSummary}</ReadoutCaption>}
       <EvaSuitReadout
@@ -683,8 +684,8 @@ function renderBody({
                       the panel itself is too narrow for the name alone. */}
                   <Truncate style={NAME_FLEX_STYLE}>{name}</Truncate>
                   {/* Per-crew inline badges slot. Renders nothing until an
-                      Uplink (e.g. Kerbalism Habitat/Radiation) binds, the
-                      props carry this row's kerbal identity so the augment
+                      Uplink (e.g. a habitation or radiation backend) binds,
+                      the props carry this row's kerbal identity so the augment
                       badges the right one. `wrap` on the Cluster above lets
                       this drop to its own line under the name rather than
                       squeeze it; the name's own flex-grow already pushes the
@@ -697,8 +698,8 @@ function renderBody({
                     />
                   </Inline>
                 </Cluster>
-                {/* This kerbal's contributed survival meters (e.g. the
-                    Kerbalism Uplink's per-rule dose/stress bars). Renders
+                {/* This kerbal's contributed survival meters (e.g. an
+                    Uplink's per-rule dose/stress bars). Renders
                     nothing at all when nothing is contributed, so the roster
                     degrades exactly as it did with an unbound slot. */}
                 <WidgetMeters row={name} style={CREW_METERS_STYLE} />
@@ -788,12 +789,12 @@ registerComponent<CrewStatusConfig>({
   component: CrewStatusComponent,
   // Per-crew-row augment slots, all unfilled until an Uplink
   // binds, the roster renders as before:
-  //   crew-status.row-badges, trailing inline badges (e.g. Kerbalism dose/comfort);
+  //   crew-status.row-badges, trailing inline badges (e.g. dose/comfort);
   //     wraps under the name (Cluster `wrap`) rather than truncating it.
   //   crew-status.avatar, leading square face cell (Uplink-provided avatar); only
   //     reserved while an Uplink actually binds it, see `avatarAugmentPresent`.
   //   crew-status.summary, ONE whole-widget section above the roster (e.g. a
-  //     Kerbalism vessel radiation-environment reading), not per-kerbal, see
+  //     vessel-wide radiation-environment reading), not per-kerbal, see
   //     that slot's own doc comment above.
   //
   // The per-row survival section is NOT here: it is the framework's universal
