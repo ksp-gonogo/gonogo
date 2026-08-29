@@ -39,38 +39,62 @@ export interface RootProviderDefinition {
   Provider: ComponentType<{ screen: Screen; children: ReactNode }>;
 }
 
-const rootProviders = new Map<string, RootProviderDefinition>();
-const listeners = new Set<() => void>();
-
 /**
- * Cached because it is a `useSyncExternalStore` snapshot: returning a fresh
- * array per call is a new identity every render, which the store reads as a
- * change and loops on forever.
+ * The single global slot the providers live in, keyed by a string rather than a
+ * symbol so two different builds of this package still find the same state. An
+ * Uplink's client bundle resolves this package through the app's import map, so
+ * it should share this module instance, but "should" is not a thing to stake a
+ * silently-missing context on. Same reasoning as `./fog-reveal.ts`.
  */
-let snapshot: RootProviderDefinition[] = [];
+const ROOT_PROVIDER_REGISTRY_KEY = "__GONOGO_ROOT_PROVIDERS__" as const;
+
+interface RootProviderRegistry {
+  providers: Map<string, RootProviderDefinition>;
+  listeners: Set<() => void>;
+  /**
+   * Cached because it is a `useSyncExternalStore` snapshot: returning a fresh
+   * array per call is a new identity every render, which the store reads as a
+   * change and loops on forever.
+   */
+  snapshot: RootProviderDefinition[];
+}
+
+function registry(): RootProviderRegistry {
+  const slot = globalThis as typeof globalThis & {
+    [ROOT_PROVIDER_REGISTRY_KEY]?: RootProviderRegistry;
+  };
+  slot[ROOT_PROVIDER_REGISTRY_KEY] ??= {
+    providers: new Map(),
+    listeners: new Set(),
+    snapshot: [],
+  };
+  return slot[ROOT_PROVIDER_REGISTRY_KEY];
+}
 
 function publish(): void {
-  snapshot = [...rootProviders.values()];
-  for (const listener of listeners) listener();
+  const reg = registry();
+  reg.snapshot = [...reg.providers.values()];
+  for (const listener of reg.listeners) listener();
 }
 
 export function registerRootProvider(def: RootProviderDefinition): void {
-  rootProviders.set(def.id, def);
+  registry().providers.set(def.id, def);
   publish();
 }
 
 /** Registration order, which is mount order outermost-first. */
 export function getRootProviders(): RootProviderDefinition[] {
-  return snapshot;
+  return registry().snapshot;
 }
 
 /** Tests only: resets the registry so one file's registrations cannot leak. */
 export function clearRootProviders(): void {
-  rootProviders.clear();
+  registry().providers.clear();
   publish();
 }
 
 function subscribe(listener: () => void): () => void {
+  const { listeners } = registry();
   listeners.add(listener);
   return () => {
     listeners.delete(listener);

@@ -13,18 +13,6 @@ import {
   ReplaySessionBanner,
   ReplaySessionProvider,
 } from "@ksp-gonogo/data";
-/*
- * From the `/runtime` subpath, not the package root: MainScreen needs this
- * infra whether or not the CameraFeed widget is statically bundled, and
- * importing the package root would also evaluate the widget's own module and
- * collide with the loader's registerComponent. That package's `runtime.ts`
- * doc comment carries the full mechanism.
- */
-import {
-  KERBCAST_EVENTS_TOPIC,
-  kerbcastSource,
-  useKerbcastMainConnect,
-} from "@ksp-gonogo/gonogo-kerbcast-uplink/runtime";
 import {
   InputDispatcher,
   SerialDeviceProvider,
@@ -32,7 +20,7 @@ import {
   SerialPortRecoveryWatcher,
 } from "@ksp-gonogo/serial";
 import { getViewUt } from "@ksp-gonogo/sitrep-client";
-import { RootProviders } from "@ksp-gonogo/sitrep-sdk";
+import { RootProviders, readRevealedEvents } from "@ksp-gonogo/sitrep-sdk";
 import { BannerStack, FabClusterProvider } from "@ksp-gonogo/ui";
 import type { ReactNode } from "react";
 import { useEffect, useMemo, useState } from "react";
@@ -139,14 +127,13 @@ export function MainScreen() {
   const [pushHost] = useState(() => new PushHostService(peerHostService));
   const [alarmHost] = useState(() =>
     createAlarmHost(peerHostService, {
-      // Feed the `event` alarm trigger from the kerbcast Uplink's producer.
-      // `getViewUt()` is the operator's delayed view clock, so a kerbcast edge
-      // (stamped at its live capture UT) reveals only once the view catches up
-      // past it: the signal delay realised for free.
-      getRevealedEvents: (topic) =>
-        topic === KERBCAST_EVENTS_TOPIC
-          ? kerbcastSource.revealedEvents(getViewUt())
-          : [],
+      /*
+       * Feed the `event` alarm trigger from whichever Uplinks registered a
+       * source for the Topic. `getViewUt()` is the operator's delayed view
+       * clock, so an edge stamped at its live capture UT reveals only once the
+       * view catches up past it: the signal delay realised for free.
+       */
+      getRevealedEvents: (topic) => readRevealedEvents(topic, getViewUt()),
     }),
   );
   const [notesHost] = useState(() => createNotesHost(peerHostService));
@@ -205,8 +192,8 @@ export function MainScreen() {
     sources.forEach((s) => {
       // A source that can't connect settles its own status + schedules its own
       // reconnect; swallow the rejection here so it doesn't surface as an
-      // unhandled promise rejection. (kerbcast is connected separately, via
-      // useKerbcastMainConnect below: it is not a registered DataSource.)
+      // unhandled promise rejection. (An Uplink that connects itself rather
+      // than registering a DataSource does so from its own root provider.)
       void s.connect().catch(() => {});
     });
     return () => {
@@ -215,8 +202,6 @@ export function MainScreen() {
       });
     };
   }, []);
-
-  useKerbcastMainConnect();
 
   return (
     <SitrepTelemetryProvider>

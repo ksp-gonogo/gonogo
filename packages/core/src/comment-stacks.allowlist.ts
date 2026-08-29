@@ -272,7 +272,6 @@ export const COMMENT_STACK_DEBT: Record<string, number> = {
   "packages/app/src/peer/RelayRegistration.ts": 1,
   "packages/app/src/peer/protocol.ts": 2,
   "packages/app/src/peer/typedListeners.ts": 1,
-  "packages/app/src/screens/MainScreen.tsx": 2,
   "packages/app/src/screens/StationScreen.tsx": 4,
   "packages/app/src/screens/isStationRoute.ts": 1,
   "packages/app/src/settings/SettingsModal.test.tsx": 3,
@@ -755,7 +754,7 @@ export const COMMENT_STACK_DEBT: Record<string, number> = {
  * does not trip this and only a broken enumeration does.
  */
 export const SCAN_FLOORS = {
-  files: 1148,
+  files: 1150,
   filesWithStack: 366,
   stacks: 805,
 } as const;

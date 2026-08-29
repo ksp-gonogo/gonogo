@@ -1,4 +1,8 @@
 import {
+  type RevealedEventSourceDefinition,
+  registerRevealedEventSource,
+} from "../api/event-reveal";
+import {
   type RootProviderDefinition,
   registerRootProvider,
 } from "../api/root-providers";
@@ -93,6 +97,16 @@ export interface UplinkClientHandle {
    */
   registerRootProvider(def: RootProviderDefinition): void;
 
+  /**
+   * Feeds this Uplink's event occurrences to the `event` alarm trigger.
+   *
+   * <p>Auto-namespaced like the rest. The reader is handed the operator's
+   * DELAYED view UT, not the live one, so returning everything it holds is
+   * wrong: return what has been revealed by that instant and the signal delay
+   * comes out right for free.</p>
+   */
+  registerRevealedEventSource(def: RevealedEventSourceDefinition): void;
+
   registerContribution<S extends string>(
     def: Omit<ContributionDefinition<S>, "owner">,
   ): void;
@@ -178,6 +192,9 @@ export function defineUplinkClient(cfg: {
     description: cfg.description,
     registerRootProvider(def: RootProviderDefinition): void {
       registerRootProvider({ ...def, id: `${cfg.id}:${def.id}` });
+    },
+    registerRevealedEventSource(def: RevealedEventSourceDefinition): void {
+      registerRevealedEventSource({ ...def, id: `${cfg.id}:${def.id}` });
     },
     registerContribution<S extends string>(
       def: Omit<ContributionDefinition<S>, "owner">,

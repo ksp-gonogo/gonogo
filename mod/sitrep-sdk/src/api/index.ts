@@ -863,6 +863,24 @@ export {
   classifyCommandRejection,
   commandRefusalSubject,
 } from "./command-rejection";
+/*
+ * Root providers: how an Uplink mounts a context Provider at the top of a
+ * screen's tree without the app importing it to hand-wire one in. Published
+ * here rather than in `core` because `core` is not an author surface: an
+ * Uplink may import this package and `ui-kit` and nothing else of the repo.
+ */
+/*
+ * Revealed event sources: how an Uplink feeds the `event` alarm trigger with
+ * the occurrences behind its own Topic, without the app importing it to build
+ * the reader.
+ */
+export {
+  clearRevealedEventSources,
+  getRevealedEventSources,
+  type RevealedEventSourceDefinition,
+  readRevealedEvents,
+  registerRevealedEventSource,
+} from "./event-reveal";
 // The fog-of-war mask store, its in-memory cache and the React context that
 // carries them. Owned here for the same reason the settings context is: a second
 // copy of a context is invisible to the other side's provider, and `useFogMaskCache`
@@ -893,12 +911,6 @@ export {
  * not a re-export. See `./localStorageStore.ts`'s module header for why.
  */
 export { LocalStorageStore } from "./localStorageStore";
-/*
- * Root providers: how an Uplink mounts a context Provider at the top of a
- * screen's tree without the app importing it to hand-wire one in. Published
- * here rather than in `core` because `core` is not an author surface: an
- * Uplink may import this package and `ui-kit` and nothing else of the repo.
- */
 export {
   clearRootProviders,
   getRootProviders,

@@ -35,6 +35,7 @@
 
 import "./topics"; // registerBarePrimitiveTopic("kerbcast.available"): idempotent
 import "./KerbcastDataSource"; // kerbcastSource singleton + registerUplinkHandle("kerbcast", ...), idempotent
+import "./rootProvider"; // registerRootProvider + registerRevealedEventSource, both idempotent
 
 export { useKerbcastMainConnect } from "./hooks/useKerbcastMainConnect";
 export * from "./KerbcastDataSource";

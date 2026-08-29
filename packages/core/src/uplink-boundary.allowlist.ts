@@ -70,7 +70,6 @@ export const ALLOWLIST: Record<ModToken, ModAllowlist> = {
        * bundled at build, so the app must name them to import them. See
        * uplink architecture §1's "P7 retires" tech-debt note.
        */
-      "packages/app/src/screens/MainScreen.tsx",
       "packages/app/src/screens/StationScreen.tsx",
       /*
        * packages/components/src/Targeting/index.tsx was here: its built-in
