@@ -7,6 +7,7 @@ import {
   getBody,
   projectDescent,
   relativeDensityCurve,
+  STANDARD_GRAVITY,
   terminalVelocityCurve,
   value,
 } from "@ksp-gonogo/sitrep-sdk";
@@ -346,6 +347,21 @@ function heightAboveTerrain(topics: Readonly<Record<string, unknown>>) {
   );
 }
 
+/**
+ * The parent body's surface gravity, in m/s², for the descent integration.
+ *
+ * <p>The stream reports it per body and that reading wins, because it is the
+ * installed game's own number: under a planet pack the bodies are renamed and
+ * re-massed, and a table compiled against stock describes a solar system the
+ * player is not flying in. Resolving the name and then looking it up locally
+ * read the wire only to discard it, and returned nothing at all for a body the
+ * table had never heard of, so an RSS entry lost its settle mark silently.</p>
+ *
+ * <p>The wire carries it in g, which is how the game holds it; the integration
+ * wants m/s². The static table stays as the fallback for a stream that omits
+ * the field, and only in that order: one authority, with a named second-best
+ * behind it.</p>
+ */
 function surfaceGravityOf(topics: Readonly<Record<string, unknown>>) {
   const identity = topics["vessel.identity"] as
     | TopicPayload<"vessel.identity">
@@ -355,8 +371,13 @@ function surfaceGravityOf(topics: Readonly<Record<string, unknown>>) {
     | undefined;
   const index = identity?.parentBodyIndex;
   if (index == null || !bodies) return null;
-  const name = bodies.bodies.find((b) => b.index === index)?.name;
-  const body = name ? getBody(name) : undefined;
+  const entry = bodies.bodies.find((b) => b.index === index);
+  if (!entry) return null;
+  const reported = entry.surfaceGravity?.magnitude;
+  if (reported != null && Number.isFinite(reported) && reported > 0) {
+    return reported * STANDARD_GRAVITY;
+  }
+  const body = entry.name ? getBody(entry.name) : undefined;
   return body?.gm != null && body.radius > 0
     ? body.gm / (body.radius * body.radius)
     : null;

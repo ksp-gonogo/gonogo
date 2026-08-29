@@ -1,5 +1,8 @@
 import type { AnyContribution, PlotLayer } from "@ksp-gonogo/sitrep-sdk";
-import { getContributionsForSlot } from "@ksp-gonogo/sitrep-sdk";
+import {
+  getContributionsForSlot,
+  registerStockBodies,
+} from "@ksp-gonogo/sitrep-sdk";
 import { describe, expect, it } from "vitest";
 import { aeroBadges, aeroDescentLayers } from "./index";
 
@@ -169,5 +172,89 @@ describe("registration", () => {
         if (c.id.startsWith("aero:")) expect(c.requires).toBe("aero");
       }
     }
+  });
+});
+
+/**
+ * The body's own gravity, read where the stream reports it.
+ *
+ * <p>These go through the registered contribution rather than
+ * `aeroDescentLayers`, because the layer builder takes gravity as an argument
+ * and so cannot see where it came from. Every test above hands it 9.81
+ * directly, which is why the resolution step had no coverage at all.</p>
+ */
+describe("surface gravity", () => {
+  /*
+   * The app registers these at startup, so a test without them cannot tell a
+   * body resolved from the static table apart from one that resolved nowhere:
+   * both come back empty and a comparison between them passes saying nothing.
+   */
+  registerStockBodies();
+
+  const descentPlot = () =>
+    getContributionsForSlot("plots").find(
+      (c: AnyContribution) => c.id === "aero:descent-envelope",
+    );
+
+  /** The PLOT entry above, as the topics a live stream would carry. */
+  const topicsForBody = (name: string, gees: number | null) => ({
+    "aero.state": {
+      angleOfAttack: { magnitude: 40.2, unit: "deg" },
+      stallFraction: { magnitude: 0.18, unit: "ratio" },
+      terminalVelocity: { magnitude: 180, unit: "m/s" },
+      ballisticCoefficient: { magnitude: 391, unit: "kg/m^2" },
+      aeroModelValid: true,
+    },
+    "vessel.landing": {
+      terminalVelocity: { magnitude: PLOT.plotTerminal, unit: "m/s" },
+      projectedTouchdownSpeed: { magnitude: PLOT.plotTouchdown, unit: "m/s" },
+    },
+    "vessel.flight": {
+      surfaceSpeed: { magnitude: PLOT.speed, unit: "m/s" },
+    },
+    "vessel.surface": {
+      heightFromTerrain: { magnitude: PLOT.altitude, unit: "m" },
+    },
+    "vessel.identity": { parentBodyIndex: 1 },
+    "system.bodies": {
+      bodies: [
+        {
+          index: 1,
+          name,
+          ...(gees === null
+            ? {}
+            : { surfaceGravity: { magnitude: gees, unit: "g" } }),
+        },
+      ],
+    },
+  });
+
+  const layerIds = (name: string, gees: number | null) => {
+    const plot = descentPlot();
+    if (!plot) throw new Error("the descent-envelope contribution is missing");
+    const out = plot.compute(topicsForBody(name, gees)) as
+      | { layers: PlotLayer[] }[]
+      | null;
+    return (out?.[0]?.layers ?? []).map((l) => l.id);
+  };
+
+  /*
+   * The same body under two planet packs. RSS renames Kerbin to Earth and
+   * changes nothing the plot depends on, because the stream reports the
+   * gravity either way. A rename that moves the plot means the gravity is not
+   * being read from the stream at all.
+   */
+  it("draws the same plot whatever the pack calls the body", () => {
+    expect(layerIds("Earth", 1)).toEqual(layerIds("Kerbin", 1));
+  });
+
+  it("projects the descent for a body no static table knows", () => {
+    expect(layerIds("Earth", 1)).toContain("model-settle");
+  });
+
+  /* Nothing to read and nothing to guess from: the projection is withheld
+   * rather than drawn against a gravity we made up. */
+  it("draws no projection when the stream omits the gravity", () => {
+    expect(layerIds("Gilly", null)).not.toContain("model-settle");
   });
 });
