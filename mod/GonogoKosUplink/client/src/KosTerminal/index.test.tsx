@@ -1099,9 +1099,9 @@ describe("KosTerminal: in-transit uplink queue strip (prediction-only, never exe
     // `useStream`, correctly certainty-gated): it only becomes visible once
     // the confirmed edge reaches its own `validAt` (0), which needs at least
     // `delaySeconds` (20s) of real time to elapse. Advance the fixture's
-    // wall clock past that and force a frame refresh (`setupStreamFixture`'s
-    // own doc: "nothing else triggers a frame between ingests") before the
-    // CPU picker resolves and this terminal mounts/subscribes.
+    // wall clock past that and force a frame refresh deterministically, rather
+    // than waiting on the provider's own animation-frame tick, before the CPU
+    // picker resolves and this terminal mounts/subscribes.
     act(() => {
       fixture.wall.advanceBy(25);
       fixture.store.beginFrame();

@@ -51,7 +51,13 @@ import type { JSX, ReactNode } from "react";
  *   confirmed-edge/delay computation (see that method's own doc comment),
  *   so a pinned clock makes `delaySeconds` a no-op. Drive time with
  *   `fixture.wall.advanceBy(seconds)` (+ `fixture.store.beginFrame()` to
- *   apply it: nothing else triggers a frame between ingests) instead.
+ *   apply it deterministically) instead.
+ * - **`suspendFrames`**: the clock's own frame loop is a self-rescheduling
+ *   `requestAnimationFrame` with no stopping condition, so a mounted
+ *   `TelemetryProvider` mints a React update every animation frame whether or
+ *   not anything arrived, and `act()` can never see an empty queue. Set this
+ *   and drive frames with `fixture.emitFrame()` instead. See
+ *   `ViewClock.suspendFrames`.
  */
 export interface StreamFixtureOptions {
   /** Topics (read AND command) to promote into the carried-channels allowlist. */
@@ -60,6 +66,8 @@ export interface StreamFixtureOptions {
   pinnedUt?: number;
   /** Fixed network/display delay in seconds (`ViewClock`'s delay authority). Defaults to 0, preserving every existing steady-state fixture's behavior untouched. */
   delaySeconds?: number;
+  /** Stop the view clock's animation-frame loop before anything can subscribe, leaving `emitFrame()` the only frame source. See this file's doc comment. */
+  suspendFrames?: boolean;
 }
 
 export interface StreamFixture {
@@ -75,6 +83,8 @@ export interface StreamFixture {
     payload: unknown,
     metaOverrides?: Partial<Meta>,
   ) => void;
+  /** Mint one view-clock frame synchronously, the manual half of `suspendFrames`. */
+  emitFrame: () => void;
 }
 
 export function setupStreamFixture(opts: StreamFixtureOptions): StreamFixture {
@@ -126,6 +136,12 @@ export function setupStreamFixture(opts: StreamFixtureOptions): StreamFixture {
     store.registerDerivedChannel(channel);
   }
   if (opts.pinnedUt !== undefined) clock.scrubTo(opts.pinnedUt);
+  /*
+   * Before the Provider mounts, so the loop never starts rather than starting
+   * and being stopped: a loop that got one tick in has already scheduled the
+   * next one against whichever scheduler was current then.
+   */
+  if (opts.suspendFrames === true) clock.suspendFrames();
 
   const carriedChannels = carriedList;
 
@@ -151,6 +167,7 @@ export function setupStreamFixture(opts: StreamFixtureOptions): StreamFixture {
       if (emitsMuted) return;
       transport.emit(topic, payload, metaOverrides);
     },
+    emitFrame: () => clock.emitFrame(),
   };
 }
 

@@ -47,6 +47,10 @@ function defaultNowWall(): number {
   return performance.now() / 1000;
 }
 
+type FrameTickHandle =
+  | { kind: "raf"; id: number }
+  | { kind: "timer"; id: ReturnType<typeof setTimeout> };
+
 /**
  * One per client: THE single view time. Fits a UT↔wall
  * relationship from delivered-sample observations, but the central
@@ -76,6 +80,13 @@ export class ViewClock {
   private lastConfirmedViewUt = Number.NEGATIVE_INFINITY;
   /** Manual history-scrub target, `null` = live. Set via `scrubTo`. */
   private scrubTarget: number | null = null;
+
+  /** Every live `onFrame` callback: one shared loop notifies the lot. */
+  private readonly frameSubscribers = new Set<(viewUt: number) => void>();
+  /** The one pending tick, tagged with the scheduler that minted it so cancelling matches. */
+  private frameHandle: FrameTickHandle | undefined;
+  /** Set by `suspendFrames`: the loop stays stopped and only `emitFrame` mints frames. */
+  private framesSuspended = false;
 
   /** Which regime `viewUt()` is currently drawn from. */
   get mode(): ViewClockMode {
@@ -258,25 +269,98 @@ export class ViewClock {
    * invariant: that's `TimelineStore`'s frozen `FrameToken` (structural);
    * this is just a convenience scheduling hook for callers that want to
    * drive `TimelineStore.beginFrame()` from wall-clock frames.
+   *
+   * One loop serves every subscriber, so the whole tree sees the same frame
+   * rather than one animation-frame loop per `useViewUt`. The loop starts on
+   * the first subscription and stops on the last unsubscribe, and
+   * {@link suspendFrames} stops it without disturbing who is subscribed.
    */
   onFrame(cb: (viewUt: number) => void): () => void {
-    const hasRaf = typeof requestAnimationFrame === "function";
-    let cancelled = false;
-    let handle: number | ReturnType<typeof setTimeout>;
-
-    const tick = () => {
-      if (cancelled) return;
-      cb(this.viewUt());
-      handle = hasRaf ? requestAnimationFrame(tick) : setTimeout(tick, 16);
-    };
-
-    handle = hasRaf ? requestAnimationFrame(tick) : setTimeout(tick, 16);
-
+    this.frameSubscribers.add(cb);
+    this.scheduleFrameTick();
     return () => {
-      cancelled = true;
-      if (hasRaf) cancelAnimationFrame(handle as number);
-      else clearTimeout(handle as ReturnType<typeof setTimeout>);
+      this.frameSubscribers.delete(cb);
+      if (this.frameSubscribers.size === 0) this.cancelFrameTick();
     };
+  }
+
+  /**
+   * Notify every {@link onFrame} subscriber once, synchronously, off whatever
+   * the caller is doing rather than off an animation frame.
+   *
+   * Written for tests that have called {@link suspendFrames}: a mount driven
+   * by explicit frames settles the same way on every machine, where one racing
+   * a live loop settles only when the loop happens to lose. Safe alongside a
+   * running loop too (a frame is idempotent), it just isn't useful there.
+   */
+  emitFrame(): void {
+    if (this.frameSubscribers.size === 0) return;
+    const ut = this.viewUt();
+    /*
+     * Snapshot, then re-check membership: a callback is free to subscribe or
+     * unsubscribe from inside the frame (a React effect cleanup does exactly
+     * that), and one unsubscribed earlier in this same frame must not be called.
+     */
+    for (const cb of Array.from(this.frameSubscribers)) {
+      if (this.frameSubscribers.has(cb)) cb(ut);
+    }
+  }
+
+  /**
+   * Stop minting frames until {@link resumeFrames}. Subscriptions are
+   * untouched: {@link emitFrame} still reaches all of them.
+   *
+   * The frame loop has no stopping condition by design, so a quiet link still
+   * advances view time. That makes it unquiescable, and React's async `act()`
+   * drains its queue and then requires the queue to be EMPTY: a frame landing
+   * in that window means it never is, and the mount hangs until the test times
+   * out. A test harness that needs `act()` to return has to stop the clock and
+   * drive it, not race it.
+   */
+  suspendFrames(): void {
+    this.framesSuspended = true;
+    this.cancelFrameTick();
+  }
+
+  /** Resume the loop {@link suspendFrames} stopped, if anything is still subscribed. */
+  resumeFrames(): void {
+    if (!this.framesSuspended) return;
+    this.framesSuspended = false;
+    this.scheduleFrameTick();
+  }
+
+  /** Whether {@link suspendFrames} is in force. */
+  get framesAreSuspended(): boolean {
+    return this.framesSuspended;
+  }
+
+  private scheduleFrameTick(): void {
+    if (this.framesSuspended) return;
+    if (this.frameHandle !== undefined) return;
+    if (this.frameSubscribers.size === 0) return;
+    const tick = () => {
+      this.frameHandle = undefined;
+      this.emitFrame();
+      this.scheduleFrameTick();
+    };
+    /*
+     * The handle carries which scheduler minted it rather than a flag captured
+     * at subscribe time, so cancelling still uses the right one when the two
+     * globals are swapped underneath a live loop (which is exactly what a test
+     * substituting the frame clock does).
+     */
+    this.frameHandle =
+      typeof requestAnimationFrame === "function"
+        ? { kind: "raf", id: requestAnimationFrame(tick) }
+        : { kind: "timer", id: setTimeout(tick, 16) };
+  }
+
+  private cancelFrameTick(): void {
+    const handle = this.frameHandle;
+    if (handle === undefined) return;
+    this.frameHandle = undefined;
+    if (handle.kind === "raf") cancelAnimationFrame(handle.id);
+    else clearTimeout(handle.id);
   }
 
   private now(): number {

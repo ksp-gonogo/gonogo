@@ -51,8 +51,10 @@ import { StubTransport } from "./stub-transport";
  *   `ViewClock.viewUt()`'s `scrubTo` target wins outright over the
  *   confirmed-edge/delay computation, which makes a pinned clock silently turn
  *   `delaySeconds` into a no-op. Drive time with `fixture.wall.advanceBy(seconds)`
- *   plus `fixture.store.beginFrame()` instead: nothing else triggers a frame
- *   between ingests.
+ *   plus `fixture.store.beginFrame()` instead, which applies it deterministically.
+ *   Ingests are not the only frame source: a mounted `TelemetryProvider` also
+ *   mints one every animation frame off `ViewClock.onFrame`, whether or not
+ *   anything arrived.
  */
 export interface StreamFixtureOptions {
   /** Topics (read AND command) to promote into the carried-channels allowlist. */

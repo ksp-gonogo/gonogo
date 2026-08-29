@@ -286,6 +286,12 @@ interface StreamWrap {
    * frames to pass. A no-op for a fixture with no `_stream` block.
    */
   replayStreamBlock: () => Promise<void>;
+  /**
+   * Mints one view-clock frame, the harness's only frame source: the fixture
+   * clock is built with its animation-frame loop suspended (see
+   * {@link buildStreamWrap}). A no-op when no provider was mounted.
+   */
+  emitFrame: () => void;
 }
 
 /**
@@ -299,10 +305,17 @@ interface StreamWrap {
 async function waitForSubscription(
   transport: { isSubscribed(topic: string): boolean },
   topic: string,
+  emitFrame: () => void,
   maxFrames = 30,
 ): Promise<void> {
   for (let i = 0; i < maxFrames; i++) {
     if (transport.isSubscribed(topic)) return;
+    /*
+     * One view-clock frame per poll turn, because the clock's own loop is
+     * suspended here: a subscription that only appears once a frame-driven
+     * render has run would otherwise never arrive.
+     */
+    emitFrame();
     await new Promise<void>((resolve) => {
       requestAnimationFrame(() => resolve());
     });
@@ -392,6 +405,7 @@ function buildStreamWrap(fixture: Fixture, profileId?: string): StreamWrap {
       carriedChannels: streamBlock.carriedChannels,
       pinnedUt: streamBlock.pinnedUt ?? resolvePinnedUt(fixture),
       delaySeconds: streamBlock.delaySeconds,
+      suspendFrames: true,
     });
     return {
       Wrap: stream.Provider,
@@ -400,13 +414,17 @@ function buildStreamWrap(fixture: Fixture, profileId?: string): StreamWrap {
       emitVesselControl: () => {},
       replayStreamBlock: async () => {
         for (const e of streamBlock.emits) {
-          await waitForSubscription(stream.transport, e.channel);
+          await waitForSubscription(stream.transport, e.channel, () =>
+            stream.emitFrame(),
+          );
           stream.emit(e.channel, e.value, e.meta);
+          stream.emitFrame();
           await new Promise<void>((resolve) => {
             requestAnimationFrame(() => resolve());
           });
         }
       },
+      emitFrame: () => stream.emitFrame(),
     };
   }
   const pinnedUt = resolvePinnedUt(fixture);
@@ -429,6 +447,7 @@ function buildStreamWrap(fixture: Fixture, profileId?: string): StreamWrap {
       emitVesselParts: () => {},
       emitVesselControl: () => {},
       replayStreamBlock: async () => {},
+      emitFrame: () => {},
     };
   }
   // `time.warp`/`comms.link` must be CARRIED, not merely emitted: the pause and
@@ -437,7 +456,11 @@ function buildStreamWrap(fixture: Fixture, profileId?: string): StreamWrap {
   const carriedChannels: string[] = [];
   if (timeWarpWire !== undefined) carriedChannels.push("time.warp");
   if (commsLinkWire !== undefined) carriedChannels.push("comms.link");
-  const stream = setupStreamFixture({ carriedChannels, pinnedUt });
+  const stream = setupStreamFixture({
+    carriedChannels,
+    pinnedUt,
+    suspendFrames: true,
+  });
   return {
     Wrap: stream.Provider,
     providerMounted: true,
@@ -461,28 +484,39 @@ function buildStreamWrap(fixture: Fixture, profileId?: string): StreamWrap {
       }
     },
     replayStreamBlock: async () => {},
+    emitFrame: () => stream.emitFrame(),
   };
 }
 
 /**
- * `useViewUt()`'s scrubbed value only lands via `ViewClock.onFrame`'s
- * `requestAnimationFrame` loop (its synchronous initial seed reads
- * `confirmedEdgeUt()`, which ignores `scrubTo` entirely: see that hook's
- * own doc comment in `sitrep-client/src/context.tsx`), and `useTopology`'s
- * canonical stream read similarly only lands via the `TelemetryProvider`'s
- * `beginFrame()` scheduling (a `requestAnimationFrame`, falling back to a
- * microtask under jsdom). Either way a plain `render()` + `act()` can commit
- * BEFORE the value has actually reached React state. Flush two rAF ticks
- * (wrapped in `act` so the resulting re-render doesn't warn) before reading
- * the DOM whenever a `TelemetryProvider` was mounted for this render, a
- * no-op when {@link StreamWrap.providerMounted} is `false`.
+ * `useViewUt()`'s scrubbed value only lands via a `ViewClock.onFrame` tick
+ * (its synchronous initial seed reads `confirmedEdgeUt()`, which ignores
+ * `scrubTo` entirely: see that hook's own doc comment in
+ * `sitrep-client/src/context.tsx`), and `useTopology`'s canonical stream read
+ * similarly only lands via the `TelemetryProvider`'s `beginFrame()`
+ * scheduling (a `requestAnimationFrame`, falling back to a microtask under
+ * jsdom). Either way a plain `render()` + `act()` can commit BEFORE the value
+ * has actually reached React state.
+ *
+ * Two frames, minted by hand rather than waited for: the clock's own loop is
+ * suspended for the whole mount (see {@link buildStreamWrap}), so this is the
+ * only thing that advances it. The second covers a subscriber that only
+ * attached on the first frame's commit. Each is followed by a real animation
+ * frame, because the provider coalesces the resulting `beginFrame()` onto one.
+ * A no-op when {@link StreamWrap.providerMounted} is `false`.
  */
-async function flushProviderFrame(providerMounted: boolean): Promise<void> {
+async function flushProviderFrame(
+  providerMounted: boolean,
+  emitFrame: () => void,
+): Promise<void> {
   if (!providerMounted) return;
   await act(async () => {
-    await new Promise<void>((resolve) => {
-      requestAnimationFrame(() => requestAnimationFrame(() => resolve()));
-    });
+    for (let i = 0; i < 2; i++) {
+      emitFrame();
+      await new Promise<void>((resolve) => {
+        requestAnimationFrame(() => requestAnimationFrame(() => resolve()));
+      });
+    }
   });
 }
 
@@ -661,6 +695,7 @@ export async function snapshotWidgetMode<
       emitVesselParts,
       emitVesselControl,
       replayStreamBlock,
+      emitFrame,
     } = buildStreamWrap(opts.fixture, opts.profile);
     beginPhase("render");
     const { container } = render(
@@ -699,7 +734,7 @@ export async function snapshotWidgetMode<
       await replayStreamBlock();
     });
     beginPhase("provider-frame");
-    await flushProviderFrame(providerMounted);
+    await flushProviderFrame(providerMounted, emitFrame);
 
     // Drain the async `useDataSeries` backfill (graphs/sparklines) before
     // snapshotting. waitFor wraps act, so the backfill's notify() flushes
@@ -774,6 +809,7 @@ export async function renderWidgetMode<
     emitVesselParts,
     emitVesselControl,
     replayStreamBlock,
+    emitFrame,
   } = buildStreamWrap(opts.fixture, opts.profile);
   beginPhase("render");
   const { container } = render(
@@ -806,7 +842,7 @@ export async function renderWidgetMode<
     await replayStreamBlock();
   });
   beginPhase("provider-frame");
-  await flushProviderFrame(providerMounted);
+  await flushProviderFrame(providerMounted, emitFrame);
 
   // Drain the async useDataSeries backfill the testing-library way (see
   // snapshotWidgetMode) so a11y assertions run against a settled tree.

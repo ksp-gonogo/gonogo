@@ -56,7 +56,9 @@ import type { JSX, ReactNode } from "react";
  *   confirmed-edge/delay computation (see that method's own doc comment),
  *   so a pinned clock makes `delaySeconds` a no-op. Drive time with
  *   `fixture.wall.advanceBy(seconds)` (+ `fixture.store.beginFrame()` to
- *   apply it: nothing else triggers a frame between ingests) instead.
+ *   apply it deterministically) instead. Ingests are not the only frame
+ *   source: a mounted `TelemetryProvider` also mints one every animation
+ *   frame off `ViewClock.onFrame`, whether or not anything arrived.
  */
 export interface StreamFixtureOptions {
   /** Topics (read AND command) to promote into the carried-channels allowlist. */
