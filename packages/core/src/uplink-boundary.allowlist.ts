@@ -896,7 +896,6 @@ export const ALLOWLIST: Record<ModToken, ModAllowlist> = {
        * rewrote the comment to describe the actual Kerbalism integration
        * instead, dropping the only "kOS" text in the file, stale, ratcheted off.
        */
-      "packages/components/src/ManeuverPlanner/index.tsx",
       "packages/core/src/safeRandomUuid.ts",
       "packages/core/src/types.ts",
       /*
@@ -1830,7 +1829,6 @@ export const ALLOWLIST: Record<ModToken, ModAllowlist> = {
       "packages/components/src/CrewStatus/index.tsx",
       "packages/components/src/FleetReliability/index.tsx",
       "packages/components/src/FleetRoster/index.tsx",
-      "packages/components/src/ScienceData/index.tsx",
       "packages/components/src/ShipMap/index.tsx",
       "packages/components/src/ShipMap/partMetersContribution.ts",
       "packages/components/src/ShipMap/shipTopology.ts",

@@ -468,14 +468,19 @@ function ManeuverPlannerComponent({
     setCommitting(true);
     setError(null);
     try {
-      // The legacy command passed `[ut,x,y,z]` straight to KSP's
-      // `ManeuverNode.OnGizmoUpdated(new Vector3d(x,y,z), ut)`. KSP's
-      // node-local frame is `Vector3d(radialOut, normal, prograde)`,
-      // confirmed by kOS's Node.cs which constructs the same vector in
-      // that exact order. So the on-wire order is RADIAL, NORMAL,
-      // PROGRADE: *not* prograde-first. Sending pure prograde in the
-      // first slot turns it into pure radial-out and the burn points
-      // straight up.
+      /*
+       * The legacy command passed `[ut,x,y,z]` straight to KSP's
+       * `ManeuverNode.OnGizmoUpdated(new Vector3d(x,y,z), ut)`, and KSP's
+       * node-local frame is `Vector3d(radialOut, normal, prograde)`. So the
+       * on-wire order is RADIAL, NORMAL, PROGRADE: *not* prograde-first.
+       * Sending pure prograde in the first slot turns it into pure radial-out
+       * and the burn points straight up.
+       *
+       * The ordering is checkable against KSP's own API, which is the
+       * authority here and is core's own dependency rather than a mod's. It
+       * used to cite a third-party mod's source as corroboration, which put a
+       * mod name in core to confirm something KSP already states.
+       */
       await dispatchPlanBurns(plan);
     } catch (err) {
       setError(err instanceof Error ? err.message : String(err));
