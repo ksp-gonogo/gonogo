@@ -374,6 +374,48 @@ namespace GonogoPrincipiaUplink.Tests
         }
 
         /// <summary>
+        /// The equatorial crossings arrive on the same call, in degrees.
+        ///
+        /// <para>They are the second half of what the recurrence is FOR: the
+        /// producer's own three synchronicity adjectives are decided by how far
+        /// the crossing longitudes drift, and none of them can be said from the
+        /// recurrence alone.</para>
+        /// </summary>
+        [Fact]
+        public void TheEquatorialCrossingsArriveInDegrees()
+        {
+            var (_, observation) = Read(p =>
+            {
+                p.Add(Guid);
+                p.VesselAnalysis = new FakeOrbitAnalysis();
+            });
+
+            var orbit = observation!.Orbit;
+            Assert.NotNull(orbit);
+            // Radians on the wire from the producer, degrees to a reader, like
+            // every other angle this reader carries across.
+            Assert.Equal(0.10 * (180.0 / Math.PI), orbit!.AscendingCrossingDegrees!.Min!.Value, 9);
+            Assert.Equal(0.14 * (180.0 / Math.PI), orbit.AscendingCrossingDegrees!.Max!.Value, 9);
+            Assert.Equal(3.24 * (180.0 / Math.PI), orbit.DescendingCrossingDegrees!.Min!.Value, 9);
+        }
+
+        /// <summary>Crossings the producer could not compute are absent rather
+        /// than a zero-width band sitting at longitude nought.</summary>
+        [Fact]
+        public void AbsentCrossingsAreAbsentRatherThanAZeroBand()
+        {
+            var (_, observation) = Read(p =>
+            {
+                p.Add(Guid);
+                p.VesselAnalysis =
+                    new FakeOrbitAnalysis { ground_track_equatorial_crossings = null };
+            });
+
+            Assert.Null(observation!.Orbit!.AscendingCrossingDegrees);
+            Assert.Null(observation.Orbit.DescendingCrossingDegrees);
+        }
+
+        /// <summary>
         /// An analysis whose recurrence the producer could NOT fit publishes
         /// silence, not a zero. A craft on an escape trajectory has no repeating
         /// ground track, and a 0-day cycle would read as a real, wrong answer.

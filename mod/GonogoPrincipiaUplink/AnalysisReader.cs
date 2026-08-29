@@ -81,9 +81,16 @@ namespace GonogoPrincipiaUplink
         internal const string RecurrenceField = "recurrence";
         internal const string RecurrenceCycleRotationsField = "cto";
         internal const string RecurrenceRevolutionsField = "number_of_revolutions";
+        internal const string RecurrenceRevolutionsPerRotationField = "nuo";
         internal const string RecurrenceSubcycleField = "subcycle";
         internal const string RecurrenceEquatorialShiftField = "equatorial_shift";
         internal const string RecurrenceGridIntervalField = "grid_interval";
+
+        /// <summary>Fields on the equatorial crossings, derived by the producer
+        /// as a side effect of fitting the recurrence above.</summary>
+        internal const string CrossingsField = "ground_track_equatorial_crossings";
+        internal const string AscendingCrossingField = "longitudes_reduced_to_ascending_pass";
+        internal const string DescendingCrossingField = "longitudes_reduced_to_descending_pass";
 
         private const double DegreesPerRadian = 180.0 / Math.PI;
 
@@ -232,6 +239,8 @@ namespace GonogoPrincipiaUplink
             observation.RecurrenceCycleRotations = Fields.GetInt(recurrence, RecurrenceCycleRotationsField);
             observation.RecurrenceRevolutions =
                 Fields.GetInt(recurrence, RecurrenceRevolutionsField);
+            observation.RecurrenceRevolutionsPerRotation =
+                Fields.GetInt(recurrence, RecurrenceRevolutionsPerRotationField);
             observation.RecurrenceSubcycleRotations =
                 Fields.GetInt(recurrence, RecurrenceSubcycleField);
             observation.RecurrenceEquatorialShiftDegrees = Scale(
@@ -240,6 +249,28 @@ namespace GonogoPrincipiaUplink
             observation.RecurrenceGridIntervalDegrees = Scale(
                 Fields.GetDouble(recurrence, RecurrenceGridIntervalField),
                 DegreesPerRadian);
+        }
+
+        /// <summary>
+        /// Copies the equatorial crossing bands across, in degrees.
+        ///
+        /// <para>Separate from the recurrence read beside it because they are
+        /// separate fields on the analysis and either can be absent while the
+        /// other is present: the producer derives the crossings only when it also
+        /// has a ground track.</para>
+        /// </summary>
+        private static void ReadCrossings(object analysis, OrbitAnalysisObservation observation)
+        {
+            var crossings = Fields.Get(analysis, CrossingsField);
+            if (crossings == null)
+            {
+                return;
+            }
+
+            observation.AscendingCrossingDegrees =
+                Interval(crossings, AscendingCrossingField, DegreesPerRadian, 0.0);
+            observation.DescendingCrossingDegrees =
+                Interval(crossings, DescendingCrossingField, DegreesPerRadian, 0.0);
         }
 
         internal static OrbitAnalysisObservation? Describe(
@@ -269,6 +300,7 @@ namespace GonogoPrincipiaUplink
             };
 
             ReadRecurrence(analysis, observation);
+            ReadCrossings(analysis, observation);
 
             if (elements == null)
             {

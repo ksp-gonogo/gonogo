@@ -133,6 +133,7 @@
       "recurrenceEquatorialShiftDegrees": "°",
       "recurrenceGridIntervalDegrees": "°",
       "recurrenceRevolutions": "count",
+      "recurrenceRevolutionsPerRotation": "count",
       "recurrenceSubcycleRotations": "count",
       "siderealPeriodSeconds": "s"
     },
@@ -372,6 +373,8 @@
       "burns": "PrincipiaFlightPlanBurn[]"
     },
     "PrincipiaOrbitAnalysis": {
+      "ascendingCrossingDegrees": "PrincipiaAngleInterval",
+      "descendingCrossingDegrees": "PrincipiaAngleInterval",
       "meanApoapsisAltitudeMetres": "PrincipiaLengthInterval",
       "meanArgumentOfPeriapsisDegrees": "PrincipiaAngleInterval",
       "meanEccentricity": "PrincipiaRatioInterval",

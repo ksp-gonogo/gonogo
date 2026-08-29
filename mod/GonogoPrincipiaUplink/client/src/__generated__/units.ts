@@ -167,6 +167,7 @@ export const GENERATED_TYPE_UNITS: Readonly<Record<string, UnitsByField>> = {
     recurrenceEquatorialShiftDegrees: "°",
     recurrenceGridIntervalDegrees: "°",
     recurrenceRevolutions: "count",
+    recurrenceRevolutionsPerRotation: "count",
     recurrenceSubcycleRotations: "count",
     siderealPeriodSeconds: "s",
   },
@@ -436,6 +437,8 @@ export const GENERATED_TYPE_SHAPES: Readonly<Record<string, ShapesByField>> = {
     burns: "PrincipiaFlightPlanBurn[]",
   },
   "PrincipiaOrbitAnalysis": {
+    ascendingCrossingDegrees: "PrincipiaAngleInterval",
+    descendingCrossingDegrees: "PrincipiaAngleInterval",
     meanApoapsisAltitudeMetres: "PrincipiaLengthInterval",
     meanArgumentOfPeriapsisDegrees: "PrincipiaAngleInterval",
     meanEccentricity: "PrincipiaRatioInterval",

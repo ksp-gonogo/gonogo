@@ -442,18 +442,20 @@ export function OrbitAnalysisSection() {
 
         <OrbitAnalysisRows orbit={orbit} viewUt={viewUt} />
 
-        {/* Named rather than left to inference. Principia's own phrase can carry
-            four more adjectives, all of which need a ground-track recurrence
-            this Uplink does not ask for, because asking hands the producer a
-            hypothesis it validates behind checks that end the game when they
-            fail. An operator who knows the words are missing will not read their
-            absence as a claim.
+        {/* Named rather than left to inference, so an operator who knows the
+            word is missing will not read its absence as a claim.
+
+            This used to name four adjectives and blame a ground-track
+            recurrence. Three of them are said now: the recurrence was always
+            arriving, and the equatorial crossings it derives are what decide
+            them. The one left is missing for an unrelated reason, recorded on
+            UNREACHABLE_ADJECTIVES.
 
             Only beside a phrase, though: with no elements there is no phrase for
             it to qualify, and a caveat about words nobody wrote is noise. */}
         {description !== null && (
           <Text tone="faint" size="sm">
-            {`Cannot say ${UNREACHABLE_ADJECTIVES.join(", ")}: those need a ground-track recurrence Gonogo does not request.`}
+            {`Cannot say ${UNREACHABLE_ADJECTIVES.join(", ")}: that needs the solar times of the nodes, which Gonogo does not carry.`}
           </Text>
         )}
       </Stack>

@@ -108,13 +108,18 @@ public sealed class PrincipiaCoastAnalysis
 /// midpoint: circular is <c>eccentricity.max &lt; 0.01</c>, not a midpoint
 /// test.</para>
 ///
-/// <para><b>What is deliberately absent.</b> There is no ground-track
-/// recurrence, no equatorial-crossing longitudes and no solar times of nodes.
-/// Asking for them means handing the producer a recurrence hypothesis, which
-/// makes it construct an orbit recurrence behind seven checks whose arithmetic
-/// this Uplink has not solved; passing nothing forfeits those three and removes
-/// all seven. That is the trade, and it costs three rows rather than the
-/// analysis.</para>
+/// <para><b>The ground-track recurrence and the equatorial crossings are here,
+/// and were always available.</b> This doc used to say the opposite: that asking
+/// for them meant handing the producer a recurrence hypothesis and satisfying
+/// seven checks "whose arithmetic this Uplink has not solved". The producer fits
+/// a recurrence itself during the analysis and falls back to it when no
+/// hypothesis is given, deriving the crossings on the way, so the only thing a
+/// hypothesis buys is an operator's nominal orbit to compare against.</para>
+///
+/// <para><b>What is still absent.</b> The solar times of nodes. Not a trade
+/// either: they are an angle with π at noon, a time-of-day rather than a
+/// duration, and this contract has no unit that says so. Publishing them as
+/// plain degrees would be a number nobody could read as a clock.</para>
 /// </summary>
 #if SITREP_CODEGEN
 [TsInterface]
@@ -244,6 +249,17 @@ public sealed class PrincipiaOrbitAnalysis
     [SitrepUnit(Units.Count)]
     public int? RecurrenceRevolutions { get; set; }
 
+    /// <summary>
+    /// Revolutions per single turn of the primary, Capderou's νₒ.
+    ///
+    /// <para>The number that names the orbit: one is synchronous, two is
+    /// semi-synchronous. Carried rather than re-derived from the revolutions and
+    /// the cycle, because that derivation is a rounding and a client that rounds
+    /// differently renames the orbit.</para>
+    /// </summary>
+    [SitrepUnit(Units.Count)]
+    public int? RecurrenceRevolutionsPerRotation { get; set; }
+
     /// <summary>The shorter run after which the track very nearly repeats, in
     /// turns of the primary. What an operator plans revisits around.</summary>
     [SitrepUnit(Units.Count)]
@@ -252,6 +268,19 @@ public sealed class PrincipiaOrbitAnalysis
     /// <summary>How far the track walks along the equator each revolution.</summary>
     [SitrepUnit(Units.Degrees)]
     public double? RecurrenceEquatorialShiftDegrees { get; set; }
+
+    /// <summary>
+    /// Where the craft crosses the equator northbound, as a band of longitudes
+    /// over the analysed span.
+    ///
+    /// <para>Read the WIDTH rather than the position. A band that barely widens
+    /// is a track that repeats over the same ground, which is what decides
+    /// whether an orbit may be called synchronous at all.</para>
+    /// </summary>
+    public PrincipiaAngleInterval? AscendingCrossingDegrees { get; set; }
+
+    /// <summary>The same band for the southbound crossing.</summary>
+    public PrincipiaAngleInterval? DescendingCrossingDegrees { get; set; }
 
     /// <summary>The spacing of the fully-populated longitude grid the whole cycle
     /// lays down.</summary>

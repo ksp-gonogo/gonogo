@@ -106,3 +106,122 @@ describe("orbitDescription", () => {
     ).toBeNull();
   });
 });
+
+/**
+ * The three synchronicity adjectives, which this file used to declare
+ * unreachable. They are decided by the DRIFT of the equatorial crossing bands,
+ * following the producer's own rule: a track whose crossings barely move is one
+ * that repeats.
+ */
+describe("orbitDescription synchronicity", () => {
+  /** A track that closes in one turn of the primary, crossings barely moving. */
+  function repeating(
+    over: Partial<PrincipiaOrbitAnalysis> = {},
+  ): PrincipiaOrbitAnalysis {
+    return analysis({
+      // One revolution per rotation, one rotation per cycle.
+      recurrenceCycleRotations: value("", 1),
+      recurrenceRevolutionsPerRotation: value("", 1),
+      recurrenceRevolutions: value("", 1),
+      // Ten revolutions analysed, so ten rotations at one per rotation.
+      missionDurationSeconds: value("s", 216_000),
+      nodalPeriodSeconds: value("s", 21_600),
+      // 0.05° over ten rotations is 0.005°/rotation, well inside the 0.1° rule.
+      ascendingCrossingDegrees: {
+        min: value("°", 10.0),
+        max: value("°", 10.05),
+      },
+      descendingCrossingDegrees: {
+        min: value("°", 190.0),
+        max: value("°", 190.04),
+      },
+      ...over,
+    });
+  }
+
+  it("calls a repeating one-per-rotation track synchronous", () => {
+    expect(orbitDescription(repeating())).toBe("synchronous Kerbin orbit");
+  });
+
+  /**
+   * Stationary REPLACES the shape words rather than joining them. The producer
+   * says "stationary over Kerbin"; "circular equatorial stationary Kerbin
+   * orbit" states the same fact three times.
+   */
+  it("calls a circular equatorial one stationary, and drops the shape words", () => {
+    const described = orbitDescription(
+      repeating({
+        meanEccentricity: { min: value("1", 0.001), max: value("1", 0.002) },
+        meanInclinationDegrees: { min: value("°", 0.1), max: value("°", 0.2) },
+      }),
+    );
+    expect(described).toBe("stationary Kerbin orbit");
+  });
+
+  it("calls a two-per-rotation track semi-synchronous", () => {
+    expect(
+      orbitDescription(
+        repeating({
+          recurrenceRevolutionsPerRotation: value("", 2),
+          recurrenceRevolutions: value("", 2),
+        }),
+      ),
+    ).toBe("semi-synchronous Kerbin orbit");
+  });
+
+  /**
+   * A track that walks is not synchronous however neat its recurrence. This is
+   * the assertion that stops the adjective being decided by the recurrence
+   * alone, which would name almost every closed orbit.
+   */
+  it("says nothing when the crossings drift", () => {
+    expect(
+      orbitDescription(
+        repeating({
+          ascendingCrossingDegrees: {
+            min: value("°", 10),
+            max: value("°", 130),
+          },
+          descendingCrossingDegrees: {
+            min: value("°", 190),
+            max: value("°", 310),
+          },
+        }),
+      ),
+    ).toBe("Kerbin orbit");
+  });
+
+  /**
+   * Zero drift means the analysis caught ONE pass, and one pass cannot show
+   * that anything repeats. Reading it as perfect synchronicity would call every
+   * briefly-analysed orbit stationary: the most confident way to be wrong.
+   */
+  it("refuses zero drift rather than treating it as perfect", () => {
+    expect(
+      orbitDescription(
+        repeating({
+          ascendingCrossingDegrees: {
+            min: value("°", 10),
+            max: value("°", 10),
+          },
+          descendingCrossingDegrees: {
+            min: value("°", 190),
+            max: value("°", 190),
+          },
+        }),
+      ),
+    ).toBe("Kerbin orbit");
+  });
+
+  /** No crossings, no claim: the recurrence on its own decides nothing. */
+  it("says nothing from a recurrence with no crossings", () => {
+    expect(
+      orbitDescription(
+        repeating({
+          ascendingCrossingDegrees: undefined,
+          descendingCrossingDegrees: undefined,
+        }),
+      ),
+    ).toBe("Kerbin orbit");
+  });
+});

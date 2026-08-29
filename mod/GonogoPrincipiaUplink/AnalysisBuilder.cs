@@ -63,9 +63,12 @@ namespace GonogoPrincipiaUplink
                 ["meanInclinationDegrees"] = Interval(analysis.MeanInclinationDegrees),
                 ["recurrenceCycleRotations"] = analysis.RecurrenceCycleRotations,
                 ["recurrenceRevolutions"] = analysis.RecurrenceRevolutions,
+                ["recurrenceRevolutionsPerRotation"] = analysis.RecurrenceRevolutionsPerRotation,
                 ["recurrenceSubcycleRotations"] = analysis.RecurrenceSubcycleRotations,
                 ["recurrenceEquatorialShiftDegrees"] = analysis.RecurrenceEquatorialShiftDegrees,
                 ["recurrenceGridIntervalDegrees"] = analysis.RecurrenceGridIntervalDegrees,
+                ["ascendingCrossingDegrees"] = Interval(analysis.AscendingCrossingDegrees),
+                ["descendingCrossingDegrees"] = Interval(analysis.DescendingCrossingDegrees),
                 ["meanLongitudeOfAscendingNodeDegrees"] =
                     Interval(analysis.MeanLongitudeOfAscendingNodeDegrees),
                 ["meanArgumentOfPeriapsisDegrees"] =

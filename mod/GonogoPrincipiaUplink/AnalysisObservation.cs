@@ -89,6 +89,16 @@ namespace GonogoPrincipiaUplink
         public int? RecurrenceRevolutions;
 
         /// <summary>
+        /// Revolutions per single turn of the primary, Capderou's νₒ.
+        ///
+        /// <para>The number that names the orbit: one is synchronous, two is
+        /// semi-synchronous. Published rather than left to be re-derived from the
+        /// revolutions and the cycle, because that derivation is a rounding and a
+        /// client that rounds differently renames the orbit.</para>
+        /// </summary>
+        public int? RecurrenceRevolutionsPerRotation;
+
+        /// <summary>
         /// The shorter run after which the track very nearly repeats, in turns of
         /// the primary.
         ///
@@ -100,6 +110,19 @@ namespace GonogoPrincipiaUplink
 
         /// <summary>How far west the track walks each revolution, in degrees.</summary>
         public double? RecurrenceEquatorialShiftDegrees;
+
+        /// <summary>
+        /// Where the craft crosses the equator going north, as a band of
+        /// longitudes over the analysed span.
+        ///
+        /// <para>The WIDTH is the interesting part rather than the position: a
+        /// band that barely widens is a track that repeats, which is what decides
+        /// whether the orbit can be called synchronous.</para>
+        /// </summary>
+        public IntervalObservation? AscendingCrossingDegrees;
+
+        /// <summary>The same band for the southbound crossing.</summary>
+        public IntervalObservation? DescendingCrossingDegrees;
 
         /// <summary>The spacing of the fully-populated grid the cycle lays down,
         /// in degrees of longitude.</summary>

@@ -36,8 +36,11 @@ export interface PrincipiaOrbitAnalysis
 	meanInclinationDegrees?: PrincipiaAngleInterval;
 	recurrenceCycleRotations?: Value<"count">;
 	recurrenceRevolutions?: Value<"count">;
+	recurrenceRevolutionsPerRotation?: Value<"count">;
 	recurrenceSubcycleRotations?: Value<"count">;
 	recurrenceEquatorialShiftDegrees?: Value<"°">;
+	ascendingCrossingDegrees?: PrincipiaAngleInterval;
+	descendingCrossingDegrees?: PrincipiaAngleInterval;
 	recurrenceGridIntervalDegrees?: Value<"°">;
 	meanLongitudeOfAscendingNodeDegrees?: PrincipiaAngleInterval;
 	meanArgumentOfPeriapsisDegrees?: PrincipiaAngleInterval;
