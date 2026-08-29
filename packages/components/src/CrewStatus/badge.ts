@@ -12,9 +12,8 @@ import type { BadgeEntry } from "@ksp-gonogo/ui-kit";
 // Registered on `CORE_UPLINK_CLIENT` (the built-in half, not a
 // `defineUplinkClient(...).registerContribution` Uplink owner) because this
 // is a vanilla widget concern with no Uplink involved, exactly like
-// `ship-map-part-meters`. Lives on the SAME slot the Kerbalism Uplink's
-// `crew-survival-badge` contribution feeds (`mod/GonogoKerbalismUplink/
-// client/src/CrewSurvival/badge.ts`): that one is nogo-tone and vessel-danger
+// `ship-map-part-meters`. Lives on the SAME slot a life-support Uplink's
+// own survival badge feeds: that one is nogo-tone and vessel-danger
 // gated (fires only once a kerbal crosses into the critical band), this one
 // is info-tone and unconditional (fires whenever a headcount is known at
 // all), so the two badges coexist rather than compete, priority/order
@@ -24,8 +23,7 @@ import type { BadgeEntry } from "@ksp-gonogo/ui-kit";
 /**
  * Pure core, exported so a test can call it directly against a plain
  * `VesselCrew` fixture without going through the contribution registry at
- * all (mirrors the Kerbalism Uplink's own `survivalBadges` pattern,
- * `mod/GonogoKerbalismUplink/client/src/CrewSurvival/badge.ts`).
+ * all (the same shape an Uplink's own survival-badge contribution uses).
  */
 export function crewAboardBadge(
   crew: VesselCrew | undefined,

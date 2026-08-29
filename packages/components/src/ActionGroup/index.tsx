@@ -79,7 +79,7 @@ export type ActionGroupActions = typeof actionGroupActions;
 //
 // ActionGroup is a single-group control, so its slot props carry the identity
 // and live readout of the *one* group this instance drives. An augment binds a
-// Kerbalism/mod-subsystem status describing WHAT that group toggles, e.g.
+// Uplink-supplied subsystem status describing WHAT that group toggles, e.g.
 // "AG3 → radiators": using the group id/datum to scope itself.
 //   • `action-group.subsystem`: a richer whole-widget status block in the body.
 // ---------------------------------------------------------------------------
@@ -519,7 +519,7 @@ function ActionGroupView({
         </Badge>
       )}
       {/* Whole-widget status block. An Uplink describing what this group
-          toggles (e.g. a Kerbalism subsystem) renders here. Empty until bound. */}
+          toggles (e.g. an Uplink's subsystem) renders here. Empty until bound. */}
       <AugmentSlot name="action-group.subsystem" props={slotContext} />
     </Panel>
   );

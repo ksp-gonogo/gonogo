@@ -1827,12 +1827,9 @@ export const ALLOWLIST: Record<ModToken, ModAllowlist> = {
        * and its sibling carry "kerbalism" as a registerComponent search TAG,
        * which is metadata text.
        */
-      "packages/components/src/ActionGroup/index.tsx",
-      "packages/components/src/CrewStatus/badge.ts",
       "packages/components/src/CrewStatus/index.tsx",
       "packages/components/src/FleetReliability/index.tsx",
       "packages/components/src/FleetRoster/index.tsx",
-      "packages/components/src/PowerSystems/index.tsx",
       "packages/components/src/ScienceData/index.tsx",
       "packages/components/src/ShipMap/index.tsx",
       "packages/components/src/ShipMap/partMetersContribution.ts",
