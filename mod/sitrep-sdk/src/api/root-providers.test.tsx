@@ -31,7 +31,21 @@ function providerFor(value: string) {
 }
 
 afterEach(() => {
-  clearRootProviders();
+  /*
+   * Wrapped, because clearing publishes to the store and the tree is still
+   * mounted at this point: React Testing Library's own cleanup is registered
+   * in the shared setup and runs after this hook, so the subscribers are live
+   * and re-render outside act unless the clear is held inside one.
+   *
+   * The clear itself is load-bearing and cannot simply be dropped. This
+   * registry lives on a globalThis slot deliberately, so that two builds of
+   * the package find the same state, and vitest's per-file isolation resets
+   * MODULES rather than globals: a registration left behind here is still
+   * there for the next file the worker runs.
+   */
+  act(() => {
+    clearRootProviders();
+  });
 });
 
 describe("root providers", () => {
