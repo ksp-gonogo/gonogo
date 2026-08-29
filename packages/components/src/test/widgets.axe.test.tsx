@@ -45,9 +45,8 @@ describe("widget a11y smoke", () => {
     const def = getComponent(widget.widgetId);
     const fixtures = fixturesFor(widget.fixturesPath);
     // NOTE: a widget with no fixtures is silently skipped, it gets ZERO
-    // a11y coverage here and nothing fails. Fixtureless widgets (e.g. the
-    // Kos* widgets) must add a per-file axe smoke instead (see e.g.
-    // KosFiles/index.test.tsx). Don't rely on this sweep for them.
+    // a11y coverage here and nothing fails. A fixtureless widget must add a
+    // per-file axe smoke of its own instead. Don't rely on this sweep for it.
     if (!def || fixtures.length === 0) continue;
     const Widget = def.component as Parameters<
       typeof renderWidgetMode

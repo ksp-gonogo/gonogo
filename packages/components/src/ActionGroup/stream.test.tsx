@@ -40,8 +40,8 @@ const STOCK_GROUPS_ALL_OFF = Array.from({ length: 10 }, (_, i) => ({
  * the `vessel.control.set*` COMMAND directly via `useCommand`,
  * unconditionally, with no
  * carried-channels gate and no legacy `DataSource.execute()` fallback: every
- * vessel command widget on this pattern (MechJeb, RoboticsConsole,
- * RotorTachometer) dispatches the same way.
+ * vessel command widget on this pattern dispatches the same way, the ones an
+ * Uplink ships included.
  *
  * SAS (not an AG-index like `f.ag1`) is the vehicle here on purpose:
  * `toggleCommandFor`/`buildToggleArgs`'s doc comments explain why: SAS/RCS/

@@ -244,9 +244,9 @@ describe("FleetComms: actions augment on SystemView, comms drawing on the contri
           pending: [
             {
               id: "cmd-1",
-              command: "kos.run",
+              command: "vessel.control.setActionGroup",
               label: "",
-              topic: "kos/1",
+              topic: "vessel/1",
               vantage: "KSC",
               dispatchedAt: 90,
               oneWaySeconds: 1_000_000,

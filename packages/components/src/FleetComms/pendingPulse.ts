@@ -36,10 +36,10 @@ const MIN_OPACITY = 0.15;
  * Predicts a `PendingUplink` entry's animation state at `utNow` (the
  * TrueNow ground-clock estimate, `useUtNow()`): an outbound pulse from
  * dispatch to `dispatchedAt + oneWaySeconds`, then a return pulse to
- * `dispatchedAt + 2*oneWaySeconds`. Matches the boundary convention
- * `KosTerminal`'s already-shipped in-transit strip uses
- * (`reachUt`/`replyUt`), just expressed as a continuous 0..1 progress
- * fraction per leg instead of a countdown string.
+ * `dispatchedAt + 2*oneWaySeconds`. Matches the boundary convention the
+ * already-shipped in-transit strips use (`reachUt`/`replyUt`), just expressed
+ * as a continuous 0..1 progress fraction per leg instead of a countdown
+ * string.
  *
  * `null`:
  * - before dispatch (defensive: shouldn't happen, the queue is

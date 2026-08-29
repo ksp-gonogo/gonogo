@@ -178,7 +178,7 @@ describe("SystemView command traffic: system.uplink.pending as edge pulses", () 
     const { container } = mountScene([
       {
         id: "cmd-1",
-        command: "kos.run",
+        command: "vessel.control.setActionGroup",
         label: "Deploy solar panels",
         topic: "",
         vantage: "ksc",
@@ -222,7 +222,7 @@ describe("SystemView command traffic: system.uplink.pending as edge pulses", () 
     const { container, fixture } = mountScene([
       {
         id: "cmd-1",
-        command: "kos.run",
+        command: "vessel.control.setActionGroup",
         label: "Deploy solar panels",
         topic: "",
         vantage: "ksc",
