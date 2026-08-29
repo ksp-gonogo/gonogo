@@ -367,9 +367,11 @@ const WIDGETS: WidgetRenderConfig[] = [
       { name: "narrow-4x8", w: 4, h: 8 },
       // Tall: full pool with room to breathe.
       { name: "tall-6x12", w: 6, h: 12 },
-      // Switch to the Active tab: default fixtures carry no crewRoster
-      // sample, so this captures the empty state; the multi-situation
-      // fixture (below) captures the populated, auto-derived sub-tabs.
+      /*
+       * Switch to the Active tab: default fixtures carry no crewRoster
+       * sample, so this captures the empty state; the multi-situation
+       * fixture (below) captures the populated, auto-derived sub-tabs.
+       */
       {
         name: "active-tab-6x8",
         w: 6,
@@ -478,9 +480,11 @@ const WIDGETS: WidgetRenderConfig[] = [
           },
         ],
       },
-      // Active tab, Dead sub-tab: proves Dead/Missing get their own tabs rather
-      // than folding into a stock-style "Lost" tab, and that the RP-1 retiree
-      // is NOT in here despite carrying KSP's Dead ordinal.
+      /*
+       * Active tab, Dead sub-tab: proves Dead/Missing get their own tabs rather
+       * than folding into a stock-style "Lost" tab, and that the RP-1 retiree
+       * is NOT in here despite carrying KSP's Dead ordinal.
+       */
       {
         name: "active-tab-dead-6x12",
         w: 6,
@@ -535,10 +539,12 @@ const WIDGETS: WidgetRenderConfig[] = [
           },
         ],
       },
-      // Active tab, Available sub-tab, with Ludrey Kerman's per-row info
-      // popover open: the stock role description + current-rank effects
-      // (ExperienceTrait.Description/DescriptionEffects), portalled so the
-      // ScrollArea around the row can't clip it.
+      /*
+       * Active tab, Available sub-tab, with Ludrey Kerman's per-row info
+       * popover open: the stock role description + current-rank effects
+       * (ExperienceTrait.Description/DescriptionEffects), portalled so the
+       * ScrollArea around the row can't clip it.
+       */
       {
         name: "info-popover-open-6x12",
         w: 6,
@@ -682,9 +688,11 @@ const WIDGETS: WidgetRenderConfig[] = [
       },
     ],
   },
-  // deployed-science / robotics-console moved to
-  // @ksp-gonogo/gonogo-breaking-ground-uplink/scripts/widgets.ts alongside
-  // the Breaking Ground uplink extraction.
+  /*
+   * deployed-science / robotics-console moved to
+   * @ksp-gonogo/gonogo-breaking-ground-uplink/scripts/widgets.ts alongside
+   * the Breaking Ground uplink extraction.
+   */
   {
     widgetId: "objectives",
     fixturesPath: "Objectives/__fixtures__",
@@ -698,9 +706,11 @@ const WIDGETS: WidgetRenderConfig[] = [
       { name: "tall-5x16", w: 5, h: 16 },
     ],
   },
-  // rotor-tachometer moved to
-  // @ksp-gonogo/gonogo-breaking-ground-uplink/scripts/widgets.ts alongside
-  // the Breaking Ground uplink extraction.
+  /*
+   * rotor-tachometer moved to
+   * @ksp-gonogo/gonogo-breaking-ground-uplink/scripts/widgets.ts alongside
+   * the Breaking Ground uplink extraction.
+   */
   {
     widgetId: "action-group",
     fixturesPath: "ActionGroup/__fixtures__",
@@ -810,9 +820,11 @@ const WIDGETS: WidgetRenderConfig[] = [
     modes: [
       // minSize 3×3: single-crew row, tightest placement.
       { name: "tiny-3x3", w: 3, h: 3 },
-      // narrowest roster width (showRoster's own w>=4 floor): exercises the
-      // per-crew-row badge WRAP behaviour (a badge that doesn't fit next to
-      // the name drops to its own line instead of truncating it).
+      /*
+       * narrowest roster width (showRoster's own w>=4 floor): exercises the
+       * per-crew-row badge WRAP behaviour (a badge that doesn't fit next to
+       * the name drops to its own line instead of truncating it).
+       */
       { name: "narrow-4x10", w: 4, h: 10 },
       // defaultSize 6×8: the common operator view.
       { name: "default-6x8", w: 6, h: 8 },
@@ -834,9 +846,11 @@ const WIDGETS: WidgetRenderConfig[] = [
     fixturesPath: "CrewStatus/__render_kerbalism_survival__",
     outPath: "renders/kerbalism-crew-survival",
     modes: [
-      // Narrowest roster width: the badge-wrap case actually has badges to
-      // wrap here (crew-critical.json's per-kerbal warnings), unlike the
-      // vanilla base-widget fixtures above which never bind the slot.
+      /*
+       * Narrowest roster width: the badge-wrap case actually has badges to
+       * wrap here (crew-critical.json's per-kerbal warnings), unlike the
+       * vanilla base-widget fixtures above which never bind the slot.
+       */
       { name: "narrow-4x10", w: 4, h: 10 },
       // defaultSize 6×8: the common operator view, both fixtures.
       { name: "default-6x8", w: 6, h: 8 },
@@ -888,12 +902,14 @@ const WIDGETS: WidgetRenderConfig[] = [
       { name: "default-10x12", w: 10, h: 12 },
       // wide landscape.
       { name: "wide-14x10", w: 14, h: 10 },
-      // The selection payoff: clicks the Munar Transfer Stage's own orbit
-      // ring (a relayed CommNet route, home -> Comsat Relay-1 -> Munar
-      // Transfer Stage), showing the brightened orbit, the two-hop path
-      // highlight coloured by that craft's own Partial control state, and
-      // the swapped vessel info panel, against multi-vessel-orbits.json's
-      // existing fleet and relay graph.
+      /*
+       * The selection payoff: clicks the Munar Transfer Stage's own orbit
+       * ring (a relayed CommNet route, home -> Comsat Relay-1 -> Munar
+       * Transfer Stage), showing the brightened orbit, the two-hop path
+       * highlight coloured by that craft's own Partial control state, and
+       * the swapped vessel info panel, against multi-vessel-orbits.json's
+       * existing fleet and relay graph.
+       */
       {
         name: "vessel-selected",
         w: 10,
@@ -1027,10 +1043,12 @@ const WIDGETS: WidgetRenderConfig[] = [
           },
         },
 
-        // Short-window scatter so only the most-recent handful of samples
-        // fall in-window and the discrete dots are visibly separated (the
-        // 600s-window scatter above merges 154 dense samples into a near-
-        // continuous run, this proves the points actually draw discretely).
+        /*
+         * Short-window scatter so only the most-recent handful of samples
+         * fall in-window and the discrete dots are visibly separated (the
+         * 600s-window scatter above merges 154 dense samples into a near-
+         * continuous run, this proves the points actually draw discretely).
+         */
         {
           name: "scatter-sparse-10x8",
           w: 10,
@@ -1050,9 +1068,11 @@ const WIDGETS: WidgetRenderConfig[] = [
           },
         },
 
-        // ── band ────────────────────────────────────────────────────────
-        // Synthetic ±(10%+200m) envelope around altitude (see fixture _meta),
-        // plus the real altitude line overlaid inside the band.
+        /*
+         * ── band ────────────────────────────────────────────────────────
+         * Synthetic ±(10%+200m) envelope around altitude (see fixture _meta),
+         * plus the real altitude line overlaid inside the band.
+         */
         {
           name: "band-10x8",
           w: 10,
@@ -1346,9 +1366,11 @@ const WIDGETS: WidgetRenderConfig[] = [
         h: 10,
         forFixtures: ["kerbin-flight-partial-science"],
       },
-      // Archive tab: clicks the second tablist entry, scoped to the
-      // cross-mission fixture so the body -> experiment grouping (and the
-      // divergence from the Aboard tab's single-vessel breakdown) is visible.
+      /*
+       * Archive tab: clicks the second tablist entry, scoped to the
+       * cross-mission fixture so the body -> experiment grouping (and the
+       * divergence from the Aboard tab's single-vessel breakdown) is visible.
+       */
       {
         name: "archive-8x10",
         w: 8,
@@ -1493,9 +1515,11 @@ const WIDGETS: WidgetRenderConfig[] = [
     // straight in the modern `vessel.parts` wire shape instead.
     widgetId: "ship-map",
     fixturesPath: "ShipMap/__fixtures__/probe",
-    // The folder name says "colour" because the fills these renders show come
-    // from the resource-colour system, so a reader comparing them against an
-    // older render set knows which palette they are looking at.
+    /*
+     * The folder name says "colour" because the fills these renders show come
+     * from the resource-colour system, so a reader comparing them against an
+     * older render set knows which palette they are looking at.
+     */
     outPath: "renders/kerbalism-shipmap-colour",
     modes: [
       // Registered default.
@@ -1508,9 +1532,11 @@ const WIDGETS: WidgetRenderConfig[] = [
         h: 16,
         forFixtures: ["03-resource-colour-spread"],
       },
-      // Water-family review shot: Water, WasteWater, Waste, CarbonDioxide,
-      // and Oxygen (for contrast) across two parts, three meters on the
-      // taller one, so all five bars read uncropped at once.
+      /*
+       * Water-family review shot: Water, WasteWater, Waste, CarbonDioxide,
+       * and Oxygen (for contrast) across two parts, three meters on the
+       * taller one, so all five bars read uncropped at once.
+       */
       {
         name: "water-family-10x14",
         w: 10,
@@ -1549,11 +1575,13 @@ const WIDGETS: WidgetRenderConfig[] = [
         h: 18,
         forFixtures: ["resource-shortage"],
       },
-      // Ledger accordion expanded: click the first supply row's Disclosure
-      // trigger (Electric Charge, the root cause, sorted first) to reveal its
-      // buildLedger terms. aria-label is the stable selector: Disclosure's
-      // trigger is a plain <button> with no other hook, and this fixture's
-      // profile always names Electric Charge's displayName the same way.
+      /*
+       * Ledger accordion expanded: click the first supply row's Disclosure
+       * trigger (Electric Charge, the root cause, sorted first) to reveal its
+       * buildLedger terms. aria-label is the stable selector: Disclosure's
+       * trigger is a plain <button> with no other hook, and this fixture's
+       * profile always names Electric Charge's displayName the same way.
+       */
       {
         name: "ledger-expanded-12x18",
         w: 12,
@@ -1567,9 +1595,11 @@ const WIDGETS: WidgetRenderConfig[] = [
           },
         ],
       },
-      // Same accordion, at the default and minimum widths: the shape that
-      // caught the ledger overflowing the panel at anything narrower than
-      // wide-12x18 (see LedgerBody's own doc comment).
+      /*
+       * Same accordion, at the default and minimum widths: the shape that
+       * caught the ledger overflowing the panel at anything narrower than
+       * wide-12x18 (see LedgerBody's own doc comment).
+       */
       {
         name: "ledger-expanded-9x15",
         w: 9,
@@ -1596,13 +1626,15 @@ const WIDGETS: WidgetRenderConfig[] = [
           },
         ],
       },
-      // Ledger DESIGN review shot: resource-shortage's Electric Charge only
-      // has ONE ledger term (Water Recycler), which is not enough to judge a
-      // bar that is meant to diverge either side of zero. ledger-showcase's
-      // Electric Charge has five terms of mixed sign and varied magnitude
-      // (a dominant +0.45/s producer down to a -0.003/s trickle), at both
-      // the default and a generous width, so the diverging red/green
-      // DivergingBar treatment is legible across several rows at once.
+      /*
+       * Ledger DESIGN review shot: resource-shortage's Electric Charge only
+       * has ONE ledger term (Water Recycler), which is not enough to judge a
+       * bar that is meant to diverge either side of zero. ledger-showcase's
+       * Electric Charge has five terms of mixed sign and varied magnitude
+       * (a dominant +0.45/s producer down to a -0.003/s trickle), at both
+       * the default and a generous width, so the diverging red/green
+       * DivergingBar treatment is legible across several rows at once.
+       */
       {
         name: "ledger-showcase-9x15",
         w: 9,
@@ -1737,11 +1769,13 @@ const SCREENS: ScreenRenderConfig[] = [
     isScreen: true,
     screenId: "station-connect",
     outPath: "renders/station-connect-screen",
-    // 375×667 (iPhone SE / 8 class), 480×812 (the inclusive boundary of the
-    // max-width:480px rule on a tallish phone), 810×1080 (an iPad-class TOUCH
-    // device above the 480 breakpoint: proves the coarse-pointer rules don't
-    // break the still-horizontal Row), 768×1024 (the non-touch desktop
-    // control proving the wide layout still reads).
+    /*
+     * 375×667 (iPhone SE / 8 class), 480×812 (the inclusive boundary of the
+     * max-width:480px rule on a tallish phone), 810×1080 (an iPad-class TOUCH
+     * device above the 480 breakpoint: proves the coarse-pointer rules don't
+     * break the still-horizontal Row), 768×1024 (the non-touch desktop
+     * control proving the wide layout still reads).
+     */
     breakpoints: [
       { name: "iphone-375x667", width: 375, height: 667 },
       { name: "phone-480x812", width: 480, height: 812 },

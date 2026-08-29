@@ -45,6 +45,29 @@ new Function("module", "exports", "require", js)(
   createRequire(scanPath),
 );
 
+/**
+ * The floors already committed, so a regeneration can only ever raise them.
+ * Zeroes when the allowlist does not exist yet, which is the seeding run.
+ */
+function readPreviousFloors(path) {
+  const empty = { files: 0, filesWithStack: 0, stacks: 0 };
+  let source;
+  try {
+    source = readFileSync(path, "utf8");
+  } catch {
+    return empty;
+  }
+  const read = (key) => {
+    const found = source.match(new RegExp(`${key}:\\s*(\\d+)`));
+    return found ? Number(found[1]) : 0;
+  };
+  return {
+    files: read("files"),
+    filesWithStack: read("filesWithStack"),
+    stacks: read("stacks"),
+  };
+}
+
 const result = module_.exports.scanCommentStacks();
 const total = [...result.counts.values()].reduce((a, b) => a + b, 0);
 const census = `scanned ${result.scanned} files (${result.generated} generated skipped), ${result.counts.size} carry a single-sentence stack, ${total} stacks`;
@@ -65,12 +88,29 @@ if (!process.argv.includes("--update")) {
 const entries = [...result.counts.entries()].sort(([a], [b]) =>
   a < b ? -1 : 1,
 );
-// Floors sit well below the seeded census so ordinary churn never touches them
-// and only a broken enumeration does.
+/*
+ * Floors sit well below the seeded census so ordinary churn never touches them
+ * and only a broken enumeration does.
+ *
+ * NEVER LOWERED, even as the census falls. The gate's own shrink-only test
+ * refuses a lowered floor, because a floor is what stands between "the scan
+ * found nothing" and "the scan looked at nothing", and cleanup must not be able
+ * to blind it. A bare `--update` used to recompute all three from the current
+ * census, so the first real cleanup lowered two of them and would have failed
+ * CI: the generator was quietly writing a file its own gate rejects.
+ *
+ * It passed locally only because `ratchetBaseRef()` no-ops when HEAD IS the base
+ * ref, which is the state a developer is in immediately after a push. The local
+ * green was the absence of a check, not the presence of a pass.
+ */
+const previous = readPreviousFloors(outPath);
 const floors = {
-  files: Math.floor(result.scanned * 0.5),
-  filesWithStack: Math.floor(result.counts.size * 0.5),
-  stacks: Math.floor(total * 0.5),
+  files: Math.max(Math.floor(result.scanned * 0.5), previous.files),
+  filesWithStack: Math.max(
+    Math.floor(result.counts.size * 0.5),
+    previous.filesWithStack,
+  ),
+  stacks: Math.max(Math.floor(total * 0.5), previous.stacks),
 };
 
 const header = `/**

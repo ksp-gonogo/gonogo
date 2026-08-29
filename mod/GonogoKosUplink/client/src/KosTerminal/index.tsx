@@ -464,9 +464,11 @@ function handleScriptComposerInput(
       };
     }
     if (data === "\r" || data === "\n") {
-      // Arrow-highlighted option first; fall back to the first filtered
-      // result so "type a partial path + Enter" works without an arrow key
-      // (matches DataKeyPicker's own Enter-with-no-navigation convention).
+      /*
+       * Arrow-highlighted option first; fall back to the first filtered
+       * result so "type a partial path + Enter" works without an arrow key
+       * (matches DataKeyPicker's own Enter-with-no-navigation convention).
+       */
       const chosen = state.activeIndex >= 0 ? flat[state.activeIndex] : flat[0];
       if (!chosen) return { kind: "noop" };
       return {
@@ -480,9 +482,11 @@ function handleScriptComposerInput(
       };
     }
     if (data === "\x7f" || data === "\b") {
-      // Backspace on an empty query cancels the picker, same "typed a
-      // trigger, changed my mind" affordance Escape gives, reachable
-      // without leaving the home row.
+      /*
+       * Backspace on an empty query cancels the picker, same "typed a
+       * trigger, changed my mind" affordance Escape gives, reachable
+       * without leaving the home row.
+       */
       if (state.query.length === 0) return { kind: "cancel" };
       return {
         kind: "update",
@@ -573,10 +577,12 @@ function KosTerminalLive({
     () => resolveCoreId(processors, cpuName, pickedCoreId),
     [processors, cpuName, pickedCoreId],
   );
-  // The resolved CPU's tagname: `executeScript` (the `/`-picker's live
-  // drive-listing RPC) dispatches by TAGNAME, not coreId, so
-  // this is looked up here (where `processors` already lives) rather than
-  // re-subscribing to kos.processors a second time inside the screen.
+  /*
+   * The resolved CPU's tagname: `executeScript` (the `/`-picker's live
+   * drive-listing RPC) dispatches by TAGNAME, not coreId, so
+   * this is looked up here (where `processors` already lives) rather than
+   * re-subscribing to kos.processors a second time inside the screen.
+   */
   const cpuTag = processors.find((p) => p.coreId === coreId)?.tag;
 
   // No CPU yet, or an ambiguous multi-CPU choice: show a status / picker rather
@@ -666,9 +672,11 @@ function KosTerminalScreen({
 
   const containerRef = useRef<HTMLDivElement>(null);
   const termRef = useRef<Terminal | null>(null);
-  // Scopes this terminal's uplinks to its own CPU, used both to tag
-  // outgoing line-mode sends and to scope the in-transit strip below, so
-  // the two never drift apart.
+  /*
+   * Scopes this terminal's uplinks to its own CPU, used both to tag
+   * outgoing line-mode sends and to scope the in-transit strip below, so
+   * the two never drift apart.
+   */
   const terminalTopic = `kos/${coreId}`;
   // The in-progress, not-yet-committed line-mode composition (typed since the
   // last Enter), text plus cursor position. It lives in a dedicated input
@@ -678,11 +686,13 @@ function KosTerminalScreen({
   const lineBufferRef = useRef<LineComposition>(EMPTY_COMPOSITION);
   const [composition, setComposition] =
     useState<LineComposition>(EMPTY_COMPOSITION);
-  // Shell-style history recall over lines sent via line-mode Enter this
-  // session (see `recallOlder`/`recallNewer`). `historyIndexRef` is `null`
-  // while editing the live draft; `historyDraftRef` snapshots that draft the
-  // moment up-arrow starts browsing, so down-arrow can restore it past the
-  // newest entry.
+  /*
+   * Shell-style history recall over lines sent via line-mode Enter this
+   * session (see `recallOlder`/`recallNewer`). `historyIndexRef` is `null`
+   * while editing the live draft; `historyDraftRef` snapshots that draft the
+   * moment up-arrow starts browsing, so down-arrow can restore it past the
+   * newest entry.
+   */
   const lineHistoryRef = useRef<string[]>([]);
   const historyIndexRef = useRef<number | null>(null);
   const historyDraftRef = useRef<string>("");
@@ -777,14 +787,16 @@ function KosTerminalScreen({
   const { items: routeItems, mode: routeMode } =
     useRouteCommands(terminalTopic);
 
-  // Whether the ground station has a path to the craft; read off the
-  // client-facing `comms.link` connectivity MetaTopic (the de-publicised
-  // TrueNow `comms.connectivity` successor; comms-delay-model-consistency
-  // spec). comms.link is Delayed + freeze-EXEMPT, so its disconnect edge
-  // reveals at the light-time horizon: delay-consistent with this terminal's
-  // own (delayed) screen rather than a real-time TrueNow read. `undefined` (no
-  // link data yet) is treated as connected: only a CONFIRMED `connected ===
-  // false` blocks a send / shows the warning below.
+  /*
+   * Whether the ground station has a path to the craft; read off the
+   * client-facing `comms.link` connectivity MetaTopic (the de-publicised
+   * TrueNow `comms.connectivity` successor; comms-delay-model-consistency
+   * spec). comms.link is Delayed + freeze-EXEMPT, so its disconnect edge
+   * reveals at the light-time horizon: delay-consistent with this terminal's
+   * own (delayed) screen rather than a real-time TrueNow read. `undefined` (no
+   * link data yet) is treated as connected: only a CONFIRMED `connected ===
+   * false` blocks a send / shows the warning below.
+   */
   const connectivity = useLatestValue<CommsLink>("comms.link");
   const noPath = connectivity?.connected === false;
   noPathRef.current = noPath;
@@ -956,11 +968,13 @@ function KosTerminalScreen({
               scriptComposerRef.current = null;
               setScriptComposer(null);
             } else if (action.kind === "send") {
-              // Refuses the send with no comms path, same as
-              // `reduceLineModeChar`'s `canSend` guard for an ordinary
-              // line: leaves the composer exactly as-is so the operator
-              // can finish once the path returns, instead of losing the
-              // pending RUNPATH (kos-nopath-block-input parity).
+              /*
+               * Refuses the send with no comms path, same as
+               * `reduceLineModeChar`'s `canSend` guard for an ordinary
+               * line: leaves the composer exactly as-is so the operator
+               * can finish once the path returns, instead of losing the
+               * pending RUNPATH (kos-nopath-block-input parity).
+               */
               if (!noPathRef.current) {
                 scriptComposerRef.current = null;
                 setScriptComposer(null);
@@ -973,10 +987,12 @@ function KosTerminalScreen({
             }
             return;
           }
-          // "/" at the very start of an empty line opens the script
-          // composer instead of typing a literal slash; never mid-line, so
-          // a "/" inside a path argument elsewhere in a command still types
-          // normally.
+          /*
+           * "/" at the very start of an empty line opens the script
+           * composer instead of typing a literal slash; never mid-line, so
+           * a "/" inside a path argument elsewhere in a command still types
+           * normally.
+           */
           if (
             data === "/" &&
             lineBufferRef.current.text === "" &&
@@ -1059,10 +1075,12 @@ function KosTerminalScreen({
             setComposition(next);
             return;
           }
-          // Ctrl+C: clear the in-progress line locally AND forward the
-          // interrupt itself so a running kOS program actually breaks, this
-          // is a control signal, not a composed line, so it never joins line
-          // history.
+          /*
+           * Ctrl+C: clear the in-progress line locally AND forward the
+           * interrupt itself so a running kOS program actually breaks, this
+           * is a control signal, not a composed line, so it never joins line
+           * history.
+           */
           if (data === "\x03") {
             historyIndexRef.current = null;
             lineBufferRef.current = EMPTY_COMPOSITION;
@@ -1076,11 +1094,13 @@ function KosTerminalScreen({
           const next = reduceLineModeInput(
             data,
             lineBufferRef.current,
-            // `chars` carries the trailing `\r` `reduceLineModeChar` appends
-            // for the wire (kOS needs the Enter byte); the label is the
-            // operator-facing composed line, so it's trimmed of that
-            // control character: the queue strip renders the label
-            // verbatim and must not show a raw CR.
+            /*
+             * `chars` carries the trailing `\r` `reduceLineModeChar` appends
+             * for the wire (kOS needs the Enter byte); the label is the
+             * operator-facing composed line, so it's trimmed of that
+             * control character: the queue strip renders the label
+             * verbatim and must not show a raw CR.
+             */
             (chars) => {
               const label = chars.replace(/[\r\n]+$/, "");
               lineHistoryRef.current = pushLineHistory(
@@ -1132,9 +1152,11 @@ function KosTerminalScreen({
       if (fallbackTimer !== null) clearTimeout(fallbackTimer);
       teardown?.();
     };
-    // The live screen mounts only once a coreId exists (keyed child), so this
-    // runs on mount; the downlink/uplink (and lineMode) use refs, so a
-    // line-mode toggle never tears down and wipes the terminal.
+    /*
+     * The live screen mounts only once a coreId exists (keyed child), so this
+     * runs on mount; the downlink/uplink (and lineMode) use refs, so a
+     * line-mode toggle never tears down and wipes the terminal.
+     */
   }, [readOnly]);
 
   // Threshold split: char-mode always gets the badge; line-mode
@@ -1146,17 +1168,23 @@ function KosTerminalScreen({
     commsDelay !== undefined &&
     (commsDelay.oneWaySeconds ?? 0) > 0 &&
     (!lineMode || (commsDelay.oneWaySeconds ?? 0) <= 1);
-  // `routeMode === "staged"` is exactly the `oneWaySeconds != null && > 1`
-  // threshold `currentMode` applies, with the `commsDelay !== undefined` check
-  // folded into "staged" itself rather than repeated here.
+  /*
+   * `routeMode === "staged"` is exactly the `oneWaySeconds != null && > 1`
+   * threshold `currentMode` applies, with the `commsDelay !== undefined` check
+   * folded into "staged" itself rather than repeated here.
+   */
   const showStrip = lineMode && !readOnly && routeMode === "staged";
-  // Narrowed, non-optional local for the JSX below, `showBadge` is a plain
-  // boolean, so TS can't carry its truthiness back onto `commsDelay` at the
-  // read site; only-render-when-defined instead.
+  /*
+   * Narrowed, non-optional local for the JSX below, `showBadge` is a plain
+   * boolean, so TS can't carry its truthiness back onto `commsDelay` at the
+   * read site; only-render-when-defined instead.
+   */
   const badgeDelay = showBadge ? commsDelay : undefined;
-  // The in-transit strip's display shape: reach-leg items count down to
-  // reaching the craft (↑), everything else counts down to the reply (↓),
-  // `InFlightList` picks the arrow from `phase` itself.
+  /*
+   * The in-transit strip's display shape: reach-leg items count down to
+   * reaching the craft (↑), everything else counts down to the reply (↓),
+   * `InFlightList` picks the arrow from `phase` itself.
+   */
   const stripItems: InFlightListItem[] = routeItems.map((item) => ({
     id: item.id,
     label: item.label || item.command,
@@ -1167,10 +1195,12 @@ function KosTerminalScreen({
     phase: item.predictedPhase,
   }));
 
-  // Filtered/grouped options for the `/`-script composer's dropdown, kept
-  // in the SAME order `handleScriptComposerInput` computes for activeIndex
-  // math (`scriptOptionsFor`), so the highlighted row always matches what
-  // Enter would pick.
+  /*
+   * Filtered/grouped options for the `/`-script composer's dropdown, kept
+   * in the SAME order `handleScriptComposerInput` computes for activeIndex
+   * math (`scriptOptionsFor`), so the highlighted row always matches what
+   * Enter would pick.
+   */
   const scriptListing =
     scriptComposer?.phase === "picking"
       ? scriptOptionsFor(effectiveScriptPaths, scriptComposer.query)
@@ -1456,9 +1486,11 @@ const CompositionBarWrap = styled.div`
   flex: 0 0 auto;
 `;
 
-// The "copy local & run" toggle, shown only while the
-// `/`-composer is in "args" phase, a compact row under the bar rather than
-// crowding it, matching the composition bar's own font sizing.
+/*
+ * The "copy local & run" toggle, shown only while the
+ * `/`-composer is in "args" phase, a compact row under the bar rather than
+ * crowding it, matching the composition bar's own font sizing.
+ */
 const ScriptComposerOptions = styled.div`
   display: flex;
   align-items: center;
@@ -1643,10 +1675,12 @@ const CpuPicker__Button = styled(GhostButton)`
   font-size: var(--font-size-lg);
 `;
 
-// "Change CPU": pinned as an absolutely-positioned corner overlay INSIDE
-// `TerminalFrame` (same pattern + reasoning as `DelayBadge`/`NoPathBadge`), in
-// the bottom-right corner the badges leave free, so it never adds a flex row
-// that could push the composition bar past the widget's visible bounds.
+/*
+ * "Change CPU": pinned as an absolutely-positioned corner overlay INSIDE
+ * `TerminalFrame` (same pattern + reasoning as `DelayBadge`/`NoPathBadge`), in
+ * the bottom-right corner the badges leave free, so it never adds a flex row
+ * that could push the composition bar past the widget's visible bounds.
+ */
 const ChangeCpuButton = styled(GhostButton)`
   position: absolute;
   bottom: var(--space-8);

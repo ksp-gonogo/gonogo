@@ -124,16 +124,20 @@ describe("FleetRoster: nothing has arrived at all", () => {
     const fixture = newFixture();
     renderRoster(fixture);
 
-    // `centres?.find(...)?.displayName ?? vantage` falls all the way back to
-    // the selection id, so the header presents an internal identifier as a
-    // command centre's name with no hint it is a fallback.
+    /*
+     * `centres?.find(...)?.displayName ?? vantage` falls all the way back to
+     * the selection id, so the header presents an internal identifier as a
+     * command centre's name with no hint it is a fallback.
+     */
     expect(screen.getByText(/viewing from:\s*ksc/i)).toBeInTheDocument();
   });
 
   it("renders the same not-available state with no TelemetryProvider mounted at all", () => {
-    // Every read degrades through its `*Optional` variant rather than
-    // throwing, so "no stream in the tree" is indistinguishable from "the
-    // stream is mounted and cold".
+    /*
+     * Every read degrades through its `*Optional` variant rather than
+     * throwing, so "no stream in the tree" is indistinguishable from "the
+     * stream is mounted and cold".
+     */
     const { unmount } = render(
       <DashboardItemContext.Provider value={{ instanceId: "fleet-char" }}>
         <FleetRosterComponent config={{}} id="fleet-char" w={8} h={10} />
@@ -208,9 +212,11 @@ describe("FleetRoster: the `system !== undefined` absence gate", () => {
     renderRoster(fixture);
 
     act(() => {
-      // Partial payload: the record landed, the array inside it did not.
-      // `known` reads the RECORD, `vessels` reads the field, so the two
-      // disagree and the confident copy wins.
+      /*
+       * Partial payload: the record landed, the array inside it did not.
+       * `known` reads the RECORD, `vessels` reads the field, so the two
+       * disagree and the confident copy wins.
+       */
       fixture.emit("system.vessels", {});
     });
 
@@ -221,9 +227,11 @@ describe("FleetRoster: the `system !== undefined` absence gate", () => {
   });
 });
 
-// ---------------------------------------------------------------------------
-// 3. system.bodies absent, with a roster present
-// ---------------------------------------------------------------------------
+/*
+ * ---------------------------------------------------------------------------
+ * 3. system.bodies absent, with a roster present
+ * ---------------------------------------------------------------------------
+ */
 
 describe("FleetRoster: the `bodies?.bodies ?? []` absence gate", () => {
   it("renders every Body cell as the null placeholder while system.bodies has not arrived", async () => {
@@ -382,17 +390,21 @@ describe("FleetRoster: partial vessel records", () => {
     await waitFor(() =>
       expect(screen.getByText("Unread Comms")).toBeInTheDocument(),
     );
-    // `rosterCommsLink(undefined)` hits the `default` arm, which is a real
-    // tier rather than a fallback: the tag is the null placeholder and the
-    // accessible name says unknown, never "No link".
+    /*
+     * `rosterCommsLink(undefined)` hits the `default` arm, which is a real
+     * tier rather than a fallback: the tag is the null placeholder and the
+     * accessible name says unknown, never "No link".
+     */
     expect(screen.getByText(NULL_DISPLAY)).toBeInTheDocument();
     expect(
       screen.getByRole("img", { name: "Link state unknown" }),
     ).toBeInTheDocument();
     expect(screen.queryByRole("img", { name: "No link" })).toBeNull();
-    // The rollup does NOT hide the unread vessel: with linked === 0 it takes
-    // the "No Link" branch, so one unread vessel reads as a fleet with no
-    // comms at all.
+    /*
+     * The rollup does NOT hide the unread vessel: with linked === 0 it takes
+     * the "No Link" branch, so one unread vessel reads as a fleet with no
+     * comms at all.
+     */
     expect(screen.getByText("No Link")).toBeInTheDocument();
     expect(visibleText()).toContain("0 linked · 0 no link · 1 unknown");
     expect(
@@ -401,9 +413,11 @@ describe("FleetRoster: partial vessel records", () => {
   });
 });
 
-// ---------------------------------------------------------------------------
-// 5. fleet.<guid>.delay absent
-// ---------------------------------------------------------------------------
+/*
+ * ---------------------------------------------------------------------------
+ * 5. fleet.<guid>.delay absent
+ * ---------------------------------------------------------------------------
+ */
 
 /** Open a row's signal Disclosure and return its panel element. */
 async function openSignalPanel(name: RegExp): Promise<HTMLElement> {
@@ -457,9 +471,11 @@ describe("FleetRoster: the `link == null` absence gate", () => {
     await waitFor(() => expect(visibleText(panel)).toContain("connected"));
 
     act(() => {
-      // A confirmed "there is no link record" is written `== null`, the same
-      // test the never-arrived case takes, so the panel falls back to exactly
-      // the cold-start render.
+      /*
+       * A confirmed "there is no link record" is written `== null`, the same
+       * test the never-arrived case takes, so the panel falls back to exactly
+       * the cold-start render.
+       */
       fixture.emit("fleet.v-probe.delay", null, { validAt: 100 });
     });
 
@@ -477,9 +493,11 @@ describe("FleetRoster: the `link == null` absence gate", () => {
     });
     await screen.findByRole("button", { name: /Explorer signal/i });
     act(() => {
-      // Partial payload: a light-time but no reachability flag.
-      // `link.connected` is undefined, and the ternary has no third arm, so
-      // an unread field is stated as a confirmed lack of a path.
+      /*
+       * Partial payload: a light-time but no reachability flag.
+       * `link.connected` is undefined, and the ternary has no third arm, so
+       * an unread field is stated as a confirmed lack of a path.
+       */
       fixture.emit("fleet.v-probe.delay", { oneWaySeconds: 4.5 });
     });
 
@@ -511,9 +529,11 @@ describe("FleetRoster: the `link == null` absence gate", () => {
   });
 });
 
-// ---------------------------------------------------------------------------
-// 6. silence.<guid>.state absent
-// ---------------------------------------------------------------------------
+/*
+ * ---------------------------------------------------------------------------
+ * 6. silence.<guid>.state absent
+ * ---------------------------------------------------------------------------
+ */
 
 const SILENT = {
   state: "Silent",
@@ -572,9 +592,11 @@ describe("FleetRoster: the `!silence` absence gate", () => {
     );
 
     act(() => {
-      // `!silence` is falsy for `null` too, so a confirmed "no silence record
-      // for this vessel" retracts the badge entirely and is drawn as nominal,
-      // identical to the never-arrived render.
+      /*
+       * `!silence` is falsy for `null` too, so a confirmed "no silence record
+       * for this vessel" retracts the badge entirely and is drawn as nominal,
+       * identical to the never-arrived render.
+       */
       fixture.emit("silence.v-probe.state", null, { validAt: 100 });
     });
 
@@ -593,9 +615,11 @@ describe("FleetRoster: the `!silence` absence gate", () => {
     });
     await screen.findByRole("button", { name: /Explorer signal/i });
     act(() => {
-      // Partial payload: the field is simply absent rather than an explicit
-      // null. `predicted == null` covers both, so this is the `waiting` phase
-      // and no countdown is invented from the deadline.
+      /*
+       * Partial payload: the field is simply absent rather than an explicit
+       * null. `predicted == null` covers both, so this is the `waiting` phase
+       * and no countdown is invented from the deadline.
+       */
       fixture.emit("silence.v-probe.state", {
         state: "Silent",
         silenceSinceUt: 1_000,

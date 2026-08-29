@@ -55,16 +55,20 @@ import {
 import { deriveTraffic, NO_TRAFFIC } from "./commsTraffic";
 import { inertialFrameFor, resolveProjection } from "./projection";
 import { createUtBucketThrottle } from "./utBucketThrottle";
-// Side-effect import: the host's own entries on `system-view.projection`, so the
-// picker, the filter and the resolver are all travelled on a bare stock install
-// with no Uplinks at all.
+/*
+ * Side-effect import: the host's own entries on `system-view.projection`, so the
+ * picker, the filter and the resolver are all travelled on a bare stock install
+ * with no Uplinks at all.
+ */
 import "./projectionContribution";
 import { SystemDiagram, vesselPlotStateFromStatus } from "./SystemDiagram";
 import { SystemEntitiesLayer } from "./SystemEntitiesLayer";
 import type { SystemEntityStyle } from "./systemEntities";
-// Side-effect import: the built-in vessel-orbits contribution self-registers
-// against `system-view.entities` on module load (same pattern as ShipMap's
-// `./partMetersContribution`).
+/*
+ * Side-effect import: the built-in vessel-orbits contribution self-registers
+ * against `system-view.entities` on module load (same pattern as ShipMap's
+ * `./partMetersContribution`).
+ */
 import "./vesselOrbitsContribution";
 import {
   angleDelta,
@@ -75,10 +79,12 @@ import {
 import { type CelestialBody, useCelestialBodies } from "./useCelestialBodies";
 import { usePhaseAngles } from "./usePhaseAngles";
 import { VesselInfoPanel } from "./VesselInfoPanel";
-// Side-effect import: registers the `system-view.vessel-status` built-in
-// contribution (the comms-derived silence reckoning for the plotted
-// vessel), on equal footing with any third-party Uplink contribution to the
-// same slot.
+/*
+ * Side-effect import: registers the `system-view.vessel-status` built-in
+ * contribution (the comms-derived silence reckoning for the plotted
+ * vessel), on equal footing with any third-party Uplink contribution to the
+ * same slot.
+ */
 import "./vesselStatusContribution";
 import type { SystemViewVesselStatusEntry } from "./vesselStatusContribution";
 
@@ -163,9 +169,11 @@ export interface SystemOverlayContext {
 // on other widgets never collides on this seam.
 declare module "@ksp-gonogo/core" {
   interface SlotRegistry {
-    // Rendered by `Panel`'s universal `actions` segment, not by this widget:
-    // the id is declared here only so a binder's component still types against
-    // the propless contract rather than the loose fallback.
+    /*
+     * Rendered by `Panel`'s universal `actions` segment, not by this widget:
+     * the id is declared here only so a binder's component still types against
+     * the propless contract rather than the loose fallback.
+     */
     "system-view.actions": Record<string, never>;
     "system-view.overlay": SystemOverlayContext;
   }
@@ -197,14 +205,16 @@ function frameNameMatches(a: string, b: string): boolean {
   return a.trim().toLowerCase() === b.trim().toLowerCase();
 }
 
-// ── Client-side orbit derivations ───────────────────────────────────────────────
-// Mirror `@ksp-gonogo/sitrep-client`'s `deriveVesselState` (vessel-state.ts) so the
-// widget reconstructs its orbital scalars (trueAnomaly / next-apsis /
-// encounter) directly from the streamed
-// `vessel.orbit` elements + the SDK view-UT, derived client-side.
-// `vessel.orbit`'s angles are DEGREES on the wire (KSP-native), while
-// `kepler`'s `OrbitElements` is all-radians, so this is the one place the mix is
-// normalised (meanAnomalyAtEpoch is already radians, the documented KSP quirk).
+/*
+ * ── Client-side orbit derivations ───────────────────────────────────────────────
+ * Mirror `@ksp-gonogo/sitrep-client`'s `deriveVesselState` (vessel-state.ts) so the
+ * widget reconstructs its orbital scalars (trueAnomaly / next-apsis /
+ * encounter) directly from the streamed
+ * `vessel.orbit` elements + the SDK view-UT, derived client-side.
+ * `vessel.orbit`'s angles are DEGREES on the wire (KSP-native), while
+ * `kepler`'s `OrbitElements` is all-radians, so this is the one place the mix is
+ * normalised (meanAnomalyAtEpoch is already radians, the documented KSP quirk).
+ */
 
 /** `Sitrep.Contract.TransitionType` ordinals the encounter chip surfaces. */
 const TRANSITION_TYPE_ENCOUNTER = 2;
@@ -386,19 +396,21 @@ function SystemViewComponent({
       ? identityReading.value
       : undefined;
 
-  // Contact state for the plotted craft. `connected` is core (this widget
-  // has no need of it directly); the reckoned states (predicted/overdue/
-  // lost) arrive as `system-view.vessel-status` contributions instead of a
-  // direct sitrep-client import, so the diagram never hard-codes the comms
-  // model. `useFleetVesselSilence` still has to run somewhere so the
-  // per-vessel `silence.<guid>.state` topic stays subscribed (a genuinely
-  // dynamic topic no contribution's static deps can name), and mirrors what
-  // it reads into the bridge `system-view-vessel-silence-status` reads from;
-  // SystemView keeps this ONE raw subscription, but never interprets the
-  // value itself. `fleet.<guid>.contact`/`silence.<guid>.state` are both
-  // freeze-EXEMPT in the engine precisely so they keep reporting while the
-  // craft is dark, which is the only reason a diagram can say anything at
-  // all about a vessel it has lost.
+  /*
+   * Contact state for the plotted craft. `connected` is core (this widget
+   * has no need of it directly); the reckoned states (predicted/overdue/
+   * lost) arrive as `system-view.vessel-status` contributions instead of a
+   * direct sitrep-client import, so the diagram never hard-codes the comms
+   * model. `useFleetVesselSilence` still has to run somewhere so the
+   * per-vessel `silence.<guid>.state` topic stays subscribed (a genuinely
+   * dynamic topic no contribution's static deps can name), and mirrors what
+   * it reads into the bridge `system-view-vessel-silence-status` reads from;
+   * SystemView keeps this ONE raw subscription, but never interprets the
+   * value itself. `fleet.<guid>.contact`/`silence.<guid>.state` are both
+   * freeze-EXEMPT in the engine precisely so they keep reporting while the
+   * craft is dark, which is the only reason a diagram can say anything at
+   * all about a vessel it has lost.
+   */
   const vesselGuid =
     typeof identity?.vesselId === "string" ? identity.vesselId : null;
   useFleetVesselSilence(vesselGuid ?? "");
@@ -438,18 +450,22 @@ function SystemViewComponent({
   // which both answer NO for a wrapped value and would silently stop drawing the
   // arc with no type error at all.
   const universalTime = useViewUt()?.magnitude;
-  // Command traffic: TrueNow command-centre bookkeeping, same
-  // `useLatestValue`/`useUtNow` split `FleetComms` already rides for this
-  // exact topic (see that widget's class doc for why: dispatch-time facts,
-  // not delayed craft telemetry).
+  /*
+   * Command traffic: TrueNow command-centre bookkeeping, same
+   * `useLatestValue`/`useUtNow` split `FleetComms` already rides for this
+   * exact topic (see that widget's class doc for why: dispatch-time facts,
+   * not delayed craft telemetry).
+   */
   const pendingQueue = useLatestValue<PendingUplinkQueue>(
     "system.uplink.pending",
   );
   const utNow = useUtNow();
-  // FleetComms's Commlinks/Traffic toggles: they used
-  // to gate that augment's own straight-line overlay draw; now they gate the
-  // relay-graph `connection-line` entities and the command-traffic pulses
-  // below, the shapes that superseded it.
+  /*
+   * FleetComms's Commlinks/Traffic toggles: they used
+   * to gate that augment's own straight-line overlay draw; now they gate the
+   * relay-graph `connection-line` entities and the command-traffic pulses
+   * below, the shapes that superseded it.
+   */
   const { showCommlinks, showCommandTraffic } = useFleetCommsToggles();
 
   // Shape-contribution foundation: every `system-view.entities` contribution
@@ -921,11 +937,13 @@ function SystemViewComponent({
     return projectionOptions[0] ?? null;
   }, [projectionOptions, config?.projection]);
 
-  // Resolved on the one-second UT bucket, never per render. `frameInstantAt`
-  // solves every body's parent chain and the diagram places a few thousand points
-  // through the result, and this widget re-renders every animation frame, so
-  // rebuilding here is the regression `SystemView body placements/sec` exists to
-  // catch.
+  /*
+   * Resolved on the one-second UT bucket, never per render. `frameInstantAt`
+   * solves every body's parent chain and the diagram places a few thousand points
+   * through the result, and this widget re-renders every animation frame, so
+   * rebuilding here is the regression `SystemView body placements/sec` exists to
+   * catch.
+   */
   const projection = useMemo(
     () =>
       resolveProjection(facts, frameBodyIndex, chosenProjectionEntry, utBucket),
@@ -1026,10 +1044,12 @@ function SystemViewComponent({
   return (
     <Panel
       panelTitle="SYSTEM"
-      // The almanac is a second scrolling region, not more body content:
-      // reading it must not scroll the diagram it describes off the tile.
-      // `auto` measures the tile and picks the axis: a right-hand column on a
-      // wide tile, a bottom strip on a tall one.
+      /*
+       * The almanac is a second scrolling region, not more body content:
+       * reading it must not scroll the diagram it describes off the tile.
+       * `auto` measures the tile and picks the axis: a right-hand column on a
+       * wide tile, a bottom strip on a tall one.
+       */
       panelSidebar={showAlmanac ? sidebarContent : undefined}
     >
       <div style={FRAME_CAPTION} role="status" aria-live="polite">
@@ -1106,12 +1126,14 @@ function SystemViewComponent({
                 selectedId={selectedVesselId}
                 onEntityActivate={handleEntityActivate}
                 pulses={traffic.pulses}
-                // Real-time bookkeeping clock, same one command traffic
-                // above already rides: a CME's `arriveUt`/`clearUt` are
-                // real-UT facts the mod stamps the instant a storm rolls,
-                // not delayed craft telemetry, so this drives its single,
-                // non-looping travelling-pulse pass (see
-                // `SystemEntitiesLayer.tsx`'s own `nowUt` doc comment).
+                /*
+                 * Real-time bookkeeping clock, same one command traffic
+                 * above already rides: a CME's `arriveUt`/`clearUt` are
+                 * real-UT facts the mod stamps the instant a storm rolls,
+                 * not delayed craft telemetry, so this drives its single,
+                 * non-looping travelling-pulse pass (see
+                 * `SystemEntitiesLayer.tsx`'s own `nowUt` doc comment).
+                 */
                 nowUt={utNow}
               />
             )}
@@ -1188,10 +1210,12 @@ function SystemViewConfigComponent({
   const [frame, setFrame] = useState(config?.frame ?? "auto");
   const [projection, setProjection] = useState(config?.projection ?? "");
 
-  // The projections that apply to the body this config's own frame setting
-  // resolves to. "auto" cannot be resolved here (it follows the live vessel), so
-  // the list falls back to the root body's, which is the one a whole-system view
-  // is centred on.
+  /*
+   * The projections that apply to the body this config's own frame setting
+   * resolves to. "auto" cannot be resolved here (it follows the live vessel), so
+   * the list falls back to the root body's, which is the one a whole-system view
+   * is centred on.
+   */
   const frameBodyName =
     frame === "auto" || frame === "root"
       ? (bodies.find((b) => b.referenceBody === null)?.name ?? null)
@@ -1350,21 +1374,25 @@ registerComponent<SystemViewConfig>({
   minSize: { w: 6, h: 8 },
   component: SystemViewComponent,
   configComponent: SystemViewConfigComponent,
-  // Exposes a coordinated `.actions` + `.overlay` pair: one augment can drive
-  // an overlay from a header control, sharing its own context. `.actions` is
-  // the framework's universal header segment (`Panel` mounts it for every
-  // widget) and is listed here because this is where an author looks to find
-  // what a widget opens up; `.overlay` is this widget's own, and passes the
-  // diagram's projection as typed slot props.
+  /*
+   * Exposes a coordinated `.actions` + `.overlay` pair: one augment can drive
+   * an overlay from a header control, sharing its own context. `.actions` is
+   * the framework's universal header segment (`Panel` mounts it for every
+   * widget) and is listed here because this is where an author looks to find
+   * what a widget opens up; `.overlay` is this widget's own, and passes the
+   * diagram's projection as typed slot props.
+   */
   augmentSlots: ["system-view.actions", "system-view.overlay"],
-  // Two contribution slots. `system-view.vessel-status` is the plotted
-  // vessel's node decoration, fed by the built-in comms-derived contribution
-  // (`./vesselStatusContribution.ts`) and open to any Uplink contributing
-  // SEMANTIC status for the same vessel. `system-view.entities` is the shape
-  // foundation: a flat list of positioned display objects anyone can add to,
-  // aggregated by `ContributionsAggregation` via `WidgetMetaContext`
-  // (`GridItemContent.tsx` reads this list to build that context) and read
-  // back here through `useContributions`.
+  /*
+   * Two contribution slots. `system-view.vessel-status` is the plotted
+   * vessel's node decoration, fed by the built-in comms-derived contribution
+   * (`./vesselStatusContribution.ts`) and open to any Uplink contributing
+   * SEMANTIC status for the same vessel. `system-view.entities` is the shape
+   * foundation: a flat list of positioned display objects anyone can add to,
+   * aggregated by `ContributionsAggregation` via `WidgetMetaContext`
+   * (`GridItemContent.tsx` reads this list to build that context) and read
+   * back here through `useContributions`.
+   */
   contributionSlots: [
     "system-view.vessel-status",
     "system-view.entities",

@@ -89,10 +89,12 @@ const MOD_OWNERSHIP: Record<ModToken, ModOwnership> = {
     ownedDirs: [
       "mod/GonogoKerbcastUplink",
       "mod/GonogoKerbcastUplink.Tests",
-      // GonogoKerbcastUplink's own contract slice (uplink-types-out-of-core
-      // plan, third relocation, 2026-08-10): KerbcastCameraEntry/
-      // KerbcastSetFieldOfViewArgs/KerbcastSetPanArgs live here now, not in
-      // Sitrep.Contract.
+      /*
+       * GonogoKerbcastUplink's own contract slice (uplink-types-out-of-core
+       * plan, third relocation, 2026-08-10): KerbcastCameraEntry/
+       * KerbcastSetFieldOfViewArgs/KerbcastSetPanArgs live here now, not in
+       * Sitrep.Contract.
+       */
       "mod/GonogoKerbcastUplink.Contract",
     ],
   },
@@ -116,18 +118,22 @@ const MOD_OWNERSHIP: Record<ModToken, ModOwnership> = {
     ownedDirs: [
       "mod/GonogoScansatUplink",
       "mod/GonogoScansatUplink.Tests",
-      // GonogoScansatUplink's own contract slice (uplink-types-out-of-core
-      // plan, fourth relocation, 2026-08-10): ScanningVesselEntry/
-      // ScanSensorEntry/ScanTrackColor/ScanScienceEntry/ScanAnomalyEntry live
-      // here now, not in Sitrep.Contract.
+      /*
+       * GonogoScansatUplink's own contract slice (uplink-types-out-of-core
+       * plan, fourth relocation, 2026-08-10): ScanningVesselEntry/
+       * ScanSensorEntry/ScanTrackColor/ScanScienceEntry/ScanAnomalyEntry live
+       * here now, not in Sitrep.Contract.
+       */
       "mod/GonogoScansatUplink.Contract",
     ],
   },
   kos: {
-    // "kos" alone false-matches inside unrelated words, so match only
-    // distinctive forms: the npm package (renamed to the
-    // gonogo-<mod>-uplink convention), PascalCase Kos-prefixed identifiers,
-    // the kos.* topic namespaces, and the mod's own capitalisation "kOS".
+    /*
+     * "kos" alone false-matches inside unrelated words, so match only
+     * distinctive forms: the npm package (renamed to the
+     * gonogo-<mod>-uplink convention), PascalCase Kos-prefixed identifiers,
+     * the kos.* topic namespaces, and the mod's own capitalisation "kOS".
+     */
     patterns: [
       /@ksp-gonogo\/gonogo-kos-uplink/,
       /Kos[A-Z]/,
@@ -137,9 +143,11 @@ const MOD_OWNERSHIP: Record<ModToken, ModOwnership> = {
     ownedDirs: [
       "mod/GonogoKosUplink",
       "mod/GonogoKosUplink.Tests",
-      // GonogoKosUplink's own contract slice (uplink-types-out-of-core plan,
-      // sixth and last relocation, 2026-08-10): all eleven Kos* wire and
-      // command-arg types live here now, not in Sitrep.Contract.
+      /*
+       * GonogoKosUplink's own contract slice (uplink-types-out-of-core plan,
+       * sixth and last relocation, 2026-08-10): all eleven Kos* wire and
+       * command-arg types live here now, not in Sitrep.Contract.
+       */
       "mod/GonogoKosUplink.Contract",
     ],
   },
@@ -180,17 +188,21 @@ const MOD_OWNERSHIP: Record<ModToken, ModOwnership> = {
     ],
   },
   mechjeb: {
-    // "mechjeb" alone is distinctive enough (no unrelated-word collision
-    // in this codebase, unlike bare "kos"/"scan"): one case-insensitive
-    // pattern covers MechJeb2/MechJebAscentArgs/mechjeb.* topic prefixes/
-    // gonogo-mechjeb-uplink alike.
+    /*
+     * "mechjeb" alone is distinctive enough (no unrelated-word collision
+     * in this codebase, unlike bare "kos"/"scan"): one case-insensitive
+     * pattern covers MechJeb2/MechJebAscentArgs/mechjeb.* topic prefixes/
+     * gonogo-mechjeb-uplink alike.
+     */
     patterns: [/mechjeb/i],
     ownedDirs: [
       "mod/GonogoMechJebUplink",
       "mod/GonogoMechJebUplink.Tests",
-      // GonogoMechJebUplink's own contract slice (uplink-types-out-of-core
-      // pilot, 2026-08-10): MechJebAscentArgs/MechJebNoArgs live here now,
-      // not in Sitrep.Contract.
+      /*
+       * GonogoMechJebUplink's own contract slice (uplink-types-out-of-core
+       * pilot, 2026-08-10): MechJebAscentArgs/MechJebNoArgs live here now,
+       * not in Sitrep.Contract.
+       */
       "mod/GonogoMechJebUplink.Contract",
     ],
   },
@@ -205,9 +217,11 @@ const MOD_OWNERSHIP: Record<ModToken, ModOwnership> = {
     ownedDirs: [
       "mod/GonogoAvionicsUplink",
       "mod/GonogoAvionicsUplink.Tests",
-      // GonogoAvionicsUplink's own contract slice (uplink-types-out-of-core
-      // plan, second relocation, 2026-08-10): AvionicsStatus lives here now,
-      // not in Sitrep.Contract.
+      /*
+       * GonogoAvionicsUplink's own contract slice (uplink-types-out-of-core
+       * plan, second relocation, 2026-08-10): AvionicsStatus lives here now,
+       * not in Sitrep.Contract.
+       */
       "mod/GonogoAvionicsUplink.Contract",
     ],
   },
@@ -224,9 +238,11 @@ const MOD_OWNERSHIP: Record<ModToken, ModOwnership> = {
     ownedDirs: [
       "mod/GonogoKerbalismUplink",
       "mod/GonogoKerbalismUplink.Tests",
-      // GonogoKerbalismUplink's own contract slice (uplink-types-out-of-core
-      // plan, fifth relocation, 2026-08-11): all fifteen kerbalism payload
-      // types live here now, not in Sitrep.Contract.
+      /*
+       * GonogoKerbalismUplink's own contract slice (uplink-types-out-of-core
+       * plan, fifth relocation, 2026-08-11): all fifteen kerbalism payload
+       * types live here now, not in Sitrep.Contract.
+       */
       "mod/GonogoKerbalismUplink.Contract",
     ],
   },
@@ -338,9 +354,11 @@ function stripCommentsKeepingStrings(source: string, path: string): string {
         .filter((line) => !/^\s*(\/\/|\/\*|\*)/.test(line))
         .join("\n");
     } catch {
-      // Unparseable (a fixture, a deliberate syntax-error case): fall through
-      // to the approximate stripper rather than skipping the file entirely,
-      // because skipping is how a gate goes quiet.
+      /*
+       * Unparseable (a fixture, a deliberate syntax-error case): fall through
+       * to the approximate stripper rather than skipping the file entirely,
+       * because skipping is how a gate goes quiet.
+       */
     }
   }
   return stripCommentsApproximately(source);
@@ -424,9 +442,11 @@ const SKIP_DIRS = new Set([
   "coverage",
   ".turbo",
 ]);
-// This file and its sibling allowlist data module name every mod token in
-// their patterns/comments/allowlist entries: that's the guardrail's own
-// vocabulary, not a boundary violation.
+/*
+ * This file and its sibling allowlist data module name every mod token in
+ * their patterns/comments/allowlist entries: that's the guardrail's own
+ * vocabulary, not a boundary violation.
+ */
 const SELF_PATHS = new Set([
   "packages/core/src/uplink-boundary.test.ts",
   "packages/core/src/uplink-boundary.allowlist.ts",
@@ -587,11 +607,13 @@ describe("uplink boundary: mod references stay inside their owning Uplink", () =
 });
 
 describe("scansat token: pattern coverage for the schema-identifier blind spot", () => {
-  // Representative content shapes for packages/core/src/schemas/scansat.ts's
-  // exported wire-shape identifiers (SCANType, SCAN_TYPE, etc.): the class
-  // of leak the bare `/scansat/i` pattern was blind to (design doc §1.1-1.2):
-  // a file can be scansat-schema-coupled (import/use SCANType, key a cache
-  // by SCANType, etc.) without ever spelling the word "scansat".
+  /*
+   * Representative content shapes for packages/core/src/schemas/scansat.ts's
+   * exported wire-shape identifiers (SCANType, SCAN_TYPE, etc.): the class
+   * of leak the bare `/scansat/i` pattern was blind to (design doc §1.1-1.2):
+   * a file can be scansat-schema-coupled (import/use SCANType, key a cache
+   * by SCANType, etc.) without ever spelling the word "scansat".
+   */
   const SCHEMA_IDENTIFIER_SAMPLES = [
     "export function useBodyFogMask(bodyId: string, scanType: SCANType) { /* ... */ }",
     "const SCAN_TYPE = { AltimetryLoRes: 1, AltimetryHiRes: 2 } as const;",
@@ -756,9 +778,11 @@ describe("findDomainDebtGrowth: shrink-only comparison logic (synthetic fixtures
     };
     const current: Partial<Record<ModToken, ModAllowlist>> = {
       ...previous,
-      // Synthetic leak: a new file lands in scansat's domainDebt without
-      // having been there before: exactly the case the shrink-only gate
-      // exists to reject.
+      /*
+       * Synthetic leak: a new file lands in scansat's domainDebt without
+       * having been there before: exactly the case the shrink-only gate
+       * exists to reject.
+       */
       scansat: {
         permanent: ["p.ts"],
         domainDebt: ["a.ts", "b.ts", "new-leak.ts"],
@@ -823,11 +847,13 @@ describe("uplink boundary: domain-debt allowlist entries only ever shrink", () =
     );
     const previous = await loadAllowlistAt(base, relPath);
     if (!previous) {
-      // A base DID resolve and the allowlist is simply absent at it, which is
-      // genuine on the commit that first adds the list and suspicious after.
-      // `ratchet-base-ref.test.ts` is what grades it, in one place for all five
-      // lists, because a warning printed here is invisible: vitest suppresses
-      // console output for tests that pass.
+      /*
+       * A base DID resolve and the allowlist is simply absent at it, which is
+       * genuine on the commit that first adds the list and suspicious after.
+       * `ratchet-base-ref.test.ts` is what grades it, in one place for all five
+       * lists, because a warning printed here is invisible: vitest suppresses
+       * console output for tests that pass.
+       */
       return;
     }
 

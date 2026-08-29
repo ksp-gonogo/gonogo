@@ -73,8 +73,6 @@ export const COMMENT_STACK_DEBT: Record<string, number> = {
   "mod/GonogoKerbcastUplink/client/src/hooks/useKerbcastStream.ts": 3,
   "mod/GonogoKerbcastUplink/client/src/topics.test.ts": 1,
   "mod/GonogoKosUplink/client/src/KosScriptTrigger/index.tsx": 1,
-  "mod/GonogoKosUplink/client/src/KosTerminal/index.test.tsx": 13,
-  "mod/GonogoKosUplink/client/src/KosTerminal/index.tsx": 17,
   "mod/GonogoKosUplink/client/src/KosTerminal/lineMode.headless.test.tsx": 6,
   "mod/GonogoKosUplink/client/src/dataSource/KosCpuDiscovery.tsx": 1,
   "mod/GonogoKosUplink/client/src/dataSource/kosUplinkExecutor.test.ts": 2,
@@ -323,7 +321,6 @@ export const COMMENT_STACK_DEBT: Record<string, number> = {
   "packages/components/scripts/unfed-snapshot-gate.ts": 1,
   "packages/components/scripts/visual-gate.ts": 1,
   "packages/components/scripts/widgetRenderHarness.ts": 4,
-  "packages/components/scripts/widgets.ts": 17,
   "packages/components/src/ActionGroup/custom-group-identity.test.tsx": 1,
   "packages/components/src/ActionGroup/index.test.tsx": 1,
   "packages/components/src/ActionGroup/index.tsx": 7,
@@ -368,7 +365,6 @@ export const COMMENT_STACK_DEBT: Record<string, number> = {
   "packages/components/src/FleetReliability/undefined.characterise.test.tsx": 1,
   "packages/components/src/FleetRoster/index.test.tsx": 4,
   "packages/components/src/FleetRoster/index.tsx": 2,
-  "packages/components/src/FleetRoster/undefined.characterise.test.tsx": 12,
   "packages/components/src/FuelStatus/index.test.tsx": 2,
   "packages/components/src/FuelStatus/index.tsx": 6,
   "packages/components/src/FuelStatus/stream.test.tsx": 2,
@@ -492,7 +488,6 @@ export const COMMENT_STACK_DEBT: Record<string, number> = {
   "packages/components/src/SystemView/commsTraffic.integration.test.tsx": 3,
   "packages/components/src/SystemView/commsTraffic.test.ts": 2,
   "packages/components/src/SystemView/index.test.tsx": 4,
-  "packages/components/src/SystemView/index.tsx": 14,
   "packages/components/src/SystemView/integratedVsAnalytic.integration.test.tsx": 2,
   "packages/components/src/SystemView/predictedTrajectory.test.ts": 2,
   "packages/components/src/SystemView/predictedTrajectory.ts": 1,
@@ -576,7 +571,6 @@ export const COMMENT_STACK_DEBT: Record<string, number> = {
   "packages/core/src/styleguide.test.ts": 1,
   "packages/core/src/truenow-allowlist.test.ts": 1,
   "packages/core/src/typecheck-coverage.test.ts": 1,
-  "packages/core/src/uplink-boundary.test.ts": 13,
   "packages/core/src/uplink-isolation.test.ts": 1,
   "packages/core/src/uplink-mod-build-coverage.test.ts": 1,
   "packages/core/src/uplink-tsconfig-parity.test.ts": 1,
@@ -761,7 +755,7 @@ export const COMMENT_STACK_DEBT: Record<string, number> = {
  * does not trip this and only a broken enumeration does.
  */
 export const SCAN_FLOORS = {
-  files: 1146,
+  files: 1147,
   filesWithStack: 366,
   stacks: 805,
 } as const;

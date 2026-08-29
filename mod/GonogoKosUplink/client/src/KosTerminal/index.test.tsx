@@ -35,10 +35,12 @@ const termSpies = vi.hoisted(() => ({
 vi.mock("@xterm/xterm", () => ({
   Terminal: vi.fn(function (this: { options: Record<string, unknown> }) {
     Object.assign(this, termSpies);
-    // Real xterm exposes a live, settable `.options` bag (see the widget's
-    // cursor-blink sync effect, which writes `term.options.cursorBlink`
-    // whenever line mode toggles): mirror that shape here rather than
-    // defensively guarding the component for a test-only gap.
+    /*
+     * Real xterm exposes a live, settable `.options` bag (see the widget's
+     * cursor-blink sync effect, which writes `term.options.cursorBlink`
+     * whenever line mode toggles): mirror that shape here rather than
+     * defensively guarding the component for a test-only gap.
+     */
     this.options = {};
   }),
 }));
@@ -321,10 +323,12 @@ describe("KosTerminal: streamed over the Uplink (no proxy)", () => {
       }),
     );
 
-    // `visibleText`, not `toHaveTextContent`: the badge renders through <Unit>
-    // now, whose raw textContent carries the unit's spoken word for a screen
-    // reader ("7.6 s seconds") alongside a thin space. `visibleText` is what a
-    // sighted reader sees.
+    /*
+     * `visibleText`, not `toHaveTextContent`: the badge renders through <Unit>
+     * now, whose raw textContent carries the unit's spoken word for a screen
+     * reader ("7.6 s seconds") alongside a thin space. `visibleText` is what a
+     * sighted reader sees.
+     */
     await waitFor(() =>
       expect(visibleText(screen.getByLabelText("Signal delay"))).toContain(
         "~7.6 s",
@@ -464,11 +468,13 @@ describe("KosTerminal: streamed over the Uplink (no proxy)", () => {
     await waitFor(() => {
       const writes = termSpies.write.mock.calls.map((c) => c[0] as string);
       const committed = replayCommittedLines(writes);
-      // The server's echo must be the ONLY copy that ends up committed to
-      // the terminal buffer: the local composition echo is transient
-      // (visible while typing) and gets retracted on Enter rather than
-      // scrolled into history, so it must never itself count as a second
-      // committed "list." line.
+      /*
+       * The server's echo must be the ONLY copy that ends up committed to
+       * the terminal buffer: the local composition echo is transient
+       * (visible while typing) and gets retracted on Enter rather than
+       * scrolled into history, so it must never itself count as a second
+       * committed "list." line.
+       */
       expect(committed.filter((line) => line === "list.")).toHaveLength(1);
     });
   });
@@ -555,10 +561,12 @@ describe("KosTerminal: streamed over the Uplink (no proxy)", () => {
   });
 
   it("uses a fixed 80x24 terminal and imposes it on the CPU once (no dynamic fit)", async () => {
-    // The widget must be a fixed-size grid (like the telnet solution): never
-    // fit-to-pixels (which line-wraps kOS's output in a narrow panel) and
-    // impose that one size on the shared CPU screen exactly once, rather than
-    // streaming a resize on every container change.
+    /*
+     * The widget must be a fixed-size grid (like the telnet solution): never
+     * fit-to-pixels (which line-wraps kOS's output in a narrow panel) and
+     * impose that one size on the shared CPU screen exactly once, rather than
+     * streaming a resize on every container change.
+     */
     const fixture = terminalFixture();
     render(
       <fixture.Provider>
@@ -810,9 +818,11 @@ describe("KosTerminal: in-transit uplink queue strip (prediction-only, never exe
   it("renders a predicted up-arrow row in transit, then flips to a down-arrow row once real UT passes dispatchedAt + oneWaySeconds", async () => {
     const fixture = await mountLineMode();
 
-    // Stamp both the delay fact and the queue entry at real UT 100, the
-    // fixture's wall clock hasn't advanced, so this establishes "now" as
-    // UT 100 for the strip's real-time clock (`useUtNow`).
+    /*
+     * Stamp both the delay fact and the queue entry at real UT 100, the
+     * fixture's wall clock hasn't advanced, so this establishes "now" as
+     * UT 100 for the strip's real-time clock (`useUtNow`).
+     */
     act(() =>
       fixture.emit(
         "comms.delay",
@@ -903,9 +913,11 @@ describe("KosTerminal: in-transit uplink queue strip (prediction-only, never exe
       expect(screen.getByLabelText("Uplink queue")).toHaveTextContent("↑"),
     );
 
-    // Real time crosses dispatchedAt(100) + oneWaySeconds(3.8) = 103.8, the
-    // arrow flips to ↓ (reply leg), same crossing the up→down test above
-    // exercises.
+    /*
+     * Real time crosses dispatchedAt(100) + oneWaySeconds(3.8) = 103.8, the
+     * arrow flips to ↓ (reply leg), same crossing the up→down test above
+     * exercises.
+     */
     act(() => fixture.wall.advanceBy(4));
     await waitFor(() =>
       expect(screen.getByLabelText("Uplink queue")).toHaveTextContent("↓"),
@@ -939,9 +951,11 @@ describe("KosTerminal: in-transit uplink queue strip (prediction-only, never exe
     // directly.
     await act(() => new Promise((resolve) => setTimeout(resolve, 100)));
 
-    // The arrow must stay latched at ↓, this item already reached the
-    // craft once in real time and can never legitimately un-reach it, no
-    // matter what the clock estimate does next.
+    /*
+     * The arrow must stay latched at ↓, this item already reached the
+     * craft once in real time and can never legitimately un-reach it, no
+     * matter what the clock estimate does next.
+     */
     expect(screen.getByLabelText("Uplink queue")).toHaveTextContent("↓");
     expect(screen.getByLabelText("Uplink queue")).not.toHaveTextContent("↑");
   });
@@ -995,9 +1009,11 @@ describe("KosTerminal: in-transit uplink queue strip (prediction-only, never exe
               label: "run.",
               topic: "kos/7",
               vantage: "vessel",
-              // dispatchedAt (100) + oneWaySeconds (80) - real "now" (100,
-              // stamped by this same emit's validAt) = 80s remaining until
-              // predicted arrival at the craft.
+              /*
+               * dispatchedAt (100) + oneWaySeconds (80) - real "now" (100,
+               * stamped by this same emit's validAt) = 80s remaining until
+               * predicted arrival at the craft.
+               */
               dispatchedAt: 100,
               oneWaySeconds: 80,
             },
@@ -1128,21 +1144,25 @@ describe("KosTerminal: in-transit uplink queue strip (prediction-only, never exe
       ),
     );
 
-    // No wall-time advance is needed here, proving this doesn't depend on
-    // 20s of (fake) wall time elapsing the way the pre-fix delayed-clock
-    // read would have.
+    /*
+     * No wall-time advance is needed here, proving this doesn't depend on
+     * 20s of (fake) wall time elapsing the way the pre-fix delayed-clock
+     * read would have.
+     */
     await waitFor(() =>
       expect(screen.getByLabelText("Uplink queue")).toHaveTextContent("run."),
     );
     expect(screen.getByLabelText("Uplink queue")).toHaveTextContent("↑");
 
-    // Sanity check on the bug this guards against: the delayed view clock
-    // genuinely IS still stuck at 5 right now (confirming the fixture models
-    // the lag the bug depended on, not that delaySeconds is a no-op), well
-    // short of the queue entry's own `validAt` (25), so the OLD
-    // `useStream("system.uplink.pending")` read would have returned
-    // `undefined` (nothing confirmed yet) at this exact point, showing no
-    // strip at all.
+    /*
+     * Sanity check on the bug this guards against: the delayed view clock
+     * genuinely IS still stuck at 5 right now (confirming the fixture models
+     * the lag the bug depended on, not that delaySeconds is a no-op), well
+     * short of the queue entry's own `validAt` (25), so the OLD
+     * `useStream("system.uplink.pending")` read would have returned
+     * `undefined` (nothing confirmed yet) at this exact point, showing no
+     * strip at all.
+     */
     expect(fixture.store.clock.confirmedEdgeUt()).toBeCloseTo(5, 5);
 
     // The engine prunes the entry once it predicts the round trip complete,
@@ -1203,9 +1223,11 @@ describe("KosTerminal: blocks a send with no comms path", () => {
         screen.getByText(/No path: commands are not being sent/),
       ).toBeInTheDocument(),
     );
-    // Bug 2: a second, compact badge right next to the composition bar the
-    // operator is actually looking at while typing, distinct from the
-    // corner-of-the-terminal warning above.
+    /*
+     * Bug 2: a second, compact badge right next to the composition bar the
+     * operator is actually looking at while typing, distinct from the
+     * corner-of-the-terminal warning above.
+     */
     expect(screen.getByText("NO PATH")).toBeInTheDocument();
     await expectNoA11yViolations(container);
 
@@ -1215,10 +1237,12 @@ describe("KosTerminal: blocks a send with no comms path", () => {
       onData("\r");
     });
 
-    // Give any (incorrect) dispatch a chance to land before asserting none
-    // did. `sentCommands` also carries the lease-lifecycle `kos.terminal.open`/
-    // `kos.terminal.resize` requests sent on mount, so filter to the command
-    // under test rather than asserting on the raw envelope count.
+    /*
+     * Give any (incorrect) dispatch a chance to land before asserting none
+     * did. `sentCommands` also carries the lease-lifecycle `kos.terminal.open`/
+     * `kos.terminal.resize` requests sent on mount, so filter to the command
+     * under test rather than asserting on the raw envelope count.
+     */
     await Promise.resolve();
     expect(
       fixture.commands.filter((c) => c.command === "kos.keystroke"),
@@ -1655,9 +1679,11 @@ describe("kOS terminal: live drive listing + copy-local (RUNPATH injection incre
 
     act(() => getOnData()("/"));
 
-    // The two LISTED_VOLUMES dispatches are serialised through the SAME
-    // per-CPU FIFO queue (KosUplinkCpuQueue): only one is in flight at a
-    // time, so the second doesn't appear until the first is answered.
+    /*
+     * The two LISTED_VOLUMES dispatches are serialised through the SAME
+     * per-CPU FIFO queue (KosUplinkCpuQueue): only one is in flight at a
+     * time, so the second doesn't appear until the first is answered.
+     */
     await waitFor(() => {
       expect(
         fixture.commands.filter((c) => c.command === "kos.run"),
