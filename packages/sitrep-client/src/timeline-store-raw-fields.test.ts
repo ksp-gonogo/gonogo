@@ -9,7 +9,7 @@ import { ViewClock } from "./view-clock";
  * (`"time.warp"` carries `{ warpRate, warpRateIndex, warpMode, paused }` as
  * ONE payload: confirmed against the real
  * `local_docs/telemetry-mod/recordings/reference-wire-fixture.json`), but
- * `map-topic.ts`'s `LEGACY_KEY_HOMES` table maps old per-field keys to
+ * The retired flat key vocabulary mapped old per-field keys to
  * dotted SUBTOPIC strings (`"t.currentRate" -> "time.warp.warpRate"`) for
  * nearly every raw channel (`vessel.flight.*`, `vessel.orbit.*`,
  * `vessel.control.*`, `time.warp.*`, ...): everything except the handful of
@@ -30,10 +30,10 @@ import { ViewClock } from "./view-clock";
  * The fix: `TimelineStore` ALSO resolves a "<domain>.<channel>.<field...>"
  * topic (3+ dot-segments, no derived-channel match) against the raw
  * `"<domain>.<channel>"` timeline (first two segments: the actual wire
- * topic, per every entry in `LEGACY_KEY_HOMES`), walking the remaining
+ * topic, per every key that vocabulary carried), walking the remaining
  * segments as a nested field path into that record's payload. Exercised here
  * with `time.warp` (WarpControl's own channel) and a synthetic nested example
- * mirroring `vessel.thermal.hottestPart.skinTemp` (`LEGACY_KEY_HOMES`'s
+ * mirroring `vessel.thermal.hottestPart.skinTemp` (that vocabulary's
  * one already-mapped 4-segment/2-level-nested entry) to prove the mechanism
  * isn't accidentally 1-level-only.
  */

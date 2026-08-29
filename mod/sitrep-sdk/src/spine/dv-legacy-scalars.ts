@@ -103,9 +103,11 @@ export function deriveDvLegacyScalars(
 /**
  * Ready-to-register definition: `store.registerDerivedChannel(dvLegacyScalarsChannel)`.
  * `fields: true` exposes `dv.legacyScalars.total` / `.current` /
- * `.currentFuelMass` / `.totalMass`: the targets `map-topic.ts`'s
- * `LEGACY_KEY_HOMES` entries for `dv.total`/`dv.current`/
- * `dv.currentFuelMass`/`dv.totalMass` point at. `deriveStatus` omitted: the
+ * `.currentFuelMass` / `.totalMass`. These were the targets of the flat
+ * `dv.*` key vocabulary, which `map-topic.ts` has since retired: a flat key
+ * was a NAME FOR something the wire calls otherwise, and there is nothing
+ * left to translate, so only identity maps over dynamic namespaces survive
+ * there now. `deriveStatus` omitted: the
  * default (worst status across `dv.stages` + `vessel.structure`, both
  * genuinely consulted every call) is exactly right, same as
  * `dv-stage-resources.ts`'s channels.

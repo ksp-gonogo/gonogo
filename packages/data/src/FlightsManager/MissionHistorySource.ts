@@ -133,7 +133,7 @@ export class MissionHistorySource implements DataSource {
     // `undefined` for one by construction. Calling it for every mapped key
     // landing on `vessel.state.*`, `vessel.maneuver.legacy.*`,
     // `dv.legacyScalars.*`, `spaceCenter.state.*` or `system.state.*` answers
-    // with an empty series (59 of the 162 in `LEGACY_KEY_HOMES`), which the
+    // with an empty series, which the
     // graph renders as "No recorded samples": the same words it uses for a
     // recording that genuinely holds nothing. `sampleDerivedRange` replays the
     // channel's `derive()` over its raw inputs' own buffered ranges instead,

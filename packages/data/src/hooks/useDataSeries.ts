@@ -62,9 +62,8 @@ function plotValue(payload: unknown): unknown {
  * legacy DataSource involved. See `sampleDerivedRange`'s own doc comment
  * for the replay mechanics.
  *
- * A MAPPED + CARRIED raw topic (or raw record field-subtopic, e.g.
- * `"vessel.orbit.sma"`: `map-topic.ts`'s `LEGACY_KEY_HOMES` table
- * mostly targets these) reads its window straight off
+ * A MAPPED + CARRIED raw topic, or a raw record field-subtopic, reads its
+ * window straight off
  * `TimelineStore.sampleRange`, mapping each `TimelinePoint`'s
  * `validAt`/`payload` into this hook's existing `{ t, v }` shape, the exact
  * same shape a consumer already gets from the legacy path, so no

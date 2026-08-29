@@ -949,9 +949,9 @@ export class TimelineStore {
     );
     if (literal !== undefined) return literal;
 
-    // Raw record field-subtopic fallback: the
-    // mechanism `map-topic.ts`'s whole `LEGACY_KEY_HOMES` table
-    // depends on: `topic` is a `"<domain>.<channel>.<field...>"` string with no
+    // Raw record field-subtopic fallback, which is what the retired flat key
+    // vocabulary used to depend on and what a dotted read still uses:
+    // `topic` is a `"<domain>.<channel>.<field...>"` string with no
     // registered-derived-channel match: e.g. `"time.warp.warpRate"`. No
     // wire message is EVER published to that literal string; the real wire
     // topic is `"time.warp"`, a whole record `{ warpRate, warpRateIndex,
@@ -1354,10 +1354,10 @@ export class TimelineStore {
    * `"vessel.flight"`, `"vessel.thermal"`) and the remaining segments as a
    * nested field path into that record's payload (see this file's
    * own doc comment on the `sample()` branch that calls this, and
-   * `timeline-store-raw-fields.test.ts`). Cross-checked against every dotted
-   * value in `map-topic.ts`'s `LEGACY_KEY_HOMES`: a flat 3-segment
-   * entry (`"vessel.orbit.sma"`) yields a 1-element field path; the one
-   * 4-segment entry (`"vessel.thermal.hottestPart.skinTemp"`) yields a
+   * `timeline-store-raw-fields.test.ts`). The shapes were cross-checked
+   * against every dotted key the retired flat vocabulary carried: a
+   * 3-segment key (`"vessel.orbit.sma"`) yields a 1-element field path; the
+   * one 4-segment key (`"vessel.thermal.hottestPart.skinTemp"`) yields a
    * 2-element path, walked in one nested lookup rather than a second round
    * of topic resolution.
    *
@@ -1414,9 +1414,9 @@ export class TimelineStore {
    * record is gone, so every field of it is too). A field name not present
    * on an otherwise-whole, non-null record -> `undefined` (the phantom-
    * mapping case `TimelineStore.isUnresolvableField`'s doc describes for the
-   * derived-channel analog; not extended to this raw path, every currently
-   * shipped `LEGACY_KEY_HOMES` raw-field entry has been checked against
-   * the real wire fixture, so there is no known-dead mapping this needs to
+   * derived-channel analog; not extended to this raw path, every raw-field
+   * key that vocabulary shipped was checked against the real wire fixture
+   * before it was retired, so there is no known-dead mapping this needs to
    * catch yet).
    *
    * Reuses the parent point's own `meta`/`validAt`/`epoch` verbatim, unlike
