@@ -40,6 +40,7 @@ describe("defineUplinkClient / getUplinkClients / clearUplinkClients", () => {
       registerReckoner: expect.any(Function),
       registerDerivedChannel: expect.any(Function),
       registerRootProvider: expect.any(Function),
+      registerRevealedEventSource: expect.any(Function),
     });
   });
 
