@@ -199,24 +199,57 @@ export class Kernel {
       notices,
     );
 
-    if (
-      descriptor.spineCritical &&
-      candidates.length === 0 &&
-      !descriptor.vanilla
-    ) {
+    const able = this.filterAbleToServe(descriptor.id, candidates, notices);
+
+    if (descriptor.spineCritical && able.length === 0 && !descriptor.vanilla) {
       throw new SpineCapabilityUnsatisfiedError(descriptor.id);
     }
 
     const providers = descriptor.exclusive
-      ? this.selectExclusive(
-          descriptor.id,
-          candidates,
-          notices,
-          opts.preferences,
-        )
-      : candidates;
+      ? this.selectExclusive(descriptor.id, able, notices, opts.preferences)
+      : able;
 
     return { descriptor, providers };
+  }
+
+  /**
+   * Ability-to-serve pass: runs BEFORE exclusive selection, so a provider that
+   * cannot serve the capability on this install is not a CANDIDATE and the
+   * runner-up wins the election outright.
+   *
+   * <p>This is deliberately not the same thing as declining from the factory.
+   * A factory decline happens after the winner is already chosen, so for an
+   * exclusive capability it falls through to VANILLA and the runner-up never
+   * gets a look in. That is the wrong answer when another provider could have
+   * served: the capability ends up unserved because the provider that could
+   * not do it got there first. Withdrawing here means priority order stops
+   * mattering, which is the point, since a provider that models nothing should
+   * lose to one that models something at ANY relative priority.</p>
+   *
+   * <p>Evaluated at resolve time, never at registration: a mod registers
+   * during game load, when its own settings may not be parsed yet, so a
+   * decision taken then would pin whatever happened to be true that early.</p>
+   */
+  private filterAbleToServe(
+    capability: CapabilityId,
+    registered: ProviderRegistration[],
+    notices: ResolutionNotice[],
+  ): ProviderRegistration[] {
+    const able: ProviderRegistration[] = [];
+    for (const provider of registered) {
+      if (provider.canServe && !provider.canServe()) {
+        notices.push({
+          capability,
+          kind: "provider-declined",
+          detail:
+            `Provider "${provider.id}" withdrew from capability "${capability}": ` +
+            `it cannot serve it on this install.`,
+        });
+        continue;
+      }
+      able.push(provider);
+    }
+    return able;
   }
 
   /**

@@ -60,6 +60,20 @@ namespace Sitrep.Contract
 
         public ProviderVersions? Versions { get; set; }
 
+        /// <summary>
+        /// Whether this provider can serve the capability on THIS install, asked
+        /// at resolve time before any winner is picked.
+        ///
+        /// <para>A provider that answers false withdraws: it is not a candidate,
+        /// so for an exclusive capability the runner-up wins outright rather than
+        /// the capability falling through to vanilla. Relative priority therefore
+        /// cannot make a provider that models nothing beat one that does.</para>
+        ///
+        /// <para>Null means "always able", which is the right default: a provider
+        /// that registered at all is normally claiming it can do the job.</para>
+        /// </summary>
+        public Func<bool>? CanServe { get; set; }
+
         public Func<ProviderContext, object?> Factory { get; set; } = null!;
     }
 
@@ -327,15 +341,16 @@ namespace Sitrep.Contract
                 ? list
                 : new List<ProviderRegistration>();
             var candidates = FilterVersionCompatible(descriptor.Id, registered, opts, notices);
+            var able = FilterAbleToServe(descriptor.Id, candidates, notices);
 
-            if (descriptor.SpineCritical && candidates.Count == 0 && descriptor.Vanilla == null)
+            if (descriptor.SpineCritical && able.Count == 0 && descriptor.Vanilla == null)
             {
                 throw new SpineCapabilityUnsatisfiedError(descriptor.Id);
             }
 
             var providers = descriptor.Exclusive
-                ? SelectExclusive(descriptor.Id, candidates, notices, opts.Preferences)
-                : candidates;
+                ? SelectExclusive(descriptor.Id, able, notices, opts.Preferences)
+                : able;
 
             return new CapabilitySelection(descriptor, providers);
         }
@@ -352,6 +367,48 @@ namespace Sitrep.Contract
         /// <c>Versions</c> (or no constraints within it) is always
         /// compatible.
         /// </summary>
+        /// <summary>
+        /// Ability-to-serve pass: runs BEFORE exclusive selection, so a provider
+        /// that cannot serve the capability on this install is not a CANDIDATE and
+        /// the runner-up wins the election outright.
+        ///
+        /// <para>Deliberately not the same thing as declining from the factory. A
+        /// factory decline happens after the winner is already chosen, so for an
+        /// exclusive capability it falls through to VANILLA and the runner-up never
+        /// gets a look in: the capability ends up unserved because the provider
+        /// that could NOT do it got there first. Withdrawing here means relative
+        /// priority stops mattering, which is the point, since a provider modelling
+        /// nothing should lose to one modelling something at any priority.</para>
+        ///
+        /// <para>Evaluated at resolve time, never at registration: a mod registers
+        /// during game load, when its own settings may not be parsed yet, so a
+        /// decision taken then would pin whatever happened to be true that early.</para>
+        /// </summary>
+        private static List<ProviderRegistration> FilterAbleToServe(
+            string capability,
+            List<ProviderRegistration> registered,
+            List<ResolutionNotice> notices)
+        {
+            var able = new List<ProviderRegistration>();
+            foreach (var provider in registered)
+            {
+                if (provider.CanServe != null && !provider.CanServe())
+                {
+                    notices.Add(new ResolutionNotice
+                    {
+                        Capability = capability,
+                        Kind = "provider-declined",
+                        Detail =
+                            $"Provider \"{provider.Id}\" withdrew from capability \"{capability}\": " +
+                            "it cannot serve it on this install.",
+                    });
+                    continue;
+                }
+                able.Add(provider);
+            }
+            return able;
+        }
+
         private static List<ProviderRegistration> FilterVersionCompatible(
             string capability,
             List<ProviderRegistration> candidates,

@@ -189,23 +189,22 @@ namespace Gonogo.KerbalismUplink
                         Id = "kerbalism",
                         Priority = 1.0,
                         /*
-                         * Asked at ACTIVATION, not at registration. Register runs
-                         * during LOADING, when Kerbalism's own settings may not be
-                         * parsed yet, so a check here would read whatever happened
-                         * to be true that early and pin it for the session. The
-                         * factory runs when the capability resolves, by which time
-                         * the setting is real.
+                         * WITHDRAW rather than decline late. This runs at resolve
+                         * time, before the Kernel picks a winner, so with failures
+                         * switched off Kerbalism is not a candidate at all and
+                         * whichever other backend is installed wins the election
+                         * outright. Declining from the factory instead would be too
+                         * late: the winner is already chosen by then, so an
+                         * exclusive capability falls through to VANILLA and the
+                         * runner-up never gets a look in, leaving reliability
+                         * unmodelled on an install that could have modelled it.
                          *
-                         * Returning null is a DECLINE: the Kernel skips this
-                         * provider, notices `provider-declined`, and falls through
-                         * to whatever else can serve. Holding an exclusive
-                         * capability while modelling nothing starves every provider
-                         * below it.
+                         * Not asked at registration: Register runs during LOADING,
+                         * when Kerbalism's own settings may not be parsed yet, so a
+                         * check here would pin whatever happened to be true then.
                          */
-                        Factory = _ =>
-                            KerbalismReliabilityBackend.CanServe(_k)
-                                ? new KerbalismReliabilityBackend(_k)
-                                : null,
+                        CanServe = () => KerbalismReliabilityBackend.CanServe(_k),
+                        Factory = _ => new KerbalismReliabilityBackend(_k),
                     });
                 }
                 catch (Exception ex)

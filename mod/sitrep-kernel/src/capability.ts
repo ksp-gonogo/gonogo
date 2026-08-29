@@ -45,6 +45,19 @@ export interface ProviderRegistration<T = unknown> {
   deps?: CapabilityId[];
   /** Task 5: version gating. */
   versions?: ProviderVersions;
+  /**
+   * Whether this provider can serve the capability on THIS install, asked at
+   * resolve time before any winner is picked.
+   *
+   * <p>A provider that answers false withdraws: it is not a candidate, so for
+   * an exclusive capability the runner-up wins outright rather than the
+   * capability falling through to vanilla. Priority order therefore cannot
+   * make a provider that models nothing beat one that does.</p>
+   *
+   * <p>Omitted means "always able", which is the right default: a provider
+   * that registered at all is normally claiming it can do the job.</p>
+   */
+  canServe?: () => boolean;
   factory: (ctx: ProviderContext) => T;
 }
 
