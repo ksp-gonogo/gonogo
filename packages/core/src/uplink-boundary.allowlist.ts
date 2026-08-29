@@ -577,6 +577,13 @@ export const ALLOWLIST: Record<ModToken, ModAllowlist> = {
     ],
     permanent: [
       /*
+       * -- RENDER-FIXTURE COVERAGE ratchet inventory (2026-08-29): the debt list
+       * of payload fields a widget reads and no fixture feeds is keyed by widget
+       * directory, so it names every Uplink that has render fixtures.
+       * Ratchet-inventory file, the case this bucket documents.
+       */
+      "packages/core/src/render-fixture-coverage.debt.ts",
+      /*
        * -- DYNAMIC-NAMESPACE ROUTING (2026-08-25): `mapTopic` identity-maps the
        * per-body scansat namespaces and the kOS compute namespace, because both
        * materialise their Topics per subject at runtime and so appear in no
@@ -1608,6 +1615,13 @@ export const ALLOWLIST: Record<ModToken, ModAllowlist> = {
     ],
     permanent: [
       /*
+       * -- RENDER-FIXTURE COVERAGE ratchet inventory (2026-08-29): the debt list
+       * of payload fields a widget reads and no fixture feeds is keyed by widget
+       * directory, so it names every Uplink that has render fixtures.
+       * Ratchet-inventory file, the case this bucket documents.
+       */
+      "packages/core/src/render-fixture-coverage.debt.ts",
+      /*
        * -- UPLINK WIDGET-DECLARATION gate: the app-side check that every Uplink
        * widget's declarations resolve to something real has to LOAD every
        * Uplink client to read the registries they register into, so it names
@@ -2091,6 +2105,18 @@ export const ALLOWLIST: Record<ModToken, ModAllowlist> = {
     domainDebt: [],
     permanent: [
       /*
+       * -- RENDER-FIXTURE COVERAGE ratchet (2026-08-29). Two files, for two
+       * reasons. The debt list is keyed by widget directory, so it names this
+       * Uplink's OrbitAnalysis by construction. The test itself cites commit
+       * a718dd36a as its worked example and quotes the six field names its
+       * planted-failure demonstration reports, which is prose in a doc comment
+       * and holds no coupling: the demonstration is the evidence that the gate
+       * can fail at all, and naming what it printed is what makes that
+       * checkable.
+       */
+      "packages/core/src/render-fixture-coverage.debt.ts",
+      "packages/core/src/render-fixture-coverage.test.ts",
+      /*
        * -- UPLINK WIDGET-DECLARATION gate: the app-side check that every Uplink
        * widget's declarations resolve to something real has to LOAD every
        * Uplink client to read the registries they register into, so it names
@@ -2201,6 +2227,12 @@ export const ALLOWLIST: Record<ModToken, ModAllowlist> = {
     domainDebt: [],
     permanent: [
       /*
+       * -- RENDER-FIXTURE COVERAGE ratchet inventory (2026-08-29): the debt list
+       * of payload fields a widget reads and no fixture feeds is keyed by widget
+       * directory, so it names this Uplink's DescentEnvelope by construction.
+       */
+      "packages/core/src/render-fixture-coverage.debt.ts",
+      /*
        * The comment-stack ratchet's own inventory: a path-keyed debt list over
        * every hand-written JS/TS file in the repo names this Uplink's paths by
        * construction, and there is nowhere else for it to live.
@@ -2275,6 +2307,7 @@ export const SURVIVES_COMMENT_STRIP: Partial<Record<ModToken, string[]>> = {
     "packages/app/src/__tests__/uplink-widget-declarations.test.ts",
     "packages/app/src/main.tsx",
     "packages/core/src/comment-stacks.allowlist.ts",
+    "packages/core/src/render-fixture-coverage.debt.ts",
     "packages/core/src/styleguide-magnitude-budget.test.ts",
     "packages/core/src/truenow-allowlist.test.ts",
   ],
@@ -2299,6 +2332,7 @@ export const SURVIVES_COMMENT_STRIP: Partial<Record<ModToken, string[]>> = {
     "packages/core/src/comment-stacks.allowlist.ts",
     "packages/core/src/contributionsRuntime.test.tsx",
     "packages/core/src/registry.replacement.test.ts",
+    "packages/core/src/render-fixture-coverage.debt.ts",
     "packages/core/src/styleguide-fire-and-forget-commands.test.ts",
     "packages/core/src/styleguide-magnitude-budget.test.ts",
     "packages/core/src/truenow-allowlist.test.ts",
@@ -2348,6 +2382,7 @@ export const SURVIVES_COMMENT_STRIP: Partial<Record<ModToken, string[]>> = {
     "packages/core/src/banner-comments.allowlist.ts",
     "packages/core/src/comment-stacks.allowlist.ts",
     "packages/core/src/hooks/useUplinkHealthFor.test.tsx",
+    "packages/core/src/render-fixture-coverage.debt.ts",
     "packages/core/src/styleguide-magnitude-budget.test.ts",
     "packages/core/src/typecheck-coverage.allowlist.ts",
     "packages/data/src/hooks/useDataSchema.test.tsx",
@@ -2372,6 +2407,7 @@ export const SURVIVES_COMMENT_STRIP: Partial<Record<ModToken, string[]>> = {
     "packages/app/src/main.tsx",
     "packages/core/src/banner-comments.allowlist.ts",
     "packages/core/src/comment-stacks.allowlist.ts",
+    "packages/core/src/render-fixture-coverage.debt.ts",
     "packages/core/src/styleguide-magnitude-budget.test.ts",
     "packages/core/src/truenow-allowlist.test.ts",
     "packages/core/src/typecheck-coverage.allowlist.ts",

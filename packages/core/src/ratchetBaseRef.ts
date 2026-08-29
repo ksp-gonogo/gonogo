@@ -198,6 +198,7 @@ export function sourceAtRatchetBase(
 export const RATCHET_ALLOWLIST_PATHS = [
   "packages/core/src/banner-comments.allowlist.ts",
   "packages/core/src/published-doc-reachability.allowlist.ts",
+  "packages/core/src/render-fixture-coverage.debt.ts",
   "packages/core/src/typecheck-coverage.allowlist.ts",
   "packages/core/src/uplink-boundary.allowlist.ts",
   "packages/core/src/uplink-isolation.allowlist.ts",
