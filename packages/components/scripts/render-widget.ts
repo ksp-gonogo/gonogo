@@ -25,7 +25,7 @@ function cliKey(w: { widgetId: string; label?: string }): string {
 
 function usage(): never {
   console.error(
-    "Usage: render-widget <widget-id> | --all | --list [--engine chromium|firefox|webkit]\n" +
+    "Usage: render-widget <widget-id> | --all | --list [--engine chromium|firefox|webkit] [--profile <install-id>]\n" +
       "       render-widget --screen <screen-id> | --screens\n" +
       "       Known widget ids: " +
       listWidgets().map(cliKey).join(", ") +
@@ -48,8 +48,15 @@ async function main(): Promise<void> {
     usage();
   }
   const engine = (engineArg ?? "chromium") as "chromium" | "firefox" | "webkit";
+  // A scene that declares installs renders under all of them by default; this
+  // narrows a run to one while you work on it. Unknown ids fail in the harness,
+  // naming the installs that exist.
+  const profileFlag = args.indexOf("--profile");
+  const profile = profileFlag !== -1 ? args[profileFlag + 1] : undefined;
+  if (profileFlag !== -1 && !profile) usage();
   const renderOpts = {
     engine,
+    profile,
     outSuffix: engine === "chromium" ? "" : `--${engine}`,
     // Review renders show the WHOLE widget, uncropped, grow past the tile
     // height so nothing is hidden below the fold. Harness-wide (every widget),

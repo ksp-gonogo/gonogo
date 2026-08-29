@@ -134,7 +134,12 @@ describe("the reliability election, seen from three installs", () => {
     expect(
       await screen.findByText(/testflight=healthy/, { selector: "p" }),
     ).toBeInTheDocument();
-    expect(await screen.findByText("Reaction Wheel")).toBeInTheDocument();
+    /*
+     * VISIBLE, not merely present: the roster row's update block collapses
+     * itself when the slot renders nothing, and a failure list the operator
+     * cannot see is the same to them as one that was never rendered.
+     */
+    expect(await screen.findByText("Reaction Wheel")).toBeVisible();
     expect(screen.getAllByText("1 at risk")).toHaveLength(1);
     await act(async () => {});
   });

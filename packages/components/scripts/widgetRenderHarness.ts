@@ -15,6 +15,7 @@ import { dirname, join, resolve } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
 import { build, type Plugin } from "esbuild";
 import { chromium, firefox, type Page, webkit } from "playwright";
+import { fixtureProfiles, getInstallProfile } from "../src/test/installProfile";
 
 const require = createRequire(import.meta.url);
 
@@ -239,6 +240,7 @@ interface ProbePayload {
   instanceId?: string;
   series?: Record<string, readonly ProbeSeriesSample[]>;
   clicks?: ReadonlyArray<{ selector: string; awaitMs?: number }>;
+  profile?: string;
 }
 
 /** Render every (fixture × mode) for one widget, convenience wrapper for
@@ -267,6 +269,13 @@ export async function renderWidgets(
      * unaffected.
      */
     fullContent?: boolean;
+    /**
+     * Render only this declared install rather than every one a scene names.
+     * An iteration convenience: looking at one install's shots while working
+     * on it, instead of waiting for all of them. See
+     * {@link renderProfilesFor}.
+     */
+    profile?: string;
   } = {},
 ): Promise<void> {
   if (configs.length === 0) {
@@ -336,6 +345,7 @@ export async function renderWidgets(
         outBase,
         config.fullContent ?? fullContent,
         findings,
+        opts.profile,
       );
     }
 
@@ -875,6 +885,36 @@ function noFindings(): RenderFindings {
   return { crushedGraphics: [], overlaps: [], mounts: [] };
 }
 
+/**
+ * The installs one fixture is rendered under: every profile the SCENE declares
+ * in its own `_stream.profiles`, or a single unprofiled render (`undefined`)
+ * when it declares none.
+ *
+ * Read off the fixture rather than off a list in `widgets.ts` because the
+ * matrix must not become every widget times every install: a scene about the
+ * reliability election says so itself, and a scene that is about nothing of the
+ * sort keeps exactly the one render it has always had, under the same filename.
+ *
+ * A declared id is resolved here, in node, so an id that names no profile fails
+ * with the list of the ones that exist instead of throwing inside the page,
+ * where it would surface as a mount finding with no clue in it.
+ */
+function renderProfilesFor(
+  fixtureName: string,
+  fixture: Record<string, unknown>,
+  only: string | undefined,
+): Array<string | undefined> {
+  const declared = fixtureProfiles(fixture);
+  if (declared.length === 0) return [undefined];
+  for (const id of declared) getInstallProfile(id);
+  if (only === undefined) return declared;
+  if (declared.includes(only)) return [only];
+  console.warn(
+    `  ! ${fixtureName}: skipped, it declares ${declared.join(", ")} and not "${only}".`,
+  );
+  return [];
+}
+
 async function renderOneWidget(
   page: Page,
   config: WidgetRenderConfig,
@@ -882,6 +922,8 @@ async function renderOneWidget(
   outBase: string = LOCAL_DOCS,
   fullContent = false,
   findings: RenderFindings = noFindings(),
+  /** Render only this declared install; see {@link renderProfilesFor}. */
+  onlyProfile?: string,
 ): Promise<void> {
   const fixturesDir = resolve(COMPONENTS_SRC, config.fixturesPath);
   const outDir = resolve(outBase, config.outPath);
@@ -918,12 +960,28 @@ async function renderOneWidget(
     const seriesData = (
       fixture.data as { _series?: Record<string, readonly ProbeSeriesSample[]> }
     )._series;
-    for (const mode of config.modes) {
+    // One render per (install × mode). A scene that declares no install
+    // contributes a single `undefined` profile, so its matrix, and its output
+    // filenames, are exactly what they were before installs existed.
+    const renders = renderProfilesFor(
+      fixture.name,
+      fixture.data,
+      onlyProfile,
+    ).flatMap((profile) => config.modes.map((mode) => ({ profile, mode })));
+    for (const { profile, mode } of renders) {
       if (mode.forFixtures && !mode.forFixtures.includes(fixture.name)) {
         continue;
       }
       const pxW = mode.w * COL_WIDTH + (mode.w - 1) * GRID_MARGIN;
       const pxH = mode.h * ROW_HEIGHT + (mode.h - 1) * GRID_MARGIN;
+      /*
+       * Every finding below names the install as well as the scene: two renders
+       * of one fixture can disagree for no reason but the install, and a report
+       * that cannot say which of them it saw is not actionable.
+       */
+      const sceneLabel = profile
+        ? `${fixture.name} @ ${profile}`
+        : fixture.name;
       const payload: ProbePayload = {
         widgetId: config.widgetId,
         fixture: fixture.data,
@@ -934,6 +992,7 @@ async function renderOneWidget(
         config: mode.config,
         series: seriesData,
         clicks: mode.clicks,
+        profile,
       };
       try {
         await page.evaluate(
@@ -951,7 +1010,7 @@ async function renderOneWidget(
         // measuring the previous render's DOM and reporting it under this
         // mode's name.
         findings.mounts.push(
-          `${config.widgetId} @ ${mode.name} (${fixture.name}): ` +
+          `${config.widgetId} @ ${mode.name} (${sceneLabel}): ` +
             (err instanceof Error ? err.message.split("\n")[0] : String(err)),
         );
         continue;
@@ -1048,7 +1107,7 @@ async function renderOneWidget(
         }, config.mustBeVisible.selector);
         if (clipped.length > 0) {
           throw new Error(
-            `${config.widgetId} @ ${mode.name} (${fixture.name}): ` +
+            `${config.widgetId} @ ${mode.name} (${sceneLabel}): ` +
               `${clipped.length} element(s) matching "${config.mustBeVisible.selector}" ` +
               "are cut off by the panel edge, so they render but cannot be read:\n  " +
               clipped.join("\n  ") +
@@ -1060,17 +1119,22 @@ async function renderOneWidget(
       }
       for (const crushed of await findCrushedGraphics(page)) {
         findings.crushedGraphics.push(
-          `${config.widgetId} @ ${mode.name} (${fixture.name}): ${crushed}`,
+          `${config.widgetId} @ ${mode.name} (${sceneLabel}): ${crushed}`,
         );
       }
       for (const overlap of await findOverlappingSections(page)) {
         findings.overlaps.push(
-          `${config.widgetId} @ ${mode.name} (${fixture.name}): ${overlap}`,
+          `${config.widgetId} @ ${mode.name} (${sceneLabel}): ${overlap}`,
         );
       }
       const root = await page.$("#root");
       if (!root) throw new Error("Probe: #root missing after render");
-      const outName = `${fixture.name}--${mode.name}${outSuffix}.png`;
+      /*
+       * The install sits between the scene and the mode so a directory listing
+       * groups a scene's installs together, which is the comparison the shots
+       * exist for: same fleet, same failing part, one thing changed.
+       */
+      const outName = `${fixture.name}${profile ? `--${profile}` : ""}--${mode.name}${outSuffix}.png`;
       const outPath = join(outDir, outName);
       /*
        * `PROBE_DUMP_DOM=<css selector>` writes each match's outerHTML, and the

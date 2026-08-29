@@ -76,6 +76,10 @@ import { ThemeProvider } from "styled-components";
 import "../../src";
 import { AlarmsLauncherProvider } from "../../src/shared/AlarmsLauncher";
 import {
+  applyInstallProfile,
+  getInstallProfile,
+} from "../../src/test/installProfile";
+import {
   type StreamFixture,
   setupStreamFixture,
 } from "../../src/test/setupStreamFixture";
@@ -174,14 +178,37 @@ export interface StreamFixtureBlock {
   delaySeconds?: number;
   /** Replayed in order, one `StubTransport.emit` per entry, post-mount. */
   emits: StreamEmit[];
+  /**
+   * The install profiles this scene is interesting under
+   * (`src/test/installProfile.ts`), by id. The SCENE names them, so the matrix
+   * stays a scene's own decision rather than every widget times every install.
+   * The render harness reads this list and asks for one render per id; a
+   * fixture that names none renders under the wire it declares, unchanged.
+   */
+  profiles?: string[];
 }
 
-/** Extracts and narrows the optional `_stream` block off a fixture. */
+/**
+ * Extracts and narrows the optional `_stream` block off a fixture, rewritten
+ * into the wire the requested install would put out.
+ *
+ * An install profile REPLACES the fixture's own wire rather than sitting beside
+ * it, so everything downstream (the carried allowlist, the emit order, the
+ * subscription gating) stays one code path reading one block. Same treatment
+ * the DOM-snapshot harness gives it, off the same fixture JSON and the same
+ * pure transform.
+ */
 function resolveStreamBlock(
   fixture: Record<string, unknown>,
+  profileId: string | undefined,
 ): StreamFixtureBlock | undefined {
   const raw = (fixture as { _stream?: StreamFixtureBlock })._stream;
-  return raw ?? undefined;
+  if (!raw) return undefined;
+  if (profileId === undefined) return raw;
+  return applyInstallProfile(
+    getInstallProfile(profileId),
+    raw,
+  ) as StreamFixtureBlock;
 }
 
 export interface ProbePayload {
@@ -193,6 +220,15 @@ export interface ProbePayload {
   pxH: number;
   config?: Record<string, unknown>;
   instanceId?: string;
+  /**
+   * Render under a declared install (`src/test/installProfile.ts`), by id: the
+   * fixture's `_stream` block is rewritten into the wire that install would put
+   * out, uplink roster included. An augment gated on an elected capability
+   * renders nothing without one, so a scene about an election has no other way
+   * to reach a PNG. Only bites on a fixture that HAS a `_stream` block, a flat
+   * legacy fixture declares no wire to rewrite.
+   */
+  profile?: string;
   /**
    * Optional per-key time-series to seed the BufferedDataSource's
    * MemoryStore *before* the widget mounts. Widgets that call
@@ -351,7 +387,7 @@ async function renderProbe(payload: ProbePayload): Promise<void> {
   // data in `_stream` rather than plain data keys; see this file's top doc
   // comment and `StreamFixtureBlock`. Resolved once up-front so both the
   // provider-wrap choice below and the post-mount emit loop share it.
-  const streamBlock = resolveStreamBlock(payload.fixture);
+  const streamBlock = resolveStreamBlock(payload.fixture, payload.profile);
   const streamFixture: StreamFixture | undefined = streamBlock
     ? setupStreamFixture({
         carriedChannels: streamBlock.carriedChannels,
