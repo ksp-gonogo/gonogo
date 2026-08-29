@@ -41,12 +41,30 @@ function newFixture() {
   });
 }
 
+/**
+ * Waits for the view clock's frame to carry an emitted sample into the render.
+ *
+ * A sample is applied on the next animation frame, not on the emit, so an
+ * assertion made straight after `fixture.emit` reads the widget as it was
+ * BEFORE the record arrived. That is fine for a test asserting a presence, which
+ * retries until the frame lands, and silently fatal for one asserting an
+ * absence, which passes on the pre-emit render whatever the widget does. Await
+ * this before any assertion that the record changed nothing.
+ */
+async function settleFrame(): Promise<void> {
+  await act(async () => {
+    await new Promise<void>((resolve) => {
+      requestAnimationFrame(() => requestAnimationFrame(() => resolve()));
+    });
+  });
+}
+
 describe("ThermalStatus: what undefined means today", () => {
   it("renders the empty state and NO readout rows at all when nothing has arrived", () => {
     const fixture = newFixture();
     const { container } = renderThermal(fixture);
 
-    // `noData` reads all four of its inputs as undefined, so the entire Body
+    // `noData` reads every one of its inputs as undefined, so the entire Body
     // (pill row + readout rows) is never mounted. Named absences rather than an
     // empty container: the widget draws its panel chrome either way.
     expect(screen.getByText("No thermal data")).toBeInTheDocument();
@@ -59,24 +77,24 @@ describe("ThermalStatus: what undefined means today", () => {
     expect(visibleText(container)).not.toContain(NULL_DISPLAY);
   });
 
-  it("keeps the empty state when the record arrives carrying ONLY a critical ratio", async () => {
-    // The absence gate is `noData`, and `maxInternalTempRatio` is not one of
-    // the four fields it consults. So a record that says the hottest part is at
-    // 99% of its limit still renders as "no thermal data": a present, critical
-    // number suppressed by four absent ones.
+  it("draws the readout, not the empty state, when the record carries ONLY a critical ratio", async () => {
+    // `maxInternalTempRatio` IS one of the fields the `noData` gate consults, so
+    // a record saying the hottest part sits at 99% of its limit clears the gate
+    // on its own: a present, critical number is not suppressed by the absent
+    // ones around it. The rows it cannot fill draw placeholders instead.
     const fixture = newFixture();
     renderThermal(fixture);
 
     act(() => {
       fixture.emit("vessel.thermal", { maxInternalTempRatio: 0.99 });
     });
+    await settleFrame();
 
-    await waitFor(() =>
-      expect(fixture.transport.isSubscribed("vessel.thermal")).toBe(true),
-    );
-    expect(screen.getByText("No thermal data")).toBeInTheDocument();
-    expect(screen.queryByRole("alert")).toBeNull();
-    expect(screen.queryByText("critical")).toBeNull();
+    expect(screen.queryByText("No thermal data")).toBeNull();
+    expect(screen.getByText("Hottest part")).toBeInTheDocument();
+    // Named twice: the summary pill and the hottest-part band tag.
+    expect(screen.getAllByText("critical")).toHaveLength(2);
+    expect(screen.getByRole("alert")).toBeInTheDocument();
   });
 
   it("treats a tombstoned channel exactly as it treats one that never arrived", async () => {
@@ -136,9 +154,8 @@ describe("ThermalStatus: what undefined means today", () => {
       });
     });
 
-    await waitFor(() =>
-      expect(fixture.transport.isSubscribed("vessel.thermal")).toBe(true),
-    );
+    await settleFrame();
+
     expect(screen.getByText("No thermal data")).toBeInTheDocument();
     expect(screen.queryByText("OX-STAT Photovoltaic Panels")).toBeNull();
   });
