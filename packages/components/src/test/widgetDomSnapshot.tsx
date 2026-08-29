@@ -941,11 +941,13 @@ export async function renderWidgetMode<
  * two builds' differing volatile-class churn.
  */
 export function stripVolatile(html: string): string {
-  return html
-    .replace(/\sclass="[^"]*\bsc-[^"]*"/g, "")
-    .replace(/\sid="[^"]*\bsc-[^"]*"/g, "")
-    .replace(/\sdata-testid="[^"]+"/g, "")
-    .replace(/\sdata-sc[a-z-]*="[^"]*"/g, "");
+  return normaliseReactIds(
+    html
+      .replace(/\sclass="[^"]*\bsc-[^"]*"/g, "")
+      .replace(/\sid="[^"]*\bsc-[^"]*"/g, "")
+      .replace(/\sdata-testid="[^"]+"/g, "")
+      .replace(/\sdata-sc[a-z-]*="[^"]*"/g, ""),
+  );
 }
 
 /**
@@ -960,10 +962,13 @@ export function stripVolatile(html: string): string {
  * panel. Renumbering keeps each reference matching the element it names, so a
  * tablist wired to the wrong panel still fails the compare.
  *
- * NOT folded into `stripVolatile`, which the committed DOM snapshots also run
- * through: doing that rewrites ids in every stored snapshot, and a snapshot is
- * compared against its own past self rather than a second mount, so it never had
- * the counter-shift problem this solves.
+ * Folded INTO `stripVolatile`, so the committed DOM snapshots carry the
+ * normalised form too. A snapshot is compared against its own past self, which
+ * looked like an argument that the counter could not shift under it, and it is
+ * not: the past self was recorded on another machine, where a different set of
+ * hooks ran before the widget's. `LandingStatus` stored `:r10:` from a laptop
+ * and rendered `:rq:` on a CI runner, and all 24 of its snapshots mismatched at
+ * that one character.
  */
 export function normaliseReactIds(html: string): string {
   const seen = new Map<string, string>();

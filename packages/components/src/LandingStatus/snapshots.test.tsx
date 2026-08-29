@@ -1,5 +1,5 @@
 import { PerfBudget } from "@ksp-gonogo/core";
-import { afterEach, describe, expect, it } from "vitest";
+import { beforeEach, describe, expect, it } from "vitest";
 import { getWidget } from "../../scripts/widgets";
 import { snapshotWidgetMode } from "../test/widgetDomSnapshot";
 import finalApproach from "./__fixtures__/final-approach-mun.json";
@@ -39,24 +39,19 @@ if (!config)
 
 describe("LandingStatus DOM snapshots", () => {
   /**
-   * The contribution budgets, reset at the END of each test, which is the
-   * remedy `PerfBudget.installTestGate` itself prescribes for a spec whose
-   * clock is compressed.
+   * The contribution budgets, reset between tests as the three sibling specs do,
+   * so a previous test's burst is not read as this one's.
    *
-   * `Contributions "<slot>" entries recomputed/sec` is capped at 30, ~7x a real
-   * 4 Hz stream. Each fixture replays ten frames back-to-back, so its ~31
-   * recomputes all land inside one wall second; the same ten frames take two
-   * and a half seconds in the app and read as 12/sec. Resetting BEFORE the test
-   * does not reach that, because the overflow happens within the single test
-   * the gate is diffing across, which is why this file kept failing whenever it
-   * had the machine to itself and passed under a loaded parallel run.
-   *
-   * Reset rather than raised: the threshold is right for the load it measures.
-   * The live assertion is not lost, `index.test.tsx`, `stream.test.tsx` and
-   * `undefined.characterise.test.tsx` drive the same slots at a rate the budget
-   * still grades.
+   * NOT reset at the end of the test, which would zero the gate's own diff and
+   * is the shape this file briefly carried. `Contributions "<slot>" entries
+   * recomputed/sec` is capped at 30 and reads 31 here on a fast laptop, which
+   * looks like the compressed replay clock and was argued as one. It is not: on
+   * an idle CI runner the same slots read 47 to 60, `widgets.axe.test.tsx` trips
+   * them on this widget too, and two of these renders do not settle inside the
+   * 30s test budget at all. The budget is describing the widget, so it keeps its
+   * voice here.
    */
-  afterEach(() => {
+  beforeEach(() => {
     for (const b of PerfBudget.getAll()) {
       if (b.name.startsWith('Contributions "')) b.reset();
     }
