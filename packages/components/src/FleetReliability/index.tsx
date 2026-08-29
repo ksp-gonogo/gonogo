@@ -11,8 +11,10 @@ import {
 } from "@ksp-gonogo/sitrep-sdk";
 import {
   Badge,
+  Card,
   Cluster,
   magnitudeOf,
+  type ReadoutTone,
   type Severity,
   Stack,
   Unit,
@@ -160,6 +162,24 @@ function scheduleBudget(
 }
 
 type Row = { severity: Severity; word: string; clause: ReactNode };
+
+/**
+ * How a part's severity reads on its card's leading edge.
+ *
+ * <p>Coarser than the badge on purpose. The edge rule is scanned, not read: it
+ * answers "is anything here bad" across a stack of cards at a glance, so
+ * `caution` and `warning` share a tone. The precise word survives in the badge
+ * inside the card, which is where an operator looks once the edge has already
+ * caught them.</p>
+ */
+const CARD_TONE: Record<Severity, ReadoutTone> = {
+  critical: "alert",
+  warning: "warning",
+  caution: "warning",
+  offline: "default",
+  nominal: "default",
+  info: "default",
+};
 
 /**
  * How a budget reads out loud, by what crossing its limit MEANS. The verb is the
@@ -520,19 +540,20 @@ export function FleetReliabilityUpdates({ vesselId, compact }: UpdatesProps) {
            * carries four identically-titled reaction wheels and six
            * identically-titled ullage motors.
            */
-          <Cluster
+          <Card
             key={part.partId ?? `idx-${index}`}
-            justify="start"
-            align="baseline"
-            gap="sm"
-            wrap
+            tone={CARD_TONE[row.severity]}
           >
-            <Badge severity={row.severity}>{row.word}</Badge>
-            <span title={part.title ?? undefined}>
-              {part.title ?? "Unknown part"}
-            </span>
-            {row.clause !== undefined && <span>· {row.clause}</span>}
-          </Cluster>
+            <Stack gap="xs">
+              <Cluster justify="between" align="baseline" gap="sm" wrap>
+                <span title={part.title ?? undefined}>
+                  {part.title ?? "Unknown part"}
+                </span>
+                <Badge severity={row.severity}>{row.word}</Badge>
+              </Cluster>
+              {row.clause !== undefined && <span>{row.clause}</span>}
+            </Stack>
+          </Card>
         ))}
     </Stack>
   );
