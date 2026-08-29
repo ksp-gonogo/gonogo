@@ -297,6 +297,8 @@ public static class RtConfig
                 // vessel.inventory channel payload + nested value shapes: stock
                 // cargo carried on parts AND on kerbals, which share one KSP
                 // module and so share one channel.
+                typeof(RepairPartArgs),
+                typeof(RepairOutcome),
                 typeof(VesselInventory),
                 typeof(InventoryStore),
                 typeof(InventoryItem),

@@ -46,5 +46,16 @@ namespace GonogoTestFlightUplink
             if (v == null) return new List<ReliabilityPartEntry>();
             return TestFlightReliabilityMap.Parts(_tf.Engines(v), _tf.Binding);
         }
+
+        /// <summary>
+        /// TestFlight models failures and their repair through its own in-game
+        /// surfaces, and this Uplink does not reach that path. Refused, and
+        /// named honestly: reporting "not modelled" would be false, since
+        /// TestFlight plainly does model repair, and silently succeeding would
+        /// be worse. The operator is told the console cannot drive it.
+        /// </summary>
+        public RepairOutcome Repair(string partId, string crewName) =>
+            new RepairOutcome { Repaired = false, Refusal = "refused" };
+
     }
 }

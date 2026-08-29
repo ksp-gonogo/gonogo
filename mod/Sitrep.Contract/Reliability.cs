@@ -253,4 +253,78 @@ public interface IReliabilityBackend : ISitrepProvider
 
     /// <summary>Per-part reliability entries for the active vessel.</summary>
     IReadOnlyList<ReliabilityPartEntry> Parts();
+
+    /// <summary>
+    /// Attempt a repair of one part, by one named crew member, in a single call.
+    ///
+    /// <para><b>One call, because every command costs a round trip.</b> Asking
+    /// who holds a kit, ordering a fetch and then ordering the repair is three
+    /// trips, which at Duna is hours and nobody would use it. So the backend
+    /// resolves the whole intent locally: crew check, EVA-possibility check,
+    /// kit sourcing including taking one from a part-hosted store, and the
+    /// repair itself.</para>
+    ///
+    /// <para>Returns the outcome, refusals included. A refusal is not an
+    /// exception: it is the answer, it costs the same round trip as a success,
+    /// and it has to say WHY so the operator's next choice is informed.</para>
+    ///
+    /// <para>A backend that models no repair returns a refusal saying so
+    /// rather than throwing, so the command is always answerable.</para>
+    /// </summary>
+    RepairOutcome Repair(string partId, string crewName);
+}
+
+/// <summary><c>vessel.repair</c>'s args: which part, and which crew member does it.</summary>
+[SitrepContract]
+#if SITREP_CODEGEN
+[TsInterface]
+#endif
+public class RepairPartArgs
+{
+    /// <summary>The failed part, joined by the same id <c>reliability.parts</c> and <c>vessel.parts</c> use.</summary>
+    [SitrepUnit(Units.Id)]
+    public string PartId { get; set; } = "";
+
+    /// <summary>Who performs it. A NAME, because that is KSP's own stable identifier for a kerbal and what <c>vessel.crew</c> is keyed by.</summary>
+    [SitrepUnit(Units.Text)]
+    public string CrewName { get; set; } = "";
+}
+
+/// <summary>
+/// What a repair attempt did, or why it did nothing.
+///
+/// <para>Carries where the kit came from because that changes what the operator
+/// has left, and under delay they will not get to ask again cheaply.</para>
+/// </summary>
+[SitrepContract]
+#if SITREP_CODEGEN
+[TsInterface]
+#endif
+public class RepairOutcome
+{
+    /// <summary>Whether the part was actually repaired.</summary>
+    [SitrepUnit(Units.Flag)]
+    public bool Repaired { get; set; }
+
+    /// <summary>
+    /// Why not, when <see cref="Repaired"/> is false: one of
+    /// <c>no-such-crew</c>, <c>crew-not-qualified</c>, <c>eva-impossible</c>,
+    /// <c>no-kits</c>, <c>not-modelled</c>, <c>no-such-part</c>, or
+    /// <c>refused</c> when the backend declined without saying more. Null on
+    /// success.
+    /// </summary>
+    [SitrepUnit(Units.Enumeration)]
+    public string? Refusal { get; set; }
+
+    /// <summary>Kits consumed. Kerbalism charges two for a critical failure and one otherwise.</summary>
+    [SitrepUnit(Units.Count)]
+    public int KitsUsed { get; set; }
+
+    /// <summary>
+    /// Where the kit came from: <c>carried</c> when the kerbal already held it,
+    /// otherwise the part id of the store it was taken from, so the operator
+    /// can see which locker just got lighter.
+    /// </summary>
+    [SitrepUnit(Units.Id)]
+    public string? KitsFrom { get; set; }
 }

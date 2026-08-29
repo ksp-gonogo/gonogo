@@ -648,6 +648,224 @@ namespace Gonogo.KerbalismUplink
         /// here reads it today, but the name is recorded so a future read takes
         /// the key that is actually written.</para>
         /// </summary>
+        /// <summary>
+        /// Perform one repair, resolving the whole intent in a single call.
+        ///
+        /// <para>Every command costs a round trip under signal delay, so asking
+        /// who holds a kit, ordering a fetch and then ordering the repair is
+        /// three of them. This does the lot: crew lookup, EVA-possibility,
+        /// kit sourcing including taking one from a part's cargo hold, and the
+        /// repair itself.</para>
+        ///
+        /// <para><b>Why the preference is flipped around the call.</b>
+        /// Kerbalism's own <c>ConsumeRepairKits</c> reads kits ONLY from an
+        /// EVA kerbal's inventory, and only when the active vessel IS that
+        /// kerbal. A remote repair never satisfies that, so left alone it
+        /// refuses every time kits are required. We take the kits ourselves,
+        /// from a location the operator can see, then hold the guard off for
+        /// the single synchronous call so Kerbalism does not charge a second
+        /// time. The cost is real and the state change stays Kerbalism's.</para>
+        ///
+        /// <para><b>The outcome is OBSERVED, not predicted.</b> Whether the
+        /// crew member satisfies the (elevated, for a critical failure) spec is
+        /// Kerbalism's own <c>CrewSpecs</c> judgement, and re-implementing it
+        /// here would be a second authority that can disagree. So the module's
+        /// broken flag is read back afterwards and the answer taken from
+        /// that.</para>
+        /// </summary>
+        public RepairAttemptRaw AttemptRepair(Vessel v, string partId, string crewName)
+        {
+            var outcome = new RepairAttemptRaw();
+            if (v == null || !v.loaded || v.parts == null)
+            {
+                outcome.Refusal = "no-such-part";
+                return outcome;
+            }
+
+            Part? target = null;
+            foreach (var part in v.parts)
+            {
+                if (part != null && part.flightID.ToString() == partId) { target = part; break; }
+            }
+            if (target == null)
+            {
+                outcome.Refusal = "no-such-part";
+                return outcome;
+            }
+
+            ProtoCrewMember? kerbal = null;
+            var roster = v.GetVesselCrew();
+            if (roster != null)
+            {
+                foreach (var member in roster)
+                {
+                    if (member != null && member.name == crewName) { kerbal = member; break; }
+                }
+            }
+            if (kerbal == null)
+            {
+                outcome.Refusal = "no-such-crew";
+                return outcome;
+            }
+
+            /*
+             * We concede the WALK, which mission control genuinely cannot
+             * perform, and not whether the kerbal could have got out at all.
+             * That second one is a fact about the vehicle the player built and
+             * should still bite.
+             */
+            var from = kerbal.KerbalRef != null ? kerbal.KerbalRef.InPart : null;
+            if (from == null) from = target;
+            try
+            {
+                if (FlightEVA.hatchInsideFairing(from))
+                {
+                    outcome.Refusal = "eva-impossible";
+                    return outcome;
+                }
+            }
+            catch { }
+
+            var broken = new List<PartModule>();
+            foreach (PartModule pm in target.Modules)
+            {
+                if (pm == null || pm.GetType().FullName != "KERBALISM.Reliability") continue;
+                if (MemberBool(pm, "broken") == true) broken.Add(pm);
+            }
+            if (broken.Count == 0)
+            {
+                outcome.Refusal = "no-such-part";
+                return outcome;
+            }
+
+            var critical = MemberBool(broken[0], "critical") == true;
+            var needed = critical ? 2 : 1;
+            var kitsRequired = ReliabilityPreferences().RequireRepairKits == true;
+
+            if (kitsRequired && !TakeRepairKits(v, kerbal, needed, outcome))
+            {
+                outcome.Refusal = "no-kits";
+                return outcome;
+            }
+
+            var restore = kitsRequired ? SuspendRepairKitRequirement() : null;
+            try
+            {
+                foreach (var pm in broken)
+                {
+                    try { pm.Events["Repair"].Invoke(); } catch { }
+                }
+            }
+            finally
+            {
+                restore?.Invoke();
+            }
+
+            outcome.Repaired = MemberBool(broken[0], "broken") != true;
+            if (!outcome.Repaired)
+            {
+                outcome.Refusal = "crew-not-qualified";
+                outcome.KitsUsed = 0;
+                outcome.KitsFrom = null;
+            }
+            else if (kitsRequired)
+            {
+                outcome.KitsUsed = needed;
+            }
+
+            return outcome;
+        }
+
+        /// <summary>
+        /// Make sure the kerbal is holding enough kits, fetching the shortfall
+        /// from a part's cargo hold if they are not.
+        ///
+        /// <para>The fetch happens HERE rather than as a second command,
+        /// because a kerbal holding none cannot repair with a locker two metres
+        /// away and making the operator move it first would cost another round
+        /// trip. Where the kit came from is recorded, since that is what the
+        /// operator has left.</para>
+        /// </summary>
+        private static bool TakeRepairKits(
+            Vessel v, ProtoCrewMember kerbal, int needed, RepairAttemptRaw outcome)
+        {
+            var held = kerbal.KerbalInventoryModule;
+            var carried = CountKits(held);
+            if (carried >= needed)
+            {
+                outcome.KitsFrom = "carried";
+                return true;
+            }
+
+            var shortfall = needed - carried;
+            foreach (var part in v.parts)
+            {
+                var store = part?.FindModuleImplementing<ModuleInventoryPart>();
+                if (store == null || store == held) continue;
+                if (CountKits(store) < shortfall) continue;
+                try
+                {
+                    store.RemoveNPartsFromInventory(RepairKitPartName, shortfall, true);
+                }
+                catch { continue; }
+                outcome.KitsFrom = part!.flightID.ToString();
+                return true;
+            }
+
+            return false;
+        }
+
+        private const string RepairKitPartName = "evaRepairKit";
+
+        private static int CountKits(ModuleInventoryPart? inventory)
+        {
+            if (inventory?.storedParts == null) return 0;
+            var total = 0;
+            foreach (StoredPart stored in inventory.storedParts.Values)
+            {
+                if (stored != null && stored.partName == RepairKitPartName) total += stored.quantity;
+            }
+            return total;
+        }
+
+        /// <summary>
+        /// Hold Kerbalism's own kit guard off for one synchronous call, and
+        /// hand back the undo.
+        ///
+        /// <para>Deliberate circumvention, and the narrowest one available: the
+        /// guard cannot be satisfied remotely at all (it reads only an EVA
+        /// kerbal's inventory), the kits have already genuinely been consumed
+        /// by the caller, and leaving it on would make Kerbalism refuse a
+        /// repair that has already been paid for.</para>
+        /// </summary>
+        private Action? SuspendRepairKitRequirement()
+        {
+            if (_prefsReliabilityType == null) return null;
+            object? instance = null;
+            try
+            {
+                instance = _prefsReliabilityType
+                    .GetProperty("Instance", BindingFlags.Public | BindingFlags.Static)
+                    ?.GetValue(null)
+                    ?? _prefsReliabilityType
+                        .GetField("Instance", BindingFlags.Public | BindingFlags.Static)
+                        ?.GetValue(null);
+            }
+            catch { }
+            if (instance == null) return null;
+
+            var field = _prefsReliabilityType.GetField("requireRepairKits");
+            if (field == null) return null;
+
+            try
+            {
+                var previous = field.GetValue(instance);
+                field.SetValue(instance, false);
+                return () => { try { field.SetValue(instance, previous); } catch { } };
+            }
+            catch { return null; }
+        }
+
         private static List<ReliabilityModuleRead> ReliabilityModules(Vessel v)
         {
             var found = new List<ReliabilityModuleRead>();

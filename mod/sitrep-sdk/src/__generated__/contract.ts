@@ -905,6 +905,18 @@ export interface ReliabilityPartEntry
 	budgets?: ReliabilityBudget[];
 	extensions?: ProviderExtensions;
 }
+export interface RepairPartArgs
+{
+	partId: string;
+	crewName: string;
+}
+export interface RepairOutcome
+{
+	repaired: boolean;
+	refusal?: string;
+	kitsUsed: Value<"count">;
+	kitsFrom?: string;
+}
 export interface RevertAvailability
 {
 	canRevertToEditor: boolean;

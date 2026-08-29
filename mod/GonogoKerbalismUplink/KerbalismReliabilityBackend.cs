@@ -74,6 +74,39 @@ namespace Gonogo.KerbalismUplink
             return KerbalismReliabilityMap.Summary(raw, _k.ReliabilityPreferences(), coverage);
         }
 
+        /// <summary>
+        /// One repair, whole intent, single call. See
+        /// <see cref="KerbalismReflection.AttemptRepair"/> for the mechanism and
+        /// for why the kit guard has to be held off around it.
+        ///
+        /// <para>Refuses when this save is not modelling failures at all,
+        /// rather than reaching for a module that will not be there. The
+        /// backend withdraws from the capability entirely in that case, so this
+        /// is belt and braces for the indeterminate window.</para>
+        /// </summary>
+        public RepairOutcome Repair(string partId, string crewName)
+        {
+            if (Coverage != ReliabilityCoverage.Modeled)
+            {
+                return new RepairOutcome { Repaired = false, Refusal = "not-modelled" };
+            }
+
+            var v = FlightGlobals.ActiveVessel;
+            if (v == null)
+            {
+                return new RepairOutcome { Repaired = false, Refusal = "no-such-part" };
+            }
+
+            var raw = _k.AttemptRepair(v, partId, crewName);
+            return new RepairOutcome
+            {
+                Repaired = raw.Repaired,
+                Refusal = raw.Refusal,
+                KitsUsed = raw.KitsUsed,
+                KitsFrom = raw.KitsFrom,
+            };
+        }
+
         public IReadOnlyList<ReliabilityPartEntry> Parts()
         {
             var coverage = Coverage;

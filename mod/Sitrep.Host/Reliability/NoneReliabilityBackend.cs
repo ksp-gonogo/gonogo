@@ -29,5 +29,14 @@ namespace Sitrep.Host.Reliability
         };
 
         public IReadOnlyList<ReliabilityPartEntry> Parts() => new List<ReliabilityPartEntry>();
+
+        /// <summary>
+        /// Nothing models reliability here, so nothing can repair. Refused
+        /// rather than thrown: the command has to be answerable on every
+        /// install, and a refusal costs the operator the same round trip a
+        /// success would, so it says why.
+        /// </summary>
+        public RepairOutcome Repair(string partId, string crewName) =>
+            new RepairOutcome { Repaired = false, Refusal = "not-modelled" };
     }
 }

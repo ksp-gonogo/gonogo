@@ -206,6 +206,15 @@ namespace Gonogo.KerbalismUplink
     /// <c>mtbfFailures = false</c> and <c>mtbfFailures</c> unreadable want opposite
     /// renders, one says "off" and the other says "cannot tell".
     /// </summary>
+    /// <summary>What an attempted repair did, before it is mapped to the wire shape.</summary>
+    public sealed class RepairAttemptRaw
+    {
+        public bool Repaired;
+        public string? Refusal;
+        public int KitsUsed;
+        public string? KitsFrom;
+    }
+
     public sealed class ReliabilityPreferencesRaw
     {
         public bool? MtbfFailures;

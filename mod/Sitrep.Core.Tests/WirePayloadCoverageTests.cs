@@ -186,6 +186,10 @@ namespace Sitrep.Core.Tests
             // result, with the POCO existing so a client has a type to read it as.
             "VantagePlanRequest", "VantagePlanReply",
             "AddManeuverNodeArgs", "RemoveManeuverNodeArgs", "UpdateManeuverNodeArgs",
+            // vessel.repair: args are inbound-only, and the outcome rides out
+            // inside CommandResult<T>'s flattened reply like every other
+            // command result, so neither is ever published raw.
+            "RepairPartArgs", "RepairOutcome",
             "SetActionGroupArgs", "SetEnabledArgs",
             "SetPausedArgs", "SetSasModeArgs", "SetTargetArgs", "SetThrottleArgs",
             "SetControlFrameArgs", "SendManeuverPlanArgs", "ComposedBurn",
