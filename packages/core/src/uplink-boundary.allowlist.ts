@@ -83,6 +83,14 @@ export const ALLOWLIST: Record<ModToken, ModAllowlist> = {
        * coupling.
        */
       "mod/GonogoRp1Uplink/client/gonogo-render.setup.ts",
+      /*
+       * Prose, citing PROVENANCE: the pressure-profile test measures its
+       * reconstruction error against the real curve the pack ships for Earth,
+       * and its doc comment names the config file that came from. A test that
+       * says where its ground truth was taken from is doing the right thing,
+       * and the name is text.
+       */
+      "mod/Sitrep.Host.Tests/AtmospherePressureProfileTests.cs",
     ],
     domainDebt: [],
   },
