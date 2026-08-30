@@ -1170,7 +1170,7 @@ registerComponent<StrategiesConfig>({
   id: "strategies",
   name: "Admin Building",
   description:
-    "Administration Building strategies for career mode. Shows active commitments, their per-strategy effect bullets, and the available alternatives with cost previews scaled by the commitment-factor slider. Activate / deactivate from any scene, the underlying API replicates KSP's eligibility checks against live state.",
+    "Administration Building strategies for career mode. Shows active commitments, their per-strategy effect bullets, and the available alternatives with cost previews scaled by the commitment-factor slider. Committing and cancelling need the Administration Building open: KSP answers whether a strategy may be activated only while that screen exists, and the answer is the game's own rather than one this widget reconstructs.",
   tags: ["career"],
   defaultSize: { w: 5, h: 9 },
   minSize: { w: 2, h: 2 },

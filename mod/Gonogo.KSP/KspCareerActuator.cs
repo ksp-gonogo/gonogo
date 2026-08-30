@@ -67,10 +67,14 @@ namespace Gonogo.KSP
         /// the three Administration arms from numbers of our own: with the
         /// screen open the game answers every one of them and the refusal is
         /// quoted verbatim; with it closed the console says so and refuses.
-        /// (The concurrent-strategy cap is separately DECLARED on this command
-        /// as a gate over <c>GameVariables.GetActiveStrategyLimit</c>, which is
-        /// the same method <c>Administration.Start</c> reads it from, so the
-        /// control is dark on a full slate either way.)</para>
+        /// (The concurrent-strategy cap is NOT declared as a gate on this
+        /// command. It was, over <c>GameVariables.GetActiveStrategyLimit</c>,
+        /// and it was wrong on the careers this runs on: RP-1 exempts Leaders
+        /// from that cap and spends it on program SLOTS, so a raw count of
+        /// active strategies darkened a control the game would have allowed.
+        /// With the screen open <c>CanBeActivated</c> asks the same arm and
+        /// answers with the game's own reason, which is the authority we
+        /// wanted.)</para>
         ///
         /// <para>The commitment itself is <see cref="StrategyCommit"/>'s: the
         /// factor is written before the gate because the cost scales with it,

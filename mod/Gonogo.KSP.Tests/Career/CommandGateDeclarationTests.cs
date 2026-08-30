@@ -76,7 +76,15 @@ namespace Gonogo.KSP.Tests.Career
                 r => r.Kind == KspGateEvaluators.Kinds.FacilityLimit
                     && r.Quantity == KspGateEvaluators.Quantities.ActiveContracts
                     && r.Facility == "MissionControl");
-            Assert.Contains(
+            /*
+             * Activation declares NO facility limit. It used to, and the entry
+             * counted every active strategy against the Administration cap: RP-1
+             * exempts Leaders from that cap and spends it on program SLOTS, so
+             * the gate darkened a control the game would have allowed. On-screen
+             * CanBeActivated asks the same arm and answers with the game's own
+             * reason; off-screen the actuator refuses whatever this says.
+             */
+            Assert.DoesNotContain(
                 byCommand["career.strategy.activate"],
                 r => r.Kind == KspGateEvaluators.Kinds.FacilityLimit
                     && r.Quantity == KspGateEvaluators.Quantities.ActiveStrategies);
