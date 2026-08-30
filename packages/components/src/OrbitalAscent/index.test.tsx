@@ -97,8 +97,20 @@ describe("OrbitalAscentComponent", () => {
     return { ...result, fixture };
   }
 
-  /** Stream the parent-body name through vessel.identity + system.bodies. */
-  function emitBody(fixture: StreamFixture, name: string) {
+  /**
+   * Stream the parent body through vessel.identity + system.bodies.
+   *
+   * `facts` are the physical ones the roster reports. Omitting `radius` is the
+   * one case where nothing anywhere knows the body, which is a different state
+   * from a body with no gravitational parameter.
+   */
+  function emitBody(
+    fixture: StreamFixture,
+    name: string,
+    facts: { radius?: number | null; gravParameter?: number } = {
+      radius: 600_000,
+    },
+  ) {
     act(() => {
       fixture.emit("vessel.orbit", {
         referenceBodyIndex: 1,
@@ -116,7 +128,10 @@ describe("OrbitalAscentComponent", () => {
             name,
             index: 1,
             parentIndex: 0,
-            radius: 600_000,
+            radius: facts.radius ?? null,
+            ...(facts.gravParameter === undefined
+              ? {}
+              : { gravParameter: facts.gravParameter }),
             orbit: null,
           },
         ],
@@ -167,11 +182,39 @@ describe("OrbitalAscentComponent", () => {
     );
   });
 
-  it("falls back to a notice when the body is not in the registry", async () => {
+  /*
+   * "Unknown" now means nothing REPORTED a radius and no table had one either.
+   * It used to mean "not in the bundled stock table", which a planet-pack
+   * rename made true of every body the player was actually flying near.
+   */
+  it("falls back to a notice when nothing reports a radius for the body", async () => {
     const { fixture } = renderAscent();
 
-    emitBody(fixture, "MysteryRock");
+    emitBody(fixture, "MysteryRock", { radius: null });
 
     expect(await screen.findByText(/unknown body/i)).toBeInTheDocument();
+  });
+
+  /**
+   * The curve is `circularOrbitVelocity`, which needs the body's radius and
+   * gravitational parameter. Both are reported per body, and both used to be
+   * taken from a table of stock bodies keyed by NAME instead, so under a planet
+   * pack the whole reference curve vanished and the widget said the body was
+   * unknown. Rendered rather than run through `buildReferenceCurve`, which
+   * takes the body as an argument and cannot see where it came from.
+   */
+  it("draws the reference curve for a body the stock table has never heard of", async () => {
+    const { container, fixture } = renderAscent();
+
+    emitBody(fixture, "Earth", {
+      radius: 6_371_000,
+      gravParameter: 3.986004418e14,
+    });
+
+    await waitFor(() => {
+      const dashed = container.querySelectorAll("path[stroke-dasharray]");
+      expect(dashed.length).toBeGreaterThan(0);
+    });
+    expect(screen.queryByText(/unknown body/i)).toBeNull();
   });
 });

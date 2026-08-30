@@ -82,7 +82,7 @@ const VESSEL_STATE_INPUTS = [
 ];
 
 describe("KeplerPeriod: reads body names off the stream (R6 Wave 1)", () => {
-  it("resolves parentBodyName/referenceBodyName from the derived channel and surfaces the unknown-body notice", async () => {
+  it("resolves parentBodyName/referenceBodyName from the derived channel and surfaces the no-reference-data notice", async () => {
     const fixture = setupStreamFixture({
       carriedChannels: VESSEL_STATE_INPUTS,
       pinnedUt: 10,
@@ -100,12 +100,16 @@ describe("KeplerPeriod: reads body names off the stream (R6 Wave 1)", () => {
     // GraphView's title always renders regardless of data state.
     expect(screen.getByText("KEPLER PERIOD")).toBeTruthy();
     // Nothing arrived yet: neither degraded notice fires.
-    expect(screen.queryByText(/Unknown body/)).toBeNull();
+    expect(screen.queryByText(/No reference data/)).toBeNull();
 
-    // Emit the derived channel's inputs. `referenceBodyIndex` /
-    // `parentBodyIndex` both point at a body the stock registry has never
-    // heard of, so `getBody` returns undefined and the widget degrades to
-    // its "Unknown body" notice.
+    /*
+     * Emit the derived channel's inputs. `referenceBodyIndex` /
+     * `parentBodyIndex` both point at a body no bundled table has ever heard
+     * of. The roster reports its radius and no gravitational parameter, so the
+     * body resolves and Kepler's third law cannot be drawn for it: the "No
+     * reference data" notice. It used to be "Unknown body", which was the
+     * widget disowning a body the stream had just described.
+     */
     act(() => {
       fixture.emit("vessel.orbit", {
         sma: 682500,
@@ -139,10 +143,11 @@ describe("KeplerPeriod: reads body names off the stream (R6 Wave 1)", () => {
     expect(fixture.transport.isSubscribed("vessel.identity")).toBe(true);
     expect(fixture.transport.isSubscribed("system.bodies")).toBe(true);
 
-    // The streamed body name reached the widget: it can't resolve "Gallium"
-    // in the stock registry, so the unknown-body notice renders with the
+    // The streamed body name reached the widget: the notice renders with the
     // exact streamed name.
-    await waitFor(() => expect(screen.getByText(/Unknown body/)).toBeTruthy());
+    await waitFor(() =>
+      expect(screen.getByText(/No reference data/)).toBeTruthy(),
+    );
     expect(screen.getByText(/Gallium/)).toBeTruthy();
   });
 });

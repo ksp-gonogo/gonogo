@@ -1,7 +1,7 @@
 {
   "_meta": {
     "scenario": "unknown-body-no-reference",
-    "notes": "Body name not in the stock registry. Widget should show the unknown-body notice and plot the orbital-speed trace without a reference curve. v.altitude/v.orbitalVelocity map onto the derived vessel.state.altitudeAsl/orbitalSpeed stream topics, which only populate in the Loaded (measured) basis: the vessel.orbit emit needs quality:1 and a matching vessel.flight emit, or GraphView's X series (altitude) stays permanently null and the trace never plots."
+    "notes": "The roster reports a radius for the body and no gravitational parameter, and no bundled table carries the name either. So the body resolves and its escape curve cannot be drawn: the widget shows the no-reference-data notice and plots the orbital-speed trace alone. It used to show the unknown-body notice, back when the body came from a table of stock bodies keyed by name; a body the stream has described is not unknown. v.altitude/v.orbitalVelocity map onto the derived vessel.state.altitudeAsl/orbitalSpeed stream topics, which only populate in the Loaded (measured) basis: the vessel.orbit emit needs quality:1 and a matching vessel.flight emit, or GraphView's X series (altitude) stays permanently null and the trace never plots."
   },
   "v.body": "Proxima",
   "v.altitude": 150000,

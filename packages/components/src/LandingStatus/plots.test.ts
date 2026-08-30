@@ -1,8 +1,14 @@
+import { getContributionsForSlot, registerStockBodies } from "@ksp-gonogo/core";
+import type { PlotLayer } from "@ksp-gonogo/sitrep-sdk";
+import { value } from "@ksp-gonogo/sitrep-sdk";
 import { describe, expect, it } from "vitest";
 import {
   buildCrossSectionPlot,
   type CrossSectionInputs,
 } from "./crossSectionPlot";
+// Side-effect imports: the three contributions the last describe drives are
+// registered by these modules, exactly as the widget's own import does it.
+import "./descentLayers";
 import {
   buildTouchdownReticlePlot,
   type TouchdownReticleInputs,
@@ -236,5 +242,118 @@ describe("touchdown reticle plot", () => {
     const bareSite = unknown?.layers.find((l) => l.id === "site");
     // An absent slope is NOT a flat site, so nothing is said about one.
     expect(bareSite?.description).toBe("predicted touchdown site");
+  });
+});
+
+/**
+ * The three plots, driven through the CONTRIBUTIONS the widget actually mounts.
+ *
+ * <p>Every case above hands `buildCrossSectionPlot` and its siblings a radius
+ * and a gravity already in hand, so nothing above exercises where those numbers
+ * came from: a pure function cannot see whether its argument was read off the
+ * stream or looked up by name in a bundled table of stock bodies. That
+ * resolution step lives in the contribution, and this is where it is checked.</p>
+ */
+describe("the body a contribution resolves", () => {
+  /*
+   * The app registers these at startup. Without them a table hit and a table
+   * miss both come back empty, so a comparison between a stock name and a
+   * renamed one passes while proving nothing.
+   */
+  registerStockBodies();
+
+  /** RSS's name for Kerbin, and the physical facts the stream reports for it. */
+  const EARTH = {
+    index: 1,
+    name: "Earth",
+    radius: value("m", 6_371_000),
+    gravParameter: value("m³/s²", 3.986004418e14),
+    surfaceGravity: value("g", 1),
+    atmosphere: {
+      depth: value("m", 140_000),
+      seaLevelPressure: value("kPa", 101.325),
+    },
+  };
+
+  /*
+   * Low enough that the site plots' atmospheric gate is open either way: at
+   * 30 km an atmospheric body withholds them and a body read as airless does
+   * not, and a case that turns on that would be measuring the gate rather than
+   * the radius.
+   */
+  const topicsFor = (body: Record<string, unknown>) => ({
+    "vessel.identity": { parentBodyIndex: 1 },
+    "system.bodies": { bodies: [body] },
+    "vessel.flight": {
+      latitude: value("°", 0.2),
+      longitude: value("°", 12),
+      altitudeAsl: value("m", 3200),
+      altitudeTerrain: value("m", 3000),
+      verticalSpeed: value("m/s", -180),
+      surfaceSpeed: value("m/s", 240),
+      mach: value("1", 0.7),
+    },
+    "vessel.surface": { heightFromTerrain: value("m", 3000) },
+    "vessel.landing": {
+      predictedLatitude: value("°", 0.4),
+      predictedLongitude: value("°", 12.6),
+      terminalVelocity: value("m/s", 90),
+      projectedTouchdownSpeed: value("m/s", 95),
+      dragToWeightRatio: value("1", 1.4),
+      terrainPatch: FLAT_PATCH.map((h) => value("m", h)),
+      terrainPatchSize: value("count", 3),
+      terrainPatchExtentMeters: value("m", 200),
+      sampleSource: "terrain",
+      roughnessFootprintMeters: value("m", 40),
+    },
+    "vessel.orbit": { mu: value("m³/s²", 3.986004418e14) },
+  });
+
+  const compute = (id: string, body: Record<string, unknown>) => {
+    const contribution = getContributionsForSlot("plots").find(
+      (c) => c.id === id,
+    );
+    if (!contribution) throw new Error(`the ${id} contribution is missing`);
+    return contribution.compute(topicsFor(body)) as
+      | { layers: PlotLayer[] }[]
+      | null;
+  };
+
+  const layerIds = (id: string, body: Record<string, unknown>) =>
+    (compute(id, body)?.[0]?.layers ?? []).map((l) => l.id);
+
+  /* The integration cannot run without a gravity, so the projected trace is
+     the layer that says whether the body resolved at all. */
+  it("projects the descent for a body no table knows", () => {
+    expect(layerIds("core:descent-envelope", EARTH)).toContain(
+      "trace-estimate",
+    );
+  });
+
+  /*
+   * The vessel mark sits upwind of the site by its real downrange
+   * displacement, and that displacement is a great-circle arc on the body's
+   * radius. With no radius the mark sits ON the site, which is the plot
+   * quietly saying a thing it does not know.
+   */
+  it("places the vessel downrange using the reported radius", () => {
+    const out = compute("core:cross-section", EARTH);
+    const vessel = out?.[0]?.layers.find((l) => l.id === "vessel");
+    expect(vessel?.kind).toBe("marker");
+    expect((vessel as { at?: { x: number } } | undefined)?.at?.x).toBeLessThan(
+      0,
+    );
+  });
+
+  it("centres the touchdown reticle for a body no table knows", () => {
+    expect(layerIds("core:touchdown-reticle", EARTH)).toContain("site");
+  });
+
+  /* Nothing reported and nothing to look up: the reticle is withheld rather
+     than drawn against a radius nobody supplied. */
+  it("withholds the reticle when no source knows the body at all", () => {
+    expect(
+      compute("core:touchdown-reticle", { index: 1, name: "Erf" }),
+    ).toBeNull();
   });
 });

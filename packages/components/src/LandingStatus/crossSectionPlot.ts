@@ -1,4 +1,4 @@
-import { CORE_UPLINK_CLIENT, getBody } from "@ksp-gonogo/core";
+import { CORE_UPLINK_CLIENT } from "@ksp-gonogo/core";
 import type {
   PlotEntry,
   PlotLayer,
@@ -6,6 +6,7 @@ import type {
 } from "@ksp-gonogo/sitrep-sdk";
 import { value } from "@ksp-gonogo/sitrep-sdk";
 import { writeQuantity } from "@ksp-gonogo/ui-kit";
+import { parentBodyFromTopics } from "../shared/streamBody";
 import { greatCircle } from "./geo";
 
 /**
@@ -407,19 +408,6 @@ function descentVelocity(
   };
 }
 
-function parentBody(topics: Readonly<Record<string, unknown>>) {
-  const identity = topics["vessel.identity"] as
-    | TopicPayload<"vessel.identity">
-    | undefined;
-  const bodies = topics["system.bodies"] as
-    | TopicPayload<"system.bodies">
-    | undefined;
-  const index = identity?.parentBodyIndex;
-  if (index == null || !bodies) return undefined;
-  const name = bodies.bodies.find((b) => b.index === index)?.name;
-  return name ? getBody(name) : undefined;
-}
-
 CORE_UPLINK_CLIENT.registerContribution({
   id: "cross-section",
   contributes: "plots",
@@ -440,7 +428,7 @@ CORE_UPLINK_CLIENT.registerContribution({
     const landing = topics["vessel.landing"] as
       | TopicPayload<"vessel.landing">
       | undefined;
-    const body = parentBody(topics);
+    const body = parentBodyFromTopics(topics);
 
     // The ground track direction and how far downrange the site is, derived
     // here rather than handed down: an outside author contributing this plot

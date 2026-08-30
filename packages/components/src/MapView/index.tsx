@@ -8,7 +8,6 @@ import {
   AugmentSlot,
   defineTopicManifest,
   getAugmentsForSlot,
-  getBody,
   getImagingWindow,
   latLonToMap,
   onAugmentsChange,
@@ -39,6 +38,7 @@ import {
 } from "@ksp-gonogo/ui-kit";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { OrbitalEventChips } from "../shared/OrbitalEventChips";
+import { bodyNamed } from "../shared/streamBody";
 import { trajectoryWithheldCopy } from "../shared/trajectoryWithheld";
 import {
   cameraTransform,
@@ -92,7 +92,10 @@ import { shouldSuppressVanillaBase } from "./vanillaSuppression";
 import "./vanillaPoiProvider";
 
 const topics = defineTopicManifest({
-  channels: ["vessel.flight", "vessel.state"],
+  /* `system.bodies` is read directly, not just as a `vessel.state` input: the
+     mapped body's radius and rotation period come off it, keyed by the name the
+     running game reports rather than looked up in the bundled stock table. */
+  channels: ["vessel.flight", "vessel.state", "system.bodies"],
   // `encounterUt` is an absolute instant, NOT the duration the retired
   // `o.encounterTime` named. Those were two keys for one event and the field
   // holds the instant, which is why that key maps to nothing now: an alarm
@@ -488,7 +491,30 @@ function MapViewComponent({
   // layer and augments while orbiting elsewhere. Unset (the default)
   // follows v.body.
   const targetBodyId = bodyOverride ?? bodyName;
-  const body = targetBodyId ? getBody(targetBodyId) : undefined;
+  /*
+   * The radius and the rotation period come off `system.bodies`, which is the
+   * running game's own answer for whatever it calls the body. Read from the
+   * bundled stock table alone, a planet-pack rename missed and took the ground
+   * track with it: `predictGroundTrack` needs a rotation period to turn a time
+   * of flight into a longitude, and with none the prediction was simply never
+   * drawn. Matched by NAME rather than by index because the picker's scope is a
+   * body rather than a vessel, and both names come from the same game.
+   */
+  const bodiesReading = useTelemetry("system.bodies");
+  /* The roster does not decay: a body's radius is the same one it had last
+     frame, so a stale record is the right read rather than a blank map. */
+  const bodies =
+    bodiesReading.state === "observed" || bodiesReading.state === "stale"
+      ? bodiesReading.value
+      : undefined;
+  /* Memoised because the merge builds a fresh object and the ground-track
+     prediction below depends on it: unmemoised it would re-solve Kepler for
+     every sample on every render, defeating the `utBucket` throttle that
+     exists to hold that work to once a second. */
+  const body = useMemo(
+    () => bodyNamed(bodies, targetBodyId),
+    [bodies, targetBodyId],
+  );
   // True when the map is showing the active vessel's body, i.e. there's
   // no override, OR the override happens to equal the vessel's body. When
   // false (an override DIVERGES from the vessel's body), the

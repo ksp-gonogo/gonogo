@@ -2,16 +2,18 @@ import type { BodyDefinition, ComponentProps } from "@ksp-gonogo/core";
 import {
   circularOrbitVelocity,
   defineTopicManifest,
-  getBody,
   registerComponent,
 } from "@ksp-gonogo/core";
 import { useStream, type VesselState } from "@ksp-gonogo/sitrep-client";
 import { Fill, GraphNotice } from "@ksp-gonogo/ui-kit";
 import { useMemo } from "react";
 import { type GraphConfig, GraphView, type ReferenceCurve } from "../Graph";
+import { useStreamBody } from "../shared/useStreamBody";
 
 const topics = defineTopicManifest({
-  channels: ["vessel.state"],
+  // `system.bodies` is read directly: the reference curve needs the body's own
+  // radius and gravitational parameter, and both are reported there.
+  channels: ["vessel.state", "system.bodies"],
   fields: [
     "vessel.state.altitudeAsl",
     "vessel.state.horizontalSpeed",
@@ -78,7 +80,7 @@ function OrbitalAscentComponent({
   // derived topic: see that hook's doc). That is a shared-infra property,
   // not a gap in this widget.
   const bodyName = useStream<VesselState>("vessel.state")?.parentBodyName;
-  const body = bodyName ? getBody(bodyName) : undefined;
+  const body = useStreamBody(bodyName);
 
   const windowSec = config?.windowSec ?? 600;
 

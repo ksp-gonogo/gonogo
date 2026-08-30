@@ -1,5 +1,5 @@
 import type { ComponentProps } from "@ksp-gonogo/core";
-import { getBody, registerComponent, useTelemetry } from "@ksp-gonogo/core";
+import { registerComponent, useTelemetry } from "@ksp-gonogo/core";
 import {
   DELTA_V_BUDGET,
   type Reading,
@@ -34,6 +34,7 @@ import {
 } from "@ksp-gonogo/ui-kit";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { PlotBoard } from "../Plots/PlotBoard";
+import { bodyAtIndex } from "../shared/streamBody";
 import { AltitudeRail } from "./AltitudeRail";
 import { deriveBoard } from "./board";
 import { CommitLayer, REGIME_LABEL, REGIME_TONE } from "./CommitLayer";
@@ -363,10 +364,9 @@ function LandingStatusComponent({
 
   const vs = useStream<VesselState>("vessel.state");
   const bodyName = vs?.parentBodyName ?? undefined;
-  const body = bodyName ? getBody(bodyName) : undefined;
-  const atmospheric = body?.hasAtmosphere ?? false;
 
   const identityReading = useTelemetry("vessel.identity");
+  const bodiesReading = useTelemetry("system.bodies");
   const flightReading = useTelemetry("vessel.flight");
   const surfaceReading = useTelemetry("vessel.surface");
   const propulsionReading = useTelemetry("vessel.propulsion");
@@ -413,6 +413,16 @@ function LandingStatusComponent({
   const propulsion = describe(propulsionReading);
   const orbit = describe(orbitReading);
   const landing = describe(landingReading);
+  /*
+   * The parent body, resolved off `system.bodies` by INDEX rather than looked
+   * up by name in the bundled table of stock bodies. Under a planet pack the
+   * names do not match: RSS calls Kerbin "Earth", the lookup misses, and this
+   * board reported "no body data" and a VACUUM descent for a reentry through
+   * an atmosphere. The table stays behind it for the presentation the stream
+   * carries nothing for.
+   */
+  const body = bodyAtIndex(describe(bodiesReading), identity?.parentBodyIndex);
+  const atmospheric = body?.hasAtmosphere ?? false;
   // The one shared ΔV derivation. It already carries a dated budget rather than
   // blanking one, which is the arm policy `describe` gives every other read here.
   const budget = useProcessor(DELTA_V_BUDGET);

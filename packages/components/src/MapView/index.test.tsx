@@ -53,8 +53,12 @@ interface VesselScenario {
   lat?: number;
   lon?: number;
   altitude?: number;
-  /** Parent body name (drives vessel.state.parentBodyName → getBody + labels). */
+  /** Parent body name, as `system.bodies` reports it: drives every body read. */
   body?: string;
+  /** Mean radius the stream reports for it. Kerbin's unless a case says otherwise. */
+  bodyRadius?: number;
+  /** The nested atmosphere block; omitted entirely when a case does not set one. */
+  atmosphere?: { depth: number };
 }
 
 describe("MapViewComponent", () => {
@@ -230,7 +234,14 @@ describe("MapViewComponent", () => {
           launchUt: 0,
         });
         fixture.emit("system.bodies", {
-          bodies: [{ index: 1, name: s.body, radius: 600_000 }],
+          bodies: [
+            {
+              index: 1,
+              name: s.body,
+              radius: s.bodyRadius ?? 600_000,
+              ...(s.atmosphere ? { atmosphere: s.atmosphere } : {}),
+            },
+          ],
         });
       }
     });
@@ -254,6 +265,42 @@ describe("MapViewComponent", () => {
       if (container.querySelectorAll("canvas").length !== 5) {
         throw new Error("map canvases have not all rendered yet");
       }
+    });
+  });
+
+  /**
+   * The imaging window is a function of the body's radius and its atmosphere,
+   * and the chip is where an operator reads it. Both used to come from a table
+   * of stock bodies keyed by NAME, so under a planet pack the body resolved
+   * nowhere and the chip did not render at all.
+   *
+   * <p>The pair is the point: 100 km is inside Kerbin's imaging window and well
+   * below Earth's, so a case that only checked the chip appeared would pass on
+   * a Kerbin-sized window wearing Earth's name.</p>
+   */
+  describe("a body the stock table has never heard of", () => {
+    const EARTH = {
+      body: "Earth",
+      bodyRadius: 6_371_000,
+      atmosphere: { depth: 140_000 },
+    };
+
+    it("calls 100 km too low for an Earth-sized body", async () => {
+      const { fixture } = renderMap({}, { w: 14, h: 14 });
+      await emitVessel(fixture, { ...EARTH, altitude: 100_000 });
+      expect(await screen.findByText("TOO LOW")).toBeInTheDocument();
+    });
+
+    it("calls the same altitude imaging on Kerbin", async () => {
+      const { fixture } = renderMap({}, { w: 14, h: 14 });
+      await emitVessel(fixture, { body: "Kerbin", altitude: 100_000 });
+      expect(await screen.findByText("IMAGING")).toBeInTheDocument();
+    });
+
+    it("images from an altitude that suits the body it actually reported", async () => {
+      const { fixture } = renderMap({}, { w: 14, h: 14 });
+      await emitVessel(fixture, { ...EARTH, altitude: 1_000_000 });
+      expect(await screen.findByText("IMAGING")).toBeInTheDocument();
     });
   });
 

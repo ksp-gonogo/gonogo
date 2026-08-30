@@ -24,15 +24,18 @@ import { OrbitalAscentComponent } from "./index";
  * and the series would resolve empty off the stream regardless, the AUX keeps
  * the GraphView backfill path exercised.
  *
- * An UNKNOWN body ("Gargantua") is streamed so the body's presence is
- * race-safely observable: the "Unknown body" notice appears only if `v.body`
- * actually streamed (the AUX source never feeds it), so waiting on it can't
- * false-green on an empty stream.
+ * A body no static table carries ("Gargantua") is streamed so the body's
+ * presence is race-safely observable: the "No reference data" notice appears
+ * only if `v.body` actually streamed (the AUX source never feeds it), so
+ * waiting on it can't false-green on an empty stream. It used to be the
+ * "Unknown body" notice, which the widget no longer reaches here: the roster
+ * reports a radius for Gargantua and only the gravitational parameter is
+ * missing, so the body IS known and its reference curve is not.
  */
 const LEGACY_SERIES_KEYS = ["v.altitude", "v.horizontalVelocity"] as const;
 
-// A body name getBody() doesn't recognise, driving the "Unknown body" notice.
-const UNKNOWN_BODY = "Gargantua";
+// A body name no bundled table carries, driving the "No reference data" notice.
+const UNTABLED_BODY = "Gargantua";
 
 describe("OrbitalAscent: stream render golden (delay=0)", () => {
   it("renders the ascent state off the stream with v.body streamed", async () => {
@@ -85,7 +88,7 @@ describe("OrbitalAscent: stream render golden (delay=0)", () => {
       streamFixture.emit("system.bodies", {
         bodies: [
           {
-            name: UNKNOWN_BODY,
+            name: UNTABLED_BODY,
             index: 1,
             parentIndex: 0,
             radius: 600_000,
@@ -99,15 +102,15 @@ describe("OrbitalAscent: stream render golden (delay=0)", () => {
       });
     });
 
-    // The "Unknown body" notice is produced ONLY by the streamed v.body (the
-    // AUX source never feeds it), so this can't false-green on an empty stream.
+    // The notice is produced ONLY by the streamed v.body (the AUX source never
+    // feeds it), so this can't false-green on an empty stream.
     await waitFor(() => {
-      if (!visibleText(container).includes("Unknown body")) {
+      if (!visibleText(container).includes("No reference data")) {
         throw new Error("stream leg has not resolved v.body yet");
       }
     });
     expect(visibleText(container)).toContain("ORBITAL ASCENT");
-    expect(visibleText(container)).toContain(UNKNOWN_BODY);
+    expect(visibleText(container)).toContain(UNTABLED_BODY);
 
     teardownMockDataSource(legacyAux);
   });

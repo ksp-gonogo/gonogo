@@ -4,7 +4,7 @@ import {
   DashboardItemContext,
   registerStockBodies,
 } from "@ksp-gonogo/core";
-import { act, render, waitFor } from "@ksp-gonogo/test-utils";
+import { act, render, screen, waitFor } from "@ksp-gonogo/test-utils";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import {
   type MockDataSourceFixture,
@@ -169,5 +169,52 @@ describe("KeplerPeriodComponent", () => {
         container.querySelectorAll("path[stroke-dasharray]").length,
       ).toBeGreaterThan(0);
     });
+  });
+
+  /**
+   * The curve is Kepler's third law, so it needs the body's radius (the floor
+   * of the SMA sweep) and its gravitational parameter. Both used to come from a
+   * table of stock bodies keyed by NAME, so under a planet pack the widget said
+   * the body was unknown and drew nothing at all. Rendered rather than run
+   * through `buildPeriodCurve`, which takes the body as an argument and cannot
+   * see where it came from.
+   */
+  it("draws the curve for a body the stock table has never heard of", async () => {
+    const { container } = renderKepler();
+
+    act(() => {
+      stream.emit("system.bodies", {
+        bodies: [
+          {
+            name: "Earth",
+            index: 1,
+            parentIndex: 0,
+            radius: 6_371_000,
+            gravParameter: 3.986004418e14,
+            orbit: null,
+          },
+        ],
+      });
+      stream.emit("vessel.orbit", {
+        referenceBodyIndex: 1,
+        sma: 6_771_000,
+        ecc: 0.01,
+        inc: 0,
+        lan: 0,
+        argPe: 0,
+        meanAnomalyAtEpoch: 0,
+        epoch: 10,
+        mu: 3.986004418e14,
+      });
+      stream.emit("vessel.identity", { parentBodyIndex: 1, launchUt: null });
+    });
+
+    await waitFor(() => {
+      expect(
+        container.querySelectorAll("path[stroke-dasharray]").length,
+      ).toBeGreaterThan(0);
+    });
+    expect(screen.queryByText(/Unknown body/)).toBeNull();
+    expect(screen.queryByText(/No reference data/)).toBeNull();
   });
 });

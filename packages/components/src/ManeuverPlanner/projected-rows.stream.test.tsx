@@ -93,12 +93,19 @@ describe("ManeuverPlanner: the projected apsides", () => {
     setup();
     await planABurn();
 
-    // Altitudes, not radii: 747 km above a 600 km body, from a 700 km sma. A
-    // radius would read 1347 km and look just as much like a number.
+    /*
+     * Altitudes, not radii: the burn leaves apsis RADII of 747 km and 707 km,
+     * and above a 600 km body those are altitudes of 147 km and 107 km. This
+     * file used to assert 747 and 707 while calling them altitudes, and both
+     * agreed because the radius came from a static body table this test never
+     * registered: the rows were printing radii under an altitude's label and
+     * the comment described the subtraction that was not happening. The radius
+     * now comes off the `system.bodies` the fixture already emits.
+     */
     await waitFor(() => expect(screen.getByText(/New Ap/)).toBeTruthy());
-    expect(screen.getByText(/747/)).toBeTruthy();
+    expect(screen.getByText(/147\.4/)).toBeTruthy();
     expect(screen.getByText(/New Pe/)).toBeTruthy();
-    expect(screen.getByText(/707/)).toBeTruthy();
+    expect(screen.getByText(/107\.0/)).toBeTruthy();
   });
 
   it("says escape rather than projecting apsides a burn does not leave", async () => {
@@ -165,7 +172,7 @@ describe("ManeuverPlanner: the view frame and the projected apsides", () => {
       fixture.emit("system.frame", { kind: 1, centreBody: "Kerbin" });
     });
 
-    await waitFor(() => expect(screen.getByText(/747/)).toBeTruthy());
+    await waitFor(() => expect(screen.getByText(/147\.4/)).toBeTruthy());
     expect(screen.queryByText(/none in /i)).not.toBeInTheDocument();
   });
 

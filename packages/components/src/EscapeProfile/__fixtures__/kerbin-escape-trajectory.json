@@ -75,6 +75,7 @@
               "index": 1,
               "parentIndex": 0,
               "radius": 600000,
+              "gravParameter": 3531600000000,
               "orbit": null
             }
           ]

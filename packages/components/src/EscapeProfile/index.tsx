@@ -2,12 +2,13 @@ import type { BodyDefinition, ComponentProps } from "@ksp-gonogo/core";
 import {
   defineTopicManifest,
   escapeVelocity,
-  getBody,
   registerComponent,
 } from "@ksp-gonogo/core";
 
 const topics = defineTopicManifest({
-  channels: ["vessel.state"],
+  // `system.bodies` is read directly: the escape-velocity curve needs the
+  // body's own radius and gravitational parameter, both reported there.
+  channels: ["vessel.state", "system.bodies"],
   fields: ["vessel.state.altitudeAsl", "vessel.state.orbitalSpeed"],
 });
 
@@ -16,6 +17,7 @@ import { Box, Stack } from "@ksp-gonogo/ui-kit";
 import type { CSSProperties } from "react";
 import { useMemo } from "react";
 import { type GraphConfig, GraphView, type ReferenceCurve } from "../Graph";
+import { useStreamBody } from "../shared/useStreamBody";
 
 export interface EscapeProfileConfig {
   /** Seconds of trace history retained. Default 600. */
@@ -75,7 +77,13 @@ function EscapeProfileComponent({
   // fields, off the legacy two-arg `data`-source shim.
   const bodyName =
     useStream<VesselState>("vessel.state")?.parentBodyName ?? undefined;
-  const body = bodyName ? getBody(bodyName) : undefined;
+  /*
+   * The body as the running game reports it, matched by name against the same
+   * `system.bodies` roster the name came from. A lookup in the bundled stock
+   * table missed under a planet pack, and this widget is nothing but a curve
+   * drawn from the radius and gravitational parameter it could not find.
+   */
+  const body = useStreamBody(bodyName);
 
   const windowSec = config?.windowSec ?? 600;
 
