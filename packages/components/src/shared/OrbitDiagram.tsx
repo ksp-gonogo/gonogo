@@ -397,6 +397,12 @@ export function OrbitDiagram({
         preserveAspectRatio="xMidYMid meet"
         role="img"
         aria-label="Orbital diagram"
+        /* The orbiting verdict is drawn as the trace's COLOUR and nothing
+           else, so it was assertable only as an rgba literal, which is why
+           nothing tested it. Green says "in orbit", and saying that of a
+           craft on its way down is a wrong answer rather than a missing
+           one. */
+        data-orbiting={isOrbiting ? "yes" : "no"}
       >
         {/* Projected orbit (behind): dashed, amber to contrast with the
           green "current" trajectory. Drawn before the current orbit so

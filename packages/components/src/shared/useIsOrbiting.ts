@@ -1,6 +1,6 @@
-import { getBody } from "@ksp-gonogo/core";
 import { useStream, type VesselState } from "@ksp-gonogo/sitrep-client";
 import { useMemo } from "react";
+import { useStreamBody } from "./useStreamBody";
 
 type OrbitInfo = {
   isOrbiting: boolean;
@@ -21,7 +21,14 @@ export function useIsOrbiting(): OrbitInfo {
   const PeA = vesselState?.periapsisAlt ?? undefined;
   const ApA = vesselState?.apoapsisAlt ?? undefined;
 
-  const body = bodyName ? getBody(bodyName) : undefined;
+  /*
+   * The atmosphere height comes off `system.bodies`, so a caller must carry
+   * that channel. It used to be a `getBody(name)` lookup in the table of STOCK
+   * bodies: under a planet pack that missed, the threshold fell to zero, and
+   * the question silently became "is the periapsis above sea level", which a
+   * craft on its way down answers yes to.
+   */
+  const body = useStreamBody(bodyName);
 
   return useMemo(() => {
     if (PeA === undefined || ApA === undefined) {

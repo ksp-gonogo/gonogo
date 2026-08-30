@@ -1,7 +1,6 @@
 import type { ActionDefinition, ComponentProps } from "@ksp-gonogo/core";
 import {
   defineTopicManifest,
-  getBody,
   registerComponent,
   useActionInput,
   useOrbitElements,
@@ -34,9 +33,10 @@ import { OrbitDiagram } from "../shared/OrbitDiagram";
 import { TrajectoryFrameCaption } from "../shared/trajectoryFrame";
 import { TrajectoryWithheldNote } from "../shared/trajectoryWithheld";
 import { useIsOrbiting } from "../shared/useIsOrbiting";
+import { useStreamBody } from "../shared/useStreamBody";
 
 const topics = defineTopicManifest({
-  channels: ["vessel.orbit", "vessel.state"],
+  channels: ["vessel.orbit", "vessel.state", "system.bodies"],
   fields: [
     "vessel.orbit.sma",
     "vessel.orbit.ecc",
@@ -153,10 +153,10 @@ function CurrentOrbitComponent({
   const withheld =
     trajectory !== null && trajectory.shape === "withheld" ? trajectory : null;
 
-  const body =
-    (bodyName ?? refBody) === undefined
-      ? undefined
-      : getBody(bodyName ?? refBody ?? "");
+  /* Physics off the wire, presentation from the table: `useStreamBody` merges
+   * the two, so `body.radius` is the running game's and `body.color` is still
+   * the registry's, which no wire field replaces. */
+  const body = useStreamBody(bodyName, refBody);
   const { isOrbiting } = useIsOrbiting();
 
   const bodyRef = useRef<HTMLDivElement | null>(null);
