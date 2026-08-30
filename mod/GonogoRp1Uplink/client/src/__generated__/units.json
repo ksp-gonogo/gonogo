@@ -315,6 +315,9 @@
     "Rp1StrategyActivateArgs": {
       "strategyId": "id"
     },
+    "Rp1TechResearchArgs": {
+      "techId": "id"
+    },
     "Rp1VehicleArgs": {
       "id": "id"
     },

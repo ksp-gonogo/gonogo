@@ -33,6 +33,10 @@ export interface Rp1BuildStartArgs
 	facility?: number;
 	lcId?: string;
 }
+export interface Rp1TechResearchArgs
+{
+	techId?: string;
+}
 export interface Rp1CentreEntry
 {
 	kscName?: string;
