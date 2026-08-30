@@ -1829,3 +1829,88 @@ public sealed class Rp1BuildableComplex
     [SitrepUnit(Units.Text)]
     public string[]? Refusals { get; set; }
 }
+
+/// <summary>
+/// What RP-1 charges for a leader, and what it costs to let one go.
+/// </summary>
+/// <remarks>
+/// <para><b>Why this is not on <c>career.status.strategies</c>.</b> That entry is
+/// built by core from plain stock <c>Strategy</c> getters, and every field here
+/// lives on <c>StrategyConfigRP0</c>, which core may not reach. Publishing them
+/// beside the stock entry would put an RP-1 type in core's walk; publishing them
+/// here keeps the boundary and lets a client join on <see cref="StrategyId"/>.</para>
+///
+/// <para><b>Why it exists at all.</b> The stock entry carries
+/// <c>initialCostFunds</c>, <c>initialCostScience</c> and
+/// <c>initialCostReputation</c>, and RP-1 NEVER CHARGES THEM:
+/// <c>PerformActivate</c> spends <c>ConfigRP0.SetupCosts</c> and nothing else.
+/// Those stock fields are still a live GATE, because RP-1 leaves stock's
+/// affordability arms in place, so both quantities matter and neither is dead.
+/// They are simply different questions: one is what refuses you, the other is
+/// what you pay.</para>
+///
+/// <para>On shipped content both are zero, so a control reading the stock fields
+/// as "the price" is right by accident and would go on saying "no setup cost"
+/// the moment a config set one. That is a fact about today's CONTENT standing in
+/// for a fact about our CODE, which is the shape this Uplink keeps finding.</para>
+/// </remarks>
+public class Rp1LeaderEntry
+{
+    /// <summary>
+    /// The strategy this prices, by the id
+    /// <c>career.status.strategies.all[].id</c> publishes.
+    /// </summary>
+    [SitrepUnit(Units.Id)]
+    public string? StrategyId { get; set; }
+
+    /// <summary>Funds RP-1 charges to appoint, absent when it charges none.</summary>
+    [SitrepUnit(Sitrep.Contract.Units.Funds)]
+    public double? SetupFunds { get; set; }
+
+    /// <summary>Science RP-1 charges to appoint.</summary>
+    public double? SetupScience { get; set; }
+
+    /// <summary>Reputation RP-1 charges to appoint.</summary>
+    [SitrepUnit(Sitrep.Contract.Units.Reputation)]
+    public double? SetupReputation { get; set; }
+
+    /// <summary>Confidence RP-1 charges to appoint.</summary>
+    [SitrepUnit(Contract.Units.Confidence)]
+    public double? SetupConfidence { get; set; }
+
+    /// <summary>
+    /// The reputation dismissal costs RIGHT NOW.
+    ///
+    /// <para>Never funds and never a refund, and a fraction of CURRENT
+    /// reputation rather than a fixed figure, so it moves as reputation does: a
+    /// flat share for the first thirty days, decaying over ten years. A client
+    /// must therefore show it at the moment of the decision rather than caching
+    /// it.</para>
+    /// </summary>
+    [SitrepUnit(Sitrep.Contract.Units.Reputation)]
+    public double? DeactivateReputation { get; set; }
+
+    /// <summary>
+    /// Whether dismissing starts a re-hire cooldown, i.e. whether this is a
+    /// decision that cannot be undone by re-appointing.
+    /// </summary>
+    public bool? RemoveOnDeactivate { get; set; }
+
+    /// <summary>
+    /// How long that cooldown lasts. An INTERVAL, so seconds rather than a UT.
+    /// </summary>
+    [SitrepUnit(Sitrep.Contract.Units.Seconds)]
+    public double? ReactivateCooldown { get; set; }
+
+    /// <summary>
+    /// The instant dismissal becomes possible at all. An INSTANT, so a UT.
+    /// </summary>
+    [SitrepUnit("ut")]
+    public double? CanRemoveFromUt { get; set; }
+
+    /// <summary>
+    /// The instant dismissal stops costing reputation. An INSTANT, so a UT.
+    /// </summary>
+    [SitrepUnit("ut")]
+    public double? FreeToRemoveFromUt { get; set; }
+}

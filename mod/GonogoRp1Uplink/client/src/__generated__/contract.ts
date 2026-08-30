@@ -317,3 +317,16 @@ export interface Rp1StrategyActivateArgs
 	strategyId?: string;
 	factor?: number;
 }
+export interface Rp1LeaderEntry
+{
+	strategyId?: string;
+	setupFunds?: Value<"funds">;
+	setupScience?: number;
+	setupReputation?: Value<"rep">;
+	setupConfidence?: Value<"confidence">;
+	deactivateReputation?: Value<"rep">;
+	removeOnDeactivate?: boolean;
+	reactivateCooldown?: Value<"s">;
+	canRemoveFromUt?: Value<"ut">;
+	freeToRemoveFromUt?: Value<"ut">;
+}

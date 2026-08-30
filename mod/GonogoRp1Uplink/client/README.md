@@ -41,6 +41,7 @@ Brings RP-1's career layer to the dashboard: Programs with their objectives, dea
 | `Rp1BuildStartArgs` | `craftFile` id, `facility` enum, `lcId` id |
 | `Rp1ComplexRushArgs` | `lcId` id, `rushing` flag |
 | `Rp1FundingCurveKey` | `frac` ratio, `inTangent` 1, `outTangent` 1, `paidFraction` ratio |
+| `Rp1LeaderEntry` | `canRemoveFromUt` ut, `deactivateReputation` rep, `freeToRemoveFromUt` ut, `reactivateCooldown` s, `setupConfidence` confidence, `setupFunds` funds, `setupReputation` rep, `strategyId` id |
 | `Rp1PersonnelAssignArgs` | `engineers` count, `lcId` id |
 | `Rp1ProgramPaymentEntry` | `cumulativeFunds` funds, `funds` funds, `year` count |
 | `Rp1ProgramSpeedOption` | `confidenceCost` confidence, `durationSeconds` s, `speed` enum |

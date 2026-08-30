@@ -236,6 +236,16 @@ export const GENERATED_TYPE_UNITS: Readonly<Record<string, UnitsByField>> = {
     outTangent: "1",
     paidFraction: "ratio",
   },
+  "Rp1LeaderEntry": {
+    canRemoveFromUt: "ut",
+    deactivateReputation: "rep",
+    freeToRemoveFromUt: "ut",
+    reactivateCooldown: "s",
+    setupConfidence: "confidence",
+    setupFunds: "funds",
+    setupReputation: "rep",
+    strategyId: "id",
+  },
   "Rp1OperationEntry": {
     associatedVesselId: "id",
     blockingPeers: "count",

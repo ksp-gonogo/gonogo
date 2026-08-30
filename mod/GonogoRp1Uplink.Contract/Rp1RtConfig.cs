@@ -55,6 +55,7 @@ public static class Rp1RtConfig
             typeof(Rp1PersonnelAssignArgs),
             typeof(Rp1BuildStartArgs),
             typeof(Rp1StrategyActivateArgs),
+            typeof(Rp1LeaderEntry),
             typeof(Rp1CrewEntry),
             typeof(Rp1CrewProgram),
         };
