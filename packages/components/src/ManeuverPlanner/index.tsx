@@ -2,7 +2,6 @@ import {
   type ActionDefinition,
   type ComponentProps,
   type CurrentOrbit,
-  getBody,
   registerComponent,
   useOrbitElements,
   useTelemetry,
@@ -32,6 +31,7 @@ import {
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import styled from "styled-components";
 import { magnitudeOf } from "../shared/magnitude";
+import { bodyFromStream } from "../shared/streamBody";
 import { ArmedTriggersList } from "./ArmedTriggersList";
 import { useBurnCompletionTracker } from "./BurnCompletionTracker";
 import { BurnConformanceRow } from "./BurnConformanceRow";
@@ -229,6 +229,10 @@ function ManeuverPlannerComponent({
     useStream<VesselState>("vessel.state")?.orbitalRadius ?? undefined;
   const refBody = useStream<VesselState>("vessel.state")?.referenceBodyName;
   const bodyName = useStream<VesselState>("vessel.state")?.parentBodyName;
+  const parentBodyRadius =
+    useStream<VesselState>("vessel.state")?.parentBodyRadius;
+  const referenceBodyRadius =
+    useStream<VesselState>("vessel.state")?.referenceBodyRadius;
   const inclination = magnitudeOf(orbit?.inc) ?? undefined;
   const targetName = target?.name;
   const targetInclinationLive = magnitudeOf(target?.orbit?.inc) ?? undefined;
@@ -316,7 +320,22 @@ function ManeuverPlannerComponent({
   // `getValue`), so this also excludes any legacy key with no stream home.
   const numericKeys = useValueKeys("data");
 
-  const body = getBody(bodyName ?? refBody ?? "");
+  /*
+   * The radius comes off the wire, resolved by INDEX; only the colour the
+   * diagram paints the body still comes from the static table, and only because
+   * nothing reports one. Looking the whole body up by NAME meant that under a
+   * planet pack a transfer never planned at all (`planHohmann` bails on its own
+   * `bodyRadius === undefined` guard) and the projected apsides printed a
+   * radius under an altitude's label.
+   */
+  const body = useMemo(
+    () =>
+      bodyFromStream({
+        name: bodyName ?? refBody,
+        radius: parentBodyRadius ?? referenceBodyRadius,
+      }),
+    [bodyName, refBody, parentBodyRadius, referenceBodyRadius],
+  );
 
   const mu = useMemo(
     () => computeMu(orbitalSpeed, radius, sma, period),

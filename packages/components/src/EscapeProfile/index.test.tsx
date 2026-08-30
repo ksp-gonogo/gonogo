@@ -22,10 +22,16 @@ const VESSEL_STATE_INPUTS = [
   "vessel.propulsion",
 ];
 
-/** Resolves `vessel.state.parentBodyName` to `name` via a single-entry `system.bodies` table. */
+/**
+ * Resolves `vessel.state.parentBodyName` to `name` via a single-entry
+ * `system.bodies` roster. `facts` are the physical ones that roster reports;
+ * the defaults are Kerbin's radius with no gravitational parameter, which
+ * leaves the curve to whatever the static table knows about the name.
+ */
 function emitBody(
   fixture: ReturnType<typeof setupStreamFixture>,
   name: string,
+  facts: { radius?: number; gravParameter?: number } = {},
 ) {
   fixture.emit("vessel.orbit", {
     referenceBodyIndex: 1,
@@ -40,7 +46,18 @@ function emitBody(
     encounter: null,
   });
   fixture.emit("system.bodies", {
-    bodies: [{ name, index: 1, parentIndex: 0, radius: 600_000, orbit: null }],
+    bodies: [
+      {
+        name,
+        index: 1,
+        parentIndex: 0,
+        radius: facts.radius ?? 600_000,
+        ...(facts.gravParameter === undefined
+          ? {}
+          : { gravParameter: facts.gravParameter }),
+        orbit: null,
+      },
+    ],
   });
   fixture.emit("vessel.identity", { parentBodyIndex: 1 });
 }
@@ -131,5 +148,32 @@ describe("EscapeProfileComponent", () => {
     });
 
     expect(await screen.findByText(/no reference data/i)).toBeInTheDocument();
+  });
+
+  /**
+   * `escapeVelocity` is `sqrt(2·GM / (r + h))`, so the curve needs the body's
+   * radius and gravitational parameter. Both used to come from a table of stock
+   * bodies keyed by NAME, so under a planet pack nothing resolved and the
+   * widget's entire reference curve disappeared. Rendered rather than run
+   * through `buildEscapeCurve`, which takes the body as an argument and cannot
+   * see where it came from.
+   */
+  it("draws the curve for a body the stock table has never heard of", async () => {
+    const { fixture, container } = renderEscape();
+
+    act(() => {
+      emitBody(fixture, "Earth", {
+        radius: 6_371_000,
+        gravParameter: 3.986004418e14,
+      });
+    });
+
+    await waitFor(() => {
+      expect(
+        container.querySelectorAll("path[stroke-dasharray]").length,
+      ).toBeGreaterThan(0);
+    });
+    expect(screen.queryByText(/unknown body/i)).toBeNull();
+    expect(screen.queryByText(/no reference data/i)).toBeNull();
   });
 });

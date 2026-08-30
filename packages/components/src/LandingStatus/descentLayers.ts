@@ -1,4 +1,4 @@
-import { CORE_UPLINK_CLIENT, getBody } from "@ksp-gonogo/core";
+import { CORE_UPLINK_CLIENT } from "@ksp-gonogo/core";
 import type { PlotLayer, PlotTone, TopicPayload } from "@ksp-gonogo/sitrep-sdk";
 import {
   projectDescent,
@@ -7,6 +7,7 @@ import {
   value,
 } from "@ksp-gonogo/sitrep-sdk";
 import { writeQuantity } from "@ksp-gonogo/ui-kit";
+import { parentBodyFromTopics } from "../shared/streamBody";
 
 /**
  * The descent envelope, as a CONTRIBUTED PLOT.
@@ -444,33 +445,13 @@ export function buildDescentLayers(
 }
 
 /**
- * The widget's own contribution, registered at module load like any Uplink's.
+ * The descent envelope, contributed as a WHOLE PLOT.
  *
- * It reads the same four Topics the widget does and re-derives the burn datum
- * the same way (`vessel.surface`'s lowest-point height, falling back to the
+ * It reads the same Topics the widget does and re-derives the burn datum the
+ * same way (`vessel.surface`'s lowest-point height, falling back to the
  * centre-of-mass radar altitude), because a contribution is handed Topic values
  * and nothing else. That is the constraint a guest works under, and the host
  * working under it too is the whole point.
- */
-/** The parent body's registered definition, from the two Topics that name it.
- *  `vessel.state.parentBodyName` is a derived channel and not a Topic a
- *  contribution may depend on, so the index-to-name join is done here, exactly
- *  as the channel itself does it. */
-function parentBody(topics: Readonly<Record<string, unknown>>) {
-  const identity = topics["vessel.identity"] as
-    | TopicPayload<"vessel.identity">
-    | undefined;
-  const bodies = topics["system.bodies"] as
-    | TopicPayload<"system.bodies">
-    | undefined;
-  const index = identity?.parentBodyIndex;
-  if (index == null || !bodies) return undefined;
-  const name = bodies.bodies.find((b) => b.index === index)?.name;
-  return name ? getBody(name) : undefined;
-}
-
-/**
- * The descent envelope, contributed as a WHOLE PLOT.
  *
  * Registered through `CORE_UPLINK_CLIENT` because that is the only route there
  * is. A third party writes `defineUplinkClient({...}).registerContribution` and
@@ -505,7 +486,7 @@ CORE_UPLINK_CLIENT.registerContribution({
     const landing = topics["vessel.landing"] as
       | TopicPayload<"vessel.landing">
       | undefined;
-    const body = parentBody(topics);
+    const body = parentBodyFromTopics(topics);
     // The burn datum, derived exactly as the widget does: the vessel's LOWEST
     // point above terrain, falling back to the centre-of-mass radar altitude
     // when `vessel.surface` is nulled by the capture guard.
@@ -521,10 +502,17 @@ CORE_UPLINK_CLIENT.registerContribution({
         landing?.projectedTouchdownSpeed?.magnitude ?? null,
       atmosphereColor: body?.atmosphereColor ?? null,
       dragToWeight: landing?.dragToWeightRatio?.magnitude ?? null,
+      /*
+       * The gravity the stream reported, and only then the one the elements
+       * imply. Both come off `system.bodies` now; what neither is any more is
+       * a name looked up in a table of stock bodies, which under a planet pack
+       * matched nothing and took the projection off the plot silently.
+       */
       surfaceGravity:
-        body?.gm != null && body.radius > 0
+        body?.surfaceGravity ??
+        (body?.gm != null && body.radius > 0
           ? body.gm / (body.radius * body.radius)
-          : null,
+          : null),
       mach: flight?.mach?.magnitude ?? null,
     };
     const frame = descentFrame(inputs);

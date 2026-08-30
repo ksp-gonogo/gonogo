@@ -45,10 +45,30 @@ const CARRIED = [
 const MUN = { index: 3, name: "Mun", radius: 200_000, mu: 6.5138398e10 };
 const KERBIN = { index: 1, name: "Kerbin", radius: 600_000, mu: 3.5316e12 };
 
+/**
+ * A body under a planet-pack rename, with no entry in the stock table at all.
+ * Every physical fact here is one `system.bodies` reports, so a widget reading
+ * the stream draws exactly as it would for Kerbin.
+ */
+const EARTH = {
+  index: 1,
+  name: "Earth",
+  radius: 6_371_000,
+  mu: 3.986004418e14,
+  atmosphere: { depth: 140_000 },
+};
+
 function emitVessel(
   stream: ReturnType<typeof setupStreamFixture>,
   opts: {
-    body: { index: number; name: string; radius: number; mu: number };
+    body: {
+      index: number;
+      name: string;
+      radius: number;
+      mu: number;
+      /** The nested block `system.bodies` carries; `null` is the host saying airless. */
+      atmosphere?: { depth: number } | null;
+    };
     quality: number;
     descent?: {
       heightFromTerrain: number;
@@ -67,6 +87,10 @@ function emitVessel(
         index: opts.body.index,
         parentIndex: 0,
         radius: opts.body.radius,
+        gravParameter: opts.body.mu,
+        ...(opts.body.atmosphere === undefined
+          ? {}
+          : { atmosphere: opts.body.atmosphere }),
         orbit: null,
       },
     ],
@@ -575,6 +599,73 @@ describe("LandingStatusComponent", () => {
     });
     const alert = await screen.findByRole("alert");
     expect(visibleText(alert)).toMatch(/NO LANDING VECTOR/);
+  });
+
+  /**
+   * The board a rename produces.
+   *
+   * <p>These render the widget rather than calling `solveSuicideBurn` or
+   * `deriveBoard`, because both take the radius and the atmosphere flag as
+   * arguments and so cannot see where either came from: every case above hands
+   * them a correct value directly, which is why the resolution step had no
+   * coverage. `registerStockBodies` runs in `beforeEach`, so a table hit and a
+   * table miss are genuinely distinguishable here.</p>
+   */
+  describe("a body the stock table has never heard of", () => {
+    const descent = {
+      heightFromTerrain: 5000,
+      verticalSpeed: 50,
+      surfaceSpeed: 60,
+    };
+
+    it("calls the descent atmospheric on a body the pack renamed", async () => {
+      renderWidget();
+      act(() => {
+        emitVessel(stream, {
+          body: EARTH,
+          quality: Quality.Loaded,
+          descent,
+          availableThrust: 20,
+        });
+      });
+      expect(
+        await screen.findByText(/earth · atmospheric/i),
+      ).toBeInTheDocument();
+    });
+
+    it("solves the descent against the radius the stream reported", async () => {
+      renderWidget();
+      act(() => {
+        emitVessel(stream, {
+          body: EARTH,
+          quality: Quality.Loaded,
+          descent,
+          availableThrust: 20,
+        });
+      });
+      await screen.findByText(/earth · atmospheric/i);
+      expect(visibleText()).not.toMatch(/no body data/i);
+    });
+
+    /*
+     * The host reports airless as an explicit null, and that is a claim about
+     * the body rather than a gap in the stream, so it wins over the table.
+     * Stated against a body the table DOES know and calls atmospheric, because
+     * against a renamed one both sources say nothing and the case would pass
+     * without proving anything.
+     */
+    it("takes an explicitly airless body as airless, table or no table", async () => {
+      renderWidget();
+      act(() => {
+        emitVessel(stream, {
+          body: { ...KERBIN, atmosphere: null },
+          quality: Quality.Loaded,
+          descent,
+          availableThrust: 20,
+        });
+      });
+      expect(await screen.findByText(/kerbin · vacuum/i)).toBeInTheDocument();
+    });
   });
 
   it("has no axe violations", async () => {

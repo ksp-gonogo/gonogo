@@ -74,7 +74,8 @@
               "name": "Mun",
               "index": 1,
               "parentIndex": 0,
-              "radius": 600000,
+              "radius": 200000,
+              "gravParameter": 65138398000,
               "orbit": null
             }
           ]

@@ -18,10 +18,10 @@ import { OrbitalAscentComponent } from "./index";
  * `system.bodies` (`vessel-state.ts`). Emitting `vessel.orbit` (which gates the
  * whole `vessel.state` record; default `StubTransport` meta quality is
  * `OnRails`, so the propagated branch runs) plus `vessel.identity` +
- * `system.bodies` makes the derived body name resolve. Streaming an UNKNOWN
- * body name (one `getBody` doesn't know) is what proves the value came off the
- * stream: the widget renders its "Unknown body" notice, which it could not do
- * from a legacy fallback that isn't wired here.
+ * `system.bodies` makes the derived body name resolve. Streaming a body no
+ * bundled table carries is what proves the value came off the stream: the
+ * widget renders its "No reference data" notice, which it could not do from a
+ * legacy fallback that isn't wired here.
  *
  * `carriedChannels` lists all EIGHT of `vessel.state`'s declared inputs, the
  * carried-channels gate is parent-channel-scoped, not per-field (see
@@ -66,7 +66,7 @@ describe("OrbitalAscent: v.body genuinely runs off the stream (R6)", () => {
 
     // Chrome renders immediately; nothing has streamed yet so no body notice.
     expect(visibleText(container)).toContain("ORBITAL ASCENT");
-    expect(container.textContent).not.toContain("Unknown body");
+    expect(container.textContent).not.toContain("No reference data");
 
     // A real subscription must have happened for StubTransport (which is
     // subscription-gated) to deliver at all.
@@ -97,10 +97,15 @@ describe("OrbitalAscent: v.body genuinely runs off the stream (R6)", () => {
       fixture.emit("vessel.identity", { parentBodyIndex: 1, launchUt: 0 });
     });
 
-    // The derived vessel.state.parentBodyName streams through as "Gargantua",
-    // which getBody() doesn't recognise -> the "Unknown body" notice appears.
+    /*
+     * The derived vessel.state.parentBodyName streams through as "Gargantua".
+     * The roster reports a radius for it and no gravitational parameter, so
+     * the body resolves and its reference curve does not: the "No reference
+     * data" notice. It used to read "Unknown body", which was the widget
+     * saying it had never heard of a body the stream had just described.
+     */
     await waitFor(() => {
-      if (!visibleText(container).includes("Unknown body")) {
+      if (!visibleText(container).includes("No reference data")) {
         throw new Error("streamed body name has not resolved yet");
       }
     });

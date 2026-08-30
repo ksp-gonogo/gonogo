@@ -1,4 +1,4 @@
-import { getBody, safeRandomUuid } from "@ksp-gonogo/core";
+import { safeRandomUuid } from "@ksp-gonogo/core";
 import {
   dispatchActiveCommandTopic,
   getValue,
@@ -9,6 +9,7 @@ import {
   getViewUt,
   onActiveTimelineFrame,
 } from "@ksp-gonogo/sitrep-client";
+import { magnitudeOf } from "../shared/magnitude";
 import {
   buildCurrentOrbit,
   computeMu,
@@ -197,11 +198,19 @@ export class LocalManeuverTriggerService implements ManeuverTriggerService {
     };
   }
 
+  /**
+   * Off the wire, by index, never by name against the bundled stock bodies:
+   * under a planet pack the names do not match, the lookup misses, and a
+   * transfer that needs a radius quietly plans nothing. The host-side twin
+   * (`ManeuverTriggerHostService`) reads the same two fields.
+   */
   private readBodyRadius(
     state: ReturnType<typeof getVesselState>,
   ): number | undefined {
-    const name = state?.parentBodyName ?? state?.referenceBodyName ?? "";
-    return getBody(name)?.radius;
+    return (
+      magnitudeOf(state?.parentBodyRadius ?? state?.referenceBodyRadius) ??
+      undefined
+    );
   }
 
   private readVesselName(): string | null {

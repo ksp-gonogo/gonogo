@@ -1,4 +1,4 @@
-import { CORE_UPLINK_CLIENT, getBody } from "@ksp-gonogo/core";
+import { CORE_UPLINK_CLIENT } from "@ksp-gonogo/core";
 import type {
   PlotEntry,
   PlotLayer,
@@ -6,6 +6,7 @@ import type {
 } from "@ksp-gonogo/sitrep-sdk";
 import { value } from "@ksp-gonogo/sitrep-sdk";
 import { writeQuantity } from "@ksp-gonogo/ui-kit";
+import { parentBodyFromTopics } from "../shared/streamBody";
 import { greatCircle } from "./geo";
 
 /**
@@ -291,19 +292,6 @@ function reliefGrid(
   };
 }
 
-function parentBody(topics: Readonly<Record<string, unknown>>) {
-  const identity = topics["vessel.identity"] as
-    | TopicPayload<"vessel.identity">
-    | undefined;
-  const bodies = topics["system.bodies"] as
-    | TopicPayload<"system.bodies">
-    | undefined;
-  const index = identity?.parentBodyIndex;
-  if (index == null || !bodies) return undefined;
-  const name = bodies.bodies.find((b) => b.index === index)?.name;
-  return name ? getBody(name) : undefined;
-}
-
 /**
  * The dispersion circle, derived rather than read: nothing on the wire carries
  * one. A fraction of the remaining horizontal travel, so it closes as the
@@ -402,7 +390,7 @@ CORE_UPLINK_CLIENT.registerContribution({
     const orbit = topics["vessel.orbit"] as
       | TopicPayload<"vessel.orbit">
       | undefined;
-    const body = parentBody(topics);
+    const body = parentBodyFromTopics(topics);
     if (
       flight?.latitude == null ||
       flight?.longitude == null ||

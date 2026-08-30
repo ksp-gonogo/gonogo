@@ -1,13 +1,14 @@
 import type { BodyDefinition, ComponentProps } from "@ksp-gonogo/core";
 import {
   defineTopicManifest,
-  getBody,
   orbitalPeriod,
   registerComponent,
 } from "@ksp-gonogo/core";
 
 const topics = defineTopicManifest({
-  channels: ["vessel.orbit", "vessel.state"],
+  // `system.bodies` is read directly: the period curve is Kepler's third law and
+  // needs the body's own radius and gravitational parameter, both reported there.
+  channels: ["vessel.orbit", "vessel.state", "system.bodies"],
   fields: [
     "vessel.orbit.sma",
     "vessel.state.period",
@@ -20,6 +21,7 @@ import { useStream, type VesselState } from "@ksp-gonogo/sitrep-client";
 import { Fill, GraphNotice } from "@ksp-gonogo/ui-kit";
 import { useMemo } from "react";
 import { type GraphConfig, GraphView, type ReferenceCurve } from "../Graph";
+import { useStreamBody } from "../shared/useStreamBody";
 
 export interface KeplerPeriodConfig {
   /**
@@ -81,16 +83,16 @@ function KeplerPeriodComponent({
   const bodyName = useStream<VesselState>("vessel.state")?.parentBodyName;
   const referenceBody =
     useStream<VesselState>("vessel.state")?.referenceBodyName;
-  // o.referenceBody is the authoritative answer for the body the orbit is
-  // around (matters during SOI transitions); fall back to v.body for cases
-  // where the orbital reference hasn't been published yet.
-  const body = useMemo(() => {
-    return (
-      (referenceBody && getBody(referenceBody)) ||
-      (bodyName && getBody(bodyName)) ||
-      undefined
-    );
-  }, [bodyName, referenceBody]);
+  /*
+   * o.referenceBody is the authoritative answer for the body the orbit is
+   * around (matters during SOI transitions); fall back to v.body for cases
+   * where the orbital reference hasn't been published yet. Both names are
+   * matched against the roster the stream itself reports, never against the
+   * bundled stock table: under a planet pack the table has no entry, and this
+   * widget's whole output is a curve that needs the body's radius and
+   * gravitational parameter.
+   */
+  const body = useStreamBody(referenceBody, bodyName);
 
   const windowSec = config?.windowSec ?? 60;
 

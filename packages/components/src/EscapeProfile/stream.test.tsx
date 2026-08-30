@@ -13,8 +13,8 @@ import { EscapeProfileComponent } from "./index";
  * resolved against `system.bodies`). This test runs the widget OFF THE STREAM,
  * a real `TelemetryProvider`/`TimelineStore` pipeline, NO legacy `"data"`
  * source, and proves the streamed body name actually reaches the widget:
- * emitting `vessel.identity` + `system.bodies` for a body the stock registry
- * doesn't know surfaces the widget's "Unknown body" Notice with that exact
+ * emitting `vessel.identity` + `system.bodies` for a body with no gravitational
+ * parameter surfaces the widget's "No reference data" Notice with that exact
  * name. If the read had silently fallen back to a (nonexistent) legacy source,
  * the body would stay `undefined` and no Notice would render.
  *
@@ -39,7 +39,7 @@ const VESSEL_STATE_INPUTS = [
 ] as const;
 
 describe("EscapeProfile: reads v.body off the stream (R6)", () => {
-  it("surfaces the streamed body name in the Unknown-body notice, with no legacy source", async () => {
+  it("surfaces the streamed body name in the no-reference-data notice, with no legacy source", async () => {
     const fixture = setupStreamFixture({
       carriedChannels: VESSEL_STATE_INPUTS,
       pinnedUt: 10,
@@ -54,8 +54,9 @@ describe("EscapeProfile: reads v.body off the stream (R6)", () => {
       </fixture.Provider>,
     );
 
-    // "Proxima" is not a stock body, so a resolved streamed name drives the
-    // widget's Unknown-body Notice: an observable proof the value streamed.
+    // The roster reports a radius for "Proxima" and no gravitational parameter,
+    // so a resolved streamed name drives the widget's no-reference-data Notice:
+    // an observable proof the value streamed.
     // vessel.orbit gates the whole derived vessel.state record (deriveVesselState),
     // so it must be present for parentBodyName to resolve at all.
     act(() => {
@@ -86,12 +87,12 @@ describe("EscapeProfile: reads v.body off the stream (R6)", () => {
     });
 
     await waitFor(() => {
-      if (!visibleText(container).includes("Unknown body")) {
+      if (!visibleText(container).includes("No reference data")) {
         throw new Error("streamed body name has not reached the widget yet");
       }
     });
 
     expect(visibleText(container)).toContain("ESCAPE PROFILE");
-    expect(visibleText(container)).toContain("Unknown body “Proxima”");
+    expect(visibleText(container)).toContain("No reference data for Proxima");
   });
 });

@@ -251,7 +251,12 @@ function emitManeuverNode(
   });
 }
 
-function emitFullOrbit(source: MockDataSource): void {
+/**
+ * `bodyName` is the name `system.bodies` reports at index 1, and defaults to the
+ * stock one. A planet pack changes it and nothing else: the index, the radius
+ * and every element stay put, which is exactly the case a name lookup misses.
+ */
+function emitFullOrbit(source: MockDataSource, bodyName = "Kerbin"): void {
   source.emit("comm.connected", true);
   source.emit("v.name", "Test Vessel");
   source.emit("v.missionTime", 0);
@@ -283,7 +288,7 @@ function emitFullOrbit(source: MockDataSource): void {
   utFixture.emit("system.bodies", {
     bodies: [
       {
-        name: "Kerbin",
+        name: bodyName,
         index: 1,
         parentIndex: 0,
         radius: 600_000,
@@ -730,6 +735,28 @@ describe("ManeuverPlannerComponent", () => {
     } finally {
       vi.useRealTimers();
     }
+  });
+
+  /**
+   * The projected apsides are ALTITUDES, and an altitude is a radius minus the
+   * body's own. The subtrahend used to come from a name lookup in the bundled
+   * table of stock bodies, so under a planet pack it was zero and the row
+   * printed the radius with an altitude's label: 707 km where the craft is at
+   * 107 km. Rendered rather than computed, because `computePlan` is handed a
+   * `bodyRadius` and cannot see where it came from.
+   */
+  it("subtracts the reported radius from the projected apsides under a rename", async () => {
+    render(
+      <utFixture.Provider>
+        <ManeuverPlannerComponent id="mnv" config={{}} />
+      </utFixture.Provider>,
+    );
+    act(() => {
+      emitFullOrbit(source, "Earth");
+    });
+    await screen.findByText("New Ap");
+    expect(visibleText()).toMatch(/107\.0 km/);
+    expect(visibleText()).not.toMatch(/707\.0 km/);
   });
 
   it("reveals per-preset custom inputs when a custom preset is selected", async () => {
