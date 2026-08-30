@@ -94,7 +94,19 @@ export function ProgramDetail({ config }: ComponentProps<ProgramDetailConfig>) {
 
   return (
     <Panel>
-      <PanelTitle>PROGRAM DETAIL</PanelTitle>
+      {/*
+       * At this widget's own minSize the full title does not fit: the docs
+       * gate measured it 3px outside the 150px it is given, on the Linux
+       * runner where the check runs. It fits on macOS, which is why it went
+       * unnoticed here, and a title that fits on one operator's machine is
+       * not a title that fits.
+       *
+       * `compact` gives the shorter form to draw when the full one will not
+       * fit, chosen by measurement against the box rather than by a column
+       * count. The full title stays the accessible name and the tooltip, so
+       * a screen reader still hears "PROGRAM DETAIL".
+       */}
+      <PanelTitle compact="PROGRAM">PROGRAM DETAIL</PanelTitle>
       <PanelBody>
         <ScrollArea>
           <Stack gap="md">
