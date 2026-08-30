@@ -95,11 +95,16 @@ export function ProgramDetail({ config }: ComponentProps<ProgramDetailConfig>) {
   return (
     <Panel>
       {/*
-       * At this widget's own minSize the full title does not fit: the docs
-       * gate measured it 3px outside the 150px it is given, on the Linux
-       * runner where the check runs. It fits on macOS, which is why it went
+       * The full title does not fit every width this is rendered at: the docs
+       * gate measured it 3px outside the 150px it was given, on the Linux
+       * runner where the check runs. It fit on macOS, which is why it went
        * unnoticed here, and a title that fits on one operator's machine is
        * not a title that fits.
+       *
+       * `minSize` has since risen to 8 columns, so the tightest size an
+       * OPERATOR can reach now holds the full title. The harness still renders
+       * every widget at a fixed `portrait-5x18`, below this widget's own
+       * minimum, and the compact form is what keeps that shot readable.
        *
        * `compact` gives the shorter form to draw when the full one will not
        * fit, chosen by measurement against the box rather than by a column
@@ -651,7 +656,7 @@ registerComponent<ProgramDetailConfig>({
   // and a chart, and at six columns the tables spend their width scrolling
   // rather than showing the figures they exist to line up.
   defaultSize: { w: 8, h: 16 },
-  minSize: { w: 4, h: 8 },
+  minSize: { w: 8, h: 8 },
   component: ProgramDetail,
   openConfigOnAdd: false,
   dataRequirements: [
