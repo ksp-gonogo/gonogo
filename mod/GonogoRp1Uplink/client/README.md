@@ -49,56 +49,6 @@ Brings RP-1's career layer to the dashboard: Programs with their objectives, dea
 
 ## Widgets
 
-### RP-1 Program Detail
-
-One RP-1 Program in full: its objectives, the funds it pays and has paid, its deadline, the Confidence price and term at each speed, the per-year funding summary, and the funding curve those payments follow.
-
-| | |
-| --- | --- |
-| Widget id | `rp1-program-detail` |
-| Reads | `rp1.available`, `rp1.programs`, `rp1.programSlots`, `rp1.programFundingCurves`, `rp1.confidence`, `career.status` |
-| Default size | 8 × 16 |
-
-![A Program that has closed: the deadline row becomes the completion date, the funding is paid out in full, and nothing remains to plan against](docs/assets/completed-program--default.png)
-
-![The same widget at its minimum size](docs/assets/completed-program--min.png)
-
-![The same widget at 9 × 8](docs/assets/completed-program--mobile-9x8.png)
-
-![The same widget at 5 × 18](docs/assets/completed-program--portrait-5x18.png)
-
-![The same widget at 18 × 5](docs/assets/completed-program--landscape-18x5.png)
-
-![A Program whose funding curve RP-1 has not published: the chart refuses to draw and says so, rather than drawing zero](docs/assets/no-curve-table--default.png)
-
-![The same widget at its minimum size](docs/assets/no-curve-table--min.png)
-
-![The same widget at 9 × 8](docs/assets/no-curve-table--mobile-9x8.png)
-
-![The same widget at 5 × 18](docs/assets/no-curve-table--portrait-5x18.png)
-
-![The same widget at 18 × 5](docs/assets/no-curve-table--landscape-18x5.png)
-
-![An offer the career cannot yet afford at any paid speed, with the front-loaded curve that would fund its first two years](docs/assets/offer-frontloaded--default.png)
-
-![The same widget at its minimum size](docs/assets/offer-frontloaded--min.png)
-
-![The same widget at 9 × 8](docs/assets/offer-frontloaded--mobile-9x8.png)
-
-![The same widget at 5 × 18](docs/assets/offer-frontloaded--portrait-5x18.png)
-
-![The same widget at 18 × 5](docs/assets/offer-frontloaded--landscape-18x5.png)
-
-![A running Program part paid, on a strongly back-loaded curve: the chart is why the total alone cannot be planned against, almost none of this money arrives before the fourth year](docs/assets/running-backloaded--default.png)
-
-![The same widget at its minimum size](docs/assets/running-backloaded--min.png)
-
-![The same widget at 9 × 8](docs/assets/running-backloaded--mobile-9x8.png)
-
-![The same widget at 5 × 18](docs/assets/running-backloaded--portrait-5x18.png)
-
-![The same widget at 18 × 5](docs/assets/running-backloaded--landscape-18x5.png)
-
 ### Vehicle Assembly
 
 Every craft RP-1 is integrating, holding or could start, across every launch complex at every space centre: what it costs, how far along it is, why its clock reads what it reads, and the controls to start a build, roll one out, bring it back or scrap it.
@@ -189,6 +139,7 @@ Every craft RP-1 is integrating, holding or could start, across every launch com
 | `rp1-ksc-complexes` | `space-center-status.sections` | – |  |  |
 | `rp1-ksc-construction` | `space-center-status.sections` | – |  |  |
 | `rp1-launch-complex-status` | `launch-director.pad` | – |  |  |
+| `rp1-program-detail` | `strategies.screen-body` | `rp1.available`, `rp1.programs`, `rp1.programSlots`, `rp1.programFundingCurves`, `rp1.confidence`, `career.status` | only while `rp1` |  |
 | `rp1-program-status` | `career-economy.sections` | – |  |  |
 | `rp1-research-queue` | `tech-tree.sections` | – |  |  |
 | `rp1-vehicle-assembly-building` | `rp1-vehicle-assembly.sections` | – |  |  |
@@ -221,6 +172,14 @@ Every craft RP-1 is integrating, holding or could start, across every launch com
 
 ![A rollout in progress: the pad row names the vehicle by joining the operation's vessel id against the warehouse, and counts down what is left of the haul](docs/assets/pad-rolling-out--default.png)
 
+![A Program that has closed: the deadline row becomes the completion date, the funding is paid out in full, and nothing remains to plan against](docs/assets/completed-program--default.png)
+
+![A Program whose funding curve RP-1 has not published: the chart refuses to draw and says so, rather than drawing zero](docs/assets/no-curve-table--default.png)
+
+![An offer the career cannot yet afford at any paid speed, with the front-loaded curve that would fund its first two years](docs/assets/offer-frontloaded--default.png)
+
+![A running Program part paid, on a strongly back-loaded curve: the chart is why the total alone cannot be planned against, almost none of this money arrives before the fourth year](docs/assets/running-backloaded--default.png)
+
 ![Both Program slots committed, the running Program past its deadline and losing reputation by the year, and the next one out of Confidence reach](docs/assets/programs-overrun-and-unaffordable--default.png)
 
 ![Three queued nodes: one being worked with a countdown and its era window, one throttled down to a fifth of full rate, and one stalled with nothing to date it from](docs/assets/research-queue-throttled-and-stalled--default.png)
@@ -230,4 +189,12 @@ Every craft RP-1 is integrating, holding or could start, across every launch com
 ![Three saved craft: one startable at either complex, one only at LC-1 with LC-2's refusal named, and one blocked on parts that are researched but not bought](docs/assets/buildable-blocked-and-buildable--default.png)
 
 ![Three finished vehicles in three different places: one standing on the pad, one still moving to it, and one RP-1 will not release at all with its reason on the card](docs/assets/warehouse-three-places--default.png)
+
+## Contributions
+
+| Contribution | Into | Computed from | Presence |
+| --- | --- | --- | --- |
+| `rp1:programs-screen` | `strategies.screens` | – | only while `rp1` |
+
+![The tab strip this Uplink's contribution puts on the Administration Building: Programs is the screen it names, the host draws the strip and lists the Programs department under it with its own Activate and Deactivate controls, and the Leaders no screen has claimed stay reachable on Other rather than disappearing. The Program Detail body below the list is a separate augment, photographed fed in its own scenes: a contribution scene carries only the contribution's OWN topics, so the catalogue it reads does not reach it here](docs/assets/programs-screen--default.png)
 

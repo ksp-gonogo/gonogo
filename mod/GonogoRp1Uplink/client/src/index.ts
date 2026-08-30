@@ -7,6 +7,7 @@ import "./uplink";
 import "./units";
 import "./topics";
 import "./settings/rp1SimulationSettings";
+import "./AdminBuilding/programsScreen";
 import "./CrewSchedule";
 import "./CrewSchedule/programme";
 import "./KscComplexes";

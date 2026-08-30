@@ -277,6 +277,23 @@ export interface ObjectiveSourceContext {
   Section: import("react").ComponentType<ObjectiveSlotSection>;
 }
 
+// --- Strategies (packages/components/src/Strategies) -----------------------
+
+/**
+ * The BODY of one Administration Building screen, below whatever strategy cards
+ * the screen's own departments put there.
+ *
+ * <para>The sibling of the `strategies.screens` contribution slot in
+ * `./contribution-slots.ts`, and the division of labour between them is the
+ * point: a contribution says which screens the building has, an augment draws
+ * what one of them contains beyond its department listing, and the host owns
+ * the tab strip so nothing else has to.</para>
+ */
+export interface StrategiesScreenBodyContext {
+  /** Which screen is being drawn. An augment bound for more than one branches on it. */
+  screenId: string;
+}
+
 // --- ActionGroup (packages/components/src/ActionGroup) ---------------------
 
 /** Mirrors `ActionGroupId` (`packages/core/src/actionGroups.ts`): the eight
@@ -643,6 +660,8 @@ declare module "./types" {
     "power-systems.sections": Record<string, never>;
 
     "fleet-roster.updates": FleetRosterUpdatesContext;
+
+    "strategies.screen-body": StrategiesScreenBodyContext;
   }
 
   // What each widget publishes about its own current focus, for an augment to

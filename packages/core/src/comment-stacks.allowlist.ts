@@ -100,7 +100,6 @@ export const COMMENT_STACK_DEBT: Record<string, number> = {
   "mod/GonogoRp1Uplink/client/src/KscComplexes/index.tsx": 1,
   "mod/GonogoRp1Uplink/client/src/LaunchComplexStatus/index.test.tsx": 1,
   "mod/GonogoRp1Uplink/client/src/LaunchComplexStatus/index.tsx": 1,
-  "mod/GonogoRp1Uplink/client/src/ProgramDetail/index.tsx": 1,
   "mod/GonogoRp1Uplink/client/src/VehicleAssembly/index.tsx": 1,
   "mod/GonogoRp1Uplink/client/src/fixture-consistency.test.ts": 1,
   "mod/GonogoRp1Uplink/client/src/settings/rp1SimulationSettings.ts": 1,

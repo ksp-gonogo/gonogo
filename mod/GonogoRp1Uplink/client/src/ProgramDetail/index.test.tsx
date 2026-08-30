@@ -9,8 +9,10 @@ import {
   expectNoA11yViolations,
   visibleText,
 } from "@ksp-gonogo/ui-kit/testing";
+import userEvent from "@testing-library/user-event";
 import { act } from "react";
 import { describe, expect, it } from "vitest";
+import { PROGRAMS_SCREEN_ID } from "../AdminBuilding/programsScreen";
 import { ProgramDetail } from "./index";
 
 const TOPICS = [
@@ -97,11 +99,11 @@ function slots(overrides: Record<string, unknown> = {}) {
   };
 }
 
-function mount(config: { program: string } = { program: "" }) {
+function mount(screenId: string = PROGRAMS_SCREEN_ID) {
   const fixture = setupStreamFixture({ carriedChannels: TOPICS });
   const view = render(
     <fixture.Provider>
-      <ProgramDetail id="rp1-program-detail-test" config={config} />
+      <ProgramDetail screenId={screenId} />
     </fixture.Provider>,
   );
   return { fixture, view };
@@ -165,16 +167,32 @@ describe("ProgramDetail", () => {
     ).toHaveValue("EarlyXPlanes");
   });
 
-  it("opens on a pinned Program when its config names one", async () => {
-    const { fixture } = mount({ program: "Aeronautics" });
+  /*
+   * An augment is bound to the SLOT, so every screen of the building mounts it
+   * and it is handed the screen's id to decide on. Without this it would draw
+   * the Programs detail under a Leaders or a Finances tab.
+   */
+  it("draws nothing on a screen that is not Programs", async () => {
+    const { fixture, view } = mount("leaders");
+    fixture.emit("rp1.available", true);
+    fixture.emit("rp1.programs", [program()]);
+
+    await waitFor(() => {
+      expect(fixture.transport.isSubscribed("rp1.available")).toBe(true);
+    });
+    expect(view.container).toBeEmptyDOMElement();
+  });
+
+  it("lets the operator pick any Program, running or not", async () => {
+    const { fixture } = mount();
     await feed(fixture, [
       program({ name: "Aeronautics", title: "Aeronautics", state: "locked" }),
       program(),
     ]);
 
-    expect(
-      await screen.findByRole("combobox", { name: /Program/ }),
-    ).toHaveValue("Aeronautics");
+    const select = await screen.findByRole("combobox", { name: /Program/ });
+    await userEvent.selectOptions(select, "Aeronautics");
+    expect(select).toHaveValue("Aeronautics");
   });
 
   it("tabulates the per-year funding summary RP-1 sends", async () => {

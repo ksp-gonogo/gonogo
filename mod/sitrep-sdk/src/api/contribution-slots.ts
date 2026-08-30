@@ -189,6 +189,55 @@ export interface CrewRowToneEntry {
 // enriching one gets it as a completion and a typo fails to compile rather than
 // quietly making a second plot. Same reasoning as the slot ids below, one
 // registry per declaration-merge seam.
+/**
+ * One SCREEN the Administration Building offers, on `strategies.screens`.
+ * Mirrors `StrategiesScreenEntry` (`Strategies/screens.ts`).
+ *
+ * <para>The widget draws a FACILITY, and which screens a facility owns is a
+ * property of the elected career model rather than of the widget: RP-1's
+ * building has Programs and Leaders where a stock one has neither. So the
+ * contributor owns which screens exist, what each is called, where it sits and
+ * what it lists, and the host owns the tab strip's behaviour, because no Uplink
+ * should have to reimplement a tablist.</para>
+ *
+ * <para>There is deliberately no COUNT in this shape, and no way to express one.
+ * A count cannot be ordered, cannot be labelled, and cannot be locked, and those
+ * are the three things a screen has to be able to say about itself.</para>
+ */
+export interface StrategiesScreenEntry {
+  /** Stable id, unique within the contributing client. */
+  id: string;
+  /** What the operator reads on the tab, e.g. RP-1's "Programs". */
+  label: string;
+  /**
+   * Ascending, ties keeping contribution order; a screen without one sorts
+   * after every screen that has one. Stated rather than derived, because the
+   * order a career model wants its screens in is not on the wire: RP-1 declares
+   * its departments in a config file and the file's order does not travel.
+   */
+  order?: number;
+  /**
+   * The strategy DEPARTMENTS this screen lists, matched against `department` on
+   * each entry of `career.status`'s strategy list. The host draws its own
+   * strategy cards for whatever matches, so a contributor never reimplements
+   * one. A screen naming none lists nothing and is chrome for its augments.
+   */
+  departments?: readonly string[];
+  /**
+   * False for a screen that exists but cannot be opened yet.
+   *
+   * <para>The tab is still drawn AND still selectable, because `disabledReason`
+   * is then the only thing on that screen worth reading and a tab that cannot be
+   * reached cannot deliver it. This is the whole reason a screen is contributed
+   * rather than inferred from whoever happens to have registered a body: an
+   * unavailable screen that is simply ABSENT tells the operator nothing, and
+   * absence is indistinguishable from a bundle that failed to load.</para>
+   */
+  enabled?: boolean;
+  /** Why `enabled` is false, in the operator's own terms. */
+  disabledReason?: string;
+}
+
 declare module "./plots" {
   interface PlotSubjectRegistry {
     /** LandingStatus's velocity-height descent corridor: speed across, height
@@ -242,6 +291,10 @@ declare module "./types" {
     };
     "comm-signal.hop-rates": {
       entry: CommSignalHopRateEntry;
+    };
+    "strategies.screens": {
+      entry: StrategiesScreenEntry;
+      topics: "career.status";
     };
   }
 }
