@@ -1943,12 +1943,13 @@ export const ALLOWLIST: Record<ModToken, ModAllowlist> = {
        * contributor, and the widget reads no kerbalism Topic and imports no
        * kerbalism type. ShipMap additionally declares `kerbalism.profile`/
        * `kerbalism.lifesupport` in its two ContributionRegistry slot entries,
-       * the host half of the same contract sitrep-sdk mirrors above. FleetRoster
-       * and its sibling carry "kerbalism" as a registerComponent search TAG,
-       * which is metadata text.
+       * the host half of the same contract sitrep-sdk mirrors above. FleetReliability
+       * describes the backend's behaviour in prose, which is text and not
+       * coupling. FleetRoster used to carry the mod's name as a
+       * registerComponent search TAG; it declares its augment slot now, so the
+       * tag is computed from whoever binds and the entry is gone.
        */
       "packages/components/src/FleetReliability/index.tsx",
-      "packages/components/src/FleetRoster/index.tsx",
       /*
        * systemEntities.ts: the `travelling-pulse` shape's doc comment names
        * Kerbalism's own storm-arrival UT/duration as the realistic EXAMPLE of
@@ -2443,7 +2444,6 @@ export const SURVIVES_COMMENT_STRIP: Partial<Record<ModToken, string[]>> = {
     "packages/components/src/FleetReliability/index.test.tsx",
     "packages/components/src/FleetReliability/install-profiles.test.tsx",
     "packages/components/src/FleetReliability/undefined.characterise.test.tsx",
-    "packages/components/src/FleetRoster/index.tsx",
     "packages/components/src/test/installProfile.test.ts",
     "packages/components/src/test/installProfile.ts",
     "packages/core/src/banner-comments.allowlist.ts",

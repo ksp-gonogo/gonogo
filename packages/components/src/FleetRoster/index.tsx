@@ -772,7 +772,17 @@ registerComponent<FleetRosterConfig>({
   name: "Fleet Roster",
   description:
     "Fleet-wide roster table: one row per known CRAFT (debris, asteroids/comets, flags, EVA kerbals, and deployed science hardware are filtered out, see isRosterCraft) with name, body, crew, and comms link tier (direct/relay/no link), plus a fleet-wide comms-coverage summary. Reliability reaches the rows through the fleet-roster.updates augment slot, and only ever on ONE row: reliability.* is active-vessel-only (it carries no vesselId), so every other craft's row shows nothing whatever its condition. SystemView draws only the ACTIVE vessel spatially: system.vessels carries no per-vessel position, so a whole-fleet spatial view is not something this table's data could feed even if SystemView grew a slot for it.",
-  tags: ["telemetry", "kerbalism"],
+  tags: ["telemetry"],
+  /*
+   * DECLARED, not merely rendered. `effectiveSearchTags` and `uplinkAdditions`
+   * both walk this list to find the Uplinks binding into the widget, so a slot
+   * that is rendered without being declared credits nobody: the picker showed
+   * no extending Uplink, and the search tag was supplied by hand as a literal
+   * mod name instead. That named one of the two Uplinks that provide
+   * reliability, stayed put when neither was installed, and put a mod's name in
+   * a core widget. Declaring the slot lets the real mechanism answer.
+   */
+  augmentSlots: ["fleet-roster.updates"],
   defaultSize: { w: 8, h: 10 },
   minSize: { w: 4, h: 4 },
   component: FleetRosterComponent,
