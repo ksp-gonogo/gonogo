@@ -24,6 +24,9 @@ public class Rp1ScReflectionTests : IDisposable
         // put that file's costs on this file's rows.
         MaintenanceHandler.Instance = null;
         LCEfficiency.MaxEfficiency = 1.0;
+        // The default install: no KSCSwitcher, so no centre has a display name.
+        // Every test that wants one says so.
+        KSCSwitcherInterop.Sites = null;
     }
 
     public void Dispose()
@@ -31,6 +34,7 @@ public class Rp1ScReflectionTests : IDisposable
         SpaceCenterManagement.Instance = null;
         Confidence.Instance = null;
         MaintenanceHandler.Instance = null;
+        KSCSwitcherInterop.Sites = null;
     }
 
     [Fact]
@@ -564,6 +568,190 @@ public class Rp1ScReflectionTests : IDisposable
         Assert.Equal(1.5, terms!.RateMult);
         Assert.Equal(2.0, terms!.SalaryMult);
     }
+
+    [Fact]
+    public void A_complex_publishes_the_tonnage_it_was_built_at_beside_the_one_it_takes_now()
+    {
+        // A complex renovated up from 60t: RP-1 moved massMax and left massOrig
+        // alone, which is the whole reason both have to be on the wire. A client
+        // holding massMax alone would compute the envelope off 180 and offer a
+        // renovation to 360t that RP-1 refuses at 120.
+        var pad = new LaunchComplex
+        {
+            Name = "LC-1",
+            MassMinValue = 12f,
+            MassMaxValue = 180f,
+            MassOrigValue = 60f,
+        };
+        Install(pad, efficiency: 0.5);
+
+        var complex = Single(new Rp1ScReflection().Read(1.0).Complexes);
+
+        Assert.Equal(60.0, complex.MassOrig);
+        Assert.Equal(180.0, complex.MassMax);
+        // The third quantity, and about vehicles rather than about renovation.
+        Assert.Equal(12.0, complex.MassMin);
+    }
+
+    [Fact]
+    public void The_hangar_publishes_no_original_tonnage_rather_than_a_sentinel_or_a_zero()
+    {
+        // RP-1 records the hangar at its no-limit sentinel and exempts it from
+        // the margin check outright. A zero here would compute an envelope of 3t
+        // to 1t, which is a confident wrong answer where absence is a readable
+        // one.
+        var hangar = new LaunchComplex
+        {
+            Name = "Hangar",
+            LcTypeValue = LaunchComplexType.Hangar,
+            MassMaxValue = float.MaxValue,
+            MassOrigValue = float.MaxValue,
+        };
+        Install(hangar, efficiency: null);
+
+        Assert.Null(Single(new Rp1ScReflection().Read(1.0).Complexes).MassOrig);
+    }
+
+    [Fact]
+    public void A_complex_publishes_its_OPERATIONAL_pad_count_not_the_length_of_its_pad_list()
+    {
+        // Three pads, one of them wrecked. RP-1's dismantle rule needs two
+        // WORKING pads, and a client counting rows would say three and offer a
+        // dismantle the game refuses.
+        var pad = new LaunchComplex { Name = "LC-1" };
+        pad.LaunchPads.Add(new LCLaunchPad { name = "Pad A" });
+        pad.LaunchPads.Add(new LCLaunchPad { name = "Pad B" });
+        pad.LaunchPads.Add(new LCLaunchPad
+        {
+            name = "Pad C",
+            isOperational = false,
+            DestroyedValue = true,
+            StateValue = LaunchPadState.Destroyed,
+        });
+        Install(pad, efficiency: 0.5);
+
+        var raw = new Rp1ScReflection().Read(1.0);
+
+        Assert.Equal(2, Single(raw.Complexes).LaunchPadCount);
+        // The rows are all three, and the wrecked one reports Destroyed rather
+        // than Nonoperational, so the count is not recoverable from them.
+        Assert.Equal(3, raw.Pads.Count);
+        Assert.Contains(raw.Pads, p => p.State == "Destroyed");
+        Assert.DoesNotContain(raw.Pads, p => p.State == "Nonoperational");
+    }
+
+    [Fact]
+    public void A_complex_under_construction_publishes_zero_operational_pads_rather_than_absent()
+    {
+        // Zero is the state that makes the complex unusable, so it has to arrive
+        // as a number an operator can read rather than as "not said".
+        var pad = new LaunchComplex { Name = "LC-1", IsOperational = false };
+        pad.LaunchPads.Add(new LCLaunchPad { name = "Pad A", isOperational = false });
+        Install(pad, efficiency: 0.5);
+
+        Assert.Equal(0, Single(new Rp1ScReflection().Read(1.0).Complexes).LaunchPadCount);
+    }
+
+    [Fact]
+    public void Complexes_sharing_one_efficiency_record_each_name_the_others()
+    {
+        // The fact that makes a bare efficiency scalar honest: work at either of
+        // these moves the number at both.
+        var a = new LaunchComplex { Name = "LC-1" };
+        var b = new LaunchComplex { Name = "LC-2" };
+        var alone = new LaunchComplex { Name = "LC-3" };
+        var shared = new LCEfficiency(0.5) { _lcs = { a, b } };
+        var own = new LCEfficiency(0.7) { _lcs = { alone } };
+
+        var ksc = new LCSpaceCenter { KSCName = "Cape", Engineers = 20, LaunchComplexes = { a, b, alone } };
+        var scm = new SpaceCenterManagement { KSCs = { ksc }, ActiveSC = ksc };
+        scm.LCToEfficiency[a] = shared;
+        scm.LCToEfficiency[b] = shared;
+        scm.LCToEfficiency[alone] = own;
+        SpaceCenterManagement.Instance = scm;
+
+        var complexes = new Rp1ScReflection().Read(1.0).Complexes;
+
+        Assert.Equal(new[] { b.ID.ToString() }, ByName(complexes, "LC-1").EfficiencySharedWith);
+        Assert.Equal(new[] { a.ID.ToString() }, ByName(complexes, "LC-2").EfficiencySharedWith);
+        // A record covering one complex is a real answer and is EMPTY, which is
+        // not the same as RP-1 holding no record at all.
+        Assert.Empty(ByName(complexes, "LC-3").EfficiencySharedWith!);
+    }
+
+    [Fact]
+    public void A_complex_RP1_has_not_rated_publishes_no_efficiency_peers_rather_than_an_empty_list()
+    {
+        var pad = new LaunchComplex { Name = "Pad A" };
+        Install(pad, efficiency: null);
+
+        var complex = Single(new Rp1ScReflection().Read(1.0).Complexes);
+        Assert.Null(complex.Efficiency);
+        Assert.Null(complex.EfficiencySharedWith);
+    }
+
+    [Fact]
+    public void The_hangar_publishes_no_efficiency_peers_though_it_publishes_an_efficiency()
+    {
+        // Deliberately asymmetric, and the asymmetry is honest: RP-1 rates the
+        // hangar at the ceiling without keeping a record for it, so there is a
+        // number and there is nothing sharing it.
+        var hangar = new LaunchComplex { Name = "Hangar", LcTypeValue = LaunchComplexType.Hangar };
+        Install(hangar, efficiency: null);
+
+        var complex = Single(new Rp1ScReflection().Read(1.0).Complexes);
+        Assert.NotNull(complex.Efficiency);
+        Assert.Null(complex.EfficiencySharedWith);
+    }
+
+    [Fact]
+    public void A_centre_and_its_complexes_publish_the_name_the_site_config_gives_it()
+    {
+        KSCSwitcherInterop.Sites = new List<(string, string)>
+        {
+            ("us_cape_canaveral", "Cape Canaveral"),
+            ("ru_baikonur", "Baikonur"),
+        };
+        var pad = new LaunchComplex { Name = "LC-1" };
+        var ksc = new LCSpaceCenter { KSCName = "us_cape_canaveral", Engineers = 5, LaunchComplexes = { pad } };
+        SpaceCenterManagement.Instance = new SpaceCenterManagement { KSCs = { ksc }, ActiveSC = ksc };
+
+        var raw = new Rp1ScReflection().Read(1.0);
+
+        Assert.Equal("Cape Canaveral", Single(raw.Centres).KscDisplayName);
+        // Carried on the complex too, because the surfaces that render a complex
+        // row do not all join to the centres channel.
+        Assert.Equal("Cape Canaveral", Single(raw.Complexes).KscDisplayName);
+        Assert.Equal("us_cape_canaveral", Single(raw.Centres).KscName);
+    }
+
+    [Fact]
+    public void No_KSCSwitcher_publishes_no_display_name_rather_than_the_id_again()
+    {
+        // The commonest install of all: RP-1 answers null, and so must we. A
+        // client falls back to the id, which is what the game shows.
+        KSCSwitcherInterop.Sites = null;
+        var ksc = new LCSpaceCenter { KSCName = "Stock", Engineers = 5 };
+        SpaceCenterManagement.Instance = new SpaceCenterManagement { KSCs = { ksc }, ActiveSC = ksc };
+
+        Assert.Null(Single(new Rp1ScReflection().Read(1.0).Centres).KscDisplayName);
+    }
+
+    [Fact]
+    public void A_site_whose_display_name_is_its_own_id_publishes_nothing()
+    {
+        // RP-1's getter substitutes the id when a site declares no display name.
+        // Republishing that would put us_cape_canaveral back on the screen under
+        // a field claiming to be a name, which is the bug wearing the fix's name.
+        KSCSwitcherInterop.Sites = new List<(string, string)> { ("us_cape_canaveral", "us_cape_canaveral") };
+        var ksc = new LCSpaceCenter { KSCName = "us_cape_canaveral", Engineers = 5 };
+        SpaceCenterManagement.Instance = new SpaceCenterManagement { KSCs = { ksc }, ActiveSC = ksc };
+
+        Assert.Null(Single(new Rp1ScReflection().Read(1.0).Centres).KscDisplayName);
+    }
+
+    private static Rp1ComplexRaw ByName(List<Rp1ComplexRaw> complexes, string name) =>
+        complexes.Single(c => c.Name == name);
 
     private static T Single<T>(List<T> list) => Assert.Single(list.AsEnumerable());
 }

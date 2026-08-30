@@ -6,9 +6,11 @@
       "w": 12,
       "h": 14
     },
-    "caption": "The state a first-decade RP-1 career sits in: a VAB upgrade, a second launch complex and a pad all building at once, appended under the space centre's own facility list",
+    "caption": "The state a first-decade RP-1 career sits in: a VAB upgrade, a second launch complex and a pad all building at once, appended under the space centre's own facility list, each row naming the centre it belongs to by the name an operator uses rather than the site id the save keys it on",
     "paints": [
       "Vehicle Assembly Building",
+      "Cape Canaveral",
+      "Vandenberg SFB",
       "LC-2",
       "Pad B",
       "289,848f",
@@ -93,13 +95,24 @@
         "topic": "rp1.centres",
         "payload": [
           {
-            "kscName": "Cape",
+            "kscName": "us_cape_canaveral",
+            "kscDisplayName": "Cape Canaveral",
             "isActive": true,
             "engineers": 24,
             "unassignedEngineers": 6,
             "launchComplexCount": 2,
             "anyOperational": true,
             "groundStation": "us_cape_canaveral"
+          },
+          {
+            "kscName": "us_vandenberg",
+            "kscDisplayName": "Vandenberg SFB",
+            "isActive": false,
+            "engineers": 8,
+            "unassignedEngineers": 8,
+            "launchComplexCount": 1,
+            "anyOperational": true,
+            "groundStation": "us_vandenberg"
           }
         ]
       },
@@ -107,7 +120,7 @@
         "topic": "rp1.constructions",
         "payload": [
           {
-            "kscName": "Cape",
+            "kscName": "us_cape_canaveral",
             "lcId": null,
             "kind": "FacilityUpgrade",
             "name": "VehicleAssemblyBuilding",
@@ -129,7 +142,7 @@
             "spentRushCost": 0
           },
           {
-            "kscName": "Cape",
+            "kscName": "us_cape_canaveral",
             "lcId": "lc-2",
             "kind": "LaunchComplex",
             "name": "LC-2",
@@ -151,7 +164,7 @@
             "spentRushCost": 0
           },
           {
-            "kscName": "Cape",
+            "kscName": "us_vandenberg",
             "lcId": "lc-1",
             "kind": "Pad",
             "name": "Pad B",

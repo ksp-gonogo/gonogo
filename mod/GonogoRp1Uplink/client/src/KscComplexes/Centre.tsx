@@ -39,6 +39,7 @@ import { ComplexCard } from "./ComplexCard";
 export function Centre({
   centre,
   complexes,
+  complexNames,
   pads,
   terms,
   assign,
@@ -46,12 +47,17 @@ export function Centre({
 }: Readonly<{
   centre: Rp1CentreEntry;
   complexes: readonly Rp1ComplexEntry[];
+  /** Every complex in the career by id, so a card can name the ones it shares a crew rating with. */
+  complexNames: ReadonlyMap<string, string>;
   pads: readonly Rp1PadEntry[];
   terms: Rp1RushTerms | undefined;
   assign: Parameters<typeof CommandButton>[0]["handle"];
   rush: Parameters<typeof CommandButton>[0]["handle"];
 }>) {
-  const name = centre.kscName ?? NULL_DISPLAY;
+  // The display name first, the id behind it. RP-1 keeps only the id on a
+  // centre, and on an RSS career that id is us_cape_canaveral, which is not what
+  // anyone calls the place.
+  const name = centre.kscDisplayName ?? centre.kscName ?? NULL_DISPLAY;
   const hired = magnitudeOf(centre.engineers);
   const unassigned = magnitudeOf(centre.unassignedEngineers);
   const assigned =
@@ -104,6 +110,7 @@ export function Centre({
               assign={assign}
               centreName={name}
               complex={complex}
+              complexNames={complexNames}
               key={complex.lcId ?? complex.name ?? ""}
               pads={pads.filter((pad) => pad.lcId === complex.lcId)}
               rush={rush}

@@ -84,6 +84,12 @@ namespace RP0
 
         public double Efficiency => _efficiency;
 
+        /// <summary>
+        /// The complexes attached to this record. Public on the real type, and
+        /// the live list rather than the persisted id list beside it.
+        /// </summary>
+        public List<LaunchComplex> _lcs = new List<LaunchComplex>();
+
         /// <summary>How many times the prediction was asked for, so a test can pin the four iterations.</summary>
         public int PredictCalls;
 
@@ -744,6 +750,13 @@ namespace RP0
         public bool HumanRatedValue;
         public float MassMinValue;
         public float MassMaxValue = 100f;
+
+        /// <summary>
+        /// The tonnage the complex was built at. Defaulted to the same figure as
+        /// <see cref="MassMaxValue"/>, which is the state RP-1 leaves a complex
+        /// in until somebody renovates it.
+        /// </summary>
+        public float MassOrigValue = 100f;
         public UnityEngine.Vector3 SizeMaxValue = new UnityEngine.Vector3(100f, 100f, 100f);
 
         /// <summary>
@@ -763,12 +776,52 @@ namespace RP0
         public bool IsHumanRated => HumanRatedValue;
         public float MassMin => MassMinValue;
         public float MassMax => MassMaxValue;
+        public float MassOrig => MassOrigValue;
+
+        /// <summary>
+        /// Derived on the real type, and derived here for the same reason the
+        /// walk reads it rather than counting <see cref="LaunchPads"/> itself:
+        /// the answer is the OPERATIONAL pads, which is not the list's length.
+        /// </summary>
+        public int LaunchPadCount
+        {
+            get
+            {
+                var count = 0;
+                foreach (var pad in LaunchPads)
+                {
+                    if (pad.isOperational)
+                    {
+                        count++;
+                    }
+                }
+                return count;
+            }
+        }
         public UnityEngine.Vector3 SizeMax => SizeMaxValue;
         public LCSpaceCenter? KSC => Ksc;
         public Dictionary<string, double> ResourcesHandled => ResourcesHandledValue;
 
         /// <summary>Mirrors the real property, which returns 1.0 unless the complex is rushing.</summary>
         public double RushSalary => IsRushing ? Database.SettingsSC.RushSalaryMult : 1.0;
+    }
+
+    /// <summary>
+    /// RP-1's shim over KSCSwitcher, which is where a space centre's DISPLAY name
+    /// comes from: RP-1 itself keeps only the id.
+    /// </summary>
+    /// <remarks>
+    /// The real method returns null outright when KSCSwitcher is not installed,
+    /// and substitutes a site's id when it declares no display name. Both are
+    /// reproduced, because both are conditions the walk has to answer absent for
+    /// rather than pass through.
+    /// </remarks>
+    public static class KSCSwitcherInterop
+    {
+        /// <summary>Null is KSCSwitcher absent, which is a whole class of RP-1 career.</summary>
+        public static List<(string id, string displayName)>? Sites;
+
+        public static List<(string id, string displayName)>? GetAvailableSites() => Sites;
     }
 
     public class LCSpaceCenter

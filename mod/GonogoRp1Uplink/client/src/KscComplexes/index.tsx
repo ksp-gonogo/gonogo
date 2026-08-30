@@ -92,6 +92,18 @@ export function KscComplexes() {
   const centreRows = centres ?? [];
   const complexRows = complexes ?? [];
   const padRows = pads ?? [];
+  /*
+   * Built from EVERY complex rather than per centre: RP-1 attaches similar
+   * complexes to one efficiency record without caring which centre they stand
+   * at, so a peer named on a card here can belong to another centre entirely.
+   */
+  const complexNames = new Map(
+    complexRows.flatMap((complex) =>
+      complex.lcId === undefined || complex.name === undefined
+        ? []
+        : [[complex.lcId, complex.name] as const],
+    ),
+  );
 
   return (
     <Section gap="lg">
@@ -120,6 +132,7 @@ export function KscComplexes() {
               complexes={complexRows.filter(
                 (complex) => complex.kscName === centre.kscName,
               )}
+              complexNames={complexNames}
               key={centre.kscName ?? ""}
               pads={padRows}
               rush={rush}

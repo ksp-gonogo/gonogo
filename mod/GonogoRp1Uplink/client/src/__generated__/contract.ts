@@ -36,6 +36,7 @@ export interface Rp1BuildStartArgs
 export interface Rp1CentreEntry
 {
 	kscName?: string;
+	kscDisplayName?: string;
 	isActive?: boolean;
 	engineers?: Value<"count">;
 	unassignedEngineers?: Value<"count">;
@@ -49,6 +50,7 @@ export interface Rp1CentreEntry
 export interface Rp1ComplexEntry
 {
 	kscName?: string;
+	kscDisplayName?: string;
 	lcId?: string;
 	name?: string;
 	lcType?: string;
@@ -57,11 +59,14 @@ export interface Rp1ComplexEntry
 	engineers?: Value<"count">;
 	maxEngineers?: Value<"count">;
 	efficiency?: Value<"ratio">;
+	efficiencySharedWith?: string[];
 	canIntegrate?: boolean;
 	rate?: Value<"bp/s">;
 	humanRated?: boolean;
+	launchPadCount?: Value<"count">;
 	massMin?: Value<"t">;
 	massMax?: Value<"t">;
+	massOrig?: Value<"t">;
 	sizeMaxHeight?: Value<"m">;
 	sizeMaxWidth?: Value<"m">;
 	sizeMaxDepth?: Value<"m">;
@@ -303,6 +308,7 @@ export interface Rp1BuildableComplex
 	lcId?: string;
 	name?: string;
 	kscName?: string;
+	kscDisplayName?: string;
 	eligible?: boolean;
 	refusals?: string[];
 }

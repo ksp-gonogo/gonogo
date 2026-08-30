@@ -22,6 +22,7 @@ namespace GonogoRp1Uplink
                 list.Add(new Dictionary<string, object?>
                 {
                     ["kscName"] = c.KscName,
+                    ["kscDisplayName"] = c.KscDisplayName,
                     ["isActive"] = c.IsActive,
                     ["engineers"] = c.Engineers,
                     ["unassignedEngineers"] = c.UnassignedEngineers,
@@ -44,6 +45,7 @@ namespace GonogoRp1Uplink
                 list.Add(new Dictionary<string, object?>
                 {
                     ["kscName"] = c.KscName,
+                    ["kscDisplayName"] = c.KscDisplayName,
                     ["lcId"] = c.LcId,
                     ["name"] = c.Name,
                     ["lcType"] = c.LcType,
@@ -52,11 +54,18 @@ namespace GonogoRp1Uplink
                     ["engineers"] = c.Engineers,
                     ["maxEngineers"] = c.MaxEngineers,
                     ["efficiency"] = c.Efficiency,
+                    // Empty and absent are different answers here, the way they
+                    // are for resourcesHandled below: a record covering this
+                    // complex alone is a fact, and no record at all is RP-1 not
+                    // having rated the crew yet.
+                    ["efficiencySharedWith"] = c.EfficiencySharedWith,
                     ["canIntegrate"] = c.CanIntegrate,
                     ["rate"] = c.Rate,
                     ["humanRated"] = c.HumanRated,
+                    ["launchPadCount"] = c.LaunchPadCount,
                     ["massMin"] = c.MassMin,
                     ["massMax"] = c.MassMax,
+                    ["massOrig"] = c.MassOrig,
                     ["sizeMaxHeight"] = c.SizeMaxHeight,
                     ["sizeMaxWidth"] = c.SizeMaxWidth,
                     ["sizeMaxDepth"] = c.SizeMaxDepth,
@@ -91,6 +100,7 @@ namespace GonogoRp1Uplink
                         ["lcId"] = lc.LcId,
                         ["name"] = lc.Name,
                         ["kscName"] = lc.KscName,
+                        ["kscDisplayName"] = lc.KscDisplayName,
                         ["eligible"] = lc.Eligible,
                         ["refusals"] = lc.Refusals,
                     });

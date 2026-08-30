@@ -181,7 +181,8 @@ function groupByCentre(complexes: readonly Rp1ComplexEntry[]): Centre[] {
     if (name === undefined || name === null || name === "") {
       continue;
     }
-    const centre = complex.kscName ?? "an unnamed space centre";
+    const centre =
+      complex.kscDisplayName ?? complex.kscName ?? "an unnamed space centre";
     const held = byCentre.get(centre);
     if (held === undefined) {
       byCentre.set(centre, [name]);

@@ -6,18 +6,18 @@
     "augment": "rp1-ksc-complexes",
     "host": "space-center-status",
     "size": { "w": 12, "h": 22 },
-    "caption": "Two space centres with their launch complexes nested under each, and SLC-3 staffed by nobody while Vandenberg's whole pool sits idle",
+    "caption": "Two space centres with their launch complexes nested under each, each named the way an operator names it rather than by the site id the save keys it on, and SLC-3 staffed by nobody while Vandenberg's whole pool sits idle",
     "paints": [
       "SPACE CENTRES",
-      "Cape",
-      "Vandenberg",
+      "Cape Canaveral",
+      "Vandenberg SFB",
       "LC-1",
       "SLC-3",
-      "pad complex at Vandenberg",
+      "pad complex at Vandenberg SFB",
       "NOBODY ASSIGNED",
       "IDLE",
       "ACTIVE",
-      "free at Vandenberg",
+      "free at Vandenberg SFB",
       "room here"
     ]
   },
@@ -66,7 +66,8 @@
         "topic": "rp1.centres",
         "payload": [
           {
-            "kscName": "Cape",
+            "kscName": "us_cape_canaveral",
+            "kscDisplayName": "Cape Canaveral",
             "isActive": true,
             "engineers": 30,
             "unassignedEngineers": 6,
@@ -78,7 +79,8 @@
             "upkeepPerDay": 45
           },
           {
-            "kscName": "Vandenberg",
+            "kscName": "us_vandenberg",
+            "kscDisplayName": "Vandenberg SFB",
             "isActive": false,
             "engineers": 12,
             "unassignedEngineers": 12,
@@ -95,7 +97,8 @@
         "topic": "rp1.complexes",
         "payload": [
           {
-            "kscName": "Cape",
+            "kscName": "us_cape_canaveral",
+            "kscDisplayName": "Cape Canaveral",
             "lcId": "lc-1",
             "name": "LC-1",
             "lcType": "Pad",
@@ -104,11 +107,14 @@
             "engineers": 24,
             "maxEngineers": 60,
             "efficiency": 0.62,
+            "efficiencySharedWith": [],
             "canIntegrate": true,
             "rate": 0.0002,
             "humanRated": true,
+            "launchPadCount": 1,
             "massMin": 6,
             "massMax": 180,
+            "massOrig": 180,
             "sizeMaxHeight": 40,
             "sizeMaxWidth": 9,
             "sizeMaxDepth": 12,
@@ -117,7 +123,8 @@
             "upkeepPerDay": 45
           },
           {
-            "kscName": "Vandenberg",
+            "kscName": "us_vandenberg",
+            "kscDisplayName": "Vandenberg SFB",
             "lcId": "slc-3",
             "name": "SLC-3",
             "lcType": "Pad",
@@ -127,8 +134,10 @@
             "maxEngineers": 40,
             "canIntegrate": true,
             "humanRated": false,
+            "launchPadCount": 1,
             "massMin": 3,
             "massMax": 90,
+            "massOrig": 90,
             "sizeMaxHeight": 30,
             "sizeMaxWidth": 6,
             "sizeMaxDepth": 8,
@@ -142,7 +151,7 @@
         "topic": "rp1.pads",
         "payload": [
           {
-            "kscName": "Cape",
+            "kscName": "us_cape_canaveral",
             "lcId": "lc-1",
             "padId": "pad-1",
             "name": "LP-1",
@@ -153,7 +162,7 @@
             "hasVesselWaiting": false
           },
           {
-            "kscName": "Vandenberg",
+            "kscName": "us_vandenberg",
             "lcId": "slc-3",
             "padId": "pad-3",
             "name": "SLC-3A",
