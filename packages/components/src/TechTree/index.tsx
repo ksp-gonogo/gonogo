@@ -104,12 +104,12 @@ function stillTrue<T, A>(
  * (`true` -> "Available", `false` -> "Unavailable"): `computeResearchable`
  * below already promotes some "Unavailable" nodes to researchable-now purely
  * from `state`/`parents`/`scienceCost`, exactly the client-side derivation
- * the extend session's doc comment anticipated. `description`/`parts` stay
- * empty on the new wire (no equivalent field), both already default
- * gracefully. Drops malformed entries; tolerates missing optional fields
- * (description, parts) so an older provider degrades gracefully, the
- * operator still sees title + scienceCost + state + parents even without
- * the 2026-05-13 fork additions.
+ * the extend session's doc comment anticipated. `description` is carried by
+ * both wires (the new one since contract 14.1); `parts` stays empty on the
+ * new wire, which has no equivalent field, and defaults gracefully. Drops
+ * malformed entries; tolerates missing optional fields so an older provider
+ * degrades gracefully, the operator still sees title + scienceCost + state +
+ * parents even without the 2026-05-13 fork additions.
  */
 export function parseTechNodes(raw: unknown): TechNode[] | null {
   if (raw === null || raw === undefined) return null;

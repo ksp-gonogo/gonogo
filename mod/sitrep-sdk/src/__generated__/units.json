@@ -188,6 +188,7 @@
       "unlockedIds": "id"
     },
     "CareerTechNode": {
+      "description": "text",
       "id": "id",
       "parents": "id",
       "scienceCost": "science",

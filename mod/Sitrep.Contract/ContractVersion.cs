@@ -1308,7 +1308,20 @@ namespace Sitrep.Contract
         ///
         /// <para>Reset to 0 alongside the Major 13 -&gt; 14 bump (the reliability.*
         /// model-first reshape; see <see cref="Major"/>).</para>
+        ///
+        /// <para><b>Major-14 line, Bumped 0 -&gt; 1: a tech node's own words.</b>
+        /// <see cref="CareerTechNode"/> gains <c>Description</c>, nullable,
+        /// additive, nothing removed or retyped, so an Uplink built against 14.0
+        /// is unaffected and the frozen Major-14 floor is NOT re-frozen.</para>
+        ///
+        /// <para>The TechTree widget has rendered a description in its node
+        /// detail and filtered on one since it was written, against a field this
+        /// contract never declared, so the render was dead and the filter matched
+        /// nothing. The game has the line: it is a field on each
+        /// <c>RDNode</c> of the tech tree's own config, which is also where a
+        /// tree a mod has replaced keeps its own. It was reachable and simply
+        /// was not being read.</para>
         /// </remarks>
-        public const int Minor = 0;
+        public const int Minor = 1;
     }
 }

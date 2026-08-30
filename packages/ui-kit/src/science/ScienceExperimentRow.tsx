@@ -68,9 +68,18 @@ export function ScienceExperimentRow({
   transmitCmd,
 }: Readonly<ScienceExperimentRowProps>) {
   return (
-    <Row>
-      <RowName>{instrument.partTitle}</RowName>
-      <Inline>
+    /* Wrapping, because how many badges this row carries is the instrument's
+       business and not the layout's: all four draw at once for a one-shot that
+       has been run, holds data and is now inoperable, and a fixed single line
+       has nowhere to put them. It kept the badges and shaved the part name to
+       one glyph, and inside a narrow column it painted them over the next
+       column's name. */
+    <Row wrap>
+      {/* A part name is data, so at the narrow end it can still ellipsise
+          however much room the row keeps for it; the tooltip is where the
+          rest of it goes, the same as Panel's compacted title. */}
+      <RowName title={instrument.partTitle}>{instrument.partTitle}</RowName>
+      <Inline wrap>
         {instrument.hasData && <Badge tone="go">DATA</Badge>}
         {instrument.deployed && <Badge tone="neutral">DEPLOYED</Badge>}
         {!instrument.rerunnable && <Badge tone="neutral">ONE-SHOT</Badge>}

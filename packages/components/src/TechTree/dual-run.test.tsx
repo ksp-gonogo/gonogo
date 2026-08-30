@@ -1,6 +1,7 @@
 import { DashboardItemContext } from "@ksp-gonogo/core";
 import { act, render, screen, waitFor } from "@ksp-gonogo/test-utils";
 import { visibleText } from "@ksp-gonogo/ui-kit/testing";
+import userEvent from "@testing-library/user-event";
 import { describe, expect, it } from "vitest";
 import { setupStreamFixture } from "../test/setupStreamFixture";
 import smallCareerDetail from "./__fixtures__/small-career-detail.json";
@@ -23,11 +24,11 @@ import { TechTreeComponent } from "./index";
  * What remains, and is still worth its own file: the small hand-authored
  * tech-tree fixture (5 nodes, a multi-parent node, 3 unlocked), run
  * genuinely through the stream pipeline in the shape the real wire
- * actually sends: `career.status.tech.nodes` (CareerViewProvider
- * .BuildTechNodes) has no `description`/`parts` field at all, so this
- * fixture (unlike `index.test.tsx`'s rich `early-career-63-nodes.json`)
- * already omits them, matching what `parseTechNodes` produces for a real
- * enum-keyed (`unlocked: boolean`) entry.
+ * actually sends. `career.status.tech.nodes` (CareerViewProvider
+ * .BuildTechNodes) carries a `description` as of contract 14.1, so the
+ * node body's description line is exercised here off the wire; `parts` is
+ * still absent from it, so the per-node part detail stays the preserve of
+ * `index.test.tsx`'s rich `early-career-63-nodes.json`.
  */
 describe("TechTree: real small career-detail fixture render off the stream (delay=0)", () => {
   it("renders science, unlocked/researchable counts, and every node off the stream, no legacy leg", async () => {
@@ -65,6 +66,7 @@ describe("TechTree: real small career-detail fixture render off the stream (dela
           nodes: smallCareerDetail["tech.nodes"].map((n) => ({
             id: n.id,
             title: n.title,
+            description: n.description,
             scienceCost: n.scienceCost,
             unlocked: n.state === "Available",
             parents: n.parents,
@@ -94,5 +96,37 @@ describe("TechTree: real small career-detail fixture render off the stream (dela
     expect(screen.getByText("Survivability")).toBeInTheDocument();
     expect(screen.getByText("Advanced Rocketry")).toBeInTheDocument();
     expect(screen.getByText("Stability")).toBeInTheDocument();
+  });
+
+  it("shows a node's description, carried by the wire shape and not the legacy one", async () => {
+    const user = userEvent.setup();
+    const streamFixture = setupStreamFixture({
+      carriedChannels: ["career.status", "spaceCenter.scene"],
+      pinnedUt: 10,
+    });
+
+    render(
+      <streamFixture.Provider>
+        <DashboardItemContext.Provider value={{ instanceId: "tt-desc" }}>
+          <TechTreeComponent id="tt-desc" w={6} h={9} />
+        </DashboardItemContext.Provider>
+      </streamFixture.Provider>,
+    );
+
+    act(() => {
+      streamFixture.emit("spaceCenter.scene", { scene: "SpaceCenter" });
+      streamFixture.emit(
+        "career.status",
+        smallCareerDetail._stream.emits[1].value,
+      );
+    });
+
+    await waitFor(() =>
+      expect(screen.getByText("Basic Rocketry")).toBeInTheDocument(),
+    );
+    await user.click(screen.getByText("Basic Rocketry"));
+    expect(
+      screen.getByText("How hard can Rocket Science be anyway?"),
+    ).toBeInTheDocument();
   });
 });

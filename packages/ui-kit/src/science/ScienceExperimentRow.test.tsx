@@ -118,4 +118,31 @@ describe("ScienceExperimentRow", () => {
     );
     expect(screen.queryByText("Deploy")).not.toBeInTheDocument();
   });
+
+  /**
+   * The full badge set is wider than the row it sits in, and the row's layout
+   * has to be the thing that gives: before this the name was squeezed to a
+   * glyph and the badges ran on over the neighbouring column.
+   */
+  it("lays the row and its badge cluster out to wrap, and keeps the whole name in reach", () => {
+    renderRow(
+      <ScienceExperimentRow
+        instrument={instrument({
+          partTitle: "Mystery Goo™ Containment Unit",
+          hasData: true,
+          deployed: true,
+          rerunnable: false,
+          inoperable: true,
+        })}
+      />,
+    );
+    const name = screen.getByText("Mystery Goo™ Containment Unit");
+    expect(name).toHaveAttribute("title", "Mystery Goo™ Containment Unit");
+    expect(getComputedStyle(screen.getByRole("listitem")).flexWrap).toBe(
+      "wrap",
+    );
+    const badges = screen.getByText("INOPERABLE").parentElement;
+    expect(badges).not.toBeNull();
+    expect(getComputedStyle(badges as Element).flexWrap).toBe("wrap");
+  });
 });
