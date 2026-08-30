@@ -25,22 +25,18 @@ import {
   NULL_DISPLAY,
   Panel,
   ReadoutCaption,
+  Section,
   Select,
   Stack,
   Text,
   Truncate,
   Unit,
   useModalSaveBar,
-  WidgetSections,
   writeQuantity,
 } from "@ksp-gonogo/ui-kit";
 import type { ReactNode } from "react";
-import { Fragment, useMemo, useState } from "react";
-import {
-  magnitudeOf,
-  magnitudeOr,
-  type Quantityish,
-} from "../shared/magnitude";
+import { useMemo, useState } from "react";
+import { magnitudeOf, magnitudeOr } from "../shared/magnitude";
 
 // ── Config ────────────────────────────────────────────────────────────────────
 
@@ -536,12 +532,17 @@ function FuelStatusComponent({
   // per-stage stack drop bottom-up as height shrinks.
   const cols = w ?? 8;
   const rows = h ?? 14;
-  // Wide-short: width compensates for the height-gates, so show the resource
-  // list + stage stack side-by-side beneath the totals row instead of leaving
-  // the box sparse. The boost still needs vertical room beneath the totals row,
-  // below ~6 rows even a single section overflows (landscape-18x5), so don't
-  // let the landscape override force the columns on at those heights.
-  const isLandscape = getWidgetShape(w, h).shape === "landscape" && rows >= 6;
+  /* Wide-short: width compensates for the height gates, so show the resource
+     list and the stage stack beneath the totals row instead of leaving the box
+     sparse. Panel flows them into columns from there.
+
+     This used to carry a `rows >= 6` guard as well, because below about six
+     rows even ONE section overflowed the tile and painted over what followed
+     it. The section grid takes its children at their natural height inside the
+     body's own scroller, so the same content now scrolls with a glow instead,
+     and an 18x5 tile showing a caption and a totals box over 600px of empty
+     width was the worse of the two. */
+  const isLandscape = getWidgetShape(w, h).shape === "landscape";
   const showSubtitle = rows >= 5;
   const showTotals = rows >= 4;
   const showResourceList = cols >= 5 && (rows >= 7 || isLandscape);
@@ -555,18 +556,24 @@ function FuelStatusComponent({
   // to spare here since the stage stack only shows once rows >= 10.
   const compactStageMeta = cols < 7;
 
-  // Named, order-stable keys (not array index): the landscape wrapper below
-  // needs its own key per section and reuses these rather than reaching for
-  // the index the biome noArrayIndexKey rule flags.
-  const sections: { key: string; node: ReactNode }[] = [];
+  /* The breakdown columns, keyed by name rather than index, which is both what
+     the biome noArrayIndexKey rule wants and what keeps a column's identity
+     stable as the size gates add and drop them.
+
+     The engine-realism augment segment is NOT pushed here any more. Panel mounts
+     `${componentId}.sections` inside its own section grid, so an Uplink's
+     supplemental rows (ignitions remaining, propellant boil-off) already land
+     as a column beside these rather than in a block underneath them, which is
+     exactly what the hand-placed mount was for. */
+  const columns: { key: string; node: ReactNode }[] = [];
   if (showResourceList) {
-    sections.push({
+    columns.push({
       key: "resources",
       node: <ResourceListSection readings={readings} />,
     });
   }
   if (showStageStack && stages.length > 0) {
-    sections.push({
+    columns.push({
       key: "stages",
       node: (
         <StageStackSection
@@ -579,157 +586,142 @@ function FuelStatusComponent({
       ),
     });
   }
-  // Appended after the per-stage ΔV/TWR stack: an engine-realism Uplink
-  // (ignitions-remaining, propellant boil-off) contributes supplemental rows
-  // here. One of the body's `sections`, which landscape lays out as side-by-side
-  // columns, so this is placed rather than left to `Panel`'s end-of-body default.
-  sections.push({
-    key: "augment",
-    node: <WidgetSections />,
-  });
 
   return (
-    <Panel panelTitle="FUEL · ΔV" panelSections={false}>
-      {/* Stage caption relocated out of the panel subtitle into the body
-          (staging change), carried by ui-kit's ReadoutCaption. */}
-      {showSubtitle && currentStage !== undefined && (
-        <ReadoutCaption>
-          Stage {currentStage}
-          {stageCount !== null &&
-            stageCount !== undefined &&
-            ` / ${stageCount.minus(1).max(0).magnitude}`}
-          {/* A budget only falls by burning and rises by staging or docking, so
-              a dated one is still the budget and gets said out loud rather than
-              blanked. This caption existed as a variable and was never rendered,
-              because the number it would have qualified was withheld instead. */}
-          {budgetNotCurrent && " · ΔV at last contact"}
-        </ReadoutCaption>
-      )}
-      {showHeroDv && (
-        <BigReadout
-          $tone="alert"
-          style={{ fontSize: "clamp(13px, 3.5vw, 17px)" }}
-        >
-          <span style={{ whiteSpace: "nowrap" }}>
-            <Unit value={value("m/s", totalDv)} decimals={0} />
-          </span>
-          <ReadoutCaption>
-            ΔV {DELTA_V_MODE_SHORT[mode]}
-            {budgetNotCurrent && " · at last contact"}
-          </ReadoutCaption>
-        </BigReadout>
-      )}
-
-      {/* No engine data + no totals row to fall back on → render an
-          em-dash so the tiny widget doesn't appear blank. Without this
-          branch the panel shows only the title and a black void below
-          (the no-engine-data fixture at tiny-3x3 hit this state). */}
-      {!showHeroDv && !showTotals && totalDv === undefined && (
-        <BigReadout>{NULL_DISPLAY}</BigReadout>
-      )}
-
-      {showTotals && budgetReported && (
-        <Box
-          surface="panel"
-          bordered
-          radius="xs"
-          style={{
-            display: "flex",
-            gap: "var(--space-16)",
-            marginTop: "var(--space-8)",
-            padding: "var(--space-6) var(--space-8)",
-          }}
-        >
-          <Stack gap="xs">
-            <ReadoutCaption
-              style={{
-                color: "var(--color-text-faint)",
-                letterSpacing: "0.1em",
-              }}
-            >
-              Total ΔV
+    <Panel
+      panelTitle="FUEL · ΔV"
+      sections={[
+        /* The readouts above the breakdown span the row: the caption names the
+           stage the columns describe, and the totals are the headline they add
+           up to. Neither belongs beside a column as a peer of it. */
+        showSubtitle && currentStage !== undefined && (
+          <Section key="stage" full>
+            {/* Stage caption relocated out of the panel subtitle into the body
+                (staging change), carried by ui-kit's ReadoutCaption. */}
+            <ReadoutCaption>
+              Stage {currentStage}
+              {stageCount !== null &&
+                stageCount !== undefined &&
+                ` / ${stageCount.minus(1).max(0).magnitude}`}
+              {/* A budget only falls by burning and rises by staging or
+                  docking, so a dated one is still the budget and gets said out
+                  loud rather than blanked. This caption existed as a variable
+                  and was never rendered, because the number it would have
+                  qualified was withheld instead. */}
+              {budgetNotCurrent && " · ΔV at last contact"}
             </ReadoutCaption>
-            <Text
-              tone="default"
-              size="sm"
-              style={{
-                display: "inline-flex",
-                alignItems: "baseline",
-                gap: "var(--space-6)",
-                flexWrap: "wrap",
-                fontWeight: 700,
-                color: "var(--color-status-nogo-fg)",
-              }}
+          </Section>
+        ),
+        showHeroDv && (
+          <Section key="hero" full>
+            <BigReadout
+              $tone="alert"
+              style={{ fontSize: "clamp(13px, 3.5vw, 17px)" }}
             >
               <span style={{ whiteSpace: "nowrap" }}>
-                {totalDv !== undefined
-                  ? writeQuantity(value("m/s", totalDv), { decimals: 0 })
-                  : NULL_DISPLAY}
+                <Unit value={value("m/s", totalDv)} decimals={0} />
               </span>
-              <span
-                style={{
-                  color: "var(--color-text-dim)",
-                  fontSize: "var(--font-size-xs)",
-                  letterSpacing: "0.08em",
-                }}
-              >
-                {DELTA_V_MODE_SHORT[mode]}
-              </span>
-            </Text>
-          </Stack>
-          <Stack gap="xs">
-            <ReadoutCaption
+              <ReadoutCaption>
+                ΔV {DELTA_V_MODE_SHORT[mode]}
+                {budgetNotCurrent && " · at last contact"}
+              </ReadoutCaption>
+            </BigReadout>
+          </Section>
+        ),
+        /* No engine data + no totals row to fall back on: render an em-dash so
+           the tiny widget does not appear blank. Without this branch the panel
+           shows only the title and a black void below (the no-engine-data
+           fixture at tiny-3x3 hit this state). */
+        !showHeroDv && !showTotals && totalDv === undefined && (
+          <Section key="null" full>
+            <BigReadout>{NULL_DISPLAY}</BigReadout>
+          </Section>
+        ),
+        showTotals && budgetReported && (
+          <Section key="totals" full>
+            <Box
+              surface="panel"
+              bordered
+              radius="xs"
               style={{
-                color: "var(--color-text-faint)",
-                letterSpacing: "0.1em",
+                display: "flex",
+                gap: "var(--space-16)",
+                padding: "var(--space-6) var(--space-8)",
               }}
             >
-              Total burn
-            </ReadoutCaption>
-            <Text
-              tone="default"
-              size="sm"
-              style={{
-                display: "inline-flex",
-                alignItems: "baseline",
-                gap: "var(--space-6)",
-                flexWrap: "wrap",
-                fontWeight: 700,
-                color: "var(--color-status-nogo-fg)",
-              }}
-            >
-              <span style={{ whiteSpace: "nowrap" }}>
-                {totalBurnTime !== undefined ? (
-                  <Unit value={totalBurnTime} />
-                ) : (
-                  NULL_DISPLAY
-                )}
-              </span>
-            </Text>
-          </Stack>
-        </Box>
-      )}
-
-      {isLandscape ? (
-        <div
-          style={{
-            display: "flex",
-            flexDirection: "row",
-            gap: "var(--space-16)",
-            minHeight: 0,
-            alignItems: "flex-start",
-          }}
-        >
-          {sections.map(({ key, node }) => (
-            <div key={key} style={{ flex: "1 1 0", minWidth: 0 }}>
-              {node}
-            </div>
-          ))}
-        </div>
-      ) : (
-        sections.map(({ key, node }) => <Fragment key={key}>{node}</Fragment>)
-      )}
-    </Panel>
+              <Stack gap="xs">
+                <ReadoutCaption
+                  style={{
+                    color: "var(--color-text-faint)",
+                    letterSpacing: "0.1em",
+                  }}
+                >
+                  Total ΔV
+                </ReadoutCaption>
+                <Text
+                  tone="default"
+                  size="sm"
+                  style={{
+                    display: "inline-flex",
+                    alignItems: "baseline",
+                    gap: "var(--space-6)",
+                    flexWrap: "wrap",
+                    fontWeight: 700,
+                    color: "var(--color-status-nogo-fg)",
+                  }}
+                >
+                  <span style={{ whiteSpace: "nowrap" }}>
+                    {totalDv !== undefined
+                      ? writeQuantity(value("m/s", totalDv), { decimals: 0 })
+                      : NULL_DISPLAY}
+                  </span>
+                  <span
+                    style={{
+                      color: "var(--color-text-dim)",
+                      fontSize: "var(--font-size-xs)",
+                      letterSpacing: "0.08em",
+                    }}
+                  >
+                    {DELTA_V_MODE_SHORT[mode]}
+                  </span>
+                </Text>
+              </Stack>
+              <Stack gap="xs">
+                <ReadoutCaption
+                  style={{
+                    color: "var(--color-text-faint)",
+                    letterSpacing: "0.1em",
+                  }}
+                >
+                  Total burn
+                </ReadoutCaption>
+                <Text
+                  tone="default"
+                  size="sm"
+                  style={{
+                    display: "inline-flex",
+                    alignItems: "baseline",
+                    gap: "var(--space-6)",
+                    flexWrap: "wrap",
+                    fontWeight: 700,
+                    color: "var(--color-status-nogo-fg)",
+                  }}
+                >
+                  <span style={{ whiteSpace: "nowrap" }}>
+                    {totalBurnTime !== undefined ? (
+                      <Unit value={totalBurnTime} />
+                    ) : (
+                      NULL_DISPLAY
+                    )}
+                  </span>
+                </Text>
+              </Stack>
+            </Box>
+          </Section>
+        ),
+        ...columns.map(({ key, node }) => <Section key={key}>{node}</Section>),
+      ]}
+    />
   );
 }
 

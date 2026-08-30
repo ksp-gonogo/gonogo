@@ -8,6 +8,7 @@ import {
   Panel,
   ReadoutCaption,
   type ReadoutTone,
+  Section,
   Unit,
 } from "@ksp-gonogo/ui-kit";
 import type { CSSProperties } from "react";
@@ -56,12 +57,17 @@ function PerfBudgetsComponent({
 
   if (snapshots.length === 0) {
     return (
-      <Panel panelTitle="PERF BUDGETS">
-        <EmptyState>
-          No budgets registered yet. Budgets self-register at module load; make
-          sure the relevant services are imported.
-        </EmptyState>
-      </Panel>
+      <Panel
+        panelTitle="PERF BUDGETS"
+        sections={
+          <Section>
+            <EmptyState>
+              No budgets registered yet. Budgets self-register at module load;
+              make sure the relevant services are imported.
+            </EmptyState>
+          </Section>
+        }
+      />
     );
   }
 
@@ -73,81 +79,104 @@ function PerfBudgetsComponent({
 
   if (!showFullRows && !showDots) {
     return (
-      <Panel panelTitle="PERF">
-        <BigReadout $tone={overCount > 0 ? "alert" : "go"}>
-          {overCount > 0 ? `${overCount} OVER` : `${snapshots.length} OK`}
-          <ReadoutCaption>
-            of {snapshots.length} budget{snapshots.length === 1 ? "" : "s"}
-          </ReadoutCaption>
-        </BigReadout>
-      </Panel>
+      <Panel
+        panelTitle="PERF"
+        sections={
+          <Section>
+            <BigReadout $tone={overCount > 0 ? "alert" : "go"}>
+              {overCount > 0 ? `${overCount} OVER` : `${snapshots.length} OK`}
+              <ReadoutCaption>
+                of {snapshots.length} budget{snapshots.length === 1 ? "" : "s"}
+              </ReadoutCaption>
+            </BigReadout>
+          </Section>
+        }
+      />
     );
   }
 
   if (showDots) {
     return (
-      <Panel panelTitle="PERF">
-        <div style={DOT_SUMMARY}>
-          <div style={{ ...DOT_HEADLINE, color: TONE_COLOR[tone] }}>
-            {overCount > 0
-              ? `${overCount} of ${snapshots.length} OVER`
-              : `${snapshots.length} OK`}
-          </div>
-          <div style={DOT_ROW}>
+      <Panel
+        panelTitle="PERF"
+        sections={
+          <Section>
+            <div style={DOT_SUMMARY}>
+              <div style={{ ...DOT_HEADLINE, color: TONE_COLOR[tone] }}>
+                {overCount > 0
+                  ? `${overCount} of ${snapshots.length} OVER`
+                  : `${snapshots.length} OK`}
+              </div>
+              <div style={DOT_ROW}>
+                {snapshots.map((s) => {
+                  const ratio = s.threshold > 0 ? s.rate / s.threshold : 0;
+                  const t: Tone =
+                    ratio >= 1 ? "over" : ratio >= 0.75 ? "near" : "under";
+                  return (
+                    <span
+                      key={s.name}
+                      title={s.name}
+                      style={{ ...DOT, background: TONE_COLOR[t] }}
+                    />
+                  );
+                })}
+              </div>
+            </div>
+          </Section>
+        }
+      />
+    );
+  }
+
+  return (
+    <Panel
+      panelTitle="PERF BUDGETS"
+      sections={
+        <Section>
+          <ul style={LIST}>
             {snapshots.map((s) => {
               const ratio = s.threshold > 0 ? s.rate / s.threshold : 0;
               const t: Tone =
                 ratio >= 1 ? "over" : ratio >= 0.75 ? "near" : "under";
               return (
-                <span
+                <Card
+                  as="li"
                   key={s.name}
-                  title={s.name}
-                  style={{ ...DOT, background: TONE_COLOR[t] }}
-                />
+                  tone={KIT_TONE[t]}
+                  style={BUDGET_CARD}
+                >
+                  <div style={ROW_HEADER}>
+                    <span style={NAME}>{s.name}</span>
+                    <span style={{ ...RATE, color: TONE_COLOR[t] }}>
+                      {formatRate(s.rate)} / {formatRate(s.threshold)} {s.unit}/
+                      <Unit
+                        value={value("s", s.windowMs / 1000)}
+                        decimals={0}
+                      />
+                    </span>
+                  </div>
+                  <div style={BAR}>
+                    <div
+                      style={{
+                        ...BAR_FILL,
+                        background: TONE_COLOR[t],
+                        width: `${Math.min(100, ratio * 100).toFixed(1)}%`,
+                      }}
+                    />
+                  </div>
+                  {s.exceedanceCount > 0 && (
+                    <div style={FOOTER}>
+                      {s.exceedanceCount} exceedance
+                      {s.exceedanceCount === 1 ? "" : "s"} since startup
+                    </div>
+                  )}
+                </Card>
               );
             })}
-          </div>
-        </div>
-      </Panel>
-    );
-  }
-
-  return (
-    <Panel panelTitle="PERF BUDGETS">
-      <ul style={LIST}>
-        {snapshots.map((s) => {
-          const ratio = s.threshold > 0 ? s.rate / s.threshold : 0;
-          const t: Tone =
-            ratio >= 1 ? "over" : ratio >= 0.75 ? "near" : "under";
-          return (
-            <Card as="li" key={s.name} tone={KIT_TONE[t]} style={BUDGET_CARD}>
-              <div style={ROW_HEADER}>
-                <span style={NAME}>{s.name}</span>
-                <span style={{ ...RATE, color: TONE_COLOR[t] }}>
-                  {formatRate(s.rate)} / {formatRate(s.threshold)} {s.unit}/
-                  <Unit value={value("s", s.windowMs / 1000)} decimals={0} />
-                </span>
-              </div>
-              <div style={BAR}>
-                <div
-                  style={{
-                    ...BAR_FILL,
-                    background: TONE_COLOR[t],
-                    width: `${Math.min(100, ratio * 100).toFixed(1)}%`,
-                  }}
-                />
-              </div>
-              {s.exceedanceCount > 0 && (
-                <div style={FOOTER}>
-                  {s.exceedanceCount} exceedance
-                  {s.exceedanceCount === 1 ? "" : "s"} since startup
-                </div>
-              )}
-            </Card>
-          );
-        })}
-      </ul>
-    </Panel>
+          </ul>
+        </Section>
+      }
+    />
   );
 }
 

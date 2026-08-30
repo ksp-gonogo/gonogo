@@ -580,6 +580,52 @@ a browser driver and a client whose scene fixtures no script renders.
 
 ---
 
+## Giving your widget a body: `sections`, not children
+
+A dashboard tile is any shape the operator drags it to. A widget that composes
+its own body cannot know which shape it got, so it runs everything down one
+column and wastes the width of a landscape tile. `Panel` does know, so the
+decision belongs to it.
+
+Pass your body as `sections` and close the tag:
+
+```tsx
+<Panel
+  panelTitle="REACTOR"
+  sections={[
+    <Section key="core" title="Core">
+      <Row label="Temperature" value={<Unit value={reading.coreTemp} />} />
+    </Section>,
+    <Section key="output" title="Output">
+      <Row label="Power" value={<Unit value={reading.power} />} />
+    </Section>,
+  ]}
+/>
+```
+
+Those two sections stack in a narrow tile and sit side by side in a wide one,
+with your widget saying nothing about either. `Section` renders its own `title`
+as a real `h4` under the panel's `h3`, so you stop hand-rolling the heading.
+
+Three things worth knowing:
+
+- **one section costs nothing.** `sections={<Section>…</Section>}` is the normal
+  way to write a widget whose body is a single list, and it is not an abuse of
+  the prop
+- **`full` spans every column.** For the section a wide layout should not put
+  beside another: a summary strip the columns below it belong to, or a table
+  whose columns are already its own
+- **`sectionMinWidth` tunes the threshold.** Raise it for sections with long
+  rows; set it to `100%` for a widget that should never columnise
+
+Children instead of `sections` is the retiring form, and
+`packages/core/src/styleguide-panel-body.test.ts` is a shrink-only ratchet that
+will fail a new one. The single exception is a widget that is WHOLLY a drawing,
+a map or a globe, which passes `floatingHeader` and keeps its children: its
+content is the panel rather than a section of it.
+
+---
+
 ## Showing a quantity, and testing that you did
 
 Every number your Topic declares a unit for arrives as a `Value`: an object

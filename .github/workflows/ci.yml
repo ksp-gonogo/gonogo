@@ -149,6 +149,39 @@ jobs:
 
       - run: pnpm --filter @ksp-gonogo/components probe-render-smoke
 
+      # Does any widget paint two of its own sections into the same pixels?
+      #
+      # The detector has lived in the render harness since 76be6b9d2, so it has
+      # been running in CI the whole time: `visual` calls the same harness. But
+      # `visual` is red on purpose, so it showed the colour it always shows
+      # whatever the detector reported, and the only other caller is a person
+      # typing `render-widget`. A finding that lands nowhere anyone reads is the
+      # same shape as the probe bundle that silently stopped rendering for a day.
+      #
+      # 1edb08f74 registered the script and deliberately did NOT wire it here,
+      # because CommSignal was printing its signal block over the link-budget
+      # section and a permanently-red step hides the next unrelated failure
+      # behind it. That reasoning was right and it is why this step is only
+      # landing now: CommSignal's landscape branch is gone (it passes `sections`
+      # and lets Panel own the flow), and a sweep of all 45 configured widgets
+      # comes back with nothing.
+      #
+      # GREEN on landing, and it must stay that way, same contract as the un-fed
+      # gate above.
+      #
+      # Chromium only, and that is a real limit rather than a shrug: geometry is
+      # exactly where engines disagree, so this says nothing about firefox or
+      # webkit. It reuses the browser the probe smoke step above already
+      # installed. It renders at the FIXED tile size, never the review path's
+      # full-content growth, which would hand a squeezed flex item the room it
+      # was missing and make the overlap disappear.
+      #
+      # It refuses to report clean over a shrunken widget set (MIN_WIDGETS), and
+      # the detector plants a known-bad layout on every run and throws if it does
+      # not catch it, so a green here is a green from an instrument that has just
+      # demonstrated it can fail.
+      - run: pnpm --filter @ksp-gonogo/components overlap-gate
+
       # Does every client-bearing Uplink HAVE a generated page. A second's worth
       # of filesystem, and it precedes the drift check below because the two
       # answer different questions and the cheap one answers first: a missing

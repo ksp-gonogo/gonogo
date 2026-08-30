@@ -23,6 +23,7 @@ import {
   NULL_DISPLAY,
   Panel,
   Row,
+  Section,
   Spinner,
   Stack,
   speakQuantity,
@@ -428,211 +429,229 @@ function SpaceCenterStatusComponent({
 
   if (sizeBucket === "tiny") {
     return (
-      <Panel panelTitle="KSC" fitToSize>
-        {careerFunds !== null ? (
-          <TinyFunds
-            title={speakQuantity(value("funds", careerFunds), {
-              decimals: 0,
-            })}
-          >
-            {formatTinyFunds(Math.round(careerFunds))}
-            <TinyFundsUnit>f</TinyFundsUnit>
-            {/* At this size the balance alone is the whole readout, so the
+      <Panel
+        panelTitle="KSC"
+        fitToSize
+        sections={
+          <Section>
+            {careerFunds !== null ? (
+              <TinyFunds
+                title={speakQuantity(value("funds", careerFunds), {
+                  decimals: 0,
+                })}
+              >
+                {formatTinyFunds(Math.round(careerFunds))}
+                <TinyFundsUnit>f</TinyFundsUnit>
+                {/* At this size the balance alone is the whole readout, so the
                 drain has to arrive as the one number that changes the answer:
                 how long the balance lasts. */}
-            {reportsFundsDrain(netFunds) && (
-              <TinyDrain>
-                <FundsDrain funds={careerFunds} netPerDay={netFunds} compact />
-              </TinyDrain>
-            )}
-          </TinyFunds>
-        ) : (
-          /* No room for a sentence in a 2x3 box, but the reason still has to
+                {reportsFundsDrain(netFunds) && (
+                  <TinyDrain>
+                    <FundsDrain
+                      funds={careerFunds}
+                      netPerDay={netFunds}
+                      compact
+                    />
+                  </TinyDrain>
+                )}
+              </TinyFunds>
+            ) : (
+              /* No room for a sentence in a 2x3 box, but the reason still has to
                leave the component: a held balance is titled, a balance that never
                arrived is not, so the two are distinguishable from outside. */
-          <TinyFunds
-            title={heldFunds ? "Funds balance no longer current" : undefined}
-          >
-            {NULL_DISPLAY}
-          </TinyFunds>
-        )}
-        <TinyPad
-          $occupied={padOccupied === true}
-          title={padLine}
-          role="img"
-          aria-label={padLine}
-        >
-          {/* "PAD CLEAR" is the same claim as the line above, in two words. */}
-          {padOccupied === true
-            ? "PAD ACTIVE"
-            : padKnown
-              ? "PAD CLEAR"
-              : "PAD UNKNOWN"}
-        </TinyPad>
-      </Panel>
+              <TinyFunds
+                title={
+                  heldFunds ? "Funds balance no longer current" : undefined
+                }
+              >
+                {NULL_DISPLAY}
+              </TinyFunds>
+            )}
+            <TinyPad
+              $occupied={padOccupied === true}
+              title={padLine}
+              role="img"
+              aria-label={padLine}
+            >
+              {/* "PAD CLEAR" is the same claim as the line above, in two words. */}
+              {padOccupied === true
+                ? "PAD ACTIVE"
+                : padKnown
+                  ? "PAD CLEAR"
+                  : "PAD UNKNOWN"}
+            </TinyPad>
+          </Section>
+        }
+      />
     );
   }
 
   return (
-    <Panel panelTitle="SPACE CENTER" panelSections={false}>
-      <Body>
-        {showSubtitle && (
-          <PadStatusLine role="status" aria-live="polite">
-            {padLine}
-            {careerFunds !== null ? (
-              <FundsReadout title="Available funds">
-                · <Unit value={value("funds", careerFunds)} />
-              </FundsReadout>
-            ) : null}
-            {reportsFundsDrain(netFunds) && (
-              <DrainReadout>
-                <FundsDrain
-                  funds={careerFunds}
-                  netPerDay={netFunds}
-                  separator
-                />
-              </DrainReadout>
-            )}
-            {careerFunds === null &&
-              /* The balance is required beside a spend control, and an absent
+    <Panel
+      panelTitle="SPACE CENTER"
+      panelSections={false}
+      sections={
+        <Section>
+          <Body>
+            {showSubtitle && (
+              <PadStatusLine role="status" aria-live="polite">
+                {padLine}
+                {careerFunds !== null ? (
+                  <FundsReadout title="Available funds">
+                    · <Unit value={value("funds", careerFunds)} />
+                  </FundsReadout>
+                ) : null}
+                {reportsFundsDrain(netFunds) && (
+                  <DrainReadout>
+                    <FundsDrain
+                      funds={careerFunds}
+                      netPerDay={netFunds}
+                      separator
+                    />
+                  </DrainReadout>
+                )}
+                {careerFunds === null &&
+                  /* The balance is required beside a spend control, and an absent
                  balance is the state that rule exists for: it is exactly when
                  the affordability check below has nothing to judge against.
                  Sandbox charges nothing, so there is no balance to be missing.
                  Held and never-arrived are two different sentences: one accuses
                  the link, the other only reports a cold start. */
-              chargesFunds &&
-              (heldFunds ? (
-                <FundsReadout title="Funds balance no longer current">
-                  · funds no longer current
-                </FundsReadout>
-              ) : (
-                <FundsReadout title="No funds balance has arrived">
-                  · funds unknown
-                </FundsReadout>
-              ))}
-          </PadStatusLine>
-        )}
-        {heldUpgradeInputs.length > 0 && (
-          /* Not a live region: the funds half of this already re-announces
+                  chargesFunds &&
+                  (heldFunds ? (
+                    <FundsReadout title="Funds balance no longer current">
+                      · funds no longer current
+                    </FundsReadout>
+                  ) : (
+                    <FundsReadout title="No funds balance has arrived">
+                      · funds unknown
+                    </FundsReadout>
+                  ))}
+              </PadStatusLine>
+            )}
+            {heldUpgradeInputs.length > 0 && (
+              /* Not a live region: the funds half of this already re-announces
              through the pad line above, and telling the operator twice in one
              frame is how a status line gets ignored. */
-          <UpgradesHeld>
-            {`Upgrades held: ${heldUpgradeInputs.join(" and ")} no longer current`}
-          </UpgradesHeld>
-        )}
-        {tierSpecsFit && !anyTierText && (
-          /* Said once for the grid, because it is one fact about the producer
+              <UpgradesHeld>
+                {`Upgrades held: ${heldUpgradeInputs.join(" and ")} no longer current`}
+              </UpgradesHeld>
+            )}
+            {tierSpecsFit && !anyTierText && (
+              /* Said once for the grid, because it is one fact about the producer
              rather than nine about the facilities. Nine dashes down the cells
              would report the same silence nine times and bury the tiers. */
-          <TierSpecsAbsent>
-            No tier descriptions on this telemetry
-          </TierSpecsAbsent>
-        )}
-        <FacilityGrid $compact={compactGrid}>
-          {FACILITIES.map(({ key, label }) => {
-            const f = facilities[key];
-            // Live curl 2026-05-13 confirmed: the fork's `max` field is the
-            // upgrade-count (KSP's `GetFacilityLevelCount`), not the
-            // tier-count. VAB returns `{level:2, max:2}` at full tier 3,
-            // launchPad returns `{level:1, max:2}` at tier 2. So the total
-            // number of tiers is `max + 1` and the operator-facing "Lvl N
-            // of M" should read `{level+1}/{max+1}`, matches KSP's stock
-            // R&D dialog which calls VAB tier 3 "Level 3".
-            const atMax = !!f && f.max > 0 && f.level >= f.max;
-            const displayLevel = f ? f.level + 1 : 0;
-            const displayMax = f && f.max > 0 ? f.max + 1 : 0;
-            // An absent balance must NOT satisfy this check. It guards a button
-            // that spends career funds, and not knowing the balance is not the
-            // same as knowing the upgrade is affordable.
-            const canAfford =
-              !!f &&
-              f.upgradeFunds > 0 &&
-              careerFunds !== null &&
-              careerFunds >= f.upgradeFunds;
-            const canUpgrade =
-              upgradesEnabled &&
-              !!f &&
-              !atMax &&
-              f.upgradeFunds > 0 &&
-              canAfford;
-            // Build a hover-tooltip body summarising the current tier's
-            // bullet-list and (if available) the next-tier preview. The
-            // newlines from the fork stay as \n, the browser's `title`
-            // attribute renders them with native multi-line wrapping in
-            // the OS-level tooltip on every major platform.
-            const tooltip = buildFacilityTooltip(label, f);
-            // Gated on the whole grid rather than this one facility: a cell
-            // whose own description is empty still has to say so, and it can
-            // only say so inside a section that is on screen.
-            const showTierSpecs = tierSpecsFit && anyTierText && !!f;
-            // A tier the operator has already bought past is not missing, so
-            // only a facility with somewhere left to go owes a NEXT block. An
-            // unknown ceiling (`max === 0`) is not a claim that one exists.
-            const hasNextTier = !!f && f.max > 0 && !atMax;
-            return (
-              <FacilityCell key={key} title={tooltip || undefined}>
-                <FacilityLabel>{label}</FacilityLabel>
-                <FacilityValue
-                  // role="img" + aria-label so AT announces a coherent
-                  // "Launch Pad tier 2 of 3" instead of the "2 / 3" spans
-                  // read as fragments (and makes aria-label valid on the
-                  // otherwise-roleless value container).
-                  role="img"
-                  aria-label={
-                    f && f.max > 0
-                      ? `${label} tier ${displayLevel} of ${displayMax}`
-                      : `${label} tier unknown`
-                  }
-                >
-                  {f && f.max > 0 ? (
-                    <>
-                      <Tier>{displayLevel}</Tier>
-                      <Slash>/</Slash>
-                      <TierMax>{displayMax}</TierMax>
-                    </>
-                  ) : (
-                    <Muted>{NULL_DISPLAY}</Muted>
-                  )}
-                </FacilityValue>
-                {f && f.upgradeFunds > 0 && !atMax && (
-                  <UpgradeRow>
-                    <UpgradeCost $afford={canAfford}>
-                      {formatCompactCurrency(f.upgradeFunds)}
-                    </UpgradeCost>
-                    <UpgradeButton
-                      enabled={canUpgrade}
-                      upgradeCmd={upgradeCmd}
-                      facilityId={KEY_TO_ENUM_FACILITY[key]}
-                      facilityLabel={label}
-                      titleOverride={
-                        f.nextLevelText
-                          ? `Upgrade to tier ${displayLevel + 1}:\n${plainTierSpecs(f.nextLevelText)}`
-                          : undefined
+              <TierSpecsAbsent>
+                No tier descriptions on this telemetry
+              </TierSpecsAbsent>
+            )}
+            <FacilityGrid $compact={compactGrid}>
+              {FACILITIES.map(({ key, label }) => {
+                const f = facilities[key];
+                // Live curl 2026-05-13 confirmed: the fork's `max` field is the
+                // upgrade-count (KSP's `GetFacilityLevelCount`), not the
+                // tier-count. VAB returns `{level:2, max:2}` at full tier 3,
+                // launchPad returns `{level:1, max:2}` at tier 2. So the total
+                // number of tiers is `max + 1` and the operator-facing "Lvl N
+                // of M" should read `{level+1}/{max+1}`, matches KSP's stock
+                // R&D dialog which calls VAB tier 3 "Level 3".
+                const atMax = !!f && f.max > 0 && f.level >= f.max;
+                const displayLevel = f ? f.level + 1 : 0;
+                const displayMax = f && f.max > 0 ? f.max + 1 : 0;
+                // An absent balance must NOT satisfy this check. It guards a button
+                // that spends career funds, and not knowing the balance is not the
+                // same as knowing the upgrade is affordable.
+                const canAfford =
+                  !!f &&
+                  f.upgradeFunds > 0 &&
+                  careerFunds !== null &&
+                  careerFunds >= f.upgradeFunds;
+                const canUpgrade =
+                  upgradesEnabled &&
+                  !!f &&
+                  !atMax &&
+                  f.upgradeFunds > 0 &&
+                  canAfford;
+                // Build a hover-tooltip body summarising the current tier's
+                // bullet-list and (if available) the next-tier preview. The
+                // newlines from the fork stay as \n, the browser's `title`
+                // attribute renders them with native multi-line wrapping in
+                // the OS-level tooltip on every major platform.
+                const tooltip = buildFacilityTooltip(label, f);
+                // Gated on the whole grid rather than this one facility: a cell
+                // whose own description is empty still has to say so, and it can
+                // only say so inside a section that is on screen.
+                const showTierSpecs = tierSpecsFit && anyTierText && !!f;
+                // A tier the operator has already bought past is not missing, so
+                // only a facility with somewhere left to go owes a NEXT block. An
+                // unknown ceiling (`max === 0`) is not a claim that one exists.
+                const hasNextTier = !!f && f.max > 0 && !atMax;
+                return (
+                  <FacilityCell key={key} title={tooltip || undefined}>
+                    <FacilityLabel>{label}</FacilityLabel>
+                    <FacilityValue
+                      // role="img" + aria-label so AT announces a coherent
+                      // "Launch Pad tier 2 of 3" instead of the "2 / 3" spans
+                      // read as fragments (and makes aria-label valid on the
+                      // otherwise-roleless value container).
+                      role="img"
+                      aria-label={
+                        f && f.max > 0
+                          ? `${label} tier ${displayLevel} of ${displayMax}`
+                          : `${label} tier unknown`
                       }
-                    />
-                  </UpgradeRow>
-                )}
-                {atMax && <MaxBadge>MAX</MaxBadge>}
-                {showTierSpecs && f && (
-                  <TierSpecs>
-                    <TierBlock heading="Now" text={f.currentLevelText} />
-                    {hasNextTier && (
-                      <TierBlock heading="Next" text={f.nextLevelText} />
+                    >
+                      {f && f.max > 0 ? (
+                        <>
+                          <Tier>{displayLevel}</Tier>
+                          <Slash>/</Slash>
+                          <TierMax>{displayMax}</TierMax>
+                        </>
+                      ) : (
+                        <Muted>{NULL_DISPLAY}</Muted>
+                      )}
+                    </FacilityValue>
+                    {f && f.upgradeFunds > 0 && !atMax && (
+                      <UpgradeRow>
+                        <UpgradeCost $afford={canAfford}>
+                          {formatCompactCurrency(f.upgradeFunds)}
+                        </UpgradeCost>
+                        <UpgradeButton
+                          enabled={canUpgrade}
+                          upgradeCmd={upgradeCmd}
+                          facilityId={KEY_TO_ENUM_FACILITY[key]}
+                          facilityLabel={label}
+                          titleOverride={
+                            f.nextLevelText
+                              ? `Upgrade to tier ${displayLevel + 1}:\n${plainTierSpecs(f.nextLevelText)}`
+                              : undefined
+                          }
+                        />
+                      </UpgradeRow>
                     )}
-                  </TierSpecs>
-                )}
-              </FacilityCell>
-            );
-          })}
-        </FacilityGrid>
+                    {atMax && <MaxBadge>MAX</MaxBadge>}
+                    {showTierSpecs && f && (
+                      <TierSpecs>
+                        <TierBlock heading="Now" text={f.currentLevelText} />
+                        {hasNextTier && (
+                          <TierBlock heading="Next" text={f.nextLevelText} />
+                        )}
+                      </TierSpecs>
+                    )}
+                  </FacilityCell>
+                );
+              })}
+            </FacilityGrid>
 
-        {/* Appended to the facility-level list: a KSC-expansion Uplink can
+            {/* Appended to the facility-level list: a KSC-expansion Uplink can
             render extra facility rows here. Placed rather than left to
             `Panel`'s end-of-body default so the sections sit under the
             facilities they extend rather than under the body's own padding. */}
-        <WidgetSections />
-      </Body>
-    </Panel>
+            <WidgetSections />
+          </Body>
+        </Section>
+      }
+    />
   );
 }
 

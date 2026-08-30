@@ -1017,13 +1017,33 @@ async function renderOneWidget(
       }
       // Full-content capture (review path): grow `#root` until nothing is
       // clipped, so the PNG shows the WHOLE widget, not a tile-height crop.
-      // Content can hide in two places, behind the Panel's `overflow:hidden`,
-      // or inside a ScrollArea's `overflow:auto`: so we measure both (the
-      // Panel is `#root`'s first child; ScrollArea inners carry a stable
-      // `data-scroll-area-inner` attribute) and grow to swallow the larger
-      // overflow, iterating to a fixpoint since growing the box can reveal a
-      // little more. The mount already laid out at the real tile WIDTH, so
-      // responsive breakpoints stay honest: only the vertical crop is lifted.
+      /* Content can hide in three places, and the third was missing for as
+         long as this loop existed: behind the Panel's `overflow:hidden` (the
+         Panel is `#root`'s first child), inside a ScrollArea's `overflow:auto`
+         (its inner carries a stable `data-scroll-area-inner`), and inside
+         PANEL'S OWN BODY, which is the scroller for every widget that does not
+         nest a ScrollArea and carries `data-panel-body`.
+
+         The body clips its own overflow, so the container above it reports
+         `scrollHeight === clientHeight` and the first two probes see nothing.
+         The tile then never grows and the widget reads as CROPPED in a review
+         render while being perfectly correct in the app.
+
+         Found while converting widgets to `Panel sections`: a conversion that
+         drops a nested ScrollArea moves a widget from the measured path to the
+         unmeasured one, so this got quietly worse the more of that work got
+         done, and each one looked like a fresh layout bug in the widget just
+         converted.
+
+         The list is the whole contract, so a NEW kind of scroller has to be
+         added here or it is silently unmeasured. Only the review path uses
+         this; the visual gate and the overlap gate both run with `fullContent`
+         off, so no baseline and no tile geometry can move.
+
+         We grow to swallow the largest overflow, iterating to a fixpoint since
+         growing the box can reveal a little more. The mount already laid out at
+         the real tile WIDTH, so responsive breakpoints stay honest: only the
+         vertical crop is lifted. */
       // OFF for the visual gate, so its per-tile baselines are unaffected.
       if (fullContent) {
         // NB: no named `const fn = () => …` helpers inside this evaluate,
@@ -1039,6 +1059,7 @@ async function renderOneWidget(
               el,
               el.firstElementChild,
               ...document.querySelectorAll("[data-scroll-area-inner]"),
+              ...document.querySelectorAll("[data-panel-body]"),
             ];
             let need = 0;
             for (const n of nodes) {

@@ -1,8 +1,10 @@
 import type { StreamStatusValue } from "@ksp-gonogo/sitrep-sdk"; // erased at build; no runtime edge
 import {
+  Children,
   type ComponentPropsWithoutRef,
   createContext,
   forwardRef,
+  isValidElement,
   type ReactElement,
   type ReactNode,
   useCallback,
@@ -21,6 +23,7 @@ import { PanelDelayRail } from "./CommandDelay/PanelDelayRail";
 import { PanelRailTargetContext } from "./CommandDelay/PanelRailTarget";
 import { fitBox } from "./fitBox";
 import { type BadgeEntry, usePanelBadgesContext } from "./PanelBadges";
+import { SECTION_FULL_ATTR, Section } from "./Section";
 import { formatStreamStatus, StreamStatusBadge } from "./StreamStatusBadge";
 import { PanelStatusDot } from "./status/PanelStatusDot";
 import type { StatusSummary } from "./status/PanelStatusStore";
@@ -756,6 +759,78 @@ export function PanelBody({
 }
 
 /**
+ * The default narrowest a section column may be before the panel stops offering
+ * a second one. 13rem (208px) puts two columns in a panel about 470px wide,
+ * which is a 12-column tile: the shape the complaint was about, wide enough to
+ * read two label/value columns side by side and currently running everything
+ * down one.
+ *
+ * A string rather than a number so a widget can override it with `100%`, which
+ * is how a widget whose sections are each already a wide table opts out of
+ * columns entirely without having to guess a pixel value large enough.
+ */
+const DEFAULT_SECTION_MIN_WIDTH = "13rem";
+
+/**
+ * Where the wide-layout decision actually lives.
+ *
+ * `auto-fit` + `minmax` is the whole mechanism: the grid takes as many columns
+ * of at least `$min` as the panel's own width allows and collapses to one when
+ * it does not, so a widget's sections flow horizontally in a landscape tile and
+ * stack in a portrait one with the widget saying nothing about either. That is
+ * the point of the sections prop, and the reason the decision belongs to Panel:
+ * a widget cannot see the width it was given, and Panel already answers two
+ * other questions of exactly this shape (the compacted title, the aside
+ * collapse).
+ *
+ * No JS and no measurement, unlike those two. Both of those are content-blind
+ * questions the CSS cannot answer (does this TEXT fit), where this one is pure
+ * geometry the layout engine already computes. A ResizeObserver here would buy
+ * nothing and would put a state update on every panel resize.
+ *
+ * `min($min, 100%)` rather than a bare `$min` is load-bearing: a bare minimum
+ * wider than the panel makes the single track overflow, so a narrow tile scrolls
+ * sideways instead of stacking. The guard clamps the track to the panel and the
+ * column simply becomes narrower than the nominal minimum, which is what a
+ * single-column stack has always looked like.
+ *
+ * The `max(…, one-Nth-of-the-panel)` half was put there by a render, and would
+ * not have been guessed from the CSS. `auto-fit` promises to collapse tracks
+ * nothing lands in, and it does, but a track a FULL-WIDTH section spans is not
+ * empty. So a panel with a full-width totals row over two columns laid out three
+ * tracks, filled two, and left the last third of an 18-column tile blank, which
+ * is the exact waste the sections prop exists to end. Giving each track a floor
+ * of one Nth of the panel (N being the sections that actually flow) makes more
+ * than N tracks arithmetically impossible, so the collapse is never relied on.
+ */
+const PanelSections__Grid = styled.div<{ $min: string; $columns: number }>`
+  display: grid;
+  grid-template-columns: repeat(
+    auto-fit,
+    minmax(
+      max(
+        min(${({ $min }) => $min}, 100%),
+        ${({ $columns }) =>
+          `calc((100% - ${$columns - 1} * var(--space-16, 16px)) / ${$columns})`}
+      ),
+      1fr
+    )
+  );
+  /* Wider between columns than between rows: the column gap is the only thing
+     separating two unrelated sections that now sit side by side, where the row
+     gap has a section title under it doing some of that work. */
+  gap: var(--space-12, 12px) var(--space-16, 16px);
+  /* Sections keep their natural height rather than stretching to the tallest in
+     the row. A three-row section stretched to match a ten-row neighbour reads as
+     a box with a large empty bottom, which is exactly the wasted space this is
+     meant to reclaim. */
+  align-items: start;
+  & > [${SECTION_FULL_ATTR}] {
+    grid-column: 1 / -1;
+  }
+`;
+
+/**
  * The tiny-tile layout: fills the space left under the header and centres the
  * widget's content in it, but only while measurement says the content fits.
  *
@@ -1405,6 +1480,38 @@ export interface PanelProps extends ComponentPropsWithoutRef<"div"> {
    */
   panelTitle?: ReactNode;
   /**
+   * The panel's body, as one or more sections. THE PREFERRED WAY to give a
+   * panel content: passing children instead is the retiring form.
+   *
+   * Each entry is normally a `Section`, which carries its own `title`, so a
+   * widget stops hand-rolling the heading-plus-`Stack` pair it used to write
+   * per group. Panel then owns how those sections FLOW: they run down one
+   * column in a portrait tile and across two or three in a landscape one, which
+   * is the width a widget cannot see for itself. See `PanelSections__Grid`.
+   *
+   * An array OR a single node, and a single section is not an abuse of it: a
+   * widget whose body is one list says `sections={<Section>...</Section>}` and
+   * pays nothing for the shape. Read through `Children.toArray`, so entries are
+   * keyed for you and a conditional `null` section simply does not render.
+   *
+   * The exception, and the only one, is a widget that is WHOLLY a drawing: a
+   * map, a globe, an orbit view. Its content is the panel rather than a section
+   * of it, and it already has its own prop in `floatingHeader`, which bleeds the
+   * body to the chrome. Those keep children.
+   *
+   * Distinct from `panelSections`, which is a boolean and is about the augment
+   * SLOT, not about content. The two share a word and nothing else.
+   */
+  sections?: ReactNode | readonly ReactNode[];
+  /**
+   * Narrowest a section column may be before the panel gives up on offering a
+   * second one. Defaults to `DEFAULT_SECTION_MIN_WIDTH`.
+   *
+   * Raise it for a widget whose sections carry long rows and read badly at the
+   * default width; set it to `100%` for one that should never columnise at all.
+   */
+  sectionMinWidth?: string;
+  /**
    * Shorter forms of `panelTitle`, longest first, for tiles the full one will
    * not fit in. See {@link PanelTitleProps.compact}, which this forwards to.
    *
@@ -1681,6 +1788,8 @@ function PanelRoot({
   sidebarSide,
   sidebarSize,
   panelSections = true,
+  sections,
+  sectionMinWidth = DEFAULT_SECTION_MIN_WIDTH,
   children,
   ...rest
 }: PanelProps) {
@@ -1788,15 +1897,52 @@ function PanelRoot({
       </>
     );
 
+  /* The section grid, and nothing at all when no sections were passed: a widget
+     still on children renders exactly the DOM it rendered before, so a
+     conversion is the only thing that can move a render.
+
+     The universal `sections` augment segment moves INSIDE the grid when the
+     widget has one, which is the whole reason the segment is called that: an
+     Uplink's appended section is a section, and it should flow into a column
+     beside the host's own rather than always landing in a full-width block
+     underneath them. `AugmentSlot` renders a fragment, so each bound augment
+     becomes its own grid item. The mount below is skipped in that case, since
+     both firing would render every bound augment twice. */
+  const sectionNodes = Children.toArray(sections as ReactNode);
+  const hasSections = sectionNodes.length > 0;
+  /* How many sections take a column, which is every section that is not
+     full-width. The grid needs the count to floor its track width (see
+     PanelSections__Grid); a full-width section spans them all and so is not one
+     of the things being flowed. */
+  const flowingSections = Math.max(
+    1,
+    sectionNodes.filter(
+      (node) =>
+        !(isValidElement<{ full?: boolean }>(node) && node.props.full === true),
+    ).length,
+  );
+  const content = !hasSections ? (
+    children
+  ) : (
+    <>
+      {children}
+      <PanelSections__Grid $min={sectionMinWidth} $columns={flowingSections}>
+        {sectionNodes}
+        {panelSections && <WidgetSections />}
+      </PanelSections__Grid>
+    </>
+  );
+
   if (!hasHeader) {
     return (
       <PanelContainer {...rest}>
-        {children}
+        {content}
         {/* Same universal seam as the headed path below: an unmigrated widget
             (its own title row inside its children) is still a widget, and an
             author binding `${componentId}.sections` has no way to know which
-            panel shape it renders. */}
-        {panelSections && <WidgetSections />}
+            panel shape it renders. A panel WITH sections mounted it inside the
+            grid already. */}
+        {panelSections && !hasSections && <WidgetSections />}
         {panelFooter !== undefined && <PanelFooter>{panelFooter}</PanelFooter>}
       </PanelContainer>
     );
@@ -1837,13 +1983,14 @@ function PanelRoot({
           stay in view while the body scrolls under it. Only a floating (overlay)
           header lives outside the scroller. */}
       {!floatingHeader && header}
-      {fitToSize ? <PanelFitBody>{children}</PanelFitBody> : children}
+      {fitToSize ? <PanelFitBody>{content}</PanelFitBody> : content}
       {/* The universal `${componentId}.sections` augment segment: body sections
           an Uplink appends to ANY widget, with the widget declaring, naming and
           positioning nothing. Renders no DOM until something binds. A widget
           that needs the seam elsewhere renders `<WidgetSections>` itself and
-          turns this off, so the two mounts never both fire. */}
-      {panelSections && <WidgetSections />}
+          turns this off, so the two mounts never both fire; a widget passing
+          `sections` mounted it inside the grid, for the same reason. */}
+      {panelSections && !hasSections && <WidgetSections />}
     </PanelBody>
   );
 
@@ -1915,6 +2062,11 @@ export const Panel = Object.assign(PanelRoot, {
   Title: PanelTitle,
   Glow: PanelGlow,
   Body: PanelBody,
+  /* The same `Section` the kit exports, reachable from the component whose
+     `sections` prop consumes it. An alias, never a second implementation:
+     `styleguide-duplicate-primitives.test.ts` exists because `Panel` itself was
+     once copied rather than aliased. */
+  Section,
   Split: PanelSplit,
   Sidebar: PanelSidebar,
   // The single interface the title-redesign ghost dot consumes. Producing the

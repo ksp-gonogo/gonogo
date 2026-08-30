@@ -23,6 +23,7 @@ import {
   Panel,
   ReadoutCaption,
   type ReadoutTone,
+  Section,
   Stack,
   Text,
   Truncate,
@@ -509,24 +510,29 @@ function CrewStatusComponent({
 
   if (!showRoster) {
     return (
-      <Panel panelTitle="CREW">
-        {known ? (
-          <BigReadout $tone="go" style={TINY_READOUT_STYLE}>
-            {crewCount !== undefined ? (
-              <Unit value={crewCount} />
+      <Panel
+        panelTitle="CREW"
+        sections={
+          <Section>
+            {known ? (
+              <BigReadout $tone="go" style={TINY_READOUT_STYLE}>
+                {crewCount !== undefined ? (
+                  <Unit value={crewCount} />
+                ) : (
+                  NULL_DISPLAY
+                )}
+                {crewCapacity !== undefined && (
+                  <ReadoutCaption>
+                    of <Unit value={crewCapacity} /> aboard
+                  </ReadoutCaption>
+                )}
+              </BigReadout>
             ) : (
-              NULL_DISPLAY
+              <EmptyState>No crew data</EmptyState>
             )}
-            {crewCapacity !== undefined && (
-              <ReadoutCaption>
-                of <Unit value={crewCapacity} /> aboard
-              </ReadoutCaption>
-            )}
-          </BigReadout>
-        ) : (
-          <EmptyState>No crew data</EmptyState>
-        )}
-      </Panel>
+          </Section>
+        }
+      />
     );
   }
 
@@ -539,27 +545,32 @@ function CrewStatusComponent({
   const crewSummary = known && isEVA === true ? "EVA" : "";
 
   return (
-    <Panel panelTitle="CREW">
-      {/* Whole-widget status slot: a vessel-level condition (e.g. an
+    <Panel
+      panelTitle="CREW"
+      sections={
+        <Section>
+          {/* Whole-widget status slot: a vessel-level condition (e.g. an
           Uplink's radiation-environment reading), never a per-kerbal one.
           Renders nothing until an Uplink binds it. */}
-      <AugmentSlot name="crew-status.summary" props={{}} />
-      {crewSummary && <ReadoutCaption>{crewSummary}</ReadoutCaption>}
-      <EvaSuitReadout
-        oxygen={suitOxygen}
-        electricCharge={suitElectricCharge}
-        notCurrent={isEVA === true && suitReadingsNotCurrent}
-      />
-      <div ref={rosterWidthRef}>
-        {renderBody({
-          known,
-          crewCount: crewCount?.magnitude,
-          names,
-          avatarSizePx,
-          rowToneByName,
-        })}
-      </div>
-    </Panel>
+          <AugmentSlot name="crew-status.summary" props={{}} />
+          {crewSummary && <ReadoutCaption>{crewSummary}</ReadoutCaption>}
+          <EvaSuitReadout
+            oxygen={suitOxygen}
+            electricCharge={suitElectricCharge}
+            notCurrent={isEVA === true && suitReadingsNotCurrent}
+          />
+          <div ref={rosterWidthRef}>
+            {renderBody({
+              known,
+              crewCount: crewCount?.magnitude,
+              names,
+              avatarSizePx,
+              rowToneByName,
+            })}
+          </div>
+        </Section>
+      }
+    />
   );
 }
 

@@ -629,6 +629,14 @@ export const ALLOWLIST: Record<ModToken, ModAllowlist> = {
       "packages/app/src/__tests__/dashboard-tabbed-config.test.tsx",
     ],
     permanent: [
+      /**
+       * The panel-body ratchet's own inventory: a path-keyed debt list over every
+       * widget-side `.tsx` in the repo, so it names this Uplink's widgets by
+       * construction and there is nowhere else for it to live. Permanent for the
+       * same reason as the lists beside it: a gate placed inside an Uplink is one
+       * a third-party author could not run.
+       */
+      "packages/core/src/panel-body.allowlist.ts",
       /*
        * The mod-side Uplink isolation ratchet. Its shrink-only debt lists are
        * keyed by project name, and since 2026-08-30 they cover the
@@ -1362,6 +1370,14 @@ export const ALLOWLIST: Record<ModToken, ModAllowlist> = {
   mechjeb: {
     domainDebt: [],
     permanent: [
+      /**
+       * The panel-body ratchet's own inventory: a path-keyed debt list over every
+       * widget-side `.tsx` in the repo, so it names this Uplink's widgets by
+       * construction and there is nowhere else for it to live. Permanent for the
+       * same reason as the lists beside it: a gate placed inside an Uplink is one
+       * a third-party author could not run.
+       */
+      "packages/core/src/panel-body.allowlist.ts",
       /*
        * The mod-side Uplink isolation ratchet. Its shrink-only debt lists are
        * keyed by project name, and since 2026-08-30 they cover the
@@ -1523,6 +1539,14 @@ export const ALLOWLIST: Record<ModToken, ModAllowlist> = {
   avionics: {
     domainDebt: [],
     permanent: [
+      /**
+       * The panel-body ratchet's own inventory: a path-keyed debt list over every
+       * widget-side `.tsx` in the repo, so it names this Uplink's widgets by
+       * construction and there is nowhere else for it to live. Permanent for the
+       * same reason as the lists beside it: a gate placed inside an Uplink is one
+       * a third-party author could not run.
+       */
+      "packages/core/src/panel-body.allowlist.ts",
       /*
        * The mod-side Uplink isolation ratchet. Its shrink-only debt lists are
        * keyed by project name, and since 2026-08-30 they cover the
@@ -1715,6 +1739,14 @@ export const ALLOWLIST: Record<ModToken, ModAllowlist> = {
       "packages/app/src/main.tsx",
     ],
     permanent: [
+      /**
+       * The panel-body ratchet's own inventory: a path-keyed debt list over every
+       * widget-side `.tsx` in the repo, so it names this Uplink's widgets by
+       * construction and there is nowhere else for it to live. Permanent for the
+       * same reason as the lists beside it: a gate placed inside an Uplink is one
+       * a third-party author could not run.
+       */
+      "packages/core/src/panel-body.allowlist.ts",
       /*
        * -- PERMANENT-BUCKET gate (2026-08-30): the test that freezes the
        * code-carrying subset of this file's own `permanent` lists. A gate over
@@ -2347,6 +2379,14 @@ export const ALLOWLIST: Record<ModToken, ModAllowlist> = {
   ferram: {
     domainDebt: [],
     permanent: [
+      /**
+       * The panel-body ratchet's own inventory: a path-keyed debt list over every
+       * widget-side `.tsx` in the repo, so it names this Uplink's widgets by
+       * construction and there is nowhere else for it to live. Permanent for the
+       * same reason as the lists beside it: a gate placed inside an Uplink is one
+       * a third-party author could not run.
+       */
+      "packages/core/src/panel-body.allowlist.ts",
       /*
        * The mod-side Uplink isolation ratchet. Its shrink-only debt lists are
        * keyed by project name, and since 2026-08-30 they cover the
@@ -2426,6 +2466,7 @@ export const SURVIVES_COMMENT_STRIP: Partial<Record<ModToken, string[]>> = {
     "packages/app/src/__tests__/uplink-widget-declarations.test.ts",
     "packages/app/src/main.tsx",
     "packages/core/src/comment-stacks.allowlist.ts",
+    "packages/core/src/panel-body.allowlist.ts",
     "packages/core/src/truenow-allowlist.test.ts",
     "packages/core/src/typecheck-coverage.allowlist.ts",
     "packages/core/src/uplink-isolation.allowlist.ts",
@@ -2436,6 +2477,7 @@ export const SURVIVES_COMMENT_STRIP: Partial<Record<ModToken, string[]>> = {
     "packages/app/src/__tests__/uplink-widget-declarations.test.ts",
     "packages/app/src/main.tsx",
     "packages/core/src/comment-stacks.allowlist.ts",
+    "packages/core/src/panel-body.allowlist.ts",
     "packages/core/src/styleguide-magnitude-budget.test.ts",
     "packages/core/src/truenow-allowlist.test.ts",
   ],
@@ -2459,6 +2501,7 @@ export const SURVIVES_COMMENT_STRIP: Partial<Record<ModToken, string[]>> = {
     "packages/components/src/test/installProfile.ts",
     "packages/core/src/banner-comments.allowlist.ts",
     "packages/core/src/comment-stacks.allowlist.ts",
+    "packages/core/src/panel-body.allowlist.ts",
     "packages/core/src/contributionsRuntime.test.tsx",
     "packages/core/src/registry.replacement.test.ts",
     "packages/core/src/styleguide-fire-and-forget-commands.test.ts",
@@ -2511,6 +2554,7 @@ export const SURVIVES_COMMENT_STRIP: Partial<Record<ModToken, string[]>> = {
     "packages/app/src/wizard/steps/WelcomeStep.tsx",
     "packages/core/src/banner-comments.allowlist.ts",
     "packages/core/src/comment-stacks.allowlist.ts",
+    "packages/core/src/panel-body.allowlist.ts",
     "packages/core/src/hooks/useUplinkHealthFor.test.tsx",
     "packages/core/src/styleguide-magnitude-budget.test.ts",
     "packages/core/src/typecheck-coverage.allowlist.ts",
@@ -2526,6 +2570,7 @@ export const SURVIVES_COMMENT_STRIP: Partial<Record<ModToken, string[]>> = {
     "packages/app/src/__tests__/uplink-widget-declarations.test.ts",
     "packages/app/src/main.tsx",
     "packages/core/src/comment-stacks.allowlist.ts",
+    "packages/core/src/panel-body.allowlist.ts",
     "packages/core/src/styleguide-fire-and-forget-commands.test.ts",
     "packages/core/src/typecheck-coverage.allowlist.ts",
     "packages/core/src/uplink-isolation.allowlist.ts",
