@@ -309,9 +309,9 @@ namespace Gonogo.KerbalismUplink
         {
             if (!raw.Modeled) return null;
 
-            // Insertion-ordered so the output is stable frame to frame: a
-            // reordering list would read as a change on every tick under the
-            // channel's "fresh value reads as changed" gate.
+            // Insertion-ordered so the output is stable frame to frame: the
+            // change-gate compares a list in order, so a reordering one would
+            // read as a change on every tick and never be suppressed.
             var order = new List<string>();
             var bySubject = new Dictionary<string, ScienceStoredRaw>();
             var sizes = new Dictionary<string, double>();

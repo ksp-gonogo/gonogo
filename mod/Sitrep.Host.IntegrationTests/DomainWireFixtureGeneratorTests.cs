@@ -837,13 +837,14 @@ namespace Sitrep.Host.IntegrationTests
                 .SelectMany(sd => (sd.Payload as IEnumerable<object?>) ?? Array.Empty<object?>())
                 .OfType<IDictionary<string, object?>>()
                 .ToList();
-            // Two identical-content snapshot entries (T=0/T=15, see
-            // BuildSyntheticDeployedScienceSession) each independently
-            // re-emit the 3-entry list as its own keyframe (EmissionQuantum.
-            // Absolute(0): same behavior every other synthetic fixture in
-            // this file exhibits), so 3 authored entries land as 6 captured
-            // entries across the two frames.
-            Assert.Equal(6, deployedEntries.Count);
+            /*
+             * The 3 authored entries land once. T=0 is the channel's opening
+             * keyframe; T=15 carries identical content and is inside the 30s
+             * keyframe interval, so the change-gate suppresses it. It used to
+             * re-emit, because the gate compared the rebuilt payload by
+             * reference and so read every sample as changed.
+             */
+            Assert.Equal(3, deployedEntries.Count);
 
             // Two distinct deployed-cluster vessels, neither the active
             // vessel: the exact regression shape ScienceViewProviderTests'

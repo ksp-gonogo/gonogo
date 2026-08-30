@@ -113,11 +113,11 @@ namespace Gonogo.KSP
                 // (powered/atmospheric flight) -- a 30s keyframe cadence
                 // follows system.bodies' precedent (SystemUplink). The
                 // payload is a Dictionary tree (see VesselViewProvider's
-                // wire-adapter doc comment), so ChannelEmitter's change-gate
-                // falls back to reference/Equals comparison exactly like
-                // system.bodies -- deadband refinement for these structured
-                // channels is a follow-up, not required for this
-                // foundation.
+                // wire-adapter doc comment), which ChannelEmitter's
+                // change-gate compares by value, so an on-rails coast costs
+                // the keyframe and nothing else. A per-field deadband for
+                // structured channels is still a follow-up: value equality is
+                // exact, so an element wobbling in its last digits re-emits.
                 Channel(VesselViewProvider.OrbitTopic),
                 // Dev-gated debug channel (design doc §6.5) -- same cadence
                 // as orbit. There is no engine-level "hide from the picker"

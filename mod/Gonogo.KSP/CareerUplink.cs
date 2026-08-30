@@ -63,11 +63,10 @@ namespace Gonogo.KSP
                     Delivery = Delivery.LossyLatest,
                     // Career state changes on player action (accept a
                     // contract, spend funds, activate a strategy), not per
-                    // frame - same 30s keyframe + "re-emit every sample tick
-                    // reads as changed" cadence system.bodies uses (the
-                    // payload is a fresh Dictionary tree every call, so
-                    // ChannelEmitter's change-gate falls back to
-                    // reference/Equals comparison).
+                    // frame - the same 30s keyframe cadence system.bodies
+                    // uses, and the change-gate compares the payload tree by
+                    // value, so a career nobody is touching costs the
+                    // keyframe alone.
                     Emission = new EmissionPolicy(keyframeIntervalUt: 30, quantum: EmissionQuantum.Absolute(0)),
                     // Explicit retrofit, judgment call documented in
                     // contract-dynamic-delay-report.md: career state (funds,
@@ -82,9 +81,7 @@ namespace Gonogo.KSP
                     Delivery = Delivery.LossyLatest,
                     // The save's game mode changes only on load (a new save /
                     // switching saves), so the same low-churn 30s keyframe +
-                    // change-gate cadence career.status uses fits - the wire
-                    // dict is a fresh object each call, so the change-gate
-                    // falls back to reference/Equals comparison.
+                    // change-gate cadence career.status uses fits.
                     Emission = new EmissionPolicy(keyframeIntervalUt: 30, quantum: EmissionQuantum.Absolute(0)),
                     // Ground-side game-global fact (which mode the save is in),
                     // not something learned over a vessel's comms link, so

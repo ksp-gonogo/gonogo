@@ -8,14 +8,20 @@ namespace Sitrep.Host
     /// remembers the last signature published per sub-topic and lets through only
     /// the parts whose action list actually moved.
     ///
-    /// <para><b>Why the producer owns this.</b>
-    /// <c>Sitrep.Core.ChannelEmitter</c>'s gate compares with <c>Equals</c>, and a
-    /// freshly-built <c>Dictionary&lt;string, object?&gt;</c> compares by
-    /// REFERENCE, so a per-tick rebuild of an identical payload reads as changed
-    /// every tick. Without this, a channel whose whole justification is "the action
-    /// set only moves on deploy/stage/dock" would emit a keyframe at sample cadence
-    /// for as long as an operator kept a part open. See
-    /// <see cref="PartActionsViewProvider.Signature"/>.</para>
+    /// <para><b>Why the producer owns this.</b> It predates the emitter's own
+    /// value comparison: <c>Sitrep.Core.ChannelEmitter</c>'s gate used to compare
+    /// a freshly-built <c>Dictionary&lt;string, object?&gt;</c> by REFERENCE, so a
+    /// per-tick rebuild of an identical payload read as changed every tick, and a
+    /// channel whose whole justification is "the action set only moves on
+    /// deploy/stage/dock" emitted at sample cadence for as long as an operator
+    /// kept a part open. The emitter would now catch that on its own.
+    ///
+    /// This still earns its place ahead of it, for two reasons the emitter cannot
+    /// cover: it filters a BATCH down to the sub-topics worth publishing at all,
+    /// before any of them reach the engine, and its per-sub-topic pruning is what
+    /// makes a re-open republish (see below). A cheap string signature, computed
+    /// once where the batch is built, is also the right instrument here.
+    /// See <see cref="PartActionsViewProvider.Signature"/>.</para>
     ///
     /// <para><b>Pruning is what makes a re-open work.</b> <see cref="Changed"/>
     /// retains only the sub-topics in the batch it was handed, and the caller hands

@@ -1723,8 +1723,9 @@ namespace Sitrep.Host.IntegrationTests
         /// C2-1 (second-round fail-soft re-attack): <c>_emitter.Decide</c> is
         /// called OUTSIDE the try/catch that already guards <c>map()</c> in
         /// <see cref="ChannelEngine.ProcessTick"/> -- but <c>Decide</c> itself
-        /// runs uplink-authored code for a structured payload (the
-        /// deadband falls back to <c>Equals</c> -- see
+        /// runs uplink-authored code for a structured payload (the deadband
+        /// falls back to <c>Equals</c> on an event lane, and to the payload's
+        /// own leaves through <c>StructuralEquality</c> everywhere else -- see
         /// <c>ChannelEmitter.HasChangedBeyondQuantum</c>). A throwing
         /// <c>Equals</c> used to escape the channel loop entirely, skipping
         /// <c>_clock.AdvanceTo</c> for the WHOLE tick -- not just this
@@ -2199,7 +2200,19 @@ namespace Sitrep.Host.IntegrationTests
                     new ChannelDeclaration
                     {
                         Topic = Topic,
-                        Delivery = Delivery.LossyLatest,
+                        /*
+                         * The event lane, deliberately. A LossyLatest channel's
+                         * change-gate compares a structured payload with
+                         * StructuralEquality, which WALKS a dictionary rather
+                         * than asking it whether it equals another one, so this
+                         * payload's throwing Equals is never reached there and
+                         * the test would prove nothing. ReliableOrdered keeps
+                         * the gate on Equals (a repeat is data on an event
+                         * lane: see ChannelEngine's emitter construction),
+                         * which is the surviving path into uplink-authored
+                         * comparison code and so the one worth guarding.
+                         */
+                        Delivery = Delivery.ReliableOrdered,
                         Emission = new EmissionPolicy(keyframeIntervalUt: 1000, quantum: EmissionQuantum.Absolute(0)),
                     },
                 },

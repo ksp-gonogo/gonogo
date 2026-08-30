@@ -66,16 +66,23 @@ namespace Gonogo.KSP
                 {
                     Topic = SystemViewProvider.Topic,
                     Delivery = Delivery.LossyLatest,
-                    // system.bodies is a static structured channel (orbital
-                    // elements barely change tick to tick) - a 30s keyframe
-                    // cadence plus accepting a re-emit at whatever cadence
-                    // GonogoAddon samples at (currently ~1s UT) is fine per
-                    // the streaming-slice-1 plan. The quantum is irrelevant
-                    // here: the payload is a Dictionary, so ChannelEmitter's
-                    // change-gate falls back to reference/Equals comparison,
-                    // and BuildSystemBodies hands back a fresh Dictionary
-                    // every call - so every considered sample reads as
-                    // "changed". Unchanged from GonogoBodiesServer.BodiesEmissionPolicy.
+                    /*
+                     * system.bodies is a static structured channel: radii,
+                     * gravitational parameters and atmospheres, which change
+                     * when the game's body set does and essentially never
+                     * during a flight. So the 30s keyframe is what this
+                     * channel actually costs. The quantum is irrelevant, a
+                     * structured payload is compared by value
+                     * (Sitrep.Core.StructuralEquality) rather than against a
+                     * deadband.
+                     *
+                     * The gate used to compare the payload by REFERENCE, and
+                     * BuildSystemBodies hands back a fresh Dictionary every
+                     * call, so every sample read as changed and this channel
+                     * re-emitted at the ~1s sample cadence. Measured on the
+                     * deck's RO 200km capture that was 24.2 kB/s, 82% of the
+                     * whole stream, for a payload that did not move once.
+                     */
                     Emission = new EmissionPolicy(keyframeIntervalUt: 30, quantum: EmissionQuantum.Absolute(0)),
                     // Explicit retrofit: celestial-body ephemeris is a
                     // ground-side fact (known independent of any vessel's
@@ -88,9 +95,8 @@ namespace Gonogo.KSP
                     Delay = DelayRole.TrueNow,
                 },
                 // system.vessels -- the M3 R3 roster capture-add. Same cadence
-                // as system.bodies: a re-emit every sample tick reads as
-                // "changed" (fresh Dictionary/List every call), a 30s
-                // keyframe floor covers a genuinely idle roster.
+                // as system.bodies: it re-emits as the roster's positions move
+                // and falls back to the 30s keyframe on a genuinely idle one.
                 new ChannelDeclaration
                 {
                     Topic = SystemViewProvider.VesselsTopic,
@@ -103,9 +109,9 @@ namespace Gonogo.KSP
                 },
                 // target.available -- everything the active vessel could target
                 // (vessels/bodies/in-range docking ports), for the TargetPicker.
-                // Same cadence as system.vessels: a fresh Dictionary/List every
-                // call reads as "changed" (per-entry distance moves every tick),
-                // and the 30s keyframe floor covers a genuinely idle scene.
+                // Same cadence as system.vessels: per-entry distance moves
+                // every tick while anything is in motion, and the 30s keyframe
+                // floor covers a genuinely idle scene.
                 // Delayed like system.vessels -- it carries OTHER vessels'/ports'
                 // comms-derived positions/distances, not a ground-side fact.
                 new ChannelDeclaration
@@ -120,8 +126,8 @@ namespace Gonogo.KSP
                 // screen rather than anything observed down a comms link: no delay
                 // could apply to it, and delaying it would make a widget following
                 // the control frame lag a change the operator made themselves.
-                // A fresh Dictionary every call reads as "changed", so the 30s
-                // keyframe floor covers a view nobody is touching.
+                // It moves only when the operator moves it, so a view nobody is
+                // touching costs the 30s keyframe and nothing else.
                 new ChannelDeclaration
                 {
                     Topic = ControlFrameTopic,
@@ -135,9 +141,8 @@ namespace Gonogo.KSP
                 // (read from FlightDriver's static flags, the same ones KSP's
                 // pause menu gates its revert buttons on), known independent of
                 // any vessel's comms link, so TrueNow -- same class as
-                // system.bodies. Two bools that only flip on launch/revert; a
-                // fresh Dictionary every call reads as "changed" and the 30s
-                // keyframe floor covers the steady state.
+                // system.bodies. Two bools that only flip on launch/revert, so
+                // the 30s keyframe floor is what the steady state costs.
                 new ChannelDeclaration
                 {
                     Topic = SystemViewProvider.RevertTopic,
@@ -150,8 +155,8 @@ namespace Gonogo.KSP
                 // independent of any vessel's comms link, so TrueNow -- same
                 // class as system.bodies/career.status. It effectively never
                 // changes mid-session (an expansion isn't installed/uninstalled
-                // while KSP runs), so a fresh Dictionary every call reads as
-                // "changed" and the 30s keyframe floor covers the steady state.
+                // while KSP runs), so the 30s keyframe floor is what the steady
+                // state costs.
                 new ChannelDeclaration
                 {
                     Topic = SystemViewProvider.DlcTopic,
