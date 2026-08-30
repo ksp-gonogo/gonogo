@@ -138,6 +138,9 @@ namespace GonogoRp1Uplink.Tests
             new Rp1TypeTarget(Rp0, "RP0.CurrencyModifierQueryRP0", "Rp1Pricing"),
             new Rp1TypeTarget(Rp0, "RP0.TransactionReasonsRP0", "Rp1Pricing"),
             new Rp1TypeTarget(Rp0, "RP0.CurrencyRP0", "Rp1Pricing"),
+            new Rp1TypeTarget(Rp0, "RP0.CurrencyUtils", "Rp1EconomyUpkeepQuery"),
+            new Rp1TypeTarget(Rp0, "RP0.TransactionReasonsRP0", "Rp1EconomyUpkeepQuery"),
+            new Rp1TypeTarget(Rp0, "RP0.MaintenanceHandler", "Rp1EconomyUpkeepQuery"),
             new Rp1TypeTarget(Rp0, "RP0.Crew.CrewHandler", "Rp1CrewReflection"),
             new Rp1TypeTarget(Rp0, "RP0.Programs.ProgramHandler", "Rp1ProgramsReflection"),
         };
@@ -146,6 +149,16 @@ namespace GonogoRp1Uplink.Tests
         {
             new Rp1EnumMemberTarget(Rp0, "RP0.TransactionReasonsRP0", "VesselPurchase", "Rp1Pricing"),
             new Rp1EnumMemberTarget(Rp0, "RP0.CurrencyRP0", "Funds", "Rp1Pricing"),
+            // The six reasons UpdateUpkeep prices its six upkeep lines against.
+            // A rename on RP-1's side takes the modified breakdown off the wire
+            // rather than corrupting it, but it takes it off silently, which is
+            // exactly what this manifest is for.
+            new Rp1EnumMemberTarget(Rp0, "RP0.TransactionReasonsRP0", "StructureRepair", "Rp1EconomyUpkeepQuery"),
+            new Rp1EnumMemberTarget(Rp0, "RP0.TransactionReasonsRP0", "StructureRepairLC", "Rp1EconomyUpkeepQuery"),
+            new Rp1EnumMemberTarget(Rp0, "RP0.TransactionReasonsRP0", "SalaryEngineers", "Rp1EconomyUpkeepQuery"),
+            new Rp1EnumMemberTarget(Rp0, "RP0.TransactionReasonsRP0", "SalaryResearchers", "Rp1EconomyUpkeepQuery"),
+            new Rp1EnumMemberTarget(Rp0, "RP0.TransactionReasonsRP0", "SalaryCrew", "Rp1EconomyUpkeepQuery"),
+            new Rp1EnumMemberTarget(Rp0, "RP0.TransactionReasonsRP0", "CrewTraining", "Rp1EconomyUpkeepQuery"),
         };
 
         public static IReadOnlyList<Rp1ConstructorTarget> Constructors { get; } = new[]
@@ -164,6 +177,10 @@ namespace GonogoRp1Uplink.Tests
         {
             new Rp1MethodTarget(Rp0, "RP0.LCEfficiency", "PredictWeightedEfficiency", 5, false, "Rp1ScReflection"),
             new Rp1MethodTarget(Rp0, "RP0.MaintenanceHandler", "FillSubsidyDetails", 3, true, "Rp1EconomyBackend"),
+            // THREE parameters with the last defaulted, because a reflected
+            // invoke applies no defaults. UpdateUpkeep calls the two-argument
+            // form, which is this one with includeHidden left false.
+            new Rp1MethodTarget(Rp0, "RP0.CurrencyUtils", "Funds", 3, true, "Rp1EconomyUpkeepQuery"),
             new Rp1MethodTarget(Rp0, "RP0.KCTUtilities", "AddVesselToBuildList", 2, true, "Rp1BuildCommands, Rp1BuildStartCommands"),
             new Rp1MethodTarget(Rp0, "RP0.CurrencyModifierQueryRP0", "RunQuery", 4, true, "Rp1Pricing"),
             new Rp1MethodTarget(Rp0, "RP0.CurrencyModifierQueryRP0", "CanAfford", 1, false, "Rp1Pricing"),
@@ -246,6 +263,7 @@ namespace GonogoRp1Uplink.Tests
             const string Vehicles = "Rp1VehicleCommands";
             const string Withhold = "Rp1DerivedCurrencyWithholder";
             const string Economy = "Rp1EconomyBackend";
+            const string Upkeep = "Rp1EconomyUpkeepQuery";
             const string Crew = "Rp1CrewReflection";
             const string Programs = "Rp1ProgramsReflection";
             const string Staffing = "Rp1PersonnelCommands";
@@ -419,15 +437,15 @@ namespace GonogoRp1Uplink.Tests
             Add("RP0.Confidence", "OnConfidenceChanged", Rp1Reader.Presence, Withhold, @static: true);
 
             // ── The money model ────────────────────────────────────────────
-            Add("RP0.MaintenanceHandler", "Instance", Rp1Reader.Presence, Economy + ", " + Sc, @static: true);
-            Add("RP0.MaintenanceHandler", "UpkeepPerDayForDisplay", Rp1Reader.Numeric, Economy);
-            Add("RP0.MaintenanceHandler", "FacilityUpkeepPerDay", Rp1Reader.Numeric, Economy);
-            Add("RP0.MaintenanceHandler", "LCsCostPerDay", Rp1Reader.Numeric, Economy);
-            Add("RP0.MaintenanceHandler", "ResearchSalaryPerDay", Rp1Reader.Numeric, Economy + ", " + Sc);
-            Add("RP0.MaintenanceHandler", "TrainingUpkeepPerDay", Rp1Reader.Numeric, Economy);
-            Add("RP0.MaintenanceHandler", "NautBaseUpkeepPerDay", Rp1Reader.Numeric, Economy);
-            Add("RP0.MaintenanceHandler", "NautInFlightUpkeepPerDay", Rp1Reader.Numeric, Economy);
-            Add("RP0.MaintenanceHandler", "IntegrationSalaryPerDay", Rp1Reader.Numeric, Economy + ", " + Sc);
+            Add("RP0.MaintenanceHandler", "Instance", Rp1Reader.Presence, Economy + ", " + Upkeep + ", " + Sc, @static: true);
+            Add("RP0.MaintenanceHandler", "UpkeepPerDayForDisplay", Rp1Reader.Numeric, Economy + ", " + Upkeep);
+            Add("RP0.MaintenanceHandler", "FacilityUpkeepPerDay", Rp1Reader.Numeric, Economy + ", " + Upkeep);
+            Add("RP0.MaintenanceHandler", "LCsCostPerDay", Rp1Reader.Numeric, Economy + ", " + Upkeep);
+            Add("RP0.MaintenanceHandler", "ResearchSalaryPerDay", Rp1Reader.Numeric, Economy + ", " + Upkeep + ", " + Sc);
+            Add("RP0.MaintenanceHandler", "TrainingUpkeepPerDay", Rp1Reader.Numeric, Economy + ", " + Upkeep);
+            Add("RP0.MaintenanceHandler", "NautBaseUpkeepPerDay", Rp1Reader.Numeric, Economy + ", " + Upkeep);
+            Add("RP0.MaintenanceHandler", "NautInFlightUpkeepPerDay", Rp1Reader.Numeric, Economy + ", " + Upkeep);
+            Add("RP0.MaintenanceHandler", "IntegrationSalaryPerDay", Rp1Reader.Numeric, Economy + ", " + Upkeep + ", " + Sc);
             Add("RP0.MaintenanceHandler+SubsidyDetails", "subsidy", Rp1Reader.Numeric, Economy);
             Add("RP0.MaintenanceHandler+SubsidyDetails", "minSubsidy", Rp1Reader.Numeric, Economy);
             Add("RP0.MaintenanceHandler+SubsidyDetails", "maxSubsidy", Rp1Reader.Numeric, Economy);

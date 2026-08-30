@@ -23,6 +23,8 @@ const topics = defineTopicManifest({
     "career.status.economy.subsidyMinPerDay",
     "career.status.economy.subsidyMaxPerDay",
     "career.status.economy.upkeepPerDay",
+    "career.status.economy.upkeep",
+    "career.status.economy.upkeepBeforeModifiers",
   ],
 });
 
@@ -45,7 +47,12 @@ function notCurrent<T>(reading: Reading<T>): boolean {
   return reading.state === "stale";
 }
 
-/** Every upkeep source the wire can carry, in the order they are read out. */
+/**
+ * Every upkeep source the wire can carry, in the order they are read out.
+ *
+ * The order is the operator's, not the wire's: the two structural costs, then
+ * the three payrolls, then training.
+ */
 const UPKEEP_SOURCES = [
   { key: "facilities", label: "Facilities" },
   { key: "launchComplexes", label: "Launch complexes" },
@@ -84,7 +91,14 @@ function CareerEconomyComponent({ w, h }: ComponentProps<CareerEconomyConfig>) {
   const subsidyMin = magnitudeOf(economy?.subsidyMinPerDay);
   const subsidyMax = magnitudeOf(economy?.subsidyMaxPerDay);
   const upkeep = magnitudeOf(economy?.upkeepPerDay);
-  const breakdown = economy?.upkeep;
+
+  /* The modified set is the one that decomposes the total beside it, so it is
+     the one to show. The unmodified set stands in when the model could not
+     price its own sources, and says so in its heading rather than quietly
+     rendering a list that does not add up: that mismatch is exactly what this
+     pair of fields exists to stop. */
+  const breakdown = economy?.upkeep ?? economy?.upkeepBeforeModifiers;
+  const beforeModifiers = economy?.upkeep === undefined;
 
   const sources = UPKEEP_SOURCES.flatMap((source) => {
     const amount = magnitudeOf(breakdown?.[source.key]);
@@ -199,7 +213,11 @@ function CareerEconomyComponent({ w, h }: ComponentProps<CareerEconomyConfig>) {
 
         {sources.length > 0 && !compact && (
           <Breakdown>
-            <BreakdownTitle>Where the upkeep goes</BreakdownTitle>
+            <BreakdownTitle>
+              {beforeModifiers
+                ? "Where the upkeep goes, before discounts"
+                : "Where the upkeep goes"}
+            </BreakdownTitle>
             <BreakdownList>
               {sources.map((source) => (
                 <BreakdownRow key={source.label}>

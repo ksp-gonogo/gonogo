@@ -510,6 +510,66 @@ namespace RP0
     {
         None = 0L,
         VesselPurchase = 0x10L,
+
+        /// <summary>
+        /// The six UpdateUpkeep prices its upkeep lines against. Distinct bits,
+        /// as on RP-1's own flags enum, so a stand-in modifier can be aimed at
+        /// one line and the other five observed not to move.
+        /// </summary>
+        StructureRepair = 0x20L,
+        StructureRepairLC = 0x40L,
+        SalaryEngineers = 0x80L,
+        SalaryResearchers = 0x100L,
+        SalaryCrew = 0x200L,
+        CrewTraining = 0x400L,
+    }
+
+    /// <summary>
+    /// RP-1's one-line currency query, which is what MaintenanceHandler asks per
+    /// upkeep source and what its Budget tab asks per row.
+    /// </summary>
+    /// <remarks>
+    /// Modelled AFFINE rather than as a bare multiplier, because RP-1's own is:
+    /// CurrencyModifierQueryRP0.GetTotal returns
+    /// <c>input * multiplier + postMultiplierDelta</c>. The offset is what makes
+    /// pricing a sum different from summing two prices, and a stand-in that only
+    /// multiplied would agree with either arrangement and prove neither.
+    /// </remarks>
+    public static class CurrencyUtils
+    {
+        /// <summary>Per-reason multiplier, defaulting to 1.0 for a reason nobody set.</summary>
+        public static readonly Dictionary<TransactionReasonsRP0, double> Multipliers =
+            new Dictionary<TransactionReasonsRP0, double>();
+
+        /// <summary>Per-reason post-multiplier offset, in the query's own delta direction.</summary>
+        public static readonly Dictionary<TransactionReasonsRP0, double> PostDeltas =
+            new Dictionary<TransactionReasonsRP0, double>();
+
+        /// <summary>Made to throw, to pin that an unaskable query costs the breakdown rather than substituting for it.</summary>
+        public static bool ThrowOnQuery;
+
+        /// <summary>Counts the broadcasts, so a change-gate that stopped gating is visible.</summary>
+        public static int Queries;
+
+        public static void Reset()
+        {
+            Multipliers.Clear();
+            PostDeltas.Clear();
+            ThrowOnQuery = false;
+            Queries = 0;
+        }
+
+        public static double Funds(TransactionReasonsRP0 reason, double funds, bool includeHidden = false)
+        {
+            if (ThrowOnQuery)
+            {
+                throw new InvalidOperationException("no currency model");
+            }
+            Queries++;
+            var multiplier = Multipliers.TryGetValue(reason, out var m) ? m : 1.0;
+            var post = PostDeltas.TryGetValue(reason, out var p) ? p : 0.0;
+            return funds * multiplier + post;
+        }
     }
 
     /// <summary>
@@ -946,6 +1006,31 @@ namespace RP0
 
         public double FacilityUpkeepPerDay => FacilityUpkeepValue;
         public double IntegrationSalaryPerDay => IntegrationSalaryValue;
+
+        /// <summary>
+        /// RP-1's own derivation of <see cref="UpkeepPerDayForDisplay"/>, copied
+        /// line for line out of the shipped UpdateUpkeep so a test can assert that
+        /// our parts add up to it rather than to a total the test itself chose.
+        /// </summary>
+        /// <remarks>
+        /// The crew line is ONE query on base + in-flight here, because that is
+        /// what UpdateUpkeep does. Our breakdown prices the two separately,
+        /// matching RP-1's own Budget tab, so the two arrangements agree exactly
+        /// while the SalaryCrew modifier is a pure multiplier and differ by one
+        /// copy of a post-multiplier delta otherwise. Nothing in RP-1's leader
+        /// model produces one; the stand-in can, so the difference is a thing a
+        /// test can state rather than a thing that surprises someone later.
+        /// </remarks>
+        public void UpdateUpkeep()
+        {
+            UpkeepPerDayForDisplay =
+                CurrencyUtils.Funds(TransactionReasonsRP0.StructureRepair, -FacilityUpkeepPerDay)
+                + CurrencyUtils.Funds(TransactionReasonsRP0.StructureRepairLC, -LCsCostPerDay)
+                + CurrencyUtils.Funds(TransactionReasonsRP0.SalaryEngineers, -IntegrationSalaryPerDay)
+                + CurrencyUtils.Funds(TransactionReasonsRP0.SalaryResearchers, -ResearchSalaryPerDay)
+                + CurrencyUtils.Funds(TransactionReasonsRP0.SalaryCrew, -NautBaseUpkeepPerDay - NautInFlightUpkeepPerDay)
+                + CurrencyUtils.Funds(TransactionReasonsRP0.CrewTraining, -TrainingUpkeepPerDay);
+        }
 
         /// <summary>Keyed by complex, so a test can price two complexes differently.</summary>
         public readonly Dictionary<LaunchComplex, double> LcUpkeepValues = new Dictionary<LaunchComplex, double>();

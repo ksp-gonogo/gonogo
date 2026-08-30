@@ -1908,6 +1908,7 @@ export const GENERATED_TYPE_SHAPES: Readonly<Record<string, ShapesByField>> = {
   },
   "CareerEconomy": {
     upkeep: "CareerUpkeep",
+    upkeepBeforeModifiers: "CareerUpkeep",
   },
   "CareerStatus": {
     contracts: "CareerContracts",
@@ -1989,6 +1990,7 @@ export const GENERATED_TYPE_SHAPES: Readonly<Record<string, ShapesByField>> = {
     meta: "PayloadMeta",
   },
   "EconomyReading": {
+    upkeepBeforeModifiers: "EconomyUpkeepBreakdown",
     upkeepBreakdown: "EconomyUpkeepBreakdown",
   },
   "EmissionPolicy": {

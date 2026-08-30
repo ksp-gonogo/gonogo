@@ -110,7 +110,9 @@ namespace GonogoRp1Uplink
         /// space-centre capture: the two share nothing but the assembly, and the
         /// capability's consumer is core's own career channel.
         /// </summary>
-        private readonly Rp1EconomyBackend _economy = new Rp1EconomyBackend();
+        private readonly Rp1EconomyUpkeepQuery _upkeepQuery = new Rp1EconomyUpkeepQuery();
+
+        private readonly Rp1EconomyBackend _economy;
 
         /// <summary>Set when the provider registration threw, so Health can say so rather than nothing.</summary>
         private string? _economyRegistrationError;
@@ -268,6 +270,7 @@ namespace GonogoRp1Uplink
                 _build.IsAvailable, _vehicles.IsAvailable, _vehicles.IsMoveAvailable,
                 _staffing.IsAvailable, _start.IsAvailable);
             _crewStanding = new Rp1CrewStandingBackend(_crew);
+            _economy = new Rp1EconomyBackend(_upkeepQuery);
         }
 
         private static UplinkManifest BuildManifest(
@@ -707,6 +710,16 @@ namespace GonogoRp1Uplink
                 HandleCrewOnCourier,
                 CrewTopic,
                 CrewProgramTopic);
+
+            // UNGATED, and the two captures above say why by contrast: their whole
+            // effect is their return value, and this one's is not. It feeds the
+            // economy backend, whose consumer is core's career.status, so gating
+            // it on any rp1.* prefix would starve an operator watching the funding
+            // panel and nothing else, silently and with no degraded mode. Gating
+            // it on career.status would work and is not worth the coupling: the
+            // capture throttles itself on RP-1's own inputs, so a tick where
+            // nothing moved costs eight cached-MemberInfo reads.
+            host.AddSampledSource(_upkeepQuery.CaptureOnMain, _upkeepQuery.HandleOnCourier);
         }
 
         /// <summary>

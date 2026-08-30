@@ -75,10 +75,38 @@ namespace Sitrep.Contract
         public double? UpkeepPerDay { get; set; }
 
         /// <summary>
-        /// Where the upkeep goes. Null when the backend has no per-source model,
+        /// Where the upkeep goes: the parts <see cref="UpkeepPerDay"/> is made
+        /// of, and they sum to it. Null when the backend has no per-source model,
         /// which is the honest answer for stock rather than seven zeros.
         /// </summary>
+        /// <remarks>
+        /// A DECOMPOSITION, which is a stronger promise than "seven costs". A
+        /// money model whose total is stated after some modifier its parts are
+        /// stated before does not have one, and a backend in that position must
+        /// put the modified parts here and the unmodified ones in
+        /// <see cref="UpkeepBeforeModifiers"/>. If it cannot produce the modified
+        /// parts it leaves this null: a set that does not add up to the total
+        /// beside it is worse than no set at all, because a reader has no way to
+        /// tell which of the two lied.
+        /// </remarks>
         public EconomyUpkeepBreakdown? UpkeepBreakdown { get; set; }
+
+        /// <summary>
+        /// The same sources, priced BEFORE whatever the model does to them at
+        /// transaction time: leaders, strategies, standing discounts. Null when
+        /// the model applies nothing, which is stock's answer and also the answer
+        /// of any model whose two sets would be identical.
+        /// </summary>
+        /// <remarks>
+        /// Carried beside <see cref="UpkeepBreakdown"/> rather than instead of it
+        /// because the two answer different questions and an operator has both.
+        /// The modified set says what the programme is reported to cost; this one
+        /// says what it costs before the career's current arrangements are
+        /// applied, so the difference between them is what those arrangements are
+        /// worth. It is also the set that survives when the model can state its
+        /// own costs but cannot price them.
+        /// </remarks>
+        public EconomyUpkeepBreakdown? UpkeepBeforeModifiers { get; set; }
 
         /// <summary>
         /// A prepaid allowance, denominated in funds, that this money model

@@ -128,6 +128,40 @@ describe("CareerEconomy", () => {
     await act(async () => {});
   });
 
+  it("shows the modified breakdown, which is the one that decomposes the total", async () => {
+    // 300 + 250.4 + 180 + 60 + 100 + 40 + 50 = 980.4, the upkeep beside it. The
+    // unmodified figures are on the same frame and higher, so a widget reading
+    // the wrong one shows a list that does not add up to the total above it,
+    // which is the disagreement the two fields exist to stop.
+    mount({
+      ...OVERHAUL,
+      upkeepBeforeModifiers: { ...OVERHAUL.upkeep, researchSalary: 240 },
+    });
+
+    expect(
+      await screen.findByText("Where the upkeep goes"),
+    ).toBeInTheDocument();
+    expect(screen.getByText("180.0")).toBeInTheDocument();
+    expect(screen.queryByText("240.0")).not.toBeInTheDocument();
+
+    await act(async () => {});
+  });
+
+  it("labels the breakdown as pre-discount when only the unmodified one arrived", async () => {
+    // A model that can state its costs but not price them. Rendering these under
+    // the plain heading would put a list beside a total it does not sum to, with
+    // nothing to say which of the two was the odd one out.
+    const { upkeep, ...withoutModified } = OVERHAUL;
+    mount({ ...withoutModified, upkeepBeforeModifiers: upkeep });
+
+    expect(
+      await screen.findByText("Where the upkeep goes, before discounts"),
+    ).toBeInTheDocument();
+    expect(screen.getByText("Launch complexes")).toBeInTheDocument();
+
+    await act(async () => {});
+  });
+
   it("names the net gain rather than signing it", async () => {
     // 1240.2 in, 980.4 out. The direction is the whole point of the row, and a
     // leading minus is read as a formatting artefact too often to carry it.

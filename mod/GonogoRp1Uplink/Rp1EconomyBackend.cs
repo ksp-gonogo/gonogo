@@ -50,6 +50,27 @@
 // change. Every field in the breakdown beside it is a positive cost. The wire
 // carries costs, so the total is negated to match the parts it is made of.
 //
+// TWO PRICING CONVENTIONS, and they are the reason there are two breakdowns.
+// Those raw fields are stated BEFORE the career's currency modifiers and
+// UpkeepPerDayForDisplay is stated after them, so publishing the seven under the
+// one total was publishing a set that does not add up, on any career running a
+// leader that names one of the six upkeep transaction reasons. Five of the six
+// are named by leaders RP-1 ships. So the decomposition now carries the same
+// per-line query the game runs (Rp1EconomyUpkeepQuery, which also holds the
+// field-to-reason pairing and why the query cannot be run from here), and the
+// raw figures move to UpkeepBeforeModifiers rather than being dropped: the
+// difference between the two is what the career's current arrangements are
+// worth, and the raw set is also what survives when the query cannot be asked.
+//
+// WHAT WE STILL DO NOT SAY. The subsidy is the raw FillSubsidyDetails figure and
+// RP-1's Budget tab puts it through a Subsidy-reason query of its own; no leader
+// RP-1 ships names that reason, so the two agree today and the mismatch is a
+// convention one rather than a live wrong number. RP-1's Budget tab also CLAMPS
+// its net at zero (Math.Min(0, upkeep + subsidy)) because FixedUpdate never pays
+// out more subsidy than the upkeep consumes; nothing here publishes a net, and
+// a client that derives one unclamped will show a surplus the game does not
+// grant.
+//
 // TWO UNIT CONVERSIONS, both from RP-1's own arithmetic rather than assumed:
 //   the subsidy is a YEARLY figure over a JULIAN year (FillSubsidyDetails divides
 //   ut by 31,557,600 = 365.25 days), so a per-day figure is that over 365.25. Not
@@ -82,6 +103,13 @@ namespace GonogoRp1Uplink
         private readonly Type? _unlockCredit;
         private readonly MethodInfo? _fillSubsidyDetails;
 
+        /// <summary>
+        /// The main-thread half: RP-1's own price for each upkeep line. Held
+        /// rather than called, because asking it fires a game event and this runs
+        /// on the Courier thread; see that type's header.
+        /// </summary>
+        private readonly Rp1EconomyUpkeepQuery _upkeepQuery;
+
         public string ProviderId => "rp1";
 
         /// <summary>
@@ -91,8 +119,13 @@ namespace GonogoRp1Uplink
         /// </summary>
         public bool IsAvailable => _maintenance != null;
 
-        public Rp1EconomyBackend()
+        public Rp1EconomyBackend() : this(new Rp1EconomyUpkeepQuery())
         {
+        }
+
+        public Rp1EconomyBackend(Rp1EconomyUpkeepQuery upkeepQuery)
+        {
+            _upkeepQuery = upkeepQuery;
             _maintenance = Rp1Types.Find(MaintenanceTypeName);
             _database = Rp1Types.Find(DatabaseTypeName);
             _unlockCredit = Rp1Types.Find(UnlockCreditTypeName);
@@ -131,10 +164,12 @@ namespace GonogoRp1Uplink
 
             var reading = new EconomyReading
             {
-                // RP-1's own total rather than our sum of the parts below: if the
-                // two ever disagree, the operator should see the game's figure.
+                // RP-1's own total, and the parts below are now built to sum to
+                // it. Still read rather than summed: the game's own figure is what
+                // an operator can check against the game's own screen.
                 UpkeepPerDay = AsCost(Rp1Types.ReadDouble(instance, "UpkeepPerDayForDisplay")),
-                UpkeepBreakdown = new EconomyUpkeepBreakdown
+                UpkeepBreakdown = Modified(),
+                UpkeepBeforeModifiers = new EconomyUpkeepBreakdown
                 {
                     Facilities = Rp1Types.ReadDouble(instance, "FacilityUpkeepPerDay"),
                     LaunchComplexes = Rp1Types.ReadDouble(instance, "LCsCostPerDay"),
@@ -150,6 +185,33 @@ namespace GonogoRp1Uplink
 
             FillSubsidy(reading, ut, reputation);
             return reading;
+        }
+
+        /// <summary>
+        /// The upkeep after RP-1's own per-line currency modifiers, which is what
+        /// its Budget tab shows and what its total is made of. Absent, never
+        /// substituted, when the query could not be asked: the raw figures under
+        /// this key are precisely the disagreement this seam removes, and a
+        /// breakdown that silently stopped adding up would be indistinguishable
+        /// from one that does.
+        /// </summary>
+        private EconomyUpkeepBreakdown? Modified()
+        {
+            var lines = _upkeepQuery.Lines;
+            if (lines == null)
+            {
+                return null;
+            }
+            return new EconomyUpkeepBreakdown
+            {
+                Facilities = lines.Facilities,
+                LaunchComplexes = lines.LaunchComplexes,
+                ResearchSalary = lines.ResearchSalary,
+                Training = lines.Training,
+                CrewBase = lines.CrewBase,
+                CrewInFlight = lines.CrewInFlight,
+                IntegrationSalary = lines.IntegrationSalary,
+            };
         }
 
         /// <summary>

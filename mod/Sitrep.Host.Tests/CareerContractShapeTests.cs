@@ -282,6 +282,19 @@ namespace Sitrep.Host.Tests
                             ["crewInFlight"] = 40.0,
                             ["integrationSalary"] = 50.0,
                         },
+                        // The same sources before the model's own modifiers, so
+                        // the two sets are here as two independently reachable
+                        // branches rather than as one shape used twice.
+                        ["upkeepBeforeModifiers"] = new Dictionary<string, object?>
+                        {
+                            ["facilities"] = 320.0,
+                            ["launchComplexes"] = 250.0,
+                            ["researchSalary"] = 240.0,
+                            ["training"] = 80.0,
+                            ["crewBase"] = 100.0,
+                            ["crewInFlight"] = 40.0,
+                            ["integrationSalary"] = 50.0,
+                        },
                         ["unlockCredit"] = 25_000.0,
                     },
                     ["facilities"] = new Dictionary<string, object?>

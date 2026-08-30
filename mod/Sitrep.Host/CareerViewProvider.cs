@@ -177,20 +177,34 @@ namespace Sitrep.Host
             CarryIfPresent(raw, economy, "upkeepPerDay", (d, k) => GetDouble(d, k));
             CarryIfPresent(raw, economy, "unlockCredit", (d, k) => GetDouble(d, k));
 
-            if (TryGetDict(raw, "upkeep", out var upkeep))
-            {
-                economy["upkeep"] = new Dictionary<string, object?>
-                {
-                    ["facilities"] = GetDouble(upkeep, "facilities"),
-                    ["launchComplexes"] = GetDouble(upkeep, "launchComplexes"),
-                    ["researchSalary"] = GetDouble(upkeep, "researchSalary"),
-                    ["training"] = GetDouble(upkeep, "training"),
-                    ["crewBase"] = GetDouble(upkeep, "crewBase"),
-                    ["crewInFlight"] = GetDouble(upkeep, "crewInFlight"),
-                    ["integrationSalary"] = GetDouble(upkeep, "integrationSalary"),
-                };
-            }
+            CarryUpkeep(raw, economy, "upkeep");
+            CarryUpkeep(raw, economy, "upkeepBeforeModifiers");
             return economy;
+        }
+
+        /// <summary>
+        /// One upkeep breakdown, carried only when the capture had that one. The
+        /// two are independent: a model can price its sources without applying
+        /// anything to them, and one that applies something can lose the ability
+        /// to price it while still stating its raw costs.
+        /// </summary>
+        private static void CarryUpkeep(
+            IDictionary<string, object?> raw, IDictionary<string, object?> economy, string key)
+        {
+            if (!TryGetDict(raw, key, out var upkeep))
+            {
+                return;
+            }
+            economy[key] = new Dictionary<string, object?>
+            {
+                ["facilities"] = GetDouble(upkeep, "facilities"),
+                ["launchComplexes"] = GetDouble(upkeep, "launchComplexes"),
+                ["researchSalary"] = GetDouble(upkeep, "researchSalary"),
+                ["training"] = GetDouble(upkeep, "training"),
+                ["crewBase"] = GetDouble(upkeep, "crewBase"),
+                ["crewInFlight"] = GetDouble(upkeep, "crewInFlight"),
+                ["integrationSalary"] = GetDouble(upkeep, "integrationSalary"),
+            };
         }
 
         /// <summary>

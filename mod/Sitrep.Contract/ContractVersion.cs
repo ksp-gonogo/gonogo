@@ -1355,7 +1355,24 @@ namespace Sitrep.Contract
         /// position, and a manoeuvre whose frame cannot be read is dropped from it
         /// rather than held open, which shifts every later entry. Carrying the
         /// bodies on the burn removes the join instead of repairing it.</para>
+        ///
+        /// <para><b>Bumped 3 -&gt; 4: an upkeep breakdown that adds up.</b>
+        /// <see cref="CareerEconomy"/> gains <c>UpkeepBeforeModifiers</c> and
+        /// <see cref="EconomyReading"/> gains the matching
+        /// <c>UpkeepBeforeModifiers</c>, both nullable, additive, nothing removed
+        /// or retyped, so an Uplink built against 14.3 is unaffected and the
+        /// frozen Major-14 floor is NOT re-frozen.</para>
+        ///
+        /// <para><see cref="CareerEconomy.Upkeep"/>'s VALUES change on the RP-1
+        /// path, which is the point of the bump rather than a side effect of it.
+        /// RP-1 states its per-source costs before its own currency modifiers and
+        /// its total after them, so the seven parts we published never summed to
+        /// the total beside them, and disagreed with RP-1's own Budget tab, on any
+        /// career running a leader that touches one of the six transaction
+        /// reasons. Five of the six are touched by leaders RP-1 ships. The parts
+        /// now carry the same per-line query the game runs, and the unmodified
+        /// figures move to the new field rather than being dropped.</para>
         /// </remarks>
-        public const int Minor = 3;
+        public const int Minor = 4;
     }
 }

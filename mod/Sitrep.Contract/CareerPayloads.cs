@@ -116,11 +116,26 @@ public class CareerEconomy
     public double? UpkeepPerDay { get; set; }
 
     /// <summary>
-    /// Where the upkeep goes. ABSENT on stock, which has no per-source model at
-    /// all: seven zeros would claim stock levies seven kinds of nothing, where the
+    /// Where the upkeep goes: the parts <see cref="UpkeepPerDay"/> is made of,
+    /// and they sum to it. ABSENT on stock, which has no per-source model at all:
+    /// seven zeros would claim stock levies seven kinds of nothing, where the
     /// truth is that it levies none of them.
     /// </summary>
+    /// <remarks>
+    /// Also absent when the model can state its costs but cannot price them, in
+    /// which case <see cref="UpkeepBeforeModifiers"/> stands alone. A set that
+    /// did not add up to the total beside it would be worse than no set: a reader
+    /// has no way to tell which of the two lied.
+    /// </remarks>
     public CareerUpkeep? Upkeep { get; set; }
+
+    /// <summary>
+    /// The same sources, priced BEFORE whatever the model does to them at
+    /// transaction time: leaders, strategies, standing discounts. ABSENT when the
+    /// model applies nothing, so the difference between this and
+    /// <see cref="Upkeep"/> is what the career's current arrangements are worth.
+    /// </summary>
+    public CareerUpkeep? UpkeepBeforeModifiers { get; set; }
 
     /// <summary>
     /// A prepaid allowance the elected money model spends BEFORE <see cref="Funds"/>

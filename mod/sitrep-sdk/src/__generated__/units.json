@@ -1843,7 +1843,8 @@
       "offered": "CareerContract[]"
     },
     "CareerEconomy": {
-      "upkeep": "CareerUpkeep"
+      "upkeep": "CareerUpkeep",
+      "upkeepBeforeModifiers": "CareerUpkeep"
     },
     "CareerStatus": {
       "contracts": "CareerContracts",
@@ -1925,6 +1926,7 @@
       "meta": "PayloadMeta"
     },
     "EconomyReading": {
+      "upkeepBeforeModifiers": "EconomyUpkeepBreakdown",
       "upkeepBreakdown": "EconomyUpkeepBreakdown"
     },
     "EmissionPolicy": {

@@ -38,6 +38,7 @@
     <Compile Include="..\GonogoRp1Uplink\Rp1CrewStandingBackend.cs" />
     <Compile Include="..\GonogoRp1Uplink\Rp1ScUplink.cs" />
     <Compile Include="..\GonogoRp1Uplink\Rp1EconomyBackend.cs" />
+    <Compile Include="..\GonogoRp1Uplink\Rp1EconomyUpkeepQuery.cs" />
     <Compile Include="..\GonogoRp1Uplink\Rp1LaunchGate.cs" />
     <Compile Include="..\GonogoRp1Uplink\Rp1CareerProjectGate.cs" />
     <Compile Include="..\GonogoRp1Uplink\Rp1Envelope.cs" />

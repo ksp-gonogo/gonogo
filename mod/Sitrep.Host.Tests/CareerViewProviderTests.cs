@@ -478,6 +478,16 @@ namespace Sitrep.Host.Tests
                                 ["crewInFlight"] = 30.0,
                                 ["integrationSalary"] = 100.0,
                             },
+                            ["upkeepBeforeModifiers"] = new Dictionary<string, object?>
+                            {
+                                ["facilities"] = 100.0,
+                                ["launchComplexes"] = 400.0,
+                                ["researchSalary"] = 150.0,
+                                ["training"] = 50.0,
+                                ["crewBase"] = 120.0,
+                                ["crewInFlight"] = 30.0,
+                                ["integrationSalary"] = 100.0,
+                            },
                             ["unlockCredit"] = 50_000.0,
                         },
                     },
@@ -506,6 +516,14 @@ namespace Sitrep.Host.Tests
             Assert.Equal(120.0, upkeep["crewBase"]);
             Assert.Equal(30.0, upkeep["crewInFlight"]);
             Assert.Equal(100.0, upkeep["integrationSalary"]);
+
+            // The unmodified costs, carried as their own group. Its launch
+            // complexes differ from the modified set's on purpose: a mapper that
+            // read one group twice would agree with the fixture on six of seven
+            // keys and be wrong about what it published.
+            var raw = Assert.IsType<Dictionary<string, object?>>(economy["upkeepBeforeModifiers"]);
+            Assert.Equal(400.0, raw["launchComplexes"]);
+            Assert.Equal(100.0, raw["facilities"]);
 
             // A prepaid allowance the model spends before funds. Carried beside
             // the funds balance because both are needed to answer one question,

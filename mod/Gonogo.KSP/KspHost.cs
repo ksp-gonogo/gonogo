@@ -3502,9 +3502,17 @@ namespace Gonogo.KSP
             // rather than reading it, so there is exactly one place that number
             // comes from.
             //
-            // Read on the main thread, here, because an overhaul's figures come
-            // off its own live scenario modules. A throw takes this GROUP only,
-            // via TryBuildGroup, leaving funds/reputation/science standing.
+            // A throw takes this GROUP only, via TryBuildGroup, leaving
+            // funds/reputation/science standing.
+            //
+            // This runs on the COURIER thread, not the main one: it is reached
+            // from the career.status channel mapper, and AddChannelSource mappers
+            // run on the Courier thread by design. So a backend here may read an
+            // overhaul's own scenario modules, which is what the elected backends
+            // do, but must not call anything that touches Unity or broadcasts a
+            // game event. RP-1's per-line upkeep pricing does broadcast one, which
+            // is why it is captured on the main thread by the RP-1 Uplink's own
+            // sampled source and only read from here.
             var reading = economy?.Interpret(ut, rep);
             if (reading == null)
             {
@@ -3518,20 +3526,14 @@ namespace Gonogo.KSP
             group["subsidyMaxPerDay"] = reading.SubsidyMaxPerDay;
             group["upkeepPerDay"] = reading.UpkeepPerDay;
 
-            var breakdown = reading.UpkeepBreakdown;
-            if (breakdown != null)
-            {
-                group["upkeep"] = new Dictionary<string, object?>
-                {
-                    ["facilities"] = breakdown.Facilities,
-                    ["launchComplexes"] = breakdown.LaunchComplexes,
-                    ["researchSalary"] = breakdown.ResearchSalary,
-                    ["training"] = breakdown.Training,
-                    ["crewBase"] = breakdown.CrewBase,
-                    ["crewInFlight"] = breakdown.CrewInFlight,
-                    ["integrationSalary"] = breakdown.IntegrationSalary,
-                };
-            }
+            // Two breakdowns, and each is emitted only when the model has one.
+            // `upkeep` decomposes upkeepPerDay and is absent when the model cannot
+            // state its parts in the same convention as its total;
+            // `upkeepBeforeModifiers` is the same sources priced before whatever
+            // the model applies at transaction time. Either can stand without the
+            // other, so neither gates the other's key.
+            AddUpkeepGroup(group, "upkeep", reading.UpkeepBreakdown);
+            AddUpkeepGroup(group, "upkeepBeforeModifiers", reading.UpkeepBeforeModifiers);
 
             // Emitted only when a model actually has such a pool, the same way
             // the breakdown above is. Unlike decay and subsidy, where stock's
@@ -3543,6 +3545,31 @@ namespace Gonogo.KSP
                 group["unlockCredit"] = reading.UnlockCredit;
             }
             return group;
+        }
+
+        /// <summary>
+        /// One upkeep breakdown under <paramref name="key"/>, or nothing at all
+        /// when the model does not have that one. Absent rather than a bag of
+        /// nulls, the same way the group itself is absent on a model with no
+        /// per-source concept.
+        /// </summary>
+        private static void AddUpkeepGroup(
+            Dictionary<string, object?> group, string key, EconomyUpkeepBreakdown? breakdown)
+        {
+            if (breakdown == null)
+            {
+                return;
+            }
+            group[key] = new Dictionary<string, object?>
+            {
+                ["facilities"] = breakdown.Facilities,
+                ["launchComplexes"] = breakdown.LaunchComplexes,
+                ["researchSalary"] = breakdown.ResearchSalary,
+                ["training"] = breakdown.Training,
+                ["crewBase"] = breakdown.CrewBase,
+                ["crewInFlight"] = breakdown.CrewInFlight,
+                ["integrationSalary"] = breakdown.IntegrationSalary,
+            };
         }
 
         /// <summary>
