@@ -81,10 +81,12 @@ describe("VehicleAssembly draws the balance wherever a section can spend", () =>
       fixture.emit("rp1.buildQueue", []);
     });
 
-    // Waited on the BALANCE and asserted on the section: the section mounts off
-    // the registry and is on screen from the first frame, so waiting on it
-    // would let the balance be checked a tick before the career record lands
-    // and fail for a reason that is not the one under test.
+    /*
+     * Waited on the BALANCE and asserted on the section: the section mounts off
+     * the registry and is on screen from the first frame, so waiting on it
+     * would let the balance be checked a tick before the career record lands
+     * and fail for a reason that is not the one under test.
+     */
     await waitFor(() => {
       expect(screen.getAllByTitle("Available funds")).toHaveLength(1);
     });
@@ -96,9 +98,11 @@ describe("VehicleAssembly draws the balance wherever a section can spend", () =>
   });
 
   it("draws no balance at all where it draws no controls", async () => {
-    // The other direction, and the reason this is not just a presence check: a
-    // widget that printed a balance on a stock install would be advertising a
-    // spend surface RP-1 is not there to serve.
+    /*
+     * The other direction, and the reason this is not just a presence check: a
+     * widget that printed a balance on a stock install would be advertising a
+     * spend surface RP-1 is not there to serve.
+     */
     const fixture = mount();
     act(() => {
       fixture.emit("rp1.available", false);

@@ -413,9 +413,11 @@ describe("the programs channel", () => {
     });
 
     const row = result.current?.[0];
-    // Money that MIGHT be earned is not money outstanding: an offer's total is
-    // present and its paid-out and remaining are not, which is the distinction
-    // a "0 of 2,000,000 paid" readout would erase.
+    /*
+     * Money that MIGHT be earned is not money outstanding: an offer's total is
+     * present and its paid-out and remaining are not, which is the distinction
+     * a "0 of 2,000,000 paid" readout would erase.
+     */
     expect(row?.totalFunding).toMatchObject({
       magnitude: 2_000_000,
       unit: "funds",
@@ -466,12 +468,14 @@ describe("the programs channel", () => {
   });
 
   it("hydrates the funding curve's NESTED keys, not just its name", async () => {
-    // The one shape on this Uplink's wire that nests a list of typed entries
-    // inside another entry. `registerTypeUnits` resolves a nested shape through
-    // its own type-keyed registry, so a key arriving as a bare number here would
-    // mean the nesting never reached that registry: the chart would then be handed
-    // plain numbers while its type still said `Value<"ratio">`, and `<Unit>` would
-    // render every axis label as absent.
+    /*
+     * The one shape on this Uplink's wire that nests a list of typed entries
+     * inside another entry. `registerTypeUnits` resolves a nested shape through
+     * its own type-keyed registry, so a key arriving as a bare number here would
+     * mean the nesting never reached that registry: the chart would then be handed
+     * plain numbers while its type still said `Value<"ratio">`, and `<Unit>` would
+     * render every axis label as absent.
+     */
     const fixture = setupStreamFixture({
       carriedChannels: [RP1_PROGRAM_FUNDING_CURVES_TOPIC],
     });

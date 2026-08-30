@@ -89,9 +89,11 @@ describe("evaluating a funding curve", () => {
   });
 
   it("clamps to the end keys rather than extrapolating", () => {
-    // What stops a Program warped far past its deadline from accruing money
-    // RP-1 will never pay: its own Evaluate returns the first and last key's
-    // value outside the range.
+    /*
+     * What stops a Program warped far past its deadline from accruing money
+     * RP-1 will never pay: its own Evaluate returns the first and last key's
+     * value outside the range.
+     */
     const keys = plainCurveKeys(flatKeys());
     expect(evaluateFundingCurve(keys, -5)).toBeCloseTo(0, 12);
     expect(evaluateFundingCurve(keys, 40)).toBeCloseTo(1.4, 12);
@@ -119,9 +121,11 @@ describe("evaluating a funding curve", () => {
   });
 
   it("drops a key whose tangent did not survive the wire", () => {
-    // The reason the branch above is unreachable from a real payload, stated as
-    // a test so it is a measured fact rather than a comment: a key with no
-    // readable tangent is dropped, never flattened to zero.
+    /*
+     * The reason the branch above is unreachable from a real payload, stated as
+     * a test so it is a measured fact rather than a comment: a key with no
+     * readable tangent is dropped, never flattened to zero.
+     */
     const stepped = plainCurveKeys([
       {
         frac: value("ratio", 0),

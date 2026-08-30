@@ -228,9 +228,11 @@ describe("ProgramStatus", () => {
       expect(screen.getByText("FULL")).toBeInTheDocument();
     });
 
-    // An unknown ceiling is not a full one: outside a loaded career RP-1 cannot
-    // answer it, and a FULL badge there would tell the operator they cannot
-    // start something when nobody knows.
+    /*
+     * An unknown ceiling is not a full one: outside a loaded career RP-1 cannot
+     * answer it, and a FULL badge there would tell the operator they cannot
+     * start something when nobody knows.
+     */
     fixture.emit(
       "rp1.programSlots",
       slots({ maxSlots: null, freeSlots: null, usedSlots: 3 }),
@@ -241,9 +243,11 @@ describe("ProgramStatus", () => {
   });
 
   it("shows the Confidence balance beside the prices it is spent on", async () => {
-    // Accepting a Program is the only thing in RP-1 that spends Confidence, so
-    // this is the widget the repo's spend rule binds: a price the operator has
-    // to leave the screen to weigh is a price they weigh wrong.
+    /*
+     * Accepting a Program is the only thing in RP-1 that spends Confidence, so
+     * this is the widget the repo's spend rule binds: a price the operator has
+     * to leave the screen to weigh is a price they weigh wrong.
+     */
     const { fixture } = mount();
     fixture.emit("rp1.available", true);
     fixture.emit("rp1.programs", []);

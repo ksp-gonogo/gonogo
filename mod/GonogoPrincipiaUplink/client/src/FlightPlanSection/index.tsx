@@ -231,11 +231,13 @@ function BurnRow({
 function buildBadge(roster: SystemUplinkHealth | undefined): ReactNode {
   const entry = roster?.uplinks.find((u) => u.id === PRINCIPIA.id);
   if (entry?.health.state !== "degraded") {
-    // Silence covers the ordinary case, the moment before the gate has answered
-    // (it does not run until Principia's own startup has mapped its library, and
-    // not knowing is not the same as a bad build), and an Uplink reporting
-    // unavailable, which is a statement about Principia being absent rather than
-    // about the build being wrong.
+    /*
+     * Silence covers the ordinary case, the moment before the gate has answered
+     * (it does not run until Principia's own startup has mapped its library, and
+     * not knowing is not the same as a bad build), and an Uplink reporting
+     * unavailable, which is a statement about Principia being absent rather than
+     * about the build being wrong.
+     */
     return null;
   }
   return <Badge severity="caution">UNVETTED PRINCIPIA BUILD</Badge>;
@@ -308,10 +310,12 @@ function VantageTrajectoryRow({ viewUt }: { viewUt: number | null }) {
         <Button
           onClick={() => {
             if (horizon !== null) {
-              // Built through `value` rather than cast: the request's numbers
-              // carry units on the contract, and a cast would let a seconds
-              // figure reach a field declared as an instant without a word
-              // from the compiler.
+              /*
+               * Built through `value` rather than cast: the request's numbers
+               * carry units on the contract, and a cast would let a seconds
+               * figure reach a field declared as an instant without a word
+               * from the compiler.
+               */
               void solve({
                 topic: "vessel.orbit",
                 toUt: value("ut", horizon),

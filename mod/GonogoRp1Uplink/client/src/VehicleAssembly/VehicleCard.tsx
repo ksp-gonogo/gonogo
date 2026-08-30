@@ -75,9 +75,11 @@ export function VehicleCard({
   const name = item.shipName ?? NULL_DISPLAY;
   const complexName = complex?.name ?? null;
   const label = complexName === null ? name : `${name} · ${complexName}`;
-  // Narrowed to a string here rather than asserted at each control: a card with
-  // no id draws none of them, and that is the only difference between the two
-  // branches below.
+  /*
+   * Narrowed to a string here rather than asserted at each control: a card with
+   * no id draws none of them, and that is the only difference between the two
+   * branches below.
+   */
   const id = item.id ?? null;
 
   return (
@@ -256,9 +258,11 @@ function ComplexRate({
     return null;
   }
   return (
-    // Wrapping, and the badge outside the sentence rather than inside it: at
-    // the widget's minimum width the two together are wider than the card, and
-    // a badge on a line that cannot wrap is one an operator never sees.
+    /*
+     * Wrapping, and the badge outside the sentence rather than inside it: at
+     * the widget's minimum width the two together are wider than the card, and
+     * a badge on a line that cannot wrap is one an operator never sees.
+     */
     <Cluster gap="xs" justify="start" wrap>
       <Text size="xs" tone="muted">
         <Unit value={complex.engineers} /> /{" "}

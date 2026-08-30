@@ -94,9 +94,11 @@ describe("KscConstruction", () => {
       expect(screen.getByText("FACILITY")).toBeInTheDocument();
     });
     const text = visibleText();
-    // Signposted the way the building is, not the way RP-1's enum member is:
-    // the localised name is behind a KSP call a reflection-only Uplink cannot
-    // make, so the enum arrives raw and is spelled out here.
+    /*
+     * Signposted the way the building is, not the way RP-1's enum member is:
+     * the localised name is behind a KSP call a reflection-only Uplink cannot
+     * make, so the enum arrives raw and is spelled out here.
+     */
     expect(text).toContain("Vehicle Assembly Building");
     // Money already committed, which is the fact a cancellation turns on.
     expect(text).toContain("10,000");
@@ -123,9 +125,11 @@ describe("KscConstruction", () => {
         screen.getByText("No facility, complex or pad is being built."),
       ).toBeInTheDocument();
     });
-    // Named for the three things this section builds, none of which is a
-    // vehicle: "Construction: nothing" sat above a rocket that was visibly
-    // being built and read as a contradiction.
+    /*
+     * Named for the three things this section builds, none of which is a
+     * vehicle: "Construction: nothing" sat above a rocket that was visibly
+     * being built and read as a contradiction.
+     */
     expect(screen.getByText("SITE CONSTRUCTION")).toBeInTheDocument();
   });
 
