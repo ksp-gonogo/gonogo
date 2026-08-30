@@ -1,0 +1,111 @@
+{
+  "_meta": {
+    "notes": "The three answers this section has to be able to give about a saved craft, side by side. One is buildable at either complex, so it draws a button per complex named after the complex rather than a bare Start build; one is buildable at only one and carries the other complex's refusal underneath, which is what tells an operator which complex to modify; one is blocked by parts researched but never bought, a state RP-1's own window resolves with a popup that a command sent from another machine has nobody to answer. No funds line: the balance is the host's, drawn once for every section"
+  },
+  "_scene": {
+    "augment": "rp1-vehicle-assembly-buildable",
+    "size": { "w": 11, "h": 22 },
+    "caption": "Three saved craft: one startable at either complex, one only at LC-1 with LC-2's refusal named, and one blocked on parts that are researched but not bought",
+    "paints": [
+      "START A BUILD",
+      "Vanguard",
+      "Build at LC-1",
+      "Build at LC-2",
+      "Atlas-LV3",
+      "Start build",
+      "too heavy for the complex",
+      "Titan-I",
+      "cannot be built",
+      "unlock at R&D first",
+      "costs about",
+      "parts"
+    ]
+  },
+  "_stream": {
+    "pinnedUt": 1000000,
+    "emits": [
+      { "topic": "rp1.available", "payload": true },
+      {
+        "topic": "rp1.buildable",
+        "payload": [
+          {
+            "craftFile": "Vanguard",
+            "shipName": "Vanguard",
+            "facility": 1,
+            "partCount": 24,
+            "mass": 62,
+            "cost": 18500,
+            "missingParts": [],
+            "lockedParts": [],
+            "unpurchasedParts": [],
+            "complexes": [
+              {
+                "lcId": "lc-1",
+                "name": "LC-1",
+                "kscName": "Cape",
+                "eligible": true,
+                "refusals": []
+              },
+              {
+                "lcId": "lc-2",
+                "name": "LC-2",
+                "kscName": "Cape",
+                "eligible": true,
+                "refusals": []
+              }
+            ]
+          },
+          {
+            "craftFile": "Atlas-LV3",
+            "shipName": "Atlas-LV3",
+            "facility": 1,
+            "partCount": 42,
+            "mass": 120,
+            "cost": 40000,
+            "missingParts": [],
+            "lockedParts": [],
+            "unpurchasedParts": [],
+            "complexes": [
+              {
+                "lcId": "lc-1",
+                "name": "LC-1",
+                "kscName": "Cape",
+                "eligible": true,
+                "refusals": []
+              },
+              {
+                "lcId": "lc-2",
+                "name": "LC-2",
+                "kscName": "Cape",
+                "eligible": false,
+                "refusals": [
+                  "too heavy for the complex at 120.0 t, limit 90.0 t"
+                ]
+              }
+            ]
+          },
+          {
+            "craftFile": "Titan-I",
+            "shipName": "Titan-I",
+            "facility": 1,
+            "partCount": 58,
+            "mass": 105,
+            "cost": 61200,
+            "missingParts": [],
+            "lockedParts": [],
+            "unpurchasedParts": ["LR87-AJ-3", "LR91-AJ-3"],
+            "complexes": [
+              {
+                "lcId": "lc-1",
+                "name": "LC-1",
+                "kscName": "Cape",
+                "eligible": true,
+                "refusals": []
+              }
+            ]
+          }
+        ]
+      }
+    ]
+  }
+}

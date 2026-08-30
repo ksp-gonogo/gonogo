@@ -437,16 +437,16 @@ async function assertEveryPaintVisible(
 async function performActs(tab: Page, scene: Scene): Promise<void> {
   for (const act of scene.before) {
     if (act.press !== undefined) {
-      const button = tab.getByRole("button", { name: act.press }).first();
-      if ((await button.count()) === 0) {
+      const control = await pressable(tab, act.press);
+      if (control === null) {
         throw new Error(
           `${scene.name}: "_scene.before" presses "${act.press}", which is ` +
-            "not a button on screen at that point. Presses run in order, so a " +
-            "control that only appears after an earlier press has to come " +
-            "after it.",
+            "not a button or a tab on screen at that point. Presses run in " +
+            "order, so a control that only appears after an earlier press has " +
+            "to come after it.",
         );
       }
-      await button.click();
+      await control.click();
     } else if (act.hover !== undefined) {
       const target = tab.locator(act.hover).first();
       await target.scrollIntoViewIfNeeded().catch(() => {});
@@ -468,6 +468,24 @@ async function performActs(tab: Page, scene: Scene): Promise<void> {
     }
     await settle(tab);
   }
+}
+
+/**
+ * The control an accessible name reaches, or null when nothing does.
+ *
+ * <p>A tab is tried after a button because a tab IS a press an operator makes
+ * and `role="tab"` is not `role="button"`. Without it every augment hosted
+ * inside a tabbed widget was unreachable: the host renders its first tab, the
+ * scene can never open the one the augment is in, and the only fixture that
+ * could be written was one photographing a panel the augment is not on. Three
+ * of the app's own hosts tab their content.</p>
+ */
+async function pressable(tab: Page, name: string): Promise<Locator | null> {
+  for (const role of ["button", "tab"] as const) {
+    const found = tab.getByRole(role, { name }).first();
+    if ((await found.count()) > 0) return found;
+  }
+  return null;
 }
 
 /**

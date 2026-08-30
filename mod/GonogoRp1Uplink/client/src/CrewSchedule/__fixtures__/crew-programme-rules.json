@@ -1,0 +1,43 @@
+{
+  "_meta": {
+    "notes": "The mixed save, which is the only one worth a picture: retirement on with a cap, R&R off, mission training on at a rate that is not 1. A career with every rule on renders five identical On lines and says nothing about whether the section can express the other state. The NOT STARTED badge is here for the same reason: three courses enrolled and one of them being worked is progress nobody is making on two kerbals, and it is the one line an operator acts on"
+  },
+  "_scene": {
+    "augment": "rp1-crew-programme",
+    "size": { "w": 8, "h": 12 },
+    "caption": "The rules a career's personnel dates are read under: retirement on with a two-year extension ceiling, post-flight R&R off, mission training at 1.25x, and three enrolled courses of which two have never been started",
+    "paints": [
+      "RP-1 CREW PROGRAMME",
+      "Retirement",
+      "extension",
+      "Post-flight R&R",
+      "Off",
+      "Mission training",
+      "rate",
+      "Proficiency rate",
+      "In training",
+      "courses",
+      "NOT STARTED"
+    ]
+  },
+  "_stream": {
+    "pinnedUt": 1000000,
+    "emits": [
+      { "topic": "rp1.available", "payload": true },
+      {
+        "topic": "rp1.crewProgram",
+        "payload": {
+          "retirementEnabled": true,
+          "crewRnREnabled": false,
+          "missionTrainingEnabled": true,
+          "proficiencyTrainingRate": 0.8,
+          "missionTrainingRate": 1.25,
+          "retirementExtensionCapSeconds": 63115200,
+          "courses": 3,
+          "coursesStarted": 1,
+          "crewInTraining": 4
+        }
+      }
+    ]
+  }
+}

@@ -262,8 +262,15 @@ const Rates = styled.div`
   gap: 0.25rem;
 `;
 
+/* `flex-wrap` is load-bearing rather than tidy: `RateRange` asks for a whole
+   line with `flex-basis: 100%`, and on a row that cannot wrap it takes that
+   width from its siblings instead of from a second line. The label then shrinks
+   below its own text and paints under the value, which is what "Subsidy" and
+   "1840.0 f/day" were doing to each other on every career with a subsidy
+   range. */
 const Rate = styled.div<{ $total?: boolean }>`
   display: flex;
+  flex-wrap: wrap;
   align-items: baseline;
   gap: 0.5rem;
   font-variant-numeric: tabular-nums;

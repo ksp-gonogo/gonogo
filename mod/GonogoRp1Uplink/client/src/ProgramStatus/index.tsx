@@ -60,7 +60,7 @@ export function ProgramStatus() {
     <Section>
       <SectionTitle>RP-1 PROGRAMS</SectionTitle>
       <Stack as="ul" gap="sm" style={LIST_STYLE}>
-        <Row>
+        <Row wrap>
           <RowName>Slots</RowName>
           <Text>
             <Unit value={slots?.usedSlots} /> of{" "}
@@ -73,7 +73,7 @@ export function ProgramStatus() {
             )}
           </Text>
         </Row>
-        <Row>
+        <Row wrap>
           <RowName>Confidence</RowName>
           <Text>
             <Unit value={confidence?.confidence} />
@@ -84,7 +84,7 @@ export function ProgramStatus() {
           // A career with no Program running is a real state and an expensive
           // one: it is earning the subsidy alone. Distinct from RP-1 being
           // absent, which returns null above.
-          <Row>
+          <Row wrap>
             <RowName>Running</RowName>
             <Text>Nothing. Subsidy only.</Text>
           </Row>
@@ -99,7 +99,7 @@ export function ProgramStatus() {
             <RowName>Acceptable now</RowName>
             <Stack as="ul" gap="xs" style={LIST_STYLE}>
               {offerable.map((program) => (
-                <Row key={program.name ?? ""}>
+                <Row key={program.name ?? ""} wrap>
                   <RowName>
                     {program.title ?? program.name ?? NULL_DISPLAY}
                   </RowName>
@@ -136,7 +136,7 @@ function ActiveProgram({ program }: Readonly<{ program: Rp1ProgramEntry }>) {
   return (
     <Stack as="li" gap="xs">
       <Stack as="ul" gap="xs" style={LIST_STYLE}>
-        <Row>
+        <Row wrap>
           <RowName>{program.title ?? program.name ?? NULL_DISPLAY}</RowName>
           <Text>
             {program.canComplete === true ? (
@@ -148,14 +148,14 @@ function ActiveProgram({ program }: Readonly<{ program: Rp1ProgramEntry }>) {
             )}
           </Text>
         </Row>
-        <Row>
+        <Row wrap>
           <RowName>Paid</RowName>
           <Text>
             <Unit value={program.fundsPaidOut} /> of{" "}
             <Unit value={program.totalFunding} />
           </Text>
         </Row>
-        <Row>
+        <Row wrap>
           <RowName>Deadline</RowName>
           <Text>
             {program.deadlineUt !== undefined && program.deadlineUt !== null ? (
@@ -169,7 +169,7 @@ function ActiveProgram({ program }: Readonly<{ program: Rp1ProgramEntry }>) {
           </Text>
         </Row>
         {overrun && (
-          <Row>
+          <Row wrap>
             {/* Only once it bites. Before the deadline this is a rate nothing
                 is charging, and showing it reads as a loss already taken. */}
             <RowName>Overrun cost</RowName>

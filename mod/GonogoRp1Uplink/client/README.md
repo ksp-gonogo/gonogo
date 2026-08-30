@@ -195,6 +195,10 @@ Every craft RP-1 is integrating, holding or could start, across every launch com
 | `rp1-vehicle-assembly-buildable` | `rp1-vehicle-assembly.sections` | – |  |  |
 | `rp1-vehicle-assembly-warehouse` | `rp1-vehicle-assembly.sections` | – |  |  |
 
+![Three kerbals' RP-1 schedules inside the roster rows the Astronaut Complex already draws: a retirement that can still be extended, a course being worked and a course nobody has started, and mission training lapsing before either finishes](docs/assets/crew-schedule-three-states--default.png)
+
+![The rules a career's personnel dates are read under: retirement on with a two-year extension ceiling, post-flight R&R off, mission training at 1.25x, and three enrolled courses of which two have never been started](docs/assets/crew-programme-rules--default.png)
+
 ![Cape and its two launch complexes, each with its crew, its envelope, its daily cost and the rush control: LC-1 already rushing and carrying the terms in force on it, LC-2 quiet and offered the way in](docs/assets/complexes-rushing--default.png)
 
 ![A payroll mid-career with six engineers assigned to nothing, the daily charge that pool carries, and the stepped controls that would move them onto either complex](docs/assets/personnel-staffed--default.png)
@@ -216,4 +220,14 @@ Every craft RP-1 is integrating, holding or could start, across every launch com
 ![Three pads across two RP-1 complexes: one holding a vehicle that has finished rolling out, one being reconditioned, and a stock runway RP-1 does not model](docs/assets/pad-holding-a-finished-vehicle--default.png)
 
 ![A rollout in progress: the pad row names the vehicle by joining the operation's vessel id against the warehouse, and counts down what is left of the haul](docs/assets/pad-rolling-out--default.png)
+
+![Both Program slots committed, the running Program past its deadline and losing reputation by the year, and the next one out of Confidence reach](docs/assets/programs-overrun-and-unaffordable--default.png)
+
+![Three queued nodes: one being worked with a countdown and its era window, one throttled down to a fifth of full rate, and one stalled with nothing to date it from](docs/assets/research-queue-throttled-and-stalled--default.png)
+
+![Three builds under integration: one with a date at a rushing complex, one stalled because nobody is assigned to its complex, and one RP-1 has not costed yet](docs/assets/building-three-clocks--default.png)
+
+![Three saved craft: one startable at either complex, one only at LC-1 with LC-2's refusal named, and one blocked on parts that are researched but not bought](docs/assets/buildable-blocked-and-buildable--default.png)
+
+![Three finished vehicles in three different places: one standing on the pad, one still moving to it, and one RP-1 will not release at all with its reason on the card](docs/assets/warehouse-three-places--default.png)
 

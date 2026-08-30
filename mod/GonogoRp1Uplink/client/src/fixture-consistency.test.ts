@@ -65,7 +65,7 @@ interface PadRow {
  * Hangar complexes are exempt because they genuinely have no pads: an SPH
  * complex rolls its craft to a runway.
  */
-function inconsistencies(emits: readonly Emit[], widget = ""): string[] {
+function inconsistencies(emits: readonly Emit[], surface = ""): string[] {
   const complexes = payloadRows<ComplexRow>(emits, "rp1.complexes");
   if (complexes === undefined || !aboutVehicles(emits)) {
     return [];
@@ -99,12 +99,12 @@ function inconsistencies(emits: readonly Emit[], widget = ""): string[] {
   // defects above: a state the widget is right to draw, about a save the
   // fixture never meant to be in.
   //
-  // Scoped to the WIDGET rather than to the topics emitted, unlike the pad rule
-  // above. Only one widget reads the craft listing, and the render harness
+  // Scoped to the SURFACE rather than to the topics emitted, unlike the pad
+  // rule above. Only one widget reads the craft listing, and the render harness
   // refuses a topic the mounted tree does not read, so asking this of a launch
   // complex's own scene would demand an emit that scene cannot carry.
   if (
-    widget === VEHICLES_WIDGET &&
+    drawsTheCraftListing(surface) &&
     !emits.some((emit) => emit.topic === "rp1.buildable")
   ) {
     problems.push(
@@ -119,6 +119,25 @@ function inconsistencies(emits: readonly Emit[], widget = ""): string[] {
 
 /** The one widget that reads the craft listing, and offers to start a build. */
 const VEHICLES_WIDGET = "rp1-vehicle-assembly";
+
+/**
+ * Whether this scene puts the craft listing on screen, which is a question
+ * about the SLOT and not about the widget.
+ *
+ * <para>All three of the vehicle sections are bound into
+ * `rp1-vehicle-assembly.sections`, and a scene naming any one of them mounts
+ * the slot, so every section in it draws. A warehouse scene that omits the
+ * craft listing therefore photographs "waiting for the craft listing" under
+ * three fully described vehicles, which is the same false sentence over the
+ * same fully described career that the widget rule was written for, one slot
+ * down. The augment ids are the widget id plus a suffix, which is what lets one
+ * prefix answer for the whole slot.</para>
+ */
+function drawsTheCraftListing(surface: string): boolean {
+  return (
+    surface === VEHICLES_WIDGET || surface.startsWith(`${VEHICLES_WIDGET}-`)
+  );
+}
 
 /**
  * Whether this fixture's subject is the vehicles: it emits one of the lists a
@@ -149,8 +168,8 @@ function payloadRows<T>(
 interface Fixture {
   where: string;
   emits: Emit[];
-  /** The widget the scene mounts, which decides which rules can apply to it. */
-  widget: string;
+  /** What the scene mounts, widget or augment, which decides which rules apply. */
+  surface: string;
 }
 
 function fixtures(): Fixture[] {
@@ -168,11 +187,14 @@ function fixtures(): Fixture[] {
       if (!entry.endsWith(".json")) continue;
       const parsed = JSON.parse(
         readFileSync(join(fixturesDir, entry), "utf8"),
-      ) as { _scene?: { widget?: string }; _stream?: { emits?: Emit[] } };
+      ) as {
+        _scene?: { augment?: string; widget?: string };
+        _stream?: { emits?: Emit[] };
+      };
       found.push({
         emits: parsed._stream?.emits ?? [],
+        surface: parsed._scene?.widget ?? parsed._scene?.augment ?? "",
         where: `${dir}/__fixtures__/${entry}`,
-        widget: parsed._scene?.widget ?? "",
       });
     }
   }
@@ -193,7 +215,7 @@ describe("RP-1 fixture consistency", () => {
   it.each(
     all.map((f) => [f.where, f] as const),
   )("%s describes a space centre RP-1 could produce", (_where, fixture) => {
-    expect(inconsistencies(fixture.emits, fixture.widget)).toEqual([]);
+    expect(inconsistencies(fixture.emits, fixture.surface)).toEqual([]);
   });
 
   it("catches a vehicles fixture that never emits the craft listing", () => {
@@ -212,6 +234,28 @@ describe("RP-1 fixture consistency", () => {
         },
       ],
       "rp1-vehicle-assembly",
+    );
+    expect(problems).toHaveLength(1);
+    expect(problems[0]).toContain("rp1.buildable");
+  });
+
+  it("catches a vehicle SECTION's scene that never emits the craft listing", () => {
+    /* The same violation one slot down, and the one a widget-keyed rule could
+       not see: a section scene mounts the slot, so the craft listing is on
+       screen saying it is still waiting whether or not the scene meant to draw
+       it. */
+    const problems = inconsistencies(
+      [
+        { payload: [], topic: "rp1.warehouse" },
+        {
+          payload: [
+            { isOperational: true, lcId: "lc-1", lcType: "Pad", name: "LC-1" },
+          ],
+          topic: "rp1.complexes",
+        },
+        { payload: [{ lcId: "lc-1" }], topic: "rp1.pads" },
+      ],
+      "rp1-vehicle-assembly-warehouse",
     );
     expect(problems).toHaveLength(1);
     expect(problems[0]).toContain("rp1.buildable");

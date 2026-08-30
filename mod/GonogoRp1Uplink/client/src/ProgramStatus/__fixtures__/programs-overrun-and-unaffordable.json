@@ -1,0 +1,111 @@
+{
+  "_meta": {
+    "notes": "Hosted on Programme Funding, because the section's whole argument is that the subsidy alone misreads a career's income and the comparison only exists with the host's own readouts above it. The state is a career in trouble on both halves: both Program slots are taken, the one that is running is past its nominal duration so the reputation penalty has started being assessed, and the Program that would replace it costs more Confidence than the career holds. Every conditional this section draws (FULL, OVERRUN, the overrun-cost row, SHORT) is on screen at once, which is also the layout worth looking at: four badges across a four-column widget"
+  },
+  "_scene": {
+    "augment": "rp1-program-status",
+    "host": "career-economy",
+    "size": { "w": 8, "h": 18 },
+    "caption": "Both Program slots committed, the running Program past its deadline and losing reputation by the year, and the next one out of Confidence reach",
+    "paints": [
+      "RP-1 PROGRAMS",
+      "Slots",
+      "FULL",
+      "Confidence",
+      "Early Orbital",
+      "OVERRUN",
+      "Paid",
+      "Deadline",
+      "Overrun cost",
+      "Acceptable now",
+      "SHORT"
+    ]
+  },
+  "_stream": {
+    "pinnedUt": 1000000,
+    "emits": [
+      {
+        "topic": "career.status",
+        "payload": {
+          "economy": {
+            "funds": 289848,
+            "reputation": 62,
+            "science": 340,
+            "subsidyPerDay": 1840,
+            "subsidyMinPerDay": 500,
+            "subsidyMaxPerDay": 6000,
+            "upkeepPerDay": 1275,
+            "reputationDecayPerDay": 0.16
+          }
+        }
+      },
+      { "topic": "rp1.available", "payload": true },
+      { "topic": "rp1.confidence", "payload": { "confidence": 118 } },
+      {
+        "topic": "rp1.programSlots",
+        "payload": {
+          "maxSlots": 2,
+          "usedSlots": 2,
+          "freeSlots": 0,
+          "activeCount": 1,
+          "completedCount": 1
+        }
+      },
+      {
+        "topic": "rp1.programs",
+        "payload": [
+          {
+            "name": "EarlyOrbital",
+            "title": "Early Orbital Program",
+            "state": "active",
+            "speed": "Normal",
+            "slots": 1,
+            "isHumanSpaceflight": false,
+            "nominalDurationSeconds": 63115200,
+            "acceptedUt": 400000,
+            "deadlineUt": 63515200,
+            "fracElapsed": 1.18,
+            "totalFunding": 480000,
+            "fundsPaidOut": 452000,
+            "fundsRemaining": 28000,
+            "fundingCurve": "Frontloaded",
+            "confidenceCost": 60,
+            "repDeltaOnCompletePerYearEarly": 20,
+            "repPenaltyPerYearLate": 15,
+            "repPenaltyAssessed": 2.7,
+            "requirementsMet": true,
+            "objectivesMet": false,
+            "canAccept": false,
+            "canComplete": false
+          },
+          {
+            "name": "CrewedOrbital",
+            "title": "Crewed Orbital Program",
+            "state": "offerable",
+            "speed": "Normal",
+            "slots": 1,
+            "isHumanSpaceflight": true,
+            "nominalDurationSeconds": 94672800,
+            "totalFunding": 1250000,
+            "confidenceCost": 240,
+            "requirementsMet": true,
+            "objectivesMet": false,
+            "canAccept": true,
+            "canComplete": false
+          },
+          {
+            "name": "EarlySounding",
+            "title": "Early Sounding Rocket Program",
+            "state": "complete",
+            "speed": "Normal",
+            "slots": 1,
+            "totalFunding": 120000,
+            "fundsPaidOut": 120000,
+            "fundsRemaining": 0,
+            "completedUt": 380000
+          }
+        ]
+      }
+    ]
+  }
+}

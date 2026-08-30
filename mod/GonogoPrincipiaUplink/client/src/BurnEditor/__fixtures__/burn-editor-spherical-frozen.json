@@ -1,0 +1,113 @@
+{
+  "_meta": {
+    "notes": "The burn the editor cannot edit and still has to show. Principia's spherical coordinate systems put a magnitude and two angles in the three slots a Cartesian burn puts three velocities in, so the numbers are real and are not metres per second. This is the one render that shows what the surface WITHDRAWS: the unit symbols come off the boxes, the derived magnitude becomes a dash rather than a plausible hypotenuse of a magnitude and two angles, and every control freezes. It is also the scene carrying the sentence that sends the operator back to the game, which is the copy on this surface worth reading in a picture rather than in a test"
+  },
+  "_scene": {
+    "augment": "principia-burn-editor",
+    "size": {
+      "w": 13,
+      "h": 26
+    },
+    "caption": "A burn stated in one of Principia's spherical systems: the numbers are shown, the claim that they are three velocities is withdrawn, the magnitude reads as a dash and every control is frozen",
+    "before": [
+      {
+        "press": "Burn 1"
+      }
+    ],
+    "paints": [
+      "BURN EDITOR",
+      "ARMED",
+      "BURN 1",
+      "DELTA-V NOT IN COMPONENTS",
+      "spherical coordinate systems",
+      "magnitude and two angles",
+      "cannot be edited here",
+      "TANGENT",
+      "NORMAL",
+      "MAGNITUDE",
+      "APPLY"
+    ]
+  },
+  "_stream": {
+    "pinnedUt": 1000000,
+    "emits": [
+      {
+        "topic": "vessel.identity",
+        "payload": {
+          "vesselId": "Ares-IV",
+          "name": "Ares IV",
+          "vesselType": 0,
+          "situation": 0
+        }
+      },
+      {
+        "topic": "principia.flightPlan",
+        "payload": {
+          "vesselId": "Ares-IV",
+          "observedAtUt": 1000000,
+          "planExists": true,
+          "reachedDeadline": false,
+          "planIntegrated": true,
+          "anomalousBurnCount": 0,
+          "firstFutureBurnIndex": 0,
+          "finalTimeUt": 1220000,
+          "burns": [
+            {
+              "index": 0,
+              "ignitionUt": 1042000,
+              "cutoffUt": 1042054,
+              "durationSeconds": 54,
+              "deltaV": 973.4,
+              "anomalous": false
+            }
+          ]
+        }
+      },
+      {
+        "topic": "principia.plan",
+        "payload": {
+          "vesselId": "Ares-IV",
+          "sampledAtUt": 1000000,
+          "planExists": true,
+          "writeSurface": {
+            "available": true,
+            "armed": true,
+            "analysedVersion": "principia Grassmann",
+            "detectedVersion": "principia Grassmann"
+          },
+          "planCount": 1,
+          "selectedPlan": 0,
+          "initialTimeUt": 992000,
+          "desiredFinalTimeUt": 1220000,
+          "actualFinalTimeUt": 1220000,
+          "anomalousBurnCount": 0,
+          "optimisationRunning": false,
+          "burns": [
+            {
+              "index": 0,
+              "ignitionUt": 1042000,
+              "cutoffUt": 1042054,
+              "durationSeconds": 54,
+              "timeToHalfDeltaVSeconds": 26,
+              "deltaV": 973.4,
+              "deltaVTangent": 973.4,
+              "deltaVNormal": 18.75,
+              "deltaVBinormal": -42.1,
+              "coordinateSystem": 4,
+              "inertiallyFixed": false,
+              "thrustKilonewtons": 486.5,
+              "specificImpulseSeconds": 348,
+              "initialMassTons": 30.9,
+              "finalMassTons": 23.23,
+              "massFlowKilogramsPerSecond": 142.56,
+              "frameType": 6000,
+              "frameEditable": true,
+              "executing": false,
+              "anomalous": false
+            }
+          ]
+        }
+      }
+    ]
+  }
+}

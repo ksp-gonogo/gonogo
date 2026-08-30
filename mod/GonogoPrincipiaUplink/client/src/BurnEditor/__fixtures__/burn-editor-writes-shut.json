@@ -1,0 +1,166 @@
+{
+  "_meta": {
+    "notes": "The state an operator meets FIRST, and the one the surface's own doc makes a promise about: the reason writes are not armed travels with the plan rather than being discovered by pressing something. Nothing had ever photographed that reason. Writes unavailable and unarmed, so ARM WRITES is dead and the sentence beside it says why, and the burn list below is still fully readable, which is the split the surface is built on: a plan you cannot change is still a plan you can read"
+  },
+  "_scene": {
+    "augment": "principia-burn-editor",
+    "size": {
+      "w": 13,
+      "h": 22
+    },
+    "caption": "Writes unavailable: the arm control is dead and the reason is beside it, while the plan itself stays fully readable",
+    "paints": [
+      "BURN EDITOR",
+      "PLAN 1 OF 2",
+      "NOT ARMED",
+      "ARM WRITES",
+      "version this build has not been read against",
+      "PLAN ENDS",
+      "BURNING",
+      "FRAME LOCKED"
+    ]
+  },
+  "_stream": {
+    "pinnedUt": 1000000,
+    "emits": [
+      {
+        "topic": "vessel.identity",
+        "payload": {
+          "vesselId": "Ares-IV",
+          "name": "Ares IV",
+          "vesselType": 0,
+          "situation": 0
+        }
+      },
+      {
+        "topic": "principia.flightPlan",
+        "payload": {
+          "vesselId": "Ares-IV",
+          "observedAtUt": 1000000,
+          "planExists": true,
+          "reachedDeadline": false,
+          "planIntegrated": true,
+          "anomalousBurnCount": 1,
+          "firstFutureBurnIndex": 1,
+          "finalTimeUt": 1220000,
+          "burns": [
+            {
+              "index": 0,
+              "ignitionUt": 999800,
+              "cutoffUt": 999830,
+              "durationSeconds": 30,
+              "deltaV": 841.5,
+              "anomalous": false
+            },
+            {
+              "index": 1,
+              "ignitionUt": 1010600,
+              "cutoffUt": 1010667,
+              "durationSeconds": 67,
+              "deltaV": 1203.2,
+              "anomalous": false
+            },
+            {
+              "index": 2,
+              "ignitionUt": 1190400,
+              "cutoffUt": 1190452,
+              "durationSeconds": 52,
+              "deltaV": 61.8,
+              "anomalous": true
+            }
+          ]
+        }
+      },
+      {
+        "topic": "principia.plan",
+        "payload": {
+          "vesselId": "Ares-IV",
+          "sampledAtUt": 1000000,
+          "planExists": true,
+          "writeSurface": {
+            "available": false,
+            "armed": false,
+            "reason": "Principia reports a plugin version this build has not been read against, so the write surface stays shut: the plan is readable and nothing here can change it.",
+            "analysedVersion": "principia Grassmann",
+            "detectedVersion": "principia Hilbert"
+          },
+          "planCount": 2,
+          "selectedPlan": 0,
+          "initialTimeUt": 992000,
+          "desiredFinalTimeUt": 1220000,
+          "actualFinalTimeUt": 1220000,
+          "anomalousBurnCount": 1,
+          "optimisationRunning": false,
+          "burns": [
+            {
+              "index": 0,
+              "ignitionUt": 999800,
+              "cutoffUt": 999830,
+              "durationSeconds": 30,
+              "timeToHalfDeltaVSeconds": 14,
+              "deltaV": 841.5,
+              "deltaVTangent": 840.1,
+              "deltaVNormal": -18.4,
+              "deltaVBinormal": 44.6,
+              "coordinateSystem": 1,
+              "inertiallyFixed": false,
+              "thrustKilonewtons": 1043.2,
+              "specificImpulseSeconds": 311,
+              "initialMassTons": 42.6,
+              "finalMassTons": 32.33,
+              "massFlowKilogramsPerSecond": 342.05,
+              "frameType": 6000,
+              "frameEditable": true,
+              "executing": true,
+              "anomalous": false
+            },
+            {
+              "index": 1,
+              "ignitionUt": 1010600,
+              "cutoffUt": 1010667,
+              "durationSeconds": 67,
+              "timeToHalfDeltaVSeconds": 32,
+              "deltaV": 1203.2,
+              "deltaVTangent": 1198.6,
+              "deltaVNormal": 62.9,
+              "deltaVBinormal": -84.2,
+              "coordinateSystem": 1,
+              "inertiallyFixed": false,
+              "thrustKilonewtons": 486.5,
+              "specificImpulseSeconds": 348,
+              "initialMassTons": 32.33,
+              "finalMassTons": 22.72,
+              "massFlowKilogramsPerSecond": 142.56,
+              "frameType": 6000,
+              "frameEditable": true,
+              "executing": false,
+              "anomalous": false
+            },
+            {
+              "index": 2,
+              "ignitionUt": 1190400,
+              "cutoffUt": 1190452,
+              "durationSeconds": 52,
+              "timeToHalfDeltaVSeconds": 25,
+              "deltaV": 61.8,
+              "deltaVTangent": 58.2,
+              "deltaVNormal": 20.1,
+              "deltaVBinormal": 4.7,
+              "coordinateSystem": 1,
+              "inertiallyFixed": true,
+              "thrustKilonewtons": 26.9,
+              "specificImpulseSeconds": 320,
+              "initialMassTons": 22.72,
+              "finalMassTons": 22.28,
+              "massFlowKilogramsPerSecond": 8.57,
+              "frameType": 6004,
+              "frameEditable": false,
+              "executing": false,
+              "anomalous": true
+            }
+          ]
+        }
+      }
+    ]
+  }
+}

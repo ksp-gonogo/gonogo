@@ -1,0 +1,64 @@
+{
+  "_meta": {
+    "notes": "A queue doing all three things at once, which is the state the tech tree cannot show any of: the node at the head is being worked and has a date, the one behind it has been throttled down by the operator so its progress is real but slow, and the third is stalled with no rate to quote a date from. The era rows are on the first two and absent on the third, which is also what a node RP-1 records no era for looks like"
+  },
+  "_scene": {
+    "augment": "rp1-research-queue",
+    "size": { "w": 10, "h": 14 },
+    "caption": "Three queued nodes: one being worked with a countdown and its era window, one throttled down to a fifth of full rate, and one stalled with nothing to date it from",
+    "paints": [
+      "RP-1 RESEARCH QUEUE",
+      "Early Rocketry",
+      "Progress",
+      "Era",
+      "throttled to",
+      "STALLED"
+    ]
+  },
+  "_stream": {
+    "pinnedUt": 1000000,
+    "emits": [
+      { "topic": "rp1.available", "payload": true },
+      {
+        "topic": "rp1.research",
+        "payload": [
+          {
+            "techId": "start",
+            "techName": "Early Rocketry",
+            "scienceCost": 40,
+            "progress": 26.5,
+            "progressRatio": 0.6625,
+            "workRate": 1,
+            "rate": 0.0000041,
+            "timeLeftSeconds": 3283000,
+            "stalled": false,
+            "startYear": 1951,
+            "endYear": 1955
+          },
+          {
+            "techId": "basicRocketry",
+            "techName": "Basic Rocketry",
+            "scienceCost": 90,
+            "progress": 12,
+            "progressRatio": 0.1333,
+            "workRate": 0.2,
+            "rate": 0.0000008,
+            "timeLeftSeconds": 97500000,
+            "stalled": false,
+            "startYear": 1953,
+            "endYear": 1958
+          },
+          {
+            "techId": "earlyFlightControl",
+            "techName": "Early Flight Control",
+            "scienceCost": 45,
+            "progress": 0,
+            "progressRatio": 0,
+            "workRate": 1,
+            "stalled": true
+          }
+        ]
+      }
+    ]
+  }
+}
