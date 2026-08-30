@@ -94,6 +94,8 @@
     "AtmosphereEntry": {
       "depth": "m",
       "hasOxygen": "flag",
+      "pressureAltitudes": "m",
+      "pressures": "kPa",
       "seaLevelPressure": "kPa"
     },
     "BatteryEntry": {

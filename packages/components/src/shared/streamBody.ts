@@ -13,13 +13,19 @@
  *
  * <p>What the table is still for is PRESENTATION, which is not on the wire at
  * all: the surface texture, the fallback colour, the map's longitude
- * correction, the imaging-altitude window, and the exponential atmosphere
- * model that no `AtmosphereEntry` carries a scale height for. Those pass
- * straight through. One authority for the physics, with a named second-best
- * behind it for a stream too old to report a field.</p>
+ * correction and the imaging-altitude window. Those pass straight through.
+ * One authority for the physics, with a named second-best behind it for a
+ * stream too old to report a field.</p>
+ *
+ * <p>Its exponential atmosphere model is the last of the physics still living
+ * here, and it is now the second-best rather than the answer: the stream
+ * reports the game's own sampled pressure profile, which is what a body using
+ * a pressure curve actually follows and what a planet pack's own atmosphere
+ * is. The table's `P₀·exp(-h/H)` stays for a stream that reports no
+ * profile.</p>
  */
 
-import type { BodyDefinition } from "@ksp-gonogo/core";
+import type { BodyDefinition, PressureProfile } from "@ksp-gonogo/core";
 import { getBody } from "@ksp-gonogo/core";
 import type { Value } from "@ksp-gonogo/sitrep-sdk";
 import { magnitudeOf, type Quantityish } from "@ksp-gonogo/ui-kit";
@@ -37,6 +43,18 @@ export type StreamBody = BodyDefinition & {
   surfaceGravity?: number;
   /** Breathable air: the stream's flag, or the stock fallback below it. */
   hasOxygen?: boolean;
+  /**
+   * The game's own pressure-versus-altitude answer, sampled host-side, when
+   * the stream reported it.
+   *
+   * <p>Rides alongside `BodyDefinition.atmosphere` rather than replacing it,
+   * because they are different claims from different authorities: the profile
+   * is what `CelestialBody.GetPressure` returned, and `atmosphere` is the
+   * bundled table's exponential approximation of a STOCK body. Collapsing them
+   * would hide which one spoke, and not being able to tell is how a widget
+   * came to draw an exponential over a curve body for a year.</p>
+   */
+  pressureProfile?: PressureProfile;
 };
 
 /**
@@ -55,6 +73,10 @@ export interface StreamAtmosphere {
    * to compare the body's name against the stock oxygen-bearing ones.
    */
   hasOxygen?: boolean | null;
+  /** Metres above sea level, ascending, paired with `pressures`. */
+  pressureAltitudes?: readonly Quantityish[] | null;
+  /** Pressure in kPa at each `pressureAltitudes` entry, as the game answers it. */
+  pressures?: readonly Value<"kPa">[] | null;
 }
 
 /** The fields of a `system.bodies` entry that describe the body physically. */
@@ -99,6 +121,37 @@ function surfaceGravityMps2(g: Value<"g"> | null | undefined) {
 }
 
 /**
+ * The reported pressure profile in metres and pascals, or undefined when the
+ * stream carried no usable one.
+ *
+ * <p>Both arrays or neither, and every entry a number: half a profile is worse
+ * than none, because a consumer pairing them by index would read a pressure
+ * against the wrong altitude and have no way to notice. The pressures arrive
+ * in kPa and go out in pascals, converted through the unit registry rather
+ * than by a thousand written down here.</p>
+ */
+function pressureProfile(
+  atmosphere: StreamAtmosphere | null | undefined,
+): PressureProfile | undefined {
+  const rawAltitudes = atmosphere?.pressureAltitudes;
+  const rawPressures = atmosphere?.pressures;
+  if (!rawAltitudes || !rawPressures) return undefined;
+  if (rawAltitudes.length === 0) return undefined;
+  if (rawAltitudes.length !== rawPressures.length) return undefined;
+
+  const altitudes: number[] = [];
+  const pressures: number[] = [];
+  for (let i = 0; i < rawAltitudes.length; i++) {
+    const altitude = reported(rawAltitudes[i]);
+    const pressure = reported(rawPressures[i].in("Pa"));
+    if (altitude === undefined || pressure === undefined) return undefined;
+    altitudes.push(altitude);
+    pressures.push(pressure);
+  }
+  return { altitudes, pressures };
+}
+
+/**
  * Merge a `system.bodies` entry over its static-table namesake, if it has one.
  *
  * <p>Returns the table entry alone when there is nothing on the wire to merge,
@@ -138,6 +191,9 @@ export function bodyFromStream(
     hasOxygen: hasAtmosphere
       ? (facts.atmosphere?.hasOxygen ?? stockOxygen(facts.name ?? table?.id))
       : false,
+    pressureProfile: hasAtmosphere
+      ? pressureProfile(facts.atmosphere)
+      : undefined,
   };
 }
 

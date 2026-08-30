@@ -1,0 +1,105 @@
+{
+  "_meta": {
+    "scenario": "earth-rss-reentry",
+    "notes": "RealSolarSystem: Earth at 30 km on the way down, the configuration RP-1 is played in. Both halves of the bug this fixture exists for. The body is named Earth, which the bundled table of stock bodies has never heard of, so the whole plot used to be empty. And its atmosphere carries the profile the mod sampled off the game's own GetPressure: the marker reads 1.21 kPa here, which is what RSS Earth's pressure curve gives, where an exponential with a physical 8.5 km scale height would have said 2.98. The 17 samples are the sampler's own output for that curve."
+  },
+  "v.body": "Earth",
+  "v.altitude": 30000,
+  "v.atmosphericDensity": 0.0184,
+  "v.atmosphericTemperature": 227.0,
+  "v.externalTemperature": 1500.0,
+  "_stream": {
+    "carriedChannels": [
+      "vessel.orbit",
+      "vessel.flight",
+      "vessel.identity",
+      "system.bodies",
+      "vessel.control",
+      "vessel.target",
+      "vessel.comms",
+      "vessel.propulsion"
+    ],
+    "emits": [
+      {
+        "channel": "vessel.orbit",
+        "value": {
+          "referenceBodyIndex": 1,
+          "sma": 6401000,
+          "ecc": 0.01,
+          "inc": 28.6,
+          "lan": 0,
+          "argPe": 0,
+          "meanAnomalyAtEpoch": 0,
+          "epoch": 0,
+          "mu": 398600435000000.0,
+          "horizon": {
+            "kind": 1,
+            "trajectoryKind": 1
+          }
+        },
+        "meta": {
+          "quality": 1
+        }
+      },
+      {
+        "channel": "vessel.flight",
+        "value": {
+          "latitude": 28.6,
+          "longitude": -80.6,
+          "altitudeAsl": 30000,
+          "altitudeTerrain": 30000,
+          "verticalSpeed": -180,
+          "surfaceSpeed": 2100,
+          "orbitalSpeed": 2100,
+          "gForce": 3.2,
+          "dynamicPressureKPa": 40.6,
+          "mach": 6.9,
+          "atmDensity": 0.0184,
+          "externalTemperature": 1500.0,
+          "atmosphericTemperature": 227.0
+        }
+      },
+      {
+        "channel": "vessel.identity",
+        "value": {
+          "vesselId": "v1",
+          "name": "Active Vessel",
+          "vesselType": 0,
+          "situation": 1,
+          "parentBodyIndex": 1,
+          "launchUt": 0
+        }
+      },
+      {
+        "channel": "system.bodies",
+        "value": {
+          "bodies": [
+            {
+              "name": "Earth",
+              "index": 1,
+              "parentIndex": 0,
+              "radius": 6371000,
+              "gravParameter": 398600435000000.0,
+              "orbit": null,
+              "atmosphere": {
+                "depth": 140000,
+                "hasOxygen": true,
+                "seaLevelPressure": 101.325,
+                "pressureAltitudes": [
+                  0, 2928, 5856, 8784, 11713, 23426, 29282, 35139, 40996, 46853,
+                  52709, 58566, 64422, 70279, 76135, 81992, 93706
+                ],
+                "pressures": [
+                  101.325, 71.1017, 48.895, 32.7357, 21.2539, 3.26727, 1.34273,
+                  0.577235, 0.25996, 0.122284, 0.0587056, 0.0275209, 0.0122563,
+                  0.00513684, 0.00202432, 0.000762048, 0.000101334
+                ]
+              }
+            }
+          ]
+        }
+      }
+    ],
+    "pinnedUt": 0
+  }
+}

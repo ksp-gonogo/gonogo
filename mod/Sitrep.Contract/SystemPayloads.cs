@@ -178,6 +178,67 @@ public class AtmosphereEntry
     /// <summary>Sea-level pressure, kPa (<c>CelestialBody.atmospherePressureSeaLevel</c>); null when absent.</summary>
     [SitrepUnit(Units.Kilopascals)]
     public double? SeaLevelPressure { get; set; }
+
+    /// <summary>
+    /// Altitudes of the <see cref="Pressures"/> samples, metres above sea
+    /// level, ascending from 0; null when the stream does not report a
+    /// profile. Same length as <see cref="Pressures"/>.
+    /// </summary>
+    /// <remarks>
+    /// <para>Spacing is chosen per body rather than fixed, because the shape
+    /// varies enormously: RSS Earth's table runs to 94 km and Saturn's to
+    /// 1,270 km, and a grid uniform in altitude spends most of its points on
+    /// near-vacuum for the second while undersampling the first. The producer
+    /// bisects until every segment's interior sits within 1% of the log-linear
+    /// chord through its ends, which is the space a reader sees (the profile
+    /// is drawn on a log pressure axis), and stops at 48 points. Measured
+    /// against the ten real pressure curves the RSS install ships, the worst
+    /// reconstruction error is 1.51%, and 1.12% on every body but Pluto, whose
+    /// near-vacuum air runs the point cap out.</para>
+    ///
+    /// <para>It costs 16 to 48 points per atmospheric body, which on a real RO
+    /// install (33 bodies, 11 with air) is 5.2 kB added to a 23.3 kB
+    /// <c>system.bodies</c> emit. That channel re-sends itself every second,
+    /// so this is a fifth again on the largest thing on the wire, for a table
+    /// that is fixed for the session. It is carried here anyway because it is
+    /// a physical fact about a body and belongs with the rest of them; if the
+    /// channel is ever given a change-gate that can see a payload has not
+    /// moved, this is the field that gains most from it.</para>
+    ///
+    /// <para>The table ends six decades below sea level, not at
+    /// <see cref="Depth"/>. Above that the game's own curve is a cubic
+    /// plunging into a hard zero at the ceiling, which no interpolation in log
+    /// space can follow and which carries no pressure worth stating. A
+    /// consumer draws to the last sample and takes <see cref="Depth"/> as
+    /// where the air formally ends.</para>
+    /// </remarks>
+    [SitrepUnit(Units.Metres)]
+    public double[]? PressureAltitudes { get; set; }
+
+    /// <summary>
+    /// Pressure at each <see cref="PressureAltitudes"/> entry, kPa, as the
+    /// game's own <c>CelestialBody.GetPressure</c> answers it; null when the
+    /// stream does not report a profile.
+    /// </summary>
+    /// <remarks>
+    /// <para>Sampled rather than modelled because the exponential
+    /// <c>P0·exp(-h/H)</c> a client can build from sea-level pressure and a
+    /// scale height is not what KSP evaluates, and there is no scale-height
+    /// field on <c>CelestialBody</c> to build it from honestly. A body with
+    /// <c>atmosphereUsePressureCurve</c> set follows a tabulated curve, which
+    /// is what stock's own atmospheres and every RealAtmospheres-style pack
+    /// use; against the real RSS Earth curve the exponential is out by a
+    /// factor of sixteen at altitude. Sampling the game's answer is correct
+    /// for stock, for a planet pack and for a curve nobody has written yet,
+    /// without the client modelling anything.</para>
+    ///
+    /// <para>Rounded to six significant figures. The curve path evaluates in
+    /// float32 inside Unity's own <c>AnimationCurve</c>, so more digits would
+    /// be inventing precision, and six is far below the 1% spacing
+    /// tolerance.</para>
+    /// </remarks>
+    [SitrepUnit(Units.Kilopascals)]
+    public double[]? Pressures { get; set; }
 }
 
 /// <summary>

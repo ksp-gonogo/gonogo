@@ -1192,6 +1192,8 @@ export interface AtmosphereEntry
 	depth?: Value<"m">;
 	hasOxygen?: boolean;
 	seaLevelPressure?: Value<"kPa">;
+	pressureAltitudes?: Value<"m">[];
+	pressures?: Value<"kPa">[];
 }
 export interface OrbitEntry
 {

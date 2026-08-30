@@ -18,7 +18,9 @@ import { AtmosphereProfileComponent } from "./index";
  *  - `bodyName = vesselState?.parentBodyName ?? undefined`, then
  *    `showNoBodyNotice = bodyName !== undefined && body === undefined`: the ONE
  *    place in this widget that distinguishes absent from present-but-unusable,
- *    and it distinguishes them on `undefined` specifically
+ *    and it distinguishes them on `undefined` specifically. The body itself now
+ *    resolves off the `system.bodies` roster rather than the bundled table of
+ *    stock bodies, so "unknown" means neither authority could build one
  *  - `altitude = vesselState?.altitudeAsl ?? undefined`, gated by
  *    `altitude === undefined` inside the threshold memo. The derived channel
  *    leaves `altitudeAsl` `null` on the OnRails (propagated) basis, so this site
@@ -130,14 +132,46 @@ describe("AtmosphereProfile: what undefined means today", () => {
     expect(visibleText(container)).not.toMatch(/pascals/);
   });
 
-  it("distinguishes a body name it does not know from no body name at all", async () => {
+  it("takes a body the bundled table has never heard of as known, because the stream described it", async () => {
     const { fixture, container } = renderAtmo();
 
-    // The gate's `bodyName !== undefined` half: a name arrived, `getBody` cannot
-    // resolve it, so the operator gets a specific explanation. Compare the test
-    // above, where the same missing chart draws the generic waiting state.
+    /* A name the stock table cannot resolve used to be the unknown-body case,
+       which made every planet pack's bodies unknown. The roster the name came
+       from states the radius, so the body IS known and the widget goes on to
+       say the honest thing about it, that this one reports no air. */
     act(() => {
       emitBody(fixture, "Definitely-Not-A-Body");
+    });
+
+    await waitFor(() =>
+      expect(visibleText(container)).toContain(
+        "No atmosphere on Definitely-Not-A-Body.",
+      ),
+    );
+    expect(visibleText(container)).not.toContain("Unknown body");
+    expect(visibleText(container)).not.toContain("Waiting for body telemetry");
+  });
+
+  it("distinguishes a body it cannot build at all from no body name at all", async () => {
+    const { fixture, container } = renderAtmo();
+
+    /* The gate's surviving half: a name arrived and neither authority can
+       describe the body behind it, the roster because it reported no radius
+       and the bundled table because it has never heard the name. */
+    act(() => {
+      fixture.emit("vessel.orbit", {}, { quality: Quality.OnRails });
+      fixture.emit("vessel.flight", {});
+      fixture.emit("vessel.identity", { parentBodyIndex: 1 });
+      fixture.emit("system.bodies", {
+        bodies: [
+          {
+            name: "Definitely-Not-A-Body",
+            index: 1,
+            parentIndex: 0,
+            orbit: null,
+          },
+        ],
+      });
     });
 
     await waitFor(() =>

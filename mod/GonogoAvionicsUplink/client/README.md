@@ -9,7 +9,7 @@ Answers the question an RP-1 launch turns on: is the vessel within the active av
 | --- | --- |
 | Uplink id | `avionics` |
 | Version | `0.0.1` |
-| Built against | contract 14.1, api 1.0.0, ui-kit 0.2.0 |
+| Built against | contract 14.2, api 1.0.0, ui-kit 0.2.0 |
 
 ## Wire
 

@@ -201,11 +201,22 @@ namespace Sitrep.Host
                 return null;
             }
 
+            /*
+             * Both halves of the profile or neither: an altitude list without
+             * its pressures describes nothing, and a client pairing them by
+             * index would read past the end of one of them.
+             */
+            var altitudes = GetDoubleArray(raw, "atmospherePressureAltitudes");
+            var pressures = GetDoubleArray(raw, "atmospherePressureSamples");
+            var paired = altitudes != null && pressures != null && altitudes.Length == pressures.Length;
+
             return new Dictionary<string, object?>
             {
                 ["depth"] = GetDouble(raw, "atmosphereDepth"),
                 ["hasOxygen"] = GetBool(raw, "atmosphereHasOxygen"),
                 ["seaLevelPressure"] = GetDouble(raw, "atmosphereSeaLevelPressure"),
+                ["pressureAltitudes"] = paired ? altitudes : null,
+                ["pressures"] = paired ? pressures : null,
             };
         }
 
@@ -477,5 +488,6 @@ namespace Sitrep.Host
         private static int? GetInt(IDictionary<string, object?> raw, string key) => SnapshotDict.GetInt(raw, key);
         private static double? GetDouble(IDictionary<string, object?> raw, string key) => SnapshotDict.GetDouble(raw, key);
         private static bool? GetBool(IDictionary<string, object?> raw, string key) => SnapshotDict.GetBool(raw, key);
+        private static double[]? GetDoubleArray(IDictionary<string, object?> raw, string key) => SnapshotDict.GetDoubleArray(raw, key);
     }
 }

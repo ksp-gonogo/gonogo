@@ -8,6 +8,7 @@ import {
   orbitalPeriod,
   orbitalToCartesian,
   pressureAtAltitude,
+  pressureFromProfile,
   surfaceGravity,
   trueAnomalyToRadius,
 } from "./orbital";
@@ -277,5 +278,68 @@ describe("pressureAtAltitude", () => {
       maxAtmosphere: 50_000,
     };
     expect(pressureAtAltitude(bareAtmoBody, 0)).toBeUndefined();
+  });
+});
+
+// ── pressureFromProfile ────────────────────────────────────────────────────
+
+describe("pressureFromProfile", () => {
+  /* An exactly-exponential atmosphere, sampled coarsely and unevenly. The
+     log-linear join reproduces it EXACTLY at any spacing, which is the whole
+     reason for interpolating in that space, so this can assert equality
+     rather than closeness. */
+  const H = 5_600;
+  const P0 = 101_325;
+  const exponential = {
+    altitudes: [0, 3_000, 11_000, 12_000, 40_000],
+    pressures: [0, 3_000, 11_000, 12_000, 40_000].map(
+      (h) => P0 * Math.exp(-h / H),
+    ),
+  };
+
+  it("reads a sample back at its own altitude", () => {
+    expect(pressureFromProfile(exponential, 11_000)).toBeCloseTo(
+      P0 * Math.exp(-11_000 / H),
+      6,
+    );
+  });
+
+  it("reproduces an exponential atmosphere between samples, however wide the gap", () => {
+    for (const h of [500, 2_999, 7_400, 11_500, 25_000, 39_999]) {
+      const got = pressureFromProfile(exponential, h) ?? 0;
+      expect(got / (P0 * Math.exp(-h / H))).toBeCloseTo(1, 9);
+    }
+  });
+
+  it("is far closer than a linear join on the same samples", () => {
+    const h = 7_400;
+    const truth = P0 * Math.exp(-h / H);
+    const f = (h - 3_000) / (11_000 - 3_000);
+    const linear =
+      exponential.pressures[1] * (1 - f) + exponential.pressures[2] * f;
+    const log = pressureFromProfile(exponential, h) ?? 0;
+    expect(Math.abs(log - truth)).toBeLessThan(Math.abs(linear - truth) / 100);
+  });
+
+  it("holds sea-level pressure at and below the first sample", () => {
+    expect(pressureFromProfile(exponential, 0)).toBe(P0);
+    expect(pressureFromProfile(exponential, -250)).toBe(P0);
+  });
+
+  it("says undefined above the last sample rather than claiming vacuum", () => {
+    // The table runs out before the body's ceiling, so past its end is "not
+    // stated", not "no air": zero would be a claim nothing on the wire made.
+    expect(pressureFromProfile(exponential, 40_001)).toBeUndefined();
+  });
+
+  it("says undefined for an empty profile", () => {
+    expect(
+      pressureFromProfile({ altitudes: [], pressures: [] }, 0),
+    ).toBeUndefined();
+  });
+
+  it("crosses a zero endpoint on a straight line, having no log to take", () => {
+    const toVacuum = { altitudes: [0, 1_000], pressures: [100, 0] };
+    expect(pressureFromProfile(toVacuum, 500)).toBeCloseTo(50, 9);
   });
 });
