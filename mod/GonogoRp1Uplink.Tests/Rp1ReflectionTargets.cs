@@ -120,7 +120,7 @@ namespace GonogoRp1Uplink.Tests
         {
             new Rp1TypeTarget(Rp0, "RP0.SpaceCenterManagement", "Rp1ScReflection, Rp1LaunchGate, Rp1CareerProjectGate, Rp1BuildCommands, Rp1DerivedCurrencyWithholder"),
             new Rp1TypeTarget(Rp0, "RP0.Confidence", "Rp1ScReflection, Rp1DerivedCurrencyWithholder"),
-            // RP-1's strategy base, which carries PerformActivate — the entire
+            // RP-1's strategy base, which carries PerformActivate: the entire
             // fresh-activation procedure, and the door that does not ask
             // CanBeActivated's UI-dependent first arm.
             new Rp1TypeTarget(Rp0, "RP0.StrategyRP0", "Rp1StrategyWrites"),
@@ -550,7 +550,7 @@ namespace GonogoRp1Uplink.Tests
             Add("RP0.Programs.ProgramHandler", "IsInAdmin", Rp1Reader.Bool, StrategyWrites);
             // The TEMPLATE before acceptance and the accepted copy after. Accept()
             // assigns deadlineUT on the new instance it returns, never on the
-            // template, so anything reading it too early gets zero — which is how
+            // template, so anything reading it too early gets zero, which is how
             // a KAC alarm ends up minted at UT 0.
             Add("RP0.Programs.ProgramStrategy", "Program", Rp1Reader.Presence, StrategyWrites);
             Add("RP0.Programs.ProgramHandler", "Programs", Rp1Reader.Presence, Programs, @static: true);

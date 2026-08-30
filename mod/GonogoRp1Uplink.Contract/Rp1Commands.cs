@@ -235,3 +235,38 @@ public class Rp1BuildStartArgs
     [SitrepUnit(Units.Id)]
     public string? LcId { get; set; }
 }
+
+/// <summary>
+/// Which strategy to commit to, for <c>rp1.strategy.activate</c>.
+/// </summary>
+/// <remarks>
+/// <para>A leader AND a program, because RP-1 makes them one system: a "leader"
+/// is any strategy whose department is not Programs, and both are the same class
+/// family. The command does not ask the operator which kind they meant, because
+/// the game does not: it asserts the kind itself and takes the matching
+/// procedure.</para>
+/// </remarks>
+public class Rp1StrategyActivateArgs
+{
+    /// <summary>
+    /// The strategy, by the id <c>career.status.strategies.all[].id</c>
+    /// publishes.
+    /// </summary>
+    [SitrepUnit(Units.Id)]
+    public string? StrategyId { get; set; }
+
+    /// <summary>
+    /// The commitment level, where the strategy has a slider.
+    ///
+    /// <para>Absent means the strategy's own default. It is a FRACTION rather
+    /// than a percentage, matching <c>factor</c> on the wire, and it scales the
+    /// up-front cost, which is why the control that sends it must show the
+    /// balance beside it.</para>
+    ///
+    /// <para>Written before the gate is asked and put back if the game refuses,
+    /// because <c>Strategy.Factor</c> is a plain persisted setter: a refused
+    /// activation that left it written would change the commitment level on the
+    /// save with nothing to show for it.</para>
+    /// </summary>
+    public double? Factor { get; set; }
+}

@@ -24,7 +24,7 @@
 // A leader OBEYS that rule: its effects live in PerformActivate, outside
 // Register(), and StrategyRP0.OnRegister is base-only. A program BREAKS it:
 // ProgramStrategy.OnRegister calls ActivateProgram, and RP-1 excludes the restore
-// case by testing ProgramHandler.IsInAdmin — a UI flag standing in for "is this a
+// case by testing ProgramHandler.IsInAdmin, a UI flag standing in for "is this a
 // fresh activation". So IsInAdmin is not a UI guard, it is a
 // fresh-activation-vs-restore discriminator, and hoisting ActivateProgram out to
 // the real activation event is the CORRECT placement rather than a workaround.
