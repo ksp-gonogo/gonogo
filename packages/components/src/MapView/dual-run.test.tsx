@@ -32,6 +32,7 @@ describe("MapView: stream render golden (delay=0)", () => {
         "vessel.propulsion",
       ],
       pinnedUt: 10,
+      suspendFrames: true,
     });
 
     const { container } = render(

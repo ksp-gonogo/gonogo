@@ -59,6 +59,7 @@ async function renderDiagram() {
       INVOKE_PART_ACTION_COMMAND,
     ],
     pinnedUt: 10,
+    suspendFrames: true,
   });
   const view = render(
     <fixture.Provider>

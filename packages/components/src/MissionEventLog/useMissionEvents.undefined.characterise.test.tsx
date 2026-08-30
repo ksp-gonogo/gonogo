@@ -47,6 +47,7 @@ function renderEvents() {
   const fixture: StreamFixture = setupStreamFixture({
     carriedChannels: CARRIED,
     pinnedUt: VIEW_UT,
+    suspendFrames: true,
   });
   const hook = renderHook(() => useMissionEvents(), {
     wrapper: fixture.Provider,

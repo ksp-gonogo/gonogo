@@ -52,6 +52,7 @@ describe("MapView: genuinely runs off the stream (M3 mechanical-tail batch)", ()
         "vessel.propulsion",
       ],
       pinnedUt: 10,
+      suspendFrames: true,
     });
 
     const { container } = render(

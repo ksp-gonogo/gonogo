@@ -42,7 +42,11 @@ describe("AtmosphereProfile when the flight reading is not current", () => {
   beforeEach(() => {
     clearBodies();
     registerStockBodies();
-    fixture = setupStreamFixture({ carriedChannels: CARRIED, pinnedUt: 10 });
+    fixture = setupStreamFixture({
+      carriedChannels: CARRIED,
+      pinnedUt: 10,
+      suspendFrames: true,
+    });
     // The chart measures itself before it draws anything, and the live chip is
     // gated on the widget being big enough to carry it.
     vi.stubGlobal(

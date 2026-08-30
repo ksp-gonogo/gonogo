@@ -35,6 +35,7 @@ describe("SpaceCenterStatus: real mid-career fixture render off the stream (dela
         "spaceCenter.launchSites",
       ],
       pinnedUt: 10,
+      suspendFrames: true,
     });
 
     render(

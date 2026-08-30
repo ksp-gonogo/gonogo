@@ -43,6 +43,7 @@ describe("CurrentOrbit: O2: hyperbolic orbit still counts as hasOrbit", () => {
     const stream = setupStreamFixture({
       carriedChannels: VESSEL_STATE_INPUTS,
       pinnedUt: 0,
+      suspendFrames: true,
     });
 
     const { container } = render(
@@ -94,6 +95,7 @@ describe("CurrentOrbit: O4: 'measured' basis suppresses the diagram, not the gri
     const stream = setupStreamFixture({
       carriedChannels: VESSEL_STATE_INPUTS,
       pinnedUt: 0,
+      suspendFrames: true,
     });
 
     const { container } = render(

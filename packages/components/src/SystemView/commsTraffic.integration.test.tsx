@@ -75,6 +75,7 @@ function mountScene(pending?: unknown[]) {
       "system.uplink.pending",
     ],
     pinnedUt: 0,
+    suspendFrames: true,
   });
 
   const view = render(

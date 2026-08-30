@@ -82,7 +82,11 @@ describe("LandingStatus: what undefined means today", () => {
     for (const b of PerfBudget.getAll()) b.reset();
     restoreResizeObserver = installSizedResizeObserver({ w: 720, h: 640 });
     registerStockBodies();
-    stream = setupStreamFixture({ carriedChannels: CARRIED, pinnedUt: 10 });
+    stream = setupStreamFixture({
+      carriedChannels: CARRIED,
+      pinnedUt: 10,
+      suspendFrames: true,
+    });
   });
 
   function renderWidget(size?: { w: number; h: number }) {

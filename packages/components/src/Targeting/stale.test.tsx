@@ -40,6 +40,7 @@ function mountAtDockingRange() {
   const fixture = setupStreamFixture({
     carriedChannels: ["vessel.target", "vessel.dock"],
     pinnedUt: PINNED_UT,
+    suspendFrames: true,
   });
   render(
     <fixture.Provider>

@@ -49,6 +49,7 @@ async function renderFullList(): Promise<void> {
   const fixture = setupStreamFixture({
     carriedChannels: ["science.instruments", "science.experiments"],
     pinnedUt: 10,
+    suspendFrames: true,
   });
   const { unmount } = render(
     <fixture.Provider>

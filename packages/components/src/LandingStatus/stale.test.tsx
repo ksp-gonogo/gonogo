@@ -56,7 +56,11 @@ describe("LandingStatus when the solve inputs are not current", () => {
 
   beforeEach(() => {
     registerStockBodies();
-    stream = setupStreamFixture({ carriedChannels: CARRIED, pinnedUt: 10 });
+    stream = setupStreamFixture({
+      carriedChannels: CARRIED,
+      pinnedUt: 10,
+      suspendFrames: true,
+    });
   });
 
   function renderWidget() {

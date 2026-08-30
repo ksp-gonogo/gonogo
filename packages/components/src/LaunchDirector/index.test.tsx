@@ -160,7 +160,11 @@ describe("LaunchDirectorComponent", () => {
 
   beforeEach(async () => {
     cmdFixture = await setupMockDataSource({ keys: [] });
-    stream = setupStreamFixture({ carriedChannels: CARRIED, pinnedUt: 10 });
+    stream = setupStreamFixture({
+      carriedChannels: CARRIED,
+      pinnedUt: 10,
+      suspendFrames: true,
+    });
   });
 
   afterEach(() => {
@@ -684,7 +688,11 @@ describe("LaunchDirectorComponent", () => {
     // beforeEach's pinnedUt: 10).
     teardownMockDataSource(cmdFixture);
     cmdFixture = await setupMockDataSource({ keys: [] });
-    stream = setupStreamFixture({ carriedChannels: CARRIED, pinnedUt: 113270 });
+    stream = setupStreamFixture({
+      carriedChannels: CARRIED,
+      pinnedUt: 113270,
+      suspendFrames: true,
+    });
 
     renderWidget();
     act(() => {
@@ -923,7 +931,11 @@ describe("LaunchDirectorComponent augment slots", () => {
   beforeEach(async () => {
     clearAugments();
     cmdFixture = await setupMockDataSource({ keys: [] });
-    stream = setupStreamFixture({ carriedChannels: CARRIED, pinnedUt: 10 });
+    stream = setupStreamFixture({
+      carriedChannels: CARRIED,
+      pinnedUt: 10,
+      suspendFrames: true,
+    });
   });
 
   afterEach(() => {

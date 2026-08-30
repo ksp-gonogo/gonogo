@@ -48,6 +48,7 @@ describe("Navball control-delay stream (throttle)", () => {
     const fixture = setupStreamFixture({
       carriedChannels: ["vessel.control", "comms.delay"],
       pinnedUt: 0,
+      suspendFrames: true,
     });
 
     renderControlNavball("nav-cds-throttle", fixture);
@@ -73,6 +74,7 @@ describe("Navball control-delay stream (throttle)", () => {
     const fixture = setupStreamFixture({
       carriedChannels: ["vessel.control", "comms.delay"],
       pinnedUt: 0,
+      suspendFrames: true,
     });
 
     renderControlNavball("nav-cds-throttle-nodelay", fixture);

@@ -43,7 +43,11 @@ const CARRIED = [
 ];
 
 function makeFixture() {
-  return setupStreamFixture({ carriedChannels: CARRIED, pinnedUt: 10 });
+  return setupStreamFixture({
+    carriedChannels: CARRIED,
+    pinnedUt: 10,
+    suspendFrames: true,
+  });
 }
 
 /** Default size: cols 8, rows 14, so every section's SIZE gate is open and

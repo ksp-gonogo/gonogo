@@ -47,6 +47,7 @@ describe("SemiMajorAxis: genuinely runs off the stream (M3 batch 2)", () => {
         "vessel.propulsion",
       ],
       pinnedUt: 10,
+      suspendFrames: true,
     });
 
     render(
@@ -93,6 +94,7 @@ describe("SemiMajorAxis: genuinely runs off the stream (M3 batch 2)", () => {
     const fixture = setupStreamFixture({
       carriedChannels: ["vessel.orbit"],
       pinnedUt: 10,
+      suspendFrames: true,
     });
 
     const { container } = render(

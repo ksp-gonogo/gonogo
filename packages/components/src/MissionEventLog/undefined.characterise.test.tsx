@@ -36,6 +36,7 @@ function renderLog() {
   const fixture: StreamFixture = setupStreamFixture({
     carriedChannels: CARRIED,
     pinnedUt: 1000,
+    suspendFrames: true,
   });
   const { unmount } = render(
     <fixture.Provider>

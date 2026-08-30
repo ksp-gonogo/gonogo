@@ -96,6 +96,7 @@ function mountScene() {
       "comms.network",
     ],
     pinnedUt: 0,
+    suspendFrames: true,
   });
 
   const view = render(

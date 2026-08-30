@@ -37,6 +37,7 @@ describe("TechTree: real small career-detail fixture render off the stream (dela
     const streamFixture = setupStreamFixture({
       carriedChannels: ["career.status", "spaceCenter.scene"],
       pinnedUt: 10,
+      suspendFrames: true,
     });
 
     const { container } = render(

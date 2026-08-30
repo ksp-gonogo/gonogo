@@ -48,7 +48,11 @@ const ORBIT = {
 const renderedTrees: Array<() => void> = [];
 
 function newFixture() {
-  return setupStreamFixture({ carriedChannels: CARRIED, pinnedUt: 10 });
+  return setupStreamFixture({
+    carriedChannels: CARRIED,
+    pinnedUt: 10,
+    suspendFrames: true,
+  });
 }
 
 function renderCrew(

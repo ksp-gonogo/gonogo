@@ -35,6 +35,7 @@ describe("SemiMajorAxis: renders off the stream alone (R6 Wave 1)", () => {
         "vessel.propulsion",
       ],
       pinnedUt: 10,
+      suspendFrames: true,
     });
 
     render(

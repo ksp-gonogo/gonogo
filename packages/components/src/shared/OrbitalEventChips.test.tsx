@@ -1,4 +1,4 @@
-import { render, screen } from "@ksp-gonogo/test-utils";
+import { act, render, screen } from "@ksp-gonogo/test-utils";
 import { visibleText } from "@ksp-gonogo/ui-kit/testing";
 import { describe, expect, it } from "vitest";
 import { setupStreamFixture } from "../test/setupStreamFixture";
@@ -37,32 +37,40 @@ function mountAt(transitionUt: number) {
       "vessel.propulsion",
     ],
     pinnedUt: VIEW_UT,
+    suspendFrames: true,
   });
   render(
     <fixture.Provider>
       <OrbitalEventChips />
     </fixture.Provider>,
   );
-  fixture.emit("system.bodies", {
-    bodies: [
-      { name: "Kerbin", index: 1 },
-      { name: "Mun", index: 2 },
-    ],
-  });
-  fixture.emit("vessel.orbit", {
-    referenceBodyIndex: 1,
-    sma: 700_000,
-    ecc: 0,
-    inc: 0,
-    lan: null,
-    argPe: null,
-    meanAnomalyAtEpoch: 0,
-    epoch: VIEW_UT,
-    mu: 3.5316e12,
-    // TransitionType.Encounter is 2 (VesselEnums.cs), which the client maps to
-    // encounterExists 1: the gate the chip branches on.
-    encounter: { transitionType: 2, transitionUt, bodyIndex: 2 },
-    patches: [],
+  /*
+   * Inside `act`, because the fixture's clock is suspended and each emit
+   * therefore publishes on the spot rather than on some later frame: the render
+   * it causes happens here, in this scope, and has to be allowed to.
+   */
+  act(() => {
+    fixture.emit("system.bodies", {
+      bodies: [
+        { name: "Kerbin", index: 1 },
+        { name: "Mun", index: 2 },
+      ],
+    });
+    fixture.emit("vessel.orbit", {
+      referenceBodyIndex: 1,
+      sma: 700_000,
+      ecc: 0,
+      inc: 0,
+      lan: null,
+      argPe: null,
+      meanAnomalyAtEpoch: 0,
+      epoch: VIEW_UT,
+      mu: 3.5316e12,
+      // TransitionType.Encounter is 2 (VesselEnums.cs), which the client maps
+      // to encounterExists 1: the gate the chip branches on.
+      encounter: { transitionType: 2, transitionUt, bodyIndex: 2 },
+      patches: [],
+    });
   });
   return fixture;
 }

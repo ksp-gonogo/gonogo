@@ -114,6 +114,7 @@ describe("NavballComponent", () => {
     const fixture = setupStreamFixture({
       carriedChannels: READ_CHANNELS,
       pinnedUt: 10,
+      suspendFrames: true,
     });
     const result = render(
       <fixture.Provider>
@@ -387,6 +388,7 @@ describe("Navball: navball.badges augment slot (spec §4)", () => {
     const fixture = setupStreamFixture({
       carriedChannels: READ_CHANNELS,
       pinnedUt: 10,
+      suspendFrames: true,
     });
     const result = render(
       <fixture.Provider>

@@ -98,6 +98,7 @@ async function textFor(
       "spaceCenter.astronautComplex",
     ],
     pinnedUt: 10,
+    suspendFrames: true,
   });
 
   const career = {

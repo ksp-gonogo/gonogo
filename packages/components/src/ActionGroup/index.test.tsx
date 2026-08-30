@@ -59,6 +59,7 @@ describe("ActionGroupComponent", () => {
         "comms.link",
       ],
       pinnedUt: 10,
+      suspendFrames: true,
     });
   });
 

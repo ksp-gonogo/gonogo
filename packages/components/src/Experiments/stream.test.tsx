@@ -41,6 +41,7 @@ describe("Experiments: genuinely runs off the stream (M3 science.lab + P4a scien
         "science.instruments",
         "science.experiments",
       ],
+      suspendFrames: true,
       pinnedUt: 10,
     });
 

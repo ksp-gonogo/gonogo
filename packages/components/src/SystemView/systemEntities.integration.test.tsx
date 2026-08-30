@@ -74,6 +74,7 @@ describe("SystemView: system-view.entities contribution wiring", () => {
     const fixture: StreamFixture = setupStreamFixture({
       carriedChannels: ["vessel.identity", "system.bodies"],
       pinnedUt: 100,
+      suspendFrames: true,
     });
 
     const { container } = render(

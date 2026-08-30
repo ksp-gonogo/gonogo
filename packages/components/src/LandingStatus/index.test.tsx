@@ -141,7 +141,11 @@ describe("LandingStatusComponent", () => {
   beforeEach(() => {
     for (const b of PerfBudget.getAll()) b.reset();
     registerStockBodies();
-    stream = setupStreamFixture({ carriedChannels: CARRIED, pinnedUt: 10 });
+    stream = setupStreamFixture({
+      carriedChannels: CARRIED,
+      pinnedUt: 10,
+      suspendFrames: true,
+    });
     restoreResizeObserver = installSizedResizeObserver({ w: 720, h: 640 });
   });
 

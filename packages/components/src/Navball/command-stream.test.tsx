@@ -101,6 +101,7 @@ describe("Navball control surface: command bridges (M3 batch 4, Part B)", () => 
     const fixture = setupStreamFixture({
       carriedChannels: ["vessel.control", "vessel.control.setSas"],
       pinnedUt: 0,
+      suspendFrames: true,
     });
     const commandHandler = vi.fn(() => ({ ok: true }));
     fixture.transport.setCommandHandler(commandHandler);
@@ -141,6 +142,7 @@ describe("Navball control surface: command bridges (M3 batch 4, Part B)", () => 
     const fixture = setupStreamFixture({
       carriedChannels: ["vessel.control"],
       pinnedUt: 0,
+      suspendFrames: true,
     });
     const commandHandler = vi.fn(() => ({ ok: true }));
     fixture.transport.setCommandHandler(commandHandler);
@@ -176,6 +178,7 @@ describe("Navball control surface: command bridges (M3 batch 4, Part B)", () => 
     const fixture = setupStreamFixture({
       carriedChannels: ["vessel.control", "vessel.control.setSasMode"],
       pinnedUt: 0,
+      suspendFrames: true,
     });
     const commandHandler = vi.fn(() => ({ ok: true }));
     fixture.transport.setCommandHandler(commandHandler);
@@ -200,6 +203,7 @@ describe("Navball control surface: command bridges (M3 batch 4, Part B)", () => 
     const fixture = setupStreamFixture({
       carriedChannels: ["vessel.control"],
       pinnedUt: 0,
+      suspendFrames: true,
     });
     const commandHandler = vi.fn(() => ({ ok: true }));
     fixture.transport.setCommandHandler(commandHandler);
@@ -224,6 +228,7 @@ describe("Navball control surface: command bridges (M3 batch 4, Part B)", () => 
       // control-stream's write half is unconditional, same as bridges 1/2.
       carriedChannels: ["vessel.control"],
       pinnedUt: 0,
+      suspendFrames: true,
     });
     const commandHandler = vi.fn(() => ({ ok: true }));
     fixture.transport.setCommandHandler(commandHandler);
@@ -260,6 +265,7 @@ describe("Navball control surface: command bridges (M3 batch 4, Part B)", () => 
     const fixture = setupStreamFixture({
       carriedChannels: ["vessel.control"],
       pinnedUt: 0,
+      suspendFrames: true,
     });
     const commandHandler = vi.fn(() => ({ ok: true }));
     fixture.transport.setCommandHandler(commandHandler);
@@ -305,6 +311,7 @@ describe("Navball control surface: command bridges (M3 batch 4, Part B)", () => 
     const fixture = setupStreamFixture({
       carriedChannels: ["vessel.control"],
       pinnedUt: 0,
+      suspendFrames: true,
     });
     const commandHandler = vi.fn(() => ({ ok: true }));
     fixture.transport.setCommandHandler(commandHandler);
@@ -339,6 +346,7 @@ describe("Navball control surface: command bridges (M3 batch 4, Part B)", () => 
     const fixture = setupStreamFixture({
       carriedChannels: ["vessel.control"],
       pinnedUt: 0,
+      suspendFrames: true,
     });
     const commandHandler = vi.fn(() => ({ ok: true }));
     fixture.transport.setCommandHandler(commandHandler);

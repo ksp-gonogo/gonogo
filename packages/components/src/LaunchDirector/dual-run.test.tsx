@@ -33,6 +33,7 @@ describe("LaunchDirector: stream render golden (delay=0)", () => {
     const streamFixture = setupStreamFixture({
       carriedChannels: STREAM.carriedChannels,
       pinnedUt: STREAM.pinnedUt,
+      suspendFrames: true,
     });
 
     const { container } = render(

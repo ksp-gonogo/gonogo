@@ -57,6 +57,7 @@ beforeEach(() => {
   fixture = setupStreamFixture({
     carriedChannels: CARRIED,
     pinnedUt: PINNED_UT,
+    suspendFrames: true,
   });
 });
 

@@ -55,7 +55,11 @@ describe("ScienceData when its reads are no longer current", () => {
   let stream: StreamFixture;
 
   beforeEach(() => {
-    stream = setupStreamFixture({ carriedChannels: CARRIED, pinnedUt: 10 });
+    stream = setupStreamFixture({
+      carriedChannels: CARRIED,
+      pinnedUt: 10,
+      suspendFrames: true,
+    });
   });
 
   function renderData() {

@@ -26,7 +26,11 @@ import { ContractManagerComponent } from "./index";
 const CARRIED = ["career.status", "vessel.state"];
 
 function newFixture() {
-  return setupStreamFixture({ carriedChannels: CARRIED, pinnedUt: 0 });
+  return setupStreamFixture({
+    carriedChannels: CARRIED,
+    pinnedUt: 0,
+    suspendFrames: true,
+  });
 }
 
 function renderManager(

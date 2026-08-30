@@ -51,6 +51,7 @@ describe("ShipMap when the thermal reading is not current", () => {
     const fixture = setupStreamFixture({
       carriedChannels: CARRIED,
       pinnedUt: 0,
+      suspendFrames: true,
     });
     const { container } = render(
       <fixture.Provider>

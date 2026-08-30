@@ -58,6 +58,22 @@ import type { JSX, ReactNode } from "react";
  *   not anything arrived, and `act()` can never see an empty queue. Set this
  *   and drive frames with `fixture.emitFrame()` instead. See
  *   `ViewClock.suspendFrames`.
+ *
+ *   With it set, `emit()` publishes the sample it just sent, synchronously,
+ *   rather than leaving it for a frame that is no longer coming. That is what
+ *   makes the option adoptable one file at a time: the shape almost every
+ *   caller is written in (`act(() => fixture.emit(...))`, then assert) keeps
+ *   working, and stops depending on whether jsdom's 16ms timer beat the
+ *   assertion. The frame it mints is the clock's AND the store's, because
+ *   `TelemetryProvider` turns a clock frame into a `store.beginFrame()` on a
+ *   `requestAnimationFrame`, so a clock-only frame would land whenever that
+ *   timer got round to it, which is the race the option exists to remove.
+ *
+ *   One emit is one frame, where the live loop coalesces everything arriving
+ *   inside 16ms into one. A test that needs several topics to land on a SINGLE
+ *   frame (a derived channel that must never see its inputs half-arrived)
+ *   should emit through `fixture.transport.emit` and call `emitFrame()` once
+ *   afterwards.
  */
 export interface StreamFixtureOptions {
   /** Topics (read AND command) to promote into the carried-channels allowlist. */
@@ -77,13 +93,13 @@ export interface StreamFixture {
   wall: FakeWallClock;
   /** Wraps `children` in the `TelemetryProvider` this fixture built. */
   Provider: (props: { children: ReactNode }) => JSX.Element;
-  /** `transport.emit`, forwarded for convenience: subscription-gated, same as calling it directly. */
+  /** `transport.emit`, subscription-gated, plus the frame that publishes it when `suspendFrames` is set. See this file's doc comment. */
   emit: (
     topic: string,
     payload: unknown,
     metaOverrides?: Partial<Meta>,
   ) => void;
-  /** Mint one view-clock frame synchronously, the manual half of `suspendFrames`. */
+  /** Mint one frame synchronously, clock and store both, the manual half of `suspendFrames`. */
   emitFrame: () => void;
 }
 
@@ -141,7 +157,20 @@ export function setupStreamFixture(opts: StreamFixtureOptions): StreamFixture {
    * and being stopped: a loop that got one tick in has already scheduled the
    * next one against whichever scheduler was current then.
    */
-  if (opts.suspendFrames === true) clock.suspendFrames();
+  const framesSuspended = opts.suspendFrames === true;
+  if (framesSuspended) clock.suspendFrames();
+
+  /**
+   * One frame, carried all the way to the render rather than only as far as the
+   * clock: `store.beginFrame()` is what a reactive read actually watches, and
+   * the provider only gets round to calling it on a `requestAnimationFrame`.
+   * Calling it here makes a hand-minted frame synchronous, which is the whole
+   * point of driving frames rather than waiting for them.
+   */
+  const mintFrame = () => {
+    clock.emitFrame();
+    store.beginFrame();
+  };
 
   const carriedChannels = carriedList;
 
@@ -166,8 +195,9 @@ export function setupStreamFixture(opts: StreamFixtureOptions): StreamFixture {
     emit: (topic, payload, metaOverrides) => {
       if (emitsMuted) return;
       transport.emit(topic, payload, metaOverrides);
+      if (framesSuspended) mintFrame();
     },
-    emitFrame: () => clock.emitFrame(),
+    emitFrame: mintFrame,
   };
 }
 

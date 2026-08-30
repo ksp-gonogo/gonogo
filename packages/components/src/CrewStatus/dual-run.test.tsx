@@ -29,6 +29,7 @@ describe("CrewStatus, real recorded-fixture render off the stream (delay=0)", ()
     const streamFixture = setupStreamFixture({
       carriedChannels: ["vessel.crew"],
       pinnedUt: 10,
+      suspendFrames: true,
     });
 
     render(

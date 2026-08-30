@@ -55,6 +55,7 @@ function newFixture() {
       "vessel.orbit",
     ],
     pinnedUt: 10,
+    suspendFrames: true,
   });
 }
 
@@ -460,6 +461,7 @@ describe("CrewStatusComponent, decoupled from the survival backend", () => {
       // read one, this is where it would show up as a subscription.
       carriedChannels: ["vessel.crew", "kerbalism.crew"],
       pinnedUt: 10,
+      suspendFrames: true,
     });
     renderCrew(fixture);
     act(() => {

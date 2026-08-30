@@ -61,7 +61,7 @@ const META = {
 } as const;
 
 function renderWidget(carriedChannels: readonly string[] = CARRIED) {
-  const fixture = setupStreamFixture({ carriedChannels });
+  const fixture = setupStreamFixture({ carriedChannels, suspendFrames: true });
   const utils = render(
     <fixture.Provider>
       <DashboardItemContext.Provider value={{ instanceId: "resource-ops" }}>

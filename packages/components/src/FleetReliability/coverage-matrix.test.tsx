@@ -109,7 +109,10 @@ const CASES: Case[] = [
 ];
 
 async function renderCase(testCase: Case): Promise<string> {
-  const fixture = setupStreamFixture({ carriedChannels: CARRIED });
+  const fixture = setupStreamFixture({
+    carriedChannels: CARRIED,
+    suspendFrames: true,
+  });
   const { container, unmount } = render(
     <fixture.Provider>
       <FleetReliabilityUpdates
@@ -143,15 +146,14 @@ async function renderCase(testCase: Case): Promise<string> {
     });
   }
 
-  // An emitted sample reaches the tree on the view clock's next FRAME, not on
-  // the emit, so the render has to be awaited across one. Read before this and
-  // every case reports the cold-start blank instead of its own answer, which is
-  // exactly the false agreement this file exists to detect.
-  await act(async () => {
-    await new Promise<void>((resolve) => {
-      requestAnimationFrame(() => resolve());
-    });
-  });
+  /*
+   * A sample reaches the tree on a FRAME, not on the emit, and read before one
+   * every case reports the cold-start blank instead of its own answer, which is
+   * exactly the false agreement this file exists to detect. The fixture's clock
+   * is suspended, so the frame arrives with the emit rather than whenever the
+   * loop next runs; this holds the act scope open across the commit it caused.
+   */
+  await act(async () => {});
 
   const text = (container.textContent ?? "").trim();
   unmount();
@@ -238,7 +240,10 @@ describe("what the reliability augment says in each coverage state", () => {
    * is worst precisely during the occlusion or the burn that held it.
    */
   it("withholds a critical count rather than dating it", async () => {
-    const fixture = setupStreamFixture({ carriedChannels: CARRIED });
+    const fixture = setupStreamFixture({
+      carriedChannels: CARRIED,
+      suspendFrames: true,
+    });
     render(
       <fixture.Provider>
         <FleetReliabilityUpdates

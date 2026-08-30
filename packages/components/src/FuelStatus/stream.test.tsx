@@ -41,6 +41,7 @@ describe("FuelStatus: genuinely runs off the stream (M3 batch 1 + P4a dv.* migra
     const fixture = setupStreamFixture({
       carriedChannels: ["vessel.structure", "vessel.resources"],
       pinnedUt: 10,
+      suspendFrames: true,
     });
 
     render(
@@ -93,6 +94,7 @@ describe("FuelStatus: genuinely runs off the stream (M3 batch 1 + P4a dv.* migra
     const fixture = setupStreamFixture({
       carriedChannels: ["vessel.structure", "dv.stages", "dv.summary"],
       pinnedUt: 10,
+      suspendFrames: true,
     });
 
     render(

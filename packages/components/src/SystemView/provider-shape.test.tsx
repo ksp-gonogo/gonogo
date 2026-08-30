@@ -106,6 +106,7 @@ async function mount(horizon: PropagationHorizonLike) {
       "silence.",
     ],
     pinnedUt: PINNED_UT,
+    suspendFrames: true,
   });
   const { container } = render(
     <fixture.Provider>

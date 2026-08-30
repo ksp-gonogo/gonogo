@@ -104,6 +104,7 @@ function newFixture() {
   return setupStreamFixture({
     carriedChannels: ["parts.power", "vessel.parts"],
     pinnedUt: 10,
+    suspendFrames: true,
   });
 }
 

@@ -63,7 +63,11 @@ describe("TargetPicker: nothing has arrived on either topic", () => {
   let fixture: StreamFixture;
 
   beforeEach(() => {
-    fixture = setupStreamFixture({ carriedChannels: [], pinnedUt: 0 });
+    fixture = setupStreamFixture({
+      carriedChannels: [],
+      pinnedUt: 0,
+      suspendFrames: true,
+    });
   });
 
   afterEach(() => {
@@ -115,7 +119,11 @@ describe("TargetPicker: the target.available absence gate", () => {
   let fixture: StreamFixture;
 
   beforeEach(() => {
-    fixture = setupStreamFixture({ carriedChannels: [], pinnedUt: 0 });
+    fixture = setupStreamFixture({
+      carriedChannels: [],
+      pinnedUt: 0,
+      suspendFrames: true,
+    });
   });
 
   afterEach(() => {
@@ -171,7 +179,11 @@ describe("TargetPicker: the vessel.target absence gate", () => {
   let fixture: StreamFixture;
 
   beforeEach(() => {
-    fixture = setupStreamFixture({ carriedChannels: [], pinnedUt: 0 });
+    fixture = setupStreamFixture({
+      carriedChannels: [],
+      pinnedUt: 0,
+      suspendFrames: true,
+    });
   });
 
   afterEach(() => {
@@ -222,7 +234,11 @@ describe("TargetPicker: a partial vessel.target record", () => {
   let fixture: StreamFixture;
 
   beforeEach(() => {
-    fixture = setupStreamFixture({ carriedChannels: [], pinnedUt: 0 });
+    fixture = setupStreamFixture({
+      carriedChannels: [],
+      pinnedUt: 0,
+      suspendFrames: true,
+    });
   });
 
   afterEach(() => {
@@ -288,7 +304,11 @@ describe("TargetPicker: a partial target.available entry", () => {
   let fixture: StreamFixture;
 
   beforeEach(() => {
-    fixture = setupStreamFixture({ carriedChannels: [], pinnedUt: 0 });
+    fixture = setupStreamFixture({
+      carriedChannels: [],
+      pinnedUt: 0,
+      suspendFrames: true,
+    });
   });
 
   afterEach(() => {
@@ -359,7 +379,11 @@ describe("TargetPicker: the dispatch gates on an entry's id fields", () => {
   let fixture: StreamFixture;
 
   beforeEach(() => {
-    fixture = setupStreamFixture({ carriedChannels: [], pinnedUt: 0 });
+    fixture = setupStreamFixture({
+      carriedChannels: [],
+      pinnedUt: 0,
+      suspendFrames: true,
+    });
   });
 
   afterEach(() => {

@@ -44,6 +44,7 @@ function setup() {
   const fixture = setupStreamFixture({
     carriedChannels: CARRIED,
     pinnedUt: UT,
+    suspendFrames: true,
   });
   const view = render(
     <fixture.Provider>

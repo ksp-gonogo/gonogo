@@ -141,6 +141,7 @@ describe("SystemViewComponent", () => {
         "silence.",
       ],
       pinnedUt: 100,
+      suspendFrames: true,
     });
   });
 

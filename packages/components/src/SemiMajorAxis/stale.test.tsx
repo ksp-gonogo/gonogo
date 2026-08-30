@@ -59,7 +59,11 @@ function mount(
 }
 
 function newFixture() {
-  return setupStreamFixture({ carriedChannels: CARRIED, pinnedUt: 10 });
+  return setupStreamFixture({
+    carriedChannels: CARRIED,
+    pinnedUt: 10,
+    suspendFrames: true,
+  });
 }
 
 function emitOrbit(fixture: ReturnType<typeof setupStreamFixture>): void {

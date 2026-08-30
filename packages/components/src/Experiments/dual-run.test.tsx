@@ -31,6 +31,7 @@ describe("Experiments: stream render golden (delay=0)", () => {
         "science.instruments",
         "science.experiments",
       ],
+      suspendFrames: true,
       pinnedUt: 10,
     });
 

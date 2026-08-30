@@ -56,7 +56,10 @@ describe("reliability augment composed into FleetRoster", () => {
       channels: ["reliability.summary", "reliability.parts", "vessel.identity"],
     });
 
-    const fixture = setupStreamFixture({ carriedChannels: CARRIED });
+    const fixture = setupStreamFixture({
+      carriedChannels: CARRIED,
+      suspendFrames: true,
+    });
     render(
       <fixture.Provider>
         <DashboardItemContext.Provider value={{ instanceId: "fleet-test" }}>

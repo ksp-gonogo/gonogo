@@ -60,6 +60,7 @@ describe("custom action group identity", () => {
         "comms.link",
       ],
       pinnedUt: 10,
+      suspendFrames: true,
     });
   });
 

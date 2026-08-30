@@ -49,6 +49,7 @@ describe("SystemView: augment slots (spec §4)", () => {
         "system.bodies",
       ],
       pinnedUt: 100,
+      suspendFrames: true,
     });
   });
 

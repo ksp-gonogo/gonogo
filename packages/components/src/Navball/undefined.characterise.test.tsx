@@ -83,7 +83,11 @@ beforeEach(() => {
   PerfBudget.getAll()
     .find((b) => b.name.startsWith("useActionInput register"))
     ?.reset();
-  fixture = setupStreamFixture({ carriedChannels: CARRIED, pinnedUt: 0 });
+  fixture = setupStreamFixture({
+    carriedChannels: CARRIED,
+    pinnedUt: 0,
+    suspendFrames: true,
+  });
 });
 
 afterEach(() => {

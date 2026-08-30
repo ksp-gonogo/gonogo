@@ -29,6 +29,7 @@ function newFixture() {
       "career.status",
     ],
     pinnedUt: 1000,
+    suspendFrames: true,
   });
 }
 

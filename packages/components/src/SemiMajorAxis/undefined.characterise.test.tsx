@@ -54,6 +54,7 @@ function makeFixture() {
   return setupStreamFixture({
     carriedChannels: VESSEL_STATE_INPUTS,
     pinnedUt: 10,
+    suspendFrames: true,
   });
 }
 

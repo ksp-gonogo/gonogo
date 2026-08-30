@@ -63,6 +63,7 @@ async function mountMap(horizon: PropagationHorizonLike) {
       "vessel.propulsion",
     ],
     pinnedUt: PINNED_UT,
+    suspendFrames: true,
   });
   const { container, unmount } = render(
     <fixture.Provider>

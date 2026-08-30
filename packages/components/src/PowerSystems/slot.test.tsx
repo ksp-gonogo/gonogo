@@ -82,6 +82,7 @@ async function renderFullList() {
   const streamFixture = setupStreamFixture({
     carriedChannels: ["vessel.parts"],
     pinnedUt: 10,
+    suspendFrames: true,
   });
   const legacyAux = await setupMockDataSource({
     id: "data",

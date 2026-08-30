@@ -58,6 +58,7 @@ function renderCurrentOrbit(size: { w: number; h: number }) {
   const fixture = setupStreamFixture({
     carriedChannels: [...VESSEL_STATE_INPUTS],
     pinnedUt: 0,
+    suspendFrames: true,
   });
   const { container } = render(
     <fixture.Provider>

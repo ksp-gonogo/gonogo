@@ -40,6 +40,7 @@ describe("LandingStatus: atmospheric stream render golden (delay=0)", () => {
     const stream = setupStreamFixture({
       carriedChannels: CARRIED,
       pinnedUt: 10,
+      suspendFrames: true,
     });
 
     render(

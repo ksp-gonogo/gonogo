@@ -57,6 +57,14 @@ const UT_FIXTURE_VALUE = 1_000_000;
 const utFixture = setupStreamFixture({
   carriedChannels: [],
   pinnedUt: UT_FIXTURE_VALUE,
+  /*
+   * Every test here drives the widget through `userEvent`, and each keystroke is
+   * an `act()` that has to see an empty React queue to return. The clock's own
+   * loop mints a frame every 16ms forever, so on a loaded machine the queue is
+   * never empty and the test spends its whole 30s budget waiting. Frames come
+   * from the emits and `flushViewUt` instead.
+   */
+  suspendFrames: true,
 });
 // `o.maneuverNodes` (behind `useManeuverNodes`) now reads the
 // `vessel.maneuver.legacy` derived channel, reshaping the real
@@ -116,19 +124,20 @@ utFixture.client.subscribe("vessel.identity", () => {});
 utFixture.client.subscribe("system.bodies", () => {});
 
 /**
- * `useViewUt()`'s pinned value only lands once `ViewClock.onFrame`'s
- * per-frame tick has run at least once (the hook's synchronous initial seed
- * ignores `scrubTo`: see its own doc comment in `sitrep-client/src/context.tsx`),
- * so a synchronous `act()` around a telemetry emit isn't enough to reach the
- * "ready" state this widget gates on `currentUT`. Await this right after
- * emitting telemetry, before any assertion that needs the widget past
- * "Waiting for telemetry".
+ * One frame, so a quantity that only moves on a frame tick (`useViewUt`, the
+ * derived channels, the trigger service's re-evaluation) reaches the render.
+ * Call this after emitting on the LEGACY source, whose values arrive through a
+ * `DataSource` subscription rather than the stream, or after advancing time.
+ *
+ * A stream emit does not need it: this file's fixtures suspend the clock's own
+ * loop, and a suspended fixture mints the frame that publishes each emit. This
+ * used to wait two real animation frames for the loop to get round to it, which
+ * is the wait that put the whole file at the mercy of how loaded the machine
+ * was.
  */
 async function flushViewUt(): Promise<void> {
   await act(async () => {
-    await new Promise<void>((resolve) => {
-      requestAnimationFrame(() => requestAnimationFrame(() => resolve()));
-    });
+    utFixture.emitFrame();
   });
 }
 
@@ -469,6 +478,7 @@ describe("ManeuverPlannerComponent", () => {
     const spent = setupStreamFixture({
       carriedChannels: [],
       pinnedUt: UT_FIXTURE_VALUE,
+      suspendFrames: true,
     });
 
     render(

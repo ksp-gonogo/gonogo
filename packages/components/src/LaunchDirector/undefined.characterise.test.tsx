@@ -87,6 +87,7 @@ describe("LaunchDirector: what undefined telemetry renders today", () => {
     const fixture = setupStreamFixture({
       carriedChannels: ALL_READS,
       pinnedUt: 10,
+      suspendFrames: true,
     });
     mount(fixture, "ld-cold");
 
@@ -112,6 +113,7 @@ describe("LaunchDirector: what undefined telemetry renders today", () => {
     const fixture = setupStreamFixture({
       carriedChannels: ALL_READS,
       pinnedUt: 10,
+      suspendFrames: true,
     });
     mount(fixture, "ld-ships-gate");
 
@@ -147,6 +149,7 @@ describe("LaunchDirector: what undefined telemetry renders today", () => {
     const fixture = setupStreamFixture({
       carriedChannels: ALL_READS,
       pinnedUt: 10,
+      suspendFrames: true,
     });
     mount(fixture, "ld-tombstone");
 
@@ -171,6 +174,7 @@ describe("LaunchDirector: what undefined telemetry renders today", () => {
     const fixture = setupStreamFixture({
       carriedChannels: ALL_READS,
       pinnedUt: 10,
+      suspendFrames: true,
     });
     mount(fixture, "ld-empty-sites");
 
@@ -201,6 +205,7 @@ describe("LaunchDirector: what undefined telemetry renders today", () => {
     const fixture = setupStreamFixture({
       carriedChannels: ALL_READS,
       pinnedUt: 10,
+      suspendFrames: true,
     });
     mount(fixture, "ld-funds-gate");
 
@@ -257,6 +262,7 @@ describe("LaunchDirector: what undefined telemetry renders today", () => {
     const fixture = setupStreamFixture({
       carriedChannels: ALL_READS,
       pinnedUt: 10,
+      suspendFrames: true,
     });
     const user = userEvent.setup();
     mount(fixture, "ld-crew-gate");
@@ -296,6 +302,7 @@ describe("LaunchDirector: what undefined telemetry renders today", () => {
     const fixture = setupStreamFixture({
       carriedChannels: ALL_READS,
       pinnedUt: 10,
+      suspendFrames: true,
     });
     mount(fixture, "ld-crash-gate");
 
@@ -336,6 +343,7 @@ describe("LaunchDirector: what undefined telemetry renders today", () => {
     const fixture = setupStreamFixture({
       carriedChannels: ALL_READS,
       pinnedUt: 10,
+      suspendFrames: true,
     });
     mount(fixture, "ld-revert-gate");
 
@@ -374,6 +382,7 @@ describe("LaunchDirector: what undefined telemetry renders today", () => {
     const fixture = setupStreamFixture({
       carriedChannels: ALL_READS,
       pinnedUt: 10,
+      suspendFrames: true,
     });
     mount(fixture, "ld-inflight-cold");
 

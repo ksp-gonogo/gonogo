@@ -30,6 +30,7 @@ function newFixture() {
   return setupStreamFixture({
     carriedChannels: ["career.status", "vessel.state"],
     pinnedUt: 0,
+    suspendFrames: true,
   });
 }
 

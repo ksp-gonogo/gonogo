@@ -60,6 +60,7 @@ describe("ActionGroup (SAS): the toggle -> absolute command dispatch", () => {
     const fixture = setupStreamFixture({
       carriedChannels: ["vessel.control"],
       pinnedUt: 0,
+      suspendFrames: true,
     });
     const commandHandler = vi.fn(() => ({ ok: true }));
     fixture.transport.setCommandHandler(commandHandler);
@@ -114,6 +115,7 @@ describe("ActionGroup (Abort): toggle -> absolute command dispatch", () => {
     const fixture = setupStreamFixture({
       carriedChannels: ["vessel.control"],
       pinnedUt: 0,
+      suspendFrames: true,
     });
     const commandHandler = vi.fn(() => ({ ok: true }));
     fixture.transport.setCommandHandler(commandHandler);
@@ -166,6 +168,7 @@ describe("ActionGroup (Precision Control): read-only, no toggle command", () => 
     const fixture = setupStreamFixture({
       carriedChannels: ["vessel.control"],
       pinnedUt: 0,
+      suspendFrames: true,
     });
 
     render(

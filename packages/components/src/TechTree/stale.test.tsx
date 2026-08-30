@@ -59,7 +59,11 @@ describe("TechTree when the career record is no longer current", () => {
 
   beforeEach(() => {
     clearActionHandlers();
-    stream = setupStreamFixture({ carriedChannels: CARRIED, pinnedUt: 10 });
+    stream = setupStreamFixture({
+      carriedChannels: CARRIED,
+      pinnedUt: 10,
+      suspendFrames: true,
+    });
   });
 
   function renderTree(w?: number, h?: number) {

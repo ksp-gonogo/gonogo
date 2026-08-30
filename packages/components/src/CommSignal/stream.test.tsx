@@ -78,6 +78,7 @@ describe("CommSignal: genuinely runs off the stream (R6 Wave 1)", () => {
     const fixture = setupStreamFixture({
       carriedChannels: ["vessel.comms"],
       pinnedUt: 10,
+      suspendFrames: true,
     });
 
     render(
@@ -123,6 +124,7 @@ describe("CommSignal: genuinely runs off the stream (R6 Wave 1)", () => {
       const fixture = setupStreamFixture({
         carriedChannels: ["vessel.comms", "comms.link"],
         pinnedUt: 10,
+        suspendFrames: true,
       });
       const { container } = render(
         <fixture.Provider>
@@ -183,6 +185,7 @@ describe("CommSignal: genuinely runs off the stream (R6 Wave 1)", () => {
     const fixture = setupStreamFixture({
       carriedChannels: ["vessel.comms"],
       pinnedUt: 10,
+      suspendFrames: true,
     });
     render(
       <fixture.Provider>
@@ -216,6 +219,7 @@ describe("CommSignal: genuinely runs off the stream (R6 Wave 1)", () => {
       const fixture = setupStreamFixture({
         carriedChannels: ["vessel.comms"],
         delaySeconds: 5,
+        suspendFrames: true,
       });
 
       render(
@@ -240,8 +244,9 @@ describe("CommSignal: genuinely runs off the stream (R6 Wave 1)", () => {
       expect(screen.getByText("No signal data")).toBeTruthy();
 
       // Advance the wall by exactly the delay, sample A crosses the confirmed
-      // edge. Nothing else drives a frame refresh between ingests, so the test
-      // calls `beginFrame()` itself to apply the new wall time.
+      // edge. Wall time moving is not itself a frame, so the test mints one to
+      // apply it: the fixture's own loop is suspended and an emit is the only
+      // other frame source.
       act(() => {
         fixture.wall.advanceBy(5);
         fixture.store.beginFrame();
@@ -276,6 +281,7 @@ describe("CommSignal: genuinely runs off the stream (R6 Wave 1)", () => {
     const fixture = setupStreamFixture({
       carriedChannels: FULL_CARRIED,
       pinnedUt: 10,
+      suspendFrames: true,
     });
 
     render(
@@ -325,6 +331,7 @@ describe("CommSignal: genuinely runs off the stream (R6 Wave 1)", () => {
     const fixture = setupStreamFixture({
       carriedChannels: ["vessel.comms", "comms.commandCentre"],
       pinnedUt: 10,
+      suspendFrames: true,
     });
 
     render(
@@ -358,6 +365,7 @@ describe("CommSignal: genuinely runs off the stream (R6 Wave 1)", () => {
     const fixture = setupStreamFixture({
       carriedChannels: ["vessel.comms", "comms.commandCentre"],
       pinnedUt: 10,
+      suspendFrames: true,
     });
 
     render(
@@ -386,6 +394,7 @@ describe("CommSignal: genuinely runs off the stream (R6 Wave 1)", () => {
         "vessel.identity",
       ],
       pinnedUt: 10,
+      suspendFrames: true,
     });
 
     render(
@@ -454,6 +463,7 @@ describe("CommSignal: genuinely runs off the stream (R6 Wave 1)", () => {
     const fixture = setupStreamFixture({
       carriedChannels: ["vessel.comms", "comms.path"],
       pinnedUt: 10,
+      suspendFrames: true,
     });
 
     render(
@@ -486,6 +496,7 @@ describe("CommSignal: genuinely runs off the stream (R6 Wave 1)", () => {
     const fixture = setupStreamFixture({
       carriedChannels: ["vessel.comms", "comms.path"],
       pinnedUt: 10,
+      suspendFrames: true,
     });
 
     render(
@@ -519,6 +530,7 @@ describe("CommSignal: genuinely runs off the stream (R6 Wave 1)", () => {
     const fixture = setupStreamFixture({
       carriedChannels: ["vessel.comms", "comms.path"],
       pinnedUt: 10,
+      suspendFrames: true,
     });
 
     render(
@@ -566,6 +578,7 @@ describe("CommSignal: genuinely runs off the stream (R6 Wave 1)", () => {
     const fixture = setupStreamFixture({
       carriedChannels: ["vessel.comms", "comms.path", "vessel.identity"],
       pinnedUt: 10,
+      suspendFrames: true,
     });
 
     render(
@@ -636,6 +649,7 @@ describe("CommSignal: genuinely runs off the stream (R6 Wave 1)", () => {
     const fixture = setupStreamFixture({
       carriedChannels: ["vessel.comms", "comms.path"],
       pinnedUt: 10,
+      suspendFrames: true,
     });
 
     render(
@@ -663,6 +677,7 @@ describe("CommSignal: genuinely runs off the stream (R6 Wave 1)", () => {
     const fixture = setupStreamFixture({
       carriedChannels: ["vessel.comms", "comms.link", "comms.path"],
       pinnedUt: 10,
+      suspendFrames: true,
     });
 
     render(

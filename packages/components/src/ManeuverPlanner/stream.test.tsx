@@ -130,6 +130,7 @@ describe("ManeuverPlanner: maneuver-node id round-trip (M3 vessel-gap batch)", (
         "vessel.maneuver.remove",
       ],
       pinnedUt: 1_000_000,
+      suspendFrames: true,
     });
     const commandHandler = vi.fn(() => ({ ok: true }));
     fixture.transport.setCommandHandler(commandHandler);
@@ -172,6 +173,7 @@ describe("ManeuverPlanner: maneuver-node id round-trip (M3 vessel-gap batch)", (
     const fixture = setupStreamFixture({
       carriedChannels: [...CARRIED_ORBIT, "vessel.maneuver"],
       pinnedUt: 1_000_000,
+      suspendFrames: true,
     });
     const commandHandler = vi.fn(() => ({ ok: true }));
     fixture.transport.setCommandHandler(commandHandler);
@@ -243,6 +245,7 @@ describe("ManeuverPlanner: maneuver-node id round-trip (M3 vessel-gap batch)", (
         "vessel.maneuver.update",
       ],
       pinnedUt: 1_000_000,
+      suspendFrames: true,
     });
     const commandHandler = vi.fn(() => ({ ok: true }));
     fixture.transport.setCommandHandler(commandHandler);
@@ -312,6 +315,7 @@ describe("ManeuverPlanner: the ΔV budget rides the stream", () => {
     const fixture = setupStreamFixture({
       carriedChannels: [...CARRIED_ORBIT, "dv.stages", "dv.summary"],
       pinnedUt: 1_000_000,
+      suspendFrames: true,
     });
 
     render(

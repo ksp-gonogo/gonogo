@@ -84,6 +84,7 @@ describe("KeplerPeriod: renders the reference curve off the stream (R6 Wave 1)",
     const fixture = setupStreamFixture({
       carriedChannels: VESSEL_STATE_INPUTS,
       pinnedUt: 10,
+      suspendFrames: true,
     });
 
     const { container } = render(

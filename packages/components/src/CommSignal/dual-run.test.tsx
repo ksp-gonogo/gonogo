@@ -40,6 +40,7 @@ describe("CommSignal: full readout off the stream (R6 Wave 1)", () => {
     const fixture = setupStreamFixture({
       carriedChannels: CARRIED,
       pinnedUt: 10,
+      suspendFrames: true,
     });
 
     const { container } = render(

@@ -41,6 +41,7 @@ describe("ContractManager: real recorded-fixture render off the stream (delay=0)
     const streamFixture = setupStreamFixture({
       carriedChannels: ["career.status"],
       pinnedUt: smallCareerDetail["t.universalTime"],
+      suspendFrames: true,
     });
 
     const { container } = render(

@@ -53,6 +53,7 @@ describe("ManeuverPlanner: full node render off the stream", () => {
     const streamFixture = setupStreamFixture({
       carriedChannels: ["vessel.maneuver"],
       pinnedUt: PINNED_UT,
+      suspendFrames: true,
     });
 
     const { container } = render(

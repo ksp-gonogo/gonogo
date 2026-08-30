@@ -42,6 +42,7 @@ describe("SpaceCenterStatus: genuinely runs off the stream", () => {
     const fixture = setupStreamFixture({
       carriedChannels: ["career.status", "spaceCenter.scene"],
       pinnedUt: 10,
+      suspendFrames: true,
     });
     const legacyAux = await setupMockDataSource({
       id: "data",
@@ -88,6 +89,7 @@ describe("SpaceCenterStatus: genuinely runs off the stream", () => {
     const fixture = setupStreamFixture({
       carriedChannels: ["career.status"],
       pinnedUt: 10,
+      suspendFrames: true,
     });
     const legacyAux = await setupMockDataSource({
       id: "data",
@@ -132,6 +134,7 @@ describe("SpaceCenterStatus: genuinely runs off the stream", () => {
     const fixture = setupStreamFixture({
       carriedChannels: ["career.status", "spaceCenter.scene"],
       pinnedUt: 10,
+      suspendFrames: true,
     });
     const legacyAux = await setupMockDataSource({
       id: "data",
@@ -190,6 +193,7 @@ describe("SpaceCenterStatus: genuinely runs off the stream", () => {
         "spaceCenter.launchSites",
       ],
       pinnedUt: 10,
+      suspendFrames: true,
     });
     // The legacy AUX carries a DIFFERENT vessel name than the streamed
     // fixture: if the widget were still reading the legacy fallback instead

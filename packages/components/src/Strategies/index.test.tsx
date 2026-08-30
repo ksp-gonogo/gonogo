@@ -164,6 +164,7 @@ describe("StrategiesComponent", () => {
     stream = setupStreamFixture({
       carriedChannels: ["career.status"],
       pinnedUt: 10,
+      suspendFrames: true,
     });
   });
 

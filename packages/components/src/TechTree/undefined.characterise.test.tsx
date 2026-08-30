@@ -33,7 +33,11 @@ import { TechTreeComponent } from "./index";
 const CARRIED = ["career.status", "spaceCenter.scene"];
 
 function newFixture() {
-  return setupStreamFixture({ carriedChannels: CARRIED, pinnedUt: 10 });
+  return setupStreamFixture({
+    carriedChannels: CARRIED,
+    pinnedUt: 10,
+    suspendFrames: true,
+  });
 }
 
 function renderTree(fixture: StreamFixture) {

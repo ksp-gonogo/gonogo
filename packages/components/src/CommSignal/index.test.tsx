@@ -49,6 +49,7 @@ function newFixture() {
       "vessel.state",
     ],
     pinnedUt: 10,
+    suspendFrames: true,
   });
 }
 

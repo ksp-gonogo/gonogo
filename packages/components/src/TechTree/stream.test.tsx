@@ -24,6 +24,7 @@ describe("TechTree: genuinely runs off the stream (M3/M3b career batch)", () => 
     const fixture = setupStreamFixture({
       carriedChannels: ["career.status", "spaceCenter.scene"],
       pinnedUt: 10,
+      suspendFrames: true,
     });
 
     render(

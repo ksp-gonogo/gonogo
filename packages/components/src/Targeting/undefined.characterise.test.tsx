@@ -78,6 +78,7 @@ function dockingFixture() {
   return setupStreamFixture({
     carriedChannels: ["vessel.target", "vessel.dock"],
     pinnedUt: 1000,
+    suspendFrames: true,
   });
 }
 

@@ -79,7 +79,11 @@ afterEach(() => {
 });
 
 function mount() {
-  const fixture = setupStreamFixture({ carriedChannels: CARRIED, pinnedUt: 0 });
+  const fixture = setupStreamFixture({
+    carriedChannels: CARRIED,
+    pinnedUt: 0,
+    suspendFrames: true,
+  });
   const { container } = render(
     <fixture.Provider>
       <ShipMapComponent id="ship-map-characterise" w={8} h={10} />

@@ -94,6 +94,7 @@ describe("SystemView: comms.network relay graph as faint connection lines", () =
         "comms.network",
       ],
       pinnedUt: 0,
+      suspendFrames: true,
     });
 
     const { container } = render(

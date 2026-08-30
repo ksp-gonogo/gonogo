@@ -15,6 +15,7 @@ function renderBodies() {
   const fixture = setupStreamFixture({
     carriedChannels: ["system.bodies"],
     pinnedUt: 0,
+    suspendFrames: true,
   });
   const { result } = renderHook(() => useCelestialBodies(), {
     wrapper: fixture.Provider,

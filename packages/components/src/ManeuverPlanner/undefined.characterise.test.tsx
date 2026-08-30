@@ -58,6 +58,7 @@ function setup(config: Record<string, unknown> = {}) {
   const fixture = setupStreamFixture({
     carriedChannels: CARRIED,
     pinnedUt: PINNED_UT,
+    suspendFrames: true,
   });
   const view = renderTracked(
     <fixture.Provider>
@@ -85,15 +86,6 @@ function emitOrbitReady(
     epoch: PINNED_UT,
     mu: 3.5316e12,
     ...overrides,
-  });
-}
-
-/** `useViewUt` only reaches its pinned value after a frame tick. */
-async function flushViewUt(): Promise<void> {
-  await act(async () => {
-    await new Promise<void>((resolve) => {
-      requestAnimationFrame(() => requestAnimationFrame(() => resolve()));
-    });
   });
 }
 
@@ -269,7 +261,6 @@ describe("ManeuverPlanner: a partial vessel.orbit payload", () => {
     act(() => {
       emitOrbitReady(fixture, { ecc: undefined });
     });
-    await flushViewUt();
     expect(screen.getByText("Awaiting orbit telemetry.")).toBeInTheDocument();
     expect(screen.queryByText("Preview")).not.toBeInTheDocument();
   });
@@ -358,7 +349,6 @@ describe("ManeuverPlanner: dv.stages absent is coerced to zero", () => {
     act(() => {
       emitOrbitReady(fixture);
     });
-    await flushViewUt();
     expect(await screen.findByText("Preview")).toBeInTheDocument();
     expect(screen.getByText("Available")).toBeInTheDocument();
     expect(screen.getByText(NULL_DISPLAY)).toBeInTheDocument();

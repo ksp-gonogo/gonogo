@@ -23,6 +23,7 @@ function newFixture() {
   return setupStreamFixture({
     carriedChannels: ["science.instruments", "science.experiments"],
     pinnedUt: 10,
+    suspendFrames: true,
   });
 }
 

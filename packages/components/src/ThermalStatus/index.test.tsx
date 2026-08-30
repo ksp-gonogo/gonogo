@@ -41,6 +41,7 @@ describe("ThermalStatusComponent", () => {
     const fixture = setupStreamFixture({
       carriedChannels: CARRIED_CHANNELS,
       pinnedUt: 10,
+      suspendFrames: true,
     });
     renderThermal(fixture);
     expect(screen.getByText("No thermal data")).toBeInTheDocument();
@@ -50,6 +51,7 @@ describe("ThermalStatusComponent", () => {
     const fixture = setupStreamFixture({
       carriedChannels: CARRIED_CHANNELS,
       pinnedUt: 10,
+      suspendFrames: true,
     });
     renderThermal(fixture);
     act(() => {
@@ -78,6 +80,7 @@ describe("ThermalStatusComponent", () => {
     const fixture = setupStreamFixture({
       carriedChannels: CARRIED_CHANNELS,
       pinnedUt: 10,
+      suspendFrames: true,
     });
     renderThermal(fixture);
     act(() => {
@@ -97,6 +100,7 @@ describe("ThermalStatusComponent", () => {
     const fixture = setupStreamFixture({
       carriedChannels: CARRIED_CHANNELS,
       pinnedUt: 10,
+      suspendFrames: true,
     });
     renderThermal(fixture);
     act(() => {
@@ -121,6 +125,7 @@ describe("ThermalStatusComponent", () => {
     const fixture = setupStreamFixture({
       carriedChannels: CARRIED_CHANNELS,
       pinnedUt: 10,
+      suspendFrames: true,
     });
     renderThermal(fixture);
     act(() => {
@@ -153,6 +158,7 @@ describe("ThermalStatusComponent", () => {
     const fixture = setupStreamFixture({
       carriedChannels: CARRIED_CHANNELS,
       pinnedUt: 10,
+      suspendFrames: true,
     });
     renderThermal(fixture, 9);
     act(() => {

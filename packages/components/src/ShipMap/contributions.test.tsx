@@ -96,6 +96,7 @@ async function renderShipMap(wire = VESSEL_PARTS_WIRE) {
   const fixture = setupStreamFixture({
     carriedChannels: ["vessel.parts"],
     pinnedUt: 10,
+    suspendFrames: true,
   });
   const { unmount, container } = render(
     <fixture.Provider>

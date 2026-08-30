@@ -47,6 +47,7 @@ describe("LaunchDirector: genuinely runs off the stream", () => {
         "spaceCenter.launchSites",
       ],
       pinnedUt: 10,
+      suspendFrames: true,
     });
 
     render(
@@ -137,6 +138,7 @@ describe("LaunchDirector: genuinely runs off the stream", () => {
         "crash.lastCrash",
       ],
       pinnedUt: 10,
+      suspendFrames: true,
     });
 
     render(

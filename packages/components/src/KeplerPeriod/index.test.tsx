@@ -76,6 +76,7 @@ describe("KeplerPeriodComponent", () => {
     stream = setupStreamFixture({
       carriedChannels: VESSEL_STATE_INPUTS,
       pinnedUt: 10,
+      suspendFrames: true,
     });
   });
 

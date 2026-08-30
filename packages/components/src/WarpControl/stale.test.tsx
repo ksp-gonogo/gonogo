@@ -52,7 +52,11 @@ const CARRIED = [
 const INSTANCE = "warp-stale";
 
 function mount(w: number, h: number) {
-  const fixture = setupStreamFixture({ carriedChannels: CARRIED, pinnedUt: 0 });
+  const fixture = setupStreamFixture({
+    carriedChannels: CARRIED,
+    pinnedUt: 0,
+    suspendFrames: true,
+  });
   render(
     <fixture.Provider>
       <DashboardItemContext.Provider value={{ instanceId: INSTANCE }}>

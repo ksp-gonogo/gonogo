@@ -82,6 +82,7 @@ describe("TwrComponent: genuinely runs off the stream (R6 Wave 2)", () => {
     const fixture = setupStreamFixture({
       carriedChannels: VESSEL_STATE_INPUTS,
       pinnedUt: 10,
+      suspendFrames: true,
     });
     renderTwr(fixture);
     expect(await screen.findByText(/no engine data/i)).toBeInTheDocument();
@@ -94,6 +95,7 @@ describe("TwrComponent: genuinely runs off the stream (R6 Wave 2)", () => {
     const fixture = setupStreamFixture({
       carriedChannels: VESSEL_STATE_INPUTS,
       pinnedUt: 10,
+      suspendFrames: true,
     });
     renderTwr(fixture);
     act(() => {
@@ -106,6 +108,7 @@ describe("TwrComponent: genuinely runs off the stream (R6 Wave 2)", () => {
     const fixture = setupStreamFixture({
       carriedChannels: VESSEL_STATE_INPUTS,
       pinnedUt: 10,
+      suspendFrames: true,
     });
     renderTwr(fixture);
     act(() => {
@@ -118,6 +121,7 @@ describe("TwrComponent: genuinely runs off the stream (R6 Wave 2)", () => {
     const fixture = setupStreamFixture({
       carriedChannels: VESSEL_STATE_INPUTS,
       pinnedUt: 10,
+      suspendFrames: true,
     });
     renderTwr(fixture);
     act(() => {
