@@ -46,7 +46,8 @@ export type ModToken =
   | "kerbalism"
   | "testflight"
   | "principia"
-  | "ferram";
+  | "ferram"
+  | "realsolarsystem";
 
 export interface ModAllowlist {
   /** Wire/contract/generated-code files, cross-Uplink ratchet/inventory
@@ -60,6 +61,31 @@ export interface ModAllowlist {
 }
 
 export const ALLOWLIST: Record<ModToken, ModAllowlist> = {
+  /*
+   * The pack RP-1 is played on. Added 2026-08-30, `domainDebt` EMPTY and meant
+   * to stay so: there is no Uplink owning this pack yet, so any CODE that names
+   * it is a violation the gate states rather than a thing it offers a bucket
+   * for. The single permanent entry is one comment.
+   *
+   * It earned a token by being missed. `packages/core/src/rss-bodies.ts` sat in
+   * CORE for eleven days holding a planet pack's body table, exported from
+   * core's public surface, while `packages/core/src/bodies.ts` next to it was
+   * already a tombstone reading "the body registry moved to the sdk: a planet
+   * pack is an Uplink's business". No gate objected, because RealSolarSystem
+   * was not a token and so was not a thing the gate could express.
+   */
+  realsolarsystem: {
+    permanent: [
+      /*
+       * Prose, inside the Uplink that legitimately depends on the pack: RP-1
+       * ships on it, and the render setup says so to explain why every duration
+       * in an RP-1 career is long. Naming a dependency in a comment is text, not
+       * coupling.
+       */
+      "mod/GonogoRp1Uplink/client/gonogo-render.setup.ts",
+    ],
+    domainDebt: [],
+  },
   // === kerbcast: owning dir mod/GonogoKerbcastUplink/ (incl. its client/).
   kerbcast: {
     domainDebt: [

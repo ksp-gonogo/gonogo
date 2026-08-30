@@ -295,6 +295,16 @@ const MOD_OWNERSHIP: Record<ModToken, ModOwnership> = {
       "mod/GonogoPrincipiaUplink.Tests",
     ],
   },
+  realsolarsystem: {
+    /*
+     * The full name only, on the `ferram` precedent: "rss" alone is three
+     * letters that appear in ordinary prose and in "RSS feed", so it would
+     * report noise rather than coupling. The cost is real and worth stating: a
+     * future file that says only "RSS" is not caught.
+     */
+    patterns: [/real\s*solar\s*system/i],
+    ownedDirs: [],
+  },
   ferram: {
     // "ferram" alone is distinctive: no unrelated word in this codebase
     // contains it. Deliberately NOT "far", which is an ordinary English word and
