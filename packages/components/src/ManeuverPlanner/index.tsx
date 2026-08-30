@@ -490,10 +490,12 @@ function ManeuverPlannerComponent({
       /*
        * The legacy command passed `[ut,x,y,z]` straight to KSP's
        * `ManeuverNode.OnGizmoUpdated(new Vector3d(x,y,z), ut)`, and KSP's
-       * node-local frame is `Vector3d(radialOut, normal, prograde)`. So the
-       * on-wire order is RADIAL, NORMAL, PROGRADE: *not* prograde-first.
-       * Sending pure prograde in the first slot turns it into pure radial-out
-       * and the burn points straight up.
+       * node-local frame is `Vector3d(radialOut, normal, prograde)`,
+       * established by decompiling `ManeuverNode.DeltaV` itself and written
+       * down where the assignment happens (`KspVesselActuator`'s
+       * AddManeuverNode). So the on-wire order is RADIAL, NORMAL, PROGRADE:
+       * *not* prograde-first. Sending pure prograde in the first slot turns it
+       * into pure radial-out and the burn points straight up.
        *
        * The ordering is checkable against KSP's own API, which is the
        * authority here and is core's own dependency rather than a mod's. It
