@@ -177,7 +177,10 @@ namespace GonogoPrincipiaUplink.Tests
             // The read half is untouched: the plan is still published, with the
             // write surface described as closed rather than absent.
             var plan = new PlanReader().Read(
-                new FakeSettingsSource { Session = null }.Session, Guid, 1000.0);
+                new FakeSettingsSource { Session = null }.Session,
+                Guid,
+                1000.0,
+                new FakeCelestialNames());
             Assert.Null(plan);
 
             var edit = commands.ReplaceBurn(

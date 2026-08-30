@@ -1337,7 +1337,25 @@ namespace Sitrep.Contract
         /// scale-height field to fix the second from. What the game does have
         /// is <c>GetPressure(altitude)</c>, so the profile is now sampled from
         /// it and put on the wire.</para>
+        ///
+        /// <para><b>Bumped 2 -&gt; 3: a planned burn names its own frame's
+        /// bodies.</b> <see cref="PrincipiaPlannedBurn"/> gains
+        /// <c>CentreBody</c>, <c>PrimaryBody</c>, <c>SecondaryBody</c>,
+        /// <c>PrimaryBodies</c> and <c>SecondaryBodies</c>, all nullable,
+        /// additive, nothing removed or retyped, so an Uplink built against 14.2
+        /// is unaffected and the frozen Major-14 floor is NOT re-frozen.</para>
+        ///
+        /// <para>The burn carried its frame's KIND and never the bodies it is
+        /// declined with, so a burn editor could only render the kind's template
+        /// with the body slot still in it: the operator read
+        /// "&lt;centre&gt;-Centred Inertial" on the commonest frame there is. The
+        /// bodies were on the wire, on
+        /// <see cref="PrincipiaSettings.BurnFrames"/>, and unreachable in
+        /// practice: that is a bare list a client would have to index into by
+        /// position, and a manoeuvre whose frame cannot be read is dropped from it
+        /// rather than held open, which shifts every later entry. Carrying the
+        /// bodies on the burn removes the join instead of repairing it.</para>
         /// </remarks>
-        public const int Minor = 2;
+        public const int Minor = 3;
     }
 }

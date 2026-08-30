@@ -9,7 +9,7 @@ Publishes Principia's n-body state: trajectory arcs, the flight plan and its bur
 | --- | --- |
 | Uplink id | `principia` |
 | Version | `0.0.1` |
-| Built against | contract 14.2, api 1.0.0, ui-kit 0.2.0 |
+| Built against | contract 14.3, api 1.0.0, ui-kit 0.2.0 |
 
 ## Wire
 
@@ -34,7 +34,7 @@ Publishes Principia's n-body state: trajectory arcs, the flight plan and its bur
 | `PrincipiaPlanHorizonArgs` | `desiredFinalTimeUt` ut, `requestId` id, `vesselId` id |
 | `PrincipiaPlanIntegrator` | `generalizedIntegratorKind` enum, `integratorKind` enum, `lengthToleranceMetres` m, `maxSteps` count, `speedToleranceMetresPerSecond` m/s |
 | `PrincipiaPlanIntegratorArgs` | `lengthToleranceMetres` m, `maxSteps` count, `requestId` id, `speedToleranceMetresPerSecond` m/s, `vesselId` id |
-| `PrincipiaPlannedBurn` | `anomalous` flag, `coordinateSystem` enum, `cutoffUt` ut, `deltaV` m/s, `deltaVBinormal` m/s, `deltaVNormal` m/s, `deltaVTangent` m/s, `durationSeconds` s, `executing` flag, `finalMassTons` t, `frameEditable` flag, `frameType` enum, `ignitionUt` ut, `index` count, `inertiallyFixed` flag, `initialMassTons` t, `massFlowKilogramsPerSecond` kg/s, `specificImpulseSeconds` isp, `thrustKilonewtons` kN, `timeToHalfDeltaVSeconds` s |
+| `PrincipiaPlannedBurn` | `anomalous` flag, `centreBody` text, `coordinateSystem` enum, `cutoffUt` ut, `deltaV` m/s, `deltaVBinormal` m/s, `deltaVNormal` m/s, `deltaVTangent` m/s, `durationSeconds` s, `executing` flag, `finalMassTons` t, `frameEditable` flag, `frameType` enum, `ignitionUt` ut, `index` count, `inertiallyFixed` flag, `initialMassTons` t, `massFlowKilogramsPerSecond` kg/s, `primaryBodies` text, `primaryBody` text, `secondaryBodies` text, `secondaryBody` text, `specificImpulseSeconds` isp, `thrustKilonewtons` kN, `timeToHalfDeltaVSeconds` s |
 | `PrincipiaPlanSendArgs` | `burns` PrincipiaComposedBurn[], `composedAtViewUt` ut, `desiredFinalTimeUt` ut, `observedAtUt` ut, `requestId` id, `vesselId` id |
 | `PrincipiaPlanSlotArgs` | `finalTimeUt` ut, `requestId` id, `vesselId` id |
 | `PrincipiaPlanWriteReceipt` | `plan` PrincipiaPlan, `refusalDetail` text, `replayed` flag, `requestId` id, `statusError` enum, `statusMessage` text |

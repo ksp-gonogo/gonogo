@@ -170,7 +170,7 @@ namespace GonogoPrincipiaUplink
                     ArmCommand,
                     requestId,
                     PrincipiaWriteResult.Written(),
-                    _reader.ReadInFrame(session, frame, vessel.Guid, now));
+                    ReadPlan(session, frame, vessel.Guid, now));
             }
 
             var materialised = plan.Materialise();
@@ -195,7 +195,7 @@ namespace GonogoPrincipiaUplink
                     ArmCommand,
                     requestId,
                     probeRefusal.Value,
-                    _reader.ReadInFrame(session, frame, vessel.Guid, now));
+                    ReadPlan(session, frame, vessel.Guid, now));
             }
 
             // Armed on the strength of the struct probe that matters for the edits an
@@ -213,7 +213,7 @@ namespace GonogoPrincipiaUplink
                         session.Writes.LayoutFailure
                         ?? "Neither of Principia's structs survived a round trip, so nothing here "
                         + "can be written safely."),
-                    _reader.ReadInFrame(session, frame, vessel.Guid, now));
+                    ReadPlan(session, frame, vessel.Guid, now));
             }
 
             session.Writes.Arm(vessel.Guid);
@@ -221,8 +221,21 @@ namespace GonogoPrincipiaUplink
                 ArmCommand,
                 requestId,
                 PrincipiaWriteResult.Written(),
-                _reader.ReadInFrame(session, frame, vessel.Guid, now));
+                ReadPlan(session, frame, vessel.Guid, now));
         }
+
+        /// <summary>
+        /// The plan as it stands, for the receipt beside a write.
+        ///
+        /// <para>Named through the same body table the streamed reading uses, so a
+        /// receipt's plan carries the frames its burns are quoted in rather than
+        /// bare kinds. A receipt that dropped them would leave the editor showing
+        /// a burn whose frame it can no longer name, immediately after an edit and
+        /// only after one.</para>
+        /// </summary>
+        private PlanObservation? ReadPlan(
+            PrincipiaSession session, PrincipiaFrame frame, string vesselGuid, double now) =>
+            _reader.ReadInFrame(session, frame, vesselGuid, now, _source()?.Celestials);
 
         /// <summary>Tunes one existing burn: time, the Dv triple, the attitude
         /// mode, the propulsion profile, in any combination.</summary>
@@ -782,7 +795,7 @@ namespace GonogoPrincipiaUplink
                     CreateCommand,
                     args.RequestId,
                     PrincipiaWriteResult.Refused(refusal, detail),
-                    _reader.ReadInFrame(session, frame, vessel.Guid, now));
+                    ReadPlan(session, frame, vessel.Guid, now));
             }
 
             // An hour, which is what Principia's own planner asks for when the
@@ -801,14 +814,14 @@ namespace GonogoPrincipiaUplink
                         PrincipiaWriteRefusal.SurfaceUnavailable,
                         "The craft's mass could not be read, and a plan created without one "
                         + "starts from a craft that weighs nothing."),
-                    _reader.ReadInFrame(session, frame, vessel.Guid, now));
+                    ReadPlan(session, frame, vessel.Guid, now));
             }
             var result = gate.Create(finalTime, massTons.Value);
             return Settle(
                 CreateCommand,
                 args.RequestId,
                 result,
-                _reader.ReadInFrame(session, frame, vessel.Guid, now));
+                ReadPlan(session, frame, vessel.Guid, now));
         }
 
         /// <summary>Deletes the selected plan.</summary>
@@ -1067,7 +1080,7 @@ namespace GonogoPrincipiaUplink
                     command,
                     requestId,
                     NoPlan(),
-                    _reader.ReadInFrame(session, frame, vessel.Guid, now));
+                    ReadPlan(session, frame, vessel.Guid, now));
             }
 
             var materialised = plan.Materialise();
@@ -1077,7 +1090,7 @@ namespace GonogoPrincipiaUplink
                     command,
                     requestId,
                     PrincipiaWriteResult.Refused(refusal, detail),
-                    _reader.ReadInFrame(session, frame, vessel.Guid, now));
+                    ReadPlan(session, frame, vessel.Guid, now));
             }
 
             var result = write(session, gate, now);
@@ -1086,7 +1099,7 @@ namespace GonogoPrincipiaUplink
             // this far, because "what does the plan look like now" is the question a
             // receipt exists to answer and a refusal is not a reason to withhold it.
             return Settle(
-                command, requestId, result, _reader.ReadInFrame(session, frame, vessel.Guid, now));
+                command, requestId, result, ReadPlan(session, frame, vessel.Guid, now));
         }
 
         private static PrincipiaWriteResult LayoutUnverified(PrincipiaSession session, string what) =>

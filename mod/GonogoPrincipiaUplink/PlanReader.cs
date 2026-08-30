@@ -27,6 +27,17 @@ namespace GonogoPrincipiaUplink
         private static readonly PrincipiaBurnStruct Fields = new PrincipiaBurnStruct();
 
         /// <summary>
+        /// The same frame resolver the settings reading uses, rather than a second
+        /// one beside it. A burn's frame arrives as body INDICES on a descriptor,
+        /// and the rules for turning those into names are not obvious: which slot a
+        /// kind actually reads, that a side can be a set rather than a body, and
+        /// that "no body" is a real value. Two copies of that would be two things
+        /// to keep in step, and the frame a burn is quoted in is not a place to
+        /// discover they have drifted.
+        /// </summary>
+        private static readonly SettingsReflection Frames = new SettingsReflection();
+
+        /// <summary>
         /// The plan for <paramref name="vesselGuid"/>, or null when there is
         /// nothing to say: no session, no plugin, or a vessel the plugin has
         /// forgotten.
@@ -36,7 +47,11 @@ namespace GonogoPrincipiaUplink
         /// not collapse: an operator told "no plan" for a vessel that has one stops
         /// looking, on the channel whose whole job is to keep them looking.</para>
         /// </summary>
-        public PlanObservation? Read(PrincipiaSession? session, string? vesselGuid, double nowUt)
+        public PlanObservation? Read(
+            PrincipiaSession? session,
+            string? vesselGuid,
+            double nowUt,
+            ICelestialNames? celestials)
         {
             if (session == null || string.IsNullOrEmpty(vesselGuid))
             {
@@ -44,7 +59,9 @@ namespace GonogoPrincipiaUplink
             }
 
             using var frame = Open(session);
-            return frame == null ? null : ReadInFrame(session, frame, vesselGuid!, nowUt);
+            return frame == null
+                ? null
+                : ReadInFrame(session, frame, vesselGuid!, nowUt, celestials);
         }
 
         /// <summary>
@@ -57,7 +74,11 @@ namespace GonogoPrincipiaUplink
         /// inside a write.</para>
         /// </summary>
         public PlanObservation? ReadInFrame(
-            PrincipiaSession session, PrincipiaFrame frame, string vesselGuid, double nowUt)
+            PrincipiaSession session,
+            PrincipiaFrame frame,
+            string vesselGuid,
+            double nowUt,
+            ICelestialNames? celestials)
         {
             if (!frame.TryVessel(vesselGuid, out var vessel))
             {
@@ -89,7 +110,7 @@ namespace GonogoPrincipiaUplink
             observation.AnomalousBurnCount = plan.NumberOfAnomalousManoeuvres();
             observation.OptimisationRunning = materialised.OptimisationManoeuvreIndex() >= 0;
             ReadIntegrator(plan.AdaptiveStepParameters(), observation);
-            ReadBurns(plan, observation, nowUt);
+            ReadBurns(plan, observation, nowUt, celestials);
             DescribeWriteSurface(session, vesselGuid, observation, planExists: true);
             return observation;
         }
@@ -156,7 +177,10 @@ namespace GonogoPrincipiaUplink
         }
 
         private static void ReadBurns(
-            PrincipiaFlightPlanGate plan, PlanObservation observation, double nowUt)
+            PrincipiaFlightPlanGate plan,
+            PlanObservation observation,
+            double nowUt,
+            ICelestialNames? celestials)
         {
             var cursor = plan.Manoeuvres();
             var count = cursor.Count;
@@ -169,7 +193,7 @@ namespace GonogoPrincipiaUplink
                     continue;
                 }
                 observation.Burns.Add(
-                    Describe(manoeuvre, burn.Ordinal, count, anomalous, nowUt));
+                    Describe(manoeuvre, burn.Ordinal, count, anomalous, nowUt, celestials));
             }
         }
 
@@ -184,7 +208,12 @@ namespace GonogoPrincipiaUplink
         /// an unreadable one.</para>
         /// </summary>
         internal static PlannedBurnObservation Describe(
-            object manoeuvre, int index, int burnCount, int anomalousCount, double nowUt)
+            object manoeuvre,
+            int index,
+            int burnCount,
+            int anomalousCount,
+            double nowUt,
+            ICelestialNames? celestials)
         {
             var burn = Fields.Get(manoeuvre, PrincipiaBurnStruct.ManoeuvreBurnField);
             var ignition = burn == null
@@ -193,6 +222,9 @@ namespace GonogoPrincipiaUplink
             var cutoff = Fields.GetDouble(manoeuvre, PrincipiaBurnStruct.ManoeuvreFinalTimeField);
             var deltaV = burn == null ? null : Fields.DeltaV(burn);
             var extension = burn == null ? null : Fields.FrameExtension(burn);
+            var descriptor = burn == null
+                ? null
+                : Fields.Get(burn, PrincipiaBurnStruct.FrameField);
 
             return new PlannedBurnObservation
             {
@@ -223,6 +255,9 @@ namespace GonogoPrincipiaUplink
                 MassFlowKilogramsPerSecond =
                     Fields.GetDouble(manoeuvre, PrincipiaBurnStruct.ManoeuvreMassFlowField),
                 FrameType = extension,
+                Frame = descriptor == null || celestials == null
+                    ? null
+                    : Frames.FrameFromIndices(descriptor, celestials, "burn"),
                 FrameEditable =
                     extension != null && PrincipiaBurnStruct.IsEditableFrame(extension.Value),
                 Executing = ignition != null && cutoff != null

@@ -33,6 +33,11 @@ namespace GonogoPrincipiaUplink
                     ["finalMassTons"] = burn.FinalMassTons,
                     ["massFlowKilogramsPerSecond"] = burn.MassFlowKilogramsPerSecond,
                     ["frameType"] = burn.FrameType,
+                    ["centreBody"] = burn.Frame?.CentreBody,
+                    ["primaryBody"] = burn.Frame?.PrimaryBody,
+                    ["secondaryBody"] = burn.Frame?.SecondaryBody,
+                    ["primaryBodies"] = BodySet(burn.Frame?.PrimaryBodies),
+                    ["secondaryBodies"] = BodySet(burn.Frame?.SecondaryBodies),
                     ["frameEditable"] = burn.FrameEditable,
                     ["executing"] = burn.Executing,
                     ["anomalous"] = burn.Anomalous,
@@ -70,6 +75,12 @@ namespace GonogoPrincipiaUplink
                 ["burns"] = burns,
             };
         }
+
+        /// <summary>One side of a frame's pair, or null when the head is the whole
+        /// of it. The reading empties the list in that case, and an empty array on
+        /// the wire would read as a side with no bodies in it.</summary>
+        private static object? BodySet(List<string>? bodies) =>
+            bodies == null || bodies.Count == 0 ? null : bodies.ToArray();
 
         /// <summary>
         /// The receipt for one attempted write.

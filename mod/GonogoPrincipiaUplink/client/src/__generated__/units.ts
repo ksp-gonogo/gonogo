@@ -227,6 +227,7 @@ export const GENERATED_TYPE_UNITS: Readonly<Record<string, UnitsByField>> = {
   },
   "PrincipiaPlannedBurn": {
     anomalous: "flag",
+    centreBody: "text",
     coordinateSystem: "enum",
     cutoffUt: "ut",
     deltaV: "m/s",
@@ -243,6 +244,10 @@ export const GENERATED_TYPE_UNITS: Readonly<Record<string, UnitsByField>> = {
     inertiallyFixed: "flag",
     initialMassTons: "t",
     massFlowKilogramsPerSecond: "kg/s",
+    primaryBodies: "text",
+    primaryBody: "text",
+    secondaryBodies: "text",
+    secondaryBody: "text",
     specificImpulseSeconds: "isp",
     thrustKilonewtons: "kN",
     timeToHalfDeltaVSeconds: "s",

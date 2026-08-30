@@ -101,6 +101,7 @@
               "finalMassTons": 23.23,
               "massFlowKilogramsPerSecond": 142.56,
               "frameType": 6000,
+              "centreBody": "Kerbin",
               "frameEditable": true,
               "executing": false,
               "anomalous": false

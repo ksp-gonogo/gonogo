@@ -68,6 +68,17 @@ namespace GonogoPrincipiaUplink
         public double? MassFlowKilogramsPerSecond;
         public int? FrameType;
 
+        /// <summary>
+        /// The burn's frame declined with its own bodies, read off the same
+        /// descriptor <see cref="FrameType"/> is.
+        ///
+        /// <para>Null when the manoeuvre carried no readable frame descriptor, or
+        /// when the reading had no body table to name indices against. A frame
+        /// nobody can name still travels as its kind, which is what
+        /// <see cref="FrameType"/> is for.</para>
+        /// </summary>
+        public FrameObservation? Frame;
+
         /// <summary>Whether this burn's frame is one an edit may be sent back
         /// with. Resolved here so no client repeats the whitelist, and so the
         /// answer a control greys itself out on is the same answer the write gate

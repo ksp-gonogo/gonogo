@@ -202,6 +202,80 @@ namespace GonogoPrincipiaUplink.Tests
         }
 
         /// <summary>
+        /// A burn carries the bodies of its OWN frame, so a client holding the
+        /// burn can name the frame its delta-v is quoted in.
+        ///
+        /// <para>The same frames also travel on the settings channel, as a bare
+        /// list a client would have to index into by position, and the position is
+        /// not the burn's: a manoeuvre whose frame cannot be read is dropped from
+        /// that list rather than held open in it. That is why this is read here
+        /// rather than joined there.</para>
+        /// </summary>
+        [Fact]
+        public void APlannedBurnCarriesItsOwnFramesBodies()
+        {
+            var manoeuvre = new FakeManoeuvre(
+                new FakeBurnFrameParameters(BodyCentredNonRotating, 1, -1, -1));
+
+            var burn = PlanReader.Describe(
+                manoeuvre, 0, 1, 0, 1000.0, new FakeCelestialNames());
+
+            Assert.Equal(BodyCentredNonRotating, burn.FrameType);
+            Assert.Equal("Kerbin", burn.Frame?.CentreBody);
+        }
+
+        /// <summary>
+        /// No body table is a burn with a kind and no bodies, not a burn with the
+        /// wrong ones. The reading runs headless in every test in this project and
+        /// on the game's own thread in production, and only one of the two can name
+        /// an index.
+        /// </summary>
+        [Fact]
+        public void APlannedBurnWithNoBodyTableCarriesItsKindAlone()
+        {
+            var manoeuvre = new FakeManoeuvre(
+                new FakeBurnFrameParameters(BodyCentredNonRotating, 1, -1, -1));
+
+            var burn = PlanReader.Describe(manoeuvre, 0, 1, 0, 1000.0, celestials: null);
+
+            Assert.Equal(BodyCentredNonRotating, burn.FrameType);
+            Assert.Null(burn.Frame);
+        }
+
+        /// <summary>The bodies reach the wire on the burn itself.</summary>
+        [Fact]
+        public void PublishesABurnsFrameBodiesOnTheBurn()
+        {
+            var observation = new PlanObservation();
+            observation.Burns.Add(new PlannedBurnObservation
+            {
+                Index = 0,
+                FrameType = RotatingPulsating,
+                Frame = new FrameObservation
+                {
+                    Selector = "burn",
+                    Type = RotatingPulsating,
+                    PrimaryBody = "Kerbol",
+                    SecondaryBody = "Kerbin",
+                    PrimaryBodies = new List<string> { "Kerbol", "Mun", "Minmus" },
+                },
+            });
+
+            var payload = PlanBuilder.Build(observation);
+            var burns = Assert.IsType<List<object?>>(payload["burns"]);
+            var burn = Assert.IsType<Dictionary<string, object?>>(burns[0]);
+
+            Assert.Equal("Kerbol", burn["primaryBody"]);
+            Assert.Equal("Kerbin", burn["secondaryBody"]);
+            Assert.Null(burn["centreBody"]);
+            Assert.Equal(
+                new[] { "Kerbol", "Mun", "Minmus" },
+                Assert.IsType<string[]>(burn["primaryBodies"]));
+            // One body a side says nothing the pair does not, so it sends nothing.
+            Assert.Null(burn["secondaryBodies"]);
+        }
+
+        /// <summary>
         /// The sets reach the wire, and a side that is one body sends nothing at
         /// all rather than a one-entry array. A reader finding a list is being told
         /// something the pair cannot say.

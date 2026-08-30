@@ -494,9 +494,16 @@ export function BurnEditor() {
               <Badge severity="info">{`BURN ${draft.burnIndex + 1}`}</Badge>
               {/* The burn's own manoeuvring frame, which is routinely NOT the
                   plotting frame, and the only reliable warning that it differs
-                  is on this line. */}
+                  is on this line. Declined with the burn's OWN bodies: the kind
+                  alone renders its template with the body slot still standing,
+                  and two burns centred on different bodies are the same kind and
+                  not the same frame. */}
               <Text tone="faint" size="sm">
-                {plottingFrameLabel(magnitudeOf(selected.frameType))}
+                {plottingFrameLabel(magnitudeOf(selected.frameType), {
+                  centre: selected.centreBody,
+                  primary: selected.primaryBody,
+                  secondary: selected.secondaryBody,
+                })}
               </Text>
               {selected.frameEditable === false && (
                 <Badge severity="warning">
