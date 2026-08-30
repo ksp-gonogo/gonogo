@@ -434,6 +434,7 @@ namespace Sitrep.Host
                 {
                     ["id"] = GetString(node, "id"),
                     ["title"] = GetString(node, "title"),
+                    ["description"] = GetString(node, "description"),
                     ["scienceCost"] = GetDouble(node, "scienceCost"),
                     ["unlocked"] = GetBool(node, "unlocked"),
                     ["parents"] = parents,

@@ -222,6 +222,7 @@ export const GENERATED_TYPE_UNITS: Readonly<Record<string, UnitsByField>> = {
     unlockedIds: "id",
   },
   "CareerTechNode": {
+    description: "text",
     id: "id",
     parents: "id",
     scienceCost: "science",

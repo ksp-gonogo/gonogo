@@ -114,7 +114,6 @@ export const RENDER_GAP: readonly string[] = [
   "packages/components/src/MapView#ut",
   "packages/components/src/Objectives#description",
   "packages/components/src/OrbitView#points",
-  "packages/components/src/TechTree#description",
   "packages/components/src/TransferWindow#period",
   "packages/components/src/TransferWindow#referenceBody",
 ];

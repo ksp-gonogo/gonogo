@@ -251,6 +251,7 @@ namespace Sitrep.Host.Tests
                                 {
                                     ["id"] = "generalRocketry",
                                     ["title"] = "General Rocketry",
+                                    ["description"] = "Rocketry, but more general.",
                                     ["scienceCost"] = 15.0,
                                     ["unlocked"] = false,
                                     ["parents"] = new List<object?> { "basicRocketry" },
@@ -335,7 +336,13 @@ namespace Sitrep.Host.Tests
             var generalRocketry = Assert.IsType<Dictionary<string, object?>>(techNodes[2]);
             Assert.Equal("generalRocketry", generalRocketry["id"]);
             Assert.Equal("General Rocketry", generalRocketry["title"]);
+            Assert.Equal("Rocketry, but more general.", generalRocketry["description"]);
             Assert.Equal(15.0, generalRocketry["scienceCost"]);
+            // A tree that carries no description for a node says nothing rather
+            // than an empty string: the widget's detail panel is meant to leave
+            // the line out, not draw a blank one.
+            var start = Assert.IsType<Dictionary<string, object?>>(techNodes[0]);
+            Assert.Null(start["description"]);
             Assert.Equal(false, generalRocketry["unlocked"]);
             var generalRocketryParents = Assert.IsType<List<object?>>(generalRocketry["parents"]);
             Assert.Equal("basicRocketry", Assert.Single(generalRocketryParents));

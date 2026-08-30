@@ -3982,7 +3982,7 @@ namespace Gonogo.KSP
         }
 
         /// <summary>
-        /// Full tech-node structure (id/title/scienceCost/unlocked/
+        /// Full tech-node structure (id/title/description/scienceCost/unlocked/
         /// prerequisite edges) for the TechTree widget. Sourced from
         /// <c>AssetBase.RnDTechTree.GetTreeNodes()</c> - confirmed via
         /// decompile to return the STATIC, scene-independent
@@ -4004,7 +4004,9 @@ namespace Gonogo.KSP
         /// Instance</c>/tree-null checks. <c>scienceCost</c> comes from
         /// <c>ProtoTechNode.scienceCost</c> - the tree's own baked config
         /// value, not save-scoped (a tech's cost doesn't change once
-        /// defined).</para>
+        /// defined). <c>description</c> comes off the tree's own
+        /// <c>ConfigNode</c>, see <see cref="BuildCareerTechDescriptions"/> for
+        /// why it cannot come from the node objects here.</para>
         ///
         /// <para><c>parents</c> (prerequisite edges) is included rather
         /// than deferred: <c>ProtoRDNode.parents</c> is already an in-memory
@@ -4036,6 +4038,8 @@ namespace Gonogo.KSP
                 return null;
             }
 
+            var descriptions = BuildCareerTechDescriptions(tree!);
+
             var nodes = new List<object?>();
             foreach (var rdNode in rdNodes)
             {
@@ -4062,6 +4066,7 @@ namespace Gonogo.KSP
                 {
                     ["id"] = tech.techID,
                     ["title"] = ResearchAndDevelopment.GetTechnologyTitle(tech.techID),
+                    ["description"] = descriptions.TryGetValue(tech.techID, out var description) ? description : null,
                     ["scienceCost"] = (double)tech.scienceCost,
                     ["unlocked"] = ResearchAndDevelopment.GetTechnologyState(tech.techID) == RDTech.State.Available,
                     ["parents"] = parentIds,
@@ -4069,6 +4074,58 @@ namespace Gonogo.KSP
             }
 
             return nodes;
+        }
+
+        /// <summary>
+        /// Each tech node's flavour line, keyed by tech id, read off the tree's
+        /// own <c>ConfigNode</c>.
+        ///
+        /// <para>The config is the only place a description survives outside the
+        /// R&amp;D Building. <c>ProtoTechNode</c>, which the walk above holds,
+        /// carries id/state/cost and nothing else; the <c>description</c> field
+        /// lives on <c>RDTech</c>, a <c>MonoBehaviour</c> spawned only while
+        /// that scene is open. <c>GetTreeConfigNode</c> hands back the same
+        /// <c>TechTree</c> node <c>GetTreeNodes</c> was built from, loaded from
+        /// the GameDatabase, so a tree a mod has replaced (RP-1) reads
+        /// identically and a node's description is the one the save is actually
+        /// playing.</para>
+        ///
+        /// <para>Values arrive from the database already localised. The
+        /// <c>#autoLOC_</c> guard covers the file-loaded path KSP falls back to,
+        /// and drops the value rather than showing an operator a key that did
+        /// not resolve.</para>
+        /// </summary>
+        private static Dictionary<string, string> BuildCareerTechDescriptions(RDTechTree tree)
+        {
+            var byId = new Dictionary<string, string>();
+            var treeNode = tree.GetTreeConfigNode();
+            if (treeNode == null)
+            {
+                return byId;
+            }
+
+            foreach (var configNode in treeNode.GetNodes("RDNode"))
+            {
+                var id = configNode.GetValue("id");
+                var description = configNode.GetValue("description");
+                if (string.IsNullOrEmpty(id) || string.IsNullOrEmpty(description))
+                {
+                    continue;
+                }
+
+                if (description!.IndexOf("#autoLOC", StringComparison.OrdinalIgnoreCase) >= 0)
+                {
+                    description = GameWords.Sentence(description, string.Empty);
+                    if (string.IsNullOrEmpty(description))
+                    {
+                        continue;
+                    }
+                }
+
+                byId[id!] = description!;
+            }
+
+            return byId;
         }
 
         /// <summary>

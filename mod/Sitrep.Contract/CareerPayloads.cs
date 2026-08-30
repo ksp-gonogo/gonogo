@@ -441,6 +441,19 @@ public class CareerTechNode
     [SitrepUnit(Units.Text)]
     public string? Title { get; set; }
 
+    /// <summary>
+    /// The node's flavour line, as the tech tree itself writes it ("How hard
+    /// can Rocket Science be anyway?").
+    ///
+    /// <para>It comes from the tree's own config rather than from
+    /// <c>RDTech</c>, whose <c>description</c> field only exists while the R&amp;D
+    /// Building scene is open. A tech tree a mod has replaced (RP-1) is read
+    /// the same way, so this is the node's description in whatever tree the
+    /// save is playing.</para>
+    /// </summary>
+    [SitrepUnit(Units.Text)]
+    public string? Description { get; set; }
+
     [SitrepUnit(Units.Science)]
     public double? ScienceCost { get; set; }
 

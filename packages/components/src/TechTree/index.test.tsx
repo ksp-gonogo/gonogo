@@ -25,9 +25,9 @@ import { parseTechNodes, TechTreeComponent } from "./index";
  * supported inputs (its own doc comment: "Accepts BOTH the legacy
  * GonogoTelemetry tech.nodes shape... and the career-detail wire shape"),
  * so this is a legitimate value for that field, not a bypass, it's what
- * lets these tests keep exercising the rich `description`/`parts` rendering
- * (`career.status.tech.nodes` has no such fields on the real wire; see
- * `dual-run.test.tsx`'s own real-wire-shape fixture for that coverage).
+ * lets these tests keep exercising the rich per-node `parts` rendering
+ * (`parts` has no field on the real wire; `description` gained one in
+ * contract 14.1 and is covered off the wire shape in `dual-run.test.tsx`).
  * `tech.unlock[...]` (the spend command, unmapped) stays on the legacy
  * `useExecuteAction("data")` fallback: a `setupMockDataSource` AUX
  * supplies the `onExecute` spy for the arm-then-confirm test.

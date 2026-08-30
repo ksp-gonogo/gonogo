@@ -150,6 +150,7 @@ export interface CareerTechNode
 {
 	id?: string;
 	title?: string;
+	description?: string;
 	scienceCost?: Value<"science">;
 	unlocked?: boolean;
 	parents: string[];
