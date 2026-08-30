@@ -200,6 +200,18 @@ The important property is that adopting the rule costs nothing on day one. You s
 the list with reality, and the rule is live immediately for all _new_ code. Nobody has
 to schedule a cleanup before the rule can start protecting you.
 
+**A gate can be finished, correct, proven able to fail, and still not wired.** The
+stacked-overlap gate (does a widget paint two of its own sections into the same pixels)
+was written on 2026-08-26, complete with a self-check that plants a known-bad layout on
+every run. It was then deliberately held OUT of CI, and the commit says why: one widget
+was red, and a permanently-red step hides the next unrelated failure behind it, which is
+what `visual` already does. Four days later the widget that blocked it was fixed for an
+unrelated reason, a sweep of all 45 configured widgets came back clean, and the step went
+in. Two things to take from that. A deferral with its blocker NAMED in the commit message
+is recoverable, where "not wired yet" would not have been. And the detector was running in
+CI the whole time, inside `visual`: what was missing was never the check, it was a green
+job to report it in.
+
 **A list with a real zero needs a floor that is not the debt.** Most of ours never
 approach empty, so an instrument check floored on the population is safe. The
 panel-body ratchet is meant to reach zero, and a floor under its population would be
