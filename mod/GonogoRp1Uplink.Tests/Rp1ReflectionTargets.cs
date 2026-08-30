@@ -120,6 +120,18 @@ namespace GonogoRp1Uplink.Tests
         {
             new Rp1TypeTarget(Rp0, "RP0.SpaceCenterManagement", "Rp1ScReflection, Rp1LaunchGate, Rp1CareerProjectGate, Rp1BuildCommands, Rp1DerivedCurrencyWithholder"),
             new Rp1TypeTarget(Rp0, "RP0.Confidence", "Rp1ScReflection, Rp1DerivedCurrencyWithholder"),
+            // RP-1's strategy base, which carries PerformActivate — the entire
+            // fresh-activation procedure, and the door that does not ask
+            // CanBeActivated's UI-dependent first arm.
+            new Rp1TypeTarget(Rp0, "RP0.StrategyRP0", "Rp1StrategyWrites"),
+            // Asserted POSITIVELY before any currency is charged: a leader is
+            // defined negatively in RP-1 terms (any strategy whose department is
+            // not Programs), and a negative definition is the wrong thing to bet a
+            // spend on.
+            new Rp1TypeTarget(Rp0, "RP0.Programs.ProgramStrategy", "Rp1StrategyWrites"),
+            // Tells the two ActivateProgram overloads apart by first-parameter
+            // type; a lookup by arity alone could take either.
+            new Rp1TypeTarget(Rp0, "RP0.Programs.Program", "Rp1StrategyWrites"),
             new Rp1TypeTarget(Rp0, "RP0.LCEfficiency", "Rp1ScReflection"),
             new Rp1TypeTarget(Rp0, "RP0.KSCSwitcherInterop", "Rp1ScReflection"),
             new Rp1TypeTarget(Rp0, "RP0.Database", "Rp1ScReflection, Rp1CrewReflection, Rp1EconomyBackend"),
@@ -177,6 +189,24 @@ namespace GonogoRp1Uplink.Tests
         public static IReadOnlyList<Rp1MethodTarget> Methods { get; } = new[]
         {
             new Rp1MethodTarget(Rp0, "RP0.LCEfficiency", "PredictWeightedEfficiency", 5, false, "Rp1ScReflection"),
+            // The whole fresh-activation procedure for a strategy, and the reason
+            // a leader can be appointed with the Administration Building shut:
+            // ActivateOverride is nothing but CanBeActivated plus this call, and
+            // this one never asks CanBeActivated, whose first statement
+            // dereferences the UI singleton. Confirmed at IL as public, arity 1
+            // and NON-VIRTUAL.
+            //
+            // Pinning it is not the whole assertion. The day RP-1 adds a step to
+            // ActivateOverride, our path silently stops doing it with no compile
+            // error and no test failure, which is why Rp1StrategyWritesTests also
+            // asserts that method's SHAPE rather than only this member's
+            // existence.
+            new Rp1MethodTarget(Rp0, "RP0.StrategyRP0", "PerformActivate", 1, false, "Rp1StrategyWrites"),
+            // The program half that ProgramStrategy.OnRegister skips whenever the
+            // Administration screen is shut. Resolved by first-parameter TYPE
+            // because ActivateProgram(string, Program.Speed) sits beside it, and
+            // a lookup by arity alone could take either.
+            new Rp1MethodTarget(Rp0, "RP0.Programs.ProgramHandler", "ActivateProgram", 1, false, "Rp1StrategyWrites"),
             // The only route to a space centre's DISPLAY name. RP-1 keeps the id
             // on LCSpaceCenter and nothing else, and its shim is what reads
             // KSCSwitcher's site config for the name beside it.
@@ -274,6 +304,7 @@ namespace GonogoRp1Uplink.Tests
             const string Crew = "Rp1CrewReflection";
             const string Programs = "Rp1ProgramsReflection";
             const string Staffing = "Rp1PersonnelCommands";
+            const string StrategyWrites = "Rp1StrategyWrites";
 
             // ── The space centre ────────────────────────────────────────────
             Add("RP0.SpaceCenterManagement", "Instance", Rp1Reader.Presence, Sc + ", " + Gate + ", " + Projects + ", " + Build + ", " + Withhold, @static: true);
@@ -506,7 +537,22 @@ namespace GonogoRp1Uplink.Tests
             Add("RP0.Crew.TrainingFlightEntry", "target", Rp1Reader.Text, Crew);
 
             // ── Programs ───────────────────────────────────────────────────
-            Add("RP0.Programs.ProgramHandler", "Instance", Rp1Reader.Presence, Programs, @static: true);
+            Add("RP0.Programs.ProgramHandler", "Instance", Rp1Reader.Presence, Programs + ", " + StrategyWrites, @static: true);
+            // NOT a UI flag, despite reading like one. It is RP-1's
+            // fresh-activation-vs-restore discriminator: Strategy.Load() ends with
+            // `isActive = true; Register();`, so OnRegister runs again on every
+            // scene transition, and without this test a Program would re-Accept
+            // several times a session, re-charging Confidence and resetting its
+            // deadline each time. Read and branched on, NEVER assumed false: with
+            // the screen open, PerformActivate's own Register() performs the
+            // program half itself, and a caller that also performs it accepts
+            // twice.
+            Add("RP0.Programs.ProgramHandler", "IsInAdmin", Rp1Reader.Bool, StrategyWrites);
+            // The TEMPLATE before acceptance and the accepted copy after. Accept()
+            // assigns deadlineUT on the new instance it returns, never on the
+            // template, so anything reading it too early gets zero — which is how
+            // a KAC alarm ends up minted at UT 0.
+            Add("RP0.Programs.ProgramStrategy", "Program", Rp1Reader.Presence, StrategyWrites);
             Add("RP0.Programs.ProgramHandler", "Programs", Rp1Reader.Presence, Programs, @static: true);
             Add("RP0.Programs.ProgramHandler", "Settings", Rp1Reader.Presence, Programs, @static: true);
             Add("RP0.Programs.ProgramHandler", "ProgramModifiers", Rp1Reader.Presence, Programs, @static: true);
