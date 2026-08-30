@@ -1,0 +1,124 @@
+{
+  "_meta": {
+    "scenario": "kerbin-rendezvous-target",
+    "notes": "A 200 km circular Kerbin parking orbit with a station selected as the in-game target, 320 km up and six degrees out of plane. No other ManeuverPlanner fixture carries `vessel.target` at all, so `target.orbit.inc`, `.lan`, `.sma` and `.argPe` were read by the planner and fed by nothing: every target preset rendered its 'No target selected in-game.' arm, which is the arm those presets exist to avoid. Paired with the `rendezvous-10x18` render mode, which opens on `hohmann-rendezvous-target` so the description line under the picker has a target to describe. Six degrees is over the half-degree threshold at which the plan prepends a plane match, so the line says so."
+  },
+  "_stream": {
+    "carriedChannels": [
+      "system.bodies",
+      "vessel.orbit",
+      "vessel.state",
+      "vessel.identity",
+      "vessel.target",
+      "vessel.maneuver",
+      "vessel.flight",
+      "vessel.control",
+      "vessel.comms",
+      "vessel.propulsion"
+    ],
+    "pinnedUt": 250000,
+    "emits": [
+      {
+        "channel": "system.bodies",
+        "value": {
+          "bodies": [
+            {
+              "name": "Kerbin",
+              "index": 1,
+              "parentIndex": 0,
+              "radius": 600000,
+              "orbit": null
+            }
+          ]
+        }
+      },
+      {
+        "channel": "vessel.identity",
+        "value": {
+          "vesselId": "v-tug",
+          "name": "Orbital Tug",
+          "vesselType": 0,
+          "situation": 3,
+          "parentBodyIndex": 1,
+          "launchUt": 246800
+        }
+      },
+      {
+        "channel": "vessel.orbit",
+        "value": {
+          "referenceBodyIndex": 1,
+          "sma": 800000,
+          "ecc": 0,
+          "inc": 0.35,
+          "lan": 12.0,
+          "argPe": 0,
+          "meanAnomalyAtEpoch": 0,
+          "epoch": 250000,
+          "mu": 3531600000000.0,
+          "horizon": {
+            "kind": 1,
+            "trajectoryKind": 1
+          }
+        }
+      },
+      {
+        "channel": "vessel.state",
+        "value": {
+          "trueAnomaly": 42.0,
+          "orbitalSpeed": 2101.07,
+          "orbitalRadius": 800000,
+          "period": 2392.4,
+          "referenceBodyName": "Kerbin",
+          "parentBodyName": "Kerbin",
+          "targetPeriapsisAlt": 320000,
+          "targetTrueAnomaly": 210.0,
+          "targetPeriod": 2950.4
+        }
+      },
+      {
+        "channel": "vessel.target",
+        "value": {
+          "name": "Kerbin Station",
+          "kind": 0,
+          "vesselId": "v-station",
+          "bodyIndex": null,
+          "relativePosition": {
+            "x": 214000,
+            "y": 61000,
+            "z": -128000
+          },
+          "relativeVelocity": {
+            "x": -74.2,
+            "y": 12.6,
+            "z": 41.9
+          },
+          "closestApproach": {
+            "time": 251870,
+            "distance": 96400
+          },
+          "orbit": {
+            "referenceBodyIndex": 1,
+            "sma": 920000,
+            "ecc": 0,
+            "inc": 6.2,
+            "lan": 41.5,
+            "argPe": 0,
+            "meanAnomalyAtEpoch": 3.6652,
+            "epoch": 250000,
+            "mu": 3531600000000.0,
+            "horizon": {
+              "kind": 1,
+              "trajectoryKind": 1
+            }
+          }
+        }
+      },
+      {
+        "channel": "vessel.maneuver",
+        "value": {
+          "nodes": []
+        }
+      }
+    ]
+  }
+}

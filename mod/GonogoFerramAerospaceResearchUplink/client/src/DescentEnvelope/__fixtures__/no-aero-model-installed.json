@@ -21,6 +21,7 @@
               "index": 1,
               "parentIndex": 0,
               "radius": 600000,
+              "surfaceGravity": 1,
               "orbit": null
             }
           ]

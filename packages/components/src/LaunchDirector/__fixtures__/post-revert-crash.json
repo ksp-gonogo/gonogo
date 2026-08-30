@@ -1,0 +1,148 @@
+{
+  "_meta": {
+    "scenario": "post-revert-crash",
+    "notes": "The same craft as in-flight-crash, after the operator reverted the crash away. crash.hasRecent is session-sticky and still true, and the reverted vessel carries the crashed vessel's name, so on the name alone this is indistinguishable from a crash in progress. The revert rewound universal time to 113270 and the snapshot was captured at 125371, which dates it to a timeline that no longer happened: no chip, and Recover stays enabled. Put beside in-flight-crash the pair shows the whole gate, since that scene carries no crash.lastCrash at all and reaches the same chip through the fail-safe branch. Reported by the user on 2026-06-12, when the chip blocked recovery forever; index.test.tsx asserts it at the same two instants."
+  },
+  "tar.availableVessels": [],
+  "_stream": {
+    "carriedChannels": [
+      "career.status",
+      "spaceCenter.savedShips",
+      "spaceCenter.crewRoster",
+      "spaceCenter.scene",
+      "spaceCenter.launchSites",
+      "vessel.orbit",
+      "vessel.flight",
+      "vessel.identity",
+      "system.bodies",
+      "vessel.control",
+      "vessel.target",
+      "vessel.comms",
+      "vessel.propulsion",
+      "ksp.revertAvailability",
+      "crash.hasRecent",
+      "crash.lastCrash"
+    ],
+    "pinnedUt": 113270,
+    "emits": [
+      {
+        "channel": "spaceCenter.scene",
+        "value": {
+          "scene": "Flight",
+          "launchSite": "LaunchPad"
+        }
+      },
+      {
+        "channel": "spaceCenter.launchSites",
+        "value": [
+          {
+            "name": "__pad_occupancy__",
+            "padOccupied": true,
+            "padVesselTitle": "Doomed Probe"
+          }
+        ]
+      },
+      {
+        "channel": "career.status",
+        "value": {
+          "economy": {
+            "funds": 15000,
+            "reputation": null,
+            "science": null
+          },
+          "facilities": null,
+          "contracts": null,
+          "strategies": null,
+          "tech": null
+        }
+      },
+      {
+        "channel": "spaceCenter.savedShips",
+        "value": []
+      },
+      {
+        "channel": "spaceCenter.crewRoster",
+        "value": []
+      },
+      {
+        "channel": "vessel.identity",
+        "value": {
+          "vesselId": "Doomed Probe",
+          "name": "Doomed Probe",
+          "vesselType": 0,
+          "situation": 0,
+          "parentBodyIndex": 1,
+          "launchUt": 113264
+        }
+      },
+      {
+        "channel": "vessel.orbit",
+        "value": {
+          "referenceBodyIndex": 1,
+          "sma": 700000,
+          "ecc": 0.01,
+          "inc": 0,
+          "lan": 0,
+          "argPe": 0,
+          "meanAnomalyAtEpoch": 0,
+          "epoch": 113270,
+          "mu": 3531600000000.0,
+          "horizon": {
+            "kind": 1,
+            "trajectoryKind": 1
+          }
+        },
+        "meta": {
+          "quality": 1
+        }
+      },
+      {
+        "channel": "vessel.flight",
+        "value": {
+          "latitude": 0,
+          "longitude": 0,
+          "altitudeAsl": 87,
+          "altitudeTerrain": 87,
+          "verticalSpeed": 14.2,
+          "surfaceSpeed": 15.1,
+          "orbitalSpeed": 0,
+          "gForce": 1.4,
+          "dynamicPressureKPa": 0.1,
+          "mach": 0.04,
+          "atmDensity": 1.22
+        }
+      },
+      {
+        "channel": "ksp.revertAvailability",
+        "value": {
+          "canRevertToLaunch": true,
+          "canRevertToEditor": true
+        }
+      },
+      {
+        "channel": "crash.hasRecent",
+        "value": true
+      },
+      {
+        "channel": "crash.lastCrash",
+        "value": {
+          "vesselId": "Doomed Probe",
+          "vesselName": "Doomed Probe",
+          "vesselType": 0,
+          "ut": 125371,
+          "body": "Kerbin",
+          "situation": "FLYING",
+          "altitude": 1240,
+          "latitude": -0.0972,
+          "longitude": -74.5577,
+          "what": "Doomed Probe",
+          "msg": "Doomed Probe crashed into the terrain.",
+          "eventKind": "crash",
+          "events": "Crashed",
+          "crewAboard": "",
+          "kerbalsKilled": ""
+        }
+      }
+    ]
+  }
+}

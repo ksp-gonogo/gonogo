@@ -23,6 +23,14 @@
  * <p>Seeded 2026-08-29 from a full scan: 18 coincidental, 47 render gaps. Paid
  * down the same day on the `packages/components` half: 19 gaps closed by
  * fixtures and 3 reclassified, leaving 25.</p>
+ *
+ * <p>2026-08-30 took the remaining untriaged entries: 16 down to 3. Ten closed
+ * by fixture, three reclassified, and one of the ten found a bug. Feeding
+ * MapView its first `vessel.maneuver` node drew the maneuver ground track and,
+ * beside it, a full-width horizontal line: the polyline was split at the
+ * propagated date line while the canvas draws through the body's texture
+ * offset. Every fixture before it was equatorial, where that line lies exactly
+ * on the track that drew it. See `MapView/groundTrackWrap.ts`.</p>
  */
 
 /**
@@ -71,17 +79,30 @@ export const COINCIDENTAL: readonly string[] = [
   // `ideal.x` / `cur.x`, chart coordinates in the conformance drawing
   "packages/components/src/TransferWindow#x",
   "packages/components/src/TransferWindow#y",
-  // `selectedPreset.description`, a locally defined burn preset
-  "packages/components/src/ManeuverPlanner#description",
   /*
-   * `AeroDescentInputs.surfaceGravity`, the widget's own derived input, not the
-   * `BodyEntry.surfaceGravity` the name matched. The widget never reads that
-   * field: `surfaceGravityOf` resolves the parent body's NAME through
-   * `system.bodies` and then takes `gm / radius²` from the sdk's client-side
-   * body registry. The modelled descent it feeds does render, from the fixtures
-   * that are already there, and `ballistic-capsule` is built around it.
+   * `body.period` and `body.referenceBody` off `CelestialBody`, the sdk's
+   * derived body record (`celestial-facts.ts`: `period` is `2π√(a³/μ_parent)`
+   * and `referenceBody` is the parent's resolved NAME). Both share a name with
+   * `OrbitPatch`, which TransferWindow never reads: it takes the origin from
+   * `orbit.referenceBodyIndex` and everything else from `useCelestialBodies`.
+   * The two already render and always have. `period` sets the spacing of the
+   * synodic window list ("in 7.3 y", "in 14.6 y") and the transit figures;
+   * `referenceBody` is how `parentMu` finds the Sun, without which no row has a
+   * Δv at all.
    */
-  "mod/GonogoFerramAerospaceResearchUplink/client/src/DescentEnvelope#surfaceGravity",
+  "packages/components/src/TransferWindow#period",
+  "packages/components/src/TransferWindow#referenceBody",
+  /*
+   * `site.unlocked` on the widget's OWN `LaunchSiteEntry`, which is not the
+   * mod's: `spaceCenter.launchSites` declares no such field, and
+   * `parseLaunchSites` sets it true for every new-shape entry because the mod
+   * enumerates only the sites you can launch from. The name matched
+   * `CareerTechNode.unlocked`, reached through the `career.status` these
+   * fixtures do emit, and LaunchDirector reads nothing off the tech tree. The
+   * field it does read is drawn: `orderPads` filters on it, and a pad list with
+   * three sites in it is that filter passing them.
+   */
+  "packages/components/src/LaunchDirector#unlocked",
 ];
 
 /**
@@ -102,18 +123,5 @@ export const RENDER_GAP: readonly string[] = [
    * number here would be inventing a frame the game cannot send.
    */
   "mod/GonogoPrincipiaUplink/client/src/OrbitAnalysis#elementsEpochUt",
-  "packages/components/src/CurrentOrbit#period",
-  "packages/components/src/CurrentOrbit#points",
-  "packages/components/src/FleetReliability#limitCount",
-  "packages/components/src/FleetReliability#usedCount",
-  "packages/components/src/LaunchDirector#facilityOrdinal",
-  "packages/components/src/LaunchDirector#unlocked",
-  "packages/components/src/LaunchDirector#ut",
-  "packages/components/src/ManeuverPlanner#orbit",
-  "packages/components/src/ManeuverPlanner#points",
-  "packages/components/src/MapView#ut",
   "packages/components/src/Objectives#description",
-  "packages/components/src/OrbitView#points",
-  "packages/components/src/TransferWindow#period",
-  "packages/components/src/TransferWindow#referenceBody",
 ];

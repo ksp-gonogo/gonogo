@@ -79,6 +79,10 @@ const MODULES = import.meta.glob<{ default: Fixture }>(
   { eager: true },
 );
 
+interface WireManeuver {
+  nodes?: Array<{ ut: number; patches?: WirePatch[] }>;
+}
+
 interface Scene {
   slug: string;
   ut: number;
@@ -87,6 +91,8 @@ interface Scene {
   flight: WireFlight;
   bodyName: string;
   bodyRadius: number;
+  /** The planned burns, which are half of what a map scene shows. */
+  maneuver: WireManeuver | undefined;
 }
 
 const scenes: Scene[] = [];
@@ -113,6 +119,9 @@ for (const [path, mod] of Object.entries(MODULES)) {
     flight,
     bodyName: first.name,
     bodyRadius: first.radius,
+    maneuver: emits.find((e) => e.channel === "vessel.maneuver")?.value as
+      | WireManeuver
+      | undefined,
   });
 }
 
@@ -165,6 +174,13 @@ function orbitAsPatch(s: Scene, radius: number, mu: number): WirePatch {
  * The elements without the bookkeeping that varies between two copies of one
  * pasted orbit: epoch and the patch window move with the fixture's own UT, so
  * comparing those would call two identical orbits different.
+ *
+ * The planned burns are in it because they are the other half of what the map
+ * draws. `kerbin-plane-change-node` is deliberately the `kerbin-lko-equator`
+ * parking orbit with a node on it, and the pair is the point: the amber track
+ * is identical in both and the cyan one exists in only one, so what the burn
+ * changes is the only difference on screen. Fingerprinting the elements alone
+ * would call those two the same picture, which is exactly backwards.
  */
 function elementFingerprint(s: Scene): string {
   return JSON.stringify([
@@ -175,6 +191,10 @@ function elementFingerprint(s: Scene): string {
     s.orbit.argPe,
     s.orbit.mu,
     s.bodyName,
+    (s.maneuver?.nodes ?? []).map((n) => [
+      n.ut,
+      (n.patches ?? []).map((p) => [p.sma, p.ecc, p.inc, p.lan, p.argPe]),
+    ]),
   ]);
 }
 
@@ -193,12 +213,13 @@ describe("MapView fixtures describe scenes that can exist", () => {
     expect(scenes.map((s) => s.slug).sort()).toEqual([
       "kerbin-launchpad",
       "kerbin-lko-equator",
+      "kerbin-plane-change-node",
       "kerbin-reentry",
       "mun-polar-orbit",
     ]);
   });
 
-  it("gives each scenario its own orbit, so four names are four pictures", () => {
+  it("gives each scenario its own scene, so five names are five pictures", () => {
     const byFingerprint = new Map<string, string[]>();
     for (const s of scenes) {
       const key = elementFingerprint(s);

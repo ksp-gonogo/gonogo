@@ -148,7 +148,7 @@ describe("the reliability election, seen from six installs", () => {
      * cannot see is the same to them as one that was never rendered.
      */
     expect(await screen.findByText("Reaction Wheel")).toBeVisible();
-    expect(screen.getAllByText("3 at risk")).toHaveLength(1);
+    expect(screen.getAllByText("4 at risk")).toHaveLength(1);
     /*
      * The engine row is TestFlight's alone: no other backend models a rated
      * burn, and the SCOPE is in the sentence because the two ratings diverge
@@ -156,6 +156,19 @@ describe("the reliability election, seen from six installs", () => {
      */
     expect(screen.getByText("RD-180")).toBeVisible();
     expect(screen.getByText(/continuous rated burn left/)).toBeVisible();
+    /*
+     * The same sentence written from the COUNT pair rather than the seconds
+     * one, which is the arm `budgetRow` has for a budget measured in uses. The
+     * upper stage is the only part in the tree carrying it.
+     */
+    expect(screen.getByText("AJ10-137")).toBeVisible();
+    const ignitions = screen.getByText(/of.*rated ignitions left/);
+    expect(ignitions).toBeVisible();
+    // Both numbers, because "of" between two of them is the whole sentence:
+    // the remaining count is derived (limit minus used) and the limit is not.
+    expect(ignitions.textContent?.replace(/\s+/g, " ").trim()).toBe(
+      "1 of 4 rated ignitions left",
+    );
     await act(async () => {});
   });
 
