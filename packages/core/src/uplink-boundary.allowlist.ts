@@ -2323,12 +2323,6 @@ export const ALLOWLIST: Record<ModToken, ModAllowlist> = {
        */
       "mod/Sitrep.Core.Tests/UplinkIsolationTests.cs",
       /*
-       * -- RENDER-FIXTURE COVERAGE ratchet inventory (2026-08-29): the debt list
-       * of payload fields a widget reads and no fixture feeds is keyed by widget
-       * directory, so it names this Uplink's DescentEnvelope by construction.
-       */
-      "packages/core/src/render-fixture-coverage.debt.ts",
-      /*
        * The comment-stack ratchet's own inventory: a path-keyed debt list over
        * every hand-written JS/TS file in the repo names this Uplink's paths by
        * construction, and there is nowhere else for it to live.
@@ -2406,7 +2400,6 @@ export const SURVIVES_COMMENT_STRIP: Partial<Record<ModToken, string[]>> = {
     "packages/app/src/__tests__/uplink-widget-declarations.test.ts",
     "packages/app/src/main.tsx",
     "packages/core/src/comment-stacks.allowlist.ts",
-    "packages/core/src/render-fixture-coverage.debt.ts",
     "packages/core/src/styleguide-magnitude-budget.test.ts",
     "packages/core/src/truenow-allowlist.test.ts",
   ],
