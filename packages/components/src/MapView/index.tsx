@@ -14,7 +14,6 @@ import {
   onAugmentsChange,
   predictGroundTrack,
   registerComponent,
-  splitOnLongitudeWrap,
   useActionInput,
   useAugmentAvailable,
   useTelemetry,
@@ -50,6 +49,7 @@ import {
   worldToScreen,
   zoomBounds,
 } from "./camera";
+import { splitOnDrawnLongitudeWrap } from "./groundTrackWrap";
 import { MapPoiLayer } from "./MapPoiLayer";
 import {
   BaseCanvas,
@@ -901,7 +901,7 @@ function MapViewComponent({
       horizon,
       10,
     );
-    return splitOnLongitudeWrap(samples);
+    return splitOnDrawnLongitudeWrap(samples, body.longitudeOffset ?? 0);
   }, [
     predictionEnabled,
     orbitPatches,
@@ -935,6 +935,7 @@ function MapViewComponent({
     // callback below.
     const bodyRadius = body.radius;
     const rotPeriod = body.rotationPeriod;
+    const longitudeOffset = body.longitudeOffset ?? 0;
     return maneuverNodes.map((node) => {
       const patches = (node.patches ?? []).map(mapOrbitPatch);
       const firstPatch = patches.find((p) => p.referenceBody === targetBodyId);
@@ -956,7 +957,7 @@ function MapViewComponent({
         10,
         orbitPatches,
       );
-      return splitOnLongitudeWrap(samples);
+      return splitOnDrawnLongitudeWrap(samples, longitudeOffset);
     });
   }, [
     predictionEnabled,

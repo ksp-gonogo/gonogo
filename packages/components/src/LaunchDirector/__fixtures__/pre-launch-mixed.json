@@ -1,7 +1,7 @@
 {
   "_meta": {
     "scenario": "pre-launch-mixed",
-    "notes": "Three pads, none holding anything the space centre will admit to: the stock KSC pad reports itself clear, and the runway and Woomerang report no occupancy at all, which is what the mod does off the stock pad. Craft: one affordable, one funds-blocked, one parts-locked spaceplane that only the runway offers. Funds readout visible in the subtitle. The `_stream` block drives both snapshots.test.tsx and the probe render harness."
+    "notes": "Three pads, none holding anything the space centre will admit to: the stock KSC pad reports itself clear, and the runway and Woomerang report no occupancy at all, which is what the mod does off the stock pad. Craft: one affordable, one funds-blocked, one parts-locked spaceplane that only the runway offers, and a subassembly KSP attributes to no editor at all. Every craft carries `facilityOrdinal`, which is the wire shape the mod sends and the field `launchFacilityArg` resolves the pad match and the dispatched `facility` argument from; the name beside it is the row's label. It was absent here, so every ready count was reached through the NAME fallback instead. Expect no pixel to move for that: `facility` is the same enum's own `ToString()`, so the two agree on any wire KSP can produce, and the ordinal earns its keep only against a KSP that renames a member. The tug is the `None` arm, an ordinal KSP declares and that is not an editor, so no pad offers it. Funds readout visible in the subtitle. The `_stream` block drives both snapshots.test.tsx and the probe render harness."
   },
   "_stream": {
     "carriedChannels": [
@@ -85,6 +85,7 @@
             "partCount": 18,
             "totalMass": 8.4,
             "facility": "VAB",
+            "facilityOrdinal": 1,
             "requiresFunds": 12000,
             "missingParts": []
           },
@@ -93,6 +94,7 @@
             "partCount": 42,
             "totalMass": 35.2,
             "facility": "VAB",
+            "facilityOrdinal": 1,
             "requiresFunds": 180000,
             "missingParts": []
           },
@@ -101,8 +103,18 @@
             "partCount": 24,
             "totalMass": 11.6,
             "facility": "SPH",
+            "facilityOrdinal": 2,
             "requiresFunds": 8500,
             "missingParts": ["rapierEngine", "precooler"]
+          },
+          {
+            "name": "Orbital Tug (subassembly)",
+            "partCount": 9,
+            "totalMass": 3.1,
+            "facility": "None",
+            "facilityOrdinal": 0,
+            "requiresFunds": 4200,
+            "missingParts": []
           }
         ]
       },

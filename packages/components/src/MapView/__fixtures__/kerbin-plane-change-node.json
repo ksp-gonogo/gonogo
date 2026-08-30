@@ -1,0 +1,170 @@
+{
+  "_meta": {
+    "scenario": "kerbin-plane-change-node",
+    "notes": "The kerbin-lko-equator parking orbit with one burn planned on it: 1,098 m/s of pure normal at UT 1235167, ten minutes ahead, taking the plane from 0 to 28 degrees. The node's own post-burn patch chain is what MapView samples the CYAN track from, and the amber current-orbit track runs under it along the equator, so the two say what the burn changes. No fixture carried a `vessel.maneuver` node before this one, so `maneuverSegments` returned an empty array in every render and the cyan half of the overlay had never been drawn. The post-burn ascending node is where the craft is at the burn (113.96 degrees of the 1895 s period after epoch), which is why the crossing sits under the node rather than at longitude zero. Its first render found a bug: the polyline was split at the PROPAGATED date line while the canvas draws through Kerbin's 90-degree texture offset, so the pair of samples straddling the drawn seam was stroked as one line clean across the map. Every fixture before this one was equatorial, and a spurious full-width line along latitude zero sits exactly on top of the track that drew it. See `groundTrackWrap.ts`."
+  },
+  "v.body": "Kerbin",
+  "v.lat": 0,
+  "v.long": 75,
+  "v.altitude": 85000,
+  "n.pitch": 0,
+  "n.heading": 90,
+  "v.dynamicPressure": 0,
+  "v.mach": 0,
+  "v.surfaceSpeed": 2070.873,
+  "v.verticalSpeed": 0,
+  "t.universalTime": 1234567,
+  "o.encounterExists": false,
+  "a.physicsMode": "Orbital",
+  "_stream": {
+    "carriedChannels": [
+      "vessel.orbit",
+      "vessel.maneuver",
+      "vessel.flight",
+      "vessel.identity",
+      "system.bodies",
+      "vessel.control",
+      "vessel.target",
+      "vessel.comms",
+      "vessel.propulsion"
+    ],
+    "emits": [
+      {
+        "channel": "vessel.orbit",
+        "value": {
+          "referenceBodyIndex": 1,
+          "sma": 685000,
+          "ecc": 0,
+          "inc": 0,
+          "lan": 0,
+          "argPe": 0,
+          "meanAnomalyAtEpoch": 0,
+          "epoch": 1234567,
+          "mu": 3531600000000,
+          "patches": [
+            {
+              "sma": 685000,
+              "ecc": 0,
+              "inc": 0,
+              "lan": 0,
+              "argPe": 0,
+              "meanAnomalyAtEpoch": 0,
+              "epoch": 1234567,
+              "period": 1895.527,
+              "startUt": 1234567,
+              "endUt": 1235167,
+              "patchStartTransition": 0,
+              "patchEndTransition": 4,
+              "peA": 85000,
+              "apA": 85000,
+              "semiLatusRectum": 685000,
+              "semiMinorAxis": 685000,
+              "referenceBody": "Kerbin",
+              "referenceBodyIndex": 1,
+              "closestEncounterBody": null,
+              "mu": 3531600000000
+            }
+          ],
+          "horizon": {
+            "kind": 1,
+            "trajectoryKind": 1
+          }
+        },
+        "meta": {
+          "quality": 1
+        }
+      },
+      {
+        "channel": "vessel.maneuver",
+        "value": {
+          "nodes": [
+            {
+              "id": "0f6c1a52-1d1e-4a54-9c1f-9d2f1d3a77c1",
+              "ut": 1235167,
+              "ignitionUt": 1235120.4,
+              "cutoffUt": 1235213.6,
+              "frame": 0,
+              "frameReference": 1,
+              "dvRadial": 0,
+              "dvNormal": 1098.7,
+              "dvPrograde": 0,
+              "dvTotal": 1098.7,
+              "inertiallyFixed": false,
+              "thrust": 60,
+              "specificImpulse": 345,
+              "initialMass": 9.4,
+              "finalMass": 6.5,
+              "patches": [
+                {
+                  "sma": 685000,
+                  "ecc": 0,
+                  "inc": 28,
+                  "lan": 113.96,
+                  "argPe": 0,
+                  "meanAnomalyAtEpoch": 0,
+                  "epoch": 1235167,
+                  "period": 1895.527,
+                  "startUt": 1235167,
+                  "endUt": 1237062.527,
+                  "patchStartTransition": 4,
+                  "patchEndTransition": 1,
+                  "peA": 85000,
+                  "apA": 85000,
+                  "semiLatusRectum": 685000,
+                  "semiMinorAxis": 685000,
+                  "referenceBody": "Kerbin",
+                  "referenceBodyIndex": 1,
+                  "closestEncounterBody": null,
+                  "mu": 3531600000000
+                }
+              ]
+            }
+          ],
+          "planner": "stock"
+        }
+      },
+      {
+        "channel": "vessel.flight",
+        "value": {
+          "latitude": 0,
+          "longitude": 75,
+          "altitudeAsl": 85000,
+          "altitudeTerrain": 85000,
+          "verticalSpeed": 0,
+          "surfaceSpeed": 2070.873,
+          "orbitalSpeed": 2270.599,
+          "gForce": 1,
+          "dynamicPressureKPa": 0,
+          "mach": 0,
+          "atmDensity": 0
+        }
+      },
+      {
+        "channel": "vessel.identity",
+        "value": {
+          "vesselId": "v1",
+          "name": "Active Vessel",
+          "vesselType": 0,
+          "situation": 3,
+          "parentBodyIndex": 1,
+          "launchUt": 0
+        }
+      },
+      {
+        "channel": "system.bodies",
+        "value": {
+          "bodies": [
+            {
+              "name": "Kerbin",
+              "index": 1,
+              "parentIndex": 0,
+              "radius": 600000,
+              "orbit": null
+            }
+          ]
+        }
+      }
+    ],
+    "pinnedUt": 1234567
+  }
+}

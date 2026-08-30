@@ -658,7 +658,13 @@ const WIDGETS: WidgetRenderConfig[] = [
         w: 7,
         h: 10,
         clicks: [{ selector: '[data-launch-action="arm-recover"]' }],
-        forFixtures: ["in-flight-ascent", "pad-occupied"],
+        /*
+         * post-revert-crash is here because the button it arms is the one a
+         * crash chip would have disabled: the scene's whole claim is that
+         * recovery is still available after the crash was reverted away, and a
+         * disabled button cannot be armed, so arming it is the check.
+         */
+        forFixtures: ["in-flight-ascent", "pad-occupied", "post-revert-crash"],
       },
       {
         name: "armed-revert-7x10",
@@ -1332,6 +1338,19 @@ const WIDGETS: WidgetRenderConfig[] = [
         w: 6,
         h: 9,
         clicks: [{ selector: "[id$='conformance-tab']" }],
+      },
+      /*
+       * The target presets, which open on `circularize-apo` and so are never
+       * reached by any mode above. Their description line is the only place
+       * `vessel.target.orbit` reaches a screen, and without a fixture carrying
+       * one they all render "No target selected in-game." instead.
+       */
+      {
+        name: "rendezvous-10x18",
+        w: 10,
+        h: 18,
+        config: { defaultPreset: "hohmann-rendezvous-target" },
+        forFixtures: ["kerbin-rendezvous-target"],
       },
     ],
   },
