@@ -154,6 +154,18 @@ namespace GonogoRp1Uplink.Tests
             new Rp1TypeTarget(Rp0, "RP0.CurrencyUtils", "Rp1EconomyUpkeepQuery"),
             new Rp1TypeTarget(Rp0, "RP0.TransactionReasonsRP0", "Rp1EconomyUpkeepQuery"),
             new Rp1TypeTarget(Rp0, "RP0.MaintenanceHandler", "Rp1EconomyUpkeepQuery"),
+            // RP-1's queued tech node, and the only RP-1 type this Uplink
+            // CONSTRUCTS and then hands back to RP-1's own deserialiser.
+            new Rp1TypeTarget(Rp0, "RP0.ResearchProject", "Rp1ResearchCommands"),
+            // Whether RP-1 queues research in this save at all. Its own prefix on
+            // RDTech.UnlockTech consults it before anything else, and a save it
+            // says no in has no research queue to add to.
+            new Rp1TypeTarget(Rp0, "RP0.PresetManager", "Rp1ResearchCommands"),
+            new Rp1TypeTarget(Rp0, "RP0.Database", "Rp1ResearchCommands"),
+            new Rp1TypeTarget(Rp0, "RP0.KCTUtilities", "Rp1ResearchCommands"),
+            new Rp1TypeTarget(Rp0, "RP0.CurrencyModifierQueryRP0", "Rp1ResearchCommands"),
+            new Rp1TypeTarget(Rp0, "RP0.TransactionReasonsRP0", "Rp1ResearchCommands"),
+            new Rp1TypeTarget(Rp0, "RP0.CurrencyRP0", "Rp1ResearchCommands"),
             new Rp1TypeTarget(Rp0, "RP0.Crew.CrewHandler", "Rp1CrewReflection"),
             new Rp1TypeTarget(Rp0, "RP0.Programs.ProgramHandler", "Rp1ProgramsReflection"),
         };
@@ -172,6 +184,11 @@ namespace GonogoRp1Uplink.Tests
             new Rp1EnumMemberTarget(Rp0, "RP0.TransactionReasonsRP0", "SalaryResearchers", "Rp1EconomyUpkeepQuery"),
             new Rp1EnumMemberTarget(Rp0, "RP0.TransactionReasonsRP0", "SalaryCrew", "Rp1EconomyUpkeepQuery"),
             new Rp1EnumMemberTarget(Rp0, "RP0.TransactionReasonsRP0", "CrewTraining", "Rp1EconomyUpkeepQuery"),
+            // The reason a tech node is priced and charged under, named to
+            // Enum.Parse on both RP-1's flags enum and KSP's own of the same
+            // member name. Only RP-1's half is checkable from here.
+            new Rp1EnumMemberTarget(Rp0, "RP0.TransactionReasonsRP0", "RnDTechResearch", "Rp1ResearchCommands"),
+            new Rp1EnumMemberTarget(Rp0, "RP0.CurrencyRP0", "Science", "Rp1ResearchCommands"),
         };
 
         public static IReadOnlyList<Rp1ConstructorTarget> Constructors { get; } = new[]
@@ -184,6 +201,12 @@ namespace GonogoRp1Uplink.Tests
             // FOUR parameters with the last defaulted, because a reflected invoke
             // applies no defaults and has to pass all four.
             new Rp1ConstructorTarget(Rp0, "RP0.ReconRolloutProject", 4, "Rp1VehicleCommands"),
+            // The PARAMETERLESS one, and the arity matters as much here as the
+            // four above: it is the constructor that seeds workRate to 1 and the
+            // two lazy -1 rate sentinels, none of which Load(ConfigNode) sets. A
+            // release that gave it a parameter would leave this command building
+            // a project through whatever else arity 0 matched, or nothing.
+            new Rp1ConstructorTarget(Rp0, "RP0.ResearchProject", 0, "Rp1ResearchCommands"),
         };
 
         public static IReadOnlyList<Rp1MethodTarget> Methods { get; } = new[]
@@ -237,6 +260,19 @@ namespace GonogoRp1Uplink.Tests
             new Rp1MethodTarget(Rp0, "RP0.MaintenanceHandler", "LCUpkeep", 1, false, "Rp1ScReflection"),
             new Rp1MethodTarget(Rp0, "RP0.SpaceCenterManagement", "GetEffectiveEngineersForSalary", 1, false, "Rp1ScReflection"),
             new Rp1MethodTarget(Rp0, "RP0.SpaceCenterManagement", "GetEffectiveIntegrationEngineersForSalary", 1, false, "Rp1ScReflection"),
+
+            // The research queue's write half. Load is RP-1's OWN deserialiser
+            // and is the whole route: this Uplink authors a ConfigNode and RP-1
+            // reconstructs the project from it, so none of RP-1's arithmetic is
+            // reproduced anywhere. A rename here takes the command out with a
+            // sentence naming the member rather than silently queuing nothing.
+            new Rp1MethodTarget(Rp0, "RP0.ResearchProject", "Load", 1, false, "Rp1ResearchCommands"),
+            new Rp1MethodTarget(Rp0, "RP0.ResearchProject", "UpdateBuildRate", 1, false, "Rp1ResearchCommands"),
+            new Rp1MethodTarget(Rp0, "RP0.SpaceCenterManagement", "TechListHas", 1, false, "Rp1ResearchCommands"),
+            new Rp1MethodTarget(Rp0, "RP0.KCTUtilities", "AddNodePartsToExperimental", 1, true, "Rp1ResearchCommands"),
+            new Rp1MethodTarget(Rp0, "RP0.CurrencyModifierQueryRP0", "RunQuery", 4, true, "Rp1ResearchCommands"),
+            new Rp1MethodTarget(Rp0, "RP0.CurrencyModifierQueryRP0", "CanAfford", 1, false, "Rp1ResearchCommands"),
+            new Rp1MethodTarget(Rp0, "RP0.CurrencyModifierQueryRP0", "GetTotal", 2, false, "Rp1ResearchCommands"),
         };
 
         public static IReadOnlyList<Rp1MemberTarget> Members { get; } = BuildMembers();
@@ -257,6 +293,32 @@ namespace GonogoRp1Uplink.Tests
             ["name"] = "checked on RP-1's own types; ALSO KSP's ProtoCrewMember.name, read off the students in a training course",
             ["Item1"] = "System.ValueTuple, the (id, displayName) pair KSCSwitcherInterop.GetAvailableSites returns; RP-1 names neither half",
             ["Item2"] = "System.ValueTuple, the (id, displayName) pair KSCSwitcherInterop.GetAvailableSites returns; RP-1 names neither half",
+            // KSP's own, and the reason the research command needs them: it does
+            // not merely read RP-1, it AUTHORS a ConfigNode and charges a
+            // currency, and both of those are KSP's to declare. Nothing in RP0.dll
+            // can be held to account for any of these, so they are named here with
+            // what they are rather than left to look like an oversight.
+            ["ResearchAndDevelopment"] = "KSP's R&D scenario module, the science ledger and the tech-state table",
+            ["AssetBase"] = "KSP's asset singleton, the only route to the loaded tech tree",
+            ["ConfigNode"] = "KSP's config tree, which the research command authors for RP-1's own Load to parse",
+            ["GameVariables"] = "KSP's difficulty curves, which price the R&D complex's science-cost ceiling",
+            ["ScenarioUpgradeableFacilities"] = "KSP's facility-level module, read at the R&D complex",
+            ["TransactionReasons"] = "KSP's own transaction-reason enum (RP0.TransactionReasonsRP0 mirrors it and IS checked)",
+            ["RnDTechTree"] = "AssetBase.RnDTechTree, KSP's loaded tech tree",
+            ["GetTreeTechs"] = "RDTechTree.GetTreeTechs, KSP's own",
+            ["GetTechnologyState"] = "ResearchAndDevelopment.GetTechnologyState, KSP's own, and the PLAYER's state rather than the tree asset's",
+            ["GetTechnologyTitle"] = "ResearchAndDevelopment.GetTechnologyTitle, KSP's own",
+            ["GetTechState"] = "ResearchAndDevelopment.GetTechState, KSP's own, read for the parts already purchased off a node",
+            ["AddScience"] = "ResearchAndDevelopment.AddScience, KSP's own signature; RP-1 replaces the BODY with a Harmony prefix and leaves the member alone",
+            ["Science"] = "ResearchAndDevelopment.Science, read only to put a balance beside a refusal (and also the name of RP0.CurrencyRP0.Science, which IS checked)",
+            ["GetFacilityLevel"] = "ScenarioUpgradeableFacilities.GetFacilityLevel, KSP's own, the string overload",
+            ["GetScienceCostLimit"] = "GameVariables.GetScienceCostLimit, KSP's own",
+            ["AddValue"] = "ConfigNode.AddValue, KSP's own, resolved by exact parameter types because a dozen overloads share its arity",
+            ["AddNode"] = "ConfigNode.AddNode, KSP's own",
+            ["partsPurchased"] = "ProtoTechNode.partsPurchased, KSP's own, copied out by part name into the authored node",
+            ["Key"] = "System.Collections.Generic.KeyValuePair, walked over RP-1's TechNodePeriods rather than casting to a generic dictionary from another assembly",
+            ["Value"] = "System.Collections.Generic.KeyValuePair, the other half of the same walk",
+            ["Count"] = "the list's own Count, on whatever collection SpaceCenterManagement.TechList hands back",
             ["x"] = "UnityEngine.Vector3, read off LaunchComplex.SizeMax and VesselProject.ShipSize",
             ["y"] = "UnityEngine.Vector3, read off LaunchComplex.SizeMax and VesselProject.ShipSize",
             ["z"] = "UnityEngine.Vector3, read off LaunchComplex.SizeMax and VesselProject.ShipSize",
@@ -601,6 +663,32 @@ namespace GonogoRp1Uplink.Tests
             Add("RP0.Programs.ProgramModifier", "fundingCurve", Rp1Reader.Text, Programs);
             Add("RP0.Programs.ProgramModifier", "repDeltaOnCompletePerYearEarly", Rp1Reader.Numeric, Programs);
             Add("RP0.Programs.ProgramModifier", "repPenaltyPerYearLate", Rp1Reader.Numeric, Programs);
+
+            // ── The research queue's write half ─────────────────────────────
+            const string Research = "Rp1ResearchCommands";
+
+            // Whether RP-1 queues research in this save at all, which its own
+            // Harmony prefix asks before anything else. All three have to hold or
+            // the prefix lets the stock instant unlock through, and a project
+            // queued in that save is one nothing will work through.
+            Add("RP0.PresetManager", "Instance", Rp1Reader.Presence, Research, @static: true);
+            Add("RP0.PresetManager", "ActivePreset", Rp1Reader.Presence, Research);
+            Add("RP0.KCT_Preset", "GeneralSettings", Rp1Reader.Presence, Research);
+            Add("RP0.KCT_Preset_General", "Enabled", Rp1Reader.Bool, Research);
+            Add("RP0.KCT_Preset_General", "TechUnlockTimes", Rp1Reader.Bool, Research);
+            Add("RP0.KCT_Preset_General", "BuildTimes", Rp1Reader.Bool, Research);
+
+            // The era table, and the two ints out of it that decide a node's
+            // research RATE. A wrong pair here is the quietest failure this
+            // command has: the node queues, it is charged correctly, and it
+            // researches at the wrong speed for the rest of the career.
+            Add("RP0.Database", "TechNodePeriods", Rp1Reader.Presence, Research, @static: true);
+            Add("RP0.TechPeriod", "startYear", Rp1Reader.Numeric, Research);
+            Add("RP0.TechPeriod", "endYear", Rp1Reader.Numeric, Research);
+
+            Add("RP0.SpaceCenterManagement", "Instance", Rp1Reader.Presence, Research, @static: true);
+            Add("RP0.SpaceCenterManagement", "enabledForSave", Rp1Reader.Bool, Research);
+            Add("RP0.SpaceCenterManagement", "TechList", Rp1Reader.Presence, Research);
 
             // ── ROUtils, which ships beside RP-1 and owns these two shapes ──
             AddRo("ROUtils.HermiteCurve+Key", "time", Rp1Reader.Numeric, Programs);

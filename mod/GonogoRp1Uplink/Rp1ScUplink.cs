@@ -164,6 +164,14 @@ namespace GonogoRp1Uplink
         /// complex is infrastructure.
         /// </summary>
         private readonly Rp1PersonnelCommands _staffing = new Rp1PersonnelCommands();
+
+        /// <summary>
+        /// The command <see cref="Rp1CareerProjectGate"/>'s tech refusal defers
+        /// to: the RP-1-native way to start researching a node, in this Uplink's
+        /// own namespace, the way rp1.build.repeat is its own command rather than
+        /// a redefinition of ksp.launch.
+        /// </summary>
+        private readonly Rp1ResearchCommands _researchCommands = new Rp1ResearchCommands();
         /// The command that starts a design the space centre has never held, from
         /// one of the save's own craft files. Its own reader for the reason the two
         /// above are, and it holds a LAZY route to core's craft catalogue rather
@@ -268,7 +276,7 @@ namespace GonogoRp1Uplink
             _start = new Rp1BuildStartCommands(Catalogue);
             Manifest = BuildManifest(
                 _build.IsAvailable, _vehicles.IsAvailable, _vehicles.IsMoveAvailable,
-                _staffing.IsAvailable, _start.IsAvailable);
+                _staffing.IsAvailable, _start.IsAvailable, _researchCommands.IsAvailable);
             _crewStanding = new Rp1CrewStandingBackend(_crew);
             _economy = new Rp1EconomyBackend(_upkeepQuery);
         }
@@ -278,7 +286,8 @@ namespace GonogoRp1Uplink
             bool queueModelResolved,
             bool moveModelResolved,
             bool staffingModelResolved,
-            bool startModelResolved) => new UplinkManifest
+            bool startModelResolved,
+            bool researchModelResolved) => new UplinkManifest
         {
             Id = "rp1",
             Version = "1.0.0",
@@ -342,7 +351,7 @@ namespace GonogoRp1Uplink
             // has no delay UX.
             Commands = DeclareCommands(
                 buildModelResolved, queueModelResolved, moveModelResolved,
-                staffingModelResolved, startModelResolved),
+                staffingModelResolved, startModelResolved, researchModelResolved),
         };
 
         /// <summary>
@@ -367,7 +376,8 @@ namespace GonogoRp1Uplink
             bool queueModelResolved,
             bool moveModelResolved,
             bool staffingModelResolved,
-            bool startModelResolved)
+            bool startModelResolved,
+            bool researchModelResolved)
         {
             var commands = new List<CommandDeclaration>();
             if (buildModelResolved)
@@ -409,6 +419,14 @@ namespace GonogoRp1Uplink
             if (staffingModelResolved)
             {
                 commands.Add(Declare(Rp1PersonnelCommands.AssignCommand));
+            }
+            // Its own flag again, and a genuinely different dependency: research
+            // is the only command here that AUTHORS a ConfigNode and charges a
+            // currency, so it needs KSP's own types as well as RP-1's and a
+            // rename on either side should cost this command and nothing else.
+            if (researchModelResolved)
+            {
+                commands.Add(Declare(Rp1ResearchCommands.ResearchCommand));
             }
             return commands;
         }
@@ -537,7 +555,8 @@ namespace GonogoRp1Uplink
                 // declared, not when the repeat build is: it answers the one
                 // requirement they all declare, and a declaration without its
                 // evaluator is a startup failure.
-                if (_build.IsAvailable || _vehicles.IsAvailable || _staffing.IsAvailable)
+                if (_build.IsAvailable || _vehicles.IsAvailable || _staffing.IsAvailable
+                    || _researchCommands.IsAvailable)
                 {
                     host.AddGateEvaluator(_build);
                 }
@@ -570,6 +589,11 @@ namespace GonogoRp1Uplink
                 {
                     host.AddCommandHandler<Rp1PersonnelAssignArgs, CommandResult>(
                         Rp1PersonnelCommands.AssignCommand, _staffing.Assign);
+                }
+                if (_researchCommands.IsAvailable)
+                {
+                    host.AddCommandHandler<Rp1TechResearchArgs, CommandResult>(
+                        Rp1ResearchCommands.ResearchCommand, _researchCommands.Research);
                 }
             }
             catch (Exception ex)
@@ -937,6 +961,16 @@ namespace GonogoRp1Uplink
                     !_staffing.IsAvailable
                         ? "not registered: RP-1 space-centre types not found"
                         : "rp1.personnel.assign registered (" + _staffing.MethodDiagnosis() + ")"),
+                // Its own fact, and the one on this list an operator is most
+                // likely to come looking for: career.tech.unlock is REFUSED under
+                // a managed save, so if this command is missing there is no way to
+                // research anything from the board at all, and a refusal with no
+                // reason reads as a feature nobody wrote.
+                new UplinkHealthFact(
+                    "research command",
+                    !_researchCommands.IsAvailable
+                        ? "not registered: " + _researchCommands.MethodDiagnosis()
+                        : "rp1.tech.research registered (" + _researchCommands.MethodDiagnosis() + ")"),
                 new UplinkHealthFact(
                     "simulation provider",
                     _simulationRegistrationError != null

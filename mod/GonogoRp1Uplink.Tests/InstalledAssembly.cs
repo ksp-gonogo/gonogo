@@ -188,6 +188,75 @@ namespace GonogoRp1Uplink.Tests
         }
 
         /// <summary>
+        /// The names of a type's OWN fields carrying the named attribute, in
+        /// declaration order.
+        /// </summary>
+        /// <remarks>
+        /// Reads the attribute rather than a list somebody wrote down, which is
+        /// the whole of its value: the research command authors a ConfigNode for
+        /// <c>ConfigNode.LoadObjectFromConfig</c> to parse, and that method is
+        /// driven by <c>[Persistent]</c>. A key the command forgets is not an
+        /// error at load time, it silently leaves the field at its default, so
+        /// the only check that can see it is one that asks the SHIPPED assembly
+        /// which fields carry the attribute.
+        ///
+        /// <para>Own fields only, not the base chain: <c>ResearchProject</c>
+        /// derives from nothing of RP-1's, and a base walk would fold in
+        /// persistent fields of a base type the caller is not authoring
+        /// for.</para>
+        /// </remarks>
+        public IReadOnlyList<string> FieldsWithAttribute(string typeFullName, string attributeFullName)
+        {
+            var names = new List<string>();
+            if (!_types.TryGetValue(typeFullName, out var handle))
+            {
+                return names;
+            }
+            foreach (var fieldHandle in _md.GetTypeDefinition(handle).GetFields())
+            {
+                var field = _md.GetFieldDefinition(fieldHandle);
+                foreach (var attributeHandle in field.GetCustomAttributes())
+                {
+                    if (AttributeTypeName(_md.GetCustomAttribute(attributeHandle)) == attributeFullName)
+                    {
+                        names.Add(_md.GetString(field.Name));
+                        break;
+                    }
+                }
+            }
+            return names;
+        }
+
+        /// <summary>
+        /// The full name of an attribute's own type, from whichever handle kind
+        /// its constructor arrived as.
+        /// </summary>
+        private string? AttributeTypeName(CustomAttribute attribute)
+        {
+            switch (attribute.Constructor.Kind)
+            {
+                case HandleKind.MemberReference:
+                {
+                    var reference = _md.GetMemberReference((MemberReferenceHandle)attribute.Constructor);
+                    switch (reference.Parent.Kind)
+                    {
+                        case HandleKind.TypeReference:
+                            return TypeReferenceName((TypeReferenceHandle)reference.Parent);
+                        case HandleKind.TypeDefinition:
+                            return FullName((TypeDefinitionHandle)reference.Parent);
+                        default:
+                            return null;
+                    }
+                }
+                case HandleKind.MethodDefinition:
+                    return FullName(_md.GetMethodDefinition(
+                        (MethodDefinitionHandle)attribute.Constructor).GetDeclaringType());
+                default:
+                    return null;
+            }
+        }
+
+        /// <summary>
         /// Whether a type name resolves in this assembly to an enum. Absent means
         /// the type is somebody else's (KSP's <c>SpaceCenterFacility</c> is the
         /// case that matters), which is not a failure and is reported as such.

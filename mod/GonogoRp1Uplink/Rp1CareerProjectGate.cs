@@ -29,6 +29,11 @@
 // stock write, and the queue it names is already on the board: rp1.constructions
 // and rp1.research publish both.
 //
+// THE RESEARCH HALF NOW HAS ITS COMMAND. rp1.tech.research (Rp1ResearchCommands)
+// is the RP-1-native act this refusal describes, so the tech sentence names it.
+// The facility half still names a place rather than a command, because the
+// construction-project equivalent has not been written.
+//
 // WHAT IS READ, and why each is safe:
 //
 //   SpaceCenterManagement.Instance / .enabledForSave
@@ -88,10 +93,18 @@ namespace GonogoRp1Uplink
             "RP-1 builds a facility upgrade as a construction project with its own cost and duration, "
             + "so it has to be started at the space centre rather than bought outright";
 
-        /// <summary>The research half of <see cref="FacilityDetail"/>.</summary>
+        /// <summary>
+        /// The research half of <see cref="FacilityDetail"/>, and the one that
+        /// now NAMES the command it defers to. This file's header said that
+        /// command belonged in this Uplink's own namespace and it has since been
+        /// written, so leaving the refusal pointing only at the R&amp;D complex
+        /// would send an operator into the game for something on their own board.
+        /// The facility half still names a place, because its own command does
+        /// not exist yet.
+        /// </summary>
         private const string TechDetail =
             "RP-1 researches a tech node as a queued project with its own duration, "
-            + "so it has to be started at the R&D complex rather than bought outright";
+            + "so it has to be queued rather than bought outright. Use rp1.tech.research";
 
         private readonly Type? _scm;
 

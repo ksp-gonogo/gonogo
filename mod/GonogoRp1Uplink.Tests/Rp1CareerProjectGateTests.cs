@@ -154,7 +154,7 @@ namespace GonogoRp1Uplink.Tests
             Assert.Equal(CommandErrorCode.ModeUnavailable, verdict.ErrorCode);
             Assert.Equal(
                 "RP-1 researches a tech node as a queued project with its own duration, "
-                + "so it has to be started at the R&D complex rather than bought outright",
+                + "so it has to be queued rather than bought outright. Use rp1.tech.research",
                 verdict.Detail);
         }
 
