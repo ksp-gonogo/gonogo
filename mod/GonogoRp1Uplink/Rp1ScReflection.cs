@@ -88,6 +88,7 @@ namespace GonogoRp1Uplink
         private const string ScmTypeName = "RP0.SpaceCenterManagement";
         private const string ConfidenceTypeName = "RP0.Confidence";
         private const string EfficiencyTypeName = "RP0.LCEfficiency";
+        private const string KscSwitcherInteropTypeName = "RP0.KSCSwitcherInterop";
         private const string DatabaseTypeName = "RP0.Database";
         private const string MaintenanceTypeName = "RP0.MaintenanceHandler";
 
@@ -100,12 +101,21 @@ namespace GonogoRp1Uplink
         private readonly Type? _scm;
         private readonly Type? _confidence;
         private readonly Type? _lcEfficiency;
+        private readonly Type? _kscSwitcherInterop;
         private readonly Type? _database;
         private readonly Type? _maintenance;
 
         /// <summary>Cached MethodInfo per (type, method): the one member kind read by invoke rather than by value.</summary>
         private readonly Dictionary<string, MemberInfo?> _methods = new Dictionary<string, MemberInfo?>();
         private readonly Dictionary<string, string?> _groundStations = new Dictionary<string, string?>();
+
+        /// <summary>
+        /// Site id to display name, built once. KSCSwitcher's site list is
+        /// config loaded at game start and does not move, and RP-1's own getter
+        /// allocates and sorts a fresh list per call, so asking it every tick
+        /// would buy nothing.
+        /// </summary>
+        private Dictionary<string, string>? _displayNames;
 
         /// <summary>
         /// RP-1 is installed. Gated on the TYPE resolving, never on an assembly
@@ -132,6 +142,7 @@ namespace GonogoRp1Uplink
             _scm = Rp1Types.Find(ScmTypeName);
             _confidence = Rp1Types.Find(ConfidenceTypeName);
             _lcEfficiency = Rp1Types.Find(EfficiencyTypeName);
+            _kscSwitcherInterop = Rp1Types.Find(KscSwitcherInteropTypeName);
             _database = Rp1Types.Find(DatabaseTypeName);
             _maintenance = Rp1Types.Find(MaintenanceTypeName);
 
@@ -252,6 +263,7 @@ namespace GonogoRp1Uplink
                 raw.Centres.Add(new Rp1CentreRaw
                 {
                     KscName = kscName,
+                    KscDisplayName = DisplayNameFor(kscName),
                     IsActive = ReferenceEquals(ksc, Member(scm, "ActiveSC")),
                     Engineers = kscEngineers,
                     UnassignedEngineers = kscEngineers - assignedEngineers,
@@ -322,6 +334,7 @@ namespace GonogoRp1Uplink
             raw.Complexes.Add(new Rp1ComplexRaw
             {
                 KscName = kscName,
+                KscDisplayName = DisplayNameFor(kscName),
                 LcId = lcId,
                 Name = ReadString(lc, "Name"),
                 LcType = lcType,
@@ -330,11 +343,17 @@ namespace GonogoRp1Uplink
                 Engineers = engineers,
                 MaxEngineers = maxEngineers,
                 Efficiency = efficiency,
+                EfficiencySharedWith = SharedWith(efficiencySource, lcId),
                 CanIntegrate = canIntegrate,
                 Rate = ReadDouble(lc, "Rate"),
                 HumanRated = ReadBool(lc, "IsHumanRated") == true,
+                // Straight through, with no NonPositiveAsAbsent: zero operational
+                // pads is the state a complex under construction is in, and
+                // reporting it as "not said" would hide the reason it cannot fly.
+                LaunchPadCount = ReadInt(lc, "LaunchPadCount"),
                 MassMin = ReadDouble(lc, "MassMin"),
                 MassMax = UnlimitedAsAbsent(ReadDouble(lc, "MassMax")),
+                MassOrig = UnlimitedAsAbsent(ReadDouble(lc, "MassOrig")),
                 SizeMaxHeight = SizeAxis(lc, "y"),
                 SizeMaxWidth = SizeAxis(lc, "x"),
                 SizeMaxDepth = SizeAxis(lc, "z"),
@@ -1033,6 +1052,105 @@ namespace GonogoRp1Uplink
             }
             _groundStations[key] = value;
             return value;
+        }
+
+        /// <summary>
+        /// What to call a space centre, from KSCSwitcher's own site config by way
+        /// of RP-1's interop shim.
+        /// </summary>
+        /// <remarks>
+        /// Absent on two conditions and they are both real. KSCSwitcher not
+        /// installed is a whole class of RP-1 career and RP-1 answers null for
+        /// it. A site with no display name of its own is the second, and RP-1
+        /// substitutes the id there: that substitution is dropped rather than
+        /// republished, because a name field carrying <c>us_cape_canaveral</c> is
+        /// the bug this field exists to fix, wearing the fix's name. A client
+        /// falls back to the id in both cases and gets what the game shows.
+        /// </remarks>
+        private string? DisplayNameFor(string? kscName)
+        {
+            if (kscName == null)
+            {
+                return null;
+            }
+            return DisplayNames().TryGetValue(kscName, out var display) ? display : null;
+        }
+
+        private Dictionary<string, string> DisplayNames()
+        {
+            if (_displayNames != null)
+            {
+                return _displayNames;
+            }
+            var map = new Dictionary<string, string>(StringComparer.Ordinal);
+            try
+            {
+                var sites = _kscSwitcherInterop == null
+                    ? null
+                    : Rp1Types.StaticMethod(_kscSwitcherInterop, "GetAvailableSites", 0)?.Invoke(null, null);
+                foreach (var site in Enumerate(sites))
+                {
+                    // A ValueTuple of (id, displayName), so the pair arrives as
+                    // two public fields rather than as anything named.
+                    var id = Member(site, "Item1") as string;
+                    var display = Member(site, "Item2") as string;
+                    if (!string.IsNullOrEmpty(id)
+                        && !string.IsNullOrEmpty(display)
+                        && !string.Equals(id, display, StringComparison.Ordinal))
+                    {
+                        map[id!] = display!;
+                    }
+                }
+            }
+            catch (Exception)
+            {
+                // fail-soft: an unreadable site list leaves every centre naming
+                // itself by its id, which is where this Uplink already was
+            }
+            _displayNames = map;
+            return map;
+        }
+
+        /// <summary>
+        /// The other complexes attached to one <c>LCEfficiency</c> record, by id.
+        /// </summary>
+        /// <remarks>
+        /// Read off the record's live <c>_lcs</c> list rather than its persisted
+        /// <c>_lcIDs</c>: relinking prunes ids whose complex no longer exists, so
+        /// the persisted list can name a complex that is not in
+        /// <c>rp1.complexes</c> and a client joining on it would find nothing.
+        ///
+        /// <para>The record itself is passed in, never fetched here. Asking a
+        /// complex for its <c>EfficiencySource</c> CONSTRUCTS and PERSISTS one on
+        /// a miss, which is the trap the whole efficiency read is arranged
+        /// around; the caller has already looked it up through
+        /// <c>LCToEfficiency</c> and a miss stays a miss.</para>
+        /// </remarks>
+        private List<string>? SharedWith(object? efficiencySource, string? selfId)
+        {
+            if (efficiencySource == null)
+            {
+                return null;
+            }
+            var peers = new List<string>();
+            try
+            {
+                foreach (var lc in Enumerate(Member(efficiencySource, "_lcs")))
+                {
+                    var id = ReadGuidString(lc, "ID");
+                    if (id != null && !string.Equals(id, selfId, StringComparison.Ordinal))
+                    {
+                        peers.Add(id);
+                    }
+                }
+            }
+            catch (Exception)
+            {
+                // fail-soft: an unreadable member list is no peers rather than no
+                // record, because the record demonstrably exists
+            }
+            peers.Sort(StringComparer.Ordinal);
+            return peers;
         }
 
         // ── Reflection primitives ────────────────────────────────────────────

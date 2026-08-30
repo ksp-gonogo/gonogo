@@ -9,7 +9,7 @@ Brings RP-1's career layer to the dashboard: Programs with their objectives, dea
 | --- | --- |
 | Uplink id | `rp1` |
 | Version | `0.0.1` |
-| Built against | contract 14.4, api 1.0.0, ui-kit 0.2.0 |
+| Built against | contract 14.5, api 1.0.0, ui-kit 0.2.0 |
 
 ## Wire
 
@@ -36,7 +36,7 @@ Brings RP-1's career layer to the dashboard: Programs with their objectives, dea
 
 | Payload | Fields |
 | --- | --- |
-| `Rp1BuildableComplex` | `eligible` flag, `kscName` id, `lcId` id, `name` text, `refusals` text |
+| `Rp1BuildableComplex` | `eligible` flag, `kscDisplayName` text, `kscName` id, `lcId` id, `name` text, `refusals` text |
 | `Rp1BuildRepeatArgs` | `id` id |
 | `Rp1BuildStartArgs` | `craftFile` id, `facility` enum, `lcId` id |
 | `Rp1ComplexRushArgs` | `lcId` id, `rushing` flag |
@@ -156,7 +156,7 @@ Every craft RP-1 is integrating, holding or could start, across every launch com
 
 ![RP-1 is present and has answered for nothing: every count reads as the null token and the missing centre is stated rather than left as a gap](docs/assets/personnel-unanswered--default.png)
 
-![Two space centres with their launch complexes nested under each, and SLC-3 staffed by nobody while Vandenberg's whole pool sits idle](docs/assets/two-centres-unstaffed--default.png)
+![Two space centres with their launch complexes nested under each, each named the way an operator names it rather than by the site id the save keys it on, and SLC-3 staffed by nobody while Vandenberg's whole pool sits idle](docs/assets/two-centres-unstaffed--default.png)
 
 ![A modification, which takes the complex out of service and idles its engineers: the one row whose detail line is a warning rather than a label](docs/assets/construction-complex-modify--default.png)
 

@@ -136,6 +136,7 @@ namespace GonogoRp1Uplink
                 LcId = complex.LcId,
                 Name = complex.Name,
                 KscName = complex.KscName,
+                KscDisplayName = complex.KscDisplayName,
                 Eligible = refusals.Count == 0,
                 Refusals = refusals.ToArray(),
             };

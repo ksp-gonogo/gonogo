@@ -397,6 +397,109 @@ describe("KscComplexes", () => {
     expect(text).not.toContain("earns no efficiency while it runs");
   });
 
+  it("names the centre the way people name it, not the way the save keys it", async () => {
+    withCentre(
+      [{ ...COMPLEXES[0], kscDisplayName: "Cape Canaveral" }],
+      [
+        {
+          ...CAPE,
+          kscDisplayName: "Cape Canaveral",
+          kscName: "us_cape_canaveral",
+        },
+      ],
+    );
+
+    await waitFor(() => {
+      expect(screen.getByText("Cape Canaveral")).toBeInTheDocument();
+    });
+    expect(screen.queryByText("us_cape_canaveral")).not.toBeInTheDocument();
+  });
+
+  it("falls back to the id on an install with no KSCSwitcher", async () => {
+    // Most installs. RP-1 answers null for the display name there, and the id is
+    // what the game itself shows, so it is what we show too.
+    withCentre([COMPLEXES[0]], [{ ...CAPE, kscName: "Stock" }]);
+
+    await waitFor(() => {
+      expect(screen.getByText("Stock")).toBeInTheDocument();
+    });
+  });
+
+  it("states the renovation envelope from the tonnage the complex was BUILT at", async () => {
+    // 60t original, already renovated up to 180. The bounds are 30 to 120, both
+    // off the original: a client working from massMax would offer 360.
+    const { view } = withCentre([
+      { ...COMPLEXES[0], massMax: 180, massOrig: 60 },
+    ]);
+
+    await waitFor(() => {
+      expect(screen.getByText("LC-1")).toBeInTheDocument();
+    });
+    const text = view.container.textContent ?? "";
+    expect(text).toMatch(/renovation is capped between/);
+    expect(text).toMatch(/30/);
+    expect(text).toMatch(/120/);
+    expect(text).not.toMatch(/360/);
+  });
+
+  it("says nothing about renovating a complex whose original tonnage is absent", async () => {
+    // The hangar, and any reading RP-1 did not give. An envelope of 3t to 1t is
+    // what a substituted zero computes, and it would be printed with the same
+    // confidence as a real one.
+    const { view } = withCentre([{ ...COMPLEXES[0], massOrig: undefined }]);
+
+    await waitFor(() => {
+      expect(screen.getByText("LC-1")).toBeInTheDocument();
+    });
+    expect(view.container.textContent ?? "").not.toMatch(
+      /renovation is capped/,
+    );
+  });
+
+  it("names the complexes this one's crew rating is shared with", async () => {
+    const { view } = withCentre([
+      { ...COMPLEXES[0], efficiency: 0.62, efficiencySharedWith: ["lc-2"] },
+      { ...COMPLEXES[1], efficiency: 0.62, efficiencySharedWith: ["lc-1"] },
+    ]);
+
+    await waitFor(() => {
+      expect(screen.getByText("LC-1")).toBeInTheDocument();
+    });
+    const text = view.container.textContent ?? "";
+    // By NAME, not by the guid the wire joins on.
+    expect(text).toContain("crew rating shared with LC-2");
+    expect(text).toContain("crew rating shared with LC-1");
+  });
+
+  it("says nothing about sharing when the rating is this complex's alone", async () => {
+    const { view } = withCentre([
+      { ...COMPLEXES[0], efficiency: 0.62, efficiencySharedWith: [] },
+    ]);
+
+    await waitFor(() => {
+      expect(screen.getByText("LC-1")).toBeInTheDocument();
+    });
+    expect(view.container.textContent ?? "").not.toContain(
+      "crew rating shared",
+    );
+  });
+
+  it("counts the pads that WORK, and says when the last one cannot go", async () => {
+    const { view } = withCentre([
+      { ...COMPLEXES[0], launchPadCount: 1 },
+      { ...COMPLEXES[1], launchPadCount: 3 },
+    ]);
+
+    await waitFor(() => {
+      expect(screen.getByText("LC-1")).toBeInTheDocument();
+    });
+    const text = view.container.textContent ?? "";
+    expect(text).toContain("1 operational, so none can be dismantled");
+    expect(text).toContain("3 operational");
+    // The warning belongs to the complex that is down to one, not to both.
+    expect(text.match(/so none can be dismantled/g)).toHaveLength(1);
+  });
+
   it("names the pads under the complex that owns them", async () => {
     withCentre();
 

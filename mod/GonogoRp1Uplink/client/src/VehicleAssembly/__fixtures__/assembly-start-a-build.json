@@ -5,7 +5,7 @@
   "_scene": {
     "widget": "rp1-vehicle-assembly",
     "size": { "w": 8, "h": 20 },
-    "caption": "A career with nothing built and three saved craft: Atlas buildable at either complex, Redstone at LC-2 only with LC-1's mass floor spelled out, and Saturn I too heavy for both with each complex's limit named, every button confirming a price against the balance drawn at the top",
+    "caption": "A career whose centre has a name rather than a site id, with nothing built and three saved craft: Atlas buildable at either complex, Redstone at LC-2 only with LC-1's mass floor spelled out, and Saturn I too heavy for both with each complex's limit named, every button confirming a price against the balance drawn at the top",
     "paints": [
       "ASSEMBLY",
       "289,848f",
@@ -19,7 +19,8 @@
       "too light for the complex",
       "costs about",
       "None built and none on order.",
-      "Launch complexes:"
+      "Launch complexes:",
+      "Cape Canaveral"
     ]
   },
   "_stream": {
@@ -36,7 +37,8 @@
         "topic": "rp1.complexes",
         "payload": [
           {
-            "kscName": "Cape",
+            "kscName": "us_cape_canaveral",
+            "kscDisplayName": "Cape Canaveral",
             "lcId": "lc-1",
             "name": "LC-1",
             "lcType": "Pad",
@@ -52,7 +54,8 @@
             "massMax": 180
           },
           {
-            "kscName": "Cape",
+            "kscName": "us_cape_canaveral",
+            "kscDisplayName": "Cape Canaveral",
             "lcId": "lc-2",
             "name": "LC-2",
             "lcType": "Pad",
@@ -73,7 +76,7 @@
         "topic": "rp1.pads",
         "payload": [
           {
-            "kscName": "Cape",
+            "kscName": "us_cape_canaveral",
             "lcId": "lc-1",
             "padId": "pad-1",
             "name": "LaunchPad",
@@ -85,7 +88,7 @@
             "waitingVesselName": null
           },
           {
-            "kscName": "Cape",
+            "kscName": "us_cape_canaveral",
             "lcId": "lc-2",
             "padId": "pad-2",
             "name": "LaunchPad 2",
@@ -118,14 +121,16 @@
               {
                 "lcId": "lc-1",
                 "name": "LC-1",
-                "kscName": "Cape",
+                "kscName": "us_cape_canaveral",
+                "kscDisplayName": "Cape Canaveral",
                 "eligible": true,
                 "refusals": []
               },
               {
                 "lcId": "lc-2",
                 "name": "LC-2",
-                "kscName": "Cape",
+                "kscName": "us_cape_canaveral",
+                "kscDisplayName": "Cape Canaveral",
                 "eligible": true,
                 "refusals": []
               }
@@ -145,7 +150,8 @@
               {
                 "lcId": "lc-1",
                 "name": "LC-1",
-                "kscName": "Cape",
+                "kscName": "us_cape_canaveral",
+                "kscDisplayName": "Cape Canaveral",
                 "eligible": false,
                 "refusals": [
                   "too light for the complex at 30.0 t, minimum 40.0 t"
@@ -154,7 +160,8 @@
               {
                 "lcId": "lc-2",
                 "name": "LC-2",
-                "kscName": "Cape",
+                "kscName": "us_cape_canaveral",
+                "kscDisplayName": "Cape Canaveral",
                 "eligible": true,
                 "refusals": []
               }
@@ -174,7 +181,8 @@
               {
                 "lcId": "lc-1",
                 "name": "LC-1",
-                "kscName": "Cape",
+                "kscName": "us_cape_canaveral",
+                "kscDisplayName": "Cape Canaveral",
                 "eligible": false,
                 "refusals": [
                   "too heavy for the complex at 512.0 t, limit 180.0 t"
@@ -183,7 +191,8 @@
               {
                 "lcId": "lc-2",
                 "name": "LC-2",
-                "kscName": "Cape",
+                "kscName": "us_cape_canaveral",
+                "kscDisplayName": "Cape Canaveral",
                 "eligible": false,
                 "refusals": [
                   "too heavy for the complex at 512.0 t, limit 130.0 t"

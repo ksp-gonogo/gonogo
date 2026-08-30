@@ -121,6 +121,7 @@ namespace GonogoRp1Uplink.Tests
             new Rp1TypeTarget(Rp0, "RP0.SpaceCenterManagement", "Rp1ScReflection, Rp1LaunchGate, Rp1CareerProjectGate, Rp1BuildCommands, Rp1DerivedCurrencyWithholder"),
             new Rp1TypeTarget(Rp0, "RP0.Confidence", "Rp1ScReflection, Rp1DerivedCurrencyWithholder"),
             new Rp1TypeTarget(Rp0, "RP0.LCEfficiency", "Rp1ScReflection"),
+            new Rp1TypeTarget(Rp0, "RP0.KSCSwitcherInterop", "Rp1ScReflection"),
             new Rp1TypeTarget(Rp0, "RP0.Database", "Rp1ScReflection, Rp1CrewReflection, Rp1EconomyBackend"),
             new Rp1TypeTarget(Rp0, "RP0.MaintenanceHandler", "Rp1EconomyBackend, Rp1ScReflection"),
             new Rp1TypeTarget(Rp0, "RP0.MaintenanceHandler+SubsidyDetails", "Rp1EconomyBackend"),
@@ -176,6 +177,10 @@ namespace GonogoRp1Uplink.Tests
         public static IReadOnlyList<Rp1MethodTarget> Methods { get; } = new[]
         {
             new Rp1MethodTarget(Rp0, "RP0.LCEfficiency", "PredictWeightedEfficiency", 5, false, "Rp1ScReflection"),
+            // The only route to a space centre's DISPLAY name. RP-1 keeps the id
+            // on LCSpaceCenter and nothing else, and its shim is what reads
+            // KSCSwitcher's site config for the name beside it.
+            new Rp1MethodTarget(Rp0, "RP0.KSCSwitcherInterop", "GetAvailableSites", 0, true, "Rp1ScReflection"),
             new Rp1MethodTarget(Rp0, "RP0.MaintenanceHandler", "FillSubsidyDetails", 3, true, "Rp1EconomyBackend"),
             // THREE parameters with the last defaulted, because a reflected
             // invoke applies no defaults. UpdateUpkeep calls the two-argument
@@ -220,6 +225,8 @@ namespace GonogoRp1Uplink.Tests
             ["vesselName"] = "KSP's Vessel.vesselName, read off the craft LCLaunchPad.HasVesselWaitingToBeLaunched hands back so a refusal can name it",
             ["Add"] = "the list's own Add, on ROUtils.DataTypes.PersistentObservableList<T> from a separate assembly, resolved by arity on whatever collection LaunchComplex.Recon_Rollout hands back rather than named on an RP-1 type",
             ["name"] = "checked on RP-1's own types; ALSO KSP's ProtoCrewMember.name, read off the students in a training course",
+            ["Item1"] = "System.ValueTuple, the (id, displayName) pair KSCSwitcherInterop.GetAvailableSites returns; RP-1 names neither half",
+            ["Item2"] = "System.ValueTuple, the (id, displayName) pair KSCSwitcherInterop.GetAvailableSites returns; RP-1 names neither half",
             ["x"] = "UnityEngine.Vector3, read off LaunchComplex.SizeMax and VesselProject.ShipSize",
             ["y"] = "UnityEngine.Vector3, read off LaunchComplex.SizeMax and VesselProject.ShipSize",
             ["z"] = "UnityEngine.Vector3, read off LaunchComplex.SizeMax and VesselProject.ShipSize",
@@ -310,8 +317,15 @@ namespace GonogoRp1Uplink.Tests
             Add("RP0.LaunchComplex", "ResourcesHandled", Rp1Reader.Presence, Sc);
             Add("RP0.LaunchComplex", "IsHumanRated", Rp1Reader.Bool, Sc + ", " + Gate);
             Add("RP0.LaunchComplex", "Rate", Rp1Reader.Numeric, Sc);
+            // Operational pads, RP-1's own count, and the number its pad-dismantle
+            // rule is stated against. Not the same question as the LaunchPads list
+            // below, which is every pad the complex has.
+            Add("RP0.LaunchComplex", "LaunchPadCount", Rp1Reader.Numeric, Sc);
             Add("RP0.LaunchComplex", "MassMin", Rp1Reader.Numeric, Sc + ", " + Gate);
             Add("RP0.LaunchComplex", "MassMax", Rp1Reader.Numeric, Sc + ", " + Gate);
+            // The renovation envelope's basis. A rename here takes the envelope
+            // off the wire; it must never leave a zero behind it.
+            Add("RP0.LaunchComplex", "MassOrig", Rp1Reader.Numeric, Sc);
             Add("RP0.LaunchComplex", "SizeMax", Rp1Reader.Presence, Sc + ", " + Gate);
             Add("RP0.LaunchComplex", "LaunchPads", Rp1Reader.Presence, Sc + ", " + Gate);
             Add("RP0.LaunchComplex", "BuildList", Rp1Reader.Presence, Sc + ", " + Gate + ", " + Build);
@@ -331,6 +345,11 @@ namespace GonogoRp1Uplink.Tests
 
             Add("RP0.LCEfficiency", "MaxEfficiency", Rp1Reader.Numeric, Sc, @static: true);
             Add("RP0.LCEfficiency", "Efficiency", Rp1Reader.Numeric, Sc);
+            // The complexes attached to one record, which is what makes a shared
+            // efficiency visible. The LIVE list, not the persisted _lcIDs beside
+            // it: relinking prunes ids whose complex is gone, so the persisted one
+            // can name a complex that is on no other channel.
+            Add("RP0.LCEfficiency", "_lcs", Rp1Reader.Presence, Sc);
 
             Add("RP0.Database", "SettingsSC", Rp1Reader.Presence, Sc + ", " + Economy, @static: true);
             Add("RP0.Database", "SettingsCrew", Rp1Reader.Presence, Crew, @static: true);

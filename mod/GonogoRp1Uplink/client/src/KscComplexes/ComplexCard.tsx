@@ -40,6 +40,7 @@ import type {
 export function ComplexCard({
   complex,
   centreName,
+  complexNames,
   unassigned,
   pads,
   terms,
@@ -48,6 +49,8 @@ export function ComplexCard({
 }: Readonly<{
   complex: Rp1ComplexEntry;
   centreName: string;
+  /** Every complex in the career by id, so the shared-crew line can name its peers. */
+  complexNames: ReadonlyMap<string, string>;
   /** The centre's free pool, which is the ceiling on what this crew can grow by. */
   unassigned: number | null;
   pads: readonly Rp1PadEntry[];
@@ -87,6 +90,7 @@ export function ComplexCard({
 
         <Crew
           complex={complex}
+          complexNames={complexNames}
           engineers={engineers}
           maxEngineers={maxEngineers}
           name={name}
@@ -107,8 +111,9 @@ export function ComplexCard({
         {rushing && <RushStatus terms={terms} />}
 
         <Envelope complex={complex} />
+        <Renovation complex={complex} />
         <Costs complex={complex} />
-        <Pads pads={pads} />
+        <Pads complex={complex} pads={pads} />
 
         {operational && (
           <RushControl complex={complex} handle={rush} name={name} />
@@ -132,11 +137,13 @@ export function ComplexCard({
  */
 function Crew({
   complex,
+  complexNames,
   engineers,
   maxEngineers,
   name,
 }: Readonly<{
   complex: Rp1ComplexEntry;
+  complexNames: ReadonlyMap<string, string>;
   engineers: number | null;
   maxEngineers: number | null;
   name: string;
@@ -163,6 +170,7 @@ function Crew({
           )}
         </Text>
       </Cluster>
+      <SharedEfficiency complex={complex} complexNames={complexNames} />
       {share === null ? null : (
         <ProgressBar
           ariaLabel={`Crew assigned to ${name}, as a share of what it can hold`}
@@ -404,6 +412,62 @@ function Envelope({ complex }: Readonly<{ complex: Rp1ComplexEntry }>) {
   );
 }
 
+/**
+ * Who else this crew rating belongs to.
+ *
+ * <para>Drawn only when there is somebody, and drawn because the efficiency
+ * figure above it is otherwise read as this complex's own. RP-1 rates an
+ * efficiency RECORD and attaches similar complexes to the same one, so work done
+ * next door moves the number here and an operator watching it climb while nobody
+ * is assigned has been told something untrue.</para>
+ */
+function SharedEfficiency({
+  complex,
+  complexNames,
+}: Readonly<{
+  complex: Rp1ComplexEntry;
+  complexNames: ReadonlyMap<string, string>;
+}>) {
+  const peers = complex.efficiencySharedWith ?? [];
+  if (peers.length === 0) {
+    return null;
+  }
+  const named = peers.map((lcId) => complexNames.get(lcId) ?? lcId);
+  return (
+    <Text size="xs" tone="muted">
+      crew rating shared with {named.join(", ")}
+    </Text>
+  );
+}
+
+/**
+ * How far this complex can be renovated, from the tonnage it was BUILT at.
+ *
+ * <para>A separate line from the envelope above, because it answers a different
+ * question: the envelope is what fits in the complex, and this is what the
+ * complex itself can be turned into. RP-1 bounds a modify to double and half the
+ * ORIGINAL tonnage, never the current one, so a complex already renovated up has
+ * less headroom left than its present limit suggests.</para>
+ *
+ * <para>Absent when the original tonnage is: the hangar has no such limit, and a
+ * reading nobody sent is not an envelope of three tonnes to one.</para>
+ */
+function Renovation({ complex }: Readonly<{ complex: Rp1ComplexEntry }>) {
+  const orig = magnitudeOf(complex.massOrig);
+  if (orig === null) {
+    return null;
+  }
+  const max = Math.max(3, Math.floor(orig * 2));
+  const min = Math.max(1, Math.ceil(orig * 0.5));
+  return (
+    <Text size="xs" tone="muted">
+      built at <Unit value={complex.massOrig} />, so renovation is capped
+      between <Unit value={value("t", min)} /> and{" "}
+      <Unit value={value("t", max)} />
+    </Text>
+  );
+}
+
 /** What the complex draws per day, crew and structure kept apart because they move for different reasons. */
 function Costs({ complex }: Readonly<{ complex: Rp1ComplexEntry }>) {
   return (
@@ -422,8 +486,19 @@ function Costs({ complex }: Readonly<{ complex: Rp1ComplexEntry }>) {
  * makes "the complex" and "the pad" different things. A complex with none is
  * said rather than skipped: for a pad-type complex that is a real and blocking
  * condition, and for a hangar it is normal.</para>
+ *
+ * <para>The OPERATIONAL count is stated beside them rather than counted off the
+ * rows, and RP-1 is asked for it because the rows cannot answer: a wrecked pad
+ * reports destroyed rather than non-operational, so counting what is not
+ * non-operational overcounts exactly when a launch has just gone wrong. It is
+ * the number RP-1's own rule is stated against, and the last working pad cannot
+ * be dismantled.</para>
  */
-function Pads({ pads }: Readonly<{ pads: readonly Rp1PadEntry[] }>) {
+function Pads({
+  complex,
+  pads,
+}: Readonly<{ complex: Rp1ComplexEntry; pads: readonly Rp1PadEntry[] }>) {
+  const operational = magnitudeOf(complex.launchPadCount);
   if (pads.length === 0) {
     return (
       <Text size="xs" tone="muted">
@@ -440,6 +515,13 @@ function Pads({ pads }: Readonly<{ pads: readonly Rp1PadEntry[] }>) {
           {pad.name ?? NULL_DISPLAY} at level <Unit value={pad.level} />
         </span>
       ))}
+      {operational === null ? null : (
+        <>
+          {" · "}
+          <Unit value={complex.launchPadCount} /> operational
+          {operational < 2 && ", so none can be dismantled"}
+        </>
+      )}
     </Text>
   );
 }

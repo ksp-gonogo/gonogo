@@ -1372,7 +1372,29 @@ namespace Sitrep.Contract
         /// reasons. Five of the six are touched by leaders RP-1 ships. The parts
         /// now carry the same per-line query the game runs, and the unmodified
         /// figures move to the new field rather than being dropped.</para>
+        ///
+        /// <para><b>Bumped 4 -&gt; 5: a launch complex says what can be done to
+        /// it.</b> <c>Rp1ComplexEntry</c> gains <c>MassOrig</c>,
+        /// <c>LaunchPadCount</c>, <c>EfficiencySharedWith</c> and
+        /// <c>KscDisplayName</c>, and <c>Rp1CentreEntry</c> gains the matching
+        /// <c>KscDisplayName</c>. All nullable, additive, nothing removed or
+        /// retyped, so an Uplink built against 14.4 is unaffected and the frozen
+        /// Major-14 floor is NOT re-frozen. This is the RP-1 Uplink's own
+        /// contract slice; the bump is here because the version is one number for
+        /// the whole wire.</para>
+        ///
+        /// <para>Each of the four is a fact that decides whether a control should
+        /// be offered, and each was in the game and off the wire. Renovation is
+        /// bounded by the tonnage a complex was BUILT at, which we never
+        /// published, and neither the current ceiling nor the vehicle-mass floor
+        /// beside it can stand in for it. Dismantling a pad needs two working
+        /// pads, and the pad rows cannot be counted for that because a wrecked
+        /// pad reports destroyed rather than non-operational. Efficiency is a
+        /// figure similar complexes SHARE, so the scalar alone reads as this
+        /// complex's own crew and is not. And a space centre had only an id, so
+        /// three surfaces were rendering <c>us_cape_canaveral</c> at the
+        /// operator.</para>
         /// </remarks>
-        public const int Minor = 4;
+        public const int Minor = 5;
     }
 }

@@ -59,6 +59,7 @@ namespace GonogoRp1Uplink
     public sealed class Rp1CentreRaw
     {
         public string? KscName;
+        public string? KscDisplayName;
         public bool IsActive;
         public int Engineers;
         public int UnassignedEngineers;
@@ -73,6 +74,7 @@ namespace GonogoRp1Uplink
     public sealed class Rp1ComplexRaw
     {
         public string? KscName;
+        public string? KscDisplayName;
         public string? LcId;
         public string? Name;
         public string? LcType;
@@ -81,11 +83,14 @@ namespace GonogoRp1Uplink
         public int Engineers;
         public int MaxEngineers;
         public double? Efficiency;
+        public List<string>? EfficiencySharedWith;
         public bool CanIntegrate;
         public double? Rate;
         public bool HumanRated;
+        public int? LaunchPadCount;
         public double? MassMin;
         public double? MassMax;
+        public double? MassOrig;
         public double? SizeMaxHeight;
         public double? SizeMaxWidth;
         public double? SizeMaxDepth;
@@ -137,6 +142,7 @@ namespace GonogoRp1Uplink
         public string? LcId;
         public string? Name;
         public string? KscName;
+        public string? KscDisplayName;
         public bool Eligible;
         public string[] Refusals = new string[0];
     }

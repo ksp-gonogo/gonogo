@@ -282,7 +282,8 @@ function SpendWording({
  */
 function complexLabel(complex: Rp1BuildableComplex): string {
   const name = complex.name ?? complex.lcId ?? "an unnamed complex";
-  return complex.kscName === undefined ? name : `${name} at ${complex.kscName}`;
+  const centre = complex.kscDisplayName ?? complex.kscName;
+  return centre === undefined ? name : `${name} at ${centre}`;
 }
 
 /**

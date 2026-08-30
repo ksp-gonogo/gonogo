@@ -50,6 +50,19 @@ public sealed class Rp1CentreEntry
     [SitrepUnit(Units.Id)]
     public string? KscName { get; set; }
 
+    /// <summary>
+    /// What to CALL this centre. <see cref="KscName"/> is an id and reads like
+    /// one (<c>us_cape_canaveral</c>); this is the name KSCSwitcher's own site
+    /// config gives it, and the one a surface should render.
+    ///
+    /// <para>Null when KSCSwitcher is not installed, which is a whole class of
+    /// RP-1 career rather than an edge case, and null when the site declares no
+    /// display name of its own. A client falls back to <see cref="KscName"/> in
+    /// both, which is what RP-1 does too.</para>
+    /// </summary>
+    [SitrepUnit(Units.Text)]
+    public string? KscDisplayName { get; set; }
+
     /// <summary>This is the centre RP-1 currently considers active.</summary>
     [SitrepUnit(Units.Flag)]
     public bool? IsActive { get; set; }
@@ -127,6 +140,16 @@ public sealed class Rp1ComplexEntry
     [SitrepUnit(Units.Id)]
     public string? KscName { get; set; }
 
+    /// <summary>
+    /// The centre's display name, carried here as well as on
+    /// <see cref="Rp1CentreEntry.KscDisplayName"/> for the same reason
+    /// <see cref="KscName"/> is: a complex row is rendered on surfaces that never
+    /// join to the centres channel, and those are exactly the ones that were
+    /// printing an id at the operator. Absent on the same two conditions.
+    /// </summary>
+    [SitrepUnit(Units.Text)]
+    public string? KscDisplayName { get; set; }
+
     /// <summary>The complex's stable GUID, and the key its queue, pads and operations carry.</summary>
     [SitrepUnit(Units.Id)]
     public string? LcId { get; set; }
@@ -161,6 +184,28 @@ public sealed class Rp1ComplexEntry
     public double? Efficiency { get; set; }
 
     /// <summary>
+    /// The OTHER complexes whose crew rating is the same record as this one's,
+    /// by their <see cref="LcId"/>, sorted, this complex excluded.
+    ///
+    /// <para><see cref="Efficiency"/> alone is misleading and this is what fixes
+    /// it. RP-1 does not rate a complex, it rates an <c>LCEfficiency</c> record
+    /// and attaches similar complexes to the same one, so the number here is a
+    /// figure two or three complexes SHARE: work done at any of them moves it at
+    /// all of them, and a client that reads it as this complex's own crew will
+    /// report a rating that climbed while nobody worked here.</para>
+    ///
+    /// <para>A list of the peers rather than an id for the record, because RP-1
+    /// keeps no id on one and a synthetic key would be ours rather than the
+    /// game's. Null when RP-1 holds no record: the hangar, which is rated at the
+    /// ceiling and shares with nothing, and a pad complex nobody has worked yet,
+    /// the same miss that leaves <see cref="Efficiency"/> null. EMPTY is the
+    /// different, real answer that the record exists and covers this complex
+    /// alone.</para>
+    /// </summary>
+    [SitrepUnit(Units.Id)]
+    public List<string>? EfficiencySharedWith { get; set; }
+
+    /// <summary>
     /// Integration can proceed: no blocking rollout, rollback or repair is
     /// occupying the complex. False here is why a queue item's rate is zero.
     /// </summary>
@@ -175,12 +220,66 @@ public sealed class Rp1ComplexEntry
     [SitrepUnit(Units.Flag)]
     public bool? HumanRated { get; set; }
 
+    /// <summary>
+    /// How many of this complex's pads are OPERATIONAL, RP-1's own
+    /// <c>LaunchPadCount</c>, and the number the pad-dismantle rule is stated
+    /// against: RP-1 will only delete a pad while the complex still has two.
+    ///
+    /// <para>Not derivable from the <c>rp1.pads</c> rows beside it, which is why
+    /// it is here rather than left to a client. A pad's <c>state</c> tests
+    /// destroyed FIRST, so a pad that has been wrecked reports <c>Destroyed</c>
+    /// whatever its operational flag says, and counting rows that are not
+    /// <c>Nonoperational</c> gets the wrong answer exactly when a launch has just
+    /// gone badly.</para>
+    ///
+    /// <para>Zero is a REAL answer and never means absent: a pad complex still
+    /// under construction has pads and none of them operational, which is the
+    /// state that makes it unusable.</para>
+    /// </summary>
+    [SitrepUnit(Units.Count)]
+    public int? LaunchPadCount { get; set; }
+
+    /// <summary>
+    /// The LIGHTEST vehicle this complex will accept, RP-1's
+    /// <c>floor(massMax * lcMassMinFraction)</c>.
+    ///
+    /// <para>An eligibility floor, and NOT the bottom of the renovation envelope.
+    /// That is <see cref="MassOrig"/>'s business, and confusing the two is the
+    /// standing trap of this payload: three tonnage figures, one of which is
+    /// about vehicles and two of which are about the complex.</para>
+    /// </summary>
     [SitrepUnit(Units.Tonnes)]
     public double? MassMin { get; set; }
 
     /// <summary>Upper mass limit, or null for a complex with no limit (the hangar).</summary>
     [SitrepUnit(Units.Tonnes)]
     public double? MassMax { get; set; }
+
+    /// <summary>
+    /// The tonnage this complex was ORIGINALLY built at, and the only thing that
+    /// bounds renovating it. RP-1 refuses a modify unless the new
+    /// <see cref="MassMax"/> lands inside
+    /// <c>max(3, floor(massOrig * 2))</c> and <c>max(1, ceil(massOrig * 0.5))</c>,
+    /// so without this a client cannot compute either end of the envelope and
+    /// cannot say whether a renovation it is about to offer is legal.
+    ///
+    /// <para><b><see cref="MassMax"/> is not a substitute for it.</b> MassMax is
+    /// the value the envelope CONTAINS and the value a renovation moves; it
+    /// equals this only on a complex nobody has renovated. <see cref="MassMin"/>
+    /// is a third quantity again, about which vehicles fit rather than about
+    /// renovation.</para>
+    ///
+    /// <para>Fixed for the life of the complex: RP-1 sets it once at creation and
+    /// carries it across every modify, so one reading is enough and a stale one
+    /// is still right.</para>
+    ///
+    /// <para>Null for the hangar, which RP-1 records at its no-limit sentinel and
+    /// exempts from the margin check outright. Null rather than zero ALWAYS: a
+    /// zero here computes an envelope of 3t to 1t, which is a confident wrong
+    /// answer where absence is a readable one.</para>
+    /// </summary>
+    [SitrepUnit(Units.Tonnes)]
+    public double? MassOrig { get; set; }
 
     /// <summary>
     /// The tallest vehicle this complex will take, RP-1's <c>sizeMax.y</c>. Null
@@ -1702,6 +1801,14 @@ public sealed class Rp1BuildableComplex
     /// <summary>The space centre it stands at, because two centres may each have an LC-1.</summary>
     [SitrepUnit(Units.Id)]
     public string? KscName { get; set; }
+
+    /// <summary>
+    /// That centre's display name, travelling with the id for the reason the id
+    /// travels here at all: a refusal is labelled from this row alone, and a
+    /// label reading <c>us_cape_canaveral</c> names the place to nobody.
+    /// </summary>
+    [SitrepUnit(Units.Text)]
+    public string? KscDisplayName { get; set; }
 
     /// <summary>
     /// Nothing this preview can see stops the build.

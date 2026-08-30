@@ -55,6 +55,15 @@ export function KscConstruction() {
   // Only worth naming a centre when the career has more than one. RP-1 supports
   // several through KSCSwitcher and most careers run one.
   const nameCentres = (centres ?? []).length > 1;
+  // A construction row carries its centre's id and not its name, so the name
+  // comes off the centres channel this section already reads.
+  const centreNames = new Map(
+    (centres ?? []).flatMap((centre) =>
+      centre.kscName === undefined || centre.kscDisplayName === undefined
+        ? []
+        : [[centre.kscName, centre.kscDisplayName] as const],
+    ),
+  );
 
   return (
     <Section gap="sm">
@@ -77,6 +86,7 @@ export function KscConstruction() {
         <ProjectCardList>
           {rows.map((row) => (
             <ConstructionRow
+              centreNames={centreNames}
               key={rowKey(row)}
               nameCentre={nameCentres}
               row={row}
@@ -104,12 +114,17 @@ export function KscConstruction() {
 function ConstructionRow({
   row,
   nameCentre,
-}: Readonly<{ row: Rp1ConstructionEntry; nameCentre: boolean }>) {
+  centreNames,
+}: Readonly<{
+  row: Rp1ConstructionEntry;
+  nameCentre: boolean;
+  centreNames: ReadonlyMap<string, string>;
+}>) {
   const ratio = magnitudeOf(row.progressRatio);
   const label = rowLabel(row);
   const centre =
     nameCentre && row.kscName !== undefined && row.kscName !== null
-      ? row.kscName
+      ? (centreNames.get(row.kscName) ?? row.kscName)
       : null;
 
   return (
