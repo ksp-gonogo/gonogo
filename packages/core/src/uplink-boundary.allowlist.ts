@@ -1619,6 +1619,16 @@ export const ALLOWLIST: Record<ModToken, ModAllowlist> = {
        */
       "packages/app/src/__tests__/uplink-widget-declarations.test.ts",
       /*
+       * -- WIDGET-FIXTURE CONFORMANCE gate (2026-08-30): text-only. Its
+       * planted-failure demonstration replants the defect that shipped in this
+       * Uplink's CrewSurvival fixture, `deathClockSec` for the wire's
+       * `deathClockUt`, and quotes the fixture path and the message the gate
+       * printed. The demonstration is the evidence that the gate can fail at
+       * all, so naming what it caught is what makes it checkable. The check
+       * itself resolves Uplinks by walking `mod/*` and holds no mod name.
+       */
+      "packages/core/src/widget-fixture-conformance.test.ts",
+      /*
        * -- CANONICAL-UNWRAP ratchet (2026-08-25): text-only, no code coupling.
        * It holds the magnitude unwrap at one implementation, and its doc
        * comment names the Uplink whose diverged copy answered 0 for absence,

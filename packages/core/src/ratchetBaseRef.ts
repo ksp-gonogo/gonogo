@@ -202,4 +202,5 @@ export const RATCHET_ALLOWLIST_PATHS = [
   "packages/core/src/typecheck-coverage.allowlist.ts",
   "packages/core/src/uplink-boundary.allowlist.ts",
   "packages/core/src/uplink-isolation.allowlist.ts",
+  "packages/core/src/widget-fixture-conformance.debt.ts",
 ] as const;
