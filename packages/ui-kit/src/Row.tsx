@@ -25,6 +25,23 @@ export interface RowProps extends HTMLAttributes<HTMLElement> {
   type?: "button" | "submit" | "reset";
   /** Disabled, for `as="button"`. */
   disabled?: boolean;
+  /**
+   * Lets the trailing clusters drop to a second line when they cannot share
+   * one with a readable name, and gives `RowName` a minimum readable width so
+   * that they actually do.
+   *
+   * Both halves are needed, which is why this is one prop and not two. A
+   * `RowName` is `flex: 1 1 0`, so it yields all of its width before anything
+   * else gives up any: the line never overflows, `flex-wrap` never engages, and
+   * what an operator gets is a full set of badges beside a name shaved to a
+   * single glyph. That is what a crowded `ScienceExperimentRow` was doing, and
+   * at a narrow grid column the badges then ran on past the row entirely and
+   * painted over the neighbouring column's text.
+   *
+   * Off by default, on Cluster's reasoning: a row that wraps silently is how a
+   * tidy list becomes a ragged block at a narrow width without anyone noticing.
+   */
+  wrap?: boolean;
   children?: ReactNode;
 }
 
@@ -40,6 +57,7 @@ function RowBase({
   as,
   interactive = false,
   selected = false,
+  wrap = false,
   children,
   ...rest
 }: RowProps) {
@@ -48,6 +66,7 @@ function RowBase({
       as={as ?? "li"}
       $interactive={interactive}
       $selected={selected}
+      $wrap={wrap}
       {...rest}
     >
       {children}
@@ -55,13 +74,45 @@ function RowBase({
   );
 }
 
-const Row__Root = styled.li<{ $interactive: boolean; $selected: boolean }>`
+/** Truncating name/label child for a `Row`: flexes to fill, ellipsises overflow. */
+export const RowName = styled.span`
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  flex: 1;
+  min-width: 0;
+  color: var(--color-text-primary);
+`;
+
+/**
+ * How much of the name a wrapping row refuses to give up. Twelve characters is
+ * enough to tell "Mystery Goo™ …" from "PresMat Baro…", and the `min()` keeps
+ * it from overflowing a row narrower than that.
+ */
+const WRAPPED_NAME_FLOOR = "min(12ch, 100%)";
+
+const Row__Root = styled.li<{
+  $interactive: boolean;
+  $selected: boolean;
+  $wrap: boolean;
+}>`
   display: flex;
   justify-content: space-between;
   align-items: center;
   gap: var(--space-8, 8px);
   font-size: var(--font-size-sm);
   padding: var(--space-2, 2px) 0;
+  ${({ $wrap }) =>
+    $wrap
+      ? `
+  flex-wrap: wrap;
+  row-gap: var(--space-4, 4px);
+
+  & > ${RowName} {
+    min-width: ${WRAPPED_NAME_FLOOR};
+  }
+`
+      : ""}
   ${({ $interactive }) =>
     $interactive
       ? `
@@ -96,16 +147,6 @@ const Row__Root = styled.li<{ $interactive: boolean; $selected: boolean }>`
   }
 `
       : ""}
-`;
-
-/** Truncating name/label child for a `Row`: flexes to fill, ellipsises overflow. */
-export const RowName = styled.span`
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-  flex: 1;
-  min-width: 0;
-  color: var(--color-text-primary);
 `;
 
 export const Row = Object.assign(RowBase, { Name: RowName });

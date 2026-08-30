@@ -26,4 +26,32 @@ describe("Row", () => {
   it("exposes RowName as Row.Name", () => {
     expect(Row.Name).toBe(RowName);
   });
+
+  it("keeps to one line by default", () => {
+    render(
+      <Row data-testid="row">
+        <RowName>Barometer</RowName>
+      </Row>,
+    );
+    expect(getComputedStyle(screen.getByTestId("row")).flexWrap).not.toBe(
+      "wrap",
+    );
+  });
+
+  /**
+   * Both halves of `wrap`, because either alone leaves the row exactly as
+   * broken as it was: without the floor the name yields all its width and the
+   * line never overflows, so `flex-wrap` never fires.
+   */
+  it("wraps and floors the name width when asked", () => {
+    render(
+      <Row wrap data-testid="row">
+        <RowName data-testid="name">Mystery Goo™ Containment Unit</RowName>
+      </Row>,
+    );
+    expect(getComputedStyle(screen.getByTestId("row")).flexWrap).toBe("wrap");
+    expect(getComputedStyle(screen.getByTestId("name")).minWidth).toBe(
+      "min(12ch, 100%)",
+    );
+  });
 });
