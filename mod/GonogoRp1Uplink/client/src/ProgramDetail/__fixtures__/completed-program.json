@@ -9,7 +9,7 @@
       "w": 8,
       "h": 16
     },
-    "paints": ["PROGRAM DETAIL", "COMPLETED"]
+    "paints": ["PROGRAM", "COMPLETED"]
   },
   "_stream": {
     "pinnedUt": 170000000,
