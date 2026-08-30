@@ -20,6 +20,7 @@ import {
   CommandButton,
   formatDuration,
   Panel,
+  Section,
   Unit,
   usePanelDelay,
 } from "@ksp-gonogo/ui-kit";
@@ -358,9 +359,15 @@ function ContractManagerComponent({
 
   if (active === null) {
     return (
-      <Panel panelTitle="CONTRACT MANAGER" compactTitle={["CONTRACTS"]}>
-        {showSubtitle && <Empty>Awaiting contract telemetry</Empty>}
-      </Panel>
+      <Panel
+        panelTitle="CONTRACT MANAGER"
+        compactTitle={["CONTRACTS"]}
+        sections={
+          <Section>
+            {showSubtitle && <Empty>Awaiting contract telemetry</Empty>}
+          </Section>
+        }
+      />
     );
   }
 
@@ -369,242 +376,259 @@ function ContractManagerComponent({
   const recentCount = recent?.length ?? 0;
 
   return (
-    <Panel panelTitle="CONTRACT MANAGER" compactTitle={["CONTRACTS"]}>
-      {showSubtitle && (
-        <Summary role="status" aria-live="polite">
-          {activeCount} active · {offeredCount} offered · {recentCount} recent
-        </Summary>
-      )}
-      {activeCount === 0 && offeredCount === 0 && (
-        <Empty>No active contracts. Pick one up in Mission Control.</Empty>
-      )}
-      {activeCount > 0 && <SectionLabel>Active</SectionLabel>}
-      <CardList $multiColumn={multiColumn}>
-        {active.map((c) => (
-          <ContractCard key={c.id}>
-            <ContractHeader>
-              <ContractTitle>{c.title}</ContractTitle>
-              <ContractDeadline>
-                {formatDeadline(c.deadlineUt, universalTime?.magnitude ?? 0)}
-              </ContractDeadline>
-            </ContractHeader>
-            {c.agency && <Agency>{c.agency}</Agency>}
-            <Rewards>
-              {c.fundsCompletion > 0 && (
-                <Reward>
-                  <RewardLabel>FUNDS</RewardLabel>
-                  <RewardValue>
-                    {formatCompactCurrency(c.fundsCompletion)}
-                  </RewardValue>
-                </Reward>
-              )}
-              {c.scienceCompletion > 0 && (
-                <Reward>
-                  <RewardLabel>SCI</RewardLabel>
-                  <RewardValue>{c.scienceCompletion.toFixed(1)}</RewardValue>
-                </Reward>
-              )}
-              {c.repCompletion > 0 && (
-                <Reward>
-                  <RewardLabel>REP</RewardLabel>
-                  <RewardValue>{c.repCompletion.toFixed(1)}</RewardValue>
-                </Reward>
-              )}
-            </Rewards>
-            {c.parameters.length > 0 && (
-              <Parameters>
-                {c.parameters.map((p) => (
-                  <Parameter key={`${c.id}-${p.title}`} $state={p.state}>
-                    <ParameterMark
-                      $state={p.state}
-                      // Only on the Unknown arm: the ✓/✕/○ marks already say
-                      // what they are, and the "?" is the one that needs to
-                      // report the game's own word for a state we cannot place.
-                      title={
-                        p.state === "Unknown"
-                          ? `Unrecognised objective state${p.stateLabel ? `: ${p.stateLabel}` : ""}`
-                          : undefined
-                      }
-                    >
-                      {p.state === "Complete"
-                        ? "✓"
-                        : p.state === "Failed"
-                          ? "✕"
-                          : p.state === "Unknown"
-                            ? "?"
-                            : "○"}
-                    </ParameterMark>
-                    <ParameterTitle>
-                      {p.title}
-                      {p.optional && <Optional> (optional)</Optional>}
-                      {p.state === "Incomplete" &&
-                        p.parameterType === "ReachAltitudeEnvelope" &&
-                        p.minAltitude !== undefined &&
-                        p.maxAltitude !== undefined &&
-                        typeof vAltitude === "number" && (
-                          <AltitudeProgress
-                            min={p.minAltitude}
-                            max={p.maxAltitude}
-                            current={vAltitude}
-                          />
-                        )}
-                    </ParameterTitle>
-                    {p.state === "Incomplete" &&
-                      createAlarm &&
-                      contractIdToSafeNumber(c.id) !== null &&
-                      (() => {
-                        const numericId = contractIdToSafeNumber(c.id);
-                        if (numericId === null) return null;
-                        const existingId =
-                          alarmManager?.find((trigger) => {
-                            if (
-                              !trigger ||
-                              typeof trigger !== "object" ||
-                              Array.isArray(trigger)
-                            )
-                              return false;
-                            const t = trigger as Record<string, unknown>;
-                            return (
-                              t.kind === "contract-parameter" &&
-                              t.contractId === numericId &&
-                              t.parameterTitle === p.title
-                            );
-                          }) ?? null;
-                        const isSet = existingId !== null;
-                        return (
-                          <ParameterAlarmButton
-                            type="button"
-                            $set={isSet}
-                            title={
-                              isSet
-                                ? `Alarm set for "${p.title}": click to clear`
-                                : `Alarm me when "${p.title}" completes`
-                            }
-                            aria-label={
-                              isSet
-                                ? `Clear alarm for ${p.title}`
-                                : `Set alarm for ${p.title} completion`
-                            }
-                            aria-pressed={isSet}
-                            onClick={() => {
-                              if (isSet && existingId && alarmManager) {
-                                alarmManager.remove(existingId);
-                                return;
-                              }
-                              createAlarm({
-                                name: `${p.title} → Complete`,
-                                trigger: {
-                                  kind: "contract-parameter",
-                                  contractId: numericId,
-                                  parameterTitle: p.title,
-                                  targetState: "Complete",
-                                  sustainSeconds: 0,
-                                },
-                              });
-                            }}
-                          >
-                            <BellIcon size={12} />
-                          </ParameterAlarmButton>
-                        );
-                      })()}
-                    {p.state === "Incomplete" &&
-                      createAlarm &&
-                      contractIdToSafeNumber(c.id) === null && (
-                        // Big-id contracts (KSP-generated longs above
-                        // Number.MAX_SAFE_INTEGER) can't be addressed by the
-                        // current alarm trigger shape (contractId: number).
-                        // Render a disabled icon with explanation rather
-                        // than hide: keeps the row layout consistent.
-                        <ParameterAlarmButton
-                          type="button"
-                          disabled
-                          title="Cannot alarm: contract id exceeds JS safe-integer range. Fix tracked in feature_log."
-                          aria-label="Alarm unavailable for this contract"
+    <Panel
+      panelTitle="CONTRACT MANAGER"
+      compactTitle={["CONTRACTS"]}
+      sections={
+        <Section>
+          {showSubtitle && (
+            <Summary role="status" aria-live="polite">
+              {activeCount} active · {offeredCount} offered · {recentCount}{" "}
+              recent
+            </Summary>
+          )}
+          {activeCount === 0 && offeredCount === 0 && (
+            <Empty>No active contracts. Pick one up in Mission Control.</Empty>
+          )}
+          {activeCount > 0 && <SectionLabel>Active</SectionLabel>}
+          <CardList $multiColumn={multiColumn}>
+            {active.map((c) => (
+              <ContractCard key={c.id}>
+                <ContractHeader>
+                  <ContractTitle>{c.title}</ContractTitle>
+                  <ContractDeadline>
+                    {formatDeadline(
+                      c.deadlineUt,
+                      universalTime?.magnitude ?? 0,
+                    )}
+                  </ContractDeadline>
+                </ContractHeader>
+                {c.agency && <Agency>{c.agency}</Agency>}
+                <Rewards>
+                  {c.fundsCompletion > 0 && (
+                    <Reward>
+                      <RewardLabel>FUNDS</RewardLabel>
+                      <RewardValue>
+                        {formatCompactCurrency(c.fundsCompletion)}
+                      </RewardValue>
+                    </Reward>
+                  )}
+                  {c.scienceCompletion > 0 && (
+                    <Reward>
+                      <RewardLabel>SCI</RewardLabel>
+                      <RewardValue>
+                        {c.scienceCompletion.toFixed(1)}
+                      </RewardValue>
+                    </Reward>
+                  )}
+                  {c.repCompletion > 0 && (
+                    <Reward>
+                      <RewardLabel>REP</RewardLabel>
+                      <RewardValue>{c.repCompletion.toFixed(1)}</RewardValue>
+                    </Reward>
+                  )}
+                </Rewards>
+                {c.parameters.length > 0 && (
+                  <Parameters>
+                    {c.parameters.map((p) => (
+                      <Parameter key={`${c.id}-${p.title}`} $state={p.state}>
+                        <ParameterMark
+                          $state={p.state}
+                          // Only on the Unknown arm: the ✓/✕/○ marks already say
+                          // what they are, and the "?" is the one that needs to
+                          // report the game's own word for a state we cannot place.
+                          title={
+                            p.state === "Unknown"
+                              ? `Unrecognised objective state${p.stateLabel ? `: ${p.stateLabel}` : ""}`
+                              : undefined
+                          }
                         >
-                          <BellIcon size={12} />
-                        </ParameterAlarmButton>
-                      )}
-                  </Parameter>
-                ))}
-              </Parameters>
-            )}
-            <ActiveActions>
-              <CommandButton
-                handle={cancelCmd}
-                args={{ contractId: c.id }}
-                commandLabel={`Cancel ${c.title}`}
-                size="sm"
-                label="Cancel"
-                /* Cancel forfeits any work in progress, so the confirm copy is
+                          {p.state === "Complete"
+                            ? "✓"
+                            : p.state === "Failed"
+                              ? "✕"
+                              : p.state === "Unknown"
+                                ? "?"
+                                : "○"}
+                        </ParameterMark>
+                        <ParameterTitle>
+                          {p.title}
+                          {p.optional && <Optional> (optional)</Optional>}
+                          {p.state === "Incomplete" &&
+                            p.parameterType === "ReachAltitudeEnvelope" &&
+                            p.minAltitude !== undefined &&
+                            p.maxAltitude !== undefined &&
+                            typeof vAltitude === "number" && (
+                              <AltitudeProgress
+                                min={p.minAltitude}
+                                max={p.maxAltitude}
+                                current={vAltitude}
+                              />
+                            )}
+                        </ParameterTitle>
+                        {p.state === "Incomplete" &&
+                          createAlarm &&
+                          contractIdToSafeNumber(c.id) !== null &&
+                          (() => {
+                            const numericId = contractIdToSafeNumber(c.id);
+                            if (numericId === null) return null;
+                            const existingId =
+                              alarmManager?.find((trigger) => {
+                                if (
+                                  !trigger ||
+                                  typeof trigger !== "object" ||
+                                  Array.isArray(trigger)
+                                )
+                                  return false;
+                                const t = trigger as Record<string, unknown>;
+                                return (
+                                  t.kind === "contract-parameter" &&
+                                  t.contractId === numericId &&
+                                  t.parameterTitle === p.title
+                                );
+                              }) ?? null;
+                            const isSet = existingId !== null;
+                            return (
+                              <ParameterAlarmButton
+                                type="button"
+                                $set={isSet}
+                                title={
+                                  isSet
+                                    ? `Alarm set for "${p.title}": click to clear`
+                                    : `Alarm me when "${p.title}" completes`
+                                }
+                                aria-label={
+                                  isSet
+                                    ? `Clear alarm for ${p.title}`
+                                    : `Set alarm for ${p.title} completion`
+                                }
+                                aria-pressed={isSet}
+                                onClick={() => {
+                                  if (isSet && existingId && alarmManager) {
+                                    alarmManager.remove(existingId);
+                                    return;
+                                  }
+                                  createAlarm({
+                                    name: `${p.title} → Complete`,
+                                    trigger: {
+                                      kind: "contract-parameter",
+                                      contractId: numericId,
+                                      parameterTitle: p.title,
+                                      targetState: "Complete",
+                                      sustainSeconds: 0,
+                                    },
+                                  });
+                                }}
+                              >
+                                <BellIcon size={12} />
+                              </ParameterAlarmButton>
+                            );
+                          })()}
+                        {p.state === "Incomplete" &&
+                          createAlarm &&
+                          contractIdToSafeNumber(c.id) === null && (
+                            // Big-id contracts (KSP-generated longs above
+                            // Number.MAX_SAFE_INTEGER) can't be addressed by the
+                            // current alarm trigger shape (contractId: number).
+                            // Render a disabled icon with explanation rather
+                            // than hide: keeps the row layout consistent.
+                            <ParameterAlarmButton
+                              type="button"
+                              disabled
+                              title="Cannot alarm: contract id exceeds JS safe-integer range. Fix tracked in feature_log."
+                              aria-label="Alarm unavailable for this contract"
+                            >
+                              <BellIcon size={12} />
+                            </ParameterAlarmButton>
+                          )}
+                      </Parameter>
+                    ))}
+                  </Parameters>
+                )}
+                <ActiveActions>
+                  <CommandButton
+                    handle={cancelCmd}
+                    args={{ contractId: c.id }}
+                    commandLabel={`Cancel ${c.title}`}
+                    size="sm"
+                    label="Cancel"
+                    /* Cancel forfeits any work in progress, so the confirm copy is
                    stronger than Decline's: the loss is bigger, funds may
                    already be spent and parameters part-achieved. */
-                confirmLabel="Forfeit contract"
-                confirmTone="nogo"
-                pendingLabel="Cancelling..."
-                title="Cancel this contract: forfeits all progress"
-              />
-            </ActiveActions>
-          </ContractCard>
-        ))}
-      </CardList>
-      {offeredCount > 0 && <SectionLabel>Offered</SectionLabel>}
-      <CardList $multiColumn={multiColumn}>
-        {offered?.map((c) => (
-          <ContractCard key={c.id}>
-            <ContractHeader>
-              <ContractTitle>{c.title}</ContractTitle>
-              <ContractDeadline>
-                {formatDeadline(c.deadlineUt, universalTime?.magnitude ?? 0)}
-              </ContractDeadline>
-            </ContractHeader>
-            {c.agency && <Agency>{c.agency}</Agency>}
-            <Rewards>
-              {c.fundsCompletion > 0 && (
-                <Reward>
-                  <RewardLabel>FUNDS</RewardLabel>
-                  <RewardValue>
-                    {formatCompactCurrency(c.fundsCompletion)}
-                  </RewardValue>
-                </Reward>
-              )}
-              {c.scienceCompletion > 0 && (
-                <Reward>
-                  <RewardLabel>SCI</RewardLabel>
-                  <RewardValue>{c.scienceCompletion.toFixed(1)}</RewardValue>
-                </Reward>
-              )}
-              {c.repCompletion > 0 && (
-                <Reward>
-                  <RewardLabel>REP</RewardLabel>
-                  <RewardValue>{c.repCompletion.toFixed(1)}</RewardValue>
-                </Reward>
-              )}
-            </Rewards>
-            <OfferedActions>
-              <CommandButton
-                handle={acceptCmd}
-                args={{ contractId: c.id }}
-                commandLabel={`Accept ${c.title}`}
-                size="sm"
-                tone="go"
-                label="Accept"
-                pendingLabel="Accepting..."
-              />
-              <CommandButton
-                handle={declineCmd}
-                args={{ contractId: c.id }}
-                commandLabel={`Decline ${c.title}`}
-                size="sm"
-                label="Decline"
-                confirmLabel="Confirm decline"
-                confirmTone="nogo"
-                pendingLabel="Declining..."
-              />
-            </OfferedActions>
-          </ContractCard>
-        ))}
-      </CardList>
-    </Panel>
+                    confirmLabel="Forfeit contract"
+                    confirmTone="nogo"
+                    pendingLabel="Cancelling..."
+                    title="Cancel this contract: forfeits all progress"
+                  />
+                </ActiveActions>
+              </ContractCard>
+            ))}
+          </CardList>
+          {offeredCount > 0 && <SectionLabel>Offered</SectionLabel>}
+          <CardList $multiColumn={multiColumn}>
+            {offered?.map((c) => (
+              <ContractCard key={c.id}>
+                <ContractHeader>
+                  <ContractTitle>{c.title}</ContractTitle>
+                  <ContractDeadline>
+                    {formatDeadline(
+                      c.deadlineUt,
+                      universalTime?.magnitude ?? 0,
+                    )}
+                  </ContractDeadline>
+                </ContractHeader>
+                {c.agency && <Agency>{c.agency}</Agency>}
+                <Rewards>
+                  {c.fundsCompletion > 0 && (
+                    <Reward>
+                      <RewardLabel>FUNDS</RewardLabel>
+                      <RewardValue>
+                        {formatCompactCurrency(c.fundsCompletion)}
+                      </RewardValue>
+                    </Reward>
+                  )}
+                  {c.scienceCompletion > 0 && (
+                    <Reward>
+                      <RewardLabel>SCI</RewardLabel>
+                      <RewardValue>
+                        {c.scienceCompletion.toFixed(1)}
+                      </RewardValue>
+                    </Reward>
+                  )}
+                  {c.repCompletion > 0 && (
+                    <Reward>
+                      <RewardLabel>REP</RewardLabel>
+                      <RewardValue>{c.repCompletion.toFixed(1)}</RewardValue>
+                    </Reward>
+                  )}
+                </Rewards>
+                <OfferedActions>
+                  <CommandButton
+                    handle={acceptCmd}
+                    args={{ contractId: c.id }}
+                    commandLabel={`Accept ${c.title}`}
+                    size="sm"
+                    tone="go"
+                    label="Accept"
+                    pendingLabel="Accepting..."
+                  />
+                  <CommandButton
+                    handle={declineCmd}
+                    args={{ contractId: c.id }}
+                    commandLabel={`Decline ${c.title}`}
+                    size="sm"
+                    label="Decline"
+                    confirmLabel="Confirm decline"
+                    confirmTone="nogo"
+                    pendingLabel="Declining..."
+                  />
+                </OfferedActions>
+              </ContractCard>
+            ))}
+          </CardList>
+        </Section>
+      }
+    />
   );
 }
 

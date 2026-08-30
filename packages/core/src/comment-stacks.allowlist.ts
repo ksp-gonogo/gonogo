@@ -342,7 +342,7 @@ export const COMMENT_STACK_DEBT: Record<string, number> = {
   "packages/components/src/FleetRoster/index.test.tsx": 4,
   "packages/components/src/FleetRoster/index.tsx": 2,
   "packages/components/src/FuelStatus/index.test.tsx": 2,
-  "packages/components/src/FuelStatus/index.tsx": 6,
+  "packages/components/src/FuelStatus/index.tsx": 5,
   "packages/components/src/FuelStatus/stream.test.tsx": 2,
   "packages/components/src/FuelStatus/undefined.characterise.test.tsx": 2,
   "packages/components/src/Graph/index.tsx": 2,

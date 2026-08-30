@@ -1,10 +1,5 @@
 import type { ComponentProps } from "@ksp-gonogo/core";
-import {
-  AugmentSlot,
-  getWidgetShape,
-  registerComponent,
-  useTelemetry,
-} from "@ksp-gonogo/core";
+import { AugmentSlot, registerComponent, useTelemetry } from "@ksp-gonogo/core";
 import { type Reading, useCommand } from "@ksp-gonogo/sitrep-client";
 import { value } from "@ksp-gonogo/sitrep-sdk";
 import {
@@ -12,12 +7,10 @@ import {
   Cluster,
   Divider,
   EmptyState,
-  Grid,
   Inline,
   Panel,
   RowName,
   ScienceExperimentRow,
-  ScrollArea,
   Section,
   SectionTitle,
   Stack,
@@ -271,27 +264,28 @@ function ExperimentsComponent({
   // it mid-glyph. Require the same cols >= 4 floor as the header badge above
   // rather than just a row count.
   const showLab = rows >= 4 && cols >= 4;
-  // Wide-short: flow the instrument groups into columns so they use the width
-  // instead of a single stranded column.
-  const isLandscape = getWidgetShape(w, h).shape === "landscape";
 
-  if (instruments === null) {
-    return (
-      <Panel panelTitle="EXPERIMENTS" compactTitle={["EXPTS"]}>
-        {showSubtitle && <EmptyState>Awaiting instrument telemetry</EmptyState>}
-        {showLab && <LabSection labs={labs} />}
-      </Panel>
-    );
-  }
+  const waiting = (message: string) => (
+    <Panel
+      panelTitle="EXPERIMENTS"
+      compactTitle={["EXPTS"]}
+      sections={[
+        showSubtitle && (
+          <Section key="empty">
+            <EmptyState>{message}</EmptyState>
+          </Section>
+        ),
+        showLab && (
+          <Section key="lab">
+            <LabSection labs={labs} />
+          </Section>
+        ),
+      ]}
+    />
+  );
 
-  if (instruments.length === 0) {
-    return (
-      <Panel panelTitle="EXPERIMENTS" compactTitle={["EXPTS"]}>
-        {showSubtitle && <EmptyState>No instruments aboard</EmptyState>}
-        {showLab && <LabSection labs={labs} />}
-      </Panel>
-    );
-  }
+  if (instruments === null) return waiting("Awaiting instrument telemetry");
+  if (instruments.length === 0) return waiting("No instruments aboard");
 
   // Group by expId so a vessel with three thermometers shows them in
   // one cluster rather than scattered.
@@ -341,32 +335,45 @@ function ExperimentsComponent({
     /* The header escape-hatch slot is `Panel`'s universal `actions` segment,
        so there is nothing to render here: an augment composing next to the
        title binds `experiments.actions` and `Panel` places it. */
-    <Panel panelTitle="EXPERIMENTS" compactTitle={["EXPTS"]}>
-      {showSubtitle && (
-        <Text tone="muted" size="xs" role="status" aria-live="polite">
-          {totals.hasData}/{totals.total} with data · {totals.deployed} deployed
-          {totals.inoperable > 0 ? ` · ${totals.inoperable} inoperable` : ""}
-          {totalDataMits > 0 && (
-            <Text spaced title="Total stored science data (mits)">
-              · <Unit value={value("Mit", totalDataMits)} decimals={1} />
+    <Panel
+      panelTitle="EXPERIMENTS"
+      compactTitle={["EXPTS"]}
+      /* The filter used to sit under a ScrollArea holding the instrument
+         groups, which is what kept it in view while they scrolled. With the
+         groups in Panel's section grid the body itself is the scroller, so the
+         control moves to the footer, which is the pinned strip outside it. */
+      panelFooter={filter.control}
+      sections={[
+        showSubtitle && (
+          <Section key="totals" full>
+            <Text tone="muted" size="xs" role="status" aria-live="polite">
+              {totals.hasData}/{totals.total} with data · {totals.deployed}{" "}
+              deployed
+              {totals.inoperable > 0
+                ? ` · ${totals.inoperable} inoperable`
+                : ""}
+              {totalDataMits > 0 && (
+                <Text spaced title="Total stored science data (mits)">
+                  · <Unit value={value("Mit", totalDataMits)} decimals={1} />
+                </Text>
+              )}
             </Text>
-          )}
-        </Text>
-      )}
-      {showLab && <LabSection labs={labs} />}
-      <ScrollArea>
-        {sectionNodes.length === 0 ? (
-          <EmptyState>No instrument matches the filter.</EmptyState>
-        ) : isLandscape ? (
-          <Grid minColWidth="200px" gap="md">
-            {sectionNodes}
-          </Grid>
+          </Section>
+        ),
+        showLab && (
+          <Section key="lab" full>
+            <LabSection labs={labs} />
+          </Section>
+        ),
+        sectionNodes.length === 0 ? (
+          <Section key="unmatched" full>
+            <EmptyState>No instrument matches the filter.</EmptyState>
+          </Section>
         ) : (
-          <Stack gap="md">{sectionNodes}</Stack>
-        )}
-      </ScrollArea>
-      {filter.control}
-    </Panel>
+          sectionNodes
+        ),
+      ]}
+    />
   );
 }
 

@@ -25,6 +25,7 @@ import {
   KSP_YEAR_DAYS,
   NULL_DISPLAY,
   Panel,
+  Section,
   Select,
   type Severity,
   Text,
@@ -478,138 +479,153 @@ function TransferWindowComponent({
 
   if (!orbit || !origin) {
     return (
-      <Panel panelTitle="Transfer Window">
-        <Placeholder>
-          {orbitConfirmedAbsent
-            ? "No parking orbit: the vessel reports it is not in one."
-            : "Waiting for vessel orbit..."}
-        </Placeholder>
-      </Panel>
+      <Panel
+        panelTitle="Transfer Window"
+        sections={
+          <Section>
+            <Placeholder>
+              {orbitConfirmedAbsent
+                ? "No parking orbit: the vessel reports it is not in one."
+                : "Waiting for vessel orbit..."}
+            </Placeholder>
+          </Section>
+        }
+      />
     );
   }
   if (dests.length === 0 || !dest) {
     return (
-      <Panel panelTitle="Transfer Window">
-        <Placeholder>
-          No transfer destinations. {origin.name ?? "The origin body"} has no
-          sibling bodies to transfer to.
-        </Placeholder>
-      </Panel>
+      <Panel
+        panelTitle="Transfer Window"
+        sections={
+          <Section>
+            <Placeholder>
+              No transfer destinations. {origin.name ?? "The origin body"} has
+              no sibling bodies to transfer to.
+            </Placeholder>
+          </Section>
+        }
+      />
     );
   }
 
   return (
-    <Panel panelTitle="Transfer Window">
-      <Body>
-        {orbitNotCurrent && (
-          // Dated, not withheld. Says which half of the panel it applies to,
-          // because a bare "not current" over a live dial would read as a dead
-          // instrument: the phase relationship and the window times come off the
-          // body catalogue and are as current as the view clock.
-          <Text tone="warn" size="xs" role="status" aria-live="polite">
-            Parking orbit no longer current: Δv is from the last known elements.
-            Phase and window times stay live.
-          </Text>
-        )}
-        <ReachList
-          entries={reach}
-          originName={origin.name ?? "here"}
-          budgetDeltaV={budgetDeltaV}
-          reserveDeltaV={reserveDeltaV}
-          budgetNotCurrent={budgetNotCurrent}
-          selectedIndex={dest.index}
-          onSelect={setDestIndex}
-          budgetAge={budgetAge}
-          budgetConfirmedAbsent={budgetConfirmedAbsent}
-        />
-        {/*
-         * Responsive on the body's own width (container query): stacked when
-         * narrow (dial + list, then the chart below), side-by-side when wide. The
-         * grid renders whether or not a transfer solves, because the destination
-         * select lives on the windows heading and must stay reachable: an operator
-         * whose orbit payload is partial still needs to change destination.
-         */}
-        <ContentGrid>
-          <LeftCol>
-            {solution ? (
-              <NowRow>
-                <PhaseDial solution={solution} />
-                <NowFacts role="status" aria-live="polite">
-                  <NowLabel>Current phase</NowLabel>
-                  <NowValue>
-                    <Unit
-                      value={value("°", solution.currentPhaseDeg)}
-                      decimals={1}
-                    />
-                    <Muted>
-                      {" / ideal "}
-                      <Unit
-                        value={value("°", solution.idealPhaseDeg)}
-                        decimals={1}
-                      />
-                    </Muted>
-                  </NowValue>
-                  <Badge severity={STATUS_SEVERITY[solution.status]}>
-                    {STATUS_LABEL[solution.status]}
-                  </Badge>
-                </NowFacts>
-              </NowRow>
-            ) : (
-              <Placeholder>Waiting for orbital elements...</Placeholder>
+    <Panel
+      panelTitle="Transfer Window"
+      sections={
+        <Section>
+          <Body>
+            {orbitNotCurrent && (
+              // Dated, not withheld. Says which half of the panel it applies to,
+              // because a bare "not current" over a live dial would read as a dead
+              // instrument: the phase relationship and the window times come off the
+              // body catalogue and are as current as the view clock.
+              <Text tone="warn" size="xs" role="status" aria-live="polite">
+                Parking orbit no longer current: Δv is from the last known
+                elements. Phase and window times stay live.
+              </Text>
             )}
-
-            <WindowsList
-              windows={windows}
-              selectedIndex={selIdx}
-              onSelect={setSelectedWindow}
-              destPicker={
-                /*
-                 * NOT wrapped in a FieldRow: the label and the select have to be
-                 * direct children of the wrapping SectionHead, or the select's
-                 * narrow-width rule sizes against an inner row that is itself the
-                 * thing overflowing the panel. The heading IS the control's label,
-                 * since a static "Windows to Mars" beside a Mars select would name
-                 * the destination twice on one line.
-                 */
-                <>
-                  <FieldLabel htmlFor="transfer-dest">
-                    <ListTitle as="span">Windows to</ListTitle>
-                  </FieldLabel>
-                  <RouteSelect
-                    id="transfer-dest"
-                    value={dest.index}
-                    onChange={(e) => setDestIndex(Number(e.target.value))}
-                  >
-                    {dests.map((d) => (
-                      <option key={d.index} value={d.index}>
-                        {d.name ?? `Body ${d.index}`}
-                      </option>
-                    ))}
-                  </RouteSelect>
-                </>
-              }
-              createAlarm={
-                createAlarm
-                  ? (w) =>
-                      createAlarm({
-                        name: `Transfer: ${origin.name} to ${dest.name}`,
-                        trigger: {
-                          kind: "time",
-                          ut: w.departureUt,
-                          leadSeconds,
-                        },
-                      })
-                  : null
-              }
+            <ReachList
+              entries={reach}
+              originName={origin.name ?? "here"}
+              budgetDeltaV={budgetDeltaV}
+              reserveDeltaV={reserveDeltaV}
+              budgetNotCurrent={budgetNotCurrent}
+              selectedIndex={dest.index}
+              onSelect={setDestIndex}
+              budgetAge={budgetAge}
+              budgetConfirmedAbsent={budgetConfirmedAbsent}
             />
-          </LeftCol>
+            {/*
+             * Responsive on the body's own width (container query): stacked when
+             * narrow (dial + list, then the chart below), side-by-side when wide. The
+             * grid renders whether or not a transfer solves, because the destination
+             * select lives on the windows heading and must stay reachable: an operator
+             * whose orbit payload is partial still needs to change destination.
+             */}
+            <ContentGrid>
+              <LeftCol>
+                {solution ? (
+                  <NowRow>
+                    <PhaseDial solution={solution} />
+                    <NowFacts role="status" aria-live="polite">
+                      <NowLabel>Current phase</NowLabel>
+                      <NowValue>
+                        <Unit
+                          value={value("°", solution.currentPhaseDeg)}
+                          decimals={1}
+                        />
+                        <Muted>
+                          {" / ideal "}
+                          <Unit
+                            value={value("°", solution.idealPhaseDeg)}
+                            decimals={1}
+                          />
+                        </Muted>
+                      </NowValue>
+                      <Badge severity={STATUS_SEVERITY[solution.status]}>
+                        {STATUS_LABEL[solution.status]}
+                      </Badge>
+                    </NowFacts>
+                  </NowRow>
+                ) : (
+                  <Placeholder>Waiting for orbital elements...</Placeholder>
+                )}
 
-          {showPorkchop && focusedPorkchop && (
-            <Porkchop grid={focusedPorkchop} nowUt={nowUt} />
-          )}
-        </ContentGrid>
-      </Body>
-    </Panel>
+                <WindowsList
+                  windows={windows}
+                  selectedIndex={selIdx}
+                  onSelect={setSelectedWindow}
+                  destPicker={
+                    /*
+                     * NOT wrapped in a FieldRow: the label and the select have to be
+                     * direct children of the wrapping SectionHead, or the select's
+                     * narrow-width rule sizes against an inner row that is itself the
+                     * thing overflowing the panel. The heading IS the control's label,
+                     * since a static "Windows to Mars" beside a Mars select would name
+                     * the destination twice on one line.
+                     */
+                    <>
+                      <FieldLabel htmlFor="transfer-dest">
+                        <ListTitle as="span">Windows to</ListTitle>
+                      </FieldLabel>
+                      <RouteSelect
+                        id="transfer-dest"
+                        value={dest.index}
+                        onChange={(e) => setDestIndex(Number(e.target.value))}
+                      >
+                        {dests.map((d) => (
+                          <option key={d.index} value={d.index}>
+                            {d.name ?? `Body ${d.index}`}
+                          </option>
+                        ))}
+                      </RouteSelect>
+                    </>
+                  }
+                  createAlarm={
+                    createAlarm
+                      ? (w) =>
+                          createAlarm({
+                            name: `Transfer: ${origin.name} to ${dest.name}`,
+                            trigger: {
+                              kind: "time",
+                              ut: w.departureUt,
+                              leadSeconds,
+                            },
+                          })
+                      : null
+                  }
+                />
+              </LeftCol>
+
+              {showPorkchop && focusedPorkchop && (
+                <Porkchop grid={focusedPorkchop} nowUt={nowUt} />
+              )}
+            </ContentGrid>
+          </Body>
+        </Section>
+      }
+    />
   );
 }
 

@@ -19,6 +19,7 @@ import {
   Grid,
   NULL_DISPLAY,
   Panel,
+  Section,
   Stack,
   Text,
   Unit,
@@ -221,11 +222,18 @@ function CommSignalComponent({
 
   if (!hasData) {
     return (
-      <Panel panelTitle="COMMNET">
-        <EmptyState>
-          {linkNotCurrent ? "Link state no longer current" : "No signal data"}
-        </EmptyState>
-      </Panel>
+      <Panel
+        panelTitle="COMMNET"
+        sections={
+          <Section>
+            <EmptyState>
+              {linkNotCurrent
+                ? "Link state no longer current"
+                : "No signal data"}
+            </EmptyState>
+          </Section>
+        }
+      />
     );
   }
 
@@ -313,84 +321,47 @@ function CommSignalComponent({
         ? "Signal connected"
         : "";
   return (
-    <Panel panelTitle="COMMNET">
-      <VisuallyHidden role="status" aria-live="polite">
-        {liveAnnouncement}
-      </VisuallyHidden>
-
-      {/* Link caption sits in the body rather than the panel subtitle,
-          carried by a plain span so the title stands alone. */}
-      {showSubtitle && (
-        <span
-          style={{
-            fontSize: "var(--font-size-xs)",
-            color:
-              connected === false
-                ? "var(--color-status-nogo-fg)"
-                : "var(--color-text-dim)",
-            letterSpacing: "0.04em",
-          }}
-        >
-          {connected === false
-            ? "No signal"
-            : `Signal to ${centreLabel}${hopHint}`}
-        </span>
-      )}
-
-      {/* Landscape (wide-short): bars/headline cluster and detail grid sit
-          side by side, each taking half the row, rather than clustering
-          top-left. Portrait: the same two blocks stack vertically. Neither
-          Cluster nor Stack has an even-split "each child grows" mode, so the
-          two children get that via a direct style override in landscape. */}
-      {isLandscape ? (
-        <Cluster
-          justify="between"
-          align="center"
-          style={{ flex: 1, minHeight: 0, gap: "var(--space-24)" }}
-        >
-          <Cluster justify="start" wrap style={{ flex: "1 1 0", minWidth: 0 }}>
-            <SignalBars bars={bars} tone={control.tone} />
-            <SignalHeadline headline={headline} lost={connected === false} />
-          </Cluster>
-
-          {showDetailGrid && (
-            <Grid
-              cols="auto 1fr"
-              gap="md"
-              rowGap="xs"
-              align="baseline"
-              style={{ flex: "1 1 0", minWidth: 0 }}
+    <Panel
+      panelTitle="COMMNET"
+      sections={[
+        /* The caption spans the row rather than taking a column of its own: it
+           names the link the columns under it are all about. */
+        <Section key="caption" full>
+          <VisuallyHidden role="status" aria-live="polite">
+            {liveAnnouncement}
+          </VisuallyHidden>
+          {showSubtitle && (
+            <span
+              style={{
+                fontSize: "var(--font-size-xs)",
+                color:
+                  connected === false
+                    ? "var(--color-status-nogo-fg)"
+                    : "var(--color-text-dim)",
+                letterSpacing: "0.04em",
+              }}
             >
-              <CommSignalDetailRows control={control} delay={delay} />
-            </Grid>
+              {connected === false
+                ? "No signal"
+                : `Signal to ${centreLabel}${hopHint}`}
+            </span>
           )}
-
-          {showFullPath && (
-            <div style={{ flex: "0 1 auto", minWidth: 0 }}>
-              <CommsPathRoute
-                hops={hops}
-                vesselLabel={vesselLabel}
-                centreLabel={centreLabel}
-                pathDelay={delay}
-                rateByHopId={rateByHopId}
-              />
-            </div>
-          )}
-        </Cluster>
-      ) : (
-        <Stack gap="md" style={{ flex: 1, minHeight: 0 }}>
+        </Section>,
+        <Section key="signal">
           <Cluster justify="start" wrap>
             <SignalBars bars={bars} tone={control.tone} />
             <SignalHeadline headline={headline} lost={connected === false} />
           </Cluster>
-
-          {showDetailGrid && (
+        </Section>,
+        showDetailGrid && (
+          <Section key="detail">
             <Grid cols="auto 1fr" gap="md" rowGap="xs" align="baseline">
               <CommSignalDetailRows control={control} delay={delay} />
             </Grid>
-          )}
-
-          {showFullPath && (
+          </Section>
+        ),
+        showFullPath && (
+          <Section key="route">
             <CommsPathRoute
               hops={hops}
               vesselLabel={vesselLabel}
@@ -398,10 +369,10 @@ function CommSignalComponent({
               pathDelay={delay}
               rateByHopId={rateByHopId}
             />
-          )}
-        </Stack>
-      )}
-    </Panel>
+          </Section>
+        ),
+      ]}
+    />
   );
 }
 

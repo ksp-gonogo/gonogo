@@ -24,6 +24,7 @@ import {
   Panel,
   PrimaryButton,
   ReadoutCaption,
+  Section,
   Stack,
   StatusIndicator,
   type StatusTone,
@@ -122,147 +123,166 @@ function DataSourceStatusComponent({
     const total = sources.length;
     const ok = sources.filter((s) => s.status === "connected").length;
     return (
-      <Panel panelTitle="SOURCES">
-        <BigReadout $tone={ok === total && total > 0 ? "go" : "alert"}>
-          {`${ok} / ${total}`}
-          <ReadoutCaption>connected</ReadoutCaption>
-        </BigReadout>
-      </Panel>
+      <Panel
+        panelTitle="SOURCES"
+        sections={
+          <Section>
+            <BigReadout $tone={ok === total && total > 0 ? "go" : "alert"}>
+              {`${ok} / ${total}`}
+              <ReadoutCaption>connected</ReadoutCaption>
+            </BigReadout>
+          </Section>
+        }
+      />
     );
   }
 
   if (showCompactRows) {
     return (
-      <Panel panelTitle="Sources">
-        {sources.length === 0 ? (
-          <Placeholder>No data sources registered</Placeholder>
-        ) : (
-          <Stack as="ul" gap="sm" style={LIST_STYLE}>
-            {sources.map((s) => (
-              <li key={s.id}>
-                <StatusIndicator
-                  tone={statusTone(s.status)}
-                  pulse={statusPulse(s.status)}
-                >
-                  {s.name}
-                </StatusIndicator>
-              </li>
-            ))}
-          </Stack>
-        )}
-      </Panel>
+      <Panel
+        panelTitle="Sources"
+        sections={
+          <Section>
+            {sources.length === 0 ? (
+              <Placeholder>No data sources registered</Placeholder>
+            ) : (
+              <Stack as="ul" gap="sm" style={LIST_STYLE}>
+                {sources.map((s) => (
+                  <li key={s.id}>
+                    <StatusIndicator
+                      tone={statusTone(s.status)}
+                      pulse={statusPulse(s.status)}
+                    >
+                      {s.name}
+                    </StatusIndicator>
+                  </li>
+                ))}
+              </Stack>
+            )}
+          </Section>
+        }
+      />
     );
   }
 
   return (
-    <Panel panelTitle="Data Sources">
-      {sources.length === 0 ? (
-        <Placeholder>No data sources registered</Placeholder>
-      ) : (
-        <Stack as="ul" gap="md" style={LIST_STYLE}>
-          {sources.map((source) => {
-            const schema = getDataSource(source.id)?.configSchema() ?? [];
-            const isConfiguring = configuringId === source.id;
-            return (
-              <Stack as="li" gap="sm" key={source.id}>
-                <Cluster justify="start">
-                  <Truncate style={SOURCE_NAME_STYLE}>{source.name}</Truncate>
-                  <RemoteVersionPill sourceId={source.id} />
-                  <StatusIndicator
-                    tone={statusTone(source.status)}
-                    pulse={statusPulse(source.status)}
-                  >
-                    {source.status}
-                  </StatusIndicator>
-                  {source.status === "disconnected" && (
-                    <GhostButton
-                      onClick={() => {
-                        void getDataSource(source.id)?.connect();
-                      }}
-                      aria-label={`Reconnect ${source.name}`}
-                      style={RETRY_BUTTON_STYLE}
-                    >
-                      Reconnect
-                    </GhostButton>
-                  )}
-                  {schema.length > 0 && (
-                    <IconButton
-                      onClick={() =>
-                        isConfiguring
-                          ? setConfiguringId(null)
-                          : openConfig(source.id)
-                      }
-                      aria-label={`Configure ${source.name}`}
-                      style={{
-                        color: isConfiguring
-                          ? "var(--color-text-primary)"
-                          : "var(--color-text-faint)",
-                        fontSize: "var(--font-size-sm)",
-                        padding: "0 var(--space-2)",
-                      }}
-                    >
-                      <GearIcon size={14} />
-                    </IconButton>
-                  )}
-                </Cluster>
-                {source.status === "disconnected" &&
-                  (() => {
-                    const instructions = getDataSource(
-                      source.id,
-                    )?.setupInstructions?.();
-                    return instructions ? (
-                      <Box
-                        surface="sunken"
-                        bordered
-                        radius="sm"
-                        style={SETUP_INSTRUCTIONS_STYLE}
+    <Panel
+      panelTitle="Data Sources"
+      sections={
+        <Section>
+          {sources.length === 0 ? (
+            <Placeholder>No data sources registered</Placeholder>
+          ) : (
+            <Stack as="ul" gap="md" style={LIST_STYLE}>
+              {sources.map((source) => {
+                const schema = getDataSource(source.id)?.configSchema() ?? [];
+                const isConfiguring = configuringId === source.id;
+                return (
+                  <Stack as="li" gap="sm" key={source.id}>
+                    <Cluster justify="start">
+                      <Truncate style={SOURCE_NAME_STYLE}>
+                        {source.name}
+                      </Truncate>
+                      <RemoteVersionPill sourceId={source.id} />
+                      <StatusIndicator
+                        tone={statusTone(source.status)}
+                        pulse={statusPulse(source.status)}
                       >
-                        {instructions}
-                      </Box>
-                    ) : null;
-                  })()}
-                {isConfiguring && (
-                  <ConfigForm $boxed>
-                    {schema.map((field) => {
-                      const inputId = `config-${source.id}-${field.key}`;
-                      return (
-                        <FieldRow key={field.key}>
-                          <FieldLabel htmlFor={inputId}>
-                            {field.label}
-                          </FieldLabel>
-                          <Input
-                            id={inputId}
-                            type={field.type === "number" ? "number" : "text"}
-                            placeholder={field.placeholder}
-                            value={formValues[field.key] ?? ""}
-                            onChange={(e) =>
-                              setFormValues((prev) => ({
-                                ...prev,
-                                [field.key]: e.target.value,
-                              }))
-                            }
-                          />
-                        </FieldRow>
-                      );
-                    })}
-                    <FormActions>
-                      <PrimaryButton
-                        onClick={() => saveConfig(source.id, schema)}
-                      >
-                        Save
-                      </PrimaryButton>
-                      <GhostButton onClick={() => setConfiguringId(null)}>
-                        Cancel
-                      </GhostButton>
-                    </FormActions>
-                  </ConfigForm>
-                )}
-              </Stack>
-            );
-          })}
-        </Stack>
-      )}
-    </Panel>
+                        {source.status}
+                      </StatusIndicator>
+                      {source.status === "disconnected" && (
+                        <GhostButton
+                          onClick={() => {
+                            void getDataSource(source.id)?.connect();
+                          }}
+                          aria-label={`Reconnect ${source.name}`}
+                          style={RETRY_BUTTON_STYLE}
+                        >
+                          Reconnect
+                        </GhostButton>
+                      )}
+                      {schema.length > 0 && (
+                        <IconButton
+                          onClick={() =>
+                            isConfiguring
+                              ? setConfiguringId(null)
+                              : openConfig(source.id)
+                          }
+                          aria-label={`Configure ${source.name}`}
+                          style={{
+                            color: isConfiguring
+                              ? "var(--color-text-primary)"
+                              : "var(--color-text-faint)",
+                            fontSize: "var(--font-size-sm)",
+                            padding: "0 var(--space-2)",
+                          }}
+                        >
+                          <GearIcon size={14} />
+                        </IconButton>
+                      )}
+                    </Cluster>
+                    {source.status === "disconnected" &&
+                      (() => {
+                        const instructions = getDataSource(
+                          source.id,
+                        )?.setupInstructions?.();
+                        return instructions ? (
+                          <Box
+                            surface="sunken"
+                            bordered
+                            radius="sm"
+                            style={SETUP_INSTRUCTIONS_STYLE}
+                          >
+                            {instructions}
+                          </Box>
+                        ) : null;
+                      })()}
+                    {isConfiguring && (
+                      <ConfigForm $boxed>
+                        {schema.map((field) => {
+                          const inputId = `config-${source.id}-${field.key}`;
+                          return (
+                            <FieldRow key={field.key}>
+                              <FieldLabel htmlFor={inputId}>
+                                {field.label}
+                              </FieldLabel>
+                              <Input
+                                id={inputId}
+                                type={
+                                  field.type === "number" ? "number" : "text"
+                                }
+                                placeholder={field.placeholder}
+                                value={formValues[field.key] ?? ""}
+                                onChange={(e) =>
+                                  setFormValues((prev) => ({
+                                    ...prev,
+                                    [field.key]: e.target.value,
+                                  }))
+                                }
+                              />
+                            </FieldRow>
+                          );
+                        })}
+                        <FormActions>
+                          <PrimaryButton
+                            onClick={() => saveConfig(source.id, schema)}
+                          >
+                            Save
+                          </PrimaryButton>
+                          <GhostButton onClick={() => setConfiguringId(null)}>
+                            Cancel
+                          </GhostButton>
+                        </FormActions>
+                      </ConfigForm>
+                    )}
+                  </Stack>
+                );
+              })}
+            </Stack>
+          )}
+        </Section>
+      }
+    />
   );
 }
 
