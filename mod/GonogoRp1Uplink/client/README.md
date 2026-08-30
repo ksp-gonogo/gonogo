@@ -100,7 +100,7 @@ Every craft RP-1 is integrating, holding or could start, across every launch com
 
 ![The same widget at 18 × 5](docs/assets/assembly-rushing--landscape-18x5.png)
 
-![A career with nothing built and three saved craft: Atlas buildable at either complex, Redstone at LC-2 only with LC-1's mass floor spelled out, and Saturn I too heavy for both with each complex's limit named, every button confirming a price against the balance drawn at the top](docs/assets/assembly-start-a-build--default.png)
+![A career whose centre has a name rather than a site id, with nothing built and three saved craft: Atlas buildable at either complex, Redstone at LC-2 only with LC-1's mass floor spelled out, and Saturn I too heavy for both with each complex's limit named, every button confirming a price against the balance drawn at the top](docs/assets/assembly-start-a-build--default.png)
 
 ![The same widget at its minimum size](docs/assets/assembly-start-a-build--min.png)
 
@@ -162,7 +162,7 @@ Every craft RP-1 is integrating, holding or could start, across every launch com
 
 ![Nothing queued, which is where a career starts: the section has to read as an answer rather than as one that failed to draw](docs/assets/construction-empty--default.png)
 
-![The state a first-decade RP-1 career sits in: a VAB upgrade, a second launch complex and a pad all building at once, appended under the space centre's own facility list](docs/assets/construction-full-queue--default.png)
+![The state a first-decade RP-1 career sits in: a VAB upgrade, a second launch complex and a pad all building at once, appended under the space centre's own facility list, each row naming the centre it belongs to by the name an operator uses rather than the site id the save keys it on](docs/assets/construction-full-queue--default.png)
 
 ![A construction RP-1 has not priced yet, a real state on a freshly loaded save, proving it does not read as stalled](docs/assets/construction-not-costed--default.png)
 
