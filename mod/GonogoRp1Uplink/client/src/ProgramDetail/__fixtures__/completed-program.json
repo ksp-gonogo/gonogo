@@ -3,7 +3,8 @@
     "notes": "The same Sounding Rocket Development program as `running-backloaded`, seen after it closed. A completed Program is the majority of any mature career's catalogue and no fixture carried one, so the row that swaps its own label from Deadline to Completed had never been drawn: with `completedUt` on the wire the row dates the closure instead of a deadline that has stopped mattering. Completed nearly three weeks of mission time early, so nothing was assessed against its reputation."
   },
   "_scene": {
-    "widget": "rp1-program-detail",
+    "augment": "rp1-program-detail",
+    "host": "strategies",
     "caption": "A Program that has closed: the deadline row becomes the completion date, the funding is paid out in full, and nothing remains to plan against",
     "size": {
       "w": 8,
@@ -286,6 +287,33 @@
         "payload": {
           "economy": {
             "funds": 289848
+          },
+          "strategies": {
+            "active": [],
+            "all": [
+              {
+                "id": "SuborbRocketDev",
+                "title": "Sounding Rocket Development",
+                "description": "",
+                "department": "Programs",
+                "isActive": false,
+                "factor": 1.0,
+                "dateActivated": 0,
+                "requiredReputation": 0,
+                "initialCostFunds": 0,
+                "initialCostScience": 0,
+                "initialCostReputation": 0,
+                "hasFactorSlider": false,
+                "factorSliderDefault": 1.0,
+                "factorSliderSteps": 1,
+                "canActivate": true,
+                "activateBlockedReason": "",
+                "canDeactivate": false,
+                "deactivateBlockedReason": "Strategy is not active",
+                "effect": ""
+              }
+            ],
+            "activeCount": 0
           }
         }
       }

@@ -1,5 +1,5 @@
-import type { ComponentProps, Reading } from "@ksp-gonogo/sitrep-sdk";
-import { registerComponent, useTelemetry, value } from "@ksp-gonogo/sitrep-sdk";
+import type { Reading } from "@ksp-gonogo/sitrep-sdk";
+import { registerAugment, useTelemetry, value } from "@ksp-gonogo/sitrep-sdk";
 import {
   Badge,
   Cluster,
@@ -35,6 +35,7 @@ import type {
   Rp1ProgramPaymentEntry,
   Rp1ProgramSpeedOption,
 } from "../__generated__/contract";
+import { PROGRAMS_SCREEN_ID } from "../AdminBuilding/programsScreen";
 import { RP1 } from "../uplink";
 import "../topics";
 import {
@@ -43,18 +44,16 @@ import {
   sampleFundingCurve,
 } from "./fundingCurve";
 
-export interface ProgramDetailConfig {
-  /**
-   * The Program to open on, by RP-1's internal name. Empty follows whatever is
-   * running, which is what an operator watching a career wants; pinning a name
-   * is for a dashboard built around one Program.
-   */
-  program: string;
-}
-
 /**
  * One RP-1 Program in full: what it asks, what it pays, when, and what
  * accepting it costs and closes off.
+ *
+ * <para>The BODY of the Administration Building's Programs screen, contributed
+ * as an augment on `strategies.screen-body`. It was a standalone widget until
+ * the building grew screens, which made a second Programs surface out of the
+ * one the operator already opens the building for. The strategy cards above it
+ * on that screen carry the Activate and Deactivate verbs; this is the half that
+ * says what accepting one costs and pays.</para>
  *
  * <para>The Administration building's own detail panel, minus the prose. RP-1
  * shows this as a rich-text blob with the figures formatted into sentences;
@@ -69,7 +68,7 @@ export interface ProgramDetailConfig {
  * fourth. The total alone cannot tell those apart, and it is the number every
  * other surface shows.</para>
  */
-export function ProgramDetail({ config }: ComponentProps<ProgramDetailConfig>) {
+export function ProgramDetail({ screenId }: { screenId: string }) {
   const available = current(useTelemetry("rp1.available"));
   const programs = current(useTelemetry("rp1.programs"));
   const slots = current(useTelemetry("rp1.programSlots"));
@@ -85,93 +84,77 @@ export function ProgramDetail({ config }: ComponentProps<ProgramDetailConfig>) {
   const selectId = useId();
 
   const rows = programs ?? [];
-  const chosen = choose(rows, picked ?? config?.program ?? "");
+  const chosen = choose(rows, picked ?? "");
 
-  // Invisible without RP-1 rather than an empty panel on a stock game.
+  /* One screen of the building, and not the others it may grow. */
+  if (screenId !== PROGRAMS_SCREEN_ID) {
+    return null;
+  }
+
+  // Invisible without RP-1 rather than an empty section on a stock game.
   if (available !== true) {
     return null;
   }
 
   return (
-    <Panel>
-      {/*
-       * The full title does not fit every width this is rendered at: the docs
-       * gate measured it 3px outside the 150px it was given, on the Linux
-       * runner where the check runs. It fit on macOS, which is why it went
-       * unnoticed here, and a title that fits on one operator's machine is
-       * not a title that fits.
-       *
-       * `minSize` has since risen to 8 columns, so the tightest size an
-       * OPERATOR can reach now holds the full title. The harness still renders
-       * every widget at a fixed `portrait-5x18`, below this widget's own
-       * minimum, and the compact form is what keeps that shot readable.
-       *
-       * `compact` gives the shorter form to draw when the full one will not
-       * fit, chosen by measurement against the box rather than by a column
-       * count. The full title stays the accessible name and the tooltip, so
-       * a screen reader still hears "PROGRAM DETAIL".
-       */}
-      <PanelTitle compact="PROGRAM">PROGRAM DETAIL</PanelTitle>
-      <PanelBody>
-        <ScrollArea>
-          <Stack gap="md">
-            <Field>
-              <FieldLabel htmlFor={selectId}>Program</FieldLabel>
-              <Select
-                id={selectId}
-                value={chosen?.name ?? ""}
-                onChange={(e) => setPicked(e.target.value)}
-              >
-                {rows.length === 0 && <option value="">{NULL_DISPLAY}</option>}
-                {ordered(rows).map((program) => (
-                  <option key={program.name ?? ""} value={program.name ?? ""}>
-                    {label(program)}
-                  </option>
-                ))}
-              </Select>
-            </Field>
+    <Section>
+      <SectionTitle>PROGRAM DETAIL</SectionTitle>
+      <Stack gap="md">
+        <Field>
+          <FieldLabel htmlFor={selectId}>Program</FieldLabel>
+          <Select
+            id={selectId}
+            value={chosen?.name ?? ""}
+            onChange={(e) => setPicked(e.target.value)}
+          >
+            {rows.length === 0 && <option value="">{NULL_DISPLAY}</option>}
+            {ordered(rows).map((program) => (
+              <option key={program.name ?? ""} value={program.name ?? ""}>
+                {label(program)}
+              </option>
+            ))}
+          </Select>
+        </Field>
 
-            {/* Wrapping, because three readouts do not fit across a narrow
-                panel and a Cluster that cannot wrap pushes the third one past
-                the panel's edge with no scroller to recover it. */}
-            <Cluster gap="md" wrap>
-              <Readout>
-                <ReadoutCaption>Funds</ReadoutCaption>
-                <Unit value={career?.economy?.funds} />
-              </Readout>
-              <Readout>
-                <ReadoutCaption>Confidence</ReadoutCaption>
-                <Unit value={confidence?.confidence} />
-              </Readout>
-              <Readout>
-                <ReadoutCaption>Slots</ReadoutCaption>
-                <Text>
-                  <Unit value={slots?.usedSlots} /> of{" "}
-                  <Unit value={slots?.maxSlots} />
-                </Text>
-              </Readout>
-            </Cluster>
+        {/* Wrapping, because three readouts do not fit across a narrow
+            panel and a Cluster that cannot wrap pushes the third one past
+            the panel's edge with no scroller to recover it. */}
+        <Cluster gap="md" wrap>
+          <Readout>
+            <ReadoutCaption>Funds</ReadoutCaption>
+            <Unit value={career?.economy?.funds} />
+          </Readout>
+          <Readout>
+            <ReadoutCaption>Confidence</ReadoutCaption>
+            <Unit value={confidence?.confidence} />
+          </Readout>
+          <Readout>
+            <ReadoutCaption>Slots</ReadoutCaption>
+            <Text>
+              <Unit value={slots?.usedSlots} /> of{" "}
+              <Unit value={slots?.maxSlots} />
+            </Text>
+          </Readout>
+        </Cluster>
 
-            {chosen === undefined ? (
-              // Three states reach here and only one of them is this. RP-1 is
-              // present (checked above) and either the catalogue has not arrived
-              // yet or the pinned name names nothing; both leave nothing to
-              // describe, and neither is "this Program has no detail".
-              <EmptyState>
-                No Program selected. RP-1 has not sent a Program catalogue yet,
-                or the pinned name is not in it.
-              </EmptyState>
-            ) : (
-              <ChosenProgram
-                program={chosen}
-                curves={curves}
-                confidenceHeld={magnitudeOf(confidence?.confidence)}
-              />
-            )}
-          </Stack>
-        </ScrollArea>
-      </PanelBody>
-    </Panel>
+        {chosen === undefined ? (
+          /*
+           * Two states reach here and neither is "this Program has no detail":
+           * RP-1 is present (checked above) and the catalogue has either not
+           * arrived yet or arrived empty. Both leave nothing to describe.
+           */
+          <EmptyState>
+            No Program selected. RP-1 has not sent a Program catalogue yet.
+          </EmptyState>
+        ) : (
+          <ChosenProgram
+            program={chosen}
+            curves={curves}
+            confidenceHeld={magnitudeOf(confidence?.confidence)}
+          />
+        )}
+      </Stack>
+    </Section>
   );
 }
 
@@ -679,33 +662,21 @@ function current<T>(reading: Reading<T>): T | undefined {
   return undefined;
 }
 
-registerComponent<ProgramDetailConfig>({
+registerAugment({
   id: "rp1-program-detail",
-  name: "RP-1 Program Detail",
-  description:
-    "One RP-1 Program in full: its objectives, the funds it pays and has " +
-    "paid, its deadline, the Confidence price and term at each speed, the " +
-    "per-year funding summary, and the funding curve those payments follow.",
-  tags: ["rp1", "career", "programs"],
-  // Wider than most widgets here on purpose: this one carries three tables
-  // and a chart, and at six columns the tables spend their width scrolling
-  // rather than showing the figures they exist to line up.
-  defaultSize: { w: 8, h: 16 },
-  minSize: { w: 8, h: 8 },
+  augments: "strategies.screen-body",
   component: ProgramDetail,
-  openConfigOnAdd: false,
-  dataRequirements: [
+  channels: [
     "rp1.available",
     "rp1.programs",
     "rp1.programSlots",
     "rp1.programFundingCurves",
     "rp1.confidence",
-    // The spend rule: this widget quotes a Confidence price against a funds
-    // return, so both balances have to be in it.
+    /* The spend rule: this quotes a Confidence price against a funds return,
+       so both balances have to be in it. The host carries `career.status`
+       already, and naming it here is what makes that independent of the host. */
     "career.status",
   ],
-  defaultConfig: { program: "" },
-  actions: [],
-  pushable: true,
+  requires: "rp1",
   owner: RP1,
 });

@@ -3,7 +3,8 @@
     "notes": "An acceptable Program on the shipped StrongFrontloaded curve, priced at all three speeds against 212 Confidence held: Slow is free, Normal is out of reach at 300 and Fast at 600, which is the SHORT badge doing the work the balance readout alone cannot."
   },
   "_scene": {
-    "widget": "rp1-program-detail",
+    "augment": "rp1-program-detail",
+    "host": "strategies",
     "caption": "An offer the career cannot yet afford at any paid speed, with the front-loaded curve that would fund its first two years",
     "size": {
       "w": 8,
@@ -275,6 +276,33 @@
         "payload": {
           "economy": {
             "funds": 289848
+          },
+          "strategies": {
+            "active": [],
+            "all": [
+              {
+                "id": "EarlyXPlanes",
+                "title": "Early X-Planes",
+                "description": "",
+                "department": "Programs",
+                "isActive": false,
+                "factor": 1.0,
+                "dateActivated": 0,
+                "requiredReputation": 0,
+                "initialCostFunds": 0,
+                "initialCostScience": 0,
+                "initialCostReputation": 0,
+                "hasFactorSlider": false,
+                "factorSliderDefault": 1.0,
+                "factorSliderSteps": 1,
+                "canActivate": true,
+                "activateBlockedReason": "",
+                "canDeactivate": false,
+                "deactivateBlockedReason": "Strategy is not active",
+                "effect": ""
+              }
+            ],
+            "activeCount": 0
           }
         }
       }

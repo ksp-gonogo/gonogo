@@ -12,6 +12,7 @@ import {
 } from "@ksp-gonogo/sitrep-client";
 import { value } from "@ksp-gonogo/sitrep-sdk";
 import {
+  AugmentSlot,
   CommandButton,
   type CommandButtonHandle,
   NULL_DISPLAY,
@@ -19,9 +20,13 @@ import {
   ScrollArea,
   Stack,
   speakQuantity,
+  type TabDescriptor,
+  Tabs,
   Unit,
+  useContributions,
   usePanelDelay,
 } from "@ksp-gonogo/ui-kit";
+import type { Dispatch, SetStateAction } from "react";
 import { useMemo, useState } from "react";
 import styled from "styled-components";
 import {
@@ -34,6 +39,7 @@ import {
   magnitudeOr,
   type Quantityish,
 } from "../shared/magnitude";
+import { resolveScreens } from "./screens";
 
 const topics = defineTopicManifest({
   channels: ["career.status"],
@@ -193,6 +199,71 @@ export function parseEffectLines(raw: string): string[] {
   return lines;
 }
 
+/**
+ * The four lists one screenful of strategies is drawn as. Split out of the
+ * component so a tab can be partitioned on its own share of the list while the
+ * header keeps partitioning the whole of it.
+ */
+function partition(strategies: readonly Strategy[]): {
+  active: Strategy[];
+  available: Strategy[];
+  softBlocked: Strategy[];
+  ineligible: Strategy[];
+} {
+  const inactive = strategies.filter((s) => !s.isActive);
+  return {
+    active: strategies.filter((s) => s.isActive),
+    available: inactive.filter(
+      (s) => s.canActivate || s.activateBlockedReason === "",
+    ),
+    // "more than 1 active strategies at this level" is the soft cap, the
+    // strategy IS eligible, just blocked by the active count. Keep those
+    // visible in the Available list so the operator sees them as options once
+    // they deactivate the running strategy.
+    softBlocked: inactive.filter(
+      (s) =>
+        !s.canActivate &&
+        /active strategies at this level/i.test(s.activateBlockedReason),
+    ),
+    ineligible: inactive.filter(
+      (s) =>
+        !s.canActivate &&
+        s.activateBlockedReason !== "" &&
+        !/active strategies at this level/i.test(s.activateBlockedReason),
+    ),
+  };
+}
+
+/**
+ * Everything a screen needs to draw its share of the list. The balances, the
+ * command handles and the expand/factor state are the WIDGET's, held once and
+ * handed down, so switching screens keeps a half-set factor slider and an armed
+ * button exactly where the operator left them.
+ */
+interface ScreenSectionsProps {
+  strategies: readonly Strategy[];
+  /** Absent for the ungrouped widget; see `ScreenSections`'s own doc. */
+  screenId?: string;
+  /**
+   * Whether each card names its department. False on a screen that IS one
+   * department, where the chip is the tab's own name repeated onto every card in
+   * it. Defaults true, which is the ungrouped widget: nothing else on screen says
+   * which department a strategy belongs to, so the chip is the only thing that
+   * does.
+   */
+  showDepartment?: boolean;
+  funds: Quantityish | undefined;
+  reputation: Quantityish | undefined;
+  science: Quantityish | undefined;
+  balancesNotCurrent: boolean;
+  factorById: Record<string, number>;
+  setFactorById: Dispatch<SetStateAction<Record<string, number>>>;
+  activateCmd: CommandButtonHandle;
+  deactivateCmd: CommandButtonHandle;
+  expandedId: string | null;
+  setExpandedId: Dispatch<SetStateAction<string | null>>;
+}
+
 function StrategiesComponent({
   w,
   h,
@@ -254,6 +325,18 @@ function StrategiesComponent({
 
   const strategies = useMemo(() => parseStrategies(stratsRaw), [stratsRaw]);
 
+  /*
+   * Which screens this building has. The widget draws the tab strip and nothing
+   * decides what is in the strip except the contribution, so a stock career
+   * (nobody contributing) gets the ungrouped widget it has always had, and every
+   * screen an operator can see is one somebody stated deliberately.
+   */
+  const screenEntries = useContributions("strategies.screens");
+  const screens = useMemo(
+    () => resolveScreens(screenEntries, strategies ?? []),
+    [screenEntries, strategies],
+  );
+
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [factorById, setFactorById] = useState<Record<string, number>>({});
 
@@ -268,26 +351,12 @@ function StrategiesComponent({
     );
   }
 
-  const active = strategies.filter((s) => s.isActive);
-  const inactive = strategies.filter((s) => !s.isActive);
-  const available = inactive.filter(
-    (s) => s.canActivate || s.activateBlockedReason === "",
-  );
-  const ineligible = inactive.filter(
-    (s) =>
-      !s.canActivate &&
-      s.activateBlockedReason !== "" &&
-      // "more than 1 active strategies at this level" is the soft cap,
-      // the strategy IS eligible, just blocked by the active count. Keep
-      // those visible in the Available list so the operator sees them as
-      // options once they deactivate the running strategy.
-      !/active strategies at this level/i.test(s.activateBlockedReason),
-  );
-  const softBlocked = inactive.filter(
-    (s) =>
-      !s.canActivate &&
-      /active strategies at this level/i.test(s.activateBlockedReason),
-  );
+  /*
+   * The cap is a property of the BUILDING, not of whichever screen is on display,
+   * so it is inferred from the whole list even when the list is split across
+   * tabs: an operator two strategies over a T2 cap is over it on every screen.
+   */
+  const { active, softBlocked } = partition(strategies);
 
   // Over-cap detection: the KSP UI silently allows a save to carry
   // more active strategies than the admin building's level allows
@@ -307,6 +376,19 @@ function StrategiesComponent({
     return null;
   })();
   const overCap = inferredCap !== null && active.length > inferredCap;
+
+  const sectionProps = {
+    funds,
+    reputation,
+    science,
+    balancesNotCurrent,
+    factorById,
+    setFactorById,
+    activateCmd,
+    deactivateCmd,
+    expandedId,
+    setExpandedId,
+  };
 
   // ── Tiny mode ─────────────────────────────────────────────────────────
   if (bucket === "tiny") {
@@ -423,115 +505,174 @@ function StrategiesComponent({
         </HeaderMeta>
       }
     >
-      <ScrollArea>
-        <DividedSection aria-label="Active">
-          <SectionLabel>Active</SectionLabel>
-          {active.length === 0 ? (
-            <Empty>No active strategies.</Empty>
-          ) : (
-            active.map((s) => (
-              <StrategyCard key={s.id} $active>
-                <CardHeader>
-                  <CardTitle>{s.title}</CardTitle>
-                  <CardDept>{s.departmentName}</CardDept>
-                </CardHeader>
-                {s.description && <Description>{s.description}</Description>}
-                <EffectList>
-                  {parseEffectLines(s.effect).map((line, i) => (
-                    // Effect lines are static, non-reorderable text; index keeps
-                    // otherwise-identical lines from colliding.
-                    // biome-ignore lint/suspicious/noArrayIndexKey: static effect text, never reordered
-                    <EffectLine key={`${i}:${line}`}>{line}</EffectLine>
-                  ))}
-                </EffectList>
-                <CardFooter>
-                  <FactorTag>
-                    factor{" "}
-                    <Unit value={value("%", s.factor * 100)} decimals={0} />
-                  </FactorTag>
-                  <CommandButton
-                    handle={deactivateCmd}
-                    args={{ strategyId: s.id }}
-                    commandLabel={`Deactivate ${s.title}`}
-                    label="Deactivate"
-                    confirmLabel="Confirm deactivate"
-                    pendingLabel="Deactivating..."
-                    active
-                    tone="go"
-                    disabled={!s.canDeactivate}
-                    title={
-                      s.canDeactivate
-                        ? "Deactivate this strategy"
-                        : s.deactivateBlockedReason || "Cannot deactivate"
-                    }
+      {screens.length === 0 ? (
+        <ScreenSections {...sectionProps} strategies={strategies} />
+      ) : (
+        <Tabs
+          tabs={screens.map(
+            (screen): TabDescriptor => ({
+              id: screen.id,
+              label: screen.label,
+              content:
+                screen.lockedReason !== null ? (
+                  <LockedScreen>{screen.lockedReason}</LockedScreen>
+                ) : (
+                  <ScreenSections
+                    {...sectionProps}
+                    strategies={screen.strategies}
+                    screenId={screen.id}
+                    showDepartment={!screen.namesOneDepartment}
                   />
-                </CardFooter>
-              </StrategyCard>
-            ))
+                ),
+            }),
           )}
-        </DividedSection>
+          aria-label="Administration Building screens"
+        />
+      )}
+    </Panel>
+  );
+}
 
-        <DividedSection aria-label="Available">
-          <SectionLabel>Available</SectionLabel>
-          {available.length === 0 && softBlocked.length === 0 ? (
-            <Empty>No strategies available right now.</Empty>
-          ) : (
-            <>
-              {available.map((s) => (
-                <AvailableRow
-                  key={s.id}
-                  strategy={s}
-                  funds={magnitudeOf(funds)}
-                  reputation={magnitudeOf(reputation)}
-                  science={magnitudeOf(science)}
-                  balancesNotCurrent={balancesNotCurrent}
-                  factor={factorById[s.id] ?? s.factorSliderDefault}
-                  onFactorChange={(v) =>
-                    setFactorById((prev) => ({ ...prev, [s.id]: v }))
-                  }
-                  activateCmd={activateCmd}
-                  expanded={expandedId === s.id}
-                  onToggleExpanded={() =>
-                    setExpandedId(expandedId === s.id ? null : s.id)
+/**
+ * One screenful of strategies: the Active / Available / Locked lists, plus
+ * whatever an Uplink has bound to this screen's body.
+ *
+ * `screenId` is absent for the ungrouped widget, the shape it has when nobody
+ * has said what screens this building owns. There is no `strategies.screen-body`
+ * slot in that case because there is no screen to name, and `Panel`'s universal
+ * `sections` segment is already the place to add to the widget as a whole.
+ */
+function ScreenSections({
+  strategies,
+  screenId,
+  showDepartment = true,
+  funds,
+  reputation,
+  science,
+  balancesNotCurrent,
+  factorById,
+  setFactorById,
+  activateCmd,
+  deactivateCmd,
+  expandedId,
+  setExpandedId,
+}: Readonly<ScreenSectionsProps>) {
+  const { active, available, softBlocked, ineligible } = partition(strategies);
+  return (
+    <ScrollArea>
+      <DividedSection aria-label="Active">
+        <SectionLabel>Active</SectionLabel>
+        {active.length === 0 ? (
+          <Empty>No active strategies.</Empty>
+        ) : (
+          active.map((s) => (
+            <StrategyCard key={s.id} $active>
+              <CardHeader>
+                <CardTitle>{s.title}</CardTitle>
+                {showDepartment && <CardDept>{s.departmentName}</CardDept>}
+              </CardHeader>
+              {s.description && <Description>{s.description}</Description>}
+              <EffectList>
+                {parseEffectLines(s.effect).map((line, i) => (
+                  // Effect lines are static, non-reorderable text; index keeps
+                  // otherwise-identical lines from colliding.
+                  // biome-ignore lint/suspicious/noArrayIndexKey: static effect text, never reordered
+                  <EffectLine key={`${i}:${line}`}>{line}</EffectLine>
+                ))}
+              </EffectList>
+              <CardFooter>
+                <FactorTag>
+                  factor{" "}
+                  <Unit value={value("%", s.factor * 100)} decimals={0} />
+                </FactorTag>
+                <CommandButton
+                  handle={deactivateCmd}
+                  args={{ strategyId: s.id }}
+                  commandLabel={`Deactivate ${s.title}`}
+                  label="Deactivate"
+                  confirmLabel="Confirm deactivate"
+                  pendingLabel="Deactivating..."
+                  active
+                  tone="go"
+                  disabled={!s.canDeactivate}
+                  title={
+                    s.canDeactivate
+                      ? "Deactivate this strategy"
+                      : s.deactivateBlockedReason || "Cannot deactivate"
                   }
                 />
-              ))}
-              {softBlocked.map((s) => (
-                <StrategyCard key={s.id}>
-                  <CardHeader>
-                    <CardTitle>{s.title}</CardTitle>
-                    <CardDept>{s.departmentName}</CardDept>
-                  </CardHeader>
-                  <BlockedNote>
-                    Deactivate the running strategy first to enable this one.
-                  </BlockedNote>
-                </StrategyCard>
-              ))}
-            </>
-          )}
-        </DividedSection>
+              </CardFooter>
+            </StrategyCard>
+          ))
+        )}
+      </DividedSection>
 
-        {ineligible.length > 0 && (
-          <DividedSection aria-label="Locked">
-            <SectionLabel>Locked</SectionLabel>
-            {ineligible.map((s) => (
+      <DividedSection aria-label="Available">
+        <SectionLabel>Available</SectionLabel>
+        {available.length === 0 && softBlocked.length === 0 ? (
+          <Empty>No strategies available right now.</Empty>
+        ) : (
+          <>
+            {available.map((s) => (
+              <AvailableRow
+                key={s.id}
+                strategy={s}
+                showDepartment={showDepartment}
+                funds={magnitudeOf(funds)}
+                reputation={magnitudeOf(reputation)}
+                science={magnitudeOf(science)}
+                balancesNotCurrent={balancesNotCurrent}
+                factor={factorById[s.id] ?? s.factorSliderDefault}
+                onFactorChange={(v) =>
+                  setFactorById((prev) => ({ ...prev, [s.id]: v }))
+                }
+                activateCmd={activateCmd}
+                expanded={expandedId === s.id}
+                onToggleExpanded={() =>
+                  setExpandedId(expandedId === s.id ? null : s.id)
+                }
+              />
+            ))}
+            {softBlocked.map((s) => (
               <StrategyCard key={s.id}>
                 <CardHeader>
                   <CardTitle>{s.title}</CardTitle>
-                  <CardDept>{s.departmentName}</CardDept>
+                  {showDepartment && <CardDept>{s.departmentName}</CardDept>}
                 </CardHeader>
-                <BlockedNote>{s.activateBlockedReason}</BlockedNote>
+                <BlockedNote>
+                  Deactivate the running strategy first to enable this one.
+                </BlockedNote>
               </StrategyCard>
             ))}
-          </DividedSection>
+          </>
         )}
-      </ScrollArea>
-    </Panel>
+      </DividedSection>
+
+      {ineligible.length > 0 && (
+        <DividedSection aria-label="Locked">
+          <SectionLabel>Locked</SectionLabel>
+          {ineligible.map((s) => (
+            <StrategyCard key={s.id}>
+              <CardHeader>
+                <CardTitle>{s.title}</CardTitle>
+                {showDepartment && <CardDept>{s.departmentName}</CardDept>}
+              </CardHeader>
+              <BlockedNote>{s.activateBlockedReason}</BlockedNote>
+            </StrategyCard>
+          ))}
+        </DividedSection>
+      )}
+
+      {screenId !== undefined && (
+        <AugmentSlot name="strategies.screen-body" props={{ screenId }} />
+      )}
+    </ScrollArea>
   );
 }
 
 function AvailableRow({
   strategy: s,
+  showDepartment,
   funds,
   reputation,
   science,
@@ -543,6 +684,8 @@ function AvailableRow({
   onToggleExpanded,
 }: {
   strategy: Strategy;
+  /** See `ScreenSections`'s own derivation of this. */
+  showDepartment: boolean;
   funds: number | null;
   reputation: number | null;
   science: number | null;
@@ -600,7 +743,7 @@ function AvailableRow({
         >
           <CardTitle>{s.title}</CardTitle>
         </ExpandToggle>
-        <CardDept>{s.departmentName}</CardDept>
+        {showDepartment && <CardDept>{s.departmentName}</CardDept>}
       </CardHeader>
       {/* Always show the short description so the operator can pick a
           strategy without clicking expand; expand still reveals the full
@@ -998,6 +1141,22 @@ const CardFooter = styled.div`
   flex-wrap: wrap;
 `;
 
+/*
+ * The whole body of a screen that exists and will not open, which is the only
+ * thing on it worth reading. Its tab stays selectable for exactly that reason:
+ * `Tabs`'s own `disabled` makes a tab unreachable by pointer AND by key and
+ * steps the arrow navigation over it, which would put the reason somewhere the
+ * operator cannot get to and leave the screen indistinguishable from one that
+ * was never contributed.
+ */
+const LockedScreen = styled.p`
+  margin: 0;
+  padding: var(--space-16);
+  color: var(--color-text-dim);
+  font-size: var(--font-size-sm);
+  text-align: center;
+`;
+
 const BlockedNote = styled.p`
   margin: 0;
   color: var(--color-text-dim);
@@ -1022,6 +1181,13 @@ registerComponent<StrategiesConfig>({
   actions: [],
   pushable: true,
   requires: ["career"],
+  /* Which screens the building has, and what one of them holds beyond its own
+     department listing. Split that way because the two answers have different
+     failure modes: a tab list assembled from whatever bodies happened to
+     register is a race against a runtime-fetched bundle, and a screen that is
+     merely missing cannot say it is locked. */
+  contributionSlots: ["strategies.screens"],
+  augmentSlots: ["strategies.screen-body"],
 });
 
 export { StrategiesComponent };

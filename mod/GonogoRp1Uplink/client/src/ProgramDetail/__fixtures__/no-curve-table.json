@@ -3,7 +3,8 @@
     "notes": "The distinction the chart exists to protect. RP-1's handler is live and its Program list arrived, but the curve table did not, so there is a Program with a total and no shape. Drawing a flat line along the bottom of a funds axis here would say the Program pays nothing."
   },
   "_scene": {
-    "widget": "rp1-program-detail",
+    "augment": "rp1-program-detail",
+    "host": "strategies",
     "caption": "A Program whose funding curve RP-1 has not published: the chart refuses to draw and says so, rather than drawing zero",
     "size": {
       "w": 8,
@@ -124,6 +125,55 @@
         "payload": {
           "economy": {
             "funds": 289848
+          },
+          "strategies": {
+            "active": [
+              {
+                "id": "SuborbRocketDev",
+                "title": "Sounding Rocket Development",
+                "description": "",
+                "department": "Programs",
+                "isActive": true,
+                "factor": 1.0,
+                "dateActivated": 0,
+                "requiredReputation": 0,
+                "initialCostFunds": 0,
+                "initialCostScience": 0,
+                "initialCostReputation": 0,
+                "hasFactorSlider": false,
+                "factorSliderDefault": 1.0,
+                "factorSliderSteps": 1,
+                "canActivate": false,
+                "activateBlockedReason": "Strategy already active.",
+                "canDeactivate": true,
+                "deactivateBlockedReason": "",
+                "effect": ""
+              }
+            ],
+            "all": [
+              {
+                "id": "SuborbRocketDev",
+                "title": "Sounding Rocket Development",
+                "description": "",
+                "department": "Programs",
+                "isActive": true,
+                "factor": 1.0,
+                "dateActivated": 0,
+                "requiredReputation": 0,
+                "initialCostFunds": 0,
+                "initialCostScience": 0,
+                "initialCostReputation": 0,
+                "hasFactorSlider": false,
+                "factorSliderDefault": 1.0,
+                "factorSliderSteps": 1,
+                "canActivate": false,
+                "activateBlockedReason": "Strategy already active.",
+                "canDeactivate": true,
+                "deactivateBlockedReason": "",
+                "effect": ""
+              }
+            ],
+            "activeCount": 1
           }
         }
       }
