@@ -86,6 +86,7 @@ function mount(fixture: Fixture, w = 12, h = 14): StreamFixture {
   const f = setupStreamFixture({
     carriedChannels: stream.carriedChannels,
     pinnedUt: stream.pinnedUt ?? 10,
+    suspendFrames: true,
   });
   const result = render(
     <f.Provider>

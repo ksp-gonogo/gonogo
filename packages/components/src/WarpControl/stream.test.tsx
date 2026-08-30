@@ -32,6 +32,7 @@ describe("WarpControl: genuinely runs off the stream (M3 pilot)", () => {
     const fixture = setupStreamFixture({
       carriedChannels: ["time.warp"],
       pinnedUt: 10,
+      suspendFrames: true,
     });
 
     render(
@@ -71,6 +72,7 @@ describe("WarpControl: genuinely runs off the stream (M3 pilot)", () => {
     const fixture = setupStreamFixture({
       carriedChannels: ["time.warp", "time.setWarpIndex"],
       pinnedUt: 10,
+      suspendFrames: true,
     });
     const commandHandler = vi.fn(() => ({ ok: true }));
     fixture.transport.setCommandHandler(commandHandler);
@@ -114,6 +116,7 @@ describe("WarpControl: genuinely runs off the stream (M3 pilot)", () => {
         "vessel.identity",
       ],
       pinnedUt: 10,
+      suspendFrames: true,
     });
     const commandHandler = vi.fn(() => ({ ok: true }));
     fixture.transport.setCommandHandler(commandHandler);

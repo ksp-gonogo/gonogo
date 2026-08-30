@@ -69,6 +69,7 @@ describe("SystemView panel badge (fleet-comms-badge contribution)", () => {
     fixture = setupStreamFixture({
       carriedChannels: ["comms.link"],
       pinnedUt: 100,
+      suspendFrames: true,
     });
   });
 

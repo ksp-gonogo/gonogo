@@ -22,6 +22,7 @@ describe("Objectives: genuinely runs off the stream (M3b career-detail batch)", 
     const fixture = setupStreamFixture({
       carriedChannels: ["career.status"],
       pinnedUt: 10,
+      suspendFrames: true,
     });
 
     render(

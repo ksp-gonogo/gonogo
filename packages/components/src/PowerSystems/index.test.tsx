@@ -98,6 +98,7 @@ function renderWidget(instanceId: string) {
   const fixture = setupStreamFixture({
     carriedChannels: ["vessel.parts"],
     pinnedUt: 10,
+    suspendFrames: true,
   });
   const view = render(
     <fixture.Provider>

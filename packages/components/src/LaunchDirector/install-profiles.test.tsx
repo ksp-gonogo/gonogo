@@ -65,6 +65,7 @@ async function renderUnder(profileId: string) {
   const fixture = setupStreamFixture({
     carriedChannels: block.carriedChannels,
     pinnedUt: block.pinnedUt,
+    suspendFrames: true,
   });
   const view = render(
     <fixture.Provider>

@@ -80,6 +80,7 @@ describe("PowerSystems: genuinely runs off the stream (M3 science/parts batch)",
     const fixture = setupStreamFixture({
       carriedChannels: ["parts.power", "vessel.parts"],
       pinnedUt: 10,
+      suspendFrames: true,
     });
     const legacyAux = await setupMockDataSource({
       id: "data",
@@ -148,6 +149,7 @@ describe("PowerSystems: genuinely runs off the stream (M3 science/parts batch)",
     const fixture = setupStreamFixture({
       carriedChannels: ["parts.power", "vessel.parts"],
       pinnedUt: 10,
+      suspendFrames: true,
     });
     const legacyAux = await setupMockDataSource({
       id: "data",
@@ -202,6 +204,7 @@ describe("PowerSystems: genuinely runs off the stream (M3 science/parts batch)",
     const fixture = setupStreamFixture({
       carriedChannels: ["vessel.parts"],
       pinnedUt: 10,
+      suspendFrames: true,
     });
     const legacyAux = await setupMockDataSource({
       id: "data",

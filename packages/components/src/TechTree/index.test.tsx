@@ -119,6 +119,7 @@ describe("TechTreeComponent", () => {
     const fixture = setupStreamFixture({
       carriedChannels: CARRIED_CHANNELS,
       pinnedUt: 10,
+      suspendFrames: true,
     });
     renderTree(fixture);
     expect(screen.getByText(/Awaiting tech telemetry/i)).toBeInTheDocument();
@@ -128,6 +129,7 @@ describe("TechTreeComponent", () => {
     const fixture = setupStreamFixture({
       carriedChannels: CARRIED_CHANNELS,
       pinnedUt: 10,
+      suspendFrames: true,
     });
     renderTree(fixture);
     act(() => {
@@ -145,6 +147,7 @@ describe("TechTreeComponent", () => {
     const fixture = setupStreamFixture({
       carriedChannels: CARRIED_CHANNELS,
       pinnedUt: 10,
+      suspendFrames: true,
     });
     renderTree(fixture);
     act(() => {
@@ -165,6 +168,7 @@ describe("TechTreeComponent", () => {
     const fixture = setupStreamFixture({
       carriedChannels: CARRIED_CHANNELS,
       pinnedUt: 10,
+      suspendFrames: true,
     });
     renderTree(fixture);
     act(() => {
@@ -187,6 +191,7 @@ describe("TechTreeComponent", () => {
     const fixture = setupStreamFixture({
       carriedChannels: CARRIED_CHANNELS,
       pinnedUt: 10,
+      suspendFrames: true,
     });
 
     renderTree(fixture);
@@ -216,6 +221,7 @@ describe("TechTreeComponent", () => {
     const fixture = setupStreamFixture({
       carriedChannels: CARRIED_CHANNELS,
       pinnedUt: 10,
+      suspendFrames: true,
     });
     render(
       <fixture.Provider>
@@ -245,6 +251,7 @@ describe("TechTreeComponent", () => {
     const fixture = setupStreamFixture({
       carriedChannels: CARRIED_CHANNELS,
       pinnedUt: 10,
+      suspendFrames: true,
     });
     renderTree(fixture);
     act(() => {
@@ -265,6 +272,7 @@ describe("TechTreeComponent", () => {
     const fixture = setupStreamFixture({
       carriedChannels: CARRIED_CHANNELS,
       pinnedUt: 10,
+      suspendFrames: true,
     });
     renderTree(fixture);
     act(() => {

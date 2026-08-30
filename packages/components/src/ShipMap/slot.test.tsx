@@ -34,6 +34,7 @@ async function renderDiagram() {
   const fixture = setupStreamFixture({
     carriedChannels: ["vessel.parts"],
     pinnedUt: 10,
+    suspendFrames: true,
   });
   const { unmount } = render(
     <fixture.Provider>

@@ -25,6 +25,7 @@ describe("ThermalStatus: genuinely runs off the stream (M3 batch 1)", () => {
     const fixture = setupStreamFixture({
       carriedChannels: ["vessel.thermal"],
       pinnedUt: 10,
+      suspendFrames: true,
     });
 
     const { container } = render(

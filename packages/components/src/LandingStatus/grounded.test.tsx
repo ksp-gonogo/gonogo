@@ -75,7 +75,11 @@ describe("LandingStatus on the launchpad", () => {
 
   beforeEach(() => {
     registerStockBodies();
-    stream = setupStreamFixture({ carriedChannels: CARRIED, pinnedUt: 10 });
+    stream = setupStreamFixture({
+      carriedChannels: CARRIED,
+      pinnedUt: 10,
+      suspendFrames: true,
+    });
   });
 
   /**

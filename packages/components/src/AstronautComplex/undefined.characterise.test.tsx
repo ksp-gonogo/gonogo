@@ -60,7 +60,11 @@ describe("AstronautComplex, what undefined telemetry renders today", () => {
   let fixture: StreamFixture;
 
   beforeEach(() => {
-    fixture = setupStreamFixture({ carriedChannels: CARRIED, pinnedUt: 10 });
+    fixture = setupStreamFixture({
+      carriedChannels: CARRIED,
+      pinnedUt: 10,
+      suspendFrames: true,
+    });
   });
 
   afterEach(() => {

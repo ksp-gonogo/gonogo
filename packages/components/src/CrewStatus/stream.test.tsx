@@ -26,6 +26,7 @@ describe("CrewStatus, genuinely runs off the stream (M3 batch 4)", () => {
     const fixture = setupStreamFixture({
       carriedChannels: ["vessel.crew"],
       pinnedUt: 10,
+      suspendFrames: true,
     });
 
     render(

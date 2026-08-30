@@ -108,6 +108,7 @@ async function mountOnConformance(patches: unknown[]) {
   const fixture = setupStreamFixture({
     carriedChannels: CARRIED,
     pinnedUt: 1_000_000,
+    suspendFrames: true,
   });
 
   const view = render(
@@ -147,6 +148,7 @@ describe("ManeuverPlanner: the render gate's selector still matches", () => {
     const fixture = setupStreamFixture({
       carriedChannels: CARRIED,
       pinnedUt: 1_000_000,
+      suspendFrames: true,
     });
     const view = render(
       <fixture.Provider>

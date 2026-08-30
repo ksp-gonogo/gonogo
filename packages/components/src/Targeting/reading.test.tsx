@@ -41,6 +41,7 @@ async function mount(instanceId: string, pinnedUt = 10) {
   const fixture = setupStreamFixture({
     carriedChannels: ["vessel.target"],
     pinnedUt,
+    suspendFrames: true,
   });
   // `tar.type` maps to the derived `vessel.state.targetKind`, which is not
   // carried here, so the aux source supplies it exactly as `stream.test.tsx`
@@ -230,6 +231,7 @@ describe("Targeting: stale renders the last observation as an observation", () =
     const fixture = setupStreamFixture({
       carriedChannels: ["vessel.target", "vessel.dock"],
       pinnedUt: 10,
+      suspendFrames: true,
     });
     const legacyAux = await setupMockDataSource({
       id: "data",

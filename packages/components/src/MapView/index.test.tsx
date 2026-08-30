@@ -184,6 +184,7 @@ describe("MapViewComponent", () => {
     const fixture = setupStreamFixture({
       carriedChannels: [...VESSEL_STATE_INPUTS],
       pinnedUt: 10,
+      suspendFrames: true,
     });
     const result = render(
       <fixture.Provider>

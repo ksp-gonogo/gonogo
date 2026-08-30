@@ -29,6 +29,7 @@ describe("ThermalStatus: real reentry-warning fixture render off the stream (del
     const streamFixture = setupStreamFixture({
       carriedChannels: ["vessel.thermal"],
       pinnedUt: 10,
+      suspendFrames: true,
     });
 
     const { container } = render(

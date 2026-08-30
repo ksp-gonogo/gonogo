@@ -50,7 +50,11 @@ describe("SpaceCenterStatusComponent", () => {
   beforeEach(async () => {
     onExecute = vi.fn();
     cmdFixture = await setupMockDataSource({ keys: [], onExecute });
-    stream = setupStreamFixture({ carriedChannels: CARRIED, pinnedUt: 10 });
+    stream = setupStreamFixture({
+      carriedChannels: CARRIED,
+      pinnedUt: 10,
+      suspendFrames: true,
+    });
   });
 
   afterEach(() => {

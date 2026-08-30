@@ -44,7 +44,11 @@ const CARRIED = [
 const renderedTrees: Array<() => void> = [];
 
 function newFixture(): StreamFixture {
-  return setupStreamFixture({ carriedChannels: CARRIED, pinnedUt: 10 });
+  return setupStreamFixture({
+    carriedChannels: CARRIED,
+    pinnedUt: 10,
+    suspendFrames: true,
+  });
 }
 
 function renderData(fixture: StreamFixture, w = 8, h = 10) {

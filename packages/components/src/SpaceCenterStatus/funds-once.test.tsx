@@ -121,6 +121,7 @@ describe("SpaceCenterStatus draws the balance wherever a contributed section can
       const fixture = setupStreamFixture({
         carriedChannels: CARRIED,
         pinnedUt: 10,
+        suspendFrames: true,
       });
       mount(fixture, `scs-funds-once-${w}x${h}`, w, h);
       emitCareer(fixture);
@@ -147,6 +148,7 @@ describe("SpaceCenterStatus draws the balance wherever a contributed section can
     const fixture = setupStreamFixture({
       carriedChannels: CARRIED,
       pinnedUt: 10,
+      suspendFrames: true,
     });
     mount(fixture, "scs-funds-once-count", 12, 14);
     emitCareer(fixture);

@@ -96,6 +96,7 @@ describe("SystemView: near-parent orbit stroke stays readable at SOI zoom (board
     const fixture: StreamFixture = setupStreamFixture({
       carriedChannels: ["system.bodies", "vessel.identity", "vessel.orbit"],
       pinnedUt: 100,
+      suspendFrames: true,
     });
     const { container } = render(
       <fixture.Provider>

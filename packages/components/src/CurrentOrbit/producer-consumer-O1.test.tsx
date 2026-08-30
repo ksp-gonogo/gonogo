@@ -35,6 +35,7 @@ describe("CurrentOrbit: O1, t-Pe shows the null-display placeholder on a hyperbo
     const stream = setupStreamFixture({
       carriedChannels: VESSEL_STATE_INPUTS,
       pinnedUt: 0,
+      suspendFrames: true,
     });
 
     const { getByText } = render(

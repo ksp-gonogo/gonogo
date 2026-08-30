@@ -84,7 +84,10 @@ const SCENE = [
 ];
 
 function renderAugment(vesselId: string, compact = false) {
-  const fixture = setupStreamFixture({ carriedChannels: CARRIED });
+  const fixture = setupStreamFixture({
+    carriedChannels: CARRIED,
+    suspendFrames: true,
+  });
   const utils = render(
     <fixture.Provider>
       <FleetReliabilityUpdates
@@ -124,22 +127,6 @@ const PILOT = {
   carrying: [{ name: "evaRepairKit", title: "EVA Repair Kit", quantity: 9 }],
 };
 
-/**
- * Waits for the view clock's frame to carry an emitted sample into the render.
- *
- * The fixture applies a sample on the next animation frame, not on the emit, so
- * a query made straight afterwards reads the widget as it was BEFORE the record
- * arrived. Learned the hard way in ThermalStatus, where an assertion about an
- * absence passed on the pre-emit render whatever the widget did.
- */
-async function settleFrame(): Promise<void> {
-  await act(async () => {
-    await new Promise<void>((resolve) => {
-      requestAnimationFrame(() => requestAnimationFrame(() => resolve()));
-    });
-  });
-}
-
 describe("the repair control offers only crew the provider would accept", () => {
   /**
    * Asserted here rather than looked at, because a static render cannot show
@@ -175,7 +162,6 @@ describe("the repair control offers only crew the provider would accept", () => 
       ]);
     });
 
-    await settleFrame();
     await act(async () => {
       screen.getByRole("button", { name: /repair/i }).click();
     });
@@ -206,7 +192,6 @@ describe("the repair control offers only crew the provider would accept", () => 
       ]);
     });
 
-    await settleFrame();
     await act(async () => {
       screen.getByRole("button", { name: /repair/i }).click();
     });

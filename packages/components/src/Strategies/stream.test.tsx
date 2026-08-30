@@ -29,6 +29,7 @@ describe("Strategies: genuinely runs off the stream (M3/M3b career batch)", () =
     const fixture = setupStreamFixture({
       carriedChannels: ["career.status"],
       pinnedUt: 10,
+      suspendFrames: true,
     });
 
     const { unmount } = render(
@@ -67,6 +68,7 @@ describe("Strategies: genuinely runs off the stream (M3/M3b career batch)", () =
     const fixture = setupStreamFixture({
       carriedChannels: ["career.status"],
       pinnedUt: 10,
+      suspendFrames: true,
     });
 
     const { unmount } = render(

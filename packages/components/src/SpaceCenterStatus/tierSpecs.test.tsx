@@ -30,6 +30,7 @@ async function renderWithFacilities(
   const fixture = setupStreamFixture({
     carriedChannels: ["career.status", "spaceCenter.scene"],
     pinnedUt: 10,
+    suspendFrames: true,
   });
   const { unmount } = render(
     <fixture.Provider>
@@ -151,6 +152,7 @@ describe("SpaceCenterStatus tier descriptions", () => {
     const fixture = setupStreamFixture({
       carriedChannels: ["career.status", "spaceCenter.scene"],
       pinnedUt: 10,
+      suspendFrames: true,
     });
     const { unmount } = render(
       <fixture.Provider>

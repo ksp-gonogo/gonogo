@@ -25,6 +25,7 @@ describe("Objectives: stream render golden (delay=0)", () => {
     const streamFixture = setupStreamFixture({
       carriedChannels: ["career.status"],
       pinnedUt: 10,
+      suspendFrames: true,
     });
 
     const { container } = render(

@@ -40,7 +40,7 @@ function renderPois(
   bodyId: string | undefined,
   carriedChannels: string[] = ["spaceCenter.pois", "system.bodies"],
 ) {
-  const fixture = setupStreamFixture({ carriedChannels });
+  const fixture = setupStreamFixture({ carriedChannels, suspendFrames: true });
   const provider = getProvider();
   const { result, unmount } = renderHook(() => provider.usePois({ bodyId }), {
     wrapper: fixture.Provider,

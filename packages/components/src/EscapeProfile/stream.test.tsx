@@ -43,6 +43,7 @@ describe("EscapeProfile: reads v.body off the stream (R6)", () => {
     const fixture = setupStreamFixture({
       carriedChannels: VESSEL_STATE_INPUTS,
       pinnedUt: 10,
+      suspendFrames: true,
     });
 
     const { container } = render(

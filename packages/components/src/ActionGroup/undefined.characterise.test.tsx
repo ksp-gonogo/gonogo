@@ -52,7 +52,11 @@ const CARRIED = [
 ];
 
 function mount(groupId: string, instanceId = "ag-characterise") {
-  const fixture = setupStreamFixture({ carriedChannels: CARRIED, pinnedUt: 0 });
+  const fixture = setupStreamFixture({
+    carriedChannels: CARRIED,
+    pinnedUt: 0,
+    suspendFrames: true,
+  });
   const commandHandler = vi.fn(() => ({ ok: true }));
   fixture.transport.setCommandHandler(commandHandler);
   render(

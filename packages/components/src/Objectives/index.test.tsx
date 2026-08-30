@@ -43,6 +43,7 @@ function renderObjectives() {
   const fixture = setupStreamFixture({
     carriedChannels: ["career.status"],
     pinnedUt: 10,
+    suspendFrames: true,
   });
   const result = render(
     <fixture.Provider>

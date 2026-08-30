@@ -34,28 +34,24 @@ function renderThermal(fixture: StreamFixture) {
   );
 }
 
+/**
+ * Frames are SUSPENDED, which is what lets the assertions below be about the
+ * widget rather than about timing.
+ *
+ * A sample reaches the render on a frame, not on the emit, so an assertion made
+ * straight after `fixture.emit` used to read the widget as it was BEFORE the
+ * record arrived. That is survivable for a test asserting a presence, which
+ * retries until the frame lands, and silently fatal for one asserting an
+ * absence, which passes on the pre-emit render whatever the widget does. This
+ * file used to wait two real animation frames for the loop to get round to it;
+ * a suspended fixture mints the frame as part of the emit, so the record has
+ * landed by the time `act` returns and an absence is a real absence.
+ */
 function newFixture() {
   return setupStreamFixture({
     carriedChannels: CARRIED_CHANNELS,
     pinnedUt: 10,
-  });
-}
-
-/**
- * Waits for the view clock's frame to carry an emitted sample into the render.
- *
- * A sample is applied on the next animation frame, not on the emit, so an
- * assertion made straight after `fixture.emit` reads the widget as it was
- * BEFORE the record arrived. That is fine for a test asserting a presence, which
- * retries until the frame lands, and silently fatal for one asserting an
- * absence, which passes on the pre-emit render whatever the widget does. Await
- * this before any assertion that the record changed nothing.
- */
-async function settleFrame(): Promise<void> {
-  await act(async () => {
-    await new Promise<void>((resolve) => {
-      requestAnimationFrame(() => requestAnimationFrame(() => resolve()));
-    });
+    suspendFrames: true,
   });
 }
 
@@ -88,7 +84,6 @@ describe("ThermalStatus: what undefined means today", () => {
     act(() => {
       fixture.emit("vessel.thermal", { maxInternalTempRatio: 0.99 });
     });
-    await settleFrame();
 
     expect(screen.queryByText("No thermal data")).toBeNull();
     expect(screen.getByText("Hottest part")).toBeInTheDocument();
@@ -153,8 +148,6 @@ describe("ThermalStatus: what undefined means today", () => {
         maxInternalTempRatio: 0.001,
       });
     });
-
-    await settleFrame();
 
     expect(screen.getByText("No thermal data")).toBeInTheDocument();
     expect(screen.queryByText("OX-STAT Photovoltaic Panels")).toBeNull();

@@ -156,7 +156,11 @@ describe("TargetPickerComponent: Suggested + categorised list", () => {
   let fixture: StreamFixture;
 
   beforeEach(() => {
-    fixture = setupStreamFixture({ carriedChannels: [], pinnedUt: 0 });
+    fixture = setupStreamFixture({
+      carriedChannels: [],
+      pinnedUt: 0,
+      suspendFrames: true,
+    });
   });
 
   it("shows a waiting hint before target.available arrives", () => {
@@ -509,7 +513,11 @@ describe("TargetPicker: augment slots (Uplink architecture spec §4)", () => {
   let fixture: StreamFixture;
 
   beforeEach(() => {
-    fixture = setupStreamFixture({ carriedChannels: [], pinnedUt: 0 });
+    fixture = setupStreamFixture({
+      carriedChannels: [],
+      pinnedUt: 0,
+      suspendFrames: true,
+    });
   });
 
   it("exposes the host slot empty by default (no augment DOM)", () => {

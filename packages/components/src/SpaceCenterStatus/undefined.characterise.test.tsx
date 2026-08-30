@@ -62,6 +62,7 @@ describe("SpaceCenterStatus: what undefined telemetry renders today", () => {
     const fixture = setupStreamFixture({
       carriedChannels: ALL_READS,
       pinnedUt: 10,
+      suspendFrames: true,
     });
     mount(fixture, "scs-cold", 6, 7);
 
@@ -109,6 +110,7 @@ describe("SpaceCenterStatus: what undefined telemetry renders today", () => {
     const fixture = setupStreamFixture({
       carriedChannels: ALL_READS,
       pinnedUt: 10,
+      suspendFrames: true,
     });
     mount(fixture, "scs-pad-cold", 6, 7);
 
@@ -133,6 +135,7 @@ describe("SpaceCenterStatus: what undefined telemetry renders today", () => {
     const fixture = setupStreamFixture({
       carriedChannels: ALL_READS,
       pinnedUt: 10,
+      suspendFrames: true,
     });
     mount(fixture, "scs-partial-scene", 6, 7);
 
@@ -159,6 +162,7 @@ describe("SpaceCenterStatus: what undefined telemetry renders today", () => {
     const fixture = setupStreamFixture({
       carriedChannels: ALL_READS,
       pinnedUt: 10,
+      suspendFrames: true,
     });
     mount(fixture, "scs-scene-gate", 6, 7);
 
@@ -213,6 +217,7 @@ describe("SpaceCenterStatus: what undefined telemetry renders today", () => {
     const fixture = setupStreamFixture({
       carriedChannels: ALL_READS,
       pinnedUt: 10,
+      suspendFrames: true,
     });
     mount(fixture, "scs-funds-gate", 6, 7);
 
@@ -270,6 +275,7 @@ describe("SpaceCenterStatus: what undefined telemetry renders today", () => {
     const fixture = setupStreamFixture({
       carriedChannels: ALL_READS,
       pinnedUt: 10,
+      suspendFrames: true,
     });
     mount(fixture, "scs-tombstone", 6, 7);
 
@@ -302,6 +308,7 @@ describe("SpaceCenterStatus: what undefined telemetry renders today", () => {
     const fixture = setupStreamFixture({
       carriedChannels: ALL_READS,
       pinnedUt: 10,
+      suspendFrames: true,
     });
     mount(fixture, "scs-tiny-cold", 2, 3);
 

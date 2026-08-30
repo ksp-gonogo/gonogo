@@ -157,6 +157,7 @@ export function renderOrbitStream(
   const fixture = setupStreamFixture({
     carriedChannels: [...VESSEL_STATE_INPUTS],
     pinnedUt: 0,
+    suspendFrames: true,
   });
   const { container, unmount } = render(
     <fixture.Provider>

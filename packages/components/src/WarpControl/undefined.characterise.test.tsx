@@ -55,7 +55,11 @@ const CARRIED = [
 const INSTANCE = "warp-characterise";
 
 function mount(w: number, h: number) {
-  const fixture = setupStreamFixture({ carriedChannels: CARRIED, pinnedUt: 0 });
+  const fixture = setupStreamFixture({
+    carriedChannels: CARRIED,
+    pinnedUt: 0,
+    suspendFrames: true,
+  });
   const commandHandler = vi.fn(() => ({ ok: true }));
   fixture.transport.setCommandHandler(commandHandler);
   render(

@@ -60,7 +60,11 @@ describe("LaunchDirector when its telemetry is no longer current", () => {
   let stream: ReturnType<typeof setupStreamFixture>;
 
   beforeEach(() => {
-    stream = setupStreamFixture({ carriedChannels: CARRIED, pinnedUt: 10 });
+    stream = setupStreamFixture({
+      carriedChannels: CARRIED,
+      pinnedUt: 10,
+      suspendFrames: true,
+    });
   });
 
   function renderWidget() {

@@ -87,6 +87,7 @@ function renderPhaseAngles(bodies: CelestialBody[], pinnedUt = 0) {
   const fixture = setupStreamFixture({
     carriedChannels: ["vessel.orbit"],
     pinnedUt,
+    suspendFrames: true,
   });
   const { result, rerender } = renderHook(
     ({ b }: { b: CelestialBody[] }) => usePhaseAngles(b),

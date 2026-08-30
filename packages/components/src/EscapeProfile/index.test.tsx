@@ -81,6 +81,7 @@ describe("EscapeProfileComponent", () => {
     const fixture = setupStreamFixture({
       carriedChannels: VESSEL_STATE_INPUTS,
       pinnedUt: 10,
+      suspendFrames: true,
     });
     const rendered = render(
       <fixture.Provider>

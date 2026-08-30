@@ -45,6 +45,7 @@ describe("CurrentOrbitComponent", () => {
     stream = setupStreamFixture({
       carriedChannels: VESSEL_STATE_INPUTS,
       pinnedUt: 0,
+      suspendFrames: true,
     });
   });
 

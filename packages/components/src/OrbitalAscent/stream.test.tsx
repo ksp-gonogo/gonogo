@@ -53,6 +53,7 @@ describe("OrbitalAscent: v.body genuinely runs off the stream (R6)", () => {
         "vessel.propulsion",
       ],
       pinnedUt: 10,
+      suspendFrames: true,
     });
 
     const { container } = render(

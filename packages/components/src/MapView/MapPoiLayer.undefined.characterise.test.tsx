@@ -57,7 +57,7 @@ function renderLayer() {
 /** Layer inside a real stream fixture, so `<domain>.available` can be emitted
  *  (or deliberately not) rather than being absent for want of a store. */
 function renderLayerOnStream(carriedChannels: string[]) {
-  const fixture = setupStreamFixture({ carriedChannels });
+  const fixture = setupStreamFixture({ carriedChannels, suspendFrames: true });
   const view = render(
     <fixture.Provider>
       <MapPoiLayer bodyId="Kerbin" project={project} width={400} height={200} />

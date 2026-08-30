@@ -66,6 +66,7 @@ describe("FleetComms: actions augment on SystemView, comms drawing on the contri
         "comms.link",
         "system.uplink.pending",
       ],
+      suspendFrames: true,
       pinnedUt: 100,
     });
   });

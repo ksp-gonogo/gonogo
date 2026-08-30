@@ -101,6 +101,7 @@ function renderScene(profileId: string) {
   const block = applyInstallProfile(getInstallProfile(profileId), SCENE);
   const fixture = setupStreamFixture({
     carriedChannels: block.carriedChannels,
+    suspendFrames: true,
   });
   const { unmount } = render(
     <fixture.Provider>
@@ -363,6 +364,7 @@ describe("channel ownership, seen from two installs", () => {
     const block = applyInstallProfile(getInstallProfile(profileId), GUARDED);
     const fixture = setupStreamFixture({
       carriedChannels: block.carriedChannels,
+      suspendFrames: true,
     });
     render(
       <fixture.Provider>

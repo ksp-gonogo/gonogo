@@ -82,6 +82,7 @@ function setup(targetBodyIndex?: number, opts?: { budgetDvVac?: number }) {
       "dv.summary",
     ],
     pinnedUt: 0,
+    suspendFrames: true,
   });
   const view = render(
     <fixture.Provider>
@@ -90,37 +91,44 @@ function setup(targetBodyIndex?: number, opts?: { budgetDvVac?: number }) {
       </DashboardItemContext.Provider>
     </fixture.Provider>,
   );
-  fixture.emit("system.bodies", { bodies: [SUN, EARTH, MARS, VENUS] });
-  // Vessel in a 700 km-ish LEO around Earth (index 1).
-  fixture.emit("vessel.orbit", {
-    referenceBodyIndex: 1,
-    sma: 7.071e6,
-    ecc: 0,
-    inc: 0,
-    lan: 0,
-    argPe: 0,
-    meanAnomalyAtEpoch: 0,
-    epoch: 0,
-    mu: 3.986004418e14,
+  /*
+   * Inside `act`, because the fixture's clock is suspended and each emit
+   * therefore publishes on the spot rather than on some later frame: the render
+   * it causes happens here, in this scope, and has to be allowed to.
+   */
+  act(() => {
+    fixture.emit("system.bodies", { bodies: [SUN, EARTH, MARS, VENUS] });
+    // Vessel in a 700 km-ish LEO around Earth (index 1).
+    fixture.emit("vessel.orbit", {
+      referenceBodyIndex: 1,
+      sma: 7.071e6,
+      ecc: 0,
+      inc: 0,
+      lan: 0,
+      argPe: 0,
+      meanAnomalyAtEpoch: 0,
+      epoch: 0,
+      mu: 3.986004418e14,
+    });
+    if (targetBodyIndex != null) {
+      fixture.emit("target.available", {
+        entries: [
+          {
+            kind: 1, // TargetKind.Body
+            name: targetBodyIndex === 3 ? "Venus" : "Mars",
+            bodyIndex: targetBodyIndex,
+            isCurrent: true,
+          },
+        ],
+      });
+    }
+    if (opts?.budgetDvVac != null) {
+      fixture.emit("dv.summary", {
+        stageCount: 2,
+        totalDvVac: opts.budgetDvVac,
+      });
+    }
   });
-  if (targetBodyIndex != null) {
-    fixture.emit("target.available", {
-      entries: [
-        {
-          kind: 1, // TargetKind.Body
-          name: targetBodyIndex === 3 ? "Venus" : "Mars",
-          bodyIndex: targetBodyIndex,
-          isCurrent: true,
-        },
-      ],
-    });
-  }
-  if (opts?.budgetDvVac != null) {
-    fixture.emit("dv.summary", {
-      stageCount: 2,
-      totalDvVac: opts.budgetDvVac,
-    });
-  }
   renderedTrees.push(view.unmount);
   return { fixture, view };
 }

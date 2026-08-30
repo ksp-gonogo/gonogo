@@ -76,6 +76,7 @@ async function mountFixture(
   const fixture = setupStreamFixture({
     carriedChannels: stream.carriedChannels,
     pinnedUt: stream.pinnedUt,
+    suspendFrames: true,
   });
   const { container } = render(
     <fixture.Provider>

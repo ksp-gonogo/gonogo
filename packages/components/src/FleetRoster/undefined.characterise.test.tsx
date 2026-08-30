@@ -47,7 +47,11 @@ afterEach(() => {
 });
 
 function newFixture(pinnedUt = 2_000) {
-  return setupStreamFixture({ carriedChannels: CARRIED, pinnedUt });
+  return setupStreamFixture({
+    carriedChannels: CARRIED,
+    pinnedUt,
+    suspendFrames: true,
+  });
 }
 
 function renderRoster(fixture: StreamFixture, size = { w: 8, h: 10 }) {

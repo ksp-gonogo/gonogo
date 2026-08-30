@@ -48,6 +48,7 @@ describe("OrbitalAscent: stream render golden (delay=0)", () => {
         "vessel.propulsion",
       ],
       pinnedUt: 10,
+      suspendFrames: true,
     });
     const legacyAux = await setupMockDataSource({
       id: "data",

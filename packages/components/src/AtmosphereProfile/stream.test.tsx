@@ -44,6 +44,7 @@ describe("AtmosphereProfile: genuinely runs off the stream (M3 batch 2)", () => 
         "vessel.propulsion",
       ],
       pinnedUt: 10,
+      suspendFrames: true,
     });
 
     const { container } = render(

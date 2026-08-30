@@ -76,6 +76,7 @@ describe("AtmosphereProfileComponent", () => {
     const fixture = setupStreamFixture({
       carriedChannels: CARRIED_CHANNELS,
       pinnedUt: 10,
+      suspendFrames: true,
     });
     const rendered = render(
       <fixture.Provider>

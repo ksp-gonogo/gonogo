@@ -67,7 +67,11 @@ afterEach(() => {
 });
 
 function mount(groupId: string, instanceId = `ag-stale-${groupId}`) {
-  const fixture = setupStreamFixture({ carriedChannels: CARRIED, pinnedUt: 0 });
+  const fixture = setupStreamFixture({
+    carriedChannels: CARRIED,
+    pinnedUt: 0,
+    suspendFrames: true,
+  });
   const commandHandler = vi.fn(() => ({ ok: true }));
   fixture.transport.setCommandHandler(commandHandler);
   const launcher = vi.fn();

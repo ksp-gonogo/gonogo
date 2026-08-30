@@ -37,6 +37,7 @@ describe("Targeting: genuinely runs off the stream (M3 vessel-gap batch)", () =>
     const fixture = setupStreamFixture({
       carriedChannels: ["vessel.target"],
       pinnedUt: 10,
+      suspendFrames: true,
     });
     const legacyAux = await setupMockDataSource({
       id: "data",
@@ -81,6 +82,7 @@ describe("Targeting: genuinely runs off the stream (M3 vessel-gap batch)", () =>
     const fixture = setupStreamFixture({
       carriedChannels: ["vessel.target", "vessel.dock"],
       pinnedUt: 10,
+      suspendFrames: true,
     });
     const legacyAux = await setupMockDataSource({
       id: "data",
@@ -142,6 +144,7 @@ describe("Targeting: genuinely runs off the stream (M3 vessel-gap batch)", () =>
     const fixture = setupStreamFixture({
       carriedChannels: ["vessel.target"],
       pinnedUt: 10,
+      suspendFrames: true,
     });
     const legacyAux = await setupMockDataSource({
       id: "data",
@@ -207,6 +210,7 @@ describe("Targeting: genuinely runs off the stream (M3 vessel-gap batch)", () =>
     const fixture = setupStreamFixture({
       carriedChannels: ["vessel.target"],
       pinnedUt: 1000,
+      suspendFrames: true,
     });
     const legacyAux = await setupMockDataSource({
       id: "data",

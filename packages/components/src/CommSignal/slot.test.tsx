@@ -65,6 +65,7 @@ function renderWithSignal() {
   const fixture = setupStreamFixture({
     carriedChannels: CARRIED,
     pinnedUt: 10,
+    suspendFrames: true,
   });
   const utils = render(
     <fixture.Provider>

@@ -57,6 +57,7 @@ describe("CurrentOrbit: full render off the stream (R6 Wave 1)", () => {
     const streamFixture = setupStreamFixture({
       carriedChannels: VESSEL_STATE_INPUTS,
       pinnedUt: PINNED_UT,
+      suspendFrames: true,
     });
 
     const { container } = render(

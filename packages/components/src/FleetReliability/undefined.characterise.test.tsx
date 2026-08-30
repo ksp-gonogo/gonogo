@@ -41,7 +41,10 @@ const FAILING_PARTS = [
 ];
 
 function renderAugment(vesselId: string) {
-  const fixture = setupStreamFixture({ carriedChannels: CARRIED });
+  const fixture = setupStreamFixture({
+    carriedChannels: CARRIED,
+    suspendFrames: true,
+  });
   const utils = render(
     <fixture.Provider>
       <FleetReliabilityUpdates

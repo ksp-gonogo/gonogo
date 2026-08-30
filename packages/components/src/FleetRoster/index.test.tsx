@@ -225,6 +225,7 @@ function newFixture() {
   return setupStreamFixture({
     carriedChannels: ["system.vessels", "system.bodies"],
     pinnedUt: 10,
+    suspendFrames: true,
   });
 }
 
@@ -437,6 +438,7 @@ describe("FleetRosterComponent", () => {
         "silence.",
       ],
       pinnedUt: 2_000,
+      suspendFrames: true,
     });
     renderRoster(fixture);
     act(() => {
@@ -494,6 +496,7 @@ describe("FleetRosterComponent", () => {
   it("shows a per-vessel signal disclosure with the round-trip delay", async () => {
     const fixture = setupStreamFixture({
       carriedChannels: ["system.vessels", "system.bodies", "fleet."],
+      suspendFrames: true,
     });
     renderRoster(fixture);
     // The row (and its fleet.<guid>.delay subscription) only mounts once
@@ -534,6 +537,7 @@ describe("FleetRosterComponent", () => {
   it("has no accessible violations with a delay disclosure open", async () => {
     const fixture = setupStreamFixture({
       carriedChannels: ["system.vessels", "system.bodies", "fleet."],
+      suspendFrames: true,
     });
     const container = renderRoster(fixture);
     act(() => {
@@ -574,6 +578,7 @@ describe("FleetRosterComponent", () => {
         "commandCentre.roster",
       ],
       pinnedUt: 10,
+      suspendFrames: true,
     });
     renderRoster(fixture);
     act(() => {

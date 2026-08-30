@@ -76,6 +76,7 @@ describe("SystemView: active vessel excluded from its own faint orbit contributi
         "system.vessels",
       ],
       pinnedUt: 100,
+      suspendFrames: true,
     });
 
     const { container } = render(
@@ -183,6 +184,7 @@ describe("SystemView: active vessel excluded from its own faint orbit contributi
     const fixture: StreamFixture = setupStreamFixture({
       carriedChannels: ["vessel.identity", "system.bodies", "system.vessels"],
       pinnedUt: 100,
+      suspendFrames: true,
     });
 
     const { container } = render(

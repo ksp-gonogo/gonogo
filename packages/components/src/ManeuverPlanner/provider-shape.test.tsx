@@ -74,6 +74,7 @@ function mountPlanner(horizon: PropagationHorizonLike, instanceId: string) {
   const fixture = setupStreamFixture({
     carriedChannels: CARRIED,
     pinnedUt: PINNED_UT,
+    suspendFrames: true,
   });
   const view = render(
     <fixture.Provider>

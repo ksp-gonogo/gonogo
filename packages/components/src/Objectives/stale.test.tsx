@@ -44,6 +44,7 @@ function newFixture() {
   return setupStreamFixture({
     carriedChannels: ["career.status"],
     pinnedUt: 10,
+    suspendFrames: true,
   });
 }
 

@@ -65,6 +65,7 @@ function makeFixture() {
   const fixture = setupStreamFixture({
     carriedChannels: CARRIED,
     pinnedUt: 10,
+    suspendFrames: true,
   });
   // A providedStore doesn't inherit the production derived-channel set, so the
   // stage-scoped resource channels this widget reads must be registered here.

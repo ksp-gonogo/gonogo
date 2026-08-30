@@ -130,6 +130,7 @@ describe("SystemView: what undefined means today", () => {
         "silence.",
       ],
       pinnedUt: 100,
+      suspendFrames: true,
     });
   });
 

@@ -87,6 +87,7 @@ function mount(options: {
       "system.vessels",
     ],
     pinnedUt: 0,
+    suspendFrames: true,
   });
 
   const view = render(

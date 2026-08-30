@@ -96,6 +96,7 @@ describe("SpaceCenterStatus when career telemetry is no longer current", () => {
     const fixture = setupStreamFixture({
       carriedChannels: CARRIED,
       pinnedUt: 10,
+      suspendFrames: true,
     });
     const container = mount(fixture, "scs-stale-control", 6, 7);
     emitCareer(fixture);
@@ -114,6 +115,7 @@ describe("SpaceCenterStatus when career telemetry is no longer current", () => {
     const fixture = setupStreamFixture({
       carriedChannels: CARRIED,
       pinnedUt: 10,
+      suspendFrames: true,
     });
     const container = mount(fixture, "scs-stale-funds", 6, 7);
     emitCareer(fixture);
@@ -141,6 +143,7 @@ describe("SpaceCenterStatus when career telemetry is no longer current", () => {
     const fixture = setupStreamFixture({
       carriedChannels: CARRIED,
       pinnedUt: 10,
+      suspendFrames: true,
     });
     const container = mount(fixture, "scs-stale-hold-line", 6, 7);
     emitCareer(fixture);
@@ -168,6 +171,7 @@ describe("SpaceCenterStatus when career telemetry is no longer current", () => {
     const fixture = setupStreamFixture({
       carriedChannels: CARRIED,
       pinnedUt: 10,
+      suspendFrames: true,
     });
     const container = mount(fixture, "scs-stale-facts", 6, 7);
     emitCareer(fixture);
@@ -198,6 +202,7 @@ describe("SpaceCenterStatus when career telemetry is no longer current", () => {
     const fixture = setupStreamFixture({
       carriedChannels: CARRIED,
       pinnedUt: 10,
+      suspendFrames: true,
     });
     const container = mount(fixture, "scs-stale-cold", 6, 7);
 
@@ -211,6 +216,7 @@ describe("SpaceCenterStatus when career telemetry is no longer current", () => {
     const fixture = setupStreamFixture({
       carriedChannels: CARRIED,
       pinnedUt: 10,
+      suspendFrames: true,
     });
     const container = mount(fixture, "scs-stale-tiny", 2, 3);
     emitCareer(fixture);
@@ -230,6 +236,7 @@ describe("SpaceCenterStatus when career telemetry is no longer current", () => {
     const fixture = setupStreamFixture({
       carriedChannels: CARRIED,
       pinnedUt: 10,
+      suspendFrames: true,
     });
     const container = mount(fixture, "scs-stale-tiny-cold", 2, 3);
 

@@ -30,6 +30,7 @@ describe("ContractManager: genuinely runs off the stream (M3b career-detail batc
     const fixture = setupStreamFixture({
       carriedChannels: ["career.status"],
       pinnedUt: 10,
+      suspendFrames: true,
     });
     const legacyAux = await setupMockDataSource({
       id: "data",

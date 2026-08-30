@@ -89,6 +89,7 @@ describe("ContractManager when career telemetry is no longer current", () => {
     const fixture = setupStreamFixture({
       carriedChannels: CARRIED,
       pinnedUt: 100,
+      suspendFrames: true,
     });
     const container = mount(fixture);
     emitBoard(fixture);
@@ -119,7 +120,10 @@ describe("ContractManager when career telemetry is no longer current", () => {
     // why the board needs no staleness caption of its own. The wrong behaviour
     // would be a countdown that ran on desk time and marched a held contract to
     // "expired" with no evidence that it did.
-    const fixture = setupStreamFixture({ carriedChannels: CARRIED });
+    const fixture = setupStreamFixture({
+      carriedChannels: CARRIED,
+      suspendFrames: true,
+    });
     const container = mount(fixture);
     emitBoard(fixture);
     await waitFor(() =>
@@ -146,6 +150,7 @@ describe("ContractManager when career telemetry is no longer current", () => {
     const fixture = setupStreamFixture({
       carriedChannels: CARRIED,
       pinnedUt: 100,
+      suspendFrames: true,
     });
     mount(fixture);
     goStale(fixture);
