@@ -170,6 +170,7 @@ import {
   StubTransport,
   TelemetryClient,
   TelemetryProvider,
+  type TimelineStore,
   useCertainty,
   useStream,
   useStreamEvent,
@@ -189,6 +190,45 @@ import { PeerClientService } from "../peer/PeerClientService";
 import { PeerHostService } from "../peer/PeerHostService";
 import { PeerTransport } from "../telemetry/PeerTransport";
 import { SitrepPeerRelay } from "../telemetry/SitrepPeerRelay";
+
+/**
+ * Every `TelemetryProvider` this file mounts builds its own `ViewClock`, whose
+ * frame loop reschedules itself forever: two or three mounted screens each turn
+ * into a React update every 16ms, for the whole file, and nothing here needs
+ * them. `SitrepPeerRelay` and the probes are driven by arrivals, and an arrival
+ * mints its own frame through the provider's ingest subscription.
+ *
+ * So the loops are stopped. This is a CPU claim, not a determinism one, and the
+ * difference matters: this file has failed on CI at 1855ms against `waitFor`'s
+ * 1s budget, and stopping the loops does not make that assertion deterministic,
+ * it only stops three screens burning the runner's time while it waits. A frame
+ * pump driven from inside every `waitFor` was written first and then DELETED,
+ * because with it replaced by a no-op all fourteen tests still passed: the frame
+ * that carries a relayed value is scheduled by the ingest, so driving the clock
+ * cannot be what delivers it. A helper whose removal changes nothing is not
+ * doing the job its name claims.
+ *
+ * Captured from inside the tree rather than by handing the providers a store the
+ * test built, because how a provider builds its own store (the delay authority
+ * it wires into the clock, the derived channels it registers) is part of what
+ * this file is proving works across the peer hop.
+ */
+const liveStores = new Set<TimelineStore>();
+
+/** Hands its provider's own store out, and stops that provider's frame loop. */
+function FrameSink(): null {
+  const store = useTelemetryStore();
+  useEffect(() => {
+    liveStores.add(store);
+    store.clock.suspendFrames();
+  }, [store]);
+  return null;
+}
+
+// Outside every describe, so it runs after their own teardown.
+afterEach(() => {
+  liveStores.clear();
+});
 
 /** Renders a topic's sampled value + certainty as one comparable string. Reads through `TimelineStore.sample`, the exact surface `useDataValue`'s shim and every real widget read through. */
 function Probe({ testId, topic }: { testId: string; topic: string }) {
@@ -211,6 +251,7 @@ function HostApp({
 }) {
   return (
     <TelemetryProvider client={client}>
+      <FrameSink />
       <SitrepPeerRelay peerHost={peerHost} />
       <Probe testId="host-orbit" topic="vessel.orbit" />
       <Probe testId="host-identity" topic="vessel.identity" />
@@ -238,6 +279,7 @@ function StationApp({
   );
   return (
     <TelemetryProvider client={telemetryClient}>
+      <FrameSink />
       <Probe testId="station-orbit" topic="vessel.orbit" />
       <Probe testId="station-identity" topic="vessel.identity" />
       {extraTopic ? <Probe testId="station-extra" topic={extraTopic} /> : null}
@@ -282,6 +324,7 @@ function StationChainApp({ clientSvc }: { clientSvc: PeerClientService }) {
   );
   return (
     <TelemetryProvider client={telemetryClient}>
+      <FrameSink />
       <ChainProbe />
     </TelemetryProvider>
   );
