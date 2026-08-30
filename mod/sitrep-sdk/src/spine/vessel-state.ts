@@ -257,6 +257,11 @@ export interface SystemBodyPayload {
   parentIndex: number | null;
   /** Mean radius, metres. `null` when the live game hasn't reported it yet. */
   radius: number | null;
+  /**
+   * Sidereal rotation period, seconds. Optional because a stream that predates
+   * the field simply omits it, and the impact walk has a fallback for that.
+   */
+  rotationPeriod?: number | null;
   orbit: SystemBodyOrbitPayload | null;
 }
 
@@ -713,10 +718,10 @@ export interface VesselState {
    * in `orbit-patches.ts`), horizon-bounded by `landingTimeToImpact` so the
    * walk only ever runs while an impact is actually imminent. Same MEASURED
    * basis/`null` discipline as `landingTimeToImpact`: additionally `null`
-   * when `landingTimeToImpact` itself is null, the body isn't in
-   * `ROTATION_PERIOD_SECONDS` (non-stock body: an accepted, pre-existing
-   * limitation MapView's own prediction already carries), or the walk never
-   * finds an impact within its bounded horizon. Vacuum-exact; on an
+   * when `landingTimeToImpact` itself is null, nothing reports the body's
+   * rotation period (the stream does not carry one and the stock
+   * `ROTATION_PERIOD_SECONDS` fallback does not know the body), or the walk
+   * never finds an impact within its bounded horizon. Vacuum-exact; on an
    * atmospheric body this ignores drag: the WIDGET (which already knows
    * whether the body has an atmosphere via `getBody()`) is responsible for
    * an honest "approximate" treatment, not this field.
@@ -1064,6 +1069,38 @@ function resolveBodyRadius(
   if (bodiesPoint.payload === null) return null;
   const body = bodiesPoint.payload.bodies.find((b) => b.index === index);
   return body?.radius ?? undefined;
+}
+
+/**
+ * Resolve a body INDEX to its sidereal rotation period (seconds) via
+ * `system.bodies`. Same discipline as `resolveBodyRadius`.
+ *
+ * <p>The impact walk needs it to turn a time of flight into a longitude, and
+ * took it from a hardcoded table of STOCK bodies keyed by NAME. Under a planet
+ * pack no name matched, so the predicted impact point was simply never drawn,
+ * and the table's own comment recorded that as an accepted limitation rather
+ * than as the defect it is. The stream reports the period per body, so the
+ * table is now only a fallback for a stream that does not.</p>
+ */
+function resolveBodyRotationPeriod(
+  get: DerivedGet,
+  index: number | null | undefined,
+): number | null | undefined {
+  if (index == null) return undefined;
+  const bodiesPoint = get<SystemBodiesPayload>("system.bodies");
+  if (!bodiesPoint) return undefined;
+  if (bodiesPoint.payload === null) return null;
+  const body = bodiesPoint.payload.bodies.find((b) => b.index === index);
+  const reported = body?.rotationPeriod;
+  if (reported == null) return undefined;
+  /*
+   * Unwrapped rather than returned as-is: the field is declared here as a
+   * number but arrives as a `Value` once `wrap-units` has run, and the walk
+   * divides by it. A period that does not survive as a finite number is no
+   * period at all, so it falls through to the stock table.
+   */
+  const seconds = magnitudeOr(reported, Number.NaN);
+  return Number.isFinite(seconds) ? seconds : undefined;
 }
 
 /**
@@ -1629,6 +1666,7 @@ function deriveLanding(
   const { landingPredictedLat, landingPredictedLon } = derivePredictedImpact(
     orbitPatches,
     radius,
+    resolveBodyRotationPeriod(get, orbit.referenceBodyIndex),
     flight,
     viewUt,
     timeToImpact,
@@ -1684,13 +1722,14 @@ function deriveLanding(
  * walk only ever runs while `deriveLanding`'s vertical-fall model already
  * says impact is imminent, never on every `vessel.state` evaluation for a
  * vessel that's merely in orbit. `null`/`null` when `timeToImpact` itself is
- * null, there are no orbit patches yet, or the current body isn't in
- * `ROTATION_PERIOD_SECONDS` (a non-stock body: the same limitation
- * MapView's own trajectory prediction already accepts via `getBody()`).
+ * null, there are no orbit patches yet, or nothing reports the body's rotation
+ * period: the stream does not carry one and it is not in the stock
+ * `ROTATION_PERIOD_SECONDS` table either.
  */
 function derivePredictedImpact(
   orbitPatches: LegacyOrbitPatch[],
   bodyRadius: number,
+  reportedRotationPeriod: number | null | undefined,
   flight: VesselFlightPayload,
   viewUt: number,
   timeToImpact: number | null,
@@ -1704,7 +1743,13 @@ function derivePredictedImpact(
     return none;
   }
   const bodyName = orbitPatches[0].referenceBody;
-  const rotationPeriod = ROTATION_PERIOD_SECONDS[bodyName];
+  /*
+   * The stream's own figure first. The stock table behind it is keyed by NAME
+   * and only carries stock bodies, so it answers for a stock game whose stream
+   * predates the field and for nothing else.
+   */
+  const rotationPeriod =
+    reportedRotationPeriod ?? ROTATION_PERIOD_SECONDS[bodyName];
   if (rotationPeriod == null) return none;
 
   const horizonSec = Math.min(

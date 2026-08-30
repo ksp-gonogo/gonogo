@@ -1801,6 +1801,7 @@ describe("landing scalars: vessel.state.landing* (land.timeToImpact/speedAtImpac
         index: 3,
         parentIndex: 0,
         radius: 200_000,
+        rotationPeriod: 21_600,
         orbit: null,
       },
     ],
@@ -1844,6 +1845,7 @@ describe("landing scalars: vessel.state.landing* (land.timeToImpact/speedAtImpac
       quality?: Quality;
       orbit?: WireOrbit;
       noBodies?: boolean;
+      bodies?: SystemBodiesPayload;
       noProp?: boolean;
       prop?: VesselPropulsionPayload;
     } = {},
@@ -1853,7 +1855,9 @@ describe("landing scalars: vessel.state.landing* (land.timeToImpact/speedAtImpac
         quality: opts.quality ?? Quality.Loaded,
       }),
       "vessel.flight": flightPoint({ ...DESCENT_FLIGHT, ...flightOver }),
-      "system.bodies": opts.noBodies ? undefined : bodiesPoint(LANDING_BODIES),
+      "system.bodies": opts.noBodies
+        ? undefined
+        : bodiesPoint(opts.bodies ?? LANDING_BODIES),
       "vessel.propulsion": opts.noProp
         ? undefined
         : pt(opts.prop ?? LANDING_PROP, Quality.Loaded),
@@ -2006,11 +2010,48 @@ describe("landing scalars: vessel.state.landing* (land.timeToImpact/speedAtImpac
     expect(s?.landingPredictedLon).toBeNull();
   });
 
-  it("is null for a body missing from ROTATION_PERIOD_SECONDS (non-stock body)", () => {
+  /*
+   * The body the WIRE names, which is not a body any stock table carries. The
+   * patch's own `referenceBody` string is deliberately the same one, so
+   * nothing here can fall back to a stock name by accident.
+   */
+  it("predicts an impact for a body only the stream knows about", () => {
     const s = deriveVesselState(
       landingGet(
         {},
         {
+          orbit: {
+            ...LANDING_ORBIT,
+            patches: [syntheticPatch({ referenceBody: "Testmun" })],
+          },
+        },
+      ),
+      0,
+    );
+    expect(s?.landingPredictedLat).not.toBeNull();
+    expect(Number.isFinite(s?.landingPredictedLat)).toBe(true);
+  });
+
+  /*
+   * Neither source has one: the stream omits the field and the patch's body is
+   * not a stock name the fallback table carries.
+   */
+  it("is null for a body whose rotation period nothing reports", () => {
+    const s = deriveVesselState(
+      landingGet(
+        {},
+        {
+          bodies: {
+            bodies: [
+              {
+                name: "Testmun",
+                index: 3,
+                parentIndex: 0,
+                radius: 200_000,
+                orbit: null,
+              },
+            ],
+          },
           orbit: {
             ...LANDING_ORBIT,
             patches: [syntheticPatch({ referenceBody: "Not-A-Real-Body" })],
