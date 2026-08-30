@@ -346,6 +346,9 @@ export const GENERATED_TYPE_UNITS: Readonly<Record<string, UnitsByField>> = {
     rateMult: "ratio",
     salaryMult: "ratio",
   },
+  "Rp1StrategyActivateArgs": {
+    strategyId: "id",
+  },
   "Rp1VehicleArgs": {
     id: "id",
   },

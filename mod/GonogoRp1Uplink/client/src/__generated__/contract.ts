@@ -312,3 +312,8 @@ export interface Rp1BuildableComplex
 	eligible?: boolean;
 	refusals?: string[];
 }
+export interface Rp1StrategyActivateArgs
+{
+	strategyId?: string;
+	factor?: number;
+}

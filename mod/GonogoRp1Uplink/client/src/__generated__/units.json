@@ -312,6 +312,9 @@
       "rateMult": "ratio",
       "salaryMult": "ratio"
     },
+    "Rp1StrategyActivateArgs": {
+      "strategyId": "id"
+    },
     "Rp1VehicleArgs": {
       "id": "id"
     },
