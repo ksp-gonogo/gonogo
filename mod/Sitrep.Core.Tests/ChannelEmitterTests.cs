@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using Xunit;
 using Sitrep.Core;
 using Sitrep.Contract;
@@ -321,6 +322,258 @@ namespace Sitrep.Core.Tests
             var counters = emitter.CountersFor("v.altitude");
             Assert.Equal(1, counters.Emitted);
             Assert.Equal(26, counters.Considered);
+        }
+
+        /// <summary>
+        /// The shape every <c>*ViewProvider</c> mapper hands back: a
+        /// dictionary/list/scalar tree, rebuilt from scratch on every call.
+        /// Nothing here is cached, exactly as
+        /// <c>SystemViewProvider.BuildSystemBodies</c> is not.
+        /// </summary>
+        private static Dictionary<string, object?> BuildBodiesPayload()
+        {
+            return new Dictionary<string, object?>
+            {
+                ["bodies"] = new List<object?>
+                {
+                    new Dictionary<string, object?>
+                    {
+                        ["name"] = "Earth",
+                        ["index"] = 1,
+                        ["parentIndex"] = 0,
+                        ["radius"] = 6371000.0,
+                        ["orbit"] = new Dictionary<string, object?>
+                        {
+                            ["sma"] = 149598261150.0,
+                            ["ecc"] = 0.0167,
+                            ["lan"] = (double?)null,
+                        },
+                        ["atmosphere"] = new Dictionary<string, object?>
+                        {
+                            ["depth"] = 140000.0,
+                            ["hasOxygen"] = true,
+                            ["pressureAltitudes"] = new double[] { 0, 1000, 2000 },
+                        },
+                    },
+                },
+            };
+        }
+
+        [Fact]
+        public void StructurallyIdenticalStructuredPayloadIsSuppressed()
+        {
+            var emitter = new ChannelEmitter(Policy(keyframeIntervalUt: 30, quantum: EmissionQuantum.Absolute(0)));
+
+            var first = emitter.Decide("system.bodies", BuildBodiesPayload(), 0);
+            Assert.True(first.ShouldEmit);
+            Assert.Equal(EmissionReason.Keyframe, first.Reason);
+
+            /*
+             * The 1 Hz steady state the deck capture records: the body set has
+             * not moved, so every one of these rebuilt-but-identical payloads
+             * must skip. Reference equality reads all 29 as changed, which is
+             * how system.bodies came to be 82% of the stream's bytes.
+             */
+            for (var ut = 1; ut < 30; ut++)
+            {
+                var decision = emitter.Decide("system.bodies", BuildBodiesPayload(), ut);
+                Assert.False(decision.ShouldEmit, $"expected a skip at ut={ut}");
+            }
+
+            Assert.Equal(1, emitter.CountersFor("system.bodies").Emitted);
+        }
+
+        [Fact]
+        public void StructuredPayloadStillEmitsWhenAnyLeafMoves()
+        {
+            var emitter = new ChannelEmitter(Policy(keyframeIntervalUt: 1000, quantum: EmissionQuantum.Absolute(0)));
+
+            emitter.Decide("system.bodies", BuildBodiesPayload(), 0); // keyframe
+
+            var moved = BuildBodiesPayload();
+            var body = (Dictionary<string, object?>)((List<object?>)moved["bodies"]!)[0]!;
+            var orbit = (Dictionary<string, object?>)body["orbit"]!;
+            orbit["ecc"] = 0.0168;
+
+            var decision = emitter.Decide("system.bodies", moved, 1);
+            Assert.True(decision.ShouldEmit);
+            Assert.Equal(EmissionReason.Change, decision.Reason);
+        }
+
+        [Fact]
+        public void SuppressedStructuredPayloadStillGetsItsKeyframe()
+        {
+            var emitter = new ChannelEmitter(Policy(keyframeIntervalUt: 30, quantum: EmissionQuantum.Absolute(0)));
+
+            emitter.Decide("system.bodies", BuildBodiesPayload(), 0); // keyframe #1
+
+            for (var ut = 1; ut < 30; ut++)
+            {
+                Assert.False(emitter.Decide("system.bodies", BuildBodiesPayload(), ut).ShouldEmit);
+            }
+
+            var keyframe = emitter.Decide("system.bodies", BuildBodiesPayload(), 30);
+            Assert.True(keyframe.ShouldEmit);
+            Assert.Equal(EmissionReason.Keyframe, keyframe.Reason);
+        }
+
+        /// <summary>
+        /// The control for the two tests above: handing back the SAME instance
+        /// was always suppressed, because <c>Equals</c> on one reference is
+        /// true. Only a rebuilt-but-identical payload read as changed, which
+        /// pins the defect on reference identity rather than on the gate's
+        /// ordering or its cadence.
+        /// </summary>
+        [Fact]
+        public void HandingBackTheSameInstanceWasNeverTheProblem()
+        {
+            var emitter = new ChannelEmitter(Policy(keyframeIntervalUt: 30, quantum: EmissionQuantum.Absolute(0)));
+            var payload = BuildBodiesPayload();
+
+            emitter.Decide("system.bodies", payload, 0); // keyframe
+
+            for (var ut = 1; ut < 30; ut++)
+            {
+                Assert.False(emitter.Decide("system.bodies", payload, ut).ShouldEmit);
+            }
+        }
+
+        [Fact]
+        public void EventLaneRepeatIsNotSuppressed()
+        {
+            /*
+             * A terminal downlink's frame shape: a processor printing the same
+             * line twice publishes two structurally identical payloads, and
+             * both have to reach the screen. The engine passes repeatIsData
+             * for every Delivery.ReliableOrdered channel for exactly this.
+             */
+            static Dictionary<string, object?> Frame() => new Dictionary<string, object?>
+            {
+                ["coreId"] = 1,
+                ["chunk"] = "PROGRAM ENDED.\n",
+                ["fullRepaint"] = false,
+            };
+
+            var emitter = new ChannelEmitter(
+                _ => Policy(keyframeIntervalUt: 3600, quantum: EmissionQuantum.Absolute(0)),
+                _ => true);
+
+            emitter.Decide("terminal.screen.1", Frame(), 0); // keyframe
+
+            var repeat = emitter.Decide("terminal.screen.1", Frame(), 1);
+            Assert.True(repeat.ShouldEmit);
+            Assert.Equal(EmissionReason.Change, repeat.Reason);
+        }
+
+        /// <summary>
+        /// A payload that counts every structural read of itself, so a test can
+        /// see whether the gate actually compared it.
+        /// </summary>
+        private sealed class CountingPayload : Dictionary<string, object?>
+        {
+            public static int Reads;
+
+            public CountingPayload(int tick)
+            {
+                this["tick"] = new CountingLeaf(tick);
+            }
+
+            private sealed class CountingLeaf
+            {
+                private readonly int _tick;
+
+                public CountingLeaf(int tick) => _tick = tick;
+
+                public override bool Equals(object? obj)
+                {
+                    Reads += 1;
+                    return obj is CountingLeaf other && other._tick == _tick;
+                }
+
+                public override int GetHashCode() => _tick;
+            }
+        }
+
+        [Fact]
+        public void AValueThatChangesEveryTickStopsBeingCompared()
+        {
+            var emitter = new ChannelEmitter(Policy(keyframeIntervalUt: 100000, quantum: EmissionQuantum.Absolute(0)));
+
+            emitter.Decide("vessel.flight", new CountingPayload(0), 0); // keyframe
+            CountingPayload.Reads = 0;
+
+            for (var ut = 1; ut <= 100; ut++)
+            {
+                Assert.True(emitter.Decide("vessel.flight", new CountingPayload(ut), ut).ShouldEmit);
+            }
+
+            /*
+             * 100 considerations, every one of them a real change. Compared
+             * naively that is 100 reads; the adaptive gate settles at one per
+             * skip run, so the cost lands an order of magnitude below the
+             * consideration count. Asserted as a bound rather than an exact
+             * figure so retuning the run lengths does not rewrite the test.
+             */
+            Assert.InRange(CountingPayload.Reads, 1, 20);
+        }
+
+        [Fact]
+        public void AValueThatGoesQuietIsPickedBackUp()
+        {
+            var emitter = new ChannelEmitter(Policy(keyframeIntervalUt: 100000, quantum: EmissionQuantum.Absolute(0)));
+
+            emitter.Decide("vessel.flight", new CountingPayload(0), 0); // keyframe
+
+            // Churn hard enough that the gate has stopped comparing.
+            for (var ut = 1; ut <= 100; ut++)
+            {
+                emitter.Decide("vessel.flight", new CountingPayload(ut), ut);
+            }
+
+            /*
+             * Now it holds still. The next probe has to notice and hand the
+             * value back to full comparison, well inside the keyframe interval,
+             * rather than writing it off for having churned earlier.
+             */
+            var suppressedFrom = 0;
+            for (var ut = 101; ut <= 140; ut++)
+            {
+                if (!emitter.Decide("vessel.flight", new CountingPayload(999), ut).ShouldEmit)
+                {
+                    suppressedFrom = ut;
+                    break;
+                }
+            }
+
+            Assert.InRange(suppressedFrom, 102, 120);
+
+            // And it stays suppressed: no relapse into assuming it moves.
+            for (var ut = suppressedFrom + 1; ut <= 200; ut++)
+            {
+                Assert.False(emitter.Decide("vessel.flight", new CountingPayload(999), ut).ShouldEmit);
+            }
+        }
+
+        [Fact]
+        public void TimelineResetDropsTheChurnObservation()
+        {
+            var emitter = new ChannelEmitter(Policy(keyframeIntervalUt: 100000, quantum: EmissionQuantum.Absolute(0)));
+
+            emitter.Decide("vessel.flight", new CountingPayload(0), 0);
+            for (var ut = 1; ut <= 100; ut++)
+            {
+                emitter.Decide("vessel.flight", new CountingPayload(ut), ut);
+            }
+
+            emitter.Reset(0);
+
+            // Post-rewind: keyframe, then the very next identical payload is
+            // compared and suppressed, with no leftover skip run to sit out.
+            var keyframe = emitter.Decide("vessel.flight", new CountingPayload(7), 0);
+            Assert.True(keyframe.ShouldEmit);
+            Assert.Equal(EmissionReason.Keyframe, keyframe.Reason);
+
+            Assert.False(emitter.Decide("vessel.flight", new CountingPayload(7), 1).ShouldEmit);
         }
     }
 }

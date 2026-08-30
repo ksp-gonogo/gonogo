@@ -849,7 +849,24 @@ namespace Sitrep.Host
             _listener = new FleckTransportListener(bindUri);
             _listener.ClientConnected += OnClientConnected;
             _courierThread = new Thread(CourierLoop) { IsBackground = true, Name = "Sitrep-ChannelEngine-Courier" };
-            _emitter = new ChannelEmitter(topic => _channelDeclarations[topic].Emission);
+            /*
+             * The change-gate compares a structured payload by value, so an
+             * identical rebuild of an unchanged payload is suppressed. That is
+             * right for a LossyLatest channel, whose whole contract is that the
+             * outbox coalesces to the freshest sample: a repeat of the value
+             * the subscriber already holds is not news.
+             *
+             * It is wrong for the ReliableOrdered lane, where the contract is
+             * that every sample is delivered and none is coalesced away. A kOS
+             * terminal that prints the same line twice really did print it
+             * twice, and suppressing the second corrupts the screen. Read here
+             * off the lane each channel already declares, rather than asked of
+             * every uplink again, so there is nothing new to remember when
+             * declaring a channel.
+             */
+            _emitter = new ChannelEmitter(
+                topic => _channelDeclarations[topic].Emission,
+                topic => _channelDeclarations[topic].Delivery == Delivery.ReliableOrdered);
 
             // Built-in system.uplinks declaration + source: see
             // UplinksTopic's doc comment for why this is registered directly
@@ -862,11 +879,8 @@ namespace Sitrep.Host
                 Topic = UplinksTopic,
                 Delivery = Delivery.LossyLatest,
                 // A registered-uplink roster with mostly-static health barely
-                // changes tick to tick, same cadence class as system.bodies.
-                // BuildSystemUplinksPayload hands back a fresh
-                // Dictionary/List every call, so every considered sample
-                // reads as "changed" against the emitter's reference/Equals
-                // fallback; the 30s keyframe floor covers the steady state.
+                // changes tick to tick, same cadence class as system.bodies,
+                // so the 30s keyframe floor is what the steady state costs.
                 Emission = new EmissionPolicy(keyframeIntervalUt: 30, quantum: EmissionQuantum.Absolute(0)),
                 // Uplink health/availability is a ground-side fact about the
                 // MOD itself (is this uplink even working), not something

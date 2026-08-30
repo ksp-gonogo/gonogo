@@ -439,7 +439,13 @@ namespace Sitrep.Host.IntegrationTests
                         ["ecc"] = 0.0,
                         ["inc"] = 0.0,
                         ["meanAnomalyAtEpoch"] = 0.0,
-                        ["epoch"] = 0.0,
+                        // Stamped with the tick, because a craft in orbit is at
+                        // a different place each time it is read. Held at a
+                        // constant, the roster payload does not move and the
+                        // change-gate correctly suppresses every tick after the
+                        // first, so a test asserting "b keeps streaming" would
+                        // be asserting against a fixture no vessel resembles.
+                        ["epoch"] = ut,
                         ["mu"] = 3.5316000e12,
                         ["referenceBody"] = "Kerbin",
                     },
@@ -472,7 +478,13 @@ namespace Sitrep.Host.IntegrationTests
                         ["ecc"] = 0.0,
                         ["inc"] = 0.0,
                         ["meanAnomalyAtEpoch"] = 0.0,
-                        ["epoch"] = 0.0,
+                        // Stamped with the tick, because a craft in orbit is at
+                        // a different place each time it is read. Held at a
+                        // constant, the roster payload does not move and the
+                        // change-gate correctly suppresses every tick after the
+                        // first, so a test asserting "b keeps streaming" would
+                        // be asserting against a fixture no vessel resembles.
+                        ["epoch"] = ut,
                         ["mu"] = 3.5316000e12,
                         ["referenceBody"] = "Kerbin",
                     },

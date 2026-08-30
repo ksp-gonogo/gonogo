@@ -34,6 +34,12 @@ namespace Sitrep.Core
     ///    only if the value cleared the quantum (numeric) or is not-equal
     ///    (discrete/structured) to the last emitted value, AND at least
     ///    <c>MaxRateIntervalUt</c> has passed since the last CHANGE emission.
+    ///    "Not-equal" for a structured payload is a VALUE comparison
+    ///    (<see cref="StructuralEquality"/>), because a mapper builds its
+    ///    payload tree from scratch every call and reference equality answered
+    ///    "changed" every time; the compare is skipped adaptively on a value
+    ///    observed to move every tick, see
+    ///    <see cref="HasChangedBeyondQuantum"/>.
     ///
     /// One <see cref="ChannelEmitter"/> instance manages every channel it's
     /// asked about (keyed by <c>channelId</c>) rather than one instance per
@@ -62,11 +68,41 @@ namespace Sitrep.Core
             // Decide, so it always wins.
             public bool ForceKeyframe = true;
 
+            /*
+             * The adaptive-compare state: how many consecutive structural
+             * compares have come back CHANGED, and how many considerations are
+             * left in the current run of skipped compares. See
+             * HasChangedBeyondQuantum.
+             */
+            public int ChurnRun;
+            public int CompareSkipsRemaining;
+
             public long Considered;
             public long Emitted;
         }
 
+        /*
+         * How the adaptive compare decides a value is not worth comparing.
+         *
+         * ChurnRunLength consecutive compares that all answered "changed" is
+         * enough to conclude this value moves on essentially every tick, at
+         * which point the compare is pure cost: the emit was always going to
+         * happen. The next CompareSkipRun considerations then answer "changed"
+         * without looking, and the one after that is a probe. A probe that
+         * comes back unchanged clears the run and puts the value straight back
+         * under full comparison, so a channel that churns during ascent and
+         * goes quiet in orbit is picked up within CompareSkipRun considerations
+         * rather than written off.
+         *
+         * The shortcut can only ever fail toward EMITTING a payload that had
+         * not moved, which is exactly what the gate did before it existed. It
+         * can never suppress one that had.
+         */
+        private const int ChurnRunLength = 4;
+        private const int CompareSkipRun = 16;
+
         private readonly Func<string, EmissionPolicy> _policyFor;
+        private readonly Func<string, bool>? _repeatIsDataFor;
         private readonly Dictionary<string, ChannelState> _channels = new Dictionary<string, ChannelState>();
 
         /// <summary>Every channel uses the same policy.</summary>
@@ -75,10 +111,25 @@ namespace Sitrep.Core
         {
         }
 
-        /// <summary>Per-channel policy, resolved lazily on first use of each channelId.</summary>
-        public ChannelEmitter(Func<string, EmissionPolicy> policyFor)
+        /// <summary>
+        /// Per-channel policy, resolved lazily on first use of each channelId.
+        /// </summary>
+        /// <param name="repeatIsDataFor">
+        /// Whether an identical value is itself news on this channel, so the
+        /// change-gate must compare structured payloads by REFERENCE rather
+        /// than by value. True for an event lane (<c>Delivery.ReliableOrdered</c>,
+        /// whose contract is that every sample is delivered and none is
+        /// coalesced away): a terminal downlink carrying the same line twice
+        /// really did print it twice, and suppressing the repeat corrupts the
+        /// screen. Null (the default) treats every channel as a state channel,
+        /// where an unchanged value is by definition nothing the subscriber
+        /// does not already hold. This class names no uplink; the engine reads
+        /// the lane off each channel's own declaration and answers from that.
+        /// </param>
+        public ChannelEmitter(Func<string, EmissionPolicy> policyFor, Func<string, bool>? repeatIsDataFor = null)
         {
             _policyFor = policyFor;
+            _repeatIsDataFor = repeatIsDataFor;
         }
 
         public EmissionDecision Decide(string channelId, object? value, double ut)
@@ -110,7 +161,8 @@ namespace Sitrep.Core
             }
             state.LastSampledUt = ut;
 
-            if (!HasChangedBeyondQuantum(state.LastEmittedValue, value, policy.Quantum))
+            var repeatIsData = _repeatIsDataFor != null && _repeatIsDataFor(channelId);
+            if (!HasChangedBeyondQuantum(state, value, policy.Quantum, repeatIsData))
             {
                 return EmissionDecision.Skip(ut);
             }
@@ -159,6 +211,16 @@ namespace Sitrep.Core
             foreach (var state in _channels.Values)
             {
                 state.ForceKeyframe = true;
+                /*
+                 * "This value changes every tick" is an observation about the
+                 * abandoned timeline, so it is dropped with the rest of the
+                 * pre-quickload state. NotifySubscribed deliberately does not
+                 * do this: a subscriber joining says nothing about how fast the
+                 * value moves, and clearing there would make a busy channel
+                 * re-earn its skip run on every join.
+                 */
+                state.ChurnRun = 0;
+                state.CompareSkipsRemaining = 0;
             }
         }
 
@@ -204,20 +266,77 @@ namespace Sitrep.Core
         /// as every other heterogeneous channel-value path in this project;
         /// see <c>StreamData&lt;object?&gt;</c> in Courier.cs) compare via the
         /// resolved <see cref="EmissionQuantum"/> deadband. Anything else
-        /// (bool, string, or a structured POCO) falls back to <c>Equals</c>,
-        /// the "discrete/structured: emit on not-equal" half of the deadband
-        /// spec. Deliberately does NOT box into a
+        /// (bool, string, or a structured payload) is the
+        /// "discrete/structured: emit on not-equal" half of the deadband spec,
+        /// answered by <see cref="StructuralEquality"/> so that a payload tree
+        /// rebuilt from scratch each call compares by VALUE. Before that, this
+        /// was <c>Equals</c>, which for the <c>Dictionary&lt;string, object?&gt;</c>
+        /// every mapper returns is reference equality, so the gate answered
+        /// "changed" for every structured payload it ever saw.
+        ///
+        /// <para><paramref name="repeatIsData"/> puts one channel back on
+        /// reference comparison: see the constructor's <c>repeatIsDataFor</c>
+        /// parameter.</para>
+        ///
+        /// <para>The structural compare is ADAPTIVE, decided live per value
+        /// rather than configured per channel: a value observed to change on
+        /// essentially every consideration stops being compared, because there
+        /// the compare buys nothing and the emit was always going to happen. A
+        /// periodic probe puts it back under comparison the moment it goes
+        /// quiet. See <see cref="ChurnRunLength"/> / <see cref="CompareSkipRun"/>.
+        /// Numbers never take that path: their deadband compare is an unbox and
+        /// a subtraction and cannot cost more than it saves.</para>
+        ///
+        /// <para>Deliberately does NOT box into a
         /// <c>Dictionary&lt;string, object&gt;</c> or similar bag anywhere in
-        /// this hot path; the only per-call allocation is the boxing already
-        /// inherent in the caller's own <c>object?</c> value.
+        /// this hot path, and <see cref="StructuralEquality"/> keeps typed fast
+        /// paths for the same reason; the only per-call allocation is the
+        /// boxing already inherent in the caller's own <c>object?</c> value.</para>
         /// </summary>
-        private static bool HasChangedBeyondQuantum(object? lastEmitted, object? value, EmissionQuantum quantum)
+        private static bool HasChangedBeyondQuantum(ChannelState state, object? value, EmissionQuantum quantum, bool repeatIsData)
         {
+            var lastEmitted = state.LastEmittedValue;
+
             if (TryToDouble(lastEmitted, out var lastNum) && TryToDouble(value, out var num))
             {
                 return Math.Abs(num - lastNum) > quantum.Resolve();
             }
-            return !Equals(lastEmitted, value);
+
+            if (repeatIsData)
+            {
+                return !Equals(lastEmitted, value);
+            }
+
+            if (state.CompareSkipsRemaining > 0)
+            {
+                state.CompareSkipsRemaining -= 1;
+                return true;
+            }
+
+            if (StructuralEquality.Equal(lastEmitted, value))
+            {
+                // The value is holding still, so it is worth comparing: put it
+                // back under full comparison however long it churned before.
+                state.ChurnRun = 0;
+                return false;
+            }
+
+            /*
+             * ChurnRun is deliberately NOT cleared when the skip run is armed.
+             * It stays at the threshold, so once a value has proved itself fast
+             * every probe that confirms it re-arms immediately and the steady
+             * state is one compare per CompareSkipRun + 1 considerations,
+             * rather than paying ChurnRunLength compares to re-earn the skip.
+             */
+            if (state.ChurnRun < ChurnRunLength)
+            {
+                state.ChurnRun += 1;
+            }
+            if (state.ChurnRun >= ChurnRunLength)
+            {
+                state.CompareSkipsRemaining = CompareSkipRun;
+            }
+            return true;
         }
 
         private static bool TryToDouble(object? value, out double result)
