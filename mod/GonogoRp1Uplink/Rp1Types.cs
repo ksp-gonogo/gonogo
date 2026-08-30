@@ -372,6 +372,37 @@ namespace GonogoRp1Uplink
         }
 
         /// <summary>
+        /// A NON-PUBLIC static method by name and arity.
+        /// </summary>
+        /// <remarks>
+        /// <para>Its own lookup rather than widening <see cref="StaticMethod"/>'s
+        /// binding flags, because the two want opposite defaults. Everything else
+        /// this Uplink invokes is public API, and a public-only lookup is what
+        /// makes an accidental reach into RP-1's internals fail loudly here rather
+        /// than work until the release that renames it. This exists for ONE
+        /// member: <c>PatchKSCFacilityContextMenu.GetTechGate(string, int)</c>,
+        /// the rule that decides whether a facility tier is unlocked. It is
+        /// reached rather than reproduced because its body is a lookup into a
+        /// dictionary RP-1 builds from its own config, and reproducing it means
+        /// re-parsing config this Uplink does not own.</para>
+        ///
+        /// <para>A non-public member is the more fragile pin by some distance, so
+        /// it is declared in the compatibility manifest with its accessibility
+        /// stated, and every caller refuses when it does not resolve.</para>
+        /// </remarks>
+        public static MethodInfo? NonPublicStaticMethod(Type type, string name, int parameterCount)
+        {
+            try
+            {
+                return MatchArity(type.GetMethods(BindingFlags.NonPublic | BindingFlags.Static), name, parameterCount);
+            }
+            catch (Exception)
+            {
+                return null;
+            }
+        }
+
+        /// <summary>
         /// A public static method by name, arity AND the full name of its first
         /// parameter's type, for the overloads arity alone cannot tell apart.
         ///

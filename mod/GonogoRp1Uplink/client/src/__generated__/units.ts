@@ -226,6 +226,9 @@ export const GENERATED_TYPE_UNITS: Readonly<Record<string, UnitsByField>> = {
     retirementEnabled: "flag",
     retirementExtensionCapSeconds: "s",
   },
+  "Rp1FacilityUpgradeArgs": {
+    facility: "id",
+  },
   "Rp1FundingCurveEntry": {
     isDefault: "flag",
     name: "id",

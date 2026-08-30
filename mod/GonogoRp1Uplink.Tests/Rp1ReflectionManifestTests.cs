@@ -48,6 +48,7 @@ namespace GonogoRp1Uplink.Tests
             "Rp1ComplexWrites.cs",
             "Rp1StrategyWrites.cs",
             "Rp1PersonnelCommands.cs",
+            "Rp1FacilityUpgradeCommands.cs",
             "Rp1DerivedCurrencyWithholder.cs",
             "Rp1SimulationBackend.cs",
         };
@@ -71,8 +72,17 @@ namespace GonogoRp1Uplink.Tests
         /// type name rather than a member name, and a literal type name reaching
         /// this sweep is a type the manifest has to know about.
         /// </summary>
+        /// <remarks>
+        /// <c>NonPublicStaticMethod</c> is listed EXPLICITLY rather than left to
+        /// <c>StaticMethod</c> to cover, and that is not redundancy. The
+        /// alternation is anchored on <c>\b</c>, and there is no word boundary
+        /// inside <c>NonPublicStaticMethod</c>, so a lookup written that way was
+        /// invisible to this sweep: the one member reached by a NON-public lookup
+        /// is the most fragile pin the Uplink has, and it would have been the one
+        /// name the coverage check could not see.
+        /// </remarks>
         private static readonly Regex ReflectionCall = new(
-            @"\b(Member|StaticValue|WriteDouble|ReadDouble|ReadInt|ReadBool|ReadString|ReadGuidString|ReadEnumName|InstanceMethod|StaticMethod|GetMethod|Find)\s*\(",
+            @"\b(NonPublicStaticMethod|Member|StaticValue|WriteDouble|ReadDouble|ReadInt|ReadBool|ReadString|ReadGuidString|ReadEnumName|InstanceMethod|StaticMethod|GetMethod|Find)\s*\(",
             RegexOptions.Compiled);
 
         private static readonly Regex SingleWordLiteral = new(
