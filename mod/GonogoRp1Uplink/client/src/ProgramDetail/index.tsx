@@ -338,6 +338,18 @@ function FundingCurveChart({
   );
 
   const paidOut = magnitudeOf(program.fundsPaidOut);
+  /*
+   * RP-1's own Program screen plots the change in funds per YEAR, and this
+   * matches it. The cumulative series only ever rises, so its shape carries one
+   * bit and the front- or back-loading that separates one Program speed from
+   * another shows only as a change of slope; the rate shows it directly, and
+   * the cumulative figures stay in the table below.
+   *
+   * Falls back to cumulative when the sample could not state a rate, which is
+   * when RP-1 published no duration and the axis is fractions of the term.
+   */
+  const perYear =
+    sample !== null && sample.points.some((p) => p.fundsPerYear !== null);
 
   return (
     <Section>
@@ -352,20 +364,33 @@ function FundingCurveChart({
         <Stack gap="xs">
           <LineGraph
             height={140}
-            ariaLabel={`Cumulative funding over the duration of ${label(program)}`}
+            ariaLabel={
+              perYear
+                ? `Funding per year over the duration of ${label(program)}`
+                : `Cumulative funding over the duration of ${label(program)}`
+            }
             series={[
               {
                 id: "funding",
-                label: "Cumulative funding",
+                label: perYear ? "Funding per year" : "Cumulative funding",
                 color: "var(--color-status-go-fg)",
-                points: sample.points.map((p) => ({ x: p.x, y: p.funds })),
+                points: sample.points.map((p) => ({
+                  x: p.x,
+                  y: perYear ? (p.fundsPerYear ?? 0) : p.funds,
+                })),
               },
             ]}
             // The deadline, as a rule across the chart. Everything right of
             // where the curve crosses it is money RP-1 pays for running over,
             // which is the single thing an operator reads this chart for.
+            /*
+             * The paid-so-far rule is a CUMULATIVE total, so it belongs only on
+             * the cumulative chart: drawn against a rate axis it would be a
+             * funds figure compared with a funds-per-year one, which is a
+             * category error that happens to render.
+             */
             thresholds={
-              paidOut === null
+              perYear || paidOut === null
                 ? []
                 : [{ id: "paid", label: "Paid out", value: paidOut }]
             }
@@ -375,8 +400,17 @@ function FundingCurveChart({
               and its own screen-reader wording, and a <text> element in a
               non-uniformly scaled SVG would be stretched with it. */}
           <Cluster gap="sm" wrap>
+            {/* The anchors describe the SERIES, so they change with it: a rate
+                chart does not start at zero funds and does not end at the
+                total, which is what the cumulative one is bounded by. */}
             <Text size="xs" tone="muted">
-              <Unit value={value("funds", 0)} /> at start
+              {perYear ? (
+                <>funds per year across the term</>
+              ) : (
+                <>
+                  <Unit value={value("funds", 0)} /> at start
+                </>
+              )}
             </Text>
             <Text size="xs" tone="muted">
               {sample.axis === "years" ? (
@@ -388,10 +422,11 @@ function FundingCurveChart({
               )}
             </Text>
             <Text size="xs" tone="muted">
-              <Unit value={program.totalFunding} /> at term
+              <Unit value={program.totalFunding} />{" "}
+              {perYear ? <>in total</> : <>at term</>}
             </Text>
           </Cluster>
-          {paidOut !== null && (
+          {!perYear && paidOut !== null && (
             <Text size="xs" tone="muted">
               Dashed rule: <Unit value={program.fundsPaidOut} /> paid so far
             </Text>

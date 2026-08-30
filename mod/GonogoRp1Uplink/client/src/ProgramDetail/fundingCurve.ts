@@ -31,7 +31,23 @@ export interface PlainCurveKey {
  */
 export interface FundingCurvePoint {
   x: number;
+  /** Cumulative funds paid by this point, which is what the curve integrates to. */
   funds: number;
+  /**
+   * Funds per YEAR at this point, the local slope of the cumulative curve.
+   *
+   * <p>This is what RP-1's own Program screen plots, and it is the series worth
+   * looking at: a cumulative curve only ever rises, so its shape carries one
+   * bit and the front- or back-loading that distinguishes one Program speed
+   * from another is visible only as a change of slope. The rate shows it
+   * directly.</p>
+   *
+   * <p>`null` when the sample's axis is fractions of the term rather than
+   * years, because RP-1 published no duration and a rate PER YEAR cannot be
+   * stated without one. A rate per fraction-of-term would be a different
+   * quantity wearing the same axis.</p>
+   */
+  fundsPerYear: number | null;
 }
 
 /** What the x axis of a sample turned out to be, which the caller has to label. */
@@ -172,9 +188,31 @@ export function sampleFundingCurve({
     const frac = firstFrac + ((lastFrac - firstFrac) * i) / samples;
     const paid = evaluateFundingCurve(keys, frac);
     if (paid === null) continue;
-    points.push({ x: frac * scale, funds: paid * totalFunds });
+    points.push({
+      x: frac * scale,
+      funds: paid * totalFunds,
+      fundsPerYear: null,
+    });
   }
   if (points.length < 2) return null;
+
+  /*
+   * The rate, as the local slope of what we just sampled. Only when the axis is
+   * YEARS: with a fraction axis the divisor is a fraction of the term and the
+   * result is not funds per year.
+   *
+   * The first point takes the second's rate rather than zero. A leading zero
+   * would draw a Program as paying nothing in its first instant, which is an
+   * artefact of having no earlier sample to difference against.
+   */
+  if (axis === "years") {
+    for (let i = 1; i < points.length; i++) {
+      const dx = points[i].x - points[i - 1].x;
+      points[i].fundsPerYear =
+        dx > 0 ? (points[i].funds - points[i - 1].funds) / dx : null;
+    }
+    points[0].fundsPerYear = points[1].fundsPerYear;
+  }
 
   return { points, axis, nominalEnd: scale, end: lastFrac * scale };
 }

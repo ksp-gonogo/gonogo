@@ -158,7 +158,14 @@ describe("sampling a funding curve for a chart", () => {
     // The curve runs to frac 2, so the chart runs to eight years: RP-1 keeps
     // paying past the deadline and a chart stopping at four would hide it.
     expect(sample?.end).toBeCloseTo(8, 9);
-    expect(sample?.points[0]).toEqual({ x: 0, funds: 0 });
+    /* A flat curve pays 400,000 over four years, so the RATE is a constant
+       100,000 a year, and the first point borrows the second's rather than
+       reading zero for want of an earlier sample to difference against. */
+    expect(sample?.points[0]).toEqual({
+      x: 0,
+      funds: 0,
+      fundsPerYear: 100_000,
+    });
     const atFourYears = sample?.points.find((p) => Math.abs(p.x - 4) < 1e-9);
     expect(atFourYears?.funds).toBeCloseTo(400_000, 6);
   });

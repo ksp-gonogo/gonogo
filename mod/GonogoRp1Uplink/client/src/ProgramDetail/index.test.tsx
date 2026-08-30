@@ -207,12 +207,18 @@ describe("ProgramDetail", () => {
     expect(table).toHaveTextContent("SHORT");
   });
 
+  /*
+   * PER YEAR, matching RP-1's own Program screen. The cumulative series only
+   * ever rises, so front- or back-loading shows in it as a change of slope and
+   * nothing else; the rate shows it directly. The cumulative figures are still
+   * in the table below the chart.
+   */
   it("draws the funding curve as a labelled graphic", async () => {
     const { fixture, view } = mount();
     await feed(fixture);
 
     const chart = await screen.findByRole("img", {
-      name: /Cumulative funding over the duration of X-Plane Research/,
+      name: /Funding per year over the duration of X-Plane Research/,
     });
     // The stroke has to be a real polyline over real points. A chart that
     // rendered its frame and no line looks identical to one with no data.
