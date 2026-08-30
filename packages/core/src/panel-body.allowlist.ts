@@ -31,7 +31,6 @@ export const PANEL_BODY_DEBT: Record<string, number> = {
   "mod/GonogoKosUplink/client/src/KosScriptTrigger/index.tsx": 1,
   "mod/GonogoKosUplink/client/src/KosTerminal/index.tsx": 2,
   "mod/GonogoMechJebUplink/client/src/MechJeb/index.tsx": 1,
-  "mod/GonogoRp1Uplink/client/src/ProgramDetail/index.tsx": 1,
   "mod/GonogoRp1Uplink/client/src/VehicleAssembly/index.tsx": 1,
   "packages/app/src/notes/NotesComponent.tsx": 1,
   "packages/components/src/ActionGroup/index.tsx": 2,
