@@ -24,6 +24,7 @@
       "BURNING",
       "FRAME LOCKED",
       "BURN 2",
+      "Kerbin-Centred Inertial",
       "THRUST",
       "ISP",
       "EDIT WINDOW",
@@ -133,6 +134,7 @@
               "finalMassTons": 32.33,
               "massFlowKilogramsPerSecond": 342.05,
               "frameType": 6000,
+              "centreBody": "Kerbin",
               "frameEditable": true,
               "executing": true,
               "anomalous": false
@@ -155,6 +157,7 @@
               "finalMassTons": 22.72,
               "massFlowKilogramsPerSecond": 142.56,
               "frameType": 6000,
+              "centreBody": "Kerbin",
               "frameEditable": true,
               "executing": false,
               "anomalous": false
@@ -177,6 +180,8 @@
               "finalMassTons": 22.28,
               "massFlowKilogramsPerSecond": 8.57,
               "frameType": 6004,
+              "primaryBody": "Kerbol",
+              "secondaryBody": "Kerbin",
               "frameEditable": false,
               "executing": false,
               "anomalous": true

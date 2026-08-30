@@ -193,6 +193,7 @@
     },
     "PrincipiaPlannedBurn": {
       "anomalous": "flag",
+      "centreBody": "text",
       "coordinateSystem": "enum",
       "cutoffUt": "ut",
       "deltaV": "m/s",
@@ -209,6 +210,10 @@
       "inertiallyFixed": "flag",
       "initialMassTons": "t",
       "massFlowKilogramsPerSecond": "kg/s",
+      "primaryBodies": "text",
+      "primaryBody": "text",
+      "secondaryBodies": "text",
+      "secondaryBody": "text",
       "specificImpulseSeconds": "isp",
       "thrustKilonewtons": "kN",
       "timeToHalfDeltaVSeconds": "s"

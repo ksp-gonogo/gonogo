@@ -285,6 +285,46 @@ public sealed class PrincipiaPlannedBurn
     public int? FrameType { get; set; }
 
     /// <summary>
+    /// The body the burn's frame is centred on, when its kind has one. The two
+    /// rotating kinds are declined with a PAIR instead and leave this null.
+    ///
+    /// <para>Here rather than joined from
+    /// <see cref="PrincipiaSettings.BurnFrames"/>, which carries the same frames
+    /// as a bare list: a client holding a burn would have to find its frame in
+    /// that list by POSITION, and the position is not the burn's. A manoeuvre
+    /// whose frame cannot be read is dropped from that list rather than held open
+    /// in it, which shifts every entry after it, so an index join is silently
+    /// wrong exactly when a frame fails to read. Read off the same descriptor
+    /// <see cref="FrameType"/> is, in the same native frame on the same
+    /// tick.</para>
+    /// </summary>
+    [SitrepUnit(Units.Text)]
+    public string? CentreBody { get; set; }
+
+    /// <summary>The body a rotating frame turns about: the parent of
+    /// <see cref="SecondaryBody"/>. Null for the centred kinds.</summary>
+    [SitrepUnit(Units.Text)]
+    public string? PrimaryBody { get; set; }
+
+    /// <summary>The body a rotating frame is anchored to. Null for the centred
+    /// kinds.</summary>
+    [SitrepUnit(Units.Text)]
+    public string? SecondaryBody { get; set; }
+
+    /// <summary>Every body on the primary side, of which <see cref="PrimaryBody"/>
+    /// is the first. Carried for the same reason
+    /// <see cref="PrincipiaReferenceFrame.PrimaryBodies"/> is: a pulsating frame
+    /// turns about a pair of SETS, and the head alone is a name a reader
+    /// recognises with the rest of the defining mass missing.</summary>
+    [SitrepUnit(Units.Text)]
+    public string[]? PrimaryBodies { get; set; }
+
+    /// <summary>Every body on the secondary side, of which
+    /// <see cref="SecondaryBody"/> is the first.</summary>
+    [SitrepUnit(Units.Text)]
+    public string[]? SecondaryBodies { get; set; }
+
+    /// <summary>
     /// True when this burn's frame is one an edit may be sent for.
     ///
     /// <para>Two of the producer's frame kinds are not. One is constructible but

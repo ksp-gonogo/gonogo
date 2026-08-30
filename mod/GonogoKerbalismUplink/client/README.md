@@ -9,7 +9,7 @@ Kerbalism life support as one ledger: every profile resource as a meter with the
 | --- | --- |
 | Uplink id | `kerbalism` |
 | Version | `0.0.1` |
-| Built against | contract 14.2, api 1.0.0, ui-kit 0.2.0 |
+| Built against | contract 14.3, api 1.0.0, ui-kit 0.2.0 |
 
 ## Wire
 

@@ -211,6 +211,11 @@ export interface PrincipiaPlannedBurn
 	finalMassTons?: Value<"t">;
 	massFlowKilogramsPerSecond?: Value<"kg/s">;
 	frameType?: number;
+	centreBody?: string;
+	primaryBody?: string;
+	secondaryBody?: string;
+	primaryBodies?: string[];
+	secondaryBodies?: string[];
 	frameEditable?: boolean;
 	executing?: boolean;
 	anomalous?: boolean;

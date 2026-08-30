@@ -276,6 +276,43 @@ describe("BurnEditor", () => {
   });
 
   /**
+   * The frame line names the burn's frame with the bodies it is declined with,
+   * because the operator reads it to decide whether the delta-v beside it is
+   * quoted in the frame the map is drawn in. A frame's kind alone cannot answer
+   * that: two burns centred on different bodies are both "body-centred
+   * inertial" and are not the same frame.
+   */
+  it("names the burn's manoeuvring frame with its own bodies", async () => {
+    const stream = mount();
+    await emitPlan(stream, {
+      burns: [burn({ frameType: 6000, centreBody: "Kerbin" })],
+    });
+    await userEvent.click(screen.getByRole("button", { name: "Burn 1" }));
+
+    expect(screen.getByText("Kerbin-Centred Inertial")).toBeInTheDocument();
+    await act(async () => {});
+  });
+
+  /** A frame declined with a PAIR reads both of them, not the centre slot. */
+  it("names a paired frame with both of its bodies", async () => {
+    const stream = mount();
+    await emitPlan(stream, {
+      burns: [
+        burn({
+          frameType: 6004,
+          frameEditable: false,
+          primaryBody: "Kerbol",
+          secondaryBody: "Kerbin",
+        }),
+      ],
+    });
+    await userEvent.click(screen.getByRole("button", { name: "Burn 1" }));
+
+    expect(screen.getByText("Kerbol\u2013Kerbin Lagrange")).toBeInTheDocument();
+    await act(async () => {});
+  });
+
+  /**
    * A burn whose manoeuvring frame cannot be written back is marked on the list
    * AND frozen in the editor. Sending it would abort the game, and the producer's
    * own guard against that is invisible from here.

@@ -335,7 +335,10 @@ namespace GonogoPrincipiaUplink
                 return null;
             }
             var plan = _planReader.Read(
-                settings.Session, settings.ActiveVesselGuid, snapshot?.Ut ?? 0.0);
+                settings.Session,
+                settings.ActiveVesselGuid,
+                snapshot?.Ut ?? 0.0,
+                settings.Celestials);
             // Kept for the maneuver-plan source, which answers an election on the
             // Courier thread and cannot reach the producer itself. A reference
             // assignment, so a reader sees the previous observation or this one and
