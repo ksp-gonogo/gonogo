@@ -53,7 +53,11 @@ const MAGNITUDE_BUDGET: Record<string, number> = {
   // itself. Every one of those feeds an integration or a square root, which is
   // arithmetic the algebra has no term for; the numbers a READER sees still go
   // out through `writeQuantity`.
-  "mod/GonogoFerramAerospaceResearchUplink/client/src/DescentEnvelope/index.ts": 11,
+  // 12th: the parent body's surface gravity, which the stream reports in g and
+  // the descent integration needs in m/s². The conversion IS in the algebra
+  // (`.in("m/s²")`); the unwrap is the last step, handing a plain number to
+  // `projectDescent`, whose options are numbers throughout.
+  "mod/GonogoFerramAerospaceResearchUplink/client/src/DescentEnvelope/index.ts": 12,
   // 1: the contribution entry carries a BARE bits/sec so CommSignal can compare
   // legs to find the bottleneck. A comparison across a slot boundary cannot
   // carry a Value, because the entry crosses the published contract as JSON.

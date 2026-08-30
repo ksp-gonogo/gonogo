@@ -12,7 +12,7 @@ import {
   type ThresholdOp,
   type TriggerSnapshot,
 } from "@ksp-gonogo/components";
-import { getBody, safeRandomUuid } from "@ksp-gonogo/core";
+import { safeRandomUuid } from "@ksp-gonogo/core";
 import { LocalStorageStore } from "@ksp-gonogo/data";
 import {
   dispatchActiveCommandTopic,
@@ -291,9 +291,14 @@ export class ManeuverTriggerHostService implements ManeuverTriggerService {
       targetArgPe: solverInput(targetOrbit?.argPe),
       targetTrueAnomaly: state?.targetTrueAnomaly ?? undefined,
       targetPeriod: state?.targetPeriod ?? undefined,
-      bodyRadius: getBody(
-        state?.parentBodyName ?? state?.referenceBodyName ?? "",
-      )?.radius,
+      /*
+       * Off the wire, by index, never by name against the bundled stock
+       * bodies: under a planet pack the names do not match, the lookup
+       * misses, and a transfer that needs a radius quietly plans nothing.
+       */
+      bodyRadius: solverInput(
+        state?.parentBodyRadius ?? state?.referenceBodyRadius,
+      ),
     };
   }
 

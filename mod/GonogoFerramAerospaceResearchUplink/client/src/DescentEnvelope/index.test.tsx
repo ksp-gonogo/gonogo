@@ -2,6 +2,7 @@ import type { AnyContribution, PlotLayer } from "@ksp-gonogo/sitrep-sdk";
 import {
   getContributionsForSlot,
   registerStockBodies,
+  value,
 } from "@ksp-gonogo/sitrep-sdk";
 import { describe, expect, it } from "vitest";
 import { aeroBadges, aeroDescentLayers } from "./index";
@@ -196,24 +197,30 @@ describe("surface gravity", () => {
       (c: AnyContribution) => c.id === "aero:descent-envelope",
     );
 
-  /** The PLOT entry above, as the topics a live stream would carry. */
+  /*
+   * A real `Value`, not a `{ magnitude, unit }` literal that merely satisfies
+   * the type. `wrap-units.ts` turns every declared quantity into a `Value`
+   * instance as the payload is decoded, so a plain object here is a shape the
+   * stream never delivers, and the first thing that calls a method on one
+   * (`.in`, `.minus`) fails against the fixture while working in the app.
+   */
   const topicsForBody = (name: string, gees: number | null) => ({
     "aero.state": {
-      angleOfAttack: { magnitude: 40.2, unit: "deg" },
-      stallFraction: { magnitude: 0.18, unit: "ratio" },
-      terminalVelocity: { magnitude: 180, unit: "m/s" },
-      ballisticCoefficient: { magnitude: 391, unit: "kg/m^2" },
+      angleOfAttack: value("°", 40.2),
+      stallFraction: value("ratio", 0.18),
+      terminalVelocity: value("m/s", 180),
+      ballisticCoefficient: value("kg/m²", 391),
       aeroModelValid: true,
     },
     "vessel.landing": {
-      terminalVelocity: { magnitude: PLOT.plotTerminal, unit: "m/s" },
-      projectedTouchdownSpeed: { magnitude: PLOT.plotTouchdown, unit: "m/s" },
+      terminalVelocity: value("m/s", PLOT.plotTerminal),
+      projectedTouchdownSpeed: value("m/s", PLOT.plotTouchdown),
     },
     "vessel.flight": {
-      surfaceSpeed: { magnitude: PLOT.speed, unit: "m/s" },
+      surfaceSpeed: value("m/s", PLOT.speed),
     },
     "vessel.surface": {
-      heightFromTerrain: { magnitude: PLOT.altitude, unit: "m" },
+      heightFromTerrain: value("m", PLOT.altitude),
     },
     "vessel.identity": { parentBodyIndex: 1 },
     "system.bodies": {
@@ -221,9 +228,7 @@ describe("surface gravity", () => {
         {
           index: 1,
           name,
-          ...(gees === null
-            ? {}
-            : { surfaceGravity: { magnitude: gees, unit: "g" } }),
+          ...(gees === null ? {} : { surfaceGravity: value("g", gees) }),
         },
       ],
     },

@@ -364,6 +364,25 @@ export interface VesselState {
    */
   referenceBodyName: string | null | undefined;
   /**
+   * Mean radius of the body the vessel belongs to, metres, resolved against
+   * `system.bodies` by the same index as `parentBodyName`. Same
+   * `undefined`-vs-`null` rules.
+   *
+   * <p>Exposed because the alternative callers reach for is a name lookup in a
+   * client-side table of STOCK bodies, which under a planet pack describes a
+   * solar system nobody is flying in: the name misses, the radius comes back
+   * undefined, and whatever needed it quietly stops working. The radius was
+   * already resolved here off the wire for the apsides, so a caller that wants
+   * it should be able to read it rather than reconstruct it.</p>
+   */
+  parentBodyRadius: number | null | undefined;
+  /**
+   * Mean radius of the orbit's reference body, metres, resolved by the same
+   * index as `referenceBodyName`. The one orbital mechanics wants: an altitude
+   * a transfer targets is measured from the body being orbited.
+   */
+  referenceBodyRadius: number | null | undefined;
+  /**
    * Next-SOI-transition SIGN: the display-map resolution of
    * `vessel.orbit.encounter` to the -1/0/1 scalar OrbitalEventChips reads as
    * `o.encounterExists`: `1` = ENCOUNTER (entering another body's SOI,
@@ -1793,6 +1812,11 @@ export function deriveVesselState(
         : null;
     const parentBodyName = resolveBodyName(get, parentBodyIndex);
     const referenceBodyName = resolveBodyName(get, orbit.referenceBodyIndex);
+    const parentBodyRadius = resolveBodyRadius(get, parentBodyIndex);
+    const referenceBodyRadius = resolveBodyRadius(
+      get,
+      orbit.referenceBodyIndex,
+    );
 
     return {
       position,
@@ -1810,6 +1834,8 @@ export function deriveVesselState(
       timeToPe,
       parentBodyName,
       referenceBodyName,
+      parentBodyRadius,
+      referenceBodyRadius,
       ...deriveEncounter(get, orbit),
       targetRelativeSpeed: deriveTargetRelativeSpeed(get),
       // Radii straight off the elements (no body table); always finite here.
@@ -1880,6 +1906,8 @@ export function deriveVesselState(
     timeToPe: null,
     parentBodyName: resolveBodyName(get, parentBodyIndex),
     referenceBodyName: resolveBodyName(get, orbit.referenceBodyIndex),
+    parentBodyRadius: resolveBodyRadius(get, parentBodyIndex),
+    referenceBodyRadius: resolveBodyRadius(get, orbit.referenceBodyIndex),
     ...deriveEncounter(get, orbit),
     targetRelativeSpeed: deriveTargetRelativeSpeed(get),
     // Orbital-radius/next-apsis are OnRails-only (osculating garbage here),
@@ -2127,6 +2155,8 @@ export const VESSEL_STATE_FIELDS: Readonly<
   period: { unit: "s" },
   position: { vector: "m" },
   referenceBodyName: { unit: "text" },
+  parentBodyRadius: { unit: "m" },
+  referenceBodyRadius: { unit: "m" },
   sasModeName: { unit: "text" },
   situationName: { unit: "text" },
   subjectId: { unit: "id" },

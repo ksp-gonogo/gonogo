@@ -7,7 +7,6 @@ import {
   getBody,
   projectDescent,
   relativeDensityCurve,
-  STANDARD_GRAVITY,
   terminalVelocityCurve,
   value,
 } from "@ksp-gonogo/sitrep-sdk";
@@ -357,10 +356,11 @@ function heightAboveTerrain(topics: Readonly<Record<string, unknown>>) {
  * read the wire only to discard it, and returned nothing at all for a body the
  * table had never heard of, so an RSS entry lost its settle mark silently.</p>
  *
- * <p>The wire carries it in g, which is how the game holds it; the integration
- * wants m/s². The static table stays as the fallback for a stream that omits
- * the field, and only in that order: one authority, with a named second-best
- * behind it.</p>
+ * <p>The wire carries it in g, which is how the game holds it, so the unit
+ * registry does the conversion rather than a constant multiplied in by hand.
+ * The static table stays as the fallback for a stream that omits the field,
+ * and only in that order: one authority, with a named second-best behind
+ * it.</p>
  */
 function surfaceGravityOf(topics: Readonly<Record<string, unknown>>) {
   const identity = topics["vessel.identity"] as
@@ -373,9 +373,9 @@ function surfaceGravityOf(topics: Readonly<Record<string, unknown>>) {
   if (index == null || !bodies) return null;
   const entry = bodies.bodies.find((b) => b.index === index);
   if (!entry) return null;
-  const reported = entry.surfaceGravity?.magnitude;
+  const reported = entry.surfaceGravity?.in("m/s²").magnitude;
   if (reported != null && Number.isFinite(reported) && reported > 0) {
-    return reported * STANDARD_GRAVITY;
+    return reported;
   }
   const body = entry.name ? getBody(entry.name) : undefined;
   return body?.gm != null && body.radius > 0

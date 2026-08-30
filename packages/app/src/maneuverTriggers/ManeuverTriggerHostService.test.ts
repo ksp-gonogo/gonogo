@@ -10,6 +10,7 @@ import {
   ViewClock,
   vesselStateChannel,
 } from "@ksp-gonogo/sitrep-client";
+import { value } from "@ksp-gonogo/sitrep-sdk";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { ManeuverTriggerHostService } from "./ManeuverTriggerHostService";
 
@@ -65,6 +66,7 @@ function buildOrbitStoreFixture(pinnedUt: number) {
   client.attachStore(store);
   client.subscribe("vessel.orbit", () => {});
   client.subscribe("vessel.identity", () => {});
+  client.subscribe("system.bodies", () => {});
 
   const calls: Array<{ command: string; args: unknown }> = [];
   transport.setCommandHandler((command, args) => {
@@ -87,7 +89,47 @@ function buildOrbitStoreFixture(pinnedUt: number) {
       transport.emit("vessel.identity", payload);
       store.beginFrame();
     },
+    emitBodies(payload: unknown): void {
+      transport.emit("system.bodies", payload);
+      store.beginFrame();
+    },
   };
+}
+
+/**
+ * An Earth-sized body under a name no stock table carries, which is what RSS
+ * hands RP-1: the same index the orbit already references, reported with its
+ * own radius. A planner that resolves the radius by NAME against the bundled
+ * stock bodies finds nothing here and silently plans no transfer at all.
+ */
+function seedRenamedBodyOrbit(pinnedUt = 1_000_000) {
+  setActiveViewClockForTests({ viewUt: () => pinnedUt });
+  const storeFixture = buildOrbitStoreFixture(pinnedUt);
+  storeFixture.emitBodies({
+    bodies: [
+      {
+        index: 1,
+        name: "Earth",
+        // Real `Value`s: `wrap-units.ts` hydrates every declared quantity as
+        // the payload is decoded, so a plain `{ magnitude, unit }` literal is
+        // a shape the stream never delivers.
+        radius: value("m", 6_371_000),
+        surfaceGravity: value("g", 1),
+      },
+    ],
+  });
+  storeFixture.emitOrbit({
+    ...kerbinOrbitPayload(pinnedUt, 6_771_000),
+    mu: 3.986e14,
+  });
+  storeFixture.emitIdentity({
+    vesselId: "test-vessel",
+    name: "Test Vessel",
+    vesselType: 0,
+    situation: 0,
+    parentBodyIndex: 1,
+  });
+  return storeFixture;
 }
 
 /**
@@ -187,6 +229,29 @@ describe("ManeuverTriggerHostService", () => {
       inputs: FROZEN,
     });
     expect(svc.snapshot().triggers).toHaveLength(0);
+  });
+
+  it("plans a transfer around a body the stock table has never heard of", async () => {
+    const storeFixture = seedRenamedBodyOrbit();
+    const svc = makeService();
+    // apoapsisRadius is 6_771_000 · 1.01, so this is already true and the
+    // trigger fires at arm time, the same path the tests above use.
+    svc.arm({
+      dataKey: "vessel.state.apoapsisRadius",
+      op: ">=",
+      value: 6_000_000,
+      inputs: {
+        ...FROZEN,
+        preset: "hohmann-to-altitude",
+        targetAltitudeKm: 200,
+      },
+    });
+    await vi.advanceTimersByTimeAsync(0);
+    // The transfer is measured from the body's own radius. Without one the
+    // plan comes back null and nothing is dispatched at all.
+    expect(storeFixture.calls.map((c) => c.command)).toContain(
+      "vessel.maneuver.add",
+    );
   });
 
   it("fires when the watched value crosses the threshold after arming", async () => {
