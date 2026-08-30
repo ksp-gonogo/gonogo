@@ -101,9 +101,11 @@ function CoastRow({
   return (
     <Disclosure
       variant="inline"
-      // Grows in flow rather than scrolling its own content: the widget body it
-      // sits in already scrolls, and a second scroller inside it hides the last
-      // rows behind a bar a reader has no reason to look for.
+      /*
+       * Grows in flow rather than scrolling its own content: the widget body it
+       * sits in already scrolls, and a second scroller inside it hides the last
+       * rows behind a bar a reader has no reason to look for.
+       */
       panelHeight="auto"
       label={label}
       ariaLabel={`Show the mean elements of ${name}`}
@@ -171,9 +173,11 @@ export function CoastAnalysisSection() {
           <CoastRow
             key={magnitudeOf(coast.index) ?? position}
             coast={coast}
-            // The last coast is the orbit the plan ENDS in, which is the one an
-            // operator is usually asking about, so it is named rather than
-            // numbered.
+            /*
+             * The last coast is the orbit the plan ENDS in, which is the one an
+             * operator is usually asking about, so it is named rather than
+             * numbered.
+             */
             isFinal={position === coasts.length - 1 && coasts.length > 1}
             viewUt={viewUt}
           />

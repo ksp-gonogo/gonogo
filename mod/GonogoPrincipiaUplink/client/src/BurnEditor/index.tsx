@@ -359,9 +359,11 @@ export function BurnEditor() {
     selected?.frameEditable !== true ||
     componentsUnreadable ||
     outOfContact !== null;
-  // The ignition field stays live inside a shut window: pushing the burn further
-  // out is how the operator REOPENS one, and freezing the field would leave the
-  // deadline as a dead end rather than something to act on.
+  /*
+   * The ignition field stays live inside a shut window: pushing the burn further
+   * out is how the operator REOPENS one, and freezing the field would leave the
+   * deadline as a dead end rather than something to act on.
+   */
   const tooLate = draftWindow?.shut === true;
 
   return (
@@ -717,9 +719,11 @@ export function BurnEditor() {
                 confirmTone="nogo"
                 pendingLabel="Adding..."
                 onConfirmed={(result) => setLastWrite(writeReceipt(result))}
-                // The same deadline: an inserted burn is written at the draft's
-                // ignition too, so one composed for an instant the write cannot
-                // beat is a burn added to the plan already in the past.
+                /*
+                 * The same deadline: an inserted burn is written at the draft's
+                 * ignition too, so one composed for an instant the write cannot
+                 * beat is a burn added to the plan already in the past.
+                 */
                 disabled={frozen || tooLate}
                 aria-label="Add a burn copied from this one"
                 confirmAriaLabel="Confirm adding a burn copied from this one"

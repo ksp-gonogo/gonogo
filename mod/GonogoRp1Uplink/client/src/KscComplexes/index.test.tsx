@@ -170,9 +170,11 @@ describe("KscComplexes", () => {
   });
 
   it("calls out a complex nobody is assigned to", async () => {
-    // The fact the view exists for: portionEngineers is Engineers/MaxEngineers,
-    // so an unstaffed complex advances nothing at all however much the career
-    // has hired and however much is queued on it.
+    /*
+     * The fact the view exists for: portionEngineers is Engineers/MaxEngineers,
+     * so an unstaffed complex advances nothing at all however much the career
+     * has hired and however much is queued on it.
+     */
     withCentre([{ ...COMPLEXES[0], engineers: 0 }, COMPLEXES[1]]);
 
     await waitFor(() => {
@@ -187,9 +189,11 @@ describe("KscComplexes", () => {
     const user = userEvent.setup();
     const { fixture } = withCentre();
 
-    // The step multiplier RP-1 itself offers (1 / 10 / 100 / all), not a range:
-    // the act is moving some of the free pool onto this complex, and a range
-    // would say "pick a number" about something with two separate ceilings.
+    /*
+     * The step multiplier RP-1 itself offers (1 / 10 / 100 / all), not a range:
+     * the act is moving some of the free pool onto this complex, and a range
+     * would say "pick a number" about something with two separate ceilings.
+     */
     const steps = await screen.findByRole("group", {
       name: "Engineers moved per press at LC-1",
     });
@@ -203,9 +207,11 @@ describe("KscComplexes", () => {
     const sent = fixture.transport.sentCommands.find(
       (c) => c.command === RP1_PERSONNEL_ASSIGN_COMMAND,
     );
-    // A set rather than a delta, whatever the control looks like: an operator
-    // commanding from a remote vantage is reading a count as it was, and "+10"
-    // applied to a count that has since moved lands somewhere nobody chose.
+    /*
+     * A set rather than a delta, whatever the control looks like: an operator
+     * commanding from a remote vantage is reading a count as it was, and "+10"
+     * applied to a count that has since moved lands somewhere nobody chose.
+     */
     expect(sent?.args).toEqual({ engineers: 24, lcId: "lc-1" });
   });
 
@@ -314,9 +320,11 @@ describe("KscComplexes", () => {
       screen.getByRole("button", { name: "Stop rushing work at LC-1" }),
     );
 
-    // A SET and not a toggle on the wire: the command carries the state asked
-    // for, so it lands on that state however stale the view it was pressed
-    // from.
+    /*
+     * A SET and not a toggle on the wire: the command carries the state asked
+     * for, so it lands on that state however stale the view it was pressed
+     * from.
+     */
     expect(
       fixture.transport.sentCommands.find(
         (c) => c.command === RP1_COMPLEX_RUSH_COMMAND,
@@ -346,9 +354,11 @@ describe("KscComplexes", () => {
       expect(screen.getByText("Hangar")).toBeInTheDocument();
     });
     const text = view.container.textContent ?? "";
-    // Eligibility, not assignment: a vehicle over the mass limit cannot be built
-    // here at any headcount, and one needing an unhandled resource cannot
-    // either.
+    /*
+     * Eligibility, not assignment: a vehicle over the mass limit cannot be built
+     * here at any headcount, and one needing an unhandled resource cannot
+     * either.
+     */
     expect(text).toContain("180");
     expect(text).toContain("Kerosene, LqdOxygen");
     expect(text).toContain("any mass");
@@ -357,9 +367,11 @@ describe("KscComplexes", () => {
   });
 
   it("carries the payroll the standalone panel used to", async () => {
-    // Absorbed on the operator's ruling: staffing a complex IS complex
-    // management, and the hiring totals belong beside the assignments that
-    // spend them.
+    /*
+     * Absorbed on the operator's ruling: staffing a complex IS complex
+     * management, and the hiring totals belong beside the assignments that
+     * spend them.
+     */
     withCentre();
 
     await waitFor(() => {

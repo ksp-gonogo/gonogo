@@ -76,9 +76,11 @@ export function PlanComposer() {
   // Which draft the one outcome belongs to. The send handle is shared across
   // every draft, so without this an answer renders under all of them.
   const [sent, setSent] = useState<string | null>(null);
-  // The send is a command like any other, so its schedule belongs on the
-  // panel's delay rail: at a light-delayed vantage an operator has to be able to
-  // see when the plan will actually reach the vessel.
+  /*
+   * The send is a command like any other, so its schedule belongs on the
+   * panel's delay rail: at a light-delayed vantage an operator has to be able to
+   * see when the plan will actually reach the vessel.
+   */
   usePanelDelay(send.command);
 
   if (vesselId === undefined || seenAt === undefined) {
@@ -94,9 +96,11 @@ export function PlanComposer() {
 
   const mine = drafts.filter((draft) => draft.vesselId === vesselId);
 
-  // A new observation instant every time, because editing a plan is deciding
-  // again: carrying the old one forward would date the new decision by the old
-  // one's information.
+  /*
+   * A new observation instant every time, because editing a plan is deciding
+   * again: carrying the old one forward would date the new decision by the old
+   * one's information.
+   */
   const edit = (draft: PlanDraft, burns: ComposedBurn[]) =>
     store.update(draft.id, { burns, observedAt: seenAt });
 
@@ -407,9 +411,11 @@ function ReadyPlan({
  * difference.</p>
  */
 function totalDeltaV(draft: PlanDraft): Value<"m/s"> {
-  // Through the algebra rather than by hand: `vectorMagnitude` is the same
-  // hypotenuse every other three-component read takes, and doing it here with
-  // raw magnitudes would be a second implementation free to disagree with it.
+  /*
+   * Through the algebra rather than by hand: `vectorMagnitude` is the same
+   * hypotenuse every other three-component read takes, and doing it here with
+   * raw magnitudes would be a second implementation free to disagree with it.
+   */
   return draft.burns.reduce(
     (sum, burn) =>
       sum.plus(

@@ -120,9 +120,11 @@ async function withOneSavedCraft(overrides: Record<string, unknown> = {}) {
 
 describe("starting a build from a saved craft", () => {
   it("offers a build control for a craft the space centre has never held", async () => {
-    // The whole point of the section: an empty career could watch RP-1 and
-    // could not start anything in it, because the only build command copied a
-    // vehicle that already existed.
+    /*
+     * The whole point of the section: an empty career could watch RP-1 and
+     * could not start anything in it, because the only build command copied a
+     * vehicle that already existed.
+     */
     await withOneSavedCraft();
 
     expect(await screen.findByText("START A BUILD")).toBeInTheDocument();
@@ -153,9 +155,11 @@ describe("starting a build from a saved craft", () => {
       const sent = fixture.transport.sentCommands.find(
         (c) => c.command === RP1_BUILD_START_COMMAND,
       );
-      // All three on the wire, and the complex among them even though only one
-      // could have been meant: the mod REQUIRES it, so the dispatch records
-      // which complex was chosen rather than leaving it to be inferred.
+      /*
+       * All three on the wire, and the complex among them even though only one
+       * could have been meant: the mod REQUIRES it, so the dispatch records
+       * which complex was chosen rather than leaving it to be inferred.
+       */
       expect(sent?.args).toEqual({
         craftFile: "Atlas LV-3B",
         facility: 1,
@@ -234,9 +238,11 @@ describe("starting a build from a saved craft", () => {
   });
 
   it("refuses a craft whose parts are researched but not bought, and says where to buy them", async () => {
-    // RP-1's own window offers to spend the funds through a popup, which a
-    // command dispatched from another machine has nobody to answer, so the
-    // remedy is named instead of taken.
+    /*
+     * RP-1's own window offers to spend the funds through a popup, which a
+     * command dispatched from another machine has nobody to answer, so the
+     * remedy is named instead of taken.
+     */
     await withOneSavedCraft({ unpurchasedParts: ["RO-Vanguard-X405"] });
 
     expect(

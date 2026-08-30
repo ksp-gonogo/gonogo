@@ -135,9 +135,11 @@ describe("ProgramDetail", () => {
   });
 
   it("shows both balances, because it quotes a price in one and income in the other", async () => {
-    // The repo's spend rule, and it binds twice here: Confidence is what buys a
-    // Program and funds are what it pays back, so an operator weighing an offer
-    // needs both without leaving the widget.
+    /*
+     * The repo's spend rule, and it binds twice here: Confidence is what buys a
+     * Program and funds are what it pays back, so an operator weighing an offer
+     * needs both without leaving the widget.
+     */
     const { fixture } = mount();
     await feed(fixture);
 
@@ -147,9 +149,11 @@ describe("ProgramDetail", () => {
   });
 
   it("opens on the running Program when nothing is pinned", async () => {
-    // An unconfigured instance should be useful: the Program paying the career
-    // is the one worth opening on, and RP-1's catalogue order would put a locked
-    // 1980s Program first.
+    /*
+     * An unconfigured instance should be useful: the Program paying the career
+     * is the one worth opening on, and RP-1's catalogue order would put a locked
+     * 1980s Program first.
+     */
     const { fixture } = mount();
     await feed(fixture, [
       program({ name: "Aeronautics", title: "Aeronautics", state: "locked" }),
@@ -354,9 +358,11 @@ describe("ProgramDetail", () => {
     await waitFor(() => {
       expect(screen.getByText(/No Program selected/)).toBeInTheDocument();
     });
-    // The async settle after the body: the stream fixture answers the remaining
-    // subscriptions on a later microtask, and without holding the scope open the
-    // resulting render lands outside act.
+    /*
+     * The async settle after the body: the stream fixture answers the remaining
+     * subscriptions on a later microtask, and without holding the scope open the
+     * resulting render lands outside act.
+     */
     await act(async () => {});
   });
 });
