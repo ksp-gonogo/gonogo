@@ -730,7 +730,7 @@ export const COMMENT_STACK_DEBT: Record<string, number> = {
  * does not trip this and only a broken enumeration does.
  */
 export const SCAN_FLOORS = {
-  files: 1156,
+  files: 1160,
   filesWithStack: 366,
   stacks: 805,
 } as const;

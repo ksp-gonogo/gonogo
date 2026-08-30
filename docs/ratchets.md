@@ -200,6 +200,14 @@ The important property is that adopting the rule costs nothing on day one. You s
 the list with reality, and the rule is live immediately for all _new_ code. Nobody has
 to schedule a cleanup before the rule can start protecting you.
 
+**A list with a real zero needs a floor that is not the debt.** Most of ours never
+approach empty, so an instrument check floored on the population is safe. The
+panel-body ratchet is meant to reach zero, and a floor under its population would be
+one the work has to walk through: clearing the last widgets would trip the check, and
+the shrink guard refuses to lower a floor, so finishing would mean fighting the gate.
+It floors on files walked and on `<Panel>` tags found instead. Converting a widget
+turns a body into a self-closing tag, so the tag count survives the work.
+
 **What we learned:** put the list in its own module with no test logic in it, so the
 shrink check can load the file's content at an arbitrary git revision without dragging
 the test framework and the scanner along with it. We did not do this first and the
