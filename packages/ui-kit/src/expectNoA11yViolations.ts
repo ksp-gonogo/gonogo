@@ -64,6 +64,15 @@ function jestAxe(): Promise<{ axe: typeof axeFn }> {
  * wrongly. A caller writing one line cannot get it wrong, which is the point:
  * the framework absorbs the correctness detail rather than teaching it.
  *
+ * <b>Every await here is inside the `act` scope, the lazy `jest-axe` import
+ * included.</b> That import is the first time the module is loaded in a run and
+ * takes real time under load, so leaving it ahead of the scope reopened exactly
+ * the window the helper exists to close: a pending `setTimeout(0)` from the
+ * sized `ResizeObserver` fires in it, and the chart re-render it triggers lands
+ * unwrapped. Measured on `LandingStatus`, which emitted five warnings in six of
+ * eight concurrent runs at load 11 and none at all on a quiet box, every one of
+ * them between the call and the import resolving.
+ *
  * Published from `@ksp-gonogo/ui-kit/testing` beside `renderWidget`, because an
  * a11y smoke test is a widget concern and an Uplink author has to be able to
  * reach it. A private helper would make this first-party-only, which is the
@@ -72,9 +81,9 @@ function jestAxe(): Promise<{ axe: typeof axeFn }> {
 export async function expectNoA11yViolations(
   container: Element | string,
 ): Promise<void> {
-  const { axe } = await jestAxe();
-  let results: Awaited<ReturnType<typeof axe>> | undefined;
+  let results: Awaited<ReturnType<typeof axeFn>> | undefined;
   await act(async () => {
+    const { axe } = await jestAxe();
     results = await axe(container);
   });
   expect(results).toHaveNoViolations();

@@ -12,7 +12,6 @@ import {
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { setupStreamFixture } from "../test/setupStreamFixture";
 import {
-  flushResizeObservers,
   installSizedResizeObserver,
   WidgetContributions,
 } from "../test/widgetDomSnapshot";
