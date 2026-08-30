@@ -164,6 +164,7 @@ namespace GonogoRp1Uplink
         /// complex is infrastructure.
         /// </summary>
         private readonly Rp1PersonnelCommands _staffing = new Rp1PersonnelCommands();
+        private readonly Rp1StrategyCommands _strategies = new Rp1StrategyCommands();
         /// The command that starts a design the space centre has never held, from
         /// one of the save's own craft files. Its own reader for the reason the two
         /// above are, and it holds a LAZY route to core's craft catalogue rather
@@ -570,6 +571,11 @@ namespace GonogoRp1Uplink
                 {
                     host.AddCommandHandler<Rp1PersonnelAssignArgs, CommandResult>(
                         Rp1PersonnelCommands.AssignCommand, _staffing.Assign);
+                }
+                if (_strategies.IsAvailable)
+                {
+                    host.AddCommandHandler<Rp1StrategyActivateArgs, CommandResult>(
+                        Rp1StrategyCommands.ActivateCommand, _strategies.Activate);
                 }
             }
             catch (Exception ex)

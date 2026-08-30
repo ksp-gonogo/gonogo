@@ -122,6 +122,28 @@ namespace RP0.Programs
     {
         public static ProgramHandler? Instance { get; set; }
 
+        /// <summary>
+        /// RP-1's fresh-activation-vs-restore discriminator, not a UI flag. Read
+        /// and branched on by the command, never assumed: with it true, RP-1's own
+        /// OnRegister performs the program half, so a caller that also performs it
+        /// accepts twice.
+        /// </summary>
+        public bool IsInAdmin { get; set; }
+
+        /// <summary>
+        /// The program half OnRegister skips when the screen is shut. Records the
+        /// call and stamps the deadline Accept() would have assigned on the
+        /// instance it returns, so a test can tell the accepted copy from the
+        /// template.
+        /// </summary>
+        public Program ActivateProgram(Program p)
+        {
+            StrategyCallLog.Calls.Add("ActivateProgram");
+            p.deadlineUT = 12345.0;
+            ActivePrograms.Add(p);
+            return p;
+        }
+
         public static ProgramHandlerSettings? Settings { get; set; }
 
         public static List<Program> Programs { get; set; } = new List<Program>();

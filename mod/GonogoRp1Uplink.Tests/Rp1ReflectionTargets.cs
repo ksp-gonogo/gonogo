@@ -248,6 +248,27 @@ namespace GonogoRp1Uplink.Tests
         /// </summary>
         public static IReadOnlyDictionary<string, string> OutOfScope { get; } = new Dictionary<string, string>
         {
+            // Stock's Strategies.Strategy and StrategySystem, not RP-1's. RP-1
+            // subclasses them but does not own these members, so a rename here is
+            // KSP's to make and Assembly-CSharp's to answer for.
+            ["IsActive"] = "stock Strategies.Strategy.IsActive, read to refuse a strategy that is already committed",
+            ["Factor"] = "stock Strategies.Strategy.Factor, the commitment level, written before the gate and restored on a refusal",
+            ["GroupTags"] = "stock Strategies.Strategy.GroupTags, handed to HasConflictingActiveStrategies as arm 2's input",
+            ["CanActivate"] = "stock Strategies.Strategy.CanActivate(ref string), arm 8, where RP-1 puts its program slot cap by override",
+            ["HasConflictingActiveStrategies"] = "stock Strategies.StrategySystem's arm 2, the only arm that reads the system rather than the strategy",
+            ["Strategies"] = "stock StrategySystem.Strategies, the roster walked to resolve a strategy by name",
+            ["Name"] = "stock Strategies.Strategy.Name, the id a command names a strategy by",
+            ["Config"] = "stock Strategies.Strategy.Config, the fallback identity when Name is empty",
+            // KSP's own facility and difficulty tables. GetStrategyCommitRange is
+            // the method Administration.Start caches arm 3's ceiling from, and it
+            // is VIRTUAL, so calling through GameVariables.Instance inherits a
+            // facility-retiering mod's override where copying the numbers would
+            // not.
+            ["GameVariables"] = "KSP's difficulty table, which owns the strategy commit range; not RP-1's to guard",
+            ["GetStrategyCommitRange"] = "KSP GameVariables.GetStrategyCommitRange, arm 3's ceiling, from the source Administration.Start reads it from",
+            ["ScenarioUpgradeableFacilities"] = "KSP's facility-level scenario module, four-scene and not RP-1's",
+            ["GetFacilityLevel"] = "KSP ScenarioUpgradeableFacilities.GetFacilityLevel, the Administration level arm 3 is asked at",
+            ["SpaceCenterFacility"] = "KSP's facility enum, named to resolve the Administration member",
             ["Fire"] = "KSP's EventData<T1,T2>.Fire, reached off Confidence.OnConfidenceChanged, and matched by arity and first parameter type rather than by name alone",
             ["Funds"] = "KSP's Funding.Funds, read only to put a balance beside a refusal (and also the name of RP0.CurrencyRP0.Funds, which IS checked)",
             ["Instance"] = "checked on every RP-1 handler that has one; ALSO KSP's Funding.Instance, which is not RP-1's to guard",
