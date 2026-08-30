@@ -2,7 +2,6 @@ import type { ActionDefinition, ComponentProps } from "@ksp-gonogo/core";
 import {
   AugmentSlot,
   defineTopicManifest,
-  getBody,
   registerComponent,
   useActionInput,
   useTelemetry,
@@ -28,14 +27,18 @@ import {
 } from "../shared/trajectoryWithheld";
 import { useIsOrbiting } from "../shared/useIsOrbiting";
 import { usePastTrack } from "../shared/usePastTrack";
+import { useStreamBody } from "../shared/useStreamBody";
 
 const topics = defineTopicManifest({
-  channels: ["vessel.orbit", "vessel.state"],
-  // The diagram is drawn from apsis RADII, never the altitudes, and the pole
-  // marker and body geometry come from `getBody`'s static table rather than
-  // from a streamed body count. Naming the fields drawn, rather than the whole
-  // of `vessel.state` this mounts on, is what keeps their alarms off a widget
-  // that does not draw them.
+  channels: ["vessel.orbit", "vessel.state", "system.bodies"],
+  /*
+   * The diagram is drawn from apsis RADII, never the altitudes. Body geometry
+   * comes off `system.bodies`, which is why that channel is carried: the pole
+   * marker's own orientation still uses the static table, for the texture
+   * correction no wire field replaces. Naming the fields drawn, rather than
+   * the whole of `vessel.state` this mounts on, is what keeps their alarms off
+   * a widget that does not draw them.
+   */
   fields: [
     "vessel.orbit.sma",
     "vessel.orbit.ecc",
@@ -257,7 +260,17 @@ function OrbitViewComponent({
   // answers conic, arc, or a refusal, and the render below does as it is told.
   const trajectory: OrbitTrajectory | null = useOrbitTrajectory(orbit);
 
-  const body = bodyName === undefined ? undefined : getBody(bodyName);
+  /*
+   * The body the stream describes, not the stock table's namesake. The table
+   * is keyed by NAME and holds stock bodies only, so under a planet pack the
+   * lookup missed and this widget lost its radius, its atmosphere band and its
+   * oxygen shading together. The oxygen flag in particular used to be a
+   * comparison against the two stock breathable bodies, under a comment
+   * waiting for "the static body registry to grow a `hasOxygen` field": it
+   * never did, and never needed to, because `system.bodies` has carried the
+   * flag per body all along.
+   */
+  const body = useStreamBody(bodyName);
   const { isOrbiting } = useIsOrbiting();
   // Live rotation feed: single-body subscription so we don't pay the
   // ~17-bodies-at-4Hz fanout cost of useCelestialBodies just for the
@@ -351,13 +364,7 @@ function OrbitViewComponent({
       isOrbiting={isOrbiting}
       rotationAngleDeg={rotates === false ? null : rotationAngleDeg}
       atmosphereDepthM={body?.hasAtmosphere ? body.maxAtmosphere : null}
-      atmosphereHasOxygen={
-        // Kerbin / Laythe are the stock oxygen-bearing atmospheres.
-        // Static registry doesn't carry the flag yet; treat as oxygen
-        // for those names, plain for the rest. Cheap; gets replaced
-        // when the static body registry grows a `hasOxygen` field.
-        body !== undefined && (body.id === "Kerbin" || body.id === "Laythe")
-      }
+      atmosphereHasOxygen={body?.hasOxygen ?? false}
     />
   ) : null;
 

@@ -35,6 +35,8 @@ import { magnitudeOf, type Quantityish } from "@ksp-gonogo/ui-kit";
 export type StreamBody = BodyDefinition & {
   /** Surface gravity in m/s², when the stream reported one. */
   surfaceGravity?: number;
+  /** Breathable air: the stream's flag, or the stock fallback below it. */
+  hasOxygen?: boolean;
 };
 
 /**
@@ -47,6 +49,12 @@ export type StreamBody = BodyDefinition & {
  */
 export interface StreamAtmosphere {
   depth?: Quantityish;
+  /**
+   * Whether the air is breathable, which decides how the atmosphere band is
+   * shaded. The STATIC registry has no such field, so a widget wanting it used
+   * to compare the body's name against the stock oxygen-bearing ones.
+   */
+  hasOxygen?: boolean | null;
 }
 
 /** The fields of a `system.bodies` entry that describe the body physically. */
@@ -59,6 +67,23 @@ export interface StreamBodyFacts {
   /** Reported in g, which is how the game holds it. */
   surfaceGravity?: Value<"g"> | null;
   atmosphere?: StreamAtmosphere | null;
+}
+
+/**
+ * The stock bodies whose air is breathable, for a stream that does not report
+ * the flag.
+ *
+ * <p>Kept as a NAMED second-best rather than deleted with the read it used to
+ * back. `hasOxygen` reaches the wire per body, so the stream answers first and
+ * a planet pack is served correctly; but a fixture or an older mod that omits
+ * the block would otherwise fall to `false`, and false is not "unknown", it is
+ * a positive claim that the air cannot be breathed. Drawing Kerbin's sky as
+ * inert is a worse answer than the heuristic this replaced.</p>
+ */
+const STOCK_OXYGEN: ReadonlySet<string> = new Set(["Kerbin", "Laythe"]);
+
+function stockOxygen(name: string | null | undefined): boolean {
+  return name != null && STOCK_OXYGEN.has(name);
 }
 
 function reported(q: Quantityish): number | undefined {
@@ -110,6 +135,9 @@ export function bodyFromStream(
     surfaceGravity: surfaceGravityMps2(facts.surfaceGravity),
     hasAtmosphere,
     maxAtmosphere: hasAtmosphere ? (depth ?? table?.maxAtmosphere ?? 0) : 0,
+    hasOxygen: hasAtmosphere
+      ? (facts.atmosphere?.hasOxygen ?? stockOxygen(facts.name ?? table?.id))
+      : false,
   };
 }
 

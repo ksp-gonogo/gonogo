@@ -522,6 +522,7 @@ export function OrbitDiagram({
           atmosphereDepthM > 0 &&
           bodyRadius !== undefined && (
             <circle
+              data-atmosphere={atmosphereHasOxygen ? "oxygen" : "inert"}
               cx={0}
               cy={0}
               r={bodyRadius + atmosphereDepthM}
