@@ -110,9 +110,11 @@ function seedRenamedBodyOrbit(pinnedUt = 1_000_000) {
       {
         index: 1,
         name: "Earth",
-        // Real `Value`s: `wrap-units.ts` hydrates every declared quantity as
-        // the payload is decoded, so a plain `{ magnitude, unit }` literal is
-        // a shape the stream never delivers.
+        /*
+         * Real `Value`s: `wrap-units.ts` hydrates every declared quantity as
+         * the payload is decoded, so a plain `{ magnitude, unit }` literal is
+         * a shape the stream never delivers.
+         */
         radius: value("m", 6_371_000),
         surfaceGravity: value("g", 1),
       },
