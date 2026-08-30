@@ -22,9 +22,11 @@ const renderedTrees: Array<() => void> = [];
 afterEach(() => {
   for (const unmount of renderedTrees) unmount();
   renderedTrees.length = 0;
-  // After the unmounts, never before: the draft store is module scope and so
-  // outlives a tree, and clearing it while one is still mounted notifies its
-  // subscribers outside `act`.
+  /*
+   * After the unmounts, never before: the draft store is module scope and so
+   * outlives a tree, and clearing it while one is still mounted notifies its
+   * subscribers outside `act`.
+   */
   clearPlanDrafts();
 });
 
@@ -48,9 +50,11 @@ async function setup() {
     </fixture.Provider>,
   );
   renderedTrees.push(view.unmount);
-  // `validAt` is stated rather than defaulted: the transport's default is 0, so
-  // an emit with no meta lands four thousand seconds behind a clock pinned at
-  // `VIEW_UT`, and every test here would quietly exercise the stale path.
+  /*
+   * `validAt` is stated rather than defaulted: the transport's default is 0, so
+   * an emit with no meta lands four thousand seconds behind a clock pinned at
+   * `VIEW_UT`, and every test here would quietly exercise the stale path.
+   */
   act(() => {
     fixture.emit(
       "vessel.identity",
@@ -78,9 +82,11 @@ async function setup() {
       { validAt: VIEW_UT },
     );
   });
-  // Delivery is asynchronous: the samples reach the store after the emit
-  // returns, so a synchronous assertion reads the pending state and every test
-  // would be asserting against a widget that has no vessel.
+  /*
+   * Delivery is asynchronous: the samples reach the store after the emit
+   * returns, so a synchronous assertion reads the pending state and every test
+   * would be asserting against a widget that has no vessel.
+   */
   await screen.findByRole("button", { name: "Draft plan" });
   return { fixture, view };
 }
@@ -125,9 +131,11 @@ function setIgnition(ut: number) {
     ["DAY", "1"],
     ["HR", "0"],
     ["MIN", "0"],
-    // Last, and carrying the whole instant: the field does not clamp, so an
-    // out-of-range component rolls up through the calendar exactly as a typed
-    // one does.
+    /*
+     * Last, and carrying the whole instant: the field does not clamp, so an
+     * out-of-range component rolls up through the calendar exactly as a typed
+     * one does.
+     */
     ["SEC", String(ut)],
   ] as const) {
     setField(`Ignition ${column}`, digits);
@@ -148,9 +156,11 @@ function confirm(name: string, confirmName: string) {
 
 describe("PlanComposer", () => {
   it("sends nothing to the vessel while a plan is being composed", async () => {
-    // The whole reason drafts exist here rather than aboard: a plan
-    // half-composed must never be a plan half-flown, and two operators must be
-    // able to work without disturbing each other or the player at the keyboard.
+    /*
+     * The whole reason drafts exist here rather than aboard: a plan
+     * half-composed must never be a plan half-flown, and two operators must be
+     * able to work without disturbing each other or the player at the keyboard.
+     */
     const { fixture } = await setup();
 
     press("Draft plan");
@@ -324,9 +334,11 @@ describe("PlanComposer", () => {
     await act(async () => {});
 
     expect(ignitionUt()).toBeGreaterThan(VIEW_UT + 2 * 600);
-    // And the window it lands in is open, which is the same arithmetic the row
-    // below shows: a seed that arrives already too late is no better than one in
-    // the past.
+    /*
+     * And the window it lands in is open, which is the same arithmetic the row
+     * below shows: a seed that arrives already too late is no better than one in
+     * the past.
+     */
     press("Save draft");
     await act(async () => {});
     expect(screen.queryByText("Too late")).toBeNull();

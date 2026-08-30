@@ -302,9 +302,11 @@ describe("VehicleAssembly", () => {
   });
 
   it("gathers the complexes under the centre each one stands at", async () => {
-    // Two centres is what makes the sentence do work rather than read as a
-    // list: RP-1 supports several through KSCSwitcher, and a flat "LC-1, LC-2,
-    // LC-3" would say nothing about which card belongs where.
+    /*
+     * Two centres is what makes the sentence do work rather than read as a
+     * list: RP-1 supports several through KSCSwitcher, and a flat "LC-1, LC-2,
+     * LC-3" would say nothing about which card belongs where.
+     */
     const { fixture } = mount();
     await rp1IsPresent(fixture);
     act(() => {
@@ -365,10 +367,12 @@ describe("VehicleAssembly", () => {
   });
 
   it("says why the clock reads what it reads, on every card", async () => {
-    // Staffing is a RATE control: RP-1 scales a complex's work by the portion
-    // of its engineer places filled, so this is the answer to "why is this
-    // taking so long" and belongs beside the ETA rather than only on the
-    // staffing screen.
+    /*
+     * Staffing is a RATE control: RP-1 scales a complex's work by the portion
+     * of its engineer places filled, so this is the answer to "why is this
+     * taking so long" and belongs beside the ETA rather than only on the
+     * staffing screen.
+     */
     await withOneBuiltVehicle();
 
     await waitFor(() => {
@@ -425,9 +429,11 @@ describe("VehicleAssembly", () => {
   });
 
   it("does not call a stall a staffing problem when the complex is staffed", async () => {
-    // The other half, and the reason the two are separate sentences: sending an
-    // operator to a staffing screen that already reads full is worse than
-    // saying nothing.
+    /*
+     * The other half, and the reason the two are separate sentences: sending an
+     * operator to a staffing screen that already reads full is worse than
+     * saying nothing.
+     */
     const { fixture } = mount();
     await rp1IsPresent(fixture);
     act(() => {
@@ -451,9 +457,11 @@ describe("VehicleAssembly", () => {
   });
 
   it("reads an unanswered engineer count as unknown rather than as nobody", async () => {
-    // RP-1 not answering is not RP-1 saying nobody is assigned, and printing
-    // the fixable sentence for it sends an operator somewhere with nothing to
-    // fix.
+    /*
+     * RP-1 not answering is not RP-1 saying nobody is assigned, and printing
+     * the fixable sentence for it sends an operator somewhere with nothing to
+     * fix.
+     */
     const { fixture } = mount();
     await rp1IsPresent(fixture);
     act(() => {
@@ -537,9 +545,11 @@ describe("VehicleAssembly", () => {
         screen.getByText(/RP-1 has no id for this vehicle/),
       ).toBeInTheDocument();
     });
-    // EVERY control: none of them can name a target without the id, and
-    // guessing from the name would pick the wrong one of two vehicles that
-    // share it.
+    /*
+     * EVERY control: none of them can name a target without the id, and
+     * guessing from the name would pick the wrong one of two vehicles that
+     * share it.
+     */
     expect(screen.queryAllByRole("button")).toHaveLength(0);
   });
 
@@ -601,9 +611,11 @@ describe("VehicleAssembly", () => {
       fixture.emit("rp1.buildQueue", []);
     });
 
-    // The choice is made HERE, where the names are visible, rather than as a
-    // refusal the operator has to read and retry: RP-1 asks with a popup and
-    // there is nobody to answer a popup from another machine.
+    /*
+     * The choice is made HERE, where the names are visible, rather than as a
+     * refusal the operator has to read and retry: RP-1 asks with a popup and
+     * there is nobody to answer a popup from another machine.
+     */
     await user.click(
       await screen.findByRole("button", {
         name: "Roll Atlas · LC-1 out to LaunchPad 2",
@@ -791,9 +803,11 @@ describe("VehicleAssembly", () => {
     await waitFor(() => {
       expect(screen.getByText("BUILT")).toBeInTheDocument();
     });
-    // No offerable pad, so a SENTENCE rather than a button that could only be
-    // refused, and it says which of four things is wrong: repair it, build it,
-    // wait for reconditioning, or move the vehicle already there.
+    /*
+     * No offerable pad, so a SENTENCE rather than a button that could only be
+     * refused, and it says which of four things is wrong: repair it, build it,
+     * wait for reconditioning, or move the vehicle already there.
+     */
     expect(
       screen.queryByRole("button", { name: /^Roll Atlas · LC-1 out/ }),
     ).not.toBeInTheDocument();
@@ -812,9 +826,11 @@ describe("VehicleAssembly", () => {
         (c) => c.command === RP1_SCRAP_COMMAND,
       ),
     ).toBeUndefined();
-    // The confirm says what comes BACK, because that is the fact an operator
-    // weighs: RP-1 refunds the vehicle in full and the loss is the integration
-    // time, which no number on this card can show.
+    /*
+     * The confirm says what comes BACK, because that is the fact an operator
+     * weighs: RP-1 refunds the vehicle in full and the loss is the integration
+     * time, which no number on this card can show.
+     */
     expect(visibleText()).toContain("Refund");
 
     await user.click(
@@ -951,9 +967,11 @@ describe("VehicleAssembly", () => {
     act(() => {
       fixture.emit("career.status", CAREER);
       fixture.emit("rp1.complexes", COMPLEXES);
-      // Free AND occupied at once, which is a real RP-1 state and the reason
-      // hasVesselWaiting had to go on the wire: State derives from the pad's
-      // OPERATIONS, and a craft already sent to the launch site has none left.
+      /*
+       * Free AND occupied at once, which is a real RP-1 state and the reason
+       * hasVesselWaiting had to go on the wire: State derives from the pad's
+       * OPERATIONS, and a craft already sent to the launch site has none left.
+       */
       fixture.emit("rp1.pads", [
         {
           ...PADS[0],
@@ -1023,9 +1041,11 @@ describe("VehicleAssembly", () => {
     await waitFor(() => {
       expect(visibleText()).toContain("too heavy for the complex");
     });
-    // EVERY reason, not just the first: an operator who fixes one and is handed
-    // the next has been made to iterate, and RP-1's own popup lists them at
-    // once.
+    /*
+     * EVERY reason, not just the first: an operator who fixes one and is handed
+     * the next has been made to iterate, and RP-1's own popup lists them at
+     * once.
+     */
     expect(visibleText()).toContain("human-rated");
     // The VEHICLE half outranks the pads: a free pad is on the wire and no
     // rollout is offered, because no pad can take a vehicle its complex will
