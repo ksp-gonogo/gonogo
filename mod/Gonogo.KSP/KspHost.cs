@@ -4174,14 +4174,24 @@ namespace Gonogo.KSP
                 ["hasOcean"] = body.ocean,
                 ["description"] = body.bodyDescription,
                 ["isHome"] = body.isHomeWorld,
-                // Atmosphere as FLAT keys (a nested dict here would need special
-                // handling across the RecordedSessionCodec JSON round-trip); the
-                // provider reassembles them into the nested wire object.
+                /* Atmosphere as FLAT keys (a nested dict here would need special
+                   handling across the RecordedSessionCodec JSON round-trip); the
+                   provider reassembles them into the nested wire object. The two
+                   pressure-profile arrays below are added conditionally rather
+                   than as nulls, so an airless body carries no trace of a
+                   profile at all. */
                 ["hasAtmosphere"] = body.atmosphere,
                 ["atmosphereDepth"] = body.atmosphere ? (double?)body.atmosphereDepth : null,
                 ["atmosphereHasOxygen"] = body.atmosphere ? (bool?)body.atmosphereContainsOxygen : null,
                 ["atmosphereSeaLevelPressure"] = body.atmosphere ? (double?)body.atmospherePressureSeaLevel : null,
             };
+
+            if (body.atmosphere)
+            {
+                var profile = PressureProfileFor(body);
+                entry["atmospherePressureAltitudes"] = profile?.Altitudes;
+                entry["atmospherePressureSamples"] = profile?.Pressures;
+            }
 
             var orbit = body.orbit;
             if (!isRoot && orbit != null)
@@ -4197,6 +4207,50 @@ namespace Gonogo.KSP
             }
 
             return entry;
+        }
+
+        private sealed class PressureProfile
+        {
+            public double Depth;
+            public double SeaLevel;
+            public double[]? Altitudes;
+            public double[]? Pressures;
+        }
+
+        /// <summary>
+        /// Cached per-body pressure profile, keyed by the body's stable index.
+        ///
+        /// <para>The profile is a property of the atmosphere and nothing moves
+        /// it, but this method is on the once-per-second body-roster path and
+        /// the sampler costs a few hundred <c>GetPressure</c> calls, so
+        /// resampling every body every tick would spend that on the game's own
+        /// thread for a table that never changes. The cached depth and
+        /// sea-level pressure are re-checked rather than assumed, so a
+        /// Kopernicus reload that genuinely reshapes an atmosphere is picked
+        /// up.</para>
+        /// </summary>
+        private static readonly Dictionary<int, PressureProfile> PressureProfiles =
+            new Dictionary<int, PressureProfile>();
+
+        private static PressureProfile? PressureProfileFor(CelestialBody body)
+        {
+            var depth = body.atmosphereDepth;
+            var seaLevel = body.atmospherePressureSeaLevel;
+            if (PressureProfiles.TryGetValue(body.flightGlobalsIndex, out var cached)
+                && cached.Depth == depth
+                && cached.SeaLevel == seaLevel)
+            {
+                return cached;
+            }
+
+            var profile = new PressureProfile { Depth = depth, SeaLevel = seaLevel };
+            if (AtmospherePressureProfile.TryBuild(body.GetPressure, depth, out var altitudes, out var pressures))
+            {
+                profile.Altitudes = altitudes;
+                profile.Pressures = pressures;
+            }
+            PressureProfiles[body.flightGlobalsIndex] = profile;
+            return profile;
         }
 
         // ----------------------------------------------------------------

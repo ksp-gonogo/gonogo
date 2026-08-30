@@ -1,8 +1,8 @@
-import type { BodyDefinition, ComponentProps } from "@ksp-gonogo/core";
+import type { ComponentProps } from "@ksp-gonogo/core";
 import {
   defineTopicManifest,
-  getBody,
   pressureAtAltitude,
+  pressureFromProfile,
   registerComponent,
 } from "@ksp-gonogo/core";
 import {
@@ -21,13 +21,17 @@ import {
 } from "../Graph";
 import { formatDensity } from "../shared/formatDensity";
 import { magnitudeOf } from "../shared/magnitude";
+import type { StreamBody } from "../shared/streamBody";
+import { useStreamBody } from "../shared/useStreamBody";
 
 export interface AtmosphereProfileConfig {
   /** Override the auto-derived altitude ceiling for the curve (metres). */
   altitudeCeiling?: number;
 }
 
-const topics = defineTopicManifest({ channels: ["vessel.flight"] });
+const topics = defineTopicManifest({
+  channels: ["vessel.flight", "system.bodies"],
+});
 
 const REFERENCE_SAMPLES = 80;
 
@@ -47,26 +51,64 @@ function notCurrent<T>(reading: Reading<T>): boolean {
   return reading.state === "stale";
 }
 
+/** The pressure at an altitude, the stream's answer preferred over the model. */
+function pressureFor(body: StreamBody, altitude: number): number | undefined {
+  if (body.pressureProfile) {
+    return pressureFromProfile(body.pressureProfile, altitude);
+  }
+  return pressureAtAltitude(body, altitude);
+}
+
+/**
+ * The reference curve.
+ *
+ * <p>When the stream reported a profile the samples ARE the curve and are
+ * plotted as they arrived. The host chose their spacing by bisecting on the
+ * curve's own bend, so they already sit where the shape needs them, and
+ * re-sampling that at a fixed cadence would only interpolate the host's
+ * interpolation while moving points away from the places it decided
+ * mattered.</p>
+ *
+ * <p>Falling back to the model, the old fixed cadence over the model's own
+ * smooth exponential is still right, because nothing about it is worth
+ * resolving adaptively.</p>
+ */
 function buildPressureCurve(
-  body: BodyDefinition,
+  body: StreamBody,
   ceiling: number,
 ): ReferenceCurve | null {
-  if (!body.hasAtmosphere || !body.atmosphere) return null;
+  if (!body.hasAtmosphere) return null;
   const xs: number[] = [];
   const ys: number[] = [];
-  for (let i = 0; i <= REFERENCE_SAMPLES; i++) {
-    const altitude = (ceiling * i) / REFERENCE_SAMPLES;
-    const p = pressureAtAltitude(body, altitude);
-    if (p === undefined) continue;
-    // The log axis can't show zero, and clamping the beyond-atmosphere tail
-    // to a tiny positive drew a long flat line at the chart floor that read
-    // as "constant residual pressure in vacuum". Once pressure reaches zero
-    // the atmosphere has ended, stop the curve there rather than dragging a
-    // misleading floor segment across the rest of the plot.
-    if (p <= 0) break;
-    xs.push(altitude);
-    ys.push(p);
+
+  const profile = body.pressureProfile;
+  if (profile) {
+    for (let i = 0; i < profile.altitudes.length; i++) {
+      const altitude = profile.altitudes[i];
+      if (altitude > ceiling) break;
+      const p = profile.pressures[i];
+      if (!(p > 0)) break;
+      xs.push(altitude);
+      ys.push(p);
+    }
+  } else {
+    if (!body.atmosphere) return null;
+    for (let i = 0; i <= REFERENCE_SAMPLES; i++) {
+      const altitude = (ceiling * i) / REFERENCE_SAMPLES;
+      const p = pressureAtAltitude(body, altitude);
+      if (p === undefined) continue;
+      /* The log axis can't show zero, and clamping the beyond-atmosphere tail
+         to a tiny positive drew a long flat line at the chart floor that read
+         as "constant residual pressure in vacuum". Once pressure reaches zero
+         the atmosphere has ended, stop the curve there rather than dragging a
+         misleading floor segment across the rest of the plot. */
+      if (p <= 0) break;
+      xs.push(altitude);
+      ys.push(p);
+    }
   }
+
+  if (xs.length === 0) return null;
   return {
     id: "pressure",
     label: `Pressure (${body.name})`,
@@ -100,7 +142,10 @@ function AtmosphereProfileComponent({
   const flight = judgeable(flightReading);
   const flightNotCurrent = notCurrent(flightReading);
   const bodyName = vesselState?.parentBodyName ?? undefined;
-  const body = bodyName ? getBody(bodyName) : undefined;
+  /* Resolved against the same `system.bodies` roster the name came from, not
+     against the bundled table of STOCK bodies: a planet pack renames both
+     sides together, and a name lookup in the table missed every one of them. */
+  const body = useStreamBody(bodyName);
   const altitude = vesselState?.altitudeAsl ?? undefined;
   // Magnitudes: all three feed threshold checks and the chart's own
   // number-taking readouts.
@@ -124,8 +169,11 @@ function AtmosphereProfileComponent({
 
   const referenceCurve = useMemo(() => {
     if (!body) return null;
-    // Plot a bit beyond the atmosphere ceiling so the curve clearly bottoms
-    // out before the chart edge; airless bodies short-circuit above.
+    /* Plot a bit beyond the atmosphere ceiling so the curve clearly bottoms
+       out before the chart edge; airless bodies short-circuit above. A
+       reported profile carries its own end and stops there regardless: it runs
+       out where the air stops carrying anything worth stating, which is short
+       of the formal ceiling. */
     const ceiling = config?.altitudeCeiling ?? body.maxAtmosphere * 1.1;
     const curve = buildPressureCurve(body, ceiling);
     if (curve && narrow) {
@@ -143,7 +191,7 @@ function AtmosphereProfileComponent({
   // out exactly the pressure you're flying through.
   const currentPressure = useMemo(() => {
     if (!body || altitude === undefined) return undefined;
-    return pressureAtAltitude(body, altitude);
+    return pressureFor(body, altitude);
   }, [body, altitude]);
 
   const thresholds: GraphThresholdConfig[] | undefined = useMemo(() => {
@@ -179,7 +227,8 @@ function AtmosphereProfileComponent({
     [thresholds],
   );
 
-  const showNoModelNotice = body?.hasAtmosphere && !body.atmosphere;
+  const showNoModelNotice =
+    body?.hasAtmosphere === true && !body.pressureProfile && !body.atmosphere;
   const showNoBodyNotice = bodyName !== undefined && body === undefined;
 
   // Live readout chip: only meaningful when we're actually in atmosphere

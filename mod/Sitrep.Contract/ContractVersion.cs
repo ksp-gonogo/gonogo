@@ -1321,7 +1321,23 @@ namespace Sitrep.Contract
         /// <c>RDNode</c> of the tech tree's own config, which is also where a
         /// tree a mod has replaced keeps its own. It was reachable and simply
         /// was not being read.</para>
+        ///
+        /// <para><b>Bumped 1 -&gt; 2: an atmosphere states its own pressure
+        /// profile.</b> <see cref="AtmosphereEntry"/> gains
+        /// <c>PressureAltitudes</c> and <c>Pressures</c>, both nullable,
+        /// additive, nothing removed or retyped, so an Uplink built against
+        /// 14.1 is unaffected and the frozen Major-14 floor is NOT
+        /// re-frozen.</para>
+        ///
+        /// <para>A client could previously only model the air as
+        /// <c>P0·exp(-h/H)</c> against a bundled table of STOCK bodies, which
+        /// fails twice: the table is keyed by name and a planet pack renames
+        /// every body, and the exponential is not the curve KSP evaluates for
+        /// a body with <c>atmosphereUsePressureCurve</c> set. There is no
+        /// scale-height field to fix the second from. What the game does have
+        /// is <c>GetPressure(altitude)</c>, so the profile is now sampled from
+        /// it and put on the wire.</para>
         /// </remarks>
-        public const int Minor = 1;
+        public const int Minor = 2;
     }
 }

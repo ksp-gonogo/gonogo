@@ -128,6 +128,8 @@ export const GENERATED_TYPE_UNITS: Readonly<Record<string, UnitsByField>> = {
   "AtmosphereEntry": {
     depth: "m",
     hasOxygen: "flag",
+    pressureAltitudes: "m",
+    pressures: "kPa",
     seaLevelPressure: "kPa",
   },
   "BatteryEntry": {

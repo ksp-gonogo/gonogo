@@ -270,6 +270,8 @@ namespace Sitrep.Host.Tests
                             ["atmosphereDepth"] = 70_000.0,
                             ["atmosphereHasOxygen"] = true,
                             ["atmosphereSeaLevelPressure"] = 101.325,
+                            ["atmospherePressureAltitudes"] = new[] { 0.0, 5_600.0, 20_000.0 },
+                            ["atmospherePressureSamples"] = new[] { 101.325, 37.2782, 1.75708 },
                             ["sma"] = 13_599_840_256.0,
                             ["ecc"] = 0.0,
                             ["meanAnomalyAtEpoch"] = 3.14,
@@ -300,6 +302,8 @@ namespace Sitrep.Host.Tests
             Assert.Equal(70_000.0, atmo["depth"]);
             Assert.Equal(true, atmo["hasOxygen"]);
             Assert.Equal(101.325, atmo["seaLevelPressure"]);
+            Assert.Equal(new[] { 0.0, 5_600.0, 20_000.0 }, atmo["pressureAltitudes"]);
+            Assert.Equal(new[] { 101.325, 37.2782, 1.75708 }, atmo["pressures"]);
 
             // Serializes cleanly through the real production path (no NaN/Infinity).
             var streamData = new StreamData<object?>
@@ -315,6 +319,48 @@ namespace Sitrep.Host.Tests
             var parsedKerbin = Assert.IsType<Dictionary<string, object?>>(parsedBodies[1]);
             var parsedAtmo = Assert.IsType<Dictionary<string, object?>>(parsedKerbin["atmosphere"]);
             Assert.Equal(70_000.0, parsedAtmo["depth"]);
+            var parsedPressures = Assert.IsType<List<object?>>(parsedAtmo["pressures"]);
+            Assert.Equal(new object?[] { 101.325, 37.2782, 1.75708 }, parsedPressures);
+        }
+
+        [Fact]
+        public void BuildSystemBodiesDropsAPressureProfileItCannotPairUp()
+        {
+            /* Half a profile is worse than none: a consumer pairing the two
+               arrays by index would read a pressure against the wrong altitude
+               and have no way to notice, so a mismatched or lone array is
+               dropped whole rather than passed on. */
+            var snapshot = new KspSnapshot
+            {
+                Ut = 0.0,
+                Values = new Dictionary<string, object?>
+                {
+                    ["bodies"] = new List<object?>
+                    {
+                        new Dictionary<string, object?>
+                        {
+                            ["name"] = "Kerbin",
+                            ["index"] = 0,
+                            ["parentIndex"] = null,
+                            ["radius"] = 600_000.0,
+                            ["hasAtmosphere"] = true,
+                            ["atmosphereDepth"] = 70_000.0,
+                            ["atmospherePressureAltitudes"] = new[] { 0.0, 5_600.0, 20_000.0 },
+                            ["atmospherePressureSamples"] = new[] { 101.325, 37.2782 },
+                        },
+                    },
+                },
+            };
+
+            var payload = Assert.IsType<Dictionary<string, object?>>(
+                SystemViewProvider.BuildSystemBodies(snapshot));
+            var bodies = Assert.IsType<List<object?>>(payload["bodies"]);
+            var atmo = Assert.IsType<Dictionary<string, object?>>(
+                Assert.IsType<Dictionary<string, object?>>(bodies[0])["atmosphere"]);
+
+            Assert.Equal(70_000.0, atmo["depth"]);
+            Assert.Null(atmo["pressureAltitudes"]);
+            Assert.Null(atmo["pressures"]);
         }
 
         [Fact]

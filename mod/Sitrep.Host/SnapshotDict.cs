@@ -138,6 +138,64 @@ namespace Sitrep.Host
             return new Sitrep.Contract.Vec3(components[0], components[1], components[2]);
         }
 
+        /// <summary>
+        /// Reads a numeric array field of any length. Same two source shapes
+        /// <see cref="GetVec3"/> accepts, for the same reason: a live
+        /// <c>KspHost</c> puts a real <c>double[]</c> in the snapshot and a
+        /// <see cref="ReplayKspHost"/> hands back a <c>List&lt;object?&gt;</c>
+        /// after the JSON round-trip. Returns null (never a partial array)
+        /// when the field is missing, empty, or carries anything that is not a
+        /// finite number, so a caller pairing two arrays cannot be handed one
+        /// of them.
+        /// </summary>
+        public static double[]? GetDoubleArray(IDictionary<string, object?> raw, string key)
+        {
+            if (!raw.TryGetValue(key, out var v) || v == null)
+            {
+                return null;
+            }
+
+            double[]? values = v switch
+            {
+                double[] d => d,
+                IList<object?> list => TryConvertAll(list),
+                _ => null,
+            };
+
+            if (values == null || values.Length == 0 || !values.All(IsFinite))
+            {
+                return null;
+            }
+
+            return values;
+        }
+
+        private static double[]? TryConvertAll(IList<object?> list)
+        {
+            var result = new double[list.Count];
+            for (var i = 0; i < list.Count; i++)
+            {
+                switch (list[i])
+                {
+                    case double d:
+                        result[i] = d;
+                        break;
+                    case float f:
+                        result[i] = f;
+                        break;
+                    case int n:
+                        result[i] = n;
+                        break;
+                    case long n:
+                        result[i] = n;
+                        break;
+                    default:
+                        return null;
+                }
+            }
+            return result;
+        }
+
         private static double[]? TryConvertTriple(IList<object?> list)
         {
             var result = new double[3];

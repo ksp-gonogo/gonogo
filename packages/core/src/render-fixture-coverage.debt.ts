@@ -49,16 +49,17 @@ export const COINCIDENTAL: readonly string[] = [
   "packages/components/src/LandingStatus#x",
   "packages/components/src/LandingStatus#y",
   /*
-   * `body.atmosphere`, `body.rotationPeriod`, `inputs.surfaceGravity`: the sdk's
-   * STATIC body registry, not the `system.bodies` payload. `getBody(name)`
-   * returns a `BodyDefinition`, which shares three field names with `BodyEntry`
-   * and is a different record with a different source, so no fixture could
-   * answer any of them. AtmosphereProfile's pressure curve is drawn from that
-   * registry and always has been; LandingStatus never reads a surface gravity
-   * at all, it derives one as `body.gm / radius^2` and names the local input
-   * after it.
+   * `body.rotationPeriod`, `inputs.surfaceGravity`: the sdk's STATIC body
+   * registry, not the `system.bodies` payload. `getBody(name)` returns a
+   * `BodyDefinition`, which shares field names with `BodyEntry` and is a
+   * different record with a different source, so no fixture could answer
+   * either. LandingStatus never reads a surface gravity at all, it derives one
+   * as `body.gm / radius^2` and names the local input after it.
+   *
+   * AtmosphereProfile's `atmosphere` used to sit here for the same reason and
+   * no longer does: its pressure curve is drawn from the reported profile now,
+   * and `earth-rss-reentry` carries one.
    */
-  "packages/components/src/AtmosphereProfile#atmosphere",
   "packages/components/src/LandingStatus#surfaceGravity",
   "packages/components/src/MapView#rotationPeriod",
   // `ctx.arc(...)`, the canvas API
