@@ -84,6 +84,14 @@ export const ALLOWLIST: Record<ModToken, ModAllowlist> = {
     ],
     permanent: [
       /*
+       * -- PERMANENT-BUCKET gate (2026-08-30): the test that freezes the
+       * code-carrying subset of this file's own `permanent` lists. A gate over
+       * the allowlist names Uplinks the same way the allowlist does, and its
+       * worked example of a planted violation has to name a real token to be
+       * a demonstration rather than a description.
+       */
+      "packages/core/src/uplink-permanent-code.test.ts",
+      /*
        * The mod-side Uplink isolation ratchet. Its shrink-only debt lists are
        * keyed by project name, and since 2026-08-30 they cover the
        * <Uplink>.Tests projects too, ten of which reach a private assembly.
@@ -1249,6 +1257,14 @@ export const ALLOWLIST: Record<ModToken, ModAllowlist> = {
     domainDebt: [],
     permanent: [
       /*
+       * -- PERMANENT-BUCKET gate (2026-08-30): the test that freezes the
+       * code-carrying subset of this file's own `permanent` lists. A gate over
+       * the allowlist names Uplinks the same way the allowlist does, and its
+       * worked example of a planted violation has to name a real token to be
+       * a demonstration rather than a description.
+       */
+      "packages/core/src/uplink-permanent-code.test.ts",
+      /*
        * The mod-side Uplink isolation ratchet. Its shrink-only debt lists are
        * keyed by project name, and since 2026-08-30 they cover the
        * <Uplink>.Tests projects too, ten of which reach a private assembly.
@@ -1673,6 +1689,14 @@ export const ALLOWLIST: Record<ModToken, ModAllowlist> = {
       "packages/app/src/main.tsx",
     ],
     permanent: [
+      /*
+       * -- PERMANENT-BUCKET gate (2026-08-30): the test that freezes the
+       * code-carrying subset of this file's own `permanent` lists. A gate over
+       * the allowlist names Uplinks the same way the allowlist does, and its
+       * worked example of a planted violation has to name a real token to be
+       * a demonstration rather than a description.
+       */
+      "packages/core/src/uplink-permanent-code.test.ts",
       /*
        * -- UPLINK WIDGET-DECLARATION gate: the app-side check that every Uplink
        * widget's declarations resolve to something real has to LOAD every
@@ -2404,6 +2428,7 @@ export const SURVIVES_COMMENT_STRIP: Partial<Record<ModToken, string[]>> = {
     "packages/core/src/truenow-allowlist.test.ts",
   ],
   kerbalism: [
+    "packages/core/src/uplink-permanent-code.test.ts",
     "mod/Gonogo.KSP.Tests/UplinkDiscoverabilityTests.cs",
     "mod/GonogoDevTools/GonogoDevKerbalismDump.cs",
     "mod/GonogoDevTools/GonogoDevKerbalismScience.cs",
