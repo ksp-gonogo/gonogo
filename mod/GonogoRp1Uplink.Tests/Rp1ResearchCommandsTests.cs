@@ -358,6 +358,28 @@ namespace GonogoRp1Uplink.Tests
             Assert.Empty(SpaceCenterManagement.Instance!.TechList);
         }
 
+        /// <summary>
+        /// The ceiling is read through the STRING overload, chosen by parameter
+        /// type. KSP declares <c>GetFacilityLevel(SpaceCenterFacility)</c> beside
+        /// it at the same arity, and an arity-only lookup takes whichever
+        /// reflection lists first: bind to the enum one and the invoke throws on
+        /// the string, which reads back as an unreadable ceiling and refuses every
+        /// research command in the game with no member renamed anywhere.
+        /// </summary>
+        [Fact]
+        public void Reads_the_ceiling_through_the_overload_that_takes_a_facility_name()
+        {
+            Career(scienceCost: 900, banked: 5000f);
+            GameVariables.Instance!.ScienceCostLimit = 500f;
+            ScenarioUpgradeableFacilities.Levels["ResearchAndDevelopment"] = 0.5f;
+
+            var result = Research();
+
+            Assert.Equal(CommandErrorCode.LimitReached, result.ErrorCode);
+            Assert.Equal(0.5, result.Breach!.FacilityLevel);
+            Assert.Equal(0, ScenarioUpgradeableFacilities.EnumOverloadCalls);
+        }
+
         // ── the queue ──────────────────────────────────────────────────────
 
         /// <summary>

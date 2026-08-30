@@ -396,16 +396,32 @@ public class GameVariables
 }
 
 /// <summary>
-/// KSP's facility-level scenario module. The STRING overload is the one
-/// production resolves, because it is the one that needs no
-/// <c>SpaceCenterFacility</c> value to be built by reflection first.
+/// KSP's facility-level scenario module, with BOTH arity-one overloads, which is
+/// the point of it: the walk has to pick the string one by TYPE, because an arity
+/// match would take whichever reflection listed first and an enum-bound lookup
+/// throws on the string production hands it. That failure has no rename behind it
+/// and nothing for the compatibility manifest to see, so the only place it can be
+/// caught is here.
 /// </summary>
 public class ScenarioUpgradeableFacilities
 {
     /// <summary>Normalised level, keyed by the facility's enum member NAME.</summary>
     public static readonly Dictionary<string, float> Levels = new Dictionary<string, float>();
 
-    public static void Reset() => Levels.Clear();
+    /// <summary>How many times the ENUM overload was reached, which should be never.</summary>
+    public static int EnumOverloadCalls;
+
+    public static void Reset()
+    {
+        Levels.Clear();
+        EnumOverloadCalls = 0;
+    }
+
+    public static float GetFacilityLevel(SpaceCenterFacility facility)
+    {
+        EnumOverloadCalls++;
+        return GetFacilityLevel(facility.ToString());
+    }
 
     public static float GetFacilityLevel(string facilityId) =>
         Levels.TryGetValue(facilityId, out var level) ? level : 1f;

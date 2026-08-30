@@ -701,7 +701,17 @@ namespace GonogoRp1Uplink
             level = null;
             try
             {
-                var getLevel = Rp1Types.StaticMethod(_facilities!, "GetFacilityLevel", 1);
+                // Resolved by first-parameter TYPE, not arity: KSP declares
+                // GetFacilityLevel(SpaceCenterFacility) beside
+                // GetFacilityLevel(string) and both take one argument, so an
+                // arity match takes whichever reflection lists first. Bind to the
+                // enum one and the invoke throws on a string, which this method
+                // catches into an unreadable ceiling and the caller turns into a
+                // refusal: research would stop working with no member renamed and
+                // nothing to see in the manifest. The string overload is chosen
+                // deliberately for the same reason, it needs no enum value built
+                // by reflection first.
+                var getLevel = Rp1Types.StaticMethodOn(_facilities!, "GetFacilityLevel", "System.String", 1);
                 var variables = Rp1Types.StaticValue(_gameVariables!, "Instance");
                 if (getLevel == null || variables == null)
                 {
