@@ -76,7 +76,7 @@ function ResearchRow({ node }: Readonly<{ node: Rp1ResearchEntry }>) {
   return (
     <Stack as="li" gap="xs">
       <Stack as="ul" gap="xs" style={LIST_STYLE}>
-        <Row>
+        <Row wrap>
           <RowName>{node.techName ?? node.techId ?? NULL_DISPLAY}</RowName>
           <Text>
             {node.timeLeftSeconds !== undefined &&
@@ -89,7 +89,7 @@ function ResearchRow({ node }: Readonly<{ node: Rp1ResearchEntry }>) {
             )}
           </Text>
         </Row>
-        <Row>
+        <Row wrap>
           <RowName>Progress</RowName>
           <Text>
             <Unit value={node.progress} /> / <Unit value={node.scienceCost} />
@@ -102,7 +102,7 @@ function ResearchRow({ node }: Readonly<{ node: Rp1ResearchEntry }>) {
           </Text>
         </Row>
         {node.startYear !== undefined && node.startYear !== null && (
-          <Row>
+          <Row wrap>
             {/* RP-1's era model: a node researched before its time costs more.
                 Absent on a node RP-1 records no era for, which is not year
                 zero. */}

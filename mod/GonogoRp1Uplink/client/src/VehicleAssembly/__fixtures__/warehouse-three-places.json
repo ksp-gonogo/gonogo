@@ -1,0 +1,197 @@
+{
+  "_meta": {
+    "notes": "The section alone, because what it has to answer is what the heading does NOT say: two of these three finished vehicles are not in the warehouse at all. RP-1 keeps a rolled-out vehicle on the same list, so the operation outranks the list and each card has to say where the vehicle actually is. The third is the case an operator goes looking for a fault behind, a vehicle that is finished, standing still, and has no rollout button, so the refusal is on the card. No funds line here on purpose: the balance is drawn once by the host, which is what lets a contributed section carry none"
+  },
+  "_scene": {
+    "augment": "rp1-vehicle-assembly-warehouse",
+    "size": { "w": 10, "h": 21 },
+    "caption": "Three finished vehicles in three different places: one standing on the pad, one still moving to it, and one RP-1 will not release at all with its reason on the card",
+    "paints": [
+      "IN THE WAREHOUSE",
+      "Atlas-LV3",
+      "AT PAD",
+      "Roll back",
+      "Vanguard",
+      "ROLLING OUT",
+      "until it reaches the pad",
+      "Redstone",
+      "BUILT",
+      "engineers",
+      "too tall for the pad"
+    ]
+  },
+  "_stream": {
+    "pinnedUt": 1000000,
+    "emits": [
+      { "topic": "rp1.available", "payload": true },
+      {
+        "topic": "rp1.complexes",
+        "payload": [
+          {
+            "kscName": "Cape",
+            "lcId": "lc-1",
+            "name": "LC-1",
+            "lcType": "Pad",
+            "isOperational": true,
+            "isRushing": false,
+            "engineers": 18,
+            "maxEngineers": 60,
+            "efficiency": 0.72,
+            "canIntegrate": true,
+            "rate": 0.00019290123456790122,
+            "humanRated": false,
+            "massMin": 6,
+            "massMax": 180
+          },
+          {
+            "kscName": "Cape",
+            "lcId": "lc-2",
+            "name": "LC-2",
+            "lcType": "Pad",
+            "isOperational": true,
+            "isRushing": true,
+            "engineers": 6,
+            "maxEngineers": 40,
+            "efficiency": 0.4,
+            "canIntegrate": true,
+            "rate": 0.00006430041152263374,
+            "humanRated": false,
+            "massMin": 3,
+            "massMax": 90
+          }
+        ]
+      },
+      {
+        "topic": "rp1.pads",
+        "payload": [
+          {
+            "kscName": "Cape",
+            "lcId": "lc-1",
+            "padId": "pad-1",
+            "name": "LP-1",
+            "launchSiteName": "LaunchPad",
+            "level": 2,
+            "fractionalLevel": 2,
+            "state": "Free",
+            "hasVesselWaiting": true,
+            "waitingVesselName": "Atlas-LV3"
+          },
+          {
+            "kscName": "Cape",
+            "lcId": "lc-2",
+            "padId": "pad-2",
+            "name": "LP-2",
+            "launchSiteName": "LaunchPad 2",
+            "level": 1,
+            "fractionalLevel": 1,
+            "state": "Free",
+            "hasVesselWaiting": false,
+            "waitingVesselName": null
+          }
+        ]
+      },
+      {
+        "topic": "rp1.buildable",
+        "payload": [
+          {
+            "craftFile": "Vanguard",
+            "shipName": "Vanguard",
+            "facility": 1,
+            "partCount": 24,
+            "mass": 62,
+            "cost": 18500,
+            "missingParts": [],
+            "lockedParts": [],
+            "unpurchasedParts": [],
+            "complexes": [
+              {
+                "lcId": "lc-1",
+                "name": "LC-1",
+                "kscName": "Cape",
+                "eligible": true,
+                "refusals": []
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "topic": "rp1.operations",
+        "payload": [
+          {
+            "kscName": "Cape",
+            "lcId": "lc-1",
+            "launchPadId": "pad-1",
+            "type": "Rollout",
+            "progress": 720,
+            "totalPoints": 720,
+            "progressRatio": 1,
+            "rate": 0.0009,
+            "timeLeftSeconds": 0,
+            "stalled": false,
+            "cost": 3200,
+            "associatedVesselId": "ship-atlas-1"
+          },
+          {
+            "kscName": "Cape",
+            "lcId": "lc-2",
+            "launchPadId": "pad-2",
+            "type": "Rollout",
+            "progress": 168,
+            "totalPoints": 420,
+            "progressRatio": 0.4,
+            "rate": 0.0007,
+            "timeLeftSeconds": 360000,
+            "stalled": false,
+            "cost": 1450,
+            "associatedVesselId": "ship-vanguard-1"
+          }
+        ]
+      },
+      {
+        "topic": "rp1.warehouse",
+        "payload": [
+          {
+            "id": "vp-atlas-1",
+            "shipId": "ship-atlas-1",
+            "kscName": "Cape",
+            "lcId": "lc-1",
+            "shipName": "Atlas-LV3",
+            "cost": 40000,
+            "mass": 120,
+            "humanRated": false,
+            "launchSite": "LaunchPad",
+            "projectType": "VAB",
+            "rolloutRefusals": null
+          },
+          {
+            "id": "vp-vanguard-1",
+            "shipId": "ship-vanguard-1",
+            "kscName": "Cape",
+            "lcId": "lc-2",
+            "shipName": "Vanguard",
+            "cost": 18500,
+            "mass": 62,
+            "humanRated": false,
+            "launchSite": "LaunchPad 2",
+            "projectType": "VAB",
+            "rolloutRefusals": null
+          },
+          {
+            "id": "vp-redstone-1",
+            "shipId": "ship-redstone-1",
+            "kscName": "Cape",
+            "lcId": "lc-2",
+            "shipName": "Redstone",
+            "cost": 12400,
+            "mass": 30,
+            "humanRated": false,
+            "launchSite": "LaunchPad 2",
+            "projectType": "VAB",
+            "rolloutRefusals": ["too tall for the pad at 32.0 m, limit 30.0 m"]
+          }
+        ]
+      }
+    ]
+  }
+}

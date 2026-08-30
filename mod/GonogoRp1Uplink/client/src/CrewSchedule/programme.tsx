@@ -45,7 +45,7 @@ export function CrewProgramme() {
     <Section>
       <SectionTitle>RP-1 CREW PROGRAMME</SectionTitle>
       <Stack as="ul" gap="sm" style={LIST_STYLE}>
-        <Row>
+        <Row wrap>
           <RowName>Retirement</RowName>
           <Text>
             <RuleState on={program?.retirementEnabled} />
@@ -58,13 +58,13 @@ export function CrewProgramme() {
             )}
           </Text>
         </Row>
-        <Row>
+        <Row wrap>
           <RowName>Post-flight R&amp;R</RowName>
           <Text>
             <RuleState on={program?.crewRnREnabled} />
           </Text>
         </Row>
-        <Row>
+        <Row wrap>
           <RowName>Mission training</RowName>
           <Text>
             <RuleState on={program?.missionTrainingEnabled} />
@@ -76,13 +76,13 @@ export function CrewProgramme() {
             )}
           </Text>
         </Row>
-        <Row>
+        <Row wrap>
           <RowName>Proficiency rate</RowName>
           <Text>
             <Unit value={program?.proficiencyTrainingRate} />×
           </Text>
         </Row>
-        <Row>
+        <Row wrap>
           <RowName>In training</RowName>
           <Text>
             <Unit value={program?.crewInTraining} /> across{" "}

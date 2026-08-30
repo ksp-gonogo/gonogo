@@ -80,6 +80,12 @@ Publishes Principia's n-body state: trajectory arcs, the flight plan and its bur
 
 ![What each stretch of the plan leaves the craft flying: a parking orbit, a transfer the integrator could not analyse, and the capture the plan ends in](docs/assets/coast-analysis-plan--default.png)
 
+![Writes armed at a ten-light-minute vantage with the second burn picked: the profile Principia will fly, the deadline an edit has to beat, and the three delta-v components live for editing](docs/assets/burn-editor-armed-mid-tune--default.png)
+
+![A burn stated in one of Principia's spherical systems: the numbers are shown, the claim that they are three velocities is withdrawn, the magnitude reads as a dash and every control is frozen](docs/assets/burn-editor-spherical-frozen--default.png)
+
+![Writes unavailable: the arm control is dead and the reason is beside it, while the plan itself stays fully readable](docs/assets/burn-editor-writes-shut--default.png)
+
 ![A plan being composed, driven through the composer's own buttons: two burns seeded at instants the craft can still act on](docs/assets/composer-composing--default.png)
 
 ![Ten light-minutes out: the send-within countdown appears, and the seeded ignition is far enough ahead that the window is open rather than shut](docs/assets/composer-delayed-vantage--default.png)

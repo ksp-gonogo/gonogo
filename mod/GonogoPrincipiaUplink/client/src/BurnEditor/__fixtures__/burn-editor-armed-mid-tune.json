@@ -1,0 +1,189 @@
+{
+  "_meta": {
+    "notes": "The tuning loop actually open, which is the only state that proves the surface works: writes armed, a burn picked off the list, and a vantage ten light-minutes out so the edit window is a real deadline rather than the countdown already on the row. The list carries the three warnings an operator has to read BEFORE picking: the burn that is firing, the one whose deadline has already gone, and the one whose frame Principia will not let us write back. The picked burn is the middle one, the only one all three of APPLY, ADD LIKE THIS and REMOVE are live for. The five profile numbers on each burn are a real rocket equation rather than plausible-looking figures: thrust and Isp fix the mass flow, the delta-v and Isp fix the mass ratio, and the two masses and the duration follow. A picture that puts all five in one column is one a reader can check"
+  },
+  "_scene": {
+    "augment": "principia-burn-editor",
+    "size": {
+      "w": 13,
+      "h": 30
+    },
+    "caption": "Writes armed at a ten-light-minute vantage with the second burn picked: the profile Principia will fly, the deadline an edit has to beat, and the three delta-v components live for editing",
+    "before": [
+      {
+        "press": "Burn 2"
+      }
+    ],
+    "paints": [
+      "BURN EDITOR",
+      "PLAN 1 OF 2",
+      "ARMED",
+      "ARM WRITES",
+      "PLAN ENDS",
+      "TOO LATE TO EDIT",
+      "BURNING",
+      "FRAME LOCKED",
+      "BURN 2",
+      "THRUST",
+      "ISP",
+      "EDIT WINDOW",
+      "IGNITION",
+      "DELTA-V",
+      "TANGENT",
+      "BINORMAL",
+      "MAGNITUDE",
+      "APPLY",
+      "ADD LIKE THIS",
+      "REMOVE",
+      "Editing the plan as read at"
+    ]
+  },
+  "_stream": {
+    "pinnedUt": 1000000,
+    "emits": [
+      {
+        "topic": "vessel.identity",
+        "payload": {
+          "vesselId": "Ares-IV",
+          "name": "Ares IV",
+          "vesselType": 0,
+          "situation": 0
+        }
+      },
+      {
+        "topic": "comms.delay",
+        "payload": {
+          "oneWaySeconds": 600
+        }
+      },
+      {
+        "topic": "principia.flightPlan",
+        "payload": {
+          "vesselId": "Ares-IV",
+          "observedAtUt": 1000000,
+          "planExists": true,
+          "reachedDeadline": false,
+          "planIntegrated": true,
+          "anomalousBurnCount": 1,
+          "firstFutureBurnIndex": 1,
+          "finalTimeUt": 1220000,
+          "burns": [
+            {
+              "index": 0,
+              "ignitionUt": 999800,
+              "cutoffUt": 999830,
+              "durationSeconds": 30,
+              "deltaV": 841.5,
+              "anomalous": false
+            },
+            {
+              "index": 1,
+              "ignitionUt": 1010600,
+              "cutoffUt": 1010667,
+              "durationSeconds": 67,
+              "deltaV": 1203.2,
+              "anomalous": false
+            },
+            {
+              "index": 2,
+              "ignitionUt": 1190400,
+              "cutoffUt": 1190452,
+              "durationSeconds": 52,
+              "deltaV": 61.8,
+              "anomalous": true
+            }
+          ]
+        }
+      },
+      {
+        "topic": "principia.plan",
+        "payload": {
+          "vesselId": "Ares-IV",
+          "sampledAtUt": 1000000,
+          "planExists": true,
+          "writeSurface": {
+            "available": true,
+            "armed": true,
+            "analysedVersion": "principia Grassmann",
+            "detectedVersion": "principia Grassmann"
+          },
+          "planCount": 2,
+          "selectedPlan": 0,
+          "initialTimeUt": 992000,
+          "desiredFinalTimeUt": 1220000,
+          "actualFinalTimeUt": 1220000,
+          "anomalousBurnCount": 1,
+          "optimisationRunning": false,
+          "burns": [
+            {
+              "index": 0,
+              "ignitionUt": 999800,
+              "cutoffUt": 999830,
+              "durationSeconds": 30,
+              "timeToHalfDeltaVSeconds": 14,
+              "deltaV": 841.5,
+              "deltaVTangent": 840.1,
+              "deltaVNormal": -18.4,
+              "deltaVBinormal": 44.6,
+              "coordinateSystem": 1,
+              "inertiallyFixed": false,
+              "thrustKilonewtons": 1043.2,
+              "specificImpulseSeconds": 311,
+              "initialMassTons": 42.6,
+              "finalMassTons": 32.33,
+              "massFlowKilogramsPerSecond": 342.05,
+              "frameType": 6000,
+              "frameEditable": true,
+              "executing": true,
+              "anomalous": false
+            },
+            {
+              "index": 1,
+              "ignitionUt": 1010600,
+              "cutoffUt": 1010667,
+              "durationSeconds": 67,
+              "timeToHalfDeltaVSeconds": 32,
+              "deltaV": 1203.2,
+              "deltaVTangent": 1198.6,
+              "deltaVNormal": 62.9,
+              "deltaVBinormal": -84.2,
+              "coordinateSystem": 1,
+              "inertiallyFixed": false,
+              "thrustKilonewtons": 486.5,
+              "specificImpulseSeconds": 348,
+              "initialMassTons": 32.33,
+              "finalMassTons": 22.72,
+              "massFlowKilogramsPerSecond": 142.56,
+              "frameType": 6000,
+              "frameEditable": true,
+              "executing": false,
+              "anomalous": false
+            },
+            {
+              "index": 2,
+              "ignitionUt": 1190400,
+              "cutoffUt": 1190452,
+              "durationSeconds": 52,
+              "timeToHalfDeltaVSeconds": 25,
+              "deltaV": 61.8,
+              "deltaVTangent": 58.2,
+              "deltaVNormal": 20.1,
+              "deltaVBinormal": 4.7,
+              "coordinateSystem": 1,
+              "inertiallyFixed": true,
+              "thrustKilonewtons": 26.9,
+              "specificImpulseSeconds": 320,
+              "initialMassTons": 22.72,
+              "finalMassTons": 22.28,
+              "massFlowKilogramsPerSecond": 8.57,
+              "frameType": 6004,
+              "frameEditable": false,
+              "executing": false,
+              "anomalous": true
+            }
+          ]
+        }
+      }
+    ]
+  }
+}

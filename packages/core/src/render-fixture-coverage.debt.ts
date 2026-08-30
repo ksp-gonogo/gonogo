@@ -77,6 +77,7 @@ export const COINCIDENTAL: readonly string[] = [
   "packages/components/src/ScienceData#state",
   "packages/components/src/Strategies#state",
   "packages/components/src/TechTree#state",
+  "mod/GonogoRp1Uplink/client/src/CrewSchedule#state",
   // `ideal.x` / `cur.x`, chart coordinates in the conformance drawing
   "packages/components/src/TransferWindow#x",
   "packages/components/src/TransferWindow#y",
