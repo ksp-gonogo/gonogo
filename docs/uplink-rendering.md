@@ -174,6 +174,46 @@ silence. The run reports every such topic by name, with the derived allowlist
 beside it, so a fixture feeding a topic your widget does not read is an error
 rather than a blank panel.
 
+## When a review render looks cropped and the widget is fine
+
+A review render (`render-widget`, and anything with `fullContent`) grows the tile
+until nothing is clipped, so you see the whole widget rather than the top of it.
+The growth is a MEASUREMENT, and the thing worth knowing is that it measures a
+specific list of nodes:
+
+```js
+const nodes = [
+  el,                                              // #root
+  el.firstElementChild,                            // the Panel container
+  ...document.querySelectorAll("[data-scroll-area-inner]"),
+  ...document.querySelectorAll("[data-panel-body]"),
+];
+```
+
+It grows `#root` by the largest `scrollHeight - clientHeight` across those, to a
+fixpoint. **A scroller that is not on that list is invisible to it**, because a
+scroller clips its own overflow and every ancestor above it then reports no
+overflow at all. The tile does not grow, and the widget reads as cropped in the
+render while being perfectly correct in the app.
+
+That is not hypothetical. `[data-panel-body]`, Panel's own scroller and the one
+every widget uses that does not nest a `ScrollArea`, was missing from the list
+until 2026-08-30. It surfaced during the `Panel sections` conversion, and the way
+it surfaced is the part to remember: converting a widget to `sections` often
+removes a nested `ScrollArea`, which moved that widget from the measured path to
+the unmeasured one. So the harness got quietly less trustworthy the more of that
+work got done, and every affected widget looked like it had just grown a fresh
+layout bug in the commit that converted it.
+
+**So if a render looks cropped:** check whether the content sits in a scroller the
+list does not name before you go looking for a layout bug. Adding a new kind of
+scroller to the widget set means adding it here too; nothing fails if you forget,
+which is exactly why it is written down.
+
+Only the review path is affected. The visual gate and the overlap gate both run
+with `fullContent` off and take the fixed tile deliberately, so no baseline and no
+overlap finding can move with this list.
+
 ## The page
 
 `gonogo-uplink docs` writes three things at your package root:
