@@ -1081,7 +1081,7 @@ function PadSection({
                                 with it. */}
                             {crew === null && (
                               <ReadoutCaption>
-                                Roster {NULL_DISPLAY} no reading
+                                Roster: no reading
                               </ReadoutCaption>
                             )}
                             <CrewGrid>
@@ -1111,7 +1111,7 @@ function PadSection({
                                         ? `${k.trait || NULL_DISPLAY} L${k.experienceLevel}`
                                         : reading === "unavailable"
                                           ? k.unavailableReason
-                                          : `${NULL_DISPLAY} no reading`}
+                                          : "no reading"}
                                     </CrewTrait>
                                   </CrewChip>
                                 );

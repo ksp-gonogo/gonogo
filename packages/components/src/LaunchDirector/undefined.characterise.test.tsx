@@ -284,7 +284,7 @@ describe("LaunchDirector: what undefined telemetry renders today", () => {
         .getAttribute("aria-pressed"),
     ).toBe("true");
     expect(screen.getByText("Crew")).toBeTruthy();
-    expect(screen.getByText(`Roster ${NULL_DISPLAY} no reading`)).toBeTruthy();
+    expect(screen.getByText("Roster: no reading")).toBeTruthy();
     expect(
       screen.getByRole("button", { name: "Launch Kerbal X unmanned" }),
     ).toBeTruthy();
@@ -295,9 +295,7 @@ describe("LaunchDirector: what undefined telemetry renders today", () => {
       fixture.emit("spaceCenter.crewRoster", []);
     });
     await waitFor(() =>
-      expect(
-        screen.queryByText(`Roster ${NULL_DISPLAY} no reading`),
-      ).toBeNull(),
+      expect(screen.queryByText("Roster: no reading")).toBeNull(),
     );
     expect(
       screen.getByRole("button", { name: "Launch Kerbal X unmanned" }),
