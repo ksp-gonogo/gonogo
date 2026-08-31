@@ -244,9 +244,11 @@ export const GENERATED_TYPE_UNITS: Readonly<Record<string, UnitsByField>> = {
     deactivateReputation: "rep",
     freeToRemoveFromUt: "ut",
     reactivateCooldown: "s",
+    removeOnDeactivate: "flag",
     setupConfidence: "confidence",
     setupFunds: "funds",
     setupReputation: "rep",
+    setupScience: "science",
     strategyId: "id",
   },
   "Rp1OperationEntry": {
@@ -360,6 +362,7 @@ export const GENERATED_TYPE_UNITS: Readonly<Record<string, UnitsByField>> = {
     salaryMult: "ratio",
   },
   "Rp1StrategyActivateArgs": {
+    factor: "ratio",
     strategyId: "id",
   },
   "Rp1TechResearchArgs": {

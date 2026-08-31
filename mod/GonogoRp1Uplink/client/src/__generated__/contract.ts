@@ -37,6 +37,10 @@ export interface Rp1FacilityUpgradeArgs
 {
 	facility?: string;
 }
+export interface Rp1TechResearchArgs
+{
+	techId?: string;
+}
 export interface Rp1CentreEntry
 {
 	kscName?: string;
@@ -325,7 +329,7 @@ export interface Rp1LeaderEntry
 {
 	strategyId?: string;
 	setupFunds?: Value<"funds">;
-	setupScience?: number;
+	setupScience?: Value<"science">;
 	setupReputation?: Value<"rep">;
 	setupConfidence?: Value<"confidence">;
 	deactivateReputation?: Value<"rep">;
@@ -333,8 +337,4 @@ export interface Rp1LeaderEntry
 	reactivateCooldown?: Value<"s">;
 	canRemoveFromUt?: Value<"ut">;
 	freeToRemoveFromUt?: Value<"ut">;
-}
-export interface Rp1TechResearchArgs
-{
-	techId?: string;
 }

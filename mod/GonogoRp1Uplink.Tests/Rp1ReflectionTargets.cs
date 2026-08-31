@@ -354,6 +354,7 @@ namespace GonogoRp1Uplink.Tests
             ["Factor"] = "stock Strategies.Strategy.Factor, the commitment level, written before the gate and restored on a refusal",
             ["GroupTags"] = "stock Strategies.Strategy.GroupTags, handed to HasConflictingActiveStrategies as arm 2's input",
             ["CanActivate"] = "stock Strategies.Strategy.CanActivate(ref string), arm 8, where RP-1 puts its program slot cap by override",
+            ["Effects"] = "stock Strategies.Strategy.Effects, arm 9's roster: each StrategyEffect is asked its own CanActivate, and any mod's effect can refuse",
             ["HasConflictingActiveStrategies"] = "stock Strategies.StrategySystem's arm 2, the only arm that reads the system rather than the strategy",
             ["Strategies"] = "stock StrategySystem.Strategies, the roster walked to resolve a strategy by name",
             ["Name"] = "stock Strategies.Strategy.Name, the id a command names a strategy by",

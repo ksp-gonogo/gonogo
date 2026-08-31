@@ -1854,6 +1854,7 @@ public sealed class Rp1BuildableComplex
 /// the moment a config set one. That is a fact about today's CONTENT standing in
 /// for a fact about our CODE, which is the shape this Uplink keeps finding.</para>
 /// </remarks>
+[SitrepContract]
 public class Rp1LeaderEntry
 {
     /// <summary>
@@ -1868,6 +1869,7 @@ public class Rp1LeaderEntry
     public double? SetupFunds { get; set; }
 
     /// <summary>Science RP-1 charges to appoint.</summary>
+    [SitrepUnit(Sitrep.Contract.Units.Science)]
     public double? SetupScience { get; set; }
 
     /// <summary>Reputation RP-1 charges to appoint.</summary>
@@ -1894,6 +1896,7 @@ public class Rp1LeaderEntry
     /// Whether dismissing starts a re-hire cooldown, i.e. whether this is a
     /// decision that cannot be undone by re-appointing.
     /// </summary>
+    [SitrepUnit(Units.Flag)]
     public bool? RemoveOnDeactivate { get; set; }
 
     /// <summary>

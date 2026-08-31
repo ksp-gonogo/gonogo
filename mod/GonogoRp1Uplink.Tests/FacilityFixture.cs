@@ -124,8 +124,6 @@ namespace RP0.Harmony
     }
 }
 
-
-
 /// <summary>
 /// KSP's upgradeable base, carrying the level table a facility upgrade is priced
 /// and timed from.
@@ -177,7 +175,6 @@ public class UpgradeableFacility : UpgradeableObject
             : upgradeLevels[facilityLevel + 1].levelCost
               * (HighLogic.LoadedSceneIsGame ? HighLogic.CurrentGame.Parameters.Career.FundsLossMultiplier : 1f);
 }
-
 
 /// <summary>
 /// KSP's game-state statics, present for the two the cumulative level cost turns

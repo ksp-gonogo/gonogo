@@ -66,9 +66,7 @@ namespace RP0
             set { _activePreset = value; }
         }
 
-    
-
-    public static void Reset()
+        public static void Reset()
         {
             Instance = new PresetManager();
         }
@@ -315,6 +313,11 @@ public class AssetBase
 /// prefixes with its own body rather than for stock's, because the prefix is
 /// what actually runs: it adds the delta and clamps at zero, and performs no
 /// affordability test at all.
+///
+/// <para>An instance class carrying statics, as the real one is, so the research
+/// command's <c>Instance</c> members and the facility gate's
+/// <c>GetTechnologyState</c> reach the same object rather than two stand-ins
+/// disagreeing about the shape of one KSP type.</para>
 /// </summary>
 public class ResearchAndDevelopment
 {
@@ -339,6 +342,8 @@ public class ResearchAndDevelopment
     {
         Instance = new ResearchAndDevelopment();
         Titles.Clear();
+        Researched.Clear();
+        ScenarioPresent = true;
     }
 
     public void SetTechState(string techID, ProtoTechNode node) => _protoTechNodes[techID] = node;
@@ -347,13 +352,31 @@ public class ResearchAndDevelopment
         _protoTechNodes.TryGetValue(techID, out var node) ? node : null;
 
     /// <summary>
-    /// Stock's own fallback matters and is reproduced: with no R&amp;D instance the
-    /// answer is <c>Available</c>, so a caller that did not check the instance
-    /// first would read "already researched" off a sandbox save.
+    /// A node marked researched by id alone, which is all the facility tech gate
+    /// reads. <see cref="SetTechState"/> is the long form, for the tests that
+    /// need the node's other fields as well.
+    /// </summary>
+    public static readonly HashSet<string> Researched = new HashSet<string>(StringComparer.Ordinal);
+
+    /// <summary>
+    /// Whether there is an R&amp;D scenario at all, which a test flips to
+    /// exercise the no-tech-tree arm without disturbing
+    /// <see cref="Instance"/>.
+    /// </summary>
+    public static bool ScenarioPresent = true;
+
+    /// <summary>
+    /// Stock's own fallback matters and is reproduced: with no R&amp;D scenario the
+    /// answer is <c>Available</c>, so a caller that did not check for one first
+    /// would read "already researched" off a sandbox save.
     /// </summary>
     public static RDTech.State GetTechnologyState(string techID)
     {
-        if (Instance == null)
+        if (Instance == null || !ScenarioPresent)
+        {
+            return RDTech.State.Available;
+        }
+        if (Researched.Contains(techID))
         {
             return RDTech.State.Available;
         }
@@ -363,22 +386,6 @@ public class ResearchAndDevelopment
     }
 
     /// <summary>The empty string on a miss, as stock answers, and the reason production falls back to the id.</summary>
-    // ---- folded in when the facility and research branches merged ----
-    // The facility upgrade's tech gate asks these; the research command asks the
-    // instance members above. ONE stand-in per real type: the real
-    // ResearchAndDevelopment is an instance class WITH statics, and two fixtures
-    // declaring it two different ways is what broke the merge.
-
-    /// <summary>The nodes a test has marked researched.</summary>
-    public static readonly HashSet<string> Researched = new HashSet<string>(StringComparer.Ordinal);
-
-    /// <summary>
-    /// Answers <c>Available</c> for an unknown node when there is no R&amp;D
-    /// scenario at all, which is what the real one does: a save without a tech
-    /// tree has nothing to gate on.
-    /// </summary>
-    public static bool ScenarioPresent = true;
-
     public static string GetTechnologyTitle(string techID) =>
         Titles.TryGetValue(techID, out var title) ? title : string.Empty;
 
@@ -420,6 +427,11 @@ public class GameVariables
 /// throws on the string production hands it. That failure has no rename behind it
 /// and nothing for the compatibility manifest to see, so the only place it can be
 /// caught is here.
+///
+/// <para>It also carries the facility registry the upgrade command walks, where
+/// the asymmetry is the point: <c>SlashSanitize</c> is what turns a bare facility
+/// name into the id <see cref="protoUpgradeables"/> is actually keyed on, and
+/// RP-1's own <c>GetFacilityReferencesById</c> does not call it.</para>
 /// </summary>
 public class ScenarioUpgradeableFacilities
 {
@@ -451,14 +463,24 @@ public class ScenarioUpgradeableFacilities
     /// </summary>
     public class ProtoUpgradeable
     {
+        /// <summary>
+        /// EMPTY outside the space centre, and that is the ordinary case rather
+        /// than a fault: the list is filled by the facility MonoBehaviours, which
+        /// exist in that scene only, while the dictionary around it is rebuilt
+        /// from the save in every scene.
+        /// </summary>
         public List<UpgradeableFacility> facilityRefs = new List<UpgradeableFacility>();
     }
 
     public static readonly Dictionary<string, ProtoUpgradeable> protoUpgradeables =
         new Dictionary<string, ProtoUpgradeable>(StringComparer.Ordinal);
 
+    /// <summary>
+    /// KSP's own rule: an id that already carries a slash is whole, and one that
+    /// does not is a bare facility name under the space centre.
+    /// </summary>
     public static string SlashSanitize(string instr) =>
-        instr.Contains("/") ? instr.Substring(instr.LastIndexOf('/') + 1) : instr;
+        instr.IndexOf('/') >= 0 ? instr : "SpaceCenter/" + instr;
 
     public static float GetFacilityLevel(string facilityId) =>
         Levels.TryGetValue(facilityId, out var level) ? level : 1f;

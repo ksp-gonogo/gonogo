@@ -376,15 +376,15 @@ namespace GonogoRp1Uplink
         };
 
         /// <summary>
-        /// The seven write commands, each declared only when the types its own
+        /// The nine write commands, each declared only when the types its own
         /// handler needs resolved.
         ///
-        /// <para>Four conditions rather than one, because the dependencies
+        /// <para>Seven conditions rather than one, because the dependencies
         /// genuinely differ: the repeat build needs RP-1's currency query,
         /// correcting a queue needs none of it, moving a vehicle needs the
         /// rollout type neither of the others touches, and staffing a complex
-        /// needs none of the three. Declaring all six off one flag would cost
-        /// five commands for a rename that broke one.</para>
+        /// needs none of the three. Declaring them all off one flag would
+        /// withdraw every command for a rename that broke one.</para>
         ///
         /// <para>Nearly all of them declare the SAME requirement, which is why
         /// there is one gate evaluator between them: the only condition
