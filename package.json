@@ -28,6 +28,7 @@
     "uplink-docs:check": "bash scripts/uplink-docs.sh --check",
     "uplink-docs-gate": "node scripts/uplink-docs-gate.mjs",
     "uplink-shape-gate": "node scripts/uplink-shape-gate.mjs",
+    "uplink-shape-engines": "node scripts/uplink-shape-engines.mjs",
     "uplink-extraction-probe": "node scripts/uplink-extraction-probe.mjs",
     "uplink-csharp-extraction-probe": "node scripts/uplink-csharp-extraction-probe.mjs"
   },

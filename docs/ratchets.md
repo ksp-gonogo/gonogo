@@ -246,6 +246,20 @@ was **chosen**. An entry carrying an explanatory comment is never lowered
 automatically by the regeneration tool, because a human picked it for a reason and a
 fresh measurement would silently overwrite that reason.
 
+**The debt can be an ABSENCE, which is what makes it heal by itself.**
+`uplink-shape-debt.mjs` counts committed docs assets with no recorded shape, per
+Uplink. An asset without one is a picture that `docs --check` is structurally
+unable to compare against the code that draws it, so the number is "how many of
+this Uplink's pictures nobody can ask a question about". It is not a list of
+known-bad files needing a cleanup campaign: the record is written by the ordinary
+`gonogo-uplink docs` run, so every legitimate regeneration pays the debt down as a
+side effect and nobody has to schedule anything. Seeded at 160 across eleven
+Uplinks, and a new Uplink or a new asset is held to zero.
+
+That framing was chosen over the obvious alternative, a list of assets known to be
+stale. A staleness list would have needed someone to work through it, and its
+entries would have gone out of date the moment anything was re-rendered.
+
 ### 3. Snapshot baselines
 
 A committed artefact representing the current state: a serialised description of a
@@ -361,6 +375,17 @@ for a gate to say about itself.
 
 If you adopt one idea from this document, adopt this one. It costs a few lines and it
 is the difference between a gate and a decoration.
+
+**And know which way a silent gate is pointing.** A plant that does not fire is
+either a broken instrument or a null change, and those want opposite responses.
+Validating the asset-freshness check produced two plants in a row that stayed
+green, both correctly: reverting `Row`/`Inline` to before the badge-wrap fix
+changed nothing, because the fix is gated on a `wrap` prop defaulting to false and
+emits byte-identical CSS otherwise, and the only real DOM change in that commit
+was to a component no Uplink renders. Read as "the gate is blind" both would have
+prompted a fix to a gate that was working. Establish that the plant is a real
+change to something the run actually contains, before concluding anything about
+the instrument.
 
 ---
 

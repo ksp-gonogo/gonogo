@@ -21,6 +21,17 @@
  * do not, and that asymmetry is the point of running it: it is cheap, it runs
  * anywhere, and it fails loud in the direction that matters.
  *
+ * ## Reading a result, in one sentence
+ *
+ * **A plant that does not fire is either a broken instrument or a null change,
+ * and those want opposite responses.** Two of the three historical plants used to
+ * validate the freshness check were nulls: reverting `Row`/`Inline` to before the
+ * badge-wrap fix changed nothing, because `wrap` defaults to false and emits
+ * byte-identical CSS, and the only real DOM change in that commit was to
+ * `ScienceExperimentRow`, which no Uplink renders. Both correctly stayed green.
+ * Establish that the plant is a real change to something the render actually
+ * contains before concluding anything about the instrument.
+ *
  * ## What a disagreement means, and what NOT to do about it
  *
  * The first instinct on a red is to drop the field that differs. Do that only
