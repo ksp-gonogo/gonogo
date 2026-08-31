@@ -5,6 +5,15 @@ import { join, resolve } from "node:path";
 import { display, resolveUplinkPackage } from "./context";
 import { buildManifest, buildReadme, type DocsInputs } from "./docs";
 import { type Engine, renderUplink } from "./driver";
+import {
+  type AssetShape,
+  compareShapes,
+  describeStale,
+  readShapeRecord,
+  SHAPE_RECORD_FILE,
+  SHAPE_RECORD_VERSION,
+  writeShapeRecord,
+} from "./shape";
 
 /**
  * `gonogo-uplink`: the author's whole interface.
@@ -195,12 +204,22 @@ async function main(argv: readonly string[]): Promise<void> {
   const readmePath = join(pkg.dir, "README.md");
   const manifestPath = join(pkg.dir, "gonogo-uplink.json");
 
+  const shapes = new Map<string, AssetShape>(
+    result.assets.map((asset) => [asset.file, asset.shape]),
+  );
+
   if (!args.check) {
     await writeFile(readmePath, readme, "utf8");
     await writeFile(manifestPath, manifestJson, "utf8");
+    await writeShapeRecord(assetOut, {
+      version: SHAPE_RECORD_VERSION,
+      engine: args.engine,
+      assets: Object.fromEntries(shapes),
+    });
     console.log(`\nwrote ${display(pkg.dir, readmePath)}`);
     console.log(`wrote ${display(pkg.dir, manifestPath)}`);
     console.log(`wrote ${result.assets.length} asset(s) → ${args.assetDir}/`);
+    console.log(`wrote ${args.assetDir}/${SHAPE_RECORD_FILE}`);
     return;
   }
 
@@ -210,6 +229,12 @@ async function main(argv: readonly string[]): Promise<void> {
   await compareAssetNames(
     resolve(pkg.dir, args.assetDir),
     assetOut,
+    differences,
+  );
+  compareCommittedShapes(
+    resolve(pkg.dir, args.assetDir),
+    shapes,
+    args.engine,
     differences,
   );
   if (differences.length > 0) {
@@ -280,6 +305,50 @@ async function compareAssetNames(
   }
   for (const name of [...have].sort()) {
     if (!want.has(name)) out.push(`${committed}: stale asset ${name}`);
+  }
+}
+
+/**
+ * Whether the committed pictures are pictures of this code.
+ *
+ * The rest of `--check` compares the prose and the asset FILENAMES, and on a page
+ * whose content is almost entirely images that is a gate missing its subject:
+ * Vehicle Assembly's page showed a layout the code had stopped producing for five
+ * commits and every run agreed it was current.
+ *
+ * A missing record is REPORTED and not failed. The mechanism arrives after ten
+ * Uplinks have been generated without it, and failing all ten on the first run
+ * would be a wall of red that says nothing about which of them a person just
+ * broke. `scripts/uplink-shape-debt.mjs` holds that count and only lets it
+ * shrink.
+ */
+function compareCommittedShapes(
+  assetDir: string,
+  rendered: ReadonlyMap<string, AssetShape>,
+  engine: string,
+  out: string[],
+): void {
+  let record: ReturnType<typeof readShapeRecord>;
+  try {
+    record = readShapeRecord(assetDir);
+  } catch (err) {
+    out.push(
+      `${SHAPE_RECORD_FILE}: ${err instanceof Error ? err.message : err}`,
+    );
+    return;
+  }
+  const verdict = compareShapes(record, rendered, engine);
+  if (verdict.incomparable) {
+    console.warn(`\n  warning: ${SHAPE_RECORD_FILE} ${verdict.incomparable}`);
+    return;
+  }
+  for (const entry of verdict.stale) out.push(describeStale(entry));
+  if (verdict.unrecorded.length > 0) {
+    console.warn(
+      `\n  warning: ${verdict.unrecorded.length} asset(s) have no recorded ` +
+        "shape, so nothing here can say whether their pictures match the code. " +
+        `Run \`pnpm uplink-docs\` to record them: ${verdict.unrecorded.join(", ")}`,
+    );
   }
 }
 

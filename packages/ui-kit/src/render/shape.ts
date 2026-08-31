@@ -133,15 +133,25 @@ export const ADMISSIBLE_PROPERTIES = [
  * silent in `textContent`. They are AUTHORED numbers, which is what makes them
  * admissible where a measured box is not.
  *
- * `title` earns its place from a real regression: the commit that stopped a full
- * badge set squeezing an instrument row's name out added a `title` to `RowName`,
- * so a page rendered before it differs by that attribute alone in places.
+ * `title` is here because a kit primitive reaches for it whenever text can be
+ * truncated, so it appears and disappears with a layout decision: `RowName` and
+ * `Panel`'s compacted title both carry the full string in one when the visible
+ * text is an ellipsis. A change that alters what fits therefore shows up in this
+ * attribute before it shows up anywhere else that is admissible.
  */
 export const RECORDED_ATTRIBUTES =
   "^(style|title|role|type|disabled|hidden|open|checked|aria-|data-|d|points|cx|cy|r|x|y|x1|y1|x2|y2|rx|ry|transform|viewBox|fill|stroke|stroke-width|stroke-dasharray|offset|stop-color)$";
 
 /** Committed beside the assets it describes. */
 export const SHAPE_RECORD_FILE = "render-shape.json";
+
+/** One reading of the mounted widget. A still folds one, a film folds one per
+ *  frame. */
+export interface ShapeCapture {
+  text: string;
+  elements: number;
+  visibleText: string;
+}
 
 /** What one asset's render reduces to. */
 export interface AssetShape {
@@ -183,7 +193,7 @@ export const SHAPE_RECORD_VERSION = 1;
 export const readShapeText = (args: {
   properties: readonly string[];
   attributes: string;
-}): { text: string; elements: number; visibleText: string } => {
+}): ShapeCapture => {
   const host = document.getElementById("root");
   if (!host) throw new Error("render shape: no #root in the page");
   const attrRe = new RegExp(args.attributes);
@@ -234,9 +244,7 @@ const digest = (input: string, chars: number): string =>
 /** Fold one or more captures into the shape of a single asset. A still has one
  *  capture; a motion scene has one per frame, and the film's shape is the
  *  sequence, so a step that stopped firing changes it. */
-export function foldShape(
-  captures: readonly { text: string; elements: number; visibleText: string }[],
-): AssetShape {
+export function foldShape(captures: readonly ShapeCapture[]): AssetShape {
   return {
     hash: digest(captures.map((c) => c.text).join("\n--frame--\n"), 16),
     elements: captures[0]?.elements ?? 0,

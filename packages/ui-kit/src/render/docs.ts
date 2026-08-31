@@ -13,6 +13,17 @@ import type { Scene } from "./scenes";
 import { readWireSurface, wireSection } from "./wire";
 
 /**
+ * What the page generator needs of an asset, which is less than a render.
+ *
+ * `page-check.ts` builds this list from the scenes alone, with no browser and so
+ * no rendered files behind it, to compare the page's markdown against the code.
+ * The generator writes image LINKS, so a filename and a size are all it reads,
+ * and asking it for a `shape` would either force that path to fabricate one or
+ * put the freshness question somewhere that structurally cannot answer it.
+ */
+type PageAsset = Omit<RenderedAsset, "shape">;
+
+/**
  * The manifest first, the page from it.
  *
  * `gonogo-uplink.json` is specced in `docs/creating-an-uplink.md`, typed as
@@ -115,7 +126,7 @@ export interface DocsInputs {
   pkg: UplinkPackage;
   inventory: UplinkInventory;
   scenes: Scene[];
-  assets: RenderedAsset[];
+  assets: readonly PageAsset[];
   /** Path, relative to the package, of the file distributed to users. */
   bundle?: string;
   /** Where assets live, relative to the package. */
@@ -242,7 +253,7 @@ function table(
  * repetition this page is against, and "the same widget at its minimum size" is
  * the only thing the extra renders actually add.
  */
-function images(inputs: DocsInputs, assets: RenderedAsset[]): string[] {
+function images(inputs: DocsInputs, assets: readonly PageAsset[]): string[] {
   const out: string[] = [];
   const captioned = new Set<string>();
   for (const asset of assets) {
@@ -254,11 +265,11 @@ function images(inputs: DocsInputs, assets: RenderedAsset[]): string[] {
   return out;
 }
 
-function altFor(asset: RenderedAsset): string {
+function altFor(asset: PageAsset): string {
   return asset.scene.caption ?? asset.scene.name;
 }
 
-function sizePhrase(asset: RenderedAsset): string {
+function sizePhrase(asset: PageAsset): string {
   if (asset.mode === "min") return "The same widget at its minimum size";
   const mode = asset.scene.modes.find((m) => m.name === asset.mode);
   return mode
@@ -270,7 +281,7 @@ function assetsFor(
   inputs: DocsInputs,
   kind: string,
   id: string,
-): RenderedAsset[] {
+): readonly PageAsset[] {
   return inputs.assets.filter(
     (a) => a.scene.target.kind === kind && a.scene.target.id === id,
   );
