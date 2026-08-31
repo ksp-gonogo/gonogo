@@ -922,3 +922,33 @@ public class Rp1PadDismantleArgs
     [SitrepUnit(Units.Id)]
     public string? PadId { get; set; }
 }
+
+/// <summary>
+/// Args for <c>rp1.warp.toComplete</c> and <c>rp1.warp.toFundTarget</c>, which
+/// take none.
+///
+/// <para>Neither names WHAT to warp to, because neither is a choice: RP-1 holds
+/// exactly one next-thing-to-finish (whichever of the career's projects has the
+/// least time left, across every centre) and exactly one fund target. A command
+/// carrying an id would imply a roster that does not exist.</para>
+///
+/// <para><b>There is no <c>rp1.warp.stop</c>, deliberately.</b> RP-1's warp
+/// controller destroys itself the moment it observes a warp rate of zero
+/// (<c>KCTWarpController::FixedUpdate</c> IL_002c-IL_003e: the rate index is read,
+/// and a zero branches straight to <c>DestroyGameObject</c> and returns), so
+/// core's own <c>time.setWarpIndex</c> already ends an RP-1 warp and the widget's
+/// existing "1x" button already sends it. A second command to stop warping would
+/// be two controls doing one thing, and the operator would have to know which of
+/// them RP-1 respects. It respects both.</para>
+///
+/// <para>One type for both commands, as <see cref="Rp1TargetCancelArgs"/> is for
+/// its two: they take the same nothing, and a second empty class would only
+/// invite the two to drift.</para>
+/// </summary>
+[SitrepContract]
+#if SITREP_CODEGEN
+[TsInterface]
+#endif
+public class Rp1WarpArgs
+{
+}

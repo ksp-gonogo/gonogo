@@ -222,11 +222,46 @@ public static class HighLogic
 
     public static Game CurrentGame = new Game();
 
+    /// <summary>
+    /// Flight, which RP-1's warp controller checks as its own bool before it
+    /// bothers comparing scene ordinals.
+    /// </summary>
+    public static bool LoadedSceneIsFlight;
+
+    /// <summary>
+    /// The scene, compared against the SPACECENTER and TRACKSTATION ordinals. An
+    /// ENUM here rather than an int, because production reads it through
+    /// <c>Convert.ToInt32</c> and a fixture holding a plain int would skip the
+    /// conversion the real member forces.
+    /// </summary>
+    public static GameScenes LoadedScene = GameScenes.SPACECENTER;
+
     public static void Reset()
     {
         LoadedSceneIsGame = true;
         CurrentGame = new Game();
+        LoadedSceneIsFlight = false;
+        LoadedScene = GameScenes.SPACECENTER;
     }
+}
+
+/// <summary>
+/// KSP's scene enum, at the ORDINALS KSP assigns, because RP-1 compares against
+/// the numbers rather than the names and so does this Uplink.
+/// </summary>
+public enum GameScenes
+{
+    LOADING = 0,
+    LOADINGBUFFER = 1,
+    MAINMENU = 2,
+    SETTINGS = 3,
+    CREDITS = 4,
+    SPACECENTER = 5,
+    EDITOR = 6,
+    FLIGHT = 7,
+    TRACKSTATION = 8,
+    PSYSTEM = 9,
+    MISSIONBUILDER = 10,
 }
 
 public class Game

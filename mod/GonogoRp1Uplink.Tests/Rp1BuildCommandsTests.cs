@@ -359,6 +359,8 @@ namespace GonogoRp1Uplink.Tests
                     Rp1ComplexConstructionCommands.NewComplexCommand,
                     Rp1ComplexConstructionCommands.ModifyComplexCommand,
                     Rp1ComplexConstructionCommands.NewPadCommand,
+                    Rp1WarpCommands.ToCompleteCommand,
+                    Rp1WarpCommands.ToFundTargetCommand,
                 },
                 declarations.Select(d => d.Command).ToArray());
             Assert.All(declarations, declaration =>
@@ -415,6 +417,7 @@ namespace GonogoRp1Uplink.Tests
                     Rp1BuildCommands.GateKind,
                     Rp1BuildStartCommands.GateKind,
                     Rp1FacilityUpgradeCommands.GateKind,
+                    Rp1WarpCommands.GateKind,
                 },
                 kinds.ToArray());
         }
