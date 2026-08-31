@@ -156,6 +156,8 @@ namespace GonogoPrincipiaUplink
             var writes = session.Writes;
             observation.WriteSurfaceAvailable = writes.Available;
             observation.WriteSurfaceArmed = writes.IsArmed(vesselGuid);
+            observation.BurnLayoutVerified = writes.BurnLayoutVerified;
+            observation.IntegratorLayoutVerified = writes.IntegratorLayoutVerified;
 
             var unavailable = writes.UnavailableReason;
             if (unavailable != null)

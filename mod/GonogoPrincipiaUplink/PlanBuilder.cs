@@ -53,6 +53,8 @@ namespace GonogoPrincipiaUplink
                 {
                     ["available"] = observation.WriteSurfaceAvailable,
                     ["armed"] = observation.WriteSurfaceArmed,
+                    ["burnLayoutVerified"] = observation.BurnLayoutVerified,
+                    ["integratorLayoutVerified"] = observation.IntegratorLayoutVerified,
                     ["reason"] = observation.WriteSurfaceReason,
                     ["analysedVersion"] = observation.WriteAnalysedVersion,
                     ["detectedVersion"] = observation.WriteDetectedVersion,

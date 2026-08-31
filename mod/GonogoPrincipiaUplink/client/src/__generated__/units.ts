@@ -298,7 +298,9 @@ export const GENERATED_TYPE_UNITS: Readonly<Record<string, UnitsByField>> = {
     analysedVersion: "text",
     armed: "flag",
     available: "flag",
+    burnLayoutVerified: "flag",
     detectedVersion: "text",
+    integratorLayoutVerified: "flag",
     reason: "text",
   },
 };

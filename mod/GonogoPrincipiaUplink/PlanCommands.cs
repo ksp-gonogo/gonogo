@@ -175,19 +175,28 @@ namespace GonogoPrincipiaUplink
 
             var materialised = plan.Materialise();
             // No burn factory, so arming a plan with no burns writes NOTHING to the
-            // producer and the burn verdict stays unproven, exactly as before.
+            // producer and the burn verdict stays unproven.
             //
-            // A composed burn round-trips correctly in principle and the marshalling
-            // says it should: the frame travels by value as four inline integers, so
-            // one we built crosses identically to one the plugin handed out. It has
-            // not been demonstrated against a running game. The one attempt ended
-            // with the process aborting, on a rig whose craft had just been
-            // teleported out from under a plan anchored somewhere else, and those two
-            // causes cannot be told apart from the evidence that run left.
+            // WHAT IS NOW MEASURED, replacing the caution that used to stand here.
+            // A composed burn HAS crossed into a running plugin: 2026-08-31, on a
+            // clean rig, dispatched by `principia.plan.burn.insert` against a V-2
+            // holding a plan with no burns. The process did NOT abort. The crossing
+            // was refused by the round-trip comparison and reverted cleanly, so what
+            // it demonstrated is that the write path is survivable, not that the
+            // struct is right. The earlier abort this comment used to cite happened
+            // on a rig whose craft had just been teleported out from under a plan
+            // anchored somewhere else, and that confound is now resolved: the clean
+            // case does not abort.
             //
-            // Until they can, arming does not make that write. An arm is something an
-            // operator does to find out whether editing is possible, and it must not
-            // be the thing that ends their game.
+            // So the reason for not wiring `ComposeProbeBurn` below is no longer
+            // fear of an abort. It is that doing so gives the ARM three native
+            // write-path calls it does not make today, and an arm is what an operator
+            // does to find out whether editing is possible. Moving that risk onto it
+            // is a trade for the operator to make rather than a correctness fix.
+            //
+            // What IS fixed here is the reporting: `burnLayoutVerified` now travels
+            // on the write surface, so an arm that verified only the integrator says
+            // so instead of answering a plain "armed".
             var probeRefusal = PrincipiaLayoutProbe.Run(materialised, session.Writes);
             if (probeRefusal.HasValue)
             {
@@ -481,17 +490,32 @@ namespace GonogoPrincipiaUplink
             var afterBurn = after == null
                 ? null
                 : Fields.Get(after, PrincipiaBurnStruct.ManoeuvreBurnField);
-            if (afterBurn == null || !PrincipiaLayoutProbe.SameBurn(burn, afterBurn))
+            var difference = afterBurn == null
+                ? null
+                : PrincipiaLayoutProbe.DescribeBurnDifference(burn, afterBurn);
+            if (afterBurn == null || difference != null)
             {
                 // Taken back out, because what is in the plan is not what was asked
                 // for and leaving it would be the plausible wrong burn this whole
                 // apparatus exists to keep out of somebody's save.
                 gate.Remove(0);
+
+                // The FIELD, and both values, rather than a cause. This message used
+                // to end "that is the struct-layout failure this check exists for",
+                // which the check has no way to establish: it compares nine values
+                // and used to report none of them, so a normalisation Principia
+                // applies on the way in was indistinguishable from corruption and
+                // read as corruption. That sentence was repeated onward as a
+                // measurement. Hand over the evidence instead.
                 return PrincipiaWriteResult.Refused(
                     PrincipiaWriteRefusal.LayoutUnverified,
-                    "The burn did not survive the crossing into Principia: what came back is "
-                    + "not what went in, so it was taken back out. That is the struct-layout "
-                    + "failure this check exists for.");
+                    "The burn did not survive the crossing into Principia, so it was taken "
+                    + "back out: "
+                    + (afterBurn == null
+                        ? "nothing came back to compare."
+                        : difference + ".")
+                    + " That is either a struct-layout mismatch or a value Principia "
+                    + "normalises on the way in, and the two look the same from here.");
             }
 
             session.Writes.BurnLayoutPassed();
