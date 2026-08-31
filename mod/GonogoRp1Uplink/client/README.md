@@ -23,6 +23,7 @@ Brings RP-1's career layer to the dashboard: Programs with their objectives, dea
 | `rp1.constructions` | `Rp1ConstructionEntry[]` | lossy-latest | true-now |
 | `rp1.crew` | `Rp1CrewEntry[]` | lossy-latest | true-now |
 | `rp1.crewProgram` | `Rp1CrewProgram` | lossy-latest | true-now |
+| `rp1.fundTarget` | `Rp1FundTarget` | lossy-latest | true-now |
 | `rp1.operations` | `Rp1OperationEntry[]` | lossy-latest | true-now |
 | `rp1.pads` | `Rp1PadEntry[]` | lossy-latest | true-now |
 | `rp1.personnel` | `Rp1Personnel` | lossy-latest | true-now |
@@ -31,6 +32,7 @@ Brings RP-1's career layer to the dashboard: Programs with their objectives, dea
 | `rp1.programs` | `Rp1ProgramEntry[]` | lossy-latest | true-now |
 | `rp1.research` | `Rp1ResearchEntry[]` | lossy-latest | true-now |
 | `rp1.rushTerms` | `Rp1RushTerms` | lossy-latest | true-now |
+| `rp1.training` | `Rp1TrainingCourseEntry[]` | lossy-latest | true-now |
 | `rp1.warehouse` | `Rp1WarehouseItemEntry[]` | lossy-latest | true-now |
 | `rp1.available` | – | lossy-latest | true-now |
 
@@ -42,6 +44,7 @@ Brings RP-1's career layer to the dashboard: Programs with their objectives, dea
 | `Rp1ComplexRushArgs` | `lcId` id, `rushing` flag |
 | `Rp1FacilityUpgradeArgs` | `facility` id |
 | `Rp1FundingCurveKey` | `frac` ratio, `inTangent` 1, `outTangent` 1, `paidFraction` ratio |
+| `Rp1HireTarget` | `active` flag, `currentCount` count, `isResearch` flag, `lcId` id, `leftToHire` count, `targetCount` count, `timeLeft` s |
 | `Rp1LeaderEntry` | `canRemoveFromUt` ut, `deactivateReputation` rep, `freeToRemoveFromUt` ut, `reactivateCooldown` s, `removeOnDeactivate` flag, `setupConfidence` confidence, `setupFunds` funds, `setupReputation` rep, `setupScience` science, `strategyId` id |
 | `Rp1PersonnelAssignArgs` | `engineers` count, `lcId` id |
 | `Rp1ProgramPaymentEntry` | `cumulativeFunds` funds, `funds` funds, `year` count |
