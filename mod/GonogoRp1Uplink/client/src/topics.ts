@@ -20,7 +20,9 @@ import {
 } from "@ksp-gonogo/sitrep-sdk";
 import type {
   Rp1BuildableCraftEntry,
+  Rp1BuildCost,
   Rp1BuildItemEntry,
+  Rp1CareerEvents,
   Rp1CentreEntry,
   Rp1ComplexEntry,
   Rp1Confidence,
@@ -198,6 +200,35 @@ export const RP1_TRAINING_CATALOGUE_TOPIC = "rp1.trainingCatalogue";
  */
 export const RP1_TOOLING_TOPIC = "rp1.tooling";
 
+/**
+ * What putting the vehicle on the editor's table into the sky will cost, in FUNDS,
+ * line by line.
+ *
+ * Deliberately not RP-1's own "Cost Breakdown" tab. That one shows `effectiveCost`,
+ * which is the input to its build-points formula and so decides how LONG
+ * integration takes; it is a comparability metric and it buys nothing. A number
+ * that looks like money and is not money does not travel here whatever the producer
+ * calls it.
+ *
+ * `untooledSurcharge` is an OF WHICH of `vehicleCost`, never an addend: the
+ * surcharge reaches the vessel through the game's own part-cost modifier and is
+ * already inside it. Adding the two charges the operator twice.
+ */
+export const RP1_BUILD_COST_TOPIC = "rp1.buildCost";
+
+/**
+ * RP-1's own record of what has happened in this career, as a timeline.
+ *
+ * Only the EVENT half of its career log. The other half is a monthly financial
+ * ledger of about thirty figures a period, which is a balance sheet rather than a
+ * timeline and belongs on a budget surface.
+ *
+ * `enabled: false` is not an empty log: a career with logging switched off has no
+ * history and never will, which is a different answer from one that has recorded
+ * nothing yet. No sample at all is a third answer again.
+ */
+export const RP1_CAREER_EVENTS_TOPIC = "rp1.careerEvents";
+
 declare module "@ksp-gonogo/sitrep-sdk" {
   interface TopicPayloadMap {
     "rp1.available": boolean;
@@ -222,6 +253,8 @@ declare module "@ksp-gonogo/sitrep-sdk" {
     "rp1.training": Rp1TrainingCourseEntry[];
     "rp1.trainingCatalogue": Rp1TrainingTemplateEntry[];
     "rp1.tooling": Rp1Tooling;
+    "rp1.buildCost": Rp1BuildCost;
+    "rp1.careerEvents": Rp1CareerEvents;
   }
 }
 
@@ -247,6 +280,8 @@ registerBarePrimitiveTopic(RP1_FUND_TARGET_TOPIC);
 registerBarePrimitiveTopic(RP1_TRAINING_TOPIC);
 registerBarePrimitiveTopic(RP1_TRAINING_CATALOGUE_TOPIC);
 registerBarePrimitiveTopic(RP1_TOOLING_TOPIC);
+registerBarePrimitiveTopic(RP1_BUILD_COST_TOPIC);
+registerBarePrimitiveTopic(RP1_CAREER_EVENTS_TOPIC);
 
 // Driven by looping the generated maps rather than naming each entry, so a
 // Topic added to this Uplink's contract later needs no new call site. Both
@@ -336,4 +371,10 @@ export type _ResolvesRp1TrainingCatalogue = Expect<
 >;
 export type _ResolvesRp1Tooling = Expect<
   Equal<TopicPayload<"rp1.tooling">, Rp1Tooling>
+>;
+export type _ResolvesRp1BuildCost = Expect<
+  Equal<TopicPayload<"rp1.buildCost">, Rp1BuildCost>
+>;
+export type _ResolvesRp1CareerEvents = Expect<
+  Equal<TopicPayload<"rp1.careerEvents">, Rp1CareerEvents>
 >;

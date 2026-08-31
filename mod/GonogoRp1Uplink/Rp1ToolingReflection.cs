@@ -91,6 +91,12 @@ namespace GonogoRp1Uplink
 
         private readonly Type? _editor;
 
+        /// <summary>
+        /// The funds half, read on this walk rather than its own, so the surcharge
+        /// it reports is the sum of the rows this reading produced.
+        /// </summary>
+        private readonly Rp1CareerCostReflection _cost = new Rp1CareerCostReflection();
+
         public Rp1ToolingReflection()
         {
             _manager = Rp1Types.Find(ManagerTypeName);
@@ -131,16 +137,32 @@ namespace GonogoRp1Uplink
             }
 
             var raw = new Rp1ToolingRaw { Ut = ut, ToolAllCost = ToolAllCost() };
+            double? surcharge = null;
             foreach (var part in parts)
             {
                 foreach (var module in ToolingModules(part))
                 {
                     var row = Describe(part, module);
-                    if (row != null)
+                    if (row == null)
                     {
-                        raw.Parts.Add(row);
+                        continue;
+                    }
+                    raw.Parts.Add(row);
+                    if (row.UntooledSurcharge != null)
+                    {
+                        surcharge = (surcharge ?? 0.0) + row.UntooledSurcharge.Value;
                     }
                 }
+            }
+
+            // Summed from the rows just read rather than asked for separately, so
+            // the breakdown's "of which" line and the rows it is of cannot
+            // disagree. Null when no row carried one, which is not the same as a
+            // vehicle whose surcharge is zero.
+            raw.BuildCost = _cost.ReadCost(ut);
+            if (raw.BuildCost != null)
+            {
+                raw.BuildCost.UntooledSurcharge = surcharge;
             }
             return raw;
         }

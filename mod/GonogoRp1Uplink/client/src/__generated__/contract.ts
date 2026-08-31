@@ -477,6 +477,31 @@ export interface Rp1Tooling
 	untooledCount?: Value<"count">;
 	parts?: Rp1ToolingEntry[];
 }
+export interface Rp1BuildCost
+{
+	vehicleCost?: Value<"funds">;
+	untooledSurcharge?: Value<"funds">;
+	toolingCost?: Value<"funds">;
+	unlockCost?: Value<"funds">;
+	rolloutCost?: Value<"funds">;
+	requiredTechs?: string[];
+}
+export interface Rp1CareerEventEntry
+{
+	ut?: Value<"ut">;
+	kind?: string;
+	name?: string;
+	detail?: string;
+	launchId?: string;
+	part?: string;
+	repChange?: Value<"rep">;
+	cost?: Value<"funds">;
+}
+export interface Rp1CareerEvents
+{
+	enabled?: boolean;
+	events?: Rp1CareerEventEntry[];
+}
 export interface Rp1StrategyActivateArgs
 {
 	strategyId?: string;

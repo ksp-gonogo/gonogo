@@ -20,8 +20,10 @@
 // dynamic half, grep the mod for `RegisterDynamicNamespace` instead.
 
 import type {
+  Rp1BuildCost,
   Rp1BuildItemEntry,
   Rp1BuildableCraftEntry,
+  Rp1CareerEvents,
   Rp1CentreEntry,
   Rp1ComplexEntry,
   Rp1Confidence,
@@ -44,8 +46,10 @@ import type {
 } from "./contract.js";
 
 export interface GeneratedTopicPayloadMap {
+  "rp1.buildCost": Rp1BuildCost;
   "rp1.buildQueue": Rp1BuildItemEntry[];
   "rp1.buildable": Rp1BuildableCraftEntry[];
+  "rp1.careerEvents": Rp1CareerEvents;
   "rp1.centres": Rp1CentreEntry[];
   "rp1.complexes": Rp1ComplexEntry[];
   "rp1.confidence": Rp1Confidence;
@@ -68,8 +72,10 @@ export interface GeneratedTopicPayloadMap {
 }
 
 export const GENERATED_TOPIC_IDS = [
+  "rp1.buildCost",
   "rp1.buildQueue",
   "rp1.buildable",
+  "rp1.careerEvents",
   "rp1.centres",
   "rp1.complexes",
   "rp1.confidence",

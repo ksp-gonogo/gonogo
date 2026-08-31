@@ -42,6 +42,9 @@
     <Compile Include="..\GonogoRp1Uplink\Rp1ToolingCapture.cs" />
     <Compile Include="..\GonogoRp1Uplink\Rp1ToolingReflection.cs" />
     <Compile Include="..\GonogoRp1Uplink\Rp1ToolingCommands.cs" />
+    <Compile Include="..\GonogoRp1Uplink\Rp1CareerCostRaw.cs" />
+    <Compile Include="..\GonogoRp1Uplink\Rp1CareerCostCapture.cs" />
+    <Compile Include="..\GonogoRp1Uplink\Rp1CareerCostReflection.cs" />
     <Compile Include="..\GonogoRp1Uplink\Rp1ScUplink.cs" />
     <Compile Include="..\GonogoRp1Uplink\Rp1EconomyBackend.cs" />
     <Compile Include="..\GonogoRp1Uplink\Rp1EconomyUpkeepQuery.cs" />

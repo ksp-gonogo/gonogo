@@ -244,6 +244,9 @@ namespace GonogoRp1Uplink.Tests
             new Rp1TypeTarget(Rp0, "RP0.ToolingManager", "Rp1ToolingReflection"),
             new Rp1TypeTarget(Rp0, "RP0.ModuleTooling", "Rp1ToolingReflection, Rp1ToolingCommands"),
             new Rp1TypeTarget(Rp0, "RP0.ToolingPartResizer", "Rp1ToolingCommands"),
+            // The career's own history. Resolved by name because its handler is a
+            // ScenarioModule and a save RP-1 does not manage has none.
+            new Rp1TypeTarget(Rp0, "RP0.CareerLog", "Rp1CareerCostReflection"),
             new Rp1TypeTarget(Rp0, "RP0.Programs.ProgramHandler", "Rp1ProgramsReflection"),
             // The construction project a facility upgrade IS under RP-1, and the
             // reason career.facility.upgrade is refused rather than allowed to
@@ -724,6 +727,7 @@ namespace GonogoRp1Uplink.Tests
             const string CostModel = "Rp1LcCostModel";
             const string Tooling = "Rp1ToolingReflection";
             const string ToolingWrites = "Rp1ToolingCommands";
+            const string CareerCost = "Rp1CareerCostReflection";
 
             // ── The space centre ────────────────────────────────────────────
             Add("RP0.SpaceCenterManagement", "Instance", Rp1Reader.Presence, Sc + ", " + Gate + ", " + Projects + ", " + Build + ", " + Withhold + ", " + Facilities, @static: true);
@@ -1169,6 +1173,46 @@ namespace GonogoRp1Uplink.Tests
             // RP-1's own part-cost modifier bills.
             Add("RP0.ModuleTooling", "addedCost", Rp1Reader.Numeric, Tooling);
             Add("RP0.UnlockCreditHandler", "Instance", Rp1Reader.Presence, ToolingWrites, @static: true);
+
+            // ── The funds breakdown, and the career log ─────────────────────
+            // The vehicle being designed, and the four figures RP-1 keeps beside it.
+            // NOT effectiveCost: that is the input to GetVesselBuildPoints and
+            // decides how long integration takes, so publishing it as a cost would
+            // be a number that looks like money and buys nothing.
+            Add("RP0.SpaceCenterManagement", "EditorVessel", Rp1Reader.Presence, CareerCost);
+            Add("RP0.SpaceCenterManagement", "EditorUnlockCosts", Rp1Reader.Numeric, CareerCost, @static: true);
+            Add("RP0.SpaceCenterManagement", "EditorRolloutCost", Rp1Reader.Numeric, CareerCost, @static: true);
+            Add("RP0.SpaceCenterManagement", "EditorRequiredTechs", Rp1Reader.Presence, CareerCost, @static: true);
+            // The FIELD, not GetTotalCost(): that method fills this lazily from the
+            // compressed craft node and then releases the buffer, which is a write.
+            Add("RP0.VesselProject", "cost", Rp1Reader.Numeric, CareerCost);
+
+            Add("RP0.CareerLog", "Instance", Rp1Reader.Presence, CareerCost, @static: true);
+            // False is not an empty log, which is the whole reason it is read.
+            Add("RP0.CareerLog", "IsEnabled", Rp1Reader.Bool, CareerCost);
+            // Six PRIVATE lists. RP-1 exposes none of them; its own window reaches
+            // them from inside the class.
+            Add("RP0.CareerLog", "_contractDict", Rp1Reader.Presence, CareerCost);
+            Add("RP0.CareerLog", "_launchedVessels", Rp1Reader.Presence, CareerCost);
+            Add("RP0.CareerLog", "_failures", Rp1Reader.Presence, CareerCost);
+            Add("RP0.CareerLog", "_facilityConstructionEvents", Rp1Reader.Presence, CareerCost);
+            Add("RP0.CareerLog", "_techEvents", Rp1Reader.Presence, CareerCost);
+            Add("RP0.CareerLog", "_leaderEvents", Rp1Reader.Presence, CareerCost);
+            Add("RP0.CareerEvent", "UT", Rp1Reader.Numeric, CareerCost);
+            Add("RP0.ContractEvent", "DisplayName", Rp1Reader.Text, CareerCost);
+            Add("RP0.ContractEvent", "InternalName", Rp1Reader.Text, CareerCost);
+            Add("RP0.ContractEvent", "RepChange", Rp1Reader.Numeric, CareerCost);
+            Add("RP0.ContractEvent", "Type", Rp1Reader.EnumText, CareerCost);
+            Add("RP0.LaunchEvent", "VesselName", Rp1Reader.Text, CareerCost);
+            Add("RP0.LaunchEvent", "LaunchID", Rp1Reader.Text, CareerCost);
+            // A plain STRING on this one, unlike its siblings' enums.
+            Add("RP0.FailureEvent", "Type", Rp1Reader.Text, CareerCost);
+            Add("RP0.FailureEvent", "Part", Rp1Reader.Text, CareerCost);
+            Add("RP0.FacilityConstructionEvent", "State", Rp1Reader.EnumText, CareerCost);
+            Add("RP0.FacilityConstructionEvent", "Facility", Rp1Reader.EnumText, CareerCost);
+            Add("RP0.TechResearchEvent", "NodeName", Rp1Reader.Text, CareerCost);
+            Add("RP0.LeaderEvent", "LeaderName", Rp1Reader.Text, CareerCost);
+            Add("RP0.LeaderEvent", "Cost", Rp1Reader.Numeric, CareerCost);
 
             // ── Programs ───────────────────────────────────────────────────
             Add("RP0.Programs.ProgramHandler", "Instance", Rp1Reader.Presence, Programs + ", " + StrategyWrites, @static: true);

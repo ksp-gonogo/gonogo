@@ -85,6 +85,14 @@ export type UnitsByField = Readonly<Record<string, SitrepUnit>>;
  * payload shapes that no Topic names directly.
  */
 export const GENERATED_TYPE_UNITS: Readonly<Record<string, UnitsByField>> = {
+  "Rp1BuildCost": {
+    requiredTechs: "id",
+    rolloutCost: "funds",
+    toolingCost: "funds",
+    unlockCost: "funds",
+    untooledSurcharge: "funds",
+    vehicleCost: "funds",
+  },
   "Rp1BuildItemEntry": {
     cost: "funds",
     humanRated: "flag",
@@ -129,6 +137,19 @@ export const GENERATED_TYPE_UNITS: Readonly<Record<string, UnitsByField>> = {
     partCount: "count",
     shipName: "text",
     unpurchasedParts: "text",
+  },
+  "Rp1CareerEventEntry": {
+    cost: "funds",
+    detail: "enum",
+    kind: "enum",
+    launchId: "id",
+    name: "text",
+    part: "id",
+    repChange: "rep",
+    ut: "ut",
+  },
+  "Rp1CareerEvents": {
+    enabled: "flag",
   },
   "Rp1CentreEntry": {
     anyOperational: "flag",
@@ -513,6 +534,14 @@ export const GENERATED_TYPE_UNITS: Readonly<Record<string, UnitsByField>> = {
  * fields, which is what a consumer indexes into.
  */
 export const GENERATED_TOPIC_UNITS: Readonly<Record<string, UnitsByField>> = {
+  "rp1.buildCost": {
+    requiredTechs: "id",
+    rolloutCost: "funds",
+    toolingCost: "funds",
+    unlockCost: "funds",
+    untooledSurcharge: "funds",
+    vehicleCost: "funds",
+  },
   "rp1.buildQueue": {
     cost: "funds",
     humanRated: "flag",
@@ -541,6 +570,9 @@ export const GENERATED_TOPIC_UNITS: Readonly<Record<string, UnitsByField>> = {
     partCount: "count",
     shipName: "text",
     unpurchasedParts: "text",
+  },
+  "rp1.careerEvents": {
+    enabled: "flag",
   },
   "rp1.centres": {
     anyOperational: "flag",
@@ -811,6 +843,9 @@ export const GENERATED_TYPE_SHAPES: Readonly<Record<string, ShapesByField>> = {
   "Rp1BuildableCraftEntry": {
     complexes: "Rp1BuildableComplex[]",
   },
+  "Rp1CareerEvents": {
+    events: "Rp1CareerEventEntry[]",
+  },
   "Rp1ComplexModifyArgs": {
     size: "Rp1ComplexSizeArgs",
   },
@@ -836,6 +871,9 @@ export const GENERATED_TYPE_SHAPES: Readonly<Record<string, ShapesByField>> = {
 export const GENERATED_TOPIC_SHAPES: Readonly<Record<string, ShapesByField>> = {
   "rp1.buildable": {
     complexes: "Rp1BuildableComplex[]",
+  },
+  "rp1.careerEvents": {
+    events: "Rp1CareerEventEntry[]",
   },
   "rp1.personnel": {
     hireTarget: "Rp1HireTarget",

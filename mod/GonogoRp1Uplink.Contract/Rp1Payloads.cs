@@ -2441,3 +2441,194 @@ public sealed class Rp1Tooling
     /// </summary>
     public Rp1ToolingEntry[]? Parts { get; set; }
 }
+
+/// <summary>
+/// The <c>rp1.buildCost</c> channel: what putting the vehicle on the editor's
+/// table into the sky will actually cost, in FUNDS, line by line.
+///
+/// <para><b>This is deliberately not RP-1's own "Cost Breakdown".</b> That tab
+/// shows <c>effectiveCost</c>, which is the input to
+/// <c>Formula.GetVesselBuildPoints</c> and therefore decides how LONG integration
+/// takes. It is a dimensionless comparability metric that the producer's own
+/// tooltip describes as being for comparing rockets against each other, and it
+/// buys nothing. A number that looks like money, is labelled like money and is not
+/// money is the one thing this wire refuses to carry, whatever the producer calls
+/// it. Integration effort is a real question and belongs on a channel of its own,
+/// named for what it drives.</para>
+///
+/// <para>EDITOR ONLY, like <c>rp1.tooling</c> beside it: every figure is read off
+/// the vehicle being designed.</para>
+/// </summary>
+[SitrepContract]
+[SitrepTopic("rp1.buildCost")]
+#if SITREP_CODEGEN
+[TsInterface]
+#endif
+public sealed class Rp1BuildCost
+{
+    /// <summary>
+    /// The vehicle itself: what its parts and propellant cost.
+    ///
+    /// <para><b>This already contains <see cref="UntooledSurcharge"/>.</b> The
+    /// surcharge reaches the vessel through <c>IPartCostModifier</c>, which the
+    /// game persists onto each part as <c>modCost</c> and folds into the part cost
+    /// before anyone here sees it. So the surcharge below is an OF WHICH, never an
+    /// addend, and a client that adds the two has charged the operator twice for
+    /// the same thing.</para>
+    /// </summary>
+    [SitrepUnit(Units.Funds)]
+    public double? VehicleCost { get; set; }
+
+    /// <summary>
+    /// How much of <see cref="VehicleCost"/> is the penalty for flying untooled
+    /// parts, and therefore how much of it would go away if the tooling were
+    /// bought.
+    ///
+    /// <para>A SUBSET of the line above, not a line of its own. It is also the
+    /// number that makes <see cref="ToolingCost"/> a decision rather than an
+    /// expense: the surcharge is paid on every copy of this vehicle ever built,
+    /// and the tooling is paid once.</para>
+    /// </summary>
+    [SitrepUnit(Units.Funds)]
+    public double? UntooledSurcharge { get; set; }
+
+    /// <summary>
+    /// Tooling for every untooled part, once, RP-1's own deduplicated figure. The
+    /// same number <c>rp1.tooling.toolAllCost</c> carries, and it is here as well
+    /// rather than only there because a breakdown missing a line is not a
+    /// breakdown: a client should not have to join two channels to render one
+    /// column.
+    /// </summary>
+    [SitrepUnit(Units.Funds)]
+    public double? ToolingCost { get; set; }
+
+    /// <summary>
+    /// Entry costs for parts on this vehicle the career has not yet paid for.
+    /// Distinct from researching the tech: RP-1 charges to unlock the NODE and
+    /// again to buy the part.
+    /// </summary>
+    [SitrepUnit(Units.Funds)]
+    public double? UnlockCost { get; set; }
+
+    /// <summary>
+    /// Rolling the finished vehicle out to a pad.
+    ///
+    /// <para>Absent for a spaceplane: RP-1 computes it only when the editor is the
+    /// VAB, and a hangar vehicle does not roll out. Absent is therefore "does not
+    /// apply here" rather than "free".</para>
+    /// </summary>
+    [SitrepUnit(Units.Funds)]
+    public double? RolloutCost { get; set; }
+
+    /// <summary>
+    /// Tech nodes this vehicle needs that the career has not researched, by name.
+    ///
+    /// <para>Not a cost, and here anyway, because it is the reason a vehicle that
+    /// prices fine still cannot be built. A breakdown that showed only money would
+    /// let an operator budget for something they cannot fly.</para>
+    /// </summary>
+    [SitrepUnit(Units.Id)]
+    public List<string>? RequiredTechs { get; set; }
+}
+
+/// <summary>
+/// One thing RP-1 recorded as having happened in the career, with the instant it
+/// happened at.
+///
+/// <para>Six of RP-1's kinds flattened onto one row, because a log is read down a
+/// column of time rather than across six lists. <see cref="Kind"/> says which, and
+/// the fields a kind does not use are absent rather than zero: a launch has no
+/// reputation change and a contract has no part that failed.</para>
+/// </summary>
+[SitrepContract]
+#if SITREP_CODEGEN
+[TsInterface]
+#endif
+public sealed class Rp1CareerEventEntry
+{
+    /// <summary>When it happened. An INSTANT, so a UT.</summary>
+    [SitrepUnit(Units.UniversalTime)]
+    public double? Ut { get; set; }
+
+    /// <summary>
+    /// Which of RP-1's six logs this came from: <c>contract</c>, <c>launch</c>,
+    /// <c>failure</c>, <c>facilityConstruction</c>, <c>techResearch</c> or
+    /// <c>leader</c>.
+    /// </summary>
+    [SitrepUnit(Sitrep.Contract.Units.Enumeration)]
+    public string? Kind { get; set; }
+
+    /// <summary>
+    /// What happened, in RP-1's own words where it has any: a contract's display
+    /// name, a vessel's name, a tech node, a leader.
+    /// </summary>
+    [SitrepUnit(Sitrep.Contract.Units.Text)]
+    public string? Name { get; set; }
+
+    /// <summary>
+    /// The kind's own sub-type where it has one: a contract's accepted / completed
+    /// / failed, a failure's failure mode, a construction's state. Passed through
+    /// as the producer's own value rather than mapped, because the sets are its
+    /// vocabulary and a stale mapping here would mislabel history.
+    /// </summary>
+    [SitrepUnit(Sitrep.Contract.Units.Enumeration)]
+    public string? Detail { get; set; }
+
+    /// <summary>
+    /// The launch this row belongs to, on the two kinds that carry one.
+    ///
+    /// <para><b>The join is the point.</b> A failure and the launch it happened on
+    /// share a <c>LaunchID</c>, and pairing them is the question an operator opens
+    /// a career log to answer. A shape that dropped this would carry both rows and
+    /// be unable to say they were the same flight.</para>
+    /// </summary>
+    [SitrepUnit(Units.Id)]
+    public string? LaunchId { get; set; }
+
+    /// <summary>The part that failed, on a failure. Absent on every other kind.</summary>
+    [SitrepUnit(Units.Id)]
+    public string? Part { get; set; }
+
+    /// <summary>Reputation gained or lost, on a contract. Absent elsewhere.</summary>
+    [SitrepUnit(Units.Reputation)]
+    public double? RepChange { get; set; }
+
+    /// <summary>What it cost, on a leader appointment. Absent elsewhere.</summary>
+    [SitrepUnit(Units.Funds)]
+    public double? Cost { get; set; }
+}
+
+/// <summary>
+/// The <c>rp1.careerEvents</c> channel: RP-1's own record of what has happened in
+/// this career, as a timeline.
+///
+/// <para><b>Only half of RP-1's career log is here, and that is deliberate.</b> Its
+/// <c>CareerLog</c> holds two unrelated things: six lists of dated events, and a
+/// monthly FINANCIAL LEDGER of about thirty figures per period. The ledger is a
+/// balance sheet and belongs on a budget surface; putting twelve rows a year of
+/// accounts onto an event timeline would make both worse.</para>
+/// </summary>
+[SitrepContract]
+[SitrepTopic("rp1.careerEvents")]
+#if SITREP_CODEGEN
+[TsInterface]
+#endif
+public sealed class Rp1CareerEvents
+{
+    /// <summary>
+    /// Whether RP-1 is keeping the log at all.
+    ///
+    /// <para><b>False is not an empty log</b>, and the distinction is the whole
+    /// reason this field exists. A career with logging switched off has no history
+    /// to show and never will; a career with it on and nothing yet recorded has a
+    /// history that is genuinely empty so far. An operator told "no events" about
+    /// the first has been told the career is quiet when it is in fact unrecorded.
+    /// A third state, "could not be read", is the channel publishing nothing at
+    /// all.</para>
+    /// </summary>
+    [SitrepUnit(Sitrep.Contract.Units.Flag)]
+    public bool? Enabled { get; set; }
+
+    /// <summary>Everything recorded, oldest first.</summary>
+    public Rp1CareerEventEntry[]? Events { get; set; }
+}
