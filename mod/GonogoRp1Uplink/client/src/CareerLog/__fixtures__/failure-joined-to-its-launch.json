@@ -1,0 +1,47 @@
+{
+  "_meta": {
+    "notes": "Kept as a picture of an integration point NOTHING TAKES UP, not as a feature. RP-1's CareerLog exposes AddFailureEvent(Vessel, part, type) and it has no caller: verified in the decompiled C# and again in 212k lines of raw IL, and no other assembly in the whole GameData tree even contains the string CareerLog, TestFlight included. So _failures is permanently empty on a current install and this render is the only place the pairing can be seen. Published anyway because the shape costs nothing and a release that wires it works with no change here. Scened so the next reader does not re-derive the investigation from a channel that never has rows."
+  },
+  "_scene": {
+    "contribution": "rp1:rp1-career-log",
+    "host": "mission-event-log",
+    "caption": "A failure beside the launch it happened on, joined by their shared launch id. NOTHING WRITES THIS TODAY"
+  },
+  "_stream": {
+    "pinnedUt": 5000000,
+    "emits": [
+      {
+        "topic": "rp1.available",
+        "payload": true
+      },
+      {
+        "topic": "rp1.careerEvents",
+        "payload": {
+          "enabled": true,
+          "events": [
+            {
+              "ut": {
+                "magnitude": 2400000,
+                "unit": "ut"
+              },
+              "kind": "launch",
+              "name": "Aerobee-A",
+              "detail": "VAB",
+              "launchId": "L-3"
+            },
+            {
+              "ut": {
+                "magnitude": 2405000,
+                "unit": "ut"
+              },
+              "kind": "failure",
+              "name": "AJ10-27",
+              "detail": "ignitionFail",
+              "launchId": "L-3"
+            }
+          ]
+        }
+      }
+    ]
+  }
+}

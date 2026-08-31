@@ -45,7 +45,7 @@ Brings RP-1's career layer to the dashboard: Programs with their objectives, dea
 | `Rp1BuildableComplex` | `eligible` flag, `kscDisplayName` text, `kscName` id, `lcId` id, `name` text, `refusals` text |
 | `Rp1BuildRepeatArgs` | `id` id |
 | `Rp1BuildStartArgs` | `craftFile` id, `facility` enum, `lcId` id |
-| `Rp1CareerEventEntry` | `cost` funds, `detail` enum, `kind` enum, `launchId` id, `name` text, `part` id, `repChange` rep, `ut` ut |
+| `Rp1CareerEventEntry` | `builtAt` enum, `cost` funds, `detail` enum, `isAdd` flag, `kind` enum, `launchId` id, `name` text, `repChange` rep, `ut` ut |
 | `Rp1ComplexDismantleArgs` | `lcId` id |
 | `Rp1ComplexModifyArgs` | `assignEngineersOnComplete` flag, `humanRated` flag, `lcId` id, `massMax` t, `size` Rp1ComplexSizeArgs |
 | `Rp1ComplexNewArgs` | `assignEngineersOnComplete` flag, `humanRated` flag, `kscName` id, `massMax` t, `name` id, `size` Rp1ComplexSizeArgs |
@@ -248,6 +248,57 @@ Every craft RP-1 is integrating, holding or could start, across every launch com
 | Contribution | Into | Computed from | Presence |
 | --- | --- | --- | --- |
 | `rp1:programs-screen` | `strategies.screens` | – | only while `rp1` |
+| `rp1:rp1-career-log` | `mission-event-log.sources` | `rp1.careerEvents` | only while `rp1` |
 
 ![The tab strip this Uplink's contribution puts on the Administration Building: Programs is the screen it names, the host draws the strip and lists the Programs department under it with its own Activate and Deactivate controls, and the Leaders no screen has claimed stay reachable on Other rather than disappearing. The Program Detail body below the list is a separate augment, photographed fed in its own scenes: a contribution scene carries only the contribution's OWN topics, so the catalogue it reads does not reach it here](docs/assets/programs-screen--default.png)
+
+![Two years of a career the game keeps and never shows: RP-1's own log has an export button and no reader](docs/assets/career-history--default.png)
+
+![The same widget at its minimum size](docs/assets/career-history--min.png)
+
+![The same widget at 9 × 8](docs/assets/career-history--mobile-9x8.png)
+
+![The same widget at 5 × 18](docs/assets/career-history--portrait-5x18.png)
+
+![The same widget at 18 × 5](docs/assets/career-history--landscape-18x5.png)
+
+![A failure beside the launch it happened on, joined by their shared launch id. NOTHING WRITES THIS TODAY](docs/assets/failure-joined-to-its-launch--default.png)
+
+![The same widget at its minimum size](docs/assets/failure-joined-to-its-launch--min.png)
+
+![The same widget at 9 × 8](docs/assets/failure-joined-to-its-launch--mobile-9x8.png)
+
+![The same widget at 5 × 18](docs/assets/failure-joined-to-its-launch--portrait-5x18.png)
+
+![The same widget at 18 × 5](docs/assets/failure-joined-to-its-launch--landscape-18x5.png)
+
+![RP-1 is running and its log handler has not spoken: whether anything happened is unknown](docs/assets/handler-silent--default.png)
+
+![The same widget at its minimum size](docs/assets/handler-silent--min.png)
+
+![The same widget at 9 × 8](docs/assets/handler-silent--mobile-9x8.png)
+
+![The same widget at 5 × 18](docs/assets/handler-silent--portrait-5x18.png)
+
+![The same widget at 18 × 5](docs/assets/handler-silent--landscape-18x5.png)
+
+![Career logging is off in this save: not an empty history, and the log says which](docs/assets/logging-switched-off--default.png)
+
+![The same widget at its minimum size](docs/assets/logging-switched-off--min.png)
+
+![The same widget at 9 × 8](docs/assets/logging-switched-off--mobile-9x8.png)
+
+![The same widget at 5 × 18](docs/assets/logging-switched-off--portrait-5x18.png)
+
+![The same widget at 18 × 5](docs/assets/logging-switched-off--landscape-18x5.png)
+
+![A brand new career: recording, and nothing has happened yet](docs/assets/recording-nothing-yet--default.png)
+
+![The same widget at its minimum size](docs/assets/recording-nothing-yet--min.png)
+
+![The same widget at 9 × 8](docs/assets/recording-nothing-yet--mobile-9x8.png)
+
+![The same widget at 5 × 18](docs/assets/recording-nothing-yet--portrait-5x18.png)
+
+![The same widget at 18 × 5](docs/assets/recording-nothing-yet--landscape-18x5.png)
 

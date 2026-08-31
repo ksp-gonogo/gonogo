@@ -1,0 +1,23 @@
+{
+  "_meta": {
+    "notes": "Distinct from switched off and from quiet. Reached by RP-1 being present with the channel silent, which is also what an incomplete payload produces: a reading that arrives without saying whether the log is being kept is unreadable rather than recording."
+  },
+  "_scene": {
+    "contribution": "rp1:rp1-career-log",
+    "host": "mission-event-log",
+    "caption": "RP-1 is running and its log handler has not spoken: whether anything happened is unknown"
+  },
+  "_stream": {
+    "pinnedUt": 5000000,
+    "emits": [
+      {
+        "topic": "rp1.available",
+        "payload": true
+      },
+      {
+        "topic": "rp1.careerEvents",
+        "payload": {}
+      }
+    ]
+  }
+}

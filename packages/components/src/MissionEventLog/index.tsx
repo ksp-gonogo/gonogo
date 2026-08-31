@@ -217,23 +217,33 @@ function EventRow({
       <Truncate>
         <Stamp ut={row.ut} launchUt={launchUt} /> · {row.label}
         {row.detail ? ` · ${row.detail}` : ""}
-        {row.amount ? (
-          <>
-            {" · "}
-            {/* Minted here rather than carried, because a contributed row is a
-                magnitude and a unit: `Unit` is the app's only quantity
-                renderer, so the figure has to become a real value on this side
-                of the boundary rather than arrive pre-formatted. */}
-            <Unit
-              value={value(row.amount.unit, row.amount.magnitude)}
-              decimals={0}
-            />
-          </>
-        ) : null}
-        {row.groupTag ? (
-          <Text tone="faint" spaced>{`⟨${row.groupTag}⟩`}</Text>
-        ) : null}
       </Truncate>
+      {/* Pinned beside the figure rather than trailing the label, for the same
+          reason and found the same way. The marker is the whole point of a
+          shared group, and inside the truncating text it was the first thing
+          cut: a render of a failure paired with its launch clipped BOTH rows'
+          markers, so the one row that needed the join could not show it. Its
+          own unit test passed throughout, because the assertion reads the
+          string and not whether it is on screen. */}
+      {row.groupTag ? <Text tone="faint">{`⟨${row.groupTag}⟩`}</Text> : null}
+      {/* OUTSIDE the truncating text, and a render is what settled it. Inside,
+          the figure sits last on a nowrap line and is the first thing clipped:
+          every size of an eight-row history cut "25,000f" and "13 rep" off the
+          end, so the widget drew a number nobody could read. A figure is short
+          and fixed-width while a label is neither, so the label is what should
+          give way. The badge is already pinned on the left for the same
+          reason.
+
+          Minted here rather than carried: a contributed row is a magnitude and
+          a unit, and `Unit` is the app's only quantity renderer, so the figure
+          becomes a real value on this side of the boundary rather than arriving
+          pre-formatted. */}
+      {row.amount ? (
+        <Unit
+          value={value(row.amount.unit, row.amount.magnitude)}
+          decimals={0}
+        />
+      ) : null}
     </Inline>
   );
 }
