@@ -25,6 +25,7 @@ import {
   type CommandButtonHandle,
   NULL_DISPLAY,
   Panel,
+  ReadoutCaption,
   Spinner,
   Unit,
   useCommandButton,
@@ -1011,11 +1012,19 @@ function PadSection({
                           })}
                         </ShipList>
 
-                        {ship && crew && (
+                        {ship && (
                           <>
                             <SectionLabel>Crew</SectionLabel>
+                            {/* The roster's own absence, said out loud: it used
+                                to remove this section and the launch controls
+                                with it. */}
+                            {crew === null && (
+                              <ReadoutCaption>
+                                Roster {NULL_DISPLAY} no reading
+                              </ReadoutCaption>
+                            )}
                             <CrewGrid>
-                              {crew.map((k) => (
+                              {(crew ?? []).map((k) => (
                                 <CrewChip
                                   key={k.name}
                                   type="button"
