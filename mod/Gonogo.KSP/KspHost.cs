@@ -2802,10 +2802,37 @@ namespace Gonogo.KSP
         /// </summary>
         private static Dictionary<string, object?> BuildRevertAvailability()
         {
+            /*
+             * Each button has MORE than one gate, and we published one apiece.
+             * `drawStockRevertOptions` shows Revert to Launch on
+             * CanRevertToPostInit AND GameParameters.Flight.CanRestart, and
+             * Revert to VAB/SPH on CanRevertToPrelaunch AND
+             * GameParameters.Flight.CanLeaveToEditor AND a non-null
+             * ShipConstruction.ShipConfig.
+             *
+             * Publishing only the FlightDriver half lit both controls on a save
+             * with reverting switched off, which is a standard hard-mode preset,
+             * and after any scene reload that leaves ShipConfig null. The game
+             * drew no such button. A control offered where the game has none is
+             * the wrong-positive shape: it fails at the press, having invited it.
+             *
+             * The difficulty flags are folded into the verdict rather than
+             * published beside it, deliberately and for now: the wire shape is
+             * pinned to RevertAvailability by a contract test, and "this save
+             * disallows reverting" belongs with the rest of the difficulty rules
+             * rather than as one field smuggled in here. That block is its own
+             * tracked gap.
+             */
+            var flight = HighLogic.CurrentGame?.Parameters?.Flight;
+            var canRestart = flight?.CanRestart ?? true;
+            var canLeaveToEditor = flight?.CanLeaveToEditor ?? true;
+            var haveShipConfig = ShipConstruction.ShipConfig != null;
+
             return new Dictionary<string, object?>
             {
-                ["canRevertToEditor"] = FlightDriver.CanRevertToPrelaunch,
-                ["canRevertToLaunch"] = FlightDriver.CanRevertToPostInit,
+                ["canRevertToEditor"] =
+                    FlightDriver.CanRevertToPrelaunch && canLeaveToEditor && haveShipConfig,
+                ["canRevertToLaunch"] = FlightDriver.CanRevertToPostInit && canRestart,
             };
         }
 
