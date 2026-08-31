@@ -68,35 +68,6 @@ export interface PrincipiaRatioInterval
 	min?: Value<"1">;
 	max?: Value<"1">;
 }
-export interface PrincipiaFlightPlan
-{
-	vesselId?: string;
-	observedAtUt?: Value<"ut">;
-	planExists?: boolean;
-	finalTimeUt?: Value<"ut">;
-	reachedDeadline?: boolean;
-	planIntegrated?: boolean;
-	statusError?: number;
-	statusMessage?: string;
-	firstErrorBurnIndex?: Value<"count">;
-	firstFutureBurnIndex?: Value<"count">;
-	anomalousBurnCount?: Value<"count">;
-	burns?: PrincipiaFlightPlanBurn[];
-}
-export interface PrincipiaFlightPlanBurn
-{
-	index?: Value<"count">;
-	ignitionUt?: Value<"ut">;
-	cutoffUt?: Value<"ut">;
-	durationSeconds?: Value<"s">;
-	deltaV?: Value<"m/s">;
-	thrustKilonewtons?: Value<"kN">;
-	specificImpulseSeconds?: Value<"isp">;
-	initialMassTons?: Value<"t">;
-	inertiallyFixed?: boolean;
-	coordinateSystem?: number;
-	anomalous?: boolean;
-}
 export interface PrincipiaReferenceFrame
 {
 	selector?: string;
@@ -172,6 +143,11 @@ export interface PrincipiaPlan
 	desiredFinalTimeUt?: Value<"ut">;
 	actualFinalTimeUt?: Value<"ut">;
 	anomalousBurnCount?: Value<"count">;
+	planIntegrated?: boolean;
+	statusError?: number;
+	statusMessage?: string;
+	reachedDeadline?: boolean;
+	firstFutureBurnIndex?: Value<"count">;
 	optimisationRunning?: boolean;
 	integrator?: PrincipiaPlanIntegrator;
 	burns?: PrincipiaPlannedBurn[];

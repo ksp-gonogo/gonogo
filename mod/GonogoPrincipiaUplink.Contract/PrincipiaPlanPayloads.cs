@@ -9,16 +9,21 @@ namespace GonogoPrincipiaUplink;
 /// The <c>principia.plan</c> channel: the selected flight plan as the PLUGIN
 /// answers it, this tick, complete enough to tune a burn against.
 ///
-/// <para><b>Why this is not <c>principia.flightPlan</c>.</b> That channel is a
-/// reflection of the producer's own planner window: it cannot abort, it survives
-/// a burn whose manœuvring frame we refuse to read, and it is stamped with the
-/// instant the window last drew. This one asks the plugin directly, so it is
-/// true now rather than whenever-someone-last-looked, and it carries the whole
-/// planned profile (the Δv triple, the mass flow, the frame of each burn) that
-/// the window's fields do not expose. It is also the riskier read of the two:
-/// materialising a plan is a frame spike, and one native call on this path
-/// aborts on a burn frame the producer does not handle. Both channels exist
-/// because neither is a superset of the other.</para>
+/// <para><b>This channel used to have a twin, and the twin is gone.</b>
+/// <c>principia.flightPlan</c> mirrored the producer's own planner WINDOW, and
+/// the fields it read refresh only while that window renders. So it answered
+/// only when the player happened to have that panel open, which is not a
+/// property a telemetry channel may have, whatever its doc comment says. It was
+/// deleted rather than reduced: a channel whose availability is the player's
+/// panel state is still that channel with fewer fields on it.</para>
+///
+/// <para>Everything it carried is here. The burn shape was already a strict
+/// superset, and its five remaining facts now come from the plugin: the
+/// integration status below, and <see cref="FirstFutureBurnIndex"/>. Its sixth,
+/// a first-error burn index, is NOT here and is not a loss: the window's field
+/// held the index of the control the player last edited when an error came back,
+/// cleared on the next render. It described an interaction, not a plan, and the
+/// plan-level fact a client wants is <see cref="AnomalousBurnCount"/>.</para>
 ///
 /// <para><b>Absence is not silence here either.</b> No sample at all means no
 /// plugin, no vessel or no session. <see cref="PlanExists"/> false is a positive
@@ -85,6 +90,57 @@ public sealed class PrincipiaPlan
     /// that rule.</summary>
     [SitrepUnit(Units.Count)]
     public int? AnomalousBurnCount { get; set; }
+
+    /// <summary>
+    /// Whether the plan integrated: true observed OK, false observed failed,
+    /// <b>null when the status could not be read at all</b>.
+    ///
+    /// <para>The third state is the point. Collapsing an unreadable status into
+    /// "integrated" would report health from a failed read, and a plan whose
+    /// status we cannot see is a plan we cannot vouch for.</para>
+    ///
+    /// <para>The plugin's own answer for the PLAN, asked each tick. Its planner
+    /// window keeps a different thing under a similar name: the status of the
+    /// last edit the player made in that panel, which it clears once it has
+    /// shown it.</para>
+    /// </summary>
+    [SitrepUnit(Units.Flag)]
+    public bool? PlanIntegrated { get; set; }
+
+    /// <summary>The integrator's own error code, when
+    /// <see cref="PlanIntegrated"/> is false. Passed through rather than mapped:
+    /// the codes are the producer's vocabulary.</summary>
+    [SitrepUnit(Units.Enumeration)]
+    public int? StatusError { get; set; }
+
+    /// <summary>The integrator's own message for a failed plan, passed through
+    /// as it stands. The producer's window composes localised prose on top of
+    /// this; the raw message is what travels.</summary>
+    [SitrepUnit(Units.Text)]
+    public string? StatusMessage { get; set; }
+
+    /// <summary>
+    /// True when the integrator hit its time limit before reaching the desired
+    /// final time. The remedy is a larger step budget or a nearer end, and
+    /// <see cref="Integrator"/> carries the budget.
+    ///
+    /// <para>One of the producer's error codes rather than a separate flag on its
+    /// side, so this is <see cref="StatusError"/> read through the producer's own
+    /// predicate rather than compared against a number here.</para>
+    /// </summary>
+    [SitrepUnit(Units.Flag)]
+    public bool? ReachedDeadline { get; set; }
+
+    /// <summary>
+    /// Index into <see cref="Burns"/> of the next burn still ahead of the sample
+    /// instant, or absent when every burn is behind it.
+    ///
+    /// <para>Derivable from the burns' own cutoffs and published anyway, because
+    /// it is the rule the producer's own panel applies and no two clients should
+    /// have to agree on it independently.</para>
+    /// </summary>
+    [SitrepUnit(Units.Count)]
+    public int? FirstFutureBurnIndex { get; set; }
 
     /// <summary>
     /// True when the producer's own optimiser is mid-run on this plan.

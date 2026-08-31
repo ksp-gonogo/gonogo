@@ -5,7 +5,6 @@ import {
 } from "@ksp-gonogo/sitrep-sdk";
 import type {
   PrincipiaAnalysis,
-  PrincipiaFlightPlan,
   PrincipiaPlan,
   PrincipiaSettings,
 } from "./__generated__/contract";
@@ -18,14 +17,12 @@ import {
 
 declare module "@ksp-gonogo/sitrep-sdk" {
   interface TopicPayloadMap {
-    "principia.flightPlan": PrincipiaFlightPlan;
     "principia.plan": PrincipiaPlan;
     "principia.settings": PrincipiaSettings;
     "principia.analysis": PrincipiaAnalysis;
   }
 }
 
-registerBarePrimitiveTopic("principia.flightPlan");
 registerBarePrimitiveTopic("principia.plan");
 registerBarePrimitiveTopic("principia.settings");
 registerBarePrimitiveTopic("principia.analysis");
@@ -35,7 +32,6 @@ registerBarePrimitiveTopic("principia.analysis");
 // instant and Δv on the payload arrives as a bare number while the type still
 // says `Value<"ut">`, which is the kind of disagreement nothing fails on.
 for (const topic of [
-  "principia.flightPlan",
   "principia.plan",
   "principia.settings",
   "principia.analysis",
@@ -47,7 +43,7 @@ for (const topic of [
   );
 }
 
-// The TYPE-keyed half, and it is not optional here: `principia.flightPlan`
+// The TYPE-keyed half, and it is not optional here: `principia.plan`
 // nests, so `wrapTopicPayload` learns from the topic's shape map that `burns`
 // holds another type and then resolves that type BY NAME through the type-keyed
 // registry. Registering only the topic left every burn's Δv and duration arriving

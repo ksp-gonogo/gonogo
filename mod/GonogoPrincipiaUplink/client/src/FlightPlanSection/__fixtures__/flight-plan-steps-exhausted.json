@@ -7,7 +7,11 @@
       "h": 14
     },
     "paints": ["INTEGRATION FAILED", "MAX STEPS"],
-    "before": [{ "press": "Increase Max integration steps per segment" }]
+    "before": [
+      {
+        "press": "Increase Max integration steps per segment"
+      }
+    ]
   },
   "_stream": {
     "pinnedUt": 1000000,
@@ -19,40 +23,6 @@
           "name": "Ares IV",
           "vesselType": 0,
           "situation": 0
-        }
-      },
-      {
-        "topic": "principia.flightPlan",
-        "payload": {
-          "vesselId": "Ares-IV",
-          "observedAtUt": 1000000,
-          "planExists": true,
-          "reachedDeadline": false,
-          "planIntegrated": false,
-          "statusError": 8,
-          "statusMessage": "max steps reached",
-          "firstErrorBurnIndex": 1,
-          "anomalousBurnCount": 1,
-          "firstFutureBurnIndex": 1,
-          "finalTimeUt": 1144000,
-          "burns": [
-            {
-              "index": 0,
-              "ignitionUt": 992800,
-              "cutoffUt": 992896,
-              "durationSeconds": 96,
-              "deltaV": 842.7,
-              "anomalous": false
-            },
-            {
-              "index": 1,
-              "ignitionUt": 1001320,
-              "cutoffUt": 1001463,
-              "durationSeconds": 143,
-              "deltaV": 1204.3,
-              "anomalous": true
-            }
-          ]
         }
       },
       {
@@ -75,7 +45,12 @@
             "integratorKind": 1,
             "generalizedIntegratorKind": 2
           },
-          "burns": []
+          "burns": [],
+          "reachedDeadline": false,
+          "planIntegrated": false,
+          "statusError": 8,
+          "statusMessage": "max steps reached",
+          "firstFutureBurnIndex": 1
         }
       }
     ]

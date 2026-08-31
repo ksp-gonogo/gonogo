@@ -125,8 +125,8 @@ async function bootUplinksAndRender(): Promise<void> {
     // One augment and one Topic registration, no widget of its own: the flight
     // plan appears as a section inside the maneuver planner. Static like the
     // three above because this Uplink ships with the mod, and unconditional
-    // because a station has to know `principia.flightPlan` is a Topic to read
-    // it off the host at all.
+    // because a station has to know `principia.plan` is a Topic to read it off
+    // the host at all.
     import("@ksp-gonogo/gonogo-principia-uplink"),
     // Bundled IN the core mod DLL (Gonogo.KSP.BreakingGroundUplink, like
     // PartsUplink/VesselUplink), so its client rides the same "no

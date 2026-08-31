@@ -10,7 +10,7 @@
        process on a bad call, but that guard is armed against the ARGUMENTS a
        caller passes it, and a field read passes none. The one property on the
        burn editor that does cross the ABI is named and excluded in
-       FlightPlanReflection's doc comment. -->
+       ReflectedMembers' doc comment. -->
   <PropertyGroup>
     <PackageLicenseExpression>MIT</PackageLicenseExpression>
     <TargetFramework>net48</TargetFramework>
@@ -25,25 +25,23 @@
     <CopyLocalLockFileAssemblies>true</CopyLocalLockFileAssemblies>
   </PropertyGroup>
 
-  <!-- KSP + Harmony, added for the flight-plan observer, and the previous note
-       here asked that the reason be recorded rather than the references added
-       speculatively. It is this:
+  <!-- KSP + Harmony, and the reason is recorded rather than the references left
+       to look speculative. It is this:
 
-       - Planetarium, for the UT to stamp an observation with. The whole channel
-         turns on knowing WHEN a plan was seen, and there is no honest substitute:
-         a plan stamped at publish time rather than observation time would make
-         every stale plan look fresh.
        - Debug, because a warning written to Console.Error from inside the host is
          invisible in the game's log.
-       - 0Harmony, for the two observe-only postfixes on the planner's render.
-         Polling is not an option here; see FlightPlannerHook's doc comment.
+       - 0Harmony, for AccessTools.TypeByName ONLY. This Uplink patches nothing.
+         It used to: two observe-only postfixes on the producer's planner render
+         fed a channel that mirrored that window, and they went with it, because a
+         channel that answers only while the player has a panel open is not a
+         channel. Nothing here may add a patch back without a better reason than
+         that one turned out to be.
 
        The property worth preserving is that the PURE half stays reference-free:
-       FlightPlanObservation, FlightPlanBuilder and FlightPlanReflection touch no
-       KSP or Harmony type, so the payload logic and the reflection walk are
-       tested headless. Only FlightPlannerHook needs the game, and it holds
-       nothing but the attach and the latch. Keep it that way: logic that migrates
-       into the hook stops being testable. -->
+       the observation types, the readers and the builders touch no KSP or Harmony
+       type, so the payload logic and the reflection walks are tested headless.
+       Keep it that way: logic that migrates into a game-facing file stops being
+       testable. -->
   <PropertyGroup>
     <!-- KspGameData: root of an installed GameData tree, for 0Harmony.dll (that
          reference DLL lives in an installed mod's own folder, not the portable
@@ -79,8 +77,8 @@
        deployed. Sitrep.Contract is provided at runtime by gonogo-core's own
        Plugins folder, so Private="false" keeps it out of this project's output.
        GonogoPrincipiaUplink.Contract is the opposite case: it holds THIS
-       Uplink's wire payloads (PrincipiaPlan, PrincipiaFlightPlan,
-       PrincipiaSettings and the args types), nothing else in the mod ships it,
+       Uplink's wire payloads (PrincipiaPlan, PrincipiaSettings, the analysis
+       shapes and the args types), nothing else in the mod ships it,
        and PlanReader / PrincipiaFrame / PrincipiaSession bind those types at
        compile time. Marked Private="false" it never reached bin/Release, so
        there was nothing for a deploy to copy and KSP would have dropped the

@@ -49,14 +49,6 @@ namespace GonogoPrincipiaUplink
             _planCommands = new PlanCommands(() => _settings, () => _lastSettings);
         }
 
-        /// <summary>Test seam: the observer injected too, so the publish rule is
-        /// provable against a scripted sequence of observations.</summary>
-        internal PrincipiaUplink(PrincipiaGuardResult guard, IFlightPlanObserver observer)
-            : this(guard)
-        {
-            _observer = observer;
-        }
-
         /// <summary>Test seam for the settings half, same reasoning.</summary>
         internal PrincipiaUplink(PrincipiaGuardResult guard, ISettingsSource settings)
             : this(guard)
@@ -72,12 +64,9 @@ namespace GonogoPrincipiaUplink
             _gravityModel = gravityModel;
         }
 
-        public const string FlightPlanTopic = "principia.flightPlan";
         public const string SettingsTopic = "principia.settings";
         public const string PlanTopic = "principia.plan";
         public const string AnalysisTopic = "principia.analysis";
-
-        private IFlightPlanObserver? _observer;
 
         /// <summary>
         /// The host, kept so a Courier-thread handle can ask what is subscribed
@@ -90,7 +79,6 @@ namespace GonogoPrincipiaUplink
         private ISettingsSource? _settings;
         private readonly SettingsReflection _settingsReader = new SettingsReflection();
         private readonly NativeSettingsReader _nativeSettingsReader = new NativeSettingsReader();
-        private IChannelPublisher? _flightPlan;
         private IChannelPublisher? _settingsPublisher;
         private IChannelPublisher? _planPublisher;
         private IChannelPublisher? _analysisPublisher;
@@ -124,7 +112,6 @@ namespace GonogoPrincipiaUplink
         /// because it is polled on every sample and never changes.</summary>
         private readonly PrincipiaBinaryHealth _detecting;
         private readonly PlanReader _planReader = new PlanReader();
-        private double _publishedAtUt = double.NegativeInfinity;
 
         /// <summary>
         /// The write half, reading its session from the same seam the settings
@@ -140,14 +127,7 @@ namespace GonogoPrincipiaUplink
             Version = "1.0.0",
             Channels = new List<ChannelDeclaration>
             {
-                new ChannelDeclaration
-                {
-                    Topic = FlightPlanTopic,
-                    Delivery = Delivery.LossyLatest,
-                    Delay = DelayRole.Delayed,
-                    Emission = new EmissionPolicy(keyframeIntervalUt: 30, quantum: EmissionQuantum.Absolute(0)),
-                },
-                // TrueNow, unlike the flight plan beside it, and the difference is
+                // TrueNow, unlike the plan beside it, and the difference is
                 // real rather than an oversight. These are the operator's own
                 // settings and the producer's local configuration: ground-side
                 // facts about how the numbers are being computed, not observations
@@ -233,10 +213,7 @@ namespace GonogoPrincipiaUplink
             RegisterControlFrame(host);
             RegisterManeuverPlan(host);
             AttachObserver();
-            _observer?.TryAttach();
             _settings?.TryAttach();
-            _flightPlan = host.Publisher(FlightPlanTopic);
-            host.AddSampledSource(CaptureOnMain, HandleOnCourier, FlightPlanTopic);
             _settingsPublisher = host.Publisher(SettingsTopic);
             // Read on EVERY tick, whatever is subscribed, because the control frame
             // is derived from this same observation rather than from the settings
@@ -539,48 +516,6 @@ namespace GonogoPrincipiaUplink
                 AnalysisBuilder.Build(observation), observation.SampledAtUt);
         }
 
-        /// <summary>
-        /// MAIN-THREAD capture: hands over the latched observation, but only once
-        /// per observation.
-        ///
-        /// <para>Null until the planner has been rendered at least once, and null
-        /// again on every tick that adds nothing new. That silence is deliberate and
-        /// it is the honest shape: an unobserved plan produces NO sample, so a client
-        /// reads "not observed" rather than a fabricated empty plan. Republishing an
-        /// unchanged observation every tick would instead assert it afresh at each
-        /// new instant, which is the one thing a stamped observation must never
-        /// do.</para>
-        /// </summary>
-        internal object? CaptureOnMain(KspSnapshot? snapshot)
-        {
-            var latest = _observer?.Latest;
-            if (latest == null || latest.ObservedAtUt <= _publishedAtUt)
-            {
-                return null;
-            }
-            _publishedAtUt = latest.ObservedAtUt;
-            return latest;
-        }
-
-        /// <summary>
-        /// COURIER-THREAD handle: publishes the plan AT THE INSTANT IT WAS OBSERVED,
-        /// not at the current one.
-        ///
-        /// <para>That is the whole reason this channel is trustworthy. A sample
-        /// stamped with its observation UT ages itself through the ordinary timeline
-        /// machinery, so a plan last seen six hours ago arrives at a client as a
-        /// six-hour-old sample and reads as stale with no special case anywhere.
-        /// Stamping it "now" would make every stale plan look fresh, which is
-        /// precisely the failure the hook exists to avoid.</para>
-        /// </summary>
-        internal void HandleOnCourier(object? captured)
-        {
-            if (captured is not FlightPlanObservation observation)
-            {
-                return;
-            }
-            _flightPlan?.Publish(FlightPlanBuilder.Build(observation), observation.ObservedAtUt);
-        }
 
         /// <summary>
         /// MAIN-THREAD capture: reads every setting this tick, or says why it did
@@ -810,8 +745,8 @@ namespace GonogoPrincipiaUplink
         /// <summary>Test seam: the source injected, so registration is provable with no game.</summary>
         private IGravityModelSource? _gravityModel;
 
-        /// <summary>Sets <c>_observer</c> to the real hook. Implemented only in the
-        /// game-facing partial, so a headless build has no observer and says so by
+        /// <summary>Attaches the game-facing settings source. Implemented only in
+        /// the game-facing partial, so a headless build has none and says so by
         /// publishing nothing.</summary>
         partial void AttachObserver();
 

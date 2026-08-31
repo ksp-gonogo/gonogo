@@ -259,10 +259,18 @@ namespace GonogoPrincipiaUplink.Tests
             return 8000.0;
         }
 
+        /// <summary>
+        /// What the plugin answers about the plan's integration. Defaults to a
+        /// healthy status rather than to null, because that is the ordinary case and
+        /// a fake whose default is "unreadable" would let a reader that never asks
+        /// pass every test.
+        /// </summary>
+        public object? PlanStatus = FakeStatus.Ok();
+
         public object? FlightPlanGetAnomalousStatus(IntPtr plugin, string vesselGuid)
         {
             Plan("FlightPlanGetAnomalousStatus", plugin, vesselGuid);
-            return "status";
+            return PlanStatus;
         }
 
         public object? FlightPlanGetAdaptiveStepParameters(IntPtr plugin, string vesselGuid)
