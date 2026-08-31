@@ -26,8 +26,8 @@
               },
               "kind": "launch",
               "name": "Aerobee-A",
-              "detail": "VAB",
-              "launchId": "L-3"
+              "launchId": "L-3",
+              "builtAt": "VAB"
             },
             {
               "ut": {

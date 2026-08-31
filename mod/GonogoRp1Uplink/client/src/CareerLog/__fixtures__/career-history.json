@@ -52,8 +52,8 @@
               },
               "kind": "launch",
               "name": "Aerobee-A",
-              "detail": "VAB",
-              "launchId": "L-3"
+              "launchId": "L-3",
+              "builtAt": "VAB"
             },
             {
               "ut": {
@@ -96,8 +96,8 @@
               },
               "kind": "launch",
               "name": "Vanguard-1",
-              "detail": "SPH",
-              "launchId": "L-9"
+              "launchId": "L-9",
+              "builtAt": "SPH"
             }
           ]
         }

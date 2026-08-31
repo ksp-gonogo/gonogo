@@ -212,9 +212,9 @@ describe("MissionEventLog: the source contribution slot", () => {
     });
     renderLog();
 
-    // The grouped form is the proof: a contributor handing over a bare 25000
-    // could not produce it, and hand-formatting in the Uplink is exactly what
-    // the typed channel exists to prevent.
+    /* The grouped form is the proof: a contributor handing over a bare 25000
+       could not produce it, and hand-formatting in the Uplink is exactly what
+       the typed channel exists to prevent. */
     expect(await screen.findByText(/25,000/)).toBeInTheDocument();
   });
 });
