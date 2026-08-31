@@ -53,7 +53,9 @@ describe("LaunchDirector: genuinely runs off the stream", () => {
     render(
       <fixture.Provider>
         <DashboardItemContext.Provider value={{ instanceId: "ld-stream" }}>
-          <LaunchDirectorComponent id="ld-stream" w={7} h={9} />
+          {/* 18 rows: this leg asserts the crew ROSTER arrived, and the grid
+              only stands open on a tile tall enough to hold it. */}
+          <LaunchDirectorComponent id="ld-stream" w={7} h={18} />
         </DashboardItemContext.Provider>
       </fixture.Provider>,
     );

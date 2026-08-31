@@ -171,11 +171,12 @@ describe("LaunchDirectorComponent", () => {
     teardownMockDataSource(cmdFixture);
   });
 
-  function renderWidget(id = "ld") {
+  /** Tall by default so the crew grid stands open; see the note in crew.test.tsx. */
+  function renderWidget(id = "ld", h = 18) {
     return render(
       <stream.Provider>
         <DashboardItemContext.Provider value={{ instanceId: id }}>
-          <LaunchDirectorComponent id={id} />
+          <LaunchDirectorComponent id={id} h={h} />
         </DashboardItemContext.Provider>
       </stream.Provider>,
     );

@@ -69,7 +69,7 @@ describe("LaunchDirector: stream render golden (delay=0)", () => {
     // separate elements now, so this matches the bare number and asserts the
     // announced text on the element itself.
     expect(scope.getByText("Mun Hopper I")).toBeTruthy();
-    expect(scope.getByText("180000").textContent).toBe("180000f funds");
+    expect(scope.getByText("180,000").textContent).toBe("180,000f funds");
     expect(scope.getByText(/Craft · 1\/2 ready/)).toBeTruthy();
 
     // The spaceplane belongs to the runway, and is offered there rather than on

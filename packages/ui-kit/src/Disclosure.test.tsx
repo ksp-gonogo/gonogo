@@ -19,6 +19,22 @@ describe("Disclosure", () => {
     expect(screen.getByText("4.5 s one-way")).toBeInTheDocument();
   });
 
+  it("starts expanded under defaultOpen, and still closes", () => {
+    render(
+      <Disclosure label="Crew" defaultOpen>
+        <span>7 aboard</span>
+      </Disclosure>,
+    );
+    const trigger = screen.getByRole("button", { name: "Crew" });
+    expect(trigger).toHaveAttribute("aria-expanded", "true");
+    expect(screen.getByText("7 aboard")).toBeInTheDocument();
+
+    // Open at mount is a starting POSITION, not a lock: a caller that opens a
+    // section because the tile is tall still has to let the reader fold it.
+    fireEvent.click(trigger);
+    expect(screen.queryByText("7 aboard")).toBeNull();
+  });
+
   it("closes on Escape and returns focus to the trigger", () => {
     render(
       <Disclosure label="Delay">
