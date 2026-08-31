@@ -59,6 +59,8 @@ namespace GonogoRp1Uplink
         public const string TrainingTopic = "rp1.training";
         public const string TrainingCatalogueTopic = "rp1.trainingCatalogue";
         public const string ToolingTopic = "rp1.tooling";
+        public const string BuildCostTopic = "rp1.buildCost";
+        public const string CareerEventsTopic = "rp1.careerEvents";
 
         /// <summary>
         /// Rows published per second across every rp1.* channel. One capture per
@@ -118,6 +120,14 @@ namespace GonogoRp1Uplink
         /// designed, and it answers nothing at all from anywhere else.
         /// </summary>
         private readonly Rp1ToolingReflection _tooling = new Rp1ToolingReflection();
+
+        /// <summary>
+        /// The career's own record of what has happened. Its own reader because it
+        /// is the one channel here that is neither the space centre nor the editor
+        /// ship: it is history, and it is read at the cadence somebody opens a log
+        /// rather than at the cadence anything changes.
+        /// </summary>
+        private readonly Rp1CareerCostReflection _careerLog = new Rp1CareerCostReflection();
 
         /// <summary>
         /// RP-1's answer to whether a kerbal off the flight roster is dead, offered
@@ -335,6 +345,8 @@ namespace GonogoRp1Uplink
         private IChannelPublisher? _training;
         private IChannelPublisher? _trainingCatalogue;
         private IChannelPublisher? _toolingPublisher;
+        private IChannelPublisher? _buildCost;
+        private IChannelPublisher? _careerEvents;
 
         /// <summary>
         /// Whether RP-1 is managing this save, asked fresh rather than remembered
@@ -463,6 +475,17 @@ namespace GonogoRp1Uplink
                 // only honest answer, and absenceIsData is what tells a client that
                 // the silence is the answer rather than a wait.
                 Ground(ToolingTopic, absenceIsData: true),
+                // Same scene and the same absence as the tooling channel beside it:
+                // no vehicle being designed means no breakdown, and a payload of
+                // zeros would read as a vehicle that costs nothing to fly.
+                Ground(BuildCostTopic, absenceIsData: true),
+                // Absence here is a THIRD state and the field says which of the
+                // other two applies. Nothing at all means RP-1's log handler could
+                // not be read; `enabled: false` means the career is not keeping a
+                // log and never will; enabled with no rows means it is keeping one
+                // and nothing has happened yet. A client shown only the rows could
+                // not tell a quiet career from an unrecorded one.
+                Ground(CareerEventsTopic, absenceIsData: true),
             },
             // Delayed: false, the same disposition every ground-side career write
             // takes and for the same reason core's own nine give: light-time is
@@ -1078,6 +1101,8 @@ namespace GonogoRp1Uplink
             _training = host.Publisher(TrainingTopic);
             _trainingCatalogue = host.Publisher(TrainingCatalogueTopic);
             _toolingPublisher = host.Publisher(ToolingTopic);
+            _buildCost = host.Publisher(BuildCostTopic);
+            _careerEvents = host.Publisher(CareerEventsTopic);
 
             host.AddSampledSource(
                 CaptureOnMain,
@@ -1148,7 +1173,19 @@ namespace GonogoRp1Uplink
             host.AddSampledSource(
                 CaptureToolingOnMain,
                 HandleToolingOnCourier,
-                ToolingTopic);
+                ToolingTopic,
+                // The funds breakdown rides the SAME capture, because its
+                // "of which" line is the sum of the tooling rows and two walks
+                // could disagree about one vehicle inside a tick.
+                BuildCostTopic);
+
+            // Gated on its own topic, and its own capture because it is the one
+            // reading here that is neither the space centre nor the editor ship.
+            // Whole effect is its return value, so gating starves nothing.
+            host.AddSampledSource(
+                CaptureCareerEventsOnMain,
+                HandleCareerEventsOnCourier,
+                CareerEventsTopic);
 
             // UNGATED, and the two captures above say why by contrast: their whole
             // effect is their return value, and this one's is not. It feeds the
@@ -1336,6 +1373,20 @@ namespace GonogoRp1Uplink
             var payload = Rp1ToolingCapture.Build(raw);
             Rp1RowBudget.Record(raw?.Parts.Count ?? 0, raw?.Ut ?? 0.0);
             _toolingPublisher?.Publish(payload, raw?.Ut ?? 0.0);
+            _buildCost?.Publish(
+                Rp1CareerCostCapture.BuildCost(raw?.BuildCost), raw?.Ut ?? 0.0);
+        }
+
+        /// <summary>MAIN-THREAD capture: RP-1's career event log.</summary>
+        internal object? CaptureCareerEventsOnMain(KspSnapshot? snapshot) =>
+            _careerLog.IsLogAvailable ? _careerLog.ReadEvents(snapshot?.Ut ?? 0.0) : null;
+
+        /// <summary>COURIER-THREAD handle: map to a wire dict and publish. No game API.</summary>
+        internal void HandleCareerEventsOnCourier(object? captured)
+        {
+            var raw = captured as Rp1CareerEventsRaw;
+            Rp1RowBudget.Record(raw?.Events.Count ?? 0, raw?.Ut ?? 0.0);
+            _careerEvents?.Publish(Rp1CareerCostCapture.BuildEvents(raw), raw?.Ut ?? 0.0);
         }
 
         /// <summary>
@@ -1516,6 +1567,19 @@ namespace GonogoRp1Uplink
                           + (_toolingWrites.IsAvailable
                               ? "toolAll and refit registered"
                               : "commands not registered: ModuleTooling or ToolingPartResizer not found")),
+                // Named separately from the tooling row above because the two fail
+                // for different reasons and in different scenes: the breakdown is
+                // the editor vehicle, the log is the career's history.
+                new UplinkHealthFact(
+                    "build cost",
+                    _careerLog.IsCostAvailable
+                        ? "rp1.buildCost published, editor only"
+                        : "not published: RP-1 space-centre types not found"),
+                new UplinkHealthFact(
+                    "career log",
+                    _careerLog.IsLogAvailable
+                        ? "rp1.careerEvents published"
+                        : "not published: RP-1 CareerLog type not found"),
             };
 
             if (!_rp1.IsAvailable)

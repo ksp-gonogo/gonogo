@@ -15,8 +15,10 @@ Brings RP-1's career layer to the dashboard: Programs with their objectives, dea
 
 | Topic | Payload | Delivery | Delay |
 | --- | --- | --- | --- |
+| `rp1.buildCost` | `Rp1BuildCost` | lossy-latest | true-now |
 | `rp1.buildQueue` | `Rp1BuildItemEntry[]` | lossy-latest | true-now |
 | `rp1.buildable` | `Rp1BuildableCraftEntry[]` | lossy-latest | true-now |
+| `rp1.careerEvents` | `Rp1CareerEvents` | lossy-latest | true-now |
 | `rp1.centres` | `Rp1CentreEntry[]` | lossy-latest | true-now |
 | `rp1.complexes` | `Rp1ComplexEntry[]` | lossy-latest | true-now |
 | `rp1.confidence` | `Rp1Confidence` | lossy-latest | true-now |
@@ -43,6 +45,7 @@ Brings RP-1's career layer to the dashboard: Programs with their objectives, dea
 | `Rp1BuildableComplex` | `eligible` flag, `kscDisplayName` text, `kscName` id, `lcId` id, `name` text, `refusals` text |
 | `Rp1BuildRepeatArgs` | `id` id |
 | `Rp1BuildStartArgs` | `craftFile` id, `facility` enum, `lcId` id |
+| `Rp1CareerEventEntry` | `cost` funds, `detail` enum, `kind` enum, `launchId` id, `name` text, `part` id, `repChange` rep, `ut` ut |
 | `Rp1ComplexDismantleArgs` | `lcId` id |
 | `Rp1ComplexModifyArgs` | `assignEngineersOnComplete` flag, `humanRated` flag, `lcId` id, `massMax` t, `size` Rp1ComplexSizeArgs |
 | `Rp1ComplexNewArgs` | `assignEngineersOnComplete` flag, `humanRated` flag, `kscName` id, `massMax` t, `name` id, `size` Rp1ComplexSizeArgs |

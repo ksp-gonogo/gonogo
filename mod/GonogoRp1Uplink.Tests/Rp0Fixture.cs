@@ -1594,6 +1594,22 @@ namespace RP0
         /// </summary>
         public static double EditorToolingCosts;
 
+        /// <summary>Part entry costs on the editor vehicle the career has not paid.</summary>
+        public static double EditorUnlockCosts;
+
+        /// <summary>
+        /// Rolling the finished vehicle out. RP-1 computes it in the VAB only and
+        /// leaves it at ZERO for a spaceplane, which the reading turns into an
+        /// absence rather than a free rollout.
+        /// </summary>
+        public static double EditorRolloutCost;
+
+        /// <summary>Tech nodes the vehicle needs and the career has not researched.</summary>
+        public static List<string> EditorRequiredTechs = new List<string>();
+
+        /// <summary>The vehicle being designed, as RP-1's own project type.</summary>
+        public VesselProject? EditorVessel;
+
         public static SpaceCenterManagement? Instance { get; set; }
 
         public bool enabledForSave = true;

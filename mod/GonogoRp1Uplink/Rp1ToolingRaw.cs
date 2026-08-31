@@ -24,6 +24,16 @@ namespace GonogoRp1Uplink
         public double? ToolAllCost;
 
         public List<Rp1ToolingPartRaw> Parts = new List<Rp1ToolingPartRaw>();
+
+        /// <summary>
+        /// The funds breakdown for the same vehicle, read on the SAME walk.
+        ///
+        /// <para>Together rather than on a capture of its own because the untooled
+        /// surcharge on it is the sum of the rows above: two walks could disagree
+        /// about one vehicle within a tick, and a breakdown whose "of which" line
+        /// does not match the rows beside it is worse than either alone.</para>
+        /// </summary>
+        public Rp1BuildCostRaw? BuildCost;
     }
 
     /// <summary>One tooling module on one part of the editor ship.</summary>
