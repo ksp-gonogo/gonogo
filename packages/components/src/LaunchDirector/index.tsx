@@ -1982,7 +1982,7 @@ registerComponent<LaunchDirectorConfig>({
   id: "launch-director",
   name: "Launch & Recovery",
   description:
-    "Every launch pad across the space centre, the ones with something standing on them first, and what you can do from the one you open: launch a craft and crew from it, or recover and revert what is already there. Greyed-out craft are blocked by funds or missing tech; greyed-out kerbals are off-duty. Buttons that fire a launch or recovery always confirm before sending the action.",
+    "Every launch pad across the space centre, the ones with something standing on them first, and what you can do from the one you open: launch a craft and crew from it, or recover and revert what is already there. Greyed-out craft are blocked by funds or missing tech; a kerbal who cannot fly is greyed out and says why, or reads as no reading where the roster carried no availability. Buttons that fire a launch or recovery always confirm before sending the action.",
   tags: ["career", "launch"],
   defaultSize: { w: 7, h: 10 },
   minSize: { w: 4, h: 6 },
