@@ -44,9 +44,14 @@ name: Uplink pages
 # would be a hand-kept map of which file affects which page. Ten legs of the
 # matrix render in parallel, so the wall time is one leg either way.
 
+# `staging` as well as `main`, because `staging` is where the work lands. This
+# read `[main]` alone while every branch in the repo merged to `staging`, so the
+# self-heal below did not run once for the whole time development sat there, and
+# the pull-request check kept passing because it compares the PROSE. Five commits
+# of Vehicle Assembly's page showed a layout the code had stopped producing.
 on:
   push:
-    branches: [main]
+    branches: [main, staging]
   # By hand, for any ref: useful after a generator change lands on a branch, and
   # necessary because a GITHUB_TOKEN push gives no run of its own.
   workflow_dispatch:
@@ -171,5 +176,15 @@ jobs:
             # been flaky enough to block a generated push outright. CI re-runs on
             # the resulting commit through the workflow_dispatch above.
             git commit --no-verify -m "chore: regenerate Uplink pages"
-            git push --no-verify origin HEAD:${{ github.ref_name }}
+            # Rebase once and retry, because `staging` receives merges while this
+            # runs and a losing push is rejected as non-fast-forward. The
+            # concurrency group above stops two runs of THIS workflow racing; it
+            # says nothing about somebody else pushing in the ninety seconds
+            # between checkout and push. Going red for that would be a red run
+            # with nothing wrong in it, and a job that cries wolf is a job whose
+            # output nobody reads.
+            git push --no-verify origin HEAD:${{ github.ref_name }} || {
+              git pull --rebase --no-verify origin ${{ github.ref_name }}
+              git push --no-verify origin HEAD:${{ github.ref_name }}
+            }
           fi
