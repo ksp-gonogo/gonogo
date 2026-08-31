@@ -23,6 +23,39 @@ describe("Row", () => {
     expect(screen.getByTestId("row").tagName).toBe("DIV");
   });
 
+  /**
+   * The subordinate row, asserted as an ASYMMETRY against an ordinary one.
+   *
+   * <para>Left-only is the whole reason the prop exists: the obvious indent is a
+   * padded wrapper, ui-kit's `Box` pads both sides, and the waste on the right
+   * costs the name exactly the width it needs. A row indented on both sides is a
+   * squeeze wearing an indent's clothes.</para>
+   *
+   * <para>Compared against a plain row rather than against a literal, because
+   * jsdom does not resolve custom properties and an assertion on the token's
+   * VALUE would be testing how the test environment renders `var()` rather than
+   * what the prop does. The relationship is the claim: left differs, right does
+   * not.</para>
+   */
+  it("insets a nested row on the left and nowhere else", () => {
+    render(
+      <div>
+        <Row as="div" data-testid="plain">
+          <RowName>Vehicle</RowName>
+        </Row>
+        <Row as="div" nested data-testid="nested">
+          <RowName>Untooled</RowName>
+        </Row>
+      </div>,
+    );
+
+    const plain = getComputedStyle(screen.getByTestId("plain"));
+    const nested = getComputedStyle(screen.getByTestId("nested"));
+
+    expect(nested.paddingLeft).not.toBe(plain.paddingLeft);
+    expect(nested.paddingRight).toBe(plain.paddingRight);
+  });
+
   it("exposes RowName as Row.Name", () => {
     expect(Row.Name).toBe(RowName);
   });

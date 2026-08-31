@@ -42,6 +42,33 @@ export interface RowProps extends HTMLAttributes<HTMLElement> {
    * tidy list becomes a ragged block at a narrow width without anyone noticing.
    */
   wrap?: boolean;
+  /**
+   * Marks the row SUBORDINATE to the one above it, and insets it to say so.
+   *
+   * <para>One relationship, three names: an "of which" line under a total, a
+   * child under a tree node, a sub-total under its group. All of them are "this
+   * row belongs to the one above", and the kit should draw that once rather than
+   * have each caller invent an inset.</para>
+   *
+   * <para><b>Left only</b>, because the right side of an indent communicates
+   * nothing. The obvious alternative is a padded wrapper and ui-kit's `Box` pads
+   * both sides, which spends width on a margin no reader can interpret.</para>
+   *
+   * <para><b>What that is NOT worth, measured, because the first version of this
+   * comment claimed otherwise.</b> On Vehicle Assembly's cost breakdown the
+   * subordinate label was two pixels short at the widget's minimum size, and the
+   * right-hand pad was blamed. It was not the cause: at equal inset the two
+   * approaches leave identical room, and with NO inset the label fits exactly. The
+   * row simply has no spare width there, so any indent at all costs it. Left-only
+   * is still right, and it did not buy the pixels it was predicted to.</para>
+   *
+   * <para>The inset is a token rather than a depth multiplier, and it is sized for
+   * the design system rather than for the narrowest caller: a legible indent at the
+   * sizes a row is read at beats a smaller one chosen to lose by less where it was
+   * always going to lose. Nothing nests twice yet, and a `depth` prop with no
+   * second level to justify it is API invented ahead of a use.</para>
+   */
+  nested?: boolean;
   children?: ReactNode;
 }
 
@@ -58,6 +85,7 @@ function RowBase({
   interactive = false,
   selected = false,
   wrap = false,
+  nested = false,
   children,
   ...rest
 }: RowProps) {
@@ -67,6 +95,7 @@ function RowBase({
       $interactive={interactive}
       $selected={selected}
       $wrap={wrap}
+      $nested={nested}
       {...rest}
     >
       {children}
@@ -95,6 +124,7 @@ const Row__Root = styled.li<{
   $interactive: boolean;
   $selected: boolean;
   $wrap: boolean;
+  $nested: boolean;
 }>`
   display: flex;
   justify-content: space-between;
@@ -102,6 +132,7 @@ const Row__Root = styled.li<{
   gap: var(--space-8, 8px);
   font-size: var(--font-size-sm);
   padding: var(--space-2, 2px) 0;
+  ${({ $nested }) => ($nested ? `padding-left: var(--space-12, 12px);` : "")}
   ${({ $wrap }) =>
     $wrap
       ? `

@@ -2,7 +2,6 @@ import type { Value } from "@ksp-gonogo/sitrep-sdk";
 import { registerAugment, useTelemetry } from "@ksp-gonogo/sitrep-sdk";
 import {
   Badge,
-  Box,
   Cluster,
   NULL_DISPLAY,
   Row,
@@ -102,6 +101,11 @@ function CostRow({ name, value }: { name: string; value?: Value<"funds"> }) {
  * without a word, and it cannot be clipped away the way a label was. A sentence was
  * the wrong instrument for a structural fact.</para>
  *
+ * <para>The inset is ui-kit's own <c>Row nested</c> rather than a padded wrapper,
+ * and the difference is measurable rather than tidiness: a wrapper pads BOTH sides,
+ * only the left communicates anything, and at this widget's minimum size the waste
+ * on the right left the label two pixels short of its own name.</para>
+ *
  * <para><b>"Untooled" is RP-1's own word, not ours.</b> Its code carries
  * `ProcessUntooledParts`, `GetUntooledPartsAndCost`, `UntooledMultiplier` and a
  * `_untooledTypesScroll` region in its own tooling window, so an operator meets the
@@ -113,12 +117,10 @@ function SurchargeRow({ cost }: { cost: Rp1BuildCost }) {
     return null;
   }
   return (
-    <Box pad={["xs", "xs"]} data-of-which="">
-      <Row as="div">
-        <RowName>Untooled</RowName>
-        <Unit value={cost.untooledSurcharge} decimals={0} />
-      </Row>
-    </Box>
+    <Row as="div" nested data-of-which="">
+      <RowName>Untooled</RowName>
+      <Unit value={cost.untooledSurcharge} decimals={0} />
+    </Row>
   );
 }
 
