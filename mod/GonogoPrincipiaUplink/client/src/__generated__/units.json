@@ -264,7 +264,9 @@
       "analysedVersion": "text",
       "armed": "flag",
       "available": "flag",
+      "burnLayoutVerified": "flag",
       "detectedVersion": "text",
+      "integratorLayoutVerified": "flag",
       "reason": "text"
     }
   },

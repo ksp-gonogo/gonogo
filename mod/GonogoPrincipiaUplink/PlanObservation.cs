@@ -53,6 +53,18 @@ namespace GonogoPrincipiaUplink
         /// why not.</summary>
         public bool WriteSurfaceAvailable;
         public bool WriteSurfaceArmed;
+
+        /// <summary>
+        /// Which of the two struct round trips actually ran and passed.
+        ///
+        /// <para>Published because arming is allowed on a PARTIAL verification: a
+        /// plan with no burns has none to round-trip, so the surface can arm on the
+        /// integrator's verdict alone while the burn struct stands
+        /// undemonstrated. A gate may pass on that; it may not report it as full
+        /// verification, which is what an unqualified "armed" did.</para>
+        /// </summary>
+        public bool BurnLayoutVerified;
+        public bool IntegratorLayoutVerified;
         public string? WriteSurfaceReason;
         public string? WriteAnalysedVersion;
         public string? WriteDetectedVersion;

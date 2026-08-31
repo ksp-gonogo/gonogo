@@ -156,6 +156,8 @@ export interface PrincipiaWriteSurface
 {
 	available?: boolean;
 	armed?: boolean;
+	burnLayoutVerified?: boolean;
+	integratorLayoutVerified?: boolean;
 	reason?: string;
 	analysedVersion?: string;
 	detectedVersion?: string;

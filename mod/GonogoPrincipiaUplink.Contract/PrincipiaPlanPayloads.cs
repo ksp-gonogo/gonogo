@@ -180,10 +180,41 @@ public sealed class PrincipiaWriteSurface
     [SitrepUnit(Units.Flag)]
     public bool? Available { get; set; }
 
-    /// <summary>True when the operator has armed it and the struct round-trip
-    /// probes passed, so an edit will actually be attempted.</summary>
+    /// <summary>True when the operator has armed it, so an edit will actually be
+    /// attempted.
+    ///
+    /// <para><b>NOT the same as "everything was verified", which is what it used to
+    /// be read as.</b> Arming is allowed on a PARTIAL verification, because the two
+    /// structs fail independently and the step-limit remedy should survive a burn
+    /// probe that could not run. The two flags below say which was established, and
+    /// they are on the wire because a gate may legitimately pass on partial
+    /// verification and may not report that as full verification.</para></summary>
     [SitrepUnit(Units.Flag)]
     public bool? Armed { get; set; }
+
+    /// <summary>
+    /// Whether a BURN was actually round-tripped through the plugin and came back
+    /// unchanged.
+    ///
+    /// <para>False beside <see cref="Armed"/> true is a real and reachable state,
+    /// and the one this field exists for: a plan holding no burns has none to
+    /// round-trip, so the burn struct's shape stands undemonstrated while the
+    /// integrator's is proven and the surface arms on that. Before this was
+    /// published, such an arm answered a plain "armed" and an operator had no way to
+    /// know that the check covering the edit they were about to make had never
+    /// run.</para>
+    /// </summary>
+    [SitrepUnit(Units.Flag)]
+    public bool? BurnLayoutVerified { get; set; }
+
+    /// <summary>
+    /// Whether the integrator's step parameters were round-tripped and came back
+    /// unchanged. Its own verdict, because a plan with no burns can still have its
+    /// step limit raised, which is the commonest remedy for the plan most likely to
+    /// have no burns drawn.
+    /// </summary>
+    [SitrepUnit(Units.Flag)]
+    public bool? IntegratorLayoutVerified { get; set; }
 
     /// <summary>Why the surface is unavailable or unarmed, in a sentence an
     /// operator can act on. Null only when <see cref="Armed"/> is true.</summary>

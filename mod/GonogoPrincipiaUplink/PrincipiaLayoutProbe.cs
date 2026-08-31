@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 
 namespace GonogoPrincipiaUplink
 {
@@ -163,7 +164,7 @@ namespace GonogoPrincipiaUplink
                 return;
             }
 
-            var snapshot = BurnSnapshot(burn);
+            var snapshot = burn;
             var written = gate.Replace(0, burn);
             if (written.Outcome != PrincipiaWriteOutcome.Written)
             {
@@ -179,13 +180,18 @@ namespace GonogoPrincipiaUplink
             var afterBurn = after == null
                 ? null
                 : Fields.Get(after, PrincipiaBurnStruct.ManoeuvreBurnField);
-            if (afterBurn == null || BurnSnapshot(afterBurn) != snapshot)
+            var difference = afterBurn == null ? null : DescribeBurnDifference(snapshot, afterBurn);
+            if (afterBurn == null || difference != null)
             {
                 authority.LayoutFailed(
-                    "A burn did not survive a round trip through Principia: what came back is not "
-                    + "what went in. That is the platform struct-layout failure this probe exists "
-                    + "for, and it would otherwise have written a plausible wrong burn into the "
-                    + "save.",
+                    "A burn did not survive a round trip through Principia: "
+                    + (afterBurn == null
+                        ? "nothing came back to compare."
+                        : difference + ".")
+                    + " It would otherwise have written a plausible wrong burn into the save. "
+                    + "What that difference MEANS is not settled here: a struct-layout mismatch "
+                    + "and a normalisation Principia applies on the way in look the same from "
+                    + "this side.",
                     burn: true,
                     integrator: false);
                 return;
@@ -243,7 +249,7 @@ namespace GonogoPrincipiaUplink
                 return;
             }
 
-            var snapshot = BurnSnapshot(burn);
+            var snapshot = burn;
             var written = gate.Insert(0, burn);
             if (written.Outcome != PrincipiaWriteOutcome.Written)
             {
@@ -259,7 +265,8 @@ namespace GonogoPrincipiaUplink
             var afterBurn = after == null
                 ? null
                 : Fields.Get(after, PrincipiaBurnStruct.ManoeuvreBurnField);
-            var survived = afterBurn != null && BurnSnapshot(afterBurn) == snapshot;
+            var difference = afterBurn == null ? null : DescribeBurnDifference(snapshot, afterBurn);
+            var survived = afterBurn != null && difference == null;
 
             var removed = gate.Remove(0);
             if (removed.Outcome != PrincipiaWriteOutcome.Written)
@@ -276,10 +283,14 @@ namespace GonogoPrincipiaUplink
             if (!survived)
             {
                 authority.LayoutFailed(
-                    "A built burn did not survive a round trip through Principia: what came back "
-                    + "is not what went in. That is the platform struct-layout failure this probe "
-                    + "exists for, and it would otherwise have written a plausible wrong burn "
-                    + "into the save.",
+                    "A built burn did not survive a round trip through Principia: "
+                    + (afterBurn == null
+                        ? "nothing came back to compare."
+                        : difference + ".")
+                    + " It would otherwise have written a plausible wrong burn into the save. "
+                    + "What that difference MEANS is not settled here: a struct-layout mismatch "
+                    + "and a normalisation Principia applies on the way in look the same from "
+                    + "this side.",
                     burn: true,
                     integrator: false);
                 return;
@@ -299,34 +310,88 @@ namespace GonogoPrincipiaUplink
         /// one would be the one deciding whether somebody's plan is trustworthy.</para>
         /// </summary>
         public static bool SameBurn(object went, object came) =>
-            BurnSnapshot(went) == BurnSnapshot(came);
+            DescribeBurnDifference(went, came) == null;
 
         /// <summary>
-        /// Every field of the burn that matters, flattened into one comparable
-        /// string.
+        /// WHICH fields of a burn came back different, and what the two values
+        /// were, or null when nothing changed.
         ///
-        /// <para>A string rather than a field-by-field comparison so that a field
-        /// that could not be read compares unequal to itself read a second time
-        /// only if it changed, and so that adding a field to the snapshot cannot be
-        /// forgotten in the comparison.</para>
+        /// <para><b>This exists because the refusal it feeds used to assert a cause
+        /// it had no way to establish.</b> It named a struct-layout failure, having
+        /// compared nine values and reported none of them, so a plugin-side
+        /// normalisation of one field was indistinguishable from byte-level
+        /// corruption and read as the latter. Naming the field does not decide
+        /// between those either; it hands over the evidence instead of a
+        /// conclusion, which is the difference between a diagnosis and a
+        /// guess.</para>
+        ///
+        /// <para>It refuses exactly as before. Nothing here is a relaxation: the
+        /// comparison is the same nine values, and any difference at all still
+        /// fails.</para>
         /// </summary>
-        private static string BurnSnapshot(object burn)
+        public static string? DescribeBurnDifference(object went, object came)
+        {
+            var before = BurnSnapshot(went);
+            var after = BurnSnapshot(came);
+            var differences = new List<string>();
+            foreach (var field in BurnFieldNames)
+            {
+                if (before.TryGetValue(field, out var was)
+                    && after.TryGetValue(field, out var now)
+                    && was != now)
+                {
+                    differences.Add(field + " went in as " + was + " and came back as " + now);
+                }
+            }
+            return differences.Count == 0 ? null : string.Join("; ", differences);
+        }
+
+        /// <summary>
+        /// The fields compared, in the order a reader wants them. Its own list so a
+        /// field added to <see cref="BurnSnapshot"/> and not to this one shows up as
+        /// a field silently excused from the comparison rather than as nothing.
+        /// </summary>
+        private static readonly string[] BurnFieldNames =
+        {
+            PrincipiaBurnStruct.ThrustField,
+            PrincipiaBurnStruct.SpecificImpulseField,
+            PrincipiaBurnStruct.InitialTimeField,
+            PrincipiaBurnStruct.InertiallyFixedField,
+            "coordinate_system",
+            "delta_v_tangent",
+            "delta_v_normal",
+            "delta_v_binormal",
+            "frame_extension",
+        };
+
+        /// <summary>
+        /// Every field of the burn that matters, keyed by the producer's own name
+        /// for it.
+        ///
+        /// <para>An unreadable field is recorded as <c>?</c> rather than omitted, so
+        /// it compares equal to itself read a second time and unequal to a field
+        /// that became readable. Dropping it would let a field that stopped
+        /// resolving pass as unchanged.</para>
+        /// </summary>
+        private static Dictionary<string, string> BurnSnapshot(object burn)
         {
             var deltaV = Fields.DeltaV(burn);
-            return string.Join(
-                "|",
-                new[]
-                {
+            return new Dictionary<string, string>(StringComparer.Ordinal)
+            {
+                [PrincipiaBurnStruct.ThrustField] =
                     Text(Fields.GetDouble(burn, PrincipiaBurnStruct.ThrustField)),
+                [PrincipiaBurnStruct.SpecificImpulseField] =
                     Text(Fields.GetDouble(burn, PrincipiaBurnStruct.SpecificImpulseField)),
+                [PrincipiaBurnStruct.InitialTimeField] =
                     Text(Fields.GetDouble(burn, PrincipiaBurnStruct.InitialTimeField)),
+                [PrincipiaBurnStruct.InertiallyFixedField] =
                     Fields.GetBool(burn, PrincipiaBurnStruct.InertiallyFixedField)?.ToString() ?? "?",
-                    Fields.CoordinateSystem(burn)?.ToString() ?? "?",
-                    deltaV == null ? "?" : Text(deltaV.Value.X),
-                    deltaV == null ? "?" : Text(deltaV.Value.Y),
-                    deltaV == null ? "?" : Text(deltaV.Value.Z),
-                    Fields.FrameExtension(burn)?.ToString() ?? "?",
-                });
+                ["coordinate_system"] = Fields.CoordinateSystem(burn)?.ToString() ?? "?",
+                ["delta_v_tangent"] = deltaV == null ? "?" : Text(deltaV.Value.X),
+                ["delta_v_normal"] = deltaV == null ? "?" : Text(deltaV.Value.Y),
+                ["delta_v_binormal"] = deltaV == null ? "?" : Text(deltaV.Value.Z),
+                ["frame_extension"] = Fields.FrameExtension(burn)?.ToString() ?? "?",
+            };
         }
 
         private static string IntegratorSnapshot(object parameters) =>

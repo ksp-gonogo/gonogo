@@ -38,7 +38,7 @@ Publishes Principia's n-body state: trajectory arcs, the flight plan and its bur
 | `PrincipiaPlanWriteReceipt` | `plan` PrincipiaPlan, `refusalDetail` text, `replayed` flag, `requestId` id, `statusError` enum, `statusMessage` text |
 | `PrincipiaRatioInterval` | `max` 1, `min` 1 |
 | `PrincipiaReferenceFrame` | `centreBody` text, `primaryBodies` text, `primaryBody` text, `secondaryBodies` text, `secondaryBody` text, `selector` text, `targetFrameSelected` flag, `targetPrimaryBody` text, `targetVesselId` id, `targetVesselName` text, `type` enum |
-| `PrincipiaWriteSurface` | `analysedVersion` text, `armed` flag, `available` flag, `detectedVersion` text, `reason` text |
+| `PrincipiaWriteSurface` | `analysedVersion` text, `armed` flag, `available` flag, `burnLayoutVerified` flag, `detectedVersion` text, `integratorLayoutVerified` flag, `reason` text |
 
 ## Augments
 
