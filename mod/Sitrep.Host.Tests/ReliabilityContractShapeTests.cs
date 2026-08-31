@@ -104,6 +104,30 @@ namespace Sitrep.Host.Tests
              */
             nameof(ReliabilityPartEntry.RepairTrait),
             nameof(ReliabilityPartEntry.RepairLevel),
+            /*
+             * Added on the same source-AGNOSTIC exception, and for a reason this
+             * list is the right place to record because a defect is what earned
+             * it.
+             *
+             * What a repair CONSUMES is the second half of the question
+             * RepairTrait answers, and it is provider arithmetic in exactly the
+             * way the trait is not. One backend charges two of its own items for
+             * a critical failure and one otherwise, and nothing at all when the
+             * install has that requirement switched off; another has no
+             * consumable in its model whatsoever. So the number cannot be derived
+             * from Condition, and it was being derived from Condition, in the
+             * shared roster augment, using one backend's rule. On an install
+             * where the other one won, that asked the operator for an item
+             * nothing needed and DISABLED the command when none was aboard: a
+             * repairable failure nobody could act on.
+             *
+             * A bag entry would not have worked, for the reason the trait's note
+             * already gives: the reader is the SHARED augment and by design never
+             * learns which mod answered. And a budget entry would not either, a
+             * budget is a consumed dimension of rated life, not the price of an
+             * action.
+             */
+            nameof(ReliabilityPartEntry.RepairCost),
             nameof(ReliabilityPartEntry.Extensions),
         };
 
@@ -125,6 +149,24 @@ namespace Sitrep.Host.Tests
             nameof(ReliabilityBudget.UsedCount),
             nameof(ReliabilityBudget.LimitCount),
         };
+
+        /// <summary>
+        /// <see cref="RepairCostItem"/>: an inventory id and a count, deliberately
+        /// the same pair <c>InventoryItem</c> carries so a console joins the two
+        /// without translating. Pinned so a backend cannot answer "what does this
+        /// cost" with a field of its own instead of an item nobody has to know
+        /// about: naming a mod's own currency here is how the shared renderer would
+        /// start needing to know which mod it is talking to.
+        /// </summary>
+        private static readonly string[] FrozenRepairCostItemMembers =
+        {
+            nameof(RepairCostItem.Name),
+            nameof(RepairCostItem.Quantity),
+        };
+
+        [Fact]
+        public void RepairCostItemGainsNoNewHandListedMember() =>
+            AssertNoNewMembers(typeof(RepairCostItem), FrozenRepairCostItemMembers);
 
         [Fact]
         public void ReliabilitySummaryGainsNoNewHandListedMember() =>

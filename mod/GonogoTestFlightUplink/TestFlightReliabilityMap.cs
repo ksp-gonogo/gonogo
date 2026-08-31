@@ -42,6 +42,23 @@ namespace GonogoTestFlightUplink
                     ConditionDetail = Clamp(e.FailureTitles, 120),
                     Survival = e.Survival,
                     SurvivalHorizonSeconds = e.Survival == null ? null : e.SurvivalHorizonSeconds,
+                    /*
+                     * TestFlight consumes NOTHING to repair: its repair path is
+                     * CanAttemptRepair(), a predicate about the crew and the
+                     * situation, with no consumable anywhere in the model. Stated
+                     * rather than omitted, because absent-by-oversight and
+                     * absent-by-design read identically in a payload and only one
+                     * of them is a claim.
+                     *
+                     * It is null and not an empty list on purpose: the contract
+                     * treats both as "models none", and a client must render
+                     * either as "nothing is consumed" and never as "needs 0". A
+                     * client that derived the number from Condition instead
+                     * charged another backend's two-for-critical rule on every
+                     * install, asked a TestFlight player for an item this mod
+                     * never needs, and refused the repair when none was aboard.
+                     */
+                    RepairCost = null,
                     Budgets = BurnBudgets(e),
                     Extensions = PartExtensions(e, binding),
                 });

@@ -112,7 +112,13 @@ namespace Gonogo.KerbalismUplink
             var coverage = Coverage;
             var v = FlightGlobals.ActiveVessel;
             var raw = v != null ? _k.Reliability(v) : new ReliabilityRaw();
-            return KerbalismReliabilityMap.Parts(raw, coverage);
+            // The kit requirement is an install PREFERENCE, not a per-part fact,
+            // so it is read here beside Coverage rather than carried on every
+            // part of the capture.
+            return KerbalismReliabilityMap.Parts(
+                raw,
+                coverage,
+                _k.ReliabilityPreferences().RequireRepairKits);
         }
     }
 }

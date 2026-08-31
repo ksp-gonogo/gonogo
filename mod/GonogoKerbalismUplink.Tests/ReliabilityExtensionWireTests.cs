@@ -224,7 +224,100 @@ namespace GonogoKerbalismUplink.Tests
                 Meta = FixedMeta(),
             });
 
-            Assert.Contains("\"budgets\":null,\"extensions\":{\"someprovider\":{\"depth\":3.5}}", json);
+            // The bag is LAST, after every declared field, which is what makes
+            // adjacency the right assertion here: it pins the position rather than
+            // merely the presence.
+            Assert.Contains(
+                "\"budgets\":null,\"repairCost\":null,\"extensions\":{\"someprovider\":{\"depth\":3.5}}",
+                json);
+        }
+
+        /// <summary>
+        /// A repair cost reaches the wire as an array of item/count objects, and an
+        /// ABSENT cost reaches it as an explicit null.
+        ///
+        /// <para>Both halves are asserted here because the client's whole rule
+        /// turns on telling them apart: a stated cost is a demand for that item, a
+        /// null is "nothing is consumed", and neither may be read as "needs 0". If
+        /// the codec omitted the key for a null, an unbroken part and a
+        /// zero-cost one would arrive byte-identical and the distinction would be
+        /// gone before any widget saw it.</para>
+        ///
+        /// <para>The two parts here are the same install: one BROKEN and critical,
+        /// which Kerbalism charges two kits for, and one merely wearing, which it
+        /// charges nothing for because <c>Repair()</c> clears a service either
+        /// way.</para>
+        /// </summary>
+        [Fact]
+        public void ARepairCostRidesTheWireAndAnAbsentOneIsExplicitlyNull()
+        {
+            var json = EnvelopeCodec.WriteStreamData(new StreamData<object?>
+            {
+                Topic = "reliability.parts",
+                Payload = KerbalismReliabilityMap.Parts(
+                    new ReliabilityRaw
+                    {
+                        Ut = 1_000_000,
+                        Parts =
+                        {
+                            new ReliabilityPartRaw
+                            {
+                                PartId = "part-1", Title = "Reaction Wheel",
+                                Broken = true, Critical = true,
+                            },
+                            new ReliabilityPartRaw
+                            {
+                                PartId = "part-2", Title = "Antenna",
+                                NeedsService = true,
+                            },
+                        },
+                    },
+                    ReliabilityCoverage.Modeled,
+                    Prefs().RequireRepairKits),
+                Meta = FixedMeta(),
+            });
+
+            Assert.Contains(
+                "\"repairCost\":[{\"name\":\"evaRepairKit\",\"quantity\":2}]",
+                json);
+            Assert.Contains("\"repairCost\":null", json);
+        }
+
+        /// <summary>
+        /// Kits switched OFF in the install's reliability preferences means nothing
+        /// is consumed, so a broken part states no cost at all.
+        ///
+        /// <para>The widget used to derive the number from the condition, so it
+        /// asked for kits on an install that had them turned off and refused the
+        /// repair when none were aboard. The preference is read once, where it is
+        /// known, and the wire carries the answer.</para>
+        /// </summary>
+        [Fact]
+        public void ARepairCostIsAbsentWhenTheInstallDoesNotRequireKits()
+        {
+            var json = EnvelopeCodec.WriteStreamData(new StreamData<object?>
+            {
+                Topic = "reliability.parts",
+                Payload = KerbalismReliabilityMap.Parts(
+                    new ReliabilityRaw
+                    {
+                        Ut = 1_000_000,
+                        Parts =
+                        {
+                            new ReliabilityPartRaw
+                            {
+                                PartId = "part-1", Title = "Reaction Wheel",
+                                Broken = true, Critical = true,
+                            },
+                        },
+                    },
+                    ReliabilityCoverage.Modeled,
+                    requireRepairKits: false),
+                Meta = FixedMeta(),
+            });
+
+            Assert.Contains("\"repairCost\":null", json);
+            Assert.DoesNotContain("evaRepairKit", json);
         }
 
         /// <summary>
@@ -251,7 +344,8 @@ namespace GonogoKerbalismUplink.Tests
                             },
                         },
                     },
-                    ReliabilityCoverage.Modeled),
+                    ReliabilityCoverage.Modeled,
+                    Prefs().RequireRepairKits),
                 Meta = FixedMeta(),
             });
 

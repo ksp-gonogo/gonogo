@@ -744,7 +744,10 @@ namespace Gonogo.KerbalismUplink
             }
 
             var critical = MemberBool(broken[0], "critical") == true;
-            var needed = critical ? 2 : 1;
+            // The same arithmetic KerbalismReliabilityMap states on the wire, from
+            // the same function: a console showing one number while a repair
+            // charges another is worse than either number alone.
+            var needed = KerbalismReliabilityMap.KitsForRepair(critical);
             var kitsRequired = ReliabilityPreferences().RequireRepairKits == true;
 
             if (kitsRequired && !TakeRepairKits(v, kerbal, needed, outcome))
@@ -820,7 +823,12 @@ namespace Gonogo.KerbalismUplink
             return false;
         }
 
-        private const string RepairKitPartName = "evaRepairKit";
+        /// <summary>
+        /// Aliased to the mapper's, so the id this takes from an inventory and the
+        /// id it publishes as the cost are one string.
+        /// </summary>
+        private const string RepairKitPartName =
+            KerbalismReliabilityMap.RepairKitPartName;
 
         private static int CountKits(ModuleInventoryPart? inventory)
         {

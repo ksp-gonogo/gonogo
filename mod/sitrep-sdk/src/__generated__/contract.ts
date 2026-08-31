@@ -907,7 +907,13 @@ export interface ReliabilityPartEntry
 	survival?: Value<"ratio">;
 	survivalHorizonSeconds?: Value<"s">;
 	budgets?: ReliabilityBudget[];
+	repairCost?: RepairCostItem[];
 	extensions?: ProviderExtensions;
+}
+export interface RepairCostItem
+{
+	name: string;
+	quantity: Value<"count">;
 }
 export interface RepairPartArgs
 {

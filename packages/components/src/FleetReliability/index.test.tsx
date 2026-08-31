@@ -207,6 +207,135 @@ describe("the repair control offers only crew the provider would accept", () => 
   });
 });
 
+/**
+ * What a repair consumes is the elected provider's statement, carried on
+ * `reliability.parts`. This widget renders it and never derives it.
+ *
+ * <p>It used to derive it. A `kitsNeeded(condition)` here returned 2 for
+ * "failed-critical" and 1 for "failed", which is Kerbalism's arithmetic read
+ * off its `Repair()`, and it applied on every install. TestFlight emits
+ * "failed" and models no consumable at all (see `TestFlightReliabilityMap`,
+ * which never emits "failed-critical" and states neither repair trait nor
+ * level), so on a TestFlight install the row asked for a repair kit the mod
+ * never needs and DISABLED the command when none was aboard: a repairable
+ * failure the operator could not act on, for want of an item irrelevant to
+ * it.</p>
+ *
+ * <p>An ABSENT cost and a ZERO cost are different claims, which is why the two
+ * cases below are separate tests rather than one. The verb comes from the
+ * condition, never from the cost, so a serviceable part still reads "Service"
+ * whatever its provider charges.</p>
+ */
+describe("what a repair costs is the provider's statement", () => {
+  /** As TestFlight actually reports one: a plain failure, no trait, no cost. */
+  const TESTFLIGHT_FAILURE = [
+    {
+      partId: "101:0",
+      title: "RD-180",
+      condition: "failed",
+      conditionDetail: "turbopump failure",
+    },
+  ];
+
+  /**
+   * Same part as Kerbalism reports it: critical, trait-gated, and a cost.
+   *
+   * THREE kits, deliberately not the two Kerbalism's own critical rule charges,
+   * because a fixture that agrees with the arithmetic this change deleted
+   * cannot tell the two apart: the old `kitsNeeded("failed-critical")` returned
+   * 2 and would have rendered an identical row. Only a number the widget could
+   * not have derived proves it is reading the provider's.
+   */
+  const KERBALISM_CRITICAL = [
+    {
+      partId: "101:0",
+      title: "Reaction Wheel",
+      condition: "failed-critical",
+      conditionDetail: "busted",
+      repairTrait: "Engineer",
+      repairLevel: 2,
+      repairCost: [{ name: "evaRepairKit", quantity: 3 }],
+    },
+  ];
+
+  const EMPTY_HANDED = {
+    name: "Jebediah Kerman",
+    trait: "Pilot",
+    experienceLevel: 5,
+    carrying: [],
+  };
+
+  it("asks for no kits, and blocks nothing, when the provider states no cost", async () => {
+    const { fixture } = renderAugment("v-active");
+    act(() => {
+      fixture.emit("vessel.identity", ACTIVE_IDENTITY);
+      fixture.emit("vessel.crew", {
+        count: 1,
+        capacity: 3,
+        crew: [EMPTY_HANDED],
+      });
+      fixture.emit("vessel.inventory", { stores: [] });
+      fixture.emit("reliability.summary", MODELED);
+      fixture.emit("reliability.parts", TESTFLIGHT_FAILURE);
+    });
+
+    await act(async () => {
+      screen.getByRole("button", { name: /repair/i }).click();
+    });
+
+    // No ledger, because there is nothing to ledger: not "0 kits".
+    expect(screen.queryByText(/kit/i)).toBeNull();
+    /*
+     * And the command is offered. TestFlight's own `Repair()` decides whether
+     * this succeeds (the contract requires a refusal rather than a throw from
+     * a backend that models none), so refusing it HERE for want of a kit is
+     * this widget substituting its own judgement for the provider's.
+     */
+    const confirm = screen.getByRole("button", { name: /repair/i });
+    expect(confirm).toBeEnabled();
+    await act(async () => {});
+  });
+
+  it("renders the item and count the provider DID state", async () => {
+    const { fixture } = renderAugment("v-active");
+    act(() => {
+      fixture.emit("vessel.identity", ACTIVE_IDENTITY);
+      fixture.emit("vessel.crew", {
+        count: 1,
+        capacity: 3,
+        crew: [ENGINEER],
+      });
+      fixture.emit("vessel.inventory", { stores: [] });
+      fixture.emit("reliability.summary", {
+        source: "kerbalism",
+        coverage: "modeled",
+      });
+      fixture.emit("reliability.parts", KERBALISM_CRITICAL);
+    });
+
+    await act(async () => {
+      screen.getByRole("button", { name: /repair/i }).click();
+    });
+
+    /*
+     * The ITEM is named too, by its display title where something aboard
+     * carries one, so the ledger says what is being spent rather than assuming
+     * every backend spends kits.
+     */
+    expect(
+      screen.getByText(/3 EVA Repair Kit · 2 carried · 0 aboard/),
+    ).toBeVisible();
+    /*
+     * And it still refuses on the provider's number, not on a derived one: two
+     * carried against three needed is short, and the reason says so.
+     */
+    const confirm = screen.getByRole("button", { name: /repair/i });
+    expect(confirm).toBeDisabled();
+    expect(confirm.getAttribute("title")).toMatch(/Needs 3/);
+    await act(async () => {});
+  });
+});
+
 describe("FleetReliabilityUpdates augment", () => {
   it("lists the parts worth a row, and leaves the untroubled ones off", async () => {
     const { fixture } = renderAugment("v-active");

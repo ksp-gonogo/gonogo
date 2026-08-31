@@ -383,6 +383,11 @@ namespace Sitrep.Core.Serialization
                     // reliability.parts already routes ReliabilityPartEntry.
                     AppendReliabilityBudget(sb, reliabilityBudget);
                     break;
+                case Sitrep.Contract.RepairCostItem repairCostItem:
+                    // A part's RepairCost list routes its elements through here
+                    // the same way its Budgets do.
+                    AppendRepairCostItem(sb, repairCostItem);
+                    break;
                 case Sitrep.Contract.IsruDrillEntry isruDrillEntry:
                     // Same boundary again: isru.drills/isru.converters publish
                     // List<IsruDrillEntry>/List<IsruConverterEntry> raw, whose
@@ -915,7 +920,51 @@ namespace Sitrep.Core.Serialization
                 }
                 sb.Append(']');
             }
+            sb.Append(',');
+            AppendString(sb, "repairCost");
+            sb.Append(':');
+            /*
+             * JSON null when the provider models no consumable cost, never an
+             * omitted key. A client's rule turns on telling an absent cost from a
+             * zero one, and a key that vanishes takes the distinction with it: an
+             * unbroken part and a free repair would arrive byte-identical.
+             */
+            if (p.RepairCost == null)
+            {
+                AppendNull(sb);
+            }
+            else
+            {
+                sb.Append('[');
+                var firstCost = true;
+                foreach (var item in p.RepairCost)
+                {
+                    if (!firstCost) sb.Append(',');
+                    firstCost = false;
+                    if (item == null) AppendNull(sb); else AppendRepairCostItem(sb, item);
+                }
+                sb.Append(']');
+            }
             AppendProviderExtensions(sb, p.Extensions);
+            sb.Append('}');
+        }
+
+        /// <summary>
+        /// Flattens a <see cref="Sitrep.Contract.RepairCostItem"/> to the wire
+        /// object <c>{ name, quantity }</c>: camelCase keys in that order, matching
+        /// the generated SDK interface and <c>InventoryItem</c>'s own pair so a
+        /// client can join the two without translating.
+        /// </summary>
+        private static void AppendRepairCostItem(StringBuilder sb, Sitrep.Contract.RepairCostItem item)
+        {
+            sb.Append('{');
+            AppendString(sb, "name");
+            sb.Append(':');
+            AppendString(sb, item.Name);
+            sb.Append(',');
+            AppendString(sb, "quantity");
+            sb.Append(':');
+            sb.Append(item.Quantity);
             sb.Append('}');
         }
 

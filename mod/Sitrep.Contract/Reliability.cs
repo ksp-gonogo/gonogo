@@ -250,11 +250,52 @@ public class ReliabilityPartEntry
     public IReadOnlyList<ReliabilityBudget>? Budgets { get; set; }
 
     /// <summary>
+    /// What repairing THIS part in THIS condition consumes, as the provider
+    /// states it. Null or empty means the provider models no consumable cost:
+    /// that is not the same claim as a cost of zero, and a console must render
+    /// it as "nothing is consumed" rather than as "needs 0".
+    ///
+    /// <para>Carried because a consumable cost is the PROVIDER's arithmetic and
+    /// nothing else can derive it. Kerbalism charges two EVA repair kits for its
+    /// critical class and one for an ordinary failure, and nothing for a service;
+    /// TestFlight has no consumable in its model at all. A client that derived
+    /// the number from <see cref="Condition"/> would be applying one backend's
+    /// rule to every install, which is exactly what this field replaced: the
+    /// fleet-reliability row asked a TestFlight player for a repair kit its mod
+    /// never needs, and refused the command when none was aboard.</para>
+    ///
+    /// <para>Already ELEVATED where the provider elevates it, on the same rule as
+    /// <see cref="RepairTrait"/>: this is the cost for this part in this
+    /// condition, not the part's baseline.</para>
+    /// </summary>
+    public IReadOnlyList<RepairCostItem>? RepairCost { get; set; }
+
+    /// <summary>
     /// The provider-namespaced extension bag, per-part half. Same mechanism and
     /// same rule as <see cref="ReliabilitySummary.Extensions"/>.
     /// </summary>
     [ProviderExtensionBag]
     public Dictionary<string, object?>? Extensions { get; set; }
+}
+
+/// <summary>
+/// One kind of thing a repair consumes, and how many of it. Deliberately shaped
+/// as <see cref="InventoryItem"/>'s name/quantity pair so a console can join the
+/// two directly rather than guessing which inventory line a cost refers to.
+/// </summary>
+[SitrepContract]
+#if SITREP_CODEGEN
+[TsInterface]
+#endif
+public class RepairCostItem
+{
+    /// <summary><c>AvailablePart.name</c>, the config id (e.g. <c>"evaRepairKit"</c>), matching <see cref="InventoryItem.Name"/>. The provider names the item so no consumer has to know which one a backend uses.</summary>
+    [SitrepUnit(Units.Id)]
+    public string Name { get; set; } = "";
+
+    /// <summary>How many of this kind one repair consumes. An entry exists only where something IS consumed, so this is never a meaningful zero.</summary>
+    [SitrepUnit(Units.Count)]
+    public int Quantity { get; set; }
 }
 
 /// <summary>

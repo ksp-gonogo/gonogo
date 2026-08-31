@@ -1,0 +1,151 @@
+{
+  "_meta": {
+    "scenario": "A crewed craft with a critically failed reaction wheel and an antenna overdue for service, under a backend that STATES what each repair consumes: two of a named item for the critical failure, nothing for the service.",
+    "notes": "The only FleetReliability fixture that carries `reliability.summary` itself, so it is the only one that renders the augment without an install profile substituting one: `broken-reaction-wheel.json` declares its summary in `carriedChannels` and leaves every profile to supply it, which means the augment's own render entry draws the roster row with no summary and the widget's 'refuses to assert a failure with NO summary at all' rule correctly renders nothing.\n\nIt exists because `repairCost` had no fixture at all. The widget used to DERIVE a repair's cost from the condition, using one backend's two-for-critical rule on every install, so a player whose elected backend models no consumable was asked for an item it never needs and the command was disabled when none was aboard. The cost is the provider's statement now, and this is the scene that shows a stated one being rendered.\n\nBoth halves are here on purpose: the critical part states a cost and draws the ledger, and the service-due part states none and draws no ledger at all. An absent cost is not a cost of zero, and a render where both looked alike would be the defect back.\n\nWhat is reachable is deliberately SHORT of what is needed: two are required, one is in a pocket and three are in a cargo hold, so the reserve is what closes the gap. That is the distinction the crew-versus-vessel inventory split exists for and the reason the ledger prints carried and aboard separately."
+  },
+  "_stream": {
+    "carriedChannels": [
+      "system.vessels",
+      "system.bodies",
+      "vessel.identity",
+      "reliability.summary",
+      "reliability.parts",
+      "vessel.crew",
+      "vessel.inventory"
+    ],
+    "emits": [
+      {
+        "channel": "system.bodies",
+        "value": { "bodies": [{ "index": 0, "name": "Kerbin" }] }
+      },
+      {
+        "channel": "system.vessels",
+        "value": {
+          "vessels": [
+            {
+              "vesselId": "v-active",
+              "name": "Active Craft",
+              "vesselType": 0,
+              "situation": 3,
+              "bodyIndex": 0,
+              "crewCount": 2,
+              "crewCapacity": 3,
+              "commsControlSource": 2
+            }
+          ]
+        }
+      },
+      {
+        "channel": "vessel.identity",
+        "value": {
+          "vesselId": "v-active",
+          "name": "Active Craft",
+          "vesselType": 0,
+          "situation": 3
+        }
+      },
+      {
+        "channel": "reliability.summary",
+        "value": { "source": "reliability", "coverage": "modeled" }
+      },
+      {
+        "channel": "reliability.parts",
+        "value": [
+          {
+            "partId": "101:0",
+            "title": "Reaction Wheel",
+            "condition": "failed-critical",
+            "conditionDetail": "busted",
+            "survival": null,
+            "survivalHorizonSeconds": null,
+            "budgets": null,
+            "repairTrait": "Engineer",
+            "repairLevel": 2,
+            "repairCost": [{ "name": "evaRepairKit", "quantity": 2 }]
+          },
+          {
+            "partId": "102:0",
+            "title": "Antenna",
+            "condition": "service-due",
+            "conditionDetail": "needs service",
+            "survival": null,
+            "survivalHorizonSeconds": null,
+            "budgets": [
+              {
+                "id": "service",
+                "label": "service",
+                "kind": "schedule",
+                "consumed": 1.4,
+                "usedSeconds": 302400,
+                "limitSeconds": 216000,
+                "usedCount": null,
+                "limitCount": null
+              }
+            ],
+            "repairTrait": "Engineer",
+            "repairLevel": 1,
+            "repairCost": null
+          }
+        ]
+      },
+      {
+        "channel": "vessel.crew",
+        "value": {
+          "count": 2,
+          "capacity": 3,
+          "crew": [
+            {
+              "name": "Jebediah Kerman",
+              "trait": "Pilot",
+              "experienceLevel": 3,
+              "carrying": [],
+              "slots": 2,
+              "packedVolumeLimit": 40,
+              "packedVolumeUsed": 5
+            },
+            {
+              "name": "Bill Kerman",
+              "trait": "Engineer",
+              "experienceLevel": 2,
+              "carrying": [
+                {
+                  "name": "evaRepairKit",
+                  "title": "EVA Repair Kit",
+                  "quantity": 1,
+                  "packedVolume": 5
+                }
+              ],
+              "slots": 2,
+              "packedVolumeLimit": 40,
+              "packedVolumeUsed": 10
+            }
+          ]
+        }
+      },
+      {
+        "channel": "vessel.inventory",
+        "value": {
+          "stores": [
+            {
+              "partId": "77",
+              "partName": "Service Bay",
+              "items": [
+                {
+                  "name": "evaRepairKit",
+                  "title": "EVA Repair Kit",
+                  "quantity": 3,
+                  "packedVolume": 5
+                }
+              ],
+              "slots": 8,
+              "slotsUsed": 1,
+              "packedVolumeLimit": 300,
+              "packedVolumeUsed": 15,
+              "massLimit": 1
+            }
+          ]
+        }
+      }
+    ]
+  }
+}

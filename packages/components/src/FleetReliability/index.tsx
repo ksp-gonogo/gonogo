@@ -4,7 +4,7 @@ import {
   useTelemetry,
 } from "@ksp-gonogo/core";
 import { type Reading, useCommand } from "@ksp-gonogo/sitrep-client";
-import type { CrewMember } from "@ksp-gonogo/sitrep-sdk";
+import type { CrewMember, RepairCostItem } from "@ksp-gonogo/sitrep-sdk";
 import {
   type ReliabilityBudget,
   type ReliabilityPartEntry,
@@ -36,11 +36,23 @@ import {
 /**
  * Reliability / part-failure augment on the `fleet-roster.updates` slot.
  *
- * SOURCE-AGNOSTIC BY DESIGN, mod-side: the mod elects ONE `reliability`
- * capability that publishes a single `reliability.summary` / `reliability.parts`
- * pair, fed by whichever backend wins election (TestFlight, Kerbalism, or a
- * vanilla `None` fallback). So this augment consumes ONE shape and never
- * abstracts over two client sources.
+ * SOURCE-AGNOSTIC, mod-side: the mod elects ONE `reliability` capability that
+ * publishes a single `reliability.summary` / `reliability.parts` pair, fed by
+ * whichever backend wins election (TestFlight, Kerbalism, or a vanilla `None`
+ * fallback). So this augment consumes ONE shape and never abstracts over two
+ * client sources.
+ *
+ * That sentence read "BY DESIGN" for a while and was an aspiration rather than a
+ * description, which is what stopped anyone checking it. Consuming one shape is
+ * not the same as being agnostic: every number this augment DERIVES from that
+ * shape is a rule it applies to every backend, and the derivation is where one
+ * backend's model got in. A `kitsNeeded()` here read Kerbalism's
+ * two-for-critical repair-kit rule off `condition` and charged it on every
+ * install, so a TestFlight player was asked for a kit their mod never needs and
+ * the repair command was disabled when none was aboard. The cost is now the
+ * provider's own statement on `repairCost`. **The test for anything added here
+ * is not "does it name a mod", it is "could two backends disagree about it": if
+ * they could, it belongs on the wire.**
  *
  * ACTIVE-VESSEL SCOPED (carry-gap, intentional): `reliability.*` carries no
  * `vesselId` today (both backends capture off `FlightGlobals.ActiveVessel`
@@ -428,31 +440,56 @@ function prefixed(source: string | null | undefined, rest: string): string {
 }
 
 /**
- * Kerbalism's own arithmetic, read from its `Repair()`: kits are consumed ONLY
- * when the part is broken, and a critical failure costs two where anything else
- * costs one. A part that merely needs service is repaired by the same event and
- * costs NOTHING, which is why servicing is offered here as freely as it is.
+ * How many of one named item this kerbal is carrying.
+ *
+ * <p>The item is named by the PROVIDER, on `repairCost`, so this joins on
+ * whatever id it stated rather than on one this file knows. It used to match a
+ * literal `"evaRepairKit"`, which is a stock part but only one backend's
+ * answer to what a repair costs.</p>
  */
-function kitsNeeded(condition: string | null | undefined): number {
-  if (condition === "failed-critical") return 2;
-  return condition === "failed" ? 1 : 0;
-}
-
-function kitsCarried(member: CrewMember): number {
+function carriedOf(member: CrewMember, itemName: string): number {
   let held = 0;
   for (const item of member.carrying ?? []) {
-    if (item.name === "evaRepairKit") held += magnitudeOf(item.quantity) ?? 0;
+    if (item.name === itemName) held += magnitudeOf(item.quantity) ?? 0;
   }
   return held;
 }
 
-/** Everything Kerbalism's Repair event will act on, which is more than the broken ones. */
+/**
+ * The conditions a repair action applies to, which is more than the broken ones:
+ * a service-due part is cleared by the same command.
+ *
+ * <p>A property of the CONDITION and nothing else. It used to be described as
+ * "everything Kerbalism's Repair event will act on", which was the same three
+ * values arrived at by reading one backend, and the description is what made the
+ * cost arithmetic beside it look equally safe.</p>
+ */
 function actionable(condition: string | null | undefined): boolean {
   return (
     condition === "failed" ||
     condition === "failed-critical" ||
     condition === "service-due"
   );
+}
+
+/** `Repair` for a failure, `Service` for a part that is merely due one. */
+function verbFor(condition: string | null | undefined): string {
+  return condition === "service-due" ? "Service" : "Repair";
+}
+
+/**
+ * One line of a repair's stated cost, resolved against what is actually aboard.
+ *
+ * <p>`label` is the item's own display title where something aboard carries one,
+ * and its config id otherwise. Neither is a word this file chooses: an id on
+ * screen is worse than a title and better than a guess.</p>
+ */
+interface CostLine {
+  name: string;
+  label: string;
+  needed: number;
+  carried: number;
+  reserve: number;
 }
 
 /**
@@ -496,10 +533,18 @@ function mayAct(
  * the operator's delay to be told "nobody aboard is carrying a kit" is the
  * failure this design exists to avoid.</p>
  *
- * <p><b>The kit count sits beside the control</b>, which is this repo's funds
- * rule applied to a different currency: a widget offering to spend something
- * scarce shows the balance in the same widget. A service spends nothing, so it
- * says nothing about kits.</p>
+ * <p><b>The cost sits beside the control</b>, which is this repo's funds rule
+ * applied to a different currency: a widget offering to spend something scarce
+ * shows the balance in the same widget.</p>
+ *
+ * <p><b>And the cost is the provider's, never this file's.</b> `cost` is
+ * `reliability.parts`' own `repairCost`, empty when the elected backend states
+ * none. It used to be derived from `condition` by a `kitsNeeded()` here, which
+ * was Kerbalism's two-for-critical rule applied to every install: on a
+ * TestFlight one the row asked for a repair kit the mod never needs and
+ * disabled the command when none was aboard, and on a Kerbalism install with
+ * kits switched off it did the same. An empty cost means nothing is consumed
+ * and is not a cost of zero, so it draws no ledger and gates nothing.</p>
  */
 function RepairControl({
   partId,
@@ -507,37 +552,48 @@ function RepairControl({
   repairTrait,
   repairLevel,
   crew,
-  reserveKits,
+  cost,
 }: {
   partId: string;
   condition: string | null | undefined;
   repairTrait: string | null | undefined;
   repairLevel: number | null | undefined;
   crew: CrewMember[];
-  reserveKits: number;
+  cost: CostLine[];
 }) {
   const repair = useCommand("vessel.repair");
   usePanelDelay(repair);
   const [open, setOpen] = useState(false);
   const [chosen, setChosen] = useState<string | null>(null);
 
-  const needed = kitsNeeded(condition);
-  const verb = needed === 0 ? "Service" : "Repair";
+  const verb = verbFor(condition);
 
   /*
    * Default to whoever can act with NO fetch, which is the distinction the
    * crew-versus-vessel inventory split exists for: a kerbal already holding
    * enough needs nothing moved. Offering the first name in the roster instead
    * would hand the operator the worse option by default.
+   *
+   * Ranked on the FIRST stated item when there is one, which is the whole of
+   * every cost anything states today. With no cost stated there is nothing to
+   * rank on and roster order stands.
    */
+  const rankOn = cost[0]?.name;
   const eligible = crew.filter((c) => mayAct(c, repairTrait, repairLevel));
-  const readiest = eligible
-    .slice()
-    .sort((a, b) => kitsCarried(b) - kitsCarried(a))[0];
+  const readiest = rankOn
+    ? eligible
+        .slice()
+        .sort((a, b) => carriedOf(b, rankOn) - carriedOf(a, rankOn))[0]
+    : eligible[0];
   const performer = chosen ?? readiest?.name ?? null;
-  const carried = eligible.find((c) => c.name === performer);
-  const held = carried ? kitsCarried(carried) : 0;
-  const reachable = held + reserveKits;
+  const acting = eligible.find((c) => c.name === performer);
+
+  /** Per stated item: what this performer could reach without another trip. */
+  const lines = cost.map((line) => {
+    const held = acting ? carriedOf(acting, line.name) : 0;
+    return { ...line, carried: held, reachable: held + line.reserve };
+  });
+  const short = lines.find((line) => line.reachable < line.needed);
 
   const requirement = repairTrait
     ? `${repairTrait}${repairLevel != null ? ` level ${repairLevel}` : ""}`
@@ -547,8 +603,8 @@ function RepairControl({
       ? requirement
         ? `Needs ${requirement}, and nobody aboard qualifies`
         : "Nobody is aboard to do it"
-      : reachable < needed
-        ? `Needs ${needed}, and ${reachable} can be reached`
+      : short
+        ? `Needs ${short.needed} ${short.label}, and ${short.reachable} can be reached`
         : null;
 
   if (!open) {
@@ -561,19 +617,19 @@ function RepairControl({
 
   return (
     <Stack gap="xs">
-      {needed > 0 && (
-        <span>
-          {`${needed} kit${needed === 1 ? "" : "s"} · ${held} carried · ${reserveKits} aboard`}
+      {lines.map((line) => (
+        <span key={line.name}>
+          {`${line.needed} ${line.label} · ${line.carried} carried · ${line.reserve} aboard`}
         </span>
-      )}
+      ))}
       {eligible.map((member) => (
         <SelectableRow
           key={member.name ?? "unknown"}
           selected={member.name === performer}
           onClick={() => setChosen(member.name ?? null)}
         >
-          {needed > 0
-            ? `${member.name ?? "Unknown"} · ${kitsCarried(member)} carried`
+          {rankOn
+            ? `${member.name ?? "Unknown"} · ${carriedOf(member, rankOn)} carried`
             : (member.name ?? "Unknown")}
         </SelectableRow>
       ))}
@@ -601,23 +657,46 @@ export function FleetReliabilityUpdates({ vesselId, compact }: UpdatesProps) {
   const inventoryReading = useTelemetry("vessel.inventory");
   const parts = judgeable(partsReading);
   const crew = judgeable(crewReading)?.crew ?? [];
+  const stores = judgeable(inventoryReading)?.stores ?? [];
   /*
-   * The reserve a fetch could reach. Part-hosted only: a kit in ANOTHER
-   * kerbal's pocket is not reachable, because the mod takes the shortfall from
-   * a cargo hold and never from a colleague.
+   * The reserve a fetch could reach, per item id, and the display title the
+   * install gives each one. Part-hosted only: an item in ANOTHER kerbal's
+   * pocket is not reachable, because the backends that source a shortfall take
+   * it from a cargo hold and never from a colleague.
    */
-  const reserveKits = (judgeable(inventoryReading)?.stores ?? []).reduce(
-    (total, store) =>
-      total +
-      (store.items ?? []).reduce(
-        (kits: number, item) =>
-          item.name === "evaRepairKit"
-            ? kits + (magnitudeOf(item.quantity) ?? 0)
-            : kits,
-        0,
-      ),
-    0,
-  );
+  const aboard = new Map<string, { quantity: number; title?: string | null }>();
+  for (const store of stores) {
+    for (const item of store.items ?? []) {
+      const seen = aboard.get(item.name);
+      aboard.set(item.name, {
+        quantity: (seen?.quantity ?? 0) + (magnitudeOf(item.quantity) ?? 0),
+        title: seen?.title ?? item.title,
+      });
+    }
+  }
+  /** The title anything aboard gives this item id, crew pockets included. */
+  const titleOf = (name: string): string | undefined => {
+    const stored = aboard.get(name)?.title;
+    if (stored) return stored;
+    for (const member of crew) {
+      for (const item of member.carrying ?? []) {
+        if (item.name === name && item.title) return item.title;
+      }
+    }
+    return undefined;
+  };
+  /**
+   * The provider's stated cost, resolved against the vessel. Empty when it
+   * states none, which draws no ledger and gates nothing: absent is not zero.
+   */
+  const costOf = (part: { repairCost?: RepairCostItem[] }): CostLine[] =>
+    (part.repairCost ?? []).map((item) => ({
+      name: item.name,
+      label: titleOf(item.name) ?? item.name,
+      needed: magnitudeOf(item.quantity) ?? 0,
+      carried: 0,
+      reserve: aboard.get(item.name)?.quantity ?? 0,
+    }));
   const notCurrent =
     partsReading.state === "stale" || summaryReading.state === "stale";
 
@@ -750,7 +829,7 @@ export function FleetReliabilityUpdates({ vesselId, compact }: UpdatesProps) {
                   repairTrait={part.repairTrait}
                   repairLevel={magnitudeOf(part.repairLevel)}
                   crew={crew}
-                  reserveKits={reserveKits}
+                  cost={costOf(part)}
                 />
               )}
             </Stack>
