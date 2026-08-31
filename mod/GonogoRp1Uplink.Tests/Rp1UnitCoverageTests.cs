@@ -58,6 +58,8 @@ namespace GonogoRp1Uplink.Tests
                 nameof(Rp1ComplexRushArgs),
                 nameof(Rp1PersonnelAssignArgs),
                 nameof(Rp1BuildStartArgs),
-                nameof(Rp1FacilityUpgradeArgs));
+                nameof(Rp1FacilityUpgradeArgs),
+                nameof(Rp1TechResearchArgs),
+                nameof(Rp1StrategyActivateArgs));
     }
 }

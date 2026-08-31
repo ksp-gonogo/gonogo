@@ -334,3 +334,7 @@ export interface Rp1LeaderEntry
 	canRemoveFromUt?: Value<"ut">;
 	freeToRemoveFromUt?: Value<"ut">;
 }
+export interface Rp1TechResearchArgs
+{
+	techId?: string;
+}

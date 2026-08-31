@@ -48,6 +48,7 @@ Brings RP-1's career layer to the dashboard: Programs with their objectives, dea
 | `Rp1ProgramSpeedOption` | `confidenceCost` confidence, `durationSeconds` s, `speed` enum |
 | `Rp1RolloutArgs` | `id` id, `pad` id |
 | `Rp1StrategyActivateArgs` | `strategyId` id |
+| `Rp1TechResearchArgs` | `techId` id |
 | `Rp1VehicleArgs` | `id` id |
 
 ## Widgets

@@ -343,6 +343,7 @@ namespace GonogoRp1Uplink.Tests
                     Rp1VehicleCommands.RushCommand,
                     Rp1PersonnelCommands.AssignCommand,
                     Rp1FacilityUpgradeCommands.UpgradeCommand,
+                    Rp1ResearchCommands.ResearchCommand,
                 },
                 declarations.Select(d => d.Command).ToArray());
             Assert.All(declarations, declaration =>

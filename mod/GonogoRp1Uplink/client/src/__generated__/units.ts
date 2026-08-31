@@ -362,6 +362,9 @@ export const GENERATED_TYPE_UNITS: Readonly<Record<string, UnitsByField>> = {
   "Rp1StrategyActivateArgs": {
     strategyId: "id",
   },
+  "Rp1TechResearchArgs": {
+    techId: "id",
+  },
   "Rp1VehicleArgs": {
     id: "id",
   },
