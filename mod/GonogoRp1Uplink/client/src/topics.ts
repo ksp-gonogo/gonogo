@@ -250,6 +250,7 @@ registerBarePrimitiveTopic(RP1_CONSTRUCTIONS_TOPIC);
 registerBarePrimitiveTopic(RP1_RESEARCH_TOPIC);
 registerBarePrimitiveTopic(RP1_PERSONNEL_TOPIC);
 registerBarePrimitiveTopic(RP1_RUSH_TERMS_TOPIC);
+registerBarePrimitiveTopic(RP1_LC_PRICING_TOPIC);
 registerBarePrimitiveTopic(RP1_CONFIDENCE_TOPIC);
 registerBarePrimitiveTopic(RP1_PROGRAMS_TOPIC);
 registerBarePrimitiveTopic(RP1_PROGRAM_SLOTS_TOPIC);
