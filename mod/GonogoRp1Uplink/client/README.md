@@ -165,6 +165,7 @@ Every craft RP-1 is integrating, holding or could start, across every launch com
 | `rp1-vehicle-assembly-building` | `rp1-vehicle-assembly.sections` | – |  |  |
 | `rp1-vehicle-assembly-buildable` | `rp1-vehicle-assembly.sections` | – |  |  |
 | `rp1-vehicle-assembly-warehouse` | `rp1-vehicle-assembly.sections` | – |  |  |
+| `rp1-warp-targets` | `warp-control.stepper` | – |  |  |
 
 ![Three kerbals' RP-1 schedules inside the roster rows the Astronaut Complex already draws: a retirement that can still be extended, a course being worked and a course nobody has started, and mission training lapsing before either finishes](docs/assets/crew-schedule-three-states--default.png)
 

@@ -113,6 +113,9 @@ export interface Rp1PadDismantleArgs
 	lcId?: string;
 	padId?: string;
 }
+export interface Rp1WarpArgs
+{
+}
 export interface Rp1CentreEntry
 {
 	kscName?: string;

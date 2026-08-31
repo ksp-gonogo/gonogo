@@ -204,6 +204,13 @@ namespace GonogoRp1Uplink
         private readonly Rp1ComplexConstructionCommands _complexConstruction = new Rp1ComplexConstructionCommands();
 
         /// <summary>
+        /// Warping to something RP-1 is waiting for. Its own class because it
+        /// touches no complex, no vehicle and no balance: it hands RP-1's warp
+        /// controller a target and stops.
+        /// </summary>
+        private readonly Rp1WarpCommands _warp = new Rp1WarpCommands();
+
+        /// <summary>
         /// Committing to a leader or a program without the Administration
         /// Building. Its own class because it reaches nothing the writes above
         /// reach: it touches no vehicle, no complex and no building, only the
@@ -351,7 +358,8 @@ namespace GonogoRp1Uplink
                 _staffing.IsAvailable, _start.IsAvailable, _facilities.IsAvailable,
                 _researchCommands.IsAvailable, _strategies.IsAvailable, _targets.IsAvailable,
                 _trainingWrites.IsAvailable, _complexLifecycle.IsAvailable,
-                _complexConstruction.IsAvailable, _complexConstruction.IsPadAvailable);
+                _complexConstruction.IsAvailable, _complexConstruction.IsPadAvailable,
+                _warp.IsAvailable);
             _crewStanding = new Rp1CrewStandingBackend(_crew);
             _economy = new Rp1EconomyBackend(_upkeepQuery);
         }
@@ -369,7 +377,8 @@ namespace GonogoRp1Uplink
             bool trainingModelResolved,
             bool complexLifecycleModelResolved,
             bool complexConstructionModelResolved,
-            bool padConstructionModelResolved) => new UplinkManifest
+            bool padConstructionModelResolved,
+            bool warpModelResolved) => new UplinkManifest
         {
             Id = "rp1",
             Version = "1.0.0",
@@ -444,7 +453,8 @@ namespace GonogoRp1Uplink
                 staffingModelResolved, startModelResolved, facilityModelResolved,
                 researchModelResolved, strategyModelResolved, targetModelResolved,
                 trainingModelResolved, complexLifecycleModelResolved,
-                complexConstructionModelResolved, padConstructionModelResolved),
+                complexConstructionModelResolved, padConstructionModelResolved,
+                warpModelResolved),
         };
 
         /// <summary>
@@ -479,7 +489,8 @@ namespace GonogoRp1Uplink
             bool trainingModelResolved,
             bool complexLifecycleModelResolved,
             bool complexConstructionModelResolved,
-            bool padConstructionModelResolved)
+            bool padConstructionModelResolved,
+            bool warpModelResolved)
         {
             var commands = new List<CommandDeclaration>();
             if (buildModelResolved)
@@ -596,6 +607,27 @@ namespace GonogoRp1Uplink
             if (padConstructionModelResolved)
             {
                 commands.Add(Declare(Rp1ComplexConstructionCommands.NewPadCommand));
+            }
+            // TWO requirements, and the second is the only SCENE condition here
+            // besides the facility upgrade's: RP-1's warp controller ticks in
+            // flight, at the space centre and at the tracking station, and a warp
+            // started anywhere else would set a rate and never step it down, which
+            // overshoots the thing it was aimed at.
+            if (warpModelResolved)
+            {
+                foreach (var command in new[] { Rp1WarpCommands.ToCompleteCommand, Rp1WarpCommands.ToFundTargetCommand })
+                {
+                    commands.Add(new CommandDeclaration
+                    {
+                        Command = command,
+                        Delayed = false,
+                        Requires = new[]
+                        {
+                            Rp1BuildCommands.Requirements()[0],
+                            Rp1WarpCommands.SceneRequirement(),
+                        },
+                    });
+                }
             }
             return commands;
         }
@@ -847,6 +879,21 @@ namespace GonogoRp1Uplink
                         Rp1ComplexLifecycleCommands.RenamePadCommand, _complexLifecycle.RenamePad);
                     host.AddCommandHandler<Rp1PadDismantleArgs, CommandResult>(
                         Rp1ComplexLifecycleCommands.DismantlePadCommand, _complexLifecycle.DismantlePad);
+                }
+            });
+            Register(() =>
+            {
+                if (_warp.IsAvailable)
+                {
+                    // Its own evaluator beside the shared one, for the same reason
+                    // the facility upgrade has one: the condition is about the SCENE
+                    // rather than about RP-1's model, and it is answerable before
+                    // anyone chooses what to warp toward.
+                    host.AddGateEvaluator(_warp);
+                    host.AddCommandHandler<Rp1WarpArgs, CommandResult>(
+                        Rp1WarpCommands.ToCompleteCommand, _warp.ToComplete);
+                    host.AddCommandHandler<Rp1WarpArgs, CommandResult>(
+                        Rp1WarpCommands.ToFundTargetCommand, _warp.ToFundTarget);
                 }
             });
             Register(() =>
@@ -1344,6 +1391,16 @@ namespace GonogoRp1Uplink
                         ? "not registered: RP-1 launch-complex construction types not found"
                         : "rp1.complex.new, rp1.complex.modify and rp1.pad.new registered ("
                           + _complexConstruction.MethodDiagnosis() + ")"),
+                // Its own fact, and the diagnosis matters more than most: the
+                // member that guards a warp-to-complete is a DIFFERENT one from the
+                // member that performs it, and losing the guard turns a refusal into
+                // a NullReferenceException inside RP-1.
+                new UplinkHealthFact(
+                    "warp commands",
+                    !_warp.IsAvailable
+                        ? "not registered: RP-1 warp types not found"
+                        : "rp1.warp.toComplete and rp1.warp.toFundTarget registered ("
+                          + _warp.MethodDiagnosis() + ")"),
                 new UplinkHealthFact(
                     "simulation provider",
                     _simulationRegistrationError != null

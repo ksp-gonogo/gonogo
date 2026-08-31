@@ -137,13 +137,34 @@ namespace GonogoRp1Uplink.Tests
                 }
 
                 var baseHandle = type.BaseType;
-                if (baseHandle.Kind != HandleKind.TypeDefinition)
+                if (!IsWalkableBase(baseHandle))
                 {
                     return null;
                 }
                 current = (TypeDefinitionHandle)baseHandle;
             }
         }
+
+        /// <summary>
+        /// Whether a type's base handle is one the walk can step onto.
+        /// </summary>
+        /// <remarks>
+        /// <para>The <c>IsNil</c> half is load-bearing and was missing. An INTERFACE
+        /// has no base type at all, and a nil <c>TypeDefinitionHandle</c> still
+        /// reports its <c>Kind</c> as <c>TypeDefinition</c> while pointing at row
+        /// zero, which does not exist. So the Kind check alone let the walk step onto
+        /// row zero and <c>GetMethodRange</c> threw <c>BadImageFormatException:
+        /// Read out of bounds</c>.</para>
+        /// <para>It never fired before because every type this manifest pinned was a
+        /// CLASS, whose base is <c>System.Object</c> and therefore a
+        /// <c>TypeReference</c> that the Kind check already rejected. The first
+        /// interface pinned (<c>ISpaceCenterProject.GetItemName</c>, which is where
+        /// every warp target's name comes from) crashed the whole check rather than
+        /// reporting on it: a member genuinely declared on an interface was a case
+        /// this instrument could not express.</para>
+        /// </remarks>
+        private static bool IsWalkableBase(EntityHandle baseHandle) =>
+            !baseHandle.IsNil && baseHandle.Kind == HandleKind.TypeDefinition;
 
         /// <summary>
         /// A method by name and arity, matched the way
@@ -179,7 +200,7 @@ namespace GonogoRp1Uplink.Tests
                 }
 
                 var baseHandle = type.BaseType;
-                if (baseHandle.Kind != HandleKind.TypeDefinition)
+                if (!IsWalkableBase(baseHandle))
                 {
                     return found;
                 }

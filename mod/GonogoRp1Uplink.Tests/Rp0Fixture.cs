@@ -485,6 +485,26 @@ namespace RP0
     /// </summary>
     public static class KCTUtilities
     {
+        /// <summary>
+        /// What a test says finishes next, and the reason the warp commands ask it
+        /// BEFORE handing anything to the warp controller: the real one returns null
+        /// both when there is no active space centre and when nothing anywhere is in
+        /// progress, and RP-1's own Create cannot survive either.
+        /// </summary>
+        public static ISpaceCenterProject? NextThing;
+
+        /// <summary>Makes the lookup throw, which is the same as no project for a caller that only needs to know whether Create can be handed a null.</summary>
+        public static bool ThrowOnNextThing;
+
+        public static ISpaceCenterProject? GetNextThingToFinish()
+        {
+            if (ThrowOnNextThing)
+            {
+                throw new InvalidOperationException("the project queue could not be read");
+            }
+            return NextThing;
+        }
+
         /// <summary>Made to throw part-way, to pin what an operator is told when it does.</summary>
         public static bool ThrowOnAdd;
 
@@ -530,6 +550,8 @@ namespace RP0
             ThrowOnExperimental = false;
             EngineerChanges.Clear();
             ExperimentalNodes.Clear();
+            NextThing = null;
+            ThrowOnNextThing = false;
         }
 
         public static void AddNodePartsToExperimental(string techID)
@@ -1511,7 +1533,7 @@ namespace RP0
     /// RP-1 declares them, so a test that reads them proves the production walk
     /// reaches a non-public field rather than proving a convenient fixture.
     /// </summary>
-    public class FundTargetProject
+    public class FundTargetProject : ISpaceCenterProject
     {
         private double targetFunds;
         private double origFunds;
@@ -1530,7 +1552,34 @@ namespace RP0
             origFunds = original;
         }
 
+        public FundTargetProject()
+        {
+        }
+
+        /// <summary>
+        /// A standing target, as RP-1's own set command makes one. The original
+        /// balance is a parameter here where the real type reads it off Funding,
+        /// because this assembly has no Funding and the pair is what IsValid turns
+        /// on.
+        /// </summary>
+        public FundTargetProject(double target, double origFunds)
+        {
+            targetFunds = target;
+            this.origFunds = origFunds;
+        }
+
         public double GetTimeLeft() => TimeLeft;
+
+        /// <summary>
+        /// What RP-1 calls a fund target, and the reason this type implements the
+        /// project interface at all: RP-1 puts the fund target in its own project
+        /// list beside the rockets, so warping to it is the same call rather than a
+        /// separate mechanism.
+        /// </summary>
+        public string GetItemName() => $"Fund Target: {targetFunds:N0}";
+
+        /// <summary>Reached when the target is no longer a standing instruction.</summary>
+        public bool IsComplete() => !IsValid;
     }
 
     public class SpaceCenterManagement

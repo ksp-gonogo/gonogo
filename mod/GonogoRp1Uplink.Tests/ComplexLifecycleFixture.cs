@@ -323,3 +323,92 @@ namespace ROUtils
         }
     }
 }
+
+namespace RP0
+{
+    /// <summary>
+    /// The interface RP-1's warp controller aims at: anything with a time left and
+    /// a name, which is every project a career waits on.
+    /// </summary>
+    /// <remarks>
+    /// Declared as an interface rather than a base class because RP-1 declares one,
+    /// and because that is what lets a fund target and a half-built rocket be the
+    /// same kind of warp target. The real one carries more, but a warp only ever
+    /// asks these.
+    /// </remarks>
+    public interface ISpaceCenterProject
+    {
+        string GetItemName();
+
+        double GetTimeLeft();
+
+        bool IsComplete();
+    }
+
+    /// <summary>
+    /// A project a test can put in front of the warp commands, with the two answers
+    /// they read.
+    /// </summary>
+    public class FakeProject : ISpaceCenterProject
+    {
+        public string Name = "Atlas 3";
+
+        public double TimeLeft = 86400.0;
+
+        public bool Complete;
+
+        /// <summary>
+        /// Makes the project decline to name itself, which a refusal sentence has to
+        /// survive. NULL rather than a throw, deliberately: RP-1's own Create reads
+        /// the name too, so a throwing name would break Create rather than exercise
+        /// the fallback, and the fallback is what is under test.
+        /// </summary>
+        public bool Nameless;
+
+        public string GetItemName() => Nameless ? null! : Name;
+
+        public double GetTimeLeft() => TimeLeft;
+
+        public bool IsComplete() => Complete;
+    }
+
+    /// <summary>
+    /// RP-1's warp controller, in the two members this Uplink reaches.
+    /// </summary>
+    /// <remarks>
+    /// <para><c>Create</c> reproduces the shape that matters and the DEFECT that
+    /// matters: a null target means "the next thing to finish", and RP-1 then
+    /// dereferences that target's name WITHOUT a null check. So a Create called
+    /// with nothing to warp to throws, exactly as the shipped one does, and a
+    /// command that failed to guard would fail here rather than in a career.</para>
+    /// <para>The real type is <c>internal</c>, which reflection reaches anyway;
+    /// public here because a test assembly has no way to be inside RP-1's.</para>
+    /// </remarks>
+    public static class KCTWarpController
+    {
+        /// <summary>Every target Create was handed, so a test can pin which one it aimed at.</summary>
+        public static readonly System.Collections.Generic.List<ISpaceCenterProject?> Created =
+            new System.Collections.Generic.List<ISpaceCenterProject?>();
+
+        /// <summary>Set to make Create throw AFTER recording, which is a warp that may have started.</summary>
+        public static bool Throws;
+
+        public static void Reset()
+        {
+            Created.Clear();
+            Throws = false;
+        }
+
+        public static void Create(ISpaceCenterProject warpTarget)
+        {
+            var target = warpTarget ?? KCTUtilities.GetNextThingToFinish();
+            Created.Add(target);
+            if (Throws)
+            {
+                throw new System.InvalidOperationException("the warp controller could not be created");
+            }
+            // The shipped defect, reproduced: no null check before the name is read.
+            _ = target.GetItemName();
+        }
+    }
+}
