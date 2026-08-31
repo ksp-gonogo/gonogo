@@ -16,7 +16,6 @@ Publishes Principia's n-body state: trajectory arcs, the flight plan and its bur
 | Topic | Payload | Delivery | Delay |
 | --- | --- | --- | --- |
 | `principia.analysis` | `PrincipiaAnalysis` | lossy-latest | delayed |
-| `principia.flightPlan` | `PrincipiaFlightPlan` | lossy-latest | delayed |
 | `principia.plan` | `PrincipiaPlan` | lossy-latest | delayed |
 | `principia.settings` | `PrincipiaSettings` | lossy-latest | true-now |
 
@@ -27,7 +26,6 @@ Publishes Principia's n-body state: trajectory arcs, the flight plan and its bur
 | `PrincipiaBurnRemoveArgs` | `burnIndex` count, `requestId` id, `vesselId` id |
 | `PrincipiaCoastAnalysis` | `analysis` PrincipiaOrbitAnalysis, `endsAtUt` ut, `index` count, `startsAtUt` ut |
 | `PrincipiaComposedBurn` | `deltaVBinormal` m/s, `deltaVNormal` m/s, `deltaVTangent` m/s, `ignitionUt` ut, `inertiallyFixed` flag |
-| `PrincipiaFlightPlanBurn` | `anomalous` flag, `coordinateSystem` enum, `cutoffUt` ut, `deltaV` m/s, `durationSeconds` s, `ignitionUt` ut, `index` count, `inertiallyFixed` flag, `initialMassTons` t, `specificImpulseSeconds` isp, `thrustKilonewtons` kN |
 | `PrincipiaLengthInterval` | `max` m, `min` m |
 | `PrincipiaOrbitAnalysis` | `anomalisticPeriodSeconds` s, `ascendingCrossingDegrees` PrincipiaAngleInterval, `ascendingNodeSolarTimeDegrees` PrincipiaAngleInterval, `descendingCrossingDegrees` PrincipiaAngleInterval, `descendingNodeSolarTimeDegrees` PrincipiaAngleInterval, `elementsEpochUt` ut, `elementsPresent` flag, `firstCollisionRiskUt` ut, `firstCollisionUt` ut, `firstReentryUt` ut, `gravitationallyBound` flag, `lowestAltitudeMetres` m, `meanApoapsisAltitudeMetres` PrincipiaLengthInterval, `meanArgumentOfPeriapsisDegrees` PrincipiaAngleInterval, `meanEccentricity` PrincipiaRatioInterval, `meanInclinationDegrees` PrincipiaAngleInterval, `meanLongitudeOfAscendingNodeDegrees` PrincipiaAngleInterval, `meanPeriapsisAltitudeMetres` PrincipiaLengthInterval, `meanSemimajorAxisMetres` PrincipiaLengthInterval, `missionDurationSeconds` s, `nodalPeriodSeconds` s, `nodalPrecessionDegreesPerHour` °/h, `primaryBody` text, `primaryIndex` count, `progressOfNextAnalysis` ratio, `recurrenceCycleRotations` count, `recurrenceEquatorialShiftDegrees` °, `recurrenceGridIntervalDegrees` °, `recurrenceRevolutions` count, `recurrenceRevolutionsPerRotation` count, `recurrenceSubcycleRotations` count, `siderealPeriodSeconds` s |
 | `PrincipiaPlanArmArgs` | `requestId` id, `vesselId` id |
@@ -58,11 +56,11 @@ Publishes Principia's n-body state: trajectory arcs, the flight plan and its bur
 
 ![The plan belongs to another craft: the attribution guard, on screen](docs/assets/flight-plan-other-vessel--default.png)
 
-![Observed six hours ago, so the imminent-looking burn is long past: whether the age reads clearly enough to stop someone trusting the countdown](docs/assets/flight-plan-stale-observation--default.png)
+![Read six hours ago, so the imminent-looking burn is long past: whether the age reads clearly enough to stop someone trusting the countdown](docs/assets/flight-plan-stale-observation--default.png)
 
 ![The step limit sitting beside the failure it causes: the plan stopped fourteen hours short of its requested end, and the control that fixes it is on the same line](docs/assets/flight-plan-steps-exhausted--default.png)
 
-![Never observed. The one that must not read as no flight plan](docs/assets/flight-plan-unobserved--default.png)
+![No reading at all. The one that must not read as no flight plan](docs/assets/flight-plan-unobserved--default.png)
 
 ![A low equatorial orbit the analyser has followed down to the ground: reentry within the hour, then terrain risk, then the impact itself, each as a countdown rather than a flag](docs/assets/orbit-analysis-decaying--default.png)
 

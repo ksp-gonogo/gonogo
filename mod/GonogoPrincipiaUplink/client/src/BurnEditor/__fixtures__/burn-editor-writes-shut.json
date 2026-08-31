@@ -33,45 +33,6 @@
         }
       },
       {
-        "topic": "principia.flightPlan",
-        "payload": {
-          "vesselId": "Ares-IV",
-          "observedAtUt": 1000000,
-          "planExists": true,
-          "reachedDeadline": false,
-          "planIntegrated": true,
-          "anomalousBurnCount": 1,
-          "firstFutureBurnIndex": 1,
-          "finalTimeUt": 1220000,
-          "burns": [
-            {
-              "index": 0,
-              "ignitionUt": 999800,
-              "cutoffUt": 999830,
-              "durationSeconds": 30,
-              "deltaV": 841.5,
-              "anomalous": false
-            },
-            {
-              "index": 1,
-              "ignitionUt": 1010600,
-              "cutoffUt": 1010667,
-              "durationSeconds": 67,
-              "deltaV": 1203.2,
-              "anomalous": false
-            },
-            {
-              "index": 2,
-              "ignitionUt": 1190400,
-              "cutoffUt": 1190452,
-              "durationSeconds": 52,
-              "deltaV": 61.8,
-              "anomalous": true
-            }
-          ]
-        }
-      },
-      {
         "topic": "principia.plan",
         "payload": {
           "vesselId": "Ares-IV",

@@ -84,32 +84,6 @@
       "ignitionUt": "ut",
       "inertiallyFixed": "flag"
     },
-    "PrincipiaFlightPlan": {
-      "anomalousBurnCount": "count",
-      "finalTimeUt": "ut",
-      "firstErrorBurnIndex": "count",
-      "firstFutureBurnIndex": "count",
-      "observedAtUt": "ut",
-      "planExists": "flag",
-      "planIntegrated": "flag",
-      "reachedDeadline": "flag",
-      "statusError": "enum",
-      "statusMessage": "text",
-      "vesselId": "id"
-    },
-    "PrincipiaFlightPlanBurn": {
-      "anomalous": "flag",
-      "coordinateSystem": "enum",
-      "cutoffUt": "ut",
-      "deltaV": "m/s",
-      "durationSeconds": "s",
-      "ignitionUt": "ut",
-      "index": "count",
-      "inertiallyFixed": "flag",
-      "initialMassTons": "t",
-      "specificImpulseSeconds": "isp",
-      "thrustKilonewtons": "kN"
-    },
     "PrincipiaLengthInterval": {
       "max": "m",
       "min": "m"
@@ -141,12 +115,17 @@
       "actualFinalTimeUt": "ut",
       "anomalousBurnCount": "count",
       "desiredFinalTimeUt": "ut",
+      "firstFutureBurnIndex": "count",
       "initialTimeUt": "ut",
       "optimisationRunning": "flag",
       "planCount": "count",
       "planExists": "flag",
+      "planIntegrated": "flag",
+      "reachedDeadline": "flag",
       "sampledAtUt": "ut",
       "selectedPlan": "count",
+      "statusError": "enum",
+      "statusMessage": "text",
       "vesselId": "id"
     },
     "PrincipiaPlanArmArgs": {
@@ -294,29 +273,21 @@
       "sampledAtUt": "ut",
       "vesselId": "id"
     },
-    "principia.flightPlan": {
-      "anomalousBurnCount": "count",
-      "finalTimeUt": "ut",
-      "firstErrorBurnIndex": "count",
-      "firstFutureBurnIndex": "count",
-      "observedAtUt": "ut",
-      "planExists": "flag",
-      "planIntegrated": "flag",
-      "reachedDeadline": "flag",
-      "statusError": "enum",
-      "statusMessage": "text",
-      "vesselId": "id"
-    },
     "principia.plan": {
       "actualFinalTimeUt": "ut",
       "anomalousBurnCount": "count",
       "desiredFinalTimeUt": "ut",
+      "firstFutureBurnIndex": "count",
       "initialTimeUt": "ut",
       "optimisationRunning": "flag",
       "planCount": "count",
       "planExists": "flag",
+      "planIntegrated": "flag",
+      "reachedDeadline": "flag",
       "sampledAtUt": "ut",
       "selectedPlan": "count",
+      "statusError": "enum",
+      "statusMessage": "text",
       "vesselId": "id"
     },
     "principia.settings": {
@@ -374,9 +345,6 @@
     "PrincipiaCoastAnalysis": {
       "analysis": "PrincipiaOrbitAnalysis"
     },
-    "PrincipiaFlightPlan": {
-      "burns": "PrincipiaFlightPlanBurn[]"
-    },
     "PrincipiaOrbitAnalysis": {
       "ascendingCrossingDegrees": "PrincipiaAngleInterval",
       "ascendingNodeSolarTimeDegrees": "PrincipiaAngleInterval",
@@ -410,9 +378,6 @@
     "principia.analysis": {
       "coasts": "PrincipiaCoastAnalysis[]",
       "orbit": "PrincipiaOrbitAnalysis"
-    },
-    "principia.flightPlan": {
-      "burns": "PrincipiaFlightPlanBurn[]"
     },
     "principia.plan": {
       "burns": "PrincipiaPlannedBurn[]",

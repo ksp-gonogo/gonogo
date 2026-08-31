@@ -6,14 +6,14 @@ namespace GonogoPrincipiaUplink
     /// Reads the selected flight plan out of the plugin, inside one frame, through
     /// the gates that carry the preconditions.
     ///
-    /// <para><b>Why the plugin and not the producer's window.</b> The window mirror
-    /// beside this one is safer and less complete: it cannot abort, it survives a
-    /// burn whose frame the plugin refuses to describe, and it carries a Dv
-    /// magnitude where tuning needs the triple. This reading is the plugin's own
-    /// answer, which is the only place the triple, the mass flow and each burn's
-    /// frame exist, and it is also the reading a write has to be validated
-    /// against: an editor showing one number while the write gate checks another is
-    /// worse than an editor with fewer numbers.</para>
+    /// <para><b>The plugin, because the window was never an option.</b> There used
+    /// to be a mirror of the producer's planner window beside this reader, and its
+    /// fields refresh only while that window renders, so it answered only when the
+    /// player happened to have the panel open. It is gone. This reading is the
+    /// plugin's own answer, available whenever there is a session, and it is also
+    /// the reading a write has to be validated against: an editor showing one
+    /// number while the write gate checks another is worse than an editor with
+    /// fewer numbers.</para>
     ///
     /// <para>Per-burn reads are not free, and this runs every tick, so the cost is
     /// stated rather than assumed: one native call per burn plus six for the plan,
@@ -25,6 +25,33 @@ namespace GonogoPrincipiaUplink
     public sealed class PlanReader
     {
         private static readonly PrincipiaBurnStruct Fields = new PrincipiaBurnStruct();
+
+        /// <summary>
+        /// The shared reflection helper, for the one thing here that is a managed
+        /// object rather than a native struct: the plugin's status type. Its
+        /// invoke allowlist is the reason <c>ok</c> can be called at all.
+        /// </summary>
+        private static readonly ReflectedMembers Members = new ReflectedMembers();
+
+        private const string StatusErrorMember = "error";
+        private const string StatusMessageMember = "message";
+        private const string StatusOkMethod = "ok";
+
+        /// <summary>
+        /// The producer's <c>DEADLINE_EXCEEDED</c>, reproduced rather than asked.
+        ///
+        /// <para>Its own type states this as <c>is_deadline_exceeded()</c>, whose
+        /// whole body is <c>return error == 4;</c>, and asking the predicate would
+        /// be better on the same reasoning that has <c>ok</c> preferred over a
+        /// comparison with zero. It is a comparison here because invoking it would
+        /// mean a new entry on <see cref="ReflectedMembers.InvocableMembers"/>, and
+        /// that list is a safety allowlist rather than a formality: every name on it
+        /// records an audit. Both members are on the same small status class, both
+        /// bodies are a single field comparison, and the audit is written here
+        /// instead. Worth revisiting as a one-line change if that list is being
+        /// touched anyway.</para>
+        /// </summary>
+        private const int DeadlineExceededError = 4;
 
         /// <summary>
         /// The same frame resolver the settings reading uses, rather than a second
@@ -108,6 +135,7 @@ namespace GonogoPrincipiaUplink
             observation.InitialTimeUt = plan.InitialTime();
             observation.ActualFinalTimeUt = plan.ActualFinalTime();
             observation.AnomalousBurnCount = plan.NumberOfAnomalousManoeuvres();
+            ReadStatus(plan.AnomalousStatus(), observation);
             observation.OptimisationRunning = materialised.OptimisationManoeuvreIndex() >= 0;
             ReadIntegrator(plan.AdaptiveStepParameters(), observation);
             ReadBurns(plan, observation, nowUt, celestials);
@@ -157,6 +185,42 @@ namespace GonogoPrincipiaUplink
             observation.WriteSurfaceReason = null;
         }
 
+        /// <summary>
+        /// The plan's integration status, as a tri-state.
+        ///
+        /// <para><see cref="PlanObservation.PlanIntegrated"/> is left null when the
+        /// status cannot be read at all, and that is the important case: resolving
+        /// an unreadable status to "integrated" would report health from a failed
+        /// read, and a plan whose status we cannot see is a plan we cannot vouch
+        /// for.</para>
+        ///
+        /// <para>Prefers the producer's own <c>ok()</c> predicate over comparing
+        /// the code against zero. The codes are its vocabulary and its predicate is
+        /// the definition; assuming a convention here would be a second place that
+        /// has to stay in step with it. The deadline flag is the exception and says
+        /// why at <see cref="DeadlineExceededError"/>.</para>
+        /// </summary>
+        private static void ReadStatus(object? status, PlanObservation observation)
+        {
+            if (status == null)
+            {
+                return;
+            }
+            var error = Members.ReadInt(status, StatusErrorMember);
+            var ok = Members.InvokeBool(status, StatusOkMethod);
+            if (ok == null && error == null)
+            {
+                return;
+            }
+            observation.PlanIntegrated = ok ?? error == 0;
+            observation.ReachedDeadline = error == DeadlineExceededError;
+            if (observation.PlanIntegrated != true)
+            {
+                observation.StatusError = error;
+                observation.StatusMessage = Members.Value(status, StatusMessageMember) as string;
+            }
+        }
+
         private static void ReadIntegrator(object? parameters, PlanObservation observation)
         {
             if (parameters == null)
@@ -192,8 +256,20 @@ namespace GonogoPrincipiaUplink
                 {
                     continue;
                 }
-                observation.Burns.Add(
-                    Describe(manoeuvre, burn.Ordinal, count, anomalous, nowUt, celestials));
+                var described = Describe(manoeuvre, burn.Ordinal, count, anomalous, nowUt, celestials);
+                observation.Burns.Add(described);
+
+                // The producer's own rule, from its planner window: the first burn
+                // whose CUTOFF is still ahead, not the first whose ignition is. A
+                // burn already under way is the one being flown rather than the next
+                // one, and calling it past would point an operator at the burn after
+                // the one their engines are lit for.
+                if (observation.FirstFutureBurnIndex == null
+                    && described.CutoffUt != null
+                    && described.CutoffUt > nowUt)
+                {
+                    observation.FirstFutureBurnIndex = described.Index;
+                }
             }
         }
 
@@ -262,8 +338,35 @@ namespace GonogoPrincipiaUplink
                     extension != null && PrincipiaBurnStruct.IsEditableFrame(extension.Value),
                 Executing = ignition != null && cutoff != null
                     && nowUt >= ignition.Value && nowUt <= cutoff.Value,
-                Anomalous = FlightPlanBuilder.IsAnomalous(index, burnCount, anomalousCount),
+                Anomalous = IsAnomalous(index, burnCount, anomalousCount),
             };
+        }
+
+        /// <summary>
+        /// Whether the burn at <paramref name="index"/> is one of the
+        /// <paramref name="anomalousCount"/> the plugin flagged, given a plan of
+        /// <paramref name="burnCount"/> burns.
+        ///
+        /// <para>The rule is read off the producer's own call site, which passes
+        /// <c>index &gt;= count - n</c> as its anomalous flag. A negative or
+        /// oversized count is clamped rather than trusted: it arrives from a
+        /// reflected read, and an out-of-range value should narrow to "flag nothing"
+        /// or "flag everything" instead of throwing.</para>
+        ///
+        /// <para>Resolved here rather than left to the client, so no consumer has to
+        /// reimplement a last-n rule that is the producer's and not ours.</para>
+        /// </summary>
+        internal static bool IsAnomalous(int index, int burnCount, int anomalousCount)
+        {
+            if (anomalousCount <= 0)
+            {
+                return false;
+            }
+            if (anomalousCount >= burnCount)
+            {
+                return true;
+            }
+            return index >= burnCount - anomalousCount;
         }
 
         /// <summary>The magnitude of a Dv triple, or null when a component could

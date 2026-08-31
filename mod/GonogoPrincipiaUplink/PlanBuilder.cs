@@ -63,6 +63,11 @@ namespace GonogoPrincipiaUplink
                 ["desiredFinalTimeUt"] = observation.DesiredFinalTimeUt,
                 ["actualFinalTimeUt"] = observation.ActualFinalTimeUt,
                 ["anomalousBurnCount"] = observation.AnomalousBurnCount,
+                ["planIntegrated"] = observation.PlanIntegrated,
+                ["statusError"] = observation.StatusError,
+                ["statusMessage"] = observation.StatusMessage,
+                ["reachedDeadline"] = observation.ReachedDeadline,
+                ["firstFutureBurnIndex"] = observation.FirstFutureBurnIndex,
                 ["optimisationRunning"] = observation.OptimisationRunning,
                 ["integrator"] = new Dictionary<string, object?>
                 {

@@ -24,6 +24,21 @@ namespace GonogoPrincipiaUplink
         public double? ActualFinalTimeUt;
         public int? AnomalousBurnCount;
 
+        /// <summary>Whether the plan integrated, as a tri-state. Null is "the
+        /// status could not be read", which must never resolve to "fine".</summary>
+        public bool? PlanIntegrated;
+
+        public int? StatusError;
+        public string? StatusMessage;
+
+        /// <summary>Whether the integrator ran out of time before reaching the
+        /// desired final time. Null when the status could not be read.</summary>
+        public bool? ReachedDeadline;
+
+        /// <summary>The next burn still ahead of <see cref="SampledAtUt"/>, or null
+        /// when every burn is behind it.</summary>
+        public int? FirstFutureBurnIndex;
+
         /// <summary>Whether the producer's optimiser is mid-run on this plan. Null
         /// when it could not be asked, which is not the same as "no".</summary>
         public bool? OptimisationRunning;

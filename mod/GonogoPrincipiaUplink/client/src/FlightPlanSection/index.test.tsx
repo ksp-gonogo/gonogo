@@ -20,7 +20,7 @@ afterEach(() => {
 /** The instant every fixture pins the view clock to. */
 const VIEW_UT = 10_000;
 
-const CARRIED = ["principia.flightPlan", "vessel.identity", "system.uplinks"];
+const CARRIED = ["principia.plan", "vessel.identity", "system.uplinks"];
 
 function mount(pinnedUt = VIEW_UT) {
   const stream = setupStreamFixture({ carriedChannels: CARRIED, pinnedUt });
@@ -34,7 +34,7 @@ function mount(pinnedUt = VIEW_UT) {
 }
 
 /**
- * A plan observed AT the pinned view instant, which is the fresh case.
+ * A plan read AT the pinned view instant, which is the fresh case.
  *
  * `validAt` is stated rather than defaulted: the transport's own default is 0,
  * so an emit with no meta lands 10,000 seconds behind a clock pinned at
@@ -51,19 +51,33 @@ function emitPlan(
   overrides: Record<string, unknown> = {},
 ) {
   act(() => {
-    stream.emit("principia.flightPlan", plan(overrides), { validAt: VIEW_UT });
+    stream.emit("principia.plan", plan(overrides), { validAt: VIEW_UT });
   });
 }
 
 function plan(overrides: Record<string, unknown> = {}) {
   return {
     vesselId: "vessel-1",
-    observedAtUt: VIEW_UT,
+    sampledAtUt: VIEW_UT,
     planExists: true,
     reachedDeadline: false,
     planIntegrated: true,
     anomalousBurnCount: 0,
     firstFutureBurnIndex: 0,
+    /*
+     * The integrator bounds belong on the SAME payload now, and carrying them
+     * here is not padding: this section renders them in the block below the
+     * badges, so a fixture without them renders a row of null dashes and the
+     * burn-quantity assertion below cannot tell that from a burn whose own units
+     * failed to hydrate, which is the bug that assertion exists to catch.
+     */
+    desiredFinalTimeUt: VIEW_UT + 100_000,
+    actualFinalTimeUt: VIEW_UT + 100_000,
+    integrator: {
+      maxSteps: 1000,
+      lengthToleranceMetres: 1,
+      speedToleranceMetresPerSecond: 1,
+    },
     burns: [
       {
         index: 0,
@@ -78,34 +92,33 @@ function plan(overrides: Record<string, unknown> = {}) {
   };
 }
 
-describe("FlightPlanSection: an observation, dated", () => {
+describe("FlightPlanSection: a reading, dated", () => {
   /**
-   * The one that matters most. With no sample at all the widget must say the
-   * plan has NOT BEEN OBSERVED, never that there is no plan: the producer can
-   * only read the plan while the game's own planner window is drawing it, so
-   * silence means nobody has looked. An operator told "no flight plan" for a
-   * vessel that has one stops looking, and that is the failure that kills a
-   * mission.
+   * The one that matters most. With no sample at all the widget must say there
+   * is no READING, never that there is no plan. An operator told "no flight
+   * plan" for a vessel that has one stops looking, and that is the failure that
+   * kills a mission.
    */
-  it("says the plan is unobserved, not absent, before any sample arrives", () => {
+  it("says there is no reading, not no plan, before any sample arrives", () => {
     mount();
 
-    expect(screen.getByText("PLAN NOT OBSERVED")).toBeInTheDocument();
+    expect(screen.getByText("NO PLAN READING")).toBeInTheDocument();
     expect(screen.queryByText(/No flight plan/i)).not.toBeInTheDocument();
   });
 
   /**
    * And the complement, which is what makes the test above non-vacuous: an
-   * OBSERVED absence is stated plainly. Two different sentences for two
-   * different facts, and this pins that they cannot collapse into one.
+   * absence the plugin positively reported is stated plainly. Two different
+   * sentences for two different facts, and this pins that they cannot collapse
+   * into one.
    */
-  it("states a positively observed absence as no flight plan", async () => {
+  it("states a positively reported absence as no flight plan", async () => {
     const stream = mount();
 
     emitPlan(stream, { planExists: false, burns: [] });
 
     expect(await screen.findByText(/No flight plan/i)).toBeInTheDocument();
-    expect(screen.queryByText("PLAN NOT OBSERVED")).not.toBeInTheDocument();
+    expect(screen.queryByText("NO PLAN READING")).not.toBeInTheDocument();
   });
 
   /**
@@ -164,18 +177,18 @@ describe("FlightPlanSection: an observation, dated", () => {
   it("falls back to the sample instant when the plan does not state its own", async () => {
     const stream = mount();
 
-    // `observedAtUt` deliberately absent: this is the fallback path, for a
+    // `sampledAtUt` deliberately absent: this is the fallback path, for a
     // producer that carried a plan without saying when it looked. The sample's
     // own UT is then the best available answer and is used as one.
     act(() => {
-      stream.emit("principia.flightPlan", plan({ observedAtUt: undefined }), {
+      stream.emit("principia.plan", plan({ sampledAtUt: undefined }), {
         validAt: VIEW_UT - 3_600,
       });
     });
 
     expect(await screen.findByText("#1")).toBeInTheDocument();
-    expect(screen.queryByText("OBSERVED NOW")).not.toBeInTheDocument();
-    expect(visibleText(stream.container)).toMatch(/OBSERVED .* AGO/);
+    expect(screen.queryByText("READ NOW")).not.toBeInTheDocument();
+    expect(visibleText(stream.container)).toMatch(/READ .* AGO/);
   });
 
   /**
@@ -194,16 +207,14 @@ describe("FlightPlanSection: an observation, dated", () => {
     const stream = mount();
 
     act(() => {
-      stream.emit(
-        "principia.flightPlan",
-        plan({ observedAtUt: VIEW_UT - 3_600 }),
-        { validAt: VIEW_UT },
-      );
+      stream.emit("principia.plan", plan({ sampledAtUt: VIEW_UT - 3_600 }), {
+        validAt: VIEW_UT,
+      });
     });
 
     expect(await screen.findByText("#1")).toBeInTheDocument();
-    expect(visibleText(stream.container)).toMatch(/OBSERVED .* AGO/);
-    expect(screen.queryByText("OBSERVED NOW")).not.toBeInTheDocument();
+    expect(visibleText(stream.container)).toMatch(/READ .* AGO/);
+    expect(screen.queryByText("READ NOW")).not.toBeInTheDocument();
   });
 
   it("says a plan observed at the view instant is current", async () => {
@@ -211,7 +222,7 @@ describe("FlightPlanSection: an observation, dated", () => {
 
     emitPlan(stream);
 
-    expect(await screen.findByText("OBSERVED NOW")).toBeInTheDocument();
+    expect(await screen.findByText("READ NOW")).toBeInTheDocument();
     expect(visibleText(stream.container)).not.toMatch(/AGO/);
   });
 
@@ -240,14 +251,24 @@ describe("FlightPlanSection: an observation, dated", () => {
    * and an UNKNOWN status is its own row rather than being rounded to either
    * answer.
    */
-  it("names the burn that broke the integration", async () => {
+  /**
+   * The badge names NO burn, and that is the fix rather than a regression.
+   *
+   * It used to read "INTEGRATION FAILED AT BURN 2", off a first-error index that
+   * came from the producer's planner window. That field held the index of the
+   * control the player last edited when an error came back, not a burn the
+   * integrator blamed, so the sentence pointed an operator at whichever row had
+   * been touched. The plugin offers no per-burn attribution and the badge no
+   * longer invents one; the burns the integrator actually flagged carry their own
+   * ANOM badge.
+   */
+  it("reports a failed integration without blaming a burn it cannot identify", async () => {
     const stream = mount();
 
-    emitPlan(stream, { planIntegrated: false, firstErrorBurnIndex: 1 });
+    emitPlan(stream, { planIntegrated: false });
 
-    expect(
-      await screen.findByText("INTEGRATION FAILED AT BURN 2"),
-    ).toBeInTheDocument();
+    expect(await screen.findByText("INTEGRATION FAILED")).toBeInTheDocument();
+    expect(visibleText(stream.container)).not.toMatch(/FAILED AT BURN/);
   });
 
   it("keeps an unreadable integration status as unknown rather than rounding it", async () => {
@@ -270,9 +291,9 @@ describe("FlightPlanSection: an observation, dated", () => {
   });
 
   /**
-   * The attribution guard. The planner draws for its own predicted vessel, which
-   * is not always the active one, so a plan whose guid disagrees is never
-   * presented as this vessel's without saying so.
+   * The attribution guard. A plan is read for a named vessel, which is not always
+   * the active one, so a plan whose guid disagrees is never presented as this
+   * vessel's without saying so.
    */
   it("says so when the plan belongs to another vessel", async () => {
     const stream = mount();
@@ -348,7 +369,7 @@ describe("the Principia build behind these numbers", () => {
               version: "1.0.0",
               available: state !== UNAVAILABLE,
               reason: null,
-              ownedPrefixes: ["principia.flightPlan"],
+              ownedPrefixes: ["principia.plan"],
               health: {
                 state,
                 detail,

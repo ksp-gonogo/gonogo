@@ -29,9 +29,8 @@ import {
 } from "@ksp-gonogo/ui-kit";
 import type { ReactNode } from "react";
 import type {
-  PrincipiaFlightPlan,
-  PrincipiaFlightPlanBurn,
   PrincipiaPlan,
+  PrincipiaPlannedBurn,
 } from "../__generated__/contract";
 import { PlanIntegrationBlock } from "../PlanIntegration";
 import { PRINCIPIA } from "../uplink";
@@ -50,36 +49,38 @@ const ONE_HOUR_SECONDS = 3600;
 const TRAJECTORY_POINTS = 128;
 
 /**
- * The plan as last SEEN, plus how long ago that was.
+ * The plan as last read, plus how long ago that reading was taken.
  *
  * <para>Every arm of the reading is handled and none is collapsed, which is the
  * whole point of the widget. A `stale` plan is shown, loudly dated: an operator
- * who can see that the plan was last observed six hours ago can act on it,
- * where one shown nothing assumes there is nothing. And an unobserved plan is
- * shown as UNOBSERVED rather than as an empty plan, because the producer cannot
- * distinguish "no plan" from "the planner has never been opened" and neither can
- * this.</para>
+ * who can see that the plan is six hours old can act on it, where one shown
+ * nothing assumes there is nothing.</para>
+ *
+ * <para><b>This used to read a mirror of the game's planner WINDOW, and the
+ * difference matters to what the absent case means.</b> That mirror refreshed
+ * only while the player had the panel open, so no sample meant "nobody has
+ * looked" and the widget had to say so. The plan comes from the plugin now and
+ * arrives whenever there is a session, so no sample means there is no session,
+ * no plugin or no vessel, and a vessel that simply has no plan says so
+ * positively on a sample that DID arrive.</para>
  */
 type PlanView =
-  | { kind: "unobserved" }
-  | { kind: "seen"; plan: PrincipiaFlightPlan; observedAtUt: number | null };
+  | { kind: "unread" }
+  | { kind: "seen"; plan: PrincipiaPlan; sampledAtUt: number | null };
 
 /**
- * The plan's own observation instant wins over the sample's.
+ * The plan's own sample instant wins over the transport's.
  *
- * They agree in production, because the producer publishes the sample AT the
- * instant it observed. But they are different KINDS of fact: the payload field is
- * the producer's statement about when it looked, and the sample UT is transport
+ * They agree in production, because the producer stamps the sample at the instant
+ * it asked. But they are different KINDS of fact: the payload field is the
+ * producer's statement about when it looked, and the sample UT is transport
  * metadata about when the frame is dated. Anything that re-stamps a sample (a
  * replay, a re-publish) would break the agreement, and then the widget would show
  * the wrong instant while carrying the right one in the same payload. Preferring
  * the producer's own claim means the display cannot disagree with the field it is
  * describing.
- *
- * The sample instant stays as the fallback, for a producer that carried the plan
- * without stating when it saw it.
  */
-function planView(reading: Reading<PrincipiaFlightPlan>): PlanView {
+function planView(reading: Reading<PrincipiaPlan>): PlanView {
   switch (reading.state) {
     /**
      * The three absences are grouped on purpose: this section renders the CONTENTS
@@ -90,22 +91,21 @@ function planView(reading: Reading<PrincipiaFlightPlan>): PlanView {
     case "pending":
     case "absent":
     case "unowned":
-      return { kind: "unobserved" };
+      return { kind: "unread" };
     case "observed":
       return {
         kind: "seen",
         plan: reading.value,
-        observedAtUt:
-          magnitudeOf(reading.value.observedAtUt) ?? magnitudeOf(reading.atUt),
+        sampledAtUt:
+          magnitudeOf(reading.value.sampledAtUt) ?? magnitudeOf(reading.atUt),
       };
     case "stale":
     case "reckonable":
       return {
         kind: "seen",
         plan: reading.value,
-        observedAtUt:
-          magnitudeOf(reading.value.observedAtUt) ??
-          magnitudeOf(reading.asOfUt),
+        sampledAtUt:
+          magnitudeOf(reading.value.sampledAtUt) ?? magnitudeOf(reading.asOfUt),
       };
   }
 }
@@ -118,16 +118,18 @@ function planView(reading: Reading<PrincipiaFlightPlan>): PlanView {
  * check" asks the operator to go and look and "it integrated" asks nothing.
  * Collapsing them would answer the question the producer refused to.
  */
-function integrationBadge(plan: PrincipiaFlightPlan) {
+function integrationBadge(plan: PrincipiaPlan) {
   if (plan.planIntegrated === false) {
-    const burn = magnitudeOf(plan.firstErrorBurnIndex);
-    return (
-      <Badge severity="critical">
-        {burn === null
-          ? "INTEGRATION FAILED"
-          : `INTEGRATION FAILED AT BURN ${burn + 1}`}
-      </Badge>
-    );
+    /*
+     * No burn number on this badge, and its absence is deliberate. The window
+     * mirror this section used to read carried a first-error burn index, and that
+     * field held the index of the control the player last edited when an error came
+     * back rather than a burn the integrator blamed. Naming a burn from it pointed
+     * an operator at whichever row happened to have been touched. The producer
+     * offers no per-burn attribution, so neither does this; the burns it flagged
+     * carry their own ANOM badge below.
+     */
+    return <Badge severity="critical">INTEGRATION FAILED</Badge>;
   }
   if (plan.planIntegrated == null) {
     return <Badge severity="caution">INTEGRATION STATUS UNKNOWN</Badge>;
@@ -153,7 +155,7 @@ function BurnRow({
   viewUt,
   isNext,
 }: {
-  burn: PrincipiaFlightPlanBurn;
+  burn: PrincipiaPlannedBurn;
   viewUt: number | null;
   isNext: boolean;
 }) {
@@ -335,17 +337,17 @@ function VantageTrajectoryRow({ viewUt }: { viewUt: number | null }) {
 }
 
 export function FlightPlanSection() {
-  const view = planView(useTelemetry("principia.flightPlan"));
+  // ONE reading, where there used to be two. The burns and the badges came off a
+  // mirror of the game's planner window and the integration bounds off the plugin,
+  // and the two could disagree about the same plan while each was internally
+  // consistent. The window mirror is gone: everything below is the plugin's answer
+  // for the same plan at the same instant.
+  const view = planView(useTelemetry("principia.plan"));
   const identity = useTelemetry("vessel.identity");
-  // A second reading, and a different KIND of one. The section above is the
-  // planner window as last seen; the integration bounds come from the plugin
-  // itself, because the window carries no step limit and the step limit is the
-  // remedy for the failure the badges report.
-  const integrator = pluginPlan(useTelemetry("principia.plan"));
   const buildHealth = useStream<SystemUplinkHealth>("system.uplinkHealth");
   const viewUt = magnitudeOf(useViewUt());
 
-  if (view.kind === "unobserved") {
+  if (view.kind === "unread") {
     return (
       <Section data-flight-plan-section="">
         <SectionTitle>N-BODY FLIGHT PLAN</SectionTitle>
@@ -354,25 +356,24 @@ export function FlightPlanSection() {
               direct `Stack` child stretches full width and stops reading as
               one. */}
           <Cluster justify="start">
-            <Badge severity="caution">PLAN NOT OBSERVED</Badge>
+            <Badge severity="caution">NO PLAN READING</Badge>
           </Cluster>
-          {/* Deliberately not "no flight plan". The producer can only read the
-              plan while the game's own planner window is drawing it, so silence
-              here means nobody has looked, which is a different fact and the
-              more dangerous one to get wrong: an operator told "no plan" for a
-              vessel that has one stops looking. */}
+          {/* Deliberately not "no flight plan". Silence here is the absence of a
+              READING, which is a different fact and the more dangerous one to get
+              wrong: an operator told "no plan" for a vessel that has one stops
+              looking. A vessel that genuinely holds none says so below, on a
+              sample that arrived. */}
           <Text tone="faint" size="sm">
-            Open the flight planner in-game once and the plan will appear here,
-            dated.
+            No vessel, or no session with the integrator.
           </Text>
         </Stack>
       </Section>
     );
   }
 
-  const { plan, observedAtUt } = view;
+  const { plan, sampledAtUt } = view;
   const age =
-    observedAtUt === null || viewUt === null ? null : viewUt - observedAtUt;
+    sampledAtUt === null || viewUt === null ? null : viewUt - sampledAtUt;
   const activeVesselId = vesselIdOf(identity);
   const isOtherVessel =
     activeVesselId !== null &&
@@ -391,12 +392,12 @@ export function FlightPlanSection() {
           {/* The age is the headline, not a footnote. A zero-age plan is being
               drawn right now; anything else is a snapshot and says so. */}
           {age === null ? (
-            <Badge severity="caution">OBSERVED AT AN UNKNOWN TIME</Badge>
+            <Badge severity="caution">READ AT AN UNKNOWN TIME</Badge>
           ) : age <= 0 ? (
-            <Badge severity="nominal">OBSERVED NOW</Badge>
+            <Badge severity="nominal">READ NOW</Badge>
           ) : (
             <Badge severity="caution">
-              OBSERVED <Countdown value={age} /> AGO
+              READ <Countdown value={age} /> AGO
             </Badge>
           )}
           {plan.reachedDeadline === true && (
@@ -409,10 +410,10 @@ export function FlightPlanSection() {
           {buildBadge(buildHealth)}
         </Cluster>
 
-        {/* The planner draws for its OWN predicted vessel, which is not always
-            the active one, so a plan is never presented as this vessel's
-            without the guid agreeing. Attributing one craft's burns to another
-            would be worse than showing nothing. */}
+        {/* The plan is read for a named vessel, which is not always the active
+            one, so a plan is never presented as this vessel's without the guid
+            agreeing. Attributing one craft's burns to another would be worse than
+            showing nothing. */}
         {isOtherVessel && (
           <Text>This plan belongs to another vessel, not the active one.</Text>
         )}
@@ -420,11 +421,12 @@ export function FlightPlanSection() {
         {/* Immediately under the badge that says whether the plan integrated,
             because the commonest cause of a failure there is the step limit and
             the remedy is the control in this block. */}
-        <PlanIntegrationBlock plan={integrator} />
+        <PlanIntegrationBlock plan={plan} />
 
         {plan.planExists === false ? (
-          // A POSITIVE observation of no plan: the planner rendered and drew
-          // none. Distinct from the unobserved case above, and safe to state.
+          // A POSITIVE observation of no plan: the plugin was asked and said the
+          // vessel holds none. Distinct from the unread case above, and safe to
+          // state.
           <Text>No flight plan for this vessel.</Text>
         ) : (
           <Stack>
@@ -464,27 +466,10 @@ export function FlightPlanSection() {
  * there. Requiring a real index on both sides means an unreadable one marks
  * nothing, which is the honest answer.
  */
-function isNextBurn(
-  burn: PrincipiaFlightPlanBurn,
-  plan: PrincipiaFlightPlan,
-): boolean {
+function isNextBurn(burn: PrincipiaPlannedBurn, plan: PrincipiaPlan): boolean {
   const index = magnitudeOf(burn.index);
   const next = magnitudeOf(plan.firstFutureBurnIndex);
   return index !== null && next !== null && index === next;
-}
-
-/** The plugin's own reading of the plan, or null before one has arrived. Only
- *  the integration block reads it, and a stale one is still the right basis for
- *  a bound the operator is about to change. */
-function pluginPlan(reading: Reading<PrincipiaPlan>): PrincipiaPlan | null {
-  switch (reading.state) {
-    case "pending":
-    case "absent":
-    case "unowned":
-      return null;
-    default:
-      return reading.value;
-  }
 }
 
 /** The active vessel's guid, or null when identity has not arrived. A stale

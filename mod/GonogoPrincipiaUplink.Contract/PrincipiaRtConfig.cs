@@ -9,8 +9,8 @@ namespace GonogoPrincipiaUplink;
 /// Uplink's <c>*RtConfig.Configure</c> has, scoped to this assembly's types.
 ///
 /// <para>Every wire type goes in the <c>ExportAsInterfaces</c> set, not just the
-/// topic-carrying ones. <see cref="PrincipiaFlightPlanBurn"/> is a nested payload
-/// reached only through <see cref="PrincipiaFlightPlan.Burns"/>, and
+/// topic-carrying ones. <see cref="PrincipiaPlannedBurn"/> is a nested payload
+/// reached only through <see cref="PrincipiaPlan.Burns"/>, and
 /// <see cref="PrincipiaReferenceFrame"/> only through <see cref="PrincipiaSettings"/>;
 /// a type left
 /// out of this set is not registered with rtcli, so
@@ -38,8 +38,6 @@ public static class PrincipiaRtConfig
         // registered with rtcli may have its properties retyped.
         var wireTypes = new[]
         {
-            typeof(PrincipiaFlightPlan),
-            typeof(PrincipiaFlightPlanBurn),
             typeof(PrincipiaSettings),
             typeof(PrincipiaReferenceFrame),
             typeof(PrincipiaPlan),

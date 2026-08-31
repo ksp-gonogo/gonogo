@@ -1,8 +1,8 @@
 {
   "_scene": {
     "augment": "principia-flight-plan",
-    "caption": "Never observed. The one that must not read as no flight plan",
-    "expectsEmpty": "nothing has published a flight plan for this craft, and the whole point of the scene is that the absence reads as unobserved rather than as an empty plan",
+    "caption": "No reading at all. The one that must not read as no flight plan",
+    "expectsEmpty": "nothing has published a plan reading for this craft, and the whole point of the scene is that the absence reads as no READING rather than as an empty plan",
     "size": {
       "w": 12,
       "h": 10

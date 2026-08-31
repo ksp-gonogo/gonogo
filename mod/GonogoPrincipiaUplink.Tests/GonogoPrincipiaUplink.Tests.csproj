@@ -21,7 +21,7 @@
        the observation, the builder and the reflection walk need nothing but the
        framework; the uplink needs Sitrep.Contract for ISitrepUplink.
 
-       PrincipiaUplink.Observer.cs, FlightPlannerHook.cs, PrincipiaSettingsSource.cs,
+       PrincipiaUplink.Observer.cs, PrincipiaSettingsSource.cs,
        PrincipiaGravityModelSource.cs and PrincipiaSession.Live.cs are deliberately
        ABSENT. They are the only files naming a KSP or Harmony type, and both
        PrincipiaUplink and PrincipiaSession are partial precisely so that omitting
@@ -71,11 +71,7 @@
     <Compile Include="..\GonogoPrincipiaUplink\NativeExportReader.cs" />
     <Compile Include="..\GonogoPrincipiaUplink\PrincipiaSymbolGate.cs" />
     <Compile Include="..\GonogoPrincipiaUplink\PrincipiaUplink.cs" />
-    <Compile Include="..\GonogoPrincipiaUplink\IFlightPlanObserver.cs" />
-    <Compile Include="..\GonogoPrincipiaUplink\FlightPlanObservation.cs" />
-    <Compile Include="..\GonogoPrincipiaUplink\FlightPlanBuilder.cs" />
     <Compile Include="..\GonogoPrincipiaUplink\ReflectedMembers.cs" />
-    <Compile Include="..\GonogoPrincipiaUplink\FlightPlanReflection.cs" />
     <Compile Include="..\GonogoPrincipiaUplink\ISettingsSource.cs" />
     <Compile Include="..\GonogoPrincipiaUplink\SettingsObservation.cs" />
     <Compile Include="..\GonogoPrincipiaUplink\SettingsReflection.cs" />

@@ -243,14 +243,13 @@ echo "codegen -> $realantennas_out_dir/topic-map.ts"
 echo "codegen -> $realantennas_out_dir/units.ts"
 echo "codegen -> $realantennas_out_dir/units.json"
 
-# Principia: the flight-plan slice. PrincipiaFlightPlan carries
-# [SitrepTopic("principia.flightPlan")], so the topic map is emitted here the
-# same as every other topic-carrying slice above. What IS different is that this
-# slice has TWO exported
-# types, the plan and its burn rows, and both are in the ExportAsInterfaces set
-# in PrincipiaRtConfig: a nested payload left out of that set generates with
-# bare numbers where its parent generates Value<> types, in the same file, with
-# nothing failing.
+# Principia: the plan, settings and analysis slice. Topic-carrying, so the topic
+# map is emitted here the same as every other slice above. What IS different is
+# that several of its types are NESTED payloads reached only through a parent
+# (the burn rows, the reference frame, the write surface), and every one of them
+# has to be in the ExportAsInterfaces set in PrincipiaRtConfig: a nested payload
+# left out of that set generates with bare numbers where its parent generates
+# Value<> types, in the same file, with nothing failing.
 principia_proj="$ROOT/mod/GonogoPrincipiaUplink.Contract.Codegen"
 principia_out_dir="$ROOT/mod/GonogoPrincipiaUplink/client/src/__generated__"
 principia_bin="$principia_proj/bin/Debug/netstandard2.0"

@@ -127,7 +127,7 @@ namespace GonogoPrincipiaUplink.Tests
     public class PrincipiaUplinkTests
     {
         [Fact]
-        public void DeclaresItsFourChannelsAndNoAvailabilityTopic()
+        public void DeclaresItsThreeChannelsAndNoAvailabilityTopic()
         {
             var manifest = new PrincipiaUplink().Manifest;
 
@@ -135,7 +135,6 @@ namespace GonogoPrincipiaUplink.Tests
             Assert.Equal(
                 new[]
                 {
-                    "principia.flightPlan",
                     "principia.settings",
                     "principia.plan",
                     "principia.analysis",
@@ -152,17 +151,18 @@ namespace GonogoPrincipiaUplink.Tests
         }
 
         /// <summary>
-        /// Absence on the flight-plan channel must carry NO information, which is
-        /// what <c>AbsenceIsData</c> false means. Asserted rather than left to the
-        /// default because the whole channel turns on it: a missing sample is "the
-        /// planner has not been opened", and a channel whose absence was data would
-        /// license a client to read that silence as "this vessel has no flight plan",
-        /// which is the reading that makes an operator stop looking.
+        /// Absence on the plan channel must carry NO information, which is what
+        /// <c>AbsenceIsData</c> false means. Asserted rather than left to the
+        /// default: a missing sample is "no session, no plugin or no vessel", and a
+        /// channel whose absence was data would license a client to read that
+        /// silence as "this vessel has no flight plan", which is the reading that
+        /// makes an operator stop looking. The positive observation of no plan is
+        /// <c>planExists: false</c> on a sample that DID arrive.
         /// </summary>
         [Fact]
-        public void AbsenceOnTheFlightPlanChannelIsNotData()
+        public void AbsenceOnThePlanChannelIsNotData()
         {
-            Assert.False(Channel("principia.flightPlan").AbsenceIsData);
+            Assert.False(Channel("principia.plan").AbsenceIsData);
         }
 
         /// <summary>
@@ -175,10 +175,28 @@ namespace GonogoPrincipiaUplink.Tests
         /// light-time had passed.
         /// </summary>
         [Fact]
-        public void TheFlightPlanIsDelayedAndTheSettingsAreNot()
+        public void ThePlanIsDelayedAndTheSettingsAreNot()
         {
-            Assert.Equal(DelayRole.Delayed, Channel("principia.flightPlan").Delay);
+            Assert.Equal(DelayRole.Delayed, Channel("principia.plan").Delay);
             Assert.Equal(DelayRole.TrueNow, Channel("principia.settings").Delay);
+        }
+
+        /// <summary>
+        /// The window mirror is GONE, and this is the assertion that keeps it gone.
+        ///
+        /// <para>It read its fields off the producer's planner window, which refresh
+        /// only while that window renders, so the channel answered only when the
+        /// player happened to have that panel open. A telemetry channel may not have
+        /// that property, however carefully its doc comment described it. Everything
+        /// it carried is on <c>principia.plan</c>, from the plugin, except a
+        /// first-error burn index that was never a fact about the plan: it held the
+        /// index of the control the player last edited when an error came back.</para>
+        /// </summary>
+        [Fact]
+        public void No_channel_here_is_fed_from_the_producers_planner_window()
+        {
+            Assert.DoesNotContain(
+                new PrincipiaUplink().Manifest.Channels, c => c.Topic == "principia.flightPlan");
         }
 
         private static ChannelDeclaration Channel(string topic) =>
