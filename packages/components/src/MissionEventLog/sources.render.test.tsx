@@ -194,4 +194,27 @@ describe("MissionEventLog: the source contribution slot", () => {
     expect(await screen.findByText(/No mission events yet/i)).toBeTruthy();
     expect(visibleText()).not.toMatch(/no data received/i);
   });
+
+  it("renders a contributed figure through the app's own unit renderer", async () => {
+    contribute("rp1", {
+      id: "rp1",
+      label: "RP-1 career log",
+      state: "recording",
+      events: [
+        {
+          id: "leader",
+          ut: 10,
+          label: "Von Braun",
+          kindLabel: "leader",
+          amount: { magnitude: 25_000, unit: "funds" },
+        },
+      ],
+    });
+    renderLog();
+
+    /* The grouped form is the proof: a contributor handing over a bare 25000
+       could not produce it, and hand-formatting in the Uplink is exactly what
+       the typed channel exists to prevent. */
+    expect(await screen.findByText(/25,000/)).toBeInTheDocument();
+  });
 });

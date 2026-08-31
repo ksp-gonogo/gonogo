@@ -105,12 +105,13 @@
       "unpurchasedParts": "text"
     },
     "Rp1CareerEventEntry": {
+      "builtAt": "enum",
       "cost": "funds",
       "detail": "enum",
+      "isAdd": "flag",
       "kind": "enum",
       "launchId": "id",
       "name": "text",
-      "part": "id",
       "repChange": "rep",
       "ut": "ut"
     },

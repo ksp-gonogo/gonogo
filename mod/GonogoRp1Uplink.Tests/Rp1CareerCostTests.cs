@@ -163,7 +163,12 @@ public class Rp1CareerCostTests : IDisposable
         Assert.Equal("launch", launch["kind"]);
         Assert.Equal("Ares I", launch["name"]);
         Assert.Equal("failure", failure["kind"]);
-        Assert.Equal("engine-1", failure["part"]);
+
+        // The part IS the failure's name. Its class carries no display name, no
+        // vessel name and no node name, so before this the row arrived with
+        // nothing to call it.
+        Assert.Equal("engine-1", failure["name"]);
+        Assert.Equal("ignitionFail", failure["detail"]);
         Assert.Equal(launch["launchId"], failure["launchId"]);
     }
 
@@ -209,6 +214,81 @@ public class Rp1CareerCostTests : IDisposable
 
         Assert.Null(launch["repChange"]);
         Assert.Null(launch["cost"]);
-        Assert.Null(launch["part"]);
+        Assert.Null(launch["isAdd"]);
+    }
+
+    /// <summary>
+    /// Every kind arrives with something to call it. Four of RP-1's six event
+    /// classes carry a name field and two do not, and the two that do not are the
+    /// facility construction and the failure.
+    /// </summary>
+    /// <remarks>
+    /// Written as a sweep over all six rather than as a case per kind on purpose:
+    /// the defect was that two kinds were never checked at all, so a test shaped
+    /// like the ones that already existed would have missed it the same way.
+    /// </remarks>
+    [Fact]
+    public void No_kind_produces_a_row_with_nothing_to_call_it()
+    {
+        var log = new CareerLog { IsEnabled = true };
+        log.AddLaunch(ut: 1000.0, vesselName: "Ares I", launchId: "L-7");
+        log.AddContract(ut: 2000.0, displayName: "First Orbit", repChange: 12.5);
+        log.AddFailure(ut: 3000.0, launchId: "L-7", part: "engine-1", type: "ignitionFail");
+        log.AddFacilityConstruction(ut: 4000.0);
+        log.AddTech(ut: 5000.0, nodeName: "supersonicFlight");
+        log.AddLeader(ut: 6000.0, name: "Von Braun", cost: 5000.0);
+        CareerLog.Instance = log;
+
+        var rows = (List<object?>)Events()!["events"]!;
+        Assert.Equal(6, rows.Count);
+
+        foreach (var row in rows)
+        {
+            var e = (Dictionary<string, object?>)row!;
+            Assert.False(
+                string.IsNullOrWhiteSpace(e["name"] as string),
+                $"the {e["kind"]} row arrived with no name"
+            );
+        }
+    }
+
+    /// <summary>
+    /// A leader row says whether the leader was hired or dismissed. The name and
+    /// the cost are identical either way, so a row without this reads as a hiring
+    /// whichever it was.
+    /// </summary>
+    [Fact]
+    public void A_leader_row_separates_a_hiring_from_a_dismissal()
+    {
+        var log = new CareerLog { IsEnabled = true };
+        log.AddLeader(ut: 1000.0, name: "Von Braun", cost: 5000.0, isAdd: true);
+        log.AddLeader(ut: 2000.0, name: "Von Braun", cost: 5000.0, isAdd: false);
+        CareerLog.Instance = log;
+
+        var rows = (List<object?>)Events()!["events"]!;
+        var hired = (Dictionary<string, object?>)rows[0]!;
+        var dismissed = (Dictionary<string, object?>)rows[1]!;
+
+        Assert.Equal(hired["name"], dismissed["name"]);
+        Assert.Equal(hired["cost"], dismissed["cost"]);
+        Assert.Equal(true, hired["isAdd"]);
+        Assert.Equal(false, dismissed["isAdd"]);
+    }
+
+    /// <summary>
+    /// A facility construction is named by the FACILITY, with its state as the
+    /// detail. Its state alone said something had started without saying what.
+    /// </summary>
+    [Fact]
+    public void A_facility_row_names_what_was_built_not_only_its_state()
+    {
+        var log = new CareerLog { IsEnabled = true };
+        log.AddFacilityConstruction(ut: 1000.0);
+        CareerLog.Instance = log;
+
+        var row = (Dictionary<string, object?>)((List<object?>)Events()!["events"]!)[0]!;
+
+        Assert.Equal("LaunchPad", row["name"]);
+        Assert.Equal("Started", row["detail"]);
     }
 }

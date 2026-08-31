@@ -2559,8 +2559,14 @@ public sealed class Rp1CareerEventEntry
     public string? Kind { get; set; }
 
     /// <summary>
-    /// What happened, in RP-1's own words where it has any: a contract's display
-    /// name, a vessel's name, a tech node, a leader.
+    /// What happened, in RP-1's own words: a contract's display name, a vessel's
+    /// name, a tech node, a leader, a facility, or the PART that failed.
+    ///
+    /// <para>Six kinds, six sources, and the last two were added after four of them
+    /// were found to have no name at all. A facility construction carries only its
+    /// facility, its state and an id; a failure carries only a vessel uid, a launch
+    /// id, a part and a failure mode. Neither has a display name, a vessel name, a
+    /// node name or a leader name, so both used to arrive nameless.</para>
     /// </summary>
     [SitrepUnit(Sitrep.Contract.Units.Text)]
     public string? Name { get; set; }
@@ -2585,10 +2591,6 @@ public sealed class Rp1CareerEventEntry
     [SitrepUnit(Units.Id)]
     public string? LaunchId { get; set; }
 
-    /// <summary>The part that failed, on a failure. Absent on every other kind.</summary>
-    [SitrepUnit(Units.Id)]
-    public string? Part { get; set; }
-
     /// <summary>Reputation gained or lost, on a contract. Absent elsewhere.</summary>
     [SitrepUnit(Units.Reputation)]
     public double? RepChange { get; set; }
@@ -2596,6 +2598,27 @@ public sealed class Rp1CareerEventEntry
     /// <summary>What it cost, on a leader appointment. Absent elsewhere.</summary>
     [SitrepUnit(Units.Funds)]
     public double? Cost { get; set; }
+
+    /// <summary>
+    /// Whether a leader was HIRED (<c>true</c>) or dismissed. Absent on every other
+    /// kind.
+    ///
+    /// <para>Without it the row is a name and a price that read identically either
+    /// way, and a cost with no direction is worse than no cost: it invites the
+    /// reader to assume the commoner case. RP-1's own export writes the row as
+    /// <c>"&lt;name&gt;: add"</c> or <c>"&lt;name&gt;: remove"</c>, so the name was
+    /// never sufficient even to its author.</para>
+    /// </summary>
+    [SitrepUnit(Sitrep.Contract.Units.Flag)]
+    public bool? IsAdd { get; set; }
+
+    /// <summary>
+    /// Which editor a launch was built in, VAB or SPH. Absent on every other kind.
+    /// One word, and it is the only thing on the row that separates a rocket from a
+    /// spaceplane.
+    /// </summary>
+    [SitrepUnit(Sitrep.Contract.Units.Enumeration)]
+    public string? BuiltAt { get; set; }
 }
 
 /// <summary>

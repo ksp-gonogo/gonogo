@@ -1205,6 +1205,8 @@ namespace GonogoRp1Uplink.Tests
             Add("RP0.ContractEvent", "Type", Rp1Reader.EnumText, CareerCost);
             Add("RP0.LaunchEvent", "VesselName", Rp1Reader.Text, CareerCost);
             Add("RP0.LaunchEvent", "LaunchID", Rp1Reader.Text, CareerCost);
+            // VAB or SPH, and the only thing on a launch row that says which.
+            Add("RP0.LaunchEvent", "BuiltAt", Rp1Reader.EnumText, CareerCost);
             // A plain STRING on this one, unlike its siblings' enums.
             Add("RP0.FailureEvent", "Type", Rp1Reader.Text, CareerCost);
             Add("RP0.FailureEvent", "Part", Rp1Reader.Text, CareerCost);
@@ -1213,6 +1215,8 @@ namespace GonogoRp1Uplink.Tests
             Add("RP0.TechResearchEvent", "NodeName", Rp1Reader.Text, CareerCost);
             Add("RP0.LeaderEvent", "LeaderName", Rp1Reader.Text, CareerCost);
             Add("RP0.LeaderEvent", "Cost", Rp1Reader.Numeric, CareerCost);
+            // Hired or dismissed. The name and the cost read identically without it.
+            Add("RP0.LeaderEvent", "IsAdd", Rp1Reader.Bool, CareerCost);
 
             // ── Programs ───────────────────────────────────────────────────
             Add("RP0.Programs.ProgramHandler", "Instance", Rp1Reader.Presence, Programs + ", " + StrategyWrites, @static: true);

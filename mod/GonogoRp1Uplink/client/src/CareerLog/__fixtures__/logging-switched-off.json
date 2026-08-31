@@ -1,0 +1,25 @@
+{
+  "_meta": {
+    "notes": "The state a boolean would fold. An empty event list here means the save has logging switched off, and the same empty list one scene down means the handler has not spoken. Neither means the career has been quiet. This is why the slot's state is three words."
+  },
+  "_scene": {
+    "contribution": "rp1:rp1-career-log",
+    "host": "mission-event-log",
+    "caption": "Career logging is off in this save: not an empty history, and the log says which"
+  },
+  "_stream": {
+    "pinnedUt": 5000000,
+    "emits": [
+      {
+        "topic": "rp1.available",
+        "payload": true
+      },
+      {
+        "topic": "rp1.careerEvents",
+        "payload": {
+          "enabled": false
+        }
+      }
+    ]
+  }
+}

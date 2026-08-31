@@ -258,6 +258,13 @@ export interface StrategiesScreenEntry {
 // Mirrors `MissionLogSourceEntry` and `MissionLogEventEntry`
 // (`MissionEventLog/sources.ts`).
 
+/** Mirrors `MissionLogAmount`. */
+export interface MissionLogAmount {
+  readonly magnitude: number;
+  /** The contract unit, e.g. `"funds"`, `"rep"`. */
+  readonly unit: string;
+}
+
 /** Mirrors `MissionLogSourceState`. */
 export type MissionLogSourceState =
   | "recording"
@@ -275,6 +282,21 @@ export interface MissionLogEventEntry {
   kindLabel?: string;
   /** The same three words every other contribution in the app uses. */
   severity?: "info" | "warning" | "critical";
+  /**
+   * A figure the row moved: what a leader cost, what a contract paid in
+   * reputation.
+   *
+   * Typed rather than formatted into `detail`, so the HOST renders it through
+   * `Unit` and a contributor never hand-formats a quantity. A magnitude and its
+   * unit rather than a `Value`, because the two sides of this mirror must
+   * declare structurally IDENTICAL types to merge, and a `Value` resolved
+   * through two different module paths is not identical to itself; the same
+   * reason `MeterTone` is duplicated above. A contributor can pass a contract
+   * `Value` straight in, since it already has both members.
+   *
+   * Singular, because no career-log row carries two figures.
+   */
+  amount?: MissionLogAmount;
   /**
    * The occurrence several rows belong to. Rows sharing one are marked, so a
    * failure and the launch it happened on can be seen to be the same flight.

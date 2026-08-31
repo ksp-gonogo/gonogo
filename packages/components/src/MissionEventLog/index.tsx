@@ -5,6 +5,7 @@ import {
   useTelemetry,
 } from "@ksp-gonogo/core";
 import type { Reading } from "@ksp-gonogo/sitrep-client";
+import { value } from "@ksp-gonogo/sitrep-sdk";
 import {
   Badge,
   Countdown,
@@ -16,6 +17,7 @@ import {
   Stack,
   Text,
   Truncate,
+  Unit,
 } from "@ksp-gonogo/ui-kit";
 import { magnitudeOf } from "../shared/magnitude";
 import type { MissionEvent, MissionEventKind } from "./events";
@@ -194,6 +196,23 @@ function ownRow(event: MissionEvent): MissionLogRow {
   };
 }
 
+/**
+ * One row of the merged timeline.
+ *
+ * <para><b>What is pinned and what gives way.</b> A badge, a figure and a group
+ * marker are short and fixed-width; a label is neither. So the label is the only
+ * thing inside the truncating text, and everything else sits outside it. Put a
+ * short fixed thing last inside the truncation and it is the FIRST thing lost,
+ * which is the worst possible order: the row still looks complete and the part
+ * that was cut is the part carrying the specific fact.</para>
+ *
+ * <para>Both halves of that were found by rendering rather than by testing, and
+ * within one run of each other. A contributed figure was clipped at every size
+ * of an eight-row history, and the group marker was clipped on both rows of the
+ * one scene whose entire subject is the pairing. Every assertion covering them
+ * passed throughout, because a query for text content cannot see whether the
+ * text is on screen.</para>
+ */
 function EventRow({
   row,
   launchUt,
@@ -215,10 +234,18 @@ function EventRow({
       <Truncate>
         <Stamp ut={row.ut} launchUt={launchUt} /> · {row.label}
         {row.detail ? ` · ${row.detail}` : ""}
-        {row.groupTag ? (
-          <Text tone="faint" spaced>{`⟨${row.groupTag}⟩`}</Text>
-        ) : null}
       </Truncate>
+      {row.groupTag ? <Text tone="faint">{`⟨${row.groupTag}⟩`}</Text> : null}
+      {/* Minted here rather than carried: a contributed row is a magnitude and
+          a unit, and `Unit` is the app's only quantity renderer, so the figure
+          becomes a real value on this side of the boundary rather than arriving
+          pre-formatted. */}
+      {row.amount ? (
+        <Unit
+          value={value(row.amount.unit, row.amount.magnitude)}
+          decimals={0}
+        />
+      ) : null}
     </Inline>
   );
 }

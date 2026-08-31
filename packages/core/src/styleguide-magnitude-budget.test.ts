@@ -44,6 +44,12 @@ const MAGNITUDE_BUDGET: Record<string, number> = {
   "mod/GonogoKerbalismUplink/client/src/resourceProjection.ts": 4,
   "mod/GonogoKerbalismUplink/client/src/ScienceFileManager/index.tsx": 1,
   "mod/GonogoKerbcastUplink/client/src/CameraFeed/CameraFeed.tsx": 4,
+  // 2, both at the contribution boundary rather than in any arithmetic. The
+  // mission-log slot declares a row's instant as a plain UT number, so the one
+  // that reaches it is the unwrap that contract asks for; the other builds a
+  // row's stable id, where the instant is being used as an identity component
+  // and not as a quantity. Neither is a calculation the algebra has a term for.
+  "mod/GonogoRp1Uplink/client/src/CareerLog/index.ts": 2,
   // 11, up from the 4 this file used while it was a React overlay drawing on a
   // host plot's axes, and the rise is the price of the overlay slot going away.
   // A CONTRIBUTION is handed raw Topic payloads rather than a host context, so
@@ -177,6 +183,12 @@ const MAGNITUDE_BUDGET: Record<string, number> = {
   // unwrap belongs at that boundary rather than one term deeper.
   "packages/components/src/MapView/index.tsx": 16,
   "packages/components/src/MapView/vanillaPoiProvider.ts": 2,
+  // 1: minting a Value from a contributed row's magnitude-and-unit pair so the
+  // host can render it through Unit. The slot cannot carry a Value (its two
+  // declarations must be structurally identical to merge, and a Value reached
+  // by two module paths is not), so the raw number arrives by contract and the
+  // unwrap is the reconstruction rather than an escape.
+  "packages/components/src/MissionEventLog/index.tsx": 1,
   "packages/components/src/MissionEventLog/useMissionEvents.ts": 1,
   "packages/components/src/Navball/index.tsx": 1,
   "packages/components/src/OrbitView/index.tsx": 8,

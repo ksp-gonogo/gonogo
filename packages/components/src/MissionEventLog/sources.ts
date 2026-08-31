@@ -48,6 +48,19 @@ export interface MissionLogSourceEntry {
 }
 
 /**
+ * A quantity a log row moved, as a magnitude and the contract unit it is in.
+ *
+ * Structurally a `Value` minus its arithmetic, which is all the host needs to
+ * mint one. See `amount` on `MissionLogEventEntry` for why it is not the real
+ * type.
+ */
+export interface MissionLogAmount {
+  readonly magnitude: number;
+  /** The contract unit, e.g. `"funds"`, `"rep"`. */
+  readonly unit: string;
+}
+
+/**
  * - `recording`: the source is keeping its log. An empty `events` means the
  *   history really is empty so far.
  * - `not-recording`: the log is switched off. There is no history to show and
@@ -82,6 +95,32 @@ export interface MissionLogEventEntry {
    * contribution in the app uses.
    */
   severity?: "info" | "warning" | "critical";
+  /**
+   * A figure the row moved: what a leader cost, what a contract paid in
+   * reputation.
+   *
+   * <para><b>A typed value rather than text in `detail`, and the difference is
+   * a project rule rather than a preference.</b> `Unit` is the only thing in
+   * this app that renders a quantity, so that every figure looks the same and
+   * changes in one place. A contributor formatting money into a string bypasses
+   * it, and the app cannot make that consistent for contributors it will never
+   * meet. Giving the slot a typed channel keeps the rendering on the host side
+   * of the boundary, which is what the boundary is for.</para>
+   *
+   * <para>A magnitude and its unit rather than a `Value`, and that is forced
+   * rather than chosen: this interface is mirrored in the sdk for Uplinks to
+   * type against, both copies merge into ONE `ContributionRegistry`, and TS
+   * requires the two declarations to be identical. A `Value` reached through
+   * two different module paths is not identical to itself. A contributor can
+   * still pass a contract `Value` straight in, since it already has both
+   * members, and the host mints a real one to render.</para>
+   *
+   * <para>Singular, and the unit does the labelling. No row can carry two
+   * figures: across RP-1's six career-log event classes, a cost appears only on
+   * a leader appointment and a reputation change only on a contract. A labelled
+   * list would be API invented ahead of a use.</para>
+   */
+  amount?: MissionLogAmount;
   /**
    * The occurrence several rows belong to: a flight, a construction, a
    * campaign. Rows sharing one are marked so an operator can see that a failure
@@ -126,6 +165,8 @@ export interface MissionLogRow {
   badgeLabel: string;
   /** The chip's severity; undefined renders the grey no-severity chip. */
   severity: Severity | undefined;
+  /** A figure the row moved, rendered by the host through `Unit`. */
+  amount?: MissionLogAmount;
   /**
    * The shared-occurrence marker, present only when another row on screen
    * carries the same `groupId`. A lone row's group id joins to nothing, so
@@ -215,6 +256,7 @@ export function mergeLogRows(
         ut: event.ut,
         label: event.label,
         detail: event.detail,
+        amount: event.amount,
         badgeLabel: (event.kindLabel ?? "log").toUpperCase(),
         severity: event.severity
           ? CONTRIBUTED_SEVERITY[event.severity]
