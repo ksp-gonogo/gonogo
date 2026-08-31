@@ -104,8 +104,20 @@ jobs:
       # freshly built ui-kit dist rather than whatever a cache happened to hold.
       # ui-kit is a direct dependency of every Uplink client, so its generator
       # comes along with them.
+      #
+      # `components` is the other half and pnpm cannot infer it. Five Uplinks
+      # declare a `gonogo.renderWith` host, and every one of them names a PATH
+      # into packages/components/src rather than a package, so nothing in the
+      # dependency graph says the harness will bundle that source. Without this
+      # filter its imports of core and ui resolve against no dist and the
+      # generator dies with 109 unresolved-import errors on exactly those five.
+      #
+      # `uplink.yml` learned this on 2026-08-31 and grew a RENDER_HOSTS loop for
+      # it. This workflow did not, because it was pinned to `branches: [main]`
+      # and had never once run: a dead job cannot report that the fix its
+      # sibling just took also applies to it.
       - name: Build
-        run: pnpm --filter @ksp-gonogo/ui-kit... build
+        run: pnpm --filter @ksp-gonogo/ui-kit... --filter @ksp-gonogo/components... build
 
       # Chromium alone: the page harness launches nothing else, and the renders
       # embedded in a page are whatever THIS engine produced. That is also why
