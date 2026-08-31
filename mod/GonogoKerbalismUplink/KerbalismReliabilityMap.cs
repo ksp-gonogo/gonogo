@@ -98,7 +98,62 @@ namespace Gonogo.KerbalismUplink
             };
         }
 
-        public static List<ReliabilityPartEntry> Parts(ReliabilityRaw raw, string coverage)
+        /// <summary>
+        /// The <c>AvailablePart.name</c> of the item a Kerbalism repair consumes.
+        /// One authority for the id, read by the wire mapper below and by
+        /// <c>KerbalismReflection</c>'s own kit counting and taking.
+        /// </summary>
+        public const string RepairKitPartName = "evaRepairKit";
+
+        /// <summary>
+        /// Kerbalism's kit arithmetic: a critical failure costs two, anything else
+        /// one. Read off its <c>Repair()</c> path.
+        ///
+        /// <para>Here rather than at either call site because there are now two:
+        /// <see cref="RepairCostOf"/>, which STATES the cost on the wire, and
+        /// <c>KerbalismReflection.AttemptRepair</c>, which CHARGES it. Two copies
+        /// of <c>critical ? 2 : 1</c> is how the number a console shows comes to
+        /// disagree with the number a repair takes.</para>
+        /// </summary>
+        public static int KitsForRepair(bool critical) => critical ? 2 : 1;
+
+        /// <summary>
+        /// What repairing this part consumes, for <c>ReliabilityPartEntry.RepairCost</c>.
+        ///
+        /// <para>Null means nothing is consumed, which the contract distinguishes
+        /// from a cost of zero. Three cases reach it: the part is not BROKEN (a
+        /// service-due part is cleared by the same <c>Repair()</c> and costs no
+        /// kits), kits are switched off in the install's reliability preferences,
+        /// or that preference could not be read at all.</para>
+        ///
+        /// <para>The last two collapse deliberately, and into the same expression
+        /// <c>AttemptRepair</c> uses (<c>RequireRepairKits == true</c>), so the
+        /// cost stated here cannot disagree with the cost charged there. Treating
+        /// an unreadable preference as "no kits" also fails in the recoverable
+        /// direction: understating a cost lets the operator dispatch a repair that
+        /// answers "no-kits" after one round trip, where overstating one blocks
+        /// the command outright.</para>
+        /// </summary>
+        public static List<RepairCostItem>? RepairCostOf(
+            ReliabilityPartRaw p,
+            bool? requireRepairKits)
+        {
+            if (!p.Broken) return null;
+            if (requireRepairKits != true) return null;
+            return new List<RepairCostItem>
+            {
+                new RepairCostItem
+                {
+                    Name = RepairKitPartName,
+                    Quantity = KitsForRepair(p.Critical),
+                },
+            };
+        }
+
+        public static List<ReliabilityPartEntry> Parts(
+            ReliabilityRaw raw,
+            string coverage,
+            bool? requireRepairKits)
         {
             var list = new List<ReliabilityPartEntry>();
             if (coverage != ReliabilityCoverage.Modeled) return list;
@@ -127,6 +182,7 @@ namespace Gonogo.KerbalismUplink
                     SurvivalHorizonSeconds = null,
                     RepairTrait = string.IsNullOrEmpty(p.RepairTrait) ? null : p.RepairTrait,
                     RepairLevel = p.RepairLevel,
+                    RepairCost = RepairCostOf(p, requireRepairKits),
                     Budgets = ServiceBudget(p, raw.Ut),
                     Extensions = PartExtensions(p),
                 });

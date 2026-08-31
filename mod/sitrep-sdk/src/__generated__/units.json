@@ -802,6 +802,10 @@
     "RemoveManeuverNodeArgs": {
       "nodeId": "id"
     },
+    "RepairCostItem": {
+      "name": "id",
+      "quantity": "count"
+    },
     "RepairOutcome": {
       "kitsFrom": "id",
       "kitsUsed": "count",
@@ -2004,7 +2008,8 @@
       "scienceBreakdown": "RecoveryScienceEntry[]"
     },
     "ReliabilityPartEntry": {
-      "budgets": "ReliabilityBudget[]"
+      "budgets": "ReliabilityBudget[]",
+      "repairCost": "RepairCostItem[]"
     },
     "ResolveResult": {
       "notices": "ResolutionNotice[]"
@@ -2204,7 +2209,8 @@
       "scienceBreakdown": "RecoveryScienceEntry[]"
     },
     "reliability.parts": {
-      "budgets": "ReliabilityBudget[]"
+      "budgets": "ReliabilityBudget[]",
+      "repairCost": "RepairCostItem[]"
     },
     "spaceCenter.astronautComplex": {
       "applicants": "CrewRosterEntry[]"

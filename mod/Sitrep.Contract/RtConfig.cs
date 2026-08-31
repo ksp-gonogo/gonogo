@@ -365,6 +365,7 @@ public static class RtConfig
                 typeof(ReliabilitySummary),
                 typeof(ReliabilityPartEntry),
                 typeof(ReliabilityBudget),
+                typeof(RepairCostItem),
                 // isru.* capability channels (Domain-neutral; see Isru.cs) + the
                 // nested recipe-flow shape both converter sides are lists of
                 typeof(IsruDrillEntry),

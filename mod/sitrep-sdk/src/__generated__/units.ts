@@ -836,6 +836,10 @@ export const GENERATED_TYPE_UNITS: Readonly<Record<string, UnitsByField>> = {
   "RemoveManeuverNodeArgs": {
     nodeId: "id",
   },
+  "RepairCostItem": {
+    name: "id",
+    quantity: "count",
+  },
   "RepairOutcome": {
     kitsFrom: "id",
     kitsUsed: "count",
@@ -2069,6 +2073,7 @@ export const GENERATED_TYPE_SHAPES: Readonly<Record<string, ShapesByField>> = {
   },
   "ReliabilityPartEntry": {
     budgets: "ReliabilityBudget[]",
+    repairCost: "RepairCostItem[]",
   },
   "ResolveResult": {
     notices: "ResolutionNotice[]",
@@ -2271,6 +2276,7 @@ export const GENERATED_TOPIC_SHAPES: Readonly<Record<string, ShapesByField>> = {
   },
   "reliability.parts": {
     budgets: "ReliabilityBudget[]",
+    repairCost: "RepairCostItem[]",
   },
   "spaceCenter.astronautComplex": {
     applicants: "CrewRosterEntry[]",

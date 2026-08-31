@@ -490,7 +490,8 @@ public class KerbalismReliabilityMapTests
             {
                 PartId = "7", Title = "LV-909", Broken = true, Critical = true,
             }),
-            ReliabilityCoverage.Modeled);
+            ReliabilityCoverage.Modeled,
+            Prefs.RequireRepairKits);
 
         Assert.Single(parts);
         Assert.Equal("failed-critical", parts[0].Condition);
@@ -507,7 +508,8 @@ public class KerbalismReliabilityMapTests
     {
         var parts = KerbalismReliabilityMap.Parts(
             Captured(new ReliabilityPartRaw { PartId = "7", Title = "Antenna", NeedsService = true }),
-            ReliabilityCoverage.Modeled);
+            ReliabilityCoverage.Modeled,
+            Prefs.RequireRepairKits);
 
         Assert.Equal("service-due", parts[0].Condition);
         Assert.Equal("needs service", parts[0].ConditionDetail);
@@ -525,7 +527,8 @@ public class KerbalismReliabilityMapTests
             {
                 PartId = "7", MtbfSeconds = 21_600_000, LastInspection = 400_000,
             }),
-            ReliabilityCoverage.Modeled);
+            ReliabilityCoverage.Modeled,
+            Prefs.RequireRepairKits);
 
         Assert.Null(parts[0].Survival);
         Assert.Null(parts[0].SurvivalHorizonSeconds);
@@ -539,7 +542,8 @@ public class KerbalismReliabilityMapTests
             {
                 PartId = "7", MtbfSeconds = 1_000_000, LastInspection = 600_000,
             }),
-            ReliabilityCoverage.Modeled);
+            ReliabilityCoverage.Modeled,
+            Prefs.RequireRepairKits);
 
         var budget = Assert.Single(parts[0].Budgets!);
         Assert.Equal("service", budget.Id);
@@ -559,7 +563,8 @@ public class KerbalismReliabilityMapTests
     {
         var parts = KerbalismReliabilityMap.Parts(
             Captured(new ReliabilityPartRaw { PartId = "7", NeedsService = true, MtbfSeconds = 1_000_000 }),
-            ReliabilityCoverage.Modeled);
+            ReliabilityCoverage.Modeled,
+            Prefs.RequireRepairKits);
 
         Assert.Equal("service-due", parts[0].Condition);
         Assert.Null(parts[0].Budgets);
@@ -579,7 +584,8 @@ public class KerbalismReliabilityMapTests
                 new ReliabilityPartRaw { PartId = "0", Title = "Communication" },
                 new ReliabilityPartRaw { PartId = "0", Title = "Attitude Control" },
                 new ReliabilityPartRaw { PartId = "0", Title = "Communication" }),
-            ReliabilityCoverage.Modeled);
+            ReliabilityCoverage.Modeled,
+            Prefs.RequireRepairKits);
 
         Assert.Equal(new[] { "0:0", "0:1", "0:2" }, parts.ConvertAll(p => p.PartId).ToArray());
     }
@@ -588,7 +594,9 @@ public class KerbalismReliabilityMapTests
     public void Parts_are_empty_when_the_backend_is_not_modelling()
     {
         var raw = Captured(new ReliabilityPartRaw { PartId = "7", Title = "LV-909" });
-        Assert.Empty(KerbalismReliabilityMap.Parts(raw, ReliabilityCoverage.Disabled));
-        Assert.Empty(KerbalismReliabilityMap.Parts(raw, ReliabilityCoverage.Indeterminate));
+        Assert.Empty(KerbalismReliabilityMap.Parts(
+            raw, ReliabilityCoverage.Disabled, Prefs.RequireRepairKits));
+        Assert.Empty(KerbalismReliabilityMap.Parts(
+            raw, ReliabilityCoverage.Indeterminate, Prefs.RequireRepairKits));
     }
 }
