@@ -15,6 +15,10 @@ import {
   RP1_COMPLEX_RUSH_COMMAND,
   RP1_PERSONNEL_ASSIGN_COMMAND,
 } from "./index";
+import {
+  RP1_COMPLEX_DISMANTLE_COMMAND,
+  RP1_PAD_DISMANTLE_COMMAND,
+} from "./Lifecycle";
 
 const TOPICS = [
   "rp1.available",
@@ -25,6 +29,8 @@ const TOPICS = [
   "rp1.rushTerms",
   RP1_COMPLEX_RUSH_COMMAND,
   RP1_PERSONNEL_ASSIGN_COMMAND,
+  RP1_COMPLEX_DISMANTLE_COMMAND,
+  RP1_PAD_DISMANTLE_COMMAND,
 ];
 
 const CAPE = {
@@ -69,8 +75,22 @@ const COMPLEXES = [
 ];
 
 const PADS = [
-  { kscName: "Cape", lcId: "lc-1", level: 1, name: "LP-1", padId: "pad-1" },
-  { kscName: "Cape", lcId: "lc-2", level: 2, name: "LP-2", padId: "pad-2" },
+  {
+    isOperational: true,
+    kscName: "Cape",
+    lcId: "lc-1",
+    level: 1,
+    name: "LP-1",
+    padId: "pad-1",
+  },
+  {
+    isOperational: true,
+    kscName: "Cape",
+    lcId: "lc-2",
+    level: 2,
+    name: "LP-2",
+    padId: "pad-2",
+  },
 ];
 
 function mount() {

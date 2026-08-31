@@ -44,6 +44,8 @@ export function Centre({
   terms,
   assign,
   rush,
+  dismantle,
+  dismantlePad,
 }: Readonly<{
   centre: Rp1CentreEntry;
   complexes: readonly Rp1ComplexEntry[];
@@ -53,6 +55,8 @@ export function Centre({
   terms: Rp1RushTerms | undefined;
   assign: Parameters<typeof CommandButton>[0]["handle"];
   rush: Parameters<typeof CommandButton>[0]["handle"];
+  dismantle: Parameters<typeof CommandButton>[0]["handle"];
+  dismantlePad: Parameters<typeof CommandButton>[0]["handle"];
 }>) {
   // The display name first, the id behind it. RP-1 keeps only the id on a
   // centre, and on an RSS career that id is us_cape_canaveral, which is not what
@@ -111,6 +115,8 @@ export function Centre({
               centreName={name}
               complex={complex}
               complexNames={complexNames}
+              dismantle={dismantle}
+              dismantlePad={dismantlePad}
               key={complex.lcId ?? complex.name ?? ""}
               pads={pads.filter((pad) => pad.lcId === complex.lcId)}
               rush={rush}
