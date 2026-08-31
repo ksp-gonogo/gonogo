@@ -197,6 +197,7 @@ export function sourceAtRatchetBase(
  */
 export const RATCHET_ALLOWLIST_PATHS = [
   "packages/core/src/banner-comments.allowlist.ts",
+  "packages/core/src/comment-stacks.allowlist.ts",
   "packages/core/src/panel-body.allowlist.ts",
   "packages/core/src/published-doc-reachability.allowlist.ts",
   "packages/core/src/render-fixture-coverage.debt.ts",
