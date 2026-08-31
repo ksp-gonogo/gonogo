@@ -356,12 +356,20 @@ namespace GonogoPrincipiaUplink.Tests
         ///
         /// <para>The probe CAN prove the struct on an empty plan, by building a burn
         /// and round-tripping that, and the mechanism is covered directly below. It
-        /// is deliberately not reached from an arm. The one attempt against a running
-        /// game ended with the process aborting, on a rig whose craft had been
-        /// teleported out from under a plan anchored elsewhere, and the composed burn
-        /// could not be told apart from that as the cause. An arm is what an operator
-        /// does to find out whether editing is possible, so it must not be the thing
-        /// that ends their game.</para>
+        /// is deliberately not reached from an arm, and the reason is a design one
+        /// rather than a fear: an arm is what an operator does to ASK whether editing
+        /// is possible, so it must not itself be a write. The proof an empty plan
+        /// needs is taken by the insert instead, where the operator has actually
+        /// asked for a burn, and <c>ComposeFirstBurn</c> reverts what it wrote when
+        /// the comparison fails.</para>
+        ///
+        /// <para>This comment used to justify the choice by an abort: one composed
+        /// burn against a running game ended with the process going down. That was
+        /// investigated on 2026-08-31 and the cause was the rig, whose craft had been
+        /// teleported out from under a plan anchored elsewhere. A composed burn has
+        /// since crossed into a clean running plugin without aborting. The abort is
+        /// not why this is not wired, and leaving it written here as the reason would
+        /// be one more copy of a premise that has already been withdrawn.</para>
         /// </summary>
         [Fact]
         public void ArmingAPlanWithNoBurnsWritesNothing()

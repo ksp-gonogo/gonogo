@@ -188,11 +188,14 @@ namespace GonogoPrincipiaUplink
             // anchored somewhere else, and that confound is now resolved: the clean
             // case does not abort.
             //
-            // So the reason for not wiring `ComposeProbeBurn` below is no longer
-            // fear of an abort. It is that doing so gives the ARM three native
-            // write-path calls it does not make today, and an arm is what an operator
-            // does to find out whether editing is possible. Moving that risk onto it
-            // is a trade for the operator to make rather than a correctness fix.
+            // So the reason for not wiring `ComposeProbeBurn` below is no longer fear
+            // of an abort, and it is not an open question either: an arm is what an
+            // operator does to ASK whether editing is possible, so it must not itself
+            // be a write. `ComposeFirstBurn` already takes exactly this proof at the
+            // point the operator asks for a burn, and reverts what it wrote when the
+            // comparison fails. Wiring the probe into the arm would move that same
+            // check earlier, onto a question, and buy nothing: the empty plan is
+            // covered either way, and only the arm's cost changes.
             //
             // What IS fixed here is the reporting: `burnLayoutVerified` now travels
             // on the write surface, so an arm that verified only the integrator says
