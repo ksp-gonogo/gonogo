@@ -193,6 +193,20 @@ export function crewTally(crew: CrewMember[], selected = 0): string {
  */
 const CREW_GRID_MIN_ROWS = 14;
 
+/**
+ * The letterbox tile: wide enough to hold two readable columns, short enough
+ * that stacking them spends the one dimension it has none of.
+ *
+ * A pad's craft and its crew stack in every other shape, which is right when
+ * height is what the tile has. At 18x5 the widget was 712px wide and 165px
+ * tall, spent none of the width, and ran 352px of stacked content, so the fold
+ * landed on the craft label and neither the crew nor the launch control was on
+ * screen. Fourteen columns is where two tracks still fit a craft name beside
+ * its cost rather than wrapping it; six rows is where stacking stops fitting.
+ */
+const LETTERBOX_MIN_COLS = 14;
+const LETTERBOX_MAX_ROWS = 6;
+
 /** Trait and rank stay reachable on a row whose value line spent itself on the reason. */
 export function crewChipTitle(k: CrewMember, reading: CrewReading): string {
   const who = `${k.trait || NULL_DISPLAY} · L${k.experienceLevel}`;
@@ -663,7 +677,9 @@ function LaunchDirectorComponent({
   const unreportedPads = pads.filter((p) => p.occupied === null).length;
 
   const rows = h ?? 9;
+  const cols = w ?? 7;
   const showSubtitle = rows >= 4;
+  const letterbox = cols >= LETTERBOX_MIN_COLS && rows <= LETTERBOX_MAX_ROWS;
 
   // Props both augment slots pass down. A plain object rather than a
   // hook so it can sit above the early return without a conditional `useMemo`; a
@@ -833,6 +849,7 @@ function LaunchDirectorComponent({
             fundsAvailable={fundsAvailable}
             funds={careerFunds ?? undefined}
             rows={rows}
+            letterbox={letterbox}
             launchCmd={launchCmd}
             recoverCmd={recoverCmd}
             revertEditorCmd={revertEditorCmd}
@@ -905,6 +922,7 @@ function PadSection({
   fundsAvailable,
   funds,
   rows,
+  letterbox,
   launchCmd,
   recoverCmd,
   revertEditorCmd,
@@ -925,6 +943,8 @@ function PadSection({
   funds: number | undefined;
   /** The tile's height in grid rows; decides whether the crew grid stands open. */
   rows: number;
+  /** Wide and short, so the pad's craft and crew sit side by side. */
+  letterbox: boolean;
   launchCmd: CommandButtonHandle;
   recoverCmd: CommandButtonHandle;
   revertEditorCmd: CommandButtonHandle;
@@ -1027,89 +1047,94 @@ function PadSection({
                         {padKindLabel(site.facility).toLowerCase()}
                       </EmptyNote>
                     ) : (
-                      <>
-                        <SectionLabel>
-                          Craft ·{" "}
-                          {
-                            padCraft.filter(
-                              (s) =>
-                                s.missingParts.length === 0 &&
-                                s.requiresFunds <= fundsAvailable,
-                            ).length
-                          }
-                          /{padCraft.length} ready
-                        </SectionLabel>
-                        <ShipList>
-                          {padCraft.map((s) => {
-                            const blocked =
-                              s.missingParts.length > 0 ||
-                              s.requiresFunds > fundsAvailable;
-                            return (
-                              <ShipRow
-                                key={`${s.facility}/${s.name}`}
-                                type="button"
-                                data-ship-row
-                                $selected={selectedShip === s.name}
-                                $blocked={blocked}
-                                aria-pressed={selectedShip === s.name}
-                                aria-disabled={blocked}
-                                onClick={() => {
-                                  if (blocked) return;
-                                  onSelectShip(
-                                    selectedShip === s.name ? null : s.name,
-                                  );
-                                }}
-                              >
-                                <ShipMeta>
-                                  <ShipName>{s.name}</ShipName>
-                                  <ShipDetails>
-                                    {s.partCount} parts ·{" "}
-                                    <Unit
-                                      value={value("t", s.totalMass)}
-                                      decimals={1}
-                                    />
-                                  </ShipDetails>
-                                </ShipMeta>
-                                <ShipCost>
-                                  {/* One Unit carrying the value, not a
+                      <CraftAndCrew $sideBySide={letterbox && ship != null}>
+                        <PadColumn>
+                          <SectionLabel>
+                            Craft ·{" "}
+                            {
+                              padCraft.filter(
+                                (s) =>
+                                  s.missingParts.length === 0 &&
+                                  s.requiresFunds <= fundsAvailable,
+                              ).length
+                            }
+                            /{padCraft.length} ready
+                          </SectionLabel>
+                          <ShipList>
+                            {padCraft.map((s) => {
+                              const blocked =
+                                s.missingParts.length > 0 ||
+                                s.requiresFunds > fundsAvailable;
+                              return (
+                                <ShipRow
+                                  key={`${s.facility}/${s.name}`}
+                                  type="button"
+                                  data-ship-row
+                                  $selected={selectedShip === s.name}
+                                  $blocked={blocked}
+                                  aria-pressed={selectedShip === s.name}
+                                  aria-disabled={blocked}
+                                  onClick={() => {
+                                    if (blocked) return;
+                                    onSelectShip(
+                                      selectedShip === s.name ? null : s.name,
+                                    );
+                                  }}
+                                >
+                                  <ShipMeta>
+                                    <ShipName>{s.name}</ShipName>
+                                    <ShipDetails>
+                                      {s.partCount} parts ·{" "}
+                                      <Unit
+                                        value={value("t", s.totalMass)}
+                                        decimals={1}
+                                      />
+                                    </ShipDetails>
+                                  </ShipMeta>
+                                  <ShipCost>
+                                    {/* One Unit carrying the value, not a
                                       hand-formatted number beside a bare
                                       symbol: the children form renders the
                                       symbol ALONE and never sees the number, so
                                       this cost printed ungrouped beside a
                                       grouped balance in the same widget. */}
-                                  {s.requiresFunds > fundsAvailable && (
-                                    <BlockedTag title="Insufficient funds">
-                                      <Unit
-                                        value={value("funds", s.requiresFunds)}
-                                      />
-                                    </BlockedTag>
-                                  )}
-                                  {s.requiresFunds <= fundsAvailable &&
-                                    s.requiresFunds > 0 && (
-                                      <CostTag>
+                                    {s.requiresFunds > fundsAvailable && (
+                                      <BlockedTag title="Insufficient funds">
                                         <Unit
                                           value={value(
                                             "funds",
                                             s.requiresFunds,
                                           )}
                                         />
-                                      </CostTag>
+                                      </BlockedTag>
                                     )}
-                                  {s.missingParts.length > 0 && (
-                                    <BlockedTag
-                                      title={`Missing: ${s.missingParts.join(", ")}`}
-                                    >
-                                      {s.missingParts.length} locked
-                                    </BlockedTag>
-                                  )}
-                                </ShipCost>
-                              </ShipRow>
-                            );
-                          })}
-                        </ShipList>
+                                    {s.requiresFunds <= fundsAvailable &&
+                                      s.requiresFunds > 0 && (
+                                        <CostTag>
+                                          <Unit
+                                            value={value(
+                                              "funds",
+                                              s.requiresFunds,
+                                            )}
+                                          />
+                                        </CostTag>
+                                      )}
+                                    {s.missingParts.length > 0 && (
+                                      <BlockedTag
+                                        title={`Missing: ${s.missingParts.join(", ")}`}
+                                      >
+                                        {s.missingParts.length} locked
+                                      </BlockedTag>
+                                    )}
+                                  </ShipCost>
+                                </ShipRow>
+                              );
+                            })}
+                          </ShipList>
+                        </PadColumn>
 
                         {ship && (
-                          <>
+                          <PadColumn>
                             {crew === null ? (
                               <>
                                 <SectionLabel>Crew</SectionLabel>
@@ -1204,9 +1229,9 @@ function PadSection({
                                 pendingLabel="Launching..."
                               />
                             </LaunchControls>
-                          </>
+                          </PadColumn>
                         )}
-                      </>
+                      </CraftAndCrew>
                     )}
                   </PadDetail>
                 )}
@@ -1619,6 +1644,32 @@ const PadDetail = styled.div`
   gap: var(--space-8);
   padding-left: var(--space-8);
   border-left: 2px solid var(--color-surface-raised);
+`;
+
+/* One track in every ordinary tile, two in a letterbox: see LETTERBOX_MIN_COLS.
+   `align-items: start` so the crew column keeps its own height rather than
+   stretching to the craft list beside it. The call site asks for two tracks only
+   once a craft is picked, since with no crew column a lone craft list squeezed
+   into half the tile is worse than the full-width list it replaced.
+
+   Tried and rejected: lifting the launch control up BESIDE the tally to clear
+   the fold outright. It cost the tally its single line, three at 18 columns and
+   still two once the crew track was widened, and a wrapped summary reads worse
+   than a button whose bottom edge is cut. The tally is the part that has to
+   survive here. */
+const CraftAndCrew = styled.div<{ $sideBySide: boolean }>`
+  display: grid;
+  grid-template-columns: ${(p) =>
+    p.$sideBySide ? "minmax(0, 1fr) minmax(0, 1fr)" : "minmax(0, 1fr)"};
+  align-items: start;
+  gap: var(--space-8);
+`;
+
+const PadColumn = styled.div`
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-8);
+  min-width: 0;
 `;
 
 const EmptyNote = styled.div`
