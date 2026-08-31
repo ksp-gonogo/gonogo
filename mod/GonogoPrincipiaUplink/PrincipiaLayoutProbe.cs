@@ -338,13 +338,142 @@ namespace GonogoPrincipiaUplink
             {
                 if (before.TryGetValue(field, out var was)
                     && after.TryGetValue(field, out var now)
-                    && was != now)
+                    && !was.Matches(now))
                 {
-                    differences.Add(field + " went in as " + was + " and came back as " + now);
+                    differences.Add(
+                        field + " went in as " + was.Text + " and came back as " + now.Text);
                 }
             }
             return differences.Count == 0 ? null : string.Join("; ", differences);
         }
+
+        /// <summary>
+        /// One field of a burn, and how it must be compared.
+        ///
+        /// <para>The split is the whole of the tolerance rule. A field with a
+        /// <see cref="Number"/> is a real quantity and is compared within
+        /// <see cref="MaxUlps"/>; everything else is DISCRETE and is compared
+        /// exactly, because a coordinate system or a frame kind that came back
+        /// different is corruption and there is no "nearly" about it.</para>
+        ///
+        /// <para>An unreadable quantity carries no <see cref="Number"/> and falls to
+        /// the exact path, where <c>?</c> matches <c>?</c> and nothing else. A field
+        /// that stopped resolving is a difference.</para>
+        ///
+        /// <para><b>For the three discrete fields as they stand, the split is intent
+        /// rather than a difference anything can observe</b>, and it is worth saying
+        /// so rather than implying a guard that is not being exercised: their values
+        /// are small integers and a frame ordinal, and adjacent integers are about
+        /// 2^52 ULPs apart as doubles, so a four-ULP tolerance could not conflate two
+        /// of them either. The split is here so that a discrete field which one day
+        /// takes a value where it WOULD matter is already on the right side of the
+        /// line.</para>
+        /// </summary>
+        private readonly struct Component
+        {
+            private Component(string text, double? number)
+            {
+                Text = text;
+                Number = number;
+            }
+
+            public string Text { get; }
+
+            public double? Number { get; }
+
+            /// <summary>A real quantity, compared within a tolerance.</summary>
+            public static Component Quantity(double? value) =>
+                new Component(Text(value), value);
+
+            /// <summary>A discrete value, compared exactly.</summary>
+            public static Component Exact(string? text) => new Component(text ?? "?", null);
+
+            public bool Matches(Component other) =>
+                Number != null && other.Number != null
+                    ? WithinTolerance(Number.Value, other.Number.Value)
+                    : string.Equals(Text, other.Text, StringComparison.Ordinal);
+        }
+
+        /// <summary>
+        /// How far two readings of the same quantity may differ and still be the
+        /// same reading, in units in the last place.
+        ///
+        /// <para><b>Why a tolerance at all.</b> Measured on the rig on 2026-08-31: a
+        /// burn's ignition instant went into Principia as 4644.3399999141702 and came
+        /// back as 4644.3399999141693. One ULP. Nine parts in ten to the thirteenth of
+        /// a second, on an instant of about 4644 seconds. Principia holds times in its
+        /// own representation and converts on the way in and out, so a double that
+        /// crosses is a double that was converted twice, and exact equality was
+        /// refusing every burn insertion on that.</para>
+        ///
+        /// <para><b>Why ULPs rather than an epsilon.</b> The fields are in three
+        /// different units at three different magnitudes: an instant near 5,000, a Δv
+        /// that may be 0.001 or 3,000, a thrust in kilonewtons. One absolute epsilon
+        /// would be far too loose for the Δv and far too tight for the UT, and three
+        /// hand-picked ones would be three numbers to justify. An ULP is
+        /// scale-relative by construction, so ONE rule is right for all of them.</para>
+        ///
+        /// <para><b>What this still catches, which is the point.</b> Four ULPs at the
+        /// measured instant is about 4e-12 seconds, and at a Δv of 1 m/s about 9e-16
+        /// m/s. A wrong field offset does not produce a value four ULPs away: it
+        /// produces a different exponent, a neighbouring field's value, or garbage,
+        /// all of which are many orders of magnitude out and every one of which still
+        /// refuses. The tolerance admits conversion noise and nothing that could be
+        /// mistaken for a real number in the wrong slot.</para>
+        ///
+        /// <para>Four rather than one, because the measurement is a single sample of
+        /// one field on one build and a bound that sits exactly on it would be
+        /// re-tripped by the next value that converts slightly worse. Four is still
+        /// twelve orders of magnitude inside anything a layout fault produces.</para>
+        /// </summary>
+        private const long MaxUlps = 4;
+
+        /// <summary>
+        /// Whether two doubles are the same number to within
+        /// <see cref="MaxUlps"/>.
+        ///
+        /// <para>The non-finite guards are belt and braces rather than the
+        /// mechanism: <c>ReflectedMembers.AsDouble</c> already turns a NaN or an
+        /// infinity into an ABSENCE, so a value that came back non-finite reaches the
+        /// comparison as an unreadable one and fails against the number that went in
+        /// without this method being asked. The guards are here so that a future
+        /// caller with a rawer source cannot get "NaN is within four ULPs of NaN" out
+        /// of it.</para>
+        ///
+        /// <para>Compared on the bit patterns, which is what makes "one ULP" a
+        /// measurable thing rather than a figure of speech. The sign-magnitude
+        /// ordering doubles use is remapped to a two's-complement one first, so that
+        /// adjacent values either side of zero are one apart rather than a full
+        /// exponent range; positive and negative zero are the same number and are
+        /// answered before the remap.</para>
+        /// </summary>
+        private static bool WithinTolerance(double a, double b)
+        {
+            if (double.IsNaN(a) || double.IsNaN(b))
+            {
+                return false;
+            }
+            if (double.IsInfinity(a) || double.IsInfinity(b))
+            {
+                return a == b;
+            }
+            if (a == b)
+            {
+                return true;
+            }
+
+            var left = Ordered(BitConverter.DoubleToInt64Bits(a));
+            var right = Ordered(BitConverter.DoubleToInt64Bits(b));
+            var apart = left > right ? left - right : right - left;
+            return apart >= 0 && apart <= MaxUlps;
+        }
+
+        /// <summary>
+        /// A double's bits as a monotonically ordered integer, so subtracting two of
+        /// them counts the representable values between.
+        /// </summary>
+        private static long Ordered(long bits) =>
+            bits < 0 ? long.MinValue - bits : bits;
 
         /// <summary>
         /// The fields compared, in the order a reader wants them. Its own list so a
@@ -373,24 +502,30 @@ namespace GonogoPrincipiaUplink
         /// that became readable. Dropping it would let a field that stopped
         /// resolving pass as unchanged.</para>
         /// </summary>
-        private static Dictionary<string, string> BurnSnapshot(object burn)
+        private static Dictionary<string, Component> BurnSnapshot(object burn)
         {
             var deltaV = Fields.DeltaV(burn);
-            return new Dictionary<string, string>(StringComparer.Ordinal)
+            return new Dictionary<string, Component>(StringComparer.Ordinal)
             {
+                // Quantities: real numbers that cross Principia's own conversion, so
+                // compared within a tolerance. See MaxUlps for the measurement.
                 [PrincipiaBurnStruct.ThrustField] =
-                    Text(Fields.GetDouble(burn, PrincipiaBurnStruct.ThrustField)),
-                [PrincipiaBurnStruct.SpecificImpulseField] =
-                    Text(Fields.GetDouble(burn, PrincipiaBurnStruct.SpecificImpulseField)),
-                [PrincipiaBurnStruct.InitialTimeField] =
-                    Text(Fields.GetDouble(burn, PrincipiaBurnStruct.InitialTimeField)),
-                [PrincipiaBurnStruct.InertiallyFixedField] =
-                    Fields.GetBool(burn, PrincipiaBurnStruct.InertiallyFixedField)?.ToString() ?? "?",
-                ["coordinate_system"] = Fields.CoordinateSystem(burn)?.ToString() ?? "?",
-                ["delta_v_tangent"] = deltaV == null ? "?" : Text(deltaV.Value.X),
-                ["delta_v_normal"] = deltaV == null ? "?" : Text(deltaV.Value.Y),
-                ["delta_v_binormal"] = deltaV == null ? "?" : Text(deltaV.Value.Z),
-                ["frame_extension"] = Fields.FrameExtension(burn)?.ToString() ?? "?",
+                    Component.Quantity(Fields.GetDouble(burn, PrincipiaBurnStruct.ThrustField)),
+                [PrincipiaBurnStruct.SpecificImpulseField] = Component.Quantity(
+                    Fields.GetDouble(burn, PrincipiaBurnStruct.SpecificImpulseField)),
+                [PrincipiaBurnStruct.InitialTimeField] = Component.Quantity(
+                    Fields.GetDouble(burn, PrincipiaBurnStruct.InitialTimeField)),
+                ["delta_v_tangent"] = Component.Quantity(deltaV?.X),
+                ["delta_v_normal"] = Component.Quantity(deltaV?.Y),
+                ["delta_v_binormal"] = Component.Quantity(deltaV?.Z),
+
+                // Discrete: a flag, an enum member and a frame kind. Exact, because a
+                // difference in any of them is corruption rather than arithmetic.
+                [PrincipiaBurnStruct.InertiallyFixedField] = Component.Exact(
+                    Fields.GetBool(burn, PrincipiaBurnStruct.InertiallyFixedField)?.ToString()),
+                ["coordinate_system"] =
+                    Component.Exact(Fields.CoordinateSystem(burn)?.ToString()),
+                ["frame_extension"] = Component.Exact(Fields.FrameExtension(burn)?.ToString()),
             };
         }
 
