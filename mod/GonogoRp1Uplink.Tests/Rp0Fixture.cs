@@ -60,6 +60,14 @@ namespace RP0
         public int salaryResearchers = 1000;
 
         public double EngineerIdleSalaryMult = 0.25;
+
+        /// <summary>
+        /// What a second and subsequent launch pad costs, relative to the first.
+        /// RP-1 ships 0.5, and it is the ONE settings value the cost model falls
+        /// back to a default for rather than refusing on: it scales a price rather
+        /// than deciding whether an act is legal.
+        /// </summary>
+        public double AdditionalPadCostMult = 0.5;
     }
 
     public static class Database
@@ -403,6 +411,27 @@ namespace RP0
         {
             failedReasons?.AddRange(FacilityRefusals);
             return FacilityRefusals.Count == 0;
+        }
+
+        /// <summary>Whether this vehicle still fits a PROPOSED specification, which is what a renovation asks.</summary>
+        public bool MeetsRequirements = true;
+
+        /// <summary>
+        /// The SECOND overload, and the reason both are here: RP-1 declares
+        /// <c>MeetsFacilityRequirements(List&lt;string&gt;)</c> beside
+        /// <c>MeetsFacilityRequirements(LCData, List&lt;string&gt;, bool = false)</c>,
+        /// and the defaulted third parameter makes the second one ARITY THREE to
+        /// reflection. A fixture carrying only the one-argument form let a lookup at
+        /// the wrong arity resolve to nothing and a renovation's strand check never
+        /// fire, which is precisely what happened.
+        /// </summary>
+        public bool MeetsFacilityRequirements(LCData stats, List<string>? failedReasons, bool shortReasons = false)
+        {
+            if (!MeetsRequirements)
+            {
+                failedReasons?.Add(shipName + " does not fit the proposed limits");
+            }
+            return MeetsRequirements;
         }
 
         /// <summary>

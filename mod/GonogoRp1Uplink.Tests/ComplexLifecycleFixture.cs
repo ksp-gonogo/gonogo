@@ -287,3 +287,39 @@ namespace RP0
     }
 
 }
+
+namespace ROUtils
+{
+    /// <summary>
+    /// The ONE thing this Uplink reaches in RP-1's utility assembly: whether the
+    /// save is a career.
+    /// </summary>
+    /// <remarks>
+    /// <para>It decides whether a construction is QUEUED against funding or applied
+    /// at once, and it is a genuinely different answer from
+    /// <c>SpaceCenterManagement.enabledForSave</c>, which is true for sandbox and
+    /// science-sandbox as well. That is why the commands refuse rather than guess
+    /// when this cannot be asked: a funded project on a save with no funding stalls
+    /// forever with nothing saying why.</para>
+    /// <para><see cref="Throws"/> exists for exactly that case, because "the method
+    /// is there and it threw" is a state a reflected call has to survive and is not
+    /// the same as the method being absent.</para>
+    /// </remarks>
+    public static class KSPUtils
+    {
+        /// <summary>What the career test answers. True is the normal RP-1 save.</summary>
+        public static bool IsCareer = true;
+
+        /// <summary>Makes the test throw, which a command must refuse on rather than assume either way.</summary>
+        public static bool Throws;
+
+        public static bool CurrentGameIsCareer()
+        {
+            if (Throws)
+            {
+                throw new System.InvalidOperationException("the game mode could not be read");
+            }
+            return IsCareer;
+        }
+    }
+}

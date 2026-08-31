@@ -52,6 +52,7 @@
     <Compile Include="..\GonogoRp1Uplink\Rp1ComplexWrites.cs" />
     <Compile Include="..\GonogoRp1Uplink\Rp1LcCostModel.cs" />
     <Compile Include="..\GonogoRp1Uplink\Rp1ComplexLifecycleCommands.cs" />
+    <Compile Include="..\GonogoRp1Uplink\Rp1ComplexConstructionCommands.cs" />
     <Compile Include="..\GonogoRp1Uplink\Rp1PersonnelCommands.cs" />
     <Compile Include="..\GonogoRp1Uplink\Rp1StrategyWrites.cs" />
     <Compile Include="..\GonogoRp1Uplink\Rp1StrategyCommands.cs" />
