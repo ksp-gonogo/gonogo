@@ -23,6 +23,17 @@
 #       is slow (~30s per DLL on cold cache); subsequent calls reuse
 #       the textual disassembly cache in /tmp/gonogo-decompile-cache/.
 #
+#       MOD TYPES ARE NOT SEARCHED BY DEFAULT. decompile/members/dump/findtype
+#       all look in Managed/ only, so an RP-1, Kerbalism or Principia type
+#       answers "not found" no matter how present it is. Point them at the mod:
+#
+#         GONOGO_EXTRA_DLL_DIRS=local_docs/syncthing/kspdata/GameData/RP-1/Plugins \
+#           ./scripts/gonogo_claude_tools.sh findtype StrategyRP0
+#
+#       Colon-separated for several. Every miss now names the roots it searched,
+#       because a lookup that never looked in GameData used to report a bare
+#       "not found" that read as "this type does not exist".
+#
 #   dump <Type> [<Type>...]
 #       Like decompile, but prints the full ilspycmd output for the type
 #       (method bodies, field initialisers, the lot): no signature
@@ -97,6 +108,38 @@ TELE_TIMEOUT_S=15
 #                      had to expand a bare name
 # All three are reset to empty when the type can't be located anywhere.
 # Globals (vs. echo) keep the multi-line raw output untouched.
+# The DLLs a type lookup may search: KSP's own Managed/ folder, plus any mod
+# plugin directories named in GONOGO_EXTRA_DLL_DIRS (colon-separated).
+#
+# Mod assemblies are NOT searched by default and that is deliberate: GameData
+# holds hundreds of DLLs and findtype pays a full ilspycmd dump per file. But a
+# lookup that never looked in GameData must not answer a bare "not found",
+# because that is indistinguishable from "this type does not exist" -- which is
+# exactly how RP0.SpaceCenterManagement and RP0.StrategyRP0, both present in the
+# shipped RP-1, were reported absent. Every miss now says what it searched.
+_candidate_dlls() {
+  local managed_dir
+  managed_dir="$(dirname "$DLL")"
+  ls "$managed_dir"/*.dll 2>/dev/null
+  local saved_ifs="$IFS"
+  IFS=':'
+  local extra
+  for extra in ${GONOGO_EXTRA_DLL_DIRS:-}; do
+    [ -n "$extra" ] && ls "$extra"/*.dll 2>/dev/null
+  done
+  IFS="$saved_ifs"
+}
+
+_searched_roots_note() {
+  local managed_dir
+  managed_dir="$(dirname "$DLL")"
+  if [ -n "${GONOGO_EXTRA_DLL_DIRS:-}" ]; then
+    echo "(searched $managed_dir plus GONOGO_EXTRA_DLL_DIRS=$GONOGO_EXTRA_DLL_DIRS)"
+  else
+    echo "(searched Managed/ ONLY; mod assemblies under GameData/*/Plugins were NOT searched -- for a mod type set GONOGO_EXTRA_DLL_DIRS=<plugins-dir>)"
+  fi
+}
+
 _resolve_type() {
   _RT_RAW=""
   _RT_SOURCE_DLL=""
@@ -117,7 +160,7 @@ _resolve_type() {
 
   # Tier 2: walk the other Managed/ DLLs until one yields a non-empty
   # result. Bare name only: namespaced types fall through to Tier 3.
-  for cand in "$managed_dir"/*.dll; do
+  for cand in $(_candidate_dlls); do
     [ "$cand" = "$DLL" ] && continue
     local try
     try="$(perl -e 'alarm shift; exec @ARGV' "$DECOMPILE_TIMEOUT_S" \
@@ -173,7 +216,7 @@ decompile() {
         | head -80
     else
       echo "=== $t ==="
-      echo "(not found in any Managed/ DLL)"
+      echo "(not found) $(_searched_roots_note)"
     fi
     echo
   done
@@ -201,7 +244,7 @@ dump() {
       echo "$_RT_RAW"
     else
       echo "=== $t ==="
-      echo "(not found in any Managed/ DLL)"
+      echo "(not found) $(_searched_roots_note)"
     fi
     echo
   done
@@ -224,7 +267,7 @@ _resolve_type_range() {
   local managed_dir
   managed_dir="$(dirname "$DLL")"
   local cache_dir="/tmp/gonogo-decompile-cache"
-  for cand in "$managed_dir"/*.dll; do
+  for cand in $(_candidate_dlls); do
     local cache="$cache_dir/$(basename "$cand").txt"
     [ -f "$cache" ] || continue
     # Find the FIRST line declaring this type. ilspycmd indents types
@@ -406,7 +449,7 @@ _findtype_emit() {
   managed_dir="$(dirname "$DLL")"
   local cache_dir="/tmp/gonogo-decompile-cache"
   mkdir -p "$cache_dir"
-  for cand in "$managed_dir"/*.dll; do
+  for cand in $(_candidate_dlls); do
     local cache="$cache_dir/$(basename "$cand").txt"
     if [ ! -f "$cache" ] || [ "$cand" -nt "$cache" ]; then
       perl -e 'alarm shift; exec @ARGV' 90 \
@@ -439,7 +482,7 @@ findtype() {
     local lines
     lines="$(_findtype_emit "$t")"
     if [ -z "$lines" ]; then
-      echo "$t: not found"
+      echo "$t: not found $(_searched_roots_note)"
     else
       echo "$lines"
     fi
