@@ -24,6 +24,7 @@ Brings RP-1's career layer to the dashboard: Programs with their objectives, dea
 | `rp1.crew` | `Rp1CrewEntry[]` | lossy-latest | true-now |
 | `rp1.crewProgram` | `Rp1CrewProgram` | lossy-latest | true-now |
 | `rp1.fundTarget` | `Rp1FundTarget` | lossy-latest | true-now |
+| `rp1.lcPricing` | `Rp1LcPricing` | lossy-latest | true-now |
 | `rp1.operations` | `Rp1OperationEntry[]` | lossy-latest | true-now |
 | `rp1.pads` | `Rp1PadEntry[]` | lossy-latest | true-now |
 | `rp1.personnel` | `Rp1Personnel` | lossy-latest | true-now |
@@ -55,6 +56,7 @@ Brings RP-1's career layer to the dashboard: Programs with their objectives, dea
 | `Rp1FundTargetSetArgs` | `targetFunds` funds |
 | `Rp1HireTarget` | `active` flag, `currentCount` count, `isResearch` flag, `lcId` id, `leftToHire` count, `targetCount` count, `timeLeft` s |
 | `Rp1HireTargetSetArgs` | `lcId` id, `reserveFunds` funds, `targetCount` count |
+| `Rp1LcResourcePrice` | `hangarCostPerUnit` funds, `name` id, `padCostPerUnit` funds |
 | `Rp1LeaderEntry` | `canRemoveFromUt` ut, `deactivateReputation` rep, `freeToRemoveFromUt` ut, `reactivateCooldown` s, `removeOnDeactivate` flag, `setupConfidence` confidence, `setupFunds` funds, `setupReputation` rep, `setupScience` science, `strategyId` id |
 | `Rp1PadDismantleArgs` | `lcId` id, `padId` id |
 | `Rp1PadNewArgs` | `lcId` id, `name` id |
@@ -162,7 +164,7 @@ Every craft RP-1 is integrating, holding or could start, across every launch com
 | `rp1-crew-schedule` | `astronaut-complex.crew` | – |  | 1 |  |
 | `rp1-contract-payload` | `contract-manager.sections` | – |  | 1 |  |
 | `rp1-crew-programme` | `astronaut-complex.sections` | – |  | 1 |  |
-| `rp1-ksc-complexes` | `space-center-status.sections` | – |  | 8 |  |
+| `rp1-ksc-complexes` | `space-center-status.sections` | – |  | 9 |  |
 | `rp1-ksc-construction` | `space-center-status.sections` | – |  | 5 |  |
 | `rp1-launch-complex-status` | `launch-director.pad` | – |  | 2 |  |
 | `rp1-program-detail` | `strategies.screen-body` | `rp1.available`, `rp1.programs`, `rp1.programSlots`, `rp1.programFundingCurves`, `rp1.confidence`, `career.status` | only while `rp1` | 4 |  |
@@ -184,6 +186,8 @@ Every craft RP-1 is integrating, holding or could start, across every launch com
 ![The dismantle armed, which is the only state its warning appears in: everything below the crew is behind the detail expander, and the warning is the confirm step itself](docs/assets/complexes-dismantle-warnings--default.png)
 
 ![LC-1's detail open, down to its last working pad: the dismantle is dark with the reason rather than live and silently inert, which is what RP-1 leaves it as](docs/assets/complexes-last-pad--default.png)
+
+![The new-complex form open at its defaults: every field priced, the tonnage limit stating the renovation range it fixes for life, and a 26,453f quote against a 400f balance that slows the build rather than refusing it](docs/assets/complexes-new--default.png)
 
 ![A pad rename open on LP-1, showing the field holding the current name and the press refused as unchanged; the other pad still shows the closed one-button state this costs when nobody is renaming](docs/assets/complexes-rename--default.png)
 

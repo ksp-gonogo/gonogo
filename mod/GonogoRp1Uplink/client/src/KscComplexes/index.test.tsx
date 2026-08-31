@@ -589,8 +589,17 @@ describe("KscComplexes", () => {
     });
     expect(screen.queryByText("IN THE WAREHOUSE")).not.toBeInTheDocument();
     expect(screen.queryByText("UNDER INTEGRATION")).not.toBeInTheDocument();
+    /*
+     * Named against VEHICLES rather than against the word "build". This widget
+     * does build things, it just builds infrastructure: a bare /[Bb]uild/ matched
+     * the new-complex control the day it landed, which is a control that belongs
+     * here and says nothing about whether a craft has leaked in.
+     */
+    for (const craft of ["Atlas", "Redstone", "Vanguard"]) {
+      expect(screen.queryByText(craft)).not.toBeInTheDocument();
+    }
     expect(
-      screen.queryByRole("button", { name: /[Bb]uild/ }),
+      screen.queryByRole("button", { name: /Roll ?out|Scrap|Recover|Launch/ }),
     ).not.toBeInTheDocument();
   });
 

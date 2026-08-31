@@ -46,7 +46,7 @@ namespace GonogoRp1Uplink.Tests
                 {
                     var candidate = Path.Combine(
                         dir.FullName, "mod", "GonogoRp1Uplink", "client", "src",
-                        "KscComplexes", "__fixtures__", "lc-cost-cases.json");
+                        "KscComplexes", "__testdata__", "lc-cost-cases.json");
                     if (Directory.Exists(Path.GetDirectoryName(candidate)!))
                     {
                         return candidate;
@@ -108,10 +108,15 @@ namespace GonogoRp1Uplink.Tests
 
             Assert.True(File.Exists(CasesPath),
                 "lc-cost-cases.json is missing. Regenerate with GONOGO_WRITE_LC_COST_CASES=1.");
-            Assert.Equal(
-                File.ReadAllText(CasesPath).Replace("\r\n", "\n"),
-                json.Replace("\r\n", "\n"));
+            // Whitespace-normalised, not byte-compared. The file is formatted by
+            // the repo's own formatter, and a test that failed on its indentation
+            // would be a test the formatter breaks every time it touches the file.
+            // A changed FIGURE still fails, which is the only thing this is for.
+            Assert.Equal(Normalise(File.ReadAllText(CasesPath)), Normalise(json));
         }
+
+        private static string Normalise(string text) =>
+            new string(text.Where(c => !char.IsWhiteSpace(c)).ToArray());
 
         private static string Render(
             List<((float Mass, float W, float H, float D, bool Human, bool Hangar) C, double Pad, double Integration)> rows)

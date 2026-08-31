@@ -1,6 +1,6 @@
 import { value } from "@ksp-gonogo/sitrep-sdk";
 import { describe, expect, it } from "vitest";
-import CASES from "./__fixtures__/lc-cost-cases.json";
+import CASES from "./__testdata__/lc-cost-cases.json";
 import { type LcSpec, quoteNewComplex } from "./lcCost";
 
 /**

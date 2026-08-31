@@ -20,6 +20,7 @@ import {
   RP1_PAD_NEW_COMMAND,
   RP1_PAD_RENAME_COMMAND,
 } from "./Lifecycle";
+import { RP1_COMPLEX_NEW_COMMAND } from "./NewComplex";
 
 const TOPICS = [
   "rp1.available",
@@ -35,7 +36,9 @@ const TOPICS = [
   RP1_PAD_NEW_COMMAND,
   RP1_COMPLEX_RENAME_COMMAND,
   RP1_PAD_RENAME_COMMAND,
+  RP1_COMPLEX_NEW_COMMAND,
   "career.status",
+  "rp1.lcPricing",
 ];
 
 const CAPE = {
@@ -95,6 +98,10 @@ function withCentre(
     fixture.emit("rp1.complexes", complexes);
     fixture.emit("rp1.pads", pads);
     fixture.emit("career.status", career);
+    fixture.emit("rp1.lcPricing", {
+      additionalPadCostMult: 0.5,
+      resources: [{ name: "Kerosene", padCostPerUnit: 0.25 }],
+    });
   });
   return { fixture, view };
 }
@@ -510,5 +517,127 @@ describe("renaming", () => {
         (c) => c.command === RP1_PAD_RENAME_COMMAND,
       ),
     ).toBe(false);
+  });
+});
+
+/**
+ * Building a complex from nothing.
+ *
+ * <para>The form's job is the PRICE, and the price is the reason its arithmetic
+ * lives in the client at all: a new complex is priced against what the operator is
+ * typing, and these commands are delay-aware, so a quote per keystroke would be a
+ * round trip a remote vantage waits minutes for. See `lcCost.test.ts`, where the
+ * transcription is pinned against figures the shipped assembly generated.</para>
+ */
+describe("building a launch complex", () => {
+  async function open(user: ReturnType<typeof userEvent.setup>) {
+    await user.click(
+      await screen.findByRole("button", { name: "Build a new launch complex" }),
+    );
+  }
+
+  it("costs nothing to read until it is opened", async () => {
+    withCentre();
+
+    // The form is eleven controls. Standing open under every centre it would be
+    // the whole widget, so it is behind the same expander a complex's detail is.
+    await waitFor(() => {
+      expect(
+        screen.getByRole("button", { name: "Build a new launch complex" }),
+      ).toBeInTheDocument();
+    });
+    expect(screen.queryByLabelText("Name")).not.toBeInTheDocument();
+  });
+
+  it("quotes a price live and sends the spec that was priced", async () => {
+    const user = userEvent.setup();
+    const { fixture } = withCentre();
+    await open(user);
+
+    await user.type(screen.getByLabelText("Name"), "LC-3");
+    // The defaults are 100 t and 10 x 20 x 10 m, which the shipped assembly
+    // prices at 18,952.62 pad + 7,500 integration.
+    expect(screen.getByText(/26,453/)).toBeInTheDocument();
+
+    await user.click(
+      screen.getByRole("button", { name: "Build LC-3 at Cape" }),
+    );
+    await user.click(
+      screen.getByRole("button", { name: /^Confirm building LC-3/ }),
+    );
+
+    const sent = fixture.transport.sentCommands.find(
+      (c) => c.command === RP1_COMPLEX_NEW_COMMAND,
+    );
+    expect(sent?.args).toEqual({
+      assignEngineersOnComplete: false,
+      humanRated: false,
+      kscName: "Cape",
+      massMax: 100,
+      name: "LC-3",
+      size: { sizeMaxDepth: 10, sizeMaxHeight: 20, sizeMaxWidth: 10 },
+    });
+  });
+
+  it("reprices when the human rating changes, because that is what it costs", async () => {
+    const user = userEvent.setup();
+    withCentre();
+    await open(user);
+
+    // 1.5x the pad half and 2x the integration half. A defaulted human rating
+    // would silently halve or double the price of the thing being bought, which
+    // is why the field is required rather than assumed.
+    expect(screen.getByText(/26,453/)).toBeInTheDocument();
+    await user.click(screen.getByRole("checkbox", { name: /Human-rated/ }));
+    expect(screen.getByText(/43,429/)).toBeInTheDocument();
+  });
+
+  it("says what the tonnage limit does after the purchase", async () => {
+    const user = userEvent.setup();
+    withCentre();
+    await open(user);
+
+    // massOrig outlives the purchase: RP-1 holds every later renovation between
+    // half and twice it, permanently. That is a fact about the number being
+    // typed, not advice about typing it.
+    expect(
+      screen.getByText(/renovations later are held between/),
+    ).toBeInTheDocument();
+    expect(screen.getByText(/50\.00/)).toBeInTheDocument();
+    expect(screen.getByText(/200\.00/)).toBeInTheDocument();
+  });
+
+  it("will not build a second complex under a name this centre already uses", async () => {
+    const user = userEvent.setup();
+    withCentre();
+    await open(user);
+
+    await user.type(screen.getByLabelText("Name"), "LC-1");
+
+    expect(
+      screen.getByText("a complex at this centre already has that name"),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: "Build LC-1 at Cape" }),
+    ).toBeDisabled();
+  });
+
+  it("names the one centre rather than making the operator choose it", async () => {
+    const user = userEvent.setup();
+    withCentre();
+    await open(user);
+
+    // RP-1's own window has no picker and builds wherever the camera is. A
+    // command from a remote vantage cannot mean that, so the wire records the
+    // centre either way; with one, the form says which rather than asking.
+    expect(screen.getByText("Centre")).toBeInTheDocument();
+    expect(screen.getAllByText("Cape").length).toBeGreaterThan(0);
+  });
+
+  it("has no accessibility violations", async () => {
+    const user = userEvent.setup();
+    const { view } = withCentre();
+    await open(user);
+    await expectNoA11yViolations(view.container);
   });
 });

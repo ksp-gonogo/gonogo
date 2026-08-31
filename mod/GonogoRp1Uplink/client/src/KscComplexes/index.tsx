@@ -29,6 +29,7 @@ import {
   RP1_PAD_NEW_COMMAND,
   RP1_PAD_RENAME_COMMAND,
 } from "./Lifecycle";
+import { NewComplexControl, RP1_COMPLEX_NEW_COMMAND } from "./NewComplex";
 
 /** Rush a whole complex. Must match `Rp1VehicleCommands.RushCommand`. */
 export const RP1_COMPLEX_RUSH_COMMAND = "rp1.complex.rush";
@@ -88,6 +89,7 @@ export function KscComplexes() {
   // pad line, and the repo rule is per-widget. It is read for one derived fact a
   // standing readout cannot give, which is whether it covers a particular quote.
   const career = current(useTelemetry("career.status"));
+  const pricing = current(useTelemetry("rp1.lcPricing"));
 
   // Unconditional and above the early return on purpose: a hook after it would
   // change count on the first frame RP-1 answers.
@@ -98,6 +100,7 @@ export function KscComplexes() {
   const newPad = useCommand(RP1_PAD_NEW_COMMAND);
   const renameComplex = useCommand(RP1_COMPLEX_RENAME_COMMAND);
   const renamePad = useCommand(RP1_PAD_RENAME_COMMAND);
+  const newComplex = useCommand(RP1_COMPLEX_NEW_COMMAND);
   usePanelDelay(rush);
   usePanelDelay(assign);
   usePanelDelay(dismantle);
@@ -105,6 +108,7 @@ export function KscComplexes() {
   usePanelDelay(newPad);
   usePanelDelay(renameComplex);
   usePanelDelay(renamePad);
+  usePanelDelay(newComplex);
 
   // Invisible on every install without RP-1, which is most of them.
   if (available !== true) {
@@ -169,6 +173,24 @@ export function KscComplexes() {
           ))}
         </Stack>
       )}
+
+      {/*
+        Below the centres rather than inside one, because building a complex is
+        a choice OF centre and a control nested under a heading would have
+        already made it.
+      */}
+      <NewComplexControl
+        centres={centreRows}
+        existingNames={(ksc) =>
+          complexRows
+            .filter((complex) => complex.kscName === ksc)
+            .map((complex) => complex.name)
+            .filter((name): name is string => name != null)
+        }
+        funds={magnitudeOf(career?.economy?.funds)}
+        handle={newComplex}
+        pricing={pricing}
+      />
     </Section>
   );
 }
