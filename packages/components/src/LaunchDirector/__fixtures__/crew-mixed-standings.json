@@ -1,0 +1,128 @@
+{
+  "_meta": {
+    "scenario": "crew-mixed-standings",
+    "notes": "SYNTHETIC. One pad, one affordable craft, and a roster carrying every state the crew chips can be in: two kerbals free to fly, three unavailable for the three reasons the contract words itself (Assigned reads 'On mission', Training reads 'In training', Resting reads 'Standing down'), a retiree whose reason is the standing's own name, and one kerbal nothing could read. That last row is standing Unknown, which the contract gives an EMPTY unavailableReason on purpose because 'Unknown' beside a dead control reads as a diagnosis: it is the row that must not render as a kerbal on a mission. Pair with the `craft-picked-*` mode, the crew grid only exists once a craft is selected."
+  },
+  "_stream": {
+    "carriedChannels": [
+      "career.status",
+      "spaceCenter.savedShips",
+      "spaceCenter.crewRoster",
+      "spaceCenter.scene",
+      "spaceCenter.launchSites"
+    ],
+    "pinnedUt": 10,
+    "emits": [
+      {
+        "channel": "spaceCenter.scene",
+        "value": { "scene": "SpaceCenter", "launchSite": "LaunchPad" }
+      },
+      {
+        "channel": "spaceCenter.launchSites",
+        "value": [
+          {
+            "name": "LaunchPad",
+            "displayName": "KSC Launch Pad",
+            "editorFacility": "VAB",
+            "body": "Kerbin",
+            "isStock": true,
+            "padOccupied": false,
+            "padVesselTitle": null
+          }
+        ]
+      },
+      {
+        "channel": "career.status",
+        "value": {
+          "economy": { "funds": 42500, "reputation": null, "science": null },
+          "facilities": null,
+          "contracts": null,
+          "strategies": null,
+          "tech": null
+        }
+      },
+      {
+        "channel": "spaceCenter.savedShips",
+        "value": [
+          {
+            "name": "Mun Hopper I",
+            "partCount": 18,
+            "totalMass": 8.4,
+            "facility": "VAB",
+            "facilityOrdinal": 1,
+            "requiresFunds": 12000,
+            "missingParts": []
+          }
+        ]
+      },
+      {
+        "channel": "spaceCenter.crewRoster",
+        "value": [
+          {
+            "name": "Jebediah Kerman",
+            "trait": "Pilot",
+            "experienceLevel": 5,
+            "available": true,
+            "unavailableReason": "",
+            "standing": 2,
+            "situation": "Available"
+          },
+          {
+            "name": "Bill Kerman",
+            "trait": "Engineer",
+            "experienceLevel": 3,
+            "available": true,
+            "unavailableReason": "",
+            "standing": 2,
+            "situation": "Available"
+          },
+          {
+            "name": "Valentina Kerman",
+            "trait": "Pilot",
+            "experienceLevel": 4,
+            "available": false,
+            "unavailableReason": "On mission",
+            "standing": 3,
+            "situation": "Assigned"
+          },
+          {
+            "name": "Bob Kerman",
+            "trait": "Scientist",
+            "experienceLevel": 2,
+            "available": false,
+            "unavailableReason": "In training",
+            "standing": 4,
+            "situation": "Training"
+          },
+          {
+            "name": "Gene Kerman",
+            "trait": "Engineer",
+            "experienceLevel": 1,
+            "available": false,
+            "unavailableReason": "Standing down",
+            "standing": 5,
+            "situation": "Resting"
+          },
+          {
+            "name": "Wernher Kerman",
+            "trait": "Scientist",
+            "experienceLevel": 5,
+            "available": false,
+            "unavailableReason": "Retired",
+            "standing": 6,
+            "situation": "Retired"
+          },
+          {
+            "name": "Dodrey Kerman",
+            "trait": "Pilot",
+            "experienceLevel": 0,
+            "available": false,
+            "unavailableReason": "",
+            "standing": 0,
+            "situation": "Unknown"
+          }
+        ]
+      }
+    ]
+  }
+}

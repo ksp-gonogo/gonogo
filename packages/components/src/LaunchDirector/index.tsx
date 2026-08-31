@@ -126,8 +126,57 @@ export interface CrewMember {
   name: string;
   trait: string;
   experienceLevel: number;
-  available: boolean;
+  /**
+   * Whether the wire says this kerbal can fly today, or `null` where it said
+   * nothing. Null is not false: the roster carries `available` for every kerbal
+   * it knows about, so its absence is a payload that could not answer, and
+   * folding it to "unavailable" would put an unreadable row and a kerbal on a
+   * mission in the same pixel.
+   */
+  available: boolean | null;
   unavailableReason: string;
+}
+
+/** What a crew row can be, once availability and its reason are read together. */
+export type CrewReading = "available" | "unavailable" | "unread";
+
+/**
+ * The unavailable set, derived rather than asked for: the roster carries no
+ * "available crew" list and does not need to, since `available` is per row and
+ * `CrewStandings.CanFly` is a whitelist mod-side (only Available and Applicant
+ * are free, so a standing added later reads unavailable here without an edit).
+ *
+ * <p>The empty reason is the third state, not a formatting miss. The contract
+ * gives `CrewStanding.Unknown` an EMPTY reason on purpose, because "Unknown"
+ * beside a dead control reads as a diagnosis, so unavailable-with-no-reason is
+ * how "nothing could say" arrives.</p>
+ */
+export function crewReading(k: CrewMember): CrewReading {
+  if (k.available === true) return "available";
+  if (k.available === false && k.unavailableReason !== "") return "unavailable";
+  return "unread";
+}
+
+/**
+ * The roster's own count, and the two exceptions to it. Silent on a term that is
+ * zero, so a roster where everyone can fly reads as its size and nothing else.
+ */
+export function crewTally(crew: CrewMember[]): string {
+  const readings = crew.map(crewReading);
+  const unavailable = readings.filter((r) => r === "unavailable").length;
+  const unread = readings.filter((r) => r === "unread").length;
+  const terms = [`(${crew.length})`];
+  if (unavailable > 0) terms.push(`${unavailable} unavailable`);
+  if (unread > 0) terms.push(`${unread} no reading`);
+  return ` ${terms.join(" · ")}`;
+}
+
+/** Trait and rank stay reachable on a row whose value line spent itself on the reason. */
+export function crewChipTitle(k: CrewMember, reading: CrewReading): string {
+  const who = `${k.trait || NULL_DISPLAY} · L${k.experienceLevel}`;
+  if (reading === "available") return who;
+  if (reading === "unavailable") return `${who} · ${k.unavailableReason}`;
+  return `${who} · no availability reading`;
 }
 
 export interface LaunchSiteEntry {
@@ -358,7 +407,7 @@ export function parseCrew(raw: unknown): CrewMember[] | null {
       name,
       trait: typeof e.trait === "string" ? e.trait : "",
       experienceLevel: magnitudeOr(e.experienceLevel as Quantityish, 0),
-      available: e.available === true,
+      available: typeof e.available === "boolean" ? e.available : null,
       unavailableReason:
         typeof e.unavailableReason === "string" ? e.unavailableReason : "",
     });
@@ -858,6 +907,16 @@ function PadSection({
   const ship = selectedShip
     ? padCraft.find((s) => s.name === selectedShip)
     : undefined;
+  /**
+   * What the launch will actually carry: the selection, minus anyone the roster
+   * has since stopped calling available. A selection made before a kerbal was
+   * assigned or grounded would otherwise still be dispatched and counted, and
+   * `KspFlightOpsActuator.AssignCrew` skips a name it cannot seat without
+   * refusing the launch, so the operator would read "(3 crew)" and fly two.
+   */
+  const manifest = (crew ?? [])
+    .filter((k) => crewReading(k) === "available" && selectedCrew.has(k.name))
+    .map((k) => k.name);
 
   return (
     <>
@@ -1014,7 +1073,9 @@ function PadSection({
 
                         {ship && (
                           <>
-                            <SectionLabel>Crew</SectionLabel>
+                            <SectionLabel>
+                              Crew{crew ? crewTally(crew) : ""}
+                            </SectionLabel>
                             {/* The roster's own absence, said out loud: it used
                                 to remove this section and the launch controls
                                 with it. */}
@@ -1024,31 +1085,37 @@ function PadSection({
                               </ReadoutCaption>
                             )}
                             <CrewGrid>
-                              {(crew ?? []).map((k) => (
-                                <CrewChip
-                                  key={k.name}
-                                  type="button"
-                                  $selected={selectedCrew.has(k.name)}
-                                  $disabled={!k.available}
-                                  title={
-                                    k.available
-                                      ? `${k.trait} · L${k.experienceLevel}`
-                                      : k.unavailableReason
-                                  }
-                                  onClick={() => {
-                                    if (!k.available) return;
-                                    onToggleCrew(k.name);
-                                  }}
-                                >
-                                  <CrewName>{k.name}</CrewName>
-                                  <CrewTrait>
-                                    {k.trait || NULL_DISPLAY}
-                                    {k.available
-                                      ? ` L${k.experienceLevel}`
-                                      : ""}
-                                  </CrewTrait>
-                                </CrewChip>
-                              ))}
+                              {(crew ?? []).map((k) => {
+                                const reading = crewReading(k);
+                                const selectable = reading === "available";
+                                return (
+                                  <CrewChip
+                                    key={k.name}
+                                    type="button"
+                                    $selected={selectedCrew.has(k.name)}
+                                    $disabled={!selectable}
+                                    aria-disabled={!selectable}
+                                    aria-pressed={selectedCrew.has(k.name)}
+                                    title={crewChipTitle(k, reading)}
+                                    onClick={() => {
+                                      if (!selectable) return;
+                                      onToggleCrew(k.name);
+                                    }}
+                                  >
+                                    <CrewName>{k.name}</CrewName>
+                                    {/* The reason is a fact off the wire and
+                                        belongs on screen, not in a tooltip the
+                                        operator has to hunt for. */}
+                                    <CrewTrait>
+                                      {reading === "available"
+                                        ? `${k.trait || NULL_DISPLAY} L${k.experienceLevel}`
+                                        : reading === "unavailable"
+                                          ? k.unavailableReason
+                                          : `${NULL_DISPLAY} no reading`}
+                                    </CrewTrait>
+                                  </CrewChip>
+                                );
+                              })}
                             </CrewGrid>
                             <LaunchControls>
                               <ArmedButton
@@ -1058,12 +1125,12 @@ function PadSection({
                                   shipName: ship.name,
                                   facility: launchFacilityArg(ship),
                                   site: site.name,
-                                  crew: Array.from(selectedCrew),
+                                  crew: manifest,
                                 }}
                                 commandLabel={`Launch ${ship.name}`}
                                 label={
-                                  selectedCrew.size > 0
-                                    ? `Launch ${ship.name} (${selectedCrew.size} crew)`
+                                  manifest.length > 0
+                                    ? `Launch ${ship.name} (${manifest.length} crew)`
                                     : `Launch ${ship.name} unmanned`
                                 }
                                 confirmLabel="Confirm launch"

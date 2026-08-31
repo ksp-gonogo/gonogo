@@ -675,13 +675,20 @@ const WIDGETS: WidgetRenderConfig[] = [
       },
       // The crew grid and the launch control only render once a craft is
       // picked, so click the first craft row under the open pad to reveal
-      // them. Scoped to the multi-pad pre-launch fixture.
+      // them. The three crew fixtures are here for the same reason: each is a
+      // different availability state and none of them is visible until a craft
+      // is open.
       {
         name: "craft-picked-7x18",
         w: 7,
         h: 18,
         clicks: [{ selector: "[data-ship-row]" }],
-        forFixtures: ["pre-launch-mixed"],
+        forFixtures: [
+          "pre-launch-mixed",
+          "crew-mixed-standings",
+          "crew-all-available",
+          "crew-roster-unread",
+        ],
       },
       // A second pad opened: the runway, whose craft are the spaceplanes the
       // VAB pad above does not offer.

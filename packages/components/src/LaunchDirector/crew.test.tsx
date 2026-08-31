@@ -8,14 +8,25 @@ import {
   teardownMockDataSource,
 } from "../test/setupMockDataSource";
 import { setupStreamFixture } from "../test/setupStreamFixture";
-import { LaunchDirectorComponent } from "./index";
+import { renderWidgetMode } from "../test/widgetDomSnapshot";
+import allAvailable from "./__fixtures__/crew-all-available.json";
+import mixedStandings from "./__fixtures__/crew-mixed-standings.json";
+import rosterUnread from "./__fixtures__/crew-roster-unread.json";
+import {
+  type CrewMember,
+  crewReading,
+  crewTally,
+  LaunchDirectorComponent,
+  parseCrew,
+} from "./index";
 
 /**
- * The crew half of the pad panel: which kerbals are offered, which are marked,
- * and what the panel does when the roster cannot be read at all.
+ * The crew half of the pad panel: which kerbals are offered, what is said about
+ * the ones that are not, and what the panel does when the roster cannot be read
+ * at all.
  *
- * Kept apart from `index.test.tsx` because the three availability states are
- * one subject and each needs its own roster emit.
+ * Kept apart from `index.test.tsx` because the three availability states are one
+ * subject, and each of them needs its own roster.
  */
 const CARRIED = [
   "career.status",
@@ -44,6 +55,23 @@ const SHIP = {
   requiresFunds: 500,
   missingParts: [],
 };
+
+/** One roster row in the wire's own shape; overrides carry the state under test. */
+function kerbal(
+  name: string,
+  overrides: Record<string, unknown> = {},
+): Record<string, unknown> {
+  return {
+    name,
+    trait: "Pilot",
+    experienceLevel: 3,
+    available: true,
+    unavailableReason: "",
+    standing: 2,
+    situation: "Available",
+    ...overrides,
+  };
+}
 
 describe("LaunchDirector crew selection", () => {
   let cmdFixture: MockDataSourceFixture;
@@ -96,5 +124,205 @@ describe("LaunchDirector crew selection", () => {
 
     expect(screen.getByText(/Launch Probe unmanned/i)).toBeInTheDocument();
     expect(screen.getByText(/Roster — no reading/i)).toBeInTheDocument();
+  });
+
+  it("lists the whole roster and puts each reason on screen, not in a tooltip", async () => {
+    const user = userEvent.setup();
+    renderWidget();
+    emitPadAndShip();
+    act(() => {
+      stream.emit("spaceCenter.crewRoster", [
+        kerbal("Jeb"),
+        kerbal("Val", {
+          available: false,
+          unavailableReason: "On mission",
+          standing: 3,
+          situation: "Assigned",
+        }),
+        kerbal("Bob", {
+          available: false,
+          unavailableReason: "In training",
+          standing: 4,
+          situation: "Training",
+        }),
+      ]);
+    });
+
+    await user.click(await screen.findByText("Probe"));
+
+    // Everyone is offered, including the two who cannot fly.
+    expect(screen.getByText("Jeb")).toBeInTheDocument();
+    expect(screen.getByText("Val")).toBeInTheDocument();
+    expect(screen.getByText("Bob")).toBeInTheDocument();
+    // The reason is rendered text, so it survives a device with no hover.
+    expect(screen.getByText("On mission")).toBeInTheDocument();
+    expect(screen.getByText("In training")).toBeInTheDocument();
+    expect(screen.getByText(/Crew \(3\) · 2 unavailable/)).toBeInTheDocument();
+  });
+
+  it("says nothing could be read for a kerbal whose standing is Unknown", async () => {
+    const user = userEvent.setup();
+    renderWidget();
+    emitPadAndShip();
+    act(() => {
+      // Standing Unknown: unavailable, and the reason is EMPTY by contract.
+      stream.emit("spaceCenter.crewRoster", [
+        kerbal("Dodrey", {
+          available: false,
+          unavailableReason: "",
+          standing: 0,
+          situation: "Unknown",
+        }),
+      ]);
+    });
+
+    await user.click(await screen.findByText("Probe"));
+
+    expect(screen.getByText("— no reading")).toBeInTheDocument();
+    expect(screen.getByText(/Crew \(1\) · 1 no reading/)).toBeInTheDocument();
+    // Not selectable, and it does not pass for a kerbal on a mission either.
+    await user.click(screen.getByText("Dodrey"));
+    expect(screen.getByText(/Launch Probe unmanned/i)).toBeInTheDocument();
+    expect(screen.queryByText("On mission")).toBeNull();
+  });
+
+  it("counts the roster and nothing else when everyone can fly", async () => {
+    const user = userEvent.setup();
+    renderWidget();
+    emitPadAndShip();
+    act(() => {
+      stream.emit("spaceCenter.crewRoster", [kerbal("Jeb"), kerbal("Bill")]);
+    });
+
+    await user.click(await screen.findByText("Probe"));
+
+    expect(screen.getByText("Crew (2)")).toBeInTheDocument();
+    expect(screen.queryByText(/no reading/)).toBeNull();
+    expect(screen.queryByText(/unavailable/)).toBeNull();
+  });
+
+  it("drops a selected kerbal from the manifest once the roster stops calling them available", async () => {
+    const user = userEvent.setup();
+    renderWidget();
+    emitPadAndShip();
+    act(() => {
+      stream.emit("spaceCenter.crewRoster", [kerbal("Jeb")]);
+    });
+
+    await user.click(await screen.findByText("Probe"));
+    await user.click(screen.getByText("Jeb"));
+    expect(screen.getByText(/Launch Probe \(1 crew\)/)).toBeInTheDocument();
+
+    // Jeb is assigned to something else while the selection stands. The launch
+    // must stop counting him: the mod's own AssignCrew skips a name it cannot
+    // seat without refusing, so a stale count would fly one kerbal short.
+    act(() => {
+      stream.emit("spaceCenter.crewRoster", [
+        kerbal("Jeb", {
+          available: false,
+          unavailableReason: "On mission",
+          standing: 3,
+          situation: "Assigned",
+        }),
+      ]);
+    });
+
+    expect(screen.getByText(/Launch Probe unmanned/i)).toBeInTheDocument();
+  });
+});
+
+describe("LaunchDirector crew render scenes", () => {
+  const MODE = { name: "crew-7x18", w: 7, h: 18 };
+
+  /** Mounts a fixture and opens the craft row, which is what reveals the crew grid. */
+  async function openCraft(fixture: Record<string, unknown>) {
+    const rendered = await renderWidgetMode({
+      Widget: LaunchDirectorComponent,
+      fixture,
+      mode: MODE,
+    });
+    const row = rendered.container.querySelector("[data-ship-row]");
+    if (!row) throw new Error("fixture rendered no craft row to open");
+    await act(async () => {
+      row.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+    });
+    return rendered;
+  }
+
+  it("crew-mixed-standings renders every state the chips can be in", async () => {
+    const rendered = await openCraft(mixedStandings);
+    const text = rendered.container.textContent ?? "";
+
+    expect(text).toContain("Crew (7) · 4 unavailable · 1 no reading");
+    expect(text).toContain("On mission");
+    expect(text).toContain("In training");
+    expect(text).toContain("Standing down");
+    expect(text).toContain("Retired");
+    expect(text).toContain("— no reading");
+    rendered.teardown();
+  });
+
+  it("crew-all-available renders a bare count", async () => {
+    const rendered = await openCraft(allAvailable);
+    const text = rendered.container.textContent ?? "";
+
+    expect(text).toContain("Crew (2)");
+    expect(text).not.toContain("unavailable");
+    expect(text).not.toContain("no reading");
+    rendered.teardown();
+  });
+
+  it("crew-roster-unread renders the absence and keeps the launch", async () => {
+    const rendered = await openCraft(rosterUnread);
+    const text = rendered.container.textContent ?? "";
+
+    expect(text).toContain("Roster — no reading");
+    expect(text).toContain("unmanned");
+    rendered.teardown();
+  });
+});
+
+describe("crewReading", () => {
+  function member(overrides: Partial<CrewMember> = {}): CrewMember {
+    return {
+      name: "Jeb",
+      trait: "Pilot",
+      experienceLevel: 3,
+      available: true,
+      unavailableReason: "",
+      ...overrides,
+    };
+  }
+
+  it("carries an absent availability as null rather than folding it to false", () => {
+    const parsed = parseCrew([{ name: "Jeb", trait: "Pilot" }]);
+    expect(parsed?.[0]?.available).toBeNull();
+    expect(crewReading(member({ available: null }))).toBe("unread");
+  });
+
+  it("separates unavailable-with-a-reason from unavailable-with-none", () => {
+    expect(
+      crewReading(
+        member({ available: false, unavailableReason: "On mission" }),
+      ),
+    ).toBe("unavailable");
+    expect(
+      crewReading(member({ available: false, unavailableReason: "" })),
+    ).toBe("unread");
+  });
+
+  it("prints only the terms that are not zero", () => {
+    expect(crewTally([member(), member({ name: "Bill" })])).toBe(" (2)");
+    expect(
+      crewTally([
+        member(),
+        member({
+          name: "Val",
+          available: false,
+          unavailableReason: "On mission",
+        }),
+        member({ name: "Dodrey", available: false }),
+      ]),
+    ).toBe(" (3) · 1 unavailable · 1 no reading");
   });
 });

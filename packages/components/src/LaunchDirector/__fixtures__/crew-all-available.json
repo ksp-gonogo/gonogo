@@ -1,0 +1,90 @@
+{
+  "_meta": {
+    "scenario": "crew-all-available",
+    "notes": "SYNTHETIC. The same pad and craft as crew-mixed-standings, with a roster where every kerbal is free to fly. The scene that has to be distinguishable from an unreadable roster: the tally reads the roster's size and says nothing else, because a term that is zero is not printed."
+  },
+  "_stream": {
+    "carriedChannels": [
+      "career.status",
+      "spaceCenter.savedShips",
+      "spaceCenter.crewRoster",
+      "spaceCenter.scene",
+      "spaceCenter.launchSites"
+    ],
+    "pinnedUt": 10,
+    "emits": [
+      {
+        "channel": "spaceCenter.scene",
+        "value": {
+          "scene": "SpaceCenter",
+          "launchSite": "LaunchPad"
+        }
+      },
+      {
+        "channel": "spaceCenter.launchSites",
+        "value": [
+          {
+            "name": "LaunchPad",
+            "displayName": "KSC Launch Pad",
+            "editorFacility": "VAB",
+            "body": "Kerbin",
+            "isStock": true,
+            "padOccupied": false,
+            "padVesselTitle": null
+          }
+        ]
+      },
+      {
+        "channel": "career.status",
+        "value": {
+          "economy": {
+            "funds": 42500,
+            "reputation": null,
+            "science": null
+          },
+          "facilities": null,
+          "contracts": null,
+          "strategies": null,
+          "tech": null
+        }
+      },
+      {
+        "channel": "spaceCenter.savedShips",
+        "value": [
+          {
+            "name": "Mun Hopper I",
+            "partCount": 18,
+            "totalMass": 8.4,
+            "facility": "VAB",
+            "facilityOrdinal": 1,
+            "requiresFunds": 12000,
+            "missingParts": []
+          }
+        ]
+      },
+      {
+        "channel": "spaceCenter.crewRoster",
+        "value": [
+          {
+            "name": "Jebediah Kerman",
+            "trait": "Pilot",
+            "experienceLevel": 5,
+            "available": true,
+            "unavailableReason": "",
+            "standing": 2,
+            "situation": "Available"
+          },
+          {
+            "name": "Bill Kerman",
+            "trait": "Engineer",
+            "experienceLevel": 3,
+            "available": true,
+            "unavailableReason": "",
+            "standing": 2,
+            "situation": "Available"
+          }
+        ]
+      }
+    ]
+  }
+}
