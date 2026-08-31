@@ -42,12 +42,12 @@ Brings RP-1's career layer to the dashboard: Programs with their objectives, dea
 | `Rp1ComplexRushArgs` | `lcId` id, `rushing` flag |
 | `Rp1FacilityUpgradeArgs` | `facility` id |
 | `Rp1FundingCurveKey` | `frac` ratio, `inTangent` 1, `outTangent` 1, `paidFraction` ratio |
-| `Rp1LeaderEntry` | `canRemoveFromUt` ut, `deactivateReputation` rep, `freeToRemoveFromUt` ut, `reactivateCooldown` s, `setupConfidence` confidence, `setupFunds` funds, `setupReputation` rep, `strategyId` id |
+| `Rp1LeaderEntry` | `canRemoveFromUt` ut, `deactivateReputation` rep, `freeToRemoveFromUt` ut, `reactivateCooldown` s, `removeOnDeactivate` flag, `setupConfidence` confidence, `setupFunds` funds, `setupReputation` rep, `setupScience` science, `strategyId` id |
 | `Rp1PersonnelAssignArgs` | `engineers` count, `lcId` id |
 | `Rp1ProgramPaymentEntry` | `cumulativeFunds` funds, `funds` funds, `year` count |
 | `Rp1ProgramSpeedOption` | `confidenceCost` confidence, `durationSeconds` s, `speed` enum |
 | `Rp1RolloutArgs` | `id` id, `pad` id |
-| `Rp1StrategyActivateArgs` | `strategyId` id |
+| `Rp1StrategyActivateArgs` | `factor` ratio, `strategyId` id |
 | `Rp1TechResearchArgs` | `techId` id |
 | `Rp1VehicleArgs` | `id` id |
 
