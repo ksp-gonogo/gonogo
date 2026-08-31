@@ -224,6 +224,10 @@ export const GENERATED_TYPE_UNITS: Readonly<Record<string, UnitsByField>> = {
     totalPoints: "bp",
     workRate: "ratio",
   },
+  "Rp1ContractPayloadArgs": {
+    commsPayload: "kg",
+    weatherPayload: "kg",
+  },
   "Rp1CrewEntry": {
     latestRetiresAtUt: "ut",
     name: "id",

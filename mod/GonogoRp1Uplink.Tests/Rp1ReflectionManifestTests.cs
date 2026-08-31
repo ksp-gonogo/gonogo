@@ -49,6 +49,7 @@ namespace GonogoRp1Uplink.Tests
             "Rp1ComplexLifecycleCommands.cs",
             "Rp1ComplexConstructionCommands.cs",
             "Rp1WarpCommands.cs",
+            "Rp1ContractCommands.cs",
             "Rp1LcCostModel.cs",
             "Rp1StrategyWrites.cs",
             "Rp1StrategyCommands.cs",
@@ -111,7 +112,7 @@ namespace GonogoRp1Uplink.Tests
         /// the same commit.</para>
         /// </remarks>
         private static readonly Regex ReflectionCall = new(
-            @"\b(NonPublicStaticMethod|MostDerivedInstanceMethod|InstanceMethodOn|StaticMethodOn|Member|StaticValue|WriteDouble|WriteMember|ReadDouble|ReadInt|ReadBool|ReadString|ReadGuidString|ReadEnumName|InstanceMethod|StaticMethod|GetMethod|Find)\s*\(",
+            @"\b(NonPublicStaticMethod|MostDerivedInstanceMethod|InstanceMethodOn|StaticMethodOn|Member|StaticValue|WriteStatic|WriteDouble|WriteMember|ReadDouble|ReadInt|ReadBool|ReadString|ReadGuidString|ReadEnumName|InstanceMethod|StaticMethod|GetMethod|Find)\s*\(",
             RegexOptions.Compiled);
 
         private static readonly Regex SingleWordLiteral = new(

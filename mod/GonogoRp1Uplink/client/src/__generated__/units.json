@@ -190,6 +190,10 @@
       "totalPoints": "bp",
       "workRate": "ratio"
     },
+    "Rp1ContractPayloadArgs": {
+      "commsPayload": "kg",
+      "weatherPayload": "kg"
+    },
     "Rp1CrewEntry": {
       "latestRetiresAtUt": "ut",
       "name": "id",

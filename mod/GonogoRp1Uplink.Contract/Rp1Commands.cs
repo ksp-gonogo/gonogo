@@ -1019,3 +1019,55 @@ public class Rp1ToolingRefitArgs
     [SitrepUnit(Units.Id)]
     public string? RfType { get; set; }
 }
+
+/// <summary>
+/// Args for <c>rp1.contracts.setPayload</c>: the payload mass RP-1's repeating
+/// satellite contracts require.
+///
+/// <para><b>Why this is a command and not a slider.</b> RP-1 draws it as two
+/// sliders on a settings tab, and changing either WITHDRAWS the matching
+/// pre-generated contract offers so they regenerate against the new requirement.
+/// Its <c>RenderContractsTab</c> runs every draw frame and compares the slider's
+/// value against the stored setting BEFORE writing it back, so a drag from 400 to
+/// 10,000 crosses ninety-six hundred-unit steps and fires the withdrawal at every
+/// one of them. Nothing on the tab says so.</para>
+///
+/// <para>What that costs is worth stating precisely, because it is less than it
+/// sounds and we should not frighten an operator with the wrong thing: the
+/// withdrawal reaches PRE-GENERATED OFFERS and never an accepted contract, and it
+/// takes the first match per name per call. So a drag churns the offer pool rather
+/// than cancelling anyone's work. It is waste, not loss.</para>
+///
+/// <para>This command sets the figure and fires each withdrawal EXACTLY ONCE,
+/// which is the whole reason it exists.</para>
+/// </summary>
+[SitrepContract]
+#if SITREP_CODEGEN
+[TsInterface]
+#endif
+public class Rp1ContractPayloadArgs
+{
+    /// <summary>
+    /// The mass a CommSat contract will require, in kilograms.
+    ///
+    /// <para>ABSENT leaves it alone, which is what makes the two halves
+    /// independent: an operator raising the weather requirement should not have to
+    /// restate the communications one and risk withdrawing its offers for nothing.
+    /// At least one of the two must be present.</para>
+    ///
+    /// <para>Bounded by RP-1's own <c>MinPayload</c> and <c>MaxPayload</c>, and
+    /// REFUSED outside them rather than clamped: a clamp would report success for
+    /// a requirement the operator did not choose. RP-1's own control rounds to a
+    /// multiple of 100, so a figure between steps is refused too, for the same
+    /// reason.</para>
+    /// </summary>
+    [SitrepUnit(Units.Kilograms)]
+    public int? CommsPayload { get; set; }
+
+    /// <summary>
+    /// The mass a WeatherSat contract will require, in kilograms. Absent leaves it
+    /// alone, and the same bounds and step apply.
+    /// </summary>
+    [SitrepUnit(Units.Kilograms)]
+    public int? WeatherPayload { get; set; }
+}

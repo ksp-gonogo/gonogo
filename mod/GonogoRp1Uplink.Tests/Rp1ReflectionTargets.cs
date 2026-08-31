@@ -208,6 +208,11 @@ namespace GonogoRp1Uplink.Tests
             // exactly why it is pinned.
             new Rp1TypeTarget(Rp0, "RP0.KCTWarpController", "Rp1WarpCommands"),
             new Rp1TypeTarget(Rp0, "RP0.KCTUtilities", "Rp1WarpCommands"),
+            // RP-1's contract tab, reached for its BOUNDS and its private contract-name
+            // lists rather than for anything it draws, and its persisted settings node,
+            // which is the only state this Uplink writes that is not career state.
+            new Rp1TypeTarget(Rp0, "RP0.ContractGUI", "Rp1ContractCommands"),
+            new Rp1TypeTarget(Rp0, "RP0.RP0Settings", "Rp1ContractCommands"),
             new Rp1TypeTarget(Rp0, "RP0.CurrencyUtils", "Rp1EconomyUpkeepQuery"),
             new Rp1TypeTarget(Rp0, "RP0.TransactionReasonsRP0", "Rp1EconomyUpkeepQuery"),
             new Rp1TypeTarget(Rp0, "RP0.MaintenanceHandler", "Rp1EconomyUpkeepQuery"),
@@ -628,6 +633,8 @@ namespace GonogoRp1Uplink.Tests
             ["LoadedSceneIsGame"] = "KSP's HighLogic.LoadedSceneIsGame, the condition ProcessUpgrade puts on the funds multiplier",
             ["LoadedSceneIsFlight"] = "KSP's HighLogic.LoadedSceneIsFlight, one of the three scenes RP-1's warp controller ticks in",
             ["LoadedScene"] = "KSP's HighLogic.LoadedScene, compared against the SPACECENTER and TRACKSTATION ordinals for the same reason",
+            ["CustomParams"] = "KSP's GameParameters.CustomParams(Type), the NON-GENERIC overload: the generic sibling would need MakeGenericMethod and THROWS where this one returns",
+            ["Invoke"] = "System.Func's own Invoke, called on the withdrawal delegate CC_RP0 supplies rather than on anything RP-1 declares",
             ["CurrentGame"] = "KSP's HighLogic.CurrentGame, walked only to reach the career's funds multiplier",
             ["Parameters"] = "KSP's Game.Parameters, the same walk",
             ["Career"] = "KSP's GameParameters.Career, the same walk",
@@ -713,6 +720,7 @@ namespace GonogoRp1Uplink.Tests
             const string TrainingWrites = "Rp1TrainingCommands";
             const string Lifecycle = "Rp1ComplexLifecycleCommands";
             const string Construction = "Rp1ComplexConstructionCommands";
+            const string Contracts = "Rp1ContractCommands";
             const string CostModel = "Rp1LcCostModel";
             const string Tooling = "Rp1ToolingReflection";
             const string ToolingWrites = "Rp1ToolingCommands";
@@ -773,6 +781,33 @@ namespace GonogoRp1Uplink.Tests
             // handle looks equipped and is not.
             Add("RP0.Database", "ResourceInfo", Rp1Reader.Presence, CostModel, @static: true);
             Add("RP0.ResourceInfo", "LCResourceTypes", Rp1Reader.Presence, CostModel);
+
+            // ── The contract payload requirement ───────────────────────────
+            // The BOUNDS, read rather than written down so an RP-1 retune moves our
+            // refusal with it. Constants on the real type, which is why they are read
+            // as statics rather than asked of an instance.
+            Add("RP0.ContractGUI", "MinPayload", Rp1Reader.Numeric, Contracts, @static: true);
+            Add("RP0.ContractGUI", "MaxPayload", Rp1Reader.Numeric, Contracts, @static: true);
+            // WRITTEN as well as read, and written in TWO places: these live statics
+            // are what ContractConfigurator's expression functions read when a contract
+            // generates, and RP0Settings' identically named fields are what survives a
+            // load. Writing one and not the other is a figure that reverts, or one the
+            // next generated contract ignores.
+            Add("RP0.ContractGUI", "CommsPayload", Rp1Reader.Numeric, Contracts, @static: true);
+            Add("RP0.ContractGUI", "WeatherPayload", Rp1Reader.Numeric, Contracts, @static: true);
+            Add("RP0.RP0Settings", "CommsPayload", Rp1Reader.Numeric, Contracts);
+            Add("RP0.RP0Settings", "WeatherPayload", Rp1Reader.Numeric, Contracts);
+            // The withdrawal delegate, and the ONE member in this manifest that RP0.dll
+            // never assigns: CC_RP0.dll does, so a null here is a real install state
+            // (ContractConfigurator's RP-0 half absent) rather than a rename. The
+            // command reports it instead of refusing on it, which is the whole reason
+            // it is read separately from everything else.
+            Add("RP0.ContractGUI", "WithdrawContractAction", Rp1Reader.Presence, Contracts, @static: true);
+            // The two PRIVATE lists naming which contract types each figure
+            // invalidates. Read rather than copied so an RP-1 release adding a fourth
+            // comsat type has its offers withdrawn without this file being told.
+            Add("RP0.ContractGUI", "_comSatContracts", Rp1Reader.Presence, Contracts, @static: true);
+            Add("RP0.ContractGUI", "_weatherSatContracts", Rp1Reader.Presence, Contracts, @static: true);
 
             // ── A queued construction project ──────────────────────────────
             // Every one WRITTEN, because RP-1 builds these with an object

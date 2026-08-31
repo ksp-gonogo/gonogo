@@ -310,6 +310,44 @@ public class KerbalRoster
 public class GameParameters
 {
     public CareerParams Career = new CareerParams();
+
+    /// <summary>The custom nodes a save carries, keyed by type as KSP keys them.</summary>
+    public readonly System.Collections.Generic.Dictionary<System.Type, object> CustomNodes =
+        new System.Collections.Generic.Dictionary<System.Type, object>();
+
+    /// <summary>
+    /// KSP's GENERIC accessor, which THROWS when the node is not registered.
+    /// </summary>
+    /// <remarks>
+    /// Present so the overload choice is a real one: production deliberately takes
+    /// the non-generic sibling below, both because reflection would need
+    /// MakeGenericMethod for this one and because a throw crossing the Uplink
+    /// boundary is worse than a refusal. A fixture carrying only the safe overload
+    /// would make that decision untestable and let a reader that picked this one
+    /// pass.
+    /// </remarks>
+    public T CustomParams<T>()
+        where T : class
+    {
+        if (!CustomNodes.TryGetValue(typeof(T), out var node))
+        {
+            throw new System.ArgumentException($"Couldn't find custom parameter {typeof(T).Name}!");
+        }
+        return (T)node;
+    }
+
+    /// <summary>
+    /// KSP's NON-GENERIC accessor, which RETURNS rather than throwing when the node
+    /// is absent. Arity one, matched on its first parameter's type.
+    /// </summary>
+    public object? CustomParams(System.Type type)
+    {
+        if (type == null)
+        {
+            return null;
+        }
+        return CustomNodes.TryGetValue(type, out var node) ? node : null;
+    }
 }
 
 public class CareerParams

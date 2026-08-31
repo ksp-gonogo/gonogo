@@ -126,6 +126,11 @@ export interface Rp1ToolingRefitArgs
 	length?: number;
 	rfType?: string;
 }
+export interface Rp1ContractPayloadArgs
+{
+	commsPayload?: number;
+	weatherPayload?: number;
+}
 export interface Rp1CentreEntry
 {
 	kscName?: string;

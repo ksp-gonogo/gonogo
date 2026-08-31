@@ -412,3 +412,85 @@ namespace RP0
         }
     }
 }
+
+namespace RP0
+{
+    /// <summary>
+    /// RP-1's contract tab, in the members the payload command reaches.
+    /// </summary>
+    /// <remarks>
+    /// <para>The two contract-name arrays are PRIVATE static on the real type, and
+    /// private here for the same reason: production reads them rather than writing
+    /// the four names down, so that an RP-1 release adding a fourth comsat type has
+    /// its offers withdrawn without being told. A fixture exposing them publicly
+    /// would let a reader that could not reach the real ones pass.</para>
+    /// <para><see cref="WithdrawContractAction"/> starts NULL, which is the state
+    /// that matters most: RP0.dll only ever READS this field and CC_RP0.dll assigns
+    /// it, so on an install without ContractConfigurator's RP-0 half it stays null,
+    /// RP-1's own tab changes the payload and silently invalidates nothing, and the
+    /// command has to be able to say so.</para>
+    /// </remarks>
+    public static class ContractGUI
+    {
+        public const int MinPayload = 400;
+
+        public const int MaxPayload = 10000;
+
+        public static int CommsPayload = 400;
+
+        public static int WeatherPayload = 400;
+
+        /// <summary>Supplied by CC_RP0, and null until it has run. Returns whether an offer was actually withdrawn.</summary>
+        public static System.Func<string, bool>? WithdrawContractAction;
+
+        private static readonly string[] _comSatContracts =
+            { "GEORepeatComSats", "TundraRepeatComSats", "MolniyaRepeatComSats" };
+
+        private static readonly string[] _weatherSatContracts = { "GEOWeather" };
+
+        /// <summary>Every contract name the hook was asked to withdraw, in order, so a test can pin that each went ONCE.</summary>
+        public static readonly System.Collections.Generic.List<string> Withdrawn =
+            new System.Collections.Generic.List<string>();
+
+        /// <summary>Which names have a pending offer to withdraw. A name absent from this returns false, as RP-1's own hook does.</summary>
+        public static readonly System.Collections.Generic.HashSet<string> Pending =
+            new System.Collections.Generic.HashSet<string>();
+
+        public static void Reset()
+        {
+            CommsPayload = 400;
+            WeatherPayload = 400;
+            WithdrawContractAction = null;
+            Withdrawn.Clear();
+            Pending.Clear();
+        }
+
+        /// <summary>Installs the hook CC_RP0 would, with its own "first pending match only" behaviour.</summary>
+        public static void InstallWithdrawalHook()
+        {
+            WithdrawContractAction = name =>
+            {
+                Withdrawn.Add(name);
+                return Pending.Remove(name);
+            };
+        }
+    }
+
+    /// <summary>
+    /// RP-1's persisted settings node, in the two fields the payload command must
+    /// write alongside the live statics.
+    /// </summary>
+    /// <remarks>
+    /// A separate object from <see cref="ContractGUI"/> deliberately, because that
+    /// is the shape of the hazard: the statics are what the contract generator
+    /// reads and these are what survives a load, so writing one and not the other
+    /// is a figure that works until the save is reopened or only until the next
+    /// contract generates.
+    /// </remarks>
+    public class RP0Settings
+    {
+        public int CommsPayload = 400;
+
+        public int WeatherPayload = 400;
+    }
+}

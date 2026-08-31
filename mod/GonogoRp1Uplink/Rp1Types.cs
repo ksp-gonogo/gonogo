@@ -565,6 +565,46 @@ namespace GonogoRp1Uplink
         }
 
         /// <summary>
+        /// Writes a named STATIC property or field on a type.
+        /// </summary>
+        /// <remarks>
+        /// The write twin of <see cref="StaticValue"/>, and a separate method rather
+        /// than an overload of <see cref="WriteMember"/> because that one takes an
+        /// INSTANCE: handed a <see cref="Type"/> it resolves members on
+        /// <c>System.RuntimeType</c> and fails, which is a silent false rather than
+        /// an error. Two of RP-1's statics are genuinely written (the contract
+        /// payload figures on <c>ContractGUI</c>), and they are what this exists for.
+        /// </remarks>
+        public static bool WriteStatic(Type? type, string name, object? value)
+        {
+            if (type == null)
+            {
+                return false;
+            }
+            const BindingFlags flags = BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Static;
+            try
+            {
+                var pi = type.GetProperty(name, flags);
+                if (pi != null && pi.CanWrite)
+                {
+                    pi.SetValue(null, value);
+                    return true;
+                }
+                var fi = type.GetField(name, flags);
+                if (fi != null && !fi.IsLiteral && !fi.IsInitOnly)
+                {
+                    fi.SetValue(null, value);
+                    return true;
+                }
+            }
+            catch (Exception)
+            {
+                return false;
+            }
+            return false;
+        }
+
+        /// <summary>
         /// A public constructor by arity. Optional parameters COUNT, because
         /// reflection does not apply defaults: RP-1's rollout constructor takes
         /// four with the last defaulted, and an invoke has to pass all four.

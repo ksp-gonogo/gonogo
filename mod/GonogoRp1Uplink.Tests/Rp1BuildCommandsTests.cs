@@ -363,6 +363,7 @@ namespace GonogoRp1Uplink.Tests
                     Rp1WarpCommands.ToFundTargetCommand,
                     Rp1ToolingCommands.ToolAllCommand,
                     Rp1ToolingCommands.RefitCommand,
+                    Rp1ContractCommands.SetPayloadCommand,
                 },
                 declarations.Select(d => d.Command).ToArray());
             Assert.All(declarations, declaration =>

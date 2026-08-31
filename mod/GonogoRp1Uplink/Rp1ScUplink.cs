@@ -220,6 +220,14 @@ namespace GonogoRp1Uplink
         private readonly Rp1WarpCommands _warp = new Rp1WarpCommands();
 
         /// <summary>
+        /// The payload mass RP-1's repeating satellite contracts require. Its own
+        /// class because it is the only write here that changes a SETTING rather
+        /// than career state, and the only one whose act invalidates contract
+        /// offers as a side effect.
+        /// </summary>
+        private readonly Rp1ContractCommands _contracts = new Rp1ContractCommands();
+
+        /// <summary>
         /// Committing to a leader or a program without the Administration
         /// Building. Its own class because it reaches nothing the writes above
         /// reach: it touches no vehicle, no complex and no building, only the
@@ -376,7 +384,7 @@ namespace GonogoRp1Uplink
                 _researchCommands.IsAvailable, _strategies.IsAvailable, _targets.IsAvailable,
                 _trainingWrites.IsAvailable, _complexLifecycle.IsAvailable,
                 _complexConstruction.IsAvailable, _complexConstruction.IsPadAvailable,
-                _warp.IsAvailable, _toolingWrites.IsAvailable);
+                _warp.IsAvailable, _toolingWrites.IsAvailable, _contracts.IsAvailable);
             _crewStanding = new Rp1CrewStandingBackend(_crew);
             _economy = new Rp1EconomyBackend(_upkeepQuery);
         }
@@ -396,7 +404,8 @@ namespace GonogoRp1Uplink
             bool complexConstructionModelResolved,
             bool padConstructionModelResolved,
             bool warpModelResolved,
-            bool toolingModelResolved) => new UplinkManifest
+            bool toolingModelResolved,
+            bool contractModelResolved) => new UplinkManifest
         {
             Id = "rp1",
             Version = "1.0.0",
@@ -480,7 +489,7 @@ namespace GonogoRp1Uplink
                 researchModelResolved, strategyModelResolved, targetModelResolved,
                 trainingModelResolved, complexLifecycleModelResolved,
                 complexConstructionModelResolved, padConstructionModelResolved,
-                warpModelResolved, toolingModelResolved),
+                warpModelResolved, toolingModelResolved, contractModelResolved),
         };
 
         /// <summary>
@@ -517,7 +526,8 @@ namespace GonogoRp1Uplink
             bool complexConstructionModelResolved,
             bool padConstructionModelResolved,
             bool warpModelResolved,
-            bool toolingModelResolved)
+            bool toolingModelResolved,
+            bool contractModelResolved)
         {
             var commands = new List<CommandDeclaration>();
             if (buildModelResolved)
@@ -663,6 +673,13 @@ namespace GonogoRp1Uplink
             {
                 commands.Add(Declare(Rp1ToolingCommands.ToolAllCommand));
                 commands.Add(Declare(Rp1ToolingCommands.RefitCommand));
+            }
+            // Its own flag, on RP-1's contract tab and its settings node, which no
+            // other command here reaches. It is also the only command in this Uplink
+            // that changes a persisted SETTING rather than career state.
+            if (contractModelResolved)
+            {
+                commands.Add(Declare(Rp1ContractCommands.SetPayloadCommand));
             }
             return commands;
         }
@@ -914,6 +931,14 @@ namespace GonogoRp1Uplink
                         Rp1ComplexLifecycleCommands.RenamePadCommand, _complexLifecycle.RenamePad);
                     host.AddCommandHandler<Rp1PadDismantleArgs, CommandResult>(
                         Rp1ComplexLifecycleCommands.DismantlePadCommand, _complexLifecycle.DismantlePad);
+                }
+            });
+            Register(() =>
+            {
+                if (_contracts.IsAvailable)
+                {
+                    host.AddCommandHandler<Rp1ContractPayloadArgs, CommandResult<Dictionary<string, object?>>>(
+                        Rp1ContractCommands.SetPayloadCommand, _contracts.SetPayload);
                 }
             });
             Register(() =>
@@ -1463,6 +1488,16 @@ namespace GonogoRp1Uplink
                 // member that guards a warp-to-complete is a DIFFERENT one from the
                 // member that performs it, and losing the guard turns a refusal into
                 // a NullReferenceException inside RP-1.
+                // Its own fact, and the diagnosis is the only place an operator can
+                // learn that ContractConfigurator's withdrawal hook is absent: with
+                // it gone a payload change still lands and every pending offer
+                // silently keeps the old requirement, which RP-1 reports exactly as
+                // it reports success.
+                new UplinkHealthFact(
+                    "contract payload command",
+                    !_contracts.IsAvailable
+                        ? "not registered: RP-1 contract types not found"
+                        : "rp1.contracts.setPayload registered (" + _contracts.MethodDiagnosis() + ")"),
                 new UplinkHealthFact(
                     "warp commands",
                     !_warp.IsAvailable
