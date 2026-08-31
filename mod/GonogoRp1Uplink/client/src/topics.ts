@@ -28,6 +28,7 @@ import type {
   Rp1CrewEntry,
   Rp1CrewProgram,
   Rp1FundingCurveEntry,
+  Rp1FundTarget,
   Rp1OperationEntry,
   Rp1PadEntry,
   Rp1Personnel,
@@ -35,6 +36,7 @@ import type {
   Rp1ProgramSlots,
   Rp1ResearchEntry,
   Rp1RushTerms,
+  Rp1TrainingCourseEntry,
   Rp1WarehouseItemEntry,
 } from "./__generated__/contract";
 import {
@@ -141,6 +143,25 @@ export const RP1_CREW_TOPIC = "rp1.crew";
 /** The career-wide rules the crew schedule runs under: retirement and R&R switches, training rates, the extension cap. */
 export const RP1_CREW_PROGRAM_TOPIC = "rp1.crewProgram";
 
+/**
+ * The balance a warp is running toward, and how far off it is. A warp STOP
+ * CONDITION rather than a transaction, and it persists past the warp it stopped,
+ * so an operator who cannot see it reads the next unexplained halt as the game
+ * misbehaving. `active: false` is a real answer meaning none is set; the whole
+ * payload is absent when RP-1's space centre could not be read.
+ */
+export const RP1_FUND_TARGET_TOPIC = "rp1.fundTarget";
+
+/**
+ * The training courses RP-1 currently holds, course-level.
+ *
+ * Beside the per-kerbal training fields on `rp1.crew` rather than instead of
+ * them: a course with nobody enrolled has no kerbal row to group, and the seat
+ * bounds live on the course. Those bounds decide the control an operator is
+ * offered, Cancel for the whole course or Remove for one student.
+ */
+export const RP1_TRAINING_TOPIC = "rp1.training";
+
 declare module "@ksp-gonogo/sitrep-sdk" {
   interface TopicPayloadMap {
     "rp1.available": boolean;
@@ -161,6 +182,8 @@ declare module "@ksp-gonogo/sitrep-sdk" {
     "rp1.programFundingCurves": Rp1FundingCurveEntry[];
     "rp1.crew": Rp1CrewEntry[];
     "rp1.crewProgram": Rp1CrewProgram;
+    "rp1.fundTarget": Rp1FundTarget;
+    "rp1.training": Rp1TrainingCourseEntry[];
   }
 }
 
@@ -182,6 +205,8 @@ registerBarePrimitiveTopic(RP1_PROGRAM_SLOTS_TOPIC);
 registerBarePrimitiveTopic(RP1_PROGRAM_FUNDING_CURVES_TOPIC);
 registerBarePrimitiveTopic(RP1_CREW_TOPIC);
 registerBarePrimitiveTopic(RP1_CREW_PROGRAM_TOPIC);
+registerBarePrimitiveTopic(RP1_FUND_TARGET_TOPIC);
+registerBarePrimitiveTopic(RP1_TRAINING_TOPIC);
 
 // Driven by looping the generated maps rather than naming each entry, so a
 // Topic added to this Uplink's contract later needs no new call site. Both
@@ -259,4 +284,10 @@ export type _ResolvesRp1Crew = Expect<
 >;
 export type _ResolvesRp1CrewProgram = Expect<
   Equal<TopicPayload<"rp1.crewProgram">, Rp1CrewProgram>
+>;
+export type _ResolvesRp1FundTarget = Expect<
+  Equal<TopicPayload<"rp1.fundTarget">, Rp1FundTarget>
+>;
+export type _ResolvesRp1Training = Expect<
+  Equal<TopicPayload<"rp1.training">, Rp1TrainingCourseEntry[]>
 >;

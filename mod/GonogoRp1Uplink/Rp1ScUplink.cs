@@ -56,6 +56,7 @@ namespace GonogoRp1Uplink
         public const string ProgramFundingCurvesTopic = "rp1.programFundingCurves";
         public const string CrewTopic = "rp1.crew";
         public const string CrewProgramTopic = "rp1.crewProgram";
+        public const string TrainingTopic = "rp1.training";
 
         /// <summary>
         /// Rows published per second across every rp1.* channel. One capture per
@@ -263,6 +264,8 @@ namespace GonogoRp1Uplink
         private IChannelPublisher? _crewList;
         private IChannelPublisher? _crewProgram;
 
+        private IChannelPublisher? _training;
+
         /// <summary>
         /// Whether RP-1 is managing this save, asked fresh rather than remembered
         /// from the last capture.
@@ -366,6 +369,7 @@ namespace GonogoRp1Uplink
                 // are claims about a career on a save RP-1 is not managing at all.
                 Ground(CrewTopic, absenceIsData: true),
                 Ground(CrewProgramTopic, absenceIsData: true),
+                Ground(TrainingTopic, absenceIsData: true),
             },
             // Delayed: false, the same disposition every ground-side career write
             // takes and for the same reason core's own nine give: light-time is
@@ -823,6 +827,7 @@ namespace GonogoRp1Uplink
             _programCurves = host.Publisher(ProgramFundingCurvesTopic);
             _crewList = host.Publisher(CrewTopic);
             _crewProgram = host.Publisher(CrewProgramTopic);
+            _training = host.Publisher(TrainingTopic);
 
             host.AddSampledSource(
                 CaptureOnMain,
@@ -867,7 +872,8 @@ namespace GonogoRp1Uplink
                 CaptureCrewOnMain,
                 HandleCrewOnCourier,
                 CrewTopic,
-                CrewProgramTopic);
+                CrewProgramTopic,
+                TrainingTopic);
 
             // UNGATED, and the two captures above say why by contrast: their whole
             // effect is their return value, and this one's is not. It feeds the
@@ -1015,6 +1021,7 @@ namespace GonogoRp1Uplink
             Rp1RowBudget.Record(rows?.Count ?? 0, raw?.Ut ?? 0.0);
             _crewList?.Publish(rows, raw?.Ut ?? 0.0);
             _crewProgram?.Publish(Rp1CrewCapture.BuildProgram(raw), raw?.Ut ?? 0.0);
+            _training?.Publish(Rp1CrewCapture.BuildTraining(raw), raw?.Ut ?? 0.0);
         }
 
         /// <summary>

@@ -229,6 +229,12 @@ export const GENERATED_TYPE_UNITS: Readonly<Record<string, UnitsByField>> = {
   "Rp1FacilityUpgradeArgs": {
     facility: "id",
   },
+  "Rp1FundTarget": {
+    active: "flag",
+    originalFunds: "funds",
+    targetFunds: "funds",
+    timeLeft: "s",
+  },
   "Rp1FundingCurveEntry": {
     isDefault: "flag",
     name: "id",
@@ -238,6 +244,15 @@ export const GENERATED_TYPE_UNITS: Readonly<Record<string, UnitsByField>> = {
     inTangent: "1",
     outTangent: "1",
     paidFraction: "ratio",
+  },
+  "Rp1HireTarget": {
+    active: "flag",
+    currentCount: "count",
+    isResearch: "flag",
+    lcId: "id",
+    leftToHire: "count",
+    targetCount: "count",
+    timeLeft: "s",
   },
   "Rp1LeaderEntry": {
     canRemoveFromUt: "ut",
@@ -367,6 +382,22 @@ export const GENERATED_TYPE_UNITS: Readonly<Record<string, UnitsByField>> = {
   },
   "Rp1TechResearchArgs": {
     techId: "id",
+  },
+  "Rp1TrainingCourseEntry": {
+    completed: "flag",
+    completesAtUt: "ut",
+    description: "text",
+    fractionComplete: "ratio",
+    id: "id",
+    isTemporary: "flag",
+    name: "text",
+    seatMax: "count",
+    seatMin: "count",
+    started: "flag",
+    students: "id",
+    studentsAvailableAtUt: "ut",
+    target: "id",
+    type: "enum",
   },
   "Rp1VehicleArgs": {
     id: "id",
@@ -512,6 +543,12 @@ export const GENERATED_TOPIC_UNITS: Readonly<Record<string, UnitsByField>> = {
     retirementEnabled: "flag",
     retirementExtensionCapSeconds: "s",
   },
+  "rp1.fundTarget": {
+    active: "flag",
+    originalFunds: "funds",
+    targetFunds: "funds",
+    timeLeft: "s",
+  },
   "rp1.operations": {
     associatedVesselId: "id",
     blockingPeers: "count",
@@ -608,6 +645,22 @@ export const GENERATED_TOPIC_UNITS: Readonly<Record<string, UnitsByField>> = {
     rateMult: "ratio",
     salaryMult: "ratio",
   },
+  "rp1.training": {
+    completed: "flag",
+    completesAtUt: "ut",
+    description: "text",
+    fractionComplete: "ratio",
+    id: "id",
+    isTemporary: "flag",
+    name: "text",
+    seatMax: "count",
+    seatMin: "count",
+    started: "flag",
+    students: "id",
+    studentsAvailableAtUt: "ut",
+    target: "id",
+    type: "enum",
+  },
   "rp1.warehouse": {
     cost: "funds",
     humanRated: "flag",
@@ -654,6 +707,9 @@ export const GENERATED_TYPE_SHAPES: Readonly<Record<string, ShapesByField>> = {
   "Rp1FundingCurveEntry": {
     keys: "Rp1FundingCurveKey[]",
   },
+  "Rp1Personnel": {
+    hireTarget: "Rp1HireTarget",
+  },
   "Rp1ProgramEntry": {
     fundingPayments: "Rp1ProgramPaymentEntry[]",
     speedOptions: "Rp1ProgramSpeedOption[]",
@@ -664,6 +720,9 @@ export const GENERATED_TYPE_SHAPES: Readonly<Record<string, ShapesByField>> = {
 export const GENERATED_TOPIC_SHAPES: Readonly<Record<string, ShapesByField>> = {
   "rp1.buildable": {
     complexes: "Rp1BuildableComplex[]",
+  },
+  "rp1.personnel": {
+    hireTarget: "Rp1HireTarget",
   },
   "rp1.programFundingCurves": {
     keys: "Rp1FundingCurveKey[]",

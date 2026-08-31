@@ -41,6 +41,9 @@ export interface Rp1TechResearchArgs
 {
 	techId?: string;
 }
+export interface Rp1TargetCancelArgs
+{
+}
 export interface Rp1CentreEntry
 {
 	kscName?: string;
@@ -191,6 +194,7 @@ export interface Rp1Personnel
 	engineerSalaryPerYear?: Value<"funds">;
 	researcherSalaryPerYear?: Value<"funds">;
 	idleSalaryMult?: Value<"ratio">;
+	hireTarget?: Rp1HireTarget;
 }
 export interface Rp1RushTerms
 {
@@ -319,6 +323,40 @@ export interface Rp1BuildableComplex
 	kscDisplayName?: string;
 	eligible?: boolean;
 	refusals?: string[];
+}
+export interface Rp1HireTarget
+{
+	active?: boolean;
+	targetCount?: Value<"count">;
+	currentCount?: Value<"count">;
+	leftToHire?: Value<"count">;
+	isResearch?: boolean;
+	lcId?: string;
+	timeLeft?: Value<"s">;
+}
+export interface Rp1FundTarget
+{
+	active?: boolean;
+	targetFunds?: Value<"funds">;
+	originalFunds?: Value<"funds">;
+	timeLeft?: Value<"s">;
+}
+export interface Rp1TrainingCourseEntry
+{
+	id?: string;
+	name?: string;
+	description?: string;
+	type?: string;
+	target?: string;
+	students?: string[];
+	seatMin?: Value<"count">;
+	seatMax?: Value<"count">;
+	started?: boolean;
+	completed?: boolean;
+	fractionComplete?: Value<"ratio">;
+	completesAtUt?: Value<"ut">;
+	studentsAvailableAtUt?: Value<"ut">;
+	isTemporary?: boolean;
 }
 export interface Rp1StrategyActivateArgs
 {

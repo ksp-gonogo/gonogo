@@ -34,6 +34,13 @@ public class ProtoCrewMember
     }
 
     public string name => _name;
+
+    /// <summary>
+    /// Stock's ground-until date. RP-1 WRITES it at course start, for 120% of the
+    /// course's base time, so it outlasts the course and is the date a crew member
+    /// can actually fly again.
+    /// </summary>
+    public double inactiveTimeEnd { get; set; }
 }
 
 namespace RP0
@@ -74,8 +81,17 @@ namespace RP0.Crew
 
         public string? id;
         public string? name;
+        public string? description;
         public TrainingType type;
         public TrainingFlightEntry? training;
+
+        /// <summary>Below one seat there is no course; RP-1's own default is 1.</summary>
+        public int seatMin = 1;
+
+        /// <summary>Zero means RP-1 sets no maximum.</summary>
+        public int seatMax;
+
+        public bool isTemporary;
     }
 
     /// <summary>
@@ -100,6 +116,21 @@ namespace RP0.Crew
         public List<ProtoCrewMember> Students = new List<ProtoCrewMember>();
         public bool Started;
         public bool Completed;
+
+        /// <summary>RP-1's own display name, off the template.</summary>
+        public string Name => _template?.name ?? "Unknown training course";
+
+        public string? Description => _template?.description;
+
+        /// <summary>
+        /// The seat bounds, which decide whether an operator gets Cancel (the
+        /// whole course) or Remove (one student). Defaulted as RP-1 defaults them.
+        /// </summary>
+        public int SeatMin => _template?.seatMin ?? 1;
+
+        public int SeatMax => _template?.seatMax ?? 0;
+
+        public bool IsTemporary => _template?.isTemporary ?? false;
 
         private double progress;
         private double BP;

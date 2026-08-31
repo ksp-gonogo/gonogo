@@ -28,6 +28,7 @@ import type {
   Rp1ConstructionEntry,
   Rp1CrewEntry,
   Rp1CrewProgram,
+  Rp1FundTarget,
   Rp1FundingCurveEntry,
   Rp1OperationEntry,
   Rp1PadEntry,
@@ -36,6 +37,7 @@ import type {
   Rp1ProgramSlots,
   Rp1ResearchEntry,
   Rp1RushTerms,
+  Rp1TrainingCourseEntry,
   Rp1WarehouseItemEntry,
 } from "./contract.js";
 
@@ -48,6 +50,7 @@ export interface GeneratedTopicPayloadMap {
   "rp1.constructions": Rp1ConstructionEntry[];
   "rp1.crew": Rp1CrewEntry[];
   "rp1.crewProgram": Rp1CrewProgram;
+  "rp1.fundTarget": Rp1FundTarget;
   "rp1.operations": Rp1OperationEntry[];
   "rp1.pads": Rp1PadEntry[];
   "rp1.personnel": Rp1Personnel;
@@ -56,6 +59,7 @@ export interface GeneratedTopicPayloadMap {
   "rp1.programs": Rp1ProgramEntry[];
   "rp1.research": Rp1ResearchEntry[];
   "rp1.rushTerms": Rp1RushTerms;
+  "rp1.training": Rp1TrainingCourseEntry[];
   "rp1.warehouse": Rp1WarehouseItemEntry[];
 }
 
@@ -68,6 +72,7 @@ export const GENERATED_TOPIC_IDS = [
   "rp1.constructions",
   "rp1.crew",
   "rp1.crewProgram",
+  "rp1.fundTarget",
   "rp1.operations",
   "rp1.pads",
   "rp1.personnel",
@@ -76,5 +81,6 @@ export const GENERATED_TOPIC_IDS = [
   "rp1.programs",
   "rp1.research",
   "rp1.rushTerms",
+  "rp1.training",
   "rp1.warehouse",
 ] as const;

@@ -2041,3 +2041,121 @@ public sealed class Rp1FundTarget
     [SitrepUnit(Sitrep.Contract.Units.Seconds)]
     public double? TimeLeft { get; set; }
 }
+
+/// <summary>
+/// One training course RP-1 currently holds, started or not.
+///
+/// <para>A COURSE-level row, beside the per-kerbal training fields on
+/// <see cref="Rp1CrewEntry"/> rather than instead of them. A client can group
+/// those kerbal rows by course name and get most of this, but not two things it
+/// needs: a course with nobody enrolled has no kerbal rows to group, and the seat
+/// bounds live on the course rather than on any student.</para>
+///
+/// <para>The seat bounds decide which control an operator is offered, so they are
+/// not decoration: RP-1 draws <b>Cancel</b> for the whole course when
+/// <see cref="SeatMin"/> is above one, and <b>Remove</b> for a single student
+/// otherwise, because dropping one student below the minimum would strand the
+/// rest.</para>
+///
+/// <para>NO PER-COURSE COST, and it is not an omission. Training is a per-day
+/// upkeep rather than a purchase, and RP-1's own formula needs
+/// <c>TrainingDatabase.FillBools</c>, which fills and resets SHARED MUTABLE
+/// STATIC arrays: a telemetry read must not move the game's scratch state. The
+/// career-wide figure is already published on the economy capability, and
+/// <see cref="Students"/> with <see cref="Started"/> are what drive it, since
+/// only a STARTED course is paid for at all.</para>
+/// </summary>
+[SitrepContract]
+[SitrepTopic("rp1.training", isArray: true)]
+#if SITREP_CODEGEN
+[TsInterface]
+#endif
+public sealed class Rp1TrainingCourseEntry
+{
+    /// <summary>RP-1's template id, and the key an enrolment names.</summary>
+    [SitrepUnit(Units.Id)]
+    public string? Id { get; set; }
+
+    /// <summary>The course's display name, RP-1's own.</summary>
+    [SitrepUnit(Sitrep.Contract.Units.Text)]
+    public string? Name { get; set; }
+
+    [SitrepUnit(Sitrep.Contract.Units.Text)]
+    public string? Description { get; set; }
+
+    /// <summary>
+    /// <c>Proficiency</c> or <c>Mission</c>. Proficiency training is on a part
+    /// and lasts; mission training is for a flight and expires.
+    /// </summary>
+    [SitrepUnit(Sitrep.Contract.Units.Enumeration)]
+    public string? Type { get; set; }
+
+    /// <summary>What the course trains on, RP-1's own target string.</summary>
+    [SitrepUnit(Units.Id)]
+    public string? Target { get; set; }
+
+    /// <summary>
+    /// The enrolled kerbals by name, joining to <c>spaceCenter.crewRoster</c>.
+    /// Empty is a real answer: a course can exist with nobody on it.
+    /// </summary>
+    [SitrepUnit(Units.Id)]
+    public List<string>? Students { get; set; }
+
+    /// <summary>
+    /// The fewest students the course can run with. Above one, the only way out
+    /// is cancelling the whole course.
+    /// </summary>
+    [SitrepUnit(Sitrep.Contract.Units.Count)]
+    public int? SeatMin { get; set; }
+
+    /// <summary>The most it can take. Zero means RP-1 sets no maximum.</summary>
+    [SitrepUnit(Sitrep.Contract.Units.Count)]
+    public int? SeatMax { get; set; }
+
+    /// <summary>
+    /// Whether the course has begun. **This is the field that costs money**: an
+    /// enrolled-but-unstarted course draws nothing.
+    /// </summary>
+    [SitrepUnit(Sitrep.Contract.Units.Flag)]
+    public bool? Started { get; set; }
+
+    [SitrepUnit(Sitrep.Contract.Units.Flag)]
+    public bool? Completed { get; set; }
+
+    /// <summary>
+    /// How far through, RP-1's <c>progress / BP</c>. Absent for a course costed at
+    /// zero points, where that expression is a NaN, and absent before it starts.
+    /// Sound arithmetic, unlike RP-1's hire and R&amp;R fractions.
+    /// </summary>
+    [SitrepUnit(Units.Ratio)]
+    public double? FractionComplete { get; set; }
+
+    /// <summary>
+    /// When the course itself finishes. An INSTANT, so a UT.
+    ///
+    /// <para>NOT when the crew can fly: see <see cref="StudentsAvailableAtUt"/>.</para>
+    /// </summary>
+    [SitrepUnit(Units.UniversalTime)]
+    public double? CompletesAtUt { get; set; }
+
+    /// <summary>
+    /// When the last student becomes available again, which is LATER than
+    /// <see cref="CompletesAtUt"/> and is the date a mission planner actually
+    /// needs.
+    ///
+    /// <para>RP-1 marks each student inactive for <b>120%</b> of the course's base
+    /// time at the moment it STARTS, so a kerbal stays grounded for roughly a
+    /// fifth of the course again after it has finished. Read from the students'
+    /// own inactive window rather than derived, so it stays right if RP-1 changes
+    /// the multiplier.</para>
+    /// </summary>
+    [SitrepUnit(Units.UniversalTime)]
+    public double? StudentsAvailableAtUt { get; set; }
+
+    /// <summary>
+    /// Whether RP-1 discards this course once it completes, rather than keeping it
+    /// on the roster.
+    /// </summary>
+    [SitrepUnit(Sitrep.Contract.Units.Flag)]
+    public bool? IsTemporary { get; set; }
+}

@@ -59,6 +59,42 @@ namespace GonogoRp1Uplink
         /// report, and a bag of falses would say retirement and R&amp;R are
         /// switched OFF on a save that has never been told either way.
         /// </summary>
+        /// <summary>
+        /// The live courses, course-level. Null when RP-1's crew handler is not
+        /// live; an empty list is a real answer meaning the career holds no
+        /// courses, which is different from not being able to see them.
+        /// </summary>
+        public static List<object?>? BuildTraining(Rp1CrewRaw? raw)
+        {
+            if (raw?.Courses == null)
+            {
+                return null;
+            }
+
+            var list = new List<object?>();
+            foreach (var c in raw.Courses)
+            {
+                list.Add(new Dictionary<string, object?>
+                {
+                    ["id"] = c.Id,
+                    ["name"] = c.Name,
+                    ["description"] = c.Description,
+                    ["type"] = c.Type,
+                    ["target"] = c.Target,
+                    ["students"] = c.Students,
+                    ["seatMin"] = c.SeatMin,
+                    ["seatMax"] = c.SeatMax,
+                    ["started"] = c.Started,
+                    ["completed"] = c.Completed,
+                    ["fractionComplete"] = c.FractionComplete,
+                    ["completesAtUt"] = c.CompletesAtUt,
+                    ["studentsAvailableAtUt"] = c.StudentsAvailableAtUt,
+                    ["isTemporary"] = c.IsTemporary,
+                });
+            }
+            return list;
+        }
+
         public static Dictionary<string, object?>? BuildProgram(Rp1CrewRaw? raw)
         {
             var program = raw?.Program;

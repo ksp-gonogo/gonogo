@@ -359,6 +359,11 @@ namespace GonogoRp1Uplink.Tests
             // Stock's Strategies.Strategy and StrategySystem, not RP-1's. RP-1
             // subclasses them but does not own these members, so a rename here is
             // KSP's to make and Assembly-CSharp's to answer for.
+            // Stock's ProtoCrewMember, not RP-1's. RP-1 WRITES it (SetInactive at
+            // course start, for 120% of base time) but the field is KSP's, and it
+            // is read here because it outlasts the course: it is the date a crew
+            // member can fly again, which is not the date their training ends.
+            ["inactiveTimeEnd"] = "stock ProtoCrewMember.inactiveTimeEnd, the ground-until date that outlasts a training course",
             ["IsActive"] = "stock Strategies.Strategy.IsActive, read to refuse a strategy that is already committed",
             ["Factor"] = "stock Strategies.Strategy.Factor, the commitment level, written before the gate and restored on a refusal",
             ["GroupTags"] = "stock Strategies.Strategy.GroupTags, handed to HasConflictingActiveStrategies as arm 2's input",
@@ -508,6 +513,14 @@ namespace GonogoRp1Uplink.Tests
             // headcount; a fund target is valid only when the figure DIFFERS from
             // the balance it was set at, so a target equal to the balance is not
             // a target at all.
+            // ── The training courses, course-level ──────────────────────────
+            // The seat bounds are the load-bearing pair: they decide whether an
+            // operator is offered Cancel (the whole course) or Remove (one
+            // student), because dropping below the minimum would strand the rest.
+            Add("RP0.Crew.TrainingCourse", "Description", Rp1Reader.Text, Crew);
+            Add("RP0.Crew.TrainingCourse", "SeatMin", Rp1Reader.Numeric, Crew);
+            Add("RP0.Crew.TrainingCourse", "SeatMax", Rp1Reader.Numeric, Crew);
+            Add("RP0.Crew.TrainingCourse", "IsTemporary", Rp1Reader.Bool, Crew);
             Add("RP0.SpaceCenterManagement", "staffTarget", Rp1Reader.Presence, Sc);
             Add("RP0.SpaceCenterManagement", "fundTarget", Rp1Reader.Presence, Sc);
             Add("RP0.HireStaffProject", "IsValid", Rp1Reader.Bool, Sc);

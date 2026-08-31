@@ -195,6 +195,12 @@
     "Rp1FacilityUpgradeArgs": {
       "facility": "id"
     },
+    "Rp1FundTarget": {
+      "active": "flag",
+      "originalFunds": "funds",
+      "targetFunds": "funds",
+      "timeLeft": "s"
+    },
     "Rp1FundingCurveEntry": {
       "isDefault": "flag",
       "name": "id"
@@ -204,6 +210,15 @@
       "inTangent": "1",
       "outTangent": "1",
       "paidFraction": "ratio"
+    },
+    "Rp1HireTarget": {
+      "active": "flag",
+      "currentCount": "count",
+      "isResearch": "flag",
+      "lcId": "id",
+      "leftToHire": "count",
+      "targetCount": "count",
+      "timeLeft": "s"
     },
     "Rp1LeaderEntry": {
       "canRemoveFromUt": "ut",
@@ -333,6 +348,22 @@
     },
     "Rp1TechResearchArgs": {
       "techId": "id"
+    },
+    "Rp1TrainingCourseEntry": {
+      "completed": "flag",
+      "completesAtUt": "ut",
+      "description": "text",
+      "fractionComplete": "ratio",
+      "id": "id",
+      "isTemporary": "flag",
+      "name": "text",
+      "seatMax": "count",
+      "seatMin": "count",
+      "started": "flag",
+      "students": "id",
+      "studentsAvailableAtUt": "ut",
+      "target": "id",
+      "type": "enum"
     },
     "Rp1VehicleArgs": {
       "id": "id"
@@ -473,6 +504,12 @@
       "retirementEnabled": "flag",
       "retirementExtensionCapSeconds": "s"
     },
+    "rp1.fundTarget": {
+      "active": "flag",
+      "originalFunds": "funds",
+      "targetFunds": "funds",
+      "timeLeft": "s"
+    },
     "rp1.operations": {
       "associatedVesselId": "id",
       "blockingPeers": "count",
@@ -569,6 +606,22 @@
       "rateMult": "ratio",
       "salaryMult": "ratio"
     },
+    "rp1.training": {
+      "completed": "flag",
+      "completesAtUt": "ut",
+      "description": "text",
+      "fractionComplete": "ratio",
+      "id": "id",
+      "isTemporary": "flag",
+      "name": "text",
+      "seatMax": "count",
+      "seatMin": "count",
+      "started": "flag",
+      "students": "id",
+      "studentsAvailableAtUt": "ut",
+      "target": "id",
+      "type": "enum"
+    },
     "rp1.warehouse": {
       "cost": "funds",
       "humanRated": "flag",
@@ -590,6 +643,9 @@
     "Rp1FundingCurveEntry": {
       "keys": "Rp1FundingCurveKey[]"
     },
+    "Rp1Personnel": {
+      "hireTarget": "Rp1HireTarget"
+    },
     "Rp1ProgramEntry": {
       "fundingPayments": "Rp1ProgramPaymentEntry[]",
       "speedOptions": "Rp1ProgramSpeedOption[]"
@@ -598,6 +654,9 @@
   "topicShapes": {
     "rp1.buildable": {
       "complexes": "Rp1BuildableComplex[]"
+    },
+    "rp1.personnel": {
+      "hireTarget": "Rp1HireTarget"
     },
     "rp1.programFundingCurves": {
       "keys": "Rp1FundingCurveKey[]"

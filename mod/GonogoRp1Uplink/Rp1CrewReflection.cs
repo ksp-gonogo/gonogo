@@ -316,6 +316,8 @@ namespace GonogoRp1Uplink
                 raw.Crew.Add(member);
             }
 
+            raw.Courses = read.Rows;
+
             raw.Program = new Rp1CrewProgramRaw
             {
                 RetirementEnabled = ReadBool(instance, "RetirementEnabled"),
@@ -382,28 +384,38 @@ namespace GonogoRp1Uplink
         }
 
         /// <summary>
-        /// The course walk's whole answer: the per-kerbal index plus the two
-        /// programme-level counts, so the list is walked ONCE. A completed course
-        /// is not a course RP-1 still holds and is excluded from all three.
+        /// The course walk's whole answer: the per-kerbal index, the two
+        /// programme-level counts, and the course-level rows, so the list is
+        /// walked ONCE. A completed course is not a course RP-1 still holds and is
+        /// excluded from all four.
         /// </summary>
         private readonly struct CoursesRaw
         {
-            public CoursesRaw(Dictionary<string, CourseRaw> byStudent, int courses, int coursesStarted)
+            public CoursesRaw(
+                Dictionary<string, CourseRaw> byStudent,
+                int courses,
+                int coursesStarted,
+                List<Rp1TrainingCourseRaw> rows)
             {
                 ByStudent = byStudent;
                 Courses = courses;
                 CoursesStarted = coursesStarted;
+                Rows = rows;
             }
 
             public Dictionary<string, CourseRaw> ByStudent { get; }
             public int Courses { get; }
             public int CoursesStarted { get; }
+
+            /// <summary>One row per live course, carrying what no kerbal row can: the seat bounds, and a course with nobody on it.</summary>
+            public List<Rp1TrainingCourseRaw> Rows { get; }
         }
 
         /// <summary>Every kerbal enrolled on a live course, keyed by name, and the counts behind them.</summary>
         private static CoursesRaw ReadCourses(object instance, double ut)
         {
             var byStudent = new Dictionary<string, CourseRaw>(StringComparer.Ordinal);
+            var rows = new List<Rp1TrainingCourseRaw>();
             var courses = 0;
             var coursesStarted = 0;
             foreach (var course in Materialise(Rp1Types.Member(instance, "TrainingCourses")))
@@ -430,17 +442,57 @@ namespace GonogoRp1Uplink
                     finishesAtUt: Rp1CrewMath.FinishesAtUt(
                         ut, started, progress, totalPoints, Rp1Types.ReadDouble(course, "_buildRate")));
 
+                // The course-level row is built from the SAME walk rather than a
+                // second one: the students are already in hand here, and the
+                // latest inactive window among them is the date a mission planner
+                // needs. RP-1 grounds each student for 120% of the course's base
+                // time at the moment it starts, so that date outlasts the course.
+                var studentNames = new List<string>();
+                double? availableAt = null;
                 foreach (var student in Materialise(Rp1Types.Member(course, "Students")))
                 {
                     var name = ReadString(student, "name");
                     if (name != null)
                     {
                         byStudent[name] = row;
+                        studentNames.Add(name);
+                    }
+
+                    var inactiveUntil = Rp1Types.ReadDouble(student, "inactiveTimeEnd");
+                    if (inactiveUntil != null && (availableAt == null || inactiveUntil > availableAt))
+                    {
+                        availableAt = inactiveUntil;
                     }
                 }
+
+                rows.Add(new Rp1TrainingCourseRaw
+                {
+                    Id = row.Course,
+                    Name = EmptyAsAbsent(ReadString(course, "Name")),
+                    Description = EmptyAsAbsent(ReadString(course, "Description")),
+                    Type = row.Type,
+                    Target = row.Target,
+                    Students = studentNames,
+                    SeatMin = SeatCount(course, "SeatMin"),
+                    SeatMax = SeatCount(course, "SeatMax"),
+                    Started = started,
+                    Completed = false,
+                    FractionComplete = row.FractionComplete,
+                    CompletesAtUt = row.FinishesAtUt,
+                    StudentsAvailableAtUt = availableAt,
+                    IsTemporary = ReadBool(course, "IsTemporary"),
+                });
             }
-            return new CoursesRaw(byStudent, courses, coursesStarted);
+            return new CoursesRaw(byStudent, courses, coursesStarted, rows);
         }
+
+        /// <summary>
+        /// A seat bound as an int. RP-1 declares both as plain ints on the course,
+        /// and this file has no int reader of its own because nothing else here
+        /// needed one.
+        /// </summary>
+        private static int? SeatCount(object course, string name) =>
+            Rp1Types.Member(course, name) is int seats ? seats : (int?)null;
 
         /// <summary>One kerbal's perishable trainings, folded to the soonest plus a count.</summary>
         private readonly struct ExpiryRaw
