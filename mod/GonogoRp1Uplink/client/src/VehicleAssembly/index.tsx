@@ -11,6 +11,7 @@ import "../topics";
 // same way any Uplink's would be. Pulled in here rather than left to the
 // package entry's import order, because a widget that lost its own sections to
 // a module-ordering accident would look like a telemetry outage.
+import "./BuildCost";
 import "./Building";
 import "./Buildable";
 import "./Warehouse";

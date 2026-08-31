@@ -215,12 +215,17 @@ describe("VehicleAssembly", () => {
     await expectNoA11yViolations(view.container);
   });
 
-  it("mounts all three sections through the slot an outside Uplink would use", () => {
+  it("mounts every section through the slot an outside Uplink would use", () => {
     // The whole of the self-contribution claim. If any section were drawn by
     // the host directly it would not be here, and the slot could be inadequate
     // without anything failing.
+    //
+    // The ORDER is asserted too, and the cost section leads on purpose: it is
+    // about the craft being designed right now, and the three lists below it are
+    // about craft already committed to.
     const ids = getAugmentsForSlot(VEHICLE_ASSEMBLY_SECTIONS).map((a) => a.id);
     expect(ids).toEqual([
+      "rp1-vehicle-assembly-build-cost",
       "rp1-vehicle-assembly-warehouse",
       "rp1-vehicle-assembly-building",
       "rp1-vehicle-assembly-buildable",

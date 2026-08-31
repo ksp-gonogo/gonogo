@@ -157,6 +157,24 @@ Every craft RP-1 is integrating, holding or could start, across every launch com
 
 ![The same widget at 18 × 5](docs/assets/assembly-unstaffed--landscape-18x5.png)
 
+![A fully tooled spaceplane: no rollout because it does not roll out, no surcharge row because there is no surcharge, and a tech it cannot fly without](docs/assets/build-cost-absences-and-tech-gate--default.png)
+
+![The same widget at 9 × 8](docs/assets/build-cost-absences-and-tech-gate--mobile-9x8.png)
+
+![The same widget at 5 × 18](docs/assets/build-cost-absences-and-tech-gate--portrait-5x18.png)
+
+![The same widget at 18 × 5](docs/assets/build-cost-absences-and-tech-gate--landscape-18x5.png)
+
+![Most of what this vehicle costs is the penalty for flying it untooled, and the tooling that removes it is cheaper than one build of the penalty](docs/assets/build-cost-mostly-surcharge--default.png)
+
+![The same widget at its minimum size](docs/assets/build-cost-mostly-surcharge--min.png)
+
+![The same widget at 9 × 8](docs/assets/build-cost-mostly-surcharge--mobile-9x8.png)
+
+![The same widget at 5 × 18](docs/assets/build-cost-mostly-surcharge--portrait-5x18.png)
+
+![The same widget at 18 × 5](docs/assets/build-cost-mostly-surcharge--landscape-18x5.png)
+
 ## Augments
 
 | Augment | Into | Reads | Presence | Notes |
@@ -169,6 +187,7 @@ Every craft RP-1 is integrating, holding or could start, across every launch com
 | `rp1-program-detail` | `strategies.screen-body` | `rp1.available`, `rp1.programs`, `rp1.programSlots`, `rp1.programFundingCurves`, `rp1.confidence`, `career.status` | only while `rp1` |  |
 | `rp1-program-status` | `career-economy.sections` | – |  |  |
 | `rp1-research-queue` | `tech-tree.sections` | – |  |  |
+| `rp1-vehicle-assembly-build-cost` | `rp1-vehicle-assembly.sections` | – |  |  |
 | `rp1-vehicle-assembly-building` | `rp1-vehicle-assembly.sections` | – |  |  |
 | `rp1-vehicle-assembly-buildable` | `rp1-vehicle-assembly.sections` | – |  |  |
 | `rp1-vehicle-assembly-warehouse` | `rp1-vehicle-assembly.sections` | – |  |  |
