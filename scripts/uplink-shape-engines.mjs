@@ -43,10 +43,18 @@
  * pure CSS auto-fit for exactly this reason, and the three widgets that had
  * hand-rolled an `isLandscape` boolean off `getWidgetShape` are where to look.
  *
- * Real widgets rather than a synthetic page, on purpose: a page written to
- * exercise the whitelist proves things about the page. `renderUplink` is called
- * directly rather than through the `docs` verb so nothing is written into the
- * Uplink, only into a scratch directory.
+ * ## Real widgets, because the first version of this was a synthetic page
+ *
+ * An earlier probe rendered hand-written markup exercising the same property
+ * list, in the same three engines, and passed clean. The property list was fine;
+ * its colours were hex and so never resolved through a wide-gamut `color()`, which
+ * is where the only real disagreement lived. **It graded the rule, not the thing
+ * the rule gets applied to.**
+ *
+ * So this renders an Uplink's real registrations, and it is a committed script
+ * rather than a scratch file, because a measurement nobody can re-run is an
+ * assertion. `renderUplink` is called directly rather than through the `docs` verb
+ * so nothing is written into the Uplink, only into a scratch directory.
  *
  *   node scripts/uplink-shape-engines.mjs [<mod dir name>]
  *

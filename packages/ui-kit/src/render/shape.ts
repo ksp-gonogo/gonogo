@@ -133,6 +133,15 @@ export const ADMISSIBLE_PROPERTIES = [
  * silent in `textContent`. They are AUTHORED numbers, which is what makes them
  * admissible where a measured box is not.
  *
+ * The `aria-`/`data-` prefixes are a SECOND alternative with its own anchor, and
+ * that is not tidiness. Inside the first group they sat in front of a `$`, so
+ * only an attribute named exactly `data-` matched and every real `data-x` and
+ * `aria-x` was silently dropped: `data-section-full`, which is how a panel marks
+ * a section spanning every column, and `aria-expanded`, which flips with the
+ * layout decision the shape is trying to see. A unit test on `data-x=1` found it;
+ * the cross-engine harness could not, because both engines dropped it equally and
+ * agreed.
+ *
  * `title` is here because a kit primitive reaches for it whenever text can be
  * truncated, so it appears and disappears with a layout decision: `RowName` and
  * `Panel`'s compacted title both carry the full string in one when the visible
@@ -140,7 +149,7 @@ export const ADMISSIBLE_PROPERTIES = [
  * attribute before it shows up anywhere else that is admissible.
  */
 export const RECORDED_ATTRIBUTES =
-  "^(style|title|role|type|disabled|hidden|open|checked|aria-|data-|d|points|cx|cy|r|x|y|x1|y1|x2|y2|rx|ry|transform|viewBox|fill|stroke|stroke-width|stroke-dasharray|offset|stop-color)$";
+  "^(style|title|role|type|disabled|hidden|open|checked|d|points|cx|cy|r|x|y|x1|y1|x2|y2|rx|ry|transform|viewBox|fill|stroke|stroke-width|stroke-dasharray|offset|stop-color)$|^(aria|data)-";
 
 /** Committed beside the assets it describes. */
 export const SHAPE_RECORD_FILE = "render-shape.json";
