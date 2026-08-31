@@ -15,7 +15,11 @@ on:
     # main), so CI on staging validates without deploying.
     branches: [main, ci-dev, staging]
   pull_request:
-    branches: [main]
+    # `staging` here for the same reason it is in the push list one line up, and
+    # it was missed when that one was swept: a pull request targeting `staging`
+    # got no CI run at all, which is the 2026-07-17 failure again by a different
+    # door.
+    branches: [main, staging]
   # Manual trigger: run CI on any ref on demand. Needed because a baseline
   # regen (update-baselines.yml) commits with GITHUB_TOKEN, and a token push
   # does NOT trigger a workflow run, so the regenerated-baseline tip would
