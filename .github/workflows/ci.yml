@@ -214,14 +214,28 @@ jobs:
       # and this stays anyway: a workflow that silently fixes main means nobody
       # sees a generator that has quietly stopped emitting a section.
       #
-      # Asset BYTES are deliberately not compared, only which assets exist:
+      # Asset bytes are still not compared, and that reasoning holds:
       # rasterisation is per-engine and per-OS, so a byte comparison would fail
       # on every machine but the one that generated it, and a gate that cries
-      # wolf is a gate someone turns off.
+      # wolf is a gate someone turns off. What the check now also compares is
+      # each asset's SHAPE, which is the rendered DOM reduced to the things the
+      # CSS cascade computes rather than the things a glyph rasteriser measures,
+      # so it is the same on any machine. Without it this step read the PROSE of
+      # a page whose content is pictures, and Vehicle Assembly's showed a layout
+      # the code had stopped producing for five commits with every run agreeing.
       - name: Uplink pages are not stale
         run: |
           pnpm --filter @ksp-gonogo/ui-kit... build
           pnpm uplink-docs:check
+
+      # How many committed assets have no recorded shape, and is it growing. The
+      # step above can only ask its question of an asset that has one, so this is
+      # the count of pictures it is structurally unable to look at. No browser and
+      # no render: whether a file has an entry in the JSON beside it is a
+      # filesystem question. It plants an unrecorded asset and a recorded one and
+      # fails as BLIND if it miscounts either, before reporting on the real set.
+      - name: No new unverifiable Uplink assets
+        run: pnpm uplink-shape-gate
 
       # Min-size gate: mounts EVERY registered widget at the `minSize` it itself
       # declares and fails when its title ellipsises, its content is clipped with
