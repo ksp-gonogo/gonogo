@@ -1,6 +1,7 @@
 #if SITREP_CODEGEN
 using Reinforced.Typings.Attributes;
 #endif
+using System.Collections.Generic;
 using Sitrep.Contract;
 
 namespace GonogoRp1Uplink;
@@ -439,4 +440,69 @@ public class Rp1FundTargetSetArgs
     /// </summary>
     [SitrepUnit(Units.Funds)]
     public double? TargetFunds { get; set; }
+}
+
+/// <summary>
+/// Args for <c>rp1.training.enrol</c>: start a training course, which under RP-1
+/// is one act rather than two.
+///
+/// <para><b>There is no course to enrol into.</b> RP-1's own screen builds a
+/// course from a template, collects its students, and only puts it on the roster
+/// once it has STARTED, so an enrolled-but-unstarted course never exists to be
+/// added to. That is why this command names a template and a crew together: it
+/// is the whole press.</para>
+/// </summary>
+[SitrepContract]
+#if SITREP_CODEGEN
+[TsInterface]
+#endif
+public class Rp1TrainingEnrolArgs
+{
+    /// <summary>
+    /// The training to run, by the id <c>rp1.trainingCatalogue[].id</c> carries.
+    ///
+    /// <para>REQUIRED. There is no training a missing id could sensibly mean.</para>
+    /// </summary>
+    [SitrepUnit(Units.Id)]
+    public string? TemplateId { get; set; }
+
+    /// <summary>
+    /// The kerbals to enrol, by the names <c>spaceCenter.crewRoster</c> and
+    /// <c>rp1.crew</c> both key on.
+    ///
+    /// <para>All of them or none: a kerbal RP-1 will not take (already training,
+    /// grounded, off-world, an applicant rather than crew, or barred by the
+    /// training's own prerequisite) refuses the whole command by name rather than
+    /// being dropped from a course that then starts one seat short. RP-1's own
+    /// <c>AddStudent</c> checks none of that, so a partial enrolment would be
+    /// silent.</para>
+    /// </summary>
+    [SitrepUnit(Units.Id)]
+    public List<string>? Crew { get; set; }
+}
+
+/// <summary>
+/// Args for <c>rp1.training.cancel</c> and <c>rp1.training.remove</c>, RP-1's two
+/// distinct ways out of a course.
+///
+/// <para><b>Addressed by kerbal, not by course</b>, which is how RP-1 addresses
+/// both: each button is drawn on a selected naut's row. It is also the only
+/// unambiguous key we have, since <c>rp1.training[].id</c> is the TEMPLATE's id
+/// and two live courses could share it. A kerbal is on at most one course, which
+/// RP-1 keeps true by refusing a grounded kerbal as a student.</para>
+/// </summary>
+[SitrepContract]
+#if SITREP_CODEGEN
+[TsInterface]
+#endif
+public class Rp1TrainingLeaveArgs
+{
+    /// <summary>
+    /// The kerbal whose course this is about.
+    ///
+    /// <para>REQUIRED. For <c>cancel</c> it selects the course and every student
+    /// on it comes off; for <c>remove</c> it is the one student who leaves.</para>
+    /// </summary>
+    [SitrepUnit(Units.Id)]
+    public string? CrewName { get; set; }
 }

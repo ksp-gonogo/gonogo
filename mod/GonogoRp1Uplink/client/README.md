@@ -33,6 +33,7 @@ Brings RP-1's career layer to the dashboard: Programs with their objectives, dea
 | `rp1.research` | `Rp1ResearchEntry[]` | lossy-latest | true-now |
 | `rp1.rushTerms` | `Rp1RushTerms` | lossy-latest | true-now |
 | `rp1.training` | `Rp1TrainingCourseEntry[]` | lossy-latest | true-now |
+| `rp1.trainingCatalogue` | `Rp1TrainingTemplateEntry[]` | lossy-latest | true-now |
 | `rp1.warehouse` | `Rp1WarehouseItemEntry[]` | lossy-latest | true-now |
 | `rp1.available` | – | lossy-latest | true-now |
 
@@ -54,6 +55,8 @@ Brings RP-1's career layer to the dashboard: Programs with their objectives, dea
 | `Rp1RolloutArgs` | `id` id, `pad` id |
 | `Rp1StrategyActivateArgs` | `factor` ratio, `strategyId` id |
 | `Rp1TechResearchArgs` | `techId` id |
+| `Rp1TrainingEnrolArgs` | `crew` id, `templateId` id |
+| `Rp1TrainingLeaveArgs` | `crewName` id |
 | `Rp1VehicleArgs` | `id` id |
 
 ## Widgets

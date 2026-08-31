@@ -57,6 +57,7 @@ namespace GonogoRp1Uplink
         public const string CrewTopic = "rp1.crew";
         public const string CrewProgramTopic = "rp1.crewProgram";
         public const string TrainingTopic = "rp1.training";
+        public const string TrainingCatalogueTopic = "rp1.trainingCatalogue";
 
         /// <summary>
         /// Rows published per second across every rp1.* channel. One capture per
@@ -97,6 +98,17 @@ namespace GonogoRp1Uplink
         /// halves consult must be the same set.</para>
         /// </summary>
         private readonly Rp1CrewReflection _crew = new Rp1CrewReflection();
+
+        /// <summary>
+        /// The trainings RP-1 could be ASKED to run, on its own reader again. It
+        /// comes off the same handler as the courses and is still separate,
+        /// because the two lists have nothing in common but their owner: the
+        /// courses are the handful somebody started and move every tick, the
+        /// templates are one row per crewed part in the install and move when tech
+        /// completes. On the crew walk's cadence the second list would cost the
+        /// first list's tick rate for an answer that is the same all afternoon.
+        /// </summary>
+        private readonly Rp1TrainingCatalogueReflection _catalogue = new Rp1TrainingCatalogueReflection();
 
         /// <summary>
         /// RP-1's answer to whether a kerbal off the flight roster is dead, offered
@@ -176,6 +188,15 @@ namespace GonogoRp1Uplink
         private readonly Rp1StrategyCommands _strategies = new Rp1StrategyCommands();
 
         private readonly Rp1TargetCommands _targets = new Rp1TargetCommands();
+
+        /// <summary>
+        /// Putting a crew through a training and taking them back off it. Its own
+        /// class for the reason every write here has one, and because it is the
+        /// only one that constructs an RP-1 project and then hands it to RP-1's own
+        /// roster: the whole enrolment is a sequence RP-1 performs in a screen, and
+        /// getting its ORDER wrong grounds kerbals against a course nothing holds.
+        /// </summary>
+        private readonly Rp1TrainingCommands _trainingWrites = new Rp1TrainingCommands();
 
         /// <summary>
         /// The facility upgrade RP-1 turns into a construction project, which is
@@ -265,6 +286,7 @@ namespace GonogoRp1Uplink
         private IChannelPublisher? _crewProgram;
 
         private IChannelPublisher? _training;
+        private IChannelPublisher? _trainingCatalogue;
 
         /// <summary>
         /// Whether RP-1 is managing this save, asked fresh rather than remembered
@@ -303,7 +325,8 @@ namespace GonogoRp1Uplink
             Manifest = BuildManifest(
                 _build.IsAvailable, _vehicles.IsAvailable, _vehicles.IsMoveAvailable,
                 _staffing.IsAvailable, _start.IsAvailable, _facilities.IsAvailable,
-                _researchCommands.IsAvailable, _strategies.IsAvailable, _targets.IsAvailable);
+                _researchCommands.IsAvailable, _strategies.IsAvailable, _targets.IsAvailable,
+                _trainingWrites.IsAvailable);
             _crewStanding = new Rp1CrewStandingBackend(_crew);
             _economy = new Rp1EconomyBackend(_upkeepQuery);
         }
@@ -317,7 +340,8 @@ namespace GonogoRp1Uplink
             bool facilityModelResolved,
             bool researchModelResolved,
             bool strategyModelResolved,
-            bool targetModelResolved) => new UplinkManifest
+            bool targetModelResolved,
+            bool trainingModelResolved) => new UplinkManifest
         {
             Id = "rp1",
             Version = "1.0.0",
@@ -370,6 +394,12 @@ namespace GonogoRp1Uplink
                 Ground(CrewTopic, absenceIsData: true),
                 Ground(CrewProgramTopic, absenceIsData: true),
                 Ground(TrainingTopic, absenceIsData: true),
+                // Same disposition, one step further out. An empty catalogue would
+                // say the install has no crewed part that can be trained on, which
+                // RP-1 never means: it generates a template from every one of them,
+                // so nothing to enrol on is a claim about the reader rather than
+                // about the career.
+                Ground(TrainingCatalogueTopic, absenceIsData: true),
             },
             // Delayed: false, the same disposition every ground-side career write
             // takes and for the same reason core's own nine give: light-time is
@@ -384,7 +414,8 @@ namespace GonogoRp1Uplink
             Commands = DeclareCommands(
                 buildModelResolved, queueModelResolved, moveModelResolved,
                 staffingModelResolved, startModelResolved, facilityModelResolved,
-                researchModelResolved, strategyModelResolved, targetModelResolved),
+                researchModelResolved, strategyModelResolved, targetModelResolved,
+                trainingModelResolved),
         };
 
         /// <summary>
@@ -415,7 +446,8 @@ namespace GonogoRp1Uplink
             bool facilityModelResolved,
             bool researchModelResolved,
             bool strategyModelResolved,
-            bool targetModelResolved)
+            bool targetModelResolved,
+            bool trainingModelResolved)
         {
             var commands = new List<CommandDeclaration>();
             if (buildModelResolved)
@@ -496,6 +528,15 @@ namespace GonogoRp1Uplink
                 commands.Add(Declare(Rp1TargetCommands.CancelFundCommand));
                 commands.Add(Declare(Rp1TargetCommands.SetHireCommand));
                 commands.Add(Declare(Rp1TargetCommands.SetFundCommand));
+            }
+            // Its own flag, on RP-1's crew handler and its course type, which no
+            // other command here reaches: every one of the three is about a course
+            // and none of them is about a vehicle, a building or a balance.
+            if (trainingModelResolved)
+            {
+                commands.Add(Declare(Rp1TrainingCommands.EnrolCommand));
+                commands.Add(Declare(Rp1TrainingCommands.CancelCommand));
+                commands.Add(Declare(Rp1TrainingCommands.RemoveCommand));
             }
             return commands;
         }
@@ -627,13 +668,22 @@ namespace GonogoRp1Uplink
             // the remainder silently.
             Register(() =>
             {
-                // The evaluator goes up when ANY of the seven commands is
-                // declared, not when the repeat build is: it answers the one
-                // requirement they all declare, and a declaration without its
-                // evaluator is a startup failure.
+                // The evaluator goes up when ANY command that declares its
+                // requirement is declared, not when the repeat build is: they all
+                // declare the same one, and a declaration without its evaluator is
+                // a startup failure.
+                //
+                // So the list is every reader whose commands go through Declare,
+                // and it has to STAY every one of them. Three were missing until
+                // 2026-08-31, and the omission was invisible because all of these
+                // resolve or fail together on one condition (RP-1's assembly being
+                // loaded); a rename that cost only the build reader would have
+                // taken the mod down at load naming a command that was fine.
                 if (_build.IsAvailable || _vehicles.IsAvailable || _staffing.IsAvailable
                     || _facilities.IsAvailable
-                    || _researchCommands.IsAvailable)
+                    || _researchCommands.IsAvailable
+                    || _strategies.IsAvailable || _targets.IsAvailable
+                    || _trainingWrites.IsAvailable)
                 {
                     host.AddGateEvaluator(_build);
                 }
@@ -724,6 +774,18 @@ namespace GonogoRp1Uplink
                 {
                     host.AddCommandHandler<Rp1TechResearchArgs, CommandResult>(
                         Rp1ResearchCommands.ResearchCommand, _researchCommands.Research);
+                }
+            });
+            Register(() =>
+            {
+                if (_trainingWrites.IsAvailable)
+                {
+                    host.AddCommandHandler<Rp1TrainingEnrolArgs, CommandResult>(
+                        Rp1TrainingCommands.EnrolCommand, _trainingWrites.Enrol);
+                    host.AddCommandHandler<Rp1TrainingLeaveArgs, CommandResult>(
+                        Rp1TrainingCommands.CancelCommand, _trainingWrites.Cancel);
+                    host.AddCommandHandler<Rp1TrainingLeaveArgs, CommandResult>(
+                        Rp1TrainingCommands.RemoveCommand, _trainingWrites.Remove);
                 }
             });
 
@@ -834,6 +896,7 @@ namespace GonogoRp1Uplink
             _crewList = host.Publisher(CrewTopic);
             _crewProgram = host.Publisher(CrewProgramTopic);
             _training = host.Publisher(TrainingTopic);
+            _trainingCatalogue = host.Publisher(TrainingCatalogueTopic);
 
             host.AddSampledSource(
                 CaptureOnMain,
@@ -880,6 +943,22 @@ namespace GonogoRp1Uplink
                 CrewTopic,
                 CrewProgramTopic,
                 TrainingTopic);
+
+            // Gated on ONE topic, which is the whole reason it is not part of the
+            // crew capture above: it is the most expensive walk on this Uplink per
+            // row of answer, one row per crewed part in the install with a research
+            // queue scanned for each, and it is the least likely to be watched.
+            // Riding the crew capture would put that cost on anyone reading a
+            // retirement date.
+            //
+            // Its whole effect is still its return value, which is what makes
+            // gating it legal at all: nothing stashes it and no command reads it.
+            // The enrolment command resolves its own template from RP-1 directly,
+            // rather than from anything this left behind.
+            host.AddSampledSource(
+                CaptureCatalogueOnMain,
+                HandleCatalogueOnCourier,
+                TrainingCatalogueTopic);
 
             // UNGATED, and the two captures above say why by contrast: their whole
             // effect is their return value, and this one's is not. It feeds the
@@ -1031,6 +1110,32 @@ namespace GonogoRp1Uplink
         }
 
         /// <summary>
+        /// MAIN-THREAD capture: the enrolable trainings, or NULL when the last
+        /// reading still stands.
+        /// </summary>
+        /// <remarks>
+        /// A null here is "no news" rather than "no catalogue", and the handle
+        /// below is what makes the difference visible: it publishes nothing at all
+        /// on a null capture, leaving the channel saying what it already said,
+        /// whereas an install whose crew handler is not live captures a reading
+        /// whose list is null and publishes the absence.
+        /// </remarks>
+        internal object? CaptureCatalogueOnMain(KspSnapshot? snapshot) =>
+            _catalogue.IsAvailable ? _catalogue.Read(snapshot?.Ut ?? 0.0) : null;
+
+        /// <summary>COURIER-THREAD handle: map to wire dicts and publish. No game API.</summary>
+        internal void HandleCatalogueOnCourier(object? captured)
+        {
+            if (!(captured is Rp1TrainingCatalogueRaw raw))
+            {
+                return;
+            }
+            var rows = Rp1CrewCapture.BuildCatalogue(raw);
+            Rp1RowBudget.Record(rows?.Count ?? 0, raw.Ut);
+            _trainingCatalogue?.Publish(rows, raw.Ut);
+        }
+
+        /// <summary>
         /// Health, and WHICH RP-1. The version caveat at the top of
         /// <see cref="Rp1ScReflection"/> is why these facts are load-bearing
         /// rather than decorative: RP-1 ships roughly monthly, this Uplink is
@@ -1154,6 +1259,18 @@ namespace GonogoRp1Uplink
                     _crewStandingRegistrationError != null
                         ? "registration failed: " + _crewStandingRegistrationError
                         : _crewStanding.IsAvailable ? "registered" : "CrewHandler type not found"),
+                // Its own fact, and it says which SIDE is missing, because the two
+                // halves of G1 fail independently: the catalogue is a read off the
+                // crew handler and the three commands also need the course type,
+                // so a board that can list every training and enrol on none has a
+                // different cause from one that can list none.
+                new UplinkHealthFact(
+                    "training",
+                    (_catalogue.IsAvailable ? "rp1.trainingCatalogue published" : "CrewHandler type not found")
+                    + "; "
+                    + (_trainingWrites.IsAvailable
+                        ? "enrol, cancel and remove registered"
+                        : "commands not registered: CrewHandler or TrainingCourse type not found")),
             };
 
             if (!_rp1.IsAvailable)

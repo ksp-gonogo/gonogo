@@ -207,13 +207,18 @@ namespace GonogoRp1Uplink.Tests
 
                 var overloads = assembly.FindMethods(target.Type, ".ctor");
                 var match = overloads.FirstOrDefault(m =>
-                    m.ParameterTypes.Length == target.Arity && m.IsPublic);
+                    m.ParameterTypes.Length == target.Arity
+                    && m.IsPublic
+                    && (target.FirstParameterType == null
+                        || (m.ParameterTypes.Length > 0 && m.ParameterTypes[0] == target.FirstParameterType)));
 
                 if (match == null)
                 {
+                    var shape = target.Arity + " parameter(s)"
+                        + (target.FirstParameterType == null ? "" : ", the first a " + target.FirstParameterType);
                     failures.Add(
-                        target.Type + " has no public constructor taking " + target.Arity
-                        + " parameter(s), which is how " + target.CallSite + " finds it. Present instead: "
+                        target.Type + " has no public constructor taking " + shape
+                        + ", which is how " + target.CallSite + " finds it. Present instead: "
                         + string.Join(" | ", overloads.Select(Describe)));
                 }
             }

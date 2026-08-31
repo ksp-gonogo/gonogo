@@ -54,6 +54,15 @@ export interface Rp1FundTargetSetArgs
 {
 	targetFunds?: number;
 }
+export interface Rp1TrainingEnrolArgs
+{
+	templateId?: string;
+	crew?: string[];
+}
+export interface Rp1TrainingLeaveArgs
+{
+	crewName?: string;
+}
 export interface Rp1CentreEntry
 {
 	kscName?: string;
@@ -365,6 +374,19 @@ export interface Rp1TrainingCourseEntry
 	completed?: boolean;
 	completesAtUt?: Value<"ut">;
 	studentsAvailableAtUt?: Value<"ut">;
+	isTemporary?: boolean;
+}
+export interface Rp1TrainingTemplateEntry
+{
+	id?: string;
+	name?: string;
+	description?: string;
+	type?: string;
+	target?: string;
+	baseTime?: Value<"s">;
+	seatMin?: Value<"count">;
+	seatMax?: Value<"count">;
+	unlocked?: boolean;
 	isTemporary?: boolean;
 }
 export interface Rp1StrategyActivateArgs

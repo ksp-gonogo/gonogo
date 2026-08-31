@@ -37,6 +37,7 @@ import type {
   Rp1ResearchEntry,
   Rp1RushTerms,
   Rp1TrainingCourseEntry,
+  Rp1TrainingTemplateEntry,
   Rp1WarehouseItemEntry,
 } from "./__generated__/contract";
 import {
@@ -162,6 +163,21 @@ export const RP1_FUND_TARGET_TOPIC = "rp1.fundTarget";
  */
 export const RP1_TRAINING_TOPIC = "rp1.training";
 
+/**
+ * The trainings RP-1 could be asked to run: the enrolable side of
+ * `rp1.training`.
+ *
+ * One row per crewed part in the install, whether or not anyone ever trains on
+ * it, carrying what an operator picks by: the seat bounds, the base time and
+ * whether the career has unlocked it.
+ *
+ * There is deliberately no Astronaut Complex requirement on these rows. RP-1
+ * states it through a getter that mutates a shared static, which a per-tick read
+ * must not do, so `rp1.training.enrol` asks it at the moment of the press and a
+ * refusal names the tier.
+ */
+export const RP1_TRAINING_CATALOGUE_TOPIC = "rp1.trainingCatalogue";
+
 declare module "@ksp-gonogo/sitrep-sdk" {
   interface TopicPayloadMap {
     "rp1.available": boolean;
@@ -184,6 +200,7 @@ declare module "@ksp-gonogo/sitrep-sdk" {
     "rp1.crewProgram": Rp1CrewProgram;
     "rp1.fundTarget": Rp1FundTarget;
     "rp1.training": Rp1TrainingCourseEntry[];
+    "rp1.trainingCatalogue": Rp1TrainingTemplateEntry[];
   }
 }
 
@@ -207,6 +224,7 @@ registerBarePrimitiveTopic(RP1_CREW_TOPIC);
 registerBarePrimitiveTopic(RP1_CREW_PROGRAM_TOPIC);
 registerBarePrimitiveTopic(RP1_FUND_TARGET_TOPIC);
 registerBarePrimitiveTopic(RP1_TRAINING_TOPIC);
+registerBarePrimitiveTopic(RP1_TRAINING_CATALOGUE_TOPIC);
 
 // Driven by looping the generated maps rather than naming each entry, so a
 // Topic added to this Uplink's contract later needs no new call site. Both
@@ -290,4 +308,7 @@ export type _ResolvesRp1FundTarget = Expect<
 >;
 export type _ResolvesRp1Training = Expect<
   Equal<TopicPayload<"rp1.training">, Rp1TrainingCourseEntry[]>
+>;
+export type _ResolvesRp1TrainingCatalogue = Expect<
+  Equal<TopicPayload<"rp1.trainingCatalogue">, Rp1TrainingTemplateEntry[]>
 >;

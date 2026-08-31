@@ -94,6 +94,38 @@ namespace GonogoRp1Uplink
             return list;
         }
 
+        /// <summary>
+        /// The enrolable trainings. Null when RP-1's crew handler is not live, on
+        /// the same reasoning as the courses above; an empty list would say the
+        /// install has no crewed parts at all, which RP-1 never means.
+        /// </summary>
+        public static List<object?>? BuildCatalogue(Rp1TrainingCatalogueRaw? raw)
+        {
+            if (raw?.Templates == null)
+            {
+                return null;
+            }
+
+            var list = new List<object?>();
+            foreach (var t in raw.Templates)
+            {
+                list.Add(new Dictionary<string, object?>
+                {
+                    ["id"] = t.Id,
+                    ["name"] = t.Name,
+                    ["description"] = t.Description,
+                    ["type"] = t.Type,
+                    ["target"] = t.Target,
+                    ["baseTime"] = t.BaseTime,
+                    ["seatMin"] = t.SeatMin,
+                    ["seatMax"] = t.SeatMax,
+                    ["unlocked"] = t.Unlocked,
+                    ["isTemporary"] = t.IsTemporary,
+                });
+            }
+            return list;
+        }
+
         public static Dictionary<string, object?>? BuildProgram(Rp1CrewRaw? raw)
         {
             var program = raw?.Program;

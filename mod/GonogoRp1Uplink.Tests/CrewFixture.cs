@@ -41,6 +41,31 @@ public class ProtoCrewMember
     /// can actually fly again.
     /// </summary>
     public double inactiveTimeEnd { get; set; }
+
+    /// <summary>
+    /// Stock's grounded flag, which RP-1 sets at course start and clears on every
+    /// way out of one. Here so a test can hold the thing an operator actually
+    /// cares about after a cancel: that the crew can fly again.
+    /// </summary>
+    public bool inactive { get; set; }
+
+    /// <summary>
+    /// RP-1's own grounding call, as RP-1 makes it: <c>SetInactive(seconds,
+    /// true)</c> at course start. Both effects, because the two dates it sets are
+    /// different answers and the walk publishes both.
+    /// </summary>
+    public void SetInactive(double seconds, bool fromTraining)
+    {
+        inactive = true;
+        inactiveTimeEnd = Ut + seconds;
+    }
+
+    /// <summary>
+    /// The clock <see cref="SetInactive"/> counts from. Stock reads
+    /// <c>Planetarium.GetUniversalTime()</c>; a stand-in for that static is more
+    /// machinery than one date is worth.
+    /// </summary>
+    public static double Ut;
 }
 
 namespace RP0
@@ -92,6 +117,29 @@ namespace RP0.Crew
         public int seatMax;
 
         public bool isTemporary;
+
+        /// <summary>
+        /// The persisted base time. Read as a FIELD by the catalogue walk, because
+        /// <c>GetBaseTime</c> returns exactly this for an empty student list and
+        /// reaches a mutating shared static for a non-empty one.
+        /// </summary>
+        public double time;
+
+        /// <summary>
+        /// A computed property on the real type, over <c>partsCovered</c> and the
+        /// research queue. A settable stand-in here: what the walk has to get right
+        /// is that it reads a bool off this name, and reproducing RP-1's tech
+        /// lookup would prove only that the reproduction agrees with itself.
+        /// </summary>
+        public bool IsUnlocked { get; set; }
+
+        /// <summary>
+        /// The Astronaut Complex tier this training demands. Computed on the real
+        /// type, through the shared-static tracker that keeps it off the wire, and
+        /// settable here because the enrolment command's gate is the one thing that
+        /// reads it.
+        /// </summary>
+        public int ACLevelRequirement { get; set; }
     }
 
     /// <summary>
@@ -156,6 +204,140 @@ namespace RP0.Crew
             _template = template;
             return this;
         }
+
+        /// <summary>
+        /// RP-1's own three constructors, and the two single-argument ones are the
+        /// point: both are public, so a production lookup matching on arity alone
+        /// would build a course out of a template it then read as a save node. The
+        /// ConfigNode overload exists here to make that mistake FAIL rather than
+        /// pass by luck of declaration order.
+        /// </summary>
+        public TrainingCourse()
+        {
+        }
+
+        public TrainingCourse(TrainingTemplate template)
+        {
+            id = template.id;
+            _template = template;
+            BP = template.time;
+        }
+
+        public TrainingCourse(ConfigNode node) => LoadedFromNode = true;
+
+        /// <summary>Set by the persistence constructor, so a test can say which one ran.</summary>
+        public bool LoadedFromNode { get; }
+
+        public int ACLevelRequirement => _template?.ACLevelRequirement ?? 0;
+
+        /// <summary>
+        /// RP-1's student gate, in RP-1's order. Not a full copy: the real one also
+        /// reads a kerbal's type, roster status and career log, and what the
+        /// command has to get right is that it ASKS this before adding rather than
+        /// what the answer is made of.
+        /// </summary>
+        public bool MeetsStudentReqs(ProtoCrewMember student)
+        {
+            if (student.inactive || Students.Contains(student))
+            {
+                return false;
+            }
+            return _template == null || _template.seatMax <= 0 || Students.Count < _template.seatMax;
+        }
+
+        /// <summary>
+        /// RP-1's own pair, and the string overload is declared for the reason the
+        /// ConfigNode constructor is: it goes through the roster indexer and ADDS
+        /// THE NULL it gets back for a name nobody holds, so a command that
+        /// resolved by arity alone would enrol nobody and report success.
+        /// </summary>
+        public void AddStudent(ProtoCrewMember student)
+        {
+            if ((_template == null || _template.seatMax <= 0 || Students.Count < _template.seatMax)
+                && !Students.Contains(student))
+            {
+                Students.Add(student);
+            }
+        }
+
+        public void AddStudent(string student) => AddedByName.Add(student);
+
+        /// <summary>Names handed to the string overload, which nothing should reach.</summary>
+        public static readonly List<string> AddedByName = new List<string>();
+
+        public void RemoveStudent(ProtoCrewMember student)
+        {
+            if (!Students.Contains(student))
+            {
+                return;
+            }
+            Students.Remove(student);
+            if (!Started)
+            {
+                return;
+            }
+            student.inactive = false;
+            if (Students.Count == 0)
+            {
+                CompleteCourse();
+            }
+        }
+
+        public void RemoveStudent(string student) => RemovedByName.Add(student);
+
+        public static readonly List<string> RemovedByName = new List<string>();
+
+        /// <summary>
+        /// RP-1's start, including the grounding that is the whole reason nothing
+        /// may fail after it: every student is marked unavailable for 120% of the
+        /// base time, and a course that started and was then not kept would leave
+        /// them grounded against nothing.
+        /// </summary>
+        public bool StartCourse()
+        {
+            if (Started)
+            {
+                return true;
+            }
+            if (_template == null || Students.Count < _template.seatMin)
+            {
+                return false;
+            }
+            if (_template.seatMax > 0 && Students.Count > _template.seatMax)
+            {
+                return false;
+            }
+            Started = true;
+            foreach (var student in Students)
+            {
+                student.SetInactive(_template.time * 1.2, true);
+            }
+            return true;
+        }
+
+        /// <summary>
+        /// RP-1's completion, and the short-circuit is the load-bearing half: with
+        /// <c>Completed</c> still false the reward block does not run at all and
+        /// the method is purely an un-grounding, which is exactly what makes it
+        /// RP-1's own Cancel.
+        /// </summary>
+        public void CompleteCourse()
+        {
+            if (Completed)
+            {
+                Rewarded++;
+            }
+            foreach (var student in Students)
+            {
+                student.inactive = false;
+            }
+        }
+
+        /// <summary>
+        /// How many times the reward path ran. A cancel must never reach it: it
+        /// grants a retirement extension and, in the game, opens a dialog.
+        /// </summary>
+        public static int Rewarded;
     }
 
     /// <summary>
@@ -178,6 +360,12 @@ namespace RP0.Crew
         private List<TrainingExpiration> _expireTimes = new List<TrainingExpiration>();
 
         public List<TrainingCourse> TrainingCourses = new List<TrainingCourse>();
+
+        /// <summary>
+        /// The enrolable catalogue: one entry per crewed part in the install, and
+        /// the list the enrolment command resolves a template id against.
+        /// </summary>
+        public List<TrainingTemplate> TrainingTemplates = new List<TrainingTemplate>();
 
         public bool RetirementEnabled = true;
         public bool CrewRnREnabled = true;

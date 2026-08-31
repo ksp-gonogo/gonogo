@@ -469,6 +469,18 @@ namespace RP0
         /// <summary>Made to throw, to pin that a failed convenience does not undo a node that IS queued.</summary>
         public static bool ThrowOnExperimental;
 
+        /// <summary>
+        /// RP-1's facility TIER: an index, unlike stock's normalised fraction,
+        /// which is why RP-1 asks its own converter everywhere it gates on a
+        /// building. Settable per facility so a test can put the Astronaut Complex
+        /// below a training's requirement.
+        /// </summary>
+        public static readonly Dictionary<SpaceCenterFacility, int> FacilityLevels =
+            new Dictionary<SpaceCenterFacility, int>();
+
+        public static int GetFacilityLevel(SpaceCenterFacility facility) =>
+            FacilityLevels.TryGetValue(facility, out var level) ? level : 0;
+
         public static void Reset()
         {
             ThrowOnAdd = false;
@@ -1311,6 +1323,15 @@ namespace RP0
         /// the career is being drained.
         /// </summary>
         public double UpkeepPerDayForDisplay;
+
+        /// <summary>
+        /// How many times RP-1 was told its upkeep is stale. Training is a per-day
+        /// charge rather than a purchase, so a course that started or ended without
+        /// this leaves RP-1 quoting the old payroll until its own hourly timer.
+        /// </summary>
+        public int UpkeepUpdatesScheduled;
+
+        public void ScheduleMaintenanceUpdate() => UpkeepUpdatesScheduled++;
 
         public double FacilityUpkeepValue;
         public double IntegrationSalaryValue;
