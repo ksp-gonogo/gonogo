@@ -179,6 +179,72 @@ namespace GonogoPrincipiaUplink.Tests
             Assert.Contains("initial_time", difference!);
         }
 
+        // ── The frame's bodies ──────────────────────────────────────────────
+
+        /// <summary>
+        /// The case the comparison could not see until now: same kind, same Δv, same
+        /// instant, different BODY. Every other field agrees, so before the frame
+        /// indices joined the snapshot this burn round-tripped clean.
+        /// </summary>
+        [Fact]
+        public void A_burn_that_came_back_centred_on_another_body_is_refused()
+        {
+            var went = FromPlugin(centre: 1);
+            var came = FromPlugin(centre: 5);
+
+            var difference = PrincipiaLayoutProbe.DescribeBurnDifference(went, came);
+
+            Assert.NotNull(difference);
+            Assert.Contains("centre_index", difference!);
+            Assert.Contains("1", difference);
+            Assert.Contains("5", difference);
+        }
+
+        /// <summary>
+        /// The pair slots too, which a direction frame reads instead of the centre.
+        /// Asserted separately rather than trusting that one loop covers three fields.
+        /// </summary>
+        [Fact]
+        public void A_burn_whose_frame_pair_changed_is_refused()
+        {
+            // Built through the constructor rather than assigned, because the fake's
+            // slots are non-public exactly as the producer's descriptor's are, and a
+            // test that widened them would be exercising a shape RP-1 does not have.
+            var primary = FromPlugin(primary: 9);
+            Assert.Contains(
+                "primary_index", PrincipiaLayoutProbe.DescribeBurnDifference(FromPlugin(), primary)!);
+
+            var secondary = FromPlugin(secondary: 9);
+            Assert.Contains(
+                "secondary_index",
+                PrincipiaLayoutProbe.DescribeBurnDifference(FromPlugin(), secondary)!);
+        }
+
+        /// <summary>
+        /// And the complement, so the three tests above are not passing because the
+        /// comparison refuses everything: an unchanged frame still round-trips clean.
+        /// </summary>
+        [Fact]
+        public void An_unchanged_frame_is_still_the_same_frame()
+        {
+            Assert.Null(PrincipiaLayoutProbe.DescribeBurnDifference(FromPlugin(), FromPlugin()));
+        }
+
+        /// <summary>A burn as it comes OUT of the plugin: a frame with all four slots.</summary>
+        private static FakeBurn FromPlugin(int centre = 1, int primary = -1, int secondary = -1)
+        {
+            var burn = new FakeBurn(new FakeBurnFrameParameters(6000, centre, primary, secondary))
+            {
+                initial_time = SentInstant,
+                intensity = new FakeIntensity
+                {
+                    coordinate_system_ = 1,
+                    xyz = new FakeXyz { x = 120.5, y = 0.0, z = 0.0 },
+                },
+            };
+            return burn;
+        }
+
         // ── The arithmetic the tests above lean on ──────────────────────────
 
         /// <summary>The next representable double above <paramref name="value"/>.</summary>

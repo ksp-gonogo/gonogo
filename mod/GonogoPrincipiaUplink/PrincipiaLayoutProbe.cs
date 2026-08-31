@@ -491,6 +491,9 @@ namespace GonogoPrincipiaUplink
             "delta_v_normal",
             "delta_v_binormal",
             "frame_extension",
+            PrincipiaBurnStruct.CentreIndexField,
+            PrincipiaBurnStruct.PrimaryIndexField,
+            PrincipiaBurnStruct.SecondaryIndexField,
         };
 
         /// <summary>
@@ -526,6 +529,37 @@ namespace GonogoPrincipiaUplink
                 ["coordinate_system"] =
                     Component.Exact(Fields.CoordinateSystem(burn)?.ToString()),
                 ["frame_extension"] = Component.Exact(Fields.FrameExtension(burn)?.ToString()),
+
+                // The frame's BODIES, and the reason they are here is the one thing
+                // the comparison could not see: a burn that came back centred on
+                // Kerbin instead of the Mun has the same kind, the same Δv and the
+                // same instant, and every other field agrees. It is also exactly what
+                // a tolerance must never paper over, so they are discrete like the
+                // kind above them.
+                //
+                // All three, including the slot the kind does not read. The producer
+                // does not validate an unread slot, so a difference there means
+                // nothing about the frame and refusing on it is arguably strict; it
+                // is compared anyway because our composer writes a FIXED value into
+                // that slot precisely so a descriptor of ours compares equal to one of
+                // the producer's, and a slot that stopped matching is the first sign
+                // that assumption has lapsed. If a press shows Principia returning its
+                // own value in an unread slot, narrow this to the slots the kind reads
+                // rather than loosening how they are compared.
+                //
+                // MEASURED, so the coverage claim is honest: dropping these three from
+                // the comparison reds two tests, so they are demonstrably compared.
+                // Switching them to the tolerant path reds NOTHING, for the same
+                // reason it reds nothing on the coordinate system: body indices are
+                // small integers and adjacent ones are about 2^52 ULPs apart, so four
+                // ULPs could not conflate two bodies either. Their being on the exact
+                // path is intent, not a difference their values can express.
+                [PrincipiaBurnStruct.CentreIndexField] =
+                    Component.Exact(Fields.FrameCentreIndex(burn)?.ToString()),
+                [PrincipiaBurnStruct.PrimaryIndexField] =
+                    Component.Exact(Fields.FramePrimaryIndex(burn)?.ToString()),
+                [PrincipiaBurnStruct.SecondaryIndexField] =
+                    Component.Exact(Fields.FrameSecondaryIndex(burn)?.ToString()),
             };
         }
 
