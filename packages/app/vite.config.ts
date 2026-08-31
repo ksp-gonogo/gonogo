@@ -171,15 +171,15 @@ const UPLINK_EXTERNALS: {
   file: resolve(externalsDir, `${entryName}.ts`),
 }));
 
-// Build each first-party Uplink client into a standalone ESM bundle with every
+// Build each Uplink client into a standalone ESM bundle with every
 // shared package externalised, hash it, and write the local registry fixture the
 /*
  * loader reads in Phase A. Runs at build only (`apply: "build"`) via buildStart,
  * so `public/uplinks/` is populated before Vite copies publicDir into dist.
  *
- * There is no static-import path for these three: `main.tsx` registers them
- * ONLY through the runtime loader. So `pnpm dev` has no bundles and no
- * `registry.local.json` to read, and the loader quarantines all three with
+ * There is no static-import path for any of them: `main.tsx` registers every
+ * Uplink ONLY through the runtime loader. So `pnpm dev` has no bundles and no
+ * `registry.local.json` to read, and the loader quarantines the lot with
  * "registry unavailable", leaving their widgets out of the registry. Run a
  * build first if you need them in the dev server; the Playwright specs that
  * need a loaded Uplink point at `vite preview` for the same reason.
