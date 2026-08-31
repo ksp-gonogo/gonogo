@@ -165,9 +165,7 @@ Every craft RP-1 is integrating, holding or could start, across every launch com
 
 ![The same widget at 18 × 5](docs/assets/build-cost-absences-and-tech-gate--landscape-18x5.png)
 
-![Most of what this vehicle costs is the penalty for flying it untooled, and the tooling that removes it is cheaper than one build of the penalty](docs/assets/build-cost-mostly-surcharge--default.png)
-
-![The same widget at its minimum size](docs/assets/build-cost-mostly-surcharge--min.png)
+![Most of what this vehicle costs is the penalty for flying it untooled: the indent says that figure is part of the one above rather than added to it](docs/assets/build-cost-mostly-surcharge--default.png)
 
 ![The same widget at 9 × 8](docs/assets/build-cost-mostly-surcharge--mobile-9x8.png)
 

@@ -99,17 +99,30 @@ describe("BuildCostSection: funds, and only funds", () => {
   });
 
   /**
-   * The assertion the whole section is shaped around. The surcharge is INSIDE the
-   * vehicle cost, so the wording has to say so: an operator who reads the column
-   * as a sum arrives at a number larger than the launch costs.
+   * The containment is STRUCTURAL, so this asserts the structure rather than a
+   * sentence. The surcharge is inside the vehicle cost, and an operator who reads
+   * the column as a sum arrives at more than the launch costs; the indent is what
+   * stops that, on every render and at every size, where prose was clipped away at
+   * the narrow ones.
+   *
+   * <para>Asserted through the marker the indent container carries rather than
+   * through a class or a pixel offset: the test should fail if the row stops being
+   * SUBORDINATE, not if the design system changes how far it insets.</para>
    */
-  it("says the surcharge is part of the vehicle cost rather than on top of it", async () => {
+  it("nests the surcharge under the vehicle cost rather than beside it", async () => {
     const stream = mount();
 
     emit(stream, PRICED);
+    await screen.findByText("Untooled");
 
-    expect(await screen.findByText(/untooled/)).toBeInTheDocument();
-    expect(visibleText(stream.container)).toContain("not on top of it");
+    const nested = stream.container.querySelector("[data-of-which]");
+    expect(nested).not.toBeNull();
+    expect(nested?.textContent).toContain("Untooled");
+
+    // And the prose it replaced is gone, so a later edit cannot quietly put a
+    // sentence back beside the structure that now carries the meaning.
+    expect(visibleText(stream.container)).not.toContain("not on top of it");
+    expect(visibleText(stream.container)).not.toContain("charged once");
   });
 
   /**

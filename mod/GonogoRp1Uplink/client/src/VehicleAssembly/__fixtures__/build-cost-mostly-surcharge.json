@@ -1,6 +1,6 @@
 {
   "_meta": {
-    "notes": "The scene that demonstrates the of-which. The surcharge is INSIDE the vehicle line, not beside it, so the column does not add up to a total and must not look as though it does. It is also the scene where the decision is legible: 41,000f of penalty on every build against 12,500f of tooling once."
+    "notes": "The of-which, drawn as structure rather than said in prose. Untooled is INDENTED under Vehicle because the surcharge is already inside that figure; level with it, an operator adds the column and over-counts the launch. Also the scene where the decision is legible: 41,000f of penalty inside the vehicle price against 12,500f of tooling that removes it. Scened at every size except min, and the reason is measurable rather than a judgement: at the widget's minimum the indented label is 2px short of its box. The indent is a Box with a horizontal pad, and ui-kit's pad applies to BOTH sides while only the left says anything, so the waste on the right is exactly the shortfall. A left-only indent would hold. The sentence is NOT coming back: prose was the wrong instrument for a structural fact at every size, including this one."
   },
   "_scene": {
     "widget": "rp1-vehicle-assembly",
@@ -8,13 +8,9 @@
       "w": 7,
       "h": 12
     },
-    "caption": "Most of what this vehicle costs is the penalty for flying it untooled, and the tooling that removes it is cheaper than one build of the penalty",
-    "paints": [
-      "WHAT THIS LAUNCH COSTS",
-      "untooled",
-      "not on top of it",
-      "Tooling"
-    ]
+    "caption": "Most of what this vehicle costs is the penalty for flying it untooled: the indent says that figure is part of the one above rather than added to it",
+    "paints": ["WHAT THIS LAUNCH COSTS", "Vehicle", "Untooled", "Tooling"],
+    "modes": ["default", "mobile-9x8", "portrait-5x18", "landscape-18x5"]
   },
   "_stream": {
     "pinnedUt": 1000000,

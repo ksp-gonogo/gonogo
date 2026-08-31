@@ -2,6 +2,7 @@ import type { Value } from "@ksp-gonogo/sitrep-sdk";
 import { registerAugment, useTelemetry } from "@ksp-gonogo/sitrep-sdk";
 import {
   Badge,
+  Box,
   Cluster,
   NULL_DISPLAY,
   Row,
@@ -87,41 +88,37 @@ function CostRow({ name, value }: { name: string; value?: Value<"funds"> }) {
 }
 
 /**
- * The untooled surcharge, drawn as an OF WHICH of the vehicle line above it.
+ * The untooled surcharge, drawn INDENTED under the vehicle cost.
  *
- * <para><b>This is the one row whose placement is load-bearing.</b> The surcharge
- * is already inside the vehicle cost: RP-1's tooling module is an
+ * <para><b>The indent is the whole statement, and it replaced two sentences.</b> The
+ * surcharge is already inside the vehicle cost: RP-1's tooling module is an
  * `IPartCostModifier`, the game folds its contribution into each part's price, and
- * the vehicle figure contains it before it reaches the wire. Drawn as another line
- * in the column it would invite an operator to add it, and the total they arrived
- * at would be more than the launch costs.</para>
+ * the vehicle figure contains it before it reaches the wire. Drawn level with the
+ * other lines it invites an operator to add it, and the total they arrive at is more
+ * than the launch costs.</para>
  *
- * <para>It carries the decision as well as the number. The surcharge is paid on
- * EVERY copy of this vehicle ever built and the tooling above it is paid once, so
- * the badge is the thing that turns two figures into a choice.</para>
+ * <para>That containment used to be said in prose. An of-which relationship is a
+ * TREE, so it is drawn as one: the indent says it at every size, on every render,
+ * without a word, and it cannot be clipped away the way a label was. A sentence was
+ * the wrong instrument for a structural fact.</para>
+ *
+ * <para><b>"Untooled" is RP-1's own word, not ours.</b> Its code carries
+ * `ProcessUntooledParts`, `GetUntooledPartsAndCost`, `UntooledMultiplier` and a
+ * `_untooledTypesScroll` region in its own tooling window, so an operator meets the
+ * term in the game before they meet it here. A clearer-sounding synonym would make
+ * two concepts out of one; leave it alone.</para>
  */
 function SurchargeRow({ cost }: { cost: Rp1BuildCost }) {
   if (cost.untooledSurcharge == null) {
     return null;
   }
   return (
-    /* THE MEANING IS IN THE SENTENCE, NOT THE LABEL, and renders at three sizes
-       are what settled that. The row's name gets 60px at this widget's minimum and
-       "of which untooled" needs 122, so the wording that carries the whole point
-       was clipped away exactly where the widget is hardest to read. A short label
-       and a full-width line below it cannot clip, and the line can say more than a
-       label had room to: that this is part of the figure above rather than extra,
-       and that it returns on every build while the tooling does not. */
-    <Stack gap="xs" data-of-which="">
+    <Box pad={["xs", "xs"]} data-of-which="">
       <Row as="div">
-        <RowName>untooled</RowName>
+        <RowName>Untooled</RowName>
         <Unit value={cost.untooledSurcharge} decimals={0} />
       </Row>
-      <Text tone="faint" size="sm">
-        Part of the vehicle cost above, not on top of it. Charged again on every
-        build; the tooling is charged once.
-      </Text>
-    </Stack>
+    </Box>
   );
 }
 
