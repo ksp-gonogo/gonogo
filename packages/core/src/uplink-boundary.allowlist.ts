@@ -33,6 +33,25 @@
  * The dividing line in one sentence: if there's code to move, it's
  * domain-debt; if naming the mod is the file's actual job (wire shape) or
  * the mention is just words, it's permanent.
+ *
+ * THE BUNDLE-TIME UPLINK IMPORT (`packages/app/src/main.tsx`). Six tokens
+ * carry this one entry and it means the same thing for every one of them: the
+ * app bundles each first-party Uplink client at build time, so `main.tsx` takes
+ * a side-effect import of that client's package, and the package name contains
+ * the mod's. It is `permanent`. An import of a package whose name contains a
+ * mod name is the mechanism by which an Uplink registers at all, the app learns
+ * nothing about the mod from it, and there is nothing here to shrink: delete
+ * the Uplink and the import goes with it. That a runtime loader would one day
+ * remove the line does not make it debt in the meantime, or every wire type
+ * would be debt until its Topic is retired.
+ *
+ * Written down here once because it was written down six times and drifted into
+ * four readings. One of them filed the identical line under `domainDebt` and
+ * justified it as clearing "when the runtime loader lands", while an entry
+ * further down said in as many words that it is "not domainDebt, because there
+ * is no coupling here to shrink". No gate could see the contradiction: each
+ * token's lists are checked independently, so nothing ever compares the two.
+ * The six sites point here now instead of restating it.
  */
 
 export type ModToken =
@@ -598,15 +617,6 @@ export const ALLOWLIST: Record<ModToken, ModAllowlist> = {
   // === kos: owning dir mod/GonogoKosUplink/
   kos: {
     domainDebt: [
-      /*
-       * -- HARD violations (audit §3): a full second kOS client living in
-       * packages/app, plus JsonWriter.cs hardcoding kOS payload shapes in the
-       * shared engine, plus PeerHostService.ts's handleKosExecuteRequest
-       * (same shape as the other peer-transport HARD hits; found by this
-       * ratchet's scan, not individually named in the audit's kOS table).
-       */
-      "mod/Sitrep.Core/Serialization/JsonWriter.cs",
-
       /*
        * -- kos migration (2026-07-18), Task 4: CpuRegistryService/
        * CpuRegistryProvider moved from @ksp-gonogo/data into the kos Uplink.
@@ -1192,16 +1202,8 @@ export const ALLOWLIST: Record<ModToken, ModAllowlist> = {
       "mod/Sitrep.CaptureAnalysis.Tests/SyntheticCapture.cs",
       "mod/Sitrep.CaptureAnalysis.Tests/VerdictTests.cs",
 
-      /*
-       * -- app-side: the sanctioned self-registration import, and its gate --
-       * main.tsx takes a static side-effect import of this Uplink's client,
-       * alongside the four others that have no runtime-loader entry. It is the
-       * "sanctioned self-registration import" category this ratchet's own
-       * failure message names, and the relocation is what made it necessary:
-       * these three Topics used to be static members of the SDK's Topic union,
-       * so every consumer knew them for free, and they are runtime
-       * registrations now.
-       */
+      /* The bundle-time Uplink import; see this file's header for the one
+       * explanation all six tokens share. */
       "packages/app/src/main.tsx",
       /*
        * topic-cs-sync.test.ts: the C#-to-runtime-registry sync gate, which
@@ -1436,10 +1438,8 @@ export const ALLOWLIST: Record<ModToken, ModAllowlist> = {
        * Ratchet-inventory file, the case this bucket documents.
        */
       "packages/core/src/typecheck-coverage.allowlist.ts",
-      /*
-       * -- Uplink loader: the sanctioned self-registration import, same
-       * pattern as kerbcast/kos/scansat's main.tsx entries above.
-       */
+      /* The bundle-time Uplink import; see this file's header for the one
+       * explanation all six tokens share. */
       "packages/app/src/main.tsx",
 
       /*
@@ -1598,10 +1598,8 @@ export const ALLOWLIST: Record<ModToken, ModAllowlist> = {
        * Ratchet-inventory file, the case this bucket documents.
        */
       "packages/core/src/typecheck-coverage.allowlist.ts",
-      /*
-       * -- Uplink loader: the sanctioned self-registration import, same
-       * pattern as kerbcast/kos/scansat/mechjeb's main.tsx entries above.
-       */
+      /* The bundle-time Uplink import; see this file's header for the one
+       * explanation all six tokens share. */
       "packages/app/src/main.tsx",
       /*
        * -- The OTHER RP-1 Uplink's doc comments (2026-08-25). Two Uplinks read
@@ -1721,24 +1719,21 @@ export const ALLOWLIST: Record<ModToken, ModAllowlist> = {
    *       Habitat/Radiation badge, binds here"). Those are words about a
    *       hypothetical contributor, not coupling. Filing them as debt would make
    *       the shrink-only gate demand that the ARCHITECTURE stop being explained.
-   *   (2) The debt bucket is now ONE file: the app's bundle-time Uplink import
-   *       that every token already carries. The SpaceWeather widget, the last
-   *       Kerbalism surface still living in the base library, moved into this
-   *       Uplink's client and took the harness's Kerbalism fixture reshaping
-   *       with it.
+   *   (2) The debt bucket is EMPTY. The SpaceWeather widget, the last Kerbalism
+   *       surface still living in the base library, moved into this Uplink's
+   *       client and took the harness's Kerbalism fixture reshaping with it.
+   *       What remained afterwards was the bundle-time Uplink import, which is
+   *       permanent here for the reason this file's header now states once for
+   *       all six tokens that carry it. It was the only one of the six filed as
+   *       debt, and the justification it carried claimed the opposite of the
+   *       one the other five carried.
    */
   kerbalism: {
-    domainDebt: [
-      /*
-       * -- Uplink loader: the app's bundle-time import of this Uplink's client.
-       * Not this Uplink's own debt so much as the loader's: every token above
-       * carries the same entry for the same reason (today every Uplink client is
-       * bundled at build, so the app must name them to import them), and they all
-       * clear together when the runtime loader lands.
-       */
-      "packages/app/src/main.tsx",
-    ],
+    domainDebt: [],
     permanent: [
+      /* The bundle-time Uplink import; see this file's header for the one
+       * explanation all six tokens share. */
+      "packages/app/src/main.tsx",
       /**
        * The panel-body ratchet's own inventory: a path-keyed debt list over every
        * widget-side `.tsx` in the repo, so it names this Uplink's widgets by
@@ -2351,16 +2346,16 @@ export const ALLOWLIST: Record<ModToken, ModAllowlist> = {
        * this bucket documents.
        */
       "packages/core/src/styleguide-magnitude-budget.test.ts",
-      /*
-       * The two SANCTIONED SELF-REGISTRATION IMPORTS of this Uplink's client
-       * package, the same pair every bundled Uplink has. An import of a package
-       * whose name contains the mod's is the mechanism by which an Uplink
-       * registers at all; the app learns nothing about the mod from it, and the
-       * alternative is an app that cannot load its own bundled Uplinks. Not
-       * domainDebt, because there is no coupling here to shrink: if the Uplink
-       * is deleted, so is the import.
-       */
+      /* The bundle-time Uplink import; see this file's header for the one
+       * explanation all six tokens share. */
       "packages/app/src/main.tsx",
+      /*
+       * topic-cs-sync.test.ts: the C#-to-runtime-registry sync gate, which
+       * statically imports every first-party Uplink client so the assertions
+       * read the complete registered union. Same "one inventory naming every
+       * mod" class as the ownership ratchet, and it imports for the same reason
+       * main.tsx does.
+       */
       "packages/app/src/__tests__/topic-cs-sync.test.ts",
     ],
   },
@@ -2419,15 +2414,16 @@ export const ALLOWLIST: Record<ModToken, ModAllowlist> = {
        * ratchet, not a dependency.
        */
       "packages/core/src/truenow-allowlist.test.ts",
-      /*
-       * The two SANCTIONED SELF-REGISTRATION IMPORTS of this Uplink's client
-       * package, the same pair every bundled Uplink has. An import of a package
-       * whose name contains the mod's is the mechanism by which an Uplink
-       * registers at all; the app learns nothing about the mod from it. Not
-       * domainDebt, because there is no coupling here to shrink: if the Uplink is
-       * deleted, so is the import.
-       */
+      /* The bundle-time Uplink import; see this file's header for the one
+       * explanation all six tokens share. */
       "packages/app/src/main.tsx",
+      /*
+       * topic-cs-sync.test.ts: the C#-to-runtime-registry sync gate, which
+       * statically imports every first-party Uplink client so the assertions
+       * read the complete registered union. Same "one inventory naming every
+       * mod" class as the ownership ratchet, and it imports for the same reason
+       * main.tsx does.
+       */
       "packages/app/src/__tests__/topic-cs-sync.test.ts",
       /*
        * A path-keyed budget over every file in the tree that reaches for

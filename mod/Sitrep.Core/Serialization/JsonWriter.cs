@@ -229,11 +229,11 @@ namespace Sitrep.Core.Serialization
                     // FlightSimulationProvider.Build directly).
                     AppendFlightSimulation(sb, flightSimulation);
                     break;
-                // There is deliberately no case for kOS's three raw-POCO wire
-                // types (kos.processors / kos.terminal.<coreId> /
-                // kos.run.<coreId>). All three self-flatten producer-side via
-                // Gonogo.KosUplink.Kos*Builder.Build(), so JsonWriter never
-                // sees the raw POCO: see
+                // There is deliberately no case for the scripting Uplink's three
+                // raw-POCO wire types (its processor listing, its terminal
+                // channel and its per-core run result). All three self-flatten
+                // producer-side in that Uplink's own builders, so JsonWriter
+                // never sees the raw POCO: see
                 // WirePayloadCoverageTests.FlattenedByProducer.
                 case Sitrep.Contract.GateVerdict verdict:
                     // A declared command gate's answer: the refusal payload, and
@@ -1327,7 +1327,7 @@ namespace Sitrep.Core.Serialization
         // a sentinel. Without these, a POPULATED comms.* payload threw
         // NotSupportedException in AppendValue at the wire boundary and the
         // frame was dropped, a subscribed client received only "subscribed"
-        // and zero stream-data, exactly the kos.processors / comms.delay bug.
+        // and zero stream-data, exactly the processor-listing / comms.delay bug.
         // ================================================================
 
         /// <summary>Writes a <see cref="Sitrep.Contract.PayloadMeta"/> as <c>{ source, quality }</c> (quality as its integer ordinal). Null meta collapses to the defaults, matching <see cref="AppendCommsDelay"/>.</summary>
