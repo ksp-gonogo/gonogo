@@ -65,10 +65,62 @@
 //   reprices the same pad constructions and multiplies unconditionally. Matching
 //   the cancel path is the only choice that makes queue and cancel agree.
 //
-// PROVENANCE. Every member and every constant was read out of an ilspycmd
-// disassembly of the INSTALLED RP-1 v4.6.0.0 RP0.dll. Shape is verified and value
-// is not: nothing here has been compared against a running RP-1's own displayed
-// figure, and doing that once is the live check this file most wants.
+// PROVENANCE, in four parts: what was transcribed, which cases are pinned, what is
+// still unverified, and what to re-read if RP-1 retunes its prices.
+//
+// WHAT WAS TRANSCRIBED, and from where. Every clause below came out of an
+// ilspycmd disassembly of the INSTALLED RP-1 v4.6.0.0 RP0.dll, at
+// GameData/RP-1/Plugins/RP0.dll, dated 26 Aug 2026. One method:
+//
+//   RP0.KCT_GUI.DrawNewLCWindow      the whole price, lines 855-895 of the
+//                                    decompiled file: the pad half, the 1,000
+//                                    floor, the per-metre rate, the integration
+//                                    half with its halving and its cap, and the
+//                                    resource half
+//   RP0.KCT_GUI.ProcessNewLC         which of those figures reaches the project,
+//                                    and in what order
+//   RP0.LCConstructionProject.ProcessCancel
+//                                    the evidence for the pad-multiply divergence
+//                                    below
+//
+// WHICH CASES ARE PINNED, in Rp1LcCostModelTests, one test per clause:
+//
+//   a new complex is its three costs added                    QuoteNew total
+//   growth pays the whole pad difference                      the `>` branch
+//   a shrink pays HALF, and is never a refund                 the `* 0.5`
+//   every pad past the first scales the pad half              AdditionalPadCostMult
+//   ANY tonnage change costs at least 1,000                   the floor, both ways
+//   the floor does NOT fire on a size-only renovation         the floor's guard
+//   a shrunk envelope costs half an outward move              `costVAB2 < costVAB`
+//   a capped growth is NOT halved                             the two do not compose
+//   growth is capped at a fresh build's integration cost      the cap
+//   height charges twice what width and depth do              the per-axis rates
+//   the rate curves over massOrig, not the current limit      Clamp(massOrig,10,50)
+//   the hangar has no pad half and a flat 500 rate            the `flag` branch
+//   a fractional metre is priced in FLOAT                     AxisDelta
+//   adding a resource costs ten times removing it             ResModifyCost
+//   an ignored resource is free                               the LCResourceType flags
+//   the pad price is ALWAYS multiplied                        the divergence
+//
+// Each of those sixteen was verified to FAIL against a deliberately broken model:
+// nine clauses were mutated out and eight were caught first time. The survivor was
+// the metre rate reading massMax instead of massOrig, which passed because every
+// case then in the suite held the two equal. That is why the rate test now uses two
+// complexes at the SAME current tonnage built at different ones, and it is the
+// reason to distrust a suite that has never been shown to fail.
+//
+// WHAT IS STILL NOT VERIFIED, and it is the important line. Shape is verified and
+// VALUE is not. This file and the test fixture were read off the same disassembly,
+// so a misreading of GetCostStats or ResModifyCost makes both agree wrongly and
+// every test above still passes. Closing that needs a DIFFERENT KIND of check: open
+// RP-1's own Modify window on a running career, read the "Modify Cost" it displays,
+// and send the same renovation through rp1.complex.modify. Until that has been done
+// once, treat every figure here as derived rather than confirmed.
+//
+// IF RP-1 RETUNES ITS PRICES, this is what to re-read: DrawNewLCWindow's cost block
+// first, then LCData.GetCostStats and ResModifyCost (which are invoked, so a retune
+// inside them needs no change here), then SpaceCenterSettings.AdditionalPadCostMult
+// for the shipped default this file falls back to.
 using System;
 using System.Collections.Generic;
 using System.Reflection;
@@ -243,11 +295,17 @@ namespace GonogoRp1Uplink
                 ? 500.0
                 : LerpUnclamped(100.0, 1000.0, InverseLerp(10.0, 55.0, Clamp(newMassOrig.Value, 10.0, 50.0)));
 
+            // Each axis delta in FLOAT and then widened, which is what RP-1 does:
+            // both sides are float fields, so its subtraction rounds to float
+            // before the metre rate multiplies it. Doing the same arithmetic in
+            // double would be MORE accurate and would disagree, by up to a metre
+            // rate's worth of the seventh significant digit. Agreeing with the
+            // game beats being right about a figure the game is going to charge.
             var integrationHalf =
                 Math.Abs(newCost.Integration - currentCost.Integration)
-                + Math.Abs(newSize.Value.Y - currentSize.Value.Y) * metreRate
-                + Math.Abs(newSize.Value.X - currentSize.Value.X) * metreRate * 0.5
-                + Math.Abs(newSize.Value.Z - currentSize.Value.Z) * metreRate * 0.5;
+                + AxisDelta(newSize.Value.Y, currentSize.Value.Y) * metreRate
+                + AxisDelta(newSize.Value.X, currentSize.Value.X) * metreRate * 0.5
+                + AxisDelta(newSize.Value.Z, currentSize.Value.Z) * metreRate * 0.5;
 
             var isDowngrade = newCost.Integration < currentCost.Integration;
             if (isDowngrade)
@@ -297,6 +355,21 @@ namespace GonogoRp1Uplink
             }
             return Rp1Types.ToDouble(method.Invoke(data, Array.Empty<object>()));
         }
+
+        /// <summary>
+        /// What ONE extra pad costs at a complex already built to this
+        /// specification.
+        ///
+        /// <para>The specification's own pad price times RP-1's additional-pad
+        /// multiplier, which is the whole of what its New Pad window charges. Note
+        /// this is the multiplier applied ONCE, not the
+        /// <c>1 + (pads - 1) * mult</c> scaling a RENOVATION uses: that one prices
+        /// rebuilding every pad the complex already has, and this one prices adding
+        /// a single new one.</para>
+        /// </summary>
+        /// <returns>Null when RP-1 would not price it, which the caller must refuse on.</returns>
+        public static double? PadCostFor(object data, double additionalPadCostMult) =>
+            TryCostStats(data, out var cost) ? cost.Pad * additionalPadCostMult : (double?)null;
 
         /// <summary>
         /// The tonnage limits a renovation of this complex is held between,
@@ -482,6 +555,20 @@ namespace GonogoRp1Uplink
         /// <summary>KSP's <c>UtilMath.Clamp</c>.</summary>
         internal static double Clamp(double value, double min, double max) =>
             value < min ? min : (value > max ? max : value);
+
+        /// <summary>
+        /// One axis of the envelope's movement, rounded to float exactly where
+        /// RP-1 rounds it.
+        /// </summary>
+        /// <remarks>
+        /// Both operands come out of <c>Vector3</c>'s float fields, so RP-1's
+        /// subtraction happens in float and only then widens. The values arrive
+        /// here already widened, so they are narrowed back before subtracting
+        /// rather than after: subtracting first would keep precision RP-1 has
+        /// already thrown away and produce a different price for a non-integral
+        /// envelope.
+        /// </remarks>
+        internal static double AxisDelta(double a, double b) => Math.Abs((float)a - (float)b);
 
         /// <summary>
         /// Whether a resource is one RP-1's own launch-complex list would offer

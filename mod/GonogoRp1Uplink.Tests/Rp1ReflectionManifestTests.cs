@@ -47,6 +47,7 @@ namespace GonogoRp1Uplink.Tests
             "Rp1VehicleCommands.cs",
             "Rp1ComplexWrites.cs",
             "Rp1ComplexLifecycleCommands.cs",
+            "Rp1ComplexConstructionCommands.cs",
             "Rp1LcCostModel.cs",
             "Rp1StrategyWrites.cs",
             "Rp1StrategyCommands.cs",

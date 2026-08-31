@@ -187,6 +187,21 @@ namespace GonogoRp1Uplink.Tests
             new Rp1TypeTarget(Rp0, "RP0.LCLaunchPad", "Rp1ComplexLifecycleCommands"),
             new Rp1TypeTarget(Rp0, "RP0.SCMEvents", "Rp1ComplexLifecycleCommands"),
             new Rp1TypeTarget(Rp0, "RP0.LCData", "Rp1LcCostModel"),
+            // The three the COSTED commands construct. Each is created with a
+            // parameterless constructor and filled by field, exactly as RP-1's own
+            // object initialisers do, so a reshaped project type is a rename this
+            // manifest has to see rather than a compile error somebody would notice.
+            new Rp1TypeTarget(Rp0, "RP0.LCConstructionProject", "Rp1ComplexConstructionCommands"),
+            new Rp1TypeTarget(Rp0, "RP0.PadConstructionProject", "Rp1ComplexConstructionCommands"),
+            new Rp1TypeTarget(Rp0, "RP0.LCData", "Rp1ComplexConstructionCommands"),
+            new Rp1TypeTarget(Rp0, "RP0.LaunchComplex", "Rp1ComplexConstructionCommands"),
+            new Rp1TypeTarget(Rp0, "RP0.LCLaunchPad", "Rp1ComplexConstructionCommands"),
+            // ROUtils rather than RP0, and the ONE thing this Uplink reaches in that
+            // assembly: whether the save is a career, which decides whether a
+            // construction is queued against funding or applied at once. Refused
+            // rather than guessed when it will not resolve, because enabledForSave is
+            // true for sandbox too.
+            new Rp1TypeTarget(RoUtils, "ROUtils.KSPUtils", "Rp1ComplexConstructionCommands"),
             new Rp1TypeTarget(Rp0, "RP0.CurrencyUtils", "Rp1EconomyUpkeepQuery"),
             new Rp1TypeTarget(Rp0, "RP0.TransactionReasonsRP0", "Rp1EconomyUpkeepQuery"),
             new Rp1TypeTarget(Rp0, "RP0.MaintenanceHandler", "Rp1EconomyUpkeepQuery"),
@@ -279,6 +294,20 @@ namespace GonogoRp1Uplink.Tests
             // the whole reason Rp1Types.ConstructorOn exists: TrainingCourse also
             // declares a public single-argument ConfigNode constructor.
             new Rp1ConstructorTarget(Rp0, "RP0.Crew.TrainingCourse", 1, "Rp1TrainingCommands", "RP0.Crew.TrainingTemplate"),
+            // (LCData, LCSpaceCenter). It copies the specification, registers the
+            // complex with RP-1's scenario module and hooks its lists, none of which
+            // a field-by-field construction would do. Matched on its first
+            // parameter's TYPE because LCData declares FOUR constructors of its own
+            // and arity alone has already caught us out on this graph.
+            new Rp1ConstructorTarget(Rp0, "RP0.LaunchComplex", 2, "Rp1ComplexConstructionCommands", "RP0.LCData"),
+            // (Guid, string, float), and isOperational starts FALSE: a pad is under
+            // construction until its project completes.
+            new Rp1ConstructorTarget(Rp0, "RP0.LCLaunchPad", 3, "Rp1ComplexConstructionCommands", "System.Guid"),
+            // The PARAMETERLESS one on all three, because RP-1 builds each with an
+            // object initialiser and no constructor at all.
+            new Rp1ConstructorTarget(Rp0, "RP0.LCData", 0, "Rp1ComplexConstructionCommands"),
+            new Rp1ConstructorTarget(Rp0, "RP0.LCConstructionProject", 0, "Rp1ComplexConstructionCommands"),
+            new Rp1ConstructorTarget(Rp0, "RP0.PadConstructionProject", 0, "Rp1ComplexConstructionCommands"),
         };
 
         public static IReadOnlyList<Rp1MethodTarget> Methods { get; } = new[]
@@ -355,6 +384,32 @@ namespace GonogoRp1Uplink.Tests
             // a Vector3 and a bool, and an assembly with a second three-argument
             // overload would otherwise be a coin toss.
             new Rp1MethodTarget(Rp0, "RP0.LaunchComplex", "MaxEngineersCalc", 3, true, "Rp1LcCostModel"),
+            // ── The launch-complex construction commands ────────────────────
+            new Rp1MethodTarget(RoUtils, "ROUtils.KSPUtils", "CurrentGameIsCareer", 0, true, "Rp1ComplexConstructionCommands"),
+            // Applies a new specification, and takes a fresh generation id with it.
+            // Resolved by first-parameter TYPE: LaunchComplex has other two-argument
+            // methods and picking one of those would write a specification nowhere.
+            new Rp1MethodTarget(Rp0, "RP0.LaunchComplex", "Modify", 2, false, "Rp1ComplexConstructionCommands"),
+            // Without it the complex keeps quoting the build rate it had before it
+            // went out of service. Fail-softed rather than refused, because RP-1
+            // recalculates on its own schedule too.
+            new Rp1MethodTarget(Rp0, "RP0.LaunchComplex", "RecalculateBuildRates", 0, false, "Rp1ComplexConstructionCommands"),
+            // The COPY a construction project holds. A project keeping the caller's
+            // own specification object would change under it.
+            new Rp1MethodTarget(Rp0, "RP0.LCData", "SetFrom", 1, false, "Rp1ComplexConstructionCommands"),
+            // The price turned into a build duration, by RP-1's own curve, which is
+            // why the cost model does not reimplement that curve. Declared on the
+            // abstract base, so a lookup from the concrete project walks the chain.
+            new Rp1MethodTarget(Rp0, "RP0.ConstructionProject", "SetBP", 2, false, "Rp1ComplexConstructionCommands"),
+            // RP-1's own check that a renovation leaves every vehicle at the complex
+            // still buildable. ARITY THREE, and a different overload from the
+            // single-argument one Rp1BuildCommands pins: this is
+            // (LCData, List<string>, bool shortReasons = false), whose last parameter
+            // is DEFAULTED, and reflection applies no defaults. Written at arity 1
+            // first, which resolved to nothing and made the strand check silently
+            // never fire.
+            new Rp1MethodTarget(Rp0, "RP0.VesselProject", "MeetsFacilityRequirements", 3, false, "Rp1ComplexConstructionCommands"),
+            new Rp1MethodTarget(Rp0, "RP0.HireStaffProject", "Clear", 0, false, "Rp1ComplexConstructionCommands"),
             // RP-1's own facility TIER, an index, rather than stock's normalised
             // fraction. Asked at exactly the point RP-1's own training screen asks
             // it: against a course's AC-level requirement, before it is offered a
@@ -596,6 +651,7 @@ namespace GonogoRp1Uplink.Tests
             const string Catalogue = "Rp1TrainingCatalogueReflection";
             const string TrainingWrites = "Rp1TrainingCommands";
             const string Lifecycle = "Rp1ComplexLifecycleCommands";
+            const string Construction = "Rp1ComplexConstructionCommands";
             const string CostModel = "Rp1LcCostModel";
 
             // ── The space centre ────────────────────────────────────────────
@@ -624,10 +680,16 @@ namespace GonogoRp1Uplink.Tests
             // computed from, and the three derived members that state the envelope.
             // Every one of them is written as well as read: the cost model reads a
             // complex's current specification and the commands author the new one.
-            Add("RP0.LCData", "massMax", Rp1Reader.Numeric, CostModel);
-            Add("RP0.LCData", "massOrig", Rp1Reader.Numeric, CostModel);
-            Add("RP0.LCData", "sizeMax", Rp1Reader.Presence, CostModel);
-            Add("RP0.LCData", "isHumanRated", Rp1Reader.Bool, CostModel);
+            Add("RP0.LCData", "massMax", Rp1Reader.Numeric, CostModel + ", " + Construction);
+            Add("RP0.LCData", "massOrig", Rp1Reader.Numeric, CostModel + ", " + Construction);
+            Add("RP0.LCData", "sizeMax", Rp1Reader.Presence, CostModel + ", " + Construction);
+            Add("RP0.LCData", "isHumanRated", Rp1Reader.Bool, CostModel + ", " + Construction);
+            // WRITTEN as well as read: the costed commands AUTHOR a specification,
+            // which is the only RP-1 state this Uplink builds from nothing but the
+            // operator's arguments. Every one of these five decides a price.
+            Add("RP0.LCData", "Name", Rp1Reader.Text, Construction);
+            Add("RP0.LCData", "lcType", Rp1Reader.EnumText, Construction);
+            Add("RP0.LCData", "resourcesHandled", Rp1Reader.Presence, Construction);
             // Derived from massOrig alone, and asked of RP-1 rather than computed
             // from the massOrig already on our own wire: the two limits and the
             // test between them are three separate members, and a build that
@@ -648,6 +710,20 @@ namespace GonogoRp1Uplink.Tests
             // handle looks equipped and is not.
             Add("RP0.Database", "ResourceInfo", Rp1Reader.Presence, CostModel, @static: true);
             Add("RP0.ResourceInfo", "LCResourceTypes", Rp1Reader.Presence, CostModel);
+
+            // ── A queued construction project ──────────────────────────────
+            // Every one WRITTEN, because RP-1 builds these with an object
+            // initialiser and there is no constructor to go through. A field this
+            // Uplink failed to set leaves the project at its default, and for lcData
+            // that means a renovation to an EMPTY specification.
+            Add("RP0.LCConstructionProject", "lcID", Rp1Reader.GuidText, Construction);
+            Add("RP0.LCConstructionProject", "isModify", Rp1Reader.Bool, Construction);
+            Add("RP0.LCConstructionProject", "modId", Rp1Reader.GuidText, Construction);
+            Add("RP0.LCConstructionProject", "lcData", Rp1Reader.Presence, Construction);
+            Add("RP0.LCConstructionProject", "engineersToReadd", Rp1Reader.Numeric, Construction);
+            Add("RP0.ConstructionProject", "cost", Rp1Reader.NumericWrite, Construction);
+            Add("RP0.ConstructionProject", "name", Rp1Reader.Text, Construction);
+            Add("RP0.PadConstructionProject", "id", Rp1Reader.GuidText, Construction);
 
             // ── The two standing targets ────────────────────────────────────
             // Both project objects always EXIST, so presence says nothing about
@@ -689,6 +765,11 @@ namespace GonogoRp1Uplink.Tests
             // command must not author state in the course of describing what it is
             // about to remove.
             Add("RP0.SpaceCenterManagement", "LCToEfficiency", Rp1Reader.Presence, Sc + ", " + Lifecycle);
+            // WRITTEN, and the only field this Uplink sets on RP-1's scenario module
+            // itself. RP-1's first-run guidance is gated on it, so a career whose
+            // first complex was ordered from here would otherwise still be told to
+            // order one.
+            Add("RP0.SpaceCenterManagement", "StarterLCBuilding", Rp1Reader.Bool, Construction);
 
             // The second quantity RP-1 derives from a science credit, and the
             // reason it is written as well as read.
@@ -740,6 +821,17 @@ namespace GonogoRp1Uplink.Tests
             // difference between an operator scrapping a vehicle and an operator
             // waiting for a rollout.
             Add("RP0.LaunchComplex", "CanDismantle", Rp1Reader.Bool, Lifecycle);
+            // The WEAKER of RP-1's two gates, and the one a renovation turns on: it
+            // permits a complex with vehicles in it and refuses only one with an
+            // operation moving a vehicle. Reading the dismantle gate here instead
+            // would refuse every renovation of a working complex.
+            Add("RP0.LaunchComplex", "CanModifyReal", Rp1Reader.Bool, Construction);
+            // The complex's own persisted specification, which is what a renovation
+            // is priced against and what a new pad takes its tonnage band from.
+            Add("RP0.LaunchComplex", "Stats", Rp1Reader.Presence, Construction);
+            // The generation a build stamps its project with. A renovation takes a
+            // FRESH one instead, so this is read on one path only.
+            Add("RP0.LaunchComplex", "ModID", Rp1Reader.GuidText, Construction);
 
             Add("RP0.LCLaunchPad", "id", Rp1Reader.GuidText, Sc + ", " + Lifecycle);
             Add("RP0.LCLaunchPad", "name", Rp1Reader.Text, Sc + ", " + Gate + ", " + Lifecycle);
