@@ -151,6 +151,40 @@ namespace GonogoRp1Uplink.Tests
             Assert.Empty(StrategyCallLog.Calls);
         }
 
+        /// <summary>
+        /// Arm 9, and the reason it matters: <c>StrategyEffect.CanActivate</c> is
+        /// virtual, so a mod's effect refuses for reasons we cannot enumerate.
+        /// The semantics are "refuse if ANY effect refuses", which is NOT what
+        /// the decompiler renders for that loop.
+        /// </summary>
+        [Fact]
+        public void Refuses_when_any_effect_refuses()
+        {
+            var leader = Leader();
+            leader.Effects.Add(new Strategies.StrategyEffect());
+            leader.Effects.Add(new Strategies.StrategyEffect { RefuseWith = "Requires an orbital rendezvous first." });
+
+            var result = Activate(leader.Name);
+
+            Assert.False(result.Success);
+            Assert.Equal("Requires an orbital rendezvous first.", result.Detail);
+            Assert.Empty(StrategyCallLog.Calls);
+        }
+
+        /// <summary>Effects that all permit must not block the commitment.</summary>
+        [Fact]
+        public void Proceeds_when_every_effect_permits()
+        {
+            var leader = Leader();
+            leader.Effects.Add(new Strategies.StrategyEffect());
+            leader.Effects.Add(new Strategies.StrategyEffect());
+
+            var result = Activate(leader.Name);
+
+            Assert.True(result.Success);
+            Assert.Equal(new[] { "PerformActivate" }, StrategyCallLog.Calls);
+        }
+
         /// <summary>Arm 2, on the system rather than the strategy.</summary>
         [Fact]
         public void Refuses_a_strategy_that_conflicts_with_an_active_one()

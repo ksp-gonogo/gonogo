@@ -237,10 +237,43 @@ namespace GonogoRp1Uplink
         /// </remarks>
         private static string? StrategyRefusal(object strategy)
         {
-            var method = Rp1Types.InstanceMethod(strategy, "CanActivate", 1);
+            var refusal = AskCanActivate(strategy);
+            if (refusal != null) return refusal;
+
+            /*
+             * Arm 9, and it is open-ended: StrategyEffect.CanActivate is virtual,
+             * so any mod's effect can refuse for a reason we cannot enumerate. We
+             * ask each one rather than reproducing what they check.
+             *
+             * The semantics are "refuse if ANY effect refuses". Worth stating,
+             * because the decompiler renders this loop INVERTED: its C# reads
+             * `if (effects[i].CanActivate(ref reason)) return false;`, i.e.
+             * refuse when an effect says it CAN. The IL disagrees. At IL_02ac the
+             * callvirt is followed by `brtrue.s` continuing the loop, and the
+             * fall-through is `ldc.i4.0; ret`. KSP ships a control-flow
+             * obfuscator whose dead switch blocks break branch reconstruction,
+             * and it inverted this loop while getting the sibling call twelve
+             * lines earlier right.
+             */
+            foreach (var effect in Rp1Types.Enumerate(Rp1Types.Member(strategy, "Effects")))
+            {
+                var said = AskCanActivate(effect);
+                if (said != null) return said;
+            }
+            return null;
+        }
+
+        /// <summary>
+        /// One <c>CanActivate(ref string)</c> call, on a strategy or on one of
+        /// its effects, returning the game's own words or null to proceed.
+        /// </summary>
+        private static string? AskCanActivate(object? target)
+        {
+            if (target == null) return null;
+            var method = Rp1Types.InstanceMethod(target, "CanActivate", 1);
             if (method == null) return null;
             var argv = new object?[] { "" };
-            var ok = method.Invoke(strategy, argv);
+            var ok = method.Invoke(target, argv);
             if (ok is bool allowed && !allowed)
             {
                 var said = argv[0] as string;

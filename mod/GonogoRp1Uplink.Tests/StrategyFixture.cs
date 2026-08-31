@@ -39,6 +39,24 @@ namespace Strategies
 
         /// <summary>Set by a test to make arm 8 refuse, with the game's own words.</summary>
         public string? RefuseWith { get; set; }
+
+        /// <summary>
+        /// Arm 9's population. Virtual on the game's side, so a mod's effect can
+        /// refuse for a reason nothing here can enumerate.
+        /// </summary>
+        public List<StrategyEffect> Effects { get; } = new List<StrategyEffect>();
+    }
+
+    /// <summary>One effect, which may refuse the whole commitment.</summary>
+    public class StrategyEffect
+    {
+        public string? RefuseWith { get; set; }
+
+        public virtual bool CanActivate(ref string reason)
+        {
+            reason = RefuseWith ?? "";
+            return RefuseWith == null;
+        }
     }
 
     public class StrategySystem
