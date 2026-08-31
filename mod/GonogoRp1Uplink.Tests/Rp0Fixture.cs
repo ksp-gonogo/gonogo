@@ -78,6 +78,12 @@ namespace RP0
         /// </summary>
         public static readonly Dictionary<string, TechPeriod> TechNodePeriods =
             new Dictionary<string, TechPeriod>();
+
+        /// <summary>
+        /// The resource catalogue a launch complex's fluids are validated and
+        /// priced against, which is the only place either answer comes from.
+        /// </summary>
+        public static readonly ResourceInfo ResourceInfo = new ResourceInfo();
     }
 
     /// <summary>
@@ -147,6 +153,13 @@ namespace RP0
         public virtual bool IsBlocking => true;
 
         public void SetBuildRate(double rate) => _buildRate = rate;
+
+        /// <summary>
+        /// Whether the operation has finished, which is what tells a pad with a
+        /// vessel ON it from a pad with a rollout still moving one: RP-1 gives two
+        /// different refusals for the two, off this one test.
+        /// </summary>
+        public bool IsComplete() => progress >= BP;
     }
 
     public class VesselRepairProject : LCOpsProject
@@ -735,6 +748,140 @@ namespace RP0
             v = Waiting;
             return Waiting != null;
         }
+
+        public LCLaunchPad()
+        {
+        }
+
+        /// <summary>
+        /// RP-1's three-argument constructor, the only way a pad is made. Arity is
+        /// what production matches on, so the shape here has to be the shipped one
+        /// exactly, and <c>isOperational</c> starts FALSE: a pad is under
+        /// construction until its project completes.
+        /// </summary>
+        public LCLaunchPad(Guid id, string name, float lvl)
+        {
+            this.id = id;
+            this.name = name;
+            fractionalLevel = lvl;
+            level = (int)lvl;
+            isOperational = false;
+        }
+
+        /// <summary>The complex holding this pad, which a test sets when it puts the pad in one.</summary>
+        public LaunchComplex? Lc;
+
+        public LaunchComplex? LC => Lc;
+
+        /// <summary>
+        /// RP-1's own rename, INCLUDING its silent return on a duplicate name.
+        /// </summary>
+        /// <remarks>
+        /// Reproduced rather than corrected, and this is the fixture's single most
+        /// load-bearing detail: the shipped method returns having done nothing when
+        /// another pad at the complex has that name, and the rename window that
+        /// calls it reports nothing at all. The command exists to convert that into
+        /// a refusal, so a fixture that renamed unconditionally would let a command
+        /// that reported a silent no-op as success pass every test.
+        /// </remarks>
+        public void Rename(string newName)
+        {
+            var lc = LC;
+            if (lc == null)
+            {
+                return;
+            }
+            foreach (var sibling in lc.LaunchPads)
+            {
+                if (string.Equals(sibling.name, newName, StringComparison.OrdinalIgnoreCase))
+                {
+                    return;
+                }
+            }
+            foreach (var operation in lc.Recon_Rollout)
+            {
+                if (operation.launchPadID == name)
+                {
+                    operation.launchPadID = newName;
+                }
+            }
+            foreach (var construction in lc.PadConstructions)
+            {
+                if (construction.id == id)
+                {
+                    construction.name = newName;
+                }
+            }
+            name = newName;
+        }
+
+        /// <summary>
+        /// RP-1's own delete, with its three refusals and its out-reason, and with
+        /// the launch-site index shift the removal causes.
+        /// </summary>
+        /// <remarks>
+        /// The index shift is reproduced because it is the reason the complex
+        /// dismantle removes pads LAST FIRST: every vessel pointing past the
+        /// removed pad has its index decremented, so a forward walk would shift the
+        /// same indices repeatedly. A fixture without it would let that ordering
+        /// bug pass.
+        /// </remarks>
+        public bool Delete(out string? failReason)
+        {
+            if (HasVesselWaitingToBeLaunched(out var waiting))
+            {
+                failReason = "vessel " + waiting!.vesselName + " is currently waiting on the launch pad";
+                return false;
+            }
+
+            var lc = LC;
+            if (lc == null)
+            {
+                failReason = null;
+                return true;
+            }
+
+            foreach (var operation in lc.Recon_Rollout)
+            {
+                if (operation.launchPadID == name && operation.RRType != ReconRolloutProject.RolloutReconType.Reconditioning)
+                {
+                    failReason = operation.IsComplete() ? "a vessel is currently on the pad" : "pad has ongoing rollout";
+                    return false;
+                }
+            }
+
+            foreach (var construction in lc.PadConstructions)
+            {
+                if (construction.id == id)
+                {
+                    failReason = "pad is under construction";
+                    return false;
+                }
+            }
+
+            var index = lc.LaunchPads.IndexOf(this);
+            if (index >= 0)
+            {
+                foreach (var vessel in lc.Warehouse)
+                {
+                    if (vessel.launchSiteIndex >= index)
+                    {
+                        vessel.launchSiteIndex--;
+                    }
+                }
+                foreach (var vessel in lc.BuildList)
+                {
+                    if (vessel.launchSiteIndex >= index)
+                    {
+                        vessel.launchSiteIndex--;
+                    }
+                }
+                lc.LaunchPads.RemoveAt(index);
+            }
+
+            failReason = null;
+            return true;
+        }
     }
 
     /// <summary>
@@ -848,6 +995,20 @@ namespace RP0
         public bool isModify;
         public Guid lcID;
         public int engineersToReadd;
+
+        /// <summary>
+        /// A fresh Guid per renovation on the real type, and the complex's own
+        /// ModID for a build. What RP-1 stamps a specification's generation with,
+        /// so a vehicle integrated under the old limits can be told apart.
+        /// </summary>
+        public Guid modId;
+
+        /// <summary>
+        /// The specification the complex becomes when the project completes. A
+        /// COPY on the real type, made through <c>SetFrom</c>: a project holding
+        /// the caller's own object would change under it.
+        /// </summary>
+        public LCData lcData = new LCData();
     }
 
     public class PadConstructionProject : ConstructionProject
@@ -929,7 +1090,9 @@ namespace RP0
         public List<VesselProject> Warehouse = new List<VesselProject>();
         public List<ReconRolloutProject> Recon_Rollout = new List<ReconRolloutProject>();
         public List<VesselRepairProject> VesselRepairs = new List<VesselRepairProject>();
-        public List<PadConstructionProject> PadConstructions = new List<PadConstructionProject>();
+        /// <summary>Observable, for the reason <see cref="LCSpaceCenter.LCConstructions"/> is.</summary>
+        public ROUtils.DataTypes.PersistentObservableList<PadConstructionProject> PadConstructions =
+            new ROUtils.DataTypes.PersistentObservableList<PadConstructionProject>();
 
         public LaunchComplexType LcTypeValue = LaunchComplexType.Pad;
         public double RateValue;
@@ -991,6 +1154,203 @@ namespace RP0
 
         /// <summary>Mirrors the real property, which returns 1.0 unless the complex is rushing.</summary>
         public double RushSalary => IsRushing ? Database.SettingsSC.RushSalaryMult : 1.0;
+
+        /// <summary>
+        /// The complex's persisted specification, which is where every price and
+        /// every limit comes from.
+        /// </summary>
+        /// <remarks>
+        /// A field behind a property on the real type, and the source of truth for
+        /// the four figures the fields above also expose. Kept in SYNC by
+        /// <see cref="SyncFromStats"/> rather than derived, because the real type
+        /// carries both and a fixture where the two could disagree would let a
+        /// reader that used the wrong one pass.
+        /// </remarks>
+        public LCData StatsValue = new LCData();
+
+        public LCData Stats => StatsValue;
+
+        private Guid _modId = Guid.NewGuid();
+
+        /// <summary>The generation of specification vehicles here were integrated under.</summary>
+        public Guid ModID => _modId;
+
+        public LaunchComplex()
+        {
+        }
+
+        /// <summary>
+        /// RP-1's two-argument constructor, the only way a complex is made. It
+        /// copies the specification rather than holding the caller's object, takes
+        /// the name off it, and does NOT set IsOperational: a complex is under
+        /// construction until its project completes.
+        /// </summary>
+        public LaunchComplex(LCData lcData, LCSpaceCenter ksc)
+        {
+            StatsValue = new LCData(lcData);
+            Name = lcData.Name ?? string.Empty;
+            Ksc = ksc;
+            IsOperational = false;
+            SyncFromStats();
+            SpaceCenterManagement.Instance?.RegisterLC(this);
+        }
+
+        /// <summary>
+        /// Brings the convenience fields into line with <see cref="StatsValue"/>,
+        /// which is what the real type gets for free by deriving them.
+        /// </summary>
+        public void SyncFromStats()
+        {
+            MassMaxValue = StatsValue.massMax;
+            MassOrigValue = StatsValue.massOrig;
+            MassMinValue = StatsValue.MassMin;
+            SizeMaxValue = StatsValue.sizeMax;
+            HumanRatedValue = StatsValue.isHumanRated;
+            LcTypeValue = StatsValue.lcType;
+            ResourcesHandledValue = StatsValue.resourcesHandled;
+        }
+
+        /// <summary>
+        /// Whether nothing is going on here at all, which is the ONE gate a
+        /// dismantle turns on.
+        /// </summary>
+        /// <remarks>
+        /// DERIVED from the same four lists the real property reads, deliberately,
+        /// rather than exposed as a settable bool. A fixture that let a test set
+        /// this could set it inconsistently with the state the test built, and the
+        /// property that makes a dismantle test meaningful is that the refusal and
+        /// the reason come from the same place.
+        ///
+        /// <para>The warehouse condition is the one that matters most and the one
+        /// our own spec had wrong: RP-1 will not dismantle a complex that holds a
+        /// finished vehicle, which makes its own warehouse-scrapping loop
+        /// unreachable.</para>
+        /// </remarks>
+        public bool CanModifyButton
+        {
+            get
+            {
+                if (BuildList.Count != 0 || Warehouse.Count != 0)
+                {
+                    return false;
+                }
+                foreach (var operation in Recon_Rollout)
+                {
+                    if (operation.RRType != ReconRolloutProject.RolloutReconType.Reconditioning)
+                    {
+                        return false;
+                    }
+                }
+                return VesselRepairs.Count == 0;
+            }
+        }
+
+        public bool CanDismantle => CanModifyButton;
+
+        /// <summary>
+        /// The weaker gate a RENOVATION turns on: it permits a complex with
+        /// vehicles in it and only refuses one with an operation moving a vehicle.
+        /// </summary>
+        public bool CanModifyReal
+        {
+            get
+            {
+                foreach (var operation in Recon_Rollout)
+                {
+                    if (operation.RRType != ReconRolloutProject.RolloutReconType.Reconditioning)
+                    {
+                        return false;
+                    }
+                }
+                return VesselRepairs.Count == 0;
+            }
+        }
+
+        /// <summary>
+        /// RP-1's own rename, which validates NOTHING: it writes the name in two
+        /// places and stops. Reproduced without a duplicate check, because the
+        /// command's duplicate refusal is ours and a fixture that checked would
+        /// make it untestable.
+        /// </summary>
+        public void Rename(string newName)
+        {
+            Name = newName;
+            StatsValue.Name = newName;
+        }
+
+        /// <summary>Applies a new specification, which is what a completed renovation does.</summary>
+        public void Modify(LCData data, Guid modId)
+        {
+            _modId = modId;
+            StatsValue.SetFrom(data);
+            SyncFromStats();
+            if (StatsValue.lcType == LaunchComplexType.Pad)
+            {
+                var level = StatsValue.GetPadFracLevel();
+                foreach (var pad in LaunchPads)
+                {
+                    pad.fractionalLevel = level;
+                    pad.level = (int)level;
+                }
+            }
+        }
+
+        /// <summary>
+        /// RP-1's own delete, in the four things it does that matter here: it drops
+        /// the complex's efficiency contribution, CLEARS a staff target that named
+        /// it, unregisters its pads, and removes it from its centre.
+        /// </summary>
+        /// <remarks>
+        /// The efficiency drop is the one a test needs to be able to see, because
+        /// it is the loss RP-1's own dialog names nowhere: removing the last
+        /// complex from a group clears the group, and the earned figure is gone for
+        /// good.
+        /// </remarks>
+        public void Delete()
+        {
+            var scm = SpaceCenterManagement.Instance;
+            if (scm != null && scm.LCToEfficiency.TryGetValue(this, out var efficiency))
+            {
+                efficiency._lcs.Remove(this);
+                scm.LCToEfficiency.Remove(this);
+                if (efficiency._lcs.Count == 0)
+                {
+                    scm.ClearedEfficiencyRecords++;
+                }
+            }
+
+            if (scm != null && scm.staffTarget.LCID == ID)
+            {
+                scm.staffTarget.Clear();
+            }
+
+            var ksc = Ksc;
+            if (ksc != null)
+            {
+                var index = ksc.LaunchComplexes.IndexOf(this);
+                if (index >= 0)
+                {
+                    ksc.LaunchComplexes.RemoveAt(index);
+                    if (ksc.LCIndex >= index)
+                    {
+                        ksc.LCIndex--;
+                    }
+                }
+            }
+        }
+
+        /// <summary>
+        /// The engineers a specification can hold.
+        /// </summary>
+        /// <remarks>
+        /// NOT RP-1's curve. The cost model only passes this answer through, so a
+        /// deterministic stand-in carries no claim about the shipped arithmetic
+        /// while still proving the three arguments reached it in the right order.
+        /// Resolved by first-parameter TYPE in production, which is why the float
+        /// comes first here.
+        /// </remarks>
+        public static int MaxEngineersCalc(float massMax, UnityEngine.Vector3 sizeMax, bool isHuman) =>
+            (int)Math.Max(1.0, Math.Floor(massMax / 10.0)) * (isHuman ? 2 : 1);
     }
 
     /// <summary>
@@ -1015,8 +1375,41 @@ namespace RP0
     {
         public string KSCName = "";
         public int Engineers;
+
+        /// <summary>
+        /// Which complex the game's own view is on. Present because a dismantle has
+        /// to move it off the complex it is about to remove, and because
+        /// <c>Delete</c> shifts it.
+        /// </summary>
+        public int LCIndex;
+
+        /// <summary>How many times the selection was switched away, so a test can pin that it was and BEFORE the delete.</summary>
+        public int SwitchAwayCalls;
+
+        /// <summary>
+        /// RP-1's own selection switch. ARITY ONE, not zero: the parameter is
+        /// optional in C# and reflection applies no defaults, so a production
+        /// invoke has to pass it and a fixture declaring the zero-argument form
+        /// would let a broken lookup pass.
+        /// </summary>
+        public void SwitchToPrevLaunchComplex(bool padOnly = false)
+        {
+            SwitchAwayCalls++;
+            if (LaunchComplexes.Count >= 2 && LCIndex > 0)
+            {
+                LCIndex--;
+            }
+        }
         public List<LaunchComplex> LaunchComplexes = new List<LaunchComplex>();
-        public List<LCConstructionProject> LCConstructions = new List<LCConstructionProject>();
+        /// <summary>
+        /// A <c>PersistentObservableList</c> rather than a plain list, and that is
+        /// the whole point of it: its <c>Add</c> SHADOWS <c>List&lt;T&gt;.Add</c>
+        /// and fires the events RP-1's own UI listens on, so a handler that bound
+        /// to the base overload would queue the project and tell nobody while a
+        /// count-based assertion agreed with it completely.
+        /// </summary>
+        public ROUtils.DataTypes.PersistentObservableList<LCConstructionProject> LCConstructions =
+            new ROUtils.DataTypes.PersistentObservableList<LCConstructionProject>();
         public List<FacilityUpgradeProject> FacilityUpgrades = new List<FacilityUpgradeProject>();
 
         public string? GroundStation;
@@ -1068,6 +1461,20 @@ namespace RP0
         public int NumLeftToHire => targetCrewCount - CurrentAmount;
 
         public double GetTimeLeft() => TimeLeft;
+
+        /// <summary>
+        /// Withdraws the instruction, which is what RP-1 does silently when the
+        /// complex it named is renovated or dismantled: the order stops existing
+        /// and nothing on screen says so. The value being readable is what lets an
+        /// operator watch it go rather than believe in a schedule that has
+        /// stopped.
+        /// </summary>
+        public void Clear()
+        {
+            targetCrewCount = 0;
+            CurrentAmount = 0;
+            LCID = Guid.Empty;
+        }
     }
 
     /// <summary>
@@ -1104,6 +1511,25 @@ namespace RP0
         public bool enabledForSave = true;
         public int Researchers;
         public int Applicants;
+
+        /// <summary>
+        /// RP-1's first-run flag, set the moment a career's first complex is
+        /// queued. Present because the build command has to set it: RP-1 gates its
+        /// own start-up tutorial on it, and a career whose first complex was
+        /// ordered from here would otherwise still be told to order one.
+        /// </summary>
+        public bool StarterLCBuilding;
+
+        /// <summary>Every complex registered, so a test can pin that the constructor did.</summary>
+        public List<LaunchComplex> RegisteredComplexes = new List<LaunchComplex>();
+
+        /// <summary>
+        /// How many efficiency records were CLEARED by a dismantle, which is the
+        /// permanent loss RP-1's own dialog names nowhere.
+        /// </summary>
+        public int ClearedEfficiencyRecords;
+
+        public void RegisterLC(LaunchComplex lc) => RegisteredComplexes.Add(lc);
 
         /// <summary>Always present, exactly as RP-1 constructs it; validity is the question, not existence.</summary>
         public HireStaffProject staffTarget = new HireStaffProject();
@@ -1544,6 +1970,13 @@ namespace UnityEngine
             this.y = y;
             this.z = z;
         }
+
+        /// <summary>
+        /// The squared length, which is what RP-1 prices a complex's integration
+        /// half off. Squared rather than the length, exactly as the shipped formula
+        /// uses it: taking a root here would make every size cost differently.
+        /// </summary>
+        public float sqrMagnitude => x * x + y * y + z * z;
     }
 }
 

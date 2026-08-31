@@ -213,6 +213,22 @@ namespace GonogoRp1Uplink
         public string? State;
 
         /// <summary>
+        /// The pad is in service, as opposed to still being built.
+        ///
+        /// <para>Published because <see cref="State"/> cannot substitute for it and
+        /// the launch-complex dismantle rule turns on it: RP-1 will not remove a
+        /// pad unless the complex keeps another OPERATIONAL one, and
+        /// <c>LCLaunchPad.State</c> reports <c>Destroyed</c> BEFORE it consults
+        /// <c>isOperational</c>, so a destroyed pad's service flag is unreadable
+        /// from the state alone. Without this a client cannot tell whether a
+        /// dismantle is offerable at all.</para>
+        ///
+        /// <para>Nullable, because the three answers are distinct: in service, not
+        /// in service, and "the question could not be asked".</para>
+        /// </summary>
+        public bool? IsOperational;
+
+        /// <summary>
         /// A craft is standing on the pad in PRELAUNCH. Nullable because the
         /// three answers are distinct: true, false, and "the question could not
         /// be asked", and only the first should stop a client offering the pad.

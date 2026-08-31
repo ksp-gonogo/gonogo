@@ -352,6 +352,10 @@ namespace GonogoRp1Uplink.Tests
                     Rp1TrainingCommands.EnrolCommand,
                     Rp1TrainingCommands.CancelCommand,
                     Rp1TrainingCommands.RemoveCommand,
+                    Rp1ComplexLifecycleCommands.RenameComplexCommand,
+                    Rp1ComplexLifecycleCommands.DismantleComplexCommand,
+                    Rp1ComplexLifecycleCommands.RenamePadCommand,
+                    Rp1ComplexLifecycleCommands.DismantlePadCommand,
                 },
                 declarations.Select(d => d.Command).ToArray());
             Assert.All(declarations, declaration =>

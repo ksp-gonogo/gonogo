@@ -63,6 +63,56 @@ export interface Rp1TrainingLeaveArgs
 {
 	crewName?: string;
 }
+export interface Rp1ComplexSizeArgs
+{
+	sizeMaxWidth?: number;
+	sizeMaxHeight?: number;
+	sizeMaxDepth?: number;
+}
+export interface Rp1ComplexNewArgs
+{
+	kscName?: string;
+	name?: string;
+	massMax?: number;
+	size?: Rp1ComplexSizeArgs;
+	humanRated?: boolean;
+	resources?: { [key:string]: number };
+	assignEngineersOnComplete?: boolean;
+}
+export interface Rp1ComplexModifyArgs
+{
+	lcId?: string;
+	massMax?: number;
+	size?: Rp1ComplexSizeArgs;
+	humanRated?: boolean;
+	resources?: { [key:string]: number };
+	assignEngineersOnComplete?: boolean;
+}
+export interface Rp1ComplexRenameArgs
+{
+	lcId?: string;
+	name?: string;
+}
+export interface Rp1ComplexDismantleArgs
+{
+	lcId?: string;
+}
+export interface Rp1PadNewArgs
+{
+	lcId?: string;
+	name?: string;
+}
+export interface Rp1PadRenameArgs
+{
+	lcId?: string;
+	padId?: string;
+	name?: string;
+}
+export interface Rp1PadDismantleArgs
+{
+	lcId?: string;
+	padId?: string;
+}
 export interface Rp1CentreEntry
 {
 	kscName?: string;
@@ -147,6 +197,7 @@ export interface Rp1PadEntry
 	level?: Value<"count">;
 	fractionalLevel?: Value<"ratio">;
 	state?: string;
+	isOperational?: boolean;
 	hasVesselWaiting?: boolean;
 	waitingVesselName?: string;
 }

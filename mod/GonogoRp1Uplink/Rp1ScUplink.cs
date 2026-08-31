@@ -180,6 +180,18 @@ namespace GonogoRp1Uplink
         private readonly Rp1PersonnelCommands _staffing = new Rp1PersonnelCommands();
 
         /// <summary>
+        /// The launch-complex acts that take effect at once and cost nothing:
+        /// rename a complex, demolish one, rename or demolish one of its pads.
+        ///
+        /// <para>Its own class, and kept apart from the three that BUILD, because
+        /// those queue a construction project and need a price RP-1 computes
+        /// nowhere reusable. These four write RP-1's own state directly and there
+        /// is no figure to get wrong, so the half of the surface with no
+        /// arithmetic in it can be trusted on its own terms.</para>
+        /// </summary>
+        private readonly Rp1ComplexLifecycleCommands _complexLifecycle = new Rp1ComplexLifecycleCommands();
+
+        /// <summary>
         /// Committing to a leader or a program without the Administration
         /// Building. Its own class because it reaches nothing the writes above
         /// reach: it touches no vehicle, no complex and no building, only the
@@ -326,7 +338,7 @@ namespace GonogoRp1Uplink
                 _build.IsAvailable, _vehicles.IsAvailable, _vehicles.IsMoveAvailable,
                 _staffing.IsAvailable, _start.IsAvailable, _facilities.IsAvailable,
                 _researchCommands.IsAvailable, _strategies.IsAvailable, _targets.IsAvailable,
-                _trainingWrites.IsAvailable);
+                _trainingWrites.IsAvailable, _complexLifecycle.IsAvailable);
             _crewStanding = new Rp1CrewStandingBackend(_crew);
             _economy = new Rp1EconomyBackend(_upkeepQuery);
         }
@@ -341,7 +353,8 @@ namespace GonogoRp1Uplink
             bool researchModelResolved,
             bool strategyModelResolved,
             bool targetModelResolved,
-            bool trainingModelResolved) => new UplinkManifest
+            bool trainingModelResolved,
+            bool complexLifecycleModelResolved) => new UplinkManifest
         {
             Id = "rp1",
             Version = "1.0.0",
@@ -415,7 +428,7 @@ namespace GonogoRp1Uplink
                 buildModelResolved, queueModelResolved, moveModelResolved,
                 staffingModelResolved, startModelResolved, facilityModelResolved,
                 researchModelResolved, strategyModelResolved, targetModelResolved,
-                trainingModelResolved),
+                trainingModelResolved, complexLifecycleModelResolved),
         };
 
         /// <summary>
@@ -447,7 +460,8 @@ namespace GonogoRp1Uplink
             bool researchModelResolved,
             bool strategyModelResolved,
             bool targetModelResolved,
-            bool trainingModelResolved)
+            bool trainingModelResolved,
+            bool complexLifecycleModelResolved)
         {
             var commands = new List<CommandDeclaration>();
             if (buildModelResolved)
@@ -537,6 +551,19 @@ namespace GonogoRp1Uplink
                 commands.Add(Declare(Rp1TrainingCommands.EnrolCommand));
                 commands.Add(Declare(Rp1TrainingCommands.CancelCommand));
                 commands.Add(Declare(Rp1TrainingCommands.RemoveCommand));
+            }
+            // Its own flag, on RP-1's complex and pad types. It shares those two
+            // with the queue's flag today and still gets its own, for the reason
+            // the staffing flag has one: a rename that cost one of them should
+            // cost one of them. These four also reach members no other command
+            // here does (Rename and Delete on both types), so the two flags can
+            // genuinely disagree.
+            if (complexLifecycleModelResolved)
+            {
+                commands.Add(Declare(Rp1ComplexLifecycleCommands.RenameComplexCommand));
+                commands.Add(Declare(Rp1ComplexLifecycleCommands.DismantleComplexCommand));
+                commands.Add(Declare(Rp1ComplexLifecycleCommands.RenamePadCommand));
+                commands.Add(Declare(Rp1ComplexLifecycleCommands.DismantlePadCommand));
             }
             return commands;
         }
@@ -774,6 +801,20 @@ namespace GonogoRp1Uplink
                 {
                     host.AddCommandHandler<Rp1TechResearchArgs, CommandResult>(
                         Rp1ResearchCommands.ResearchCommand, _researchCommands.Research);
+                }
+            });
+            Register(() =>
+            {
+                if (_complexLifecycle.IsAvailable)
+                {
+                    host.AddCommandHandler<Rp1ComplexRenameArgs, CommandResult>(
+                        Rp1ComplexLifecycleCommands.RenameComplexCommand, _complexLifecycle.RenameComplex);
+                    host.AddCommandHandler<Rp1ComplexDismantleArgs, CommandResult<Dictionary<string, object?>>>(
+                        Rp1ComplexLifecycleCommands.DismantleComplexCommand, _complexLifecycle.DismantleComplex);
+                    host.AddCommandHandler<Rp1PadRenameArgs, CommandResult>(
+                        Rp1ComplexLifecycleCommands.RenamePadCommand, _complexLifecycle.RenamePad);
+                    host.AddCommandHandler<Rp1PadDismantleArgs, CommandResult>(
+                        Rp1ComplexLifecycleCommands.DismantlePadCommand, _complexLifecycle.DismantlePad);
                 }
             });
             Register(() =>
@@ -1235,6 +1276,17 @@ namespace GonogoRp1Uplink
                     !_researchCommands.IsAvailable
                         ? "not registered: " + _researchCommands.MethodDiagnosis()
                         : "rp1.tech.research registered (" + _researchCommands.MethodDiagnosis() + ")"),
+                // Its own fact, because the two acts behind it are the ones RP-1
+                // itself performs SILENTLY when it will not perform them: a pad
+                // dismantle with one pad left and a pad rename to a name in use
+                // both close their dialog and change nothing. If this command is
+                // missing an operator is back to the surface that lies.
+                new UplinkHealthFact(
+                    "launch-complex lifecycle commands",
+                    !_complexLifecycle.IsAvailable
+                        ? "not registered: RP-1 launch-complex types not found"
+                        : "rp1.complex.rename, rp1.complex.dismantle, rp1.pad.rename and rp1.pad.dismantle registered ("
+                          + _complexLifecycle.MethodDiagnosis() + ")"),
                 new UplinkHealthFact(
                     "simulation provider",
                     _simulationRegistrationError != null

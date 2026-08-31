@@ -490,6 +490,7 @@ namespace GonogoRp1Uplink
                     Level = ReadInt(pad, "level") ?? 0,
                     FractionalLevel = NegativeAsAbsent(ReadDouble(pad, "fractionalLevel")),
                     State = ReadEnumName(pad, "State"),
+                    IsOperational = ReadBool(pad, "isOperational"),
                     HasVesselWaiting = waiting,
                     WaitingVesselName = waitingName,
                 });

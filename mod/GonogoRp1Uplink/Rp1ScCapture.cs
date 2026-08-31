@@ -197,6 +197,7 @@ namespace GonogoRp1Uplink
                     ["level"] = p.Level,
                     ["fractionalLevel"] = p.FractionalLevel,
                     ["state"] = p.State,
+                    ["isOperational"] = p.IsOperational,
                     ["hasVesselWaiting"] = p.HasVesselWaiting,
                     ["waitingVesselName"] = p.WaitingVesselName,
                 });
