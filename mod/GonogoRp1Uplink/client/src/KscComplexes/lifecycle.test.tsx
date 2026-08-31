@@ -15,8 +15,10 @@ import {
 } from "./index";
 import {
   RP1_COMPLEX_DISMANTLE_COMMAND,
+  RP1_COMPLEX_RENAME_COMMAND,
   RP1_PAD_DISMANTLE_COMMAND,
   RP1_PAD_NEW_COMMAND,
+  RP1_PAD_RENAME_COMMAND,
 } from "./Lifecycle";
 
 const TOPICS = [
@@ -31,6 +33,8 @@ const TOPICS = [
   RP1_COMPLEX_DISMANTLE_COMMAND,
   RP1_PAD_DISMANTLE_COMMAND,
   RP1_PAD_NEW_COMMAND,
+  RP1_COMPLEX_RENAME_COMMAND,
+  RP1_PAD_RENAME_COMMAND,
   "career.status",
 ];
 
@@ -381,5 +385,130 @@ describe("adding a launch pad", () => {
     const { view } = withCentre();
     await openDetail(user);
     await expectNoA11yViolations(view.container);
+  });
+});
+
+/**
+ * Renaming, which is the same act on a complex and on a pad.
+ *
+ * <para>The reason these tests exist at all is RP-1's silence. `LCLaunchPad.Rename`
+ * returns without doing anything when the name is taken: no message, no change, and
+ * the old name still on screen. A control that dispatched into that would look
+ * broken rather than refused, so the duplicate is caught here first.</para>
+ */
+describe("renaming", () => {
+  async function openDetail(user: ReturnType<typeof userEvent.setup>) {
+    const triggers = await screen.findAllByRole("button", {
+      name: /^Detail for /,
+    });
+    await user.click(triggers[0]);
+  }
+
+  it("costs no height until it is asked for", async () => {
+    const user = userEvent.setup();
+    withCentre();
+    await openDetail(user);
+
+    // Closed, a rename is one small button. A field standing open on every complex
+    // and every pad is the boilerplate the operator asked to be rid of.
+    expect(
+      screen.queryByLabelText("New name for LC-1"),
+    ).not.toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Rename LC-1" })).toBeEnabled();
+  });
+
+  it("renames a complex", async () => {
+    const user = userEvent.setup();
+    const { fixture } = withCentre();
+    await openDetail(user);
+
+    await user.click(screen.getByRole("button", { name: "Rename LC-1" }));
+    const field = screen.getByLabelText("New name for LC-1");
+    await user.clear(field);
+    await user.type(field, "Pad Alpha");
+    await user.click(
+      screen.getByRole("button", { name: "Rename LC-1 to Pad Alpha" }),
+    );
+
+    const sent = fixture.transport.sentCommands.find(
+      (c) => c.command === RP1_COMPLEX_RENAME_COMMAND,
+    );
+    expect(sent?.args).toEqual({ lcId: "lc-1", name: "Pad Alpha" });
+  });
+
+  it("renames a pad, carrying both ids", async () => {
+    const user = userEvent.setup();
+    const { fixture } = withCentre();
+    await openDetail(user);
+
+    await user.click(screen.getByRole("button", { name: "Rename LP-1" }));
+    const field = screen.getByLabelText("New name for LP-1");
+    await user.clear(field);
+    await user.type(field, "LP-9");
+    await user.click(
+      screen.getByRole("button", { name: "Rename LP-1 to LP-9" }),
+    );
+
+    const sent = fixture.transport.sentCommands.find(
+      (c) => c.command === RP1_PAD_RENAME_COMMAND,
+    );
+    expect(sent?.args).toEqual({ lcId: "lc-1", name: "LP-9", padId: "pad-1" });
+  });
+
+  it("refuses a name another pad here already has, which RP-1 would take silently", async () => {
+    const user = userEvent.setup();
+    withCentre();
+    await openDetail(user);
+
+    await user.click(screen.getByRole("button", { name: "Rename LP-1" }));
+    const field = screen.getByLabelText("New name for LP-1");
+    await user.clear(field);
+    await user.type(field, "LP-2");
+
+    expect(
+      screen.getByText("that name is already in use here"),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: "Rename LP-1 to LP-2" }),
+    ).toBeDisabled();
+  });
+
+  it("does not call a name a duplicate of itself", async () => {
+    const user = userEvent.setup();
+    withCentre();
+    await openDetail(user);
+
+    // The field opens holding the current name, so the name it already has must not
+    // read as taken. It is still refused, because renaming a thing to what it is
+    // called is not an act, but it is refused as unchanged rather than as a clash.
+    await user.click(screen.getByRole("button", { name: "Rename LP-1" }));
+
+    expect(
+      screen.queryByText("that name is already in use here"),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: "LP-1 is already called that" }),
+    ).toBeDisabled();
+  });
+
+  it("leaves the name alone on cancel", async () => {
+    const user = userEvent.setup();
+    const { fixture } = withCentre();
+    await openDetail(user);
+
+    await user.click(screen.getByRole("button", { name: "Rename LP-1" }));
+    await user.type(screen.getByLabelText("New name for LP-1"), "X");
+    await user.click(
+      screen.getByRole("button", { name: "Leave LP-1 named LP-1" }),
+    );
+
+    expect(
+      screen.queryByLabelText("New name for LP-1"),
+    ).not.toBeInTheDocument();
+    expect(
+      fixture.transport.sentCommands.some(
+        (c) => c.command === RP1_PAD_RENAME_COMMAND,
+      ),
+    ).toBe(false);
   });
 });

@@ -6,6 +6,7 @@ import {
   Row,
   Stack,
   Text,
+  TextButton,
   TextField,
   Unit,
 } from "@ksp-gonogo/ui-kit";
@@ -20,6 +21,12 @@ export const RP1_PAD_DISMANTLE_COMMAND = "rp1.pad.dismantle";
 
 /** Build one more pad at a complex. Must match `Rp1ComplexConstructionCommands.NewPadCommand`. */
 export const RP1_PAD_NEW_COMMAND = "rp1.pad.new";
+
+/** Rename a complex. Must match `Rp1ComplexLifecycleCommands.RenameComplexCommand`. */
+export const RP1_COMPLEX_RENAME_COMMAND = "rp1.complex.rename";
+
+/** Rename one of a complex's pads. Must match `Rp1ComplexLifecycleCommands.RenamePadCommand`. */
+export const RP1_PAD_RENAME_COMMAND = "rp1.pad.rename";
 
 /**
  * Demolishing a launch complex.
@@ -251,20 +258,200 @@ export function PadNewControl({
   );
 }
 
+/**
+ * Renaming a complex or one of its pads, which are the same act twice.
+ *
+ * <para><b>It costs no standing height.</b> A rename is occasional and a text
+ * field left open on every complex and every pad would be exactly the boilerplate
+ * the operator asked to be rid of, so the closed state is one small button and
+ * the field appears on the press.</para>
+ *
+ * <para><b>The duplicate refusal is ours, not RP-1's.</b> RP-1 returns silently
+ * when a name is already taken: no message, no change, and the old name still on
+ * screen, which reads as a control that did nothing rather than as a refusal. So
+ * the duplicate is refused here, before the dispatch, in words. The command
+ * refuses it as well for anything that sends it anyway, and reads the name back
+ * afterwards for the same reason.</para>
+ */
+export function RenameControl({
+  args,
+  currentName,
+  handle,
+  label,
+  onDone,
+  open: controlled,
+  taken,
+}: Readonly<{
+  /** Everything the command needs except the name, which this control supplies. */
+  args: Record<string, string>;
+  currentName: string;
+  handle: Parameters<typeof CommandButton>[0]["handle"];
+  /** What is being renamed, for the field label and every announced name. */
+  label: string;
+  /**
+   * Open from the start, for a caller that owns the trigger. A pad row's editor
+   * REPLACES the row, so the row has to know it is renaming; a complex has no such
+   * constraint and lets this control own both halves.
+   */
+  open?: boolean;
+  /** Told when the editor closes, so a caller owning the trigger can follow it. */
+  onDone?: () => void;
+  /** The names already in use at this scope, which RP-1 would silently refuse. */
+  taken: readonly string[];
+}>) {
+  const [ownOpen, setOwnOpen] = useState(false);
+  const [next, setNext] = useState(currentName);
+  const open = controlled === true || ownOpen;
+
+  const close = () => {
+    setOwnOpen(false);
+    onDone?.();
+  };
+
+  if (!open) {
+    return (
+      <TextButton
+        aria-label={`Rename ${label}`}
+        onClick={() => {
+          setNext(currentName);
+          setOwnOpen(true);
+        }}
+      >
+        rename
+      </TextButton>
+    );
+  }
+
+  const trimmed = next.trim();
+  const duplicate = taken.some(
+    (existing) =>
+      existing.toLowerCase() === trimmed.toLowerCase() &&
+      existing.toLowerCase() !== currentName.toLowerCase(),
+  );
+  const unchanged = trimmed === currentName;
+
+  return (
+    <Stack gap="xs">
+      <TextField
+        invalid={duplicate ? "that name is already in use here" : undefined}
+        label={`New name for ${label}`}
+        maxLength={64}
+        onChange={setNext}
+        value={next}
+      />
+      <Inline gap="xs">
+        <CommandButton
+          args={{ ...args, name: trimmed }}
+          aria-label={
+            trimmed === ""
+              ? `Give ${label} a name`
+              : unchanged
+                ? `${label} is already called that`
+                : `Rename ${label} to ${trimmed}`
+          }
+          commandLabel={`Rename ${label} to ${trimmed}`}
+          disabled={trimmed === "" || duplicate || unchanged}
+          handle={handle}
+          label="Rename"
+          size="sm"
+        />
+        <TextButton
+          aria-label={`Leave ${label} named ${currentName}`}
+          onClick={close}
+        >
+          cancel
+        </TextButton>
+      </Inline>
+    </Stack>
+  );
+}
+
+/**
+ * One pad's row, which becomes its rename editor rather than growing one.
+ *
+ * <para>The editor takes the whole row instead of the right-hand slot beside the
+ * dismantle. Sharing that slot put a text field, a Rename, a cancel and a
+ * Dismantle in a column two lines taller than the row it belonged to, which read
+ * as a layout accident. A row that turns into the thing being done to it is the
+ * same amount of space and says what is happening.</para>
+ */
+function PadRow({
+  complex,
+  dismantlePad,
+  lcId,
+  pad,
+  renamePad,
+  taken,
+}: Readonly<{
+  complex: Rp1ComplexEntry;
+  dismantlePad: Parameters<typeof CommandButton>[0]["handle"];
+  lcId: string | undefined;
+  pad: Rp1PadEntry;
+  renamePad: Parameters<typeof CommandButton>[0]["handle"];
+  taken: readonly string[];
+}>) {
+  const [renaming, setRenaming] = useState(false);
+  const padName = pad.name ?? NULL_DISPLAY;
+  const canRename = pad.padId != null && lcId != null;
+
+  if (renaming && canRename) {
+    return (
+      <Row as="li">
+        <RenameControl
+          args={{ lcId: lcId as string, padId: pad.padId as string }}
+          currentName={padName}
+          handle={renamePad}
+          label={padName}
+          onDone={() => setRenaming(false)}
+          open
+          taken={taken}
+        />
+      </Row>
+    );
+  }
+
+  return (
+    <Row>
+      <Text size="xs">
+        {padName} at level <Unit value={pad.level} />
+        {pad.isOperational === false && " · not in service"}
+      </Text>
+      <Inline gap="xs">
+        {canRename && (
+          <TextButton
+            aria-label={`Rename ${padName}`}
+            onClick={() => setRenaming(true)}
+          >
+            rename
+          </TextButton>
+        )}
+        <PadDismantleControl
+          complex={complex}
+          handle={dismantlePad}
+          pad={pad}
+        />
+      </Inline>
+    </Row>
+  );
+}
+
 export function PadRows({
   complex,
   pads,
   dismantlePad,
   funds,
   newPad,
+  renamePad,
 }: Readonly<{
   complex: Rp1ComplexEntry;
   pads: readonly Rp1PadEntry[];
   dismantlePad: Parameters<typeof CommandButton>[0]["handle"];
   funds: number | null;
   newPad: Parameters<typeof CommandButton>[0]["handle"];
+  renamePad: Parameters<typeof CommandButton>[0]["handle"];
 }>) {
   const operational = magnitudeOf(complex.launchPadCount);
+  const lcId = complex.lcId;
   const taken = pads
     .map((pad) => pad.name)
     .filter((padName): padName is string => padName != null);
@@ -297,17 +484,15 @@ export function PadRows({
       </Text>
       <Stack as="ul" gap="xs" style={LIST_STYLE}>
         {pads.map((pad, index) => (
-          <Row key={pad.padId ?? pad.name ?? String(index)}>
-            <Text size="xs">
-              {pad.name ?? NULL_DISPLAY} at level <Unit value={pad.level} />
-              {pad.isOperational === false && " · not in service"}
-            </Text>
-            <PadDismantleControl
-              complex={complex}
-              handle={dismantlePad}
-              pad={pad}
-            />
-          </Row>
+          <PadRow
+            complex={complex}
+            dismantlePad={dismantlePad}
+            key={pad.padId ?? pad.name ?? String(index)}
+            lcId={lcId}
+            pad={pad}
+            renamePad={renamePad}
+            taken={taken}
+          />
         ))}
       </Stack>
       <PadNewControl

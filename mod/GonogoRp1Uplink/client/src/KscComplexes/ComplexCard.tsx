@@ -22,7 +22,7 @@ import type {
   Rp1PadEntry,
   Rp1RushTerms,
 } from "../__generated__/contract";
-import { DismantleControl, PadRows } from "./Lifecycle";
+import { DismantleControl, PadRows, RenameControl } from "./Lifecycle";
 
 /**
  * ONE launch complex, drawn as the thing an operator administers.
@@ -54,6 +54,8 @@ export function ComplexCard({
   dismantlePad,
   funds,
   newPad,
+  renameComplex,
+  renamePad,
 }: Readonly<{
   complex: Rp1ComplexEntry;
   centreName: string;
@@ -70,6 +72,8 @@ export function ComplexCard({
   /** The career balance, so a pad quote can say whether it is covered. */
   funds: number | null;
   newPad: Parameters<typeof CommandButton>[0]["handle"];
+  renameComplex: Parameters<typeof CommandButton>[0]["handle"];
+  renamePad: Parameters<typeof CommandButton>[0]["handle"];
 }>) {
   const name = complex.name ?? NULL_DISPLAY;
   const engineers = magnitudeOf(complex.engineers);
@@ -135,12 +139,24 @@ export function ComplexCard({
             {rushing && <RushStatus terms={terms} />}
             <Envelope complex={complex} />
             <Costs complex={complex} />
+            {complex.lcId != null && (
+              <Inline gap="xs">
+                <RenameControl
+                  args={{ lcId: complex.lcId }}
+                  currentName={name}
+                  handle={renameComplex}
+                  label={name}
+                  taken={[...complexNames.values()]}
+                />
+              </Inline>
+            )}
             <PadRows
               complex={complex}
               dismantlePad={dismantlePad}
               funds={funds}
               newPad={newPad}
               pads={pads}
+              renamePad={renamePad}
             />
             {operational && (
               <RushControl complex={complex} handle={rush} name={name} />

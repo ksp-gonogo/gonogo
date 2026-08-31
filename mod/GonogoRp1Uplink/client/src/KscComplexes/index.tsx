@@ -24,8 +24,10 @@ import "../topics";
 import { Centre } from "./Centre";
 import {
   RP1_COMPLEX_DISMANTLE_COMMAND,
+  RP1_COMPLEX_RENAME_COMMAND,
   RP1_PAD_DISMANTLE_COMMAND,
   RP1_PAD_NEW_COMMAND,
+  RP1_PAD_RENAME_COMMAND,
 } from "./Lifecycle";
 
 /** Rush a whole complex. Must match `Rp1VehicleCommands.RushCommand`. */
@@ -94,11 +96,15 @@ export function KscComplexes() {
   const dismantle = useCommand(RP1_COMPLEX_DISMANTLE_COMMAND);
   const dismantlePad = useCommand(RP1_PAD_DISMANTLE_COMMAND);
   const newPad = useCommand(RP1_PAD_NEW_COMMAND);
+  const renameComplex = useCommand(RP1_COMPLEX_RENAME_COMMAND);
+  const renamePad = useCommand(RP1_PAD_RENAME_COMMAND);
   usePanelDelay(rush);
   usePanelDelay(assign);
   usePanelDelay(dismantle);
   usePanelDelay(dismantlePad);
   usePanelDelay(newPad);
+  usePanelDelay(renameComplex);
+  usePanelDelay(renamePad);
 
   // Invisible on every install without RP-1, which is most of them.
   if (available !== true) {
@@ -153,6 +159,8 @@ export function KscComplexes() {
               dismantlePad={dismantlePad}
               funds={magnitudeOf(career?.economy?.funds)}
               newPad={newPad}
+              renameComplex={renameComplex}
+              renamePad={renamePad}
               key={centre.kscName ?? ""}
               pads={padRows}
               rush={rush}
