@@ -50,6 +50,7 @@ namespace GonogoRp1Uplink
         public const string PersonnelTopic = "rp1.personnel";
         public const string RushTermsTopic = "rp1.rushTerms";
         public const string ConfidenceTopic = "rp1.confidence";
+        public const string FundTargetTopic = "rp1.fundTarget";
         public const string ProgramsTopic = "rp1.programs";
         public const string ProgramSlotsTopic = "rp1.programSlots";
         public const string ProgramFundingCurvesTopic = "rp1.programFundingCurves";
@@ -173,6 +174,8 @@ namespace GonogoRp1Uplink
         /// </summary>
         private readonly Rp1StrategyCommands _strategies = new Rp1StrategyCommands();
 
+        private readonly Rp1TargetCommands _targets = new Rp1TargetCommands();
+
         /// <summary>
         /// The facility upgrade RP-1 turns into a construction project, which is
         /// the command <see cref="Rp1CareerProjectGate"/> refuses core's
@@ -252,6 +255,8 @@ namespace GonogoRp1Uplink
         private IChannelPublisher? _personnel;
         private IChannelPublisher? _rushTerms;
         private IChannelPublisher? _confidence;
+
+        private IChannelPublisher? _fundTarget;
         private IChannelPublisher? _programList;
         private IChannelPublisher? _programSlots;
         private IChannelPublisher? _programCurves;
@@ -295,7 +300,7 @@ namespace GonogoRp1Uplink
             Manifest = BuildManifest(
                 _build.IsAvailable, _vehicles.IsAvailable, _vehicles.IsMoveAvailable,
                 _staffing.IsAvailable, _start.IsAvailable, _facilities.IsAvailable,
-                _researchCommands.IsAvailable);
+                _researchCommands.IsAvailable, _strategies.IsAvailable, _targets.IsAvailable);
             _crewStanding = new Rp1CrewStandingBackend(_crew);
             _economy = new Rp1EconomyBackend(_upkeepQuery);
         }
@@ -307,7 +312,9 @@ namespace GonogoRp1Uplink
             bool staffingModelResolved,
             bool startModelResolved,
             bool facilityModelResolved,
-            bool researchModelResolved) => new UplinkManifest
+            bool researchModelResolved,
+            bool strategyModelResolved,
+            bool targetModelResolved) => new UplinkManifest
         {
             Id = "rp1",
             Version = "1.0.0",
@@ -339,6 +346,7 @@ namespace GonogoRp1Uplink
                 // charge is worse than declining to quote one.
                 Ground(RushTermsTopic, absenceIsData: true),
                 Ground(ConfidenceTopic, absenceIsData: true),
+                Ground(FundTargetTopic, absenceIsData: true),
                 // All three Program channels publish NOTHING rather than an
                 // empty list when RP-1's ProgramHandler is not live. The
                 // distinction matters more here than anywhere else on this
@@ -372,7 +380,7 @@ namespace GonogoRp1Uplink
             Commands = DeclareCommands(
                 buildModelResolved, queueModelResolved, moveModelResolved,
                 staffingModelResolved, startModelResolved, facilityModelResolved,
-                researchModelResolved),
+                researchModelResolved, strategyModelResolved, targetModelResolved),
         };
 
         /// <summary>
@@ -401,7 +409,9 @@ namespace GonogoRp1Uplink
             bool staffingModelResolved,
             bool startModelResolved,
             bool facilityModelResolved,
-            bool researchModelResolved)
+            bool researchModelResolved,
+            bool strategyModelResolved,
+            bool targetModelResolved)
         {
             var commands = new List<CommandDeclaration>();
             if (buildModelResolved)
@@ -471,6 +481,15 @@ namespace GonogoRp1Uplink
             if (researchModelResolved)
             {
                 commands.Add(Declare(Rp1ResearchCommands.ResearchCommand));
+            }
+            if (strategyModelResolved)
+            {
+                commands.Add(Declare(Rp1StrategyCommands.ActivateCommand));
+            }
+            if (targetModelResolved)
+            {
+                commands.Add(Declare(Rp1TargetCommands.CancelHireCommand));
+                commands.Add(Declare(Rp1TargetCommands.CancelFundCommand));
             }
             return commands;
         }
@@ -590,10 +609,17 @@ namespace GonogoRp1Uplink
             // so declaring the command without registering this would be a
             // startup failure rather than a missing button.
             //
-            // Fail-softed separately, like the two registrations above: a command
-            // that cannot register must not cost this Uplink its read surface, and
-            // a read surface that fails must not leave a command half-registered.
-            try
+            // Fail-softed PER REGISTRATION, not once around the block, and that
+            // distinction is the whole of a live outage on 2026-08-31. One command
+            // was registered without a matching declaration; AddCommandHandler
+            // throws for that, a single surrounding catch turned the throw into a
+            // health string, and every registration AFTER it was skipped. One of
+            // the skipped ones was the gate evaluator that a DIFFERENT command's
+            // declared requirement needed, so the engine refused to start at all
+            // and named that innocent command as the cause. A shared catch across
+            // independent registrations does not fail one of them soft, it fails
+            // the remainder silently.
+            Register(() =>
             {
                 // The evaluator goes up when ANY of the seven commands is
                 // declared, not when the repeat build is: it answers the one
@@ -605,17 +631,26 @@ namespace GonogoRp1Uplink
                 {
                     host.AddGateEvaluator(_build);
                 }
+            });
+            Register(() =>
+            {
                 if (_build.IsAvailable)
                 {
                     host.AddCommandHandler<Rp1BuildRepeatArgs, CommandResult>(
                         Rp1BuildCommands.RepeatCommand, _build.Repeat);
                 }
+            });
+            Register(() =>
+            {
                 if (_start.IsAvailable)
                 {
                     host.AddGateEvaluator(_start);
                     host.AddCommandHandler<Rp1BuildStartArgs, CommandResult>(
                         Rp1BuildStartCommands.StartCommand, _start.Start);
                 }
+            });
+            Register(() =>
+            {
                 if (_vehicles.IsMoveAvailable)
                 {
                     host.AddCommandHandler<Rp1RolloutArgs, CommandResult>(
@@ -623,6 +658,9 @@ namespace GonogoRp1Uplink
                     host.AddCommandHandler<Rp1VehicleArgs, CommandResult>(
                         Rp1VehicleCommands.RollbackCommand, _vehicles.Rollback);
                 }
+            });
+            Register(() =>
+            {
                 if (_vehicles.IsAvailable)
                 {
                     host.AddCommandHandler<Rp1VehicleArgs, CommandResult>(
@@ -630,16 +668,35 @@ namespace GonogoRp1Uplink
                     host.AddCommandHandler<Rp1ComplexRushArgs, CommandResult>(
                         Rp1VehicleCommands.RushCommand, _vehicles.Rush);
                 }
+            });
+            Register(() =>
+            {
                 if (_staffing.IsAvailable)
                 {
                     host.AddCommandHandler<Rp1PersonnelAssignArgs, CommandResult>(
                         Rp1PersonnelCommands.AssignCommand, _staffing.Assign);
                 }
+            });
+            Register(() =>
+            {
                 if (_strategies.IsAvailable)
                 {
                     host.AddCommandHandler<Rp1StrategyActivateArgs, CommandResult>(
                         Rp1StrategyCommands.ActivateCommand, _strategies.Activate);
                 }
+            });
+            Register(() =>
+            {
+                if (_targets.IsAvailable)
+                {
+                    host.AddCommandHandler<Rp1TargetCancelArgs, CommandResult>(
+                        Rp1TargetCommands.CancelHireCommand, _targets.CancelHire);
+                    host.AddCommandHandler<Rp1TargetCancelArgs, CommandResult>(
+                        Rp1TargetCommands.CancelFundCommand, _targets.CancelFund);
+                }
+            });
+            Register(() =>
+            {
                 if (_facilities.IsAvailable)
                 {
                     // Its own evaluator beside the shared one, because it is the
@@ -650,15 +707,30 @@ namespace GonogoRp1Uplink
                     host.AddCommandHandler<Rp1FacilityUpgradeArgs, CommandResult<Dictionary<string, object?>>>(
                         Rp1FacilityUpgradeCommands.UpgradeCommand, _facilities.Upgrade);
                 }
+            });
+            Register(() =>
+            {
                 if (_researchCommands.IsAvailable)
                 {
                     host.AddCommandHandler<Rp1TechResearchArgs, CommandResult>(
                         Rp1ResearchCommands.ResearchCommand, _researchCommands.Research);
                 }
-            }
-            catch (Exception ex)
+            });
+
+            void Register(Action register)
             {
-                _buildCommandRegistrationError = ex.Message;
+                try
+                {
+                    register();
+                }
+                catch (Exception ex)
+                {
+                    // Kept as the FIRST failure rather than the last: the one that
+                    // started the trouble is the one worth reading, and a later
+                    // registration failing because an earlier one did would
+                    // otherwise overwrite it.
+                    _buildCommandRegistrationError ??= ex.Message;
+                }
             }
 
             // The simulation provider: whether the flight on screen is one of
@@ -745,6 +817,7 @@ namespace GonogoRp1Uplink
             _personnel = host.Publisher(PersonnelTopic);
             _rushTerms = host.Publisher(RushTermsTopic);
             _confidence = host.Publisher(ConfidenceTopic);
+            _fundTarget = host.Publisher(FundTargetTopic);
             _programList = host.Publisher(ProgramsTopic);
             _programSlots = host.Publisher(ProgramSlotsTopic);
             _programCurves = host.Publisher(ProgramFundingCurvesTopic);
@@ -765,7 +838,8 @@ namespace GonogoRp1Uplink
                 ResearchTopic,
                 PersonnelTopic,
                 RushTermsTopic,
-                ConfidenceTopic);
+                ConfidenceTopic,
+                FundTargetTopic);
 
             // Gated, and safe to gate: this capture's ENTIRE effect is its
             // return value. It stashes nothing, elects nothing, and no command
@@ -899,6 +973,7 @@ namespace GonogoRp1Uplink
             _personnel?.Publish(Rp1ScCapture.BuildPersonnel(raw), raw.Ut);
             _rushTerms?.Publish(Rp1ScCapture.BuildRushTerms(raw), raw.Ut);
             _confidence?.Publish(Rp1ScCapture.BuildConfidence(raw), raw.Ut);
+            _fundTarget?.Publish(Rp1ScCapture.BuildFundTarget(raw), raw.Ut);
         }
 
         /// <summary>
