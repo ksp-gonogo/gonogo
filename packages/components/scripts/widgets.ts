@@ -797,9 +797,9 @@ const WIDGETS: WidgetRenderConfig[] = [
         ],
         forFixtures: ["crew-mixed-standings"],
       },
-      // Selected and still open at a short height: the compact one-line chip in
-      // its selected state, next to the disabled chips it has to read apart
-      // from.
+      /* Selected and still open at a short height: the compact one-line chip in
+         its selected state, next to the disabled chips it has to read apart
+         from. */
       {
         name: "crew-selected-compact-7x10",
         w: 7,

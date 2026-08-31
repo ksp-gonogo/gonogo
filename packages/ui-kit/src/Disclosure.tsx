@@ -77,8 +77,8 @@ export interface DisclosureProps {
    * only so it can be folded away when the space runs out, which is what a
    * widget does when its tile is too short to hold a section: the same section,
    * open in a tall tile and closed in a short one. Read once, at mount. To
-   * re-seat it when the deciding condition changes, give the Disclosure a `key`
-   * that changes with it.
+   * re-seat it when the deciding condition changes, give the Disclosure a React
+   * key that changes with it.
    */
   defaultOpen?: boolean;
 }
