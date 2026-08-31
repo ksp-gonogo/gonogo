@@ -196,6 +196,23 @@ function ownRow(event: MissionEvent): MissionLogRow {
   };
 }
 
+/**
+ * One row of the merged timeline.
+ *
+ * <para><b>What is pinned and what gives way.</b> A badge, a figure and a group
+ * marker are short and fixed-width; a label is neither. So the label is the only
+ * thing inside the truncating text, and everything else sits outside it. Put a
+ * short fixed thing last inside the truncation and it is the FIRST thing lost,
+ * which is the worst possible order: the row still looks complete and the part
+ * that was cut is the part carrying the specific fact.</para>
+ *
+ * <para>Both halves of that were found by rendering rather than by testing, and
+ * within one run of each other. A contributed figure was clipped at every size
+ * of an eight-row history, and the group marker was clipped on both rows of the
+ * one scene whose entire subject is the pairing. Every assertion covering them
+ * passed throughout, because a query for text content cannot see whether the
+ * text is on screen.</para>
+ */
 function EventRow({
   row,
   launchUt,
@@ -218,23 +235,8 @@ function EventRow({
         <Stamp ut={row.ut} launchUt={launchUt} /> · {row.label}
         {row.detail ? ` · ${row.detail}` : ""}
       </Truncate>
-      {/* Pinned beside the figure rather than trailing the label, for the same
-          reason and found the same way. The marker is the whole point of a
-          shared group, and inside the truncating text it was the first thing
-          cut: a render of a failure paired with its launch clipped BOTH rows'
-          markers, so the one row that needed the join could not show it. Its
-          own unit test passed throughout, because the assertion reads the
-          string and not whether it is on screen. */}
       {row.groupTag ? <Text tone="faint">{`⟨${row.groupTag}⟩`}</Text> : null}
-      {/* OUTSIDE the truncating text, and a render is what settled it. Inside,
-          the figure sits last on a nowrap line and is the first thing clipped:
-          every size of an eight-row history cut "25,000f" and "13 rep" off the
-          end, so the widget drew a number nobody could read. A figure is short
-          and fixed-width while a label is neither, so the label is what should
-          give way. The badge is already pinned on the left for the same
-          reason.
-
-          Minted here rather than carried: a contributed row is a magnitude and
+      {/* Minted here rather than carried: a contributed row is a magnitude and
           a unit, and `Unit` is the app's only quantity renderer, so the figure
           becomes a real value on this side of the boundary rather than arriving
           pre-formatted. */}
