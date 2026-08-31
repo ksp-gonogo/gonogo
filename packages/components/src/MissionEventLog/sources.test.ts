@@ -208,6 +208,32 @@ describe("mergeLogRows", () => {
     expect(mergeLogRows([], entries)[0].groupTag).toBeUndefined();
   });
 
+  it("carries a contributed figure through as a magnitude and its unit", () => {
+    const entries: MissionLogSourceEntry[] = [
+      {
+        id: "rp1",
+        label: "RP-1",
+        state: "recording",
+        events: [
+          {
+            id: "leader",
+            ut: 10,
+            label: "Von Braun",
+            amount: { magnitude: 25_000, unit: "funds" },
+          },
+          { id: "launch", ut: 11, label: "Ares I" },
+        ],
+      },
+    ];
+
+    const [leader, launch] = mergeLogRows([], entries);
+
+    expect(leader.amount).toEqual({ magnitude: 25_000, unit: "funds" });
+    // A row with no figure carries none, rather than a zero that would read as
+    // free.
+    expect(launch.amount).toBeUndefined();
+  });
+
   it("takes no rows from the second of two sources claiming the same id", () => {
     const entries: MissionLogSourceEntry[] = [
       {

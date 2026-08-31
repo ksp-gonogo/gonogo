@@ -5,6 +5,7 @@ import {
   useTelemetry,
 } from "@ksp-gonogo/core";
 import type { Reading } from "@ksp-gonogo/sitrep-client";
+import { value } from "@ksp-gonogo/sitrep-sdk";
 import {
   Badge,
   Countdown,
@@ -16,6 +17,7 @@ import {
   Stack,
   Text,
   Truncate,
+  Unit,
 } from "@ksp-gonogo/ui-kit";
 import { magnitudeOf } from "../shared/magnitude";
 import type { MissionEvent, MissionEventKind } from "./events";
@@ -215,6 +217,19 @@ function EventRow({
       <Truncate>
         <Stamp ut={row.ut} launchUt={launchUt} /> · {row.label}
         {row.detail ? ` · ${row.detail}` : ""}
+        {row.amount ? (
+          <>
+            {" · "}
+            {/* Minted here rather than carried, because a contributed row is a
+                magnitude and a unit: `Unit` is the app's only quantity
+                renderer, so the figure has to become a real value on this side
+                of the boundary rather than arrive pre-formatted. */}
+            <Unit
+              value={value(row.amount.unit, row.amount.magnitude)}
+              decimals={0}
+            />
+          </>
+        ) : null}
         {row.groupTag ? (
           <Text tone="faint" spaced>{`⟨${row.groupTag}⟩`}</Text>
         ) : null}
