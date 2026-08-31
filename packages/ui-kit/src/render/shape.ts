@@ -197,6 +197,14 @@ export const readShapeText = (args: {
   const host = document.getElementById("root");
   if (!host) throw new Error("render shape: no #root in the page");
   const attrRe = new RegExp(args.attributes);
+  // Engines serialise a wide-gamut colour to different last digits: the same
+  // theme token came out `color(srgb 0.636078 …)` in chromium and
+  // `color(srgb 0.636079 …)` in firefox, and that one digit alone made every
+  // asset's shape differ between the two. It is the same colour, and no change
+  // anybody could see in a picture lives in the fourth decimal place, so the
+  // text is normalised to three before it is hashed.
+  const round = (text: string): string =>
+    text.replace(/\d+\.\d{4,}/g, (n) => String(Math.round(+n * 1000) / 1000));
   const lines: string[] = [];
   const texts: string[] = [];
   let elements = 0;
@@ -213,9 +221,11 @@ export const readShapeText = (args: {
       .sort();
     const style = getComputedStyle(el);
     lines.push(
-      `${path} ${el.tagName.toLowerCase()}` +
-        (attrs.length > 0 ? ` [${attrs.join(";")}]` : "") +
-        ` {${args.properties.map((p) => `${p}:${style.getPropertyValue(p)}`).join(";")}}`,
+      round(
+        `${path} ${el.tagName.toLowerCase()}` +
+          (attrs.length > 0 ? ` [${attrs.join(";")}]` : "") +
+          ` {${args.properties.map((p) => `${p}:${style.getPropertyValue(p)}`).join(";")}}`,
+      ),
     );
     for (const node of Array.from(el.childNodes)) {
       if (node.nodeType !== 3) continue;

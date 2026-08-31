@@ -132,6 +132,16 @@ export interface RenderOptions {
    *  `gonogo.renderWith`, so a one-off run can name a host the package does not
    *  declare. See `ScenePayload.host`. */
   withModules?: readonly string[];
+  /**
+   * Write each asset's raw shape text beside it as `<asset>.shape.txt`.
+   *
+   * A shape is a hash, so a mismatch can otherwise only ever say "different",
+   * and a gate that reports a change without a way to see the change is one
+   * people mute. This is what `uplink-shape-engines.mjs` diffs when two engines
+   * disagree, and what an author dumps when `docs --check` names an asset they
+   * did not expect.
+   */
+  dumpShapes?: boolean;
 }
 
 export interface RenderedAsset {
@@ -292,7 +302,11 @@ async function renderOneScene(
     // style and lets every ResizeObserver in the tree settle against it. The
     // shape is meant to be the same on any machine, and the state after that
     // step is the one place in the run where it would not be.
-    const shape = foldShape([await captureShape(tab)]);
+    const capture = await captureShape(tab);
+    if (opts.dumpShapes) {
+      await writeFile(join(opts.outDir, `${file}.shape.txt`), capture.text);
+    }
+    const shape = foldShape([capture]);
     await growToFullContent(tab);
     await assertEveryPaintVisible(tab, scene, mode.name);
     await shoot(tab, join(opts.outDir, file));
