@@ -526,6 +526,7 @@ export {
   type TextTone,
   type TextWeight,
 } from "./Text";
+export { TextField, type TextFieldProps } from "./TextField";
 // Switch's sibling, and the other half of the toggle vocabulary: a row of
 // alternatives is a ToggleButton, a single labelled setting is a Switch.
 export {

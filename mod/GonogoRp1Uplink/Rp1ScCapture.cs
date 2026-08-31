@@ -76,6 +76,7 @@ namespace GonogoRp1Uplink
                     ["resourcesHandled"] = c.ResourcesHandled,
                     ["salaryPerDay"] = c.SalaryPerDay,
                     ["upkeepPerDay"] = c.UpkeepPerDay,
+                    ["newPadCost"] = c.NewPadCost,
                 });
             }
             return list;

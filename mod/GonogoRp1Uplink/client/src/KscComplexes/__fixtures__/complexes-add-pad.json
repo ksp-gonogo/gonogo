@@ -1,6 +1,6 @@
 {
   "_meta": {
-    "notes": "The management view: a centre, its complexes, who is assigned to each, what each costs, and the two controls that change those. Vehicle Assembly shows the consequences and administers nothing. The wording of a press carries the price, because the decision is made here."
+    "notes": "The add-a-pad control, in the state worth reviewing: a career whose balance does NOT cover the quote. RP-1 draws a construction down as it builds and a shortfall gets a proportionally slower build rather than a refusal, so the press stays live and the reading is about pace. A happy-path render would show a price and prove nothing about the only part of this that needed a decision. The price is the figure RP-1's own curve gives for this complex (180 t, not human-rated), not a round number, so the render does not teach a price the game never quotes."
   },
   "_scene": {
     "augment": "rp1-ksc-complexes",
@@ -9,18 +9,14 @@
       "w": 12,
       "h": 20
     },
-    "caption": "LC-1 rushing with its detail open, so the terms in force and the way out of rush mode are both on screen; LC-2 stays collapsed, which is what a complex costs to read when nobody is asking about it",
+    "caption": "LC-1's detail open on a career with 400f against a 14,118f pad: the quote, the reading that it is more than the balance, and a press that is still live because RP-1 slows the build rather than refusing it",
     "paints": [
-      "SPACE CENTRES",
-      "Cape",
       "LC-1",
-      "LC-2",
-      "RUSHING",
-      "Stop rushing",
-      "Unassigned",
-      "Max",
-      "Shared with",
-      "step"
+      "pads",
+      "Build",
+      "New pad at LC-1",
+      "more than the balance, so it builds slower",
+      "LP-1B"
     ],
     "before": [
       {
@@ -35,7 +31,7 @@
         "topic": "career.status",
         "payload": {
           "economy": {
-            "funds": 289848,
+            "funds": 400,
             "reputation": 62,
             "science": 340
           },
@@ -118,7 +114,7 @@
             "name": "LC-1",
             "lcType": "Pad",
             "isOperational": true,
-            "isRushing": true,
+            "isRushing": false,
             "engineers": 44,
             "maxEngineers": 60,
             "efficiency": 0.51,

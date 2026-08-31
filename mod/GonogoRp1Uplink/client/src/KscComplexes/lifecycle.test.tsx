@@ -16,6 +16,7 @@ import {
 import {
   RP1_COMPLEX_DISMANTLE_COMMAND,
   RP1_PAD_DISMANTLE_COMMAND,
+  RP1_PAD_NEW_COMMAND,
 } from "./Lifecycle";
 
 const TOPICS = [
@@ -29,6 +30,8 @@ const TOPICS = [
   RP1_PERSONNEL_ASSIGN_COMMAND,
   RP1_COMPLEX_DISMANTLE_COMMAND,
   RP1_PAD_DISMANTLE_COMMAND,
+  RP1_PAD_NEW_COMMAND,
+  "career.status",
 ];
 
 const CAPE = {
@@ -49,6 +52,7 @@ const LC1 = {
   massMax: 180,
   maxEngineers: 60,
   name: "LC-1",
+  newPadCost: 14_118.31,
 };
 
 const PADS = [
@@ -73,6 +77,7 @@ const PADS = [
 function withCentre(
   complexes: readonly Record<string, unknown>[] = [LC1],
   pads: readonly Record<string, unknown>[] = PADS,
+  career: Record<string, unknown> = { economy: { funds: 289_848 } },
 ) {
   const fixture = setupStreamFixture({ carriedChannels: TOPICS });
   const view = render(
@@ -85,6 +90,7 @@ function withCentre(
     fixture.emit("rp1.centres", [CAPE]);
     fixture.emit("rp1.complexes", complexes);
     fixture.emit("rp1.pads", pads);
+    fixture.emit("career.status", career);
   });
   return { fixture, view };
 }
@@ -251,5 +257,129 @@ describe("dismantling a launch pad", () => {
     // The row says so too, because the count above it cannot: two pads listed
     // and one operational reads as a contradiction without it.
     expect(screen.getByText(/not in service/)).toBeInTheDocument();
+  });
+});
+
+/**
+ * Adding a pad.
+ *
+ * <para>The command has been on the wire since the lifecycle work landed and had
+ * no control at all, which is the gap the operator found by asking why they could
+ * not add one. What the control has to get right is not the dispatch, which is two
+ * fields: it is the PRICE, and what the price means.</para>
+ *
+ * <para>RP-1 does not take the money at the press. It draws a construction down as
+ * it builds, and a career that cannot afford a tick gets a slower build rather than
+ * a refusal, so "more than the balance" is a fact about pace and the control says it
+ * as one. A control that said "cannot afford" would be describing a refusal RP-1
+ * does not make.</para>
+ */
+describe("adding a launch pad", () => {
+  async function openDetail(user: ReturnType<typeof userEvent.setup>) {
+    const triggers = await screen.findAllByRole("button", {
+      name: /^Detail for /,
+    });
+    await user.click(triggers[0]);
+  }
+
+  it("quotes the price and sends the name that was typed", async () => {
+    const user = userEvent.setup();
+    const { fixture } = withCentre();
+    await openDetail(user);
+
+    /*
+     * The price is the complex's own, published rather than derived: the curve has
+     * a second term above 350 t and a human-rating multiplier, and a TypeScript
+     * copy would agree with the copy rather than with RP-1.
+     */
+    expect(screen.getByText(/14,118/)).toBeInTheDocument();
+
+    await user.type(screen.getByLabelText("New pad at LC-1"), "LP-3");
+    await user.click(
+      screen.getByRole("button", { name: /^Build LP-3 at LC-1/ }),
+    );
+    await user.click(
+      screen.getByRole("button", { name: /^Confirm building LP-3/ }),
+    );
+
+    const sent = fixture.transport.sentCommands.find(
+      (c) => c.command === RP1_PAD_NEW_COMMAND,
+    );
+    expect(sent?.args).toEqual({ lcId: "lc-1", name: "LP-3" });
+  });
+
+  it("will not send a name a pad here already has", async () => {
+    const user = userEvent.setup();
+    withCentre();
+    await openDetail(user);
+
+    // RP-1 refuses a duplicate by name, so the control refuses first rather than
+    // dispatching something that comes back refused.
+    await user.type(screen.getByLabelText("New pad at LC-1"), "LP-2");
+
+    expect(
+      screen.getByText("a pad at this complex already has that name"),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: /^Build LP-2 at LC-1/ }),
+    ).toBeDisabled();
+  });
+
+  it("refuses an unnamed pad without saying the name is wrong", async () => {
+    const user = userEvent.setup();
+    withCentre();
+    await openDetail(user);
+
+    // Dark, and the label says what to do rather than what went wrong: nothing has
+    // gone wrong yet, the operator simply has not typed a name.
+    expect(
+      screen.getByRole("button", { name: "Name the pad before building it" }),
+    ).toBeDisabled();
+  });
+
+  it("calls a shortfall a slower build, not a refusal", async () => {
+    const user = userEvent.setup();
+    withCentre([LC1], PADS, { economy: { funds: 400 } });
+    await openDetail(user);
+
+    // The whole point of the IL read: AddProgress spends the affordable FRACTION,
+    // advances by that fraction, stops timewarp and carries on. No cancel, no
+    // refund. So the press is still live.
+    expect(
+      screen.getByText(/more than the balance, so it builds slower/),
+    ).toBeInTheDocument();
+    await user.type(screen.getByLabelText("New pad at LC-1"), "LP-3");
+    expect(
+      screen.getByRole("button", { name: /^Build LP-3 at LC-1/ }),
+    ).toBeEnabled();
+  });
+
+  it("draws no control when RP-1 would not price a pad", async () => {
+    const user = userEvent.setup();
+    // Absent is not free. A hangar has no pad, and RP-1 declines to price one in
+    // other cases too; both must draw nothing rather than a quote of zero.
+    withCentre([{ ...LC1, newPadCost: undefined }]);
+    await openDetail(user);
+
+    expect(screen.queryByLabelText("New pad at LC-1")).not.toBeInTheDocument();
+    expect(screen.queryByText(/0\s*f\b/)).not.toBeInTheDocument();
+  });
+
+  it("offers a pad to a complex that has none, which is where it matters most", async () => {
+    const user = userEvent.setup();
+    withCentre([{ ...LC1, launchPadCount: 0 }], []);
+    await openDetail(user);
+
+    // A pad complex with no pad cannot launch anything, so this is the state the
+    // control is most needed in and the one an early return would have skipped.
+    expect(screen.getByText("no pads")).toBeInTheDocument();
+    expect(screen.getByLabelText("New pad at LC-1")).toBeInTheDocument();
+  });
+
+  it("has no accessibility violations", async () => {
+    const user = userEvent.setup();
+    const { view } = withCentre();
+    await openDetail(user);
+    await expectNoA11yViolations(view.container);
   });
 });

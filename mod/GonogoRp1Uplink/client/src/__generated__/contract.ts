@@ -171,6 +171,7 @@ export interface Rp1ComplexEntry
 	resourcesHandled?: string[];
 	salaryPerDay?: Value<"f/day">;
 	upkeepPerDay?: Value<"f/day">;
+	newPadCost?: Value<"funds">;
 }
 export interface Rp1BuildItemEntry
 {

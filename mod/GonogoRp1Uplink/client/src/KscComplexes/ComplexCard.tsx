@@ -52,6 +52,8 @@ export function ComplexCard({
   rush,
   dismantle,
   dismantlePad,
+  funds,
+  newPad,
 }: Readonly<{
   complex: Rp1ComplexEntry;
   centreName: string;
@@ -65,6 +67,9 @@ export function ComplexCard({
   rush: Parameters<typeof CommandButton>[0]["handle"];
   dismantle: Parameters<typeof CommandButton>[0]["handle"];
   dismantlePad: Parameters<typeof CommandButton>[0]["handle"];
+  /** The career balance, so a pad quote can say whether it is covered. */
+  funds: number | null;
+  newPad: Parameters<typeof CommandButton>[0]["handle"];
 }>) {
   const name = complex.name ?? NULL_DISPLAY;
   const engineers = magnitudeOf(complex.engineers);
@@ -133,6 +138,8 @@ export function ComplexCard({
             <PadRows
               complex={complex}
               dismantlePad={dismantlePad}
+              funds={funds}
+              newPad={newPad}
               pads={pads}
             />
             {operational && (

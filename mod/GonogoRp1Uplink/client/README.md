@@ -162,7 +162,7 @@ Every craft RP-1 is integrating, holding or could start, across every launch com
 | `rp1-crew-schedule` | `astronaut-complex.crew` | – |  | 1 |  |
 | `rp1-contract-payload` | `contract-manager.sections` | – |  | 1 |  |
 | `rp1-crew-programme` | `astronaut-complex.sections` | – |  | 1 |  |
-| `rp1-ksc-complexes` | `space-center-status.sections` | – |  | 6 |  |
+| `rp1-ksc-complexes` | `space-center-status.sections` | – |  | 7 |  |
 | `rp1-ksc-construction` | `space-center-status.sections` | – |  | 5 |  |
 | `rp1-launch-complex-status` | `launch-director.pad` | – |  | 2 |  |
 | `rp1-program-detail` | `strategies.screen-body` | `rp1.available`, `rp1.programs`, `rp1.programSlots`, `rp1.programFundingCurves`, `rp1.confidence`, `career.status` | only while `rp1` | 4 |  |
@@ -178,6 +178,8 @@ Every craft RP-1 is integrating, holding or could start, across every launch com
 ![The payload requirement beside the contracts it shapes, with the consequence named before the press: changing either figure withdraws the matching pending offers, once each, which is the half RP-1's own tab never mentions](docs/assets/contract-payload--default.png)
 
 ![The rules a career's personnel dates are read under: retirement on with a two-year extension ceiling, post-flight R&R off, mission training at 1.25x, and three enrolled courses of which two have never been started](docs/assets/crew-programme-rules--default.png)
+
+![LC-1's detail open on a career with 400f against a 14,118f pad: the quote, the reading that it is more than the balance, and a press that is still live because RP-1 slows the build rather than refusing it](docs/assets/complexes-add-pad--default.png)
 
 ![The dismantle armed, which is the only state its warning appears in: everything below the crew is behind the detail expander, and the warning is the confirm step itself](docs/assets/complexes-dismantle-warnings--default.png)
 

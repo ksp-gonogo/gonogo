@@ -328,6 +328,29 @@ public sealed class Rp1ComplexEntry
     /// </summary>
     [SitrepUnit(Units.FundsPerDay)]
     public double? UpkeepPerDay { get; set; }
+
+    /// <summary>
+    /// What ONE more launch pad at this complex would cost, which is the price
+    /// <c>rp1.pad.new</c> commits the career to.
+    ///
+    /// <para>A curve over the complex's own tonnage and envelope times RP-1's
+    /// additional-pad multiplier, so it differs per complex and cannot be a
+    /// constant in the client. It is published rather than derived because the
+    /// curve has a second term above 350 t and a human-rating multiplier, and a
+    /// reimplementation in TypeScript would agree with the transcription rather
+    /// than with RP-1.</para>
+    ///
+    /// <para>ABSENT for a hangar, which has no pad to add, and whenever RP-1
+    /// would not price one. Absent is NOT free: a control must refuse to quote
+    /// rather than quote zero.</para>
+    ///
+    /// <para>Note the money does not leave at the press. RP-1 draws a
+    /// construction down as it builds, and a career that cannot afford a tick
+    /// gets a proportionally slower build rather than a refusal, so this is a
+    /// total committed and not a debit.</para>
+    /// </summary>
+    [SitrepUnit(Units.Funds)]
+    public double? NewPadCost { get; set; }
 }
 
 /// <summary>

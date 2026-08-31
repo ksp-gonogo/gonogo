@@ -443,6 +443,7 @@ namespace GonogoRp1Uplink
                 ResourcesHandled = ReadResourcesHandled(lc),
                 SalaryPerDay = SalaryPerDay(payroll, payroll.ComplexSalary, lc),
                 UpkeepPerDay = ComplexUpkeep(payroll, lc),
+                NewPadCost = NewPadCost(lc, lcType),
                 SizeMaxX = UnlimitedAsAbsent(ReadDouble(sizeMax, "x")),
                 SizeMaxY = UnlimitedAsAbsent(ReadDouble(sizeMax, "y")),
                 SizeMaxZ = UnlimitedAsAbsent(ReadDouble(sizeMax, "z")),
@@ -1089,6 +1090,26 @@ namespace GonogoRp1Uplink
             return rate == null && salary == null
                 ? null
                 : new Rp1RushTermsRaw { RateMult = rate, SalaryMult = salary };
+        }
+
+        /// <summary>
+        /// What one more pad at this complex would cost, asked of RP-1's own cost
+        /// model rather than recomputed here.
+        ///
+        /// <para>Null for a hangar, which has no pad, and null whenever RP-1 will
+        /// not price one. A control reading this must refuse to quote on null: a
+        /// substituted zero would read as a free pad.</para>
+        /// </summary>
+        private double? NewPadCost(object lc, string? lcType)
+        {
+            if (lcType == "Hangar")
+            {
+                return null;
+            }
+            var spec = Member(lc, "Stats");
+            return spec == null
+                ? null
+                : Rp1LcCostModel.PadCostFor(spec, Rp1LcCostModel.AdditionalPadCostMult(_database));
         }
 
         private double ReadRushRateMult()

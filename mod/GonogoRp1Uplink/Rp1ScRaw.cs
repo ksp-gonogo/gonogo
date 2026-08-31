@@ -109,6 +109,7 @@ namespace GonogoRp1Uplink
         public List<string>? ResourcesHandled;
         public double? SalaryPerDay;
         public double? UpkeepPerDay;
+        public double? NewPadCost;
 
         /// <summary>
         /// The complex's size envelope per axis in metres, or null per axis for

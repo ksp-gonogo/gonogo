@@ -924,9 +924,14 @@ namespace GonogoRp1Uplink.Tests
             // operation moving a vehicle. Reading the dismantle gate here instead
             // would refuse every renovation of a working complex.
             Add("RP0.LaunchComplex", "CanModifyReal", Rp1Reader.Bool, Construction);
-            // The complex's own persisted specification, which is what a renovation
-            // is priced against and what a new pad takes its tonnage band from.
-            Add("RP0.LaunchComplex", "Stats", Rp1Reader.Presence, Construction);
+            /*
+             * The complex's own persisted specification, which is what a renovation
+             * is priced against, what a new pad takes its tonnage band from, and
+             * what the published newPadCost is a curve over. The space-centre
+             * capture reaches it for that last one: the price is asked of RP-1's own
+             * cost model rather than recomputed, so the capture needs the spec.
+             */
+            Add("RP0.LaunchComplex", "Stats", Rp1Reader.Presence, Sc + ", " + Construction);
             // The generation a build stamps its project with. A renovation takes a
             // FRESH one instead, so this is read on one path only.
             Add("RP0.LaunchComplex", "ModID", Rp1Reader.GuidText, Construction);
