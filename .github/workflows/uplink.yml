@@ -126,9 +126,28 @@ jobs:
 
       # `...` pulls the dependency graph, so the suites run against freshly built
       # dists rather than whatever a cache happened to hold.
+      #
+      # `renderHosts` is the other half of that graph, and pnpm cannot see it. An
+      # Uplink whose fixtures name a `_scene.host` declares the host module as a
+      # PATH in `gonogo.renderWith`, because a specifier would need a dependency
+      # the isolation rules forbid. The page harness bundles that file from
+      # source; its own imports still resolve to a dist. So the five Uplinks with
+      # a host built neither `packages/core` nor `packages/ui`, and `docs --check`
+      # died with 109 "Could not resolve" errors before rendering anything, from
+      # the day this workflow landed. Locally it passes because a full `pnpm
+      # build` has left those dists on disk.
       - name: Build
         if: matrix.uplink.client
-        run: pnpm --filter '${{ matrix.uplink.pkg }}...' build
+        env:
+          RENDER_HOSTS: ${{ matrix.uplink.renderHosts }}
+        run: |
+          set -euo pipefail
+          filters=(--filter '${{ matrix.uplink.pkg }}...')
+          for host in $RENDER_HOSTS; do
+            filters+=(--filter "$host...")
+          done
+          echo "building: ${filters[*]}"
+          pnpm "${filters[@]}" build
 
       - name: Test
         if: matrix.uplink.client

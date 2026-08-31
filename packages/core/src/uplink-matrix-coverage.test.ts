@@ -51,6 +51,7 @@ type Leg = {
   tests: boolean;
   contract: boolean;
   generated: boolean;
+  renderHosts: string;
 };
 
 /**
@@ -169,6 +170,56 @@ describe("the Uplink CI matrix covers every Uplink", () => {
         );
       }
     }
+  });
+
+  /**
+   * `gonogo.renderWith` names a package by PATH, so pnpm's filter graph cannot
+   * reach it and a leg building only `<pkg>...` leaves that package's
+   * dependencies with no dist. `docs --check` then dies resolving
+   * `@ksp-gonogo/core` before it renders a pixel, which is how the five Uplinks
+   * with a render host were red from the day uplink.yml landed while every
+   * other leg was green.
+   */
+  it("names the render-host package of every client that declares one", () => {
+    const declaring = matrix.filter((leg) => {
+      if (!leg.client) return false;
+      const manifest = JSON.parse(
+        readFileSync(
+          join(ROOT, "mod", leg.id, "client", "package.json"),
+          "utf8",
+        ),
+      );
+      return Array.isArray(manifest.gonogo?.renderWith);
+    });
+
+    expect(
+      declaring.length,
+      "No Uplink client declares gonogo.renderWith, so this test is comparing two empty sets.",
+    ).toBeGreaterThan(0);
+
+    for (const leg of declaring) {
+      expect(
+        leg.renderHosts,
+        `${leg.id} declares gonogo.renderWith but its leg names no render host to build, so its ` +
+          `page render has no dist to resolve against.`,
+      ).not.toBe("");
+      for (const host of leg.renderHosts.split(" ")) {
+        expect(host, `${leg.id} render host`).toMatch(/^@ksp-gonogo\//);
+      }
+    }
+  });
+
+  it("the workflow builds the render hosts the matrix names", () => {
+    const workflow = readFileSync(
+      join(ROOT, ".github/workflows/uplink.yml"),
+      "utf8",
+    );
+    expect(
+      workflow.includes("matrix.uplink.renderHosts"),
+      "uplink.yml does not read `renderHosts`, so the render-host packages are not built and " +
+        "`docs --check` cannot resolve their dependencies. A matrix field nothing consumes is a " +
+        "field that silently stopped working.",
+    ).toBe(true);
   });
 
   it("the workflow consumes the script", () => {

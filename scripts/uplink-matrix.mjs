@@ -70,6 +70,37 @@ const readJson = (path) => {
   }
 };
 
+/**
+ * The workspace packages a client's `gonogo.renderWith` reaches into, named so
+ * the leg can BUILD them.
+ *
+ * `renderWith` entries are paths, not specifiers (an Uplink may not depend on a
+ * private package), and the page harness bundles those files from SOURCE. Their
+ * own imports still resolve through `node_modules` to a dist, so a leg that
+ * built only `<pkg>...` has no `packages/core/dist` on disk and the render dies
+ * with "Could not resolve @ksp-gonogo/core" before it has rendered anything.
+ * Nothing in the filter graph can infer this: the dependency is a file path
+ * pnpm never sees.
+ */
+const renderHostPackages = (clientDir, manifest) => {
+  const declared = manifest?.gonogo?.renderWith;
+  if (!Array.isArray(declared)) return [];
+  const names = new Set();
+  for (const entry of declared) {
+    if (typeof entry !== "string") continue;
+    let dir = dirname(join(clientDir, entry));
+    while (dir.startsWith(ROOT)) {
+      const owner = readJson(join(dir, "package.json"));
+      if (owner?.name) {
+        names.add(owner.name);
+        break;
+      }
+      dir = dirname(dir);
+    }
+  }
+  return [...names].sort();
+};
+
 const uplinks = readdirSync(MOD, { withFileTypes: true })
   .filter((entry) => entry.isDirectory() && /^Gonogo.*Uplink$/.test(entry.name))
   .map((entry) => entry.name)
@@ -92,6 +123,11 @@ const uplinks = readdirSync(MOD, { withFileTypes: true })
       // as nothing at all, which is how a step silently stops running.
       render: scripts.includes("render"),
       typecheck: scripts.includes("typecheck"),
+      /**
+       * Space-separated for the same reason: the Build step splits it into
+       * `--filter` arguments, and an empty string contributes none.
+       */
+      renderHosts: renderHostPackages(clientDir, manifest).join(" "),
     };
   });
 
