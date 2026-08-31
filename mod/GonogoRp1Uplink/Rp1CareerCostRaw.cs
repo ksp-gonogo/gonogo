@@ -54,8 +54,16 @@ namespace GonogoRp1Uplink
         /// <summary>Shared by a launch and the failures that happened on it.</summary>
         public string? LaunchId;
 
-        public string? Part;
         public double? RepChange;
         public double? Cost;
+
+        /// <summary>
+        /// Whether a leader was HIRED or dismissed. A leader row without it is a
+        /// name and a cost that read the same either way.
+        /// </summary>
+        public bool? IsAdd;
+
+        /// <summary>Which editor a launch was built in, VAB or SPH.</summary>
+        public string? BuiltAt;
     }
 }

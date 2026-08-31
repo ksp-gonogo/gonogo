@@ -162,9 +162,18 @@ namespace GonogoRp1Uplink
                     // The join a career log exists for: a failure and the launch it
                     // happened on carry the same LaunchID.
                     LaunchId = EmptyAsAbsent(Rp1Types.ReadString(e, "LaunchID")),
-                    Part = EmptyAsAbsent(Rp1Types.ReadString(e, "Part")),
                     RepChange = Rp1Types.ReadDouble(e, "RepChange"),
                     Cost = Rp1Types.ReadDouble(e, "Cost"),
+
+                    // Without this a leader row is a name and a price with no verb,
+                    // and hiring reads identically to dismissing. RP-1's own export
+                    // composes the row as "<name>: add" / "<name>: remove" for the
+                    // same reason.
+                    IsAdd = Rp1Types.ReadBool(e, "IsAdd"),
+
+                    // VAB or SPH. One word, and it is the difference between a
+                    // rocket and a spaceplane on a row that otherwise cannot say.
+                    BuiltAt = Rp1Types.ReadEnumName(e, "BuiltAt"),
                 });
             }
         }
@@ -174,21 +183,41 @@ namespace GonogoRp1Uplink
         /// Ordered most specific first: a contract has both an internal and a
         /// display name and the display one is the one written for a human.
         /// </summary>
+        /// <remarks>
+        /// <para>The last two entries exist because the first five covered four of
+        /// RP-1's six event classes and NEITHER of the other two. A
+        /// <c>FacilityConstructionEvent</c> carries only <c>Facility</c>,
+        /// <c>State</c> and <c>FacilityID</c>; a <c>FailureEvent</c> carries only
+        /// <c>VesselUID</c>, <c>LaunchID</c>, <c>Part</c> and <c>Type</c>. Both
+        /// produced a row with no name at all, and a log row nothing can be called
+        /// is not a log row.</para>
+        /// <para>A failure is named by the PART that failed, which is also why the
+        /// part is not published separately: one fact under two names invites a
+        /// reader to look for a difference that is not there.</para>
+        /// </remarks>
         private static string? Name(object e) =>
             EmptyAsAbsent(Rp1Types.ReadString(e, "DisplayName"))
             ?? EmptyAsAbsent(Rp1Types.ReadString(e, "VesselName"))
             ?? EmptyAsAbsent(Rp1Types.ReadString(e, "NodeName"))
             ?? EmptyAsAbsent(Rp1Types.ReadString(e, "LeaderName"))
-            ?? EmptyAsAbsent(Rp1Types.ReadString(e, "InternalName"));
+            ?? EmptyAsAbsent(Rp1Types.ReadString(e, "InternalName"))
+            ?? EmptyAsAbsent(Rp1Types.ReadEnumName(e, "Facility"))
+            ?? EmptyAsAbsent(Rp1Types.ReadString(e, "Part"));
 
         /// <summary>
         /// The kind's own sub-type, as the producer's own enum NAME rather than its
         /// ordinal. A failure's is a plain string already.
         /// </summary>
+        /// <remarks>
+        /// There is no <c>Facility</c> fallback here, and there never usefully was
+        /// one: the only class carrying a <c>Facility</c> also carries a
+        /// <c>State</c>, which matches first, so the fallback could not be reached
+        /// on any input. It read as a facility row being covered while that row was
+        /// in fact losing the one word saying WHAT was built.
+        /// </remarks>
         private static string? Detail(object e) =>
             Rp1Types.ReadEnumName(e, "Type")
-            ?? Rp1Types.ReadEnumName(e, "State")
-            ?? Rp1Types.ReadEnumName(e, "Facility");
+            ?? Rp1Types.ReadEnumName(e, "State");
 
         /// <summary>A collection of strings, or null when the member is absent.</summary>
         private static List<string>? Strings(object? collection)

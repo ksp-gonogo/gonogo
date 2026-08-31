@@ -493,9 +493,10 @@ export interface Rp1CareerEventEntry
 	name?: string;
 	detail?: string;
 	launchId?: string;
-	part?: string;
 	repChange?: Value<"rep">;
 	cost?: Value<"funds">;
+	isAdd?: boolean;
+	builtAt?: string;
 }
 export interface Rp1CareerEvents
 {

@@ -11,6 +11,7 @@
 // period) is deliberately NOT modelled. Nothing reads it: it is a balance sheet
 // rather than a timeline and belongs on a budget surface, so a fixture for it here
 // would be scaffolding for a reading that does not exist.
+using System;
 using System.Collections.Generic;
 
 namespace RP0
@@ -45,6 +46,7 @@ namespace RP0
         public string? VesselName;
         public string? VesselUID;
         public string? LaunchID;
+        public EditorFacility BuiltAt;
     }
 
     public class FailureEvent : CareerEvent
@@ -72,6 +74,37 @@ namespace RP0
     }
 
     /// <summary>
+    /// The sixth kind, which this fixture did not model at all until the reading it
+    /// feeds was found to produce a nameless row for it. Its absence was invisible:
+    /// production walks <c>_facilityConstructionEvents</c> by NAME, a fixture
+    /// without that field yields null, and an empty walk asserts nothing.
+    /// </summary>
+    public class FacilityConstructionEvent : CareerEvent
+    {
+        public FacilityType Facility;
+        public ConstructionState State;
+        public Guid FacilityID;
+    }
+
+    /// <summary>RP-1's own, powers of two on the real one.</summary>
+    public enum FacilityType
+    {
+        Administration = 1,
+        AstronautComplex = 2,
+        LaunchPad = 4,
+        MissionControl = 8,
+    }
+
+    public enum ConstructionState
+    {
+        Started = 1,
+        Cancelled = 2,
+        Completed = 4,
+        Dismantled = 8,
+    }
+
+
+    /// <summary>
     /// RP-1's career log. A ScenarioModule on the real type, so a null
     /// <see cref="Instance"/> stands for a save it is not running in.
     /// </summary>
@@ -94,12 +127,23 @@ namespace RP0
         private readonly List<FailureEvent> _failures = new List<FailureEvent>();
         private readonly List<TechResearchEvent> _techEvents = new List<TechResearchEvent>();
         private readonly List<LeaderEvent> _leaderEvents = new List<LeaderEvent>();
+        private readonly List<FacilityConstructionEvent> _facilityConstructionEvents =
+            new List<FacilityConstructionEvent>();
 #pragma warning restore IDE0044, CS0414
 
-        public CareerLog AddLaunch(double ut, string vesselName, string launchId)
+        public CareerLog AddLaunch(
+            double ut,
+            string vesselName,
+            string launchId,
+            EditorFacility builtAt = EditorFacility.VAB)
         {
-            _launchedVessels.Add(
-                new LaunchEvent { UT = ut, VesselName = vesselName, LaunchID = launchId });
+            _launchedVessels.Add(new LaunchEvent
+            {
+                UT = ut,
+                VesselName = vesselName,
+                LaunchID = launchId,
+                BuiltAt = builtAt,
+            });
             return this;
         }
 
@@ -122,10 +166,25 @@ namespace RP0
             return this;
         }
 
-        public CareerLog AddLeader(double ut, string name, double cost)
+        public CareerLog AddLeader(double ut, string name, double cost, bool isAdd = true)
         {
             _leaderEvents.Add(
-                new LeaderEvent { UT = ut, LeaderName = name, Cost = cost, IsAdd = true });
+                new LeaderEvent { UT = ut, LeaderName = name, Cost = cost, IsAdd = isAdd });
+            return this;
+        }
+
+        public CareerLog AddFacilityConstruction(
+            double ut,
+            FacilityType facility = FacilityType.LaunchPad,
+            ConstructionState state = ConstructionState.Started)
+        {
+            _facilityConstructionEvents.Add(new FacilityConstructionEvent
+            {
+                UT = ut,
+                Facility = facility,
+                State = state,
+                FacilityID = Guid.NewGuid(),
+            });
             return this;
         }
 

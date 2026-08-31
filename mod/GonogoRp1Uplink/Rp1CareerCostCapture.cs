@@ -55,9 +55,10 @@ namespace GonogoRp1Uplink
                     ["name"] = e.Name,
                     ["detail"] = e.Detail,
                     ["launchId"] = e.LaunchId,
-                    ["part"] = e.Part,
                     ["repChange"] = e.RepChange,
                     ["cost"] = e.Cost,
+                    ["isAdd"] = e.IsAdd,
+                    ["builtAt"] = e.BuiltAt,
                 });
             }
 
