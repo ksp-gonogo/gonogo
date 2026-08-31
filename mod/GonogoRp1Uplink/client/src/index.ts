@@ -8,7 +8,6 @@ import "./units";
 import "./topics";
 import "./settings/rp1SimulationSettings";
 import "./AdminBuilding/programsScreen";
-import "./CareerLog";
 import "./CrewSchedule";
 import "./CrewSchedule/programme";
 import "./KscComplexes";
