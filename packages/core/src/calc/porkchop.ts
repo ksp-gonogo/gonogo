@@ -1,6 +1,6 @@
 /**
  * Porkchop grid builder: the departure×arrival Δv surface a Transfer Window
- * widget renders as a heatmap (MechJeb/alexmoon style). Pure and deterministic:
+ * widget renders as a heatmap. Pure and deterministic:
  * for each (departure UT, arrival UT) cell it solves Lambert's problem for the
  * transfer and records the characteristic Δv.
  *

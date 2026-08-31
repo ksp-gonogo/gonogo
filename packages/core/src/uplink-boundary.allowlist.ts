@@ -955,8 +955,6 @@ export const ALLOWLIST: Record<ModToken, ModAllowlist> = {
        * (`KspVesselActuator.AddManeuverNode`), so the citation was rebased onto
        * the primary source and both entries ratcheted off.
        */
-      "packages/core/src/safeRandomUuid.ts",
-      "packages/core/src/types.ts",
       /*
        * BufferedDataSource.ts / flightDetector.ts were here (prose asides about a
        * kOS-sourced `vesselUid` and the kOS compute fanout as an example feeder).
@@ -1460,7 +1458,6 @@ export const ALLOWLIST: Record<ModToken, ModAllowlist> = {
        * Porkchop heatmap doc-comment: "(MechJeb/alexmoon style)" cites the
        * familiar visual convention it mirrors, not a dependency.
        */
-      "packages/core/src/calc/porkchop.ts",
       /*
        * ActionGroup/stream.test.tsx was here: its doc-comment listed three
        * sibling vessel command widgets sharing its dispatch pattern, MechJeb
@@ -1984,12 +1981,10 @@ export const ALLOWLIST: Record<ModToken, ModAllowlist> = {
        * defineTopicManifest.ts: `kerbalism.power` in a DOC-COMMENT example of the
        * manifest helper's shape. That Topic does not exist; it is illustrative.
        */
-      "packages/core/src/hooks/defineTopicManifest.ts",
       /*
        * searchTags.ts: "Kerbalism" as the example value of an Uplink's display
        * name field, in that field's doc comment.
        */
-      "packages/core/src/searchTags.ts",
       // map-topic.ts / event-timeline.ts: a section header for the kerbalism
       // Topic block, and a design-doc citation respectively.
       "mod/sitrep-sdk/src/event-timeline.ts",

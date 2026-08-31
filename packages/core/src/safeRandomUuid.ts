@@ -2,9 +2,9 @@
  * Like `crypto.randomUUID()` but works on insecure-context pages, most
  * notably the LAN-IP dev URL (`http://192.168.x.x:5173`) station devices
  * use to reach the dev box. The Web Crypto spec gates `randomUUID` on a
- * secure context, so any code path that goes through it (KosTerminal's
- * pty session id, save-profile / alarm / maneuver-trigger ids, peer
- * RPC request ids) hard-throws under that origin and trips the
+ * secure context, so any code path that goes through it (a terminal
+ * widget's pty session id, save-profile / alarm / maneuver-trigger ids,
+ * peer RPC request ids) hard-throws under that origin and trips the
  * ErrorBoundary.
  *
  * The fallback uses `crypto.getRandomValues`, which is available in

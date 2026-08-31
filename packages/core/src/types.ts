@@ -94,8 +94,8 @@ export interface DataSource<
    * When true, samples from this source are gated by the vessel's CommNet
    * link: during blackout (`comm.connected === false`) the buffering layer
    * drops non-`comm.*` samples rather than persisting or fanning them out.
-   * Sources that handle signal loss internally (e.g. kOS, which runs
-   * autonomously on the vessel) should leave this false.
+   * A source that runs autonomously on the vessel and handles signal loss
+   * itself should leave this false.
    */
   affectedBySignalLoss?: boolean;
 }
@@ -186,7 +186,7 @@ export interface ComponentDefinition<TConfig = Record<string, unknown>> {
   id: string;
   name: string;
   description: string;
-  /** Free-form tags; UI may style known values (e.g. 'telemetry', 'control', 'kos'). */
+  /** Free-form tags; UI may style known values (e.g. 'telemetry', 'control', 'navigation'). */
   tags: string[];
   component: ComponentType<ComponentProps<TConfig>>;
   /** Config UI rendered inside a modal; shown via gear icon in the Dashboard. */

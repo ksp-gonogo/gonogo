@@ -20,11 +20,11 @@ import { useTelemetry } from "./useTelemetry";
  *
  *   const topics = defineTopicManifest({
  *     channels: ["vessel.resources"],          // required
- *     optionalChannels: ["kerbalism.power"],   // optional
+ *     optionalChannels: ["comm.link"],         // optional
  *   });
  *
  *   const res = topics.useTelemetry("vessel.resources");   // VesselResources        (non-null)
- *   const ec  = topics.useTelemetry("kerbalism.power");    // KerbalismPower | undefined
+ *   const link = topics.useTelemetry("comm.link");         // CommLink | undefined
  *
  * The optionality is enforced by the type system, not convention: a Value from
  * a required Topic is guaranteed present, a Value from an optional Topic is

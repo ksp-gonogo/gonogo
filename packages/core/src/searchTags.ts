@@ -74,7 +74,7 @@ export function effectiveSearchTags(def: ComponentDefinition): string[] {
 export interface UplinkAddition {
   /** The Uplink client id. */
   id: string;
-  /** The Uplink's display name (`UplinkClientHandle.name`), e.g. "Kerbalism". */
+  /** The Uplink's display name, as `UplinkClientHandle.name` reports it. */
   name: string;
 }
 
