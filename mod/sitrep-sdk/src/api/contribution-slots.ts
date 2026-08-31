@@ -238,6 +238,66 @@ export interface StrategiesScreenEntry {
   disabledReason?: string;
 }
 
+// MissionEventLog (packages/components/src/MissionEventLog)
+//
+// `mission-event-log.sources`: a record of what happened that the app did not
+// observe for itself. The widget derives its own rows from the live stream one
+// edge at a time, so it knows only what happened while it was watching; a
+// career-management mod keeps a written history that predates the dashboard
+// being open.
+//
+// The contributed thing is a SOURCE and not an event, which is the shape
+// decision the slot exists for. An event row cannot say whether the log it came
+// out of is being kept, so a slot of bare rows would hand back an empty array
+// for a source that is recording and quiet, for a source a save has switched
+// off, and for a source whose channel has not spoken, with nothing to separate
+// the three. Nesting the rows inside their source makes contributing events
+// without declaring where they came from unrepresentable rather than merely
+// discouraged.
+//
+// Mirrors `MissionLogSourceEntry` and `MissionLogEventEntry`
+// (`MissionEventLog/sources.ts`).
+
+/** Mirrors `MissionLogSourceState`. */
+export type MissionLogSourceState =
+  | "recording"
+  | "not-recording"
+  | "unreadable";
+
+/** Mirrors `MissionLogEventEntry`. */
+export interface MissionLogEventEntry {
+  id: string;
+  /** An INSTANT, so a UT, in seconds. */
+  ut: number;
+  label: string;
+  detail?: string;
+  /** Short chip text, e.g. "FAILURE"; upper-cased by the host, "LOG" when absent. */
+  kindLabel?: string;
+  /** The same three words every other contribution in the app uses. */
+  severity?: "info" | "warning" | "critical";
+  /**
+   * The occurrence several rows belong to. Rows sharing one are marked, so a
+   * failure and the launch it happened on can be seen to be the same flight.
+   */
+  groupId?: string;
+}
+
+/**
+ * Mirrors `MissionLogSourceEntry`.
+ *
+ * `state` is REQUIRED on purpose: a source cannot say "nothing happened"
+ * without also saying it was in a position to notice. Three words rather than
+ * an `enabled` boolean because the thing described has three states, and a
+ * boolean folds two of them together.
+ */
+export interface MissionLogSourceEntry {
+  id: string;
+  label: string;
+  state: MissionLogSourceState;
+  stateReason?: string;
+  events?: readonly MissionLogEventEntry[];
+}
+
 declare module "./plots" {
   interface PlotSubjectRegistry {
     /** LandingStatus's velocity-height descent corridor: speed across, height
@@ -295,6 +355,9 @@ declare module "./types" {
     "strategies.screens": {
       entry: StrategiesScreenEntry;
       topics: "career.status";
+    };
+    "mission-event-log.sources": {
+      entry: MissionLogSourceEntry;
     };
   }
 }

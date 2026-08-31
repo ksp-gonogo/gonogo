@@ -1,5 +1,9 @@
 import type { ComponentProps } from "@ksp-gonogo/core";
-import { registerComponent, useTelemetry } from "@ksp-gonogo/core";
+import {
+  registerComponent,
+  useContributions,
+  useTelemetry,
+} from "@ksp-gonogo/core";
 import type { Reading } from "@ksp-gonogo/sitrep-client";
 import {
   Badge,
@@ -10,10 +14,12 @@ import {
   Panel,
   type Severity,
   Stack,
+  Text,
   Truncate,
 } from "@ksp-gonogo/ui-kit";
 import { magnitudeOf } from "../shared/magnitude";
 import type { MissionEvent, MissionEventKind } from "./events";
+import { type MissionLogRow, mergeLogRows, resolveLogSources } from "./sources";
 import { useMissionEvents } from "./useMissionEvents";
 
 type MissionEventLogConfig = Record<string, never>;
@@ -129,7 +135,18 @@ function MissionEventLogComponent(
       stillTrue(useTelemetry("vessel.identity"), undefined)?.launchUt,
     ) ?? undefined;
 
-  if (events.length === 0) {
+  /**
+   * What other packages have recorded that this widget never saw happen. An
+   * absent Uplink contributes nothing and the log is exactly what it always was.
+   */
+  const contributed = useContributions("mission-event-log.sources");
+  const sources = resolveLogSources(contributed);
+  const rows = mergeLogRows(events.map(ownRow), contributed);
+  const notes = sources
+    .map((s) => s.note)
+    .filter((n): n is string => n !== null);
+
+  if (rows.length === 0 && notes.length === 0) {
     return (
       <Panel panelTitle="MISSION LOG">
         <EmptyState>No mission events yet</EmptyState>
@@ -138,32 +155,50 @@ function MissionEventLogComponent(
   }
 
   // Newest first: a live log reads top-down from the most recent occurrence.
-  const ordered = [...events].reverse();
+  const ordered = [...rows].reverse();
 
   return (
     <Panel panelTitle="MISSION LOG">
       <Stack gap="xs">
-        <span
-          style={{
-            fontSize: "var(--font-size-xs)",
-            color: "var(--color-text-muted)",
-          }}
-        >
-          {events.length} events
-        </span>
-        {ordered.map((e) => (
-          <EventRow key={e.id} event={e} launchUt={launchUt} />
+        {notes.map((note) => (
+          <Text key={note} tone="muted" size="xs">
+            {note}
+          </Text>
         ))}
+        {rows.length === 0 ? (
+          <EmptyState>No mission events yet</EmptyState>
+        ) : (
+          <>
+            <Text tone="muted" size="xs">
+              {rows.length} events
+            </Text>
+            {ordered.map((row) => (
+              <EventRow key={row.key} row={row} launchUt={launchUt} />
+            ))}
+          </>
+        )}
       </Stack>
     </Panel>
   );
 }
 
+/** The widget's own event, as a row of the merged timeline. */
+function ownRow(event: MissionEvent): MissionLogRow {
+  return {
+    key: event.id,
+    ut: event.ut,
+    label: event.label,
+    detail: event.detail,
+    badgeLabel: KIND_LABEL[event.kind],
+    severity: KIND_SEVERITY[event.kind],
+  };
+}
+
 function EventRow({
-  event,
+  row,
   launchUt,
 }: {
-  event: MissionEvent;
+  row: MissionLogRow;
   launchUt: number | undefined;
 }) {
   // No `aria-label` on the row. A hand-built "<label> at <time>" string
@@ -174,12 +209,15 @@ function EventRow({
   // from what is shown.
   return (
     <Inline gap="sm">
-      <Badge severity={KIND_SEVERITY[event.kind]} size="sm">
-        {KIND_LABEL[event.kind]}
+      <Badge severity={row.severity} size="sm">
+        {row.badgeLabel}
       </Badge>
       <Truncate>
-        <Stamp ut={event.ut} launchUt={launchUt} /> · {event.label}
-        {event.detail ? ` · ${event.detail}` : ""}
+        <Stamp ut={row.ut} launchUt={launchUt} /> · {row.label}
+        {row.detail ? ` · ${row.detail}` : ""}
+        {row.groupTag ? (
+          <Text tone="faint" spaced>{`⟨${row.groupTag}⟩`}</Text>
+        ) : null}
       </Truncate>
     </Inline>
   );
@@ -209,6 +247,7 @@ registerComponent<MissionEventLogConfig>({
     "career.status",
   ],
   defaultConfig: {},
+  contributionSlots: ["mission-event-log.sources"],
   actions: [],
   pushable: true,
   requires: ["flight"],
