@@ -109,6 +109,9 @@
       "unassignedEngineers": "count",
       "upkeepPerDay": "f/day"
     },
+    "Rp1ComplexDismantleArgs": {
+      "lcId": "id"
+    },
     "Rp1ComplexEntry": {
       "canIntegrate": "flag",
       "efficiency": "ratio",
@@ -135,9 +138,31 @@
       "sizeMaxWidth": "m",
       "upkeepPerDay": "f/day"
     },
+    "Rp1ComplexModifyArgs": {
+      "assignEngineersOnComplete": "flag",
+      "humanRated": "flag",
+      "lcId": "id",
+      "massMax": "t"
+    },
+    "Rp1ComplexNewArgs": {
+      "assignEngineersOnComplete": "flag",
+      "humanRated": "flag",
+      "kscName": "id",
+      "massMax": "t",
+      "name": "id"
+    },
+    "Rp1ComplexRenameArgs": {
+      "lcId": "id",
+      "name": "id"
+    },
     "Rp1ComplexRushArgs": {
       "lcId": "id",
       "rushing": "flag"
+    },
+    "Rp1ComplexSizeArgs": {
+      "sizeMaxDepth": "m",
+      "sizeMaxHeight": "m",
+      "sizeMaxWidth": "m"
     },
     "Rp1Confidence": {
       "confidence": "confidence",
@@ -255,9 +280,14 @@
       "totalPoints": "bp",
       "type": "enum"
     },
+    "Rp1PadDismantleArgs": {
+      "lcId": "id",
+      "padId": "id"
+    },
     "Rp1PadEntry": {
       "fractionalLevel": "ratio",
       "hasVesselWaiting": "flag",
+      "isOperational": "flag",
       "kscName": "id",
       "launchSiteName": "id",
       "lcId": "id",
@@ -266,6 +296,15 @@
       "padId": "id",
       "state": "enum",
       "waitingVesselName": "text"
+    },
+    "Rp1PadNewArgs": {
+      "lcId": "id",
+      "name": "id"
+    },
+    "Rp1PadRenameArgs": {
+      "lcId": "id",
+      "name": "id",
+      "padId": "id"
     },
     "Rp1Personnel": {
       "applicants": "count",
@@ -554,6 +593,7 @@
     "rp1.pads": {
       "fractionalLevel": "ratio",
       "hasVesselWaiting": "flag",
+      "isOperational": "flag",
       "kscName": "id",
       "launchSiteName": "id",
       "lcId": "id",
@@ -676,6 +716,12 @@
   "typeShapes": {
     "Rp1BuildableCraftEntry": {
       "complexes": "Rp1BuildableComplex[]"
+    },
+    "Rp1ComplexModifyArgs": {
+      "size": "Rp1ComplexSizeArgs"
+    },
+    "Rp1ComplexNewArgs": {
+      "size": "Rp1ComplexSizeArgs"
     },
     "Rp1FundingCurveEntry": {
       "keys": "Rp1FundingCurveKey[]"

@@ -46,6 +46,8 @@ namespace GonogoRp1Uplink.Tests
             "Rp1Pricing.cs",
             "Rp1VehicleCommands.cs",
             "Rp1ComplexWrites.cs",
+            "Rp1ComplexLifecycleCommands.cs",
+            "Rp1LcCostModel.cs",
             "Rp1StrategyWrites.cs",
             "Rp1StrategyCommands.cs",
             "Rp1TargetCommands.cs",
@@ -78,16 +80,34 @@ namespace GonogoRp1Uplink.Tests
         /// this sweep is a type the manifest has to know about.
         /// </summary>
         /// <remarks>
-        /// <c>NonPublicStaticMethod</c> is listed EXPLICITLY rather than left to
-        /// <c>StaticMethod</c> to cover, and that is not redundancy. The
+        /// <para><c>NonPublicStaticMethod</c> is listed EXPLICITLY rather than
+        /// left to <c>StaticMethod</c> to cover, and that is not redundancy. The
         /// alternation is anchored on <c>\b</c>, and there is no word boundary
         /// inside <c>NonPublicStaticMethod</c>, so a lookup written that way was
         /// invisible to this sweep: the one member reached by a NON-public lookup
         /// is the most fragile pin the Uplink has, and it would have been the one
-        /// name the coverage check could not see.
+        /// name the coverage check could not see.</para>
+        ///
+        /// <para>The SAME trap had claimed three more shapes, found while adding
+        /// the launch-complex lifecycle commands. Every name here is followed by
+        /// <c>\s*\(</c>, so <c>InstanceMethod</c> does not match
+        /// <c>InstanceMethodOn(</c> and <c>StaticMethod</c> does not match
+        /// <c>StaticMethodOn(</c>; and <c>\b</c> before <c>InstanceMethod</c>
+        /// does not match inside <c>MostDerivedInstanceMethod</c>. All three are
+        /// real production call shapes and all three were unseen: the
+        /// first-parameter-TYPE lookups are precisely the ones written to
+        /// disambiguate a dangerous overload, which makes them the pins the sweep
+        /// could least afford to miss. <c>ChangeEngineers</c> was reached that way
+        /// and happened to be in the manifest anyway.</para>
+        ///
+        /// <para>The lesson is the one this file's own remark already stated and
+        /// then fell for twice more: a suffix added to a helper's NAME silently
+        /// removes every call to it from this sweep, and the sweep reports success.
+        /// A new lookup helper on <see cref="Rp1Types"/> has to be added here in
+        /// the same commit.</para>
         /// </remarks>
         private static readonly Regex ReflectionCall = new(
-            @"\b(NonPublicStaticMethod|Member|StaticValue|WriteDouble|ReadDouble|ReadInt|ReadBool|ReadString|ReadGuidString|ReadEnumName|InstanceMethod|StaticMethod|GetMethod|Find)\s*\(",
+            @"\b(NonPublicStaticMethod|MostDerivedInstanceMethod|InstanceMethodOn|StaticMethodOn|Member|StaticValue|WriteDouble|WriteMember|ReadDouble|ReadInt|ReadBool|ReadString|ReadGuidString|ReadEnumName|InstanceMethod|StaticMethod|GetMethod|Find)\s*\(",
             RegexOptions.Compiled);
 
         private static readonly Regex SingleWordLiteral = new(

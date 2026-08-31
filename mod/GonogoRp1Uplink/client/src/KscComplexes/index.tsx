@@ -21,6 +21,10 @@ import { RP1 } from "../uplink";
 // consumer that would silently receive bare numbers without it.
 import "../topics";
 import { Centre } from "./Centre";
+import {
+  RP1_COMPLEX_DISMANTLE_COMMAND,
+  RP1_PAD_DISMANTLE_COMMAND,
+} from "./Lifecycle";
 
 /** Rush a whole complex. Must match `Rp1VehicleCommands.RushCommand`. */
 export const RP1_COMPLEX_RUSH_COMMAND = "rp1.complex.rush";
@@ -81,8 +85,12 @@ export function KscComplexes() {
   // change count on the first frame RP-1 answers.
   const rush = useCommand(RP1_COMPLEX_RUSH_COMMAND);
   const assign = useCommand(RP1_PERSONNEL_ASSIGN_COMMAND);
+  const dismantle = useCommand(RP1_COMPLEX_DISMANTLE_COMMAND);
+  const dismantlePad = useCommand(RP1_PAD_DISMANTLE_COMMAND);
   usePanelDelay(rush);
   usePanelDelay(assign);
+  usePanelDelay(dismantle);
+  usePanelDelay(dismantlePad);
 
   // Invisible on every install without RP-1, which is most of them.
   if (available !== true) {
@@ -133,6 +141,8 @@ export function KscComplexes() {
                 (complex) => complex.kscName === centre.kscName,
               )}
               complexNames={complexNames}
+              dismantle={dismantle}
+              dismantlePad={dismantlePad}
               key={centre.kscName ?? ""}
               pads={padRows}
               rush={rush}

@@ -571,6 +571,28 @@ public sealed class Rp1PadEntry
     public string? State { get; set; }
 
     /// <summary>
+    /// The pad is in service, as opposed to still being built.
+    ///
+    /// <para><b>Not derivable from <see cref="State"/>, which is why it is here.</b>
+    /// RP-1's <c>LaunchPadState</c> reports <c>Destroyed</c> BEFORE it consults the
+    /// service flag, and a pad can be both destroyed and in service, and that is
+    /// exactly the pad awaiting reconditioning after its own launch. So a pad
+    /// reading "Destroyed" says nothing about whether it counts as one of the
+    /// complex's working pads.</para>
+    ///
+    /// <para>That count is what the pad-dismantle rule turns on: RP-1 will not
+    /// remove a pad unless the complex keeps another OPERATIONAL one, and it
+    /// enforces that by silently doing nothing. A client without this field cannot
+    /// tell whether <c>rp1.pad.dismantle</c> is offerable, which is what it was
+    /// added for.</para>
+    ///
+    /// <para>Null when the question could not be asked, which is not false: the
+    /// command re-checks it at the press.</para>
+    /// </summary>
+    [SitrepUnit(Units.Flag)]
+    public bool? IsOperational { get; set; }
+
+    /// <summary>
     /// A craft is already standing on this pad in <c>PRELAUNCH</c>, so nothing
     /// else may be rolled out to it.
     ///

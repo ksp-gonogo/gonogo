@@ -19,6 +19,7 @@ import type {
   Rp1PadEntry,
   Rp1RushTerms,
 } from "../__generated__/contract";
+import { DismantleControl, PadRows } from "./Lifecycle";
 
 /**
  * ONE launch complex, drawn as the thing an operator administers.
@@ -46,6 +47,8 @@ export function ComplexCard({
   terms,
   assign,
   rush,
+  dismantle,
+  dismantlePad,
 }: Readonly<{
   complex: Rp1ComplexEntry;
   centreName: string;
@@ -57,6 +60,8 @@ export function ComplexCard({
   terms: Rp1RushTerms | undefined;
   assign: Parameters<typeof CommandButton>[0]["handle"];
   rush: Parameters<typeof CommandButton>[0]["handle"];
+  dismantle: Parameters<typeof CommandButton>[0]["handle"];
+  dismantlePad: Parameters<typeof CommandButton>[0]["handle"];
 }>) {
   const name = complex.name ?? NULL_DISPLAY;
   const engineers = magnitudeOf(complex.engineers);
@@ -113,11 +118,21 @@ export function ComplexCard({
         <Envelope complex={complex} />
         <Renovation complex={complex} />
         <Costs complex={complex} />
-        <Pads complex={complex} pads={pads} />
+        <PadRows complex={complex} dismantlePad={dismantlePad} pads={pads} />
 
         {operational && (
           <RushControl complex={complex} handle={rush} name={name} />
         )}
+
+        {/* Last in the card, and after the rush control on purpose: an operator
+            scanning down reaches the reversible acts before the one that is
+            not. */}
+        <DismantleControl
+          complex={complex}
+          complexNames={complexNames}
+          handle={dismantle}
+          name={name}
+        />
       </Stack>
     </Card>
   );
@@ -474,54 +489,6 @@ function Costs({ complex }: Readonly<{ complex: Rp1ComplexEntry }>) {
     <Text size="xs" tone="muted">
       crew <Unit value={complex.salaryPerDay} /> · complex{" "}
       <Unit value={complex.upkeepPerDay} />
-    </Text>
-  );
-}
-
-/**
- * The complex's pads, each at its own level.
- *
- * <para>Named because a pad is where a complex's work ends up and its level is a
- * limit of its own, and because two pads at different levels is the state that
- * makes "the complex" and "the pad" different things. A complex with none is
- * said rather than skipped: for a pad-type complex that is a real and blocking
- * condition, and for a hangar it is normal.</para>
- *
- * <para>The OPERATIONAL count is stated beside them rather than counted off the
- * rows, and RP-1 is asked for it because the rows cannot answer: a wrecked pad
- * reports destroyed rather than non-operational, so counting what is not
- * non-operational overcounts exactly when a launch has just gone wrong. It is
- * the number RP-1's own rule is stated against, and the last working pad cannot
- * be dismantled.</para>
- */
-function Pads({
-  complex,
-  pads,
-}: Readonly<{ complex: Rp1ComplexEntry; pads: readonly Rp1PadEntry[] }>) {
-  const operational = magnitudeOf(complex.launchPadCount);
-  if (pads.length === 0) {
-    return (
-      <Text size="xs" tone="muted">
-        no pads
-      </Text>
-    );
-  }
-  return (
-    <Text size="xs" tone="muted">
-      pads{" "}
-      {pads.map((pad, index) => (
-        <span key={pad.padId ?? pad.name ?? String(index)}>
-          {index === 0 ? "" : ", "}
-          {pad.name ?? NULL_DISPLAY} at level <Unit value={pad.level} />
-        </span>
-      ))}
-      {operational === null ? null : (
-        <>
-          {" · "}
-          <Unit value={complex.launchPadCount} /> operational
-          {operational < 2 && ", so none can be dismantled"}
-        </>
-      )}
     </Text>
   );
 }

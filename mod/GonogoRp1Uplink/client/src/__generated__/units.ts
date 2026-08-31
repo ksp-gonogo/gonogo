@@ -143,6 +143,9 @@ export const GENERATED_TYPE_UNITS: Readonly<Record<string, UnitsByField>> = {
     unassignedEngineers: "count",
     upkeepPerDay: "f/day",
   },
+  "Rp1ComplexDismantleArgs": {
+    lcId: "id",
+  },
   "Rp1ComplexEntry": {
     canIntegrate: "flag",
     efficiency: "ratio",
@@ -169,9 +172,31 @@ export const GENERATED_TYPE_UNITS: Readonly<Record<string, UnitsByField>> = {
     sizeMaxWidth: "m",
     upkeepPerDay: "f/day",
   },
+  "Rp1ComplexModifyArgs": {
+    assignEngineersOnComplete: "flag",
+    humanRated: "flag",
+    lcId: "id",
+    massMax: "t",
+  },
+  "Rp1ComplexNewArgs": {
+    assignEngineersOnComplete: "flag",
+    humanRated: "flag",
+    kscName: "id",
+    massMax: "t",
+    name: "id",
+  },
+  "Rp1ComplexRenameArgs": {
+    lcId: "id",
+    name: "id",
+  },
   "Rp1ComplexRushArgs": {
     lcId: "id",
     rushing: "flag",
+  },
+  "Rp1ComplexSizeArgs": {
+    sizeMaxDepth: "m",
+    sizeMaxHeight: "m",
+    sizeMaxWidth: "m",
   },
   "Rp1Confidence": {
     confidence: "confidence",
@@ -289,9 +314,14 @@ export const GENERATED_TYPE_UNITS: Readonly<Record<string, UnitsByField>> = {
     totalPoints: "bp",
     type: "enum",
   },
+  "Rp1PadDismantleArgs": {
+    lcId: "id",
+    padId: "id",
+  },
   "Rp1PadEntry": {
     fractionalLevel: "ratio",
     hasVesselWaiting: "flag",
+    isOperational: "flag",
     kscName: "id",
     launchSiteName: "id",
     lcId: "id",
@@ -300,6 +330,15 @@ export const GENERATED_TYPE_UNITS: Readonly<Record<string, UnitsByField>> = {
     padId: "id",
     state: "enum",
     waitingVesselName: "text",
+  },
+  "Rp1PadNewArgs": {
+    lcId: "id",
+    name: "id",
+  },
+  "Rp1PadRenameArgs": {
+    lcId: "id",
+    name: "id",
+    padId: "id",
   },
   "Rp1Personnel": {
     applicants: "count",
@@ -593,6 +632,7 @@ export const GENERATED_TOPIC_UNITS: Readonly<Record<string, UnitsByField>> = {
   "rp1.pads": {
     fractionalLevel: "ratio",
     hasVesselWaiting: "flag",
+    isOperational: "flag",
     kscName: "id",
     launchSiteName: "id",
     lcId: "id",
@@ -740,6 +780,12 @@ export type ShapesByField = Readonly<Record<string, string>>;
 export const GENERATED_TYPE_SHAPES: Readonly<Record<string, ShapesByField>> = {
   "Rp1BuildableCraftEntry": {
     complexes: "Rp1BuildableComplex[]",
+  },
+  "Rp1ComplexModifyArgs": {
+    size: "Rp1ComplexSizeArgs",
+  },
+  "Rp1ComplexNewArgs": {
+    size: "Rp1ComplexSizeArgs",
   },
   "Rp1FundingCurveEntry": {
     keys: "Rp1FundingCurveKey[]",

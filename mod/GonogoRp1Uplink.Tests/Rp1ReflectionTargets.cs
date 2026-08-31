@@ -178,6 +178,15 @@ namespace GonogoRp1Uplink.Tests
             new Rp1TypeTarget(Rp0, "RP0.CurrencyModifierQueryRP0", "Rp1Pricing"),
             new Rp1TypeTarget(Rp0, "RP0.TransactionReasonsRP0", "Rp1Pricing"),
             new Rp1TypeTarget(Rp0, "RP0.CurrencyRP0", "Rp1Pricing"),
+            // The launch-complex lifecycle's own three. LCLaunchPad is resolved by
+            // name because the rename and dismantle commands look their methods up
+            // on the TYPE rather than on an instance, and LCData because the cost
+            // model constructs one and calls three of its methods: a rename on
+            // either takes the whole lifecycle surface out at the press.
+            new Rp1TypeTarget(Rp0, "RP0.LaunchComplex", "Rp1ComplexLifecycleCommands"),
+            new Rp1TypeTarget(Rp0, "RP0.LCLaunchPad", "Rp1ComplexLifecycleCommands"),
+            new Rp1TypeTarget(Rp0, "RP0.SCMEvents", "Rp1ComplexLifecycleCommands"),
+            new Rp1TypeTarget(Rp0, "RP0.LCData", "Rp1LcCostModel"),
             new Rp1TypeTarget(Rp0, "RP0.CurrencyUtils", "Rp1EconomyUpkeepQuery"),
             new Rp1TypeTarget(Rp0, "RP0.TransactionReasonsRP0", "Rp1EconomyUpkeepQuery"),
             new Rp1TypeTarget(Rp0, "RP0.MaintenanceHandler", "Rp1EconomyUpkeepQuery"),
@@ -220,6 +229,12 @@ namespace GonogoRp1Uplink.Tests
 
         public static IReadOnlyList<Rp1EnumMemberTarget> EnumMembers { get; } = new[]
         {
+            // The ONE operation kind that does NOT block a dismantle:
+            // reconditioning is the complex recovering from its own launch rather
+            // than work on a vehicle, and RP-1's gates exclude it by name. A rename
+            // here would make every complex with a cooling pad undismantlable, so
+            // the member is pinned rather than the absence of it inferred.
+            new Rp1EnumMemberTarget(Rp0, "RP0.ReconRolloutProject+RolloutReconType", "Reconditioning", "Rp1ComplexLifecycleCommands"),
             new Rp1EnumMemberTarget(Rp0, "RP0.TransactionReasonsRP0", "VesselPurchase", "Rp1Pricing"),
             new Rp1EnumMemberTarget(Rp0, "RP0.CurrencyRP0", "Funds", "Rp1Pricing"),
             // The six reasons UpdateUpkeep prices its six upkeep lines against.
@@ -310,6 +325,36 @@ namespace GonogoRp1Uplink.Tests
             new Rp1MethodTarget(Rp0, "RP0.ReconRolloutProject", "SwitchDirection", 0, false, "Rp1VehicleCommands"),
             new Rp1MethodTarget(Rp0, "RP0.KCTUtilities", "ScrapVessel", 1, true, "Rp1VehicleCommands"),
             new Rp1MethodTarget(Rp0, "RP0.KCTUtilities", "ChangeEngineers", 2, true, "Rp1VehicleCommands, Rp1PersonnelCommands"),
+            // ── The launch-complex lifecycle ────────────────────────────────
+            // Rename validates NOTHING on either type, which is why both commands
+            // carry a duplicate check of their own, and on the PAD it is worse than
+            // that: it returns having done nothing when the name is taken, so the
+            // command reads the name back afterwards rather than trusting the call.
+            new Rp1MethodTarget(Rp0, "RP0.LaunchComplex", "Rename", 1, false, "Rp1ComplexLifecycleCommands"),
+            new Rp1MethodTarget(Rp0, "RP0.LCLaunchPad", "Rename", 1, false, "Rp1ComplexLifecycleCommands"),
+            // Arity ZERO on the complex and ONE on the pad, and the difference is
+            // the pad's out-reason: RP-1's own refusal sentence for a pad that
+            // cannot go comes back through it and is quoted verbatim.
+            new Rp1MethodTarget(Rp0, "RP0.LaunchComplex", "Delete", 0, false, "Rp1ComplexLifecycleCommands"),
+            new Rp1MethodTarget(Rp0, "RP0.LCLaunchPad", "Delete", 1, false, "Rp1ComplexLifecycleCommands"),
+            // ARITY ONE, not zero. The bool is optional in C# and a reflected
+            // invoke applies no defaults, so a pin at arity zero would find nothing
+            // and a dismantle would leave the game's own selection on a complex it
+            // had just removed.
+            new Rp1MethodTarget(Rp0, "RP0.LCSpaceCenter", "SwitchToPrevLaunchComplex", 1, false, "Rp1ComplexLifecycleCommands"),
+            // ── The launch-complex cost model ───────────────────────────────
+            // The four RP-1 members the complex price is BUILT from, and the reason
+            // the model is arithmetic we own rather than a call we make: RP-1
+            // computes the price itself inline in its own window and there is no
+            // reusable entry point at all, so these four are as much of it as can
+            // be invoked. THREE out parameters on GetCostStats, hence arity 3.
+            new Rp1MethodTarget(Rp0, "RP0.LCData", "GetCostStats", 3, false, "Rp1LcCostModel"),
+            new Rp1MethodTarget(Rp0, "RP0.LCData", "ResModifyCost", 1, false, "Rp1LcCostModel"),
+            new Rp1MethodTarget(Rp0, "RP0.LCData", "GetPadFracLevel", 0, false, "Rp1LcCostModel"),
+            // Resolved by first-parameter TYPE as well as arity: it takes a float,
+            // a Vector3 and a bool, and an assembly with a second three-argument
+            // overload would otherwise be a coin toss.
+            new Rp1MethodTarget(Rp0, "RP0.LaunchComplex", "MaxEngineersCalc", 3, true, "Rp1LcCostModel"),
             // RP-1's own facility TIER, an index, rather than stock's normalised
             // fraction. Asked at exactly the point RP-1's own training screen asks
             // it: against a course's AC-level requirement, before it is offered a
@@ -550,6 +595,8 @@ namespace GonogoRp1Uplink.Tests
             const string Facilities = "Rp1FacilityUpgradeCommands";
             const string Catalogue = "Rp1TrainingCatalogueReflection";
             const string TrainingWrites = "Rp1TrainingCommands";
+            const string Lifecycle = "Rp1ComplexLifecycleCommands";
+            const string CostModel = "Rp1LcCostModel";
 
             // ── The space centre ────────────────────────────────────────────
             Add("RP0.SpaceCenterManagement", "Instance", Rp1Reader.Presence, Sc + ", " + Gate + ", " + Projects + ", " + Build + ", " + Withhold + ", " + Facilities, @static: true);
@@ -562,7 +609,45 @@ namespace GonogoRp1Uplink.Tests
             // same assignment RP-1's own overrideLC argument makes, and the whole
             // of how a vehicle is built somewhere other than the active complex.
             Add("RP0.VesselProject", "LCID", Rp1Reader.GuidWrite, Start);
+            // WRITTEN by the rollout, and unpinned until 2026-08-31 because this
+            // manifest's own sweep could not SEE the call: its regex covered
+            // WriteDouble and not WriteMember, so the one member the rollout writes
+            // by name was guarded by nothing. Not a new reach and not a new risk,
+            // only a newly visible one. RP-1's own rollout sets the pad's index and
+            // its name together, and a rollout with only the name set leaves the
+            // warehouse row resolving the WRONG pad.
+            Add("RP0.VesselProject", "launchSiteIndex", Rp1Reader.NumericWrite, Vehicles);
             Add("RP0.SpaceCenterManagement", "ActiveSC", Rp1Reader.Presence, Sc + ", " + Facilities);
+
+            // ── A launch complex's persisted specification ──────────────────
+            // The four [Persistent] fields a price and a renovation envelope are
+            // computed from, and the three derived members that state the envelope.
+            // Every one of them is written as well as read: the cost model reads a
+            // complex's current specification and the commands author the new one.
+            Add("RP0.LCData", "massMax", Rp1Reader.Numeric, CostModel);
+            Add("RP0.LCData", "massOrig", Rp1Reader.Numeric, CostModel);
+            Add("RP0.LCData", "sizeMax", Rp1Reader.Presence, CostModel);
+            Add("RP0.LCData", "isHumanRated", Rp1Reader.Bool, CostModel);
+            // Derived from massOrig alone, and asked of RP-1 rather than computed
+            // from the massOrig already on our own wire: the two limits and the
+            // test between them are three separate members, and a build that
+            // changed the 2x/0.5x rule would change all three together while a
+            // reimplementation went on agreeing with the old one.
+            Add("RP0.LCData", "MaxPossibleMass", Rp1Reader.Numeric, CostModel);
+            Add("RP0.LCData", "MinPossibleMass", Rp1Reader.Numeric, CostModel);
+            Add("RP0.LCData", "IsMassWithinUpAndDowngradeMargins", Rp1Reader.Bool, CostModel);
+            // What a second and subsequent pad costs relative to the first. Ships
+            // at 0.5, and the ONE member in the cost model that falls back to a
+            // default rather than refusing: it scales a price rather than deciding
+            // whether an act is legal, so refusing every complex command because a
+            // settings field moved would cost far more than a stale multiplier.
+            Add("RP0.SpaceCenterSettings", "AdditionalPadCostMult", Rp1Reader.Numeric, CostModel);
+            // The catalogue a complex's fluids are validated against. A resource
+            // outside it costs nothing and is stored silently, which is the shape
+            // the command refuses: a complex that held a resource it will never
+            // handle looks equipped and is not.
+            Add("RP0.Database", "ResourceInfo", Rp1Reader.Presence, CostModel, @static: true);
+            Add("RP0.ResourceInfo", "LCResourceTypes", Rp1Reader.Presence, CostModel);
 
             // ── The two standing targets ────────────────────────────────────
             // Both project objects always EXIST, so presence says nothing about
@@ -597,7 +682,13 @@ namespace GonogoRp1Uplink.Tests
             Add("RP0.FundTargetProject", "targetFunds", Rp1Reader.Numeric, Sc);
             Add("RP0.FundTargetProject", "origFunds", Rp1Reader.Numeric, Sc);
             Add("RP0.SpaceCenterManagement", "TechList", Rp1Reader.Presence, Sc);
-            Add("RP0.SpaceCenterManagement", "LCToEfficiency", Rp1Reader.Presence, Sc);
+            // Read by the dismantle too, and BEFORE the delete: the record is what
+            // the delete destroys, so a command that looked afterwards would report
+            // no loss every time. Reached through this map rather than through
+            // LaunchComplex.EfficiencySource, which CREATES a record on a miss: a
+            // command must not author state in the course of describing what it is
+            // about to remove.
+            Add("RP0.SpaceCenterManagement", "LCToEfficiency", Rp1Reader.Presence, Sc + ", " + Lifecycle);
 
             // The second quantity RP-1 derives from a science credit, and the
             // reason it is written as well as read.
@@ -611,45 +702,52 @@ namespace GonogoRp1Uplink.Tests
             Add("RP0.LCSpaceCenter", "UnassignedEngineers", Rp1Reader.Numeric, Staffing);
             Add("RP0.LCSpaceCenter", "LaunchComplexes", Rp1Reader.Presence, Sc + ", " + Gate + ", " + Build);
             Add("RP0.LCSpaceCenter", "FacilityUpgrades", Rp1Reader.Presence, Sc + ", " + Facilities);
-            Add("RP0.LCSpaceCenter", "LCConstructions", Rp1Reader.Presence, Sc);
+            Add("RP0.LCSpaceCenter", "LCConstructions", Rp1Reader.Presence, Sc + ", " + Lifecycle);
             Add("RP0.LCSpaceCenter", "AssociatedGroundStation", Rp1Reader.Text, Sc);
 
-            Add("RP0.LaunchComplex", "ID", Rp1Reader.GuidText, Sc);
+            Add("RP0.LaunchComplex", "ID", Rp1Reader.GuidText, Sc + ", " + Lifecycle);
             Add("RP0.LaunchComplex", "Name", Rp1Reader.Text, Sc + ", " + Gate + ", " + Build + ", " + Staffing);
-            Add("RP0.LaunchComplex", "LCType", Rp1Reader.EnumText, Sc + ", " + Gate);
+            Add("RP0.LaunchComplex", "LCType", Rp1Reader.EnumText, Sc + ", " + Gate + ", " + Lifecycle);
             Add("RP0.LaunchComplex", "Engineers", Rp1Reader.Numeric, Sc + ", " + Staffing);
             Add("RP0.LaunchComplex", "MaxEngineers", Rp1Reader.Numeric, Sc + ", " + Staffing);
             Add("RP0.LaunchComplex", "IsRushing", Rp1Reader.Bool, Sc);
             Add("RP0.LaunchComplex", "IsOperational", Rp1Reader.Bool, Sc + ", " + Gate + ", " + Build + ", " + Staffing);
             // The owning centre, so an assignment can ask the pool it draws from.
-            Add("RP0.LaunchComplex", "KSC", Rp1Reader.Presence, Staffing);
+            Add("RP0.LaunchComplex", "KSC", Rp1Reader.Presence, Staffing + ", " + Lifecycle);
             Add("RP0.LaunchComplex", "ResourcesHandled", Rp1Reader.Presence, Sc);
             Add("RP0.LaunchComplex", "IsHumanRated", Rp1Reader.Bool, Sc + ", " + Gate);
             Add("RP0.LaunchComplex", "Rate", Rp1Reader.Numeric, Sc);
             // Operational pads, RP-1's own count, and the number its pad-dismantle
             // rule is stated against. Not the same question as the LaunchPads list
             // below, which is every pad the complex has.
-            Add("RP0.LaunchComplex", "LaunchPadCount", Rp1Reader.Numeric, Sc);
+            Add("RP0.LaunchComplex", "LaunchPadCount", Rp1Reader.Numeric, Sc + ", " + Lifecycle);
             Add("RP0.LaunchComplex", "MassMin", Rp1Reader.Numeric, Sc + ", " + Gate);
-            Add("RP0.LaunchComplex", "MassMax", Rp1Reader.Numeric, Sc + ", " + Gate);
+            Add("RP0.LaunchComplex", "MassMax", Rp1Reader.Numeric, Sc + ", " + Gate + ", " + CostModel);
             // The renovation envelope's basis. A rename here takes the envelope
             // off the wire; it must never leave a zero behind it.
             Add("RP0.LaunchComplex", "MassOrig", Rp1Reader.Numeric, Sc);
-            Add("RP0.LaunchComplex", "SizeMax", Rp1Reader.Presence, Sc + ", " + Gate);
+            Add("RP0.LaunchComplex", "SizeMax", Rp1Reader.Presence, Sc + ", " + Gate + ", " + CostModel);
             Add("RP0.LaunchComplex", "LaunchPads", Rp1Reader.Presence, Sc + ", " + Gate);
             Add("RP0.LaunchComplex", "BuildList", Rp1Reader.Presence, Sc + ", " + Gate + ", " + Build);
             Add("RP0.LaunchComplex", "Warehouse", Rp1Reader.Presence, Sc + ", " + Gate + ", " + Build);
             Add("RP0.LaunchComplex", "Recon_Rollout", Rp1Reader.Presence, Sc + ", " + Gate);
             Add("RP0.LaunchComplex", "VesselRepairs", Rp1Reader.Presence, Sc);
-            Add("RP0.LaunchComplex", "PadConstructions", Rp1Reader.Presence, Sc);
+            Add("RP0.LaunchComplex", "PadConstructions", Rp1Reader.Presence, Sc + ", " + Lifecycle);
+            // The ONE gate a dismantle turns on, and the four lists it is derived
+            // from are all pinned above. Read as RP-1's own bool for the DECISION,
+            // with the four read separately only to say which of them holds: RP-1
+            // answers all four with one sentence, and naming the real one is the
+            // difference between an operator scrapping a vehicle and an operator
+            // waiting for a rollout.
+            Add("RP0.LaunchComplex", "CanDismantle", Rp1Reader.Bool, Lifecycle);
 
-            Add("RP0.LCLaunchPad", "id", Rp1Reader.GuidText, Sc);
-            Add("RP0.LCLaunchPad", "name", Rp1Reader.Text, Sc + ", " + Gate);
+            Add("RP0.LCLaunchPad", "id", Rp1Reader.GuidText, Sc + ", " + Lifecycle);
+            Add("RP0.LCLaunchPad", "name", Rp1Reader.Text, Sc + ", " + Gate + ", " + Lifecycle);
             Add("RP0.LCLaunchPad", "launchSiteName", Rp1Reader.Text, Sc);
             Add("RP0.LCLaunchPad", "level", Rp1Reader.Numeric, Sc);
             Add("RP0.LCLaunchPad", "fractionalLevel", Rp1Reader.Numeric, Sc);
             Add("RP0.LCLaunchPad", "State", Rp1Reader.EnumText, Sc);
-            Add("RP0.LCLaunchPad", "isOperational", Rp1Reader.Bool, Gate);
+            Add("RP0.LCLaunchPad", "isOperational", Rp1Reader.Bool, Gate + ", " + Lifecycle);
             Add("RP0.LCLaunchPad", "IsDestroyed", Rp1Reader.Bool, Gate);
 
             Add("RP0.LCEfficiency", "MaxEfficiency", Rp1Reader.Numeric, Sc, @static: true);

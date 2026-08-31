@@ -311,6 +311,64 @@ namespace GonogoRp1Uplink
         }
 
         /// <summary>
+        /// A public instance method resolved MOST-DERIVED FIRST, walking the base
+        /// chain rather than trusting the order <see cref="Type.GetMethods()"/>
+        /// happens to return.
+        /// </summary>
+        /// <remarks>
+        /// <para>For the lists RP-1 keeps as
+        /// <c>PersistentObservableList&lt;T&gt;</c>, whose <c>Add</c> is declared
+        /// <c>new</c> over <c>List&lt;T&gt;.Add</c> and fires its <c>Added</c> and
+        /// <c>Updated</c> events. Both are public, both take one argument, and
+        /// <see cref="InstanceMethod"/> would take whichever reflection listed
+        /// first: bind to the base one and the item is in the list while every
+        /// subscriber is told nothing. That is a silent half-write, which is the
+        /// shape of failure this whole Uplink is written to avoid.</para>
+        /// <para>Not every RP-1 list needs this. <c>LaunchComplexes</c> and
+        /// <c>LaunchPads</c> are plain <c>PersistentList</c>, and RP-1's own IL
+        /// calls the base <c>Add</c> on them; <c>LCConstructions</c>,
+        /// <c>PadConstructions</c> and <c>TechList</c> are the observable kind and
+        /// RP-1's IL calls the derived one. Match whichever RP-1 does.</para>
+        /// </remarks>
+        public static MethodInfo? MostDerivedInstanceMethod(Type? type, string name, int parameterCount)
+        {
+            const BindingFlags flags =
+                BindingFlags.Public | BindingFlags.Instance | BindingFlags.DeclaredOnly;
+            for (var t = type; t != null; t = t.BaseType)
+            {
+                MethodInfo[] candidates;
+                try
+                {
+                    candidates = t.GetMethods(flags);
+                }
+                catch (Exception)
+                {
+                    return null;
+                }
+                foreach (var m in candidates)
+                {
+                    if (m.Name != name)
+                    {
+                        continue;
+                    }
+                    try
+                    {
+                        if (m.GetParameters().Length == parameterCount)
+                        {
+                            return m;
+                        }
+                    }
+                    catch (Exception)
+                    {
+                        // One overload this runtime cannot resolve must not hide
+                        // the rest; reading a parameter TYPE is what loads it.
+                    }
+                }
+            }
+            return null;
+        }
+
+        /// <summary>
         /// A public instance method by name, arity AND the full name of its first
         /// parameter's type, for the overloads arity alone cannot tell apart.
         ///

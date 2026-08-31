@@ -25,19 +25,53 @@ using System.Collections.Generic;
 namespace RP0
 {
     /// <summary>
-    /// RP-1's event bus, cut down to the one event a facility enqueue fires.
+    /// RP-1's event bus, in the events this Uplink's writes fire.
     /// </summary>
     /// <remarks>
-    /// A static field of KSP's own single-argument <c>EventData</c>, which is
+    /// <para>Static fields of KSP's own single-argument <c>EventData</c>, which is
     /// what RP-1 declares and is a different generic arity from the
     /// <c>EventData&lt;T1, T2&gt;</c> the confidence tests use. Both exist here
     /// for that reason: a fixture carrying only the two-argument form would let a
-    /// one-argument <c>Fire</c> lookup pass by arity against the wrong shape.
+    /// one-argument <c>Fire</c> lookup pass by arity against the wrong shape.</para>
+    ///
+    /// <para>Declared beside the facility fixture because that was the first write
+    /// to need it, and kept as ONE class rather than split per concern because
+    /// RP-1 declares one: two partial halves would let the two disagree about the
+    /// bus's shape, which is the drift a stand-in exists to prevent.</para>
+    ///
+    /// <para>The two dismantle events start NULL rather than constructed, on
+    /// purpose. RP-1 creates its whole bus in its own start-up, so an Uplink acting
+    /// before that runs finds null, and both dismantles have to complete through
+    /// it. Call <see cref="CreateLifecycleEvents"/> in a test that wants to observe
+    /// a firing.</para>
     /// </remarks>
     public static class SCMEvents
     {
         public static EventData<FacilityUpgradeProject> OnFacilityUpgradeQueued =
             new EventData<FacilityUpgradeProject>("OnKctFacilityUpgradeQueued");
+
+        public static EventData<LaunchComplex>? OnLCDismantled;
+        public static EventData<LCLaunchPad>? OnPadDismantled;
+        public static EventData<LCConstructionProject, LaunchComplex>? OnLCConstructionQueued;
+        public static EventData<PadConstructionProject, LCLaunchPad>? OnPadConstructionQueued;
+
+        /// <summary>Constructs the four launch-complex events, as RP-1's own start-up does.</summary>
+        public static void CreateLifecycleEvents()
+        {
+            OnLCDismantled = new EventData<LaunchComplex>("OnKctLCDismantled");
+            OnPadDismantled = new EventData<LCLaunchPad>("OnKctPadDismantled");
+            OnLCConstructionQueued = new EventData<LCConstructionProject, LaunchComplex>("OnKctLCConstructionQueued");
+            OnPadConstructionQueued = new EventData<PadConstructionProject, LCLaunchPad>("OnKctPadConstructionQueued");
+        }
+
+        /// <summary>Puts the four back to the unconstructed state a fresh game starts in.</summary>
+        public static void ResetLifecycleEvents()
+        {
+            OnLCDismantled = null;
+            OnPadDismantled = null;
+            OnLCConstructionQueued = null;
+            OnPadConstructionQueued = null;
+        }
     }
 }
 
@@ -266,6 +300,13 @@ public class EventData<T>
     /// <summary>Every value this event has carried, so a test can pin that the queue was announced and announced once.</summary>
     public List<T> Fired { get; } = new List<T>();
 
+    /// <summary>
+    /// Makes <see cref="Fire"/> throw AFTER recording, which is the case RP-1
+    /// itself swallows: a subscriber that throws must not make a completed write
+    /// report failure.
+    /// </summary>
+    public bool Throws;
+
     public void Add(Action<T> handler) => _handlers.Add(handler);
 
     public void Remove(Action<T> handler) => _handlers.Remove(handler);
@@ -273,6 +314,10 @@ public class EventData<T>
     public void Fire(T value)
     {
         Fired.Add(value);
+        if (Throws)
+        {
+            throw new InvalidOperationException("a subscriber threw");
+        }
         foreach (var handler in _handlers.ToArray())
         {
             handler(value);

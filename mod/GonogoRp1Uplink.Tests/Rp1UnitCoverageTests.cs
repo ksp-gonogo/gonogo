@@ -24,7 +24,7 @@ namespace GonogoRp1Uplink.Tests
                 "Units.BuildPoints");
 
         [Fact]
-        public void TheContractTypesAreExactlyTheFortyWireShapes() =>
+        public void TheContractTypesAreExactlyTheDeclaredWireShapes() =>
             UnitCoverageAssertion.AssertContractTypesAreExactly(
                 typeof(Rp1CentreEntry).Assembly,
                 nameof(Rp1CentreEntry),
@@ -70,6 +70,18 @@ namespace GonogoRp1Uplink.Tests
                 nameof(Rp1BuildStartArgs),
                 nameof(Rp1FacilityUpgradeArgs),
                 nameof(Rp1TechResearchArgs),
-                nameof(Rp1StrategyActivateArgs));
+                nameof(Rp1StrategyActivateArgs),
+                // The launch-complex lifecycle's own eight. The size envelope is a
+                // nested shape rather than three fields on each of the two commands
+                // that carry it, so the two cannot drift about which axis is which
+                // and a client reads one type back off the wire and sends it on.
+                nameof(Rp1ComplexSizeArgs),
+                nameof(Rp1ComplexNewArgs),
+                nameof(Rp1ComplexModifyArgs),
+                nameof(Rp1ComplexRenameArgs),
+                nameof(Rp1ComplexDismantleArgs),
+                nameof(Rp1PadNewArgs),
+                nameof(Rp1PadRenameArgs),
+                nameof(Rp1PadDismantleArgs));
     }
 }

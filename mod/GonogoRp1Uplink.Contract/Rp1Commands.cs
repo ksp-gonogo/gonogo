@@ -506,3 +506,419 @@ public class Rp1TrainingLeaveArgs
     [SitrepUnit(Units.Id)]
     public string? CrewName { get; set; }
 }
+
+/// <summary>
+/// The size envelope a launch complex is built or renovated to, in metres per
+/// axis.
+///
+/// <para>Named for the axes <c>rp1.complexes[]</c> publishes
+/// (<c>sizeMaxWidth</c>, <c>sizeMaxHeight</c>, <c>sizeMaxDepth</c>) rather than
+/// the labels RP-1's own window uses, which calls the depth axis "Length". A
+/// client reads a complex's envelope off the wire and sends the same field names
+/// back, so the round trip is the same three words in both directions.</para>
+///
+/// <para>All three are REQUIRED on both commands that carry this. RP-1 refuses a
+/// zero size vector outright ("Please enter a valid size"), and a substituted
+/// default on any one axis would build a complex to an envelope nobody chose:
+/// the axes price independently, and height prices at twice the rate of the other
+/// two.</para>
+/// </summary>
+[SitrepContract]
+#if SITREP_CODEGEN
+[TsInterface]
+#endif
+public class Rp1ComplexSizeArgs
+{
+    /// <summary>The x axis, as <c>rp1.complexes[].sizeMaxWidth</c> publishes it.</summary>
+    [SitrepUnit(Units.Metres)]
+    public double? SizeMaxWidth { get; set; }
+
+    /// <summary>The y axis, as <c>rp1.complexes[].sizeMaxHeight</c> publishes it. RP-1 prices this axis at full rate and the other two at half.</summary>
+    [SitrepUnit(Units.Metres)]
+    public double? SizeMaxHeight { get; set; }
+
+    /// <summary>The z axis, as <c>rp1.complexes[].sizeMaxDepth</c> publishes it. RP-1's own window labels this one "Length".</summary>
+    [SitrepUnit(Units.Metres)]
+    public double? SizeMaxDepth { get; set; }
+}
+
+/// <summary>
+/// Args for <c>rp1.complex.new</c>: build a launch complex the career does not
+/// have.
+///
+/// <para><b>No complex type.</b> RP-1 always builds a Pad: its new-complex path
+/// assigns <c>lcType = LaunchComplexType.Pad</c> unconditionally, and the one
+/// Hangar a career has is seeded at career start from
+/// <c>LCData.StartingHangar</c> and can never be created or dismantled. An
+/// argument for the type would offer a choice the game does not have and a value
+/// (Hangar) that would produce a complex RP-1's own code paths do not expect.</para>
+///
+/// <para><b>It spends nothing at the moment it lands</b>, the same as
+/// <see cref="Rp1FacilityUpgradeArgs"/>: the complex goes on RP-1's construction
+/// queue and the funds are drawn down as it progresses. So the command never
+/// refuses on affordability, because RP-1 itself does not. The price is still the
+/// operator's to see before pressing, and it is the figure
+/// <c>rp1.constructions[].cost</c> carries once the project exists.</para>
+/// </summary>
+[SitrepContract]
+#if SITREP_CODEGEN
+[TsInterface]
+#endif
+public class Rp1ComplexNewArgs
+{
+    /// <summary>
+    /// Which space centre builds it, by the key <c>rp1.centres[].kscName</c>
+    /// carries.
+    ///
+    /// <para><b>REQUIRED</b>, and this is the one place these commands ask for a
+    /// choice RP-1 does not offer: its window has no centre picker and always
+    /// builds wherever the game's own view happens to be. The
+    /// <see cref="Rp1RolloutArgs.Pad"/> ruling is what settles it anyway: a
+    /// career under KSCSwitcher has several centres, the client can preselect
+    /// when there is only one, and the wire RECORDS which was chosen rather than
+    /// leaving it to be inferred from where the camera was.</para>
+    /// </summary>
+    [SitrepUnit(Units.Id)]
+    public string? KscName { get; set; }
+
+    /// <summary>
+    /// What to call it. REQUIRED, and refused when it duplicates a complex
+    /// already at that centre, both in RP-1's own words.
+    /// </summary>
+    [SitrepUnit(Units.Id)]
+    public string? Name { get; set; }
+
+    /// <summary>
+    /// The tonnage limit. REQUIRED: RP-1 refuses a zero ("Please enter a valid
+    /// tonnage limit"), and it is the figure the whole pad price is a curve over.
+    ///
+    /// <para>It also fixes the complex's renovation envelope for life. RP-1
+    /// records the build tonnage as <c>massOrig</c> and every later modify is
+    /// held to <c>max(3, floor(massOrig x 2))</c> above and
+    /// <c>max(1, ceil(massOrig x 0.5))</c> below, so this number decides not only
+    /// what the complex can launch but what it can ever be renovated into.</para>
+    /// </summary>
+    [SitrepUnit(Units.Tonnes)]
+    public double? MassMax { get; set; }
+
+    /// <summary>The size envelope. REQUIRED, all three axes.</summary>
+    public Rp1ComplexSizeArgs? Size { get; set; }
+
+    /// <summary>
+    /// Whether it may launch crew. REQUIRED rather than defaulted to false:
+    /// human rating multiplies the pad cost by 1.5 and the integration cost by
+    /// 2, so a substituted default would halve or double the price of the thing
+    /// being bought.
+    /// </summary>
+    [SitrepUnit(Units.Flag)]
+    public bool? HumanRated { get; set; }
+
+    /// <summary>
+    /// The propellants and other fluids the complex handles, keyed by KSP
+    /// resource name, in units. ABSENT means none, which is a complex that can
+    /// integrate a vehicle and fuel nothing.
+    ///
+    /// <para>RP-1 keeps this on the complex as <c>resourcesHandled</c> and prices
+    /// each entry as a tank; the resources RP-1 will accept are the ones its own
+    /// list offers, which is <c>Database.ResourceInfo.LCResourceTypes</c> filtered
+    /// to fluids and minus the ones a complex of this kind ignores. A name outside
+    /// that set is REFUSED by name rather than dropped, because a dropped
+    /// resource is a complex that cannot fuel the vehicle it was built for and
+    /// says nothing about why.</para>
+    ///
+    /// <para>Amounts are rounded UP to a whole unit, which is what RP-1's own
+    /// field does (<c>Math.Ceiling</c>) before it stores them.</para>
+    ///
+    /// <para>There is NO separate resources command. RP-1's Resources window
+    /// edits the same pending complex this dialog does and is committed by the
+    /// same press, and no RP-1 path changes an operational complex's resources
+    /// without a renovation. So resources are a field of building and renovating,
+    /// not an act of their own.</para>
+    /// </summary>
+    public Dictionary<string, double>? Resources { get; set; }
+
+    /// <summary>
+    /// Put unassigned engineers on it when construction completes, up to its
+    /// maximum. RP-1 offers this as a toggle on the same dialog and stores the
+    /// answer on the construction project as <c>engineersToReadd</c>.
+    ///
+    /// <para>ABSENT means false, and that is a defaulted value rather than a
+    /// refusal because unlike the priced fields above it changes nothing about
+    /// what is bought: it decides only whether a later staffing act happens by
+    /// itself, and false is the state an operator gets by not asking.</para>
+    /// </summary>
+    [SitrepUnit(Units.Flag)]
+    public bool? AssignEngineersOnComplete { get; set; }
+}
+
+/// <summary>
+/// Args for <c>rp1.complex.modify</c>: renovate a complex the career already
+/// has, into a new envelope.
+///
+/// <para><b>IT UNASSIGNS EVERY ENGINEER AT THE COMPLEX</b>, and that is not a
+/// side effect this Uplink chose. RP-1 does
+/// <c>ChangeEngineers(lc, -lc.Engineers)</c> as the first thing it does, takes
+/// the complex out of service for the whole renovation, and pops a dialog saying
+/// so in these words: "All engineers at {name} have been unassigned. They will be
+/// reassigned if available when renovation completes." Setting
+/// <see cref="AssignEngineersOnComplete"/> is what makes the second sentence
+/// true; without it RP-1's own wording is "Remember to reassign engineers to
+/// {name} when it finishes renovation."</para>
+///
+/// <para><b>YOU PAY TO DOWNGRADE.</b> A renovation that reduces the complex is
+/// not free and is not a refund: RP-1 charges half the difference in both the pad
+/// and the integration halves, and any change at all to the tonnage limit carries
+/// a floor of 1,000 funds. So a client must show the price for a shrink exactly
+/// as it does for a growth, and must never present one as recovering anything.</para>
+///
+/// <para><b>No name.</b> RP-1's modify window shows the complex's name as a label
+/// rather than a field, and the renovation carries the name the complex already
+/// has. Renaming is <c>rp1.complex.rename</c> and is a separate, immediate act
+/// that costs nothing.</para>
+///
+/// <para>Spends nothing when it lands, for the same reason
+/// <see cref="Rp1ComplexNewArgs"/> gives.</para>
+/// </summary>
+[SitrepContract]
+#if SITREP_CODEGEN
+[TsInterface]
+#endif
+public class Rp1ComplexModifyArgs
+{
+    /// <summary>The complex, by the GUID <c>rp1.complexes[].lcId</c> publishes.</summary>
+    [SitrepUnit(Units.Id)]
+    public string? LcId { get; set; }
+
+    /// <summary>
+    /// The tonnage limit to renovate to.
+    ///
+    /// <para>REQUIRED for a pad complex, and REFUSED outside the complex's own
+    /// renovation envelope in RP-1's words: "Cannot upgrade tonnage above the
+    /// limit of {n}t" / "Cannot downgrade tonnage below the limit of {n}t". Both
+    /// limits are derivable from <c>rp1.complexes[].massOrig</c>, which is on the
+    /// wire for exactly this, as <c>max(3, floor(massOrig x 2))</c> and
+    /// <c>max(1, ceil(massOrig x 0.5))</c>.</para>
+    ///
+    /// <para>The career's one HANGAR has no tonnage limit and RP-1 does not draw
+    /// the field for it, so this must be ABSENT when the complex is the hangar
+    /// and is refused when present: a hangar keeps whatever
+    /// <c>massMax</c> it has, and a number here would be silently discarded.</para>
+    /// </summary>
+    [SitrepUnit(Units.Tonnes)]
+    public double? MassMax { get; set; }
+
+    /// <summary>The size envelope to renovate to. REQUIRED, all three axes, hangar included.</summary>
+    public Rp1ComplexSizeArgs? Size { get; set; }
+
+    /// <summary>
+    /// Whether it may launch crew after the renovation.
+    ///
+    /// <para>REQUIRED for a pad complex, for the pricing reason
+    /// <see cref="Rp1ComplexNewArgs.HumanRated"/> gives. Refused when present for
+    /// the hangar, which RP-1 forces to human-rated and does not offer the toggle
+    /// for.</para>
+    /// </summary>
+    [SitrepUnit(Units.Flag)]
+    public bool? HumanRated { get; set; }
+
+    /// <summary>
+    /// The resources the complex handles after the renovation, as
+    /// <see cref="Rp1ComplexNewArgs.Resources"/> describes them.
+    ///
+    /// <para>A SET rather than a delta, and ABSENT means NONE rather than
+    /// unchanged. That is deliberate and it is the same reasoning
+    /// <see cref="Rp1ComplexRushArgs"/> gives for being a set: RP-1 prices the
+    /// renovation off the difference between the complex's current resources and
+    /// the whole new set, so a partial instruction would price against a state the
+    /// operator did not state. A client that means "keep these" sends them.</para>
+    ///
+    /// <para>Removing a resource is CHEAPER than adding one but is not free:
+    /// RP-1 prices a reduction at a tenth of the tank, and the whole resource
+    /// difference at 0.6 of a fresh tank.</para>
+    /// </summary>
+    public Dictionary<string, double>? Resources { get; set; }
+
+    /// <summary>
+    /// Put the unassigned engineers back when the renovation completes, up to the
+    /// number that were taken off. ABSENT means false, and false is the case where
+    /// RP-1 tells the operator to remember to do it themselves.
+    /// </summary>
+    [SitrepUnit(Units.Flag)]
+    public bool? AssignEngineersOnComplete { get; set; }
+}
+
+/// <summary>
+/// Args for <c>rp1.complex.rename</c>: change what a launch complex is called.
+///
+/// <para>Immediate and free. It is not a renovation, it queues nothing, and it
+/// does not take the complex out of service: RP-1's own <c>Rename</c> assigns the
+/// name on the complex and on its persisted stats and stops.</para>
+/// </summary>
+[SitrepContract]
+#if SITREP_CODEGEN
+[TsInterface]
+#endif
+public class Rp1ComplexRenameArgs
+{
+    /// <summary>The complex, by the GUID <c>rp1.complexes[].lcId</c> publishes.</summary>
+    [SitrepUnit(Units.Id)]
+    public string? LcId { get; set; }
+
+    /// <summary>
+    /// The new name. REQUIRED, and refused when it duplicates another complex at
+    /// the same centre.
+    ///
+    /// <para>That refusal is a DELIBERATE divergence from RP-1, which is worth
+    /// stating because it is the only one on this command. RP-1's
+    /// <c>LaunchComplex.Rename</c> validates nothing, so its rename window will
+    /// happily create the duplicate name its own build window refuses. Complexes
+    /// are addressed here by GUID, so a duplicate costs this Uplink nothing at
+    /// all; it costs the OPERATOR, who then reads a roster with two identically
+    /// named complexes on it and cannot tell which one a reading belongs to. The
+    /// wording is RP-1's own, taken from the build path that does check.</para>
+    /// </summary>
+    [SitrepUnit(Units.Id)]
+    public string? Name { get; set; }
+}
+
+/// <summary>
+/// Args for <c>rp1.complex.dismantle</c>: demolish a launch complex.
+///
+/// <para><b>What this actually destroys, since RP-1's own dialog says only "This
+/// cannot be undone!" and names nothing.</b> The complex's EARNED BUILD
+/// EFFICIENCY, which is unrecoverable: <c>LaunchComplex.Delete</c> removes the
+/// complex from its efficiency group and clears the group outright when it was the
+/// last member, so a complex rebuilt to the same specification starts again from
+/// RP-1's floor. Both halves of that are already on the wire,
+/// <c>rp1.complexes[].efficiency</c> is the figure at risk and
+/// <c>rp1.complexes[].efficiencySharedWith</c> says whether it survives in a
+/// sibling, so a client can say exactly what is about to be lost, which is more
+/// than the game does.</para>
+///
+/// <para><b>It cannot destroy a vessel.</b> RP-1 refuses the dismantle outright
+/// while the complex holds anything: its <c>CanDismantle</c> requires an empty
+/// build list AND an empty warehouse, so by the time this command can succeed
+/// there is nothing in either. RP-1's own code has a loop that scraps the
+/// warehouse and it is unreachable. Emptying a complex first is
+/// <c>rp1.vehicle.scrap</c>, which refunds in full.</para>
+///
+/// <para>It also returns the complex's engineers to the centre's unassigned pool,
+/// though nothing writes them there: the pool is derived as the centre's headcount
+/// minus what its complexes hold, so removing a complex frees its crew by
+/// arithmetic. No engineer is lost.</para>
+///
+/// <para>The career's one hangar can never be dismantled, in RP-1's words.</para>
+/// </summary>
+[SitrepContract]
+#if SITREP_CODEGEN
+[TsInterface]
+#endif
+public class Rp1ComplexDismantleArgs
+{
+    /// <summary>The complex, by the GUID <c>rp1.complexes[].lcId</c> publishes.</summary>
+    [SitrepUnit(Units.Id)]
+    public string? LcId { get; set; }
+}
+
+/// <summary>
+/// Args for <c>rp1.pad.new</c>: add a launch pad to an existing complex.
+///
+/// <para>The pad INHERITS the complex's envelope and cannot have one of its own:
+/// RP-1 builds it at the complex's own tonnage level and its window shows those
+/// limits as read-only labels. So this command carries a name and nothing else
+/// about the pad.</para>
+///
+/// <para>Goes on the construction queue and draws its funds down as it
+/// progresses, the same as <see cref="Rp1ComplexNewArgs"/>. An extra pad is
+/// priced at the complex's own pad cost times RP-1's additional-pad multiplier,
+/// which ships at half.</para>
+/// </summary>
+[SitrepContract]
+#if SITREP_CODEGEN
+[TsInterface]
+#endif
+public class Rp1PadNewArgs
+{
+    /// <summary>The complex to add it to, by the GUID <c>rp1.complexes[].lcId</c> publishes.</summary>
+    [SitrepUnit(Units.Id)]
+    public string? LcId { get; set; }
+
+    /// <summary>
+    /// What to call it. REQUIRED, and refused when it duplicates a pad already at
+    /// this complex, both in RP-1's own words.
+    /// </summary>
+    [SitrepUnit(Units.Id)]
+    public string? Name { get; set; }
+}
+
+/// <summary>
+/// Args for <c>rp1.pad.rename</c>: change what one of a complex's pads is called.
+///
+/// <para><b>Why this exists rather than being left to the game.</b> RP-1's own
+/// pad rename FAILS SILENTLY on a duplicate name: <c>LCLaunchPad.Rename</c>
+/// returns without doing anything when another pad at the complex already has
+/// that name, and the rename window that called it reports nothing at all. The
+/// operator presses Save, the window closes, and the pad keeps its old name. This
+/// command refuses instead, and says which name was taken.</para>
+///
+/// <para>Not cosmetic on the inside, which is why the whole act is RP-1's to
+/// perform rather than a field to write: a pad's name is the key its rollouts and
+/// its pending construction are stored against, and RP-1's own rename rewrites
+/// both.</para>
+/// </summary>
+[SitrepContract]
+#if SITREP_CODEGEN
+[TsInterface]
+#endif
+public class Rp1PadRenameArgs
+{
+    /// <summary>The complex holding the pad, by the GUID <c>rp1.complexes[].lcId</c> publishes.</summary>
+    [SitrepUnit(Units.Id)]
+    public string? LcId { get; set; }
+
+    /// <summary>
+    /// Which pad, by the GUID <c>rp1.pads[].padId</c> publishes.
+    ///
+    /// <para>The id and not the name, even though RP-1 stores rollouts against
+    /// the name: a rename addressed by name would be ambiguous in exactly the
+    /// state this command exists to fix, and the id is stable across the rename
+    /// itself.</para>
+    /// </summary>
+    [SitrepUnit(Units.Id)]
+    public string? PadId { get; set; }
+
+    /// <summary>The new name. REQUIRED, and refused when another pad at the complex has it.</summary>
+    [SitrepUnit(Units.Id)]
+    public string? Name { get; set; }
+}
+
+/// <summary>
+/// Args for <c>rp1.pad.dismantle</c>: demolish one of a complex's pads.
+///
+/// <para><b>A complex must keep a pad, and RP-1 enforces that by doing
+/// nothing.</b> Its check is
+/// <c>LaunchPadCount >= 2 &amp;&amp; !ActiveLPInstance.Delete(out reason)</c>, so
+/// with one pad left the condition short-circuits: the confirmation dialog has
+/// already asked "are you sure? This cannot be undone!", the operator presses
+/// Yes, the window closes, and the pad is still there with no message anywhere.
+/// This command refuses and says so. <c>LaunchPadCount</c> counts only
+/// OPERATIONAL pads, so a complex with one working pad and one still under
+/// construction cannot dismantle either.</para>
+///
+/// <para>Immediate and free, and it is not queued: unlike building a pad,
+/// removing one happens at once.</para>
+/// </summary>
+[SitrepContract]
+#if SITREP_CODEGEN
+[TsInterface]
+#endif
+public class Rp1PadDismantleArgs
+{
+    /// <summary>The complex holding the pad, by the GUID <c>rp1.complexes[].lcId</c> publishes.</summary>
+    [SitrepUnit(Units.Id)]
+    public string? LcId { get; set; }
+
+    /// <summary>Which pad, by the GUID <c>rp1.pads[].padId</c> publishes.</summary>
+    [SitrepUnit(Units.Id)]
+    public string? PadId { get; set; }
+}

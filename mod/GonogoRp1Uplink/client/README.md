@@ -42,13 +42,21 @@ Brings RP-1's career layer to the dashboard: Programs with their objectives, dea
 | `Rp1BuildableComplex` | `eligible` flag, `kscDisplayName` text, `kscName` id, `lcId` id, `name` text, `refusals` text |
 | `Rp1BuildRepeatArgs` | `id` id |
 | `Rp1BuildStartArgs` | `craftFile` id, `facility` enum, `lcId` id |
+| `Rp1ComplexDismantleArgs` | `lcId` id |
+| `Rp1ComplexModifyArgs` | `assignEngineersOnComplete` flag, `humanRated` flag, `lcId` id, `massMax` t, `size` Rp1ComplexSizeArgs |
+| `Rp1ComplexNewArgs` | `assignEngineersOnComplete` flag, `humanRated` flag, `kscName` id, `massMax` t, `name` id, `size` Rp1ComplexSizeArgs |
+| `Rp1ComplexRenameArgs` | `lcId` id, `name` id |
 | `Rp1ComplexRushArgs` | `lcId` id, `rushing` flag |
+| `Rp1ComplexSizeArgs` | `sizeMaxDepth` m, `sizeMaxHeight` m, `sizeMaxWidth` m |
 | `Rp1FacilityUpgradeArgs` | `facility` id |
 | `Rp1FundingCurveKey` | `frac` ratio, `inTangent` 1, `outTangent` 1, `paidFraction` ratio |
 | `Rp1FundTargetSetArgs` | `targetFunds` funds |
 | `Rp1HireTarget` | `active` flag, `currentCount` count, `isResearch` flag, `lcId` id, `leftToHire` count, `targetCount` count, `timeLeft` s |
 | `Rp1HireTargetSetArgs` | `lcId` id, `reserveFunds` funds, `targetCount` count |
 | `Rp1LeaderEntry` | `canRemoveFromUt` ut, `deactivateReputation` rep, `freeToRemoveFromUt` ut, `reactivateCooldown` s, `removeOnDeactivate` flag, `setupConfidence` confidence, `setupFunds` funds, `setupReputation` rep, `setupScience` science, `strategyId` id |
+| `Rp1PadDismantleArgs` | `lcId` id, `padId` id |
+| `Rp1PadNewArgs` | `lcId` id, `name` id |
+| `Rp1PadRenameArgs` | `lcId` id, `name` id, `padId` id |
 | `Rp1PersonnelAssignArgs` | `engineers` count, `lcId` id |
 | `Rp1ProgramPaymentEntry` | `cumulativeFunds` funds, `funds` funds, `year` count |
 | `Rp1ProgramSpeedOption` | `confidenceCost` confidence, `durationSeconds` s, `speed` enum |
