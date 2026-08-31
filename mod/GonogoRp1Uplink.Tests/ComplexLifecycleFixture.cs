@@ -408,7 +408,12 @@ namespace RP0
                 throw new System.InvalidOperationException("the warp controller could not be created");
             }
             // The shipped defect, reproduced: no null check before the name is read.
+            // The nullable warning is the fixture working. Suppressed rather than
+            // fixed, because adding the check here would stop reproducing the thing
+            // this fake exists to reproduce.
+#pragma warning disable CS8602
             _ = target.GetItemName();
+#pragma warning restore CS8602
         }
     }
 }

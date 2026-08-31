@@ -794,7 +794,7 @@ namespace GonogoRp1Uplink.Tests
                 // save with no funding and leaves it stalled forever with nothing
                 // saying why.
                 Assert.Contains("career", result.Detail);
-                Assert.Empty(ksc.LaunchComplexes.Where(c => c.Name == "LC-2"));
+                Assert.DoesNotContain(ksc.LaunchComplexes, c => c.Name == "LC-2");
                 Assert.Empty(ksc.LCConstructions);
             }
             finally
