@@ -1262,7 +1262,7 @@ build_gonogoprincipiauplink() {
     --control mscorlib \
     --require PrincipiaPlan \
     --require PrincipiaPlannedBurn \
-    --require PrincipiaFlightPlan \
+    --absent PrincipiaFlightPlan \
     --absent Reinforced.Typings || contract_rc=$?
   if [ "$uplink_rc" -ne 0 ] || [ "$contract_rc" -ne 0 ]; then
     echo "deployed DLLs failed verification (uplink=$uplink_rc contract=$contract_rc)"
