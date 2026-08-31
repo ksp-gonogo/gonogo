@@ -1,5 +1,6 @@
 import { DashboardItemContext } from "@ksp-gonogo/core";
 import { act, render, screen } from "@ksp-gonogo/test-utils";
+import { NULL_DISPLAY } from "@ksp-gonogo/ui-kit";
 import { expectNoA11yViolations } from "@ksp-gonogo/ui-kit/testing";
 import userEvent from "@testing-library/user-event";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
@@ -124,7 +125,9 @@ describe("LaunchDirector crew selection", () => {
     await user.click(await screen.findByText("Probe"));
 
     expect(screen.getByText(/Launch Probe unmanned/i)).toBeInTheDocument();
-    expect(screen.getByText(/Roster — no reading/i)).toBeInTheDocument();
+    expect(
+      screen.getByText(`Roster ${NULL_DISPLAY} no reading`),
+    ).toBeInTheDocument();
   });
 
   it("lists the whole roster and puts each reason on screen, not in a tooltip", async () => {
@@ -179,7 +182,7 @@ describe("LaunchDirector crew selection", () => {
 
     await user.click(await screen.findByText("Probe"));
 
-    expect(screen.getByText("— no reading")).toBeInTheDocument();
+    expect(screen.getByText(`${NULL_DISPLAY} no reading`)).toBeInTheDocument();
     expect(screen.getByText(/Crew \(1\) · 1 no reading/)).toBeInTheDocument();
     // Not selectable, and it does not pass for a kerbal on a mission either.
     await user.click(screen.getByText("Dodrey"));
@@ -259,7 +262,7 @@ describe("LaunchDirector crew render scenes", () => {
     expect(text).toContain("In training");
     expect(text).toContain("Standing down");
     expect(text).toContain("Retired");
-    expect(text).toContain("— no reading");
+    expect(text).toContain(`${NULL_DISPLAY} no reading`);
     // The chips are the interactive surface here: real buttons carrying
     // aria-pressed for the selection and aria-disabled for the rest.
     await expectNoA11yViolations(rendered.container);
@@ -280,7 +283,7 @@ describe("LaunchDirector crew render scenes", () => {
     const rendered = await openCraft(rosterUnread);
     const text = rendered.container.textContent ?? "";
 
-    expect(text).toContain("Roster — no reading");
+    expect(text).toContain(`Roster ${NULL_DISPLAY} no reading`);
     expect(text).toContain("unmanned");
     rendered.teardown();
   });
