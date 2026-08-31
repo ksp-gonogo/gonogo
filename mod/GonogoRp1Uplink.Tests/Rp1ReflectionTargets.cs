@@ -287,6 +287,15 @@ namespace GonogoRp1Uplink.Tests
             // figure RP-1 actually bills, and the salary ladder behind them has
             // four branches nothing here could keep in step.
             new Rp1MethodTarget(Rp0, "RP0.MaintenanceHandler", "LCUpkeep", 1, false, "Rp1ScReflection"),
+            // Each target's own estimate of its wait, called only when the target
+            // reports itself valid: both dereference Funding.Instance unguarded,
+            // and the fund one iterates against the income curve up to 256 times.
+            new Rp1MethodTarget(Rp0, "RP0.HireStaffProject", "GetTimeLeft", 0, false, "Rp1ScReflection"),
+            // The cancel. A pure field reset on both, which is what makes
+            // withdrawing a target safe to offer when setting one is not.
+            new Rp1MethodTarget(Rp0, "RP0.HireStaffProject", "Clear", 0, false, "Rp1TargetCommands"),
+            new Rp1MethodTarget(Rp0, "RP0.FundTargetProject", "Clear", 0, false, "Rp1TargetCommands"),
+            new Rp1MethodTarget(Rp0, "RP0.FundTargetProject", "GetTimeLeft", 0, false, "Rp1ScReflection"),
             new Rp1MethodTarget(Rp0, "RP0.SpaceCenterManagement", "GetEffectiveEngineersForSalary", 1, false, "Rp1ScReflection"),
             new Rp1MethodTarget(Rp0, "RP0.SpaceCenterManagement", "GetEffectiveIntegrationEngineersForSalary", 1, false, "Rp1ScReflection"),
             // ── The facility upgrade ────────────────────────────────────────
@@ -491,6 +500,29 @@ namespace GonogoRp1Uplink.Tests
             // of how a vehicle is built somewhere other than the active complex.
             Add("RP0.VesselProject", "LCID", Rp1Reader.GuidWrite, Start);
             Add("RP0.SpaceCenterManagement", "ActiveSC", Rp1Reader.Presence, Sc + ", " + Facilities);
+
+            // ── The two standing targets ────────────────────────────────────
+            // Both project objects always EXIST, so presence says nothing about
+            // whether an instruction stands; IsValid is what answers that, and
+            // each defines it differently. A hire target is valid on a positive
+            // headcount; a fund target is valid only when the figure DIFFERS from
+            // the balance it was set at, so a target equal to the balance is not
+            // a target at all.
+            Add("RP0.SpaceCenterManagement", "staffTarget", Rp1Reader.Presence, Sc);
+            Add("RP0.SpaceCenterManagement", "fundTarget", Rp1Reader.Presence, Sc);
+            Add("RP0.HireStaffProject", "IsValid", Rp1Reader.Bool, Sc);
+            Add("RP0.HireStaffProject", "NumLeftToHire", Rp1Reader.Numeric, Sc);
+            Add("RP0.HireStaffProject", "CurrentAmount", Rp1Reader.Numeric, Sc);
+            Add("RP0.HireStaffProject", "IsResearch", Rp1Reader.Bool, Sc);
+            Add("RP0.HireStaffProject", "LCID", Rp1Reader.GuidText, Sc);
+            Add("RP0.FundTargetProject", "IsValid", Rp1Reader.Bool, Sc);
+            // PRIVATE, and read rather than derived because the figure the
+            // operator committed to is not recoverable from anything public: the
+            // fraction it feeds is the only public trace of it, and dividing back
+            // out of that fraction cannot distinguish an unset target from one
+            // already met.
+            Add("RP0.FundTargetProject", "targetFunds", Rp1Reader.Numeric, Sc);
+            Add("RP0.FundTargetProject", "origFunds", Rp1Reader.Numeric, Sc);
             Add("RP0.SpaceCenterManagement", "TechList", Rp1Reader.Presence, Sc);
             Add("RP0.SpaceCenterManagement", "LCToEfficiency", Rp1Reader.Presence, Sc);
 

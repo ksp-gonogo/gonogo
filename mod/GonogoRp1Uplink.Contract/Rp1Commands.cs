@@ -359,3 +359,21 @@ public class Rp1TechResearchArgs
     [SitrepUnit(Units.Id)]
     public string? TechId { get; set; }
 }
+
+/// <summary>
+/// Args for the two target cancels, which take none.
+///
+/// <para>Neither <c>rp1.hireTarget.cancel</c> nor <c>rp1.fundTarget.cancel</c>
+/// identifies WHICH target to withdraw, because RP-1 holds exactly one of each:
+/// the hire instruction is a single field whose own
+/// <c>Rp1HireTarget.IsResearch</c> says which staff it hires, and setting a new
+/// one replaces it. A command carrying an id would imply a roster that does not
+/// exist.</para>
+/// </summary>
+[SitrepContract]
+#if SITREP_CODEGEN
+[TsInterface]
+#endif
+public class Rp1TargetCancelArgs
+{
+}

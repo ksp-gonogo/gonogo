@@ -24,7 +24,7 @@ namespace GonogoRp1Uplink.Tests
                 "Units.BuildPoints");
 
         [Fact]
-        public void TheContractTypesAreExactlyTheThirtyOneWireShapes() =>
+        public void TheContractTypesAreExactlyTheThirtyFourWireShapes() =>
             UnitCoverageAssertion.AssertContractTypesAreExactly(
                 typeof(Rp1CentreEntry).Assembly,
                 nameof(Rp1CentreEntry),
@@ -49,6 +49,9 @@ namespace GonogoRp1Uplink.Tests
                 nameof(Rp1CrewEntry),
                 nameof(Rp1CrewProgram),
                 nameof(Rp1LeaderEntry),
+                nameof(Rp1HireTarget),
+                nameof(Rp1FundTarget),
+                nameof(Rp1TargetCancelArgs),
                 // The shapes here that are not Topic payloads: the command
                 // args. They are held to the same rule because they cross the
                 // same wire, and an id with no declared unit reads to a client as

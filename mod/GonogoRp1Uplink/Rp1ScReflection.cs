@@ -292,7 +292,90 @@ namespace GonogoRp1Uplink
 
             raw.RushTerms = ReadRushTerms(payroll.Settings);
             raw.Confidence = ReadConfidence();
+            raw.HireTarget = ReadHireTarget(Member(scm, "staffTarget"));
+            raw.FundTarget = ReadFundTarget(Member(scm, "fundTarget"));
             return raw;
+        }
+
+        /// <summary>
+        /// RP-1's standing hire instruction. The project object always exists, so
+        /// it is <c>IsValid</c> rather than a null check that says whether an
+        /// instruction actually stands.
+        ///
+        /// <para>The target headcount is derived from the two public readings
+        /// rather than taken from the private field behind them, because
+        /// <c>NumLeftToHire</c> is itself defined as target minus current and the
+        /// derivation cannot disagree with what the other two fields say.</para>
+        /// </summary>
+        private Rp1HireTargetRaw? ReadHireTarget(object? project)
+        {
+            if (project == null)
+            {
+                return null;
+            }
+
+            var active = ReadBool(project, "IsValid");
+            if (active != true)
+            {
+                return new Rp1HireTargetRaw { Active = false };
+            }
+
+            var left = ReadInt(project, "NumLeftToHire");
+            var current = ReadInt(project, "CurrentAmount");
+            var isResearch = ReadBool(project, "IsResearch");
+            return new Rp1HireTargetRaw
+            {
+                Active = true,
+                LeftToHire = left,
+                CurrentCount = current,
+                TargetCount = left == null || current == null ? null : left + current,
+                IsResearch = isResearch,
+                LcId = isResearch == true ? null : ReadGuidString(project, "LCID"),
+                TimeLeftSeconds = TimeLeftOf(project),
+            };
+        }
+
+        /// <summary>The warp's fund stop-condition, on the same terms.</summary>
+        private Rp1FundTargetRaw? ReadFundTarget(object? project)
+        {
+            if (project == null)
+            {
+                return null;
+            }
+
+            if (ReadBool(project, "IsValid") != true)
+            {
+                return new Rp1FundTargetRaw { Active = false };
+            }
+
+            return new Rp1FundTargetRaw
+            {
+                Active = true,
+                TargetFunds = ReadDouble(project, "targetFunds"),
+                OriginalFunds = ReadDouble(project, "origFunds"),
+                TimeLeftSeconds = TimeLeftOf(project),
+            };
+        }
+
+        /// <summary>
+        /// A project's own estimate of its remaining time.
+        ///
+        /// <para>Called only for a project that reports itself valid: both
+        /// implementations dereference <c>Funding.Instance</c> unguarded, and the
+        /// fund estimate iterates against the income curve up to 256 times, so
+        /// this is neither free nor safe to ask of a project that is not running.</para>
+        /// </summary>
+        private static double? TimeLeftOf(object project)
+        {
+            try
+            {
+                var method = Rp1Types.InstanceMethod(project, "GetTimeLeft", 0);
+                return method == null ? null : Rp1Types.ToDouble(method.Invoke(project, null));
+            }
+            catch (Exception)
+            {
+                return null;
+            }
         }
 
         private void ReadComplex(

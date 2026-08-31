@@ -54,6 +54,18 @@ namespace GonogoRp1Uplink
         public Rp1ConfidenceRaw? Confidence;
 
         public Rp1RushTermsRaw? RushTerms;
+
+        /// <summary>
+        /// The standing hire instruction, null when RP-1's space centre could not
+        /// be read. An instruction that is merely unset arrives with
+        /// <see cref="Rp1HireTargetRaw.Active"/> false, because an operator needs
+        /// to tell "nothing scheduled" from "I cannot see the schedule": RP-1
+        /// clears this silently when the complex it hires for is modified.
+        /// </summary>
+        public Rp1HireTargetRaw? HireTarget;
+
+        /// <summary>The warp's fund stop-condition, null on the same terms as <see cref="HireTarget"/>.</summary>
+        public Rp1FundTargetRaw? FundTarget;
     }
 
     public sealed class Rp1CentreRaw
@@ -269,6 +281,36 @@ namespace GonogoRp1Uplink
         public bool Stalled;
         public int? StartYear;
         public int? EndYear;
+    }
+
+    /// <summary>
+    /// RP-1's standing hire instruction, read rather than derived.
+    ///
+    /// <para>No fraction is carried: RP-1's own <c>GetFractionComplete()</c>
+    /// divides two ints before widening, so it reads zero until the last hire
+    /// lands. <see cref="LeftToHire"/> is the honest reading.</para>
+    /// </summary>
+    public sealed class Rp1HireTargetRaw
+    {
+        /// <summary>False when no instruction stands, which is not the same as unreadable.</summary>
+        public bool Active;
+
+        public int? TargetCount;
+        public int? CurrentCount;
+        public int? LeftToHire;
+        public bool? IsResearch;
+        public string? LcId;
+        public double? TimeLeftSeconds;
+    }
+
+    /// <summary>The balance a warp is running toward, and how far off it is.</summary>
+    public sealed class Rp1FundTargetRaw
+    {
+        public bool Active;
+
+        public double? TargetFunds;
+        public double? OriginalFunds;
+        public double? TimeLeftSeconds;
     }
 
     public sealed class Rp1PersonnelRaw

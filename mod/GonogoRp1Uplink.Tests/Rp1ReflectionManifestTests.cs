@@ -48,6 +48,7 @@ namespace GonogoRp1Uplink.Tests
             "Rp1ComplexWrites.cs",
             "Rp1StrategyWrites.cs",
             "Rp1StrategyCommands.cs",
+            "Rp1TargetCommands.cs",
             "Rp1PersonnelCommands.cs",
             "Rp1FacilityUpgradeCommands.cs",
             "Rp1ResearchCommands.cs",

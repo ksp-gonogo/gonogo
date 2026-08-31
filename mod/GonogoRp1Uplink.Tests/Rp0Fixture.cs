@@ -1031,6 +1031,60 @@ namespace RP0
         }
     }
 
+    /// <summary>
+    /// The standing hire instruction, carrying RP-1's own definitions rather than
+    /// convenient ones: <c>IsValid</c> is a positive headcount, and the kind of
+    /// staff is inferred from whether a complex is named rather than stored.
+    ///
+    /// <para>NO <c>GetFractionComplete</c>. RP-1 has one and it divides two ints
+    /// before widening, so it reads zero until the last hire lands; leaving it out
+    /// here keeps a test from ever asserting on the broken shape.</para>
+    /// </summary>
+    public class HireStaffProject
+    {
+        public int targetCrewCount;
+        public int CurrentAmount { get; set; }
+        public Guid LCID { get; set; } = Guid.Empty;
+
+        /// <summary>What the estimate answers, so a test can tell it was called.</summary>
+        public double TimeLeft { get; set; }
+
+        public bool IsValid => targetCrewCount > 0;
+
+        public bool IsResearch => LCID == Guid.Empty;
+
+        public int NumLeftToHire => targetCrewCount - CurrentAmount;
+
+        public double GetTimeLeft() => TimeLeft;
+    }
+
+    /// <summary>
+    /// The warp's fund stop-condition. Its two figures are PRIVATE exactly as
+    /// RP-1 declares them, so a test that reads them proves the production walk
+    /// reaches a non-public field rather than proving a convenient fixture.
+    /// </summary>
+    public class FundTargetProject
+    {
+        private double targetFunds;
+        private double origFunds;
+
+        public double TimeLeft { get; set; }
+
+        /// <summary>
+        /// RP-1's own rule, and not simply "non-zero": a figure equal to the
+        /// balance it was set at is no target at all.
+        /// </summary>
+        public bool IsValid => targetFunds != origFunds && targetFunds > 0.0;
+
+        public void Set(double target, double original)
+        {
+            targetFunds = target;
+            origFunds = original;
+        }
+
+        public double GetTimeLeft() => TimeLeft;
+    }
+
     public class SpaceCenterManagement
     {
         public static SpaceCenterManagement? Instance { get; set; }
@@ -1038,6 +1092,11 @@ namespace RP0
         public bool enabledForSave = true;
         public int Researchers;
         public int Applicants;
+
+        /// <summary>Always present, exactly as RP-1 constructs it; validity is the question, not existence.</summary>
+        public HireStaffProject staffTarget = new HireStaffProject();
+
+        public FundTargetProject fundTarget = new FundTargetProject();
         public LCSpaceCenter? ActiveSC;
         public List<LCSpaceCenter> KSCs = new List<LCSpaceCenter>();
 

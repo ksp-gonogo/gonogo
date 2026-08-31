@@ -963,6 +963,18 @@ public sealed class Rp1Personnel
     /// </summary>
     [SitrepUnit(Units.Ratio)]
     public double? IdleSalaryMult { get; set; }
+
+    /// <summary>
+    /// The standing instruction to hire up to a number, null when RP-1's state
+    /// could not be read at all. Lives on the personnel Topic because it is a
+    /// fact about staffing rather than about any one complex, even when it names
+    /// one.
+    ///
+    /// <para>ONE slot, not one per kind: RP-1 holds a single target and
+    /// <see cref="Rp1HireTarget.IsResearch"/> says which kind it hires, so
+    /// setting a researcher target replaces an engineer one.</para>
+    /// </summary>
+    public Rp1HireTarget? HireTarget { get; set; }
 }
 
 /// <summary>
@@ -1916,4 +1928,116 @@ public class Rp1LeaderEntry
     /// </summary>
     [SitrepUnit("ut")]
     public double? FreeToRemoveFromUt { get; set; }
+}
+
+/// <summary>
+/// A standing instruction to keep hiring until the staff reaches a number, and
+/// how far off it is.
+///
+/// <para>RP-1 runs this as a background project rather than a one-off purchase:
+/// it spends funds on new hires as they become affordable, so the operator
+/// commits once and the career keeps drawing down against it for as long as it
+/// takes. That makes it a thing the operator must be able to SEE, because it
+/// spends money when nobody is looking.</para>
+///
+/// <para>It is silently cleared when the complex it hires for is modified or
+/// dismantled. Publishing whether it is <see cref="Active"/> is what makes that
+/// survivable: the operator watches it disappear rather than believing in a
+/// schedule that no longer exists.</para>
+///
+/// <para>NO PROGRESS FRACTION, deliberately. RP-1's own
+/// <c>GetFractionComplete()</c> divides two ints and widens the result
+/// afterwards, confirmed at IL as <c>div</c> then <c>conv.r8</c>, so it reads
+/// zero for the whole hire and snaps to one at the end. Reproducing it would
+/// import the bug; <see cref="LeftToHire"/> and <see cref="TimeLeft"/> answer
+/// the same question truthfully. This is the same call made for crew R&amp;R,
+/// whose fraction is an unconditional zero.</para>
+/// </summary>
+[SitrepContract]
+#if SITREP_CODEGEN
+[TsInterface]
+#endif
+public sealed class Rp1HireTarget
+{
+    /// <summary>
+    /// Whether an instruction is standing at all. False means no target, which
+    /// is a different statement from a target of zero.
+    /// </summary>
+    [SitrepUnit(Sitrep.Contract.Units.Flag)]
+    public bool? Active { get; set; }
+
+    /// <summary>The headcount being hired up to.</summary>
+    [SitrepUnit(Sitrep.Contract.Units.Count)]
+    public int? TargetCount { get; set; }
+
+    /// <summary>Headcount now, against which the target is measured.</summary>
+    [SitrepUnit(Sitrep.Contract.Units.Count)]
+    public int? CurrentCount { get; set; }
+
+    /// <summary>How many more must be hired. The honest progress reading.</summary>
+    [SitrepUnit(Sitrep.Contract.Units.Count)]
+    public int? LeftToHire { get; set; }
+
+    /// <summary>
+    /// Whether this hires researchers rather than engineers. RP-1 distinguishes
+    /// them by whether a complex is named, not by a kind field.
+    /// </summary>
+    [SitrepUnit(Sitrep.Contract.Units.Flag)]
+    public bool? IsResearch { get; set; }
+
+    /// <summary>
+    /// The complex being staffed, absent when this hires researchers. The key
+    /// <see cref="Rp1ComplexEntry.LcId"/> carries.
+    /// </summary>
+    [SitrepUnit(Sitrep.Contract.Units.Id)]
+    public string? LcId { get; set; }
+
+    /// <summary>
+    /// RP-1's estimate of how long until the target is met, which is really a
+    /// forecast of when the funds will exist. An INTERVAL, so seconds.
+    /// </summary>
+    [SitrepUnit(Sitrep.Contract.Units.Seconds)]
+    public double? TimeLeft { get; set; }
+}
+
+/// <summary>
+/// A standing instruction to stop time warp once the balance reaches a figure.
+///
+/// <para>A warp STOP CONDITION rather than a transaction, and it PERSISTS past
+/// the warp it stopped: warping again resumes toward the same figure. An
+/// operator who does not know it is set reads the next unexplained warp halt as
+/// the game misbehaving.</para>
+/// </summary>
+[SitrepContract]
+[SitrepTopic("rp1.fundTarget")]
+#if SITREP_CODEGEN
+[TsInterface]
+#endif
+public sealed class Rp1FundTarget
+{
+    /// <summary>
+    /// Whether a target is standing. RP-1 treats a figure equal to the balance
+    /// at the moment it was set as no target at all, so this is not simply
+    /// "the number is non-zero".
+    /// </summary>
+    [SitrepUnit(Sitrep.Contract.Units.Flag)]
+    public bool? Active { get; set; }
+
+    /// <summary>The balance being warped toward.</summary>
+    [SitrepUnit(Sitrep.Contract.Units.Funds)]
+    public double? TargetFunds { get; set; }
+
+    /// <summary>
+    /// The balance when the target was set, which is the other end of RP-1's own
+    /// progress measure and the reason a target equal to it counts as unset.
+    /// </summary>
+    [SitrepUnit(Sitrep.Contract.Units.Funds)]
+    public double? OriginalFunds { get; set; }
+
+    /// <summary>
+    /// RP-1's estimate of the wait, iterated against the income curve rather
+    /// than divided out of it. An INTERVAL, so seconds.
+    /// </summary>
+    [SitrepUnit(Sitrep.Contract.Units.Seconds)]
+    public double? TimeLeft { get; set; }
 }

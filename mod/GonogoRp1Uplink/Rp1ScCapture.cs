@@ -308,6 +308,47 @@ namespace GonogoRp1Uplink
                 ["engineerSalaryPerYear"] = raw.Personnel.EngineerSalaryPerYear,
                 ["researcherSalaryPerYear"] = raw.Personnel.ResearcherSalaryPerYear,
                 ["idleSalaryMult"] = raw.Personnel.IdleSalaryMult,
+                ["hireTarget"] = BuildHireTarget(raw.HireTarget),
+            };
+        }
+
+        /// <summary>
+        /// Null when the instruction could not be read at all, so a client says
+        /// nothing rather than claiming none is set. An instruction that is set
+        /// and one that is merely absent are both readings, and are told apart by
+        /// <c>active</c>.
+        /// </summary>
+        public static Dictionary<string, object?>? BuildHireTarget(Rp1HireTargetRaw? raw)
+        {
+            if (raw == null)
+            {
+                return null;
+            }
+            return new Dictionary<string, object?>
+            {
+                ["active"] = raw.Active,
+                ["targetCount"] = raw.TargetCount,
+                ["currentCount"] = raw.CurrentCount,
+                ["leftToHire"] = raw.LeftToHire,
+                ["isResearch"] = raw.IsResearch,
+                ["lcId"] = raw.LcId,
+                ["timeLeft"] = raw.TimeLeftSeconds,
+            };
+        }
+
+        /// <summary>The warp's fund stop-condition, on the same terms as the hire target.</summary>
+        public static Dictionary<string, object?>? BuildFundTarget(Rp1ScRaw raw)
+        {
+            if (raw.FundTarget == null)
+            {
+                return null;
+            }
+            return new Dictionary<string, object?>
+            {
+                ["active"] = raw.FundTarget.Active,
+                ["targetFunds"] = raw.FundTarget.TargetFunds,
+                ["originalFunds"] = raw.FundTarget.OriginalFunds,
+                ["timeLeft"] = raw.FundTarget.TimeLeftSeconds,
             };
         }
 
