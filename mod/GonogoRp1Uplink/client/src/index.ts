@@ -56,6 +56,7 @@ export {
   RP1_BUILD_REPEAT_COMMAND,
   VehicleAssembly,
 } from "./VehicleAssembly";
+export { BuildCostSection } from "./VehicleAssembly/BuildCost";
 export { BuildingSection } from "./VehicleAssembly/Building";
 export { VEHICLE_ASSEMBLY_SECTIONS } from "./VehicleAssembly/slot";
 export {

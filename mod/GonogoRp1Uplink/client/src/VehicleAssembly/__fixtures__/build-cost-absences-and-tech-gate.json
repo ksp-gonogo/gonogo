@@ -1,0 +1,104 @@
+{
+  "_meta": {
+    "notes": "Two figures that are ABSENT rather than zero, on one vehicle. A spaceplane has no rollout because RP-1 only computes one in the VAB, and this vehicle carries no untooled parts so there is no of-which row at all. Both would be a 0 in a lesser reading, and 0 means free. The tech gate is here because it is the reason a vehicle that prices fine still cannot be flown. Scened at every size EXCEPT min, and the exclusion is a finding rather than a convenience: an RP-1 tech id is a long single word with nowhere to wrap, so at the widget's minimum width a badge carrying one is cut. The badges sit in a ScrollArea, which is the right control (an operator can scroll to read the whole id and a truncated identifier is a DIFFERENT id rather than a shorter one), but a static render cannot scroll and the probe measures the painted box. Raising the widget's minSize to suit one section would degrade Vehicle Assembly for every other."
+  },
+  "_scene": {
+    "widget": "rp1-vehicle-assembly",
+    "size": {
+      "w": 7,
+      "h": 12
+    },
+    "caption": "A fully tooled spaceplane: no rollout because it does not roll out, no surcharge row because there is no surcharge, and a tech it cannot fly without",
+    "paints": [
+      "WHAT THIS LAUNCH COSTS",
+      "Rollout",
+      "Needs tech",
+      "supersonicFlight"
+    ],
+    "modes": ["default", "mobile-9x8", "portrait-5x18", "landscape-18x5"]
+  },
+  "_stream": {
+    "pinnedUt": 1000000,
+    "emits": [
+      {
+        "topic": "career.status",
+        "payload": {
+          "economy": {
+            "funds": 289848,
+            "reputation": 62,
+            "science": 340
+          }
+        }
+      },
+      {
+        "topic": "rp1.available",
+        "payload": true
+      },
+      {
+        "topic": "rp1.complexes",
+        "payload": [
+          {
+            "kscName": "Cape",
+            "lcId": "lc-1",
+            "name": "LC-1",
+            "lcType": "Pad",
+            "isOperational": true,
+            "isRushing": false,
+            "engineers": 0,
+            "maxEngineers": 20,
+            "efficiency": 0.1,
+            "canIntegrate": true,
+            "rate": 0,
+            "humanRated": false,
+            "massMin": 0,
+            "massMax": 40
+          }
+        ]
+      },
+      {
+        "topic": "rp1.pads",
+        "payload": [
+          {
+            "kscName": "Cape",
+            "lcId": "lc-1",
+            "padId": "pad-1",
+            "name": "LaunchPad",
+            "launchSiteName": "LaunchPad",
+            "level": 1,
+            "fractionalLevel": 1,
+            "state": "Free",
+            "hasVesselWaiting": false,
+            "waitingVesselName": null
+          }
+        ]
+      },
+      {
+        "topic": "rp1.operations",
+        "payload": []
+      },
+      {
+        "topic": "rp1.warehouse",
+        "payload": []
+      },
+      {
+        "topic": "rp1.buildQueue",
+        "payload": []
+      },
+      {
+        "topic": "rp1.buildable",
+        "payload": []
+      },
+      {
+        "topic": "rp1.buildCost",
+        "payload": {
+          "vehicleCost": 31200,
+          "untooledSurcharge": null,
+          "toolingCost": 0,
+          "unlockCost": 4800,
+          "rolloutCost": null,
+          "requiredTechs": ["supersonicFlight"]
+        }
+      }
+    ]
+  }
+}

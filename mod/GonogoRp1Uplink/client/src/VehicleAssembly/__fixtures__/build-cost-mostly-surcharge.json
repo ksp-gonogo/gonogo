@@ -1,0 +1,103 @@
+{
+  "_meta": {
+    "notes": "The scene that demonstrates the of-which. The surcharge is INSIDE the vehicle line, not beside it, so the column does not add up to a total and must not look as though it does. It is also the scene where the decision is legible: 41,000f of penalty on every build against 12,500f of tooling once."
+  },
+  "_scene": {
+    "widget": "rp1-vehicle-assembly",
+    "size": {
+      "w": 7,
+      "h": 12
+    },
+    "caption": "Most of what this vehicle costs is the penalty for flying it untooled, and the tooling that removes it is cheaper than one build of the penalty",
+    "paints": [
+      "WHAT THIS LAUNCH COSTS",
+      "untooled",
+      "not on top of it",
+      "Tooling"
+    ]
+  },
+  "_stream": {
+    "pinnedUt": 1000000,
+    "emits": [
+      {
+        "topic": "career.status",
+        "payload": {
+          "economy": {
+            "funds": 289848,
+            "reputation": 62,
+            "science": 340
+          }
+        }
+      },
+      {
+        "topic": "rp1.available",
+        "payload": true
+      },
+      {
+        "topic": "rp1.complexes",
+        "payload": [
+          {
+            "kscName": "Cape",
+            "lcId": "lc-1",
+            "name": "LC-1",
+            "lcType": "Pad",
+            "isOperational": true,
+            "isRushing": false,
+            "engineers": 0,
+            "maxEngineers": 20,
+            "efficiency": 0.1,
+            "canIntegrate": true,
+            "rate": 0,
+            "humanRated": false,
+            "massMin": 0,
+            "massMax": 40
+          }
+        ]
+      },
+      {
+        "topic": "rp1.pads",
+        "payload": [
+          {
+            "kscName": "Cape",
+            "lcId": "lc-1",
+            "padId": "pad-1",
+            "name": "LaunchPad",
+            "launchSiteName": "LaunchPad",
+            "level": 1,
+            "fractionalLevel": 1,
+            "state": "Free",
+            "hasVesselWaiting": false,
+            "waitingVesselName": null
+          }
+        ]
+      },
+      {
+        "topic": "rp1.operations",
+        "payload": []
+      },
+      {
+        "topic": "rp1.warehouse",
+        "payload": []
+      },
+      {
+        "topic": "rp1.buildQueue",
+        "payload": []
+      },
+      {
+        "topic": "rp1.buildable",
+        "payload": []
+      },
+      {
+        "topic": "rp1.buildCost",
+        "payload": {
+          "vehicleCost": 68400,
+          "untooledSurcharge": 41000,
+          "toolingCost": 12500,
+          "unlockCost": 0,
+          "rolloutCost": 900,
+          "requiredTechs": []
+        }
+      }
+    ]
+  }
+}
