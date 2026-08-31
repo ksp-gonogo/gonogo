@@ -67,7 +67,6 @@ namespace GonogoRp1Uplink
         public int? SeatMax;
         public bool? Started;
         public bool? Completed;
-        public double? FractionComplete;
         public double? CompletesAtUt;
 
         /// <summary>The last student's inactive window, which outlasts the course itself.</summary>

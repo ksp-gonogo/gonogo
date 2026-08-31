@@ -347,6 +347,8 @@ namespace GonogoRp1Uplink.Tests
                     Rp1StrategyCommands.ActivateCommand,
                     Rp1TargetCommands.CancelHireCommand,
                     Rp1TargetCommands.CancelFundCommand,
+                    Rp1TargetCommands.SetHireCommand,
+                    Rp1TargetCommands.SetFundCommand,
                 },
                 declarations.Select(d => d.Command).ToArray());
             Assert.All(declarations, declaration =>

@@ -144,6 +144,11 @@ namespace GonogoRp1Uplink.Tests
             // Tells the two ActivateProgram overloads apart by first-parameter
             // type; a lookup by arity alone could take either.
             new Rp1TypeTarget(Rp0, "RP0.Programs.Program", "Rp1StrategyWrites"),
+            // The two standing targets, resolved by name because the SET half
+            // constructs one: RP-1 gives each a public constructor and the whole
+            // instruction is those arguments, so a rename costs the command.
+            new Rp1TypeTarget(Rp0, "RP0.HireStaffProject", "Rp1TargetCommands"),
+            new Rp1TypeTarget(Rp0, "RP0.FundTargetProject", "Rp1TargetCommands"),
             new Rp1TypeTarget(Rp0, "RP0.LCEfficiency", "Rp1ScReflection"),
             new Rp1TypeTarget(Rp0, "RP0.KSCSwitcherInterop", "Rp1ScReflection"),
             new Rp1TypeTarget(Rp0, "RP0.Database", "Rp1ScReflection, Rp1CrewReflection, Rp1EconomyBackend"),
@@ -521,6 +526,8 @@ namespace GonogoRp1Uplink.Tests
             Add("RP0.Crew.TrainingCourse", "SeatMin", Rp1Reader.Numeric, Crew);
             Add("RP0.Crew.TrainingCourse", "SeatMax", Rp1Reader.Numeric, Crew);
             Add("RP0.Crew.TrainingCourse", "IsTemporary", Rp1Reader.Bool, Crew);
+            // WRITTEN as well as read: the set commands assign a freshly
+            // constructed project, which is exactly what RP-1's own dialog does.
             Add("RP0.SpaceCenterManagement", "staffTarget", Rp1Reader.Presence, Sc);
             Add("RP0.SpaceCenterManagement", "fundTarget", Rp1Reader.Presence, Sc);
             Add("RP0.HireStaffProject", "IsValid", Rp1Reader.Bool, Sc);

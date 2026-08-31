@@ -235,6 +235,9 @@ export const GENERATED_TYPE_UNITS: Readonly<Record<string, UnitsByField>> = {
     targetFunds: "funds",
     timeLeft: "s",
   },
+  "Rp1FundTargetSetArgs": {
+    targetFunds: "funds",
+  },
   "Rp1FundingCurveEntry": {
     isDefault: "flag",
     name: "id",
@@ -253,6 +256,11 @@ export const GENERATED_TYPE_UNITS: Readonly<Record<string, UnitsByField>> = {
     leftToHire: "count",
     targetCount: "count",
     timeLeft: "s",
+  },
+  "Rp1HireTargetSetArgs": {
+    lcId: "id",
+    reserveFunds: "funds",
+    targetCount: "count",
   },
   "Rp1LeaderEntry": {
     canRemoveFromUt: "ut",
@@ -387,7 +395,6 @@ export const GENERATED_TYPE_UNITS: Readonly<Record<string, UnitsByField>> = {
     completed: "flag",
     completesAtUt: "ut",
     description: "text",
-    fractionComplete: "ratio",
     id: "id",
     isTemporary: "flag",
     name: "text",
@@ -649,7 +656,6 @@ export const GENERATED_TOPIC_UNITS: Readonly<Record<string, UnitsByField>> = {
     completed: "flag",
     completesAtUt: "ut",
     description: "text",
-    fractionComplete: "ratio",
     id: "id",
     isTemporary: "flag",
     name: "text",

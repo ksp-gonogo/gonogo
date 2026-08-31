@@ -477,7 +477,6 @@ namespace GonogoRp1Uplink
                     SeatMax = SeatCount(course, "SeatMax"),
                     Started = started,
                     Completed = false,
-                    FractionComplete = row.FractionComplete,
                     CompletesAtUt = row.FinishesAtUt,
                     StudentsAvailableAtUt = availableAt,
                     IsTemporary = ReadBool(course, "IsTemporary"),

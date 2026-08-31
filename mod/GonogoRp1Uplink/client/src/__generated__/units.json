@@ -201,6 +201,9 @@
       "targetFunds": "funds",
       "timeLeft": "s"
     },
+    "Rp1FundTargetSetArgs": {
+      "targetFunds": "funds"
+    },
     "Rp1FundingCurveEntry": {
       "isDefault": "flag",
       "name": "id"
@@ -219,6 +222,11 @@
       "leftToHire": "count",
       "targetCount": "count",
       "timeLeft": "s"
+    },
+    "Rp1HireTargetSetArgs": {
+      "lcId": "id",
+      "reserveFunds": "funds",
+      "targetCount": "count"
     },
     "Rp1LeaderEntry": {
       "canRemoveFromUt": "ut",
@@ -353,7 +361,6 @@
       "completed": "flag",
       "completesAtUt": "ut",
       "description": "text",
-      "fractionComplete": "ratio",
       "id": "id",
       "isTemporary": "flag",
       "name": "text",
@@ -610,7 +617,6 @@
       "completed": "flag",
       "completesAtUt": "ut",
       "description": "text",
-      "fractionComplete": "ratio",
       "id": "id",
       "isTemporary": "flag",
       "name": "text",

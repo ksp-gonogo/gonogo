@@ -2123,15 +2123,13 @@ public sealed class Rp1TrainingCourseEntry
     public bool? Completed { get; set; }
 
     /// <summary>
-    /// How far through, RP-1's <c>progress / BP</c>. Absent for a course costed at
-    /// zero points, where that expression is a NaN, and absent before it starts.
-    /// Sound arithmetic, unlike RP-1's hire and R&amp;R fractions.
-    /// </summary>
-    [SitrepUnit(Units.Ratio)]
-    public double? FractionComplete { get; set; }
-
-    /// <summary>
     /// When the course itself finishes. An INSTANT, so a UT.
+    ///
+    /// <para>There is deliberately NO progress fraction beside it. RP-1's own is
+    /// sound arithmetic, unlike its hire and R&amp;R fractions, but it already
+    /// rides <c>rp1.crew</c> per kerbal and a course with no students has no
+    /// progress to report, so a copy here would be duplication that also makes
+    /// this date look like something a client could integrate toward.</para>
     ///
     /// <para>NOT when the crew can fly: see <see cref="StudentsAvailableAtUt"/>.</para>
     /// </summary>

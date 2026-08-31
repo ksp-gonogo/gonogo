@@ -377,3 +377,66 @@ public class Rp1TechResearchArgs
 public class Rp1TargetCancelArgs
 {
 }
+
+/// <summary>
+/// Args for <c>rp1.hireTarget.set</c>: stand up an instruction to keep hiring
+/// until the staff reaches a number.
+///
+/// <para>The reserve is the OPERATOR's, not RP-1's. It is the balance the
+/// instruction will not spend below, and it is the whole reason a standing hire
+/// order is safe to give: without it the career would buy staff until the money
+/// ran out. RP-1 asks for it on the same dialog as the headcount, so a control
+/// that offers one without the other is offering half a decision.</para>
+/// </summary>
+[SitrepContract]
+#if SITREP_CODEGEN
+[TsInterface]
+#endif
+public class Rp1HireTargetSetArgs
+{
+    /// <summary>
+    /// The headcount to hire up to. Must exceed the current count: RP-1 refuses
+    /// otherwise, in those words, because a target at or below where you already
+    /// are is not an instruction.
+    /// </summary>
+    [SitrepUnit(Units.Count)]
+    public int? TargetCount { get; set; }
+
+    /// <summary>
+    /// The balance to keep back. Hiring stops rather than spending below it.
+    /// </summary>
+    [SitrepUnit(Units.Funds)]
+    public double? ReserveFunds { get; set; }
+
+    /// <summary>
+    /// The launch complex to staff with engineers, by the key
+    /// <c>rp1.complexes[].lcId</c> carries. ABSENT hires RESEARCHERS, which is
+    /// how RP-1 distinguishes the two: it stores no kind field, only whether a
+    /// complex is named.
+    ///
+    /// <para>A named complex also caps the target at its maximum engineers, so a
+    /// number above that is clamped rather than refused.</para>
+    /// </summary>
+    [SitrepUnit(Units.Id)]
+    public string? LcId { get; set; }
+}
+
+/// <summary>
+/// Args for <c>rp1.fundTarget.set</c>: stop the next warp once the balance
+/// reaches a figure.
+/// </summary>
+[SitrepContract]
+#if SITREP_CODEGEN
+[TsInterface]
+#endif
+public class Rp1FundTargetSetArgs
+{
+    /// <summary>
+    /// The balance to warp toward. RP-1 refuses a figure equal to the current
+    /// balance ("already at this funding"), and refuses one it cannot reach
+    /// inside its own two-year search, which is a real answer about the career's
+    /// income rather than a validation quibble.
+    /// </summary>
+    [SitrepUnit(Units.Funds)]
+    public double? TargetFunds { get; set; }
+}

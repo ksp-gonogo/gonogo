@@ -44,6 +44,16 @@ export interface Rp1TechResearchArgs
 export interface Rp1TargetCancelArgs
 {
 }
+export interface Rp1HireTargetSetArgs
+{
+	targetCount?: number;
+	reserveFunds?: number;
+	lcId?: string;
+}
+export interface Rp1FundTargetSetArgs
+{
+	targetFunds?: number;
+}
 export interface Rp1CentreEntry
 {
 	kscName?: string;
@@ -353,7 +363,6 @@ export interface Rp1TrainingCourseEntry
 	seatMax?: Value<"count">;
 	started?: boolean;
 	completed?: boolean;
-	fractionComplete?: Value<"ratio">;
 	completesAtUt?: Value<"ut">;
 	studentsAvailableAtUt?: Value<"ut">;
 	isTemporary?: boolean;

@@ -494,6 +494,8 @@ namespace GonogoRp1Uplink
             {
                 commands.Add(Declare(Rp1TargetCommands.CancelHireCommand));
                 commands.Add(Declare(Rp1TargetCommands.CancelFundCommand));
+                commands.Add(Declare(Rp1TargetCommands.SetHireCommand));
+                commands.Add(Declare(Rp1TargetCommands.SetFundCommand));
             }
             return commands;
         }
@@ -697,6 +699,10 @@ namespace GonogoRp1Uplink
                         Rp1TargetCommands.CancelHireCommand, _targets.CancelHire);
                     host.AddCommandHandler<Rp1TargetCancelArgs, CommandResult>(
                         Rp1TargetCommands.CancelFundCommand, _targets.CancelFund);
+                    host.AddCommandHandler<Rp1HireTargetSetArgs, CommandResult>(
+                        Rp1TargetCommands.SetHireCommand, _targets.SetHire);
+                    host.AddCommandHandler<Rp1FundTargetSetArgs, CommandResult>(
+                        Rp1TargetCommands.SetFundCommand, _targets.SetFund);
                 }
             });
             Register(() =>
