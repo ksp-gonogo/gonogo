@@ -262,7 +262,6 @@
       "additionalPadCostMult": "ratio"
     },
     "Rp1LcResourcePrice": {
-      "hangarCostPerUnit": "funds",
       "name": "id",
       "padCostPerUnit": "funds"
     },

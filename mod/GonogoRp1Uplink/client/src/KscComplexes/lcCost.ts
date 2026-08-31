@@ -105,13 +105,19 @@ function quoteResources(
     return null;
   }
 
+  /*
+   * Pads only, because only a pad can be BUILT: a career's one hangar is seeded at
+   * career start and there is no renovation control, so the wire carries no hangar
+   * price and a hangar with resources is refused rather than guessed at.
+   */
+  if (spec.isHangar) {
+    return null;
+  }
+
   let total = 0;
   for (const [name, amount] of spec.resources) {
     const entry = offered.find((r) => r.name === name);
-    const perUnit = spec.isHangar
-      ? entry?.hangarCostPerUnit
-      : entry?.padCostPerUnit;
-    const magnitude = perUnit?.magnitude;
+    const magnitude = entry?.padCostPerUnit?.magnitude;
     if (magnitude == null) {
       return null;
     }

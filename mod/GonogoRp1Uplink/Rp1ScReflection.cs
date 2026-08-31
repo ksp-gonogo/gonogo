@@ -1139,19 +1139,19 @@ namespace GonogoRp1Uplink
                 return null;
             }
 
+            // Pads only. A career's one hangar cannot be built and there is no
+            // renovation control, so a hangar price would be a figure nothing can
+            // reach; see the contract's PadCostPerUnit for when to add its twin.
             var padNames = Rp1LcCostModel.HandledResourceNames(_database, isHangar: false);
-            var hangarNames = Rp1LcCostModel.HandledResourceNames(_database, isHangar: true);
-            if (padNames == null && hangarNames == null)
+            if (padNames == null)
             {
                 return null;
             }
 
-            object? padType = null;
-            object? hangarType = null;
+            object padType;
             try
             {
                 padType = Enum.Parse(_lcType, "Pad");
-                hangarType = Enum.Parse(_lcType, "Hangar");
             }
             catch (Exception)
             {
@@ -1159,15 +1159,10 @@ namespace GonogoRp1Uplink
             }
 
             var byName = new SortedDictionary<string, Rp1LcResourcePriceRaw>(StringComparer.Ordinal);
-            foreach (var name in padNames ?? Array.Empty<string>())
+            foreach (var name in padNames)
             {
                 Entry(byName, name).PadCostPerUnit =
                     NonZero(Rp1LcCostModel.ResourceCostPerUnit(_formula, name, padType, isModify: false));
-            }
-            foreach (var name in hangarNames ?? Array.Empty<string>())
-            {
-                Entry(byName, name).HangarCostPerUnit =
-                    NonZero(Rp1LcCostModel.ResourceCostPerUnit(_formula, name, hangarType, isModify: false));
             }
 
             return new Rp1LcPricingRaw

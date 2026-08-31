@@ -1101,16 +1101,17 @@ public sealed class Rp1LcResourcePrice
     /// it and a client multiplies. ABSENT where a pad complex ignores this resource,
     /// which is not the same as zero: ignored means the resource cannot be chosen,
     /// where zero would mean it is free.</para>
+    ///
+    /// <para><b>There is no hangar twin, and that is not an omission.</b> RP-1 keeps
+    /// a separate ignore mask for hangars, so the figure would genuinely differ, but
+    /// nothing can reach it: a career's one hangar is seeded from
+    /// <c>LCData.StartingHangar</c> and can never be built, and
+    /// <c>rp1.complex.new</c> assigns <c>Pad</c> unconditionally. The only path that
+    /// would price a hangar's resources is a renovation, and there is no control for
+    /// one. Publish the twin the day that control exists, not before.</para>
     /// </summary>
     [SitrepUnit(Units.Funds)]
     public double? PadCostPerUnit { get; set; }
-
-    /// <summary>
-    /// Funds per unit of capacity, for a HANGAR. Absent where a hangar ignores it,
-    /// and the two sets differ: RP-1 keeps a separate ignore mask for each.
-    /// </summary>
-    [SitrepUnit(Units.Funds)]
-    public double? HangarCostPerUnit { get; set; }
 }
 
 /// <para>A third term is not a number and so is not here: a complex earns no

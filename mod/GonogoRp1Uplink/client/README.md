@@ -56,7 +56,7 @@ Brings RP-1's career layer to the dashboard: Programs with their objectives, dea
 | `Rp1FundTargetSetArgs` | `targetFunds` funds |
 | `Rp1HireTarget` | `active` flag, `currentCount` count, `isResearch` flag, `lcId` id, `leftToHire` count, `targetCount` count, `timeLeft` s |
 | `Rp1HireTargetSetArgs` | `lcId` id, `reserveFunds` funds, `targetCount` count |
-| `Rp1LcResourcePrice` | `hangarCostPerUnit` funds, `name` id, `padCostPerUnit` funds |
+| `Rp1LcResourcePrice` | `name` id, `padCostPerUnit` funds |
 | `Rp1LeaderEntry` | `canRemoveFromUt` ut, `deactivateReputation` rep, `freeToRemoveFromUt` ut, `reactivateCooldown` s, `removeOnDeactivate` flag, `setupConfidence` confidence, `setupFunds` funds, `setupReputation` rep, `setupScience` science, `strategyId` id |
 | `Rp1PadDismantleArgs` | `lcId` id, `padId` id |
 | `Rp1PadNewArgs` | `lcId` id, `name` id |

@@ -92,7 +92,6 @@ namespace GonogoRp1Uplink
     {
         public string? Name;
         public double? PadCostPerUnit;
-        public double? HangarCostPerUnit;
     }
 
     public sealed class Rp1ComplexRaw

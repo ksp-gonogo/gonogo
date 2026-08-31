@@ -381,7 +381,6 @@ namespace GonogoRp1Uplink
                     {
                         ["name"] = r.Name,
                         ["padCostPerUnit"] = r.PadCostPerUnit,
-                        ["hangarCostPerUnit"] = r.HangarCostPerUnit,
                     });
                 }
             }

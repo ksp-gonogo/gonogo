@@ -296,7 +296,6 @@ export const GENERATED_TYPE_UNITS: Readonly<Record<string, UnitsByField>> = {
     additionalPadCostMult: "ratio",
   },
   "Rp1LcResourcePrice": {
-    hangarCostPerUnit: "funds",
     name: "id",
     padCostPerUnit: "funds",
   },

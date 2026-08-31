@@ -294,7 +294,6 @@ export interface Rp1LcResourcePrice
 {
 	name?: string;
 	padCostPerUnit?: Value<"funds">;
-	hangarCostPerUnit?: Value<"funds">;
 }
 export interface Rp1RushTerms
 {

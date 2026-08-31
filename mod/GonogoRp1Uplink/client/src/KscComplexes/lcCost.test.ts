@@ -23,9 +23,11 @@ describe("quoting a complex RP-1 has not built yet", () => {
     const quote = quoteNewComplex({ ...c, resources: empty } as LcSpec, {});
 
     expect(quote).not.toBeNull();
-    // Six places, because RP-1 does its axis arithmetic in float and the pad
-    // curve is a fractional power: exact equality would be asserting that two
-    // languages round a transcendental identically, which is not the claim.
+    /*
+     * Six places, because RP-1 does its axis arithmetic in float and the pad
+     * curve is a fractional power: exact equality would be asserting that two
+     * languages round a transcendental identically, which is not the claim.
+     */
     expect(quote?.pad).toBeCloseTo(c.pad, 6);
     expect(quote?.integration).toBeCloseTo(c.integration, 6);
     expect(quote?.total).toBeCloseTo(c.pad + c.integration, 6);
@@ -107,9 +109,14 @@ describe("quoting a complex RP-1 has not built yet", () => {
     expect(quote?.resources).toBe(11);
   });
 
-  it("takes a hangar's own ignore list, not the pad's", () => {
-    // The two masks genuinely differ, so a resource priced for one can be absent
-    // for the other and the quote must refuse rather than fall back.
+  it("refuses to price a hangar's resources rather than using the pad's figures", () => {
+    /*
+     * RP-1 keeps a separate ignore mask for hangars, so the figures genuinely
+     * differ, and the wire carries no hangar price because nothing can build one:
+     * a career's hangar is seeded at career start and there is no renovation
+     * control. Falling back to the pad's numbers would quote a complex nobody can
+     * buy at a price RP-1 never charges.
+     */
     const spec = {
       humanRated: false,
       isHangar: true,
