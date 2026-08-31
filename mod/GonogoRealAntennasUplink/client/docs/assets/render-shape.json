@@ -1,0 +1,26 @@
+{
+  "version": 1,
+  "engine": "chromium",
+  "assets": {
+    "ra-hop-rates-bottleneck--default.png": {
+      "hash": "e706093bf7be7c7c",
+      "elements": 93,
+      "text": "bacd5bec"
+    },
+    "ra-installed-nothing-to-report--default.png": {
+      "hash": "1eeb09ae7777fb77",
+      "elements": 27,
+      "text": "0f14dfa6"
+    },
+    "ra-link-budget-closes--default.png": {
+      "hash": "be48e90f36e28826",
+      "elements": 78,
+      "text": "037b800f"
+    },
+    "ra-link-budget-open--default.png": {
+      "hash": "7ccf0c90f6716b19",
+      "elements": 78,
+      "text": "7db2a3d6"
+    }
+  }
+}

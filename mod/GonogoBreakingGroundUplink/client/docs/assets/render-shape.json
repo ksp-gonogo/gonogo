@@ -1,0 +1,61 @@
+{
+  "version": 1,
+  "engine": "chromium",
+  "assets": {
+    "breaking-ground-absent--default.png": {
+      "hash": "a71bd3e9cc8dfd65",
+      "elements": 9,
+      "text": "e2f1fa7a"
+    },
+    "controller-not-connected--default.png": {
+      "hash": "249e34d33826e850",
+      "elements": 28,
+      "text": "8d606e2c"
+    },
+    "controller-not-connected--min.png": {
+      "hash": "a246b6ec2b0bc1b1",
+      "elements": 28,
+      "text": "f5953fef"
+    },
+    "mun-and-minmus-bases--default.png": {
+      "hash": "c716f7eecc75bea5",
+      "elements": 57,
+      "text": "9ea1e44a"
+    },
+    "mun-and-minmus-bases--min.png": {
+      "hash": "70335a4392995109",
+      "elements": 57,
+      "text": "a14f87ba"
+    },
+    "robotics-dlc-absent--default.png": {
+      "hash": "81217f713aeb91c5",
+      "elements": 9,
+      "text": "f93a7788"
+    },
+    "rotors--default.png": {
+      "hash": "d2c77e1a7788a5bb",
+      "elements": 52,
+      "text": "6dbac7de"
+    },
+    "rotors--min.png": {
+      "hash": "767f13e73cacac4f",
+      "elements": 41,
+      "text": "5c77630d"
+    },
+    "rotors-dlc-absent--default.png": {
+      "hash": "5ed8b3ee2798f5be",
+      "elements": 9,
+      "text": "f903d91f"
+    },
+    "servos--default.png": {
+      "hash": "265ea06e5151900b",
+      "elements": 39,
+      "text": "df381dff"
+    },
+    "servos--min.png": {
+      "hash": "cefcbfbb8b11965c",
+      "elements": 28,
+      "text": "220c5a23"
+    }
+  }
+}

@@ -1,0 +1,481 @@
+{
+  "version": 1,
+  "engine": "chromium",
+  "assets": {
+    "assembly-empty--default.png": {
+      "hash": "5d6ab9bece0ba32d",
+      "elements": 22,
+      "text": "87a7ab8d"
+    },
+    "assembly-empty--landscape-18x5.png": {
+      "hash": "594b63dfe8b73d3c",
+      "elements": 22,
+      "text": "87a7ab8d"
+    },
+    "assembly-empty--min.png": {
+      "hash": "b9aca745c44b360c",
+      "elements": 22,
+      "text": "5cfa8f84"
+    },
+    "assembly-empty--mobile-9x8.png": {
+      "hash": "5d6ab9bece0ba32d",
+      "elements": 22,
+      "text": "87a7ab8d"
+    },
+    "assembly-empty--portrait-5x18.png": {
+      "hash": "5d6ab9bece0ba32d",
+      "elements": 22,
+      "text": "87a7ab8d"
+    },
+    "assembly-pad-occupied--default.png": {
+      "hash": "91af7991f5667a5a",
+      "elements": 58,
+      "text": "576a7cd2"
+    },
+    "assembly-pad-occupied--landscape-18x5.png": {
+      "hash": "3cbfc4d25ef6293b",
+      "elements": 58,
+      "text": "576a7cd2"
+    },
+    "assembly-pad-occupied--min.png": {
+      "hash": "02d55f298f210d7e",
+      "elements": 58,
+      "text": "fc81fab6"
+    },
+    "assembly-pad-occupied--mobile-9x8.png": {
+      "hash": "3cbfc4d25ef6293b",
+      "elements": 58,
+      "text": "576a7cd2"
+    },
+    "assembly-pad-occupied--portrait-5x18.png": {
+      "hash": "3cbfc4d25ef6293b",
+      "elements": 58,
+      "text": "576a7cd2"
+    },
+    "assembly-rollout-refused--default.png": {
+      "hash": "bec767e422ccb641",
+      "elements": 41,
+      "text": "0d3b2459"
+    },
+    "assembly-rollout-refused--landscape-18x5.png": {
+      "hash": "e54eab2d6056685b",
+      "elements": 41,
+      "text": "0d3b2459"
+    },
+    "assembly-rollout-refused--min.png": {
+      "hash": "3da13eb8bc0d2fd0",
+      "elements": 41,
+      "text": "efa68d54"
+    },
+    "assembly-rollout-refused--mobile-9x8.png": {
+      "hash": "e54eab2d6056685b",
+      "elements": 41,
+      "text": "0d3b2459"
+    },
+    "assembly-rollout-refused--portrait-5x18.png": {
+      "hash": "bec767e422ccb641",
+      "elements": 41,
+      "text": "0d3b2459"
+    },
+    "assembly-rushing--default.png": {
+      "hash": "0567245c06ad90c2",
+      "elements": 67,
+      "text": "522d5f05"
+    },
+    "assembly-rushing--landscape-18x5.png": {
+      "hash": "0567245c06ad90c2",
+      "elements": 67,
+      "text": "522d5f05"
+    },
+    "assembly-rushing--min.png": {
+      "hash": "f29f660de29669e1",
+      "elements": 67,
+      "text": "a4223877"
+    },
+    "assembly-rushing--mobile-9x8.png": {
+      "hash": "0567245c06ad90c2",
+      "elements": 67,
+      "text": "522d5f05"
+    },
+    "assembly-rushing--portrait-5x18.png": {
+      "hash": "0567245c06ad90c2",
+      "elements": 67,
+      "text": "522d5f05"
+    },
+    "assembly-start-a-build--default.png": {
+      "hash": "d4d8d6dc61ecebe1",
+      "elements": 75,
+      "text": "7c82d7cc"
+    },
+    "assembly-start-a-build--landscape-18x5.png": {
+      "hash": "d4d8d6dc61ecebe1",
+      "elements": 75,
+      "text": "7c82d7cc"
+    },
+    "assembly-start-a-build--min.png": {
+      "hash": "0de6e2e06ff0db93",
+      "elements": 75,
+      "text": "9e2157bb"
+    },
+    "assembly-start-a-build--mobile-9x8.png": {
+      "hash": "d4d8d6dc61ecebe1",
+      "elements": 75,
+      "text": "7c82d7cc"
+    },
+    "assembly-start-a-build--portrait-5x18.png": {
+      "hash": "d4d8d6dc61ecebe1",
+      "elements": 75,
+      "text": "7c82d7cc"
+    },
+    "assembly-two-complexes--default.png": {
+      "hash": "78f63b813d0d4c1c",
+      "elements": 117,
+      "text": "117259a6"
+    },
+    "assembly-two-complexes--landscape-18x5.png": {
+      "hash": "78f63b813d0d4c1c",
+      "elements": 117,
+      "text": "117259a6"
+    },
+    "assembly-two-complexes--min.png": {
+      "hash": "b6824a0119d0e5de",
+      "elements": 117,
+      "text": "53b4dfd3"
+    },
+    "assembly-two-complexes--mobile-9x8.png": {
+      "hash": "78f63b813d0d4c1c",
+      "elements": 117,
+      "text": "117259a6"
+    },
+    "assembly-two-complexes--portrait-5x18.png": {
+      "hash": "78f63b813d0d4c1c",
+      "elements": 117,
+      "text": "117259a6"
+    },
+    "assembly-unstaffed--default.png": {
+      "hash": "f8142dbfb2b675ec",
+      "elements": 43,
+      "text": "6ec70bdc"
+    },
+    "assembly-unstaffed--landscape-18x5.png": {
+      "hash": "389d7b00749c9246",
+      "elements": 43,
+      "text": "6ec70bdc"
+    },
+    "assembly-unstaffed--min.png": {
+      "hash": "72e4a963d33aa850",
+      "elements": 43,
+      "text": "dc7dea30"
+    },
+    "assembly-unstaffed--mobile-9x8.png": {
+      "hash": "389d7b00749c9246",
+      "elements": 43,
+      "text": "6ec70bdc"
+    },
+    "assembly-unstaffed--portrait-5x18.png": {
+      "hash": "f8142dbfb2b675ec",
+      "elements": 43,
+      "text": "6ec70bdc"
+    },
+    "build-cost-absences-and-tech-gate--default.png": {
+      "hash": "1911caa257a57536",
+      "elements": 48,
+      "text": "42bec9ec"
+    },
+    "build-cost-absences-and-tech-gate--landscape-18x5.png": {
+      "hash": "44fdf313c248ae24",
+      "elements": 48,
+      "text": "42bec9ec"
+    },
+    "build-cost-absences-and-tech-gate--mobile-9x8.png": {
+      "hash": "44fdf313c248ae24",
+      "elements": 48,
+      "text": "42bec9ec"
+    },
+    "build-cost-absences-and-tech-gate--portrait-5x18.png": {
+      "hash": "1911caa257a57536",
+      "elements": 48,
+      "text": "42bec9ec"
+    },
+    "build-cost-mostly-surcharge--default.png": {
+      "hash": "20216e9cf03bf775",
+      "elements": 47,
+      "text": "a1ba8a5d"
+    },
+    "build-cost-mostly-surcharge--landscape-18x5.png": {
+      "hash": "d4e02460a1f7e021",
+      "elements": 47,
+      "text": "a1ba8a5d"
+    },
+    "build-cost-mostly-surcharge--mobile-9x8.png": {
+      "hash": "d4e02460a1f7e021",
+      "elements": 47,
+      "text": "a1ba8a5d"
+    },
+    "build-cost-mostly-surcharge--portrait-5x18.png": {
+      "hash": "20216e9cf03bf775",
+      "elements": 47,
+      "text": "a1ba8a5d"
+    },
+    "buildable-blocked-and-buildable--default.png": {
+      "hash": "01ab98053112c4b9",
+      "elements": 63,
+      "text": "9329cbdb"
+    },
+    "building-three-clocks--default.png": {
+      "hash": "760b8843438180b1",
+      "elements": 92,
+      "text": "640ff391"
+    },
+    "career-history--default.png": {
+      "hash": "30e15f69998ad9be",
+      "elements": 41,
+      "text": "c16eb6d7"
+    },
+    "career-history--landscape-18x5.png": {
+      "hash": "e83093fa13e32a55",
+      "elements": 41,
+      "text": "c16eb6d7"
+    },
+    "career-history--min.png": {
+      "hash": "e83093fa13e32a55",
+      "elements": 41,
+      "text": "c16eb6d7"
+    },
+    "career-history--mobile-9x8.png": {
+      "hash": "30e15f69998ad9be",
+      "elements": 41,
+      "text": "c16eb6d7"
+    },
+    "career-history--portrait-5x18.png": {
+      "hash": "30e15f69998ad9be",
+      "elements": 41,
+      "text": "c16eb6d7"
+    },
+    "completed-program--default.png": {
+      "hash": "f833ab8aa9d725cb",
+      "elements": 263,
+      "text": "ce8db5eb"
+    },
+    "complexes-dismantle-warnings--default.png": {
+      "hash": "c6c5b11d15a27f04",
+      "elements": 360,
+      "text": "39678111"
+    },
+    "complexes-last-pad--default.png": {
+      "hash": "9ecc375f8b53dc0c",
+      "elements": 279,
+      "text": "0e643cd2"
+    },
+    "complexes-rushing--default.png": {
+      "hash": "f8c85adbe03e85c2",
+      "elements": 284,
+      "text": "cc1a051e"
+    },
+    "construction-complex-modify--default.png": {
+      "hash": "937fd5dfaf8f79ff",
+      "elements": 133,
+      "text": "34fcd9ec"
+    },
+    "construction-empty--default.png": {
+      "hash": "3bcec25b521ba541",
+      "elements": 115,
+      "text": "35eee64a"
+    },
+    "construction-full-queue--default.png": {
+      "hash": "09e649f0532d4b83",
+      "elements": 184,
+      "text": "31fd7685"
+    },
+    "construction-not-costed--default.png": {
+      "hash": "fe77014e4bea480b",
+      "elements": 133,
+      "text": "e2869a9d"
+    },
+    "construction-rushing-and-stalled--default.png": {
+      "hash": "b86b705c9cac5633",
+      "elements": 151,
+      "text": "0998f424"
+    },
+    "crew-programme-rules--default.png": {
+      "hash": "8024e064b15e981b",
+      "elements": 32,
+      "text": "47cf1587"
+    },
+    "crew-schedule-three-states--default.png": {
+      "hash": "f4953501db66698e",
+      "elements": 156,
+      "text": "63d9c1f4"
+    },
+    "failure-joined-to-its-launch--default.png": {
+      "hash": "17bff7caf9d54240",
+      "elements": 18,
+      "text": "af67f3ea"
+    },
+    "failure-joined-to-its-launch--landscape-18x5.png": {
+      "hash": "17bff7caf9d54240",
+      "elements": 18,
+      "text": "af67f3ea"
+    },
+    "failure-joined-to-its-launch--min.png": {
+      "hash": "486136526ce7c1ec",
+      "elements": 18,
+      "text": "af67f3ea"
+    },
+    "failure-joined-to-its-launch--mobile-9x8.png": {
+      "hash": "17bff7caf9d54240",
+      "elements": 18,
+      "text": "af67f3ea"
+    },
+    "failure-joined-to-its-launch--portrait-5x18.png": {
+      "hash": "17bff7caf9d54240",
+      "elements": 18,
+      "text": "af67f3ea"
+    },
+    "handler-silent--default.png": {
+      "hash": "c094170cdf73c0fc",
+      "elements": 11,
+      "text": "7a85bea0"
+    },
+    "handler-silent--landscape-18x5.png": {
+      "hash": "c094170cdf73c0fc",
+      "elements": 11,
+      "text": "7a85bea0"
+    },
+    "handler-silent--min.png": {
+      "hash": "c094170cdf73c0fc",
+      "elements": 11,
+      "text": "7a85bea0"
+    },
+    "handler-silent--mobile-9x8.png": {
+      "hash": "c094170cdf73c0fc",
+      "elements": 11,
+      "text": "7a85bea0"
+    },
+    "handler-silent--portrait-5x18.png": {
+      "hash": "c094170cdf73c0fc",
+      "elements": 11,
+      "text": "7a85bea0"
+    },
+    "logging-switched-off--default.png": {
+      "hash": "9b22a0f9a1900a21",
+      "elements": 11,
+      "text": "f249ecbe"
+    },
+    "logging-switched-off--landscape-18x5.png": {
+      "hash": "9b22a0f9a1900a21",
+      "elements": 11,
+      "text": "f249ecbe"
+    },
+    "logging-switched-off--min.png": {
+      "hash": "35c0edb80ef1d643",
+      "elements": 11,
+      "text": "f249ecbe"
+    },
+    "logging-switched-off--mobile-9x8.png": {
+      "hash": "9b22a0f9a1900a21",
+      "elements": 11,
+      "text": "f249ecbe"
+    },
+    "logging-switched-off--portrait-5x18.png": {
+      "hash": "9b22a0f9a1900a21",
+      "elements": 11,
+      "text": "f249ecbe"
+    },
+    "no-curve-table--default.png": {
+      "hash": "5b89ef2af23ca949",
+      "elements": 251,
+      "text": "88f4e5a1"
+    },
+    "offer-frontloaded--default.png": {
+      "hash": "f5b3106a5a27a27c",
+      "elements": 247,
+      "text": "835da823"
+    },
+    "pad-holding-a-finished-vehicle--default.png": {
+      "hash": "1343e22153144228",
+      "elements": 64,
+      "text": "374c8936"
+    },
+    "pad-rolling-out--default.png": {
+      "hash": "8621befe07398c31",
+      "elements": 61,
+      "text": "a7a7aabc"
+    },
+    "personnel-staffed--default.png": {
+      "hash": "e1869665a3d5f351",
+      "elements": 253,
+      "text": "ee402df3"
+    },
+    "personnel-unanswered--default.png": {
+      "hash": "36ae30d89b1f4e5b",
+      "elements": 81,
+      "text": "8837da73"
+    },
+    "programs-overrun-and-unaffordable--default.png": {
+      "hash": "c70a0791b6d46ef7",
+      "elements": 110,
+      "text": "ccc9b14e"
+    },
+    "programs-screen--default.png": {
+      "hash": "edbb1e2bcaf20a7d",
+      "elements": 131,
+      "text": "17459c0f"
+    },
+    "recording-nothing-yet--default.png": {
+      "hash": "87e51aa80c6bbb9c",
+      "elements": 11,
+      "text": "f314e663"
+    },
+    "recording-nothing-yet--landscape-18x5.png": {
+      "hash": "87e51aa80c6bbb9c",
+      "elements": 11,
+      "text": "f314e663"
+    },
+    "recording-nothing-yet--min.png": {
+      "hash": "3cd1fa889c46388f",
+      "elements": 11,
+      "text": "f314e663"
+    },
+    "recording-nothing-yet--mobile-9x8.png": {
+      "hash": "87e51aa80c6bbb9c",
+      "elements": 11,
+      "text": "f314e663"
+    },
+    "recording-nothing-yet--portrait-5x18.png": {
+      "hash": "87e51aa80c6bbb9c",
+      "elements": 11,
+      "text": "f314e663"
+    },
+    "research-queue-throttled-and-stalled--default.png": {
+      "hash": "b580ae67fc8c25e3",
+      "elements": 61,
+      "text": "00e8b5eb"
+    },
+    "running-backloaded--default.png": {
+      "hash": "489f1c3cb8b51d62",
+      "elements": 265,
+      "text": "f593b4f5"
+    },
+    "two-centres-unstaffed--default.png": {
+      "hash": "e320f5b241283b8a",
+      "elements": 295,
+      "text": "a188ad32"
+    },
+    "warehouse-three-places--default.png": {
+      "hash": "b24871a9b39d6a10",
+      "elements": 87,
+      "text": "6bfed247"
+    },
+    "warp-fund-target-standing--default.png": {
+      "hash": "a7f4a31af8e63b81",
+      "elements": 27,
+      "text": "9d64b009"
+    },
+    "warp-no-fund-target--default.png": {
+      "hash": "9fbe0d31fb8acf6d",
+      "elements": 26,
+      "text": "1eaefbee"
+    }
+  }
+}
