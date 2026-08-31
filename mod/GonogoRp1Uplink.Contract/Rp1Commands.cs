@@ -246,6 +246,7 @@ public class Rp1BuildStartArgs
 /// the game does not: it asserts the kind itself and takes the matching
 /// procedure.</para>
 /// </remarks>
+[SitrepContract]
 public class Rp1StrategyActivateArgs
 {
     /// <summary>
@@ -268,6 +269,7 @@ public class Rp1StrategyActivateArgs
     /// activation that left it written would change the commitment level on the
     /// save with nothing to show for it.</para>
     /// </summary>
+    [SitrepUnit(Units.Ratio)]
     public double? Factor { get; set; }
 }
 
@@ -317,4 +319,43 @@ public class Rp1FacilityUpgradeArgs
     /// </summary>
     [SitrepUnit(Units.Id)]
     public string? Facility { get; set; }
+}
+
+/// <summary>
+/// Args for <c>rp1.tech.research</c>: put a tech node on RP-1's research queue.
+///
+/// <para><b>Why this exists rather than <c>career.tech.unlock</c>.</b> Under a
+/// managed save that command is refused, and correctly: core buys the node
+/// outright through <c>ResearchAndDevelopment.UnlockProtoTechNode</c>, which RP-1
+/// does not patch, so the stock write lands a researched node at a stock price
+/// beside a research queue that never heard of it. Under RP-1 a node is a
+/// commitment researchers work through at a rate, and starting one is a
+/// different act with a different shape, so it is a different command.</para>
+///
+/// <para><b>It spends science, at once.</b> RP-1 charges the whole cost AT
+/// ENQUEUE rather than on completion, which is why the control that sends this
+/// has to show the balance beside it. Both figures are already on the wire:
+/// <c>career.status.economy.science</c> for the balance and
+/// <c>career.status.tech.nodes[].scienceCost</c> for the price, and the second is
+/// the exact integer that gets charged.</para>
+/// </summary>
+[SitrepContract]
+#if SITREP_CODEGEN
+[TsInterface]
+#endif
+public class Rp1TechResearchArgs
+{
+    /// <summary>
+    /// The node, by the tech id <c>career.status.tech.nodes[].id</c> publishes.
+    ///
+    /// <para>Not the title an operator reads. A tech tree a mod has replaced can
+    /// carry two nodes with one title, and the title is localised besides, so it
+    /// addresses nothing reliably. The id is what the tree, the save and RP-1's
+    /// own queue all key on.</para>
+    ///
+    /// <para>REQUIRED, and refused when absent. There is no node a missing id
+    /// could sensibly mean.</para>
+    /// </summary>
+    [SitrepUnit(Units.Id)]
+    public string? TechId { get; set; }
 }

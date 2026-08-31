@@ -421,6 +421,68 @@ namespace GonogoRp1Uplink.Tests
             }
         }
 
+        /// <summary>
+        /// The research command's authored node covers every <c>[Persistent]</c>
+        /// field the SHIPPED <c>ResearchProject</c> loads, and no more.
+        /// </summary>
+        /// <remarks>
+        /// <para>This is the check the whole <c>Load(ConfigNode)</c> route was
+        /// chosen for. That route's claim is that its failure mode is a CHECKLIST
+        /// rather than a reading-comprehension test, and a checklist is only worth
+        /// having if something reads the list off the thing being checked. It does:
+        /// the field names come out of RP0.dll's metadata by attribute, so a
+        /// release that adds an eighth persistent field fails here rather than
+        /// silently persisting its default.</para>
+        ///
+        /// <para><b>A missing key does not throw at load time</b>, which is why no
+        /// other test can stand in for this one.
+        /// <c>ConfigNode.LoadObjectFromConfig</c> writes only the fields the node
+        /// has a value for and leaves the rest alone, so an unauthored
+        /// <c>workRate</c> lands on the queue at whatever the constructor set and
+        /// every value assertion in <c>Rp1ResearchCommandsTests</c> agrees with
+        /// it.</para>
+        ///
+        /// <para>The EXTRA direction is checked as well, and is not tidiness: a key
+        /// this Uplink authors that RP-1 does not load is a typo in a field name,
+        /// and the field it was meant for is the one silently taking its
+        /// default.</para>
+        ///
+        /// <para>The empty-list guard is the point of it. An attribute name that
+        /// stopped matching would find nothing, and a subset check against nothing
+        /// passes: that is a check reporting success for a question it never
+        /// asked.</para>
+        /// </remarks>
+        [Fact]
+        public void The_authored_research_node_covers_every_persistent_field_RP1_loads()
+        {
+            var declared = _install.Rp0.FieldsWithAttribute("RP0.ResearchProject", "Persistent");
+
+            Assert.True(
+                declared.Count > 0,
+                "No [Persistent] fields were found on RP0.ResearchProject in " + _install.Rp0.Identity
+                + ". Either the type is gone or the attribute is no longer the type KSP calls Persistent; either way"
+                + " this check asked nothing, and a subset test against an empty list passes for free.");
+
+            var authored = Rp1ResearchCommands
+                .Draft("techId", "Tech Name", 1, "Unavailable", 0, 0, Array.Empty<string>())
+                .Values.Select(v => v.Key).ToList();
+
+            var unauthored = declared.Where(d => !authored.Contains(d)).ToList();
+            var unloaded = authored.Where(a => !declared.Contains(a)).ToList();
+
+            Assert.True(
+                unauthored.Count == 0,
+                "RP0.ResearchProject in " + _install.Rp0.Identity + " loads [Persistent] fields the research"
+                + " command does not author, so RP-1 would persist their DEFAULTS onto the save with no error:"
+                + Environment.NewLine + "  - " + string.Join(Environment.NewLine + "  - ", unauthored));
+
+            Assert.True(
+                unloaded.Count == 0,
+                "The research command authors keys RP0.ResearchProject does not load in " + _install.Rp0.Identity
+                + ", which means a field name is misspelled and the field it was meant for is taking its default:"
+                + Environment.NewLine + "  - " + string.Join(Environment.NewLine + "  - ", unloaded));
+        }
+
         private static void AssertNone(List<string> failures, string kind)
         {
             Assert.True(

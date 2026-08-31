@@ -50,6 +50,7 @@ namespace GonogoRp1Uplink.Tests
             "Rp1StrategyCommands.cs",
             "Rp1PersonnelCommands.cs",
             "Rp1FacilityUpgradeCommands.cs",
+            "Rp1ResearchCommands.cs",
             "Rp1DerivedCurrencyWithholder.cs",
             "Rp1SimulationBackend.cs",
         };

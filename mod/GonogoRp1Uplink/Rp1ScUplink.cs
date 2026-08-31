@@ -184,6 +184,12 @@ namespace GonogoRp1Uplink
         private readonly Rp1FacilityUpgradeCommands _facilities = new Rp1FacilityUpgradeCommands();
 
         /// <summary>
+        /// The command <see cref="Rp1CareerProjectGate"/>'s tech refusal defers
+        /// to: the RP-1-native way to start researching a node, in this Uplink's
+        /// own namespace, the way rp1.build.repeat is its own command rather than
+        /// a redefinition of ksp.launch.
+        /// </summary>
+        private readonly Rp1ResearchCommands _researchCommands = new Rp1ResearchCommands();
         /// The command that starts a design the space centre has never held, from
         /// one of the save's own craft files. Its own reader for the reason the two
         /// above are, and it holds a LAZY route to core's craft catalogue rather
@@ -288,7 +294,8 @@ namespace GonogoRp1Uplink
             _start = new Rp1BuildStartCommands(Catalogue);
             Manifest = BuildManifest(
                 _build.IsAvailable, _vehicles.IsAvailable, _vehicles.IsMoveAvailable,
-                _staffing.IsAvailable, _start.IsAvailable, _facilities.IsAvailable);
+                _staffing.IsAvailable, _start.IsAvailable, _facilities.IsAvailable,
+                _researchCommands.IsAvailable);
             _crewStanding = new Rp1CrewStandingBackend(_crew);
             _economy = new Rp1EconomyBackend(_upkeepQuery);
         }
@@ -299,7 +306,8 @@ namespace GonogoRp1Uplink
             bool moveModelResolved,
             bool staffingModelResolved,
             bool startModelResolved,
-            bool facilityModelResolved) => new UplinkManifest
+            bool facilityModelResolved,
+            bool researchModelResolved) => new UplinkManifest
         {
             Id = "rp1",
             Version = "1.0.0",
@@ -363,19 +371,20 @@ namespace GonogoRp1Uplink
             // has no delay UX.
             Commands = DeclareCommands(
                 buildModelResolved, queueModelResolved, moveModelResolved,
-                staffingModelResolved, startModelResolved, facilityModelResolved),
+                staffingModelResolved, startModelResolved, facilityModelResolved,
+                researchModelResolved),
         };
 
         /// <summary>
-        /// The seven write commands, each declared only when the types its own
+        /// The nine write commands, each declared only when the types its own
         /// handler needs resolved.
         ///
-        /// <para>Four conditions rather than one, because the dependencies
+        /// <para>Seven conditions rather than one, because the dependencies
         /// genuinely differ: the repeat build needs RP-1's currency query,
         /// correcting a queue needs none of it, moving a vehicle needs the
         /// rollout type neither of the others touches, and staffing a complex
-        /// needs none of the three. Declaring all six off one flag would cost
-        /// five commands for a rename that broke one.</para>
+        /// needs none of the three. Declaring them all off one flag would
+        /// withdraw every command for a rename that broke one.</para>
         ///
         /// <para>Nearly all of them declare the SAME requirement, which is why
         /// there is one gate evaluator between them: the only condition
@@ -391,7 +400,8 @@ namespace GonogoRp1Uplink
             bool moveModelResolved,
             bool staffingModelResolved,
             bool startModelResolved,
-            bool facilityModelResolved)
+            bool facilityModelResolved,
+            bool researchModelResolved)
         {
             var commands = new List<CommandDeclaration>();
             if (buildModelResolved)
@@ -453,6 +463,14 @@ namespace GonogoRp1Uplink
                         Rp1FacilityUpgradeCommands.FacilitiesRequirement(),
                     },
                 });
+            }
+            // Its own flag again, and a genuinely different dependency: research
+            // is the only command here that AUTHORS a ConfigNode and charges a
+            // currency, so it needs KSP's own types as well as RP-1's and a
+            // rename on either side should cost this command and nothing else.
+            if (researchModelResolved)
+            {
+                commands.Add(Declare(Rp1ResearchCommands.ResearchCommand));
             }
             return commands;
         }
@@ -582,7 +600,8 @@ namespace GonogoRp1Uplink
                 // requirement they all declare, and a declaration without its
                 // evaluator is a startup failure.
                 if (_build.IsAvailable || _vehicles.IsAvailable || _staffing.IsAvailable
-                    || _facilities.IsAvailable)
+                    || _facilities.IsAvailable
+                    || _researchCommands.IsAvailable)
                 {
                     host.AddGateEvaluator(_build);
                 }
@@ -630,6 +649,11 @@ namespace GonogoRp1Uplink
                     host.AddGateEvaluator(_facilities);
                     host.AddCommandHandler<Rp1FacilityUpgradeArgs, CommandResult<Dictionary<string, object?>>>(
                         Rp1FacilityUpgradeCommands.UpgradeCommand, _facilities.Upgrade);
+                }
+                if (_researchCommands.IsAvailable)
+                {
+                    host.AddCommandHandler<Rp1TechResearchArgs, CommandResult>(
+                        Rp1ResearchCommands.ResearchCommand, _researchCommands.Research);
                 }
             }
             catch (Exception ex)
@@ -1008,6 +1032,16 @@ namespace GonogoRp1Uplink
                         ? "not registered: RP-1 facility-construction types not found"
                         : "rp1.facility.upgrade registered, space centre only ("
                           + _facilities.MethodDiagnosis() + ")"),
+                // Its own fact, and the one on this list an operator is most
+                // likely to come looking for: career.tech.unlock is REFUSED under
+                // a managed save, so if this command is missing there is no way to
+                // research anything from the board at all, and a refusal with no
+                // reason reads as a feature nobody wrote.
+                new UplinkHealthFact(
+                    "research command",
+                    !_researchCommands.IsAvailable
+                        ? "not registered: " + _researchCommands.MethodDiagnosis()
+                        : "rp1.tech.research registered (" + _researchCommands.MethodDiagnosis() + ")"),
                 new UplinkHealthFact(
                     "simulation provider",
                     _simulationRegistrationError != null

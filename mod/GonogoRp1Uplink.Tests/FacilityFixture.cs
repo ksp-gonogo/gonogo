@@ -125,49 +125,6 @@ namespace RP0.Harmony
 }
 
 /// <summary>
-/// KSP's tech node, present for its nested state enum only. The production walk
-/// compares <c>GetTechnologyState</c>'s answer by NAME, so the enum's ordinals
-/// are irrelevant and its two members are all of it.
-/// </summary>
-public static class RDTech
-{
-    public enum State
-    {
-        Unavailable,
-        Available,
-    }
-}
-
-/// <summary>
-/// KSP's R&amp;D scenario, present for the one static the facility tech gate is
-/// resolved against.
-/// </summary>
-public static class ResearchAndDevelopment
-{
-    /// <summary>The nodes a test has marked researched.</summary>
-    public static readonly HashSet<string> Researched = new HashSet<string>(StringComparer.Ordinal);
-
-    /// <summary>
-    /// Answers <c>Available</c> for an unknown node when there is no R&amp;D
-    /// scenario at all, which is what the real one does and is correct: a save
-    /// without a tech tree has nothing to gate on. <see cref="ScenarioPresent"/>
-    /// is what a test flips to exercise that arm.
-    /// </summary>
-    public static bool ScenarioPresent = true;
-
-    public static RDTech.State GetTechnologyState(string techID) =>
-        !ScenarioPresent || Researched.Contains(techID)
-            ? RDTech.State.Available
-            : RDTech.State.Unavailable;
-
-    public static void Reset()
-    {
-        Researched.Clear();
-        ScenarioPresent = true;
-    }
-}
-
-/// <summary>
 /// KSP's upgradeable base, carrying the level table a facility upgrade is priced
 /// and timed from.
 /// </summary>
@@ -217,38 +174,6 @@ public class UpgradeableFacility : UpgradeableObject
             ? 0f
             : upgradeLevels[facilityLevel + 1].levelCost
               * (HighLogic.LoadedSceneIsGame ? HighLogic.CurrentGame.Parameters.Career.FundsLossMultiplier : 1f);
-}
-
-/// <summary>
-/// KSP's facility registry. Two members, and the asymmetry between them is the
-/// point: <c>SlashSanitize</c> is what turns a bare facility name into the id
-/// <see cref="protoUpgradeables"/> is actually keyed on, and RP-1's own
-/// <c>GetFacilityReferencesById</c> does not call it.
-/// </summary>
-public static class ScenarioUpgradeableFacilities
-{
-    public class ProtoUpgradeable
-    {
-        /// <summary>
-        /// EMPTY outside the space centre, and that is the ordinary case rather
-        /// than a fault: the list is filled by the facility MonoBehaviours, which
-        /// exist in that scene only, while the dictionary around it is rebuilt
-        /// from the save in every scene.
-        /// </summary>
-        public List<UpgradeableFacility> facilityRefs = new List<UpgradeableFacility>();
-    }
-
-    public static readonly Dictionary<string, ProtoUpgradeable> protoUpgradeables =
-        new Dictionary<string, ProtoUpgradeable>();
-
-    /// <summary>
-    /// KSP's own rule: an id that already carries a slash is whole, and one that
-    /// does not is a bare facility name under the space centre.
-    /// </summary>
-    public static string SlashSanitize(string instr) =>
-        instr.IndexOf('/') >= 0 ? instr : "SpaceCenter/" + instr;
-
-    public static void Reset() => protoUpgradeables.Clear();
 }
 
 /// <summary>

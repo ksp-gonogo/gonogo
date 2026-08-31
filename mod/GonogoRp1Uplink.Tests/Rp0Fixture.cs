@@ -68,6 +68,16 @@ namespace RP0
 
         /// <summary>The crew half, declared in CrewFixture.cs beside the rest of RP-1's crew graph.</summary>
         public static readonly CrewSettings SettingsCrew = new CrewSettings();
+
+        /// <summary>
+        /// The era table a node's research RATE comes out of. A
+        /// <c>PersistentDictionaryNodeKeyed&lt;TechPeriod&gt;</c> on the real
+        /// type, which is a <c>Dictionary&lt;string, TechPeriod&gt;</c>
+        /// underneath. A plain dictionary here, because the walk enumerates it
+        /// as a bare IEnumerable and never names either type.
+        /// </summary>
+        public static readonly Dictionary<string, TechPeriod> TechNodePeriods =
+            new Dictionary<string, TechPeriod>();
     }
 
     /// <summary>
@@ -448,11 +458,33 @@ namespace RP0
         /// </summary>
         public static readonly List<KeyValuePair<object, int>> EngineerChanges = new List<KeyValuePair<object, int>>();
 
+        /// <summary>
+        /// Every tech id offered to the experimental-parts step, in order. RP-1's
+        /// own body walks <c>PartLoader.LoadedPartsList</c>, which needs a loaded
+        /// game; what a test can hold is that the step was reached with the id the
+        /// operator named.
+        /// </summary>
+        public static readonly List<string> ExperimentalNodes = new List<string>();
+
+        /// <summary>Made to throw, to pin that a failed convenience does not undo a node that IS queued.</summary>
+        public static bool ThrowOnExperimental;
+
         public static void Reset()
         {
             ThrowOnAdd = false;
             ThrowOnScrap = false;
+            ThrowOnExperimental = false;
             EngineerChanges.Clear();
+            ExperimentalNodes.Clear();
+        }
+
+        public static void AddNodePartsToExperimental(string techID)
+        {
+            if (ThrowOnExperimental)
+            {
+                throw new InvalidOperationException("the part loader is not ready");
+            }
+            ExperimentalNodes.Add(techID);
         }
 
         public static void AddVesselToBuildList(VesselProject vp, bool spendFunds)
@@ -528,6 +560,9 @@ namespace RP0
         SalaryResearchers = 0x100L,
         SalaryCrew = 0x200L,
         CrewTraining = 0x400L,
+
+        /// <summary>Researching a tech node, the reason RP-1's own R&D tooltip prices against.</summary>
+        RnDTechResearch = 0x4000L,
     }
 
     /// <summary>
@@ -592,20 +627,31 @@ namespace RP0
         /// </summary>
         public static double Multiplier = 1.0;
 
+        /// <summary>
+        /// The science half, kept separate from <see cref="Multiplier"/> for the
+        /// same reason: a research handler quoting the list price instead of the
+        /// charge passes every assertion at 1.0 and none at 0.5, and the two
+        /// currencies are moved by different modifiers on the real type.
+        /// </summary>
+        public static double ScienceMultiplier = 1.0;
+
         /// <summary>Made to throw, to pin that an unpriceable build is refused rather than started.</summary>
         public static bool ThrowOnQuery;
 
         public static void Reset()
         {
             Multiplier = 1.0;
+            ScienceMultiplier = 1.0;
             ThrowOnQuery = false;
         }
 
         private readonly double _funds;
+        private readonly double _science;
 
-        private CurrencyModifierQueryRP0(double funds)
+        private CurrencyModifierQueryRP0(double funds, double science)
         {
             _funds = funds;
+            _science = science;
         }
 
         public static CurrencyModifierQueryRP0 RunQuery(TransactionReasonsRP0 reason, double f0, double s0, double r0)
@@ -614,15 +660,29 @@ namespace RP0
             {
                 throw new InvalidOperationException("no currency model");
             }
-            return new CurrencyModifierQueryRP0(f0 * Multiplier);
+            return new CurrencyModifierQueryRP0(f0 * Multiplier, s0 * ScienceMultiplier);
         }
 
         /// <summary>The delta, so a charge is NEGATIVE. The handler negates it back.</summary>
-        public double GetTotal(CurrencyRP0 c, bool includeHidden = false) =>
-            c == CurrencyRP0.Funds ? _funds : 0.0;
+        public double GetTotal(CurrencyRP0 c, bool includeHidden = false)
+        {
+            switch (c)
+            {
+                case CurrencyRP0.Funds: return _funds;
+                case CurrencyRP0.Science: return _science;
+                default: return 0.0;
+            }
+        }
 
-        public bool CanAfford(CurrencyRP0 c) =>
-            c != CurrencyRP0.Funds || 0.0 - _funds <= (Funding.Instance?.Funds ?? 0.0);
+        public bool CanAfford(CurrencyRP0 c)
+        {
+            switch (c)
+            {
+                case CurrencyRP0.Funds: return 0.0 - _funds <= (Funding.Instance?.Funds ?? 0.0);
+                case CurrencyRP0.Science: return 0.0 - _science <= (ResearchAndDevelopment.Instance?.Science ?? 0f);
+                default: return true;
+            }
+        }
     }
 
     public class LCLaunchPad
@@ -783,19 +843,65 @@ namespace RP0
         public Guid id = Guid.NewGuid();
     }
 
+    /// <summary>
+    /// RP-1's queued tech node. The seven <c>[Persistent]</c> fields are the
+    /// checklist the research command's whole route stands on, and they carry the
+    /// attribute here for the same reason the real ones do: the stand-in
+    /// <c>ConfigNode.LoadObjectFromConfig</c> is driven by it, so a key
+    /// production forgets to author leaves its field at the constructor's default
+    /// exactly as the shipped game would.
+    /// </summary>
     public class ResearchProject
     {
+        [Persistent]
         public int scienceCost;
+
+        [Persistent]
         public int startYear;
+
+        [Persistent]
         public int endYear;
+
+        [Persistent]
         public string techName = "";
+
+        [Persistent]
         public string techID = "";
+
+        [Persistent]
         public double progress;
+
+        [Persistent]
         public double workRate = 1.0;
+
+        public ProtoTechNode? ProtoNode;
 
         private double _buildRate = -1.0;
 
+        /// <summary>The index UpdateBuildRate was last called with, or absent if it never was.</summary>
+        public int? BuildRateIndex { get; private set; }
+
         public void SetBuildRate(double rate) => _buildRate = rate;
+
+        /// <summary>RP-1's own two lines, unchanged: the object loader, then the proto node.</summary>
+        public void Load(ConfigNode node)
+        {
+            ConfigNode.LoadObjectFromConfig(this, node);
+            ProtoNode = new ProtoTechNode(node.GetNode("ProtoNode")!);
+        }
+
+        /// <summary>
+        /// Records the index rather than reproducing RP-1's rate formula, which
+        /// reaches a preset, a leader table and Planetarium: what a test can
+        /// meaningfully hold is that the queue POSITION handed over is the one
+        /// the node landed at, because that is the argument production computes.
+        /// </summary>
+        public double UpdateBuildRate(int index)
+        {
+            BuildRateIndex = index;
+            _buildRate = 1.0;
+            return _buildRate;
+        }
     }
 
     public class LaunchComplex
@@ -925,7 +1031,6 @@ namespace RP0
         }
     }
 
-
     public class SpaceCenterManagement
     {
         public static SpaceCenterManagement? Instance { get; set; }
@@ -935,7 +1040,32 @@ namespace RP0
         public int Applicants;
         public LCSpaceCenter? ActiveSC;
         public List<LCSpaceCenter> KSCs = new List<LCSpaceCenter>();
-        public List<ResearchProject> TechList = new List<ResearchProject>();
+
+        /// <summary>
+        /// A <c>PersistentObservableList</c> rather than a plain list, and that
+        /// is the whole point of it: its <c>Add</c> SHADOWS <c>List&lt;T&gt;.Add</c>
+        /// and fires the events RP-1's own UI listens on, so a handler that bound
+        /// to the base overload would queue the node and tell nobody while a
+        /// count-based assertion agreed with it completely.
+        /// </summary>
+        public ROUtils.DataTypes.PersistentObservableList<ResearchProject> TechList =
+            new ROUtils.DataTypes.PersistentObservableList<ResearchProject>();
+
+        /// <summary>RP-1's own membership test, over the queue's stored tech ids.</summary>
+        public bool TechListHas(string techID) => TechListIndex(techID) != -1;
+
+        public int TechListIndex(string techID)
+        {
+            var count = TechList.Count;
+            while (count-- > 0)
+            {
+                if (TechList[count].techID == techID)
+                {
+                    return count;
+                }
+            }
+            return -1;
+        }
         public Dictionary<LaunchComplex, LCEfficiency> LCToEfficiency = new Dictionary<LaunchComplex, LCEfficiency>();
 
         /// <summary>
@@ -1273,6 +1403,32 @@ public enum EditorFacility
 // emptiness is what separates a vehicle that can be copied from one that cannot.
 namespace ROUtils.DataTypes
 {
+    /// <summary>
+    /// RP-1's observable list, and the only member of it that matters here: an
+    /// <c>Add</c> declared <c>new</c> over <c>List&lt;T&gt;.Add</c>, which fires
+    /// the events its own UI listens on. Both overloads are public and take one
+    /// argument, so a name-and-arity lookup can bind to either, and binding to
+    /// the base one queues the item and notifies nobody.
+    /// </summary>
+    public class PersistentObservableList<T> : System.Collections.Generic.List<T>
+    {
+        /// <summary>Every item that went in through the SHADOWING Add, in order.</summary>
+        public System.Collections.Generic.List<T> Observed { get; } = new System.Collections.Generic.List<T>();
+
+        /// <summary>Made to throw, to pin what an operator is told when the queue refuses a node already paid for.</summary>
+        public bool ThrowOnAdd;
+
+        public new void Add(T item)
+        {
+            if (ThrowOnAdd)
+            {
+                throw new System.InvalidOperationException("the research queue rejected the node");
+            }
+            base.Add(item);
+            Observed.Add(item);
+        }
+    }
+
     public class PersistentCompressedConfigNode
     {
         private readonly bool _empty;
@@ -1322,8 +1478,16 @@ namespace UnityEngine
 public enum TransactionReasons
 {
     None = 0,
-    ScienceTransmission = 1024,
     VesselRecovery = 32,
+    ScienceTransmission = 1024,
+
+    /// <summary>
+    /// The reason a tech node's science is charged under. KSP's own ordinal,
+    /// which RP-1's TransactionReasonsRP0 mirrors at the same bit: the research
+    /// command names this member to Enum.Parse, so a renumbering here would make
+    /// a test agree with nothing.
+    /// </summary>
+    RnDTechResearch = 16384,
 }
 
 public class EventData<T1, T2>
