@@ -65,6 +65,7 @@
             "kscName": "Cape",
             "lcId": "lc-1",
             "padId": "pad-1",
+            "isOperational": true,
             "name": "LaunchPad",
             "launchSiteName": "LaunchPad",
             "level": 2,

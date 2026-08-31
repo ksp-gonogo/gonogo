@@ -138,7 +138,15 @@ describe("dismantling a launch complex", () => {
   });
 
   it("says there is no rating to lose at a complex nobody has built at", async () => {
-    const { view } = withCentre([{ ...LC1, efficiency: 0 }]);
+    /*
+     * ABSENT, which is what the wire actually carries: RP-1 creates the efficiency
+     * record the first time a complex is worked, so a fresh complex publishes no
+     * figure at all. This test used to pass `0` and passed for the wrong reason,
+     * because the widget tested for zero and let absent fall into a generic line.
+     * A render scene caught it, which is the case FOR renders: the fixture there
+     * had to be a realistic payload and this one did not.
+     */
+    const { view } = withCentre([{ ...LC1, efficiency: undefined }]);
 
     await waitFor(() => {
       expect(screen.getByText("LC-1")).toBeInTheDocument();

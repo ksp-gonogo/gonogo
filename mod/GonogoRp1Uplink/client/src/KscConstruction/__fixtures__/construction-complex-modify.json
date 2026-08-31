@@ -113,7 +113,7 @@
             "totalPoints": 1500,
             "progressRatio": 0.6,
             "workRate": 1,
-            "rate": 0.00009645061728395061,
+            "rate": 9.645061728395061e-5,
             "timeLeftSeconds": 4060800,
             "stalled": false,
             "cost": 62000,

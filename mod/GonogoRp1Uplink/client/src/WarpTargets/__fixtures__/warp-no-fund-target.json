@@ -1,0 +1,42 @@
+{
+  "_meta": {
+    "notes": "The fund target is a warp STOP CONDITION rather than a warp of its own, which is why these live in the host widget's own stepper slot instead of a panel of their own. RP-1's validity rule is not merely 'a number': a target equal to the balance it was set at is no instruction, and warping toward it would never stop. So the control is gated on the wire's own answer rather than on the figure being present."
+  },
+  "_scene": {
+    "augment": "rp1-warp-targets",
+    "host": "warp-control",
+    "size": {
+      "w": 6,
+      "h": 10
+    },
+    "caption": "Warp to next offered, warp to funds dark: no fund target is standing, and the line under it says so rather than leaving a dead button to read as a broken one",
+    "paints": ["Warp to next", "Warp to funds", "no fund target set"]
+  },
+  "_stream": {
+    "pinnedUt": 1000000,
+    "emits": [
+      {
+        "topic": "time.warp",
+        "payload": {
+          "warpRate": 1,
+          "warpRateIndex": 0,
+          "warpMode": 0,
+          "paused": false
+        }
+      },
+      {
+        "topic": "rp1.available",
+        "payload": true
+      },
+      {
+        "topic": "rp1.fundTarget",
+        "payload": {
+          "active": false,
+          "targetFunds": null,
+          "originalFunds": null,
+          "timeLeft": null
+        }
+      }
+    ]
+  }
+}

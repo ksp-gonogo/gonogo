@@ -49,6 +49,7 @@ Brings RP-1's career layer to the dashboard: Programs with their objectives, dea
 | `Rp1ComplexRenameArgs` | `lcId` id, `name` id |
 | `Rp1ComplexRushArgs` | `lcId` id, `rushing` flag |
 | `Rp1ComplexSizeArgs` | `sizeMaxDepth` m, `sizeMaxHeight` m, `sizeMaxWidth` m |
+| `Rp1ContractPayloadArgs` | `commsPayload` kg, `weatherPayload` kg |
 | `Rp1FacilityUpgradeArgs` | `facility` id |
 | `Rp1FundingCurveKey` | `frac` ratio, `inTangent` 1, `outTangent` 1, `paidFraction` ratio |
 | `Rp1FundTargetSetArgs` | `targetFunds` funds |
@@ -174,6 +175,10 @@ Every craft RP-1 is integrating, holding or could start, across every launch com
 
 ![The rules a career's personnel dates are read under: retirement on with a two-year extension ceiling, post-flight R&R off, mission training at 1.25x, and three enrolled courses of which two have never been started](docs/assets/crew-programme-rules--default.png)
 
+![The three dismantle warnings together: LC-1's crew rating is shared with nothing so it is LOST for good, LC-2's survives with LC-3, and LC-3 has never been built at so there is no rating to lose. Each is a different sentence because each is a different consequence](docs/assets/complexes-dismantle-warnings--default.png)
+
+![LC-1 down to its last working pad, so its dismantle is dark with the reason rather than live and silently inert; LC-2 has a second pad still being built, which does not count toward the one a complex must keep and cannot itself be dismantled](docs/assets/complexes-last-pad--default.png)
+
 ![Cape and its two launch complexes, each with its crew, its envelope, its daily cost and the rush control: LC-1 already rushing and carrying the terms in force on it, LC-2 quiet and offered the way in](docs/assets/complexes-rushing--default.png)
 
 ![A payroll mid-career with six engineers assigned to nothing, the daily charge that pool carries, and the stepped controls that would move them onto either complex](docs/assets/personnel-staffed--default.png)
@@ -213,6 +218,10 @@ Every craft RP-1 is integrating, holding or could start, across every launch com
 ![Three saved craft: one startable at either complex, one only at LC-1 with LC-2's refusal named, and one blocked on parts that are researched but not bought](docs/assets/buildable-blocked-and-buildable--default.png)
 
 ![Three finished vehicles in three different places: one standing on the pad, one still moving to it, and one RP-1 will not release at all with its reason on the card](docs/assets/warehouse-three-places--default.png)
+
+![A fund target standing at 500,000 with RP-1's own estimate of when the balance gets there, so the press that runs the clock forward carries how far forward it runs](docs/assets/warp-fund-target-standing--default.png)
+
+![Warp to next offered, warp to funds dark: no fund target is standing, and the line under it says so rather than leaving a dead button to read as a broken one](docs/assets/warp-no-fund-target--default.png)
 
 ## Contributions
 

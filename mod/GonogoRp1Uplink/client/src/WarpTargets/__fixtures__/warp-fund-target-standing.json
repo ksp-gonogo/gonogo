@@ -1,0 +1,42 @@
+{
+  "_meta": {
+    "notes": "The ETA is RP-1's own projection off its budget model rather than a promise, and it is worth showing beside a press that will advance the career by that much. Nothing here stops warp: RP-1's controller destroys itself the moment it sees a rate of zero, so the host widget's existing 1x button already ends an RP-1 warp and a second control would be two buttons doing one thing."
+  },
+  "_scene": {
+    "augment": "rp1-warp-targets",
+    "host": "warp-control",
+    "size": {
+      "w": 6,
+      "h": 10
+    },
+    "caption": "A fund target standing at 500,000 with RP-1's own estimate of when the balance gets there, so the press that runs the clock forward carries how far forward it runs",
+    "paints": ["Warp to next", "Warp to funds", "fund target in"]
+  },
+  "_stream": {
+    "pinnedUt": 1000000,
+    "emits": [
+      {
+        "topic": "time.warp",
+        "payload": {
+          "warpRate": 1,
+          "warpRateIndex": 0,
+          "warpMode": 0,
+          "paused": false
+        }
+      },
+      {
+        "topic": "rp1.available",
+        "payload": true
+      },
+      {
+        "topic": "rp1.fundTarget",
+        "payload": {
+          "active": true,
+          "targetFunds": 500000,
+          "originalFunds": 289848,
+          "timeLeft": 5184000
+        }
+      }
+    ]
+  }
+}

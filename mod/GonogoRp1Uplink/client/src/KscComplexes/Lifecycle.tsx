@@ -73,12 +73,7 @@ export function DismantleControl({
 
   return (
     <Stack gap="xs">
-      <EfficiencyWarning
-        complex={complex}
-        efficiency={efficiency}
-        loses={loses}
-        peers={peers}
-      />
+      <EfficiencyWarning complex={complex} loses={loses} peers={peers} />
       <CommandButton
         args={{ lcId }}
         aria-label={
@@ -115,24 +110,13 @@ export function DismantleControl({
  */
 function EfficiencyWarning({
   complex,
-  efficiency,
   loses,
   peers,
 }: Readonly<{
   complex: Rp1ComplexEntry;
-  efficiency: number | null;
   loses: boolean;
   peers: readonly string[];
 }>) {
-  if (efficiency === null) {
-    return (
-      <Text size="xs" tone="muted">
-        dismantling removes the complex and every pad on it, and cannot be
-        undone
-      </Text>
-    );
-  }
-
   if (peers.length > 0) {
     return (
       <Text size="xs" tone="muted">
@@ -143,6 +127,18 @@ function EfficiencyWarning({
     );
   }
 
+  /*
+   * An ABSENT rating and a rating of zero mean the same thing here and are said
+   * the same way: RP-1 creates the efficiency record the first time a complex is
+   * worked, so a complex nobody has built at publishes no figure at all, and one
+   * whose record sits at the floor has nothing above the floor to lose either.
+   *
+   * This branch used to test only for zero, with the absent case falling into a
+   * generic "cannot be undone" line above it. That was the wrong way round: a
+   * fresh complex reads ABSENT, so the sentence written for it was the one it
+   * could never reach. Found by a render scene, because the unit test had set the
+   * figure to zero to match the code rather than to match the wire.
+   */
   if (!loses) {
     return (
       <Text size="xs" tone="muted">
