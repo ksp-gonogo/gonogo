@@ -359,6 +359,40 @@ namespace GonogoRp1Uplink
         /// about what rushing costs rather than quoting the shipped default at an
         /// operator whose career may not use it.
         /// </summary>
+        /// <summary>
+        /// The build-price terms. Absent rather than empty when RP-1 would not
+        /// answer, because a form that priced a complex without its resources would
+        /// quote under the true cost.
+        /// </summary>
+        public static Dictionary<string, object?>? BuildLcPricing(Rp1ScRaw raw)
+        {
+            if (raw.LcPricing == null)
+            {
+                return null;
+            }
+
+            List<object?>? resources = null;
+            if (raw.LcPricing.Resources != null)
+            {
+                resources = new List<object?>();
+                foreach (var r in raw.LcPricing.Resources)
+                {
+                    resources.Add(new Dictionary<string, object?>
+                    {
+                        ["name"] = r.Name,
+                        ["padCostPerUnit"] = r.PadCostPerUnit,
+                        ["hangarCostPerUnit"] = r.HangarCostPerUnit,
+                    });
+                }
+            }
+
+            return new Dictionary<string, object?>
+            {
+                ["additionalPadCostMult"] = raw.LcPricing.AdditionalPadCostMult,
+                ["resources"] = resources,
+            };
+        }
+
         public static Dictionary<string, object?>? BuildRushTerms(Rp1ScRaw raw)
         {
             if (raw.RushTerms == null)

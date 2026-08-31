@@ -292,6 +292,14 @@ export const GENERATED_TYPE_UNITS: Readonly<Record<string, UnitsByField>> = {
     reserveFunds: "funds",
     targetCount: "count",
   },
+  "Rp1LcPricing": {
+    additionalPadCostMult: "ratio",
+  },
+  "Rp1LcResourcePrice": {
+    hangarCostPerUnit: "funds",
+    name: "id",
+    padCostPerUnit: "funds",
+  },
   "Rp1LeaderEntry": {
     canRemoveFromUt: "ut",
     deactivateReputation: "rep",
@@ -642,6 +650,9 @@ export const GENERATED_TOPIC_UNITS: Readonly<Record<string, UnitsByField>> = {
     targetFunds: "funds",
     timeLeft: "s",
   },
+  "rp1.lcPricing": {
+    additionalPadCostMult: "ratio",
+  },
   "rp1.operations": {
     associatedVesselId: "id",
     blockingPeers: "count",
@@ -822,6 +833,9 @@ export const GENERATED_TYPE_SHAPES: Readonly<Record<string, ShapesByField>> = {
   "Rp1FundingCurveEntry": {
     keys: "Rp1FundingCurveKey[]",
   },
+  "Rp1LcPricing": {
+    resources: "Rp1LcResourcePrice[]",
+  },
   "Rp1Personnel": {
     hireTarget: "Rp1HireTarget",
   },
@@ -838,6 +852,9 @@ export const GENERATED_TYPE_SHAPES: Readonly<Record<string, ShapesByField>> = {
 export const GENERATED_TOPIC_SHAPES: Readonly<Record<string, ShapesByField>> = {
   "rp1.buildable": {
     complexes: "Rp1BuildableComplex[]",
+  },
+  "rp1.lcPricing": {
+    resources: "Rp1LcResourcePrice[]",
   },
   "rp1.personnel": {
     hireTarget: "Rp1HireTarget",

@@ -90,6 +90,7 @@ namespace GonogoRp1Uplink
         private const string EfficiencyTypeName = "RP0.LCEfficiency";
         private const string KscSwitcherInteropTypeName = "RP0.KSCSwitcherInterop";
         private const string DatabaseTypeName = "RP0.Database";
+        private const string FormulaTypeName = "RP0.Formula";
         private const string MaintenanceTypeName = "RP0.MaintenanceHandler";
 
         /// <summary>The parameter type that tells the two salary overloads apart.</summary>
@@ -103,6 +104,8 @@ namespace GonogoRp1Uplink
         private readonly Type? _lcEfficiency;
         private readonly Type? _kscSwitcherInterop;
         private readonly Type? _database;
+        private readonly Type? _formula;
+        private readonly Type? _lcType;
         private readonly Type? _maintenance;
 
         /// <summary>Cached MethodInfo per (type, method): the one member kind read by invoke rather than by value.</summary>
@@ -144,6 +147,8 @@ namespace GonogoRp1Uplink
             _lcEfficiency = Rp1Types.Find(EfficiencyTypeName);
             _kscSwitcherInterop = Rp1Types.Find(KscSwitcherInteropTypeName);
             _database = Rp1Types.Find(DatabaseTypeName);
+            _formula = Rp1Types.Find(FormulaTypeName);
+            _lcType = Rp1Types.Find("RP0.LaunchComplexType");
             _maintenance = Rp1Types.Find(MaintenanceTypeName);
 
             if (_scm != null)
@@ -291,6 +296,7 @@ namespace GonogoRp1Uplink
             };
 
             raw.RushTerms = ReadRushTerms(payroll.Settings);
+            raw.LcPricing = ReadLcPricing();
             raw.Confidence = ReadConfidence();
             raw.HireTarget = ReadHireTarget(Member(scm, "staffTarget"));
             raw.FundTarget = ReadFundTarget(Member(scm, "fundTarget"));
@@ -1111,6 +1117,80 @@ namespace GonogoRp1Uplink
                 ? null
                 : Rp1LcCostModel.PadCostFor(spec, Rp1LcCostModel.AdditionalPadCostMult(_database));
         }
+
+        /// <summary>
+        /// The build-price terms a client needs to quote a complex that does not
+        /// exist yet: the additional-pad multiplier, and what a unit of each
+        /// offerable resource costs.
+        ///
+        /// <para>Every figure is asked of RP-1 rather than computed. The per-unit
+        /// prices come from its own <c>Formula.ResourceTankCost</c> at an amount of
+        /// one, which is exact because that expression is linear in the amount.</para>
+        ///
+        /// <para>Null when the types are absent, which a client must refuse to quote
+        /// on. A resource RP-1 prices at zero for a kind of complex is reported as
+        /// absent on that axis: it means the resource is not offered there, and a
+        /// zero would read as free.</para>
+        /// </summary>
+        private Rp1LcPricingRaw? ReadLcPricing()
+        {
+            if (_database == null || _formula == null || _lcType == null)
+            {
+                return null;
+            }
+
+            var padNames = Rp1LcCostModel.HandledResourceNames(_database, isHangar: false);
+            var hangarNames = Rp1LcCostModel.HandledResourceNames(_database, isHangar: true);
+            if (padNames == null && hangarNames == null)
+            {
+                return null;
+            }
+
+            object? padType = null;
+            object? hangarType = null;
+            try
+            {
+                padType = Enum.Parse(_lcType, "Pad");
+                hangarType = Enum.Parse(_lcType, "Hangar");
+            }
+            catch (Exception)
+            {
+                return null;
+            }
+
+            var byName = new SortedDictionary<string, Rp1LcResourcePriceRaw>(StringComparer.Ordinal);
+            foreach (var name in padNames ?? Array.Empty<string>())
+            {
+                Entry(byName, name).PadCostPerUnit =
+                    NonZero(Rp1LcCostModel.ResourceCostPerUnit(_formula, name, padType, isModify: false));
+            }
+            foreach (var name in hangarNames ?? Array.Empty<string>())
+            {
+                Entry(byName, name).HangarCostPerUnit =
+                    NonZero(Rp1LcCostModel.ResourceCostPerUnit(_formula, name, hangarType, isModify: false));
+            }
+
+            return new Rp1LcPricingRaw
+            {
+                AdditionalPadCostMult = Rp1LcCostModel.AdditionalPadCostMult(_database),
+                Resources = new List<Rp1LcResourcePriceRaw>(byName.Values),
+            };
+        }
+
+        private static Rp1LcResourcePriceRaw Entry(
+            SortedDictionary<string, Rp1LcResourcePriceRaw> byName, string name)
+        {
+            if (!byName.TryGetValue(name, out var entry))
+            {
+                entry = new Rp1LcResourcePriceRaw { Name = name };
+                byName[name] = entry;
+            }
+            return entry;
+        }
+
+        /// <summary>Zero means RP-1 charges nothing here, which is "not offered" rather than free.</summary>
+        private static double? NonZero(double? value) =>
+            value == null || value.Value == 0.0 ? (double?)null : value;
 
         private double ReadRushRateMult()
         {

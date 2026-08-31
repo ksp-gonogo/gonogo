@@ -29,6 +29,7 @@ import type {
   Rp1CrewProgram,
   Rp1FundingCurveEntry,
   Rp1FundTarget,
+  Rp1LcPricing,
   Rp1OperationEntry,
   Rp1PadEntry,
   Rp1Personnel,
@@ -104,6 +105,17 @@ export const RP1_PERSONNEL_TOPIC = "rp1.personnel";
  * the moment nothing is rushing and the decision is being made.
  */
 export const RP1_RUSH_TERMS_TOPIC = "rp1.rushTerms";
+
+/**
+ * What BUILDING a complex costs, for a form pricing one that does not exist yet.
+ *
+ * Carries the half of RP-1's price a client cannot compute: one funds-per-unit
+ * figure per offerable resource, which is exact rather than approximate because
+ * RP-1's own expression is linear in the amount. The pad and integration halves
+ * are a closed form over what the operator typed and are computed client-side;
+ * see `lcCost.ts`.
+ */
+export const RP1_LC_PRICING_TOPIC = "rp1.lcPricing";
 
 /** RP-1's own currency, absent rather than zero when the module is not live. */
 export const RP1_CONFIDENCE_TOPIC = "rp1.confidence";
@@ -212,6 +224,7 @@ declare module "@ksp-gonogo/sitrep-sdk" {
     "rp1.research": Rp1ResearchEntry[];
     "rp1.personnel": Rp1Personnel;
     "rp1.rushTerms": Rp1RushTerms;
+    "rp1.lcPricing": Rp1LcPricing;
     "rp1.confidence": Rp1Confidence;
     "rp1.programs": Rp1ProgramEntry[];
     "rp1.programSlots": Rp1ProgramSlots;
@@ -306,6 +319,9 @@ export type _ResolvesRp1Personnel = Expect<
 >;
 export type _ResolvesRp1RushTerms = Expect<
   Equal<TopicPayload<"rp1.rushTerms">, Rp1RushTerms>
+>;
+export type _ResolvesRp1LcPricing = Expect<
+  Equal<TopicPayload<"rp1.lcPricing">, Rp1LcPricing>
 >;
 export type _ResolvesRp1Confidence = Expect<
   Equal<TopicPayload<"rp1.confidence">, Rp1Confidence>

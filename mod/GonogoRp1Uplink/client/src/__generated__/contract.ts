@@ -285,6 +285,17 @@ export interface Rp1Personnel
 	idleSalaryMult?: Value<"ratio">;
 	hireTarget?: Rp1HireTarget;
 }
+export interface Rp1LcPricing
+{
+	additionalPadCostMult?: Value<"ratio">;
+	resources?: Rp1LcResourcePrice[];
+}
+export interface Rp1LcResourcePrice
+{
+	name?: string;
+	padCostPerUnit?: Value<"funds">;
+	hangarCostPerUnit?: Value<"funds">;
+}
 export interface Rp1RushTerms
 {
 	rateMult?: Value<"ratio">;

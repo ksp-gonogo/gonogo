@@ -1,6 +1,5 @@
 import { useId } from "react";
-import styled from "styled-components";
-import { Stack } from "./Stack";
+import { Field, FieldHint, FieldLabel, Input } from "./Form";
 import { Text } from "./Text";
 
 export interface TextFieldProps {
@@ -51,9 +50,9 @@ export function TextField({
   const id = useId();
   const errorId = `${id}-invalid`;
   return (
-    <Stack gap="xs">
-      <FieldName htmlFor={id}>{label}</FieldName>
-      <TextField__Input
+    <Field>
+      <FieldLabel htmlFor={id}>{label}</FieldLabel>
+      <Input
         aria-describedby={invalid == null ? undefined : errorId}
         aria-invalid={invalid == null ? undefined : true}
         data-testid={testId}
@@ -66,40 +65,12 @@ export function TextField({
         value={value}
       />
       {invalid != null && (
-        <Text id={errorId} size="xs" tone="warn">
-          {invalid}
-        </Text>
+        <FieldHint id={errorId}>
+          <Text size="xs" tone="warn">
+            {invalid}
+          </Text>
+        </FieldHint>
       )}
-    </Stack>
+    </Field>
   );
 }
-
-const FieldName = styled.label`
-  font-size: var(--font-size-xs);
-  color: var(--color-text-muted);
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
-`;
-
-const TextField__Input = styled.input`
-  background: var(--color-surface-panel);
-  border: 1px solid var(--color-border-subtle);
-  color: var(--color-text-primary);
-  font-size: var(--font-size-sm);
-  padding: var(--space-4) var(--space-6);
-  border-radius: var(--radius-xs);
-  min-width: 0;
-
-  &[aria-invalid="true"] {
-    border-color: var(--color-status-warning-fg);
-  }
-
-  &:disabled {
-    color: var(--color-text-faint);
-  }
-
-  &:focus-visible {
-    outline: 2px solid var(--color-accent-fg);
-    outline-offset: 2px;
-  }
-`;

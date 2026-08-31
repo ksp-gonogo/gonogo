@@ -49,6 +49,9 @@ namespace GonogoRp1Uplink
         public const string ResearchTopic = "rp1.research";
         public const string PersonnelTopic = "rp1.personnel";
         public const string RushTermsTopic = "rp1.rushTerms";
+
+        /// <summary>What building a complex costs, for a form pricing one that does not exist yet.</summary>
+        public const string LcPricingTopic = "rp1.lcPricing";
         public const string ConfidenceTopic = "rp1.confidence";
         public const string FundTargetTopic = "rp1.fundTarget";
         public const string ProgramsTopic = "rp1.programs";
@@ -331,6 +334,7 @@ namespace GonogoRp1Uplink
         private IChannelPublisher? _research;
         private IChannelPublisher? _personnel;
         private IChannelPublisher? _rushTerms;
+        private IChannelPublisher? _lcPricing;
         private IChannelPublisher? _confidence;
 
         private IChannelPublisher? _fundTarget;
@@ -436,6 +440,7 @@ namespace GonogoRp1Uplink
                 // the shipped defaults. Quoting a price the career does not
                 // charge is worse than declining to quote one.
                 Ground(RushTermsTopic, absenceIsData: true),
+                Ground(LcPricingTopic, absenceIsData: true),
                 Ground(ConfidenceTopic, absenceIsData: true),
                 Ground(FundTargetTopic, absenceIsData: true),
                 // All three Program channels publish NOTHING rather than an
@@ -1093,6 +1098,7 @@ namespace GonogoRp1Uplink
             _research = host.Publisher(ResearchTopic);
             _personnel = host.Publisher(PersonnelTopic);
             _rushTerms = host.Publisher(RushTermsTopic);
+            _lcPricing = host.Publisher(LcPricingTopic);
             _confidence = host.Publisher(ConfidenceTopic);
             _fundTarget = host.Publisher(FundTargetTopic);
             _programList = host.Publisher(ProgramsTopic);
@@ -1118,6 +1124,7 @@ namespace GonogoRp1Uplink
                 ResearchTopic,
                 PersonnelTopic,
                 RushTermsTopic,
+                LcPricingTopic,
                 ConfidenceTopic,
                 FundTargetTopic);
 
@@ -1278,6 +1285,7 @@ namespace GonogoRp1Uplink
             _buildable?.Publish(buildable, raw.Ut);
             _personnel?.Publish(Rp1ScCapture.BuildPersonnel(raw), raw.Ut);
             _rushTerms?.Publish(Rp1ScCapture.BuildRushTerms(raw), raw.Ut);
+            _lcPricing?.Publish(Rp1ScCapture.BuildLcPricing(raw), raw.Ut);
             _confidence?.Publish(Rp1ScCapture.BuildConfidence(raw), raw.Ut);
             _fundTarget?.Publish(Rp1ScCapture.BuildFundTarget(raw), raw.Ut);
         }

@@ -258,6 +258,14 @@
       "reserveFunds": "funds",
       "targetCount": "count"
     },
+    "Rp1LcPricing": {
+      "additionalPadCostMult": "ratio"
+    },
+    "Rp1LcResourcePrice": {
+      "hangarCostPerUnit": "funds",
+      "name": "id",
+      "padCostPerUnit": "funds"
+    },
     "Rp1LeaderEntry": {
       "canRemoveFromUt": "ut",
       "deactivateReputation": "rep",
@@ -603,6 +611,9 @@
       "targetFunds": "funds",
       "timeLeft": "s"
     },
+    "rp1.lcPricing": {
+      "additionalPadCostMult": "ratio"
+    },
     "rp1.operations": {
       "associatedVesselId": "id",
       "blockingPeers": "count",
@@ -758,6 +769,9 @@
     "Rp1FundingCurveEntry": {
       "keys": "Rp1FundingCurveKey[]"
     },
+    "Rp1LcPricing": {
+      "resources": "Rp1LcResourcePrice[]"
+    },
     "Rp1Personnel": {
       "hireTarget": "Rp1HireTarget"
     },
@@ -772,6 +786,9 @@
   "topicShapes": {
     "rp1.buildable": {
       "complexes": "Rp1BuildableComplex[]"
+    },
+    "rp1.lcPricing": {
+      "resources": "Rp1LcResourcePrice[]"
     },
     "rp1.personnel": {
       "hireTarget": "Rp1HireTarget"

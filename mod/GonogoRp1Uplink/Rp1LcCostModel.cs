@@ -589,6 +589,55 @@ namespace GonogoRp1Uplink
         /// arithmetic RP-1's own resource list does inline.</para>
         /// </summary>
         /// <returns>Null when RP-1's catalogue could not be read at all, which is a refusal rather than an empty answer.</returns>
+        /// <summary>
+        /// What ONE unit of a resource's capacity adds to a complex's build price.
+        ///
+        /// <para>Asked of RP-1's own <c>Formula.ResourceTankCost</c> with an amount
+        /// of one, rather than transcribed. That is exact rather than close, because
+        /// the expression is strictly LINEAR in the amount: the tank utilisation,
+        /// the tank cost, the resource's unit cost and the settings multiplier are
+        /// all constant per resource, and there is no floor or rounding inside it.
+        /// So f(1) is the per-unit price and f(a) is a*f(1).</para>
+        ///
+        /// <para>Transcribing it was the alternative and it would have been wrong to
+        /// try: the factors come from a RealFuels tank definition
+        /// (<c>MFSSettings.tankDefinitions["SM-IV"]</c>), a KSP resource definition
+        /// and an RP-1 settings dictionary, none of which this Uplink should be
+        /// reaching into to copy arithmetic RP-1 will do for it.</para>
+        ///
+        /// <para>Zero means RP-1 charges nothing, which happens when the resource is
+        /// ignored for this kind of complex, is not a fuel, or is absent from the
+        /// tank definition. The caller reports that as "not offered" rather than as
+        /// free.</para>
+        /// </summary>
+        /// <param name="isModify">RP-1 charges a renovation 0.6 of a build. False for a new complex.</param>
+        /// <returns>Null when RP-1 would not answer at all, which is not the same as zero.</returns>
+        public static double? ResourceCostPerUnit(
+            Type? formulaType, string resource, object lcTypeValue, bool isModify)
+        {
+            if (formulaType == null)
+            {
+                return null;
+            }
+
+            var method = Rp1Types.StaticMethodOn(
+                formulaType, "ResourceTankCost", "System.String", 4);
+            if (method == null)
+            {
+                return null;
+            }
+
+            try
+            {
+                return Rp1Types.ToDouble(
+                    method.Invoke(null, new[] { resource, (object)1.0, isModify, lcTypeValue }));
+            }
+            catch (Exception)
+            {
+                return null;
+            }
+        }
+
         public static IReadOnlyCollection<string>? HandledResourceNames(Type? databaseType, bool isHangar)
         {
             if (databaseType == null)
