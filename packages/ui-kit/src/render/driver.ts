@@ -14,6 +14,14 @@ import { encodeGif } from "./gif";
 import { buildProbePage } from "./page";
 import { RENDER_PROBE_GLOBAL } from "./probe-global";
 import { assertEveryWidgetCovered, buildScenes, type Scene } from "./scenes";
+import {
+  ADMISSIBLE_PROPERTIES,
+  type AssetShape,
+  foldShape,
+  RECORDED_ATTRIBUTES,
+  readShapeText,
+  type ShapeCapture,
+} from "./shape";
 
 /**
  * The Playwright half: one browser, one page, every scene.
@@ -124,6 +132,16 @@ export interface RenderOptions {
    *  `gonogo.renderWith`, so a one-off run can name a host the package does not
    *  declare. See `ScenePayload.host`. */
   withModules?: readonly string[];
+  /**
+   * Write each asset's raw shape text beside it as `<asset>.shape.txt`.
+   *
+   * A shape is a hash, so a mismatch can otherwise only ever say "different",
+   * and a gate that reports a change without a way to see the change is one
+   * people mute. This is what `uplink-shape-engines.mjs` diffs when two engines
+   * disagree, and what an author dumps when `docs --check` names an asset they
+   * did not expect.
+   */
+  dumpShapes?: boolean;
 }
 
 export interface RenderedAsset {
@@ -132,6 +150,8 @@ export interface RenderedAsset {
   /** Path relative to `outDir`. */
   file: string;
   kind: "still" | "motion";
+  /** What this render IS, comparable across machines. See `./shape`. */
+  shape: AssetShape;
 }
 
 export interface RenderResult {
@@ -278,15 +298,33 @@ async function renderOneScene(
     const file = `${scene.name}--${mode.name}.png`;
     await reportFit(tab, scene, mode.name);
     await performActs(tab, scene);
+    // Read BEFORE the grow, which writes a measured height into `#root`'s inline
+    // style and lets every ResizeObserver in the tree settle against it. The
+    // shape is meant to be the same on any machine, and the state after that
+    // step is the one place in the run where it would not be.
+    const capture = await captureShape(tab);
+    if (opts.dumpShapes) {
+      await writeFile(join(opts.outDir, `${file}.shape.txt`), capture.text);
+    }
+    const shape = foldShape([capture]);
     await growToFullContent(tab);
     await assertEveryPaintVisible(tab, scene, mode.name);
     await shoot(tab, join(opts.outDir, file));
-    assets.push({ scene, mode: mode.name, file, kind: "still" });
+    assets.push({ scene, mode: mode.name, file, kind: "still", shape });
     // The visible text is printed because a picture is the one output a
     // terminal cannot show you, and this is the cheapest way for an author to
     // see that the render carries the words they expected.
     console.log(`   ${file}  ${fed.visibleText.slice(0, 110)}`);
   }
+}
+
+/** One reading of the mounted widget. The whitelists travel as an argument so
+ *  the page function closes over nothing. */
+function captureShape(tab: Page): Promise<ShapeCapture> {
+  return tab.evaluate(readShapeText, {
+    properties: ADMISSIBLE_PROPERTIES as readonly string[],
+    attributes: RECORDED_ATTRIBUTES,
+  });
 }
 
 /**
@@ -731,6 +769,11 @@ async function captureMotion(
   // The state before the first step is a frame in its own right: the reader has
   // to see what changed FROM.
   frames.push(await shootFrame(tab, opts, framesDir, frames.length));
+  // One shape per frame, so the film's shape is the SEQUENCE and a step that
+  // stopped firing changes it. A GIF is the asset that most needs this: its
+  // bytes differ between two encodes of an unchanged tree, so bytes cannot say
+  // whether the film moved and the shape can.
+  const captures: ShapeCapture[] = [await captureShape(tab)];
   let holding = false;
   for (const step of scene.steps ?? []) {
     const count = Math.max(1, step.frames ?? 1);
@@ -759,6 +802,7 @@ async function captureMotion(
       );
       if (wait > 0) await tab.waitForTimeout(wait);
       frames.push(await shootFrame(tab, opts, framesDir, frames.length));
+      captures.push(await captureShape(tab));
     }
   }
   // A pointer left down outlives the scene and lands on whatever mounts next.
@@ -767,7 +811,13 @@ async function captureMotion(
   const gif = encodeGif(frames, scene.motion);
   const file = `${scene.name}--${mode.name}.gif`;
   await writeFile(join(opts.outDir, file), gif);
-  assets.push({ scene, mode: mode.name, file, kind: "motion" });
+  assets.push({
+    scene,
+    mode: mode.name,
+    file,
+    kind: "motion",
+    shape: foldShape(captures),
+  });
   console.log(`   ${file} (${frames.length} frames @ ${scene.motion.fps}fps)`);
 }
 

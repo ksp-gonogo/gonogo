@@ -1,6 +1,6 @@
 name: Uplink pages
 
-# Regenerate every Uplink's page on a push to main and commit the result back.
+# Regenerate every Uplink's page on a push, and commit the result back.
 #
 # The pages are DERIVED: from each Uplink's registrations, its generated contract
 # slice, its renders, and the one `uplink.md` an author writes. Nothing about them
@@ -44,9 +44,14 @@ name: Uplink pages
 # would be a hand-kept map of which file affects which page. Ten legs of the
 # matrix render in parallel, so the wall time is one leg either way.
 
+# `staging` as well as `main`, because `staging` is where the work lands. This
+# read `[main]` alone while every branch in the repo merged to `staging`, so the
+# self-heal below did not run once for the whole time development sat there, and
+# the pull-request check kept passing because it compares the PROSE. Five commits
+# of Vehicle Assembly's page showed a layout the code had stopped producing.
 on:
   push:
-    branches: [main]
+    branches: [main, staging]
   # By hand, for any ref: useful after a generator change lands on a branch, and
   # necessary because a GITHUB_TOKEN push gives no run of its own.
   workflow_dispatch:
@@ -133,33 +138,26 @@ jobs:
           # regenerate must never carry along an unrelated file the build wrote.
           git add 'mod/*/client/README.md' 'mod/*/client/gonogo-uplink.json'
 
-          # Assets by NAME, never by bytes, which is the same policy
-          # `docs --check` applies and for a sharper reason here. A PNG re-renders
-          # byte-identically on the same runner, but a motion scene's GIF does
-          # NOT: measured on `jogwheel-rate-mode--default.gif`, three
-          # regenerations in a row produced three different files from an
-          # unchanged tree. Staging byte changes would therefore commit a churn
-          # GIF on every single push to main, forever, and a commit that always
-          # appears is a commit nobody reads.
+          # Which asset changes are repairs and which are churn. This decided
+          # it by status alone and kept only `??` and `D`, so a MODIFIED asset
+          # was reverted and this job had never once healed a stale picture on
+          # any branch: Vehicle Assembly's page carried a layout the code had
+          # stopped producing for five commits, and a run of this would have
+          # re-rendered it, thrown the render away and committed nothing.
           #
-          # So an asset ADDED (a new fixture) or DELETED (a fixture removed) is
-          # real drift and is committed; an asset whose bytes merely moved is
-          # discarded. `git status --porcelain` gives `??` for untracked and `D`
-          # for deleted once `read` has eaten the leading status column's space.
+          # The reasoning behind that was correct on the evidence gathered and
+          # untested on the case it governs. A PNG really does re-render
+          # byte-identically on the same runner while a motion scene's GIF does
+          # not, so staging bytes unconditionally really would push a churn GIF
+          # on every run forever. But byte stability holds precisely when
+          # nothing changed, which is the case where discarding costs nothing,
+          # and in the case this job exists FOR the same rule discards the only
+          # signal it was built to publish.
           #
-          # The pathspec ends `/*` and that is load-bearing. A git pathspec
-          # containing a wildcard is matched as a PATTERN against whole paths
-          # rather than resolved as a directory prefix, so
-          # `mod/*/client/docs/assets` matches the directory and none of the files
-          # in it: it reported zero changes against a tree with a modified GIF in
-          # it, which would have made this whole block a no-op nobody could see.
-          git status --porcelain -- 'mod/*/client/docs/assets/*' |
-            while read -r code path; do
-              case "$code" in
-                '??' | 'D') git add -A -- "$path" ;;
-                *) git checkout -- "$path" ;;
-              esac
-            done
+          # `render-shape.json`, written beside the assets by `gonogo-uplink
+          # docs`, is the predicate it was missing: shape changed, keep it;
+          # shape identical and the bytes moved, discard it as before.
+          node scripts/uplink-asset-commit-filter.mjs
 
           if git diff --cached --quiet; then
             echo "Every Uplink page already describes the code. Nothing to commit."
@@ -171,5 +169,15 @@ jobs:
             # been flaky enough to block a generated push outright. CI re-runs on
             # the resulting commit through the workflow_dispatch above.
             git commit --no-verify -m "chore: regenerate Uplink pages"
-            git push --no-verify origin HEAD:${{ github.ref_name }}
+            # Rebase once and retry, because `staging` receives merges while this
+            # runs and a losing push is rejected as non-fast-forward. The
+            # concurrency group above stops two runs of THIS workflow racing; it
+            # says nothing about somebody else pushing in the ninety seconds
+            # between checkout and push. Going red for that would be a red run
+            # with nothing wrong in it, and a job that cries wolf is a job whose
+            # output nobody reads.
+            git push --no-verify origin HEAD:${{ github.ref_name }} || {
+              git pull --rebase --no-verify origin ${{ github.ref_name }}
+              git push --no-verify origin HEAD:${{ github.ref_name }}
+            }
           fi

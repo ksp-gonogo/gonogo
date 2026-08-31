@@ -62,6 +62,16 @@ export {
   type Scene,
 } from "./render/scenes";
 export {
+  type AssetShape,
+  compareShapes,
+  describeStale,
+  readShapeRecord,
+  SHAPE_RECORD_FILE,
+  SHAPE_RECORD_VERSION,
+  type ShapeRecord,
+  type ShapeVerdict,
+} from "./render/shape";
+export {
   readWireSurface,
   type WireChannel,
   type WireField,

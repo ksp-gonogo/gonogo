@@ -26,13 +26,29 @@ on:
         description: 'Promoted widget id to scope the refresh to (blank = all)'
         required: false
         type: string
+  # `staging` as well as `main`: the work lands on `staging`, so a main-only
+  # trigger meant this had not run since development moved there.
+  #
+  # `packages/ui-kit/**` is in the paths because a promoted asset is a picture of
+  # a widget built out of the kit, and the list did not say so: it named this
+  # job's own scripts and one widget's directory, so every kit change, which is
+  # the change most likely to alter what a promoted render looks like, refreshed
+  # nothing. These are the assets sent to the operator for approval, and an
+  # approved render that silently stops matching the code is the whole risk this
+  # job exists to remove.
+  #
+  # Still a hand-kept list, and still therefore capable of being wrong the same
+  # way. It is narrower than correct on purpose: dropping the filter entirely
+  # would re-render and commit on every push to `staging`, which four concurrent
+  # branches make into constant asset churn.
   push:
-    branches: [main]
+    branches: [main, staging]
     paths:
       - 'packages/components/scripts/promoted-widgets.ts'
       - 'packages/components/scripts/render-promoted-assets.ts'
       - 'packages/components/scripts/synthesize-landing-descent.ts'
       - 'packages/components/src/LandingStatus/**'
+      - 'packages/ui-kit/**'
 
 # contents: write so the job can commit refreshed assets back.
 # packages: read so pnpm install can pull @jonpepler/kerbcast.
@@ -111,5 +127,11 @@ jobs:
             # push; CI still gates the resulting commit. (Same rationale as
             # update-baselines.yml.)
             git commit --no-verify -m "chore: refresh promoted assets (${WIDGET:-all})"
-            git push --no-verify origin HEAD:${{ github.ref_name }}
+            # Rebase once and retry: `staging` takes merges while this renders,
+            # and a non-fast-forward rejection would be a red run with nothing
+            # wrong in it.
+            git push --no-verify origin HEAD:${{ github.ref_name }} || {
+              git pull --rebase --no-verify origin ${{ github.ref_name }}
+              git push --no-verify origin HEAD:${{ github.ref_name }}
+            }
           fi
