@@ -34,24 +34,20 @@
  * domain-debt; if naming the mod is the file's actual job (wire shape) or
  * the mention is just words, it's permanent.
  *
- * THE BUNDLE-TIME UPLINK IMPORT (`packages/app/src/main.tsx`). Six tokens
- * carry this one entry and it means the same thing for every one of them: the
- * app bundles each first-party Uplink client at build time, so `main.tsx` takes
- * a side-effect import of that client's package, and the package name contains
- * the mod's. It is `permanent`. An import of a package whose name contains a
- * mod name is the mechanism by which an Uplink registers at all, the app learns
- * nothing about the mod from it, and there is nothing here to shrink: delete
- * the Uplink and the import goes with it. That a runtime loader would one day
- * remove the line does not make it debt in the meantime, or every wire type
- * would be debt until its Topic is retired.
- *
- * Written down here once because it was written down six times and drifted into
- * four readings. One of them filed the identical line under `domainDebt` and
- * justified it as clearing "when the runtime loader lands", while an entry
- * further down said in as many words that it is "not domainDebt, because there
- * is no coupling here to shrink". No gate could see the contradiction: each
- * token's lists are checked independently, so nothing ever compares the two.
- * The six sites point here now instead of restating it.
+ * THE BUNDLE-TIME UPLINK IMPORT is gone (2026-08-31). Six tokens used to carry
+ * one `packages/app/src/main.tsx` entry each, for nine `import("@ksp-gonogo/
+ * gonogo-*-uplink")` calls the app took because those clients ship alongside it.
+ * The paragraph that lived here argued the entry was `permanent` and not debt,
+ * on the grounds that "an import of a package whose name contains a mod name is
+ * the mechanism by which an Uplink registers at all" and that "a runtime loader
+ * would one day remove the line". Both halves were true; the second one has
+ * happened. Every Uplink now registers through the runtime loader, `main.tsx`
+ * names none of them, and all twelve entries (six `permanent`, six
+ * `SURVIVES_COMMENT_STRIP`) came out. Kept as a note because the argument was
+ * written down six times and drifted into four readings, one of which filed the
+ * identical line under `domainDebt` instead: if a similar entry is ever proposed
+ * again, it is worth knowing this one did clear, and by a change rather than by
+ * attrition.
  */
 
 export type ModToken =
@@ -1197,9 +1193,6 @@ export const ALLOWLIST: Record<ModToken, ModAllowlist> = {
       "mod/Sitrep.CaptureAnalysis.Tests/SyntheticCapture.cs",
       "mod/Sitrep.CaptureAnalysis.Tests/VerdictTests.cs",
 
-      /* The bundle-time Uplink import; see this file's header for the one
-       * explanation all six tokens share. */
-      "packages/app/src/main.tsx",
       /*
        * topic-cs-sync.test.ts: the C#-to-runtime-registry sync gate, which
        * statically imports every first-party Uplink client so the assertions
@@ -1433,9 +1426,6 @@ export const ALLOWLIST: Record<ModToken, ModAllowlist> = {
        * Ratchet-inventory file, the case this bucket documents.
        */
       "packages/core/src/typecheck-coverage.allowlist.ts",
-      /* The bundle-time Uplink import; see this file's header for the one
-       * explanation all six tokens share. */
-      "packages/app/src/main.tsx",
 
       /*
        * -- The mod-side ownership ratchet itself (§5a of the plan) --
@@ -1602,9 +1592,6 @@ export const ALLOWLIST: Record<ModToken, ModAllowlist> = {
        * Ratchet-inventory file, the case this bucket documents.
        */
       "packages/core/src/typecheck-coverage.allowlist.ts",
-      /* The bundle-time Uplink import; see this file's header for the one
-       * explanation all six tokens share. */
-      "packages/app/src/main.tsx",
       /*
        * -- The OTHER RP-1 Uplink's doc comments (2026-08-25). Two Uplinks read
        * RP-1 by reflection, and the reason they are separate rather than merged
@@ -1735,9 +1722,6 @@ export const ALLOWLIST: Record<ModToken, ModAllowlist> = {
   kerbalism: {
     domainDebt: [],
     permanent: [
-      /* The bundle-time Uplink import; see this file's header for the one
-       * explanation all six tokens share. */
-      "packages/app/src/main.tsx",
       /**
        * The panel-body ratchet's own inventory: a path-keyed debt list over every
        * widget-side `.tsx` in the repo, so it names this Uplink's widgets by
@@ -2348,9 +2332,6 @@ export const ALLOWLIST: Record<ModToken, ModAllowlist> = {
        * this bucket documents.
        */
       "packages/core/src/styleguide-magnitude-budget.test.ts",
-      /* The bundle-time Uplink import; see this file's header for the one
-       * explanation all six tokens share. */
-      "packages/app/src/main.tsx",
       /*
        * topic-cs-sync.test.ts: the C#-to-runtime-registry sync gate, which
        * statically imports every first-party Uplink client so the assertions
@@ -2416,9 +2397,6 @@ export const ALLOWLIST: Record<ModToken, ModAllowlist> = {
        * ratchet, not a dependency.
        */
       "packages/core/src/truenow-allowlist.test.ts",
-      /* The bundle-time Uplink import; see this file's header for the one
-       * explanation all six tokens share. */
-      "packages/app/src/main.tsx",
       /*
        * topic-cs-sync.test.ts: the C#-to-runtime-registry sync gate, which
        * statically imports every first-party Uplink client so the assertions
@@ -2462,7 +2440,6 @@ export const SURVIVES_COMMENT_STRIP: Partial<Record<ModToken, string[]>> = {
     "mod/Sitrep.Core.Tests/UplinkIsolationTests.cs",
     "packages/app/src/__tests__/topic-cs-sync.test.ts",
     "packages/app/src/__tests__/uplink-widget-declarations.test.ts",
-    "packages/app/src/main.tsx",
     "packages/core/src/comment-stacks.allowlist.ts",
     "packages/core/src/panel-body.allowlist.ts",
     "packages/core/src/truenow-allowlist.test.ts",
@@ -2473,7 +2450,6 @@ export const SURVIVES_COMMENT_STRIP: Partial<Record<ModToken, string[]>> = {
     "mod/Sitrep.Core.Tests/UplinkIsolationTests.cs",
     "packages/app/src/__tests__/topic-cs-sync.test.ts",
     "packages/app/src/__tests__/uplink-widget-declarations.test.ts",
-    "packages/app/src/main.tsx",
     "packages/core/src/comment-stacks.allowlist.ts",
     "packages/core/src/panel-body.allowlist.ts",
     "packages/core/src/styleguide-magnitude-budget.test.ts",
@@ -2489,7 +2465,6 @@ export const SURVIVES_COMMENT_STRIP: Partial<Record<ModToken, string[]>> = {
     "mod/Sitrep.Host.Tests/ReliabilityStateWireTests.cs",
     "packages/app/src/__tests__/topic-cs-sync.test.ts",
     "packages/app/src/__tests__/uplink-widget-declarations.test.ts",
-    "packages/app/src/main.tsx",
     "packages/components/src/CrewStatus/index.test.tsx",
     "packages/components/src/FleetReliability/coverage-matrix.test.tsx",
     "packages/components/src/FleetReliability/index.test.tsx",
@@ -2564,7 +2539,6 @@ export const SURVIVES_COMMENT_STRIP: Partial<Record<ModToken, string[]>> = {
     "mod/Sitrep.Core.Tests/UplinkContractOwnershipTests.cs",
     "mod/Sitrep.Core.Tests/UplinkIsolationTests.cs",
     "packages/app/src/__tests__/uplink-widget-declarations.test.ts",
-    "packages/app/src/main.tsx",
     "packages/core/src/comment-stacks.allowlist.ts",
     "packages/core/src/panel-body.allowlist.ts",
     "packages/core/src/styleguide-fire-and-forget-commands.test.ts",
@@ -2575,7 +2549,6 @@ export const SURVIVES_COMMENT_STRIP: Partial<Record<ModToken, string[]>> = {
     "mod/Gonogo.KSP.Tests/UplinkDiscoverabilityTests.cs",
     "packages/app/src/__tests__/topic-cs-sync.test.ts",
     "packages/app/src/__tests__/uplink-widget-declarations.test.ts",
-    "packages/app/src/main.tsx",
     "packages/core/src/banner-comments.allowlist.ts",
     "packages/core/src/comment-stacks.allowlist.ts",
     "packages/core/src/render-fixture-coverage.debt.ts",
@@ -2598,7 +2571,6 @@ export const SURVIVES_COMMENT_STRIP: Partial<Record<ModToken, string[]>> = {
     "mod/sitrep-kernel/src/registry.test.ts",
     "packages/app/src/__tests__/topic-cs-sync.test.ts",
     "packages/app/src/__tests__/uplink-widget-declarations.test.ts",
-    "packages/app/src/main.tsx",
     "packages/components/src/FleetReliability/install-profiles.test.tsx",
     "packages/core/src/comment-stacks.allowlist.ts",
     "packages/core/src/styleguide-magnitude-budget.test.ts",

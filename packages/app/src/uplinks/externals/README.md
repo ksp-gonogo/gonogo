@@ -40,7 +40,11 @@ package at any depth. `/spine` shipped unresolvable for exactly this reason.
 
 Two checks cover it now, and both are only meaningful because they use a
 runtime-loaded Uplink: a statically bundled one resolves through Vite and never
-consults the import map.
+consults the import map. Since 2026-08-31 that distinction no longer costs the
+check any coverage, because no Uplink is statically bundled: `main.tsx` lost its
+nine build-time client imports and every Uplink loads through the loader, so
+`runtimeLink.test.ts` now builds all eleven clients rather than the two that
+happened to be on the loader path.
 
 - `runtimeLink.test.ts` here builds the real loader clients, plus a client that
   imports the frame arithmetic from `/frames` and one that imports it from

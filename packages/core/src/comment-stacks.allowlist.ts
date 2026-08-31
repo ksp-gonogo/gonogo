@@ -233,7 +233,7 @@ export const COMMENT_STACK_DEBT: Record<string, number> = {
   "packages/app/src/goNoGo/GoNoGoComponent.tsx": 8,
   "packages/app/src/goNoGo/GoNoGoHostService.ts": 1,
   "packages/app/src/logs/LogsManager.test.tsx": 2,
-  "packages/app/src/main.tsx": 4,
+  "packages/app/src/main.tsx": 3,
   "packages/app/src/maneuverTriggers/ManeuverTriggerHostService.ts": 3,
   "packages/app/src/missionProfiles/MissionProfilesModal.tsx": 1,
   "packages/app/src/missionProfiles/MissionProfilesService.ts": 1,

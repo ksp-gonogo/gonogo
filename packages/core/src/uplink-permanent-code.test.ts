@@ -104,12 +104,16 @@ function findRepoRoot(start: string): string {
  * against a base ref, everything already in `permanent` when this landed is
  * tolerated whether or not it matches a sanctioned kind, and nothing says which
  * is which. `packages/app/src/main.tsx` was the first case to surface: five
- * tokens carried it and were never graded, a sixth carried the identical line
- * in `domainDebt`, and moving that sixth across to match the other five is what
- * made this gate speak. So the answer to "is main.tsx permanent?" was already
- * yes five times and unsanctioned five times, which are not the same thing. It
- * has a kind below now, which settles it for all six rather than for the one
- * that happened to move.</p>
+ * tokens carried it, a sixth carried the identical line in `domainDebt`, and
+ * moving that sixth across to match the other five is what made this gate
+ * speak. It was given a sanctioned kind of its own, whose stated reason was that
+ * the app bundles each Uplink client so one file must import every one of them
+ * and there is nothing to move. That reason expired on 2026-08-31, when the
+ * imports moved to the runtime loader: `main.tsx` names no Uplink now, its
+ * twelve allowlist entries are gone, and the kind went with them. Worth
+ * remembering as the one case where a sanctioned kind turned out to be a
+ * mechanism nobody had tried to remove yet, rather than a job the file
+ * genuinely had.</p>
  */
 
 /**
@@ -144,10 +148,6 @@ const SANCTIONED_KINDS: ReadonlyArray<{ pattern: RegExp; why: string }> = [
   {
     pattern: /uplink-isolation/,
     why: "the isolation gate, which names what it isolates",
-  },
-  {
-    pattern: /^packages\/app\/src\/main\.tsx$/,
-    why: "the bundle-time Uplink import site: the app bundles each first-party Uplink client, so one file takes a side-effect import of every one of them and there is nothing to move (delete the Uplink and the import goes with it). A kind with one member today because the app has one entry point; the sibling files that import every client for the same reason are tests and are already spared",
   },
 ];
 

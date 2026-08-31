@@ -9,10 +9,16 @@ import { dashboardWithWidget } from "./helpers";
  * first-party client, there is no static-bundled fallback left and no flag
  * gating it (main.tsx always runs the loader; see that file's
  * `bootUplinksAndRender`). Proves, in a REAL browser on all three engines,
- * that EVERY first-party Uplink this repo builds a bundle for
- * (`packages/app/uplink-bundle-targets.ts`: kos + kerbcast):
+ * that a loaded Uplink client works end to end. It names two ids
+ * (`kos,kerbcast`) rather than sweeping `packages/app/uplink-bundle-targets.ts`,
+ * which holds eleven since 2026-08-31: the mechanism is per-Uplink identical, so
+ * a second engine-crossing run of the same nine assertions buys nothing, and
+ * these two were the only loader clients when the spec was written. Widget
+ * COVERAGE across every Uplink is `scripts/minsize-gate.ts`'s and the visual
+ * gate's job. What is proved here is the LOADER, on all three engines:
  *
- *  1. named through `?uplinkLoaderIds=`, are NOT statically bundled, each is
+ *  1. named through `?uplinkLoaderIds=`, neither is statically bundled (as of
+ *     2026-08-31 no Uplink is: `main.tsx` has no static import path left), each is
  *     fetched as a standalone ESM bundle (/uplinks/<id>.client.js) and
  *     import()ed at runtime, its bare imports resolving through the baked
  *     import map to the app's singleton chunks, so its module-load
