@@ -42,13 +42,13 @@ Publishes Principia's n-body state: trajectory arcs, the flight plan and its bur
 
 ## Augments
 
-| Augment | Into | Reads | Presence | Notes |
-| --- | --- | --- | --- | --- |
-| `principia-flight-plan` | `maneuver-planner.sections` | – |  |  |
-| `principia-orbit-analysis` | `current-orbit.sections` | – |  |  |
-| `principia-coast-analysis` | `maneuver-planner.sections` | – |  |  |
-| `principia-burn-editor` | `maneuver-planner.sections` | – |  |  |
-| `principia-plan-composer` | `maneuver-planner.sections` | – |  |  |
+| Augment | Into | Reads | Presence | Scenes | Notes |
+| --- | --- | --- | --- | --- | --- |
+| `principia-flight-plan` | `maneuver-planner.sections` | – |  | 6 |  |
+| `principia-orbit-analysis` | `current-orbit.sections` | – |  | 5 |  |
+| `principia-coast-analysis` | `maneuver-planner.sections` | – |  | 3 |  |
+| `principia-burn-editor` | `maneuver-planner.sections` | – |  | 3 |  |
+| `principia-plan-composer` | `maneuver-planner.sections` | – |  | 5 |  |
 
 ![A plan mid-mission: one burn behind, one imminent, one a day out](docs/assets/flight-plan-healthy--default.png)
 

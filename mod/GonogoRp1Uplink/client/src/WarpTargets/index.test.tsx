@@ -66,7 +66,7 @@ describe("WarpTargets", () => {
     });
   });
 
-  it("warps to the next completion on one press", async () => {
+  it('names what it warps to rather than saying only "next"', async () => {
     const user = userEvent.setup();
     const { fixture, view } = mount();
 
@@ -85,21 +85,28 @@ describe("WarpTargets", () => {
     await expectNoA11yViolations(view.container);
   });
 
-  it("darkens the fund-target press when no target is standing, and says so", async () => {
-    mount({ active: false });
+  it("darkens the fund-target press when no target is standing, and says nothing else", async () => {
+    const { view } = mount({ active: false });
 
     const button = await screen.findByRole("button", {
       name: "No fund target is standing, so there is no balance to warp toward",
     });
     expect(button).toBeDisabled();
-    // Said rather than left blank: a dark button with no explanation reads as broken.
-    expect(screen.getByText("no fund target set")).toBeInTheDocument();
+    /*
+     * The subtitle is GONE and its absence is the assertion. The operator ruled
+     * that funds "needs LESS", so the reason a press is dark lives in its
+     * accessible name, where a screen reader still gets it and the panel spends
+     * no space on it.
+     */
+    expect(view.container.textContent).not.toContain("no fund target set");
   });
 
-  it("warps to the fund target and says when it expects to arrive", async () => {
+  it("warps to the fund target, and the press says what it warps to", async () => {
     const user = userEvent.setup();
     const { fixture, view } = mount({ active: true, timeLeft: 864000 });
 
+    // The label names the target, on the operator's ruling. "warp to funds" was
+    // the earlier wording and said less.
     await user.click(
       await screen.findByRole("button", {
         name: "Warp until the balance reaches the fund target",
@@ -111,20 +118,16 @@ describe("WarpTargets", () => {
         (c) => c.command === RP1_WARP_TO_FUND_TARGET_COMMAND,
       )?.args,
     ).toEqual({});
-    /*
-     * The ETA is RP-1's own estimate off its budget projection, so it is a
-     * reading rather than a promise, and it is worth showing beside a press that
-     * will run the clock forward by that much.
-     */
-    expect(view.container.textContent).toContain("fund target in");
-    expect(screen.queryByText("no fund target set")).not.toBeInTheDocument();
+    expect(screen.getByText("warp to fund target")).toBeInTheDocument();
+    // No ETA line: the operator asked for less here, not more.
+    expect(view.container.textContent).not.toContain("fund target in");
   });
 
   it("offers no way to stop warping, because the host widget already does", async () => {
     mount({ active: true, timeLeft: 864000 });
 
     await waitFor(() => {
-      expect(screen.getByText(/Warp to next/)).toBeInTheDocument();
+      expect(screen.getByText(/warp to next completion/)).toBeInTheDocument();
     });
     /*
      * RP-1's controller destroys itself the moment it sees a warp rate of zero,

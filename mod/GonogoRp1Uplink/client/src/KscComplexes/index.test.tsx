@@ -5,7 +5,6 @@ import {
   screen,
   setupStreamFixture,
   waitFor,
-  within,
 } from "@ksp-gonogo/sitrep-sdk/testing";
 import { expectNoA11yViolations } from "@ksp-gonogo/ui-kit/testing";
 import userEvent from "@testing-library/user-event";
@@ -126,6 +125,19 @@ function withCentre(
   return mounted;
 }
 
+/**
+ * Everything below a complex's crew now sits behind one expander, on the
+ * operator's ruling that a complex was "using a lot of space for quite
+ * boilerplate information". `Disclosure` UNMOUNTS its children when closed, so a
+ * test whose subject is a stat, a pad or the rush control opens it first.
+ */
+async function openAllDetail(user: ReturnType<typeof userEvent.setup>) {
+  const triggers = await screen.findAllByRole("button", {
+    name: /^Detail for /,
+  });
+  for (const trigger of triggers) await user.click(trigger);
+}
+
 describe("KscComplexes", () => {
   it("renders nothing at all until RP-1 says it is there", async () => {
     const { fixture, view } = mount();
@@ -148,11 +160,18 @@ describe("KscComplexes", () => {
     });
     expect(screen.getByText("Cape")).toBeInTheDocument();
     expect(screen.getByText("LC-1")).toBeInTheDocument();
-    expect(screen.getAllByText(/pad complex at Cape/)).toHaveLength(2);
+    /*
+     * "pad complex at Cape" used to be under every complex and is CUT. The
+     * operator's reasoning is the important part: "if this is needed the UI isn't
+     * working". A label repeated on every row carries no information, and the
+     * centre heading above already groups them.
+     */
+    expect(view.container.textContent).not.toContain("pad complex at");
     await expectNoA11yViolations(view.container);
   });
 
   it("lists two centres with their own complexes under each", async () => {
+    const user = userEvent.setup();
     withCentre(
       [
         ...COMPLEXES,
@@ -183,7 +202,10 @@ describe("KscComplexes", () => {
     await waitFor(() => {
       expect(screen.getByText("Vandenberg")).toBeInTheDocument();
     });
-    expect(screen.getByText(/pad complex at Vandenberg/)).toBeInTheDocument();
+    await openAllDetail(user);
+    // The complex-kind line is cut; the centre HEADING is what groups them now,
+    // which is the operator's point: "if this is needed the UI isn't working".
+    expect(screen.getByText("Vandenberg")).toBeInTheDocument();
     // Only one centre is the game's own current view, and the other is still
     // fully administered from here.
     expect(screen.getByText("ACTIVE")).toBeInTheDocument();
@@ -214,10 +236,11 @@ describe("KscComplexes", () => {
      * the act is moving some of the free pool onto this complex, and a range
      * would say "pick a number" about something with two separate ceilings.
      */
-    const steps = await screen.findByRole("group", {
-      name: "Engineers moved per press at LC-1",
-    });
-    await user.click(within(steps).getByRole("button", { name: "10" }));
+    await user.click(
+      await screen.findByRole("button", {
+        name: "Increase Engineers moved per press at LC-1",
+      }),
+    );
     await user.click(
       screen.getByRole("button", {
         name: "Assign 6 more engineers to LC-1, 24 in all",
@@ -242,10 +265,16 @@ describe("KscComplexes", () => {
     // Cape has six free and LC-1 has room for forty-two, so a step of 100 moves
     // six. RP-1 clamps the same way, and the press says so before it is pressed
     // rather than quietly doing something else.
-    const steps = await screen.findByRole("group", {
-      name: "Engineers moved per press at LC-1",
+    const raise = await screen.findByRole("button", {
+      name: "Increase Engineers moved per press at LC-1",
     });
-    await user.click(within(steps).getByRole("button", { name: "100" }));
+    await user.click(raise);
+    await user.click(raise);
+    expect(
+      screen.getByRole("spinbutton", {
+        name: "Engineers moved per press at LC-1",
+      }),
+    ).toHaveAttribute("aria-valuetext", "100");
 
     expect(screen.getByText("+6")).toBeInTheDocument();
     expect(screen.getByText("−18")).toBeInTheDocument();
@@ -256,8 +285,10 @@ describe("KscComplexes", () => {
     // track. Nothing is wrong with the centre here: LC-1 simply holds no more.
     withCentre([{ ...COMPLEXES[0], engineers: 60 }, COMPLEXES[1]]);
 
+    // RP-1's own window reads `Max: 60`, and so does this now: the sentence
+    // "room here 16" was the operator's "too much flourish".
     await waitFor(() => {
-      expect(screen.getAllByText("room here").length).toBeGreaterThan(0);
+      expect(screen.getAllByText("Max").length).toBeGreaterThan(0);
     });
     expect(screen.getByRole("button", { name: "LC-1 is full" })).toBeDisabled();
   });
@@ -267,8 +298,9 @@ describe("KscComplexes", () => {
     // off another complex. LC-1 has room for forty-two and still cannot grow.
     withCentre(COMPLEXES, [{ ...CAPE, unassignedEngineers: 0 }]);
 
+    // `Unassigned`, which is RP-1's own label for the same figure.
     await waitFor(() => {
-      expect(screen.getAllByText("free at Cape").length).toBeGreaterThan(0);
+      expect(screen.getAllByText("Unassigned").length).toBeGreaterThan(0);
     });
     expect(
       screen.getByRole("button", {
@@ -298,6 +330,7 @@ describe("KscComplexes", () => {
     await waitFor(() => {
       expect(screen.getByText("LC-1")).toBeInTheDocument();
     });
+    await openAllDetail(user);
     expect(screen.queryByText(/efficiency held/)).not.toBeInTheDocument();
 
     // One press, unlike the vehicle controls in Vehicle Assembly, and the
@@ -327,6 +360,7 @@ describe("KscComplexes", () => {
     await waitFor(() => {
       expect(screen.getByText("RUSHING")).toBeInTheDocument();
     });
+    await openAllDetail(user);
     // On the one complex it applies to, as figures. The efficiency term is the
     // one RP-1's own tooltip leaves out and the one that costs most over a
     // career.
@@ -353,6 +387,7 @@ describe("KscComplexes", () => {
   });
 
   it("draws the envelope that no amount of staffing gets past", async () => {
+    const user = userEvent.setup();
     const { view } = withCentre([
       { ...COMPLEXES[0], resourcesHandled: ["Kerosene", "LqdOxygen"] },
       {
@@ -373,6 +408,7 @@ describe("KscComplexes", () => {
     await waitFor(() => {
       expect(screen.getByText("Hangar")).toBeInTheDocument();
     });
+    await openAllDetail(user);
     const text = view.container.textContent ?? "";
     /*
      * Eligibility, not assignment: a vehicle over the mass limit cannot be built
@@ -381,9 +417,10 @@ describe("KscComplexes", () => {
      */
     expect(text).toContain("180");
     expect(text).toContain("Kerosene, LqdOxygen");
-    expect(text).toContain("any mass");
-    expect(text).toContain("any size");
-    expect(screen.getByText(/hangar complex at Cape/)).toBeInTheDocument();
+    expect(text).toContain("unlimited");
+    expect(text).toContain("unlimited");
+    // Same cut. The hangar is still named and its unlimited envelope still reads.
+    expect(screen.getByText("Hangar")).toBeInTheDocument();
   });
 
   it("carries the payroll the standalone panel used to", async () => {
@@ -445,9 +482,12 @@ describe("KscComplexes", () => {
     });
   });
 
-  it("states the renovation envelope from the tonnage the complex was BUILT at", async () => {
-    // 60t original, already renovated up to 180. The bounds are 30 to 120, both
-    // off the original: a client working from massMax would offer 360.
+  it("says nothing about the renovation envelope, which was cut", async () => {
+    /*
+     * Cut on the operator's ruling. massOrig is still on the wire and the modify
+     * command still enforces the 2x/0.5x bounds; what went is the sentence
+     * explaining them under every complex.
+     */
     const { view } = withCentre([
       { ...COMPLEXES[0], massMax: 180, massOrig: 60 },
     ]);
@@ -455,11 +495,7 @@ describe("KscComplexes", () => {
     await waitFor(() => {
       expect(screen.getByText("LC-1")).toBeInTheDocument();
     });
-    const text = view.container.textContent ?? "";
-    expect(text).toMatch(/renovation is capped between/);
-    expect(text).toMatch(/30/);
-    expect(text).toMatch(/120/);
-    expect(text).not.toMatch(/360/);
+    expect(view.container.textContent).not.toMatch(/renovation is capped/);
   });
 
   it("says nothing about renovating a complex whose original tonnage is absent", async () => {
@@ -477,18 +513,24 @@ describe("KscComplexes", () => {
   });
 
   it("names the complexes this one's crew rating is shared with", async () => {
+    const user = userEvent.setup();
     const { view } = withCentre([
       { ...COMPLEXES[0], efficiency: 0.62, efficiencySharedWith: ["lc-2"] },
       { ...COMPLEXES[1], efficiency: 0.62, efficiencySharedWith: ["lc-1"] },
     ]);
 
+    // getAllByText, because "LC-1" now appears twice on purpose: once as its own
+    // heading and once as LC-2's shared-rating value.
     await waitFor(() => {
-      expect(screen.getByText("LC-1")).toBeInTheDocument();
+      expect(screen.getAllByText("LC-1").length).toBeGreaterThan(0);
     });
+    await openAllDetail(user);
     const text = view.container.textContent ?? "";
-    // By NAME, not by the guid the wire joins on.
-    expect(text).toContain("crew rating shared with LC-2");
-    expect(text).toContain("crew rating shared with LC-1");
+    // A label and a value, not a sentence, and still by NAME rather than by the
+    // guid the wire joins on.
+    expect(screen.getAllByText("Shared with").length).toBe(2);
+    expect(text).toContain("LC-2");
+    expect(text).toContain("LC-1");
   });
 
   it("says nothing about sharing when the rating is this complex's alone", async () => {
@@ -505,6 +547,7 @@ describe("KscComplexes", () => {
   });
 
   it("counts the pads that WORK, and says when the last one cannot go", async () => {
+    const user = userEvent.setup();
     const { view } = withCentre([
       { ...COMPLEXES[0], launchPadCount: 1 },
       { ...COMPLEXES[1], launchPadCount: 3 },
@@ -513,6 +556,7 @@ describe("KscComplexes", () => {
     await waitFor(() => {
       expect(screen.getByText("LC-1")).toBeInTheDocument();
     });
+    await openAllDetail(user);
     const text = view.container.textContent ?? "";
     expect(text).toContain("1 operational, so none can be dismantled");
     expect(text).toContain("3 operational");
@@ -521,8 +565,13 @@ describe("KscComplexes", () => {
   });
 
   it("names the pads under the complex that owns them", async () => {
+    const user = userEvent.setup();
     withCentre();
 
+    await waitFor(() => {
+      expect(screen.getByText("LC-1")).toBeInTheDocument();
+    });
+    await openAllDetail(user);
     await waitFor(() => {
       expect(screen.getByText(/LP-1/)).toBeInTheDocument();
     });

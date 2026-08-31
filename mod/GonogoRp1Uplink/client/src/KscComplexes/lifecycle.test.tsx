@@ -90,16 +90,28 @@ function withCentre(
 }
 
 /**
- * Demolishing a complex, and the loss RP-1's own dialog does not name.
+ * Demolishing a complex.
  *
- * RP-1 asks "This cannot be undone!" and says nothing about what is undone. The
- * answer is the complex's earned build efficiency, and whether it is lost at all
- * depends on something an operator cannot see: whether a sibling complex shares
- * the efficiency record. Those are two different warnings, and the wrong one is
- * worse than none, which is what these tests are about.
+ * <para>The three standing efficiency sentences these tests used to assert are
+ * GONE, and their absence is the assertion now. The operator's ruling: "this is
+ * meant to be a mission control, not a storybook. We present facts and
+ * instrumentation, not guidance", and a permanent explanation of a button nobody
+ * has pressed, repeated under every complex in the career, was guidance.</para>
+ *
+ * <para>What survives is the fact that a crew rating goes at all, in the confirm
+ * step's own label, which is where the operator asked for it.</para>
  */
 describe("dismantling a launch complex", () => {
-  it("warns that an unshared crew rating is lost for good", async () => {
+  /** Everything below the crew now sits behind one expander. */
+  async function openDetail(user: ReturnType<typeof userEvent.setup>) {
+    const triggers = await screen.findAllByRole("button", {
+      name: /^Detail for /,
+    });
+    await user.click(triggers[0]);
+  }
+
+  it("says nothing about dismantling until the press", async () => {
+    const user = userEvent.setup();
     const { view } = withCentre([
       { ...LC1, efficiency: 0.62, efficiencySharedWith: [] },
     ]);
@@ -107,53 +119,35 @@ describe("dismantling a launch complex", () => {
     await waitFor(() => {
       expect(screen.getByText("LC-1")).toBeInTheDocument();
     });
-    const text = view.container.textContent ?? "";
-    expect(text).toContain("LOST for good");
-    expect(text).toContain("starts again from the bottom");
-    await expectNoA11yViolations(view.container);
+    // Not on the card at any point before a press, which is the operator's ruling.
+    expect(view.container.textContent).not.toContain("crew rating");
+    expect(view.container.textContent).not.toContain("LOST");
+
+    await openDetail(user);
+    // Still nothing: the expander reveals the CONTROL, not an essay about it.
+    expect(view.container.textContent).not.toContain("crew rating");
   });
 
-  it("says the rating survives when a sibling shares it, which is not a loss", async () => {
-    const { view } = withCentre([
-      { ...LC1, efficiency: 0.62, efficiencySharedWith: ["lc-2"] },
-      { ...LC1, lcId: "lc-2", name: "LC-2" },
+  it("carries the whole warning on the confirm step, in the operator's words", async () => {
+    const user = userEvent.setup();
+    const { fixture } = withCentre([
+      { ...LC1, efficiency: 0.62, efficiencySharedWith: [] },
     ]);
 
-    await waitFor(() => {
-      expect(screen.getByText("LC-1")).toBeInTheDocument();
-    });
-    const text = view.container.textContent ?? "";
-    // Named rather than given as an id: the operator is being told the figure is
-    // safe somewhere, and "lc-2" is not somewhere.
-    expect(text).toContain("survives with LC-2");
-    expect(text).not.toContain("LOST for good");
-    // And the BUTTON has to agree with the sentence above it. The visible
-    // warning and the accessible name are computed from different expressions,
-    // so a control that lost the sibling test would tell a screen-reader user the
-    // rating is going while the text beside it says it is safe. Found by
-    // mutating the sibling test out: every text assertion above still passed.
+    await openDetail(user);
+    await user.click(
+      await screen.findByRole("button", { name: "Dismantle LC-1" }),
+    );
+
+    // Armed, not sent, and the warning appears only now.
     expect(
-      screen.getByRole("button", { name: "Dismantle LC-1" }),
+      await screen.findByText("Warning: removes complex, pads and crew rating"),
     ).toBeInTheDocument();
-  });
-
-  it("says there is no rating to lose at a complex nobody has built at", async () => {
-    /*
-     * ABSENT, which is what the wire actually carries: RP-1 creates the efficiency
-     * record the first time a complex is worked, so a fresh complex publishes no
-     * figure at all. This test used to pass `0` and passed for the wrong reason,
-     * because the widget tested for zero and let absent fall into a generic line.
-     * A render scene caught it, which is the case FOR renders: the fixture there
-     * had to be a realistic payload and this one did not.
-     */
-    const { view } = withCentre([{ ...LC1, efficiency: undefined }]);
-
-    await waitFor(() => {
-      expect(screen.getByText("LC-1")).toBeInTheDocument();
-    });
-    const text = view.container.textContent ?? "";
-    expect(text).toContain("no crew rating to lose");
-    expect(text).not.toContain("LOST for good");
+    expect(
+      fixture.transport.sentCommands.filter(
+        (c) => c.command === RP1_COMPLEX_DISMANTLE_COMMAND,
+      ),
+    ).toHaveLength(0);
   });
 
   it("takes two presses, because nothing here undoes it", async () => {
@@ -162,24 +156,16 @@ describe("dismantling a launch complex", () => {
       { ...LC1, efficiency: 0.62, efficiencySharedWith: [] },
     ]);
 
+    await openDetail(user);
+    await user.click(
+      await screen.findByRole("button", { name: "Dismantle LC-1" }),
+    );
     await user.click(
       await screen.findByRole("button", {
-        name: "Dismantle LC-1, losing its crew rating for good",
+        name: /Confirm dismantling LC-1/,
       }),
     );
-    // Armed, not sent. Unlike rush and assign beside it, which change a rate and
-    // are reversible by pressing again.
-    expect(
-      fixture.transport.sentCommands.filter(
-        (c) => c.command === RP1_COMPLEX_DISMANTLE_COMMAND,
-      ),
-    ).toHaveLength(0);
 
-    await user.click(
-      await screen.findByRole("button", {
-        name: "Confirm dismantling LC-1 and losing its crew rating",
-      }),
-    );
     const sent = fixture.transport.sentCommands.find(
       (c) => c.command === RP1_COMPLEX_DISMANTLE_COMMAND,
     );
@@ -187,11 +173,13 @@ describe("dismantling a launch complex", () => {
   });
 
   it("offers nothing for the hangar, which RP-1 will never demolish", async () => {
+    const user = userEvent.setup();
     withCentre([{ ...LC1, lcType: "Hangar", name: "Hangar" }]);
 
     await waitFor(() => {
       expect(screen.getByText("Hangar")).toBeInTheDocument();
     });
+    await openDetail(user);
     // A control that could only ever be refused is worse than no control.
     expect(
       screen.queryByRole("button", { name: /Dismantle Hangar/ }),
@@ -204,10 +192,19 @@ describe("dismantling a launch complex", () => {
  * its check short-circuits, the confirmation closes, and the pad is still there.
  */
 describe("dismantling a launch pad", () => {
+  /** The pad rows moved behind the complex's detail expander with everything else. */
+  async function openDetail(user: ReturnType<typeof userEvent.setup>) {
+    const triggers = await screen.findAllByRole("button", {
+      name: /^Detail for /,
+    });
+    await user.click(triggers[0]);
+  }
+
   it("sends the complex and the pad, after a confirm", async () => {
     const user = userEvent.setup();
     const { fixture } = withCentre();
 
+    await openDetail(user);
     await user.click(
       await screen.findByRole("button", {
         name: "Dismantle LP-1, permanently",
@@ -226,7 +223,9 @@ describe("dismantling a launch pad", () => {
   });
 
   it("darkens the last working pad with the reason, rather than letting the press do nothing", async () => {
+    const user = userEvent.setup();
     withCentre([{ ...LC1, launchPadCount: 1 }], [PADS[0]]);
+    await openDetail(user);
 
     const button = await screen.findByRole("button", {
       name: "LP-1 is the last working pad at this complex, and a complex must keep one",
@@ -238,10 +237,12 @@ describe("dismantling a launch pad", () => {
   });
 
   it("darkens a pad still under construction, and says which act to use instead", async () => {
+    const user = userEvent.setup();
     withCentre(
       [{ ...LC1, launchPadCount: 1 }],
       [PADS[0], { ...PADS[1], isOperational: false }],
     );
+    await openDetail(user);
 
     const button = await screen.findByRole("button", {
       name: "LP-2 is not in service yet, so cancel its construction instead",

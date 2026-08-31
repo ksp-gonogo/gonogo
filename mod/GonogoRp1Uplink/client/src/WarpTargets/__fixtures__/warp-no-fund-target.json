@@ -9,8 +9,8 @@
       "w": 6,
       "h": 10
     },
-    "caption": "Warp to next offered, warp to funds dark: no fund target is standing, and the line under it says so rather than leaving a dead button to read as a broken one",
-    "paints": ["Warp to next", "Warp to funds", "no fund target set"]
+    "caption": "No fund target standing, so its press is dark and nothing on screen explains why: the reason is in the accessible name, where a screen reader gets it and the panel spends no space on it.",
+    "paints": ["warp to next completion", "warp to fund target"]
   },
   "_stream": {
     "pinnedUt": 1000000,

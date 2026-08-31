@@ -9,6 +9,7 @@ import "./topics";
 import "./settings/rp1SimulationSettings";
 import "./AdminBuilding/programsScreen";
 import "./CrewSchedule";
+import "./ContractPayload";
 import "./CrewSchedule/programme";
 import "./KscComplexes";
 import "./KscConstruction";
@@ -19,6 +20,10 @@ import "./ResearchQueue";
 import "./VehicleAssembly";
 import "./WarpTargets";
 
+export {
+  ContractPayload,
+  RP1_CONTRACT_PAYLOAD_COMMAND,
+} from "./ContractPayload";
 export { CrewSchedule } from "./CrewSchedule";
 export { CrewProgramme } from "./CrewSchedule/programme";
 export {

@@ -23,6 +23,7 @@ Power balance and per-experiment science progress for Breaking Ground deployed s
 | Reads | `deployed.bases`, `game.dlc.breakingGround` |
 | Slots | `deployed-science.experiment` |
 | Default size | 5 × 9 |
+| Scenes | 3 |
 
 ![Breaking Ground not installed: the empty state names the missing DLC rather than reporting an empty roster](docs/assets/breaking-ground-absent--default.png)
 
@@ -45,6 +46,7 @@ Current-vs-target position, at-target state and motor/lock controls for Breaking
 | Actions | `targetUp`, `targetDown`, `toggleMotor`, `toggleLock` |
 | Only while present | `flight` |
 | Default size | 5 × 8 |
+| Scenes | 2 |
 
 ![Breaking Ground not installed: the console names the missing DLC rather than reporting a craft with no joints on it](docs/assets/robotics-dlc-absent--default.png)
 
@@ -63,6 +65,7 @@ Live RPM vs commanded cap for Breaking Ground robotic rotors, with motor, lock, 
 | Actions | `rpmUp`, `rpmDown`, `toggleMotor`, `toggleLock`, `reverse` |
 | Only while present | `flight` |
 | Default size | 6 × 10 |
+| Scenes | 2 |
 
 ![Breaking Ground not installed: the dial is withheld entirely rather than drawn at zero RPM](docs/assets/rotors-dlc-absent--default.png)
 

@@ -30,6 +30,7 @@ Angle of attack, sideslip, stall, lift and drag: the aerodynamic state a full-fi
 | Reads | `aero.state` |
 | Only while present | `flight` |
 | Default size | 4 × 7 |
+| Scenes | 4 |
 
 ![Launch vehicle through max q, one tick after separation: no wing, so no stall fraction or lift, and the model is flagged stale](docs/assets/ascent-no-wings--default.png)
 

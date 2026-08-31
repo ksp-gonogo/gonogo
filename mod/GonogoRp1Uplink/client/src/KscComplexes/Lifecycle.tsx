@@ -17,40 +17,31 @@ export const RP1_COMPLEX_DISMANTLE_COMMAND = "rp1.complex.dismantle";
 export const RP1_PAD_DISMANTLE_COMMAND = "rp1.pad.dismantle";
 
 /**
- * Demolishing a launch complex, and what it costs that RP-1 does not say.
+ * Demolishing a launch complex.
  *
- * <para><b>The whole point of this control is the sentence above it.</b> RP-1's
- * own confirmation reads "Are you sure you want to dismantle the currently
- * selected launch complex, X? This cannot be undone!" and names nothing that is
- * actually about to be lost. What is lost is the complex's EARNED BUILD
- * EFFICIENCY: RP-1 rates an efficiency record rather than a complex, and
- * demolishing the last complex on a record clears the record, so a complex
- * rebuilt to the same specification starts again from RP-1's floor and works its
- * way back up over months of career time.</para>
+ * <para><b>The warning is ON THE PRESS, not on the card.</b> It used to be three
+ * sentences standing permanently under every complex, explaining what an
+ * efficiency record is and what happens to it. The operator's ruling: "this is
+ * meant to be a mission control, not a storybook. We present facts and
+ * instrumentation, not guidance." A standing explanation of a button nobody has
+ * pressed is guidance, and it was repeated on every complex in the career.</para>
  *
- * <para>Whether that happens at all depends on something an operator cannot see
- * without being told: if another complex shares the record, the figure survives
- * in it and nothing is lost. Those are two different warnings and the wrong one
- * is worse than none, so the control says which. Both inputs are on the wire as
- * <c>efficiency</c> and <c>efficiencySharedWith</c>.</para>
+ * <para>So the whole of it is now the confirm step's own label, in the operator's
+ * own words. What is lost is the distinction between a crew rating that dies with
+ * the complex and one that survives in a sibling; what is kept is the fact that a
+ * crew rating goes at all, which is the half RP-1's own dialog never mentions. The
+ * sibling case is still on the wire as `efficiencySharedWith` for anything that
+ * wants it.</para>
  *
- * <para><b>Arm then confirm</b>, unlike the rush and assign controls beside it.
- * Those change a rate and are reversible by pressing again; this is not
- * reversible at all, which is the condition that earns a second press.</para>
- *
- * <para>It does NOT need a funds balance beside it. Demolishing spends nothing
- * and refunds nothing: the complex simply stops existing, and its structural
- * upkeep (which the card's own cost line carries) stops with it.</para>
+ * <para>Arm then confirm, because it is not reversible: a rebuilt complex starts
+ * its crew rating again from RP-1's floor.</para>
  */
 export function DismantleControl({
   complex,
-  complexNames,
   name,
   handle,
 }: Readonly<{
   complex: Rp1ComplexEntry;
-  /** Every complex in the career by id, so a surviving peer can be named rather than numbered. */
-  complexNames: ReadonlyMap<string, string>;
   name: string;
   handle: Parameters<typeof CommandButton>[0]["handle"];
 }>) {
@@ -65,95 +56,19 @@ export function DismantleControl({
     return null;
   }
 
-  const peers = (complex.efficiencySharedWith ?? []).map(
-    (peer) => complexNames.get(peer) ?? peer,
-  );
-  const efficiency = magnitudeOf(complex.efficiency);
-  const loses = peers.length === 0 && efficiency !== null && efficiency > 0;
-
   return (
-    <Stack gap="xs">
-      <EfficiencyWarning complex={complex} loses={loses} peers={peers} />
-      <CommandButton
-        args={{ lcId }}
-        aria-label={
-          loses
-            ? `Dismantle ${name}, losing its crew rating for good`
-            : `Dismantle ${name}`
-        }
-        commandLabel={`Dismantle ${name}`}
-        confirmAriaLabel={
-          loses
-            ? `Confirm dismantling ${name} and losing its crew rating`
-            : `Confirm dismantling ${name}`
-        }
-        confirmLabel="Confirm dismantle"
-        confirmTone="nogo"
-        handle={handle}
-        label="Dismantle"
-        size="sm"
-        tone="warn"
-      />
-    </Stack>
-  );
-}
-
-/**
- * Which of the two efficiency answers this complex is, in words.
- *
- * <para>Three cases rather than two, and the third matters as much as the other
- * two: a complex nobody has built at yet has no rating to lose, because RP-1
- * creates the record the first time work happens there. Saying "nothing to lose"
- * for that case is true and useful; saying it for a complex whose rating is
- * simply unreadable would not be, which is why an absent figure and a zero are
- * kept apart.</para>
- */
-function EfficiencyWarning({
-  complex,
-  loses,
-  peers,
-}: Readonly<{
-  complex: Rp1ComplexEntry;
-  loses: boolean;
-  peers: readonly string[];
-}>) {
-  if (peers.length > 0) {
-    return (
-      <Text size="xs" tone="muted">
-        dismantling removes the complex and every pad on it. Its{" "}
-        <Unit value={complex.efficiency} /> crew rating survives with{" "}
-        {peers.join(", ")}
-      </Text>
-    );
-  }
-
-  /*
-   * An ABSENT rating and a rating of zero mean the same thing here and are said
-   * the same way: RP-1 creates the efficiency record the first time a complex is
-   * worked, so a complex nobody has built at publishes no figure at all, and one
-   * whose record sits at the floor has nothing above the floor to lose either.
-   *
-   * This branch used to test only for zero, with the absent case falling into a
-   * generic "cannot be undone" line above it. That was the wrong way round: a
-   * fresh complex reads ABSENT, so the sentence written for it was the one it
-   * could never reach. Found by a render scene, because the unit test had set the
-   * figure to zero to match the code rather than to match the wire.
-   */
-  if (!loses) {
-    return (
-      <Text size="xs" tone="muted">
-        dismantling removes the complex and every pad on it. Nothing has been
-        built here yet, so there is no crew rating to lose
-      </Text>
-    );
-  }
-
-  return (
-    <Text size="xs" tone="warn">
-      dismantling removes the complex and every pad on it, and its{" "}
-      <Unit value={complex.efficiency} /> crew rating is shared with nothing, so
-      it is LOST for good. A rebuilt complex starts again from the bottom
-    </Text>
+    <CommandButton
+      args={{ lcId }}
+      aria-label={`Dismantle ${name}`}
+      commandLabel={`Dismantle ${name}`}
+      confirmAriaLabel={`Confirm dismantling ${name}: removes the whole complex, its pads and its crew rating`}
+      confirmLabel="Warning: removes complex, pads and crew rating"
+      confirmTone="nogo"
+      handle={handle}
+      label="Dismantle"
+      size="sm"
+      tone="warn"
+    />
   );
 }
 

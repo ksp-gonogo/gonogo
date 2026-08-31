@@ -11,6 +11,7 @@ import { deflateSync } from "node:zlib";
 import { afterEach, describe, expect, it } from "vitest";
 import type { UplinkInventory } from "../render-probe";
 import { resolveUplinkPackage } from "./context";
+import { scenesAssertingNothing } from "./docs";
 import { encodeGif } from "./gif";
 import { generateEntry } from "./page";
 import { decodePng } from "./png";
@@ -408,6 +409,30 @@ describe("coverage of the registrations", () => {
     expect(() => assertEveryWidgetCovered([], INVENTORY)).toThrow(
       /1 widget\(s\) have no fixture/,
     );
+  });
+
+  it("names the scenes that assert nothing about their own render", () => {
+    const scene = (name: string, paints: string[]) =>
+      ({
+        file: `${name}.json`,
+        name,
+        target: { kind: "augment", id: "overlay" },
+        paints,
+        before: [],
+        pinnedUt: 0,
+        emits: [],
+      }) as never;
+
+    const named = scenesAssertingNothing({
+      scenes: [scene("silent", []), scene("speaks", ["READY"])],
+    } as never);
+
+    // A scene with no `paints` still renders and still gets looked at, so this
+    // WARNS rather than failing. But it asserts nothing about what the render
+    // says, and `paints` is the mechanism that catches a sentence which silently
+    // stopped appearing: it is how the RP-1 dismantle warning was found sitting
+    // behind a branch a fresh complex could never reach.
+    expect(named).toEqual(["overlay / silent"]);
   });
 
   it("reports an unpreviewed augment rather than failing on it", () => {

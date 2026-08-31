@@ -69,49 +69,44 @@ export function WarpTargets() {
    * rather than leaving this to re-derive it.
    */
   const targetStanding = fundTarget?.active === true;
-  const remaining = magnitudeOf(fundTarget?.timeLeft);
 
   return (
-    <Stack gap="xs">
-      <Inline gap="xs">
-        <CommandButton
-          args={{}}
-          aria-label="Warp until RP-1's next project finishes"
-          commandLabel="Warp to next completion"
-          handle={toComplete}
-          label="Warp to next"
-          size="sm"
-        />
-        <CommandButton
-          args={{}}
-          aria-label={
-            targetStanding
-              ? "Warp until the balance reaches the fund target"
-              : "No fund target is standing, so there is no balance to warp toward"
-          }
-          commandLabel="Warp to fund target"
-          disabled={!targetStanding}
-          handle={toFundTarget}
-          label="Warp to funds"
-          size="sm"
-        />
-      </Inline>
-
-      {/* Said rather than left blank: a dark button with no explanation reads as
-          broken, and setting a target is an act the operator can take. */}
-      {targetStanding ? (
-        remaining === null ? null : (
-          <Text size="xs" tone="muted">
-            fund target in <Unit value={fundTarget?.timeLeft} /> at the current
-            rate
-          </Text>
-        )
-      ) : (
-        <Text size="xs" tone="muted">
-          no fund target set
-        </Text>
-      )}
-    </Stack>
+    <Inline gap="xs">
+      {/*
+        Named for WHAT it warps to, on the operator's ruling that "next" alone did
+        not say. The specific project would be better still and is not on this
+        widget's wire: the next-to-finish is whichever of rp1.buildQueue,
+        rp1.constructions, rp1.research and rp1.training has least time left, and
+        reading four topics to label one button is a trade worth asking about
+        rather than assuming.
+      */}
+      <CommandButton
+        args={{}}
+        aria-label="Warp until RP-1's next project finishes"
+        commandLabel="Warp to next project completion"
+        handle={toComplete}
+        label="warp to next completion"
+        size="sm"
+      />
+      {/*
+        No subtitle. The ETA and the "no fund target set" line both went on the
+        operator's ruling that funds "needs LESS": the reason a press is dark
+        stays in its accessible name, where it costs no space.
+      */}
+      <CommandButton
+        args={{}}
+        aria-label={
+          targetStanding
+            ? "Warp until the balance reaches the fund target"
+            : "No fund target is standing, so there is no balance to warp toward"
+        }
+        commandLabel="Warp to fund target"
+        disabled={!targetStanding}
+        handle={toFundTarget}
+        label="warp to fund target"
+        size="sm"
+      />
+    </Inline>
   );
 }
 

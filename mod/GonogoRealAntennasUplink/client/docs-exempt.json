@@ -1,0 +1,4 @@
+{
+  "_comment": "Render-scene exemptions for this Uplink, read by `gonogo-uplink docs --check`. `sceneDebt` is SHRINK-ONLY: an entry is removed by giving its augment a scene, in the same commit.",
+  "sceneDebt": ["realantennas-comm-signal-badge"]
+}

@@ -9,14 +9,12 @@
       "w": 12,
       "h": 24
     },
-    "caption": "LC-1 down to its last working pad, so its dismantle is dark with the reason rather than live and silently inert; LC-2 has a second pad still being built, which does not count toward the one a complex must keep and cannot itself be dismantled",
-    "paints": [
-      "SPACE CENTRES",
-      "LC-1",
-      "LC-2",
-      "1 operational, so none can be dismantled",
-      "not in service",
-      "Dismantle"
+    "caption": "LC-1's detail open, down to its last working pad: the dismantle is dark with the reason rather than live and silently inert, which is what RP-1 leaves it as",
+    "paints": ["SPACE CENTRES", "LC-1", "Dismantle"],
+    "before": [
+      {
+        "press": "Detail for LC-1"
+      }
     ]
   },
   "_stream": {

@@ -276,6 +276,34 @@ function assetsFor(
   );
 }
 
+/**
+ * The SCENES declared for one registration, as distinct from the ASSETS rendered
+ * from them.
+ *
+ * <p>One scene becomes several assets (one per size), so counting assets answers
+ * "how many pictures" and counting scenes answers "how many STATES somebody
+ * thought worth showing". The second is the question review needs.</p>
+ */
+function scenesFor(inputs: DocsInputs, kind: string, id: string): Scene[] {
+  return inputs.scenes.filter(
+    (scene) => scene.target.kind === kind && scene.target.id === id,
+  );
+}
+
+/**
+ * Scenes that assert nothing, which are pictures nobody has read.
+ *
+ * <p>A WARNING rather than a failure: a scene with no `paints` still renders and
+ * still gets looked at. But `paints` is what caught RP-1's efficiency bug (a
+ * string that was expected and did not appear), and a scene without any is one
+ * where nobody wrote down what the render should say.</p>
+ */
+export function scenesAssertingNothing(inputs: DocsInputs): string[] {
+  return inputs.scenes
+    .filter((scene) => scene.paints.length === 0)
+    .map((scene) => `${scene.target.id} / ${scene.name}`);
+}
+
 function widgetSection(inputs: DocsInputs, widget: InventoryWidget): string[] {
   const out = [`### ${widget.name}`, "", widget.description, ""];
   // `channels` when the widget declares them, `dataRequirements` otherwise: they
@@ -308,6 +336,10 @@ function widgetSection(inputs: DocsInputs, widget: InventoryWidget): string[] {
       ],
       ["Replaces", widget.replaces ? `\`${widget.replaces}\`` : undefined],
       ["Default size", `${widget.modes[0].w} × ${widget.modes[0].h}`],
+      // How many STATES somebody thought worth showing, not how many pictures.
+      // A widget with three warning states and one scene is the shape that hides
+      // a finding, and this is what makes that visible in review.
+      ["Scenes", String(scenesFor(inputs, "widget", widget.id).length)],
     ]),
   );
   out.push(...images(inputs, assetsFor(inputs, "widget", widget.id)));
@@ -336,6 +368,7 @@ function augmentTable(inputs: DocsInputs): string[] {
       `\`${augment.augments}\``,
       list(augment.channels),
       augment.requires ? `only while \`${augment.requires}\`` : "",
+      String(scenesFor(inputs, "augment", augment.id).length),
       notes.join("; "),
     ];
   });
@@ -343,7 +376,7 @@ function augmentTable(inputs: DocsInputs): string[] {
   return [
     "## Augments",
     "",
-    ...table(["Augment", "Into", "Reads", "Presence", "Notes"], rows),
+    ...table(["Augment", "Into", "Reads", "Presence", "Scenes", "Notes"], rows),
     ...inputs.inventory.augments.flatMap((augment) =>
       images(inputs, assetsFor(inputs, "augment", augment.id)),
     ),

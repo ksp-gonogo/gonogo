@@ -9,8 +9,8 @@
       "w": 6,
       "h": 10
     },
-    "caption": "A fund target standing at 500,000 with RP-1's own estimate of when the balance gets there, so the press that runs the clock forward carries how far forward it runs",
-    "paints": ["Warp to next", "Warp to funds", "fund target in"]
+    "caption": "A fund target standing, so both presses are live and each names what it warps to. No ETA line: the operator ruled that funds needs less, so the reason a press is dark lives in its accessible name.",
+    "paints": ["warp to next completion", "warp to fund target"]
   },
   "_stream": {
     "pinnedUt": 1000000,
