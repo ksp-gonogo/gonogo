@@ -87,4 +87,35 @@ namespace GonogoRp1Uplink
         public int CoursesStarted;
         public int CrewInTraining;
     }
+
+    /// <summary>
+    /// One reading of RP-1's enrolable trainings. Its own raw rather than a field
+    /// on <see cref="Rp1CrewRaw"/> because it is read on its own cadence: a null
+    /// <see cref="Templates"/> is an install whose crew handler is not live, and
+    /// the reader returns no raw at all when the previous reading still stands.
+    /// </summary>
+    public sealed class Rp1TrainingCatalogueRaw
+    {
+        public double Ut;
+
+        public List<Rp1TrainingTemplateRaw>? Templates;
+    }
+
+    /// <summary>One training RP-1 could be asked to run, as RP-1 holds it.</summary>
+    public sealed class Rp1TrainingTemplateRaw
+    {
+        public string? Id;
+        public string? Name;
+        public string? Description;
+        public string? Type;
+        public string? Target;
+        public double? BaseTime;
+        public int? SeatMin;
+        public int? SeatMax;
+
+        /// <summary>Absent, not false, when RP-1's own getter could not be asked.</summary>
+        public bool? Unlocked;
+
+        public bool? IsTemporary;
+    }
 }

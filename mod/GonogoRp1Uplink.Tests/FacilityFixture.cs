@@ -198,6 +198,44 @@ public static class HighLogic
 public class Game
 {
     public GameParameters Parameters = new GameParameters();
+
+    /// <summary>The save's kerbals, which is what an enrolment resolves names against.</summary>
+    public KerbalRoster CrewRoster = new KerbalRoster();
+}
+
+/// <summary>
+/// KSP's roster. Two indexers, as KSP declares them, and that pair is the point:
+/// the string one returns NULL for a name it does not hold rather than throwing,
+/// and a lookup that matched by arity alone could take the int one and index the
+/// roster by a hash.
+/// </summary>
+public class KerbalRoster
+{
+    private readonly System.Collections.Generic.List<ProtoCrewMember> _kerbals =
+        new System.Collections.Generic.List<ProtoCrewMember>();
+
+    public ProtoCrewMember? this[string name]
+    {
+        get
+        {
+            foreach (var kerbal in _kerbals)
+            {
+                if (kerbal.name == name)
+                {
+                    return kerbal;
+                }
+            }
+            return null;
+        }
+    }
+
+    public ProtoCrewMember this[int index] => _kerbals[index];
+
+    public KerbalRoster With(params ProtoCrewMember[] kerbals)
+    {
+        _kerbals.AddRange(kerbals);
+        return this;
+    }
 }
 
 public class GameParameters

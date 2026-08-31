@@ -531,6 +531,40 @@ namespace GonogoRp1Uplink
         }
 
         /// <summary>
+        /// A public constructor by arity AND the full name of its first
+        /// parameter's type, for the types arity alone cannot tell apart.
+        ///
+        /// <para>The constructor twin of <see cref="InstanceMethodOn"/>, and it
+        /// exists because <c>TrainingCourse</c> declares three: one empty, one
+        /// taking a <c>TrainingTemplate</c> and one taking a <c>ConfigNode</c>.
+        /// Both single-argument ones are public, so a match on arity alone picks
+        /// whichever the runtime happens to list first, and an enrolment that got
+        /// the persistence constructor would build a course out of a template it
+        /// then tried to read as a save node.</para>
+        /// </summary>
+        public static ConstructorInfo? ConstructorOn(Type type, string firstParameterTypeFullName, int parameterCount)
+        {
+            try
+            {
+                foreach (var c in type.GetConstructors(BindingFlags.Public | BindingFlags.Instance))
+                {
+                    var parameters = c.GetParameters();
+                    if (parameters.Length == parameterCount
+                        && parameters.Length > 0
+                        && parameters[0].ParameterType.FullName == firstParameterTypeFullName)
+                    {
+                        return c;
+                    }
+                }
+            }
+            catch (Exception)
+            {
+                return null;
+            }
+            return null;
+        }
+
+        /// <summary>
         /// What to quote from a throw. Reflection wraps a handler's own
         /// exception in a <see cref="TargetInvocationException"/> whose message
         /// says only that an exception was thrown, which tells an operator

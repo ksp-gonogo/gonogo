@@ -2157,3 +2157,106 @@ public sealed class Rp1TrainingCourseEntry
     [SitrepUnit(Sitrep.Contract.Units.Flag)]
     public bool? IsTemporary { get; set; }
 }
+
+/// <summary>
+/// One training RP-1 could be asked to run: a template, not a course.
+///
+/// <para>The ENROLABLE side of <see cref="Rp1TrainingCourseEntry"/>. A course row
+/// exists because somebody started it; a template row exists because the install
+/// has a crewed part that can be trained on, whether or not anyone ever will. An
+/// operator picking a training reads this list; an operator watching one in
+/// progress reads the other.</para>
+///
+/// <para><b>NO AC-LEVEL REQUIREMENT, and it is a refusal rather than an
+/// oversight.</b> RP-1 gates each proficiency training on an Astronaut Complex
+/// tier, and the getter that states it,
+/// <c>TrainingTemplate.ACLevelRequirement</c>, reaches
+/// <c>TrainingDatabase.GetACRequirement</c>, whose first statement is
+/// <c>ClearTracker()</c> and which then fills the shared static
+/// <c>unlockPathTracker</c>. A telemetry read taken every tick must not move the
+/// game's own scratch state, the same ruling already taken on
+/// <c>TrainingDatabase.FillBools</c> and <c>LCOpsProject.GetTimeLeftEstAll</c>.
+/// The gate is not lost: <c>rp1.training.enrol</c> asks it at the moment of the
+/// press, which is when RP-1's own UI asks it, and a refusal names the tier
+/// required.</para>
+/// </summary>
+[SitrepContract]
+[SitrepTopic("rp1.trainingCatalogue", isArray: true)]
+#if SITREP_CODEGEN
+[TsInterface]
+#endif
+public sealed class Rp1TrainingTemplateEntry
+{
+    /// <summary>RP-1's template id, and the key <c>rp1.training.enrol</c> names.</summary>
+    [SitrepUnit(Units.Id)]
+    public string? Id { get; set; }
+
+    /// <summary>The training's display name, RP-1's own.</summary>
+    [SitrepUnit(Sitrep.Contract.Units.Text)]
+    public string? Name { get; set; }
+
+    [SitrepUnit(Sitrep.Contract.Units.Text)]
+    public string? Description { get; set; }
+
+    /// <summary>
+    /// <c>Proficiency</c> or <c>Mission</c>. Proficiency training is on a part and
+    /// lasts; mission training is for a flight and expires.
+    /// </summary>
+    [SitrepUnit(Sitrep.Contract.Units.Enumeration)]
+    public string? Type { get; set; }
+
+    /// <summary>What the training is on, RP-1's own target string.</summary>
+    [SitrepUnit(Units.Id)]
+    public string? Target { get; set; }
+
+    /// <summary>
+    /// How long the course takes with nobody on it yet. An INTERVAL, so seconds.
+    ///
+    /// <para>The persisted field, read directly rather than through
+    /// <c>GetBaseTime</c>. With an empty student list that method returns this
+    /// number unchanged, and a fresh course's build points are exactly it; with
+    /// students it reaches <c>TrainingDatabase.GetProficiencyTime</c>, which
+    /// mutates the shared tracker described on this type. So the field is both the
+    /// safe read and the right one.</para>
+    ///
+    /// <para>It is a FLOOR for a real enrolment, not a quote. RP-1 lengthens a
+    /// proficiency course by each student's prior proficiency and a mission course
+    /// by their stupidity, and the elapsed time then divides by a build rate the
+    /// Astronaut Complex tier sets. The course's own
+    /// <c>rp1.training[].completesAtUt</c> is the answer once it is running.</para>
+    /// </summary>
+    [SitrepUnit(Sitrep.Contract.Units.Seconds)]
+    public double? BaseTime { get; set; }
+
+    /// <summary>
+    /// The fewest students the course can run with. Above one, the only control
+    /// RP-1 offers a started course is cancelling the whole thing.
+    /// </summary>
+    [SitrepUnit(Sitrep.Contract.Units.Count)]
+    public int? SeatMin { get; set; }
+
+    /// <summary>
+    /// The most it can take. RP-1 stores <b>-1</b> for no maximum, and that is
+    /// published as it stands rather than folded into a zero or an absence, so a
+    /// client can tell "unlimited" from "a seat count nobody could read".
+    /// </summary>
+    [SitrepUnit(Sitrep.Contract.Units.Count)]
+    public int? SeatMax { get; set; }
+
+    /// <summary>
+    /// Whether the career can train on this yet: RP-1 asks whether any part the
+    /// training covers has its tech researched and out of the research queue.
+    ///
+    /// <para>A template with no parts at all reads as locked, which is RP-1's own
+    /// answer rather than a substituted one.</para>
+    /// </summary>
+    [SitrepUnit(Sitrep.Contract.Units.Flag)]
+    public bool? Unlocked { get; set; }
+
+    /// <summary>
+    /// A placeholder RP-1 generated for a part still being researched, and will
+    /// withdraw again. Its courses are aborted when it goes.
+    /// </summary>
+    [SitrepUnit(Sitrep.Contract.Units.Flag)]
+    public bool? IsTemporary { get; set; }
+}

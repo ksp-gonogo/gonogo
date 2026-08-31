@@ -54,6 +54,8 @@ namespace GonogoRp1Uplink.Tests
             "Rp1ResearchCommands.cs",
             "Rp1DerivedCurrencyWithholder.cs",
             "Rp1SimulationBackend.cs",
+            "Rp1TrainingCatalogueReflection.cs",
+            "Rp1TrainingCommands.cs",
         };
 
         /// <summary>

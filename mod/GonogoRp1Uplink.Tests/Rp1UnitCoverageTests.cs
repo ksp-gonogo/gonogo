@@ -24,7 +24,7 @@ namespace GonogoRp1Uplink.Tests
                 "Units.BuildPoints");
 
         [Fact]
-        public void TheContractTypesAreExactlyTheThirtySevenWireShapes() =>
+        public void TheContractTypesAreExactlyTheFortyWireShapes() =>
             UnitCoverageAssertion.AssertContractTypesAreExactly(
                 typeof(Rp1CentreEntry).Assembly,
                 nameof(Rp1CentreEntry),
@@ -53,6 +53,9 @@ namespace GonogoRp1Uplink.Tests
                 nameof(Rp1FundTarget),
                 nameof(Rp1TargetCancelArgs),
                 nameof(Rp1TrainingCourseEntry),
+                nameof(Rp1TrainingTemplateEntry),
+                nameof(Rp1TrainingEnrolArgs),
+                nameof(Rp1TrainingLeaveArgs),
                 nameof(Rp1HireTargetSetArgs),
                 nameof(Rp1FundTargetSetArgs),
                 // The shapes here that are not Topic payloads: the command

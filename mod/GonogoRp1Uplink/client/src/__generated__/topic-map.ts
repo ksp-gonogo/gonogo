@@ -38,6 +38,7 @@ import type {
   Rp1ResearchEntry,
   Rp1RushTerms,
   Rp1TrainingCourseEntry,
+  Rp1TrainingTemplateEntry,
   Rp1WarehouseItemEntry,
 } from "./contract.js";
 
@@ -60,6 +61,7 @@ export interface GeneratedTopicPayloadMap {
   "rp1.research": Rp1ResearchEntry[];
   "rp1.rushTerms": Rp1RushTerms;
   "rp1.training": Rp1TrainingCourseEntry[];
+  "rp1.trainingCatalogue": Rp1TrainingTemplateEntry[];
   "rp1.warehouse": Rp1WarehouseItemEntry[];
 }
 
@@ -82,5 +84,6 @@ export const GENERATED_TOPIC_IDS = [
   "rp1.research",
   "rp1.rushTerms",
   "rp1.training",
+  "rp1.trainingCatalogue",
   "rp1.warehouse",
 ] as const;

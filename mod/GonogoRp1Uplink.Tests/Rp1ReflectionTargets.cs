@@ -88,7 +88,17 @@ namespace GonogoRp1Uplink.Tests
     /// two commands build an RP-1 object by arity, and a reshaped constructor
     /// would take the whole command out while every other check stayed green.
     /// </remarks>
-    public sealed record Rp1ConstructorTarget(string Assembly, string Type, int Arity, string CallSite);
+    /// <param name="FirstParameterType">
+    /// The full name production matches the first parameter on, for a type whose
+    /// constructors arity alone cannot tell apart. Null when arity is the whole of
+    /// the match, which is how most of these are found.
+    /// </param>
+    public sealed record Rp1ConstructorTarget(
+        string Assembly,
+        string Type,
+        int Arity,
+        string CallSite,
+        string? FirstParameterType = null);
 
     /// <summary>An enum member the Uplink names to Enum.Parse, so a rename is an immediate throw.</summary>
     public sealed record Rp1EnumMemberTarget(string Assembly, string Type, string Member, string CallSite);
@@ -183,7 +193,16 @@ namespace GonogoRp1Uplink.Tests
             new Rp1TypeTarget(Rp0, "RP0.CurrencyModifierQueryRP0", "Rp1ResearchCommands"),
             new Rp1TypeTarget(Rp0, "RP0.TransactionReasonsRP0", "Rp1ResearchCommands"),
             new Rp1TypeTarget(Rp0, "RP0.CurrencyRP0", "Rp1ResearchCommands"),
-            new Rp1TypeTarget(Rp0, "RP0.Crew.CrewHandler", "Rp1CrewReflection"),
+            new Rp1TypeTarget(Rp0, "RP0.Crew.CrewHandler", "Rp1CrewReflection, Rp1TrainingCatalogueReflection, Rp1TrainingCommands"),
+            // Resolved by name because the enrolment CONSTRUCTS one, and because
+            // that construction is what the whole command turns on: RP-1 persists
+            // a course only once it has started, so there is nothing to enrol into
+            // and the command has to build the course itself.
+            new Rp1TypeTarget(Rp0, "RP0.Crew.TrainingCourse", "Rp1TrainingCommands"),
+            // Named to tell that constructor from RP-1's persistence one: both are
+            // public and both take a single argument, so a match on arity alone
+            // would build a course out of a template it then read as a save node.
+            new Rp1TypeTarget(Rp0, "RP0.Crew.TrainingTemplate", "Rp1TrainingCommands"),
             new Rp1TypeTarget(Rp0, "RP0.Programs.ProgramHandler", "Rp1ProgramsReflection"),
             // The construction project a facility upgrade IS under RP-1, and the
             // reason career.facility.upgrade is refused rather than allowed to
@@ -241,6 +260,10 @@ namespace GonogoRp1Uplink.Tests
             // release that gave it a parameter would leave this command building
             // a project through whatever else arity 0 matched, or nothing.
             new Rp1ConstructorTarget(Rp0, "RP0.ResearchProject", 0, "Rp1ResearchCommands"),
+            // Matched on its first parameter's type as well as its arity, which is
+            // the whole reason Rp1Types.ConstructorOn exists: TrainingCourse also
+            // declares a public single-argument ConfigNode constructor.
+            new Rp1ConstructorTarget(Rp0, "RP0.Crew.TrainingCourse", 1, "Rp1TrainingCommands", "RP0.Crew.TrainingTemplate"),
         };
 
         public static IReadOnlyList<Rp1MethodTarget> Methods { get; } = new[]
@@ -287,6 +310,24 @@ namespace GonogoRp1Uplink.Tests
             new Rp1MethodTarget(Rp0, "RP0.ReconRolloutProject", "SwitchDirection", 0, false, "Rp1VehicleCommands"),
             new Rp1MethodTarget(Rp0, "RP0.KCTUtilities", "ScrapVessel", 1, true, "Rp1VehicleCommands"),
             new Rp1MethodTarget(Rp0, "RP0.KCTUtilities", "ChangeEngineers", 2, true, "Rp1VehicleCommands, Rp1PersonnelCommands"),
+            // RP-1's own facility TIER, an index, rather than stock's normalised
+            // fraction. Asked at exactly the point RP-1's own training screen asks
+            // it: against a course's AC-level requirement, before it is offered a
+            // student.
+            new Rp1MethodTarget(Rp0, "RP0.KCTUtilities", "GetFacilityLevel", 1, true, "Rp1TrainingCommands"),
+            // The five calls the two RP-1 training controls are made of. Neither
+            // control is AbortCourse, whose only caller in RP-1 is the path that
+            // withdraws a template when its tech goes away: RP-1's own Cancel runs
+            // CompleteCourse and then drops the course off the roster.
+            new Rp1MethodTarget(Rp0, "RP0.Crew.TrainingCourse", "MeetsStudentReqs", 1, false, "Rp1TrainingCommands"),
+            new Rp1MethodTarget(Rp0, "RP0.Crew.TrainingCourse", "AddStudent", 1, false, "Rp1TrainingCommands"),
+            new Rp1MethodTarget(Rp0, "RP0.Crew.TrainingCourse", "RemoveStudent", 1, false, "Rp1TrainingCommands"),
+            new Rp1MethodTarget(Rp0, "RP0.Crew.TrainingCourse", "StartCourse", 0, false, "Rp1TrainingCommands"),
+            new Rp1MethodTarget(Rp0, "RP0.Crew.TrainingCourse", "CompleteCourse", 0, false, "Rp1TrainingCommands"),
+            // Not bookkeeping: training is a per-day upkeep rather than a purchase,
+            // so a course that started or ended without this leaves RP-1 quoting
+            // last hour's payroll until its own timer comes round.
+            new Rp1MethodTarget(Rp0, "RP0.MaintenanceHandler", "ScheduleMaintenanceUpdate", 0, false, "Rp1TrainingCommands"),
             // The money calls. All three are read-only on the shipped assembly
             // and are CALLED rather than mirrored for that reason: they return a
             // figure RP-1 actually bills, and the salary ladder behind them has
@@ -451,6 +492,15 @@ namespace GonogoRp1Uplink.Tests
             ["ResearchAndDevelopment"] = "KSP's R&D scenario, resolved by the same Find as RP-1's types but belonging to Assembly-CSharp",
             ["GetTechnologyState"] = "KSP's ResearchAndDevelopment.GetTechnologyState, which is what RP-1's own facility tech gate asks",
             ["SpaceCenterFacility"] = "KSP's facility enum, parsed from the facility id because RP-1's own derivation takes a scene MonoBehaviour this command never has",
+
+            // ── KSP's crew roster, reached only by the enrolment ────────────
+            // RP-1's own AddStudent(string) overload goes through the same
+            // indexer and ADDS the null it gets back for a name the roster does
+            // not hold, which is why the command resolves the kerbal itself.
+            ["CrewRoster"] = "KSP's Game.CrewRoster, the save's kerbals, walked to resolve an enrolment's named crew",
+            ["get_Item"] = "KSP's KerbalRoster string indexer, named rather than matched by arity because it declares an int one beside it",
+            ["ProtoCrewMember"] = "KSP's crew type, named to tell AddStudent(ProtoCrewMember) from AddStudent(string) and RemoveStudent's identical pair",
+            ["Remove"] = "the list's own Remove, on ROUtils.DataTypes.PersistentList<T> from a separate assembly, resolved by arity on whatever collection CrewHandler.TrainingCourses hands back",
         };
 
         /// <summary>
@@ -471,6 +521,7 @@ namespace GonogoRp1Uplink.Tests
             ["withinComplexLimits"] = "a gate-fact id on this Uplink's own contract",
             ["rolledOut"] = "a gate-fact id on this Uplink's own contract",
             ["funds"] = "a quantity label in a refusal payload",
+            ["AstronautComplex"] = "the SpaceCenterFacility member the training gate is asked at, parsed by name rather than cast from its ordinal",
         };
 
         private static Rp1MemberTarget[] BuildMembers()
@@ -497,6 +548,8 @@ namespace GonogoRp1Uplink.Tests
             const string Staffing = "Rp1PersonnelCommands";
             const string StrategyWrites = "Rp1StrategyWrites";
             const string Facilities = "Rp1FacilityUpgradeCommands";
+            const string Catalogue = "Rp1TrainingCatalogueReflection";
+            const string TrainingWrites = "Rp1TrainingCommands";
 
             // ── The space centre ────────────────────────────────────────────
             Add("RP0.SpaceCenterManagement", "Instance", Rp1Reader.Presence, Sc + ", " + Gate + ", " + Projects + ", " + Build + ", " + Withhold + ", " + Facilities, @static: true);
@@ -523,8 +576,8 @@ namespace GonogoRp1Uplink.Tests
             // operator is offered Cancel (the whole course) or Remove (one
             // student), because dropping below the minimum would strand the rest.
             Add("RP0.Crew.TrainingCourse", "Description", Rp1Reader.Text, Crew);
-            Add("RP0.Crew.TrainingCourse", "SeatMin", Rp1Reader.Numeric, Crew);
-            Add("RP0.Crew.TrainingCourse", "SeatMax", Rp1Reader.Numeric, Crew);
+            Add("RP0.Crew.TrainingCourse", "SeatMin", Rp1Reader.Numeric, Crew + ", " + TrainingWrites);
+            Add("RP0.Crew.TrainingCourse", "SeatMax", Rp1Reader.Numeric, Crew + ", " + TrainingWrites);
             Add("RP0.Crew.TrainingCourse", "IsTemporary", Rp1Reader.Bool, Crew);
             // WRITTEN as well as read: the set commands assign a freshly
             // constructed project, which is exactly what RP-1's own dialog does.
@@ -728,7 +781,7 @@ namespace GonogoRp1Uplink.Tests
             Add("RP0.Confidence", "OnConfidenceChanged", Rp1Reader.Presence, Withhold, @static: true);
 
             // ── The money model ────────────────────────────────────────────
-            Add("RP0.MaintenanceHandler", "Instance", Rp1Reader.Presence, Economy + ", " + Upkeep + ", " + Sc, @static: true);
+            Add("RP0.MaintenanceHandler", "Instance", Rp1Reader.Presence, Economy + ", " + Upkeep + ", " + Sc + ", " + TrainingWrites, @static: true);
             Add("RP0.MaintenanceHandler", "UpkeepPerDayForDisplay", Rp1Reader.Numeric, Economy + ", " + Upkeep);
             Add("RP0.MaintenanceHandler", "FacilityUpkeepPerDay", Rp1Reader.Numeric, Economy + ", " + Upkeep);
             Add("RP0.MaintenanceHandler", "LCsCostPerDay", Rp1Reader.Numeric, Economy + ", " + Upkeep);
@@ -744,13 +797,13 @@ namespace GonogoRp1Uplink.Tests
             Add("RP0.UnlockCreditHandler", "TotalCredit", Rp1Reader.Numeric, Economy);
 
             // ── Crew ───────────────────────────────────────────────────────
-            Add("RP0.Crew.CrewHandler", "Instance", Rp1Reader.Presence, Crew, @static: true);
+            Add("RP0.Crew.CrewHandler", "Instance", Rp1Reader.Presence, Crew + ", " + Catalogue + ", " + TrainingWrites, @static: true);
             Add("RP0.Crew.CrewHandler", "RetirementEnabled", Rp1Reader.Bool, Crew);
             Add("RP0.Crew.CrewHandler", "CrewRnREnabled", Rp1Reader.Bool, Crew);
             Add("RP0.Crew.CrewHandler", "IsMissionTrainingEnabled", Rp1Reader.Bool, Crew);
             Add("RP0.Crew.CrewHandler", "ProfTrainRate", Rp1Reader.Numeric, Crew);
             Add("RP0.Crew.CrewHandler", "MissionTrainRate", Rp1Reader.Numeric, Crew);
-            Add("RP0.Crew.CrewHandler", "TrainingCourses", Rp1Reader.Presence, Crew);
+            Add("RP0.Crew.CrewHandler", "TrainingCourses", Rp1Reader.Presence, Crew + ", " + TrainingWrites);
 
             // Four PRIVATE collections, walked as bare enumerables and probed
             // rather than copied. Private is what the walk assumes, and a walk
@@ -766,16 +819,50 @@ namespace GonogoRp1Uplink.Tests
             Add("RP0.Crew.TrainingCourse", "Target", Rp1Reader.Text, Crew);
             Add("RP0.Crew.TrainingCourse", "Type", Rp1Reader.EnumText, Crew);
             Add("RP0.Crew.TrainingCourse", "Started", Rp1Reader.Bool, Crew);
-            Add("RP0.Crew.TrainingCourse", "Completed", Rp1Reader.Bool, Crew);
+            Add("RP0.Crew.TrainingCourse", "Completed", Rp1Reader.Bool, Crew + ", " + TrainingWrites);
             Add("RP0.Crew.TrainingCourse", "progress", Rp1Reader.Numeric, Crew);
             Add("RP0.Crew.TrainingCourse", "BP", Rp1Reader.Numeric, Crew);
             Add("RP0.Crew.TrainingCourse", "_buildRate", Rp1Reader.Numeric, Crew);
-            Add("RP0.Crew.TrainingCourse", "Students", Rp1Reader.Presence, Crew);
+            Add("RP0.Crew.TrainingCourse", "Students", Rp1Reader.Presence, Crew + ", " + TrainingWrites);
 
             Add("RP0.Crew.TrainingExpiration", "pcmName", Rp1Reader.Text, Crew);
             Add("RP0.Crew.TrainingExpiration", "expiration", Rp1Reader.Numeric, Crew);
             Add("RP0.Crew.TrainingExpiration", "training", Rp1Reader.Presence, Crew);
-            Add("RP0.Crew.TrainingFlightEntry", "target", Rp1Reader.Text, Crew);
+            Add("RP0.Crew.TrainingFlightEntry", "target", Rp1Reader.Text, Crew + ", " + Catalogue);
+
+            // ── The enrolable catalogue ─────────────────────────────────────
+            // RP-1 generates one template per crewed part in the install, so this
+            // list is the biggest thing this Uplink reads and the least likely to
+            // change: it moves when tech completes.
+            //
+            // NOT ACLevelRequirement, and the omission is the point. Its getter
+            // reaches TrainingDatabase.GetACRequirement, which clears and refills
+            // a shared static tracker, and a channel read must not move the game's
+            // scratch state. The COMMAND asks it, at the moment of a press, which
+            // is when RP-1's own screen asks it, and that is the one pin below
+            // whose call site is the write path rather than the read.
+            Add("RP0.Crew.CrewHandler", "TrainingTemplates", Rp1Reader.Presence, Catalogue + ", " + TrainingWrites);
+            Add("RP0.Crew.TrainingTemplate", "id", Rp1Reader.Text, Catalogue + ", " + TrainingWrites);
+            Add("RP0.Crew.TrainingTemplate", "name", Rp1Reader.Text, Catalogue);
+            Add("RP0.Crew.TrainingTemplate", "description", Rp1Reader.Text, Catalogue);
+            Add("RP0.Crew.TrainingTemplate", "type", Rp1Reader.EnumText, Catalogue);
+            Add("RP0.Crew.TrainingTemplate", "training", Rp1Reader.Presence, Catalogue);
+            // The persisted base time, read as a FIELD on purpose: GetBaseTime
+            // returns exactly this for an empty student list and reaches the same
+            // mutating TrainingDatabase family for a non-empty one.
+            Add("RP0.Crew.TrainingTemplate", "time", Rp1Reader.Numeric, Catalogue);
+            Add("RP0.Crew.TrainingTemplate", "seatMin", Rp1Reader.Numeric, Catalogue);
+            Add("RP0.Crew.TrainingTemplate", "seatMax", Rp1Reader.Numeric, Catalogue);
+            Add("RP0.Crew.TrainingTemplate", "isTemporary", Rp1Reader.Bool, Catalogue);
+            // A property with a body, unlike every other pin here, and it is a
+            // READ: it walks partsCovered asking SpaceCenterManagement.TechListHas
+            // and stock's GetTechnologyState, neither of which writes anything.
+            Add("RP0.Crew.TrainingTemplate", "IsUnlocked", Rp1Reader.Bool, Catalogue);
+
+            // ── The training writes ─────────────────────────────────────────
+            // The AC tier a course demands, asked ONCE per operator press. See the
+            // catalogue block above for why it is not on the channel.
+            Add("RP0.Crew.TrainingCourse", "ACLevelRequirement", Rp1Reader.Numeric, TrainingWrites);
 
             // ── Programs ───────────────────────────────────────────────────
             Add("RP0.Programs.ProgramHandler", "Instance", Rp1Reader.Presence, Programs + ", " + StrategyWrites, @static: true);
