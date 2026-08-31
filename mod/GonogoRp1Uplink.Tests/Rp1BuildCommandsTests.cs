@@ -342,6 +342,7 @@ namespace GonogoRp1Uplink.Tests
                     Rp1VehicleCommands.ScrapCommand,
                     Rp1VehicleCommands.RushCommand,
                     Rp1PersonnelCommands.AssignCommand,
+                    Rp1FacilityUpgradeCommands.UpgradeCommand,
                 },
                 declarations.Select(d => d.Command).ToArray());
             Assert.All(declarations, declaration =>
@@ -352,9 +353,11 @@ namespace GonogoRp1Uplink.Tests
                 Assert.False(declaration.Delayed);
                 // Every one of them declares that RP-1 is managing the save, and
                 // that is the only condition evaluable before the press for six
-                // of the seven. Starting a build from a craft file declares a
+                // of the eight. Starting a build from a craft file declares a
                 // second, because it also needs an install that can OPEN a craft
-                // file, and that is core's rather than RP-1's.
+                // file, and that is core's rather than RP-1's. Upgrading a
+                // facility declares a second for a different reason: the tiers
+                // and prices it works from exist at the space centre only.
                 Assert.Contains(
                     Rp1BuildCommands.GateKind,
                     declaration.Requires.Select(r => r.Kind).ToArray());
@@ -365,6 +368,11 @@ namespace GonogoRp1Uplink.Tests
             Assert.Equal(
                 new[] { Rp1BuildCommands.GateKind, Rp1BuildStartCommands.GateKind },
                 start.Requires.Select(r => r.Kind).ToArray());
+
+            var upgrade = declarations.Single(d => d.Command == Rp1FacilityUpgradeCommands.UpgradeCommand);
+            Assert.Equal(
+                new[] { Rp1BuildCommands.GateKind, Rp1FacilityUpgradeCommands.GateKind },
+                upgrade.Requires.Select(r => r.Kind).ToArray());
         }
 
         [Fact]
@@ -373,13 +381,25 @@ namespace GonogoRp1Uplink.Tests
             // A declared kind with no evaluator is a startup failure for the whole
             // mod, and the pairing is only checked once every Uplink has
             // registered, so nothing else in this repo fails first.
+            //
+            // IN THIS UPLINK, and that is the assertion rather than a convenient
+            // scoping. Core does ship kinds an Uplink could name, and naming one
+            // would bet every other Uplink's startup on a spelling nothing here
+            // can check: the constants live in an assembly an Uplink may not
+            // reference. So a condition this Uplink wants is a kind this Uplink
+            // declares and answers, and this list is what keeps that true.
             var kinds = new Rp1ScUplink().Manifest.Commands
                 .SelectMany(c => c.Requires)
                 .Select(r => r.Kind)
                 .Distinct();
 
             Assert.Equal(
-                new[] { Rp1BuildCommands.GateKind, Rp1BuildStartCommands.GateKind },
+                new[]
+                {
+                    Rp1BuildCommands.GateKind,
+                    Rp1BuildStartCommands.GateKind,
+                    Rp1FacilityUpgradeCommands.GateKind,
+                },
                 kinds.ToArray());
         }
 

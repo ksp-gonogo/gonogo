@@ -270,3 +270,51 @@ public class Rp1StrategyActivateArgs
     /// </summary>
     public double? Factor { get; set; }
 }
+
+/// <summary>
+/// Args for <c>rp1.facility.upgrade</c>: queue a space-centre facility's next
+/// tier as an RP-1 construction project.
+///
+/// <para><b>It buys nothing.</b> Under RP-1 a facility upgrade is not a
+/// purchase at all: the project is added to a construction queue and the funds
+/// are drawn down as it progresses, at a rate that falls when the career is
+/// short. So this command spends nothing at the moment it lands, and it never
+/// refuses on affordability, because RP-1 itself does not.</para>
+///
+/// <para>ONE field, and no target tier. RP-1 models a single step, from the
+/// facility's current level to the one above it, and there is no such thing as
+/// a two-tier project: a command taking a destination would have to queue
+/// several, and the second could not be costed until the first completed.</para>
+/// </summary>
+[SitrepContract]
+#if SITREP_CODEGEN
+[TsInterface]
+#endif
+public class Rp1FacilityUpgradeArgs
+{
+    /// <summary>
+    /// Which facility, by the key <c>career.status.facilities</c> is keyed on
+    /// (<c>"LaunchPad"</c>, <c>"VehicleAssemblyBuilding"</c>, and the rest of
+    /// KSP's <c>SpaceCenterFacility</c> names).
+    ///
+    /// <para>A full facility id (<c>"SpaceCenter/LaunchPad"</c>) is accepted
+    /// too and means the same thing: KSP's own normaliser decides, so the two
+    /// forms cannot disagree about which building was meant.</para>
+    ///
+    /// <para>A name whose last segment is not one of KSP's own facilities is
+    /// REFUSED rather than guessed at. RP-1 reads the building type off the
+    /// clickable model rather than the id and falls through to the Vehicle
+    /// Assembly Building for anything it does not recognise, so guessing here
+    /// would queue an upgrade against the wrong building on a modded or
+    /// KSCSwitcher site.</para>
+    ///
+    /// <para>The cost and the balance to show beside this control are on the
+    /// same wire, on <c>career.status</c>: <c>facilities[&lt;name&gt;].upgradeCost</c>
+    /// is the identical figure RP-1 puts on the project, and
+    /// <c>economy.funds</c> sits in the same payload. Both are null outside the
+    /// space centre, which is also where this command is refused, so the
+    /// control has a price whenever it has a press.</para>
+    /// </summary>
+    [SitrepUnit(Units.Id)]
+    public string? Facility { get; set; }
+}

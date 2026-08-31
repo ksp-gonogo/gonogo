@@ -57,13 +57,25 @@ namespace GonogoRp1Uplink.Tests
         string CallSite);
 
     /// <summary>A method the Uplink invokes, matched by name and arity the way production matches it.</summary>
+    /// <param name="Public">
+    /// The accessibility the production lookup asks for, and a real assertion
+    /// rather than a formality. Nearly every method here is public API and a
+    /// public-only lookup is what makes an accidental reach into RP-1's internals
+    /// fail loudly; ONE is deliberately not
+    /// (<c>PatchKSCFacilityContextMenu.GetTechGate</c>), and a guard that could
+    /// only express "public" would have reported success on the single most
+    /// fragile pin in the manifest, because a private member simply would not be
+    /// found and the mismatch would read as a missing overload of a public one.
+    /// Defaulted, so declaring a public method stays a five-field statement.
+    /// </param>
     public sealed record Rp1MethodTarget(
         string Assembly,
         string Type,
         string Method,
         int Arity,
         bool Static,
-        string CallSite);
+        string CallSite,
+        bool Public = true);
 
     /// <summary>
     /// A constructor the Uplink invokes, matched by arity the way production
@@ -156,6 +168,18 @@ namespace GonogoRp1Uplink.Tests
             new Rp1TypeTarget(Rp0, "RP0.MaintenanceHandler", "Rp1EconomyUpkeepQuery"),
             new Rp1TypeTarget(Rp0, "RP0.Crew.CrewHandler", "Rp1CrewReflection"),
             new Rp1TypeTarget(Rp0, "RP0.Programs.ProgramHandler", "Rp1ProgramsReflection"),
+            // The construction project a facility upgrade IS under RP-1, and the
+            // reason career.facility.upgrade is refused rather than allowed to
+            // buy a tier outright.
+            new Rp1TypeTarget(Rp0, "RP0.FacilityUpgradeProject", "Rp1FacilityUpgradeCommands"),
+            // RP-1's event bus, for the one event an enqueue announces itself on.
+            new Rp1TypeTarget(Rp0, "RP0.SCMEvents", "Rp1FacilityUpgradeCommands"),
+            // A HARMONY PATCH CLASS, which is implementation detail rather than
+            // API and is the likeliest name on this whole list to move. It is
+            // here because the rule that decides whether a facility tier is
+            // unlocked lives on it and nowhere else, and because an unresolvable
+            // gate refuses every upgrade at the press with nothing else noticing.
+            new Rp1TypeTarget(Rp0, "RP0.Harmony.PatchKSCFacilityContextMenu", "Rp1FacilityUpgradeCommands"),
         };
 
         public static IReadOnlyList<Rp1EnumMemberTarget> EnumMembers { get; } = new[]
@@ -184,6 +208,11 @@ namespace GonogoRp1Uplink.Tests
             // FOUR parameters with the last defaulted, because a reflected invoke
             // applies no defaults and has to pass all four.
             new Rp1ConstructorTarget(Rp0, "RP0.ReconRolloutProject", 4, "Rp1VehicleCommands"),
+            // (SpaceCenterFacility, string facilityID, int newLevel, int oldLevel,
+            // string name). The parameterless constructor sits beside it for
+            // deserialisation, so arity is what tells the two apart and a
+            // reshaped signature would silently resolve the wrong one.
+            new Rp1ConstructorTarget(Rp0, "RP0.FacilityUpgradeProject", 5, "Rp1FacilityUpgradeCommands"),
         };
 
         public static IReadOnlyList<Rp1MethodTarget> Methods { get; } = new[]
@@ -237,6 +266,40 @@ namespace GonogoRp1Uplink.Tests
             new Rp1MethodTarget(Rp0, "RP0.MaintenanceHandler", "LCUpkeep", 1, false, "Rp1ScReflection"),
             new Rp1MethodTarget(Rp0, "RP0.SpaceCenterManagement", "GetEffectiveEngineersForSalary", 1, false, "Rp1ScReflection"),
             new Rp1MethodTarget(Rp0, "RP0.SpaceCenterManagement", "GetEffectiveIntegrationEngineersForSalary", 1, false, "Rp1ScReflection"),
+            // ── The facility upgrade ────────────────────────────────────────
+            // THE ONE NON-PUBLIC MEMBER THIS UPLINK REACHES, and the reason
+            // Rp1MethodTarget carries an accessibility at all. RP-1's rule for
+            // whether a facility tier is unlocked, private static on a Harmony
+            // patch class, reached rather than reproduced because its body is a
+            // lookup into a dictionary RP-1 builds from its own KCTBUILDINGTECHS
+            // config: reproducing it means re-parsing config this Uplink does not
+            // own, and drifting from it the day RP-1 changes how that config
+            // merges. Declared private here on purpose. A public expectation
+            // would not find it, and the failure would read as a missing overload
+            // of a member that is present and working.
+            new Rp1MethodTarget(
+                Rp0, "RP0.Harmony.PatchKSCFacilityContextMenu", "GetTechGate", 2, true,
+                "Rp1FacilityUpgradeCommands", Public: false),
+            // The second, and the refusal the design arrived without: RP-1 gives
+            // five of the nine facilities a 1-fund ladder its own config calls
+            // "cosmetic only" and drives their level itself, so a project queued
+            // against one is overwritten as soon as it lands. Its answer comes out
+            // of Database.LockedFacilities and it matches by case-insensitive
+            // SUBSTRING of the id, both of which are RP-1's to change, so it is
+            // called rather than reproduced. Private, like its neighbour.
+            new Rp1MethodTarget(
+                Rp0, "RP0.Harmony.PatchKSCFacilityContextMenu", "IsUpgradeable", 1, true,
+                "Rp1FacilityUpgradeCommands", Public: false),
+            // RP-1's own duplicate guard, and it searches EVERY centre rather
+            // than the active one. Called rather than reimplemented for exactly
+            // that reason: a per-centre check would let a second construction
+            // project appear for a facility already being upgraded at another KSC.
+            new Rp1MethodTarget(Rp0, "RP0.FacilityUpgradeProject", "AlreadyInProgressByID", 1, true, "Rp1FacilityUpgradeCommands"),
+            // The whole of how a price becomes a build DURATION
+            // (Formula.GetConstructionBP). Declared on the base that owns it;
+            // production invokes it on the FacilityUpgradeProject instance, whose
+            // public method set includes it.
+            new Rp1MethodTarget(Rp0, "RP0.ConstructionProject", "SetBP", 2, false, "Rp1FacilityUpgradeCommands"),
         };
 
         public static IReadOnlyList<Rp1MemberTarget> Members { get; } = BuildMembers();
@@ -281,6 +344,31 @@ namespace GonogoRp1Uplink.Tests
             ["x"] = "UnityEngine.Vector3, read off LaunchComplex.SizeMax and VesselProject.ShipSize",
             ["y"] = "UnityEngine.Vector3, read off LaunchComplex.SizeMax and VesselProject.ShipSize",
             ["z"] = "UnityEngine.Vector3, read off LaunchComplex.SizeMax and VesselProject.ShipSize",
+
+            // ── KSP's own facility model ────────────────────────────────────
+            // Reached by the facility-upgrade command, and none of it RP-1's to
+            // guard: RP-1 reads the very same members from ProcessUpgrade, so a
+            // rename here breaks RP-1 itself before it breaks this Uplink.
+            ["ScenarioUpgradeableFacilities"] = "KSP's facility registry, resolved by the same Find as RP-1's types but belonging to Assembly-CSharp",
+            ["protoUpgradeables"] = "KSP's ScenarioUpgradeableFacilities.protoUpgradeables, the id-to-facility dictionary RP-1 reads through GetFacilityReferencesById",
+            ["facilityRefs"] = "KSP's ProtoUpgradeable.facilityRefs, the live UpgradeableFacility list, which is empty outside the SPACECENTER scene",
+            ["SlashSanitize"] = "KSP's own id normaliser, called rather than copied so a bare facility name and a full id cannot disagree about which building was meant",
+            ["Key"] = "System.Collections.Generic.KeyValuePair, walking protoUpgradeables as a bare IEnumerable rather than indexing it, because RP-1's own indexer throws on a miss",
+            ["Value"] = "System.Collections.Generic.KeyValuePair, the other half of the pair above",
+            ["FacilityLevel"] = "KSP's UpgradeableObject.FacilityLevel, the tier a facility stands at",
+            ["MaxLevel"] = "KSP's UpgradeableObject.MaxLevel, the TOP tier's own index rather than a count",
+            ["UpgradeLevels"] = "KSP's UpgradeableObject.UpgradeLevels, the public property over the protected level table",
+            ["levelCost"] = "KSP's UpgradeableObject.UpgradeLevel.levelCost, summed to the figure that sets a construction's duration",
+            ["GetUpgradeCost"] = "KSP's UpgradeableFacility.GetUpgradeCost, the identical call ProcessUpgrade prices a facility upgrade with",
+            ["HighLogic"] = "KSP's own game-state statics, resolved by the same Find as RP-1's types but belonging to Assembly-CSharp",
+            ["LoadedSceneIsGame"] = "KSP's HighLogic.LoadedSceneIsGame, the condition ProcessUpgrade puts on the funds multiplier",
+            ["CurrentGame"] = "KSP's HighLogic.CurrentGame, walked only to reach the career's funds multiplier",
+            ["Parameters"] = "KSP's Game.Parameters, the same walk",
+            ["Career"] = "KSP's GameParameters.Career, the same walk",
+            ["FundsLossMultiplier"] = "KSP's CareerParams.FundsLossMultiplier, which scales what a facility has cost so far",
+            ["ResearchAndDevelopment"] = "KSP's R&D scenario, resolved by the same Find as RP-1's types but belonging to Assembly-CSharp",
+            ["GetTechnologyState"] = "KSP's ResearchAndDevelopment.GetTechnologyState, which is what RP-1's own facility tech gate asks",
+            ["SpaceCenterFacility"] = "KSP's facility enum, parsed from the facility id because RP-1's own derivation takes a scene MonoBehaviour this command never has",
         };
 
         /// <summary>
@@ -326,10 +414,11 @@ namespace GonogoRp1Uplink.Tests
             const string Programs = "Rp1ProgramsReflection";
             const string Staffing = "Rp1PersonnelCommands";
             const string StrategyWrites = "Rp1StrategyWrites";
+            const string Facilities = "Rp1FacilityUpgradeCommands";
 
             // ── The space centre ────────────────────────────────────────────
-            Add("RP0.SpaceCenterManagement", "Instance", Rp1Reader.Presence, Sc + ", " + Gate + ", " + Projects + ", " + Build + ", " + Withhold, @static: true);
-            Add("RP0.SpaceCenterManagement", "enabledForSave", Rp1Reader.Bool, Sc + ", " + Gate + ", " + Projects + ", " + Build);
+            Add("RP0.SpaceCenterManagement", "Instance", Rp1Reader.Presence, Sc + ", " + Gate + ", " + Projects + ", " + Build + ", " + Withhold + ", " + Facilities, @static: true);
+            Add("RP0.SpaceCenterManagement", "enabledForSave", Rp1Reader.Bool, Sc + ", " + Gate + ", " + Projects + ", " + Build + ", " + Facilities);
             Add("RP0.SpaceCenterManagement", "IsSimulatedFlight", Rp1Reader.Bool, Sc);
             Add("RP0.SpaceCenterManagement", "Researchers", Rp1Reader.Numeric, Sc);
             Add("RP0.SpaceCenterManagement", "Applicants", Rp1Reader.Numeric, Sc);
@@ -338,7 +427,7 @@ namespace GonogoRp1Uplink.Tests
             // same assignment RP-1's own overrideLC argument makes, and the whole
             // of how a vehicle is built somewhere other than the active complex.
             Add("RP0.VesselProject", "LCID", Rp1Reader.GuidWrite, Start);
-            Add("RP0.SpaceCenterManagement", "ActiveSC", Rp1Reader.Presence, Sc);
+            Add("RP0.SpaceCenterManagement", "ActiveSC", Rp1Reader.Presence, Sc + ", " + Facilities);
             Add("RP0.SpaceCenterManagement", "TechList", Rp1Reader.Presence, Sc);
             Add("RP0.SpaceCenterManagement", "LCToEfficiency", Rp1Reader.Presence, Sc);
 
@@ -353,7 +442,7 @@ namespace GonogoRp1Uplink.Tests
             // fit inside, and a stale copy of it would let a write overdraw.
             Add("RP0.LCSpaceCenter", "UnassignedEngineers", Rp1Reader.Numeric, Staffing);
             Add("RP0.LCSpaceCenter", "LaunchComplexes", Rp1Reader.Presence, Sc + ", " + Gate + ", " + Build);
-            Add("RP0.LCSpaceCenter", "FacilityUpgrades", Rp1Reader.Presence, Sc);
+            Add("RP0.LCSpaceCenter", "FacilityUpgrades", Rp1Reader.Presence, Sc + ", " + Facilities);
             Add("RP0.LCSpaceCenter", "LCConstructions", Rp1Reader.Presence, Sc);
             Add("RP0.LCSpaceCenter", "AssociatedGroundStation", Rp1Reader.Text, Sc);
 
@@ -469,14 +558,30 @@ namespace GonogoRp1Uplink.Tests
                      })
             {
                 Add(construction, "progress", Rp1Reader.Numeric, Sc);
-                Add(construction, "BP", Rp1Reader.Numeric, Sc);
                 Add(construction, "workRate", Rp1Reader.Numeric, Sc);
                 Add(construction, "_buildRate", Rp1Reader.Numeric, Sc);
                 Add(construction, "name", Rp1Reader.Text, Sc);
-                Add(construction, "cost", Rp1Reader.Numeric, Sc);
                 Add(construction, "spentCost", Rp1Reader.Numeric, Sc);
                 Add(construction, "spentRushCost", Rp1Reader.Numeric, Sc);
             }
+
+            // BP and cost are lifted out of that loop for the facility upgrade
+            // alone, because it is the one construction kind this Uplink WRITES.
+            // Queueing one sets the price and reads back the build points the
+            // duration formula derived, so both are settable-or-readable claims
+            // the other two kinds do not make.
+            Add("RP0.FacilityUpgradeProject", "cost", Rp1Reader.NumericWrite, Sc + ", " + Facilities);
+            Add("RP0.FacilityUpgradeProject", "BP", Rp1Reader.Numeric, Sc + ", " + Facilities);
+            Add("RP0.LCConstructionProject", "cost", Rp1Reader.Numeric, Sc);
+            Add("RP0.LCConstructionProject", "BP", Rp1Reader.Numeric, Sc);
+            Add("RP0.PadConstructionProject", "cost", Rp1Reader.Numeric, Sc);
+            Add("RP0.PadConstructionProject", "BP", Rp1Reader.Numeric, Sc);
+
+            // The event an enqueue announces itself on. Presence only: it is
+            // KSP's EventData, whose Fire is matched by arity on whatever the
+            // member hands back, and it is the one member on this path whose
+            // absence is not fatal (the queue is still written, unannounced).
+            Add("RP0.SCMEvents", "OnFacilityUpgradeQueued", Rp1Reader.Presence, Facilities, @static: true);
 
             Add("RP0.FacilityUpgradeProject", "FacilityType", Rp1Reader.EnumText, Sc);
             Add("RP0.FacilityUpgradeProject", "currentLevel", Rp1Reader.Numeric, Sc);

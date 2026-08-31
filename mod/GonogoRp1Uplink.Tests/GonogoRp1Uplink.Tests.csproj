@@ -51,6 +51,7 @@
     <Compile Include="..\GonogoRp1Uplink\Rp1PersonnelCommands.cs" />
     <Compile Include="..\GonogoRp1Uplink\Rp1StrategyWrites.cs" />
     <Compile Include="..\GonogoRp1Uplink\Rp1StrategyCommands.cs" />
+    <Compile Include="..\GonogoRp1Uplink\Rp1FacilityUpgradeCommands.cs" />
     <Compile Include="..\GonogoRp1Uplink\Rp1SimulationBackend.cs" />
     <Compile Include="..\GonogoRp1Uplink\Rp1DerivedCurrencyWithholder.cs" />
   </ItemGroup>

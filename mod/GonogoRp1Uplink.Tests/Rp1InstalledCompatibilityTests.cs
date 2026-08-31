@@ -246,17 +246,22 @@ namespace GonogoRp1Uplink.Tests
                 // Production matches on name and arity rather than on parameter
                 // types, because naming RP-1's own types would need the
                 // compile-time reference this Uplink deliberately does not take.
-                // So this is the same match, and it has to be public and the right
-                // staticness because that is what the BindingFlags ask for.
+                // So this is the same match, and it has to be the right
+                // accessibility and the right staticness because that is what the
+                // BindingFlags ask for. Accessibility is the target's rather than
+                // a constant: a member the Uplink reaches with a NON-public lookup
+                // would not be found by a public-only check, and the miss would
+                // read as a missing overload of a member that is perfectly
+                // present.
                 var match = overloads.FirstOrDefault(m =>
                     m.ParameterTypes.Length == target.Arity
                     && m.IsStatic == target.Static
-                    && m.IsPublic);
+                    && m.IsPublic == target.Public);
 
                 if (match == null)
                 {
                     failures.Add(
-                        target.Type + "." + target.Method + " has no public "
+                        target.Type + "." + target.Method + " has no " + (target.Public ? "public " : "non-public ")
                         + (target.Static ? "static" : "instance") + " overload taking " + target.Arity
                         + " parameter(s), which is how " + target.CallSite + " finds it. Present instead: "
                         + string.Join(" | ", overloads.Select(Describe)));

@@ -164,7 +164,26 @@ namespace GonogoRp1Uplink
         /// complex is infrastructure.
         /// </summary>
         private readonly Rp1PersonnelCommands _staffing = new Rp1PersonnelCommands();
+
+        /// <summary>
+        /// Committing to a leader or a program without the Administration
+        /// Building. Its own class because it reaches nothing the writes above
+        /// reach: it touches no vehicle, no complex and no building, only the
+        /// strategy roster and the procedure RP-1 splits across two halves.
+        /// </summary>
         private readonly Rp1StrategyCommands _strategies = new Rp1StrategyCommands();
+
+        /// <summary>
+        /// The facility upgrade RP-1 turns into a construction project, which is
+        /// the command <see cref="Rp1CareerProjectGate"/> refuses core's
+        /// <c>career.facility.upgrade</c> in favour of. Its own reader for the
+        /// reason the writes above have one, and its own class because it shares
+        /// nothing with them: it touches no vehicle and no launch complex, only
+        /// the space centre's own buildings.
+        /// </summary>
+        private readonly Rp1FacilityUpgradeCommands _facilities = new Rp1FacilityUpgradeCommands();
+
+        /// <summary>
         /// The command that starts a design the space centre has never held, from
         /// one of the save's own craft files. Its own reader for the reason the two
         /// above are, and it holds a LAZY route to core's craft catalogue rather
@@ -269,7 +288,7 @@ namespace GonogoRp1Uplink
             _start = new Rp1BuildStartCommands(Catalogue);
             Manifest = BuildManifest(
                 _build.IsAvailable, _vehicles.IsAvailable, _vehicles.IsMoveAvailable,
-                _staffing.IsAvailable, _start.IsAvailable);
+                _staffing.IsAvailable, _start.IsAvailable, _facilities.IsAvailable);
             _crewStanding = new Rp1CrewStandingBackend(_crew);
             _economy = new Rp1EconomyBackend(_upkeepQuery);
         }
@@ -279,7 +298,8 @@ namespace GonogoRp1Uplink
             bool queueModelResolved,
             bool moveModelResolved,
             bool staffingModelResolved,
-            bool startModelResolved) => new UplinkManifest
+            bool startModelResolved,
+            bool facilityModelResolved) => new UplinkManifest
         {
             Id = "rp1",
             Version = "1.0.0",
@@ -343,11 +363,11 @@ namespace GonogoRp1Uplink
             // has no delay UX.
             Commands = DeclareCommands(
                 buildModelResolved, queueModelResolved, moveModelResolved,
-                staffingModelResolved, startModelResolved),
+                staffingModelResolved, startModelResolved, facilityModelResolved),
         };
 
         /// <summary>
-        /// The six write commands, each declared only when the types its own
+        /// The seven write commands, each declared only when the types its own
         /// handler needs resolved.
         ///
         /// <para>Four conditions rather than one, because the dependencies
@@ -357,18 +377,21 @@ namespace GonogoRp1Uplink
         /// needs none of the three. Declaring all six off one flag would cost
         /// five commands for a rename that broke one.</para>
         ///
-        /// <para>Every one of them declares the SAME requirement, which is why
+        /// <para>Nearly all of them declare the SAME requirement, which is why
         /// there is one gate evaluator between them: the only condition
         /// evaluable before the press is that RP-1 is managing the save, and each
         /// command's own conditions are about a complex or a vehicle nobody has
-        /// named yet.</para>
+        /// named yet. The facility upgrade is the exception and adds a second,
+        /// because the facilities it prices exist in one scene only and that is
+        /// answerable before anyone names a building.</para>
         /// </summary>
         private static IReadOnlyList<CommandDeclaration> DeclareCommands(
             bool buildModelResolved,
             bool queueModelResolved,
             bool moveModelResolved,
             bool staffingModelResolved,
-            bool startModelResolved)
+            bool startModelResolved,
+            bool facilityModelResolved)
         {
             var commands = new List<CommandDeclaration>();
             if (buildModelResolved)
@@ -410,6 +433,26 @@ namespace GonogoRp1Uplink
             if (staffingModelResolved)
             {
                 commands.Add(Declare(Rp1PersonnelCommands.AssignCommand));
+            }
+            if (facilityModelResolved)
+            {
+                // TWO requirements, and the second is the only condition in this
+                // Uplink that is about the SCENE: the live UpgradeableFacility
+                // objects carrying a tier and a price exist at the space centre
+                // only, which was confirmed against the running game rather than
+                // inferred (see Rp1FacilityUpgradeCommands' header). Declaring it
+                // means the control is dark with that reason from anywhere else,
+                // instead of answering a press with an empty list.
+                commands.Add(new CommandDeclaration
+                {
+                    Command = Rp1FacilityUpgradeCommands.UpgradeCommand,
+                    Delayed = false,
+                    Requires = new[]
+                    {
+                        Rp1BuildCommands.Requirements()[0],
+                        Rp1FacilityUpgradeCommands.FacilitiesRequirement(),
+                    },
+                });
             }
             return commands;
         }
@@ -534,11 +577,12 @@ namespace GonogoRp1Uplink
             // a read surface that fails must not leave a command half-registered.
             try
             {
-                // The evaluator goes up when ANY of the six commands is
+                // The evaluator goes up when ANY of the seven commands is
                 // declared, not when the repeat build is: it answers the one
                 // requirement they all declare, and a declaration without its
                 // evaluator is a startup failure.
-                if (_build.IsAvailable || _vehicles.IsAvailable || _staffing.IsAvailable)
+                if (_build.IsAvailable || _vehicles.IsAvailable || _staffing.IsAvailable
+                    || _facilities.IsAvailable)
                 {
                     host.AddGateEvaluator(_build);
                 }
@@ -576,6 +620,16 @@ namespace GonogoRp1Uplink
                 {
                     host.AddCommandHandler<Rp1StrategyActivateArgs, CommandResult>(
                         Rp1StrategyCommands.ActivateCommand, _strategies.Activate);
+                }
+                if (_facilities.IsAvailable)
+                {
+                    // Its own evaluator beside the shared one, because it is the
+                    // only command here whose availability turns on something the
+                    // build gate has no opinion about: whether the space centre's
+                    // facilities are loaded at all.
+                    host.AddGateEvaluator(_facilities);
+                    host.AddCommandHandler<Rp1FacilityUpgradeArgs, CommandResult<Dictionary<string, object?>>>(
+                        Rp1FacilityUpgradeCommands.UpgradeCommand, _facilities.Upgrade);
                 }
             }
             catch (Exception ex)
@@ -943,6 +997,17 @@ namespace GonogoRp1Uplink
                     !_staffing.IsAvailable
                         ? "not registered: RP-1 space-centre types not found"
                         : "rp1.personnel.assign registered (" + _staffing.MethodDiagnosis() + ")"),
+                // Its own fact rather than a line on the build commands, and the
+                // diagnosis matters more here than anywhere else on this list:
+                // the one non-public member this Uplink reaches is the tech gate
+                // behind it, on a Harmony patch class, and a rename there takes
+                // the command out at the press with nothing else noticing.
+                new UplinkHealthFact(
+                    "facility upgrade command",
+                    !_facilities.IsAvailable
+                        ? "not registered: RP-1 facility-construction types not found"
+                        : "rp1.facility.upgrade registered, space centre only ("
+                          + _facilities.MethodDiagnosis() + ")"),
                 new UplinkHealthFact(
                     "simulation provider",
                     _simulationRegistrationError != null

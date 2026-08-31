@@ -687,6 +687,31 @@ namespace RP0
         public virtual SpaceCenterFacility FacilityType => SpaceCenterFacility.LaunchPad;
 
         public void SetBuildRate(double rate) => _buildRate = rate;
+
+        /// <summary>
+        /// The call that turns a price into a build duration. The real body is
+        /// <c>BP = Formula.GetConstructionBP(cost, oldCost, FacilityType)</c>,
+        /// which is RP-1's own curve and is deliberately NOT reproduced: what a
+        /// test can assert is that BOTH arguments reached it and which they were,
+        /// so the sum below is only a deterministic function of the two and
+        /// carries no claim about RP-1's arithmetic.
+        /// </summary>
+        public void SetBP(double cost, double oldCost)
+        {
+            BpCostArgument = cost;
+            BpOldCostArgument = oldCost;
+            BpCalls++;
+            BP = cost + oldCost;
+        }
+
+        /// <summary>The price <see cref="SetBP"/> was given, for a test to check against the facility's own.</summary>
+        public double? BpCostArgument;
+
+        /// <summary>The cumulative prior cost <see cref="SetBP"/> was given, which is the half nothing else on the wire would reveal.</summary>
+        public double? BpOldCostArgument;
+
+        /// <summary>How many times the duration was set, so a test can pin RP-1's order rather than only its inputs.</summary>
+        public int BpCalls;
     }
 
     public class FacilityUpgradeProject : ConstructionProject
@@ -699,7 +724,51 @@ namespace RP0
 
         public override SpaceCenterFacility FacilityType => sFacilityType;
 
+        public FacilityUpgradeProject()
+        {
+        }
+
+        /// <summary>
+        /// RP-1's five-argument constructor, which is the only way a facility
+        /// upgrade is made. Arity is what production matches on, so the shape
+        /// here has to be the shipped one exactly.
+        /// </summary>
+        public FacilityUpgradeProject(SpaceCenterFacility type, string facilityID, int newLevel, int oldLevel, string name)
+        {
+            sFacilityType = type;
+            id = facilityID;
+            upgradeLevel = newLevel;
+            currentLevel = oldLevel;
+            base.name = name;
+        }
+
         public void SetFacility(SpaceCenterFacility facility) => sFacilityType = facility;
+
+        /// <summary>
+        /// RP-1's own duplicate guard, and it searches EVERY centre rather than
+        /// the active one. Reproduced with that reach on purpose: a per-centre
+        /// stand-in would let a test pass while production queued a second entry
+        /// for a facility already being upgraded at another KSC.
+        /// </summary>
+        public static bool AlreadyInProgressByID(string id)
+        {
+            var scm = SpaceCenterManagement.Instance;
+            if (scm == null)
+            {
+                return false;
+            }
+            foreach (var ksc in scm.KSCs)
+            {
+                foreach (var project in ksc.FacilityUpgrades)
+                {
+                    if (project.id == id)
+                    {
+                        return true;
+                    }
+                }
+            }
+            return false;
+        }
     }
 
     public class LCConstructionProject : ConstructionProject
