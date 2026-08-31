@@ -976,3 +976,150 @@ describe("uplink boundary: domain-debt allowlist entries only ever shrink", () =
     // shrink-only gates joined this project and competed for the pool.
   });
 });
+
+/**
+ * The set of APP-SIDE FILES allowed to name a mod at all, which may only shrink.
+ *
+ * WHY THIS EXISTS, and why it is a set of FILES rather than a count. The
+ * `permanent` bucket is unconstrained by design and holds 376 entries: a
+ * generated wire type has to name the mod it carries, a ratchet inventory has to
+ * name its subjects, and both legitimately grow with every new Topic and every
+ * new Uplink. Counting them would fail on ordinary work.
+ *
+ * What must NOT grow is the list of app-side production files that know a
+ * specific mod exists. `packages/` is core, the app, ui-kit and the relay: none
+ * of them should learn that SCANsat or Principia is a thing, because that
+ * knowledge belongs in the Uplink. Twenty such files are excused today and each
+ * one is a small piece of the boundary that has not been drawn yet.
+ *
+ * Freezing the SET rather than the COUNT is what makes this livable:
+ * `packages/app/src/main.tsx` bundles every first-party Uplink, so it gains a
+ * line whenever an Uplink lands. That is the mechanism by which an Uplink
+ * registers at all and there is nothing to fix. It is already in the set, so
+ * its twelfth import is free; what fails is a TWENTY-FIRST FILE joining.
+ *
+ * Generated code, ratchet inventories and tests are out of scope: the first two
+ * name mods as their job, and a test naming one is already policed by the
+ * survives-comment-strip check above, which is the gate that catches a
+ * prose-excused file quietly acquiring code.
+ */
+const GUARDED_PREFIX = "packages/";
+
+function namesAModInAppCode(path: string): boolean {
+  if (!path.startsWith(GUARDED_PREFIX)) return false;
+  if (path.includes("__generated__")) return false;
+  if (path.includes("allowlist") || path.includes(".debt.")) return false;
+  if (path.includes(".test.") || path.includes("test-d")) return false;
+  return true;
+}
+
+function guardedSurface(
+  allowlist: Partial<Record<ModToken, ModAllowlist | string[]>>,
+): Set<string> {
+  const files = new Set<string>();
+  for (const entry of Object.values(allowlist)) {
+    const paths = Array.isArray(entry)
+      ? entry
+      : [...(entry?.permanent ?? []), ...(entry?.domainDebt ?? [])];
+    for (const p of paths) if (namesAModInAppCode(p)) files.add(p);
+  }
+  return files;
+}
+
+function findGuardedSurfaceGrowth(
+  previous: Partial<Record<ModToken, ModAllowlist | string[]>>,
+  current: Partial<Record<ModToken, ModAllowlist>>,
+): string[] {
+  const before = guardedSurface(previous);
+  return [...guardedSurface(current)].filter((f) => !before.has(f)).sort();
+}
+
+describe("findGuardedSurfaceGrowth: app-side surface logic (synthetic fixtures)", () => {
+  const base: Partial<Record<ModToken, ModAllowlist>> = {
+    scansat: {
+      permanent: ["packages/app/src/main.tsx", "packages/core/src/types.ts"],
+      domainDebt: [],
+    },
+  };
+
+  it("flags a NEW app-side file joining the surface", () => {
+    const current: Partial<Record<ModToken, ModAllowlist>> = {
+      scansat: {
+        permanent: [
+          "packages/app/src/main.tsx",
+          "packages/core/src/types.ts",
+          "packages/app/src/NewlyCoupled.tsx",
+        ],
+        domainDebt: [],
+      },
+    };
+    expect(findGuardedSurfaceGrowth(base, current)).toEqual([
+      "packages/app/src/NewlyCoupled.tsx",
+    ]);
+  });
+
+  it("does NOT flag a second mod naming a file already in the surface", () => {
+    // The main.tsx case: an eleventh Uplink lands and takes a bundle import.
+    // The file was already excused, so nothing new has learned about a mod.
+    const current: Partial<Record<ModToken, ModAllowlist>> = {
+      ...base,
+      ferram: { permanent: ["packages/app/src/main.tsx"], domainDebt: [] },
+    };
+    expect(findGuardedSurfaceGrowth(base, current)).toEqual([]);
+  });
+
+  it("ignores generated code, ratchet inventories and tests", () => {
+    const current: Partial<Record<ModToken, ModAllowlist>> = {
+      scansat: {
+        permanent: [
+          ...base.scansat!.permanent,
+          "packages/core/src/__generated__/topic-map.ts",
+          "packages/core/src/render-fixture-coverage.debt.ts",
+          "packages/core/src/styleguide.test.ts",
+        ],
+        domainDebt: [],
+      },
+    };
+    expect(findGuardedSurfaceGrowth(base, current)).toEqual([]);
+  });
+
+  it("does not flag a shrink", () => {
+    const current: Partial<Record<ModToken, ModAllowlist>> = {
+      scansat: { permanent: ["packages/app/src/main.tsx"], domainDebt: [] },
+    };
+    expect(findGuardedSurfaceGrowth(base, current)).toEqual([]);
+  });
+});
+
+describe("uplink boundary: the app-side surface only ever shrinks", () => {
+  it("no new packages/ file started naming a mod vs the base ref", async () => {
+    const base = ratchetBaseRef();
+    if (!base) return; // the checkout IS the base, so there is nothing to diff
+
+    const root = findRepoRoot(dirname(fileURLToPath(import.meta.url)));
+    const relPath = relative(
+      root,
+      join(
+        dirname(fileURLToPath(import.meta.url)),
+        "uplink-boundary.allowlist.ts",
+      ),
+    );
+    const previous = await loadAllowlistAt(base, relPath);
+    if (!previous) return; // graded by ratchet-base-ref.test.ts, in one place
+
+    const added = findGuardedSurfaceGrowth(previous, ALLOWLIST);
+    if (added.length > 0) {
+      throw new Error(
+        `These app-side files started naming a mod vs ${base.ref}:\n` +
+          added.map((f) => `  ${f}`).join("\n") +
+          `\n\nNothing under packages/ should know that a specific mod exists: ` +
+          `core, the app, ui-kit and the relay are what every Uplink shares, and ` +
+          `mod knowledge belongs in the owning Uplink. Move the code into that ` +
+          `Uplink rather than excusing the file here.\n\n` +
+          `If the mod name is genuinely unavoidable, say why in review before ` +
+          `adding it: this list is twenty files that each represent a piece of ` +
+          `the boundary not yet drawn, and it is meant to reach zero.`,
+      );
+    }
+  });
+});
