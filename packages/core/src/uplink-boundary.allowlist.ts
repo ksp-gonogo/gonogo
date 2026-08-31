@@ -225,7 +225,6 @@ export const ALLOWLIST: Record<ModToken, ModAllowlist> = {
        * -- Uplink Hub wizard welcome copy: user-facing onboarding text naming
        * example Uplinks the Hub can load. Copy, not code coupling.
        */
-      "packages/app/src/wizard/steps/WelcomeStep.tsx",
       /*
        * flag.ts / flag.test.ts / main.tsx were here (the loader's shipped
        * first-party enabled-id list, its test, and main.tsx's prose naming the
@@ -443,7 +442,6 @@ export const ALLOWLIST: Record<ModToken, ModAllowlist> = {
        * -- Uplink Hub wizard welcome copy: user-facing onboarding text naming
        * example Uplinks the Hub can load. Copy, not code coupling.
        */
-      "packages/app/src/wizard/steps/WelcomeStep.tsx",
       // -- contract/SDK layer --
       "mod/Sitrep.Contract/ContractVersion.cs",
       "mod/Sitrep.Contract/RtConfig.cs",
@@ -728,7 +726,6 @@ export const ALLOWLIST: Record<ModToken, ModAllowlist> = {
        * -- Uplink Hub wizard welcome copy: user-facing onboarding text naming
        * example Uplinks the Hub can load. Copy, not code coupling.
        */
-      "packages/app/src/wizard/steps/WelcomeStep.tsx",
       // -- new test (Plan 3): a kOS-terminal-SHAPED keyframe diff-stream fixture
       // (the shared-vantage multi-client catch-up test). A text-only mention of
       // "kos" in a fixture comment/shape name, no code coupling to the kOS Uplink.
@@ -2525,7 +2522,6 @@ export const SURVIVES_COMMENT_STRIP: Partial<Record<ModToken, string[]>> = {
     "packages/app/src/__tests__/uplink-widget-declarations.test.ts",
     "packages/app/src/alarms/AlarmHostService.test.ts",
     "packages/app/src/screens/StationScreen.tsx",
-    "packages/app/src/wizard/steps/WelcomeStep.tsx",
     "packages/core/src/comment-stacks.allowlist.ts",
     "packages/core/src/one-render-process.test.ts",
     "packages/core/src/styleguide-magnitude-budget.test.ts",
@@ -2557,7 +2553,6 @@ export const SURVIVES_COMMENT_STRIP: Partial<Record<ModToken, string[]>> = {
     "packages/app/src/logs/LogsManager.tsx",
     "packages/app/src/settings/SettingsModal.test.tsx",
     "packages/app/src/telemetry/PeerTransport.test.ts",
-    "packages/app/src/wizard/steps/WelcomeStep.tsx",
     "packages/core/src/banner-comments.allowlist.ts",
     "packages/core/src/comment-stacks.allowlist.ts",
     "packages/core/src/panel-body.allowlist.ts",
@@ -2626,7 +2621,6 @@ export const SURVIVES_COMMENT_STRIP: Partial<Record<ModToken, string[]>> = {
     "mod/sitrep-sdk/src/spine/map-topic.ts",
     "packages/app/src/__tests__/scansat-coverage-roundtrip.test.tsx",
     "packages/app/src/uplinks/loader.test.ts",
-    "packages/app/src/wizard/steps/WelcomeStep.tsx",
     "packages/core/src/comment-stacks.allowlist.ts",
     "packages/core/src/uplink-isolation.allowlist.ts",
     "packages/data/src/schema/topicFieldCatalog.test.ts",
