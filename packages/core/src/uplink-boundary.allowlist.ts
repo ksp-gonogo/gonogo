@@ -1539,6 +1539,16 @@ export const ALLOWLIST: Record<ModToken, ModAllowlist> = {
   avionics: {
     domainDebt: [],
     permanent: [
+      /*
+       * RP-1's own type name, not this Uplink's concern. RP-1 declares
+       * ModuleToolingProcAvionics, one of its tooling subclasses, and both files
+       * name it in a doc comment explaining why a tooling's parameter tuple has no
+       * uniform accessor: that subclass is the one that adds a third parameter, and
+       * it reads it off a private member. Text only, no import, no coupling to the
+       * Avionics Uplink, and the explanation is worse without the name.
+       */
+      "mod/GonogoRp1Uplink/Rp1ToolingReflection.cs",
+      "mod/GonogoRp1Uplink.Contract/Rp1Payloads.cs",
       /**
        * The panel-body ratchet's own inventory: a path-keyed debt list over every
        * widget-side `.tsx` in the repo, so it names this Uplink's widgets by

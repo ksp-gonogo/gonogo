@@ -1584,6 +1584,16 @@ namespace RP0
 
     public class SpaceCenterManagement
     {
+        /// <summary>
+        /// RP-1's cached Tool-All total for the ship in the editor, kept current by
+        /// its own editor-ship-modified handler. STATIC, as the real one is.
+        ///
+        /// <para>The reading takes this rather than asking RP-1's window to price
+        /// the ship, because the window prices by performing every purchase for
+        /// real and rolling the database back.</para>
+        /// </summary>
+        public static double EditorToolingCosts;
+
         public static SpaceCenterManagement? Instance { get; set; }
 
         public bool enabledForSave = true;
@@ -1957,6 +1967,13 @@ public class Vessel
 // reads, or a test would prove a constructor call that carries nothing.
 public class ShipConstruct
 {
+    /// <summary>
+    /// The parts on the editor's table, which is what the tooling reading walks.
+    /// Empty on every craft-catalogue test and populated only by the tooling ones:
+    /// a ship with no parts has no tooling, which is a real state.
+    /// </summary>
+    public List<Part> Parts { get; } = new List<Part>();
+
     public string shipName = "";
 
     public EditorFacility shipFacility = EditorFacility.VAB;

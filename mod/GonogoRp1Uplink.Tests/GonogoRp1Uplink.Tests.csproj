@@ -38,6 +38,10 @@
     <Compile Include="..\GonogoRp1Uplink\Rp1CrewStandingBackend.cs" />
     <Compile Include="..\GonogoRp1Uplink\Rp1TrainingCatalogueReflection.cs" />
     <Compile Include="..\GonogoRp1Uplink\Rp1TrainingCommands.cs" />
+    <Compile Include="..\GonogoRp1Uplink\Rp1ToolingRaw.cs" />
+    <Compile Include="..\GonogoRp1Uplink\Rp1ToolingCapture.cs" />
+    <Compile Include="..\GonogoRp1Uplink\Rp1ToolingReflection.cs" />
+    <Compile Include="..\GonogoRp1Uplink\Rp1ToolingCommands.cs" />
     <Compile Include="..\GonogoRp1Uplink\Rp1ScUplink.cs" />
     <Compile Include="..\GonogoRp1Uplink\Rp1EconomyBackend.cs" />
     <Compile Include="..\GonogoRp1Uplink\Rp1EconomyUpkeepQuery.cs" />

@@ -58,6 +58,7 @@ namespace GonogoRp1Uplink
         public const string CrewProgramTopic = "rp1.crewProgram";
         public const string TrainingTopic = "rp1.training";
         public const string TrainingCatalogueTopic = "rp1.trainingCatalogue";
+        public const string ToolingTopic = "rp1.tooling";
 
         /// <summary>
         /// Rows published per second across every rp1.* channel. One capture per
@@ -109,6 +110,14 @@ namespace GonogoRp1Uplink
         /// first list's tick rate for an answer that is the same all afternoon.
         /// </summary>
         private readonly Rp1TrainingCatalogueReflection _catalogue = new Rp1TrainingCatalogueReflection();
+
+        /// <summary>
+        /// What tooling the vehicle on the editor's table needs, on its own reader
+        /// because it reads a different SCENE from everything else here. Every other
+        /// channel on this Uplink is space-centre state; this one is the ship being
+        /// designed, and it answers nothing at all from anywhere else.
+        /// </summary>
+        private readonly Rp1ToolingReflection _tooling = new Rp1ToolingReflection();
 
         /// <summary>
         /// RP-1's answer to whether a kerbal off the flight roster is dead, offered
@@ -230,6 +239,13 @@ namespace GonogoRp1Uplink
         private readonly Rp1TrainingCommands _trainingWrites = new Rp1TrainingCommands();
 
         /// <summary>
+        /// Tooling: a purchase and an EDIT, which is why they share a class and not
+        /// a shape. Its own reader again, and the only writes on this Uplink whose
+        /// subject is the ship on the editor's table rather than the space centre.
+        /// </summary>
+        private readonly Rp1ToolingCommands _toolingWrites = new Rp1ToolingCommands();
+
+        /// <summary>
         /// The facility upgrade RP-1 turns into a construction project, which is
         /// the command <see cref="Rp1CareerProjectGate"/> refuses core's
         /// <c>career.facility.upgrade</c> in favour of. Its own reader for the
@@ -318,6 +334,7 @@ namespace GonogoRp1Uplink
 
         private IChannelPublisher? _training;
         private IChannelPublisher? _trainingCatalogue;
+        private IChannelPublisher? _toolingPublisher;
 
         /// <summary>
         /// Whether RP-1 is managing this save, asked fresh rather than remembered
@@ -359,7 +376,7 @@ namespace GonogoRp1Uplink
                 _researchCommands.IsAvailable, _strategies.IsAvailable, _targets.IsAvailable,
                 _trainingWrites.IsAvailable, _complexLifecycle.IsAvailable,
                 _complexConstruction.IsAvailable, _complexConstruction.IsPadAvailable,
-                _warp.IsAvailable);
+                _warp.IsAvailable, _toolingWrites.IsAvailable);
             _crewStanding = new Rp1CrewStandingBackend(_crew);
             _economy = new Rp1EconomyBackend(_upkeepQuery);
         }
@@ -378,7 +395,8 @@ namespace GonogoRp1Uplink
             bool complexLifecycleModelResolved,
             bool complexConstructionModelResolved,
             bool padConstructionModelResolved,
-            bool warpModelResolved) => new UplinkManifest
+            bool warpModelResolved,
+            bool toolingModelResolved) => new UplinkManifest
         {
             Id = "rp1",
             Version = "1.0.0",
@@ -437,6 +455,14 @@ namespace GonogoRp1Uplink
                 // so nothing to enrol on is a claim about the reader rather than
                 // about the career.
                 Ground(TrainingCatalogueTopic, absenceIsData: true),
+                // Absence here is a THIRD kind again, and the one most easily
+                // misread: no editor ship, or RP-1's tooling switched off. That
+                // second case matters because RP-1's own level lookup short-circuits
+                // to "tooled" for everything when tooling is disabled, so a payload
+                // built then would report a finished vehicle. Saying nothing is the
+                // only honest answer, and absenceIsData is what tells a client that
+                // the silence is the answer rather than a wait.
+                Ground(ToolingTopic, absenceIsData: true),
             },
             // Delayed: false, the same disposition every ground-side career write
             // takes and for the same reason core's own nine give: light-time is
@@ -454,7 +480,7 @@ namespace GonogoRp1Uplink
                 researchModelResolved, strategyModelResolved, targetModelResolved,
                 trainingModelResolved, complexLifecycleModelResolved,
                 complexConstructionModelResolved, padConstructionModelResolved,
-                warpModelResolved),
+                warpModelResolved, toolingModelResolved),
         };
 
         /// <summary>
@@ -490,7 +516,8 @@ namespace GonogoRp1Uplink
             bool complexLifecycleModelResolved,
             bool complexConstructionModelResolved,
             bool padConstructionModelResolved,
-            bool warpModelResolved)
+            bool warpModelResolved,
+            bool toolingModelResolved)
         {
             var commands = new List<CommandDeclaration>();
             if (buildModelResolved)
@@ -628,6 +655,14 @@ namespace GonogoRp1Uplink
                         },
                     });
                 }
+            }
+            // Its own flag again, on RP-1's tooling model, which nothing else here
+            // touches. Both commands act on the editor ship rather than the space
+            // centre, and neither shares a dependency with the writes above.
+            if (toolingModelResolved)
+            {
+                commands.Add(Declare(Rp1ToolingCommands.ToolAllCommand));
+                commands.Add(Declare(Rp1ToolingCommands.RefitCommand));
             }
             return commands;
         }
@@ -774,7 +809,7 @@ namespace GonogoRp1Uplink
                     || _facilities.IsAvailable
                     || _researchCommands.IsAvailable
                     || _strategies.IsAvailable || _targets.IsAvailable
-                    || _trainingWrites.IsAvailable)
+                    || _trainingWrites.IsAvailable || _toolingWrites.IsAvailable)
                 {
                     host.AddGateEvaluator(_build);
                 }
@@ -923,6 +958,16 @@ namespace GonogoRp1Uplink
                         Rp1TrainingCommands.RemoveCommand, _trainingWrites.Remove);
                 }
             });
+            Register(() =>
+            {
+                if (_toolingWrites.IsAvailable)
+                {
+                    host.AddCommandHandler<Rp1ToolAllArgs, CommandResult>(
+                        Rp1ToolingCommands.ToolAllCommand, _toolingWrites.ToolAll);
+                    host.AddCommandHandler<Rp1ToolingRefitArgs, CommandResult>(
+                        Rp1ToolingCommands.RefitCommand, _toolingWrites.Refit);
+                }
+            });
 
             void Register(Action register)
             {
@@ -1032,6 +1077,7 @@ namespace GonogoRp1Uplink
             _crewProgram = host.Publisher(CrewProgramTopic);
             _training = host.Publisher(TrainingTopic);
             _trainingCatalogue = host.Publisher(TrainingCatalogueTopic);
+            _toolingPublisher = host.Publisher(ToolingTopic);
 
             host.AddSampledSource(
                 CaptureOnMain,
@@ -1094,6 +1140,15 @@ namespace GonogoRp1Uplink
                 CaptureCatalogueOnMain,
                 HandleCatalogueOnCourier,
                 TrainingCatalogueTopic);
+
+            // Gated, and safe to gate on the same test the two captures above pass:
+            // its whole effect is its return value. It walks the editor ship's parts
+            // and asks each tooling module three pure questions, so a tick nobody is
+            // watching skips that walk and starves nothing.
+            host.AddSampledSource(
+                CaptureToolingOnMain,
+                HandleToolingOnCourier,
+                ToolingTopic);
 
             // UNGATED, and the two captures above say why by contrast: their whole
             // effect is their return value, and this one's is not. It feeds the
@@ -1270,6 +1325,19 @@ namespace GonogoRp1Uplink
             _trainingCatalogue?.Publish(rows, raw.Ut);
         }
 
+        /// <summary>MAIN-THREAD capture: the editor ship's tooling, or null when there is none.</summary>
+        internal object? CaptureToolingOnMain(KspSnapshot? snapshot) =>
+            _tooling.IsAvailable ? _tooling.Read(snapshot?.Ut ?? 0.0) : null;
+
+        /// <summary>COURIER-THREAD handle: map to a wire dict and publish. No game API.</summary>
+        internal void HandleToolingOnCourier(object? captured)
+        {
+            var raw = captured as Rp1ToolingRaw;
+            var payload = Rp1ToolingCapture.Build(raw);
+            Rp1RowBudget.Record(raw?.Parts.Count ?? 0, raw?.Ut ?? 0.0);
+            _toolingPublisher?.Publish(payload, raw?.Ut ?? 0.0);
+        }
+
         /// <summary>
         /// Health, and WHICH RP-1. The version caveat at the top of
         /// <see cref="Rp1ScReflection"/> is why these facts are load-bearing
@@ -1437,6 +1505,17 @@ namespace GonogoRp1Uplink
                     + (_trainingWrites.IsAvailable
                         ? "enrol, cancel and remove registered"
                         : "commands not registered: CrewHandler or TrainingCourse type not found")),
+                // Its own fact, and it names the SCENE, because that is the reason an
+                // operator will find this channel empty: everything tooling reads is
+                // the ship on the editor's table.
+                new UplinkHealthFact(
+                    "tooling",
+                    !_tooling.IsAvailable
+                        ? "not published: RP-1 tooling types not found"
+                        : "rp1.tooling published, editor only; "
+                          + (_toolingWrites.IsAvailable
+                              ? "toolAll and refit registered"
+                              : "commands not registered: ModuleTooling or ToolingPartResizer not found")),
             };
 
             if (!_rp1.IsAvailable)

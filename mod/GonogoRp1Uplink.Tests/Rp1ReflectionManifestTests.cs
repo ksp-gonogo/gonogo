@@ -60,6 +60,8 @@ namespace GonogoRp1Uplink.Tests
             "Rp1SimulationBackend.cs",
             "Rp1TrainingCatalogueReflection.cs",
             "Rp1TrainingCommands.cs",
+            "Rp1ToolingReflection.cs",
+            "Rp1ToolingCommands.cs",
         };
 
         /// <summary>

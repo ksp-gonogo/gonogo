@@ -233,6 +233,12 @@ namespace GonogoRp1Uplink.Tests
             // public and both take a single argument, so a match on arity alone
             // would build a course out of a template it then read as a save node.
             new Rp1TypeTarget(Rp0, "RP0.Crew.TrainingTemplate", "Rp1TrainingCommands"),
+            // Tooling. The manager says whether tooling applies at all, the module
+            // base is what a tooling part is RECOGNISED by (assignability, never a
+            // list of subclass names), and the resizer is the refit.
+            new Rp1TypeTarget(Rp0, "RP0.ToolingManager", "Rp1ToolingReflection"),
+            new Rp1TypeTarget(Rp0, "RP0.ModuleTooling", "Rp1ToolingReflection, Rp1ToolingCommands"),
+            new Rp1TypeTarget(Rp0, "RP0.ToolingPartResizer", "Rp1ToolingCommands"),
             new Rp1TypeTarget(Rp0, "RP0.Programs.ProgramHandler", "Rp1ProgramsReflection"),
             // The construction project a facility upgrade IS under RP-1, and the
             // reason career.facility.upgrade is refused rather than allowed to
@@ -268,6 +274,7 @@ namespace GonogoRp1Uplink.Tests
             new Rp1EnumMemberTarget(Rp0, "RP0.TransactionReasonsRP0", "SalaryResearchers", "Rp1EconomyUpkeepQuery"),
             new Rp1EnumMemberTarget(Rp0, "RP0.TransactionReasonsRP0", "SalaryCrew", "Rp1EconomyUpkeepQuery"),
             new Rp1EnumMemberTarget(Rp0, "RP0.TransactionReasonsRP0", "CrewTraining", "Rp1EconomyUpkeepQuery"),
+            new Rp1EnumMemberTarget(Rp0, "RP0.TransactionReasonsRP0", "ToolingPurchase", "Rp1ToolingCommands"),
             // The reason a tech node is priced and charged under, named to
             // Enum.Parse on both RP-1's flags enum and KSP's own of the same
             // member name. Only RP-1's half is checkable from here.
@@ -448,6 +455,20 @@ namespace GonogoRp1Uplink.Tests
             // so a course that started or ended without this leaves RP-1 quoting
             // last hour's payroll until its own timer comes round.
             new Rp1MethodTarget(Rp0, "RP0.MaintenanceHandler", "ScheduleMaintenanceUpdate", 0, false, "Rp1TrainingCommands"),
+            // Tooling reads: three pure questions asked of every tooling module.
+            new Rp1MethodTarget(Rp0, "RP0.ModuleTooling", "IsUnlocked", 0, false, "Rp1ToolingReflection, Rp1ToolingCommands"),
+            new Rp1MethodTarget(Rp0, "RP0.ModuleTooling", "GetToolingCost", 0, false, "Rp1ToolingReflection"),
+            new Rp1MethodTarget(Rp0, "RP0.ModuleTooling", "GetToolingParameterInfo", 0, false, "Rp1ToolingReflection"),
+            // ARITY TWO, and the second parameter is why this pin is worth having:
+            // `isSimulation` is DEFAULTED, reflection counts it, and the value that
+            // must be passed is false. True is the save-purchase-reload path the
+            // reader's header refuses.
+            new Rp1MethodTarget(Rp0, "RP0.ModuleTooling", "PurchaseToolingBatch", 2, true, "Rp1ToolingCommands"),
+            // ARITY FOUR for the same reason: the material argument is defaulted.
+            // Matched on its first parameter too, because a resizer overload taking
+            // something other than a Part would silently accept the wrong subject.
+            new Rp1MethodTarget(Rp0, "RP0.ToolingPartResizer", "Resize", 4, true, "Rp1ToolingCommands"),
+            new Rp1MethodTarget(Rp0, "RP0.UnlockCreditHandler", "GetPrePostCostAndAffordability", 6, false, "Rp1ToolingCommands"),
             // The money calls. All three are read-only on the shipped assembly
             // and are CALLED rather than mirrored for that reason: they return a
             // figure RP-1 actually bills, and the salary ladder behind them has
@@ -623,6 +644,24 @@ namespace GonogoRp1Uplink.Tests
             ["get_Item"] = "KSP's KerbalRoster string indexer, named rather than matched by arity because it declares an int one beside it",
             ["ProtoCrewMember"] = "KSP's crew type, named to tell AddStudent(ProtoCrewMember) from AddStudent(string) and RemoveStudent's identical pair",
             ["Remove"] = "the list's own Remove, on ROUtils.DataTypes.PersistentList<T> from a separate assembly, resolved by arity on whatever collection CrewHandler.TrainingCourses hands back",
+
+            // ── KSP's editor and its parts, reached only by the tooling half ──
+            ["EditorLogic"] = "KSP's editor, resolved by the same Find as RP-1's types but belonging to Assembly-CSharp",
+            ["fetch"] = "KSP's EditorLogic.fetch, null outside the editor, which is how the tooling reading knows there is no ship",
+            ["ship"] = "KSP's EditorLogic.ship, the vehicle being designed",
+            ["Parts"] = "KSP's ShipConstruct.Parts, the parts the tooling walk visits",
+            ["Modules"] = "KSP's Part.Modules, walked and filtered by assignability to RP0.ModuleTooling rather than by module name",
+            ["craftID"] = "KSP's Part.craftID, how a refit addresses a part instead of reading which part-action window is open",
+            ["symmetryCounterparts"] = "KSP's Part.symmetryCounterparts, counted so a refit's reach can be stated BEFORE the press rather than reported after",
+            ["partInfo"] = "KSP's Part.partInfo, walked only for the part's title",
+            ["title"] = "KSP's AvailablePart.title, the part's display name",
+            ["GameEvents"] = "KSP's own event statics, resolved by the same Find as RP-1's types but belonging to Assembly-CSharp",
+            ["onEditorShipModified"] = "KSP's GameEvents.onEditorShipModified, fired after a tooling purchase so the editor re-prices the vessel; RP-1 fires it for the same reason",
+            ["Fire"] = "KSP's EventData<T>.Fire, matched by arity and first parameter type",
+            ["ShipConstruct"] = "KSP's ship type, named only to tell EventData<ShipConstruct>.Fire from another overload",
+            ["Part"] = "KSP's part type, named to match ToolingPartResizer.Resize's first parameter",
+            ["ModuleROTank"] = "a third-party procedural-tank module, named to answer whether a refit could reshape this part at all",
+            ["ProceduralPart"] = "the other procedural-part module, same question",
         };
 
         /// <summary>
@@ -675,6 +714,8 @@ namespace GonogoRp1Uplink.Tests
             const string Lifecycle = "Rp1ComplexLifecycleCommands";
             const string Construction = "Rp1ComplexConstructionCommands";
             const string CostModel = "Rp1LcCostModel";
+            const string Tooling = "Rp1ToolingReflection";
+            const string ToolingWrites = "Rp1ToolingCommands";
 
             // ── The space centre ────────────────────────────────────────────
             Add("RP0.SpaceCenterManagement", "Instance", Rp1Reader.Presence, Sc + ", " + Gate + ", " + Projects + ", " + Build + ", " + Withhold + ", " + Facilities, @static: true);
@@ -1075,6 +1116,24 @@ namespace GonogoRp1Uplink.Tests
             // The AC tier a course demands, asked ONCE per operator press. See the
             // catalogue block above for why it is not on the channel.
             Add("RP0.Crew.TrainingCourse", "ACLevelRequirement", Rp1Reader.Numeric, TrainingWrites);
+
+            // ── Tooling ─────────────────────────────────────────────────────
+            // The price is taken from RP-1's own CACHED total and never by asking
+            // its window to compute one: that route performs every purchase for
+            // real and reloads the database from a node to undo them.
+            Add("RP0.SpaceCenterManagement", "EditorToolingCosts", Rp1Reader.Numeric, Tooling + ", " + ToolingWrites, @static: true);
+            Add("RP0.ToolingManager", "Instance", Rp1Reader.Presence, Tooling, @static: true);
+            // False outside a career, where RP-1's own level lookup answers "tooled"
+            // for everything. Read so the channel can say NOTHING rather than
+            // publish a vehicle with no work left on it.
+            Add("RP0.ToolingManager", "toolingEnabled", Rp1Reader.Bool, Tooling);
+            Add("RP0.ModuleTooling", "ToolingType", Rp1Reader.Text, Tooling);
+            Add("RP0.ModuleTooling", "ToolingTypeTitle", Rp1Reader.Text, Tooling);
+            // What the untooled surcharge actually CHARGES, rather than the formula
+            // behind it: GetUntooledPenaltyCost is protected, and this is the value
+            // RP-1's own part-cost modifier bills.
+            Add("RP0.ModuleTooling", "addedCost", Rp1Reader.Numeric, Tooling);
+            Add("RP0.UnlockCreditHandler", "Instance", Rp1Reader.Presence, ToolingWrites, @static: true);
 
             // ── Programs ───────────────────────────────────────────────────
             Add("RP0.Programs.ProgramHandler", "Instance", Rp1Reader.Presence, Programs + ", " + StrategyWrites, @static: true);

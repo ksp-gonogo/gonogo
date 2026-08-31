@@ -952,3 +952,70 @@ public class Rp1PadDismantleArgs
 public class Rp1WarpArgs
 {
 }
+
+/// <summary>
+/// Args for <c>rp1.tooling.toolAll</c>: buy every tooling the ship on the editor's
+/// table is missing, in one purchase.
+///
+/// <para>NO ARGUMENTS, and that is RP-1's own shape rather than a simplification.
+/// Tool All acts on the ship currently being edited and there is no other ship it
+/// could mean; a command carrying a craft id would imply a choice that does not
+/// exist.</para>
+/// </summary>
+[SitrepContract]
+#if SITREP_CODEGEN
+[TsInterface]
+#endif
+public class Rp1ToolAllArgs
+{
+}
+
+/// <summary>
+/// Args for <c>rp1.tooling.refit</c>: reshape a part to a size whose tooling is
+/// already owned.
+///
+/// <para><b>An EDIT, not a purchase.</b> It spends nothing and writes nothing to
+/// the tooling database. It changes the craft on the editor's table so that a part
+/// fits tooling the career already has, which is the other way of closing the gap
+/// <c>rp1.tooling</c> reports: buy the tooling, or move the part to tooling you
+/// own.</para>
+///
+/// <para><b>It reaches further than the part named.</b> Every symmetry counterpart
+/// is resized too, and the tank material is applied across the part's group. RP-1
+/// says so after the fact in a screen message; <c>rp1.tooling[].symmetryCounterparts</c>
+/// carries the count so a control can say it first.</para>
+/// </summary>
+[SitrepContract]
+#if SITREP_CODEGEN
+[TsInterface]
+#endif
+public class Rp1ToolingRefitArgs
+{
+    /// <summary>
+    /// The part to reshape, by the craft id <c>rp1.tooling[].partId</c> carries.
+    ///
+    /// <para>Named explicitly, and never inferred from which part-action window the
+    /// player has open. RP-1's own control reads that window; its underlying
+    /// <c>Resize</c> takes a part, and the difference is the whole point: a channel
+    /// or a command whose answer depends on a panel being open is one an operator
+    /// at another console cannot use.</para>
+    /// </summary>
+    [SitrepUnit(Units.Id)]
+    public string? PartId { get; set; }
+
+    /// <summary>The diameter to reshape to, which should be one an owned tooling covers.</summary>
+    [SitrepUnit(Units.Metres)]
+    public double? Diameter { get; set; }
+
+    /// <summary>The length to reshape to.</summary>
+    [SitrepUnit(Units.Metres)]
+    public double? Length { get; set; }
+
+    /// <summary>
+    /// The tank material to switch to, by RP-1's own name for it. ABSENT leaves the
+    /// material alone and reshapes only, which is a resize rather than a refit and
+    /// is what RP-1 calls it in that case.
+    /// </summary>
+    [SitrepUnit(Units.Id)]
+    public string? RfType { get; set; }
+}

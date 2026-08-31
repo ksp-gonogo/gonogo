@@ -36,6 +36,7 @@ import type {
   Rp1ProgramSlots,
   Rp1ResearchEntry,
   Rp1RushTerms,
+  Rp1Tooling,
   Rp1TrainingCourseEntry,
   Rp1TrainingTemplateEntry,
   Rp1WarehouseItemEntry,
@@ -178,6 +179,25 @@ export const RP1_TRAINING_TOPIC = "rp1.training";
  */
 export const RP1_TRAINING_CATALOGUE_TOPIC = "rp1.trainingCatalogue";
 
+/**
+ * What tooling the vehicle on the editor's table needs, and what it costs not to
+ * have it.
+ *
+ * The only channel on this Uplink whose subject is the ship being DESIGNED rather
+ * than the space centre, so it answers nothing from anywhere else.
+ *
+ * Two money numbers, and they are different questions. `toolAllCost` is RP-1's own
+ * deduplicated price for tooling the whole vehicle and is NOT the sum of the rows:
+ * a tooling covers anything of its type within four per cent, so paying for one
+ * part can leave a neighbour free. Each row's `untooledSurcharge` is what NOT
+ * tooling costs, per build, for ever, which is the number the decision turns on.
+ *
+ * Absence is a real answer and is not "everything is tooled": no ship in the
+ * editor, or RP-1's tooling switched off, in which case its own level lookup would
+ * have reported a finished vehicle.
+ */
+export const RP1_TOOLING_TOPIC = "rp1.tooling";
+
 declare module "@ksp-gonogo/sitrep-sdk" {
   interface TopicPayloadMap {
     "rp1.available": boolean;
@@ -201,6 +221,7 @@ declare module "@ksp-gonogo/sitrep-sdk" {
     "rp1.fundTarget": Rp1FundTarget;
     "rp1.training": Rp1TrainingCourseEntry[];
     "rp1.trainingCatalogue": Rp1TrainingTemplateEntry[];
+    "rp1.tooling": Rp1Tooling;
   }
 }
 
@@ -225,6 +246,7 @@ registerBarePrimitiveTopic(RP1_CREW_PROGRAM_TOPIC);
 registerBarePrimitiveTopic(RP1_FUND_TARGET_TOPIC);
 registerBarePrimitiveTopic(RP1_TRAINING_TOPIC);
 registerBarePrimitiveTopic(RP1_TRAINING_CATALOGUE_TOPIC);
+registerBarePrimitiveTopic(RP1_TOOLING_TOPIC);
 
 // Driven by looping the generated maps rather than naming each entry, so a
 // Topic added to this Uplink's contract later needs no new call site. Both
@@ -311,4 +333,7 @@ export type _ResolvesRp1Training = Expect<
 >;
 export type _ResolvesRp1TrainingCatalogue = Expect<
   Equal<TopicPayload<"rp1.trainingCatalogue">, Rp1TrainingTemplateEntry[]>
+>;
+export type _ResolvesRp1Tooling = Expect<
+  Equal<TopicPayload<"rp1.tooling">, Rp1Tooling>
 >;

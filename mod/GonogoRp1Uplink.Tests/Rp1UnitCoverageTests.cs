@@ -56,6 +56,10 @@ namespace GonogoRp1Uplink.Tests
                 nameof(Rp1TrainingTemplateEntry),
                 nameof(Rp1TrainingEnrolArgs),
                 nameof(Rp1TrainingLeaveArgs),
+                nameof(Rp1Tooling),
+                nameof(Rp1ToolingEntry),
+                nameof(Rp1ToolAllArgs),
+                nameof(Rp1ToolingRefitArgs),
                 nameof(Rp1HireTargetSetArgs),
                 nameof(Rp1FundTargetSetArgs),
                 // The shapes here that are not Topic payloads: the command

@@ -2282,3 +2282,162 @@ public sealed class Rp1TrainingTemplateEntry
     [SitrepUnit(Sitrep.Contract.Units.Flag)]
     public bool? IsTemporary { get; set; }
 }
+
+/// <summary>
+/// One tooling RP-1 would charge for on the ship currently in the editor.
+///
+/// <para><b>What tooling IS, because the row does not read without it.</b> RP-1
+/// keeps a CAREER-GLOBAL database keyed on a tooling type and an ordered tuple of
+/// parameters, not on a part. Two parts of different sizes share one tooling
+/// whenever their type matches and every parameter is within FOUR PERCENT, so
+/// paying for one part can leave a neighbour free. A row here is therefore a
+/// tooling this part needs, not a thing this part owns.</para>
+/// </summary>
+[SitrepContract]
+#if SITREP_CODEGEN
+[TsInterface]
+#endif
+public sealed class Rp1ToolingEntry
+{
+    /// <summary>The part carrying the module, by its display title.</summary>
+    [SitrepUnit(Sitrep.Contract.Units.Text)]
+    public string? PartTitle { get; set; }
+
+    /// <summary>
+    /// RP-1's own tooling-type key, and what makes two parts share a tooling.
+    /// Rows with the same type and the same
+    /// <see cref="ParameterSummary"/> are one purchase between them.
+    /// </summary>
+    [SitrepUnit(Units.Id)]
+    public string? ToolingType { get; set; }
+
+    /// <summary>The type as RP-1 titles it for a human.</summary>
+    [SitrepUnit(Sitrep.Contract.Units.Text)]
+    public string? ToolingTypeTitle { get; set; }
+
+    /// <summary>
+    /// The tooling's parameters, as RP-1 renders them: <c>3.000m x 5.000m</c>, or
+    /// <c>12.5 t x 3.000m x 5.000m</c> for a type that takes three.
+    ///
+    /// <para><b>A string, and deliberately not a number list.</b> The parameter
+    /// count varies by tooling type and RP-1 exposes no uniform accessor for the
+    /// tuple: each subclass builds its own inside its own cost function, and the
+    /// third parameter of the avionics type comes off a private member.
+    /// <c>GetToolingParameterInfo</c> is the one uniform reading, it is
+    /// variable-length by construction, and it is the producer's own rendering.
+    /// Reconstructing the numbers would mean mirroring RP-1's type hierarchy and
+    /// would misreport silently the day a subclass adds a parameter.</para>
+    /// </summary>
+    [SitrepUnit(Sitrep.Contract.Units.Text)]
+    public string? ParameterSummary { get; set; }
+
+    /// <summary>
+    /// Whether this tooling is already owned, which is RP-1's own
+    /// <c>IsUnlocked</c> rather than anything derived here.
+    ///
+    /// <para><b>There is no level beside it, and that is an omission with a
+    /// reason.</b> Tooling is genuinely PARTIAL: a diameter can be owned while a
+    /// length is not. RP-1 answers the level only when handed the right parameter
+    /// tuple, which is the thing above that cannot be read uniformly, and asking
+    /// with the wrong tuple returns a confidently wrong level. The economics of a
+    /// half-owned tooling still travel, in the field that matters:
+    /// <see cref="ToolingCost"/> drops once the first parameter is owned.</para>
+    /// </summary>
+    [SitrepUnit(Sitrep.Contract.Units.Flag)]
+    public bool? Tooled { get; set; }
+
+    /// <summary>
+    /// What finishing THIS tooling costs now. Lower on a partly-owned tooling,
+    /// which is where the missing level shows itself.
+    /// </summary>
+    [SitrepUnit(Units.Funds)]
+    public double? ToolingCost { get; set; }
+
+    /// <summary>
+    /// What NOT tooling costs, per build, for ever.
+    ///
+    /// <para>This is the number the decision actually turns on and the reason the
+    /// row exists. An untooled part carries a surcharge onto the vessel's cost
+    /// every single time it is built, so the question is never "what does tooling
+    /// cost" but "tool once, or pay this again on every copy". Read from RP-1's
+    /// own cached <c>addedCost</c>, which is what its part-cost modifier actually
+    /// charges, rather than from the formula behind it.</para>
+    /// </summary>
+    [SitrepUnit(Units.Funds)]
+    public double? UntooledSurcharge { get; set; }
+
+    /// <summary>The part's craft id, and what <c>rp1.tooling.refit</c> names.</summary>
+    [SitrepUnit(Units.Id)]
+    public string? PartId { get; set; }
+
+    /// <summary>
+    /// How many OTHER parts a refit of this one would take with it.
+    ///
+    /// <para>Carried so it can be said BEFORE the press. RP-1's own refit resizes
+    /// every symmetry counterpart and tells you how many afterwards, in a screen
+    /// message; a console can put the number beside the control instead, which is
+    /// the same disclosure at the moment it can still change the answer.</para>
+    /// </summary>
+    [SitrepUnit(Sitrep.Contract.Units.Count)]
+    public int? SymmetryCounterparts { get; set; }
+
+    /// <summary>
+    /// Whether a refit could reshape this part at all. RP-1 resizes through
+    /// <c>ModuleROTank</c> or <c>ProceduralPart</c> and silently does nothing on a
+    /// part with neither, so a control can be dark rather than inert.
+    /// </summary>
+    [SitrepUnit(Sitrep.Contract.Units.Flag)]
+    public bool? Refittable { get; set; }
+}
+
+/// <summary>
+/// The <c>rp1.tooling</c> channel: what the ship on the editor's table would cost
+/// to tool, and what it costs not to.
+///
+/// <para><b>A singleton with the rows nested rather than a bare array</b>, because
+/// the total is not a property of any row and is not the sum of them either. Both
+/// figures have to arrive together or a client is left to add up a column that
+/// gives the wrong answer.</para>
+///
+/// <para><b>Absence is a real answer and is not "everything is tooled".</b> No
+/// sample means no ship in the editor, or RP-1's tooling switched off. That second
+/// case is the one worth the care: RP-1's own level lookup short-circuits to
+/// "tooled" for everything when tooling is disabled, so a reading taken then would
+/// report a ship with nothing left to do. The channel says nothing instead.</para>
+///
+/// <para>EDITOR ONLY. The whole reading comes off the ship on the editor's table,
+/// so there is no sample from anywhere else and none is implied.</para>
+/// </summary>
+[SitrepContract]
+[SitrepTopic("rp1.tooling")]
+#if SITREP_CODEGEN
+[TsInterface]
+#endif
+public sealed class Rp1Tooling
+{
+    /// <summary>
+    /// RP-1's own price for tooling everything untooled on this ship.
+    ///
+    /// <para><b>NOT the sum of the rows.</b> Tooling one part can leave another
+    /// free, because a tooling matches any part of the same type within four per
+    /// cent, so adding the column up overstates. This is RP-1's own deduplicated
+    /// figure, taken off the field it caches it in rather than by asking its window
+    /// to price the ship, which it does by performing every purchase for real and
+    /// rolling the database back.</para>
+    /// </summary>
+    [SitrepUnit(Units.Funds)]
+    public double? ToolAllCost { get; set; }
+
+    /// <summary>How many of the rows below are not yet tooled.</summary>
+    [SitrepUnit(Sitrep.Contract.Units.Count)]
+    public int? UntooledCount { get; set; }
+
+    /// <summary>
+    /// Every tooling module on the ship, tooled or not.
+    ///
+    /// <para>The tooled ones travel too. A roster that showed only what is
+    /// outstanding could not tell an operator that a part is covered, which is the
+    /// half of the answer that says the money has already been spent.</para>
+    /// </summary>
+    public Rp1ToolingEntry[]? Parts { get; set; }
+}

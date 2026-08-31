@@ -430,6 +430,28 @@ export const GENERATED_TYPE_UNITS: Readonly<Record<string, UnitsByField>> = {
   "Rp1TechResearchArgs": {
     techId: "id",
   },
+  "Rp1Tooling": {
+    toolAllCost: "funds",
+    untooledCount: "count",
+  },
+  "Rp1ToolingEntry": {
+    parameterSummary: "text",
+    partId: "id",
+    partTitle: "text",
+    refittable: "flag",
+    symmetryCounterparts: "count",
+    tooled: "flag",
+    toolingCost: "funds",
+    toolingType: "id",
+    toolingTypeTitle: "text",
+    untooledSurcharge: "funds",
+  },
+  "Rp1ToolingRefitArgs": {
+    diameter: "m",
+    length: "m",
+    partId: "id",
+    rfType: "id",
+  },
   "Rp1TrainingCourseEntry": {
     completed: "flag",
     completesAtUt: "ut",
@@ -711,6 +733,10 @@ export const GENERATED_TOPIC_UNITS: Readonly<Record<string, UnitsByField>> = {
     rateMult: "ratio",
     salaryMult: "ratio",
   },
+  "rp1.tooling": {
+    toolAllCost: "funds",
+    untooledCount: "count",
+  },
   "rp1.training": {
     completed: "flag",
     completesAtUt: "ut",
@@ -797,6 +823,9 @@ export const GENERATED_TYPE_SHAPES: Readonly<Record<string, ShapesByField>> = {
     fundingPayments: "Rp1ProgramPaymentEntry[]",
     speedOptions: "Rp1ProgramSpeedOption[]",
   },
+  "Rp1Tooling": {
+    parts: "Rp1ToolingEntry[]",
+  },
 };
 
 /** The same, keyed by Topic id. */
@@ -813,5 +842,8 @@ export const GENERATED_TOPIC_SHAPES: Readonly<Record<string, ShapesByField>> = {
   "rp1.programs": {
     fundingPayments: "Rp1ProgramPaymentEntry[]",
     speedOptions: "Rp1ProgramSpeedOption[]",
+  },
+  "rp1.tooling": {
+    parts: "Rp1ToolingEntry[]",
   },
 };

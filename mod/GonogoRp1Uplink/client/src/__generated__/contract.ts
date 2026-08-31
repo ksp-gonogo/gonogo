@@ -116,6 +116,16 @@ export interface Rp1PadDismantleArgs
 export interface Rp1WarpArgs
 {
 }
+export interface Rp1ToolAllArgs
+{
+}
+export interface Rp1ToolingRefitArgs
+{
+	partId?: string;
+	diameter?: number;
+	length?: number;
+	rfType?: string;
+}
 export interface Rp1CentreEntry
 {
 	kscName?: string;
@@ -442,6 +452,25 @@ export interface Rp1TrainingTemplateEntry
 	seatMax?: Value<"count">;
 	unlocked?: boolean;
 	isTemporary?: boolean;
+}
+export interface Rp1ToolingEntry
+{
+	partTitle?: string;
+	toolingType?: string;
+	toolingTypeTitle?: string;
+	parameterSummary?: string;
+	tooled?: boolean;
+	toolingCost?: Value<"funds">;
+	untooledSurcharge?: Value<"funds">;
+	partId?: string;
+	symmetryCounterparts?: Value<"count">;
+	refittable?: boolean;
+}
+export interface Rp1Tooling
+{
+	toolAllCost?: Value<"funds">;
+	untooledCount?: Value<"count">;
+	parts?: Rp1ToolingEntry[];
 }
 export interface Rp1StrategyActivateArgs
 {
