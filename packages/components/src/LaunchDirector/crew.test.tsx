@@ -1,5 +1,6 @@
 import { DashboardItemContext } from "@ksp-gonogo/core";
 import { act, render, screen } from "@ksp-gonogo/test-utils";
+import { expectNoA11yViolations } from "@ksp-gonogo/ui-kit/testing";
 import userEvent from "@testing-library/user-event";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import {
@@ -259,6 +260,9 @@ describe("LaunchDirector crew render scenes", () => {
     expect(text).toContain("Standing down");
     expect(text).toContain("Retired");
     expect(text).toContain("— no reading");
+    // The chips are the interactive surface here: real buttons carrying
+    // aria-pressed for the selection and aria-disabled for the rest.
+    await expectNoA11yViolations(rendered.container);
     rendered.teardown();
   });
 
