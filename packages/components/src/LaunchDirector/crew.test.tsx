@@ -92,11 +92,17 @@ describe("LaunchDirector crew selection", () => {
     teardownMockDataSource(cmdFixture);
   });
 
-  function renderWidget(id = "ld") {
+  /**
+   * Rendered TALL by default, because the crew grid stands open above
+   * `CREW_GRID_MIN_ROWS` and folds behind its tally below it: a test about what
+   * the chips say has to be given a tile the chips fit in. The fold itself is
+   * the subject of its own tests further down, which pass a short `h`.
+   */
+  function renderWidget(id = "ld", h = 18) {
     return render(
       <stream.Provider>
         <DashboardItemContext.Provider value={{ instanceId: id }}>
-          <LaunchDirectorComponent id={id} />
+          <LaunchDirectorComponent id={id} h={h} />
         </DashboardItemContext.Provider>
       </stream.Provider>,
     );
@@ -232,6 +238,77 @@ describe("LaunchDirector crew selection", () => {
     });
 
     expect(screen.getByText(/Launch Probe unmanned/i)).toBeInTheDocument();
+  });
+
+  /**
+   * A tile too short for the grid folds it behind the tally instead of pushing
+   * it, and the launch control with it, past the panel's fold. What the fold
+   * must not cost is the two things the section is FOR: knowing the roster's
+   * shape, and knowing who is already aboard.
+   */
+  describe("on a tile too short for the grid", () => {
+    it("folds the grid behind the tally and keeps the launch control on screen", async () => {
+      const user = userEvent.setup();
+      renderWidget("ld", 10);
+      emitPadAndShip();
+      act(() => {
+        stream.emit("spaceCenter.crewRoster", [
+          kerbal("Jeb"),
+          kerbal("Val", {
+            available: false,
+            unavailableReason: "On mission",
+            standing: 3,
+            situation: "Assigned",
+          }),
+        ]);
+      });
+
+      await user.click(await screen.findByText("Probe"));
+
+      // The tally survives, so the roster is still accounted for.
+      expect(screen.getByText("Crew (2) · 1 unavailable")).toBeInTheDocument();
+      // The grid does not, and the control that launches is what the room goes to.
+      expect(screen.queryByText("Jeb")).toBeNull();
+      expect(screen.getByText(/Launch Probe unmanned/i)).toBeInTheDocument();
+
+      // Folded is a starting position, not a lock.
+      await user.click(screen.getByRole("button", { name: /Crew \(2\)/ }));
+      expect(screen.getByText("Jeb")).toBeInTheDocument();
+      expect(screen.getByText("On mission")).toBeInTheDocument();
+    });
+
+    it("counts a selection in the tally, so folding the grid never hides who is aboard", async () => {
+      const user = userEvent.setup();
+      renderWidget("ld", 10);
+      emitPadAndShip();
+      act(() => {
+        stream.emit("spaceCenter.crewRoster", [kerbal("Jeb"), kerbal("Bill")]);
+      });
+
+      await user.click(await screen.findByText("Probe"));
+      await user.click(screen.getByRole("button", { name: /Crew \(2\)/ }));
+      await user.click(screen.getByText("Jeb"));
+      // Fold it back with the selection standing.
+      await user.click(screen.getByRole("button", { name: /Crew \(2\)/ }));
+
+      expect(screen.queryByText("Jeb")).toBeNull();
+      expect(screen.getByText("Crew (2) · 1 selected")).toBeInTheDocument();
+      expect(screen.getByText(/Launch Probe \(1 crew\)/)).toBeInTheDocument();
+    });
+
+    it("offers no expander when the roster itself could not be read", async () => {
+      const user = userEvent.setup();
+      renderWidget("ld", 10);
+      emitPadAndShip();
+
+      await user.click(await screen.findByText("Probe"));
+
+      // Nothing to fold: the absence is stated where the tally would be.
+      expect(
+        screen.getByText(`Roster ${NULL_DISPLAY} no reading`),
+      ).toBeInTheDocument();
+      expect(screen.queryByRole("button", { name: /Crew/ })).toBeNull();
+    });
   });
 });
 

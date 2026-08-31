@@ -23,6 +23,7 @@ import {
 } from "@ksp-gonogo/sitrep-sdk";
 import {
   type CommandButtonHandle,
+  Disclosure,
   NULL_DISPLAY,
   Panel,
   ReadoutCaption,
@@ -158,18 +159,39 @@ export function crewReading(k: CrewMember): CrewReading {
 }
 
 /**
- * The roster's own count, and the two exceptions to it. Silent on a term that is
- * zero, so a roster where everyone can fly reads as its size and nothing else.
+ * The roster's own count, and the three exceptions to it. Silent on a term that
+ * is zero, so a roster where everyone can fly reads as its size and nothing
+ * else.
+ *
+ * <p>The selected count is here rather than beside the chips because this line
+ * is the only part of the section that survives a short tile: the grid folds
+ * behind it, and a fold that hid the manifest the operator had already picked
+ * would be worse than the overflow it replaced.</p>
  */
-export function crewTally(crew: CrewMember[]): string {
+export function crewTally(crew: CrewMember[], selected = 0): string {
   const readings = crew.map(crewReading);
   const unavailable = readings.filter((r) => r === "unavailable").length;
   const unread = readings.filter((r) => r === "unread").length;
   const terms = [`(${crew.length})`];
   if (unavailable > 0) terms.push(`${unavailable} unavailable`);
   if (unread > 0) terms.push(`${unread} no reading`);
+  if (selected > 0) terms.push(`${selected} selected`);
   return ` ${terms.join(" · ")}`;
 }
+
+/**
+ * Grid rows at or above which the crew grid stands open, and below which it
+ * starts folded behind its tally.
+ *
+ * Measured off the render matrix rather than picked: with a craft selected, the
+ * pad row, the craft row and their labels cost ~200px before crew is reached,
+ * the section's own label and a seven-kerbal grid cost ~330px more, and the
+ * launch control ~40px. At `ROW_HEIGHT` 25 plus an 8px margin that is 18 rows,
+ * which is why the only tile it ever fitted was the 7x18 one. Fourteen rows
+ * (454px) holds it with the compact chips below; every shorter tile pushed both
+ * the grid AND the launch control past the fold.
+ */
+const CREW_GRID_MIN_ROWS = 14;
 
 /** Trait and rank stay reachable on a row whose value line spent itself on the reason. */
 export function crewChipTitle(k: CrewMember, reading: CrewReading): string {
@@ -810,6 +832,7 @@ function LaunchDirectorComponent({
             }
             fundsAvailable={fundsAvailable}
             funds={careerFunds ?? undefined}
+            rows={rows}
             launchCmd={launchCmd}
             recoverCmd={recoverCmd}
             revertEditorCmd={revertEditorCmd}
@@ -881,6 +904,7 @@ function PadSection({
   onToggleCrew,
   fundsAvailable,
   funds,
+  rows,
   launchCmd,
   recoverCmd,
   revertEditorCmd,
@@ -899,6 +923,8 @@ function PadSection({
   onToggleCrew: (name: string) => void;
   fundsAvailable: number;
   funds: number | undefined;
+  /** The tile's height in grid rows; decides whether the crew grid stands open. */
+  rows: number;
   launchCmd: CommandButtonHandle;
   recoverCmd: CommandButtonHandle;
   revertEditorCmd: CommandButtonHandle;
@@ -1045,17 +1071,28 @@ function PadSection({
                                   </ShipDetails>
                                 </ShipMeta>
                                 <ShipCost>
+                                  {/* One Unit carrying the value, not a
+                                      hand-formatted number beside a bare
+                                      symbol: the children form renders the
+                                      symbol ALONE and never sees the number, so
+                                      this cost printed ungrouped beside a
+                                      grouped balance in the same widget. */}
                                   {s.requiresFunds > fundsAvailable && (
                                     <BlockedTag title="Insufficient funds">
-                                      {s.requiresFunds.toFixed(0)}
-                                      <Unit>funds</Unit>
+                                      <Unit
+                                        value={value("funds", s.requiresFunds)}
+                                      />
                                     </BlockedTag>
                                   )}
                                   {s.requiresFunds <= fundsAvailable &&
                                     s.requiresFunds > 0 && (
                                       <CostTag>
-                                        {s.requiresFunds.toFixed(0)}
-                                        <Unit>funds</Unit>
+                                        <Unit
+                                          value={value(
+                                            "funds",
+                                            s.requiresFunds,
+                                          )}
+                                        />
                                       </CostTag>
                                     )}
                                   {s.missingParts.length > 0 && (
@@ -1073,50 +1110,80 @@ function PadSection({
 
                         {ship && (
                           <>
-                            <SectionLabel>
-                              Crew{crew ? crewTally(crew) : ""}
-                            </SectionLabel>
-                            {/* The roster's own absence, said out loud: it used
-                                to remove this section and the launch controls
-                                with it. */}
-                            {crew === null && (
-                              <ReadoutCaption>
-                                Roster {NULL_DISPLAY} no reading
-                              </ReadoutCaption>
+                            {crew === null ? (
+                              <>
+                                <SectionLabel>Crew</SectionLabel>
+                                {/* The roster's own absence, said out loud: it
+                                    used to remove this section and the launch
+                                    controls with it. Nothing to fold here, so
+                                    no expander is offered. */}
+                                <ReadoutCaption>
+                                  Roster {NULL_DISPLAY} no reading
+                                </ReadoutCaption>
+                              </>
+                            ) : (
+                              /* The tally is the part that survives a short
+                                 tile, so it is the expander's own label rather
+                                 than a heading above one. `key` re-seats the
+                                 open state when a resize crosses the threshold;
+                                 without it a tile dragged taller would keep the
+                                 fold it was given while it was short. */
+                              <CrewDisclosure
+                                key={
+                                  rows >= CREW_GRID_MIN_ROWS ? "open" : "folded"
+                                }
+                                variant="inline"
+                                panelHeight="auto"
+                                defaultOpen={rows >= CREW_GRID_MIN_ROWS}
+                                label={
+                                  <SectionLabel>
+                                    Crew
+                                    {crewTally(crew, manifest.length)}
+                                  </SectionLabel>
+                                }
+                              >
+                                <CrewGrid $compact={rows < CREW_GRID_MIN_ROWS}>
+                                  {crew.map((k) => {
+                                    const reading = crewReading(k);
+                                    const selectable = reading === "available";
+                                    return (
+                                      <CrewChip
+                                        key={k.name}
+                                        type="button"
+                                        /* Named rather than bare, so a render
+                                           scene can select a SPECIFIC kerbal:
+                                           the selected chip had no picture at
+                                           all while nothing could click one. */
+                                        data-crew-chip={k.name}
+                                        $selected={selectedCrew.has(k.name)}
+                                        $disabled={!selectable}
+                                        $compact={rows < CREW_GRID_MIN_ROWS}
+                                        aria-disabled={!selectable}
+                                        aria-pressed={selectedCrew.has(k.name)}
+                                        title={crewChipTitle(k, reading)}
+                                        onClick={() => {
+                                          if (!selectable) return;
+                                          onToggleCrew(k.name);
+                                        }}
+                                      >
+                                        <CrewName>{k.name}</CrewName>
+                                        {/* The reason is a fact off the wire
+                                            and belongs on screen, not in a
+                                            tooltip the operator has to hunt
+                                            for. */}
+                                        <CrewTrait>
+                                          {reading === "available"
+                                            ? `${k.trait || NULL_DISPLAY} L${k.experienceLevel}`
+                                            : reading === "unavailable"
+                                              ? k.unavailableReason
+                                              : `${NULL_DISPLAY} no reading`}
+                                        </CrewTrait>
+                                      </CrewChip>
+                                    );
+                                  })}
+                                </CrewGrid>
+                              </CrewDisclosure>
                             )}
-                            <CrewGrid>
-                              {(crew ?? []).map((k) => {
-                                const reading = crewReading(k);
-                                const selectable = reading === "available";
-                                return (
-                                  <CrewChip
-                                    key={k.name}
-                                    type="button"
-                                    $selected={selectedCrew.has(k.name)}
-                                    $disabled={!selectable}
-                                    aria-disabled={!selectable}
-                                    aria-pressed={selectedCrew.has(k.name)}
-                                    title={crewChipTitle(k, reading)}
-                                    onClick={() => {
-                                      if (!selectable) return;
-                                      onToggleCrew(k.name);
-                                    }}
-                                  >
-                                    <CrewName>{k.name}</CrewName>
-                                    {/* The reason is a fact off the wire and
-                                        belongs on screen, not in a tooltip the
-                                        operator has to hunt for. */}
-                                    <CrewTrait>
-                                      {reading === "available"
-                                        ? `${k.trait || NULL_DISPLAY} L${k.experienceLevel}`
-                                        : reading === "unavailable"
-                                          ? k.unavailableReason
-                                          : `${NULL_DISPLAY} no reading`}
-                                    </CrewTrait>
-                                  </CrewChip>
-                                );
-                              })}
-                            </CrewGrid>
                             <LaunchControls>
                               <ArmedButton
                                 kind="launch"
@@ -1629,17 +1696,50 @@ const BlockedTag = styled.span`
   font-variant-numeric: tabular-nums;
 `;
 
-const CrewGrid = styled.div`
+/* The tally reads as a section heading and has to sit in the same column as
+   CRAFT above it. Its trigger is a `<button>`, which centres its label and pads
+   its leading edge by UA default, so both are undone here. */
+const CrewDisclosure = styled(Disclosure)`
+  > button {
+    padding-left: 0;
+    text-align: left;
+  }
+  /* The kit's inline panel carries accordion chrome (border, fill, padding),
+     which would draw a box around the crew grid that the section never had.
+     This is a section that folds, not a row that pops open, so the chrome comes
+     off and the expanded grid renders exactly as it did before it could fold. */
+  > [role="group"] {
+    padding: 0;
+    background: none;
+    border: none;
+  }
+`;
+
+const CrewGrid = styled.div<{ $compact: boolean }>`
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+  grid-template-columns: repeat(
+    auto-fit,
+    minmax(${(p) => (p.$compact ? "170px" : "120px")}, 1fr)
+  );
   gap: var(--space-4);
 `;
 
-const CrewChip = styled.button<{ $selected: boolean; $disabled: boolean }>`
+/* Compact lays the name and the reason on ONE line instead of two, which is
+   what makes an opened grid affordable in a short tile: seven kerbals cost
+   ~170px rather than ~300px. The reason is not shortened and not truncated,
+   which is why the compact track is WIDER than the two-line one: a kerbal who
+   cannot fly has to keep saying why. It wraps back to two lines by itself if a
+   reason ever outgrows its track. */
+const CrewChip = styled.button<{
+  $selected: boolean;
+  $disabled: boolean;
+  $compact: boolean;
+}>`
   display: flex;
-  flex-direction: column;
-  align-items: flex-start;
-  gap: var(--space-hair);
+  flex-direction: ${(p) => (p.$compact ? "row" : "column")};
+  flex-wrap: wrap;
+  align-items: ${(p) => (p.$compact ? "baseline" : "flex-start")};
+  gap: ${(p) => (p.$compact ? "var(--space-6)" : "var(--space-hair)")};
   padding: var(--space-4) var(--space-8);
   background: ${(p) =>
     p.$selected ? "var(--color-status-go-bg)" : "var(--color-surface-panel)"};

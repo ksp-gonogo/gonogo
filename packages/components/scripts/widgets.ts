@@ -690,6 +690,128 @@ const WIDGETS: WidgetRenderConfig[] = [
           "crew-roster-unread",
         ],
       },
+      // The same picked craft at every OTHER size the widget is laid out at.
+      // Without these the crew section had exactly one render, a 7x18 tile
+      // twice as tall as the default, so the sizes where it does not fit were
+      // invisible: the auto-appended mobile / portrait / landscape modes carry
+      // no click, and a widget with no craft picked never draws crew at all.
+      {
+        name: "crew-min-4x6",
+        w: 4,
+        h: 6,
+        clicks: [{ selector: "[data-ship-row]" }],
+        forFixtures: ["crew-mixed-standings"],
+      },
+      {
+        name: "crew-default-7x10",
+        w: 7,
+        h: 10,
+        clicks: [{ selector: "[data-ship-row]" }],
+        forFixtures: ["crew-mixed-standings"],
+      },
+      {
+        name: "crew-mobile-9x8",
+        w: 9,
+        h: 8,
+        clicks: [{ selector: "[data-ship-row]" }],
+        forFixtures: ["crew-mixed-standings"],
+      },
+      {
+        name: "crew-wide-10x7",
+        w: 10,
+        h: 7,
+        clicks: [{ selector: "[data-ship-row]" }],
+        forFixtures: ["crew-mixed-standings"],
+      },
+      {
+        name: "crew-landscape-18x5",
+        w: 18,
+        h: 5,
+        clicks: [{ selector: "[data-ship-row]" }],
+        forFixtures: ["crew-mixed-standings"],
+      },
+      {
+        name: "crew-portrait-5x18",
+        w: 5,
+        h: 18,
+        clicks: [{ selector: "[data-ship-row]" }],
+        forFixtures: ["crew-mixed-standings"],
+      },
+      // The folded crew section OPENED, which is the only way to see the
+      // compact one-line chips a short tile switches to. The static probe
+      // cannot reach it: below the height threshold the grid starts folded, so
+      // without this click the compact chips have no render at all and the
+      // reason each kerbal cannot fly is unchecked at exactly the size where it
+      // is most likely to be clipped.
+      {
+        name: "crew-opened-7x10",
+        w: 7,
+        h: 10,
+        clicks: [
+          { selector: "[data-ship-row]" },
+          { selector: '[aria-expanded="false"]' },
+        ],
+        forFixtures: ["crew-mixed-standings"],
+      },
+      {
+        name: "crew-opened-18x5",
+        w: 18,
+        h: 5,
+        clicks: [
+          { selector: "[data-ship-row]" },
+          { selector: '[aria-expanded="false"]' },
+        ],
+        forFixtures: ["crew-mixed-standings"],
+      },
+      // A SELECTED crew, which nothing rendered until these three modes: every
+      // shot of this widget showed the unselected branch of the chip's
+      // ternary, so a selection widget had no picture of a selection, and the
+      // manifest count in the launch label and the selected term in the tally
+      // were both unrendered paths. Two kerbals, because one selected chip
+      // beside one available chip does not show that the two read apart.
+      {
+        name: "crew-selected-7x18",
+        w: 7,
+        h: 18,
+        clicks: [
+          { selector: "[data-ship-row]" },
+          { selector: '[data-crew-chip="Jebediah Kerman"]' },
+          { selector: '[data-crew-chip="Bill Kerman"]' },
+        ],
+        forFixtures: ["crew-mixed-standings"],
+      },
+      // The same selection on a tile too short for the grid, folded back down:
+      // the tally has to carry the count, because a fold that hid a standing
+      // selection would be worse than the overflow it replaced. This is the
+      // ONLY render that can show that rule holding.
+      {
+        name: "crew-selected-folded-7x10",
+        w: 7,
+        h: 10,
+        clicks: [
+          { selector: "[data-ship-row]" },
+          { selector: '[aria-expanded="false"]' },
+          { selector: '[data-crew-chip="Jebediah Kerman"]' },
+          { selector: '[data-crew-chip="Bill Kerman"]' },
+          { selector: '[aria-expanded="true"]' },
+        ],
+        forFixtures: ["crew-mixed-standings"],
+      },
+      // Selected and still open at a short height: the compact one-line chip in
+      // its selected state, next to the disabled chips it has to read apart
+      // from.
+      {
+        name: "crew-selected-compact-7x10",
+        w: 7,
+        h: 10,
+        clicks: [
+          { selector: "[data-ship-row]" },
+          { selector: '[aria-expanded="false"]' },
+          { selector: '[data-crew-chip="Jebediah Kerman"]' },
+          { selector: '[data-crew-chip="Bill Kerman"]' },
+        ],
+        forFixtures: ["crew-mixed-standings"],
+      },
       // A second pad opened: the runway, whose craft are the spaceplanes the
       // VAB pad above does not offer.
       {
