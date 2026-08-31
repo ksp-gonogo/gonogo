@@ -22,8 +22,8 @@ import { LaunchDirectorComponent } from "./index";
  *    already has in hand
  *  - funds absent: `?? Number.POSITIVE_INFINITY`, so every craft in the save is
  *    affordable
- *  - crewRoster absent: no crew section AND no launch control, so the widget
- *    silently offers no way to launch
+ *  - crewRoster absent: the crew section says the roster has no reading, and the
+ *    launch control stands (it used to vanish with the section)
  *  - crash.hasRecent absent: `=== true` fails, recovery is NOT blocked
  *    (fail-open), while an absent `crash.lastCrash` in the same expression is
  *    read as fail-SAFE
@@ -258,7 +258,7 @@ describe("LaunchDirector: what undefined telemetry renders today", () => {
     expect(screen.queryByTitle("No funds balance has arrived")).toBeNull();
   });
 
-  it("offers no launch control at all while the crew roster is absent", async () => {
+  it("says the roster has no reading, and still offers the launch, while the crew roster is absent", async () => {
     const fixture = setupStreamFixture({
       carriedChannels: ALL_READS,
       pinnedUt: 10,
@@ -273,29 +273,35 @@ describe("LaunchDirector: what undefined telemetry renders today", () => {
     });
 
     await waitFor(() => expect(screen.getByText("Kerbal X")).toBeTruthy());
-    await user.click(screen.getByRole("button", { name: /Kerbal X/ }));
+    await user.click(screen.getByRole("button", { name: /^Kerbal X/ }));
 
-    // `{ship && crew && (...)}`: `parseCrew(undefined)` is null, so selecting a
-    // craft produces no Crew section and no Launch button. The operator sees a
-    // selected craft and no way to fly it, with nothing on screen saying why.
+    // `parseCrew(undefined)` is null, and null is now a state the section
+    // reports rather than a reason to remove the section and the launch control
+    // with it. An unreadable roster says so and an unmanned launch stands.
     expect(
       screen
-        .getByRole("button", { name: /Kerbal X/ })
+        .getByRole("button", { name: /^Kerbal X/ })
         .getAttribute("aria-pressed"),
     ).toBe("true");
-    expect(screen.queryByText("Crew")).toBeNull();
-    expect(screen.queryByRole("button", { name: /^Launch / })).toBeNull();
+    expect(screen.getByText("Crew")).toBeTruthy();
+    expect(screen.getByText(`Roster ${NULL_DISPLAY} no reading`)).toBeTruthy();
+    expect(
+      screen.getByRole("button", { name: "Launch Kerbal X unmanned" }),
+    ).toBeTruthy();
 
-    // Contrast: an EMPTY roster is enough to unlock the launch control, so the
-    // gate is about the read being absent and not about there being crew.
+    // Contrast: an EMPTY roster is a roster, so the no-reading line goes and
+    // the launch control stays where it was.
     act(() => {
       fixture.emit("spaceCenter.crewRoster", []);
     });
     await waitFor(() =>
       expect(
-        screen.getByRole("button", { name: "Launch Kerbal X unmanned" }),
-      ).toBeTruthy(),
+        screen.queryByText(`Roster ${NULL_DISPLAY} no reading`),
+      ).toBeNull(),
     );
+    expect(
+      screen.getByRole("button", { name: "Launch Kerbal X unmanned" }),
+    ).toBeTruthy();
   });
 
   it("does not block recovery when crash.hasRecent is absent, but does block it when only crash.lastCrash is", async () => {

@@ -1,0 +1,67 @@
+{
+  "_meta": {
+    "scenario": "crew-roster-unread",
+    "notes": "SYNTHETIC. spaceCenter.crewRoster is CARRIED and never emitted, so the widget reads undefined by the production route and parseCrew answers null. The section says 'Roster - no reading' and the launch control stands: this exact state used to remove the launch button altogether, so an operator could not fly an unmanned craft because a channel they did not need had not arrived."
+  },
+  "_stream": {
+    "carriedChannels": [
+      "career.status",
+      "spaceCenter.savedShips",
+      "spaceCenter.crewRoster",
+      "spaceCenter.scene",
+      "spaceCenter.launchSites"
+    ],
+    "pinnedUt": 10,
+    "emits": [
+      {
+        "channel": "spaceCenter.scene",
+        "value": {
+          "scene": "SpaceCenter",
+          "launchSite": "LaunchPad"
+        }
+      },
+      {
+        "channel": "spaceCenter.launchSites",
+        "value": [
+          {
+            "name": "LaunchPad",
+            "displayName": "KSC Launch Pad",
+            "editorFacility": "VAB",
+            "body": "Kerbin",
+            "isStock": true,
+            "padOccupied": false,
+            "padVesselTitle": null
+          }
+        ]
+      },
+      {
+        "channel": "career.status",
+        "value": {
+          "economy": {
+            "funds": 42500,
+            "reputation": null,
+            "science": null
+          },
+          "facilities": null,
+          "contracts": null,
+          "strategies": null,
+          "tech": null
+        }
+      },
+      {
+        "channel": "spaceCenter.savedShips",
+        "value": [
+          {
+            "name": "Mun Hopper I",
+            "partCount": 18,
+            "totalMass": 8.4,
+            "facility": "VAB",
+            "facilityOrdinal": 1,
+            "requiresFunds": 12000,
+            "missingParts": []
+          }
+        ]
+      }
+    ]
+  }
+}
