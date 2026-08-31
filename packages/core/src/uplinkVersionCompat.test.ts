@@ -155,6 +155,29 @@ describe("checkUplinkCompat: contractMajor", () => {
     );
     expect(result.verdict).toBe("load");
   });
+
+  // Two numbers and the word "mismatch" are accurate and useless: they do not say
+  // which side is stale, and the reader is usually not the person who can fix it.
+  // These two assert the refusal points at the side that can actually act.
+  it("tells an author with an out-of-date Uplink to rebuild, not to wait for the app", () => {
+    const result = checkUplinkCompat(
+      manifest({ contractMajor: 3 }),
+      app({ contractMajor: 4 }),
+    );
+    expect(result.reason).toMatch(/Uplink is out of date/);
+    expect(result.reason).toMatch(/rebuild/i);
+    expect(result.reason).toMatch(/nothing can be changed app-side/);
+  });
+
+  it("does not blame the Uplink when the APP is the stale side", () => {
+    const result = checkUplinkCompat(
+      manifest({ contractMajor: 5 }),
+      app({ contractMajor: 4 }),
+    );
+    expect(result.reason).toMatch(/app is out of date/);
+    expect(result.reason).toMatch(/not at fault/);
+    expect(result.reason).not.toMatch(/Uplink is out of date/);
+  });
 });
 
 describe("checkUplinkCompat: contractMinor", () => {

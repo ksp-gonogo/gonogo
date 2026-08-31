@@ -218,10 +218,19 @@ export function checkUplinkCompat(
   }
 
   // -- contractMajor --
+  //
+  // The refusal names WHICH SIDE is behind and what closes the gap, because the
+  // two numbers alone answer neither, and the person reading this is usually not
+  // the person who can act on it: an operator sees a quarantined row, the author
+  // sees a build. There is no compatibility path here by design, so the honest
+  // message is the remedy rather than a hint that one might be negotiable.
   if (manifest.contractMajor !== app.contractMajor) {
+    const uplinkIsBehind = manifest.contractMajor < app.contractMajor;
     return {
       verdict: "refuse",
-      reason: `contractMajor mismatch: client ${manifest.contractMajor} vs app ${app.contractMajor}`,
+      reason: uplinkIsBehind
+        ? `contractMajor mismatch: this Uplink was built against contract ${manifest.contractMajor}, the app speaks ${app.contractMajor}. The Uplink is out of date and needs rebuilding and re-releasing against the current packages; nothing can be changed app-side to load it.`
+        : `contractMajor mismatch: this Uplink expects contract ${manifest.contractMajor}, the app speaks ${app.contractMajor}. The app is out of date, so update the app; the Uplink is not at fault.`,
     };
   }
 
