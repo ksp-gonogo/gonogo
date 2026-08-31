@@ -702,12 +702,21 @@ const WIDGETS: WidgetRenderConfig[] = [
         clicks: [{ selector: "[data-ship-row]" }],
         forFixtures: ["crew-mixed-standings"],
       },
+      /* All three rosters at the default size, not just the mixed one: a tile
+         this short folds the grid away, so the folded line is all the operator
+         reads, and it has to be right for a roster with no exceptions and for
+         one that could not be read at all (which is offered no expander,
+         because it has nothing to open). */
       {
         name: "crew-default-7x10",
         w: 7,
         h: 10,
         clicks: [{ selector: "[data-ship-row]" }],
-        forFixtures: ["crew-mixed-standings"],
+        forFixtures: [
+          "crew-mixed-standings",
+          "crew-all-available",
+          "crew-roster-unread",
+        ],
       },
       {
         name: "crew-mobile-9x8",
