@@ -1,0 +1,36 @@
+{
+  "version": 1,
+  "engine": "chromium",
+  "assets": {
+    "camera-feed-fixed--default.png": {
+      "hash": "94f5735f2a286d79",
+      "elements": 48,
+      "text": "d8dcb9c8"
+    },
+    "camera-feed-fixed--landscape-18x5.png": {
+      "hash": "22611e44513d7109",
+      "elements": 48,
+      "text": "d8dcb9c8"
+    },
+    "camera-feed-fixed--mobile-9x8.png": {
+      "hash": "c84ab7a77e65b97f",
+      "elements": 48,
+      "text": "d8dcb9c8"
+    },
+    "camera-feed-steerable--default.png": {
+      "hash": "1fcb3ee900be9cd5",
+      "elements": 58,
+      "text": "d5021643"
+    },
+    "camera-feed-steerable--landscape-18x5.png": {
+      "hash": "3d4c45fe0c9cc7b6",
+      "elements": 58,
+      "text": "d5021643"
+    },
+    "camera-feed-steerable--mobile-9x8.png": {
+      "hash": "a9d289122ed35fa7",
+      "elements": 58,
+      "text": "d5021643"
+    }
+  }
+}

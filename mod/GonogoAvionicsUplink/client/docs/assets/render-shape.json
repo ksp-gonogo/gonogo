@@ -1,0 +1,36 @@
+{
+  "version": 1,
+  "engine": "chromium",
+  "assets": {
+    "no-avionics-unit--default.png": {
+      "hash": "e69701f93ea5e6bf",
+      "elements": 20,
+      "text": "c6ca076c"
+    },
+    "no-avionics-unit--min.png": {
+      "hash": "e69701f93ea5e6bf",
+      "elements": 20,
+      "text": "c6ca076c"
+    },
+    "over-controllable-mass--default.png": {
+      "hash": "4f3fcab5a87b1f6a",
+      "elements": 23,
+      "text": "932d9a19"
+    },
+    "over-controllable-mass--min.png": {
+      "hash": "4f3fcab5a87b1f6a",
+      "elements": 23,
+      "text": "932d9a19"
+    },
+    "within-avionics-limit--default.png": {
+      "hash": "47c66e327532f6f9",
+      "elements": 23,
+      "text": "1e0c8176"
+    },
+    "within-avionics-limit--min.png": {
+      "hash": "47c66e327532f6f9",
+      "elements": 23,
+      "text": "1e0c8176"
+    }
+  }
+}
