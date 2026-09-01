@@ -223,9 +223,20 @@ jobs:
       # so it is the same on any machine. Without it this step read the PROSE of
       # a page whose content is pictures, and Vehicle Assembly's showed a layout
       # the code had stopped producing for five commits with every run agreeing.
+      # `components` is filtered in alongside ui-kit for the same reason
+      # uplink-docs.yml needs it: five Uplinks declare a `gonogo.renderWith`
+      # host and every one names a PATH into packages/components/src rather than
+      # a package, so pnpm's dependency graph cannot see it. Without this the
+      # generator cannot resolve those five and the check reports them stale for
+      # a reason that has nothing to do with their pictures.
+      #
+      # This is the THIRD place the same missing filter has been fixed. The
+      # other two were uplink.yml (a per-Uplink matrix) and uplink-docs.yml (the
+      # self-heal). A build filter is copied between workflows and the copy does
+      # not carry the reason, so the next one will need it too.
       - name: Uplink pages are not stale
         run: |
-          pnpm --filter @ksp-gonogo/ui-kit... build
+          pnpm --filter @ksp-gonogo/ui-kit... --filter @ksp-gonogo/components... build
           pnpm uplink-docs:check
 
       # How many committed assets have no recorded shape, and is it growing. The
