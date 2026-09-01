@@ -109,7 +109,10 @@ function setup() {
   const view = renderTracked(
     <fixture.Provider>
       <DashboardItemContext.Provider value={{ instanceId: "transfer-stale" }}>
-        <TransferWindowComponent config={{ showPorkchop: true }} />
+        <TransferWindowComponent
+          id="transfer-stale"
+          config={{ showPorkchop: true }}
+        />
       </DashboardItemContext.Provider>
     </fixture.Provider>,
   );

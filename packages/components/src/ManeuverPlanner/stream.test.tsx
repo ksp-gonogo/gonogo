@@ -86,12 +86,9 @@ function emitOrbitReady(fixture: ReturnType<typeof setupStreamFixture>) {
  * the real node id has committed too." Wait on the store directly instead
  * of racing it.
  */
-async function waitForManeuverStreamFrame(fixture: {
-  store: {
-    sample: (topic: string, frame: unknown) => unknown;
-    currentFrame: () => unknown;
-  };
-}): Promise<void> {
+async function waitForManeuverStreamFrame(
+  fixture: ReturnType<typeof setupStreamFixture>,
+): Promise<void> {
   await waitFor(() => {
     const point = fixture.store.sample(
       "vessel.maneuver",

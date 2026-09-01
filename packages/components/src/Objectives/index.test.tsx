@@ -5,12 +5,14 @@ import {
 } from "@ksp-gonogo/core";
 import { act, render, screen } from "@ksp-gonogo/test-utils";
 import { describe, expect, it } from "vitest";
+import { type ContractEntry, parseContracts } from "../ContractManager";
 import {
   type StreamFixture,
   setupStreamFixture,
 } from "../test/setupStreamFixture";
 import { contractObjectives, ObjectivesComponent } from "./index";
 
+/** One contract as it arrives on `career.status`, before `parseContracts`. */
 const contract = (over: Record<string, unknown> = {}) => ({
   id: "8001",
   title: "Explore the Mun",
@@ -37,6 +39,19 @@ const contract = (over: Record<string, unknown> = {}) => ({
   ],
   ...over,
 });
+
+/**
+ * The wire fixtures through the real parser, which is the only shape
+ * `contractObjectives` accepts. Parsing rather than hand-writing a
+ * `ContractEntry` keeps the fixture one object: the wire carries
+ * `stateOrdinal`, and the parsed entry carries the `state`/`stateLabel` pair
+ * the ordinal resolves to.
+ */
+function parsed(...wire: ReturnType<typeof contract>[]): ContractEntry[] {
+  const entries = parseContracts(wire);
+  if (!entries) throw new Error("the contract fixture did not parse");
+  return entries;
+}
 
 /** Objectives reads `contracts.active` off `career.status.contracts.active`. */
 function renderObjectives() {
@@ -126,7 +141,7 @@ describe("Objectives: augment slot composition (spec §4.9)", () => {
 
 describe("objective mapping", () => {
   it("maps contract parameter states and carries contractId for alarms", () => {
-    const items = contractObjectives([contract()]);
+    const items = contractObjectives(parsed(contract()));
     const flag = items.find((i) => i.title === "Plant a flag");
     const reached = items.find((i) => i.title === "Reach the Mun");
     expect(reached?.state).toBe("reached"); // Complete → reached
@@ -136,7 +151,7 @@ describe("objective mapping", () => {
   });
 
   it("falls back to the contract itself when it has no parameters", () => {
-    const items = contractObjectives([contract({ parameters: [] })]);
+    const items = contractObjectives(parsed(contract({ parameters: [] })));
     expect(items).toHaveLength(1);
     expect(items[0]?.title).toBe("Explore the Mun");
   });

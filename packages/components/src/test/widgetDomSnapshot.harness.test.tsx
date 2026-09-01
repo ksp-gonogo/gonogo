@@ -41,9 +41,10 @@ const MODE = { name: "probe", w: 8, h: 8 };
 /** Renders the streamed SAS flag, and nothing whatsoever without one. */
 function StreamProbe() {
   const reading = useTelemetry("vessel.control");
-  const control = reading?.value as VesselControl | undefined;
-  if (control?.sas === undefined) return null;
-  return <span>{`sas=${String(control.sas)}`}</span>;
+  if (reading.state !== "observed") return null;
+  const { sas } = reading.value;
+  if (sas === undefined) return null;
+  return <span>{`sas=${String(sas)}`}</span>;
 }
 
 /** Renders its observed width, and nothing until something reports one. */
@@ -82,7 +83,8 @@ function ConfigProbe({ config }: { config?: { marker?: string } }) {
 registerComponent({
   id: "harness-config-probe",
   name: "Harness Config Probe",
-  category: "telemetry",
+  description: "Renders a config value only the registry can supply.",
+  tags: ["telemetry"],
   component: ConfigProbe as never,
   dataRequirements: [],
   behaviors: [],

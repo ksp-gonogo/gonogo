@@ -38,6 +38,20 @@ interface Fixture {
 
 type PartStateSidecar = Record<string, PartStateModule[]>;
 
+/**
+ * The sidecar fixtures are authored with a `_comment` line beside the
+ * per-flightId entries, so the raw JSON is not a sidecar until that key is
+ * dropped. Same treatment as `stale.test.tsx` gives the same files.
+ */
+function sidecarOf(raw: Record<string, unknown>): PartStateSidecar {
+  const out: PartStateSidecar = {};
+  for (const [flightId, modules] of Object.entries(raw)) {
+    if (flightId === "_comment") continue;
+    out[flightId] = modules as PartStateModule[];
+  }
+  return out;
+}
+
 function fixtureToParts(
   fixture: Fixture,
   sidecar?: PartStateSidecar,
@@ -93,7 +107,7 @@ describe("Ship Map SVG snapshots", () => {
     expect(
       renderFixture(
         fuellinePrelaunch as Fixture,
-        fuellinePrelaunchPartState as PartStateSidecar,
+        sidecarOf(fuellinePrelaunchPartState),
       ),
     ).toMatchSnapshot();
   });

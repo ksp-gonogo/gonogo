@@ -44,11 +44,11 @@ const CARRIED = [
 
 describe("SpaceCenterStatusComponent", () => {
   let cmdFixture: MockDataSourceFixture;
-  let onExecute: ReturnType<typeof vi.fn>;
+  let onExecute: ReturnType<typeof vi.fn<(action: string) => void>>;
   let stream: ReturnType<typeof setupStreamFixture>;
 
   beforeEach(async () => {
-    onExecute = vi.fn();
+    onExecute = vi.fn<(action: string) => void>();
     cmdFixture = await setupMockDataSource({ keys: [], onExecute });
     stream = setupStreamFixture({
       carriedChannels: CARRIED,

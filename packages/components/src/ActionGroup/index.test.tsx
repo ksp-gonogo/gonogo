@@ -18,7 +18,11 @@ import type { ReactElement } from "react";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { axe } from "../test/axe";
 import { setupStreamFixture } from "../test/setupStreamFixture";
-import { ActionGroupComponent, type ActionGroupSlotContext } from "./index";
+import {
+  ActionGroupComponent,
+  type ActionGroupConfig,
+  type ActionGroupSlotContext,
+} from "./index";
 
 // Rendered trees, tracked so afterEach can unmount them BEFORE disconnecting the
 // legacy source or clearing the action-handler/augment registries. RTL
@@ -89,9 +93,7 @@ describe("ActionGroupComponent", () => {
   }
 
   function renderGroup(
-    config: { actionGroupId?: string; label?: string } = {
-      actionGroupId: "SAS",
-    },
+    config: ActionGroupConfig = { actionGroupId: "SAS" },
     size?: { w?: number; h?: number },
   ) {
     return render(
@@ -109,7 +111,11 @@ describe("ActionGroupComponent", () => {
   }
 
   it("shows the 'No action group configured' placeholder when config is missing", () => {
-    renderGroup({ actionGroupId: undefined as unknown as string });
+    renderGroup({
+      // @ts-expect-error: the placeholder path needs a config whose group id
+      // never arrived, and `ActionGroupConfig` says that cannot happen
+      actionGroupId: undefined,
+    });
     expect(screen.getByText("No action group configured")).toBeInTheDocument();
   });
 

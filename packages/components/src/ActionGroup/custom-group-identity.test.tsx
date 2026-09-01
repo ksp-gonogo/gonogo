@@ -142,12 +142,7 @@ describe("custom action group identity", () => {
     }
     const { unmount } = render(
       <fixture.Provider>
-        <ConfigComponent
-          config={{ actionGroupId: "AG1" }}
-          onSave={() => {}}
-          onCancel={() => {}}
-          id="action-group"
-        />
+        <ConfigComponent config={{ actionGroupId: "AG1" }} onSave={() => {}} />
       </fixture.Provider>,
     );
     renderedTrees.push(unmount);

@@ -26,7 +26,6 @@ function mkBody(
   over: Partial<CelestialBody> & { index: number },
 ): CelestialBody {
   return {
-    index: over.index,
     name: null,
     referenceBody: null,
     radius: null,

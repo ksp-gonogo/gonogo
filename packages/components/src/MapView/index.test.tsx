@@ -387,7 +387,9 @@ describe("MapViewComponent", () => {
       await emitVessel(fixture, { lat: 0, lon: 0, body: "Kerbin" });
 
       const probe = await waitFor(() => {
-        const el = container.querySelector('[data-testid="overlay-probe"]');
+        const el = container.querySelector<HTMLElement>(
+          '[data-testid="overlay-probe"]',
+        );
         if (el === null)
           throw new Error("overlay augment has not rendered yet");
         return el;
@@ -414,7 +416,7 @@ describe("MapViewComponent", () => {
       await emitVessel(fixture, { lat: 12.5, lon: -70, body: "Kerbin" });
 
       const probe = await waitFor(() => {
-        const el = container.querySelector(
+        const el = container.querySelector<HTMLElement>(
           '[data-testid="overlay-vessel-pos-probe"]',
         );
         if (el === null || !visibleText(el).includes("vesselLat=12.5"))
@@ -440,7 +442,7 @@ describe("MapViewComponent", () => {
       await emitVessel(fixture, { lat: 12.5, lon: -70, body: "Kerbin" });
 
       const probe = await waitFor(() => {
-        const el = container.querySelector(
+        const el = container.querySelector<HTMLElement>(
           '[data-testid="overlay-anomaly-probe"]',
         );
         if (el === null)
@@ -462,7 +464,7 @@ describe("MapViewComponent", () => {
         }
       });
       expect(
-        container.querySelector('[data-testid="overlay-probe"]'),
+        container.querySelector<HTMLElement>('[data-testid="overlay-probe"]'),
       ).toBeNull();
     });
 

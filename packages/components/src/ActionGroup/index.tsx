@@ -58,7 +58,7 @@ import {
 import { useMemo, useRef, useState } from "react";
 import { useAlarmsLauncher } from "../shared/AlarmsLauncher";
 
-type ActionGroupConfig = {
+export type ActionGroupConfig = {
   actionGroupId: ActionGroupId;
   /** Custom display label. Falls back to the official action group name. */
   label?: string;

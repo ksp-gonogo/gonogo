@@ -20,7 +20,13 @@ export interface GraphSeriesConfig {
   label?: string;
   /** Overrides palette-assigned colour. */
   color?: string;
-  axis: "primary" | "secondary" | "auto";
+  /**
+   * Which axis the series is drawn against. Absent means `"auto"`: the config
+   * form always writes a value, but a programmatic write, an import or an
+   * older persisted config omits the field, which is why `resolveAxes` reads
+   * it through a default.
+   */
+  axis?: "primary" | "secondary" | "auto";
 }
 
 /**

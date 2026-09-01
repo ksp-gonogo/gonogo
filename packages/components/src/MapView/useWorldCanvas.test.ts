@@ -21,7 +21,8 @@ function point(over: Partial<TrajectoryPoint> = {}): TrajectoryPoint {
   };
 }
 
-function fakeCtx() {
+/** The 2D context the hook draws through, plus the call log the assertions read. */
+function fakeCtx(): CanvasRenderingContext2D & { calls: string[] } {
   const calls: string[] = [];
   return {
     calls,
@@ -32,7 +33,7 @@ function fakeCtx() {
     lineTo: (x: number, y: number) => calls.push(`lineTo ${x},${y}`),
     stroke: () => calls.push("stroke"),
     clearRect: (...args: number[]) => calls.push(`clearRect ${args.join(",")}`),
-  } as unknown as CanvasRenderingContext2D;
+  } as unknown as CanvasRenderingContext2D & { calls: string[] };
 }
 
 const adjustedMap = (_w: number, _h: number, lat: number, lon: number) => ({

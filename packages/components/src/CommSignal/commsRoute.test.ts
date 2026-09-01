@@ -8,12 +8,21 @@ import {
   commsRouteRelayCount,
 } from "./commsRoute";
 
+/** Home-ness derived from the endpoint id these fixtures use for the ground end. */
+const isHome = (endpoint: string) => endpoint === "home";
+
 function hop(from: string, to: string): CommsHop {
-  return { from, to, kind: 0 };
+  return {
+    from,
+    to,
+    kind: 0,
+    fromIsHome: isHome(from),
+    toIsHome: isHome(to),
+  };
 }
 
 function hopWithDistance(from: string, to: string, meters: number): CommsHop {
-  return { from, to, kind: 0, distanceMeters: value("m", meters) };
+  return { ...hop(from, to), distanceMeters: value("m", meters) };
 }
 
 describe("buildCommsRouteNodes", () => {

@@ -72,7 +72,7 @@ describe("useCoverageGate: hook integration", () => {
       dbName: `gonogo-coverage-test-${Math.random()}`,
     });
     const wrapper = ({ children }: { children: ReactNode }) =>
-      createElement(CoverageMaskCacheProvider, { store }, children);
+      createElement(CoverageMaskCacheProvider, { store, children });
     const { result, rerender, unmount } = renderHook(
       () => useCoverageGate("Kerbin", undefined),
       { wrapper },
@@ -105,7 +105,7 @@ describe("useCoverageGate: hook integration", () => {
       dbName: `gonogo-coverage-test-${Math.random()}`,
     });
     const wrapper = ({ children }: { children: ReactNode }) =>
-      createElement(CoverageMaskCacheProvider, { store }, children);
+      createElement(CoverageMaskCacheProvider, { store, children });
     const { result, unmount } = renderHook(
       () => useCoverageGate("Kerbin", undefined),
       { wrapper },

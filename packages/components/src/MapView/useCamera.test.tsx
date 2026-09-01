@@ -1,5 +1,5 @@
 import { act, renderHook } from "@ksp-gonogo/test-utils";
-import type { RefObject } from "react";
+import type { MutableRefObject } from "react";
 import { describe, expect, it } from "vitest";
 import { useCamera } from "./useCamera";
 
@@ -62,7 +62,8 @@ function setup() {
 
   const hook = renderHook(() => useCamera({ w: 200, h: 100 }));
   (
-    hook.result.current.interactionRef as unknown as RefObject<HTMLDivElement>
+    hook.result.current
+      .interactionRef as unknown as MutableRefObject<HTMLDivElement | null>
   ).current = el;
   return { hook, el };
 }

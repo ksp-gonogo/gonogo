@@ -67,7 +67,7 @@ function renderWidget(carriedChannels: readonly string[] = CARRIED) {
       <DashboardItemContext.Provider value={{ instanceId: "resource-ops" }}>
         <WidgetMetaContext.Provider value={META}>
           <ContributionsProvider>
-            <ResourceOpsComponent w={6} h={8} />
+            <ResourceOpsComponent id="resource-ops" w={6} h={8} />
           </ContributionsProvider>
         </WidgetMetaContext.Provider>
       </DashboardItemContext.Provider>

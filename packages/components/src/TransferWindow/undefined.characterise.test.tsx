@@ -116,7 +116,10 @@ function setup() {
   const view = renderTracked(
     <fixture.Provider>
       <DashboardItemContext.Provider value={{ instanceId: "transfer-char" }}>
-        <TransferWindowComponent config={{ showPorkchop: true }} />
+        <TransferWindowComponent
+          id="transfer-char"
+          config={{ showPorkchop: true }}
+        />
       </DashboardItemContext.Provider>
     </fixture.Provider>,
   );
@@ -176,7 +179,10 @@ describe("TransferWindow: nothing has arrived at all", () => {
     // doc): no provider in the tree is indistinguishable from a cold topic.
     const view = renderTracked(
       <DashboardItemContext.Provider value={{ instanceId: "transfer-nop" }}>
-        <TransferWindowComponent config={{ showPorkchop: true }} />
+        <TransferWindowComponent
+          id="transfer-nop"
+          config={{ showPorkchop: true }}
+        />
       </DashboardItemContext.Provider>,
     );
     expect(

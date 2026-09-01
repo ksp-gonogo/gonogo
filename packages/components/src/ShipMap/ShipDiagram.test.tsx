@@ -14,6 +14,7 @@ const SIZE_ENGINE = { x: 1.25, y: 1.0, z: 1.25 };
 function half(size: { x: number; y: number; z: number }) {
   return {
     size,
+    depth: 0,
     latHalfExtent: size.x / 2,
     axialHalfExtent: size.y / 2,
     rotationRad: 0,

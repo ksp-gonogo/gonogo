@@ -1,4 +1,4 @@
-import type { VesselTopology } from "@ksp-gonogo/core";
+import type { ComponentProps, VesselTopology } from "@ksp-gonogo/core";
 import {
   ContributionsProvider,
   DashboardItemContext,
@@ -197,13 +197,7 @@ function resolveStreamBlock(fixture: Fixture): StreamFixtureBlock | undefined {
 
 interface SnapshotOpts<Cfg> {
   /** Widget component to mount. */
-  Widget: React.ComponentType<{
-    config?: Cfg;
-    id: string;
-    w?: number;
-    h?: number;
-    onConfigChange?: (next: Cfg) => void;
-  }>;
+  Widget: React.ComponentType<ComponentProps<Cfg>>;
   /** Fixture object: every non-`_`-prefixed key is emitted to the data source. */
   fixture: Fixture;
   /** Grid mode (drives `w`/`h` props and optional per-mode config overlay). */
@@ -673,7 +667,7 @@ export async function flushResizeObservers(): Promise<void> {
  * in the playwright PNGs.
  */
 export async function snapshotWidgetMode<
-  Cfg extends Record<string, unknown> = Record<string, unknown>,
+  Cfg extends object = Record<string, unknown>,
 >(opts: SnapshotOpts<Cfg>): Promise<string> {
   // The probe registers stock bodies at module load; the DOM snapshot
   // does the same so body-aware widgets see resolved BodyDefinitions
@@ -791,7 +785,7 @@ export interface RenderedWidget {
  * assertions against `container` first, then call `teardown()`.
  */
 export async function renderWidgetMode<
-  Cfg extends Record<string, unknown> = Record<string, unknown>,
+  Cfg extends object = Record<string, unknown>,
 >(opts: SnapshotOpts<Cfg>): Promise<RenderedWidget> {
   registerStockBodies();
   const fixtureKeys = Object.keys(opts.fixture).filter(

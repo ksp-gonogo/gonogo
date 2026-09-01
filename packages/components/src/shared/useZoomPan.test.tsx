@@ -1,5 +1,5 @@
 import { act, renderHook } from "@ksp-gonogo/test-utils";
-import type { RefObject } from "react";
+import type { MutableRefObject } from "react";
 import { describe, expect, it } from "vitest";
 import { useZoomPan } from "./useZoomPan";
 
@@ -45,8 +45,10 @@ function ptr(
 function setup() {
   const el = makeEl();
   const hook = renderHook(() => useZoomPan<HTMLDivElement>());
-  (hook.result.current.ref as unknown as RefObject<HTMLDivElement>).current =
-    el;
+  (
+    hook.result.current
+      .ref as unknown as MutableRefObject<HTMLDivElement | null>
+  ).current = el;
   return { hook, el };
 }
 
@@ -156,8 +158,10 @@ describe("useZoomPan", () => {
     const hook = renderHook(() =>
       useZoomPan<HTMLDivElement>({ minScale: 0.5, maxScale: 4 }),
     );
-    (hook.result.current.ref as unknown as RefObject<HTMLDivElement>).current =
-      el;
+    (
+      hook.result.current
+        .ref as unknown as MutableRefObject<HTMLDivElement | null>
+    ).current = el;
 
     act(() => {
       hook.result.current.zoomAbout(100, 0, 0);

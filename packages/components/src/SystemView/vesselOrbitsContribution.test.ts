@@ -60,7 +60,7 @@ describe("computeVesselOrbitEntities", () => {
             lan: value("°", 20),
             argPe: value("°", 30),
             meanAnomalyAtEpoch: value("rad", 0),
-            epoch: value("s", 0),
+            epoch: value("ut", 0),
           },
         }),
       ]),

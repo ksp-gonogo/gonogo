@@ -13,12 +13,14 @@ function node(
   },
 ): ParsedManeuverNode {
   return {
-    id: 0,
-    UT: partial.UT,
+    id: "0",
+    frame: null,
+    ignitionUt: null,
+    cutoffUt: null,
+    orbitPatches: [],
     deltaV: [partial.deltaVMagnitude, 0, 0],
-    deltaVMagnitude: partial.deltaVMagnitude,
     ...partial,
-  } as ParsedManeuverNode;
+  };
 }
 
 describe("computeCompletionUpdate", () => {
@@ -76,14 +78,14 @@ describe("computeCompletionUpdate", () => {
     // First tick: node at UT=100 with id=0.
     computeCompletionUpdate(
       current,
-      [node({ id: 0, UT: 100, deltaVMagnitude: 30 })],
+      [node({ id: "0", UT: 100, deltaVMagnitude: 30 })],
       max,
       1000,
     );
     // Second tick: same UT, but KSP renumbered id to 1 after another removal.
-    const renumbered = node({ id: 1, UT: 100, deltaVMagnitude: 0.1 });
+    const renumbered = node({ id: "1", UT: 100, deltaVMagnitude: 0.1 });
     const result = computeCompletionUpdate(current, [renumbered], max, 2000);
-    expect(result.get(100)?.snapshot.id).toBe(1);
+    expect(result.get(100)?.snapshot.id).toBe("1");
   });
 
   it("respects the threshold parameter", () => {

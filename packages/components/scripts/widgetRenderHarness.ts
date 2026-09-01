@@ -1002,7 +1002,7 @@ async function renderOneWidget(
                 __renderProbe: (payload: ProbePayload) => Promise<void>;
               }
             ).__renderProbe(p),
-          payload as unknown as Record<string, unknown>,
+          payload,
         );
       } catch (err) {
         // Record and move to the next mode. A mount that threw produced no

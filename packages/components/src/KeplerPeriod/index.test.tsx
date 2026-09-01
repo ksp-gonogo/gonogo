@@ -21,10 +21,7 @@ import { KeplerPeriodComponent } from "./index";
 // without erroring, even though neither test below emits onto these keys
 // (the dashed reference curve these tests assert on is drawn purely from
 // the resolved `BodyDefinition`, not from streamed samples).
-const GRAPH_KEYS: DataKey[] = [
-  { key: "o.sma", unit: "m" },
-  { key: "o.period", unit: "s" },
-];
+const GRAPH_KEYS: DataKey[] = [{ key: "o.sma" }, { key: "o.period" }];
 
 const VESSEL_STATE_INPUTS = [
   "vessel.orbit",

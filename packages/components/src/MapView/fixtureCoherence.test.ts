@@ -198,10 +198,18 @@ function elementFingerprint(s: Scene): string {
   ]);
 }
 
+/**
+ * The registered body, with the `gm` these checks propagate against asserted
+ * present. `BodyDefinition.gm` is optional, and the period and state-vector
+ * arithmetic below cannot be done without it, so a body that states none is a
+ * failure of the fixture rather than a case to skip.
+ */
 function bodyOf(name: string) {
   const b = getBody(name);
   if (!b) throw new Error(`no registered body ${name}`);
-  return b;
+  const { gm } = b;
+  if (gm === undefined) throw new Error(`registered body ${name} states no gm`);
+  return { ...b, gm };
 }
 
 beforeAll(() => {

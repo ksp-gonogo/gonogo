@@ -87,7 +87,10 @@ function setup(targetBodyIndex?: number, opts?: { budgetDvVac?: number }) {
   const view = render(
     <fixture.Provider>
       <DashboardItemContext.Provider value={{ instanceId: "transfer-test" }}>
-        <TransferWindowComponent config={{ showPorkchop: true }} />
+        <TransferWindowComponent
+          id="transfer-test"
+          config={{ showPorkchop: true }}
+        />
       </DashboardItemContext.Provider>
     </fixture.Provider>,
   );

@@ -11,7 +11,10 @@ import {
   setupStreamFixture,
 } from "../test/setupStreamFixture";
 import { SystemViewComponent } from "./index";
-import { parentDirectionProjectionId } from "./projection";
+import {
+  parentDirectionProjectionId,
+  type SystemViewProjection,
+} from "./projection";
 
 /**
  * Where the BODIES are drawn, which is the half of the picture every frame test
@@ -72,7 +75,7 @@ CORE_UPLINK_CLIENT.registerContribution({
   id: "test-kerbin-mun-pulsating",
   contributes: "system-view.projection",
   deps: ["system.bodies"],
-  compute: () => [
+  compute: (): SystemViewProjection[] => [
     {
       id: "test.kerbin-mun",
       label: "Hold the Mun still",

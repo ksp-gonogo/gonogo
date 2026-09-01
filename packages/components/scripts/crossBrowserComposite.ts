@@ -32,7 +32,7 @@ export async function diffRatio(aPath: string, bPath: string): Promise<number> {
     await read(aPath),
     await read(bPath),
   );
-  const mismatched = pixelmatch(a.data, b.data, null, width, height, {
+  const mismatched = pixelmatch(a.data, b.data, undefined, width, height, {
     threshold: 0.1,
   });
   return mismatched / (width * height);

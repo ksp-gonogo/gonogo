@@ -1,5 +1,5 @@
 import { getContributionsForSlot, registerStockBodies } from "@ksp-gonogo/core";
-import type { PlotLayer } from "@ksp-gonogo/sitrep-sdk";
+import type { PlotEntry, PlotLayer } from "@ksp-gonogo/sitrep-sdk";
 import { value } from "@ksp-gonogo/sitrep-sdk";
 import { describe, expect, it } from "vitest";
 import {
@@ -34,6 +34,21 @@ import {
  * were handed, and their geometry was in normalised box coordinates that no
  * assertion could have caught being wrong.
  */
+
+/**
+ * The plot's own frame, asserted present.
+ *
+ * `PlotEntry.frame` is optional by design, because a contribution may carry
+ * layers into a frame somebody else supplies. Both builders here OWN their
+ * frame, so its absence is a failure rather than a case, and reading it through
+ * `plot?.frame` with a `?? [0, 0]` fallback let an axis assertion pass on a plot
+ * that was never built.
+ */
+function frameOf(plot: PlotEntry | null): NonNullable<PlotEntry["frame"]> {
+  if (!plot) throw new Error("expected a plot");
+  if (!plot.frame) throw new Error("expected the plot to carry its own frame");
+  return plot.frame;
+}
 
 const FLAT_PATCH = Array.from({ length: 9 }, () => 100);
 const SLOPED_PATCH = [100, 100, 100, 110, 110, 110, 120, 120, 120];
@@ -77,10 +92,10 @@ describe("cross-section plot", () => {
   it("states both axes in metres, not in a normalised box", () => {
     const plot = buildCrossSectionPlot(crossSection());
     expect(plot).not.toBeNull();
-    expect(plot?.frame.xUnit).toBe("m");
-    expect(plot?.frame.yUnit).toBe("m");
+    expect(frameOf(plot).xUnit).toBe("m");
+    expect(frameOf(plot).yUnit).toBe("m");
     // Real elevations (100..120), not a 0..1 amplitude scaled to the box.
-    const [yLo] = plot?.frame.yDomain ?? [0, 0];
+    const [yLo] = frameOf(plot).yDomain;
     expect(yLo).toBeLessThan(100);
   });
 
@@ -89,9 +104,9 @@ describe("cross-section plot", () => {
     // scale has to survive that: a window taller than it is wide inside a
     // square box stretches the picture, and a stretched slope is not the slope.
     const plot = buildCrossSectionPlot(crossSection({ aglMeters: 300 }));
-    expect(plot?.frame.kind).toBe("spatial");
-    const [xLo, xHi] = plot?.frame.xDomain ?? [0, 0];
-    const [yLo, yHi] = plot?.frame.yDomain ?? [0, 0];
+    expect(frameOf(plot).kind).toBe("spatial");
+    const [xLo, xHi] = frameOf(plot).xDomain;
+    const [yLo, yHi] = frameOf(plot).yDomain;
     expect(xHi - xLo).toBeCloseTo(yHi - yLo, 6);
     // 200 m of patch across and a craft 300 m up: past the tallness limit, so
     // the window stays the ground's and the craft is off the top.
@@ -100,8 +115,8 @@ describe("cross-section plot", () => {
 
   it("opens up to hold the vessel when it fits, staying square", () => {
     const plot = buildCrossSectionPlot(crossSection({ aglMeters: 60 }));
-    const [xLo, xHi] = plot?.frame.xDomain ?? [0, 0];
-    const [yLo, yHi] = plot?.frame.yDomain ?? [0, 0];
+    const [xLo, xHi] = frameOf(plot).xDomain;
+    const [yLo, yHi] = frameOf(plot).yDomain;
     expect(xHi - xLo).toBeCloseTo(yHi - yLo, 6);
     expect(yHi).toBeGreaterThan(160);
   });
@@ -197,9 +212,9 @@ describe("touchdown reticle plot", () => {
     // No inset ring of empty ground around the map. The patch footprint IS the
     // window, which is what makes this plot look like the one beside it.
     const plot = buildTouchdownReticlePlot(reticle({ patchExtentMeters: 200 }));
-    expect(plot?.frame.kind).toBe("spatial");
-    expect(plot?.frame.xDomain).toEqual([-100, 100]);
-    expect(plot?.frame.yDomain).toEqual([-100, 100]);
+    expect(frameOf(plot).kind).toBe("spatial");
+    expect(frameOf(plot).xDomain).toEqual([-100, 100]);
+    expect(frameOf(plot).yDomain).toEqual([-100, 100]);
   });
 
   it("carries the terrain as a relief over its real footprint", () => {

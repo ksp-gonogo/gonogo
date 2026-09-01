@@ -87,14 +87,14 @@ function emitReads(fixture: StreamFixture, state: EmitState): void {
 describe("NavballComponent", () => {
   let source: MockDataSource;
   let buffered: BufferedDataSource;
-  let onExecute: ReturnType<typeof vi.fn>;
+  let onExecute: ReturnType<typeof vi.fn<(action: string) => void>>;
   // Unmount before buffered.disconnect() (a status change that re-renders the
   // still-mounted connectivity badge): the act() anti-pattern otherwise.
   const trees: Array<() => void> = [];
 
   beforeEach(async () => {
     clearRegistry();
-    onExecute = vi.fn();
+    onExecute = vi.fn<(action: string) => void>();
     source = new MockDataSource({ keys: KEYS, onExecute });
     buffered = new BufferedDataSource({ source, store: new MemoryStore() });
     registerDataSource(buffered);

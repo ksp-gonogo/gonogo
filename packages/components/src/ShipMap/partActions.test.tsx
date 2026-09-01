@@ -1,3 +1,4 @@
+import type { VesselTopology } from "@ksp-gonogo/core";
 import { act, render, screen, waitFor } from "@ksp-gonogo/test-utils";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it } from "vitest";
@@ -17,7 +18,7 @@ import { PART_ACTIONS_TOPIC_PREFIX, partActionsTopic } from "./usePartActions";
  * actually subscribed, so these tests also prove the subscription really happens.
  */
 
-const TOPOLOGY = fuellinePostStage2["v.topology"];
+const TOPOLOGY = fuellinePostStage2["v.topology"] as VesselTopology;
 const VESSEL_PARTS_WIRE = topologyToVesselPartsWire(TOPOLOGY);
 
 /** The flightId of the part the tests act on, taken from the fixture itself. */

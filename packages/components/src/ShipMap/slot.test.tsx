@@ -3,6 +3,7 @@ import {
   clearAugments,
   getAugmentsForSlot,
   registerAugment,
+  type VesselTopology,
 } from "@ksp-gonogo/core";
 import { act, render, screen, waitFor } from "@ksp-gonogo/test-utils";
 import { visibleText } from "@ksp-gonogo/ui-kit/testing";
@@ -19,7 +20,7 @@ import { ShipMapComponent, type ShipMapOverlayContext } from "./index";
  * appear, receiving the widget's projection context as typed slot props.
  */
 
-const TOPOLOGY = fuellinePostStage2["v.topology"];
+const TOPOLOGY = fuellinePostStage2["v.topology"] as VesselTopology;
 const VESSEL_PARTS_WIRE = topologyToVesselPartsWire(TOPOLOGY);
 
 // Unmount each rendered tree BEFORE clearing the action-handler/augment
